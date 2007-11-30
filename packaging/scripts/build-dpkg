@@ -1,0 +1,27 @@
+#!/bin/bash
+
+## check for some necessary files first
+
+type gmcs 2>&1 > /dev/null
+if [ $? != 0 ]; then
+	echo "Cannot locate gmcs.  Please ensure it can be found in your PATH"
+	echo "or run \"apt-get install mono-gmcs\" if it is not installed."
+	exit 1
+fi
+
+BASEDIR=`dirname $0`/../..
+. ${BASEDIR}/packaging/scripts/functions
+VERSION=$(get_lwopen_version)
+
+/bin/rm -rf $BASEDIR/../likewise-open-$VERSION || exit 1
+mkdir $BASEDIR/../likewise-open-$VERSION || exit 1
+rsync -av --exclude=.git* $BASEDIR/ $BASEDIR/../likewise-open-$VERSION/ || exit 1
+cd $BASEDIR/../likewise-open-$VERSION
+if [ ! -d debian ]; then
+	ln -s packaging/debian debian
+fi
+
+## for some reason the mono compiler aborts when run under fakeroot
+(cd gui && make) || exit 1
+dpkg-buildpackage -rfakeroot
+

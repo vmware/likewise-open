@@ -1,0 +1,10 @@
+#
+# mono --version gives this error on Solaris/sparc on stderr:
+#
+# GLib: Cannot convert message: Conversion from character set 'UTF-8' to '646' is not supported
+#
+# LC_CTYPE=en_US.UTF-8 seems to solve it.  However, we do not want to
+# force any en_US-ness and don't have time to invest further.
+# Therefore, for now, we just 2>/dev/null to get rid of stderr output.
+#
+

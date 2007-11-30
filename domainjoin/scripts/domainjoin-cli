@@ -1,0 +1,9 @@
+#!/bin/sh
+
+LWI_HOME_DIR=/opt/centeris
+
+export LD_LIBRARY_PATH
+LD_LIBRARY_PATH=${LWI_HOME_DIR}/lib:${LD_LIBRARY_PATH}
+
+umask 022
+exec ${LWI_HOME_DIR}/bin/lwi-domainjoin-cli "$@"

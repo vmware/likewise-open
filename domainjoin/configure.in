@@ -1,0 +1,175 @@
+##
+## Copyright (C) Centeris Corporation 2004-2007
+## Copyright (C) Likewise Software 2007.  
+## All rights reserved.
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 3 of the License, or
+## (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
+##
+
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT(centeris-domainjoin, 1.0, support@centeris.com)
+AC_CONFIG_SRCDIR([include/DomainJoinConfig.h.in])
+AC_CONFIG_HEADER([include/DomainJoinConfig.h])
+AC_PREFIX_DEFAULT(/usr/centeris)
+
+RM='/bin/rm -f'
+AC_SUBST(RM)
+
+LINK='/bin/ln -s'
+AC_SUBST(LINK)
+
+if test -z "${AR}"; then
+    AC_CHECK_PROGS(AR, ar, gar, ar_was_not_found)
+fi
+
+LDSHFLAGS="${LDSHFLAGS} -shared -fPIC"
+
+CPPFLAGS="$CPPFLAGS -D_REENTRANT -fPIC"
+LIBVER_MAJOR=1
+SHLIBEXT=.so
+SHLIBVEXT=.so.$LIBVER_MAJOR
+DYNLIBEXT=.so
+DYNLIBVEXT=.so.$LIBVER_MAJOR
+LWI_OS_FLAGS=""
+LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS=""
+case `uname -s` in
+    AIX)
+        LWI_OS_FLAGS="-D__LWI_AIX__"
+        LDFLAGS="${LDFLAGS} -static-libgcc"
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-o$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djnsswitch_aix.o djdaemonmgr.o"
+        ;;
+
+    Darwin)
+        LWI_OS_FLAGS="-D__LWI_MACOSX__"
+        SHLIBEXT=.dylib
+        SHLIBVEXT=.$LIBVER_MAJOR.dylib
+        LDFLAGS="-headerpad_max_install_names $LDFLAGS"
+        BUILD_DYNLIB_CMD='$(CC) -bundle $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)'
+        BUILD_SHLIB_CMD='$(CC) -undefined error -dynamiclib -compatibility_version $(LIBVER_MAJOR) -current_version $(LIBVER_MAJOR) -install_name "lib$(LIBNAME)$(SHLIBVEXT)" -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS)'
+        LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djconfig_mac.o djnsswitch_mac.o djdaemonmgr_mac.o"
+        ;;
+
+    Linux)
+        LWI_OS_FLAGS="-D__LWI_LINUX__"
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djnsswitch.o djdaemonmgr.o"
+        ;;
+
+    SunOS)
+        LWI_OS_FLAGS="-D__LWI_SOLARIS__"
+        LDFLAGS="${LDFLAGS} -static-libgcc"
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-o$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djnsswitch.o djdaemonmgr.o"
+        ;;
+
+    HP-UX)
+        LWI_OS_FLAGS="-D__LWI_HP_UX__"
+        if test `uname -m` != "ia64"; then
+           SHLIBEXT=.sl
+           SHLIBVEXT=.sl.$LIBVER_MAJOR
+           DYNLIBEXT=.sl
+           DYNLIBVEXT=.sl.$LIBVER_MAJOR
+        fi
+        BUILD_SHLIB_CMD='$(CC) -shared -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djnsswitch.o djdaemonmgr.o"
+        ;;
+
+    *)
+        AC_MSG_ERROR(OS not supported, 1)
+        ;;
+esac
+
+AC_SUBST(SHLIBEXT)
+AC_SUBST(SHLIBVEXT)
+AC_SUBST(DYNLIBEXT)
+AC_SUBST(DYNLIBVEXT)
+AC_SUBST(LIBVER_MAJOR)
+AC_SUBST(BUILD_SHLIB_CMD)
+AC_SUBST(BUILD_DYNLIB_CMD)
+AC_SUBST(LWI_OS_FLAGS)
+AC_SUBST(LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS)
+
+AC_ARG_ENABLE(debug,
+[ --enable-debug enable debugging ],
+CFLAGS="${CFLAGS} -g"
+)
+
+if test "x$CFLAGS" = "x"; then
+    CFLAGS="-O2"
+fi
+
+AC_SUBST(LDSHFLAGS)
+
+if test "x$prefix" = "xNONE"; then
+AC_DEFINE_UNQUOTED(PREFIXDIR, "$ac_default_prefix", [The directory that contains centeris/bin])
+else
+AC_DEFINE_UNQUOTED(PREFIXDIR, "$prefix", [The directory that contains centeris/bin])
+fi
+
+AC_DEFINE_UNQUOTED(SAMBACONFDIR, "/etc/samba", [The directory that stores lwiauthd.conf])
+
+AC_C_BIGENDIAN([AC_DEFINE(WORDS_BIGENDIAN, 1, [Define to 1 if the system uses bigendian byte ordering])],[AC_DEFINE(WORDS_LITTLEENDIAN, 1, [Define to 1 if the system uses little-endian byte ordering])],[AC_DEFINE(WORDS_UNKNOWN, 1, [Define to 1 if the byte ordering of the system is unknown])])
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL
+
+# Checks for libraries.
+
+AC_CHECK_LIB([nsl], [gethostname])
+AC_CHECK_LIB([resolv], [res_query])
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string sys/socket.h syslog.h unistd.h sys/types.h fcntl.h sys/stat.h ])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_PID_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+
+# Checks for library functions.
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_SELECT_ARGTYPES
+AC_TYPE_SIGNAL
+AC_FUNC_STRFTIME
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([atexit bzero localtime_r memset select socket strchr strerror vsyslog])
+AC_CHECK_DECLS([isblank], [], [], [#include <ctype.h>])
+
+AC_CONFIG_FILES([Makefile
+		 libcentutils/Makefile
+                 libdomainjoin/src/Makefile
+                 domainjoin-cli/src/Makefile
+                 tests/Makefile
+                 tests/test_auth_conf/src/Makefile
+                 tests/test_proc_utils/src/Makefile
+                 tests/test_nsswitch_change/src/Makefile
+                 tests/test_dhcpname_change/src/Makefile
+                 tests/test_sec_user/src/Makefile
+                 tests/test_login_cfg/src/Makefile
+                 tests/test_file_utils/src/Makefile], echo timestamp > stamp-h
+)
+AC_OUTPUT

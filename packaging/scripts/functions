@@ -1,0 +1,13 @@
+get_lwopen_version() {
+	BASEDIR=`dirname $0`/../..
+	. $BASEDIR/winbind/source/VERSION
+	VERSION=${LIKEWISE_AUTH_MAJOR}.${LIKEWISE_AUTH_MINOR}.${LIKEWISE_AUTH_RELEASE}
+
+	echo "${VERSION}"
+}
+
+create_rpmbuild_directory() {
+	topdir=`rpm --eval %_topdir`
+	mkdir -p ${topdir}/{SOURCES,SPECS,BUILD,RPMS,SRPMS}
+}
+

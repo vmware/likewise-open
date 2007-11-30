@@ -1,0 +1,14 @@
+#!/bin/bash
+
+BASEDIR=`dirname $0`/../..
+
+. ${BASEDIR}/packaging/scripts/functions
+VERSION=$(get_lwopen_version)
+
+/bin/rm -rf $BASEDIR/../likewise-open-$VERSION || exit 1
+mkdir $BASEDIR/../likewise-open-$VERSION || exit 1
+rsync -a --exclude=.git* --exclude=*~ --exclude=*bak \
+	$BASEDIR/ $BASEDIR/../likewise-open-$VERSION/ || exit 1
+cd $BASEDIR/..
+tar cf - likewise-open-$VERSION | gzip -9 > likewise-open-$VERSION.tar.gz
+

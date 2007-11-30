@@ -1,0 +1,10 @@
+opt/likewise-open/bin
+opt/likewise-open/sbin
+opt/likewise-open/lib/idmap
+etc/security
+etc/init.d
+etc/defaults
+etc/samba
+var/run
+var/lib/likewise-open
+/var/log/likewise-open

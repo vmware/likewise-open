@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DomainJoin", "DomainJoin.csproj", "{784669A2-0E00-420C-9463-81717ACD8AFC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7C93B666-2D28-4FE1-9925-1767D21630CB} = {7C93B666-2D28-4FE1-9925-1767D21630CB}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DomainJoinLib", "..\DomainJoinLib\DomainJoinLib.csproj", "{7C93B666-2D28-4FE1-9925-1767D21630CB}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectDependencies) = postSolution
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{784669A2-0E00-420C-9463-81717ACD8AFC}.Debug.ActiveCfg = Debug|.NET
+		{784669A2-0E00-420C-9463-81717ACD8AFC}.Debug.Build.0 = Debug|.NET
+		{784669A2-0E00-420C-9463-81717ACD8AFC}.Release.ActiveCfg = Release|.NET
+		{784669A2-0E00-420C-9463-81717ACD8AFC}.Release.Build.0 = Release|.NET
+		{7C93B666-2D28-4FE1-9925-1767D21630CB}.Debug.ActiveCfg = Debug|.NET
+		{7C93B666-2D28-4FE1-9925-1767D21630CB}.Debug.Build.0 = Debug|.NET
+		{7C93B666-2D28-4FE1-9925-1767D21630CB}.Release.ActiveCfg = Release|.NET
+		{7C93B666-2D28-4FE1-9925-1767D21630CB}.Release.Build.0 = Release|.NET
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

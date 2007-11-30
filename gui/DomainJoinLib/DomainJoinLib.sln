@@ -1,0 +1,23 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DomainJoinLib", "DomainJoinLib.csproj", "{7C93B666-2D28-4FE1-9925-1767D21630CB}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectDependencies) = postSolution
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{7C93B666-2D28-4FE1-9925-1767D21630CB}.Debug.ActiveCfg = Debug|.NET
+		{7C93B666-2D28-4FE1-9925-1767D21630CB}.Debug.Build.0 = Debug|.NET
+		{7C93B666-2D28-4FE1-9925-1767D21630CB}.Release.ActiveCfg = Release|.NET
+		{7C93B666-2D28-4FE1-9925-1767D21630CB}.Release.Build.0 = Release|.NET
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

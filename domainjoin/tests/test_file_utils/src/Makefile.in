@@ -1,0 +1,78 @@
+##
+## Copyright (C) Centeris Corporation 2004-2007
+## Copyright (C) Likewise Software 2007.  
+## All rights reserved.
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 3 of the License, or
+## (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
+##
+
+BUILD_ROOT = ../../..
+
+SHELL= /bin/sh
+VPATH= @srcdir@
+
+subdirs= @subdirs@
+top_srcdir= @top_srcdir@
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = ${exec_prefix}/bin
+sbindir = ${exec_prefix}/sbin
+infodir = ${prefix}/info
+libdir = ${prefix}/lib
+mandir = ${prefix}/man/man1
+
+DESTDIR=@DESTDIR@
+CC = @CC@
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = $(CPPFLAGS) @CFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+INSTALL = @INSTALL@
+
+PUBLIC_INCLUDE_DIR = $(BUILD_ROOT)/include
+DOMAINJOIN_DIR = $(BUILD_ROOT)/libdomainjoin
+
+DOMAINJOIN_LIB = $(DOMAINJOIN_DIR)/src/libdomainjoin.a
+
+INCLUDES = -I$(PUBLIC_INCLUDE_DIR) -I$(DOMAINJOIN_DIR)/include
+CFLAGS += $(INCLUDES) -D__DO_NOT_DEFINE_COMPILE @GP_CPPFLAGS@
+LDFLAGS += @GP_LDFLAGS@
+
+LIBS += -Bdynamic -L$(DOMAINJOIN_DIR)/src -ldomainjoin
+
+OBJS = main.o
+
+PROGRAM = test_file_utils
+
+all : $(PROGRAM)
+
+$(PROGRAM) : $(OBJS) $(DOMAINJOIN_LIB)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS) @GP_LIBS@ $(LIBS)
+
+$(OBJS) : %.o : %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+clean :
+	$(RM) $(OBJS) $(PROGRAM)
+
+distclean:
+	$(RM) Makefile
+
+install: all
+
+
+uninstall:
+
+
