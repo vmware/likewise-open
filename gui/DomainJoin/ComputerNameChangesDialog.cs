@@ -405,7 +405,7 @@ namespace Centeris.DomainJoin
 				{
 					string sNote = "Note that in some Linux distributions changing the name of a computer may\n";
 					sNote +=       " cause problems with X Windows until you log out and log in again.";
-					MessageBox.Show(this, sNote, "Open Range", MessageBoxButtons.OK, MessageBoxIcon.Information);
+					MessageBox.Show(this, sNote, "Likewise Open", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				}
 
 				CredsDialog creds = new CredsDialog();

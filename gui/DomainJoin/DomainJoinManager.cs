@@ -241,7 +241,7 @@ namespace Centeris.DomainJoin
             this.MinimizeBox = false;
             this.Name = "DomainJoinManagerForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Open Range";
+            this.Text = "Likewise Open";
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.DomainJoinManagerForm_KeyDown);
             this.Load += new System.EventHandler(this.DomainJoinManagerForm_Load);
             this.ResumeLayout(false);
@@ -260,7 +260,7 @@ namespace Centeris.DomainJoin
 			// check to make sure we're running as root
 			if (!DomainJoinServiceInterface.IsRootUser())
 			{
-				MessageBox.Show("Error: This program can only be run by the root user", "Open Range", MessageBoxButtons.OK);
+				MessageBox.Show("Error: This program can only be run by the root user", "Likewise Open", MessageBoxButtons.OK);
 				bQuit = true;
 			}
 
@@ -320,7 +320,7 @@ namespace Centeris.DomainJoin
 	        }
 	        catch(Exception ex)
 	        {
-	            MessageBox.Show(ex.Message, "Open Range: Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+	            MessageBox.Show(ex.Message, "Likewise Open: Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 	        }
 	    }
 	    
@@ -511,7 +511,7 @@ namespace Centeris.DomainJoin
             }
 	        else
             {
-                MessageBox.Show(sb.ToString(), "Open Range", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(sb.ToString(), "Likewise Open", MessageBoxButtons.OK, MessageBoxIcon.Information);
 	        }
 	        Environment.Exit(1);
 	    }

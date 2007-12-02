@@ -181,7 +181,7 @@ namespace Centeris.DomainJoin
             this.MinimizeBox = false;
             this.Name = "JoinProgressForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Open Range";
+            this.Text = "Likewise Open";
             this.Load += new System.EventHandler(this.JoinProgressForm_Load);
             this.ResumeLayout(false);
 
@@ -345,7 +345,7 @@ namespace Centeris.DomainJoin
 
 		private void btnDetail_Click(object sender, System.EventArgs e)
 		{
-			// MessageBox.Show(this, threadError.InnerException.Message, "Open Range", MessageBoxButtons.OK);
+			// MessageBox.Show(this, threadError.InnerException.Message, "Likewise Open", MessageBoxButtons.OK);
 			string sMessage = "";
 			if (threadError.InnerException.Message!=null)
 				sMessage = threadError.InnerException.Message;

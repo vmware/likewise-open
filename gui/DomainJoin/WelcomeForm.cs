@@ -114,7 +114,7 @@ namespace Centeris.DomainJoin
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(288, 23);
             this.label1.TabIndex = 1;
-            this.label1.Text = "Open Range";
+            this.label1.Text = "Likewise Open";
             // 
             // label2
             // 
@@ -145,7 +145,7 @@ namespace Centeris.DomainJoin
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(378, 56);
             this.label4.TabIndex = 2;
-            this.label4.Text = "Welcome to Open Range.  In order to use Open Range you mus" +
+            this.label4.Text = "Welcome to Likewise Open.  In order to use Likewise Open you mus" +
                 "t \"join\" your computer to your Active Directory domain. To do this, you will nee" +
                 "d:";
             // 

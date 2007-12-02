@@ -267,7 +267,7 @@ namespace Centeris.DomainJoin
 			this.MinimumSize = new System.Drawing.Size(440, 320);
 			this.Name = "DetailForm";
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-			this.Text = "Open Range";
+			this.Text = "Likewise Open";
 			this.ResumeLayout(false);
 
 		}
@@ -288,7 +288,7 @@ namespace Centeris.DomainJoin
 
         private void ShowError(string sMessage)
         {
-            MessageBox.Show(this, sMessage, "Open Range", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, sMessage, "Likewise Open", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 	}
 }

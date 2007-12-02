@@ -133,7 +133,7 @@ namespace Centeris.DomainJoin
             this.MinimizeBox = false;
             this.Name = "Prompt";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Open Range";
+            this.Text = "Likewise Open";
             this.Load += new System.EventHandler(this.Prompt_Load);
             this.ResumeLayout(false);
 
