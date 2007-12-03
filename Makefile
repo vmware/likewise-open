@@ -40,5 +40,8 @@ dpkg:
 rpm-suse: dist
 	sh packaging/scripts/build-rpm-suse
 
+rpm-fedora: dist
+	sh packaging/scripts/build-rpm-fedora
+
 dist:
 	sh packaging/scripts/build-dist
