@@ -56,8 +56,8 @@ namespace Centeris.DomainJoin
 			//
 			InitializeComponent();
 
-			labelVersion.Text = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-
+			// labelVersion.Text = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+			labelVersion.Text = "4.0.0";
 		}
 
 		/// <summary>
