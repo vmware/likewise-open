@@ -22,8 +22,8 @@
 
 CONF=/etc/samba/lwiauthd.conf
 CENTERIS_PREFIX=/opt/likewise-open
-AUTHD_BIN=${CENTERIS_PREFIX}/sbin/lwiauthd
-PIDFILE=/var/run/lwiauthd.pid
+AUTHD_BIN=${CENTERIS_PREFIX}/sbin/likewise-winbindd
+PIDFILE=/var/run/likewise-winbindd.pid
 SCRIPTNAME="likewise-open"
 
 ## Have to set the path for HP-UX boot process
@@ -33,12 +33,6 @@ export PATH
 if [ ! -f ${CONF} ]; then
     echo "Missing ${CONF}"
     exit 1
-fi
-
-# Check for the binary in locations it might be at for other OSs
-if [ ! -x ${AUTHD_BIN} -a -d /opt/centeris ]; then
-    CENTERIS_PREFIX=/opt/centeris
-    AUTHD_BIN=${CENTERIS_PREFIX}/sbin/lwiauthd
 fi
 
 PROG_BIN="${AUTHD_BIN}"
@@ -271,7 +265,7 @@ daemon_start() {
                 done
             fi
             if [ $status -eq 0 ]; then
-                #This command will wait for lwiauthd to initialize before
+                #This command will wait for likewise-winbindd to initialize before
                 #returning
                 #Ignore the exit code incase we aren't joined to a domain
                 $CENTERIS_PREFIX/bin/lwiinfo -D `$CENTERIS_PREFIX/bin/lwiinfo --own-domain` 1>/dev/null 2>/dev/null

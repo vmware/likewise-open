@@ -16,7 +16,7 @@ opt/likewise-open/bin/domainjoin-gui
 opt/likewise-open/bin/DomainJoinLib.dll
 opt/likewise-open/bin/DomainJoin.exe
 
-opt/likewise-open/sbin/lwiauthd
+opt/likewise-open/sbin/likewise-winbindd
 
 opt/likewise-open/lib/idmap/lwopen.so
 

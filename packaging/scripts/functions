@@ -1,6 +1,6 @@
 get_lwopen_version() {
 	BASEDIR=`dirname $0`/../..
-	. $BASEDIR/winbind/source/VERSION
+	. $BASEDIR/winbindd/source/VERSION
 	VERSION=${LIKEWISE_AUTH_MAJOR}.${LIKEWISE_AUTH_MINOR}.${LIKEWISE_AUTH_RELEASE}
 
 	echo "${VERSION}"

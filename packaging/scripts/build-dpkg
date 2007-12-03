@@ -1,4 +1,3 @@
-#!/bin/bash
 
 ## check for some necessary files first
 
@@ -22,6 +21,6 @@ if [ ! -d debian ]; then
 fi
 
 ## for some reason the mono compiler aborts when run under fakeroot
-(cd gui && make) || exit 1
+# (cd gui && make) || exit 1
 dpkg-buildpackage -rfakeroot
 

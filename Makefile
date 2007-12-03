@@ -17,11 +17,11 @@
 ## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
 ##
 
-DIRS=domainjoin winbind/source gui
+DIRS=domainjoin winbindd/source gui
 
 all:
 	make -C domainjoin all
-	make -C winbind/source proto pch lwopen
+	make -C winbindd/source proto pch lwopen
 	make -C gui all
 
 clean:
@@ -31,7 +31,7 @@ clean:
 
 install: 
 	make -C domainjoin DESTDIR=$(DESTDIR) install
-	make -C winbind/source DESTDIR=$(DESTDIR) lwopen-install
+	make -C winbindd/source DESTDIR=$(DESTDIR) lwopen-install
 	make -C gui DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
 
 dpkg:

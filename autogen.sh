@@ -18,7 +18,7 @@
 ## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
 ##
 
-DIRS="winbind/source domainjoin"
+DIRS="winbindd/source domainjoin"
 
 for d in ${DIRS}; do
 	echo ">>>>>>> Running autogen in ${d} <<<<<<<<"

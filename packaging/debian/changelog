@@ -1,56 +1,7 @@
-likewise-open (3.9.9-1likewise9) gutsy; urgency=low
+likewise-open (4.0.0-1likewise1) gutsy; urgency=low
 
-  * Fix the username alias mapping
+  * Initial 4.0.0 Release including command line & GUI domain join tools
+    and the likewise-winbindd service.
 
- -- Gerald Carter <jerry@centeris.com>  Tue, 30 Oct 2007 17:04:45 -0400
-
-likewise-open (3.9.9-1likewise8) gutsy; urgency=low
-
-  * Sanity check after adding license information and rebranding the GUI
-
- -- Gerald Carter <jerry@centeris.com>  Tue, 30 Oct 2007 09:53:46 -0400
-
-likewise-open (3.9.9-1likewise7) gutsy; urgency=low
-
-  * Initial packaging for gutsy.
-
- -- Gerald Carter <jerry@centeris.com>  Sat, 27 Oct 2007 22:56:53 -0500
-
-likewise-open (3.9.9-1likewise6) feisty; urgency=low
-
-  * Added libwbclient support.
-
- -- Gerald Carter <jerry@centeris.com>  Sun, 21 Oct 2007 16:58:49 -0500
-
-likewise-open (3.9.9-1centeris4) feisty; urgency=low
-
-  * Added domainjoin-gui wrapper for the .NET join utility.
-
- -- Gerald Carter <jerry@centeris.com>  Sat, 20 Oct 2007 16:05:36 -0500
-
-likewise-open (3.9.9-1centeris3) feisty; urgency=low
-
-  * Added .NET domain join GUI
-
- -- Gerald Carter <jerry@centeris.com>  Thu, 18 Oct 2007 22:06:36 -0500
-
-likewise-open (3.9.9-1centeris2) feisty; urgency=low
-
-  * Package name change from likewise-ice to likewise-open
-
- -- Gerald Carter <jerry@centeris.com>  Tue, 16 Oct 2007 17:18:00 -0500
-
-likewise-open (3.9.9-1centeris1) feisty; urgency=low
-
-  * Add likewise-open idmap plugin based on idmap_rid.
-
-  * Implement working command line domain join functionality.
-
- -- Gerald Carter <jerry@centeris.com>  Tue, 16 Oct 2007 12:34:33 -0500
-
-likewise-open (3.5.1-1) unstable; urgency=low
-
-  * Initial release
-
- -- Gerald Carter <jerry@centeris.com>  Thu, 13 Sep 2007 14:52:28 -0500
+ -- Gerald Carter <gcarter@likewisesoftware.com>  Sat, 01 Dec 2007 20:32:35 -0600
 

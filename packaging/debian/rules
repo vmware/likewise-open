@@ -109,7 +109,7 @@ install: build
 	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/libwbclient.so
 	mv $(DESTDIR)/$(PREFIX)/lib/libwbclient.so* $(DESTDIR)/usr/lib/
 
-	install --mode=755 winbind/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
+	install --mode=755 winbindd/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
 
 	for file in gui/DomainJoinLib/scripts/*pm; do \
 		install --mode=0644 $$file $(DESTDIR)/opt/likewise-open/bin/; \
