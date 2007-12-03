@@ -14,7 +14,6 @@
 #LWI_STARTUP_TYPE_SUSE### BEGIN INIT INFO
 #LWI_STARTUP_TYPE_SUSE# Provides: likewise-open
 #LWI_STARTUP_TYPE_SUSE# Required-Start: $network $remote_fs
-#LWI_STARTUP_TYPE_SUSE# Required-Stop: $network $remote_fs centeris.com-gpagentd
 #LWI_STARTUP_TYPE_SUSE# Default-Start: 3 5
 #LWI_STARTUP_TYPE_SUSE# Default-Stop: 0 1 2 6
 #LWI_STARTUP_TYPE_SUSE# Description: Start the Centeris Likewise Identity Auth Daemon
@@ -22,8 +21,8 @@
 
 CONF=/etc/samba/lwiauthd.conf
 CENTERIS_PREFIX=/opt/likewise-open
-AUTHD_BIN=${CENTERIS_PREFIX}/sbin/lwiauthd
-PIDFILE=/var/run/lwiauthd.pid
+AUTHD_BIN=${CENTERIS_PREFIX}/sbin/likewise-winbindd
+PIDFILE=/var/run/likewise-winbindd.pid
 SCRIPTNAME="likewise-open"
 
 ## Have to set the path for HP-UX boot process
@@ -36,9 +35,9 @@ if [ ! -f ${CONF} ]; then
 fi
 
 # Check for the binary in locations it might be at for other OSs
-if [ ! -x ${AUTHD_BIN} -a -d /opt/centeris ]; then
-    CENTERIS_PREFIX=/opt/centeris
-    AUTHD_BIN=${CENTERIS_PREFIX}/sbin/lwiauthd
+if [ ! -x ${AUTHD_BIN} -a -d /opt/likewise-open ]; then
+    CENTERIS_PREFIX=/opt/likewise-open
+    AUTHD_BIN=${CENTERIS_PREFIX}/sbin/likewise-winbindd
 fi
 
 PROG_BIN="${AUTHD_BIN}"
@@ -271,7 +270,7 @@ daemon_start() {
                 done
             fi
             if [ $status -eq 0 ]; then
-                #This command will wait for lwiauthd to initialize before
+                #This command will wait for likewise-winbindd to initialize before
                 #returning
                 #Ignore the exit code incase we aren't joined to a domain
                 $CENTERIS_PREFIX/bin/lwiinfo -D `$CENTERIS_PREFIX/bin/lwiinfo --own-domain` 1>/dev/null 2>/dev/null

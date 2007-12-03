@@ -75,7 +75,7 @@ mkdir -p $RPM_BUILD_ROOT/%{_lib}/security
 make DESTDIR=${RPM_BUILD_ROOT} PREFIX=%{LWPrefix} install
 
 ## Now manually install the PAM/NSS library
-pushd winbind/source
+pushd winbindd/source
 %{__install} -m0755 nsswitch/libnss_lwidentity.so $RPM_BUILD_ROOT/%{_lib}/libnss_lwidentity.so.2
 %{__install} -m0755 bin/pam_lwidentity.so $RPM_BUILD_ROOT/%{_lib}/security/pam_lwidentity.so
 %{__install} -m0755 bin/libwbclient.so $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so.0.1
@@ -122,7 +122,7 @@ ldconfig
 %files
 %defattr(-,root,root)
 
-## Bits for lwiauthd
+## Bits for likewise-winbindd
 %dir %attr(755,root,root) /var/lib/%{name}
 %dir %attr(755,root,root) /var/log/%{name}
 %config %{_sysconfdir}/logrotate.d/likewise-open
@@ -134,7 +134,7 @@ ldconfig
 %{LWPrefix}/bin/lwinet
 %{LWPrefix}/bin/lwiinfo
 %{LWPrefix}/bin/lwimsg
-%{LWPrefix}/sbin/lwiauthd
+%{LWPrefix}/sbin/likewise-winbindd
 %{LWPrefix}/%{_lib}/idmap/lwopen.so
 %{LWPrefix}/%{_lib}/nss_info/lwopen.so
 /%{_lib}/security/pam_lwidentity.so
