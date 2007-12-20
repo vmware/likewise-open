@@ -21,7 +21,7 @@ Source999: setup.tar.gz
 Likewise Open provides tools and services necessary to integrate
 Linux hosts into an Microsoft Active Directory domain.  Installing
 Likewise Open will allow you to join your host to an AD domain and
-authenticate and authroize Linux services using the AD list of 
+authenticate and authroize Linux services using the AD list of
 users and groups.
 
 %prep
@@ -57,7 +57,7 @@ export CFLAGS
     --with-pam \
     --with-shared-modules=idmap_lwopen
 
-make 
+make
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -86,6 +86,7 @@ ln -s libwbclient.so.0.1 $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so
 /bin/rm -f ${RPM_BUILD_ROOT}/%{LWPrefix}/lib/libwbclient.so
 popd
 
+
 ## Grab the support scripts
 for file in gui/DomainJoinLib/scripts/*pm; do \
 	%{__install} -m0644 $file ${RPM_BUILD_ROOT}/%{LWPrefix}/bin/; \
@@ -96,7 +97,8 @@ done
 for file in gui/DomainJoinLib/scripts/*sh; do \
 	%{__install} -m0755 $file ${RPM_BUILD_ROOT}/%{LWPrefix}/bin/; \
 done
-%{__install} -m0755 gui/DomainJoinLib/scripts/domainjoin-gui ${RPM_BUILD_ROOT}/%{LWPrefix}/bin/
+# bkoropoff - gtk switchover
+#%{__install} -m0755 gui/DomainJoinLib/scripts/domainjoin-gui ${RPM_BUILD_ROOT}/%{LWPrefix}/bin/
 
 ## install the vendor files ( init script, etc... )
 %{__install} -m0755 setup/likewise-open.init $RPM_BUILD_ROOT/%{_sysconfdir}/init.d/likewise-open
@@ -107,13 +109,13 @@ done
 ## Docs
 %{__install} -m0644 setup/README.Likewise $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}/
 
-%clean 
+%clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
 %pre
 
 %post
-ldconfig 
+ldconfig
 
 %preun
 
@@ -141,13 +143,15 @@ ldconfig
 /%{_lib}/libnss_lwidentity.so*
 %{_libdir}/libwbclient.so*
 %{LWPrefix}/include/samba/wbclient.h
+%{LWPrefix}/share/domainjoin-gtk.glade
 
 ## domain join utilities
 %{LWPrefix}/bin/*pm
 %{LWPrefix}/bin/*pl
 %{LWPrefix}/bin/*sh
-%{LWPrefix}/bin/DomainJoin.exe
-%{LWPrefix}/bin/DomainJoinLib.dll
+# bkoropoff - gtk switchover
+#%{LWPrefix}/bin/DomainJoin.exe
+#%{LWPrefix}/bin/DomainJoinLib.dll
 %{LWPrefix}/bin/domainjoin-cli
 %{LWPrefix}/bin/domainjoin-gui
 

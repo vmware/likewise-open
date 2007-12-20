@@ -1,8 +1,8 @@
 ##
 ## Copyright (C) Centeris Corporation 2004-2007
-## Copyright (C) Likewise Software 2007.  
+## Copyright (C) Likewise Software 2007.
 ## All rights reserved.
-## 
+##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 3 of the License, or
@@ -17,22 +17,22 @@
 ## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
 ##
 
-DIRS=domainjoin winbindd/source gui
+DIRS=domainjoin winbindd/source
 
 all:
 	make -C domainjoin all
 	make -C winbindd/source proto pch lwopen
-	make -C gui all
+#	make -C gui all
 
 clean:
 	-@for d in $(DIRS); do \
 		test -f $$d/Makefile && make -C $$d clean; \
 	done
 
-install: 
+install:
 	make -C domainjoin DESTDIR=$(DESTDIR) install
 	make -C winbindd/source DESTDIR=$(DESTDIR) lwopen-install
-	make -C gui DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
+#	make -C gui DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
 
 dpkg:
 	sh packaging/scripts/build-dpkg

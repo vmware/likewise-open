@@ -78,7 +78,7 @@ configure-stamp:
 
 build: build-stamp
 
-build-stamp: configure-stamp 
+build-stamp: configure-stamp
 	dh_testdir
 
 	$(MAKE) all
@@ -92,12 +92,12 @@ clean:
 
 	$(MAKE) clean
 
-	dh_clean 
+	dh_clean
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_clean -k
 	dh_installdirs -P $(DESTDIR)
 	dh_installdirs
 
@@ -120,15 +120,18 @@ install: build
 	for file in gui/DomainJoinLib/scripts/*sh; do \
 		install --mode=0755 $$file $(DESTDIR)/opt/likewise-open/bin/; \
 	done
-	install --mode=0755 gui/DomainJoinLib/scripts/domainjoin-gui $(DESTDIR)/opt/likewise-open/bin/
+
+	# bkoropoff - gtk switchover
+	#install --mode=0755 gui/DomainJoinLib/scripts/domainjoin-gui $(DESTDIR)/opt/likewise-open/bin/
 
 	install --mode=0755 debian/likewise-open.init $(DESTDIR)/etc/init.d/likewise-open
 	install --mode=0644 debian/lwiauthd.conf.default $(DESTDIR)/etc/samba/lwiauthd.conf
 	install --mode=0644 debian/pam_lwidentity.conf.default $(DESTDIR)/etc/security/pam_lwidentity.conf
 	install --mode=0644 debian/likewise-open-default $(DESTDIR)/etc/defaults/likewise-open
 
-	install --mode=0755 gui/DomainJoinLib/DomainJoinLib.dll $(DESTDIR)/opt/likewise-open/bin/
-	install --mode=0755 gui/DomainJoin/DomainJoin.exe $(DESTDIR)/opt/likewise-open/bin/
+	# bkoropoff - gtk switchover
+	# install --mode=0755 gui/DomainJoinLib/DomainJoinLib.dll $(DESTDIR)/opt/likewise-open/bin/
+	# install --mode=0755 gui/DomainJoin/DomainJoin.exe $(DESTDIR)/opt/likewise-open/bin/
 
 	dh_install --sourcedir=$(DESTDIR) --fail-missing
 
@@ -140,12 +143,12 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs 
+	dh_installchangelogs
 	dh_installdocs
 	dh_installexamples
 #	dh_install
 #	dh_installmenu
-#	dh_installdebconf	
+#	dh_installdebconf
 #	dh_installlogrotate
 #	dh_installemacsen
 #	dh_installpam
