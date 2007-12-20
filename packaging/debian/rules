@@ -71,6 +71,7 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 
+	(cd domainjoin && aclocal)
 	./autogen.sh
 	./Configure.sh $(conf_args)
 
