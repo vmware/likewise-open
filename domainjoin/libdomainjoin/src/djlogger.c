@@ -1,8 +1,8 @@
 /*
  * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007.  
+ * Copyright (C) Likewise Software 2007.
  * All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -110,6 +110,30 @@ CENTERROR dj_init_logging_to_file(DWORD dwLogLevel, PSTR pszLogFilePath)
 	}
 
 	return (ceError);
+}
+
+CENTERROR dj_init_logging_to_file_handle(DWORD dwLogLevel, FILE* handle)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+
+    gdjLogInfo.dwLogTarget = LOG_TO_FILE;
+
+
+    gdjLogInfo.logfile.logHandle = handle;
+
+    ceError = dj_set_log_level(dwLogLevel);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    return (ceError);
+
+error:
+
+    if (gdjLogInfo.logfile.logHandle != NULL) {
+        fclose(gdjLogInfo.logfile.logHandle);
+        gdjLogInfo.logfile.logHandle = NULL;
+    }
+
+    return (ceError);
 }
 
 void dj_close_log()

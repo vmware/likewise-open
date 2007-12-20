@@ -86,7 +86,7 @@ ln -s libwbclient.so.0.1 $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so
 /bin/rm -f ${RPM_BUILD_ROOT}/%{LWPrefix}/lib/libwbclient.so
 popd
 
-## Grab the support scripts
+# Grab the support scripts
 for file in gui/DomainJoinLib/scripts/*pm; do \
 	%{__install} -m0644 $file ${RPM_BUILD_ROOT}/%{LWPrefix}/bin/; \
 done
@@ -96,7 +96,8 @@ done
 for file in gui/DomainJoinLib/scripts/*sh; do \
 	%{__install} -m0755 $file ${RPM_BUILD_ROOT}/%{LWPrefix}/bin/; \
 done
-%{__install} -m0755 gui/DomainJoinLib/scripts/domainjoin-gui ${RPM_BUILD_ROOT}/%{LWPrefix}/bin/
+# bkoropoff - gtk switchover
+#%{__install} -m0755 gui/DomainJoinLib/scripts/domainjoin-gui ${RPM_BUILD_ROOT}/%{LWPrefix}/bin/
 
 ## install the vendor files ( init script, etc... )
 %{__install} -m0755 setup/likewise-open.init $RPM_BUILD_ROOT/%{_sysconfdir}/init.d/likewise-open
@@ -141,13 +142,15 @@ ldconfig
 /%{_lib}/libnss_lwidentity.so*
 %{_libdir}/libwbclient.so*
 %{LWPrefix}/include/samba/wbclient.h
+%{LWPrefix}/share/domainjoin-gtk.glade
 
 ## domain join utilities
 %{LWPrefix}/bin/*pm
 %{LWPrefix}/bin/*pl
 %{LWPrefix}/bin/*sh
-%{LWPrefix}/bin/DomainJoin.exe
-%{LWPrefix}/bin/DomainJoinLib.dll
+# bkoropoff - gtk switchover
+#%{LWPrefix}/bin/DomainJoin.exe
+#%{LWPrefix}/bin/DomainJoinLib.dll
 %{LWPrefix}/bin/domainjoin-cli
 %{LWPrefix}/bin/domainjoin-gui
 

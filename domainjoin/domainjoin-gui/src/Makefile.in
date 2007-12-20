@@ -28,13 +28,15 @@ srcdir = @srcdir@
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 bindir = ${exec_prefix}/bin
+sbindir = ${exec_prefix}/sbin
 infodir = ${prefix}/info
 libdir = ${prefix}/lib
 mandir = ${prefix}/man/man1
+sharedir = ${prefix}/share
 
 DESTDIR=@DESTDIR@
 CC = @CC@
-CPPFLAGS = @CPPFLAGS@
+CPPFLAGS = @CPPFLAGS@ -DSHARE_DIR=\"$(sharedir)\"
 CFLAGS = $(CPPFLAGS) @CFLAGS@ -Wall
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
@@ -43,60 +45,50 @@ LWI_OS_FLAGS = @LWI_OS_FLAGS@
 
 PUBLIC_INCLUDE_DIR = $(BUILD_ROOT)/include
 PROJECT_INCLUDE_DIR = ../include
+DOMAINJOIN_DIR = $(BUILD_ROOT)/libdomainjoin
+CENTUTILS_DIR = $(BUILD_ROOT)/libcentutils
 
-CFLAGS += -I$(PUBLIC_INCLUDE_DIR)       \
-          -I$(PROJECT_INCLUDE_DIR)      \
-	  -I../../libcentutils		\
-          $(LWI_OS_FLAGS)
+DOMAINJOIN_LIB = $(DOMAINJOIN_DIR)/src/libdomainjoin.a
+CENTUTILS_LIB = $(CENTUTILS_DIR)/libcentutils.a
 
-LDFLAGS += "-L../../libcentutils"
+INCLUDES += -I$(PROJECT_INCLUDE_DIR)    \
+            -I$(DOMAINJOIN_DIR)/include \
+	    -I$(CENTUTILS_DIR)		\
+            -I$(PUBLIC_INCLUDE_DIR)
 
-OBJS = djauthinfo.o   \
-       djauthconf.o   \
-       djerr.o        \
-       djhostinfo.o   \
-       djkrb5conf.o   \
-       djlogger.o     \
-       djlogincfg.o   \
-       djmethodcfg.o  \
-       djpamconf.o    \
-       djsshconf.o    \
-       djparsehosts.o \
-       djprocutils.o  \
-       djroutines.o   \
-       djsecuser.o    \
-       djtimemgmt.o   \
-       djapi.o
+CFLAGS += $(INCLUDES) \
+          $(LWI_OS_FLAGS) \
+	  @GTK_CFLAGS@
 
-OBJS += @LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS@
+LIBS += $(DOMAINJOIN_LIB) $(CENTUTILS_LIB) @GTK_LIBS@
 
-LIBNAME = domainjoin
-LIBRARY = lib$(LIBNAME).a
-DYNLIBRARY = lib$(LIBNAME)@DYNLIBVEXT@
-DYNLIBRARY_SANS_VERSION = lib$(LIBNAME)@DYNLIBEXT@
+OBJS = common.o joindialog.o joinprogress.o statusdialog.o \
+       joinauth.o joinerror.o main.o
 
-all : $(DYNLIBRARY)
+PROGRAM = domainjoin-gui
 
-$(DYNLIBRARY) : $(LIBRARY)
-	@BUILD_DYNLIB_CMD@
-	$(RM) $(DYNLIBRARY_SANS_VERSION)
-	@LINK@ $(DYNLIBRARY) $(DYNLIBRARY_SANS_VERSION)
+all : $(PROGRAM)
 
-$(LIBRARY) : $(OBJS)
-	$(AR) -r $@ $(OBJS)
+$(PROGRAM) : $(OBJS) $(DOMAINJOIN_LIB)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 $(OBJS) : %.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 clean :
-	$(RM) $(OBJS) $(LIBRARY) $(DYNLIBRARY) $(DYNLIBRARY_SANS_VERSION)
+	$(RM) $(OBJS) $(PROGRAM)
 
-distclean: clean
+distclean:
 	$(RM) Makefile
 
 install: all
-	$(top_srcdir)/mkinstalldirs $(DESTDIR)/$(bindir)
-	$(top_srcdir)/mkinstalldirs $(DESTDIR)/$(libdir)
+	@echo $(DESTDIR)
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(bindir)
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(libdir)
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(sharedir)
+	$(INSTALL) $(PROGRAM) $(DESTDIR)$(bindir)
+	$(INSTALL) domainjoin-gtk.glade $(DESTDIR)$(sharedir)
 
 uninstall:
+	-/bin/rm -f $(DESTDIR)$(bindir)/$(PROGRAM)
 

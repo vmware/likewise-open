@@ -1,8 +1,8 @@
 /*
  * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007.  
+ * Copyright (C) Likewise Software 2007.
  * All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -49,6 +49,8 @@ typedef struct _LOGINFO {
 CENTERROR dj_set_log_level(DWORD dwLogLevel);
 
 CENTERROR dj_init_logging_to_file(DWORD dwLogLevel, PSTR pszLogFilePath);
+
+CENTERROR dj_init_logging_to_file_handle(DWORD dwLogLevel, FILE* handle);
 
 CENTERROR dj_init_logging_to_console(DWORD dwLogLevel);
 
