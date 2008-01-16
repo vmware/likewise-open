@@ -19,6 +19,7 @@ opt/likewise-open/bin/DomainJoin.exe
 opt/likewise-open/sbin/likewise-winbindd
 
 opt/likewise-open/lib/idmap/lwopen.so
+opt/likewise-open/lib/nss_info/lwopen.so
 
 lib/libnss_lwidentity.so.2
 lib/security/pam_lwidentity.so
