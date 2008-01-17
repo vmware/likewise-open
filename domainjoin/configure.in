@@ -166,6 +166,9 @@ AC_CONFIG_FILES([Makefile
                  libdomainjoin/src/Makefile
                  domainjoin-cli/src/Makefile
 		 domainjoin-gui/src/Makefile
+		 scripts/ConfigureKrb5.pl
+		 scripts/ConfigureLogin.sh
+		 scripts/gpcron.sh
                  tests/Makefile
                  tests/test_auth_conf/src/Makefile
                  tests/test_proc_utils/src/Makefile

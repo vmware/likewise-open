@@ -1050,7 +1050,7 @@ sub GatherTrusts($)
     my $root = shift || die;
     my $trusts = {};
 
-    my @dirs = qw(/opt/likewise-open/bin);
+    my @dirs = qw(@prefix@/bin);
     my $file = 'lwinet';
     my $lwiNetCommand = 'lwinet ads trusts';
     my $lwiInfoCommand = 'lwiinfo --details -m';

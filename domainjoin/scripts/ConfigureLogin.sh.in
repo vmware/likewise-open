@@ -20,7 +20,7 @@
 
 LC_MESSAGES=C; export LC_MESSAGES
 
-SCRIPT_DIR=/opt/likewise-open/bin
+SCRIPT_DIR=@prefix@/bin
 
 alias_replacement()
 {
