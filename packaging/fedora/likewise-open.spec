@@ -9,8 +9,8 @@ License: 	GPLv3
 Group: 		System Environment/Daemons
 URL: 		http://www.likewisesoftware.com/
 
-BuildRequires:  krb5-devel, openldap-devel, e2fsprogs-devel, pam-devel, mono-devel, libgdiplus-devel, mono-winforms
-Requires:       krb5-libs, openldap, mono-winforms, pam, perl, e2fsprogs
+BuildRequires:  krb5-devel, openldap-devel, e2fsprogs-devel, pam-devel, libglade2-devel, gtk2-devel
+Requires:       krb5-libs, openldap, pam, perl, e2fsprogs, libglade2, gtk2
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 
@@ -141,7 +141,7 @@ ldconfig
 /%{_lib}/security/pam_lwidentity.so
 /%{_lib}/libnss_lwidentity.so*
 %{_libdir}/libwbclient.so*
-%{LWPrefix}/include/samba/wbclient.h
+%{LWPrefix}/include/wbclient.h
 %{LWPrefix}/share/domainjoin-gtk.glade
 
 ## domain join utilities
