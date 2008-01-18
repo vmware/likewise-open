@@ -21,8 +21,9 @@
 #!/bin/sh
 
 LC_MESSAGES=C; export LC_MESSAGES
-SCRIPT_BASE_DIR=@prefix@
-SCRIPT_DIR=$SCRIPT_BASE_DIR/bin
+
+exec_prefix=@prefix@
+SCRIPT_DIR=@libdir@/likewise-open
 
 Help()
 {

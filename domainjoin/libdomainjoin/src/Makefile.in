@@ -49,6 +49,8 @@ CFLAGS += -I$(PUBLIC_INCLUDE_DIR)       \
 	  -I../../libcentutils		\
           $(LWI_OS_FLAGS)
 
+CFLAGS += -DSCRIPTDIR=\"$(SCRIPTDIR)\"
+
 LDFLAGS += "-L../../libcentutils"
 
 OBJS = djauthinfo.o   \
