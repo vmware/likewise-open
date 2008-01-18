@@ -102,7 +102,7 @@ install: build
 	dh_installdirs -P $(DESTDIR)
 	dh_installdirs
 
-	$(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
+	$(MAKE) DESTDIR=$(DESTDIR) SCRIPTDIR=$(PREFIX)/bin PREFIX=$(PREFIX) install
 
 	mkdir -p $(DESTDIR)/usr/lib/
 	mv $(DESTDIR)/$(PREFIX)/lib/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/libwbclient.so.0.1
@@ -112,27 +112,20 @@ install: build
 
 	install --mode=755 winbindd/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
 
-	for file in gui/DomainJoinLib/scripts/*pm; do \
+	for file in domainjoin/scripts/*pm; do \
 		install --mode=0644 $$file $(DESTDIR)/opt/likewise-open/bin/; \
 	done
-	for file in gui/DomainJoinLib/scripts/*pl; do \
+	for file in domainjoin/scripts/*pl; do \
 		install --mode=0755 $$file $(DESTDIR)/opt/likewise-open/bin/; \
 	done
-	for file in gui/DomainJoinLib/scripts/*sh; do \
+	for file in domainjoin/scripts/*sh; do \
 		install --mode=0755 $$file $(DESTDIR)/opt/likewise-open/bin/; \
 	done
-
-	# bkoropoff - gtk switchover
-	#install --mode=0755 gui/DomainJoinLib/scripts/domainjoin-gui $(DESTDIR)/opt/likewise-open/bin/
 
 	install --mode=0755 debian/likewise-open.init $(DESTDIR)/etc/init.d/likewise-open
 	install --mode=0644 debian/lwiauthd.conf.default $(DESTDIR)/etc/samba/lwiauthd.conf
 	install --mode=0644 debian/pam_lwidentity.conf.default $(DESTDIR)/etc/security/pam_lwidentity.conf
 	install --mode=0644 debian/likewise-open-default $(DESTDIR)/etc/defaults/likewise-open
-
-	# bkoropoff - gtk switchover
-	# install --mode=0755 gui/DomainJoinLib/DomainJoinLib.dll $(DESTDIR)/opt/likewise-open/bin/
-	# install --mode=0755 gui/DomainJoin/DomainJoin.exe $(DESTDIR)/opt/likewise-open/bin/
 
 	dh_install --sourcedir=$(DESTDIR) --fail-missing
 
