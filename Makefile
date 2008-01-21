@@ -45,3 +45,6 @@ rpm-fedora: dist
 
 dist:
 	sh packaging/scripts/build-dist
+
+release:
+	sh packaging/scripts/build-dist release
