@@ -200,21 +200,21 @@ DJSpawnProcessSilent(PCSTR pszCommand, PSTR * ppArgs, PPROCINFO * ppProcInfo)
 	int dwFdIn = -1, dwFdOut = -1, dwFdErr = -1;
 	CENTERROR ceError = CENTERROR_SUCCESS;
 
-	dwFdIn = open("/dev/zero", O_RDONLY);
+	dwFdIn = open("/dev/zero", O_RDONLY, S_IRUSR);
 
 	if (dwFdIn < 0) {
 		ceError = CTMapSystemError(errno);
 		BAIL_ON_CENTERIS_ERROR(ceError);
 	}
 
-	dwFdOut = open("/dev/null", O_WRONLY);
+	dwFdOut = open("/dev/null", O_WRONLY, S_IWUSR);
 
 	if (dwFdOut < 0) {
 		ceError = CTMapSystemError(errno);
 		BAIL_ON_CENTERIS_ERROR(ceError);
 	}
 
-	dwFdErr = open("/dev/null", O_WRONLY);
+	dwFdErr = open("/dev/null", O_WRONLY, S_IWUSR);
 
 	if (dwFdErr < 0) {
 		ceError = CTMapSystemError(errno);
@@ -252,7 +252,7 @@ DJSpawnProcessOutputToFile(PCSTR pszCommand,
 		BAIL_ON_CENTERIS_ERROR(ceError);
 	}
 
-	dwFdOut = open(file, O_CREAT|O_WRONLY);
+	dwFdOut = open(file, O_CREAT|O_WRONLY, S_IWUSR);
 
 	if (dwFdOut < 0) {
 		ceError = CTMapSystemError(errno);

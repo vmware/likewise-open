@@ -1298,7 +1298,7 @@ CTRunSedOnFile(PCSTR pszSrcPath,
 		BAIL_ON_CENTERIS_ERROR(ceError);
 	}
 
-	dwFdOut = open(tempPath, O_WRONLY | O_EXCL | O_CREAT);
+	dwFdOut = open(tempPath, O_WRONLY | O_EXCL | O_CREAT, S_IWUSR);
 	if (dwFdOut < 0) {
 		ceError = CTMapSystemError(errno);
 		BAIL_ON_CENTERIS_ERROR(ceError);
