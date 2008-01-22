@@ -13,12 +13,11 @@ opt/likewise-open/bin/ConfigureLogin.sh
 opt/likewise-open/bin/gpcron.sh
 opt/likewise-open/bin/domainjoin-gui
 
-opt/likewise-open/bin/DomainJoinLib.dll
-opt/likewise-open/bin/DomainJoin.exe
-
 opt/likewise-open/sbin/likewise-winbindd
 
 opt/likewise-open/lib/idmap/lwopen.so
+
+opt/likewise-open/share/domainjoin-gtk.glade
 
 lib/libnss_lwidentity.so.2
 lib/security/pam_lwidentity.so
