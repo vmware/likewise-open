@@ -24,6 +24,12 @@
 TESTAUTOCONF="autoconf autoconf-2.53 autoconf2.50 autoconf259 autoconf253"
 AUTOCONFFOUND="0"
 
+TESTACLOCAL="aclocal"
+ACLOCALFOUND="0"
+
+ACLOCAL="/bin/false"
+AUTOCONF="/bin/false"
+
 ## 
 ## Look for autoconf
 ##
@@ -47,8 +53,20 @@ if test "$AUTOCONFFOUND" = "0" -o "$AUTOHEADERFOUND" = "0"; then
 	exit 1
 fi
 
+for i in $TESTACLOCAL; do
+	if which $i > /dev/null 2>&1; then
+		ACLOCAL=$i
+		ACLOCALFOUND="1"
+		break
+	fi
+done
+
+
 rm -rf autom4te*.cache
 rm -f configure include/config.h*
+
+echo "$0: running $ACLOCAL"
+$ACLOCAL  || exit 1
 
 echo "$0: running $AUTOCONF"
 $AUTOCONF || exit 1

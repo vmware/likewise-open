@@ -30,7 +30,7 @@ CENTERROR DJSyncTimeToDC(PSTR pszDomainName)
 	PPROCINFO pProcInfo = NULL;
 	CHAR szBuf[256];
 
-	sprintf(szBuf, "%s/bin/gpsynctime.pl", PREFIXDIR);
+	sprintf(szBuf, "%s/gpsynctime.pl", SCRIPTDIR);
 
 	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
 	BAIL_ON_CENTERIS_ERROR(ceError);

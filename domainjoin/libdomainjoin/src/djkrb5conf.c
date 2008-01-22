@@ -31,7 +31,7 @@ CENTERROR DJModifyKrb5Conf(PSTR pszDomainName, PSTR pszShortDomainName)
 
 	char szBuff[PATH_MAX + 1];
 
-	sprintf(szBuff, "%s/bin/ConfigureKrb5.pl", PREFIXDIR);
+	sprintf(szBuff, "%s/ConfigureKrb5.pl", SCRIPTDIR);
 
 	nArgs = 8;
 	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);

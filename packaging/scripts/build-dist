@@ -1,14 +1,19 @@
 #!/bin/bash
 
 BASEDIR=`dirname $0`/../..
+RELEASE=""
 
 . ${BASEDIR}/packaging/scripts/functions
 VERSION=$(get_lwopen_version)
+if [ "x$1" = "xrelease" ]; then
+	RELEASE="-release"
+fi
 
-/bin/rm -rf $BASEDIR/../likewise-open-$VERSION || exit 1
-mkdir $BASEDIR/../likewise-open-$VERSION || exit 1
+TARGET=likewise-open-$VERSION$RELEASE
+/bin/rm -rf $BASEDIR/../$TARGET || exit 1
+mkdir $BASEDIR/../$TARGET || exit 1
 rsync -a --exclude=.git* --exclude=*~ --exclude=*bak \
-	$BASEDIR/ $BASEDIR/../likewise-open-$VERSION/ || exit 1
+	$BASEDIR/ $BASEDIR/../$TARGET/ || exit 1
 cd $BASEDIR/..
-tar cf - likewise-open-$VERSION | gzip -9 > likewise-open-$VERSION.tar.gz
+tar cf - $TARGET | gzip -9 > likewise-open-$VERSION.tar.gz
 

@@ -12,7 +12,7 @@
 ####
 
 CONF=/etc/samba/lwiauthd.conf
-CENTERIS_PREFIX=/opt/likewise-open
+CENTERIS_PREFIX=/usr
 AUTHD_BIN=${CENTERIS_PREFIX}/sbin/likewise-winbindd
 PIDFILE=/var/run/likewise-winbindd.pid
 SCRIPTNAME="likewise-open"

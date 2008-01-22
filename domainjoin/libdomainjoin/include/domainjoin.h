@@ -41,6 +41,10 @@
 #include "djlogincfg.h"
 #include "djsecuser.h"
 
+#ifndef SCRIPTDIR
+#define SCRIPTDIR PREFIXDIR"/bin"
+#endif
+
 #ifdef __LWI_MACOSX__
 #include "djconfig_mac.h"
 #endif

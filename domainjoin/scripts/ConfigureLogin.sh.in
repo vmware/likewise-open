@@ -20,7 +20,9 @@
 
 LC_MESSAGES=C; export LC_MESSAGES
 
-SCRIPT_DIR=/opt/likewise-open/bin
+exec_prefix=@prefix@
+SCRIPT_DIR=@libdir@/likewise-open
+BIN_DIR=@bindir@
 
 alias_replacement()
 {
@@ -389,9 +391,9 @@ ConfigurePamForADLogin()
 		return 1;
 	fi
 
-	${SCRIPT_DIR}/domainjoin-cli --log . configure pam $options || return $?
+	${BIN_DIR}/domainjoin-cli --log . configure pam $options || return $?
 
-	${SCRIPT_DIR}/domainjoin-cli --log . configure ssh $options || return $?
+	${BIN_DIR}/domainjoin-cli --log . configure ssh $options || return $?
 
 	GracefulSSHDRestart
 	ConfigurePamForADLogin_rc=$?

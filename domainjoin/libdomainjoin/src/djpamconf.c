@@ -217,7 +217,7 @@ static void UpdatePublicLines(struct PamConf *conf)
 	conf->lineCount = conf->private_data.size;
 }
 
-static const char *basename(const char *path)
+static const char *Basename(const char *path)
 {
 	const char *lastslash = strrchr(path, '/');
 	if (lastslash != NULL)
@@ -248,7 +248,7 @@ static CENTERROR CopyService(struct PamConf *conf, const char *oldName,
 		BAIL_ON_CENTERIS_ERROR(ceError =
 				       CTStrdup(newName,
 						&newLineObj->service->value));
-		if (!strcmp(basename(newLineObj->fromFile), oldName)) {
+		if (!strcmp(Basename(newLineObj->fromFile), oldName)) {
 			/* The file name is something like /etc/pam.d/<oldName>. It should
 			 * be updated. */
 			char *newPath;
@@ -364,7 +364,7 @@ static CENTERROR AddFormattedLine(struct PamConf *conf, const char *filename,
 						     &token, 1));
 	}
 
-	if (!strcmp(basename(filename), "pam.conf")) {
+	if (!strcmp(Basename(filename), "pam.conf")) {
 		/* this did not come from a pam.d system */
 		if (tokens.size > 0) {
 			BAIL_ON_CENTERIS_ERROR(ceError =
@@ -383,7 +383,7 @@ static CENTERROR AddFormattedLine(struct PamConf *conf, const char *filename,
 							(void **)&lineObj.
 							service));
 		BAIL_ON_CENTERIS_ERROR(ceError =
-				       CTAllocateString(basename(filename),
+				       CTAllocateString(Basename(filename),
 							&lineObj.service->
 							value));
 		BAIL_ON_CENTERIS_ERROR(ceError =
@@ -971,7 +971,7 @@ static CENTERROR WritePamConfiguration(const char *rootPrefix,
 						    lineObj->
 						    leadingWhiteSpace));
 		if (lineObj->service != NULL
-		    && strcmp(basename(lineObj->fromFile),
+		    && strcmp(Basename(lineObj->fromFile),
 			      lineObj->service->value)) {
 			/* This entry is from a pam.conf file */
 			BAIL_ON_CENTERIS_ERROR(ceError =
@@ -2600,7 +2600,7 @@ CENTERROR ConfigurePamForADLogin(PSTR pszShortDomainName)
 
 	char szBuff[PATH_MAX + 1];
 
-	sprintf(szBuff, "%s/bin/ConfigureLogin.sh", PREFIXDIR);
+	sprintf(szBuff, "%s/ConfigureLogin.sh", SCRIPTDIR);
 
 	nArgs = 3;
 	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);

@@ -16,13 +16,14 @@ opt/likewise-open/bin/domainjoin-gui
 opt/likewise-open/sbin/likewise-winbindd
 
 opt/likewise-open/lib/idmap/lwopen.so
+opt/likewise-open/lib/nss_info/lwopen.so
 
 opt/likewise-open/share/domainjoin-gtk.glade
 
 lib/libnss_lwidentity.so.2
 lib/security/pam_lwidentity.so
 
-opt/likewise-open/include/samba/wbclient.h
+opt/likewise-open/include/wbclient.h
 usr/lib/libwbclient.so.0.1
 usr/lib/libwbclient.so.0
 usr/lib/libwbclient.so
