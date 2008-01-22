@@ -22,7 +22,6 @@ DIRS=domainjoin winbindd/source
 all:
 	make -C domainjoin all
 	make -C winbindd/source proto pch lwopen
-#	make -C gui all
 
 clean:
 	-@for d in $(DIRS); do \
@@ -32,7 +31,6 @@ clean:
 install:
 	make -C domainjoin DESTDIR=$(DESTDIR) install
 	make -C winbindd/source DESTDIR=$(DESTDIR) lwopen-install
-#	make -C gui DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
 
 dpkg:
 	sh packaging/scripts/build-dpkg
