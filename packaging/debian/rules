@@ -117,14 +117,14 @@ install: build
 
 	mkdir -p $(DESTDIR)/usr/share/perl5/likewise-open/
 
-	for file in domainjoin/scripts/*pm; do \
-		install -D --mode=0644 $$file $(DESTDIR)/usr/share/perl5/likewise-open/; \
+	for file in CenterisPam.pm Centeris.pm; do \
+		install -D --mode=0644 domainjoin/scripts/$$file $(DESTDIR)/usr/share/perl5/likewise-open/; \
 	done
 
-	install	--mode=0755 domainjoin/scripts/gpcron $(DESTDIR)/usr/bin/
-
-	for file in domainjoin/scripts/Configure*; do \
-		install --mode=0755 $$file $(DESTDIR)/usr/bin/; \
+	for file in ConfigureKrb5 ConfigureLogin ConfigurePamForADLogin ConfigureShellPrompt \
+		ConfigureSshForGssapi gpcron; \
+	do \
+		install --mode=0755 domainjoin/scripts/$$file $(DESTDIR)/usr/bin/; \
 	done
 
 	install -D --mode=0644 debian/lwiauthd.conf $(DESTDIR)/etc/samba/lwiauthd.conf
