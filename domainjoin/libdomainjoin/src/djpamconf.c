@@ -2600,7 +2600,7 @@ CENTERROR ConfigurePamForADLogin(PSTR pszShortDomainName)
 
 	char szBuff[PATH_MAX + 1];
 
-	sprintf(szBuff, "%s/ConfigureLogin.sh", SCRIPTDIR);
+	sprintf(szBuff, "%s/ConfigureLogin", SCRIPTDIR);
 
 	nArgs = 3;
 	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
@@ -2626,7 +2626,7 @@ CENTERROR ConfigurePamForADLogin(PSTR pszShortDomainName)
 	BAIL_ON_CENTERIS_ERROR(ceError);
 
 	if (status != 0) {
-		DJ_LOG_ERROR("ConfigureLogin.sh failed [Status code: %d]",
+		DJ_LOG_ERROR("ConfigureLogin failed [Status code: %d]",
 			     status);
 		ceError = CENTERROR_DOMAINJOIN_PAM_EDIT_FAIL;
 		BAIL_ON_CENTERIS_ERROR(ceError);

@@ -7,10 +7,15 @@ VERSION=$(get_lwopen_version)
 /bin/rm -rf $BASEDIR/../likewise-open-$VERSION || exit 1
 mkdir $BASEDIR/../likewise-open-$VERSION || exit 1
 rsync -av --exclude=.git* $BASEDIR/ $BASEDIR/../likewise-open-$VERSION/ || exit 1
+
+## Create orig.tar.gz neeed for ubuntu merges.
+tar cvz  $BASEDIR/../likewise-open-$VERSION -f ../likewise-open_$VERSION.orig.tar.gz
+
 cd $BASEDIR/../likewise-open-$VERSION
 if [ ! -d debian ]; then
-	ln -s packaging/debian debian
+	cp -r packaging/debian debian
 fi
 
+# Let's build this thing
 dpkg-buildpackage -rfakeroot
 

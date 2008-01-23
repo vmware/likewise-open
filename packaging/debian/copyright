@@ -1,14 +1,16 @@
-This is the DEB version of Likewise Identity Community Edition.  More 
-information about likewise-open can be found at 
+This package was Debianized by Gerald Carter <gcarter@likewisesoftware.com>
 
-	http://likewise-open.centeris.com/
+The source was obtained from:
+http://www.likewisesoftware.com/community/index.php/download
 
 Parts of this code are based on Samba's Winbind (http://www.samba.org/)
 with the copyright being attributes to individual Samba developers.
 Supporting scripts and tools for managing the domain join process are
 copyright Centeris Corporation.
 
-This package was prepared by Gerald Carter <jerry@centeris.com>.
+
+This package was prepared by Gerald Carter <gcarter@likewisesoftware.com>
+and Rick Clark <rick.clark@ubuntu.com>
 
 Copyright:
 
@@ -16,12 +18,12 @@ Copyright:
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 

@@ -1,34 +1,20 @@
-opt/likewise-open/bin/domainjoin-cli
-opt/likewise-open/bin/lwinet
-opt/likewise-open/bin/lwimsg
-opt/likewise-open/bin/lwiinfo
+usr/bin/domainjoin-cli
+usr/bin/lwinet
+usr/bin/lwimsg
+usr/bin/lwiinfo
 
-opt/likewise-open/bin/CenterisPam.pm
-opt/likewise-open/bin/Centeris.pm
-opt/likewise-open/bin/ConfigureKrb5.pl
-opt/likewise-open/bin/ConfigurePamForADLogin.pl
-opt/likewise-open/bin/ConfigureSshForGssapi.pl
-opt/likewise-open/bin/ConfigureShellPrompt.pl
-opt/likewise-open/bin/ConfigureLogin.sh
-opt/likewise-open/bin/gpcron.sh
-opt/likewise-open/bin/domainjoin-gui
+usr/sbin/likewise-winbindd
 
-opt/likewise-open/sbin/likewise-winbindd
+usr/lib/likewise-open/idmap/lwopen.so
+usr/lib/likewise-open/nss_info/lwopen.so
 
-opt/likewise-open/lib/idmap/lwopen.so
-opt/likewise-open/lib/nss_info/lwopen.so
+lib/libnss_lwidentity.so*
 
-opt/likewise-open/share/domainjoin-gtk.glade
-
-lib/libnss_lwidentity.so.2
 lib/security/pam_lwidentity.so
 
-opt/likewise-open/include/wbclient.h
-usr/lib/libwbclient.so.0.1
+usr/include/wbclient.h
+usr/lib/likewise-open/libwbclient.so*
 usr/lib/libwbclient.so.0
-usr/lib/libwbclient.so
 
 etc/samba/lwiauthd.conf
 etc/security/pam_lwidentity.conf
-etc/init.d/likewise-open
-etc/defaults/likewise-open

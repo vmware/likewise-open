@@ -1,9 +1,18 @@
-likewise-open (4.0.3-1likewise1) gutsy; urgency=low
+likewise-open (4.0.3-0ubuntu2) gutsy; urgency=low
 
-  * Integration of GTK domain join
-  * Merge of upstream Samba code
+  * Remove .NET GUI domain join utility in lieu of GTK variant
+  * Integrate changes from the 4.0.3 release
 
- -- Gerald Carter <gcarter@likewisesoftware.com>  Wed, 16 Jan 2008 20:45:16 -0600
+ -- Gerald Carter <gcarter@likewisesoftware.com>  Wed, 23 Jan 2008 10:33:41 -0600
+
+likewise-open (4.0.3-0ubuntu1) gutsy; urgency=low
+
+  * Initial upstream release
+  * moved from /opt to support the FHS
+  * split gui into a separate package
+  * removed extension from all .pl and .sh
+
+ -- Rick Clark <rick.clark@ubuntu.com>  Wed, 05 Dec 2007 20:02:30 -0500
 
 likewise-open (4.0.2-1likewise1) gutsy; urgency=low
 

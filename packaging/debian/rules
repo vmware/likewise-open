@@ -15,8 +15,7 @@ DEB_HOST_ARCH_OS	:= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 export DEB_HOST_GNU_TYPE
 export DEB_BUILD_GNU_TYPE
 export DEB_HOST_ARCH_OS
-
-pyversion := $(shell pyversions -vd)
+pyversio := $(shell pyversions -vd)
 
 CFLAGS = -g -Wall
 
@@ -26,11 +25,11 @@ else
   CFLAGS += -O2
 endif
 
-include /usr/share/quilt/quilt.make
+#include /usr/share/quilt/quilt.make
 
 DESTDIR=`pwd`/debian/tmp
 PKGNAME=likewise-open
-PREFIX=/opt/$(PKGNAME)
+PREFIX=/usr
 
 conf_args = --with-fhs \
 	--enable-shared \
@@ -40,7 +39,7 @@ conf_args = --with-fhs \
 	--sysconfdir=/etc \
 	--localstatedir=/var \
 	--with-configdir=/etc/samba \
-	--with-libdir=$(PREFIX)/lib \
+	--with-libdir=$(PREFIX)/lib/$(PKGNAME) \
 	--with-lockdir=/var/lib/$(PKGNAME) \
 	--with-logfilebase=/var/log/$(PKGNAME) \
 	--with-mandir=/usr/share/man \
@@ -71,7 +70,6 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 
-	(cd domainjoin && aclocal)
 	./autogen.sh
 	./Configure.sh $(conf_args)
 
@@ -82,7 +80,7 @@ build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-	$(MAKE) all
+	$(MAKE) SCRIPTDIR=/usr/bin all
 
 	touch build-stamp
 
@@ -99,35 +97,44 @@ install: build
 	dh_testdir
 	dh_testroot
 	dh_clean -k
-	dh_installdirs -P $(DESTDIR)
+#	dh_installdirs -P $(DESTDIR)
 	dh_installdirs
 
-	$(MAKE) DESTDIR=$(DESTDIR) SCRIPTDIR=$(PREFIX)/bin PREFIX=$(PREFIX) install
+	$(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
+
 
 	mkdir -p $(DESTDIR)/usr/lib/
-	mv $(DESTDIR)/$(PREFIX)/lib/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/libwbclient.so.0.1
-	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/libwbclient.so.0
-	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/libwbclient.so
-	mv $(DESTDIR)/$(PREFIX)/lib/libwbclient.so* $(DESTDIR)/usr/lib/
+	mv $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so.0.1
+	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so.0
+	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so
+	(cd $(DESTDIR)/usr/lib && ln -s likewise-open/libwbclient.so.0 libwbclient.so.0)
+
+
 
 	install --mode=755 winbindd/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
 
+	ln -s libnss_lwidentity.so.2 $(DESTDIR)/lib/libnss_lwidentity.so
+
+	mkdir -p $(DESTDIR)/usr/share/perl5/likewise-open/
+
 	for file in domainjoin/scripts/*pm; do \
-		install --mode=0644 $$file $(DESTDIR)/opt/likewise-open/bin/; \
-	done
-	for file in domainjoin/scripts/*pl; do \
-		install --mode=0755 $$file $(DESTDIR)/opt/likewise-open/bin/; \
-	done
-	for file in domainjoin/scripts/*sh; do \
-		install --mode=0755 $$file $(DESTDIR)/opt/likewise-open/bin/; \
+		install -D --mode=0644 $$file $(DESTDIR)/usr/share/perl5/likewise-open/; \
 	done
 
-	install --mode=0755 debian/likewise-open.init $(DESTDIR)/etc/init.d/likewise-open
-	install --mode=0644 debian/lwiauthd.conf.default $(DESTDIR)/etc/samba/lwiauthd.conf
-	install --mode=0644 debian/pam_lwidentity.conf.default $(DESTDIR)/etc/security/pam_lwidentity.conf
-	install --mode=0644 debian/likewise-open-default $(DESTDIR)/etc/defaults/likewise-open
+	install	--mode=0755 domainjoin/scripts/gpcron $(DESTDIR)/usr/bin/
 
-	dh_install --sourcedir=$(DESTDIR) --fail-missing
+	for file in domainjoin/scripts/Configure*; do \
+		install --mode=0755 $$file $(DESTDIR)/usr/bin/; \
+	done
+
+	install -D --mode=0644 debian/lwiauthd.conf $(DESTDIR)/etc/samba/lwiauthd.conf
+
+	install -D --mode=0644 debian/pam_lwidentity.conf $(DESTDIR)/etc/security/pam_lwidentity.conf
+#	install --mode=0644 debian/likewise-open-default $(DESTDIR)/etc/defaults/likewise-open
+
+	dh_install --sourcedir=$(DESTDIR) --list-missing
+
+
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -148,7 +155,7 @@ binary-arch: build install
 #	dh_installpam
 #	dh_installmime
 #	dh_python
-#	dh_installinit
+	dh_installinit
 #	dh_installcron
 #	dh_installinfo
 	dh_installman
@@ -156,10 +163,10 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
-#	dh_perl
-#	dh_makeshlibs
+	dh_perl
+	dh_makeshlibs
 	dh_installdeb
-	dh_shlibdeps
+	dh_shlibdeps -ldebian/likewise-open/usr/lib/likewise-open
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
