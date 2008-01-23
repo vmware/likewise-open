@@ -116,14 +116,13 @@ ln -s libwbclient.so.0.1 $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so
 popd
 
 ## Grab the support scripts
-for file in domainjoin/scripts/*pm; do \
-	%{__install} -m0644 $file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
+for file in CenterisPam.pm Centeris.pm; do
+	%{__install} -m0644 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
 done
-for file in domainjoin/scripts/*pl; do \
-	%{__install} -m0755 $file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
-done
-for file in domainjoin/scripts/*sh; do \
-	%{__install} -m0755 $file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
+for file in ConfigureKrb5 ConfigureLogin ConfigurePamForADLogin \
+	ConfigureShellPrompt ConfigureSshForGssapi gpcron; \
+do
+	%{__install} -m0755 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
 done
 
 ## install the vendor files ( init script, etc... )
@@ -175,9 +174,7 @@ ldconfig
 
 %files domainjoin
 ## domain join utilities
-%{_libdir}/%{name}/*pm
-%{_libdir}/%{name}/*pl
-%{_libdir}/%{name}/*sh
+%{_libdir}/%{name}/*
 %{_bindir}/domainjoin-cli
 
 %files domainjoin-gui
@@ -186,6 +183,9 @@ ldconfig
 %{_prefix}/share/domainjoin-gtk.glade
 
 %changelog
+* Wed Jan 23 2008 Gerald Carter <gcarter@likewisesoftware.com>
+- Updated for 4.0.4 release
+
 * Fri Jan 14 2008 Gerald Carter <gcarter@likewisesoftware.com>
 - Package new release which repleace the mono GUI join utility with
   a GTK based variant.
