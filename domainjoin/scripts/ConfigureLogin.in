@@ -455,7 +455,7 @@ ConfigurePamForADLogin()
 ConfigureShellPrompt()
 {
     if [ 'enable' = "$1" ]; then    
-	perl ${SCRIPT_DIR}/ConfigureShellPrompt.pl || return $?
+	perl ${SCRIPT_DIR}/ConfigureShellPrompt || return $?
     else
 	return 0
     fi
