@@ -80,7 +80,7 @@ build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-	$(MAKE) SCRIPTDIR=/usr/bin all
+	$(MAKE) SCRIPTDIR=/usr/lib/likewise-open all
 
 	touch build-stamp
 
@@ -118,15 +118,17 @@ install: build
 	mkdir -p $(DESTDIR)/usr/share/perl5/likewise-open/
 
 	for file in CenterisPam.pm Centeris.pm; do \
-		install -D --mode=0644 domainjoin/scripts/$$file $(DESTDIR)/usr/share/perl5/likewise-open/; \
+		install -D --mode=0644 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/likewise-open/; \
 	done
 
 	for file in ConfigureKrb5 ConfigureLogin ConfigurePamForADLogin ConfigureShellPrompt \
 		ConfigureSshForGssapi gpcron; \
 	do \
-		install --mode=0755 domainjoin/scripts/$$file $(DESTDIR)/usr/bin/; \
+		install --mode=0755 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/likewise-open; \
 	done
 
+
+	install -D --mode-=644 domainjoin/domainjoin-gui/src/domainjoin-gtk.glade $(DESTDIR)/usr/share/domainjoin-gtk.glade
 	install -D --mode=0644 debian/lwiauthd.conf $(DESTDIR)/etc/samba/lwiauthd.conf
 
 	install -D --mode=0644 debian/pam_lwidentity.conf $(DESTDIR)/etc/security/pam_lwidentity.conf

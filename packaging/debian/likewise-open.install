@@ -3,15 +3,14 @@ usr/bin/lwinet
 usr/bin/lwimsg
 usr/bin/lwiinfo
 
-usr/bin/ConfigureKrb5
-usr/bin/ConfigureLogin
-usr/bin/ConfigurePamForADLogin
-usr/bin/ConfigureShellPrompt
-usr/bin/ConfigureSshForGssapi
-usr/bin/gpcron
-
-usr/share/perl5/likewise-open/Centeris.pm
-usr/share/perl5/likewise-open/CenterisPam.pm
+usr/lib/likewise-open/ConfigureKrb5
+usr/lib/likewise-open/ConfigureLogin
+usr/lib/likewise-open/ConfigurePamForADLogin
+usr/lib/likewise-open/ConfigureShellPrompt
+usr/lib/likewise-open/ConfigureSshForGssapi
+usr/lib/likewise-open/gpcron
+usr/lib/likewise-open/Centeris.pm
+usr/lib/likewise-open/CenterisPam.pm
 
 usr/sbin/likewise-winbindd
 
