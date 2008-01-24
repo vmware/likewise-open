@@ -128,7 +128,6 @@ install: build
 	done
 
 
-	install -D --mode-=644 domainjoin/domainjoin-gui/src/domainjoin-gtk.glade $(DESTDIR)/usr/share/domainjoin-gtk.glade
 	install -D --mode=0644 debian/lwiauthd.conf $(DESTDIR)/etc/samba/lwiauthd.conf
 
 	install -D --mode=0644 debian/pam_lwidentity.conf $(DESTDIR)/etc/security/pam_lwidentity.conf

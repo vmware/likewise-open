@@ -180,7 +180,7 @@ ldconfig
 %files domainjoin-gui
 %defattr(-,root,root)
 %{_bindir}/domainjoin-gui
-%{_prefix}/share/domainjoin-gtk.glade
+%{_prefix}/share/likewise-open/domainjoin-gtk.glade
 
 %changelog
 * Wed Jan 23 2008 Gerald Carter <gcarter@likewisesoftware.com>

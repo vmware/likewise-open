@@ -85,9 +85,9 @@ install: all
 	@echo $(DESTDIR)
 	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(bindir)
 	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(libdir)
-	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(sharedir)
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(sharedir)//likewise-open
 	$(INSTALL) $(PROGRAM) $(DESTDIR)$(bindir)
-	$(INSTALL) domainjoin-gtk.glade $(DESTDIR)$(sharedir)
+	$(INSTALL) domainjoin-gtk.glade $(DESTDIR)$(sharedir)/likewise-open
 
 uninstall:
 	-/bin/rm -f $(DESTDIR)$(bindir)/$(PROGRAM)

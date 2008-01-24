@@ -22,7 +22,7 @@
 #include <glade/glade.h>
 #include <gtk/gtk.h>
 
-#define DOMAINJOIN_XML (SHARE_DIR "/domainjoin-gtk.glade")
+#define DOMAINJOIN_XML (SHARE_DIR "/likewise-open/domainjoin-gtk.glade")
 
 void dialog_insert_logo(GtkDialog* dialog, const char* file);
 
