@@ -6,21 +6,13 @@
 #
 # /etc/init.d/likewise-open
 #
-#LWI_STARTUP_TYPE_REDHAT###
-#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 90 10
-#LWI_STARTUP_TYPE_REDHAT# description: Start and Stop the Centeris Likewise Identity Auth Daemon
-#LWI_STARTUP_TYPE_REDHAT###
-#LWI_STARTUP_TYPE_SUSE#
-#LWI_STARTUP_TYPE_SUSE### BEGIN INIT INFO
-#LWI_STARTUP_TYPE_SUSE# Provides: likewise-open
-#LWI_STARTUP_TYPE_SUSE# Required-Start: $network $remote_fs
-#LWI_STARTUP_TYPE_SUSE# Default-Start: 3 5
-#LWI_STARTUP_TYPE_SUSE# Default-Stop: 0 1 2 6
-#LWI_STARTUP_TYPE_SUSE# Description: Start the Centeris Likewise Identity Auth Daemon
-#LWI_STARTUP_TYPE_SUSE### END INIT INFO
+####
+# chkconfig: 35 90 10
+# description: Start and Stop the Centeris Likewise Identity Auth Daemon
+####
 
 CONF=/etc/samba/lwiauthd.conf
-CENTERIS_PREFIX=/opt/likewise-open
+CENTERIS_PREFIX=/usr
 AUTHD_BIN=${CENTERIS_PREFIX}/sbin/likewise-winbindd
 PIDFILE=/var/run/likewise-winbindd.pid
 SCRIPTNAME="likewise-open"
@@ -146,7 +138,7 @@ fi
 ##
 
 status_success() {
-    case "${PLATFORM}" in 
+    case "${PLATFORM}" in
         REDHAT)
             echo_success
             echo
@@ -165,7 +157,7 @@ status_success() {
 
 status_failed() {
     status=$1
-    case "${PLATFORM}" in 
+    case "${PLATFORM}" in
         REDHAT)
             echo_failure
             echo
@@ -230,7 +222,7 @@ generic_status()
 }
 
 daemon_start() {
-    case "${PLATFORM}" in 
+    case "${PLATFORM}" in
         REDHAT)
             echo -n $"Starting `basename ${AUTHD_BIN}`: "
             daemon ${AUTHD_BIN}
@@ -302,7 +294,7 @@ daemon_start() {
 }
 
 daemon_stop() {
-    case "${PLATFORM}" in 
+    case "${PLATFORM}" in
         REDHAT)
             echo -n $"Stopping `basename ${AUTHD_BIN}`: "
             killproc `basename ${AUTHD_BIN}`
@@ -451,7 +443,7 @@ generic_killall()
 ## Main init script code
 ##
 
-case "$1" in 
+case "$1" in
     start)
         daemon_start
         ret=$?
@@ -488,7 +480,7 @@ case "$1" in
         ret=$?
         print_status $ret
         ;;
-        
+
     status)
         daemon_status
         ;;
