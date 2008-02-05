@@ -1,4 +1,4 @@
-##
+#! /usr/bin/perl
 ## Copyright (C) Centeris Corporation 2004-2007
 ## Copyright (C) Likewise Software 2007.  
 ## All rights reserved.
