@@ -488,6 +488,19 @@ case "$1" in
         daemon_status
         ;;
 
+    force-reload)
+        daemon_stop
+        ret=$?
+        print_status $ret
+        # Start can't follow a stop too closely on Debian...
+        if [ ${PLATFORM} = "DEBIAN" ]; then
+            sleep 1
+        fi
+        daemon_start
+        ret=$?
+        print_status $ret
+        ;;
+
     reload)
         echo -n "Reloading Centeris Authentication configuration file"
         if [ ${PLATFORM} = "AIX" ] || [ ${PLATFORM} = "HP-UX" ]; then
@@ -502,7 +515,7 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: $0 {start|stop|restart|status|reload}"
+        echo "Usage: $0 {start|stop|restart|status|reload|force-reload}"
         exit 1
         ;;
 esac

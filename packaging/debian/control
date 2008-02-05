@@ -5,13 +5,12 @@ XSBC-Original-Maintainer: Gerald Carter <gcarter@likewisesoftware.com>
 Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
 Build-Depends: libkrb5-dev, libldap2-dev, libpam0g-dev, uuid-dev,
  dpkg-dev (>= 1.13.9), libpam-runtime (>= 0.76-13.1), debhelper (>= 5),
- autoconf (>=2.53), libglade2-dev
-Standards-Version: 3.7.2
+ autoconf (>=2.53), libglade2-dev, automake
+Standards-Version: 3.7.3
 
 Package: likewise-open
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libpam-runtime (>= 0.76-13.1),
- libpam-modules, krb5-user, libldap2, libkrb53, perl
+Depends: ${shlibs:Depends}, ${perl:Depends}, libpam-runtime (>= 0.76-13.1), libpam-modules, krb5-user, libldap2, libkrb53
 Provides: domain-lsa-service
 Conflicts: domain-lsa-service
 Replaces: domain-lsa-service
@@ -24,7 +23,7 @@ Description: Authentication services for Active Directory Domains
 
 Package: likewise-open-gui
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, likewise-open, libglade2-0, perl
+Depends: ${shlibs:Depends}, likewise-open, libglade2-0, perl
 Description: GUI for Likewise Open Authentication service. Likewise Open
  provides a means of integrating Unix desktops and servers into an Active
  Directory (AD) environment by providing a means for hosts to join the domain
