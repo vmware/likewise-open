@@ -324,7 +324,7 @@ do_join(JoinDialog* dialog, LWException** exc)
 	}
 
 	info.dialog = progress_dialog;
-	info.options.noModifyHosts = joindialog_get_modify_hosts(dialog);
+	info.options.noModifyHosts = !joindialog_get_modify_hosts(dialog);
 
 	g_thread_create(join_worker, &info, FALSE, NULL);
 
