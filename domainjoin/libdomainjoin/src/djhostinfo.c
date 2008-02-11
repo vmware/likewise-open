@@ -1139,11 +1139,15 @@ CENTERROR DJIsValidComputerName(PSTR pszComputerName, PBOOLEAN pbIsValid)
 
 	dwLen = strlen(pszComputerName);
 
+#if 0   /* Don't really believe this to be necessary since we are not offering
+	   any services over NetBIOS  --jerry */
+
 	if (dwLen < 1 || dwLen > 15) {
 
 		*pbIsValid = FALSE;
 		goto done;
 	}
+#endif
 
 	ceError = CTAllocateString(pszComputerName, &pszTmp);
 	BAIL_ON_CENTERIS_ERROR(ceError);
