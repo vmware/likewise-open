@@ -472,21 +472,25 @@ ConfigureAppArmor()
 		if grep "mr," /etc/apparmor.d/abstractions/nameservice 2>&1 >/dev/null; then
 		    cat >>/etc/apparmor.d/abstractions/nameservice <<__AAEOF__
 # centeris
-/usr/centeris/lib/*.so*     mr,
-/usr/centeris/lib64/*.so*   mr,
+/usr/lib/libwbclient.so*     mr,
+/usr/lib64/libwbclient.so*   mr,
 /tmp/.lwidentity/pipe       rw,
 # end centeris
 __AAEOF__
 		else
 		    cat >>/etc/apparmor.d/abstractions/nameservice <<__AAEOF2__
 # centeris
-/usr/centeris/lib/*.so*     r,
-/usr/centeris/lib64/*.so*   r,
+/usr/lib/libwbclient.so*     r,
+/usr/lib64/libwbclient.so*   r,
 /tmp/.lwidentity/pipe       rw,
 # end centeris
 __AAEOF2__
 		fi
-		rcapparmor restart || return $?
+		if [ -x /etc/init.d/apparmor ]; then
+			/etc/init.d/apparmor reload || return $?
+		else
+			rcapparmor restart || return $?
+		fi
 	    fi
 	fi
     fi
