@@ -1,3 +1,9 @@
+likewise-open (4.0.5-1) gutsy; urgency=low
+
+  * New upstream release
+
+ -- Gerald Carter <gcarter@likewisesoftware.com>  Mon, 11 Feb 2008 07:52:53 -0600
+
 likewise-open (4.0.4-1likewise2) gutsy; urgency=low
 
   * Correct soname of libnss_lwidentity library.
