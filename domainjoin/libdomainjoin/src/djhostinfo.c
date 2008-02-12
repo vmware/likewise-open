@@ -812,10 +812,6 @@ static CENTERROR FixNetworkInterfaces(PSTR pszComputerName)
 	DWORD iPath = 0;
 	CHAR szBuf[1024];
 	LONG status = 0;
-	PSTR pszDefaultPathifcfg = "/etc/sysconfig/network-scripts/ifcfg-eth0";
-	PCSTR pszEthFltr_1 = "/etc/sysconfig/network/ifcfg-eth-id-";
-	PCSTR pszEthFltr_2 = "/etc/sysconfig/network/ifcfg-eth0";
-	PCSTR pszEthFltr_3 = "/etc/sysconfig/network/ifcfg-eth-bus";
 	PSTR pszPathifcfg = NULL;
 	BOOLEAN bDHCPHost = FALSE;
 	PSTR pszMachineSID = NULL;
@@ -874,62 +870,57 @@ static CENTERROR FixNetworkInterfaces(PSTR pszComputerName)
 
 	if (bDirExists) {
 
-		bFileExists = FALSE;
-		ceError = CTCheckFileExists(pszDefaultPathifcfg, &bFileExists);
-		CLEANUP_ON_CENTERROR_EE(ceError, EE);
+		struct {
+			PCSTR dir;
+			PCSTR glob;
+		} const searchPaths[] = {
+			{"/etc/sysconfig/network", "ifcfg-eth-id-**"},
+			{"/etc/sysconfig/network", "ifcfg-eth0*"},
+			{"/etc/sysconfig/network", "ifcfg-eth-bus*"},
+			//SLES 10.1 on zSeries uses /etc/sysconfig/network/ifcfg-qeth-bus-ccw-0.0.0500
+			{"/etc/sysconfig/network", "ifcfg-qeth-bus*"},
+			// Redhat uses /etc/sysconfig/network-scripts/ifcfg-eth<number>
+			{"/etc/sysconfig/network-scripts", "ifcfg-eth*"},
+			{NULL, NULL}
+		};
 
-		if (!bFileExists) {
+		// Find the ifcfg file
+		pszPathifcfg = NULL;
 
-			bDirExists = FALSE;
-			ceError =
-			    CTCheckDirectoryExists("/etc/sysconfig/network",
-						   &bDirExists);
-			CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-			if (bDirExists) {
-				ceError =
-				    CTGetMatchingFilePathsInFolder
-				    ("/etc/sysconfig/network", "ifcfg-eth*",
-				     &ppszPaths, &nPaths);
-				CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-				for (iPath = 0; iPath < nPaths; iPath++) {
-
-					if (!strncmp
-					    (*(ppszPaths + iPath), pszEthFltr_1,
-					     strlen(pszEthFltr_1))
-					    || !strncmp(*(ppszPaths + iPath),
-							pszEthFltr_2,
-							strlen(pszEthFltr_2))
-					    || !strncmp(*(ppszPaths + iPath),
-							pszEthFltr_3,
-							strlen(pszEthFltr_3))) {
-						ceError =
-						    CTAllocateString(*
-								     (ppszPaths
-								      + iPath),
-								     &pszPathifcfg);
-						CLEANUP_ON_CENTERROR_EE(ceError,
-									EE);
-						break;
-					}
-				}
+		for (iPath = 0;
+		     searchPaths[iPath].dir != NULL && pszPathifcfg == NULL;
+		     iPath++) {
+			if (ppszPaths) {
+				CTFreeStringArray(ppszPaths, nPaths);
+				ppszPaths = NULL;
 			}
 
-			if (IsNullOrEmptyString(pszPathifcfg)) {
-				ceError =
-				    CENTERROR_DOMAINJOIN_NO_ETH_ITF_CFG_FILE;
-				CLEANUP_ON_CENTERROR_EE(ceError, EE);
-			}
-
-		} else {
-
 			ceError =
-			    CTAllocateString(pszDefaultPathifcfg,
-					     &pszPathifcfg);
+			    CTGetMatchingFilePathsInFolder(searchPaths[iPath].
+							   dir,
+							   searchPaths[iPath].
+							   glob, &ppszPaths,
+							   &nPaths);
+			if (ceError == CENTERROR_INVALID_DIRECTORY) {
+				ceError = CENTERROR_SUCCESS;
+				continue;
+			}
 			CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
+			if (nPaths > 0) {
+				ceError =
+				    CTAllocateString(ppszPaths[0],
+						     &pszPathifcfg);
+				CLEANUP_ON_CENTERROR_EE(ceError, EE);
+			}
 		}
+
+		if (IsNullOrEmptyString(pszPathifcfg)) {
+			ceError = CENTERROR_DOMAINJOIN_NO_ETH_ITF_CFG_FILE;
+			CLEANUP_ON_CENTERROR_EE(ceError, EE);
+		}
+
+		DJ_LOG_INFO("Found ifcfg file at %s", pszPathifcfg);
 
 		ceError = DJCheckIfDHCPHost(pszPathifcfg, &bDHCPHost);
 		CLEANUP_ON_CENTERROR_EE(ceError, EE);
