@@ -15,7 +15,7 @@ DEB_HOST_ARCH_OS	:= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 export DEB_HOST_GNU_TYPE
 export DEB_BUILD_GNU_TYPE
 export DEB_HOST_ARCH_OS
-pyversio := $(shell pyversions -vd)
+pyversion := $(shell pyversions -vd)
 
 CFLAGS = -g -Wall
 
@@ -25,11 +25,12 @@ else
   CFLAGS += -O2
 endif
 
-#include /usr/share/quilt/quilt.make
+include /usr/share/quilt/quilt.make
 
 DESTDIR=`pwd`/debian/tmp
 PKGNAME=likewise-open
 PREFIX=/usr
+LIBEXECDIR=$(PREFIX)/lib/likewise-open
 
 conf_args = --with-fhs \
 	--enable-shared \
@@ -38,6 +39,7 @@ conf_args = --with-fhs \
 	--prefix=$(PREFIX) \
 	--sysconfdir=/etc \
 	--localstatedir=/var \
+	--libexecdir=$(LIBEXECDIR) \
 	--with-configdir=/etc/samba \
 	--with-libdir=$(PREFIX)/lib/$(PKGNAME) \
 	--with-lockdir=/var/lib/$(PKGNAME) \
@@ -49,8 +51,10 @@ conf_args = --with-fhs \
 	--with-ads \
 	--without-readline --with-included-popt --with-included-iniparser \
 	--with-dnsupdate \
-	--with-pam  \
-	--with-shared-modules=idmap_lwopen
+	--with-pam \
+	--with-libxml2-dir=$(PREFIX)  \
+	--with-shared-modules=idmap_lwopen \
+	--with-gtk
 
 ifeq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
   conf_args += --build $(DEB_BUILD_GNU_TYPE)
@@ -58,16 +62,9 @@ else
   conf_args += --build $(DEB_BUILD_GNU_TYPE) --host $(DEB_HOST_GNU_TYPE)
 endif
 
-CFLAGS = -Wall -g
-
-ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -O0
-else
-	CFLAGS += -O2
-endif
 
 configure: configure-stamp
-configure-stamp:
+configure-stamp: $(QUILT_STAMPFN)
 	dh_testdir
 
 	./autogen.sh
@@ -80,11 +77,12 @@ build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-	$(MAKE) SCRIPTDIR=/usr/lib/likewise-open all
+	$(MAKE) SCRIPTDIR=$(LIBEXECDIR) all
 
 	touch build-stamp
+clean: clean-patched unpatch
 
-clean:
+clean-patched: 
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
@@ -102,40 +100,47 @@ install: build
 
 	$(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
 
-
 	mkdir -p $(DESTDIR)/usr/lib/
 	mv $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so.0.1
 	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so.0
 	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so
 	(cd $(DESTDIR)/usr/lib && ln -s likewise-open/libwbclient.so.0 libwbclient.so.0)
 
+	mv $(DESTDIR)/$(PREFIX)/lib/libcentutils.so.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libcentutils.so.1
+	(cd $(DESTDIR)/usr/lib && ln -s -f likewise-open/libcentutils.so.1 libcentutils.so.1)
+	mv $(DESTDIR)/$(PREFIX)/lib/libgpglib.so.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libgpglib.so.1
+	(cd $(DESTDIR)/usr/lib && ln -s -f likewise-open/libgpglib.so.1 libgpglib.so.1)
+ 
+	/bin/mv $(DESTDIR)/usr/bin/lwi-domainjoin-cli $(DESTDIR)/usr/bin/domainjoin-cli
+ 
+	/bin/mv $(DESTDIR)/usr/bin/domainjoin-gtk $(DESTDIR)/usr/bin/domainjoin-gui
 
+	mkdir -p $(DESTDIR)/usr/share/likewise-open
+	install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-gtk.glade \
+		$(DESTDIR)/usr/share/likewise-open/domainjoin-gtk.glade
+	install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-logo.png \
+		$(DESTDIR)/usr/share/likewise-open/domainjoin-logo.png
+	install -m644 domainjoin/domainjoin-gui/gtk/likewise-logo.png \
+		$(DESTDIR)/usr/share/likewise-open/likewise-logo.png
 
-	install --mode=755 winbindd/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
-
+	install --mode=755 samba/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
 	ln -s libnss_lwidentity.so.2 $(DESTDIR)/lib/libnss_lwidentity.so
-
-	mkdir -p $(DESTDIR)/usr/share/perl5/likewise-open/
 
 	for file in CenterisPam.pm Centeris.pm; do \
 		install -D --mode=0644 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/likewise-open/; \
 	done
 
-	for file in ConfigureKrb5 ConfigureLogin ConfigurePamForADLogin ConfigureShellPrompt \
-		ConfigureSshForGssapi gpcron; \
-	do \
+	for file in ConfigureLogin ConfigureShellPrompt gpcron; do \
 		install --mode=0755 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/likewise-open; \
 	done
-
 
 	install -D --mode=0644 debian/lwiauthd.conf $(DESTDIR)/etc/samba/lwiauthd.conf
 
 	install -D --mode=0644 debian/pam_lwidentity.conf $(DESTDIR)/etc/security/pam_lwidentity.conf
-#	install --mode=0644 debian/likewise-open-default $(DESTDIR)/etc/defaults/likewise-open
+
+	install -D -m 644  debian/likewise-open.lintian $(DESTDIR)/usr/share/lintian/overrides/likewise-open 
 
 	dh_install --sourcedir=$(DESTDIR) --list-missing
-
-
 
 # Build architecture-independent files here.
 binary-indep: build install

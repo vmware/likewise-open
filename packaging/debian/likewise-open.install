@@ -3,11 +3,8 @@ usr/bin/lwinet
 usr/bin/lwimsg
 usr/bin/lwiinfo
 
-usr/lib/likewise-open/ConfigureKrb5
 usr/lib/likewise-open/ConfigureLogin
-usr/lib/likewise-open/ConfigurePamForADLogin
 usr/lib/likewise-open/ConfigureShellPrompt
-usr/lib/likewise-open/ConfigureSshForGssapi
 usr/lib/likewise-open/gpcron
 usr/lib/likewise-open/Centeris.pm
 usr/lib/likewise-open/CenterisPam.pm
@@ -21,9 +18,13 @@ lib/libnss_lwidentity.so*
 
 lib/security/pam_lwidentity.so
 
-usr/include/wbclient.h
 usr/lib/likewise-open/libwbclient.so*
+usr/lib/likewise-open/libcentutils.so*
+usr/lib/likewise-open/libgpglib.so*
 usr/lib/libwbclient.so.0
+usr/lib/libcentutils.so.1
+usr/lib/libgpglib.so.1
 
 etc/samba/lwiauthd.conf
 etc/security/pam_lwidentity.conf
+usr/share/lintian/overrides/likewise-open

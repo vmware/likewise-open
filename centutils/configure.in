@@ -1,0 +1,324 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.58)
+AC_INIT(centeris-centutils, 1.0, support@centeris.com)
+AC_CONFIG_SRCDIR([include/config.h.in])
+AC_CONFIG_HEADER([include/config.h])
+AC_PREFIX_DEFAULT(/usr/centeris)
+
+RM='/bin/rm -f'
+AC_SUBST(RM)
+
+LINK='/bin/ln -s'
+AC_SUBST(LINK)
+
+CAT='/bin/cat'
+AC_SUBST(CAT)
+
+if test -z "${AR}"; then
+	AC_CHECK_PROGS(AR, ar, gar, ar_was_not_found)
+fi
+
+
+AH_TEMPLATE(PREFIXDIR, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
+if test "x$prefix" = "xNONE"; then
+AC_DEFINE_UNQUOTED(PREFIXDIR, "$ac_default_prefix")
+else
+AC_DEFINE_UNQUOTED(PREFIXDIR, "$prefix")
+fi
+
+THREAD_LIB="-mt -lpthread"
+THREAD_LDFLAGS=
+CPPFLAGS="$CPPFLAGS -D_REENTRANT -fPIC -D_GNU_SOURCE"
+LDFLAGS="-Wall ${LDFLAGS}"
+LIBVER_MAJOR=1
+SHLIBEXT=.so
+SHLIBVEXT=.so.$LIBVER_MAJOR
+DYNLIBEXT=.so
+DYNLIBVEXT=.so.$LIBVER_MAJOR
+
+LWI_OS_FLAGS=""
+case `uname -s` in
+     Darwin)
+        LWI_OS_FLAGS="-D__LWI_MACINTOSH__"
+        SHLIBEXT=.dylib
+        SHLIBVEXT=.$LIBVER_MAJOR.dylib
+        CPPFLAGS="$CPPFLAGS -DGP_LINUX"
+        CRYPTOLIB="-lcrypto"
+        LDFLAGS="-headerpad_max_install_names $LDFLAGS"
+        BUILD_DYNLIB_CMD='$(CC) -bundle $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS)'
+        BUILD_SHLIB_CMD='$(CC) -undefined error -dynamiclib -compatibility_version $(LIBVER_MAJOR) -current_version $(LIBVER_MAJOR) -install_name "lib$(LIBNAME)$(SHLIBVEXT)" -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS)'
+        ;;
+     Linux)
+        LWI_OS_FLAGS="-D__LWI_LINUX__"
+	CPPFLAGS="$CPPFLAGS -DGP_LINUX"
+	if test -e /usr/lib64/libcrypto.a ; then
+	    CRYPTOLIB=/usr/lib64/libcrypto.a
+	else
+	    CRYPTOLIB=/usr/lib/libcrypto.a
+	fi;
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+	;;
+    SunOS)
+        LWI_OS_FLAGS="-D__LWI_SOLARIS__"
+	#CRYPTOLIB="-Wl,-Bstatic -lcrypto -Wl,-Bdynamic -lc"
+        # This is ok if we are using sun ld
+	CRYPTOLIB="/opt/csw/lib/libcrypto.a"
+	case "$CFLAGS" in
+            *-m64*)
+                if test -e /opt/csw/lib/64/libcrypto.a ; then
+                    CRYPTOLIB="/opt/csw/lib/64/libcrypto.a"
+                elif test -e /usr/sfw/lib/64/libcrypto.so ; then
+                    CRYPTOLIB="-lcrypto"
+                else
+                    AC_MSG_ERROR(libcrypto not found, 1)
+                fi
+                ;;
+	esac
+        LDFLAGS="${LDFLAGS} -static-libgcc"
+	#S7 Changes
+        #BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) -Wl,-o$@'
+	BUILD_SHLIB_CMD='$(CC) -Wall -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS)'
+	#S7 Changes Ends
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+	;;
+    AIX)
+        LWI_OS_FLAGS="-D__LWI_AIX__"
+        #BOOTINFO_OUTPUT=`/usr/sbin/bootinfo -y`
+        #if test "$BOOTINFO_OUTPUT" = "64"; then
+	CRYPTOLIB="-lcrypto"
+        #else
+        #CRYPTOLIB="-lcrypto"
+        #fi
+        LDFLAGS="$LDFLAGS -static-libgcc"
+        THREAD_LIB="-lpthreads"
+	    THREAD_LDFLAGS="-Wl,-lpthreads"
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) -Wl,-o$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        ;;
+     HP-UX)
+        LWI_OS_FLAGS="-D__LWI_HP_UX__"
+	if test `uname -m` != "ia64"; then
+		SHLIBEXT=.sl
+		SHLIBVEXT=.sl.$LIBVER_MAJOR
+		DYNLIBEXT=.sl
+		DYNLIBVEXT=.sl.$LIBVER_MAJOR
+	fi
+        if test -e /usr/lib/hpux64/libcrypto.a ; then
+        	CRYPTOLIB=/usr/lib/hpux64/libcrypto.a
+##Only 32bit build
+		if test -e /usr/lib/hpux32/libcrypto.a ; then
+			CRYPTOLIB=/usr/lib/hpux32/libcrypto.a
+		fi
+	elif test -e /lib/libcrypto.a; then
+		CRYPTOLIB=/lib/libcrypto.a
+        else
+        	CRYPTOLIB=/usr/lib/hpux32/libcrypto.a
+        fi
+        THREAD_LIB="-mt -lpthread"
+        BUILD_SHLIB_CMD='$(CC) -shared -o $@ $(OBJS) $(LDFLAGS) -Wl,-h$@'
+#       BUILD_SHLIB_CMD='ld -b +h -B symbolic -o $@ $(OBJS) $(LDFLAGS)'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        ;;
+    *)
+	AC_MSG_ERROR(OS not supported, 1)
+	;;
+esac
+
+export LDFLAGS
+
+AC_SUBST(LWI_OS_FLAGS)
+AC_SUBST(LDFLAGS)
+AC_SUBST(LDSHFLAGS)
+AC_SUBST(LDDLSHFLAGS)
+AC_SUBST(THREAD_LDFLAGS)
+AC_SUBST(THREAD_LIB)
+AC_SUBST(CRYPTOLIB)
+AC_SUBST(SHLIBEXT)
+AC_SUBST(DYNLIBEXT)
+AC_SUBST(DYNLIBVEXT)
+AC_SUBST(SHLIBVEXT)
+AC_SUBST(LIBVER_MAJOR)
+AC_SUBST(BUILD_SHLIB_CMD)
+AC_SUBST(BUILD_DYNLIB_CMD)
+
+AC_ARG_ENABLE(debug,
+[ --enable-debug enable debugging ],
+CFLAGS="${CFLAGS} -g"
+)
+
+if test "x$CFLAGS" = "x"; then
+	CFLAGS="-O2"
+fi
+
+ENDIAN_FLAGS=""
+
+AC_C_BIGENDIAN([ENDIAN_FLAGS="-DWORDS_BIGENDIAN=1"],[ENDIAN_FLAGS="-DWORDS_LITTLEENDIAN=1"],[ENDIAN_FLAGS="-DWORDS_UNKNOWN=1"])
+
+CFLAGS="${CFLAGS} ${ENDIAN_FLAGS}"
+case `uname -s` in
+	HP-UX)
+		# do nothing
+		;;
+	*)
+		# Be anal about warning
+		CFLAGS="${CFLAGS} -Wall"
+		;;
+esac
+
+CFLAGS="${CFLAGS} ${LWI_OS_FLAGS}"
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL
+
+# Check for compiler options
+AC_MSG_CHECKING([if linker supports -rpath-link])
+saved_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS -Wl,-rpath-link=/usr/lib"
+
+AC_TRY_LINK([], [],
+      [ AC_MSG_RESULT([yes]); RPATH_LINK=yes ],
+      [ AC_MSG_RESULT([no]); RPATH_LINK=no ])
+
+LDFLAGS="$saved_LDFLAGS"
+
+# Checks for libraries.
+have_sigtimedwait=no
+AC_CHECK_LIB(c, sigtimedwait, [have_sigtimedwait=yes])
+if test x"$have_sigtimedwait" = x"no"; then
+   AC_CHECK_LIB(rt, sigtimedwait, [LIBS="$LIBS -lrt"])
+fi
+
+AC_SEARCH_LIBS(clock_gettime, [rt])
+
+have_evp_encryptfinal_ex=no
+AC_CHECK_LIB(crypto, EVP_EncryptFinal_ex, [have_evp_encryptfinal_ex=yes])
+if test x"$have_evp_encryptfinal_ex" = x"yes"; then
+AC_DEFINE_UNQUOTED(HAVE_EVP_ENCRYPTFINAL_EX, 1, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
+fi
+
+have_evp_encryptfinal=no
+AC_CHECK_LIB(crypto, EVP_EncryptFinal, [have_evp_encryptfinal=yes])
+if test x"$have_evp_encryptfinal" = x"yes"; then
+AC_DEFINE_UNQUOTED(HAVE_EVP_ENCRYPTFINAL, 1, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
+fi
+
+have_evp_decryptfinal_ex=no
+AC_CHECK_LIB(crypto, EVP_DecryptFinal_ex, [have_evp_decryptfinal_ex=yes])
+if test x"$have_evp_decryptfinal_ex" = x"yes"; then
+AC_DEFINE_UNQUOTED(HAVE_EVP_DECRYPTFINAL_EX, 1, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
+fi
+
+have_evp_decryptfinal=no
+AC_CHECK_LIB(crypto, EVP_DecryptFinal, [have_evp_decryptfinal=yes])
+if test x"$have_evp_decryptfinal" = x"yes"; then
+AC_DEFINE_UNQUOTED(HAVE_EVP_DECRYPTFINAL, 1, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
+fi
+
+AC_CHECK_LIB([nsl], [gethostname])
+AC_CHECK_LIB([dl], [dlopen], [LIBS="$LIBS -ldl"])
+AC_CHECK_LIB([dld], [dlopen], [LIBS="$LIBS -ldld"])
+AC_CHECK_LIB([resolv], [res_query])
+AC_CHECK_LIB([proc], [openproc])
+
+## possible to disable krb5 in order to get 32bit builds with 32bit Krb5 libs
+if test x$enable_krb5 != xno; then
+	AC_CHECK_LIB([gssapi_krb5], [gss_seal])
+	AC_CHECK_LIB([krb5], [krb5_get_error_message],[],[echo "Wrong version of krb5."; exit -1])
+	AC_CHECK_LIB([com_err], [com_err])
+fi
+
+AC_CHECK_LIB([ldap], [ldap_open])
+AC_CHECK_LIB([lber], [ber_bvfree])
+AC_CHECK_LIB([pthread], [pthread_create])
+AC_CHECK_LIB([uuid], [uuid_copy], [LIBS="$LIBS -luuid"])
+#AC_CHECK_LIB([crypto], [PKCS8_encrypt])
+AC_CHECK_LIB([socket], [bind])
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h fcntl.h sys/stat.h openssl/pem.h openssl/rsa.h openssl/bio.h openssl/sha.h openssl/evp.h openssl/md5.h sys/param.h sys/pstat.h proc/readproc.h sys/ioctl.h sys/termio.h utmps.h utmpx.h utmp.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+dnl The AC_C_CONST check is broken in versions of autoconf older than 2.60.
+dnl see http://www.mail-archive.com/bug-autoconf@gnu.org/msg00827.html
+dnl AC_C_CONST
+AC_TYPE_PID_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+
+# Checks for library functions.
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_SELECT_ARGTYPES
+AC_TYPE_SIGNAL
+AC_FUNC_STRFTIME
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([atexit bzero localtime_r memset select socket strchr strerror vsyslog rpl_malloc rpl_realloc mkdtemp])
+case `uname -s` in
+		HP-UX*)
+			;;
+		*)
+			AC_CHECK_FUNCS(sigtimedwait)
+			;;
+esac
+AC_CHECK_DECLS([isblank, pstat_getproc], [], [], [#include <ctype.h>
+#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#if HAVE_SYS_PSTAT_H
+#include <sys/pstat.h>
+#endif])
+
+if test "$ac_cv_have_decl_pstat_getproc" = yes; then
+CPPFLAGS="$CPPFLAGS -D_PSTAT64"
+fi
+
+GLIB_DIR='$(BUILD_ROOT)/libgpglib'
+GLIB_INCLUDE='-I$(SRC_ROOT)/libgpglib'
+GLIB_LDFLAGS="-L$GLIB_DIR -lgpglib"
+GLIB_STATIC_LIB="$GLIB_DIR/libgpglib.a"
+
+GPCOMMON_DIR='$(BUILD_ROOT)/libgpcommon'
+GPCOMMON_INCLUDE='-I$(BUILD_ROOT)/libgpcommon -I$(SRC_ROOT)/libgpcommon'
+GPCOMMON_LDFLAGS="-L$GPCOMMON_DIR -lgpcommon"
+GPCOMMON_STATIC_LIB="$GPCOMMON_DIR/libgpcommon.a"
+
+CENTUTILS_DIR='$(BUILD_ROOT)/libcentutils'
+CENTUTILS_INCLUDE='-I$(SRC_ROOT)/libcentutils'
+CENTUTILS_LDFLAGS="-L$CENTUTILS_DIR -lcentutils"
+CENTUTILS_STATIC_LIB="$CENTUTILS_DIR/libcentutils.a"
+
+GP_PUBLIC_INCLUDE='-I$(SRC_ROOT)/include'
+
+AC_SUBST(GLIB_DIR)
+AC_SUBST(GLIB_INCLUDE)
+AC_SUBST(GLIB_LDFLAGS)
+AC_SUBST(GLIB_STATIC_LIB)
+
+AC_SUBST(CENTUTILS_DIR)
+AC_SUBST(CENTUTILS_INCLUDE)
+AC_SUBST(CENTUTILS_LDFLAGS)
+AC_SUBST(CENTUTILS_STATIC_LIB)
+
+AC_SUBST(GP_PUBLIC_INCLUDE)
+
+GP_CORE_INCLUDE="$GLIB_INCLUDE $CENTUTILS_INCLUDE"
+
+GP_CORE_LDFLAGS="$CENTUTILS_LDFLAGS $GLIB_LDFLAGS"
+
+GP_CORE_DEP_LIBS="$GLIB_STATIC_LIB $CENTUTILS_STATIC_LIB"
+
+AC_SUBST(GP_CORE_INCLUDE)
+AC_SUBST(GP_CORE_LDFLAGS)
+AC_SUBST(GP_CORE_DEP_LIBS)
+
+AC_CONFIG_FILES([Makefile
+                 libgpglib/Makefile
+                 libcentutils/Makefile]
+)
+AC_OUTPUT

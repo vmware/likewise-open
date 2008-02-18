@@ -1,11 +1,11 @@
-#! /usr/bin/perl
+##
 ## Copyright (C) Centeris Corporation 2004-2007
-## Copyright (C) Likewise Software 2007.  
+## Copyright (C) Likewise Software    2007-2008
 ## All rights reserved.
 ## 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation; either version 3 of the License, or
+## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
 ##
 ## This program is distributed in the hope that it will be useful,
@@ -170,10 +170,12 @@ sub GetDistroInfo(;$)
                 # The format of the line is something like:
                 #   Red Hat Enterprise Linux ES release 4 (Nahant Update 1)
                 #   Red Hat Advanced Server release 2.1AS (Pensacola)
-                if ($text =~ /^\s*Red Hat ((Enterprise Linux \S+)|(Linux (Advanced|Enterprise) Server)) release (\S+)/)
+                # In addition, Oracle Linux reports itself as:
+                #   Enterprise Linux Enterprise Linux AS release 4 (October Update 5)
+                if ($text =~ /^\s*((Red Hat)|(Enterprise Linux)) ((Enterprise Linux \S+)|(Linux (Advanced|Enterprise) Server)) release (\S+)/)
                 {
                     $distro = $distroType;
-                    $version = $5;
+                    $version = $8;
                     $version =~ s/(AS)|(ES)$//;
                     $version =~ s/^(\d+)\.\d+$/$1/;
                     last;
@@ -290,6 +292,12 @@ sub GetDistroInfo(;$)
                 die "Should have bailed: [$distro, $version]\n";
             }
 	}
+        if (not defined($distro))
+        {
+            # Support a catch-all for Linux distros:
+            $distro = "other";
+            $version = "0";
+        }
     }
 
     if (not defined($distro))

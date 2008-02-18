@@ -1,2 +1,3 @@
 usr/bin/domainjoin-gui
 usr/share/likewise-open/domainjoin-gtk.glade
+usr/share/likewise-open/*.png

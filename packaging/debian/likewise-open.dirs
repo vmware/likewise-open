@@ -7,4 +7,3 @@ etc/samba
 var/run
 var/lib/likewise-open
 var/log/likewise-open
-usr/share/likewise-open

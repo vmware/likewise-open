@@ -1,11 +1,11 @@
 /*
  * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007.  
+ * Copyright (C) Likewise Software    2007-2008
  * All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -19,310 +19,883 @@
 
 /* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
+#include "djdistroinfo.h"
+#include "djsshconf.h"
+#include "djpamconf.h"
+#include "djtimemgmt.h"
 #include "djcli.h"
+#include "djfirewall.h"
+#include "ctprocutils.h"
+#include "lwexc.h"
+
+#define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
+
+CENTERROR ParseUInt(PCSTR in, unsigned int *out)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR endPtr;
+    *out = strtoul(in, &endPtr, 10);
+    if(*endPtr != '\0')
+    {
+        GCE(ceError = CENTERROR_INVALID_OPTION_VALUE);
+    }
+
+cleanup:
+    return ceError;
+}
 
 static
-void ShowUsage()
+void
+ShowUsage()
 {
-	fprintf(stdout,
-		"usage: domainjoin-cli [options] command [args...]\n\n");
-	fprintf(stdout, "  where options are:\n\n");
-	fprintf(stdout,
-		"    --help            Display this help information.\n");
-	fprintf(stdout,
-		"    --log {.|path}    Log to a file (or \".\" to log to console).\n\n");
-	fprintf(stdout, "  and commands are:\n\n");
-	fprintf(stdout, "    query\n");
-	fprintf(stdout, "    fixfqdn\n");
-	fprintf(stdout, "    setname <computer name>\n");
-	fprintf(stdout,
-		"    join [--ou <organizationalUnit>] <domain name> <user name> [<password>]\n");
-	//fprintf(stdout, "    configure pam [--testprefix <dir>] { --enable | --disable }"
-	fprintf(stdout, "    leave\n\n");
-	fprintf(stdout, "  Example:\n\n");
-	fprintf(stdout, "    domainjoin-cli query\n\n");
+    fprintf(stdout, "usage: domainjoin-cli [options] command [args...]\n\n");
+    fprintf(stdout, "  where options are:\n\n");
+    fprintf(stdout, "    --help            Display this help information.\n");
+    fprintf(stdout, "    --help-internal   Display help for debug commands\n");
+    fprintf(stdout, "    --log {.|path}    Log to a file (or \".\" to log to console).\n\n");
+    fprintf(stdout, "  and commands are:\n\n");
+    fprintf(stdout, "    query\n");
+    fprintf(stdout, "    fixfqdn\n");
+    fprintf(stdout, "    setname <computer name>\n");
+    fprintf(stdout, "    join [--enable <module> --disable <module> ...] [--ou <organizationalUnit>] <domain name> <user name> [<password>]\n");
+    fprintf(stdout, "    join [--advanced] --preview [--ou <organizationalUnit>] <domain name>\n");
+    fprintf(stdout, "    join [--ou <organizationalUnit>] --details <module> <domain name>\n");
+    fprintf(stdout, "    leave\n\n");
+
+    fprintf(stdout, "  Example:\n\n");
+    fprintf(stdout, "    domainjoin-cli query\n\n");
 }
 
-static CENTERROR FillMissingPassword(PSTR * ppszPassword)
+static
+void
+ShowUsageInternal()
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PSTR pszPassword = NULL;
+    ShowUsage();
 
-	fprintf(stdout, "Password: ");
-	fflush(stdout);
-	ceError = GetPassword(&pszPassword);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	if (!IsNullOrEmptyString(pszPassword)) {
-		*ppszPassword = pszPassword;
-		pszPassword = NULL;
-	}
-
-      error:
-
-	if (pszPassword)
-		CTFreeString(pszPassword);
-
-	return ceError;
+    fprintf(stdout, "  Internal debug commands:\n");
+    fprintf(stdout, "    configure pam [--testprefix <dir>] { --enable | --disable }\n");
+    fprintf(stdout, "    configure nsswitch [--testprefix <dir>] { --enable | --disable }\n");
+    fprintf(stdout, "    configure ssh [--testprefix <dir>] { --enable | --disable }\n");
+    fprintf(stdout, "    configure krb5 [--testprefix <dir>] [--long <longdomain>] [--short <shortdomain>] { --enable | --disable }\n");
+    fprintf(stdout, "    configure firewall [--testprefix <dir>] { --enable | --disable }\n");
+    fprintf(stdout, "    get_os_type\n");
+    fprintf(stdout, "    get_arch\n");
+    fprintf(stdout, "    get_distro\n");
+    fprintf(stdout, "    get_distro_version\n");
+    fprintf(stdout, "    sync_time <domain controller> <allowed drift>\n");
+    fprintf(stdout, "    raise_error <error code | error name | 0xhex error code>\n");
+    fprintf(stdout, "\n");
 }
 
-void ShowErrorMessage(CENTERROR errCode)
-{
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PSTR pszErrMessage = NULL;
-
-	ceError = DJGetErrorMessage(errCode, &pszErrMessage);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	if (!IsNullOrEmptyString(pszErrMessage)) {
-
-		DJ_LOG_ERROR("%s", pszErrMessage);
-		fprintf(stderr, "%s\n", pszErrMessage);
-
-	} else {
-
-		DJ_LOG_ERROR("FAILED [Error code: %.8x]", errCode);
-		fprintf(stderr, "FAILED [Error code: %.8x]\n", errCode);
-
-	}
-
-      error:
-
-	if (pszErrMessage)
-		CTFreeString(pszErrMessage);
-}
-
-CENTERROR ValidateJoinParameters(PTASKINFO pTaskInfo)
-{
-	CENTERROR ceError = CENTERROR_SUCCESS;
-
-	if (IsNullOrEmptyString(pTaskInfo->pszDomainName)) {
-		ceError = CENTERROR_DOMAINJOIN_INVALID_DOMAIN_NAME;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
-
-	if (IsNullOrEmptyString(pTaskInfo->pszUserName)) {
-		ceError = CENTERROR_DOMAINJOIN_INVALID_USERID;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
-
-	if (IsNullOrEmptyString(pTaskInfo->pszPassword)) {
-		ceError = CENTERROR_DOMAINJOIN_INVALID_PASSWORD;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
-
-      error:
-
-	return ceError;
-}
-
-BOOLEAN GetEnableBoolean(PTASKINFO pTaskInfo)
-{
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PDOMAINJOININFO pDomainJoinInfo = NULL;
-	if (pTaskInfo->dwEnable == ENABLE_TYPE_AUTO) {
-		ceError = QueryInformation(&pDomainJoinInfo);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-
-		if (IsNullOrEmptyString(pDomainJoinInfo->pszDomainName))
-			pTaskInfo->dwEnable = ENABLE_TYPE_DISABLE;
-		else
-			pTaskInfo->dwEnable = ENABLE_TYPE_ENABLE;
-
-	}
-
-      error:
-	if (pDomainJoinInfo != NULL)
-		FreeDomainJoinInfo(pDomainJoinInfo);
-
-	return pTaskInfo->dwEnable == ENABLE_TYPE_ENABLE;
-}
-
-int main(int argc, char *argv[]
+static
+CENTERROR
+FillMissingPassword(
+    PCSTR username,
+    PSTR* ppszPassword
     )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR pszPassword = NULL;
 
-	PTASKINFO pTaskInfo = NULL;
-	PSTR pszPassword = NULL;
-	BOOLEAN bIsResolvable = FALSE;
+    fprintf(stdout, "%s's password: ",username);
+    fflush(stdout);
+    ceError = GetPassword(&pszPassword);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+    fprintf(stdout, "\n");
 
-	if (argc <= 1) {
-		ShowUsage();
-		goto done;
-	}
+    if (!IsNullOrEmptyString(pszPassword)) {
+        *ppszPassword = pszPassword;
+        pszPassword = NULL;
+    }
 
-	ceError = GetTaskInfo(argc, argv, &pTaskInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+error:
 
-	if (pTaskInfo->dwTaskType == TASK_TYPE_USAGE) {
-		ShowUsage();
-		goto done;
-	}
+    if (pszPassword)
+        CTFreeString(pszPassword);
 
-	if (!IsRoot() && pTaskInfo->pszTestPrefix == NULL) {
-		fprintf(stderr,
-			"Error: This program can only be run by the root user\n");
-		ceError = CENTERROR_DOMAINJOIN_NON_ROOT_USER;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    return ceError;
+}
 
-	if (pTaskInfo->bNoLog) {
+BOOLEAN GetEnableBoolean(EnableType dwEnable)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PDOMAINJOININFO pDomainJoinInfo = NULL;
+    if(dwEnable == ENABLE_TYPE_AUTO)
+    {
+        ceError = QueryInformation(&pDomainJoinInfo);
+        BAIL_ON_CENTERIS_ERROR(ceError);
 
-		ceError = dj_disable_logging();
-		BAIL_ON_CENTERIS_ERROR(ceError);
+        if(IsNullOrEmptyString(pDomainJoinInfo->pszDomainName))
+            dwEnable = ENABLE_TYPE_DISABLE;
+        else
+            dwEnable = ENABLE_TYPE_ENABLE;
 
-	} else if (pTaskInfo->pszLogFilePath == NULL ||
-		   !strcmp(pTaskInfo->pszLogFilePath, ".")) {
+    }
 
-		ceError = dj_init_logging_to_console(pTaskInfo->dwLogLevel);
-		BAIL_ON_CENTERIS_ERROR(ceError);
+error:
+    if(pDomainJoinInfo != NULL)
+        FreeDomainJoinInfo(pDomainJoinInfo);
 
-	} else {
+    return dwEnable == ENABLE_TYPE_ENABLE;
+}
 
-		ceError = dj_init_logging_to_file(pTaskInfo->dwLogLevel,
-						  pTaskInfo->pszLogFilePath);
-		BAIL_ON_CENTERIS_ERROR(ceError);
+void PrintWarning(const char *title, const char *message)
+{
+    PSTR      wrapped = NULL;
+    int columns;
+    if(!CENTERROR_IS_OK(CTGetTerminalWidth(fileno(stdout), &columns)))
+        columns = -1;
 
-	}
+    //This function doesn't return a CENTERROR, so we have to recover as much
+    //as possible.
+    if(CENTERROR_IS_OK(CTWordWrap(message, &wrapped, 4, columns)))
+        fprintf(stdout, "Warning: %s\n%s\n\n", title, wrapped);
+    else
+        fprintf(stdout, "Warning: %s\n%s\n\n", title, message);
+    CT_SAFE_FREE_STRING(wrapped);
+    DJ_LOG_WARNING("%s\n%s", title, message);
+}
 
-	switch (pTaskInfo->dwTaskType) {
-	case TASK_TYPE_FIXFQDN:
-		{
-			ceError = DoFixFqdn(pTaskInfo);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-		}
-		break;
-	case TASK_TYPE_QUERY:
-		{
-			ceError = DoQuery(pTaskInfo);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-		}
-		break;
-	case TASK_TYPE_SETNAME:
-		{
-			ceError = DoSetName(pTaskInfo);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-		}
-		break;
-	case TASK_TYPE_JOIN:
-		{
-			while (1) {
+void PrintModuleState(ModuleState *state)
+{
+    char resultChar;
+    if(state->lastResult != FullyConfigured &&
+            state->lastResult != CannotConfigure)
+    {
+        fprintf(stdout, "[%c] ", state->runModule? 'X' : ' ');
+    }
+    else
+    {
+        fprintf(stdout, "    ");
+    }
+    switch(state->lastResult)
+    {
+        default:
+        case NotApplicable:
+            //This case should not occur
+            resultChar = 'E';
+            break;
+        case FullyConfigured:
+            resultChar = 'F';
+            break;
+        case SufficientlyConfigured:
+            resultChar = 'S';
+            break;
+        case NotConfigured:
+            resultChar = 'N';
+            break;
+        case CannotConfigure:
+            //This is distinguishable from NotConfigured because the
+            //checkbox to the left doesn't appear.
+            resultChar = 'N';
+            break;
+    }
+    fprintf(stdout, "[%c] %-15s- %s\n", resultChar, state->module->shortName,
+            state->module->longName);
+}
 
-				ceError = ValidateJoinParameters(pTaskInfo);
+void PrintStateKey()
+{
+    fprintf(stdout,
+"\n"
+"Key to flags\n"
+"[F]ully configured        - the system is already configured for this step\n"
+"[S]ufficiently configured - the system meets the minimum configuration\n"
+"                            requirements for this step\n"
+"[N]ecessary               - this step must be run or manually performed.\n"
+"\n"
+"[X]                       - this step is enabled and will make changes\n"
+"[ ]                       - this step is disabled and will not make changes\n");
+}
 
-				if (ceError ==
-				    CENTERROR_DOMAINJOIN_INVALID_PASSWORD) {
+CENTERROR PrintJoinHeader(const JoinProcessOptions *options)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR fqdn = NULL;
+    PDOMAINJOININFO pDomainJoinInfo = NULL;
+    PCSTR domain;
 
-					if (pTaskInfo->pszPassword) {
-						CTFreeString(pTaskInfo->
-							     pszPassword);
-						pTaskInfo->pszPassword = NULL;
-					}
+    if(options->joiningDomain)
+    {
+        GCE(ceError = DJGetFinalFqdn(options, &fqdn));
+        fprintf(stdout,
+                "Joining to AD Domain:   %s\n"
+                "With Computer DNS Name: %s\n\n",
+                options->domainName,
+                fqdn);
+    }
+    else
+    {
+        GCE(ceError = QueryInformation(&pDomainJoinInfo));
+        domain = pDomainJoinInfo->pszDomainName;
+        if(domain == NULL)
+            domain = "(unknown)";
+        fprintf(stdout, "Leaving AD Domain:   %s\n", domain);
+    }
 
-					ceError =
-					    FillMissingPassword(&pTaskInfo->
-								pszPassword);
-					BAIL_ON_CENTERIS_ERROR(ceError);
+cleanup:
+    CT_SAFE_FREE_STRING(fqdn);
+    return ceError;
+}
 
-					continue;
-				}
-				BAIL_ON_CENTERIS_ERROR(ceError);
-				break;
-			}
+void PrintModuleStates(BOOLEAN showTristate, JoinProcessOptions *options)
+{
+    size_t i;
+    if(showTristate)
+    {
+        for(i = 0; i < options->moduleStates.size; i++)
+        {
+            PrintModuleState(DJGetModuleState(options, i));
+        }
+        PrintStateKey();
+    }
+    else
+    {
+        fprintf(stdout, "The following stages are currently configured to be run during the domain join:\n");
+        for(i = 0; i < options->moduleStates.size; i++)
+        {
+            ModuleState *state = DJGetModuleState(options, i);
+            if(state->runModule)
+            {
+                fprintf(stdout, "%-15s- %s\n", state->module->shortName,
+                        state->module->longName);
+            }
+        }
+    }
+}
 
-			ceError =
-			    DJIsDomainNameResolvable(pTaskInfo->pszDomainName,
-						     &bIsResolvable);
-			BAIL_ON_CENTERIS_ERROR(ceError);
+void DoJoin(int argc, char **argv, int columns, LWException **exc)
+{
+    JoinProcessOptions options;
+    BOOLEAN advanced = FALSE;
+    BOOLEAN preview = FALSE;
+    DynamicArray enableModules, disableModules;
+    DynamicArray detailModules;
+    size_t i;
+    PSTR moduleDetails = NULL;
+    PSTR wrapped = NULL;
 
-			if (!bIsResolvable) {
-				ceError =
-				    CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
-				BAIL_ON_CENTERIS_ERROR(ceError);
-			}
+    DJZeroJoinProcessOptions(&options);
+    memset(&enableModules, 0, sizeof(enableModules));
+    memset(&disableModules, 0, sizeof(disableModules));
+    memset(&detailModules, 0, sizeof(detailModules));
 
-			ceError = DoJoin(pTaskInfo);
-			BAIL_ON_CENTERIS_ERROR(ceError);
+    while(argc > 0 && CTStrStartsWith(argv[0], "--"))
+    {
+        if(!strcmp(argv[0], "--advanced"))
+            advanced = TRUE;
+        else if(!strcmp(argv[0], "--preview"))
+            preview = TRUE;
+        else if(!strcmp(argv[0], "--nohosts"))
+            ;
+        else if(argc < 2)
+        {
+            LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+            goto cleanup;
+        }
+        else if(!strcmp(argv[0], "--enable"))
+        {
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&enableModules, sizeof(PCSTR *), &argv[1], 1));
+            argv++;
+            argc--;
+        }
+        else if(!strcmp(argv[0], "--disable"))
+        {
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&disableModules, sizeof(PCSTR *), &argv[1], 1));
+            argv++;
+            argc--;
+        }
+        else if(!strcmp(argv[0], "--details"))
+        {
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&detailModules, sizeof(PCSTR *), &argv[1], 1));
+            argv++;
+            argc--;
+        }
+        else if(!strcmp(argv[0], "--ou"))
+        {
+            CT_SAFE_FREE_STRING(options.ouName);
+            LW_CLEANUP_CTERR(exc, CTStrdup(argv[1], &options.ouName));
+            argv++;
+            argc--;
+        }
+        else
+        {
+            LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+            goto cleanup;
+        }
+        argv++;
+        argc--;
+    }
 
-			fprintf(stdout, "SUCCESS\n");
-		}
-		break;
-	case TASK_TYPE_CONFIGURE_PAM:
-		{
-			ceError =
-			    DJNewConfigurePamForADLogin(pTaskInfo->
-							pszTestPrefix,
-							GetEnableBoolean
-							(pTaskInfo));
-			BAIL_ON_CENTERIS_ERROR(ceError);
-			fprintf(stdout, "SUCCESS\n");
-		}
-		break;
-	case TASK_TYPE_CONFIGURE_NSSWITCH:
-		{
-			if (GetEnableBoolean(pTaskInfo))
-				ceError = ConfigureNameServiceSwitch();
-			else
-				ceError = UnConfigureNameServiceSwitch();
-			BAIL_ON_CENTERIS_ERROR(ceError);
-			fprintf(stdout, "SUCCESS\n");
-		}
-		break;
-	case TASK_TYPE_CONFIGURE_SSH:
-		{
-			ceError =
-			    DJConfigureSshForADLogin(pTaskInfo->pszTestPrefix,
-						     GetEnableBoolean
-						     (pTaskInfo));
-			BAIL_ON_CENTERIS_ERROR(ceError);
-			fprintf(stdout, "SUCCESS\n");
-		}
-		break;
-	case TASK_TYPE_LEAVE:
-		{
-			ceError = DoLeave(pTaskInfo);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-			fprintf(stdout, "SUCCESS\n");
-		}
-		break;
-	default:
-		{
-			fprintf(stderr, "Unknown command id [%d]\n",
-				pTaskInfo->dwTaskType);
-			ceError = 1;
-			goto error;
-		}
-	}
+    if(argc == 3)
+        LW_CLEANUP_CTERR(exc, CTStrdup(argv[2], &options.password));
+    else if(argc == 1 && preview)
+        ;
+    else if(argc != 2)
+    {
+        LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+        goto cleanup;
+    }
+    options.joiningDomain = TRUE;
 
-      done:
+    LW_CLEANUP_CTERR(exc, CTStrdup(
+        argv[0], &options.domainName));
+    if(argc > 1)
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup(argv[1], &options.username));
+    }
 
-	if (pTaskInfo) {
-		FreeTaskInfo(pTaskInfo);
-	}
+    options.warningCallback = PrintWarning;
+    options.showTraces = advanced;
+    LW_CLEANUP_CTERR(exc, DJGetComputerName(&options.computerName));
 
-	if (pszPassword) {
-		CTFreeString(pszPassword);
-	}
+    LW_TRY(exc, DJInitModuleStates(&options, &LW_EXC));
 
-	dj_close_log();
+    for(i = 0; i < enableModules.size; i++)
+    {
+        PCSTR module = *(PCSTR *)CTArrayGetItem(
+                    &enableModules, i, sizeof(PCSTR));
+        if(CTArrayFindString(&disableModules, module) != -1)
+        {
+            LW_RAISE_EX(exc, CENTERROR_INVALID_OPTION_VALUE, "Module already specified", "The module '%s' is listed as being disabled and enabled", module);
+            goto cleanup;
+        }
+        LW_TRY(exc, DJEnableModule(&options, module, TRUE, &LW_EXC));
+    }
 
-	return CENTERROR_SUCCESS;
+    for(i = 0; i < disableModules.size; i++)
+    {
+        PCSTR module = *(PCSTR *)CTArrayGetItem(
+                    &disableModules, i, sizeof(PCSTR));
+        if(CTArrayFindString(&enableModules, module) != -1)
+        {
+            LW_RAISE_EX(exc, CENTERROR_INVALID_OPTION_VALUE, "Module already specified", "The module '%s' is listed as being disabled and enabled", module);
+            goto cleanup;
+        }
+        LW_TRY(exc, DJEnableModule(&options, module, FALSE, &LW_EXC));
+    }
 
-      error:
+    for(i = 0; i < detailModules.size; i++)
+    {
+        PCSTR module = *(PCSTR *)CTArrayGetItem(
+                    &detailModules, i, sizeof(PCSTR));
+        ModuleState *state = DJGetModuleStateByName(&options, module);
+        if(state == NULL)
+        {
+            LW_RAISE_EX(exc, CENTERROR_INVALID_PARAMETER, "Unable to find module.", "Please check the spelling of '%s'. This module cannot be found", module);
+            goto cleanup;
+        }
+        PrintModuleState(state);
+    }
+    if(detailModules.size > 0)
+    {
+        PrintStateKey();
+    }
+    for(i = 0; i < detailModules.size; i++)
+    {
+        PCSTR module = *(PCSTR *)CTArrayGetItem(
+                    &detailModules, i, sizeof(PCSTR));
+        ModuleState *state = DJGetModuleStateByName(&options, module);
+        CT_SAFE_FREE_STRING(moduleDetails);
+        CT_SAFE_FREE_STRING(wrapped);
+        LW_TRY(exc, moduleDetails = state->module->GetChangeDescription(&options, &LW_EXC));
+        LW_CLEANUP_CTERR(exc, CTWordWrap(moduleDetails, &wrapped, 4, columns));
+        fprintf(stdout, "\nDetails for '%s':\n%s\n", state->module->longName, wrapped);
+    }
+    if(detailModules.size > 0)
+        goto cleanup;
 
-	if (pTaskInfo) {
-		FreeTaskInfo(pTaskInfo);
-	}
+    LW_CLEANUP_CTERR(exc, PrintJoinHeader(&options));
 
-	if (pszPassword) {
-		CTFreeString(pszPassword);
-	}
+    if(preview)
+    {
+        PrintModuleStates(advanced, &options);
+        if(!advanced)
+            LW_TRY(exc, DJCheckRequiredEnabled(&options, &LW_EXC));
+        goto cleanup;
+    }
 
-	dj_close_log();
+    LW_TRY(exc, DJCheckRequiredEnabled(&options, &LW_EXC));
 
-	if (!CENTERROR_IS_OK(ceError))
-		ShowErrorMessage(ceError);
+    while (IsNullOrEmptyString(options.password))
+    {
+        CT_SAFE_FREE_STRING(options.password);
 
-	return ceError;
+        LW_CLEANUP_CTERR(exc, FillMissingPassword(options.username,
+                    &options.password));
+    }
+
+    LW_TRY(exc, DJRunJoinProcess(&options, &LW_EXC));
+    fprintf(stdout, "SUCCESS\n");
+
+cleanup:
+    DJFreeJoinProcessOptions(&options);
+    CTArrayFree(&enableModules);
+    CTArrayFree(&disableModules);
+    CTArrayFree(&detailModules);
+    CT_SAFE_FREE_STRING(moduleDetails);
+    CT_SAFE_FREE_STRING(wrapped);
+}
+
+void DoLeaveNew(int argc, char **argv, int columns, LWException **exc)
+{
+    JoinProcessOptions options;
+    BOOLEAN advanced = FALSE;
+    BOOLEAN preview = FALSE;
+    DynamicArray enableModules, disableModules;
+    DynamicArray detailModules;
+    size_t i;
+    PSTR moduleDetails = NULL;
+    PSTR wrapped = NULL;
+
+    DJZeroJoinProcessOptions(&options);
+    memset(&enableModules, 0, sizeof(enableModules));
+    memset(&disableModules, 0, sizeof(disableModules));
+    memset(&detailModules, 0, sizeof(detailModules));
+
+    while(argc > 0 && CTStrStartsWith(argv[0], "--"))
+    {
+        if(!strcmp(argv[0], "--advanced"))
+            advanced = TRUE;
+        else if(!strcmp(argv[0], "--preview"))
+            preview = TRUE;
+        else if(argc < 2)
+        {
+            LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+            goto cleanup;
+        }
+        else if(!strcmp(argv[0], "--enable"))
+        {
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&enableModules, sizeof(PCSTR *), &argv[1], 1));
+            argv++;
+            argc--;
+        }
+        else if(!strcmp(argv[0], "--disable"))
+        {
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&disableModules, sizeof(PCSTR *), &argv[1], 1));
+            argv++;
+            argc--;
+        }
+        else if(!strcmp(argv[0], "--details"))
+        {
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&detailModules, sizeof(PCSTR *), &argv[1], 1));
+            argv++;
+            argc--;
+        }
+        else
+        {
+            LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+            goto cleanup;
+        }
+        argv++;
+        argc--;
+    }
+
+    if(argc == 2)
+        LW_CLEANUP_CTERR(exc, CTStrdup(argv[1], &options.password));
+    else if(argc > 2)
+    {
+        LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+        goto cleanup;
+    }
+    options.joiningDomain = FALSE;
+
+    if(argc > 0)
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup(argv[0], &options.username));
+    }
+
+    options.warningCallback = PrintWarning;
+    options.showTraces = advanced;
+    LW_CLEANUP_CTERR(exc, DJGetComputerName(&options.computerName));
+
+    LW_TRY(exc, DJInitModuleStates(&options, &LW_EXC));
+
+    for(i = 0; i < enableModules.size; i++)
+    {
+        PCSTR module = *(PCSTR *)CTArrayGetItem(
+                    &enableModules, i, sizeof(PCSTR));
+        if(CTArrayFindString(&disableModules, module) != -1)
+        {
+            LW_RAISE_EX(exc, CENTERROR_INVALID_OPTION_VALUE, "Module already specified", "The module '%s' is listed as being disabled and enabled", module);
+            goto cleanup;
+        }
+        LW_TRY(exc, DJEnableModule(&options, module, TRUE, &LW_EXC));
+    }
+
+    for(i = 0; i < disableModules.size; i++)
+    {
+        PCSTR module = *(PCSTR *)CTArrayGetItem(
+                    &disableModules, i, sizeof(PCSTR));
+        if(CTArrayFindString(&enableModules, module) != -1)
+        {
+            LW_RAISE_EX(exc, CENTERROR_INVALID_OPTION_VALUE, "Module already specified", "The module '%s' is listed as being disabled and enabled", module);
+            goto cleanup;
+        }
+        LW_TRY(exc, DJEnableModule(&options, module, FALSE, &LW_EXC));
+    }
+
+    for(i = 0; i < detailModules.size; i++)
+    {
+        PCSTR module = *(PCSTR *)CTArrayGetItem(
+                    &detailModules, i, sizeof(PCSTR));
+        ModuleState *state = DJGetModuleStateByName(&options, module);
+        if(state == NULL)
+        {
+            LW_RAISE_EX(exc, CENTERROR_INVALID_PARAMETER, "Unable to find module.", "Please check the spelling of '%s'. This module cannot be found", module);
+            goto cleanup;
+        }
+        PrintModuleState(state);
+    }
+    if(detailModules.size > 0)
+    {
+        PrintStateKey();
+    }
+    for(i = 0; i < detailModules.size; i++)
+    {
+        PCSTR module = *(PCSTR *)CTArrayGetItem(
+                    &detailModules, i, sizeof(PCSTR));
+        ModuleState *state = DJGetModuleStateByName(&options, module);
+        CT_SAFE_FREE_STRING(moduleDetails);
+        CT_SAFE_FREE_STRING(wrapped);
+        LW_TRY(exc, moduleDetails = state->module->GetChangeDescription(&options, &LW_EXC));
+        LW_CLEANUP_CTERR(exc, CTWordWrap(moduleDetails, &wrapped, 4, columns));
+        fprintf(stdout, "\nDetails for '%s':\n%s\n", state->module->longName, wrapped);
+    }
+    if(detailModules.size > 0)
+        goto cleanup;
+
+    LW_CLEANUP_CTERR(exc, PrintJoinHeader(&options));
+
+    if(preview)
+    {
+        PrintModuleStates(advanced, &options);
+        if(!advanced)
+            LW_TRY(exc, DJCheckRequiredEnabled(&options, &LW_EXC));
+        goto cleanup;
+    }
+
+    LW_TRY(exc, DJCheckRequiredEnabled(&options, &LW_EXC));
+
+    while (options.username != NULL && IsNullOrEmptyString(options.password))
+    {
+        CT_SAFE_FREE_STRING(options.password);
+
+        LW_CLEANUP_CTERR(exc, FillMissingPassword(options.username,
+                    &options.password));
+    }
+
+    LW_TRY(exc, DJRunJoinProcess(&options, &LW_EXC));
+    fprintf(stdout, "SUCCESS\n");
+
+cleanup:
+    DJFreeJoinProcessOptions(&options);
+    CTArrayFree(&enableModules);
+    CTArrayFree(&disableModules);
+    CTArrayFree(&detailModules);
+    CT_SAFE_FREE_STRING(moduleDetails);
+    CT_SAFE_FREE_STRING(wrapped);
+}
+
+void DoConfigure(int argc, char **argv, LWException **exc)
+{
+    EnableType dwEnable = ENABLE_TYPE_AUTO;
+    PCSTR testPrefix = NULL;
+    PCSTR longDomain = NULL;
+    PCSTR shortDomain = NULL;
+    while(argc > 0 && CTStrStartsWith(argv[0], "--"))
+    {
+        if(!strcmp(argv[0], "--autoenable"))
+            dwEnable = ENABLE_TYPE_AUTO;
+        else if(!strcmp(argv[0], "--enable"))
+            dwEnable = ENABLE_TYPE_ENABLE;
+        else if(!strcmp(argv[0], "--disable"))
+            dwEnable = ENABLE_TYPE_DISABLE;
+        else if(argc < 2)
+        {
+            LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+            goto cleanup;
+        }
+        else if(!strcmp(argv[0], "--testprefix"))
+        {
+            testPrefix = argv[1];
+            argv++;
+            argc--;
+        }
+        else if(!strcmp(argv[0], "--long"))
+        {
+            longDomain = argv[1];
+            argv++;
+            argc--;
+        }
+        else if(!strcmp(argv[0], "--short"))
+        {
+            shortDomain = argv[1];
+            argv++;
+            argc--;
+        }
+        else
+        {
+            LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+            goto cleanup;
+        }
+        argv++;
+        argc--;
+    }
+
+    if(argc < 1)
+    {
+        LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+        goto cleanup;
+    }
+
+    if(!strcmp(argv[0], "pam"))
+        LW_TRY(exc, DJNewConfigurePamForADLogin(testPrefix, PrintWarning, GetEnableBoolean(dwEnable), &LW_EXC));
+    else if(!strcmp(argv[0], "nsswitch"))
+        LW_CLEANUP_CTERR(exc, DJConfigureNameServiceSwitch(testPrefix,
+                GetEnableBoolean(dwEnable)));
+    else if(!strcmp(argv[0], "ssh"))
+        LW_TRY(exc, DJConfigureSshForADLogin(testPrefix, GetEnableBoolean(dwEnable), &LW_EXC));
+    else if(!strcmp(argv[0], "krb5"))
+        LW_CLEANUP_CTERR(exc, DJModifyKrb5Conf(testPrefix,
+            GetEnableBoolean(dwEnable), longDomain, shortDomain, NULL));
+    else if(!strcmp(argv[0], "firewall"))
+        LW_CLEANUP_CTERR(exc, DJConfigureFirewallForAuth(testPrefix, GetEnableBoolean(dwEnable)));
+    else
+    {
+        LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+        goto cleanup;
+    }
+    fprintf(stdout, "SUCCESS\n");
+cleanup:
+    ;
+}
+
+void DoGetDistroInfo(int argc, char **argv, LWException **exc)
+{
+    PSTR str = NULL;
+    PCSTR requestType = argv[0];
+    PCSTR testPrefix = NULL;
+    DistroInfo distro;
+
+    argc--;
+    argv++;
+
+    if(argc > 0 && !strcmp(argv[0], "--testprefix"))
+    {
+        testPrefix = argv[1];
+        argv += 2;
+        argc -= 2;
+    }
+    if(argc > 0)
+    {
+        LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+        goto cleanup;
+    }
+
+    LW_CLEANUP_CTERR(exc, DJGetDistroInfo(testPrefix, &distro));
+    if(!strcmp(requestType, "get_os_type"))
+    {
+        LW_CLEANUP_CTERR(exc, DJGetOSString(distro.os, &str));
+    }
+    else if(!strcmp(requestType, "get_arch"))
+    {
+        LW_CLEANUP_CTERR(exc, DJGetArchString(distro.arch, &str));
+    }
+    else if(!strcmp(requestType, "get_distro"))
+    {
+        LW_CLEANUP_CTERR(exc, DJGetDistroString(distro.distro, &str));
+    }
+    else if(!strcmp(requestType, "get_distro_version"))
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup(distro.version, &str));
+    }
+    else
+    {
+        LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+        goto cleanup;
+    }
+    fprintf(stdout, "%s\n", str);
+
+cleanup:
+    DJFreeDistroInfo(&distro);
+    CT_SAFE_FREE_STRING(str);
+}
+
+int main(
+    int argc,
+    char* argv[]
+    )
+{
+    LWException *exc = NULL;
+    int columns;
+    PSTR pszLogFilePath = "/tmp/lwidentity.join.log";
+    BOOLEAN bNoLog = FALSE;
+    PSTR logLevel = "warning";
+    DWORD dwLogLevel;
+    BOOLEAN showHelp = FALSE;
+    BOOLEAN showInternalHelp = FALSE;
+
+    if(!CENTERROR_IS_OK(CTGetTerminalWidth(fileno(stdout), &columns)))
+        columns = -1;
+
+    /* Skip the program name */
+    argv++;
+    argc--;
+
+    while(argc > 0 && CTStrStartsWith(argv[0], "--"))
+    {
+        if(!strcmp(argv[0], "--help"))
+            showHelp = TRUE;
+        else if(!strcmp(argv[0], "--help-internal"))
+            showInternalHelp = TRUE;
+        else if(!strcmp(argv[0], "--nolog"))
+            bNoLog = TRUE;
+        //All options after this point take an argument
+        else if(argc < 2)
+            showHelp = TRUE;
+        else if(!strcmp(argv[0], "--log"))
+        {
+            pszLogFilePath = (++argv)[0];
+            argc--;
+        }
+        else if(!strcmp(argv[0], "--loglevel"))
+        {
+            logLevel = (++argv)[0];
+            argc--;
+        }
+        else
+            break;
+        argc--;
+        argv++;
+    }
+
+    if(argc < 1)
+        showHelp = TRUE;
+
+    if (showInternalHelp) {
+        ShowUsageInternal();
+        goto cleanup;
+    }
+
+    if (showHelp) {
+        ShowUsage();
+        goto cleanup;
+    }
+
+    if (!strcasecmp(logLevel, "error"))
+        dwLogLevel = LOG_LEVEL_ERROR;
+    else if (!strcasecmp(logLevel, "warning"))
+        dwLogLevel = LOG_LEVEL_WARNING;
+    else if (!strcasecmp(logLevel, "info"))
+        dwLogLevel = LOG_LEVEL_INFO;
+    else if (!strcasecmp(logLevel, "verbose"))
+        dwLogLevel = LOG_LEVEL_VERBOSE;
+    else {
+        LW_CLEANUP_CTERR(&exc, CENTERROR_DOMAINJOIN_INVALID_LOG_LEVEL);
+    }
+
+    if (bNoLog) {
+        LW_CLEANUP_CTERR(&exc, dj_disable_logging());
+    } else if (pszLogFilePath == NULL ||
+               !strcmp(pszLogFilePath, ".")) {
+        LW_CLEANUP_CTERR(&exc, dj_init_logging_to_console(dwLogLevel));
+    } else {
+        LW_CLEANUP_CTERR(&exc, dj_init_logging_to_file(dwLogLevel,
+                                          pszLogFilePath));
+    }
+
+    if(!strcmp(argv[0], "setname"))
+    {
+        argv++;
+        if(--argc != 1)
+        {
+            ShowUsage();
+            goto cleanup;
+        }
+        LW_CLEANUP_CTERR(&exc, DJSetComputerName(argv[0], NULL));
+    }
+    else if(!strcmp(argv[0], "sync_time"))
+    {
+        unsigned int allowedDrift;
+        argv++;
+        if(--argc != 2)
+        {
+            ShowUsage();
+            goto cleanup;
+        }
+        LW_CLEANUP_CTERR(&exc, ParseUInt(argv[1], &allowedDrift));
+        LW_CLEANUP_CTERR(&exc, DJSyncTimeToDC(argv[0], allowedDrift));
+    }
+    else if(!strcmp(argv[0], "join"))
+    {
+        argv++;
+        argc--;
+        LW_TRY(&exc, DoJoin(argc, argv, columns, &LW_EXC));
+    }
+    else if(!strcmp(argv[0], "leave"))
+    {
+        argv++;
+        argc--;
+        LW_TRY(&exc, DoLeaveNew(argc, argv, columns, &LW_EXC));
+    }
+    else if(!strcmp(argv[0], "query"))
+        LW_CLEANUP_CTERR(&exc, DoQuery());
+    else if(!strcmp(argv[0], "fixfqdn"))
+        LW_CLEANUP_CTERR(&exc, DoFixFqdn());
+    else if(!strcmp(argv[0], "configure"))
+    {
+        argv++;
+        argc--;
+        LW_TRY(&exc, DoConfigure(argc, argv, &LW_EXC));
+    }
+    else if(!strcmp(argv[0], "get_os_type") ||
+        !strcmp(argv[0], "get_arch") ||
+        !strcmp(argv[0], "get_distro") ||
+        !strcmp(argv[0], "get_distro_version"))
+    {
+        LW_TRY(&exc, DoGetDistroInfo(argc, argv, &LW_EXC));
+    }
+    else if(!strcmp(argv[0], "raise_error"))
+    {
+        CENTERROR ceError;
+        argv++;
+        if(--argc != 1)
+        {
+            ShowUsage();
+            goto cleanup;
+        }
+        if (isdigit((int) *argv[0]))
+            ceError = (CENTERROR) strtoul(argv[0], NULL, 0);
+        else
+            ceError = (CENTERROR) CTErrorFromName(argv[0]);
+        LW_CLEANUP_CTERR(&exc, ceError);
+    }
+    else
+    {
+        LW_RAISE(&exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
+        goto cleanup;
+    }
+
+cleanup:
+
+    if (!LW_IS_OK(exc) && exc->code == CENTERROR_DOMAINJOIN_SHOW_USAGE)
+    {
+        ShowUsage();
+        LWHandle(&exc);
+    }
+    else if (!LW_IS_OK(exc))
+    {
+        //Ignoring the return value from this because we can't do anything
+        //if there is an error
+        fprintf(stdout, "\n");
+        LWPrintException(stdout, exc, FALSE);
+        DJLogException(LOG_LEVEL_ERROR, exc);
+        LWHandle(&exc);
+        dj_close_log();
+        return 1;
+    }
+
+    dj_close_log();
+    return 0;
 }

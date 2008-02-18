@@ -63,7 +63,9 @@ RPM_OPT_FLAGS="-O2 -g -fmessage-length=0 -D_FORTIFY_SOURCE=2"
 %ifarch i386 sparc
     RPM_OPT_FLAGS="$RPM_OPT_FLAGS -D_FILE_OFFSET_BITS=64 -march=i486"
 %endif
-CFLAGS="$CFLAGS $RPM_OPT_FLAGS -D_GNU_SOURCE"
+
+CPPFLAGS="-D_LWOPEN_BUILD"
+CFLAGS="$CFLAGS $RPM_OPT_FLAGS -D_GNU_SOURCE $CPPFLAGS"
 export CFLAGS
 
 ## always run autogen.sh
@@ -73,7 +75,7 @@ export CFLAGS
     --prefix=/usr \
     --localstatedir=/var \
     --with-configdir=%{_sysconfdir}/samba \
-    --with-libdir=%{_libdir}/%{name} \
+    --with-libdir=%{_libdir}/likewise \
     --with-lockdir=/var/lib/%{name} \
     --with-logfilebase=/var/log/%{name} \
     --with-mandir=%{_mandir} \
@@ -86,9 +88,10 @@ export CFLAGS
     --with-included-popt \
     --with-included-iniparser \
     --with-pam \
-    --with-shared-modules=idmap_lwopen
+    --with-shared-modules=idmap_lwopen \
+    --with-gtk=yes
 
-make SCRIPTDIR="%{_libdir}/%{name}"
+make SCRIPTDIR="%{_libdir}/likewise"
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -99,30 +102,44 @@ mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/{init.d,samba,security}
 mkdir -p $RPM_BUILD_ROOT/var/{lib,log}/%{name}
 mkdir -p $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 mkdir -p $RPM_BUILD_ROOT/%{_lib}/security
+mkdir -p $RPM_BUILD_ROOT/%{_prefix}/share/likewise
 
 ## install the binaries
 make DESTDIR=${RPM_BUILD_ROOT} PREFIX=/usr install
 
+## Fix name of domainjoin-cli
+/bin/mv ${RPM_BUILD_ROOT}/%{_bindir}/lwi-domainjoin-cli \
+	${RPM_BUILD_ROOT}/%{_bindir}/domainjoin-cli
+/bin/mv ${RPM_BUILD_ROOT}/%{_bindir}/domainjoin-gtk \
+	${RPM_BUILD_ROOT}/%{_bindir}/domainjoin-gui
+
+## Manually install the domainjoin-gui resource files
+%{__install} -m0644 domainjoin/domainjoin-gui/gtk/domainjoin-gtk.glade \
+	${RPM_BUILD_ROOT}/%{_prefix}/share/likewise/domainjoin-gtk.glade
+%{__install} -m0644 domainjoin/domainjoin-gui/gtk/domainjoin-logo.png \
+	${RPM_BUILD_ROOT}/%{_prefix}/share/likewise/domainjoin-logo.png
+%{__install} -m0644 domainjoin/domainjoin-gui/gtk/likewise-logo.png \
+	${RPM_BUILD_ROOT}/%{_prefix}/share/likewise/likewise-logo.png
+
 ## Now manually install the PAM/NSS library
-pushd winbindd/source
+pushd samba/source
 %{__install} -m0755 nsswitch/libnss_lwidentity.so $RPM_BUILD_ROOT/%{_lib}/libnss_lwidentity.so.2
 %{__install} -m0755 bin/pam_lwidentity.so $RPM_BUILD_ROOT/%{_lib}/security/pam_lwidentity.so
 %{__install} -m0755 bin/libwbclient.so $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so.0.1
 ln -s libwbclient.so.0.1 $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so
 
 ## cleanup
-/bin/rm -f ${RPM_BUILD_ROOT}/%{_libdir}/%{name}/security/pam_lwidentity.so
-/bin/rm -f ${RPM_BUILD_ROOT}/%{_libdir}/%{name}/libwbclient.so
+/bin/rm -f ${RPM_BUILD_ROOT}/%{_libdir}/likewise/security/pam_lwidentity.so
+/bin/rm -f ${RPM_BUILD_ROOT}/%{_libdir}/likewise/libwbclient.so
 popd
 
 ## Grab the support scripts
 for file in CenterisPam.pm Centeris.pm; do
-	%{__install} -m0644 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
+	%{__install} -m0644 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/likewise/; \
 done
-for file in ConfigureKrb5 ConfigureLogin ConfigurePamForADLogin \
-	ConfigureShellPrompt ConfigureSshForGssapi gpcron; \
+for file in ConfigureLogin ConfigureShellPrompt gpcron; \
 do
-	%{__install} -m0755 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
+	%{__install} -m0755 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/likewise/; \
 done
 
 ## install the vendor files ( init script, etc... )
@@ -162,27 +179,38 @@ ldconfig
 %{_bindir}/lwiinfo
 %{_bindir}/lwimsg
 %{_sbindir}/likewise-winbindd
-%{_libdir}/%{name}/idmap/lwopen.so
-%{_libdir}/%{name}/nss_info/lwopen.so
+%{_libdir}/likewise/idmap/lwopen.so
+%{_libdir}/likewise/nss_info/lwopen.so
 /%{_lib}/security/pam_lwidentity.so
 /%{_lib}/libnss_lwidentity.so*
 %{_libdir}/libwbclient.so.*
+%{_libdir}/libgpglib.so.*
+%{_libdir}/libcentutils.so.*
 
 %files devel
 %{_libdir}/libwbclient.so
+%{_libdir}/libcentutils.so
+%{_libdir}/libgpglib.so
 %{_includedir}/wbclient.h
 
 %files domainjoin
 ## domain join utilities
-%{_libdir}/%{name}/*
+%{_libdir}/likewise/Centeris*pm
+%{_libdir}/likewise/Configure*
+%{_libdir}/likewise/gpcron
 %{_bindir}/domainjoin-cli
 
 %files domainjoin-gui
 %defattr(-,root,root)
 %{_bindir}/domainjoin-gui
-%{_prefix}/share/likewise-open/domainjoin-gtk.glade
+%{_prefix}/share/likewise/domainjoin-gtk.glade
+%{_prefix}/share/likewise/domainjoin-logo.png
+%{_prefix}/share/likewise/likewise-logo.png
 
 %changelog
+* Wed Feb 6 2008 Gerald Carter <gcarter@likewisesoftware.com>
+- Updated for 4.1.0 release
+
 * Wed Jan 23 2008 Gerald Carter <gcarter@likewisesoftware.com>
 - Updated for 4.0.4 release
 

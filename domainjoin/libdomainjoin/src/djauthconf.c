@@ -1,280 +1,336 @@
 /*
  * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007.  
+ * Copyright (C) Likewise Software    2007-2008
  * All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Lesser General Public License as 
+ * published by the Free Software Foundation; either version 2.1 of 
+ * the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public 
+ * License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
 
+/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
+#include "djpamconf.h"
 
 static const int MAX_LINE_LENGTH = 1024;
 
-CENTERROR DJInitSmbConfig()
+CENTERROR
+DJInitSmbConfig(PCSTR rootPrefix)
 {
-	CENTERROR ceError = CENTERROR_DOMAINJOIN_SMB_VALUE_NOT_FOUND;
-	CHAR szFilePath[PATH_MAX + 1];
-	PCFGSECTION pSectionList = NULL;
-	PCSTR pszSectionName = "global";
-	PCFGSECTION pSection = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    CHAR  szFilePath[PATH_MAX+1];
+    PCFGSECTION pSectionList = NULL;
+    PCSTR pszSectionName = "global";
+    PCFGSECTION pSection = NULL;
+    
+    if(rootPrefix == NULL)
+        rootPrefix = "";
 
-	sprintf(szFilePath, "%s/lwiauthd.conf", SAMBACONFDIR);
+    sprintf(szFilePath, "%s%s/lwiauthd.conf", rootPrefix, SAMBACONFDIR);
 
-	ceError = CTParseConfigFile(szFilePath, &pSectionList, 0);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTParseConfigFile(szFilePath, &pSectionList, 0);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTCreateConfigSection(&pSectionList,
-					&pSection, pszSectionName);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTCreateConfigSection(&pSectionList,
+                                    &pSection,
+                                    pszSectionName);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTDeleteNameValuePairBySection(pSection, "realm");
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTDeleteNameValuePairBySection(pSection, "realm");
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTSetConfigValueBySection(pSection, "workgroup", "WORKGROUP");
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTSetConfigValueBySection(pSection,
+                                        "workgroup",
+                                        "WORKGROUP");
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTSetConfigValueBySection(pSection, "security", "user");
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTSetConfigValueBySection(pSection,
+                                        "security",
+                                        "user");
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTSaveConfigSectionList(szFilePath, pSectionList);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTSaveConfigSectionList(szFilePath,
+                                      pSectionList);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+error:
 
-	if (pSectionList)
-		CTFreeConfigSectionList(pSectionList);
+    if (pSectionList)
+        CTFreeConfigSectionList(pSectionList);
 
-	return ceError;
+    return ceError;
 }
 
-CENTERROR SetDescription(PSTR pszDescription)
+CENTERROR
+SetDescription(
+    PSTR pszDescription
+    )
 {
-	return DJSetSambaValue("server string", pszDescription);
+    return DJSetSambaValue(NULL,"server string", pszDescription);
 }
 
-static CENTERROR DeleteRealm()
+static
+CENTERROR
+DeleteRealm()
 {
-	CENTERROR ceError = CENTERROR_DOMAINJOIN_SMB_VALUE_NOT_FOUND;
-	CHAR szFilePath[PATH_MAX + 1];
-	PCFGSECTION pSectionList = NULL;
-	PCSTR pszSectionName = "global";
-	PCFGSECTION pSection = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    CHAR  szFilePath[PATH_MAX+1];
+    PCFGSECTION pSectionList = NULL;
+    PCSTR pszSectionName = "global";
+    PCFGSECTION pSection = NULL;
 
-	sprintf(szFilePath, "%s/lwiauthd.conf", SAMBACONFDIR);
+    sprintf(szFilePath, "%s/lwiauthd.conf", SAMBACONFDIR);
 
-	ceError = CTParseConfigFile(szFilePath, &pSectionList, 0);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTParseConfigFile(szFilePath, &pSectionList, 0);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTCreateConfigSection(&pSectionList,
-					&pSection, pszSectionName);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTCreateConfigSection(&pSectionList,
+                                    &pSection,
+                                    pszSectionName);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTDeleteNameValuePairBySection(pSection, "realm");
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTDeleteNameValuePairBySection(pSection, "realm");
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTSaveConfigSectionList(szFilePath, pSectionList);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTSaveConfigSectionList(szFilePath,
+                                      pSectionList);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+error:
 
-	if (pSectionList)
-		CTFreeConfigSectionList(pSectionList);
+    if (pSectionList)
+        CTFreeConfigSectionList(pSectionList);
 
-	return ceError;
+    return ceError;
 }
 
 // the name-value pair - "realm" should be set to the domain name
-CENTERROR SetRealm(char *psz_realm)
+CENTERROR
+SetRealm(const char *rootPrefix, char* psz_realm)
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PSTR pszUpperCaseRealm = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR pszUpperCaseRealm = NULL;
 
-	ceError = CTAllocateString(psz_realm, &pszUpperCaseRealm);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString(psz_realm, &pszUpperCaseRealm);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	CTStrToUpper(pszUpperCaseRealm);
+    CTStrToUpper(pszUpperCaseRealm);
 
-	ceError = DJSetSambaValue("realm", pszUpperCaseRealm);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSetSambaValue(rootPrefix, "realm", pszUpperCaseRealm);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+error:
 
-	if (pszUpperCaseRealm)
-		CTFreeString(pszUpperCaseRealm);
+    if (pszUpperCaseRealm)
+        CTFreeString(pszUpperCaseRealm);
 
-	return ceError;
+    return ceError;
 }
 
 // the name-value pair - "workgroup" should be set to the short domain name
-CENTERROR SetWorkgroup(char *psz_workgroup)
+CENTERROR
+SetWorkgroup(
+        const char *rootPrefix,
+    char *psz_workgroup
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
+    CENTERROR ceError = CENTERROR_SUCCESS;
 
-	ceError = DJSetSambaValue("workgroup", psz_workgroup);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSetSambaValue(rootPrefix, "workgroup", psz_workgroup);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+error:
 
-	return ceError;
+    return ceError;
 }
 
-CENTERROR ConfigureSambaEx(PSTR pszDomainName, PSTR pszShortDomainName)
+
+
+CENTERROR
+ConfigureSambaEx(
+    PSTR pszDomainName,
+    PSTR pszShortDomainName
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
+    CENTERROR ceError = CENTERROR_SUCCESS;
 
 #if defined(_AIX)
-	ceError = DJFixMethodsConfigFile();
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJFixMethodsConfigFile();
+    BAIL_ON_CENTERIS_ERROR(ceError);
 #endif
 
-	// TODO: Cleanup interface for join and leave
-	//       based on user action
-	if (pszDomainName == NULL && pszShortDomainName == NULL) {
-		/* Indicates leaving the domain */
-		ceError = UnConfigureNameServiceSwitch();
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	} else {
-		ceError = ConfigureNameServiceSwitch();
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    // TODO: Cleanup interface for join and leave
+    //       based on user action
+    if (pszDomainName == NULL &&
+        pszShortDomainName == NULL) {
+        /* Indicates leaving the domain */
+        ceError = UnConfigureNameServiceSwitch();
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    } else {
+        ceError = ConfigureNameServiceSwitch();
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	ceError = DJModifyKrb5Conf(pszDomainName, pszShortDomainName);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJModifyKrb5Conf("",
+		    !IsNullOrEmptyString(pszDomainName),
+		    pszDomainName, pszShortDomainName, NULL);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = ConfigurePamForADLogin(pszShortDomainName);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = ConfigurePamForADLogin(pszShortDomainName);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
 #if defined(_AIX)
-	// Configure AIX to use PAM only after we have done the PAM re-configuration,
-	// which fixes up errors in the default PAM configuration on AIX.
+    // Configure AIX to use PAM only after we have done the PAM re-configuration,
+    // which fixes up errors in the default PAM configuration on AIX.
 
-	if (pszDomainName == NULL && pszShortDomainName == NULL) {
+    if (pszDomainName == NULL &&
+        pszShortDomainName == NULL) {
 
-		ceError = UnconfigureUserSecurity(NULL);
-		BAIL_ON_CENTERIS_ERROR(ceError);
+        ceError = UnconfigureUserSecurity(NULL);
+        BAIL_ON_CENTERIS_ERROR(ceError);
 
-	} else {
+    } else {
 
-		ceError = ConfigureUserSecurity(NULL);
-		BAIL_ON_CENTERIS_ERROR(ceError);
+        ceError = ConfigureUserSecurity(NULL);
+        BAIL_ON_CENTERIS_ERROR(ceError);
 
-	}
+    }
 
-	ceError = DJFixLoginConfigFile(NULL);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJFixLoginConfigFile(NULL);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 #endif
 
-      error:
-	return ceError;
+error:
+    return ceError;
 }
 
-CENTERROR DJRevertToOriginalWorkgroup(PSTR pszOrigWorkgroupName)
+CENTERROR
+DJRevertToOriginalWorkgroup(
+    PSTR pszOrigWorkgroupName
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
+    CENTERROR ceError = CENTERROR_SUCCESS;
 
-	ceError = DeleteRealm();
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DeleteRealm();
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError =
-	    SetWorkgroup((!IsNullOrEmptyString(pszOrigWorkgroupName) ?
-			  pszOrigWorkgroupName : "WORKGROUP"));
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = SetWorkgroup(NULL, (!IsNullOrEmptyString(pszOrigWorkgroupName) ? pszOrigWorkgroupName : "WORKGROUP"));
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJSetSambaValue("security", "user");
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSetSambaValue(NULL,"security", "user");
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	// change krb5 to not refer to a domain
-	ceError = DJModifyKrb5Conf("", "");
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    // change krb5 to not refer to a domain
+    ceError = DJModifyKrb5Conf("", FALSE, "", "", NULL);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+error:
 
-	return ceError;
+    return ceError;
 }
 
-CENTERROR DJSetSambaValue(PCSTR pszName, PCSTR pszValue)
+CENTERROR
+DJSetSambaValue(
+    PCSTR rootPrefix,
+    PCSTR pszName,
+    PCSTR pszValue
+    )
 {
-	CENTERROR ceError = CENTERROR_DOMAINJOIN_SMB_VALUE_NOT_FOUND;
-	CHAR szFilePath[PATH_MAX + 1];
-	PCFGSECTION pSectionList = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    CHAR  szFilePath[PATH_MAX+1];
+    PCFGSECTION pSectionList = NULL;
 
-	if (IsNullOrEmptyString(pszName) || IsNullOrEmptyString(pszValue)) {
-		ceError = CENTERROR_INVALID_PARAMETER;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (IsNullOrEmptyString(pszName) ||
+        IsNullOrEmptyString(pszValue)) {
+        ceError = CENTERROR_INVALID_PARAMETER;
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	sprintf(szFilePath, "%s/lwiauthd.conf", SAMBACONFDIR);
+    if(rootPrefix == NULL)
+        rootPrefix = "";
 
-	ceError = CTParseConfigFile(szFilePath, &pSectionList, 0);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    sprintf(szFilePath, "%s%s/lwiauthd.conf", rootPrefix, SAMBACONFDIR);
 
-	ceError = CTSetConfigValueBySectionName(pSectionList,
-						"global", pszName, pszValue);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTParseConfigFile(szFilePath, &pSectionList, 0);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTSaveConfigSectionList(szFilePath, pSectionList);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTSetConfigValueBySectionName(
+        pSectionList,
+        "global",
+        pszName,
+        pszValue);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+    ceError = CTSaveConfigSectionList(szFilePath, pSectionList);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (pSectionList)
-		CTFreeConfigSectionList(pSectionList);
+error:
 
-	return ceError;
+    if (pSectionList)
+        CTFreeConfigSectionList(pSectionList);
+
+    return ceError;
 }
 
-CENTERROR DJGetSambaValue(PSTR pszName, PSTR * ppszValue)
+CENTERROR
+DJGetSambaValue(
+    PSTR pszName,
+    PSTR* ppszValue
+    )
 {
-	CENTERROR ceError = CENTERROR_DOMAINJOIN_SMB_VALUE_NOT_FOUND;
-	CHAR szBuf[MAX_LINE_LENGTH + 1];
-	PSTR pszValue = NULL;
-	PCFGSECTION pSectionList = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    CHAR  szBuf[MAX_LINE_LENGTH+1];
+    PSTR pszValue = NULL;
+    PCFGSECTION pSectionList = NULL;
 
-	sprintf(szBuf, "%s/lwiauthd.conf", SAMBACONFDIR);
+    sprintf(szBuf, "%s/lwiauthd.conf", SAMBACONFDIR);
 
-	ceError = CTParseConfigFile(szBuf, &pSectionList, 0);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTParseConfigFile(szBuf, &pSectionList, 0);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTGetConfigValueBySectionName(pSectionList,
-						"global", pszName, &pszValue);
-	if (CENTERROR_IS_OK(ceError)) {
-		*ppszValue = pszValue;
-		pszValue = NULL;
-	} else if (ceError != CENTERROR_CFG_VALUE_NOT_FOUND) {
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	} else {
-		ceError = CENTERROR_DOMAINJOIN_SMB_VALUE_NOT_FOUND;
-		*ppszValue = NULL;
-	}
+    ceError = CTGetConfigValueBySectionName(
+        pSectionList,
+        "global",
+        pszName,
+        &pszValue);
+    if (CENTERROR_IS_OK(ceError)) {
+	*ppszValue = pszValue;
+        pszValue = NULL;
+    } else if (ceError != CENTERROR_CFG_VALUE_NOT_FOUND) {
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    } else {
+        ceError = CENTERROR_DOMAINJOIN_SMB_VALUE_NOT_FOUND;
+        *ppszValue = NULL;
+    }
 
-	if (pSectionList)
-		CTFreeConfigSectionList(pSectionList);
+    if (pSectionList)
+        CTFreeConfigSectionList(pSectionList);
 
-	if (pszValue)
-		CTFreeString(pszValue);
+    if (pszValue)
+        CTFreeString(pszValue);
 
-	return ceError;
+    return ceError;
 
-      error:
+error:
 
-	if (pszValue)
-		CTFreeString(pszValue);
+    if (pszValue)
+        CTFreeString(pszValue);
 
-	if (pSectionList)
-		CTFreeConfigSectionList(pSectionList);
+    if (pSectionList)
+        CTFreeConfigSectionList(pSectionList);
 
-	*ppszValue = NULL;
+    *ppszValue = NULL;
 
-	return ceError;
+    return ceError;
 }
+

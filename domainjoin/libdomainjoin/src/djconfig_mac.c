@@ -1,27 +1,32 @@
 /*
  * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007.  
+ * Copyright (C) Likewise Software    2007-2008
  * All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Lesser General Public License as 
+ * published by the Free Software Foundation; either version 2.1 of 
+ * the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public 
+ * License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
 
+/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
+#include "ctshell.h"
+#include "ctfileutils.h"
 
-typedef enum {
-	CSPSearchPath = 0,
-	NSPSearchPath
+typedef enum
+{
+    CSPSearchPath = 0,
+    NSPSearchPath
 } SearchPolicyType;
 
 #define LWIDSPLUGIN_SYMLINK_PATH "/System/Library/Frameworks/DirectoryService.framework/Versions/Current/Resources/Plugins/LWIDSPlugin.dsplug"
@@ -31,351 +36,284 @@ typedef enum {
 #define CONFIGD_PID_FILE         "/var/run/configd.pid"
 
 static
- CENTERROR DJGetConfigDPID(pid_t * ppid)
+CENTERROR
+DJGetConfigDPID(
+    pid_t* ppid
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	BOOLEAN bFileExists = FALSE;
-	char contents[PID_FILE_CONTENTS_SIZE];
-	int fd = -1;
-	int len = 0;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    BOOLEAN bFileExists = FALSE;
+    char contents[PID_FILE_CONTENTS_SIZE];
+    int  fd = -1;
+    int  len = 0;
 
-	ceError = CTCheckFileExists(CONFIGD_PID_FILE, &bFileExists);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTCheckFileExists(CONFIGD_PID_FILE, &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (!bFileExists) {
-		*ppid = 0;
-		goto error;
-	}
+    if (!bFileExists)
+    {
+       *ppid = 0;
+       goto error;
+    }
 
-	fd = open(CONFIGD_PID_FILE, O_RDONLY, 0644);
-	if (fd < 0) {
-		ceError = CTMapSystemError(errno);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    fd = open(CONFIGD_PID_FILE, O_RDONLY, 0644);
+    if (fd < 0)
+    {
+       ceError = CTMapSystemError(errno);
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	if ((len = read(fd, contents, sizeof(contents) - 1)) < 0) {
-		ceError = CTMapSystemError(errno);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	} else if (len == 0) {
-		*ppid = 0;
-		goto error;
-	}
-	contents[len - 1] = 0;
+    if ((len = read(fd, contents, sizeof(contents)-1)) < 0)
+    {
+       ceError = CTMapSystemError(errno);
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+    else if (len == 0)
+    {
+       *ppid = 0;
+       goto error;
+    }
+    contents[len-1] = 0;
 
-	*ppid = atoi(contents);
+    *ppid = atoi(contents);
 
-      error:
+error:
 
-	if (fd >= 0) {
-		close(fd);
-	}
+    if (fd >= 0)
+    {
+       close(fd);
+    }
 
-	return ceError;
+    return ceError;
 }
 
-static CENTERROR DJNotifyConfigDaemon()
+static
+CENTERROR
+DJNotifyConfigDaemon()
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	pid_t pid = 0;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    pid_t pid = 0;
 
-	ceError = DJGetConfigDPID(&pid);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJGetConfigDPID(&pid);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (pid > 0) {
-		if (kill(pid, SIGHUP) < 0) {
-			ceError = CTMapSystemError(errno);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-		}
-	}
+    if (pid > 0)
+    {
+       if (kill(pid, SIGHUP) < 0)
+       {
+          ceError = CTMapSystemError(errno);
+          BAIL_ON_CENTERIS_ERROR(ceError);
+       }
+    }
 
-      error:
+error:
 
-	return ceError;
+    return ceError;
 }
 
-static CENTERROR DJAddToKicker()
+static
+CENTERROR
+DJSetSearchPath(
+   SearchPolicyType searchPolicyType
+   )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PPROCINFO pProcInfo = NULL;
-	PSTR *ppszArgs = NULL;
-	DWORD nArgs = 3;
-	LONG status = 0;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PPROCINFO pProcInfo = NULL;
+    PSTR* ppszArgs = NULL;
+    DWORD nArgs = 7;
+    LONG status = 0;
 
-	DJ_LOG_INFO("Setting up Network Change Prompt in Kicker...");
+    DJ_LOG_INFO("Setting search policy to %s", searchPolicyType == CSPSearchPath ? "Custom path" : "Automatic");
 
-	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("/opt/centeris/bin/lwikickercfg", ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/usr/bin/dscl", ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("-install", ppszArgs + 1);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/Search", ppszArgs+1);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("-create", ppszArgs+2);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJGetProcessStatus(pProcInfo, &status);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/", ppszArgs+3);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (status != 0) {
-		ceError = CENTERROR_DOMAINJOIN_FAILED_KICKER_INSTALL;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    ceError = CTAllocateString("SearchPolicy", ppszArgs+4);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJNotifyConfigDaemon();
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    switch (searchPolicyType)
+    {
+           case CSPSearchPath:
+           {
+                ceError = CTAllocateString("CSPSearchPath", ppszArgs+5);
+                BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+                break;
+           }
+           case NSPSearchPath:
+           {
+                ceError = CTAllocateString("NSPSearchPath", ppszArgs+5);
+                BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (ppszArgs) {
-		CTFreeStringArray(ppszArgs, nArgs);
-	}
+                break;
+           }
+    }
 
-	if (pProcInfo) {
-		FreeProcInfo(pProcInfo);
-	}
+    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	return ceError;
-}
+    ceError = DJGetProcessStatus(pProcInfo, &status);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-static CENTERROR DJRemoveFromKicker()
-{
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PPROCINFO pProcInfo = NULL;
-	PSTR *ppszArgs = NULL;
-	DWORD nArgs = 3;
-	LONG status = 0;
+    if (status != 0)
+    {
+       ceError = CENTERROR_DOMAINJOIN_FAILED_SET_SEARCHPATH;
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	DJ_LOG_INFO("Removing Network Change Prompt from Kicker...");
+error:
 
-	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    if (ppszArgs)
+    {
+       CTFreeStringArray(ppszArgs, nArgs);
+    }
 
-	ceError = CTAllocateString("/opt/centeris/bin/lwikickercfg", ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    if (pProcInfo)
+    {
+       FreeProcInfo(pProcInfo);
+    }
 
-	ceError = CTAllocateString("-uninstall", ppszArgs + 1);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	ceError = DJGetProcessStatus(pProcInfo, &status);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	if (status != 0) {
-		ceError = CENTERROR_DOMAINJOIN_FAILED_KICKER_UNINSTALL;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
-
-	ceError = DJNotifyConfigDaemon();
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-      error:
-
-	if (ppszArgs) {
-		CTFreeStringArray(ppszArgs, nArgs);
-	}
-
-	if (pProcInfo) {
-		FreeProcInfo(pProcInfo);
-	}
-
-	return ceError;
-}
-
-static CENTERROR DJSetSearchPath(SearchPolicyType searchPolicyType)
-{
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PPROCINFO pProcInfo = NULL;
-	PSTR *ppszArgs = NULL;
-	DWORD nArgs = 7;
-	LONG status = 0;
-
-	DJ_LOG_INFO("Setting search policy to %s",
-		    searchPolicyType ==
-		    CSPSearchPath ? "Custom path" : "Automatic");
-
-	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	ceError = CTAllocateString("/usr/bin/dscl", ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	ceError = CTAllocateString("/Search", ppszArgs + 1);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	ceError = CTAllocateString("-create", ppszArgs + 2);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	ceError = CTAllocateString("/", ppszArgs + 3);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	ceError = CTAllocateString("SearchPolicy", ppszArgs + 4);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	switch (searchPolicyType) {
-	case CSPSearchPath:
-		{
-			ceError =
-			    CTAllocateString("CSPSearchPath", ppszArgs + 5);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-
-			break;
-		}
-	case NSPSearchPath:
-		{
-			ceError =
-			    CTAllocateString("NSPSearchPath", ppszArgs + 5);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-
-			break;
-		}
-	}
-
-	ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	ceError = DJGetProcessStatus(pProcInfo, &status);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-	if (status != 0) {
-		ceError = CENTERROR_DOMAINJOIN_FAILED_SET_SEARCHPATH;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
-
-      error:
-
-	if (ppszArgs) {
-		CTFreeStringArray(ppszArgs, nArgs);
-	}
-
-	if (pProcInfo) {
-		FreeProcInfo(pProcInfo);
-	}
-
-	return ceError;
+    return ceError;
 }
 
 /* Use dscl to place the LWIDSPlugin in the authenticator list */
-static CENTERROR DJRegisterLWIDSPlugin()
+static
+CENTERROR
+DJRegisterLWIDSPlugin()
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PPROCINFO pProcInfo = NULL;
-	PSTR *ppszArgs = NULL;
-	DWORD nArgs = 7;
-	LONG status = 0;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PPROCINFO pProcInfo = NULL;
+    PSTR* ppszArgs = NULL;
+    DWORD nArgs = 7;
+    LONG status = 0;
 
-	DJ_LOG_INFO
-	    ("Registering LWIDSPlugin for Open Directory Authentication");
+    DJ_LOG_INFO("Registering LWIDSPlugin for Open Directory Authentication");
 
-	ceError = DJSetSearchPath(CSPSearchPath);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSetSearchPath(CSPSearchPath);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("/usr/bin/dscl", ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/usr/bin/dscl", ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("/Search", ppszArgs + 1);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/Search", ppszArgs+1);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("-append", ppszArgs + 2);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("-append", ppszArgs+2);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("/", ppszArgs + 3);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/", ppszArgs+3);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("CSPSearchPath", ppszArgs + 4);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("CSPSearchPath", ppszArgs+4);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString(LWIDSPLUGIN_NAME, ppszArgs + 5);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString(LWIDSPLUGIN_NAME, ppszArgs+5);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJGetProcessStatus(pProcInfo, &status);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJGetProcessStatus(pProcInfo, &status);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (status != 0) {
-		ceError = CENTERROR_DOMAINJOIN_FAILED_REG_OPENDIR;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (status != 0)
+    {
+       ceError = CENTERROR_DOMAINJOIN_FAILED_REG_OPENDIR;
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-      error:
+error:
 
-	if (ppszArgs) {
-		CTFreeStringArray(ppszArgs, nArgs);
-	}
+    if (ppszArgs)
+    {
+       CTFreeStringArray(ppszArgs, nArgs);
+    }
 
-	if (pProcInfo) {
-		FreeProcInfo(pProcInfo);
-	}
+    if (pProcInfo)
+    {
+       FreeProcInfo(pProcInfo);
+    }
 
-	return ceError;
+    return ceError;
 }
 
 /* Remove LWIDSPlugin from the authenticator list */
-static CENTERROR DJUnregisterLWIDSPlugin()
+static
+CENTERROR
+DJUnregisterLWIDSPlugin()
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PPROCINFO pProcInfo = NULL;
-	PSTR *ppszArgs = NULL;
-	DWORD nArgs = 7;
-	LONG status = 0;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PPROCINFO pProcInfo = NULL;
+    PSTR* ppszArgs = NULL;
+    DWORD nArgs = 7;
+    LONG status = 0;
 
-	DJ_LOG_INFO
-	    ("Unregistering LWIDSPlugin from Open Directory Authentication");
+    DJ_LOG_INFO("Unregistering LWIDSPlugin from Open Directory Authentication");
 
-	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("/usr/bin/dscl", ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/usr/bin/dscl", ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("/Search", ppszArgs + 1);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/Search", ppszArgs+1);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("-delete", ppszArgs + 2);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("-delete", ppszArgs+2);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("/", ppszArgs + 3);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("/", ppszArgs+3);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString("CSPSearchPath", ppszArgs + 4);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString("CSPSearchPath", ppszArgs+4);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString(LWIDSPLUGIN_NAME, ppszArgs + 5);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString(LWIDSPLUGIN_NAME, ppszArgs+5);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJGetProcessStatus(pProcInfo, &status);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJGetProcessStatus(pProcInfo, &status);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (status != 0) {
-		ceError = CENTERROR_DOMAINJOIN_FAILED_UNREG_OPENDIR;
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (status != 0)
+    {
+       ceError = CENTERROR_DOMAINJOIN_FAILED_UNREG_OPENDIR;
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	ceError = DJSetSearchPath(NSPSearchPath);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSetSearchPath(NSPSearchPath);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+error:
 
-	if (ppszArgs) {
-		CTFreeStringArray(ppszArgs, nArgs);
-	}
+    if (ppszArgs)
+    {
+       CTFreeStringArray(ppszArgs, nArgs);
+    }
 
-	if (pProcInfo) {
-		FreeProcInfo(pProcInfo);
-	}
+    if (pProcInfo)
+    {
+       FreeProcInfo(pProcInfo);
+    }
 
-	return ceError;
+    return ceError;
 }
 
 /*
@@ -392,119 +330,254 @@ static CENTERROR DJUnregisterLWIDSPlugin()
    /opt/centeris/lib/LWIDSPlugin.dsplug
 */
 #if 0
-static CENTERROR DJEngageLWIDSPlugin()
+static
+CENTERROR
+DJEngageLWIDSPlugin()
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	BOOLEAN bDirExists = FALSE;
-	BOOLEAN bLinkExists = FALSE;
-	BOOLEAN bCreateSymlink = TRUE;
-	PSTR pszTargetPath = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    BOOLEAN bDirExists = FALSE;
+    BOOLEAN bLinkExists = FALSE;
+    BOOLEAN bCreateSymlink = TRUE;
+    PSTR    pszTargetPath = NULL;
 
-	ceError = CTCheckDirectoryExists(LWIDSPLUGIN_INSTALL_PATH, &bDirExists);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTCheckDirectoryExists(LWIDSPLUGIN_INSTALL_PATH, &bDirExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (!bDirExists) {
-		DJ_LOG_ERROR("LWIDSPlugin folder [%s] does not exist",
-			     LWIDSPLUGIN_INSTALL_PATH);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (!bDirExists)
+    {
+       DJ_LOG_ERROR("LWIDSPlugin folder [%s] does not exist", LWIDSPLUGIN_INSTALL_PATH);
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	ceError = CTCheckLinkExists(LWIDSPLUGIN_SYMLINK_PATH, &bLinkExists);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTCheckLinkExists(LWIDSPLUGIN_SYMLINK_PATH, &bLinkExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (bLinkExists) {
-		ceError =
-		    CTGetSymLinkTarget(LWIDSPLUGIN_SYMLINK_PATH,
-				       &pszTargetPath);
-		BAIL_ON_CENTERIS_ERROR(ceError);
+    if (bLinkExists)
+    {
+       ceError = CTGetSymLinkTarget(LWIDSPLUGIN_SYMLINK_PATH, &pszTargetPath);
+       BAIL_ON_CENTERIS_ERROR(ceError);
 
-		if (strcmp(pszTargetPath, LWIDSPLUGIN_INSTALL_PATH)) {
-			DJ_LOG_INFO("Removing symbolic link at [%s]",
-				    LWIDSPLUGIN_SYMLINK_PATH);
-			ceError = CTRemoveFile(LWIDSPLUGIN_SYMLINK_PATH);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-		} else {
-			bCreateSymlink = FALSE;
-		}
-	}
+       if (strcmp(pszTargetPath, LWIDSPLUGIN_INSTALL_PATH))
+       {
+          DJ_LOG_INFO("Removing symbolic link at [%s]", LWIDSPLUGIN_SYMLINK_PATH);
+          ceError = CTRemoveFile(LWIDSPLUGIN_SYMLINK_PATH);
+          BAIL_ON_CENTERIS_ERROR(ceError);
+       }
+       else
+       {
+          bCreateSymlink = FALSE;
+       }
+    }
 
-	if (bCreateSymlink) {
-		ceError =
-		    CTCreateSymLink(LWIDSPLUGIN_SYMLINK_PATH,
-				    LWIDSPLUGIN_INSTALL_PATH);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (bCreateSymlink)
+    {
+       ceError = CTCreateSymLink(LWIDSPLUGIN_SYMLINK_PATH, LWIDSPLUGIN_INSTALL_PATH);
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-      error:
+error:
 
-	if (pszTargetPath) {
-		CTFreeString(pszTargetPath);
-	}
+    if (pszTargetPath)
+    {
+       CTFreeString(pszTargetPath);
+    }
 
-	return ceError;
+    return ceError;
 }
 
-static CENTERROR DJDisengageLWIDSPlugin()
+static
+CENTERROR
+DJDisengageLWIDSPlugin()
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	BOOLEAN bLinkExists = FALSE;
-	BOOLEAN bDirExists = FALSE;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    BOOLEAN bLinkExists = FALSE;
+    BOOLEAN bDirExists = FALSE;
 
-	ceError = CTCheckLinkExists(LWIDSPLUGIN_SYMLINK_PATH, &bLinkExists);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTCheckLinkExists(LWIDSPLUGIN_SYMLINK_PATH, &bLinkExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (bLinkExists) {
-		DJ_LOG_INFO("Removing symbolic link at [%s]",
-			    LWIDSPLUGIN_SYMLINK_PATH);
+    if (bLinkExists)
+    {
+       DJ_LOG_INFO("Removing symbolic link at [%s]", LWIDSPLUGIN_SYMLINK_PATH);
 
-		ceError = CTRemoveFile(LWIDSPLUGIN_SYMLINK_PATH);
-		BAIL_ON_CENTERIS_ERROR(ceError);
+       ceError = CTRemoveFile(LWIDSPLUGIN_SYMLINK_PATH);
+       BAIL_ON_CENTERIS_ERROR(ceError);
 
-		goto done;
-	}
+       goto done;
+    }
 
-	/* If a directory exists in the place of the symlink, remove that instead */
-	ceError = CTCheckDirectoryExists(LWIDSPLUGIN_SYMLINK_PATH, &bDirExists);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    /* If a directory exists in the place of the symlink, remove that instead */
+    ceError = CTCheckDirectoryExists(LWIDSPLUGIN_SYMLINK_PATH, &bDirExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	if (bDirExists) {
-		ceError = CTRemoveDirectory(LWIDSPLUGIN_SYMLINK_PATH);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (bDirExists)
+    {
+       ceError = CTRemoveDirectory(LWIDSPLUGIN_SYMLINK_PATH);
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-      done:
-      error:
+done:
+error:
 
-	return ceError;
+    return ceError;
 }
 #endif
 
-CENTERROR DJConfigureLWIDSPlugin()
+
+static
+CENTERROR
+DJFlushCache(
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    int i;
+    const char* cacheUtils[] = {
+        "/usr/sbin/lookupd", /* Before Mac OS X 10.5 */
+        "/usr/bin/dscacheutil" /* On Mac OS X 10.5 */
+    };
 
-	ceError = DJRegisterLWIDSPlugin();
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    /* TODO -- Add better logging */
+    DJ_LOG_INFO("Enter %s()", __FUNCTION__);
 
-	ceError = DJAddToKicker();
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    for (i = 0; i < (sizeof(cacheUtils) / sizeof(cacheUtils[0])); i++)
+    {
+        const char* command = cacheUtils[i];
+        BOOLEAN exists;
 
-      error:
+        /* Sanity check */
+        if (!command)
+        {
+            continue;
+        }
 
-	return ceError;
+        ceError = CTCheckFileExists(command, &exists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        if (!exists)
+        {
+            continue;
+        }
+
+        ceError = CTShell("%command -flushcache",
+                          CTSHELL_STRING(command, command));
+        /* Bail regardless */
+        goto error;
+    }
+
+    DJ_LOG_ERROR("Could not locate cache flush utility");
+    ceError = CENTERROR_FILE_NOT_FOUND;
+
+error:
+    DJ_LOG_INFO("Leave %s() with error 0x%08x", __FUNCTION__, ceError);
+    return ceError;
 }
 
-CENTERROR DJUnconfigureLWIDSPlugin()
+
+CENTERROR
+DJConfigureLWIDSPlugin()
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
+    CENTERROR ceError = CENTERROR_SUCCESS;
 
-	ceError = DJRemoveFromKicker();
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJRegisterLWIDSPlugin();
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = DJUnregisterLWIDSPlugin();
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJFlushCache();
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+error:
 
-	return ceError;
+    return ceError;
 }
+
+CENTERROR
+DJUnconfigureLWIDSPlugin()
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+
+    ceError = DJUnregisterLWIDSPlugin();
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJFlushCache();
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    return ceError;
+}
+
+static QueryResult QueryDSPlugin(const JoinProcessOptions *options, LWException **exc)
+{
+    BOOLEAN exists;
+    QueryResult result = NotConfigured;
+    PSTR value = NULL;
+    PSTR valueStart;
+
+    LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists("/usr/bin/dscl", &exists));
+    if(!exists)
+    {
+        result = NotApplicable;
+        goto cleanup;
+    }
+
+    LW_CLEANUP_CTERR(exc, CTCaptureOutput("/usr/bin/dscl /Search -read / dsAttrTypeStandard:SearchPolicy", &value));
+    CTStripWhitespace(value);
+    valueStart = value;
+    if(CTStrStartsWith(valueStart, "SearchPolicy:"))
+        valueStart += strlen("SearchPolicy:");
+    CTStripWhitespace(valueStart);
+    if(options->joiningDomain)
+    {
+        if(strcmp(valueStart, "CSPSearchPath"))
+            goto cleanup;
+    }
+    else
+    {
+        if(strcmp(valueStart, "NSPSearchPath"))
+            goto cleanup;
+    }
+    CT_SAFE_FREE_STRING(value);
+
+    LW_CLEANUP_CTERR(exc, CTCaptureOutput("/usr/bin/dscl /Search -read / dsAttrTypeStandard:CSPSearchPath", &value));
+    CTStripWhitespace(value);
+    if( (strstr(value, LWIDSPLUGIN_NAME) == NULL) == options->joiningDomain )
+        goto cleanup;
+    CT_SAFE_FREE_STRING(value);
+
+    result = FullyConfigured;
+
+cleanup:
+    CT_SAFE_FREE_STRING(value);
+    return result;
+}
+
+static void DoDSPlugin(JoinProcessOptions *options, LWException **exc)
+{
+    if(options->joiningDomain)
+        LW_CLEANUP_CTERR(exc, DJConfigureLWIDSPlugin());
+    else
+        LW_CLEANUP_CTERR(exc, DJUnconfigureLWIDSPlugin());
+cleanup:
+    ;
+}
+
+static PSTR GetDSPluginDescription(const JoinProcessOptions *options, LWException **exc)
+{
+    PSTR ret = NULL;
+    if(options->joiningDomain)
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup(
+                    "The Likewise Directory Services plugin will be enabled by adding it to the custom search path and switching the search policy to custom.",
+                    &ret));
+    }
+    else
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup(
+                    "The Likewise Directory Services plugin will removed from the custom search path and and the search policy will be switched back to standard.",
+                    &ret));
+    }
+
+cleanup:
+    return ret;
+}
+
+const JoinModule DJDSPlugin = { TRUE, "dsplugin", "enable likewise directory services plugin", QueryDSPlugin, DoDSPlugin, GetDSPluginDescription};

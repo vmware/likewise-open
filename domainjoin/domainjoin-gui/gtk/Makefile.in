@@ -1,0 +1,73 @@
+BUILD_ROOT = ../..
+
+SHELL= /bin/sh
+VPATH= @srcdir@
+
+subdirs= @subdirs@
+top_srcdir= @top_srcdir@
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = ${exec_prefix}/bin
+sbindir = ${exec_prefix}/sbin
+infodir = ${prefix}/info
+libdir = ${prefix}/lib
+mandir = ${prefix}/man/man1
+sharedir = ${prefix}/share
+
+
+DESTDIR=@DESTDIR@
+CC = @CC@
+CPPFLAGS = @CPPFLAGS@ -DSHARE_DIR=\"${sharedir}\"
+CFLAGS = $(CPPFLAGS) @CFLAGS@ -Wall @GTK_CFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@ @GTK_LIBS@
+INSTALL = @INSTALL@
+LWI_OS_FLAGS = @LWI_OS_FLAGS@
+
+PUBLIC_INCLUDE_DIR = $(BUILD_ROOT)/include
+PROJECT_INCLUDE_DIR = ../include
+DOMAINJOIN_DIR = $(BUILD_ROOT)/libdomainjoin
+
+DOMAINJOIN_LIB = $(DOMAINJOIN_DIR)/src/libdomainjoin.a
+
+INCLUDES += -I$(PROJECT_INCLUDE_DIR)    \
+            -I$(DOMAINJOIN_DIR)/include \
+            -I$(PUBLIC_INCLUDE_DIR)
+
+LDFLAGS += @CENTUTILS_LDFLAGS@
+
+CFLAGS += $(INCLUDES) \
+          @CENTUTILS_CPPFLAGS@ \
+          $(LWI_OS_FLAGS)
+
+LIBS += $(DOMAINJOIN_LIB)
+
+OBJS = common.o joindialog.o joinprogress.o \
+       statusdialog.o joinauth.o joinerror.o main.o
+
+PROGRAM = domainjoin-gtk
+
+all : $(PROGRAM)
+
+$(PROGRAM) : $(OBJS) $(DOMAINJOIN_LIB)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS) @CENTUTILS_LIBS@ $(LIBS) @LIBXML2_LDFLAGS@
+
+$(OBJS) : %.o : %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+clean :
+	$(RM) $(OBJS) $(PROGRAM)
+
+distclean:
+	$(RM) Makefile
+
+install: all
+	@echo $(DESTDIR)
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(bindir)
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(libdir)
+	$(INSTALL) $(PROGRAM) $(DESTDIR)$(bindir)
+
+uninstall:
+	-/bin/rm -f $(DESTDIR)$(bindir)/$(PROGRAM)
+

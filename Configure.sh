@@ -18,7 +18,7 @@
 ## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
 ##
 
-DIRS="domainjoin winbindd/source"
+DIRS="centutils domainjoin samba/source"
 
 for d in ${DIRS}; do
 	echo ">>>>>>>> Running ${d}/configure <<<<<<<<"

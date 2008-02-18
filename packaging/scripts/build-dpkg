@@ -4,12 +4,16 @@ BASEDIR=`dirname $0`/../..
 . ${BASEDIR}/packaging/scripts/functions
 VERSION=$(get_lwopen_version)
 
-/bin/rm -rf $BASEDIR/../likewise-open-$VERSION || exit 1
-mkdir $BASEDIR/../likewise-open-$VERSION || exit 1
-rsync -av --exclude=.git* $BASEDIR/ $BASEDIR/../likewise-open-$VERSION/ || exit 1
+(cd .. && tar zxf likewise-open-$VERSION.tar.gz)
+
+if [ ! -d ../likewise-open-$VERSION ]; then
+	echo "Directory does not exist!"
+	exit 1
+fi
 
 ## Create orig.tar.gz neeed for ubuntu merges.
-tar cvz  $BASEDIR/../likewise-open-$VERSION -f ../likewise-open_$VERSION.orig.tar.gz
+echo "Creating likewise-open_$VERSION.orig.tar.gz"
+tar zcf ../likewise-open_$VERSION.orig.tar.gz $BASEDIR/../likewise-open-$VERSION 
 
 cd $BASEDIR/../likewise-open-$VERSION
 if [ ! -d debian ]; then

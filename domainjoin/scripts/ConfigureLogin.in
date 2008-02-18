@@ -1,12 +1,11 @@
-#!/bin/sh
 ##
 ## Copyright (C) Centeris Corporation 2004-2007
-## Copyright (C) Likewise Software 2007.
+## Copyright (C) Likewise Software    2007-2008
 ## All rights reserved.
-##
+## 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation; either version 3 of the License, or
+## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
 ##
 ## This program is distributed in the hope that it will be useful,
@@ -18,11 +17,13 @@
 ## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
 ##
 
+#!/bin/sh
+
 LC_MESSAGES=C; export LC_MESSAGES
 
-exec_prefix=@prefix@
-SCRIPT_DIR=@libdir@/likewise-open
-BIN_DIR=@bindir@
+#this gets overridden with sed when it should be /opt/centeris
+BINDIR=@expanded_bindir@
+LIBEXECDIR=@expanded_libexecdir@
 
 alias_replacement()
 {
@@ -85,6 +86,20 @@ if [ "`echo -n`" = "-n" ]; then
     alias echo=echo_replacement
 fi
 
+not_replacement()
+{
+    `"$@"` && return 1
+    return 0
+}
+# This replaces the ! builtin. However Solaris provides no way of defining a
+# function by that name. So instead, we have to call the operator not.
+type ! 1>/dev/null 2>/dev/null
+if [ $? -ne 0 ]; then
+    alias not=not_replacement
+else
+    alias not=!
+fi
+
 seq_replacement()
 {
     FIRST=1
@@ -132,17 +147,17 @@ Help()
 
 GetOsType()
 {
-    perl -I${SCRIPT_DIR} -MCenteris -e 'print GetOsType';
+    ${BINDIR}/domainjoin-cli get_os_type
 }
 
 GetDistroType()
 {
-    perl -I${SCRIPT_DIR} -MCenteris -e 'print GetDistroType';
+    ${BINDIR}/domainjoin-cli get_distro
 }
 
 GetDistroVersion()
 {
-    perl -I${SCRIPT_DIR} -MCenteris -e 'print GetDistroVersion';
+    ${BINDIR}/domainjoin-cli get_distro_version
 }
 
 GracefulSSHDRestart()
@@ -165,11 +180,35 @@ GracefulSSHDRestart()
         if [ $shouldBeRunning -ne 0 ]; then
             # sshd on SuSE 9.0 has a bug that causes it to die on a SIGHUP.
             # So try starting sshd in that case.
-            if [ `GetDistroType` = "suse" ]; then
+            if [ "`GetDistroType`" = "suse" ]; then
                 if [ `GetDistroVersion` = "9.0" ]; then
                     /etc/init.d/sshd start > /dev/null 2>&1
                 fi
             fi
+        fi
+    elif [ -x /usr/bin/lssrc ]; then
+        # This is an AIX system. We have to use lssrc to get SSHD's pid.
+        # lssrc returns the output in this form:
+        # Subsystem   Group   PID  Status
+        #  sshd       ssh     123  active
+        sshdpid=""
+        sshdstatus="`/usr/bin/lssrc -s sshd`"
+        if [ $? -eq 0 ]; then
+            sshdpid=`echo "$sshdstatus" | tail -1 | awk '{ print $3 }'`
+        fi
+        if [ -n "$sshdpid" ]; then
+            # Let's double check that the pid is valid. It could say
+            # "inoperative".
+            ps -p "$sshdpid" >/dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                # The pid isn't valid
+                sshdpid=""
+            fi
+        fi
+        if [ -n "$sshdpid" ]; then
+            kill -HUP "$sshdpid" || result=$?
+        else
+            echo "sshd does not appear to be running"
         fi
     else
         echo "sshd does not appear to be running"
@@ -198,22 +237,22 @@ FixGdmLoginWithSpaces()
 
 WaitForNetworkManager()
 {
-    type nm-tool 2>&1 >/dev/null
+    type nm-tool >/dev/null 2>&1
     if [ $? -ne 0 ]; then
-	echo "Could not find nm-tool" >&2
+	echo "Could not find nm-tool"
 	return 1
     fi
 
     for count in `seq 15`; do
-	echo "Waiting..." >&2
+	echo "Waiting..."
 	sleep 1
-	output=`nm-tool`
+	{ output=`nm-tool`; } 2>&1
 	if [ $? -ne 0 ]; then
-	    echo "Could not query NetworkManager" >&2
+	    echo "Could not query NetworkManager"
 	    return 1
 	fi
 	status=`echo "$output" | grep "State: connected"`
-        echo "status=$status" >&2
+        echo "status=$status"
 	if [ "$status" = "State: connected" ]; then
 	    break;
 	fi
@@ -222,17 +261,48 @@ WaitForNetworkManager()
 	    return 1
 	fi
     done
-    echo "NetworkManager successfully started" >&2
+    echo "NetworkManager successfully started"
 
     return 0
 }
 
 GracefulDbusRestart()
 {
+    distroType=`GetDistroType`
     if [ -x /etc/init.d/dbus ]; then
         # Ubuntu, SuSE
-        /etc/init.d/dbus restart
-	result=$?
+        if [ "$distroType" = "SuSE" -o "$distroType" = "OpenSuSE" ]; then
+            if IsUserLoggedInX; then
+                if [ "$1" = "1" ]; then
+                    echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please log out of X windows, then run these commands to restart dbus:" >&2
+                    echo "/etc/init.d/dbus restart; killall gdm; /etc/init.d/xdm restart" >&2
+                fi
+                return 1
+            else
+                # Restarting dbus kills gdm
+                /etc/init.d/dbus restart
+                result=$?
+                GDMPID=1
+                if [ -f /var/run/gdm.pid ]; then
+                    GDMPID=`cat /var/run/gdm.pid`
+                fi
+                ps -p "$GDMPID" 2>/dev/null 1>/dev/null
+                if [ $? -ne 0 ]; then
+                    # Kill the lingering instance of gdm which is not correct in gdm.pid
+                    killall gdm
+                    # Wait for gdm to fully shutdown
+                    for count in `seq 15`; do
+                        /etc/init.d/xdm status >/dev/null || break
+                        sleep 1
+                    done
+                    # Restart gdm
+                    /etc/init.d/xdm restart
+                fi
+            fi
+        else
+            /etc/init.d/dbus restart
+            result=$?
+        fi
 	WaitForNetworkManager
         return $result
     elif [ -x /etc/init.d/messagebus ]; then
@@ -247,16 +317,35 @@ GracefulDbusRestart()
 
 GracefulCronRestart()
 {
-   sh ${SCRIPT_DIR}/gpcron restart
+   sh ${LIBEXECDIR}/gpcron restart 
    return $?
+}
+
+IsProcessRunning()
+{
+    if [ `uname -s` = 'Darwin' ]; then
+        _IsProcessRunning_ps_output=`ps -A -o command= | awk '{ print $1 }' | egrep '(^'$1'$)|(/'$1'$)' 2> /dev/null`
+    else
+        _IsProcessRunning_ps_output=`UNIX95=1 ps -e -o comm= | egrep '(^'$1'$)|(/'$1'$)' 2> /dev/null`
+    fi
+    for proc in $_IsProcessRunning_ps_output ; do
+        return 0
+    done
+    return 1
 }
 
 GracefulNscdRestart()
 {
+    _is_nscd_running=0
     if [ -x /etc/init.d/nscd ]; then
-        /etc/init.d/nscd status
-        nscdStatus=$?
-        if [ $nscdStatus -eq 0 ]; then
+        /etc/init.d/nscd status 2>&1 >/dev/null
+        if [ $? -eq 0 ]; then
+            _is_nscd_running=1
+        elif IsProcessRunning nscd ; then
+            _is_nscd_running=1
+        fi
+        if [ $_is_nscd_running -ne 0 ]; then
+            echo "Restarting nscd"
             /etc/init.d/nscd stop
             /etc/init.d/nscd start
         fi
@@ -264,12 +353,8 @@ GracefulNscdRestart()
     return 0
 }
 
-GracefulXDMRestart()
+IsUserLoggedInX()
 {
-    # checks to see if someone is on the graphical console. If so,
-    # gracefully bounces the kdm|gdm process. Otherwise,
-    # does a less graceful restart
-
     #Default: check for ":0" in the 2nd column of the who output
     awkExpression='{ print $2 }'
 
@@ -291,11 +376,27 @@ GracefulXDMRestart()
                 awkExpression='{ print $5 }'
             fi
         fi
+        if [ "$distroType" = "OpenSuSE" ]; then
+            awkExpression='{ print $5 }'
+        fi
     fi
 
     # On some systems, like Solaris, the X console is identified with :1,
     # so here we actually try a more general search for ":"
     if who | awk "$awkExpression" | grep ":" 1>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+GracefulXDMRestart()
+{
+    # checks to see if someone is on the graphical console. If so,
+    # gracefully bounces the kdm|gdm process. Otherwise,
+    # does a less graceful restart
+
+    if IsUserLoggedInX; then
         userViaX=1
     else
         userViaX=0
@@ -309,7 +410,7 @@ GracefulXDMRestart()
 	elif [ -x "/usr/sbin/gdm-safe-restart" ]; then
 	    /usr/sbin/gdm-safe-restart
         elif [ -x "/etc/init.d/gdm" ]; then
-            /etc/init.d/gdm reload
+            /etc/init.d/gdm reload 2>&1
 	elif [ $userViaX -eq 1 ]; then
 	    # no user logged in via X -- bounce the puppy
 	    if [ -x "/opt/gnome/sbin/gdm-restart" ]; then
@@ -391,9 +492,9 @@ ConfigurePamForADLogin()
 		return 1;
 	fi
 
-	${BIN_DIR}/domainjoin-cli --log . configure pam $options || return $?
+	${BINDIR}/domainjoin-cli --log . configure pam $options || return $?
 
-	${BIN_DIR}/domainjoin-cli --log . configure ssh $options || return $?
+	${BINDIR}/domainjoin-cli --log . configure ssh $options || return $?
 
 	GracefulSSHDRestart
 	ConfigurePamForADLogin_rc=$?
@@ -427,16 +528,11 @@ ConfigurePamForADLogin()
 		ConfigurePamForADLogin_rc=0
 	    fi
 	fi
-
-	GracefulDbusRestart
+	
+	GracefulDbusRestart "$isEnable"
 	ConfigurePamForADLogin_rc=$?
 	if [ "0" != $ConfigurePamForADLogin_rc ]; then
-            echo "Could not restart system message bus (dbus)"
-	    if [ "1" = "$isEnable" ]; then
-		return $ConfigurePamForADLogin_rc
-	    else
-		ConfigurePamForADLogin_rc=0
-	    fi
+            echo "Could not restart system message bus (dbus)" >&2
 	fi
 
 	GracefulNscdRestart
@@ -454,8 +550,10 @@ ConfigurePamForADLogin()
 
 ConfigureShellPrompt()
 {
-    if [ 'enable' = "$1" ]; then
-	perl ${SCRIPT_DIR}/ConfigureShellPrompt || return $?
+    #This perl code only does something on RHEL, Centos, and Ubuntu. Don't try
+    #running it on Unix systems incase perl is broken.
+    if [ 'enable' = "$1" -a `GetOsType` = Linux ]; then    
+	perl ${LIBEXECDIR}/ConfigureShellPrompt || return $?
     else
 	return 0
     fi
@@ -479,29 +577,58 @@ ConfigureAppArmor()
 		if grep "mr," /etc/apparmor.d/abstractions/nameservice 2>&1 >/dev/null; then
 		    cat >>/etc/apparmor.d/abstractions/nameservice <<__AAEOF__
 # centeris
-/usr/lib/libwbclient.so*     mr,
-/usr/lib64/libwbclient.so*   mr,
+/usr/centeris/lib/*.so*     mr,
+/usr/centeris/lib64/*.so*   mr,
 /tmp/.lwidentity/pipe       rw,
 # end centeris
 __AAEOF__
 		else
 		    cat >>/etc/apparmor.d/abstractions/nameservice <<__AAEOF2__
 # centeris
-/usr/lib/libwbclient.so*     r,
-/usr/lib64/libwbclient.so*   r,
+/usr/centeris/lib/*.so*     r,
+/usr/centeris/lib64/*.so*   r,
 /tmp/.lwidentity/pipe       rw,
 # end centeris
 __AAEOF2__
 		fi
-		if [ -x /etc/init.d/apparmor ]; then
-			/etc/init.d/apparmor reload || return $?
-		else
-			rcapparmor restart || return $?
+
+		if type rcapparmor >/dev/null 2>&1
+		then
+		    rcapparmor restart || return $?
+		elif [ -x /etc/init.d/apparmor ]
+		then
+		    /etc/init.d/apparmor restart >/dev/null 2>&1 || return $?
 		fi
 	    fi
 	fi
     fi
     return 0
+}
+
+NsswitchRestart()
+{
+    nsswitch_rc=0
+
+    if not GracefulXDMRestart; then
+        echo "Could not restart XDM" >&2
+        nsswitch_rc=1
+    fi
+
+    if not GracefulCronRestart; then
+        echo "Could not restart Cron" >&2
+        nsswitch_rc=1
+    fi
+    
+    if not GracefulDbusRestart 1; then
+        echo "Could not restart system message bus (dbus)" >&2
+        nsswitch_rc=1
+    fi
+
+    if not GracefulNscdRestart; then
+        echo "Could not restart name service cache daemon (nscd)" >&2
+        nsswitch_rc=1
+    fi
+    return $nsswitch_rc
 }
 
 #
@@ -516,12 +643,15 @@ elif [ 'enable' = "$1" ]; then
     /bin/true
 elif [ 'disable' = "$1" ]; then
     /bin/true
+elif [ "$1" = "nsswitch_restart" ]; then
+    NsswitchRestart
+    exit $?
 else
     Help
     exit 1
 fi
 
-## now for the real work
+## now for the real work 
 global_rc=0
 ConfigurePamForADLogin "$@" || global_rc=$?
 

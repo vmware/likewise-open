@@ -1,534 +1,573 @@
 /*
  * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007.  
+ * Copyright (C) Likewise Software    2007-2008
  * All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Lesser General Public License as 
+ * published by the Free Software Foundation; either version 2.1 of 
+ * the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public 
+ * License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
 
 /* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
 
-void WaitTimeout(int val)
+void
+WaitTimeout(int val)
 {
 }
 
-void FreeProcInfo(PPROCINFO pProcInfo)
+void
+FreeProcInfo(
+    PPROCINFO pProcInfo
+    )
 {
-	CTFreeProcInfo(pProcInfo);
-}
-
-CENTERROR
-DJSpawnProcessWithEnvironment(PCSTR pszCommand,
-			      PCSTR * ppszArgs,
-			      PCSTR * ppszEnv,
-			      int dwFdIn,
-			      int dwFdOut, int dwFdErr, PPROCINFO * ppProcInfo)
-{
-	return CTSpawnProcessWithEnvironment(pszCommand,
-					     ppszArgs,
-					     ppszEnv,
-					     dwFdIn,
-					     dwFdOut, dwFdErr, ppProcInfo);
+    CTFreeProcInfo(pProcInfo);
 }
 
 CENTERROR
-DJSpawnProcess(PCSTR pszCommand, PSTR * ppszArgs, PPROCINFO * ppProcInfo)
+DJSpawnProcessWithEnvironment(
+    PCSTR pszCommand,
+    const PSTR* ppszArgs,
+    const PSTR* ppszEnv,
+    int dwFdIn,
+    int dwFdOut,
+    int dwFdErr,
+    PPROCINFO* ppProcInfo
+    )
 {
-	return DJSpawnProcessWithEnvironment(pszCommand, ppszArgs, NULL, -1, -1,
-					     -1, ppProcInfo);
+    return CTSpawnProcessWithEnvironment(
+        pszCommand,
+        ppszArgs,
+        ppszEnv,
+        dwFdIn,
+        dwFdOut,
+        dwFdErr,
+        ppProcInfo
+        );
+}
+
+CENTERROR
+DJSpawnProcess(
+    PCSTR pszCommand,
+    const PSTR* ppszArgs,
+    PPROCINFO* ppProcInfo
+    )
+{
+    return DJSpawnProcessWithEnvironment(pszCommand, ppszArgs, NULL, -1, -1, -1, ppProcInfo);
 }
 
 #ifdef NOT_YET
 CENTERROR
-DJSpawnProcessCaptureOutput(PCSTR pszCommand,
-			    PSTR * ppszArgs,
-			    PPROCINFO * ppProcInfo,
-			    PSTR * ppszStdout, PSTR * ppszStderr)
+DJSpawnProcessCaptureOutput(
+    PCSTR pszCommand,
+    PSTR* ppszArgs,
+    PPROCINFO* ppProcInfo,
+    PSTR* ppszStdout,
+    PSTR* ppszStderr)
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	BOOLEAN bFirst = FALSE;
-	PPROCINFO pProcInfo = NULL;
-	PROCBUFFER procBuffer;
-	DWORD iOutBufIdx = 0;
-	DWORD dwOutBufLen = 0;
-	DWORD dwOutBufAvailable = 0;
-	PSTR pszOutBuffer = NULL;
-	DWORD iErrBufIdx = 0;
-	DWORD dwErrBufLen = 0;
-	DWORD dwErrBufAvailable = 0;
-	PSTR pszErrBuffer = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    BOOLEAN bFirst = FALSE;
+    PPROCINFO pProcInfo = NULL;
+    PROCBUFFER procBuffer;
+    DWORD iOutBufIdx = 0;
+    DWORD dwOutBufLen = 0;
+    DWORD dwOutBufAvailable = 0;
+    PSTR pszOutBuffer = NULL;
+    DWORD iErrBufIdx = 0;
+    DWORD dwErrBufLen = 0;
+    DWORD dwErrBufAvailable = 0;
+    PSTR pszErrBuffer = NULL;
 
-	ceError = DJSpawnProcess(pszCommand, ppszArgs, ppProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSpawnProcess(pszCommand, ppszArgs, ppProcInfo);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	pProcInfo = *ppProcInfo;
+    pProcInfo = *ppProcInfo;
 
-	do {
+    do {
 
-		if (!bFirst) {
-			ceError = DJReadData(pProcInfo, &procBuffer);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-		}
+        if (!bFirst) {
+            ceError = DJReadData(pProcInfo, &procBuffer);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
 
-		bFirst = FALSE;
+        bFirst = FALSE;
 
-		if (procBuffer.dwOutBytesRead) {
+        if (procBuffer.dwOutBytesRead) {
 
-			while (1) {
+            while (1) {
 
-				if (procBuffer.dwOutBytesRead <
-				    dwOutBufAvailable) {
+                if (procBuffer.dwOutBytesRead < dwOutBufAvailable) {
 
-					memcpy(pszOutBuffer + iOutBufIdx,
-					       procBuffer.szOutBuf,
-					       procBuffer.dwOutBytesRead);
+                    memcpy(pszOutBuffer+iOutBufIdx,
+                           procBuffer.szOutBuf,
+                           procBuffer.dwOutBytesRead
+                        );
 
-					iOutBufIdx += procBuffer.dwOutBytesRead;
-					dwOutBufAvailable -=
-					    procBuffer.dwOutBytesRead;
 
-					*(pszOutBuffer + iOutBufIdx + 1) = '\0';
+                    iOutBufIdx+= procBuffer.dwOutBytesRead;
+                    dwOutBufAvailable -= procBuffer.dwOutBytesRead;
 
-					break;
+                    *(pszOutBuffer+iOutBufIdx+1) = '\0';
 
-				} else {
+                    break;
 
-					/*
-					 * TODO: Limit the amount of memory acquired
-					 */
+                } else {
 
-					ceError = CTReallocMemory(pszOutBuffer,
-								  (PVOID *) &
-								  pszOutBuffer,
-								  dwOutBufLen +
-								  1024);
-					BAIL_ON_CENTERIS_ERROR(ceError);
+                    /*
+                     * TODO: Limit the amount of memory acquired
+                     */
 
-					dwOutBufLen += 1024;
-					dwOutBufAvailable += 1024;
-				}
-			}
-		}
+                    ceError = CTReallocMemory(pszOutBuffer,
+                                              (PVOID*)&pszOutBuffer,
+                                              dwOutBufLen+1024);
+                    BAIL_ON_CENTERIS_ERROR(ceError);
 
-		if (procBuffer.dwErrBytesRead) {
+                    dwOutBufLen += 1024;
+                    dwOutBufAvailable += 1024;
+                }
+            }
+        }
 
-			while (1) {
+        if (procBuffer.dwErrBytesRead) {
 
-				if (procBuffer.dwErrBytesRead <
-				    dwErrBufAvailable) {
+            while (1) {
 
-					memcpy(pszErrBuffer + iErrBufIdx,
-					       procBuffer.szErrBuf,
-					       procBuffer.dwErrBytesRead);
+                if (procBuffer.dwErrBytesRead < dwErrBufAvailable) {
 
-					iErrBufIdx += procBuffer.dwErrBytesRead;
-					dwErrBufAvailable -=
-					    procBuffer.dwErrBytesRead;
+                    memcpy(pszErrBuffer+iErrBufIdx,
+                           procBuffer.szErrBuf,
+                           procBuffer.dwErrBytesRead
+                        );
 
-					*(pszErrBuffer + iErrBufIdx + 1) = '\0';
+                    iErrBufIdx+= procBuffer.dwErrBytesRead;
+                    dwErrBufAvailable -= procBuffer.dwErrBytesRead;
 
-					break;
+                    *(pszErrBuffer+iErrBufIdx+1) = '\0';
 
-				} else {
+                    break;
 
-					/*
-					 * TODO: Limit the amount of memory acquired
-					 */
-					ceError = CTReallocMemory(pszErrBuffer,
-								  (PVOID *) &
-								  pszErrBuffer,
-								  dwErrBufLen +
-								  1024);
-					BAIL_ON_CENTERIS_ERROR(ceError);
+                } else {
 
-					dwErrBufLen += 1024;
-					dwErrBufAvailable += 1024;
-				}
-			}
-		}
+                    /*
+                     * TODO: Limit the amount of memory acquired
+                     */
+                    ceError = CTReallocMemory(pszErrBuffer,
+                                              (PVOID*)&pszErrBuffer,
+                                              dwErrBufLen+1024);
+                    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	} while (!procBuffer.bEndOfFile);
+                    dwErrBufLen += 1024;
+                    dwErrBufAvailable += 1024;
+                }
+            }
+        }
 
-	ceError = CTAllocateString(pszOutBuffer, ppszStdout);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    } while (!procBuffer.bEndOfFile);
 
-	CT_SAFE_FREE_STRING(pszOutBuffer);
+    ceError = CTAllocateString(pszOutBuffer, ppszStdout);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-	ceError = CTAllocateString(pszErrBuffer, ppszStderr);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    CT_SAFE_FREE_STRING(pszOutBuffer);
 
-	CT_SAFE_FREE_STRING(pszErrBuffer);
+    ceError = CTAllocateString(pszErrBuffer, ppszStderr);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+    CT_SAFE_FREE_STRING(pszErrBuffer);
 
-	if (pszOutBuffer) {
-		*ppszStdout = pszOutBuffer;
-	}
-	if (pszErrBuffer) {
-		*ppszStderr = pszErrBuffer;
-	}
+error:
 
-	return ceError;
+    if (pszOutBuffer) {
+       *ppszStdout = pszOutBuffer;
+    }
+    if (pszErrBuffer) {
+       *ppszStderr = pszErrBuffer;
+    }
+
+    return ceError;
 }
-#endif				/* NOT_YET */
+#endif /* NOT_YET */
 
 CENTERROR
-DJSpawnProcessWithFds(PCSTR pszCommand,
-		      PCSTR * ppszArgs,
-		      int dwFdIn,
-		      int dwFdOut, int dwFdErr, PPROCINFO * ppProcInfo)
+DJSpawnProcessWithFds(
+    PCSTR pszCommand,
+    PSTR* ppszArgs,
+    int dwFdIn,
+    int dwFdOut,
+    int dwFdErr,
+    PPROCINFO* ppProcInfo
+    )
 {
-	return CTSpawnProcessWithFds(pszCommand, ppszArgs, dwFdIn, dwFdOut,
-				     dwFdErr, ppProcInfo);
-}
-
-CENTERROR
-DJSpawnProcessSilent(PCSTR pszCommand, PSTR * ppArgs, PPROCINFO * ppProcInfo)
-{
-	int dwFdIn = -1, dwFdOut = -1, dwFdErr = -1;
-	CENTERROR ceError = CENTERROR_SUCCESS;
-
-	dwFdIn = open("/dev/zero", O_RDONLY, S_IRUSR);
-
-	if (dwFdIn < 0) {
-		ceError = CTMapSystemError(errno);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
-
-	dwFdOut = open("/dev/null", O_WRONLY, S_IWUSR);
-
-	if (dwFdOut < 0) {
-		ceError = CTMapSystemError(errno);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
-
-	dwFdErr = open("/dev/null", O_WRONLY, S_IWUSR);
-
-	if (dwFdErr < 0) {
-		ceError = CTMapSystemError(errno);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
-
-	ceError =
-	    DJSpawnProcessWithFds(pszCommand, ppArgs, dwFdIn, dwFdOut, dwFdErr,
-				  ppProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
-
-      error:
-
-	if (dwFdIn != -1)
-		close(dwFdIn);
-	if (dwFdOut != -1)
-		close(dwFdOut);
-	if (dwFdErr != -1)
-		close(dwFdErr);
-
-	return ceError;
+    return CTSpawnProcessWithFds(pszCommand, ppszArgs, dwFdIn, dwFdOut, dwFdErr, ppProcInfo);
 }
 
 CENTERROR
-DJSpawnProcessOutputToFile(PCSTR pszCommand,
-			   PSTR * ppArgs, PCSTR file, PPROCINFO * ppProcInfo)
+DJSpawnProcessSilent(
+    PCSTR pszCommand,
+    PSTR* ppArgs,
+    PPROCINFO* ppProcInfo
+    )
 {
-	int dwFdIn = -1, dwFdOut = -1, dwFdErr = -1;
-	CENTERROR ceError = CENTERROR_SUCCESS;
+    int dwFdIn = -1, dwFdOut = -1, dwFdErr = -1;
+    CENTERROR ceError = CENTERROR_SUCCESS;
 
-	dwFdIn = open("/dev/zero", O_RDONLY);
+    dwFdIn = open("/dev/zero", O_RDONLY);
 
-	if (dwFdIn < 0) {
-		ceError = CTMapSystemError(errno);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (dwFdIn < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	dwFdOut = open(file, O_CREAT|O_WRONLY, S_IWUSR);
+    dwFdOut = open("/dev/null", O_WRONLY);
 
-	if (dwFdOut < 0) {
-		ceError = CTMapSystemError(errno);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (dwFdOut < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	dwFdErr = open("/dev/null", O_WRONLY);
+    dwFdErr = open("/dev/null", O_WRONLY);
 
-	if (dwFdErr < 0) {
-		ceError = CTMapSystemError(errno);
-		BAIL_ON_CENTERIS_ERROR(ceError);
-	}
+    if (dwFdErr < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	ceError =
-	    DJSpawnProcessWithFds(pszCommand, ppArgs, dwFdIn, dwFdOut, dwFdErr,
-				  ppProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = DJSpawnProcessWithFds(pszCommand, ppArgs, dwFdIn, dwFdOut, dwFdErr, ppProcInfo);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-      error:
+error:
 
-	if (dwFdIn != -1)
-		close(dwFdIn);
-	if (dwFdOut != -1)
-		close(dwFdOut);
-	if (dwFdErr != -1)
-		close(dwFdErr);
+    if(dwFdIn != -1)
+        close(dwFdIn);
+    if(dwFdOut != -1)
+        close(dwFdOut);
+    if(dwFdErr != -1)
+        close(dwFdErr);
 
-	return ceError;
+    return ceError;
 }
 
 CENTERROR
-DJTimedReadData(PPROCINFO pProcInfo,
-		PPROCBUFFER pProcBuffer,
-		DWORD dwTimeoutSecs, PBOOLEAN pbTimedout)
+DJSpawnProcessOutputToFile(
+    PCSTR pszCommand,
+    PSTR* ppArgs,
+    PCSTR file,
+    PPROCINFO* ppProcInfo
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PSTR pszBuf = NULL;
-	DWORD dwBytesRead = 0;
-	int maxfd;
-	fd_set read_fd_set;
-	int select_status;
-	int fd = 0;
-	int iFd = 0;
+    int dwFdIn = -1, dwFdOut = -1, dwFdErr = -1;
+    CENTERROR ceError = CENTERROR_SUCCESS;
 
-	struct timeval timeout;
-	timeout.tv_sec = dwTimeoutSecs;
-	timeout.tv_usec = 0;
+    dwFdIn = open("/dev/zero", O_RDONLY);
 
-	pProcBuffer->dwOutBytesRead = 0;
-	pProcBuffer->dwErrBytesRead = 0;
-	pProcBuffer->bEndOfFile = FALSE;
+    if (dwFdIn < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-	FD_ZERO(&read_fd_set);
-	while (!pProcBuffer->dwOutBytesRead &&
-	       !pProcBuffer->dwErrBytesRead && !pProcBuffer->bEndOfFile) {
+    dwFdOut = open(file, O_WRONLY | O_CREAT | O_TRUNC );
 
-		if (pProcInfo->fdout >= 0) {
-			FD_SET(pProcInfo->fdout, &read_fd_set);
-		}
-		if (pProcInfo->fderr >= 0) {
-			FD_SET(pProcInfo->fderr, &read_fd_set);
-		}
+    if (dwFdOut < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-		maxfd =
-		    (pProcInfo->fdout >
-		     pProcInfo->fderr ? pProcInfo->fdout +
-		     1 : pProcInfo->fderr + 1);
+    dwFdErr = open("/dev/null", O_WRONLY);
 
-		select_status = select(maxfd,
-				       &read_fd_set, NULL /* write_fds */ ,
-				       NULL /* except_fds */ ,
-				       &timeout);
-		if (select_status < 0) {
+    if (dwFdErr < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
-			if (errno == EINTR)
-				continue;
+    ceError = DJSpawnProcessWithFds(pszCommand, ppArgs, dwFdIn, dwFdOut, dwFdErr, ppProcInfo);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-			ceError = CTMapSystemError(errno);
-			BAIL_ON_CENTERIS_ERROR(ceError);
+error:
 
-		} else if (select_status == 0) {
+    if(dwFdIn != -1)
+        close(dwFdIn);
+    if(dwFdOut != -1)
+        close(dwFdOut);
+    if(dwFdErr != -1)
+        close(dwFdErr);
 
-			/* timed out */
-
-		} else {
-
-			for (iFd = 0; iFd < 2; iFd++) {
-
-				fd = (iFd ==
-				      0 ? pProcInfo->fdout : pProcInfo->fderr);
-				if (fd < 0) {
-					continue;
-				}
-				pszBuf =
-				    (iFd ==
-				     0 ? pProcBuffer->szOutBuf : pProcBuffer->
-				     szErrBuf);
-
-				if (FD_ISSET(fd, &read_fd_set)) {
-
-					dwBytesRead =
-					    read(fd, pszBuf, MAX_PROC_BUF_LEN);
-					if (dwBytesRead < 0) {
-
-						if (errno != EAGAIN
-						    && errno != EINTR) {
-							ceError =
-							    CTMapSystemError
-							    (errno);
-							BAIL_ON_CENTERIS_ERROR
-							    (ceError);
-						}
-
-					} else if (dwBytesRead == 0) {
-
-						pProcBuffer->bEndOfFile = TRUE;
-
-					} else {
-
-						if (iFd == 0)
-							pProcBuffer->
-							    dwOutBytesRead =
-							    dwBytesRead;
-						else
-							pProcBuffer->
-							    dwErrBytesRead =
-							    dwBytesRead;
-
-					}
-
-				}
-			}
-		}
-	}
-
-      error:
-
-	return (ceError);
+    return ceError;
 }
 
-CENTERROR DJReadData(PPROCINFO pProcInfo, PPROCBUFFER pProcBuffer)
+CENTERROR
+DJTimedReadData(
+    PPROCINFO pProcInfo,
+    PPROCBUFFER pProcBuffer,
+    DWORD dwTimeoutSecs,
+    PBOOLEAN pbTimedout
+    )
 {
-	BOOLEAN bTimedout = FALSE;
-	return DJTimedReadData(pProcInfo, pProcBuffer, 5, &bTimedout);
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR pszBuf = NULL;
+    DWORD dwBytesRead = 0;
+    int maxfd;
+    fd_set read_fd_set;
+    int select_status;
+    int fd = 0;
+    int iFd = 0;
+
+    struct timeval timeout;
+    timeout.tv_sec = dwTimeoutSecs;
+    timeout.tv_usec = 0;
+
+    pProcBuffer->dwOutBytesRead = 0;
+    pProcBuffer->dwErrBytesRead = 0;
+    pProcBuffer->bEndOfFile = FALSE;
+
+    FD_ZERO(&read_fd_set);
+    while (!pProcBuffer->dwOutBytesRead &&
+           !pProcBuffer->dwErrBytesRead &&
+           !pProcBuffer->bEndOfFile) {
+
+        if (pProcInfo->fdout >= 0)
+        {
+            FD_SET(pProcInfo->fdout, &read_fd_set);
+        }
+        if (pProcInfo->fderr >= 0)
+        {
+            FD_SET(pProcInfo->fderr, &read_fd_set);
+        }
+
+        maxfd = (pProcInfo->fdout > pProcInfo->fderr ? pProcInfo->fdout+1 : pProcInfo->fderr + 1);
+
+        select_status = select(maxfd,
+                               &read_fd_set,
+                               NULL /* write_fds */,
+                               NULL /* except_fds */,
+                               &timeout);
+        if (select_status < 0) {
+
+            if (errno == EINTR)
+                continue;
+
+            ceError = CTMapSystemError(errno);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+        } else if (select_status == 0) {
+
+            /* timed out */
+
+        } else {
+
+            for (iFd = 0; iFd < 2; iFd++) {
+
+                fd = (iFd == 0 ? pProcInfo->fdout : pProcInfo->fderr);
+                if (fd < 0)
+                {
+                    continue;
+                }
+                pszBuf = (iFd == 0 ? pProcBuffer->szOutBuf : pProcBuffer->szErrBuf);
+
+                if (FD_ISSET(fd, &read_fd_set)) {
+
+                    dwBytesRead = read(fd, pszBuf, MAX_PROC_BUF_LEN);
+                    if (dwBytesRead < 0) {
+
+                        if (errno != EAGAIN && errno != EINTR) {
+                            ceError = CTMapSystemError(errno);
+                            BAIL_ON_CENTERIS_ERROR(ceError);
+                        }
+
+                    } else if (dwBytesRead == 0) {
+
+                        pProcBuffer->bEndOfFile = TRUE;
+
+                    } else {
+
+                        if (iFd == 0)
+                            pProcBuffer->dwOutBytesRead = dwBytesRead;
+                        else
+                            pProcBuffer->dwErrBytesRead = dwBytesRead;
+
+                    }
+
+                }
+            }
+        }
+    }
+
+error:
+
+    return (ceError);
 }
 
-CENTERROR DJWriteData(DWORD dwFd, PSTR pszBuf, DWORD dwLen)
+CENTERROR
+DJReadData(
+    PPROCINFO pProcInfo,
+    PPROCBUFFER pProcBuffer
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	DWORD nWritten = 0;
-	DWORD dwRemaining = 0;
-	PSTR pStr;
-
-	dwRemaining = dwLen;
-	pStr = pszBuf;
-	while (dwRemaining > 0) {
-
-		nWritten = write(dwFd, pStr, dwRemaining);
-		if (nWritten < 0) {
-			if (errno != EAGAIN && errno != EINTR) {
-				ceError = CTMapSystemError(errno);
-				BAIL_ON_CENTERIS_ERROR(ceError);
-			}
-		} else {
-			dwRemaining -= nWritten;
-			pStr += nWritten;
-		}
-	}
-
-      error:
-
-	return (ceError);
+    BOOLEAN bTimedout = FALSE;
+    return DJTimedReadData(pProcInfo, pProcBuffer, 5, &bTimedout);
 }
 
-CENTERROR DJGetProcessStatus(PPROCINFO pProcInfo, PLONG plstatus)
+CENTERROR
+DJWriteData(
+    DWORD dwFd,
+    PSTR pszBuf,
+    DWORD dwLen
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	int status = 0;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    DWORD nWritten = 0;
+    DWORD dwRemaining = 0;
+    PSTR pStr;
 
-	do {
-		if (waitpid(pProcInfo->pid, &status, 0) < 0) {
-			if (errno == EINTR)
-				continue;
-			ceError = CTMapSystemError(errno);
-			BAIL_ON_CENTERIS_ERROR(ceError);
-		}
+    dwRemaining = dwLen;
+    pStr = pszBuf;
+    while (dwRemaining > 0) {
 
-		if (WIFEXITED(status)) {
-			*plstatus = WEXITSTATUS(status);
-		} else if (WIFSIGNALED(status)) {
-			DJ_LOG_ERROR("Process [%d] killed by signal %d\n",
-				     pProcInfo->pid, WTERMSIG(status));
-		} else if (WIFSTOPPED(status)) {
-			DJ_LOG_ERROR("Process [%d] stopped by signal %d\n",
-				     pProcInfo->pid, WSTOPSIG(status));
-		} else {
-			DJ_LOG_ERROR("Process [%d] unknown status 0x%x\n",
-				     pProcInfo->pid, status);
-		}
-	} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+        nWritten = write(dwFd, pStr, dwRemaining);
+        if (nWritten < 0)
+        {
+            if (errno != EAGAIN && errno != EINTR)
+            {
+                ceError = CTMapSystemError(errno);
+                BAIL_ON_CENTERIS_ERROR(ceError);
+            }
+        }
+        else
+        {
+            dwRemaining -= nWritten;
+            pStr += nWritten;
+        }
+    }
 
-      error:
+error:
 
-	return ceError;
+    return (ceError);
 }
 
-CENTERROR DJKillProcess(PPROCINFO pProcInfo)
+CENTERROR
+DJGetProcessStatus(
+    PPROCINFO pProcInfo,
+    PLONG plstatus
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	DWORD dwFlag = 0;
-	DWORD dwTimeout = 30;
-	int status = 0;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    int status = 0;
 
-	sigset(SIGALRM, WaitTimeout);
+    do {
+        if (waitpid(pProcInfo->pid, &status, 0) < 0) {
+            if (errno == EINTR)
+                continue;
+            ceError = CTMapSystemError(errno);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
 
-	alarm(dwTimeout);
+        if (WIFEXITED(status)) {
+            *plstatus  = WEXITSTATUS(status);
+        } else if (WIFSIGNALED(status)) {
+            DJ_LOG_ERROR("Process [%d] killed by signal %d\n", pProcInfo->pid, WTERMSIG(status));
+        } else if (WIFSTOPPED(status)) {
+            DJ_LOG_ERROR("Process [%d] stopped by signal %d\n", pProcInfo->pid, WSTOPSIG(status));
+        } else {
+            DJ_LOG_ERROR("Process [%d] unknown status 0x%x\n", pProcInfo->pid, status);
+        }
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
-	while ((waitpid(pProcInfo->pid, &status, 0) < 0) && errno == EINTR) {
+error:
 
-		alarm(0);
-		if (dwFlag == 0) {
-
-			kill(pProcInfo->pid, SIGTERM);
-
-		} else if (dwFlag == 1) {
-
-			kill(pProcInfo->pid, SIGKILL);
-			break;
-
-		}
-
-		dwFlag++;
-		alarm(dwTimeout);
-	}
-
-	alarm(0);
-	sigset(SIGALRM, SIG_DFL);
-
-	return ceError;
+    return ceError;
 }
 
-CENTERROR DJCheckProcessRunning(PCSTR pszCmdName, PBOOLEAN pbRunning)
+CENTERROR
+DJKillProcess(
+    PPROCINFO pProcInfo
+    )
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PSTR *ppszArgs = NULL;
-	PPROCINFO pProcInfo = NULL;
-	LONG status = 0;
-	DWORD nArgs = 4;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    DWORD dwFlag = 0;
+    DWORD dwTimeout = 30;
+    int status = 0;
 
-	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    sigset(SIGALRM, WaitTimeout);
 
-	ceError = CTAllocateString("ps", ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    alarm(dwTimeout);
 
-	ceError = CTAllocateString("-C", ppszArgs + 1);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    while ((waitpid(pProcInfo->pid, &status, 0) < 0) && errno == EINTR) {
 
-	ceError = CTAllocateString(pszCmdName, ppszArgs + 2);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+        alarm(0);
+        if (dwFlag == 0) {
 
-	ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+            kill(pProcInfo->pid, SIGTERM);
 
-	ceError = DJGetProcessStatus(pProcInfo, &status);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+        } else if (dwFlag == 1) {
 
-	*pbRunning = (status ? 0 : 1);
+            kill(pProcInfo->pid, SIGKILL);
+            break;
 
-      error:
+        }
 
-	if (pProcInfo)
-		FreeProcInfo(pProcInfo);
+        dwFlag++;
+        alarm(dwTimeout);
+    }
 
-	if (ppszArgs)
-		CTFreeStringArray(ppszArgs, nArgs);
+    alarm(0);
+    sigset(SIGALRM, SIG_DFL);
 
-	return ceError;
+    return ceError;
+}
+
+CENTERROR
+DJCheckProcessRunning(
+    PCSTR pszCmdName,
+    PBOOLEAN pbRunning
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR* ppszArgs = NULL;
+    PPROCINFO pProcInfo = NULL;
+    LONG status = 0;
+    DWORD nArgs = 4;
+
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString("ps", ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString("-C", ppszArgs+1);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString(pszCmdName, ppszArgs+2);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJGetProcessStatus(pProcInfo, &status);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    *pbRunning = (status ? 0 : 1);
+
+error:
+
+    if (pProcInfo)
+        FreeProcInfo(pProcInfo);
+
+    if (ppszArgs)
+        CTFreeStringArray(ppszArgs, nArgs);
+
+    return ceError;
 }

@@ -1,0 +1,74 @@
+BUILD_ROOT = @srcdir@/..
+SRC_ROOT=@srcdir@/..
+
+SHELL= /bin/sh
+#64 bit libs on IA64. When VPATH is set, it verifies all the dependencies from the
+#@srcdir@ and as the SHLLIBRARY is already present, it does not build.
+#VPATH= @srcdir@
+vpath %.c @srcdir@
+vpath %.h @srcdir@
+
+subdirs= @subdirs@
+top_srcdir= @top_srcdir@
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = ${exec_prefix}/bin
+infodir = ${prefix}/info
+libdir = ${prefix}/lib
+mandir = ${prefix}/man/man1
+
+DESTDIR=@DESTDIR@
+CC = @CC@
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = $(CPPFLAGS) @CFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+LIBVER_MAJOR = @LIBVER_MAJOR@
+SHLIBVEXT = @SHLIBVEXT@
+LINK = @LINK@
+
+PUBLIC_INCLUDE_DIR = $(BUILD_ROOT)/include
+
+CFLAGS += -I$(PUBLIC_INCLUDE_DIR) -DGP_PREFIX_PATH=\"@prefix@\" -DPREFIXDIR=\"@prefix@\"
+LDFLAGS += @THREAD_LDFLAGS@
+
+OBJS = lwghash.o       \
+       lwglist.o       \
+       lwgprimes.o     \
+       lwgmissing.o    \
+
+LIBNAME = gpglib
+LIBRARY = lib$(LIBNAME).a
+SHLIBRARY = lib$(LIBNAME)@SHLIBVEXT@
+SHLIBRARY_SANS_VERSION = lib$(LIBNAME)@SHLIBEXT@
+
+all : $(SHLIBRARY)
+
+$(SHLIBRARY) : $(LIBRARY)
+	@BUILD_SHLIB_CMD@
+	$(RM) $(SHLIBRARY_SANS_VERSION)
+	@LINK@ $(SHLIBRARY) $(SHLIBRARY_SANS_VERSION)
+
+$(LIBRARY) : $(OBJS)
+	$(AR) -r $@ $(OBJS)
+
+$(OBJS) : %.o : %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+clean :
+	$(RM) $(OBJS) $(LIBRARY) $(SHLIBRARY) $(SHLIBRARY_SANS_VERSION)
+
+distclean: clean
+	$(RM) Makefile
+
+install: all
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)/$(libdir)
+	$(RM) $(DESTDIR)/$(libdir)/$(SHLIBRARY_SANS_VERSION)
+	$(RM) $(DESTDIR)/$(libdir)/$(SHLIBRARY)
+	$(top_srcdir)/install-sh -c -m 0755 $(SHLIBRARY) $(DESTDIR)/$(libdir)/$(SHLIBRARY)
+	$(LINK) $(SHLIBRARY) $(DESTDIR)/$(libdir)/$(SHLIBRARY_SANS_VERSION)
+
+uninstall:
+	$(RM) $(DESTDIR)/$(libdir)/$(SHLIBRARY_SANS_VERSION)
+	$(RM) $(DESTDIR)/$(libdir)/$(SHLIBRARY)

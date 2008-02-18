@@ -1,70 +1,176 @@
 /*
  * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007.  
+ * Copyright (C) Likewise Software    2007-2008
  * All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Lesser General Public License as 
+ * published by the Free Software Foundation; either version 2.1 of 
+ * the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public 
+ * License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
 
+/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
+#ifdef HAVE_TIME_H
+#include <time.h>
+#endif
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 
-#define CLOCK_DRIFT_SECONDS "60"
+#define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
-CENTERROR DJSyncTimeToDC(PSTR pszDomainName)
+CENTERROR GetServerTime(
+    PSTR pszDCName, time_t *result)
 {
-	CENTERROR ceError = CENTERROR_SUCCESS;
-	PSTR *ppszArgs = NULL;
-	DWORD nArgs = 5;
-	LONG status = 0;
-	PPROCINFO pProcInfo = NULL;
-	CHAR szBuf[256];
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR netOutput = NULL;
+    PSTR netCommand = NULL;
+    PSTR escapedDC = NULL;
+    PSTR intParseEnd;
 
-	sprintf(szBuf, "%s/gpsynctime.pl", SCRIPTDIR);
+    GCE(ceError = CTEscapeString(pszDCName, &escapedDC));
 
-	ceError = CTAllocateMemory(sizeof(PSTR) * nArgs, (PVOID *) & ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    GCE(ceError = CTAllocateStringPrintf(&netCommand,
+        "%s/bin/lwinet time seconds -S %s", PREFIXDIR, escapedDC));
+    ceError = CTCaptureOutput(netCommand, &netOutput);
+    if(!CENTERROR_IS_OK(ceError))
+        GCE(ceError = CENTERROR_DOMAINJOIN_LWINET_TIME_FAILED);
 
-	ceError = CTAllocateString("perl", ppszArgs);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    *result = strtoul(netOutput, &intParseEnd, 10);
 
-	ceError = CTAllocateString(szBuf, ppszArgs + 1);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+    if(*intParseEnd != '\0' && !isspace((char)*intParseEnd))
+    {
+        DJ_LOG_ERROR("Unable to parse lwinet time output '%s'", netOutput);
+        GCE(ceError = CENTERROR_DOMAINJOIN_LWINET_TIME_FAILED);
+    }
 
-	ceError = CTAllocateString(pszDomainName, ppszArgs + 2);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+cleanup:
+    CT_SAFE_FREE_STRING(netOutput);
+    CT_SAFE_FREE_STRING(netCommand);
+    CT_SAFE_FREE_STRING(escapedDC);
+    return ceError;
+}
 
-	ceError = CTAllocateString(CLOCK_DRIFT_SECONDS, ppszArgs + 3);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+CENTERROR
+DJSetTime(time_t timesec)
+{
+    BOOLEAN timeset = FALSE;
+#if !defined(HAVE_CLOCK_SETTIME) && !defined(HAVE_SETTIMEOFDAY)
+#error Either clock_settime or settimeofday is needed
+#endif
 
-	ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+#ifdef HAVE_CLOCK_SETTIME
+    struct timespec systemspec;
+#endif
+#if HAVE_SETTIMEOFDAY
+    struct timeval systemval;
+#endif
+    long long readTime = -1;
 
-	ceError = DJGetProcessStatus(pProcInfo, &status);
-	BAIL_ON_CENTERIS_ERROR(ceError);
+#ifdef HAVE_CLOCK_SETTIME
+    memset(&systemspec, 0, sizeof(systemspec));
+    systemspec.tv_sec = timesec;
+#endif
+#if HAVE_SETTIMEOFDAY
+    memset(&systemval, 0, sizeof(systemval));
+    systemval.tv_sec = timesec;
+#endif
 
-	if (status != 0) {
-		DJ_LOG_ERROR("Failed to sync time with DC. Exit code: %d",
-			     pszDomainName, status);
-	}
+#ifdef HAVE_CLOCK_SETTIME
+    if(!timeset)
+    {
+        if(clock_settime(CLOCK_REALTIME, &systemspec) == -1)
+        {
+            DJ_LOG_INFO("Setting time with clock_settime failed %d", errno);
+        }
+        else
+        {
+            DJ_LOG_INFO("Setting time with clock_settime worked");
+            timeset = TRUE;
+        }
+    }
+#endif
+#ifdef HAVE_SETTIMEOFDAY
+    if(!timeset)
+    {
+        if(settimeofday(&systemval, NULL) == -1)
+        {
+            DJ_LOG_INFO("Setting time with settimeofday failed %d", errno);
+        }
+        else
+        {
+            DJ_LOG_INFO("Setting time with settimeofday worked");
+            timeset = TRUE;
+        }
+    }
+#endif
+    if(!timeset)
+    {
+        DJ_LOG_ERROR("Couldn't find a method to set the time with");
+        return CENTERROR_DOMAINJOIN_TIME_NOT_SET;
+    }
 
-      error:
+    //Verify the clock got set
+    timeset = FALSE;
+#ifdef HAVE_CLOCK_GETTIME
+    if(!timeset && clock_gettime(CLOCK_REALTIME, &systemspec) >= 0)
+    {
+        timeset = TRUE;
+        readTime = systemspec.tv_sec;
+    }
+#endif
+#ifdef HAVE_GETTIMEOFDAY
+    if(!timeset && gettimeofday(&systemval, NULL) >= 0)
+    {
+        timeset = TRUE;
+        readTime = systemval.tv_sec;
+    }
+#endif
+    if(!timeset)
+        return CTMapSystemError(errno);
 
-	if (ppszArgs)
-		CTFreeStringArray(ppszArgs, nArgs);
+    //Make sure the time is now within 5 seconds of what we set
+    if(labs(readTime - timesec) > 5)
+    {
+        DJ_LOG_ERROR("Attempted to set time to %ld, but it is now %ld.", timesec, readTime);
+        return CENTERROR_DOMAINJOIN_TIME_NOT_SET;
+    }
 
-	if (pProcInfo)
-		FreeProcInfo(pProcInfo);
+    return CENTERROR_SUCCESS;
+}
 
-	return ceError;
+CENTERROR
+DJSyncTimeToDC(
+    PSTR pszDCName,
+    int allowedDrift
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    time_t serverTime;
+    time_t localTime;
+
+    GCE(ceError = GetServerTime(pszDCName, &serverTime));
+    if(time(&localTime) == (time_t)-1)
+    {
+        GCE(ceError = CTMapSystemError(errno));
+    }
+    DJ_LOG_INFO("Server time is %ld. Local time is %ld.", serverTime, localTime);
+    if(labs(serverTime - localTime) > labs(allowedDrift))
+    {
+        //Got to sync the time
+        GCE(ceError = DJSetTime(serverTime));
+    }
+
+cleanup:
+    return ceError;
 }

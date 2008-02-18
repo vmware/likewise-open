@@ -1,0 +1,4 @@
+#ConfigureLogin.patch
+#domainjoin-gui-hosts.patch
+#smbcontrol-likewise-winbindd.patch
+#winbindd-Makefile.patch

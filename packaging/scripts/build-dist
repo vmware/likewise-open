@@ -12,8 +12,17 @@ fi
 TARGET=likewise-open-$VERSION$RELEASE
 /bin/rm -rf $BASEDIR/../$TARGET || exit 1
 mkdir $BASEDIR/../$TARGET || exit 1
-rsync -a --exclude=.git* --exclude=*~ --exclude=*bak \
-	$BASEDIR/ $BASEDIR/../$TARGET/ || exit 1
+
+for dir in packaging centutils domainjoin samba; do
+	rsync -a --exclude=.git* --exclude=.svn --exclude=*~ --exclude=*bak \
+		$BASEDIR/$dir $BASEDIR/../$TARGET/ || exit 1
+done
+
+for file in Makefile Configure.sh autogen.sh; do
+	cp -p $file $BASEDIR/../$TARGET/ || exit 1
+done
+
 cd $BASEDIR/..
 tar cf - $TARGET | gzip -9 > likewise-open-$VERSION.tar.gz
+[ "$TARGET" != "/" ] && /bin/rm -rf $TARGET
 

@@ -17,11 +17,12 @@
 ## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
 ##
 
-DIRS=domainjoin winbindd/source
+DIRS=centutils domainjoin samba/source
 
 all:
+	make -C centutils all
 	make -C domainjoin all
-	make -C winbindd/source proto pch lwopen
+	make -C samba/source proto pch likewise
 
 clean:
 	-@for d in $(DIRS); do \
@@ -29,10 +30,11 @@ clean:
 	done
 
 install:
+	make -C centutils DESTDIR=$(DESTDIR) install
 	make -C domainjoin DESTDIR=$(DESTDIR) install
-	make -C winbindd/source DESTDIR=$(DESTDIR) lwopen-install
+	make -C samba/source DESTDIR=$(DESTDIR) lwopen-install
 
-dpkg:
+dpkg: dist
 	sh packaging/scripts/build-dpkg
 
 rpm-suse: dist

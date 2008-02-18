@@ -1,0 +1,5 @@
+likewise-open: non-dev-pkg-with-shlib-symlink lib/libnss_lwidentity.so.2 lib/libnss_lwidentity.so
+likewise-open: postinst-must-call-ldconfig lib/libnss_lwidentity.so.2
+likewise-open: postrm-should-call-ldconfig lib/libnss_lwidentity.so.2
+likewise-open: package-name-doesnt-match-sonames libnss-lwidentity2
+likewise-open: unused-shlib-entry-in-control-file libnss_lwidentity 2
