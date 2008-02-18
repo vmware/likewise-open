@@ -1,6 +1,0 @@
-[submodule "winbindd"]
-	path = winbindd
-	url = git://git.likewisesoftware.com/likewise-winbindd.git
-[submodule "samba"]
-	path = samba
-	url = git://git.likewisesoftware.com/likewise-winbindd.git
