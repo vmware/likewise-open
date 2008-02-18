@@ -1,6 +1,6 @@
-[submodule "winbind"]
-	path = winbind
-	url = ssh://git.samba.org/home/jerry/src/git/centeris-winbind.git
 [submodule "winbindd"]
 	path = winbindd
+	url = git://git.likewisesoftware.com/likewise-winbindd.git
+[submodule "samba"]
+	path = samba
 	url = git://git.likewisesoftware.com/likewise-winbindd.git
