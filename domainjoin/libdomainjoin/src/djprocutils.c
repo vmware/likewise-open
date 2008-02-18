@@ -278,7 +278,7 @@ DJSpawnProcessOutputToFile(
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    dwFdOut = open(file, O_WRONLY | O_CREAT | O_TRUNC );
+    dwFdOut = open(file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR|S_IWUSR );
 
     if (dwFdOut < 0)
     {

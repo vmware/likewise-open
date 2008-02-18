@@ -1077,10 +1077,7 @@ bin/pam_lwidentity.@SHLIBEXT@: bin/pam_winbind.@SHLIBEXT@
 	@ln bin/pam_winbind.@SHLIBEXT@ $@
 
 @WINBIND_NSS_LWI@: @WINBIND_NSS@
-	@echo "Linking $@"
-	@$(SHLD) $(WINBIND_NSS_LDSHFLAGS) -o $@ $(WINBIND_NSS_OBJ) \
-		@WINBIND_NSS_EXTRA_LIBS@ @WINBIND_NSS_PTHREAD@ @SONAMEFLAG@`basename $@`@NSSSONAMEVERSIONSUFFIX@
-
+	@cp -f @WINBIND_NSS@ $@
 
 bin/likewise-winbindd@EXEEXT@: bin/winbindd@EXEEXT@
 	@if test -f $@; then /bin/rm $@; fi

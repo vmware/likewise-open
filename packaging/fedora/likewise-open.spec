@@ -9,8 +9,8 @@ Group: 		System Environment/Daemons
 URL: 		http://www.likewisesoftware.com/
 
 BuildRequires:  krb5-devel, openldap-devel, e2fsprogs-devel, pam-devel
-BuildRequires:  libglade2-devel gtk2-devel
-Requires:       krb5-libs, openldap, pam, e2fsprogs
+BuildRequires:  libglade2-devel gtk2-devel, libxml2-devel
+Requires:       krb5-libs, openldap, pam, e2fsprogs, libxml2
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 
@@ -86,6 +86,9 @@ export CFLAGS
     --with-included-popt \
     --with-included-iniparser \
     --with-pam \
+    --with-gtk \
+    --with-libxml2-dir=/usr \
+    --libexecdir=%{_libdir}/%{name} \
     --with-shared-modules=idmap_lwopen
 
 make SCRIPTDIR="%{_libdir}/%{name}"
@@ -103,8 +106,20 @@ mkdir -p $RPM_BUILD_ROOT/%{_lib}/security
 ## install the binaries
 make DESTDIR=${RPM_BUILD_ROOT} PREFIX=/usr install
 
+/bin/mv $RPM_BUILD_ROOT/%{_bindir}/lwi-domainjoin-cli $RPM_BUILD_ROOT/%{_bindir}/domainjoin-cli
+/bin/mv $RPM_BUILD_ROOT/%{_bindir}/domainjoin-gtk $RPM_BUILD_ROOT/%{_bindir}/domainjoin-gui
+ 
+mkdir -p $RPM_BUILD_ROOT/%{_prefix}/share/likewise-open
+install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-gtk.glade \
+	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/domainjoin-gtk.glade
+install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-logo.png \
+	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/domainjoin-logo.png
+install -m644 domainjoin/domainjoin-gui/gtk/likewise-logo.png \
+	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/likewise-logo.png
+
+
 ## Now manually install the PAM/NSS library
-pushd winbindd/source
+pushd samba/source
 %{__install} -m0755 nsswitch/libnss_lwidentity.so $RPM_BUILD_ROOT/%{_lib}/libnss_lwidentity.so.2
 %{__install} -m0755 bin/pam_lwidentity.so $RPM_BUILD_ROOT/%{_lib}/security/pam_lwidentity.so
 %{__install} -m0755 bin/libwbclient.so $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so.0.1
@@ -119,8 +134,7 @@ popd
 for file in CenterisPam.pm Centeris.pm; do
 	%{__install} -m0644 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
 done
-for file in ConfigureKrb5 ConfigureLogin ConfigurePamForADLogin \
-	ConfigureShellPrompt ConfigureSshForGssapi gpcron; \
+for file in ConfigureLogin ConfigureShellPrompt gpcron; \
 do
 	%{__install} -m0755 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
 done
@@ -167,10 +181,14 @@ ldconfig
 /%{_lib}/security/pam_lwidentity.so
 /%{_lib}/libnss_lwidentity.so*
 %{_libdir}/libwbclient.so.*
+%{_libdir}/libcentutils.so.*
+%{_libdir}/libgpglib.so.*
 
 %files devel
 %{_libdir}/libwbclient.so
 %{_includedir}/wbclient.h
+%{_libdir}/libcentutils.so
+%{_libdir}/libgpglib.so
 
 %files domainjoin
 ## domain join utilities
@@ -181,6 +199,7 @@ ldconfig
 %defattr(-,root,root)
 %{_bindir}/domainjoin-gui
 %{_prefix}/share/likewise-open/domainjoin-gtk.glade
+%{_prefix}/share/likewise-open/*.png
 
 %changelog
 * Wed Jan 23 2008 Gerald Carter <gcarter@likewisesoftware.com>
