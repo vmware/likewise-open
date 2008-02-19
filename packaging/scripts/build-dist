@@ -23,6 +23,10 @@ for file in Makefile Configure.sh autogen.sh; do
 done
 
 cd $BASEDIR/..
+
+find $TARGET -name "*.sh" | xargs chmod u+x
+(cd $TARGET && ./autogen.sh)
+
 tar cf - $TARGET | gzip -9 > likewise-open-$VERSION.tar.gz
 [ "$TARGET" != "/" ] && /bin/rm -rf $TARGET
 
