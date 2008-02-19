@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,7 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
 #include "ctshell.h"
 
@@ -1136,6 +1139,8 @@ static QueryResult QueryDescriptionSetHostname(const JoinProcessOptions *options
     LW_CLEANUP_CTERR(exc, CTStrdup("", &both));
 
     LW_CLEANUP_CTERR(exc, DJGetFQDN(&oldShortHostname, &oldFqdnHostname));
+    CTStrToLower(oldShortHostname);
+    CTStrToLower(oldFqdnHostname);
     if(strcmp(oldShortHostname, options->computerName))
     {
         LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&newValue,
@@ -1152,6 +1157,7 @@ static QueryResult QueryDescriptionSetHostname(const JoinProcessOptions *options
     LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&newFqdn,
                 "%s.%s", options->computerName,
             options->domainName));
+    CTStrToLower(newFqdn);
     if(oldFqdnHostname == NULL)
     {
         LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&newValue,
@@ -1300,7 +1306,7 @@ static PSTR GetSetHostnameDescription(const JoinProcessOptions *options, LWExcep
     return ret;
 }
 
-const JoinModule DJSetHostname = { FALSE, "hostname", "set computer hostname", QuerySetHostname, DoSetHostname, GetSetHostnameDescription };
+const JoinModule DJSetHostname = { TRUE, "hostname", "set computer hostname", QuerySetHostname, DoSetHostname, GetSetHostnameDescription };
 
 CENTERROR
 DJGetFQDN(

@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -17,7 +21,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
 #include "djdistroinfo.h"
 #include "djsshconf.h"
@@ -60,7 +63,9 @@ ShowUsage()
     fprintf(stdout, "    join [--enable <module> --disable <module> ...] [--ou <organizationalUnit>] <domain name> <user name> [<password>]\n");
     fprintf(stdout, "    join [--advanced] --preview [--ou <organizationalUnit>] <domain name>\n");
     fprintf(stdout, "    join [--ou <organizationalUnit>] --details <module> <domain name>\n");
-    fprintf(stdout, "    leave\n\n");
+    fprintf(stdout, "    leave [--enable <module> --disable <module> ...] [user name] [password]\n");
+    fprintf(stdout, "    leave [--advanced] --preview [user name] [password]\n");
+    fprintf(stdout, "    leave --details <module>\n\n");
 
     fprintf(stdout, "  Example:\n\n");
     fprintf(stdout, "    domainjoin-cli query\n\n");
@@ -139,7 +144,7 @@ error:
     return dwEnable == ENABLE_TYPE_ENABLE;
 }
 
-void PrintWarning(const char *title, const char *message)
+void PrintWarning(JoinProcessOptions *options, const char *title, const char *message)
 {
     PSTR      wrapped = NULL;
     int columns;
@@ -287,7 +292,10 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
         else if(!strcmp(argv[0], "--preview"))
             preview = TRUE;
         else if(!strcmp(argv[0], "--nohosts"))
-            ;
+        {
+            PCSTR module = "hostname";
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&disableModules, sizeof(PCSTR), &module, 1));
+        }
         else if(argc < 2)
         {
             LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
@@ -295,19 +303,19 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
         }
         else if(!strcmp(argv[0], "--enable"))
         {
-            LW_CLEANUP_CTERR(exc, CTArrayAppend(&enableModules, sizeof(PCSTR *), &argv[1], 1));
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&enableModules, sizeof(PCSTR), &argv[1], 1));
             argv++;
             argc--;
         }
         else if(!strcmp(argv[0], "--disable"))
         {
-            LW_CLEANUP_CTERR(exc, CTArrayAppend(&disableModules, sizeof(PCSTR *), &argv[1], 1));
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&disableModules, sizeof(PCSTR), &argv[1], 1));
             argv++;
             argc--;
         }
         else if(!strcmp(argv[0], "--details"))
         {
-            LW_CLEANUP_CTERR(exc, CTArrayAppend(&detailModules, sizeof(PCSTR *), &argv[1], 1));
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&detailModules, sizeof(PCSTR), &argv[1], 1));
             argv++;
             argc--;
         }
@@ -650,7 +658,7 @@ void DoConfigure(int argc, char **argv, LWException **exc)
     }
 
     if(!strcmp(argv[0], "pam"))
-        LW_TRY(exc, DJNewConfigurePamForADLogin(testPrefix, PrintWarning, GetEnableBoolean(dwEnable), &LW_EXC));
+        LW_TRY(exc, DJNewConfigurePamForADLogin(testPrefix, NULL, PrintWarning, GetEnableBoolean(dwEnable), &LW_EXC));
     else if(!strcmp(argv[0], "nsswitch"))
         LW_CLEANUP_CTERR(exc, DJConfigureNameServiceSwitch(testPrefix,
                 GetEnableBoolean(dwEnable)));

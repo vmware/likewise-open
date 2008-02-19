@@ -130,7 +130,8 @@ typedef struct nss_XbyY_args {
  
 	void *returnval;
 	int erange;
-	int h_errno;
+    /* FIXME: need to change any references to this field */
+	int m_h_errno;
 	nss_status_t status;
 } nss_XbyY_args_t;
  

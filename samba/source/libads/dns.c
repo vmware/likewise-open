@@ -73,6 +73,26 @@
 /*********************************************************************
 *********************************************************************/
 
+/* Hack around HP-UX missing prototypes */
+#ifdef __hpux
+
+    ssize_t res_query(
+	char *dname,
+	int klass,
+	int type,
+	u_char *answer,
+	int anslen);
+
+    ssize_t dn_expand(
+	const u_char *msg,
+	const u_char *eomorig,
+	const u_char *comp_dn,
+	u_char *exp_dn,
+	int  length);
+
+#endif
+
+
 static bool ads_dns_parse_query( TALLOC_CTX *ctx, uint8 *start, uint8 *end,
                           uint8 **ptr, struct dns_query *q )
 {

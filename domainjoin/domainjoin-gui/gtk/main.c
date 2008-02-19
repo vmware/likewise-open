@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -36,6 +40,8 @@
 
 #include <djapi.h>
 #include <djlogger.h>
+#include <djmodule.h>
+#include <djhostinfo.h>
 
 FILE* log_handle;
 
@@ -255,40 +261,44 @@ show_error_dialog(GtkWindow* parent, LWException* exc)
     }
 }
 
-#define PROGRESS (setname_progress * setname_fraction + join_progress * (1.0 - setname_fraction))
-
 typedef struct JoinInfo
 {
     JoinProgressDialog* dialog;
-    DJOptions options;
+    JoinProcessOptions options;
+    gboolean noModifyHosts;
 } JoinInfo;
+
+void PrintWarning(JoinProcessOptions *options, const char *title, const char *message)
+{
+    LWException *_exc = NULL;
+    LW_RAISE_EX(&_exc, CENTERROR_SUCCESS, title, "%s", message);
+    joinprogress_raise_error((JoinProgressDialog *)options->userData, _exc);
+    LW_HANDLE(&_exc);
+}
 
 static void*
 join_worker(gpointer data)
 {
     JoinInfo *info = (JoinInfo*) data;
     JoinProgressDialog* dialog = info->dialog;
-    DJOptions* options = &info->options;
+    JoinProcessOptions *options = &info->options;
     LWException* exc = NULL;
-    double setname_fraction = join_state.dirty ? 0.05 : 0.0;
-    double setname_progress = 0.0;
-    double join_progress = 0.0;
+    ModuleState *hostnameState;
 
-    if (join_state.dirty)
+    LW_TRY(&exc, DJInitModuleStates(options, &LW_EXC));
+    joinprogress_update(dialog, 0.0, "Joining");
+
+    hostnameState = DJGetModuleStateByName(options, "hostname");
+    if(info->noModifyHosts)
     {
-	joinprogress_update(dialog, PROGRESS, "Setting computer name");	
-	LW_TRY(&exc,
-	       DJRenameComputer(join_state.computer, join_state.domain, options, &LW_EXC));
-	
-	setname_progress = 1.0;
+        if(hostnameState != NULL)
+            hostnameState->runModule = FALSE;
     }
-
-    joinprogress_update(dialog, PROGRESS, "Joining");
-
-    LW_TRY(&exc,
-	   DJJoinDomain(join_state.domain, join_state.ou, 
-			join_state.user, join_state.password, 
-			options, &LW_EXC));
+    else
+        hostnameState->runModule = TRUE;
+    options->userData = dialog;
+    options->warningCallback = PrintWarning;
+    LW_TRY(&exc, DJRunJoinProcess(options, &LW_EXC));
 
 cleanup:
 
@@ -308,13 +318,19 @@ static void*
 leave_worker(gpointer data)
 {
     JoinProgressDialog* dialog = (JoinProgressDialog*) data;
-    DJOptions options;
+    JoinProcessOptions options;
     LWException* exc = NULL;
+    
+    DJZeroJoinProcessOptions(&options);
+    options.joiningDomain = FALSE;
+    options.warningCallback = PrintWarning;
+    LW_CLEANUP_CTERR(&exc, DJGetComputerName(&options.computerName));
+    LW_TRY(&exc, DJInitModuleStates(&options, &LW_EXC));
     
     joinprogress_update(dialog, 0.0, "Leaving");
 
-    LW_TRY(&exc,
-	   DJLeaveDomain(&options, &LW_EXC));
+    options.userData = dialog;
+    LW_TRY(&exc, DJRunJoinProcess(&options, &LW_EXC));
 
 cleanup:
 
@@ -326,6 +342,7 @@ cleanup:
     {
 	joinprogress_done(dialog);
     }
+    DJFreeJoinProcessOptions(&options);
 
     return NULL;
 }
@@ -357,6 +374,14 @@ do_join(JoinDialog* dialog, LWException** exc)
 	join_state.ou = safe_strdup(joindialog_get_ou_name(dialog));
 	join_state.domain = safe_strdup(joindialog_get_domain_name(dialog));
 
+    DJZeroJoinProcessOptions(&info.options);
+	info.options.username = safe_strdup(joinauth_get_user(auth_dialog));
+	info.options.password = safe_strdup(joinauth_get_password(auth_dialog));
+	info.options.computerName = safe_strdup(joindialog_get_computer_name(dialog));
+	info.options.ouName = safe_strdup(joindialog_get_ou_name(dialog));
+	info.options.domainName = safe_strdup(joindialog_get_domain_name(dialog));
+    info.options.joiningDomain = TRUE;
+
 	joinauth_delete(auth_dialog);
 
 	progress_dialog = joinprogress_new(joindialog_get_gtk_window(dialog), "Joining Domain");
@@ -368,7 +393,7 @@ do_join(JoinDialog* dialog, LWException** exc)
 	}
 
 	info.dialog = progress_dialog;
-	info.options.noModifyHosts = !joindialog_get_modify_hosts(dialog);
+	info.noModifyHosts = !joindialog_get_modify_hosts(dialog);
 
 	g_thread_create(join_worker, &info, FALSE, NULL);
 
@@ -388,6 +413,7 @@ do_join(JoinDialog* dialog, LWException** exc)
 	}
 
 	joinprogress_delete(progress_dialog);
+        DJFreeJoinProcessOptions(&info.options);
     }
     else
     {

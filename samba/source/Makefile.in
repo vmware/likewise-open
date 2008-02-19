@@ -1077,7 +1077,10 @@ bin/pam_lwidentity.@SHLIBEXT@: bin/pam_winbind.@SHLIBEXT@
 	@ln bin/pam_winbind.@SHLIBEXT@ $@
 
 @WINBIND_NSS_LWI@: @WINBIND_NSS@
-	@cp -f @WINBIND_NSS@ $@
+	@echo "Linking $@"
+	@$(SHLD) $(WINBIND_NSS_LDSHFLAGS) -o $@ $(WINBIND_NSS_OBJ) \
+		@WINBIND_NSS_EXTRA_LIBS@ @WINBIND_NSS_PTHREAD@ @SONAMEFLAG@`basename $@`@NSSSONAMEVERSIONSUFFIX@
+
 
 bin/likewise-winbindd@EXEEXT@: bin/winbindd@EXEEXT@
 	@if test -f $@; then /bin/rm $@; fi
@@ -1248,7 +1251,7 @@ COMPILE_CC_PATH_RULE=\
 
 COMPILE = $(COMPILE_CC)
 
-.c.o:
+%.o : %.c include/proto.h
 	@if (: >> $@ || : > $@) >/dev/null 2>&1; then rm -f $@; else \
 	 dir=`echo $@ | sed 's,/[^/]*$$,,;s,^$$,.,'` $(MAKEDIR); fi
 	@if test -n "$(CC_CHECKER)"; then \
@@ -1281,13 +1284,13 @@ BINARY_PREREQS = proto_exists bin/.dummy
 # but since we also require "make install prefix=/opt/samba" *not* to
 # rebuild it's a bit hard.
 
-dynconfig.o: dynconfig.c Makefile
+dynconfig.o: dynconfig.c Makefile include/proto.h
 	$(COMPILE_CC_PATH_RULE)
 
-lib/pidfile.o: lib/pidfile.c
+lib/pidfile.o: lib/pidfile.c include/proto.h
 	$(COMPILE_CC_PATH_RULE)
 
-lib/version.o: lib/version.c include/version.h
+lib/version.o: lib/version.c include/version.h include/proto.h
 	$(COMPILE_CC_PATH_RULE)
 
 smbd/build_options.o: smbd/build_options.c Makefile include/config.h include/build_env.h include/proto.h
@@ -1541,7 +1544,7 @@ bin/libwbclient.@SHLIBEXT@: $(BINARY_PREREQS) $(LIBWBCLIENT_OBJ)
 	@echo Linking shared library $@
 	@$(SHLD_DSO) $(LIBWBCLIENT_OBJ) \
 		@SONAMEFLAG@`basename $@`.$(SONAME_VER)
-	@ln -s -f `basename $@` $@.$(SONAME_VER)
+	@test -f "$@.$(SONAME_VER)" || ln -sf `basename $@` $@.$(SONAME_VER)
 
 bin/libwbclient.a: $(BINARY_PREREQS) $(LIBWBCLIENT_OBJ0)
 	@echo Linking non-shared library $@
@@ -1561,23 +1564,23 @@ bin/libaddns.a: $(BINARY_PREREQS) $(LIBADDNS_OBJ)
 	@echo Linking non-shared library $@
 	@-$(AR) -rc $@ $(LIBADDNS_OBJ)
 
-bin/libnetapi.@SHLIBEXT@: $(BINARY_PREREQS) $(LIBNETAPI_OBJ)
+bin/libnetapi.@SHLIBEXT@: $(BINARY_PREREQS) $(LIBNETAPI_OBJ) @LIBWBCLIENT_SHARED@ 
 	@echo Linking shared library $@
-	@$(SHLD_DSO) $(LIBNETAPI_OBJ) @LIBWBCLIENT_SHARED@ $(LIBS) \
+	@$(SHLD_DSO) $(LIBNETAPI_OBJ) $(LIBS) \
 		$(LDAP_LIBS) $(KRB5LIBS) $(NSCD_LIBS) \
 		@SONAMEFLAG@`basename $@`.$(SONAME_VER)
 
-bin/libnetapi.a: $(BINARY_PREREQS) $(LIBNETAPI_OBJ)
+bin/libnetapi.a: $(BINARY_PREREQS) $(LIBNETAPI_OBJ) @LIBWBCLIENT_STATIC@
 	@echo Linking non-shared library $@
 	@-$(AR) -rc $@ $(LIBNETAPI_OBJ)
 
-bin/libsmbclient.@SHLIBEXT@: $(BINARY_PREREQS) $(LIBSMBCLIENT_OBJ)
+bin/libsmbclient.@SHLIBEXT@: $(BINARY_PREREQS) $(LIBSMBCLIENT_OBJ) @LIBWBCLIENT_SHARED@ 
 	@echo Linking shared library $@
 	@$(SHLD_DSO) $(LIBSMBCLIENT_OBJ) @LIBWBCLIENT_SHARED@ $(LIBS) \
 		$(KRB5LIBS) $(LDAP_LIBS) $(NSCD_LIBS) \
 		@SONAMEFLAG@`basename $@`.$(SONAME_VER)
 
-bin/libsmbclient.a: $(BINARY_PREREQS) $(LIBSMBCLIENT_OBJ)
+bin/libsmbclient.a: $(BINARY_PREREQS) $(LIBSMBCLIENT_OBJ) @LIBWBCLIENT_STATIC@
 	@echo Linking non-shared library $@
 	@-$(AR) -rc $@ $(LIBSMBCLIENT_OBJ)
 
@@ -2038,8 +2041,11 @@ installclientlib: installdirs libsmbclient
 	@$(SHELL) $(srcdir)/script/installdirs.sh $(INSTALLPERMS_BIN) $(DESTDIR) $(LIBDIR)
 	-$(INSTALLLIBCMD_SH) bin/libsmbclient.@SHLIBEXT@ $(DESTDIR)$(LIBDIR)
 	-$(INSTALLLIBCMD_A) bin/libsmbclient.a $(DESTDIR)$(LIBDIR)
+	-$(INSTALLLIBCMD_SH) bin/libwbclient.@SHLIBEXT@* $(DESTDIR)$(LIBDIR)/
+	-ln -sf libwbclient.@SHLIBEXT@ $(DESTDIR)$(LIBDIR)/libwbclient.@SHLIBEXT@.0
 	@$(SHELL) $(srcdir)/script/installdirs.sh $(INSTALLPERMS_BIN) $(DESTDIR) ${prefix}/include
 	-$(INSTALLCMD) -m $(INSTALLPERMS_DATA) $(srcdir)/include/libsmbclient.h $(DESTDIR)${prefix}/include
+	-$(INSTALLCMD) -m $(INSTALLPERMS_DATA) $(srcdir)/include/smbdefs.h $(DESTDIR)${prefix}/include/
 
 installlibsmbsharemodes: installdirs libsmbsharemodes
 	@$(SHELL) $(srcdir)/script/installdirs.sh $(INSTALLPERMS_BIN) $(DESTDIR) $(LIBDIR)

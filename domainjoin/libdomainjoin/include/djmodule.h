@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,7 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #ifndef __DJMODULE_H__
 #define __DJMODULE_H__
 
@@ -49,10 +52,12 @@ typedef struct
     void *moduleData;
 } ModuleState;
 
-typedef void (*WarningFunction)(const char *title, const char *message);
+struct _JoinProcessOptions;
+typedef struct _JoinProcessOptions JoinProcessOptions;
+typedef void (*WarningFunction)(JoinProcessOptions *options, const char *title, const char *message);
 
 //Options filled in by the UI in order to communicate with the join modules.
-typedef struct
+struct _JoinProcessOptions
 {
     PSTR domainName;
     PSTR shortDomainName;
@@ -60,6 +65,7 @@ typedef struct
     PSTR ouName;
     PSTR username;
     PSTR password;
+    void *userData;
     //TRUE if joining to AD, FALSE if leaving
     BOOLEAN joiningDomain;
     BOOLEAN showTraces;
@@ -69,7 +75,7 @@ typedef struct
      * The data type inside of the array is ModuleState.
     */
     DynamicArray moduleStates;
-} JoinProcessOptions;
+};
 
 //A struct that defines a join module.
 struct _JoinModule

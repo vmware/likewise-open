@@ -1806,7 +1806,7 @@ DSO_EXPORTS=""
 			SONAMEFLAG="-h "
 			if test "${GCC}" = "yes"; then
 				PICFLAG="-fPIC"
-				SONAMEFLAG="-Wl,-h,"
+				SONAMEFLAG="-Wl,-h -Wl,"
 				if test "${ac_cv_prog_gnu_ld}" = "yes"; then
 					SONAMEFLAG="-Wl,-soname="
 					DYNEXP="-Wl,-E"
@@ -1886,13 +1886,12 @@ DSO_EXPORTS=""
 			BLDSHARED="true"
 			SHLD="cc"
 			LDSHFLAGS="-b -Wl,-B,symbolic,-b,-z"
-			SONAMEFLAG="-Wl,+h="
+			SONAMEFLAG="-Wl,+h"
 			PICFLAG="+z"
 			if test "${GCC}" = "yes"; then
 				SHLD="gcc"
 				LDSHFLAGS="-shared -Wl,-B,symbolic,-b,-z $HP_LDSHFLAGS"
 				PICFLAG="-fPIC"
-				SONAMEFLAG="# "
 			else
 				LDSHFLAGS="-b -Wl,-B,symbolic,-b,-z $HP_LDSHFLAGS"
 				PICFLAG="+z +ESnolit"
@@ -1966,6 +1965,7 @@ DSO_EXPORTS=""
 			SHLIBEXT="dylib"
                         MODULE_EXPORTS="-exported_symbols_list \$(srcdir)/exports/modules-darwin.syms"
                         SHLIBEXT="dylib"
+			CFLAGS="$CFLAGS -fno-common"
                         # Since gcc doesn't fail on unrecognised options, the
                         # PIE test incorrectly succeeds. Darwin gcc does not
                         # actually support the PIE stuff.

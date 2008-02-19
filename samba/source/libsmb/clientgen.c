@@ -502,6 +502,21 @@ void cli_init_creds(struct cli_state *cli, const char *username, const char *dom
 }
 
 /****************************************************************************
+ Set credentials cache name to use for Kerberos authentication.
+****************************************************************************/
+
+void cli_set_ccname(struct cli_state *cli, const char *ccname)
+{
+	if (ccname) {
+		fstrcpy(cli->ccname, ccname);
+	} else {
+		cli->ccname[0] = 0;
+	}
+
+	DEBUG(10,("cli_init_ccname: ccname %s\n", cli->ccname));
+}
+
+/****************************************************************************
  Set the signing state (used from the command line).
 ****************************************************************************/
 

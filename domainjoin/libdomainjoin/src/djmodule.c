@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,7 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
 #include "djmodule.h"
 #include "djdaemonmgr.h"
@@ -249,6 +252,7 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
         ModuleState *state = DJGetModuleState(options, i);
         if(!state->runModule)
             continue;
+	DJ_LOG_INFO("Running module %s", state->module->shortName);
         state->module->MakeChanges(options, &moduleException);
         LW_TRY(exc, state->lastResult = state->module->QueryState(options, &LW_EXC));
         if(!LW_IS_OK(moduleException))
@@ -266,7 +270,7 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
                             &exceptionTitle,
                             "A resumable error occurred while processing the '%s' module",
                             state->module->shortName));
-                    options->warningCallback(exceptionTitle, exceptionMessage);
+                    options->warningCallback(options, exceptionTitle, exceptionMessage);
                     DJLogException(LOG_LEVEL_WARNING, moduleException);
                     LWHandle(&moduleException);
                     CT_SAFE_FREE_STRING(exceptionMessage);
@@ -294,7 +298,7 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
                             CTAllocateStringPrintf(&exceptionMessage,
                             "Even though the configuration of '%s' was executed, the configuration did not fully complete. Please contact Likewise support.",
                             state->module->shortName));
-                    options->warningCallback("A resumable error occurred while processing a module", exceptionMessage);
+                    options->warningCallback(options, "A resumable error occurred while processing a module", exceptionMessage);
                     CT_SAFE_FREE_STRING(exceptionMessage);
                     break;
             }

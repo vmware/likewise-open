@@ -288,6 +288,50 @@ typedef void (*smbc_get_auth_data_with_context_fn)(SMBCCTX *c,
                                                    char *un, int unlen,
                                                    char *pw, int pwlen);
 
+/**@ingroup callback
+ * Authentication callback function type (method that includes ccname)
+ * 
+ * Type for the the authentication function called by the library to
+ * obtain authentication credentals
+ *
+ * @param c         Pointer to the smb context
+ *
+ * @param srv       Server being authenticated to
+ *
+ * @param shr       Share being authenticated to
+ *
+ * @param wg        Pointer to buffer containing a "hint" for the
+ *                  workgroup to be authenticated.  Should be filled in
+ *                  with the correct workgroup if the hint is wrong.
+ * 
+ * @param wglen     The size of the workgroup buffer in bytes
+ *
+ * @param un        Pointer to buffer containing a "hint" for the
+ *                  user name to be use for authentication. Should be
+ *                  filled in with the correct workgroup if the hint is
+ *                  wrong.
+ * 
+ * @param unlen     The size of the username buffer in bytes
+ *
+ * @param pw        Pointer to buffer containing to which password is
+ *                  copied
+ * 
+ * @param pwlen     The size of the password buffer in bytes
+ *           
+ * @param ccname    Pointer to buffer containing to which ccname is
+ *                  copied
+ * 
+ * @param ccnamelen The size of the ccname buffer in bytes
+ *           
+ */
+typedef void (*smbc_get_auth_data_with_ccname_fn)(SMBCCTX *c,
+						  const char *srv, 
+						  const char *shr,
+						  char *wg, int wglen,
+						  char *un, int unlen,
+						  char *pw, int pwlen,
+						  char *ccname, int ccnamelen);
+
 
 /**@ingroup callback
  * Print job info callback function type.
@@ -2186,6 +2230,38 @@ extern "C" {
 #endif
 const char *
 smbc_version(void);
+#ifdef __cplusplus
+}
+#endif
+
+
+/*
+ * Create a file using the full NT API
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+SMBCFILE *
+smbc_nt_create(SMBCCTX *context,
+	       const char *fname,
+	       uint32 CreatFlags, uint32 DesiredAccess,
+	       uint32 FileAttributes, uint32 ShareAccess,
+	       uint32 CreateDisposition, uint32 CreateOptions,
+	       uint8 SecurityFlags);
+#ifdef __cplusplus
+}
+#endif
+
+
+/**
+ * Return the smb session key given an opened file pointer
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+void
+smbc_get_session_key(SMBCFILE *file,
+		     unsigned char **key, size_t *keylen);
 #ifdef __cplusplus
 }
 #endif

@@ -124,7 +124,8 @@ static NTSTATUS be_init(struct idmap_domain *dom)
 
 	/* Cannot allocate anything here */
 
-	dom->readonly = true;
+	if (dom)
+		dom->readonly = true;
 
 	/* Create the hash table of domain SIDs */
 

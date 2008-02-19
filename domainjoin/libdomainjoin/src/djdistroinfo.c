@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,7 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
 #include "djdistroinfo.h"
 #include <sys/utsname.h>
@@ -112,11 +115,12 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 # The format of the line is something like:
                 #   Red Hat Enterprise Linux ES release 4 (Nahant Update 1)
                 #   Red Hat Advanced Server release 2.1AS (Pensacola)
+                #   Red Hat Enterprise Linux Client release 5 (Tikanga)
                 # In addition, Oracle Linux reports itself as:
                 #   Enterprise Linux Enterprise Linux AS release 4 (October Update 5)
                 */
                 //Find a matching distro name
-                "^\\s*((Red Hat)|(Enterprise Linux)) ((Enterprise Linux)|(Linux (Advanced|Enterprise) Server))\\s+(AS |ES )?"
+                "^\\s*((Red Hat)|(Enterprise Linux)) ((Enterprise Linux)|(Linux (Advanced|Enterprise) Server))\\s+(AS |ES |Client )?"
                 //Get the version number, but strip the minor version if it is
                 //present (RHEL 2 has one). Also remove the AS or ES
                 //suffix if it is present.

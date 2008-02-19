@@ -1659,6 +1659,91 @@ again:
 
 
 /**
+   Establishes a connection right up to doing tconX, password specified.
+   @param output_cli A fully initialised cli structure, non-null only on success
+   @param dest_host The netbios name of the remote host
+   @param dest_ip (optional) The the destination IP, NULL for name based lookup
+   @param port (optional) The destination port (0 for default)
+   @param service (optional) The share to make the connection to.  Should be 'unqualified' in any way.
+   @param service_type The 'type' of serivice. 
+   @param user Username, unix string
+   @param domain User's domain
+   @param password User's password, unencrypted unix string.
+   @param ccname Credentials cache to use (optional)
+   @param retry BOOL. Did this connection fail with a retryable error ?
+*/
+
+NTSTATUS cli_full_connection_ccname(struct cli_state **output_cli, 
+                                    const char *my_name, 
+                                    const char *dest_host, 
+                                    struct sockaddr_storage *dest_ss, int port,
+                                    const char *service,
+                                    const char *service_type,
+                                    const char *user, const char *domain, 
+                                    const char *password, const char *ccname,
+                                    int flags, int signing_state,
+                                    bool *retry) 
+{
+	NTSTATUS nt_status;
+	struct cli_state *cli = NULL;
+	int pw_len = password ? strlen(password)+1 : 0;
+
+	*output_cli = NULL;
+
+	if (password == NULL) {
+		password = "";
+	}
+
+	nt_status = cli_start_connection(&cli, my_name, dest_host, 
+					 dest_ss, port, signing_state,
+					 flags, retry);
+	
+	if (!NT_STATUS_IS_OK(nt_status)) {
+		return nt_status;
+	}
+
+        cli_set_ccname(cli, ccname);
+
+	nt_status = cli_session_setup(cli, user, password, pw_len, password,
+				      pw_len, domain);
+	if (!NT_STATUS_IS_OK(nt_status)) {
+
+		if (!(flags & CLI_FULL_CONNECTION_ANONYMOUS_FALLBACK)) {
+			DEBUG(1,("failed session setup with %s\n",
+				 nt_errstr(nt_status)));
+			cli_shutdown(cli);
+			return nt_status;
+		}
+
+		nt_status = cli_session_setup(cli, "", "", 0, "", 0, domain);
+		if (!NT_STATUS_IS_OK(nt_status)) {
+			DEBUG(1,("anonymous failed session setup with %s\n",
+				 nt_errstr(nt_status)));
+			cli_shutdown(cli);
+			return nt_status;
+		}
+	}
+	
+	if (service) {
+		if (!cli_send_tconX(cli, service, service_type, password, pw_len)) {
+			nt_status = cli_nt_error(cli);
+			DEBUG(1,("failed tcon_X with %s\n", nt_errstr(nt_status)));
+			cli_shutdown(cli);
+			if (NT_STATUS_IS_OK(nt_status)) {
+				nt_status = NT_STATUS_UNSUCCESSFUL;
+			}
+			return nt_status;
+		}
+	}
+
+	cli_init_creds(cli, user, domain, password);
+
+	*output_cli = cli;
+	return NT_STATUS_OK;
+}
+
+
+/**
    establishes a connection right up to doing tconX, password specified.
    @param output_cli A fully initialised cli structure, non-null only on success
    @param dest_host The netbios name of the remote host

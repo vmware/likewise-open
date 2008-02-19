@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,7 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
@@ -430,47 +433,42 @@ error:
     return ceError;
 }
 
-CENTERROR
+void
 DJConfigureForDaemonRestart(
     PSTR pszDaemonName,
     BOOLEAN bStatus,
     PSTR pszStartPriority,
-    PSTR pszStopPriority
+    PSTR pszStopPriority,
+    LWException **exc
     )
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     BOOLEAN bFileExists = FALSE;
 
     DJ_LOG_VERBOSE("Looking for '%s'", pszChkConfigPath);
-    ceError = CTCheckFileExists(pszChkConfigPath, &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTCheckFileExists(pszChkConfigPath, &bFileExists));
 
     if (bFileExists) {
 
         DJ_LOG_VERBOSE("Found '%s'", pszChkConfigPath);
-        ceError = DJDoChkConfig(pszDaemonName, bStatus);
-        BAIL_ON_CENTERIS_ERROR(ceError);
+        LW_CLEANUP_CTERR(exc, DJDoChkConfig(pszDaemonName, bStatus));
 
         goto done;
     }
 
     DJ_LOG_VERBOSE("Looking for '%s'", pszUpdateRcDFilePath);
-    ceError = CTCheckFileExists(pszUpdateRcDFilePath, &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTCheckFileExists(pszUpdateRcDFilePath, &bFileExists));
 
     if (bFileExists) {
 
         DJ_LOG_VERBOSE("Found '%s'", pszUpdateRcDFilePath);
-        ceError = DJDoUpdateRcD(pszDaemonName, bStatus, pszStartPriority, pszStopPriority);
-        BAIL_ON_CENTERIS_ERROR(ceError);
+        LW_CLEANUP_CTERR(exc, DJDoUpdateRcD(pszDaemonName, bStatus, pszStartPriority, pszStopPriority));
 
         goto done;
     }
 
 done:
-error:
-
-    return ceError;
+cleanup:
+    ;
 }
 
 void
@@ -517,11 +515,59 @@ DJManageDaemon(
 
     }
 
-    LW_CLEANUP_CTERR(exc, DJConfigureForDaemonRestart(pszName, bStatus, pszStartPriority, pszStopPriority));
+    LW_TRY(exc, DJConfigureForDaemonRestart(pszName, bStatus, pszStartPriority, pszStopPriority, &LW_EXC));
 
 cleanup:
     ;
 }
+
+void
+DJManageAuthDaemon(
+    BOOLEAN bStatus,
+    PSTR pszStartPriority,
+    PSTR pszStopPriority,
+    LWException **exc
+    )
+{
+    LWException *innerExc = NULL;
+    DJManageDaemon("centeris.com-lwiauthd",
+                             bStatus,
+                             NULL,
+                             pszAuthdStartPriority,
+                             pszAuthdStopPriority,
+                             &innerExc);
+
+    /* If lwiauthd is not installed, check for likewise-open */
+    if (!LW_IS_OK(innerExc) && innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON) {
+        LW_HANDLE(&innerExc);
+        DJManageDaemon("likewise-open",
+                 bStatus,
+                 NULL,
+                 pszAuthdStartPriority,
+                 pszAuthdStopPriority,
+                 &innerExc);
+    }
+
+    LW_CLEANUP(exc, innerExc);
+
+cleanup:
+    LW_HANDLE(&innerExc);
+}
+
+struct
+{
+    PCSTR primaryName;
+    PCSTR alternativeName;
+    BOOLEAN required;
+    int startPriority;
+    int stopPriority;
+} daemonList[] = {
+    { "centeris.com-rpcd", NULL, FALSE, 90, 12 },
+    { "centeris.com-eventlogd", NULL, FALSE, 91, 11 },
+    { "centeris.com-lwiauthd", "likewise-open", TRUE, 92, 10 },
+    { "centeris.com-gpagentd", NULL, FALSE, 92, 9 },
+    { NULL, NULL, FALSE, 0, 0 },
+};
 
 void
 DJManageDaemons(
@@ -538,6 +584,8 @@ DJManageDaemons(
     CHAR szBuf[256+1];
     DWORD dwGPErrCode = 0;
     LWException *innerExc = NULL;
+    int daemonCount;
+    int i;
 
 #define PWGRD "/etc/rc.config.d/pwgr"
     LW_CLEANUP_CTERR(exc, CTCheckFileExists(PWGRD, &bFileExists));
@@ -549,90 +597,120 @@ DJManageDaemons(
         LW_CLEANUP_CTERR(exc, CTRunSedOnFile(PWGRD, PWGRD, FALSE, "s/=1/=0/"));
     }
 
-    DJManageDaemon("centeris.com-lwiauthd",
+    //Figure out how many daemons there are
+    for(daemonCount = 0; daemonList[daemonCount].primaryName != NULL; daemonCount++);
+
+    if(bStart)
+    {
+        CHAR szStartPriority[32];
+        CHAR szStopPriority[32];
+
+        //Start the daemons in ascending order
+        for(i = 0; i < daemonCount; i++)
+        {
+            sprintf(szStartPriority, "%d", daemonList[i].startPriority);
+            sprintf(szStopPriority,  "%d", daemonList[i].stopPriority);
+ 
+            DJManageDaemon(daemonList[i].primaryName,
                              bStart,
                              NULL,
-                             pszAuthdStartPriority,
-                             pszAuthdStopPriority,
+                             szStartPriority,
+                             szStopPriority,
                              &innerExc);
 
-    /* If lwiauthd is not installed, check for likewise-open */
-    if (!LW_IS_OK(innerExc) && innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON) {
-        LW_HANDLE(&innerExc);
-        DJManageDaemon("likewise-open",
-                 bStart,
-                 NULL,
-                 pszAuthdStartPriority,
-                 pszAuthdStopPriority,
-                 &innerExc);
-    }
+            //Try the alternate daemon name if there is one
+            if (!LW_IS_OK(innerExc) &&
+                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
+                    daemonList[i].alternativeName != NULL)
+            {
+                LW_HANDLE(&innerExc);
+                DJManageDaemon(daemonList[i].alternativeName,
+                                 bStart,
+                                 NULL,
+                                 szStartPriority,
+                                 szStopPriority,
+                                 &innerExc);
+            }
+            if (!LW_IS_OK(innerExc) &&
+                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
+                    !daemonList[i].required)
+            {
+                LW_HANDLE(&innerExc);
+            }
+            if (LW_IS_OK(innerExc) && !strcmp(daemonList[i].primaryName, "centeris.com-gpagentd"))
+            {
+                LW_CLEANUP_CTERR(exc, CTCheckFileExists(pszErrFilePath, &bFileExists));
 
-    LW_CLEANUP(exc, innerExc);
+                if (bFileExists) {
 
-    if (!IsNullOrEmptyString(pszDomainName) && bStart) {
-        //Set the KRB5_CONFIG environmental variable to look at the smb krb5
-        //conf file first, then look at the system krb5.conf. This is so
-        //gpagentd will use the preferred DC for kerberos operations.
-        //I'm not sure if this is still necessary. Gpagentd might do the same
-        //thing internally.
-        LW_CLEANUP_CTERR(exc, CTAllocateString(pszDomainName, &pszDomainNameAllUpper));
-        CTStrToUpper(pszDomainNameAllUpper);
-        sprintf(szPreCommand,
-                "KRB5_CONFIG=/var/lib/lwidentity/smb_krb5/krb5.conf.%s:/etc/krb5.conf; export KRB5_CONFIG",
-                pszDomainNameAllUpper);
-    }
-    else
-    {
-        //Colon is a shell nop
-        sprintf(szPreCommand, ":");
-    }
+                    LW_HANDLE(&innerExc);
+                    fp = fopen(pszErrFilePath, "r");
+                    if (fp != NULL) {
 
-    DJManageDaemon("centeris.com-gpagentd",
-                             bStart,
-                             szPreCommand,
-                             pszGPAgentdStartPriority,
-                             pszGPAgentdStopPriority,
-                             &innerExc);
+                        if (fgets(szBuf, 256, fp) != NULL) {
 
-    /* gpagentd may not be installed at all which is ok */
+                            CTStripWhitespace(szBuf);
 
-    if (!LW_IS_OK(innerExc) && innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON) {
-        LW_HANDLE(&innerExc);
-    }
-    LW_CLEANUP(exc, innerExc);
-    
-    if (bStart && !LW_IS_OK(innerExc)) {
+                            dwGPErrCode = atoi(szBuf);
 
-        LW_CLEANUP_CTERR(exc, CTCheckFileExists(pszErrFilePath, &bFileExists));
+                            if (dwGPErrCode == GPAGENT_LICENSE_ERROR ||
+                                dwGPErrCode == GPAGENT_LICENSE_EXPIRED_ERROR) {
 
-        if (bFileExists) {
+                                LW_RAISE(exc, CENTERROR_DOMAINJOIN_LICENSE_ERROR);
+                                goto cleanup;
 
-            LW_HANDLE(&innerExc);
-            fp = fopen(pszErrFilePath, "r");
-            if (fp != NULL) {
+                            }
+                        }
 
-                if (fgets(szBuf, 256, fp) != NULL) {
+                    } else {
 
-                    CTStripWhitespace(szBuf);
-
-                    dwGPErrCode = atoi(szBuf);
-
-                    if (dwGPErrCode == GPAGENT_LICENSE_ERROR ||
-                        dwGPErrCode == GPAGENT_LICENSE_EXPIRED_ERROR) {
-
-                        LW_RAISE(exc, CENTERROR_DOMAINJOIN_LICENSE_ERROR);
-                        goto cleanup;
+                        DJ_LOG_ERROR("Failed to open file [%s]", pszErrFilePath);
 
                     }
                 }
-
-            } else {
-
-                DJ_LOG_ERROR("Failed to open file [%s]", pszErrFilePath);
-
             }
+            LW_CLEANUP(exc, innerExc);
         }
-        LW_CLEANUP(exc, innerExc);
+    }
+    else
+    {
+        CHAR szStartPriority[32];
+        CHAR szStopPriority[32];
+
+        //Stop the daemons in descending order
+        for(i = daemonCount - 1; i >= 0; i--)
+        {
+            sprintf(szStartPriority, "%d", daemonList[i].startPriority);
+            sprintf(szStopPriority,  "%d", daemonList[i].stopPriority);
+
+            DJManageDaemon(daemonList[i].primaryName,
+                             bStart,
+                             NULL,
+                             szStartPriority,
+                             szStopPriority,
+                             &innerExc);
+
+            //Try the alternate daemon name if there is one
+            if (!LW_IS_OK(innerExc) &&
+                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
+                    daemonList[i].alternativeName != NULL)
+            {
+                LW_HANDLE(&innerExc);
+                DJManageDaemon(daemonList[i].alternativeName,
+                                 bStart,
+                                 NULL,
+                                 szStartPriority,
+                                 szStopPriority,
+                                 &innerExc);
+            }
+            if (!LW_IS_OK(innerExc) &&
+                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
+                    !daemonList[i].required)
+            {
+                LW_HANDLE(&innerExc);
+            }
+            LW_CLEANUP(exc, innerExc);
+        }
     }
 
 cleanup:

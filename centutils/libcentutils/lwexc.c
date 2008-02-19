@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,7 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "lwexc.h"
 #include "ctstrutils.h"
 
@@ -245,9 +248,11 @@ LWHandle(
     if (exc && *exc)
     {
 	LWStackFrame* frame;
+	LWStackFrame* nextFrame;
 	
-	for (frame = (*exc)->stack.down; frame; frame = frame->down)
+	for (frame = (*exc)->stack.down; frame; frame = nextFrame)
 	{
+            nextFrame = frame->down;
 	    free(frame);
 	}
 

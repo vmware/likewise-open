@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,7 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 #include "domainjoin.h"
 #include "ctarray.h"
 #include "ctstrutils.h"
@@ -2432,6 +2435,7 @@ static CENTERROR FindPamLwidentity(const char *testPrefix, char **destName)
 
 void DJUpdatePamConf(const char *testPrefix,
         struct PamConf *conf,
+        JoinProcessOptions *options,
         WarningFunction warning,
         BOOLEAN enable,
         LWException **exc)
@@ -2491,7 +2495,7 @@ void DJUpdatePamConf(const char *testPrefix,
                             !IsRequiredService(services[i], conf))
                     {
                         //Show all errors for this service as warnings and continue
-                        warning(nestedException->shortMsg, nestedException->longMsg);
+                        warning(options, nestedException->shortMsg, nestedException->longMsg);
                         DJLogException(LOG_LEVEL_WARNING, nestedException);
                         LW_HANDLE(&nestedException);
                     }
@@ -2598,6 +2602,7 @@ cleanup:
 
 void DJNewConfigurePamForADLogin(
     const char * testPrefix,
+    JoinProcessOptions *options,
     WarningFunction warning,
     BOOLEAN enable,
     LWException **exc
@@ -2638,7 +2643,7 @@ void DJNewConfigurePamForADLogin(
             FALSE, "s/^\\([ \t]*try_first_pass[ \t]*=.*\\)$/# \\1/"));
     }
 
-    LW_TRY(exc, DJUpdatePamConf(testPrefix, &conf, warning, enable, &LW_EXC));
+    LW_TRY(exc, DJUpdatePamConf(testPrefix, &conf, options, warning, enable, &LW_EXC));
 
     if(conf.modified)
         LW_CLEANUP_CTERR(exc, WritePamConfiguration(testPrefix, &conf, NULL));
@@ -2999,7 +3004,7 @@ static QueryResult QueryPam(const JoinProcessOptions *options, LWException **exc
 
     if(!options->joiningDomain)
     {
-        LW_TRY(exc, DJUpdatePamConf(NULL, &conf, NULL, options->joiningDomain,
+        LW_TRY(exc, DJUpdatePamConf(NULL, &conf, NULL, NULL, options->joiningDomain,
                 &LW_EXC));
         if(conf.modified)
             goto cleanup;
@@ -3046,7 +3051,7 @@ static QueryResult QueryPam(const JoinProcessOptions *options, LWException **exc
     }
 
     result = SufficientlyConfigured;
-    DJUpdatePamConf(NULL, &conf, NULL, TRUE,
+    DJUpdatePamConf(NULL, &conf, NULL, NULL, TRUE,
             &nestedException);
     if(!LW_IS_OK(nestedException) &&
             nestedException->code == CENTERROR_DOMAINJOIN_PAM_BAD_CONF)
@@ -3074,7 +3079,7 @@ cleanup:
 
 static void DoPam(JoinProcessOptions *options, LWException **exc)
 {
-    DJNewConfigurePamForADLogin(NULL, options->warningCallback,
+    DJNewConfigurePamForADLogin(NULL, options, options->warningCallback,
                 options->joiningDomain, exc);
 }
 
@@ -3092,7 +3097,7 @@ static PSTR GetPamDescription(const JoinProcessOptions *options, LWException **e
 
     LW_CLEANUP_CTERR(exc, ReadPamConfiguration(tempDir, &conf));
 
-    LW_TRY(exc, DJUpdatePamConf(NULL, &conf, options->warningCallback,
+    LW_TRY(exc, DJUpdatePamConf(NULL, &conf, (JoinProcessOptions *)options, options->warningCallback,
         options->joiningDomain, &LW_EXC));
 
     if(conf.modified)

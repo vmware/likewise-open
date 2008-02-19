@@ -187,6 +187,8 @@ struct cli_state {
 
 	bool force_dos_errors;
 	bool case_sensitive; /* False by default. */
+
+	fstring ccname;
 };
 
 typedef struct file_info {

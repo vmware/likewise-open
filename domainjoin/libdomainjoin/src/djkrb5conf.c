@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,7 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* ex: set tabstop=4 expandtab shiftwidth=4: */
 
 #include "domainjoin.h"
 #include "ctarray.h"
@@ -1109,7 +1112,13 @@ cleanup:
     return ceError;
 }
 
-static CENTERROR ReadKrb5Configuration(const char *rootPrefix, Krb5Entry *conf, BOOLEAN *modified)
+static
+CENTERROR
+ReadKrb5Configuration(
+    const char *rootPrefix,
+    Krb5Entry *conf,
+    BOOLEAN *modified
+    )
 {
     char *fullPath = NULL;
     char *altPath = NULL;
@@ -1196,7 +1205,7 @@ DJModifyKrb5Conf(
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     Krb5Entry conf;
-    BOOLEAN readModified;
+    BOOLEAN readModified = FALSE;
     memset(&conf, 0, sizeof(conf));
 
     DJ_LOG_INFO("Starting krb5.conf configuration (%s)", enable? "enabling" : "disabling");
@@ -1214,7 +1223,7 @@ DJModifyKrb5Conf(
         GCE(ceError = Krb5LeaveDomain(&conf));
     }
     GCE(ceError = WriteKrb5Configuration(testPrefix, "/etc/krb5.conf", &conf, modified));
-    if(readModified && modified != NULL)
+    if(readModified && (modified != NULL))
         *modified = TRUE;
     DJ_LOG_INFO("Finishing krb5.conf configuration");
 

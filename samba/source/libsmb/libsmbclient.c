@@ -597,22 +597,36 @@ smbc_remove_unused_server(SMBCCTX * context,
  ***************************************************************/
 
 static void call_auth_fn(TALLOC_CTX *ctx,
-			SMBCCTX *context,
-			const char *server,
-			const char *share,
-			char **pp_workgroup,
-			char **pp_username,
-			char **pp_password)
+			 SMBCCTX *context,
+			 const char *server,
+			 const char *share,
+			 char **pp_workgroup,
+			 char **pp_username,
+			 char **pp_password,
+			 char **pp_ccname)
 {
 	fstring workgroup;
 	fstring username;
 	fstring password;
+	fstring ccname;
 
 	strlcpy(workgroup, *pp_workgroup, sizeof(workgroup));
 	strlcpy(username, *pp_username, sizeof(username));
 	strlcpy(password, *pp_password, sizeof(password));
+	strlcpy(ccname, *pp_ccname, sizeof(ccname));
 
-	if (context->internal->_auth_fn_with_context != NULL) {
+	if (context->internal->_auth_fn_with_ccname != NULL) {
+		context->internal->_auth_fn_with_ccname(context, server, share,
+							workgroup,
+							sizeof(fstring),
+							username,
+							sizeof(fstring),
+							password,
+							sizeof(fstring),
+							ccname,
+							sizeof(fstring));
+
+	} else if (context->internal->_auth_fn_with_context != NULL) {
 			(context->internal->_auth_fn_with_context)(
 				context,
 				server, share,
@@ -630,20 +644,23 @@ static void call_auth_fn(TALLOC_CTX *ctx,
 	TALLOC_FREE(*pp_workgroup);
 	TALLOC_FREE(*pp_username);
 	TALLOC_FREE(*pp_password);
+	/* ccname is not dynamically allocated yet, so no it's not freed */
 
 	*pp_workgroup = talloc_strdup(ctx, workgroup);
 	*pp_username = talloc_strdup(ctx, username);
 	*pp_password = talloc_strdup(ctx, password);
+	*pp_ccname = talloc_strdup(ctx, ccname);
 }
 
 static SMBCSRV *
 find_server(TALLOC_CTX *ctx,
-		SMBCCTX *context,
-		const char *server,
-		const char *share,
-		char **pp_workgroup,
-		char **pp_username,
-		char **pp_password)
+	    SMBCCTX *context,
+	    const char *server,
+	    const char *share,
+	    char **pp_workgroup,
+	    char **pp_username,
+	    char **pp_password,
+	    char **pp_ccname)
 {
         SMBCSRV *srv;
         int auth_called = 0;
@@ -656,7 +673,7 @@ find_server(TALLOC_CTX *ctx,
 	if (!auth_called && !srv && (!*pp_username || !(*pp_username)[0] ||
 				!*pp_password || !(*pp_password)[0])) {
 		call_auth_fn(ctx, context, server, share,
-				pp_workgroup, pp_username, pp_password);
+			     pp_workgroup, pp_username, pp_password, pp_ccname);
 
 		if (!pp_workgroup || !pp_username || !pp_password) {
 			return NULL;
@@ -735,9 +752,13 @@ smbc_server(TALLOC_CTX *ctx,
         int port_try_next;
         const char *username_used;
  	NTSTATUS status;
+	fstring ccname_buf;
+	char *ccname;
 
 	zero_addr(&ss);
 	ZERO_STRUCT(c);
+	ccname_buf[0] = 0;
+	ccname = ccname_buf;
 
 	if (server[0] == 0) {
 		errno = EPERM;
@@ -746,7 +767,8 @@ smbc_server(TALLOC_CTX *ctx,
 
         /* Look for a cached connection */
         srv = find_server(ctx, context, server, share,
-                          pp_workgroup, pp_username, pp_password);
+                          pp_workgroup, pp_username, pp_password,
+			  &ccname);
 
         /*
          * If we found a connection and we're only allowed one share per
@@ -765,7 +787,8 @@ smbc_server(TALLOC_CTX *ctx,
                 if (srv->cli->cnum == (uint16) -1) {
                         /* Ensure we have accurate auth info */
 			call_auth_fn(ctx, context, server, share,
-				pp_workgroup, pp_username, pp_password);
+				     pp_workgroup, pp_username, pp_password,
+				     &ccname);
 
 			if (!*pp_workgroup || !*pp_username || !*pp_password) {
 				errno = ENOMEM;
@@ -842,6 +865,7 @@ smbc_server(TALLOC_CTX *ctx,
 
 	if (context->flags & SMB_CTX_FLAG_USE_KERBEROS) {
 		c->use_kerberos = True;
+		cli_set_ccname(c, ccname);
 	}
 	if (context->flags & SMB_CTX_FLAG_FALLBACK_AFTER_KERBEROS) {
 		c->fallback_after_kerberos = True;
@@ -1045,6 +1069,12 @@ smbc_attr_server(TALLOC_CTX *ctx,
 	struct rpc_pipe_client *pipe_hnd;
         NTSTATUS nt_status;
 	SMBCSRV *ipc_srv=NULL;
+	const char *use_ccname = NULL;
+	fstring ccname_buf;
+	char *ccname;
+
+	ccname_buf[0] = 0;
+	ccname = ccname_buf;
 
         /*
          * See if we've already created this special connection.  Reference
@@ -1052,14 +1082,16 @@ smbc_attr_server(TALLOC_CTX *ctx,
          * name due to the leading asterisk.
          */
         ipc_srv = find_server(ctx, context, server, "*IPC$",
-                              pp_workgroup, pp_username, pp_password);
+                              pp_workgroup, pp_username, pp_password,
+			      &ccname);
         if (!ipc_srv) {
 
                 /* We didn't find a cached connection.  Get the password */
 		if (!*pp_password || (*pp_password)[0] == '\0') {
                         /* ... then retrieve it now. */
 			call_auth_fn(ctx, context, server, share,
-				pp_workgroup, pp_username, pp_password);
+				     pp_workgroup, pp_username, pp_password,
+				     &ccname);
 			if (!*pp_workgroup || !*pp_username || !*pp_password) {
 				errno = ENOMEM;
 				return NULL;
@@ -1069,17 +1101,19 @@ smbc_attr_server(TALLOC_CTX *ctx,
                 flags = 0;
                 if (context->flags & SMB_CTX_FLAG_USE_KERBEROS) {
                         flags |= CLI_FULL_CONNECTION_USE_KERBEROS;
+			use_ccname = ccname;
                 }
 
                 zero_addr(&ss);
-                nt_status = cli_full_connection(&ipc_cli,
-						global_myname(), server,
-						&ss, 0, "IPC$", "?????",
-						*pp_username,
-						*pp_workgroup,
-						*pp_password,
-						flags,
-						Undefined, NULL);
+                nt_status = cli_full_connection_ccname(&ipc_cli,
+						       global_myname(), server,
+						       &ss, 0, "IPC$", "?????",
+						       *pp_username,
+						       *pp_workgroup,
+						       *pp_password,
+						       use_ccname,
+						       flags,
+						       Undefined, NULL);
                 if (! NT_STATUS_IS_OK(nt_status)) {
                         DEBUG(1,("cli_full_connection failed! (%s)\n",
                                  nt_errstr(nt_status)));
@@ -6821,6 +6855,7 @@ smbc_option_set(SMBCCTX *context,
                 int i;
                 bool b;
                 smbc_get_auth_data_with_context_fn auth_fn;
+                smbc_get_auth_data_with_ccname_fn auth_ccname_fn;
                 void *v;
 		const char *s;
         } option_value;
@@ -6864,6 +6899,15 @@ smbc_option_set(SMBCCTX *context,
                         va_arg(ap, smbc_get_auth_data_with_context_fn);
                 context->internal->_auth_fn_with_context =
                         option_value.auth_fn;
+        } else if (strcmp(option_name, "auth_ccname_function") == 0) {
+                /*
+                 * Use the newer-style authentication function which includes
+                 * the context and ccname.
+                 */
+                option_value.auth_ccname_fn =
+                        va_arg(ap, smbc_get_auth_data_with_ccname_fn);
+                context->internal->_auth_fn_with_ccname =
+                        option_value.auth_ccname_fn;
         } else if (strcmp(option_name, "user_data") == 0) {
                 /*
                  * Save a user data handle which may be retrieved by the user
@@ -6927,6 +6971,12 @@ smbc_option_get(SMBCCTX *context,
                  * the context.
                  */
                 return (void *) context->internal->_auth_fn_with_context;
+        } else if (strcmp(option_name, "auth_ccname_function") == 0) {
+                /*
+                 * Use the newer-style authentication function which includes
+                 * the context and ccname.
+                 */
+                return (void *) context->internal->_auth_fn_with_ccname;
         } else if (strcmp(option_name, "user_data") == 0) {
                 /*
                  * Save a user data handle which may be retrieved by the user
@@ -6993,7 +7043,8 @@ smbc_init_context(SMBCCTX *context)
         }
 
         if ((!context->callbacks.auth_fn &&
-             !context->internal->_auth_fn_with_context) ||
+             !context->internal->_auth_fn_with_context &&
+	     !context->internal->_auth_fn_with_ccname) ||
             context->debug < 0 ||
             context->debug > 100) {
 
@@ -7155,4 +7206,166 @@ const char *
 smbc_version(void)
 {
         return likewise_version_string();
+}
+
+
+/*
+ * Routine to create a file using the full
+ * NT API
+ */
+
+SMBCFILE *
+smbc_nt_create(SMBCCTX *context,
+	       const char *fname,
+	       uint32 CreatFlags, uint32 DesiredAccess,
+	       uint32 FileAttributes, uint32 ShareAccess,
+	       uint32 CreateDisposition, uint32 CreateOptions,
+	       uint8 SecurityFlags)
+{
+	int fd;
+	SMBCSRV *srv   = NULL;
+	SMBCFILE *file = NULL;
+	char *server = NULL;
+	char *share = NULL;
+	char *user = NULL;
+	char *password = NULL;
+	char *workgroup = NULL;
+	char *path = NULL;
+	char *targetpath = NULL;
+	struct cli_state *targetcli = NULL;
+	TALLOC_CTX *frame = talloc_stackframe();
+
+	if (!context || !context->internal ||
+	    !context->internal->_initialized) {
+
+		errno = EINVAL;  /* Best I can think of ... */
+		return NULL;
+
+	}
+
+	if (!fname) {
+
+		errno = EINVAL;
+		TALLOC_FREE(frame);
+		return NULL;
+
+	}
+
+	if (smbc_parse_path(frame, context, fname,
+                            &workgroup, &server,
+                            &share, &path,
+                            &user, &password,
+                            NULL)) {
+                errno = EINVAL;
+                return NULL;
+        }
+
+	if (!user || user[0] == (char)0) {
+		user = talloc_strdup(frame, context->user);
+		if (!user) {
+                	errno = ENOMEM;
+			TALLOC_FREE(frame);
+			return NULL;
+		}
+	}
+
+	srv = smbc_server(frame, context, True,
+                          server, share, &workgroup, &user, &password);
+
+	if (!srv) {
+
+		if (errno == EPERM) errno = EACCES;
+		TALLOC_FREE(frame);
+		return NULL;  /* smbc_server sets errno */
+    
+	}
+
+	/* Hmmm, the test for a directory is suspect here ... FIXME */
+
+	if (strlen(path) > 0 && path[strlen(path) - 1] == '\\') {
+    
+		fd = -1;
+
+	}
+	else {
+	  
+		file = SMB_MALLOC_P(SMBCFILE);
+
+		if (!file) {
+
+			errno = ENOMEM;
+			TALLOC_FREE(frame);
+			return NULL;
+
+		}
+
+		ZERO_STRUCTP(file);
+
+		/*d_printf(">>>open: resolving %s\n", path);*/
+		if (!cli_resolve_path(frame, "", srv->cli, path, &targetcli, &targetpath))
+		{
+			d_printf("Could not resolve %s\n", path);
+			SAFE_FREE(file);
+			TALLOC_FREE(frame);
+			return NULL;
+		}
+		/*d_printf(">>>open: resolved %s as %s\n", path, targetpath);*/
+
+		if ((fd = 
+		     cli_nt_create_full(targetcli, targetpath,
+					CreatFlags, DesiredAccess,
+					FileAttributes, ShareAccess,
+					CreateDisposition, CreateOptions,
+					SecurityFlags)) < 0) {
+
+			/* Handle the error ... */
+
+			SAFE_FREE(file);
+			errno = smbc_errno(context, targetcli);
+			TALLOC_FREE(frame);
+			return NULL;
+
+		}
+
+		/* Fill in file struct */
+
+		file->cli_fd  = fd;
+		file->fname   = SMB_STRDUP(fname);
+		file->srv     = srv;
+		file->offset  = 0;
+		file->file    = True;
+
+		DLIST_ADD(context->internal->_files, file);
+
+		return file;
+	}
+
+	/* Check if opendir needed ... */
+
+	if (fd == -1) {
+		int eno = 0;
+
+		eno = smbc_errno(context, srv->cli);
+		file = context->opendir(context, fname);
+		if (!file) errno = eno;
+		TALLOC_FREE(frame);
+		return file;
+
+	}
+
+	errno = EINVAL; /* FIXME, correct errno ? */
+	TALLOC_FREE(frame);
+	return NULL;
+}
+
+
+void
+smbc_get_session_key(SMBCFILE *file, unsigned char **key, size_t *keylen)
+{
+	DATA_BLOB blob;
+	if (file == NULL || key == NULL || keylen == NULL) return;
+
+	blob    = file->srv->cli->user_session_key;
+	*key    = (unsigned char*)blob.data;
+	*keylen = blob.length;
 }

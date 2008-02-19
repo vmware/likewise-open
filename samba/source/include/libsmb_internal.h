@@ -102,6 +102,13 @@ struct smbc_internal_data {
          */
         smbc_get_auth_data_with_context_fn _auth_fn_with_context;
 
+	/*
+	 * Authentication function which includes the context and
+	 * ccname.  This will be used if set; otherwise
+	 * context->callbacks.auth_fn_with_context() will be used.
+	 */
+	smbc_get_auth_data_with_ccname_fn _auth_fn_with_ccname;
+
         /*
          * An opaque (to this library) user data handle which can be set
          * and retrieved with smbc_option_set() and smbc_option_get().

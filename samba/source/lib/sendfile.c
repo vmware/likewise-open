@@ -258,6 +258,10 @@ ssize_t sys_sendfile(int tofd, int fromfd, const DATA_BLOB *header, SMB_OFF_T of
 #include <sys/socket.h>
 #include <sys/uio.h>
 
+/* HP-UX hack: sendfile is not prototyped properly, so let's do it ourselves */
+ sbsize_t sendfile(int s, int fd, off_t offset, bsize_t nbytes,
+		   const struct iovec *hdtrl, int flags);
+
 ssize_t sys_sendfile(int tofd, int fromfd, const DATA_BLOB *header, SMB_OFF_T offset, size_t count)
 {
 	size_t total=0;

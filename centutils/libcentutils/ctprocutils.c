@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+* -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
@@ -18,8 +22,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/* Editor settings: use 4 spaces instead of tabs.
- * ex: set expandtab tabstop=4 shiftwidth=4: */
 #include "config/config.h"
 #include "ctbase.h"
 #include "ctprocutils.h"
