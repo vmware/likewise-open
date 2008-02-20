@@ -126,9 +126,7 @@ install: build
 	install --mode=755 samba/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
 	ln -s libnss_lwidentity.so.2 $(DESTDIR)/lib/libnss_lwidentity.so
 
-	for file in CenterisPam.pm Centeris.pm; do \
-		install -D --mode=0644 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/likewise-open/; \
-	done
+	install -D --mode=0644 domainjoin/scripts/Centeris.pm $(DESTDIR)/usr/lib/likewise-open/Centeris.pm
 
 	for file in ConfigureLogin ConfigureShellPrompt gpcron; do \
 		install --mode=0755 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/likewise-open; \

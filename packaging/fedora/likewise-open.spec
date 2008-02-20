@@ -131,9 +131,8 @@ ln -s libwbclient.so.0.1 $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so
 popd
 
 ## Grab the support scripts
-for file in CenterisPam.pm Centeris.pm; do
-	%{__install} -m0644 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
-done
+%{__install} -m0644 domainjoin/scripts/Centeris.pm ${RPM_BUILD_ROOT}/%{_libdir}/%{name}/Centeris.pm
+
 for file in ConfigureLogin ConfigureShellPrompt gpcron; \
 do
 	%{__install} -m0755 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}; \
