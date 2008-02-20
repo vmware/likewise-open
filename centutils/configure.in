@@ -227,7 +227,7 @@ AC_CHECK_LIB([proc], [openproc])
 ## possible to disable krb5 in order to get 32bit builds with 32bit Krb5 libs
 if test x$enable_krb5 != xno; then
 	AC_CHECK_LIB([gssapi_krb5], [gss_seal])
-	AC_CHECK_LIB([krb5], [krb5_get_error_message],[],[echo "Wrong version of krb5."; exit -1])
+	AC_CHECK_LIB([krb5], [krb5_init_context])
 	AC_CHECK_LIB([com_err], [com_err])
 fi
 

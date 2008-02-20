@@ -425,7 +425,7 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
 
     LW_TRY(exc, DJCheckRequiredEnabled(&options, &LW_EXC));
 
-    while (IsNullOrEmptyString(options.password))
+    if (IsNullOrEmptyString(options.password))
     {
         CT_SAFE_FREE_STRING(options.password);
 
@@ -585,7 +585,7 @@ void DoLeaveNew(int argc, char **argv, int columns, LWException **exc)
 
     LW_TRY(exc, DJCheckRequiredEnabled(&options, &LW_EXC));
 
-    while (options.username != NULL && IsNullOrEmptyString(options.password))
+    if (options.username != NULL && IsNullOrEmptyString(options.password))
     {
         CT_SAFE_FREE_STRING(options.password);
 

@@ -46,6 +46,7 @@ alias_replacement()
     eval "$name() { $value \"\$@\"; }"
 }
 
+shopt -s expand_aliases 1>/dev/null 2>/dev/null
 alias aliastest=echo
 type aliastest 1>/dev/null 2>/dev/null
 if [ $? -ne 0 ]; then
@@ -271,7 +272,7 @@ GracefulDbusRestart()
     distroType=`GetDistroType`
     if [ -x /etc/init.d/dbus ]; then
         # Ubuntu, SuSE
-        if [ "$distroType" = "SuSE" -o "$distroType" = "OpenSuSE" ]; then
+        if [ "$distroType" = "SuSE" -o "$distroType" = "OpenSuSE" -o "$distroType" = "SLES" ]; then
             if IsUserLoggedInX; then
                 if [ "$1" = "1" ]; then
                     echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please log out of X windows, then run these commands to restart dbus:" >&2
