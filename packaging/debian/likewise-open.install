@@ -7,7 +7,6 @@ usr/lib/likewise-open/ConfigureLogin
 usr/lib/likewise-open/ConfigureShellPrompt
 usr/lib/likewise-open/gpcron
 usr/lib/likewise-open/Centeris.pm
-usr/lib/likewise-open/CenterisPam.pm
 
 usr/sbin/likewise-winbindd
 
