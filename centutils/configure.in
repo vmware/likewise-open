@@ -224,13 +224,6 @@ AC_CHECK_LIB([dld], [dlopen], [LIBS="$LIBS -ldld"])
 AC_CHECK_LIB([resolv], [res_query])
 AC_CHECK_LIB([proc], [openproc])
 
-## possible to disable krb5 in order to get 32bit builds with 32bit Krb5 libs
-if test x$enable_krb5 != xno; then
-	AC_CHECK_LIB([gssapi_krb5], [gss_seal])
-	AC_CHECK_LIB([krb5], [krb5_init_context])
-	AC_CHECK_LIB([com_err], [com_err])
-fi
-
 AC_CHECK_LIB([ldap], [ldap_open])
 AC_CHECK_LIB([lber], [ber_bvfree])
 AC_CHECK_LIB([pthread], [pthread_create])

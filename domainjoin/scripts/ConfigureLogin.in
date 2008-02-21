@@ -1,3 +1,4 @@
+#!/bin/sh
 ##
 ## Copyright (C) Centeris Corporation 2004-2007
 ## Copyright (C) Likewise Software    2007-2008
@@ -16,8 +17,6 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program.  If not, see <http:##www.gnu.org/licenses/>.
 ##
-
-#!/bin/sh
 
 LC_MESSAGES=C; export LC_MESSAGES
 
@@ -46,7 +45,9 @@ alias_replacement()
     eval "$name() { $value \"\$@\"; }"
 }
 
-shopt -s expand_aliases 1>/dev/null 2>/dev/null
+if type shopt; then
+    shopt -s expand_aliases 1>/dev/null 2>/dev/null
+fi
 alias aliastest=echo
 type aliastest 1>/dev/null 2>/dev/null
 if [ $? -ne 0 ]; then
