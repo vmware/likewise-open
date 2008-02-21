@@ -30,7 +30,7 @@
 	winbind expand groups = 10
 
 	template shell = /bin/bash
-	template homedir = /local/%D/%U
+	template homedir = /home/%D/%U
 
         machine password timeout = 2592000
 
