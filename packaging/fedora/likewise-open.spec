@@ -84,7 +84,7 @@ pushd domainjoin
 %if %{enablegui}
     --with-gtk \
 %endif
-    --with-libxml2-dir=%{prefix} \
+    --with-libxml2-dir=%{_prefix} \
     --libdir=%{_libdir} \
     --libexecdir=%{_libdir}/%{name} 
 popd
