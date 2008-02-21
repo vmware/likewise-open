@@ -4,7 +4,7 @@ Name:		likewise-open
 Version:	__RPM_VER
 Release:	__RPM_RELEASE
 Summary: 	Likewise Open Active Directory Integration Services
-License: 	GPLv3/LGPLv3
+License: 	GPL/LGPL
 Group: 		System Environment/Daemons
 URL: 		http://www.likewisesoftware.com/
 

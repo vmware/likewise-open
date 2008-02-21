@@ -25,7 +25,15 @@ cp -p ../../../likewise-open-${VERSION}.tar.gz ${SRCDIR}/ || exit 1
 cat ../fedora/${SPECFILE} |\
 	sed -e s/__RPM_VER/${VERSION}/g \
 		-e s/__RPM_RELEASE/${RELEASE}/g > ${SPECDIR}/${SPECFILE} || exit 1
-rpmbuild -ba ${SPECDIR}/${SPECFILE}
+
+RPM_ARGS=--define='enablegui 1'
+GTK_MINOR_VER=`rpm -q --qf "%{VERSION}\n"  gtk2-devel | cut -d. -f2`
+if [ "x$GTK_MINOR_VER" = "x" -o $GTK_MINOR_VER -lt 6 ]; then
+	echo "likewise-open GUI requires GTK 2.6 or later.  Disabling GTK join tool."
+	RPM_ARGS=--define='enablegui 0'
+fi
+
+rpmbuild "${RPM_ARGS}" -ba ${SPECDIR}/${SPECFILE} 
 
 
 
