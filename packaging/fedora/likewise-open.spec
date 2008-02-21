@@ -1,4 +1,4 @@
-%{!?i386compat: %define i386compat 0}
+%{!?enablegui: %define enablegui 1}
 
 Name:		likewise-open
 Version:	__RPM_VER
@@ -8,8 +8,10 @@ License: 	GPLv3/LGPLv3
 Group: 		System Environment/Daemons
 URL: 		http://www.likewisesoftware.com/
 
-BuildRequires:  krb5-devel, openldap-devel, e2fsprogs-devel, pam-devel
-BuildRequires:  libglade2-devel gtk2-devel, libxml2-devel
+BuildRequires:  krb5-devel, openldap-devel, e2fsprogs-devel, pam-devel, libxml2-devel
+%if %{enablegui}
+BuildRequires:  libglade2-devel gtk2-devel
+%endif
 Requires:       krb5-libs, openldap, pam, e2fsprogs, libxml2
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
@@ -26,10 +28,12 @@ Group:		Applications/System
 Summary:        Likewise Open Active Directory Integration Services (Winbind Client library)
 Group:          System Environment/Daemons
 
+%if %{enablegui}
 %package domainjoin-gui
 Summary:	Likewise Open Active Directory Integration Services (graphical utilities)
 Requires:	likewise-open-domainjoin, libglade2, gtk2
 Group:		Applications/System
+%endif
 
 %description
 Likewise Open provides tools and services necessary to integrate
@@ -42,11 +46,12 @@ users and groups.
 The Likewise Open domain utilities are necessary to join a host to an Active
 Directory domain.  This package includes the command line utilities.
 
+%if %{enablegui}
 %description domainjoin-gui
 The Likewise Open domain utilities are necessary to join a host to an Active
 Directory domain.  This package includes the graphical utilities for desktop
 use.
-
+%endif
 
 %description devel
 The Likewise Open development files allow you to write programs that
@@ -66,13 +71,30 @@ RPM_OPT_FLAGS="-O2 -g -fmessage-length=0 -D_FORTIFY_SOURCE=2"
 CFLAGS="$CFLAGS $RPM_OPT_FLAGS -D_GNU_SOURCE"
 export CFLAGS
 
-## always run autogen.sh
-./autogen.sh
+## Just a bit tricky here.  Don't call top level Configure.sh so
+## we have more control over file placement;
 
-./Configure.sh \
-    --prefix=/usr \
+pushd centutils
+./configure --prefix=%{_prefix} \
+    --libdir=%{_libdir}
+popd
+
+pushd domainjoin
+./configure --prefix=%{_prefix} \
+%if %{enablegui}
+    --with-gtk \
+%endif
+    --with-libxml2-dir=%{prefix} \
+    --libdir=%{_libdir} \
+    --libexecdir=%{_libdir}/%{name} 
+popd
+
+pushd samba/source
+./configure --prefix=%{_prefix} \
+    --with-fhs \
     --localstatedir=/var \
     --with-configdir=%{_sysconfdir}/samba \
+    --libdir=%{_libdir} \
     --with-libdir=%{_libdir}/%{name} \
     --with-lockdir=/var/lib/%{name} \
     --with-logfilebase=/var/log/%{name} \
@@ -81,15 +103,12 @@ export CFLAGS
     --with-privatedir=%{_sysconfdir}/samba \
     --enable-require-wrfile-keytab \
     --with-ads \
-    --with-fhs \
+    --with-pam \
     --without-readline \
     --with-included-popt \
     --with-included-iniparser \
-    --with-pam \
-    --with-gtk \
-    --with-libxml2-dir=/usr \
-    --libexecdir=%{_libdir}/%{name} \
     --with-shared-modules=idmap_lwopen
+popd
 
 make SCRIPTDIR="%{_libdir}/%{name}"
 
@@ -102,20 +121,22 @@ mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/{init.d,samba,security}
 mkdir -p $RPM_BUILD_ROOT/var/{lib,log}/%{name}
 mkdir -p $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 mkdir -p $RPM_BUILD_ROOT/%{_lib}/security
+mkdir -p $RPM_BUILD_ROOT/%{_prefix}/share/likewise-open
 
 ## install the binaries
 make DESTDIR=${RPM_BUILD_ROOT} PREFIX=/usr install
 
 /bin/mv $RPM_BUILD_ROOT/%{_bindir}/lwi-domainjoin-cli $RPM_BUILD_ROOT/%{_bindir}/domainjoin-cli
+
+%if %{enablegui}
 /bin/mv $RPM_BUILD_ROOT/%{_bindir}/domainjoin-gtk $RPM_BUILD_ROOT/%{_bindir}/domainjoin-gui
- 
-mkdir -p $RPM_BUILD_ROOT/%{_prefix}/share/likewise-open
 install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-gtk.glade \
 	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/domainjoin-gtk.glade
 install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-logo.png \
 	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/domainjoin-logo.png
 install -m644 domainjoin/domainjoin-gui/gtk/likewise-logo.png \
 	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/likewise-logo.png
+%endif
 
 
 ## Now manually install the PAM/NSS library
@@ -194,13 +215,18 @@ ldconfig
 %{_libdir}/%{name}/*
 %{_bindir}/domainjoin-cli
 
+%if %{enablegui}
 %files domainjoin-gui
 %defattr(-,root,root)
 %{_bindir}/domainjoin-gui
 %{_prefix}/share/likewise-open/domainjoin-gtk.glade
 %{_prefix}/share/likewise-open/*.png
+%endif
 
 %changelog
+* Wed Feb 20 2008 Gerald Carter <gcarter@likewisesoftware.com>
+- Allow build to disable the graphical domainjoin package
+
 * Wed Jan 23 2008 Gerald Carter <gcarter@likewisesoftware.com>
 - Updated for 4.0.4 release
 
