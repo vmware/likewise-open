@@ -30,31 +30,7 @@ include /usr/share/quilt/quilt.make
 DESTDIR=`pwd`/debian/tmp
 PKGNAME=likewise-open
 PREFIX=/usr
-LIBEXECDIR=$(PREFIX)/lib/likewise-open
-
-conf_args = --with-fhs \
-	--enable-shared \
-	--enable-static \
-	--disable-pie \
-	--prefix=$(PREFIX) \
-	--sysconfdir=/etc \
-	--localstatedir=/var \
-	--libexecdir=$(LIBEXECDIR) \
-	--with-configdir=/etc/samba \
-	--with-libdir=$(PREFIX)/lib/$(PKGNAME) \
-	--with-lockdir=/var/lib/$(PKGNAME) \
-	--with-logfilebase=/var/log/$(PKGNAME) \
-	--with-mandir=/usr/share/man \
-	--with-piddir=/var/run \
-	--with-privatedir=/etc/samba \
-	--with-pammodulesdir=/lib/security \
-	--with-ads \
-	--without-readline --with-included-popt --with-included-iniparser \
-	--with-dnsupdate \
-	--with-pam \
-	--with-libxml2-dir=$(PREFIX)  \
-	--with-shared-modules=idmap_lwopen \
-	--with-gtk
+LIBEXECDIR=$(PREFIX)/lib/$(PKGNAME)
 
 ifeq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
   conf_args += --build $(DEB_BUILD_GNU_TYPE)
@@ -67,8 +43,41 @@ configure: configure-stamp
 configure-stamp: $(QUILT_STAMPFN)
 	dh_testdir
 
-	./autogen.sh
-	./Configure.sh $(conf_args)
+	./autogen.sh 
+
+	## Just a bit tricky here.  Don't call top level Configure.sh so
+	## we have more control over file placement;
+
+	(cd centutils; \
+	 ./configure --prefix=$(PREFIX) \
+	    --libdir=$(PREFIX)/lib)
+
+	(cd domainjoin; \
+	 ./configure --prefix=$(PREFIX) \
+	    --with-gtk \
+	    --with-libxml2-dir=$(PREFIX) \
+	    --libdir=$(PREFIX)/lib \
+	    --libexecdir=$(LIBEXECDIR))
+
+	(cd samba/source; \
+	 ./configure --prefix=$(PREFIX) \
+	    --with-fhs \
+	    --localstatedir=/var \
+	    --with-configdir=/etc/samba \
+	    --libdir=$(PREFIX)/lib \
+	    --with-libdir=$(PREFIX)/lib/$(PKGNAME) \
+	    --with-lockdir=/var/lib/$(PKGNAME) \
+	    --with-logfilebase=/var/log/$(PKGNAME) \
+	    --with-mandir=$(PREFIX)/man \
+	    --with-piddir=/var/run \
+	    --with-privatedir=/etc/samba \
+	    --enable-require-wrfile-keytab \
+	    --with-ads \
+	    --with-pam \
+	    --without-readline \
+	    --with-included-popt \
+	    --with-included-iniparser \
+	    --with-shared-modules=idmap_lwopen)
 
 	touch configure-stamp
 
@@ -101,42 +110,44 @@ install: build
 	$(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
 
 	mkdir -p $(DESTDIR)/usr/lib/
-	mv $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so.0.1
-	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so.0
-	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libwbclient.so
-	(cd $(DESTDIR)/usr/lib && ln -s likewise-open/libwbclient.so.0 libwbclient.so.0)
+	mkdir -p $(DESTDIR)/lib/
+	mkdir -p $(DESTDIR)/usr/share/$(PKGNAME)
 
-	mv $(DESTDIR)/$(PREFIX)/lib/libcentutils.so.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libcentutils.so.1
-	(cd $(DESTDIR)/usr/lib && ln -s -f likewise-open/libcentutils.so.1 libcentutils.so.1)
-	mv $(DESTDIR)/$(PREFIX)/lib/libgpglib.so.1 $(DESTDIR)/$(PREFIX)/lib/likewise-open/libgpglib.so.1
-	(cd $(DESTDIR)/usr/lib && ln -s -f likewise-open/libgpglib.so.1 libgpglib.so.1)
+	mv $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so.0.1
+	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so.0
+	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so
+	(cd $(DESTDIR)/usr/lib && ln -s $(PKGNAME)/libwbclient.so.0 libwbclient.so.0)
+
+	mv $(DESTDIR)/$(PREFIX)/lib/libcentutils.so.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libcentutils.so.1
+	(cd $(DESTDIR)/usr/lib && ln -s -f $(PKGNAME)/libcentutils.so.1 libcentutils.so.1)
+	mv $(DESTDIR)/$(PREFIX)/lib/libgpglib.so.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libgpglib.so.1
+	(cd $(DESTDIR)/usr/lib && ln -s -f $(PKGNAME)/libgpglib.so.1 libgpglib.so.1)
  
 	/bin/mv $(DESTDIR)/usr/bin/lwi-domainjoin-cli $(DESTDIR)/usr/bin/domainjoin-cli
  
 	/bin/mv $(DESTDIR)/usr/bin/domainjoin-gtk $(DESTDIR)/usr/bin/domainjoin-gui
 
-	mkdir -p $(DESTDIR)/usr/share/likewise-open
 	install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-gtk.glade \
-		$(DESTDIR)/usr/share/likewise-open/domainjoin-gtk.glade
+		$(DESTDIR)/usr/share/$(PKGNAME)/domainjoin-gtk.glade
 	install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-logo.png \
-		$(DESTDIR)/usr/share/likewise-open/domainjoin-logo.png
+		$(DESTDIR)/usr/share/$(PKGNAME)/domainjoin-logo.png
 	install -m644 domainjoin/domainjoin-gui/gtk/likewise-logo.png \
-		$(DESTDIR)/usr/share/likewise-open/likewise-logo.png
+		$(DESTDIR)/usr/share/$(PKGNAME)/likewise-logo.png
 
 	install --mode=755 samba/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
 	ln -s libnss_lwidentity.so.2 $(DESTDIR)/lib/libnss_lwidentity.so
 
-	install -D --mode=0644 domainjoin/scripts/Centeris.pm $(DESTDIR)/usr/lib/likewise-open/Centeris.pm
+	install -D --mode=0644 domainjoin/scripts/Centeris.pm $(DESTDIR)/usr/lib/$(PKGNAME)/Centeris.pm
 
 	for file in ConfigureLogin ConfigureShellPrompt gpcron; do \
-		install --mode=0755 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/likewise-open; \
+		install --mode=0755 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/$(PKGNAME); \
 	done
 
 	install -D --mode=0644 debian/lwiauthd.conf $(DESTDIR)/etc/samba/lwiauthd.conf
 
 	install -D --mode=0644 debian/pam_lwidentity.conf $(DESTDIR)/etc/security/pam_lwidentity.conf
 
-	install -D -m 644  debian/likewise-open.lintian $(DESTDIR)/usr/share/lintian/overrides/likewise-open 
+	install -D -m 644  debian/$(PKGNAME).lintian $(DESTDIR)/usr/share/lintian/overrides/$(PKGNAME) 
 
 	dh_install --sourcedir=$(DESTDIR) --list-missing
 
@@ -170,7 +181,7 @@ binary-arch: build install
 	dh_perl
 	dh_makeshlibs
 	dh_installdeb
-	dh_shlibdeps -ldebian/likewise-open/usr/lib/likewise-open
+	dh_shlibdeps -ldebian/$(PKGNAME)/usr/lib/$(PKGNAME)
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
