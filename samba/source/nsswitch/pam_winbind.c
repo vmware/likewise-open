@@ -1198,6 +1198,33 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	WBL_STATE *state = NULL;
 	WBL_STATUS wbl_result;
 
+	if(argc == 1 && !strcmp(argv[0], "set_default_repository"))
+	{
+#ifdef HAVE_STRUCT_PAM_REPOSITORY
+		struct pam_repository *currentRepository = NULL;
+		pam_get_item(pamh, PAM_REPOSITORY, &currentRepository);
+		if(currentRepository == NULL)
+		{
+			struct pam_repository files = { "files", NULL, 0 };
+			if(pam_set_item(pamh, PAM_REPOSITORY, &files) != PAM_SUCCESS)
+			{
+				_pam_log(pamh, state, LOG_WARNING,
+					 "Could not set the pam repository to the default value of 'files'");
+			}
+		}
+		else
+		{
+			_pam_log_debug(pamh, state, LOG_DEBUG,
+					   "The pam repository is already set to %s", currentRepository->type);
+		}
+		return PAM_IGNORE;
+#else
+		_pam_log(pamh, state, LOG_ERR,
+			 "set_default_repository is not a valid option on this system.");
+		return PAM_SERVICE_ERR;
+#endif
+	}
+
 	wbl_result = WblStateCreate(&state, LogToSyslog, MessageToPam, pamh,
 			additionalKeys, PAM_WINBIND_CONFIG_FILE, argc, argv);
 	if(wbl_result != WBL_STATUS_OK)
@@ -1403,6 +1430,11 @@ int pam_sm_setcred(pam_handle_t *pamh, int flags,
 	WBL_STATE *state = NULL;
 	WBL_STATUS wbl_result;
 	const char *username;
+
+	if(argc == 1 && !strcmp(argv[0], "set_default_repository"))
+	{
+		return PAM_IGNORE;
+	}
 
 	wbl_result = WblStateCreate(&state, LogToSyslog, MessageToPam, pamh,
 			NULL, PAM_WINBIND_CONFIG_FILE, argc, argv);

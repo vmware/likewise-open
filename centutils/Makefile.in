@@ -2,7 +2,7 @@ SHELL = /bin/sh
 VPATH = @srcdir@
 
 subdirs=libgpglib libcentutils 
-compatlibdirs=libgpldap
+compatlibdirs=libgpglib libcentutils
 hpuxcompatlibdirs=libgpglib libcentutils
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@

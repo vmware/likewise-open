@@ -1982,14 +1982,14 @@ CTFreeLines(DynamicArray *lines)
 
 CENTERROR
 CTSetCloseOnExec(
-    FILE* handle)
+    int fd)
 {
-    long flags = fcntl(fileno(handle), F_GETFD);
+    long flags = fcntl(fd, F_GETFD);
     if(flags < 0)
         return CTMapSystemError(errno);
 
     flags |= FD_CLOEXEC;
-    if(fcntl(fileno(handle), F_SETFD, flags) < 0)
+    if(fcntl(fd, F_SETFD, flags) < 0)
         return CTMapSystemError(errno);
 
     return CENTERROR_SUCCESS;

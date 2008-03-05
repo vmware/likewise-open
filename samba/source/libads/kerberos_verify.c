@@ -36,7 +36,7 @@ const krb5_data *krb5_princ_component(krb5_context, krb5_principal, int );
  it's more like what microsoft does... see comment in utils/net_ads.c in the
  ads_keytab_add_entry function for details.
 ***********************************************************************************/
-#if 0	/* UNUSED since lwiauthd always looks in secrets.tdb  --jerry */
+#if 0	/* UNUSED since likewise-winbindd always looks in secrets.tdb  --jerry */
 static bool ads_keytab_verify_ticket(krb5_context context,
 					krb5_auth_context auth_context,
 					const DATA_BLOB *ticket,

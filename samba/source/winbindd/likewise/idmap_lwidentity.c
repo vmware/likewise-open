@@ -100,10 +100,8 @@ static NTSTATUS _idmap_likewise_init(struct idmap_domain *dom)
 
 	init_status = cell_locate_membership(ads);
 	if (!NT_STATUS_IS_OK(init_status)) {
-		DEBUG(0,("LWI: Fail to locate cell membership (%s).  "
-			 "Defaulting to local idmap provider\n",
+		DEBUG(0,("LWI: Fail to locate cell membership (%s).",
 			 nt_errstr(init_status)));
-		init_status = cell_set_local_provider();
 		goto done;
 	}
 

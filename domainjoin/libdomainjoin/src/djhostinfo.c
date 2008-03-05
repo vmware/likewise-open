@@ -121,7 +121,7 @@ static CENTERROR SetHPUXHostname(PSTR pszComputerName)
 
   DJ_LOG_INFO("Setting hostname to [%s]", pszComputerName);
 
-  ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+  ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
   BAIL_ON_CENTERIS_ERROR(ceError);
 
   ceError = CTAllocateString("/bin/sh", ppszArgs);
@@ -158,7 +158,7 @@ static CENTERROR SetHPUXHostname(PSTR pszComputerName)
   pProcInfo = NULL;
 
   /* After updating the file, HP-UX wants us to "start" the hostname */
-  ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+  ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
   BAIL_ON_CENTERIS_ERROR(ceError);
 
   ceError = CTAllocateString("/sbin/init.d/hostname", ppszArgs);
@@ -205,7 +205,7 @@ SetAIXHostname(
 
     DJ_LOG_INFO("Setting hostname to [%s]", pszComputerName);
 
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = CTAllocateString("chdev", ppszArgs);
@@ -387,7 +387,7 @@ GetTmpPath(
     PSTR pszTmpPath = NULL;
 
     ceError = CTAllocateMemory(strlen(pszOriginalPath)+strlen(pszSuffix)+1,
-                               (PVOID*)&pszTmpPath);
+                               PPCAST(&pszTmpPath));
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     strcpy(pszTmpPath, pszOriginalPath);
@@ -763,7 +763,7 @@ DJGetMachineSID(
 
     nArgs = 3;
 
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = CTAllocateString(szCmd, ppszArgs);
@@ -873,7 +873,7 @@ DJSetMachineSID(
 
     nArgs = 4;
 
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = CTAllocateString(szCmd, ppszArgs);
@@ -946,7 +946,7 @@ FixNetworkInterfaces(
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
         nArgs = 4;
-        ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+        ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
         ceError = CTAllocateString("/bin/sed", ppszArgs);
@@ -1051,7 +1051,7 @@ FixNetworkInterfaces(
     }
 
     nArgs = 3;
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
     ceError = CTAllocateString("/bin/hostname", ppszArgs);
@@ -1119,6 +1119,8 @@ static QueryResult QueryDescriptionSetHostname(const JoinProcessOptions *options
     PHOSTSFILELINE pHostsFileLineList = NULL;
     BOOLEAN describedFqdn = FALSE;
     QueryResult result = CannotConfigure;
+    BOOLEAN modified = FALSE;
+    CENTERROR ceError = CENTERROR_SUCCESS;
 
     if(!options->joiningDomain)
     {
@@ -1211,18 +1213,35 @@ static QueryResult QueryDescriptionSetHostname(const JoinProcessOptions *options
         CT_SAFE_FREE_STRING(oldShortHostname);
     }
 
-    LW_CLEANUP_CTERR(exc, DJParseHostsFile(&pHostsFileLineList));
+    LW_CLEANUP_CTERR(exc, DJParseHostsFile("/etc/hosts", &pHostsFileLineList));
     LW_CLEANUP_CTERR(exc, DJReplaceHostnameInMemory(
                 pHostsFileLineList,
                 oldShortHostname, oldFqdnHostname,
                 options->computerName, options->domainName));
+    modified |= DJHostsFileWasModified(pHostsFileLineList);
+    if (pHostsFileLineList)
+        DJFreeHostsFileLineList(pHostsFileLineList);
+    ceError = DJParseHostsFile("/etc/hosts", &pHostsFileLineList);
+    if(ceError == CENTERROR_INVALID_FILENAME)
+    {
+        ceError = CENTERROR_SUCCESS;
+    }
+    else if(CENTERROR_IS_OK(ceError))
+    {
+        LW_CLEANUP_CTERR(exc, DJReplaceHostnameInMemory(
+                    pHostsFileLineList,
+                    oldShortHostname, oldFqdnHostname,
+                    options->computerName, options->domainName));
+        modified |= DJHostsFileWasModified(pHostsFileLineList);
+    }
+    LW_CLEANUP_CTERR(exc, ceError);
 
-    if (DJHostsFileWasModified(pHostsFileLineList) && !describedFqdn) {
+    if (modified && !describedFqdn) {
         LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&newValue,
 "%s\n"
-"\tSet the fqdn in /etc/hosts. This will preserve the fqdn even when the DNS server is unreachable. This will be performed with these steps:\n"
+"\tSet the fqdn in /etc/hosts and /etc/inet/ipnodes. This will preserve the fqdn even when the DNS server is unreachable. This will be performed with these steps:\n"
 "\t\t* Making sure local comes before bind in nsswitch\n"
-"\t\t* Adding the fqdn before all entries in /etc/hosts that contain the short hostname and removing the old fqdn if it appears on the line\n"
+"\t\t* Adding the fqdn before all entries in /etc/hosts and /etc/inet/ipnodes that contain the short hostname and removing the old fqdn if it appears on the line\n"
 "\t\t* Restart nscd (if running) to flush the DNS cache"
         , optional, oldFqdnHostname, newFqdn));
         CT_SAFE_FREE_STRING(optional);
@@ -1292,11 +1311,11 @@ static void DoSetHostname(JoinProcessOptions *options, LWException **exc)
 
     DJRestartIfRunning("nscd", &inner);
     if(!LW_IS_OK(inner) && inner->code == CENTERROR_FILE_NOT_FOUND)
-        LW_HANDLE(inner);
+        LW_HANDLE(&inner);
     LW_CLEANUP(exc, inner);
 
 cleanup:
-    LW_HANDLE(inner);
+    LW_HANDLE(&inner);
 }
 
 static PSTR GetSetHostnameDescription(const JoinProcessOptions *options, LWException **exc)
@@ -1428,8 +1447,16 @@ DJSetComputerName(
         CTFreeString(oldShortHostname);
         oldShortHostname = NULL;
     }
-    ceError = DJReplaceNameInHostsFile(oldShortHostname, oldFqdnHostname,
-                                       pszComputerName, pszDnsDomainName);
+    ceError = DJReplaceNameInHostsFile("/etc/hosts",
+            oldShortHostname, oldFqdnHostname,
+            pszComputerName, pszDnsDomainName);
+    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+
+    ceError = DJReplaceNameInHostsFile("/etc/inet/ipnodes",
+            oldShortHostname, oldFqdnHostname,
+            pszComputerName, pszDnsDomainName);
+    if(ceError == CENTERROR_INVALID_FILENAME)
+        ceError = CENTERROR_SUCCESS;
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
 #if defined(__LWI_SOLARIS__)

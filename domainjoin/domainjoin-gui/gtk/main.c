@@ -42,6 +42,7 @@
 #include <djlogger.h>
 #include <djmodule.h>
 #include <djhostinfo.h>
+#include <ctstrutils.h>
 
 FILE* log_handle;
 
@@ -268,12 +269,20 @@ typedef struct JoinInfo
     gboolean noModifyHosts;
 } JoinInfo;
 
-void PrintWarning(JoinProcessOptions *options, const char *title, const char *message)
+static void PrintWarning(JoinProcessOptions *options, const char *title, const char *message)
 {
     LWException *_exc = NULL;
-    LW_RAISE_EX(&_exc, CENTERROR_SUCCESS, title, "%s", message);
-    joinprogress_raise_error((JoinProgressDialog *)options->userData, _exc);
+    PSTR warningTitle = NULL;
+    if(CENTERROR_IS_OK(CTAllocateStringPrintf(&warningTitle, "Warning: %s", title)))
+    {
+        LW_RAISE_EX(&_exc, CENTERROR_DOMAINJOIN_WARNING, warningTitle, "%s", message);
+        gdk_threads_enter();
+        show_error_dialog(joinprogress_get_gtk_window(
+                    (JoinProgressDialog *)options->userData), _exc);
+        gdk_threads_leave();
+    }
     LW_HANDLE(&_exc);
+    CT_SAFE_FREE_STRING(warningTitle);
 }
 
 static void*
@@ -294,7 +303,7 @@ join_worker(gpointer data)
         if(hostnameState != NULL)
             hostnameState->runModule = FALSE;
     }
-    else
+    else if(hostnameState->lastResult < FullyConfigured)
         hostnameState->runModule = TRUE;
     options->userData = dialog;
     options->warningCallback = PrintWarning;
@@ -531,7 +540,12 @@ ensure_gtk_version(int major, int minor, int micro, LWException** exc)
     {
 	LW_RAISE_EX(exc, CENTERROR_INCOMPATIBLE_LIBRARY,
 		    "Incompatible library detected", 
+<<<<<<< HEAD:domainjoin-gui/gtk/main.c
+		    "%s.  Likewise does not support graphical domain joins on this platform.  "
+=======
 		    "%s.  Likewise Open does not support graphical domain joins on this platform.  "
+>>>>>>> Rename string referring to "Likewise Enterprise" to "Likewise Open".
+Update paths from "likewise" to "likewise-open":domainjoin-gui/gtk/main.c
 		    "Please use the command-line domain join application instead.",
 		    msg);
     }

@@ -706,6 +706,9 @@ DJConfigureHostsEntry(const char *testPrefix)
     if(testPrefix == NULL)
         testPrefix = "";
 
+    memset(&distro, 0, sizeof(distro));
+    memset(&conf, 0, sizeof(conf));
+
     GCE(ceError = DJGetDistroInfo(testPrefix, &distro));
 
     ceError = ReadNsswitchConf(&conf, testPrefix, TRUE);

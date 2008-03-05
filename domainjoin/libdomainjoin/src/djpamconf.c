@@ -289,11 +289,11 @@ static CENTERROR ParsePamLine(struct PamLine *lineObj, const char *filename, con
      * makes sure that pos is not pointing to '\n' or '\r'. pos will not be
      * pointing to a space or tab anyway.
      */
-    while(!isspace(*pos) && *pos != '\0' && *pos != '#')
+    while(!isspace((int)*pos) && *pos != '\0' && *pos != '#')
     {
         CTParseToken token;
         token_start = pos;
-        while(!isspace(*pos) && *pos != '\0' && *pos != '#')
+        while(!isspace((int)*pos) && *pos != '\0' && *pos != '#')
         {
             if(*pos == '[')
             {
@@ -1091,7 +1091,7 @@ static BOOLEAN PamModulePrompts( const char * phase, const char * module)
      * check the user's password. However, the module will still return
      * PAM_IGNORE if the user isn't logging in from NIS.
      */
-    if(!strcmp(buffer, "pam_dhkeys"))
+    if(!strcmp(buffer, "pam_dhkeys") && !strcmp(phase, "auth"))
         return TRUE;
     if(!strcmp(buffer, "pam_aix"))
         return TRUE;
@@ -1110,6 +1110,9 @@ static BOOLEAN PamModulePrompts( const char * phase, const char * module)
         return TRUE;
     //This was found on Ubuntu Gutsy. It is used for pure-ftpd
     if(!strcmp(buffer, "pam_ftp"))
+        return TRUE;
+    //Found on RHEL 2.1 AS. Fixes bug #5374
+    if(!strcmp(buffer, "pam_smb_auth"))
         return TRUE;
 
     /* pam_lwidentity will only prompt for domain users during the password phase. All in all, it doesn't store passwords for subsequent modules in the password phase. */
@@ -1238,6 +1241,12 @@ static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char
     if(PamModuleIsLwiPassPolicy(phase, module))
         return TRUE;
 
+    /* The password change prompts are out of order if our module is installed
+     * before pam_authtok_get, which comes after pam_dhkeys on Solaris 8.
+     */
+    if(!strcmp(buffer, "pam_dhkeys") && !strcmp(phase, "password"))
+        return FALSE;
+
     /* Assume that if it prompts for a password, it will complain about a
      * domain user
      */
@@ -1306,8 +1315,14 @@ struct ConfigurePamModuleState
      */
     BOOLEAN sawDomainUserGrantingLine;
 
+    /* On Solaris, pam_lwidentity has to be called with 'set_default_repository' at the beginning of the auth stage in order for password changes to work. Later on pam_lwidentity has to also be installed without 'set_default_repository'.
+     */
+    BOOLEAN hasSetDefaultRepository;
+
     int includeLevel;
 };
+
+void GetModuleControl(struct PamLine *lineObj, const char **module, const char **control);
 
 static CENTERROR PamOldCenterisDisable(struct PamConf *conf, const char *service, const char * phase, struct ConfigurePamModuleState *state)
 {
@@ -1324,15 +1339,7 @@ static CENTERROR PamOldCenterisDisable(struct PamConf *conf, const char *service
     while(line != -1)
     {
         lineObj = &conf->lines[line];
-        if(lineObj->module == NULL)
-            module = "";
-        else
-            module = lineObj->module->value;
-
-        if(lineObj->control == NULL)
-            control = "";
-        else
-            control = lineObj->control->value;
+        GetModuleControl(lineObj, &module, &control);
 
         DJ_LOG_VERBOSE("Looking at entry %s %s %s %s", service, phase, control, module);
 
@@ -1365,6 +1372,32 @@ static CENTERROR PamOldCenterisDisable(struct PamConf *conf, const char *service
 error:
     CT_SAFE_FREE_STRING(includeService);
     return ceError;
+}
+
+
+void GetModuleControl(struct PamLine *lineObj, const char **module, const char **control)
+{
+    if(lineObj->module == NULL)
+        *module = "";
+    else
+        *module = lineObj->module->value;
+
+    if(lineObj->control == NULL)
+        *control = "";
+    else
+        *control = lineObj->control->value;
+
+    /* It is easier to treat "pam_lwidentity.so set_default_repository" as a
+     * different module than pam_lwidentity.so because it acts completely
+     * different.
+     */
+    if(lineObj->optionCount == 1 && !strcmp(lineObj->options[0].value, "set_default_repository"))
+    {
+        char buffer[256];
+        NormalizeModuleName( buffer, *module, sizeof(buffer));
+        if(!strcmp(buffer, "pam_lwidentity"))
+            *module = "pam_lwidentity_set_repo";
+    }
 }
 
 static CENTERROR PamLwidentityDisable(struct PamConf *conf, const char *service, const char * phase, const char *pam_lwidentity, struct ConfigurePamModuleState *state)
@@ -1411,15 +1444,7 @@ static CENTERROR PamLwidentityDisable(struct PamConf *conf, const char *service,
     while(line != -1)
     {
         lineObj = &conf->lines[line];
-        if(lineObj->module == NULL)
-            module = "";
-        else
-            module = lineObj->module->value;
-
-        if(lineObj->control == NULL)
-            control = "";
-        else
-            control = lineObj->control->value;
+        GetModuleControl(lineObj, &module, &control);
 
         DJ_LOG_VERBOSE("Looking at entry %s %s %s %s", service, phase, control, module);
 
@@ -1436,7 +1461,8 @@ static CENTERROR PamLwidentityDisable(struct PamConf *conf, const char *service,
             BAIL_ON_CENTERIS_ERROR(ceError);
         }
 
-        if(PamModuleIsLwidentity(phase, module))
+        if(PamModuleIsLwidentity(phase, module) ||
+                !strcmp(module, "pam_lwidentity_set_repo"))
         {
             DJ_LOG_INFO("Removing pam_lwidentity from service %s", service);
             BAIL_ON_CENTERIS_ERROR(ceError = RemoveLine(conf, &line));
@@ -1597,15 +1623,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
     while(line != -1)
     {
         lineObj = &conf->lines[line];
-        if(lineObj->module == NULL)
-            module = "";
-        else
-            module = lineObj->module->value;
-
-        if(lineObj->control == NULL)
-            control = "";
-        else
-            control = lineObj->control->value;
+        GetModuleControl(lineObj, &module, &control);
 
         DJ_LOG_VERBOSE("Looking at entry %s %s %s %s", service, phase, control, module);
 
@@ -1692,6 +1710,26 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
             lineObj = &conf->lines[line];
             CT_SAFE_FREE_STRING(lineObj->control->value);
             LW_CLEANUP_CTERR(exc, CTStrdup("sufficient", &lineObj->control->value));
+        }
+
+        if(!strcmp(module, "pam_lwidentity_set_repo"))
+            state->hasSetDefaultRepository = TRUE;
+
+        if(distro->os == OS_SUNOS && !state->hasSetDefaultRepository &&
+                !strcmp(phase, "auth") && PamModulePrompts(phase, module))
+        {
+            int newLine = -1;
+            LW_CLEANUP_CTERR(exc, CopyLine(conf, line, &newLine));
+            LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->control, lineObj->phase, "requisite"));
+            LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->module, lineObj->control, pam_lwidentity));
+            lineObj->optionCount = 0;
+            LW_CLEANUP_CTERR(exc, AddOption(conf, line, "set_default_repository"));
+
+            line = newLine;
+            lineObj = &conf->lines[newLine];
+            GetModuleControl(lineObj, &module, &control);
+
+            state->hasSetDefaultRepository = TRUE;
         }
 
         if(PamModuleAlwaysDeniesDomainLogins(phase, module) && (
@@ -2048,15 +2086,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
     while(line != -1 && !state->sawPromptingModule)
     {
         lineObj = &conf->lines[line];
-        if(lineObj->module == NULL)
-            module = "";
-        else
-            module = lineObj->module->value;
-
-        if(lineObj->control == NULL)
-            control = "";
-        else
-            control = lineObj->control->value;
+        GetModuleControl(lineObj, &module, &control);
 
         DJ_LOG_VERBOSE("Looking at entry %s %s %s %s", service, phase, control, module);
         if(PamModulePrompts(phase, module))
@@ -2119,15 +2149,7 @@ static CENTERROR PamLwiPassPolicyDisable(struct PamConf *conf, const char *servi
     while(line != -1)
     {
         lineObj = &conf->lines[line];
-        if(lineObj->module == NULL)
-            module = "";
-        else
-            module = lineObj->module->value;
-
-        if(lineObj->control == NULL)
-            control = "";
-        else
-            control = lineObj->control->value;
+        GetModuleControl(lineObj, &module, &control);
 
         DJ_LOG_VERBOSE("Looking at entry %s %s %s %s", service, phase, control, module);
 
@@ -2214,15 +2236,7 @@ static CENTERROR PamLwiPassPolicyEnable(struct PamConf *conf, const char *servic
     while(line != -1)
     {
         lineObj = &conf->lines[line];
-        if(lineObj->module == NULL)
-            module = "";
-        else
-            module = lineObj->module->value;
-
-        if(lineObj->control == NULL)
-            control = "";
-        else
-            control = lineObj->control->value;
+        GetModuleControl(lineObj, &module, &control);
 
         DJ_LOG_VERBOSE("Looking at entry %s %s %s %s", service, phase, control, module);
 
@@ -2730,7 +2744,7 @@ ConfigurePamForADLogin(
         /* So we found the file to start and stop dtlogin, but is dtlogin
          * running now?
          */
-        ceError = CTGetPidOfCmdLine("dtrc", "/sbin/sh /usr/dt/bin/dtrc", 0, &dtrcPid, NULL);
+        ceError = CTGetPidOfCmdLine("dtrc", NULL, "/sbin/sh /usr/dt/bin/dtrc", 0, &dtrcPid, NULL);
         if(ceError == CENTERROR_NO_SUCH_PROCESS)
         {
             DJ_LOG_INFO("Dtrc is not running");
@@ -2843,15 +2857,7 @@ static CENTERROR IsLwidentityEnabled(struct PamConf *conf, const char *service, 
     while(line != -1)
     {
         lineObj = &conf->lines[line];
-        if(lineObj->module == NULL)
-            module = "";
-        else
-            module = lineObj->module->value;
-
-        if(lineObj->control == NULL)
-            control = "";
-        else
-            control = lineObj->control->value;
+        GetModuleControl(lineObj, &module, &control);
 
         CT_SAFE_FREE_STRING(includeService);
         BAIL_ON_CENTERIS_ERROR(ceError = GetIncludeName(lineObj, &includeService));

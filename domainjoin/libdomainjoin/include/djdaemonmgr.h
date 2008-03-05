@@ -27,10 +27,11 @@
 
 #include "djmodule.h"
 
-CENTERROR
+void
 DJGetDaemonStatus(
-    PSTR pszName,
-    PBOOLEAN pbStatus
+    PSTR pszDaemonPath,
+    PBOOLEAN pbStarted,
+    LWException **exc
     );
 
 void

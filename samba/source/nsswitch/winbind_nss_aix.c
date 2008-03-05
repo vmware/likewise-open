@@ -1795,8 +1795,13 @@ static int wb_aix_getentry(char *key, char *table, char *attributes[],
     int result;
 	list_destroy(&getentry_memlist[getentry_memlist_index]);
 	result = __wb_aix_getentry(&getentry_memlist[getentry_memlist_index], key, table, attributes, results, size);
-    getentry_memlist_index = 
-        (getentry_memlist_index+1) % (sizeof(getentry_memlist)/sizeof(getentry_memlist[0]));
+    /* If 0 results are being returned, then we can reuse the same memlist
+       index next time. Otherwise, choose a new index for next time. */
+    if(size > 0)
+    {
+        getentry_memlist_index = (getentry_memlist_index+1) %
+            (sizeof(getentry_memlist)/sizeof(getentry_memlist[0]));
+    }
     return result;
 }
 

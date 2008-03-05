@@ -45,5 +45,6 @@ void joinprogress_raise_error(JoinProgressDialog* dialog, LWException* exc);
 LWException* joinprogress_get_error(JoinProgressDialog* dialog);
 void joinprogress_done(JoinProgressDialog* dialog);
 void joinprogress_delete(JoinProgressDialog* dialog);
+GtkWindow* joinprogress_get_gtk_window(JoinProgressDialog* dialog);
 
 #endif

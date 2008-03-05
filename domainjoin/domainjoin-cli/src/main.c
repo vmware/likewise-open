@@ -663,7 +663,7 @@ void DoConfigure(int argc, char **argv, LWException **exc)
         LW_CLEANUP_CTERR(exc, DJConfigureNameServiceSwitch(testPrefix,
                 GetEnableBoolean(dwEnable)));
     else if(!strcmp(argv[0], "ssh"))
-        LW_TRY(exc, DJConfigureSshForADLogin(testPrefix, GetEnableBoolean(dwEnable), &LW_EXC));
+        LW_TRY(exc, DJConfigureSshForADLogin(testPrefix, GetEnableBoolean(dwEnable), NULL, &LW_EXC));
     else if(!strcmp(argv[0], "krb5"))
         LW_CLEANUP_CTERR(exc, DJModifyKrb5Conf(testPrefix,
             GetEnableBoolean(dwEnable), longDomain, shortDomain, NULL));
@@ -809,8 +809,15 @@ int main(
                !strcmp(pszLogFilePath, ".")) {
         LW_CLEANUP_CTERR(&exc, dj_init_logging_to_console(dwLogLevel));
     } else {
-        LW_CLEANUP_CTERR(&exc, dj_init_logging_to_file(dwLogLevel,
-                                          pszLogFilePath));
+        CENTERROR ceError = dj_init_logging_to_file(dwLogLevel, pszLogFilePath);
+        if(ceError == CENTERROR_ACCESS_DENIED)
+        {
+            fprintf(stderr, "Warning: insufficient permissions to log to %s. To enable logging, please specify a different filename with --log <file>.\n",
+                    pszLogFilePath);
+            ceError = CENTERROR_SUCCESS;
+            LW_CLEANUP_CTERR(&exc, dj_disable_logging());
+        }
+        LW_CLEANUP_CTERR(&exc, ceError);
     }
 
     if(!strcmp(argv[0], "setname"))

@@ -45,7 +45,7 @@ alias_replacement()
     eval "$name() { $value \"\$@\"; }"
 }
 
-if type shopt; then
+if type shopt >/dev/null 2>&1; then
     shopt -s expand_aliases 1>/dev/null 2>/dev/null
 fi
 alias aliastest=echo
@@ -90,7 +90,7 @@ fi
 
 not_replacement()
 {
-    `"$@"` && return 1
+    "$@" && return 1
     return 0
 }
 # This replaces the ! builtin. However Solaris provides no way of defining a
@@ -628,6 +628,11 @@ NsswitchRestart()
 
     if not GracefulNscdRestart; then
         echo "Could not restart name service cache daemon (nscd)" >&2
+        nsswitch_rc=1
+    fi
+
+    if not GracefulSSHDRestart; then
+        echo "Could not restart sshd" >&2
         nsswitch_rc=1
     fi
     return $nsswitch_rc

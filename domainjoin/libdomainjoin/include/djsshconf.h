@@ -28,6 +28,7 @@
 void DJConfigureSshForADLogin(
     const char * testPrefix,
     BOOLEAN enable,
+    JoinProcessOptions *options,
     LWException **exc
     );
 

@@ -619,6 +619,7 @@ static NTSTATUS discover_dc_dns(TALLOC_CTX *mem_ctx,
 
 		if (!(flags & DS_IP_REQUIRED)) {
 			(*return_count)++;
+			i++;
 			continue;
 		}
 
@@ -734,7 +735,7 @@ static NTSTATUS make_domain_controller_info(TALLOC_CTX *mem_ctx,
 static NTSTATUS process_dc_dns(TALLOC_CTX *mem_ctx,
 			       const char *domain_name,
 			       uint32_t flags,
-			       struct ip_service_name **dclist,
+			       struct ip_service_name *dclist,
 			       int num_dcs,
 			       struct DS_DOMAIN_CONTROLLER_INFO **info)
 {
@@ -751,7 +752,7 @@ static NTSTATUS process_dc_dns(TALLOC_CTX *mem_ctx,
 
 		ZERO_STRUCT(r);
 
-		if ((ads_cldap_netlogon(dclist[i]->hostname,
+		if ((ads_cldap_netlogon(dclist[i].hostname,
 					domain_name, &r)) &&
 		    (check_cldap_reply_required_flags(r.flags, flags))) {
 			valid_dc = true;
@@ -789,7 +790,7 @@ static NTSTATUS process_dc_dns(TALLOC_CTX *mem_ctx,
 
 	if (flags & DS_IP_REQUIRED) {
 		char addr[INET6_ADDRSTRLEN];
-		print_sockaddr(addr, sizeof(addr), &dclist[i]->ss);
+		print_sockaddr(addr, sizeof(addr), &dclist[i].ss);
 		dc_address = talloc_asprintf(mem_ctx, "\\\\%s",
 						addr);
 		dc_address_type = ADS_INET_ADDRESS;
@@ -867,7 +868,7 @@ static NTSTATUS dsgetdcname_rediscover(TALLOC_CTX *mem_ctx,
 		NT_STATUS_NOT_OK_RETURN(status);
 
 		return process_dc_dns(mem_ctx, domain_name, flags,
-				      &dclist, num_dcs, info);
+				      dclist, num_dcs, info);
 	}
 
 	status = discover_dc_dns(mem_ctx, domain_name, domain_guid, flags,
@@ -875,7 +876,7 @@ static NTSTATUS dsgetdcname_rediscover(TALLOC_CTX *mem_ctx,
 
 	if (NT_STATUS_IS_OK(status) && num_dcs != 0) {
 
-		status = process_dc_dns(mem_ctx, domain_name, flags, &dclist,
+		status = process_dc_dns(mem_ctx, domain_name, flags, dclist,
 					num_dcs, info);
 		if (NT_STATUS_IS_OK(status)) {
 			return status;

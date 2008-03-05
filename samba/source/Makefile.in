@@ -1081,12 +1081,7 @@ bin/pam_lwidentity.@SHLIBEXT@: bin/pam_winbind.@SHLIBEXT@
 	@$(SHLD) $(WINBIND_NSS_LDSHFLAGS) -o $@ $(WINBIND_NSS_OBJ) \
 		@WINBIND_NSS_EXTRA_LIBS@ @WINBIND_NSS_PTHREAD@ @SONAMEFLAG@`basename $@`@NSSSONAMEVERSIONSUFFIX@
 
-
 bin/likewise-winbindd@EXEEXT@: bin/winbindd@EXEEXT@
-	@if test -f $@; then /bin/rm $@; fi
-	@ln -f bin/winbindd@EXEEXT@ $@
-
-bin/lwiauthd@EXEEXT@: bin/winbindd@EXEEXT@
 	@if test -f $@; then /bin/rm $@; fi
 	@ln -f bin/winbindd@EXEEXT@ $@
 
@@ -1125,7 +1120,7 @@ bin/lwopen.@SHLIBEXT@: $(IDMAP_LWOPEN_OBJ)
 
 LWI_PROGS = bin/lwiinfo@EXEEXT@ bin/lwimsg@EXEEXT@ \
 	    bin/lwinet@EXEEXT@ bin/lwismbclient@EXEEXT@  \
-	    bin/lwiauthd@EXEEXT@ bin/likewise-winbindd@EXEEXT@ \
+	    bin/likewise-winbindd@EXEEXT@ \
 	    bin/pam_lwidentity.@SHLIBEXT@ @WINBIND_NSS_LWI@
 
 centeris-auth: likewise

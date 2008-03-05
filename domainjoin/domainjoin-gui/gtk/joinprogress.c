@@ -224,3 +224,9 @@ joinprogress_run(JoinProgressDialog* dialog)
 {
     return gtk_dialog_run(dialog->dialog);
 }
+
+GtkWindow*
+joinprogress_get_gtk_window(JoinProgressDialog* dialog)
+{
+    return GTK_WINDOW(dialog->dialog);
+}

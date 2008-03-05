@@ -25,6 +25,8 @@
 #ifndef __CTMEM_H__
 #define __CTMEM_H__
 
+#define PPCAST(x)  ((void **)(void *)(x))
+
 CENTERROR
 CTAllocateMemory(
     DWORD dwSize,

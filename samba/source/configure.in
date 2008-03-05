@@ -1884,12 +1884,11 @@ DSO_EXPORTS=""
 		*hpux*) AC_DEFINE(HPUX,1,[Whether the host os is HPUX])
 			# Use special PIC flags for the native HP-UX compiler.
 			BLDSHARED="true"
-			SHLD="cc"
+			SHLD="${CC}"
 			LDSHFLAGS="-b -Wl,-B,symbolic,-b,-z"
 			SONAMEFLAG="-Wl,+h"
 			PICFLAG="+z"
 			if test "${GCC}" = "yes"; then
-				SHLD="gcc"
 				LDSHFLAGS="-shared -Wl,-B,symbolic,-b,-z $HP_LDSHFLAGS"
 				PICFLAG="-fPIC"
 			else
@@ -3064,6 +3063,7 @@ AC_TRY_RUN([
 #define SOCKET_WRAPPER_NOT_REPLACE
 #include "${srcdir-.}/lib/replace/replace.c"
 #include "${srcdir-.}/lib/replace/snprintf.c"
+#include "${srcdir-.}/lib/replace/getaddrinfo.c"
 #include "${srcdir-.}/lib/interfaces.c"],
            samba_cv_HAVE_IFACE_IFCONF=yes,samba_cv_HAVE_IFACE_IFCONF=no,samba_cv_HAVE_IFACE_IFCONF=cross)])
 CPPFLAGS="$SAVE_CPPFLAGS"
@@ -4659,6 +4659,11 @@ if test x"${try_pam}" != x"no";then
 		use_pam=no
 		create_pam_modules=no
 	fi
+	AC_CHECK_TYPES([struct pam_repository], [], [],[[
+            #ifdef HAVE_SECURITY_PAM_APPL_H
+            #include <security/pam_appl.h>
+            #endif
+        ]])
 
 	AC_CHECK_LIB_EXT(pam, PAM_LIBS, pam_get_data)
 	if test x"$ac_cv_lib_ext_pam_pam_get_data" != x"yes"; then

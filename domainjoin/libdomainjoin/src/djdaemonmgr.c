@@ -33,30 +33,34 @@ static QueryResult QueryStopDaemons(const JoinProcessOptions *options, LWExcepti
 {
     BOOLEAN running;
     QueryResult result = FullyConfigured;
-    CENTERROR ceError = CENTERROR_SUCCESS;
+    LWException *inner = NULL;
 
     /* Check for lwiauthd and likewise-open */
 
-    ceError =  DJGetDaemonStatus("centeris.com-lwiauthd", &running);
-    if (ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON) {
-        ceError =  DJGetDaemonStatus("likewise-open", &running);
+    DJGetDaemonStatus("centeris.com-lwiauthd", &running, &inner);
+    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+    {
+        LW_HANDLE(&inner);
+        DJGetDaemonStatus("likewise-open", &running, &inner);
     }
+    LW_CLEANUP(exc, inner);
 
-    LW_CLEANUP_CTERR(exc, ceError);
     if(running)
         result = NotConfigured;
 
-    ceError = DJGetDaemonStatus("centeris.com-gpagentd", &running);
-    if (ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON) {
+    DJGetDaemonStatus("centeris.com-gpagentd", &running, &inner);
+    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+    {
         /* The gpagentd may not be installed so ignore */
         goto cleanup;
     }
+    LW_CLEANUP(exc, inner);
 
-    LW_CLEANUP_CTERR(exc, ceError);
     if(running)
         result = NotConfigured;
 
 cleanup:
+    LW_HANDLE(&inner);
     return result;
 }
 
@@ -70,7 +74,7 @@ cleanup:
 static PSTR GetStopDescription(const JoinProcessOptions *options, LWException **exc)
 {
     PSTR ret = NULL;
-    LW_CLEANUP_CTERR(exc, CTStrdup("Run '/etc/init.d/centeris.com-gpagentd stop'\nRun '/etc/init.d/centeris.com-lwiauthd stop'\n", &ret));
+    LW_CLEANUP_CTERR(exc, CTStrdup("Run '/etc/init.d/centeris.com-gpagentd stop'\nRun '/etc/init.d/likewise-open stop'\n", &ret));
 cleanup:
     return ret;
 }
@@ -83,6 +87,7 @@ static QueryResult QueryStartDaemons(const JoinProcessOptions *options, LWExcept
     QueryResult result = FullyConfigured;
     const ModuleState *stopState = DJGetModuleStateByName((JoinProcessOptions *)options, "stop");
     CENTERROR ceError = CENTERROR_SUCCESS;
+    LWException *inner = NULL;
 
     if(!options->joiningDomain)
     {
@@ -92,20 +97,25 @@ static QueryResult QueryStartDaemons(const JoinProcessOptions *options, LWExcept
 
     /* Check for lwiauthd and likewise-open */
 
-    ceError =  DJGetDaemonStatus("centeris.com-lwiauthd", &running);
-    if (ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON) {
-        ceError =  DJGetDaemonStatus("likewise-open", &running);
+    DJGetDaemonStatus("centeris.com-lwiauthd", &running, &inner);
+    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+    {
+        LW_HANDLE(&inner);
+        DJGetDaemonStatus("likewise-open", &running, &inner);
     }
+    LW_CLEANUP(exc, inner);
 
-    LW_CLEANUP_CTERR(exc, ceError);
     if(!running)
         result = NotConfigured;
     
-    ceError = DJGetDaemonStatus("centeris.com-gpagentd", &running);
-    if (ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON) {
+    DJGetDaemonStatus("centeris.com-gpagentd", &running, &inner);
+    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+    {
         /* The gpagentd may not be installed so ignore */
-        goto cleanup;
+        LW_HANDLE(&inner);
+        running = TRUE;
     }
+    LW_CLEANUP(exc, inner);
 
     LW_CLEANUP_CTERR(exc, ceError);
     if(!running)
@@ -115,6 +125,7 @@ static QueryResult QueryStartDaemons(const JoinProcessOptions *options, LWExcept
         result = NotConfigured;
 
 cleanup:
+    LW_HANDLE(&inner);
     return result;
 }
 
@@ -133,7 +144,7 @@ static PSTR GetStartDescription(const JoinProcessOptions *options, LWException *
     LW_CLEANUP_CTERR(exc, CTStrdup(
 "rm /var/lib/lwidentity/*_cache.tdb\n"
 "Run '/etc/init.d/centeris.com-gpagentd start'\n"
-"Run '/etc/init.d/centeris.com-lwiauthd start'\n"
+"Run '/etc/init.d/likewise-open start'\n"
 "Configure daemons to start automatically on reboot\n"
         , &ret));
 cleanup:
@@ -145,17 +156,41 @@ const JoinModule DJDaemonStartModule = { TRUE, "start", "start daemons", QuerySt
 void DJRestartIfRunning(PCSTR daemon, LWException **exc)
 {
     BOOLEAN running;
+    PSTR initPath = NULL;
     PSTR daemonPath = NULL;
+    CENTERROR ceError;
 
-    LW_CLEANUP_CTERR(exc, CTFindFileInPath(daemon, "/etc/init.d:/etc/rc.d/init.d", &daemonPath));
+    LW_CLEANUP_CTERR(exc, CTFindFileInPath(daemon, "/etc/init.d:/etc/rc.d/init.d", &initPath));
+    DJ_LOG_INFO("Found '%s' at '%s'", daemon, initPath);
 
-    LW_CLEANUP_CTERR(exc, DJGetDaemonStatus(daemonPath, &running));
+    LW_TRY(exc, DJGetDaemonStatus(initPath, &running, &LW_EXC));
     if(!running)
-        goto cleanup;
+    {
+        //The nscd init script on Solaris does not support the query option,
+        //so it looks like the daemon is never running. So we'll run a ps
+        //command and HUP the daemon if it is running
 
-    LW_TRY(exc, DJStartStopDaemon(daemonPath, FALSE, NULL, &LW_EXC));
-    LW_TRY(exc, DJStartStopDaemon(daemonPath, TRUE, NULL, &LW_EXC));
+        pid_t daemonPid;
+        LW_CLEANUP_CTERR(exc, CTFindFileInPath(daemon, "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", &daemonPath));
+        ceError = CTGetPidOfCmdLine(NULL, daemonPath, NULL, 0, &daemonPid, NULL);
+        if(ceError == CENTERROR_NO_SUCH_PROCESS || ceError == CENTERROR_NOT_IMPLEMENTED)
+        {
+            //Nope, couldn't find the daemon running
+            goto cleanup;
+        }
+        LW_CLEANUP_CTERR(exc, ceError);
+
+        DJ_LOG_INFO("Sending HUP to '%s' binary, pid '%d'.", daemonPath, daemonPid);
+
+        LW_CLEANUP_CTERR(exc, CTSendSignal(daemonPid, SIGHUP));
+        goto cleanup;
+    }
+
+    DJ_LOG_INFO("Restarting '%s'", initPath);
+    LW_TRY(exc, DJStartStopDaemon(initPath, FALSE, NULL, &LW_EXC));
+    LW_TRY(exc, DJStartStopDaemon(initPath, TRUE, NULL, &LW_EXC));
 
 cleanup:
+    CT_SAFE_FREE_STRING(initPath);
     CT_SAFE_FREE_STRING(daemonPath);
 }

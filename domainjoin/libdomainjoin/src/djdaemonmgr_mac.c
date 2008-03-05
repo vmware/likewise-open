@@ -35,13 +35,13 @@ static PSTR pszAuthdStopPriority = "10";
 static PSTR pszGPAgentdStartPriority = "91";
 static PSTR pszGPAgentdStopPriority = "9";
 
-CENTERROR
+void
 DJGetDaemonStatus(
     PSTR pszDaemonPath,
-    PBOOLEAN pbStarted
+    PBOOLEAN pbStarted,
+    LWException **exc
     )
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR* ppszArgs = NULL;
     DWORD nArgs = 7;
     long status = 0;
@@ -63,54 +63,42 @@ DJGetDaemonStatus(
 	    !strcmp(pszDaemonPath, "centeris.com-lwiauthd"))
         strcpy(szCmd, "lwiauthd");
     else {
-        ceError = CENTERROR_DOMAINJOIN_UNKNOWN_DAEMON;
-        BAIL_ON_CENTERIS_ERROR(ceError);
+        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_UNKNOWN_DAEMON);
     }
 
     DJ_LOG_INFO("Checking status of daemon [%s]", pszDaemonPath);
 
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs));
 
-    ceError = CTAllocateString("/bin/ps", ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateString("/bin/ps", ppszArgs));
 
-    ceError = CTAllocateString("-U", ppszArgs+1);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateString("-U", ppszArgs+1));
 
-    ceError = CTAllocateString("root", ppszArgs+2);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateString("root", ppszArgs+2));
 
-    ceError = CTAllocateString("-c", ppszArgs+3);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateString("-c", ppszArgs+3));
 
-    ceError = CTAllocateString("-o", ppszArgs+4);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateString("-o", ppszArgs+4));
 
-    ceError = CTAllocateString("command=", ppszArgs+5);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateString("command=", ppszArgs+5));
 
-    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
 
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, DJGetProcessStatus(pProcInfo, &status));
 
     *pbStarted = FALSE;
     if (!status) {
 
         fp = fdopen(pProcInfo->fdout, "r");
         if (!fp) {
-            ceError = CTMapSystemError(errno);
-            BAIL_ON_CENTERIS_ERROR(ceError);
+            LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
         }
 
         while (1) {
 
             if (fgets(szBuf, 1024, fp) == NULL) {
                 if (!feof(fp)) {
-                    ceError = CTMapSystemError(errno);
-                    BAIL_ON_CENTERIS_ERROR(ceError);
+                    LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
                 }
                 else
                     break;
@@ -128,7 +116,7 @@ DJGetDaemonStatus(
         }
     }
 
-error:
+cleanup:
 
     if (fp)
         fclose(fp);
@@ -138,8 +126,6 @@ error:
 
     if (pProcInfo)
         FreeProcInfo(pProcInfo);
-
-    return ceError;
 }
 
 void
@@ -182,7 +168,7 @@ DJStartStopDaemon(
 
     for (count = 0; count < 5; count++) {
 
-	LW_CLEANUP_CTERR(exc, DJGetDaemonStatus(pszDaemonPath, &bStarted));
+	LW_TRY(exc, DJGetDaemonStatus(pszDaemonPath, &bStarted, &LW_EXC));
 
         if (bStarted == bStatus) {
             break;
@@ -516,7 +502,7 @@ DJManageDaemon(
     // check our current state prior to doing anything.  notice that
     // we are using the private version so that if we fail, our inner
     // exception will be the one that was tossed due to the failure.
-    LW_CLEANUP_CTERR(exc, DJGetDaemonStatus(pszName, &bStarted));
+    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
 
     // if we got this far, we have validated the existence of the
     // daemon and we have figured out if its started or stopped

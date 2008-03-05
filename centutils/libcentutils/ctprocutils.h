@@ -25,14 +25,6 @@
 #ifndef __CTPROCUTILS_H__
 #define __CTPROCUTILS_H__
 
-#define PID_DIR "/var/run"
-
-#define GPAGENT_DAEMON_NAME "centeris-gpagentd"
-#define GPAGENT_PID_FILE PID_DIR "/" GPAGENT_DAEMON_NAME ".pid"
-
-#define LWIAUTH_DAEMON_NAME "lwiauthd"
-#define LWIAUTH_PID_FILE PID_DIR "/" LWIAUTH_DAEMON_NAME ".pid"
-
 CENTERROR
 CTMatchProgramToPID(
     PCSTR pszProgramName,
@@ -61,10 +53,13 @@ CTGetPidOf(
 
 /* Like CTGetPidOf, except the entire command line (program name plus
  * arguments) can be searched by setting cmdLine.
+ *
+ * Searching via programFilename may require root access.
  */
 CENTERROR
 CTGetPidOfCmdLine(
     PCSTR programName,
+    PCSTR programFilename,
     PCSTR cmdLine,
     uid_t owner,
     pid_t *pid,

@@ -51,13 +51,13 @@ GetInitScriptDir(PSTR *store)
 #endif
 }
 
-CENTERROR
+void
 DJGetDaemonStatus(
     PSTR pszDaemonPath,
-    PBOOLEAN pbStarted
+    PBOOLEAN pbStarted,
+    LWException **exc
     )
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR* ppszArgs = NULL;
     PSTR prefixedPath = NULL;
     PSTR initDir = NULL;
@@ -67,39 +67,32 @@ DJGetDaemonStatus(
     BOOLEAN daemon_installed = FALSE;
 
     if(pszDaemonPath[0] == '/')
-        GCE(ceError = CTStrdup(pszDaemonPath, &prefixedPath));
+        LW_CLEANUP_CTERR(exc, CTStrdup(pszDaemonPath, &prefixedPath));
     else
     {
-        GCE(ceError = GetInitScriptDir(&initDir));
-        GCE(ceError = CTAllocateStringPrintf(
+        LW_CLEANUP_CTERR(exc, GetInitScriptDir(&initDir));
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(
                 &prefixedPath, "%s/%s",
                 initDir, pszDaemonPath));
     }
 
     DJ_LOG_INFO("Checking status of daemon [%s]", prefixedPath);
 
-    ceError = CTCheckFileExists(prefixedPath, &daemon_installed);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTCheckFileExists(prefixedPath, &daemon_installed));
 
     if (!daemon_installed) {
-        ceError = CENTERROR_DOMAINJOIN_MISSING_DAEMON;
-        BAIL_ON_CENTERIS_ERROR(ceError);
+        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON);
     }
 
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs));
 
-    ceError = CTAllocateString(prefixedPath, ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateString(prefixedPath, ppszArgs));
 
-    ceError = CTAllocateString("status", ppszArgs+1);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateString("status", ppszArgs+1));
 
-    ceError = DJSpawnProcessSilent(ppszArgs[0], ppszArgs, &pProcInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, DJSpawnProcessSilent(ppszArgs[0], ppszArgs, &pProcInfo));
 
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, DJGetProcessStatus(pProcInfo, &status));
 
     // see
     // http://forgeftp.novell.com/library/SUSE%20Package%20Conventions/spc_init_scripts.html
@@ -118,8 +111,8 @@ DJGetDaemonStatus(
     else if (status == 1 || status == 2 || status == 3 || status == 4)
         *pbStarted = FALSE;
     else {
-        ceError = CENTERROR_DOMAINJOIN_UNEXPECTED_ERRCODE;
-        BAIL_ON_CENTERIS_ERROR(ceError);
+        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_UNEXPECTED_ERRCODE, "Non-standard return code from init script", "According to http://forgeftp.novell.com/library/SUSE%20Package%20Conventions/spc_init_scripts.html, init scripts should return 0, 1, 2, 3, or 4. However, '%s status' returned %d.", status, prefixedPath);
+        goto cleanup;
     }
 
 cleanup:
@@ -133,8 +126,6 @@ error:
 
     CT_SAFE_FREE_STRING(prefixedPath);
     CT_SAFE_FREE_STRING(initDir);
-
-    return ceError;
 }
 
 void
@@ -180,7 +171,7 @@ DJStartStopDaemon(
 
     LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
     LW_CLEANUP_CTERR(exc, DJGetProcessStatus(pProcInfo, &status));
-    LW_CLEANUP_CTERR(exc, DJGetDaemonStatus(pszDaemonPath, &bStarted));
+    LW_TRY(exc, DJGetDaemonStatus(pszDaemonPath, &bStarted, &LW_EXC));
 
     if (bStarted != bStatus) {
 
@@ -503,7 +494,7 @@ DJManageDaemon(
     // check our current state prior to doing anything.  notice that
     // we are using the private version so that if we fail, our inner
     // exception will be the one that was tossed due to the failure.
-    LW_CLEANUP_CTERR(exc, DJGetDaemonStatus(szBuf, &bStarted));
+    LW_TRY(exc, DJGetDaemonStatus(szBuf, &bStarted, &LW_EXC));
 
     // if we got this far, we have validated the existence of the
     // daemon and we have figured out if its started or stopped
@@ -562,8 +553,6 @@ struct
     int startPriority;
     int stopPriority;
 } daemonList[] = {
-    { "centeris.com-rpcd", NULL, FALSE, 90, 12 },
-    { "centeris.com-eventlogd", NULL, FALSE, 91, 11 },
     { "centeris.com-lwiauthd", "likewise-open", TRUE, 92, 10 },
     { "centeris.com-gpagentd", NULL, FALSE, 92, 9 },
     { NULL, NULL, FALSE, 0, 0 },

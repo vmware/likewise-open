@@ -246,7 +246,7 @@ CTOpenFile(
 
 CENTERROR
 CTSetCloseOnExec(
-    FILE* handle);
+    int fd);
 
 CENTERROR
 CTFileStreamWrite(

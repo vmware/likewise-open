@@ -1023,9 +1023,10 @@ Krb5JoinDomain(Krb5Entry *conf,
     DynamicArray trusts;
     char *mappingString = NULL;
     size_t i;
-    const char *wantEncTypes[] = {"DES-CBC-CRC",
-        "DES-CBC-MD5",
+    const char *wantEncTypes[] = {
         "RC4-HMAC",
+        "DES-CBC-MD5",
+	"DES-CBC-CRC",
     };
     memset(&trusts, 0, sizeof(trusts));
 
@@ -1061,7 +1062,7 @@ Krb5JoinDomain(Krb5Entry *conf,
                 wantEncTypes,
                 sizeof(wantEncTypes)/sizeof(wantEncTypes[0])));
     GCE(ceError = SetNodeValue( libdefaults, "preferred_enctypes",
-                "DES-CBC-CRC DES-CBC-MD5 RC4-HMAC" ));
+                "RC4-HMAC DES-CBC-MD5 DES-CBC-CRC" ));
     GCE(ceError = SetNodeValue( libdefaults, "dns_lookup_kdc", "true" ));
 
     GCE(ceError = EnsureStanzaNode(conf, "realms", &realms));

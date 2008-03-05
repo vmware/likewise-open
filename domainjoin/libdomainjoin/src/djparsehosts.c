@@ -23,6 +23,7 @@
  */
 
 #include "domainjoin.h"
+#include "djparsehosts.h"
 
 #if defined(__LWI_MACOSX__)
 static
@@ -205,6 +206,7 @@ DJReverseAliasList(
 
 CENTERROR
 DJParseHostsFile(
+    const char *filename,
     PHOSTSFILELINE* ppHostsFileLineList
     )
 {
@@ -217,8 +219,13 @@ DJParseHostsFile(
     PSTR pszTmp = NULL;
     DWORD iToken = 0;
     PHOSTSFILELINE pLineTail = NULL;
+    BOOLEAN exists;
 
-    fp = fopen("/etc/hosts", "r");
+    BAIL_ON_CENTERIS_ERROR(ceError = CTCheckFileOrLinkExists(filename, &exists));
+    if(!exists)
+        BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_INVALID_FILENAME);
+
+    fp = fopen(filename, "r");
     if (fp == NULL) {
         ceError = CTMapSystemError(errno);
         BAIL_ON_CENTERIS_ERROR(ceError);
@@ -473,6 +480,7 @@ DJHostsFileWasModified(
 static
 CENTERROR
 DJWriteHostsFileIfModified(
+    const char *filename,
     PHOSTSFILELINE pHostFileLineList
     )
 {
@@ -484,7 +492,7 @@ DJWriteHostsFileIfModified(
 
     if (DJHostsFileWasModified(pHostFileLineList)) {
 
-        DJ_LOG_INFO("Writing out updated /etc/hosts file");
+        DJ_LOG_INFO("Writing out updated %s file", filename);
         fp = fopen("/etc/hosts.domainjoin", "w");
         if (fp == NULL) {
             ceError = CTMapSystemError(errno);
@@ -530,10 +538,10 @@ DJWriteHostsFileIfModified(
             fp = NULL;
         }
 
-        ceError = CTBackupFile("/etc/hosts");
+        ceError = CTBackupFile(filename);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
-        ceError = CTMoveFile("/etc/hosts.domainjoin", "/etc/hosts");
+        ceError = CTMoveFile("/etc/hosts.domainjoin", filename);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
 #if defined(__LWI_MACOSX__)
@@ -545,7 +553,7 @@ DJWriteHostsFileIfModified(
         bRemoveFile = FALSE;
     }
     else
-        DJ_LOG_INFO("/etc/hosts file was not modified; not rewriting");
+        DJ_LOG_INFO("%s file was not modified; not rewriting", filename);
 
 error:
 
@@ -806,6 +814,7 @@ error:
 // newFdqnHostname = <shortHostname>.<dnsDomainName>
 CENTERROR
 DJReplaceNameInHostsFile(
+    const char *filename,
     PSTR oldShortHostname,
     PSTR oldFqdnHostname,
     PSTR shortHostname,
@@ -815,7 +824,7 @@ DJReplaceNameInHostsFile(
     CENTERROR ceError = CENTERROR_SUCCESS;
     PHOSTSFILELINE pHostsFileLineList = NULL;
 
-    ceError = DJParseHostsFile(&pHostsFileLineList);
+    ceError = DJParseHostsFile(filename, &pHostsFileLineList);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = DJReplaceHostnameInMemory(
@@ -827,7 +836,7 @@ DJReplaceNameInHostsFile(
         );
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    ceError = DJWriteHostsFileIfModified(pHostsFileLineList);
+    ceError = DJWriteHostsFileIfModified(filename, pHostsFileLineList);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
 error:

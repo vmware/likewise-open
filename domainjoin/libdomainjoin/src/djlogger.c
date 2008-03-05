@@ -110,7 +110,7 @@ dj_init_logging_to_file(
         BAIL_ON_CENTERIS_ERROR(ceError);
         ceError = CTChangePermissions(gdjLogInfo.logfile.szLogPath, 0600);
         BAIL_ON_CENTERIS_ERROR(ceError);
-        ceError = CTSetCloseOnExec(gdjLogInfo.logfile.logHandle);
+        ceError = CTSetCloseOnExec(fileno(gdjLogInfo.logfile.logHandle));
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 

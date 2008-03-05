@@ -566,9 +566,172 @@ cleanup:
     return result;
 }
 
+typedef struct
+{
+    BOOLEAN isOpenSsh;
+    // -1 denotes unknown
+    long major;
+    long minor;
+    long secondMinor;
+    long patch;
+} SshdVersion;
+
+static void GetSshVersion(PCSTR rootPrefix, SshdVersion *version, PCSTR binaryPath, LWException **exc)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    BOOLEAN result = FALSE;
+    PSTR command = NULL;
+    PSTR commandOutput = NULL;
+    PCSTR versionStart;
+    PSTR intEnd;
+
+    version->isOpenSsh = FALSE;
+    version->major = -1;
+    version->minor = -1;
+    version->secondMinor = -1;
+    version->patch = -1;
+
+    if(rootPrefix == NULL)
+        rootPrefix = "";
+
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(
+        &command, "%s%s -v 2>&1",
+        rootPrefix, binaryPath));
+
+    ceError = CTCaptureOutput(command, &commandOutput);
+    if(ceError == CENTERROR_COMMAND_FAILED)
+        ceError = CENTERROR_SUCCESS;
+    LW_CLEANUP_CTERR(exc, ceError);
+
+    // The version string is in the form OpenSSH_4.6p1
+    // or OpenSSH_3.6.1p1
+    versionStart = strstr(commandOutput, "OpenSSH_");
+    if(versionStart == NULL)
+    {
+        goto cleanup;
+    }
+    version->isOpenSsh = TRUE;
+
+    versionStart += strlen("OpenSSH_");
+    version->major = strtoul(versionStart, &intEnd, 10);
+    if(intEnd == versionStart)
+        version->major = -1;
+    if(intEnd == NULL || *intEnd != '.')
+        goto cleanup;
+    versionStart = intEnd + 1;
+
+    version->minor = strtoul(versionStart, &intEnd, 10);
+    if(intEnd == versionStart)
+        version->minor = -1;
+    if(intEnd == NULL || (*intEnd != '.' && *intEnd != 'p'))
+        goto cleanup;
+    versionStart = intEnd + 1;
+
+    if(*intEnd == '.')
+    {
+        version->secondMinor = strtoul(versionStart, &intEnd, 10);
+        if(intEnd == versionStart)
+            version->secondMinor = -1;
+        if(intEnd == NULL || *intEnd != 'p')
+            goto cleanup;
+        versionStart = intEnd + 1;
+    }
+
+    version->patch = strtoul(versionStart, &intEnd, 10);
+    if(intEnd == versionStart)
+        version->patch = -1;
+
+cleanup:
+
+    if(version->isOpenSsh)
+    {
+        DJ_LOG_INFO("Found open sshd version %d.%d.%dp%d", version->major,
+                version->minor, version->secondMinor, version->patch);
+    }
+    else
+    {
+        DJ_LOG_INFO("Found non-openssh version of ssh");
+    }
+
+    CT_SAFE_FREE_STRING(command);
+    CT_SAFE_FREE_STRING(commandOutput);
+}
+
+BOOLEAN IsNewerThanOrEq(const SshdVersion *version, int major, int minor, int secondMinor, int patch)
+{
+    if(!version->isOpenSsh)
+        return FALSE;
+
+    if(version->major == -1 || major == -1)
+        return TRUE;
+    if(version->major < major)
+        return FALSE;
+    if(version->major > major)
+        return TRUE;
+
+    if(version->minor == -1 || minor == -1)
+        return TRUE;
+    if(version->minor < minor)
+        return FALSE;
+    if(version->minor > minor)
+        return TRUE;
+
+    if(version->secondMinor == -1 || secondMinor == -1)
+        return TRUE;
+    if(version->secondMinor < secondMinor)
+        return FALSE;
+    if(version->secondMinor > secondMinor)
+        return TRUE;
+
+    if(version->patch == -1 || patch == -1)
+        return TRUE;
+    if(version->patch < patch)
+        return FALSE;
+    if(version->patch > patch)
+        return TRUE;
+
+    return TRUE;
+}
+ 
+BOOLEAN IsOlderThanOrEq(const SshdVersion *version, int major, int minor, int secondMinor, int patch)
+{
+    if(!version->isOpenSsh)
+        return FALSE;
+
+    if(version->major == -1 || major == -1)
+        return TRUE;
+    if(version->major > major)
+        return FALSE;
+    if(version->major < major)
+        return TRUE;
+
+    if(version->minor == -1 || minor == -1)
+        return TRUE;
+    if(version->minor > minor)
+        return FALSE;
+    if(version->minor < minor)
+        return TRUE;
+
+    if(version->secondMinor == -1 || secondMinor == -1)
+        return TRUE;
+    if(version->secondMinor > secondMinor)
+        return FALSE;
+    if(version->secondMinor < secondMinor)
+        return TRUE;
+
+    if(version->patch == -1 || patch == -1)
+        return TRUE;
+    if(version->patch > patch)
+        return FALSE;
+    if(version->patch < patch)
+        return TRUE;
+
+    return TRUE;
+}
+                    
 static QueryResult UpdateSshdConf(struct SshConf *conf, PCSTR testPrefix,
         PCSTR binaryPath, BOOLEAN enable, PSTR *changeDescription,
-        LWException **exc)
+        JoinProcessOptions *options, LWException **exc)
 {
     size_t i;
     BOOLEAN modified = conf->modified;
@@ -583,9 +746,13 @@ static QueryResult UpdateSshdConf(struct SshConf *conf, PCSTR testPrefix,
         "KbdInteractiveAuthentication", NULL};
     const char *optionalSshdOptions[] = {"GSSAPIAuthentication",
         "GSSAPICleanupCredentials", NULL};
+    SshdVersion version;
+    BOOLEAN compromisedOptions = FALSE;
 
     if(changeDescription != NULL)
         *changeDescription = NULL;
+
+    LW_TRY(exc, GetSshVersion("", &version, binaryPath, &LW_EXC));
 
     if(enable)
     {
@@ -597,8 +764,18 @@ static QueryResult UpdateSshdConf(struct SshConf *conf, PCSTR testPrefix,
             LW_TRY(exc, supported = TestOption(testPrefix, conf, binaryPath, "-t", option, &LW_EXC));
             if(supported)
             {
+                PCSTR value = "yes";
+
+                if(IsNewerThanOrEq(&version, 2, 3, 1, -1) &&
+                        IsOlderThanOrEq(&version, 3, 3, -1, -1) &&
+                        (!strcmp(option, "ChallengeResponseAuthentication") ||
+                         !strcmp(option, "PAMAuthenticationViaKBDInt")))
+                {
+                    value = "no";
+                    compromisedOptions = TRUE;
+                }
                 conf->modified = FALSE;
-                LW_CLEANUP_CTERR(exc, SetOption(conf, option, "yes"));
+                LW_CLEANUP_CTERR(exc, SetOption(conf, option, value));
                 if(conf->modified)
                 {
                     modified = TRUE;
@@ -678,6 +855,29 @@ static QueryResult UpdateSshdConf(struct SshConf *conf, PCSTR testPrefix,
     }
     if(changeDescription != NULL && *changeDescription == NULL)
         LW_CLEANUP_CTERR(exc, CTStrdup("", changeDescription));
+
+    if(options != NULL)
+    {
+        ModuleState *state = DJGetModuleStateByName(options, "ssh");
+        if(state->moduleData == (void *)-1)
+        {
+            //We already showed a warning
+        }
+        else if(compromisedOptions)
+        {
+            state->moduleData = (void *)-1;
+            options->warningCallback(options, "Unpatched version of SSH",
+                    "The version of your sshd daemon indicates that it is susceptible to the remote exploit described at http://www.openssh.com/txt/preauth.adv . To avoid exposing your system to this exploit, the 'ChallengeResponseAuthentication' and 'PAMAuthenticationViaKBDInt' options will be set to 'no' instead of 'yes'. As a side effect, all login error messages will appear as 'permission denied' instead of more detailed messages like 'account disabled'. Additionally, password changes on login may not work.\n\
+\n\
+Even when those options are disabled, your system is still vunerable to http://www.cert.org/advisories/CA-2003-24.html . We recommend upgrading your version of SSH.");
+        }
+        else if(IsOlderThanOrEq(&version, 3, 7, 0, -1))
+        {
+            state->moduleData = (void *)-1;
+            options->warningCallback(options, "Unpatched version of SSH",
+                    "The version of your sshd daemon indicates that it is susceptible to the security vunulerability described at http://www.cert.org/advisories/CA-2003-24.html . We recommend upgrading your version of SSH.");
+        }
+    }
 
 cleanup:
     conf->modified |= modified;
@@ -768,6 +968,7 @@ cleanup:
 void DJConfigureSshForADLogin(
     const char * testPrefix,
     BOOLEAN enable,
+    JoinProcessOptions *options,
     LWException **exc
     )
 {
@@ -775,6 +976,7 @@ void DJConfigureSshForADLogin(
     char *configPath = NULL;
     char *binaryPath = NULL;
     BOOLEAN exists;
+    pid_t sshdPid;
 
     if(testPrefix == NULL)
         testPrefix = "";
@@ -787,10 +989,19 @@ void DJConfigureSshForADLogin(
     {
         LW_CLEANUP_CTERR(exc, ReadSshFile(&conf, testPrefix, configPath));
         LW_TRY(exc, UpdateSshdConf(&conf, testPrefix,
-            binaryPath, enable, NULL, &LW_EXC));
+            binaryPath, enable, NULL, options, &LW_EXC));
 
         if(conf.modified)
+        {
             WriteSshConfiguration(testPrefix, &conf);
+            LW_CLEANUP_CTERR(exc, CTIsProgramRunning("/var/run/sshd.pid",
+                    "sshd", &sshdPid, NULL));
+            if(sshdPid != -1)
+            {
+                DJ_LOG_INFO("Restaring sshd (pid %d)", sshdPid);
+                LW_CLEANUP_CTERR(exc, CTSendSignal(sshdPid, SIGHUP));
+            }
+        }
         else
             DJ_LOG_INFO("sshd_config not modified");
         FreeSshConfContents(&conf);
@@ -857,7 +1068,7 @@ static QueryResult QueryDescriptionConfigSsh(const JoinProcessOptions *options,
     {
         LW_CLEANUP_CTERR(exc, ReadSshFile(&conf, testPrefix, configPath));
         LW_TRY(exc, result1 = UpdateSshdConf(&conf, testPrefix,
-            binaryPath, options->joiningDomain, &subDescription, &LW_EXC));
+            binaryPath, options->joiningDomain, &subDescription, options, &LW_EXC));
         temp = message;
         message = NULL;
         CTAllocateStringPrintf(&message, "%s%s", temp, subDescription);
@@ -935,7 +1146,7 @@ static PSTR GetSshDescription(const JoinProcessOptions *options, LWException **e
 
 static void DoSsh(JoinProcessOptions *options, LWException **exc)
 {
-    DJConfigureSshForADLogin(NULL, options->joiningDomain, exc);
+    DJConfigureSshForADLogin(NULL, options->joiningDomain, options, exc);
 }
 
 const JoinModule DJSshModule = { TRUE, "ssh", "configure ssh and sshd", QuerySsh, DoSsh, GetSshDescription };

@@ -236,7 +236,13 @@ CENTERROR_CATALOG_DESC(
     "failed due to a non-standard or unsupported configuration.  "
     "Please check that your PAM configuration is correct." )
 
-CENTERROR_CATALOG(CENTERROR_DOMAINJOIN_JOIN_FAILED)
+CENTERROR_CATALOG_DESC(
+
+    CENTERROR_DOMAINJOIN_JOIN_FAILED,
+    
+    "Unable to join domain",
+    
+    "Creating the computer account in Active Directory failed. Common causes are a bad administrator password, a bad OU name, or an existing computer account but not modificiation permissions.")
 
 CENTERROR_CATALOG_DESC( 
     
@@ -279,7 +285,7 @@ CENTERROR_CATALOG_DESC(
     
     "Required daemon not found",
     
-    "A required daemon (e.g. lwiauthd, gpagentd) could not be located "
+    "A required daemon (e.g. likewise-winbindd, gpagentd) could not be located "
     "on this system.  Please ensure that Likewise Identity has been "
     "completely installed and that the install completed successfully." )
 
@@ -289,7 +295,7 @@ CENTERROR_CATALOG_DESC(
 
     "Unrecognized error from external program",
     
-    "An external program or daemon (e.g. lwiauthd, gpagentd) failed "
+    "An external program or daemon (e.g. likewise-winbindd, gpagentd) failed "
     "to run and provided an unrecognized error code." )
 
 CENTERROR_CATALOG(CENTERROR_DOMAINJOIN_INCORRECT_STATUS)
@@ -300,7 +306,7 @@ CENTERROR_CATALOG_DESC(
 
     "Could not configure required service",
 
-    "An error occured while adding a required daemon (e.g. lwiauthd, "
+    "An error occured while adding a required daemon (e.g. likewise-winbindd, "
     "gpagentd) to the set of system services started on boot.  Please "
     "ensure that your system is supported by Likewise Identity." )
 
@@ -310,7 +316,7 @@ CENTERROR_CATALOG_DESC(
     
     "Could not configure required service",
     
-    "An error occured while adding a required daemon (e.g. lwiauthd, "
+    "An error occured while adding a required daemon (e.g. likewise-winbindd, "
     "gpagentd) to the set of system services started on boot.  Please "
     "ensure that your system is supported by Likewise Identity." )
 
@@ -483,6 +489,7 @@ CENTERROR_CATALOG_DESC(
     
     "Please ensure that the VMWare ESX firewall configuration "
     "file contains valid XML")
+CENTERROR_CATALOG(CENTERROR_DOMAINJOIN_WARNING)
 
 CENTERROR_CATALOG_ERRNO(E2BIG)
 CENTERROR_CATALOG_ERRNO(EACCES)

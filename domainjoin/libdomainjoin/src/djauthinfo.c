@@ -449,7 +449,7 @@ CENTERROR
 DJRemoveCacheFiles()
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
-    PSTR pattern = "/var/lib/lwidentity/*_cache.tdb";
+    PSTR pattern = "/var/lib/lwidentity/*cache.tdb";
     BOOLEAN bFileExists = FALSE;
     glob_t matches = {.gl_pathc = 0, .gl_pathv = NULL};
     int result;

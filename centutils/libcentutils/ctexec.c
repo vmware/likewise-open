@@ -208,6 +208,8 @@ CTSpawnProcessWithEnvironment(
     int maxfd = 0;
     struct rlimit rlm;
 
+    *ppProcInfo = 0;
+
     memset(&rlm, 0, sizeof(struct rlimit));
 
     if (getrlimit(RLIMIT_NOFILE, &rlm) < 0) {
@@ -331,14 +333,22 @@ CTFreeProcInfo(
     PPROCINFO pProcInfo
     )
 {
+    LONG status = 0;
+
     if(pProcInfo == NULL)
         return;
+
+    if (pProcInfo->pid != 0) {
+        CTGetExitStatus(pProcInfo, &status);
+    }
+
     if (pProcInfo->fdin >= 0)
         close(pProcInfo->fdin);
     if (pProcInfo->fdout >= 0)
         close(pProcInfo->fdout);
     if (pProcInfo->fderr >= 0)
         close(pProcInfo->fderr);
+
     CTFreeMemory(pProcInfo);
 }
 
@@ -370,6 +380,10 @@ CTGetExitStatus(
     }
 
 error:
+
+    /* Mark this PROCINFO as unused */
+    pProcInfo->pid = 0;
+
     return ceError;
 }
 
