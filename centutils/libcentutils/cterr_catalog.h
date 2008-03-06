@@ -306,7 +306,7 @@ CENTERROR_CATALOG_DESC(
 
     "Could not configure required service",
 
-    "An error occured while adding a required daemon (e.g. likewise-winbindd, "
+    "An error occurred while adding a required daemon (e.g. likewise-winbindd, "
     "gpagentd) to the set of system services started on boot.  Please "
     "ensure that your system is supported by Likewise Identity." )
 
@@ -316,7 +316,7 @@ CENTERROR_CATALOG_DESC(
     
     "Could not configure required service",
     
-    "An error occured while adding a required daemon (e.g. likewise-winbindd, "
+    "An error occurred while adding a required daemon (e.g. likewise-winbindd, "
     "gpagentd) to the set of system services started on boot.  Please "
     "ensure that your system is supported by Likewise Identity." )
 

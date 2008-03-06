@@ -540,12 +540,7 @@ ensure_gtk_version(int major, int minor, int micro, LWException** exc)
     {
 	LW_RAISE_EX(exc, CENTERROR_INCOMPATIBLE_LIBRARY,
 		    "Incompatible library detected", 
-<<<<<<< HEAD:domainjoin-gui/gtk/main.c
 		    "%s.  Likewise does not support graphical domain joins on this platform.  "
-=======
-		    "%s.  Likewise Open does not support graphical domain joins on this platform.  "
->>>>>>> Rename string referring to "Likewise Enterprise" to "Likewise Open".
-Update paths from "likewise" to "likewise-open":domainjoin-gui/gtk/main.c
 		    "Please use the command-line domain join application instead.",
 		    msg);
     }

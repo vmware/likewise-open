@@ -33,6 +33,8 @@
 #endif
 #if HAVE_PROCFS_H
 #include <procfs.h>
+#elif HAVE_SYS_PROCFS_H
+#include <sys/procfs.h>
 #endif
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
@@ -225,7 +227,7 @@ CTGetPidOfCmdLine(
     int i;
 #endif
 #ifdef HAVE_STRUCT_PSINFO
-    //Solaris should have this
+    //Solaris and AIX should have this
     DIR *dir = NULL;
     struct dirent *dirEntry = NULL;
     PSTR filePath = NULL;

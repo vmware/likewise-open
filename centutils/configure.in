@@ -233,7 +233,7 @@ AC_CHECK_LIB([socket], [bind])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h fcntl.h sys/stat.h openssl/pem.h openssl/rsa.h openssl/bio.h openssl/sha.h openssl/evp.h openssl/md5.h sys/param.h sys/pstat.h proc/readproc.h sys/ioctl.h sys/termio.h utmps.h utmpx.h utmp.h procfs.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h fcntl.h sys/stat.h openssl/pem.h openssl/rsa.h openssl/bio.h openssl/sha.h openssl/evp.h openssl/md5.h sys/param.h sys/pstat.h proc/readproc.h sys/ioctl.h sys/termio.h utmps.h utmpx.h utmp.h procfs.h sys/procfs.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 dnl The AC_C_CONST check is broken in versions of autoconf older than 2.60.
@@ -269,6 +269,8 @@ AC_CHECK_DECLS([isblank, pstat_getproc], [], [], [#include <ctype.h>
 AC_CHECK_TYPES([struct psinfo], , , [
 #if HAVE_PROCFS_H
 #include <procfs.h>
+#elif HAVE_SYS_PROCFS_H
+#include <sys/procfs.h>
 #endif
 ])
 
