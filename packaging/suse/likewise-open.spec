@@ -123,7 +123,7 @@ mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/{init.d,samba,security}
 mkdir -p $RPM_BUILD_ROOT/var/{lib,log}/%{name}
 mkdir -p $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 mkdir -p $RPM_BUILD_ROOT/%{_lib}/security
-mkdir -p $RPM_BUILD_ROOT/%{_prefix}/share/likewise
+mkdir -p $RPM_BUILD_ROOT/%{_prefix}/share/%{name}
 
 ## install the binaries
 make DESTDIR=${RPM_BUILD_ROOT} PREFIX=/usr install
@@ -133,11 +133,11 @@ make DESTDIR=${RPM_BUILD_ROOT} PREFIX=/usr install
 %if %{enablegui}
 /bin/mv $RPM_BUILD_ROOT/%{_bindir}/domainjoin-gtk $RPM_BUILD_ROOT/%{_bindir}/domainjoin-gui
 install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-gtk.glade \
-	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/domainjoin-gtk.glade
+	$RPM_BUILD_ROOT/%{_prefix}/share/%{name}/domainjoin-gtk.glade
 install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-logo.png \
-	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/domainjoin-logo.png
+	$RPM_BUILD_ROOT/%{_prefix}/share/%{name}/domainjoin-logo.png
 install -m644 domainjoin/domainjoin-gui/gtk/likewise-logo.png \
-	$RPM_BUILD_ROOT/%{_prefix}/share/likewise-open/likewise-logo.png
+	$RPM_BUILD_ROOT/%{_prefix}/share/%{name}/likewise-logo.png
 %endif
 
 ## Now manually install the PAM/NSS library
@@ -148,17 +148,17 @@ pushd samba/source
 ln -s libwbclient.so.0.1 $RPM_BUILD_ROOT/%{_libdir}/libwbclient.so
 
 ## cleanup
-/bin/rm -f ${RPM_BUILD_ROOT}/%{_libdir}/likewise/security/pam_lwidentity.so
-/bin/rm -f ${RPM_BUILD_ROOT}/%{_libdir}/likewise/libwbclient.so
+/bin/rm -f ${RPM_BUILD_ROOT}/%{_libdir}/%{name}/security/pam_lwidentity.so
+/bin/rm -f ${RPM_BUILD_ROOT}/%{_libdir}/%{name}/libwbclient.so
 popd
 
 ## Grab the support scripts
 for file in Centeris.pm; do
-	%{__install} -m0644 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/likewise/; \
+	%{__install} -m0644 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}/; \
 done
 for file in ConfigureLogin ConfigureShellPrompt gpcron; \
 do
-	%{__install} -m0755 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/likewise/; \
+	%{__install} -m0755 domainjoin/scripts/$file ${RPM_BUILD_ROOT}/%{_libdir}/%{name}/; \
 done
 
 ## install the vendor files ( init script, etc... )
@@ -198,8 +198,8 @@ ldconfig
 %{_bindir}/lwiinfo
 %{_bindir}/lwimsg
 %{_sbindir}/likewise-winbindd
-%{_libdir}/likewise/idmap/lwopen.so
-%{_libdir}/likewise/nss_info/lwopen.so
+%{_libdir}/%{name}/idmap/lwopen.so
+%{_libdir}/%{name}/nss_info/lwopen.so
 /%{_lib}/security/pam_lwidentity.so
 /%{_lib}/libnss_lwidentity.so*
 %{_libdir}/libwbclient.so.*
@@ -214,17 +214,17 @@ ldconfig
 
 %files domainjoin
 ## domain join utilities
-%{_libdir}/likewise/Centeris*pm
-%{_libdir}/likewise/Configure*
-%{_libdir}/likewise/gpcron
+%{_libdir}/%{name}/Centeris*pm
+%{_libdir}/%{name}/Configure*
+%{_libdir}/%{name}/gpcron
 %{_bindir}/domainjoin-cli
 
 %if %{enablegui}
 %files domainjoin-gui
 %defattr(-,root,root)
 %{_bindir}/domainjoin-gui
-%{_prefix}/share/likewise-open/domainjoin-gtk.glade
-%{_prefix}/share/likewise-open/*.png
+%{_prefix}/share/%{name}/domainjoin-gtk.glade
+%{_prefix}/share/%{name}/*.png
 %endif
 
 %changelog
