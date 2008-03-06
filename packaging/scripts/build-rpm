@@ -6,6 +6,20 @@ USERID=`id -u`
 GRPID=`id -g`
 SPECFILE="likewise-open.spec"
 
+if [ ! -n "$1" ]; then
+	echo "Usage: $0 <redhat | suse>"
+	exit 1
+fi
+case "$1" in
+	redhat|suse)
+		DISTRO=$1
+		;;
+	*)
+		echo "Valid distro names are \"redhat\" or \"suse\""
+		exit 1
+		;;
+esac
+
 ## get utility functions
 . `dirname $0`/functions
 VERSION=$(get_lwopen_version)
@@ -13,16 +27,16 @@ if [ "x${VERSION}" = "x" ]; then
 	echo "Failed to get Likewise Open Version."
 	exit 1
 fi
-. `dirname $0`/../fedora/release-info
+. `dirname $0`/../${DISTRO}/release-info
 
 ## create the %_topdir heirarchy
 create_rpmbuild_directory || exit 1
 
 cd `dirname $0`
 
-(cd ../fedora && tar cvf - setup | gzip -9 > ${SRCDIR}/setup.tar.gz) || exit 1
+(cd ../${DISTRO} && tar cvf - setup | gzip -9 > ${SRCDIR}/setup.tar.gz) || exit 1
 cp -p ../../../likewise-open-${VERSION}.tar.gz ${SRCDIR}/ || exit 1
-cat ../fedora/${SPECFILE} |\
+cat ../${DISTRO}/${SPECFILE} |\
 	sed -e s/__RPM_VER/${VERSION}/g \
 		-e s/__RPM_RELEASE/${RELEASE}/g > ${SPECDIR}/${SPECFILE} || exit 1
 
