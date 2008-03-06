@@ -38,10 +38,13 @@ dpkg: dist
 	sh packaging/scripts/build-dpkg
 
 rpm-suse: dist
-	sh packaging/scripts/build-rpm-suse
+	sh packaging/scripts/build-rpm suse
 
 rpm-fedora: dist
-	sh packaging/scripts/build-rpm-fedora
+	sh packaging/scripts/build-rpm redhat
+
+rpm-redhat: dist
+	sh packaging/scripts/build-rpm redhat
 
 dist:
 	sh packaging/scripts/build-dist
