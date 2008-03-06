@@ -110,7 +110,7 @@ install: build
 	$(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
 
 	mkdir -p $(DESTDIR)/usr/lib/
-	mkdir -p $(DESTDIR)/lib/
+	mkdir -p $(DESTDIR)/lib/security
 	mkdir -p $(DESTDIR)/usr/share/$(PKGNAME)
 
 	mv $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so.0.1
@@ -136,6 +136,8 @@ install: build
 
 	install --mode=755 samba/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
 	ln -s libnss_lwidentity.so.2 $(DESTDIR)/lib/libnss_lwidentity.so
+
+	install --mode=644 samba/source/bin/pam_lwidentity.so $(DESTDIR)/lib/security/pam_lwidentity.so
 
 	install -D --mode=0644 domainjoin/scripts/Centeris.pm $(DESTDIR)/usr/lib/$(PKGNAME)/Centeris.pm
 
