@@ -1,3 +1,9 @@
+likewise-open (4.1.0-1) gutsy; urgency=low
+
+  * Updating to new upstream release  
+
+ -- Gerald Carter <gcarter@likewisesoftware.com>  Fri, 11 Apr 2008 15:37:32 -0500
+
 likewise-open (4.0.5-1) gutsy; urgency=low
 
   * Official Likewise Open 4.0.5 release
