@@ -263,7 +263,7 @@ static void check_domain_online_handler(struct event_context *ctx,
 
 	/* Are we still in "startup" mode ? */
 
-	if (domain->startup && (now->tv_sec > domain->startup_time + 30)) {
+	if (domain->startup && (now->tv_sec > domain->startup_time + WB_STARTUP_WINDOW)) {
 		/* No longer in "startup" mode. */
 		DEBUG(10,("check_domain_online_handler: domain %s no longer in 'startup' mode.\n",
 			domain->name ));

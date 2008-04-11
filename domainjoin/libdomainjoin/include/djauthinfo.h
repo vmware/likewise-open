@@ -27,10 +27,10 @@
 
 CENTERROR
 JoinDomain(
-    PSTR pszDomainName,
-    PSTR pszUserName,
-    PSTR pszPassword,
-    PSTR pszOU,
+    PCSTR pszDomainName,
+    PCSTR pszUserName,
+    PCSTR pszPassword,
+    PCSTR pszOU,
     BOOLEAN bNoHosts
     );
 
@@ -71,9 +71,27 @@ DJGetDomainDC(PCSTR domain, PSTR *dc);
 void
 DJGetComputerDN(PSTR *dn, LWException **exc);
 
+void DJNetInitialize(LWException **exc);
+
+void DJNetShutdown(LWException **exc);
+
+void DJCreateComputerAccount(PCSTR hostname,
+                PCSTR domainName,
+                PCSTR ou,
+                PCSTR username,
+                PCSTR password,
+                PSTR *shortDomainName,
+                JoinProcessOptions *options,
+                LWException **exc);
+
+void DJDisableComputerAccount(PCSTR username,
+                PCSTR password,
+                LWException **exc);
+
 //The answer is non-authoritative
-CENTERROR
-DJGuessShortDomainName(PCSTR longName, PSTR *shortName);
+void DJGuessShortDomainName(PCSTR longName,
+                PSTR *shortName,
+                LWException **exc);
 
 extern const JoinModule DJDoJoinModule;
 extern const JoinModule DJLwiConfModule;

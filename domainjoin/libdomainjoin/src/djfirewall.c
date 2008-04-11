@@ -231,7 +231,7 @@ static CENTERROR CheckPorts(PortCheck *checks, int checkNum, int tcptimeout)
             }
             else if(FD_ISSET(checks[i].sock, &streamFds))
             {
-                CENTERROR subError;
+                CENTERROR subError = CENTERROR_SUCCESS;
                 GCE(ceError = GetSocketError(checks[i].sock, &subError));
 
                 if(CENTERROR_IS_OK(subError))

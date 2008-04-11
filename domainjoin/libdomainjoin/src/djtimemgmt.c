@@ -33,7 +33,9 @@
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
 CENTERROR GetServerTime(
-    PSTR pszDCName, time_t *result)
+    PCSTR pszDCName,
+    time_t *result
+    )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR netOutput = NULL;
@@ -154,8 +156,8 @@ DJSetTime(time_t timesec)
 
 CENTERROR
 DJSyncTimeToDC(
-    PSTR pszDCName,
-    int allowedDrift
+    PCSTR pszDCName,
+    int   allowedDrift
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;

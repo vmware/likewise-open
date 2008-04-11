@@ -125,7 +125,13 @@ DJGetDaemonStatus(
             daemonBaseName = pszDaemonName;
 
         DJ_LOG_VERBOSE("Looking for %s", daemonBaseName);
-        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin", &daemonPath);
+        if(!strcmp(daemonBaseName, "likewise-open"))
+            daemonBaseName = "likewise-winbindd";
+        else if(!strcmp(daemonBaseName, "centeris.com-gpagentd"))
+            daemonBaseName = "centeris-gpagentd";
+        else if(!strcmp(daemonBaseName, "centeris.com-lsassd"))
+            daemonBaseName = "likewise-lsassd";
+        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/centeris/sbin", &daemonPath);
         if(ceError == CENTERROR_FILE_NOT_FOUND)
         {
             CT_SAFE_FREE_STRING(altDaemonName);
@@ -203,7 +209,6 @@ void
 DJStartStopDaemon(
     PCSTR pszDaemonName,
     BOOLEAN bStatus,
-    PSTR pszPreCommand,
     LWException **exc
     )
 {
@@ -241,24 +246,11 @@ DJStartStopDaemon(
 
         LW_CLEANUP_CTERR(exc, CTAllocateString("kill `cat /var/dt/Xpid`", ppszArgs+2));
     }
-    else if (IsNullOrEmptyString(pszPreCommand)) {
+    else {
 
         LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs)));
         LW_CLEANUP_CTERR(exc, CTAllocateString(pszDaemonPath, ppszArgs));
         LW_CLEANUP_CTERR(exc, CTAllocateString((bStatus ? "start" : "stop"), ppszArgs+1));
-
-    } else {
-
-        LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs)));
-        LW_CLEANUP_CTERR(exc, CTAllocateString("/bin/sh", ppszArgs));
-        LW_CLEANUP_CTERR(exc, CTAllocateString("-c", ppszArgs+1));
-
-        sprintf(szBuf, "%s; %s %s ",
-                pszPreCommand,
-                pszDaemonPath,
-                (bStatus ? "start" : "stop"));
-
-        LW_CLEANUP_CTERR(exc, CTAllocateString(szBuf, ppszArgs+2));
     }
 
     LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
@@ -296,108 +288,44 @@ cleanup:
     CT_SAFE_FREE_STRING(pszDaemonPath);
 }
 
-CENTERROR
+void
 DJDoUpdateRcD(
     PSTR pszDaemonName,
     BOOLEAN bStatus,
     PSTR pszStartPriority,
-    PSTR pszStopPriority
+    PSTR pszStopPriority,
+    LWException **exc
     )
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    PSTR* ppszArgs = NULL;
-    DWORD nArgs = 5;
-    long status = 0;
-    PPROCINFO pProcInfo = NULL;
-    BOOLEAN bStarted = FALSE;
-    PSTR ppszStartSpecialArgs[] =
-        { "20",
-          "2",
-          "3",
-          "4",
-          "5",
-          ".",
-          "stop",
-          "20",
-          "0",
-          "1",
-          "6",
-          "."
-        };
-    DWORD nSpecialArgs = sizeof(ppszStartSpecialArgs)/sizeof(PSTR);
-    DWORD iArg = 0;
-
-    nArgs = nSpecialArgs + 3;
-
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString(pszUpdateRcDFilePath, ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    PSTR command = NULL;
 
     if (!bStatus) {
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&command,
+                    "%s -f %s remove", pszUpdateRcDFilePath,
+                    pszDaemonName));
+    }
+    else
+    {
+        if (pszStartPriority == NULL)
+            pszStartPriority = "20";
+        if (pszStopPriority == NULL)
+            pszStopPriority = "20";
 
-        ceError = CTAllocateString("-f", ppszArgs+1);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        ceError = CTAllocateString(pszDaemonName, ppszArgs+2);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        ceError = CTAllocateString("remove", ppszArgs+3);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-    } else {
-
-        ceError = CTAllocateString(pszDaemonName, ppszArgs+1);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        if (pszStartPriority)
-	   ppszStartSpecialArgs[0] = pszStartPriority;
-        if (pszStopPriority)
-           ppszStartSpecialArgs[7] = pszStopPriority;
-
-        //
-        // TODO-2006/10/31-dalmeida -- Should not hardcode runlevels.
-        //
-        for (iArg = 0; iArg < nSpecialArgs; iArg++) {
-
-            ceError = CTAllocateString(*(ppszStartSpecialArgs+iArg), ppszArgs+iArg+2);
-            BAIL_ON_CENTERIS_ERROR(ceError);
-
-        }
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&command,
+                    "%s %s defaults %s %s", pszUpdateRcDFilePath,
+                    pszDaemonName, pszStartPriority, pszStopPriority));
     }
 
-    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-
-    // update-rc.d should not stop or start daemon, so this check
-    // shouldn't be necessary (and is also incorrect)
-    /*
-
-    ceError = DJGetDaemonStatus(pszDaemonName, &bStarted);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (status != 0) {
-
-        ceError = CENTERROR_DOMAINJOIN_UPDATERCD_FAILED;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
+    CTCaptureOutputToExc(command, exc);
+    if(exc != NULL && *exc != NULL &&
+            (*exc)->code == CENTERROR_COMMAND_FAILED)
+    {
+        // Put in a more specific error code
+        (*exc)->code = CENTERROR_DOMAINJOIN_UPDATERCD_FAILED;
     }
-    */
 
-error:
-
-    if (ppszArgs)
-        CTFreeStringArray(ppszArgs, nArgs);
-
-    if (pProcInfo)
-        FreeProcInfo(pProcInfo);
-
-    return ceError;
+cleanup:
+    CT_SAFE_FREE_STRING(command);
 }
 
 CENTERROR
@@ -561,7 +489,7 @@ DJConfigureForDaemonRestart(
     if (bFileExists) {
 
         DJ_LOG_VERBOSE("Found '%s'", pszUpdateRcDFilePath);
-        LW_CLEANUP_CTERR(exc, DJDoUpdateRcD(pszDaemonName, bStatus, pszStartPriority, pszStopPriority));
+        LW_TRY(exc, DJDoUpdateRcD(pszDaemonName, bStatus, pszStartPriority, pszStopPriority, &LW_EXC));
 
         goto done;
     }
@@ -645,10 +573,54 @@ cleanup:
 }
 
 void
+DJManageDaemonDescription(
+    PCSTR pszName,
+    BOOLEAN bStatus,
+    PSTR pszStartPriority,
+    PSTR pszStopPriority,
+    PSTR *description,
+    LWException **exc
+    )
+{
+    BOOLEAN bStarted = FALSE;
+    PSTR daemonPath = NULL;
+
+    *description = NULL;
+
+    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
+
+    // if we got this far, we have validated the existence of the
+    // daemon and we have figured out if its started or stopped
+
+    // if we are already in the desired state, do nothing.
+    if (bStarted != bStatus) {
+
+        CT_SAFE_FREE_STRING(daemonPath);
+        LW_CLEANUP_CTERR(exc, FindDaemonScript(pszName, &daemonPath));
+        if(bStatus)
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
+                    "Start %s by running '%s start'.\n"
+                    "Create symlinks for %s so that it starts at reboot.\n",
+                    pszName, daemonPath, pszName));
+        }
+        else
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
+                    "Stop %s by running '%s stop'.\n"
+                    "Remove symlinks for %s so that it no longer starts at reboot.\n",
+                    pszName, daemonPath, pszName));
+        }
+    }
+
+cleanup:
+    CT_SAFE_FREE_STRING(daemonPath);
+}
+
+void
 DJManageDaemon(
     PCSTR pszName,
     BOOLEAN bStatus,
-    PSTR pszPreCommand,
     PSTR pszStartPriority,
     PSTR pszStopPriority,
     LWException **exc
@@ -667,7 +639,7 @@ DJManageDaemon(
     // if we are already in the desired state, do nothing.
     if (bStarted != bStatus) {
 
-        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, pszPreCommand, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, &LW_EXC));
 
     }
 
@@ -678,8 +650,8 @@ cleanup:
 }
 
 struct _DaemonList daemonList[] = {
-    { "centeris.com-lwiauthd", "likewise-open", TRUE, 92, 10 },
-    { "centeris.com-gpagentd", NULL, FALSE, 92, 9 },
-    { NULL, NULL, FALSE, 0, 0 },
+    { "centeris.com-lsassd", {"likewise-open", "centeris.com-lwiauthd", NULL}, TRUE, 92, 10 },
+    { "centeris.com-gpagentd", {NULL}, FALSE, 92, 9 },
+    { NULL, {NULL}, FALSE, 0, 0 },
 };
 

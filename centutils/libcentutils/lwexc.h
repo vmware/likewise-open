@@ -124,6 +124,16 @@ LWHandle(
 	}					\
     } while (0)					\
 
+#define LW_CLEANUP_DLERROR(dest)		\
+    do						\
+    {						\
+        LW_RAISE_EX((dest), CENTERROR_INCOMPATIBLE_LIBRARY, \
+                "An error occurred loading/unloading a library", \
+                "The following error dlerror occurred '%s'.", \
+                dlerror());             	\
+        goto cleanup;		        	\
+    } while (0)					\
+
 #define LW_EXC					\
     __lw_exc__					\
 

@@ -38,6 +38,13 @@
 
 #define WB_REPLACE_CHAR		'_'
 
+#if defined(DARWINOS)
+/* Give mac a bit more time to come online */
+#define WB_STARTUP_WINDOW       120
+#else
+#define WB_STARTUP_WINDOW       30
+#endif
+
 /* bits for fd_event.flags */
 #define EVENT_FD_READ 1
 #define EVENT_FD_WRITE 2

@@ -38,9 +38,13 @@
 
 #include "includes.h"
 
-static int talloc_stacksize;
-static int talloc_stack_arraysize;
-static TALLOC_CTX **talloc_stack;
+// define this in local linux builds. Gcc doesn't support the __thread option on
+// Solaris, HP-UX, AIX, old Linux, or Mac.
+//#define THREAD_LOCAL __thread
+#define THREAD_LOCAL
+static THREAD_LOCAL int talloc_stacksize = 0;
+static THREAD_LOCAL int talloc_stack_arraysize = 0;
+static THREAD_LOCAL TALLOC_CTX **talloc_stack = NULL;
 
 static int talloc_pop(TALLOC_CTX *frame)
 {

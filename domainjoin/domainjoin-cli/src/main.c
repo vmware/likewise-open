@@ -58,7 +58,6 @@ ShowUsage()
     fprintf(stdout, "    --log {.|path}    Log to a file (or \".\" to log to console).\n\n");
     fprintf(stdout, "  and commands are:\n\n");
     fprintf(stdout, "    query\n");
-    fprintf(stdout, "    fixfqdn\n");
     fprintf(stdout, "    setname <computer name>\n");
     fprintf(stdout, "    join [--enable <module> --disable <module> ...] [--ou <organizationalUnit>] <domain name> <user name> [<password>]\n");
     fprintf(stdout, "    join [--advanced] --preview [--ou <organizationalUnit>] <domain name>\n");
@@ -78,6 +77,7 @@ ShowUsageInternal()
     ShowUsage();
 
     fprintf(stdout, "  Internal debug commands:\n");
+    fprintf(stdout, "    fixfqdn\n");
     fprintf(stdout, "    configure pam [--testprefix <dir>] { --enable | --disable }\n");
     fprintf(stdout, "    configure nsswitch [--testprefix <dir>] { --enable | --disable }\n");
     fprintf(stdout, "    configure ssh [--testprefix <dir>] { --enable | --disable }\n");
@@ -144,7 +144,7 @@ error:
     return dwEnable == ENABLE_TYPE_ENABLE;
 }
 
-void PrintWarning(JoinProcessOptions *options, const char *title, const char *message)
+void PrintWarning(const JoinProcessOptions *options, const char *title, const char *message)
 {
     PSTR      wrapped = NULL;
     int columns;
@@ -337,7 +337,8 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
 
     if(argc == 3)
         LW_CLEANUP_CTERR(exc, CTStrdup(argv[2], &options.password));
-    else if(argc == 1 && preview)
+    // The join username is not required in preview or details mode.
+    else if(argc == 1 && (preview || detailModules.size != 0) )
         ;
     else if(argc != 2)
     {
@@ -820,6 +821,8 @@ int main(
         LW_CLEANUP_CTERR(&exc, ceError);
     }
 
+    LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+
     if(!strcmp(argv[0], "setname"))
     {
         argv++;
@@ -911,6 +914,8 @@ cleanup:
         return 1;
     }
 
+    DJNetShutdown(NULL);
     dj_close_log();
+
     return 0;
 }

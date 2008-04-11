@@ -307,6 +307,7 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
             info->distro = DISTRO_DARWIN;
             GCE(ceError = CTCaptureOutput("sw_vers -productVersion",
                     &info->version));
+            CTStripWhitespace(info->version);
             break;
         case OS_HPUX:
             info->distro = DISTRO_HPUX;

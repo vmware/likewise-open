@@ -1237,7 +1237,27 @@ int main(int argc, char **argv, char **envp)
 	/* clear the cached list of trusted domains */
 
 	wcache_tdc_clear();	
+
+#if defined (DARWINOS)
+	/* before we go into main processing loop, make sure that the 
+	   local hostname has been setup */
+	{
+	  char *myname = get_myname(NULL);
 	
+	  while (strequal(myname, "localhost")) {
+	    sleep (10);
+	    TALLOC_FREE(myname);
+	    myname = get_myname(NULL);
+	  }
+
+	  set_global_myname(myname);
+	  DEBUG(10,("myname is [%s]\n", global_myname()));
+
+	  TALLOC_FREE(myname);
+	  init_names();
+	}
+#endif
+
 	if (!init_domain_list()) {
 		DEBUG(0,("unable to initalize domain list\n"));
 		exit(1);

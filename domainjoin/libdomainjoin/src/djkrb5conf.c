@@ -1412,11 +1412,19 @@ static QueryResult QueryKrb5(const JoinProcessOptions *options, LWException **ex
     Krb5Entry conf;
     Krb5Entry *libdefaults;
     Krb5Entry *default_realm;
+    CENTERROR ceError;
 
     memset(&conf, 0, sizeof(conf));
     LW_CLEANUP_CTERR(exc, CTCreateTempDirectory(&tempDir));
     LW_CLEANUP_CTERR(exc, DJCopyKrb5ToRootDir(NULL, tempDir));
-    LW_CLEANUP_CTERR(exc, ReadKrb5Configuration(tempDir, &conf, &modified));
+    ceError = ReadKrb5Configuration(tempDir, &conf, &modified);
+    if(ceError == CENTERROR_DOMAINJOIN_INVALID_FORMAT)
+    {
+        LW_RAISE_EX(exc, ceError, "Unable to parse krb5.conf", "The krb5.conf file on your system (located in either /etc/krb5.conf or /etc/krb5/krb5.conf) could not be parsed. Please send the file to Likewise technical support.");
+        goto cleanup;
+    }
+    else
+        LW_CLEANUP_CTERR(exc, ceError);
     if(modified)
     {
         if(options->joiningDomain)
@@ -1462,7 +1470,7 @@ static QueryResult QueryKrb5(const JoinProcessOptions *options, LWException **ex
     else
     {
         //Ignore failures from this command
-        DJGuessShortDomainName(options->domainName, &shortName);
+        DJGuessShortDomainName(options->domainName, &shortName, NULL);
     }
     LW_CLEANUP_CTERR(exc, DJModifyKrb5Conf(tempDir, options->joiningDomain,
         options->domainName,
@@ -1513,7 +1521,7 @@ static PSTR GetKrb5Description(const JoinProcessOptions *options, LWException **
     else
     {
         //Ignore failures from this command
-        DJGuessShortDomainName(options->domainName, &shortName);
+        DJGuessShortDomainName(options->domainName, &shortName, NULL);
     }
     LW_CLEANUP_CTERR(exc, DJModifyKrb5Conf(tempDir, options->joiningDomain,
         options->domainName,

@@ -58,7 +58,7 @@ DomainJoinWindow::GetComputerName()
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to get computer name from control");
-	   throw DomainJoinException(errMsg);
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 	
 	return result;
@@ -72,7 +72,7 @@ DomainJoinWindow::GetDomainName()
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to get domain name from control");
-	   throw DomainJoinException(errMsg);
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 	
 	return result;
@@ -88,7 +88,7 @@ DomainJoinWindow::GetOUPath()
 	   if (err != noErr)
 	   {
 	      std::string errMsg("Failed to get OU Path from control");
-	      throw DomainJoinException(errMsg);
+	      throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	   }
 	}
 	
@@ -103,7 +103,7 @@ DomainJoinWindow::SetComputerName(const std::string& name)
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to set computer name in control");
-	   throw DomainJoinException(errMsg);
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 }
 
@@ -114,7 +114,7 @@ DomainJoinWindow::SetDomainName(const std::string& name)
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to set domain name in control");
-	   throw DomainJoinException(errMsg);
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 }
 
@@ -290,7 +290,7 @@ DomainJoinWindow::ShowDomainWelcomeDialog(const std::string& domainName)
 		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
 		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
 		 StandardAlert(kAlertNoteAlert,
-					   "\pLikewise Enterprise",
+					   "\pLikewise Domain Join",
 					   (StringPtr)msgStr,
 					   NULL,
 					   &outItemHit);
@@ -373,16 +373,16 @@ DomainJoinWindow::HandleJoinDomain()
 	}
 	catch(DomainJoinException& dje)
     {
-		 SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "An Error occurred when joining Active Directory. Error code [%.8x]", dje.GetErrorCode());
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertStopAlert,
-					   "\pDomain Join Error",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
+		SInt16 outItemHit;
+		const char* err = dje.what();	
+		const char* message = dje.GetLongErrorMessage();
+		DialogRef dialog;	
+		CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
+		CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
+		CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
+		CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
+		CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
+		RunStandardAlert(dialog, NULL, &outItemHit);
     }
     catch(...)
     {

@@ -26,8 +26,13 @@
 #include "ctarray.h"
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "config/config.h"
 
 #define SIGIL '%'
+
+#ifndef HAVE__NSGETENVIRON
+extern char **environ;
+#endif
 
 typedef struct
 {
@@ -80,6 +85,15 @@ struct CTShellVar __CTVarOut(const char* name, char** value)
     result.type = SVAR_OUT;
     result.name = name;
     result.value.out = value;
+
+    return result;
+}
+
+struct CTShellVar __CTVarZero(const char* name)
+{
+    CTShellVar result;
+    result.type = SVAR_ZERO;
+    result.name = name;
 
     return result;
 }
@@ -225,44 +239,79 @@ error:
 }
 
 static BOOLEAN
-NeedsEscape(char c)
+NeedsEscape(char c, BOOLEAN inDouble)
 {
-    switch (c)
+    if (inDouble)
     {
-    case '\\':
-    case '"':
-    case '$':
-    case '\'':
-    case ' ':
-    case '\t':
-    case '(':
-    case ')':
-    case '&':
-    case ';':
-    case '|':
-    // Solaris treats ^ like |
-    case '^':
-    case '>':
-    case '<':
-    case '{':
-    case '}':
-        return TRUE;
-    default:
-        return FALSE;
+	switch(c)
+	{
+	case '\"':
+	    return TRUE;
+	default:
+	    return FALSE;
+	}
+    }
+    else
+    {
+	switch (c)
+	{
+	case '\\':
+	case '"':
+	case '$':
+	case '\'':
+	case ' ':
+	case '\t':
+	case '(':
+	case ')':
+	case '&':
+	case ';':
+	case '|':
+	    // Solaris treats ^ like |
+	case '^':
+	case '>':
+	case '<':
+	case '{':
+	case '}':
+	    return TRUE;
+	default:
+	    return FALSE;
+	}
     }
 }
 
 static CENTERROR
-AppendStringEscaped(StringBuffer* buffer, const char* str, int length)
+AppendStringEscaped(StringBuffer* buffer, const char* str, int length, BOOLEAN inDouble)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     unsigned int i;
 
+    if (inDouble)
+    {
+	BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\"'));
+    }
+
+    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\''));
+    
     for (i = 0; str[i] && (length == -1 || i < (unsigned int) length); i++)
     {
-        if (NeedsEscape(str[i]))
-            BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\\'));
-        BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, str[i]));
+	if (str[i] == '\'')
+	{
+	    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\''));
+	    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\\'));
+	    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\''));
+	    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\''));
+	}
+	else
+	{
+	    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, str[i]));
+	}
+    }
+    
+    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\''));
+
+    if (inDouble)
+    {
+	BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\"'));
     }
 
 error:
@@ -282,7 +331,7 @@ FreePipe(Pipe* pipe)
 }
 
 static CENTERROR
-AppendVariable(Command* result, struct CTShellVar* var)
+AppendVariable(Command* result, struct CTShellVar* var, BOOLEAN inDouble)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     char* str = NULL;
@@ -299,7 +348,7 @@ AppendVariable(Command* result, struct CTShellVar* var)
         BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppend(&result->buffer, str));
         break;
     case SVAR_STR:
-        BAIL_ON_CENTERIS_ERROR(ceError = AppendStringEscaped(&result->buffer, var->value.string, -1));
+        BAIL_ON_CENTERIS_ERROR(ceError = AppendStringEscaped(&result->buffer, var->value.string, -1, inDouble));
         break;
     case SVAR_ARR:
         for (ptr = var->value.array; *ptr; ptr++)
@@ -308,7 +357,7 @@ AppendVariable(Command* result, struct CTShellVar* var)
                 BAIL_ON_CENTERIS_ERROR(ceError = 
                                        CTStringBufferAppendChar(&result->buffer, ' '));
             
-            BAIL_ON_CENTERIS_ERROR(ceError = AppendStringEscaped(&result->buffer, *ptr, -1));
+            BAIL_ON_CENTERIS_ERROR(ceError = AppendStringEscaped(&result->buffer, *ptr, -1, inDouble));
         }
         break;
     case SVAR_OUT:
@@ -324,6 +373,9 @@ AppendVariable(Command* result, struct CTShellVar* var)
         BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppend(&result->buffer, str));
 
         ppipe = NULL;
+	break;
+    case SVAR_ZERO:
+	break;
     default:
         break;
     }
@@ -384,19 +436,24 @@ ConstructShellCommand(const char* format, Command *result)
     unsigned int i, length;
     char* variable = NULL;
     StringBuffer* buffer = &result->buffer;
+    BOOLEAN inDouble = FALSE;
 
     for (i = 0; format[i]; i++)
     {
         switch (format[i])
         {
+	case '\"':
+	    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, format[i]));
+	    inDouble = !inDouble;
+	    break;
         case '\'':
             length = QuoteLength(format, i);	    
-            BAIL_ON_CENTERIS_ERROR(ceError = AppendStringEscaped(buffer, format+i+1, length-2));
+            BAIL_ON_CENTERIS_ERROR(ceError = AppendStringEscaped(buffer, format+i+1, length-2, inDouble));
             i += length-1;
             break;
         case '\\':
             i++;
-            if (NeedsEscape(format[i]))
+            if (NeedsEscape(format[i], inDouble))
                 BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\\'));
             BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, format[i]));
             break;
@@ -406,8 +463,10 @@ ConstructShellCommand(const char* format, Command *result)
             BAIL_ON_CENTERIS_ERROR(ceError = 
                                    AppendVariable(result, 
                                                   lwg_hash_table_lookup(result->variables, 
-                                                                      (void*) (variable+1))));
+									(void*) (variable+1)),
+						  inDouble));
             i += length-1;
+	    CT_SAFE_FREE_STRING(variable);
             variable = NULL;
             break;
 	// Characters to pass through unmodified to the shell
@@ -415,7 +474,6 @@ ConstructShellCommand(const char* format, Command *result)
 	case '|':
 	case ';':
 	case '$':
-	case '\"':
 	case '(':
 	case ')':
 	case '{':
@@ -427,7 +485,7 @@ ConstructShellCommand(const char* format, Command *result)
 	    BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, format[i]));
 	    break;
         default:
-            if (NeedsEscape(format[i]))
+            if (NeedsEscape(format[i], inDouble))
                 BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, '\\'));
             BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppendChar(buffer, format[i]));
             break;
@@ -439,12 +497,10 @@ error:
 }
 
 CENTERROR
-ExecuteShellCommand(Command* command)
+ExecuteShellCommand(char * const envp[], Command* command)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
-    pid_t pid;
-
-//    fprintf(stderr, "CTShell: %s\n", command->buffer.data);
+    pid_t pid, wpid;
 
     pid = fork();
     if (pid < 0)
@@ -467,13 +523,15 @@ ExecuteShellCommand(Command* command)
                     abort();
             }
         }
-        execl("/bin/sh", (const char*) "sh", (const char*) "-c", (const char*) command->buffer.data, (const char*) NULL);
-        // If we are still here, die horribly
-        abort();
+	if (envp)
+	    execle("/bin/sh", (const char*) "sh", (const char*) "-c", (const char*) command->buffer.data, (const char*) NULL, envp);
+	else
+	    execl("/bin/sh", (const char*) "sh", (const char*) "-c", (const char*) command->buffer.data, (const char*) NULL);
+	exit(1);
     }
     else
     {
-        int status;
+        int status = 0;
         while (1)
         {
             // Parent
@@ -524,7 +582,7 @@ ExecuteShellCommand(Command* command)
                     {
                         char buffer[1024];
                         int amount;
-
+			
                         while ((amount = read(pipes[i]->fds[0], buffer, sizeof(buffer)-1)) < 0)
                         {
                             if (errno != EAGAIN)
@@ -552,16 +610,42 @@ ExecuteShellCommand(Command* command)
                 }
             }
         }
-        if (waitpid(pid, &status, 0) != pid || status)
-        {
-            if (status)
-                BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_COMMAND_FAILED);
-            else
-                BAIL_ON_CENTERIS_ERROR(ceError = CTMapSystemError(errno));
-        }
+	
+	do
+	{
+	    wpid = waitpid(pid, &status, 0);
+	} while (wpid != pid && errno == EINTR);
+	if (wpid != pid)
+	    BAIL_ON_CENTERIS_ERROR(ceError = CTMapSystemError(errno));
+	else if (status)
+	    BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_COMMAND_FAILED);
     }
 
 error:
+    return ceError;
+}
+
+CENTERROR
+CTShellEx(char * const envp[], const char* format, ...)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    unsigned int numvars = 0;
+    va_list ap;
+    Command command;
+
+    va_start(ap, format);
+
+    BAIL_ON_CENTERIS_ERROR(ceError = CommandConstruct(&command));
+    BAIL_ON_CENTERIS_ERROR(ceError = CountVariables(format, &numvars));
+    BAIL_ON_CENTERIS_ERROR(ceError = BuildVariableTable(numvars, ap, &command.variables));
+    BAIL_ON_CENTERIS_ERROR(ceError = ConstructShellCommand(format, &command));
+    BAIL_ON_CENTERIS_ERROR(ceError = ExecuteShellCommand(envp, &command));
+
+error:
+    va_end (ap);
+
+    CommandDestroy(&command);
+
     return ceError;
 }
 
@@ -577,9 +661,10 @@ CTShell(const char* format, ...)
 
     BAIL_ON_CENTERIS_ERROR(ceError = CommandConstruct(&command));
     BAIL_ON_CENTERIS_ERROR(ceError = CountVariables(format, &numvars));
-    BAIL_ON_CENTERIS_ERROR(ceError = BuildVariableTable(numvars, ap, &command.variables));
+    BAIL_ON_CENTERIS_ERROR(ceError = BuildVariableTable(numvars, ap,
+                &command.variables));
     BAIL_ON_CENTERIS_ERROR(ceError = ConstructShellCommand(format, &command));
-    BAIL_ON_CENTERIS_ERROR(ceError = ExecuteShellCommand(&command));
+    BAIL_ON_CENTERIS_ERROR(ceError = ExecuteShellCommand(NULL, &command));
 
 error:
     va_end (ap);

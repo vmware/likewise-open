@@ -85,53 +85,6 @@ cleanup:
 }
 
 void
-DJJoinDomain(
-    const char* domain,
-    const char* ou,
-    const char* user,
-    const char* password,
-    DJOptions* options,
-    LWException** exc
-    )
-{
-    BOOLEAN resolvable;
-    
-    if (IsNullOrEmptyString(user)) 
-    {
-	LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_INVALID_USERID);
-    }
-    
-    if (IsNullOrEmptyString(domain)) 
-    {
-	LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_INVALID_DOMAIN_NAME);
-    }
-
-    if (IsNullOrEmptyString(password)) 
-    {
-        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_INVALID_PASSWORD);
-    }
-    
-    
-    LW_CLEANUP_CTERR(exc, DJIsDomainNameResolvable(domain, &resolvable));
-    
-    if (!resolvable)
-    {
-	LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME);
-    }
-
-    DJ_LOG_INFO("Joining domain %s (%s) as (%s)", domain, ou ? ou : "Default OU", user);
-
-    LW_CLEANUP_CTERR(exc, JoinDomain(domain,
-				     user,
-				     password,
-				     ou,
-				     options->noModifyHosts));
-cleanup:
-
-    return;
-}
-
-void
 DJLeaveDomain(
     DJOptions* options,
     LWException** exc

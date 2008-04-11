@@ -503,8 +503,33 @@ DJKillProcess(
     DWORD dwFlag = 0;
     DWORD dwTimeout = 30;
     int status = 0;
+    BOOLEAN oldhandlerset = FALSE;
+#ifdef HAVE_SIGPROCMASK
+    sigset_t oldset;
+    sigset_t newset;
+#else
+    sighandler_t oldhandler = 0;
+#endif
 
-    sigset(SIGALRM, WaitTimeout);
+#ifdef HAVE_SIGPROCMASK
+    if(sigemptyset(&newset) < 0 || sigaddset(&newset, SIGALRM) < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+    if(sigprocmask(SIG_BLOCK, &newset, &oldset) < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+#else
+    if((long)(oldhandler = sigset(SIGALRM, WaitTimeout)) == -1)
+    {
+        ceError = CTMapSystemError(errno);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+#endif
+    oldhandlerset = TRUE;
 
     alarm(dwTimeout);
 
@@ -527,7 +552,21 @@ DJKillProcess(
     }
 
     alarm(0);
-    sigset(SIGALRM, SIG_DFL);
+error:
+    if(oldhandlerset)
+    {
+#ifdef HAVE_SIGPROCMASK
+        if(sigprocmask(SIG_SETMASK, &oldset, NULL) < 0 && CENTERROR_IS_OK(ceError))
+        {
+            ceError = CTMapSystemError(errno);
+        }
+#else
+        if(sigset(SIGALRM, oldhandler) == -1 && CENTERROR_IS_OK(ceError))
+        {
+            ceError = CTMapSystemError(errno);
+        }
+#endif
+    }
 
     return ceError;
 }

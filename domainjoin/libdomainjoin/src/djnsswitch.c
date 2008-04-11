@@ -551,6 +551,20 @@ cleanup:
     return ceError;
 }
 
+static CENTERROR UsingLsass(BOOLEAN *using)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    ceError = CTFindFileInPath("likewise-lsassd", "/usr/centeris/bin:/usr/centeris/sbin:/opt/centeris/bin:/opt/centeris/sbin", NULL);
+    if(ceError == CENTERROR_FILE_NOT_FOUND)
+    {
+        *using = FALSE;
+        ceError = CENTERROR_SUCCESS;
+    }
+    else if(CENTERROR_IS_OK(ceError))
+        *using = TRUE;
+    return ceError;
+}
+
 CENTERROR
 UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
 {
@@ -558,8 +572,22 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
     DistroInfo distro;
     int line;
     int lwiIndex;
+    BOOLEAN usingLsass;
+    PCSTR preferredModule;
+    PCSTR oldModule;
 
     GCE(ceError = DJGetDistroInfo(NULL, &distro));
+    GCE(ceError = UsingLsass(&usingLsass));
+    if(usingLsass)
+    {
+        preferredModule = "lsass";
+        oldModule = "lwidentity";
+    }
+    else
+    {
+        preferredModule = "lwidentity";
+        oldModule = "lsass";
+    }
 
     line = FindEntry(conf, 0, "passwd");
     if(enable && line == -1)
@@ -568,15 +596,21 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
         GCE(ceError = AddEntry(conf, &distro, &line, "passwd"));
         GCE(ceError = InsertModule(conf, &distro, line, -1, "files"));
     }
-    lwiIndex = FindModuleOnLine(conf, line, "lwidentity");
+    lwiIndex = FindModuleOnLine(conf, line, preferredModule);
     if(enable && lwiIndex == -1)
     {
-        GCE(ceError = InsertModule(conf, &distro, line, -1, "lwidentity"));
+        GCE(ceError = InsertModule(conf, &distro, line, -1, preferredModule));
     }
     if(!enable && lwiIndex != -1)
     {
         GCE(ceError = RemoveModule(conf, line, lwiIndex));
     }
+    lwiIndex = FindModuleOnLine(conf, line, oldModule);
+    if(lwiIndex != -1)
+    {
+        GCE(ceError = RemoveModule(conf, line, lwiIndex));
+    }
+
     // If lwidentity was the only entry
     // and we removed that now, don't write
     // an empty entry into the file
@@ -604,15 +638,21 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
         GCE(ceError = AddEntry(conf, &distro, &line, groupName));
         GCE(ceError = InsertModule(conf, &distro, line, -1, "files"));
     }
-    lwiIndex = FindModuleOnLine(conf, line, "lwidentity");
+    lwiIndex = FindModuleOnLine(conf, line, preferredModule);
     if(enable && lwiIndex == -1)
     {
-        GCE(ceError = InsertModule(conf, &distro, line, -1, "lwidentity"));
+        GCE(ceError = InsertModule(conf, &distro, line, -1, preferredModule));
     }
     if(!enable && lwiIndex != -1)
     {
         GCE(ceError = RemoveModule(conf, line, lwiIndex));
     }
+    lwiIndex = FindModuleOnLine(conf, line, oldModule);
+    if(lwiIndex != -1)
+    {
+        GCE(ceError = RemoveModule(conf, line, lwiIndex));
+    }
+
     // If lwidentity was the only entry
     // and we removed that now, don't write
     // an empty entry into the file
@@ -844,7 +884,7 @@ static void ConfigureApparmor(BOOLEAN enable, LWException **exc)
     {
         LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH ".new"));
         LW_CLEANUP_CTERR(exc, CTOpenFile(APPARMOR_NSSWITCH ".new", "a", &file));
-        LW_CLEANUP_CTERR(exc, CTFilePrintf(file, "# centeris\n%s# end centeris\n",
+        LW_CLEANUP_CTERR(exc, CTFilePrintf(file, "# likewise\n%s# end likewise\n",
                     addString));
 
         CTSafeCloseFile(&file);
@@ -852,7 +892,7 @@ static void ConfigureApparmor(BOOLEAN enable, LWException **exc)
         LW_CLEANUP_CTERR(exc, CTSafeReplaceFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH ".new"));
     }
     else
-        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH, FALSE, "/^[ \t]*#[ \t]*centeris[ \t]*$/,/^[ \t]*#[ \t]*end centeris[ \t]*$/d"));
+        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH, FALSE, "/^[ \t]*#[ \t]*likewise[ \t]*$/,/^[ \t]*#[ \t]*end likewise[ \t]*$/d"));
 
 
     ceError = CTFindFileInPath("rcapparmor", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", &restartPath);
@@ -1083,8 +1123,8 @@ static void RestartDtloginIfRunning(JoinProcessOptions *options, LWException **e
     }
     if(doRestart)
     {
-        LW_TRY(exc, DJStartStopDaemon("dtlogin", FALSE, NULL, &LW_EXC));
-        LW_TRY(exc, DJStartStopDaemon("dtlogin", TRUE, NULL, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon("dtlogin", FALSE, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon("dtlogin", TRUE, &LW_EXC));
     }
 cleanup:
     LW_HANDLE(&inner);
@@ -1145,7 +1185,7 @@ static PSTR GetNsswitchDescription(const JoinProcessOptions *options, LWExceptio
 "\t* Remove lwidentity module from /usr/lib/security/methods.cfg (AIX only)\n"
 "\t* Remove lwidentity from passwd and group/groups line /etc/nsswitch.conf or /etc/netsvc.conf\n"
 "The following step is optional:\n"
-"\t* Remove apparmor exception for centeris nsswitch libraries\n";
+"\t* Remove apparmor exception for likewise nsswitch libraries\n";
 
     LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&ret,
 "%sIf any changes are performed, then the following services must be restarted:\n"

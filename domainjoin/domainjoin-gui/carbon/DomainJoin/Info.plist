@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string>DomainJoin</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.centeris.DomainJoin</string>
+	<string>com.likewise.DomainJoin</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

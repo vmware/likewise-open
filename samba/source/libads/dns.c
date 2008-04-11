@@ -223,7 +223,14 @@ static bool ads_dns_parse_rr_srv( TALLOC_CTX *ctx, uint8 *start, uint8 *end,
 		DEBUG(1,("ads_dns_parse_rr_srv: Failed to uncompress name!\n"));
 		return False;
 	}
+
 	srv->hostname = talloc_strdup( ctx, dcname );
+
+	DEBUG(10,("ads_dns_parse_rr_srv: Parsed %s [%u, %u, %u]\n", 
+		  srv->hostname, 
+		  srv->priority,
+		  srv->weight,
+		  srv->port));
 
 	return True;
 }
@@ -449,7 +456,7 @@ static NTSTATUS ads_dns_lookup_srv( TALLOC_CTX *ctx,
 		if (!ads_dns_parse_query(ctx, buffer,
 					buffer+resp_len, &p, &q)) {
 			DEBUG(1,("ads_dns_lookup_srv: "
-				"Failed to parse query record!\n"));
+				 "Failed to parse query record [%d]!\n", rrnum));
 			return NT_STATUS_UNSUCCESSFUL;
 		}
 	}
@@ -460,7 +467,7 @@ static NTSTATUS ads_dns_lookup_srv( TALLOC_CTX *ctx,
 		if (!ads_dns_parse_rr_srv(ctx, buffer, buffer+resp_len,
 					&p, &dcs[rrnum])) {
 			DEBUG(1,("ads_dns_lookup_srv: "
-				"Failed to parse answer record!\n"));
+				 "Failed to parse answer recordi [%d]!\n", rrnum));
 			return NT_STATUS_UNSUCCESSFUL;
 		}
 	}
@@ -475,7 +482,7 @@ static NTSTATUS ads_dns_lookup_srv( TALLOC_CTX *ctx,
 		if (!ads_dns_parse_rr( ctx, buffer,
 					buffer+resp_len, &p, &rr)) {
 			DEBUG(1,("ads_dns_lookup_srv: "
-				"Failed to parse authority record!\n"));
+				 "Failed to parse authority record! [%d]\n", rrnum));
 			return NT_STATUS_UNSUCCESSFUL;
 		}
 	}
@@ -489,7 +496,7 @@ static NTSTATUS ads_dns_lookup_srv( TALLOC_CTX *ctx,
 		if (!ads_dns_parse_rr(ctx, buffer, buffer+resp_len,
 					&p, &rr)) {
 			DEBUG(1,("ads_dns_lookup_srv: Failed "
-				"to parse additional records section!\n"));
+				 "to parse additional records section! [%d]\n", rrnum));
 			return NT_STATUS_UNSUCCESSFUL;
 		}
 

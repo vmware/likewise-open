@@ -30,7 +30,7 @@ CredentialsDialog::SetUsername(const std::string& userName)
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to set user name in control");
-	   throw DomainJoinException(errMsg);
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 }
 
@@ -42,7 +42,7 @@ CredentialsDialog::GetUsername()
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to get user name from control");
-	   throw DomainJoinException(errMsg);
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 	
 	return result;
@@ -56,7 +56,7 @@ CredentialsDialog::GetPassword()
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to get password from control");
-	   throw DomainJoinException(errMsg);
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 	
 	return result;
@@ -69,7 +69,7 @@ CredentialsDialog::SetPassword(const std::string& password)
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to set password in control");
-	   throw DomainJoinException(errMsg);
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 }
 

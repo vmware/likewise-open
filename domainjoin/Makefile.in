@@ -1,7 +1,12 @@
 SHELL = /bin/sh
 VPATH = @srcdir@
 
-subdirs=libdomainjoin/src domainjoin-cli/src @GTK_SUBDIR@ tests
+subdirs=libdomainjoin/src         \
+        domainjoin-cli/src        \
+        @GTK_SUBDIR@              \
+        @LIBDOMAINJOINMAC_SUBDIR@ \
+        tests
+
 compatlibdirs=libdomainjoin/src
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@

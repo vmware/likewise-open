@@ -34,6 +34,7 @@ typedef struct CTShellVar
         SVAR_INT,
         SVAR_STR,
         SVAR_ARR,
+	SVAR_ZERO,
         SVAR_OUT
     } type;
     const char* name;
@@ -50,13 +51,18 @@ struct CTShellVar __CTVarInteger(const char* name, int value);
 struct CTShellVar __CTVarString(const char* name, const char* value);
 struct CTShellVar __CTVarArray(const char* name, char const * const * value);
 struct CTShellVar __CTVarOut(const char* name, char** out);
+struct CTShellVar __CTVarZero(const char* name);
 
-#define CTSHELL_INTEGER(name, value) __CTVarInteger( #name , value)
-#define CTSHELL_STRING(name, value) __CTVarString( #name , value)
-#define CTSHELL_ARRAY(name, value) __CTVarArray( #name , (char const * const *) (value))
-#define CTSHELL_BUFFER(name, value) __CTVarOut( #name , value)
+#define CTSHELL_INTEGER(name, value) (__CTVarInteger( #name , value))
+#define CTSHELL_STRING(name, value) (__CTVarString( #name , value))
+#define CTSHELL_ARRAY(name, value) (__CTVarArray( #name , (char const * const *) (value)))
+#define CTSHELL_BUFFER(name, value) (__CTVarOut( #name , value))
+#define CTSHELL_ZERO(name) (__CTVarZero( #name ))
 
 CENTERROR
 CTShell(const char* format, ...);
+
+CENTERROR
+CTShellEx(char * const envp[], const char* format, ...);
 
 #endif

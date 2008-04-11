@@ -858,8 +858,8 @@ static CENTERROR WritePamConfiguration(const char *rootPrefix, struct PamConf *c
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     DynamicArray openFiles;
-    int lastIndexedFile;
-    int i;
+    int lastIndexedFile = 0;
+    int i = 0;
     StringBuffer buffer;
     memset(&openFiles, 0, sizeof(openFiles));
     BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferConstruct(&buffer));
@@ -987,6 +987,8 @@ static BOOLEAN PamModuleIsLwidentity(const char *phase, const char *module)
 {
     char buffer[256];
     NormalizeModuleName( buffer, module, sizeof(buffer));
+    if(!strcmp(buffer, "pam_lsass"))
+        return TRUE;
     if(!strcmp(buffer, "pam_lwidentity"))
         return TRUE;
     if(!strcmp(buffer, "libpam_lwidentity"))
@@ -1395,9 +1397,7 @@ void GetModuleControl(struct PamLine *lineObj, const char **module, const char *
      */
     if(lineObj->optionCount == 1 && !strcmp(lineObj->options[0].value, "set_default_repository"))
     {
-        char buffer[256];
-        NormalizeModuleName( buffer, *module, sizeof(buffer));
-        if(!strcmp(buffer, "pam_lwidentity"))
+        if(PamModuleIsLwidentity("auth", *module))
             *module = "pam_lwidentity_set_repo";
     }
 }
@@ -2441,10 +2441,15 @@ static CENTERROR FindPamLwiPassPolicy(const char *testPrefix, char **destName)
 
 static CENTERROR FindPamLwidentity(const char *testPrefix, char **destName)
 {
-    CENTERROR ceError = FindModulePath(testPrefix, "pam_lwidentity", destName);
+    CENTERROR ceError;
+    ceError = FindModulePath(testPrefix, "pam_lsass", destName);
+    if(ceError == CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE)
+    {
+        ceError = FindModulePath(testPrefix, "pam_lwidentity", destName);
+    }
     if(!CENTERROR_IS_OK(ceError))
     {
-        DJ_LOG_ERROR("Unable to find pam_lwidentity");
+        DJ_LOG_ERROR("Unable to find pam_lwidentity or pam_lsass");
     }
     return ceError;
 }
@@ -2485,6 +2490,16 @@ void DJUpdatePamConf(const char *testPrefix,
 
     for(i = 0; i < serviceCount; i++)
     {
+        if(!strcmp(services[i], "common-pammount"))
+        {
+            /* eeepc has a pam file called common-pammount which is only
+             * intended to be used as an include file in conjunction with
+             * other include files. All of our changes should go in
+             * common-auth instead.
+             */
+            DJ_LOG_INFO("Ignoring pam service common-pammount");
+            continue;
+        }
         for(j = 0; phases[j] != NULL; j++)
         {
             memset(&state, 0, sizeof(state));
@@ -2673,7 +2688,7 @@ cleanup:
 
 CENTERROR
 ConfigurePamForADLogin(
-    PSTR pszShortDomainName
+    PCSTR pszShortDomainName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;

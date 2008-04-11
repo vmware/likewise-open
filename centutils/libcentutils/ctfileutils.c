@@ -1733,7 +1733,8 @@ CTFindInPath(
     PSTR testPath = NULL;
     BOOLEAN exists;
 
-    *foundPath = NULL;
+    if(foundPath != NULL)
+        *foundPath = NULL;
 
     if(rootPrefix == NULL)
         rootPrefix = "";
@@ -1748,7 +1749,11 @@ CTFindInPath(
         GCE(ceError = CTCheckFileOrLinkExists(testPath, &exists));
         if(exists)
         {
-            GCE(ceError = CTAllocateStringPrintf(foundPath, "%s/%s", currentDir, filename));
+            if(foundPath != NULL)
+            {
+
+                GCE(ceError = CTAllocateStringPrintf(foundPath, "%s/%s", currentDir, filename));
+            }
             break;
         }
         currentDir = strtok_r(NULL, ":", &strtokSavePtr);

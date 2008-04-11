@@ -31,18 +31,77 @@
 #include "ctshell.h"
 #include "ctstrutils.h"
 #include <glob.h>
+#include <dlfcn.h>
+#include "lsajoin.h"
 
 #if !defined(__LWI_MACOSX__)
 extern char** environ;
 #endif
 
+PLSA_NET_JOIN_FUNCTION_TABLE lsaFunctions = NULL;
+void *lsaHandle = NULL;
+
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
+
+#define LW_RAISE_LSERR(dest, code)			\
+    LWRaiseLsassError((dest), (code), __FILE__, __LINE__)
+
+#define LW_CLEANUP_LSERR(dest, err)		\
+    do						\
+    {						\
+	DWORD _err = (err);			\
+	if (_err)				\
+	{					\
+	    LW_RAISE_LSERR(dest, _err);		\
+	    goto cleanup;			\
+	}					\
+    } while (0)					\
+
+void
+LWRaiseLsassError(
+    LWException** dest,
+    DWORD code,
+    const char* file,
+    unsigned int line
+    )
+{
+    PSTR buffer = NULL;
+    if(lsaFunctions != NULL)
+    {
+        size_t bufferSize;
+        bufferSize = lsaFunctions->pfnGetErrorString(code, NULL, 0);
+        LW_CLEANUP_CTERR(dest, CTAllocateMemory(bufferSize, PPCAST(&buffer)));
+        if(lsaFunctions->pfnGetErrorString(code, buffer, bufferSize) == bufferSize && bufferSize > 0 && strlen(buffer) > 0)
+        {
+            LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Lsass Error", buffer);
+            goto cleanup;
+        }
+    }
+
+    LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Unable to convert lsass error", "Lsass error code %X has ocurred, but an error string cannot be retreived", code);
+
+cleanup:
+    CT_SAFE_FREE_STRING(buffer);
+}
+
+static void
+DJExecWBDomainJoin(
+        PCSTR rootPrefix,
+    PCSTR pszDomainName,
+    PCSTR pszUserName,
+    PCSTR pszPassword,
+    PCSTR pszOU,
+    PSTR* ppszWorkgroupName,
+    PCSTR osName,
+    PCSTR osVer,
+    JoinProcessOptions *options,
+    LWException **exc);
 
 static
 CENTERROR
 BuildJoinEnvironment(
     PCSTR krb5ConfPath,
-    PSTR pszPassword,
+    PCSTR pszPassword,
     PSTR** pppszEnv,
     PDWORD pdwNVars
     )
@@ -173,278 +232,6 @@ error:
     return ceError;
 }
 
-static
-CENTERROR
-DJExecDomainJoin(
-        PCSTR rootPrefix,
-    PSTR pszDomainName,
-    PSTR pszUserName,
-    PSTR pszPassword,
-    PSTR pszOU,
-    PSTR* ppszWorkgroupName)
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    PSTR pszAdmin = NULL;
-    PSTR pszTmp = NULL;
-    PSTR* ppszArgs = NULL;
-    PSTR* nextArg = NULL;
-    DWORD nArgs = 0;
-    CHAR  szBuf[PATH_MAX+1];
-    PSTR* ppszEnv = NULL;
-    DWORD nVars = 0;
-    PPROCINFO pProcInfo = NULL;
-    PROCBUFFER procBuffer;
-    BOOLEAN bTimedout = FALSE;
-    LONG status = 0;
-    DWORD dwTimeout = 5 * 30;
-    PSTR pszBuffer = NULL;
-    DWORD iBufIdx = 0;
-    DWORD dwBufLen = 0;
-    DWORD dwBufAvailable = 0;
-    BOOLEAN bFirst = TRUE;
-    PSTR pszTerm = NULL;
-    PSTR pszWorkgroupName = NULL;
-    DistroInfo distro;
-    PSTR pszOSName = NULL;
-    PSTR lwiauthdConfOption = NULL;
-    PSTR krb5ConfPath = NULL;
-
-    if(rootPrefix == NULL)
-        rootPrefix = "";
-
-    memset(&distro, 0, sizeof(distro));
-    ceError = DJGetDistroInfo(NULL, &distro);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-    ceError = DJGetDistroString(distro.distro, &pszOSName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    DJ_LOG_INFO("OS Name: %s", pszOSName);
-    DJ_LOG_INFO("OS Version: %s", distro.version);
-
-    ceError = CTAllocateStringPrintf(&lwiauthdConfOption, "--configfile=%s/etc/samba/lwiauthd.conf", rootPrefix);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-    ceError = CTAllocateStringPrintf(&krb5ConfPath, "%s/etc/krb5.conf", rootPrefix);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    /* Join the domain and extract (screenscrape) the name of the
-     * workgroup that the join utility writes to stdout.  This is
-     * fragile and should be changed in the future.
-     */
-
-    /* Canonicalize the username to a UPN (user@REALM). */
-    if ((pszTmp = strchr(pszUserName, '@')) == NULL) {
-
-        ceError = CTAllocateMemory(strlen(pszUserName)+strlen(pszDomainName)+2,
-                                   (PVOID*)&pszAdmin);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        sprintf(pszAdmin, "%s@%s", pszUserName, pszDomainName);
-
-    } else {
-
-        ceError = CTAllocateString(pszUserName, &pszAdmin);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-    }
-
-    CTStrToUpper(strchr(pszAdmin, '@'));
-
-    nArgs = 9;
-    if(!IsNullOrEmptyString(pszOU))
-        nArgs++;
-
-    if (gdjLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE)
-        nArgs++;
-
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    nextArg = ppszArgs;
-
-    sprintf(szBuf, "%s/bin/lwinet", PREFIXDIR);
-    ceError = CTAllocateString(szBuf, nextArg++);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString(lwiauthdConfOption, nextArg++);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString("ads", nextArg++);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString("join", nextArg++);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString("-U", nextArg++);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString(pszAdmin, nextArg++);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-    
-    if (gdjLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE)
-    {
-        ceError = CTAllocateString("-d10", nextArg++);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    sprintf(szBuf, "osName=%s", pszOSName);
-    ceError = CTAllocateString(szBuf, nextArg++);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    sprintf(szBuf, "osVer=%s", distro.version);
-    ceError = CTAllocateString(szBuf, nextArg++);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-    
-    if (!IsNullOrEmptyString(pszOU)) {
-       sprintf(szBuf, "createcomputer=%s", pszOU);
-       ceError = CTAllocateString(szBuf, nextArg++);
-       BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-
-    ceError = BuildJoinEnvironment(krb5ConfPath, pszPassword, &ppszEnv, &nVars);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJSpawnProcessWithEnvironment(ppszArgs[0],
-                                            ppszArgs,
-                                            ppszEnv,
-                                            -1,
-                                            -1,
-                                            2,
-                                            &pProcInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJTimedReadData(pProcInfo,
-                              &procBuffer,
-                              dwTimeout,
-                              &bTimedout);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bTimedout) {
-
-        ceError = CENTERROR_DOMAINJOIN_JOIN_TIMEDOUT;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        ceError = DJKillProcess(pProcInfo);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-    }
-
-    do {
-
-        if (!bFirst) {
-            ceError = DJReadData(pProcInfo, &procBuffer);
-            BAIL_ON_CENTERIS_ERROR(ceError);
-        }
-
-        bFirst = FALSE;
-
-        if (procBuffer.dwOutBytesRead) {
-
-            while (1) {
-
-                if (procBuffer.dwOutBytesRead < dwBufAvailable) {
-
-                    memcpy(pszBuffer+iBufIdx,
-                           procBuffer.szOutBuf,
-                           procBuffer.dwOutBytesRead
-                        );
-
-                    iBufIdx+= procBuffer.dwOutBytesRead;
-                    dwBufAvailable -= procBuffer.dwOutBytesRead;
-
-                    *(pszBuffer+iBufIdx+1) = '\0';
-
-                    break;
-
-                } else {
-
-                    /*
-                     * TODO: Limit the amount of memory acquired
-                     */
-
-                    ceError = CTReallocMemory(pszBuffer,
-                                              (PVOID*)&pszBuffer,
-                                              dwBufLen+1024);
-                    BAIL_ON_CENTERIS_ERROR(ceError);
-
-                    dwBufLen += 1024;
-                    dwBufAvailable += 1024;
-                }
-            }
-        }
-
-    } while (!procBuffer.bEndOfFile);
-
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (!IsNullOrEmptyString(pszBuffer)) {
-        DJ_LOG_INFO("%s", pszBuffer);
-    }
-
-    if (status != 0) {
-
-        ceError = CENTERROR_DOMAINJOIN_JOIN_FAILED;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-    }
-
-    // Now do the nasty screenscrape to get the domain shortname aka
-    // 'workgroup' name
-    pszTmp = (pszBuffer ? strstr(pszBuffer, "--") : NULL);
-    if (pszTmp == NULL) {
-        ceError = CENTERROR_DOMAINJOIN_JOIN_NO_WKGRP;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    pszTmp+=2;
-    while (*pszTmp != '\0' && isspace((int) *pszTmp))
-        pszTmp++;
-    pszTerm = pszTmp;
-    while (*pszTerm != '\0' && !isspace((int) *pszTerm))
-        pszTerm++;
-    *pszTerm = '\0';
-
-    if (IsNullOrEmptyString(pszTmp)) {
-        ceError = CENTERROR_DOMAINJOIN_JOIN_NO_WKGRP;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    ceError = CTAllocateString(pszTmp, &pszWorkgroupName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    *ppszWorkgroupName = pszWorkgroupName;
-    pszWorkgroupName = NULL;
-
-error:
-
-    if (pszBuffer)
-        CTFreeMemory(pszBuffer);
-
-    if (ppszArgs)
-        CTFreeStringArray(ppszArgs, nArgs);
-
-    if (ppszEnv)
-        CTFreeStringArray(ppszEnv, nVars);
-
-    if (pszAdmin)
-        CTFreeString(pszAdmin);
-
-    if (pProcInfo)
-        FreeProcInfo(pProcInfo);
-
-    if (pszWorkgroupName)
-        CTFreeString(pszWorkgroupName);
-
-    if (pszOSName)
-       CTFreeString(pszOSName);
-    DJFreeDistroInfo(&distro);
-    CT_SAFE_FREE_STRING(lwiauthdConfOption);
-    CT_SAFE_FREE_STRING(krb5ConfPath);
-
-    return ceError;
-}
-
 CENTERROR
 DJRemoveCacheFiles()
 {
@@ -504,7 +291,7 @@ DJFinishJoin(
     ceError = DJRemoveCacheFiles();
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    DJManageDaemons(pszShortDomainName, TRUE, &inner);
+    DJManageDaemons(TRUE, &inner);
     if(!LW_IS_OK(inner))
     {
         ceError = inner->code;
@@ -519,8 +306,8 @@ error:
 
 CENTERROR
 PrepareForJoinOrLeaveDomain(
-    PSTR    pszWorkgroupName,
-    BOOLEAN bIsDomain
+    PCSTR    pszWorkgroupName,
+    BOOLEAN  bIsDomain
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -548,7 +335,7 @@ PrepareForJoinOrLeaveDomain(
 
     DJ_LOG_INFO("stopping daemons");
 
-    DJManageDaemons(NULL, FALSE, &inner);
+    DJManageDaemons(FALSE, &inner);
     if(!LW_IS_OK(inner))
     {
         ceError = inner->code;
@@ -598,8 +385,8 @@ static
 CENTERROR
 CanonicalizeOrganizationalUnit(
     PSTR* pszCanonicalizedOrganizationalUnit,
-    PSTR pszOrganizationalUnit,
-    PSTR pszDomainName
+    PCSTR pszOrganizationalUnit,
+    PCSTR pszDomainName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -774,9 +561,6 @@ static QueryResult QueryDoJoin(const JoinProcessOptions *options, LWException **
 static void DoJoin(JoinProcessOptions *options, LWException **exc)
 {
     PSTR pszCanonicalizedOU = NULL;
-    PSTR tempDir = NULL;
-    PSTR lwiauthdPath = NULL;
-    PSTR krb5Path = NULL;
     ModuleState *state = DJGetModuleStateByName(options, "join");
 
     if (options->ouName)
@@ -786,56 +570,15 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
                                                  options->domainName));
     }
 
-    LW_CLEANUP_CTERR(exc, CTCreateTempDirectory(&tempDir));
-    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&lwiauthdPath, "%s/etc/samba", tempDir));
-    LW_CLEANUP_CTERR(exc, CTCreateDirectory(lwiauthdPath, 0700));
-    CT_SAFE_FREE_STRING(lwiauthdPath);
-    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&lwiauthdPath, "%s/etc/samba/lwiauthd.conf", tempDir));
-    LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms("/etc/samba/lwiauthd.conf", lwiauthdPath));
-    LW_CLEANUP_CTERR(exc, DJCopyKrb5ToRootDir(NULL, tempDir));
-
-    LW_CLEANUP_CTERR(exc, DJInitSmbConfig(tempDir));
-    LW_CLEANUP_CTERR(exc, SetWorkgroup(tempDir, "WORKGROUP"));
-
-    /*
-     * Setup krb5.conf with the domain as the Kerberos realm.
-     * We do this before doing the join. (We should verify whether
-     * it is necessary to do so before trying to join, however.)
-     */
-    LW_CLEANUP_CTERR(exc, DJModifyKrb5Conf(tempDir,
-		    TRUE,
-		    options->domainName, NULL, NULL));
-
-
-    /*
-     * Insert the name of the AD into the realm property.
-     * samba's net command doesnt take an argument for the realm
-     * or workgroup properties, so we have to patch the smb.conf
-     */
-    LW_CLEANUP_CTERR(exc, SetRealm(tempDir, options->domainName));
-    LW_CLEANUP_CTERR(exc, DJSetSambaValue(tempDir, "security", "ads"));
-    LW_CLEANUP_CTERR(exc, DJSetSambaValue(tempDir, "use kerberos keytab", "yes"));
-
-    DJ_LOG_INFO("Executing domain join.");
-    CT_SAFE_FREE_STRING(options->shortDomainName);
-    LW_CLEANUP_CTERR(exc, DJExecDomainJoin(tempDir, options->domainName,
-                               options->username,
-                               options->password,
-                               pszCanonicalizedOU,
-                               &options->shortDomainName));
+    LW_TRY(exc, DJCreateComputerAccount(options->computerName,
+                options->domainName, pszCanonicalizedOU, options->username,
+                options->password, &options->shortDomainName, options, &LW_EXC));
 
     //Indicate that the join was successful incase QueryDoJoin is called later
     state->moduleData = (void *)1;
 
 cleanup:
     CT_SAFE_FREE_STRING(pszCanonicalizedOU);
-    if(tempDir != NULL)
-    {
-        CTRemoveDirectory(tempDir);
-        CT_SAFE_FREE_STRING(tempDir);
-    }
-    CT_SAFE_FREE_STRING(lwiauthdPath);
-    CT_SAFE_FREE_STRING(krb5Path);
 }
 
 static PSTR GetJoinDescription(const JoinProcessOptions *options, LWException **exc)
@@ -1081,6 +824,8 @@ static void DoLwiConf(JoinProcessOptions *options, LWException **exc)
 {
     BOOLEAN bGpagentdExists = FALSE;
     DistroInfo distro;
+
+    memset(&distro, 0, sizeof(distro));
     
     LW_CLEANUP_CTERR(exc, DJInitSmbConfig(NULL));
     if(options->joiningDomain)
@@ -1090,7 +835,6 @@ static void DoLwiConf(JoinProcessOptions *options, LWException **exc)
         LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, "security", "ads"));
         LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, "use kerberos keytab", "yes"));
 
-	memset(&distro, 0, sizeof(distro));
 	LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
 
 	switch (distro.os) {
@@ -1142,7 +886,7 @@ static void DoLwiConf(JoinProcessOptions *options, LWException **exc)
     }
 
 cleanup:
-    ;
+    DJFreeDistroInfo(&distro);
 }
 
 static PSTR GetLwiConfDescription(const JoinProcessOptions *options, LWException **exc)
@@ -1173,180 +917,6 @@ cleanup:
 }
 
 const JoinModule DJLwiConfModule = { TRUE, "lwiconf", "configure lwiauthd.conf", QueryLwiConf, DoLwiConf, GetLwiConfDescription };
-
-CENTERROR
-JoinDomain(
-    PSTR pszDomainName,
-    PSTR pszUserName,
-    PSTR pszPassword,
-    PSTR pszOU,
-    BOOLEAN bDoNotChangeHosts
-    )
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    CENTERROR ceError2 = CENTERROR_SUCCESS;
-    PSTR pszComputerName = NULL;
-    PSTR pszWorkgroupName = NULL;
-    PSTR pszShortDomainName = NULL;
-    PSTR pszOriginalWorkgroupName = NULL;
-    BOOLEAN bIsValid = FALSE;
-    PSTR pszCanonicalizedOU = NULL;
-
-    if (geteuid() != 0) {
-       ceError = CENTERROR_DOMAINJOIN_NON_ROOT_USER;
-       BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    if (pszOU)
-    {
-        ceError = CanonicalizeOrganizationalUnit(&pszCanonicalizedOU,
-                                                 pszOU,
-                                                 pszDomainName);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    ceError = DJGetSambaValue("workgroup", &pszOriginalWorkgroupName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (IsNullOrEmptyString(pszOriginalWorkgroupName)) {
-        ceError = CTAllocateString("WORKGROUP", &pszOriginalWorkgroupName);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    /*
-     * We don't want the caller to try and join with a bogus hostname
-     * like linux.site or a non RFC-compliant name.
-     */
-    DJ_LOG_INFO("Getting computer name...");
-    ceError = DJGetComputerName(&pszComputerName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    DJ_LOG_INFO("Checking validity of computer name [%s].", IsNullOrEmptyString(pszComputerName) ? "<null|empty>" : pszComputerName);
-    ceError = DJIsValidComputerName(pszComputerName, &bIsValid);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (!bIsValid) {
-
-        ceError = CENTERROR_DOMAINJOIN_INVALID_HOSTNAME;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-    }
-
-    /*
-     * Make sure that the hostname is fully and properly
-     * configured in the OS
-     */
-    if (!bDoNotChangeHosts)
-    {
-        DJ_LOG_INFO("Setting computer name: name %s, domain %s", pszComputerName, pszDomainName);
-        ceError = DJSetComputerName(pszComputerName, pszDomainName);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    DJ_LOG_INFO("Prepare for AD join.");
-    ceError = PrepareForJoinOrLeaveDomain(pszDomainName, TRUE);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    /* Open necessary firewall ports on VMWare ESX */
-    ceError = DJConfigureFirewallForAuth("",
-            !IsNullOrEmptyString(pszDomainName));
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    /*
-     * Setup krb5.conf with the domain as the Kerberos realm.
-     * We do this before doing the join. (We should verify whether
-     * it is necessary to do so before trying to join, however.)
-     */
-    ceError = DJModifyKrb5Conf("",
-		    !IsNullOrEmptyString(pszDomainName),
-		    pszDomainName, pszShortDomainName, NULL);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-
-    /*
-     * Insert the name of the AD into the realm property.
-     * samba's net command doesnt take an argument for the realm
-     * or workgroup properties, so we have to patch the smb.conf
-     */
-    ceError = SetRealm(NULL, pszDomainName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJSetSambaValue(NULL, "security", "ads");
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJSetSambaValue(NULL, "use kerberos keytab", "yes");
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    DJ_LOG_INFO("Syncing time with DC.");
-    ceError = DJSyncTimeToDC(pszDomainName, 60);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    DJ_LOG_INFO("Executing domain join.");
-    ceError = DJExecDomainJoin(NULL, pszDomainName,
-                               pszUserName,
-                               pszPassword,
-                               pszCanonicalizedOU,
-                               &pszWorkgroupName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    DJ_LOG_INFO("Set workgroup [%s]", IsNullOrEmptyString(pszWorkgroupName) ? "" : pszWorkgroupName);
-    ceError = SetWorkgroup(NULL, pszWorkgroupName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    /*
-     * Now that we have joined the domain successfully, we can
-     * point our configuration files to reference winbind and
-     * start the samba daemons and turn them in the boot process.
-     */
-    ceError = ConfigureSambaEx(pszDomainName, pszWorkgroupName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    /*
-     * If we get this far, we want to propagate the workgroup name
-     * out to the finally block.
-     */
-    ceError = CTAllocateString(pszWorkgroupName, &pszShortDomainName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-#ifdef __LWI_MACOSX__
-    ceError = DJConfigureLWIDSPlugin();
-    BAIL_ON_CENTERIS_ERROR(ceError);
-#endif
-
-error:
-
-    if (!CENTERROR_IS_OK(ceError)) {
-
-        /*
-         * This code can fail, but we want the caller to get the original error
-         * not the one caused by this revert failing. note that if this fails
-         * the user will probably have to repair the smb.conf by hand before
-         * trying to join again
-         */
-        DJRevertToOriginalWorkgroup(pszOriginalWorkgroupName);
-
-    }
-
-    /* Always run this */
-    ceError2 = DJFinishJoin(IsNullOrEmptyString(pszShortDomainName) ? 0 : 5,
-                            pszShortDomainName);
-    if (!CENTERROR_IS_OK(ceError2)) {
-
-        DJ_LOG_ERROR("Error finishing domain join [0x%.8x]", ceError2);
-
-        if (CENTERROR_IS_OK(ceError)) {
-            ceError = ceError2;
-        }
-    }
-
-    CT_SAFE_FREE_STRING(pszShortDomainName);
-    CT_SAFE_FREE_STRING(pszComputerName);
-    CT_SAFE_FREE_STRING(pszWorkgroupName);
-    CT_SAFE_FREE_STRING(pszOriginalWorkgroupName);
-    CT_SAFE_FREE_STRING(pszCanonicalizedOU);
-
-    return ceError;
-}
 
 CENTERROR
 JoinWorkgroup(
@@ -1540,7 +1110,7 @@ DJGetComputerDN(PSTR *dn, LWException **exc)
             CTSHELL_BUFFER(errors, &errors)
             ));
     CTStripWhitespace(*dn);
-    if(*dn == NULL || **dn == NULL)
+    if(*dn == NULL || **dn == '\0')
     {
         LW_RAISE_EX(exc, CENTERROR_COMMAND_FAILED, "Unable to get distinguished name", "The computer's distinguished name could not be queried. Here is the output from 'lwinet ads status -P':\n%s", errors);
         goto cleanup;
@@ -1551,8 +1121,359 @@ cleanup:
     CT_SAFE_FREE_STRING(errors);
 }
 
-CENTERROR
-DJGuessShortDomainName(PCSTR longName, PSTR *shortName)
+void DJNetInitialize(LWException **exc)
+{
+    PCSTR lsaFilename = LIBDIR "/liblsajoin.so";
+    BOOLEAN lsaExists;
+    PFN_LSA_NET_JOIN_INITIALIZE init = NULL;
+    BOOLEAN freeLsaHandle = TRUE;
+
+    DJ_LOG_INFO("Trying to load %s", lsaFilename);
+    
+    LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(lsaFilename, &lsaExists));
+
+    if(lsaExists)
+    {
+        lsaHandle = dlopen(lsaFilename, RTLD_NOW | RTLD_GLOBAL);
+        if(lsaHandle == NULL)
+            LW_CLEANUP_DLERROR(exc);
+
+        init = dlsym(lsaHandle, LSA_SYMBOL_NET_JOIN_INITIALIZE);
+        if(init == NULL)
+            LW_CLEANUP_DLERROR(exc);
+
+        LW_CLEANUP_LSERR(exc, init(&lsaFunctions));
+        DJ_LOG_INFO("Initialized %s", lsaFilename);
+    }
+
+    freeLsaHandle = FALSE;
+
+cleanup:
+    if(freeLsaHandle && lsaHandle != NULL)
+    {
+        dlclose(lsaHandle);
+        lsaHandle = NULL;
+    }
+}
+
+void DJNetShutdown(LWException **exc)
+{
+    PFN_LSA_NET_JOIN_SHUTDOWN shutdown = NULL;
+    if(lsaHandle != NULL)
+    {
+        if(lsaFunctions != NULL)
+        {
+            shutdown = dlsym(lsaHandle, LSA_SYMBOL_NET_JOIN_SHUTDOWN);
+        }
+        if(shutdown != NULL)
+            shutdown(lsaFunctions);
+        if(dlclose(lsaHandle) != 0)
+            LW_CLEANUP_DLERROR(exc);
+        lsaHandle = NULL;
+    }
+cleanup:
+    ;
+}
+
+static void
+DJExecWBDomainJoin(
+        PCSTR rootPrefix,
+    PCSTR pszDomainName,
+    PCSTR pszUserName,
+    PCSTR pszPassword,
+    PCSTR pszOU,
+    PSTR* ppszWorkgroupName,
+    PCSTR osName,
+    PCSTR osVer,
+    JoinProcessOptions *options,
+    LWException **exc)
+{
+    PSTR pszTmp = NULL;
+    PSTR pszTerm = NULL;
+    PSTR pszWorkgroupName = NULL;
+    PSTR krb5ConfPath = NULL;
+    PSTR outbuf = NULL;
+    PSTR errbuf = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR* ppszEnv = NULL;
+    DWORD nVars = 0;
+
+    if(rootPrefix == NULL)
+        rootPrefix = "";
+
+    /* Join the domain and extract (screenscrape) the name of the
+     * workgroup that the join utility writes to stdout.  This is
+     * fragile and should be changed in the future.
+     */
+
+    // The user name should already be in UPN format
+    if (strchr(pszUserName, '@') == NULL) {
+        LW_CLEANUP_CTERR(exc, CENTERROR_INVALID_PARAMETER);
+    }
+
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&krb5ConfPath, "%s/etc/krb5.conf", rootPrefix));
+
+    LW_CLEANUP_CTERR(exc, BuildJoinEnvironment(krb5ConfPath, pszPassword, &ppszEnv, &nVars));
+
+    ceError = CTShellEx(ppszEnv, "%prefix/bin/lwinet --configfile=%rootPrefix/etc/samba/lwiauthd.conf ads join -U %pszUserName %logOption osName=%osName osVer=%osVer %createcomputerOption%pszOU >%outbuf 2>%errbuf",
+            CTSHELL_STRING(prefix, PREFIXDIR),
+            CTSHELL_STRING(rootPrefix, rootPrefix),
+            CTSHELL_STRING(pszUserName, pszUserName),
+            (gdjLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE? CTSHELL_STRING(logOption, "-d10") : CTSHELL_ZERO(logOption)),
+            CTSHELL_STRING(osName, osName),
+            CTSHELL_STRING(osVer, osVer),
+            (IsNullOrEmptyString(pszOU) ? CTSHELL_ZERO(createcomputerOption) : CTSHELL_STRING(createcomputerOption, "createcomputer=")),
+            (IsNullOrEmptyString(pszOU) ? CTSHELL_ZERO(pszOU) : CTSHELL_STRING(pszOU, pszOU)),
+            CTSHELL_BUFFER(outbuf, &outbuf),
+            CTSHELL_BUFFER(errbuf, &errbuf));
+
+    if (ceError == CENTERROR_COMMAND_FAILED)
+    {
+        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_JOIN_FAILED, "Domain join failed",
+"Creating the computer account in AD failed with the following output to stdout:\n"
+"%s\n"
+"And the following output to stderr:\n%s",
+            outbuf, errbuf);
+        goto cleanup;
+    }
+    LW_CLEANUP_CTERR(exc, ceError);
+
+    if (!IsNullOrEmptyString(outbuf)) {
+        DJ_LOG_INFO("%s", outbuf);
+    }
+
+    // Now do the nasty screenscrape to get the domain shortname aka
+    // 'workgroup' name
+    pszTmp = (outbuf ? strstr(outbuf, "--") : NULL);
+    if (pszTmp == NULL) {
+        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_JOIN_NO_WKGRP,
+                "Could not identity short domain name",
+"The domain join appears to have succeeded but did not return the short (workgroup) name as expected. The output was:"
+"%s\n"
+"And the stderr output was:\n%s",
+            outbuf == NULL ? "(null)" : outbuf,
+            errbuf == NULL ? "(null)" : errbuf);
+        goto cleanup;
+    }
+
+    pszTmp+=2;
+    while (*pszTmp != '\0' && isspace((int) *pszTmp))
+        pszTmp++;
+    pszTerm = pszTmp;
+    while (*pszTerm != '\0' && !isspace((int) *pszTerm))
+        pszTerm++;
+    *pszTerm = '\0';
+
+    if (IsNullOrEmptyString(pszTmp)) {
+        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_JOIN_NO_WKGRP,
+                "Could not identity short domain name",
+"The domain join appears to have succeeded but did not return the short (workgroup) name as expected. The output was:"
+"%s\n"
+"And the stderr output was:\n%s",
+            outbuf == NULL ? "(null)" : outbuf,
+            errbuf == NULL ? "(null)" : errbuf);
+    }
+
+    LW_CLEANUP_CTERR(exc, CTAllocateString(pszTmp, &pszWorkgroupName));
+
+    *ppszWorkgroupName = pszWorkgroupName;
+    pszWorkgroupName = NULL;
+
+    if(!IsNullOrEmptyString(errbuf) && options != NULL && options->warningCallback != NULL)
+    {
+        CTStripWhitespace(errbuf);
+        options->warningCallback(options, "Lwinet ads join worked but produced the following errors", errbuf);
+    }
+
+cleanup:
+    CT_SAFE_FREE_STRING(pszWorkgroupName);
+    CT_SAFE_FREE_STRING(krb5ConfPath);
+    CT_SAFE_FREE_STRING(outbuf);
+    CT_SAFE_FREE_STRING(errbuf);
+
+    if (ppszEnv)
+        CTFreeStringArray(ppszEnv, nVars);
+}
+
+static void WBCreateComputerAccount(PCSTR hostname,
+                PCSTR domainName,
+                PCSTR ou,
+                PCSTR username,
+                PCSTR password,
+                PSTR *shortDomainName,
+                PCSTR osName,
+                PCSTR osVer,
+                JoinProcessOptions *options,
+                LWException **exc)
+{
+    PSTR tempDir = NULL;
+    PSTR lwiauthdPath = NULL;
+    PSTR krb5Path = NULL;
+
+    LW_CLEANUP_CTERR(exc, CTCreateTempDirectory(&tempDir));
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&lwiauthdPath, "%s/etc/samba", tempDir));
+    LW_CLEANUP_CTERR(exc, CTCreateDirectory(lwiauthdPath, 0700));
+    CT_SAFE_FREE_STRING(lwiauthdPath);
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&lwiauthdPath, "%s/etc/samba/lwiauthd.conf", tempDir));
+    LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms("/etc/samba/lwiauthd.conf", lwiauthdPath));
+    LW_CLEANUP_CTERR(exc, DJCopyKrb5ToRootDir(NULL, tempDir));
+
+    LW_CLEANUP_CTERR(exc, DJInitSmbConfig(tempDir));
+    LW_CLEANUP_CTERR(exc, SetWorkgroup(tempDir, "WORKGROUP"));
+
+    /*
+     * Setup krb5.conf with the domain as the Kerberos realm.
+     * We do this before doing the join. (We should verify whether
+     * it is necessary to do so before trying to join, however.)
+     */
+    LW_CLEANUP_CTERR(exc, DJModifyKrb5Conf(tempDir,
+		    TRUE,
+		    domainName, NULL, NULL));
+
+
+    /*
+     * Insert the name of the AD into the realm property.
+     * samba's net command doesnt take an argument for the realm
+     * or workgroup properties, so we have to patch the smb.conf
+     */
+    LW_CLEANUP_CTERR(exc, SetRealm(tempDir, domainName));
+    LW_CLEANUP_CTERR(exc, DJSetSambaValue(tempDir, "security", "ads"));
+    LW_CLEANUP_CTERR(exc, DJSetSambaValue(tempDir, "use kerberos keytab", "yes"));
+
+    DJ_LOG_INFO("Executing domain join.");
+    CT_SAFE_FREE_STRING(*shortDomainName);
+    LW_TRY(exc, DJExecWBDomainJoin(tempDir, domainName,
+                               username,
+                               password,
+                               ou,
+                               shortDomainName,
+                               osName,
+                               osVer,
+                               options,
+                               &LW_EXC));
+
+cleanup:
+    if(tempDir != NULL)
+    {
+        CTRemoveDirectory(tempDir);
+        CT_SAFE_FREE_STRING(tempDir);
+    }
+    CT_SAFE_FREE_STRING(lwiauthdPath);
+    CT_SAFE_FREE_STRING(krb5Path);
+}
+
+void DJCreateComputerAccount(PCSTR hostname,
+                PCSTR domainName,
+                PCSTR ou,
+                PCSTR username,
+                PCSTR password,
+                PSTR *shortDomainName,
+                JoinProcessOptions *options,
+                LWException **exc)
+{
+    DistroInfo distro;
+    PSTR osName = NULL;
+
+    memset(&distro, 0, sizeof(distro));
+
+    LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
+    LW_CLEANUP_CTERR(exc, DJGetDistroString(distro.distro, &osName));
+    if(lsaFunctions)
+    {
+        LW_CLEANUP_LSERR(exc, lsaFunctions->pfnNetJoinDomain(hostname, domainName, ou, username, password, osName, distro.version));
+        LW_TRY(exc, DJGuessShortDomainName(domainName, shortDomainName, &LW_EXC));
+    }
+    else
+    {
+        LW_TRY(exc, WBCreateComputerAccount(hostname, domainName, ou, username, password, shortDomainName, osName, distro.version, options, &LW_EXC));
+    }
+cleanup:
+    DJFreeDistroInfo(&distro);
+}
+
+static void WBDisableComputerAccount(PCSTR username, PCSTR password, LWException **exc)
+{
+    PCSTR args[] = {
+        PREFIXDIR "/bin/lwinet",
+        "ads",
+        "leave",
+        "-P",
+        NULL,
+        NULL
+    };
+    int i;
+    PSTR* ppszEnv = NULL;
+    int fds[3] = {-1, -1, STDERR_FILENO};
+    PPROCINFO pProcInfo = NULL;
+    LONG status;
+
+    if(username != NULL)
+    {
+        args[3] = "-U";
+        args[4] = username;
+    }
+
+    fds[0] = open("/dev/zero", O_RDONLY);
+    if(fds[0] < 0)
+    {
+        LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
+    }
+    fds[1] = open("/dev/zero", O_WRONLY);
+    if(fds[1] < 0)
+    {
+        LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
+    }
+
+    LW_CLEANUP_CTERR(exc, BuildJoinEnvironment(NULL, password, &ppszEnv, NULL));
+
+    LW_CLEANUP_CTERR(exc, CTSpawnProcessWithEnvironment(args[0], (PSTR *)args,
+                ppszEnv, fds[0], fds[1], fds[2], &pProcInfo));
+
+    LW_CLEANUP_CTERR(exc, CTGetExitStatus(pProcInfo, &status));
+
+    if(status != 0)
+    {
+        if(IsNullOrEmptyString(password))
+        {
+            LW_RAISE_EX(exc, CENTERROR_INVALID_PASSWORD, "Unable to disable computer account", "The computer account does not have sufficient permissions to disable itself. Please either provide an administrator's username and password, or the username and password of the account originally used to join the computer to AD.");
+            goto cleanup;
+        }
+        else
+        {
+            LW_RAISE_EX(exc, CENTERROR_COMMAND_FAILED, "Unable to disable computer account", "Disabling the computer account failed. Review the above output for more information.");
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    if (ppszEnv)
+        CTFreeNullTerminatedStringArray(ppszEnv);
+    for(i = 0; i < 3; i++)
+    {
+        if(fds[i] != -1)
+            close(fds[i]);
+    }
+    CTFreeProcInfo(pProcInfo);
+}
+
+void DJDisableComputerAccount(PCSTR username,
+                PCSTR password,
+                LWException **exc)
+{
+    if(lsaFunctions)
+    {
+        LW_CLEANUP_LSERR(exc, lsaFunctions->pfnNetLeaveDomain(username, password));
+    }
+    else
+    {
+        LW_TRY(exc, WBDisableComputerAccount(username, password, &LW_EXC));
+    }
+cleanup:
+    ;
+}
+
+static CENTERROR
+WBGuessShortDomainName(PCSTR longName, PSTR *shortName)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR sedPath = NULL;
@@ -1579,4 +1500,20 @@ cleanup:
     CT_SAFE_FREE_STRING(sedPath);
     CT_SAFE_FREE_STRING(dc);
     return ceError;
+}
+
+void DJGuessShortDomainName(PCSTR longName,
+                PSTR *shortName,
+                LWException **exc)
+{
+    if(lsaFunctions)
+    {
+        LW_CLEANUP_LSERR(exc, lsaFunctions->pfnGetShortDomain(longName, shortName));
+    }
+    else
+    {
+        LW_CLEANUP_CTERR(exc, WBGuessShortDomainName(longName, shortName));
+    }
+cleanup:
+    ;
 }

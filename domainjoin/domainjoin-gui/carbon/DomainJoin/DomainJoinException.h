@@ -42,9 +42,9 @@ class DomainJoinException : public std::exception
     public:
     
         DomainJoinException();
-        DomainJoinException(const std::string& errMsg);
-        DomainJoinException(const std::string& errMsg, int errCode);
-        DomainJoinException(int errCode);
+        DomainJoinException(int errCode,
+                            const std::string& shortErrMsg="Domain Join Error",
+                            const std::string& longErrMsg="Internal Error");
         virtual ~DomainJoinException() throw() {}
     
     public:
@@ -52,24 +52,30 @@ class DomainJoinException : public std::exception
         inline int GetErrorCode() { return _errCode; }
         inline void SetErrorCode(int code) { _errCode = code; }
         
-        virtual const char* what() const throw() { return _errMsg.c_str(); }
+        virtual const char* what() const throw()
+        {
+                return _shortErrorMsg.c_str();
+        }
         
-        static void MapErrorCode(int errCode);
+        virtual const char* GetLongErrorMessage() const throw()
+        {
+                return _longErrorMsg.c_str();
+        }
                 
     public:
     
         static const int CENTERROR_DOMAINJOIN_NON_ROOT_USER;
-		static const int CENTERROR_DOMAINJOIN_INVALID_HOSTNAME;
-		static const int CENTERROR_DOMAINJOIN_GPAGENT_INCOMMUNICADO;
-		static const int CENTERROR_DOMAINJOIN_INVALID_DOMAIN_NAME;
-		static const int CENTERROR_DOMAINJOIN_INVALID_USERID;
-		static const int CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
-		static const int CENTERROR_DOMAINJOIN_INVALID_OU;
-		static const int CENTERROR_DOMAINJOIN_FAILED_ADMIN_PRIVS;
+        static const int CENTERROR_DOMAINJOIN_INVALID_HOSTNAME;
+        static const int CENTERROR_DOMAINJOIN_INVALID_DOMAIN_NAME;
+        static const int CENTERROR_DOMAINJOIN_INVALID_USERID;
+        static const int CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
+        static const int CENTERROR_DOMAINJOIN_INVALID_OU;
+        static const int CENTERROR_DOMAINJOIN_FAILED_ADMIN_PRIVS;
 
     private:
     
-        std::string _errMsg;
+        std::string _shortErrorMsg;
+        std::string _longErrorMsg;
         int _errCode;
 
 };
@@ -78,7 +84,9 @@ class NonRootUserException : public DomainJoinException
 {
     public:
         NonRootUserException()
-        : DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_NON_ROOT_USER)
+        : DomainJoinException(
+              DomainJoinException::CENTERROR_DOMAINJOIN_NON_ROOT_USER
+              )
         {
         }
 };
@@ -86,68 +94,70 @@ class NonRootUserException : public DomainJoinException
 class InvalidHostnameException : public DomainJoinException
 {
     public:
-	    InvalidHostnameException()
-		: DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_INVALID_HOSTNAME)
-		{
-		}
+           InvalidHostnameException()
+               : DomainJoinException(
+                     DomainJoinException::CENTERROR_DOMAINJOIN_INVALID_HOSTNAME
+                 )
+               {
+               }
 };
 
 class InvalidDomainnameException : public DomainJoinException
 {
     public:
-	    InvalidDomainnameException()
-		: DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_INVALID_DOMAIN_NAME)
-	    {
-		}
+           InvalidDomainnameException()
+               : DomainJoinException(
+                    DomainJoinException::CENTERROR_DOMAINJOIN_INVALID_DOMAIN_NAME)
+           {
+           }
 };
 
 class InvalidUsernameException : public DomainJoinException
 {
     public:
-	    InvalidUsernameException()
-		: DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_INVALID_USERID)
-		{
-		}
+           InvalidUsernameException()
+               : DomainJoinException(
+                     DomainJoinException::CENTERROR_DOMAINJOIN_INVALID_USERID
+                     )
+               {
+               }
 };
 
 class InvalidOUPathException : public DomainJoinException
 {
     public:
-	    InvalidOUPathException()
-		: DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_INVALID_OU)
-		{
-		}
+           InvalidOUPathException()
+               : DomainJoinException(
+                     DomainJoinException::CENTERROR_DOMAINJOIN_INVALID_OU
+                     )
+               {
+               }
 };
 
 class FailedAdminPrivilegeException : public DomainJoinException
 {
     public:
-	    FailedAdminPrivilegeException()
-		: DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_FAILED_ADMIN_PRIVS)
-		{
-		}
-	    FailedAdminPrivilegeException(const std::string& errMsg)
-		: DomainJoinException(errMsg, DomainJoinException::CENTERROR_DOMAINJOIN_FAILED_ADMIN_PRIVS)
-		{
-		}		
+          FailedAdminPrivilegeException()
+              : DomainJoinException(
+                     DomainJoinException::CENTERROR_DOMAINJOIN_FAILED_ADMIN_PRIVS)
+            {
+            }
+           FailedAdminPrivilegeException(const std::string& errMsg)
+               : DomainJoinException(
+					 DomainJoinException::CENTERROR_DOMAINJOIN_FAILED_ADMIN_PRIVS,
+                     errMsg
+                     )
+            {
+            }
 };
 
 class UnresolvedDomainNameException : public DomainJoinException
 {
     public:
-	    UnresolvedDomainNameException()
-		: DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME)
-		{
-		}
-};
-
-class CannotTalkToGPAgentException : public DomainJoinException
-{
-    public:
-	    CannotTalkToGPAgentException()
-		: DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_GPAGENT_INCOMMUNICADO)
-		{
-		}
+           UnresolvedDomainNameException()
+               : DomainJoinException(DomainJoinException::CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME)
+               {
+               }
 };
 
 #endif /* __DOMAINJOINEXCEPTION_H__ */

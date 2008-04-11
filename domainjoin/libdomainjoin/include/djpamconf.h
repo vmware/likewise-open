@@ -37,7 +37,7 @@ void DJNewConfigurePamForADLogin(
 
 CENTERROR
 ConfigurePamForADLogin(
-    PSTR pszShortDomainName
+    PCSTR pszShortDomainName
     );
 
 void

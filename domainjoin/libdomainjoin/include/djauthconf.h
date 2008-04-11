@@ -38,14 +38,14 @@ SetWorkgroup(
 
 CENTERROR
 SetRealm(
-        const char *rootPrefix,
-    char* p_domain
+        PCSTR rootPrefix,
+    PCSTR p_domain
     );
 
 CENTERROR
 ConfigureSambaEx(
-    PSTR pszDomainName,
-    PSTR pszWorkgroupName
+    PCSTR pszDomainName,
+    PCSTR pszWorkgroupName
     );
 
 CENTERROR

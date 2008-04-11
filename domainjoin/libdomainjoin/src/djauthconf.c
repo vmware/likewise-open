@@ -119,7 +119,7 @@ error:
 
 // the name-value pair - "realm" should be set to the domain name
 CENTERROR
-SetRealm(const char *rootPrefix, char* psz_realm)
+SetRealm(PCSTR rootPrefix, PCSTR psz_realm)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR pszUpperCaseRealm = NULL;
@@ -161,8 +161,8 @@ error:
 
 CENTERROR
 ConfigureSambaEx(
-    PSTR pszDomainName,
-    PSTR pszShortDomainName
+    PCSTR pszDomainName,
+    PCSTR pszShortDomainName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;

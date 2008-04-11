@@ -34,10 +34,11 @@ typedef enum
 
 #define LWIDSPLUGIN_SYMLINK_PATH "/System/Library/Frameworks/DirectoryService.framework/Versions/Current/Resources/Plugins/LWIDSPlugin.dsplug"
 #define LWIDSPLUGIN_INSTALL_PATH "/opt/centeris/lib/LWIDSPlugin.dsplug"
-#define LWIDSPLUGIN_NAME         "/Likewise Identity/Active Directory"
+#define LWIDSPLUGIN_NAME         "/Likewise - Active Directory"
 #define PID_FILE_CONTENTS_SIZE   ((9 * 2) + 2)
 #define CONFIGD_PID_FILE         "/var/run/configd.pid"
 
+#if 0
 static
 CENTERROR
 DJGetConfigDPID(
@@ -89,30 +90,7 @@ error:
 
     return ceError;
 }
-
-static
-CENTERROR
-DJNotifyConfigDaemon()
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    pid_t pid = 0;
-
-    ceError = DJGetConfigDPID(&pid);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (pid > 0)
-    {
-       if (kill(pid, SIGHUP) < 0)
-       {
-          ceError = CTMapSystemError(errno);
-          BAIL_ON_CENTERIS_ERROR(ceError);
-       }
-    }
-
-error:
-
-    return ceError;
-}
+#endif /* 0 */
 
 static
 CENTERROR

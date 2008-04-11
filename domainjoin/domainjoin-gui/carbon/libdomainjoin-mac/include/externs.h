@@ -6,10 +6,10 @@
  * Copyright (C) Centeris Corporation 2004-2007
  * Copyright (C) Likewise Software    2007-2008
  * All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -17,24 +17,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __DJ_TIMEMGMT_H__
-#define __DJ_TIMEMGMT_H__
+#ifndef __DJ_ITF_EXTERNS_H__
+#define __DJ_ITF_EXTERNS_H__
 
-CENTERROR GetServerTime(
-    PCSTR pszDCName, time_t *result);
+extern DJ_API_FUNCTION_TABLE  gDJApiFunctionTable;
+extern PDJ_API_FUNCTION_TABLE gpDJApiFunctionTable;
 
-CENTERROR
-DJSetTime(time_t timeval);
+#endif /* __DJ_ITF_EXTERNS_H__ */
 
-CENTERROR
-DJSyncTimeToDC(
-    PCSTR pszDCName,
-    int   allowedDrift
-    );
-
-#endif /* __DJ_TIMEMGMT_H__ */
