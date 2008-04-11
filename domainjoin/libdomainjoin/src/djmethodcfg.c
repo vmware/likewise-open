@@ -66,11 +66,20 @@ DJUnconfigMethodsConfigFile()
 {
     BOOLEAN exists;
     CENTERROR ceError = CENTERROR_SUCCESS;
+    PCSTR exprRemoveBlankLine = "/^$/ {\nN\n/\\nLWIDENTITY.*/ D\n}";
 
     ceError = DJHasMethodsCfg(&exists);
     BAIL_ON_CENTERIS_ERROR(ceError);
     if(!exists)
         goto error;
+
+    ceError = CTRunSedOnFile(methodsPath, methodsPath, FALSE,
+            exprRemoveBlankLine);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTRunSedOnFile(methodsPath, methodsPath, FALSE,
+            "/^LWIDENTITY.*/d");
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = CTRunSedOnFile(methodsPath, methodsPath, FALSE,
             "/^[ \t]*[^ \t#*].*LWIDENTITY.*/d");

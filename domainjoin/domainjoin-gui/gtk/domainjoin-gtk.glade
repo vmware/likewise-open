@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.0 on Wed Jan  2 15:39:50 2008 -->
+<!--Generated with glade3 3.4.0 on Mon Mar 17 14:24:03 2008 -->
 <glade-interface>
   <widget class="GtkDialog" id="JoinErrorDialog">
     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
@@ -267,7 +267,7 @@
                         <property name="visible">True</property>
                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                         <property name="xalign">0</property>
-                        <property name="label" translatable="yes">&lt;span style="italic"&gt;Joining a machine to Active Directory requires credentials for a Windows user with administrative priveledges in the target domain.&lt;/span&gt;</property>
+                        <property name="label" translatable="yes">&lt;span style="italic"&gt;Joining a machine to Active Directory requires credentials for a Windows user with administrative privileges in the target domain.&lt;/span&gt;</property>
                         <property name="use_markup">True</property>
                         <property name="wrap">True</property>
                       </widget>
@@ -463,6 +463,7 @@
     <property name="modal">True</property>
     <property name="window_position">GTK_WIN_POS_CENTER_ON_PARENT</property>
     <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="deletable">False</property>
     <property name="has_separator">False</property>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox3">
@@ -907,6 +908,7 @@ Nested OUs should be separated by a forward-slash.&lt;/span&gt;</property>
                                 <child>
                                   <widget class="GtkEntry" id="OUEntry">
                                     <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
                                     <property name="can_focus">True</property>
                                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                                   </widget>

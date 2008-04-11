@@ -82,4 +82,9 @@ DJFreeHostsFileLineList(
     PHOSTSFILELINE pHostsLineList
     );
 
+CENTERROR
+DJCopyMissingHostsEntry(
+        PCSTR destFile, PCSTR srcFile,
+        PCSTR entryName1, PCSTR entryName2);
+
 #endif /* __DJ_PARSEHOSTS_H__ */

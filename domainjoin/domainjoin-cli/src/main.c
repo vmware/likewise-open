@@ -855,7 +855,7 @@ int main(
         LW_TRY(&exc, DoLeaveNew(argc, argv, columns, &LW_EXC));
     }
     else if(!strcmp(argv[0], "query"))
-        LW_CLEANUP_CTERR(&exc, DoQuery());
+        LW_TRY(&exc, DoQuery(&LW_EXC));
     else if(!strcmp(argv[0], "fixfqdn"))
         LW_CLEANUP_CTERR(&exc, DoFixFqdn());
     else if(!strcmp(argv[0], "configure"))

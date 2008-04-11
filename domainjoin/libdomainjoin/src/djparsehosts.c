@@ -566,6 +566,13 @@ error:
     return ceError;
 }
 
+PCSTR Disp(PCSTR in)
+{
+    if(in == NULL)
+        return "(null)";
+    return in;
+}
+
 static
 CENTERROR
 DJUpdateHostEntry(
@@ -599,8 +606,10 @@ DJUpdateHostEntry(
     }
     DJ_LOG_INFO("Adding %s (fqdn %s) to /etc/hosts ip %s, "
                 "removing %s, %s, %s, %s",
-                pszShortName, pszFqdnName, pLine->pEntry->pszIpAddress,
-                pszShortName, pszFqdnName, pszRemoveName1, pszRemoveName2);
+                Disp(pszShortName), Disp(pszFqdnName),
+                Disp(pLine->pEntry->pszIpAddress),
+                Disp(pszShortName), Disp(pszFqdnName),
+                Disp(pszRemoveName1), Disp(pszRemoveName2));
 
     if (pszFqdnName != NULL && (pLine->pEntry->pszCanonicalName == NULL ||
                                 strcasecmp(pLine->pEntry->pszCanonicalName, pszFqdnName)))
@@ -808,6 +817,128 @@ error:
     if(pCreatedLine)
         DJFreeHostsLine(pCreatedLine);
 
+    return ceError;
+}
+
+CENTERROR
+DJCopyLine(
+        PHOSTSFILELINE pSrc, 
+        PHOSTSFILELINE *ppDest)
+{
+    PHOSTSFILELINE ret = NULL;
+    PHOSTFILEALIAS srcAlias = NULL, *destAlias;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+
+    ceError = CTAllocateMemory(sizeof(HOSTSFILELINE),
+                               (PVOID*)&ret);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ret->bModified = pSrc->bModified;
+    ceError = CTDupOrNullStr(pSrc->pszComment, &ret->pszComment);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if(pSrc->pEntry != NULL)
+    {
+        ceError = CTAllocateMemory(sizeof(HOSTSFILEENTRY),
+                                   (PVOID*)&ret->pEntry);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+        ceError = CTDupOrNullStr(pSrc->pEntry->pszIpAddress, &ret->pEntry->pszIpAddress);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+        ceError = CTDupOrNullStr(pSrc->pEntry->pszCanonicalName, &ret->pEntry->pszCanonicalName);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        srcAlias = pSrc->pEntry->pAliasList;
+        destAlias = &ret->pEntry->pAliasList;
+    }
+
+    while(srcAlias != NULL)
+    {
+        ceError = CTAllocateMemory(sizeof(HOSTFILEALIAS),
+                                   (PVOID*)destAlias);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+        ceError = CTDupOrNullStr(srcAlias->pszAlias, &(*destAlias)->pszAlias);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        srcAlias = srcAlias->pNext;
+        destAlias = &(*destAlias)->pNext;
+    }
+
+    *ppDest = ret;
+    ret = NULL;
+
+error:
+    if(ret != NULL)
+        DJFreeHostsFileLineList(ret);
+    return ceError;
+}
+
+CENTERROR
+DJCopyMissingHostsEntry(
+        PCSTR destFile, PCSTR srcFile,
+        PCSTR entryName1, PCSTR entryName2)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PHOSTSFILELINE pDestList = NULL;
+    PHOSTSFILELINE pSrcList = NULL;
+    PHOSTSFILELINE pLine = NULL;
+    PHOSTSFILELINE pCopiedLine = NULL;
+
+    ceError = DJParseHostsFile(destFile, &pDestList);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJParseHostsFile(srcFile, &pSrcList);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if(entryName2 == NULL)
+        entryName2 = "";
+
+    for (pLine = pDestList; pLine; pLine = pLine->pNext) {
+
+        if (pLine->pEntry != NULL) {
+            if ((pLine->pEntry->pszCanonicalName != NULL &&
+                (!strcasecmp(pLine->pEntry->pszCanonicalName, entryName1) ||
+                 !strcasecmp(pLine->pEntry->pszCanonicalName, entryName2))) ||
+                DJEntryHasAlias(pLine->pEntry->pAliasList, entryName1) ||
+                DJEntryHasAlias(pLine->pEntry->pAliasList, entryName1))
+            {
+                //The dest file already has this entry
+                goto done;
+            }
+        }
+    }
+
+    for (pLine = pSrcList; pLine; pLine = pLine->pNext) {
+
+        if (pLine->pEntry != NULL) {
+            if ((pLine->pEntry->pszCanonicalName != NULL &&
+                (!strcasecmp(pLine->pEntry->pszCanonicalName, entryName1) ||
+                 !strcasecmp(pLine->pEntry->pszCanonicalName, entryName2))) ||
+                DJEntryHasAlias(pLine->pEntry->pAliasList, entryName1) ||
+                DJEntryHasAlias(pLine->pEntry->pAliasList, entryName1))
+            {
+                //Copy this line to dest
+                ceError = DJCopyLine(pLine, &pCopiedLine);
+                BAIL_ON_CENTERIS_ERROR(ceError);
+
+                pCopiedLine->pNext = pDestList;
+                pDestList = pCopiedLine;
+                pCopiedLine->bModified = TRUE;
+                pCopiedLine = NULL;
+            }
+        }
+    }
+
+    ceError = DJWriteHostsFileIfModified(destFile, pDestList);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+done:
+error:
+    if (pDestList)
+        DJFreeHostsFileLineList(pDestList);
+    if (pSrcList)
+        DJFreeHostsFileLineList(pSrcList);
+    if (pCopiedLine)
+        DJFreeHostsFileLineList(pCopiedLine);
     return ceError;
 }
 

@@ -37,6 +37,15 @@ struct JoinDialog
     GtkCheckButton* modify_hosts;
 };
 
+static void
+ou_specific_toggled(GtkToggleButton* ou_specific, gpointer _data)
+{
+    JoinDialog* dialog = (JoinDialog*) _data;
+    
+    gtk_widget_set_sensitive(GTK_WIDGET(dialog->ou_entry),
+			     gtk_toggle_button_get_active(ou_specific));
+}
+
 JoinDialog*
 joindialog_new(const char* computer, const char* domain)
 {
@@ -77,6 +86,10 @@ joindialog_new(const char* computer, const char* domain)
     g_object_ref(G_OBJECT(dialog->modify_hosts));
 
     dialog_insert_likewise_logo(dialog->dialog);
+
+    // Connect signals
+    g_signal_connect(G_OBJECT(dialog->ou_specific), "toggled",
+		     G_CALLBACK(ou_specific_toggled), dialog);
 
     return dialog;
 }

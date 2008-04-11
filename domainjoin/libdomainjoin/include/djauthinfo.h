@@ -68,8 +68,8 @@ DJRemoveCacheFiles();
 CENTERROR
 DJGetDomainDC(PCSTR domain, PSTR *dc);
 
-CENTERROR
-DJGetComputerDN(PSTR *dn);
+void
+DJGetComputerDN(PSTR *dn, LWException **exc);
 
 //The answer is non-authoritative
 CENTERROR

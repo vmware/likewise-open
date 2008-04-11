@@ -61,7 +61,7 @@ CENTERROR_CATALOG_DESC(
     
     "Unable to join domain",
     
-    "Creating the computer account in Active Directory failed. Common causes are a bad administrator password, a bad OU name, or an existing computer account but not modificiation permissions.")
+    "Domain join operation failed to create the computer account in Active Directory. Common causes are a bad administrator password, a bad OU name, or an existing computer account without modification permissions.")
 CENTERROR_CATALOG(CENTERROR_DOMAIN_LEAVE_FAILED)
 CENTERROR_CATALOG(CENTERROR_LICENSE_INCORRECT)
 CENTERROR_CATALOG(CENTERROR_LICENSE_EXPIRED)
@@ -242,7 +242,7 @@ CENTERROR_CATALOG_DESC(
     
     "Unable to join domain",
     
-    "Creating the computer account in Active Directory failed. Common causes are a bad administrator password, a bad OU name, or an existing computer account but not modificiation permissions.")
+    "Domain join operation failed to create the computer account in Active Directory. Common causes are a bad administrator password, a bad OU name, or an existing computer account without modification permissions.")
 
 CENTERROR_CATALOG_DESC( 
     

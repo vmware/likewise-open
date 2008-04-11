@@ -29,14 +29,14 @@
 
 void
 DJGetDaemonStatus(
-    PSTR pszDaemonPath,
+    PCSTR pszDaemonPath,
     PBOOLEAN pbStarted,
     LWException **exc
     );
 
 void
 DJManageDaemon(
-    PSTR pszName,
+    PCSTR pszName,
     BOOLEAN bStart,
     PSTR pszPreCommand,
     PSTR pszStartPriority,
@@ -53,7 +53,7 @@ DJManageDaemons(
 
 void
 DJStartStopDaemon(
-    PSTR pszDaemonPath,
+    PCSTR pszDaemonName,
     BOOLEAN bStatus,
     PSTR pszPreCommand,
     LWException **exc
@@ -64,5 +64,14 @@ void DJRestartIfRunning(PCSTR daemon, LWException **exc);
 extern const JoinModule DJDaemonStopModule;
 
 extern const JoinModule DJDaemonStartModule;
+
+extern struct _DaemonList
+{
+    PCSTR primaryName;
+    PCSTR alternativeName;
+    BOOLEAN required;
+    int startPriority;
+    int stopPriority;
+} daemonList[];
 
 #endif // __DJDAEMONMGR_H__

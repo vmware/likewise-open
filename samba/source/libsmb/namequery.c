@@ -1955,6 +1955,8 @@ static NTSTATUS get_dc_list(const char *domain,
 		goto out;
 	}
 
+	memset(return_iplist, 0x0, sizeof(struct ip_service)*num_addresses);
+
 	p = pserver;
 	local_count = 0;
 
@@ -1963,6 +1965,8 @@ static NTSTATUS get_dc_list(const char *domain,
 	while ((local_count<num_addresses) &&
 			next_token_talloc(ctx, &p, &name, LIST_SEP)) {
 		struct sockaddr_storage name_ss;
+
+		ZERO_STRUCT(name_ss);
 
 		/* copy any addersses from the auto lookup */
 

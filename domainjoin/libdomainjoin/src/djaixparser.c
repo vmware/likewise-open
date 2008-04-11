@@ -132,7 +132,13 @@ DJSetOptionValue(DynamicArray *lines, PCSTR stanza, PCSTR name, PCSTR value)
     PSTR newLine = NULL;
     CENTERROR ceError = CENTERROR_SUCCESS;
 
-    GCE(ceError = CTAllocateStringPrintf(&newLine, "\t%s = %s\n", name, value));
+    if(strchr(value, ' '))
+    {
+        /* Fixes bug 5564 */
+        GCE(ceError = CTAllocateStringPrintf(&newLine, "\t%s = \"%s\"\n", name, value));
+    }
+    else
+        GCE(ceError = CTAllocateStringPrintf(&newLine, "\t%s = %s\n", name, value));
 
     index = DJFindLine(lines, stanza, name);
 

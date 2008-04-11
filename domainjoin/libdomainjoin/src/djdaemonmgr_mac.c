@@ -23,6 +23,7 @@
  */
 
 #include "domainjoin.h"
+#include "djdaemonmgr.h"
 
 // aka: CENTERROR_LICENSE_INCORRECT
 static DWORD GPAGENT_LICENSE_ERROR = 0x00002001;
@@ -37,7 +38,7 @@ static PSTR pszGPAgentdStopPriority = "9";
 
 void
 DJGetDaemonStatus(
-    PSTR pszDaemonPath,
+    PCSTR pszDaemonPath,
     PBOOLEAN pbStarted,
     LWException **exc
     )
@@ -59,11 +60,12 @@ DJGetDaemonStatus(
     if (!strcmp(pszDaemonPath, "com.centeris.gpagentd") ||
 	    !strcmp(pszDaemonPath, "centeris.com-gpagentd"))
         strcpy(szCmd, "centeris-gpagentd");
-    else if (!strcmp(pszDaemonPath, "com.centeris.lwiauthd") ||
-	    !strcmp(pszDaemonPath, "centeris.com-lwiauthd"))
-        strcpy(szCmd, "lwiauthd");
+    else if (!strcmp(pszDaemonPath, "com.likewise.open") ||
+	    !strcmp(pszDaemonPath, "likewise-open"))
+        strcpy(szCmd, "likewise-winbindd");
     else {
-        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_UNKNOWN_DAEMON);
+        DJ_LOG_ERROR("Checking status of daemon [%s] failed: Missing", pszDaemonPath);
+        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON);
     }
 
     DJ_LOG_INFO("Checking status of daemon [%s]", pszDaemonPath);
@@ -130,7 +132,7 @@ cleanup:
 
 void
 DJStartStopDaemon(
-    PSTR pszDaemonPath,
+    PCSTR pszDaemonPath,
     BOOLEAN bStatus,
     PSTR pszPreCommand,
     LWException **exc
@@ -484,7 +486,7 @@ error:
 
 void
 DJManageDaemon(
-    PSTR pszName,
+    PCSTR pszName,
     BOOLEAN bStatus,
     PSTR pszPreCommand,
     PSTR pszStartPriority,
@@ -524,75 +526,8 @@ cleanup:
     ;
 }
 
-void
-DJManageDaemons(
-    PSTR pszDomainName,
-    BOOLEAN bStart,
-    LWException **exc
-    )
-{
-    BOOLEAN bFileExists = TRUE;
-    FILE* fp = NULL;
-    PSTR pszErrFilePath = "/var/cache/centeris/grouppolicy/gpagentd.err";
-    CHAR szBuf[256+1];
-    DWORD dwGPErrCode = 0;
-    LWException *innerExc = NULL;
-
-    LW_TRY(exc, DJManageDaemon("com.centeris.lwiauthd",
-                             bStart,
-                             NULL,
-                             pszAuthdStartPriority,
-                             pszAuthdStopPriority, &LW_EXC));
-
-    if (bStart) {
-
-        DJManageDaemon("com.centeris.gpagentd",
-                                 bStart,
-                                 NULL,
-                                 pszGPAgentdStartPriority,
-                                 pszGPAgentdStopPriority,
-				 &innerExc);
-
-        if (!LW_IS_OK(innerExc)) {
-
-            LW_CLEANUP_CTERR(exc, CTCheckFileExists(pszErrFilePath, &bFileExists));
-
-            if (bFileExists) {
-
-                LW_HANDLE(&innerExc);
-                fp = fopen(pszErrFilePath, "r");
-                if (fp != NULL) {
-
-                    if (fgets(szBuf, 256, fp) != NULL) {
-
-                        CTStripWhitespace(szBuf);
-
-                        dwGPErrCode = atoi(szBuf);
-
-                        if (dwGPErrCode == GPAGENT_LICENSE_ERROR ||
-                            dwGPErrCode == GPAGENT_LICENSE_EXPIRED_ERROR) {
-
-                            LW_RAISE(exc, CENTERROR_DOMAINJOIN_LICENSE_ERROR);
-                            goto cleanup;
-
-                        }
-                    }
-
-                } else {
-
-                    DJ_LOG_ERROR("Failed to open file [%s]", pszErrFilePath);
-
-                }
-            }
-
-            LW_CLEANUP(exc, innerExc);
-        }
-
-    } else {
-
-        LW_TRY(exc, DJManageDaemon("com.centeris.gpagentd", bStart, NULL, pszGPAgentdStartPriority, pszGPAgentdStopPriority, &LW_EXC));
-    }
-
-cleanup:
-    CTSafeCloseFile(&fp);
-}
+struct _DaemonList daemonList[] = {
+    { "com.likewise.open", NULL, TRUE, 92, 10 },
+    { "com.centeris.gpagentd", NULL, FALSE, 92, 9 },
+    { NULL, NULL, FALSE, 0, 0 },
+};

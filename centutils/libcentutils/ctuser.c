@@ -238,9 +238,15 @@ CTIsUserInX(BOOLEAN *inX)
 #endif
         if(ent == NULL)
             break;
-        //HP-UX uses console when someone is graphically logged in
-        if(ent->ut_line[0] == ':' || ent->ut_id[0] == ':' ||
-                !strcmp(ent->ut_line, "console"))
+        if(ent->ut_type != USER_PROCESS)
+            continue;
+        if(
+            /* Linux uses this */
+            ent->ut_line[0] == ':' || ent->ut_id[0] == ':' ||
+            /* AIX uses this */
+            (!strncmp(ent->ut_line, "lft", 3) && !strcmp(ent->ut_id, "dt")) ||
+            /* Solaris and HP-UX use this */
+            (!strcmp(ent->ut_line, "console") && !strcmp(ent->ut_id, "dt")))
         {
             *inX = TRUE;
             goto cleanup;

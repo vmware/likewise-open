@@ -29,36 +29,25 @@ NTSTATUS rpccli_winreg_Connect(struct rpc_pipe_client *cli, TALLOC_CTX *mem_ctx,
                          uint32 reg_type, uint32 access_mask,
                          POLICY_HND *reg_hnd)
 {
-	ZERO_STRUCTP(reg_hnd);
+  	ZERO_STRUCTP(reg_hnd);
 
-	switch (reg_type)
-	{
-	case HKEY_CLASSES_ROOT:
+	if (reg_type == HKEY_CLASSES_ROOT)
 		return rpccli_winreg_OpenHKCR( cli, mem_ctx, NULL, 
-			access_mask, reg_hnd, NULL);
-
-	case HKEY_LOCAL_MACHINE:
+					       access_mask, reg_hnd, NULL);
+	else if (reg_type == HKEY_LOCAL_MACHINE)
 		return rpccli_winreg_OpenHKLM( cli, mem_ctx, NULL, 
-			access_mask, reg_hnd, NULL);
-
-	case HKEY_USERS:
+					       access_mask, reg_hnd, NULL);
+	else if (reg_type == HKEY_USERS)
 		return rpccli_winreg_OpenHKU( cli, mem_ctx, NULL, 
-			access_mask, reg_hnd, NULL);
-
-	case HKEY_CURRENT_USER:
+					      access_mask, reg_hnd, NULL);
+	else if (reg_type == HKEY_CURRENT_USER)
 		return rpccli_winreg_OpenHKCU( cli, mem_ctx, NULL, 
-			access_mask, reg_hnd, NULL);
-
-	case HKEY_PERFORMANCE_DATA:
+					       access_mask, reg_hnd, NULL);
+	else if (reg_type == HKEY_PERFORMANCE_DATA)
 		return rpccli_winreg_OpenHKPD( cli, mem_ctx, NULL, 
-			access_mask, reg_hnd, NULL);
-
-	default:
-		/* fall through to end of function */
-		break;
-	}
-
-	return NT_STATUS_INVALID_PARAMETER;
+					       access_mask, reg_hnd, NULL);
+	else
+		return NT_STATUS_INVALID_PARAMETER;
 }
 
 /*******************************************************************

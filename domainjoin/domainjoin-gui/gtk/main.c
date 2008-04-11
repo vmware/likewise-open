@@ -450,6 +450,7 @@ join_mode(LWException** exc)
     switch ((result = joindialog_run(dialog)))
     {
     case JOINDIALOG_CLOSE:
+    case GTK_RESPONSE_DELETE_EVENT:
 	quit = TRUE;
 	break;
     case JOINDIALOG_JOIN:
@@ -485,6 +486,7 @@ status_mode(LWException** exc)
     switch ((result = statusdialog_run(dialog)))
     {
     case STATUSDIALOG_CLOSE:
+    case GTK_RESPONSE_DELETE_EVENT:
 	quit = TRUE;
 	break;
     case STATUSDIALOG_LEAVE:

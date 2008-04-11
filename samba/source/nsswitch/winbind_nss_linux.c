@@ -54,7 +54,7 @@ NSS_STATUS _nss_lwidentity_getgrnam_r(const char *name, struct group *result,
 				   char *buffer, size_t buflen, int *errnop);
 NSS_STATUS _nss_lwidentity_getgrgid_r(gid_t gid, struct group *result, char *buffer, 
 				   size_t buflen, int *errnop);
-NSS_STATUS _nss_lwidentity_initgroups_dyn(char *user, gid_t group, long int *start, 
+NSS_STATUS _nss_lwidentity_initgroups_dyn(const char *user, gid_t group, long int *start, 
 				       long int *size, gid_t **groups, 
 				       long int limit, int *errnop);
 NSS_STATUS _nss_lwidentity_getusersids(const char *user_sid, char **group_sids, 
@@ -1022,7 +1022,7 @@ _nss_lwidentity_getgrgid_r(gid_t gid,
 /* Initialise supplementary groups */
 
 NSS_STATUS
-_nss_lwidentity_initgroups_dyn(char *user, gid_t group, long int *start,
+_nss_lwidentity_initgroups_dyn(const char *user, gid_t group, long int *start,
 			    long int *size, gid_t **groups, long int limit,
 			    int *errnop)
 {

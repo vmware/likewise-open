@@ -883,12 +883,83 @@ cleanup:
     CT_SAFE_FREE_STRING(restartCommand);
 }
 
+static CENTERROR UnsuportedSeLinuxEnabled(BOOLEAN *hasBadSeLinux)
+{
+    BOOLEAN hasSeLinux;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR output = NULL;
+    DistroInfo distro;
+
+    *hasBadSeLinux = FALSE;
+    memset(&distro, 0, sizeof(distro));
+
+    GCE(ceError = CTCheckFileOrLinkExists("/usr/sbin/selinuxenabled", &hasSeLinux));
+    if(!hasSeLinux)
+        goto cleanup;
+
+    GCE(ceError = CTCheckFileOrLinkExists("/usr/sbin/getenforce", &hasSeLinux));
+    if(!hasSeLinux)
+        goto cleanup;
+
+    ceError = CTRunCommand("/usr/sbin/selinuxenabled >/dev/null 2>&1");
+    if(ceError == CENTERROR_COMMAND_FAILED)
+    {
+        //selinux is not enabled
+        ceError = CENTERROR_SUCCESS;
+        goto cleanup;
+    }
+    GCE(ceError);
+
+    GCE(ceError = CTCaptureOutputWithStderr("/usr/sbin/getenforce", TRUE, &output));
+    CTStripWhitespace(output);
+    if(!strcmp(output, "Permissive"))
+    {
+        goto cleanup;
+    }
+
+    DJ_LOG_INFO("Selinux found to be present, enabled, and enforcing.");
+
+    GCE(ceError = DJGetDistroInfo("", &distro));
+
+    switch(distro.distro)
+    {
+        case DISTRO_CENTOS:
+        case DISTRO_RHEL:
+            if(distro.version[0] < '5')
+            {
+                DJ_LOG_INFO("Safe version of RHEL");
+                goto cleanup;
+            }
+            break;
+        case DISTRO_FEDORA:
+            if(distro.version[0] < '6')
+            {
+                DJ_LOG_INFO("Safe version of Fedora");
+                goto cleanup;
+            }
+            break;
+        default:
+            goto cleanup;
+    }
+    *hasBadSeLinux = TRUE;
+
+cleanup:
+    if(!CENTERROR_IS_OK(ceError))
+        *hasBadSeLinux = TRUE;
+
+    CT_SAFE_FREE_STRING(output);
+    DJFreeDistroInfo(&distro);
+
+    return ceError;
+}
+
 static QueryResult QueryNsswitch(const JoinProcessOptions *options, LWException **exc)
 {
     QueryResult result = FullyConfigured;
     BOOLEAN configured;
     BOOLEAN exists;
     BOOLEAN hasApparmor;
+    BOOLEAN hasBadSeLinux;
     NsswitchConf conf;
     CENTERROR ceError = CENTERROR_SUCCESS;
 
@@ -907,7 +978,11 @@ static QueryResult QueryNsswitch(const JoinProcessOptions *options, LWException 
     LW_CLEANUP_CTERR(exc, ceError);
     if(conf.modified)
     {
-        result = NotConfigured;
+        LW_CLEANUP_CTERR(exc, UnsuportedSeLinuxEnabled(&hasBadSeLinux));
+        if(hasBadSeLinux)
+            result = CannotConfigure;
+        else
+            result = NotConfigured;
         goto cleanup;
     }
 
@@ -946,6 +1021,76 @@ cleanup:
     return result;
 }
 
+static void RestartDtloginIfRunning(JoinProcessOptions *options, LWException **exc)
+{
+    BOOLEAN doRestart;
+    BOOLEAN inX;
+    LWException *inner = NULL;
+    DistroInfo distro;
+
+    memset(&distro, 0, sizeof(distro));
+
+    DJGetDaemonStatus("dtlogin", &doRestart, &inner);
+    if(!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+    {
+        LW_HANDLE(&inner);
+        goto cleanup;
+    }
+    LW_CLEANUP(exc, inner);
+
+    if(doRestart)
+    {
+        /* Dtlogin will only be restarted if no one is logged in. */
+        LW_CLEANUP_CTERR(exc, CTIsUserInX(&inX));
+
+        if(inX)
+        {
+            doRestart = FALSE;
+            /* If we're disabling domain logins, it isn't critical that
+             * dtlogin is restarted. Without lwiauthd running, domain
+             * users won't be able to log in anyway. */
+            if(options->joiningDomain)
+            {
+                LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
+                if(distro.os == OS_SUNOS)
+                {
+                    options->warningCallback(options, "Unable to restart dtlogin",
+                        "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
+                        "/etc/init.d/dtlogin stop\n"
+                        "/etc/init.d/dtlogin start");
+                }
+                else if(distro.os == OS_HPUX)
+                {
+                    options->warningCallback(options, "Unable to restart dtlogin",
+                        "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
+                        "/sbin/init.d/dtlogin.rc stop\n"
+                        "/sbin/init.d/dtlogin.rc start");
+                }
+                else if(distro.os == OS_AIX)
+                {
+                    options->warningCallback(options, "Unable to restart dtlogin",
+                        "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
+                        "kill `cat /var/dt/Xpid`\n"
+                        "/etc/rc.dt");
+                }
+                else
+                {
+                    options->warningCallback(options, "Unable to restart dtlogin",
+                        "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please restart dtlogin.");
+                }
+            }
+        }
+    }
+    if(doRestart)
+    {
+        LW_TRY(exc, DJStartStopDaemon("dtlogin", FALSE, NULL, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon("dtlogin", TRUE, NULL, &LW_EXC));
+    }
+cleanup:
+    LW_HANDLE(&inner);
+    DJFreeDistroInfo(&distro);
+}
+
 static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
 {
     LWException *restartException = NULL;
@@ -968,6 +1113,8 @@ static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
     }
     LW_CLEANUP(exc, restartException);
 
+    LW_TRY(exc, RestartDtloginIfRunning(options, &LW_EXC));
+
 cleanup:
     ;
 }
@@ -976,16 +1123,25 @@ static PSTR GetNsswitchDescription(const JoinProcessOptions *options, LWExceptio
 {
     PSTR ret = NULL;
     PCSTR configureSteps;
+    BOOLEAN hasBadSeLinux;
+
+    LW_CLEANUP_CTERR(exc, UnsuportedSeLinuxEnabled(&hasBadSeLinux));
+    if(hasBadSeLinux)
+    {
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&ret,
+"Your machine is using an unsupported SeLinux policy. This must be disabled before nsswitch can be modified to allow active directory users. Please run '/usr/sbin/setenforce Permissive' and then re-run this program."));
+        goto cleanup;
+    }
 
     if(options->joiningDomain)
         configureSteps = 
-"The following steps are required:\n"
+"The following steps are required and can be performed automatically:\n"
 "\t* Edit nsswitch apparmor profile to allow libraries in the /usr/centeris/lib  and /usr/centeris/lib64 directories\n"
 "\t* List lwidentity module in /usr/lib/security/methods.cfg (AIX only)\n"
 "\t* Add lwidentity to passwd and group/groups line /etc/nsswitch.conf or /etc/netsvc.conf\n";
     else
         configureSteps = 
-"The following steps are required:\n"
+"The following steps are required and can be performed automatically:\n"
 "\t* Remove lwidentity module from /usr/lib/security/methods.cfg (AIX only)\n"
 "\t* Remove lwidentity from passwd and group/groups line /etc/nsswitch.conf or /etc/netsvc.conf\n"
 "The following step is optional:\n"

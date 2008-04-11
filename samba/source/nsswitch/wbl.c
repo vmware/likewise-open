@@ -17,6 +17,10 @@
    (see copyright below for full details)
 */
 
+#if defined(__hpux__) && defined(__LP64__) && defined(__hppa__)
+#define _REENTRANT
+#endif
+
 #include "lib/replace/replace.h"
 #include "wbl.h"
 #include "wb_gp.h"
@@ -2244,8 +2248,13 @@ WblApplyUserLoginPolicies(
         if (!gp_process_login(State, name, WblStateIsCachedLogon(State),
 				  _gp_pam_log, _gp_pam_user_msg))
 	{
+/* bkoropoff: don't bail out of pam session if GP is MIA -- fixes LWO
+   FIXME: we still want to report errors if GP is present but doesn't work
+ */
+#if 0
 		status = WBL_STATUS_USER_POLICY_ERROR;
 		GOTO_CLEANUP_ON_WBL_STATUS(status);
+#endif
         }
 
 cleanup:

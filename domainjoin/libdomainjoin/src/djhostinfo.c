@@ -260,6 +260,8 @@ WriteHostnameToSunFiles(
     PSTR* ppszHostfilePaths = NULL;
     DWORD nPaths = 0;
     DWORD iPath = 0;
+    PSTR contents = NULL;
+    long fileLen;
 
     DJ_LOG_INFO("Setting hostname to [%s]", pszComputerName);
 
@@ -280,6 +282,18 @@ WriteHostnameToSunFiles(
 
     for (iPath = 0; iPath < nPaths; iPath++) {
 
+        CTReadFile(*(ppszHostfilePaths+iPath), &contents, &fileLen);
+        CTStripWhitespace(contents);
+        if(!strcasecmp(contents, pszComputerName))
+        {
+            //The machine hostname is already set
+            goto done;
+        }
+    }
+
+    // Only write the hostname in 1 file
+    for (iPath = 0; iPath < nPaths && iPath < 1; iPath++) {
+
         fp = fopen(*(ppszHostfilePaths+iPath), "w");
         if (fp == NULL) {
             ceError = CTMapSystemError(errno);
@@ -291,6 +305,7 @@ WriteHostnameToSunFiles(
     }
 
 error:
+done:
 
     if (ppszHostfilePaths)
         CTFreeStringArray(ppszHostfilePaths, nPaths);
@@ -298,6 +313,8 @@ error:
     if (fp) {
         fclose(fp);
     }
+
+    CT_SAFE_FREE_STRING(contents);
 
     return ceError;
 }
@@ -1220,8 +1237,11 @@ static QueryResult QueryDescriptionSetHostname(const JoinProcessOptions *options
                 options->computerName, options->domainName));
     modified |= DJHostsFileWasModified(pHostsFileLineList);
     if (pHostsFileLineList)
+    {
         DJFreeHostsFileLineList(pHostsFileLineList);
-    ceError = DJParseHostsFile("/etc/hosts", &pHostsFileLineList);
+        pHostsFileLineList = NULL;
+    }
+    ceError = DJParseHostsFile("/etc/inet/ipnodes", &pHostsFileLineList);
     if(ceError == CENTERROR_INVALID_FILENAME)
     {
         ceError = CENTERROR_SUCCESS;
@@ -1447,6 +1467,13 @@ DJSetComputerName(
         CTFreeString(oldShortHostname);
         oldShortHostname = NULL;
     }
+
+    ceError = DJCopyMissingHostsEntry("/etc/inet/ipnodes", "/etc/hosts",
+            pszComputerName, oldShortHostname);
+    if(ceError == CENTERROR_INVALID_FILENAME)
+        ceError = CENTERROR_SUCCESS;
+    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+
     ceError = DJReplaceNameInHostsFile("/etc/hosts",
             oldShortHostname, oldFqdnHostname,
             pszComputerName, pszDnsDomainName);

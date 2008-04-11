@@ -37,6 +37,7 @@
 #if !defined(HPUX)
 #include <sys/syslog.h>
 #endif /*hpux*/
+#include "winbind_nss_linux.h"
 
 #if defined(HAVE_NSS_COMMON_H) || defined(HPUX) 
 
@@ -47,6 +48,8 @@
 #else
 #define NSS_DEBUG(str) ;
 #endif
+
+#define NSS_DEBUG_UNIMP(str) syslog(LOG_DEBUG, "nss_centeris: %s", str);
 
 #define NSS_ARGS(args) ((nss_XbyY_args_t *)args)
 
@@ -194,6 +197,172 @@ _nss_lwidentity_passwd_constr (const char* db_name,
 	return be;
 }
 
+#if defined(HPUX)
+/*****************************************************************
+ HP-UX's undocumented prpasswd (protected password) backend
+ This is necessary for login on trusted HP-UX. The client function,
+ getprpwnam, calls into this.
+ *****************************************************************/
+
+/* convert a passwd structure into a pr_passwd structure */
+static NSS_STATUS MakePrPasswd(struct pr_passwd *out, const struct winbindd_pw *user)
+{
+	struct pr_default *defaults;
+
+	memset(out, 0, sizeof(*out));
+
+	defaults  = getprdfnam("default");
+	if(defaults == NULL)
+		return (NSS_STATUS_UNAVAIL);
+	/* Set the system default values */
+	memcpy(&out->sfld, &defaults->prd, sizeof(out->sfld));
+	memcpy(&out->sflg, &defaults->prg, sizeof(out->sflg));
+
+	/* Indicate which fields are overwritten for this user */
+	out->uflg.fg_name = 1;
+	out->uflg.fg_uid = 1;
+	out->uflg.fg_pswduser = 1;
+	out->uflg.fg_lock = 1;
+	out->uflg.fg_pw_audflg = 1;
+	out->uflg.fg_pw_audid = 1;
+
+	strncpy(out->ufld.fd_name, user->pw_name, 8);
+	out->ufld.fd_name[9] = '\0';
+
+	out->ufld.fd_uid =  user->pw_uid;
+	out->ufld.fd_pswduser =  user->pw_uid;
+	out->ufld.fd_lock =  0;
+	out->ufld.fd_pw_audflg =  1;
+	/* The audit id is typically different from the username. However,
+	 * it is unlikely that high UIDs will collide with audit ids. An
+	 * audit id is required to login.
+	 */
+	out->ufld.fd_pw_audid =  user->pw_uid;
+
+	return NSS_STATUS_SUCCESS;
+}
+
+static NSS_STATUS
+_nss_lwidentity_prpasswd_destr(nss_backend_t* be, void *args)
+{
+	SAFE_FREE(be);
+	NSS_DEBUG("_nss_lwidentity_prpasswd_destr");
+	return NSS_STATUS_SUCCESS;
+}
+
+static NSS_STATUS
+_nss_lwidentity_endprpwent(nss_backend_t* be, void *args)
+{
+	NSS_DEBUG_UNIMP("_nss_lwidentity_endprpwent");
+        return (NSS_STATUS_UNAVAIL);
+}
+
+static NSS_STATUS
+_nss_lwidentity_setprpwent(nss_backend_t* be, void *args)
+{
+	NSS_DEBUG_UNIMP("_nss_lwidentity_setprpwent");
+        return (NSS_STATUS_UNAVAIL);
+}
+
+static NSS_STATUS
+_nss_lwidentity_getprpwent(nss_backend_t* be, void *args)
+{
+	NSS_DEBUG_UNIMP("_nss_lwidentity_getprpwent");
+        return (NSS_STATUS_UNAVAIL);
+}
+
+static NSS_STATUS
+_nss_lwidentity_getprpwnam(nss_backend_t* be, void *args)
+{
+	struct pr_passwd * result;
+	static struct pr_passwd staticBuffer;
+	struct passwd *userinfo;
+	comsec_nss_parms_t *parms;
+	NSS_STATUS ret;
+	static struct winbindd_response response;
+	struct winbindd_request request;
+
+	NSS_DEBUG("_nss_lwidentity_getprpwnam");
+
+	parms = NSS_ARGS(args)->buf.result;
+	/* Usually the caller will pre-allocate space for the result. Otherwise,
+	 * return a statically allocated buffer.
+	 */
+	result = parms->prpw;
+	if(result == NULL)
+		result = &staticBuffer;
+
+	ZERO_STRUCT(response);
+	ZERO_STRUCT(request);
+
+	strncpy(request.data.username, NSS_ARGS(args)->key.name,
+		sizeof(request.data.username) - 1);
+	request.data.username
+		[sizeof(request.data.username) - 1] = '\0';
+
+	ret = winbindd_request_response(WINBINDD_GETPWNAM, &request, &response);
+
+	if (ret != NSS_STATUS_SUCCESS)
+		goto done;
+
+	ret = MakePrPasswd(result, &response.data.pw);
+	if(ret != NSS_STATUS_SUCCESS)
+		goto done;
+
+	NSS_ARGS(args)->returnval = result;
+
+done:
+	winbindd_free_response(&response);
+	NSS_ARGS(args)->status = ret;
+	return ret;
+}
+
+static NSS_STATUS
+_nss_lwidentity_getprpwuid(nss_backend_t* be, void *args)
+{
+	NSS_DEBUG_UNIMP("_nss_lwidentity_getprpwuid");
+        return (NSS_STATUS_UNAVAIL);
+}
+
+static NSS_STATUS
+_nss_lwidentity_prpasswd_6(nss_backend_t* be, void *args)
+{
+	NSS_DEBUG_UNIMP("prpasswd_6");
+        return (NSS_STATUS_UNAVAIL);
+}
+
+static nss_backend_op_t prpasswd_ops[] =
+{
+	_nss_lwidentity_prpasswd_destr,
+	_nss_lwidentity_endprpwent,
+	_nss_lwidentity_setprpwent,
+	_nss_lwidentity_getprpwent,
+	_nss_lwidentity_getprpwnam,
+	_nss_lwidentity_getprpwuid,
+	/* I'm not sure what this entry does. Maybe it's related to
+	 * getprpwaid or putprpwnam?
+	 */
+	_nss_lwidentity_prpasswd_6
+};
+
+nss_backend_t*
+_nss_lwidentity_prpasswd_constr (const char* db_name,
+			    const char* src_name,
+			    const char* cfg_args)
+{
+	nss_backend_t *be;
+  
+	if(!(be = SMB_MALLOC_P(nss_backend_t)) )
+		return NULL;
+
+	be->ops = prpasswd_ops;
+	be->n_ops = sizeof(prpasswd_ops) / sizeof(nss_backend_op_t);
+
+	NSS_DEBUG("Initialized nss_centeris prpasswd backend");
+	return be;
+}
+#endif /* defined(HPUX) */
+
 /*****************************************************************
  GROUP database backend
  *****************************************************************/
@@ -280,17 +449,23 @@ static NSS_STATUS
 _nss_lwidentity_getgroupsbymember_solwrap(nss_backend_t* be, void* args)
 {
 	int errnop;
+	long int numgidsCopy, maxgidsCopy;
 	struct nss_groupsbymem *gmem = (struct nss_groupsbymem *)args;
 
 	NSS_DEBUG("_nss_lwidentity_getgroupsbymember");
 
+	/* _nss_lwidentity_initgroups_dyn takes long int * instead of int * */
+	numgidsCopy = gmem->numgids;
+	maxgidsCopy = gmem->maxgids;
 	_nss_lwidentity_initgroups_dyn(gmem->username,
 		gmem->gid_array[0], /* Primary Group */
-		&gmem->numgids,
-		&gmem->maxgids,
+		&numgidsCopy,
+		&maxgidsCopy,
 		&gmem->gid_array,
 		gmem->maxgids,
 		&errnop);
+	gmem->numgids = numgidsCopy;
+	gmem->maxgids = maxgidsCopy;
 
 	/*
 	 * If the maximum number of gids have been found, return

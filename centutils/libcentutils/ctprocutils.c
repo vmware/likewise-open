@@ -311,8 +311,6 @@ CTGetPidOfCmdLine(
             GCE(ceError = CTMapSystemError(errno));
     }
     ceError = CENTERROR_SUCCESS;
-    if(count == NULL && foundCount == 0)
-        ceError = CENTERROR_NO_SUCH_PROCESS;
 #endif
 
 #ifdef HAVE_STRUCT_PSINFO
@@ -335,6 +333,9 @@ CTGetPidOfCmdLine(
             }
         }
         if(dirEntry->d_name[0] == '.')
+            continue;
+        // On AIX, there is a /proc/sys which does not contain a psinfo
+        if(!isdigit(dirEntry->d_name[0]))
             continue;
         CT_SAFE_FREE_STRING(filePath);
         GCE(ceError = CTAllocateStringPrintf(&filePath, "/proc/%s/psinfo",
@@ -395,6 +396,8 @@ not_match:
 
     if(count)
         *count = foundCount;
+    else if(CENTERROR_IS_OK(ceError) && foundCount == 0)
+        ceError = CENTERROR_NO_SUCH_PROCESS;
 
 cleanup:
 #ifdef HAVE_STRUCT_PSINFO

@@ -614,17 +614,20 @@ error:
     return CENTERROR_SUCCESS;
 }
 
-CENTERROR
+void
 DoQuery(
+    LWException **exc
     )
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     PDOMAINJOININFO pDomainJoinInfo = NULL;
     PLICENSEINFO pLicenseInfo = NULL;
     PSTR dn = NULL;
 
-    ceError = QueryInformation(&pDomainJoinInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, QueryInformation(&pDomainJoinInfo));
+
+    if (!IsNullOrEmptyString(pDomainJoinInfo->pszDomainName)) {
+        LW_TRY(exc, DJGetComputerDN(&dn, &LW_EXC));
+    }
 
     if (!IsNullOrEmptyString(pDomainJoinInfo->pszName)) {
         fprintf(stdout, "Name = %s\n", pDomainJoinInfo->pszName);
@@ -635,15 +638,12 @@ DoQuery(
     if (!IsNullOrEmptyString(pDomainJoinInfo->pszDomainName)) {
         fprintf(stdout, "Domain = %s\n", pDomainJoinInfo->pszDomainName);
 
-        ceError = DJGetComputerDN(&dn);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
         fprintf(stdout, "Distinguished Name = %s\n", dn);
     } else {
         fprintf(stdout, "Domain =\n");
     }
 
-error:
+cleanup:
 
     if (pDomainJoinInfo)
         FreeDomainJoinInfo(pDomainJoinInfo);
@@ -652,8 +652,6 @@ error:
         CTFreeMemory(pLicenseInfo);
 
     CT_SAFE_FREE_STRING(dn);
-
-    return ceError;
 }
 
 CENTERROR

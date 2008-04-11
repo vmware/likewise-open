@@ -43,6 +43,7 @@ typedef enum {
 } nss_status_t;
  
 typedef nss_status_t NSS_STATUS;
+#define NSS_STATUS_DEFINED	1
 
 struct nss_backend;
  
@@ -87,7 +88,7 @@ struct nss_innetgr_1arg {
 typedef struct {
 	void *result;        /* "result" parameter to getXbyY_r() */
 	char *buffer;        /* "buffer"     "             "      */
-	int buflen;         /* "buflen"     "             "      */
+	size_t buflen;         /* "buflen"     "             "      */
 } nss_XbyY_buf_t;
  
 extern nss_XbyY_buf_t *_nss_XbyY_buf_alloc(int struct_size, int buffer_size);

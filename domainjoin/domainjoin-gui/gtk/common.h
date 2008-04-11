@@ -27,7 +27,7 @@
 #include <glade/glade.h>
 #include <gtk/gtk.h>
 
-#define DOMAINJOIN_XML (SHARE_DIR "/likewise-open/domainjoin-gtk.glade")
+#define DOMAINJOIN_XML (SHARE_DIR "/likewise/domainjoin-gtk.glade")
 
 void dialog_insert_likewise_logo(GtkDialog* dialog);
 

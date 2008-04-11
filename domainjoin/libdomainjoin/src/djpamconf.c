@@ -1162,7 +1162,9 @@ static BOOLEAN PamModuleRemoveOnEnable( const char * phase, const char *control,
     char buffer[256];
     NormalizeModuleName( buffer, module, sizeof(buffer));
 
-    if(!strcmp(phase, "auth") &&
+    /* Fix bug 5557. On HP-UX 11.31, libpam_hpsec.so.1 also blocks domain
+     * users in the account phase. */
+    if((!strcmp(phase, "auth") || !strcmp(phase, "account")) &&
             !strcmp(control, "required") &&
             !strcmp(buffer, "pam_hpsec"))
     {

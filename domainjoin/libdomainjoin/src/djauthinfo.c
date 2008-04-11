@@ -953,12 +953,12 @@ static void DoLeave(JoinProcessOptions *options, LWException **exc)
         state->moduleData = (void *)2;
         if(IsNullOrEmptyString(options->password))
         {
-            LW_RAISE_EX(exc, CENTERROR_INVALID_PASSWORD, "Unable to delete computer account", "The computer account does not have sufficient permissions to remove itself. Please either provide an administrator's username and password, or the username and password of the account originally used to join the computer to AD.");
+            LW_RAISE_EX(exc, CENTERROR_INVALID_PASSWORD, "Unable to disable computer account", "The computer account does not have sufficient permissions to disable itself. Please either provide an administrator's username and password, or the username and password of the account originally used to join the computer to AD.");
             goto cleanup;
         }
         else
         {
-            LW_RAISE_EX(exc, CENTERROR_COMMAND_FAILED, "Unable to delete computer account", "Removing the computer account failed. Review the above output for more information.");
+            LW_RAISE_EX(exc, CENTERROR_COMMAND_FAILED, "Unable to disable computer account", "Disabling the computer account failed. Review the above output for more information.");
             goto cleanup;
         }
     }
@@ -991,6 +991,7 @@ static QueryResult QueryLwiConf(const JoinProcessOptions *options, LWException *
     PSTR readValue = NULL;
     PSTR upperDomain = NULL;
     CENTERROR ceError;
+    BOOLEAN bGpagentdExists = FALSE;    
 
     if(!options->joiningDomain)
     {
@@ -1041,6 +1042,33 @@ static QueryResult QueryLwiConf(const JoinProcessOptions *options, LWException *
         goto cleanup;
     CT_SAFE_FREE_STRING(readValue);
 
+    /*
+     * Need to determine between an Enterprise and Open install.
+     */
+
+    LW_CLEANUP_CTERR(exc, CTCheckFileExists(PREFIXDIR "/sbin/centeris-gpagentd", 
+					    &bGpagentdExists));
+
+    LW_CLEANUP_CTERR(exc, DJGetSambaValue("idmap config default:backend",  &readValue));
+    if (bGpagentdExists) {
+        if (strcmp(readValue, "lwidentity") != 0)
+	    goto cleanup;
+    } else {
+        if (strcmp(readValue, "lwopen") != 0)
+	    goto cleanup;
+    }
+    CT_SAFE_FREE_STRING(readValue);
+    
+    LW_CLEANUP_CTERR(exc, DJGetSambaValue("winbind nss info", &readValue));
+    if (bGpagentdExists) {
+        if (strcmp(readValue, "lwidentity") != 0)
+	    goto cleanup;
+    } else {
+        if (strcmp(readValue, "lwopen") != 0)
+	    goto cleanup;
+    }
+    CT_SAFE_FREE_STRING(readValue);
+
     result = FullyConfigured;
 
 cleanup:
@@ -1051,6 +1079,9 @@ cleanup:
 
 static void DoLwiConf(JoinProcessOptions *options, LWException **exc)
 {
+    BOOLEAN bGpagentdExists = FALSE;
+    DistroInfo distro;
+    
     LW_CLEANUP_CTERR(exc, DJInitSmbConfig(NULL));
     if(options->joiningDomain)
     {
@@ -1058,6 +1089,52 @@ static void DoLwiConf(JoinProcessOptions *options, LWException **exc)
         LW_CLEANUP_CTERR(exc, SetWorkgroup(NULL, options->shortDomainName));
         LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, "security", "ads"));
         LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, "use kerberos keytab", "yes"));
+
+	memset(&distro, 0, sizeof(distro));
+	LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
+
+	switch (distro.os) {
+	case OS_SUNOS:
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "template homedir",
+						      "/export/home/local/%D/%U"));
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "template shell",
+						      "/bin/ksh"));
+		break;
+	default:
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "template homedir",
+						      "/home/local/%D/%U"));
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "template shell",
+						      "/bin/bash"));
+	}
+
+	/*
+	 * Need to determine between an Enterprise and Open install.
+	 */
+
+	LW_CLEANUP_CTERR(exc, CTCheckFileExists(PREFIXDIR "/sbin/centeris-gpagentd", 
+						&bGpagentdExists));
+
+	if (bGpagentdExists) {
+		/* Likewise Enterprise */
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "idmap config default:backend", 
+						      "lwidentity"));
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "winbind nss info", 
+						      "lwidentity"));
+	} else {
+		/* Likewise Open */
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "idmap config default:backend", 
+						      "lwopen"));
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "winbind nss info", 
+						      "lwopen"));
+	}
     }
     else
     {
@@ -1079,6 +1156,8 @@ static PSTR GetLwiConfDescription(const JoinProcessOptions *options, LWException
 "realm=<dns domain name>\n"
 "security=ads\n"
 "use kerberos keytab=ads\n"
+"idmap default config:backend=<lwidentity | lwopen>\n"
+"winbind nss info = <lwidentity | lwopen>\n"
                 , &ret));
     }
     else
@@ -1445,30 +1524,31 @@ cleanup:
     return ceError;
 }
 
-CENTERROR
-DJGetComputerDN(PSTR *dn)
+void
+DJGetComputerDN(PSTR *dn, LWException **exc)
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR sedPath = NULL;
+    PSTR errors = NULL;
 
     *dn = NULL;
-    GCE(ceError = CTFindSed(&sedPath));
-    ceError = CTShell("%prefix/bin/lwinet ads status -P 2>/dev/null | %sedPath -n %sedExpression >%dn",
+    LW_CLEANUP_CTERR(exc, CTFindSed(&sedPath));
+    LW_CLEANUP_CTERR(exc, CTShell("%prefix/bin/lwinet ads status -P 2>%errors | %sedPath -n %sedExpression >%dn",
             CTSHELL_STRING(prefix, PREFIXDIR),
             CTSHELL_STRING(sedPath, sedPath),
             CTSHELL_STRING(sedExpression, "s/^distinguishedName:[ \t]*\\(.*\\)$/\\1/p"),
-            CTSHELL_BUFFER(dn, dn));
-    GCE(ceError);
+            CTSHELL_BUFFER(dn, dn),
+            CTSHELL_BUFFER(errors, &errors)
+            ));
     CTStripWhitespace(*dn);
-    if(*dn == NULL)
+    if(*dn == NULL || **dn == NULL)
     {
-        CT_SAFE_FREE_STRING(*dn);
-        GCE(ceError = CENTERROR_COMMAND_FAILED);
+        LW_RAISE_EX(exc, CENTERROR_COMMAND_FAILED, "Unable to get distinguished name", "The computer's distinguished name could not be queried. Here is the output from 'lwinet ads status -P':\n%s", errors);
+        goto cleanup;
     }
 
 cleanup:
     CT_SAFE_FREE_STRING(sedPath);
-    return ceError;
+    CT_SAFE_FREE_STRING(errors);
 }
 
 CENTERROR

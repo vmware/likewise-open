@@ -53,6 +53,7 @@
 #include <nsswitch.h>
 
 typedef nss_status_t NSS_STATUS;
+#define NSS_STATUS_DEFINED	1
 
 #define NSS_STATUS_SUCCESS     NSS_SUCCESS
 #define NSS_STATUS_NOTFOUND    NSS_NOTFOUND

@@ -27,6 +27,12 @@
 #include "ctstrutils.h"
 #include "djauthinfo.h"
 
+// aka: CENTERROR_LICENSE_INCORRECT
+static DWORD GPAGENT_LICENSE_ERROR = 0x00002001;
+
+// CENTERROR_LICENSE_EXPIRED
+static DWORD GPAGENT_LICENSE_EXPIRED_ERROR = 0x00002002;
+
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
 static QueryResult QueryStopDaemons(const JoinProcessOptions *options, LWException **exc)
@@ -156,41 +162,177 @@ const JoinModule DJDaemonStartModule = { TRUE, "start", "start daemons", QuerySt
 void DJRestartIfRunning(PCSTR daemon, LWException **exc)
 {
     BOOLEAN running;
-    PSTR initPath = NULL;
-    PSTR daemonPath = NULL;
-    CENTERROR ceError;
+    LWException *inner = NULL;
 
-    LW_CLEANUP_CTERR(exc, CTFindFileInPath(daemon, "/etc/init.d:/etc/rc.d/init.d", &initPath));
-    DJ_LOG_INFO("Found '%s' at '%s'", daemon, initPath);
-
-    LW_TRY(exc, DJGetDaemonStatus(initPath, &running, &LW_EXC));
-    if(!running)
+    DJGetDaemonStatus(daemon, &running, &inner);
+    if(!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
     {
-        //The nscd init script on Solaris does not support the query option,
-        //so it looks like the daemon is never running. So we'll run a ps
-        //command and HUP the daemon if it is running
-
-        pid_t daemonPid;
-        LW_CLEANUP_CTERR(exc, CTFindFileInPath(daemon, "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", &daemonPath));
-        ceError = CTGetPidOfCmdLine(NULL, daemonPath, NULL, 0, &daemonPid, NULL);
-        if(ceError == CENTERROR_NO_SUCH_PROCESS || ceError == CENTERROR_NOT_IMPLEMENTED)
-        {
-            //Nope, couldn't find the daemon running
-            goto cleanup;
-        }
-        LW_CLEANUP_CTERR(exc, ceError);
-
-        DJ_LOG_INFO("Sending HUP to '%s' binary, pid '%d'.", daemonPath, daemonPid);
-
-        LW_CLEANUP_CTERR(exc, CTSendSignal(daemonPid, SIGHUP));
-        goto cleanup;
+        //The daemon isn't installed
+        LW_HANDLE(&inner);
+        running = FALSE;
     }
+    LW_CLEANUP(exc, inner);
+    if(!running)
+        goto cleanup;
 
-    DJ_LOG_INFO("Restarting '%s'", initPath);
-    LW_TRY(exc, DJStartStopDaemon(initPath, FALSE, NULL, &LW_EXC));
-    LW_TRY(exc, DJStartStopDaemon(initPath, TRUE, NULL, &LW_EXC));
+    DJ_LOG_INFO("Restarting '%s'", daemon);
+    LW_TRY(exc, DJStartStopDaemon(daemon, FALSE, NULL, &LW_EXC));
+    DJ_LOG_INFO("Starting '%s'", daemon);
+    LW_TRY(exc, DJStartStopDaemon(daemon, TRUE, NULL, &LW_EXC));
 
 cleanup:
-    CT_SAFE_FREE_STRING(initPath);
-    CT_SAFE_FREE_STRING(daemonPath);
+    LW_HANDLE(&inner);
+}
+
+void
+DJManageDaemons(
+    PSTR pszDomainName,
+    BOOLEAN bStart,
+    LWException **exc
+    )
+{
+    CHAR szPreCommand[512];
+    PSTR pszDomainNameAllUpper = NULL;
+    BOOLEAN bFileExists = TRUE;
+    FILE* fp = NULL;
+    PSTR pszErrFilePath = "/var/cache/centeris/grouppolicy/gpagentd.err";
+    CHAR szBuf[256+1];
+    DWORD dwGPErrCode = 0;
+    LWException *innerExc = NULL;
+    int daemonCount;
+    int i;
+
+#define PWGRD "/etc/rc.config.d/pwgr"
+    LW_CLEANUP_CTERR(exc, CTCheckFileExists(PWGRD, &bFileExists));
+    if(bFileExists)
+    {
+        //Shutdown pwgr (a nscd-like daemon) on HP-UX because it only handles
+        //usernames up to 8 characters in length.
+        LW_TRY(exc, DJStartStopDaemon("pwgr", FALSE, NULL, &LW_EXC));
+        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(PWGRD, PWGRD, FALSE, "s/=1/=0/"));
+    }
+
+    //Figure out how many daemons there are
+    for(daemonCount = 0; daemonList[daemonCount].primaryName != NULL; daemonCount++);
+
+    if(bStart)
+    {
+        CHAR szStartPriority[32];
+        CHAR szStopPriority[32];
+
+        //Start the daemons in ascending order
+        for(i = 0; i < daemonCount; i++)
+        {
+            sprintf(szStartPriority, "%d", daemonList[i].startPriority);
+            sprintf(szStopPriority,  "%d", daemonList[i].stopPriority);
+ 
+            DJManageDaemon(daemonList[i].primaryName,
+                             bStart,
+                             NULL,
+                             szStartPriority,
+                             szStopPriority,
+                             &innerExc);
+
+            //Try the alternate daemon name if there is one
+            if (!LW_IS_OK(innerExc) &&
+                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
+                    daemonList[i].alternativeName != NULL)
+            {
+                LW_HANDLE(&innerExc);
+                DJManageDaemon(daemonList[i].alternativeName,
+                                 bStart,
+                                 NULL,
+                                 szStartPriority,
+                                 szStopPriority,
+                                 &innerExc);
+            }
+            if (!LW_IS_OK(innerExc) &&
+                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
+                    !daemonList[i].required)
+            {
+                LW_HANDLE(&innerExc);
+            }
+            if (LW_IS_OK(innerExc) && !strcmp(daemonList[i].primaryName, "centeris.com-gpagentd"))
+            {
+                LW_CLEANUP_CTERR(exc, CTCheckFileExists(pszErrFilePath, &bFileExists));
+
+                if (bFileExists) {
+
+                    LW_HANDLE(&innerExc);
+                    fp = fopen(pszErrFilePath, "r");
+                    if (fp != NULL) {
+
+                        if (fgets(szBuf, 256, fp) != NULL) {
+
+                            CTStripWhitespace(szBuf);
+
+                            dwGPErrCode = atoi(szBuf);
+
+                            if (dwGPErrCode == GPAGENT_LICENSE_ERROR ||
+                                dwGPErrCode == GPAGENT_LICENSE_EXPIRED_ERROR) {
+
+                                LW_RAISE(exc, CENTERROR_DOMAINJOIN_LICENSE_ERROR);
+                                goto cleanup;
+
+                            }
+                        }
+
+                    } else {
+
+                        DJ_LOG_ERROR("Failed to open file [%s]", pszErrFilePath);
+
+                    }
+                }
+            }
+            LW_CLEANUP(exc, innerExc);
+        }
+    }
+    else
+    {
+        CHAR szStartPriority[32];
+        CHAR szStopPriority[32];
+
+        //Stop the daemons in descending order
+        for(i = daemonCount - 1; i >= 0; i--)
+        {
+            sprintf(szStartPriority, "%d", daemonList[i].startPriority);
+            sprintf(szStopPriority,  "%d", daemonList[i].stopPriority);
+
+            DJManageDaemon(daemonList[i].primaryName,
+                             bStart,
+                             NULL,
+                             szStartPriority,
+                             szStopPriority,
+                             &innerExc);
+
+            //Try the alternate daemon name if there is one
+            if (!LW_IS_OK(innerExc) &&
+                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
+                    daemonList[i].alternativeName != NULL)
+            {
+                LW_HANDLE(&innerExc);
+                DJManageDaemon(daemonList[i].alternativeName,
+                                 bStart,
+                                 NULL,
+                                 szStartPriority,
+                                 szStopPriority,
+                                 &innerExc);
+            }
+            if (!LW_IS_OK(innerExc) &&
+                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
+                    !daemonList[i].required)
+            {
+                LW_HANDLE(&innerExc);
+            }
+            LW_CLEANUP(exc, innerExc);
+        }
+    }
+
+cleanup:
+    CTSafeCloseFile(&fp);
+
+    if (pszDomainNameAllUpper)
+        CTFreeString(pszDomainNameAllUpper);
+
+    LW_HANDLE(&innerExc);
 }

@@ -46,6 +46,7 @@ LDSHFLAGS=@LDSHFLAGS@ @LDFLAGS@
 LDFLAGS=@PIE_LDFLAGS@ @LDFLAGS@
 
 WINBIND_NSS_LDSHFLAGS=@WINBIND_NSS_LDSHFLAGS@ @LDFLAGS@
+WINBIND_PAM_LDSHFLAGS=@WINBIND_PAM_LDSHFLAGS@ @LDFLAGS@
 AWK=@AWK@
 PICFLAG=@PICFLAG@
 DYNEXP=@DYNEXP@
@@ -1079,7 +1080,8 @@ bin/pam_lwidentity.@SHLIBEXT@: bin/pam_winbind.@SHLIBEXT@
 @WINBIND_NSS_LWI@: @WINBIND_NSS@
 	@echo "Linking $@"
 	@$(SHLD) $(WINBIND_NSS_LDSHFLAGS) -o $@ $(WINBIND_NSS_OBJ) \
-		@WINBIND_NSS_EXTRA_LIBS@ @WINBIND_NSS_PTHREAD@ @SONAMEFLAG@`basename $@`@NSSSONAMEVERSIONSUFFIX@
+		@WINBIND_NSS_EXTRA_LIBS@ @WINBIND_NSS_PTHREAD@ @WINBIND_NSS_SONAMEFLAG@`basename $@`@NSSSONAMEVERSIONSUFFIX@
+
 
 bin/likewise-winbindd@EXEEXT@: bin/winbindd@EXEEXT@
 	@if test -f $@; then /bin/rm $@; fi
@@ -1574,6 +1576,7 @@ bin/libsmbclient.@SHLIBEXT@: $(BINARY_PREREQS) $(LIBSMBCLIENT_OBJ) @LIBWBCLIENT_
 	@$(SHLD_DSO) $(LIBSMBCLIENT_OBJ) @LIBWBCLIENT_SHARED@ $(LIBS) \
 		$(KRB5LIBS) $(LDAP_LIBS) $(NSCD_LIBS) \
 		@SONAMEFLAG@`basename $@`.$(SONAME_VER)
+	@test -f "$@.$(SONAME_VER)" || ln -sf `basename $@` $@.$(SONAME_VER)
 
 bin/libsmbclient.a: $(BINARY_PREREQS) $(LIBSMBCLIENT_OBJ) @LIBWBCLIENT_STATIC@
 	@echo Linking non-shared library $@
@@ -1686,7 +1689,7 @@ bin/vlp@EXEEXT@: $(BINARY_PREREQS) $(VLP_OBJ) @LIBWBCLIENT_SHARED@
 @WINBIND_NSS@: $(BINARY_PREREQS) $(WINBIND_NSS_OBJ)
 	@echo "Linking $@"
 	@$(SHLD) $(WINBIND_NSS_LDSHFLAGS) -o $@ $(WINBIND_NSS_OBJ) @INIPARSERLIBS@ \
-		@WINBIND_NSS_EXTRA_LIBS@ @WINBIND_NSS_PTHREAD@ @SONAMEFLAG@`basename $@`@NSSSONAMEVERSIONSUFFIX@
+		@WINBIND_NSS_EXTRA_LIBS@ @WINBIND_NSS_PTHREAD@ @WINBIND_NSS_SONAMEFLAG@`basename $@`@NSSSONAMEVERSIONSUFFIX@
 
 @WINBIND_WINS_NSS@: $(BINARY_PREREQS) $(WINBIND_WINS_NSS_OBJ)
 	@echo "Linking $@"
@@ -1701,8 +1704,8 @@ bin/winbind_krb5_locator.@SHLIBEXT@: $(BINARY_PREREQS) $(WINBIND_KRB5_LOCATOR_OB
 
 bin/pam_winbind.@SHLIBEXT@: $(BINARY_PREREQS) $(PAM_WINBIND_OBJ)
 	@echo "Linking shared library $@"
-	@$(SHLD) $(LDSHFLAGS) -o $@ $(PAM_WINBIND_OBJ) -lpam @INIPARSERLIBS@ \
-		@WINBIND_PAM_EXTRA_LIBS@ @SONAMEFLAG@`basename $@`
+	@$(SHLD) $(WINBIND_PAM_LDSHFLAGS) -o $@ $(PAM_WINBIND_OBJ) -lpam @INIPARSERLIBS@ \
+		@WINBIND_PAM_EXTRA_LIBS@ @WINBIND_PAM_SONAMEFLAG@`basename $@`
 
 bin/builtin.@SHLIBEXT@: $(BINARY_PREREQS) $(AUTH_BUILTIN_OBJ)
 	@echo "Building plugin $@"
@@ -2035,8 +2038,9 @@ installswat: installdirs installmsg
 installclientlib: installdirs libsmbclient
 	@$(SHELL) $(srcdir)/script/installdirs.sh $(INSTALLPERMS_BIN) $(DESTDIR) $(LIBDIR)
 	-$(INSTALLLIBCMD_SH) bin/libsmbclient.@SHLIBEXT@ $(DESTDIR)$(LIBDIR)
+	-ln -sf libsmbclient.@SHLIBEXT@ $(DESTDIR)$(LIBDIR)/libsmbclient.@SHLIBEXT@.0
 	-$(INSTALLLIBCMD_A) bin/libsmbclient.a $(DESTDIR)$(LIBDIR)
-	-$(INSTALLLIBCMD_SH) bin/libwbclient.@SHLIBEXT@* $(DESTDIR)$(LIBDIR)/
+	-$(INSTALLLIBCMD_SH) bin/libwbclient.@SHLIBEXT@ $(DESTDIR)$(LIBDIR)/
 	-ln -sf libwbclient.@SHLIBEXT@ $(DESTDIR)$(LIBDIR)/libwbclient.@SHLIBEXT@.0
 	@$(SHELL) $(srcdir)/script/installdirs.sh $(INSTALLPERMS_BIN) $(DESTDIR) ${prefix}/include
 	-$(INSTALLCMD) -m $(INSTALLPERMS_DATA) $(srcdir)/include/libsmbclient.h $(DESTDIR)${prefix}/include

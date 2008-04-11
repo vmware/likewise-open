@@ -127,6 +127,8 @@ static char* build_alias_filter(const char *alias, uint32_t search_flags)
 	TALLOC_CTX *frame = talloc_stackframe();
 	bool use2307 = ((search_flags & LWCELL_FLAG_USE_RFC2307_ATTRS)
 			== LWCELL_FLAG_USE_RFC2307_ATTRS);
+	bool search_forest = ((search_flags & LWCELL_FLAG_SEARCH_FOREST)
+			      == LWCELL_FLAG_SEARCH_FOREST);	
 
 	/* Construct search filter for objectclass and attributes */
 
@@ -141,9 +143,11 @@ static char* build_alias_filter(const char *alias, uint32_t search_flags)
 
 	if (use2307) {
 		filter = talloc_asprintf(frame,
-					 "(|(%s)(%s))",
+					 "(|(&(%s)(objectclass=%s))(&(%s)(objectclass=%s)))",
 					 user_attr_filter,
-					 group_attr_filter);
+					 search_forest ? AD_USER : LW_OC_POSIX_USER,
+					 group_attr_filter,
+					 search_forest ? AD_GROUP : LW_OC_POSIX_GROUP);
 	} else {
 		filter = talloc_asprintf(frame,
 					 "(|(keywords=%s)(keywords=%s))",

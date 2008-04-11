@@ -1965,7 +1965,8 @@ DSO_EXPORTS=""
                         MODULE_EXPORTS="-exported_symbols_list \$(srcdir)/exports/modules-darwin.syms"
                         SHLIBEXT="dylib"
 			CFLAGS="$CFLAGS -fno-common"
-                        # Since gcc doesn't fail on unrecognised options, the
+			SONAMEFLAG="-install_name ${libdir}/"
+			# Since gcc doesn't fail on unrecognised options, the
                         # PIE test incorrectly succeeds. Darwin gcc does not
                         # actually support the PIE stuff.
                         PIE_LDFLAGS=
@@ -6145,7 +6146,10 @@ HAVE_WINBIND=yes
 WINBIND_NSS="nsswitch/libnss_winbind.$SHLIBEXT"
 WINBIND_NSS_LWI="nsswitch/libnss_lwidentity.$SHLIBEXT"
 WINBIND_WINS_NSS="nsswitch/libnss_wins.$SHLIBEXT"
-WINBIND_NSS_LDSHFLAGS=$LDSHFLAGS
+WINBIND_NSS_LDSHFLAGS="$LDSHFLAGS"
+WINBIND_NSS_SONAMEFLAG="$SONAMEFLAG"
+WINBIND_PAM_LDSHFLAGS="$LDSHFLAGS"
+WINBIND_PAM_SONAMEFLAG="$SONAMEFLAG"
 NSSSONAMEVERSIONSUFFIX=""
 WINBIND_NSS_PTHREAD=""
 WINBIND_NSS_WANT_PTHREAD="yes"
@@ -6179,6 +6183,10 @@ case "$host_os" in
 		WINBIND_NSS="nsswitch/nss_winbind.$SHLIBEXT"
 		WINBIND_NSS_LWI="nsswitch/nss_lwidentity.$SHLIBEXT"
 		WINBIND_WINS_NSS="nsswitch/nss_wins.$SHLIBEXT"
+		WINBIND_NSS_LDSHFLAGS="-bundle -flat_namespace -undefined suppress"
+		WINBIND_NSS_SONAMEFLAG="#"
+		WINBIND_PAM_LDSHFLAGS="-bundle -flat_namespace -undefined suppress"
+		WINBIND_PAM_SONAMEFLAG="#"
                 ;;
 
 	*netbsd*[[3-9]]*)
@@ -6246,6 +6254,9 @@ AC_SUBST(WINBIND_NSS)
 AC_SUBST(WINBIND_NSS_LWI)
 AC_SUBST(WINBIND_WINS_NSS)
 AC_SUBST(WINBIND_NSS_LDSHFLAGS)
+AC_SUBST(WINBIND_NSS_SONAMEFLAG)
+AC_SUBST(WINBIND_PAM_LDSHFLAGS)
+AC_SUBST(WINBIND_PAM_SONAMEFLAG)
 AC_SUBST(WINBIND_NSS_EXTRA_OBJS)
 AC_SUBST(WINBIND_NSS_EXTRA_LIBS)
 AC_SUBST(WINBIND_PAM_EXTRA_LIBS)
@@ -6301,8 +6312,15 @@ if test $BLDSHARED = true -a x"$HAVE_WINBIND" = x"yes" -a x"$BUILD_LIBWBCLIENT_S
         LIBWBCLIENT=libwbclient
 	INSTALL_LIBWBCLIENT=installlibwbclient
 	UNINSTALL_LIBWBCLIENT=uninstalllibwbclient
-	WINBIND_LIBS="-lwbclient"
-	LDFLAGS="$LDFLAGS -L./bin"
+	case "$host_os" in
+	    *darwin*)
+	        WINBIND_LIBS="${LIBWBCLIENT_SHARED}"
+		;;
+	    *)
+	        WINBIND_LIBS="-lwbclient"
+		LDFLAGS="$LDFLAGS -L./bin"
+		;;
+	esac
 else
 	LIBWBCLIENT_STATIC=bin/libwbclient.a
 fi

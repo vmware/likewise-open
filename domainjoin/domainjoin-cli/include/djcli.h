@@ -120,8 +120,9 @@ CENTERROR
 DoFixFqdn(
     );
 
-CENTERROR
+void
 DoQuery(
+    LWException **exc
     );
 
 CENTERROR

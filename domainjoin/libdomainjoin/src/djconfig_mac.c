@@ -528,6 +528,9 @@ static QueryResult QueryDSPlugin(const JoinProcessOptions *options, LWException 
     if(CTStrStartsWith(valueStart, "SearchPolicy:"))
         valueStart += strlen("SearchPolicy:");
     CTStripWhitespace(valueStart);
+    if(CTStrStartsWith(valueStart, "dsAttrTypeStandard:"))
+      valueStart += strlen("dsAttrTypeStandard:");
+    CTStripWhitespace(valueStart);
     if(options->joiningDomain)
     {
         if(strcmp(valueStart, "CSPSearchPath"))

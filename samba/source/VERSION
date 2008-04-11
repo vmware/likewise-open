@@ -13,8 +13,8 @@
 #                                                      #
 ########################################################
 LIKEWISE_AUTH_MAJOR=4
-LIKEWISE_AUTH_MINOR=0
-LIKEWISE_AUTH_RELEASE=5
+LIKEWISE_AUTH_MINOR=1
+LIKEWISE_AUTH_RELEASE=0
 
 ########################################################
 # This are the main SAMBA version numbers              #

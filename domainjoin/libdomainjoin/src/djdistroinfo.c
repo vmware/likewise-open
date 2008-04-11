@@ -114,17 +114,17 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 /*
                 # The format of the line is something like:
                 #   Red Hat Enterprise Linux ES release 4 (Nahant Update 1)
-                #   Red Hat Advanced Server release 2.1AS (Pensacola)
+                #   Red Hat Linux Advanced Server release 2.1AS (Pensacola)
                 #   Red Hat Enterprise Linux Client release 5 (Tikanga)
                 # In addition, Oracle Linux reports itself as:
                 #   Enterprise Linux Enterprise Linux AS release 4 (October Update 5)
                 */
                 //Find a matching distro name
-                "^\\s*((Red Hat)|(Enterprise Linux)) ((Enterprise Linux)|(Linux (Advanced|Enterprise) Server))\\s+(AS |ES |Client )?"
+                "^[[:space:]]*((Red Hat)|(Enterprise Linux)) ((Enterprise Linux)|(Linux (Advanced|Enterprise) Server))[[:space:]]+(AS |ES |Client )?"
                 //Get the version number, but strip the minor version if it is
                 //present (RHEL 2 has one). Also remove the AS or ES
                 //suffix if it is present.
-                "release ([[:digit:]]+)(\\.[[:digit:]]+)?(AS|ES)?(\\s+\\(.*\\))?\\s*$",
+                "release ([[:digit:]]+)(\\.[[:digit:]]+)?(AS|ES)?([[:space:]]+\\(.*\\))?[[:space:]]*$",
                 9,
                 1
             },
@@ -135,7 +135,7 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 # The format of the line is something like:
                 #   Red Hat Linux release 7.3 (Valhala)
                 */
-                "^\\s*Red Hat Linux release ([[:digit:]]+(\\.[[:digit:]]+)?)",
+                "^[[:space:]]*Red Hat Linux release ([[:digit:]]+(\\.[[:digit:]]+)?)",
                 1,
                 1
             },
@@ -146,7 +146,7 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 # The format of the line is something like:
                 #   Fedora Core release 4 (Stentz)
                 */
-                "^\\s*Fedora (Core )?release (\\S+)",
+                "^[[:space:]]*Fedora (Core )?release (\\S+)",
                 2,
                 1
             },
@@ -157,7 +157,7 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 # The format of the line is something like:
                 #   CentOS release 4.x (Final)
                 */
-                "^\\s*CentOS release ([[:digit:]]+)"
+                "^[[:space:]]*CentOS release ([[:digit:]]+)"
                 //Trim off the minor version number
                 "(\\.[[:digit:]]+)?",
                 1,
@@ -166,28 +166,28 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
             {
                 DISTRO_SUSE,
                 "/etc/SuSE-release",
-                "^\\s*SUSE LINUX ([[:digit:]]+\\.[[:digit:]]+)\\s+",
+                "^[[:space:]]*SUSE LINUX ([[:digit:]]+\\.[[:digit:]]+)[[:space:]]+",
                 1,
                 0
             },
             {
                 DISTRO_OPENSUSE,
                 "/etc/SuSE-release",
-                "^\\s*openSUSE ([[:digit:]]+\\.[[:digit:]]+)\\s+",
+                "^[[:space:]]*openSUSE ([[:digit:]]+\\.[[:digit:]]+)[[:space:]]+",
                 1,
                 0
             },
             {
                 DISTRO_SLES,
                 "/etc/SuSE-release",
-                "^\\s*SUSE LINUX Enterprise Server ([[:digit:]]+)\\s+",
+                "^[[:space:]]*SUSE LINUX Enterprise Server ([[:digit:]]+)[[:space:]]+",
                 1,
                 0
             },
             {
                 DISTRO_SLED,
                 "/etc/SuSE-release",
-                "^\\s*SUSE LINUX Enterprise Desktop ([[:digit:]]+)\\s+",
+                "^[[:space:]]*SUSE LINUX Enterprise Desktop ([[:digit:]]+)[[:space:]]+",
                 1,
                 0
             },
@@ -199,8 +199,8 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 #   DISTRIB_ID=Ubuntu
                 #   DISTRIB_RELEASE=6.06
                 */
-                "^\\s*DISTRIB_ID\\s*=\\s*Ubuntu\\s*\n"
-                "(.*\n)?DISTRIB_RELEASE\\s*=\\s*(\\S+)\\s*(\n.*)?$",
+                "^[[:space:]]*DISTRIB_ID[[:space:]]*=[[:space:]]*Ubuntu[[:space:]]*\n"
+                "(.*\n)?DISTRIB_RELEASE[[:space:]]*=[[:space:]]*(\\S+)[[:space:]]*(\n.*)?$",
                 2,
                 1
             },
@@ -212,7 +212,7 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 # 3.1
                 # and nothing else, so that is the version
                 */
-                "^\\s*(\\S+)\\s*$",
+                "^[[:space:]]*(\\S+)[[:space:]]*$",
                 1,
                 1
             },

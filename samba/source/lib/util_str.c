@@ -2278,6 +2278,8 @@ int ipstr_list_parse(const char *ipstr_list, struct ip_service **ip_list)
 		return 0;
 	}
 
+	memset(*ip_list, 0x0, sizeof(struct ip_service)*count);
+	
 	frame = talloc_stackframe();
 	for ( i=0; next_token_talloc(frame, &ipstr_list, &token_str,
 				IPSTR_LIST_SEP) && i<count; i++ ) {

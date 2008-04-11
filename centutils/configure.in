@@ -174,66 +174,11 @@ CFLAGS="${CFLAGS} ${LWI_OS_FLAGS}"
 AC_PROG_CC
 AC_PROG_INSTALL
 
-# Check for compiler options
-AC_MSG_CHECKING([if linker supports -rpath-link])
-saved_LDFLAGS="$LDFLAGS"
-LDFLAGS="$LDFLAGS -Wl,-rpath-link=/usr/lib"
-
-AC_TRY_LINK([], [],
-      [ AC_MSG_RESULT([yes]); RPATH_LINK=yes ],
-      [ AC_MSG_RESULT([no]); RPATH_LINK=no ])
-
-LDFLAGS="$saved_LDFLAGS"
-
-# Checks for libraries.
-have_sigtimedwait=no
-AC_CHECK_LIB(c, sigtimedwait, [have_sigtimedwait=yes])
-if test x"$have_sigtimedwait" = x"no"; then
-   AC_CHECK_LIB(rt, sigtimedwait, [LIBS="$LIBS -lrt"])
-fi
-
-AC_SEARCH_LIBS(clock_gettime, [rt])
-
-have_evp_encryptfinal_ex=no
-AC_CHECK_LIB(crypto, EVP_EncryptFinal_ex, [have_evp_encryptfinal_ex=yes])
-if test x"$have_evp_encryptfinal_ex" = x"yes"; then
-AC_DEFINE_UNQUOTED(HAVE_EVP_ENCRYPTFINAL_EX, 1, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
-fi
-
-have_evp_encryptfinal=no
-AC_CHECK_LIB(crypto, EVP_EncryptFinal, [have_evp_encryptfinal=yes])
-if test x"$have_evp_encryptfinal" = x"yes"; then
-AC_DEFINE_UNQUOTED(HAVE_EVP_ENCRYPTFINAL, 1, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
-fi
-
-have_evp_decryptfinal_ex=no
-AC_CHECK_LIB(crypto, EVP_DecryptFinal_ex, [have_evp_decryptfinal_ex=yes])
-if test x"$have_evp_decryptfinal_ex" = x"yes"; then
-AC_DEFINE_UNQUOTED(HAVE_EVP_DECRYPTFINAL_EX, 1, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
-fi
-
-have_evp_decryptfinal=no
-AC_CHECK_LIB(crypto, EVP_DecryptFinal, [have_evp_decryptfinal=yes])
-if test x"$have_evp_decryptfinal" = x"yes"; then
-AC_DEFINE_UNQUOTED(HAVE_EVP_DECRYPTFINAL, 1, [[Someone please put an accurate description in here. This is required for autoheader to work.]])
-fi
-
-AC_CHECK_LIB([nsl], [gethostname])
-AC_CHECK_LIB([dl], [dlopen], [LIBS="$LIBS -ldl"])
-AC_CHECK_LIB([dld], [dlopen], [LIBS="$LIBS -ldld"])
-AC_CHECK_LIB([resolv], [res_query])
 AC_CHECK_LIB([proc], [openproc])
-
-AC_CHECK_LIB([ldap], [ldap_open])
-AC_CHECK_LIB([lber], [ber_bvfree])
-AC_CHECK_LIB([pthread], [pthread_create])
-AC_CHECK_LIB([uuid], [uuid_copy], [LIBS="$LIBS -luuid"])
-#AC_CHECK_LIB([crypto], [PKCS8_encrypt])
-AC_CHECK_LIB([socket], [bind])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h fcntl.h sys/stat.h openssl/pem.h openssl/rsa.h openssl/bio.h openssl/sha.h openssl/evp.h openssl/md5.h sys/param.h sys/pstat.h proc/readproc.h sys/ioctl.h sys/termio.h utmps.h utmpx.h utmp.h procfs.h sys/procfs.h])
+AC_CHECK_HEADERS([fcntl.h limits.h stdlib.h string.h strings.h syslog.h unistd.h sys/types.h fcntl.h sys/stat.h sys/param.h sys/pstat.h proc/readproc.h sys/ioctl.h sys/termio.h utmps.h utmpx.h utmp.h procfs.h sys/procfs.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 dnl The AC_C_CONST check is broken in versions of autoconf older than 2.60.
