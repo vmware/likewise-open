@@ -191,7 +191,6 @@ DJManageDaemons(
     LWException **exc
     )
 {
-    CHAR szPreCommand[512];
     PSTR pszDomainNameAllUpper = NULL;
     BOOLEAN bFileExists = TRUE;
     FILE* fp = NULL;

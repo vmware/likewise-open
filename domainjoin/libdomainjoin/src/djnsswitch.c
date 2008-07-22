@@ -844,7 +844,7 @@ static void ConfigureApparmor(BOOLEAN enable, LWException **exc)
     {
         LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH ".new"));
         LW_CLEANUP_CTERR(exc, CTOpenFile(APPARMOR_NSSWITCH ".new", "a", &file));
-        LW_CLEANUP_CTERR(exc, CTFilePrintf(file, "# centeris\n%s# end centeris\n",
+        LW_CLEANUP_CTERR(exc, CTFilePrintf(file, "# likewise\n%s# end likewise\n",
                     addString));
 
         CTSafeCloseFile(&file);
@@ -852,7 +852,7 @@ static void ConfigureApparmor(BOOLEAN enable, LWException **exc)
         LW_CLEANUP_CTERR(exc, CTSafeReplaceFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH ".new"));
     }
     else
-        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH, FALSE, "/^[ \t]*#[ \t]*centeris[ \t]*$/,/^[ \t]*#[ \t]*end centeris[ \t]*$/d"));
+        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH, FALSE, "/^[ \t]*#[ \t]*likewise[ \t]*$/,/^[ \t]*#[ \t]*end likewise[ \t]*$/d"));
 
 
     ceError = CTFindFileInPath("rcapparmor", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", &restartPath);
@@ -1145,7 +1145,7 @@ static PSTR GetNsswitchDescription(const JoinProcessOptions *options, LWExceptio
 "\t* Remove lwidentity module from /usr/lib/security/methods.cfg (AIX only)\n"
 "\t* Remove lwidentity from passwd and group/groups line /etc/nsswitch.conf or /etc/netsvc.conf\n"
 "The following step is optional:\n"
-"\t* Remove apparmor exception for centeris nsswitch libraries\n";
+"\t* Remove apparmor exception for likewise nsswitch libraries\n";
 
     LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&ret,
 "%sIf any changes are performed, then the following services must be restarted:\n"

@@ -27,11 +27,21 @@
 
 CENTERROR
 JoinDomain(
+    PCSTR pszDomainName,
+    PCSTR pszUserName,
+    PCSTR pszPassword,
+    PCSTR pszOU,
+    BOOLEAN bNoHosts
+    );
+
+CENTERROR
+JoinDomainEx(
     PSTR pszDomainName,
     PSTR pszUserName,
     PSTR pszPassword,
     PSTR pszOU,
-    BOOLEAN bNoHosts
+    BOOLEAN bDoNotChangeHosts,
+    BOOLEAN bDoNotSyncTime
     );
 
 CENTERROR

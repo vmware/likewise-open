@@ -40,41 +40,10 @@
 
 #include "DomainJoinStatus.h"
 #include "DomainJoinException.h"
+#include "djitf.h"
 
 class DomainJoinInterface
-{
-    private:
-    
-    typedef struct __DOMAINJOININFO
-       {
-
-            char* pszName;
-            char* pszDescription;
-            char* pszDnsDomain;
-            char* pszDomainName;      /* Null if not joined  */
-            char* pszDomainShortName; /* Null if not joined  */
-            char* pszWorkgroupName;   /* Null if not joined  */
-            char* pszLogFilePath;     /* Null if not logging */
-
-        } DOMAINJOININFO, *PDOMAINJOININFO;
-
-     typedef int (*PFNJoinDomain)(char* pszDomainName,
-                             char* pszUserName,
-                             char* pszPassword,
-                             char* pszOU,
-                             long  bNoHosts
-                            );
-     typedef int (*PFNJoinWorkgroup)(char* pszWorkgroupName,
-                                char* pszUserName,
-                                char* pszPassword
-                               );
-     typedef int (*PFNSetComputerName)(char* pszComputerName,
-                                  char* pszDomainName
-                                 );
-     typedef int (*PFNQueryInformation)(PDOMAINJOININFO* ppDomainJoinInfo);
-	 
-	 typedef int (*PFNIsDomainNameresolvable)(char* pszDomainName, long* pbIsResolvable);
-     
+{  
     private:
        DomainJoinInterface();
        ~DomainJoinInterface();
@@ -103,18 +72,19 @@ class DomainJoinInterface
         void Initialize();
         void Cleanup();
         
-        void LoadFunction(const char* pszFunctionName, void** FunctionPointer);
+        static void LoadFunction(
+						void*       pLibHandle,
+						const char* pszFunctionName,
+						void**      FunctionPointer
+						);
         
     private:
     
         static DomainJoinInterface* _instance;
     
         void* _libHandle;
-        PFNJoinDomain _joinDomain;
-        PFNJoinWorkgroup _joinWorkgroup;
-        PFNSetComputerName _setComputerName;
-        PFNQueryInformation _queryInformation;
-		PFNIsDomainNameresolvable _isDomainNameResolvable;
+		PDJ_API_FUNCTION_TABLE _pDJApiFunctionTable;
+        PFNShutdownJoinInterface _pfnShutdownJoinInterface;
 };
 
 #endif /* __DOMAINJOININTERFACE_H__ */

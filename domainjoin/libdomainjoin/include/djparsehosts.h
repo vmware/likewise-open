@@ -50,11 +50,11 @@ typedef struct __HOSTSFILELINE
 
 CENTERROR
 DJReplaceNameInHostsFile(
-    const char *filename,
-    PSTR oldShortHostname,
-    PSTR oldFdqnHostname,
-    PSTR shortHostname,
-    PSTR dnsDomainName
+    PCSTR filename,
+    PSTR  oldShortHostname,
+    PSTR  oldFdqnHostname,
+    PSTR  shortHostname,
+    PCSTR dnsDomainName
     );
 
 CENTERROR

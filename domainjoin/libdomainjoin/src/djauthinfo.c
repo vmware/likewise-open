@@ -32,6 +32,8 @@
 #include "ctstrutils.h"
 #include <glob.h>
 
+#define NO_TIME_SYNC_FILE "/etc/likewise-notimesync"
+
 #if !defined(__LWI_MACOSX__)
 extern char** environ;
 #endif
@@ -181,6 +183,7 @@ DJExecDomainJoin(
     PSTR pszUserName,
     PSTR pszPassword,
     PSTR pszOU,
+    BOOLEAN bDoNotSyncTime,
     PSTR* ppszWorkgroupName)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -256,6 +259,11 @@ DJExecDomainJoin(
     if (gdjLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE)
         nArgs++;
 
+    if (bDoNotSyncTime)
+    {
+        nArgs++;
+    }
+
     ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
@@ -300,6 +308,11 @@ DJExecDomainJoin(
        BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
+    if (bDoNotSyncTime)
+    {
+        ceError = CTAllocateString("notimesync", nextArg++);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
     ceError = BuildJoinEnvironment(krb5ConfPath, pszPassword, &ppszEnv, &nVars);
     BAIL_ON_CENTERIS_ERROR(ceError);
@@ -519,8 +532,8 @@ error:
 
 CENTERROR
 PrepareForJoinOrLeaveDomain(
-    PSTR    pszWorkgroupName,
-    BOOLEAN bIsDomain
+    PCSTR    pszWorkgroupName,
+    BOOLEAN  bIsDomain
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -598,8 +611,8 @@ static
 CENTERROR
 CanonicalizeOrganizationalUnit(
     PSTR* pszCanonicalizedOrganizationalUnit,
-    PSTR pszOrganizationalUnit,
-    PSTR pszDomainName
+    PCSTR pszOrganizationalUnit,
+    PCSTR pszDomainName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -778,6 +791,7 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
     PSTR lwiauthdPath = NULL;
     PSTR krb5Path = NULL;
     ModuleState *state = DJGetModuleStateByName(options, "join");
+    BOOLEAN bNoTimeSyncFileExists = FALSE;
 
     if (options->ouName)
     {
@@ -792,7 +806,7 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
     CT_SAFE_FREE_STRING(lwiauthdPath);
     LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&lwiauthdPath, "%s/etc/samba/lwiauthd.conf", tempDir));
     LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms("/etc/samba/lwiauthd.conf", lwiauthdPath));
-    LW_CLEANUP_CTERR(exc, DJCopyKrb5ToRootDir(NULL, tempDir));
+    LW_TRY(exc, DJCopyKrb5ToRootDir(NULL, tempDir, &LW_EXC));
 
     LW_CLEANUP_CTERR(exc, DJInitSmbConfig(tempDir));
     LW_CLEANUP_CTERR(exc, SetWorkgroup(tempDir, "WORKGROUP"));
@@ -816,12 +830,30 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
     LW_CLEANUP_CTERR(exc, DJSetSambaValue(tempDir, "security", "ads"));
     LW_CLEANUP_CTERR(exc, DJSetSambaValue(tempDir, "use kerberos keytab", "yes"));
 
+    LW_CLEANUP_CTERR(exc, CTCheckFileExists(NO_TIME_SYNC_FILE, &bNoTimeSyncFileExists));
+
+    if (options->disableTimeSync && !bNoTimeSyncFileExists)
+    {
+        /* Create no time sync file */
+        FILE* noTimeSyncFile = NULL;
+
+        LW_CLEANUP_CTERR(exc, CTOpenFile(NO_TIME_SYNC_FILE, "w", &noTimeSyncFile));
+
+        CTCloseFile(noTimeSyncFile);
+    }
+    else if (!options->disableTimeSync && bNoTimeSyncFileExists)
+    {
+        /* Remove no time sync file */
+        LW_CLEANUP_CTERR(exc, CTRemoveFile(NO_TIME_SYNC_FILE));
+    }
+
     DJ_LOG_INFO("Executing domain join.");
     CT_SAFE_FREE_STRING(options->shortDomainName);
     LW_CLEANUP_CTERR(exc, DJExecDomainJoin(tempDir, options->domainName,
                                options->username,
                                options->password,
                                pszCanonicalizedOU,
+                               options->disableTimeSync,
                                &options->shortDomainName));
 
     //Indicate that the join was successful incase QueryDoJoin is called later
@@ -1081,6 +1113,8 @@ static void DoLwiConf(JoinProcessOptions *options, LWException **exc)
 {
     BOOLEAN bGpagentdExists = FALSE;
     DistroInfo distro;
+
+    memset(&distro, 0, sizeof(distro));
     
     LW_CLEANUP_CTERR(exc, DJInitSmbConfig(NULL));
     if(options->joiningDomain)
@@ -1090,7 +1124,6 @@ static void DoLwiConf(JoinProcessOptions *options, LWException **exc)
         LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, "security", "ads"));
         LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, "use kerberos keytab", "yes"));
 
-	memset(&distro, 0, sizeof(distro));
 	LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
 
 	switch (distro.os) {
@@ -1102,6 +1135,14 @@ static void DoLwiConf(JoinProcessOptions *options, LWException **exc)
 						      "template shell",
 						      "/bin/ksh"));
 		break;
+	case OS_DARWIN:
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "template homedir",
+						      "/Users/%D/%U"));
+		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
+						      "template shell",
+						      "/bin/bash"));
+                break;
 	default:
 		LW_CLEANUP_CTERR(exc, DJSetSambaValue(NULL, 
 						      "template homedir",
@@ -1176,11 +1217,25 @@ const JoinModule DJLwiConfModule = { TRUE, "lwiconf", "configure lwiauthd.conf",
 
 CENTERROR
 JoinDomain(
+    PCSTR pszDomainName,
+    PCSTR pszUserName,
+    PCSTR pszPassword,
+    PCSTR pszOU,
+    BOOLEAN bDoNotChangeHosts
+    )
+{
+    return JoinDomainEx(pszDomainName, pszUserName, pszPassword, pszOU,
+                        bDoNotChangeHosts, FALSE);
+}
+
+CENTERROR
+JoinDomainEx(
     PSTR pszDomainName,
     PSTR pszUserName,
     PSTR pszPassword,
     PSTR pszOU,
-    BOOLEAN bDoNotChangeHosts
+    BOOLEAN bDoNotChangeHosts,
+    BOOLEAN bDoNotSyncTime
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -1191,6 +1246,7 @@ JoinDomain(
     PSTR pszOriginalWorkgroupName = NULL;
     BOOLEAN bIsValid = FALSE;
     PSTR pszCanonicalizedOU = NULL;
+    BOOLEAN bNoTimeSyncFileExists = FALSE;
 
     if (geteuid() != 0) {
        ceError = CENTERROR_DOMAINJOIN_NON_ROOT_USER;
@@ -1230,6 +1286,26 @@ JoinDomain(
         ceError = CENTERROR_DOMAINJOIN_INVALID_HOSTNAME;
         BAIL_ON_CENTERIS_ERROR(ceError);
 
+    }
+
+    ceError = CTCheckFileExists(NO_TIME_SYNC_FILE, &bNoTimeSyncFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bDoNotSyncTime && !bNoTimeSyncFileExists)
+    {
+        /* Create no time sync file */
+        FILE* noTimeSyncFile = NULL;
+
+        ceError = CTOpenFile(NO_TIME_SYNC_FILE, "w", &noTimeSyncFile);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        CTCloseFile(noTimeSyncFile);
+    }
+    else if (!bDoNotSyncTime && bNoTimeSyncFileExists)
+    {
+        /* Remove no time sync file */
+        ceError = CTRemoveFile(NO_TIME_SYNC_FILE);
+        BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /*
@@ -1286,6 +1362,7 @@ JoinDomain(
                                pszUserName,
                                pszPassword,
                                pszCanonicalizedOU,
+                               bDoNotSyncTime,
                                &pszWorkgroupName);
     BAIL_ON_CENTERIS_ERROR(ceError);
 

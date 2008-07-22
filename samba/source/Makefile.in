@@ -1068,6 +1068,8 @@ IDMAP_LWIDENTITY_OBJ = winbindd/likewise/idmap_lwidentity.o \
 		       winbindd/likewise/domain_util.o
 IDMAP_LWICOMPATV2_OBJ = winbindd/likewise/idmap_lwicompat_v2.o \
 		        nsswitch/wb_common.o
+IDMAP_LWICOMPATV3_OBJ = winbindd/likewise/idmap_lwicompat_v3.o \
+		        nsswitch/wb_common.o
 IDMAP_LWICOMPATV4_OBJ = winbindd/likewise/idmap_lwicompat_v4.o \
 		        nsswitch/wb_common.o
 IDMAP_LWOPEN_OBJ = winbindd/lwopen/idmap_lwopen.o \
@@ -1110,6 +1112,10 @@ bin/lwidentity.@SHLIBEXT@: $(IDMAP_LWIDENTITY_OBJ)
 bin/lwicompat_v2.@SHLIBEXT@: $(IDMAP_LWICOMPATV2_OBJ)
 	@echo "Building plugin $@"
 	@$(SHLD_MODULE) $(IDMAP_LWICOMPATV2_OBJ)
+
+bin/lwicompat_v3.@SHLIBEXT@: $(IDMAP_LWICOMPATV3_OBJ)
+	@echo "Building plugin $@"
+	@$(SHLD_MODULE) $(IDMAP_LWICOMPATV3_OBJ)
 
 bin/lwicompat_v4.@SHLIBEXT@: $(IDMAP_LWICOMPATV4_OBJ)
 	@echo "Building plugin $@"

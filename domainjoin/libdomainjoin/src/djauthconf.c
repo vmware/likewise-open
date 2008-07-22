@@ -161,8 +161,8 @@ error:
 
 CENTERROR
 ConfigureSambaEx(
-    PSTR pszDomainName,
-    PSTR pszShortDomainName
+    PCSTR pszDomainName,
+    PCSTR pszShortDomainName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;

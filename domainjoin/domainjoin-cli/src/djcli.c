@@ -565,28 +565,6 @@ error:
     return ceError;
 }
 
-static
-CENTERROR
-GetDaysFromEpoch(
-    PDWORD pdwDaysFromEpoch
-    )
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    struct timeval tv;
-
-    if (gettimeofday(&tv, NULL) < 0) {
-        ceError = CTMapSystemError(errno);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    /* days since the start of the epoch (Jan 1, 1970) */
-    *pdwDaysFromEpoch = (int) (tv.tv_sec / (60*60*24));
-
-error:
-
-    return ceError;
-}
-
 CENTERROR
 DoFixFqdn(
     )

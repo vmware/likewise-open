@@ -101,28 +101,18 @@ DomainJoinApp::JoinOrLeaveDomain()
 		}
 
     }
-    catch(NonRootUserException& nonrootuser)
-    {
-        SInt16 outItemHit;
-        
-        StandardAlert(kAlertStopAlert,
-                      "\pInsufficient privileges",
-                      "\pPlease retry the current operation in the context of a privileged user",
-                      NULL,
-                      &outItemHit);
-    }
     catch(DomainJoinException& dje)
-    {
-        SInt16 outItemHit;
-        char msgStr[256];
-        sprintf(msgStr, "An Error occurred when joining Active Directory. Error code [%.8x]", dje.GetErrorCode());
-        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-        StandardAlert(kAlertStopAlert,
-                      "\pDomain Join Error",
-                      (StringPtr)msgStr,
-                      NULL,
-                      &outItemHit);
+    {					  
+		SInt16 outItemHit;
+		const char* err = dje.what();	
+		const char* message = dje.GetLongErrorMessage();
+		DialogRef dialog;	
+		CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
+		CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
+		CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
+		CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
+		CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
+		RunStandardAlert(dialog, NULL, &outItemHit);
     }
     catch(...)
     {

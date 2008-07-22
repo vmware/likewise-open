@@ -1,0 +1,77 @@
+BUILD_ROOT = ../../../..
+
+SHELL= /bin/sh
+VPATH= @srcdir@
+
+subdirs= @subdirs@
+top_srcdir= @top_srcdir@
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = ${exec_prefix}/bin
+infodir = ${prefix}/info
+libdir = @libdir@
+mandir = ${prefix}/man/man1
+
+DESTDIR=@DESTDIR@
+CC = @CC@
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = $(CPPFLAGS) @CFLAGS@ -Wall
+LDFLAGS = @LDFLAGS@
+LIBS = @CENTUTILS_LIBS@ @LIBS@
+INSTALL = @INSTALL@
+LWI_OS_FLAGS = @LWI_OS_FLAGS@
+
+PUBLIC_INCLUDE_DIR = $(BUILD_ROOT)/include
+PROJECT_INCLUDE_DIR = ../include
+DOMAINJOIN_DIR = $(BUILD_ROOT)/libdomainjoin
+
+DOMAINJOIN_LIB = $(DOMAINJOIN_DIR)/src/libdomainjoin.a
+
+CFLAGS += -I$(PUBLIC_INCLUDE_DIR)     \
+          -I$(PROJECT_INCLUDE_DIR)    \
+          -I$(DOMAINJOIN_DIR)/include \
+          @CENTUTILS_CPPFLAGS@        \
+          $(LWI_OS_FLAGS)
+
+SCRIPTDIR = $(bindir)
+CFLAGS += -DSCRIPTDIR=\"$(SCRIPTDIR)\" -DLIBDIR=\"$(libdir)\"
+
+LDFLAGS += @CENTUTILS_LDFLAGS@
+LDFLAGS += @LIBXML2_LDFLAGS@
+
+LIBS += $(DOMAINJOIN_LIB)
+
+OBJS = djitf.o  \
+       globals.o
+
+LIBNAME = domainjoin-mac
+LIBRARY = lib$(LIBNAME).a
+DYNLIBRARY = lib$(LIBNAME)@DYNLIBVEXT@
+DYNLIBRARY_SANS_VERSION = lib$(LIBNAME)@DYNLIBEXT@
+
+all : $(DYNLIBRARY)
+
+$(DYNLIBRARY) : $(LIBRARY)
+	@BUILD_DYNLIB_CMD@
+	$(RM) $(DYNLIBRARY_SANS_VERSION)
+	@LINK@ $(DYNLIBRARY) $(DYNLIBRARY_SANS_VERSION)
+
+$(LIBRARY) : $(OBJS)
+	$(AR) -r $@ $(OBJS)
+
+$(OBJS) : %.o : %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+clean :
+	$(RM) $(OBJS) $(LIBRARY) $(DYNLIBRARY) $(DYNLIBRARY_SANS_VERSION)
+
+distclean: clean
+	$(RM) Makefile
+
+install: all
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)/$(bindir)
+	$(top_srcdir)/mkinstalldirs $(DESTDIR)/$(libdir)
+
+uninstall:
+

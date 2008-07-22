@@ -666,7 +666,7 @@ static CENTERROR SetNodeValue(Krb5Entry *parent, const char *name, const char *v
     CENTERROR ceError = CENTERROR_SUCCESS;
     Krb5Entry *created = NULL;
     ssize_t existingIndex = FindNodeIndex(parent, 0, name);
-    DJ_LOG_VERBOSE("Settting krb5 name value '%s' to '%s' ", name, value);
+    DJ_LOG_VERBOSE("Setting krb5 name value '%s' to '%s' ", name, value);
     GCE(ceError = CreateValueNode(parent, GetEntryDepth(parent) + 1, name,
                 value, &created));
     GCE(ceError = DeleteChildNode(parent, name, NULL));
@@ -1183,7 +1183,7 @@ ReadKrb5Configuration(
         GCE(ceError = ReadKrb5File(rootPrefix, "/etc/krb5.conf", conf));
     }
 
-    if(*modified)
+    if(modified)
         *modified = _modified;
 
 cleanup:
@@ -1286,6 +1286,9 @@ static CENTERROR WriteKrb5Configuration(const char *rootPrefix, const char *file
     BOOLEAN same;
     BOOLEAN islink;
 
+    if(rootPrefix == NULL)
+        rootPrefix = "";
+
     GCE(ceError = CTAllocateStringPrintf(&tempName, "%s%s.new", rootPrefix, filename));
     GCE(ceError = CTAllocateStringPrintf(&finalName, "%s%s", rootPrefix, filename));
 
@@ -1337,13 +1340,13 @@ cleanup:
     return ceError;
 }
 
-CENTERROR
+void
 DJCopyKrb5ToRootDir(
         const char *srcPrefix,
-        const char *destPrefix
+        const char *destPrefix,
+        LWException **exc
         )
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR srcPath = NULL;
     PSTR destPath = NULL;
     BOOLEAN exists;
@@ -1354,52 +1357,51 @@ DJCopyKrb5ToRootDir(
         destPrefix = "";
 
     CT_SAFE_FREE_STRING(srcPath);
-    GCE(ceError = CTAllocateStringPrintf(&srcPath, "%s/etc", srcPrefix));
-    GCE(ceError = CTCheckDirectoryExists(srcPath, &exists));
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&srcPath, "%s/etc", srcPrefix));
+    LW_CLEANUP_CTERR(exc, CTCheckDirectoryExists(srcPath, &exists));
     if(exists)
     {
         CT_SAFE_FREE_STRING(destPath);
-        GCE(ceError = CTAllocateStringPrintf(&destPath, "%s/etc", destPrefix));
-        GCE(ceError = CTCreateDirectory(destPath, 0700));
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&destPath, "%s/etc", destPrefix));
+        LW_CLEANUP_CTERR(exc, CTCreateDirectory(destPath, 0700));
     }
 
     CT_SAFE_FREE_STRING(srcPath);
-    GCE(ceError = CTAllocateStringPrintf(&srcPath, "%s/etc/krb5", srcPrefix));
-    GCE(ceError = CTCheckDirectoryExists(srcPath, &exists));
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&srcPath, "%s/etc/krb5", srcPrefix));
+    LW_CLEANUP_CTERR(exc, CTCheckDirectoryExists(srcPath, &exists));
     if(exists)
     {
         CT_SAFE_FREE_STRING(destPath);
-        GCE(ceError = CTAllocateStringPrintf(&destPath, "%s/etc/krb5", destPrefix));
-        GCE(ceError = CTCreateDirectory(destPath, 0700));
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&destPath, "%s/etc/krb5", destPrefix));
+        LW_CLEANUP_CTERR(exc, CTCreateDirectory(destPath, 0700));
     }
 
     CT_SAFE_FREE_STRING(srcPath);
-    GCE(ceError = CTAllocateStringPrintf(&srcPath, "%s/etc/krb5/krb5.conf", srcPrefix));
-    GCE(ceError = CTCheckFileOrLinkExists(srcPath, &exists));
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&srcPath, "%s/etc/krb5/krb5.conf", srcPrefix));
+    LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(srcPath, &exists));
     if(exists)
     {
         CT_SAFE_FREE_STRING(destPath);
-        GCE(ceError = CTAllocateStringPrintf(&destPath, "%s/etc/krb5/krb5.conf", destPrefix));
-        GCE(ceError = CTCopyFileWithOriginalPerms(srcPath, destPath));
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&destPath, "%s/etc/krb5/krb5.conf", destPrefix));
+        LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms(srcPath, destPath));
     }
 
     CT_SAFE_FREE_STRING(srcPath);
-    GCE(ceError = CTAllocateStringPrintf(&srcPath, "%s/etc/krb5.conf", srcPrefix));
-    GCE(ceError = CTCheckFileOrLinkExists(srcPath, &exists));
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&srcPath, "%s/etc/krb5.conf", srcPrefix));
+    LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(srcPath, &exists));
     if(exists)
     {
         CT_SAFE_FREE_STRING(destPath);
-        GCE(ceError = CTAllocateStringPrintf(&destPath, "%s/etc", destPrefix));
-        GCE(ceError = CTCreateDirectory(destPath, 0700));
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&destPath, "%s/etc", destPrefix));
+        LW_CLEANUP_CTERR(exc, CTCreateDirectory(destPath, 0700));
         CT_SAFE_FREE_STRING(destPath);
-        GCE(ceError = CTAllocateStringPrintf(&destPath, "%s/etc/krb5.conf", destPrefix));
-        GCE(ceError = CTCopyFileWithOriginalPerms(srcPath, destPath));
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&destPath, "%s/etc/krb5.conf", destPrefix));
+        LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms(srcPath, destPath));
     }
 
 cleanup:
     CT_SAFE_FREE_STRING(srcPath);
     CT_SAFE_FREE_STRING(destPath);
-    return ceError;
 }
 
 static QueryResult QueryKrb5(const JoinProcessOptions *options, LWException **exc)
@@ -1412,11 +1414,19 @@ static QueryResult QueryKrb5(const JoinProcessOptions *options, LWException **ex
     Krb5Entry conf;
     Krb5Entry *libdefaults;
     Krb5Entry *default_realm;
+    CENTERROR ceError;
 
     memset(&conf, 0, sizeof(conf));
     LW_CLEANUP_CTERR(exc, CTCreateTempDirectory(&tempDir));
-    LW_CLEANUP_CTERR(exc, DJCopyKrb5ToRootDir(NULL, tempDir));
-    LW_CLEANUP_CTERR(exc, ReadKrb5Configuration(tempDir, &conf, &modified));
+    LW_TRY(exc, DJCopyKrb5ToRootDir(NULL, tempDir, &LW_EXC));
+    ceError = ReadKrb5Configuration(tempDir, &conf, &modified);
+    if(ceError == CENTERROR_DOMAINJOIN_INVALID_FORMAT)
+    {
+        LW_RAISE_EX(exc, ceError, "Unable to parse krb5.conf", "The krb5.conf file on your system (located in either /etc/krb5.conf or /etc/krb5/krb5.conf) could not be parsed. Please send the file to Likewise technical support.");
+        goto cleanup;
+    }
+    else
+        LW_CLEANUP_CTERR(exc, ceError);
     if(modified)
     {
         if(options->joiningDomain)
@@ -1506,7 +1516,7 @@ static PSTR GetKrb5Description(const JoinProcessOptions *options, LWException **
     BOOLEAN modified;
 
     LW_CLEANUP_CTERR(exc, CTCreateTempDirectory(&tempDir));
-    LW_CLEANUP_CTERR(exc, DJCopyKrb5ToRootDir(NULL, tempDir));
+    LW_TRY(exc, DJCopyKrb5ToRootDir(NULL, tempDir, &LW_EXC));
 
     if(options->shortDomainName != NULL)
         LW_CLEANUP_CTERR(exc, CTStrdup(options->shortDomainName, &shortName));
@@ -1565,3 +1575,181 @@ cleanup:
 }
 
 const JoinModule DJKrb5Module = { TRUE, "krb5", "configure krb5.conf", QueryKrb5, DoKrb5, GetKrb5Description };
+
+static QueryResult QueryOrDoKeytab(const JoinProcessOptions *options, PSTR *description, BOOLEAN makeChanges, LWException **exc)
+{
+    QueryResult result = FullyConfigured;
+    Krb5Entry *libdefaults;
+    Krb5Entry *default_keytab_name;
+    BOOLEAN exists;
+    CENTERROR ceError;
+    PSTR tempDir = NULL;
+    PSTR currentTarget = NULL;
+    Krb5Entry conf;
+    PSTR trueLocation;
+
+    if(description)
+        *description = NULL;
+
+    memset(&conf, 0, sizeof(conf));
+
+    if(!options->joiningDomain)
+        goto nochanges;
+
+    if(!makeChanges)
+    {
+        LW_CLEANUP_CTERR(exc, CTCreateTempDirectory(&tempDir));
+        LW_TRY(exc, DJCopyKrb5ToRootDir(NULL, tempDir, &LW_EXC));
+    }
+
+    ceError = ReadKrb5Configuration(tempDir, &conf, NULL);
+    if(ceError == CENTERROR_DOMAINJOIN_INVALID_FORMAT)
+    {
+        LW_RAISE_EX(exc, ceError, "Unable to parse krb5.conf", "The krb5.conf file on your system (located in either /etc/krb5.conf or /etc/krb5/krb5.conf) could not be parsed. Please send the file to Likewise technical support.");
+        goto cleanup;
+    }
+    else
+        LW_CLEANUP_CTERR(exc, ceError);
+
+    libdefaults = GetFirstNode(&conf, "libdefaults");
+    if(libdefaults == NULL)
+    {
+        goto nochanges;
+    }
+
+    default_keytab_name = GetFirstNode(libdefaults, "default_keytab_name");
+    if(default_keytab_name == NULL)
+        goto nochanges;
+
+    if(default_keytab_name->value.value == NULL)
+    {
+        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_INVALID_FORMAT);
+    }
+
+    trueLocation = default_keytab_name->value.value;
+    if(CTStrStartsWith(trueLocation, "FILE:"))
+        trueLocation += strlen("FILE:");
+    else if(CTStrStartsWith(trueLocation, "WRFILE:"))
+        trueLocation += strlen("WRFILE:");
+
+    if(!strcmp(trueLocation, "/etc/krb5.keytab"))
+    {
+        //It's already pointing where we want
+        goto nochanges;
+    }
+
+    LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(trueLocation, &exists));
+    if(!exists)
+    {
+        if(description)
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(
+                    description,
+                    "Change the default_keytab_name setting in krb5.conf from '%s' to '%s' because the file '%s' does not exist.",
+                    default_keytab_name->value.value, "/etc/krb5.keytab",
+                    trueLocation));
+        }
+        if(makeChanges)
+        {
+            LW_CLEANUP_CTERR(exc, SetNodeValue(libdefaults,
+                        "default_keytab_name", "/etc/krb5.keytab"));
+            LW_CLEANUP_CTERR(exc, WriteKrb5Configuration(tempDir,
+                        "/etc/krb5.conf", &conf, NULL));
+        }
+        else
+        {
+            result = NotConfigured;
+        }
+        goto cleanup;
+    }
+
+    ceError = CTGetSymLinkTarget("/etc/krb5.keytab", &currentTarget);
+    if(CENTERROR_IS_OK(ceError) && !strcmp(currentTarget, trueLocation))
+    {
+        //Already points to the right place
+        goto nochanges;
+    }
+    else if(ceError == CTMapSystemError(EINVAL) || ceError == CENTERROR_SUCCESS)
+    {
+        // The file already exists and isn't a symlink (EINVAL) or it exists
+        // and is a symlink (0).
+        if(description)
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(
+                    description,
+                    "Delete either %s or %s.\n"
+                    "\n"
+                    "Both of these are locations for kerberos keytabs. Your krb5.conf file points to %s, but a legacy application is most likely using %s. After one of the files is deleted and this program is re-run, a symlink will be created from %s to %s so that the keytabs stay synchronized.\n",
+                    "/etc/krb5.keytab", trueLocation,
+                    trueLocation,
+                    "/etc/krb5.keytab",
+                    "/etc/krb5.keytab", trueLocation));
+        }
+        if(makeChanges)
+        {
+            LW_CLEANUP_CTERR(exc, CENTERROR_INVALID_OPERATION);
+        }
+        else
+        {
+            result = CannotConfigure;
+        }
+        ceError = CENTERROR_SUCCESS;
+    }
+    else if(ceError == CTMapSystemError(ENOENT))
+    {
+        //We can make the symlink
+        if(description)
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(
+                    description,
+                    "Create a symlink at %s that points to %s\n",
+                    "/etc/krb5.keytab", trueLocation));
+        }
+        if(makeChanges)
+        {
+            LW_CLEANUP_CTERR(exc, CTCreateSymLink(trueLocation,
+                        "/etc/krb5.keytab"));
+        }
+        else
+        {
+            result = NotConfigured;
+        }
+        ceError = CENTERROR_SUCCESS;
+    }
+    LW_CLEANUP_CTERR(exc, ceError);
+
+cleanup:
+    if(tempDir != NULL)
+    {
+        CTRemoveDirectory(tempDir);
+        CT_SAFE_FREE_STRING(tempDir);
+    }
+    FreeKrb5EntryContents(&conf);
+    return result;
+
+nochanges:
+    if(description)
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup("Fully configured", description));
+    }
+    goto cleanup;
+}
+
+static QueryResult QueryKeytab(const JoinProcessOptions *options, LWException **exc)
+{
+    return QueryOrDoKeytab(options, NULL, FALSE, exc);
+}
+
+static void DoKeytab(JoinProcessOptions *options, LWException **exc)
+{
+    QueryOrDoKeytab(options, NULL, TRUE, exc);
+}
+
+static PSTR GetKeytabDescription(const JoinProcessOptions *options, LWException **exc)
+{
+    PSTR description = NULL;
+    QueryOrDoKeytab(options, &description, FALSE, exc);
+    return description;
+}
+
+const JoinModule DJKeytabModule = { TRUE, "keytab", "initialize kerberos keytab", QueryKeytab, DoKeytab, GetKeytabDescription };

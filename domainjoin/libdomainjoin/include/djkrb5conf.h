@@ -36,12 +36,15 @@ DJModifyKrb5Conf(
     BOOLEAN *modified
     );
 
-CENTERROR
+void
 DJCopyKrb5ToRootDir(
         const char *srcPrefix,
-        const char *destPrefix
+        const char *destPrefix,
+        LWException **exc
         );
 
 extern const JoinModule DJKrb5Module;
+
+extern const JoinModule DJKeytabModule;
 
 #endif // __DJKRB5CONF_H__

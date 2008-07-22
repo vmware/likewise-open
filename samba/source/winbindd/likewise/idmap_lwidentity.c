@@ -352,6 +352,12 @@ static NTSTATUS nss_likewise_map_to_alias(TALLOC_CTX * mem_ctx, const char
 	nt_status = cell->provider->map_to_alias(mem_ctx, domain,
 						 name, alias);
 
+	/* go ahead and allow the cache mgr to mark this in 
+	   negative cache */
+
+	if (!NT_STATUS_IS_OK(nt_status))
+		nt_status = NT_STATUS_NONE_MAPPED;
+
 done:
 	return nt_status;
 }
@@ -377,6 +383,13 @@ static NTSTATUS nss_likewise_map_from_alias(TALLOC_CTX * mem_ctx, const char
 
 	nt_status = cell->provider->map_from_alias(mem_ctx, domain,
 						   alias, name);
+
+	/* go ahead and allow the cache mgr to mark this in 
+	   negative cache */
+
+	if (!NT_STATUS_IS_OK(nt_status))
+		nt_status = NT_STATUS_NONE_MAPPED;
+
 done:
 	return nt_status;
 }

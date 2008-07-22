@@ -489,6 +489,11 @@ void rescan_trusted_domains( void )
 {
 	time_t now = time(NULL);
 
+	/* Check that we allow trusted domains at all */
+
+	if (!lp_allow_trusted_domains())
+		return;	
+
 	/* see if the time has come... */
 	
 	if ( (now >= last_trustdom_scan) &&
@@ -744,6 +749,11 @@ void check_domain_trusted( const char *name, const DOM_SID *user_sid )
 	struct winbindd_domain *domain;	
 	DOM_SID dom_sid;
 	uint32 rid;
+
+	/* Check if we even care */
+
+	if (!lp_allow_trusted_domains())
+		return;
 	
 	domain = find_domain_from_name_noinit( name );
 	if ( domain )
@@ -793,13 +803,20 @@ void check_domain_trusted( const char *name, const DOM_SID *user_sid )
 struct winbindd_domain *find_domain_from_name_noinit(const char *domain_name)
 {
 	struct winbindd_domain *domain;
+	const char *search_domain = domain_name;	
+	
+	/* special case where we are looking for our own domain */
+
+	if (strequal(domain_name, ".")) {
+		search_domain = lp_workgroup();
+	}
 
 	/* Search through list */
 
 	for (domain = domain_list(); domain != NULL; domain = domain->next) {
-		if (strequal(domain_name, domain->name) ||
+		if (strequal(search_domain, domain->name) ||
 		    (domain->alt_name[0] &&
-		     strequal(domain_name, domain->alt_name))) {
+		     strequal(search_domain, domain->alt_name))) {
 			return domain;
 		}
 	}

@@ -38,8 +38,47 @@
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
-//The list of all modules
-const JoinModule *moduleTable[] = { &DJDaemonStopModule, &DJSetHostname, &DJFirewall, &DJDoJoinModule, &DJLwiConfModule, &DJKrb5Module, &DJDoLeaveModule, &DJNsswitchModule, &DJDaemonStartModule, &DJBashPrompt, &DJGdmPresession, &DJPamMode, &DJPamModule, &DJLamAuth, &DJSshModule, &DJDSPlugin, NULL };
+//Make sure all modules are included in both lists, even if the module
+//doesn't apply to start or stop
+const JoinModule *startList[] = {
+    &DJDaemonStopModule,
+    &DJSetHostname,
+    &DJFirewall,
+    &DJKeytabModule,
+    &DJDoJoinModule,
+    &DJLwiConfModule,
+    &DJKrb5Module,
+    &DJDoLeaveModule,
+    &DJNsswitchModule,
+    &DJDaemonStartModule,
+    &DJBashPrompt,
+    &DJGdmPresession,
+    &DJPamMode,
+    &DJPamModule,
+    &DJLamAuth,
+    &DJSshModule,
+    &DJDSPlugin,
+    NULL };
+
+const JoinModule *stopList[] = {
+    &DJDSPlugin,
+    &DJSshModule,
+    &DJLamAuth,
+    &DJPamModule,
+    &DJPamMode,
+    &DJGdmPresession,
+    &DJBashPrompt,
+    &DJDaemonStartModule,
+    &DJNsswitchModule,
+    &DJDaemonStopModule,
+    &DJDoLeaveModule,
+    &DJKrb5Module,
+    &DJLwiConfModule,
+    &DJDoJoinModule,
+    &DJKeytabModule,
+    &DJFirewall,
+    &DJSetHostname,
+    NULL };
 
 void DJZeroJoinProcessOptions(JoinProcessOptions *options)
 {
@@ -65,7 +104,7 @@ void DJFreeJoinProcessOptions(JoinProcessOptions *options)
     CTArrayFree(&options->moduleStates);
 }
 
-ModuleState *DJGetModuleState(JoinProcessOptions *options, size_t index)
+ModuleState *DJGetModuleState(const JoinProcessOptions *options, size_t index)
 {
     if(index >= options->moduleStates.size)
         return NULL;
@@ -73,7 +112,7 @@ ModuleState *DJGetModuleState(JoinProcessOptions *options, size_t index)
     return ((ModuleState *)options->moduleStates.data) + index;
 }
 
-ModuleState *DJGetModuleStateByName(JoinProcessOptions *options, const char *shortName)
+ModuleState *DJGetModuleStateByName(const JoinProcessOptions *options, const char *shortName)
 {
     size_t i;
     if(shortName == NULL)
@@ -105,7 +144,10 @@ void NormalizeUsername(PSTR *username, PCSTR domainName, LWException **exc)
     if(*username == NULL)
         goto cleanup;
     if(strchr(*username, '@') != NULL)
+    {
+        CTStrToUpper(strrchr(*username, '@'));
         goto cleanup;
+    }
 
     if(IsNullOrEmptyString(domainName))
     {
@@ -131,13 +173,19 @@ void DJInitModuleStates(JoinProcessOptions *options, LWException **exc)
     size_t i;
     PCSTR userDomain;
     PDOMAINJOININFO joinedInfo = NULL;
+    
+    const JoinModule **moduleTable = NULL;
 
     if(options->joiningDomain)
+    {
         userDomain = options->domainName;
+        moduleTable = startList;
+    }
     else
     {
         LW_CLEANUP_CTERR(exc, QueryInformation(&joinedInfo));
         userDomain = joinedInfo->pszDomainName;
+        moduleTable = stopList;
     }
     LW_TRY(exc, NormalizeUsername(&options->username, userDomain, &LW_EXC));
 
@@ -173,20 +221,6 @@ void DJInitModuleStates(JoinProcessOptions *options, LWException **exc)
             default:
                 LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Invalid module state", "The configuration of module '%s' returned an invalid configuration state.\n", state.module->longName);
                 goto cleanup;
-        }
-    }
-    if(!options->joiningDomain)
-    {
-        //They are leaving the domain. Reverse the list of modules
-        ModuleState *states = (ModuleState *)options->moduleStates.data;
-        size_t count = options->moduleStates.size;
-        for(i = 0; i < count/2; i++)
-        {
-            ModuleState tmp;
-            //Swap the module state at position i and (count - i - 1)
-            memcpy(&tmp, states + i,  sizeof(ModuleState));
-            memcpy(states + i, states + count - 1 - i, sizeof(ModuleState));
-            memcpy(states + count - 1 - i, &tmp, sizeof(ModuleState));
         }
     }
     return;

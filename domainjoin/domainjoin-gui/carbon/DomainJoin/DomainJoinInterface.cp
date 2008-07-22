@@ -9,20 +9,12 @@
 
 #include "DomainJoinInterface.h"
 
-#define CT_SAFE_FREE_MEMORY(mem) \
-    do { if (mem) { free(mem); (mem) = NULL; } } while (0)
-    
-#define LIBDOMAINJOIN "/opt/centeris/lib/libdomainjoin.so"
-
 DomainJoinInterface* DomainJoinInterface::_instance = NULL;
 
 DomainJoinInterface::DomainJoinInterface()
 : _libHandle(NULL),
-  _joinDomain(NULL),
-  _joinWorkgroup(NULL),
-  _setComputerName(NULL),
-  _queryInformation(NULL),
-  _isDomainNameResolvable(NULL)
+  _pDJApiFunctionTable(NULL),
+  _pfnShutdownJoinInterface(NULL)
 {
 }
 
@@ -46,23 +38,65 @@ DomainJoinInterface::getInstance()
 void
 DomainJoinInterface::Initialize()
 {
-    dlerror();
-    _libHandle = dlopen(LIBDOMAINJOIN, RTLD_LAZY);
-    if (!_libHandle)
+    const char* LIBDOMAINJOIN = "/opt/centeris/lib/libdomainjoin-mac.so";
+    std::string szShortError = "Failed to load domain join interface";
+    void* pLibHandle = NULL;
+    PFNInitJoinInterface     pfnInitJoinInterface = NULL;
+    PFNShutdownJoinInterface pfnShutdownJoinInterface = NULL;
+    PDJ_API_FUNCTION_TABLE   pFunctionTable = NULL;
+
+    try
     {
-       std::string errMsg = dlerror();
-       throw DomainJoinException(errMsg);
-    }
+        dlerror();
+        pLibHandle = dlopen(LIBDOMAINJOIN, RTLD_LAZY);
+        if (!pLibHandle)
+        {
+           std::string errMsg = dlerror();
+           throw DomainJoinException(-1,
+                                     szShortError,
+                                     errMsg);
+        }
     
-    LoadFunction("JoinDomain", (void**)&_joinDomain);
+        LoadFunction(pLibHandle, DJ_INITIALIZE_JOIN_INTERFACE, (void**)&pfnInitJoinInterface);
+    
+        if (pfnInitJoinInterface(&pFunctionTable)) {
+
+           throw DomainJoinException(-1,
+                                     szShortError,
+                                     "Failed to initialize domain join interface");
+
+        } else if ( !pFunctionTable->pfnJoinDomain ||
+                    !pFunctionTable->pfnLeaveDomain ||
+                    !pFunctionTable->pfnSetComputerName ||
+                    !pFunctionTable->pfnQueryInformation ||
+                    !pFunctionTable->pfnIsDomainNameResolvable ||
+                    !pFunctionTable->pfnFreeDomainJoinInfo ||
+                    !pFunctionTable->pfnFreeDomainJoinError ) {
+            throw DomainJoinException(-1,
+                                      szShortError,
+                                      "The domain join interface is invalid");
+        }
        
-    LoadFunction("JoinWorkgroup", (void**)&_joinWorkgroup);
-       
-    LoadFunction("DJSetComputerName", (void**)&_setComputerName);
-       
-    LoadFunction("QueryInformation", (void**)&_queryInformation);
-	
-	LoadFunction("DJIsDomainNameResolvable", (void**)&_isDomainNameResolvable);
+        LoadFunction(pLibHandle, DJ_SHUTDOWN_JOIN_INTERFACE, (void**)&pfnShutdownJoinInterface);
+
+        Cleanup();
+
+        _libHandle = pLibHandle;
+        _pDJApiFunctionTable = pFunctionTable;
+        _pfnShutdownJoinInterface = pfnShutdownJoinInterface;
+    }
+    catch(std::exception& e)
+    {
+         if (pLibHandle) {
+            if (pfnShutdownJoinInterface &&
+                pFunctionTable)
+            {
+               pfnShutdownJoinInterface(pFunctionTable);
+            }
+            dlclose(pLibHandle);
+         }
+         throw;
+    }
 }
 
 void
@@ -70,29 +104,36 @@ DomainJoinInterface::Cleanup()
 {
   if (_libHandle)
   {
-    _joinDomain = NULL;
-    _joinWorkgroup = NULL;
-    _setComputerName = NULL;
-    _queryInformation = NULL;
-	_isDomainNameResolvable = NULL;
+      if (_pfnShutdownJoinInterface) {
+          _pfnShutdownJoinInterface(_pDJApiFunctionTable);
+      }
   
-    dlclose(_libHandle);
-    _libHandle = NULL;
+      dlclose(_libHandle);
+      _libHandle = NULL;
+      
+      _pfnShutdownJoinInterface = NULL;
+      _pDJApiFunctionTable = NULL;
   }
 }
 
 void
-DomainJoinInterface::LoadFunction(const char* pszFunctionName, void** functionPointer)
+DomainJoinInterface::LoadFunction(
+	void*       pLibHandle,
+	const char* pszFunctionName,
+	void**      functionPointer
+	)
 {
     void* function;
     
     dlerror();
     
-    function = dlsym(_libHandle, pszFunctionName);
+    function = dlsym(pLibHandle, pszFunctionName);
     if (!function)
     {
        std::string errMsg = dlerror();
-       throw DomainJoinException(errMsg);
+       throw DomainJoinException(-1,
+                                 "Failed to load symbol",
+                                 errMsg);
     }
     
     *functionPointer = function;
@@ -105,56 +146,142 @@ DomainJoinInterface::JoinDomain(std::string& pszDomainName,
                                 std::string& pszOU,
                                 bool bNoHosts)
 {
-     DomainJoinException::MapErrorCode(getInstance()._joinDomain(const_cast<char*>(pszDomainName.c_str()),
-                                                                 const_cast<char*>(pszUserName.c_str()), 
-                                                                 const_cast<char*>(pszPassword.c_str()), 
-                                                                 const_cast<char*>(pszOU.c_str()), 
-                                                                 bNoHosts));
+     PDOMAIN_JOIN_ERROR pError = NULL;
+     
+     int errCode = getInstance()._pDJApiFunctionTable->pfnJoinDomain(
+                                    const_cast<char*>(pszDomainName.c_str()),
+                                    const_cast<char*>(pszOU.c_str()),
+                                    const_cast<char*>(pszUserName.c_str()), 
+                                    const_cast<char*>(pszPassword.c_str()), 
+                                    bNoHosts,
+                                    &pError);
+    if (pError) {
+       DomainJoinException exc(pError->code,
+                               pError->pszShortError,
+                               pError->pszLongError);
+       
+       getInstance()._pDJApiFunctionTable->pfnFreeDomainJoinError(pError);
+     
+       throw exc;  
+    }
+    
+    if (errCode) {
+       DomainJoinException exc(errCode, "Domain Join Error", "Failed to join domain");
+       throw exc;
+    }
 }
                                         
 void
 DomainJoinInterface::LeaveDomain()
 {
-    DomainJoinException::MapErrorCode(getInstance()._joinWorkgroup("WORKGROUP", "empty", ""));
+    PDOMAIN_JOIN_ERROR pError = NULL;
+     
+    int errCode = getInstance()._pDJApiFunctionTable->pfnLeaveDomain(
+                                    NULL,
+                                    NULL,
+                                    &pError);
+    if (pError) {
+       DomainJoinException exc(pError->code,
+                               pError->pszShortError,
+                               pError->pszLongError);
+       
+       getInstance()._pDJApiFunctionTable->pfnFreeDomainJoinError(pError);
+     
+       throw exc;  
+    }
+    
+    if (errCode) {
+       DomainJoinException exc(-1, "Domain Join Error", "Failed to leave domain");
+       throw exc;
+    }
 }
 
 bool
 DomainJoinInterface::IsDomainNameResolvable(const std::string& domainName)
 {
-    long result = 0;
-	DomainJoinException::MapErrorCode(getInstance()._isDomainNameResolvable(const_cast<char*>(domainName.c_str()), &result));
-	return (result ? true : false);
+    PDOMAIN_JOIN_ERROR pError = NULL;
+    short bResolvable = 0;
+     
+    int errCode = getInstance()._pDJApiFunctionTable->pfnIsDomainNameResolvable(
+                                    const_cast<char*>(domainName.c_str()),
+                                    &bResolvable,
+                                    &pError);
+                                    
+    if (pError) {
+       DomainJoinException exc(pError->code,
+                               pError->pszShortError,
+                               pError->pszLongError);
+       
+       getInstance()._pDJApiFunctionTable->pfnFreeDomainJoinError(pError);
+     
+       throw exc;  
+    }
+    
+    if (errCode) {
+       DomainJoinException exc(errCode, "Domain Join Error", "Failed to determine if domain name is resolvable through DNS");
+       throw exc;
+    }
+    
+    return bResolvable;
 }
         
 void
 DomainJoinInterface::SetComputerName(std::string& pszComputerName,
                                      std::string& pszDomainName)
 {
-    DomainJoinException::MapErrorCode(getInstance()._setComputerName(const_cast<char*>(pszComputerName.c_str()),
-                                                                     const_cast<char*>(pszDomainName.c_str())));
+    PDOMAIN_JOIN_ERROR pError = NULL;
+
+    int errCode = getInstance()._pDJApiFunctionTable->pfnSetComputerName(
+                                    const_cast<char*>(pszComputerName.c_str()),
+                                    const_cast<char*>(pszDomainName.c_str()),
+                                    &pError);
+                                    
+    if (pError) {
+       DomainJoinException exc(pError->code,
+                               pError->pszShortError,
+                               pError->pszLongError);
+       
+       getInstance()._pDJApiFunctionTable->pfnFreeDomainJoinError(pError);
+     
+       throw exc;  
+    }
+    
+    if (errCode) {
+       DomainJoinException exc(errCode, "Domain Join Error", "Failed to set the computer name");
+       throw exc;
+    }
 }
 
 void
 DomainJoinInterface::GetDomainJoinStatus(DomainJoinStatus& joinStatus)
 {
-    PDOMAINJOININFO pInfo = NULL;
+    PDOMAIN_JOIN_INFO pInfo = NULL;
+    PDOMAIN_JOIN_ERROR pError = NULL;
+
+    int errCode = getInstance()._pDJApiFunctionTable->pfnQueryInformation(
+                                    &pInfo,
+                                    &pError);
+                                    
+    if (pError) {
+       DomainJoinException exc(pError->code,
+                               pError->pszShortError,
+                               pError->pszLongError);
+       
+       getInstance()._pDJApiFunctionTable->pfnFreeDomainJoinError(pError);
+     
+       throw exc;  
+    }
     
-    DomainJoinException::MapErrorCode(getInstance()._queryInformation(&pInfo));
+    if (errCode) {
+       DomainJoinException exc(errCode, "Domain Join Error", "Failed to query domain join status");
+       throw exc;
+    }
     
     joinStatus.Name = (pInfo->pszName ? pInfo->pszName : "");
-    joinStatus.Description = (pInfo->pszDescription ? pInfo->pszDescription : "");
     joinStatus.DnsDomain = (pInfo->pszDnsDomain ? pInfo->pszDnsDomain : "");
     joinStatus.DomainName = (pInfo->pszDomainName ? pInfo->pszDomainName : "");
     joinStatus.ShortDomainName = (pInfo->pszDomainShortName ? pInfo->pszDomainShortName : "");
-    joinStatus.WorkgroupName = (pInfo->pszWorkgroupName ? pInfo->pszWorkgroupName : "");
     joinStatus.LogFilePath = (pInfo->pszLogFilePath ? pInfo->pszLogFilePath : "");
     
-    CT_SAFE_FREE_MEMORY(pInfo->pszName);
-    CT_SAFE_FREE_MEMORY(pInfo->pszDescription);
-    CT_SAFE_FREE_MEMORY(pInfo->pszDnsDomain);
-    CT_SAFE_FREE_MEMORY(pInfo->pszDomainName);
-    CT_SAFE_FREE_MEMORY(pInfo->pszDomainShortName);
-    CT_SAFE_FREE_MEMORY(pInfo->pszWorkgroupName);
-    CT_SAFE_FREE_MEMORY(pInfo->pszLogFilePath);
-    CT_SAFE_FREE_MEMORY(pInfo);
+    getInstance()._pDJApiFunctionTable->pfnFreeDomainJoinInfo(pInfo);
 }

@@ -1108,6 +1108,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 }
 
 static struct pr_chunk *new_chunk(void) {
+	LDOUBLE fvalue_temp = 0;
 	struct pr_chunk *new_c = (struct pr_chunk *)malloc(sizeof(struct pr_chunk));
 
 	if (!new_c)
@@ -1124,7 +1125,9 @@ static struct pr_chunk *new_chunk(void) {
 	new_c->start = 0;
 	new_c->len = 0;
 	new_c->value = 0;
-	new_c->fvalue = 0;
+	/* new_c->fvalue may not be aligned, so instead write to a temporary
+	 * variable and copy it over with memcpy. */
+	memcpy(&new_c->fvalue, &fvalue_temp, sizeof(fvalue_temp));
 	new_c->strvalue = NULL;
 	new_c->pnum = NULL;
 	new_c->next = NULL;

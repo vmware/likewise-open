@@ -26,15 +26,15 @@
 #define __DJ_TIMEMGMT_H__
 
 CENTERROR GetServerTime(
-    PSTR pszDCName, time_t *result);
+    PCSTR pszDCName, time_t *result);
 
 CENTERROR
 DJSetTime(time_t timeval);
 
 CENTERROR
 DJSyncTimeToDC(
-    PSTR pszDCName,
-    int allowedDrift
+    PCSTR pszDCName,
+    int   allowedDrift
     );
 
 #endif /* __DJ_TIMEMGMT_H__ */

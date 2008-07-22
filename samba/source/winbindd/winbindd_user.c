@@ -72,13 +72,15 @@ static bool fillup_pw_field(const char *lp_template,
 }
 /* Fill a pwent structure with information we have obtained */
 
-static bool winbindd_fill_pwent(char *dom_name, char *user_name, 
+static bool winbindd_fill_pwent(TALLOC_CTX *ctx, char *dom_name, char *user_name, 
 				DOM_SID *user_sid, DOM_SID *group_sid,
 				char *full_name, char *homedir, char *shell,
 				struct winbindd_pw *pw)
 {
 	fstring output_username;
-	
+	char *mapped_name = NULL;
+	struct winbindd_domain *domain = NULL;	
+
 	if (!pw || !dom_name || !user_name)
 		return False;
 	
@@ -102,8 +104,22 @@ static bool winbindd_fill_pwent(char *dom_name, char *user_name,
 
 	/* Username */
 
-	fill_domain_username(output_username, dom_name, user_name, True); 
+	domain = find_domain_from_name_noinit(dom_name);
+	if (domain) {		
+		mapped_name = ws_name_replace(ctx, domain, user_name,
+					      *lp_winbind_replacement_char());
+	} else {
+		DEBUG(5,("winbindd_fill_pwent: Failed to find domain for %s.  "
+			 "Disabling name alias support\n", dom_name));
+		mapped_name = user_name;		
+	}	
 
+	if (mapped_name != user_name) {
+		fstrcpy(output_username, mapped_name);
+	} else {
+		fill_domain_username(output_username, dom_name, user_name, True); 
+	}
+	
 	safe_strcpy(pw->pw_name, output_username, sizeof(pw->pw_name) - 1);
 	
 	/* Full name (gecos) */
@@ -767,6 +783,7 @@ void winbindd_getpwent(struct winbindd_cli_state *state)
 		/* Lookup user info */
 		
 		result = winbindd_fill_pwent(
+			state->mem_ctx,
 			ent->domain_name, 
 			name_list[ent->sam_entry_index].name,
 			&name_list[ent->sam_entry_index].user_sid,

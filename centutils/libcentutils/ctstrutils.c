@@ -175,7 +175,7 @@ CTStrToLower(
 
 CENTERROR
 CTEscapeString(
-    PSTR pszOrig,
+    PCSTR pszOrig,
     PSTR * ppszEscapedString
     )
 {

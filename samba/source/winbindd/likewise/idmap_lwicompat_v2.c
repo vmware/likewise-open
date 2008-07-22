@@ -25,7 +25,7 @@
 
 #define _IDMAP_H_
 
-/* Version 2 was used in Samba 3.0.0 - 3.0.24 */
+/* Version 2 was used in Samba 3.0.0 - 3.0.22 */
 
 #define SMB_IDMAP_INTERFACE_VERSION 2
 
@@ -33,6 +33,8 @@
 #define ID_USERID       0x01
 #define ID_GROUPID      0x02
 #define ID_OTHER        0x04
+
+#define ID_TYPEMASK     0x0f
 
 struct idmap_methods;
 struct idmap_alloc_methods;
@@ -53,6 +55,8 @@ struct idmap_methods {
 	NTSTATUS(*close) (void);
 	void (*status) (void);
 };
+
+const char* sid_string_static(const DOM_SID*);
 
 /*********************************************************************
  ********************************************************************/
@@ -124,17 +128,29 @@ static NTSTATUS lwi_get_id_from_sid(unid_t * id, int *type, const DOM_SID * sid)
 	NSS_STATUS result;
 	struct winbindd_request request;
 	struct winbindd_response response;
-	struct unixid *ret_id = (struct unixid *)response.extra_data.data;
+	enum winbindd_cmd cmd;
+	int query_type = (*type) & ID_TYPEMASK;
 
 	ZERO_STRUCT(request);
 	ZERO_STRUCT(response);
 
-	request.extra_len = sizeof(DOM_SID);
-	request.extra_data.data = (char *)sid;
+	fstrcpy(request.data.sid, sid_string_static(sid));
+
+	switch (query_type) {
+	case ID_USERID:
+		cmd = WINBINDD_SID_TO_UID;
+		break;
+	case ID_GROUPID:
+		cmd = WINBINDD_SID_TO_GID;
+		break;
+	default:
+		DEBUG(4,("lwi_get_id_from_sid: Unknown query type (%u)\n", query_type));
+		return NT_STATUS_INVALID_PARAMETER;
+	}
 
 	/* Make request */
 
-	result = winbindd_request_response(WINBINDD_SIDS_TO_XIDS,
+	result = winbindd_request_response(cmd,
 					   &request, &response);
 
 	/* Copy out result */
@@ -142,27 +158,8 @@ static NTSTATUS lwi_get_id_from_sid(unid_t * id, int *type, const DOM_SID * sid)
 	if (result != NSS_STATUS_SUCCESS)
 		return NT_STATUS_NONE_MAPPED;
 
-	ret_id = (struct unixid *)response.extra_data.data;
-
-	if (ret_id->type == -1)
-		return NT_STATUS_NONE_MAPPED;
-
-	switch (ret_id->type) {
-	case ID_TYPE_UID:
-		*type = ID_USERID;
-		id->uid = ret_id->id;
-		break;
-	case ID_TYPE_GID:
-		*type = ID_GROUPID;
-		id->gid = ret_id->id;
-		break;
-	default:
-		DEBUG(2,
-		      ("lwi_get_id_from_sid: Unknown return type of ID (%d)\n",
-		       ret_id->type));
-		SAFE_FREE(response.extra_data.data);
-		return NT_STATUS_NONE_MAPPED;
-	}
+        /* Let the union work it out */
+        id->uid = response.data.uid;
 
 	SAFE_FREE(response.extra_data.data);
 

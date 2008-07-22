@@ -125,7 +125,15 @@ DJGetDaemonStatus(
             daemonBaseName = pszDaemonName;
 
         DJ_LOG_VERBOSE("Looking for %s", daemonBaseName);
-        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin", &daemonPath);
+        if(!strcmp(daemonBaseName, "likewise-open"))
+            daemonBaseName = "likewise-winbindd";
+        else if(!strcmp(daemonBaseName, "centeris.com-gpagentd"))
+            daemonBaseName = "centeris-gpagentd";
+        else if(!strcmp(daemonBaseName, "centeris.com-eventlogd"))
+            daemonBaseName = "centeris-eventlogd";
+        else if(!strcmp(daemonBaseName, "centeris.com-rpcd"))
+            daemonBaseName = "rpcd";
+        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/centeris/sbin:/opt/centeris/sbin:/usr/centeris/bin:/opt/centeris/bin", &daemonPath);
         if(ceError == CENTERROR_FILE_NOT_FOUND)
         {
             CT_SAFE_FREE_STRING(altDaemonName);
@@ -296,108 +304,44 @@ cleanup:
     CT_SAFE_FREE_STRING(pszDaemonPath);
 }
 
-CENTERROR
+void
 DJDoUpdateRcD(
     PSTR pszDaemonName,
     BOOLEAN bStatus,
     PSTR pszStartPriority,
-    PSTR pszStopPriority
+    PSTR pszStopPriority,
+    LWException **exc
     )
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    PSTR* ppszArgs = NULL;
-    DWORD nArgs = 5;
-    long status = 0;
-    PPROCINFO pProcInfo = NULL;
-    BOOLEAN bStarted = FALSE;
-    PSTR ppszStartSpecialArgs[] =
-        { "20",
-          "2",
-          "3",
-          "4",
-          "5",
-          ".",
-          "stop",
-          "20",
-          "0",
-          "1",
-          "6",
-          "."
-        };
-    DWORD nSpecialArgs = sizeof(ppszStartSpecialArgs)/sizeof(PSTR);
-    DWORD iArg = 0;
-
-    nArgs = nSpecialArgs + 3;
-
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString(pszUpdateRcDFilePath, ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    PSTR command = NULL;
 
     if (!bStatus) {
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&command,
+                    "%s -f %s remove", pszUpdateRcDFilePath,
+                    pszDaemonName));
+    }
+    else
+    {
+        if (pszStartPriority == NULL)
+            pszStartPriority = "20";
+        if (pszStopPriority == NULL)
+            pszStopPriority = "20";
 
-        ceError = CTAllocateString("-f", ppszArgs+1);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        ceError = CTAllocateString(pszDaemonName, ppszArgs+2);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        ceError = CTAllocateString("remove", ppszArgs+3);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-    } else {
-
-        ceError = CTAllocateString(pszDaemonName, ppszArgs+1);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        if (pszStartPriority)
-	   ppszStartSpecialArgs[0] = pszStartPriority;
-        if (pszStopPriority)
-           ppszStartSpecialArgs[7] = pszStopPriority;
-
-        //
-        // TODO-2006/10/31-dalmeida -- Should not hardcode runlevels.
-        //
-        for (iArg = 0; iArg < nSpecialArgs; iArg++) {
-
-            ceError = CTAllocateString(*(ppszStartSpecialArgs+iArg), ppszArgs+iArg+2);
-            BAIL_ON_CENTERIS_ERROR(ceError);
-
-        }
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&command,
+                    "%s %s defaults %s %s", pszUpdateRcDFilePath,
+                    pszDaemonName, pszStartPriority, pszStopPriority));
     }
 
-    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-
-    // update-rc.d should not stop or start daemon, so this check
-    // shouldn't be necessary (and is also incorrect)
-    /*
-
-    ceError = DJGetDaemonStatus(pszDaemonName, &bStarted);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (status != 0) {
-
-        ceError = CENTERROR_DOMAINJOIN_UPDATERCD_FAILED;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
+    CTCaptureOutputToExc(command, exc);
+    if(exc != NULL && *exc != NULL &&
+            (*exc)->code == CENTERROR_COMMAND_FAILED)
+    {
+        // Put in a more specific error code
+        (*exc)->code = CENTERROR_DOMAINJOIN_UPDATERCD_FAILED;
     }
-    */
 
-error:
-
-    if (ppszArgs)
-        CTFreeStringArray(ppszArgs, nArgs);
-
-    if (pProcInfo)
-        FreeProcInfo(pProcInfo);
-
-    return ceError;
+cleanup:
+    CT_SAFE_FREE_STRING(command);
 }
 
 CENTERROR
@@ -561,7 +505,7 @@ DJConfigureForDaemonRestart(
     if (bFileExists) {
 
         DJ_LOG_VERBOSE("Found '%s'", pszUpdateRcDFilePath);
-        LW_CLEANUP_CTERR(exc, DJDoUpdateRcD(pszDaemonName, bStatus, pszStartPriority, pszStopPriority));
+        LW_TRY(exc, DJDoUpdateRcD(pszDaemonName, bStatus, pszStartPriority, pszStopPriority, &LW_EXC));
 
         goto done;
     }

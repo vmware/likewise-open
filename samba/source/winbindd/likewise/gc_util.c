@@ -93,14 +93,63 @@ done:
 	return ret;
 }
 
+/**********************************************************************
+ *********************************************************************/
+
+ NTSTATUS gc_find_forest_root(struct gc_info *gc, const char *domain)
+{
+	ADS_STRUCT *ads = NULL;
+	ADS_STATUS ads_status;
+	NTSTATUS nt_status = NT_STATUS_UNSUCCESSFUL;
+	struct cldap_netlogon_reply cldap_reply;
+	
+	if (!gc || !domain) {		
+		return NT_STATUS_INVALID_PARAMETER;
+	}
+
+	ZERO_STRUCT(cldap_reply);
+	
+	ads = ads_init(domain, NULL, NULL);
+	BAIL_ON_PTR_ERROR(ads, nt_status);
+
+	ads->auth.flags = ADS_AUTH_NO_BIND;	
+	ads_status = ads_connect(ads);
+	if (!ADS_ERR_OK(ads_status)) {
+		DEBUG(4, ("find_forest_root: ads_connect(%s) failed! (%s)\n",
+			  domain, ads_errstr(ads_status)));
+	}
+	nt_status = ads_ntstatus(ads_status);
+	BAIL_ON_NTSTATUS_ERROR(nt_status);
+
+	if (!ads_cldap_netlogon(ads->config.ldap_server_name, 
+				ads->config.realm,
+				&cldap_reply))
+	{
+		DEBUG(4,("find_forest_root: Failed to get a CLDAP reply from %s!\n",
+			 ads->server.ldap_server));
+		nt_status = NT_STATUS_IO_TIMEOUT;
+		BAIL_ON_NTSTATUS_ERROR(nt_status);		
+	}
+
+	gc->forest_name = talloc_strdup(gc, cldap_reply.forest);
+	BAIL_ON_PTR_ERROR(gc->forest_name, nt_status);
+
+done:
+	if (ads) {
+		ads_destroy(&ads);
+	}
+	
+	return nt_status;
+}
 
 /**********************************************************************
  *********************************************************************/
 
-static NTSTATUS gc_add_forest(const char *forest)
+static NTSTATUS gc_add_forest(const char *domain)
 {
 	NTSTATUS nt_status = NT_STATUS_UNSUCCESSFUL;
 	struct gc_info *gc = NULL;
+	struct gc_info *find_gc = NULL;
 	char *dn;
 	ADS_STRUCT *ads = NULL;
 	struct likewise_cell *primary_cell = NULL;
@@ -111,17 +160,18 @@ static NTSTATUS gc_add_forest(const char *forest)
 		BAIL_ON_NTSTATUS_ERROR(nt_status);
 	}
 
-	/* Check for duplicates */
+	/* Check for duplicates based on domain name first as this 
+           requires no connection */
 
-	gc = gc_list_head();
-	while (gc) {
-		if (strequal (gc->forest_name, forest))
+	find_gc = gc_list_head();
+	while (find_gc) {
+		if (strequal (find_gc->forest_name, domain))
 			break;
-		gc = gc->next;
+		find_gc = find_gc->next;
 	}
 
-	if (gc) {
-		DEBUG(10,("gc_add_forest: %s already in list\n", forest));
+	if (find_gc) {
+		DEBUG(10,("gc_add_forest: %s already in list\n", find_gc->forest_name));
 		return NT_STATUS_OK;
 	}
 
@@ -130,22 +180,53 @@ static NTSTATUS gc_add_forest(const char *forest)
 		BAIL_ON_NTSTATUS_ERROR(nt_status);
 	}
 
-	gc->forest_name = talloc_strdup(gc, forest);
-	BAIL_ON_PTR_ERROR(gc->forest_name, nt_status);
+	/* Query the rootDSE for the forest root naming conect first.
+           Check that the a GC server for the forest has not already 
+	   been added */
+
+	nt_status = gc_find_forest_root(gc, domain);	
+	BAIL_ON_NTSTATUS_ERROR(nt_status);
+
+	find_gc = gc_list_head();
+	while (find_gc) {
+		if (strequal (find_gc->forest_name, gc->forest_name))
+			break;
+		find_gc = find_gc->next;
+	}
+
+	if (find_gc) {
+		DEBUG(10,("gc_add_forest: Forest %s already in list\n", 
+			  find_gc->forest_name));
+		return NT_STATUS_OK;
+	}
+
+	/* Not found, so add it here.  Make sure we connect to 
+	   a DC in _this_ domain and not the forest root. */
 
 	dn = ads_build_dn(gc->forest_name);
 	BAIL_ON_PTR_ERROR(dn, nt_status);
 
 	gc->search_base = talloc_strdup(gc, dn);
 	SAFE_FREE(dn);
-	BAIL_ON_PTR_ERROR(gc->search_base, nt_status);
+	BAIL_ON_PTR_ERROR(gc->search_base, nt_status);	
 
-	/* Connect to the cell to find the forest settings.  This must
-	   be done before we mark the cell as a GC cell connection to
-	   get the correct information. */
+#if 0
+	/* Can't use cell_connect_dn() here as there is no way to 
+	   specifiy the LWCELL_FLAG_GC_CELL flag setting for cell_connect() */
 
-	nt_status = cell_connect_dn(&gc->forest_cell, gc->search_base);
+ 	nt_status = cell_connect_dn(&gc->forest_cell, gc->search_base);
 	BAIL_ON_NTSTATUS_ERROR(nt_status);
+#else
+
+	gc->forest_cell = cell_new();
+	BAIL_ON_PTR_ERROR(gc->forest_cell, nt_status);
+	
+	/* Set the DNS domain, dn, etc ... and add it to the list */
+
+	cell_set_dns_domain(gc->forest_cell, gc->forest_name);
+	cell_set_dn(gc->forest_cell, gc->search_base);
+	cell_set_flags(gc->forest_cell, LWCELL_FLAG_GC_CELL);
+#endif
 
 	/* It is possible to belong to a non-forest cell and a
 	   non-provisioned forest (at our domain levele). In that
@@ -153,34 +234,38 @@ static NTSTATUS gc_add_forest(const char *forest)
 	   cell since the GC searches will match our own schema
 	   model. */
 
-	if (is_subdomain(primary_cell->dns_domain, gc->forest_name)) {
+	if (strequal(primary_cell->forest_name, gc->forest_name) 
+	    || is_subdomain(primary_cell->dns_domain, gc->forest_name)) 
+	{
 		cell_set_flags(gc->forest_cell, cell_flags(primary_cell));
 	} else {
 		/* outside of our domain */
+
+		nt_status = cell_connect(gc->forest_cell);
+		BAIL_ON_NTSTATUS_ERROR(nt_status);
+
 		nt_status = cell_lookup_settings(gc->forest_cell);
 		BAIL_ON_NTSTATUS_ERROR(nt_status);
+
+		/* Drop the connection now that we have the settings */
+
+		ads = cell_connection(gc->forest_cell);
+		ads_destroy(&ads);
+		cell_set_connection(gc->forest_cell, NULL);
 	}
-
-	/* Drop the connection now that we have the settings */
-
-	ads = cell_connection(gc->forest_cell);
-	ads_destroy(&ads);
-	cell_set_connection(gc->forest_cell, NULL);
-
-	/* Set a couple of necessary flags to mark this for
-	   cell_do_search() */
-
-	cell_set_flags(gc->forest_cell, LWCELL_FLAG_GC_CELL);
 
 	DLIST_ADD_END(_gc_server_list, gc, struct gc_info*);
 
+	DEBUG(10,("gc_add_forest: Added %s to Global Catalog list of servers\n",
+		  gc->forest_name));
+	
 	nt_status = NT_STATUS_OK;
 
 done:
 	if (!NT_STATUS_IS_OK(nt_status)) {
 		talloc_destroy(gc);
-		DEBUG(0,("LWI: Failed to add new GC connection for %s (%s)\n",
-			 forest, nt_errstr(nt_status)));
+		DEBUG(3,("LWI: Failed to add new GC connection for %s (%s)\n",
+			 domain, nt_errstr(nt_status)));
 	}
 
 	return nt_status;
@@ -228,27 +313,49 @@ static void gc_server_list_destroy(void)
 		BAIL_ON_NTSTATUS_ERROR(nt_status);
 	}
 
-	/* Find our forst first */
+	/* Find our forest first.  Have to try all domains here starting 
+	   with our own.  gc_add_forest() filters duplicates */
 
+	nt_status = gc_add_forest(lp_realm());
+	WARN_ON_NTSTATUS_ERROR(nt_status);
+	
 	for (i=0; i<num_domains; i++) {
-		uint32_t flags = (NETR_TRUST_FLAG_TREEROOT|NETR_TRUST_FLAG_IN_FOREST);
+		uint32_t flags = (NETR_TRUST_FLAG_IN_FOREST);
+
+		/* I think we should be able to break out of loop once
+		   we add a GC for our forest and not have to test every one.
+		   In fact, this entire loop is probably irrelevant since
+		   the GC location code should always find a GC given lp_realm().
+		   Will have to spend time testing before making the change.
+		   --jerry */
 
 		if ((domains[i].trust_flags & flags) == flags) {
 			nt_status = gc_add_forest(domains[i].dns_name);
-			BAIL_ON_NTSTATUS_ERROR(nt_status);
-
-			break;
+			WARN_ON_NTSTATUS_ERROR(nt_status);
+			/* Don't BAIL here since not every domain may 
+			   have a GC server */
 		}
 	}
 
 	/* Now add trusted forests.  gc_add_forest() will filter out
-	   duplicates */
+	   duplicates. Check everything with an incoming trust path
+	   that is not in our own forest.  */
 
 	for (i=0; i<num_domains; i++) {
 		uint32_t flags = domains[i].trust_flags;
-		uint32_t attribs = domains[i].trust_attribs;
+		uint32_t attribs = domains[i].trust_attribs;	       
+
+		/* Skip non_AD domains */
+
+		if (strlen(domains[i].dns_name) == 0) {
+			continue;
+		}
+
+		/* Only add a GC for a forest outside of our own.
+		   Ignore QUARANTINED/EXTERNAL trusts */
 
 		if ((flags & NETR_TRUST_FLAG_INBOUND)
+		    && !(flags & NETR_TRUST_FLAG_IN_FOREST)
 		    && (attribs & NETR_TRUST_ATTRIBUTE_FOREST_TRANSITIVE))
 		{
 			nt_status = gc_add_forest(domains[i].dns_name);
@@ -315,7 +422,12 @@ done:
 		BAIL_ON_NTSTATUS_ERROR(nt_status);
 	}
 
-	ads_status = cell_do_search(gc->forest_cell, gc->search_base,
+	/* When you have multiple domain trees in a forest, the
+	   GC will search all naming contexts when you send it 
+	   and empty ("") base search suffix.   Tested against 
+	   Windows 2003.  */
+
+	ads_status = cell_do_search(gc->forest_cell, "",
 				   LDAP_SCOPE_SUBTREE, filter, attrs, &m);
 	nt_status = ads_ntstatus(ads_status);
 	BAIL_ON_NTSTATUS_ERROR(nt_status);
@@ -491,6 +603,7 @@ done:
 			/* Ignore failures and continue the search */
 
 			if (!domain_rec) {
+				e = ads_next_entry(ads, e);				
 				continue;
 			}
 

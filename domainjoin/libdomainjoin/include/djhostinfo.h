@@ -40,24 +40,24 @@ DJGetFQDN(
 
 CENTERROR
 DJSetComputerName(
-    PSTR pszComputerName,
-    PSTR pszDnsDomainName
+    PCSTR pszComputerName,
+    PCSTR pszDnsDomainName
     );
 
 CENTERROR
 DJIsValidComputerName(
-    PSTR pszComputerName,
+    PCSTR pszComputerName,
     PBOOLEAN bIsValid
     );
 
 void DJCheckValidComputerName(
-    PSTR pszComputerName,
+    PCSTR pszComputerName,
     LWException **exc
     );
 
 CENTERROR
 DJIsDomainNameResolvable(
-    PSTR pszDomainName,
+    PCSTR pszDomainName,
     PBOOLEAN bIsResolvable
     );
 

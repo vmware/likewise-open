@@ -44,8 +44,8 @@ SetRealm(
 
 CENTERROR
 ConfigureSambaEx(
-    PSTR pszDomainName,
-    PSTR pszWorkgroupName
+    PCSTR pszDomainName,
+    PCSTR pszWorkgroupName
     );
 
 CENTERROR

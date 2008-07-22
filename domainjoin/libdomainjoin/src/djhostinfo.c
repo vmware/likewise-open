@@ -959,37 +959,10 @@ FixNetworkInterfaces(
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
     if (bFileExists) {
-        ceError = CTBackupFile(networkConfigPath);
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-        nArgs = 4;
-        ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-        ceError = CTAllocateString("/bin/sed", ppszArgs);
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
         sprintf(szBuf, "s/^.*\\(HOSTNAME\\).*=.*$/\\1=%s/", pszComputerName);
-        ceError = CTAllocateString(szBuf, ppszArgs+1);
+        ceError = CTRunSedOnFile(networkConfigPath, networkConfigPath,
+                FALSE, szBuf);
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-        ceError = CTAllocateString(networkConfigPath, ppszArgs+2);
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-        ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-        ceError = DJGetProcessStatus(pProcInfo, &status);
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-        if (status != 0) {
-            DJ_LOG_ERROR("Failed to sed: %d", status);
-            ceError = CENTERROR_DOMAINJOIN_SYSCONFIG_EDIT_FAIL;
-            CLEANUP_ON_CENTERROR_EE(ceError, EE);
-        }
-
-        CTFreeStringArray(ppszArgs, nArgs);
-        ppszArgs = NULL;
     }
 
     ceError = CTCheckDirectoryExists("/etc/sysconfig", &bDirExists);
@@ -1002,13 +975,13 @@ FixNetworkInterfaces(
             PCSTR dir;
             PCSTR glob;
         } const searchPaths[] = {
-            {"/etc/sysconfig/network", "ifcfg-eth-id-**"},
-            {"/etc/sysconfig/network", "ifcfg-eth0*"},
-            {"/etc/sysconfig/network", "ifcfg-eth-bus*"},
+            {"/etc/sysconfig/network", "ifcfg-eth-id-[^.]*$"},
+            {"/etc/sysconfig/network", "ifcfg-eth0[^.]*$"},
+            {"/etc/sysconfig/network", "ifcfg-eth-bus[^.]*$"},
             //SLES 10.1 on zSeries uses /etc/sysconfig/network/ifcfg-qeth-bus-ccw-0.0.0500
-            {"/etc/sysconfig/network", "ifcfg-qeth-bus*"},
+            {"/etc/sysconfig/network", "ifcfg-qeth-bus[^.]*$"},
             // Redhat uses /etc/sysconfig/network-scripts/ifcfg-eth<number>
-            {"/etc/sysconfig/network-scripts", "ifcfg-eth*"},
+            {"/etc/sysconfig/network-scripts", "ifcfg-eth[^.]*$"},
             {NULL, NULL}
         };
 
@@ -1323,11 +1296,18 @@ static QueryResult QuerySetHostname(const JoinProcessOptions *options, LWExcepti
 static void DoSetHostname(JoinProcessOptions *options, LWException **exc)
 {
     LWException *inner = NULL;
+    CENTERROR ceError;
 
     LW_CLEANUP_CTERR(exc,
             DJSetComputerName(options->computerName, options->domainName));
 
-    LW_CLEANUP_CTERR(exc, DJConfigureHostsEntry(NULL));
+    ceError = DJConfigureHostsEntry(NULL);
+    if(ceError == CENTERROR_INVALID_FILENAME)
+    {
+        ceError = CENTERROR_SUCCESS;
+        DJ_LOG_WARNING("Warning: Could not find nsswitch file");
+    }
+    LW_CLEANUP_CTERR(exc, ceError);
 
     DJRestartIfRunning("nscd", &inner);
     if(!LW_IS_OK(inner) && inner->code == CENTERROR_FILE_NOT_FOUND)
@@ -1373,6 +1353,7 @@ DJGetFQDN(
     //Try to look it up upto 3 times
     for(i = 0; i < 3; i++)
     {
+        PSTR foundFqdn = NULL;
         pHostent = gethostbyname(_shortName);
         if (pHostent == NULL) {
             if (h_errno == TRY_AGAIN) {
@@ -1381,7 +1362,32 @@ DJGetFQDN(
             }
             break;
         }
-        ceError = CTAllocateString(pHostent->h_name, &_fqdn);
+        /*
+         * We look for the first name that looks like an FQDN.  This is
+         * the same heuristics used by other software such as Kerberos and
+         * Samba.
+         */
+        if (strchr(pHostent->h_name, '.') != 0)
+        {
+            foundFqdn = pHostent->h_name;
+        }
+        else
+        {
+            for (i = 0; pHostent->h_aliases[i]; i++)
+            {
+                if (strchr(pHostent->h_aliases[i], '.') != 0)
+                {
+                    foundFqdn = pHostent->h_aliases[i];
+                    break;
+                }
+            }
+       }
+        /* If we still have nothing, just return the first name */
+        if (!foundFqdn)
+        {
+            foundFqdn = pHostent->h_name;
+        }
+        ceError = CTAllocateString(foundFqdn, &_fqdn);
         CLEANUP_ON_CENTERROR(ceError);
         break;
     }
@@ -1405,8 +1411,8 @@ cleanup:
 
 CENTERROR
 DJSetComputerName(
-    PSTR pszComputerName,
-    PSTR pszDnsDomainName
+    PCSTR pszComputerName,
+    PCSTR pszDnsDomainName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -1414,6 +1420,7 @@ DJSetComputerName(
     BOOLEAN bValidComputerName = FALSE;
     PSTR oldShortHostname = NULL;
     PSTR oldFqdnHostname = NULL;
+    PSTR pszComputerName_lower = NULL;
     PSTR ppszHostfilePaths[] = { "/etc/hostname", "/etc/HOSTNAME", NULL };
 
     if (geteuid() != 0) {
@@ -1429,7 +1436,10 @@ DJSetComputerName(
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
     }
 
-    CTStrToLower(pszComputerName);
+    ceError = CTAllocateString(pszComputerName, &pszComputerName_lower);
+    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+
+    CTStrToLower(pszComputerName_lower);
 
     /* Start spelunking for various hostname holding things. Rather
        than trying to worry about what flavor of linux we are
@@ -1445,7 +1455,7 @@ DJSetComputerName(
        Ubuntu/Debian have /etc/hostname, so add that...
     */
 
-    ceError = WriteHostnameToFiles(pszComputerName,
+    ceError = WriteHostnameToFiles(pszComputerName_lower,
                                    ppszHostfilePaths);
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
@@ -1469,56 +1479,57 @@ DJSetComputerName(
     }
 
     ceError = DJCopyMissingHostsEntry("/etc/inet/ipnodes", "/etc/hosts",
-            pszComputerName, oldShortHostname);
+            pszComputerName_lower, oldShortHostname);
     if(ceError == CENTERROR_INVALID_FILENAME)
         ceError = CENTERROR_SUCCESS;
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
     ceError = DJReplaceNameInHostsFile("/etc/hosts",
             oldShortHostname, oldFqdnHostname,
-            pszComputerName, pszDnsDomainName);
+            pszComputerName_lower, pszDnsDomainName);
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
     ceError = DJReplaceNameInHostsFile("/etc/inet/ipnodes",
             oldShortHostname, oldFqdnHostname,
-            pszComputerName, pszDnsDomainName);
+            pszComputerName_lower, pszDnsDomainName);
     if(ceError == CENTERROR_INVALID_FILENAME)
         ceError = CENTERROR_SUCCESS;
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
 #if defined(__LWI_SOLARIS__)
-    ceError = WriteHostnameToSunFiles(pszComputerName);
+    ceError = WriteHostnameToSunFiles(pszComputerName_lower);
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 #endif
 
 #if defined(_AIX)
-    ceError = SetAIXHostname(pszComputerName);
+    ceError = SetAIXHostname(pszComputerName_lower);
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 #endif
 
 #if defined(_HPUX_SOURCE)
-    ceError = SetHPUXHostname(pszComputerName);
+    ceError = SetHPUXHostname(pszComputerName_lower);
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 #endif
 
 #if defined(__LWI_MACOSX__)
-    ceError = SetMacOsXHostName(pszComputerName);
+    ceError = SetMacOsXHostName(pszComputerName_lower);
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 #endif
 
-    ceError = FixNetworkInterfaces(pszComputerName);
+    ceError = FixNetworkInterfaces(pszComputerName_lower);
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
 cleanup:
     CT_SAFE_FREE_STRING(oldShortHostname);
     CT_SAFE_FREE_STRING(oldFqdnHostname);
+    CT_SAFE_FREE_STRING(pszComputerName_lower);
 
     DJ_LOG_VERBOSE("DJSetComputerName LEAVE -> 0x%08x (EE = %d)", ceError, EE);
     return ceError;
 }
 
 void DJCheckValidComputerName(
-    PSTR pszComputerName,
+    PCSTR pszComputerName,
     LWException **exc)
 {
     size_t dwLen;
@@ -1570,7 +1581,7 @@ cleanup:
 
 CENTERROR
 DJIsValidComputerName(
-    PSTR pszComputerName,
+    PCSTR pszComputerName,
     PBOOLEAN pbIsValid
     )
 {
@@ -1598,7 +1609,7 @@ DJIsValidComputerName(
 
 CENTERROR
 DJIsDomainNameResolvable(
-    PSTR pszDomainName,
+    PCSTR pszDomainName,
     PBOOLEAN pbIsResolvable
     )
 {

@@ -945,11 +945,11 @@ error:
 // newFdqnHostname = <shortHostname>.<dnsDomainName>
 CENTERROR
 DJReplaceNameInHostsFile(
-    const char *filename,
-    PSTR oldShortHostname,
-    PSTR oldFqdnHostname,
-    PSTR shortHostname,
-    PSTR dnsDomainName
+    PCSTR filename,
+    PSTR  oldShortHostname,
+    PSTR  oldFqdnHostname,
+    PSTR  shortHostname,
+    PCSTR dnsDomainName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;

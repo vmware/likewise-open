@@ -24,17 +24,129 @@
 
 #include "domainjoin.h"
 #include "djdaemonmgr.h"
+#include <libxml/xpath.h>
+#include <libxml/parser.h>
+
+#define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
 // aka: CENTERROR_LICENSE_INCORRECT
-static DWORD GPAGENT_LICENSE_ERROR = 0x00002001;
+// static DWORD GPAGENT_LICENSE_ERROR = 0x00002001;
 
 // CENTERROR_LICENSE_EXPIRED
-static DWORD GPAGENT_LICENSE_EXPIRED_ERROR = 0x00002002;
+// static DWORD GPAGENT_LICENSE_EXPIRED_ERROR = 0x00002002;
 
-static PSTR pszAuthdStartPriority = "90";
-static PSTR pszAuthdStopPriority = "10";
-static PSTR pszGPAgentdStartPriority = "91";
-static PSTR pszGPAgentdStopPriority = "9";
+// static PSTR pszAuthdStartPriority = "90";
+// static PSTR pszAuthdStopPriority = "10";
+// static PSTR pszGPAgentdStartPriority = "91";
+// static PSTR pszGPAgentdStopPriority = "9";
+
+// Runs an xpath expression on an xml file. If the resultant nodeset contains
+// exactly one text node, it is returned through result, otherwise
+// CENTERROR_CFG_VALUE_NOT_FOUND or CENTERROR_INVALID_VALUE is returned.
+static CENTERROR GetXPathString(PCSTR file, PSTR *result, PCSTR expression)
+{
+    xmlDocPtr xmlDoc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL; 
+    xmlXPathObjectPtr xpathObj = NULL; 
+    CENTERROR ceError = CENTERROR_SUCCESS;
+
+    *result = NULL;
+
+    xmlDoc = xmlReadFile(file, NULL, XML_PARSE_NONET | XML_PARSE_NOERROR);
+    if(xmlDoc == NULL)
+        GCE(ceError = CENTERROR_DOMAINJOIN_INVALID_FORMAT);
+
+    xpathCtx = xmlXPathNewContext(xmlDoc);
+    if(xpathCtx == NULL)
+        GCE(ceError = CENTERROR_OUT_OF_MEMORY);
+
+    xpathObj = xmlXPathEvalExpression((xmlChar*)expression, xpathCtx);
+
+    if(xpathObj->type != XPATH_NODESET)
+        GCE(ceError = CENTERROR_INVALID_VALUE);
+    if(xpathObj->nodesetval->nodeNr < 1)
+        GCE(ceError = CENTERROR_CFG_VALUE_NOT_FOUND);
+    if(xpathObj->nodesetval->nodeNr > 1 ||
+            xpathObj->nodesetval->nodeTab[0]->type != XML_TEXT_NODE)
+    {
+        GCE(ceError = CENTERROR_INVALID_VALUE);
+    }
+    GCE(ceError = CTStrdup((PCSTR)xpathObj->nodesetval->nodeTab[0]->content, result));
+
+cleanup:
+    if(xpathObj != NULL)
+        xmlXPathFreeObject(xpathObj);
+    if(xpathCtx != NULL)
+        xmlXPathFreeContext(xpathCtx);
+    if(xmlDoc != NULL)
+        xmlFreeDoc(xmlDoc);
+    return ceError;
+}
+
+static CENTERROR DJDaemonLabelToConfigFile(PSTR *configFile, PCSTR dirName, PCSTR label)
+{
+    DIR *dir = NULL;
+    PSTR filePath = NULL;
+    struct dirent *dirEntry = NULL;
+    PSTR fileLabel = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+
+    *configFile = NULL;
+
+    if ((dir = opendir(dirName)) == NULL) {
+        GCE(ceError = CTMapSystemError(errno));
+    }
+
+    while(1)
+    {
+        errno = 0;
+        dirEntry = readdir(dir);
+        if(dirEntry == NULL)
+        {
+            if(errno != 0)
+                GCE(ceError = CTMapSystemError(errno));
+            else
+            {
+                //No error here. We simply read the last entry
+                break;
+            }
+        }
+        if(dirEntry->d_name[0] == '.')
+            continue;
+
+        CT_SAFE_FREE_STRING(filePath);
+        GCE(ceError = CTAllocateStringPrintf(&filePath, "%s/%s",
+                    dirName, dirEntry->d_name));
+
+        CT_SAFE_FREE_STRING(fileLabel);
+        ceError = GetXPathString(filePath, &fileLabel,
+            "/plist/dict/key[text()='Label']/following-sibling::string[position()=1]/text()");
+        if(!CENTERROR_IS_OK(ceError))
+        {
+            DJ_LOG_INFO("Cannot read daemon label from '%s' file. Error code %X. Ignoring it.", filePath, ceError);
+            ceError = CENTERROR_SUCCESS;
+            continue;
+        }
+        if(!strcmp(fileLabel, label))
+        {
+            //This is a match
+            *configFile = filePath;
+            filePath = NULL;
+            goto cleanup;
+        }
+    }
+
+    GCE(ceError = CENTERROR_DOMAINJOIN_MISSING_DAEMON);
+
+cleanup:
+    CT_SAFE_FREE_STRING(fileLabel);
+    CT_SAFE_FREE_STRING(filePath);
+    if(dir != NULL)
+    {
+        closedir(dir);
+    }
+    return ceError;
+}
 
 void
 DJGetDaemonStatus(
@@ -48,41 +160,59 @@ DJGetDaemonStatus(
     long status = 0;
     PPROCINFO pProcInfo = NULL;
     CHAR  szBuf[1024+1];
-    CHAR  szCmd[128];
     FILE* fp = NULL;
+    CENTERROR ceError;
+    PSTR configFile = NULL;
+    PSTR command = NULL;
+    int argNum = 0;
+    PSTR whitePos;
 
-    /* TODO: Cleanup
-     * Currently, I don't know of a way to get service status
-     * using launchctl. We can get the pid from the pidfile
-     * and use it in the ps command - then, we have to map the
-     * service name to the pid file.
-     */
-    if (!strcmp(pszDaemonPath, "com.centeris.gpagentd") ||
-	    !strcmp(pszDaemonPath, "centeris.com-gpagentd"))
-        strcpy(szCmd, "centeris-gpagentd");
-    else if (!strcmp(pszDaemonPath, "com.likewise.open") ||
-	    !strcmp(pszDaemonPath, "likewise-open"))
-        strcpy(szCmd, "likewise-winbindd");
-    else {
+    /* Translate the Unix daemon names into the mac daemon names */
+    if(!strcmp(pszDaemonPath, "centeris.com-gpagentd"))
+        pszDaemonPath = "com.centeris.gpagentd";
+    else if(!strcmp(pszDaemonPath, "likewise-open"))
+        pszDaemonPath = "com.likewise.open";
+
+    /* Find the .plist file for the daemon */
+    ceError = DJDaemonLabelToConfigFile(&configFile, "/System/Library/LaunchDaemons", pszDaemonPath);
+    if(ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+        ceError = DJDaemonLabelToConfigFile(&configFile, "/etc/centeris/LaunchDaemons", pszDaemonPath);
+    if(ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+    {
         DJ_LOG_ERROR("Checking status of daemon [%s] failed: Missing", pszDaemonPath);
-        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON);
+        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON, "Unable to find daemon plist file", "The plist file for the '%s' daemon could not be found in /System/Library/LaunchDaemons or /etc/centeris/LaunchDaemons .", pszDaemonPath);
+        goto cleanup;
     }
+    LW_CLEANUP_CTERR(exc, ceError);
+
+    DJ_LOG_INFO("Found config file [%s] for daemon [%s]", configFile, pszDaemonPath);
+
+    /* Figure out the daemon binary by reading the command from the plist file
+     */
+    LW_CLEANUP_CTERR(exc, GetXPathString(configFile, &command,
+        "/plist/dict/key[text()='ProgramArguments']/following-sibling::array[position()=1]/string[position()=1]/text()"));
+
+    if(!strcmp(command, "/opt/centeris/sbin/winbindd-wrap"))
+    {
+        CT_SAFE_FREE_STRING(command);
+        LW_CLEANUP_CTERR(exc, CTStrdup("/opt/centeris/sbin/likewise-winbindd", &command));
+    }
+
+    DJ_LOG_INFO("Found daemon binary [%s] for daemon [%s]", command, pszDaemonPath);
 
     DJ_LOG_INFO("Checking status of daemon [%s]", pszDaemonPath);
 
     LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs));
 
-    LW_CLEANUP_CTERR(exc, CTAllocateString("/bin/ps", ppszArgs));
+    LW_CLEANUP_CTERR(exc, CTAllocateString("/bin/ps", ppszArgs + argNum++));
 
-    LW_CLEANUP_CTERR(exc, CTAllocateString("-U", ppszArgs+1));
+    LW_CLEANUP_CTERR(exc, CTAllocateString("-U", ppszArgs + argNum++));
 
-    LW_CLEANUP_CTERR(exc, CTAllocateString("root", ppszArgs+2));
+    LW_CLEANUP_CTERR(exc, CTAllocateString("root", ppszArgs + argNum++));
 
-    LW_CLEANUP_CTERR(exc, CTAllocateString("-c", ppszArgs+3));
+    LW_CLEANUP_CTERR(exc, CTAllocateString("-o", ppszArgs + argNum++));
 
-    LW_CLEANUP_CTERR(exc, CTAllocateString("-o", ppszArgs+4));
-
-    LW_CLEANUP_CTERR(exc, CTAllocateString("command=", ppszArgs+5));
+    LW_CLEANUP_CTERR(exc, CTAllocateString("command=", ppszArgs + argNum++));
 
     LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
 
@@ -111,7 +241,11 @@ DJGetDaemonStatus(
             if (IsNullOrEmptyString(szBuf))
                 continue;
 
-            if (!strcmp(szBuf, szCmd)) {
+            whitePos = strchr(szBuf, ' ');
+            if(whitePos != NULL)
+                *whitePos = '\0';
+
+            if (!strcmp(szBuf, command)) {
                 *pbStarted = TRUE;
                 break;
             }
@@ -128,6 +262,9 @@ cleanup:
 
     if (pProcInfo)
         FreeProcInfo(pProcInfo);
+
+    CT_SAFE_FREE_STRING(configFile);
+    CT_SAFE_FREE_STRING(command);
 }
 
 void
@@ -203,7 +340,7 @@ cleanup:
 
 CENTERROR
 DJConfigureForDaemonRestart(
-    PSTR pszDaemonName,
+    PCSTR pszDaemonName,
     BOOLEAN bStatus,
     PSTR pszStartPriority,
     PSTR pszStopPriority
@@ -215,7 +352,7 @@ DJConfigureForDaemonRestart(
 static
 CENTERROR
 DJExistsInLaunchCTL(
-    PSTR pszName,
+    PCSTR pszName,
     PBOOLEAN pbExists
     )
 {
@@ -297,7 +434,7 @@ error:
 static
 CENTERROR
 DJPrepareServiceLaunchScript(
-    PSTR pszName
+    PCSTR pszName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -306,6 +443,7 @@ DJPrepareServiceLaunchScript(
     LONG  status = 0;
     DWORD nArgs = 5;
     CHAR szBuf[1024+1];
+    BOOLEAN bFileExists = FALSE;
 
     ceError = CTAllocateMemory(nArgs*sizeof(PSTR), (PVOID*)&ppszArgs);
     BAIL_ON_CENTERIS_ERROR(ceError);
@@ -317,6 +455,12 @@ DJPrepareServiceLaunchScript(
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     sprintf(szBuf, "/etc/centeris/LaunchDaemons/%s.plist", pszName);
+    ceError = CTCheckFileExists(szBuf, &bFileExists);  
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (!bFileExists)
+	BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_DOMAINJOIN_MISSING_DAEMON);
+
     ceError = CTAllocateString(szBuf, ppszArgs+2);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
@@ -349,7 +493,7 @@ error:
 static
 CENTERROR
 DJRemoveFromLaunchCTL(
-    PSTR pszName
+    PCSTR pszName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -412,7 +556,7 @@ error:
 static
 CENTERROR
 DJAddToLaunchCTL(
-    PSTR pszName
+    PCSTR pszName
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -527,7 +671,7 @@ cleanup:
 }
 
 struct _DaemonList daemonList[] = {
-    { "com.likewise.open", NULL, TRUE, 92, 10 },
-    { "com.centeris.gpagentd", NULL, FALSE, 92, 9 },
-    { NULL, NULL, FALSE, 0, 0 },
+    { "com.likewise.open", {NULL}, TRUE, 92, 10 },
+    { "com.centeris.gpagentd", {NULL}, FALSE, 92, 9 },
+    { NULL, {NULL}, FALSE, 0, 0 }
 };

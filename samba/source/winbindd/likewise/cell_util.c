@@ -232,6 +232,38 @@ done:
 	return NT_STATUS_IS_OK(nt_status);
 }
 
+static NTSTATUS cell_lookup_forest(struct likewise_cell *c)
+{
+	NTSTATUS nt_status = NT_STATUS_UNSUCCESSFUL;	
+	struct gc_info *gc = NULL;
+	
+	if (!c) {
+		return NT_STATUS_INVALID_PARAMETER;
+	}	
+
+	if ((gc = TALLOC_ZERO_P(NULL, struct gc_info)) == NULL) {
+		nt_status = NT_STATUS_NO_MEMORY;
+		BAIL_ON_NTSTATUS_ERROR(nt_status);
+	}
+
+	/* Query the rootDSE for the forest root naming conect first.
+           Check that the a GC server for the forest has not already 
+	   been added */
+
+	nt_status = gc_find_forest_root(gc, cell_dns_domain(c));
+	BAIL_ON_NTSTATUS_ERROR(nt_status);
+
+	c->forest_name = talloc_strdup(c, gc->forest_name);
+	BAIL_ON_PTR_ERROR(c->forest_name, nt_status);	
+	
+done:
+	if (gc) {
+		talloc_free(gc);
+	}
+
+	return nt_status;	
+}
+
 /**********************************************************************
 **********************************************************************/
 
@@ -316,6 +348,10 @@ done:
 		cell_set_connection(cell, ads);
 		cell_set_dn(cell, p);
 		cell_set_domain_sid(cell, &sid);
+
+		/* Now save our forest root */
+
+		cell_lookup_forest(cell);
 
 		/* Add the cell to the list */
 

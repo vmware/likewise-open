@@ -54,7 +54,7 @@ typedef struct
 
 struct _JoinProcessOptions;
 typedef struct _JoinProcessOptions JoinProcessOptions;
-typedef void (*WarningFunction)(JoinProcessOptions *options, const char *title, const char *message);
+typedef void (*WarningFunction)(const JoinProcessOptions *options, const char *title, const char *message);
 
 //Options filled in by the UI in order to communicate with the join modules.
 struct _JoinProcessOptions
@@ -69,6 +69,8 @@ struct _JoinProcessOptions
     //TRUE if joining to AD, FALSE if leaving
     BOOLEAN joiningDomain;
     BOOLEAN showTraces;
+    BOOLEAN disableTimeSync;
+    BOOLEAN ignoreFirewallNtp;
     WarningFunction warningCallback;
     /* Contains modules that are enabled and disabled by the user, but does
      * not contain NA modules. This list is populated from the moduleTable.
@@ -97,8 +99,8 @@ void DJRefreshModuleStates(JoinProcessOptions *options, LWException **err);
 void DJInitModuleStates(JoinProcessOptions *options, LWException **err);
 void DJRunJoinProcess(JoinProcessOptions *options, LWException **err);
 
-ModuleState *DJGetModuleState(JoinProcessOptions *options, size_t index);
-ModuleState *DJGetModuleStateByName(JoinProcessOptions *options, const char *shortName);
+ModuleState *DJGetModuleState(const JoinProcessOptions *options, size_t index);
+ModuleState *DJGetModuleStateByName(const JoinProcessOptions *options, const char *shortName);
 
 void DJEnableModule(JoinProcessOptions *options, PCSTR shortName, BOOLEAN enable, LWException **exc);
 

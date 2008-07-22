@@ -2285,7 +2285,6 @@ NTSTATUS resolve_username_to_alias( TALLOC_CTX *mem_ctx,
 
 	if ( domain->internal )
 		return NT_STATUS_NOT_SUPPORTED;
-	
 
 	if (!cache->tdb)
 		goto do_query;
@@ -2300,6 +2299,11 @@ NTSTATUS resolve_username_to_alias( TALLOC_CTX *mem_ctx,
 
 	if (!centry)
 		goto do_query;
+
+	if (!NT_STATUS_IS_OK(centry->status)) {
+		centry_free(centry);
+		return centry->status;
+	}
 
 	*alias = centry_string( centry, mem_ctx );
 
@@ -2324,6 +2328,10 @@ do_query:
 
 	if ( NT_STATUS_IS_OK( status ) ) {
 		wcache_save_username_alias(domain, status, name, *alias);
+	}
+
+	if ( NT_STATUS_EQUAL( status, NT_STATUS_NONE_MAPPED ) ) {
+		wcache_save_username_alias(domain, status, name, "(NULL)");
 	}
 
 	DEBUG(5,("resolve_username_to_alias: backend query returned %s\n",
@@ -2365,6 +2373,11 @@ NTSTATUS resolve_alias_to_username( TALLOC_CTX *mem_ctx,
 	if (!centry)
 		goto do_query;
 
+	if (!NT_STATUS_IS_OK(centry->status)) {
+		centry_free(centry);
+		return centry->status;
+	}
+
 	*name = centry_string( centry, mem_ctx );
 
 	centry_free(centry);
@@ -2396,6 +2409,10 @@ do_query:
 
 	if ( NT_STATUS_IS_OK( status ) ) {
 		wcache_save_alias_username( domain, status, alias, *name );
+	}
+
+	if (NT_STATUS_EQUAL(status, NT_STATUS_NONE_MAPPED)) {
+		wcache_save_alias_username(domain, status, alias, "(NULL)");
 	}
 
 	DEBUG(5,("resolve_alias_to_username: backend query returned %s\n",

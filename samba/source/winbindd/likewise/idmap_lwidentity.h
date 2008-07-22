@@ -123,6 +123,7 @@ struct likewise_cell {
 	struct likewise_cell *gc_search_cell;
 	DOM_SID domain_sid;
 	char *dns_domain;
+	char *forest_name;	
 	char *dn;
 	struct GUID *links;        /* only held by owning cell */
 	size_t num_links;
@@ -195,11 +196,15 @@ uint32_t cell_flags(struct likewise_cell *c);
 
 NTSTATUS cell_connect_dn(struct likewise_cell **c,
 			 const char *dn);
+NTSTATUS cell_connect(struct likewise_cell *c);
 
 
 /* gc_util.c */
 
 NTSTATUS gc_init_list(void);
+
+NTSTATUS gc_find_forest_root(struct gc_info *gc, 
+			     const char *domain);
 
 struct gc_info *gc_search_start(void);
 

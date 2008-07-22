@@ -1122,9 +1122,9 @@ WblpStatusFromLookupResponse(
 	status = WblpStatusFromResponse(State, Response);
 	if (status) {
 		if (Response->data.auth.nt_status_string[0]) {
-			WblpLog(State, WBL_LOG_LEVEL_ERROR, "request failed, NT error was %s", Response->data.auth.nt_status_string);
+			WblpLog(State, WBL_LOG_LEVEL_WARN, "request failed, NT error was %s", Response->data.auth.nt_status_string);
 		} else {
-			WblpLog(State, WBL_LOG_LEVEL_ERROR, "request failed");
+			WblpLog(State, WBL_LOG_LEVEL_WARN, "request failed");
 		}
 		/* TODO: Unfortunately, we cannot distinguish the user not existing
 		   versus some other kind of error.  We would need to tweak
@@ -1712,7 +1712,7 @@ WblpWinbindGetPwByName(
 
 	status = WblpStatusFromLookupResponse(State, &response);
 	if (WBL_STATUS_ACCOUNT_UNKNOWN == status) {
-		WblpLog(State, WBL_LOG_LEVEL_ERROR, "User '%s' is not known.",
+		WblpLog(State, WBL_LOG_LEVEL_WARN, "User '%s' is not known.",
 			Username);
 	}
 	GOTO_CLEANUP_ON_WBL_STATUS(status);
@@ -2225,7 +2225,7 @@ WblApplyUserLoginPolicies(
 	status = WblpWinbindGetSeparator(State, &separator);
 	GOTO_CLEANUP_ON_WBL_STATUS(status);
 
-	if (strchr(Username, separator) != NULL) {
+	if (strchr(Username, "\\") == NULL) {
 		/* Convert the name to a uid */
 		status = WblpWinbindNameToUid(State, Username, &uid);
 		GOTO_CLEANUP_ON_WBL_STATUS(status);
@@ -2282,7 +2282,7 @@ WblApplyUserLogoutPolicies(
 	status = WblpWinbindGetSeparator(State, &separator);
 	GOTO_CLEANUP_ON_WBL_STATUS(status);
 
-	if (strchr(Username, separator) != NULL) {
+	if (strchr(Username, "\\") == NULL) {
 		/* Convert the name to a uid */
 		status = WblpWinbindNameToUid(State, Username, &uid);
 		GOTO_CLEANUP_ON_WBL_STATUS(status);

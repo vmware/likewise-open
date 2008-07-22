@@ -579,7 +579,6 @@ typedef struct
 static void GetSshVersion(PCSTR rootPrefix, SshdVersion *version, PCSTR binaryPath, LWException **exc)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
-    BOOLEAN result = FALSE;
     PSTR command = NULL;
     PSTR commandOutput = NULL;
     PCSTR versionStart;
@@ -731,7 +730,7 @@ BOOLEAN IsOlderThanOrEq(const SshdVersion *version, int major, int minor, int se
                     
 static QueryResult UpdateSshdConf(struct SshConf *conf, PCSTR testPrefix,
         PCSTR binaryPath, BOOLEAN enable, PSTR *changeDescription,
-        JoinProcessOptions *options, LWException **exc)
+        const JoinProcessOptions *options, LWException **exc)
 {
     size_t i;
     BOOLEAN modified = conf->modified;
