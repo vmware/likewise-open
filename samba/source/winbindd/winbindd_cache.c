@@ -2300,9 +2300,11 @@ NTSTATUS resolve_username_to_alias( TALLOC_CTX *mem_ctx,
 	if (!centry)
 		goto do_query;
 
-	if (!NT_STATUS_IS_OK(centry->status)) {
+	status = centry->status;
+	
+	if (!NT_STATUS_IS_OK(status)) {
 		centry_free(centry);
-		return centry->status;
+		return status;
 	}
 
 	*alias = centry_string( centry, mem_ctx );
@@ -2373,9 +2375,11 @@ NTSTATUS resolve_alias_to_username( TALLOC_CTX *mem_ctx,
 	if (!centry)
 		goto do_query;
 
-	if (!NT_STATUS_IS_OK(centry->status)) {
+	status = centry->status;
+	
+	if (!NT_STATUS_IS_OK(status)) {
 		centry_free(centry);
-		return centry->status;
+		return status;
 	}
 
 	*name = centry_string( centry, mem_ctx );
