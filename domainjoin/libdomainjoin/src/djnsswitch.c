@@ -551,20 +551,6 @@ cleanup:
     return ceError;
 }
 
-static CENTERROR UsingLsass(BOOLEAN *using)
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    ceError = CTFindFileInPath("likewise-lsassd", "/usr/centeris/bin:/usr/centeris/sbin:/opt/centeris/bin:/opt/centeris/sbin", NULL);
-    if(ceError == CENTERROR_FILE_NOT_FOUND)
-    {
-        *using = FALSE;
-        ceError = CENTERROR_SUCCESS;
-    }
-    else if(CENTERROR_IS_OK(ceError))
-        *using = TRUE;
-    return ceError;
-}
-
 CENTERROR
 UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
 {
@@ -572,22 +558,8 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
     DistroInfo distro;
     int line;
     int lwiIndex;
-    BOOLEAN usingLsass;
-    PCSTR preferredModule;
-    PCSTR oldModule;
 
     GCE(ceError = DJGetDistroInfo(NULL, &distro));
-    GCE(ceError = UsingLsass(&usingLsass));
-    if(usingLsass)
-    {
-        preferredModule = "lsass";
-        oldModule = "lwidentity";
-    }
-    else
-    {
-        preferredModule = "lwidentity";
-        oldModule = "lsass";
-    }
 
     line = FindEntry(conf, 0, "passwd");
     if(enable && line == -1)
@@ -596,21 +568,15 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
         GCE(ceError = AddEntry(conf, &distro, &line, "passwd"));
         GCE(ceError = InsertModule(conf, &distro, line, -1, "files"));
     }
-    lwiIndex = FindModuleOnLine(conf, line, preferredModule);
+    lwiIndex = FindModuleOnLine(conf, line, "lwidentity");
     if(enable && lwiIndex == -1)
     {
-        GCE(ceError = InsertModule(conf, &distro, line, -1, preferredModule));
+        GCE(ceError = InsertModule(conf, &distro, line, -1, "lwidentity"));
     }
     if(!enable && lwiIndex != -1)
     {
         GCE(ceError = RemoveModule(conf, line, lwiIndex));
     }
-    lwiIndex = FindModuleOnLine(conf, line, oldModule);
-    if(lwiIndex != -1)
-    {
-        GCE(ceError = RemoveModule(conf, line, lwiIndex));
-    }
-
     // If lwidentity was the only entry
     // and we removed that now, don't write
     // an empty entry into the file
@@ -638,21 +604,15 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
         GCE(ceError = AddEntry(conf, &distro, &line, groupName));
         GCE(ceError = InsertModule(conf, &distro, line, -1, "files"));
     }
-    lwiIndex = FindModuleOnLine(conf, line, preferredModule);
+    lwiIndex = FindModuleOnLine(conf, line, "lwidentity");
     if(enable && lwiIndex == -1)
     {
-        GCE(ceError = InsertModule(conf, &distro, line, -1, preferredModule));
+        GCE(ceError = InsertModule(conf, &distro, line, -1, "lwidentity"));
     }
     if(!enable && lwiIndex != -1)
     {
         GCE(ceError = RemoveModule(conf, line, lwiIndex));
     }
-    lwiIndex = FindModuleOnLine(conf, line, oldModule);
-    if(lwiIndex != -1)
-    {
-        GCE(ceError = RemoveModule(conf, line, lwiIndex));
-    }
-
     // If lwidentity was the only entry
     // and we removed that now, don't write
     // an empty entry into the file
@@ -1123,8 +1083,8 @@ static void RestartDtloginIfRunning(JoinProcessOptions *options, LWException **e
     }
     if(doRestart)
     {
-        LW_TRY(exc, DJStartStopDaemon("dtlogin", FALSE, &LW_EXC));
-        LW_TRY(exc, DJStartStopDaemon("dtlogin", TRUE, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon("dtlogin", FALSE, NULL, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon("dtlogin", TRUE, NULL, &LW_EXC));
     }
 cleanup:
     LW_HANDLE(&inner);

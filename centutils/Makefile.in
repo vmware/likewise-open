@@ -1,7 +1,7 @@
 SHELL = /bin/sh
 VPATH = @srcdir@
 
-subdirs=libgpglib libcentutils @TEST_SUBDIR@ 
+subdirs=libgpglib libcentutils 
 compatlibdirs=libgpglib libcentutils
 hpuxcompatlibdirs=libgpglib libcentutils
 top_srcdir = @top_srcdir@

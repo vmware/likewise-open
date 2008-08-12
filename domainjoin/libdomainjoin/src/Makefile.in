@@ -10,7 +10,7 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 bindir = ${exec_prefix}/bin
 infodir = ${prefix}/info
-libdir = @libdir@
+libdir = ${prefix}/lib
 mandir = ${prefix}/man/man1
 
 DESTDIR=@DESTDIR@
@@ -34,7 +34,7 @@ CFLAGS += -I$(PUBLIC_INCLUDE_DIR)       \
           $(LWI_OS_FLAGS)
 
 SCRIPTDIR = $(bindir)
-CFLAGS += -DSCRIPTDIR=\"$(SCRIPTDIR)\" -DLIBDIR=\"$(libdir)\"
+CFLAGS += -DSCRIPTDIR=\"$(SCRIPTDIR)\"
 
 LDFLAGS += @CENTUTILS_LDFLAGS@ @LIBXML2_LDFLAGS@
 

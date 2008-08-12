@@ -531,7 +531,7 @@ ExecuteShellCommand(char * const envp[], Command* command)
     }
     else
     {
-        int status = 0;
+        int status;
         while (1)
         {
             // Parent

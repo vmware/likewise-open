@@ -825,8 +825,6 @@ int main(
         LW_CLEANUP_CTERR(&exc, ceError);
     }
 
-    LW_TRY(&exc, DJNetInitialize(&LW_EXC));
-
     if(!strcmp(argv[0], "setname"))
     {
         argv++;
@@ -918,8 +916,6 @@ cleanup:
         return 1;
     }
 
-    DJNetShutdown(NULL);
     dj_close_log();
-
     return 0;
 }

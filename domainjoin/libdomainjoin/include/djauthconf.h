@@ -38,8 +38,8 @@ SetWorkgroup(
 
 CENTERROR
 SetRealm(
-        PCSTR rootPrefix,
-    PCSTR p_domain
+        const char *rootPrefix,
+    char* p_domain
     );
 
 CENTERROR

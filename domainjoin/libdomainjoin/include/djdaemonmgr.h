@@ -38,23 +38,15 @@ void
 DJManageDaemon(
     PCSTR pszName,
     BOOLEAN bStart,
+    PSTR pszPreCommand,
     PSTR pszStartPriority,
     PSTR pszStopPriority,
-    LWException **exc
-    );
-
-void
-DJManageDaemonDescription(
-    PCSTR pszName,
-    BOOLEAN bStart,
-    PSTR pszStartPriority,
-    PSTR pszStopPriority,
-    PSTR *description,
     LWException **exc
     );
 
 void
 DJManageDaemons(
+    PSTR pszDomainName,
     BOOLEAN bStart,
     LWException **exc
     );
@@ -63,6 +55,7 @@ void
 DJStartStopDaemon(
     PCSTR pszDaemonName,
     BOOLEAN bStatus,
+    PSTR pszPreCommand,
     LWException **exc
     );
 
@@ -75,7 +68,7 @@ extern const JoinModule DJDaemonStartModule;
 extern struct _DaemonList
 {
     PCSTR primaryName;
-    PCSTR alternativeNames[3];
+    PCSTR alternativeName;
     BOOLEAN required;
     int startPriority;
     int stopPriority;

@@ -987,8 +987,6 @@ static BOOLEAN PamModuleIsLwidentity(const char *phase, const char *module)
 {
     char buffer[256];
     NormalizeModuleName( buffer, module, sizeof(buffer));
-    if(!strcmp(buffer, "pam_lsass"))
-        return TRUE;
     if(!strcmp(buffer, "pam_lwidentity"))
         return TRUE;
     if(!strcmp(buffer, "libpam_lwidentity"))
@@ -1397,7 +1395,9 @@ void GetModuleControl(struct PamLine *lineObj, const char **module, const char *
      */
     if(lineObj->optionCount == 1 && !strcmp(lineObj->options[0].value, "set_default_repository"))
     {
-        if(PamModuleIsLwidentity("auth", *module))
+        char buffer[256];
+        NormalizeModuleName( buffer, *module, sizeof(buffer));
+        if(!strcmp(buffer, "pam_lwidentity"))
             *module = "pam_lwidentity_set_repo";
     }
 }
@@ -2450,15 +2450,10 @@ static CENTERROR FindPamLwiPassPolicy(const char *testPrefix, char **destName)
 
 static CENTERROR FindPamLwidentity(const char *testPrefix, char **destName)
 {
-    CENTERROR ceError;
-    ceError = FindModulePath(testPrefix, "pam_lsass", destName);
-    if(ceError == CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE)
-    {
-        ceError = FindModulePath(testPrefix, "pam_lwidentity", destName);
-    }
+    CENTERROR ceError = FindModulePath(testPrefix, "pam_lwidentity", destName);
     if(!CENTERROR_IS_OK(ceError))
     {
-        DJ_LOG_ERROR("Unable to find pam_lwidentity or pam_lsass");
+        DJ_LOG_ERROR("Unable to find pam_lwidentity");
     }
     return ceError;
 }

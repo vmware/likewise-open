@@ -119,7 +119,7 @@ error:
 
 // the name-value pair - "realm" should be set to the domain name
 CENTERROR
-SetRealm(PCSTR rootPrefix, PCSTR psz_realm)
+SetRealm(const char *rootPrefix, char* psz_realm)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR pszUpperCaseRealm = NULL;
