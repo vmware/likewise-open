@@ -26,7 +26,7 @@
 void
 dialog_insert_likewise_logo(GtkDialog* dialog)
 {
-    GtkWidget* image = gtk_image_new_from_file (SHARE_DIR "/likewise/likewise-logo.png");
+    GtkWidget* image = gtk_image_new_from_file (SHARE_DIR "/likewise-open/likewise-logo.png");
     
     gtk_box_pack_start(GTK_BOX(dialog->action_area), image, FALSE, FALSE, 0);
     gtk_button_box_set_child_secondary(GTK_BUTTON_BOX(dialog->action_area), image, TRUE);
