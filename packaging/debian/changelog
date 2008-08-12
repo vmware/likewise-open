@@ -6,6 +6,7 @@ likewise-open (4.1.2956-1) hardy; urgency=low
   * Squash errno to ENOENT when return NSS_UNAVAIL from nss_lwidentity
   * Disable the automatic configation of likewise-open for system boot
     in order to allow packaging and upstart to take over
+  * Add loop exit patch when expanding domain group membership.
 
  -- Gerald Carter <gcarter@likewisesoftware.com>  Tue, 12 Aug 2008 12:34:04 -0500
 
