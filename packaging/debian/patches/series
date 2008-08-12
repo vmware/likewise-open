@@ -1,4 +1,4 @@
-#ConfigureLogin.patch
-#domainjoin-gui-hosts.patch
-#smbcontrol-likewise-winbindd.patch
-#winbindd-Makefile.patch
+child_talloc_abort.patch
+ua_cache_valid.patch
+nss_errno.patch
+daemon_restart.patch

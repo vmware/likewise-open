@@ -1,0 +1,50 @@
+commit 8691709626b0d461de91b8fc9d10c730d1f183dd
+Author: Volker Lendecke <vl@samba.org>
+Date:   Fri Jul 25 12:08:03 2008 +0200
+
+    Fix a race condition in winbind leading to a crash
+    
+    When SIGCHLD handling is delayed for some reason, sending a request to a child
+    can fail early because the child has died already. In this case
+    async_main_request_sent() directly called the continuation function without
+    properly removing the malfunctioning child process and the requests in the
+    queue. The next request would then crash in the DLIST_ADD_END() in
+    async_request() because the request pending for the child had been
+    talloc_free()'ed and yet still was referenced in the list.
+    
+    This one is *old*...
+    
+    Volker
+
+diff --git a/samba/source/winbindd/winbindd_dual.c b/source/winbindd/winbindd_dual.c
+index 57ab627..f2be6d6 100644
+--- a/samba/source/winbindd/winbindd_dual.c
++++ b/samba/source/winbindd/winbindd_dual.c
+@@ -104,6 +104,7 @@ struct winbindd_async_request {
+ 	void *private_data;
+ };
+ 
++static void async_request_fail(struct winbindd_async_request *state);
+ static void async_main_request_sent(void *private_data, bool success);
+ static void async_request_sent(void *private_data, bool success);
+ static void async_reply_recv(void *private_data, bool success);
+@@ -129,6 +130,7 @@ void async_request(TALLOC_CTX *mem_ctx, struct winbindd_child *child,
+ 
+ 	state->mem_ctx = mem_ctx;
+ 	state->child = child;
++	state->reply_timeout_event = NULL;
+ 	state->request = request;
+ 	state->response = response;
+ 	state->continuation = continuation;
+@@ -148,10 +150,7 @@ static void async_main_request_sent(void *private_data, bool success)
+ 
+ 	if (!success) {
+ 		DEBUG(5, ("Could not send async request\n"));
+-
+-		state->response->length = sizeof(struct winbindd_response);
+-		state->response->result = WINBINDD_ERROR;
+-		state->continuation(state->private_data, False);
++		async_request_fail(state);
+ 		return;
+ 	}
+ 

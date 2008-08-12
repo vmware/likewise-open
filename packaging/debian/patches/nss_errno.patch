@@ -1,0 +1,78 @@
+Index: likewise-open-4.1.2956/samba/source/nsswitch/wb_common.c
+===================================================================
+--- likewise-open-4.1.2956.orig/samba/source/nsswitch/wb_common.c	2008-08-12 12:36:20.000000000 -0500
++++ likewise-open-4.1.2956/samba/source/nsswitch/wb_common.c	2008-08-12 12:39:55.000000000 -0500
+@@ -176,11 +176,13 @@
+ 	/* Check permissions on unix socket directory */
+ 
+ 	if (lstat(dir, &st) == -1) {
++		errno = ENOENT;
+ 		return -1;
+ 	}
+ 
+ 	if (!S_ISDIR(st.st_mode) ||
+ 	    (st.st_uid != 0 && st.st_uid != geteuid())) {
++		errno = ENOENT;
+ 		return -1;
+ 	}
+ 
+@@ -199,6 +201,7 @@
+ 	   the winbindd daemon is not running. */
+ 
+ 	if (lstat(path, &st) == -1) {
++		errno = ENOENT;
+ 		SAFE_FREE(path);
+ 		return -1;
+ 	}
+@@ -208,6 +211,7 @@
+ 
+ 	if (!S_ISSOCK(st.st_mode) ||
+ 	    (st.st_uid != 0 && st.st_uid != geteuid())) {
++		errno = ENOENT;
+ 		return -1;
+ 	}
+ 
+@@ -368,6 +372,7 @@
+  restart:
+ 	
+ 	if (winbind_open_pipe_sock(recursing, need_priv) == -1) {
++		errno = ENOENT;
+ 		return -1;
+ 	}
+ 	
+@@ -576,7 +581,11 @@
+ 	
+ 	if (winbind_write_sock(request, sizeof(*request),
+ 			       request->wb_flags & WBFLAG_RECURSE,
+-			       need_priv) == -1) {
++			       need_priv) == -1) 
++	{
++		/* Set ENOENT for consistency.  Required by some apps */
++		errno = ENOENT;
++		
+ 		return NSS_STATUS_UNAVAIL;
+ 	}
+ 
+@@ -584,7 +593,11 @@
+ 	    (winbind_write_sock(request->extra_data.data,
+ 	    			request->extra_len,
+ 				request->wb_flags & WBFLAG_RECURSE,
+-				need_priv) == -1)) {
++				need_priv) == -1)) 
++	{
++		/* Set ENOENT for consistency.  Required by some apps */
++		errno = ENOENT;
++
+ 		return NSS_STATUS_UNAVAIL;
+ 	}
+ 	
+@@ -608,6 +621,9 @@
+ 
+ 	/* Wait for reply */
+ 	if (winbindd_read_reply(response) == -1) {
++		/* Set ENOENT for consistency.  Required by some apps */
++		errno = ENOENT;
++
+ 		return NSS_STATUS_UNAVAIL;
+ 	}
+ 

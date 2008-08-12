@@ -12,7 +12,7 @@ Homepage: http://www.likewisesoftware.com/
 
 Package: likewise-open
 Architecture: any
-Depends: ${shlibs:Depends}, ${perl:Depends}, libpam-runtime (>= 0.76-13.1), libpam-modules, krb5-user, libxml2
+Depends: ${shlibs:Depends}, ${perl:Depends}, libpam-runtime (>= 0.76-13.1), libpam-modules, krb5-user
 Provides: domain-lsa-service
 Conflicts: domain-lsa-service
 Replaces: domain-lsa-service
