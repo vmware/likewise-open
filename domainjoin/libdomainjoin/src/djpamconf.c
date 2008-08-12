@@ -1861,6 +1861,8 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
                 !PamModulePrompts(phase, module) &&
                 !PamModuleChecksCaller(phase, module))))
         {
+            char normalizedService[256];
+
             if(state->sawCallerRequirementLine)
             {
                 /* This service is protected by something other than a password
@@ -1895,29 +1897,36 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
              *   system, then gnome-screensaver-smartcard does not have any
              *   auth modules.
              */
-            if(!strcmp(service, "gdm-autologin"))
+            strncpy(normalizedService, service, sizeof(normalizedService));
+            normalizedService[sizeof(normalizedService) - 1] = '\0';
+            if(CTStrEndsWith(normalizedService, ".rpmnew"))
+            {
+                normalizedService[
+                    strlen(normalizedService) - strlen(".rpmnew")] = '\0';
+            }
+            if(!strcmp(normalizedService, "gdm-autologin"))
                 goto cleanup;
-            if(!strcmp(service, "passwd"))
+            if(!strcmp(normalizedService, "passwd"))
                 goto cleanup;
-            if(!strcmp(service, "rsh"))
+            if(!strcmp(normalizedService, "rsh"))
                 goto cleanup;
-            if(!strcmp(service, "shadow"))
+            if(!strcmp(normalizedService, "shadow"))
                 goto cleanup;
-            if(!strcmp(service, "runuser"))
+            if(!strcmp(normalizedService, "runuser"))
                 goto cleanup;
-            if(!strcmp(service, "runuser-l"))
+            if(!strcmp(normalizedService, "runuser-l"))
                 goto cleanup;
             /* I'm not sure if this is a typo or not */
-            if(!strcmp(service, "kde-np"))
+            if(!strcmp(normalizedService, "kde-np"))
                 goto cleanup;
             /* Centos 5 has kdm-np as part of an optional package */
-            if(!strcmp(service, "kdm-np"))
+            if(!strcmp(normalizedService, "kdm-np"))
                 goto cleanup;
-            if(!strcmp(service, "xdm-np"))
+            if(!strcmp(normalizedService, "xdm-np"))
                 goto cleanup;
-            if(!strcmp(service, "useradd"))
+            if(!strcmp(normalizedService, "useradd"))
                 goto cleanup;
-            if(!strcmp(service, "gnome-screensaver-smartcard"))
+            if(!strcmp(normalizedService, "gnome-screensaver-smartcard"))
                 goto cleanup;
 
             DJ_LOG_ERROR("Nothing seems to be protecting logins for service %s", service);
@@ -2417,7 +2426,7 @@ static CENTERROR FindModulePath(const char *testPrefix, const char *basename, ch
 
     if(foundPath == -1)
     {
-        DJ_LOG_WARNING("Unable to find %s", basename);
+        DJ_LOG_INFO("Unable to find %s", basename);
         BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE);
     }
     else

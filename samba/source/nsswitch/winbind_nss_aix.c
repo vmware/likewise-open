@@ -115,18 +115,31 @@ static void *list_alloc(struct mem_list **list, size_t size)
 
 static void *list_realloc(struct mem_list**list, void* p, size_t size)
 {
-	struct mem_list *m;
-	
-	for (m = *list; m; m = m->next)	{
-		if (m->p == p) {
-			void* tmp = m->p;
-		        tmp = realloc(tmp, size);
+	struct mem_list **m;
+	struct mem_list *to_delete = NULL;
+
+	for (m = list; *m; m = &(*m)->next)	{
+		if ((*m)->p == p) {
+			void* tmp = p;
+			tmp = realloc(tmp, size);
+			if (size == 0)
+			{
+				/* The entry has been freed. Remove it from the list. */
+				to_delete = *m;
+				*m = to_delete->next;
+				if (to_delete->next != NULL)
+				{
+					to_delete->next->prev = to_delete->prev;
+				}
+				free(to_delete);
+				return NULL;
+			}
 			if (!tmp) {
 				errno = ENOMEM;
 				return NULL;
 			}
-			m->p = tmp;
-			return m->p;
+			(*m)->p = tmp;
+			return tmp;
 		}
 	}
 	errno = EINVAL;
@@ -1253,31 +1266,38 @@ static char *__wb_aix_getgrset(struct mem_list** list, char *user)
 	struct winbindd_response response;
 	struct winbindd_request request;
 	NSS_STATUS ret;
-	int i, idx;
+	size_t i, idx;
 	char *tmpbuf;
 	int num_gids;
 	gid_t *gid_list;
-	char *r_user = user;
+	char *r_user = NULL;
+	FILE *groups_file = NULL;
+	size_t num_local_gids = 0;
+	size_t local_gid_list_capacity = 0;
+	gid_t *local_gid_list = NULL;
+	struct group group_buffer;
+	char *aux_buffer = NULL;
+	size_t aux_buffer_size = 2048;
+	int ret_errno = 0;
+	size_t member_index = 0;
 	
 	if (*user == WB_AIX_ENCODED) {
-		r_user = decode_user(r_user);
+		r_user = decode_user(user);
 	}
+	else
+		r_user = user;
 	
 	logit_debug(LOG_DEBUG, "getgrset %s '%s'\n", user, r_user);
 	
 	if (!r_user) {
-		errno = ENOENT;
-		return NULL;
+		ret_errno = ENOENT;
+		goto cleanup;
 	}
 	
-        ZERO_STRUCT(response);
-        ZERO_STRUCT(request);
+	ZERO_STRUCT(response);
+	ZERO_STRUCT(request);
 	
 	STRCPY_RETNULL(request.data.username, r_user);
-	
-	if (*user == WB_AIX_ENCODED) {
-		free(r_user);
-	}
 	
 	ret = winbindd_request_response(WINBINDD_GETGROUPS, &request, &response);
 	
@@ -1285,19 +1305,151 @@ static char *__wb_aix_getgrset(struct mem_list** list, char *user)
 	
 	num_gids = response.data.num_entries;
 	gid_list = (gid_t *)response.extra_data.data;
+
+	/* Now search the local groups file to get a count of the local groups
+	 * the user is a member of.
+	 */
+	groups_file = fopen("/etc/group", "r");
+	if (groups_file != NULL)
+	{
+		aux_buffer = (char*) malloc(aux_buffer_size);
+		if (aux_buffer == NULL) {
+			ret_errno = ENOMEM;
+			goto cleanup;
+		}
+		while (1)
+		{
+			/* There is no man page for fgetgrent_r on AIX. The Linux man page
+			 * says this function's last parameter is an out parameter for the
+			 * result, but on AIX it is an int which doesn't seem to be used
+			 * for anything, so I set it to 0.
+			 */
+			ret_errno = fgetgrent_r(groups_file, &group_buffer,
+					aux_buffer, aux_buffer_size, 0);
+			/* On Linux this function returns an errno value directly. On AIX,
+			 * it seems to return -1 and set the errno global.
+			 */
+			if (ret_errno < 0)
+			{
+				ret_errno = errno;
+			}
+			/* On Linux, ENOENT is returned when no more results are
+			 * available. On AIX, ESRCH is returned.
+			 */
+			if (ret_errno == ENOENT || ret_errno == ESRCH)
+			{
+				ret_errno = 0;
+				break;
+			}
+			if (ret_errno == ERANGE || ret_errno == EINVAL)
+			{
+				/* The buffer is too small */
+				if (aux_buffer_size > 1000000)
+				{
+					/* We're not willing to give more space than that */
+					logit_debug(LOG_DEBUG,
+							"fgetgrent_r is requesting too much memory\n");
+					ret_errno = ENOMEM;
+					goto cleanup;
+				}
+				free(aux_buffer);
+				aux_buffer = NULL;
+				aux_buffer_size *= 2;
+				aux_buffer = (char*) malloc(aux_buffer_size);
+				if (aux_buffer == NULL)
+				{
+					ret_errno = ENOMEM;
+					goto cleanup;
+				}
+				ret_errno = 0;
+				continue;
+			}
+			if (ret_errno != 0)
+			{
+				logit_debug(LOG_DEBUG,
+						"getgrset failed to enumerate local groups with error %d\n",
+						ret_errno);
+				goto cleanup;
+			}
+			for (member_index = 0;
+				group_buffer.gr_mem[member_index] != NULL;
+				member_index++)
+			{
+				if (!strcmp(r_user, group_buffer.gr_mem[member_index]) ||
+					!strcmp(user, group_buffer.gr_mem[member_index]))
+				{
+					/* Found a group */
+					if (num_local_gids >= local_gid_list_capacity)
+					{
+						local_gid_list_capacity += 10;
+						local_gid_list_capacity *= 2;
+						local_gid_list = (gid_t *)realloc(local_gid_list,
+								local_gid_list_capacity * sizeof(gid_t));
+						if (local_gid_list == NULL)
+						{
+							ret_errno = ENOMEM;
+							goto cleanup;
+						}
+					}
+					local_gid_list[num_local_gids++] = group_buffer.gr_gid;
+					break;
+				}
+			}
+		}
+	}
 	
-	/* allocate a space large enough to contruct the string */
-	tmpbuf = (char*) list_alloc(list, num_gids*12);
+	/* allocate a space large enough to construct the string */
+	tmpbuf = (char*) list_alloc(list, (num_gids + num_local_gids)*12);
 	if (!tmpbuf) {
-		return NULL;
+		ret_errno = ENOMEM;
+		goto cleanup;
 	}
 
-	for (idx=i=0; i < num_gids-1; i++) {
-		idx += sprintf(tmpbuf+idx, "%u,", gid_list[i]);	
+	idx = 0;
+	for (i=0; i < num_gids; i++) {
+		if (idx > 0)
+		{
+			tmpbuf[idx++]=',';
+		}
+		idx += sprintf(tmpbuf+idx, "%u", gid_list[i]);	
 	}
-	idx += sprintf(tmpbuf+idx, "%u", gid_list[i]);	
+
+	for (i=0; i < num_local_gids; i++) {
+		if (idx > 0)
+		{
+			tmpbuf[idx++]=',';
+		}
+		idx += sprintf(tmpbuf+idx, "%u", local_gid_list[i]);	
+	}
+	tmpbuf[idx] = '\0';
+
+cleanup:
+	if (groups_file != NULL)
+	{
+		fclose(groups_file);
+	}
 
 	winbindd_free_response(&response);
+
+	if (*user == WB_AIX_ENCODED) {
+		free(r_user);
+	}
+
+	if (local_gid_list != NULL) {
+		free(local_gid_list);
+	}
+	if (aux_buffer != NULL) {
+		free(aux_buffer);
+	}
+	if (ret_errno != 0)
+	{
+		if(tmpbuf != NULL)
+		{
+			list_realloc(list, tmpbuf, 0);
+			tmpbuf = NULL;
+		}
+		errno = ret_errno;
+	}
 
 	return tmpbuf;
 }
@@ -1537,6 +1689,60 @@ static attrval_t pwd_to_groupsids(struct mem_list** list, struct passwd *pwd)
 	return r;
 }
 
+static int local_getgrgid_r(gid_t gid, struct group *group_buffer,
+		char *aux_buffer, size_t aux_buffer_size, struct group **result)
+{
+	size_t i, idx;
+	FILE *groups_file = NULL;
+	int error;
+	
+	/* Now search the local groups file to get a count of the local groups
+	 * the user is a member of.
+	 */
+	groups_file = fopen("/etc/group", "r");
+	if (groups_file != NULL)
+	{
+		while (1)
+		{
+			/* There is no man page for fgetgrent_r on AIX. The Linux man page
+			 * says this function's last parameter is an out parameter for the
+			 * result, but on AIX it is an int which doesn't seem to be used
+			 * for anything, so I set it to 0.
+			 */
+			error = fgetgrent_r(groups_file, group_buffer,
+					aux_buffer, aux_buffer_size, 0);
+			/* On Linux this function returns an errno value directly. On AIX,
+			 * it seems to return -1 and set the errno global.
+			 */
+			if (error < 0)
+			{
+				error = errno;
+			}
+			/* On Linux, ENOENT is returned when no more results are
+			 * available. On AIX, ESRCH is returned.
+			 */
+			if (error != 0)
+			{
+				goto cleanup;
+			}
+			if (group_buffer->gr_gid == gid)
+			{
+				*result = group_buffer;
+				error = 0;
+				goto cleanup;
+			}
+		}
+	}
+	error = errno;
+
+cleanup:
+	if (groups_file != NULL)
+	{
+		fclose(groups_file);
+	}
+	return error;
+}
+
 static attrval_t pwd_to_groupsnames(struct mem_list** mlist, struct passwd *pwd)
 {
  	attrval_t r;
@@ -1547,19 +1753,22 @@ static attrval_t pwd_to_groupsnames(struct mem_list** mlist, struct passwd *pwd)
 	char *s = NULL;
 	char *p = NULL;
 	char *gid = NULL;
-	struct group *group = NULL;
+	struct group *group;
+	struct group group_buffer;
+	char aux_buffer[2048];
+	struct mem_list* local_list_buffer = 0;
+	struct mem_list** local_list = &local_list_buffer;
 
-	if ( (s = __wb_aix_getgrset(mlist, pwd->pw_name)) == NULL ) {
+	if ( (s = __wb_aix_getgrset(local_list, pwd->pw_name)) == NULL ) {
 		r.attr_flag = EINVAL;
-		return r;
+		goto cleanup;
 	}
 
 	list = (char *)list_alloc(mlist, buf_current_size + 1);
 	if (!list) {  
- 		//SAFE_FREE(s);
 		errno = ENOMEM;
 		r.attr_flag = ENOMEM;
-		return r;
+		goto cleanup;
 	 }
 
 	/* Walk the list of group id's and find the group name for each */
@@ -1567,8 +1776,18 @@ static attrval_t pwd_to_groupsnames(struct mem_list** mlist, struct passwd *pwd)
 	     gid; 
 	     gid = strtok_r(NULL, ",", &p)) {
 		
-		group = __wb_aix_getgrgid(mlist, strtoul(gid, NULL, 10));
+		group = __wb_aix_getgrgid(local_list, strtoul(gid, NULL, 10));
 		
+		if (group == NULL)
+		{
+			local_getgrgid_r(strtoul(gid, NULL, 10), &group_buffer,
+					aux_buffer, sizeof(aux_buffer), &group);
+		}
+		if (group == NULL)
+		{
+			logit_debug(LOG_DEBUG, "Unable to lookup group id %s\n", gid);
+			continue;
+		}
 		len = strlen(group->gr_name); 
 		
 		/* See if we have enought memory */ 
@@ -1577,19 +1796,16 @@ static attrval_t pwd_to_groupsnames(struct mem_list** mlist, struct passwd *pwd)
 			buf_current_size += len + 1;
 			list = (char*)list_realloc(mlist, list, buf_current_size);
 			if(!list) {
-				SAFE_FREE(group);
 				errno = ENOMEM;
 				r.attr_flag = ENOMEM;
-				return r;
+				goto cleanup;
 			}
 		}
 		
 		strcpy(list + buf_used, group->gr_name);
 		buf_used += len + 1;
-		
-		SAFE_FREE(group);
 	}
-	
+
 	/* Terminate list - we now have each element in the list separted by a single '/0'
 	   with the end of the list having a double '/0' */
 	list[buf_used] = '\0';
@@ -1602,6 +1818,8 @@ static attrval_t pwd_to_groupsnames(struct mem_list** mlist, struct passwd *pwd)
 	r.attr_flag = 0;
 	r.attr_un.au_char = list;
 	
+cleanup:
+	list_destroy(&local_list_buffer);
 	return r;
 }
 

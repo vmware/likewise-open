@@ -165,6 +165,11 @@ static struct likewise_cell *_lw_cell_list = NULL;
 
  void cell_set_dn(struct likewise_cell *c, const char *dn)
 {
+	if ( c->dn) {
+		talloc_free(c->dn);
+		c->dn = NULL;
+	}
+	
 	c->dn = talloc_strdup(c, dn);
 }
 
@@ -241,7 +246,7 @@ static struct likewise_cell *_lw_cell_list = NULL;
 /********************************************************************
  *******************************************************************/
 
-static NTSTATUS cell_connect(struct likewise_cell *c)
+ NTSTATUS cell_connect(struct likewise_cell *c)
 {
 	ADS_STRUCT *ads = NULL;
 	ADS_STATUS ads_status;
@@ -272,21 +277,21 @@ static NTSTATUS cell_connect(struct likewise_cell *c)
 	    secrets_fetch_machine_password(lp_workgroup(), NULL, NULL);
 	ads->auth.realm = SMB_STRDUP(lp_realm());
 
-	/* Set up server affinity for normal cells and the client
-	   site name cache */
-
-	if (!get_dc_name("", c->dns_domain, dc_name, &dcip)) {
-		nt_status = NT_STATUS_DOMAIN_CONTROLLER_NOT_FOUND;
-		BAIL_ON_NTSTATUS_ERROR(nt_status);
-	}
-
 	/* Make the connection.  We should already have an initial
 	   TGT using the machine creds */
 
 	if (cell_flags(c) & LWCELL_FLAG_GC_CELL) {
 		ads_status = ads_connect_gc(ads);
 	} else {
-		ads_status = ads_connect(ads);
+	  /* Set up server affinity for normal cells and the client
+	     site name cache */
+
+	  if (!get_dc_name("", c->dns_domain, dc_name, &dcip)) {
+	    nt_status = NT_STATUS_DOMAIN_CONTROLLER_NOT_FOUND;
+	    BAIL_ON_NTSTATUS_ERROR(nt_status);
+	  }
+
+	  ads_status = ads_connect(ads);
 	}
 
 

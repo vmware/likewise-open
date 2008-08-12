@@ -312,7 +312,7 @@ static NTSTATUS dns_send_req( TALLOC_CTX *ctx, const char *name, int q_type,
                               uint8 **buf, int *resp_length )
 {
 	uint8 *buffer = NULL;
-	size_t buf_len;
+	size_t buf_len = 0;
 	int resp_len = NS_PACKETSZ;
 	static time_t last_dns_check = 0;
 	static NTSTATUS last_dns_status = NT_STATUS_OK;
@@ -373,7 +373,26 @@ static NTSTATUS dns_send_req( TALLOC_CTX *ctx, const char *name, int q_type,
 			last_dns_check = time(NULL);
 			return last_dns_status;
 		}
-	} while ( buf_len < resp_len && resp_len < MAX_DNS_PACKET_SIZE );
+
+		/* On AIX, Solaris, and possibly some older glibc systems (e.g. SLES8)
+		   truncated replies never give back a resp_len > buflen
+		   which ends up causing DNS resolve failures on large tcp DNS replies */
+
+		if (buf_len == resp_len) {
+			if (resp_len == MAX_DNS_PACKET_SIZE) {
+				DEBUG(1,("dns_send_req: DNS reply too large when resolving %s\n",
+					name));
+				TALLOC_FREE( buffer );
+				last_dns_status = NT_STATUS_BUFFER_TOO_SMALL;
+				last_dns_check = time(NULL);
+				return last_dns_status;
+			}
+
+			resp_len = MIN(resp_len*2, MAX_DNS_PACKET_SIZE);
+		}
+
+
+	} while ( buf_len < resp_len && resp_len <= MAX_DNS_PACKET_SIZE );
 
 	*buf = buffer;
 	*resp_length = resp_len;
@@ -797,7 +816,7 @@ char *sitename_fetch(const char *realm)
 	char *key;
 
 	if (!gencache_init()) {
-		return False;
+		return NULL;
 	}
 
 	if (!realm || (strlen(realm) == 0)) {

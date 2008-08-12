@@ -32,11 +32,9 @@ extern "C" {
 typedef struct __DOMAIN_JOIN_INFO
 {
     char* pszName;
-    char* pszDescription;
     char* pszDnsDomain;
     char* pszDomainName;      /* Null if not joined  */
     char* pszDomainShortName; /* Null if not joined  */
-    char* pszWorkgroupName;   /* Null if not joined  */
     char* pszLogFilePath;     /* Null if not logging */
 
 } DOMAIN_JOIN_INFO, *PDOMAIN_JOIN_INFO;

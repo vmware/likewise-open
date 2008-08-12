@@ -1353,6 +1353,7 @@ DJGetFQDN(
     //Try to look it up upto 3 times
     for(i = 0; i < 3; i++)
     {
+        PSTR foundFqdn = NULL;
         pHostent = gethostbyname(_shortName);
         if (pHostent == NULL) {
             if (h_errno == TRY_AGAIN) {
@@ -1361,7 +1362,32 @@ DJGetFQDN(
             }
             break;
         }
-        ceError = CTAllocateString(pHostent->h_name, &_fqdn);
+        /*
+         * We look for the first name that looks like an FQDN.  This is
+         * the same heuristics used by other software such as Kerberos and
+         * Samba.
+         */
+        if (strchr(pHostent->h_name, '.') != 0)
+        {
+            foundFqdn = pHostent->h_name;
+        }
+        else
+        {
+            for (i = 0; pHostent->h_aliases[i]; i++)
+            {
+                if (strchr(pHostent->h_aliases[i], '.') != 0)
+                {
+                    foundFqdn = pHostent->h_aliases[i];
+                    break;
+                }
+            }
+       }
+        /* If we still have nothing, just return the first name */
+        if (!foundFqdn)
+        {
+            foundFqdn = pHostent->h_name;
+        }
+        ceError = CTAllocateString(foundFqdn, &_fqdn);
         CLEANUP_ON_CENTERROR(ceError);
         break;
     }

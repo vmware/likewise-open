@@ -377,11 +377,9 @@ DJItfFreeDomainJoinInfo(
     if (pDomainJoinInfo) {
     
        CT_SAFE_FREE_STRING(pDomainJoinInfo->pszName);
-       CT_SAFE_FREE_STRING(pDomainJoinInfo->pszDescription);
        CT_SAFE_FREE_STRING(pDomainJoinInfo->pszDnsDomain);
        CT_SAFE_FREE_STRING(pDomainJoinInfo->pszDomainName);
        CT_SAFE_FREE_STRING(pDomainJoinInfo->pszDomainShortName);
-       CT_SAFE_FREE_STRING(pDomainJoinInfo->pszWorkgroupName);
        CT_SAFE_FREE_STRING(pDomainJoinInfo->pszLogFilePath);
     }
 }
@@ -418,14 +416,7 @@ DJItfConvertDomainJoinInfo(
                         &pNewInfo->pszName);
         GOTO_CLEANUP_ON_CENTERROR(ctError);
     }
-    
-    if (!IsNullOrEmptyString(pJoinInfo->pszDescription)) {
-        ctError = CTAllocateString(
-                        pJoinInfo->pszDescription,
-                        &pNewInfo->pszDescription);
-        GOTO_CLEANUP_ON_CENTERROR(ctError);
-    }
-    
+
     if (!IsNullOrEmptyString(pJoinInfo->pszDnsDomain)) {
         ctError = CTAllocateString(
                         pJoinInfo->pszDnsDomain,
@@ -448,14 +439,7 @@ DJItfConvertDomainJoinInfo(
                         &pNewInfo->pszDomainShortName);
         GOTO_CLEANUP_ON_CENTERROR(ctError);
     }
-    
-    if (!IsNullOrEmptyString(pJoinInfo->pszWorkgroupName)) {
-        ctError = CTAllocateString(
-                        pJoinInfo->pszWorkgroupName,
-                        &pNewInfo->pszWorkgroupName);
-        GOTO_CLEANUP_ON_CENTERROR(ctError);
-    }
-    
+
     if (!IsNullOrEmptyString(pJoinInfo->pszLogFilePath)) {
         ctError = CTAllocateString(
                         pJoinInfo->pszLogFilePath,

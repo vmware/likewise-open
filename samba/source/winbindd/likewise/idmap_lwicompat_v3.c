@@ -25,7 +25,8 @@
 
 #define _IDMAP_H_
 
-/* Version 2 was used in Samba 3.0.0 - 3.0.22 */
+/* Version "3" was used in Samba 3.0.23 - 3.0.24 
+ * But not change in VERSION interface number :-( */
 
 #define SMB_IDMAP_INTERFACE_VERSION 2
 
@@ -46,7 +47,9 @@ struct idmap_alloc_methods;
 
 struct idmap_methods {
 	NTSTATUS(*init) (char *params);
+#if 0 
 	NTSTATUS(*allocate_rid) (uint32 * rid, int rid_type);
+#endif
 	NTSTATUS(*allocate_id) (unid_t * id, int id_type);
 	NTSTATUS(*get_sid_from_id) (DOM_SID * sid, unid_t id, int id_type);
 	NTSTATUS(*get_id_from_sid) (unid_t * id, int *id_type,
@@ -56,22 +59,12 @@ struct idmap_methods {
 	void (*status) (void);
 };
 
-const char* sid_string_static(const DOM_SID*);
-
 /*********************************************************************
  ********************************************************************/
 
 static NTSTATUS lwi_idmap_init(char *params)
 {
 	return NT_STATUS_OK;
-}
-
-/*********************************************************************
- ********************************************************************/
-
-static NTSTATUS lwi_allocate_rid(uint32 * rid, int rid_type)
-{
-	return NT_STATUS_NOT_IMPLEMENTED;
 }
 
 /*********************************************************************
@@ -123,6 +116,8 @@ static NTSTATUS lwi_get_sid_from_id(DOM_SID * sid, unid_t id, int type)
 /*********************************************************************
  ********************************************************************/
 
+const char* sid_string_static(const DOM_SID*);
+
 static NTSTATUS lwi_get_id_from_sid(unid_t * id, int *type, const DOM_SID * sid)
 {
 	NSS_STATUS result;
@@ -158,8 +153,8 @@ static NTSTATUS lwi_get_id_from_sid(unid_t * id, int *type, const DOM_SID * sid)
 	if (result != NSS_STATUS_SUCCESS)
 		return NT_STATUS_NONE_MAPPED;
 
-        /* Let the union work it out */
-        id->uid = response.data.uid;
+	/* Let the union work it out */
+	id->uid = response.data.uid;
 
 	SAFE_FREE(response.extra_data.data);
 
@@ -195,7 +190,6 @@ static void lwi_idmap_status(void)
 
 static struct idmap_methods lwi_compat_methods = {
 	.init = lwi_idmap_init,
-	.allocate_rid = lwi_allocate_rid,
 	.allocate_id = lwi_allocate_id,
 	.get_sid_from_id = lwi_get_sid_from_id,
 	.get_id_from_sid = lwi_get_id_from_sid,
@@ -204,8 +198,8 @@ static struct idmap_methods lwi_compat_methods = {
 	.status = lwi_idmap_status
 };
 
-NTSTATUS idmap_lwicompat_v2_init(void)
+NTSTATUS idmap_lwicompat_v3_init(void)
 {
 	return smb_register_idmap(SMB_IDMAP_INTERFACE_VERSION,
-				  "lwicompat_v2", &lwi_compat_methods);
+				  "lwicompat_v3", &lwi_compat_methods);
 }

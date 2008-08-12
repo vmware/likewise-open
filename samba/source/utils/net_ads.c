@@ -1639,6 +1639,7 @@ static int net_ads_join_usage(int argc, const char **argv)
 	d_printf("                      NB: osName and osVer must be specified together for either to take effect.\n");
 	d_printf("                          Also, the operatingSystemService attribute is also set when along with\n");
 	d_printf("                          the two other attributes.\n");
+	d_printf("   notimesync         Do not sync the time on join.\n");
 
 	return -1;
 }
@@ -1692,78 +1693,7 @@ int net_ads_join(int argc, const char **argv)
 	struct sockaddr_storage dcss;
 	const char *os_name = NULL;
 	const char *os_version = NULL;
-
-	nt_status = check_ads_config();
-	if (!NT_STATUS_IS_OK(nt_status)) {
-		d_fprintf(stderr, "Invalid configuration.  Exiting....\n");
-		goto fail;
-	}
-
-	/* setup the server affinity cache */
-
-	get_dc_name( lp_workgroup(), lp_realm(), dc_name, &dcss );
-
-	/* set the time before attempting authentication */
-
-	status = ads_startup_nobind( True, &ads );
-	if ( !ADS_ERR_OK(status) ) {		
-		d_fprintf( stderr, "Failed to contact DC when trying to synchronize local system clock!\n");
-		if ((status.error_type == ENUM_ADS_ERROR_NT) &&
-			NT_STATUS_EQUAL(status.err.nt_status,
-			NT_STATUS_NO_LOGON_SERVERS))
-		{
-			d_fprintf( stderr, "None of the domain controllers listed in DNS could be contacted, or there are no DCs listed in DNS.\n");
-		}
-		ads_destroy( &ads );
-		goto fail;
-	}
-
-	server_time = cli_servertime( dc_name, &dcss, NULL );
-	if ( server_time != 0 ) {
-		char *cmd = NULL;
-		int sys_result;
-		
-#if defined(HPUX)
-		sys_result = stime((const)&server_time);
-#else
-		asprintf(&cmd, "/bin/date %s", systime(server_time));
-		if ( cmd ) {
-			sys_result = system (cmd);
-			SAFE_FREE( cmd );
-		}
-#endif
-		if (sys_result != 0 ) {
-			d_fprintf( stderr, "Failed to synchronize local machine clock to "
-				   "domain controller (%s)\n", \
-				   ads->config.ldap_server_name );
-			/* try to go ahead and join anyways */
-		}
-	}
-	ads_destroy( &ads );
-	ads = NULL;	
-	
-	/* now begin the real join process */
-
-	status = ads_startup(True, &ads);
-	if (!ADS_ERR_OK(status)) {
-		DEBUG(1, ("error on ads_startup: %s\n", ads_errstr(status)));
-		nt_status = ads_ntstatus(status);
-		goto fail;
-	}
-
-	if (strcmp(ads->config.realm, lp_realm()) != 0) {
-		d_fprintf(stderr, "realm of remote server (%s) and realm in %s "
-			"(%s) DO NOT match.  Aborting join\n",
-			ads->config.realm, get_dyn_CONFIGFILE(), lp_realm());
-		nt_status = NT_STATUS_INVALID_PARAMETER;
-		goto fail;
-	}
-
-	if (!(ctx = talloc_init("net_ads_join"))) {
-		d_fprintf(stderr, "Could not initialise talloc context.\n");
-		nt_status = NT_STATUS_NO_MEMORY;
-		goto fail;
-	}
+	bool notimesync = False;
 
 	/* process additional command line args */
 
@@ -1793,11 +1723,88 @@ int net_ads_join(int argc, const char **argv)
 				goto fail;
 			}
 		}
+		else if ( !StrCaseCmp(argv[i], "notimesync") ) {
+			notimesync = True;
+		}
 		else {
 			d_fprintf(stderr, "Bad option: %s\n", argv[i]);
 			nt_status = NT_STATUS_INVALID_PARAMETER;
 			goto fail;
 		}
+	}
+
+	nt_status = check_ads_config();
+	if (!NT_STATUS_IS_OK(nt_status)) {
+		d_fprintf(stderr, "Invalid configuration.  Exiting....\n");
+		goto fail;
+	}
+
+	/* setup the server affinity cache */
+
+	get_dc_name( lp_workgroup(), lp_realm(), dc_name, &dcss );
+
+	/* set the time before attempting authentication */
+
+	if (!notimesync) {
+		status = ads_startup_nobind( True, &ads );
+		if ( !ADS_ERR_OK(status) ) {
+			d_fprintf( stderr, "Failed to contact DC when trying to synchronize local system clock!\n");
+			if ((status.error_type == ENUM_ADS_ERROR_NT) &&
+			    NT_STATUS_EQUAL(status.err.nt_status,
+					    NT_STATUS_NO_LOGON_SERVERS))
+			{
+				d_fprintf( stderr, "None of the domain controllers listed in DNS could be contacted, or there are no DCs listed in DNS.\n");
+			}
+			ads_destroy( &ads );
+			goto fail;
+		}
+
+		server_time = cli_servertime( dc_name, &dcss, NULL );
+		if ( server_time != 0 ) {
+			char *cmd = NULL;
+			int sys_result;
+		
+#if defined(HPUX)
+			sys_result = stime((const)&server_time);
+#else
+			asprintf(&cmd, "/bin/date %s", systime(server_time));
+			if ( cmd ) {
+				sys_result = system (cmd);
+				SAFE_FREE( cmd );
+			}
+#endif
+			if (sys_result != 0 ) {
+				d_fprintf( stderr, "Failed to synchronize local machine clock to "
+					   "domain controller (%s)\n", \
+					   ads->config.ldap_server_name );
+				/* try to go ahead and join anyways */
+			}
+		}
+		ads_destroy( &ads );
+		ads = NULL;
+	}
+
+	/* now begin the real join process */
+
+	status = ads_startup(True, &ads);
+	if (!ADS_ERR_OK(status)) {
+		DEBUG(1, ("error on ads_startup: %s\n", ads_errstr(status)));
+		nt_status = ads_ntstatus(status);
+		goto fail;
+	}
+
+	if (strcmp(ads->config.realm, lp_realm()) != 0) {
+		d_fprintf(stderr, "realm of remote server (%s) and realm in %s "
+			"(%s) DO NOT match.  Aborting join\n",
+			ads->config.realm, get_dyn_CONFIGFILE(), lp_realm());
+		nt_status = NT_STATUS_INVALID_PARAMETER;
+		goto fail;
+	}
+
+	if (!(ctx = talloc_init("net_ads_join"))) {
+		d_fprintf(stderr, "Could not initialise talloc context.\n");
+		nt_status = NT_STATUS_NO_MEMORY;
+		goto fail;
 	}
 
 	/* If we were given an OU, try to create the machine in

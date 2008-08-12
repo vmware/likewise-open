@@ -59,7 +59,7 @@ ShowUsage()
     fprintf(stdout, "  and commands are:\n\n");
     fprintf(stdout, "    query\n");
     fprintf(stdout, "    setname <computer name>\n");
-    fprintf(stdout, "    join [--enable <module> --disable <module> ...] [--ou <organizationalUnit>] <domain name> <user name> [<password>]\n");
+    fprintf(stdout, "    join [--notimesync] [--enable <module> --disable <module> ...] [--ou <organizationalUnit>] <domain name> <user name> [<password>]\n");
     fprintf(stdout, "    join [--advanced] --preview [--ou <organizationalUnit>] <domain name>\n");
     fprintf(stdout, "    join [--ou <organizationalUnit>] --details <module> <domain name>\n");
     fprintf(stdout, "    leave [--enable <module> --disable <module> ...] [user name] [password]\n");
@@ -291,6 +291,10 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
             advanced = TRUE;
         else if(!strcmp(argv[0], "--preview"))
             preview = TRUE;
+        else if(!strcmp(argv[0], "--ignore-firewall-ntp"))
+            options.ignoreFirewallNtp = TRUE;
+        else if(!strcmp(argv[0], "--notimesync"))
+            options.disableTimeSync = TRUE;
         else if(!strcmp(argv[0], "--nohosts"))
         {
             PCSTR module = "hostname";

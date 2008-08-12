@@ -535,11 +535,12 @@ struct WINBINDD_MEMORY_CREDS *find_memory_creds_by_name(const char *username)
 /***********************************************************
  Check whether mlock actually works in this environment.
  We handle two cases:
- 1) On some AIX versions, mlock is present but does not work.
+ 1) On some AIX versions, mlock is present but does not work
+    (in which case it returns ENOSYS).
     We still want the same AIX binary to work on different
     AIX versions, so we need to test for mlock working.
  2) On Solaris, inside a non-global zone, mlock may
-    return an error (presumably due to not having the
+    return an error (EPERM - due to not having the
     proc_lock_memory privilege).
 ***********************************************************/
 
@@ -566,9 +567,16 @@ static bool winbindd_have_working_mlock()
 						 strerror(errno), errno));
 				}
 #endif
+#if defined(AIX)
 			} else if (ENOSYS == errno) {
 				have_working_mlock = False;
 				checked_mlock = True;
+#endif
+#if defined(SUNOS5)
+			} else if (EPERM == errno) {
+				have_working_mlock = False;
+				checked_mlock = True;
+#endif
 			} else {
 				DEBUG(0,("failed mlock check: %s (%d)\n",
 					 strerror(errno), errno));

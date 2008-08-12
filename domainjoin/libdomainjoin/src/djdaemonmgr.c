@@ -34,7 +34,6 @@ static DWORD GPAGENT_LICENSE_ERROR = 0x00002001;
 static DWORD GPAGENT_LICENSE_EXPIRED_ERROR = 0x00002002;
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
-#define PWGRD "/etc/rc.config.d/pwgr"
 
 static QueryResult QueryStopDaemons(const JoinProcessOptions *options, LWException **exc)
 {
@@ -44,12 +43,7 @@ static QueryResult QueryStopDaemons(const JoinProcessOptions *options, LWExcepti
 
     /* Check for lwiauthd and likewise-open */
 
-    DJGetDaemonStatus("centeris.com-lsassd", &running, &inner);
-    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-    {
-        LW_HANDLE(&inner);
-        DJGetDaemonStatus("centeris.com-lwiauthd", &running, &inner);
-    }
+    DJGetDaemonStatus("centeris.com-lwiauthd", &running, &inner);
     if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
     {
         LW_HANDLE(&inner);
@@ -78,27 +72,17 @@ cleanup:
 
 static void StopDaemons(JoinProcessOptions *options, LWException **exc)
 {
-    LW_TRY(exc, DJManageDaemons(FALSE, &LW_EXC));
+    LW_TRY(exc, DJManageDaemons(options->shortDomainName, FALSE, &LW_EXC));
 cleanup:
     ;
 }
 
-void
-DJManageDaemonsDescription(
-    BOOLEAN bStart,
-    PSTR *description,
-    LWException **exc
-    );
-
 static PSTR GetStopDescription(const JoinProcessOptions *options, LWException **exc)
 {
-    PSTR daemonsDescription = NULL;
-
-    LW_TRY(exc, DJManageDaemonsDescription(FALSE, &daemonsDescription,
-        &LW_EXC));
-
+    PSTR ret = NULL;
+    LW_CLEANUP_CTERR(exc, CTStrdup("Run '/etc/init.d/centeris.com-gpagentd stop'\nRun '/etc/init.d/likewise-open stop'\n", &ret));
 cleanup:
-    return daemonsDescription;
+    return ret;
 }
 
 const JoinModule DJDaemonStopModule = { TRUE, "stop", "stop daemons", QueryStopDaemons, StopDaemons, GetStopDescription };
@@ -119,12 +103,7 @@ static QueryResult QueryStartDaemons(const JoinProcessOptions *options, LWExcept
 
     /* Check for lwiauthd and likewise-open */
 
-    DJGetDaemonStatus("centeris.com-lsassd", &running, &inner);
-    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-    {
-        LW_HANDLE(&inner);
-        DJGetDaemonStatus("centeris.com-lwiauthd", &running, &inner);
-    }
+    DJGetDaemonStatus("centeris.com-lwiauthd", &running, &inner);
     if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
     {
         LW_HANDLE(&inner);
@@ -160,24 +139,21 @@ static void StartDaemons(JoinProcessOptions *options, LWException **exc)
 {
     LW_CLEANUP_CTERR(exc, DJRemoveCacheFiles());
 
-    LW_TRY(exc, DJManageDaemons(TRUE, &LW_EXC));
+    LW_TRY(exc, DJManageDaemons(options->shortDomainName, TRUE, &LW_EXC));
 cleanup:
     ;
 }
 
 static PSTR GetStartDescription(const JoinProcessOptions *options, LWException **exc)
 {
-    PSTR daemonsDescription = NULL;
     PSTR ret = NULL;
-
-    LW_TRY(exc, DJManageDaemonsDescription(TRUE, &daemonsDescription,
-        &LW_EXC));
-
-    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&ret,
-        "rm /var/lib/lwidentity/*_cache.tdb\n%s", daemonsDescription));
-
+    LW_CLEANUP_CTERR(exc, CTStrdup(
+"rm /var/lib/lwidentity/*_cache.tdb\n"
+"Run '/etc/init.d/centeris.com-gpagentd start'\n"
+"Run '/etc/init.d/likewise-open start'\n"
+"Configure daemons to start automatically on reboot\n"
+        , &ret));
 cleanup:
-    CT_SAFE_FREE_STRING(daemonsDescription);
     return ret;
 }
 
@@ -200,123 +176,22 @@ void DJRestartIfRunning(PCSTR daemon, LWException **exc)
         goto cleanup;
 
     DJ_LOG_INFO("Restarting '%s'", daemon);
-    LW_TRY(exc, DJStartStopDaemon(daemon, FALSE, &LW_EXC));
+    LW_TRY(exc, DJStartStopDaemon(daemon, FALSE, NULL, &LW_EXC));
     DJ_LOG_INFO("Starting '%s'", daemon);
-    LW_TRY(exc, DJStartStopDaemon(daemon, TRUE, &LW_EXC));
+    LW_TRY(exc, DJStartStopDaemon(daemon, TRUE, NULL, &LW_EXC));
 
 cleanup:
     LW_HANDLE(&inner);
 }
 
 void
-DJManageDaemonsDescription(
-    BOOLEAN bStart,
-    PSTR *description,
-    LWException **exc
-    )
-{
-    BOOLEAN bFileExists = TRUE;
-    LWException *innerExc = NULL;
-    int daemonCount;
-    int i;
-    int j;
-    StringBuffer buffer;
-    CHAR szStartPriority[32];
-    CHAR szStopPriority[32];
-    PSTR daemonDescription = NULL;
-
-    LW_CLEANUP_CTERR(exc, CTStringBufferConstruct(&buffer));
-
-    LW_CLEANUP_CTERR(exc, CTCheckFileExists(PWGRD, &bFileExists));
-    if(bFileExists && bStart)
-    {
-        LW_CLEANUP_CTERR(exc, CTStringBufferAppend(&buffer, "Shutdown pwgrd because it only handles usernames up to 8 characters long. This is done by running '/sbin/init.d/pwgr stop' and setting PWGR=0 in "PWGRD"."));
-    }
-
-    //Figure out how many daemons there are
-    for(daemonCount = 0; daemonList[daemonCount].primaryName != NULL; daemonCount++);
-
-    if(bStart)
-    {
-        //Start the daemons in ascending order
-        i = 0;
-    }
-    else
-    {
-        i = daemonCount;
-    }
-    while(TRUE)
-    {
-        if(i >= daemonCount)
-            break;
-        if(i < 0)
-            break;
-
-        CT_SAFE_FREE_STRING(daemonDescription);
-
-        sprintf(szStartPriority, "%d", daemonList[i].startPriority);
-        sprintf(szStopPriority,  "%d", daemonList[i].stopPriority);
-
-        DJManageDaemonDescription(daemonList[i].primaryName,
-                         bStart,
-                         szStartPriority,
-                         szStopPriority,
-                         &daemonDescription,
-                         &innerExc);
-
-        //Try the alternate daemon name if there is one
-        for(j = 0; !LW_IS_OK(innerExc) &&
-                innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
-                daemonList[i].alternativeNames[j] != NULL; j++)
-        {
-            LW_HANDLE(&innerExc);
-            DJManageDaemonDescription(daemonList[i].alternativeNames[j],
-                             bStart,
-                             szStartPriority,
-                             szStopPriority,
-                             &daemonDescription,
-                             &innerExc);
-            if (!LW_IS_OK(innerExc) &&
-                    innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-            {
-                LW_HANDLE(&innerExc);
-            }
-            else
-                break;
-        }
-        if (!LW_IS_OK(innerExc) &&
-                innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
-                !daemonList[i].required)
-        {
-            LW_HANDLE(&innerExc);
-        }
-        LW_CLEANUP(exc, innerExc);
-
-        if(daemonDescription != NULL)
-        {
-            LW_CLEANUP_CTERR(exc, CTStringBufferAppend(&buffer, daemonDescription));
-        }
-
-        if(bStart)
-            i++;
-        else
-            i--;
-    }
-
-    *description = CTStringBufferFreeze(&buffer);
-
-cleanup:
-    CT_SAFE_FREE_STRING(daemonDescription);
-    LW_HANDLE(&innerExc);
-    CTStringBufferDestroy(&buffer);
-}
-
-void
 DJManageDaemons(
+    PSTR pszDomainName,
     BOOLEAN bStart,
     LWException **exc
     )
 {
+    PSTR pszDomainNameAllUpper = NULL;
     BOOLEAN bFileExists = TRUE;
     FILE* fp = NULL;
     PSTR pszErrFilePath = "/var/cache/centeris/grouppolicy/gpagentd.err";
@@ -325,14 +200,14 @@ DJManageDaemons(
     LWException *innerExc = NULL;
     int daemonCount;
     int i;
-    int j;
 
+#define PWGRD "/etc/rc.config.d/pwgr"
     LW_CLEANUP_CTERR(exc, CTCheckFileExists(PWGRD, &bFileExists));
     if(bFileExists)
     {
         //Shutdown pwgr (a nscd-like daemon) on HP-UX because it only handles
         //usernames up to 8 characters in length.
-        LW_TRY(exc, DJStartStopDaemon("pwgr", FALSE, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon("pwgr", FALSE, NULL, &LW_EXC));
         LW_CLEANUP_CTERR(exc, CTRunSedOnFile(PWGRD, PWGRD, FALSE, "s/=1/=0/"));
     }
 
@@ -352,28 +227,23 @@ DJManageDaemons(
  
             DJManageDaemon(daemonList[i].primaryName,
                              bStart,
+                             NULL,
                              szStartPriority,
                              szStopPriority,
                              &innerExc);
 
             //Try the alternate daemon name if there is one
-            for(j = 0; !LW_IS_OK(innerExc) &&
+            if (!LW_IS_OK(innerExc) &&
                     innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
-                    daemonList[i].alternativeNames[j] != NULL; j++)
+                    daemonList[i].alternativeName != NULL)
             {
                 LW_HANDLE(&innerExc);
-                DJManageDaemon(daemonList[i].alternativeNames[j],
+                DJManageDaemon(daemonList[i].alternativeName,
                                  bStart,
+                                 NULL,
                                  szStartPriority,
                                  szStopPriority,
                                  &innerExc);
-                if (!LW_IS_OK(innerExc) &&
-                        innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-                {
-                    LW_HANDLE(&innerExc);
-                }
-                else
-                    break;
             }
             if (!LW_IS_OK(innerExc) &&
                     innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
@@ -429,28 +299,23 @@ DJManageDaemons(
 
             DJManageDaemon(daemonList[i].primaryName,
                              bStart,
+                             NULL,
                              szStartPriority,
                              szStopPriority,
                              &innerExc);
 
             //Try the alternate daemon name if there is one
-            for(j = 0; !LW_IS_OK(innerExc) &&
+            if (!LW_IS_OK(innerExc) &&
                     innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
-                    daemonList[i].alternativeNames[j] != NULL; j++)
+                    daemonList[i].alternativeName != NULL)
             {
                 LW_HANDLE(&innerExc);
-                DJManageDaemon(daemonList[i].alternativeNames[j],
+                DJManageDaemon(daemonList[i].alternativeName,
                                  bStart,
+                                 NULL,
                                  szStartPriority,
                                  szStopPriority,
                                  &innerExc);
-                if (!LW_IS_OK(innerExc) &&
-                        innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-                {
-                    LW_HANDLE(&innerExc);
-                }
-                else
-                    break;
             }
             if (!LW_IS_OK(innerExc) &&
                     innerExc->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON &&
@@ -464,6 +329,9 @@ DJManageDaemons(
 
 cleanup:
     CTSafeCloseFile(&fp);
+
+    if (pszDomainNameAllUpper)
+        CTFreeString(pszDomainNameAllUpper);
 
     LW_HANDLE(&innerExc);
 }

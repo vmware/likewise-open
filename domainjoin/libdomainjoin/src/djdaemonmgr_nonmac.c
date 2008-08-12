@@ -129,9 +129,11 @@ DJGetDaemonStatus(
             daemonBaseName = "likewise-winbindd";
         else if(!strcmp(daemonBaseName, "centeris.com-gpagentd"))
             daemonBaseName = "centeris-gpagentd";
-        else if(!strcmp(daemonBaseName, "centeris.com-lsassd"))
-            daemonBaseName = "likewise-lsassd";
-        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/centeris/sbin", &daemonPath);
+        else if(!strcmp(daemonBaseName, "centeris.com-eventlogd"))
+            daemonBaseName = "centeris-eventlogd";
+        else if(!strcmp(daemonBaseName, "centeris.com-rpcd"))
+            daemonBaseName = "rpcd";
+        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/centeris/sbin:/opt/centeris/sbin:/usr/centeris/bin:/opt/centeris/bin", &daemonPath);
         if(ceError == CENTERROR_FILE_NOT_FOUND)
         {
             CT_SAFE_FREE_STRING(altDaemonName);
@@ -209,6 +211,7 @@ void
 DJStartStopDaemon(
     PCSTR pszDaemonName,
     BOOLEAN bStatus,
+    PSTR pszPreCommand,
     LWException **exc
     )
 {
@@ -246,11 +249,24 @@ DJStartStopDaemon(
 
         LW_CLEANUP_CTERR(exc, CTAllocateString("kill `cat /var/dt/Xpid`", ppszArgs+2));
     }
-    else {
+    else if (IsNullOrEmptyString(pszPreCommand)) {
 
         LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs)));
         LW_CLEANUP_CTERR(exc, CTAllocateString(pszDaemonPath, ppszArgs));
         LW_CLEANUP_CTERR(exc, CTAllocateString((bStatus ? "start" : "stop"), ppszArgs+1));
+
+    } else {
+
+        LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs)));
+        LW_CLEANUP_CTERR(exc, CTAllocateString("/bin/sh", ppszArgs));
+        LW_CLEANUP_CTERR(exc, CTAllocateString("-c", ppszArgs+1));
+
+        sprintf(szBuf, "%s; %s %s ",
+                pszPreCommand,
+                pszDaemonPath,
+                (bStatus ? "start" : "stop"));
+
+        LW_CLEANUP_CTERR(exc, CTAllocateString(szBuf, ppszArgs+2));
     }
 
     LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
@@ -573,54 +589,10 @@ cleanup:
 }
 
 void
-DJManageDaemonDescription(
-    PCSTR pszName,
-    BOOLEAN bStatus,
-    PSTR pszStartPriority,
-    PSTR pszStopPriority,
-    PSTR *description,
-    LWException **exc
-    )
-{
-    BOOLEAN bStarted = FALSE;
-    PSTR daemonPath = NULL;
-
-    *description = NULL;
-
-    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
-
-    // if we got this far, we have validated the existence of the
-    // daemon and we have figured out if its started or stopped
-
-    // if we are already in the desired state, do nothing.
-    if (bStarted != bStatus) {
-
-        CT_SAFE_FREE_STRING(daemonPath);
-        LW_CLEANUP_CTERR(exc, FindDaemonScript(pszName, &daemonPath));
-        if(bStatus)
-        {
-            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
-                    "Start %s by running '%s start'.\n"
-                    "Create symlinks for %s so that it starts at reboot.\n",
-                    pszName, daemonPath, pszName));
-        }
-        else
-        {
-            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
-                    "Stop %s by running '%s stop'.\n"
-                    "Remove symlinks for %s so that it no longer starts at reboot.\n",
-                    pszName, daemonPath, pszName));
-        }
-    }
-
-cleanup:
-    CT_SAFE_FREE_STRING(daemonPath);
-}
-
-void
 DJManageDaemon(
     PCSTR pszName,
     BOOLEAN bStatus,
+    PSTR pszPreCommand,
     PSTR pszStartPriority,
     PSTR pszStopPriority,
     LWException **exc
@@ -639,7 +611,7 @@ DJManageDaemon(
     // if we are already in the desired state, do nothing.
     if (bStarted != bStatus) {
 
-        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, pszPreCommand, &LW_EXC));
 
     }
 
@@ -650,8 +622,8 @@ cleanup:
 }
 
 struct _DaemonList daemonList[] = {
-    { "centeris.com-lsassd", {"likewise-open", "centeris.com-lwiauthd", NULL}, TRUE, 92, 10 },
-    { "centeris.com-gpagentd", {NULL}, FALSE, 92, 9 },
-    { NULL, {NULL}, FALSE, 0, 0 },
+    { "centeris.com-lwiauthd", "likewise-open", TRUE, 92, 10 },
+    { "centeris.com-gpagentd", NULL, FALSE, 92, 9 },
+    { NULL, NULL, FALSE, 0, 0 },
 };
 

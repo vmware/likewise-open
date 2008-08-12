@@ -29,10 +29,26 @@
 #include <libxml/tree.h>
 #include <libxml/xmlsave.h>
 
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
-#define DC_PORT_COUNT 6
+
+/* TODO: Add to centutils */
+#define LW_ASSERT_OR_CLEANUP(ExceptionObject, Expression) \
+do { \
+    if (!(Expression)) \
+    { \
+        LW_RAISE_EX(ExceptionObject, CTMapSystemError(EFAULT), "Assertion failure:" #Expression, "The assertion occurred at %s line %d.", __FILE__, __LINE__); \
+        goto cleanup; \
+    } \
+} while (0)
+
+#define DC_PORT_COUNT 5
 
 #define CONNECTION_TIMEOUT  15
+#define FIREWALL_RECONFIGURE_CONNECTION_TIMEOUT 2
 
 static const char *servicesPath = "/etc/vmware/firewall/services.xml";
 
@@ -265,17 +281,31 @@ cleanup:
 
 typedef struct
 {
+    int timeout;
+    BOOLEAN ignoreNtp;
+} DCPortCheckOptions;
+
+static void InitializeDCPortCheckOptions(DCPortCheckOptions *checkOptions, const JoinProcessOptions *joinOptions, int timeout)
+{
+    memset(checkOptions, 0, sizeof(*checkOptions));
+    checkOptions->timeout = timeout;
+    checkOptions->ignoreNtp = joinOptions->ignoreFirewallNtp;
+}
+
+typedef struct
+{
     PSTR dc;
+    int portCount;
     PortCheck ports[DC_PORT_COUNT];
 } DCPortCheck;
 
-void CheckDCPorts(DCPortCheck *check, int timeout, LWException **exc)
+static void CheckDCPorts(DCPortCheck *check, DCPortCheckOptions *options, LWException **exc)
 {
     int i;
     struct in_addr dcIp;
-	char ntpRequest[] = {
-		0xdb,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-	};
+    char ntpRequest[] = {
+        0xdb,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+    };
     struct hostent* pHostent = NULL;
 
     for(i = 0; i < 3; i++)
@@ -299,27 +329,39 @@ void CheckDCPorts(DCPortCheck *check, int timeout, LWException **exc)
     }
     DJ_LOG_INFO("Looked up domain");
 
-	memset(check->ports, 0, sizeof(*check->ports) * DC_PORT_COUNT);
+    check->portCount = 0;
+    memset(check->ports, 0, sizeof(check->ports));
 
-	check->ports[0].to.sin_port = htons(123);
-	check->ports[0].sendData = ntpRequest;
-	check->ports[0].sendDataLen = sizeof(ntpRequest);
-	check->ports[0].retryCount = timeout;
-    check->ports[0].udp = TRUE;
+    i = 0;
+    if (!options->ignoreNtp)
+    {
+        check->ports[i].to.sin_port = htons(123);
+        check->ports[i].sendData = ntpRequest;
+        check->ports[i].sendDataLen = sizeof(ntpRequest);
+        /* Note that we use the timeout seconds to determine an approximate retry
+         * interval as the UDP port check will send one packet per 1-1.5
+         * seconds */
+        check->ports[i].retryCount = options->timeout;
+        check->ports[i].udp = TRUE;
+        i++;
+    }
 
-	check->ports[1].to.sin_port = htons(88);
-	check->ports[2].to.sin_port = htons(139);
-	check->ports[3].to.sin_port = htons(389);
-	check->ports[4].to.sin_port = htons(445);
-	check->ports[5].to.sin_port = htons(464);
+    /* Initialize TCP ports */
+    check->ports[i++].to.sin_port = htons(88);
+    check->ports[i++].to.sin_port = htons(389);
+    check->ports[i++].to.sin_port = htons(445);
+    check->ports[i++].to.sin_port = htons(464);
 
-	for(i = 0; i < DC_PORT_COUNT; i++)
-	{
-	    check->ports[i].to.sin_family = AF_INET;
-	    check->ports[i].to.sin_addr = dcIp;
-	}
+    check->portCount = i;
+    LW_ASSERT_OR_CLEANUP(exc, check->portCount <= sizeof(check->ports)/sizeof(check->ports[0]));
 
-	LW_CLEANUP_CTERR(exc, CheckPorts(check->ports, DC_PORT_COUNT, timeout));
+    for(i = 0; i < check->portCount; i++)
+    {
+        check->ports[i].to.sin_family = AF_INET;
+        check->ports[i].to.sin_addr = dcIp;
+    }
+
+    LW_CLEANUP_CTERR(exc, CheckPorts(check->ports, check->portCount, options->timeout));
 
 cleanup:
     ;
@@ -359,38 +401,38 @@ static xmlNodePtr GetNewXmlNode(xmlDocPtr destDoc)
 "    </rule>\n"
 "    <rule id='0005'>\n"
 "      <direction>outbound</direction>\n"
-"      <protocol>udp</protocol>\n"
-"      <port type='dst'>137</port>\n"
-"    </rule>\n"
-"    <rule id='0006'>\n"
-"      <direction>outbound</direction>\n"
 "      <protocol>tcp</protocol>\n"
 "      <port type='dst'>139</port>\n"
 "    </rule>\n"
-"    <rule id='0007'>\n"
+"    <rule id='0006'>\n"
 "      <direction>outbound</direction>\n"
 "      <protocol>udp</protocol>\n"
+"      <port type='dst'>389</port>\n"
+"    </rule>\n"
+"    <rule id='0007'>\n"
+"      <direction>outbound</direction>\n"
+"      <protocol>tcp</protocol>\n"
 "      <port type='dst'>389</port>\n"
 "    </rule>\n"
 "    <rule id='0008'>\n"
 "      <direction>outbound</direction>\n"
 "      <protocol>tcp</protocol>\n"
-"      <port type='dst'>389</port>\n"
+"      <port type='dst'>445</port>\n"
 "    </rule>\n"
 "    <rule id='0009'>\n"
 "      <direction>outbound</direction>\n"
-"      <protocol>tcp</protocol>\n"
-"      <port type='dst'>445</port>\n"
+"      <protocol>udp</protocol>\n"
+"      <port type='dst'>464</port>\n"
 "    </rule>\n"
 "    <rule id='0010'>\n"
 "      <direction>outbound</direction>\n"
-"      <protocol>udp</protocol>\n"
+"      <protocol>tcp</protocol>\n"
 "      <port type='dst'>464</port>\n"
 "    </rule>\n"
 "    <rule id='0011'>\n"
 "      <direction>outbound</direction>\n"
 "      <protocol>tcp</protocol>\n"
-"      <port type='dst'>464</port>\n"
+"      <port type='dst'>3268</port>\n"
 "    </rule>\n"
 "  </service>\n";
 
@@ -574,6 +616,7 @@ cleanup:
 
 static CENTERROR DupDCPortCheck(DCPortCheck *dest, const DCPortCheck *src)
 {
+    dest->portCount = src->portCount;
     memcpy(dest->ports, src->ports, sizeof(src->ports));
     return CTStrdup(src->dc, &dest->dc);
 }
@@ -585,7 +628,7 @@ static void FreeDCPortCheckContents(DCPortCheck *check)
     CT_SAFE_FREE_STRING(check->dc);
 }
 
-static void CachePortCheck(PCSTR domainName, ModuleState *state, int timeout, DCPortCheck *check, LWException **exc)
+static void CachePortCheck(PCSTR domainName, ModuleState *state, DCPortCheckOptions *options, DCPortCheck *check, LWException **exc)
 {
     memset(check, 0, sizeof(*check));
 
@@ -606,7 +649,7 @@ static void CachePortCheck(PCSTR domainName, ModuleState *state, int timeout, DC
         LW_CLEANUP_CTERR(exc, CTStrdup(domainName, &check->dc));
     }
     DJ_LOG_INFO("Starting port check");
-    LW_TRY(exc, CheckDCPorts(check, timeout, &LW_EXC));
+    LW_TRY(exc, CheckDCPorts(check, options, &LW_EXC));
     if(state != NULL)
     {
         LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(DCPortCheck), &state->moduleData));
@@ -617,7 +660,7 @@ cleanup:
     ;
 }
 
-static void ReadCachedPortCheck(PCSTR domainName, ModuleState *state, DCPortCheck *check, LWException **exc)
+static void ReadCachedPortCheck(PCSTR domainName, ModuleState *state, DCPortCheckOptions *options, DCPortCheck *check, LWException **exc)
 {
     memset(check, 0, sizeof(*check));
 
@@ -628,7 +671,7 @@ static void ReadCachedPortCheck(PCSTR domainName, ModuleState *state, DCPortChec
         goto cleanup;
     }
 
-    LW_TRY(exc, CachePortCheck(domainName, state, 15, check, &LW_EXC));
+    LW_TRY(exc, CachePortCheck(domainName, state, options, check, &LW_EXC));
 
 cleanup:
     ;
@@ -637,14 +680,14 @@ cleanup:
 static QueryResult QueryFirewall(const JoinProcessOptions *options, LWException **exc)
 {
     PSTR tempFilename = NULL;
-    BOOLEAN modified = FALSE;
+    BOOLEAN needUpdate = FALSE;
     BOOLEAN exists;
     PSTR tempDir = NULL;
     QueryResult result = CannotConfigure;
+    DCPortCheckOptions checkOptions;
     DCPortCheck check;
     int i;
-    ModuleState *state = DJGetModuleStateByName(
-            (JoinProcessOptions *)options, "firewall");
+    ModuleState *state = DJGetModuleStateByName(options, "firewall");
 
     memset(&check, 0, sizeof(check));
 
@@ -667,29 +710,27 @@ static QueryResult QueryFirewall(const JoinProcessOptions *options, LWException 
         LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&tempFilename,
                     "%s/%s", tempDir, strrchr(servicesPath, '/') + 1));
         LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms(servicesPath, tempFilename));
-        LW_CLEANUP_CTERR(exc, DJUpdateServicesFile(tempFilename, options->joiningDomain, &modified));
+        LW_CLEANUP_CTERR(exc, DJUpdateServicesFile(tempFilename, options->joiningDomain, &needUpdate));
     }
     
     if(options->joiningDomain)
     {
-        int timeout = 15;
+        // If we think that we need to reconfigure the firewall,
+        // do not spend a lot of time doing the port check.
+        // After we reconfigure, we can be slow.
 
-        //We know that the vmware esx firewall configuration needs to be
-        //updated, so let's let this port check fail fast. If the user found
-        //some other way of opening the ports, this still gives them a
-        //chance.
-        if(modified)
-            timeout = 2;
+        int timeout = needUpdate ? FIREWALL_RECONFIGURE_CONNECTION_TIMEOUT : CONNECTION_TIMEOUT;
 
+        InitializeDCPortCheckOptions(&checkOptions, options, timeout);
         LW_TRY(exc, CachePortCheck(options->domainName,
-                    state, timeout, &check, &LW_EXC));
+                    state, &checkOptions, &check, &LW_EXC));
 
-        for(i = 0; i < DC_PORT_COUNT; i++)
+        for(i = 0; i < check.portCount; i++)
         {
             if(!check.ports[i].success)
                 break;
         }
-        if(i == DC_PORT_COUNT)
+        if(i == check.portCount)
         {
             //All ports are open
             result = FullyConfigured;
@@ -704,7 +745,7 @@ static QueryResult QueryFirewall(const JoinProcessOptions *options, LWException 
         goto cleanup;
     }
 
-    if(!modified)
+    if(!needUpdate)
     {
         goto cleanup;
     }
@@ -734,11 +775,11 @@ static PSTR GetFirewallDescription(const JoinProcessOptions *options, LWExceptio
 {
     PSTR ret = NULL;
     PSTR temp = NULL;
+    DCPortCheckOptions checkOptions;
     DCPortCheck check;
     int i;
     QueryResult configured;
-    ModuleState *optionsState = DJGetModuleStateByName(
-            (JoinProcessOptions *)options, "firewall");
+    ModuleState *optionsState = DJGetModuleStateByName(options, "firewall");
 
     memset(&check, 0, sizeof(check));
 
@@ -759,11 +800,10 @@ static PSTR GetFirewallDescription(const JoinProcessOptions *options, LWExceptio
                 "\t53  UDP/TCP\n"
                 "\t88  UDP/TCP\n"
                 "\t123 UDP\n"
-                "\t137 UDP\n"
-                "\t139 TCP\n"
                 "\t389 UDP/TCP\n"
                 "\t445 TCP\n"
                 "\t464 UDP/TCP\n"
+                "\t3268 TCP\n"
                 "By default, all outgoing ports are blocked on VMware ESX. This program will open those ports by adding a service to %s, and enable the service by running '%s'.\n",
                 servicesPath,
                 "/usr/sbin/esxcfg-firewall -e LikewiseEnterprise"));
@@ -772,16 +812,16 @@ static PSTR GetFirewallDescription(const JoinProcessOptions *options, LWExceptio
             break;
     }
 
-    LW_TRY(exc, ReadCachedPortCheck(options->domainName, optionsState, &check, &LW_EXC));
+    InitializeDCPortCheckOptions(&checkOptions, options, CONNECTION_TIMEOUT);
+    LW_TRY(exc, ReadCachedPortCheck(options->domainName, optionsState, &checkOptions, &check, &LW_EXC));
 
     LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&ret, "Some required ports on the domain controller could not be contacted. Please update your firewall settings to ensure that the following ports are open to '%s':\n"
                 "\t88  UDP\n"
-                "\t137 UDP\n"
                 "\t389 UDP\n"
                 "\t464 UDP"
                 , check.dc));
 
-    for(i = 0; i < DC_PORT_COUNT; i++)
+    for(i = 0; i < check.portCount; i++)
     {
         if(!check.ports[i].success)
         {

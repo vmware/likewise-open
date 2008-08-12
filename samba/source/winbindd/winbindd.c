@@ -143,15 +143,20 @@ static void flush_caches(void)
 
 /* Handle the signal by unlinking socket and exiting */
 
-static void terminate(void)
+static void terminate(bool is_parent)
 {
+	if (is_parent) {
+		/* When parent goes away we should
+		 * remove the socket file. Not so
+		 * when children terminate.
+		 */ 
 	char *path = NULL;
 
-	/* Remove socket file */
 	if (asprintf(&path, "%s/%s",
 			get_winbind_pipe_dir(), WINBINDD_SOCKET_NAME) > 0) {
 		unlink(path);
 		SAFE_FREE(path);
+	}
 	}
 
 	idmap_close();
@@ -808,6 +813,27 @@ static bool remove_idle_client(void)
 	return False;
 }
 
+/* check if HUP has been received and reload files */
+void winbind_check_sighup(void)
+{
+	if (do_sighup) {
+
+		DEBUG(3, ("got SIGHUP\n"));
+
+		flush_caches();
+		reload_services_file();
+
+		do_sighup = False;
+	}
+}
+
+/* check if TERM has been received */
+void winbind_check_sigterm(bool is_parent)
+{
+	if (do_sigterm)
+		terminate(is_parent);
+}
+
 /* Process incoming clients on listen_sock.  We use a tricky non-blocking,
    non-forking, non-threaded model which allows us to handle many
    simultaneous connections while remaining impervious to many denial of
@@ -967,18 +993,8 @@ static void process_loop(void)
 
 	/* Check signal handling things */
 
-	if (do_sigterm)
-		terminate();
-
-	if (do_sighup) {
-
-		DEBUG(3, ("got SIGHUP\n"));
-
-		flush_caches();
-		reload_services_file();
-
-		do_sighup = False;
-	}
+	winbind_check_sigterm(true);
+	winbind_check_sighup();
 
 	if (do_sigusr2) {
 		print_winbindd_status();

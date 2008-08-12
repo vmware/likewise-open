@@ -69,6 +69,8 @@ struct _JoinProcessOptions
     //TRUE if joining to AD, FALSE if leaving
     BOOLEAN joiningDomain;
     BOOLEAN showTraces;
+    BOOLEAN disableTimeSync;
+    BOOLEAN ignoreFirewallNtp;
     WarningFunction warningCallback;
     /* Contains modules that are enabled and disabled by the user, but does
      * not contain NA modules. This list is populated from the moduleTable.

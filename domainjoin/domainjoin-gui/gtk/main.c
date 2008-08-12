@@ -554,13 +554,20 @@ main(int argc, char** argv)
     LWException* exc = NULL;
     gboolean quit = FALSE;
 
+    /* Logging MUST be initialized before gtk.
+     *
+     * If fd 2 (stderr) is closed when gtk+ is initialized,
+     * it will get grabbed by some open() call in X11 libraries.
+     * The log_begin() will then replace it, causing problems
+     * later.
+     */
+    log_begin();
+
     g_thread_init(NULL);
     gdk_threads_init();
     gdk_threads_enter();
 
     gtk_init(&argc, &argv);
-
-    log_begin();
 
     do
     {

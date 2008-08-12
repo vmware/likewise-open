@@ -478,6 +478,8 @@ void winbind_child_died(pid_t pid)
 		return;
 	}
 
+	DLIST_REMOVE(children, child);
+
 	remove_fd_event(&child->event);
 	close(child->event.fd);
 	child->event.fd = 0;
@@ -978,9 +980,6 @@ static bool fork_domain_child(struct winbindd_child *child)
 	ZERO_STRUCT(state);
 	state.pid = sys_getpid();
 
-	/* Stop zombies */
-	CatchChild();
-
 	child->pid = sys_fork();
 
 	if (child->pid == -1) {
@@ -1001,6 +1000,9 @@ static bool fork_domain_child(struct winbindd_child *child)
 	}
 
 	/* Child */
+
+	/* Stop zombies in children */
+	CatchChild();
 
 	state.sock = fdpair[0];
 	close(fdpair[1]);
@@ -1102,6 +1104,10 @@ static bool fork_domain_child(struct winbindd_child *child)
 		struct timeval *tp;
 		struct timeval now;
 		TALLOC_CTX *frame = talloc_stackframe();
+
+		/* check for signals */
+		winbind_check_sigterm(false);
+		winbind_check_sighup();
 
 		run_events(winbind_event_context(), 0, NULL, NULL);
 

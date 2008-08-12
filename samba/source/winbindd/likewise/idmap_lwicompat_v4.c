@@ -74,6 +74,8 @@ struct idmap_methods {
 	NTSTATUS(*close_fn) (struct idmap_domain * dom);
 };
 
+const char* sid_string_static(const DOM_SID*);
+
 /*********************************************************************
  ********************************************************************/
 
@@ -140,9 +142,8 @@ static NTSTATUS lwi_get_id_from_sid(struct idmap_domain *dom,
 	NSS_STATUS result;
 	struct winbindd_request request;
 	struct winbindd_response response;
-	struct unixid *ret_id = NULL;
-	DOM_SID *sids = NULL;
-	int count, i;
+	int count;
+	enum winbindd_cmd cmd;
 
 	/* figure out how many SIDS we havs */
 
@@ -150,44 +151,44 @@ static NTSTATUS lwi_get_id_from_sid(struct idmap_domain *dom,
 		/* do nothing */
 	}
 
-	if (count == 0)
+	if (count == 0)  {
 		return NT_STATUS_OK;
+	}
+
+	if (count > 1) {		
+		return NT_STATUS_INVALID_PARAMETER;
+	}
 
 	ZERO_STRUCT(request);
 	ZERO_STRUCT(response);
 
-	/* allocate the DOM_SID array for the request */
+	fstrcpy(request.data.sid, sid_string_static(ids[0]->sid));
 
-	request.extra_len = count * sizeof(DOM_SID);
-	sids = SMB_MALLOC_ARRAY(DOM_SID, count);
-	for (i = 0; i < count; i++) {
-		sid_copy(&sids[i], ids[i]->sid);
+	switch (ids[0]->xid.type) {
+	case ID_TYPE_UID:
+		cmd = WINBINDD_SID_TO_UID;
+		break;
+	case ID_TYPE_GID:
+		cmd = WINBINDD_SID_TO_GID;
+		break;
+	default:
+		DEBUG(4,("lwi_get_id_from_sid: Unknown query type (%u)\n",
+			ids[0]->xid.type));
+		return NT_STATUS_INVALID_PARAMETER;
 	}
-	request.extra_data.data = (char *)sids;
 
 	/* Make request */
 
-	result = winbindd_request_response(WINBINDD_SIDS_TO_XIDS,
-					   &request, &response);
+	result = winbindd_request_response(cmd, &request, &response);
 
 	if (result != NSS_STATUS_SUCCESS)
 		return NT_STATUS_NONE_MAPPED;
 
 	/* gather the responses */
 
-	ret_id = (struct unixid *)response.extra_data.data;
-	for (i = 0; i < count; i++) {
-		if (ret_id[i].type == -1) {
-			ids[i]->status = ID_UNMAPPED;
-			continue;
-		}
+        ids[0]->xid.id = response.data.uid;
+	ids[0]->status = ID_MAPPED;
 
-		ids[i]->status = ID_MAPPED;
-		ids[i]->xid.type = ret_id[i].type;
-		ids[i]->xid.id = ret_id[i].id;
-	}
-
-	SAFE_FREE(request.extra_data.data);
 	SAFE_FREE(response.extra_data.data);
 
 	return NT_STATUS_OK;

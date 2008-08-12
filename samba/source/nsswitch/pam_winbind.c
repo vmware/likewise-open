@@ -1638,9 +1638,6 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags,
                 bCreatedHomeDir = (wbl_result == WBL_STATUS_OK);
 	}
 #if ! defined(AIX)
-	if (wbl_result != WBL_STATUS_OK) {
-		_pam_log(pamh, state, LOG_WARNING, "could not create home directory");
-	}
 	ret = PAM_SUCCESS;
 #endif
 

@@ -44,6 +44,7 @@ const JoinModule *startList[] = {
     &DJDaemonStopModule,
     &DJSetHostname,
     &DJFirewall,
+    &DJKeytabModule,
     &DJDoJoinModule,
     &DJLwiConfModule,
     &DJKrb5Module,
@@ -74,6 +75,7 @@ const JoinModule *stopList[] = {
     &DJKrb5Module,
     &DJLwiConfModule,
     &DJDoJoinModule,
+    &DJKeytabModule,
     &DJFirewall,
     &DJSetHostname,
     NULL };
@@ -142,7 +144,10 @@ void NormalizeUsername(PSTR *username, PCSTR domainName, LWException **exc)
     if(*username == NULL)
         goto cleanup;
     if(strchr(*username, '@') != NULL)
+    {
+        CTStrToUpper(strrchr(*username, '@'));
         goto cleanup;
+    }
 
     if(IsNullOrEmptyString(domainName))
     {

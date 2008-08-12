@@ -271,6 +271,7 @@ void
 DJStartStopDaemon(
     PCSTR pszDaemonPath,
     BOOLEAN bStatus,
+    PSTR pszPreCommand,
     LWException **exc
     )
 {
@@ -631,6 +632,7 @@ void
 DJManageDaemon(
     PCSTR pszName,
     BOOLEAN bStatus,
+    PSTR pszPreCommand,
     PSTR pszStartPriority,
     PSTR pszStopPriority,
     LWException **exc
@@ -654,7 +656,7 @@ DJManageDaemon(
     // if we are already in the desired state, do nothing.
     if (bStarted != bStatus) {
 
-        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, pszPreCommand, &LW_EXC));
 
     }
     else
@@ -663,44 +665,6 @@ DJManageDaemon(
     }
 
     LW_CLEANUP_CTERR(exc, DJConfigureForDaemonRestart(pszName, bStatus, pszStartPriority, pszStopPriority));
-
-cleanup:
-    ;
-}
-
-void
-DJManageDaemonDescription(
-    PCSTR pszName,
-    BOOLEAN bStatus,
-    PSTR pszStartPriority,
-    PSTR pszStopPriority,
-    PSTR *description,
-    LWException **exc
-    )
-{
-    BOOLEAN bStarted = FALSE;
-
-    *description = NULL;
-
-    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
-
-    // if we got this far, we have validated the existence of the
-    // daemon and we have figured out if its started or stopped
-
-    // if we are already in the desired state, do nothing.
-    if (bStarted != bStatus) {
-
-        if(bStatus)
-        {
-            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
-                    "Start %s by running '/bin/launchctl start /System/Library/LaunchDaemons/%s.plist'.\n", pszName, pszName));
-        }
-        else
-        {
-            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
-                    "Stop %s by running '/bin/launchctl unload /System/Library/LaunchDaemons/%s.plist'.\n", pszName, pszName));
-        }
-    }
 
 cleanup:
     ;

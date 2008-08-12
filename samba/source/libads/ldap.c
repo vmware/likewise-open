@@ -376,6 +376,105 @@ static NTSTATUS ads_find_dc(ADS_STRUCT *ads)
 	return NT_STATUS_NO_LOGON_SERVERS;
 }
 
+/*********************************************************************
+ *********************************************************************/
+
+NTSTATUS ads_lookup_site(void)
+{
+       	ADS_STRUCT *ads = NULL;
+	ADS_STATUS ads_status;
+	NTSTATUS nt_status = NT_STATUS_UNSUCCESSFUL;
+	struct cldap_netlogon_reply cldap_reply;
+	
+	ZERO_STRUCT(cldap_reply);
+	
+	ads = ads_init(lp_realm(), NULL, NULL);
+	if (!ads) {		
+		return NT_STATUS_NO_MEMORY;
+	}
+
+	/* The NO_BIND here will find a DC and set the client site
+	   but not establish the TCP connection */
+
+	ads->auth.flags = ADS_AUTH_NO_BIND;	
+	ads_status = ads_connect(ads);
+	if (!ADS_ERR_OK(ads_status)) {
+		DEBUG(4, ("ads_lookup_site: ads_connect to our realm failed! (%s)\n",
+			  ads_errstr(ads_status)));
+	}
+	nt_status = ads_ntstatus(ads_status);
+	
+	if (ads) {
+		ads_destroy(&ads);
+	}
+	
+	return nt_status;
+}
+
+/*********************************************************************
+ *********************************************************************/
+
+const char* host_dns_domain(const char *fqdn)
+{
+	const char *p = fqdn;
+	
+	while (p && *p != '.') {		
+		p++;
+	}
+
+	/* go to next char following '.' */
+
+	if (p)
+		p++;
+	
+	return p;	
+}
+
+
+/*
+ * Sorting function for figuring out which GC servers which 
+ * should prefer.
+ */
+
+static int gc_weight_cmp(void *a, void *b)
+{
+	struct dns_rr_srv *rec1 = (struct dns_rr_srv*)a;
+	struct dns_rr_srv *rec2 = (struct dns_rr_srv*)b;
+	const char *domain1 = NULL;
+	const char *domain2 = NULL;
+	
+	/* Get the trivial cases out of the way */
+
+	if (a == b) return 0;	
+	if (!a) return -1;
+	if (!b) return 1;
+
+	domain1 = host_dns_domain(rec1->hostname);
+	domain2 = host_dns_domain(rec2->hostname);
+
+	/* Prefer fully qualified hosts */
+
+	if (!domain1) return 1;
+	if (!domain2) return -1;
+	
+	if (strequal(domain1, domain2)) {
+		return 0;
+	}
+
+	/* Prefer hosts in our realm */
+
+	if (strequal(domain1, lp_realm())) {
+		return -1;
+	}
+	if (strequal(domain2, lp_realm())) {
+		return 1;
+	}
+
+	/* This should never happen */
+
+	return 0;	
+}
+
 /**
  * Connect to the Global Catalog server
  * @param ads Pointer to an existing ADS_STRUCT
@@ -400,8 +499,11 @@ ADS_STATUS ads_connect_gc(ADS_STRUCT *ads)
 	if (!realm)
 		realm = lp_realm();
 
-	sitename = sitename_fetch(realm);
-
+	if ((sitename = sitename_fetch(realm)) == NULL) {
+		ads_lookup_site();
+		sitename = sitename_fetch(realm);		
+	}
+ 
 	do {
 		/* We try once with a sitename and once without
 		   (unless we don't have a sitename and then we're
@@ -420,17 +522,36 @@ ADS_STATUS ads_connect_gc(ADS_STRUCT *ads)
 			goto done;
 		}
 
+		/* Sort the list so that GCs closest to us or in our own domain
+		   are selected first */
+
+		qsort(gcs_list, 
+		      num_gcs, 
+		      sizeof(struct dns_rr_srv),
+		      QSORT_CAST gc_weight_cmp);
+
+		if (DEBUGLEVEL >= 10) {
+			DEBUG(10,("ads_connect_gc: Sorted GC list:\n"));			
+			for (i=0; i<num_gcs; i++) {
+				DEBUGADD(10,("   %s\n", gcs_list[i].hostname));
+			}
+		}
+		
+
 		/* Loop until we get a successful connection or have gone
-		   through them all */
+		   through them all.  When connecting a GC server, make sure that
+		   the realm is the server's DNS name and not the forest root */
 
 		for (i=0; i<num_gcs; i++) {
 			ads->server.gc = true;
 			ads->server.ldap_server = SMB_STRDUP(gcs_list[i].hostname);
+			ads->server.realm = SMB_STRDUP(host_dns_domain(ads->server.ldap_server));
 			ads_status = ads_connect(ads);
 			if (ADS_ERR_OK(ads_status)) {
 				goto done;
 			}
 			SAFE_FREE(ads->server.ldap_server);
+			SAFE_FREE(ads->server.realm);			
 		}
 
 	        TALLOC_FREE(gcs_list);
