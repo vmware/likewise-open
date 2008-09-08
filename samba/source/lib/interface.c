@@ -20,6 +20,15 @@
 
 #include "includes.h"
 
+#if !defined(IFF_BROADCAST)
+#define IFF_BROADCAST   0x2             /* broadcast address valid */
+#endif
+
+#if !defined(IFF_LOOPBACK)
+#define IFF_LOOPBACK    0x8             /* is a loopback net */
+#endif
+
+
 static struct iface_struct *probed_ifaces;
 static int total_probed;
 

@@ -824,18 +824,6 @@ ADS_STATUS cli_session_setup_spnego(struct cli_state *cli, const char *user,
 
 	DEBUG(3,("got principal=%s\n", principal ? principal : "<null>"));
 
-	if (got_kerberos_mechanism && (principal == NULL)) {
-		/*
-		 * It is WRONG to depend on the principal sent in the negprot
-		 * reply, but right now we do it. So for safety (don't
-		 * segfault later) disable Kerberos when no principal was
-		 * sent. -- VL
-		 */
-		DEBUG(1, ("Kerberos mech was offered, but no principal was "
-			  "sent, disabling Kerberos\n"));
-		cli->use_kerberos = False;
-	}
-
 	fstrcpy(cli->user_name, user);
 
 #ifdef HAVE_KRB5
