@@ -1,5 +1,1 @@
-child_talloc_abort.patch
-ua_cache_valid.patch
-nss_errno.patch
 daemon_restart.patch
-winbind_expand_groups.patch

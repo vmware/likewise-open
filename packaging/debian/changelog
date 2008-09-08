@@ -1,3 +1,9 @@
+likewise-open (4.1.2982-1) intrepid; urgency=low
+
+  * New upstream release
+
+ -- Gerald Carter <gcarter@likewisesoftware.com>  Mon, 08 Sep 2008 15:13:00 -0500
+
 likewise-open (4.1.2956-1) hardy; urgency=low
 
   * Apply upstream SIGCHLD race condition crash fix from Samba tree
