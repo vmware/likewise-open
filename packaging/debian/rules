@@ -18,6 +18,7 @@ export DEB_HOST_ARCH_OS
 pyversion := $(shell pyversions -vd)
 
 CFLAGS = -g -Wall
+LDFLAGS = -L$(PREFIX)/lib/$(PKGNAME) -Wl,-rpath,$(PREFIX)/lib/$(PKGNAME)
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
   CFLAGS += -O0
@@ -120,12 +121,12 @@ install: build
 	mv $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so.0.1
 	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so.0
 	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so
-	(cd $(DESTDIR)/usr/lib && ln -s $(PKGNAME)/libwbclient.so.0 libwbclient.so.0)
+	#(cd $(DESTDIR)/usr/lib && ln -s $(PKGNAME)/libwbclient.so.0 libwbclient.so.0)
 
 	mv $(DESTDIR)/$(PREFIX)/lib/libcentutils.so.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libcentutils.so.1
-	(cd $(DESTDIR)/usr/lib && ln -s -f $(PKGNAME)/libcentutils.so.1 libcentutils.so.1)
+	#(cd $(DESTDIR)/usr/lib && ln -s -f $(PKGNAME)/libcentutils.so.1 libcentutils.so.1)
 	mv $(DESTDIR)/$(PREFIX)/lib/libgpglib.so.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libgpglib.so.1
-	(cd $(DESTDIR)/usr/lib && ln -s -f $(PKGNAME)/libgpglib.so.1 libgpglib.so.1)
+	#(cd $(DESTDIR)/usr/lib && ln -s -f $(PKGNAME)/libgpglib.so.1 libgpglib.so.1)
  
 	/bin/mv $(DESTDIR)/usr/bin/lwi-domainjoin-cli $(DESTDIR)/usr/bin/domainjoin-cli
  
@@ -194,7 +195,7 @@ binary-arch: build install
 	dh_perl
 	dh_makeshlibs
 	dh_installdeb
-	dh_shlibdeps -ldebian/$(PKGNAME)/usr/lib/$(PKGNAME)
+	dh_shlibdeps -l`pwd`/debian/$(PKGNAME)/usr/lib/$(PKGNAME)
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
