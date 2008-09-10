@@ -20,9 +20,6 @@ lib/security/pam_lwidentity.so
 usr/lib/likewise-open/libwbclient.so*
 usr/lib/likewise-open/libcentutils.so*
 usr/lib/likewise-open/libgpglib.so*
-usr/lib/libwbclient.so.0
-usr/lib/libcentutils.so.1
-usr/lib/libgpglib.so.1
 
 etc/samba/lwiauthd.conf
 etc/security/pam_lwidentity.conf
