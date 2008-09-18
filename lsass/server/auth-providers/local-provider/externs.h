@@ -1,0 +1,110 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        externs.h
+ *
+ * Abstract:
+ *
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ * 
+ *        Local Authentication Provider
+ * 
+ *        External Variables
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ */
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
+
+extern pthread_rwlock_t gProviderLocalGlobalDataLock;
+
+#define ENTER_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock)          \
+        if (!bInLock) {                                          \
+           pthread_rwlock_rdlock(&gProviderLocalGlobalDataLock); \
+           bInLock = TRUE;                                       \
+        }
+
+#define LEAVE_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock)          \
+        if (bInLock) {                                           \
+           pthread_rwlock_unlock(&gProviderLocalGlobalDataLock); \
+           bInLock = FALSE;                                      \
+        }
+
+#define ENTER_LOCAL_GLOBAL_DATA_RW_WRITER_LOCK(bInLock)          \
+        if (!bInLock) {                                          \
+           pthread_rwlock_wrlock(&gProviderLocalGlobalDataLock); \
+           bInLock = TRUE;                                       \
+        }
+
+#define LEAVE_LOCAL_GLOBAL_DATA_RW_WRITER_LOCK(bInLock)     \
+        if (bInLock) {                                           \
+           pthread_rwlock_unlock(&gProviderLocalGlobalDataLock); \
+           bInLock = FALSE;                                      \
+        }
+
+extern PCSTR gpszLocalProviderName;
+
+extern PSTR  gpszConfigFilePath;
+
+extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
+
+/*
+ * Database
+ */
+#define LSASS_DB_DIR CACHEDIR "/db"
+#define LSASS_DB     LSASS_DB_DIR "/lsass-local.db"
+
+extern pthread_rwlock_t g_dbLock;
+
+#define ENTER_RW_READER_LOCK pthread_rwlock_rdlock(&g_dbLock)
+#define LEAVE_RW_READER_LOCK pthread_rwlock_unlock(&g_dbLock)
+
+#define ENTER_RW_WRITER_LOCK pthread_rwlock_wrlock(&g_dbLock)
+#define LEAVE_RW_WRITER_LOCK pthread_rwlock_unlock(&g_dbLock)
+
+const extern DWORD gProviderLocal_PasswdChangeIntervalMinimum;
+const extern DWORD gProviderLocal_PasswdChangeIntervalDefault;
+const extern DWORD gProviderLocal_PasswdChangeIntervalMaximum;
+extern DWORD gProviderLocal_PasswdChangeInterval;
+
+const extern DWORD gProviderLocal_PasswdChangeWarningTimeMinimum;
+const extern DWORD gProviderLocal_PasswdChangeWarningTimeDefault;
+const extern DWORD gProviderLocal_PasswdChangeWarningTimeMaximum;
+extern DWORD gProviderLocal_PasswdChangeWarningTime;
+
+extern PSTR gProviderLocal_Hostname;
+
+#endif /* __EXTERNS_H__ */

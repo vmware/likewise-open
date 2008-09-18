@@ -1,27 +1,58 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
 
 #define INTERNAL_ONLY "An internal error has occurred. Please contact Likewise technical support."
 
@@ -103,7 +134,8 @@ CENTERROR_CATALOG_DESC(
     "The specified path is not a directory",
     
     INTERNAL_ONLY)
-CENTERROR_CATALOG(CENTERROR_INCOMPATIBLE_LIBRARY) 
+CENTERROR_CATALOG(CENTERROR_INCOMPATIBLE_LIBRARY)
+CENTERROR_CATALOG(CENTERROR_LSASS_NOT_RUNNING)
 
 CENTERROR_CATALOG(CENTERROR_GP_SYSTEM_CALL_FAILED)
 CENTERROR_CATALOG(CENTERROR_GP_SYSTEM_RESULT_UNEXPECTED)
@@ -169,6 +201,7 @@ CENTERROR_CATALOG(CENTERROR_GP_DNS_COULD_NOT_RESOLVE_NAME)
 CENTERROR_CATALOG(CENTERROR_GP_DNS_HOSTENT_NAME_INVALID)
 CENTERROR_CATALOG(CENTERROR_GP_DNS_QUERY_FAILED)
 CENTERROR_CATALOG(CENTERROR_GP_EVENT_LOG_NOT_AVAILABLE)
+CENTERROR_CATALOG(CENTERROR_GP_NO_SUCH_PROVIDER)
 
 CENTERROR_CATALOG(CENTERROR_REGISTRY_OPEN_KEYDB_FAILED)
 CENTERROR_CATALOG(CENTERROR_REGISTRY_NO_SUCH_KEY)
@@ -330,9 +363,9 @@ CENTERROR_CATALOG_DESC(
     
     CENTERROR_DOMAINJOIN_GPAGENTD_INCOMMUNICADO,
 
-    "Cannot contact Likewise Identity group policy daemon",
+    "Cannot contact Likewise Enterprise group policy daemon",
     
-    "The Likewise Identity group policy daemon cannot be conacted "
+    "The Likewise Enterprise group policy daemon cannot be conacted "
     "despite having started successfully.  Please check the daemon's "
     "logs for more information." )
 
@@ -415,7 +448,7 @@ CENTERROR_CATALOG_DESC(
         
         "Unable to enable ds plugin",
         
-        "The Likewise directory services plugin could not be added to the directory services search path. Most likely this is because the plugin has been disabled via the 'Directory Access' program. Please check 'Likewise Enterprise' inside of 'Directory Access'." )
+        "The Likewise directory services plugin could not be added to the directory services search path. Most likely this is because the plugin has been disabled via the 'Directory Access Utility' program. Please check 'Likewise - Active Directory' inside of 'Directory Access Utility'." )
 CENTERROR_CATALOG(CENTERROR_DOMAINJOIN_FAILED_UNREG_OPENDIR)
 CENTERROR_CATALOG_DESC(
 
@@ -490,6 +523,7 @@ CENTERROR_CATALOG_DESC(
     "Please ensure that the VMWare ESX firewall configuration "
     "file contains valid XML")
 CENTERROR_CATALOG(CENTERROR_DOMAINJOIN_WARNING)
+CENTERROR_CATALOG(CENTERROR_DOMAINJOIN_LSASS_ERROR)
 
 CENTERROR_CATALOG_ERRNO(E2BIG)
 CENTERROR_CATALOG_ERRNO(EACCES)
@@ -555,7 +589,9 @@ CENTERROR_CATALOG_ERRNO(ENETRESET)
 CENTERROR_CATALOG_ERRNO(ENETUNREACH)
 CENTERROR_CATALOG_ERRNO(ENFILE)
 CENTERROR_CATALOG_ERRNO(ENOBUFS)
+#ifdef ENODATA
 CENTERROR_CATALOG_ERRNO(ENODATA)
+#endif
 CENTERROR_CATALOG_ERRNO(ENODEV)
 CENTERROR_CATALOG_ERRNO(ENOENT)
 CENTERROR_CATALOG_ERRNO(ENOEXEC)
@@ -568,8 +604,12 @@ CENTERROR_CATALOG_ERRNO(ENOMSG)
 /*CENTERROR_CATALOG_ERRNO(ENOPKG)*/
 CENTERROR_CATALOG_ERRNO(ENOPROTOOPT)
 CENTERROR_CATALOG_ERRNO(ENOSPC)
+#ifdef ENOSR
 CENTERROR_CATALOG_ERRNO(ENOSR)
+#endif
+#ifdef ENOSTR
 CENTERROR_CATALOG_ERRNO(ENOSTR)
+#endif
 CENTERROR_CATALOG_ERRNO(ENOSYS)
 CENTERROR_CATALOG_ERRNO(ENOTBLK)
 CENTERROR_CATALOG_ERRNO(ENOTCONN)
@@ -600,7 +640,9 @@ CENTERROR_CATALOG_ERRNO(ESOCKTNOSUPPORT)
 CENTERROR_CATALOG_ERRNO(ESRCH)
 CENTERROR_CATALOG_ERRNO(ESTALE)
 /*CENTERROR_CATALOG_ERRNO(ESTRPIPE)*/
+#ifdef ETIME
 CENTERROR_CATALOG_ERRNO(ETIME)
+#endif
 CENTERROR_CATALOG_ERRNO(ETIMEDOUT)
 CENTERROR_CATALOG_ERRNO(ETXTBSY)
 /*CENTERROR_CATALOG_ERRNO(EUCLEAN)*/

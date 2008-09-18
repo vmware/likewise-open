@@ -1,0 +1,77 @@
+#
+# Likewise Security and Authentication Subsystem (LSASS)
+#
+# Time value suffixes:
+# d - days
+# h - hours
+# m - minutes
+# s - seconds
+#
+
+[global]
+
+	# Default: no
+	# enable-eventlog = yes
+
+[pam]
+
+	# log-level can be one of {error, warning, info, verbose}
+   	log-level = error
+   	display-motd = no
+
+[auth provider:lsa-local-provider]
+
+    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
+
+    # Default: 30d
+    # Minimum: 1d
+    # Maximum: 180d
+    password-lifespan-days = 30d
+
+    # Default: 14d
+    # Minimum: 1h
+    # Maximum: 30d (must be less than lifespan)
+    password-change-warn-days = 14d
+
+[auth provider:lsa-activedirectory-provider]
+
+    path = @providerdir@/liblsass_auth_provider_ad@MOD_EXT@
+
+    login-shell-template = /bin/sh
+
+    homedir-template = @HOME_DIR_PATH_DEFAULT@/local/%D/%U
+
+    ldap-sign-and-seal = false
+
+    # Default: 30m
+    # Minimum: 5m
+    # Maximum: 1d
+    cache-purge-timeout = 30m
+
+    # Default: 60s
+    # Minimum: 0
+    # Maximum: 60m
+    cache-entry-expiry = 5m
+
+    # Default: 30d
+    # Minimum: 1h
+    # Maximum: 60d
+    machine-password-lifespan = 30d
+
+    # Default: ^
+    # Allowed: punctuation
+    # Excluded: whitespace, alphanumeric, @, /, \, #
+    separator-character = ^
+    
+    # Allow only the members of the following groups
+    # to login to this system
+    #
+    # Note: use alias or NT4 style name
+    #
+    # restrict-login-to-group = ABC\support
+    
+    # Default: no
+    # assume-default-domain = yes
+    
+    # Default: yes
+    # sync-system-time = no

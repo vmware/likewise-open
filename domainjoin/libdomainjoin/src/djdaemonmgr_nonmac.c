@@ -1,28 +1,35 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
+#include "ctshell.h"
 #include "djdistroinfo.h"
 #include "djdaemonmgr.h"
 
@@ -38,12 +45,14 @@ GetInitScriptDir(PSTR *store)
     return CTStrdup("/etc/rc.d/init.d", store);
 #elif defined(_HPUX_SOURCE)
     return CTStrdup("/sbin/init.d", store);
+#elif defined(__LWI_FREEBSD__)
+    return CTStrdup("/etc/rc.d", store);
 #else
     return CTStrdup("/etc/init.d", store);
 #endif
 }
 
-static CENTERROR FindDaemonScript(PCSTR name, PSTR *path);
+static void FindDaemonScript(PCSTR name, PSTR *path, LWException **exc);
 
 void
 DJGetDaemonStatus(
@@ -52,12 +61,11 @@ DJGetDaemonStatus(
     LWException **exc
     )
 {
-    PSTR* ppszArgs = NULL;
+    PSTR statusBuffer = NULL;
     PSTR prefixedPath = NULL;
     PSTR initDir = NULL;
     PSTR daemonPath = NULL;
     PSTR altDaemonName = NULL;
-    DWORD nArgs = 3;
     long status = 0;
     PPROCINFO pProcInfo = NULL;
     BOOLEAN daemon_installed = FALSE;
@@ -67,7 +75,7 @@ DJGetDaemonStatus(
         LW_CLEANUP_CTERR(exc, CTStrdup(pszDaemonName, &prefixedPath));
     else
     {
-        LW_CLEANUP_CTERR(exc, FindDaemonScript(pszDaemonName, &prefixedPath));
+        LW_TRY(exc, FindDaemonScript(pszDaemonName, &prefixedPath, &LW_EXC));
     }
 
     DJ_LOG_INFO("Checking status of daemon [%s]", prefixedPath);
@@ -87,15 +95,11 @@ DJGetDaemonStatus(
     }
     else
     {
-        LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs)));
+        LW_CLEANUP_CTERR(exc, CTShell("%script status >/dev/null 2>&1; echo $? >%statusBuffer",
+                    CTSHELL_STRING(script, prefixedPath),
+                    CTSHELL_BUFFER(statusBuffer, &statusBuffer)));
 
-        LW_CLEANUP_CTERR(exc, CTAllocateString(prefixedPath, ppszArgs));
-
-        LW_CLEANUP_CTERR(exc, CTAllocateString("status", ppszArgs+1));
-
-        LW_CLEANUP_CTERR(exc, DJSpawnProcessSilent(ppszArgs[0], ppszArgs, &pProcInfo));
-
-        LW_CLEANUP_CTERR(exc, DJGetProcessStatus(pProcInfo, &status));
+        status = atol(statusBuffer);
 
         // see
         // http://forgeftp.novell.com/library/SUSE%20Package%20Conventions/spc_init_scripts.html
@@ -127,19 +131,19 @@ DJGetDaemonStatus(
         DJ_LOG_VERBOSE("Looking for %s", daemonBaseName);
         if(!strcmp(daemonBaseName, "likewise-open"))
             daemonBaseName = "likewise-winbindd";
-        else if(!strcmp(daemonBaseName, "centeris.com-gpagentd"))
-            daemonBaseName = "centeris-gpagentd";
-        else if(!strcmp(daemonBaseName, "centeris.com-eventlogd"))
-            daemonBaseName = "centeris-eventlogd";
-        else if(!strcmp(daemonBaseName, "centeris.com-rpcd"))
-            daemonBaseName = "rpcd";
-        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/centeris/sbin:/opt/centeris/sbin:/usr/centeris/bin:/opt/centeris/bin", &daemonPath);
+
+        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:" BINDIR ":" SBINDIR, &daemonPath);
         if(ceError == CENTERROR_FILE_NOT_FOUND)
         {
             CT_SAFE_FREE_STRING(altDaemonName);
             LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&altDaemonName,
                     "%sd", daemonBaseName));
-            ceError = CTFindFileInPath(altDaemonName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin", &daemonPath);
+            ceError = CTFindFileInPath(altDaemonName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:" BINDIR ":" SBINDIR, &daemonPath);
+        }
+        if(ceError == CENTERROR_FILE_NOT_FOUND)
+        {
+            LW_RAISE_EX(exc, CENTERROR_FILE_NOT_FOUND, "Cannot find daemon binary", "Querying the daemon init script with '%s status' returned code 1. This either means the init script does not support the status option, or the daemon died leaving a pid file. This program is instead attempting to see if the program is running using the ps command, however the daemon binary (%s) that goes along with the init script cannot be found.", prefixedPath, daemonBaseName);
+            goto cleanup;
         }
         LW_CLEANUP_CTERR(exc, ceError);
 
@@ -163,10 +167,6 @@ DJGetDaemonStatus(
     }
 
 cleanup:
-
-    if (ppszArgs)
-        CTFreeStringArray(ppszArgs, nArgs);
-
     if (pProcInfo)
         FreeProcInfo(pProcInfo);
 
@@ -176,42 +176,47 @@ cleanup:
     CT_SAFE_FREE_STRING(altDaemonName);
 }
 
-static CENTERROR FindDaemonScript(PCSTR name, PSTR *path)
+static void FindDaemonScript(PCSTR name, PSTR *path, LWException **exc)
 {
     PSTR altName = NULL;
     CENTERROR ceError;
+    const char *searchPath = "/etc/init.d:/etc/rc.d/init.d:/sbin/init.d:/etc/rc.d";
 
     *path = NULL;
 
-    ceError = CTFindFileInPath(name, "/etc/init.d:/etc/rc.d/init.d:/sbin/init.d", path);
+    ceError = CTFindFileInPath(name, searchPath, path);
     if(ceError == CENTERROR_FILE_NOT_FOUND)
     {
         CT_SAFE_FREE_STRING(altName);
-        GCE(ceError = CTAllocateStringPrintf(&altName,
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&altName,
                     "%s.rc", name));
-        ceError = CTFindFileInPath(altName, "/etc/init.d:/etc/rc.d/init.d:/sbin/init.d", path);
+        ceError = CTFindFileInPath(altName, searchPath, path);
     }
     if(ceError == CENTERROR_FILE_NOT_FOUND && !strcmp(name, "dtlogin"))
     {
         CT_SAFE_FREE_STRING(altName);
-        GCE(ceError = CTAllocateStringPrintf(&altName,
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&altName,
                     "rc.dt"));
-        ceError = CTFindFileInPath(altName, "/etc:/etc/init.d:/etc/rc.d/init.d:/sbin/init.d", path);
+        ceError = CTFindFileInPath(altName, searchPath, path);
     }
     if(ceError == CENTERROR_FILE_NOT_FOUND)
-        GCE(ceError = CENTERROR_DOMAINJOIN_MISSING_DAEMON);
-    GCE(ceError);
+    {
+        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON,
+                "Unable to find daemon",
+                "The '%s' daemon could not be found in the serach path '%s'. It could not be found with the alternative name '%s' either.",
+                name, searchPath, altName);
+        goto cleanup;
+    }
+    LW_CLEANUP_CTERR(exc, ceError);
 
 cleanup:
     CT_SAFE_FREE_STRING(altName);
-    return ceError;
 }
 
 void
 DJStartStopDaemon(
     PCSTR pszDaemonName,
     BOOLEAN bStatus,
-    PSTR pszPreCommand,
     LWException **exc
     )
 {
@@ -220,17 +225,10 @@ DJStartStopDaemon(
     long status = 0;
     PPROCINFO pProcInfo = NULL;
     BOOLEAN bStarted = FALSE;
-    CHAR szBuf[1024];
     PSTR pszDaemonPath = NULL;
-    CENTERROR ceError;
     int retry;
 
-    ceError = FindDaemonScript(pszDaemonName, &pszDaemonPath);
-    if(ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-    {
-        LW_RAISE_EX(exc, ceError, "Unable to find daemon", "The '%s' daemon could not be found in /etc/rc.d/init.d, /etc/init.d, or /sbin/init.d");
-    }
-    LW_CLEANUP_CTERR(exc, ceError);
+    LW_TRY(exc, FindDaemonScript(pszDaemonName, &pszDaemonPath, &LW_EXC));
 
     if (bStatus) {
         DJ_LOG_INFO("Starting daemon [%s]", pszDaemonPath);
@@ -249,24 +247,11 @@ DJStartStopDaemon(
 
         LW_CLEANUP_CTERR(exc, CTAllocateString("kill `cat /var/dt/Xpid`", ppszArgs+2));
     }
-    else if (IsNullOrEmptyString(pszPreCommand)) {
+    else {
 
         LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs)));
         LW_CLEANUP_CTERR(exc, CTAllocateString(pszDaemonPath, ppszArgs));
         LW_CLEANUP_CTERR(exc, CTAllocateString((bStatus ? "start" : "stop"), ppszArgs+1));
-
-    } else {
-
-        LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs)));
-        LW_CLEANUP_CTERR(exc, CTAllocateString("/bin/sh", ppszArgs));
-        LW_CLEANUP_CTERR(exc, CTAllocateString("-c", ppszArgs+1));
-
-        sprintf(szBuf, "%s; %s %s ",
-                pszPreCommand,
-                pszDaemonPath,
-                (bStatus ? "start" : "stop"));
-
-        LW_CLEANUP_CTERR(exc, CTAllocateString(szBuf, ppszArgs+2));
     }
 
     LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
@@ -306,10 +291,10 @@ cleanup:
 
 void
 DJDoUpdateRcD(
-    PSTR pszDaemonName,
+    PCSTR pszDaemonName,
     BOOLEAN bStatus,
-    PSTR pszStartPriority,
-    PSTR pszStopPriority,
+    int startPriority,
+    int stopPriority,
     LWException **exc
     )
 {
@@ -322,14 +307,14 @@ DJDoUpdateRcD(
     }
     else
     {
-        if (pszStartPriority == NULL)
-            pszStartPriority = "20";
-        if (pszStopPriority == NULL)
-            pszStopPriority = "20";
+        if (startPriority == 0)
+            startPriority = 20;
+        if (stopPriority == 0)
+            stopPriority = 20;
 
         LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&command,
-                    "%s %s defaults %s %s", pszUpdateRcDFilePath,
-                    pszDaemonName, pszStartPriority, pszStopPriority));
+                    "%s %s defaults %d %d", pszUpdateRcDFilePath,
+                    pszDaemonName, startPriority, stopPriority));
     }
 
     CTCaptureOutputToExc(command, exc);
@@ -346,7 +331,7 @@ cleanup:
 
 CENTERROR
 DJDoChkConfig(
-    PSTR pszDaemonName,
+    PCSTR pszDaemonName,
     BOOLEAN bStatus
     )
 {
@@ -363,6 +348,8 @@ DJDoChkConfig(
     sprintf(szDaemonPath, "/etc/rc.d/init.d/%s", pszDaemonName);
 #elif defined(_HPUX_SOURCE)
     sprintf(szDaemonPath, "/sbin/init.d/%s", pszDaemonName);
+#elif defined(__LWI_FREEBSD__)
+    sprintf(szDaemonPath, "/etc/rc.d/%s", pszDaemonName);
 #else
     sprintf(szDaemonPath, "/etc/init.d/%s", pszDaemonName);
 #endif
@@ -471,10 +458,10 @@ error:
 
 void
 DJConfigureForDaemonRestart(
-    PSTR pszDaemonName,
+    PCSTR pszDaemonName,
     BOOLEAN bStatus,
-    PSTR pszStartPriority,
-    PSTR pszStopPriority,
+    int startPriority,
+    int stopPriority,
     LWException **exc
     )
 {
@@ -492,9 +479,16 @@ DJConfigureForDaemonRestart(
     LW_CLEANUP_CTERR(exc, CTCheckFileExists(pszChkConfigPath, &bFileExists));
 
     if (bFileExists) {
+        CENTERROR ceError;
 
         DJ_LOG_VERBOSE("Found '%s'", pszChkConfigPath);
-        LW_CLEANUP_CTERR(exc, DJDoChkConfig(pszDaemonName, bStatus));
+        ceError = DJDoChkConfig(pszDaemonName, bStatus);
+        if(ceError == CENTERROR_DOMAINJOIN_CHKCONFIG_FAILED)
+        {
+            LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_CHKCONFIG_FAILED, "chkconfig failed", "An error occurred while using chkconfig to process the '%s' daemon. This daemon was being %s the list of processes to start on reboot.", pszDaemonName, bStatus? "added to" : "removed from");
+            goto cleanup;
+        }
+        LW_CLEANUP_CTERR(exc, ceError);
 
         goto done;
     }
@@ -505,7 +499,7 @@ DJConfigureForDaemonRestart(
     if (bFileExists) {
 
         DJ_LOG_VERBOSE("Found '%s'", pszUpdateRcDFilePath);
-        LW_TRY(exc, DJDoUpdateRcD(pszDaemonName, bStatus, pszStartPriority, pszStopPriority, &LW_EXC));
+        LW_TRY(exc, DJDoUpdateRcD(pszDaemonName, bStatus, startPriority, stopPriority, &LW_EXC));
 
         goto done;
     }
@@ -535,15 +529,27 @@ DJConfigureForDaemonRestart(
          */
         if(bStatus)
         {
-            LW_CLEANUP_CTERR(exc, FindDaemonScript(pszDaemonName,
-                        &symlinkTarget));
+            LW_TRY(exc, FindDaemonScript(pszDaemonName,
+                        &symlinkTarget, &LW_EXC));
             LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
-                    "/etc/rc.d/rc2.d/K%s%s", pszStopPriority, pszDaemonName));
+                    "/etc/rc.d/rc2.d/K%02d%s", stopPriority, pszDaemonName));
+            DJ_LOG_INFO("Creating symlink [%s] -> [%s]", symlinkName, symlinkTarget);
+            LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(symlinkName, &bFileExists));
+            if (bFileExists)
+            {
+                LW_CLEANUP_CTERR(exc, CTRemoveFile(symlinkName));
+            }
             LW_CLEANUP_CTERR(exc, CTCreateSymLink(symlinkTarget,
                         symlinkName));
             CT_SAFE_FREE_STRING(symlinkName);
             LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
-                    "/etc/rc.d/rc2.d/S%s%s", pszStartPriority, pszDaemonName));
+                    "/etc/rc.d/rc2.d/S%02d%s", startPriority, pszDaemonName));
+            DJ_LOG_INFO("Creating symlink [%s] -> [%s]", symlinkName, symlinkTarget);
+            LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(symlinkName, &bFileExists));
+            if (bFileExists)
+            {
+                LW_CLEANUP_CTERR(exc, CTRemoveFile(symlinkName));
+            }
             LW_CLEANUP_CTERR(exc, CTCreateSymLink(symlinkTarget,
                         symlinkName));
         }
@@ -571,6 +577,8 @@ DJConfigureForDaemonRestart(
                     &matchCount));
                 for(j = 0; j < matchCount; j++)
                 {
+                    DJ_LOG_INFO("Removing init script symlink [%s]",
+                            matchingPaths[j]);
                     LW_CLEANUP_CTERR(exc, CTRemoveFile(matchingPaths[j]));
                 }
                 //CTFreeStringArray will ignore matchingPaths if it is NULL
@@ -589,12 +597,56 @@ cleanup:
 }
 
 void
+DJManageDaemonDescription(
+    PCSTR pszName,
+    BOOLEAN bStatus,
+    int startPriority,
+    int stopPriority,
+    PSTR *description,
+    LWException **exc
+    )
+{
+    BOOLEAN bStarted = FALSE;
+    PSTR daemonPath = NULL;
+
+    *description = NULL;
+
+    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
+
+    // if we got this far, we have validated the existence of the
+    // daemon and we have figured out if its started or stopped
+
+    // if we are already in the desired state, do nothing.
+    if (bStarted != bStatus) {
+
+        CT_SAFE_FREE_STRING(daemonPath);
+        LW_TRY(exc, FindDaemonScript(pszName, &daemonPath, &LW_EXC));
+        if(bStatus)
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
+                    "Start %s by running '%s start'.\n"
+                    "Create symlinks for %s so that it starts at reboot.\n",
+                    pszName, daemonPath, pszName));
+        }
+        else
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
+                    "Stop %s by running '%s stop'.\n"
+                    "Remove symlinks for %s so that it no longer starts at reboot.\n",
+                    pszName, daemonPath, pszName));
+        }
+    }
+
+cleanup:
+    CT_SAFE_FREE_STRING(daemonPath);
+}
+
+void
 DJManageDaemon(
     PCSTR pszName,
     BOOLEAN bStatus,
-    PSTR pszPreCommand,
-    PSTR pszStartPriority,
-    PSTR pszStopPriority,
+    int startPriority,
+    int stopPriority,
     LWException **exc
     )
 {
@@ -611,19 +663,24 @@ DJManageDaemon(
     // if we are already in the desired state, do nothing.
     if (bStarted != bStatus) {
 
-        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, pszPreCommand, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, &LW_EXC));
 
     }
 
-    LW_TRY(exc, DJConfigureForDaemonRestart(pszName, bStatus, pszStartPriority, pszStopPriority, &LW_EXC));
+    LW_TRY(exc, DJConfigureForDaemonRestart(pszName, bStatus, startPriority, stopPriority, &LW_EXC));
 
 cleanup:
     ;
 }
 
-struct _DaemonList daemonList[] = {
-    { "centeris.com-lwiauthd", "likewise-open", TRUE, 92, 10 },
-    { "centeris.com-gpagentd", NULL, FALSE, 92, 9 },
-    { NULL, NULL, FALSE, 0, 0 },
+struct _DaemonList daemonList[] = {    
+#if !defined(__LWI_HP_UX__)
+    { "dcerpcd", {NULL}, FALSE, 91, 12 },
+#endif /* __LWI_HP_UX__ */
+    { "eventlogd", {NULL}, FALSE, 92, 11 },
+    { "lsassd", {"likewise-open", NULL}, TRUE, 93, 10 },
+    { "gpagentd", {NULL}, FALSE, 94, 9 },
+    { "lwmgmtd", {NULL}, FALSE, 95, 8 },
+    { NULL, {NULL}, FALSE, 0, 0 },
 };
 

@@ -1,0 +1,1652 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/**
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * @file
+ *
+ *     lsadm_p.c
+ *
+ * @brief
+ *
+ *     LSASS Domain Manager (LsaDm) Implementation
+ *
+ * @details
+ *
+ *     This module keeps track of the state of each domain.  In addition
+ *     to keeping track of domain names, SIDs, trust info, and affinity,
+ *     it also keeps track of which domains are considered unreachable
+ *     (and thus "offline").  A thread will try to transition each offline
+ *     domain back to online by periodically checking the reachability
+ *     of offline domains.
+ *
+ * @author Danilo Almeida (dalmeida@likewisesoftware.com)
+ *
+ */
+
+#include "adprovider.h"
+#include "lsadm_p.h"
+
+#define SetFlag(Variable, Flags)   ((Variable) |= (Flags))
+#define ClearFlag(Variable, Flags) ((Variable) &= ~(Flags))
+#define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
+
+#define IsLsaDmDomainFlagsOffline(Flags) \
+    IsSetFlag(Flags, LSA_DM_DOMAIN_FLAG_OFFLINE | LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE)
+
+#define LOG_WRAP_BOOL(x)   ((x) ? 'Y' : 'N')
+#define LOG_WRAP_STRING(x) ((x) ? (x) : "(null)")
+
+#define IS_BOTH_OR_NEITHER(Condition1, Condition2) \
+    !(!!(Condition1) ^ !!(Condition2))
+
+
+//////////////////////////////////////////////////////////////////////
+///
+/// @name LSASS Domain Manager (LsaDm) Internal State
+///
+/// @details This keeps track of LsaDm internal state.
+///
+/// @{
+
+///
+/// Keeps track of offline state of a single domain.
+///
+typedef struct _LSA_DM_DOMAIN_STATE {
+
+    LSA_DM_DOMAIN_FLAGS Flags;
+
+    /// Name of domain.  This could be NULL if this is the child of a
+    /// ransitive one-way trust.
+    PSTR pszDnsName;
+
+    /// Short domain name
+    PSTR pszNetbiosName;
+
+    PSTR pszTrusteeDnsName;
+    DWORD dwTrustFlags;
+    DWORD dwTrustType;
+    DWORD dwTrustAttributes;
+
+    PSID pSid;
+    uuid_t Guid;
+
+    PSTR pszForestName;
+    PSTR pszClientSiteName;
+
+    PLSA_DM_DC_INFO pDcInfo;
+    PLSA_DM_DC_INFO pGcInfo;
+
+} LSA_DM_DOMAIN_STATE, *PLSA_DM_DOMAIN_STATE;
+
+///
+/// Keeps track of all domain state.
+///
+typedef struct _LSA_DM_STATE {
+    /// Offline enabled, global (force or media sense) offline, etc.
+    LSA_DM_STATE_FLAGS StateFlags;
+
+    /// Count of offline domains.
+    DWORD dwOfflineCount;
+
+    PLSA_DM_DOMAIN_STATE pPrimaryDomain;
+
+    /// List of domains (LSA_DM_DOMAIN_STATE).  It wil lcontain the primary
+    /// domain at the head.
+    PDLINKEDLIST DomainList;
+
+    /// Additional internal fields related to threading, etc. go here.
+    pthread_t OnlineDetectionThread;
+    pthread_t* pOnlineDetectionThread;
+    pthread_mutex_t Mutex;
+    pthread_mutex_t* pMutex;
+    pthread_cond_t Condition;
+    pthread_cond_t* pCondition;
+
+    /// Thread notifications
+    BOOLEAN bNeedRefresh;
+    BOOLEAN bNeedCheck;
+
+    /// @name Parameters
+    /// @{
+    /// Number of seconds between checking for domains returning online
+    DWORD dwCheckOnlineSeconds;
+    /// @}
+} LSA_DM_STATE, *PLSA_DM_STATE;
+
+static
+VOID
+LsaDmpDomainDestroy(
+    IN OUT PLSA_DM_DOMAIN_STATE pDomain
+    );
+
+// TODO-Assert macros...
+static
+VOID
+LsaDmpAcquireMutex(
+    IN pthread_mutex_t* pMutex
+    )
+{
+    DWORD dwError = pthread_mutex_lock(pMutex);
+    if (dwError)
+    {
+        LSA_LOG_ERROR("pthread_mutex_lock() failed: %d", dwError);
+    }
+}
+
+static
+VOID
+LsaDmpReleaseMutex(
+    IN pthread_mutex_t* pMutex
+    )
+{
+    DWORD dwError = pthread_mutex_unlock(pMutex);
+    if (dwError)
+    {
+        LSA_LOG_ERROR("pthread_mutex_unlock() failed: %d", dwError);
+    }
+}
+
+
+/// @} lsa_om_internal
+
+static
+PVOID
+LsaDmpThreadRoutine(
+    IN PVOID pContext
+    )
+{
+#if 0
+    DWORD dwError = 0;
+    PLSA_DM_STATE pState = (PLSA_DM_STATE) pContext;
+#endif
+
+    // TODO-2008/08/01-dalmeida -- Implement LsaDmpThreadRoutine().
+
+    return NULL;
+}
+
+static
+VOID
+LsaDmpForEachDomainDestroy(
+    IN PVOID pData,
+    IN PVOID pContext
+    )
+{
+    PLSA_DM_DOMAIN_STATE pDomain = (PLSA_DM_DOMAIN_STATE)pData;
+    LsaDmpDomainDestroy(pDomain);
+}
+
+VOID
+LsaDmpStateDestroy(
+    IN OUT LSA_DM_STATE_HANDLE Handle
+    )
+///<
+/// Destroy a state object for the offline manager.
+///
+/// This includes stopping the online detection thread.
+///
+/// @param[in, out] Handle - Offline state manager object to destroy.
+///
+/// @return N/A
+///
+{
+    if (Handle)
+    {
+        if (Handle->pOnlineDetectionThread)
+        {
+            void* threadResult = NULL;
+            pthread_join(*Handle->pOnlineDetectionThread, &threadResult);
+            Handle->pOnlineDetectionThread = NULL;
+        }
+        if (Handle->pCondition)
+        {
+            pthread_cond_destroy(Handle->pCondition);
+            Handle->pCondition = NULL;
+        }
+        if (Handle->pMutex)
+        {
+            pthread_mutex_destroy(Handle->pMutex);
+            Handle->pMutex = NULL;
+        }
+
+        if (Handle->DomainList)
+        {
+            LsaDLinkedListForEach(Handle->DomainList, LsaDmpForEachDomainDestroy, NULL);
+            LsaDLinkedListFree(Handle->DomainList);
+        }
+
+        LSA_SAFE_FREE_MEMORY(Handle);
+    }
+}
+
+DWORD
+LsaDmpStateCreate(
+    OUT PLSA_DM_STATE_HANDLE pHandle,
+    IN BOOLEAN bIsOfflineBehaviorEnabled,
+    IN DWORD dwCheckOnlineSeconds
+    )
+///<
+/// Create an empty state object for the offline manager.
+///
+/// This includes starting up the online detection thread.
+///
+/// @param[out] pHandle - Returns new offline state manager object.
+///
+/// @param[in] bIsOfflineBehaviorEnabled - Whether to enable offline behavior.
+///
+/// @param[in] dwCheckOnlineSeconds - How often to check whether an offline
+///     domain is back online. A setting of zero disables these checks.
+///
+/// @return LSA status code.
+///  @arg LSA_ERROR_SUCCESS on success
+///  @arg !LSA_ERROR_SUCCESS on failure
+///
+{
+    DWORD dwError = 0;
+    PLSA_DM_STATE pState = NULL;
+    pthread_mutexattr_t mutexAttr;
+    pthread_mutexattr_t* pMutexAttr = NULL;
+
+    dwError = pthread_mutexattr_init(&mutexAttr);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pMutexAttr = &mutexAttr;
+
+    dwError = pthread_mutexattr_settype(pMutexAttr, PTHREAD_MUTEX_RECURSIVE);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateMemory(sizeof(*pState), (PVOID*)&pState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bIsOfflineBehaviorEnabled)
+    {
+        SetFlag(pState->StateFlags, LSA_DM_STATE_FLAG_OFFLINE_ENABLED);
+    }
+
+    dwError = pthread_mutex_init(&pState->Mutex, pMutexAttr);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Indicate that the mutex is initialized
+    pState->pMutex = &pState->Mutex;
+
+    dwError = pthread_cond_init(&pState->Condition, NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Indicate that the condition is initialized
+    pState->pCondition = &pState->Condition;
+
+    pState->dwCheckOnlineSeconds = dwCheckOnlineSeconds;
+
+    // Now that everything is set up, we need to initialize the thread.
+
+    dwError = pthread_create(&pState->OnlineDetectionThread, NULL,
+                             LsaDmpThreadRoutine, pState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Indicate that the thread is initialized
+    pState->pOnlineDetectionThread = &pState->OnlineDetectionThread;
+
+cleanup:
+    if (pMutexAttr)
+    {
+        pthread_mutexattr_destroy(pMutexAttr);
+    }
+
+    *pHandle = pState;
+
+    return dwError;
+
+error:
+    if (pState)
+    {
+        LsaDmpStateDestroy(pState);
+        pState = NULL;
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LsaDmpQueryState(
+    IN LSA_DM_STATE_HANDLE Handle,
+    OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
+    OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags
+    )
+{
+    LsaDmpAcquireMutex(Handle->pMutex);
+    if (pdwCheckOnlineSeconds)
+    {
+        *pdwCheckOnlineSeconds = Handle->dwCheckOnlineSeconds;
+    }
+    if (pStateFlags)
+    {
+        *pStateFlags = Handle->StateFlags;
+    }
+    LsaDmpReleaseMutex(Handle->pMutex);
+
+    return 0;
+}
+
+DWORD
+LsaDmpSetState(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
+    IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled
+    )
+{
+    BOOLEAN bIsModified = FALSE;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+
+    if (pdwCheckOnlineSeconds)
+    {
+        if (Handle->dwCheckOnlineSeconds != *pdwCheckOnlineSeconds)
+        {
+            Handle->dwCheckOnlineSeconds = *pdwCheckOnlineSeconds;
+            bIsModified = TRUE;
+        }
+    }
+
+    if (pbIsOfflineBehaviorEnabled)
+    {
+        if (IsSetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_OFFLINE_ENABLED) !=
+            !!*pbIsOfflineBehaviorEnabled)
+        {
+            if (*pbIsOfflineBehaviorEnabled)
+            {
+                SetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_OFFLINE_ENABLED);
+            }
+            else
+            {
+                ClearFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_OFFLINE_ENABLED);
+            }
+            bIsModified = TRUE;
+        }
+    }
+
+    if (bIsModified)
+    {
+        pthread_cond_signal(Handle->pCondition);
+    }
+
+    LsaDmpReleaseMutex(Handle->pMutex);
+    return 0;
+}
+
+VOID
+LsaDmpMediaSenseOffline(
+    IN LSA_DM_STATE_HANDLE Handle
+    )
+{
+    LsaDmpAcquireMutex(Handle->pMutex);
+    SetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_MEDIA_SENSE_OFFLINE);
+    LsaDmpReleaseMutex(Handle->pMutex);
+}
+
+VOID
+LsaDmpMediaSenseOnline(
+    IN LSA_DM_STATE_HANDLE Handle
+    )
+{
+    LsaDmpAcquireMutex(Handle->pMutex);
+    ClearFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_MEDIA_SENSE_OFFLINE);
+    LsaDmpReleaseMutex(Handle->pMutex);
+}
+
+DWORD
+LsaDmpDuplicateSid(
+    OUT PSID* ppSid,
+    IN PSID pSid
+    )
+{
+    DWORD dwError = 0;
+    if (pSid)
+    {
+        size_t size = SidGetSize(pSid);
+        dwError = LsaAllocateMemory(size, (PVOID*)ppSid);
+        BAIL_ON_LSA_ERROR(dwError);
+        memcpy(*ppSid, pSid, size);
+    }
+    else
+    {
+        *ppSid = NULL;
+    }
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+LsaDmpDuplicateDcInfo(
+    OUT PLSA_DM_DC_INFO* ppDcInfo,
+    IN PLSA_DM_DC_INFO pDcInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_DM_DC_INFO pResultDcInfo = NULL;
+
+    dwError = LsaAllocateMemory(sizeof(*pResultDcInfo), (PVOID*)&pResultDcInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pDcInfo->pszName, &pResultDcInfo->pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pDcInfo->pszAddress, &pResultDcInfo->pszAddress);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pDcInfo->pszSiteName, &pResultDcInfo->pszSiteName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pResultDcInfo->dwDsFlags = pDcInfo->dwDsFlags;
+
+cleanup:
+    *ppDcInfo = pResultDcInfo;
+    return dwError;
+error:
+    LsaDmFreeDcInfo(pResultDcInfo);
+    pResultDcInfo = NULL;
+    goto cleanup;
+}
+
+static
+DWORD
+LsaDmpDomainSetDcInfoInternal(
+    IN PLSA_DM_DOMAIN_STATE pDomain,
+    IN BOOLEAN bSetGcInfo,
+    IN PLWNET_DC_INFO pDcInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_DM_DC_INFO pDomainDcInfo = NULL;
+    PLSA_DM_DC_INFO* ppDomainDcInfo = bSetGcInfo ? &pDomain->pGcInfo : &pDomain->pDcInfo;
+    PLSA_DM_DC_INFO pCurrentDomainDcInfo = *ppDomainDcInfo;
+    PSTR pszForestName = NULL;
+    PSTR pszClientSiteName = NULL;
+    PSTR pszDcInfoName = NULL;
+    PSTR pszDcInfoAddress = NULL;
+    PSTR pszDcInfoSiteName = NULL;
+
+    if (!pDomain->pszForestName)
+    {
+        dwError = LsaAllocateString(pDcInfo->pszDnsForestName, &pszForestName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // TODO - perhaps log if forest root result changed?
+
+    if (!pDomain->pszClientSiteName ||
+        strcasecmp(pDomain->pszClientSiteName, pDcInfo->pszClientSiteName))
+    {
+        if (pDomain->pszClientSiteName)
+        {
+            LSA_LOG_INFO("Client site name for '%s' domain changing from '%s' to '%s'",
+                         pDomain->pszDnsName,
+                         LOG_WRAP_STRING(pDomain->pszClientSiteName),
+                         pDcInfo->pszClientSiteName);
+        }
+        
+        dwError = LsaAllocateString(pDcInfo->pszClientSiteName, &pszClientSiteName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!pCurrentDomainDcInfo)
+    {
+        dwError = LsaAllocateMemory(sizeof(*pDomainDcInfo), (PVOID*)&pDomainDcInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!pCurrentDomainDcInfo ||
+        strcasecmp(pCurrentDomainDcInfo->pszName, pDcInfo->pszDomainControllerName))
+    {
+        dwError = LsaAllocateString(pDcInfo->pszDomainControllerName, &pszDcInfoName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!pCurrentDomainDcInfo ||
+        strcasecmp(pCurrentDomainDcInfo->pszAddress, pDcInfo->pszDomainControllerAddress))
+    {
+        dwError = LsaAllocateString(pDcInfo->pszDomainControllerAddress, &pszDcInfoAddress);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!pCurrentDomainDcInfo ||
+        strcasecmp(pCurrentDomainDcInfo->pszSiteName, pDcInfo->pszDCSiteName))
+    {
+        dwError = LsaAllocateString(pDcInfo->pszDCSiteName, &pszDcInfoSiteName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Everything is allocated, so we can set everything.
+
+    if (pszForestName)
+    {
+        LSA_SAFE_FREE_STRING(pDomain->pszForestName);
+        pDomain->pszForestName = pszForestName;
+        pszForestName = NULL;
+
+        if (!strcasecmp(pDomain->pszForestName, pDomain->pszDnsName))
+        {
+            pDomain->Flags |= LSA_DM_DOMAIN_FLAG_FOREST_ROOT;
+        }
+    }
+
+    if (pszClientSiteName)
+    {
+        LSA_SAFE_FREE_STRING(pDomain->pszClientSiteName);
+        pDomain->pszClientSiteName = pszClientSiteName;
+        pszClientSiteName = NULL;
+    }
+
+    if (!pCurrentDomainDcInfo)
+    {
+        // Note that it could not have been set if we need it.
+        pCurrentDomainDcInfo = *ppDomainDcInfo = pDomainDcInfo;
+        pDomainDcInfo = NULL;
+    }
+
+    if (pszDcInfoName)
+    {
+        LSA_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszName);
+        pCurrentDomainDcInfo->pszName = pszDcInfoName;
+        pszDcInfoName = NULL;
+    }
+
+    if (pszDcInfoAddress)
+    {
+        LSA_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszAddress);
+        pCurrentDomainDcInfo->pszAddress = pszDcInfoAddress;
+        pszDcInfoAddress = NULL;
+    }
+
+    if (pszDcInfoSiteName)
+    {
+        LSA_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszSiteName);
+        pCurrentDomainDcInfo->pszSiteName = pszDcInfoSiteName;
+        pszDcInfoSiteName = NULL;
+    }
+
+    if (pCurrentDomainDcInfo->dwDsFlags != pDcInfo->dwFlags)
+    {
+        pCurrentDomainDcInfo->dwDsFlags = pDcInfo->dwFlags;
+    }
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszForestName);
+    LSA_SAFE_FREE_STRING(pszClientSiteName);
+    LSA_SAFE_FREE_STRING(pszDcInfoName);
+    LSA_SAFE_FREE_STRING(pszDcInfoAddress);
+    LSA_SAFE_FREE_STRING(pszDcInfoSiteName);
+    LSA_SAFE_FREE_MEMORY(pDomainDcInfo);
+    return dwError;
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+LsaDmpDomainSetDcInfo(
+    IN PLSA_DM_DOMAIN_STATE pDomain,
+    IN PLWNET_DC_INFO pDcInfo
+    )
+{
+    return LsaDmpDomainSetDcInfoInternal(pDomain, FALSE, pDcInfo);
+}
+
+static
+DWORD
+LsaDmpDomainSetGcInfo(
+    IN PLSA_DM_DOMAIN_STATE pDomain,
+    IN PLWNET_DC_INFO pDcInfo
+    )
+{
+    return LsaDmpDomainSetDcInfoInternal(pDomain, TRUE, pDcInfo);
+}
+
+static
+VOID
+LsaDmpDomainDestroy(
+    IN OUT PLSA_DM_DOMAIN_STATE pDomain
+    )
+{
+    if (pDomain)
+    {
+        LSA_SAFE_FREE_STRING(pDomain->pszDnsName);
+        LSA_SAFE_FREE_STRING(pDomain->pszNetbiosName);
+        LSA_SAFE_FREE_STRING(pDomain->pszTrusteeDnsName);
+        LSA_SAFE_FREE_MEMORY(pDomain->pSid);
+        LSA_SAFE_FREE_STRING(pDomain->pszForestName);
+        LSA_SAFE_FREE_STRING(pDomain->pszClientSiteName);
+        if (pDomain->pDcInfo)
+        {
+            LSA_SAFE_FREE_STRING(pDomain->pDcInfo->pszName);
+            LSA_SAFE_FREE_STRING(pDomain->pDcInfo->pszAddress);
+            LSA_SAFE_FREE_STRING(pDomain->pDcInfo->pszSiteName);
+            LsaFreeMemory(pDomain->pDcInfo);
+        }
+        if (pDomain->pGcInfo)
+        {
+            LSA_SAFE_FREE_STRING(pDomain->pGcInfo->pszName);
+            LSA_SAFE_FREE_STRING(pDomain->pGcInfo->pszAddress);
+            LSA_SAFE_FREE_STRING(pDomain->pGcInfo->pszSiteName);
+            LsaFreeMemory(pDomain->pGcInfo);
+        }
+        LSA_SAFE_FREE_MEMORY(pDomain);
+    }
+}
+
+static
+BOOLEAN
+LsaDmpIsDnsDomainName(
+    IN PCSTR pszDomainName
+    )
+{
+    BOOLEAN bIsValid = FALSE;
+    char* dot = strrchr(pszDomainName, '.');
+    if (dot && dot[1])
+    {
+        // Must have dot and it must not be last character.
+        bIsValid = TRUE;
+    }
+    return bIsValid;
+}
+
+static
+BOOLEAN
+LsaDmpDomainCreate(
+    OUT PLSA_DM_DOMAIN_STATE* ppDomain,
+    IN OPTIONAL PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
+    IN PSID pDomainSid,
+    IN uuid_t* pDomainGuid,
+    IN OPTIONAL PCSTR pszDnsForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
+
+    dwError = LsaAllocateMemory(sizeof(*pDomain), (PVOID*)&pDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pszDnsDomainName)
+    {
+        if (!LsaDmpIsDnsDomainName(pszDnsDomainName))
+        {
+            LSA_LOG_ERROR("Invalid DNS domain name: '%s'", pszDnsDomainName);
+            dwError = LSA_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        dwError = LsaAllocateString(pszDnsDomainName, &pDomain->pszDnsName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!LsaDmIsNetbiosDomainName(pszNetbiosDomainName))
+    {
+        LSA_LOG_ERROR("Invalid NetBIOS domain name: '%s'", pszNetbiosDomainName);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateString(pszNetbiosDomainName, &pDomain->pszNetbiosName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmpDuplicateSid(&pDomain->pSid, pDomainSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pDomainGuid)
+    {
+        memcpy(&pDomain->Guid, pDomainGuid, sizeof(pDomain->Guid));
+    }
+
+    if (pszDnsForestName)
+    {
+        dwError = LsaAllocateString(pszDnsForestName, &pDomain->pszForestName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+#if 0
+    if (pszDnsDomainName && pDcInfo)
+    {
+        dwError = LsaDmpDomainSetDcInfo(pDomain, pDcInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+        if (pDcInfo->dwFlags & DS_GC_FLAG)
+        {
+            dwError = LsaDmpDomainSetGcInfo(pDomain, pDcInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+#endif
+
+cleanup:
+    *ppDomain = pDomain;
+
+    return dwError;
+
+error:
+    if (pDomain)
+    {
+        LsaDmpDomainDestroy(pDomain);
+        pDomain = NULL;
+    }
+    goto cleanup;
+}
+
+static
+BOOLEAN
+LsaDmpSlowIsDomainNameMatch(
+    IN PLSA_DM_DOMAIN_STATE pDomain,
+    IN PCSTR pszDomainName
+    )
+{
+    return LsaDmIsEitherDomainNameMatch(pszDomainName,
+                                        pDomain->pszDnsName,
+                                        pDomain->pszNetbiosName);
+}
+
+static
+BOOLEAN
+LsaDmpFastIsDomainNameMatch(
+    IN PLSA_DM_DOMAIN_STATE pDomain,
+    IN OPTIONAL PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszNetbiosDomainName
+    )
+{
+    BOOLEAN bIsMatch = FALSE;
+
+    if ((pszDnsDomainName &&
+         LsaDmIsSpecificDomainNameMatch(pszDnsDomainName,
+                                        pDomain->pszDnsName)) ||
+        (pszNetbiosDomainName &&
+         LsaDmIsSpecificDomainNameMatch(pszNetbiosDomainName,
+                                        pDomain->pszNetbiosName)))
+    {
+        bIsMatch = TRUE;
+    }
+
+    return bIsMatch;
+}
+
+static
+PLSA_DM_DOMAIN_STATE
+LsaDmpFindDomain2(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszNetbiosDomainName
+    )
+{
+    PDLINKEDLIST listEntry = NULL;
+    PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
+
+    for (listEntry = Handle->DomainList;
+         listEntry;
+         listEntry = listEntry->pNext)
+    {
+        PLSA_DM_DOMAIN_STATE pDomain = (PLSA_DM_DOMAIN_STATE)listEntry->pItem;
+        if (LsaDmpFastIsDomainNameMatch(pDomain, pszDnsDomainName, pszNetbiosDomainName))
+        {
+            pFoundDomain = pDomain;
+            break;
+        }
+    }
+
+    return pFoundDomain;
+}
+
+static
+PLSA_DM_DOMAIN_STATE
+LsaDmpFindDomain(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName
+    )
+///<
+/// Find a domain by DNS or NetBIOS name.
+///
+/// @param[in] Handle - Offline state.
+/// @param[in] pszDomainName - Name of domain to find in offline state.
+///
+/// @return Domain entry found, if any.
+///
+/// @note The state must already be locked.
+///
+{
+    PCSTR pszDnsDomainName = NULL;
+    PCSTR pszNetbiosDomainName = NULL;
+
+    if (LsaDmIsNetbiosDomainName(pszDomainName))
+    {
+        pszNetbiosDomainName = pszDomainName;
+    }
+    else
+    {
+        pszDnsDomainName = pszDomainName;
+    }
+
+    return LsaDmpFindDomain2(Handle, pszDnsDomainName, pszNetbiosDomainName);
+}
+
+static
+DWORD
+LsaDmpMustFindDomain(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName,
+    OUT PLSA_DM_DOMAIN_STATE* ppFoundDomain
+    )
+///<
+/// Find a domain by DNS or NetBIOS name.
+///
+/// @param[in] Handle - Offline state.
+/// @param[in] pszDomainName - Name of domain to find in offline state.
+/// @param[in] ppFoundDomain - Found domain (or NULL on failure).
+///
+/// @return LSA_ERROR_SUCCESS or LSA_ERROR_NO_SUCH_DOMAIN if not found.
+///
+/// @note The state must already be locked.
+///
+{
+    DWORD dwError = 0;
+    PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
+
+    pFoundDomain = LsaDmpFindDomain(Handle, pszDomainName);
+    if (!pFoundDomain)
+    {
+        LSA_LOG_DEBUG("Do not know about domain '%s'", pszDomainName);
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+    }
+    *ppFoundDomain = pFoundDomain;
+    return dwError;
+}
+
+DWORD
+LsaDmpAddTrustedDomain(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
+    IN PSID pDomainSid,
+    IN uuid_t* pDomainGuid,
+    IN PCSTR pszTrusteeDnsDomainName,
+    IN DWORD dwTrustFlags,
+    IN DWORD dwTrustType,
+    IN DWORD dwTrustAttributes,
+    IN OPTIONAL PCSTR pDnsForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
+
+    if (IS_BOTH_OR_NEITHER(pszTrusteeDnsDomainName, IsSetFlag(dwTrustFlags, NETR_TRUST_FLAG_PRIMARY)))
+    {
+        if (pszTrusteeDnsDomainName)
+        {
+            LSA_LOG_DEBUG("Cannot add primary trust %s because it has a trustee (%s).", pszDnsDomainName, pszTrusteeDnsDomainName);
+        }
+        else
+        {
+            LSA_LOG_DEBUG("Cannot add non-primary trust %s because it has no trustee.", pszDnsDomainName);
+        }
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    // First, check for duplicates
+    pFoundDomain = LsaDmpFindDomain2(Handle, pszDnsDomainName, pszNetbiosDomainName);
+    if (pFoundDomain)
+    {
+        // FUTURE-2008/08/15-dalmeida -- Check for a change in trust info
+        LSA_LOG_DEBUG("Duplicate trust found for %s (%s).", pszDnsDomainName, pszNetbiosDomainName);
+        // TODO-document this error code.
+        dwError = LSA_ERROR_DUPLICATE_DOMAINNAME;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Now that we have looked for duplicates, check for trying to add
+    // something where we do or do not already have a primary domain.
+    // Note that we checked for duplicates first so we can return a
+    // "duplicate error" if someone is trying to add the same thing
+    // twice instead of returning the more serious error about violating
+    // the invariant of adding domains in the appropriate order and
+    // not trying to change the primary domain.
+    if (!IS_BOTH_OR_NEITHER(Handle->pPrimaryDomain, pszTrusteeDnsDomainName))
+    {
+        if (pszTrusteeDnsDomainName)
+        {
+            LSA_LOG_DEBUG("Cannot add non-primary trust %s w/o first adding primary domain.", pszDnsDomainName);
+        }
+        else
+        {
+            LSA_LOG_DEBUG("Cannot add primary trust %s since a primary trust already exists.", pszDnsDomainName);
+        }
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Make sure that any trustee had already been added.
+    if (pszTrusteeDnsDomainName)
+    {
+        if (!LsaDmpIsDomainPresent(Handle, pszTrusteeDnsDomainName))
+        {
+            LSA_LOG_DEBUG("Trustee %s for domain %s must be added before adding the trusted domain.", pszTrusteeDnsDomainName, pszDnsDomainName);
+            dwError = LSA_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    dwError = LsaDmpDomainCreate(&pDomain,
+                                 pszDnsDomainName,
+                                 pszNetbiosDomainName,
+                                 pDomainSid,
+                                 pDomainGuid,
+                                 pDnsForestName,
+                                 pDcInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pszTrusteeDnsDomainName)
+    {
+        dwError = LsaAllocateString(pszTrusteeDnsDomainName, &pDomain->pszTrusteeDnsName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pDomain->dwTrustFlags = dwTrustFlags;
+    pDomain->dwTrustType = dwTrustType;
+    pDomain->dwTrustAttributes = dwTrustAttributes;
+
+    if (IsSetFlag(pDomain->dwTrustFlags, NETR_TRUST_FLAG_PRIMARY))
+    {
+        SetFlag(pDomain->Flags, LSA_DM_DOMAIN_FLAG_PRIMARY);
+    }
+
+    if (IsSetFlag(dwTrustFlags, NETR_TRUST_FLAG_PRIMARY))
+    {
+        dwError = LsaDLinkedListPrepend(&Handle->DomainList, pDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaDLinkedListAppend(&Handle->DomainList, pDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (!pszTrusteeDnsDomainName)
+    {
+        Handle->pPrimaryDomain = pDomain;
+    }
+    pDomain = NULL;
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+    if (pDomain)
+    {
+        LsaDmpDomainDestroy(pDomain);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+BOOLEAN
+LsaDmpIsDomainPresent(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName
+    )
+{
+    BOOLEAN bIsPresent = FALSE;
+    PDLINKEDLIST listEntry = NULL;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+
+    for (listEntry = Handle->DomainList;
+         listEntry;
+         listEntry = listEntry->pNext)
+    {
+        PLSA_DM_DOMAIN_STATE pDomain = (PLSA_DM_DOMAIN_STATE)listEntry->pItem;
+
+        if (LsaDmpSlowIsDomainNameMatch(pDomain, pszDomainName))
+        {
+            bIsPresent = TRUE;
+            break;
+        }
+    }
+
+    LsaDmpReleaseMutex(Handle->pMutex);
+
+    return bIsPresent;
+}
+
+VOID
+LsaDmpEnumDomains(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PCSTR pszDomainName,
+    IN PLSA_DM_ENUM_DOMAIN_CALLBACK pfCallback,
+    IN PVOID pContext
+    )
+{
+    PDLINKEDLIST listEntry = NULL;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+
+    for (listEntry = Handle->DomainList;
+         listEntry;
+         listEntry = listEntry->pNext)
+    {
+        PLSA_DM_DOMAIN_STATE pDomain = (PLSA_DM_DOMAIN_STATE)listEntry->pItem;
+        LSA_DM_ENUM_DOMAIN_CALLBACK_INFO info;
+        BOOLEAN needContinue = FALSE;
+
+        if (pszDomainName && !LsaDmpSlowIsDomainNameMatch(pDomain, pszDomainName))
+        {
+            continue;
+        }
+
+        memset(&info, 0, sizeof(info));
+
+        info.pszDnsDomainName = pDomain->pszDnsName;
+        info.pszNetbiosDomainName = pDomain->pszNetbiosName;
+        info.pSid = pDomain->pSid;
+        info.pGuid = &pDomain->Guid;
+        info.pszTrusteeDnsDomainName = pDomain->pszTrusteeDnsName;
+        info.dwTrustFlags = pDomain->dwTrustFlags;
+        info.dwTrustType = pDomain->dwTrustType;
+        info.dwTrustAttributes = pDomain->dwTrustAttributes;
+        info.pszForestName = pDomain->pszForestName;
+        info.pszClientSiteName = pDomain->pszClientSiteName;
+        info.Flags = pDomain->Flags;
+        info.DcInfo = pDomain->pDcInfo;
+        info.GcInfo = pDomain->pGcInfo;
+
+        needContinue = pfCallback(pszDomainName, pContext, &info);
+        if (pszDomainName || !needContinue)
+        {
+            break;
+        }
+    }
+
+    LsaDmpReleaseMutex(Handle->pMutex);
+}
+
+DWORD
+LsaDmpQueryDomainInfo(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PSID* ppSid,
+    OUT OPTIONAL uuid_t* pGuid,
+    OUT OPTIONAL PSTR* ppszTrusteeDnsDomainName,
+    OUT OPTIONAL PDWORD pdwTrustFlags,
+    OUT OPTIONAL PDWORD pdwTrustType,
+    OUT OPTIONAL PDWORD pdwTrustAttributes,
+    OUT OPTIONAL PSTR* ppszForestName,
+    OUT OPTIONAL PSTR* ppszClientSiteName,
+    OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppDcInfo,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppGcInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
+    PSTR pszDnsDomainName = NULL;
+    PSTR pszNetbiosDomainName = NULL;
+    PSID pSid = NULL;
+    PSTR pszTrusteeDnsDomainName = NULL;
+    PSTR pszForestName = NULL;
+    PSTR pszClientSiteName = NULL;
+    PLSA_DM_DC_INFO pDcInfo = NULL;
+    PLSA_DM_DC_INFO pGcInfo = NULL;
+    uuid_t guid = { 0 };
+    DWORD dwTrustFlags = 0;
+    DWORD dwTrustType = 0;
+    DWORD dwTrustAttributes = 0;
+    LSA_DM_DOMAIN_FLAGS Flags = 0;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Can be NULL
+    if (ppszDnsDomainName && pDomain->pszDnsName)
+    {
+        dwError = LsaAllocateString(pDomain->pszDnsName, &pszDnsDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (ppszNetbiosDomainName)
+    {
+        dwError = LsaAllocateString(pDomain->pszNetbiosName, &pszNetbiosDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (ppSid)
+    {
+        dwError = LsaDmpDuplicateSid(&pSid, pDomain->pSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    // Can be NULL
+    if (ppszTrusteeDnsDomainName && pDomain->pszTrusteeDnsName)
+    {
+        dwError = LsaAllocateString(pDomain->pszTrusteeDnsName, &pszTrusteeDnsDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (ppszForestName)
+    {
+        dwError = LsaAllocateString(pDomain->pszForestName, &pszForestName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (ppszClientSiteName)
+    {
+        dwError = LsaAllocateString(pDomain->pszClientSiteName, &pszClientSiteName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    // Can be NULL
+    if (ppDcInfo && pDomain->pDcInfo)
+    {
+        dwError = LsaDmpDuplicateDcInfo(&pDcInfo, pDomain->pDcInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    // Can be NULL
+    if (ppGcInfo && pDomain->pGcInfo)
+    {
+        dwError = LsaDmpDuplicateDcInfo(&pGcInfo, pDomain->pGcInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    memcpy(&guid, &pDomain->Guid, sizeof(guid));
+    dwTrustFlags = pDomain->dwTrustFlags;
+    dwTrustType = pDomain->dwTrustType;
+    dwTrustAttributes = pDomain->dwTrustAttributes;
+    Flags = pDomain->Flags;
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+    if (ppszDnsDomainName)
+    {
+        *ppszDnsDomainName = pszDnsDomainName;
+    }
+    if (ppszNetbiosDomainName)
+    {
+        *ppszNetbiosDomainName = pszNetbiosDomainName;
+    }
+    if (ppSid)
+    {
+        *ppSid = pSid;
+    }
+    if (pGuid)
+    {
+        memcpy(pGuid, &guid, sizeof(*pGuid));
+    }
+    if (ppszTrusteeDnsDomainName)
+    {
+        *ppszTrusteeDnsDomainName = pszTrusteeDnsDomainName;
+    }
+    if (pdwTrustFlags)
+    {
+        *pdwTrustFlags = dwTrustFlags;
+    }
+    if (pdwTrustType)
+    {
+        *pdwTrustType = dwTrustType;
+    }
+    if (pdwTrustAttributes)
+    {
+        *pdwTrustAttributes = dwTrustAttributes;
+    }
+    if (ppszForestName)
+    {
+        *ppszForestName = pszForestName;
+    }
+    if (ppszClientSiteName)
+    {
+        *ppszClientSiteName = pszClientSiteName;
+    }
+    if (pFlags)
+    {
+        *pFlags = Flags;
+    }
+    if (ppDcInfo)
+    {
+        *ppDcInfo = pDcInfo;
+    }
+    if (ppGcInfo)
+    {
+        *ppGcInfo = pGcInfo;
+    }
+    return dwError;
+error:
+    LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LSA_SAFE_FREE_MEMORY(pSid);
+    LSA_SAFE_FREE_STRING(pszTrusteeDnsDomainName);
+    LSA_SAFE_FREE_STRING(pszForestName);
+    LSA_SAFE_FREE_STRING(pszClientSiteName);
+    LsaDmFreeDcInfo(pDcInfo);
+    pDcInfo = NULL;
+    LsaDmFreeDcInfo(pGcInfo);
+    pGcInfo = NULL;
+    goto cleanup;
+}
+
+static
+DWORD
+LsaDmpDomainSetDcInfoByNameInternal(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bSetGcInfo,
+    IN PLWNET_DC_INFO pDcInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmpDomainSetDcInfoInternal(pDomain, bSetGcInfo, pDcInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaDmpDomainSetDcInfoByName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName,
+    IN PLWNET_DC_INFO pDcInfo
+    )
+{
+    return LsaDmpDomainSetDcInfoByNameInternal(Handle, pszDomainName, FALSE, pDcInfo);
+}
+
+DWORD
+LsaDmpDomainSetGcInfoByName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName,
+    IN PLWNET_DC_INFO pDcInfo
+    )
+{
+    return LsaDmpDomainSetDcInfoByNameInternal(Handle, pszDomainName, TRUE, pDcInfo);
+}
+
+static
+VOID
+LsaDmpModifyDomainFlagsByRef(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PLSA_DM_DOMAIN_STATE pDomain,
+    IN BOOLEAN bIsSet,
+    IN LSA_DM_DOMAIN_FLAGS Flags
+    )
+{
+    BOOLEAN bWasOffline = FALSE;
+    BOOLEAN bIsOffline = FALSE;
+
+    bWasOffline = IsLsaDmDomainFlagsOffline(pDomain->Flags);
+    if (bIsSet)
+    {
+        SetFlag(pDomain->Flags, Flags);
+    }
+    else
+    {
+        ClearFlag(pDomain->Flags, Flags);
+    }
+    bIsOffline = IsLsaDmDomainFlagsOffline(pDomain->Flags);
+
+    if (bWasOffline != bIsOffline)
+    {
+        if (bIsOffline)
+        {
+            // We went from !offline -> offline.
+            Handle->dwOfflineCount++;
+        }
+        else
+        {
+            // We went from offline -> !offline.
+            Handle->dwOfflineCount--;
+        }
+    }
+}
+
+static
+DWORD
+LsaDmpModifyDomainFlagsByName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bIsSet,
+    IN LSA_DM_DOMAIN_FLAGS Flags
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
+
+    if (!pszDomainName)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pFoundDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaDmpModifyDomainFlagsByRef(Handle, pFoundDomain, bIsSet, Flags);
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaDmpSetForceOfflineState(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PCSTR pszDomainName,
+    IN BOOLEAN bIsSet
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+    
+    if (!pszDomainName)
+    {
+        // Handle global case.
+        if (bIsSet)
+        {
+            SetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_FORCE_OFFLINE);
+        }
+        else
+        {
+            ClearFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_FORCE_OFFLINE);
+        }
+    }
+    else
+    {
+        // Handle domain case.
+        dwError = LsaDmpModifyDomainFlagsByName(Handle,
+                                                pszDomainName,
+                                                bIsSet,
+                                                LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaDmpTransitionOffline(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName
+    )
+{
+    return LsaDmpModifyDomainFlagsByName(Handle,
+                                         pszDomainName,
+                                         TRUE,
+                                         LSA_DM_DOMAIN_FLAG_OFFLINE);
+}
+
+DWORD
+LsaDmpTransitionOnline(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName
+    )
+{
+    return LsaDmpModifyDomainFlagsByName(Handle,
+                                         pszDomainName,
+                                         FALSE,
+                                         LSA_DM_DOMAIN_FLAG_OFFLINE);
+}
+
+BOOLEAN
+LsaDmpIsDomainOffline(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PCSTR pszDomainName
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
+    BOOLEAN bIsOffline = FALSE;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    if (!IsSetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_OFFLINE_ENABLED))
+    {
+        // Pretend that there is no offline-ness
+        bIsOffline = FALSE;
+    }
+    else if (IsSetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_FORCE_OFFLINE) ||
+             IsSetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_MEDIA_SENSE_OFFLINE))
+    {
+        bIsOffline = TRUE;
+    }
+    else if (!pszDomainName)
+    {
+        // We just want global state, and that indicates online so far,
+        // so we are online.
+        bIsOffline = FALSE;
+    }
+    else
+    {
+        dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pFoundDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        bIsOffline = IsLsaDmDomainFlagsOffline(pFoundDomain->Flags);
+    }
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+
+    return bIsOffline;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+LsaDmpDetectTransitionOnlineDomain(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PLSA_DM_DOMAIN_STATE pDomain
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_DC_INFO pDcInfo = NULL;
+
+    // TODO - Make this function and its calling function
+    // not hold locks across network operations, which
+    // would be simple to do.
+
+    //
+    // Force rediscovery of DC for the domain.
+    // Ideally, we would also like to force rediscovery
+    // of GC if a forest root.  Yeah, that would be good.
+    // Ok, here is the plan: 1) rediscover DC, 2) if domain is
+    // forest root, rediscover GC too.
+    //
+
+    dwError = LWNetGetDCName(NULL,
+                             pDomain->pszDnsName,
+                             NULL,
+                             DS_FORCE_REDISCOVERY,
+                             &pDcInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmpDomainSetDcInfo(pDomain, pDcInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!strcasecmp(pDcInfo->pszDnsForestName, pDcInfo->pszFullyQualifiedDomainName) &&
+        !(DS_GC_FLAG & pDcInfo->dwFlags))
+    {
+        LWNetFreeDCInfo(pDcInfo);
+        pDcInfo = NULL;
+
+        dwError = LWNetGetDCName(NULL,
+                                 pDomain->pszDnsName,
+                                 NULL,
+                                 DS_FORCE_REDISCOVERY | DS_GC_SERVER_REQUIRED,
+                                 &pDcInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaDmpDomainSetGcInfo(pDomain, pDcInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    //
+    // This domain is online, so transition it.
+    //
+
+    LsaDmpModifyDomainFlagsByRef(Handle,
+                                 pDomain,
+                                 FALSE,
+                                 LSA_DM_DOMAIN_FLAG_OFFLINE);
+
+cleanup:
+    if (pDcInfo)
+    {
+        LWNetFreeDCInfo(pDcInfo);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaDmpDetectTransitionOnline(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PCSTR pszDomainName
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    if (!pszDomainName)
+    {
+        // Do every domain.
+
+        PDLINKEDLIST listEntry = NULL;
+        DWORD dwFirstError = 0;
+
+        for (listEntry = Handle->DomainList;
+             listEntry;
+             listEntry = listEntry->pNext)
+        {
+            DWORD dwLocalError = 0;
+
+            pDomain = (PLSA_DM_DOMAIN_STATE)listEntry->pItem;
+
+            dwLocalError = LsaDmpDetectTransitionOnlineDomain(Handle, pDomain);
+            if (dwLocalError)
+            {
+                // ISSUE-2008/08/01-dalmeida -- Log something
+                if (!dwFirstError)
+                {
+                    dwFirstError = dwLocalError;
+                }
+            }
+        }
+        dwError = dwFirstError;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaDmpDetectTransitionOnlineDomain(Handle, pDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+

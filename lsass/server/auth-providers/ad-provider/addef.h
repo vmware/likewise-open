@@ -1,0 +1,77 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        addef.h
+ *
+ * Abstract:
+ *
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ * 
+ *        Private header for Active Directory Authentication Provider
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Wei Fu (wfu@likewisesoftware.com)
+ */
+#ifndef __AD_DEF_H__
+#define __AD_DEF_H__
+
+#define AD_CFG_TAG_AD_PROVIDER    "lsa-activedirectory-provider"
+#define AD_CFG_TAG_AUTH_PROVIDER  "auth provider:"
+
+#define AD_BUILTIN_GROUP_SID_PREFIX "S-1-5-32-"
+
+typedef enum
+{
+    SchemaMode = 0,
+    NonSchemaMode = 1,
+    UnknownMode = 2
+} ADConfigurationMode;
+
+#define DEFAULT_MODE		1
+#define CELL_MODE		2
+#define UNPROVISIONED_MODE	3
+
+typedef enum
+{
+    OneWayTrust = 0,
+    TwoWayTrust_inforest = 1,
+    TwoWayTrust_acrossforest = 2,
+    OneSelfTrust = 3, //this represents the single domain scenario
+    UnHandledTrust = 4
+} TrustMode;
+
+#endif /* __AD_DEF_H__ */
+

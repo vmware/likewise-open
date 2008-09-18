@@ -122,6 +122,17 @@ case `uname -s` in
 #       BUILD_SHLIB_CMD='ld -b +h -B symbolic -o $@ $(OBJS) $(LDFLAGS)'
         BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
         ;;
+     FreeBSD|Isilon*)
+        LWI_OS_FLAGS="-D__LWI_FREEBSD__"
+	CPPFLAGS="$CPPFLAGS -DGP_FREEBSD"
+	if test -e /usr/lib64/libcrypto.a ; then
+	    CRYPTOLIB=/usr/lib64/libcrypto.a
+	else
+	    CRYPTOLIB=/usr/lib/libcrypto.a
+	fi;
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+	;;
     *)
 	AC_MSG_ERROR(OS not supported, 1)
 	;;
@@ -143,6 +154,7 @@ AC_SUBST(SHLIBVEXT)
 AC_SUBST(LIBVER_MAJOR)
 AC_SUBST(BUILD_SHLIB_CMD)
 AC_SUBST(BUILD_DYNLIB_CMD)
+
 
 AC_ARG_ENABLE(debug,
 [ --enable-debug enable debugging ],
@@ -175,10 +187,11 @@ AC_PROG_CC
 AC_PROG_INSTALL
 
 AC_CHECK_LIB([proc], [openproc])
+AC_CHECK_LIB([kvm], [kvm_open])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([fcntl.h limits.h stdlib.h string.h strings.h syslog.h unistd.h sys/types.h fcntl.h sys/stat.h sys/param.h sys/pstat.h proc/readproc.h sys/ioctl.h sys/termio.h utmps.h utmpx.h utmp.h procfs.h sys/procfs.h])
+AC_CHECK_HEADERS([fcntl.h limits.h stdlib.h string.h strings.h syslog.h unistd.h sys/types.h fcntl.h sys/stat.h sys/param.h sys/pstat.h proc/readproc.h sys/ioctl.h sys/termio.h utmps.h utmpx.h utmp.h procfs.h sys/procfs.h kvm.h sys/sysctl.h sys/user.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 dnl The AC_C_CONST check is broken in versions of autoconf older than 2.60.
@@ -196,7 +209,7 @@ AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([atexit bzero localtime_r memset select socket strchr strerror vsyslog rpl_malloc rpl_realloc mkdtemp _NSGetEnviron])
+AC_CHECK_FUNCS([atexit bzero localtime_r memset select socket strchr strerror vsyslog rpl_malloc rpl_realloc mkdtemp _NSGetEnviron kvm_open kvm_getprocs])
 case `uname -s` in
 		HP-UX*)
 			;;
@@ -204,9 +217,13 @@ case `uname -s` in
 			AC_CHECK_FUNCS(sigtimedwait)
 			;;
 esac
-AC_CHECK_DECLS([isblank, pstat_getproc], [], [], [#include <ctype.h>
+AC_CHECK_DECLS([isblank, pstat_getproc, KERN_PROC_PATHNAME], [], [], [
+#include <ctype.h>
 #if HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
+#if HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
 #endif
 #if HAVE_SYS_PSTAT_H
 #include <sys/pstat.h>
@@ -222,6 +239,26 @@ AC_CHECK_TYPES([struct psinfo], , , [
 if test "$ac_cv_have_decl_pstat_getproc" = yes; then
 CPPFLAGS="$CPPFLAGS -D_PSTAT64"
 fi
+
+# Check for moonunit bits
+AC_CHECK_HEADERS([moonunit/moonunit.h], [HAVE_MOONUNIT_H=true], [HAVE_MOONUNIT_H=false])
+AC_CHECK_LIB(moonunit, Mu_Interface_Result, [HAVE_MOONUNIT_LIB=true], [HAVE_MOONUNIT_LIB=false])
+AC_CHECK_PROG(MOONUNIT_STUB, moonunit-stub, moonunit-stub, false)
+
+if test "${MOONUNIT_STUB}" = "moonunit-stub" && $HAVE_MOONUNIT_H && $HAVE_MOONUNIT_LIB
+then
+	HAVE_MOONUNIT="true"
+	LIB_moonunit="-lmoonunit"
+	TEST_SUBDIR="test"
+	AC_DEFINE([HAVE_MOONUNIT], [], [Have MoonUnit])
+else
+	HAVE_MOONUNIT="false"
+	TEST_SUBDIR=""
+fi
+
+AC_SUBST(HAVE_MOONUNIT)
+AC_SUBST(LIB_moonunit)
+AC_SUBST(TEST_SUBDIR)
 
 GLIB_DIR='$(BUILD_ROOT)/libgpglib'
 GLIB_INCLUDE='-I$(SRC_ROOT)/libgpglib'
@@ -266,4 +303,9 @@ AC_CONFIG_FILES([Makefile
                  libgpglib/Makefile
                  libcentutils/Makefile]
 )
+
+if $HAVE_MOONUNIT; then
+   AC_CONFIG_FILES([test/Makefile])
+fi
+
 AC_OUTPUT

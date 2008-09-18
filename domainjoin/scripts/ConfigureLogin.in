@@ -20,7 +20,7 @@
 
 LC_MESSAGES=C; export LC_MESSAGES
 
-#this gets overridden with sed when it should be /opt/centeris
+#this gets overridden with sed when it should be /opt/likewise
 BINDIR=@expanded_bindir@
 LIBEXECDIR=@expanded_libexecdir@
 
@@ -172,20 +172,32 @@ GracefulSSHDRestart()
     result=0
     files=`ls /var/run/sshd*.pid 2> /dev/null`
     shouldBeRunning=0
+    stillRunning=0
     if [ -n "$files" ]; then
         for pidfile in "$files"; do
             if [ -f "$pidfile" ]; then
                 shouldBeRunning=1
-                kill -HUP `cat $pidfile` || result=$?
+                sshdpid=`cat $pidfile`
+                kill -HUP $sshdpid || result=$?
+                # We want this daemon to restart and change pids, so we'll
+                # wait up to 15 seconds for that to happen
+                for count in `seq 15`; do
+                    ps -p $sshdpid >/dev/null 2>&1 || break
+                done
             fi
         done
         if [ $shouldBeRunning -ne 0 ]; then
-            # sshd on SuSE 9.0 has a bug that causes it to die on a SIGHUP.
-            # So try starting sshd in that case.
-            if [ "`GetDistroType`" = "suse" ]; then
-                if [ `GetDistroVersion` = "9.0" ]; then
-                    /etc/init.d/sshd start > /dev/null 2>&1
+            # sshd on SuSE 9.0 and 8.2 have a bug that causes it to die on a
+	    # SIGHUP. So try starting sshd in that case.
+            for pidfile in "$files"; do
+                if [ -f "$pidfile" ] && ps -p `cat $pidfile` >/dev/null 2>&1
+                then
+                    stillRunning=1
                 fi
+            done
+            if [ $stillRunning -eq 0 ]; then
+                # It died
+                /etc/init.d/sshd start > /dev/null 2>&1
             fi
         fi
     elif [ -x /usr/bin/lssrc ]; then
@@ -217,24 +229,6 @@ GracefulSSHDRestart()
     fi
     # Ignore kill errors because .pid files may have been orphaned.
     return 0
-}
-
-FixGdmLoginWithSpaces()
-{
-    PreSessScript="/etc/X11/gdm/PreSession/Default"
-
-    if [ -f $PreSessScript ]; then
-        if [ ! -f ${PreSessScript}.lwidentity.orig ]; then
-            cp -p $PreSessScript ${PreSessScript}.lwidentity.orig
-        fi
-
-        if grep '/usr/bin/X11/sessreg -a -w /var/log/wtmp -u none -l $DISPLAY $USER' $PreSessScript > /dev/null 2>&1; then
-
-	    if cat $PreSessScript | sed 's/\/usr\/bin\/X11\/sessreg\ -a\ -w\ \/var\/log\/wtmp\ -u\ none\ -l\ \$DISPLAY\ \$USER/\/usr\/bin\/X11\/sessreg\ -a\ -w\ \/var\/log\/wtmp\ -u\ none\ -l\ \$DISPLAY\ \"\$USER\"/' > $PreSessScript.new; then
-		mv $PreSessScript.new $PreSessScript
-	    fi
-        fi
-    fi
 }
 
 WaitForNetworkManager()
@@ -308,7 +302,16 @@ GracefulDbusRestart()
 	WaitForNetworkManager
         return $result
     elif [ -x /etc/init.d/messagebus ]; then
-        # Fedora
+        # Fedora is the only known system that has /etc/init.d/messagebus
+        if [ "$distroType" = "Fedora" -a `GetDistroVersion` -eq 9 ]; then
+            if IsUserLoggedInX; then
+                if [ "$1" = "1" ]; then
+                    echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please log out of X windows, then run these commands to restart dbus:" >&2
+                    echo "/etc/init.d/messagebus restart; gdm-restart" >&2
+                fi
+                return 1
+            fi
+        fi
         /etc/init.d/messagebus restart
 	result=$?
 	WaitForNetworkManager
@@ -366,13 +369,13 @@ IsUserLoggedInX()
         awkExpression='{ print $6 }'
     elif [ "Linux" = "$osType" ]; then
         distroType=`GetDistroType`
-        if [ "$distroType" = "fedora" ]; then
+        if [ "$distroType" = "Fedora" ]; then
             if [ `GetDistroVersion` != "3" ]; then
                 #if Fedora Linux other than 3, check for ":0" in the 5th column of the who output
                 awkExpression='{ print $5 }'
             fi
         fi
-        if [ "$distroType" = "centos" -o "$distroType" = "rhel" ]; then
+        if [ "$distroType" = "CentOS" -o "$distroType" = "RHEL" ]; then
             if [ `GetDistroVersion` = "5" ]; then
                 #if Centos 5 Linux, check for ":0" in the 5th column of the who output
                 awkExpression='{ print $5 }'
@@ -411,6 +414,8 @@ GracefulXDMRestart()
 	    /opt/gnome/sbin/gdm-safe-restart
 	elif [ -x "/usr/sbin/gdm-safe-restart" ]; then
 	    /usr/sbin/gdm-safe-restart
+	elif [ -x "/usr/X11R6/sbin/gdm-safe-restart" ]; then
+	    /usr/X11R6/sbin/gdm-safe-restart
         elif [ -x "/etc/init.d/gdm" ]; then
             /etc/init.d/gdm reload 2>&1
 	elif [ $userViaX -eq 1 ]; then
@@ -444,12 +449,12 @@ GracefulXDMRestart()
                 # xdm reload on SuSE 9.0, SuSE 9.1, and SLES 9 has problems
                 # (at least when using kdm), so skip in those cases.
                 distroType=`GetDistroType`
-                if [ "$distroType" = "sles" ]; then
+                if [ "$distroType" = "SLES" ]; then
                     distroVersion=`GetDistroVersion`
                     if [ "$distroVersion" = "9" ]; then
                         skip=1
                     fi
-                elif [ "$distroType" = "suse" ]; then
+                elif [ "$distroType" = "SuSE" ]; then
                     distroVersion=`GetDistroVersion`
                     if [ "$distroVersion" = "9.0" ]; then
                         skip=1
@@ -479,132 +484,6 @@ GracefulXDMRestart()
 	    return $xdmRestart
 	fi
     fi
-}
-
-ConfigurePamForADLogin()
-{
-	if [ 'enable' = "$1" ]; then
-		isEnable=1
-		options=--enable
-	elif [ 'disable' = "$1" ]; then
-		isEnable=0
-		options=--disable
-	else
-		echo "ConfigurePamForADLogin <enable|disable>";
-		return 1;
-	fi
-
-	${BINDIR}/domainjoin-cli --log . configure pam $options || return $?
-
-	${BINDIR}/domainjoin-cli --log . configure ssh $options || return $?
-
-	GracefulSSHDRestart
-	ConfigurePamForADLogin_rc=$?
-	if [ "0" != $ConfigurePamForADLogin_rc ]; then
-	    echo "Could not restart sshd"
-	    if [ "1" = "$isEnable" ]; then
-		return $ConfigurePamForADLogin_rc
-	    else
-		ConfigurePamForADLogin_rc=0
-	    fi
-	fi
-
-	GracefulXDMRestart
-	ConfigurePamForADLogin_rc=$?
-	if [ "0" != $ConfigurePamForADLogin_rc ]; then
-	    echo "Could not restart XDM"
-	    if [ "1" = "$isEnable" ]; then
-		return $ConfigurePamForADLogin_rc
-	    else
-		ConfigurePamForADLogin_rc=0
-	    fi
-	fi
-
-	GracefulCronRestart
-	ConfigurePamForADLogin_rc=$?
-	if [ "0" != $ConfigurePamForADLogin_rc ]; then
-	    echo "Could not restart Cron"
-	    if [ "1" = "$isEnable" ]; then
-		return $ConfigurePamForADLogin_rc
-	    else
-		ConfigurePamForADLogin_rc=0
-	    fi
-	fi
-	
-	GracefulDbusRestart "$isEnable"
-	ConfigurePamForADLogin_rc=$?
-	if [ "0" != $ConfigurePamForADLogin_rc ]; then
-            echo "Could not restart system message bus (dbus)" >&2
-	fi
-
-	GracefulNscdRestart
-	ConfigurePamForADLogin_rc=$?
-	if [ "0" != $ConfigurePamForADLogin_rc ]; then
-            echo "Could not restart name service cache daemon (nscd)"
-	    if [ "1" = "$isEnable" ]; then
-		return $ConfigurePamForADLogin_rc
-	    else
-		ConfigurePamForADLogin_rc=0
-	    fi
-	fi
-	return $?
-}
-
-ConfigureShellPrompt()
-{
-    #This perl code only does something on RHEL, Centos, and Ubuntu. Don't try
-    #running it on Unix systems incase perl is broken.
-    if [ 'enable' = "$1" -a `GetOsType` = Linux ]; then    
-	perl ${LIBEXECDIR}/ConfigureShellPrompt || return $?
-    else
-	return 0
-    fi
-}
-
-ConfigureAppArmor()
-{
-    ## This is a no op on Ubuntu & Debian
-
-    local distro_type=`GetDistroType`
-    if [ "$distro_type" = "ubuntu" -o "$distro_type" = "debian" ]; then
-        return 0
-    fi
-
-    if [ 'enable' = "$1" ]; then
-	if [ -f /etc/apparmor.d/abstractions/nameservice ]; then
-	    if grep "centeris" /etc/apparmor.d/abstractions/nameservice 2>&1 >/dev/null; then
-		echo "AppArmor profile already patched" >&2
-	    else
-		echo "Applying AppArmor profile patch" >&2
-		if grep "mr," /etc/apparmor.d/abstractions/nameservice 2>&1 >/dev/null; then
-		    cat >>/etc/apparmor.d/abstractions/nameservice <<__AAEOF__
-# centeris
-/usr/centeris/lib/*.so*     mr,
-/usr/centeris/lib64/*.so*   mr,
-/tmp/.lwidentity/pipe       rw,
-# end centeris
-__AAEOF__
-		else
-		    cat >>/etc/apparmor.d/abstractions/nameservice <<__AAEOF2__
-# centeris
-/usr/centeris/lib/*.so*     r,
-/usr/centeris/lib64/*.so*   r,
-/tmp/.lwidentity/pipe       rw,
-# end centeris
-__AAEOF2__
-		fi
-
-		if type rcapparmor >/dev/null 2>&1
-		then
-		    rcapparmor restart || return $?
-		elif [ -x /etc/init.d/apparmor ]
-		then
-		    /etc/init.d/apparmor restart >/dev/null 2>&1 || return $?
-		fi
-	    fi
-	fi
-    fi
-    return 0
 }
 
 NsswitchRestart()
@@ -642,38 +521,10 @@ NsswitchRestart()
 # main
 #
 
-if [ 0 = "$#" ]; then
-    # if the script has no args, show help
-    Help
-    exit 0
-elif [ 'enable' = "$1" ]; then
-    /bin/true
-elif [ 'disable' = "$1" ]; then
-    /bin/true
-elif [ "$1" = "nsswitch_restart" ]; then
+if [ "$1" = "nsswitch_restart" ]; then
     NsswitchRestart
     exit $?
 else
     Help
     exit 1
 fi
-
-## now for the real work 
-global_rc=0
-ConfigurePamForADLogin "$@" || global_rc=$?
-
-## fix restrictions on nscd and other daemones on SuSE systems
-ConfigureAppArmor "$@" || global_rc=$?
-
-## fix the bash command prompt on Redhat Systems
-ConfigureShellPrompt "$@" || global_rc=$?
-FixGdmLoginWithSpaces || global_rc=$?
-
-if [ $global_rc -ne 0 ]; then
-    echo "FAILED"
-else
-    # echo "SUCCESS"
-    /bin/true
-fi
-
-exit $global_rc

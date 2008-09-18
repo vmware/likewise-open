@@ -1,84 +1,75 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
+#include "djroutines.h"
+#include "djauthinfo.h"
 
-CENTERROR
+void
 QueryInformation(
-    PDOMAINJOININFO* ppDomainJoinInfo
+    PDOMAINJOININFO* ppDomainJoinInfo,
+    LWException **exc
     )
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     PDOMAINJOININFO pDomainJoinInfo = NULL;
+    LWException *inner = NULL;
 
     if (geteuid() != 0) {
-       ceError = CENTERROR_DOMAINJOIN_NON_ROOT_USER;
-       BAIL_ON_CENTERIS_ERROR(ceError);
+       LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_NON_ROOT_USER);
     }
 
-    ceError = CTAllocateMemory(sizeof(DOMAINJOININFO), (PVOID*)&pDomainJoinInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(DOMAINJOININFO), (PVOID*)&pDomainJoinInfo));
 
-    ceError = DJGetComputerName(&pDomainJoinInfo->pszName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    LW_CLEANUP_CTERR(exc, DJGetComputerName(&pDomainJoinInfo->pszName));
 
-    ceError = DJGetConfiguredDescription(&pDomainJoinInfo->pszDescription);
-    if (ceError != CENTERROR_DOMAINJOIN_DESCRIPTION_NOT_FOUND) {
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    } else {
-        ceError = CENTERROR_SUCCESS;
+    DJGetConfiguredDnsDomain(&pDomainJoinInfo->pszDomainName, &inner);
+    if (!LW_IS_OK(inner) &&
+            inner->code == CENTERROR_DOMAINJOIN_DOMAIN_NOT_FOUND)
+    {
+        LW_HANDLE(&inner);
     }
+    LW_CLEANUP(exc, inner);
 
-    ceError = DJGetConfiguredDomain(&pDomainJoinInfo->pszDomainName);
-    if (ceError != CENTERROR_DOMAINJOIN_DOMAIN_NOT_FOUND) {
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    } else {
-        ceError = CENTERROR_SUCCESS;
-    }
-
-    if (IsNullOrEmptyString(pDomainJoinInfo->pszDomainName)) {
-
-        ceError = DJGetConfiguredWorkgroup(&pDomainJoinInfo->pszWorkgroupName);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-    } else {
-
-        ceError = DJGetConfiguredWorkgroup(&pDomainJoinInfo->pszDomainShortName);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
+    if (!IsNullOrEmptyString(pDomainJoinInfo->pszDomainName)) {
+        LW_TRY(exc, DJGetConfiguredShortDomain(
+                    &pDomainJoinInfo->pszDomainShortName, &LW_EXC));
     }
 
     *ppDomainJoinInfo = pDomainJoinInfo;
+    pDomainJoinInfo = NULL;
 
-    return ceError;
+cleanup:
 
-error:
-
+    LW_HANDLE(&inner);
     if (pDomainJoinInfo)
         FreeDomainJoinInfo(pDomainJoinInfo);
-
-    return ceError;
 }
 
 
@@ -92,9 +83,6 @@ FreeDomainJoinInfo(
         if (pDomainJoinInfo->pszName)
             CTFreeString(pDomainJoinInfo->pszName);
 
-        if (pDomainJoinInfo->pszDescription)
-            CTFreeString(pDomainJoinInfo->pszDescription);
-
         if (pDomainJoinInfo->pszDnsDomain)
             CTFreeString(pDomainJoinInfo->pszDnsDomain);
 
@@ -103,9 +91,6 @@ FreeDomainJoinInfo(
 
         if (pDomainJoinInfo->pszDomainShortName)
             CTFreeString(pDomainJoinInfo->pszDomainShortName);
-
-        if (pDomainJoinInfo->pszWorkgroupName)
-            CTFreeString(pDomainJoinInfo->pszWorkgroupName);
 
         if (pDomainJoinInfo->pszLogFilePath)
             CTFreeString(pDomainJoinInfo->pszLogFilePath);

@@ -1,25 +1,31 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
@@ -465,6 +471,25 @@ cleanup:
     return ceError;
 }
 
+static CENTERROR RemoveLine(NsswitchConf *conf, int line)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    NsswitchEntry *lineObj = (NsswitchEntry *)GetEntry(conf, line);
+
+    if(lineObj == NULL)
+    {
+        GCE(ceError = CENTERROR_INVALID_PARAMETER);
+    }
+
+    FreeNsswitchEntryContents(lineObj);
+    GCE(ceError = CTArrayRemove(&conf->lines, line, sizeof(NsswitchEntry), 1));
+
+    conf->modified = 1;
+
+cleanup:
+    return ceError;
+}
+
 CENTERROR
 UnConfigureNameServiceSwitch()
 {
@@ -551,6 +576,161 @@ cleanup:
     return ceError;
 }
 
+static CENTERROR UsingLsass(BOOLEAN *using)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    ceError = CTFindFileInPath("lsassd", BINDIR ":" SBINDIR, NULL);
+    if(ceError == CENTERROR_FILE_NOT_FOUND)
+    {
+        *using = FALSE;
+        ceError = CENTERROR_SUCCESS;
+    }
+    else if(CENTERROR_IS_OK(ceError))
+        *using = TRUE;
+    return ceError;
+}
+
+static QueryResult RemoveCompat(NsswitchConf *conf, PSTR *description, LWException **exc)
+{
+    DistroInfo distro;
+    int compatLine;
+    int noncompatLine;
+    int compatModIndex;
+    BOOLEAN passwdNeedUpdate = FALSE;
+    BOOLEAN groupNeedUpdate = FALSE;
+    QueryResult result = FullyConfigured;
+
+    memset(&distro, 0, sizeof(distro));
+
+    /* The default configuration on FreeBSD is:
+     * passwd: compat
+     * passwd_compat: nis
+     * group: compat
+     * group_compat: nis
+     *
+     * The nsswitch man page says that compat must be the only module on the
+     * line if it is used. Unfortunately, if a module is listed on the compat
+     * line, it goes through a different interface which LSASS does not
+     * understand. So this configuration must first be transformed into:
+     *
+     * passwd: files nis
+     * group: files nis
+     *
+     * If the user is using compat mode with a non-default configuration, show
+     * an error message instead.
+     */
+
+    LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
+
+    compatLine = FindEntry(conf, 0, "passwd_compat");
+    if(compatLine != -1)
+    {
+        const NsswitchEntry *lineEntry = GetEntry(conf, compatLine);
+
+        passwdNeedUpdate = TRUE;
+
+        if(lineEntry->modules.size != 1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+        if(FindModuleOnLine(conf, compatLine, "nis") == -1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+        noncompatLine = FindEntry(conf, 0, "passwd");
+        if(noncompatLine == -1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+        lineEntry = GetEntry(conf, noncompatLine);
+        if(lineEntry->modules.size != 1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+        compatModIndex = FindModuleOnLine(conf, noncompatLine, "compat");
+        if(compatModIndex == -1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+
+        result = NotConfigured;
+
+        LW_CLEANUP_CTERR(exc, InsertModule(conf, &distro, noncompatLine, -1, "files"));
+        LW_CLEANUP_CTERR(exc, InsertModule(conf, &distro, noncompatLine, -1, "nis"));
+        LW_CLEANUP_CTERR(exc, RemoveModule(conf, noncompatLine, compatModIndex));
+        LW_CLEANUP_CTERR(exc, RemoveLine(conf, compatLine));
+    }
+
+    compatLine = FindEntry(conf, 0, "group_compat");
+    if(compatLine != -1)
+    {
+        const NsswitchEntry *lineEntry = GetEntry(conf, compatLine);
+
+        groupNeedUpdate = TRUE;
+
+        if(lineEntry->modules.size != 1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+        if(FindModuleOnLine(conf, compatLine, "nis") == -1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+        noncompatLine = FindEntry(conf, 0, "group");
+        if(noncompatLine == -1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+        lineEntry = GetEntry(conf, noncompatLine);
+        if(lineEntry->modules.size != 1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+        compatModIndex = FindModuleOnLine(conf, noncompatLine, "compat");
+        if(compatModIndex == -1)
+        {
+            result = CannotConfigure;
+            goto done_configuring;
+        }
+
+        result = NotConfigured;
+
+        LW_CLEANUP_CTERR(exc, InsertModule(conf, &distro, noncompatLine, -1, "files"));
+        LW_CLEANUP_CTERR(exc, InsertModule(conf, &distro, noncompatLine, -1, "nis"));
+        LW_CLEANUP_CTERR(exc, RemoveModule(conf, noncompatLine, compatModIndex));
+        LW_CLEANUP_CTERR(exc, RemoveLine(conf, compatLine));
+    }
+
+done_configuring:
+    if(result == CannotConfigure && description != NULL)
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup("Remove the passwd_compat and/or group_compat lines and use passwd and group instead. This cannot be done automatically because your system has a non-default nsswitch configuration.\n", description));
+    }
+    else if((passwdNeedUpdate || groupNeedUpdate) && description != NULL)
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup("Remove the passwd_compat and/or group_compat lines and use passwd and group instead.\n", description));
+        result = NotConfigured;
+    }
+    else if(description != NULL)
+    {
+        LW_CLEANUP_CTERR(exc, CTStrdup("Fully Configured.", description));
+    }
+
+cleanup:
+    DJFreeDistroInfo(&distro);
+
+    return result;
+}
+
 CENTERROR
 UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
 {
@@ -558,8 +738,22 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
     DistroInfo distro;
     int line;
     int lwiIndex;
+    BOOLEAN usingLsass;
+    PCSTR preferredModule;
+    PCSTR oldModule;
 
     GCE(ceError = DJGetDistroInfo(NULL, &distro));
+    GCE(ceError = UsingLsass(&usingLsass));
+    if(usingLsass)
+    {
+        preferredModule = "lsass";
+        oldModule = "lwidentity";
+    }
+    else
+    {
+        preferredModule = "lwidentity";
+        oldModule = "lsass";
+    }
 
     line = FindEntry(conf, 0, "passwd");
     if(enable && line == -1)
@@ -568,15 +762,21 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
         GCE(ceError = AddEntry(conf, &distro, &line, "passwd"));
         GCE(ceError = InsertModule(conf, &distro, line, -1, "files"));
     }
-    lwiIndex = FindModuleOnLine(conf, line, "lwidentity");
+    lwiIndex = FindModuleOnLine(conf, line, preferredModule);
     if(enable && lwiIndex == -1)
     {
-        GCE(ceError = InsertModule(conf, &distro, line, -1, "lwidentity"));
+        GCE(ceError = InsertModule(conf, &distro, line, -1, preferredModule));
     }
     if(!enable && lwiIndex != -1)
     {
         GCE(ceError = RemoveModule(conf, line, lwiIndex));
     }
+    lwiIndex = FindModuleOnLine(conf, line, oldModule);
+    if(lwiIndex != -1)
+    {
+        GCE(ceError = RemoveModule(conf, line, lwiIndex));
+    }
+
     // If lwidentity was the only entry
     // and we removed that now, don't write
     // an empty entry into the file
@@ -604,15 +804,21 @@ UpdateNsswitchConf(NsswitchConf *conf, BOOLEAN enable)
         GCE(ceError = AddEntry(conf, &distro, &line, groupName));
         GCE(ceError = InsertModule(conf, &distro, line, -1, "files"));
     }
-    lwiIndex = FindModuleOnLine(conf, line, "lwidentity");
+    lwiIndex = FindModuleOnLine(conf, line, preferredModule);
     if(enable && lwiIndex == -1)
     {
-        GCE(ceError = InsertModule(conf, &distro, line, -1, "lwidentity"));
+        GCE(ceError = InsertModule(conf, &distro, line, -1, preferredModule));
     }
     if(!enable && lwiIndex != -1)
     {
         GCE(ceError = RemoveModule(conf, line, lwiIndex));
     }
+    lwiIndex = FindModuleOnLine(conf, line, oldModule);
+    if(lwiIndex != -1)
+    {
+        GCE(ceError = RemoveModule(conf, line, lwiIndex));
+    }
+
     // If lwidentity was the only entry
     // and we removed that now, don't write
     // an empty entry into the file
@@ -797,11 +1003,19 @@ IsApparmorConfigured(BOOLEAN *configured)
     {
         GCE(ceError = CTCheckFileHoldsPattern(APPARMOR_NSSWITCH,
                     "centeris", configured));
+        if(!*configured)
+        {
+            GCE(ceError = CTCheckFileHoldsPattern(APPARMOR_NSSWITCH,
+                        "likewise", configured));
+        }
     }
     else
+    {
         *configured = TRUE;
+    }
 
 cleanup:
+
     return ceError;
 }
 
@@ -830,14 +1044,18 @@ static void ConfigureApparmor(BOOLEAN enable, LWException **exc)
 
     if(usingMr)
         addString = 
-"/usr/centeris/lib/*.so*     mr,\n"
-"/usr/centeris/lib64/*.so*   mr,\n"
-"/tmp/.lwidentity/pipe       rw,\n";
+PREFIXDIR "/lib/*.so*            mr,\n"
+PREFIXDIR "/lib64/*.so*          mr,\n"
+"/tmp/.lwidentity/pipe              rw,\n"
+LOCALSTATEDIR "/lib/likewise/.lsasd  rw,\n"
+LOCALSTATEDIR "/tmp/.lsaclient_*              rw,\n";
     else
         addString =
-"/usr/centeris/lib/*.so*     r,\n"
-"/usr/centeris/lib64/*.so*   r,\n"
-"/tmp/.lwidentity/pipe       rw,\n";
+PREFIXDIR "/lib/*.so*            r,\n"
+PREFIXDIR "/lib64/*.so*          r,\n"
+"/tmp/.lwidentity/pipe              rw,\n"
+LOCALSTATEDIR "/lib/likewise/.lsasd  rw,\n"
+LOCALSTATEDIR "/tmp/.lsaclient_*              rw,\n";
 
 
     if(enable)
@@ -852,7 +1070,10 @@ static void ConfigureApparmor(BOOLEAN enable, LWException **exc)
         LW_CLEANUP_CTERR(exc, CTSafeReplaceFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH ".new"));
     }
     else
+    {
         LW_CLEANUP_CTERR(exc, CTRunSedOnFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH, FALSE, "/^[ \t]*#[ \t]*likewise[ \t]*$/,/^[ \t]*#[ \t]*end likewise[ \t]*$/d"));
+        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH, FALSE, "/^[ \t]*#[ \t]*centeris[ \t]*$/,/^[ \t]*#[ \t]*end centeris[ \t]*$/d"));
+    }
 
 
     ceError = CTFindFileInPath("rcapparmor", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", &restartPath);
@@ -974,8 +1195,14 @@ static QueryResult QueryNsswitch(const JoinProcessOptions *options, LWException 
     }
     LW_CLEANUP_CTERR(exc, ceError);
 
-    ceError = UpdateNsswitchConf(&conf, options->joiningDomain);
-    LW_CLEANUP_CTERR(exc, ceError);
+    if(options->joiningDomain)
+    {
+        LW_TRY(exc, result = RemoveCompat(&conf, NULL, &LW_EXC));
+        if(result == CannotConfigure || result == NotConfigured)
+            goto cleanup;
+    }
+
+    LW_CLEANUP_CTERR(exc, UpdateNsswitchConf(&conf, options->joiningDomain));
     if(conf.modified)
     {
         LW_CLEANUP_CTERR(exc, UnsuportedSeLinuxEnabled(&hasBadSeLinux));
@@ -1083,8 +1310,8 @@ static void RestartDtloginIfRunning(JoinProcessOptions *options, LWException **e
     }
     if(doRestart)
     {
-        LW_TRY(exc, DJStartStopDaemon("dtlogin", FALSE, NULL, &LW_EXC));
-        LW_TRY(exc, DJStartStopDaemon("dtlogin", TRUE, NULL, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon("dtlogin", FALSE, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon("dtlogin", TRUE, &LW_EXC));
     }
 cleanup:
     LW_HANDLE(&inner);
@@ -1094,6 +1321,10 @@ cleanup:
 static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
 {
     LWException *restartException = NULL;
+    NsswitchConf conf;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+
+    memset(&conf, 0, sizeof(conf));
 
     LW_TRY(exc, ConfigureApparmor(options->joiningDomain, &LW_EXC));
 
@@ -1102,7 +1333,26 @@ static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
     else
         LW_CLEANUP_CTERR(exc, DJUnconfigMethodsConfigFile());
 
-    LW_CLEANUP_CTERR(exc, DJConfigureNameServiceSwitch(NULL, options->joiningDomain));
+    ceError = ReadNsswitchConf(&conf, "", TRUE);
+    if(ceError == CENTERROR_INVALID_FILENAME)
+    {
+        ceError = CENTERROR_SUCCESS;
+        options->warningCallback(options, "Could not find file", "Could not find nsswitch file");
+        goto cleanup;
+    }
+    LW_CLEANUP_CTERR(exc, ceError);
+
+    if(options->joiningDomain)
+    {
+        LW_TRY(exc, RemoveCompat(&conf, NULL, &LW_EXC));
+    }
+
+    LW_CLEANUP_CTERR(exc, UpdateNsswitchConf(&conf, options->joiningDomain));
+
+    if(conf.modified)
+        LW_CLEANUP_CTERR(exc, WriteNsswitchConfiguration("", &conf));
+    else
+        DJ_LOG_INFO("nsswitch not modified");
 
     CTCaptureOutputToExc( SCRIPTDIR "/ConfigureLogin nsswitch_restart",
             &restartException);
@@ -1116,7 +1366,7 @@ static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
     LW_TRY(exc, RestartDtloginIfRunning(options, &LW_EXC));
 
 cleanup:
-    ;
+    FreeNsswitchConfContents(&conf);
 }
 
 static PSTR GetNsswitchDescription(const JoinProcessOptions *options, LWException **exc)
@@ -1124,6 +1374,12 @@ static PSTR GetNsswitchDescription(const JoinProcessOptions *options, LWExceptio
     PSTR ret = NULL;
     PCSTR configureSteps;
     BOOLEAN hasBadSeLinux;
+    QueryResult compatResult = FullyConfigured;
+    PSTR compatDescription = NULL;
+    NsswitchConf conf;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+
+    memset(&conf, 0, sizeof(conf));
 
     LW_CLEANUP_CTERR(exc, UnsuportedSeLinuxEnabled(&hasBadSeLinux));
     if(hasBadSeLinux)
@@ -1133,29 +1389,60 @@ static PSTR GetNsswitchDescription(const JoinProcessOptions *options, LWExceptio
         goto cleanup;
     }
 
+    ceError = ReadNsswitchConf(&conf, "", TRUE);
+    if(ceError == CENTERROR_INVALID_FILENAME)
+    {
+        ceError = CENTERROR_SUCCESS;
+        options->warningCallback(options, "Could not find file", "Could not find nsswitch file");
+        goto cleanup;
+    }
+    LW_CLEANUP_CTERR(exc, ceError);
+
     if(options->joiningDomain)
+    {
+        LW_TRY(exc, compatResult = RemoveCompat(&conf, &compatDescription, &LW_EXC));
+    }
+    if(compatResult == FullyConfigured)
+    {
+        CT_SAFE_FREE_STRING(compatDescription);
+        LW_CLEANUP_CTERR(exc, CTStrdup("", &compatDescription));
+    }
+
+    conf.modified = FALSE;
+    LW_CLEANUP_CTERR(exc, UpdateNsswitchConf(&conf, options->joiningDomain));
+
+    if(options->joiningDomain && conf.modified)
         configureSteps = 
 "The following steps are required and can be performed automatically:\n"
-"\t* Edit nsswitch apparmor profile to allow libraries in the /usr/centeris/lib  and /usr/centeris/lib64 directories\n"
+"\t* Edit nsswitch apparmor profile to allow libraries in the " PREFIXDIR "/lib  and " PREFIXDIR "/lib64 directories\n"
 "\t* List lwidentity module in /usr/lib/security/methods.cfg (AIX only)\n"
 "\t* Add lwidentity to passwd and group/groups line /etc/nsswitch.conf or /etc/netsvc.conf\n";
-    else
+    else if(conf.modified)
         configureSteps = 
 "The following steps are required and can be performed automatically:\n"
 "\t* Remove lwidentity module from /usr/lib/security/methods.cfg (AIX only)\n"
 "\t* Remove lwidentity from passwd and group/groups line /etc/nsswitch.conf or /etc/netsvc.conf\n"
 "The following step is optional:\n"
 "\t* Remove apparmor exception for likewise nsswitch libraries\n";
+    else
+        configureSteps = "";
 
-    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&ret,
-"%sIf any changes are performed, then the following services must be restarted:\n"
+    if(strlen(compatDescription) || strlen(configureSteps))
+    {
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&ret,
+"%s%sIf any changes are performed, then the following services must be restarted:\n"
 "\t* GDM\n"
 "\t* XDM\n"
 "\t* Cron\n"
 "\t* Dbus\n"
-"\t* Nscd", configureSteps));
+"\t* Nscd", compatDescription, configureSteps));
+    }
+    else
+        LW_CLEANUP_CTERR(exc, CTStrdup("Fully Configured", &ret));
 
 cleanup:
+    CT_SAFE_FREE_STRING(compatDescription);
+    FreeNsswitchConfContents(&conf);
     return ret;
 }
 

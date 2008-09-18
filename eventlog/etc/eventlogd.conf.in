@@ -1,0 +1,28 @@
+#
+# Likewise Audit (Eventlog) Subsystem
+#
+
+[global]
+
+
+[resource-limits]
+
+    # Default: 100M
+    # Minimum: 100K
+    # Maximum: 2G
+    max-disk-usage = 100M
+    
+    # Default: 90d
+    # Minimum: 1d
+    # Maximum: 365d
+    max-entry-lifespan = 90d
+
+    # Default: 100k
+    # Minimum: 100
+    # Maximum: 2m
+    max-num-entries = 100k
+
+    # Default: 1d
+    # Minimum: 30m
+    # Maximum: 30d (must be less than max-entry-lifespan)
+    event-db-purge-interval = 1d

@@ -1,0 +1,237 @@
+AC_INIT(Idl/samr.idl)
+AM_INIT_AUTOMAKE(librpc,0.1)
+AC_CONFIG_HEADER([config.h])
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_LIBTOOL
+
+DCERPC_INCLUDES=""
+DCERPC_LDFLAGS=""
+DCERPC_PATH=""
+
+PSTORE_INCLUDES=""
+PSTORE_LDFLAGS=""
+
+FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
+
+CPPFLAGS="$CPPFLAGS $FEATURETEST_FLAGS"
+
+AC_SUBST(LTLDFLAGS)
+
+# Handle options
+AC_ARG_WITH(
+	dcerpc-dir, 
+	[  --with-dcerpc-dir=<prefix>       look for dcerpc headers/libraries in <prefix>],
+	[
+	    DCERPC_INCLUDES=-I$withval/include
+	    DCERPC_LDFLAGS=-L$withval/lib
+	    DCERPC_PATH=$withval/bin
+	]
+)
+
+AC_ARG_WITH(
+	dcerpc-libdir, 
+	[  --with-dcerpc-libdir=<libdir>    look for dcerpc libraries in <libdir>],
+	[
+	    DCERPC_LDFLAGS="-L$withval"
+	]
+)
+
+AC_ARG_WITH(
+	unistr-dir, 
+	[  --with-unistr-dir=<prefix>       look for dcerpc headers/libraries in <prefix>],
+	[
+	    UNISTR_INCLUDES=-I$withval/include
+	    UNISTR_LDFLAGS=-L$withval/lib
+	]
+)
+
+AC_ARG_WITH(
+	unistr-libdir, 
+	[  --with-unistr-libdir=<libdir>    look for dcerpc libraries in <libdir>],
+	[
+	    UNISTR_LDFLAGS="-L$withval"
+	]
+)
+
+AC_ARG_WITH(
+	npc-dir, 
+	[  --with-npc-dir=<prefix>          look for npc headers/libraries in <prefix>],
+	[
+	    NPC_INCLUDES=-I$withval/include
+	    NPC_LDFLAGS=-L$withval/lib
+	]
+)
+
+AC_ARG_WITH(
+	npc-libdir, 
+	[  --with-npc-libdir=<libdir>       look for npc libraries in <libdir>],
+	[
+	    NPC_LDFLAGS="-L$withval"
+	]
+)
+
+AC_ARG_WITH(
+	ldap-dir, 
+	[  --with-ldap-dir=<prefix>         look for ldap headers/libraries in <prefix>],
+	[
+	    LDAP_INCLUDES=-I$withval/include
+	    LDAP_LDFLAGS=-L$withval/lib
+	]
+)
+
+AC_ARG_WITH(
+	ldap-libdir, 
+	[  --with-ldap-libdir=<libdir>      look for ldap libraries in <libdir>],
+	[
+	    LDAP_LDFLAGS="-L$withval"
+	]
+)
+
+AC_ARG_WITH(
+	pstore-dir, 
+	[  --with-pstore-dir=<prefix>       look for pstore headers/libraries in <prefix>],
+	[
+	    PSTORE_INCLUDES=-I$withval/include
+	    PSTORE_LDFLAGS="-L$withval/lib"
+	]
+)
+
+AC_ARG_WITH(
+	pstore-libdir,
+	[  --with-pstore-libdir=<prefix>    look for pstore libraries in <libdir>],
+	[
+	    PSTORE_LDFLAGS="-L$withval"
+	]
+)
+
+AC_ARG_WITH(
+	lwnet-dir, 
+	[  --with-lwnet-dir=<prefix>     look for pstore headers/libraries in <prefix>],
+	[
+	    LWNET_INCLUDES=-I$withval/include
+	    LWNET_LDFLAGS="-L$withval/lib"
+	]
+)
+
+AC_ARG_WITH(
+	lwnet-libdir,
+	[  --with-lwnet-libdir=<prefix>  look for pstore libraries in <libdir>],
+	[
+	    LWNET_LDFLAGS="-L$withval"
+	]
+)
+
+AC_ARG_WITH(
+	keytab-dir, 
+	[  --with-keytab-dir=<prefix>    look for keytab headers/libraries in <prefix>],
+	[
+	    KEYTAB_INCLUDES="-I$withval/include"
+	    KEYTAB_LDFLAGS="-L$withval/lib"
+	]
+)
+
+AC_ARG_WITH(
+	keytab-libdir,
+	[  --with-keytab-libdir=<prefix> look for keytab libraries in <libdir>],
+	[
+	    KEYTAB_LDFLAGS="-L$withval"
+	]
+)
+
+
+AC_SUBST(DCERPC_INCLUDES)
+AC_SUBST(DCERPC_LDFLAGS)
+AC_SUBST(DCERPC_PATH)
+AC_SUBST(UNISTR_INCLUDES)
+AC_SUBST(UNISTR_LDFLAGS)
+AC_SUBST(NPC_INCLUDES)
+AC_SUBST(NPC_LDFLAGS)
+AC_SUBST(LDAP_INCLUDES)
+AC_SUBST(LDAP_LDFLAGS)
+AC_SUBST(PSTORE_INCLUDES)
+AC_SUBST(PSTORE_LDFLAGS)
+AC_SUBST(LWNET_INCLUDES)
+AC_SUBST(LWNET_LDFLAGS)
+AC_SUBST(KEYTAB_INCLUDES)
+AC_SUBST(KEYTAB_LDFLAGS)
+
+IDLFLAGS="$IDLFLAGS `(for i in ${CPPFLAGS} ${DCERPC_INCLUDES} ${UNISTR_INCLUDES}; do echo $i; done) | grep '^-I' | xargs`"
+
+AC_SUBST(IDLFLAGS)	
+
+LIBICONV_LDFLAGS=""
+AC_CHECK_LIB(iconv, iconv, [LIBICONV_LDFLAGS="-liconv"])
+
+# Checks for libraries.
+CPPFLAGS="$CPPFLAGS $PSTORE_INCLUDES" \
+LDFLAGS="$LDFLAGS $PSTORE_LDFLAGS" \
+AC_CHECK_LIB(lwpsapi, LwpsOpenPasswordStore, [],
+     AC_MSG_ERROR([PStore library not found]), [$LIBICONV_LDFLAGS])
+
+CPPFLAGS="$CPPFLAGS $DCERPC_INCLUDES" \
+LDFLAGS="$LDFLAGS $DCERPC_LDFLAGS" \
+AC_CHECK_LIB(dcerpc, rpc__init, [],
+     AC_MSG_ERROR([DCERPC library not found]))
+
+CPPFLAGS="$CPPFLAGS $LWNET_INCLUDES" \
+LDFLAGS="$LDFLAGS $LWNET_LDFLAGS" \
+AC_CHECK_LIB(lwnetutils, LWNetFreeMemory, [],
+     AC_MSG_ERROR([Netlogon daemon utils library not found]))
+
+CPPFLAGS="$CPPFLAGS $LWNET_INCLUDES" \
+LDFLAGS="$LDFLAGS $LWNET_LDFLAGS" \
+AC_CHECK_LIB(lwnetclientapi, LWNetGetDCName, [],
+     AC_MSG_ERROR([Netlogon daemon client library not found]))
+
+AC_CHECK_LIB(tdb, tdb_fetch, [
+		AC_DEFINE(HAVE_LIBTDB, 1, [Set 1 one if the tdbbackend should be used])
+		have_libtdb=true
+		],
+		[have_libtdb=false])
+AM_CONDITIONAL([HAVE_LIBTDB], [test x$have_libtdb = xtrue])
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_HEADER_STDBOOL
+AC_CHECK_HEADERS([stdlib.h string.h inttypes.h])
+
+# Check for programs
+AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])
+
+if test x"$IDL" = x"no"; then
+   AC_MSG_ERROR([DCERPC IDL compiler not found])
+fi
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
+
+# Checks for library functions.
+AC_CHECK_FUNCS(strndup)
+
+# Check for moonunit bits
+AC_CHECK_HEADERS([moonunit/moonunit.h], [HAVE_MOONUNIT_H=true], [HAVE_MOONUNIT_H=false])
+AC_CHECK_LIB(moonunit, Mu_Interface_Result, [HAVE_MOONUNIT_LIB=true], [HAVE_MOONUNIT_LIB=false])
+AC_CHECK_PROG(MOONUNIT_STUB, moonunit-stub, moonunit-stub, false)
+
+if test "${MOONUNIT_STUB}" = "moonunit-stub" && $HAVE_MOONUNIT_H && $HAVE_MOONUNIT_LIB
+then
+	HAVE_MOONUNIT="true"
+	LIB_moonunit="-lmoonunit"
+	AC_DEFINE([HAVE_MOONUNIT], [], [Have MoonUnit])
+else
+	HAVE_MOONUNIT="false"
+fi
+
+AC_SUBST(LIB_moonunit)
+AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
+
+AC_OUTPUT(Makefile Include/Makefile
+          Error/Makefile Alloc/Makefile
+          MsRpc/Makefile Samr/Makefile Lsa/Makefile
+	  Krb5Pac/Makefile
+          NetLib/Makefile Mpr/Makefile
+          Netlogon/Makefile
+	  TestRpc/Makefile)

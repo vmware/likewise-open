@@ -1,31 +1,38 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
 #include "ctarray.h"
 #include "ctstrutils.h"
 #include "ctfileutils.h"
+#include "ctshell.h"
 #include "djstr.h"
 #include "djdistroinfo.h"
 #include "djpamconf.h"
@@ -103,7 +110,7 @@ static CENTERROR ReadPamConfiguration(const char *rootPrefix, struct PamConf *co
 
 static CENTERROR WritePamConfiguration(const char *rootPrefix, struct PamConf *conf, PSTR *diff);
 
-static CENTERROR FindModulePath(const char *testPrefix, const char *basename, char **destName);
+static CENTERROR FindModulePath(const char *testPrefix, const char *basename, char **destName, DWORD *moduleFlags);
 
 static BOOLEAN IsRequiredService(PCSTR service, const struct PamConf *conf);
 
@@ -924,6 +931,8 @@ static BOOLEAN NormalizeModuleName( char *destName, const char *srcName, size_t 
         srcName += strlen("/lib/security/hpux64/");
     else if(CTStrStartsWith(srcName, "/lib/security/$ISA/"))
         srcName += strlen("/lib/security/$ISA/");
+    else if(CTStrStartsWith(srcName, "/usr/lib/security/$ISA/"))
+        srcName += strlen("/usr/lib/security/$ISA/");
     else if(CTStrStartsWith(srcName, "/lib/security/"))
         srcName += strlen("/lib/security/");
     else if(CTStrStartsWith(srcName, "/usr/lib/vmware/lib/libpam.so.0/security/"))
@@ -934,6 +943,8 @@ static BOOLEAN NormalizeModuleName( char *destName, const char *srcName, size_t 
         srcName += strlen("/usr/lib/security/sparcv9/");
     else if(CTStrStartsWith(srcName, "/usr/lib/security/amd64/"))
         srcName += strlen("/usr/lib/security/amd64/");
+    else if(CTStrStartsWith(srcName, "/usr/local/lib/"))
+        srcName += strlen("/usr/local/lib/");
 
     /* Remove any "lib" prefix so that libpam_foo == pam_foo.  HP-UX has a bunch
      * of libpam_foo.  If we need to distinguish libpam_foo vs pam_foo in the future,
@@ -987,6 +998,8 @@ static BOOLEAN PamModuleIsLwidentity(const char *phase, const char *module)
 {
     char buffer[256];
     NormalizeModuleName( buffer, module, sizeof(buffer));
+    if(!strcmp(buffer, "pam_lsass"))
+        return TRUE;
     if(!strcmp(buffer, "pam_lwidentity"))
         return TRUE;
     if(!strcmp(buffer, "libpam_lwidentity"))
@@ -1041,6 +1054,8 @@ static BOOLEAN PamModuleChecksCaller( const char * phase, const char * module)
         return TRUE;
     if(!strcmp(buffer, "pam_allowroot"))
         return TRUE;
+    if(!strcmp(buffer, "pam_self"))
+        return TRUE;
     if(!strcmp(buffer, "pam_rhosts_auth"))
         return TRUE;
     if(!strcmp(buffer, "pam_console"))
@@ -1050,6 +1065,8 @@ static BOOLEAN PamModuleChecksCaller( const char * phase, const char * module)
     if(!strcmp(buffer, "pam_krb5"))
         return TRUE;
     if(!strcmp(buffer, "pam_securid"))
+        return TRUE;
+    if(!strcmp(buffer, "pam_opie"))
         return TRUE;
     //Used by IBM Director. Found at Gap
     if(!strcmp(buffer, "pam_ve"))
@@ -1213,10 +1230,14 @@ static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char
         return TRUE;
     if(!strcmp(buffer, "pam_allowroot"))
         return TRUE;
+    if(!strcmp(buffer, "pam_self"))
+        return TRUE;
 
     /* It would be too difficult to debug a POC where securid was blocking SSH
      * for domain users. */
     if(!strcmp(buffer, "pam_securid"))
+        return TRUE;
+    if(!strcmp(buffer, "pam_opie"))
         return TRUE;
 
     /* These modules return errors for users they don't know about */
@@ -1255,6 +1276,20 @@ static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char
     return PamModulePrompts("auth", module);
 }
 
+static BOOLEAN PamModuleGivesLocalAccess(const char * phase, const char * module)
+{
+    char buffer[256];
+    NormalizeModuleName( buffer, module, sizeof(buffer));
+
+    if(!strcmp(buffer, "pam_console") && !strcmp(phase, "session"))
+        return TRUE;
+
+    if(!strcmp(buffer, "pam_foreground") && !strcmp(phase, "session"))
+        return TRUE;
+
+    return FALSE;
+}
+
 /* returns true if the pam module at least sometimes returns success for AD users
  */
 /*Currently unused
@@ -1278,6 +1313,10 @@ static CENTERROR GetIncludeName(struct PamLine *lineObj, PSTR *includeService)
         return CTStrdup(lineObj->control->value, includeService);
     }
     if(lineObj->control != NULL && !strcmp(lineObj->control->value, "include"))
+    {
+        return CTStrdup(lineObj->module->value, includeService);
+    }
+    if(lineObj->control != NULL && !strcmp(lineObj->control->value, "substack"))
     {
         return CTStrdup(lineObj->module->value, includeService);
     }
@@ -1395,9 +1434,7 @@ void GetModuleControl(struct PamLine *lineObj, const char **module, const char *
      */
     if(lineObj->optionCount == 1 && !strcmp(lineObj->options[0].value, "set_default_repository"))
     {
-        char buffer[256];
-        NormalizeModuleName( buffer, *module, sizeof(buffer));
-        if(!strcmp(buffer, "pam_lwidentity"))
+        if(PamModuleIsLwidentity("auth", *module))
             *module = "pam_lwidentity_set_repo";
     }
 }
@@ -1536,10 +1573,10 @@ static CENTERROR FindPamDenyLikeModule(const char *testPrefix, char **modulePath
     *modulePath = NULL;
     *moduleOption = NULL;
 
-    ceError = FindModulePath(testPrefix, "pam_deny", modulePath);
+    ceError = FindModulePath(testPrefix, "pam_deny", modulePath, NULL);
     if(ceError == CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE)
     {
-        ceError = FindModulePath(testPrefix, "pam_prohibit", modulePath);
+        ceError = FindModulePath(testPrefix, "pam_prohibit", modulePath, NULL);
     }
     if(ceError == CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE)
     {
@@ -1555,7 +1592,7 @@ static CENTERROR FindPamDenyLikeModule(const char *testPrefix, char **modulePath
         BAIL_ON_CENTERIS_ERROR(ceError);
         if(distro.os == OS_SUNOS)
         {
-            ceError = FindModulePath(testPrefix, "pam_sample", modulePath);
+            ceError = FindModulePath(testPrefix, "pam_sample", modulePath, NULL);
             if(CENTERROR_IS_OK(ceError))
             {
                 ceError = CTStrdup("always_fail", moduleOption);
@@ -1573,11 +1610,60 @@ error:
     return ceError;
 }
 
+static void MoveLine(struct PamConf *conf, int oldPos, int newPos)
+{
+    struct PamLine temp;
+
+    //Make a copy of the line we're moving
+    memcpy(&temp, &conf->lines[oldPos], sizeof(conf->lines[oldPos]));
+
+    //Make room for the line in the new position
+    if(newPos < oldPos)
+    {
+        //shift the area between newPos and oldPos forward
+        memmove(&conf->lines[newPos + 1], &conf->lines[newPos],
+                (char *)&conf->lines[oldPos] - (char *)&conf->lines[newPos]);
+    }
+    else
+    {
+        //shift the area between newPos and oldPos backward
+        memmove(&conf->lines[oldPos], &conf->lines[oldPos + 1],
+                (char *)&conf->lines[newPos] - (char *)&conf->lines[oldPos]);
+    }
+
+    //Put the line into its new position
+    memcpy(&conf->lines[newPos], &temp, sizeof(conf->lines[newPos]));
+    conf->modified = TRUE;
+}
+
+static CENTERROR MoveUpInteractiveCheck(struct PamConf *conf, int insertPos, const char *service, const char * phase)
+{
+    /* Do not free this variable */
+    struct PamLine *lineObj;
+    const char *module;
+    const char *control;
+    int line = NextLineForService(conf, insertPos, service, phase);
+    while(line != -1)
+    {
+        lineObj = &conf->lines[line];
+        GetModuleControl(lineObj, &module, &control);
+
+        if(PamModuleGivesLocalAccess(phase, module))
+        {
+            MoveLine(conf, line, insertPos);
+            break;
+        }
+        line = NextLineForService(conf, line, service, phase);
+    }
+
+    return CENTERROR_SUCCESS;
+}
+
 static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro, struct PamConf *conf, const char *service, const char * phase, const char *pam_lwidentity, struct ConfigurePamModuleState *state, LWException **exc)
 {
     int prevLine = -1;
     int line = NextLineForService(conf, -1, service, phase);
-    int lwidentityLine;
+    int lwidentityLine = -1;
     /* Do not free this variable */
     struct PamLine *lineObj;
     const char *module;
@@ -2092,9 +2178,22 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
         state->configuredRequestedModule = TRUE;
     }
 
+    if(line != -1 && state->configuredRequestedModule &&
+            !strcmp(phase, "session"))
+    {
+        int moveTo = prevLine;
+
+        if(lwidentityLine != -1)
+            moveTo = lwidentityLine;
+
+        LW_CLEANUP_CTERR(exc, MoveUpInteractiveCheck(conf, moveTo,
+                    service, phase));
+    }
+
     /* If pam_lwidentity is the first prompting module on the stack, the next module needs to have something like try_first_pass added.
      */
-    while(line != -1 && !state->sawPromptingModule)
+    while(line != -1 && state->configuredRequestedModule
+            && !state->sawPromptingModule)
     {
         lineObj = &conf->lines[line];
         GetModuleControl(lineObj, &module, &control);
@@ -2341,7 +2440,10 @@ error:
     return ceError;
 }
 
-static CENTERROR FindModulePath(const char *testPrefix, const char *basename, char **destName)
+#define MODULE_FLAG_32BIT   1
+#define MODULE_FLAG_64BIT   2
+
+static CENTERROR FindModulePath(const char *testPrefix, const char *basename, char **destName, DWORD *moduleFlags)
 {
     /*If you update this function, update NormalizeModuleName too */
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -2359,6 +2461,7 @@ static CENTERROR FindModulePath(const char *testPrefix, const char *basename, ch
         "/usr/lib/pam",
         "/usr/lib/security/sparcv9",
         "/usr/lib/security/amd64",
+        "/usr/local/lib",
         NULL
     };
 
@@ -2378,6 +2481,17 @@ static CENTERROR FindModulePath(const char *testPrefix, const char *basename, ch
     };
 
     char *foundName = NULL;
+    PSTR fileProgPath = NULL;
+    PSTR fileType = NULL;
+
+    if(moduleFlags != NULL)
+    {
+        *moduleFlags = 0;
+        ceError = CTFindFileInPath("file", "/bin:/usr/bin:/usr/local/bin", &fileProgPath);
+        if(ceError == CENTERROR_FILE_NOT_FOUND)
+            ceError = CENTERROR_SUCCESS;
+        GCE(ceError);
+    }
 
     DJ_LOG_INFO("Searching for the system specific path of %s", basename);
 
@@ -2388,12 +2502,32 @@ static CENTERROR FindModulePath(const char *testPrefix, const char *basename, ch
             for(k = 0; searchNameSuffixes[k] != NULL; k++)
             {
                 CT_SAFE_FREE_STRING(fullPath);
-                BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&fullPath, "%s%s/%s%s%s", testPrefix, searchDirs[i], searchNamePrefixes[j], basename, searchNameSuffixes[k]));
+                GCE(ceError = CTAllocateStringPrintf(&fullPath, "%s%s/%s%s%s", testPrefix, searchDirs[i], searchNamePrefixes[j], basename, searchNameSuffixes[k]));
                 DJ_LOG_VERBOSE("Checking if %s exists", fullPath);
-                BAIL_ON_CENTERIS_ERROR(ceError = CTCheckFileOrLinkExists(fullPath, &exists));
+                GCE(ceError = CTCheckFileOrLinkExists(fullPath, &exists));
                 if(exists)
                 {
                     DJ_LOG_INFO("Found pam module %s", fullPath);
+
+                    if(fileProgPath != NULL)
+                    {
+                        CT_SAFE_FREE_STRING(fileType);
+                        GCE(ceError = CTShell("%fileprog %filepath >%type",
+                                CTSHELL_STRING(fileprog, fileProgPath),
+                                CTSHELL_STRING(filepath, fullPath),
+                                CTSHELL_BUFFER(type, &fileType)));
+
+                        if(strstr(fileType, "64-bit"))
+                        {
+                            *moduleFlags |= MODULE_FLAG_64BIT;
+                            DJ_LOG_INFO("Found it is 64bit");
+                        }
+                        if(strstr(fileType, "32-bit"))
+                        {
+                            *moduleFlags |= MODULE_FLAG_32BIT;
+                            DJ_LOG_INFO("Found it is 32bit");
+                        }
+                    }
                     /* If the file is found in exactly one path, use the full path. If the file is found in more than one path, use the relative name. */
                     if(foundPath == i)
                     {
@@ -2402,7 +2536,7 @@ static CENTERROR FindModulePath(const char *testPrefix, const char *basename, ch
                     else if(foundPath == -1)
                     {
                         CT_SAFE_FREE_STRING(fullPath);
-                        BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&fullPath, "%s/%s%s%s", searchDirs[i], searchNamePrefixes[j], basename, searchNameSuffixes[k]));
+                        GCE(ceError = CTAllocateStringPrintf(&fullPath, "%s/%s%s%s", searchDirs[i], searchNamePrefixes[j], basename, searchNameSuffixes[k]));
                         foundName = fullPath;
                         fullPath = NULL;
                         foundPath = i;
@@ -2413,7 +2547,7 @@ static CENTERROR FindModulePath(const char *testPrefix, const char *basename, ch
                          * found in. Strip off the directory name
                          */
                         CT_SAFE_FREE_STRING(foundName);
-                        BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&fullPath, "%s%s%s", searchNamePrefixes[j], basename, searchNameSuffixes[k]));
+                        GCE(ceError = CTAllocateStringPrintf(&fullPath, "%s%s%s", searchNamePrefixes[j], basename, searchNameSuffixes[k]));
                         foundName = fullPath;
                         fullPath = NULL;
                         foundPath = -2;
@@ -2427,15 +2561,17 @@ static CENTERROR FindModulePath(const char *testPrefix, const char *basename, ch
     if(foundPath == -1)
     {
         DJ_LOG_INFO("Unable to find %s", basename);
-        BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE);
+        GCE(ceError = CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE);
     }
     else
     {
         DJ_LOG_INFO("Using module path '%s'", foundName);
     }
 
-error:
+cleanup:
     CT_SAFE_FREE_STRING(fullPath);
+    CT_SAFE_FREE_STRING(fileProgPath);
+    CT_SAFE_FREE_STRING(fileType);
     if(destName != NULL)
         *destName = foundName;
     else
@@ -2445,15 +2581,20 @@ error:
 
 static CENTERROR FindPamLwiPassPolicy(const char *testPrefix, char **destName)
 {
-    return FindModulePath(testPrefix, "pam_lwipasspolicy", destName);
+    return FindModulePath(testPrefix, "pam_lwipasspolicy", destName, NULL);
 }
 
-static CENTERROR FindPamLwidentity(const char *testPrefix, char **destName)
+static CENTERROR FindPamLwidentity(const char *testPrefix, char **destName, DWORD *flags)
 {
-    CENTERROR ceError = FindModulePath(testPrefix, "pam_lwidentity", destName);
+    CENTERROR ceError;
+    ceError = FindModulePath(testPrefix, "pam_lsass", destName, flags);
+    if(ceError == CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE)
+    {
+        ceError = FindModulePath(testPrefix, "pam_lwidentity", destName, flags);
+    }
     if(!CENTERROR_IS_OK(ceError))
     {
-        DJ_LOG_ERROR("Unable to find pam_lwidentity");
+        DJ_LOG_ERROR("Unable to find pam_lwidentity or pam_lsass");
     }
     return ceError;
 }
@@ -2475,6 +2616,7 @@ void DJUpdatePamConf(const char *testPrefix,
     char **services = NULL;
     DistroInfo distro;
     LWException *nestedException = NULL;
+    DWORD moduleFlags = 0;
 
     memset(&distro, 0, sizeof(distro));
     if(testPrefix == NULL)
@@ -2484,7 +2626,8 @@ void DJUpdatePamConf(const char *testPrefix,
 
     if(enable)
     {
-        LW_CLEANUP_CTERR(exc, FindPamLwidentity(testPrefix, &pam_lwidentity));
+        LW_CLEANUP_CTERR(exc, FindPamLwidentity(testPrefix, &pam_lwidentity,
+                    &moduleFlags));
         ceError = FindPamLwiPassPolicy(testPrefix, &pam_lwipasspolicy);
         /* Ignore the password policy on systems that don't have it */
         if(ceError == CENTERROR_DOMAINJOIN_PAM_MISSING_MODULE)
@@ -2502,6 +2645,19 @@ void DJUpdatePamConf(const char *testPrefix,
              * common-auth instead.
              */
             DJ_LOG_INFO("Ignoring pam service common-pammount");
+            continue;
+        }
+        if(!strcmp(services[i], "vmware-authd") && enable &&
+                (moduleFlags & MODULE_FLAG_32BIT) != MODULE_FLAG_32BIT)
+        {
+            /* Vmware is always a 32bit program, even on 64bit systems. Vmware
+             * has its own copy of libpam. Ubuntu by default does not have
+             * 32bit pam libraries, and /lib/security/pam_* are actually the
+             * 64bit pam libraries. If we try to install a 64bit pam library
+             * into vmware-authd, the vmware will not be able to load the
+             * module and it will fail to authenticate anyone.
+             */
+            DJ_LOG_WARNING("Ignoring pam service vmware-authd because 32bit pam libraries are not available on this system");
             continue;
         }
         for(j = 0; phases[j] != NULL; j++)
@@ -2670,12 +2826,17 @@ void DJNewConfigurePamForADLogin(
 
     if(enable)
     {
+        BOOLEAN confExists;
         DJ_LOG_INFO("Making sure that try_first_pass is not on in pam_lwidentity.conf");
         LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(
             &pam_lwidentityconf, "%s%s", testPrefix,
             "/etc/security/pam_lwidentity.conf"));
-        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(pam_lwidentityconf, pam_lwidentityconf,
-            FALSE, "s/^\\([ \t]*try_first_pass[ \t]*=.*\\)$/# \\1/"));
+        LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(pam_lwidentityconf, &confExists));
+        if(confExists)
+        {
+            LW_CLEANUP_CTERR(exc, CTRunSedOnFile(pam_lwidentityconf, pam_lwidentityconf,
+                FALSE, "s/^\\([ \t]*try_first_pass[ \t]*=.*\\)$/# \\1/"));
+        }
     }
 
     LW_TRY(exc, DJUpdatePamConf(testPrefix, &conf, options, warning, enable, &LW_EXC));
@@ -3019,6 +3180,13 @@ static QueryResult QueryPam(const JoinProcessOptions *options, LWException **exc
     int i;
 
     memset(&conf, 0, sizeof(conf));
+
+    if ( options->ignorePam )
+    {
+        result = NotApplicable;
+        goto cleanup;
+    }
+
     LW_CLEANUP_CTERR(exc, CTCreateTempDirectory(&tempDir));
     LW_CLEANUP_CTERR(exc, DJCopyPamToRootDir(NULL, tempDir));
     ceError = ReadPamConfiguration(tempDir, &conf);

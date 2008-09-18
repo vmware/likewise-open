@@ -1,25 +1,31 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
@@ -33,8 +39,10 @@ typedef enum
 } SearchPolicyType;
 
 #define LWIDSPLUGIN_SYMLINK_PATH "/System/Library/Frameworks/DirectoryService.framework/Versions/Current/Resources/Plugins/LWIDSPlugin.dsplug"
-#define LWIDSPLUGIN_INSTALL_PATH "/opt/centeris/lib/LWIDSPlugin.dsplug"
-#define LWIDSPLUGIN_NAME         "/Likewise - Active Directory"
+#define LWEDSPLUGIN_SYMLINK_PATH "/System/Library/Frameworks/DirectoryService.framework/Versions/Current/Resources/Plugins/LWEDSPlugin.dsplug"
+#define LWIDSPLUGIN_INSTALL_PATH LIBDIR "/LWIDSPlugin.dsplug"
+#define LWEDSPLUGIN_INSTALL_PATH LIBDIR "/LWEDSPlugin.dsplug"
+#define LWDSPLUGIN_NAME         "/Likewise - Active Directory"
 #define PID_FILE_CONTENTS_SIZE   ((9 * 2) + 2)
 #define CONFIGD_PID_FILE         "/var/run/configd.pid"
 
@@ -180,7 +188,7 @@ DJRegisterLWIDSPlugin()
     DWORD nArgs = 7;
     LONG status = 0;
 
-    DJ_LOG_INFO("Registering LWIDSPlugin for Open Directory Authentication");
+    DJ_LOG_INFO("Registering LWIDSPlugin for Macintosh Directory Services Authentication");
 
     ceError = DJSetSearchPath(CSPSearchPath);
     BAIL_ON_CENTERIS_ERROR(ceError);
@@ -203,7 +211,7 @@ DJRegisterLWIDSPlugin()
     ceError = CTAllocateString("CSPSearchPath", ppszArgs+4);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    ceError = CTAllocateString(LWIDSPLUGIN_NAME, ppszArgs+5);
+    ceError = CTAllocateString(LWDSPLUGIN_NAME, ppszArgs+5);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
@@ -264,7 +272,7 @@ DJUnregisterLWIDSPlugin()
     ceError = CTAllocateString("CSPSearchPath", ppszArgs+4);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    ceError = CTAllocateString(LWIDSPLUGIN_NAME, ppszArgs+5);
+    ceError = CTAllocateString(LWDSPLUGIN_NAME, ppszArgs+5);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
@@ -298,7 +306,7 @@ error:
 }
 
 /*
-   The LWIDSPlugin is saved to /opt/centeris/lib/LWIDSPlugin.dsplug upon installation
+   The LWIDSPlugin is saved to /opt/likewise/lib/LWIDSPlugin.dsplug upon installation
 
    In order to participate in Open Directory Services, we need to create a symbolic link
 
@@ -308,7 +316,7 @@ error:
 
    to
 
-   /opt/centeris/lib/LWIDSPlugin.dsplug
+   /opt/likewise/lib/LWIDSPlugin.dsplug
 */
 #if 0
 static
@@ -523,7 +531,7 @@ static QueryResult QueryDSPlugin(const JoinProcessOptions *options, LWException 
 
     LW_CLEANUP_CTERR(exc, CTCaptureOutput("/usr/bin/dscl /Search -read / dsAttrTypeStandard:CSPSearchPath", &value));
     CTStripWhitespace(value);
-    if( (strstr(value, LWIDSPLUGIN_NAME) == NULL) == options->joiningDomain )
+    if( (strstr(value, LWDSPLUGIN_NAME) == NULL) == options->joiningDomain )
         goto cleanup;
     CT_SAFE_FREE_STRING(value);
 

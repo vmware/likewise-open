@@ -1,26 +1,33 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program.  If not, see
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
+
 #include "domainjoin.h"
 #include "djitf.h"
 #include "djitf_p.h"
@@ -31,9 +38,23 @@ DJInitJoinInterface(
     PDJ_API_FUNCTION_TABLE* ppFuncTable
     )
 {
+    LWException* pException = NULL;
     PSTR pszLogFilePath = "/tmp/lwidentity.join.log";
-    CENTERROR ceError = dj_init_logging_to_file(LOG_LEVEL_WARNING, pszLogFilePath);
+    CENTERROR ceError = 0;
+
+    ceError = dj_init_logging_to_file(LOG_LEVEL_WARNING, pszLogFilePath);
+
+    LW_TRY(&pException, DJNetInitialize(&LW_EXC));
+
     *ppFuncTable = gpDJApiFunctionTable;
+
+cleanup:
+
+    if (pException)
+    {
+       ceError = pException->code;
+    }
+
     return ceError;
 }
 
@@ -252,7 +273,7 @@ DJItfSetComputerName(
     CENTERROR ceError = CENTERROR_SUCCESS;
     LWException* pException = NULL;
     
-    LW_CLEANUP_CTERR(&pException, DJSetComputerName(pszComputerName, pszDomainName));
+    LW_TRY(&pException, DJSetComputerName(pszComputerName, pszDomainName, &LW_EXC));
     
 cleanup:
 
@@ -288,7 +309,7 @@ DJItfQueryInformation(
     PDOMAINJOININFO pJoinInfo = NULL;
     PDOMAIN_JOIN_INFO pJoinInfo_client = NULL;
     
-    LW_CLEANUP_CTERR(&pException, QueryInformation(&pJoinInfo));
+    LW_TRY(&pException, QueryInformation(&pJoinInfo, &LW_EXC));
     
     ceError = DJItfConvertDomainJoinInfo(pJoinInfo, &pJoinInfo_client);
     GOTO_CLEANUP_ON_CENTERROR(ceError);

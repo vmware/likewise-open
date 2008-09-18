@@ -1,0 +1,12 @@
+#
+# Likewise Password Storage (LWPS)
+#
+
+[password storage:sql-db]
+    type = sqldb 
+    path = @providerdir@/liblwps-sqldb@MOD_EXT@
+    default = yes 
+#[password storage:tdb]
+#    type = tdb
+#    path = @providerdir@/liblwps-tdb@MOD_EXT@
+#    db path = /etc/samba/secrets.tdb

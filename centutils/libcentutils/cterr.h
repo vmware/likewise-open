@@ -1,25 +1,57 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #ifndef _CENTERROR_H
@@ -156,12 +188,13 @@ typedef uint32_t CENTERROR;
 //An option passed on the command line was invalid
 #define CENTERROR_INVALID_OPTION_VALUE          CENTERROR_SYSTEM(0x00002018)  //   8216
 #define CENTERROR_ABNORMAL_TERMINATION          CENTERROR_SYSTEM(0x00002019)  //   8217
-#define CENTERROR_SED_NOT_FOUND	                CENTERROR_SYSTEM(0x00002020)  //   8218
-#define CENTERROR_SHELL_VARIABLE_UNKNOWN        CENTERROR_SYSTEM(0x00002021)  //   8219
-#define CENTERROR_FILE_NOT_FOUND        	CENTERROR_SYSTEM(0x00002022)  //   8220
-#define CENTERROR_NOT_IMPLEMENTED        	CENTERROR_SYSTEM(0x00002023)  //   8221
-#define CENTERROR_INVALID_DIRECTORY             CENTERROR_SYSTEM(0x00002024)  //   8222
-#define CENTERROR_INCOMPATIBLE_LIBRARY          CENTERROR_SYSTEM(0x00002025)  //   8223
+#define CENTERROR_SED_NOT_FOUND	                CENTERROR_SYSTEM(0x0000201A)  //   8218
+#define CENTERROR_SHELL_VARIABLE_UNKNOWN        CENTERROR_SYSTEM(0x0000201B)  //   8219
+#define CENTERROR_FILE_NOT_FOUND        	    CENTERROR_SYSTEM(0x0000201C)  //   8220
+#define CENTERROR_NOT_IMPLEMENTED        	    CENTERROR_SYSTEM(0x0000201D)  //   8221
+#define CENTERROR_INVALID_DIRECTORY             CENTERROR_SYSTEM(0x0000201E)  //   8222
+#define CENTERROR_INCOMPATIBLE_LIBRARY          CENTERROR_SYSTEM(0x0000201F)  //   8223
+#define CENTERROR_LSASS_NOT_RUNNING             CENTERROR_SYSTEM(0x00002020)  //   8224
 
 
 #define CENTERROR_GP_SYSTEM_CALL_FAILED         CENTERROR_GP(0x00000001)      // 327681
@@ -229,6 +262,7 @@ typedef uint32_t CENTERROR;
 #define CENTERROR_GP_DNS_HOSTENT_NAME_INVALID   CENTERROR_GP(0x00000045)      // 327743
 #define CENTERROR_GP_DNS_QUERY_FAILED           CENTERROR_GP(0x00000046)      // 327744
 #define CENTERROR_GP_EVENT_LOG_NOT_AVAILABLE    CENTERROR_GP(0x00000047)      // 327745
+#define CENTERROR_GP_NO_SUCH_PROVIDER           CENTERROR_GP(0x00000048)      // 327746
 
 #define CENTERROR_REGISTRY_OPEN_KEYDB_FAILED     CENTERROR_REGISTRY(0x00000001) // 458753
 #define CENTERROR_REGISTRY_NO_SUCH_KEY           CENTERROR_REGISTRY(0x00000002) // 458754
@@ -309,6 +343,7 @@ typedef uint32_t CENTERROR;
 #define CENTERROR_DOMAINJOIN_MODULE_ALREADY_DONE   CENTERROR_DOMAINJOIN(0x00000044) // 524350
 #define CENTERROR_DOMAINJOIN_SHOW_USAGE            CENTERROR_DOMAINJOIN(0x00000045) // 524351
 #define CENTERROR_DOMAINJOIN_WARNING            CENTERROR_DOMAINJOIN(0x00000046) // 524352
+#define CENTERROR_DOMAINJOIN_LSASS_ERROR           CENTERROR_DOMAINJOIN(0x00000047) // 524353
 
 const char*
 CTErrorName(

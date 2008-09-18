@@ -1,25 +1,57 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "config/config.h"
@@ -36,6 +68,21 @@
 #elif HAVE_SYS_PROCFS_H
 #include <sys/procfs.h>
 #endif
+#if HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+#if HAVE_KVM_H
+#include <kvm.h>
+#endif
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#if HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
+#endif
+#if HAVE_SYS_USER_H
+#include <sys/user.h>
+#endif
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
@@ -49,7 +96,7 @@ CTMatchProgramToPID(
     CHAR szBuf[PATH_MAX+1];
     FILE* pFile = NULL;
 
-#if defined(__LWI_MACINTOSH__)
+#if defined(__LWI_MACINTOSH__) || defined(__LWI_FREEBSD__)
     sprintf(szBuf, "ps -p %d -o command= | grep %s", pid, pszProgramName);
 #elif defined(__LWI_SOLARIS__) || defined(__LWI_HP_UX__) || defined(__LWI_AIX__)
     sprintf(szBuf, "UNIX95=1 ps -p %ld -o comm= | grep %s", (long)pid, pszProgramName);
@@ -234,6 +281,22 @@ CTGetPidOfCmdLine(
     struct psinfo infoStruct;
     FILE *infoFile = NULL;
     struct stat compareStat;
+    BOOLEAN bFileExists;
+#endif
+#if defined(HAVE_KVM_GETPROCS) && HAVE_DECL_KERN_PROC_PATHNAME
+    //FreeBSD has this
+    char pathBuffer[MAXPATHLEN];
+    size_t len;
+    int unfilteredCount;
+    kvm_t *kd = NULL;
+    struct kinfo_proc *procs;
+    int i;
+    struct kinfo_proc *pos;
+    int sysctlName[4] = {
+        CTL_KERN,
+        KERN_PROC,
+        KERN_PROC_PATHNAME,
+        0 };
 #endif
 
     if(count)
@@ -340,6 +403,12 @@ CTGetPidOfCmdLine(
         CT_SAFE_FREE_STRING(filePath);
         GCE(ceError = CTAllocateStringPrintf(&filePath, "/proc/%s/psinfo",
                     dirEntry->d_name));
+        GCE(ceError = CTCheckFileOrLinkExists(filePath, &bFileExists));
+        if(!bFileExists)
+        {
+            // On AIX 6.1, a defunct process can lack a psinfo file.
+            continue;
+        }
         GCE(ceError = CTSafeCloseFile(&infoFile));
         GCE(ceError = CTOpenFile(filePath, "r", &infoFile));
         if(fread(&infoStruct, sizeof(infoStruct), 1, infoFile) != 1)
@@ -394,6 +463,83 @@ not_match:
     }
 #endif
 
+#if defined(HAVE_KVM_GETPROCS) && HAVE_DECL_KERN_PROC_PATHNAME
+    kd = kvm_open(NULL, "/dev/null", NULL, O_RDONLY, NULL);
+    if (kd == NULL)
+        GCE(ceError = CENTERROR_ACCESS_DENIED);
+
+    procs = kvm_getprocs(kd, KERN_PROC_PROC, 0, &unfilteredCount);
+    if (procs == NULL)
+        GCE(ceError = CENTERROR_ACCESS_DENIED);
+
+    pos = procs;
+    for(i = 0; i < unfilteredCount; i++,
+        pos = (struct kinfo_proc *)((char *)pos + pos->ki_structsize))
+    {
+        if (owner != (uid_t)-1 && owner != pos->ki_uid)
+        {
+            continue;
+        }
+        if (programName != NULL && strcmp(pos->ki_comm, programName))
+        {
+            continue;
+        }
+        if (cmdLine != NULL)
+        {
+            char **args = kvm_getargv(kd, pos, 0);
+            char **argPos = args;
+            PCSTR cmdLinePos = cmdLine;
+
+            while (*cmdLinePos != '\0')
+            {
+                if (argPos == NULL || *argPos == NULL)
+                    break;
+
+                if (strncmp(cmdLinePos, *argPos, strlen(*argPos)))
+                    break;
+
+                cmdLinePos += strlen(*argPos);
+                argPos++;
+
+                if(cmdLinePos[0] == ' ')
+                    cmdLinePos++;
+            }
+
+            if(*cmdLinePos != '\0' || (argPos != NULL && *argPos != NULL))
+            {
+                //not a match
+                continue;
+            }
+        }
+        if (programFilename != NULL)
+        {
+            pathBuffer[0] = '\0';
+            if (pos->ki_textvp != NULL)
+            {
+                sysctlName[3] = pos->ki_pid;
+                len = sizeof(pathBuffer);
+                if( sysctl(sysctlName, 4, pathBuffer, &len, NULL, 0) < 0)
+                {
+		    /* If the executable path does not exist
+		       (e.g. because the file was deleted after
+		       the program started), move on */
+		    if (errno == ENOENT)
+			continue;
+                    GCE(ceError = CTMapSystemError(errno));
+                }
+            }
+            if(strcmp(programFilename, pathBuffer))
+                continue;
+        }
+
+        //This is a match
+        if(foundCount < fillCount)
+            pid[foundCount] = pos->ki_pid;
+        foundCount++;
+    }
+    ceError = CENTERROR_SUCCESS;
+#endif
+
     if(count)
         *count = foundCount;
     else if(CENTERROR_IS_OK(ceError) && foundCount == 0)
@@ -405,6 +551,12 @@ cleanup:
         closedir(dir);
     CT_SAFE_FREE_STRING(filePath);
     CTSafeCloseFile(&infoFile);
+#endif
+#if defined(HAVE_KVM_GETPROCS) && HAVE_DECL_KERN_PROC_PATHNAME
+    if(kd != NULL)
+    {
+        kvm_close(kd);
+    }
 #endif
 
     return ceError;

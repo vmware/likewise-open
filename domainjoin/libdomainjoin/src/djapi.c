@@ -1,25 +1,31 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "djapi.h"
@@ -38,8 +44,7 @@ DJQuery(
 {
     PDOMAINJOININFO info = NULL;
 
-    LW_CLEANUP_CTERR(exc,
-		     QueryInformation(&info));
+    LW_TRY(exc, QueryInformation(&info, &LW_EXC));
     
     if (info->pszName)
     {
@@ -77,69 +82,9 @@ DJRenameComputer(
     LWException** exc
     )
 {
-    LW_CLEANUP_CTERR(exc, DJSetComputerName((char*) computer, (char*) domain));
+    LW_TRY(exc, DJSetComputerName((char*) computer, (char*) domain, &LW_EXC));
 
 cleanup:
 
-    return;
-}
-
-void
-DJJoinDomain(
-    const char* domain,
-    const char* ou,
-    const char* user,
-    const char* password,
-    DJOptions* options,
-    LWException** exc
-    )
-{
-    BOOLEAN resolvable;
-    
-    if (IsNullOrEmptyString(user)) 
-    {
-	LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_INVALID_USERID);
-    }
-    
-    if (IsNullOrEmptyString(domain)) 
-    {
-	LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_INVALID_DOMAIN_NAME);
-    }
-
-    if (IsNullOrEmptyString(password)) 
-    {
-        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_INVALID_PASSWORD);
-    }
-    
-    
-    LW_CLEANUP_CTERR(exc, DJIsDomainNameResolvable(domain, &resolvable));
-    
-    if (!resolvable)
-    {
-	LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME);
-    }
-
-    DJ_LOG_INFO("Joining domain %s (%s) as (%s)", domain, ou ? ou : "Default OU", user);
-
-    LW_CLEANUP_CTERR(exc, JoinDomain(domain,
-				     user,
-				     password,
-				     ou,
-				     options->noModifyHosts));
-cleanup:
-
-    return;
-}
-
-void
-DJLeaveDomain(
-    DJOptions* options,
-    LWException** exc
-    )
-{
-    LW_CLEANUP_CTERR(exc, JoinWorkgroup("WORKGROUP", "empty", ""));
-
-cleanup:
-    
     return;
 }

@@ -1,0 +1,1 @@
+SUBDIRS = ctlib npclib server

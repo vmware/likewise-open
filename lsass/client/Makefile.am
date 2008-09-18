@@ -1,0 +1,19 @@
+lib_LTLIBRARIES = liblsaclient.la
+
+liblsaclient_la_SOURCES = \
+    artefacts.c \
+    auth.c      \
+    clientipc.c \
+    config.c    \
+    groups.c    \
+    gss.c       \
+    logging.c   \
+    metrics.c   \
+    session.c   \
+    status.c    \
+    users.c
+
+liblsaclient_la_LIBADD = \
+	@top_builddir@/utils/liblsautils.la \
+	@top_builddir@/ipc/liblsaipc.la \
+	@SOCKET_LIBS@

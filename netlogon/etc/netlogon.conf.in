@@ -1,0 +1,16 @@
+#
+# Likewise Netlogon
+#
+# Time value suffixes:
+# d - days
+# h - hours
+# m - minutes
+# s - seconds
+#
+[global]
+
+[cache]
+# Default: 2h
+# Minimum: 15m
+# Maximum: 1d
+cache-entry-expiry = 2h

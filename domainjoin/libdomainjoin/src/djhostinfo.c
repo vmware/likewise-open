@@ -1,29 +1,36 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
 #include "ctshell.h"
+#include "djauthinfo.h"
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
@@ -757,216 +764,41 @@ cleanup:
 }
 
 static
-CENTERROR
-DJGetMachineSID(
-    PSTR* ppszMachineSID
-    )
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    PPROCINFO pProcInfo = NULL;
-    PSTR* ppszArgs = NULL;
-    DWORD nArgs = 0;
-    CHAR  szCmd[PATH_MAX+1];
-    LONG  status = 0;
-    PSTR  pszBuffer = NULL;
-    PSTR  pszMachineSID = NULL;
-    PSTR  pszTmp = NULL;
-    PROCBUFFER procBuffer;
-    DWORD iBufIdx = 0;
-    DWORD dwBufLen = 0;
-    DWORD dwBufAvailable = 0;
-
-    sprintf(szCmd, "%s/bin/lwinet", PREFIXDIR);
-
-    nArgs = 3;
-
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString(szCmd, ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString("getlocalsid", ppszArgs+1);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJSpawnProcess(szCmd, ppszArgs, &pProcInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    do {
-
-        ceError = DJReadData(pProcInfo, &procBuffer);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        if (procBuffer.dwOutBytesRead) {
-
-            while (1) {
-
-                if (procBuffer.dwOutBytesRead < dwBufAvailable) {
-
-                    memcpy(pszBuffer+iBufIdx,
-                           procBuffer.szOutBuf,
-                           procBuffer.dwOutBytesRead
-                        );
-
-                    iBufIdx+= procBuffer.dwOutBytesRead;
-                    dwBufAvailable -= procBuffer.dwOutBytesRead;
-
-                    *(pszBuffer+iBufIdx+1) = '\0';
-
-                    break;
-
-                } else {
-
-                    /*
-                     * TODO: Limit the amount of memory acquired
-                     */
-
-                    ceError = CTReallocMemory(pszBuffer,
-                                              (PVOID*)&pszBuffer,
-                                              dwBufLen+1024);
-                    BAIL_ON_CENTERIS_ERROR(ceError);
-
-                    dwBufLen += 1024;
-                    dwBufAvailable += 1024;
-                }
-            }
-        }
-    } while (!procBuffer.bEndOfFile);
-
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (status != 0) {
-        ceError = CENTERROR_DOMAINJOIN_SET_MACHINESID_FAIL;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    if (pszBuffer == NULL ||
-        (pszTmp = strstr(pszBuffer, ": ")) == NULL ||
-        *(pszTmp+2) == '\0') {
-        ceError = CENTERROR_DOMAINJOIN_NETCONFIGCMD_FAIL;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    CTStripTrailingWhitespace(pszBuffer);
-
-    ceError = CTAllocateString(pszTmp+2, &pszMachineSID);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    *ppszMachineSID = pszMachineSID;
-    pszMachineSID = NULL;
-
-error:
-
-    if (ppszArgs)
-        CTFreeStringArray(ppszArgs, nArgs);
-
-    if (pszBuffer)
-        CTFreeMemory(pszBuffer);
-
-    if (pszMachineSID)
-        CTFreeString(pszMachineSID);
-
-    if (pProcInfo)
-        FreeProcInfo(pProcInfo);
-
-    return ceError;
-}
-
-static
-CENTERROR
-DJSetMachineSID(
-    PSTR pszMachineSID
-    )
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    PPROCINFO pProcInfo = NULL;
-    PSTR* ppszArgs = NULL;
-    DWORD nArgs = 0;
-    CHAR  szCmd[PATH_MAX+1];
-    LONG  status = 0;
-
-    sprintf(szCmd, "%s/bin/lwinet", PREFIXDIR);
-
-    nArgs = 4;
-
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString(szCmd, ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString("setlocalsid", ppszArgs+1);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString(pszMachineSID, ppszArgs+2);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJSpawnProcess(szCmd, ppszArgs, &pProcInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (status != 0) {
-        ceError = CENTERROR_DOMAINJOIN_SET_MACHINESID_FAIL;
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-error:
-
-    if (ppszArgs)
-        CTFreeStringArray(ppszArgs, nArgs);
-
-    if (pProcInfo)
-        FreeProcInfo(pProcInfo);
-
-    return ceError;
-}
-
-static
-CENTERROR
+void
 FixNetworkInterfaces(
-    PSTR pszComputerName
+    PSTR pszComputerName,
+    LWException **exc
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     int EE = 0;
     BOOLEAN bFileExists = FALSE;
     BOOLEAN bDirExists = FALSE;
-    PPROCINFO pProcInfo = NULL;
-    PSTR* ppszArgs = NULL;
-    DWORD nArgs = 0;
     PSTR* ppszPaths = NULL;
     DWORD nPaths = 0;
     DWORD iPath = 0;
     CHAR szBuf[1024];
-    LONG status = 0;
     PSTR pszPathifcfg = NULL;
     BOOLEAN bDHCPHost = FALSE;
     PSTR pszMachineSID = NULL;
     PCSTR networkConfigPath = "/etc/sysconfig/network";
 
-    ceError = DJGetMachineSID(&pszMachineSID);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, DJGetMachineSID(&pszMachineSID));
 
     /*
      * fixup HOSTNAME variable in /etc/sysconfig/network file if it exists
      * note that 'network' is a *directory* on some dists (ie SUSE),
      * is a *file* on others (ie Redhat). weird.
      */
-    ceError = CTCheckFileExists(networkConfigPath, &bFileExists);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, CTCheckFileExists(networkConfigPath, &bFileExists));
 
     if (bFileExists) {
         sprintf(szBuf, "s/^.*\\(HOSTNAME\\).*=.*$/\\1=%s/", pszComputerName);
-        ceError = CTRunSedOnFile(networkConfigPath, networkConfigPath,
-                FALSE, szBuf);
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
+        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(networkConfigPath, networkConfigPath,
+                FALSE, szBuf));
     }
 
-    ceError = CTCheckDirectoryExists("/etc/sysconfig", &bDirExists);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, CTCheckDirectoryExists("/etc/sysconfig", &bDirExists));
 
     if (bDirExists) {
 
@@ -1005,66 +837,38 @@ FixNetworkInterfaces(
                 ceError = CENTERROR_SUCCESS;
                 continue;
             }
-            CLEANUP_ON_CENTERROR_EE(ceError, EE);
+            LW_CLEANUP_CTERR(exc, ceError);
 
             if(nPaths > 0)
             {
-                ceError = CTAllocateString(ppszPaths[0], &pszPathifcfg);
-                CLEANUP_ON_CENTERROR_EE(ceError, EE);
+                LW_CLEANUP_CTERR(exc, CTAllocateString(ppszPaths[0], &pszPathifcfg));
             }
         }
 
         if (IsNullOrEmptyString(pszPathifcfg)) {
-            ceError = CENTERROR_DOMAINJOIN_NO_ETH_ITF_CFG_FILE;
-            CLEANUP_ON_CENTERROR_EE(ceError, EE);
+            LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_NO_ETH_ITF_CFG_FILE);
         }
 
         DJ_LOG_INFO("Found ifcfg file at %s", pszPathifcfg);
 
-        ceError = DJCheckIfDHCPHost(pszPathifcfg, &bDHCPHost);
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
+        LW_CLEANUP_CTERR(exc, DJCheckIfDHCPHost(pszPathifcfg, &bDHCPHost));
 
         if (bDHCPHost) {
-            ceError = DJFixDHCPHost(pszPathifcfg, pszComputerName);
-            CLEANUP_ON_CENTERROR_EE(ceError, EE);
-        }
-
-        if (pProcInfo) {
-            FreeProcInfo(pProcInfo);
-            pProcInfo = NULL;
-        }
-
-        if (ppszArgs) {
-            CTFreeStringArray(ppszArgs, nArgs);
-            ppszArgs = NULL;
+            LW_CLEANUP_CTERR(exc, DJFixDHCPHost(pszPathifcfg, pszComputerName));
         }
     }
 
-    nArgs = 3;
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, PPCAST(&ppszArgs));
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    ceError = CTShell("/bin/hostname %hostname",
+            CTSHELL_STRING(hostname, pszComputerName));
 
-    ceError = CTAllocateString("/bin/hostname", ppszArgs);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-    ceError = CTAllocateString(pszComputerName, ppszArgs+1);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
-
-    if (status != 0) {
-       ceError = CENTERROR_DOMAINJOIN_HOSTS_EDIT_FAIL;
-       CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    if (ceError == CENTERROR_COMMAND_FAILED) {
+        ceError = CENTERROR_DOMAINJOIN_HOSTS_EDIT_FAIL;
     }
+    LW_CLEANUP_CTERR(exc, ceError);
 
     // Only DHCP boxes need to restart their networks
     if (bDHCPHost) {
-       ceError = DJRestartDHCPService(pszComputerName);
-       CLEANUP_ON_CENTERROR_EE(ceError, EE);
+        LW_CLEANUP_CTERR(exc, DJRestartDHCPService(pszComputerName));
     }
 
 cleanup:
@@ -1079,12 +883,6 @@ cleanup:
             DJSetMachineSID(pszMachineSID);
         CTFreeString(pszMachineSID);
     }
-
-    if (pProcInfo)
-        FreeProcInfo(pProcInfo);
-
-    if (ppszArgs)
-        CTFreeStringArray(ppszArgs, nArgs);
 
     if (ppszPaths)
         CTFreeStringArray(ppszPaths, nPaths);
@@ -1133,7 +931,7 @@ static QueryResult QueryDescriptionSetHostname(const JoinProcessOptions *options
     LW_CLEANUP_CTERR(exc, DJGetFQDN(&oldShortHostname, &oldFqdnHostname));
     CTStrToLower(oldShortHostname);
     CTStrToLower(oldFqdnHostname);
-    if(strcmp(oldShortHostname, options->computerName))
+    if(strcasecmp(oldShortHostname, options->computerName))
     {
         LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&newValue,
 "%s\n"
@@ -1298,8 +1096,9 @@ static void DoSetHostname(JoinProcessOptions *options, LWException **exc)
     LWException *inner = NULL;
     CENTERROR ceError;
 
-    LW_CLEANUP_CTERR(exc,
-            DJSetComputerName(options->computerName, options->domainName));
+    LW_TRY(exc,
+        DJSetComputerName(options->computerName,
+            options->domainName, &LW_EXC));
 
     ceError = DJConfigureHostsEntry(NULL);
     if(ceError == CENTERROR_INVALID_FILENAME)
@@ -1409,10 +1208,11 @@ cleanup:
     return ceError;
 }
 
-CENTERROR
+void
 DJSetComputerName(
     PCSTR pszComputerName,
-    PCSTR pszDnsDomainName
+    PCSTR pszDnsDomainName,
+    LWException **exc
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -1424,20 +1224,16 @@ DJSetComputerName(
     PSTR ppszHostfilePaths[] = { "/etc/hostname", "/etc/HOSTNAME", NULL };
 
     if (geteuid() != 0) {
-       ceError = CENTERROR_DOMAINJOIN_NON_ROOT_USER;
-       CLEANUP_ON_CENTERROR_EE(ceError, EE);
+       LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_NON_ROOT_USER);
     }
 
-    ceError = DJIsValidComputerName(pszComputerName, &bValidComputerName);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, DJIsValidComputerName(pszComputerName, &bValidComputerName));
 
     if (!bValidComputerName) {
-        ceError = CENTERROR_DOMAINJOIN_INVALID_HOSTNAME;
-        CLEANUP_ON_CENTERROR_EE(ceError, EE);
+        LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_INVALID_HOSTNAME);
     }
 
-    ceError = CTAllocateString(pszComputerName, &pszComputerName_lower);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, CTAllocateString(pszComputerName, &pszComputerName_lower));
 
     CTStrToLower(pszComputerName_lower);
 
@@ -1455,16 +1251,14 @@ DJSetComputerName(
        Ubuntu/Debian have /etc/hostname, so add that...
     */
 
-    ceError = WriteHostnameToFiles(pszComputerName_lower,
-                                   ppszHostfilePaths);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, WriteHostnameToFiles(pszComputerName_lower,
+                                   ppszHostfilePaths));
 
     // insert/correct the new hostname in /etc/hosts - note that this
     // has to be done *before* we update the running hostname because
     // we call hostname to get the current hostname so that we can
     // find it and replace it.
-    ceError = DJGetFQDN(&oldShortHostname, &oldFqdnHostname);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, DJGetFQDN(&oldShortHostname, &oldFqdnHostname));
 
     //Don't replace localhost in /etc/hosts, always add our new hostname instead
     if(oldFqdnHostname != NULL && !strcmp(oldFqdnHostname, "localhost"))
@@ -1482,50 +1276,41 @@ DJSetComputerName(
             pszComputerName_lower, oldShortHostname);
     if(ceError == CENTERROR_INVALID_FILENAME)
         ceError = CENTERROR_SUCCESS;
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, ceError);
 
-    ceError = DJReplaceNameInHostsFile("/etc/hosts",
+    LW_CLEANUP_CTERR(exc, DJReplaceNameInHostsFile("/etc/hosts",
             oldShortHostname, oldFqdnHostname,
-            pszComputerName_lower, pszDnsDomainName);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+            pszComputerName_lower, pszDnsDomainName));
 
     ceError = DJReplaceNameInHostsFile("/etc/inet/ipnodes",
             oldShortHostname, oldFqdnHostname,
             pszComputerName_lower, pszDnsDomainName);
     if(ceError == CENTERROR_INVALID_FILENAME)
         ceError = CENTERROR_SUCCESS;
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, ceError);
 
 #if defined(__LWI_SOLARIS__)
-    ceError = WriteHostnameToSunFiles(pszComputerName_lower);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, WriteHostnameToSunFiles(pszComputerName_lower));
 #endif
 
 #if defined(_AIX)
-    ceError = SetAIXHostname(pszComputerName_lower);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, SetAIXHostname(pszComputerName_lower));
 #endif
 
 #if defined(_HPUX_SOURCE)
-    ceError = SetHPUXHostname(pszComputerName_lower);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, SetHPUXHostname(pszComputerName_lower));
 #endif
 
 #if defined(__LWI_MACOSX__)
-    ceError = SetMacOsXHostName(pszComputerName_lower);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_CLEANUP_CTERR(exc, SetMacOsXHostName(pszComputerName_lower));
 #endif
 
-    ceError = FixNetworkInterfaces(pszComputerName_lower);
-    CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    LW_TRY(exc, FixNetworkInterfaces(pszComputerName_lower, &LW_EXC));
 
 cleanup:
     CT_SAFE_FREE_STRING(oldShortHostname);
     CT_SAFE_FREE_STRING(oldFqdnHostname);
     CT_SAFE_FREE_STRING(pszComputerName_lower);
-
-    DJ_LOG_VERBOSE("DJSetComputerName LEAVE -> 0x%08x (EE = %d)", ceError, EE);
-    return ceError;
 }
 
 void DJCheckValidComputerName(

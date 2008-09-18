@@ -1,25 +1,31 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
@@ -149,6 +155,56 @@ cleanup:
 }
 
 void
+DJWaitDaemonStatus(
+    PCSTR pszDaemonPath,
+    BOOLEAN bStatus,
+    LWException **exc
+    )
+{
+    int count;
+    BOOLEAN bStarted = FALSE;
+
+    for (count = 0; count < 5; count++) {
+
+        LW_TRY(exc, DJGetDaemonStatus(pszDaemonPath, &bStarted, &LW_EXC));
+
+        if (bStarted == bStatus) {
+            break;
+        }
+
+        /* The Mac daemons may take a little longer to startup as they need to
+           sequence a few conditions :
+           1) netlogond needs to verify that the hostname is not set to localhost, not likely by
+              by the time the user is logged on and running Domain Join tools.
+           2) netlogon needs to wait about 5 seconds after testing hostname to wait for the resolver
+              libraries to become usable. This is a fixed startup cost to the netlogon daemon, and it
+              affects non-boot up time start operations also.
+           4) netlogond then creates the PID file for itself.
+           5) lsassd needs to stagger its start time to wait for netlogond to be online, it does this by
+              similarly testing the hostname, and then waiting about 10 seconds before commencing.
+           6) lsassd will then create its PID file and load the configured provider plugins. */
+
+        sleep(4); /* This is a sleep(1) on other platforms */
+    }
+
+    if (bStarted != bStatus) {
+
+        if(bStatus)
+        {
+            LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "Unable to start daemon", "An attempt was made to start the '%s' daemon, but querying its status revealed that it did not start.", pszDaemonPath);
+        }
+        else
+        {
+            LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "Unable to stop daemon", "An attempt was made to stop the '%s' daemon, but querying its status revealed that it did not stop.", pszDaemonPath);
+        }
+        goto cleanup;
+    }
+cleanup:
+    // NO-OP
+    ;
+}
+
+void
 DJGetDaemonStatus(
     PCSTR pszDaemonPath,
     PBOOLEAN pbStarted,
@@ -168,19 +224,21 @@ DJGetDaemonStatus(
     PSTR whitePos;
 
     /* Translate the Unix daemon names into the mac daemon names */
-    if(!strcmp(pszDaemonPath, "centeris.com-gpagentd"))
-        pszDaemonPath = "com.centeris.gpagentd";
-    else if(!strcmp(pszDaemonPath, "likewise-open"))
-        pszDaemonPath = "com.likewise.open";
+    if(!strcmp(pszDaemonPath, "lsassd"))
+        pszDaemonPath = "com.likewisesoftware.lsassd";
+    else if(!strcmp(pszDaemonPath, "gpagentd"))
+        pszDaemonPath = "com.likewisesoftware.gpagentd";
+    else if (!strcmp(pszDaemonPath, "lwmgmtd"))
+        pszDaemonPath = "com.likewisesoftware.lwmgmtd";
 
     /* Find the .plist file for the daemon */
-    ceError = DJDaemonLabelToConfigFile(&configFile, "/System/Library/LaunchDaemons", pszDaemonPath);
+    ceError = DJDaemonLabelToConfigFile(&configFile, "/Library/LaunchDaemons", pszDaemonPath);
     if(ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-        ceError = DJDaemonLabelToConfigFile(&configFile, "/etc/centeris/LaunchDaemons", pszDaemonPath);
+        ceError = DJDaemonLabelToConfigFile(&configFile, SYSCONFDIR "/LaunchDaemons", pszDaemonPath);
     if(ceError == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
     {
         DJ_LOG_ERROR("Checking status of daemon [%s] failed: Missing", pszDaemonPath);
-        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON, "Unable to find daemon plist file", "The plist file for the '%s' daemon could not be found in /System/Library/LaunchDaemons or /etc/centeris/LaunchDaemons .", pszDaemonPath);
+        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON, "Unable to find daemon plist file", "The plist file for the '%s' daemon could not be found in /Library/LaunchDaemons or " SYSCONFDIR "/LaunchDaemons .", pszDaemonPath);
         goto cleanup;
     }
     LW_CLEANUP_CTERR(exc, ceError);
@@ -191,12 +249,6 @@ DJGetDaemonStatus(
      */
     LW_CLEANUP_CTERR(exc, GetXPathString(configFile, &command,
         "/plist/dict/key[text()='ProgramArguments']/following-sibling::array[position()=1]/string[position()=1]/text()"));
-
-    if(!strcmp(command, "/opt/centeris/sbin/winbindd-wrap"))
-    {
-        CT_SAFE_FREE_STRING(command);
-        LW_CLEANUP_CTERR(exc, CTStrdup("/opt/centeris/sbin/likewise-winbindd", &command));
-    }
 
     DJ_LOG_INFO("Found daemon binary [%s] for daemon [%s]", command, pszDaemonPath);
 
@@ -271,7 +323,6 @@ void
 DJStartStopDaemon(
     PCSTR pszDaemonPath,
     BOOLEAN bStatus,
-    PSTR pszPreCommand,
     LWException **exc
     )
 {
@@ -279,8 +330,6 @@ DJStartStopDaemon(
     DWORD nArgs = 4;
     long status = 0;
     PPROCINFO pProcInfo = NULL;
-    BOOLEAN bStarted = FALSE;
-    int count;
 
     if (bStatus) {
         DJ_LOG_INFO("Starting daemon [%s]", pszDaemonPath);
@@ -294,40 +343,17 @@ DJStartStopDaemon(
     if (bStatus)
     {
        LW_CLEANUP_CTERR(exc, CTAllocateString("start", ppszArgs+1));
-       LW_CLEANUP_CTERR(exc, CTAllocateString(pszDaemonPath, ppszArgs+2));
     }
     else
     {
-       LW_CLEANUP_CTERR(exc, CTAllocateString("unload", ppszArgs+1));
-       LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(ppszArgs+2, "/System/Library/LaunchDaemons/%s.plist", pszDaemonPath));
+       LW_CLEANUP_CTERR(exc, CTAllocateString("stop", ppszArgs+1));
     }
 
+    LW_CLEANUP_CTERR(exc, CTAllocateString(pszDaemonPath, ppszArgs+2));
     LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
     LW_CLEANUP_CTERR(exc, DJGetProcessStatus(pProcInfo, &status));
 
-    for (count = 0; count < 5; count++) {
-
-	LW_TRY(exc, DJGetDaemonStatus(pszDaemonPath, &bStarted, &LW_EXC));
-
-        if (bStarted == bStatus) {
-            break;
-        }
-
-        sleep(1);
-    }
-
-    if (bStarted != bStatus) {
-
-        if(bStatus)
-        {
-            LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "Unable to start daemon", "An attempt was made to start the '%s' daemon, but querying its status revealed that it did not start.", pszDaemonPath);
-        }
-        else
-        {
-            LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "Unable to start daemon", "An attempt was made to stop the '%s' daemon, but querying its status revealed that it did not stop.", pszDaemonPath);
-        }
-        goto cleanup;
-    }
+    LW_TRY(exc, DJWaitDaemonStatus(pszDaemonPath, bStatus, &LW_EXC));
 
 cleanup:
 
@@ -336,17 +362,6 @@ cleanup:
 
     if (pProcInfo)
         FreeProcInfo(pProcInfo);
-}
-
-CENTERROR
-DJConfigureForDaemonRestart(
-    PCSTR pszDaemonName,
-    BOOLEAN bStatus,
-    PSTR pszStartPriority,
-    PSTR pszStopPriority
-    )
-{
-    return CENTERROR_SUCCESS;
 }
 
 static
@@ -454,7 +469,7 @@ DJPrepareServiceLaunchScript(
     ceError = CTAllocateString("-f", ppszArgs+1);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    sprintf(szBuf, "/etc/centeris/LaunchDaemons/%s.plist", pszName);
+    sprintf(szBuf, SYSCONFDIR "/LaunchDaemons/%s.plist", pszName);
     ceError = CTCheckFileExists(szBuf, &bFileExists);  
     BAIL_ON_CENTERIS_ERROR(ceError);
 
@@ -464,7 +479,7 @@ DJPrepareServiceLaunchScript(
     ceError = CTAllocateString(szBuf, ppszArgs+2);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    sprintf(szBuf, "/System/Library/LaunchDaemons/%s.plist", pszName);
+    sprintf(szBuf, "/Library/LaunchDaemons/%s.plist", pszName);
     ceError = CTAllocateString(szBuf, ppszArgs+3);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
@@ -503,13 +518,14 @@ DJRemoveFromLaunchCTL(
     PSTR* ppszArgs = NULL;
     DWORD nArgs = 4;
     LONG  status = 0;
+    LWException* innerException = NULL;
 
     ceError = DJExistsInLaunchCTL(pszName, &bExistsInLaunchCTL);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bExistsInLaunchCTL) {
 
-        sprintf(szBuf, "/System/Library/LaunchDaemons/%s.plist", pszName);
+        sprintf(szBuf, "/Library/LaunchDaemons/%s.plist", pszName);
 
         ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
         BAIL_ON_CENTERIS_ERROR(ceError);
@@ -534,7 +550,14 @@ DJRemoveFromLaunchCTL(
             BAIL_ON_CENTERIS_ERROR(ceError);
         }
 
-        sprintf(szBuf, "/System/Library/LaunchDaemons/%s.plist", pszName);
+        DJWaitDaemonStatus(pszName, FALSE, &innerException);
+        if (innerException)
+        {
+            ceError = innerException->code;
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+
+        sprintf(szBuf, "/Library/LaunchDaemons/%s.plist", pszName);
         ceError = CTRemoveFile(szBuf);
         if (!CENTERROR_IS_OK(ceError)) {
             DJ_LOG_WARNING("Failed to remove file [%s]", szBuf);
@@ -543,6 +566,7 @@ DJRemoveFromLaunchCTL(
     }
 
 error:
+    LW_HANDLE(&innerException);
 
     if (ppszArgs)
         CTFreeStringArray(ppszArgs, nArgs);
@@ -568,53 +592,55 @@ DJAddToLaunchCTL(
     DWORD nArgs = 4;
     LONG  status = 0;
 
-    ceError = DJExistsInLaunchCTL(pszName, &bExistsInLaunchCTL);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bExistsInLaunchCTL) {
-
-        ceError = DJRemoveFromLaunchCTL(pszName);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        bExistsInLaunchCTL = FALSE;
-    }
-
-    ceError = DJPrepareServiceLaunchScript(pszName);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    sprintf(szBuf, "/System/Library/LaunchDaemons/%s.plist", pszName);
+    memset(szBuf, 0, sizeof(szBuf));
+    sprintf(szBuf, "/Library/LaunchDaemons/%s.plist", pszName);
 
     ceError = CTCheckFileExists(szBuf, &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (!bFileExists) {
-        ceError = CENTERROR_DOMAINJOIN_MISSING_DAEMON;
+
+        ceError = DJPrepareServiceLaunchScript(pszName);
         BAIL_ON_CENTERIS_ERROR(ceError);
+
+        ceError = CTCheckFileExists(szBuf, &bFileExists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        if (!bFileExists) {
+            ceError = CENTERROR_DOMAINJOIN_MISSING_DAEMON;
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
     }
 
-    sprintf(szBuf, "/System/Library/LaunchDaemons/%s.plist", pszName);
-
-    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    ceError = DJExistsInLaunchCTL(pszName, &bExistsInLaunchCTL);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    ceError = CTAllocateString("/bin/launchctl", ppszArgs);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    if (!bExistsInLaunchCTL)
+    {
+        sprintf(szBuf, "/Library/LaunchDaemons/%s.plist", pszName);
 
-    ceError = CTAllocateString("load", ppszArgs+1);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTAllocateString(szBuf, ppszArgs+2);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = DJGetProcessStatus(pProcInfo, &status);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (status != 0) {
-        ceError = CENTERROR_DOMAINJOIN_SVC_LOAD_FAILED;
+        ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
         BAIL_ON_CENTERIS_ERROR(ceError);
+
+        ceError = CTAllocateString("/bin/launchctl", ppszArgs);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        ceError = CTAllocateString("load", ppszArgs+1);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        ceError = CTAllocateString(szBuf, ppszArgs+2);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        ceError = DJGetProcessStatus(pProcInfo, &status);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        if (status != 0) {
+            ceError = CENTERROR_DOMAINJOIN_SVC_LOAD_FAILED;
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
     }
 
 error:
@@ -632,22 +658,86 @@ void
 DJManageDaemon(
     PCSTR pszName,
     BOOLEAN bStatus,
-    PSTR pszPreCommand,
-    PSTR pszStartPriority,
-    PSTR pszStopPriority,
+    int startPriority,
+    int stopPriority,
     LWException **exc
     )
 {
     BOOLEAN bStarted = FALSE;
+    const char* pszDaemonPath = pszName;
+
+    DJ_LOG_INFO("Processing call to DJManageDaemon('%s',%s)", pszDaemonPath, bStatus ? "start" : "stop");
+
+    /* Translate the Unix daemon names into the mac daemon names */
+    if(!strcmp(pszName, "likewise-open"))
+        pszDaemonPath = "com.likewise.open";
+    else if(!strcmp(pszName, "gpagentd"))
+        pszDaemonPath = "com.likewisesoftware.gpagentd";
+    else if(!strcmp(pszName, "lsassd"))
+        pszDaemonPath = "com.likewisesoftware.lsassd";
+    else if(!strcmp(pszName, "netlogond"))
+        pszDaemonPath = "com.likewisesoftware.netlogond";
+    else if(!strcmp(pszName, "npcmuxd"))
+        pszDaemonPath = "com.likewisesoftware.npcmuxd";
+    else if(!strcmp(pszName, "eventlogd"))
+        pszDaemonPath = "com.likewisesoftware.eventlogd";
+    else if(!strcmp(pszName, "dcerpcd"))
+        pszDaemonPath = "com.likewisesoftware.dcerpcd";
+    else if (!strcmp(pszName, "lwmgmtd"))
+        pszDaemonPath = "com.likewisesoftware.lwmgmtd";
+    else
+        pszDaemonPath = pszName;
+
+    DJ_LOG_INFO("DJManageDaemon('%s',%s) after name fixup", pszDaemonPath, bStatus ? "start" : "stop");
 
     if (bStatus)
     {
-        LW_CLEANUP_CTERR(exc, DJAddToLaunchCTL(pszName));
+        LW_CLEANUP_CTERR(exc, DJAddToLaunchCTL(pszDaemonPath));
     }
 
     // check our current state prior to doing anything.  notice that
     // we are using the private version so that if we fail, our inner
     // exception will be the one that was tossed due to the failure.
+    LW_TRY(exc, DJGetDaemonStatus(pszDaemonPath, &bStarted, &LW_EXC));
+
+    // if we got this far, we have validated the existence of the
+    // daemon and we have figured out if its started or stopped
+
+    // if we are already in the desired state, do nothing.
+    if (bStarted != bStatus) {
+
+        LW_TRY(exc, DJStartStopDaemon(pszDaemonPath, bStatus, &LW_EXC));
+
+    }
+    else
+    {
+        DJ_LOG_INFO("daemon '%s' is already %s", pszDaemonPath, bStarted ? "started" : "stopped");
+    }
+
+    if (!bStatus)
+    {
+        // Daemon is no longer needed, we are leaving the domain.
+        LW_CLEANUP_CTERR(exc, DJRemoveFromLaunchCTL(pszDaemonPath));
+    }
+
+cleanup:
+    ;
+}
+
+void
+DJManageDaemonDescription(
+    PCSTR pszName,
+    BOOLEAN bStatus,
+    int startPriority,
+    int stopPriority,
+    PSTR *description,
+    LWException **exc
+    )
+{
+    BOOLEAN bStarted = FALSE;
+
+    *description = NULL;
+
     LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
 
     // if we got this far, we have validated the existence of the
@@ -656,22 +746,28 @@ DJManageDaemon(
     // if we are already in the desired state, do nothing.
     if (bStarted != bStatus) {
 
-        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, pszPreCommand, &LW_EXC));
-
+        if(bStatus)
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
+                    "Start %s by running '/bin/launchctl start /Library/LaunchDaemons/%s.plist'.\n", pszName, pszName));
+        }
+        else
+        {
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
+                    "Stop %s by running '/bin/launchctl unload /Library/LaunchDaemons/%s.plist'.\n", pszName, pszName));
+        }
     }
-    else
-    {
-        DJ_LOG_INFO("daemon '%s' is already %s", pszName, bStarted ? "started" : "stopped");
-    }
-
-    LW_CLEANUP_CTERR(exc, DJConfigureForDaemonRestart(pszName, bStatus, pszStartPriority, pszStopPriority));
 
 cleanup:
     ;
 }
 
 struct _DaemonList daemonList[] = {
-    { "com.likewise.open", {NULL}, TRUE, 92, 10 },
-    { "com.centeris.gpagentd", {NULL}, FALSE, 92, 9 },
-    { NULL, {NULL}, FALSE, 0, 0 }
+    { "com.likewisesoftware.dcerpcd", {NULL}, FALSE, 91, 12 },
+    { "com.likewisesoftware.eventlogd", {NULL}, FALSE, 92, 11 },
+    { "com.likewisesoftware.lsassd", {NULL}, TRUE, 92, 10 },
+    { "com.likewisesoftware.gpagentd", {NULL}, FALSE, 94, 9 },
+    { "com.likewisesoftware.lwmgmtd", {NULL}, FALSE, 95, 8 },
+    { NULL, {NULL}, FALSE, 0, 0 },
 };
+

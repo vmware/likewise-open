@@ -1,25 +1,57 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "ctbase.h"
@@ -29,7 +61,52 @@
 #elif HAVE_UTMPX_H
 #include <utmpx.h>
 #elif HAVE_UTMP_H
-#include <utmpx.h>
+#include <utmp.h>
+#endif
+
+#ifdef __LWI_FREEBSD__
+#define UT_ID ut_name
+/* Small implementation of utmp functions */
+
+FILE* utmp_file = NULL;
+struct utmp utmp_struct;
+
+static void
+utmp_init(void)
+{
+    if (!utmp_file)
+        utmp_file = fopen(_PATH_UTMP, "r");
+}
+
+static void
+setutent(void)
+{
+    utmp_init();
+    rewind(utmp_file);
+}
+
+static struct utmp*
+getutent(void)
+{
+    utmp_init();
+    if (fread(&utmp_struct, sizeof(utmp_struct), 1, utmp_file) == 1)
+        return &utmp_struct;
+    else
+        return NULL;
+}
+
+static void
+endutent(void)
+{
+    if (utmp_file)
+    {
+        fclose(utmp_file);
+        utmp_file = NULL;
+    }
+}
+
+#else
+#define UT_ID ut_id
 #endif
 
 CENTERROR
@@ -162,6 +239,55 @@ CTGetUID(
 }
 
 CENTERROR
+CTGetUserGID(
+    PCSTR pszGID,
+    gid_t* pGID
+    )
+{
+  CENTERROR ceError = CENTERROR_SUCCESS;
+
+  if (IsNullOrEmptyString(pszGID)) {
+    ceError = CENTERROR_INVALID_GID;
+    BAIL_ON_CENTERIS_ERROR(ceError);
+  }
+
+  if (CTIsAllDigit(pszGID)) {
+    gid_t gid = atoi(pszGID);
+    *pGID = gid;
+  }
+  else {
+    CHAR szBuf[1024];
+    struct passwd user;
+    struct passwd* pResult = NULL;
+
+    memset(&user, 0, sizeof(struct passwd));
+
+#if defined(__LWI_SOLARIS__)
+    if ((pResult = getpwnam_r(pszGID, &user, szBuf, sizeof(szBuf))) == NULL) {
+      ceError = CENTERROR_INVALID_GID;
+      BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+#else
+    if (getpwnam_r(pszGID, &user, szBuf, sizeof(szBuf), &pResult) < 0) {
+      ceError = CTMapSystemError(errno);
+      BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+#endif
+
+    if (!pResult) {
+       ceError = CENTERROR_INVALID_GID;
+       BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+    
+    *pGID = user.pw_gid;
+  }
+
+ error:
+
+  return ceError;
+}
+
+CENTERROR
 CTGetHomeDirectory(
 		uid_t uid,
 		PSTR* ppszHomeDir
@@ -238,15 +364,17 @@ CTIsUserInX(BOOLEAN *inX)
 #endif
         if(ent == NULL)
             break;
+#ifdef USER_PROCESS
         if(ent->ut_type != USER_PROCESS)
             continue;
+#endif
         if(
             /* Linux uses this */
-            ent->ut_line[0] == ':' || ent->ut_id[0] == ':' ||
+            ent->ut_line[0] == ':' || ent->UT_ID[0] == ':' ||
             /* AIX uses this */
-            (!strncmp(ent->ut_line, "lft", 3) && !strcmp(ent->ut_id, "dt")) ||
+            (!strncmp(ent->ut_line, "lft", 3) && !strcmp(ent->UT_ID, "dt")) ||
             /* Solaris and HP-UX use this */
-            (!strcmp(ent->ut_line, "console") && !strcmp(ent->ut_id, "dt")))
+            (!strcmp(ent->ut_line, "console") && !strcmp(ent->UT_ID, "dt")))
         {
             *inX = TRUE;
             goto cleanup;

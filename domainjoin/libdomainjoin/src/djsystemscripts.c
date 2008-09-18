@@ -1,25 +1,31 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of 
- * the License, or (at your option) any later version.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU Lesser General Public 
- * License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
@@ -28,12 +34,17 @@
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
-//Replace this:
+//Replace this (on Ubuntu):
 // PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD/$HOME/~}\007"'
-//With this:
+//With this (on Ubuntu):
 // PROMPT_COMMAND=$'echo -n "\033]0;${USER}@${HOSTNAME}: ${PWD/$HOME/~}\007"'
-static PCSTR ubuntuSedExpr = "s/^\\([ \t]*\\)PROMPT_COMMAND=\'echo -ne \"\\\\033]0;${USER}@${HOSTNAME}: ${PWD\\/$HOME\\/~}\\\\007\"\'\\([ \t]*\\)$/"
-"\\1PROMPT_COMMAND=$\'echo -n \"\\\\033]0;${USER}@${HOSTNAME}: ${PWD\\/$HOME\\/~}\\\\007\"\'\\2/";
+//
+//Replace this (on Debian):
+// PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD}\007"'
+//With this (on Debian):
+// PROMPT_COMMAND=$'echo -n "\033]0;${USER}@${HOSTNAME}: ${PWD}\007"'
+static PCSTR ubuntuSedExpr = "s/^\\([ \t]*\\)PROMPT_COMMAND=\'echo -ne \"\\\\033]0;${USER}@${HOSTNAME}: ${PWD\\([^}]*\\)}\\\\007\"\'\\([ \t]*\\)$/"
+"\\1PROMPT_COMMAND=$\'echo -n \"\\\\033]0;${USER}@${HOSTNAME}: ${PWD\\2}\\\\007\"\'\\3/";
 
 static QueryResult QueryBash(const JoinProcessOptions *options, LWException **exc)
 {
@@ -71,6 +82,7 @@ static QueryResult QueryBash(const JoinProcessOptions *options, LWException **ex
                 break;
             result = FullyConfigured;
             break;
+        case DISTRO_DEBIAN:
         case DISTRO_UBUNTU:
             LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists("/etc/skel/.bashrc", &exists));
             if(!exists)
@@ -148,6 +160,7 @@ static void DoBash(JoinProcessOptions *options, LWException **exc)
                         ));
             }
             break;
+        case DISTRO_DEBIAN:
         case DISTRO_UBUNTU:
             LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists("/etc/skel/.bashrc", &exists));
             if(!exists)
@@ -193,8 +206,9 @@ static PSTR GetBashDescription(const JoinProcessOptions *options, LWException **
         case DISTRO_FEDORA:
             LW_CLEANUP_CTERR(exc, CTStrdup("On redhat-based systems, the default bash prompt is overwritten by creating /etc/sysconfig/bash-prompt-xterm and /etc/sysconfig/bash-prompt-xterm. This is done so that the prompt is displayed correctly for usernames with a backslash.", &result));
             break;
+        case DISTRO_DEBIAN:
         case DISTRO_UBUNTU:
-            LW_CLEANUP_CTERR(exc, CTStrdup("On ubuntu-based systems, the default bash prompt is changed in /etc/skel/.bashrc. This is done so that the prompt is displayed correctly for usernames with a backslash.", &result));
+            LW_CLEANUP_CTERR(exc, CTStrdup("On debian and ubuntu based systems, the default bash prompt is changed in /etc/skel/.bashrc. This is done so that the prompt is displayed correctly for usernames with a backslash.", &result));
         default:
             break;
     }

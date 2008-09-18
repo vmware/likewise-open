@@ -213,8 +213,20 @@ int main(int argc, char* argv[])
 {
     if (geteuid() == 0)
     {
-        DomainJoinApp app;
-        app.Run();
+        if (setuid(0) == 0)
+        {
+            DomainJoinApp app;
+            app.Run();
+        }
+        else
+        {
+           SInt16 outItemHit;
+		   StandardAlert(kAlertStopAlert,
+		                 "\pPermissions error",
+					     "\pUnexpected error while setting privileges when launching Likewise - Active Directory Join Application",
+					     NULL,
+					     &outItemHit);
+        }
     }
     else
     {
@@ -278,7 +290,7 @@ int main(int argc, char* argv[])
            SInt16 outItemHit;
 		   StandardAlert(kAlertStopAlert,
 		                 "\pUnexpected error",
-					     "\pUnexpected error when launching Active Directory Join Application",
+					     "\pUnexpected error when launching Likewise - Active Directory Join Application",
 					     NULL,
 					     &outItemHit);
        }

@@ -1,24 +1,31 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include "domainjoin.h"
@@ -53,9 +60,12 @@ ShowUsage()
 {
     fprintf(stdout, "usage: domainjoin-cli [options] command [args...]\n\n");
     fprintf(stdout, "  where options are:\n\n");
-    fprintf(stdout, "    --help            Display this help information.\n");
-    fprintf(stdout, "    --help-internal   Display help for debug commands\n");
-    fprintf(stdout, "    --log {.|path}    Log to a file (or \".\" to log to console).\n\n");
+    fprintf(stdout, "    --help                                     Display this help information.\n");
+    fprintf(stdout, "    --help-internal                            Display help for debug commands\n");
+    fprintf(stdout, "    --log {.|path}                             Log to a file (or \".\" to log\n"
+                    "                                               to console).\n");
+    fprintf(stdout, "    --loglevel {error|warning|info|verbose}    Adjusts how much logging is\n"
+                    "                                               produced by domainjoin.\n\n");
     fprintf(stdout, "  and commands are:\n\n");
     fprintf(stdout, "    query\n");
     fprintf(stdout, "    setname <computer name>\n");
@@ -67,7 +77,7 @@ ShowUsage()
     fprintf(stdout, "    leave --details <module>\n\n");
 
     fprintf(stdout, "  Example:\n\n");
-    fprintf(stdout, "    domainjoin-cli query\n\n");
+    fprintf(stdout, "    domainjoin-cli join likewisedemo.com Administrator\n\n");
 }
 
 static
@@ -123,12 +133,10 @@ error:
 
 BOOLEAN GetEnableBoolean(EnableType dwEnable)
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     PDOMAINJOININFO pDomainJoinInfo = NULL;
     if(dwEnable == ENABLE_TYPE_AUTO)
     {
-        ceError = QueryInformation(&pDomainJoinInfo);
-        BAIL_ON_CENTERIS_ERROR(ceError);
+        LW_TRY(NULL, QueryInformation(&pDomainJoinInfo, &LW_EXC));
 
         if(IsNullOrEmptyString(pDomainJoinInfo->pszDomainName))
             dwEnable = ENABLE_TYPE_DISABLE;
@@ -137,7 +145,7 @@ BOOLEAN GetEnableBoolean(EnableType dwEnable)
 
     }
 
-error:
+cleanup:
     if(pDomainJoinInfo != NULL)
         FreeDomainJoinInfo(pDomainJoinInfo);
 
@@ -213,16 +221,15 @@ void PrintStateKey()
 "[ ]                       - this step is disabled and will not make changes\n");
 }
 
-CENTERROR PrintJoinHeader(const JoinProcessOptions *options)
+void PrintJoinHeader(const JoinProcessOptions *options, LWException **exc)
 {
-    CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR fqdn = NULL;
     PDOMAINJOININFO pDomainJoinInfo = NULL;
     PCSTR domain;
 
     if(options->joiningDomain)
     {
-        GCE(ceError = DJGetFinalFqdn(options, &fqdn));
+        LW_CLEANUP_CTERR(exc, DJGetFinalFqdn(options, &fqdn));
         fprintf(stdout,
                 "Joining to AD Domain:   %s\n"
                 "With Computer DNS Name: %s\n\n",
@@ -231,7 +238,7 @@ CENTERROR PrintJoinHeader(const JoinProcessOptions *options)
     }
     else
     {
-        GCE(ceError = QueryInformation(&pDomainJoinInfo));
+        LW_TRY(exc, QueryInformation(&pDomainJoinInfo, &LW_EXC));
         domain = pDomainJoinInfo->pszDomainName;
         if(domain == NULL)
             domain = "(unknown)";
@@ -240,7 +247,6 @@ CENTERROR PrintJoinHeader(const JoinProcessOptions *options)
 
 cleanup:
     CT_SAFE_FREE_STRING(fqdn);
-    return ceError;
 }
 
 void PrintModuleStates(BOOLEAN showTristate, JoinProcessOptions *options)
@@ -293,6 +299,8 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
             preview = TRUE;
         else if(!strcmp(argv[0], "--ignore-firewall-ntp"))
             options.ignoreFirewallNtp = TRUE;
+        else if(!strcmp(argv[0], "--ignore-pam"))
+            options.ignorePam = TRUE;
         else if(!strcmp(argv[0], "--notimesync"))
             options.disableTimeSync = TRUE;
         else if(!strcmp(argv[0], "--nohosts"))
@@ -418,7 +426,7 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
     if(detailModules.size > 0)
         goto cleanup;
 
-    LW_CLEANUP_CTERR(exc, PrintJoinHeader(&options));
+    LW_TRY(exc, PrintJoinHeader(&options, &LW_EXC));
 
     if(preview)
     {
@@ -578,7 +586,7 @@ void DoLeaveNew(int argc, char **argv, int columns, LWException **exc)
     if(detailModules.size > 0)
         goto cleanup;
 
-    LW_CLEANUP_CTERR(exc, PrintJoinHeader(&options));
+    LW_TRY(exc, PrintJoinHeader(&options, &LW_EXC));
 
     if(preview)
     {
@@ -748,42 +756,45 @@ int main(
     DWORD dwLogLevel;
     BOOLEAN showHelp = FALSE;
     BOOLEAN showInternalHelp = FALSE;
+    int remainingArgs = argc;
+    char **argPos = argv;
+    int i;
 
     if(!CENTERROR_IS_OK(CTGetTerminalWidth(fileno(stdout), &columns)))
         columns = -1;
 
     /* Skip the program name */
-    argv++;
-    argc--;
+    argPos++;
+    remainingArgs--;
 
-    while(argc > 0 && CTStrStartsWith(argv[0], "--"))
+    while(remainingArgs > 0 && CTStrStartsWith(argPos[0], "--"))
     {
-        if(!strcmp(argv[0], "--help"))
+        if(!strcmp(argPos[0], "--help"))
             showHelp = TRUE;
-        else if(!strcmp(argv[0], "--help-internal"))
+        else if(!strcmp(argPos[0], "--help-internal"))
             showInternalHelp = TRUE;
-        else if(!strcmp(argv[0], "--nolog"))
+        else if(!strcmp(argPos[0], "--nolog"))
             bNoLog = TRUE;
         //All options after this point take an argument
-        else if(argc < 2)
+        else if(remainingArgs < 2)
             showHelp = TRUE;
-        else if(!strcmp(argv[0], "--log"))
+        else if(!strcmp(argPos[0], "--log"))
         {
-            pszLogFilePath = (++argv)[0];
-            argc--;
+            pszLogFilePath = (++argPos)[0];
+            remainingArgs--;
         }
-        else if(!strcmp(argv[0], "--loglevel"))
+        else if(!strcmp(argPos[0], "--loglevel"))
         {
-            logLevel = (++argv)[0];
-            argc--;
+            logLevel = (++argPos)[0];
+            remainingArgs--;
         }
         else
             break;
-        argc--;
-        argv++;
+        remainingArgs--;
+        argPos++;
     }
 
-    if(argc < 1)
+    if(remainingArgs < 1)
         showHelp = TRUE;
 
     if (showInternalHelp) {
@@ -825,70 +836,83 @@ int main(
         LW_CLEANUP_CTERR(&exc, ceError);
     }
 
-    if(!strcmp(argv[0], "setname"))
+    DJ_LOG_INFO("Domainjoin invoked with %d arg(s):", argc);
+    for(i = 0; i < argc; i++)
     {
-        argv++;
-        if(--argc != 1)
+        DJ_LOG_INFO("    [%s]", argv[i]);
+    }
+
+    if(!strcmp(argPos[0], "setname"))
+    {
+        argPos++;
+        if(--remainingArgs != 1)
         {
             ShowUsage();
             goto cleanup;
         }
-        LW_CLEANUP_CTERR(&exc, DJSetComputerName(argv[0], NULL));
+        //Needed so that DJGetMachineSid does not call winbind
+        LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+        LW_TRY(&exc, DJSetComputerName(argPos[0], NULL, &LW_EXC));
     }
-    else if(!strcmp(argv[0], "sync_time"))
+    else if(!strcmp(argPos[0], "sync_time"))
     {
         unsigned int allowedDrift;
-        argv++;
-        if(--argc != 2)
+        argPos++;
+        if(--remainingArgs != 2)
         {
             ShowUsage();
             goto cleanup;
         }
-        LW_CLEANUP_CTERR(&exc, ParseUInt(argv[1], &allowedDrift));
-        LW_CLEANUP_CTERR(&exc, DJSyncTimeToDC(argv[0], allowedDrift));
+        LW_CLEANUP_CTERR(&exc, ParseUInt(argPos[1], &allowedDrift));
+        LW_CLEANUP_CTERR(&exc, DJSyncTimeToDC(argPos[0], allowedDrift));
     }
-    else if(!strcmp(argv[0], "join"))
+    else if(!strcmp(argPos[0], "join"))
     {
-        argv++;
-        argc--;
-        LW_TRY(&exc, DoJoin(argc, argv, columns, &LW_EXC));
+        argPos++;
+        remainingArgs--;
+        LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+        LW_TRY(&exc, DoJoin(remainingArgs, argPos, columns, &LW_EXC));
     }
-    else if(!strcmp(argv[0], "leave"))
+    else if(!strcmp(argPos[0], "leave"))
     {
-        argv++;
-        argc--;
-        LW_TRY(&exc, DoLeaveNew(argc, argv, columns, &LW_EXC));
+        argPos++;
+        remainingArgs--;
+        LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+        LW_TRY(&exc, DoLeaveNew(remainingArgs, argPos, columns, &LW_EXC));
     }
-    else if(!strcmp(argv[0], "query"))
+    else if(!strcmp(argPos[0], "query"))
+    {
+        LW_TRY(&exc, DJNetInitialize(&LW_EXC));
         LW_TRY(&exc, DoQuery(&LW_EXC));
-    else if(!strcmp(argv[0], "fixfqdn"))
-        LW_CLEANUP_CTERR(&exc, DoFixFqdn());
-    else if(!strcmp(argv[0], "configure"))
-    {
-        argv++;
-        argc--;
-        LW_TRY(&exc, DoConfigure(argc, argv, &LW_EXC));
     }
-    else if(!strcmp(argv[0], "get_os_type") ||
-        !strcmp(argv[0], "get_arch") ||
-        !strcmp(argv[0], "get_distro") ||
-        !strcmp(argv[0], "get_distro_version"))
+    else if(!strcmp(argPos[0], "fixfqdn"))
+        LW_TRY(&exc, DoFixFqdn(&LW_EXC));
+    else if(!strcmp(argPos[0], "configure"))
     {
-        LW_TRY(&exc, DoGetDistroInfo(argc, argv, &LW_EXC));
+        argPos++;
+        remainingArgs--;
+        LW_TRY(&exc, DoConfigure(remainingArgs, argPos, &LW_EXC));
     }
-    else if(!strcmp(argv[0], "raise_error"))
+    else if(!strcmp(argPos[0], "get_os_type") ||
+        !strcmp(argPos[0], "get_arch") ||
+        !strcmp(argPos[0], "get_distro") ||
+        !strcmp(argPos[0], "get_distro_version"))
+    {
+        LW_TRY(&exc, DoGetDistroInfo(remainingArgs, argPos, &LW_EXC));
+    }
+    else if(!strcmp(argPos[0], "raise_error"))
     {
         CENTERROR ceError;
-        argv++;
-        if(--argc != 1)
+        argPos++;
+        if(--remainingArgs != 1)
         {
             ShowUsage();
             goto cleanup;
         }
-        if (isdigit((int) *argv[0]))
-            ceError = (CENTERROR) strtoul(argv[0], NULL, 0);
+        if (isdigit((int) *argPos[0]))
+            ceError = (CENTERROR) strtoul(argPos[0], NULL, 0);
         else
-            ceError = (CENTERROR) CTErrorFromName(argv[0]);
+            ceError = (CENTERROR) CTErrorFromName(argPos[0]);
         LW_CLEANUP_CTERR(&exc, ceError);
     }
     else
@@ -916,6 +940,8 @@ cleanup:
         return 1;
     }
 
+    DJNetShutdown(NULL);
     dj_close_log();
+
     return 0;
 }

@@ -38,7 +38,7 @@ DomainJoinInterface::getInstance()
 void
 DomainJoinInterface::Initialize()
 {
-    const char* LIBDOMAINJOIN = "/opt/centeris/lib/libdomainjoin-mac.so";
+    const char* LIBDOMAINJOIN = "/opt/likewise/lib/libdomainjoin-mac.so";
     std::string szShortError = "Failed to load domain join interface";
     void* pLibHandle = NULL;
     PFNInitJoinInterface     pfnInitJoinInterface = NULL;
@@ -47,8 +47,22 @@ DomainJoinInterface::Initialize()
 
     try
     {
+        if (geteuid() != 0)
+        {
+           throw DomainJoinException(-1,
+                                     szShortError,
+                                     "Failed to initialize domain join interface due to insufficient privileges");
+        }   
+
+        if (getuid() != 0)
+        {
+           throw DomainJoinException(-1,
+                                     szShortError,
+                                     "Failed to initialize domain join interface due to insufficient privileges");
+        }   
+
         dlerror();
-        pLibHandle = dlopen(LIBDOMAINJOIN, RTLD_LAZY);
+        pLibHandle = dlopen(LIBDOMAINJOIN, RTLD_GLOBAL|RTLD_NOW);
         if (!pLibHandle)
         {
            std::string errMsg = dlerror();

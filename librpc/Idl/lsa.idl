@@ -1,0 +1,163 @@
+[
+uuid(12345778-1234-abcd-ef00-0123456789ab),
+version(0.0),
+endpoint("ncacn_np:[\\pipe\\lsarpc], ncacn_np:[\\pipe\\netlogon], ncacn_np:[\\pipe\\lsass]"),
+pointer_default(unique)
+]
+interface lsa
+{
+#include <types.idl>
+#include <security.idl>
+
+#include <lwrpc/lsadefs.h>
+
+	/* LsaPolicyInformation union returned from LsaQueryInfoPolicy */
+	typedef [switch_type(uint16)] union lsa_policy_information {
+		[case(LSA_POLICY_INFO_AUDIT_LOG)]        AuditLogInfo        audit_log;
+		[case(LSA_POLICY_INFO_AUDIT_EVENTS)]     AuditEventsInfo     audit_events;
+		[case(LSA_POLICY_INFO_DOMAIN)]           LsaDomainInfo       domain;
+		[case(LSA_POLICY_INFO_PD)]               PDAccountInfo       pd;
+		[case(LSA_POLICY_INFO_ACCOUNT_DOMAIN)]   LsaDomainInfo       account_domain;
+		[case(LSA_POLICY_INFO_ROLE)]             ServerRole          role;
+		[case(LSA_POLICY_INFO_REPLICA)]          ReplicaSourceInfo   replica;
+		[case(LSA_POLICY_INFO_QUOTA)]            DefaultQuotaInfo    quota;
+		[case(LSA_POLICY_INFO_DB)]               ModificationInfo    db;
+		[case(LSA_POLICY_INFO_AUDIT_FULL_SET)]   AuditFullSetInfo    audit_set;
+		[case(LSA_POLICY_INFO_AUDIT_FULL_QUERY)] AuditFullQueryInfo  audit_query;
+		[case(LSA_POLICY_INFO_DNS)]              DnsDomainInfo       dns;
+	} LsaPolicyInformation;
+
+/* macro definitions for lsa library internal use */
+cpp_quote("#define LSA_POLICY_INFO_AUDIT_LOG          1")
+cpp_quote("#define LSA_POLICY_INFO_AUDIT_EVENTS       2")
+cpp_quote("#define LSA_POLICY_INFO_DOMAIN             3")
+cpp_quote("#define LSA_POLICY_INFO_PD                 4")
+cpp_quote("#define LSA_POLICY_INFO_ACCOUNT_DOMAIN     5")
+cpp_quote("#define LSA_POLICY_INFO_ROLE               6")
+cpp_quote("#define LSA_POLICY_INFO_REPLICA            7")
+cpp_quote("#define LSA_POLICY_INFO_QUOTA              8") 
+cpp_quote("#define LSA_POLICY_INFO_DB                 9")
+cpp_quote("#define LSA_POLICY_INFO_AUDIT_FULL_SET    10")
+cpp_quote("#define LSA_POLICY_INFO_AUDIT_FULL_QUERY  11")
+cpp_quote("#define LSA_POLICY_INFO_DNS               12")
+
+
+
+	/* function 0x00 */
+	NTSTATUS _LsaClose(
+		[in,out] PolicyHandle *handle
+		);
+
+	NTSTATUS lsa_Function01();
+	NTSTATUS lsa_Function02();
+	NTSTATUS lsa_Function03();
+	NTSTATUS lsa_Function04();
+	NTSTATUS lsa_Function05();
+	NTSTATUS lsa_Function06();
+
+	/* function 0x07 */
+	NTSTATUS _LsaQueryInfoPolicy(
+		[in] PolicyHandle *handle,
+		[in] uint16 level,
+		[out,switch_is(level)] LsaPolicyInformation **info
+		);
+
+	NTSTATUS lsa_Function08();
+	NTSTATUS lsa_Function09();
+	NTSTATUS lsa_Function0a();
+	NTSTATUS lsa_Function0b();
+	NTSTATUS lsa_Function0c();
+	NTSTATUS lsa_Function0d();
+
+	/* function 0x0e */
+	NTSTATUS _LsaLookupNames(
+		[in] PolicyHandle *handle,
+		[in,range(0,1000)] uint32 num_names,
+		[in,size_is(num_names)] UnicodeString *names,
+		[out] RefDomainList **domains,
+		[in,out] TranslatedSidArray *sids,
+		[in] uint16 level,
+		[in,out] uint32 *count
+		);
+
+	/* function 0x0f */
+	NTSTATUS _LsaLookupSids(
+		[in] PolicyHandle *handle,
+		[in] SidArray *sids,
+		[out] RefDomainList **domains,
+		[in,out] TranslatedNameArray *names,
+		[in] uint16 level,
+		[in,out] uint32 *count
+		);
+
+	NTSTATUS lsa_Function10();
+	NTSTATUS lsa_Function11();
+	NTSTATUS lsa_Function12();
+	NTSTATUS lsa_Function13();
+	NTSTATUS lsa_Function14();
+	NTSTATUS lsa_Function15();
+	NTSTATUS lsa_Function16();
+	NTSTATUS lsa_Function17();
+	NTSTATUS lsa_Function18();
+	NTSTATUS lsa_Function19();
+	NTSTATUS lsa_Function1a();
+	NTSTATUS lsa_Function1b();
+	NTSTATUS lsa_Function1c();
+	NTSTATUS lsa_Function1d();
+	NTSTATUS lsa_Function1e();
+	NTSTATUS lsa_Function1f();
+	NTSTATUS lsa_Function20();
+	NTSTATUS lsa_Function21();
+	NTSTATUS lsa_Function22();
+	NTSTATUS lsa_Function23();
+	NTSTATUS lsa_Function24();
+	NTSTATUS lsa_Function25();
+	NTSTATUS lsa_Function26();
+	NTSTATUS lsa_Function27();
+	NTSTATUS lsa_Function28();
+	NTSTATUS lsa_Function29();
+	NTSTATUS lsa_Function2a();
+	NTSTATUS lsa_Function2b();
+
+	/* function 0x2c */
+	NTSTATUS _LsaOpenPolicy2(
+		[in,string,unique] wchar16_t *system_name,
+		[in] ObjectAttribute *attrib,
+		[in] uint32 access_mask,
+		[out,ref] PolicyHandle *handle
+		);
+
+	NTSTATUS lsa_Function2d();
+
+	/* function 0x2e */
+	NTSTATUS _LsaQueryInfoPolicy2(
+		[in] PolicyHandle *handle,
+		[in] uint16 level,
+		[out,switch_is(level)] LsaPolicyInformation **info
+		);
+
+	NTSTATUS lsa_Function2f();
+	NTSTATUS lsa_Function30();
+	NTSTATUS lsa_Function31();
+	NTSTATUS lsa_Function32();
+	NTSTATUS lsa_Function33();
+	NTSTATUS lsa_Function34();
+	NTSTATUS lsa_Function35();
+	NTSTATUS lsa_Function36();
+	NTSTATUS lsa_Function37();
+	NTSTATUS lsa_Function38();
+	NTSTATUS lsa_Function39();
+
+	/* function 0x3a */
+	NTSTATUS _LsaLookupNames2(
+		[in] PolicyHandle *handle,
+		[in,range(0,1000)] uint32 num_names,
+		[in,size_is(num_names)] UnicodeStringEx *names,
+		[out] RefDomainList **domains,
+		[in,out] TranslatedSidArray2 *sids,
+		[in] uint16 level,
+		[in,out] uint32 *count,
+		[in] uint32 unknown1,
+		[in] uint32 unknown2
+		);
+}

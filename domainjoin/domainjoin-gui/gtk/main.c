@@ -1,24 +1,31 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
-* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
-* -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software    2007-2008
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
  */
 
 #include <glade/glade.h>
@@ -83,8 +90,6 @@ log_begin()
 
     // Log to file
     dj_init_logging_to_file_handle(LOG_LEVEL_VERBOSE, log_handle);
-    // Also log stderr to file
-    dup2(fileno(log_handle), 2);
 }
 
 static void
@@ -554,13 +559,6 @@ main(int argc, char** argv)
     LWException* exc = NULL;
     gboolean quit = FALSE;
 
-    /* Logging MUST be initialized before gtk.
-     *
-     * If fd 2 (stderr) is closed when gtk+ is initialized,
-     * it will get grabbed by some open() call in X11 libraries.
-     * The log_begin() will then replace it, causing problems
-     * later.
-     */
     log_begin();
 
     g_thread_init(NULL);
@@ -568,6 +566,8 @@ main(int argc, char** argv)
     gdk_threads_enter();
 
     gtk_init(&argc, &argv);
+
+    LW_TRY(&exc, DJNetInitialize(&LW_EXC));
 
     do
     {
@@ -594,13 +594,20 @@ main(int argc, char** argv)
 
     } while (!quit);
 
+    // Try to shutdown the net api and report any failures
+    LW_TRY(&exc, DJNetShutdown(&LW_EXC));
+
 cleanup:
 
     if (exc)
     {
 	show_error_dialog(NULL, exc);
     }
-    
+
+    // Shutdown the net api without reporting failures (it is ok if
+    // DJNetShutdown is called twice).
+    DJNetShutdown(NULL);
+
     gdk_threads_leave();
     log_end();
 

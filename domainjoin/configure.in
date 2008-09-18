@@ -2,77 +2,288 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(centeris-domainjoin, 1.0, support@centeris.com)
-AC_CONFIG_SRCDIR([include/DomainJoinConfig.h.in])
+AC_INIT(domainjoin, 1.0, support@likewisesoftware.com)
+AM_INIT_AUTOMAKE([-Wall foreign])
 AC_CONFIG_HEADER([include/DomainJoinConfig.h])
-AC_PREFIX_DEFAULT(/usr/centeris)
+AC_CONFIG_MACRO_DIR([m4])
 
 RM='/bin/rm -f'
 AC_SUBST(RM)
 
-LINK='/bin/ln -s'
-AC_SUBST(LINK)
-
-if test -z "${AR}"; then
-AC_CHECK_PROGS(AR, ar, gar, ar_was_not_found)
-fi
-
 LDSHFLAGS="${LDSHFLAGS} -shared -fPIC"
+AC_SUBST(LDSHFLAGS)
 
-libxml2_dir=/usr/centeris
-AC_ARG_WITH(libxml2_dir,
-[ --with-libxml2-dir=DIR        Specify libxml2 XML library location ],
-[ case "$withval" in
-none)
-	AC_MSG_RESULT(no libxml2 path given)
-	;;
-*)
-	libxml2_dir=$withval;
-	AC_MSG_RESULT(using libxml2 libraries at $withval)
-	;;
-esac
-])
+AC_ARG_WITH(
+        libxml2-dir,
+        [  --with-libxml2-dir=<prefix>     look for libxml2 headers/libraries in <prefix>],
+        [
+            LIBXML2_INCLUDE="-I$withval/include -I$withval/include/libxml2"
+            LIBXML2_LDFLAGS=-L$withval/lib
+            LIBXML2_LIBDIR=$withval/lib
+        ]
+)
 
-LIBXML2_CPPFLAGS="-I$libxml2_dir/include -I$libxml2_dir/include/libxml2"
-if test -e $libxml2_dir/lib64 ; then
-LIBXML2_LIBDIR="$libxml2_dir/lib64"
-else
-LIBXML2_LIBDIR="$libxml2_dir/lib"
-fi
-LIBXML2_LDFLAGS="-L$LIBXML2_LIBDIR"
-#libxml2 requires -lm
-LIBXML2_LDFLAGS="$LIBXML2_LDFLAGS -lxml2 -lm"
+AC_ARG_WITH(
+        libxml2-libdir,
+        [  --with-libxml2-libdir=<libdir>     look for libxml2 libraries in <libdir>],
+        [
+            LIBXML2_LDFLAGS=-L$withval
+            LIBXML2_LIBDIR=$withval
+        ]
+)
 
-AC_SUBST(LIBXML2_CPPFLAGS)
+AC_ARG_WITH(
+        centutils-dir,
+        [  --with-centutils-dir=<prefix>     look for centutils headers/libraries in <prefix>],
+        [
+            CENTUTILS_INCLUDE=-I$withval/include
+            CENTUTILS_LDFLAGS=-L$withval/lib
+            CENTUTILS_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        centutils-libdir,
+        [  --with-centutils-libdir=<libdir>     look for centutils libraries in <libdir>],
+        [
+            CENTUTILS_LDFLAGS=-L$withval
+            CENTUTILS_LIBDIR=$withval
+        ]
+)
+
+AC_ARG_WITH(
+        krb5-dir,
+        [  --with-krb5-dir=<prefix>     look for krb5 headers/libraries in <prefix>],
+        [
+            KRB5_INCLUDE=-I$withval/include
+            KRB5_LDFLAGS=-L$withval/lib
+            KRB5_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        krb5-libdir,
+        [  --with-krb5-libdir=<libdir>     look for krb5 libraries in <libdir>],
+        [
+            KRB5_LDFLAGS=-L$withval
+            KRB5_LIBDIR=$withval
+        ]
+)
+
+AC_ARG_WITH(
+        openldap-dir,
+        [  --with-openldap-dir=<prefix>     look for openldap headers/libraries in <prefix>],
+        [
+            OPENLDAP_INCLUDE=-I$withval/include
+            OPENLDAP_LDFLAGS=-L$withval/lib
+            OPENLDAP_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        openldap-libdir,
+        [  --with-openldap-libdir=<libdir>     look for openldap libraries in <libdir>],
+        [
+            OPENLDAP_LDFLAGS=-L$withval
+            OPENLDAP_LIBDIR=$withval
+        ]
+)
+
+AC_ARG_WITH(
+        libunistr-dir,
+        [  --with-libunistr-dir=<prefix>     look for libunistr headers/libraries in <prefix>],
+        [
+            LIBUNISTR_INCLUDE=-I$withval/include
+            LIBUNISTR_LDFLAGS=-L$withval/lib
+            LIBUNISTR_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        libunistr-libdir,
+        [  --with-libunistr-libdir=<libdir>     look for libunistr libraries in <libdir>],
+        [
+            LIBUNISTR_LDFLAGS=-L$withval
+            LIBUNISTR_LIBDIR=$withval
+        ]
+)
+
+AC_ARG_WITH(
+        pstore-dir,
+        [  --with-pstore-dir=<prefix>     look for pstore headers/libraries in <prefix>],
+        [
+            PSTORE_INCLUDE=-I$withval/include
+            PSTORE_LDFLAGS=-L$withval/lib
+            PSTORE_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        pstore-libdir,
+        [  --with-pstore-libdir=<libdir>     look for pstore libraries in <libdir>],
+        [
+            PSTORE_LDFLAGS=-L$withval
+            PSTORE_LIBDIR=$withval
+        ]
+)
+
+AC_ARG_WITH(
+        netlogon-dir,
+        [  --with-netlogon-dir=<prefix>     look for netlogon headers/libraries in <prefix>],
+        [
+            NETLOGON_INCLUDE=-I$withval/include
+            NETLOGON_LDFLAGS=-L$withval/lib
+            NETLOGON_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        netlogon-libdir,
+        [  --with-netlogon-libdir=<libdir>     look for netlogon libraries in <libdir>],
+        [
+            NETLOGON_LDFLAGS=-L$withval
+            NETLOGON_LIBDIR=$withval
+        ]
+)
+
+AC_ARG_WITH(
+        npcmuxer-dir,
+        [  --with-npcmuxer-dir=<prefix>     look for npcmuxer headers/libraries in <prefix>],
+        [
+            NPCMUXER_INCLUDE=-I$withval/include
+            NPCMUXER_LDFLAGS=-L$withval/lib
+            NPCMUXER_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        npcmuxer-libdir,
+        [  --with-npcmuxer-libdir=<libdir>     look for npcmuxer libraries in <libdir>],
+        [
+            NPCMUXER_LDFLAGS=-L$withval
+            NPCMUXER_LIBDIR=$withval
+        ]
+)
+
+AC_ARG_WITH(
+        dcerpc-dir,
+        [  --with-dcerpc-dir=<prefix>     look for dcerpc headers/libraries in <prefix>],
+        [
+            DCERPC_INCLUDE=-I$withval/include
+            DCERPC_LDFLAGS=-L$withval/lib
+            DCERPC_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        dcerpc-libdir,
+        [  --with-dcerpc-libdir=<libdir>     look for dcerpc libraries in <libdir>],
+        [
+            DCERPC_LDFLAGS=-L$withval
+            DCERPC_LIBDIR=$withval
+        ]
+)
+
+AC_ARG_WITH(
+        librpc-dir,
+        [  --with-librpc-dir=<prefix>     look for librpc headers/libraries in <prefix>],
+        [
+            LIBRPC_INCLUDE=-I$withval/include
+            LIBRPC_LDFLAGS=-L$withval/lib
+            LIBRPC_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        librpc-libdir,
+        [  --with-librpc-libdir=<libdir>     look for librpc libraries in <libdir>],
+        [
+            LIBRPC_LDFLAGS=-L$withval
+            LIBRPC_LIBDIR=$withval
+        ]
+)
+
+AC_CHECK_LIB(iconv, iconv)
+
+LIBPTHREAD=""
+AC_CHECK_LIB([pthread], [pthread_create], [LIBPTHREAD="-lpthread"])
+
+LIBXML2_LIBS=""
+AC_CHECK_LIB([xml2], [xmlParseFile], [LIBXML2_LIBS="-lxml2 -lm"], AC_MSG_ERROR([Use --with-libxml2-dir to find libxml2.so]), [$LIBXML2_LDFLAGS -lxml2 -lm $LIBPTHREAD])
+
+AC_SUBST(LIBXML2_INCLUDE)
 AC_SUBST(LIBXML2_LDFLAGS)
+AC_SUBST(LIBXML2_LIBS)
 
+LIBRT=""
+AC_CHECK_LIB([rt], [clock_settime], [LIBRT="-lrt"])
 
-centutils_dir=/usr/centeris
-AC_ARG_WITH(centutils_dir,
-[ --with-centutils-dir=DIR        Specify centutils library location ],
-[ case "$withval" in
-none)
-	AC_MSG_RESULT(no centutils path given)
-	;;
-*)
-	centutils_dir=$withval;
-	AC_MSG_RESULT(using centutils libraries at $withval)
-	;;
-esac
-])
+CENTUTILS_LIBS=""
+AC_CHECK_LIB([centutils], [CTOpenFile], [CENTUTILS_LIBS="-lcentutils -lgpglib"], AC_MSG_ERROR([Use --with-centutils-dir to find libcentutils.so]), [$CENTUTILS_LDFLAGS -lgpglib $LIBRT])
 
-CENTUTILS_CPPFLAGS="-I$centutils_dir/include -I$centutils_dir/include"
-if test -e $centutils_dir/lib64 ; then
-	CENTUTILS_LIBDIR="$centutils_dir/lib64"
-else
-	CENTUTILS_LIBDIR="$centutils_dir/lib"
-fi
-CENTUTILS_LDFLAGS="-L$CENTUTILS_LIBDIR"
-CENTUTILS_LIBS="-lcentutils -lgpglib"
-
-AC_SUBST(CENTUTILS_CPPFLAGS)
+AC_SUBST(CENTUTILS_INCLUDE)
 AC_SUBST(CENTUTILS_LDFLAGS)
 AC_SUBST(CENTUTILS_LIBS)
+
+KRB5_LIBS=""
+AC_CHECK_LIB([krb5support], [krb5int_free_error], [KRB5_LIBS="-lkrb5support"], AC_MSG_ERROR([Use --with-krb5-dir to find libkrb5support.so]), [$KRB5_LDFLAGS])
+AC_CHECK_LIB([k5crypto], [krb5_c_string_to_key], [KRB5_LIBS="$KRB5_LIBS -lk5crypto"], AC_MSG_ERROR([Use --with-krb5-dir to find libk5crypto.so]), [$KRB5_LDFLAGS $KRB5_LIBS])
+AC_CHECK_LIB([krb5], [krb5_init_context], [KRB5_LIBS="$KRB5_LIBS -lk5crypto -lkrb5 -lcom_err"], AC_MSG_ERROR([Use --with-krb5-dir to find libkrb5.so]), [$KRB5_LDFLAGS $KRB5_LIBS -lcom_err])
+AC_CHECK_LIB([gssapi_krb5], [gss_init_sec_context], [KRB5_LIBS="-lgssapi_krb5 $KRB5_LIBS"], AC_MSG_ERROR([Use --with-krb5-dir to find libgssapi_krb5.so]), [$KRB5_LDFLAGS $KRB5_LIBS])
+
+AC_SUBST(KRB5_INCLUDE)
+AC_SUBST(KRB5_LDFLAGS)
+AC_SUBST(KRB5_LIBS)
+
+OPENLDAP_LIBS=""
+AC_CHECK_LIB([ldap_r], [ldap_bind], [OPENLDAP_LIBS="-lldap_r -llber"], AC_MSG_ERROR([Use --with-openldap-dir to find libldap.so]), [$OPENLDAP_LDFLAGS -llber $KRB5_LDFLAGS $KRB5_LIBS -lpthread])
+
+AC_SUBST(OPENLDAP_INCLUDE)
+AC_SUBST(OPENLDAP_LDFLAGS)
+AC_SUBST(OPENLDAP_LIBS)
+
+LIBUNISTR_LIBS=""
+AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], AC_MSG_ERROR([Use --with-libunistr-dir to find libunistr.so]), [$LIBUNISTR_LDFLAGS])
+
+AC_SUBST(LIBUNISTR_INCLUDE)
+AC_SUBST(LIBUNISTR_LDFLAGS)
+AC_SUBST(LIBUNISTR_LIBS)
+
+PSTORE_LIBS=""
+AC_CHECK_LIB([lwpsapi], [LwpsOpenPasswordStore], [PSTORE_LIBS="-llwpsapi -llwps-utils"], AC_MSG_ERROR([Use --with-pstore-dir to find liblwpsapi.so]), [$PSTORE_LDFLAGS -llwps-utils $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+
+AC_SUBST(PSTORE_INCLUDE)
+AC_SUBST(PSTORE_LDFLAGS)
+AC_SUBST(PSTORE_LIBS)
+
+NETLOGON_LIBS=""
+AC_CHECK_LIB([lwnetclientapi], [LWNetGetDCName], [NETLOGON_LIBS="-llwnetclientapi -llwnetipc -llwnetutils"], AC_MSG_ERROR([Use --with-netlogon-dir to find liblwnetclientapi.so]), [$NETLOGON_LDFLAGS -llwnetipc -llwnetutils $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+
+AC_SUBST(NETLOGON_INCLUDE)
+AC_SUBST(NETLOGON_LDFLAGS)
+AC_SUBST(NETLOGON_LIBS)
+
+NPCMUXER_LIBS=""
+AC_CHECK_LIB([npc], [NpcConnectExistingSocket], [NPCMUXER_LIBS="-lnpc"], AC_MSG_ERROR([Use --with-npcmuxer-dir to find libnpc.so]), [$NPCMUXER_LDFLAGS $KRB5_LDFLAGS $KRB5_LIBS])
+
+AC_SUBST(NPCMUXER_INCLUDE)
+AC_SUBST(NPCMUXER_LDFLAGS)
+AC_SUBST(NPCMUXER_LIBS)
+
+
+DCERPC_LIBS=""
+AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc -ldcethread"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS -ldcethread $NPCMUXER_LDFLAGS $NPCMUXER_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+
+AC_SUBST(DCERPC_INCLUDE)
+AC_SUBST(DCERPC_LDFLAGS)
+AC_SUBST(DCERPC_LIBS)
+
+LIBRPC_LIBS=""
+AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi -lmsrpc -lsamr -llsa -lmpr"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS -lmsrpc -lsamr -llsa -lmpr $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $NPCMUXER_LDFLAGS $NPCMUXER_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+
+AC_SUBST(LIBRPC_INCLUDE)
+AC_SUBST(LIBRPC_LDFLAGS)
+AC_SUBST(LIBRPC_LIBS)
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -fPIC"
 LIBVER_MAJOR=1
@@ -103,6 +314,13 @@ case `uname -s` in
 
     Linux)
         LWI_OS_FLAGS="-D__LWI_LINUX__"
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djdaemonmgr_nonmac.o"
+        ;;
+
+    FreeBSD|"Isilon OneFS")
+        LWI_OS_FLAGS="-D__LWI_FREEBSD__"
         BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
         BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
         LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djdaemonmgr_nonmac.o"
@@ -153,21 +371,14 @@ if test "x$CFLAGS" = "x"; then
     CFLAGS="-O2"
 fi
 
-CFLAGS="${CFLAGS} -I\$(BUILD_ROOT)/../centutils/libcentutils"
-CFLAGS="${CFLAGS} -I\$(BUILD_ROOT)/../centutils/libgpglib"
-
-LDFLAGS="${LDFLAGS} -L\$(BUILD_ROOT)/../centutils/libcentutils"
-LDFLAGS="${LDFLAGS} -L\$(BUILD_ROOT)/../centutils/libgpglib"
-
-
-
-AC_SUBST(LDSHFLAGS)
-
 if test "x$prefix" = "xNONE"; then
 AC_DEFINE_UNQUOTED(PREFIXDIR, "$ac_default_prefix", [The directory that contains centeris/bin])
 else
 AC_DEFINE_UNQUOTED(PREFIXDIR, "$prefix", [The directory that contains centeris/bin])
 fi
+
+AS_AC_EXPAND(LIBDIR, $libdir)
+AC_DEFINE_UNQUOTED(LIBDIR, "$LIBDIR", [Library directory])
 
 AC_DEFINE_UNQUOTED(SAMBACONFDIR, "/etc/samba", [The directory that stores lwiauthd.conf])
 
@@ -178,24 +389,8 @@ AC_MSG_RESULT($LDFLAGS)
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
-
-# Check for compiler options
-AC_MSG_CHECKING([if linker supports -rpath-link])
-saved_LDFLAGS="$LDFLAGS"
-LDFLAGS="$LDFLAGS -Wl,-rpath-link=/usr/lib"
-
-AC_TRY_LINK([], [],
-      [ AC_MSG_RESULT([yes]); RPATH_LINK=yes ],
-      [ AC_MSG_RESULT([no]); RPATH_LINK=no ])
-
-LDFLAGS="$saved_LDFLAGS"
-
-if test "x$RPATH_LINK" = "xyes"
-then
-	LDFLAGS="$LDFLAGS -Wl,-rpath-link,$LIBXML2_LIBDIR"
-else
-	LDFLAGS="$LDFLAGS -L$LIBXML2_LIBDIR"
-fi
+AC_PROG_LIBTOOL
+AC_PROG_LN_S
 
 # Checks for libraries.
 
@@ -244,29 +439,17 @@ then
 	PKG_CHECK_MODULES(GTK, gtk+-2.0 libglade-2.0 gthread-2.0,have_gtk=yes,have_gtk=no)
 fi
 
-if test "x$have_gtk" = "xyes"
-then
-	GTK_SUBDIR="domainjoin-gui/gtk"
-else
-	GTK_SUBDIR=""
-fi
+AM_CONDITIONAL([BUILD_GTK], [test "x$have_gtk" = "xyes"])
 
-AC_SUBST(GTK_SUBDIR)
+LIBDOMAINJOIN_LDFLAGS="$KRB5_LDFLAGS $OPENLDAP_LDFLAGS $LIBXML2_LDFLAGS $CENTUTILS_LDFLAGS $LIBUNISTR_LDFLAGS $PSTORE_LDFLAGS $NETLOGON_LDFLAGS $DCERPC_LDFLAGS $NPCMUXER_LDFLAGS $LIBRPC_LDFLAGS"
 
-dnl Autoconf will define bindir to '${exec_prefix}/bin' by default.
-dnl exec_prefix is then defined to '${prefix}'. Typically make would
-dnl recursively substitute all of the variables, however if bindir is used
-dnl in a shell script, the variables must be pre-expanded in autoconf. The
-dnl expansion in run from AC_CONFIG_COMMANDS_PRE so that ${prefix} is defined
-dnl before the expansion is run.
+LIBDOMAINJOIN_LIBS="$LIBXML2_LIBS $CENTUTILS_LIBS $NETLOGON_LIBS $LIBRPC_LIBS $DCERPC_LIBS $NPCMUXER_LIBS $PSTORE_LIBS $LIBUNISTR_LIBS $OPENLDAP_LIBS $KRB5_LIBS" 
+
+AC_SUBST(LIBDOMAINJOIN_LDFLAGS)
+AC_SUBST(LIBDOMAINJOIN_LIBS)
+
 m4_foreach([name], [[bindir], [libexecdir]], [dnl
-    AC_CONFIG_COMMANDS_PRE([
-expanded_]name[="$]name["
-while test "$expanded_]name[" != `eval "echo \"$expanded_]name[\""` ; do
-        eval "expanded_]name[=\"$expanded_]name[\""
-done
-]   )
-    AC_SUBST([expanded_]name)
+    AS_AC_EXPAND([expanded_]name, ["$]name["])
 ])
 
 AC_CONFIG_FILES([Makefile
@@ -275,27 +458,34 @@ AC_CONFIG_FILES([Makefile
 		 domainjoin-gui/gtk/Makefile
 		 scripts/ConfigureLogin
 		 scripts/gpcron
-		 scripts/domainjoin-cli
                  tests/Makefile
-                 tests/test_auth_conf/src/Makefile
-                 tests/test_proc_utils/src/Makefile
                  tests/test_nsswitch_change/src/Makefile
                  tests/test_dhcpname_change/src/Makefile
                  tests/test_sec_user/src/Makefile
                  tests/test_login_cfg/src/Makefile
-                 tests/test_file_utils/src/Makefile], echo timestamp > stamp-h
-)
+                 tests/test_file_utils/src/Makefile])
 
 case `uname -s` in
     Darwin)
-          AC_CONFIG_FILES([domainjoin-gui/carbon/libdomainjoin-mac/src/Makefile], echo timestamp >> stamp-h)
-          LIBDOMAINJOINMAC_SUBDIR="domainjoin-gui/carbon/libdomainjoin-mac/src"
+          AC_CONFIG_FILES([domainjoin-gui/carbon/libdomainjoin-mac/src/Makefile])
           ;;
     *)
-          LIBDOMAINJOINMAC_SUBDIR=""
           ;;
 esac
 
-AC_SUBST(LIBDOMAINJOINMAC_SUBDIR)
+AM_CONDITIONAL([BUILD_LIBDOMINAJOINMAC], [test "x`uname -s`" = "xDarwin"])
+AM_CONDITIONAL([BUILD_MACCODE], [test "x`uname -s`" = "xDarwin"])
+
+AS_AC_EXPAND(PREFIXDIR, ["$prefix"])
+AC_DEFINE_UNQUOTED(PREFIXDIR, ["$PREFIXDIR"], [Prefix directory])
+
+AS_AC_EXPAND(BINDIR, ["$bindir"])
+AC_DEFINE_UNQUOTED(BINDIR, ["$BINDIR"], [Bin directory])
+
+AS_AC_EXPAND(SBINDIR, ["$sbindir"])
+AC_DEFINE_UNQUOTED(SBINDIR, ["$SBINDIR"], [Sbin directory])
+
+AS_AC_EXPAND(LOCALSTATEDIR, ["$localstatedir"])
+AC_DEFINE_UNQUOTED(LOCALSTATEDIR, ["$LOCALSTATEDIR"], [Var directory])
 
 AC_OUTPUT

@@ -1,0 +1,65 @@
+BUILD_ROOT = @builddir@/../../..
+SRC_ROOT=@srcdir@/../../..
+
+SHELL= /bin/sh
+vpath %.c @srcdir@
+vpath %.h @srcdir@
+
+subdirs= @subdirs@
+top_srcdir= @top_srcdir@
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = ${exec_prefix}/bin
+sbindir = ${exec_prefix}/sbin
+infodir = ${prefix}/info
+libdir = @libdir@
+mandir = ${prefix}/man/man1
+
+DESTDIR=@DESTDIR@
+CC = @CC@
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = $(CPPFLAGS) @CFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+INSTALL = @INSTALL@
+
+CFLAGS += -DLSA_PREFIX_PATH=\"@prefix@\"
+CFLAGS += @GSSNTLM_PRIVATE_INCLUDE@
+CFLAGS += @GSSNTLMSRV_INCLUDE@
+CFLAGS += @LSA_INCLUDE@
+CFLAGS += @LSAUTILS_INCLUDE@
+
+LDFLAGS += @GSSNTLMCOMMON_STATICLIB@
+LDFLAGS += @GSSNTLMCOMMON_LDFLAGS@
+LDFLAGS += @GSSNTLMSRV_STATICLIB@
+LDFLAGS += @GSSNTLMSRV_LDFLAGS@
+LDFLAGS += @LSAUTILS_STATICLIB@ 
+LDFLAGS += @CRYPTOLIB@
+
+DEPLIBS += @GSSNTLMCOMMON_STATICLIB@
+DEPLIBS += @GSSNTLMSRV_STATICLIB@
+DEPLIBS += @LSAUTILS_STATICLIB@
+
+OBJS = main.o
+
+PROGRAM = serverapi
+
+all : $(PROGRAM)
+
+$(PROGRAM) : $(OBJS) 
+	$(CC) -o $@ $(OBJS) -Bdynamic $(LDFLAGS) $(LIBS)
+
+$(OBJS) : %.o : %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+clean :
+	$(RM) $(OBJS) $(PROGRAM)
+
+distclean: clean
+	$(RM) Makefile
+
+install: all
+
+uninstall:
+

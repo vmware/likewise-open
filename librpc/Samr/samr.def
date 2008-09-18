@@ -1,0 +1,15 @@
+LIBRARY	"Samr"
+
+EXPORTS
+SamrConnect2
+SamrLookupDomain
+SamrOpenDomain
+SamrLookupNames
+SamrOpenUser
+SamrQueryUserInfo
+SamrClose
+SamrEnumDomainUsers
+SamrEnumDomains
+InitSamrBindingDefault
+InitSamrBindingFull
+FreeSamrBinding

@@ -1,0 +1,378 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/**
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * @file
+ *
+ *     lsadm.h
+ *
+ * @brief
+ *
+ *     LSASS Domain Manager (LsaDm) API
+ *
+ * @details
+ *
+ *     This module keeps track of the state of each domain.  In addition
+ *     to keeping track of domain names, SIDs, trust info, and affinity,
+ *     it also keeps track of which domains are considered unreachable
+ *     (and thus "offline").  A thread will try to transition each offline
+ *     domain back to online by periodically checking the reachability
+ *     of offline domains.
+ *
+ * @author Danilo Almeida (dalmeida@likewisesoftware.com)
+ *
+ */
+
+#ifndef __LSA_DM_H__
+#define __LSA_DM_H__
+
+//////////////////////////////////////////////////////////////////////
+///
+/// @name LSASS Domain Manager (LsaDm)
+///
+/// @details These functions control the LSASS domain state.
+///
+/// @{
+
+typedef struct _LSA_DM_DC_INFO {
+    DWORD dwDsFlags;
+    PSTR pszName;
+    PSTR pszAddress;
+    PSTR pszSiteName;
+} LSA_DM_DC_INFO, *PLSA_DM_DC_INFO;
+
+typedef struct _LSA_DM_ENUM_DOMAIN_CALLBACK_INFO {
+    PCSTR pszDnsDomainName;
+    PCSTR pszNetbiosDomainName;
+    PSID pSid;
+    uuid_t* pGuid;
+    PCSTR pszTrusteeDnsDomainName;
+    DWORD dwTrustFlags;
+    DWORD dwTrustType;
+    DWORD dwTrustAttributes;
+    PCSTR pszForestName;
+    PCSTR pszClientSiteName;
+    LSA_DM_DOMAIN_FLAGS Flags;
+    PLSA_DM_DC_INFO DcInfo;
+    PLSA_DM_DC_INFO GcInfo;
+} LSA_DM_ENUM_DOMAIN_CALLBACK_INFO, *PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO;
+
+typedef BOOLEAN (*PLSA_DM_ENUM_DOMAIN_CALLBACK)(
+    IN OPTIONAL PCSTR pszEnumDomainName,
+    IN OPTIONAL PVOID pContext,
+    IN PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDomainInfo
+    );
+
+DWORD
+LsaDmInitialize(
+    IN BOOLEAN bIsOfflineBehaviorEnabled,
+    IN DWORD dwCheckOnlineSeconds
+    );
+///<
+/// Initialize state for domain manager.
+///
+/// This includes starting up the online detection thread.
+///
+/// @param[in] bIsOfflineBehaviorEnabled - Whether to enable offline behavior.
+///
+/// @param[in] dwCheckOnlineSeconds - How often to check whether an offline
+///     domain is back online. A setting of zero disables these checks.
+///
+/// @return LSA status code.
+///  @arg LSA_ERROR_SUCCESS on success
+///  @arg !LSA_ERROR_SUCCESS on failure
+///
+/// @note This function must be called in a race-free context.
+///
+
+VOID
+LsaDmCleanup(
+    );
+///<
+/// Cleanup state for domain manager.
+///
+/// This includes terminating the online detection thread.
+///
+/// @note This function must be called in a race-free context.
+///
+
+DWORD
+LsaDmQueryState(
+    OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
+    OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags
+    );
+
+DWORD
+LsaDmSetState(
+    IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
+    IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled
+    );
+
+VOID
+LsaDmMediaSenseOffline(
+    VOID
+    );
+
+VOID
+LsaDmMediaSenseOnline(
+    VOID
+    );
+
+// When adding a normally discovered trust
+DWORD
+LsaDmAddTrustedDomain(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
+    IN PSID pDomainSid,
+    IN uuid_t* pDomainGuid,
+    IN PCSTR pszTrusteeDnsDomainName,
+    IN DWORD dwTrustFlags,
+    IN DWORD dwTrustType,
+    IN DWORD dwTrustAttributes,
+    IN OPTIONAL PCSTR pszDnsForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo
+    );
+
+// TODO-One way transitive trust
+#if 0
+// After calling name to SID
+DWORD
+LsaDmAddTransitiveOneWayDomain(
+    IN PCSTR pszNetbiosDomainName,
+    IN PSID pDomainSid
+    );
+
+// After figuring out the DNS name of the domain
+DWORD
+LsaDmSetDnsDomainNameForOneWayTransitiveDomain(
+    IN PCSTR pszNetbiosDomainName,
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo
+    );
+#endif
+
+BOOLEAN
+LsaDmIsDomainPresent(
+    IN PCSTR pszDomainName
+    );
+
+VOID
+LsaDmEnumDomains(
+    IN OPTIONAL PCSTR pszDomainName,
+    IN PLSA_DM_ENUM_DOMAIN_CALLBACK pfCallback,
+    IN PVOID pContext
+    );
+
+DWORD
+LsaDmQueryDomainInfo(
+    IN PCSTR pszDomainName,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PSID* ppSid,
+    OUT OPTIONAL uuid_t* pGuid,
+    OUT OPTIONAL PSTR* ppszTrusteeDnsDomainName,
+    OUT OPTIONAL PDWORD pdwTrustFlags,
+    OUT OPTIONAL PDWORD pdwTrustType,
+    OUT OPTIONAL PDWORD pdwTrustAttributes,
+    OUT OPTIONAL PSTR* ppszForestName,
+    OUT OPTIONAL PSTR* ppszClientSiteName,
+    OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppDcInfo,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppGcInfo
+    );
+
+VOID
+LsaDmFreeDcInfo(
+    IN OUT PLSA_DM_DC_INFO pDcInfo
+    );
+
+#if 0
+DWORD
+LsaDmQueryDomainDcInfo(
+    IN PCSTR pszDomainName,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
+    OUT OPTIONAL PDWORD pdwDsFlags,
+    OUT OPTIONAL PSTR* ppszDomainControllerName,
+    OUT OPTIONAL PSTR* ppszDomainControllerAddress
+    );
+
+DWORD
+LsaDmQueryDomainGcInfo(
+    IN PCSTR pszDomainName,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
+    OUT OPTIONAL PDWORD pdwDsFlags,
+    OUT OPTIONAL PSTR* ppszDomainControllerName,
+    OUT OPTIONAL PSTR* ppszDomainControllerAddress
+    );
+#endif
+
+DWORD
+LsaDmSetDomainDcInfo(
+    IN PCSTR pszDomainName,
+    IN PLWNET_DC_INFO pDcInfo
+    );
+
+DWORD
+LsaDmSetDomainGcInfo(
+    IN PCSTR pszDomainName,
+    IN PLWNET_DC_INFO pDcInfo
+    );
+
+DWORD
+LsaDmSetForceOfflineState(
+    IN OPTIONAL PCSTR pszDomainName,
+    IN BOOLEAN bIsSet
+    );
+///<
+/// Set/unset force offline state of a specific domain.
+///
+/// This sets/unsets whether all or a specfic domain should be forced
+/// offline.  This condition is trigerred manually.  We could also do
+/// the global trigger via an external (media sense) event.  Setting
+/// force offline will transition a domain offline and will prevent it
+/// from being transitioned online.  Unsetting the bit allows a domain
+/// to be subsequently transitioned online.  If the force offline
+/// setting is already in the desired state, this function succeeds.
+///
+/// @param[in] pszDomainName - Optional Name of domain to set/unset force
+///     offline.  If NULL, operations on global force state.
+///
+/// @param[in] bIsSet - Whether to set/unset.
+///
+/// @return LSA status code.
+///  @arg LSA_ERROR_SUCCESS on success
+///  @arg !LSA_ERROR_SUCCESS on failure
+///
+
+DWORD
+LsaDmTransitionOffline(
+    IN PCSTR pszDomainName
+    );
+///<
+/// Transition a domain to offline mode.
+///
+/// This adds the domain to the offline domains list, if it is not
+/// already there.
+///
+/// @param[in] pszDomainName Name of domain to transition.
+///
+/// @return LSA status code.
+///  @arg SUCCESS on success
+///  @arg !SUCCESS on failure
+///
+
+DWORD
+LsaDmTransitionOnline(
+    IN PCSTR pszDomainName
+    );
+///<
+/// Transition a domain to online mode.
+///
+/// This removes a domain from the offline domains list, if it
+/// is in the list and not forced offline.
+///
+/// @param[in] pszDomainName Name of domain to transition.
+///
+/// @return LSA status code.
+///  @arg SUCCESS on success
+///  @arg NOT_FOUND if not in list
+///  @arg FORCED_OFFLINE if forced offline
+///
+
+BOOLEAN
+LsaDmIsDomainOffline(
+    IN OPTIONAL PCSTR pszDomainName
+    );
+///<
+/// @brief Checks whether a domain is in offline mode.
+///
+/// @param[in] pszDomainName
+///     Name of the domain to check or NULL for just global state.
+///
+/// @return Whether DomainName is offline (forced or otherwise).
+///
+
+DWORD
+LsaDmDetectTransitionOnline(
+    IN OPTIONAL PCSTR pszDomainName
+    );
+///<
+///
+/// Transition a domain online if it is reachable.
+///
+/// @param[in] pszDomainName
+///     Optional name of domain to try to transition online.  If NULL,
+///     tries to transition all domains.
+///
+/// @return LSA status code.
+///  @arg SUCCESS on success
+///  @arg !SUCCESS on failure
+///
+
+// TODO-inline these?
+
+BOOLEAN
+LsaDmIsSpecificDomainNameMatch(
+    IN PCSTR pszDomainNameQuery,
+    IN PCSTR pszDomainName
+    );
+
+BOOLEAN
+LsaDmIsEitherDomainNameMatch(
+    IN PCSTR pszDomainNameQuery,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName
+    );
+
+BOOLEAN
+LsaDmIsNetbiosDomainName(
+    IN PCSTR pszDomainName
+    );
+
+VOID
+LsaDmFreeDomainCallbackInfo(
+    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pInfo
+    );
+
+DWORD
+LsaDmCopyLsaDmEnumDomainCallbackInfo(
+    IN PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pSrc,
+    OUT PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO* ppDest
+    );
+
+/// @} lsa_om
+
+#endif /* __LSA_DM_H__ */
