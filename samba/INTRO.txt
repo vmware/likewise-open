@@ -1,3 +1,0 @@
-                  Centeris Auth, Release 3.0
-
-Installed as a package dependency of Centeris Likewise Identity.

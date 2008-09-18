@@ -1,9 +1,0 @@
-usr/bin
-usr/sbin
-etc/security
-etc/init.d
-etc/defaults
-etc/samba
-var/run
-var/lib/likewise-open
-var/log/likewise-open
