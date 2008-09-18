@@ -176,14 +176,34 @@ LsaDmIsDomainPresent(
     return LsaDmpIsDomainPresent(gLsaDmState, pszDomainName);
 }
 
-VOID
-LsaDmEnumDomains(
-    IN OPTIONAL PCSTR pszDomainName,
-    IN PLSA_DM_ENUM_DOMAIN_CALLBACK pfCallback,
-    IN PVOID pContext
+DWORD
+LsaDmEnumDomainNames(
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    OUT PSTR** pppszDomainNames,
+    OUT OPTIONAL PDWORD pdwCount
     )
 {
-    LsaDmpEnumDomains(gLsaDmState, pszDomainName, pfCallback, pContext);
+    return LsaDmpEnumDomainNames(gLsaDmState,
+                                 pfFilterCallback,
+                                 pFilterContext,
+                                 pppszDomainNames,
+                                 pdwCount);
+}
+
+DWORD
+LsaDmEnumDomainInfo(
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    OUT PLSA_DM_ENUM_DOMAIN_INFO** pppDomainInfo,
+    OUT OPTIONAL PDWORD pdwCount
+    )
+{
+    return LsaDmpEnumDomainInfo(gLsaDmState,
+                                pfFilterCallback,
+                                pFilterContext,
+                                pppDomainInfo,
+                                pdwCount);
 }
 
 DWORD
@@ -294,6 +314,13 @@ LsaDmDetectTransitionOnline(
     return LsaDmpDetectTransitionOnline(gLsaDmState, pszDomainName);
 }
 
+VOID
+LsaDmTriggerOnlindeDetectionThread(
+    )
+{
+    LsaDmpTriggerOnlindeDetectionThread(gLsaDmState);
+}
+
 BOOLEAN
 LsaDmIsSpecificDomainNameMatch(
     IN PCSTR pszDomainNameQuery,
@@ -344,57 +371,26 @@ LsaDmIsNetbiosDomainName(
     return bIsValid;
 }
 
-VOID
-LsaDmFreeDomainCallbackInfo(
-    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pInfo
-    )
-{
-    if (pInfo != NULL)
-    {
-        LSA_SAFE_FREE_STRING(*(PSTR*)&pInfo->pszDnsDomainName);
-        LSA_SAFE_FREE_STRING(*(PSTR*)&pInfo->pszNetbiosDomainName);
-        if (pInfo->pSid != NULL)
-        {
-            LSA_SAFE_FREE_MEMORY(pInfo->pSid);
-        }
-        LSA_SAFE_FREE_MEMORY(pInfo->pGuid);
-        LSA_SAFE_FREE_STRING(*(PSTR*)&pInfo->pszTrusteeDnsDomainName);
-        LSA_SAFE_FREE_STRING(*(PSTR*)&pInfo->pszForestName);
-        LSA_SAFE_FREE_STRING(*(PSTR*)&pInfo->pszClientSiteName);
-        if (pInfo->DcInfo)
-        {
-            LsaDmFreeDcInfo(pInfo->DcInfo);
-        }
-        if (pInfo->GcInfo)
-        {
-            LsaDmFreeDcInfo(pInfo->GcInfo);
-        }
-        LSA_SAFE_FREE_MEMORY(pInfo);
-    }
-}
-
 DWORD
-LsaDmCopyLsaDmEnumDomainCallbackInfo(
-    IN PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pSrc,
-    OUT PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO* ppDest
+LsaDmDuplicateConstEnumDomainInfo(
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pSrc,
+    OUT PLSA_DM_ENUM_DOMAIN_INFO* ppDest
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDest = NULL;
+    PLSA_DM_ENUM_DOMAIN_INFO pDest = NULL;
 
-    dwError = LsaAllocateMemory(
-            sizeof(*pDest),
-            (PVOID*)&pDest);
+    dwError = LsaAllocateMemory(sizeof(*pDest), (PVOID*)&pDest);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateString(
-            pSrc->pszDnsDomainName,
-            (PSTR *)&pDest->pszDnsDomainName);
+                pSrc->pszDnsDomainName,
+                &pDest->pszDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateString(
-            pSrc->pszNetbiosDomainName,
-            (PSTR *)&pDest->pszNetbiosDomainName);
+                pSrc->pszNetbiosDomainName,
+                &pDest->pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmpDuplicateSid(
@@ -403,14 +399,14 @@ LsaDmCopyLsaDmEnumDomainCallbackInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateMemory(
-            sizeof(*pDest->pGuid),
-            (PVOID *)&pDest->pGuid);
+                sizeof(*pDest->pGuid),
+                (PVOID *)&pDest->pGuid);
     BAIL_ON_LSA_ERROR(dwError);
     memcpy(pDest->pGuid, pSrc->pGuid, sizeof(*pSrc->pGuid));
 
     dwError = LsaStrDupOrNull(
-            pSrc->pszTrusteeDnsDomainName,
-            (PSTR *)&pDest->pszTrusteeDnsDomainName);
+                pSrc->pszTrusteeDnsDomainName,
+                &pDest->pszTrusteeDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDest->dwTrustFlags = pSrc->dwTrustFlags;
@@ -418,32 +414,76 @@ LsaDmCopyLsaDmEnumDomainCallbackInfo(
     pDest->dwTrustAttributes = pSrc->dwTrustAttributes;
 
     dwError = LsaAllocateString(
-            pSrc->pszForestName,
-            (PSTR *)&pDest->pszForestName);
+                pSrc->pszForestName,
+                &pDest->pszForestName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaStrDupOrNull(
-            pSrc->pszClientSiteName,
-            (PSTR *)&pDest->pszClientSiteName);
+                pSrc->pszClientSiteName,
+                &pDest->pszClientSiteName);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDest->Flags = pSrc->Flags;
+
+    // ISSUE-2008/09/10-dalmeida -- Never duplicate DC info (for now, at least).
+    // We currently never populate this information.
     pDest->DcInfo = NULL;
     pDest->GcInfo = NULL;
 
     *ppDest = pDest;
 
 cleanup:
-
     return dwError;
 
 error:
-
     if (pDest != NULL)
     {
-        LsaDmFreeDomainCallbackInfo(pDest);
+        LsaDmFreeEnumDomainInfo(pDest);
     }
 
     *ppDest = NULL;
     goto cleanup;
 }
+
+VOID
+LsaDmFreeEnumDomainInfo(
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
+    )
+{
+    if (pDomainInfo)
+    {
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszDnsDomainName);
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszNetbiosDomainName);
+        LSA_SAFE_FREE_MEMORY(pDomainInfo->pSid);
+        LSA_SAFE_FREE_MEMORY(pDomainInfo->pGuid);
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszTrusteeDnsDomainName);
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszForestName);
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszClientSiteName);
+        if (pDomainInfo->DcInfo)
+        {
+            LsaDmFreeDcInfo(pDomainInfo->DcInfo);
+        }
+        if (pDomainInfo->GcInfo)
+        {
+            LsaDmFreeDcInfo(pDomainInfo->GcInfo);
+        }
+        LsaFreeMemory(pDomainInfo);
+    }
+}
+
+VOID
+LsaDmFreeEnumDomainInfoArray(
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo
+    )
+{
+    if (ppDomainInfo)
+    {
+        DWORD dwIndex;
+        for (dwIndex = 0; ppDomainInfo[dwIndex]; dwIndex++)
+        {
+            LsaDmFreeEnumDomainInfo(ppDomainInfo[dwIndex]);
+        }
+        LsaFreeMemory(ppDomainInfo);
+    }
+}
+

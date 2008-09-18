@@ -298,11 +298,11 @@ LWNetSrvIpcGetDomainController(
                     dwMsgLen,
                     1,
                     1,
-                    &pMessage
+                    &pResponse
                     );
        BAIL_ON_LWNET_ERROR(dwError);
         
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, pMessage->pData, &dwMsgLen);
+       dwError = LWNetMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
        BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -373,11 +373,11 @@ LWNetSrvIpcGetCurrentDomain(
                     dwMsgLen,
                     1,
                     1,
-                    &pMessage
+                    &pResponse
                     );
        BAIL_ON_LWNET_ERROR(dwError);
         
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, pMessage->pData, &dwMsgLen);
+       dwError = LWNetMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
        BAIL_ON_LWNET_ERROR(dwError);
     }
 

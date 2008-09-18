@@ -131,7 +131,7 @@ extern DWORD gdwMachineTGTExpiry;
 
 extern double gdwMachineTGTExpiryGraceSeconds;
 
-extern PCACHE_CONNECTION gpCacheConnection;
+extern CACHE_CONNECTION_HANDLE gpCacheConnection;
 
 extern PLSA_HASH_TABLE gpAllowedGroups;
 

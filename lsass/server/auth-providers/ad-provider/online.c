@@ -138,39 +138,6 @@ error:
     goto cleanup;
 }
 
-BOOLEAN
-AD_OnlineCopyDomainListCallback(
-    IN OPTIONAL PCSTR pszEnumDomainName,
-    IN OPTIONAL PVOID pContext,
-    IN PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDomainInfo
-    )
-{
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    PAD_ONLINE_DOMAIN_ENUM_STATE pState =
-        (PAD_ONLINE_DOMAIN_ENUM_STATE)pContext;
-    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDomainInfoCopy = NULL;
-
-    dwError = LsaDmCopyLsaDmEnumDomainCallbackInfo(
-            pDomainInfo,
-            &pDomainInfoCopy);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaDLinkedListAppend(
-        &pState->pDomainList,
-        pDomainInfoCopy);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    pState->dwError = dwError;
-    return dwError == LSA_ERROR_SUCCESS;
-
-error:
-
-    LsaDmFreeDomainCallbackInfo(pDomainInfoCopy);
-    goto cleanup;
-}
-
 DWORD
 AD_OnlineInitializeOperatingMode(
     PCSTR pszDomain,
@@ -187,7 +154,8 @@ AD_OnlineInitializeOperatingMode(
     ADConfigurationMode adConfMode = NonSchemaMode;
     PLWNET_DC_INFO pDCInfo = NULL;
     HANDLE hDb = (HANDLE)NULL;
-    AD_ONLINE_DOMAIN_ENUM_STATE domains = {0};
+    PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
+    DWORD dwDomainInfoCount = 0;
 
     dwError = ADCacheDB_OpenDb(&hDb);
     BAIL_ON_LSA_ERROR(dwError);
@@ -287,16 +255,17 @@ AD_OnlineInitializeOperatingMode(
                 gpADProviderData);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaDmEnumDomains(
+    dwError = LsaDmEnumDomainInfo(
                 NULL,
-                AD_OnlineCopyDomainListCallback,
-                &domains);
-    dwError = domains.dwError;
-    BAIL_ON_LSA_ERROR(domains.dwError);
+                NULL,
+                &ppDomainInfo,
+                &dwDomainInfoCount);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADCacheDB_CacheDomainTrustList(
                 hDb,
-                domains.pDomainList);
+                ppDomainInfo,
+                dwDomainInfoCount);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -309,7 +278,7 @@ cleanup:
     LsaLdapCloseDirectory(hDirectory);
     LWNET_SAFE_FREE_DC_INFO(pDCInfo);
     ADCacheDB_SafeCloseDb(&hDb);
-    ADCacheDB_FreeDomainCallbackInfoList(domains.pDomainList);
+    LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
     
     return dwError;
     
@@ -1379,11 +1348,10 @@ AD_FilterNullEntries(
 }
 
 DWORD
-AD_OnlineFindUserById(
+AD_OnlineFindUserObjectById(
     HANDLE  hProvider,
     uid_t   uid,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
+    PAD_SECURITY_OBJECT *ppResult
     )
 {
     DWORD dwError =  0;
@@ -1405,48 +1373,46 @@ AD_OnlineFindUserById(
             &pCachedUser);
     if (dwError == LSA_ERROR_SUCCESS)
     {
+        // Frees object if it is expired
         dwError = AD_CheckExpiredObject(&pCachedUser);
     }
     
-    if (dwError == LSA_ERROR_NOT_HANDLED){
+    if (dwError == LSA_ERROR_NOT_HANDLED) {
         //convert uid -> NT4 name
         dwError = ADLdap_FindUserNameById(
                          uid,
                          &pszNT4Name);
         BAIL_ON_LSA_ERROR(dwError);
         
-        dwError = AD_FindUserByName(
+        dwError = AD_FindUserObjectByName(
                     hProvider,
-                    pszNT4Name,   
-                    dwUserInfoLevel,
-                    ppUserInfo);
+                    pszNT4Name,
+                    &pCachedUser);
         BAIL_ON_LSA_ERROR(dwError);    
     }
-    else if (dwError == 0){
-        dwError = ADMarshalFromUserCache(
-            pCachedUser,
-            dwUserInfoLevel,
-            ppUserInfo);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else{
+    else {
         BAIL_ON_LSA_ERROR(dwError);
     }   
 
+    *ppResult = pCachedUser;
+
 cleanup:
+
     LSA_SAFE_FREE_STRING(pszNT4Name); 
-    
     ADCacheDB_SafeCloseDb(&hDb);
-    ADCacheDB_SafeFreeObject(&pCachedUser); 
 
     return dwError;
     
 error:
 
-    *ppUserInfo = NULL;
+    *ppResult = NULL;
+    ADCacheDB_SafeFreeObject(&pCachedUser); 
         
     if (dwError != LSA_ERROR_NO_SUCH_USER) {
-       LSA_LOG_DEBUG("Failed to find user [error code:%d]", dwError);
+       LSA_LOG_DEBUG(
+               "Failed to find user by id %lu [error code:%d]",
+               (unsigned long)uid,
+               dwError);
        dwError = LSA_ERROR_NO_SUCH_USER;
     }
 
@@ -1464,8 +1430,7 @@ AD_OnlineGetUserGroupMembership(
 {    
     DWORD dwError = LSA_ERROR_SUCCESS;
     HANDLE hDb = (HANDLE)NULL;    
-    DWORD dwUserInfoLevel = 0;
-    PVOID pUserInfo = NULL;
+    PAD_SECURITY_OBJECT pUserInfo = NULL;
     DWORD dwNumGroupsFound = 0;            
     size_t sCount = 0;
     size_t sDnCount = 0;
@@ -1486,16 +1451,14 @@ AD_OnlineGetUserGroupMembership(
     PCAD_SECURITY_OBJECT pPrimaryGroup = NULL;
     PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
     PSTR pszGroupNT4Name = NULL;
-    PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
 
-    dwError = AD_FindUserById(
+    dwError = AD_FindUserObjectById(
                     hProvider,
                     uid,
-                    dwUserInfoLevel,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
     
-    pszUserSid = ((PLSA_USER_INFO_0)pUserInfo)->pszSid;
+    pszUserSid = pUserInfo->pszObjectSid;
     
     if (gettimeofday(&current_tv, NULL) < 0)
     {
@@ -1553,18 +1516,10 @@ AD_OnlineGetUserGroupMembership(
     {
         TrustMode trustMode = UnHandledTrust;
         
-        dwError = LsaCrackDomainQualifiedName(
-                            ((PLSA_USER_INFO_0)pUserInfo)->pszName,
-                            NULL,
-                            &pUserNameInfo);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        LSA_SAFE_FREE_STRING(pUserNameInfo->pszFullDomainName);
-        
         dwError = AD_DetermineTrustModeandDomainName(
-                        pUserNameInfo->pszDomainNetBiosName,
+                        pUserInfo->pszNetbiosDomainName,
                         &trustMode,
-                        &pUserNameInfo->pszFullDomainName,
+                        NULL,
                         NULL);
         BAIL_ON_LSA_ERROR(dwError);
         
@@ -1797,9 +1752,7 @@ cleanup:
     ADCacheDB_SafeFreeObjectList(sDnCount, &ppGroupInfoResults);
     ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
     
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
+    ADCacheDB_SafeFreeObject(&pUserInfo);
 
     if (pGroupNameInfo)
     {
@@ -1809,11 +1762,6 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(ppszParentSids);    
     LSA_SAFE_FREE_STRING(pszGroupNT4Name);
     
-    if (pUserNameInfo)
-    {
-        LsaFreeNameInfo(pUserNameInfo);
-    }
-
     return dwError;
     
 error:

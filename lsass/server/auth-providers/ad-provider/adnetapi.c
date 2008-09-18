@@ -76,7 +76,7 @@ AD_NetShutdownMemory(
 {
     DWORD dwError = 0;
 
-    dwError = SamrInitMemory();
+    dwError = SamrDestroyMemory();
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = NetrDestroyMemory();

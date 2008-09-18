@@ -64,20 +64,4 @@ pam_sm_setcred(
     const char**  argv
     );
 
-#ifdef __LWI_SOLARIS__
-static void
-LsaPamCleanupDataString(
-    pam_handle_t* pamh,
-    void* data,
-    int pam_end_status
-    );
-
-static DWORD
-LsaPamSetDataString(
-    pam_handle_t* pamh,
-    PCSTR pszKey,
-    PCSTR pszStr
-    );
-#endif
-
 #endif /* __PAM_AUTH_H__ */

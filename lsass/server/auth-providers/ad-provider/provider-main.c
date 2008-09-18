@@ -117,7 +117,7 @@ LsaInitializeProvider(
     BAIL_ON_LSA_ERROR(dwError);
 
     // Initialize domain manager before doing any network stuff.
-    dwError = LsaDmInitialize(FALSE, 15 * 60);
+    dwError = LsaDmInitialize(TRUE, 5 * 60);
     BAIL_ON_LSA_ERROR(dwError); 
 
     dwError = AD_TestNetworkConnection(pszDomainDnsName);
@@ -454,21 +454,62 @@ AD_FindUserById(
     PVOID*  ppUserInfo
     )
 {
+    DWORD   dwError = 0;
+    PVOID   pUserInfo = NULL;
+    PAD_SECURITY_OBJECT pInObjectForm = NULL;
+    
+    dwError = AD_FindUserObjectById(
+                hProvider,
+                uid,    
+                &pInObjectForm);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADMarshalFromUserCache(
+            pInObjectForm,
+            dwUserInfoLevel,
+            &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);    
+    
+    *ppUserInfo = pUserInfo;
+    
+cleanup:
+
+    ADCacheDB_SafeFreeObject(&pInObjectForm);
+
+    return dwError;
+    
+error:
+
+    *ppUserInfo = NULL;
+    
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+AD_FindUserObjectById(
+    IN HANDLE  hProvider,
+    IN uid_t   uid,
+    OUT PAD_SECURITY_OBJECT* ppResult
+    )
+{
     if (AD_IsOffline())
     {
-        return AD_OfflineFindUserById(
+        return AD_OfflineFindUserObjectById(
             hProvider,
             uid,
-            dwUserInfoLevel,
-            ppUserInfo);
+            ppResult);
     }
     else
     {
-        return AD_OnlineFindUserById(
+        return AD_OnlineFindUserObjectById(
             hProvider,
             uid,
-            dwUserInfoLevel,
-            ppUserInfo);
+            ppResult);
     }
 }
 
@@ -887,6 +928,9 @@ AD_OpenSession(
     }
     
 cleanup:
+    if (pLoginInfo) {
+        LsaFreeNameInfo(pLoginInfo);
+    }
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
@@ -1201,53 +1245,35 @@ AD_GetTrustedDomainInfo(
 {
     DWORD dwError = 0;
     PLSA_TRUSTED_DOMAIN_INFO pDomainInfoArray = NULL;
-    AD_TRUSTED_DOMAIN_CONTEXT context = {0};
-    
-    LsaDmEnumDomains(
-        NULL,
-        &AD_EnumDomainTrusts,
-        &context);
-    
-    dwError = context.dwError;
+    DWORD dwCount = 0;
+    PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
+
+    dwError = LsaDmEnumDomainInfo(NULL, NULL, &ppDomainInfo, &dwCount);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    if (context.dwNumDomains)
+
+    if (dwCount)
     {
         DWORD iDomain = 0;
-        PDLINKEDLIST pIter = context.pTrustedDomainList;
-        
+
         dwError = LsaAllocateMemory(
-                        sizeof(LSA_TRUSTED_DOMAIN_INFO) * context.dwNumDomains,
+                        sizeof(pDomainInfoArray[0]) * dwCount,
                         (PVOID*)&pDomainInfoArray);
         BAIL_ON_LSA_ERROR(dwError);
         
-        for (; pIter; pIter = pIter->pNext, iDomain++)
+        for (iDomain = 0; iDomain < dwCount; iDomain++)
         {
-            PLSA_TRUSTED_DOMAIN_INFO pDestDomainInfo =
-                &pDomainInfoArray[iDomain];
-            
-            PLSA_TRUSTED_DOMAIN_INFO pSrcDomainInfo = 
-                (PLSA_TRUSTED_DOMAIN_INFO)pIter->pItem;
-            
-            memcpy(pDestDomainInfo, pSrcDomainInfo, sizeof(LSA_TRUSTED_DOMAIN_INFO));
-            memset(pSrcDomainInfo, 0, sizeof(*pSrcDomainInfo));
+            dwError = AD_FillTrustedDomainInfo(
+                        ppDomainInfo[iDomain],
+                        &pDomainInfoArray[iDomain]);
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
     
     *ppDomainInfoArray = pDomainInfoArray;
-    *pdwNumTrustedDomains = context.dwNumDomains;
+    *pdwNumTrustedDomains = dwCount;
     
 cleanup:
-
-    if (context.pTrustedDomainList)
-    {
-        LsaDLinkedListForEach(
-                        context.pTrustedDomainList,
-                        AD_FreeTrustedDomainsInList,
-                        NULL);
-        
-        LsaDLinkedListFree(context.pTrustedDomainList);
-    }
+    LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
 
     return dwError;
     
@@ -1258,7 +1284,7 @@ error:
     
     if (pDomainInfoArray)
     {
-        LsaFreeDomainInfoArray(context.dwNumDomains, pDomainInfoArray);
+        LsaFreeDomainInfoArray(dwCount, pDomainInfoArray);
     }
 
     goto cleanup;
@@ -1276,25 +1302,16 @@ AD_FreeTrustedDomainsInList(
     }
 }
 
-BOOLEAN
-AD_EnumDomainTrusts(
-    PCSTR pszEnumDomainName,
-    PVOID pContext,
-    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDomainInfo
+DWORD
+AD_FillTrustedDomainInfo(
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo,
+    OUT PLSA_TRUSTED_DOMAIN_INFO pTrustedDomainInfo
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bResult = TRUE;
-    PAD_TRUSTED_DOMAIN_CONTEXT pEnumContext = (PAD_TRUSTED_DOMAIN_CONTEXT)pContext;
-    PLSA_TRUSTED_DOMAIN_INFO pTrustedDomainInfo = NULL;
     PLWNET_DC_INFO pDcInfo = NULL;
     // Do not free dcInfo as it just points to other data.
     LSA_DM_DC_INFO dcInfo = { 0 };
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_TRUSTED_DOMAIN_INFO),
-                    (PVOID*)&pTrustedDomainInfo);
-    BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaStrDupOrNull(
                     pDomainInfo->pszDnsDomainName,
@@ -1426,29 +1443,13 @@ AD_EnumDomainTrusts(
         }
     }
     
-    dwError = LsaDLinkedListAppend(
-                    &pEnumContext->pTrustedDomainList,
-                    pTrustedDomainInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    pEnumContext->dwNumDomains++;
-    
 cleanup:
     LWNET_SAFE_FREE_DC_INFO(pDcInfo);
 
-    return bResult;
+    return dwError;
     
 error:
-
-    if (pTrustedDomainInfo)
-    {
-        LsaFreeDomainInfo(pTrustedDomainInfo);
-    }
-
-    pEnumContext->dwError = dwError;
-    
-    bResult = FALSE;
-
+    LsaFreeDomainInfoContents(pTrustedDomainInfo);
     goto cleanup;
 }
 

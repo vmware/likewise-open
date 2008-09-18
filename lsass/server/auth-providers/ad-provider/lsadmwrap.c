@@ -50,26 +50,14 @@
 
 #include "adprovider.h"
 
-typedef struct _LSA_DM_WRAP_ENUM_CONTEXT {
-    DWORD dwError;
-    // Capacity needs to hold dwCount + 1 (for NULL termination)
-    DWORD dwCapacity;
-    // This is the number of domains being returned.
-    DWORD dwCount;
-    // NULL-terminated array of strings
-    PSTR* ppszDomainNames;
-} LSA_DM_WRAP_ENUM_CONTEXT, *PLSA_DM_WRAP_ENUM_CONTEXT;
-
+static
 BOOLEAN
-LsaDmWrappEnumExtraForestDomainsCallback(
-    IN OPTIONAL PCSTR pszEnumDomainName,
+LsaDmWrappFilterExtraForestDomainsCallback(
     IN OPTIONAL PVOID pContext,
-    IN PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDomainInfo
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
     )
 {
-    DWORD dwError = 0;
-    PLSA_DM_WRAP_ENUM_CONTEXT pEnumContext = (PLSA_DM_WRAP_ENUM_CONTEXT)pContext;
-    PSTR* ppszDomainNames = NULL;
+    BOOLEAN bWantThis = FALSE;
 
     // Find a "two-way across forest trust".  This is two-way trust to an external
     // trust to a domain in another forest or a forest trust.
@@ -77,45 +65,11 @@ LsaDmWrappEnumExtraForestDomainsCallback(
         (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_OUTBOUND) && 
         (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_INBOUND))
     {
-        // We need to make sure that we have enough room for a
-        // NULL terminator too.
-        if (pEnumContext->dwCapacity < (pEnumContext->dwCount + 2))
-        {
-            DWORD dwNewCapacity = 0;
-            DWORD dwNewSize = 0;
-            DWORD dwSize = 0;
-
-            // Note that the first time needs to use at least 2.
-            dwNewCapacity = LSA_MAX(2, pEnumContext->dwCapacity + 10);
-            dwNewSize = sizeof(ppszDomainNames[0]) * dwNewCapacity;
-
-            dwError = LsaAllocateMemory(dwNewSize, (PVOID*)&ppszDomainNames);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwSize = sizeof(ppszDomainNames[0]) * pEnumContext->dwCapacity;
-            memcpy(ppszDomainNames, pEnumContext->ppszDomainNames, dwSize);
-
-            pEnumContext->dwCapacity = dwNewCapacity;
-            LsaFreeMemory(pEnumContext->ppszDomainNames);
-            pEnumContext->ppszDomainNames = ppszDomainNames;
-            ppszDomainNames = NULL;
-        }
-        dwError = LsaAllocateString(pDomainInfo->pszDnsDomainName,
-                                    &pEnumContext->ppszDomainNames[pEnumContext->dwCount]);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pEnumContext->ppszDomainNames[pEnumContext->dwCount + 1] = NULL;
-        pEnumContext->dwCount++;
+        bWantThis = TRUE;
     }
 
-cleanup:
-    LSA_SAFE_FREE_MEMORY(ppszDomainNames);
-
-    pEnumContext->dwError = dwError;
-    return dwError ? FALSE : TRUE;
-error:
-    goto cleanup;
-}
+    return bWantThis;
+}    
 
 // ISSUE-2008/08/15-dalmeida -- The old code looked for
 // two-way trusts across forest boundaries (external or forest trust).
@@ -126,24 +80,10 @@ LsaDmWrapEnumExtraForestTrustDomains(
     OUT PDWORD pdwCount
     )
 {
-    DWORD dwError = 0;
-    LSA_DM_WRAP_ENUM_CONTEXT context = { 0 };
-
-    LsaDmEnumDomains(NULL,
-                     LsaDmWrappEnumExtraForestDomainsCallback,
-                     &context);
-    dwError = context.dwError;
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    *pppszDomainNames = context.ppszDomainNames;
-    *pdwCount = context.dwCount;
-
-    return dwError;
-error:
-    LSA_SAFE_FREE_STRING_ARRAY(context.ppszDomainNames);
-    context.dwCount = 0;
-    goto cleanup;
+    return LsaDmEnumDomainNames(LsaDmWrappFilterExtraForestDomainsCallback,
+                                NULL,
+                                pppszDomainNames,
+                                pdwCount);
 }
 
 DWORD

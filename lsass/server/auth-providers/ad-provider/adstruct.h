@@ -96,15 +96,6 @@ typedef struct _AD_PROVIDER_DATA
 	PDLINKEDLIST pCellList;
 } AD_PROVIDER_DATA, *PAD_PROVIDER_DATA;
 
-typedef struct _AD_TRUSTED_DOMAIN_CONTEXT
-{
-    
-    DWORD        dwError;
-    DWORD        dwNumDomains;
-    PDLINKEDLIST pTrustedDomainList;
-    
-} AD_TRUSTED_DOMAIN_CONTEXT, *PAD_TRUSTED_DOMAIN_CONTEXT;
-
 typedef struct _LSA_AD_PROVIDER_STATE {
     /// Tracks machine credentials state
     struct {

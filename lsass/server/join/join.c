@@ -58,7 +58,8 @@ LsaNetJoinDomain(
     PCSTR pszUsername,
     PCSTR pszPassword,
     PCSTR pszOSName,
-    PCSTR pszOSVersion
+    PCSTR pszOSVersion,
+    DWORD dwFlags
     )
 {
     DWORD dwError = 0;
@@ -88,9 +89,12 @@ LsaNetJoinDomain(
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    dwError = LsaSyncTimeToDC(pszDomain);
-    BAIL_ON_LSA_ERROR(dwError);
+
+    if ( !(dwFlags & LSA_NET_JOIN_DOMAIN_NOTIMESYNC) )
+    {    
+        dwError = LsaSyncTimeToDC(pszDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     ret = krb5_init_context(&ctx);
     BAIL_ON_KRB_ERROR(ctx, ret);

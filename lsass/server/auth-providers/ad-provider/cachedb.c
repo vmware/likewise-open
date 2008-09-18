@@ -43,6 +43,7 @@
  *
  */
 #include "adprovider.h"
+#include "cachedb_p.h"
 
 #define ENTER_CACHEDB_LOCK(pConn, bInLock)                 \
         if (!bInLock) {                                    \
@@ -1336,7 +1337,8 @@ DWORD
 ADCacheDB_UnpackDomainTrust(
     IN sqlite3_stmt *pstQuery,
     IN OUT int *piColumnPos,
-    IN OUT PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pResult)
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO pResult
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
 
@@ -3131,7 +3133,7 @@ error:
 DWORD
 ADCacheDB_GetDomainTrustList(
     IN HANDLE hDb,
-    //Contains type PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO
+    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
     OUT PDLINKEDLIST* ppList
     )
 {
@@ -3144,7 +3146,7 @@ ADCacheDB_GetDomainTrustList(
     int iColumnPos = 0;
     int nGotColumns = 0;
     PDLINKEDLIST pList = NULL;
-    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pEntry = NULL;
+    PLSA_DM_ENUM_DOMAIN_INFO pEntry = NULL;
 
     ENTER_CACHEDB_LOCK(pConn, bInLock);
 
@@ -3211,11 +3213,11 @@ error:
     sqlite3_reset(pstQuery);
     if (pList)
     {
-        ADCacheDB_FreeDomainCallbackInfoList(pList);
+        ADCacheDB_FreeEnumDomainInfoList(pList);
     }
     if (pEntry)
     {
-        LsaDmFreeDomainCallbackInfo(pEntry);
+        ADCacheDB_FreeEnumDomainInfo(pEntry);
     }
     LEAVE_CACHEDB_LOCK(pConn, bInLock);
 
@@ -3225,17 +3227,16 @@ error:
 DWORD
 ADCacheDB_CacheDomainTrustList(
     IN HANDLE hDb,
-    // Contains type PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO
-    IN const DLINKEDLIST* pList
+    IN PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
+    IN DWORD dwDomainInfoCount
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     PSTR pszOldExpression = NULL;
     PSTR pszSqlCommand = NULL;
     PCACHE_CONNECTION pConn = (PCACHE_CONNECTION)hDb;
-    const DLINKEDLIST* pPos = pList;
-    size_t sIndex = 0;
-    const LSA_DM_ENUM_DOMAIN_CALLBACK_INFO* pDomain = NULL;
+    DWORD dwIndex = 0;
+    const LSA_DM_ENUM_DOMAIN_INFO* pDomain = NULL;
     char szGuid[UUID_STR_SIZE];
     PSTR pszSid = NULL;
     PWSTR pwszSid = NULL;
@@ -3249,22 +3250,25 @@ ADCacheDB_CacheDomainTrustList(
         BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
     }
 
-    while (pPos != NULL)
+    for (dwIndex = 0; dwIndex < dwDomainInfoCount; dwIndex++)
     {
-        pDomain = (const LSA_DM_ENUM_DOMAIN_CALLBACK_INFO*)pPos->pItem;
+        pDomain = ppDomainInfo[dwIndex];
         
         LSA_SAFE_FREE_MEMORY(pwszSid);
         LSA_SAFE_FREE_STRING(pszSid);
 
-        dwError = SidToString(
-                pDomain->pSid,
-                &pwszSid);
-        BAIL_ON_LSA_ERROR(dwError);
+        if (pDomain->pSid != NULL)
+        {
+            dwError = SidToString(
+                    pDomain->pSid,
+                    &pwszSid);
+            BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaWc16sToMbs(
-                pwszSid,
-                &pszSid);
-        BAIL_ON_LSA_ERROR(dwError);
+            dwError = LsaWc16sToMbs(
+                    pwszSid,
+                    &pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         // Writes into a 37-byte caller allocated string
         uuid_unparse(*pDomain->pGuid, szGuid);
@@ -3299,7 +3303,7 @@ ADCacheDB_CacheDomainTrustList(
                 "%d "
             ");\n",
             pszOldExpression,
-            sIndex++,
+            dwIndex,
             pDomain->pszDnsDomainName,
             pDomain->pszNetbiosDomainName,
             pszSid,
@@ -3317,8 +3321,6 @@ ADCacheDB_CacheDomainTrustList(
             dwError = (DWORD)sqlite3_errcode(pConn->pDb);
             BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
         }
-
-        pPos = pPos->pNext;
     }
 
     SQLITE3_SAFE_FREE_STRING(pszOldExpression);
@@ -3513,27 +3515,58 @@ error:
 }
 
 VOID
-ADCacheDB_FreeDomainCallbackInfoList(
-    // Contains type PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO
-    PDLINKEDLIST pList
+ADCacheDB_FreeEnumDomainInfoList(
+    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
+    IN OUT PDLINKEDLIST pList
     )
 {
     LsaDLinkedListForEach(
         pList,
-        ADCacheDB_FreeCallbackInfoNode,
+        ADCacheDB_FreeEnumDomainInfoCallback,
         NULL);
 
     LsaDLinkedListFree(pList);
 }
 
+static
 VOID
-ADCacheDB_FreeCallbackInfoNode(
-    PVOID pData,
-    PVOID pUserData
+ADCacheDB_FreeEnumDomainInfoCallback(
+    IN OUT PVOID pData,
+    IN PVOID pUserData
     )
 {
-    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pInfo =
-        (PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO)pData;
+    PLSA_DM_ENUM_DOMAIN_INFO pInfo =
+        (PLSA_DM_ENUM_DOMAIN_INFO)pData;
 
-    LsaDmFreeDomainCallbackInfo(pInfo);
+    ADCacheDB_FreeEnumDomainInfo(pInfo);
 }
+
+static
+VOID
+ADCacheDB_FreeEnumDomainInfo(
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
+    )
+{
+    if (pDomainInfo)
+    {
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszDnsDomainName);
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszNetbiosDomainName);
+        LSA_SAFE_FREE_MEMORY(pDomainInfo->pSid);
+        LSA_SAFE_FREE_MEMORY(pDomainInfo->pGuid);
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszTrusteeDnsDomainName);
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszForestName);
+        LSA_SAFE_FREE_STRING(pDomainInfo->pszClientSiteName);
+        if (pDomainInfo->DcInfo)
+        {
+            // ISSUE-2008/09/10-dalmeida -- need ASSERT macro
+            LSA_LOG_ALWAYS("ASSERT!!! - DcInfo should never be set by DB code!");
+        }
+        if (pDomainInfo->GcInfo)
+        {
+            // ISSUE-2008/09/10-dalmeida -- need ASSERT macro
+            LSA_LOG_ALWAYS("ASSERT!!! - GcInfo should never be set by DB code!");
+        }
+        LsaFreeMemory(pDomainInfo);
+    }
+}
+

@@ -1277,6 +1277,7 @@ void DJCreateComputerAccount(
     PSTR tempDir = NULL;
     PSTR origEnv = NULL;
     CHAR krb5ConfEnv[256];
+    DWORD dwFlags = 0;
 
     memset(&distro, 0, sizeof(distro));
 
@@ -1310,11 +1311,19 @@ void DJCreateComputerAccount(
 
         LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(FALSE));
 
+        if ( options->disableTimeSync )
+        {
+            dwFlags |= LSA_NET_JOIN_DOMAIN_NOTIMESYNC;
+        }
+
         LW_CLEANUP_LSERR(exc, lsaFunctions->pfnNetJoinDomain(options->computerName,
                                      options->domainName,
                                      options->ouName,
                                      options->username,
-                                     options->password, osName, distro.version));
+                                     options->password,
+                                     osName,
+                                     distro.version,
+                                     dwFlags));
 
         LW_TRY(exc, DJGuessShortDomainName(
                                      options->domainName,

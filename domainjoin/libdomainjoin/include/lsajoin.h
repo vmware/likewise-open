@@ -54,7 +54,10 @@ typedef DWORD (*PFN_LSA_NET_JOIN_DOMAIN)(
                 PCSTR pszUsername,
                 PCSTR pszPassword,
                 PCSTR pszOSName,
-                PCSTR pszOSVersion);
+                PCSTR pszOSVersion,
+                DWORD dwFlags);
+
+#define LSA_NET_JOIN_DOMAIN_NOTIMESYNC 1
 
 typedef DWORD (*PFN_LSA_NET_TEST_JOIN_DOMAIN)(
                 PBOOLEAN pbJoined

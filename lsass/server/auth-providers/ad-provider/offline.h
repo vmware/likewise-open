@@ -70,11 +70,10 @@ AD_OfflineValidateUser(
     );
 
 DWORD
-AD_OfflineFindUserById(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo    
+AD_OfflineFindUserObjectById(
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    OUT PAD_SECURITY_OBJECT* ppResult
     );
 
 DWORD

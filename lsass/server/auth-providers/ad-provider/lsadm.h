@@ -70,7 +70,30 @@ typedef struct _LSA_DM_DC_INFO {
     PSTR pszSiteName;
 } LSA_DM_DC_INFO, *PLSA_DM_DC_INFO;
 
-typedef struct _LSA_DM_ENUM_DOMAIN_CALLBACK_INFO {
+typedef struct _LSA_DM_ENUM_DOMAIN_INFO {
+    PSTR pszDnsDomainName;
+    PSTR pszNetbiosDomainName;
+    PSID pSid;
+    uuid_t* pGuid;
+    PSTR pszTrusteeDnsDomainName;
+    DWORD dwTrustFlags;
+    DWORD dwTrustType;
+    DWORD dwTrustAttributes;
+    PSTR pszForestName;
+    PSTR pszClientSiteName;
+    LSA_DM_DOMAIN_FLAGS Flags;
+    PLSA_DM_DC_INFO DcInfo;
+    PLSA_DM_DC_INFO GcInfo;
+} LSA_DM_ENUM_DOMAIN_INFO, *PLSA_DM_ENUM_DOMAIN_INFO;
+
+typedef struct _LSA_DM_CONST_DC_INFO {
+    DWORD dwDsFlags;
+    PCSTR pszName;
+    PCSTR pszAddress;
+    PCSTR pszSiteName;
+} LSA_DM_CONST_DC_INFO, *PLSA_DM_CONST_DC_INFO;
+
+typedef struct _LSA_DM_CONST_ENUM_DOMAIN_INFO {
     PCSTR pszDnsDomainName;
     PCSTR pszNetbiosDomainName;
     PSID pSid;
@@ -82,14 +105,13 @@ typedef struct _LSA_DM_ENUM_DOMAIN_CALLBACK_INFO {
     PCSTR pszForestName;
     PCSTR pszClientSiteName;
     LSA_DM_DOMAIN_FLAGS Flags;
-    PLSA_DM_DC_INFO DcInfo;
-    PLSA_DM_DC_INFO GcInfo;
-} LSA_DM_ENUM_DOMAIN_CALLBACK_INFO, *PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO;
+    PLSA_DM_CONST_DC_INFO DcInfo;
+    PLSA_DM_CONST_DC_INFO GcInfo;
+} LSA_DM_CONST_ENUM_DOMAIN_INFO, *PLSA_DM_CONST_ENUM_DOMAIN_INFO;
 
-typedef BOOLEAN (*PLSA_DM_ENUM_DOMAIN_CALLBACK)(
-    IN OPTIONAL PCSTR pszEnumDomainName,
+typedef BOOLEAN (*PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK)(
     IN OPTIONAL PVOID pContext,
-    IN PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDomainInfo
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
     );
 
 DWORD
@@ -185,11 +207,20 @@ LsaDmIsDomainPresent(
     IN PCSTR pszDomainName
     );
 
-VOID
-LsaDmEnumDomains(
-    IN OPTIONAL PCSTR pszDomainName,
-    IN PLSA_DM_ENUM_DOMAIN_CALLBACK pfCallback,
-    IN PVOID pContext
+DWORD
+LsaDmEnumDomainNames(
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    OUT PSTR** pppszDomainNames,
+    OUT OPTIONAL PDWORD pdwCount
+    );
+
+DWORD
+LsaDmEnumDomainInfo(
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    OUT PLSA_DM_ENUM_DOMAIN_INFO** pppDomainInfo,
+    OUT OPTIONAL PDWORD pdwCount
     );
 
 DWORD
@@ -342,6 +373,10 @@ LsaDmDetectTransitionOnline(
 ///  @arg !SUCCESS on failure
 ///
 
+VOID
+LsaDmTriggerOnlindeDetectionThread(
+    );
+
 // TODO-inline these?
 
 BOOLEAN
@@ -362,15 +397,20 @@ LsaDmIsNetbiosDomainName(
     IN PCSTR pszDomainName
     );
 
-VOID
-LsaDmFreeDomainCallbackInfo(
-    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pInfo
+DWORD
+LsaDmDuplicateConstEnumDomainInfo(
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pSrc,
+    OUT PLSA_DM_ENUM_DOMAIN_INFO* ppDest
     );
 
-DWORD
-LsaDmCopyLsaDmEnumDomainCallbackInfo(
-    IN PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pSrc,
-    OUT PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO* ppDest
+VOID
+LsaDmFreeEnumDomainInfo(
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
+    );
+
+VOID
+LsaDmFreeEnumDomainInfoArray(
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo
     );
 
 /// @} lsa_om

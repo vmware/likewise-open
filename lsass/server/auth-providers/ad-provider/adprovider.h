@@ -74,7 +74,6 @@
 #include "lsadmwrap.h"
 #include "cachedbcreate.h"
 #include "cachedb.h"
-#include "cachedb_p.h"
 #include "adldap.h"
 #include "adldap_p.h"
 #include "ad_marshal_group.h"

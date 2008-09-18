@@ -58,6 +58,12 @@
 struct _LSA_DM_STATE;
 typedef struct _LSA_DM_STATE *LSA_DM_STATE_HANDLE, **PLSA_DM_STATE_HANDLE;
 
+typedef BOOLEAN (*PLSA_DM_ENUM_DOMAIN_CALLBACK)(
+    IN OPTIONAL PCSTR pszEnumDomainName,
+    IN OPTIONAL PVOID pContext,
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
+    );
+
 DWORD
 LsaDmpStateCreate(
     OUT PLSA_DM_STATE_HANDLE pHandle,
@@ -120,7 +126,25 @@ LsaDmpEnumDomains(
     IN LSA_DM_STATE_HANDLE Handle,
     IN OPTIONAL PCSTR pszDomainName,
     IN PLSA_DM_ENUM_DOMAIN_CALLBACK pfCallback,
-    IN PVOID pContext
+    IN OPTIONAL PVOID pContext
+    );
+
+DWORD
+LsaDmpEnumDomainNames(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    OUT PSTR** pppszDomainNames,
+    OUT OPTIONAL PDWORD pdwCount
+    );
+
+DWORD
+LsaDmpEnumDomainInfo(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    OUT PLSA_DM_ENUM_DOMAIN_INFO** pppDomainInfo,
+    OUT OPTIONAL PDWORD pdwCount
     );
 
 DWORD
@@ -185,6 +209,11 @@ DWORD
 LsaDmpDetectTransitionOnline(
     IN LSA_DM_STATE_HANDLE Handle,
     IN OPTIONAL PCSTR pszDomainName
+    );
+
+VOID
+LsaDmpTriggerOnlindeDetectionThread(
+    IN LSA_DM_STATE_HANDLE Handle
     );
 
 DWORD

@@ -415,10 +415,13 @@ LsaPamGetOldPassword(
     {
         PCSTR pszItem = NULL;
 
-#if defined(__LWI_SOLARIS__)
-        /* Solaris doesn't use PAM_OLDAUTHTOK, but we previously
+#if defined(__LWI_SOLARIS__) || defined(__LWI_HP_UX__)
+        /* Solaris doesn't use PAM_OLDAUTHTOK, but we previously saved
            the password as PAM_LSASS_OLDAUTHTOK during pam_sm_authenticate,
            so we'll grab it from there */
+
+        /* HP-UX likes to clear PAM_OLDAUTHTOK between the two phases
+           of chauthtok, so we also grab our saved version in this case */
         dwError = pam_get_data(
             pamh,
             PAM_LSASS_OLDAUTHTOK,
@@ -469,7 +472,14 @@ LsaPamGetOldPassword(
                        pamh,
                        PAM_OLDAUTHTOK,
                        (const void*) pszPassword);
+       BAIL_ON_LSA_ERROR(dwError);       
+
+#ifdef __LWI_HP_UX__
+       /* HP-UX clears PAM_OLDAUTHTOK between the two phases of chauthtok, so
+          save a copy of the old password where we can find it later */
+       dwError = LsaPamSetDataString(pamh, PAM_LSASS_OLDAUTHTOK, pszPassword);
        BAIL_ON_LSA_ERROR(dwError);
+#endif
     }
     
     *ppszPassword = pszPassword;

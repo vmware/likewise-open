@@ -107,4 +107,11 @@ LsaPamFreeContext(
     PPAMCONTEXT pContext
     );
 
+DWORD
+LsaPamSetDataString(
+    pam_handle_t* pamh,
+    PCSTR pszKey,
+    PCSTR pszStr
+    );
+
 #endif /* __PAM_CONTEXT_H__ */

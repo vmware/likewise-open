@@ -151,11 +151,10 @@ error:
 }
 
 DWORD
-AD_OfflineFindUserById(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
+AD_OfflineFindUserObjectById(
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    OUT PAD_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = 0;
@@ -177,24 +176,24 @@ AD_OfflineFindUserById(
             &pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADMarshalFromUserCache(
-        pCachedUser,
-        dwUserInfoLevel,
-        ppUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    *ppResult = pCachedUser;
 
 cleanup:
-    ADCacheDB_SafeCloseDb(&hDb);
-    ADCacheDB_SafeFreeObject(&pCachedUser);
 
+    ADCacheDB_SafeCloseDb(&hDb);
     return dwError;
 
 error:
-    *ppUserInfo = NULL;
+
+    *ppResult = NULL;
+    ADCacheDB_SafeFreeObject(&pCachedUser);
 
     if (dwError != LSA_ERROR_NO_SUCH_USER)
     {
-        LSA_LOG_DEBUG("Failed to find user [error code %d]", dwError);
+        LSA_LOG_DEBUG(
+                "Failed to find user by id %lu [error code %d]",
+                (unsigned long)uid,
+                dwError);
         dwError = LSA_ERROR_NO_SUCH_USER;
     }
 
@@ -582,7 +581,7 @@ AD_OfflineInitializeOperatingMode(
     PAD_PROVIDER_DATA pTempData = NULL;
     PDLINKEDLIST pDomains = NULL;
     const DLINKEDLIST* pPos = NULL;
-    const LSA_DM_ENUM_DOMAIN_CALLBACK_INFO* pDomain = NULL;
+    const LSA_DM_ENUM_DOMAIN_INFO* pDomain = NULL;
 
     dwError = ADCacheDB_OpenDb(&hDb);
     BAIL_ON_LSA_ERROR(dwError);
@@ -595,7 +594,7 @@ AD_OfflineInitializeOperatingMode(
     pPos = pDomains;
     while (pPos != NULL)
     {
-        pDomain = (const LSA_DM_ENUM_DOMAIN_CALLBACK_INFO*)pPos->pItem;
+        pDomain = (const LSA_DM_ENUM_DOMAIN_INFO*)pPos->pItem;
         
         dwError = LsaDmAddTrustedDomain(
             pDomain->pszDnsDomainName,
@@ -630,7 +629,7 @@ cleanup:
     {
         ADProviderFreeProviderData(pTempData);
     }
-    ADCacheDB_FreeDomainCallbackInfoList(pDomains);
+    ADCacheDB_FreeEnumDomainInfoList(pDomains);
     ADCacheDB_SafeCloseDb(&hDb);
     return dwError;
 

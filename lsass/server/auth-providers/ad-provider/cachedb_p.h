@@ -182,7 +182,8 @@ DWORD
 ADCacheDB_UnpackDomainTrust(
     IN sqlite3_stmt *pstQuery,
     IN OUT int *piColumnPos,
-    IN OUT PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pResult);
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO pResult
+    );
 
 DWORD
 ADCacheDB_UnpackLinkedCellInfo(
@@ -224,10 +225,17 @@ ADCacheDB_GetCacheCellListCommand(
     OUT PSTR* ppszCommand
     );
 
+static
 VOID
-ADCacheDB_FreeCallbackInfoNode(
-    IN PVOID pData,
+ADCacheDB_FreeEnumDomainInfoCallback(
+    IN OUT PVOID pData,
     IN PVOID pUserData
+    );
+
+static
+VOID
+ADCacheDB_FreeEnumDomainInfo(
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
     );
 
 #endif /* __CACHEDB_P_H__ */

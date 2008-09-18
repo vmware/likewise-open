@@ -151,7 +151,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_RefreshConfiguration
     };
 
-PCACHE_CONNECTION gpCacheConnection = NULL;
+CACHE_CONNECTION_HANDLE gpCacheConnection = NULL;
 
 PLSA_HASH_TABLE gpAllowedGroups   = NULL;
 

@@ -166,6 +166,7 @@ LWNetSrvPingCLdapDerefenceThreadContext(
         {
             pthread_cond_destroy(pContext->pCondition);
         }
+        LWNET_SAFE_FREE_STRING(pContext->pszDnsDomainName);
         LWNetFreeMemory(pContext);
     }
 }

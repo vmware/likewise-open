@@ -70,7 +70,8 @@ LsaNetJoinDomain(
     PCSTR pszUsername,
     PCSTR pszPassword,
     PCSTR pszOSName,
-    PCSTR pszOSVersion
+    PCSTR pszOSVersion,
+    DWORD dwFlags
     );
 
 DWORD

@@ -176,38 +176,3 @@ pam_sm_setcred(
     return 0;
 }
 
-#ifdef __LWI_SOLARIS__
-static void
-LsaPamCleanupDataString(
-    pam_handle_t* pamh,
-    void* data,
-    int pam_end_status
-    )
-{
-    if (data)
-    {
-        LsaFreeString((PSTR) data);
-    }
-}
-
-static DWORD
-LsaPamSetDataString(
-    pam_handle_t* pamh,
-    PCSTR pszKey,
-    PCSTR pszStr
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszStrCopy = NULL;
-
-    dwError = LsaAllocateString(pszStr, &pszStrCopy);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = pam_set_data(pamh, pszKey, pszStrCopy, LsaPamCleanupDataString);
-    BAIL_ON_LSA_ERROR(dwError);
-
-error:
-    
-    return dwError;
-}
-#endif

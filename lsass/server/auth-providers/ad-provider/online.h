@@ -54,12 +54,6 @@
 #define STANDARD_GROUP_EXPIRATION   (void *)1
 #define PAC_GROUP_EXPIRATION        (void *)2
 
-typedef struct _AD_ONLINE_DOMAIN_ENUM_STATE
-{
-    PDLINKEDLIST pDomainList;
-    DWORD dwError;
-} AD_ONLINE_DOMAIN_ENUM_STATE, *PAD_ONLINE_DOMAIN_ENUM_STATE;
-
 DWORD
 AD_TestNetworkConnection(
     PCSTR pszDomain
@@ -112,11 +106,10 @@ AD_OnlineFindUserByName(
     );
 
 DWORD
-AD_OnlineFindUserById(
+AD_OnlineFindUserObjectById(
     HANDLE  hProvider,
     uid_t   uid,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
+    PAD_SECURITY_OBJECT* ppResult
     );
 
 DWORD
@@ -347,13 +340,6 @@ AD_CanonicalizeDomainsInCrackedNameInfo(
 DWORD
 AD_UpdateUserObjectFlags(
     IN OUT PAD_SECURITY_OBJECT pUser
-    );
-
-BOOLEAN
-AD_OnlineCopyDomainListCallback(
-    IN OPTIONAL PCSTR pszEnumDomainName,
-    IN OPTIONAL PVOID pContext,
-    IN PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDomainInfo
     );
 
 #endif /* __ONLINE_H__ */

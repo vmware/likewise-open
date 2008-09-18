@@ -48,6 +48,9 @@
 #ifndef __CACHEDB_H__
 #define __CACHEDB_H__
 
+struct _CACHE_CONNECTION;
+typedef struct _CACHE_CONNECTION *CACHE_CONNECTION_HANDLE;
+
 typedef struct __AD_CACHE_INFO
 {
     // This value is set to -1 if the value is not stored in the cache
@@ -306,20 +309,20 @@ ADCacheDB_CacheProviderData(
 DWORD
 ADCacheDB_GetDomainTrustList(
     IN HANDLE hDb,
-    //Contains type PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO
+    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
     OUT PDLINKEDLIST* ppList
     );
 
 DWORD
 ADCacheDB_CacheDomainTrustList(
     IN HANDLE hDb,
-    // Contains type PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO
-    IN const DLINKEDLIST* pList
+    IN PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
+    IN DWORD dwDomainInfoCount
     );
 
 VOID
-ADCacheDB_FreeDomainCallbackInfoList(
-    // Contains type PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO
+ADCacheDB_FreeEnumDomainInfoList(
+    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
     IN OUT PDLINKEDLIST pList
     );
 

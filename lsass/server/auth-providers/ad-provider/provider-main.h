@@ -112,6 +112,13 @@ AD_FindUserById(
     );
 
 DWORD
+AD_FindUserObjectById(
+    IN HANDLE  hProvider,
+    IN uid_t uid,
+    OUT PAD_SECURITY_OBJECT* ppResult
+    );
+
+DWORD
 AD_BeginEnumUsers(
     HANDLE  hProvider,
     PCSTR   pszGUID,
@@ -286,11 +293,10 @@ AD_FreeTrustedDomainsInList(
     PVOID pUserData
     );
 
-BOOLEAN
-AD_EnumDomainTrusts(
-    PCSTR pszEnumDomainName,
-    PVOID pContext,
-    PLSA_DM_ENUM_DOMAIN_CALLBACK_INFO pDomainInfo
+DWORD
+AD_FillTrustedDomainInfo(
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo,
+    OUT PLSA_TRUSTED_DOMAIN_INFO pTrustedDomainInfo
     );
 
 DWORD

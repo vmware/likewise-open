@@ -85,6 +85,9 @@ RPCSTATUS InitLsaBindingDefault(handle_t *binding, const CHAR_T *hostname)
 
     rpc_binding_from_string_binding(binding_string, binding, &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, done);
+
+    rpc_mgmt_set_com_timeout(*binding, 6, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, done);
     
     // TODO: Possible memleak here
     if (binding_string != NULL) {

@@ -107,6 +107,15 @@ typedef struct _LSA_DM_DOMAIN_STATE {
 
 } LSA_DM_DOMAIN_STATE, *PLSA_DM_DOMAIN_STATE;
 
+typedef struct _LSA_DM_THREAD_INFO {
+    pthread_t Thread;
+    pthread_t* pThread;
+    pthread_mutex_t* pMutex;
+    pthread_cond_t* pCondition;
+    BOOLEAN bIsDone;
+    BOOLEAN bTrigger;
+} LSA_DM_THREAD_INFO, *PLSA_DM_THREAD_INFO;
+
 ///
 /// Keeps track of all domain state.
 ///
@@ -117,23 +126,18 @@ typedef struct _LSA_DM_STATE {
     /// Count of offline domains.
     DWORD dwOfflineCount;
 
+    /// Points to primary domain in DomainList.
     PLSA_DM_DOMAIN_STATE pPrimaryDomain;
 
-    /// List of domains (LSA_DM_DOMAIN_STATE).  It wil lcontain the primary
+    /// List of domains (LSA_DM_DOMAIN_STATE).  It will contain the primary
     /// domain at the head.
     PDLINKEDLIST DomainList;
 
-    /// Additional internal fields related to threading, etc. go here.
-    pthread_t OnlineDetectionThread;
-    pthread_t* pOnlineDetectionThread;
-    pthread_mutex_t Mutex;
+    /// Lock for general state (DomainList, etc).
     pthread_mutex_t* pMutex;
-    pthread_cond_t Condition;
-    pthread_cond_t* pCondition;
 
-    /// Thread notifications
-    BOOLEAN bNeedRefresh;
-    BOOLEAN bNeedCheck;
+    /// Online detection thread info
+    LSA_DM_THREAD_INFO OnlineDetectionThread;
 
     /// @name Parameters
     /// @{
@@ -143,10 +147,75 @@ typedef struct _LSA_DM_STATE {
 } LSA_DM_STATE, *PLSA_DM_STATE;
 
 static
+DWORD
+LsaDmpDetectTransitionOnlineAllDomains(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PLSA_DM_THREAD_INFO pThreadInfo
+    );
+
+static
 VOID
 LsaDmpDomainDestroy(
     IN OUT PLSA_DM_DOMAIN_STATE pDomain
     );
+
+static
+VOID
+LsaDmpDestroyMutex(
+    IN OUT pthread_mutex_t** ppMutex
+    )
+{
+    if (*ppMutex)
+    {
+        pthread_mutex_destroy(*ppMutex);
+        LsaFreeMemory(*ppMutex);
+        *ppMutex = NULL;
+    }
+}
+
+static
+DWORD
+LsaDmpCreateMutex(
+    OUT pthread_mutex_t** ppMutex,
+    IN int MutexType
+    )
+{
+    DWORD dwError = 0;
+    pthread_mutexattr_t mutexAttr;
+    pthread_mutexattr_t* pMutexAttr = NULL;
+    pthread_mutex_t* pMutex = NULL;
+
+    if (MutexType)
+    {
+        dwError = pthread_mutexattr_init(&mutexAttr);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pMutexAttr = &mutexAttr;
+
+        dwError = pthread_mutexattr_settype(pMutexAttr, PTHREAD_MUTEX_RECURSIVE);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateMemory(sizeof(*pMutex), (PVOID*)&pMutex);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = pthread_mutex_init(pMutex, pMutexAttr);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    if (pMutexAttr)
+    {
+        pthread_mutexattr_destroy(pMutexAttr);
+    }
+
+    *ppMutex = pMutex;
+    return dwError;
+
+error:
+    // Note that we do not need to destroy as we failed to init.
+    LSA_SAFE_FREE_MEMORY(pMutex);
+    goto cleanup;
+}
 
 // TODO-Assert macros...
 static
@@ -175,8 +244,51 @@ LsaDmpReleaseMutex(
     }
 }
 
+static
+VOID
+LsaDmpDestroyCond(
+    IN OUT pthread_cond_t** ppCond
+    )
+{
+    if (*ppCond)
+    {
+        pthread_cond_destroy(*ppCond);
+        LsaFreeMemory(*ppCond);
+        *ppCond = NULL;
+    }
+}
+
+static
+DWORD
+LsaDmpCreateCond(
+    OUT pthread_cond_t** ppCond
+    )
+{
+    DWORD dwError = 0;
+    pthread_cond_t* pCond = NULL;
+
+    dwError = LsaAllocateMemory(sizeof(*pCond), (PVOID*)&pCond);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = pthread_cond_init(pCond, NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    *ppCond = pCond;
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_MEMORY(pCond);
+    goto cleanup;
+}
 
 /// @} lsa_om_internal
+
+/// First time, we want to check for online soon in case there
+/// was some network issue on startup.
+#define LSA_DM_THREAD_FIRST_PERIOD 60
+/// Minimum time interval to wait between runs.
+#define LSA_DM_THREAD_MIN_PERIOD 60
 
 static
 PVOID
@@ -184,14 +296,91 @@ LsaDmpThreadRoutine(
     IN PVOID pContext
     )
 {
-#if 0
     DWORD dwError = 0;
     PLSA_DM_STATE pState = (PLSA_DM_STATE) pContext;
-#endif
+    PLSA_DM_THREAD_INFO pThreadInfo = &pState->OnlineDetectionThread;
+    time_t lastCheckTime = 0;
 
-    // TODO-2008/08/01-dalmeida -- Implement LsaDmpThreadRoutine().
+    LSA_LOG_VERBOSE("Started domain manager online detection thread");
 
+    for (;;)
+    {
+        DWORD dwCheckOnlineSeconds = 0;
+        BOOLEAN bIsDone = FALSE;
+        time_t nextCheckTime = 0;
+        struct timespec wakeTime = { 0 };
+        BOOLEAN bIsTriggered = FALSE;
+
+        // Get the checking interval first.  This also synchronizes
+        // thread startup wrt thread creation.
+        LsaDmpAcquireMutex(pState->pMutex);
+        dwCheckOnlineSeconds = pState->dwCheckOnlineSeconds;
+        LsaDmpReleaseMutex(pState->pMutex);
+
+        // Note that we assume nobody is setting the date
+        // to before 1970...
+        if (!lastCheckTime)
+        {
+            nextCheckTime = time(NULL) + LSA_DM_THREAD_FIRST_PERIOD;
+        }
+        else
+        {
+            //
+            // We compute the next time to check based on the last
+            // time we checked, making sure that we are not going
+            // too often (e.g., if checking is taking a long time
+            // compared to the interval).  This also handles
+            // someone setting very short interval (e.g., 0 seconds).
+            //
+
+            time_t minNextCheckTime = time(NULL) + LSA_DM_THREAD_MIN_PERIOD;
+            nextCheckTime = lastCheckTime + dwCheckOnlineSeconds;
+            // Make sure that we are not checking more often than allowed.
+            nextCheckTime = LSA_MAX(nextCheckTime, minNextCheckTime);
+        }
+
+        memset(&wakeTime, 0, sizeof(wakeTime));
+        wakeTime.tv_sec = nextCheckTime;
+
+        LsaDmpAcquireMutex(pThreadInfo->pMutex);
+        // TODO: Error code conversion
+        dwError = pthread_cond_timedwait(pThreadInfo->pCondition,
+                                         pThreadInfo->pMutex,
+                                         &wakeTime);
+        bIsDone = pThreadInfo->bIsDone;
+        bIsTriggered = pThreadInfo->bTrigger;
+        pThreadInfo->bTrigger = FALSE;
+        LsaDmpReleaseMutex(pThreadInfo->pMutex);
+        if (bIsDone)
+        {
+            break;
+        }
+        else if (ETIMEDOUT == dwError || bIsTriggered)
+        {
+            // Mark the time so we don't try to check again too soon.
+            lastCheckTime = time(NULL);
+            // Do detection
+            dwError = LsaDmpDetectTransitionOnlineAllDomains(pState,
+                                                             pThreadInfo);
+            if (dwError)
+            {
+                // TODO -- log something?
+                dwError = 0;
+            }
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+    LSA_LOG_VERBOSE("Stopped domain manager online detection thread");
     return NULL;
+
+error:
+    LSA_LOG_ERROR("Unexpected error in domain manager online detection thread (%u)", dwError);
+    goto cleanup;
 }
 
 static
@@ -221,29 +410,24 @@ LsaDmpStateDestroy(
 {
     if (Handle)
     {
-        if (Handle->pOnlineDetectionThread)
+        if (Handle->OnlineDetectionThread.pThread)
         {
             void* threadResult = NULL;
-            pthread_join(*Handle->pOnlineDetectionThread, &threadResult);
-            Handle->pOnlineDetectionThread = NULL;
+            LsaDmpAcquireMutex(Handle->OnlineDetectionThread.pMutex);
+            Handle->OnlineDetectionThread.bIsDone = TRUE;
+            LsaDmpReleaseMutex(Handle->OnlineDetectionThread.pMutex);
+            pthread_cond_signal(Handle->OnlineDetectionThread.pCondition);
+            pthread_join(*Handle->OnlineDetectionThread.pThread, &threadResult);
+            Handle->OnlineDetectionThread.pThread = NULL;
         }
-        if (Handle->pCondition)
-        {
-            pthread_cond_destroy(Handle->pCondition);
-            Handle->pCondition = NULL;
-        }
-        if (Handle->pMutex)
-        {
-            pthread_mutex_destroy(Handle->pMutex);
-            Handle->pMutex = NULL;
-        }
-
+        LsaDmpDestroyCond(&Handle->OnlineDetectionThread.pCondition);
+        LsaDmpDestroyMutex(&Handle->OnlineDetectionThread.pMutex);
+        LsaDmpDestroyMutex(&Handle->pMutex);
         if (Handle->DomainList)
         {
             LsaDLinkedListForEach(Handle->DomainList, LsaDmpForEachDomainDestroy, NULL);
             LsaDLinkedListFree(Handle->DomainList);
         }
-
         LSA_SAFE_FREE_MEMORY(Handle);
     }
 }
@@ -273,16 +457,7 @@ LsaDmpStateCreate(
 {
     DWORD dwError = 0;
     PLSA_DM_STATE pState = NULL;
-    pthread_mutexattr_t mutexAttr;
-    pthread_mutexattr_t* pMutexAttr = NULL;
-
-    dwError = pthread_mutexattr_init(&mutexAttr);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pMutexAttr = &mutexAttr;
-
-    dwError = pthread_mutexattr_settype(pMutexAttr, PTHREAD_MUTEX_RECURSIVE);
-    BAIL_ON_LSA_ERROR(dwError);
+    BOOLEAN bIsAcquired = FALSE;
 
     dwError = LsaAllocateMemory(sizeof(*pState), (PVOID*)&pState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -292,40 +467,48 @@ LsaDmpStateCreate(
         SetFlag(pState->StateFlags, LSA_DM_STATE_FLAG_OFFLINE_ENABLED);
     }
 
-    dwError = pthread_mutex_init(&pState->Mutex, pMutexAttr);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    // Indicate that the mutex is initialized
-    pState->pMutex = &pState->Mutex;
-
-    dwError = pthread_cond_init(&pState->Condition, NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    // Indicate that the condition is initialized
-    pState->pCondition = &pState->Condition;
-
     pState->dwCheckOnlineSeconds = dwCheckOnlineSeconds;
+
+    dwError = LsaDmpCreateMutex(&pState->pMutex, PTHREAD_MUTEX_RECURSIVE);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Acquire to block the thread from checking online seconds.
+    LsaDmpAcquireMutex(pState->pMutex);
+    bIsAcquired = TRUE;
+
+    dwError = LsaDmpCreateMutex(&pState->OnlineDetectionThread.pMutex, 0);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmpCreateCond(&pState->OnlineDetectionThread.pCondition);
+    BAIL_ON_LSA_ERROR(dwError);
+
 
     // Now that everything is set up, we need to initialize the thread.
 
-    dwError = pthread_create(&pState->OnlineDetectionThread, NULL,
+    dwError = pthread_create(&pState->OnlineDetectionThread.Thread, NULL,
                              LsaDmpThreadRoutine, pState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    // Indicate that the thread is initialized
-    pState->pOnlineDetectionThread = &pState->OnlineDetectionThread;
+    // Indicate that the thread is created
+    pState->OnlineDetectionThread.pThread = &pState->OnlineDetectionThread.Thread;
 
 cleanup:
-    if (pMutexAttr)
+    if (bIsAcquired)
     {
-        pthread_mutexattr_destroy(pMutexAttr);
+        LsaDmpReleaseMutex(pState->pMutex);
     }
-
     *pHandle = pState;
 
     return dwError;
 
 error:
+    // ISSUE-2008/09/10-dalmeida -- Good example of why error label is bad.
+    // We end up having to duplicate this code under error and cleanup.
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(pState->pMutex);
+        bIsAcquired = FALSE;
+    }
     if (pState)
     {
         LsaDmpStateDestroy(pState);
@@ -393,9 +576,11 @@ LsaDmpSetState(
         }
     }
 
+    // Allow thread to pick up changes in global state (e.g.,
+    // in the check online seconds value).
     if (bIsModified)
     {
-        pthread_cond_signal(Handle->pCondition);
+        pthread_cond_signal(Handle->OnlineDetectionThread.pCondition);
     }
 
     LsaDmpReleaseMutex(Handle->pMutex);
@@ -613,6 +798,8 @@ error:
     goto cleanup;
 }
 
+#if 0
+// Currently unused.
 static
 DWORD
 LsaDmpDomainSetDcInfo(
@@ -632,6 +819,7 @@ LsaDmpDomainSetGcInfo(
 {
     return LsaDmpDomainSetDcInfoInternal(pDomain, TRUE, pDcInfo);
 }
+#endif
 
 static
 VOID
@@ -1052,12 +1240,25 @@ LsaDmpIsDomainPresent(
     return bIsPresent;
 }
 
+static
+VOID
+LsaDmpFillConstDcInfo(
+    IN PLSA_DM_DC_INFO pDcInfo,
+    OUT PLSA_DM_CONST_DC_INFO pConstDcInfo
+    )
+{
+    pConstDcInfo->dwDsFlags = pDcInfo->dwDsFlags;
+    pConstDcInfo->pszName = pDcInfo->pszName;
+    pConstDcInfo->pszAddress = pDcInfo->pszAddress;
+    pConstDcInfo->pszSiteName = pDcInfo->pszSiteName;
+}
+
 VOID
 LsaDmpEnumDomains(
     IN LSA_DM_STATE_HANDLE Handle,
     IN OPTIONAL PCSTR pszDomainName,
     IN PLSA_DM_ENUM_DOMAIN_CALLBACK pfCallback,
-    IN PVOID pContext
+    IN OPTIONAL PVOID pContext
     )
 {
     PDLINKEDLIST listEntry = NULL;
@@ -1069,7 +1270,9 @@ LsaDmpEnumDomains(
          listEntry = listEntry->pNext)
     {
         PLSA_DM_DOMAIN_STATE pDomain = (PLSA_DM_DOMAIN_STATE)listEntry->pItem;
-        LSA_DM_ENUM_DOMAIN_CALLBACK_INFO info;
+        LSA_DM_CONST_ENUM_DOMAIN_INFO info;
+        LSA_DM_CONST_DC_INFO dcInfo;
+        LSA_DM_CONST_DC_INFO gcInfo;
         BOOLEAN needContinue = FALSE;
 
         if (pszDomainName && !LsaDmpSlowIsDomainNameMatch(pDomain, pszDomainName))
@@ -1090,8 +1293,16 @@ LsaDmpEnumDomains(
         info.pszForestName = pDomain->pszForestName;
         info.pszClientSiteName = pDomain->pszClientSiteName;
         info.Flags = pDomain->Flags;
-        info.DcInfo = pDomain->pDcInfo;
-        info.GcInfo = pDomain->pGcInfo;
+        if (pDomain->pDcInfo)
+        {
+            LsaDmpFillConstDcInfo(pDomain->pDcInfo, &dcInfo);
+            info.DcInfo = &dcInfo;
+        }
+        if (pDomain->pGcInfo)
+        {
+            LsaDmpFillConstDcInfo(pDomain->pGcInfo, &gcInfo);
+            info.GcInfo = &gcInfo;
+        }
 
         needContinue = pfCallback(pszDomainName, pContext, &info);
         if (pszDomainName || !needContinue)
@@ -1101,6 +1312,221 @@ LsaDmpEnumDomains(
     }
 
     LsaDmpReleaseMutex(Handle->pMutex);
+}
+
+typedef DWORD LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE;
+
+#define LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_NAME 1
+#define LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_FULL 2
+
+// IMPORTANT: The items in this union must only be pointers.
+// This is so that we can cast an array of these unions to
+// the appropriate array of pointers.  If we change this,
+// we need to change the code that casts so that it does
+// an array copy instead (based on the type).
+typedef union _LSA_DM_ENUM_DOMAIN_FILTERED_ITEM {
+    PSTR pszNameInfo;
+    PLSA_DM_ENUM_DOMAIN_INFO pFullInfo;
+} LSA_DM_ENUM_DOMAIN_FILTERED_ITEM, *PLSA_DM_ENUM_DOMAIN_FILTERED_ITEM;
+
+typedef struct _LSA_DM_ENUM_DOMAIN_FILTER_CONTEXT {
+    DWORD dwError;
+    // This is the number of domains being returned.
+    DWORD dwCount;
+    // Capacity needs to hold dwCount + 1 (for NULL termination)
+    DWORD dwCapacity;
+    // Discriminator for each *pItem below.
+    LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE ItemType;
+    // NULL-terminated array of pointers to each domain info item.
+    PLSA_DM_ENUM_DOMAIN_FILTERED_ITEM pItems;
+    PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback;
+    PVOID pFilterContext;
+} LSA_DM_ENUM_DOMAIN_FILTER_CONTEXT, *PLSA_DM_ENUM_DOMAIN_FILTER_CONTEXT;
+
+static
+VOID
+LsaDmpFreeEnumDomainFilteredItems(
+    IN LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE ItemType,
+    IN OUT PLSA_DM_ENUM_DOMAIN_FILTERED_ITEM pItems
+    )
+{
+    if (pItems)
+    {
+        DWORD dwIndex;
+        switch (ItemType)
+        {
+            case LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_NAME:
+                for (dwIndex = 0; pItems[dwIndex].pszNameInfo; dwIndex++)
+                {
+                    LsaFreeString(pItems[dwIndex].pszNameInfo);
+                }
+                break;
+            case LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_FULL:
+                for (dwIndex = 0; pItems[dwIndex].pFullInfo; dwIndex++)
+                {
+                    LsaDmFreeEnumDomainInfo(pItems[dwIndex].pFullInfo);
+                }
+                break;
+            default:
+                break;
+        }
+        LsaFreeMemory(pItems);
+    }
+}
+
+static
+BOOLEAN
+LsaDmpEnumDomainsFilteredCallback(
+    IN OPTIONAL PCSTR pszEnumDomainName,
+    IN OPTIONAL PVOID pContext,
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_DM_ENUM_DOMAIN_FILTER_CONTEXT pEnumContext =
+        (PLSA_DM_ENUM_DOMAIN_FILTER_CONTEXT)pContext;
+    PLSA_DM_ENUM_DOMAIN_FILTERED_ITEM pItems = NULL;
+
+    if (pEnumContext->pfFilterCallback)
+    {
+        if (!pEnumContext->pfFilterCallback(pEnumContext->pFilterContext,
+                                            pDomainInfo))
+        {
+            goto cleanup;
+        }
+    }
+
+    // We need to make sure that we have enough room for a
+    // NULL terminator too.
+    if (pEnumContext->dwCapacity < (pEnumContext->dwCount + 2))
+    {
+        DWORD dwNewCapacity = 0;
+        DWORD dwNewSize = 0;
+        DWORD dwSize = 0;
+    
+        // Note that the first time needs to use at least 2.
+        dwNewCapacity = LSA_MAX(2, pEnumContext->dwCapacity + 10);
+        dwNewSize = sizeof(pItems[0]) * dwNewCapacity;
+    
+        dwError = LsaAllocateMemory(dwNewSize, (PVOID*)&pItems);
+        BAIL_ON_LSA_ERROR(dwError);
+    
+        dwSize = sizeof(pItems[0]) * pEnumContext->dwCapacity;
+        memcpy(pItems, pEnumContext->pItems, dwSize);
+    
+        pEnumContext->dwCapacity = dwNewCapacity;
+        LsaFreeMemory(pEnumContext->pItems);
+        pEnumContext->pItems = pItems;
+        pItems = NULL;
+    }
+
+    switch (pEnumContext->ItemType)
+    {
+        case LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_NAME:
+            dwError = LsaAllocateString(
+                        pDomainInfo->pszDnsDomainName,
+                        &pEnumContext->pItems[pEnumContext->dwCount].pszNameInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        case LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_FULL:
+            dwError = LsaDmDuplicateConstEnumDomainInfo(
+                        pDomainInfo,
+                        &pEnumContext->pItems[pEnumContext->dwCount].pFullInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+    }
+
+    pEnumContext->dwCount++;
+
+cleanup:
+    LSA_SAFE_FREE_MEMORY(pItems);
+
+    pEnumContext->dwError = dwError;
+    return dwError ? FALSE : TRUE;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+LsaDmpEnumDomainItems(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    IN LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE ItemType,
+    OUT PLSA_DM_ENUM_DOMAIN_FILTERED_ITEM* ppItems,
+    OUT OPTIONAL PDWORD pdwCount
+    )
+{
+    DWORD dwError = 0;
+    LSA_DM_ENUM_DOMAIN_FILTER_CONTEXT context = { 0 };
+
+    context.ItemType = ItemType;
+    context.pfFilterCallback = pfFilterCallback;
+    context.pFilterContext = pFilterContext;
+
+    LsaDmpEnumDomains(Handle,
+                      NULL,
+                      LsaDmpEnumDomainsFilteredCallback,
+                      &context);
+    dwError = context.dwError;
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    *ppItems = context.pItems;
+    if (pdwCount)
+    {
+        *pdwCount = context.dwCount;
+    }
+
+    return dwError;
+
+error:
+    LsaDmpFreeEnumDomainFilteredItems(context.ItemType, context.pItems);
+    context.pItems = NULL;
+    context.dwCount = 0;
+    goto cleanup;
+}
+
+DWORD
+LsaDmpEnumDomainNames(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    OUT PSTR** pppszDomainNames,
+    OUT OPTIONAL PDWORD pdwCount
+    )
+{
+    return LsaDmpEnumDomainItems(
+            Handle,
+            pfFilterCallback,
+            pFilterContext,
+            LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_NAME,
+            (PLSA_DM_ENUM_DOMAIN_FILTERED_ITEM*)pppszDomainNames,
+            pdwCount);
+}
+
+DWORD
+LsaDmpEnumDomainInfo(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK pfFilterCallback,
+    IN OPTIONAL PVOID pFilterContext,
+    OUT PLSA_DM_ENUM_DOMAIN_INFO** pppDomainInfo,
+    OUT OPTIONAL PDWORD pdwCount
+    )
+{
+    return LsaDmpEnumDomainItems(
+            Handle,
+            pfFilterCallback,
+            pFilterContext,
+            LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_FULL,
+            (PLSA_DM_ENUM_DOMAIN_FILTERED_ITEM*)pppDomainInfo,
+            pdwCount);
 }
 
 DWORD
@@ -1355,6 +1781,8 @@ LsaDmpModifyDomainFlagsByRef(
             // We went from offline -> !offline.
             Handle->dwOfflineCount--;
         }
+        LSA_LOG_ALWAYS("Domain '%s' is now %sline",
+                       pDomain->pszDnsName, bIsOffline ? "off" : "on");
     }
 }
 
@@ -1522,71 +1950,161 @@ static
 DWORD
 LsaDmpDetectTransitionOnlineDomain(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN PLSA_DM_DOMAIN_STATE pDomain
+    IN PCSTR pszDomainName
     )
 {
     DWORD dwError = 0;
+    PSTR pszDnsDomainName = NULL;
     PLWNET_DC_INFO pDcInfo = NULL;
 
-    // TODO - Make this function and its calling function
-    // not hold locks across network operations, which
-    // would be simple to do.
+    dwError = LsaDmpQueryDomainInfo(
+                Handle,
+                pszDomainName,
+                &pszDnsDomainName,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL);
+    BAIL_ON_LSA_ERROR(dwError);
 
     //
     // Force rediscovery of DC for the domain.
-    // Ideally, we would also like to force rediscovery
-    // of GC if a forest root.  Yeah, that would be good.
-    // Ok, here is the plan: 1) rediscover DC, 2) if domain is
-    // forest root, rediscover GC too.
     //
 
     dwError = LWNetGetDCName(NULL,
-                             pDomain->pszDnsName,
+                             pszDnsDomainName,
                              NULL,
                              DS_FORCE_REDISCOVERY,
                              &pDcInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDmpDomainSetDcInfo(pDomain, pDcInfo);
+#if 0
+    dwError = LsaDmpDomainSetGcInfo(pDomain, pDcInfo);
     BAIL_ON_LSA_ERROR(dwError);
+#endif
+
+    //
+    // If this is a forest root, we also need to check that
+    // we can find a GC.  Otherwise, our GC operations
+    // will fail.
+    //
 
     if (!strcasecmp(pDcInfo->pszDnsForestName, pDcInfo->pszFullyQualifiedDomainName) &&
         !(DS_GC_FLAG & pDcInfo->dwFlags))
     {
-        LWNetFreeDCInfo(pDcInfo);
-        pDcInfo = NULL;
+        LWNET_SAFE_FREE_DC_INFO(pDcInfo);
 
         dwError = LWNetGetDCName(NULL,
-                                 pDomain->pszDnsName,
+                                 pszDnsDomainName,
                                  NULL,
                                  DS_FORCE_REDISCOVERY | DS_GC_SERVER_REQUIRED,
                                  &pDcInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
+#if 0
         dwError = LsaDmpDomainSetGcInfo(pDomain, pDcInfo);
         BAIL_ON_LSA_ERROR(dwError);
+#endif
     }
 
     //
     // This domain is online, so transition it.
     //
 
-    LsaDmpModifyDomainFlagsByRef(Handle,
-                                 pDomain,
-                                 FALSE,
-                                 LSA_DM_DOMAIN_FLAG_OFFLINE);
+    dwError = LsaDmpTransitionOnline(Handle, pszDnsDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    if (pDcInfo)
-    {
-        LWNetFreeDCInfo(pDcInfo);
-    }
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+    LSA_SAFE_FREE_STRING(pszDnsDomainName);
 
     return dwError;
 
 error:
     goto cleanup;
 }
+
+static
+BOOLEAN
+LsaDmpFilterOfflineCallback(
+    IN OPTIONAL PVOID pContext,
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
+    )
+{
+    return IsLsaDmDomainFlagsOffline(pDomainInfo->Flags);
+}
+
+static
+DWORD
+LsaDmpDetectTransitionOnlineAllDomains(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PLSA_DM_THREAD_INFO pThreadInfo
+    )
+{
+    DWORD dwError = 0;
+    PSTR* ppszDomainNames = NULL;
+    DWORD dwCount = 0;
+    DWORD dwFirstError = 0;
+    DWORD dwIndex = 0;
+
+    dwError = LsaDmpEnumDomainNames(Handle,
+                                    LsaDmpFilterOfflineCallback,
+                                    NULL,
+                                    &ppszDomainNames,
+                                    &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+    {
+        DWORD dwLocalError = 0;
+        PCSTR pszCurrentDomainName = ppszDomainNames[dwIndex];
+
+        if (pThreadInfo)
+        {
+            BOOLEAN bIsDone = FALSE;
+
+            LsaDmpAcquireMutex(pThreadInfo->pMutex);
+            bIsDone = pThreadInfo->bIsDone;
+            LsaDmpReleaseMutex(pThreadInfo->pMutex);
+
+            if (bIsDone)
+            {
+                break;
+            }
+        }
+
+        dwLocalError = LsaDmpDetectTransitionOnlineDomain(
+                        Handle,
+                        pszCurrentDomainName);
+        if (dwLocalError)
+        {
+            // ISSUE-2008/08/01-dalmeida -- Log something
+            if (!dwFirstError)
+            {
+                dwFirstError = dwLocalError;
+            }
+        }
+    }
+
+    dwError = dwFirstError;
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LSA_SAFE_FREE_STRING_ARRAY(ppszDomainNames);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 
 DWORD
 LsaDmpDetectTransitionOnline(
@@ -1595,58 +2113,34 @@ LsaDmpDetectTransitionOnline(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bIsAcquired = FALSE;
-    PLSA_DM_DOMAIN_STATE pDomain = NULL;
-
-    LsaDmpAcquireMutex(Handle->pMutex);
-    bIsAcquired = TRUE;
 
     if (!pszDomainName)
     {
         // Do every domain.
-
-        PDLINKEDLIST listEntry = NULL;
-        DWORD dwFirstError = 0;
-
-        for (listEntry = Handle->DomainList;
-             listEntry;
-             listEntry = listEntry->pNext)
-        {
-            DWORD dwLocalError = 0;
-
-            pDomain = (PLSA_DM_DOMAIN_STATE)listEntry->pItem;
-
-            dwLocalError = LsaDmpDetectTransitionOnlineDomain(Handle, pDomain);
-            if (dwLocalError)
-            {
-                // ISSUE-2008/08/01-dalmeida -- Log something
-                if (!dwFirstError)
-                {
-                    dwFirstError = dwLocalError;
-                }
-            }
-        }
-        dwError = dwFirstError;
+        dwError = LsaDmpDetectTransitionOnlineAllDomains(Handle, NULL);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
-        dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pDomain);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaDmpDetectTransitionOnlineDomain(Handle, pDomain);
+        dwError = LsaDmpDetectTransitionOnlineDomain(Handle, pszDomainName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (bIsAcquired)
-    {
-        LsaDmpReleaseMutex(Handle->pMutex);
-    }
-
     return dwError;
 
 error:
     goto cleanup;
+}
+
+VOID
+LsaDmpTriggerOnlindeDetectionThread(
+    IN LSA_DM_STATE_HANDLE Handle
+    )
+{
+    LsaDmpAcquireMutex(Handle->OnlineDetectionThread.pMutex);
+    Handle->OnlineDetectionThread.bTrigger = TRUE;
+    pthread_cond_signal(Handle->OnlineDetectionThread.pCondition);
+    LsaDmpReleaseMutex(Handle->OnlineDetectionThread.pMutex);
 }
 

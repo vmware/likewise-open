@@ -250,7 +250,12 @@ ADSyncTimeToDC(
     DWORD dwError = 0;
     UNIX_TIME_T dcTime = 0;
     time_t ttDcTime = 0;
-    
+
+    if ( !AD_ShouldSyncSystemTime() )
+    {
+        goto cleanup;
+    }
+
     BAIL_ON_INVALID_STRING(pszDomainFQDN);
 
     if (LsaDmIsDomainOffline(pszDomainFQDN))
@@ -295,6 +300,10 @@ ADShutdownMachinePasswordSync(
         pthread_mutex_unlock(&gMachinePasswordSyncThreadLock);
         
         dwError = pthread_cancel(gMachinePasswordSyncThread);
+        if (ESRCH == dwError)
+        {
+            dwError = 0;
+        }
         BAIL_ON_LSA_ERROR(dwError);
         
         pthread_join(gMachinePasswordSyncThread, NULL);

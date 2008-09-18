@@ -89,10 +89,12 @@ LsaFreeDomainInfoContents(
     if (pDomainInfo->pDCInfo)
     {
         LsaFreeDCInfo(pDomainInfo->pDCInfo);
+        pDomainInfo->pDCInfo = NULL;
     }
     
     if (pDomainInfo->pGCInfo)
     {
         LsaFreeDCInfo(pDomainInfo->pGCInfo);
+        pDomainInfo->pGCInfo = NULL;
     }
 }

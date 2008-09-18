@@ -139,6 +139,10 @@ ADShutdownCacheReaper(
         pthread_mutex_unlock(&gCacheReaperThreadLock);
         
         dwError = pthread_cancel(gCacheReaperThread);
+        if (ESRCH == dwError)
+        {
+            dwError = 0;
+        }
         BAIL_ON_LSA_ERROR(dwError);
         
         pthread_join(gCacheReaperThread, NULL);
