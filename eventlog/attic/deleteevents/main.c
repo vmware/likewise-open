@@ -68,7 +68,8 @@ ShowUsage()
     printf("\tEventSourceId (integer)\n");
     printf("\tUser          (varchar(128))\n");
     printf("\tComputer      (varchar(128))\n");
-    printf("\tDescription   (varchar(256))\n");
+    printf("\tDescription   (TEXT)\n");
+    printf("\Data           (varchar(128))\n");
 
 }
 

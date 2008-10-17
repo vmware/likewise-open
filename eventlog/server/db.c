@@ -52,7 +52,8 @@
                             EventSourceId      integer,                      \
                             User          varchar(128),                      \
                             Computer      varchar(128),                      \
-                            Description   varchar(256)                       \
+                            Description   TEXT,                              \
+                            Data          varchar(128)                       \
                          )"
 
 
@@ -69,7 +70,8 @@
                                     EventSourceId,        \
                                     User,                 \
                                     Computer,             \
-                                    Description           \
+                                    Description,          \
+                                    Data                  \
                              FROM     lwievents           \
                              ORDER BY EventRecordId ASC  \
                              LIMIT %ld OFFSET %ld"
@@ -85,7 +87,8 @@
                                     EventSourceId,        \
                                     User,                 \
                                     Computer,             \
-                                    Description           \
+                                    Description,          \
+                                    Data                  \
                              FROM     lwievents           \
                              WHERE  (%s)                  \
                              ORDER BY EventRecordId ASC  \
@@ -113,7 +116,8 @@
                                         EventSourceId,         \
                                         User,                  \
                                         Computer,              \
-                                        Description            \
+                                        Description,           \
+                                        Data                   \
                                      )                       \
                                 VALUES( NULL,                 \
                                         %d,                   \
@@ -122,6 +126,7 @@
                                         \"%s\",               \
                                         \"%s\",               \
                                         %d,                   \
+                                        \"%s\",               \
                                         \"%s\",               \
                                         \"%s\",               \
                                         \"%s\")"
@@ -333,34 +338,44 @@ SrvWriteEventLog(
                     (IsNullOrEmptyString(pEventRecord->pszComputer) ? "" : pEventRecord->pszComputer), hDB);
 
     DWORD dwError = 0;
-    CHAR  szQuery[8092];
+    PSTR pszQuery = NULL;    
     DWORD nRows = 0;
     DWORD nCols = 0;
     PSTR* ppszResult = NULL;
 
     ENTER_RW_WRITER_LOCK;
+    
+    dwError = EVTAllocateStringPrintf(
+               &pszQuery,
+               DB_QUERY_INSERT_EVENT,
+               pEventRecord->dwEventTableCategoryId,
+               IsNullOrEmptyString(pEventRecord->pszEventType) ? "" : pEventRecord->pszEventType,
+               pEventRecord->dwEventDateTime,
+               IsNullOrEmptyString(pEventRecord->pszEventSource) ? "" : pEventRecord->pszEventSource,
+               IsNullOrEmptyString(pEventRecord->pszEventCategory) ? "" : pEventRecord->pszEventCategory,
+               pEventRecord->dwEventSourceId,
+               IsNullOrEmptyString(pEventRecord->pszUser) ? "" : pEventRecord->pszUser,
+               IsNullOrEmptyString(pEventRecord->pszComputer) ? "" : pEventRecord->pszComputer,
+               IsNullOrEmptyString(pEventRecord->pszDescription) ? "" : pEventRecord->pszDescription,
+               IsNullOrEmptyString(pEventRecord->pszData) ? "" : pEventRecord->pszData);
+    BAIL_ON_EVT_ERROR(dwError);
 
-    sprintf(szQuery, DB_QUERY_INSERT_EVENT,
-        pEventRecord->dwEventTableCategoryId,
-        pEventRecord->pszEventType,
-        pEventRecord->dwEventDateTime,
-        pEventRecord->pszEventSource,
-        pEventRecord->pszEventCategory,
-        pEventRecord->dwEventSourceId,
-        pEventRecord->pszUser,
-        pEventRecord->pszComputer,
-        pEventRecord->pszDescription);
-
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
+    dwError = SrvQueryEventLog(hDB, pszQuery, &nRows, &nCols, &ppszResult);
     BAIL_ON_EVT_ERROR(dwError);
 
     EVT_LOG_VERBOSE("server::evtdb.c SrvWriteEventLog() finished\n");
 
- cleanup:
+ cleanup: 
+    
+    if (pszQuery){
+        EVTFreeString(pszQuery);
+    }
+    
     if (ppszResult) {
         sqlite3_free_table(ppszResult);
     }
     LEAVE_RW_WRITER_LOCK;
+    
     return dwError;
  error:
     goto cleanup;
@@ -371,16 +386,17 @@ SrvWriteEventLog(
 static
 DWORD
 SrvMaintainDB(
-    HANDLE hDB
+    HANDLE hDB,
+    PBOOLEAN pbSafeInsert
     )
 {
     DWORD dwError = 0;
     DWORD dwRecordCount = 0;
     DWORD dwCountOlderThan = 0;
-
     DWORD dwMaxRecords = 0;
     DWORD dwMaxAge = 0;
     DWORD dwMaxLogSize = 0;
+    DWORD dwActualSize = 0;
 
     EVT_LOG_VERBOSE("In Maintain DB ...............");
     //Get Max records,max age and max log size from the global list
@@ -404,8 +420,12 @@ SrvMaintainDB(
     EVT_LOG_VERBOSE("EventLog record count older than curdate = %d",dwCountOlderThan);
     EVT_LOG_VERBOSE("EventLog Record count = %d",dwRecordCount);
 
+    //Get the File size
+    dwError = EVTGetFileSize(EVENTLOG_DB,&dwActualSize);
+    BAIL_ON_EVT_ERROR(dwError);
+
     //Regular house keeping
-    if (dwCountOlderThan){
+    if (dwCountOlderThan) {
         EVT_LOG_VERBOSE("Deleting the record as older than current date");
         dwError = SrvDeleteOlderThanCurDate(hDB, dwMaxAge);
         BAIL_ON_EVT_ERROR(dwError);
@@ -415,8 +435,7 @@ SrvMaintainDB(
         BAIL_ON_EVT_ERROR(dwError);
     }
 
-    //TODO: to determine the max log size and check the max log size,waiting for server side to complete
-
+    EVT_LOG_VERBOSE("Record Count = %d ",dwCountOlderThan);
     //If the record count is greater than the Max Records
     if (dwRecordCount > dwMaxRecords) {
 
@@ -428,13 +447,27 @@ SrvMaintainDB(
         BAIL_ON_EVT_ERROR(dwError);
     }
 
+    EVT_LOG_VERBOSE("Actual Log size = %d ",dwActualSize);
+    if(dwActualSize >= dwMaxLogSize) {
+        EVT_LOG_VERBOSE("Log Size is exceeds the maximum limit set");
+        
+        goto error;
+    }
+	
+    //Safe to insert record,set bSafeInsert to TRUE
+    *pbSafeInsert = TRUE;
+
     EVT_LOG_VERBOSE("Pruned DB returning");
+
+cleanup:
+
+	return dwError;
 
 error:
 
-    return dwError;
+    *pbSafeInsert = FALSE;
+    goto cleanup;
 }
-
 
 DWORD
 SrvWriteToDB(
@@ -443,23 +476,18 @@ SrvWriteToDB(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bRemoveAsNeeded = 0;
+    BOOLEAN bSafeInsert = TRUE;
 
-    //Determine if auto clean up is  enabled?
-    dwError = EVTGetRemoveEventsFlag(&bRemoveAsNeeded);
+    //Trim the DB
+    EVT_LOG_VERBOSE("Going to trim database .....");
+    dwError = SrvMaintainDB(hDB,&bSafeInsert);
     BAIL_ON_EVT_ERROR(dwError);
 
-    //we are not going to trim the DB,if the flag is not set
-    if (bRemoveAsNeeded) {
-        //Trim the DB
-        EVT_LOG_VERBOSE("Going to trim database .....");
-        dwError = SrvMaintainDB(hDB);
+    if(bSafeInsert) {
+        //Write the eventlog
+        dwError = SrvWriteEventLog(hDB,pEventRecord);
         BAIL_ON_EVT_ERROR(dwError);
     }
-
-    //Write the eventlog
-    dwError = SrvWriteEventLog(hDB,pEventRecord);
-    BAIL_ON_EVT_ERROR(dwError);
 
 error:
 
@@ -770,73 +798,128 @@ BuildEventLogRecordList(
             {
                 case EventTableCategoryId:
                 {
-                    pRecord->dwEventTableCategoryId = atoi(ppszResult[iVal++]);
+                    pRecord->dwEventTableCategoryId = atoi(ppszResult[iVal]);
                 }
                 break;
                 case EventRecordId:
                 {
-                    pRecord->dwEventRecordId = atoi(ppszResult[iVal++]);
+                    pRecord->dwEventRecordId = atoi(ppszResult[iVal]);
                 }
                 break;
                 case EventType:
                 {
-                    dwError = RPCAllocateString( ppszResult[iVal++],
-                                                 (PSTR*)(&pRecord->pszEventType));
-                    BAIL_ON_EVT_ERROR(dwError);
+                    if (IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                        pRecord->pszEventType = NULL;
+                    }
+                    else
+                    {
+                        dwError = RPCAllocateString( ppszResult[iVal],
+                                      (PSTR*)(&pRecord->pszEventType));
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
                 }
                 break;
                 case EventDateTime:
                 {
-                    pRecord->dwEventDateTime = atoi(ppszResult[iVal++]);
+                    pRecord->dwEventDateTime = atoi(ppszResult[iVal]);
                 }
                 break;
                 case EventSource:
                 {
 
-                    dwError = RPCAllocateString( ppszResult[iVal++],
-                                                 (PSTR*)(&pRecord->pszEventSource));
-                    BAIL_ON_EVT_ERROR(dwError);
+                    if (IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                        pRecord->pszEventSource = NULL;
+                    }
+                    else
+                    {
+                        dwError = RPCAllocateString( ppszResult[iVal],
+                                      (PSTR*)(&pRecord->pszEventSource));
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
                 }
                 break;
                 case EventCategory:
                 {
-                    dwError = RPCAllocateString( ppszResult[iVal++],
-                                                 (PSTR*)(&pRecord->pszEventCategory));
-                    BAIL_ON_EVT_ERROR(dwError);
+                    if (IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                        pRecord->pszEventCategory = NULL;
+                    }
+                    else
+                    {
+                        dwError = RPCAllocateString( ppszResult[iVal],
+                                      (PSTR*)(&pRecord->pszEventCategory));
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
                 }
                 break;
                 case EventSourceId:
                 {
-                    pRecord->dwEventSourceId = atoi(ppszResult[iVal++]);
+                    pRecord->dwEventSourceId = atoi(ppszResult[iVal]);
                 }
                 break;
                 case User:
                 {
-                    dwError = RPCAllocateString( ppszResult[iVal++],
-                                                (PSTR*)(&pRecord->pszUser));
-                    BAIL_ON_EVT_ERROR(dwError);
+                    if (IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                        pRecord->pszUser = NULL;
+                    }
+                    else
+                    {
+                        dwError = RPCAllocateString( ppszResult[iVal],
+                                      (PSTR*)(&pRecord->pszUser));
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
                 }
                 break;
                 case Computer:
                 {
+                    if (IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                        pRecord->pszComputer = NULL;
+                    }
+                    else
+                    {
+                        dwError = RPCAllocateString( ppszResult[iVal],
+                                      (PSTR*)(&pRecord->pszComputer));
 
-                    dwError = RPCAllocateString( ppszResult[iVal++],
-                                                 (PSTR*)(&pRecord->pszComputer));
-
-                    BAIL_ON_EVT_ERROR(dwError);
-
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
                 }
                 break;
                 case Description:
                 {
+                    if (IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                        pRecord->pszDescription = NULL;
+                    }
+                    else
+                    {
+                        dwError = RPCAllocateString( ppszResult[iVal],
+                                      (PSTR*)(&pRecord->pszDescription));
 
-                    dwError = RPCAllocateString( ppszResult[iVal++],
-                                                (PSTR*)(&pRecord->pszDescription));
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
+                }
+                break;
+                case Data:
+                {
+                    if (IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                        pRecord->pszData = NULL;
+                    }
+                    else
+                    {
+                        dwError = RPCAllocateString( ppszResult[iVal],
+                                      (PSTR*)(&pRecord->pszData));
 
-                    BAIL_ON_EVT_ERROR(dwError);
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
                 }
                 break;
             }
+            iVal++;
         }
     }
 
@@ -882,9 +965,9 @@ SrvCreateDB(BOOLEAN replaceDB)
 
     dwError = sqlite3_open(EVENTLOG_DB, &pSqliteHandle);
     BAIL_ON_EVT_ERROR(dwError);
-
+   
     dwError = sqlite3_exec(pSqliteHandle,
-                            DB_QUERY_CREATE_EVENTS_TABLE,
+                            DB_QUERY_CREATE_EVENTS_TABLE,                           
                             NULL,
                             NULL,
                             &pszError);

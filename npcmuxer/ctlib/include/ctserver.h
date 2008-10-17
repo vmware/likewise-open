@@ -69,46 +69,10 @@ CtServerClientGetServerHandle(
     IN CT_SERVER_CLIENT_HANDLE ClientHandle
     );
 
-bool
-CtServerClientIsAuthenticated(
-    IN CT_SERVER_CLIENT_HANDLE ClientHandle
-    );
-
-void
-CtServerClientSetAuthenticated(
-    IN CT_SERVER_CLIENT_HANDLE ClientHandle,
-    bool isAuth
-    );
-
-CT_STATUS
-CtServerCreateClientPath(
-    OUT char** Path,
-    IN const char* Prefix
-    );
-
 CT_STATUS
 CtServerConnect(
     OUT int* Fd,
-    IN const char* ServerPath,
-    IN const char* ClientPath
-    );
-
-CT_STATUS
-CtGenerateRandomNumber(
-    OUT int *num
-    );
-
-CT_STATUS
-CtSecSocketCreate(
-    OUT int *Fd,
-    OUT char **SocketPath,
-    IN char *Directory
-    );
-
-CT_STATUS
-CtSecSocketConnect(
-    OUT int *Fd,
-    IN char *socketPath
+    IN const char* ServerPath
     );
 
 CT_STATUS
@@ -118,16 +82,9 @@ CtSocketWaitForConnection(
     );
 
 CT_STATUS
-CtSecSocketCleanup(
-    IN int Fd,
-    IN const char* socketPath
-    );
-
-CT_STATUS
 CtServerConnectExistingSocket(
     IN int Fd,
-    IN const char* ServerPath,
-    IN const char* ClientPath
+    IN const char* ServerPath
     );
 
 CT_STATUS

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Local Authentication Provider (Defines)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -49,6 +49,14 @@
 
 #define LOCAL_CFG_TAG_LOCAL_PROVIDER "lsa-local-provider"
 #define LOCAL_CFG_TAG_AUTH_PROVIDER  "auth provider"
+
+#define LOCAL_PASSWORD_CHANGE_INTERVAL_MINIMUM LSA_SECONDS_IN_DAY
+#define LOCAL_PASSWORD_CHANGE_INTERVAL_DEFAULT (30 * LSA_SECONDS_IN_DAY)
+#define LOCAL_PASSWORD_CHANGE_INTERVAL_MAXIMUM (180 * LSA_SECONDS_IN_DAY)
+
+#define LOCAL_PASSWORD_CHANGE_WARNING_TIME_MINIMUM LSA_SECONDS_IN_HOUR
+#define LOCAL_PASSWORD_CHANGE_WARNING_TIME_DEFAULT (14 * LSA_SECONDS_IN_DAY)
+#define LOCAL_PASSWORD_CHANGE_WARNING_TIME_MAXIMUM (30 * LSA_SECONDS_IN_DAY)
 
 #endif /* __LPDEFS_H__ */
 

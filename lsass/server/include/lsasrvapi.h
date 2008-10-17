@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -81,6 +81,13 @@ LsaSrvValidateUser(
     HANDLE hServer,
     PCSTR  pszLoginId,
     PCSTR  pszPassword
+    );
+
+DWORD
+LsaSrvCheckUserInList(
+    HANDLE hServer,
+    PCSTR  pszLoginId,
+    PCSTR  pszListName
     );
 
 DWORD
@@ -233,7 +240,7 @@ LsaSrvEndEnumNSSArtefacts(
     HANDLE hServer,
     PCSTR  pszGUID
     );
-    
+
 DWORD
 LsaSrvComputeLMHash(
     PCSTR pszPassword,

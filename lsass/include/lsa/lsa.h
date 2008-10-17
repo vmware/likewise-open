@@ -1,7 +1,7 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
- 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -313,7 +313,9 @@ typedef int             BOOLEAN, *PBOOLEAN;
 #define LSA_ERROR_RPC_LSA_LOOKUPSIDS_FAILED                 0x807B // 32891
 #define LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND              0x807C // 32892
 #define LSA_ERORR_RPC_LSA_LOOKUPSIDS_FOUND_DUPLICATES       0x807D // 32893
-#define LSA_ERROR_SENTINEL                                  0x807E // 32894
+#define LSA_ERROR_PASSWORD_RESTRICTION                      0x807E // 32894
+#define LSA_ERROR_OBJECT_NOT_ENABLED                        0x807F // 32895
+#define LSA_ERROR_SENTINEL                                  0x8080 // 32896
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 
@@ -411,7 +413,22 @@ typedef DWORD LSA_TRUST_FLAG, *PLSA_TRUST_FLAG;
 #define LSA_TRUST_FLAG_NATIVE       0x00000010
 #define LSA_TRUST_FLAG_INBOUND      0x00000020
 
-/* 
+typedef DWORD LSA_TRUST_DIRECTION;
+
+#define LSA_TRUST_DIRECTION_UNKNOWN  0x00000000
+#define LSA_TRUST_DIRECTION_ZERO_WAY 0x00000001
+#define LSA_TRUST_DIRECTION_ONE_WAY  0x00000002
+#define LSA_TRUST_DIRECTION_TWO_WAY  0x00000003
+#define LSA_TRUST_DIRECTION_SELF     0x00000004
+
+typedef DWORD LSA_TRUST_MODE;
+
+#define LSA_TRUST_MODE_UNKNOWN       0x00000000
+#define LSA_TRUST_MODE_EXTERNAL      0x00000001
+#define LSA_TRUST_MODE_MY_FOREST     0x00000002
+#define LSA_TRUST_MODE_OTHER_FOREST  0x00000003
+
+/*
  * Logging
  */
 typedef enum
@@ -520,7 +537,7 @@ typedef struct __LSA_USER_INFO_2
 typedef struct __LSA_USER_MOD_INFO
 {
     uid_t uid;
-    
+
     struct {
         BOOLEAN bEnableUser;
         BOOLEAN bDisableUser;
@@ -536,7 +553,7 @@ typedef struct __LSA_USER_MOD_INFO
     PSTR    pszAddToGroups;
     PSTR    pszRemoveFromGroups;
     PSTR    pszExpiryDate;
-    
+
 } LSA_USER_MOD_INFO, *PLSA_USER_MOD_INFO;
 
 typedef struct __LSA_GROUP_INFO_0
@@ -573,7 +590,7 @@ typedef enum
 typedef struct __LSA_NSS_ARTEFACT_INFO_0
 {
     LsaNSSMapType artefactType;
-    
+
     PSTR  pszName;
     PSTR* ppszMembers;
     DWORD dwNumMembers;
@@ -675,6 +692,8 @@ typedef struct __LSA_TRUSTED_DOMAIN_INFO
     LSA_TRUST_FLAG      dwTrustFlags;
     LSA_TRUST_TYPE      dwTrustType;
     LSA_TRUST_ATTRIBUTE dwTrustAttributes;
+    LSA_TRUST_DIRECTION dwTrustDirection;
+    LSA_TRUST_MODE      dwTrustMode;
     LSA_DM_DOMAIN_FLAGS dwDomainFlags;
     PLSA_DC_INFO        pDCInfo;
     PLSA_DC_INFO        pGCInfo;
@@ -705,7 +724,7 @@ typedef struct __LSA_VERSION
 typedef struct __LSASTATUS
 {
     DWORD dwUptime;
-    
+
     LSA_VERSION version;
 
     DWORD dwCount;
@@ -769,11 +788,20 @@ LsaDeleteGroupByName(
     );
 
 DWORD
-LsaGetGroupsForUserName(
+LsaGetGidsForUserByName(
     HANDLE  hLsaConnection,
-    PCSTR   pszUserName,    
+    PCSTR   pszUserName,
     PDWORD  pdwGroupFound,
     gid_t** ppGidResults
+    );
+
+DWORD
+LsaGetGroupsForUserById(
+    HANDLE  hLsaConnection,
+    uid_t   uid,
+    DWORD   dwGroupInfoLevel,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
     );
 
 DWORD
@@ -957,6 +985,13 @@ LsaValidateUser(
     );
 
 DWORD
+LsaCheckUserInList(
+    HANDLE   hLsaConnection,
+    PCSTR    pszLoginName,
+    PCSTR    pszListName
+    );
+
+DWORD
 LsaChangePassword(
     HANDLE hLsaConnection,
     PCSTR  pszLoginName,
@@ -1014,6 +1049,12 @@ LsaGetErrorString(
 VOID
 LsaFreeMemory(
     PVOID pMemory
+    );
+
+DWORD
+LsaGetErrorMessageForLoggingEvent(
+    DWORD dwError,
+    PSTR* ppszErrorMsg
     );
 
 #endif /* __LSA_H__ */

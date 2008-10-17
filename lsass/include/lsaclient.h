@@ -59,11 +59,20 @@ LsaDeleteGroupByName(
     );
 
 DWORD
-LsaGetGroupsForUserName(
+LsaGetGidsForUserByName(
     HANDLE  hLsaConnection,
     PCSTR   pszUserName,    
     PDWORD  pdwGroupFound,
     gid_t** ppGidResults
+    );
+
+DWORD
+LsaGetGroupsForUserById(
+    HANDLE  hLsaConnection,
+    uid_t   uid,
+    DWORD   dwGroupInfoLevel,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
     );
 
 DWORD

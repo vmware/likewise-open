@@ -85,6 +85,9 @@ typedef struct _LWNET_CLDAP_THREAD_CONTEXT {
     pthread_cond_t Condition;
     pthread_mutex_t* pMutex;
     pthread_cond_t* pCondition;
+    // Threads currently active -- used to figure out
+    // last thread so it can signal
+    DWORD dwActiveThreadCount; // mutable
     // RefCount
     DWORD dwRefCount; // mutable
 } LWNET_CLDAP_THREAD_CONTEXT, *PLWNET_CLDAP_THREAD_CONTEXT;

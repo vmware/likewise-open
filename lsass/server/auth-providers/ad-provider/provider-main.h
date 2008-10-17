@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Active Directory Authentication Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -96,6 +96,13 @@ AD_ValidateUser(
     );
 
 DWORD
+AD_CheckUserInList(
+    HANDLE hProvider,
+    PCSTR  pszUserName,
+    PCSTR  pszListName
+    );
+
+DWORD
 AD_FindUserByName(
     HANDLE  hProvider,
     PCSTR   pszLoginId,
@@ -108,7 +115,7 @@ AD_FindUserById(
     HANDLE  hProvider,
     uid_t   uid,
     DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo    
+    PVOID*  ppUserInfo
     );
 
 DWORD
@@ -137,7 +144,7 @@ AD_EnumUsers(
 
 VOID
 AD_EndEnumUsers(
-    HANDLE hProvider,    
+    HANDLE hProvider,
     PCSTR  pszGUID
     );
 
@@ -155,6 +162,14 @@ AD_FindGroupById(
     gid_t   gid,
     DWORD   dwGroupInfoLevel,
     PVOID*  ppGroupInfo
+    );
+
+DWORD
+AD_GetUserGroupObjectMembership(
+    IN HANDLE  hProvider,
+    IN uid_t   uid,
+    OUT size_t* psNumGroupsFound,
+    OUT PAD_SECURITY_OBJECT** pppResult
     );
 
 DWORD
@@ -232,7 +247,7 @@ AD_DeleteGroup(
 DWORD
 AD_OpenSession(
     HANDLE hProvider,
-    PCSTR  pszLoginId   
+    PCSTR  pszLoginId
     );
 
 DWORD
@@ -313,12 +328,19 @@ AD_FreeStatus(
 DWORD
 AD_RefreshConfiguration(
     HANDLE hProvider
-    );  
+    );
 
 DWORD
 AD_FindUserObjectByName(
     IN HANDLE  hProvider,
-    IN PCSTR   pszLoginId,    
+    IN PCSTR   pszLoginId,
+    OUT PAD_SECURITY_OBJECT* ppResult
+    );
+
+DWORD
+AD_FindGroupObjectByName(
+    IN HANDLE  hProvider,
+    IN PCSTR   pszGroupName,
     OUT PAD_SECURITY_OBJECT* ppResult
     );
 
@@ -332,6 +354,25 @@ AD_InitializeOperatingMode(
 DWORD
 AD_MachineCredentialsCacheInitialize(
     VOID
+    );
+
+DWORD
+AD_GetExpandedGroupUsers(
+    HANDLE  hProvider,
+    PCSTR pszDomainName,
+    PCSTR pszDomainNetBiosName,
+    PCSTR pszGroupSid,
+    int iMaxDepth,
+    BOOLEAN *pbAllExpanded,
+    size_t* psCount,
+    PAD_SECURITY_OBJECT** pppResults);
+
+DWORD
+AD_GroupObjectToGroupInfo(
+    HANDLE  hProvider,
+    IN PAD_SECURITY_OBJECT pGroupObject,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 #endif /* __PROVIDER_MAIN_H__ */

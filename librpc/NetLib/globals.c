@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,7 +28,32 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 /* The first connection node on the list */
-NetConn *first;
+NetConn *first = NULL;
+
+
+/* This is a pointer to list of allocated pointers.
+   The list enables freeing a pointer and dependant pointers */
+void *netapi_ptr_list = NULL;
+
+
+/* Library initialisation guard */
+pthread_mutex_t g_netapi_data_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+int bNetApiInitialised = 0;
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

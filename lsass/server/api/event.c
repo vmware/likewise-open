@@ -46,152 +46,46 @@
  */
 #include "api.h"
 
-DWORD
-LsaSrvOpenEventLog(
-    HANDLE  hServer,
-    PHANDLE phEventLog
+VOID
+LsaSrvWriteLoginSuccessEvent(  
+    HANDLE hServer,
+    PCSTR  pszLoginId,
+    DWORD  dwErrCode
     )
 {
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
-
-    if (!LsaSrvEventlogEnabled())
-    {
-        goto cleanup;
-    }
+    PSTR pszData = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
-    {
-        dwError = LWIOpenEventLogEx(
-                      NULL,
-                      TableCategorySystem,
-                      "Likewise LSASS",
-                      0x8000,
-                      "lsassd",
-                      NULL,
-                      &pServerState->hEventLog);
-        BAIL_ON_LSA_ERROR(dwError);
+    {        
+        dwError = LsaSrvOpenEventLog(
+                      TableCategorySecurity,
+                      &pServerState->hEventLog);       
+        BAIL_ON_LSA_ERROR(dwError); 
     }
 
-    *phEventLog = pServerState->hEventLog;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *phEventLog = (HANDLE)NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaSrvCloseEventLog(
-    HANDLE hEventLog
-    )
-{
-    return LWICloseEventLog(hEventLog);
-}
-
-DWORD
-LsaSrvLogSuccessAuditEvent(
-    HANDLE hServer,
-    PCSTR  pszCategory,
-    PCSTR  pszDescription
-    )
-{
-    DWORD dwError = 0;
-    HANDLE hEventLog = (HANDLE)NULL;
-
-    if (!LsaSrvEventlogEnabled())
-    {
-        goto cleanup;
-    }
-
-    dwError = LsaSrvOpenEventLog(
-                   hServer,
-                   &hEventLog);
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                     dwErrCode,
+                     &pszData);
     BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LWIWriteEventLog(
-                   hEventLog,
-                   SUCCESS_AUDIT_EVENT_TYPE,
-                   pszCategory,
-                   pszDescription);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LsaSrvLogFailureAuditEvent(
-    HANDLE hServer,
-    PCSTR  pszCategory,
-    PCSTR  pszDescription
-    )
-{
-    DWORD dwError = 0;
-    HANDLE hEventLog = (HANDLE)NULL;
-
-    if (!LsaSrvEventlogEnabled())
-    {
-        goto cleanup;
-    }
-
-    dwError = LsaSrvOpenEventLog(
-                   hServer,
-                   &hEventLog);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LWIWriteEventLog(
-                   hEventLog,
-                   FAILURE_AUDIT_EVENT_TYPE,
-                   pszCategory,
-                   pszDescription);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-VOID
-LsaSrvWriteLoginSuccessEvent(
-    HANDLE hServer,
-    PCSTR  pszLoginId
-    )
-{
-    DWORD dwError = 0;
-
-    if (!LsaSrvEventlogEnabled())
-    {
-        goto cleanup;
-    }
-
-    dwError = LsaSrvLogSuccessAuditEvent(
-                     hServer,
+    
+    dwError = LsaSrvLogSuccessAuditEvent(       
+                     pServerState->hEventLog,
                      LOGIN_EVENT_CATEGORY,
-                     pszLoginId);
+                     pszLoginId,
+                     pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszData);
 
     return;
 
 error:
 
-    LSA_LOG_ERROR("Failed to post login success event for [%s]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
+    LSA_LOG_ERROR("Failed to post login success event for [%s]", LSA_SAFE_LOG_STRING(pszLoginId));
     LSA_LOG_ERROR("Error code: [%d]", dwError);
 
     goto cleanup;
@@ -200,29 +94,43 @@ error:
 VOID
 LsaSrvWriteLoginFailedEvent(
     HANDLE hServer,
-    PCSTR  pszLoginId
+    PCSTR  pszLoginId,
+    DWORD  dwErrCode
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = 0;    
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PSTR  pszData = NULL;
 
-    if (!LsaSrvEventlogEnabled())
-    {
-        goto cleanup;
+    if (pServerState->hEventLog == (HANDLE)NULL)
+    {        
+        dwError = LsaSrvOpenEventLog(
+                      TableCategorySecurity,
+                      &pServerState->hEventLog);       
+        BAIL_ON_LSA_ERROR(dwError); 
     }
+    
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                     dwErrCode,
+                     &pszData);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvLogFailureAuditEvent(
-                     hServer,
+    dwError = LsaSrvLogFailureAuditEvent(       
+                     pServerState->hEventLog,
                      LOGIN_EVENT_CATEGORY,
-                     pszLoginId);
+                     pszLoginId,
+                     pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszData);
 
     return;
 
 error:
 
-    LSA_LOG_ERROR("Failed to post login failure event for [%s]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
+    LSA_LOG_ERROR("Failed to post login failure event for [%s]", LSA_SAFE_LOG_STRING(pszLoginId));
     LSA_LOG_ERROR("Error code: [%d]", dwError);
 
     goto cleanup;
@@ -231,29 +139,88 @@ error:
 VOID
 LsaSrvWriteLogoutSuccessEvent(
     HANDLE hServer,
-    PCSTR  pszLoginId
+    PCSTR  pszLoginId,
+    DWORD  dwErrCode
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = 0; 
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PSTR pszData = NULL;
 
-    if (!LsaSrvEventlogEnabled())
-    {
-        goto cleanup;
+    if (pServerState->hEventLog == (HANDLE)NULL)
+    {        
+        dwError = LsaSrvOpenEventLog(
+                      TableCategorySecurity,
+                      &pServerState->hEventLog);       
+        BAIL_ON_LSA_ERROR(dwError); 
     }
-
-    dwError = LsaSrvLogSuccessAuditEvent(
-                     hServer,
-                     LOGOUT_EVENT_CATEGORY,
-                     pszLoginId);
+    
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                     dwErrCode,
+                     &pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaSrvLogSuccessAuditEvent(       
+                     pServerState->hEventLog,
+                     LOGOUT_EVENT_CATEGORY,
+                     pszLoginId,
+                     pszData);
+    BAIL_ON_LSA_ERROR(dwError);
+    
 cleanup:
+    
+    LSA_SAFE_FREE_STRING(pszData);
 
     return;
 
 error:
 
-    LSA_LOG_ERROR("Failed to post logout success event for [%s]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
+    LSA_LOG_ERROR("Failed to post logout success event for [%s]", LSA_SAFE_LOG_STRING(pszLoginId));
+    LSA_LOG_ERROR("Error code: [%d]", dwError);
+
+    goto cleanup;
+}
+
+VOID
+LsaSrvWriteLogoutFailedEvent(
+    HANDLE hServer,
+    PCSTR  pszLoginId,
+    DWORD  dwErrCode
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PSTR pszData = NULL;
+
+    if (pServerState->hEventLog == (HANDLE)NULL)
+    {        
+        dwError = LsaSrvOpenEventLog(
+                      TableCategorySecurity,
+                      &pServerState->hEventLog);       
+        BAIL_ON_LSA_ERROR(dwError); 
+    }
+    
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                     dwErrCode,
+                     &pszData);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = LsaSrvLogFailureAuditEvent(       
+                     pServerState->hEventLog,
+                     LOGOUT_EVENT_CATEGORY,
+                     pszLoginId,
+                     pszData);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszData);
+
+    return;
+
+error:
+
+    LSA_LOG_ERROR("Failed to post logout failure event for [%s]", LSA_SAFE_LOG_STRING(pszLoginId));
     LSA_LOG_ERROR("Error code: [%d]", dwError);
 
     goto cleanup;

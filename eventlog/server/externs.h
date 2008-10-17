@@ -64,11 +64,9 @@ extern pthread_rwlock_t g_dbLock;
 
 #define DEFAULT_CONFIG_FILE_PATH CONFIGDIR "/eventlogd.conf"
 
-#define EVT_DEFAULT_MAX_LOG_SIZE    512 //KB
-#define EVT_DEFAULT_MAX_RECORDS     1000
-#define EVT_DEFAULT_MAX_AGE         7 //days
-
-//whether to remove records which have exceeded their lifespan
-#define EVT_DEFAULT_REM_RECORD_AGE  FALSE
+#define EVT_DEFAULT_MAX_LOG_SIZE    104857600 //100M,converting it in to bytes
+#define EVT_DEFAULT_MAX_RECORDS     100000	//100k,converting it 100 * 1000
+#define EVT_DEFAULT_MAX_AGE         90 //days
+#define EVT_DEFAULT_PURGE_INTERVAL  1 //days
 
 #endif /* __SERVER_EXTERNS_H__ */

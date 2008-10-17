@@ -382,8 +382,8 @@ NTSTATUS SamrAllocateAliasInfo(AliasInfo **out, AliasInfo *in, uint16 level)
         break;
 
     case ALIAS_INFO_DESCRIPTION:
-        status = SamrCopyUnicodeString(&ptr->all.description,
-                                       &in->all.description,
+        status = SamrCopyUnicodeString(&ptr->description,
+                                       &in->description,
                                        (void*)ptr);
         goto_if_ntstatus_not_success(status, error);
         break;

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        auth.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Client Authentication API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -58,10 +58,10 @@ LsaAuthenticateUser(
     PLSAMESSAGE pMessage = NULL;
     DWORD   dwMsgLen = 0;
     PSTR    pszError = NULL;
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_STRING(pszLoginName);
-        
+
     dwError = LsaMarshalCredentials(
                     pszLoginName,
                     pszPassword,
@@ -69,7 +69,7 @@ LsaAuthenticateUser(
                     NULL,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaBuildMessage(
                 LSA_Q_AUTH_USER,
                 dwMsgLen,
@@ -77,7 +77,7 @@ LsaAuthenticateUser(
                 1,
                 &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaMarshalCredentials(
                     pszLoginName,
                     pszPassword,
@@ -85,15 +85,15 @@ LsaAuthenticateUser(
                     pMessage->pData,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSendMessage(hLsaConnection, pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_MESSAGE(pMessage);
-    
+
     dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (pMessage->header.messageType) {
         case LSA_R_AUTH_USER:
         {
@@ -102,7 +102,7 @@ LsaAuthenticateUser(
         case LSA_ERROR:
         {
             DWORD dwSrvError = 0;
-              
+
             //
             // TODO: Log error string if available
             //
@@ -130,7 +130,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszError);
 
     return dwError;
-        
+
 error:
 
     goto cleanup;
@@ -148,10 +148,10 @@ LsaValidateUser(
     PLSAMESSAGE pMessage = NULL;
     DWORD   dwMsgLen = 0;
     PSTR    pszError = NULL;
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_STRING(pszLoginName);
-        
+
     dwError = LsaMarshalCredentials(
                     pszLoginName,
                     pszPassword,
@@ -159,7 +159,7 @@ LsaValidateUser(
                     NULL,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaBuildMessage(
                 LSA_Q_VALIDATE_USER,
                 dwMsgLen,
@@ -167,7 +167,7 @@ LsaValidateUser(
                 1,
                 &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaMarshalCredentials(
                     pszLoginName,
                     pszPassword,
@@ -175,15 +175,15 @@ LsaValidateUser(
                     pMessage->pData,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSendMessage(hLsaConnection, pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_MESSAGE(pMessage);
-    
+
     dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (pMessage->header.messageType) {
         case LSA_R_VALIDATE_USER:
         {
@@ -192,7 +192,7 @@ LsaValidateUser(
         case LSA_ERROR:
         {
             DWORD dwSrvError = 0;
-              
+
             //
             // TODO: Log error string if available
             //
@@ -220,7 +220,97 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszError);
 
     return dwError;
-        
+
+error:
+
+    goto cleanup;
+}
+
+LSASS_API
+DWORD
+LsaCheckUserInList(
+    HANDLE   hLsaConnection,
+    PCSTR    pszLoginName,
+    PCSTR    pszListName
+    )
+{
+    DWORD   dwError = 0;
+    PLSAMESSAGE pMessage = NULL;
+    DWORD   dwMsgLen = 0;
+    PSTR    pszError = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_STRING(pszLoginName);
+
+    dwError = LsaMarshalCredentials(
+                    pszLoginName,
+                    pszListName,
+                    NULL,
+                    NULL,
+                    &dwMsgLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaBuildMessage(
+                    LSA_Q_CHECK_USER_IN_LIST,
+                    dwMsgLen,
+                    1,
+                    1,
+                    &pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMarshalCredentials(
+                    pszLoginName,
+                    pszListName,
+                    NULL,
+                    pMessage->pData,
+                    &dwMsgLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSendMessage(hLsaConnection, pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_SAFE_FREE_MESSAGE(pMessage);
+
+    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (pMessage->header.messageType) {
+        case LSA_R_CHECK_USER_IN_LIST:
+        {
+            break;
+        }
+        case LSA_ERROR:
+        {
+            DWORD dwSrvError = 0;
+
+            //
+            // TODO: Log error string if available
+            //
+            dwError = LsaUnmarshalError(
+                          pMessage->pData,
+                          pMessage->header.messageLength,
+                          &dwSrvError,
+                          &pszError
+                          );
+            BAIL_ON_LSA_ERROR(dwError);
+            dwError = dwSrvError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        }
+        default:
+        {
+            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+
+    LSA_SAFE_FREE_MESSAGE(pMessage);
+    LSA_SAFE_FREE_STRING(pszError);
+
+    return dwError;
+
 error:
 
     goto cleanup;
@@ -239,10 +329,10 @@ LsaChangePassword(
     PLSAMESSAGE pMessage = NULL;
     DWORD   dwMsgLen = 0;
     PSTR    pszError = NULL;
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_STRING(pszLoginName);
-        
+
     dwError = LsaMarshalCredentials(
                     pszLoginName,
                     pszNewPassword,
@@ -250,7 +340,7 @@ LsaChangePassword(
                     NULL,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaBuildMessage(
                 LSA_Q_CHANGE_PASSWORD,
                 dwMsgLen,
@@ -258,7 +348,7 @@ LsaChangePassword(
                 1,
                 &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaMarshalCredentials(
                     pszLoginName,
                     pszNewPassword,
@@ -266,15 +356,15 @@ LsaChangePassword(
                     pMessage->pData,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSendMessage(hLsaConnection, pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_MESSAGE(pMessage);
-    
+
     dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (pMessage->header.messageType) {
         case LSA_R_CHANGE_PASSWORD:
         {
@@ -283,7 +373,7 @@ LsaChangePassword(
         case LSA_ERROR:
         {
             DWORD dwSrvError = 0;
-              
+
             //
             // TODO: Log error string if available
             //
@@ -311,7 +401,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszError);
 
     return dwError;
-        
+
 error:
 
     goto cleanup;

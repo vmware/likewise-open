@@ -44,9 +44,8 @@
 
 DWORD
 LWICheckSecurity(
-    handle_t hBindingHandle,
-    DWORD dwAuthProtocol,
-    PVOID pMechCtx
+    handle_t        hBindingHandle,
+    PEVTALLOWEDDATA pAllowedData
     );
 
 #endif /* __EVTSECURITY_H__ */

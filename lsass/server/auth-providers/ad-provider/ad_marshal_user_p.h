@@ -303,6 +303,12 @@ ADUnprovisionedMarshalToUserCache(
     );
 
 DWORD
+ADUnprovisionedMarshalToUserCacheInOneWayTrust(    
+    PLSA_LOGIN_NAME_INFO    pUserNameInfo,
+    PAD_SECURITY_OBJECT*    ppUserInfo
+    );
+
+DWORD
 AD_BuildHomeDirFromTemplate(
     PCSTR pszHomedirTemplate,
     PCSTR pszNetBIOSDomainName,

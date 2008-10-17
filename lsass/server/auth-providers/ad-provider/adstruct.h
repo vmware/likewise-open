@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Private header for Active Directory Authentication Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -53,13 +53,13 @@ typedef struct __AD_ENUM_STATE {
 
     DWORD dwInfoLevel;
     DWORD dwMapType;
-    
+
     struct berval *pCookie;
-    
-    BOOLEAN bMorePages; 
-    
+
+    BOOLEAN bMorePages;
+
     struct __AD_ENUM_STATE* pNext;
-    
+
 } AD_ENUM_STATE, *PAD_ENUM_STATE;
 
 typedef struct __AD_PROVIDER_CONTEXT
@@ -77,17 +77,16 @@ typedef struct _AD_LINKED_CELL_INFO
 {
     PSTR    pszCellDN;
     PSTR    pszDomain;
-    BOOLEAN bIsForestCell;    
+    BOOLEAN bIsForestCell;
 } AD_LINKED_CELL_INFO, *PAD_LINKED_CELL_INFO;
 
 typedef struct _AD_PROVIDER_DATA
 {
 	DWORD dwDirectoryMode;
 	ADConfigurationMode adConfigurationMode;
-	UINT64 adMaxPwdAge;	
+	UINT64 adMaxPwdAge;
 	CHAR  szDomain[256];
 	CHAR  szShortDomain[256];
-	CHAR  szServerName[256];
 	CHAR  szComputerDN[256];
     struct {
 	  CHAR szCellDN[256];
@@ -95,6 +94,28 @@ typedef struct _AD_PROVIDER_DATA
         // Contains type PAD_LINKED_CELL_INFO
 	PDLINKEDLIST pCellList;
 } AD_PROVIDER_DATA, *PAD_PROVIDER_DATA;
+
+typedef struct _LSA_AD_CONFIG {
+
+    DWORD        dwCacheReaperTimeoutSecs;
+    DWORD        dwCacheEntryExpirySecs;
+    CHAR         chSeparator;
+    BOOLEAN      bEnableEventLog;
+    BOOLEAN      bShouldLogNetworkConnectionEvents;
+    BOOLEAN      bCreateK5Login;
+    BOOLEAN      bCreateHomeDir;
+    BOOLEAN      bLDAPSignAndSeal;
+    BOOLEAN      bAssumeDefaultDomain;
+    BOOLEAN      bSyncSystemTime;
+    DWORD        dwMachinePasswordSyncLifetime;
+    PSTR         pszShell;
+    PSTR         pszHomedirPrefix;
+    PSTR         pszHomedirTemplate;
+    DWORD        dwUmask;
+    PSTR         pszSkelDirs;
+    PDLINKEDLIST pUnresolvedMemberList;
+
+} LSA_AD_CONFIG, *PLSA_AD_CONFIG;
 
 typedef struct _LSA_AD_PROVIDER_STATE {
     /// Tracks machine credentials state
@@ -106,6 +127,8 @@ typedef struct _LSA_AD_PROVIDER_STATE {
         /// determine whe
         pthread_mutex_t* pMutex;
     } MachineCreds;
+    MEDIA_SENSE_HANDLE MediaSenseHandle;
+    LSA_AD_CONFIG      config;
 } LSA_AD_PROVIDER_STATE, *PLSA_AD_PROVIDER_STATE;
 
 #endif /* __AD_STRUCT_H__ */

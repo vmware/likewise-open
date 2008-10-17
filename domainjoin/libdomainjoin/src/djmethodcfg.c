@@ -42,7 +42,7 @@ CENTERROR
 DJIsMethodsCfgConfigured(BOOLEAN *configured)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
-    PCSTR pszRegExp = "^[[:space:]]*program[[:space:]]*=[[:space:]]*\\/usr\\/lib\\/security\\/LWIDENTITY[[:space:]]*$";
+    PCSTR pszRegExp = "^[[:space:]]*program[[:space:]]*=[[:space:]]*\\/usr\\/lib\\/security\\/LSASS[[:space:]]*$";
     BOOLEAN bPatternExists = FALSE;
     BOOLEAN bFileExists = FALSE;
 
@@ -72,7 +72,7 @@ DJUnconfigMethodsConfigFile()
 {
     BOOLEAN exists;
     CENTERROR ceError = CENTERROR_SUCCESS;
-    PCSTR exprRemoveBlankLine = "/^$/ {\nN\n/\\nLWIDENTITY.*/ D\n}";
+    PCSTR exprRemoveBlankLine = "/^$/ {\nN\n/\\nLSASS.*/ D\n}";
 
     ceError = DJHasMethodsCfg(&exists);
     BAIL_ON_CENTERIS_ERROR(ceError);
@@ -84,11 +84,11 @@ DJUnconfigMethodsConfigFile()
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = CTRunSedOnFile(methodsPath, methodsPath, FALSE,
-            "/^LWIDENTITY.*/d");
+            "/^LSASS.*/d");
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = CTRunSedOnFile(methodsPath, methodsPath, FALSE,
-            "/^[ \t]*[^ \t#*].*LWIDENTITY.*/d");
+            "/^[ \t]*[^ \t#*].*LSASS.*/d");
     BAIL_ON_CENTERIS_ERROR(ceError);
 
 error:
@@ -126,8 +126,8 @@ DJFixMethodsConfigFile()
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    fprintf(fp, "\nLWIDENTITY:\n");
-    fprintf(fp, "\tprogram = /usr/lib/security/LWIDENTITY\n");
+    fprintf(fp, "\nLSASS:\n");
+    fprintf(fp, "\tprogram = /usr/lib/security/LSASS\n");
     fclose(fp); fp = NULL;
 
     ceError = CTBackupFile(methodsPath);

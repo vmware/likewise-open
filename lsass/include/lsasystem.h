@@ -65,12 +65,15 @@
 
 #ifndef WIN32
   #include <stdarg.h>
+  /* pthread.h must be included before errno so that a thread-safe errno is
+     used if available.
+   */
+  #include <pthread.h>
   #include <errno.h>	
   #include <netdb.h>
   #include <ctype.h>
   #include <wctype.h>
   #include <sys/types.h>
-  #include <pthread.h>
   #include <syslog.h>
   #include <signal.h>
   #include <limits.h>

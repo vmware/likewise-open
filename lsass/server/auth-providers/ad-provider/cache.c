@@ -125,35 +125,31 @@ error:
     goto cleanup;
 }
 
-DWORD
+VOID
 ADShutdownCacheReaper(
     VOID
     )
 {
     DWORD dwError = 0;
     
-    if (gpCacheReaperThread) {
-        
+    if (gpCacheReaperThread)
+    {
         pthread_mutex_lock(&gCacheReaperThreadLock);
         pthread_cond_signal(&gCacheReaperThreadCondition);
         pthread_mutex_unlock(&gCacheReaperThreadLock);
-        
+
         dwError = pthread_cancel(gCacheReaperThread);
         if (ESRCH == dwError)
         {
             dwError = 0;
         }
-        BAIL_ON_LSA_ERROR(dwError);
+        if (dwError)
+        {
+            LSA_LOG_ERROR("Unexpected error trying to cancel thread (error = %d)", dwError);
+            dwError = 0;
+        }
         
         pthread_join(gCacheReaperThread, NULL);
         gpCacheReaperThread = NULL;
     }
-
-cleanup:
-    
-    return dwError;
-    
-error:
-
-    goto cleanup;
 }

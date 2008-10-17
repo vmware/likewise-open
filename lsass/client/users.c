@@ -340,6 +340,9 @@ LsaFindUserByName(
 
 cleanup:
 
+    // The first entry from the user info list is being returned to the caller,
+    // but the parent list needs to be freed.
+    LSA_SAFE_FREE_MEMORY(ppUserInfoList);
     LSA_SAFE_FREE_MESSAGE(pMessage);
     LSA_SAFE_FREE_STRING(pszError);
 
@@ -349,6 +352,7 @@ error:
 
     if (ppUserInfoList) {
         LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsers);
+        ppUserInfoList = NULL;
     }
     
     if (ppUserInfo) {
@@ -456,6 +460,9 @@ LsaFindUserById(
 
 cleanup:
 
+    // The first entry from the user info list is being returned to the caller,
+    // but the parent list needs to be freed.
+    LSA_SAFE_FREE_MEMORY(ppUserInfoList);
     LSA_SAFE_FREE_MESSAGE(pMessage);
     LSA_SAFE_FREE_STRING(pszError);
 
@@ -465,6 +472,7 @@ error:
 
     if (ppUserInfoList) {
         LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsers);
+        ppUserInfoList = NULL;
     }
     
     if (ppUserInfo) {

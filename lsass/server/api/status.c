@@ -303,6 +303,8 @@ LsaSrvCopyTrustedDomainInfoArray(
         pDestDomainInfo->dwTrustFlags = pSrcDomainInfo->dwTrustFlags;
         pDestDomainInfo->dwTrustType = pSrcDomainInfo->dwTrustType;
         pDestDomainInfo->dwTrustAttributes = pSrcDomainInfo->dwTrustAttributes;
+        pDestDomainInfo->dwTrustDirection = pSrcDomainInfo->dwTrustDirection;
+        pDestDomainInfo->dwTrustMode = pSrcDomainInfo->dwTrustMode;
         
         dwError = LsaStrDupOrNull(
                         pSrcDomainInfo->pszForestName,

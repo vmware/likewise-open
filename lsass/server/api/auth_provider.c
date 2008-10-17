@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Authentication Provider Management API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -52,25 +52,25 @@ LsaSrvFreeAuthProvider(
     )
 {
     if (pProvider) {
-        
+
         LSA_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
-        
+
         if (pProvider->pFnShutdown) {
-            
+
            pProvider->pFnShutdown(
                        pProvider->pszName,
                        pProvider->pFnTable
                        );
-           
+
         }
-        
+
         if (pProvider->pLibHandle) {
            dlclose(pProvider->pLibHandle);
         }
-        
+
         LSA_SAFE_FREE_STRING(pProvider->pszId);
         LSA_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
-        
+
         LsaFreeMemory(pProvider);
     }
 }
@@ -81,7 +81,7 @@ LsaSrvFreeAuthProviderStack(
     )
 {
     while (pProviderStack) {
-        PLSA_AUTH_PROVIDER pProvider = 
+        PLSA_AUTH_PROVIDER pProvider =
             (PLSA_AUTH_PROVIDER)LsaStackPop(&pProviderStack);
         LsaSrvFreeAuthProvider(pProvider);
     }
@@ -116,6 +116,7 @@ LsaSrvValidateProvider(
         !pProvider->pFnTable->pfnServicesDomain ||
         !pProvider->pFnTable->pfnAuthenticateUser ||
         !pProvider->pFnTable->pfnValidateUser ||
+        !pProvider->pFnTable->pfnCheckUserInList ||
         !pProvider->pFnTable->pfnLookupUserByName ||
         !pProvider->pFnTable->pfnLookupUserById ||
         !pProvider->pFnTable->pfnBeginEnumUsers ||
@@ -145,7 +146,7 @@ LsaSrvValidateProvider(
     {
         return LSA_ERROR_INVALID_AUTH_PROVIDER;
     }
-    
+
     return 0;
 }
 
@@ -159,16 +160,16 @@ LsaSrvInitAuthProvider(
     PFNINITIALIZEPROVIDER pfnInitProvider = NULL;
     PCSTR  pszError = NULL;
     PSTR pszProviderLibpath = NULL;
-    
+
     if (IsNullOrEmptyString(pProvider->pszProviderLibpath)) {
         dwError = ENOENT;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     pszProviderLibpath = pProvider->pszProviderLibpath;
-    
+
     dlerror();
-        
+
     pProvider->pLibHandle = dlopen(pszProviderLibpath, RTLD_NOW | RTLD_GLOBAL);
     if (pProvider->pLibHandle == NULL) {
        LSA_LOG_ERROR("Failed to open auth provider at path [%s]", pszProviderLibpath);
@@ -177,56 +178,56 @@ LsaSrvInitAuthProvider(
        if (!IsNullOrEmptyString(pszError)) {
           LSA_LOG_ERROR("%s", pszError);
        }
-            
+
        dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
        BAIL_ON_LSA_ERROR(dwError);
     }
-        
+
     dlerror();
     pfnInitProvider = (PFNINITIALIZEPROVIDER)dlsym(
                                         pProvider->pLibHandle,
                                         LSA_SYMBOL_NAME_INITIALIZE_PROVIDER);
     if (pfnInitProvider == NULL) {
        LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
-            
+
        pszError = dlerror();
        if (!IsNullOrEmptyString(pszError)) {
           LSA_LOG_ERROR("%s", pszError);
        }
-            
+
        dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
        BAIL_ON_LSA_ERROR(dwError);
     }
-        
+
     dlerror();
     pProvider->pFnShutdown = (PFNSHUTDOWNPROVIDER)dlsym(
                                         pProvider->pLibHandle,
                                         LSA_SYMBOL_NAME_SHUTDOWN_PROVIDER);
     if (pProvider->pFnShutdown == NULL) {
        LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
-            
+
        pszError = dlerror();
        if (!IsNullOrEmptyString(pszError)) {
           LSA_LOG_ERROR("%s", pszError);
        }
-            
+
        dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
        BAIL_ON_LSA_ERROR(dwError);
     }
-        
+
     dwError = pfnInitProvider(
                     pszConfigFilePath,
                     &pProvider->pszName,
                     &pProvider->pFnTable);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     dwError = LsaSrvValidateProvider(pProvider);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -242,7 +243,7 @@ LsaSrvInitAuthProviders(
     PLSA_AUTH_PROVIDER pProvider = NULL;
     PLSA_STACK pProviderStack = NULL;
     BOOLEAN bInLock = FALSE;
-    
+
     dwError = LsaParseConfigFile(
                     pszConfigFilePath,
                     LSA_CFG_OPTION_STRIP_ALL,
@@ -255,39 +256,39 @@ LsaSrvInitAuthProviders(
     BAIL_ON_LSA_ERROR(dwError);
 
     pProvider = (PLSA_AUTH_PROVIDER) LsaStackPop(&pProviderStack);
-    
+
     while(pProvider)
     {
         dwError = LsaSrvInitAuthProvider(pszConfigFilePath, pProvider);
-        
+
         if (dwError)
         {
             LSA_LOG_ERROR("Failed to load provider [%s] at [%s] [error code:%d]",
                 (pProvider->pszName ? pProvider->pszName : "<null>"),
                 (pProvider->pszProviderLibpath ? pProvider->pszProviderLibpath : "<null>"),
                 dwError);
-            
+
             LsaSrvFreeAuthProvider(pProvider);
             pProvider = NULL;
             dwError = 0;
         }
-        else 
+        else
         {
             pProvider->pNext = pProviderList;
             pProviderList = pProvider;
         }
         pProvider = (PLSA_AUTH_PROVIDER) LsaStackPop(&pProviderStack);
     }
-    
+
     ENTER_AUTH_PROVIDER_LIST_WRITER_LOCK(bInLock);
-    
+
     LsaSrvFreeAuthProviderList(gpAuthProviderList);
-    
+
     gpAuthProviderList = pProviderList;
     pProviderList = NULL;
-    
+
     LEAVE_AUTH_PROVIDER_LIST_WRITER_LOCK(bInLock);
-    
+
 cleanup:
 
     if (pProviderStack)
@@ -301,13 +302,13 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     if (pProviderList) {
         LsaSrvFreeAuthProviderList(pProviderList);
     }
-    
+
     goto cleanup;
 }
 
@@ -318,11 +319,11 @@ LsaCfgFreeAuthProviderInStack(
     )
 {
     DWORD dwError = 0;
-    
+
     if (pItem) {
         LsaSrvFreeAuthProvider((PLSA_AUTH_PROVIDER)pItem);
     }
-    
+
     return dwError;
 }
 
@@ -341,39 +342,39 @@ LsaSrvAuthProviderConfigStartSection(
     BOOLEAN bContinue = TRUE;
     BOOLEAN bSkipSection = FALSE;
     PCSTR   pszLibName = NULL;
-    
+
     BAIL_ON_INVALID_POINTER(ppProviderStack);
-    
+
     if (IsNullOrEmptyString(pszSectionName) ||
         strncasecmp(pszSectionName, LSA_CFG_TAG_AUTH_PROVIDER, sizeof(LSA_CFG_TAG_AUTH_PROVIDER)-1))
     {
         bSkipSection = TRUE;
         goto done;
     }
-    
+
     pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_AUTH_PROVIDER) - 1;
     if (IsNullOrEmptyString(pszLibName)) {
         LSA_LOG_WARNING("No Auth Provider Plugin name was specified");
         bSkipSection = TRUE;
         goto done;
     }
-    
+
     dwError = LsaAllocateMemory(
                 sizeof(LSA_AUTH_PROVIDER),
                 (PVOID*)&pProvider);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     dwError = LsaAllocateString(
-                pszLibName, 
+                pszLibName,
                 &pProvider->pszId);
-    BAIL_ON_LSA_ERROR(dwError);   
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaStackPush(
                 pProvider,
                 ppProviderStack
                 );
-    BAIL_ON_LSA_ERROR(dwError); 
-    
+    BAIL_ON_LSA_ERROR(dwError);
+
 done:
 
     *pbSkipSection = bSkipSection;
@@ -382,12 +383,12 @@ done:
 cleanup:
 
     return dwError;
-        
+
 error:
-    
+
     *pbContinue = FALSE;
     *pbSkipSection = TRUE;
-    
+
     if (pProvider)
     {
         LsaSrvFreeAuthProvider(pProvider);
@@ -410,45 +411,45 @@ LsaSrvAuthProviderConfigNameValuePair(
     PSTR pszProviderLibpath = NULL;
 
     BAIL_ON_INVALID_POINTER(ppProviderStack);
-    
+
     pProvider = (PLSA_AUTH_PROVIDER) LsaStackPeek(*ppProviderStack);
-    
+
     if (!pProvider)
     {
         dwError = LSA_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (strcasecmp(pszName, "path") == 0)
     {
         if (!IsNullOrEmptyString(pszValue)) {
             dwError = LsaAllocateString(
-                        pszValue, 
+                        pszValue,
                         &pszProviderLibpath);
             BAIL_ON_LSA_ERROR(dwError);
         }
-        
+
         //don't allow redefinition a value within a section.
         if (pProvider->pszProviderLibpath != NULL)
         {
             LSA_LOG_WARNING("path redefined in configuration file");
             LSA_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
         }
-        
+
         pProvider->pszProviderLibpath = pszProviderLibpath;
         pszProviderLibpath = NULL;
     }
 
     *pbContinue = TRUE;
-    
+
 cleanup:
 
     return dwError;
-        
+
 error:
 
     LSA_SAFE_FREE_STRING(pszProviderLibpath);
-    
+
     *pbContinue = FALSE;
 
     goto cleanup;
@@ -460,12 +461,12 @@ LsaSrvFreeAuthProviders(
     )
 {
     BOOLEAN bInLock = FALSE;
-    
+
     ENTER_AUTH_PROVIDER_LIST_WRITER_LOCK(bInLock);
-    
+
     LsaSrvFreeAuthProviderList(gpAuthProviderList);
     gpAuthProviderList = NULL;
-    
+
     LEAVE_AUTH_PROVIDER_LIST_WRITER_LOCK(bInLock);
 }
 
@@ -476,12 +477,12 @@ LsaGetNumberOfProviders_inlock(
 {
     DWORD dwCount = 0;
     PLSA_AUTH_PROVIDER pProvider = NULL;
-    
+
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwCount++;
     }
-    
+
     return dwCount;
 }
 

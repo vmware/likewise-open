@@ -311,6 +311,13 @@ KtLdapGetKeyVersionW(
     );
 
 DWORD
+KtLdapGetSaltingPrincipal(
+    PCSTR pszDcName,
+    PCSTR pszBaseDn,
+    PCSTR pszMachAcctName,
+    PSTR *pszSalt);
+
+DWORD
 KtGetSaltingPrincipal(
     PCSTR pszMachineName,
     PCSTR pszDnsDomainName,

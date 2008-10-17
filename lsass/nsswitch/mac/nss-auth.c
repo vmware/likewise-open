@@ -51,7 +51,8 @@
 DWORD
 _nss_lsass_authenticate(
     PCSTR pszUserName,
-    PCSTR pszPassword
+    PCSTR pszPassword,
+    bool  bAuthOnly
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -64,6 +65,18 @@ _nss_lsass_authenticate(
                                   pszUserName,
                                   pszPassword);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaCheckUserInList(hLsaConnection,
+                                 pszUserName,
+                                 NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bAuthOnly == false)
+    {
+        dwError = LsaOpenSession(hLsaConnection,
+                                 pszUserName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 cleanup:
 

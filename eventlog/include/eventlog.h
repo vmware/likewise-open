@@ -306,6 +306,7 @@ typedef struct _EVENT_LOG_RECORD
     PSTR    pszUser;
     PSTR    pszComputer;
     PSTR    pszDescription;
+    PSTR    pszData;
 
 } EVENT_LOG_RECORD, *PEVENT_LOG_RECORD;
 
@@ -317,7 +318,6 @@ typedef struct _EVENT_LOG_RECORD
 typedef struct _EVENT_LOG_HANDLE
 {
     UINT64 bindingHandle;
-    PSTR   pszBindingString;
 
     short  bDefaultActive;
 
@@ -409,7 +409,8 @@ LWIWriteEventLog(
     HANDLE hEventLog,
     PCSTR eventType,
     PCSTR eventCategory,
-    PCSTR eventDescription
+    PCSTR eventDescription,
+    PCSTR eventData
     );
 
 DWORD

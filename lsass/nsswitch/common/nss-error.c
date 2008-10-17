@@ -62,7 +62,6 @@ LsaNssMapErrorCode(
         
     switch(dwError)
     {
-        
         case LSA_ERROR_NO_SUCH_USER:
         case LSA_ERROR_NO_SUCH_GROUP:
             {

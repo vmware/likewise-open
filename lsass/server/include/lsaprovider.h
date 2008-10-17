@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Authentication Provider Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -70,6 +70,11 @@ typedef DWORD (*PFNVALIDATEUSER)(
                         PCSTR  pszLoginId,
                         PCSTR  pszPassword
                         );
+
+typedef DWORD (*PFNCHECKUSERINLIST)(
+                        HANDLE hProvider,
+                        PCSTR  pszLoginId,
+                        PCSTR  pszListName);
 
 typedef DWORD (*PFNLOOKUPUSERBYNAME)(
                         HANDLE  hProvider,
@@ -183,7 +188,7 @@ typedef DWORD (*PFNDELETEGROUP) (
 
 typedef DWORD (*PFNOPENSESSION) (
                         HANDLE hProvider,
-                        PCSTR  pszLoginId                        
+                        PCSTR  pszLoginId
                         );
 
 typedef DWORD (*PFNCLOSESESSION) (
@@ -240,6 +245,7 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNSERVICESDOMAIN              pfnServicesDomain;
     PFNAUTHENTICATEUSER            pfnAuthenticateUser;
     PFNVALIDATEUSER                pfnValidateUser;
+    PFNCHECKUSERINLIST             pfnCheckUserInList;
     PFNLOOKUPUSERBYNAME            pfnLookupUserByName;
     PFNLOOKUPUSERBYID              pfnLookupUserById;
     PFNBEGIN_ENUM_USERS            pfnBeginEnumUsers;

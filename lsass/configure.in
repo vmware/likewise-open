@@ -16,10 +16,14 @@ PKG_VERSION="5.0.0"
 # Platform-specific stuff
 
 MOD_EXT=".so"
-HOME_DIR_PATH_DEFAULT="/home"
+
+CF_FRAMEWORK_LDFLAGS=""
+SC_FRAMEWORK_LDFLAGS=""
 
 AC_DEFINE(__LW_MOTD_FILE__, "/etc/motd", [File which contains the message of the day])
 AC_DEFINE(__LW_MOTD_MAX_SIZE__, 4096, [The maximum number of bytes which will be displayed from the MOTD])
+
+AC_USE_SYSTEM_EXTENSIONS
 
 case "$host_os:$host_cpu" in
 	linux*:i?86)
@@ -38,19 +42,15 @@ case "$host_os:$host_cpu" in
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="solaris"
-                HOME_DIR_PATH_DEFAULT="/export/home"
 		AC_DEFINE([__LWI_SOLARIS__], [], [Define if OS is Solaris])
-		AC_DEFINE([__EXTENSIONS__], [], [Solaris requires this macro to be defined to enable
-several function declarations like:
-settimeofday(3) in sys/time.h
-vsyslog(3) in syslog.h])
-	        AC_DEFINE([_XOPEN_SOURCE], [500], [Define to desired XOPEN compliance level])
+	    AC_DEFINE([_XOPEN_SOURCE], [500], [Define to desired XOPEN compliance level])
 		;;
 	darwin*:*)
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/pam"
-                NSS_SUBDIR="mac"
-                HOME_DIR_PATH_DEFAULT="/Users"
+        NSS_SUBDIR="mac"
+        CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
+        SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
 		# MACCLIENT_DIR="macclient"
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
 		;;
@@ -68,7 +68,7 @@ vsyslog(3) in syslog.h])
 		MOD_EXT=".sl"
 		AC_SUBST(NSS_SHR_EXT)
 		AC_DEFINE([__LWI_HP_UX__], [], [Define if OS is HP-UX])
-                AC_DEFINE([_XOPEN_SOURCE_EXTENDED], [1], [Define on HP-UX])
+        AC_DEFINE([_XOPEN_SOURCE_EXTENDED], [1], [Define on HP-UX])
 		;;
 	hpux*:ia64*)
 		nss_libdir="/usr/lib"
@@ -77,12 +77,14 @@ vsyslog(3) in syslog.h])
 		NSS_SHR_EXT=".so"
 		AC_SUBST(NSS_SHR_EXT)
 		AC_DEFINE([__LWI_HP_UX__], [], [Define if OS is HP-UX])
-                AC_DEFINE([_XOPEN_SOURCE_EXTENDED], [1], [Define on HP-UX])
+        AC_DEFINE([_XOPEN_SOURCE_EXTENDED], [1], [Define on HP-UX])
 		;;
 	aix*:*)
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="aix"
+		NSS_SHR_EXT=""
+		AC_SUBST(NSS_SHR_EXT)
 		AC_DEFINE([__LWI_AIX__], [], [Define if OS is AIX])
                 AC_DEFINE([_LINUX_SOURCE_COMPAT], [], [Enable Linux source compatibility on AIX])
 		;;
@@ -91,7 +93,8 @@ esac
 AC_SUBST(NSS_SUBDIR)
 AC_SUBST(MACCLIENT_DIR)
 AC_SUBST(MOD_EXT)
-AC_SUBST(HOME_DIR_PATH_DEFAULT)
+AC_SUBST(CF_FRAMEWORK_LDFLAGS)
+AC_SUBST(SC_FRAMEWORK_LDFLAGS)
 
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of shared modules])
 
@@ -415,7 +418,7 @@ AC_ARG_ENABLE([debug],
                 fi
         ])
 
-CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_GNU_SOURCE"
+CPPFLAGS="$CPPFLAGS -D_REENTRANT"
 
 AM_CPPFLAGS="$AM_CPPFLAGS -I${top_srcdir}/include"
 AM_CFLAGS="$AM_CFLAGS -Wall -Werror -fno-strict-aliasing"
@@ -464,6 +467,7 @@ AC_CHECK_LIB([socket], [bind], [SOCKET_LIBS="-lsocket"])
 
 AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNISTR_LDFLAGS])
 AC_CHECK_LIB([crypto], [DES_set_key], [CRYPTO_LIBS="-lcrypto"], [], [$CRYPTO_LDFLAGS])
+AC_CHECK_LIB([pam], [pam_start], [PAM_LIBS="-lpam"])
 
 AC_SUBST(NSL_LIBS)
 AC_SUBST(DL_LIBS)
@@ -472,6 +476,7 @@ AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(RT_LIBS)
 AC_SUBST(UUID_LIBS)
 AC_SUBST(SOCKET_LIBS)
+AC_SUBST(PAM_LIBS)
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -599,7 +604,10 @@ AC_CONFIG_FILES([Makefile
                  server/auth-providers/local-provider/Makefile
                  server/ipc/Makefile
                  server/lsassd/Makefile
-                 pam/Makefile
+                 access/Makefile
+                 auth/Makefile
+                 auth/common/Makefile
+                 auth/pam/Makefile
                  wbclient/Makefile
                  tools/Makefile
                  tools/add_user/Makefile

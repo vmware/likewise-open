@@ -858,7 +858,7 @@ FixNetworkInterfaces(
         }
     }
 
-    ceError = CTShell("/bin/hostname %hostname",
+    ceError = CTShell("/bin/hostname %hostname >/dev/null",
             CTSHELL_STRING(hostname, pszComputerName));
 
     if (ceError == CENTERROR_COMMAND_FAILED) {

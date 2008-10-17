@@ -71,6 +71,7 @@ typedef struct _LSA_DM_DC_INFO {
 } LSA_DM_DC_INFO, *PLSA_DM_DC_INFO;
 
 typedef struct _LSA_DM_ENUM_DOMAIN_INFO {
+    // Can be NULL for downlevel domain
     PSTR pszDnsDomainName;
     PSTR pszNetbiosDomainName;
     PSID pSid;
@@ -79,6 +80,9 @@ typedef struct _LSA_DM_ENUM_DOMAIN_INFO {
     DWORD dwTrustFlags;
     DWORD dwTrustType;
     DWORD dwTrustAttributes;
+    LSA_TRUST_DIRECTION dwTrustDirection;
+    LSA_TRUST_MODE dwTrustMode;
+    // Can be NULL (e.g. external trust)
     PSTR pszForestName;
     PSTR pszClientSiteName;
     LSA_DM_DOMAIN_FLAGS Flags;
@@ -94,6 +98,7 @@ typedef struct _LSA_DM_CONST_DC_INFO {
 } LSA_DM_CONST_DC_INFO, *PLSA_DM_CONST_DC_INFO;
 
 typedef struct _LSA_DM_CONST_ENUM_DOMAIN_INFO {
+    // Can be NULL for downlevel domain
     PCSTR pszDnsDomainName;
     PCSTR pszNetbiosDomainName;
     PSID pSid;
@@ -102,6 +107,9 @@ typedef struct _LSA_DM_CONST_ENUM_DOMAIN_INFO {
     DWORD dwTrustFlags;
     DWORD dwTrustType;
     DWORD dwTrustAttributes;
+    LSA_TRUST_DIRECTION dwTrustDirection;
+    LSA_TRUST_MODE dwTrustMode;
+    // Can be NULL (e.g. external trust)
     PCSTR pszForestName;
     PCSTR pszClientSiteName;
     LSA_DM_DOMAIN_FLAGS Flags;
@@ -180,6 +188,8 @@ LsaDmAddTrustedDomain(
     IN DWORD dwTrustFlags,
     IN DWORD dwTrustType,
     IN DWORD dwTrustAttributes,
+    IN LSA_TRUST_DIRECTION dwTrustDirection,
+    IN LSA_TRUST_MODE dwTrustMode,
     IN OPTIONAL PCSTR pszDnsForestName,
     IN OPTIONAL PLWNET_DC_INFO pDcInfo
     );
@@ -234,6 +244,8 @@ LsaDmQueryDomainInfo(
     OUT OPTIONAL PDWORD pdwTrustFlags,
     OUT OPTIONAL PDWORD pdwTrustType,
     OUT OPTIONAL PDWORD pdwTrustAttributes,
+    OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,
     OUT OPTIONAL PSTR* ppszForestName,
     OUT OPTIONAL PSTR* ppszClientSiteName,
     OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
@@ -393,7 +405,7 @@ LsaDmIsEitherDomainNameMatch(
     );
 
 BOOLEAN
-LsaDmIsNetbiosDomainName(
+LsaDmIsValidNetbiosDomainName(
     IN PCSTR pszDomainName
     );
 

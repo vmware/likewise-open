@@ -312,7 +312,6 @@ ADCacheDB_Initialize(
             "lwiproviderdata.ADMaxPwdAge, "
             "lwiproviderdata.Domain, "
             "lwiproviderdata.ShortDomain, "
-            "lwiproviderdata.ServerName, "
             "lwiproviderdata.ComputerDN, "
             "lwiproviderdata.CellDN "
             "from lwiproviderdata ",
@@ -333,6 +332,8 @@ ADCacheDB_Initialize(
             "lwidomaintrusts.TrustFlags, "
             "lwidomaintrusts.TrustType, "
             "lwidomaintrusts.TrustAttributes, "
+            "lwidomaintrusts.TrustDirection, "
+            "lwidomaintrusts.TrustMode, "
             "lwidomaintrusts.ForestName, "
             "lwidomaintrusts.Flags "
             "from lwidomaintrusts ORDER BY RowIndex ASC",
@@ -1197,6 +1198,13 @@ ADCacheDB_UnpackUserInfo(
         "AliasName",
         &pResult->userInfo.pszAliasName);
     BAIL_ON_LSA_ERROR(dwError);
+    if ( !pResult->userInfo.pszAliasName)
+    {
+        dwError = LsaAllocateString(
+                      "",
+                      &pResult->userInfo.pszAliasName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = ADCacheDB_ReadSqliteString(
         pstQuery,
@@ -1321,6 +1329,13 @@ ADCacheDB_UnpackGroupInfo(
         "AliasName",
         &pResult->groupInfo.pszAliasName);
     BAIL_ON_LSA_ERROR(dwError);
+    if ( !pResult->groupInfo.pszAliasName)
+    {
+        dwError = LsaAllocateString(
+                      "",
+                      &pResult->groupInfo.pszAliasName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = ADCacheDB_ReadSqliteString(
         pstQuery,
@@ -1399,6 +1414,20 @@ ADCacheDB_UnpackDomainTrust(
         piColumnPos,
         "TrustAttributes",
         &pResult->dwTrustAttributes);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = ADCacheDB_ReadSqliteUInt32(
+        pstQuery,
+        piColumnPos,
+        "TrustDirection",
+        &pResult->dwTrustDirection);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = ADCacheDB_ReadSqliteUInt32(
+        pstQuery,
+        piColumnPos,
+        "TrustMode",
+        &pResult->dwTrustMode);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADCacheDB_ReadSqliteString(
@@ -1736,7 +1765,9 @@ ADCacheDB_CacheObjectEntries(
                         ppObjects[sIndex]->userInfo.uid,
                         ppObjects[sIndex]->userInfo.gid,
                         ppObjects[sIndex]->userInfo.pszUPN,
-                        ppObjects[sIndex]->userInfo.pszAliasName,
+                        IsNullOrEmptyString(ppObjects[sIndex]->userInfo.pszAliasName) ?
+                            NULL :
+                            ppObjects[sIndex]->userInfo.pszAliasName,
                         ppObjects[sIndex]->userInfo.pszPasswd,
                         ppObjects[sIndex]->userInfo.pszGecos,
                         ppObjects[sIndex]->userInfo.pszShell,
@@ -1769,7 +1800,9 @@ ADCacheDB_CacheObjectEntries(
                         ")",
                         ppObjects[sIndex]->pszObjectSid,
                         ppObjects[sIndex]->groupInfo.gid,
-                        ppObjects[sIndex]->groupInfo.pszAliasName,
+                        IsNullOrEmptyString(ppObjects[sIndex]->groupInfo.pszAliasName) ?
+                            NULL :
+                            ppObjects[sIndex]->groupInfo.pszAliasName,
                         ppObjects[sIndex]->groupInfo.pszPasswd
                         );
                     break;
@@ -2911,7 +2944,7 @@ ADCacheDB_GetProviderData(
     BOOLEAN bInLock = FALSE;
     // do not free
     sqlite3_stmt *pstQuery = NULL;
-    const int nExpectedCols = 8;
+    const int nExpectedCols = 7;
     int iColumnPos = 0;
     int nGotColumns = 0;
     PAD_PROVIDER_DATA pResult = NULL;
@@ -2986,14 +3019,6 @@ ADCacheDB_GetProviderData(
         "ShortDomain",
         pResult->szShortDomain,
         sizeof(pResult->szShortDomain));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_ReadSqliteStringInPlace(
-        pstQuery,
-        &iColumnPos,
-        "ServerName",
-        pResult->szServerName,
-        sizeof(pResult->szServerName));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADCacheDB_ReadSqliteStringInPlace(
@@ -3082,14 +3107,12 @@ ADCacheDB_CacheProviderData(
                 "ADMaxPwdAge, "
                 "Domain, "
                 "ShortDomain, "
-                "ServerName, "
                 "ComputerDN, "
                 "CellDN "
             ") values ("
                 "%d,"
                 "%d,"
                 "%lld,"
-                "%Q,"
                 "%Q,"
                 "%Q,"
                 "%Q,"
@@ -3102,7 +3125,6 @@ ADCacheDB_CacheProviderData(
         pProvider->adMaxPwdAge,
         pProvider->szDomain,
         pProvider->szShortDomain,
-        pProvider->szServerName,
         pProvider->szComputerDN,
         pProvider->cell.szCellDN,
         pszCellCommand
@@ -3142,7 +3164,7 @@ ADCacheDB_GetDomainTrustList(
     BOOLEAN bInLock = FALSE;
     // do not free
     sqlite3_stmt *pstQuery = NULL;
-    const int nExpectedCols = 11;
+    const int nExpectedCols = 13;
     int iColumnPos = 0;
     int nGotColumns = 0;
     PDLINKEDLIST pList = NULL;
@@ -3287,6 +3309,8 @@ ADCacheDB_CacheDomainTrustList(
                 "TrustFlags, "
                 "TrustType, "
                 "TrustAttributes, "
+                "TrustDirection, "
+                "TrustMode, "
                 "ForestName, "
                 "Flags "
             ") values ("
@@ -3296,6 +3320,8 @@ ADCacheDB_CacheDomainTrustList(
                 "%Q, "
                 "%Q, "
                 "%Q, "
+                "%d, "
+                "%d, "
                 "%d, "
                 "%d, "
                 "%d, "
@@ -3312,6 +3338,8 @@ ADCacheDB_CacheDomainTrustList(
             pDomain->dwTrustFlags,
             pDomain->dwTrustType,
             pDomain->dwTrustAttributes,
+            pDomain->dwTrustDirection,
+            pDomain->dwTrustMode,
             pDomain->pszForestName,
             pDomain->pszClientSiteName,
             pDomain->Flags);

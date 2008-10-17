@@ -54,8 +54,8 @@
  * license@likewisesoftware.com
  */
 
+#include "config.h"
 #include "ctbase.h"
-#include "config/config.h"
 #if HAVE_UTMPS_H
 #include <utmps.h>
 #elif HAVE_UTMPX_H
@@ -121,17 +121,10 @@ CTVerifyUID(
   
   memset(&user, 0, sizeof(struct passwd));
 
-#if defined(__LWI_SOLARIS__)
-  if ((pResult = getpwuid_r(uid, &user, szBuf, sizeof(szBuf))) == NULL) {
-    ceError = CENTERROR_INVALID_UID;
-    BAIL_ON_CENTERIS_ERROR(ceError);
-  }
-#else
   if (getpwuid_r(uid, &user, szBuf, sizeof(szBuf), &pResult) < 0) {
     ceError = CTMapSystemError(errno);
     BAIL_ON_CENTERIS_ERROR(ceError);
   }
-#endif
 
   if (!pResult) {
      ceError = CENTERROR_INVALID_UID;
@@ -156,17 +149,10 @@ CTGetLoginId(
   
   memset(&user, 0, sizeof(struct passwd));
 
-#if defined(__LWI_SOLARIS__)
-  if ((pResult = getpwuid_r(uid, &user, szBuf, sizeof(szBuf))) == NULL) {
-    ceError = CENTERROR_INVALID_UID;
-    BAIL_ON_CENTERIS_ERROR(ceError);
-  }
-#else
   if (getpwuid_r(uid, &user, szBuf, sizeof(szBuf), &pResult) < 0) {
     ceError = CTMapSystemError(errno);
     BAIL_ON_CENTERIS_ERROR(ceError);
   }
-#endif
 
   if (!pResult) {
      ceError = CENTERROR_INVALID_UID;
@@ -213,17 +199,10 @@ CTGetUID(
 
     memset(&user, 0, sizeof(struct passwd));
 
-#if defined(__LWI_SOLARIS__)
-    if ((pResult = getpwnam_r(pszUID, &user, szBuf, sizeof(szBuf))) == NULL) {
-      ceError = CENTERROR_INVALID_UID;
-      BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-#else
     if (getpwnam_r(pszUID, &user, szBuf, sizeof(szBuf), &pResult) < 0) {
       ceError = CTMapSystemError(errno);
       BAIL_ON_CENTERIS_ERROR(ceError);
     }
-#endif
 
     if (!pResult) {
        ceError = CENTERROR_INVALID_UID;
@@ -262,17 +241,10 @@ CTGetUserGID(
 
     memset(&user, 0, sizeof(struct passwd));
 
-#if defined(__LWI_SOLARIS__)
-    if ((pResult = getpwnam_r(pszGID, &user, szBuf, sizeof(szBuf))) == NULL) {
-      ceError = CENTERROR_INVALID_GID;
-      BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-#else
     if (getpwnam_r(pszGID, &user, szBuf, sizeof(szBuf), &pResult) < 0) {
       ceError = CTMapSystemError(errno);
       BAIL_ON_CENTERIS_ERROR(ceError);
     }
-#endif
 
     if (!pResult) {
        ceError = CENTERROR_INVALID_GID;
@@ -301,17 +273,10 @@ CTGetHomeDirectory(
 
         memset(&user, 0, sizeof(struct passwd));
 	  
-	#if defined(__LWI_SOLARIS__)
-	  if ((pResult = getpwuid_r(uid, &user, szBuf, sizeof(szBuf))) == NULL) {
-	     ceError = CENTERROR_INVALID_UID;
-	     BAIL_ON_CENTERIS_ERROR(ceError);
-	  }
-	#else
-	  if (getpwuid_r(uid, &user, szBuf, sizeof(szBuf), &pResult) < 0) {
+	if (getpwuid_r(uid, &user, szBuf, sizeof(szBuf), &pResult) < 0) {
 	     ceError = CTMapSystemError(errno);
 	     BAIL_ON_CENTERIS_ERROR(ceError);
-	  }
-	#endif
+	}
 
 	  if (!pResult) {
 	     ceError = CENTERROR_INVALID_UID;

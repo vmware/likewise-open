@@ -7,10 +7,19 @@ CFLAGS="$CFLAGS -g -fno-strict-aliasing -Wall -Werror"
 AC_CONFIG_SRCDIR([ctlib/test/testclient.c])
 AC_CONFIG_HEADER([config.h])
 
+LIB_XNET=""
+
 case `uname` in
      FreeBSD|Isilon*)
          FEATUREMACRO_FLAGS="-D_XOPEN_SOURCE=600 -D_BSD_SOURCE=1 -D__BSD_VISIBLE -D_REENTRANT -D_THREAD_SAFE"
 	 ;;
+     HP-UX)
+         FEATUREMACRO_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_ALL_SOURCE=1 -D_POSIX_PTHREAD_SEMANTICS -D_REENTRANT -D_THREAD_SAFE"
+	 LIB_XNET="-lxnet"
+	 ;;
+     Darwin)
+         FEATUREMACRO_FLAGS=""
+         ;;
      *)
          FEATUREMACRO_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_ALL_SOURCE=1 -D_POSIX_PTHREAD_SEMANTICS -D_REENTRANT -D_THREAD_SAFE"
 	 ;;
@@ -19,6 +28,7 @@ esac
 CPPFLAGS="$CPPFLAGS $FEATUREMACRO_FLAGS"
 
 AC_SUBST(LTLDFLAGS)
+AC_SUBST(LIB_XNET)
 
 SMBCLIENT_CPPFLAGS=""
 SMBCLIENT_LDFLAGS=""
@@ -82,8 +92,6 @@ AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
 
 # Checks for libraries.
-AC_CHECK_LIB([c], [malloc])
-
 AC_CHECK_LIB([krb5], [krb5_free_context], [KRB5_LDFLAGS="$KRB5_LDFLAGS -lkrb5 -lcom_err"], AC_MSG_ERROR([Use --with-krb5-dir to find libkrb5.so]), [$KRB5_LDFLAGS])
 
 AC_CHECK_LIB([smbclient], [smbc_init_context], [SMBCLIENT_LDFLAGS="$SMBCLIENT_LDFLAGS -lsmbclient"], AC_MSG_ERROR([Use --with-smbclient-dir to specify the base path (everything except /lib) that contains smbclient]), [$SMBCLIENT_LDFLAGS $KRB5_LDFLAGS] )
@@ -105,7 +113,7 @@ AC_SUBST([NETLOGON_LDFLAGS])
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h strings.h sys/socket.h syslog.h termios.h unistd.h select.h sys/select.h])
+AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h strings.h sys/socket.h sys/types.h syslog.h termios.h unistd.h select.h sys/select.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -117,6 +125,10 @@ AC_TYPE_SIZE_T
 AC_HEADER_TIME
 AC_STRUCT_TM
 AC_C_BIGENDIAN(,,[AC_MSG_ERROR(System has unknown byte order)])
+AC_CHECK_MEMBERS([struct msghdr.msg_control],,, [
+#include <sys/socket.h>
+#include <sys/types.h>
+])
 
 # Checks for library functions.
 AC_FUNC_CHOWN
@@ -132,10 +144,15 @@ AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([atexit dup2 getcwd localtime_r memmove memset mkdir realpath regcomp rmdir select socket strerror strncasecmp])
+AC_CHECK_FUNCS([atexit dup2 getcwd localtime_r memmove memset mkdir realpath regcomp rmdir select socket strerror strncasecmp getpeereid])
 AC_CHECK_FUNCS([sigwait sigwaitinfo])
 AC_CHECK_FUNCS([rand random])
 AC_CHECK_FUNCS([vsyslog])
+AC_CHECK_DECLS([getpeereid],,, [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+])
 
 AC_CHECK_LIB(socket, socket, [LIB_socket="-lsocket"], [LIB_socket=""])
 AC_SUBST(LIB_socket)

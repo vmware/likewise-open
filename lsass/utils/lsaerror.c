@@ -303,6 +303,11 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND                    : 32892
     "Failed to find any names for SIDs using NetAPI",
     // LSA_ERROR_RPC_LSA_LOOKUPSIDS_FOUND_DUPLICATES             : 32893
+    "Password does not meet requirements",             
+    // LSA_ERROR_PASSWORD_RESTRICTION                            : 32894
+    "Password does not meet requirements",
+    // LSA_ERROR_OBJECT_NOT_ENABLED                              : 32895
+    "The user/group is not enabled in the cell",
 };
 
 size_t
@@ -472,4 +477,54 @@ LsaGetUnmappedErrorString(
     stResult = dwRequiredLen;
    
     return stResult;
+}
+
+DWORD
+LsaGetErrorMessageForLoggingEvent(
+    DWORD dwErrCode,
+    PSTR* ppszErrorMsg)
+{
+    DWORD dwErrorBufferSize = 0;    
+    DWORD dwError = 0;
+    DWORD dwLen = 0;
+    PSTR  pszErrorMsg = NULL;
+    PSTR  pszErrorBuffer = NULL;
+
+    dwErrorBufferSize = LsaGetErrorString(dwErrCode, NULL, 0);
+    
+    if (!dwErrorBufferSize)
+        goto cleanup;
+        
+    dwError = LsaAllocateMemory(
+                dwErrorBufferSize,
+                (PVOID*)&pszErrorBuffer);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwLen = LsaGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
+        
+    if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+    {
+        dwError = LsaAllocateStringPrintf(
+                     &pszErrorMsg,
+                     "Error: %s [error code: %d]",
+                     pszErrorBuffer,
+                     dwErrCode);         
+        BAIL_ON_LSA_ERROR(dwError);
+    }    
+    
+    *ppszErrorMsg = pszErrorMsg;
+    
+cleanup:
+    
+    LSA_SAFE_FREE_STRING(pszErrorBuffer);
+    
+    return dwError;
+    
+error:
+
+    LSA_SAFE_FREE_STRING(pszErrorMsg);
+
+    *ppszErrorMsg = NULL;
+
+    goto cleanup;
 }

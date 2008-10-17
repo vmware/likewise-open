@@ -187,10 +187,14 @@ DJRemoveCacheFiles()
     CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR pattern = "/var/lib/lwidentity/*cache.tdb";
     BOOLEAN bFileExists = FALSE;
+    BOOLEAN bDirExists = FALSE;
     glob_t matches = {.gl_pathc = 0, .gl_pathv = NULL};
     int result;
     int i;
     const char *file;
+    const char *cachePath;
+
+    /* Likewise 4.X cache location files ... */
 
     result = glob(pattern, 0, NULL, &matches);
 
@@ -222,6 +226,8 @@ DJRemoveCacheFiles()
 	}
     }
 
+    /* Likewise 5.0 cache location files... */
+
     file = LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db";
     ceError = CTCheckFileExists(file, &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
@@ -230,6 +236,32 @@ DJRemoveCacheFiles()
     {
         DJ_LOG_VERBOSE("Removing cache file %s", file);
         ceError = CTRemoveFile(file);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* Likewise 5.0 (Mac Workgroup Manager) cache files... */
+
+    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/mcx";
+    ceError = CTCheckDirectoryExists(cachePath, &bDirExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bDirExists)
+    {
+        DJ_LOG_VERBOSE("Removing Mac MCX cache files from %s", cachePath);
+        ceError = CTRemoveDirectory(cachePath);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* Likewise 5.0 (group policy scratch) files... */
+
+    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/scratch";
+    ceError = CTCheckDirectoryExists(cachePath, &bDirExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bDirExists)
+    {
+        DJ_LOG_VERBOSE("Removing grouppolicy scratch files from %s", cachePath);
+        ceError = CTRemoveDirectory(cachePath);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
@@ -1278,6 +1310,7 @@ void DJCreateComputerAccount(
     PSTR origEnv = NULL;
     CHAR krb5ConfEnv[256];
     DWORD dwFlags = 0;
+    DWORD err = 0;
 
     memset(&distro, 0, sizeof(distro));
 
@@ -1316,14 +1349,31 @@ void DJCreateComputerAccount(
             dwFlags |= LSA_NET_JOIN_DOMAIN_NOTIMESYNC;
         }
 
-        LW_CLEANUP_LSERR(exc, lsaFunctions->pfnNetJoinDomain(options->computerName,
-                                     options->domainName,
-                                     options->ouName,
-                                     options->username,
-                                     options->password,
-                                     osName,
-                                     distro.version,
-                                     dwFlags));
+        err = lsaFunctions->pfnNetJoinDomain(
+                  options->computerName,
+                  options->domainName,
+                  options->ouName,
+                  options->username,
+                  options->password,
+                  osName,
+                  distro.version,
+                  dwFlags);
+        if (err)
+        {
+            switch(err)
+            {
+                case ENOENT:
+                    LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INVALID_OU, "Lsass Error", "The OU is invalid.");
+                    break;
+                case EINVAL:
+                    LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INVALID_FORMAT, "Lsass Error", "The OU format is invalid.");
+                    break;
+                default:
+                    LW_RAISE_LSERR(exc, err);
+                    break;
+            }
+            goto cleanup;
+        }
 
         LW_TRY(exc, DJGuessShortDomainName(
                                      options->domainName,

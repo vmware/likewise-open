@@ -417,7 +417,6 @@ LsaKrb5RealmIsOffline(
     return bIsOffline;
 }
 
-static
 VOID
 LsaKrb5RealmTransitionOffline(
     IN PCSTR pszRealm

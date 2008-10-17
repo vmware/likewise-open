@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Config (INF Style) parser
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,27 +55,27 @@
 typedef struct __LSA_CONFIG_PARSE_STATE
 {
     PSTR  pszFilePath;
-    
+
     PVOID pData;
-    
+
     DWORD dwOptions;
-    
+
     FILE* fp;
-    
+
     DWORD dwLine;
     DWORD dwCol;
 
     BOOLEAN bSkipSection;
-    
+
     PSTR pszSectionName;
-    
+
     PLSA_STACK pLexerTokenStack; //only for lexer
-    
+
     PFNCONFIG_START_SECTION   pfnStartSectionHandler;
     PFNCONFIG_COMMENT         pfnCommentHandler;
     PFNCONFIG_NAME_VALUE_PAIR pfnNameValuePairHandler;
     PFNCONFIG_END_SECTION     pfnEndSectionHandler;
-    
+
 } LSA_CONFIG_PARSE_STATE, *PLSA_CONFIG_PARSE_STATE;
 
 typedef enum
@@ -151,7 +151,8 @@ LsaCfgParse(
 
 DWORD
 LsaCfgParseSections(
-    PLSA_CONFIG_PARSE_STATE pParseState
+    PLSA_CONFIG_PARSE_STATE pParseState,
+    PBOOLEAN pbContinue
     );
 
 DWORD

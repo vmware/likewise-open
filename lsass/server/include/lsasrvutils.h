@@ -49,6 +49,19 @@
  */
 #ifndef __LSASRVUTILS_H__
 #define __LSASRVUTILS_H__
+
+#define LOGIN_EVENT_CATEGORY        "Login"
+#define LOGOUT_EVENT_CATEGORY       "Logout"
+#define SERVICESTART_EVENT_CATEGORY "Service Start"
+#define SERVICESTOP_EVENT_CATEGORY  "Service Stop"
+#define GENERAL_EVENT_CATEGORY      "General"
+#define NONE_EVENT_CATEGORY         "None"
+
+#define SUCCESS_AUDIT_EVENT_TYPE    "Audit Success"
+#define FAILURE_AUDIT_EVENT_TYPE    "Audit Failure"
+#define INFORMATION_EVENT_TYPE      "Information"
+#define WARNING_EVENT_TYPE          "Warning"
+#define ERROR_EVENT_TYPE            "Error"
 	
 //Convert to seconds string of form ##s, ##m, ##h, or ##d
 //where s,m,h,d = seconds, minutes, hours, days.
@@ -63,5 +76,111 @@ LsaSetSystemTime(
     time_t ttCurTime
     );
 
+VOID
+LsaSrvLogUserPWChangeSuccessEvent(
+    PCSTR pszLoginId,
+    PCSTR pszUserType
+    );
+
+VOID
+LsaSrvLogUserPWChangeFailureEvent(
+    PCSTR pszLoginId,
+    PCSTR pszUserType,
+    DWORD dwErrCode
+    );
+
+VOID
+LsaSrvLogUserIDConflictEvent(
+    uid_t uid,
+    PCSTR pszProviderName,
+    DWORD dwErrCode
+    );
+
+VOID
+LsaSrvLogUserAliasConflictEvent(
+    PCSTR pszAlias,
+    PCSTR pszProviderName,
+    DWORD dwErrCode
+    );
+
+VOID
+LsaSrvLogDuplicateObjectFoundEvent(
+    PCSTR pszName1,
+    PCSTR pszName2,
+    PCSTR pszProviderName,
+    DWORD dwErrCode
+    );
+
+VOID
+LsaSrvLogServiceSuccessEvent(
+    PCSTR pszEventCategory,
+    PCSTR pszDescription,
+    PCSTR pszData
+    );
+
+VOID
+LsaSrvLogServiceWarningEvent(
+    PCSTR pszEventCategory,
+    PCSTR pszDescription,
+    PCSTR pszData
+    );
+
+VOID
+LsaSrvLogServiceFailureEvent(
+    PCSTR pszEventCategory,
+    PCSTR pszDescription,
+    PCSTR pszData
+    );
+
+DWORD
+LsaSrvOpenEventLog(
+    TableCategoryType tabCategoryType,   
+    PHANDLE           phEventLog
+    );
+
+DWORD
+LsaSrvLogInformationEvent(
+    HANDLE hEventLog,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+LsaSrvLogWarningEvent(
+    HANDLE hEventLog,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+LsaSrvLogErrorEvent(
+    HANDLE hEventLog,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+LsaSrvLogSuccessAuditEvent(
+    HANDLE hEventLog,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+LsaSrvLogFailureAuditEvent(
+    HANDLE hEventLog,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+LsaSrvCloseEventLog(
+    HANDLE hEventLog
+    );
 
 #endif /* __LSASRVUTILS_H__ */

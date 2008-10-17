@@ -158,6 +158,7 @@ _nss_lsass_initgroups_dyn(
         else
         {
             pGidResults = pGidResultsNew;
+            *ppGidResults = pGidResults;
         }
 
         /* The number of filled elements is whatever our old capacity was */
@@ -176,7 +177,6 @@ _nss_lsass_initgroups_dyn(
 
     if (ret == NSS_STATUS_SUCCESS)
     {
-        *ppGidResults = pGidResults;
         *pResultsSize = (long int) resultsSize;
         *pResultsCapacity = (long int) resultsCapacity;
     }

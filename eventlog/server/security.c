@@ -54,7 +54,8 @@ LWIGetGSSSecurityContextInfo(
     DWORD dwError = EVT_ERROR_SUCCESS;
     int gss_rc = 0;
     OM_uint32 minor_status = 0;
-    gss_name_t src, dst;
+    gss_name_t src = GSS_C_NO_NAME;
+    gss_name_t dst = GSS_C_NO_NAME;
     OM_uint32 ctx_flags = 0;
     int open_context = 0;
     gss_buffer_desc src_name = GSS_C_EMPTY_BUFFER;
@@ -120,11 +121,20 @@ LWIGetGSSSecurityContextInfo(
     *pszServerName = pszServer;
     *dwSecFlags    = dwFlags;
 
+cleanup:
+
     gss_release_buffer(&minor_status, &src_name);
     gss_release_buffer(&minor_status, &dst_name);
 
-cleanup:
-           
+    if (src)
+    {
+        gss_release_name(&minor_status, &src);
+    }
+    if (dst)
+    {
+        gss_release_name(&minor_status, &dst);
+    }
+
     return dwError;
 
 error:
@@ -140,7 +150,8 @@ error:
 
 DWORD
 LWICheckGSSSecurity(
-    gss_ctx_id_t gss_ctx
+    gss_ctx_id_t    gss_ctx,
+    PEVTALLOWEDDATA pAllowedData
     )
 {
     DWORD dwError = EVT_ERROR_SUCCESS;
@@ -148,15 +159,26 @@ LWICheckGSSSecurity(
     PSTR pszServerName = NULL;
     DWORD dwFlags = 0;
 
+    // We require LSASS in order to parse the configuration data.
+    // If we were not able to do so earlier, try it again here.
+
+    if ( pAllowedData->configData && !pAllowedData->pAllowedTo )
+    {
+        dwError = EVTAccessGetData(
+                      pAllowedData->configData,
+                      &pAllowedData->pAllowedTo);
+        BAIL_ON_EVT_ERROR(dwError);
+    }
+
     dwError = LWIGetGSSSecurityContextInfo(gss_ctx,
                                            &pszClientName, &pszServerName,
                                            &dwFlags);
     BAIL_ON_EVT_ERROR(dwError);
 
-    /*
-     * Here's the place for actual security checking now that we have
-     * caller and called principal names and also security context flags
-     */
+    dwError = EVTAccessCheckData(
+                  pszClientName,
+                  pAllowedData->pAllowedTo);
+    BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
     EVT_SAFE_FREE_STRING(pszClientName);
@@ -171,34 +193,65 @@ error:
 
 DWORD
 LWICheckSecurity(
-    handle_t hBindingHandle,
-    DWORD dwAuthProtocol,
-    PVOID pMechCtx
+    handle_t        hBindingHandle,
+    PEVTALLOWEDDATA pAllowedData
     )
 {
     DWORD dwError = EVT_ERROR_SUCCESS;
-    unsigned32 rpcError;
+    volatile unsigned32 rpcError;
     unsigned char* pszStringBinding = NULL;
     unsigned char* pszProtocol = NULL;
+    DWORD dwAuthnProtocol = 0;
+    PVOID pMechCtx = NULL;
 
-    rpc_binding_to_string_binding(hBindingHandle, &pszStringBinding, &rpcError);
+    TRY
+    {
+        /*
+         * This is expected to fail for local rpc.
+         */
+        rpc_binding_inq_security_context(
+            hBindingHandle,
+            (unsigned32*)&dwAuthnProtocol,
+            &pMechCtx,
+            (unsigned32*)&rpcError);
+    }
+    CATCH_ALL
+    ENDTRY;
+
+    TRY
+    {
+        rpc_binding_to_string_binding(
+            hBindingHandle,
+            &pszStringBinding,
+            (unsigned32*)&rpcError);
+    }
+    CATCH_ALL
+    ENDTRY;
+
     BAIL_ON_DCE_ERROR(dwError, rpcError);
 
-    rpc_string_binding_parse(
-        pszStringBinding,
-        NULL,
-        &pszProtocol,
-        NULL,
-        NULL,
-        NULL,
-        &rpcError);
+    TRY
+    {
+        rpc_string_binding_parse(
+            pszStringBinding,
+            NULL,
+            &pszProtocol,
+            NULL,
+            NULL,
+            NULL,
+            (unsigned32*)&rpcError);
+    }
+    CATCH_ALL
+    ENDTRY;
 
     BAIL_ON_DCE_ERROR(dwError, rpcError);
 
-    switch(dwAuthProtocol)
+    switch(dwAuthnProtocol)
     {
     case rpc_c_authn_gss_negotiate:
-        dwError = LWICheckGSSSecurity((gss_ctx_id_t)pMechCtx);
+        dwError = LWICheckGSSSecurity(
+                      (gss_ctx_id_t)pMechCtx,
+                      pAllowedData);
         break;
         
     default:
@@ -218,12 +271,12 @@ error:
     
     if (pszStringBinding)
     {
-        rpc_string_free(&pszStringBinding, &rpcError);
+        rpc_string_free(&pszStringBinding, (unsigned32*)&rpcError);
     }
 
     if (pszProtocol)
     {
-        rpc_string_free(&pszProtocol, &rpcError);
+        rpc_string_free(&pszProtocol, (unsigned32*)&rpcError);
     }
 
     return dwError;

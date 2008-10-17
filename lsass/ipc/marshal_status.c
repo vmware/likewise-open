@@ -339,6 +339,8 @@ LsaMarshalDomainInfo(
     domainInfoMsg.dwTrustAttributes = pDomainInfo->dwTrustAttributes;
     domainInfoMsg.dwTrustFlags = pDomainInfo->dwTrustFlags;
     domainInfoMsg.dwTrustType = pDomainInfo->dwTrustType;
+    domainInfoMsg.dwTrustDirection = pDomainInfo->dwTrustDirection;
+    domainInfoMsg.dwTrustMode = pDomainInfo->dwTrustMode;    
     
     if (pDomainInfo->pszClientSiteName)
     {
@@ -694,6 +696,8 @@ LsaUnmarshalDomainInfoList(
         pDomainInfo->dwTrustAttributes = domainInfoMsg.dwTrustAttributes;
         pDomainInfo->dwTrustFlags = domainInfoMsg.dwTrustFlags;
         pDomainInfo->dwTrustType = domainInfoMsg.dwTrustType;
+        pDomainInfo->dwTrustDirection = domainInfoMsg.dwTrustDirection;
+        pDomainInfo->dwTrustMode = domainInfoMsg.dwTrustMode;
         
         if (domainInfoMsg.clientSiteName.length)
         {

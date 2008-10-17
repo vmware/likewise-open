@@ -82,9 +82,9 @@ typedef struct _CT_SERVER_HANDLE_DATA {
 typedef struct _CT_SERVER_CLIENT_HANDLE_DATA {
     int Fd;
     uid_t Uid;
+    gid_t Gid;
     CT_SERVER_HANDLE ServerHandle;
     bool IsDissociated;
-    bool IsAuthenticated;
     pthread_t Thread;
     CT_LIST_LINKS links;
 } _CT_SERVER_CLIENT_HANDLE_DATA;
@@ -242,6 +242,252 @@ cleanup:
 
     return status;
 }
+
+#if defined(HAVE_GETPEEREID)
+
+#if defined(HAVE_DECL_GETPEEREID) && !HAVE_DECL_GETPEEREID
+int getpeereid(int fd, uid_t* uid, gid_t* gid);
+#endif
+
+CT_STATUS
+CtpRecvCreds(
+    int fd,
+    uid_t* pUid,
+    gid_t* pGid
+    )
+{
+    CT_STATUS status = 0;
+    if (getpeereid(fd, pUid, pGid) != 0)
+    {
+        status = CT_ERRNO_TO_STATUS(errno);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+ cleanup:
+
+    return status;
+}
+
+CT_STATUS
+CtpSendCreds(int fd)
+{
+    return 0;
+}
+
+#else
+
+#ifndef CMSG_ALIGN
+#    if defined(_CMSG_DATA_ALIGN)
+#        define CMSG_ALIGN _CMSG_DATA_ALIGN
+#    elif defined(_CMSG_ALIGN)
+#        define CMSG_ALIGN _CMSG_ALIGN
+#    endif
+#endif
+
+#ifndef CMSG_SPACE
+#    define CMSG_SPACE(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
+#endif
+
+#ifndef CMSG_LEN
+#    define CMSG_LEN(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
+#endif
+
+
+CT_STATUS
+CtpSendCreds(
+    int fd
+    )
+{
+    CT_STATUS status = 0;
+    char payload = 0xff;
+    int credFd[2] = {-1, -1};
+    struct iovec payload_vec = {0};
+    struct msghdr msg = {0};
+    int ret = 0;
+
+#ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
+    union
+    {
+        struct cmsghdr cm;
+        char buf[CMSG_SPACE(sizeof(*credFd))];
+    } buf_un;
+    struct cmsghdr *cmsg = NULL;
+#endif
+
+    /* Create pipe to use as a credential fd */
+    if (pipe(credFd))
+    {
+        status = CT_ERRNO_TO_STATUS(errno);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    /* Set up dummy payload */
+    payload_vec.iov_base = &payload;
+    payload_vec.iov_len = sizeof(payload);
+    msg.msg_iov = &payload_vec;
+    msg.msg_iovlen = 1;
+
+#ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
+    /* Set up ancillary data */
+    msg.msg_control = buf_un.buf;
+    msg.msg_controllen = sizeof(buf_un.buf);
+
+    cmsg = CMSG_FIRSTHDR(&msg);
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_RIGHTS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(*credFd));
+
+    memcpy(CMSG_DATA(cmsg), credFd, sizeof(*credFd));
+#else
+    msg.msg_accrights = (char*) credFd;
+    msg.msg_accrightslen = sizeof(*credFd);
+#endif
+
+    /* Send message */
+    do
+    {
+        ret = sendmsg(fd, &msg, 0);
+    } while (ret < 0 && (errno == EAGAIN || errno == EINTR));
+
+    if (ret < 0)
+    {
+        status = CT_ERRNO_TO_STATUS(errno);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+cleanup:
+
+    if (credFd[0] != -1)
+        close(credFd[0]);
+    if (credFd[1] != -1)
+        close(credFd[1]);
+
+    return status;
+}
+
+static int
+CtpVerifyStat(
+    struct stat* statbuf
+    )
+{
+    /* fd must be a fifo (pipe) */
+    if (!S_ISFIFO(statbuf->st_mode))
+    {
+        return 0;
+    }
+    /* if fd is only accessible by the owner, it is good */
+    if ((statbuf->st_mode & (S_IRWXG | S_IRWXO)) == 0)
+    {
+        return 1;
+    }
+    /* if fd is only accessible by the owner and the group, and it
+       has no inode (doesn't exist on the filesystem), it is good
+       (this is the case on Darwin systems) */
+    if ((statbuf->st_mode & S_IRWXO) == 0 && statbuf->st_ino == 0)
+    {
+        return 1;
+    }
+    /* in all other cases, the fd is bad */
+    return 0;
+}
+
+CT_STATUS
+CtpRecvCreds(
+    int fd,
+    uid_t* pUid,
+    gid_t* pGid
+    )
+{
+    CT_STATUS status = 0;
+    int ret = 0;
+    char payload = 0;
+    int credFd = -1;
+    struct iovec payload_vec = {0};
+    struct msghdr msg = {0};
+#ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
+    union
+    {
+        struct cmsghdr cm;
+        char buf[CMSG_SPACE(sizeof(credFd))];
+    } buf_un;
+    struct cmsghdr *cmsg = NULL;
+#endif
+    struct stat statbuf = {0};
+
+    /* Set up area to receive dummy payload */
+    payload_vec.iov_base = &payload;
+    payload_vec.iov_len = sizeof(payload);
+    msg.msg_iov = &payload_vec;
+    msg.msg_iovlen = 1;
+
+#ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
+    /* Set up area to receive ancillary data */
+    msg.msg_control = buf_un.buf;
+    msg.msg_controllen = sizeof(buf_un.buf);
+#else
+    msg.msg_accrights = (char*) &credFd;
+    msg.msg_accrightslen = sizeof(credFd);
+#endif
+
+    do
+    {
+        ret = recvmsg(fd, &msg, 0);
+    } while (ret < 0 && (errno == EAGAIN || errno == EINTR));
+
+    if (ret < 0)
+    {
+        status = CT_ERRNO_TO_STATUS(errno);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    /* Extract credential fd */
+    
+#ifdef HAVE_STRUCT_MSGHDR_MSG_CONTROL
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg))
+    {
+        if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+        {
+            memcpy(&credFd, CMSG_DATA(cmsg), sizeof(credFd));
+            break;
+        }
+    }
+#endif
+
+    /* Fail if we couldn't extract a valid fd from message */
+    if (credFd == -1)
+    {
+        status = CT_ERRNO_TO_STATUS(EBADF);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    /* Stat the fd to find the uid/gid of the peer socket */
+    if (fstat(credFd, &statbuf) != 0)
+    {
+        status = CT_ERRNO_TO_STATUS(errno);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+    
+    /* Check that the fd sent must have been created by the peer */
+    if (!CtpVerifyStat(&statbuf))
+    {
+        status = CT_ERRNO_TO_STATUS(EPERM);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    *pUid = statbuf.st_uid;
+    *pGid = statbuf.st_gid;
+
+cleanup:
+
+    if (credFd != -1)
+    {
+        close(credFd);
+    }
+
+    return status;
+}
+
+#endif
 
 CT_STATUS
 CtServerReadMessageData(
@@ -505,9 +751,13 @@ CtpServerClientThread(
     CT_SERVER_ACQUIRE(client->ServerHandle);
     client->ServerHandle->ClientCount++;
     CT_SERVER_RELEASE(client->ServerHandle);
+    
+    status = CtpRecvCreds(client->Fd, &client->Uid, &client->Gid);
+    if (status) pthread_exit(NULL);
+
+    CT_LOG_VERBOSE("Received creds uid=%u gid=%u\n", (unsigned int) client->Gid, (unsigned int) client->Gid);
 
     status = CtSocketSetNonBlocking(client->Fd);
-
     if (status) pthread_exit(NULL);
 
     while (!isDone && !client->IsDissociated)
@@ -542,34 +792,6 @@ CtpServerClientThread(
 
 static
 CT_STATUS
-CtpServerCreateClientPath(
-    OUT char** Path,
-    IN const char* Prefix,
-    IN OPTIONAL const char* Discriminator
-    )
-{
-    CT_STATUS status;
-    status = CtAllocateStringPrintf(Path,
-                                    "%s_%s_%ld_%ld_%ld",
-                                    Prefix,
-                                    Discriminator ? Discriminator : "",
-                                    (long) getuid(),
-                                    (long) getpid(),
-                                    (unsigned long) pthread_self());
-    return status;
-}
-
-CT_STATUS
-CtServerCreateClientPath(
-    OUT char** Path,
-    IN const char* Prefix
-    )
-{
-    return CtpServerCreateClientPath(Path, Prefix, NULL);
-}
-
-static
-CT_STATUS
 CtpServerInitUnixAddress(
     OUT struct sockaddr_un* Address,
     IN const char* Path
@@ -590,178 +812,13 @@ CtpServerTerminateAccept(
 {
     CT_STATUS status = CT_STATUS_SUCCESS;
     int fd = -1;
-    char* clientPath = NULL;
 
-    status = CtAllocateStringPrintf(&clientPath,
-                                    "%s.%s",
-                                    ServerPath,
-                                    "terminate");
-    GOTO_CLEANUP_ON_STATUS(status);
-
-    status = CtServerConnect(&fd, ServerPath, clientPath);
-
-cleanup:
-    if (clientPath)
-    {
-        CtFileUnlink(clientPath);
-    }
+    status = CtServerConnect(&fd, ServerPath);
 
     CT_SAFE_CLOSE_FD(fd);
-    CT_SAFE_FREE(clientPath);
 
     return status;
 }
-
-
-CT_STATUS
-CtGenerateRandomNumber(
-    OUT int *num
-    )
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    unsigned long seed = 0;
-    pthread_t selfId = pthread_self();
-
-    memcpy(&seed, &selfId, sizeof(selfId));
-    seed += getpid();
-    seed += time(0);
-    
-#if defined(HAVE_RAND)
-    srand(seed);
-    *num = (unsigned int) rand();
-#elif defined(HAVE_RANDOM)
-    srandom(seed);
-    *num = (unsigned int) random();
-#else
-    unsigned char p[4];
-
-    /* last resort if there's no random number generators found
-       - get current time of swap the bytes a little */
-
-    p[0] = seed & 0xff;
-    p[1] = (seed >> 8) & 0xff;
-    p[2] = (seed >> 16) & 0xff;
-    p[3] = (seed >> 24) & 0xff;
-
-    *num = ((unsigned int)p[2]) << 24 |
-           ((unsigned int)p[0]) << 16 |
-           ((unsigned int)p[3]) << 8  |
-           ((unsigned int)p[1]);
-#endif
-
-    return status;
-}
-
-
-static
-CT_STATUS
-CtpSecSocketCreatePath(
-    OUT char** Path,
-    IN const char* Directory)
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    char *socketPath = NULL;
-    uid_t uid;
-    int randnum = 0;
-
-    uid = geteuid();
-    
-    status = CtGenerateRandomNumber(&randnum);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtAllocateStringPrintf(&socketPath, "%s.%d.%08x",
-				    Directory, uid, randnum);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    *Path = socketPath;
-    return status;
-
-cleanup:
-    CT_SAFE_FREE(socketPath);
-
-    return status;
-}
-
-
-CT_STATUS
-CtSecSocketCreate(
-    OUT int *Fd,
-    OUT char **SocketPath,
-    IN char *Directory)
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    struct sockaddr_un socketAddress;
-    char *Path = NULL;
-    int secFd = -1;
-    int ret = 0;
-
-    secFd = socket(PF_UNIX, SOCK_STREAM, 0);
-    if (secFd < 0)
-    {
-        status = CT_ERRNO_TO_STATUS(errno);
-	GOTO_CLEANUP_EE(EE);
-    }
-
-    status = CtpSecSocketCreatePath(&Path, Directory);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-    
-    status = CtpServerInitUnixAddress(&socketAddress, Path);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    ret = bind(secFd,
-	       (struct sockaddr*)&socketAddress,
-	       sizeof(socketAddress));
-    if (ret < 0)
-    {
-        status = CT_ERRNO_TO_STATUS(errno);
-	GOTO_CLEANUP_EE(EE);
-    }
-
-    *Fd = secFd;
-    *SocketPath = Path;
-
-cleanup:
-    return status;
-}
-
-
-CT_STATUS
-CtSecSocketConnect(
-    OUT int *Fd,
-    IN char *socketPath)
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE;
-    struct sockaddr_un socketAddress;
-    int secFd = -1;
-    int ret;
-    
-    secFd = socket(PF_UNIX, SOCK_STREAM, 0);
-    if (secFd < 0)
-    {
-        status = CT_ERRNO_TO_STATUS(errno);
-	GOTO_CLEANUP_EE(EE);
-    }
-
-    status = CtpServerInitUnixAddress(&socketAddress, socketPath);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    ret = connect(secFd, (struct sockaddr*)&socketAddress, 
-		      sizeof(socketAddress));
-    if (ret < 0)
-    {
-        status = CT_ERRNO_TO_STATUS(errno);
-	GOTO_CLEANUP_EE(EE);
-    }
-
-    *Fd = secFd;
-
-cleanup:
-    return status;
-}
-
 
 CT_STATUS
 CtSocketWaitForConnection(
@@ -786,9 +843,8 @@ CtSocketWaitForConnection(
     ret = select(Fd + 1, &readFdSet, NULL, NULL, &timeout);
     if (ret < 0)
     {
-	status = CT_ERRNO_TO_STATUS(errno);
-	GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
+        status = CT_ERRNO_TO_STATUS(errno);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
     else if (ret == 0)
     {
@@ -798,58 +854,27 @@ CtSocketWaitForConnection(
     {
         if (FD_ISSET(Fd, &readFdSet))
         {
-	    authFd = accept(Fd,
-			    (struct sockaddr*)&serverAddress,
-			    &serverAddressLength);
-	    if (authFd < 0)
-	    {
-		status = CT_ERRNO_TO_STATUS(errno);
-		GOTO_CLEANUP_EE(EE);
-	    }
-
-	    *connFd = authFd;
-	}
-	else
+            authFd = accept(Fd,
+                            (struct sockaddr*)&serverAddress,
+                            &serverAddressLength);
+            if (authFd < 0)
+            {
+                status = CT_ERRNO_TO_STATUS(errno);
+                GOTO_CLEANUP_EE(EE);
+            }
+            
+            *connFd = authFd;
+        }
+        else
         {
             /* TODO: perhaps this should be connection unavailable ? */
             status = CT_STATUS_ACCESS_DENIED;
-	}
-    }
-
-cleanup:
-    return status;
-}
-
-
-CT_STATUS
-CtSecSocketCleanup(
-    IN int Fd,
-    IN const char* socketPath)
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    int ret = -1;
-
-    if (Fd > 0)
-    {
-        ret = close(Fd);
-        if (ret < 0)
-        {
-            status = CT_ERRNO_TO_STATUS(errno);
-            GOTO_CLEANUP_EE(EE);
         }
     }
-
-    if (socketPath != NULL)
-    {
-        status = CtFileUnlink(socketPath);
-    }
-
+    
 cleanup:
     return status;
 }
-
-
 
 CT_STATUS
 CtServerTerminate(
@@ -1017,9 +1042,6 @@ CtServerRun(
     {
         struct sockaddr_un clientAddress;
         socklen_t clientAddressLength;
-        uid_t clientUid;
-        time_t staleTime;
-        struct stat statBuffer;
         pthread_t threadId;
         int error;
 
@@ -1057,24 +1079,6 @@ CtServerRun(
             break;
         }
 
-        status = CtFileStat(clientAddress.sun_path, &statBuffer);
-        if (status)
-        {
-            CT_LOG_ERROR("Failed to get client information (0x%08X)", status);
-            continue;
-        }
-
-        staleTime = time(NULL) - CT_SERVER_MAX_SOCKET_STALE_TIME_SECONDS;
-        if (statBuffer.st_atime < staleTime ||
-            statBuffer.st_ctime < staleTime ||
-            statBuffer.st_mtime < staleTime)
-        {
-            CT_LOG_WARN("Connection from client is too old, ignoring");
-            continue;
-        }
-
-        clientUid = statBuffer.st_uid;
-
         status = CtAllocateMemory((void**)&clientHandle, sizeof(*clientHandle));
         if (status)
         {
@@ -1083,7 +1087,6 @@ CtServerRun(
         }
 
         clientHandle->Fd = clientFd;
-        clientHandle->Uid = clientUid;
         clientHandle->ServerHandle = ServerHandle;
 
         CT_SERVER_ACQUIRE(ServerHandle);
@@ -1156,30 +1159,12 @@ CtServerClose(
 CT_STATUS
 CtServerConnectExistingSocket(
     IN int Fd,
-    IN const char* ServerPath,
-    IN const char* ClientPath
+    IN const char* ServerPath
     )
 {
     CT_STATUS status = CT_STATUS_SUCCESS;
-    struct sockaddr_un clientAddress;
     struct sockaddr_un serverAddress;
     int retval;
-
-    /* Ignore error */
-    CtFileUnlink(ClientPath);
-
-    status = CtpServerInitUnixAddress(&clientAddress, ClientPath);
-    GOTO_CLEANUP_ON_STATUS(status);
-
-    retval = bind(Fd, (struct sockaddr*)&clientAddress, sizeof(clientAddress));
-    if (retval < 0)
-    {
-        status = CT_ERRNO_TO_STATUS(errno);
-        GOTO_CLEANUP();
-    }
-
-    status = CtFileSetMode(clientAddress.sun_path, S_IRWXU);
-    GOTO_CLEANUP_ON_STATUS(status);
 
     status = CtpServerInitUnixAddress(&serverAddress, ServerPath);
     GOTO_CLEANUP_ON_STATUS(status);
@@ -1191,6 +1176,9 @@ CtServerConnectExistingSocket(
         GOTO_CLEANUP();
     }
 
+    status = CtpSendCreds(Fd);
+    GOTO_CLEANUP_ON_STATUS(status);
+
 cleanup:
     return status;
 }
@@ -1198,8 +1186,7 @@ cleanup:
 CT_STATUS
 CtServerConnect(
     OUT int* Fd,
-    IN const char* ServerPath,
-    IN const char* ClientPath
+    IN const char* ServerPath
     )
 {
     CT_STATUS status = CT_STATUS_SUCCESS;
@@ -1212,7 +1199,7 @@ CtServerConnect(
         GOTO_CLEANUP();
     }
 
-    status = CtServerConnectExistingSocket(fd, ServerPath, ClientPath);
+    status = CtServerConnectExistingSocket(fd, ServerPath);
 
 cleanup:
     if (status)
@@ -1246,25 +1233,6 @@ CtServerClientGetUid(
 {
     return ClientHandle->Uid;
 }
-
-bool
-CtServerClientIsAuthenticated(
-    IN CT_SERVER_CLIENT_HANDLE ClientHandle
-    )
-{
-    return ClientHandle->IsAuthenticated;
-}
-
-
-void
-CtServerClientSetAuthenticated(
-    IN CT_SERVER_CLIENT_HANDLE ClientHandle,
-    bool isAuth
-    )
-{
-    ClientHandle->IsAuthenticated = isAuth;
-}
-
 
 CT_SERVER_HANDLE
 CtServerClientGetServerHandle(

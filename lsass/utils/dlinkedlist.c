@@ -140,6 +140,7 @@ LsaDLinkedListDelete(
             bFound = TRUE;
             break;
         }
+        pList = pList->pNext;
     }
     
     if (bFound) {

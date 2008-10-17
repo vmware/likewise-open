@@ -149,7 +149,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszOldPassword);
     LSA_SAFE_FREE_MEMORY(pwszNewPassword);
 
-    return dwError;
+    return AD_MapNetApiError(dwError);
     
 error:
 
@@ -225,7 +225,7 @@ AD_NetLookupObjectSidByName(
     {
         LSA_LOG_DEBUG("LsaOpenPolicy2() failed with %d (0x%08x)", status, status);
         dwError = LSA_ERROR_RPC_OPENPOLICY_FAILED;
-        if (STATUS_UNHANDLED_EXCEPTION == status)
+        if (IsDceRpcConnError(status))
         {
             bIsNetworkError = TRUE;
         }
@@ -248,7 +248,7 @@ AD_NetLookupObjectSidByName(
     {
         LSA_LOG_DEBUG("LsaLookupNames2() failed with %d (0x%08x)", status, status);
         dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
-        if (STATUS_UNHANDLED_EXCEPTION == status)
+        if (IsDceRpcConnError(status))
         {
             bIsNetworkError = TRUE;
         }
@@ -420,7 +420,7 @@ AD_NetLookupObjectNameBySid(
     {
         LSA_LOG_DEBUG("LsaOpenPolicy2() failed with %d (0x%08x)", status, status);
         dwError = LSA_ERROR_RPC_OPENPOLICY_FAILED;
-        if (STATUS_UNHANDLED_EXCEPTION == status)
+        if (IsDceRpcConnError(status))
         {
             bIsNetworkError = TRUE;
         }
@@ -440,7 +440,7 @@ AD_NetLookupObjectNameBySid(
     {
         LSA_LOG_DEBUG("LsaLookupSids() failed with %d (0x%08x)", status, status);
         dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_FAILED;
-        if (STATUS_UNHANDLED_EXCEPTION == status)
+        if (IsDceRpcConnError(status))
         {
             bIsNetworkError = TRUE;
         }
@@ -601,7 +601,7 @@ AD_DsEnumerateDomainTrusts(
                       pszDomainControllerName, winError);
         dwError = LSA_ERROR_ENUM_DOMAIN_TRUSTS_FAILED;
         // ISSUE-2008/08/25-dalmeida -- Bad error propagation.
-        if (ERROR_INVALID_FUNCTION == winError)
+        if (IsDceRpcConnError(winError))
         {
             bIsNetworkError = TRUE;
         }
@@ -681,6 +681,28 @@ error:
     LSA_SAFE_FREE_STRING(pszSid);
 
     goto cleanup;
+}
+
+DWORD
+AD_MapNetApiError(
+    DWORD dwADError
+    )
+{
+    DWORD dwError = 0;
+
+    switch(dwADError)
+    {
+        case 1325:
+            // There is no RPC error code for this at present.
+
+            dwError = LSA_ERROR_PASSWORD_RESTRICTION;
+            break;
+        default:
+            dwError = dwADError;
+            break;
+    }
+
+    return dwError;
 }
 
 /*

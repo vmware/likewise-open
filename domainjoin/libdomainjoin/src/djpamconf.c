@@ -1664,6 +1664,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
     int prevLine = -1;
     int line = NextLineForService(conf, -1, service, phase);
     int lwidentityLine = -1;
+    int secondPasswd = -1;
     /* Do not free this variable */
     struct PamLine *lineObj;
     const char *module;
@@ -2146,10 +2147,11 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
              * passwd  password  sufficient    pam_lwidentity.so
              * passwd  password  required      /usr/lib/security/pam_aix
              */
-            LW_CLEANUP_CTERR(exc, CopyLine(conf, lwidentityLine, NULL));
+            LW_CLEANUP_CTERR(exc, CopyLine(conf, lwidentityLine, &secondPasswd));
             LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->control, lineObj->phase, "requisite"));
             LW_CLEANUP_CTERR(exc, AddOption(conf, lwidentityLine, "unknown_ok"));
             LW_CLEANUP_CTERR(exc, AddOption(conf, lwidentityLine, "remember_chpass"));
+            LW_CLEANUP_CTERR(exc, AddOption(conf, secondPasswd, "use_first_pass"));
             lineObj = &conf->lines[lwidentityLine];
         }
 
@@ -2472,10 +2474,10 @@ static CENTERROR FindModulePath(const char *testPrefix, const char *basename, ch
     };
 
     const char *searchNameSuffixes[] = {
-        ".sl",
-        ".sl.1",
         ".so",
         ".so.1",
+        ".sl",
+        ".sl.1",
         ".1",
         NULL
     };

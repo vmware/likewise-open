@@ -120,6 +120,9 @@
 
 #include <gssapi/gssapi.h>
 #include <krb5/krb5.h>
+#ifndef LDAP_DEPRECATED
+#define LDAP_DEPRECATED 1
+#endif
 #include <ldap.h>
 
 #endif

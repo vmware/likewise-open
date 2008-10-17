@@ -54,18 +54,8 @@ NTSTATUS LsaLookupNames(handle_t b, PolicyHandle *handle,
 
     *count = 0;
 
-    TRY
-    {
-        status = _LsaLookupNames(b, handle, num_names,
-                                 lsa_names, &ref_domains, &sid_array,
-                                 level, count);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
-
+    DCERPC_CALL(_LsaLookupNames(b, handle, num_names, lsa_names, &ref_domains,
+                                &sid_array, level, count));
     goto_if_ntstatus_not_success(status, cleanup);
 
     status = LsaAllocateTranslatedSids(&sids_out, &sid_array);

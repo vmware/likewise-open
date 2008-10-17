@@ -86,7 +86,7 @@ ADProviderFreeCellInfo(
 {
     LSA_SAFE_FREE_STRING(pCell->pszCellDN);
     LSA_SAFE_FREE_STRING(pCell->pszDomain);
-    LSA_SAFE_FREE_MEMORY(pCell);
+    LsaFreeMemory(pCell);
 }
 
 VOID
@@ -96,7 +96,10 @@ ADProviderFreeCellInfoNode(
     )
 {
     PAD_LINKED_CELL_INFO pCell = (PAD_LINKED_CELL_INFO)pData;
-    ADProviderFreeCellInfo(pCell);
+    if (pCell)
+    {
+        ADProviderFreeCellInfo(pCell);
+    }
 }
 
 VOID

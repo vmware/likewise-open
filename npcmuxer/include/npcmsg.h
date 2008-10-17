@@ -51,9 +51,6 @@
 #define NPC_MSG_TYPE_AUTH_SET                4 /* AUTH_INFO -> STATUS */
 #define NPC_MSG_TYPE_AUTH_CLEAR              5 /* STRING -> STATUS */
 #define NPC_MSG_TYPE_SESSION_KEY             6 /* reply SESSION_KEY */
-#define NPC_MSG_TYPE_SEC_SOCKET_INFO         7 /* SOCKET INFO -> NONCE */
-#define NPC_MSG_TYPE_SEC_SOCKET_REP          8 /* reply NONCE */
-#define NPC_MSG_TYPE_SEC_SOCKET_NONCE        9 /* confirm NONCE */
 #define NPC_MSG_TYPE_CREATE_IMP_TOKEN       10 /* () -> TOKEN */
 #define NPC_MSG_TYPE_IMP_TOKEN_REP          11 /* reply TOKEN */
 #if 0

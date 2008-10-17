@@ -1,7 +1,7 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
- 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -15,7 +15,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
  */
 #ifndef __LSAIPC_H__
 #define __LSAIPC_H__
@@ -89,6 +89,8 @@ typedef enum {
     LSA_R_GET_STATUS               =  62,
     LSA_Q_REFRESH_CONFIGURATION    =  63,
     LSA_R_REFRESH_CONFIGURATION    =  64,
+    LSA_Q_CHECK_USER_IN_LIST       =  65,
+    LSA_R_CHECK_USER_IN_LIST       =  66,
     LSA_MESSAGE_SENTINEL
 } LsaMessageType;
 
@@ -197,7 +199,7 @@ typedef struct __LSA_USER_2_RECORD_HEADER {
 typedef struct __LSA_MOD_USER_RECORD_HEADER
 {
     DWORD uid;
-    
+
     struct {
       WORD bEnableUser;
       WORD bDisableUser;
@@ -297,7 +299,7 @@ typedef struct __LSA_METRICS_HEADER
 {
     // LSADATACOORDINATES id;
     DWORD dwInfoLevel;
-    
+
 } LSA_METRICS_HEADER, *PLSA_METRICS_HEADER;
 
 typedef struct __LSA_DC_INFO_MSG {
@@ -308,7 +310,7 @@ typedef struct __LSA_DC_INFO_MSG {
 } LSA_DC_INFO_MSG, *PLSA_DC_INFO_MSG;
 
 typedef struct __LSA_DOMAIN_INFO_MSG {
-    
+
     LSADATACOORDINATES  dnsDomain;
     LSADATACOORDINATES  netbiosDomain;
     LSADATACOORDINATES  trusteeDnsDomain;
@@ -319,10 +321,12 @@ typedef struct __LSA_DOMAIN_INFO_MSG {
     LSA_TRUST_FLAG      dwTrustFlags;
     LSA_TRUST_TYPE      dwTrustType;
     LSA_TRUST_ATTRIBUTE dwTrustAttributes;
+    LSA_TRUST_DIRECTION dwTrustDirection;
+    LSA_TRUST_MODE      dwTrustMode;
     LSA_DM_DOMAIN_FLAGS dwDomainFlags;
     DWORD               dwDCInfoOffset;
     DWORD               dwGCInfoOffset;
-    
+
 } LSA_DOMAIN_INFO_MSG, *PLSA_DOMAIN_INFO_MSG;
 
 typedef struct __LSA_AUTH_PROVIDER_STATUS_MSG {

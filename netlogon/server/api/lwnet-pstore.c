@@ -73,7 +73,12 @@ LWNetSrvGetCurrentDomain(
                 &pPassInfo);
     if (dwError || pPassInfo == NULL || pPassInfo->pwszDnsDomainName == NULL) 
     {
-        dwError = LWNET_ERROR_DOMAIN_NOT_FOUND;
+        // ISSUE-2008/09/15-dalmeida -- Bad error propagation.
+        // We used to LWNET_ERROR_DOMAIN_NOT_FOUND here, but now
+        // we at least return something more sensible (and what
+        // LSASS checks for).  Note that pstore's (lack of proper)
+        // error propagation/translation is the underlying problem.
+        dwError = LWNET_ERROR_NOT_JOINED_TO_AD;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 

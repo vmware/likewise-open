@@ -54,6 +54,7 @@
  * license@likewisesoftware.com
  */
 
+#include "config.h"
 #include "ctbase.h"
 #include "ctarray.h"
 #include <unistd.h>
@@ -657,84 +658,6 @@ CTChangeDirectory(
 }
 
 CENTERROR
-CTCreateDirectoryRecursive(
-    PSTR pszCurDirPath,
-    PSTR pszTmpPath,
-    PSTR *ppszTmp,
-    DWORD dwFileMode,
-    DWORD dwWorkingFileMode,
-    int  iPart
-    )
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    PSTR pszDirPath = NULL;
-    BOOLEAN bDirCreated = FALSE;
-    BOOLEAN bDirExists = FALSE;
-    CHAR szDelimiters[] = "/";
-
-    PSTR pszToken = strtok_r((iPart ? NULL : pszTmpPath), szDelimiters, ppszTmp);
-
-    if (pszToken != NULL) {
-
-        ceError = CTAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
-                                   (PVOID*)&pszDirPath);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        sprintf(pszDirPath,
-                "%s/%s",
-                (!strcmp(pszCurDirPath, "/") ? "" : pszCurDirPath),
-                pszToken);
-
-        ceError = CTCheckDirectoryExists(pszDirPath, &bDirExists);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        if (!bDirExists) {
-            if (mkdir(pszDirPath, dwWorkingFileMode) < 0) {
-                ceError = CTMapSystemError(errno);
-                BAIL_ON_CENTERIS_ERROR(ceError);
-            }
-            bDirCreated = TRUE;
-        }
-
-        ceError = CTChangeDirectory(pszDirPath);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        ceError = CTCreateDirectoryRecursive(
-            pszDirPath,
-            pszTmpPath,
-            ppszTmp,
-            dwFileMode,
-            dwWorkingFileMode,
-            iPart+1
-            );
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    if (bDirCreated && (dwFileMode != dwWorkingFileMode)) {
-        ceError = CTChangePermissions(pszDirPath, dwFileMode);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    if (pszDirPath) {
-        CTFreeMemory(pszDirPath);
-    }
-
-    return ceError;
-
-error:
-
-    if (bDirCreated) {
-        CTRemoveDirectory(pszDirPath);
-    }
-
-    if (pszDirPath) {
-        CTFreeMemory(pszDirPath);
-    }
-
-    return ceError;
-}
-
-CENTERROR
 CTCreateTempDirectory(
     PSTR *pszPath
     )
@@ -769,6 +692,92 @@ error:
     return ceError;
 }
 
+static CENTERROR
+CTCreateDirectoryInternal(
+    PSTR pszPath,
+    PSTR pszLastSlash,
+    mode_t dwFileMode
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PSTR pszSlash = NULL;
+    BOOLEAN bDirExists = FALSE;
+    BOOLEAN bDirCreated = FALSE;
+
+    pszSlash = pszLastSlash ? strchr(pszLastSlash + 1, '/') : strchr(pszPath, '/');
+
+    if (pszSlash)
+    {
+        *pszSlash = '\0';
+    }
+
+    if (pszPath[0])
+    {
+        ceError = CTCheckDirectoryExists(pszPath, &bDirExists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+        
+        if (!bDirExists)
+        {
+            if (mkdir(pszPath, S_IRWXU) != 0)
+            {
+                ceError = CTMapSystemError(errno);
+                BAIL_ON_CENTERIS_ERROR(ceError);
+            }
+            bDirCreated = TRUE;
+        }
+    }
+
+    if (pszSlash)
+    {
+        *pszSlash = '/';
+    }
+
+    if (pszSlash)
+    {
+        ceError = CTCreateDirectoryInternal(pszPath, pszSlash, dwFileMode);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    if (pszSlash)
+    {
+        *pszSlash = '\0';
+    }
+
+    if (bDirCreated)
+    {
+        ceError = CTChangePermissions(pszPath, dwFileMode);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    if (pszSlash)
+    {
+        *pszSlash = '/';
+    }
+    
+cleanup:
+
+    return ceError;
+
+error:
+
+    if (pszSlash)
+    {
+        *pszSlash = '\0';
+    }
+
+    if (bDirCreated)
+    {
+        CTRemoveDirectory(pszPath);
+    }
+
+    if (pszSlash)
+    {
+        *pszSlash = '/';
+    }
+
+    goto cleanup;
+}
+
 CENTERROR
 CTCreateDirectory(
     PCSTR pszPath,
@@ -776,60 +785,29 @@ CTCreateDirectory(
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
-    PSTR pszCurDirPath = NULL;
     PSTR pszTmpPath = NULL;
-    PSTR pszTmp = NULL;
-    mode_t dwWorkingFileMode;
 
-    if (pszPath == NULL || *pszPath == '\0') {
+    if (pszPath == NULL)
+    {
         ceError = CENTERROR_INVALID_PARAMETER;
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
-
-    dwWorkingFileMode = dwFileMode;
-    if (!(dwFileMode & S_IXUSR)) {
-        /*
-         * This is so that we can navigate the folders
-         * when we are creating the subfolders
-         */
-        dwWorkingFileMode |= S_IXUSR;
-    }
-
-    ceError = CTGetCurrentDirectoryPath(&pszCurDirPath);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
+    
     ceError = CTAllocateString(pszPath, &pszTmpPath);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    if (*pszPath == '/') {
-        ceError = CTChangeDirectory("/");
-        BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTCreateDirectoryInternal(pszTmpPath, NULL, dwFileMode);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-        ceError = CTCreateDirectoryRecursive("/", pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
-        BAIL_ON_CENTERIS_ERROR(ceError);
+cleanup:
 
-    } else {
+    CT_SAFE_FREE_STRING(pszTmpPath);
 
-        ceError = CTCreateDirectoryRecursive(pszCurDirPath, pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-    }
+    return ceError;
 
 error:
 
-    if (pszCurDirPath) {
-
-        CTChangeDirectory(pszCurDirPath);
-
-        CTFreeMemory(pszCurDirPath);
-
-    }
-
-    if (pszTmpPath) {
-        CTFreeMemory(pszTmpPath);
-    }
-
-    return ceError;
+    goto cleanup;
 }
 
 static
@@ -1772,10 +1750,10 @@ CTFindInPath(
     CENTERROR ceError = CENTERROR_SUCCESS;
     //Copy the search path so that strtok can be run on it
     PSTR mySearchPath = NULL;
-    PSTR strtokSavePtr;
-    PSTR currentDir;
+    PSTR strtokSavePtr = NULL;
+    PSTR currentDir = NULL;
     PSTR testPath = NULL;
-    BOOLEAN exists;
+    BOOLEAN exists = FALSE;
 
     if(foundPath != NULL)
         *foundPath = NULL;

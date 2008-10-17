@@ -49,17 +49,7 @@ WINERR DsrEnumerateDomainTrusts(handle_t b, const wchar16_t *server,
     srv = wc16sdup(server);
     goto_if_no_memory_winerr(srv, cleanup);
 
-    TRY
-    {
-        err = _DsrEnumerateDomainTrusts(b, srv, flags, &tlist);
-    }
-    CATCH_ALL
-    {
-        /* TODO: check if there's a better error code */
-        err = ERROR_INVALID_FUNCTION;
-    }
-    ENDTRY;
-
+    DCERPC_CALL(err, _DsrEnumerateDomainTrusts(b, srv, flags, &tlist));
     goto_if_winerr_not_success(err, cleanup);
 
     *count  = tlist.count;

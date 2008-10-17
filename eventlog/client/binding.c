@@ -46,7 +46,6 @@
 DWORD
 LWICreateEventLogRpcBinding(
     const char * hostname,
-    char**       ppszBindingString,
     handle_t *   event_binding
     )
 {
@@ -123,8 +122,6 @@ LWICreateEventLogRpcBinding(
         
     }
 
-    *ppszBindingString = pszBindingString;
-        
     *event_binding = eventBinding_local;
 
     EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() finished successfully\n",
@@ -154,20 +151,14 @@ error:
 
 DWORD
 LWIFreeEventLogRpcBinding(
-    handle_t event_binding,
-    char * pszBindingString
+    handle_t event_binding
     )
 {
     DWORD rpcstatus = 0;
 
-    /* Free the binding itself */
+    /* Free the binding */
     if (event_binding != NULL) {
         RPC_BINDING_FREE(&event_binding, &rpcstatus);
-    }
-
-    /* Free the rpc binding string (created by Compose function) */
-    if (pszBindingString != NULL) {
-        RPC_STRING_FREE(&pszBindingString, &rpcstatus);
     }
 
     return rpcstatus;

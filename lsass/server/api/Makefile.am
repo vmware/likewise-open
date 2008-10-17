@@ -21,7 +21,7 @@ liblsaserverapi_la_CPPFLAGS =         \
 
 liblsaserverapi_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
-	@EVENTLOG_LIBS@ \
+	@top_builddir@/server/srvutils/liblsasrvutils.la \
 	@UUID_LIBS@ \
 	@PTHREAD_LIBS@
 

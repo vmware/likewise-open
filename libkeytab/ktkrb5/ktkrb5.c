@@ -76,7 +76,7 @@ KtKrb5GetDefaultRealm(
 cleanup:
 
     if (pszKrb5Realm){
-        krb5_free_realm_string(ctx,pszKrb5Realm);
+        krb5_free_default_realm(ctx,pszKrb5Realm);
     }
 
     krb5_free_context(ctx);
@@ -512,7 +512,6 @@ KtGetSaltingPrincipal(
     PSTR pszRealm = NULL;
     PSTR pszMachine = NULL;
     krb5_context ctx = NULL;
-    int i = 0;
 
     dwError = KtAllocateStringPrintf(&pszMachAcctName, "%s$", pszMachineName);
     BAIL_ON_KT_ERROR(dwError);

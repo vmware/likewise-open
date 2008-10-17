@@ -78,6 +78,27 @@
         goto lbl;                            \
     }
 
+
+#define DCERPC_CALL(status, fn_call)             \
+    do {                                         \
+        dcethread_exc *dceexc = NULL;            \
+                                                 \
+        DCETHREAD_TRY                            \
+        {                                        \
+                (status) = fn_call;              \
+        }                                        \
+        DCETHREAD_CATCH_ALL(dceexc)              \
+        {                                        \
+            /* TODO:                             \
+               Implement DCE/RPC exc -> NTSTATUS \
+               mapping logic as soon as we have  \
+               more information about it */      \
+            (status) = dceexc->match.value;      \
+        }                                        \
+        DCETHREAD_ENDTRY;                        \
+    } while (0);
+
+
 #endif /* _NETR_UTIL_H_ */
 
 /*

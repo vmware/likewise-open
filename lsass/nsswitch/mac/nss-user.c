@@ -203,7 +203,7 @@ _nss_lsass_get_user_groups(
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaGetGroupsForUserName(hLsaConnection,
+    dwError = LsaGetGidsForUserByName(hLsaConnection,
                                       pszUserName,
                                       &dwCountOfGroups,
                                       &pGidResults);

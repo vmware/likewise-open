@@ -257,7 +257,7 @@ DJStartStopDaemon(
     LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
     LW_CLEANUP_CTERR(exc, DJGetProcessStatus(pProcInfo, &status));
 
-    for(retry = 0; retry < 3; retry++)
+    for(retry = 0; retry < 20; retry++)
     {
         LW_TRY(exc, DJGetDaemonStatus(pszDaemonName, &bStarted, &LW_EXC));
         if (bStarted == bStatus)

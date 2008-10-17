@@ -54,7 +54,7 @@
  * license@likewisesoftware.com
  */
 
-#include "config/config.h"
+#include "config.h"
 #include "ctbase.h"
 #include "ctstrutils.h"
 #include <inttypes.h>
@@ -213,7 +213,7 @@ CTEscapeString(
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     int nQuotes = 0;
-    PSTR pszTmp = pszOrig;
+    PCSTR pszTmp = pszOrig;
     PSTR pszNew = NULL;
     PSTR pszNewTmp = NULL;
 

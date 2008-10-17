@@ -220,6 +220,18 @@ LsaLogToFile(
             break;
         }
 
+        case LSA_LOG_LEVEL_VERBOSE:
+        {
+            pszEntryType = LSA_VERBOSE_TAG;
+            break;
+        }
+
+        case LSA_LOG_LEVEL_DEBUG:
+        {
+            pszEntryType = LSA_DEBUG_TAG;
+            break;
+        }
+
         default:
         {
             pszEntryType = LSA_VERBOSE_TAG;

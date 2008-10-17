@@ -57,6 +57,12 @@ UnprovisionedModeFindUserByName(
     );
 
 DWORD
+UnprovisionedModeFindUserByNameInOneWayTrust(
+    PLSA_LOGIN_NAME_INFO pUserNameInfo,
+    PAD_SECURITY_OBJECT *ppUserInfo
+    );
+
+DWORD
 UnprovisionedModeGetUserGroupMembership(
     HANDLE  hDirectory,
     PCSTR   pszNetBIOSDomainName,
@@ -87,6 +93,12 @@ UnprovisionedModeMakeLocalSID(
 DWORD
 UnprovisionedModeFindGroupByName(
     PCSTR                pszRealDomainName,
+    PLSA_LOGIN_NAME_INFO pGroupNameInfo,
+    PAD_SECURITY_OBJECT *ppGroupInfo
+    );
+
+DWORD
+UnprovisionedModeFindGroupByNameInOneWayTrust(
     PLSA_LOGIN_NAME_INFO pGroupNameInfo,
     PAD_SECURITY_OBJECT *ppGroupInfo
     );

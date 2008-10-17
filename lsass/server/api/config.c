@@ -171,6 +171,7 @@ LsaSrvApiInitConfig(
     LsaSrvApiFreeConfigContents(pConfig);
 
     pConfig->bEnableEventLog = FALSE;
+    pConfig->bLogNetworkConnectionEvents = TRUE;
 
     return 0;
 }
@@ -228,7 +229,7 @@ LsaSrvApiConfigStartSection(
     BOOLEAN bSkipSection = FALSE;
 
     if (IsNullOrEmptyString(pszSectionName) ||
-        strncasecmp(pszSectionName, "global", sizeof("global")-1))
+        (strncasecmp(pszSectionName, "global", sizeof("global")-1)))
     {
         bSkipSection = TRUE;
     }
@@ -267,7 +268,22 @@ LsaSrvApiConfigNameValuePair(
         {
             pConfig->bEnableEventLog = FALSE;
         }
-    }
+    }    
+    else if (!strcasecmp(pszName, "log-network-connection-events"))
+        {
+            if (!IsNullOrEmptyString(pszValue) &&
+                (!strcasecmp(pszValue, "false") ||
+                 !strcasecmp(pszValue, "0") ||
+                 (*pszValue == 'n') ||
+                 (*pszValue == 'N')))
+            {
+                pConfig->bLogNetworkConnectionEvents = FALSE;
+            }
+            else
+            {
+                pConfig->bLogNetworkConnectionEvents = TRUE;
+            }
+        }
 
     *pbContinue = TRUE;
 
@@ -330,6 +346,34 @@ LsaSrvEnableEventlog(
     pthread_mutex_lock(&gAPIConfigLock);
 
     gAPIConfig.bEnableEventLog = bValue;
+
+    pthread_mutex_unlock(&gAPIConfigLock);
+}
+
+BOOLEAN
+LsaSrvShouldLogNetworkConnectionEvents(
+    VOID
+    )
+{
+    BOOLEAN bResult = TRUE;
+
+    pthread_mutex_lock(&gAPIConfigLock);
+
+    bResult = gAPIConfig.bLogNetworkConnectionEvents;
+
+    pthread_mutex_unlock(&gAPIConfigLock);
+
+    return bResult;
+}
+
+VOID
+LsaSrvSetLogNetworkConnectionEvents(
+    BOOLEAN bValue
+    )
+{
+    pthread_mutex_lock(&gAPIConfigLock);
+
+    gAPIConfig.bLogNetworkConnectionEvents = bValue;
 
     pthread_mutex_unlock(&gAPIConfigLock);
 }

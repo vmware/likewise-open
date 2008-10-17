@@ -250,6 +250,9 @@ LsaFindGroupByName(
 
 cleanup:
 
+    // The first entry from the group info list is being returned to the caller,
+    // but the parent list needs to be freed.
+    LSA_SAFE_FREE_MEMORY(ppGroupInfoList);
     LSA_SAFE_FREE_MESSAGE(pMessage);
     LSA_SAFE_FREE_STRING(pszError);
 
@@ -259,6 +262,7 @@ error:
 
     if (ppGroupInfoList) {
         LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroups);
+        ppGroupInfoList = NULL;
     }
     
     if (ppGroupInfo) {
@@ -365,6 +369,9 @@ LsaFindGroupById(
 
 cleanup:
 
+    // The first entry from the group info list is being returned to the caller,
+    // but the parent list needs to be freed.
+    LSA_SAFE_FREE_MEMORY(ppGroupInfoList);
     LSA_SAFE_FREE_MESSAGE(pMessage);
     LSA_SAFE_FREE_STRING(pszError);
 
@@ -374,6 +381,7 @@ error:
 
     if (ppGroupInfoList) {
         LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroups);
+        ppGroupInfoList = NULL;
     }
     
     if (ppGroupInfo) {
@@ -831,7 +839,7 @@ error:
 
 LSASS_API
 DWORD
-LsaGetGroupsForUserName(
+LsaGetGidsForUserByName(
     HANDLE  hLsaConnection,
     PCSTR   pszUserName,
     PDWORD  pdwGroupFound,
@@ -844,18 +852,12 @@ LsaGetGroupsForUserName(
     DWORD dwGroupInfoLevel = 0;
     DWORD dwGroupFound = 0;
     gid_t* pGidResult = NULL;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD dwMsgLen = 0;
-    PSTR  pszError = NULL;
     PVOID*  ppGroupInfoList = NULL;
     DWORD iGroup = 0;
 
     BAIL_ON_INVALID_HANDLE(hLsaConnection);    
     BAIL_ON_INVALID_STRING(pszUserName);   
     BAIL_ON_INVALID_POINTER(ppGidResults);
-    
-    dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
-    BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaValidateUserName(pszUserName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -867,8 +869,84 @@ LsaGetGroupsForUserName(
                   &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);  
     
-    dwError = LsaMarshalGetGroupsForUserQuery(
+    dwError = LsaGetGroupsForUserById(
+                hLsaConnection,
                 ((PLSA_USER_INFO_0)pUserInfo)->uid,
+                dwGroupInfoLevel,
+                &dwGroupFound,
+                &ppGroupInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = LsaAllocateMemory(
+                    sizeof(gid_t) * dwGroupFound,
+                    (PVOID*)&pGidResult);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    switch(dwGroupInfoLevel)
+    {
+        case 0:
+            
+            for (iGroup = 0; iGroup < dwGroupFound; iGroup++) {
+                   *(pGidResult+iGroup) = ((PLSA_GROUP_INFO_0)(*(ppGroupInfoList+iGroup)))->gid;                
+            }
+            
+            break;
+            
+        default:
+            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+    }
+    
+    *ppGidResults = pGidResult;
+    *pdwGroupFound = dwGroupFound;
+
+cleanup:
+
+    if (pUserInfo) {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    }
+    
+    if (ppGroupInfoList) {
+        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwGroupFound);
+    }
+    
+    return dwError;
+        
+error:
+
+    *ppGidResults = NULL;
+    *pdwGroupFound = 0;
+
+    goto cleanup;   
+}
+
+LSASS_API
+DWORD
+LsaGetGroupsForUserById(
+    HANDLE  hLsaConnection,
+    uid_t   uid,
+    DWORD   dwGroupInfoLevel,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
+    )
+{    
+    DWORD dwError = 0;
+    DWORD dwGroupFound = 0;
+    PLSAMESSAGE pMessage = NULL;
+    DWORD dwMsgLen = 0;
+    PSTR  pszError = NULL;
+    PVOID*  ppGroupInfoList = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);    
+    BAIL_ON_INVALID_POINTER(pdwGroupsFound);
+    BAIL_ON_INVALID_POINTER(pppGroupInfoList);
+    
+    dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = LsaMarshalGetGroupsForUserQuery(
+                uid,
                 dwGroupInfoLevel,
                 NULL,
                 &dwMsgLen);
@@ -883,7 +961,7 @@ LsaGetGroupsForUserName(
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaMarshalGetGroupsForUserQuery(
-                ((PLSA_USER_INFO_0)pUserInfo)->uid,
+                uid,
                 dwGroupInfoLevel,
                 pMessage->pData,
                 &dwMsgLen
@@ -933,40 +1011,11 @@ LsaGetGroupsForUserName(
         }
     }
     
-    dwError = LsaAllocateMemory(
-                    sizeof(gid_t) * dwGroupFound,
-                    (PVOID*)&pGidResult);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-            
-            for (iGroup = 0; iGroup < dwGroupFound; iGroup++) {
-                   *(pGidResult+iGroup) = ((PLSA_GROUP_INFO_0)(*(ppGroupInfoList+iGroup)))->gid;                
-            }
-            
-            break;
-            
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *ppGidResults = pGidResult;
-    *pdwGroupFound = dwGroupFound;
+    *pdwGroupsFound = dwGroupFound;
+    *pppGroupInfoList = ppGroupInfoList;
 
 cleanup:
 
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-    
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwGroupFound);
-    }
-    
     LSA_SAFE_FREE_MESSAGE(pMessage);
     LSA_SAFE_FREE_STRING(pszError);
 
@@ -974,8 +1023,12 @@ cleanup:
         
 error:
 
-    *ppGidResults = NULL;
-    *pdwGroupFound = 0;
+    *pppGroupInfoList = NULL;
+    *pdwGroupsFound = 0;
+
+    if (ppGroupInfoList) {
+        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwGroupFound);
+    }
 
     goto cleanup;   
 }

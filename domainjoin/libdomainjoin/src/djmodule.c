@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -41,6 +41,7 @@
 #include "djsecuser.h"
 #include "djfirewall.h"
 #include "djconfig_mac.h"
+#include "djddns.h"
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
@@ -64,6 +65,7 @@ const JoinModule *startList[] = {
     &DJLamAuth,
     &DJSshModule,
     &DJDSPlugin,
+    &DJDDNSModule,
     NULL };
 
 const JoinModule *stopList[] = {
@@ -84,6 +86,7 @@ const JoinModule *stopList[] = {
     &DJKeytabModule,
     &DJFirewall,
     &DJSetHostname,
+    &DJDDNSModule,
     NULL };
 
 void DJZeroJoinProcessOptions(JoinProcessOptions *options)
@@ -179,7 +182,7 @@ void DJInitModuleStates(JoinProcessOptions *options, LWException **exc)
     size_t i;
     PCSTR userDomain;
     PDOMAINJOININFO joinedInfo = NULL;
-    
+
     const JoinModule **moduleTable = NULL;
 
     if(options->joiningDomain)
@@ -282,7 +285,7 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
     PSTR exceptionMessage = NULL;
     PSTR exceptionTitle = NULL;
     LWException *moduleException = NULL;
-    
+
     //Before running the modules, make sure that all of the necessary modules
     //are enabled.
     LW_TRY(exc, DJCheckRequiredEnabled(options, &LW_EXC));
@@ -330,7 +333,7 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
                 case CannotConfigure:
                     LW_RAISE_EX(exc,
                             CENTERROR_DOMAINJOIN_MODULE_NOT_CONFIGURED, "Module not configured",
-                            "Even though the configuration of '%s' was executed, the configuration is not complete. Please contact Likewise support.", 
+                            "Even though the configuration of '%s' was executed, the configuration is not complete. Please contact Likewise support.",
                             state->module->shortName);
                     goto cleanup;
                 case SufficientlyConfigured:

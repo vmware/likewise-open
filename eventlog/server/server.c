@@ -51,20 +51,49 @@ RpcLWIOpenEventLog(
     idl_char * pszEventLog
     )
 {
-    DWORD dwRpcStatus = 0;
     DWORD dwError = 0;
-    DWORD dwAuthnProtocol = 0;
-    PVOID pMechCtx = NULL;
+    PEVTALLOWEDDATA pAllowAccessTo = NULL;
 
-    rpc_binding_inq_security_context(bindingHandle, (unsigned32*)&dwAuthnProtocol,
-                                     &pMechCtx, (unsigned32*)&dwRpcStatus);
+    dwError = EVTGetAllowReadToLocked( &pAllowAccessTo );
+    BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = LWICheckSecurity(bindingHandle, dwAuthnProtocol, pMechCtx);
+    dwError = LWICheckSecurity(
+                  bindingHandle,
+                  pAllowAccessTo);
 
-    /* We support the notion of a connect, but we currently don't do much here */
-    /* Someday RPC connection authentication may be required here */
+    EVTUnlockServerInfo();
+
+    if ( dwError )
+    {
+        dwError = EVTGetAllowWriteToLocked( &pAllowAccessTo );
+        BAIL_ON_EVT_ERROR(dwError);
+
+        dwError = LWICheckSecurity(
+                      bindingHandle,
+                      pAllowAccessTo);
+
+        EVTUnlockServerInfo();
+    }
+
+    if ( dwError )
+    {
+        dwError = EVTGetAllowDeleteToLocked( &pAllowAccessTo );
+        BAIL_ON_EVT_ERROR(dwError);
+
+        dwError = LWICheckSecurity(
+                      bindingHandle,
+                      pAllowAccessTo);
+
+        EVTUnlockServerInfo();
+    }
+
+cleanup:
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 idl_long_int
@@ -160,6 +189,17 @@ RpcLWIWriteEventLog(
 {
     DWORD  dwError = 0;
     HANDLE hDB = (HANDLE)NULL;
+    PEVTALLOWEDDATA pAllowWriteTo = NULL;
+
+    dwError = EVTGetAllowWriteToLocked( &pAllowWriteTo );
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LWICheckSecurity(
+                  bindingHandle,
+                  pAllowWriteTo);
+
+    EVTUnlockServerInfo();
+    BAIL_ON_EVT_ERROR(dwError);
 
     dwError =  SrvOpenEventDatabase(&hDB);
     BAIL_ON_EVT_ERROR(dwError);
@@ -187,6 +227,17 @@ RpcLWIClearEventLog(handle_t bindingHandle)
 {
     DWORD  dwError = 0;
     HANDLE hDB = (HANDLE)NULL;
+    PEVTALLOWEDDATA pAllowDeleteTo = NULL;
+
+    dwError = EVTGetAllowDeleteToLocked( &pAllowDeleteTo );
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LWICheckSecurity(
+                  bindingHandle,
+                  pAllowDeleteTo);
+
+    EVTUnlockServerInfo();
+    BAIL_ON_EVT_ERROR(dwError);
 
     dwError =  SrvOpenEventDatabase(&hDB);
     BAIL_ON_EVT_ERROR(dwError);
@@ -216,6 +267,17 @@ RpcLWIDeleteFromEventLog(
 {
     DWORD  dwError = 0;
     HANDLE hDB = (HANDLE)NULL;
+    PEVTALLOWEDDATA pAllowDeleteTo = NULL;
+
+    dwError = EVTGetAllowDeleteToLocked( &pAllowDeleteTo );
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LWICheckSecurity(
+                  bindingHandle,
+                  pAllowDeleteTo);
+
+    EVTUnlockServerInfo();
+    BAIL_ON_EVT_ERROR(dwError);
 
     dwError =  SrvOpenEventDatabase(&hDB);
     BAIL_ON_EVT_ERROR(dwError);
@@ -413,8 +475,8 @@ EVTRegisterForRPC(
     rpc_binding_vector_p_t* ppServerBinding
     )
 {
-    DWORD dwError = 0;
-    DWORD dwRpcStatus = 0;
+    volatile DWORD dwError = 0;
+    volatile DWORD dwRpcStatus = 0;
     rpc_binding_vector_p_t pServerBinding = NULL;
     BOOLEAN bRegistered = FALSE;
     BOOLEAN bBound = FALSE;
@@ -432,32 +494,38 @@ EVTRegisterForRPC(
                                 NULL,
                                 NULL,
                                 (unsigned32*)&dwRpcStatus);
-        BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
-
-        bRegistered = TRUE;
-        EVT_LOG_INFO("RPC Service registered successfully.");
-
-        dwError = bind_server(&pServerBinding,
-                              eventlog_v1_0_s_ifspec,
-                              endpoints);
-
-        BAIL_ON_EVT_ERROR(dwError);
-
-        bBound = TRUE;
-
-        rpc_ep_register(eventlog_v1_0_s_ifspec,
-                        pServerBinding,
-                        NULL,
-                        (idl_char*)pszServiceName,
-                        (unsigned32*)&dwRpcStatus);
-        BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
-
-        bEPRegistered = TRUE;
-        EVT_LOG_INFO("RPC Endpoint registered successfully.");
     }
     CATCH_ALL
     {
-        dwError = dcethread_exc_getstatus (THIS_CATCH);
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_REGISTER;
+            }
+        }
+    }
+    ENDTRY;
+
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    bRegistered = TRUE;
+    EVT_LOG_INFO("RPC Service registered successfully.");
+
+    TRY
+    {
+        dwError = bind_server(&pServerBinding,
+                              eventlog_v1_0_s_ifspec,
+                              endpoints);
+    }
+    CATCH_ALL
+    {
+        if(!dwError)
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+        }
         if(!dwError)
         {
             dwError = EVT_ERROR_RPC_EXCEPTION_UPON_REGISTER;
@@ -467,6 +535,34 @@ EVTRegisterForRPC(
 
     BAIL_ON_EVT_ERROR(dwError);
 
+    bBound = TRUE;
+
+    TRY
+    {
+        rpc_ep_register(eventlog_v1_0_s_ifspec,
+                        pServerBinding,
+                        NULL,
+                        (idl_char*)pszServiceName,
+                        (unsigned32*)&dwRpcStatus);
+    }
+    CATCH_ALL
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_REGISTER;
+            }
+        }
+    }
+    ENDTRY;
+
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    bEPRegistered = TRUE;
+    EVT_LOG_INFO("RPC Endpoint registered successfully.");
 
     *ppServerBinding = pServerBinding;
 
@@ -478,27 +574,42 @@ error:
 
     EVT_LOG_ERROR("Failed to register RPC endpoint.  Error Code: [%u]\n", dwError);
 
-    if (bRegistered)
+    if (bEPRegistered)
     {
-        DWORD tmpStatus = 0;
-        rpc_server_unregister_if(eventlog_v1_0_s_ifspec,
-                                 NULL,
-                                 (unsigned32*)&tmpStatus);
+        TRY
+        {
+            DWORD tmpStatus = 0;
+            rpc_ep_unregister(eventlog_v1_0_s_ifspec,
+                              pServerBinding,
+                              NULL,
+                              (unsigned32*)&tmpStatus);
+        }
+        CATCH_ALL
+        ENDTRY;
     }
 
     if (bBound) {
-        DWORD tmpStatus = 0;
-        rpc_ep_unregister(eventlog_v1_0_s_ifspec,
-                         pServerBinding,
-                         NULL,
-                         (unsigned32*)&tmpStatus);
+        TRY
+        {
+            DWORD tmpStatus = 0;
+            rpc_binding_vector_free(&pServerBinding,
+                                    (unsigned32*)&tmpStatus);
+        }
+        CATCH_ALL
+        ENDTRY;
     }
 
-    if (bEPRegistered) {
-        DWORD tmpStatus = 0;
-        rpc_server_unregister_if (eventlog_v1_0_s_ifspec,
-                                NULL,
-                                (unsigned32*)&tmpStatus);
+    if (bRegistered)
+    {
+        TRY
+        {
+            DWORD tmpStatus = 0;
+            rpc_server_unregister_if (eventlog_v1_0_s_ifspec,
+                                      NULL,
+                                      (unsigned32*)&tmpStatus);
+        }
+        CATCH_ALL
+        ENDTRY;
     }
 
     *ppServerBinding = NULL;
@@ -509,23 +620,26 @@ error:
 DWORD
 EVTListenForRPC()
 {
-    DWORD dwError = 0;
+    volatile DWORD dwError = 0;
 
     TRY
     {
         rpc_server_listen(rpc_c_listen_max_calls_default, (unsigned32*)&dwError);
-        BAIL_ON_EVT_ERROR(dwError);
     }
     CATCH_ALL
     {
-        dwError = dcethread_exc_getstatus (THIS_CATCH);
-	if(!dwError)
-	{
+        if (!dwError)
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+        }
+        if(!dwError)
+        {
             dwError = EVT_ERROR_RPC_EXCEPTION_UPON_LISTEN;
-	}
-        BAIL_ON_EVT_ERROR(dwError);
+        }
     }
     ENDTRY
+
+    BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
     return dwError;
@@ -540,41 +654,81 @@ EVTUnregisterForRPC(
     rpc_binding_vector_p_t pServerBinding
     )
 {
-    DWORD dwError = 0;
-    DWORD dwRpcStatus = 0;
+    volatile DWORD dwError = 0;
+    volatile DWORD dwRpcStatus = 0;
 
     TRY
-    {      
+    {
         EVT_LOG_INFO("Unregistering server from the endpoint mapper...");
         rpc_ep_unregister(eventlog_v1_0_s_ifspec,
                             pServerBinding,
                             NULL,
                             (unsigned32*)&dwRpcStatus);
-        BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    }
+    CATCH_ALL
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
+            }
+        }
+    }
+    ENDTRY
 
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    TRY
+    {
+        rpc_binding_vector_free(&pServerBinding, (unsigned32*)&dwRpcStatus);
+    }
+    CATCH_ALL
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
+            }
+        }
+    }
+    ENDTRY
+    
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    TRY
+    {
         EVT_LOG_INFO("Cleaning up the communications endpoints...");
         rpc_server_unregister_if (eventlog_v1_0_s_ifspec,
                                  NULL,
                                  (unsigned32*)&dwRpcStatus);
-        BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     }
-
     CATCH_ALL
     {
-        dwError = dcethread_exc_getstatus (THIS_CATCH);
-	if(!dwError)
-	{
-            dwError = EVT_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
-	}
-        BAIL_ON_EVT_ERROR(dwError);
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
+            }
+        }
     }
     ENDTRY
+
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
     return dwError;
 
 error:
-    EVT_LOG_ERROR("Failed to unregister RPC endpoing.  Error code [%d]\n", dwError);
+    EVT_LOG_ERROR("Failed to unregister RPC endpoint.  Error code [%d]\n", dwError);
     goto cleanup;
 }
 

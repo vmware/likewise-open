@@ -294,6 +294,24 @@ EVTParseConfigFile(
     );
 
 DWORD
+EVTParseDays(
+    PCSTR  pszTimeInterval,
+    PDWORD pdwTimeInterval
+    );
+
+DWORD
+EVTParseDiskUsage(
+    PCSTR  pszDiskUsage,
+    PDWORD pdwDiskUsage
+    );
+
+DWORD
+EVTParseMaxEntries(
+    PCSTR  pszMaxEntries,
+    PDWORD pdwMaxEntries
+    );
+
+DWORD
 EVTRemoveFile(
     PCSTR pszPath
     );
@@ -345,6 +363,12 @@ DWORD
 EVTRemoveDirectory(
     PCSTR pszPath
     );
+
+DWORD
+EVTGetFileSize(
+	PCSTR pszPath,
+	PDWORD pdwFileSize
+	);
 
 DWORD
 EVTCheckDirectoryExists(

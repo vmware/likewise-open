@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Authentication API (Server)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -57,16 +57,14 @@ LsaSrvAuthenticateUser(
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-        
-    dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnAuthenticateUser(
                                             hProvider,
                                             pszLoginId,
@@ -83,7 +81,13 @@ LsaSrvAuthenticateUser(
            BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
+    if (pProvider == NULL)
+    {
+        dwError = LSA_ERROR_NOT_HANDLED;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -91,7 +95,7 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     if (!dwError)
     {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulAuthentications);
@@ -100,12 +104,24 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedAuthentications);
     }
-    
-    return(dwError);
-    
+
+    return dwError;
+
 error:
 
-    LsaSrvWriteLoginFailedEvent(hServer, pszLoginId);
+    if (LsaSrvEventlogEnabled()){
+        LsaSrvWriteLoginFailedEvent(
+            hServer,
+            pszLoginId,
+            dwError);
+    }
+    if (dwError == LSA_ERROR_NOT_HANDLED ||
+                   dwError == LSA_ERROR_NO_SUCH_USER) {
+        LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
+    }
+    else {
+        LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
+    }
 
     goto cleanup;
 }
@@ -121,16 +137,16 @@ LsaSrvValidateUser(
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-        
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnValidateUser(
                                             hProvider,
                                             pszLoginId,
@@ -147,7 +163,7 @@ LsaSrvValidateUser(
            BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -155,12 +171,77 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
-    return(dwError);
-    
+
+    return dwError;
+
 error:
 
-    LsaSrvWriteLoginFailedEvent(hServer, pszLoginId);
+    if (LsaSrvEventlogEnabled()){
+        LsaSrvWriteLoginFailedEvent(
+            hServer,
+            pszLoginId,
+            dwError);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LsaSrvCheckUserInList(
+    HANDLE hServer,
+    PCSTR  pszLoginId,
+    PCSTR  pszListName
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LSA_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable->pfnCheckUserInList(
+                                            hProvider,
+                                            pszLoginId,
+                                            pszListName);
+        if (!dwError) {
+           break;
+        }
+        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
+                 (dwError == LSA_ERROR_NO_SUCH_USER)) {
+           LsaSrvCloseProvider(pProvider, hProvider);
+           hProvider = (HANDLE)NULL;
+           continue;
+        } else {
+           BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL) {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    return(dwError);
+
+error:
+
+    if (LsaSrvEventlogEnabled()){
+        LsaSrvWriteLoginFailedEvent(
+            hServer,
+            pszLoginId,
+            dwError);
+    }
 
     goto cleanup;
 }
@@ -177,16 +258,16 @@ LsaSrvChangePassword(
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     BOOLEAN bInLock = FALSE;
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnChangePassword(
                                         hProvider,
                                         pszLoginId,
@@ -204,7 +285,7 @@ LsaSrvChangePassword(
            BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -212,7 +293,7 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     if (!dwError)
     {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulChangePassword);
@@ -221,10 +302,11 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedChangePassword);
     }
-    
+
     return(dwError);
-    
+
 error:
 
+    LSA_LOG_VERBOSE("Failed to change password of user [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
     goto cleanup;
 }

@@ -61,9 +61,9 @@ LsaDmWrappFilterExtraForestDomainsCallback(
 
     // Find a "two-way across forest trust".  This is two-way trust to an external
     // trust to a domain in another forest or a forest trust.
+    // including one-way trusts as well
     if (!(pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_IN_FOREST) &&
-        (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_OUTBOUND) && 
-        (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_INBOUND))
+        (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_OUTBOUND))
     {
         bWantThis = TRUE;
     }
@@ -86,6 +86,76 @@ LsaDmWrapEnumExtraForestTrustDomains(
                                 pdwCount);
 }
 
+static
+BOOLEAN
+LsaDmWrappFilterExtraTwoWayForestDomainsCallback(
+    IN OPTIONAL PVOID pContext,
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
+    )
+{
+    BOOLEAN bWantThis = FALSE;
+
+    // Find a "two-way across forest trust".  This is two-way trust to an external
+    // trust to a domain in another forest or a forest trust.
+    // including one-way trusts as well
+    if (!(pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_IN_FOREST) &&
+        (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_OUTBOUND) && 
+        (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_INBOUND))
+    {
+        bWantThis = TRUE;
+    }
+
+    return bWantThis;
+}    
+
+// ISSUE-2008/08/15-dalmeida -- The old code looked for
+// two-way trusts across forest boundaries (external or forest trust).
+// However, this is not necessarily correct.
+DWORD
+LsaDmWrapEnumExtraTwoWayForestTrustDomains(
+    OUT PSTR** pppszDomainNames,
+    OUT PDWORD pdwCount
+    )
+{
+    return LsaDmEnumDomainNames(LsaDmWrappFilterExtraTwoWayForestDomainsCallback,
+                                NULL,
+                                pppszDomainNames,
+                                pdwCount);
+}
+
+static
+BOOLEAN
+LsaDmWrappFilterInMyForestDomainsCallback(
+    IN OPTIONAL PVOID pContext,
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
+    )
+{
+    BOOLEAN bWantThis = FALSE;
+
+    // Find a "two-way across forest trust".  This is two-way trust to an external
+    // trust to a domain in another forest or a forest trust.
+    // including one-way trusts as well
+    if (pDomainInfo->dwTrustMode == LSA_TRUST_MODE_MY_FOREST)
+    {
+        bWantThis = TRUE;
+    }
+
+    return bWantThis;
+}
+
+
+DWORD
+LsaDmWrapEnumInMyForestTrustDomains(
+    OUT PSTR** pppszDomainNames,
+    OUT PDWORD pdwCount
+    )
+{
+    return LsaDmEnumDomainNames(LsaDmWrappFilterInMyForestDomainsCallback,
+                                NULL,
+                                pppszDomainNames,
+                                pdwCount);
+}
+
 DWORD
 LsaDmWrapGetForestName(
     IN PCSTR pszDomainName,
@@ -93,6 +163,8 @@ LsaDmWrapGetForestName(
     )
 {
     return LsaDmQueryDomainInfo(pszDomainName,
+                                NULL,
+                                NULL,
                                 NULL,
                                 NULL,
                                 NULL,
@@ -128,8 +200,53 @@ LsaDmWrapGetDomainName(
                                 NULL,
                                 NULL,
                                 NULL,
+                                NULL,
+                                NULL,
                                 NULL);
 }
+
+static
+DWORD
+LsaDmWrappQueryForestNameFromNetlogon(
+    IN PCSTR pszDnsDomainName,
+    OUT PSTR* ppszDnsForestName
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_DC_INFO pDcInfo = NULL;
+    PSTR pszDnsForestName = NULL;
+
+    // Try background first, then not.
+    dwError = LWNetGetDCName(NULL,
+                             pszDnsDomainName,
+                             NULL,
+                             DS_BACKGROUND_ONLY,
+                             &pDcInfo);
+    if (dwError)
+    {
+        dwError = LWNetGetDCName(NULL,
+                                 pszDnsDomainName,
+                                 NULL,
+                                 0,
+                                 &pDcInfo);
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pDcInfo->pszDnsForestName, &pszDnsForestName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszDnsForestName = pszDnsForestName;
+
+cleanup:
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+    return dwError;
+
+error:
+    *ppszDnsForestName = NULL;
+    LSA_SAFE_FREE_STRING(pszDnsForestName);
+    goto cleanup;
+}
+
 
 #define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
 
@@ -137,8 +254,7 @@ typedef DWORD LSA_DM_WRAP_CONNECT_DOMAIN_FLAGS;
 
 #define LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_GC           0x00000001
 #define LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO      0x00000002
-#define LSA_DM_WRAP_CONNECT_DOMAIN_NO_OFFLINE_HACK   0x00000004
-#define LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH         0x00000008
+#define LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH         0x00000004
 
 typedef DWORD (*PFLSA_DM_WRAP_CONNECT_CALLBACK)(
     IN PCSTR pszDnsDomainOrForestName,
@@ -146,6 +262,28 @@ typedef DWORD (*PFLSA_DM_WRAP_CONNECT_CALLBACK)(
     IN OPTIONAL PVOID pContext,
     OUT PBOOLEAN pbIsNetworkError
     );
+
+BOOLEAN
+LsaDmWrappIsNetworkError(
+    IN DWORD dwError
+    )
+{
+    BOOLEAN bIsNetworkError = FALSE;
+
+    switch (dwError)
+    {
+        case LSA_ERROR_DOMAIN_IS_OFFLINE:
+        case LWNET_ERROR_INVALID_DNS_RESPONSE:
+        case LWNET_ERROR_FAILED_FIND_DC:
+            bIsNetworkError = TRUE;
+            break;
+        default:
+            bIsNetworkError = FALSE;
+            break;
+    }
+
+    return bIsNetworkError;
+}
 
 static
 DWORD
@@ -172,12 +310,30 @@ LsaDmWrappConnectDomain(
         dwError = LsaDmWrapGetForestName(pszDnsDomainName,
                                          &pszDnsForestName);
         BAIL_ON_LSA_ERROR(dwError);
+        if (!pszDnsForestName)
+        {
+            // This is the case where there is an external trust such
+            // that we do not have forest root information.
+            // So let's do what we can.
+
+            // ISSUE-2008/09/22-dalmeida -- It is likely never correct to
+            // access the GC for an external trust.  We should check the
+            // trust attributes here and ASSERT some invariants.
+            // For now, however, we will log and try our best to comply
+            // with the caller.  This should help identify whether
+            // there are any mis-uses.
+            LSA_LOG_WARNING("Trying to access forest root for probable external trust (%s).",
+                            pszDnsDomainName);
+            dwError = LsaDmWrappQueryForestNameFromNetlogon(
+                        pszDnsDomainName,
+                        &pszDnsForestName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
         pszDnsDomainOrForestName = pszDnsForestName;
         dwGetDcNameFlags |= DS_GC_SERVER_REQUIRED;
     }
 
-    if (!IsSetFlag(dwConnectFlags, LSA_DM_WRAP_CONNECT_DOMAIN_NO_OFFLINE_HACK) &&
-        LsaDmIsDomainOffline(pszDnsDomainOrForestName))
+    if (LsaDmIsDomainOffline(pszDnsDomainOrForestName))
     {
         dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
         BAIL_ON_LSA_ERROR(dwError);
@@ -196,6 +352,7 @@ LsaDmWrappConnectDomain(
                                  NULL,
                                  dwGetDcNameFlags,
                                  &pLocalDcInfo);
+        bIsNetworkError = LsaDmWrappIsNetworkError(dwError);
         BAIL_ON_LSA_ERROR(dwError);
         pActualDcInfo = pLocalDcInfo;
     }
@@ -224,6 +381,7 @@ LsaDmWrappConnectDomain(
                              NULL,
                              dwGetDcNameFlags | DS_FORCE_REDISCOVERY,
                              &pLocalDcInfo);
+    bIsNetworkError = LsaDmWrappIsNetworkError(dwError);
     BAIL_ON_LSA_ERROR(dwError);
     pActualDcInfo = pLocalDcInfo;
 
@@ -239,8 +397,7 @@ cleanup:
     return dwError;
 
 error:
-    if (bIsNetworkError &&
-        !IsSetFlag(dwConnectFlags, LSA_DM_WRAP_CONNECT_DOMAIN_NO_OFFLINE_HACK))
+    if (bIsNetworkError)
     {
         DWORD dwLocalError = LsaDmTransitionOffline(pszDnsDomainOrForestName);
         if (dwLocalError)
@@ -405,8 +562,7 @@ LsaDmWrapLdapPingTcp(
     DWORD dwError = 0;
 
     dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO |
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_NO_OFFLINE_HACK,
+                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
                                       NULL,
                                       LsaDmWrappLdapPingTcpCallback,
                                       NULL);

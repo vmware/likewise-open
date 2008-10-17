@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = liblsasrvutils.la
 
 liblsasrvutils_la_SOURCES = \
+       event.c         \
        lsatime.c
 
 liblsasrvutils_la_CPPFLAGS =      \
@@ -9,4 +10,5 @@ liblsasrvutils_la_CPPFLAGS =      \
 
 liblsasrvutils_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
+	@EVENTLOG_LIBS@ \
 	@RT_LIBS@

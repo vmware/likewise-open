@@ -105,4 +105,14 @@ LsaSrvEnableEventlog(
     BOOLEAN bValue
     );
 
+BOOLEAN
+LsaSrvShouldLogNetworkConnectionEvents(
+    VOID
+    );
+
+VOID
+LsaSrvSetLogNetworkConnectionEvents(
+    BOOLEAN bValue
+    );
+
 #endif /* __CONFIG_P_H__ */

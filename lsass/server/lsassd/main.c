@@ -48,6 +48,8 @@
 #include "lsassd.h"
 #include "config.h"
 #include "lwnet.h"
+#include "eventlog.h"
+#include "lsasrvutils.h"
 
 int
 main(
@@ -58,7 +60,7 @@ main(
     DWORD dwError = 0;
     pthread_t listenerThreadId;
     pthread_t* pListenerThreadId = NULL;
-    void* threadResult = NULL;
+    void* threadResult = NULL;    
 
     dwError = LsaSrvSetDefaults();
     BAIL_ON_LSA_ERROR(dwError);
@@ -112,7 +114,7 @@ main(
     dwError = LsaSrvHandleSignals();
     BAIL_ON_LSA_ERROR(dwError);
 
- cleanup:
+cleanup:
 
     LSA_LOG_VERBOSE("Lsa main cleaning up");
 
@@ -135,9 +137,11 @@ main(
 
     return dwError;
 
- error:
+error:
 
-    LSA_LOG_ERROR("LSA Process exiting due to error [Code:%d]", dwError);
+    LSA_LOG_ERROR("LSA Process exiting due to error [Code:%d]", dwError);    
+    
+    LsaSrvLogProcessFailureEvent(dwError);
 
     goto cleanup;
 }
@@ -946,3 +950,41 @@ LsaSrvSetProcessToExit(
 
     LSA_UNLOCK_SERVERINFO(bInLock);
 }
+
+VOID
+LsaSrvLogProcessFailureEvent(
+    DWORD dwErrCode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszLsassdFailureDescription = NULL;
+    PSTR pszData = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszLsassdFailureDescription,
+                 "The LSASSD process encountered a serious error with code '%d' which caused it to stop running.",
+                 dwErrCode);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                         dwErrCode,
+                         &pszData);
+      
+    LsaSrvLogServiceFailureEvent(
+            SERVICESTOP_EVENT_CATEGORY,
+            pszLsassdFailureDescription,
+            pszData);
+    
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszLsassdFailureDescription);
+    LSA_SAFE_FREE_STRING(pszData);
+
+    return;
+    
+error:
+
+    goto cleanup;
+}
+
+

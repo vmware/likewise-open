@@ -60,7 +60,7 @@ KtLdapBind(
 
     *ldret = NULL;
 
-    ld = (LDAP*) ldap_open(pszDc, LDAP_PORT);
+    ld = ldap_open(pszDc, LDAP_PORT);
     if (!ld) BAIL_WITH_KT_ERROR(KT_STATUS_LDAP_ERROR);
 
     lderr = ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &version);

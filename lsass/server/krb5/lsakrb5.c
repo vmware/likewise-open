@@ -1159,7 +1159,8 @@ LsaSetupUserLoginSession(
     BOOLEAN bInLock = FALSE;
     PCSTR pszTempCacheName = NULL;
     PSTR pszTempCachePath = NULL;
-    
+    PSTR pszUnreachableRealm = NULL;
+
     ret = krb5_init_context(&ctx);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
@@ -1179,7 +1180,7 @@ LsaSetupUserLoginSession(
             krb5_cc_get_name(ctx, cc),
             NULL
             );
-    BAIL_ON_KRB_ERROR(ctx, ret);
+    BAIL_ON_LSA_ERROR(dwError);
 
     ret = krb5_parse_name(ctx, pszServicePrincipal, &credsRequest.server);
     BAIL_ON_KRB_ERROR(ctx, ret);
@@ -1195,6 +1196,20 @@ LsaSetupUserLoginSession(
             cc,
             &credsRequest,
             &pTgsCreds);
+    if (KRB5_KDC_UNREACH == ret)
+    {
+        // ISSUE-2008/09/22-dalmeida -- I think that we do not
+        // necessarily know the domain here because there
+        // may be been some traversal issue in a trust scenario.
+        // It may be ok to just transition the user's domain offline since
+        // logons from that domain will have problems.
+        // Figuring out how to solve this issue so that we
+        // can transition the proper domain offline is left as
+        // a future enhancement.  One way would be to save off realm from
+        // the error message (see krb5_sendto_kdc).  However, that
+        // would be dependent of the version of Kerberos being used.
+        pszUnreachableRealm = NULL;
+    }
     BAIL_ON_KRB_ERROR(ctx, ret);
 
     //No need to store the tgs in the cc. Kerberos does that automatically
@@ -1341,6 +1356,7 @@ LsaSetupUserLoginSession(
     *ppLogonInfo = pLogonInfo;
     
 cleanup:
+    LSA_SAFE_FREE_STRING(pszUnreachableRealm);
     if (ctx)
     {
         // This function skips fields which are NULL
@@ -1385,6 +1401,16 @@ cleanup:
     return dwError;
     
 error:
+    if ((LSA_ERROR_KRB5_CALL_FAILED == dwError) &&
+        (KRB5_KDC_UNREACH == ret))
+    {
+        if (pszUnreachableRealm)
+        {
+            LsaKrb5RealmTransitionOffline(pszUnreachableRealm);
+        }
+        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+    }
+
     if (pLogonInfo != NULL)
     {
         FreePacLogonInfo(pLogonInfo);

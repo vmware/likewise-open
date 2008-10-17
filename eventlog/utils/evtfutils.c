@@ -100,6 +100,39 @@ error:
 }
 
 DWORD
+EVTGetFileSize(
+    PCSTR pszPath,
+    PDWORD pdwFileSize
+    )
+{
+    DWORD dwError = 0;
+
+    struct stat statbuf;
+
+    memset(&statbuf, 0, sizeof(struct stat));
+
+    while (1) {
+        if (stat(pszPath, &statbuf) < 0) {
+            if (errno == EINTR) {
+                continue;
+            } else if (errno == ENOENT) {
+             *pdwFileSize = 0;
+             break;
+            }
+            dwError = errno;
+            BAIL_ON_EVT_ERROR(dwError);
+        } else {
+            *pdwFileSize = statbuf.st_size;
+            break;
+        }
+    }
+
+error:
+
+    return dwError;
+}
+
+DWORD
 EVTMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath

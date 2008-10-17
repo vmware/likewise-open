@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Active Directory Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -49,22 +49,24 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
+
+#include <openssl/md4.h>
+#include <sqlite3.h>
+#include <eventlog.h>
+#include <lwps/lwps.h>
+#include <lwnet.h>
+
 #include "lsautils.h"
-#include "lsasrvutils.h"
 #include "lsaunistr.h"
 #include "lsaipc.h"
 #include "lsaprovider.h"
 
-#include "sqlite3.h"
+#include "lsasrvutils.h"
 #include "lsakrb5.h"
 #include "lsaldap.h"
-#include "lwps/lwps.h"
-#include "lwnet.h"
 
-//
-// All prototypes in this module
-//
 #include "addef.h"
+#include "media-sense.h"
 #include "adstruct.h"
 #include "adcfg.h"
 #include "adldapdef.h"
@@ -91,7 +93,6 @@
 #include "online.h"
 #include "providerstate.h"
 #include "unprovisioned-ldap.h"
-#include <openssl/md4.h>
 #include "provider-main.h"
 #include "offline-helper.h"
 

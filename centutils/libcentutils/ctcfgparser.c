@@ -54,6 +54,7 @@
  * license@likewisesoftware.com
  */
 
+#include "config.h"
 #include "ctbase.h"
 
 static
@@ -297,12 +298,12 @@ CTParseConfigFile(
             continue;
 
         /* Skip comments for now */
-        if (szBuf[0] == '#' ||
-            szBuf[0] == ';')
+        if (szBuf[0] == ';')
             continue;
 
-        if (szBuf[0]       == '[' &&
-            szBuf[dwLen-1] == ']') {
+        if ((szBuf[0] == '['       &&
+            szBuf[dwLen-1] == ']') ||
+            (szBuf[0] == '#' && (!pSection || pSection->pszName[0] == '#'))) {
 
             if (pSection) {
                 pSection->pNext = pSectionList;
@@ -313,42 +314,54 @@ CTParseConfigFile(
             ceError = CTAllocateMemory(sizeof(CFGSECTION), (PVOID*)&pSection);
             BAIL_ON_CENTERIS_ERROR(ceError);
 
-            szBuf[dwLen-1] = '\0';
-
-            ceError = CTAllocateString(szBuf+1, &pSection->pszName);
+            if (szBuf[0] == '#') {
+                szBuf[dwLen] = '\0'; 
+                ceError = CTAllocateString(szBuf, &pSection->pszName);
+            } else {
+                szBuf[dwLen-1] = '\0'; 
+                ceError = CTAllocateString(szBuf+1, &pSection->pszName);
+            }
             BAIL_ON_CENTERIS_ERROR(ceError);
 
             CTStripWhitespace(pSection->pszName);
 
         } else {
+            if (szBuf[0] == '#' && pSection) {
+                szBuf[dwLen] = '\0';
 
-            if (!pSection) {
-                ceError = CENTERROR_VALUE_NOT_IN_SECTION;
+                ceError = CTAllocateString(szBuf, &pszName);
                 BAIL_ON_CENTERIS_ERROR(ceError);
-            }
 
-            if ((pszTmp = strchr(szBuf, '=')) == NULL) {
-                ceError = CENTERROR_BAD_TOKEN;
+                strncpy(pszName, szBuf, strlen(szBuf));
+            } else {
+                if (!pSection) {
+                    ceError = CENTERROR_VALUE_NOT_IN_SECTION;
+                    BAIL_ON_CENTERIS_ERROR(ceError);
+                }
+
+                if ((pszTmp = strchr(szBuf, '=')) == NULL) {
+                    ceError = CENTERROR_BAD_TOKEN;
+                    BAIL_ON_CENTERIS_ERROR(ceError);
+                }
+
+                if (pszTmp == szBuf) {
+                    ceError = CENTERROR_BAD_TOKEN;
+                    BAIL_ON_CENTERIS_ERROR(ceError);
+                }
+
+                ceError = CTAllocateMemory(pszTmp-szBuf+1, (PVOID*)&pszName);
                 BAIL_ON_CENTERIS_ERROR(ceError);
-            }
 
-            if (pszTmp == szBuf) {
-                ceError = CENTERROR_BAD_TOKEN;
-                BAIL_ON_CENTERIS_ERROR(ceError);
-            }
+                strncpy(pszName, szBuf, pszTmp-szBuf);
 
-            ceError = CTAllocateMemory(pszTmp-szBuf+1, (PVOID*)&pszName);
-            BAIL_ON_CENTERIS_ERROR(ceError);
-
-            strncpy(pszName, szBuf, pszTmp-szBuf);
-
-            pszTmp++;
-            while (*pszTmp != '\0' && isspace((int)*pszTmp))
                 pszTmp++;
+                while (*pszTmp != '\0' && isspace((int)*pszTmp))
+                    pszTmp++;
 
-            if (*pszTmp != '\0') {
-                ceError = CTAllocateString(pszTmp, &pszValue);
-                BAIL_ON_CENTERIS_ERROR(ceError);
+                if (*pszTmp != '\0') {
+                    ceError = CTAllocateString(pszTmp, &pszValue);
+                    BAIL_ON_CENTERIS_ERROR(ceError);
+                }
             }
 
             ceError = CTAllocateMemory(sizeof(NVPAIR), (PVOID*)&pNVPair);
@@ -422,27 +435,34 @@ CTSaveConfigSectionListToFile(
             BAIL_ON_CENTERIS_ERROR(ceError);
         }
 
-        if (fprintf(fp, "[%s]\n", pSectionList->pszName) < 0) {
-            ceError = CTMapSystemError(errno);
+        if (pSectionList->pszName[0] == '#') {
+            ceError = CTFilePrintf(fp, "%s\n", pSectionList->pszName);
             BAIL_ON_CENTERIS_ERROR(ceError);
-        }
+        } else {        
+            ceError = CTFilePrintf(fp, "[%s]\n", pSectionList->pszName);
+            BAIL_ON_CENTERIS_ERROR(ceError);
 
-        pNVPair = pSectionList->pNVPairList;
-        while (pNVPair) {
+            pNVPair = pSectionList->pNVPairList;
+            while (pNVPair) {
 
-            if (IsNullOrEmptyString(pNVPair->pszName)) {
-                ceError = CENTERROR_CFG_INVALID_NVPAIR_NAME;
-                BAIL_ON_CENTERIS_ERROR(ceError);
+                if (IsNullOrEmptyString(pNVPair->pszName)) {
+                    ceError = CENTERROR_CFG_INVALID_NVPAIR_NAME;
+                    BAIL_ON_CENTERIS_ERROR(ceError);
+                }
+
+                if (pNVPair->pszName[0] == '#') {
+                    CTFilePrintf( fp, "    %s\n",
+                                  pNVPair->pszName);
+                    BAIL_ON_CENTERIS_ERROR(ceError);
+                } else {
+                    CTFilePrintf( fp, "    %s = %s\n",
+                                  pNVPair->pszName,
+                                  (IsNullOrEmptyString(pNVPair->pszValue) ? "" : pNVPair->pszValue));
+                    BAIL_ON_CENTERIS_ERROR(ceError);
+                }
+
+                pNVPair = pNVPair->pNext;
             }
-
-            if (fprintf(fp, "    %s = %s\n",
-                        pNVPair->pszName,
-                        (IsNullOrEmptyString(pNVPair->pszValue) ? "" : pNVPair->pszValue)) < 0) {
-                ceError = CTMapSystemError(errno);
-                BAIL_ON_CENTERIS_ERROR(ceError);
-            }
-
-            pNVPair = pNVPair->pNext;
         }
 
         pSectionList = pSectionList->pNext;

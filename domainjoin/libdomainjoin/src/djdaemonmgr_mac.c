@@ -220,8 +220,10 @@ DJGetDaemonStatus(
     CENTERROR ceError;
     PSTR configFile = NULL;
     PSTR command = NULL;
+    PSTR command2 = NULL;
     int argNum = 0;
-    PSTR whitePos;
+    PSTR whitePos = NULL;
+    PSTR wrapPos = NULL;
 
     /* Translate the Unix daemon names into the mac daemon names */
     if(!strcmp(pszDaemonPath, "lsassd"))
@@ -251,6 +253,18 @@ DJGetDaemonStatus(
         "/plist/dict/key[text()='ProgramArguments']/following-sibling::array[position()=1]/string[position()=1]/text()"));
 
     DJ_LOG_INFO("Found daemon binary [%s] for daemon [%s]", command, pszDaemonPath);
+
+    /* Need to special case those daemons that are running in a wrapper script. The ProgramArguments
+       will say the daemon is /opt/likewise/sbin/<daemon>-wrap, but the actual daemon will be
+       exec'd from the wrapper as the name without -wrap. So we need to check for the name in this
+       form also. */
+    LW_CLEANUP_CTERR(exc, CTAllocateString(command, &command2));
+    wrapPos = strstr(command2, "-wrap");
+    if (wrapPos)
+    {
+        *wrapPos = '\0';
+        DJ_LOG_INFO("Found daemon binary (alt) [%s] for daemon [%s]", command2, pszDaemonPath);
+    }
 
     DJ_LOG_INFO("Checking status of daemon [%s]", pszDaemonPath);
 
@@ -301,6 +315,11 @@ DJGetDaemonStatus(
                 *pbStarted = TRUE;
                 break;
             }
+
+            if (!strcmp(szBuf, command2)) {
+                *pbStarted = TRUE;
+                break;
+            }
         }
     }
 
@@ -317,6 +336,7 @@ cleanup:
 
     CT_SAFE_FREE_STRING(configFile);
     CT_SAFE_FREE_STRING(command);
+    CT_SAFE_FREE_STRING(command2);
 }
 
 void

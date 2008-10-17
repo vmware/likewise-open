@@ -58,20 +58,13 @@ ADGetDomainQualifiedString(
     );
 
 DWORD
-ADGetUPNString(
-    PCSTR pszDomain,
-    PCSTR pszName,
-    PSTR* ppszUPN
-    );
-
-DWORD
 ADGetLDAPUPNString(
-    HANDLE hDirectory,    
-    LDAPMessage* pMessage,
-    PSTR pszFQDN,
-    PSTR pszSamaccountName,    
-    PSTR* ppszValue,
-    PBOOLEAN pbIsGeneratedUPN
+    IN OPTIONAL HANDLE hDirectory,    
+    IN OPTIONAL LDAPMessage* pMessage,
+    IN PSTR pszDnsDomainName,
+    IN PSTR pszSamaccountName,    
+    OUT PSTR* ppszUPN,
+    OUT PBOOLEAN pbIsGeneratedUPN
     );
 
 DWORD
@@ -228,14 +221,10 @@ ADLdap_GetUserGroupMembership(
     PAD_SECURITY_OBJECT** pppGroupInfoList);
 
 DWORD
-ADFindUserOrGroupByDN(
-    HANDLE  hDirectory, 
-    PCSTR   pszCellDN,
-    DWORD   dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PCSTR   pszDomainName,
-    PCSTR   pszObjectDN,
-    PAD_SECURITY_OBJECT *ppObjectInfo);
+ADFindObjectNameByDN(
+    PCSTR pszObjectDN,
+    PSTR* ppszNT4Name,
+    ADAccountType* pObjectType);
 
 DWORD
 ADLdap_GetGCObjectInfoBySid(
@@ -266,11 +255,6 @@ ADLdap_FindGroupNameById(
     PSTR* ppszNT4Name);
 
 DWORD
-ADGetDomainNetBios(    
-    PCSTR pszDomainName,
-    PSTR* ppszNetBios);
-
-DWORD
 ADLdap_FindUserSidDNById(
     uid_t uid,
     PSTR* ppszUserSid,
@@ -280,6 +264,12 @@ DWORD
 ADLdap_GetMapTypeString(
     LsaNSSMapType dwMapType,
     PSTR*         ppszMapType
+    );
+
+DWORD
+ADLdap_GetUserLoginInfo(
+    uid_t   uid,
+    PLSA_LOGIN_NAME_INFO* ppLoginInfo
     );
 
 #endif 

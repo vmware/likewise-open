@@ -52,7 +52,8 @@
 DWORD
 _nss_lsass_authenticate(
     PCSTR pszUserName,
-    PCSTR pszPassword
+    PCSTR pszPassword,
+    bool  bAuthOnly
     );
 
 DWORD

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Config (INF Style) parser
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -63,7 +63,7 @@ static LSA_CFG_LEXER_STATE gLsaLexStateTable[][9] =
   },
   /* LsaLexChar     := 1 */
   {
-    {   LsaLexBegin,  Consume,             LsaCfgNone }, /* LsaLexBegin    */ 
+    {   LsaLexBegin,  Consume,             LsaCfgNone }, /* LsaLexBegin    */
     {    LsaLexChar,  Consume,             LsaCfgNone }, /* LsaLexChar     */
     {     LsaLexEnd, Pushback,           LsaCfgString }, /* LsaLexLSqBrace */
     {     LsaLexEnd, Pushback,           LsaCfgString }, /* LsaLexRSqBrace */
@@ -75,8 +75,8 @@ static LSA_CFG_LEXER_STATE gLsaLexStateTable[][9] =
   },
   /* LsaLexLSqBrace := 2 */
   {
-    {   LsaLexBegin,  Consume,             LsaCfgNone }, /* LsaLexBegin    */ 
-    {     LsaLexEnd, Pushback,  LsaCfgLeftSquareBrace }, /* LsaLexChar     */ 
+    {   LsaLexBegin,  Consume,             LsaCfgNone }, /* LsaLexBegin    */
+    {     LsaLexEnd, Pushback,  LsaCfgLeftSquareBrace }, /* LsaLexChar     */
     {     LsaLexEnd, Pushback,  LsaCfgLeftSquareBrace }, /* LsaLexLSqBrace */
     {     LsaLexEnd, Pushback,  LsaCfgLeftSquareBrace }, /* LsaLexRSqBrace */
     {     LsaLexEnd, Pushback,  LsaCfgLeftSquareBrace }, /* LsaLexEquals   */
@@ -172,10 +172,10 @@ LsaParseConfigFile(
 {
     DWORD dwError = 0;
     PLSA_CONFIG_PARSE_STATE pParseState = NULL;
-    
+
     dwError = LsaCfgInitParseState(
                     pszFilePath,
-                    dwOptions, 
+                    dwOptions,
                     pfnStartSectionHandler,
                     pfnCommentHandler,
                     pfnNameValuePairHandler,
@@ -183,18 +183,18 @@ LsaParseConfigFile(
                     pData,
                     &pParseState);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaCfgParse(pParseState);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
-    
+
     if (pParseState) {
         LsaCfgFreeParseState(pParseState);
     }
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -221,15 +221,15 @@ LsaCfgInitParseState(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    
+
+
     dwError = LsaAllocateMemory(
                     sizeof(LSA_CONFIG_PARSE_STATE),
                     (PVOID*)&pParseState);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateMemory(
-                    sizeof(LSA_STACK), 
+                    sizeof(LSA_STACK),
                     (PVOID*)&pTokenStack);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -239,13 +239,13 @@ LsaCfgInitParseState(
                     pszFilePath,
                     &(pParseState->pszFilePath));
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     pParseState->fp = fp;
     fp = NULL;
-    
+
     pParseState->dwOptions = dwOptions;
     pParseState->pData = pData;
-    
+
     pParseState->pfnStartSectionHandler =
         pfnStartSectionHandler;
     pParseState->pfnCommentHandler =
@@ -254,23 +254,23 @@ LsaCfgInitParseState(
         pfnNameValuePairHandler;
     pParseState->pfnEndSectionHandler =
         pfnEndSectionHandler;
-    
+
     pParseState->dwLine = 1;
-    
+
     *ppParseState = pParseState;
-    
+
 cleanup:
-    
+
     return dwError;
-    
+
 error:
 
     *ppParseState = NULL;
-    
+
     if (pParseState) {
         LsaCfgFreeParseState(pParseState);
     }
-    
+
     if (fp) {
         fclose(fp);
     }
@@ -288,33 +288,33 @@ LsaCfgFreeParseState(
     if (pParseState->pLexerTokenStack) {
         LsaCfgFreeTokenStack(&pParseState->pLexerTokenStack);
     }
-    
+
     if (pParseState->fp) {
         fclose(pParseState->fp);
     }
     LsaFreeMemory(pParseState);
 }
-  
+
 
 DWORD
 LsaCfgParse(
     PLSA_CONFIG_PARSE_STATE pParseState
     )
 {
-    
+
     DWORD dwError = 0;
     PLSA_CFG_TOKEN pToken = NULL;
     BOOLEAN bContinue = TRUE;
     PLSA_STACK pTokenStack = NULL;
-    
-    do 
+
+    do
     {
-    
+
         dwError = LsaCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         switch (pToken->tokenType)
         {
             case LsaCfgHash:
@@ -323,7 +323,7 @@ LsaCfgParse(
                                 pParseState,
                                 &bContinue);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 break;
             }
             case LsaCfgNewline:
@@ -331,20 +331,21 @@ LsaCfgParse(
                 //in case of a blank line (newline),
                 //interpret this as an empty comment.
                 dwError = LsaCfgProcessComment(
-                                pParseState, 
+                                pParseState,
                                 &pTokenStack,
                                 &bContinue);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 break;
             }
             case LsaCfgLeftSquareBrace:
             {
-                
+
                 dwError = LsaCfgParseSections(
-                                pParseState);
+                                pParseState,
+                                &bContinue);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 break;
             }
             case LsaCfgEOF:
@@ -358,27 +359,27 @@ LsaCfgParse(
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
-        
+
     } while (bContinue);
-    
+
 cleanup:
-    
+
     if (pToken) {
         LsaCfgFreeToken(pToken);
     }
-    
+
     return dwError;
-    
-error: 
+
+error:
 
     if (dwError == LSA_ERROR_INVALID_CONFIG)
     {
-        if (pParseState) {                                                             
-            LSA_LOG_ERROR ("Parse error at line=%d, column=%d of file [%s]",  
-                          pParseState->dwLine, 
-                          pParseState->dwCol, 
-                          IsNullOrEmptyString(pParseState->pszFilePath) ? 
-                              "" : pParseState->pszFilePath);                  
+        if (pParseState) {
+            LSA_LOG_ERROR ("Parse error at line=%d, column=%d of file [%s]",
+                          pParseState->dwLine,
+                          pParseState->dwCol,
+                          IsNullOrEmptyString(pParseState->pszFilePath) ?
+                              "" : pParseState->pszFilePath);
         }
     }
 
@@ -387,19 +388,20 @@ error:
 
 DWORD
 LsaCfgParseSections(
-    PLSA_CONFIG_PARSE_STATE pParseState
+    PLSA_CONFIG_PARSE_STATE pParseState,
+    PBOOLEAN pbContinue
     )
 {
     DWORD dwError = 0;
     PLSA_CFG_TOKEN pToken = NULL;
     BOOLEAN bContinue = TRUE;
     PLSA_STACK pTokenStack = NULL;
-    
+
     dwError = LsaCfgParseSectionHeader(
-                    pParseState, 
+                    pParseState,
                     &bContinue);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     while (bContinue)
     {
         dwError = LsaCfgGetNextToken(
@@ -407,37 +409,37 @@ LsaCfgParseSections(
                         &pToken
                         );
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         switch (pToken->tokenType)
         {
             case LsaCfgString:
             {
                 BOOLEAN bIsAllSpace = FALSE;
-                
+
                 dwError = LsaStrIsAllSpace(
                                 pToken->pszToken,
                                 &bIsAllSpace
                                 );
                 BAIL_ON_LSA_ERROR(dwError);
-                                
+
                 if (bIsAllSpace)
                 {
                     continue;
                 }
-                            
+
                 dwError = LsaStackPush(pToken, &(pParseState->pLexerTokenStack));
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 pToken = NULL;
-                
+
                 dwError = LsaCfgParseNameValuePair(
                                 pParseState,
                                 &bContinue
                                 );
                 BAIL_ON_LSA_ERROR(dwError);
-                break;                   
+                break;
             }
-        
+
             case LsaCfgHash:
             {
                 dwError = LsaCfgParseComment(
@@ -461,7 +463,7 @@ LsaCfgParseSections(
             case LsaCfgLeftSquareBrace:
             {
                 dwError = LsaCfgParseSectionHeader(
-                                pParseState, 
+                                pParseState,
                                 &bContinue);
                 BAIL_ON_LSA_ERROR(dwError);
 
@@ -478,8 +480,8 @@ LsaCfgParseSections(
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
-    } 
-    
+    }
+
     if (bContinue && !IsNullOrEmptyString(pParseState->pszSectionName))
     {
         dwError = LsaCfgProcessEndSection(
@@ -487,16 +489,20 @@ LsaCfgParseSections(
                         &bContinue);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
+    *pbContinue = bContinue;
+
 cleanup:
-    
+
     if (pToken) {
         LsaCfgFreeToken(pToken);
     }
-    
+
     return dwError;
-    
+
 error:
+
+    *pbContinue = FALSE;
 
     goto cleanup;
 }
@@ -514,14 +520,14 @@ LsaCfgParseComment(
     BOOLEAN bKeepParsing = TRUE;
     PLSA_CFG_TOKEN pToken = NULL;
     PLSA_STACK pTokenStack = NULL;
-    
+
     do
     {
         dwError = LsaCfgGetNextToken(
                     pParseState,
                     &pToken);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         switch (pToken->tokenType)
         {
             case LsaCfgEOF:
@@ -531,9 +537,9 @@ LsaCfgParseComment(
                                 &pTokenStack,
                                 &bContinue);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 bContinue = FALSE;
-                
+
                 break;
             }
             case LsaCfgNewline:
@@ -543,25 +549,25 @@ LsaCfgParseComment(
                                 &pTokenStack,
                                 &bContinue);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 bKeepParsing = FALSE;
-                
+
                 break;
             }
             default:
             {
                 dwError = LsaStackPush(pToken, &pTokenStack);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 pToken = NULL;
-                
+
             }
         }
-        
+
     } while (bContinue && bKeepParsing);
-    
+
     *pbContinue = bContinue;
-    
+
 cleanup:
 
     if (pToken) {
@@ -569,11 +575,11 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *pbContinue = FALSE;
-    
+
     goto cleanup;
 }
 
@@ -588,39 +594,39 @@ LsaCfgParseSectionHeader(
     BOOLEAN bContinue = TRUE;
     PLSA_CFG_TOKEN pToken = NULL;
     PLSA_STACK pTokenStack = NULL;
-    
+
     if(!IsNullOrEmptyString(pParseState->pszSectionName))
     {
         dwError = LsaCfgProcessEndSection(
                         pParseState,
                         &bContinue);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
     }
-    
+
     if (!bContinue)
     {
         goto done;
     }
-    
+
     pParseState->bSkipSection = FALSE;
-    
+
     do
     {
         dwError = LsaCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         switch(pToken->tokenType)
         {
             case LsaCfgString:
             case LsaCfgEquals:
             case LsaCfgOther:
-            { 
+            {
                 dwError = LsaStackPush(pToken, &pTokenStack);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 pToken = NULL;
                 break;
             }
@@ -628,9 +634,9 @@ LsaCfgParseSectionHeader(
             {
                 dwError = LsaAssertWhitespaceOnly(pParseState);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 bKeepParsing = FALSE;
-                
+
                 break;
             }
             default:
@@ -639,17 +645,17 @@ LsaCfgParseSectionHeader(
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
-        
+
     } while (bKeepParsing);
-    
+
     dwError = LsaCfgGetNextToken(
                     pParseState,
                     &pToken);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch(pToken->tokenType)
     {
-    
+
         case LsaCfgNewline:
         {
             dwError = LsaCfgProcessBeginSection(
@@ -667,18 +673,18 @@ LsaCfgParseSectionHeader(
                             &pTokenStack,
                             &bContinue);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             if (bContinue) {
-                
+
                 dwError = LsaCfgProcessEndSection(
                                 pParseState,
                                 &bContinue);
                 BAIL_ON_LSA_ERROR(dwError);
             }
-            
+
             bContinue = FALSE;
-            
-            break;     
+
+            break;
         }
         default:
         {
@@ -686,11 +692,11 @@ LsaCfgParseSectionHeader(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 done:
 
     *pbContinue = bContinue;
-    
+
 cleanup:
 
     if (pToken) {
@@ -698,7 +704,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *pbContinue = FALSE;
@@ -714,14 +720,14 @@ LsaAssertWhitespaceOnly(
     DWORD dwError = 0;
     PLSA_CFG_TOKEN pToken = NULL;
     BOOLEAN bKeepParsing = TRUE;
-    
+
     do
     {
         dwError = LsaCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         switch(pToken->tokenType)
         {
             case LsaCfgString:
@@ -741,11 +747,11 @@ LsaAssertWhitespaceOnly(
             {
                 dwError = LsaStackPush(pToken, &pParseState->pLexerTokenStack);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 pToken = NULL;
-                
+
                 bKeepParsing = FALSE;
-                
+
                 break;
             }
             default:
@@ -755,7 +761,7 @@ LsaAssertWhitespaceOnly(
             }
         }
     } while (bKeepParsing);
-    
+
 cleanup:
 
     if (pToken) {
@@ -763,7 +769,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -780,16 +786,16 @@ LsaCfgParseNameValuePair(
     BOOLEAN bKeepParsing = TRUE;
     PLSA_CFG_TOKEN pToken = NULL;
     PLSA_STACK pTokenStack = NULL;
-    
+
     //format is <str><equals><token1><token2>...<newline>
-    
+
     //get initial <str>
     dwError = LsaCfgGetNextToken(
                     pParseState,
                     &pToken);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    if(pToken->tokenType == LsaCfgString) 
+
+    if(pToken->tokenType == LsaCfgString)
     {
         dwError = LsaStackPush(pToken, &pTokenStack);
         BAIL_ON_LSA_ERROR(dwError);
@@ -806,8 +812,8 @@ LsaCfgParseNameValuePair(
                     pParseState,
                     &pToken);
     BAIL_ON_LSA_ERROR(dwError);
-   
-    if(pToken->tokenType == LsaCfgEquals) 
+
+    if(pToken->tokenType == LsaCfgEquals)
     {
         dwError = LsaStackPush(pToken, &pTokenStack);
         BAIL_ON_LSA_ERROR(dwError);
@@ -820,24 +826,24 @@ LsaCfgParseNameValuePair(
     }
 
 
-    do 
+    do
     {
         dwError = LsaCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         switch(pToken->tokenType)
         {
             case LsaCfgString:
             case LsaCfgEquals:
             case LsaCfgOther:
             {
-                
+
                 dwError = LsaStackPush(pToken, &pTokenStack);
                 BAIL_ON_LSA_ERROR(dwError);
                 pToken = NULL;
-                
+
                 break;
 
             }
@@ -848,10 +854,10 @@ LsaCfgParseNameValuePair(
                     &pTokenStack,
                     &bContinue);
                 BAIL_ON_LSA_ERROR(dwError);
-                bKeepParsing = FALSE; 
+                bKeepParsing = FALSE;
                 break;
             }
-            case LsaCfgEOF: 
+            case LsaCfgEOF:
             {
                 dwError = LsaCfgProcessNameValuePair(
                     pParseState,
@@ -868,10 +874,10 @@ LsaCfgParseNameValuePair(
             }
         }
     } while(bContinue && bKeepParsing);
-    
-    
+
+
     *pbContinue = bContinue;
-    
+
 cleanup:
 
     if (pToken) {
@@ -879,7 +885,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *pbContinue = FALSE;
@@ -897,30 +903,30 @@ LsaCfgProcessComment(
     DWORD   dwError = 0;
     BOOLEAN bContinue = TRUE;
     PSTR    pszComment = NULL;
-    
+
     dwError = LsaCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszComment);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (pParseState->pfnCommentHandler &&
         !pParseState->bSkipSection) {
-            
+
         dwError = pParseState->pfnCommentHandler(
                         pszComment,
                         pParseState->pData,
                         &bContinue);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     *pbContinue = bContinue;
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszComment);
 
     return dwError;
-    
+
 error:
 
     *pbContinue = TRUE;
@@ -938,24 +944,24 @@ LsaCfgProcessBeginSection(
     PSTR    pszSectionName = NULL;
     BOOLEAN bSkipSection = FALSE;
     BOOLEAN bContinue = TRUE;
-    
+
     dwError = LsaCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszSectionName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (IsNullOrEmptyString(pszSectionName)) {
         dwError = LSA_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (pParseState->pfnStartSectionHandler) {
-        
-        if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_SECTION) 
+
+        if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_SECTION)
         {
-            LsaStripWhitespace(pszSectionName, TRUE, TRUE); 
+            LsaStripWhitespace(pszSectionName, TRUE, TRUE);
         }
-        
+
         dwError = pParseState->pfnStartSectionHandler(
                         pszSectionName,
                         pParseState->pData,
@@ -963,15 +969,15 @@ LsaCfgProcessBeginSection(
                         &bContinue);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     pParseState->pszSectionName = pszSectionName;
     pParseState->bSkipSection = bSkipSection;
     *pbContinue = bContinue;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     LSA_SAFE_FREE_STRING(pszSectionName);
@@ -994,7 +1000,7 @@ LsaCfgProcessNameValuePair(
     PSTR       pszName = NULL;
     PSTR       pszValue = NULL;
     PLSA_CFG_TOKEN pToken = NULL;
-    
+
     *ppTokenStack = LsaStackReverse(*ppTokenStack);
     pToken = (PLSA_CFG_TOKEN)LsaStackPop(ppTokenStack);
     if (pToken && pToken->dwLen) {
@@ -1004,68 +1010,68 @@ LsaCfgProcessNameValuePair(
                     &pszName);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (IsNullOrEmptyString(pszName)) {
         dwError = LSA_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     LsaCfgFreeToken(pToken);
     pToken = NULL;
-    
+
     pToken = (PLSA_CFG_TOKEN)LsaStackPop(ppTokenStack);
-    if (!pToken || pToken->tokenType != LsaCfgEquals) 
+    if (!pToken || pToken->tokenType != LsaCfgEquals)
     {
         dwError = LSA_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     LsaCfgFreeToken(pToken);
     pToken = NULL;
-    
+
     //this will consume the token stack
     dwError = LsaCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszValue);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (pParseState->pfnNameValuePairHandler  &&
         !pParseState->bSkipSection) {
-        
-        if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_NAME_VALUE_PAIR) 
+
+        if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_NAME_VALUE_PAIR)
         {
-            LsaStripWhitespace(pszName, TRUE, TRUE); 
-            LsaStripWhitespace(pszValue, TRUE, TRUE); 
+            LsaStripWhitespace(pszName, TRUE, TRUE);
+            LsaStripWhitespace(pszValue, TRUE, TRUE);
         }
-        
-        dwError = pParseState->pfnNameValuePairHandler( 
+
+        dwError = pParseState->pfnNameValuePairHandler(
                         pszName,
                         pszValue,
                         pParseState->pData,
                         &bContinue);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
     }
-    
+
     *pbContinue = bContinue;
-    
+
 cleanup:
 
     if (pToken) {
         LsaCfgFreeToken(pToken);
         pToken = NULL;
     }
-    
+
     if(ppTokenStack && *ppTokenStack)
     {
         dwError = LsaCfgFreeTokenStack(ppTokenStack);
     }
-    
+
     LSA_SAFE_FREE_STRING(pszName);
     LSA_SAFE_FREE_STRING(pszValue);
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -1079,31 +1085,31 @@ LsaCfgProcessEndSection(
 {
     DWORD dwError = 0;
     BOOLEAN bContinue = TRUE;
-    
+
     if (pParseState->pfnEndSectionHandler &&
         !pParseState->bSkipSection) {
-        
-        if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_SECTION) 
+
+        if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_SECTION)
         {
-            LsaStripWhitespace(pParseState->pszSectionName, TRUE, TRUE); 
+            LsaStripWhitespace(pParseState->pszSectionName, TRUE, TRUE);
         }
-        
-        
+
+
         dwError = pParseState->pfnEndSectionHandler(
                         pParseState->pszSectionName,
                         pParseState->pData,
                         &bContinue);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     *pbContinue = bContinue;
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pParseState->pszSectionName);
 
     return dwError;
-    
+
 error:
 
     *pbContinue = TRUE;
@@ -1118,7 +1124,7 @@ LsaCfgDetermineTokenLength(
 {
     DWORD dwLen = 0;
     PLSA_STACK pIter = pStack;
-    
+
     for (; pIter; pIter = pIter->pNext)
     {
         PLSA_CFG_TOKEN pToken = (PLSA_CFG_TOKEN)pIter->pItem;
@@ -1126,7 +1132,7 @@ LsaCfgDetermineTokenLength(
             dwLen += pToken->dwLen;
         }
     }
-    
+
     return dwLen;
 }
 
@@ -1140,48 +1146,48 @@ LsaCfgProcessTokenStackIntoString(
     DWORD   dwError = 0;
     DWORD   dwRequiredTokenLen = 0;
     PSTR    pszConcatenated = NULL;
-    
+
     dwRequiredTokenLen = LsaCfgDetermineTokenLength(*ppTokenStack);
-    
+
     if (dwRequiredTokenLen) {
-        
+
         PSTR pszPos = NULL;
         PLSA_CFG_TOKEN pToken = NULL;
-        
+
         *ppTokenStack = LsaStackReverse(*ppTokenStack);
-        
-	
+
+
         dwError = LsaAllocateMemory(
                         (dwRequiredTokenLen + 1) * sizeof(CHAR),
                         (PVOID*)&pszConcatenated);
         BAIL_ON_LSA_ERROR(dwError);
-	        
+
 
         pszPos = pszConcatenated;
         while (*ppTokenStack)
         {
             pToken = LsaStackPop(ppTokenStack);
             if (pToken && pToken->dwLen) {
-                    
+
                 strncpy(pszPos, pToken->pszToken, pToken->dwLen);
                 pszPos += pToken->dwLen;
-                    
+
                 LsaCfgFreeToken(pToken);
                 pToken = NULL;
             }
         }
     }
-    
+
     *ppszConcatenated = pszConcatenated;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     LSA_SAFE_FREE_STRING(pszConcatenated);
-    
+
     *ppszConcatenated = NULL;
 
     goto cleanup;
@@ -1197,32 +1203,32 @@ LsaCfgAllocateToken(
     DWORD dwError = 0;
     PLSA_CFG_TOKEN pToken = NULL;
     DWORD dwMaxLen = (dwSize > 0 ? dwSize : LSA_CFG_TOKEN_DEFAULT_LENGTH);
-    
-    
+
+
     dwError = LsaAllocateMemory(
                     sizeof(LSA_CFG_TOKEN),
                     (PVOID*)&pToken);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateMemory(
                     dwMaxLen * sizeof(CHAR),
                     (PVOID*)&pToken->pszToken);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
 
     pToken->tokenType = LsaCfgNone;
     pToken->dwMaxLen = dwMaxLen;
-    
+
     *ppToken = pToken;
-    
+
 cleanup:
-    
+
     return dwError;
-    
+
 error:
 
     *ppToken = NULL;
-    
+
     if (pToken) {
         LsaCfgFreeToken(pToken);
     }
@@ -1237,19 +1243,19 @@ LsaCfgReallocToken(
     )
 {
     DWORD dwError = 0;
-    
+
     dwError = LsaReallocMemory(
                     pToken->pszToken,
                     (PVOID*)&pToken->pszToken,
                     dwNewSize);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     pToken->dwMaxLen = dwNewSize;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -1274,27 +1280,27 @@ LsaCfgCopyToken(
     )
 {
     DWORD dwError = 0;
-    
+
     pTokenDst->tokenType = pTokenSrc->tokenType;
-    
+
     if (pTokenSrc->dwLen > pTokenDst->dwLen) {
         dwError = LsaReallocMemory(
                         (PVOID)  pTokenDst->pszToken,
                         (PVOID*) &pTokenDst->pszToken,
                         (DWORD)  pTokenSrc->dwLen);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         pTokenDst->dwLen = pTokenSrc->dwLen;
         pTokenDst->dwMaxLen = pTokenDst->dwLen;
     }
-    
+
     memset(pTokenDst->pszToken, 0, pTokenDst->dwLen);
     memcpy(pTokenDst->pszToken, pTokenSrc->pszToken, pTokenSrc->dwLen);
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -1305,21 +1311,21 @@ LsaCfgFreeTokenStack(
     PLSA_STACK* ppTokenStack
     )
 {
-    
+
     DWORD dwError = 0;
-    
+
     PLSA_STACK pTokenStack = *ppTokenStack;
-    
+
     dwError = LsaStackForeach(
             pTokenStack,
             &LsaCfgFreeTokenInStack,
             NULL);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LsaStackFree(pTokenStack);
-    
-    *ppTokenStack = NULL; 
-    
+
+    *ppTokenStack = NULL;
+
 error:
 
     return dwError;
@@ -1335,7 +1341,7 @@ LsaCfgFreeTokenInStack(
     {
         LsaCfgFreeToken((PLSA_CFG_TOKEN)pToken);
     }
-    
+
     return 0;
 }
 
@@ -1359,36 +1365,36 @@ LsaCfgGetNextToken(
     LsaCfgLexState  curLexState = LsaLexBegin;
     PLSA_CFG_TOKEN  pToken = NULL;
     BOOLEAN         bOwnToken = FALSE;
-    
-    if (LsaStackPeek(pParseState->pLexerTokenStack) != NULL) 
+
+    if (LsaStackPeek(pParseState->pLexerTokenStack) != NULL)
     {
         PLSA_CFG_TOKEN pToken_input = *ppToken;
-        
+
         pToken = (PLSA_CFG_TOKEN)LsaStackPop(&pParseState->pLexerTokenStack);
         bOwnToken = TRUE;
-        
+
         if (pToken_input) {
-            
+
             dwError = LsaCfgCopyToken(pToken, pToken_input);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             LsaCfgFreeToken(pToken);
             pToken = NULL;
             bOwnToken = FALSE;
-            
+
         }
-        
+
         goto done;
     }
-    
+
     pToken = *ppToken;
-    
+
     if (!pToken) {
         dwError = LsaCfgAllocateToken(
                         0,
                         &pToken);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         bOwnToken = TRUE;
     }
     else
@@ -1415,9 +1421,9 @@ LsaCfgGetNextToken(
         switch(LsaCfgGetLexAction(curLexState, lexClass))
         {
             case Skip:
-                
+
                 break;
-                
+
             case Consume:
 
                 if (pToken->dwLen >= pToken->dwMaxLen) {
@@ -1426,11 +1432,11 @@ LsaCfgGetNextToken(
                                     pToken->dwMaxLen + LSA_CFG_TOKEN_DEFAULT_LENGTH);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
-                
+
                 pToken->pszToken[pToken->dwLen++] = (BYTE)ch;
 
                 break;
-                
+
             case Pushback:
 
 	        if (lexClass == LsaLexNewline)
@@ -1442,15 +1448,15 @@ LsaCfgGetNextToken(
                                 pParseState,
                                 (BYTE)ch);
                 BAIL_ON_LSA_ERROR(dwError);
- 
+
                 break;
         }
 
         curLexState = LsaCfgGetNextLexState(curLexState, lexClass);
     }
-    
+
     pToken->tokenType = tokenType;
-    
+
 done:
 
     if (bOwnToken) {
@@ -1458,7 +1464,7 @@ done:
     }
 
 cleanup:
-    
+
     return dwError;
 
 error:
@@ -1484,11 +1490,11 @@ LsaCfgGetLexClass(
     DWORD ch
     )
 {
-    
+
     if (ch == EOF) {
         return LsaLexEOF;
     }
-    
+
     if (ch == '\n') {
         return LsaLexNewline;
     }
@@ -1504,7 +1510,7 @@ LsaCfgGetLexClass(
     if (ch == '=') {
         return LsaLexEquals;
     }
-    
+
     if (ch == '#') {
         return LsaLexHash;
     }

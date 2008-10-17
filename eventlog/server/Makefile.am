@@ -3,6 +3,7 @@ sbin_PROGRAMS = eventlogd
 idl_srcdir=$(top_srcdir)/idl
 
 eventlogd_SOURCES = \
+    access.c         \
     db.c             \
     eventlog_sstub.c \
     globals.c        \

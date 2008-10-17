@@ -157,187 +157,18 @@ cleanup:
 
 static
 CT_STATUS
-NpcpGetNonceReply(
-    OUT int *nonce,
-    IN int Fd)
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    NPC_MSG_PAYLOAD_SEC_SOCKET_REP* reply = NULL;
-    uint32_t messageSize;
-    uint32_t version;
-    uint32_t type;
-
-    status = CtServerReadMessage(Fd, &version, &type, &messageSize,
-				 (void**)&reply);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    NPC_DEBUG("Version = %d, Type = %d, Size = %d", version, type, messageSize);
-
-    if (type != NPC_MSG_TYPE_SEC_SOCKET_REP)
-    {
-        status = CT_STATUS_INVALID_MESSAGE;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-    if (messageSize != sizeof(NPC_MSG_PAYLOAD_SEC_SOCKET_REP))
-    {
-        status = CT_STATUS_INVALID_MESSAGE;
-	GOTO_CLEANUP_EE(EE);
-    }
-
-    status = reply->Status;
-    *nonce = reply->Nonce;
-
-cleanup:
-    CT_SAFE_FREE(reply);
-
-    return status;
-}
-
-
-static
-CT_STATUS
-NpcpSendSecSocketInfo(
-    OUT int *nonce,
-    IN int Fd,
-    IN const char *socketPath)
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    uint32_t messageSize;
-    NPC_MSG_PAYLOAD_SEC_SOCKET_INFO* message = NULL;
-    size_t offset = CT_FIELD_OFFSET(NPC_MSG_PAYLOAD_SEC_SOCKET_INFO, Data);
-    size_t socketSize;
-
-    socketSize = NPCP_STRING_SIZE(socketPath);
-
-    messageSize = offset + socketSize;
-    status = CtAllocateMemory((void**)&message, messageSize);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    message->SocketNameSize = socketSize;
-    message->SocketOwnerUid = geteuid();
-
-    SET_NEXT_STRING(message, &offset, socketPath, socketSize);
-
-    status = CtServerWriteMessage(Fd,
-				  NPC_MSG_VERSION,
-				  NPC_MSG_TYPE_SEC_SOCKET_INFO,
-				  messageSize,
-				  message);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = NpcpGetNonceReply(nonce, Fd);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-cleanup:
-    CT_SAFE_FREE(message);
-
-    NPC_DEBUG_TRACE("status = 0x%08x, EE = %d", status, EE);
-    
-    return status;
-}
-
-
-static
-CT_STATUS
-NpcpSendSecSocketNonce(
-    IN int Fd,
-    IN int Nonce)
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    uint32_t messageSize;
-    NPC_MSG_PAYLOAD_SEC_SOCKET_NONCE* message = NULL;
-
-    messageSize = sizeof(NPC_MSG_PAYLOAD_SEC_SOCKET_NONCE);
-    status = CtAllocateMemory((void**)&message, messageSize);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    message->Nonce = Nonce;
-
-    status = CtServerWriteMessage(Fd,
-				  NPC_MSG_VERSION,
-				  NPC_MSG_TYPE_SEC_SOCKET_NONCE,
-				  messageSize,
-				  message);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = NpcpGetStatusReply(Fd);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-cleanup:
-    CT_SAFE_FREE(message);
-    CT_SAFE_CLOSE_FD(Fd);
-
-    NPC_DEBUG_TRACE("status = 0x%08x, EE = %d", status, EE);
-    
-    return status;
-}
-
-
-static
-CT_STATUS
-NpcpGetServerAck(
-    IN int Fd,
-    IN int nonce)
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    int authFd;
-
-    /* For a moment client becomes a server and waits for a connection
-       from the server to finish the handshaking process */
-    status = CtSocketWaitForConnection(&authFd, Fd);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    /* Send back the nonce and close connection */
-    status = NpcpSendSecSocketNonce(authFd, nonce);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-cleanup:    
-    return status;
-}
-
-
-static
-CT_STATUS
 NpcpConnectToServerWithSocket(
     IN int Fd
     )
 {
     CT_STATUS status = CT_STATUS_SUCCESS;
     int EE = 0;
-    char* clientPath = NULL;
-    char* secSocketPath = NULL;
-    int secFd = -1;
-    int nonce = 0;
 
-    status = CtServerCreateClientPath(&clientPath, CLIENT_PREFIX);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtServerConnectExistingSocket(Fd, SERVER_PATH, clientPath);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtSecSocketCreate(&secFd, &secSocketPath, SEC_SOCKET_PREFIX);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtSocketSetListening(secFd);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = NpcpSendSecSocketInfo(&nonce, Fd, secSocketPath);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = NpcpGetServerAck(secFd, nonce);
+    status = CtServerConnectExistingSocket(Fd, SERVER_PATH);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    status = CtSecSocketCleanup(secFd, secSocketPath);
 
-    CT_SAFE_FREE(clientPath);
-    CT_SAFE_FREE(secSocketPath);
-    
     NPC_DEBUG_TRACE("status = 0x%08x, EE = %d", status, EE);
 
     return status;
@@ -352,41 +183,11 @@ NpcpConnectToServer(
 {
     CT_STATUS status = CT_STATUS_SUCCESS;
     int EE = 0;
-    char* clientPath = NULL;
-    char* secSocketPath = NULL;
-    int secFd = -1;
-    int nonce = 0;
 
-    status = CtServerCreateClientPath(&clientPath, CLIENT_PREFIX);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtServerConnect(Fd, SERVER_PATH, clientPath);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtSecSocketCreate(&secFd, &secSocketPath, SEC_SOCKET_PREFIX);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtSocketSetListening(secFd);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = NpcpSendSecSocketInfo(&nonce, *Fd, secSocketPath);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = NpcpGetServerAck(secFd, nonce);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtSecSocketCleanup(secFd, secSocketPath);
-    secFd = -1;
+    status = CtServerConnect(Fd, SERVER_PATH);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    if(secFd != -1)
-    {
-        CtSecSocketCleanup(secFd, secSocketPath);
-    }
-
-    CT_SAFE_FREE(clientPath);
-    CT_SAFE_FREE(secSocketPath);
     NPC_DEBUG_TRACE("status = 0x%08x, EE = %d", status, EE);
 
     return status;

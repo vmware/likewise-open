@@ -5,8 +5,8 @@ compat_subdirs = \
 	    logging_r  \
         ipc            \
         client         \
-        nsswitch       \
-        pam @MACCLIENT_DIR@
+        auth @MACCLIENT_DIR@ \
+        nsswitch
 
 full_subdirs= \
 	$(compat_subdirs) \
@@ -14,6 +14,7 @@ full_subdirs= \
         wbclient          \
 	gssntlm	          \
         server            \
+        access            \
         tools             \
         etc               \
         include           \

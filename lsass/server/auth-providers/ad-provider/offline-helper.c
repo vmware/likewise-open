@@ -51,92 +51,6 @@
 #include "adprovider.h"
 
 DWORD
-AD_OfflineGetExpandedGroupUsers(
-    IN PCSTR pszGroupSid,
-    IN DWORD dwMaxDepth,
-    OUT PBOOLEAN pbIsFullyExpanded,
-    OUT size_t* psMemberUsersCount,
-    OUT PAD_SECURITY_OBJECT** pppMemberUsers
-    )
-{
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    BOOLEAN bIsFullyExpanded = FALSE;
-    PLSA_AD_GROUP_EXPANSION_DATA pExpansionData = NULL;
-    PAD_SECURITY_OBJECT* ppGroupMembers = NULL;
-    size_t sGroupMembersCount = 0;
-    PAD_SECURITY_OBJECT pGroupToExpand = NULL;
-    DWORD dwGroupToExpandDepth = 0;
-    PCSTR pszGroupToExpandSid = NULL;
-    PAD_SECURITY_OBJECT* ppExpandedUsers = NULL;
-    size_t sExpandedUsersCount = 0;
-
-    dwError = AD_GroupExpansionDataCreate(
-                &pExpansionData,
-                LSA_MAX(1, dwMaxDepth));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pszGroupToExpandSid = pszGroupSid;
-    dwGroupToExpandDepth = 1;
-
-    while (pszGroupToExpandSid)
-    {
-        dwError = AD_OfflineGetGroupMembers(
-                    pszGroupToExpandSid,
-                    &sGroupMembersCount,
-                    &ppGroupMembers);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        dwError = AD_GroupExpansionDataAddExpansionResults(
-                    pExpansionData,
-                    dwGroupToExpandDepth,
-                    &sGroupMembersCount,
-                    &ppGroupMembers);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = AD_GroupExpansionDataGetNextGroupToExpand(
-                    pExpansionData,
-                    &pGroupToExpand,
-                    &dwGroupToExpandDepth);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (pGroupToExpand)
-        {
-            pszGroupToExpandSid = pGroupToExpand->pszObjectSid;
-        }
-        else
-        {
-            pszGroupToExpandSid = NULL;
-        }
-    }
-
-    dwError = AD_GroupExpansionDataGetResults(pExpansionData,
-                                              &bIsFullyExpanded,
-                                              &sExpandedUsersCount,
-                                              &ppExpandedUsers);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    AD_GroupExpansionDataDestroy(pExpansionData);
-    ADCacheDB_SafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
-
-    if (pbIsFullyExpanded)
-    {
-        *pbIsFullyExpanded = bIsFullyExpanded;
-    }
-
-    *psMemberUsersCount = sExpandedUsersCount;
-    *pppMemberUsers = ppExpandedUsers;
-
-    return dwError;
-
-error:
-    ADCacheDB_SafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
-    sExpandedUsersCount = 0;
-    bIsFullyExpanded = FALSE;
-    goto cleanup;
-}
-
-DWORD
 AD_OfflineGetGroupMembers(
     IN PCSTR pszGroupSid,
     OUT size_t* psMemberObjectsCount,
@@ -245,56 +159,6 @@ cleanup:
 
 error:
     *pppObjects = NULL;
-    goto cleanup;
-}
-
-DWORD
-AD_OfflineGroupObjectToGroupInfo(
-    IN PAD_SECURITY_OBJECT pGroupObject,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    size_t sMembers = 0;
-    PAD_SECURITY_OBJECT *ppMembers = NULL;
-
-    switch (dwGroupInfoLevel)
-    {
-        case 0:
-            // nothing to do
-            break;
-        case 1:
-            // need to expand membership
-            dwError = AD_OfflineGetExpandedGroupUsers(
-                        pGroupObject->pszObjectSid,
-                        5,
-                        NULL,
-                        &sMembers,
-                        &ppMembers);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            // nothing to do
-            break;
-    }
-
-    dwError = ADMarshalFromGroupCache(
-                pGroupObject,
-                sMembers,
-                ppMembers,
-                dwGroupInfoLevel,
-                ppGroupInfo
-                );
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
-    return dwError;
-
-error:
-    *ppGroupInfo = NULL;
-
     goto cleanup;
 }
 
@@ -685,6 +549,7 @@ AD_GroupExpansionDataDestroy(
         LsaHashSafeFree(&pExpansionData->pGroupsToExpand);
         LsaHashSafeFree(&pExpansionData->pExpandedGroups);
         LsaHashSafeFree(&pExpansionData->pUsers);
+        LsaFreeMemory(pExpansionData);
     }
 }
 

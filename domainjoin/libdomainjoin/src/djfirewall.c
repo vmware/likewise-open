@@ -108,7 +108,10 @@ static CENTERROR ConnectSocket(int sock, struct sockaddr_in *to)
 {
     if(connect(sock, (struct sockaddr *)to, sizeof(*to)) < 0)
     {
-        return CTMapSystemError(errno);
+        if (errno != EINPROGRESS)
+        {
+            return CTMapSystemError(errno);
+        }
     }
     return CENTERROR_SUCCESS;
 }
@@ -146,8 +149,8 @@ static CENTERROR CheckPorts(PortCheck *checks, int checkNum, int tcptimeout)
         if(checks[i].udp)
         {
             GCE(ceError = CreateSocket(checks[i].udp, &checks[i].sock));
-            GCE(ceError = SetNonblocking(checks[i].sock));
             GCE(ceError = ConnectSocket(checks[i].sock, &checks[i].to));
+            GCE(ceError = SetNonblocking(checks[i].sock));
         }
         else
             checks[i].sock = -1;

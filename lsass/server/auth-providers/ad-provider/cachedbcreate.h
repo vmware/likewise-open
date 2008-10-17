@@ -91,7 +91,8 @@
 "        AccountDisabled integer,\n" \
 "        AccountExpired integer,\n" \
 "        AccountLocked integer,\n" \
-"        UNIQUE (Uid)\n" \
+"        UNIQUE (Uid),\n" \
+"        UNIQUE (AliasName)\n" \
 "        );\n" \
 "\n" \
 "create table lwipasswordverifiers (\n" \
@@ -105,7 +106,8 @@
 "        Gid integer,\n" \
 "        AliasName text,\n" \
 "        Passwd text,\n" \
-"        UNIQUE (Gid)\n" \
+"        UNIQUE (Gid),\n" \
+"        UNIQUE (AliasName)\n" \
 "        );\n" \
 "\n" \
 "create table lwigroupmembership (\n" \
@@ -128,7 +130,6 @@
 "        ADMaxPwdAge integer,\n" \
 "        Domain text PRIMARY KEY,\n" \
 "        ShortDomain text,\n" \
-"        ServerName text,\n" \
 "        ComputerDN text,\n" \
 "        CellDN text\n" \
 "        );\n" \
@@ -143,9 +144,28 @@
 "        TrustFlags integer,\n" \
 "        TrustType integer,\n" \
 "        TrustAttributes integer,\n" \
+"        TrustDirection integer,\n" \
+"        TrustMode integer,\n" \
 "        ForestName text,\n" \
 "        Flags integer\n" \
 "        );\n" \
+"\n" \
+"CREATE INDEX lwiobjects_CacheId ON lwiobjects (CacheId);\n" \
+"\n" \
+"CREATE INDEX lwipasswordverifiers_CacheId ON " \
+    "lwipasswordverifiers (CacheId);\n" \
+"\n" \
+"CREATE INDEX lwigroupmembership_CacheId ON " \
+    "lwigroupmembership (CacheId);\n" \
+"\n" \
+"CREATE INDEX lwigroupmembership_ParentSid ON " \
+    "lwigroupmembership (ParentSid);\n" \
+"\n" \
+"CREATE INDEX lwigroupmembership_ChildSid ON " \
+    "lwigroupmembership (ChildSid);\n" \
+"\n" \
+"CREATE INDEX lwiusers_UPN ON " \
+    "lwiusers (UPN);\n" \
 ""
 
 #endif /* __CACHEDBCREATE_H__ */

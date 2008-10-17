@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,9 +38,9 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Local Authentication Provider
- * 
+ *
  *        External Variables
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -84,7 +84,7 @@ extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
 /*
  * Database
  */
-#define LSASS_DB_DIR CACHEDIR "/db"
+#define LSASS_DB_DIR CACHEDIR     "/db"
 #define LSASS_DB     LSASS_DB_DIR "/lsass-local.db"
 
 extern pthread_rwlock_t g_dbLock;
@@ -95,15 +95,7 @@ extern pthread_rwlock_t g_dbLock;
 #define ENTER_RW_WRITER_LOCK pthread_rwlock_wrlock(&g_dbLock)
 #define LEAVE_RW_WRITER_LOCK pthread_rwlock_unlock(&g_dbLock)
 
-const extern DWORD gProviderLocal_PasswdChangeIntervalMinimum;
-const extern DWORD gProviderLocal_PasswdChangeIntervalDefault;
-const extern DWORD gProviderLocal_PasswdChangeIntervalMaximum;
-extern DWORD gProviderLocal_PasswdChangeInterval;
-
-const extern DWORD gProviderLocal_PasswdChangeWarningTimeMinimum;
-const extern DWORD gProviderLocal_PasswdChangeWarningTimeDefault;
-const extern DWORD gProviderLocal_PasswdChangeWarningTimeMaximum;
-extern DWORD gProviderLocal_PasswdChangeWarningTime;
+extern LOCAL_CONFIG gLocalConfig;
 
 extern PSTR gProviderLocal_Hostname;
 

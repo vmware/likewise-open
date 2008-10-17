@@ -47,16 +47,7 @@ NTSTATUS NetrEnumerateTrustedDomainsEx(handle_t b, const wchar16_t *server_name,
     name = wc16sdup(server_name);
     goto_if_no_memory_ntstatus(name, cleanup);
 
-    TRY
-    {
-        status = _NetrEnumerateTrustedDomainsEx(b, name, &tlist);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
-
+    DCERPC_CALL(status, _NetrEnumerateTrustedDomainsEx(b, name, &tlist));
     goto_if_ntstatus_not_success(status, cleanup);
 
     *count  = tlist.count;

@@ -57,7 +57,7 @@ ADReapCache(
     PVOID pData
     );
 
-DWORD
+VOID
 ADShutdownCacheReaper(
     VOID
     );

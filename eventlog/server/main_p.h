@@ -42,6 +42,13 @@
 #ifndef __MAIN_P_H__
 #define __MAIN_P_H__
 
+typedef struct {
+    /* Data as read from configuration */
+    PSTR  configData;
+    /* Data as parsed using LSASS */
+    PVOID pAllowedTo;
+} EVTALLOWEDDATA, *PEVTALLOWEDDATA;
+
 /* This structure captures the arguments that must be
  * sent to the Group Policy Service
  */
@@ -72,8 +79,15 @@ typedef struct {
     DWORD dwMaxRecords;
     /* Remove the events older than*/
     DWORD dwMaxAge;
-    /* Enable/disable remove events needed flag */
-    BOOLEAN  bRemoveRecordsAsNeeded;
+    /* Purge the records at the interval */
+    DWORD dwPurgeInterval;
+
+    /* Who is allowed to read events */
+    EVTALLOWEDDATA  pAllowReadTo;
+    /* Who is allowed to write events */
+    EVTALLOWEDDATA  pAllowWriteTo;
+    /* Who is allowed to delete events */
+    EVTALLOWEDDATA  pAllowDeleteTo;
 } EVTSERVERINFO, *PEVTSERVERINFO;
 
 EVTSERVERINFO gServerInfo;
@@ -112,6 +126,35 @@ EVTGetMaxLogSize(
 DWORD
 EVTGetRemoveEventsFlag(
     PBOOLEAN pbRemoveEvents
+    );
+
+DWORD
+EVTGetAllowReadToLocked(
+    PEVTALLOWEDDATA * ppAllowReadTo
+    );
+
+DWORD
+EVTGetAllowWriteToLocked(
+    PEVTALLOWEDDATA * ppAllowWriteTo
+    );
+
+DWORD
+EVTGetAllowDeleteToLocked(
+    PEVTALLOWEDDATA * ppAllowDeleteTo
+    );
+
+void
+EVTUnlockServerInfo();
+
+void
+EVTFreeAllowData(
+    PEVTALLOWEDDATA pAllowData
+    );
+
+DWORD
+EVTSetAllowData(
+    PCSTR   pszValue,
+    PEVTALLOWEDDATA ppAllowData
     );
 
 BOOLEAN

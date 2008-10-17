@@ -28,11 +28,11 @@
  * license@likewisesoftware.com
  */
 
+#include "config.h"
 #include "ctshell.h"
 #include "ctarray.h"
 #include <sys/types.h>
 #include <sys/wait.h>
-#include "config/config.h"
 
 #define SIGIL '%'
 

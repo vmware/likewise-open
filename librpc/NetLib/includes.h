@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/ntstatus.h>
@@ -41,7 +42,19 @@
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/allocate.h>
+#include <lwrpc/memptr.h>
 #include <lwrpc/LM.h>
 
+#include "externs.h"
 #include "NetConnection.h"
 #include "NetUtil.h"
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -5,6 +5,7 @@ libeventlogutils_la_SOURCES = \
     evtfutils.c \
     evthost.c   \
     evtlogger.c \
+    evtcfgutils.c \
     evtmem.c    \
     evtrpcmem.c \
     evtstack.c  \

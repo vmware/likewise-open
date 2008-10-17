@@ -54,10 +54,81 @@
 #define STANDARD_GROUP_EXPIRATION   (void *)1
 #define PAC_GROUP_EXPIRATION        (void *)2
 
-DWORD
-AD_TestNetworkConnection(
-    PCSTR pszDomain
-    );
+//
+// The LSA_REMAP_FIND_<TYPE>_BY_<INDEX>_ERROR() macros are used
+// in the AD_{Online,Offline}Find<TYPE>by<INDEX> functions to do
+// the error code remapping required by the LSASS SRV API layer
+// and required for handling offline errors that occur in online
+// operation.  They also provide uniformity in logging.  The latter
+// (logging) is the reason for doing these as macros instead of
+// functions (i.e., so we can call logging macros and preserve
+// stack location information).
+//
+// In the offline case, we always remap the error to the desired error.
+//
+// In the online case, we must preserve the "domain is offline" error
+// so that the calling code will retry by calling the offline code.
+//
+
+#define _LSA_REMAP_FIND_X_BY_Y_ERROR(ErrorVariable, IsOfflineCode, DesiredError, ObjectTypeString, IndexString, IndexFormatString, IndexValue) \
+    do { \
+        if ((ErrorVariable) != (DesiredError)) \
+        { \
+            LSA_LOG_DEBUG("Failed to find " ObjectTypeString " " IndexString " " IndexFormatString " (error = %d)", \
+                          IndexValue, ErrorVariable); \
+            if ((IsOfflineCode) || (LSA_ERROR_DOMAIN_IS_OFFLINE != (ErrorVariable))) \
+            { \
+                (ErrorVariable) = (DesiredError); \
+            } \
+        } \
+    } while (0)
+
+#define _LSA_REMAP_FIND_X_BY_ID_ERROR(ErrorVariable, IsOfflineCode, DesiredError, ObjectTypeString, IdValue) \
+    _LSA_REMAP_FIND_X_BY_Y_ERROR(ErrorVariable, \
+                                 IsOfflineCode, \
+                                 DesiredError, \
+                                 ObjectTypeString, \
+                                 "id", \
+                                 "%lu", \
+                                 (unsigned long)(IdValue))
+
+#define _LSA_REMAP_FIND_X_BY_NAME_ERROR(ErrorVariable, IsOfflineCode, DesiredError, ObjectTypeString, NameValue) \
+    _LSA_REMAP_FIND_X_BY_Y_ERROR(ErrorVariable, \
+                                 IsOfflineCode, \
+                                 DesiredError, \
+                                 ObjectTypeString, \
+                                 "name", \
+                                 "'%s'", \
+                                 LSA_SAFE_LOG_STRING(NameValue))
+
+
+#define LSA_REMAP_FIND_USER_BY_ID_ERROR(ErrorVariable, IsOfflineCode, IdValue) \
+    _LSA_REMAP_FIND_X_BY_ID_ERROR(ErrorVariable, \
+                                  IsOfflineCode, \
+                                  LSA_ERROR_NO_SUCH_USER, \
+                                  "user", \
+                                  IdValue)
+
+#define LSA_REMAP_FIND_USER_BY_NAME_ERROR(ErrorVariable, IsOfflineCode, NameValue) \
+    _LSA_REMAP_FIND_X_BY_NAME_ERROR(ErrorVariable, \
+                                    IsOfflineCode, \
+                                    LSA_ERROR_NO_SUCH_USER, \
+                                    "user", \
+                                    NameValue)
+
+#define LSA_REMAP_FIND_GROUP_BY_ID_ERROR(ErrorVariable, IsOfflineCode, IdValue) \
+    _LSA_REMAP_FIND_X_BY_ID_ERROR(ErrorVariable, \
+                                  IsOfflineCode, \
+                                  LSA_ERROR_NO_SUCH_GROUP, \
+                                  "group", \
+                                  IdValue)
+
+#define LSA_REMAP_FIND_GROUP_BY_NAME_ERROR(ErrorVariable, IsOfflineCode, NameValue) \
+    _LSA_REMAP_FIND_X_BY_NAME_ERROR(ErrorVariable, \
+                                    IsOfflineCode, \
+                                    LSA_ERROR_NO_SUCH_GROUP, \
+                                    "group", \
+                                    NameValue)
 
 DWORD
 AD_AddAllowedGroup(
@@ -66,14 +137,16 @@ AD_AddAllowedGroup(
 
 DWORD
 AD_OnlineInitializeOperatingMode(
-    PCSTR pszDomain,
-    PCSTR pszHostName
+    OUT PAD_PROVIDER_DATA* ppProviderData,
+    IN PCSTR pszDomain,
+    IN PCSTR pszHostName
     );
 
 DWORD
 AD_DetermineTrustModeandDomainName(
     IN PCSTR pszDomain,
-    OUT TrustMode* pTrustMode,
+    OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,    
     OUT OPTIONAL PSTR* ppszDnsDomainName,
     OUT OPTIONAL PSTR* ppszNetbiosDomainName
     );
@@ -86,23 +159,9 @@ AD_OnlineAuthenticateUser(
     );
 
 DWORD
-AD_CheckUserIsAllowedLogin(
-    HANDLE hProvider,
-    uid_t  uid
-    );
-
-DWORD
 AD_CrackDomainQualifiedName(
     PCSTR pszId,
     PLSA_LOGIN_NAME_INFO* ppNameInfo
-    );
-
-DWORD
-AD_OnlineFindUserByName(
-    HANDLE  hProvider,
-    PCSTR   pszLoginId,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
     );
 
 DWORD
@@ -113,12 +172,11 @@ AD_OnlineFindUserObjectById(
     );
 
 DWORD
-AD_OnlineGetUserGroupMembership(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
+AD_OnlineGetUserGroupObjectMembership(
+    HANDLE hProvider,
+    uid_t uid,
+    size_t* psNumGroupsFound,
+    PAD_SECURITY_OBJECT** pppResult
     );
 
 DWORD
@@ -128,14 +186,6 @@ AD_OnlineEnumUsers(
     DWORD   dwMaxNumUsers,
     PDWORD  pdwUsersFound,
     PVOID** pppUserInfoList
-    );
-
-DWORD
-AD_OnlineFindGroupByName(
-    HANDLE  hProvider,
-    PCSTR   pszLoginId,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
     );
 
 DWORD
@@ -167,13 +217,6 @@ DWORD
 AD_CreateHomeDirectory(
     PLSA_USER_INFO_1 pUserInfo
     );
-
-#if defined (__LWI_DARWIN__)
-DWORD
-AD_CreateHomeDirectory_Mac(
-    PLSA_USER_INFO_1 pUserInfo
-    );
-#endif
 
 DWORD
 AD_CreateHomeDirectory_Generic(
@@ -214,7 +257,7 @@ AD_FreeHashObject(
     );
 
 DWORD
-AD_GetExpandedGroupUsers(
+AD_OnlineGetExpandedGroupUsers(
     HANDLE  hProvider,
     PCSTR pszDomainName,
     PCSTR pszDomainNetBiosName,
@@ -251,8 +294,6 @@ AD_FindObjectBySid(
 DWORD
 AD_FindObjectsBySidList(
     HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszDomainNetBiosName,
     size_t sCount,
     PSTR* ppszSidList,
     PAD_SECURITY_OBJECT **pppResults);
@@ -268,24 +309,16 @@ AD_OnlineGetNamesBySidList(
 
 DWORD
 AD_GetLinkedCellInfo(
-    HANDLE hDirectory,
-    PCSTR  pszCellDN);
+    IN HANDLE hDirectory,
+    IN PCSTR pszCellDN,
+    IN PCSTR pszDomain,
+    OUT PDLINKEDLIST* ppCellList
+    );
 
 DWORD
 LsaValidateSeparatorCharacter(
     CHAR cSeparator,
     CHAR* pcValidatedSeparator
-    );
-
-VOID
-AD_FreeLinkedCellInfoInList(
-    PVOID pLinkedCellInfo,
-    PVOID pUserData
-    );
-
-VOID
-AD_FreeLinkedCellInfo(
-    PAD_LINKED_CELL_INFO pLinkedCellInfo
     );
 
 void
@@ -295,7 +328,7 @@ AD_FreeHashStringKey(
 DWORD
 AD_CacheGroupMembershipFromPac(
     IN HANDLE              hProvider,
-    IN TrustMode           trustMode,
+    IN LSA_TRUST_DIRECTION dwTrustDirection,
     IN PAD_SECURITY_OBJECT pUserInfo,
     IN PAC_LOGON_INFO *    pPac);
 
@@ -311,10 +344,10 @@ AD_OnlineFindUserObjectByName(
     PAD_SECURITY_OBJECT* ppCachedUser);
 
 DWORD
-AD_FindCachedGroupByNT4Name(
+AD_OnlineFindGroupObjectByName(
     HANDLE  hProvider,
     PCSTR   pszGroupName,
-    PAD_SECURITY_OBJECT* ppCachedGroup);
+    PAD_SECURITY_OBJECT* ppResult);
 
 DWORD
 AD_OnlineEnumNSSArtefacts(
@@ -340,6 +373,18 @@ AD_CanonicalizeDomainsInCrackedNameInfo(
 DWORD
 AD_UpdateUserObjectFlags(
     IN OUT PAD_SECURITY_OBJECT pUser
+    );
+
+DWORD
+AD_VerifyUserAccountCanLogin(
+    IN PAD_SECURITY_OBJECT pUserInfo
+    );
+
+DWORD
+ADFindUserOrGroupObjectByDN(
+    HANDLE hProvider,
+    PCSTR  pszObjectDN,
+    PAD_SECURITY_OBJECT *ppObjectInfo
     );
 
 #endif /* __ONLINE_H__ */

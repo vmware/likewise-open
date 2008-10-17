@@ -54,6 +54,7 @@
  * license@likewisesoftware.com
  */
 
+#include "config.h"
 #include "ctbase.h"
 
 CENTERROR
@@ -66,17 +67,10 @@ CTVerifyGID(
   struct group group;
   struct group* pResult = NULL;
   
-#if defined(__LWI_SOLARIS__)
-  if ((pResult = getgrgid_r(gid, &group, szBuf, sizeof(szBuf))) == NULL) {
-    ceError = CENTERROR_INVALID_GID;
-    BAIL_ON_CENTERIS_ERROR(ceError);
-  }
-#else
   if (getgrgid_r(gid, &group, szBuf, sizeof(szBuf), &pResult) < 0) {
     ceError = CTMapSystemError(errno);
     BAIL_ON_CENTERIS_ERROR(ceError);
   }
-#endif
 
   if (!pResult) {
      ceError = CENTERROR_INVALID_GID;
@@ -119,17 +113,10 @@ CTGetGID(
 
     memset(&group, 0, sizeof(struct group));
 
-#if defined(__LWI_SOLARIS__)
-    if ((pResult = getgrnam_r(pszGID, &group, szBuf, sizeof(szBuf))) == NULL) {
-      ceError = CENTERROR_INVALID_GID;
-      BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-#else
     if (getgrnam_r(pszGID, &group, szBuf, sizeof(szBuf), &pResult) < 0) {
       ceError = CTMapSystemError(errno);
       BAIL_ON_CENTERIS_ERROR(ceError);
     }
-#endif
     
     if (!pResult) {
        ceError = CENTERROR_INVALID_GID;

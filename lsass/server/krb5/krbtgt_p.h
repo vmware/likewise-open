@@ -57,12 +57,6 @@ LsaKrb5RealmIsOffline(
     IN PCSTR pszRealm
     );
 
-static
-VOID
-LsaKrb5RealmTransitionOffline(
-    IN PCSTR pszRealm
-    );
-
 #endif /* __KRBTGT_P_H__ */
 
 

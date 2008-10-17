@@ -62,7 +62,7 @@ LsaMacGetGroupsForUserName(
     gid_t** ppGidResults
     )
 {
-    return LsaGetGroupsForUserName(
+    return LsaGetGidsForUserByName(
                     hLsaConnection,
                     pszUserName,
                     pdwGroupFound,

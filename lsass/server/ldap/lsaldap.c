@@ -121,6 +121,26 @@ LsaLdapPingTcp(
         BAIL_ON_LSA_ERROR(dwError)
     }
 
+    switch (sysRet)
+    {
+        case 0:
+            // We timed out
+            LSA_LOG_DEBUG("Timed out connecting to '%s'", pszHostAddress);
+            // ISSUE-2008/09/16-dalmeida -- Technically, not a "domain"...
+            dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        case 1:
+            // Normal case
+            break;
+        default:
+            // This should never happen.
+            LSA_LOG_DEBUG("Unexpected number of file descriptors returned (%d)", sysRet);
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+    }
+
     if (!FD_ISSET(fd, &fds))
     {
         // ISSUE-2008/07/15-dalmeida -- Suitable error code?
@@ -824,6 +844,13 @@ LsaLdapDirectorySearch(
           LSA_LOG_VERBOSE("Caught LDAP_NO_SUCH_OBJECT Error on ldap search");
           goto error;
        }
+       if (dwError == LDAP_FILTER_ERROR) {
+          LSA_LOG_ERROR("Caught LDAP_FILTER_ERROR on ldap search");
+          LSA_LOG_ERROR("LDAP Search Info: DN: [%s]", IsNullOrEmptyString(pszObjectDN) ? "<null>" : pszObjectDN);
+          LSA_LOG_ERROR("LDAP Search Info: scope: [%d]", scope);
+          LSA_LOG_ERROR("LDAP Search Info: query: [%s]", IsNullOrEmptyString(pszQuery) ? "<null>" : pszQuery);
+          goto error;
+       }
        if (dwError == LDAP_REFERRAL) {
           LSA_LOG_ERROR("Caught LDAP_REFERRAL Error on ldap search");
           LSA_LOG_ERROR("LDAP Search Info: DN: [%s]", IsNullOrEmptyString(pszObjectDN) ? "<null>" : pszObjectDN);
@@ -1338,7 +1365,10 @@ LsaLdapGetUInt32(
         *pdwValue = atoi(pszValue);
     } else {
         dwError = LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
-        BAIL_ON_LSA_ERROR(dwError);
+        // This error occurs very frequently (every time an unenabled user
+        // or group is queried in default schema mode). So in order to avoid
+        // log noise, BAIL_ON_LSA_ERROR is not used here.
+        goto error;
     }
 
 cleanup:

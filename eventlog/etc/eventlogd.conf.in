@@ -4,6 +4,17 @@
 
 [global]
 
+    # Comma separated list of users and groups that
+    # are allowed to read events
+    # allow-read-to = 
+
+    # Comma separated list of users and groups that
+    # are allowed to write events
+    # allow-write-to = 
+
+    # Comma separated list of users and groups that
+    # are allowed to delete events
+    # allow-delete-to = 
 
 [resource-limits]
 
@@ -15,14 +26,14 @@
     # Default: 90d
     # Minimum: 1d
     # Maximum: 365d
-    max-entry-lifespan = 90d
+    max-event-lifespan = 90d
 
     # Default: 100k
     # Minimum: 100
     # Maximum: 2m
-    max-num-entries = 100k
+    max-num-events = 100k
 
     # Default: 1d
-    # Minimum: 30m
-    # Maximum: 30d (must be less than max-entry-lifespan)
+    # Minimum: 1d
+    # Maximum: 30d (must be less than max-event-lifespan)
     event-db-purge-interval = 1d

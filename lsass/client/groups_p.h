@@ -121,15 +121,6 @@ LsaDeleteGroupByName(
     PCSTR  pszName
     );
 
-LSASS_API
-DWORD
-LsaGetGroupsForUserName(
-    HANDLE  hLsaConnection,
-    PCSTR   pszUserName,    
-    PDWORD  pdwGroupFound,
-    gid_t** ppGidResults
-    );
-
 VOID
 LsaFreeEnumGroupsInfo(
     PLSA_ENUM_GROUPS_INFO pInfo

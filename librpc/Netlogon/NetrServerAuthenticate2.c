@@ -61,17 +61,8 @@ NTSTATUS NetrServerAuthenticate2(handle_t b, const wchar16_t *server,
     comp = wc16sdup(computer);
     goto_if_no_memory_ntstatus(comp, cleanup);
 
-    TRY
-    {
-        status = _NetrServerAuthenticate2(b, srv, acc, sec_chan_type, comp,
-                                          &creds, neg_flags);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
-
+    DCERPC_CALL(status, _NetrServerAuthenticate2(b, srv, acc, sec_chan_type,
+                                                 comp, &creds, neg_flags));
     goto_if_ntstatus_not_success(status, cleanup);
 
     memcpy(srv_creds, creds.data, sizeof(creds.data));

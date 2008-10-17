@@ -7,7 +7,7 @@ libmsrpc_la_SOURCES = \
 	UnicodeString.c UnicodeStringEx.c \
 	SidHelper.c md4.c md5.c hmac_md5.c rc4.c des.c \
 	smbcrypto.c random.c \
-	MemPtr.c
+	MemPtr.c errcheck.c
 
 noinst_PROGRAMS=md4test md5test cryptotest randomtest destest
 
@@ -35,7 +35,7 @@ LIBRPC_INCDIR=$(librpc_srcdir)/Include
 LIBRPC_INCLUDES=-I$(LIBRPC_INCDIR)
 INCLUDES=$(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
-libmsrpc_la_CFLAGS=-g $(INCLUDES)
+libmsrpc_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD
 libmsrpc_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libmsrpc_la_LIBADD=-ldcerpc -lunistr
 

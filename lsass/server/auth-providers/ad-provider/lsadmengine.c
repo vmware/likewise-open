@@ -50,11 +50,14 @@
 
 #include "adprovider.h"
 
+static
 DWORD
 LsaDmEnginepAddTrust(
     IN OPTIONAL PCSTR pszTrusteeDomainName,
     IN NetrDomainTrust* pTrustInfo,
-    IN PCSTR pszDnsForestName
+    IN LSA_TRUST_DIRECTION dwTrustDirection,
+    IN LSA_TRUST_MODE dwTrustMode,
+    IN OPTIONAL PCSTR pszDnsForestName
     )
 {
     DWORD dwError = 0;
@@ -77,6 +80,8 @@ LsaDmEnginepAddTrust(
                                     pTrustInfo->trust_flags,
                                     pTrustInfo->trust_type,
                                     pTrustInfo->trust_attrs,
+                                    dwTrustDirection,
+                                    dwTrustMode,
                                     pszDnsForestName,
                                     NULL);
     if (dwError == LSA_ERROR_DUPLICATE_DOMAINNAME)
@@ -127,6 +132,11 @@ LsaDmEnginepDiscoverTrustsForDomain(
                                                 NETR_TRUST_FLAG_IN_FOREST),
                                                &pTrusts,
                                                &dwTrustCount);
+    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    {
+        LSA_LOG_ERROR("Unable to enumerate trusts for '%s' domain because it is offline",
+                      pszDomainName, dwError);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     // There must be at least one trust (primary)
@@ -177,7 +187,12 @@ LsaDmEnginepDiscoverTrustsForDomain(
         }
 
         // Now add the primary trust info.
-        dwError = LsaDmEnginepAddTrust(NULL, pPrimaryTrust, pszForestName);
+        dwError = LsaDmEnginepAddTrust(
+                        NULL,
+                        pPrimaryTrust,
+                        LSA_TRUST_DIRECTION_SELF,
+                        LSA_TRUST_MODE_MY_FOREST,
+                        pszForestName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -193,6 +208,8 @@ LsaDmEnginepDiscoverTrustsForDomain(
     {
         NetrDomainTrust* pCurrentTrust = &pTrusts[dwTrustIndex];
         PCSTR pszCurrentTrustForestRootName = NULL;
+        LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+        LSA_TRUST_MODE dwTrustMode = LSA_TRUST_MODE_UNKNOWN;        
 
         // Ignore DOWNLEVEL trusts.
         // These are trusts with domains that are earlier than WIN2K
@@ -208,8 +225,8 @@ LsaDmEnginepDiscoverTrustsForDomain(
                 BAIL_ON_LSA_ERROR(dwError);
             }
             
-            LSA_LOG_WARNING("Ignoring down level trust to domain [%s]",
-                            IsNullOrEmptyString(pszNetbiosName) ? "" : pszNetbiosName);
+            LSA_LOG_WARNING("Ignoring down level trust to domain '%s'",
+                            LSA_SAFE_LOG_STRING(pszNetbiosName));
             
             continue;
         }
@@ -262,8 +279,8 @@ LsaDmEnginepDiscoverTrustsForDomain(
                 BAIL_ON_LSA_ERROR(dwError);
             }
             
-            LSA_LOG_WARNING("Skipping trust with an invalid dns domain name. Netbios name [%s]",
-                            IsNullOrEmptyString(pszNetbiosName) ? "" : pszNetbiosName);
+            LSA_LOG_WARNING("Skipping trust with an invalid DNS domain name (Netbios name is '%s')",
+                            LSA_SAFE_LOG_STRING(pszNetbiosName));
             
             continue;
         }
@@ -278,27 +295,70 @@ LsaDmEnginepDiscoverTrustsForDomain(
         if (pCurrentTrust->trust_flags & NETR_TRUST_FLAG_IN_FOREST)
         {
             pszCurrentTrustForestRootName = pszForestName;
+            // check whether we are in other forest or not
+            if (ppTrustedForestRootList)
+            {
+                dwTrustMode = LSA_TRUST_MODE_MY_FOREST;
+               
+            }
+            else
+            {
+                dwTrustMode = LSA_TRUST_MODE_OTHER_FOREST;
+            }
+         }
+        else if (pCurrentTrust->trust_attrs & NETR_TRUST_ATTR_FOREST_TRANSITIVE)
+        {
+            // This is a forest trust, so the forest name is the same as the
+            // domain name.
+            pszCurrentTrustForestRootName = pszDnsDomainName;
+            dwTrustMode = LSA_TRUST_MODE_OTHER_FOREST;
         }
         else
         {
-            LWNET_SAFE_FREE_DC_INFO(pDcInfo);
-            
-            dwError = LWNetGetDCName(NULL,
-                                     pszDnsDomainName,
-                                     NULL,
-                                     0,
-                                     &pDcInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            pszCurrentTrustForestRootName = pDcInfo->pszDnsForestName;
+            // This must be an external trust.  So we do not ever
+            // need the forest name as we are not supposed to
+            // ever talk to it.
+            pszCurrentTrustForestRootName = NULL;
+            dwTrustMode = LSA_TRUST_MODE_EXTERNAL;
+        }
+        
+        //Determine trust direction
+        if (pCurrentTrust->trust_flags & NETR_TRUST_FLAG_IN_FOREST)
+        {           
+            dwTrustDirection = LSA_TRUST_DIRECTION_TWO_WAY;            
+        }
+        else if ((pCurrentTrust->trust_flags & NETR_TRUST_FLAG_OUTBOUND) &&
+                (pCurrentTrust->trust_flags & NETR_TRUST_FLAG_INBOUND))
+        {
+           dwTrustDirection = LSA_TRUST_DIRECTION_TWO_WAY;
+        }
+        else if ((pCurrentTrust->trust_flags & NETR_TRUST_FLAG_OUTBOUND) &&
+                !(pCurrentTrust->trust_flags & NETR_TRUST_FLAG_INBOUND))
+        {
+           dwTrustDirection = LSA_TRUST_DIRECTION_ONE_WAY;
+        }
+        else if (!(pCurrentTrust->trust_flags & NETR_TRUST_FLAG_OUTBOUND) &&
+                (pCurrentTrust->trust_flags & NETR_TRUST_FLAG_INBOUND))
+        {
+           dwTrustDirection = LSA_TRUST_DIRECTION_ZERO_WAY;
+        }
+        else
+        {
+           dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN; 
+           LSA_LOG_WARNING("Trust direction cannot be determined.");
         }
 
-        // add the trust.
-        dwError = LsaDmEnginepAddTrust(pszDomainName, pCurrentTrust,
-                                       pszCurrentTrustForestRootName);
+        // Add the trust.
+        dwError = LsaDmEnginepAddTrust(
+                         pszDomainName,
+                         pCurrentTrust,
+                         dwTrustDirection,
+                         dwTrustMode,
+                         pszCurrentTrustForestRootName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        // if the caller wants trusted forest roots, add them
+        // If the caller wants trusted forest roots, add them to the
+        // output list of trusted forest roots.
         if (ppTrustedForestRootList &&
             (pCurrentTrust->trust_attrs & NETR_TRUST_ATTR_FOREST_TRANSITIVE) &&
             (pCurrentTrust->trust_flags & NETR_TRUST_FLAG_OUTBOUND) &&
@@ -350,8 +410,9 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
-LsaDmEngineDiscoverTrusts(
+LsaDmEnginepDiscoverTrustsInternal(
     IN PCSTR pszDnsPrimaryDomainName,
     IN PCSTR pszDnsPrimaryForestName
     )
@@ -388,6 +449,11 @@ LsaDmEngineDiscoverTrusts(
                                                       pszDnsPrimaryForestName,
                                                       pszDnsPrimaryForestName,
                                                       &pTrustedForestRootList);
+        if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+        {
+            // If we cannot enumerate our forest's trusts, ignore it.
+            dwError = 0;
+        }
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -402,12 +468,52 @@ LsaDmEngineDiscoverTrusts(
                                                           pszDnsForestName,
                                                           pszDnsForestName,
                                                           NULL);
+            if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+            {
+                // If we cannot enumerate a trusted forest's trusts,
+                // ignore it.
+                dwError = 0;
+            }
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
 cleanup:
     LSA_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
+
+    return dwError;
+    
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaDmEngineDiscoverTrusts(
+    IN PCSTR pszDnsPrimaryDomainName
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PLWNET_DC_INFO pDcInfo = NULL;
+
+    // ISSUE-2008/10/09-dalmeida -- Perhaps put this in lsadmwrap.
+    dwError = LWNetGetDCName(NULL, pszDnsPrimaryDomainName, NULL, 0, &pDcInfo);
+    switch (dwError)
+    {
+        case LWNET_ERROR_INVALID_DNS_RESPONSE:
+        case LWNET_ERROR_FAILED_FIND_DC:
+            // We pinged a DC earlier, so we must have gone offline
+            // in the last few seconds.
+            dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+            break;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmEnginepDiscoverTrustsInternal(pszDnsPrimaryDomainName,
+                                                 pDcInfo->pszDnsForestName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
 
     return dwError;
     

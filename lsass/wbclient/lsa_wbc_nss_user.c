@@ -234,7 +234,7 @@ wbcErr wbcGetGroups(const char *account,
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaGetGroupsForUserName(hLsa, account, 
+	dwErr = LsaGetGidsForUserByName(hLsa, account, 
 					&dwNumGids, &gids);
 	BAIL_ON_LSA_ERR(dwErr);
 

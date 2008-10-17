@@ -16,6 +16,7 @@ AC_SUBST(configdir)
 
 # Checks for programs.
 AC_PROG_CC
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_LIBTOOL
 
 # Check for compiler options
@@ -115,35 +116,6 @@ AC_DEFINE_UNQUOTED(DEFAULT_UNIX_CHARSET,"UTF8",[Default unix charset name])
 AC_DEFINE_UNQUOTED(DEFAULT_DOS_CHARSET,"ASCII",[Default dos charset name])
 AC_DEFINE_UNQUOTED(DEFAULT_DISPLAY_CHARSET,"ASCII",[Default display charset name])
 
-# Figure out whether __EXTENSIONS__ needs to be defined to get sockaddr_storage
-AC_CHECK_TYPES([struct sockaddr_storage], [found_type=yes], [found_type=no], [
-//This gets defined later with samba magic. For this test, it has to be manually defined
-#define _XOPEN_SOURCE 500
-#if HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-		])
-if test x$found_type = xno; then
-    unset ac_cv_type_struct_sockaddr_storage
-    AC_CHECK_TYPES([struct sockaddr_storage], [
-	found_type=yes
-	AC_DEFINE(__EXTENSIONS__, 1, [Enables necessary system declarations])
-    ], [found_type=no], [
-#define __EXTENSIONS__ 1
-//This gets defined later with samba magic. For this test, it has to be manually defined
-#define _XOPEN_SOURCE 500
-#if HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-		])
-fi
-
 AC_C_CONST
 AC_HEADER_STDBOOL
 AC_TYPE_UID_T
@@ -189,8 +161,16 @@ AC_CHECK_TYPES([ptrdiff_t, socklen_t, struct timespec, sig_atomic_t, comparison_
 #if HAVE_STDINT_H
 #include <stdint.h>
 #endif
+#ifdef TIME_WITH_SYS_TIME
+#include <sys/time.h>
+#include <time.h>
+#else
 #if HAVE_SYS_TIME_H
 #include <sys/time.h>
+#endif
+#if HAVE_TIME_H
+#include <time.h>
+#endif
 #endif
 		])
 
@@ -209,7 +189,6 @@ AC_PROG_GCC_TRADITIONAL
 AC_FUNC_LSTAT
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_HEADER_MAJOR
-AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES

@@ -336,6 +336,41 @@ PrintStatus(
                 printf("\t\tTrust Flags:      0x%x\n", pDomainInfo->dwTrustFlags);
                 printf("\t\tTrust type:       %s\n", GetTrustTypeString(pDomainInfo->dwTrustType));
                 printf("\t\tTrust Attributes: 0x%x\n", pDomainInfo->dwTrustAttributes);
+                printf("\t\tTrust Direction:  ");
+                switch (pDomainInfo->dwTrustDirection)
+                {
+                    case LSA_TRUST_DIRECTION_ZERO_WAY:
+                        printf("Zeroway Trust\n");
+                        break;
+                    case LSA_TRUST_DIRECTION_ONE_WAY:
+                        printf("Oneway Trust\n");
+                        break;
+                    case LSA_TRUST_DIRECTION_TWO_WAY:
+                        printf("Twoway Trust\n");
+                        break;
+                    
+                    case LSA_TRUST_DIRECTION_SELF:
+                        printf("Primary Domain\n");
+                        break;
+                    default:
+                        printf("Unknown trust direction\n");                
+                }
+                printf("\t\tTrust Mode:       ");
+                switch (pDomainInfo->dwTrustMode)
+                {
+                    case LSA_TRUST_MODE_EXTERNAL:
+                        printf("External Trust (ET)\n");
+                        break;
+                    case LSA_TRUST_MODE_MY_FOREST:
+                        printf("In my forest Trust (MFT)\n");
+                        break;
+                    case LSA_TRUST_MODE_OTHER_FOREST:
+                        printf("In other forest Trust (OFT)\n");
+                        break;
+                    default:
+                        printf("Unknown trust mode\n");                
+                }
+                
                 printf("\t\tDomain flags:     0x%x\n", pDomainInfo->dwDomainFlags);
                 
                 if (pDomainInfo->pDCInfo)

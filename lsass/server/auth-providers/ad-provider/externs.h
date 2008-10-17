@@ -79,38 +79,14 @@ extern PSTR    gpszADProviderName;
 
 extern PSTR    gpszConfigFilePath;
 
-extern BOOLEAN gbCreateK5Login;
-
 extern BOOLEAN gbShutdownProvider;
 
-extern AD_PROVIDER_DATA  gADProviderData;
 extern PAD_PROVIDER_DATA  gpADProviderData;
-
-extern PSTR gpszUnprovisionedModeShell;
-extern PSTR gpszUnprovisionedModeHomedirTemplate;
-
-extern const CHAR gcSeparatorDefault;
-extern CHAR gcSeparator;
-
-extern const DWORD gdwCacheReaperTimeoutSecsMinimum;
-extern const DWORD gdwCacheReaperTimeoutSecsDefault;
-extern const DWORD gdwCacheReaperTimeoutSecsMaximum;
-extern DWORD gdwCacheReaperTimeoutSecs;
 
 extern pthread_t       gCacheReaperThread;
 extern pthread_mutex_t gCacheReaperThreadLock;
 extern pthread_cond_t  gCacheReaperThreadCondition;
 extern pthread_t*      gpCacheReaperThread;
-
-extern const DWORD gdwMachinePasswordSyncPwdLifetimeMinimum;
-extern const DWORD gdwMachinePasswordSyncPwdLifetimeDefault;
-extern const DWORD gdwMachinePasswordSyncPwdLifetimeMaximum;
-extern DWORD gdwMachinePasswordSyncPwdLifetime;
-
-extern const DWORD gdwCacheEntryExpirySecsMinimum;
-extern const DWORD gdwCacheEntryExpirySecsDefault;
-extern const DWORD gdwCacheEntryExpirySecsMaximum;
-extern DWORD gdwCacheEntryExpirySecs;
 
 extern DWORD gdwMachinePasswordSyncThreadWaitSecs;
 
@@ -123,8 +99,6 @@ extern DWORD gdwClockDriftSecs;
 
 extern HANDLE ghPasswordStore;
 
-extern BOOLEAN gbLDAPSignAndSeal;
-
 extern LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable;
 
 extern DWORD gdwMachineTGTExpiry;
@@ -133,11 +107,7 @@ extern double gdwMachineTGTExpiryGraceSeconds;
 
 extern CACHE_CONNECTION_HANDLE gpCacheConnection;
 
-extern PLSA_HASH_TABLE gpAllowedGroups;
-
-extern BOOLEAN gbAssumeDefaultDomain;
-
-extern BOOLEAN gbSyncSystemTime;
+extern PLSA_HASH_TABLE gpAllowedSIDs;
 
 // please put all new globals in the following structure:
 extern PLSA_AD_PROVIDER_STATE gpLsaAdProviderState;

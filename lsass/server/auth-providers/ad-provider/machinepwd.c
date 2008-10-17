@@ -158,10 +158,24 @@ ADSyncMachinePasswords(
             LSA_LOG_VERBOSE("Changing machine password");
             dwError = NetMachineChangePassword();           
             if (dwError) {
-                LSA_LOG_ERROR("Error: Failed to re-sync machine account [Error code: %ld]", dwError);
+                LSA_LOG_ERROR("Error: Failed to re-sync machine account [Error code: %ld]", dwError);                
+                
+                if (AD_EventlogEnabled())
+                {
+                    ADLogMachinePWUpdateFailureEvent(dwError);      
+                }
+                
                 dwError = 0;
                 goto lsa_wait_resync;
-            }
+            }            
+            
+            if (AD_EventlogEnabled())
+            {
+                LsaSrvLogServiceSuccessEvent(
+                        GENERAL_EVENT_CATEGORY,
+                        "The Active Directory machine password was updated successfully.",
+                        "<null>");
+            }            
             
             bRefreshTGT = FALSE;
         }
@@ -286,15 +300,15 @@ error:
     goto cleanup;
 }
 
-DWORD
+VOID
 ADShutdownMachinePasswordSync(
     VOID
     )
 {
     DWORD dwError = 0;
     
-    if (gpMachinePasswordSyncThread) {
-        
+    if (gpMachinePasswordSyncThread)
+    {   
         pthread_mutex_lock(&gMachinePasswordSyncThreadLock);
         pthread_cond_signal(&gMachinePasswordSyncThreadCondition);
         pthread_mutex_unlock(&gMachinePasswordSyncThreadLock);
@@ -304,24 +318,21 @@ ADShutdownMachinePasswordSync(
         {
             dwError = 0;
         }
-        BAIL_ON_LSA_ERROR(dwError);
+        if (dwError)
+        {
+            LSA_LOG_ERROR("Unexpected error trying to cancel thread (error = %d)", dwError);
+            dwError = 0;
+        }
         
         pthread_join(gMachinePasswordSyncThread, NULL);
         gpMachinePasswordSyncThread = NULL;
     }
 
-    if (ghPasswordStore != (HANDLE)NULL) {
-       LwpsClosePasswordStore(ghPasswordStore);
-       ghPasswordStore = (HANDLE)NULL;
+    if (ghPasswordStore)
+    {
+        LwpsClosePasswordStore(ghPasswordStore);
+        ghPasswordStore = (HANDLE)NULL;
     }
-
-cleanup:
-    
-    return dwError;
-    
-error:
-
-    goto cleanup;
 }
 
 BOOLEAN
@@ -356,4 +367,41 @@ ADSetMachineTGTExpiry(
 	
 	LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 }
+
+VOID
+ADLogMachinePWUpdateFailureEvent(
+    DWORD dwErrCode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszMachinePWUpdateFailureDescription = NULL;
+    PSTR pszData = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszMachinePWUpdateFailureDescription,
+                 "The Active Directory machine password failed to update. Error code : [%d].",
+                 dwErrCode);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                         dwErrCode,
+                         &pszData);
+      
+    LsaSrvLogServiceFailureEvent(
+            GENERAL_EVENT_CATEGORY,
+            pszMachinePWUpdateFailureDescription,
+            pszData);
+    
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszMachinePWUpdateFailureDescription);
+    LSA_SAFE_FREE_STRING(pszData);
+
+    return;
+    
+error:
+
+    goto cleanup;
+}
+
 

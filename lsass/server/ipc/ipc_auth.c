@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for Authentication
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -67,16 +67,16 @@ LsaSrvIpcAuthenticateUser(
                     &pszPassword,
                     NULL);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvAuthenticateUser(
                     hServer,
                     pszLoginName,
                     pszPassword);
     if (!dwError) {
-        
+
        dwError = LsaBuildMessage(
                     LSA_R_AUTH_USER,
                     0, /* Empty message */
@@ -85,17 +85,17 @@ LsaSrvIpcAuthenticateUser(
                     &pResponse
                     );
        BAIL_ON_LSA_ERROR(dwError);
-       
+
     } else {
-       
+
        DWORD dwOrigErrCode = 0;
        DWORD dwMsgLen = 0;
-       
+
        dwOrigErrCode = dwError;
-       
+
        dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
        BAIL_ON_LSA_ERROR(dwError);
-        
+
        dwError = LsaBuildMessage(
                     LSA_ERROR,
                     dwMsgLen,
@@ -104,14 +104,14 @@ LsaSrvIpcAuthenticateUser(
                     &pResponse
                     );
        BAIL_ON_LSA_ERROR(dwError);
-        
+
        dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaWriteMessage(pContext->fd, pResponse);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszLoginName);
@@ -120,7 +120,7 @@ cleanup:
     LSA_SAFE_FREE_MESSAGE(pResponse);
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -139,7 +139,7 @@ LsaSrvIpcValidateUser(
     PLSASERVERCONNECTIONCONTEXT pContext =
        (PLSASERVERCONNECTIONCONTEXT)hConnection;
     HANDLE hServer = (HANDLE)NULL;
-    
+
     dwError = LsaUnmarshalCredentials(
                     pMessage->pData,
                     pMessage->header.messageLength,
@@ -147,13 +147,13 @@ LsaSrvIpcValidateUser(
                     &pszPassword,
                     NULL);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvValidateUser(hServer, pszLoginName, pszPassword);
     if (!dwError) {
-        
+
        dwError = LsaBuildMessage(
                     LSA_R_VALIDATE_USER,
                     0, /* Empty message */
@@ -162,17 +162,17 @@ LsaSrvIpcValidateUser(
                     &pResponse
                     );
        BAIL_ON_LSA_ERROR(dwError);
-       
+
     } else {
-       
+
        DWORD dwOrigErrCode = 0;
        DWORD dwMsgLen = 0;
-       
+
        dwOrigErrCode = dwError;
-       
+
        dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
        BAIL_ON_LSA_ERROR(dwError);
-        
+
        dwError = LsaBuildMessage(
                     LSA_ERROR,
                     dwMsgLen,
@@ -181,14 +181,14 @@ LsaSrvIpcValidateUser(
                     &pResponse
                     );
        BAIL_ON_LSA_ERROR(dwError);
-        
+
        dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaWriteMessage(pContext->fd, pResponse);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszLoginName);
@@ -197,7 +197,87 @@ cleanup:
     LSA_SAFE_FREE_MESSAGE(pResponse);
 
     return dwError;
-    
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LsaSrvIpcCheckUserInList(
+    HANDLE hConnection,
+    PLSAMESSAGE pMessage
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszLoginName = NULL;
+    PSTR  pszListName = NULL;
+    PLSAMESSAGE pResponse = NULL;
+    PLSASERVERCONNECTIONCONTEXT pContext =
+       (PLSASERVERCONNECTIONCONTEXT)hConnection;
+    HANDLE hServer = (HANDLE)NULL;
+
+    dwError = LsaUnmarshalCredentials(
+                    pMessage->pData,
+                    pMessage->header.messageLength,
+                    &pszLoginName,
+                    &pszListName,
+                    NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvCheckUserInList(
+                    hServer,
+                    pszLoginName,
+                    pszListName);
+    if (!dwError) {
+
+       dwError = LsaBuildMessage(
+                    LSA_R_CHECK_USER_IN_LIST,
+                    0, /* Empty message */
+                    1,
+                    1,
+                    &pResponse
+                    );
+       BAIL_ON_LSA_ERROR(dwError);
+
+    } else {
+
+       DWORD dwOrigErrCode = 0;
+       DWORD dwMsgLen = 0;
+
+       dwOrigErrCode = dwError;
+
+       dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
+       BAIL_ON_LSA_ERROR(dwError);
+
+       dwError = LsaBuildMessage(
+                    LSA_ERROR,
+                    dwMsgLen,
+                    1,
+                    1,
+                    &pResponse
+                    );
+       BAIL_ON_LSA_ERROR(dwError);
+
+       dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
+       BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaWriteMessage(pContext->fd, pResponse);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszLoginName);
+    LSA_SAFE_CLEAR_FREE_STRING(pszListName);
+
+    LSA_SAFE_FREE_MESSAGE(pResponse);
+
+    return dwError;
+
 error:
 
     goto cleanup;
@@ -217,7 +297,7 @@ LsaSrvIpcChangePassword(
     PLSASERVERCONNECTIONCONTEXT pContext =
        (PLSASERVERCONNECTIONCONTEXT)hConnection;
     HANDLE hServer = (HANDLE)NULL;
-    
+
     dwError = LsaUnmarshalCredentials(
                     pMessage->pData,
                     pMessage->header.messageLength,
@@ -225,19 +305,17 @@ LsaSrvIpcChangePassword(
                     &pszPassword,
                     &pszOldPassword);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvChangePassword(
                     hServer,
                     pszLoginName,
                     pszPassword,
                     pszOldPassword);
-    BAIL_ON_LSA_ERROR(dwError);
-    
     if (!dwError) {
-        
+
        dwError = LsaBuildMessage(
                     LSA_R_CHANGE_PASSWORD,
                     0, /* Empty message */
@@ -246,17 +324,17 @@ LsaSrvIpcChangePassword(
                     &pResponse
                     );
        BAIL_ON_LSA_ERROR(dwError);
-       
+
     } else {
-       
+
        DWORD dwOrigErrCode = 0;
        DWORD dwMsgLen = 0;
-       
+
        dwOrigErrCode = dwError;
-       
+
        dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
        BAIL_ON_LSA_ERROR(dwError);
-        
+
        dwError = LsaBuildMessage(
                     LSA_ERROR,
                     dwMsgLen,
@@ -265,14 +343,14 @@ LsaSrvIpcChangePassword(
                     &pResponse
                     );
        BAIL_ON_LSA_ERROR(dwError);
-        
+
        dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaWriteMessage(pContext->fd, pResponse);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszLoginName);
@@ -282,7 +360,7 @@ cleanup:
     LSA_SAFE_FREE_MESSAGE(pResponse);
 
     return dwError;
-    
+
 error:
 
     goto cleanup;

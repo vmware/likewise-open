@@ -171,5 +171,10 @@ LsaSrvSetProcessToExit(
     BOOLEAN bExit
     );
 
+VOID
+LsaSrvLogProcessFailureEvent(
+    DWORD dwErrCode
+    );
+
 #endif /* __SERVERMAIN_H__ */
 

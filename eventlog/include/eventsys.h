@@ -54,6 +54,7 @@
   #include <compat/dcerpc.h>
   #include <dce/dcethread.h>
   #include <compat/rpcstatus.h>
+   #include <dlfcn.h>
 
 #if HAVE_WC16STR_H
   #include <wc16str.h>

@@ -54,6 +54,7 @@
  * license@likewisesoftware.com
  */
 
+#include "config.h"
 #include "lwexc.h"
 #include "ctstrutils.h"
 

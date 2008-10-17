@@ -54,6 +54,7 @@
  * license@likewisesoftware.com
  */
 
+#include "config.h"
 #include "ctbase.h"
 
 void

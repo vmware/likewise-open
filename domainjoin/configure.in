@@ -203,6 +203,25 @@ AC_ARG_WITH(
         ]
 )
 
+AC_ARG_WITH(
+        lwdns-dir,
+        [  --with-lwdns-dir=<prefix>     look for lwdns headers/libraries in <prefix>],
+        [
+            LWDNS_INCLUDE=-I$withval/include
+            LWDNS_LDFLAGS=-L$withval/lib
+            LWDNS_LIBDIR=$withval/lib
+        ]
+)
+
+AC_ARG_WITH(
+        lwdns-libdir,
+        [  --with-lwdns-libdir=<libdir>     look for lwdns libraries in <libdir>],
+        [
+            LWDNS_LDFLAGS=-L$withval
+            LWDNS_LIBDIR=$withval
+        ]
+)
+
 AC_CHECK_LIB(iconv, iconv)
 
 LIBPTHREAD=""
@@ -285,6 +304,13 @@ AC_SUBST(LIBRPC_INCLUDE)
 AC_SUBST(LIBRPC_LDFLAGS)
 AC_SUBST(LIBRPC_LIBS)
 
+LWDNS_LIBS=""
+AC_CHECK_LIB([lwdns], [DNSUpdateSecure], [LWDNS_LIBS="-llwdns"], AC_MSG_ERROR([Use --with-lwdns-dir to find lwdns libraries]), [$LWDNS_LDFLAGS])
+
+AC_SUBST(LWDNS_INCLUDE)
+AC_SUBST(LWDNS_LDFLAGS)
+AC_SUBST(LWDNS_LIBS)
+
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -fPIC"
 LIBVER_MAJOR=1
 SHLIBEXT=.so
@@ -345,7 +371,8 @@ case `uname -s` in
         BUILD_SHLIB_CMD='$(CC) -shared -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
         BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
         LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djdaemonmgr_nonmac.o"
-        ;;
+	LIB_XNET="-lxnet"
+	;;
 
     *)
         AC_MSG_ERROR(OS not supported, 1)
@@ -361,6 +388,7 @@ AC_SUBST(BUILD_SHLIB_CMD)
 AC_SUBST(BUILD_DYNLIB_CMD)
 AC_SUBST(LWI_OS_FLAGS)
 AC_SUBST(LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS)
+AC_SUBST(LIB_XNET)
 
 AC_ARG_ENABLE(debug,
 [ --enable-debug enable debugging ],

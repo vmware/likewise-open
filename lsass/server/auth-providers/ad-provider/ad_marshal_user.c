@@ -1014,6 +1014,7 @@ ADSchemaMarshalToUserCache(
     UCHAR* pucSIDBytes = NULL;
     DWORD dwSIDByteLength = 0;
     PSTR  pszUserDomainFQDN = NULL;
+    PSTR  pszHomedir = NULL;
 
     dwError = LsaDmWrapGetDomainName(pszNetBIOSDomainName,
                                      &pszUserDomainFQDN,
@@ -1122,9 +1123,7 @@ ADSchemaMarshalToUserCache(
     }
     
     if (pUserInfo->enabled)
-    {
-        PSTR pszUnprovisionedModeHomedirTemplate = NULL;
-        
+    {        
         dwError = LsaLdapGetUInt32(
                     hPseudoDirectory,
                     pMessagePseudo,
@@ -1176,22 +1175,29 @@ ADSchemaMarshalToUserCache(
                     AD_LDAP_HOMEDIR_TAG,
                     &pUserInfo->userInfo.pszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
+        
         if (!pUserInfo->userInfo.pszHomedir){
             dwError = AD_GetUnprovisionedModeHomedirTemplate(
-                              &pszUnprovisionedModeHomedirTemplate);
+                              &pUserInfo->userInfo.pszHomedir);
             BAIL_ON_LSA_ERROR(dwError);
-        
-            dwError = AD_BuildHomeDirFromTemplate(
-                            pszUnprovisionedModeHomedirTemplate,
-                            pszNetBIOSDomainName,
-                            pUserInfo->pszSamAccountName,
-                            &pUserInfo->userInfo.pszHomedir);
-            BAIL_ON_LSA_ERROR(dwError);        
-            LsaStrCharReplace(pUserInfo->userInfo.pszHomedir, ' ', '_');
         }
         
-        LSA_SAFE_FREE_STRING(pszUnprovisionedModeHomedirTemplate);
+        if (strstr(pUserInfo->userInfo.pszHomedir, "%"))
+        {
+            dwError = AD_BuildHomeDirFromTemplate(
+                            pUserInfo->userInfo.pszHomedir,
+                            pszNetBIOSDomainName,
+                            pUserInfo->pszSamAccountName,
+                            &pszHomedir);
+            BAIL_ON_LSA_ERROR(dwError);
+            
+            LSA_SAFE_FREE_STRING(pUserInfo->userInfo.pszHomedir);
+            pUserInfo->userInfo.pszHomedir = pszHomedir;
+            pszHomedir = NULL;
+        }
         
+        LsaStrCharReplace(pUserInfo->userInfo.pszHomedir, ' ', '_');
+
         BAIL_ON_INVALID_STRING(pUserInfo->userInfo.pszHomedir);
     }
     
@@ -1201,6 +1207,7 @@ cleanup:
 
     LSA_SAFE_FREE_MEMORY(pucSIDBytes);
     LSA_SAFE_FREE_STRING(pszUserDomainFQDN);
+    LSA_SAFE_FREE_STRING(pszHomedir);
 
     return dwError;
     
@@ -1229,6 +1236,7 @@ ADSchemaMarshalToUserCacheEx(
     UCHAR* pucSIDBytes = NULL;
     DWORD dwSIDByteLength = 0;
     PSTR  pszUserDomainFQDN = NULL;
+    PSTR  pszHomedir = NULL;
 
     dwError = LsaDmWrapGetDomainName(pUserNameInfo->pszDomainNetBiosName,
                                      &pszUserDomainFQDN,
@@ -1251,8 +1259,8 @@ ADSchemaMarshalToUserCacheEx(
 
     pUserInfo->type = AccountType_User;
 
-    if (pMessageReal && hRealDirectory != (HANDLE)NULL){
-        
+    if (pMessageReal && hRealDirectory)
+    {
         DWORD dwUserAccountCtrl = 0;
     
         dwError = LsaLdapGetBytes(
@@ -1289,15 +1297,6 @@ ADSchemaMarshalToUserCacheEx(
                     &pUserInfo->pszNetbiosDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = ADGetLDAPUPNString(
-                            hRealDirectory,
-                            pMessageReal,
-                            pszUserDomainFQDN,
-                            pUserInfo->pszSamAccountName,
-                            &pUserInfo->userInfo.pszUPN,
-                            &pUserInfo->userInfo.bIsGeneratedUPN);
-        BAIL_ON_LSA_ERROR(dwError);
-        
         dwError = LsaLdapGetUInt32(
                     hRealDirectory,
                     pMessageReal,
@@ -1316,7 +1315,9 @@ ADSchemaMarshalToUserCacheEx(
                      pUserInfo);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else{//at least objectSid is in pUserNameInfo
+    else
+    {
+        //at least objectSid is in pUserNameInfo
         dwError = LsaAllocateString(
                     pUserNameInfo->pszObjectSid,                    
                     &pUserInfo->pszObjectSid);
@@ -1332,16 +1333,17 @@ ADSchemaMarshalToUserCacheEx(
                     &pUserInfo->pszSamAccountName);
         BAIL_ON_LSA_ERROR(dwError);
         BAIL_ON_INVALID_STRING(pUserInfo->pszSamAccountName);
-        
-        dwError = ADGetUPNString(
-                            pszUserDomainFQDN,
-                            pUserInfo->pszSamAccountName,
-                            &pUserInfo->userInfo.pszUPN);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        pUserInfo->userInfo.bIsGeneratedUPN = TRUE;
     }
-    
+
+    dwError = ADGetLDAPUPNString(
+                        hRealDirectory,
+                        pMessageReal,
+                        pszUserDomainFQDN,
+                        pUserInfo->pszSamAccountName,
+                        &pUserInfo->userInfo.pszUPN,
+                        &pUserInfo->userInfo.bIsGeneratedUPN);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (pMessagePseudo){
         pUserInfo->enabled = TRUE;
 
@@ -1362,9 +1364,7 @@ ADSchemaMarshalToUserCacheEx(
     }
     
     if (pUserInfo->enabled)
-    {
-        PSTR pszUnprovisionedModeHomedirTemplate = NULL;
-        
+    {       
         dwError = LsaLdapGetUInt32(
                     hPseudoDirectory,
                     pMessagePseudo,
@@ -1417,22 +1417,28 @@ ADSchemaMarshalToUserCacheEx(
                     &pUserInfo->userInfo.pszHomedir
                     );
         BAIL_ON_LSA_ERROR(dwError);
+        
         if (!pUserInfo->userInfo.pszHomedir){
             dwError = AD_GetUnprovisionedModeHomedirTemplate(
-                              &pszUnprovisionedModeHomedirTemplate);
+                              &pUserInfo->userInfo.pszHomedir);
             BAIL_ON_LSA_ERROR(dwError);
-            
-            dwError = AD_BuildHomeDirFromTemplate(
-                            pszUnprovisionedModeHomedirTemplate,
-                            pUserNameInfo->pszDomainNetBiosName,
-                            pUserInfo->pszSamAccountName,
-                            &pUserInfo->userInfo.pszHomedir);
-            BAIL_ON_LSA_ERROR(dwError); 
-        
-            LsaStrCharReplace(pUserInfo->userInfo.pszHomedir, ' ', '_');
         }
         
-        LSA_SAFE_FREE_STRING(pszUnprovisionedModeHomedirTemplate);
+        if (strstr(pUserInfo->userInfo.pszHomedir, "%"))
+        {
+            dwError = AD_BuildHomeDirFromTemplate(
+                            pUserInfo->userInfo.pszHomedir,
+                            pUserNameInfo->pszDomainNetBiosName,
+                            pUserInfo->pszSamAccountName,
+                            &pszHomedir);
+            BAIL_ON_LSA_ERROR(dwError); 
+            
+            LSA_SAFE_FREE_STRING(pUserInfo->userInfo.pszHomedir);
+            pUserInfo->userInfo.pszHomedir = pszHomedir;
+            pszHomedir = NULL;
+        }
+        
+        LsaStrCharReplace(pUserInfo->userInfo.pszHomedir, ' ', '_');
         
         BAIL_ON_INVALID_STRING(pUserInfo->userInfo.pszHomedir);
     }
@@ -1443,6 +1449,7 @@ cleanup:
 
     LSA_SAFE_FREE_MEMORY(pucSIDBytes);
     LSA_SAFE_FREE_STRING(pszUserDomainFQDN);
+    LSA_SAFE_FREE_STRING(pszHomedir);
 
     return dwError;
     
@@ -2629,6 +2636,153 @@ cleanup:
 
     LSA_SAFE_FREE_STRING(pszUnprovisionedModeHomedirTemplate);
     LSA_SAFE_FREE_MEMORY(pucSIDBytes);
+    LSA_SAFE_FREE_STRING(pszUserDomainFQDN);
+    
+    return dwError;
+    
+error:
+
+    *ppUserInfo = NULL;
+    
+    ADCacheDB_SafeFreeObject(&pUserInfo);
+
+    goto cleanup;
+}
+
+DWORD
+ADUnprovisionedMarshalToUserCacheInOneWayTrust(    
+    PLSA_LOGIN_NAME_INFO    pUserNameInfo,
+    PAD_SECURITY_OBJECT*    ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    PAD_SECURITY_OBJECT pUserInfo = NULL;
+    PSTR pszUnprovisionedModeHomedirTemplate = NULL;
+    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier = NULL;
+    DWORD dwDomainUsersHashedRID = 0;
+    DWORD dwDomainUsersUnhashedRID = 0;
+    struct timeval current_tv;
+    PSTR  pszUserDomainFQDN = NULL;
+
+    dwError = LsaDmWrapGetDomainName(pUserNameInfo->pszDomainNetBiosName,
+                                     &pszUserDomainFQDN,
+                                     NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateMemory(
+                    sizeof(AD_SECURITY_OBJECT),
+                    (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (gettimeofday(&current_tv, NULL) < 0)
+    {
+        dwError = errno;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    pUserInfo->cache.qwCacheId = -1;
+    pUserInfo->cache.tLastUpdated = current_tv.tv_sec;
+
+    pUserInfo->type = AccountType_User;
+
+    pUserInfo->enabled = TRUE;
+    
+    // User SamAccountName (generate using user name)
+    dwError = LsaAllocateString(
+                    pUserNameInfo->pszName,
+                    &pUserInfo->pszSamAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->userInfo.pszAliasName = NULL;
+    pUserInfo->userInfo.pszPasswd = NULL;
+
+    dwError = LsaAllocateString(
+                pUserNameInfo->pszDomainNetBiosName,
+                &pUserInfo->pszNetbiosDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    // gecos (display name N/A)    
+    pUserInfo->userInfo.pszGecos = NULL;    
+    
+    // shell
+    dwError = AD_GetUnprovisionedModeShell(
+        &pUserInfo->userInfo.pszShell);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    // homedir
+    dwError = AD_GetUnprovisionedModeHomedirTemplate(
+                    &pszUnprovisionedModeHomedirTemplate);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_BuildHomeDirFromTemplate(
+                    pszUnprovisionedModeHomedirTemplate,
+                    pUserNameInfo->pszDomainNetBiosName,
+                    pUserInfo->pszSamAccountName,
+                    &pUserInfo->userInfo.pszHomedir);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    LsaStrCharReplace(pUserInfo->userInfo.pszHomedir, ' ', '_');
+    
+    // ObjectSid
+    dwError = LsaAllocateString(
+                pUserNameInfo->pszObjectSid,
+                &pUserInfo->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+  
+    // User DN
+    pUserInfo->pszDN = NULL;    
+    
+    // UID
+    dwError = LsaAllocSecurityIdentifierFromString(
+                    pUserNameInfo->pszObjectSid,
+                    &pSecurityIdentifier);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = LsaGetSecurityIdentifierHashedRid(
+                    pSecurityIdentifier,
+                   (PDWORD)&pUserInfo->userInfo.uid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // GID
+     dwDomainUsersUnhashedRID = WELLKNOWN_SID_DOMAIN_USER_GROUP_RID; 
+    
+    // Change pSecurityIdentifier to hold domain user group SID
+    dwError = LsaSetSecurityIdentifierRid(
+                  pSecurityIdentifier,
+                  dwDomainUsersUnhashedRID);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    // Get the domain user group hashed RID
+    dwError = LsaGetSecurityIdentifierHashedRid(
+                  pSecurityIdentifier,
+                  &dwDomainUsersHashedRID);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    pUserInfo->userInfo.gid = dwDomainUsersHashedRID;
+    
+    // UPN (generated)
+    dwError = ADGetLDAPUPNString(
+                        (HANDLE)NULL,                        
+                        NULL,
+                        pszUserDomainFQDN,
+                        pUserInfo->pszSamAccountName,
+                        &pUserInfo->userInfo.pszUPN,
+                        &pUserInfo->userInfo.bIsGeneratedUPN);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    // UserAccountCtrl (N/A)               
+    // Password (N/A)
+    
+    *ppUserInfo = pUserInfo;
+    
+cleanup:
+
+    if (pSecurityIdentifier)
+    {
+        LsaFreeSecurityIdentifier(pSecurityIdentifier);
+    }
+
+    LSA_SAFE_FREE_STRING(pszUnprovisionedModeHomedirTemplate);    
     LSA_SAFE_FREE_STRING(pszUserDomainFQDN);
     
     return dwError;
@@ -4847,8 +5001,8 @@ ADNonSchemaMarshalToUserCacheEx(
 
     pUserInfo->type = AccountType_User;
 
-    if (pMessageReal && hRealDirectory != (HANDLE)NULL){
-        
+    if (pMessageReal && hRealDirectory)
+    {
         DWORD dwUserAccountCtrl = 0;
     
         dwError = LsaLdapGetBytes(
@@ -4885,15 +5039,6 @@ ADNonSchemaMarshalToUserCacheEx(
                     &pUserInfo->pszNetbiosDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = ADGetLDAPUPNString(
-                            hRealDirectory,
-                            pMessageReal,
-                            pszUserDomainFQDN,
-                            pUserInfo->pszSamAccountName,
-                            &pUserInfo->userInfo.pszUPN,
-                            &pUserInfo->userInfo.bIsGeneratedUPN);
-        BAIL_ON_LSA_ERROR(dwError);
-        
         dwError = LsaLdapGetUInt32(
                     hRealDirectory,
                     pMessageReal,
@@ -4912,7 +5057,9 @@ ADNonSchemaMarshalToUserCacheEx(
                      pUserInfo);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else{//at least objectSid is in pUserNameInfo
+    else
+    {
+        //at least objectSid is in pUserNameInfo
         dwError = LsaAllocateString(
                     pUserNameInfo->pszObjectSid,                    
                     &pUserInfo->pszObjectSid);
@@ -4928,17 +5075,19 @@ ADNonSchemaMarshalToUserCacheEx(
                     &pUserInfo->pszSamAccountName);
         BAIL_ON_LSA_ERROR(dwError);
         BAIL_ON_INVALID_STRING(pUserInfo->pszSamAccountName);
-        
-        dwError = ADGetUPNString(
-                            pszUserDomainFQDN,
-                            pUserInfo->pszSamAccountName,
-                            &pUserInfo->userInfo.pszUPN);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        pUserInfo->userInfo.bIsGeneratedUPN = TRUE;
     }
-    
-    if (pMessagePseudo){
+
+    dwError = ADGetLDAPUPNString(
+                        hRealDirectory,
+                        pMessageReal,
+                        pszUserDomainFQDN,
+                        pUserInfo->pszSamAccountName,
+                        &pUserInfo->userInfo.pszUPN,
+                        &pUserInfo->userInfo.bIsGeneratedUPN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pMessagePseudo)
+    {
         pUserInfo->enabled = TRUE;
 
         dwError = LsaLdapGetStrings(
@@ -5039,6 +5188,7 @@ AD_BuildHomeDirFromTemplate(
     } HomeDirParseMode;
     
     DWORD dwError = 0;
+    PSTR  pszHomedirPrefix = NULL;
     PSTR  pszHomedir = NULL;
     DWORD dwOffset = 0;
     HomeDirParseMode parseMode = HOMEDIR_PARSE_MODE_OPEN;
@@ -5048,15 +5198,30 @@ AD_BuildHomeDirFromTemplate(
     BOOLEAN bNeedMemory = FALSE;
     DWORD dwLenDomainName = 0;
     DWORD dwLenUserName = 0;
+    DWORD dwHomedirPrefixLen = 0;
     
     BAIL_ON_INVALID_STRING(pszHomedirTemplate);
     BAIL_ON_INVALID_STRING(pszNetBIOSDomainName);
     BAIL_ON_INVALID_STRING(pszSamAccountName);
+
+    
+    if (strstr(pszHomedirTemplate, "%H"))
+    {
+        dwError = AD_GetHomedirPrefixPath(&pszHomedirPrefix);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        BAIL_ON_INVALID_STRING(pszHomedirPrefix);
+        
+        dwHomedirPrefixLen = strlen(pszHomedirPrefix);
+    }
     
     dwLenDomainName = strlen(pszNetBIOSDomainName);
     dwLenUserName = strlen(pszSamAccountName);
     
-    dwBytesAllocated = strlen(pszHomedirTemplate) + dwLenDomainName + dwLenUserName + 1;
+    dwBytesAllocated = strlen(pszHomedirTemplate) +
+                        dwLenDomainName +
+                        dwLenUserName +
+                        dwHomedirPrefixLen + 1;
     
     dwError = LsaAllocateMemory(
                     sizeof(CHAR) * dwBytesAllocated,
@@ -5147,6 +5312,25 @@ AD_BuildHomeDirFromTemplate(
                         parseMode = HOMEDIR_PARSE_MODE_OPEN;
                     }
                 }
+                else if (*pszIterTemplate == 'H')
+                {
+                    if (dwBytesRemaining < dwHomedirPrefixLen)
+                    {
+                        bNeedMemory = TRUE;
+                    }
+                    else
+                    {
+                        memcpy(pszHomedir + dwOffset,
+                               pszHomedirPrefix,
+                               dwHomedirPrefixLen);
+                        dwOffset += dwHomedirPrefixLen;
+                        dwBytesRemaining -= dwHomedirPrefixLen;
+                        
+                        pszIterTemplate++;
+                        
+                        parseMode = HOMEDIR_PARSE_MODE_OPEN;
+                    }
+                }
                 else
                 {
                     dwError = LSA_ERROR_INVALID_HOMEDIR_TEMPLATE;
@@ -5172,6 +5356,8 @@ AD_BuildHomeDirFromTemplate(
     *ppszHomedir = pszHomedir;
     
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszHomedirPrefix);
 
     return dwError;
     

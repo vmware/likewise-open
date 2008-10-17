@@ -18,6 +18,7 @@
 #include "LWIDirNodeQuery.h"
 #include "LWIRecordQuery.h"
 #include "wbl.h"
+#include "lsa.h"
 
 // Local helper functions
 //
@@ -748,7 +749,7 @@ cleanup:
     } while (0)
 #endif
 
-static long ProcessDirNodeAuth(sDoDirNodeAuth* pDirNodeAuth)
+static long ProcessDirNodeAuth(sDoDirNodeAuth* pDoDirNodeAuth)
 {
     long macError = eDSAuthFailed;
     int EE = 0;
@@ -758,50 +759,42 @@ static long ProcessDirNodeAuth(sDoDirNodeAuth* pDirNodeAuth)
     char* password = NULL;
     int authResult = -2;
     bool isChangePassword = false;
-	bool isSetPassword = false;
+    bool isSetPassword = false;
     bool isAuthPassword = false;
     bool isAuthOnly = false;
-    uint32_t wblStatus = 0;
+    uint32_t dwError = 0;
 
     LOG_ENTER("fType = %d, fInNodeRef = %u, fInAuthMethod = %s, fInDirNodeAuthOnlyFlag = %d, fInAuthStepData = @%p => { length = %d }, fResult = %d",
-              pDirNodeAuth->fType,
-              pDirNodeAuth->fInNodeRef,
-              GET_NODE_STR(pDirNodeAuth->fInAuthMethod),
-              pDirNodeAuth->fInDirNodeAuthOnlyFlag,
-              pDirNodeAuth->fInAuthStepData,
-              GET_NODE_LEN(pDirNodeAuth->fInAuthStepData),
-              pDirNodeAuth->fResult);
+              pDoDirNodeAuth->fType,
+              pDoDirNodeAuth->fInNodeRef,
+              GET_NODE_STR(pDoDirNodeAuth->fInAuthMethod),
+              pDoDirNodeAuth->fInDirNodeAuthOnlyFlag,
+              pDoDirNodeAuth->fInAuthStepData,
+              GET_NODE_LEN(pDoDirNodeAuth->fInAuthStepData),
+              pDoDirNodeAuth->fResult);
 
-    if (!pDirNodeAuth->fInAuthMethod || !pDirNodeAuth->fInAuthMethod->fBufferData)
+    if (!pDoDirNodeAuth->fInAuthMethod || !pDoDirNodeAuth->fInAuthMethod->fBufferData)
     {
         macError = eDSNullDataBuff;
         GOTO_CLEANUP_EE(EE);
     }
 
-    isAuthOnly = pDirNodeAuth->fInDirNodeAuthOnlyFlag ? true : false;
+    isAuthOnly = pDoDirNodeAuth->fInDirNodeAuthOnlyFlag ? false : true; /* Meaning is opposite what you would expect...
+                                                                           An interactive logon, or ssh logon will have
+                                                                           fInDirNodeAuthOnlyFlag set to false. Workgroup Manager
+                                                                           admin authentication will have this set to true. Therefore,
+                                                                           to make the rest of the code in this function make more
+                                                                           sense, we use isAuthOnly with meaning:
+                                                                           true - user is just authenticating
+                                                                           false - user is logging on and creating a session connection */
 
-    isAuthPassword = !(strcmp(pDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthClearText) &&
-                       strcmp(pDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthCrypt) &&
-                       strcmp(pDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthNodeNativeClearTextOK) &&
-                       strcmp(pDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthNodeNativeNoClearText));
+    isAuthPassword = !(strcmp(pDoDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthClearText) &&
+                       strcmp(pDoDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthCrypt) &&
+                       strcmp(pDoDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthNodeNativeClearTextOK) &&
+                       strcmp(pDoDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthNodeNativeNoClearText));
 
-    isChangePassword = !isAuthPassword && !strcmp(pDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthChangePasswd);
-    isSetPassword = !isAuthPassword && !strcmp(pDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthSetPasswd);
-
-    if (isChangePassword || isSetPassword)
-    {
-        bool fChangePasswordRestricted = false;
-
-        if(GetConfigurationOptions(&fChangePasswordRestricted) != eDSNoErr)
-        {
-            if (fChangePasswordRestricted == true)
-            {
-                isChangePassword = false;
-                macError = eDSAuthFailed;
-                GOTO_CLEANUP_EE(EE);
-            }
-        }
-    }
+    isChangePassword = !isAuthPassword && !strcmp(pDoDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthChangePasswd);
+    isSetPassword = !isAuthPassword && !strcmp(pDoDirNodeAuth->fInAuthMethod->fBufferData, kDSStdAuthSetPasswd);
 
     if (!isAuthPassword && !isChangePassword && !isSetPassword)
     {
@@ -809,7 +802,7 @@ static long ProcessDirNodeAuth(sDoDirNodeAuth* pDirNodeAuth)
         GOTO_CLEANUP_EE(EE);
     }
 
-    if (!pDirNodeAuth->fInAuthStepData)
+    if (!pDoDirNodeAuth->fInAuthStepData)
     {
         macError = eDSNullDataBuff;
         GOTO_CLEANUP_EE(EE);
@@ -819,19 +812,19 @@ static long ProcessDirNodeAuth(sDoDirNodeAuth* pDirNodeAuth)
 	{
 	    LOG("dsAuthMethodStandard:dsAuthSetPasswd operation not supported here");
 		macError = eDSAuthMethodNotSupported;
-        GOTO_CLEANUP_EE(EE);
+            GOTO_CLEANUP_EE(EE);
 	}
 
-    macError = GetCountedString(pDirNodeAuth->fInAuthStepData, &offset, &username, NULL);
+    macError = GetCountedString(pDoDirNodeAuth->fInAuthStepData, &offset, &username, NULL);
     GOTO_CLEANUP_ON_MACERROR_EE(macError, EE);
 
     if (isChangePassword)
     {
-        macError = GetCountedString(pDirNodeAuth->fInAuthStepData, &offset, &oldPassword, NULL);
+        macError = GetCountedString(pDoDirNodeAuth->fInAuthStepData, &offset, &oldPassword, NULL);
         GOTO_CLEANUP_ON_MACERROR_EE(macError, EE);
     }
 
-    macError = GetCountedString(pDirNodeAuth->fInAuthStepData, &offset, &password, NULL);
+    macError = GetCountedString(pDoDirNodeAuth->fInAuthStepData, &offset, &password, NULL);
     GOTO_CLEANUP_ON_MACERROR_EE(macError, EE);
 
     DEBUG_USER_PASSWORD(username, oldPassword, password);
@@ -839,81 +832,240 @@ static long ProcessDirNodeAuth(sDoDirNodeAuth* pDirNodeAuth)
     if (isChangePassword)
     {
 	LOG("Going to change password for user %s", username);
-        wblStatus = LWAuthAdapter::change_password(username, oldPassword, password);
-        if (wblStatus)
+        dwError = LWAuthAdapter::change_password(username, oldPassword, password);
+        if (dwError)
         {
-	    LOG("Password change attempt failed for user %s with error: %d", username, wblStatus);
+	    LOG("Password change attempt failed for user %s with error: %d", username, dwError);
         }
     }
     else
     {
-	LOG("Going to logon user %s", username);
-        wblStatus = LWAuthAdapter::authenticate(username, password, isAuthOnly);
-        if (wblStatus)
+	LOG("Going to logon user: %s, Auth only: %s", username, isAuthOnly ? "yes" : "no");
+        dwError = LWAuthAdapter::authenticate(username, password, isAuthOnly);
+        if (dwError)
         {
-	    LOG("Logon attempt failed for user %s with error: %d", username, wblStatus);
+	    LOG("Logon attempt failed for user %s with error: %d", username, dwError);
         }
     }
 
-#if 0
-    eDSAuthPasswordTooShort
-    eDSAuthPasswordTooLong
-    eDSAuthPasswordNeedsLetter
-    eDSAuthPasswordNeedsDigit
-    eDSAuthAccountInactive
-#endif
-
-    switch (wblStatus)
+    switch (dwError)
     {
-        case WBL_STATUS_ACCOUNT_UNKNOWN:
-            macError = eDSAuthUnknownUser;
-            break;
-        case WBL_STATUS_PASSWORD_EXPIRED:
-            macError = eDSAuthPasswordExpired;
-            break;
-        case WBL_STATUS_PASSWORD_MUST_CHANGE:
-            macError = eDSAuthNewPasswordRequired;
-            break;
-        case WBL_STATUS_PASSWORD_RESTRICTION:
-            /* TODO: More refined/wide check? */
-            macError = eDSAuthPasswordQualityCheckFailed;
-            break;
-        case WBL_STATUS_ACCOUNT_DISABLED:
-            macError = eDSAuthAccountDisabled;
-            break;
-        case WBL_STATUS_ACCOUNT_EXPIRED:
-            macError = eDSAuthAccountExpired;
-            break;
-        case WBL_STATUS_SERVER_UNAVAILABLE:
-            macError = eDSAuthMasterUnreachable;
-            break;
-        case WBL_STATUS_MEMORY_INSUFFICIENT:
-            macError = eMemoryAllocError;
-            break;
-        case WBL_STATUS_LOGON_BAD:
-            macError = eDSAuthFailed;
-            break;
-        case WBL_STATUS_PASSWORD_WRONG:
-            macError = eDSAuthBadPassword;
-            break;
-        case WBL_STATUS_OK:
+        case 0:
             macError = eDSNoErr;
             break;
-        case WBL_STATUS_LOGON_RESTRICTED_TIME:
-            macError = eDSAuthInvalidLogonHours;
+
+        case LSA_ERROR_NO_SUCH_USER:
+            macError = eDSAuthUnknownUser;
             break;
-        case WBL_STATUS_LOGON_RESTRICTED_COMPUTER:
-            macError = eDSAuthInvalidComputer;
+
+        case LSA_ERROR_DATA_ERROR:
+        case LSA_ERROR_NOT_IMPLEMENTED:
+        case LSA_ERROR_NO_CONTEXT_ITEM:
+        case LSA_ERROR_NO_SUCH_GROUP:
+        case LSA_ERROR_REGEX_COMPILE_FAILED:
+        case LSA_ERROR_NSS_EDIT_FAILED:
+        case LSA_ERROR_NO_HANDLER:
+        case LSA_ERROR_INTERNAL:
+        case LSA_ERROR_NOT_HANDLED:
+        case LSA_ERROR_INVALID_DNS_RESPONSE:
+        case LSA_ERROR_DNS_RESOLUTION_FAILED:
+        case LSA_ERROR_FAILED_TIME_CONVERSION:
+        case LSA_ERROR_INVALID_SID:
+            macError = eDSOperationFailed;
             break;
-        case WBL_STATUS_LOGON_TYPE_DENIED:
-        case WBL_STATUS_INVALID_STATE:
-        case WBL_STATUS_ACCOUNT_LOCKED_OUT:
-        case WBL_STATUS_LICENSE_ERROR:
-        case WBL_STATUS_ACCESS_DENIED:
+
+        case LSA_ERROR_PASSWORD_MISMATCH:
+            macError = eDSAuthBadPassword;
+            break;
+
+        case LSA_ERROR_UNEXPECTED_DB_RESULT:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_PASSWORD_EXPIRED:
+            macError = eDSAuthPasswordExpired;
+            break;
+
+        /* BUGBUG - Should there be an LSASS error for password must change? Or others? */
+        //  macError = eDSAuthNewPasswordRequired;
+        //  macError = eDSAuthPasswordTooShort;
+        //  macError = eDSAuthPasswordTooLong;
+        //  macError = eDSAuthPasswordNeedsLetter;
+        //  macError = eDSAuthPasswordNeedsDigit;
+        //  macError = eDSAuthNewPasswordRequired;
+        //  macError = eDSAuthAccountInactive;
+
+        case LSA_ERROR_ACCOUNT_EXPIRED:
+            macError = eDSAuthAccountExpired;
+            break;
+
+        case LSA_ERROR_USER_EXISTS:
+        case LSA_ERROR_GROUP_EXISTS:
+        case LSA_ERROR_INVALID_GROUP_INFO_LEVEL:
+        case LSA_ERROR_INVALID_USER_INFO_LEVEL:
+        case LSA_ERROR_UNSUPPORTED_USER_LEVEL:
+        case LSA_ERROR_UNSUPPORTED_GROUP_LEVEL:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_INVALID_LOGIN_ID:
+            macError = eDSAuthUnknownUser;
+            break;
+
+        case LSA_ERROR_INVALID_GROUP_NAME:
+        case LSA_ERROR_NO_MORE_GROUPS:
+        case LSA_ERROR_NO_MORE_USERS:
+        case LSA_ERROR_FAILED_ADD_USER:
+        case LSA_ERROR_FAILED_ADD_GROUP:
+        case LSA_ERROR_INVALID_LSA_CONNECTION:
+        case LSA_ERROR_INVALID_AUTH_PROVIDER:
+        case LSA_ERROR_INVALID_PARAMETER:
+        case LSA_ERROR_LDAP_NO_PARENT_DN:
+        case LSA_ERROR_LDAP_ERROR:
+        case LSA_ERROR_NO_SUCH_DOMAIN:
+        case LSA_ERROR_LDAP_FAILED_GETDN:
+        case LSA_ERROR_DUPLICATE_DOMAINNAME:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_KRB5_CALL_FAILED:
+        case LSA_ERROR_GSS_CALL_FAILED:
             macError = eDSAuthFailed;
             break;
+
+        case LSA_ERROR_FAILED_FIND_DC:
+        case LSA_ERROR_NO_SUCH_CELL:
+        case LSA_ERROR_GROUP_IN_USE:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_PASSWORD_TOO_WEAK:
+        case LSA_ERROR_PASSWORD_RESTRICTION:
+            macError = eDSAuthPasswordQualityCheckFailed;
+            break;
+
+        case LSA_ERROR_INVALID_SID_REVISION:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_ACCOUNT_LOCKED:
+        case LSA_ERROR_INVALID_HOMEDIR:
+        case LSA_ERROR_FAILED_CREATE_HOMEDIR:
+            macError = eDSAuthFailed;
+            break;
+
+        case LSA_ERROR_ACCOUNT_DISABLED:
+            macError = eDSAuthAccountDisabled;
+            break;
+
+        case LSA_ERROR_USER_CANNOT_CHANGE_PASSWD:
+        case LSA_ERROR_LOAD_LIBRARY_FAILED:
+        case LSA_ERROR_LOOKUP_SYMBOL_FAILED:
+        case LSA_ERROR_INVALID_EVENTLOG:
+        case LSA_ERROR_INVALID_CONFIG:
+        case LSA_ERROR_UNEXPECTED_TOKEN:
+        case LSA_ERROR_LDAP_NO_RECORDS_FOUND:
+        case LSA_ERROR_DUPLICATE_USERNAME:
+        case LSA_ERROR_DUPLICATE_GROUPNAME:
+        case LSA_ERROR_DUPLICATE_CELLNAME:
+        case LSA_ERROR_STRING_CONV_FAILED:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_INVALID_ACCOUNT:
+            macError = eDSAuthUnknownUser;
+            break;
+
+        case LSA_ERROR_INVALID_PASSWORD:
+            macError = eDSAuthBadPassword;
+            break;
+
+        case LSA_ERROR_QUERY_CREATION_FAILED:
+        case LSA_ERROR_NO_SUCH_USER_OR_GROUP:
+        case LSA_ERROR_DUPLICATE_USER_OR_GROUP:
+        case LSA_ERROR_INVALID_KRB5_CACHE_TYPE:
+        case LSA_ERROR_NOT_JOINED_TO_AD:
+        case LSA_ERROR_FAILED_TO_SET_TIME:
+        case LSA_ERROR_NO_NETBIOS_NAME:
+        case LSA_ERROR_INVALID_NETLOGON_RESPONSE:
+        case LSA_ERROR_INVALID_OBJECTGUID:
+        case LSA_ERROR_INVALID_DOMAIN:
+        case LSA_ERROR_NO_DEFAULT_REALM:
+        case LSA_ERROR_NOT_SUPPORTED:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_LOGON_FAILURE:
+            macError = eDSAuthFailed;
+            break;
+
+        case LSA_ERROR_NO_SITE_INFORMATION:
+        case LSA_ERROR_INVALID_LDAP_STRING:
+        case LSA_ERROR_INVALID_LDAP_ATTR_VALUE:
+        case LSA_ERROR_NULL_BUFFER:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_CLOCK_SKEW:
+        case LSA_ERROR_KRB5_NO_KEYS_FOUND:
+            macError = eDSAuthFailed;
+            break;
+
+        case LSA_ERROR_SERVICE_NOT_AVAILABLE:
+        case LSA_ERROR_INVALID_SERVICE_RESPONSE:
+        case LSA_ERROR_NSS_ERROR:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_AUTH_ERROR:
+            macError = eDSAuthFailed;
+            break;
+
+        case LSA_ERROR_INVALID_LDAP_DN:
+        case LSA_ERROR_NOT_MAPPED:
+        case LSA_ERROR_RPC_NETLOGON_FAILED:
+        case LSA_ERROR_ENUM_DOMAIN_TRUSTS_FAILED:
+        case LSA_ERROR_RPC_LSABINDING_FAILED:
+        case LSA_ERROR_RPC_OPENPOLICY_FAILED:
+        case LSA_ERROR_RPC_LSA_LOOKUPNAME2_FAILED:
+        case LSA_ERROR_RPC_SET_SESS_CREDS_FAILED:
+        case LSA_ERROR_RPC_REL_SESS_CREDS_FAILED:
+        case LSA_ERROR_RPC_CLOSEPOLICY_FAILED:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_RPC_LSA_LOOKUPNAME2_NOT_FOUND:
+            macError = eDSAuthUnknownUser;
+            break;
+
+        case LSA_ERROR_RPC_LSA_LOOKUPNAME2_FOUND_DUPLICATES:
+        case LSA_ERROR_NO_TRUSTED_DOMAIN_FOUND:
+        case LSA_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS:
+        case LSA_ERROR_DCE_CALL_FAILED:
+        case LSA_ERROR_FAILED_TO_LOOKUP_DC:
+        case LSA_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL:
+        case LSA_ERROR_UNSUPPORTED_NSS_ARTEFACT_LEVEL:
+            macError = eDSOperationFailed;
+            break;
+
+        case LSA_ERROR_INVALID_USER_NAME:
+            macError = eDSAuthUnknownUser;
+            break;
+
+        case LSA_ERROR_INVALID_LOG_LEVEL:
+        case LSA_ERROR_INVALID_METRIC_TYPE:
+        case LSA_ERROR_INVALID_METRIC_PACK:
+        case LSA_ERROR_INVALID_METRIC_INFO_LEVEL:
+        case LSA_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK:
+        case LSA_ERROR_MAC_FLUSH_DS_CACHE_FAILED:
+        case LSA_ERROR_LSA_SERVER_UNREACHABLE:
+        case LSA_ERROR_INVALID_NSS_ARTEFACT_TYPE:
+        case LSA_ERROR_INVALID_AGENT_VERSION:
+            macError = eDSOperationFailed;
+            break;
+
         default:
-            LOG_ERROR("Unexpected auth result %d", authResult);
+            LOG_ERROR("Unexpected auth result %d", dwError);
             macError = eDSAuthFailed;
     }
 
@@ -938,54 +1090,4 @@ cleanup:
     return macError;
 }
 
-#define LWDSPLUGIN_CONF "/opt/centeris/etc/lwdsplugin.conf"
 
-static long GetConfigurationOptions(bool* RestrictPasswordChanges)
-{
-    LOG_ENTER("Looking for change password restriction");
-    long macError = eDSNoErr;
-    bool isChangePasswordRestricted = false;
-	
-#if 0
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    PCFGSECTION pSectionList = NULL;
-    PSTR pszRestriction = NULL;
-
-    ceError = CTParseConfigFile( LWDSPLUGIN_CONF,
-                                 &pSectionList,
-                                 FALSE);
-    if (ceError == CENTERROR_SUCCESS)
-    {
-        ceError = CTGetConfigValueBySectionName( pSectionList,
-                                                 "Likewise DSPlugIn Settings",
-                                                 "ChangePasswordRestriction",
-                                                 &pszRestriction);
-        if ( ceError == CENTERROR_CFG_SECTION_NOT_FOUND ||
-             ceError == CENTERROR_CFG_VALUE_NOT_FOUND )
-        {
-            LOG("ChangePasswordRestriction not found in lwdsplugin.conf file");
-        }
-
-        if ( ceError == CENTERROR_SUCCESS )
-        {
-            LOG("ChangePasswordRestriction set to: %s", pszRestriction);
-            isChangePasswordRestricted = true;
-        }
-    }
-    else
-    {
-        LOG("No lwdsplugin.conf file found");
-    }
-#elsif
-    isChangePasswordRestricted = false;
-#endif
-
-    if (macError == eDSNoErr)
-	{
-	    LOG("GetConfigurationOption returning change password restriction set to: %s", isChangePasswordRestricted ? "true" : "false");
-        *RestrictPasswordChanges = isChangePasswordRestricted;
-	}
-
-    LOG_LEAVE("--> %d", macError);
-    return macError;
-}

@@ -59,6 +59,7 @@ typedef enum
     User, //7
     Computer, //8
     Description, //9
+    Data, //10
     EVENT_DB_COL_SENTINEL
 } EventDbColumnType;
 

@@ -68,7 +68,7 @@ KtKrb5AddKeyW(
     pszPrincipal = awc16stombs(pwszPrincipal);
     BAIL_IF_NO_MEMORY(pszPrincipal);
 
-    dwError = KtAllocateMemory(dwKeyLen + 1, &pszKey);
+    dwError = KtAllocateMemory(dwKeyLen + 1, (PVOID*)&pszKey);
     BAIL_ON_KT_ERROR(dwError);
 
     wc16stombs(pszKey, (const wchar16_t*)pKey, dwKeyLen + 1);

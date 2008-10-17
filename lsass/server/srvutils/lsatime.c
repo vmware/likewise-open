@@ -140,12 +140,18 @@ LsaSetSystemTime(
 {
     DWORD dwError = 0;
     BOOLEAN bTimeset = FALSE;
+    DWORD dwCount = 0;
+
+    // The aix implementation of clock_settime segfaults
+#ifdef __LWI_AIX__
+#undef HAVE_CLOCK_SETTIME
+#endif
 
 #if !defined(HAVE_CLOCK_SETTIME) && !defined(HAVE_SETTIMEOFDAY)
 #error Either clock_settime or settimeofday is needed
 #endif
 
-#ifdef HAVE_CLOCK_SETTIME
+#if defined(HAVE_CLOCK_GETTIME) || defined(HAVE_CLOCK_SETTIME)
     struct timespec systemspec;
 #endif
 #if HAVE_SETTIMEOFDAY || HAVE_GETTIMEOFDAY
@@ -227,6 +233,23 @@ LsaSetSystemTime(
         LSA_LOG_ERROR("Attempted to set time to %ld, but it is now %ld.", ttCurTime, readTime);
         dwError = LSA_ERROR_FAILED_TO_SET_TIME;
         BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    //Make sure the time reported by time() is now within 5 seconds of
+    //what we set.  On virtual systems it may be slow to update.
+    for ( dwCount = 0 ; dwCount < 5 ; dwCount++ )
+    {
+        readTime = time(NULL);
+
+        if (labs(readTime - ttCurTime) > 5)
+        {
+            LSA_LOG_DEBUG("Time is slow to update...waiting");
+            sleep(1);
+        }
+        else
+        {
+            break;
+        }
     }
 
 cleanup:

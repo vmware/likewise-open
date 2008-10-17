@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = libktkrb5.la
 
 libktkrb5_la_CFLAGS = \
+       $(AM_CFLAGS) \
        @LIBUNISTR_INCLUDES@ \
        @KRB5_INCLUDES@      \
        @OPENLDAP_INCLUDES@

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Local Authentication Provider (Structures)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -48,26 +48,33 @@
 #define __LPSTRUCTS_H__
 
 typedef struct __LOCAL_PROVIDER_ENUM_STATE {
-    
+
     DWORD dwInfoLevel;
-    
+
     PSTR  pszGUID;
-    
+
     DWORD dwNextStartingId;
-    
+
     struct __LOCAL_PROVIDER_ENUM_STATE* pNext;
-    
+
 } LOCAL_PROVIDER_ENUM_STATE, *PLOCAL_PROVIDER_ENUM_STATE;
 
 typedef struct __LOCAL_PROVIDER_CONTEXT
 {
     uid_t uid;
     gid_t gid;
-    
+
     PLOCAL_PROVIDER_ENUM_STATE pGroupEnumStateList;
     PLOCAL_PROVIDER_ENUM_STATE pUserEnumStateList;
-    
+
 } LOCAL_PROVIDER_CONTEXT, *PLOCAL_PROVIDER_CONTEXT;
+
+typedef struct __LOCAL_CONFIG
+{
+    DWORD     dwPasswdChangeInterval;
+    DWORD     dwPasswdChangeWarningTime;
+    BOOLEAN   bEnableEventLog;
+} LOCAL_CONFIG, *PLOCAL_CONFIG;
 
 #endif /* __LPSTRUCTS_H__ */
 

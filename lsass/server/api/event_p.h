@@ -47,53 +47,31 @@
 #ifndef __EVENT_P_H__
 #define __EVENT_P_H__
 
-#define LOGIN_EVENT_CATEGORY     "System login"
-#define LOGOUT_EVENT_CATEGORY    "System logout"
-
-#define SUCCESS_AUDIT_EVENT_TYPE "Success audit"
-#define FAILURE_AUDIT_EVENT_TYPE "Failure audit"
-
-DWORD
-LsaSrvOpenEventLog(
-    HANDLE  hServer,
-    PHANDLE phEventLog
-    );
-
-DWORD
-LsaSrvCloseEventLog(
-    HANDLE hEventLog
-    );
-
-DWORD
-LsaSrvLogSuccessAuditEvent(
-    HANDLE hServer,
-    PCSTR  pszCategory,
-    PCSTR  pszDescription
-    );
-
-DWORD
-LsaSrvLogFailureAuditEvent(
-    HANDLE hServer,
-    PCSTR  pszCategory,
-    PCSTR  pszDescription
-    );
-
 VOID
-LsaSrvWriteLoginSuccessEvent(
+LsaSrvWriteLoginSuccessEvent(  
     HANDLE hServer,
-    PCSTR  pszLoginId
+    PCSTR  pszLoginId,
+    DWORD  dwErrCode
     );
 
 VOID
 LsaSrvWriteLoginFailedEvent(
     HANDLE hServer,
-    PCSTR  pszLoginId
+    PCSTR  pszLoginId,
+    DWORD  dwErrCode
     );
 
 VOID
 LsaSrvWriteLogoutSuccessEvent(
     HANDLE hServer,
-    PCSTR  pszLoginId
+    PCSTR  pszLoginId,
+    DWORD  dwErrCode
     );
 
+VOID
+LsaSrvWriteLogoutFailedEvent(
+    HANDLE hServer,
+    PCSTR  pszLoginId,
+    DWORD  dwErrCode
+    );
 #endif /* __EVENT_P_H__ */

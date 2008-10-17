@@ -49,9 +49,12 @@
 #include "sqlite3.h"
 
 #include "eventlog_h.h"
+#include "main_p.h"
 #include "server_p.h"
 #include "security_p.h"
 #include "db_p.h"
-#include "main_p.h"
 #include "externs.h"
+
+#include "lsaaccess.h"
+#include "access_p.h"
 

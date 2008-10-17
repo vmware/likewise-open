@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,9 +38,9 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Local Authentication Provider
- * 
+ *
  *        Global Variables
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -59,6 +59,7 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     &LsaProviderLocal_ServicesDomain,
     &LsaProviderLocal_AuthenticateUser,
     &LsaProviderLocal_ValidateUser,
+    &LsaProviderLocal_CheckUserInList,
     &LsaProviderLocal_FindUserByName,
     &LsaProviderLocal_FindUserById,
     &LsaProviderLocal_BeginEnumUsers,
@@ -91,15 +92,7 @@ pthread_rwlock_t g_dbLock;
 
 pthread_rwlock_t gProviderLocalGlobalDataLock;
 
-const DWORD gProviderLocal_PasswdChangeIntervalMinimum = LSA_SECONDS_IN_DAY;
-const DWORD gProviderLocal_PasswdChangeIntervalDefault = 30 * LSA_SECONDS_IN_DAY;
-const DWORD gProviderLocal_PasswdChangeIntervalMaximum = 180 * LSA_SECONDS_IN_DAY;
-DWORD gProviderLocal_PasswdChangeInterval              = 30 * LSA_SECONDS_IN_DAY;
-
-const DWORD gProviderLocal_PasswdChangeWarningTimeMinimum = LSA_SECONDS_IN_HOUR;
-const DWORD gProviderLocal_PasswdChangeWarningTimeDefault = 14 * LSA_SECONDS_IN_DAY;
-const DWORD gProviderLocal_PasswdChangeWarningTimeMaximum = 30 * LSA_SECONDS_IN_DAY;
-DWORD gProviderLocal_PasswdChangeWarningTime = 30 * LSA_SECONDS_IN_DAY;
+LOCAL_CONFIG gLocalConfig = {0};
 
 PSTR gProviderLocal_Hostname = NULL;
 

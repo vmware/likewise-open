@@ -55,7 +55,6 @@ LsaSrvFindUserByName(
     )
 {
     DWORD dwError = 0;
-    DWORD dwProviderListError = 0;
     PSTR pszDomain = NULL;
     PSTR pszUserName = NULL;
     PLSA_AUTH_PROVIDER pProvider = NULL;
@@ -66,8 +65,6 @@ LsaSrvFindUserByName(
     BAIL_ON_LSA_ERROR(dwError);
     
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
-    dwProviderListError = LSA_ERROR_NOT_HANDLED;
     
     for (pProvider = gpAuthProviderList;
          pProvider;
@@ -83,16 +80,10 @@ LsaSrvFindUserByName(
                                         ppUserInfo);
         if (!dwError) {
             
-            dwProviderListError = 0;
             break;
             
         } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
                    (dwError == LSA_ERROR_NO_SUCH_USER)) {
-            
-            if(dwError == LSA_ERROR_NO_SUCH_USER)
-            {
-                dwProviderListError = dwError;
-            }
             
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -106,9 +97,11 @@ LsaSrvFindUserByName(
         }
     }
     
+    if (pProvider == NULL)
+    {
+       dwError = LSA_ERROR_NO_SUCH_USER;
+    }
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = dwProviderListError;
     
 cleanup:
    
@@ -134,7 +127,13 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to find user by name [%s]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
+    if (dwError == LSA_ERROR_NOT_HANDLED ||
+                   dwError == LSA_ERROR_NO_SUCH_USER) {
+        LSA_LOG_VERBOSE("Find user by name: [%s] is unknown", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
+    }
+    else {
+        LSA_LOG_ERROR("Failed to find user by name [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
+    }
 
     *ppUserInfo = NULL;
     
@@ -155,8 +154,6 @@ LsaSrvFindUserById(
     HANDLE hProvider = (HANDLE)NULL;
     
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
-    dwError = LSA_ERROR_NOT_HANDLED;
     
     for (pProvider = gpAuthProviderList;
          pProvider;
@@ -188,6 +185,12 @@ LsaSrvFindUserById(
             
         }
     }
+
+    if (pProvider == NULL)
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
     
 cleanup:
     
@@ -210,7 +213,13 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to find user by user id [%ld]", (long)uid);
+    if (dwError == LSA_ERROR_NOT_HANDLED ||
+                   dwError == LSA_ERROR_NO_SUCH_USER) {
+        LSA_LOG_VERBOSE("Find user by id: [%ld] is unknown", (long)uid);
+    }
+    else {
+        LSA_LOG_ERROR("Failed to find user by id [%ld] [code %d]", (long)uid, dwError);
+    }
 
     *ppUserInfo = NULL;
     

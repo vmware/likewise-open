@@ -138,7 +138,7 @@ DWORD
 DefaultModeGetUserGroupMembership(
     HANDLE  hDirectory,
     PCSTR   pszCellDN,
-    PCSTR   pszDomainName,
+    PCSTR   pszNetBIOSDomainName,
     DWORD   dwUID,    
     int     *piPrimaryGroupIndex,
     PDWORD  pdwGroupsFound,
@@ -164,7 +164,7 @@ DefaultModeGetUserGroupMembership(
         dwError = DefaultModeSchemaGetUserGroupMembership(
                         hDirectory,
                         pszCellDN,
-                        pszDomainName,
+                        pszNetBIOSDomainName,
                         dwUID,                        
                         &iPrimaryGroupIndex,
                         &dwGroupsFound,
@@ -177,7 +177,7 @@ DefaultModeGetUserGroupMembership(
         dwError = DefaultModeNonSchemaGetUserGroupMembership(
                         hDirectory,
                         pszCellDN,
-                        pszDomainName,
+                        pszNetBIOSDomainName,
                         dwUID,                        
                         &iPrimaryGroupIndex,
                         &dwGroupsFound,
@@ -212,7 +212,7 @@ DWORD
 DefaultModeSchemaGetUserGroupMembership(
     HANDLE  hDirectory,
     PCSTR   pszCellDN,
-    PCSTR   pszDomainName,
+    PCSTR   pszNetBIOSDomainName,
     DWORD   dwUID,   
     int     *piPrimaryGroupIndex,
     PDWORD  pdwGroupsFound,
@@ -237,29 +237,35 @@ DefaultModeSchemaGetUserGroupMembership(
             AD_LDAP_KEYWORDS_TAG,
             NULL
         };
-    CHAR szQuery[1024];
+    PSTR pszQuery = NULL;
     LDAPMessage *pMessage = NULL;
     LDAPMessage *pGroupMessage = NULL;
     DWORD dwCount = 0;
     PAD_SECURITY_OBJECT pUserInfo = NULL;
     PSTR pszUserDN = NULL;
+    PSTR pszEscapedUserDN = NULL;
     DWORD dwGroupsFound = 0;
-    PSTR pszDomain = NULL;
     INT iGroup = 0;
     PLSA_SECURITY_IDENTIFIER pUserSID = NULL;
     PLSA_SECURITY_IDENTIFIER pDomainSID = NULL;
     PSTR pszDomainSID = NULL;
     PSTR pszPrimaryGroupSID = NULL;
     PSTR pszUserSid = NULL;
+    PSTR pszFullDomainName = NULL;
+    
 
     pLd = LsaLdapGetSession(hDirectory);
-  
-    pszDomain = gpADProviderData->szDomain;
-
-    dwError = LsaLdapConvertDomainToDN(pszDomain, &pszDirectoryRoot);
+    
+    dwError = AD_DetermineTrustModeandDomainName(
+                        pszNetBIOSDomainName,
+                        NULL,
+                        NULL,
+                        &pszFullDomainName,
+                        NULL);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    
+
+    dwError = LsaLdapConvertDomainToDN(pszFullDomainName, &pszDirectoryRoot);
+    BAIL_ON_LSA_ERROR(dwError);
     
    /* dwError = ADGenericFindUserById(
                         hDirectory, 
@@ -292,18 +298,25 @@ DefaultModeSchemaGetUserGroupMembership(
                 pUserSID,
                 &pszPrimaryGroupSID);
     BAIL_ON_LSA_ERROR(dwError);    
+
+    dwError = LsaLdapEscapeString(
+                &pszEscapedUserDN,
+                pszUserDN);
+    BAIL_ON_LSA_ERROR(dwError);
                
     //search for those real groups which have the current user as a member.
-    sprintf(szQuery,
-            "(&(objectClass=group)(gidNumber=*)(|(member=%s)(objectSid=%s)))", 
-            pszUserDN,
-            pszPrimaryGroupSID);
+    dwError = LsaAllocateStringPrintf(
+                &pszQuery,
+                "(&(objectClass=group)(gidNumber=*)(|(member=%s)(objectSid=%s)))", 
+                pszEscapedUserDN,
+                pszPrimaryGroupSID);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaLdapDirectorySearch(
                     hDirectory,
                     pszDirectoryRoot,
                     LDAP_SCOPE_SUBTREE,
-                    szQuery,
+                    pszQuery,
                     szAttributeListGroups,
                     &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
@@ -336,7 +349,7 @@ DefaultModeSchemaGetUserGroupMembership(
                            hDirectory,
                            DEFAULT_MODE,
                            SchemaMode,
-                           pszDomainName,
+                           pszNetBIOSDomainName,
                            pGroupMessage,
                            pGroupMessage,
                            &ppGroupInfoList[iGroup]);
@@ -390,8 +403,11 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszDomainSID);
     LSA_SAFE_FREE_STRING(pszPrimaryGroupSID);
     LSA_SAFE_FREE_MEMORY(pszUserDN);
+    LSA_SAFE_FREE_STRING(pszEscapedUserDN);
     LSA_SAFE_FREE_STRING(pszUserSid);
     LSA_SAFE_FREE_STRING(pszDirectoryRoot);
+    LSA_SAFE_FREE_STRING(pszFullDomainName);
+    LSA_SAFE_FREE_STRING(pszQuery);
     
     return dwError;
     
@@ -410,7 +426,7 @@ DWORD
 DefaultModeNonSchemaGetUserGroupMembership(
     HANDLE  hDirectory,
     PCSTR   pszCellDN,
-    PCSTR   pszDomainName,
+    PCSTR   pszNetBIOSDomainName,
     DWORD   dwUID,    
     int     *piPrimaryGroupIndex,
     PDWORD  pdwGroupsFound,
@@ -454,7 +470,7 @@ DefaultModeNonSchemaGetUserGroupMembership(
                 DEFAULT_MODE,
                 NonSchemaMode,
                 pszCellDN,
-                pszDomainName,
+                pszNetBIOSDomainName,
                 pszUserDN,
                 pUserSID,                
                 &iPrimaryGroupIndex,
@@ -690,7 +706,7 @@ DefaultModeSchemaEnumUsers(
     
     pszDomain = gpADProviderData->szDomain;
     dwError = LsaLdapConvertDomainToDN(pszDomain, &pszDirectoryRoot);
-    sprintf(szQuery, "(&(objectClass=User)(uidNumber=*))");
+    sprintf(szQuery, "(&(objectClass=User)(!(objectClass=computer))(uidNumber=*))");
     
     if (!pEnumState->bMorePages){
         dwError = LSA_ERROR_NO_MORE_USERS;

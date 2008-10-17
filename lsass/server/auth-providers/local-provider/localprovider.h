@@ -49,12 +49,14 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
+
+#include <openssl/md4.h>
+#include <sqlite3.h>
+#include <eventlog.h>
+
 #include "lsautils.h"
 #include "lsasrvutils.h"
 #include "lsaunistr.h"
-
-#include "sqlite3.h"
-#include <openssl/md4.h>
 
 #include "lsaprovider.h"
 

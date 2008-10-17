@@ -38,8 +38,8 @@ NTSTATUS LsaOpenPolicy2(handle_t b, const wchar16_t *sysname,
     NTSTATUS status = STATUS_SUCCESS;
     wchar16_t *system_name = NULL;
     PolicyHandle handle = {0};
-    QosInfo qos;
-    ObjectAttribute attr;
+    QosInfo qos = {0};
+    ObjectAttribute attr = {0};
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(sysname, cleanup);
@@ -49,29 +49,19 @@ NTSTATUS LsaOpenPolicy2(handle_t b, const wchar16_t *sysname,
     goto_if_no_memory_ntstatus(system_name, cleanup);
 
     /* ObjectAttribute argument is not used, so just pass an empty structure */
-    qos.len = 0;
+    qos.len                 = 0;
     qos.impersonation_level = 2;
-    qos.context_mode = 1;
-    qos.effective_only = 0;
+    qos.context_mode        = 1;
+    qos.effective_only      = 0;
 
-    attr.len = 0;
-    attr.root_dir = NULL;
-    attr.object_name = NULL;
-    attr.attributes = 0;
-    attr.sec_desc = NULL;
-    attr.sec_qos = &qos;
+    attr.len          = 0;
+    attr.root_dir     = NULL;
+    attr.object_name  = NULL;
+    attr.attributes   = 0;
+    attr.sec_desc     = NULL;
+    attr.sec_qos      = &qos;
 
-    TRY
-    {
-        status = _LsaOpenPolicy2(b, system_name, &attr,
-                                 access_mask, &handle);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
-
+    DCERPC_CALL(_LsaOpenPolicy2(b, system_name, &attr, access_mask, &handle));
     goto_if_ntstatus_not_success(status, cleanup);
 
     *lsa_policy = handle;

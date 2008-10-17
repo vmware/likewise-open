@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) global variables
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -113,4 +113,6 @@ LSAMESSAGEHANDLER gMessageHandlers[] =
  { LSA_R_GET_STATUS,               LsaServer, NULL                            },//62
  { LSA_Q_REFRESH_CONFIGURATION,    LsaClient, &LsaSrvIpcRefreshConfiguration  },//63
  { LSA_R_REFRESH_CONFIGURATION,    LsaServer, NULL                            },//64
+ { LSA_Q_CHECK_USER_IN_LIST,       LsaClient, &LsaSrvIpcCheckUserInList       },//65
+ { LSA_R_CHECK_USER_IN_LIST,       LsaServer, NULL                            },//66
 };

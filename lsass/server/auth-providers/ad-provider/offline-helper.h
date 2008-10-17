@@ -52,15 +52,6 @@
 #define __OFFLINE_HELPER_H__
 
 DWORD
-AD_OfflineGetExpandedGroupUsers(
-    IN PCSTR pszGroupSid,
-    IN DWORD dwMaxDepth,
-    OUT PBOOLEAN pbIsFullyExpanded,
-    OUT size_t* psMemberUsersCount,
-    OUT PAD_SECURITY_OBJECT** pppMemberUsers
-    );
-
-DWORD
 AD_OfflineGetGroupMembers(
     IN PCSTR pszGroupSid,
     OUT size_t* psMemberObjectsCount,
@@ -72,13 +63,6 @@ AD_OfflineFindObjectsBySidList(
     IN size_t sCount,
     IN PSTR* ppszSidList,
     OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
-DWORD
-AD_OfflineGroupObjectToGroupInfo(
-    IN PAD_SECURITY_OBJECT pGroupObject,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
     );
 
 DWORD

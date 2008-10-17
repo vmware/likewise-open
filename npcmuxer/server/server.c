@@ -360,16 +360,10 @@ HandleConnectCheckCreds(
     const char* username = NULL;
     const char* password = NULL;
     const char* credCache = NULL;
-    CT_STATUS localStatus;
+    CT_STATUS localStatus = 0;
     /* Initialize child pid to our own pid rather than 0 since 0 indicates
        being in the child process after the fork */
     pid_t child = getpid();
-
-    if (!CtServerClientIsAuthenticated(Handle))
-    {
-        localStatus = CT_STATUS_ACCESS_DENIED;
-	goto reply;
-    }
 
     status = CtServerReadMessageData(fd, Size, (void**)&message);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -417,7 +411,14 @@ HandleConnectCheckCreds(
 
     /* Because libsmbclient is not thread-safe, fork into a child process before
        setting up the connection */
-    if ((child = fork()) != 0)
+    child = fork();
+
+    if (child == -1)
+    {
+        status = CT_ERRNO_TO_STATUS(errno);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+    else if (child != 0)
     {
         /* In parent.  Wait for child to finish and then get out of here */
         pthread_cleanup_push(CleanupChild, (void*) (size_t) child);
@@ -438,7 +439,6 @@ HandleConnectCheckCreds(
                                                 username, password, credCache);
     }
 
-reply:
     CT_LOG_TRACE("replying 0x%08x", localStatus);
     status = ReplyStatus(fd, Version, localStatus);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -485,19 +485,13 @@ HandleConnect(
     const char* endpoint = NULL;
     const char* options = NULL;
     const char* credCache = NULL;
-    CT_STATUS localStatus;
+    CT_STATUS localStatus = 0;
     PROXY_CONNECTION_HANDLE connection = NULL;
     size_t SessKeyLen = 0;
     unsigned char* SessKey = NULL;
     /* Initialize child pid to our own pid rather than 0 since 0 indicates
        being in the child process after the fork */
     pid_t child = getpid();
-
-    if (!CtServerClientIsAuthenticated(Handle))
-    {
-        localStatus = CT_STATUS_ACCESS_DENIED;
-	goto reply;
-    }
 
     status = CtServerReadMessageData(fd, Size, (void**)&message);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -535,7 +529,14 @@ HandleConnect(
 
     /* Because libsmbclient is not thread-safe, fork into a child process before
        setting up the connection */
-    if ((child = fork()) != 0)
+    child = fork();
+
+    if (child == -1)
+    {
+        status = CT_ERRNO_TO_STATUS(errno);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+    else if (child != 0)
     {
         /* In parent.  Wait for child to finish and then get out of here */
         pthread_cleanup_push(CleanupChild, (void*) (size_t) child);
@@ -557,7 +558,6 @@ HandleConnect(
                                           &SessKeyLen, &SessKey);
     }
 
-reply:
     replySize = sizeof(NPC_MSG_PAYLOAD_SESSION_KEY) + SessKeyLen;
     status = CtAllocateMemory((void**)&reply, replySize);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -623,12 +623,6 @@ HandleSetAuthInfo(
     const char* credCache = NULL;
     CT_STATUS localStatus;
 
-    if (!CtServerClientIsAuthenticated(Handle))
-    {
-        localStatus = CT_STATUS_ACCESS_DENIED;
-	goto reply;
-    }
-
     status = CtServerReadMessageData(fd, Size, (void**)&message);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
@@ -665,7 +659,6 @@ HandleSetAuthInfo(
                                    username, password, credCache,
                                    message->Token);
 
-reply:
     CT_LOG_TRACE("replying 0x%08x", localStatus);
     status = ReplyStatus(fd, Version, localStatus);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -717,12 +710,6 @@ HandleCreateImpersonationToken(
 
     NPC_TOKEN_ID allocedToken = 0;
 
-    if (!CtServerClientIsAuthenticated(Handle))
-    {
-        localStatus = CT_STATUS_ACCESS_DENIED;
-	goto reply;
-    }
-
     status = CtServerReadMessageData(fd, Size, (void**)&message);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
@@ -730,7 +717,6 @@ HandleCreateImpersonationToken(
     allocedToken = Context->NextToken++;
     CtLockReleaseMutex(Context->Lock);
 
-reply:
     localStatus = CT_STATUS_SUCCESS;
     CT_LOG_DEBUG("Created impersonation token %ld for uid %ld",
 		 allocedToken, uid);
@@ -785,12 +771,6 @@ HandleClearAuthInfo(
     char* server = NULL;
     CT_STATUS localStatus;
 
-    if (!CtServerClientIsAuthenticated(Handle))
-    {
-        localStatus = CT_STATUS_ACCESS_DENIED;
-	goto reply;
-    }
-
     status = CtServerReadMessageData(fd, Size, (void**)&message);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
@@ -812,7 +792,6 @@ HandleClearAuthInfo(
 
     localStatus = ProxyClearAuthInfo(Context->Proxy, uid, server, message->Token);
 
-reply:
     CT_LOG_TRACE("replying 0x%08x", localStatus);
     status = ReplyStatus(fd, Version, localStatus);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -822,128 +801,6 @@ cleanup:
     CT_LOG_TRACE("status = 0x%08x (EE = %d)", status, EE);
     return status;
 }
-
-static
-CT_STATUS
-SendNonce(
-    IN int Fd,
-    IN uint32_t Version,
-    IN CT_STATUS ReplyStatus,
-    IN uint32_t Nonce
-    )
-{
-    NPC_MSG_PAYLOAD_SEC_SOCKET_REP reply;
-    CT_STATUS status = CT_STATUS_SUCCESS;
-  
-    reply.Status = ReplyStatus;
-    reply.Nonce  = Nonce;
-
-    status = CtServerWriteMessage(Fd, Version, NPC_MSG_TYPE_SEC_SOCKET_REP,
-				sizeof(reply), &reply);
-    return status;
-}
-
-
-static
-CT_STATUS
-VerifyNonce(
-    IN int Fd,
-    IN int nonce
-    )
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    uint32_t Version, Type, Size;
-    uint32_t messageSize;
-    NPC_MSG_PAYLOAD_SEC_SOCKET_NONCE* message = NULL;    
-
-    status = CtServerReadMessageHeader(Fd, &Version, &Type, &Size);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    messageSize = sizeof(NPC_MSG_PAYLOAD_SEC_SOCKET_NONCE);
-
-    status = CtServerReadMessageData(Fd, messageSize, (void**)&message);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    if (message->Nonce != nonce)
-    {
-        status = CT_STATUS_ACCESS_DENIED;
-    }
-
-cleanup:
-    CT_SAFE_FREE(message);
-    
-    return status;
-}
-
-
-static
-CT_STATUS
-HandleSecureSocketInfo(
-    IN CT_SERVER_CLIENT_HANDLE Handle,
-    IN CTX* Context,
-    IN uint32_t Version,
-    IN uint32_t Type,
-    IN size_t Size
-    )
-{
-    CT_STATUS status = CT_STATUS_SUCCESS;
-    int EE = 0;
-    uid_t uid = CtServerClientGetUid(Handle);
-    int fd = CtServerClientGetFd(Handle);
-    NPC_MSG_PAYLOAD_SEC_SOCKET_INFO* message = NULL;
-    size_t offset;
-    char* socketPath = NULL;
-    int nonce;
-    int secFd = -1;
-
-    status = CtServerReadMessageData(fd, Size, (void**)&message);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    if (!NPC_IS_SIZE_OK_MSG_PAYLOAD_SEC_SOCKET_INFO(message, Size))
-    {
-        status = CT_STATUS_INVALID_MESSAGE;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-    offset = CT_FIELD_OFFSET(NPC_MSG_PAYLOAD_SEC_SOCKET_INFO, Data);
-
-    GET_NEXT_STRING(&socketPath, message->SocketNameSize, message, &offset, status);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    CT_LOG_DEBUG("Uid = %ld, SocketPath = '%s'",
-                 uid,
-                 CT_LOG_WRAP_STRING(socketPath));
-
-
-    status = CtSecSocketConnect(&secFd, socketPath);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = CtGenerateRandomNumber(&nonce);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    CT_LOG_TRACE("replying 0x%08x", status);
-
-    status = SendNonce(fd, Version, status, nonce);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = VerifyNonce(secFd, nonce);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    /* The client has been authenticated */
-    CtServerClientSetAuthenticated(Handle, true);
-
-    status = ReplyStatus(secFd, Version, status);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-    
-cleanup:
-    CT_SAFE_CLOSE_FD(secFd);
-    CT_SAFE_FREE(message);
-    CT_LOG_TRACE("status = 0x%08x (EE = %d)", status, EE);
-    return status;
-}
-
-
 
 static
 bool
@@ -982,9 +839,6 @@ ServerDispatch(
         case NPC_MSG_TYPE_AUTH_CLEAR:
             status = HandleClearAuthInfo(Handle, (CTX*)Context, Version, Type, Size);
             break;
-        case NPC_MSG_TYPE_SEC_SOCKET_INFO:
-            status = HandleSecureSocketInfo(Handle, (CTX*)Context, Version, Type, Size);
-	    break;
         case NPC_MSG_TYPE_CREATE_IMP_TOKEN:
             status = HandleCreateImpersonationToken(Handle, (CTX*)Context, Version, Type, Size);
 	    break;

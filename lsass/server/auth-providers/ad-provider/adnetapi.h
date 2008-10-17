@@ -60,6 +60,7 @@
 #include <lwrpc/lsabinding.h>
 #include <lwrpc/netlogonbinding.h>
 #include <lwrpc/LMjoin.h>
+#include <lwrpc/errcheck.h>
 
 DWORD
 AD_NetInitMemory(
@@ -113,6 +114,11 @@ DWORD
 AD_SidToString(
     PSID  pSid,
     PSTR* ppszSid
+    );
+
+DWORD
+AD_MapNetApiError(
+    DWORD dwADError
     );
 
 #endif /* __ADNETAPI_H__ */

@@ -44,16 +44,7 @@ NTSTATUS LsaQueryInfoPolicy2(handle_t b, PolicyHandle *handle,
 
     *info = NULL;
 
-    TRY
-    {
-        status = _LsaQueryInfoPolicy2(b, handle, level, &i);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
-
+    DCERPC_CALL(_LsaQueryInfoPolicy2(b, handle, level, &i));
     goto_if_ntstatus_not_success(status, error);
 
     status = LsaAllocatePolicyInformation(&out_info, i, level);

@@ -54,16 +54,7 @@ NTSTATUS NetrServerReqChallenge(handle_t b, const wchar16_t *server,
     comp = wc16sdup(computer);
     goto_if_no_memory_ntstatus(comp, cleanup);
 
-    TRY
-    {
-        status = _NetrServerReqChallenge(b, srv, comp, &creds); 
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
-
+    DCERPC_CALL(status, _NetrServerReqChallenge(b, srv, comp, &creds));
     goto_if_ntstatus_not_success(status, cleanup);
 
     memcpy(srv_challenge, creds.data, sizeof(creds.data));

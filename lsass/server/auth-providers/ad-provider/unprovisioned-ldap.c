@@ -97,6 +97,35 @@ error:
 }
 
 DWORD
+UnprovisionedModeFindUserByNameInOneWayTrust(
+    PLSA_LOGIN_NAME_INFO pUserNameInfo,
+    PAD_SECURITY_OBJECT *ppUserInfo
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PAD_SECURITY_OBJECT pUserInfo = NULL;
+    
+    dwError = ADUnprovisionedMarshalToUserCacheInOneWayTrust(
+                             pUserNameInfo,
+                             &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    *ppUserInfo = pUserInfo;
+    
+cleanup:
+     
+    return dwError;
+    
+error:
+    
+    *ppUserInfo = NULL;
+        
+    ADCacheDB_SafeFreeObject(&pUserInfo);
+        
+    goto cleanup;
+}
+
+DWORD
 UnprovisionedModeGetUserGroupMembership(
     HANDLE  hDirectory,
     PCSTR   pszNetBIOSDomainName,
@@ -119,25 +148,33 @@ UnprovisionedModeGetUserGroupMembership(
         AD_LDAP_MEMBER_TAG, 
         NULL
     };
-    CHAR szQuery[1024];
+    PSTR pszQuery = NULL;
     LDAPMessage *pMessage = NULL;
     LDAPMessage *pGroupMessage = NULL;
     DWORD dwCount = 0;
     PSTR pszUserDN = NULL;
-    DWORD dwGroupsFound = 0;
-    PSTR pszDomain = NULL;;
+    PSTR pszEscapedUserDN = NULL;
+    DWORD dwGroupsFound = 0;    
     PAD_SECURITY_OBJECT pUserInfo = NULL;
     PLSA_SECURITY_IDENTIFIER pUserSID = NULL;
     PSTR pszPrimaryGroupSID = NULL;    
     INT iGroup = 0;
     int    iPrimaryGroupIndex = -1;
     PSTR pszUserSid = NULL;
-
+    PSTR pszFullDomainName = NULL;
+    
+    
     pLd = LsaLdapGetSession(hDirectory);
-  
-    pszDomain = gpADProviderData->szDomain;
+    
+    dwError = AD_DetermineTrustModeandDomainName(
+                        pszNetBIOSDomainName,
+                        NULL,
+                        NULL,
+                        &pszFullDomainName,
+                        NULL);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapConvertDomainToDN(pszDomain, &pszDirectoryRoot);
+    dwError = LsaLdapConvertDomainToDN(pszFullDomainName, &pszDirectoryRoot);
     BAIL_ON_LSA_ERROR(dwError);
     
     /* dwError = ADGenericFindUserById(
@@ -173,18 +210,24 @@ UnprovisionedModeGetUserGroupMembership(
                 );
     BAIL_ON_LSA_ERROR(dwError);   
 
-               
+    dwError = LsaLdapEscapeString(
+                &pszEscapedUserDN,
+                pszUserDN);
+    BAIL_ON_LSA_ERROR(dwError);
+ 
     //search for those real groups which have the current user as a member.
-    sprintf(szQuery, "(&(objectClass=group)(|(member=%s)(objectSid=%s)))", 
-            pszUserDN,
-            pszPrimaryGroupSID
-            );
+    dwError = LsaAllocateStringPrintf(
+                &pszQuery,
+                "(&(objectClass=group)(|(member=%s)(objectSid=%s)))", 
+                pszEscapedUserDN,
+                pszPrimaryGroupSID);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaLdapDirectorySearch(
                     hDirectory,
                     pszDirectoryRoot,
                     LDAP_SCOPE_SUBTREE,
-                    szQuery,
+                    pszQuery,
                     szAttributeListGroups,
                     &pMessage
                     );
@@ -268,12 +311,12 @@ cleanup:
     }
 
     LSA_SAFE_FREE_STRING(pszPrimaryGroupSID);
-    
     LSA_SAFE_FREE_STRING(pszUserSid);
-
     LSA_SAFE_FREE_MEMORY(pszUserDN);
-    
+    LSA_SAFE_FREE_MEMORY(pszEscapedUserDN);
     LSA_SAFE_FREE_STRING(pszDirectoryRoot);
+    LSA_SAFE_FREE_STRING(pszQuery);
+    LSA_SAFE_FREE_STRING(pszFullDomainName);
     
     return dwError;
     
@@ -305,7 +348,7 @@ UnprovisionedModeEnumUsers(
     DWORD  dwNumUsersFound = 0;
     DWORD  dwUserInfoLevel = 0;
     PSTR   pszDirectoryRoot = NULL;
-    PCSTR  pszQuery = "(&(objectClass=user)(sAMAccountName=*))";
+    PCSTR  pszQuery = "(&(objectClass=user)(!(objectClass=computer))(sAMAccountName=*))";
     PSTR szAttributeList[] = 
         {
              AD_LDAP_OBJECTSID_TAG,
@@ -320,10 +363,14 @@ UnprovisionedModeEnumUsers(
         }; 
 
     LDAPMessage *pMessage = NULL;
-    BOOLEAN bMorePages = false;
     LDAP *pLd = LsaLdapGetSession(hDirectory);
     
     DWORD dwNumUsersWanted = dwMaxNumUsers;
+    
+    if (!pEnumState->bMorePages){
+           dwError = LSA_ERROR_NO_MORE_USERS;
+           BAIL_ON_LSA_ERROR(dwError);
+    }
     
     dwUserInfoLevel = pEnumState->dwInfoLevel;
     
@@ -343,7 +390,7 @@ UnprovisionedModeEnumUsers(
                        &pEnumState->pCookie,        
                        LDAP_SCOPE_SUBTREE,
                        &pMessage,
-                       &bMorePages);    
+                       &pEnumState->bMorePages);    
         BAIL_ON_LSA_ERROR(dwError);
     
         dwCount = ldap_count_entries(
@@ -378,10 +425,7 @@ UnprovisionedModeEnumUsers(
             ldap_msgfree(pMessage);
             pMessage = NULL;            
         }
-    } while (bMorePages && dwNumUsersWanted);
-    
-    if (!bMorePages)
-        dwTotalNumUsersFound--;        
+    } while (pEnumState->bMorePages && dwNumUsersWanted);     
     
     *pppUserInfoList = ppUserInfoList_accumulate;
     *pdwNumUsersFound = dwTotalNumUsersFound;
@@ -460,6 +504,35 @@ error:
 }
 
 DWORD
+UnprovisionedModeFindGroupByNameInOneWayTrust(
+    PLSA_LOGIN_NAME_INFO pGroupNameInfo,
+    PAD_SECURITY_OBJECT *ppGroupInfo
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PAD_SECURITY_OBJECT pGroupInfo = NULL;
+    
+    dwError = ADUnprovisionedMarshalToGroupCacheInOneWayTrust(
+                             pGroupNameInfo,
+                             &pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    *ppGroupInfo = pGroupInfo;
+    
+cleanup:
+     
+    return dwError;
+    
+error:
+    
+    *ppGroupInfo = NULL;
+        
+    ADCacheDB_SafeFreeObject(&pGroupInfo);
+        
+    goto cleanup;
+}
+
+DWORD
 UnprovisionedModeEnumGroups(
     HANDLE  hDirectory,
     PCSTR   pszNetBIOSDomainName,
@@ -487,11 +560,15 @@ UnprovisionedModeEnumGroups(
              NULL
         };
     LDAPMessage *pMessage = NULL;
-    BOOLEAN bMorePages = false;
     LDAP *pLd = LsaLdapGetSession(hDirectory);
     PSTR pszDirectoryRoot = NULL;
     
     DWORD dwNumGroupsWanted = dwMaxNumGroups;
+    
+    if (!pEnumState->bMorePages){
+        dwError = LSA_ERROR_NO_MORE_GROUPS;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
     
     dwGroupInfoLevel = pEnumState->dwInfoLevel;
     
@@ -511,7 +588,7 @@ UnprovisionedModeEnumGroups(
                        &pEnumState->pCookie,        
                        LDAP_SCOPE_SUBTREE,
                        &pMessage,
-                       &bMorePages);    
+                       &pEnumState->bMorePages);    
         BAIL_ON_LSA_ERROR(dwError);
     
         dwCount = ldap_count_entries(
@@ -546,10 +623,7 @@ UnprovisionedModeEnumGroups(
                ldap_msgfree(pMessage);
                pMessage = NULL;            
         }
-    } while (bMorePages && dwNumGroupsWanted);
-    
-    if (!bMorePages)
-        dwTotalNumGroupsFound--;        
+    } while (pEnumState->bMorePages && dwNumGroupsWanted);      
     
     *pppGroupInfoList = ppGroupInfoList_accumulate;
     *pdwNumGroupsFound = dwTotalNumGroupsFound;

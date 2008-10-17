@@ -219,6 +219,13 @@ ADLdap_UnprovisionedFindObjectNameByIdInDomain(
     PSTR* ppszNT4Name);
 
 DWORD
+ADLdap_UnprovisionedFindObjectNameByIdInDomainHelper(    
+    DWORD dwId,
+    PCSTR pszPrimaryDomainName,
+    PCSTR pszDomainName,
+    PSTR* ppszNT4Name);
+
+DWORD
 ADLdap_DefaultFindGroupNameByAlias(
     PCSTR pszAlias,
     PSTR* ppszNT4Name);

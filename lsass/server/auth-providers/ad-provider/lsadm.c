@@ -151,6 +151,8 @@ LsaDmAddTrustedDomain(
     IN DWORD dwTrustFlags,
     IN DWORD dwTrustType,
     IN DWORD dwTrustAttributes,
+    IN LSA_TRUST_DIRECTION dwTrustDirection,
+    IN LSA_TRUST_MODE dwTrustMode,
     IN OPTIONAL PCSTR pszDnsForestName,
     IN OPTIONAL PLWNET_DC_INFO pDcInfo
     )
@@ -164,6 +166,8 @@ LsaDmAddTrustedDomain(
                                   dwTrustFlags,
                                   dwTrustType,
                                   dwTrustAttributes,
+                                  dwTrustDirection,
+                                  dwTrustMode,
                                   pszDnsForestName,
                                   pDcInfo);
 }
@@ -217,6 +221,8 @@ LsaDmQueryDomainInfo(
     OUT OPTIONAL PDWORD pdwTrustFlags,
     OUT OPTIONAL PDWORD pdwTrustType,
     OUT OPTIONAL PDWORD pdwTrustAttributes,
+    OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,
     OUT OPTIONAL PSTR* ppszForestName,
     OUT OPTIONAL PSTR* ppszClientSiteName,
     OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
@@ -234,6 +240,8 @@ LsaDmQueryDomainInfo(
                                  pdwTrustFlags,
                                  pdwTrustType,
                                  pdwTrustAttributes,
+                                 pdwTrustDirection,
+                                 pdwTrustMode,
                                  ppszForestName,
                                  ppszClientSiteName,
                                  pFlags,
@@ -357,15 +365,15 @@ LsaDmIsEitherDomainNameMatch(
 }
 
 BOOLEAN
-LsaDmIsNetbiosDomainName(
+LsaDmIsValidNetbiosDomainName(
     IN PCSTR pszDomainName
     )
 {
     BOOLEAN bIsValid = FALSE;
-    char* dot = strchr(pszDomainName, '.');
-    if (!dot)
+    // 15-char is the limit as per http://support.microsoft.com/kb/226144,
+    // but we fdo 16 to be extra safe.
+    if (strlen(pszDomainName) <= 16)
     {
-        // Must not have dot.
         bIsValid = TRUE;
     }
     return bIsValid;
@@ -383,7 +391,7 @@ LsaDmDuplicateConstEnumDomainInfo(
     dwError = LsaAllocateMemory(sizeof(*pDest), (PVOID*)&pDest);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LsaStrDupOrNull(
                 pSrc->pszDnsDomainName,
                 &pDest->pszDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -412,8 +420,10 @@ LsaDmDuplicateConstEnumDomainInfo(
     pDest->dwTrustFlags = pSrc->dwTrustFlags;
     pDest->dwTrustType = pSrc->dwTrustType;
     pDest->dwTrustAttributes = pSrc->dwTrustAttributes;
+    pDest->dwTrustDirection = pSrc->dwTrustDirection;
+    pDest->dwTrustMode = pSrc->dwTrustMode;
 
-    dwError = LsaAllocateString(
+    dwError = LsaStrDupOrNull(
                 pSrc->pszForestName,
                 &pDest->pszForestName);
     BAIL_ON_LSA_ERROR(dwError);

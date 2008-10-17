@@ -54,8 +54,13 @@
  * license@likewisesoftware.com
  */
 
+#ifdef HAVE_CONFIG_H
+#    include <config.h>
+#endif
+#undef malloc
+#undef realloc
+
 #include "ctbase.h"
-#include "config/config.h"
 #include <syslog.h>
 #include "sysfuncs.h"
 
@@ -83,7 +88,6 @@ sys_vsyslog(
 }
 
 #if !defined(HAVE_RPL_MALLOC)
-#undef malloc
 
 //See http://wiki.buici.com/wiki/Autoconf_and_RPL_MALLOC
 void*
@@ -97,7 +101,6 @@ rpl_malloc(size_t n)
 #endif /* ! HAVE_RPL_MALLOC */
 
 #if !defined(HAVE_RPL_REALLOC)
-#undef realloc
 
 void*
 rpl_realloc(void* buf, size_t n)

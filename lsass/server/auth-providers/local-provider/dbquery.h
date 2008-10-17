@@ -56,6 +56,14 @@
     "SELECT count(*) from lwigroupmembers                    \
      WHERE  Uid = %d AND Gid = %d"
 
+#define DB_QUERY_COUNT_EXISTING_USERS                        \
+    "SELECT count(*) from lwiusers"                    
+     
+
+#define DB_QUERY_COUNT_EXISTING_GROUPS                       \
+    "SELECT count(*) from lwigroups"                    
+     
+
 #define DB_QUERY_FIND_GROUP_MEMBERS_BY_GID                     \
     "select distinct Name                                      \
        from   lwiusers, lwigroupmembers                        \

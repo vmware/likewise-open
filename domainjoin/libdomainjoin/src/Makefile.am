@@ -4,9 +4,10 @@ AM_CFLAGS = $(CPPFLAGS) -Wall -Werror-implicit-function-declaration
 
 AM_CFLAGS += -I$(top_srcdir)/include  \
           -I$(srcdir)/../include \
-          @CENTUTILS_INCLUDE@      \
-          @LIBXML2_INCLUDE@        \
-          @NETLOGON_INCLUDE@       \
+          @CENTUTILS_INCLUDE@    \
+          @LIBXML2_INCLUDE@      \
+          @NETLOGON_INCLUDE@     \
+          @LWDNS_INCLUDE@        \
           $(LWI_OS_FLAGS)
 
 SCRIPTDIR = $(bindir)
@@ -20,11 +21,14 @@ libdomainjoin_la_LIBADD = \
 	$(NETLOGON_LDFLAGS) \
 	$(NETLOGON_LIBS) \
 	$(LIBXML2_LDFLAGS) \
-	$(LIBXML2_LIBS)
+	$(LIBXML2_LIBS) \
+	$(LWDNS_LIBS)   \
+        @LIB_XNET@
 
 libdomainjoin_la_SOURCES = \
        djauthinfo.c   \
        djauthconf.c   \
+       djddns.c       \
        djhostinfo.c   \
        djkrb5conf.c   \
        djlogger.c     \

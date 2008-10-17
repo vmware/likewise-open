@@ -54,37 +54,9 @@ PSTR gpszADProviderName = "lsa-activedirectory-provider";
 
 PSTR gpszConfigFilePath = NULL;
 
-/*
- * Kerberos
- */
-BOOLEAN       gbCreateK5Login = TRUE;
-
-PSTR gpszUnprovisionedModeShell = NULL;
-PSTR gpszUnprovisionedModeHomedirTemplate = NULL;
-
 BOOLEAN gbShutdownProvider = FALSE;
 
-AD_PROVIDER_DATA  gADProviderData;
-PAD_PROVIDER_DATA gpADProviderData = &gADProviderData;
-
-/*
- * Output conventions
- */
-const CHAR gcSeparatorDefault = '^';
-CHAR gcSeparator = '^';
-
-/*
- * Caching
- */
-const DWORD gdwCacheReaperTimeoutSecsMinimum = 5 * LSA_SECONDS_IN_MINUTE;
-const DWORD gdwCacheReaperTimeoutSecsDefault = 30 * LSA_SECONDS_IN_DAY;
-const DWORD gdwCacheReaperTimeoutSecsMaximum = 60 * LSA_SECONDS_IN_DAY;
-DWORD gdwCacheReaperTimeoutSecs              = 30 * LSA_SECONDS_IN_DAY;
-
-const DWORD gdwCacheEntryExpirySecsMinimum = 0;
-const DWORD gdwCacheEntryExpirySecsDefault = 5 * LSA_SECONDS_IN_MINUTE;
-const DWORD gdwCacheEntryExpirySecsMaximum = 60 * LSA_SECONDS_IN_MINUTE;
-DWORD gdwCacheEntryExpirySecs              = 5 * LSA_SECONDS_IN_MINUTE;
+PAD_PROVIDER_DATA gpADProviderData = NULL;
 
 pthread_t       gCacheReaperThread;
 pthread_mutex_t gCacheReaperThreadLock      = PTHREAD_MUTEX_INITIALIZER;
@@ -94,11 +66,6 @@ pthread_t*      gpCacheReaperThread = NULL;
 /*
  * Machine Password
  */
-const DWORD gdwMachinePasswordSyncPwdLifetimeMinimum = LSA_SECONDS_IN_HOUR;
-const DWORD gdwMachinePasswordSyncPwdLifetimeDefault = 30 * LSA_SECONDS_IN_DAY;
-const DWORD gdwMachinePasswordSyncPwdLifetimeMaximum = 60 * LSA_SECONDS_IN_DAY;
-DWORD gdwMachinePasswordSyncPwdLifetime              = 30 * LSA_SECONDS_IN_DAY;
-
 DWORD gdwMachinePasswordSyncThreadWaitSecs           = 30 * LSA_SECONDS_IN_MINUTE;
 
 pthread_t       gMachinePasswordSyncThread;
@@ -109,8 +76,6 @@ pthread_t*      gpMachinePasswordSyncThread          = NULL;
 DWORD gdwClockDriftSecs = 60;
 
 HANDLE ghPasswordStore = (HANDLE)NULL;
-
-BOOLEAN gbLDAPSignAndSeal = FALSE;
 
 DWORD gdwMachineTGTExpiry = 0;
 
@@ -123,6 +88,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_ServicesDomain,
             &AD_AuthenticateUser,
             &AD_ValidateUser,
+            &AD_CheckUserInList,
             &AD_FindUserByName,
             &AD_FindUserById,
             &AD_BeginEnumUsers,
@@ -153,11 +119,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
 
 CACHE_CONNECTION_HANDLE gpCacheConnection = NULL;
 
-PLSA_HASH_TABLE gpAllowedGroups   = NULL;
-
-BOOLEAN gbAssumeDefaultDomain = FALSE;
-
-BOOLEAN gbSyncSystemTime = TRUE;
+PLSA_HASH_TABLE gpAllowedSIDs   = NULL;
 
 // please put all new globals in the following structure:
 PLSA_AD_PROVIDER_STATE gpLsaAdProviderState = NULL;

@@ -45,14 +45,12 @@
 DWORD
 LWICreateEventLogRpcBinding(
     const char * hostname,
-    char**       ppszBindingString,
     handle_t *   event_binding
     );
 
 DWORD
 LWIFreeEventLogRpcBinding(
-    handle_t event_binding,
-    char * pszBindingString
+    handle_t event_binding
     );
 
 #endif /* __EVENTLOGBINDING_H__ */

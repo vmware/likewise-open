@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Active Directory Authentication Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -50,98 +50,10 @@
 #include "adprovider.h"
 
 DWORD
-AD_TestNetworkConnection(
-    PCSTR pszDomain
-    )
-{
-    DWORD dwError = 0;
-
-    if (!pszDomain)
-    {
-        LSA_LOG_DEBUG("AD_TestNetworkConnection called with no domain name, system is not joined yet.");
-        goto cleanup;
-    }
-
-#if defined (__LWI_DARWIN__)
-    PSTR  pszQuestion = NULL;
-    PVOID pBuffer = NULL;
-    int   responseSize = 0;
-    int   retryCounter = 0;
-    DWORD dwBufferSize = 1024*64;
-
-    /* This routine performs a simple DNS query looking for the SRV records for the current
-       domain of the local system. This excercises the res_query library function which will
-       ensure at startup time that the network stack has fully initialized. Without this test
-       some platforms such as the Mac would fail to load the AD provider reliably due to problems
-       issuing DNS queries or connecting via LDAP port to the DC. The subsequent calls into
-       res_query when TRY_AGAIN is returned causes the next calls to block and only return when
-       able to complete the query. */
-
-    dwError = LsaAllocateStringPrintf(
-                     &pszQuestion,
-                     "_ldap._tcp.%s",
-                     pszDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaAllocateMemory(
-                  dwBufferSize,
-                  &pBuffer);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    while(TRUE)
-    {
-        dwError = res_init();
-        BAIL_ON_LSA_ERROR(dwError);
-
-        _res.options &= ~(RES_USEVC);
-
-        responseSize = res_query(pszQuestion, ns_c_in, ns_t_srv,
-                                 (PBYTE)pBuffer, dwBufferSize);
-        if (responseSize < 0) 
-        {           
-            if (h_errno == TRY_AGAIN && retryCounter < 3)
-            {
-                LSA_LOG_DEBUG("AD_TestNetworkConnection query DNS for domain '%s' failed with TRY_AGAIN h_errno", pszDomain);
-                retryCounter++;
-                continue;
-            }
-            else
-            {
-                LSA_LOG_DEBUG("AD_TestNetworkConnection query DNS for domain '%s' failed with h_errno %d", pszDomain, h_errno);
-                dwError = LSA_ERROR_INVALID_DNS_RESPONSE;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-        }
-
-        // If we get here, then our DNS query attempt succeeded (i.e. We sent data to/from the name server)
-        break;
-    }
-#else
-    BAIL_ON_LSA_ERROR(dwError);
-#endif
-
-    LSA_LOG_DEBUG("AD_TestNetworkConnection query DNS for domain '%s' was successful", pszDomain);
-
-cleanup:
-
-#if defined (__LWI_DARWIN__)
-    LSA_SAFE_FREE_MEMORY(pBuffer);
-    LSA_SAFE_FREE_STRING(pszQuestion);
-#endif
-
-    return dwError;
-
-error:
-
-    LSA_LOG_DEBUG("AD_TestNetworkConnection query DNS for domain '%s' failed, returning error %d", pszDomain, dwError);
-
-    goto cleanup;
-}
-
-DWORD
 AD_OnlineInitializeOperatingMode(
-    PCSTR pszDomain,
-    PCSTR pszHostName
+    OUT PAD_PROVIDER_DATA* ppProviderData,
+    IN PCSTR pszDomain,
+    IN PCSTR pszHostName
     )
 {
     DWORD dwError = 0;
@@ -152,37 +64,38 @@ AD_OnlineInitializeOperatingMode(
     PSTR  pszTmpDN = NULL;
     HANDLE hDirectory = (HANDLE)NULL;
     ADConfigurationMode adConfMode = NonSchemaMode;
-    PLWNET_DC_INFO pDCInfo = NULL;
     HANDLE hDb = (HANDLE)NULL;
     PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
     DWORD dwDomainInfoCount = 0;
+    PAD_PROVIDER_DATA pProviderData = NULL;
+    PSTR pszNetbiosDomainName = NULL;
+
+    dwError = LsaAllocateMemory(sizeof(*pProviderData), (PVOID*)&pProviderData);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADCacheDB_OpenDb(&hDb);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LWNetGetDCName(NULL, pszDomain, NULL, 0, &pDCInfo);
+    dwError = LsaDmEngineDiscoverTrusts(pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaDmEngineDiscoverTrusts(pszDomain, pDCInfo->pszDnsForestName);
-    BAIL_ON_LSA_ERROR(dwError); 
 
     dwError = LsaDmWrapLdapOpenDirectoryDomain(pszDomain, &hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaLdapConvertDomainToDN(pszDomain, &pszRootDN);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = ADFindComputerDN(hDirectory, pszHostName, pszDomain,
                                &pszComputerDN);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaLdapGetParentDN(pszComputerDN, &pszParentDN);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     //
     // Note: We keep looking at all parents of the current DN
     //       until we find a cell or hit the top domain DN.
-    for(;;)
+    for (;;)
     {
         dwError = ADGetCellInformation(hDirectory, pszParentDN, &pszCellDN);
         if (dwError == LSA_ERROR_NO_SUCH_CELL)
@@ -190,44 +103,46 @@ AD_OnlineInitializeOperatingMode(
             dwError = 0;
         }
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         if (!IsNullOrEmptyString(pszCellDN))
             break;
-        
+
         if (!strcasecmp(pszRootDN, pszParentDN))
             break;
-        
+
         LSA_SAFE_FREE_STRING(pszTmpDN);
-        
+
         pszTmpDN = pszParentDN;
         pszParentDN = NULL;
-        
+
         dwError = LsaLdapGetParentDN(pszTmpDN, &pszParentDN);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    if (IsNullOrEmptyString(pszCellDN)) {
-        gpADProviderData->dwDirectoryMode = UNPROVISIONED_MODE;
-    } 
+
+    if (IsNullOrEmptyString(pszCellDN))
+    {
+        pProviderData->dwDirectoryMode = UNPROVISIONED_MODE;
+    }
     else
     {
         PSTR pszValue = pszCellDN + sizeof("CN=$LikewiseIdentityCell,") - 1;
-        
-        if (!strcasecmp(pszValue, pszRootDN)){
-            gpADProviderData->dwDirectoryMode = DEFAULT_MODE;
-            strcpy(gpADProviderData->cell.szCellDN, pszCellDN);
-        } 
+
+        if (!strcasecmp(pszValue, pszRootDN))
+        {
+            pProviderData->dwDirectoryMode = DEFAULT_MODE;
+            strcpy(pProviderData->cell.szCellDN, pszCellDN);
+        }
         else {
-            gpADProviderData->dwDirectoryMode = CELL_MODE;
-            strcpy(gpADProviderData->cell.szCellDN, pszCellDN);
+            pProviderData->dwDirectoryMode = CELL_MODE;
+            strcpy(pProviderData->cell.szCellDN, pszCellDN);
          }
-    }    
-    
+    }
+
     dwError = ADGetDomainMaxPwdAge(hDirectory, pszDomain,
-                                   &gpADProviderData->adMaxPwdAge);
-    BAIL_ON_LSA_ERROR(dwError);   
-    
-    switch(gpADProviderData->dwDirectoryMode)
+                                   &pProviderData->adMaxPwdAge);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (pProviderData->dwDirectoryMode)
     {
         case DEFAULT_MODE:
         case CELL_MODE:
@@ -235,24 +150,29 @@ AD_OnlineInitializeOperatingMode(
                                              &adConfMode);
             BAIL_ON_LSA_ERROR(dwError);
             break;
-    }    
+    }
 
-    strcpy(gpADProviderData->szDomain, pszDomain);
-    strcpy(gpADProviderData->szServerName, pDCInfo->pszDomainControllerName);
-    strcpy(gpADProviderData->szComputerDN, pszComputerDN);
-    strcpy(gpADProviderData->szShortDomain, pDCInfo->pszNetBIOSDomainName);
+    dwError = LsaDmWrapGetDomainName(pszDomain, NULL, &pszNetbiosDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
     
-    gpADProviderData->adConfigurationMode = adConfMode;    
-    
-    if (gpADProviderData->dwDirectoryMode == CELL_MODE)
+    strcpy(pProviderData->szDomain, pszDomain);
+    strcpy(pProviderData->szComputerDN, pszComputerDN);
+    strcpy(pProviderData->szShortDomain, pszNetbiosDomainName);
+
+    pProviderData->adConfigurationMode = adConfMode;
+
+    if (pProviderData->dwDirectoryMode == CELL_MODE)
     {
-        dwError = AD_GetLinkedCellInfo(hDirectory, pszCellDN);
-        BAIL_ON_LSA_ERROR(dwError); 
+        dwError = AD_GetLinkedCellInfo(hDirectory,
+                    pszCellDN,
+                    pszDomain,
+                    &pProviderData->pCellList);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = ADCacheDB_CacheProviderData(
                 hDb,
-                gpADProviderData);
+                pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmEnumDomainInfo(
@@ -268,40 +188,51 @@ AD_OnlineInitializeOperatingMode(
                 dwDomainInfoCount);
     BAIL_ON_LSA_ERROR(dwError);
 
-cleanup:
+    *ppProviderData = pProviderData;
 
+cleanup:
+    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
     LSA_SAFE_FREE_STRING(pszRootDN);
     LSA_SAFE_FREE_STRING(pszComputerDN);
     LSA_SAFE_FREE_STRING(pszCellDN);
     LSA_SAFE_FREE_STRING(pszParentDN);
     LSA_SAFE_FREE_STRING(pszTmpDN);
     LsaLdapCloseDirectory(hDirectory);
-    LWNET_SAFE_FREE_DC_INFO(pDCInfo);
     ADCacheDB_SafeCloseDb(&hDb);
     LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
-    
+
     return dwError;
-    
+
 error:
+    *ppProviderData = NULL;
+
+    if (pProviderData)
+    {
+        ADProviderFreeProviderData(pProviderData);
+        pProviderData = NULL;
+    }
 
     goto cleanup;
 }
 
 DWORD
 AD_GetLinkedCellInfo(
-    HANDLE hDirectory,
-    PCSTR  pszCellDN)
+    IN HANDLE hDirectory,
+    IN PCSTR pszCellDN,
+    IN PCSTR pszDomain,
+    OUT PDLINKEDLIST* ppCellList
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     LDAP *pLd = NULL;
     LDAPMessage *pCellMessage1 = NULL;
-    LDAPMessage *pCellMessage2 = NULL;    
-    DWORD dwCount = 0;    
-    PSTR szAttributeList[] = 
+    LDAPMessage *pCellMessage2 = NULL;
+    DWORD dwCount = 0;
+    PSTR szAttributeList[] =
                     {AD_LDAP_DESCRIP_TAG,
                      NULL
-                    };    
-    PSTR szAttributeListCellName[] = 
+                    };
+    PSTR szAttributeListCellName[] =
                     {AD_LDAP_NAME_TAG,
                      NULL
                     };
@@ -309,32 +240,33 @@ AD_GetLinkedCellInfo(
     DWORD dwNumValues = 0;
     DWORD iValue = 0;
     PSTR  pszLinkedCell = NULL;
-    PSTR  pszLinkedCellGuid = NULL;    
-    PSTR  pszDirectoryRoot = NULL;    
-    CHAR  szQuery[1024];    
+    PSTR  pszLinkedCellGuid = NULL;
+    PSTR  pszDirectoryRoot = NULL;
+    CHAR  szQuery[1024];
     BOOLEAN bValidADEntry = FALSE;
     PSTR pszStrTokSav = NULL;
     PCSTR pszDelim = ";";
     HANDLE hGCDirectory = (HANDLE)NULL;
     LDAP* pGCLd = NULL;
-    
+    PDLINKEDLIST pCellList = NULL;
+
     pLd = LsaLdapGetSession(hDirectory);
-    
+
     dwError = LsaLdapDirectorySearch(
                       hDirectory,
                       pszCellDN,
                       LDAP_SCOPE_BASE,
                       "(objectClass=*)",
                       szAttributeList,
-                      &pCellMessage1);   
+                      &pCellMessage1);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwCount = ldap_count_entries(
                       pLd,
-                      pCellMessage1);        
+                      pCellMessage1);
     if (dwCount < 0) {
        dwError = LSA_ERROR_LDAP_ERROR;
-    } else if (dwCount == 0) {       
+    } else if (dwCount == 0) {
        dwError = LSA_ERROR_NO_SUCH_CELL;
     } else if (dwCount > 1) {
        dwError = LSA_ERROR_DUPLICATE_CELLNAME;
@@ -347,12 +279,12 @@ AD_GetLinkedCellInfo(
                     pCellMessage1,
                     &bValidADEntry);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (!bValidADEntry){
         dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-        BAIL_ON_LSA_ERROR(dwError);            
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaLdapGetStrings(
                      hDirectory,
                      pCellMessage1,
@@ -360,50 +292,50 @@ AD_GetLinkedCellInfo(
                      &ppszValues,
                      &dwNumValues);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     for (iValue = 0; iValue < dwNumValues; iValue++)
     {
         if (!strncasecmp(ppszValues[iValue], "linkedCells=", sizeof("linkedCells=")-1))
         {
-            pszLinkedCell = ppszValues[iValue] + sizeof("linkedCells=") - 1;           
+            pszLinkedCell = ppszValues[iValue] + sizeof("linkedCells=") - 1;
            break;
-        }        
+        }
     }
-    
+
     if (!IsNullOrEmptyString(pszLinkedCell)){
         dwError = LsaLdapConvertDomainToDN(
-                        gpADProviderData->szDomain,
+                        pszDomain,
                         &pszDirectoryRoot);
         BAIL_ON_LSA_ERROR(dwError);
-        
-        dwError = LsaDmWrapLdapOpenDirectoryGc(gpADProviderData->szDomain,
+
+        dwError = LsaDmWrapLdapOpenDirectoryGc(pszDomain,
                                                &hGCDirectory);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         pGCLd = LsaLdapGetSession(hGCDirectory);
-        
+
         pszLinkedCellGuid = strtok_r (pszLinkedCell, pszDelim, &pszStrTokSav);
         while (pszLinkedCellGuid != NULL)
-        {   
+        {
             PSTR  pszHexStr = NULL;
             PAD_LINKED_CELL_INFO pLinkedCellInfo = NULL;
             PSTR  pszCellDirectoryRoot = NULL;
             PSTR  pszLinkedCellDN = NULL;
             PSTR  pszCellDN = NULL;
-            
+
             dwError = LsaAllocateMemory(
                     sizeof(AD_LINKED_CELL_INFO),
                     (PVOID*)&pLinkedCellInfo);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = ADGuidStrToHex(
                             pszLinkedCellGuid,
                             &pszHexStr);
             BAIL_ON_LSA_ERROR(dwError);
-            
-            sprintf(szQuery, "(objectGuid=%s)", pszHexStr);                
+
+            sprintf(szQuery, "(objectGuid=%s)", pszHexStr);
             LSA_SAFE_FREE_STRING(pszHexStr);
-            
+
             //Search in root node's GC for cell DN given cell's GUID
             dwError = LsaLdapDirectorySearch(
                               hGCDirectory,
@@ -411,96 +343,99 @@ AD_GetLinkedCellInfo(
                               LDAP_SCOPE_SUBTREE,
                               szQuery,
                               szAttributeListCellName,
-                              &pCellMessage2);   
-            BAIL_ON_LSA_ERROR(dwError);  
-            
+                              &pCellMessage2);
+            BAIL_ON_LSA_ERROR(dwError);
+
             dwCount = ldap_count_entries(
                               pGCLd,
-                              pCellMessage2);        
+                              pCellMessage2);
             if (dwCount < 0) {
                dwError = LSA_ERROR_LDAP_ERROR;
-            } else if (dwCount == 0) {       
+            } else if (dwCount == 0) {
                dwError = LSA_ERROR_NO_SUCH_CELL;
             } else if (dwCount > 1) {
                dwError = LSA_ERROR_DUPLICATE_CELLNAME;
             }
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaLdapGetDN(
                             hGCDirectory,
                             pCellMessage2,
                             &pszLinkedCellDN);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaAllocateStringPrintf(
                              &pLinkedCellInfo->pszCellDN,
                              "CN=$LikewiseIdentityCell,%s",
                              pszLinkedCellDN);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaLdapConvertDNToDomain(
                              pszLinkedCellDN,
                              &pLinkedCellInfo->pszDomain);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaLdapConvertDomainToDN(
                             pLinkedCellInfo->pszDomain,
                             &pszCellDirectoryRoot);
-            BAIL_ON_LSA_ERROR(dwError);            
-            
+            BAIL_ON_LSA_ERROR(dwError);
+
             pszCellDN = pLinkedCellInfo->pszCellDN + sizeof("CN=$LikewiseIdentityCell,") - 1;
             //if pszLinkedCellDN is equal to pLinkedCellInfo->pszDomain, it is a default cell, hence a forest cell
-            if (!strcasecmp(pszCellDN, 
+            if (!strcasecmp(pszCellDN,
                             pszCellDirectoryRoot)){
                 pLinkedCellInfo->bIsForestCell = TRUE;
-            } 
-            else{ 
+            }
+            else{
                 pLinkedCellInfo->bIsForestCell = FALSE;
             }
-            
-            dwError = LsaDLinkedListAppend(&gpADProviderData->pCellList, pLinkedCellInfo);
+
+            dwError = LsaDLinkedListAppend(&pCellList, pLinkedCellInfo);
             BAIL_ON_LSA_ERROR(dwError);
-             
+
             pszLinkedCellGuid = strtok_r (NULL, pszDelim, &pszStrTokSav);
-            
+
             LSA_SAFE_FREE_STRING (pszCellDirectoryRoot);
             LSA_SAFE_FREE_STRING (pszLinkedCellDN);
-            
+
             if (pCellMessage2){
                 ldap_msgfree(pCellMessage2);
                 pCellMessage2 =  NULL;
             }
         }
     }
-    
+
+    *ppCellList = pCellList;
+
 cleanup:
 
     if (pCellMessage1) {
         ldap_msgfree(pCellMessage1);
     }
-    
+
     if (pCellMessage2){
         ldap_msgfree(pCellMessage2);
     }
-        
+
     if (ppszValues) {
         LsaFreeStringArray(ppszValues, dwNumValues);
     }
-    
+
     if (hGCDirectory != (HANDLE)NULL) {
         LsaLdapCloseDirectory(hGCDirectory);
     }
-        
-    LSA_SAFE_FREE_STRING (pszDirectoryRoot);    
-        
+
+    LSA_SAFE_FREE_STRING (pszDirectoryRoot);
+
     return dwError;
 
 error:
+    *ppCellList = NULL;
 
-    if (gpADProviderData->pCellList) {
-        LsaDLinkedListForEach(gpADProviderData->pCellList, &AD_FreeLinkedCellInfoInList, NULL);
-        LsaDLinkedListFree(gpADProviderData->pCellList);
-    }    
+    if (pCellList)
+    {
+        ADProviderFreeCellList(pCellList);
+    }
 
     goto cleanup;
 }
@@ -516,22 +451,21 @@ AD_FreeHashStringKey(
 DWORD
 AD_DetermineTrustModeandDomainName(
     IN PCSTR pszDomain,
-    OUT TrustMode* pTrustMode,
+    OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
     OUT OPTIONAL PSTR* ppszNetbiosDomainName
     )
 {
     DWORD dwError = 0;
-    TrustMode trustmode = UnHandledTrust;    
     PSTR pszDnsDomainName = NULL;
     PSTR pszNetbiosDomainName = NULL;
     DWORD dwTrustFlags = 0;
     DWORD dwTrustType = 0;
     DWORD dwTrustAttributes = 0;
-    
-    //
-    // Trusted domains support added
-    //
+    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+    LSA_TRUST_MODE dwTrustMode = LSA_TRUST_MODE_UNKNOWN;
+
     if (IsNullOrEmptyString(pszDomain) ||
         IsNullOrEmptyString(gpADProviderData->szDomain) ||
         IsNullOrEmptyString(gpADProviderData->szShortDomain))
@@ -539,11 +473,12 @@ AD_DetermineTrustModeandDomainName(
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
+#if 0
     if (!strcasecmp(gpADProviderData->szDomain, pszDomain) ||
         !strcasecmp(gpADProviderData->szShortDomain, pszDomain))
     {
-        trustmode = OneSelfTrust; 
+        dwTrustDirection = LSA_TRUST_DIRECTION_SELF;
         if (ppszDnsDomainName)
         {
             dwError = LsaAllocateString(gpADProviderData->szDomain,
@@ -559,6 +494,7 @@ AD_DetermineTrustModeandDomainName(
         dwError = 0;
         goto cleanup;
     }
+#endif
 
     dwError = LsaDmQueryDomainInfo(pszDomain,
                                    ppszDnsDomainName ? &pszDnsDomainName : NULL,
@@ -569,6 +505,8 @@ AD_DetermineTrustModeandDomainName(
                                    &dwTrustFlags,
                                    &dwTrustType,
                                    &dwTrustAttributes,
+                                   &dwTrustDirection,
+                                   &dwTrustMode,
                                    NULL,
                                    NULL,
                                    NULL,
@@ -576,27 +514,20 @@ AD_DetermineTrustModeandDomainName(
                                    NULL);
     if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
     {
-        LSA_LOG_WARNING("Warning!  AD_ServicesDomain was passed domain=%s, which it is neither the current domain nor in trusted domain list.", pszDomain);
+        LSA_LOG_WARNING("Domain '%s' is unknown.", pszDomain);
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!(dwTrustFlags & NETR_TRUST_FLAG_IN_FOREST) &&
-         (dwTrustFlags & NETR_TRUST_FLAG_OUTBOUND) &&
-         (dwTrustFlags & NETR_TRUST_FLAG_INBOUND))
+cleanup:
+    if (pdwTrustDirection)
     {
-        trustmode = TwoWayTrust_acrossforest; 
+        *pdwTrustDirection = dwTrustDirection;
     }
-    else if (dwTrustFlags & NETR_TRUST_FLAG_IN_FOREST)
+    if (pdwTrustMode)
     {
-        trustmode = TwoWayTrust_inforest;
-    }
-    else if (dwTrustFlags & NETR_TRUST_FLAG_OUTBOUND)
-    {
-        trustmode = OneWayTrust; 
+        *pdwTrustMode = dwTrustMode;
     }
     
-cleanup:
-    *pTrustMode = trustmode;
     if (ppszDnsDomainName)
     {
         *ppszDnsDomainName = pszDnsDomainName;
@@ -609,7 +540,6 @@ cleanup:
     return dwError;
 
 error:
-    trustmode = UnHandledTrust;
     LSA_SAFE_FREE_STRING(pszDnsDomainName);
     LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
     goto cleanup;
@@ -618,12 +548,12 @@ error:
 DWORD
 AD_CacheGroupMembershipFromPac(
     IN HANDLE           hProvider,
-    IN TrustMode        trustMode,
+    IN LSA_TRUST_DIRECTION   dwTrustDirection,
     IN PAD_SECURITY_OBJECT pUserInfo,
     IN PAC_LOGON_INFO * pPac)
 {
     int iPrimaryGroupIndex = -1;
-    DWORD dwNumGroupsFound = 0;            
+    DWORD dwNumGroupsFound = 0;
     PAD_SECURITY_OBJECT* ppGroupInfoResults = NULL;
     LSA_HASH_TABLE *pGroupSids = NULL;
     size_t sIndex = 0;
@@ -644,14 +574,14 @@ AD_CacheGroupMembershipFromPac(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    switch(trustMode)
+    switch(dwTrustDirection)
     {
-        case OneWayTrust:
-            
+        case LSA_TRUST_DIRECTION_ONE_WAY:
+
                 break;
-                
+
         default:
-            
+
             dwError = ADLdap_GetUserGroupMembership(
                              hProvider,
                              pUserInfo->userInfo.uid,
@@ -659,7 +589,7 @@ AD_CacheGroupMembershipFromPac(
                              &dwNumGroupsFound,
                              &ppGroupInfoResults);
             BAIL_ON_LSA_ERROR(dwError);
-    
+
             break;
     }
 
@@ -729,7 +659,7 @@ AD_CacheGroupMembershipFromPac(
         if (dwError == LSA_ERROR_SUCCESS)
         {
             LSA_SAFE_FREE_STRING(pszSidCopy);
-            
+
             // This group can be obtained from a source other than the
             // pac, so it should remain expirable
             continue;
@@ -782,7 +712,7 @@ AD_CacheGroupMembershipFromPac(
             if (dwError == LSA_ERROR_SUCCESS)
             {
                 LSA_SAFE_FREE_STRING(pszSidCopy);
-                
+
                 // This group can be obtained from a source other than the
                 // pac, so it should remain expirable
                 continue;
@@ -805,8 +735,10 @@ AD_CacheGroupMembershipFromPac(
     for (sIndex = 0; sIndex < pPac->info3.sidcount; sIndex++)
     {
         // universal groups seem to have this set to 7
+        // local groups seem to have this set to 0x20000007
         // we don't want to treat sids from the sid history like groups.
-        if (pPac->info3.sids[sIndex].attribute != 7)
+        if (pPac->info3.sids[sIndex].attribute != 7 &&
+            pPac->info3.sids[sIndex].attribute != 0x20000007)
         {
             continue;
         }
@@ -828,7 +760,7 @@ AD_CacheGroupMembershipFromPac(
         if (dwError == LSA_ERROR_SUCCESS)
         {
             LSA_SAFE_FREE_STRING(pszSidCopy);
-            
+
             // This group can be obtained from a source other than the
             // pac, so it should remain expirable
             continue;
@@ -890,7 +822,7 @@ AD_CacheGroupMembershipFromPac(
                         pUserInfo->pszObjectSid,
                         &ppUserGroupMemberships[sIndex]->pszChildSid);
         BAIL_ON_LSA_ERROR(dwError);
-                    
+
         dwError = LsaAllocateString(
                         (PSTR)pEntry->pKey,
                         &ppUserGroupMemberships[sIndex]->pszParentSid);
@@ -1094,8 +1026,8 @@ AD_OnlineAuthenticateUser(
     PSTR pszServicePassword = NULL;
     PSTR pszDomainDnsName = NULL;
     PSTR pszServicePrincipal = NULL;
-    TrustMode trustMode = UnHandledTrust;
-    
+    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
                     gpADProviderData->szDomain,
@@ -1106,51 +1038,32 @@ AD_OnlineAuthenticateUser(
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     LSA_SAFE_FREE_STRING(pLoginInfo->pszFullDomainName);
-    
+
     dwError = AD_DetermineTrustModeandDomainName(
                         pLoginInfo->pszDomainNetBiosName,
-                        &trustMode,
+                        &dwTrustDirection,
+                        NULL,
                         &pLoginInfo->pszFullDomainName,
                         NULL);
     BAIL_ON_LSA_ERROR(dwError);
- 
+
     dwError = AD_FindUserObjectByName(
                     hProvider,
                     pszLoginId,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_UpdateUserObjectFlags(
+    dwError = AD_VerifyUserAccountCanLogin(
                 pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    if (pUserInfo->userInfo.bAccountDisabled) {
-        dwError = LSA_ERROR_ACCOUNT_DISABLED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-        
-    if (pUserInfo->userInfo.bAccountLocked) {
-        dwError = LSA_ERROR_ACCOUNT_LOCKED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-        
-    if (pUserInfo->userInfo.bAccountExpired) {
-        dwError = LSA_ERROR_ACCOUNT_EXPIRED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-        
-    if (pUserInfo->userInfo.bPasswordExpired) {
-        dwError = LSA_ERROR_PASSWORD_EXPIRED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LsaStrToLower(pszHostname);
-    
+
     dwError = LsaKrb5GetMachineCreds(
                     pszHostname,
                     &pszUsername,
@@ -1171,7 +1084,7 @@ AD_OnlineAuthenticateUser(
         /* User does not have a UPN specified in AD, authentication will be tried with generated UPN */
         LSA_LOG_DEBUG("AD_AuthenticateUser called to logon user with no UPN set in AD, using generated UPN");
     }
- 
+
     dwError = LsaSetupUserLoginSession(
                     pUserInfo->userInfo.uid,
                     pUserInfo->userInfo.gid,
@@ -1187,16 +1100,11 @@ AD_OnlineAuthenticateUser(
     {
         dwError = AD_CacheGroupMembershipFromPac(
                         hProvider,
-                        trustMode,
+                        dwTrustDirection,
                         pUserInfo,
                         pPac);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    dwError = AD_CheckUserIsAllowedLogin(
-                        hProvider,
-                        pUserInfo->userInfo.uid);
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_OnlineCachePasswordVerifier(
                     pUserInfo,
@@ -1213,7 +1121,7 @@ cleanup:
     if (pLoginInfo) {
         LsaFreeNameInfo(pLoginInfo);
     }
-    
+
     ADCacheDB_SafeFreeObject(&pUserInfo);
     LSA_SAFE_FREE_STRING(pszHostname);
     LSA_SAFE_FREE_STRING(pszUsername);
@@ -1224,67 +1132,6 @@ cleanup:
     return dwError;
 
 error:
-
-    goto cleanup;
-}
-
-DWORD
-AD_CheckUserIsAllowedLogin(
-    HANDLE hProvider,
-    uid_t  uid
-    )
-{
-    DWORD  dwError = 0;
-    DWORD  dwGroupInfoLevel = 0;
-    DWORD  dwNumGroupsFound = 0;
-    PVOID* ppGroupInfoList = NULL;
-    DWORD  iGroup = 0;
-    
-    if (!AD_ShouldFilterUserLoginsByGroup())
-    {
-        goto cleanup;
-    }
-    
-    dwError = AD_GetUserGroupMembership(
-                    hProvider,
-                    uid,
-                    dwGroupInfoLevel,
-                    &dwNumGroupsFound,
-                    &ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    for (; iGroup < dwNumGroupsFound; iGroup++)
-    {
-        PLSA_GROUP_INFO_0 pGroupInfo = ppGroupInfoList[iGroup];
-        
-        if (AD_IsGroupAllowed(pGroupInfo->pszName))
-        {
-            goto cleanup;
-        }
-    }
-    
-    dwError = EACCES;
-    BAIL_ON_LSA_ERROR(dwError);
-    
-cleanup:
-
-    if (ppGroupInfoList)
-    {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
-    }
-
-    return dwError;
-    
-error:
-
-    if (dwError == EACCES)
-    {
-        LSA_LOG_ERROR("Error: User [%ld] not in restricted login groups", (long)uid);
-    }
-    else
-    {
-        LSA_LOG_ERROR("Error: Failed to validate group membership. [Error code: %u]", dwError);
-    }
 
     goto cleanup;
 }
@@ -1357,8 +1204,8 @@ AD_OnlineFindUserObjectById(
     DWORD dwError =  0;
     HANDLE hDb = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pCachedUser = NULL;
-    PSTR   pszNT4Name = NULL;   
-    
+    PSTR   pszNT4Name = NULL;
+
     if (uid == 0) {
     	dwError = LSA_ERROR_NO_SUCH_USER;
     	BAIL_ON_LSA_ERROR(dwError);
@@ -1376,96 +1223,83 @@ AD_OnlineFindUserObjectById(
         // Frees object if it is expired
         dwError = AD_CheckExpiredObject(&pCachedUser);
     }
-    
+
     if (dwError == LSA_ERROR_NOT_HANDLED) {
         //convert uid -> NT4 name
         dwError = ADLdap_FindUserNameById(
                          uid,
                          &pszNT4Name);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = AD_FindUserObjectByName(
                     hProvider,
                     pszNT4Name,
                     &pCachedUser);
-        BAIL_ON_LSA_ERROR(dwError);    
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else {
         BAIL_ON_LSA_ERROR(dwError);
-    }   
+    }
 
     *ppResult = pCachedUser;
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszNT4Name); 
+    LSA_SAFE_FREE_STRING(pszNT4Name);
     ADCacheDB_SafeCloseDb(&hDb);
 
     return dwError;
-    
+
 error:
 
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObject(&pCachedUser); 
-        
-    if (dwError != LSA_ERROR_NO_SUCH_USER) {
-       LSA_LOG_DEBUG(
-               "Failed to find user by id %lu [error code:%d]",
-               (unsigned long)uid,
-               dwError);
-       dwError = LSA_ERROR_NO_SUCH_USER;
-    }
+    ADCacheDB_SafeFreeObject(&pCachedUser);
+
+    LSA_REMAP_FIND_USER_BY_ID_ERROR(dwError, FALSE, uid);
 
     goto cleanup;
 }
 
 DWORD
-AD_OnlineGetUserGroupMembership(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
+AD_OnlineGetUserGroupObjectMembership(
+    HANDLE hProvider,
+    uid_t uid,
+    size_t* psNumGroupsFound,
+    PAD_SECURITY_OBJECT** pppResult
     )
-{    
+{
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hDb = (HANDLE)NULL;    
+    HANDLE hDb = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pUserInfo = NULL;
-    DWORD dwNumGroupsFound = 0;            
+    DWORD dwNumGroupsFound = 0;
     size_t sCount = 0;
     size_t sDnCount = 0;
-    size_t sIndex;
+    size_t sIndex = 0;
     PAD_GROUP_MEMBERSHIP *ppUserGroupMemberships = NULL;
     BOOLEAN bFoundNull = FALSE;
     BOOLEAN bExpired = FALSE;
     struct timeval current_tv;
     PAD_SECURITY_OBJECT* ppGroupInfoResults = NULL;
-    PVOID* ppGroupInfoList = NULL;
     //Only free top level array, do not free string pointers.
     PSTR *ppszParentSids = NULL;
-    DWORD iGroup = 0;
-    size_t sMembers = 0;
-    PAD_SECURITY_OBJECT *ppMembers = NULL;
     PCSTR pszUserSid = NULL;
     int iPrimaryGroupIndex = -1;
     PCAD_SECURITY_OBJECT pPrimaryGroup = NULL;
-    PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
-    PSTR pszGroupNT4Name = NULL;
 
     dwError = AD_FindUserObjectById(
                     hProvider,
                     uid,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     pszUserSid = pUserInfo->pszObjectSid;
-    
+
     if (gettimeofday(&current_tv, NULL) < 0)
     {
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = ADCacheDB_OpenDb(&hDb);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1511,28 +1345,29 @@ AD_OnlineGetUserGroupMembership(
             "Cache entry for user's group membership for sid %s is incomplete",
             pszUserSid);
     }
-    
+
     if (bExpired || !bFoundNull)
     {
-        TrustMode trustMode = UnHandledTrust;
-        
+        LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+
         dwError = AD_DetermineTrustModeandDomainName(
                         pUserInfo->pszNetbiosDomainName,
-                        &trustMode,
+                        &dwTrustDirection,
+                        NULL,
                         NULL,
                         NULL);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         ADCacheDB_SafeFreeGroupMembershipList(sCount, &ppUserGroupMemberships);
 
-        switch (trustMode)
+        switch (dwTrustDirection)
         {
-            case OneWayTrust:
-                
+            case LSA_TRUST_DIRECTION_ONE_WAY:
+
                 break;
 
             default:
-                        
+
                 dwError = ADLdap_GetUserGroupMembership(
                                  hProvider,
                                  uid,
@@ -1540,10 +1375,10 @@ AD_OnlineGetUserGroupMembership(
                                  &dwNumGroupsFound,
                                  &ppGroupInfoResults);
                 BAIL_ON_LSA_ERROR(dwError);
-        
+
                 break;
         }
-        
+
         if (iPrimaryGroupIndex != -1)
         {
             pPrimaryGroup = ppGroupInfoResults[iPrimaryGroupIndex];
@@ -1555,14 +1390,14 @@ AD_OnlineGetUserGroupMembership(
          */
 
         ADCacheDB_SafeFreeGroupMembershipList(sCount, &ppUserGroupMemberships);
-        
+
         //first filter all the NULL entries in ppResults
         sDnCount = (size_t)dwNumGroupsFound;
-        
+
         AD_FilterNullEntries(
             ppGroupInfoResults,
             &sDnCount);
-        
+
         sCount = sDnCount + 1;
         dwError = LsaAllocateMemory(
                         sizeof(*ppUserGroupMemberships) * sCount,
@@ -1600,7 +1435,7 @@ AD_OnlineGetUserGroupMembership(
                  * This removes the entry saying that A is a member of B that
                  * was previously cached by looking up the groups A is a
                  * member of.
-                 * 
+                 *
                  * Setting last updated to -2 stops this entry from being
                  * deleted by the group -> groupmembership operation.
                  */
@@ -1617,7 +1452,7 @@ AD_OnlineGetUserGroupMembership(
                             pszUserSid,
                             &ppUserGroupMemberships[sIndex]->pszChildSid);
             BAIL_ON_LSA_ERROR(dwError);
-                        
+
             dwError = LsaAllocateString(
                             ppGroupInfoResults[sIndex]->pszObjectSid,
                             &ppUserGroupMemberships[sIndex]->pszParentSid);
@@ -1669,115 +1504,39 @@ AD_OnlineGetUserGroupMembership(
         }
 
         dwError = AD_FindObjectsBySidList(
-                        hProvider,
-                        NULL,
-                        NULL,
+                        hProvider,                       
                         sDnCount,
                         ppszParentSids,
                         &ppGroupInfoResults);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         AD_FilterNullEntries(
             ppGroupInfoResults,
             &sDnCount);
     }
-    dwError = LsaAllocateMemory(
-                sDnCount * sizeof(PVOID),
-                (PVOID*)&ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    for (iGroup = 0; iGroup < sDnCount; iGroup++){
-       TrustMode trustMode = UnHandledTrust;
-       
-       dwError = LsaAllocateStringPrintf(
-                        &pszGroupNT4Name,
-                        "%s\\%s",
-                        ppGroupInfoResults[iGroup]->pszNetbiosDomainName,ppGroupInfoResults[iGroup]->pszSamAccountName);    
-       BAIL_ON_LSA_ERROR(dwError);
-       
-       dwError = LsaCrackDomainQualifiedName(
-                           pszGroupNT4Name,
-                           NULL,
-                           &pGroupNameInfo);
-       BAIL_ON_LSA_ERROR(dwError);    
-       
-       LSA_SAFE_FREE_STRING(pGroupNameInfo->pszFullDomainName);
 
-       dwError = AD_DetermineTrustModeandDomainName(
-                           pGroupNameInfo->pszDomainNetBiosName,                        
-                           &trustMode,
-                           &pGroupNameInfo->pszFullDomainName,
-                           NULL);
-       BAIL_ON_LSA_ERROR(dwError);
+    *pppResult = ppGroupInfoResults;
+    *psNumGroupsFound = sDnCount;
 
-       if (trustMode != OneWayTrust)
-       {
-           dwError = AD_GetExpandedGroupUsers(
-                           hProvider,
-                           pGroupNameInfo->pszFullDomainName,
-                           ppGroupInfoResults[iGroup]->pszNetbiosDomainName,           
-                           ppGroupInfoResults[iGroup]->pszObjectSid,
-                           5,
-                           NULL,
-                           &sMembers,
-                           &ppMembers);
-           BAIL_ON_LSA_ERROR(dwError);
-       }
-       
-       dwError = ADMarshalFromGroupCache(
-                       ppGroupInfoResults[iGroup],
-                       sMembers,
-                       ppMembers,
-                       dwGroupInfoLevel,
-                       &ppGroupInfoList[iGroup]);
-       BAIL_ON_LSA_ERROR(dwError);       
-       
-       ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
-
-       LSA_SAFE_FREE_STRING(pszGroupNT4Name);
-       if (pGroupNameInfo) {
-           LsaFreeNameInfo(pGroupNameInfo);
-           pGroupNameInfo = NULL;
-       }
-       
-    }   
-
-    *pppGroupInfoList = ppGroupInfoList;
-    *pdwNumGroupsFound = sDnCount;
-    
 cleanup:
 
-    ADCacheDB_SafeCloseDb(&hDb);    
-    ADCacheDB_SafeFreeGroupMembershipList(sCount, &ppUserGroupMemberships);    
-    ADCacheDB_SafeFreeObjectList(sDnCount, &ppGroupInfoResults);
-    ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
-    
+    ADCacheDB_SafeCloseDb(&hDb);
+    ADCacheDB_SafeFreeGroupMembershipList(sCount, &ppUserGroupMemberships);
     ADCacheDB_SafeFreeObject(&pUserInfo);
 
-    if (pGroupNameInfo)
-    {
-        LsaFreeNameInfo(pGroupNameInfo);
-    }
-    
-    LSA_SAFE_FREE_MEMORY(ppszParentSids);    
-    LSA_SAFE_FREE_STRING(pszGroupNT4Name);
-    
+    LSA_SAFE_FREE_MEMORY(ppszParentSids);
+
     return dwError;
-    
+
 error:
 
-    *pppGroupInfoList = NULL;
-    *pdwNumGroupsFound = 0;
-    
+    *pppResult = NULL;
+    *psNumGroupsFound = 0;
+
     LSA_LOG_ERROR("Failed to find user's group memberships of UID=%d. [error code:%d]",
                   uid, dwError);
 
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(
-              dwGroupInfoLevel,
-              ppGroupInfoList,
-              sDnCount);
-    }
+    ADCacheDB_SafeFreeObjectList(sDnCount, &ppGroupInfoResults);
 
     goto cleanup;
 }
@@ -1798,8 +1557,8 @@ AD_OnlineEnumUsers(
     dwError = LsaDmWrapLdapOpenDirectoryDomain(gpADProviderData->szDomain,
                                                &hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (gpADProviderData->dwDirectoryMode) 
+
+    switch (gpADProviderData->dwDirectoryMode)
     {
     case DEFAULT_MODE:
         dwError = DefaultModeEnumUsers(
@@ -1839,7 +1598,7 @@ AD_OnlineEnumUsers(
                 BAIL_ON_LSA_ERROR(dwError);
         break;
     }
-    
+
 cleanup:
 
     if (hDirectory) {
@@ -1847,7 +1606,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *pdwUsersFound = 0;
@@ -1857,46 +1616,38 @@ error:
 }
 
 DWORD
-AD_OnlineFindGroupByName(
+AD_OnlineFindGroupObjectByName(
     HANDLE  hProvider,
     PCSTR   pszGroupName,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    PAD_SECURITY_OBJECT*  ppResult
     )
 {
     DWORD dwError = 0;
-    //handle the current domain directory, which is where all the psedu objects shall be found except for default mode
-    HANDLE hPseudoDirectory = (HANDLE)NULL; 
-    //handle the domain directory where the real object resides (for all modes)
-    HANDLE hRealDirectory = (HANDLE)NULL; 
-    
     PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
     PSTR  pszGroupName_copy = NULL;
     HANDLE hDb = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pCachedGroup = NULL;
-    PSTR pszObjectDN = NULL;
     PSTR pszObjectDomainName = NULL;
-    PSTR pszObjectSamaccountName = NULL;
-    TrustMode trustMode = UnHandledTrust;
-    size_t sMembers = 0;
-    PAD_SECURITY_OBJECT *ppMembers = NULL;
-    PSTR pszLookupName = NULL; //this name should be limited to NT4 or UPN format only 
+    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+    LSA_TRUST_MODE dwTrustMode = LSA_TRUST_MODE_UNKNOWN;    
+    PSTR pszLookupName = NULL; //this name should be limited to NT4 or UPN format only
+    PSTR pszCrackedDomainName = NULL;
 
     BAIL_ON_INVALID_STRING(pszGroupName);
-    
+
     dwError = LsaAllocateString(
                     pszGroupName,
                     &pszGroupName_copy);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LsaStrCharReplace(pszGroupName_copy, AD_GetSeparator(),' ');
-    
+
     dwError = LsaCrackDomainQualifiedName(
                         pszGroupName_copy,
                         gpADProviderData->szDomain,
-                        &pGroupNameInfo);    
+                        &pGroupNameInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if ((pGroupNameInfo->nameType == NameType_Alias) &&
     	!strcasecmp(pGroupNameInfo->pszName, "root")) {
     	dwError = LSA_ERROR_NO_SUCH_GROUP;
@@ -1914,243 +1665,203 @@ AD_OnlineFindGroupByName(
     {
         dwError = AD_CheckExpiredObject(&pCachedGroup);
     }
-    
+
     if (dwError == 0)
     {
         LSA_SAFE_FREE_STRING(pGroupNameInfo->pszFullDomainName);
-        
+
         dwError = AD_DetermineTrustModeandDomainName(
-                            pGroupNameInfo->pszDomainNetBiosName,                        
-                            &trustMode,
+                            pGroupNameInfo->pszDomainNetBiosName,
+                            &dwTrustDirection,
+                            &dwTrustMode,
                             &pGroupNameInfo->pszFullDomainName,
                             NULL);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         goto FoundInCacheValid;
     }
-    
+
     if (dwError != LSA_ERROR_NOT_HANDLED){
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    // Otherwise, the group couldn't be found in the cache (MFS support added)    
+
+    // Otherwise, the group couldn't be found in the cache (MFS support added)
     // If name is alias, convert to NT4 name
-    if (pGroupNameInfo->nameType == NameType_Alias){        
-        
+    if (pGroupNameInfo->nameType == NameType_Alias){
+
         dwError = ADLdap_FindGroupNameByAlias(
                          pszGroupName_copy,
                          &pszLookupName);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         if (pGroupNameInfo) {
             LsaFreeNameInfo(pGroupNameInfo);
             pGroupNameInfo = NULL;
         }
-        
+
         //pszUpnName is formatted as NT4, crack again to fill in pUserNameInfo
         dwError = LsaCrackDomainQualifiedName(
                             pszLookupName,
                             NULL,
                             &pGroupNameInfo);
-        BAIL_ON_LSA_ERROR(dwError);        
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else
-    {    
+    {
         dwError = LsaAllocateString(
                      pszGroupName_copy,
                      &pszLookupName);
         BAIL_ON_LSA_ERROR(dwError);
-    }    
-    
+    }
+
+    pszCrackedDomainName = pGroupNameInfo->pszDomainNetBiosName;
+    pGroupNameInfo->pszDomainNetBiosName = NULL;
+
     LSA_SAFE_FREE_STRING(pGroupNameInfo->pszFullDomainName);
-    
-    //Get the trustMode and complete filling in correct information for pUserNameInfo
+
+    //Get the dwTrustMode and complete filling in correct information for pUserNameInfo
     dwError = AD_DetermineTrustModeandDomainName(
-                        pGroupNameInfo->pszDomainNetBiosName,                        
-                        &trustMode,
+                        pszCrackedDomainName,
+                        &dwTrustDirection,
+                        &dwTrustMode,
                         &pGroupNameInfo->pszFullDomainName,
-                        NULL);
+                        &pGroupNameInfo->pszDomainNetBiosName);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_STRING(pGroupNameInfo->pszDomainNetBiosName);
-    
-    dwError = ADGetDomainNetBios(
-                pGroupNameInfo->pszFullDomainName,
-                &pGroupNameInfo->pszDomainNetBiosName);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_STRING(pGroupNameInfo->pszObjectSid);
-    
+
     dwError = LsaDmWrapNetLookupObjectSidByName(
                 gpADProviderData->szDomain,
                 pszLookupName,
                 &pGroupNameInfo->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (trustMode){
-        case OneWayTrust:
-            
-               switch (gpADProviderData->dwDirectoryMode) 
-               {                        
-                   case DEFAULT_MODE:      
-                   case UNPROVISIONED_MODE:
+
+    switch (dwTrustDirection){
+        case LSA_TRUST_DIRECTION_ONE_WAY:
+
+               switch (gpADProviderData->dwDirectoryMode)
+               {
+                   case DEFAULT_MODE:
                           dwError = LSA_ERROR_NO_SUCH_GROUP;
-                           
-                           break;                        
-                           
+                          
+                          break;
+                          
+                   case UNPROVISIONED_MODE:
+                          dwError = UnprovisionedModeFindGroupByNameInOneWayTrust(
+                                             pGroupNameInfo,
+                                             &pCachedGroup);    
+
+                           break;
+
                    case CELL_MODE:
                            dwError = CellModeFindGroupByName(
-                                           gpADProviderData->szDomain,                                           
+                                           gpADProviderData->szDomain,
                                            gpADProviderData->cell.szCellDN,
                                            NULL,
                                            pGroupNameInfo,
                                            &pCachedGroup);
-                           
+
                            break;
-                           
+
                    default:
                            dwError = LSA_ERROR_NOT_HANDLED;
-                                               
+
                }
                BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
-        case TwoWayTrust_inforest:                
-            dwError =ADLdap_GetGCObjectInfoBySid(
-                    gpADProviderData->szDomain,            
-                    pGroupNameInfo->pszObjectSid,
-                    &pszObjectDN,
-                    &pszObjectDomainName,
-                    &pszObjectSamaccountName);
+
+        case LSA_TRUST_DIRECTION_TWO_WAY:
+            dwError = LsaAllocateString(pGroupNameInfo->pszFullDomainName,
+                                        &pszObjectDomainName);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
-        case TwoWayTrust_acrossforest:
-            dwError =ADLdap_GetGCObjectInfoBySid(
-                    pGroupNameInfo->pszFullDomainName,            
-                    pGroupNameInfo->pszObjectSid,
-                    &pszObjectDN,
-                    &pszObjectDomainName,
-                    &pszObjectSamaccountName);
-            BAIL_ON_LSA_ERROR(dwError);
-                            
-            break;
-             
-        case OneSelfTrust:  //Single dc scenario
+
+        case LSA_TRUST_DIRECTION_SELF:  //Single dc scenario
             dwError = LsaAllocateString(gpADProviderData->szDomain,
                                         &pszObjectDomainName);
-            BAIL_ON_LSA_ERROR(dwError);           
-            
+            BAIL_ON_LSA_ERROR(dwError);
+
              break;
-                 
+
         default:
             dwError = LSA_ERROR_NOT_HANDLED;
             BAIL_ON_LSA_ERROR(dwError);
-    }        
-    
-    if (trustMode == TwoWayTrust_inforest || trustMode == TwoWayTrust_acrossforest || trustMode == OneSelfTrust){
-        
-         switch (gpADProviderData->dwDirectoryMode) 
+    }
+
+    if (dwTrustDirection == LSA_TRUST_DIRECTION_TWO_WAY || dwTrustDirection == LSA_TRUST_DIRECTION_SELF){
+
+         switch (gpADProviderData->dwDirectoryMode)
          {
              case DEFAULT_MODE:
+                     if (dwTrustMode != LSA_TRUST_MODE_EXTERNAL)
+                     {
+                          dwError = DefaultModeFindGroupByName(
+                                             pszObjectDomainName,
+                                             pGroupNameInfo,
+                                             &pCachedGroup);
+                     }
+                     else
+                     {
+                         dwError = LSA_ERROR_NO_SUCH_GROUP;
+                     }
 
-                     dwError = DefaultModeFindGroupByName(
-                                     pszObjectDomainName,
-                                     pGroupNameInfo,
-                                     &pCachedGroup);       
-                
                      break;
-    
+
              case CELL_MODE:
                      dwError = CellModeFindGroupByName(
                                      gpADProviderData->szDomain,
                                      gpADProviderData->cell.szCellDN,
                                      pszObjectDomainName,
                                      pGroupNameInfo,
-                                     &pCachedGroup);                     
-                     
+                                     &pCachedGroup);
+
                      break;
-    
+
              case UNPROVISIONED_MODE:
                      dwError = UnprovisionedModeFindGroupByName(
-                                     pszObjectDomainName,             
+                                     pszObjectDomainName,
                                      pGroupNameInfo,
-                                     &pCachedGroup);     
+                                     &pCachedGroup);
 
-                     
+
                      break;
-    
+
              default:
-                     dwError = LSA_ERROR_NOT_HANDLED;                     
+                     dwError = LSA_ERROR_NOT_HANDLED;
          }
-         BAIL_ON_LSA_ERROR(dwError); 
-    }    
+         BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = ADCacheDB_CacheObjectEntry(hDb, pCachedGroup);
     BAIL_ON_LSA_ERROR(dwError);
 
 FoundInCacheValid:
 
-    if (trustMode != OneWayTrust)
-    {
-        dwError = AD_GetExpandedGroupUsers(
-            hProvider,
-            pGroupNameInfo->pszFullDomainName,
-            pGroupNameInfo->pszDomainNetBiosName,        
-            pCachedGroup->pszObjectSid,
-            5,
-            NULL,
-            &sMembers,
-            &ppMembers);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    dwError = ADMarshalFromGroupCache(
-            pCachedGroup,
-            sMembers,
-            ppMembers,
-            dwGroupInfoLevel,
-            ppGroupInfo
-            );
-    BAIL_ON_LSA_ERROR(dwError);
+    *ppResult = pCachedGroup;
 
 cleanup:
 
-    if (hPseudoDirectory != (HANDLE)NULL) {
-        LsaLdapCloseDirectory(hPseudoDirectory);
-    }
-    
-    if (hRealDirectory != (HANDLE)NULL) {
-        LsaLdapCloseDirectory(hRealDirectory);
-    }
-    
     ADCacheDB_SafeCloseDb(&hDb);
-    ADCacheDB_SafeFreeObject(&pCachedGroup);
-    ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
 
     if (pGroupNameInfo) {
         LsaFreeNameInfo(pGroupNameInfo);
     }
-    
+
     LSA_SAFE_FREE_STRING(pszGroupName_copy);
     LSA_SAFE_FREE_STRING(pszLookupName);
-    
-    LSA_SAFE_FREE_STRING(pszObjectDN);    
     LSA_SAFE_FREE_STRING(pszObjectDomainName);
-    LSA_SAFE_FREE_STRING(pszObjectSamaccountName);
+    LSA_SAFE_FREE_STRING(pszCrackedDomainName);
 
     return dwError;
 
 error:
 
-    *ppGroupInfo = NULL;
-    
-    if (dwError != LSA_ERROR_NO_SUCH_GROUP) {
-       LSA_LOG_DEBUG("Failed to find group [error code:%d]", dwError);
-       dwError = LSA_ERROR_NO_SUCH_GROUP;
-    }
+    *ppResult = NULL;
+    ADCacheDB_SafeFreeObject(&pCachedGroup);
+
+    LSA_REMAP_FIND_GROUP_BY_NAME_ERROR(dwError, FALSE, pszGroupName);
 
     goto cleanup;
 }
@@ -2166,12 +1877,12 @@ AD_OnlineFindGroupById(
     DWORD dwError =  0;
     HANDLE hDb = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pCachedGroup = NULL;
-    PSTR   pszNT4Name = NULL;  
+    PSTR   pszNT4Name = NULL;
     size_t sMembers = 0;
     PAD_SECURITY_OBJECT *ppMembers = NULL;
     PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
     PSTR pszFullDomainName = NULL;
-    
+
     if (gid == 0) {
     	dwError = LSA_ERROR_NO_SUCH_GROUP;
     	BAIL_ON_LSA_ERROR(dwError);
@@ -2188,55 +1899,56 @@ AD_OnlineFindGroupById(
     {
         dwError = AD_CheckExpiredObject(&pCachedGroup);
     }
-    
+
     if (dwError == LSA_ERROR_NOT_HANDLED){
         //convert gid -> NT4 name
         dwError = ADLdap_FindGroupNameById(
                          gid,
                          &pszNT4Name);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = AD_FindGroupByName(
                     hProvider,
-                    pszNT4Name,   
+                    pszNT4Name,
                     dwGroupInfoLevel,
                     ppGroupInfo);
-        BAIL_ON_LSA_ERROR(dwError);    
+        BAIL_ON_LSA_ERROR(dwError);
 
     }
     else if (dwError == 0){//found in cache and not expired
-            TrustMode trustMode = UnHandledTrust;
-            
+            LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+
             if (IsNullOrEmptyString(pCachedGroup->pszNetbiosDomainName)){
                 dwError = ADLdap_FindGroupNameById(
                                             gid,
                                             &pszNT4Name);
                 BAIL_ON_LSA_ERROR(dwError);
-                           
+
                 dwError = LsaCrackDomainQualifiedName(
                                        pszNT4Name,
                                        NULL,
                                        &pGroupNameInfo);
-                BAIL_ON_LSA_ERROR(dwError);   
-                
+                BAIL_ON_LSA_ERROR(dwError);
+
                 dwError = LsaAllocateString(pGroupNameInfo->pszDomainNetBiosName,
                                             &pCachedGroup->pszNetbiosDomainName);
-                BAIL_ON_LSA_ERROR(dwError);  
+                BAIL_ON_LSA_ERROR(dwError);
             }
-            
+
             dwError = AD_DetermineTrustModeandDomainName(
                                 pCachedGroup->pszNetbiosDomainName,
-                                &trustMode,
+                                &dwTrustDirection,
+                                NULL,
                                 &pszFullDomainName,
                                 NULL);
             BAIL_ON_LSA_ERROR(dwError);
-                     
-            if (trustMode != OneWayTrust)
+
+            if (dwTrustDirection != LSA_TRUST_DIRECTION_ONE_WAY)
             {
                 dwError = AD_GetExpandedGroupUsers(
-                    hProvider,              
+                    hProvider,
                     pszFullDomainName,
-                    pCachedGroup->pszNetbiosDomainName,       
+                    pCachedGroup->pszNetbiosDomainName,
                     pCachedGroup->pszObjectSid,
                     5,
                     NULL,
@@ -2244,7 +1956,7 @@ AD_OnlineFindGroupById(
                     &ppMembers);
                 BAIL_ON_LSA_ERROR(dwError);
             }
-            
+
             dwError = ADMarshalFromGroupCache(
                     pCachedGroup,
                     sMembers,
@@ -2256,13 +1968,13 @@ AD_OnlineFindGroupById(
         else{
             BAIL_ON_LSA_ERROR(dwError);
             }
-    
+
 cleanup:
-    LSA_SAFE_FREE_STRING(pszNT4Name); 
+    LSA_SAFE_FREE_STRING(pszNT4Name);
     LSA_SAFE_FREE_STRING(pszFullDomainName);
-    
+
     ADCacheDB_SafeCloseDb(&hDb);
-    ADCacheDB_SafeFreeObject(&pCachedGroup); 
+    ADCacheDB_SafeFreeObject(&pCachedGroup);
     ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
 
     if (pGroupNameInfo)
@@ -2271,15 +1983,12 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *ppGroupInfo = NULL;
-        
-    if (dwError != LSA_ERROR_NO_SUCH_GROUP) {
-       LSA_LOG_DEBUG("Failed to find group [error code:%d]", dwError);
-       dwError = LSA_ERROR_NO_SUCH_GROUP;
-    }
+
+    LSA_REMAP_FIND_GROUP_BY_ID_ERROR(dwError, FALSE, gid);
 
     goto cleanup;
 }
@@ -2299,9 +2008,9 @@ AD_OnlineEnumGroups(
 
     dwError = LsaDmWrapLdapOpenDirectoryDomain(gpADProviderData->szDomain,
                                                &hDirectory);
-    BAIL_ON_LSA_ERROR(dwError);    
+    BAIL_ON_LSA_ERROR(dwError);
 
-    switch (gpADProviderData->dwDirectoryMode) 
+    switch (gpADProviderData->dwDirectoryMode)
     {
     case DEFAULT_MODE:
         dwError = DefaultModeEnumGroups(
@@ -2324,7 +2033,7 @@ AD_OnlineEnumGroups(
                 dwMaxGroups,
                 pdwGroupsFound,
                 pppGroupInfoList
-                );      
+                );
         break;
 
     case UNPROVISIONED_MODE:
@@ -2338,7 +2047,7 @@ AD_OnlineEnumGroups(
                 );
         break;
     }
-    
+
 cleanup:
 
     if (hDirectory) {
@@ -2346,7 +2055,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *pdwGroupsFound = 0;
@@ -2369,31 +2078,31 @@ AD_OnlineChangePassword(
     PAD_SECURITY_OBJECT pCachedUser = NULL;
     PLSA_USER_INFO_2 pUserInfo = NULL;
     PSTR pszDomainController = NULL;
-    PSTR pszFullDomainName = NULL;
+    PSTR pszFullDomainName = NULL;    
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
                     gpADProviderData->szDomain,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (!AD_ServicesDomain(pLoginInfo->pszDomainNetBiosName))
     {
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = AD_FindUserObjectByName(
                      hProvider,
-                     pszLoginId,    
+                     pszLoginId,
                      &pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = ADMarshalFromUserCache(
             pCachedUser,
             dwUserInfoLevel,
             (PVOID*)&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);    
+    BAIL_ON_LSA_ERROR(dwError);
 
     //
     // TODO: Check if the peer uid belongs in the
@@ -2403,27 +2112,27 @@ AD_OnlineChangePassword(
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }*/
-    
+
     if (!pUserInfo->bUserCanChangePassword) {
         dwError = LSA_ERROR_USER_CANNOT_CHANGE_PASSWD;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (pUserInfo->bAccountDisabled) {
         dwError = LSA_ERROR_ACCOUNT_DISABLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-        
+
     if (pUserInfo->bAccountExpired) {
         dwError = LSA_ERROR_ACCOUNT_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (pUserInfo->bAccountLocked) {
         dwError = LSA_ERROR_ACCOUNT_LOCKED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     // Make sure that we are affinitized.
     dwError = LsaDmWrapGetDomainName(
                         pCachedUser->pszNetbiosDomainName,
@@ -2439,7 +2148,14 @@ AD_OnlineChangePassword(
                                        pCachedUser->pszSamAccountName,
                                        pszOldPassword,
                                        pszPassword);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);   
+
+    if (AD_EventlogEnabled())
+    {        
+        LsaSrvLogUserPWChangeSuccessEvent(
+                pszLoginId,
+                gpszADProviderName);
+    }
     
 cleanup:
     if (pszDomainController)
@@ -2450,18 +2166,27 @@ cleanup:
     if (pLoginInfo) {
         LsaFreeNameInfo(pLoginInfo);
     }
-    
+
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
     }
-    
+
     ADCacheDB_SafeFreeObject(&pCachedUser);
 
     LSA_SAFE_FREE_STRING(pszFullDomainName);
+    
 
     return dwError;
-    
+
 error:
+
+    if (AD_EventlogEnabled())
+    {        
+        LsaSrvLogUserPWChangeFailureEvent(
+                pszLoginId,
+                gpszADProviderName,
+                dwError);
+    }
 
     goto cleanup;
 }
@@ -2473,81 +2198,33 @@ AD_CreateHomeDirectory(
 {
     DWORD dwError = 0;
     BOOLEAN bExists = FALSE;
-    
+
     if (IsNullOrEmptyString(pUserInfo->pszHomedir)) {
-       LSA_LOG_ERROR("The user'yys [Uid:%ld] home directory is not defined", (long)pUserInfo->uid);
-       dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
-       BAIL_ON_LSA_ERROR(dwError);
+        dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaCheckDirectoryExists(
                     pUserInfo->pszHomedir,
                     &bExists);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    if (!bExists) {
-#if defined (__LWI_DARWIN__)
-        dwError = AD_CreateHomeDirectory_Mac(pUserInfo);
-#else
+
+    if (!bExists && AD_ShouldCreateHomeDir()) {
         dwError = AD_CreateHomeDirectory_Generic(pUserInfo);
-#endif
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    goto cleanup;
-}
-
-#if defined (__LWI_DARWIN__)
-DWORD
-AD_CreateHomeDirectory_Mac(
-    PLSA_USER_INFO_1 pUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszCommand = NULL;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-    
-    dwError = LsaCrackDomainQualifiedName(
-                    pUserInfo->pszName,
-                    NULL,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaAllocateStringPrintf(&pszCommand,
-                                      "/usr/sbin/createhomedir -c -u %s\\\\%s",
-                                      pLoginInfo->pszDomainNetBiosName,
-                                      pLoginInfo->pszName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_LOG_DEBUG("Creating Mac user home directory with command: %s", pszCommand);
-
-    dwError = system(pszCommand);
-    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-
-    LSA_SAFE_FREE_STRING(pszCommand);
-
-    if (pLoginInfo) {
-        LsaFreeNameInfo(pLoginInfo);
-    }
 
     return dwError;
 
 error:
 
-    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", pUserInfo->pszName, dwError);
+    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", IsNullOrEmptyString(pUserInfo->pszName) ? "" : pUserInfo->pszName, dwError);
     dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
 
     goto cleanup;
 }
-#endif
 
 DWORD
 AD_CreateHomeDirectory_Generic(
@@ -2555,17 +2232,24 @@ AD_CreateHomeDirectory_Generic(
     )
 {
     DWORD dwError = 0;
-    mode_t  umask = 022;
+    mode_t  umask = 0;
     mode_t  perms = (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     BOOLEAN bRemoveDir = FALSE;
 
+    umask = AD_GetUmask();
+
     dwError = LsaCreateDirectory(
+                 pUserInfo->pszHomedir,
+                 perms);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaChangePermissions(
                  pUserInfo->pszHomedir,
                  perms & (~umask));
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     bRemoveDir = TRUE;
-    
+
     dwError = LsaChangeOwner(
                  pUserInfo->pszHomedir,
                  pUserInfo->uid,
@@ -2605,25 +2289,65 @@ AD_ProvisionHomeDir(
 {
     DWORD dwError = 0;
     BOOLEAN bExists = FALSE;
-    
-    dwError = LsaCheckDirectoryExists(
-                    "/etc/skel",
-                    &bExists);
+    PSTR pszSkelPaths = NULL;
+    PSTR pszSkelPath = NULL;
+    PSTR pszIter = NULL;
+    size_t stLen = 0;
+
+    dwError = AD_GetSkelDirs(&pszSkelPaths);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    if (bExists) {
-        dwError = LsaCopyDirectory(
-                    "/etc/skel",
-                    ownerUid,
-                    ownerGid,
-                    pszHomedirPath);
-        BAIL_ON_LSA_ERROR(dwError);
+
+    if (IsNullOrEmptyString(pszSkelPaths))
+    {
+        goto cleanup;
     }
-    
+
+    pszIter = pszSkelPaths;
+    while ((stLen = strcspn(pszIter, ",")) != 0)
+    {
+        dwError = LsaStrndup(
+                      pszIter,
+                      stLen,
+                      &pszSkelPath);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LsaStripWhitespace(pszSkelPath, TRUE, TRUE);
+
+        if (IsNullOrEmptyString(pszSkelPath))
+        {
+            LSA_SAFE_FREE_STRING(pszSkelPath);
+            continue;
+        }
+
+        dwError = LsaCheckDirectoryExists(
+                        pszSkelPath,
+                        &bExists);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (bExists)
+        {
+            dwError = LsaCopyDirectory(
+                        pszSkelPath,
+                        ownerUid,
+                        ownerGid,
+                        pszHomedirPath);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        LSA_SAFE_FREE_STRING(pszSkelPath);
+
+        pszIter += stLen;
+        stLen = strspn(pszIter, ",");
+        pszIter += stLen;
+    }
+
 cleanup:
 
+    LSA_SAFE_FREE_STRING(pszSkelPath);
+    LSA_SAFE_FREE_STRING(pszSkelPaths);
+
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -2639,58 +2363,72 @@ AD_CreateK5Login(
     PSTR    pszK5LoginPath_tmp = NULL;
     PSTR    pszData = NULL;
     BOOLEAN bExists = FALSE;
-    PSTR    pszUPN_upper = NULL;
-    PSTR    pszIndex = NULL;
+    PSTR pszUpnCopy = NULL;
+    PSTR pszUpnCopyLower = NULL;
     int     fd = -1;
     BOOLEAN bRemoveFile = FALSE;
-    
+
     BAIL_ON_INVALID_STRING(pUserInfo->pszHomedir);
     BAIL_ON_INVALID_STRING(pUserInfo->pszUPN);
-    
+
     dwError = LsaAllocateStringPrintf(
                     &pszK5LoginPath,
                     "%s/.k5login",
                     pUserInfo->pszHomedir);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaCheckFileExists(
                     pszK5LoginPath,
                     &bExists);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (bExists) {
         goto cleanup;
     }
-    
+
+    // Create a copy of the UPN to make sure that the realm is uppercase,
+    // but preserving the case of the non-realm part.
     dwError = LsaAllocateString(
                     pUserInfo->pszUPN,
-                    &pszUPN_upper);
+                    &pszUpnCopy);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    pszIndex = strchr(pszUPN_upper, '@');
-    if (pszIndex)
+
+    LsaPrincipalRealmToUpper(pszUpnCopy);
+
+    // Create another copy of the UPN that has lowercase non-realm part.
+    dwError = LsaAllocateString(
+                    pszUpnCopy,
+                    &pszUpnCopyLower);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaPrincipalNonRealmToLower(pszUpnCopyLower);
+
+    if (!strcmp(pszUpnCopy, pszUpnCopyLower))
     {
-       pszIndex++;
-       while (pszIndex && *pszIndex)
-       {
-             *pszIndex = toupper(*pszIndex); 
-             pszIndex++;
-       }
+        // If the UPNs are the same, just need to write one.
+        dwError = LsaAllocateStringPrintf(
+                        &pszData,
+                        "%s\n",
+                        pszUpnCopy);
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    dwError = LsaAllocateStringPrintf(
-                    &pszData,
-                    "%s\n%s\n",
-                    pUserInfo->pszUPN,
-                    pszUPN_upper);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+    else
+    {
+        // Otherwise, they are different and we want both.
+        dwError = LsaAllocateStringPrintf(
+                        &pszData,
+                        "%s\n%s\n",
+                        pszUpnCopy,
+                        pszUpnCopyLower);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LsaAllocateStringPrintf(
                     &pszK5LoginPath_tmp,
                     "%s_lsass",
                     pszK5LoginPath);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     fd = open(
             pszK5LoginPath_tmp,
             O_CREAT|O_WRONLY|O_EXCL,
@@ -2703,25 +2441,25 @@ AD_CreateK5Login(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     bRemoveFile = TRUE;
-    
+
     dwError = LsaWriteData(
                     fd,
                     pszData,
                     strlen(pszData));
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     close(fd);
     fd = -1;
-    
+
     dwError = LsaMoveFile(
                     pszK5LoginPath_tmp,
                     pszK5LoginPath);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     bRemoveFile = FALSE;
-    
+
     dwError = LsaChangeOwnerAndPermissions(
                     pszK5LoginPath,
                     pUserInfo->uid,
@@ -2729,31 +2467,32 @@ AD_CreateK5Login(
                     S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH
                     );
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     if (fd >= 0) {
         close(fd);
     }
-    
+
     if (bRemoveFile) {
-        
+
         DWORD dwError2 = LsaRemoveFile(pszK5LoginPath_tmp);
         if (dwError2) {
             LSA_LOG_ERROR("Failed to remove file at [%s][Error code: %d]",
                           pszK5LoginPath_tmp,
                           dwError2);
         }
-        
+
     }
-    
+
     LSA_SAFE_FREE_STRING(pszData);
-    LSA_SAFE_FREE_STRING(pszUPN_upper);
+    LSA_SAFE_FREE_STRING(pszUpnCopy);
+    LSA_SAFE_FREE_STRING(pszUpnCopyLower);
     LSA_SAFE_FREE_STRING(pszK5LoginPath_tmp);
     LSA_SAFE_FREE_STRING(pszK5LoginPath);
-    
+
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -2766,29 +2505,29 @@ LsaValidateSeparatorCharacter(
     )
 {
     DWORD dwError = 0;
-    CHAR cValidatedSeparator = gcSeparatorDefault;
-    
+    CHAR cValidatedSeparator = AD_NAME_SEPARATOR_DEFAULT;
+
     if (!ispunct((int)cValue))
     {
-        LSA_LOG_ERROR("Error: separator-character must be punctuation; value provided is \"%c\"", 
-                        cValue);
-        dwError = LSA_ERROR_INVALID_CONFIG;
-    }   
-    else if (cValue == '@'  || 
-            cValue == '#'  ||
-            cValue == '/'  || 
-            cValue == '\\')
-    {
-        LSA_LOG_ERROR("Error: separator-character may not be @, #, /, or \\; value provided is \"%c\"", 
+        LSA_LOG_ERROR("Error: separator-character must be punctuation; value provided is \"%c\"",
                         cValue);
         dwError = LSA_ERROR_INVALID_CONFIG;
     }
-    else 
+    else if (cValue == '@'  ||
+            cValue == '#'  ||
+            cValue == '/'  ||
+            cValue == '\\')
+    {
+        LSA_LOG_ERROR("Error: separator-character may not be @, #, /, or \\; value provided is \"%c\"",
+                        cValue);
+        dwError = LSA_ERROR_INVALID_CONFIG;
+    }
+    else
     {
         cValidatedSeparator = cValue;
     }
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *pcValidatedSeparator = cValidatedSeparator;
 
 cleanup:
@@ -2797,7 +2536,8 @@ cleanup:
 
 error:
 
-    *pcValidatedSeparator = gcSeparatorDefault;
+    *pcValidatedSeparator = AD_NAME_SEPARATOR_DEFAULT;
+
     goto cleanup;
 
 }
@@ -2827,7 +2567,7 @@ AD_FreeHashObject(
 }
 
 DWORD
-AD_GetExpandedGroupUsers(
+AD_OnlineGetExpandedGroupUsers(
     HANDLE  hProvider,
     PCSTR pszDomainName,
     PCSTR pszDomainNetBiosName,
@@ -2853,14 +2593,14 @@ AD_GetExpandedGroupUsers(
     const LSA_HASH_ENTRY *pExpandingEntry = NULL;
     PCSTR pszExpandingSid = NULL;
     PAD_SECURITY_OBJECT* ppResults = NULL;
-    
+
     if (IsNullOrEmptyString(pszDomainName)){
         pszDomainName = gpADProviderData->szDomain;
     }
-    
+
     if (IsNullOrEmptyString(pszDomainNetBiosName)){
         pszDomainNetBiosName = gpADProviderData->szShortDomain;
-    }    
+    }
 
     dwError = AD_GetGroupMembers(
         hProvider,
@@ -2876,7 +2616,7 @@ AD_GetExpandedGroupUsers(
         AD_CompareObjectSids,
         AD_HashObjectSid,
         NULL,
-        &pExpanded); 
+        &pExpanded);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaHashCreate(
@@ -2884,7 +2624,7 @@ AD_GetExpandedGroupUsers(
         AD_CompareObjectSids,
         AD_HashObjectSid,
         NULL,
-        &pToExpand); 
+        &pToExpand);
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Get an initial list of objects by calling AD_GetGroupMembers. Put
@@ -3148,11 +2888,11 @@ AD_GetGroupMembers(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (IsNullOrEmptyString(pszDomainName)){
         pszDomainName = gpADProviderData->szDomain;
     }
-    
+
     if (IsNullOrEmptyString(pszDomainNetBiosName)){
         pszDomainNetBiosName = gpADProviderData->szShortDomain;
     }
@@ -3235,17 +2975,15 @@ AD_GetGroupMembers(
 
         dwError = AD_FindObjectsBySidList(
             hProvider,
-            pszDomainName,
-            pszDomainNetBiosName,
             sUnexpirableEntries,
             ppszChildSids,
             &ppUnexpirableResults);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         AD_FilterNullEntries(
             ppUnexpirableResults,
             &sUnexpirableEntries);
-        
+
         LSA_SAFE_FREE_MEMORY(ppszChildSids);
         ADCacheDB_SafeFreeGroupMembershipList(sCount, &ppMemberships);
 
@@ -3274,7 +3012,7 @@ AD_GetGroupMembers(
                             (sDnCount + sUnexpirableEntries),
                         (PVOID*)&ppResultsNullFiltered);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         for (iValue = 0, sDnCountNullFiltered = 0; iValue < sDnCount; iValue++)
         {
             if (ppResults[iValue]){
@@ -3304,7 +3042,7 @@ AD_GetGroupMembers(
                             pszSid,
                             &ppMemberships[sIndex]->pszParentSid);
             BAIL_ON_LSA_ERROR(dwError);
-                        
+
             dwError = LsaAllocateString(
                             ppResultsNullFiltered[sIndex]->pszObjectSid,
                             &ppMemberships[sIndex]->pszChildSid);
@@ -3369,19 +3107,17 @@ AD_GetGroupMembers(
         }
 
         dwError = AD_FindObjectsBySidList(
-            hProvider,
-            pszDomainName,
-            pszDomainNetBiosName,
-            sDnCount,
-            ppszChildSids,
-            &ppResults);
+                        hProvider,
+                        sDnCount,
+                        ppszChildSids,
+                        &ppResults);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = LsaAllocateMemory(
                         sizeof(PAD_SECURITY_OBJECT) * sDnCount,
                         (PVOID*)&ppResultsNullFiltered);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         for (iValue = 0, jValue = 0; iValue < sDnCount; iValue++)
         {
             if (ppResults[iValue]){
@@ -3390,7 +3126,7 @@ AD_GetGroupMembers(
                 ppResults[iValue] = NULL;
             }
         }
-        
+
         sDnCountNullFiltered = jValue;
     }
 
@@ -3399,27 +3135,27 @@ AD_GetGroupMembers(
 
 cleanup:
     ADCacheDB_SafeCloseDb(&hDb);
-    
+
     LSA_SAFE_FREE_MEMORY(ppszChildSids);
-    
+
     ADCacheDB_SafeFreeGroupMembershipList(sCount, &ppMemberships);
-    
+
     ADCacheDB_SafeFreeObjectList(sDnCount, &ppResults);
     ADCacheDB_SafeFreeObjectList(sUnexpirableEntries, &ppUnexpirableResults);
-    
+
     if (hDirectory != (HANDLE)NULL) {
             LsaLdapCloseDirectory(hDirectory);
             hDirectory = (HANDLE)NULL;
-        }    
-    
+        }
+
     return dwError;
 
 error:
     *psCount = 0;
     *pppResults = NULL;
-    
+
     ADCacheDB_SafeFreeObjectList(sDnCountNullFiltered, &ppResultsNullFiltered);
-    
+
     goto cleanup;
 }
 
@@ -3430,7 +3166,7 @@ AD_FindObjectsByDNList(
     PSTR* ppszDnList,
     PAD_SECURITY_OBJECT **pppResults)
 {
-    /* TODO: Performance Optimization 
+    /* TODO: Performance Optimization
      *
      * For the remaining users:
      * Generate large ldap queries to get multiple real user/group objects at the same time.
@@ -3438,34 +3174,31 @@ AD_FindObjectsByDNList(
      *
      * Update cache for all objects.
      */
-    DWORD dwError = LSA_ERROR_SUCCESS;    
-    PAD_SECURITY_OBJECT* ppResults = NULL;    
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PAD_SECURITY_OBJECT* ppResults = NULL;
     size_t sIndex = 0;
-    PCSTR pszCellDN = NULL;
-    ADConfigurationMode adConfMode = NonSchemaMode;
-    HANDLE hDb = (HANDLE)NULL;
-    HANDLE hDirectory = (HANDLE)NULL;
+    HANDLE hDb = (HANDLE)NULL;   
     struct timeval current_tv;
-    
+
     if (sCount > 0 && !(ppszDnList && *ppszDnList)){
         dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);        
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (sCount == 0 && !(ppszDnList && *ppszDnList)){
         ppResults = NULL;
-        goto done;        
+        goto done;
     }
-    
+
     if (gettimeofday(&current_tv, NULL) < 0)
     {
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = ADCacheDB_OpenDb(&hDb);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     //Lookup as many users as possible from the cache.
     dwError = ADCacheDB_FindObjectsByDNList(
                   hDb,
@@ -3489,40 +3222,19 @@ AD_FindObjectsByDNList(
                  LSA_LOG_VERBOSE("Cache entry for sid %s is expired",
                                  ppResults[sIndex]->pszObjectSid);
                  ADCacheDB_SafeFreeObject(&ppResults[sIndex]);
-            }            
-            if (hDirectory == (HANDLE)NULL)
-            {
-                dwError = LsaDmWrapLdapOpenDirectoryDomain(gpADProviderData->szDomain,
-                                                           &hDirectory);
-                BAIL_ON_LSA_ERROR(dwError);
-                
-                if (gpADProviderData->dwDirectoryMode != UNPROVISIONED_MODE)
-                {
-                    pszCellDN = gpADProviderData->cell.szCellDN;
-                    dwError = ADGetConfigurationMode(
-                                             hDirectory,
-                                             pszCellDN,
-                                             &adConfMode);
-                    BAIL_ON_LSA_ERROR(dwError);
-                }
-                else
-                {
-                    pszCellDN = NULL;
-                    adConfMode = UnknownMode;
-                } 
             }
             
-            dwError = ADFindUserOrGroupByDN(
-                    hDirectory,
-                    pszCellDN,
-                    gpADProviderData->dwDirectoryMode,
-                    adConfMode,
-                    gpADProviderData->szShortDomain,
-                    ppszDnList[sIndex],
-                    &ppResults[sIndex]);     
+            dwError = ADFindUserOrGroupObjectByDN(
+                        hProvider,
+                        ppszDnList[sIndex],
+                        &ppResults[sIndex]);
             //if we cannot find user with the current DN, don't bail on error, instead, leave ppResults[sIndex] to be NULL
-            if (dwError == LSA_ERROR_NO_SUCH_USER_OR_GROUP)
-                dwError = 0;            
+            if (dwError == LSA_ERROR_NO_SUCH_USER_OR_GROUP ||
+                dwError == LSA_ERROR_NO_SUCH_USER ||
+                dwError == LSA_ERROR_NO_SUCH_GROUP)
+            {
+                dwError = 0;
+            }
             BAIL_ON_LSA_ERROR(dwError);
 
             dwError = ADCacheDB_CacheObjectEntry(hDb, ppResults[sIndex]);
@@ -3531,27 +3243,22 @@ AD_FindObjectsByDNList(
     }
 
 done:
-    *pppResults = ppResults;    
-    
+    *pppResults = ppResults;
+
 cleanup:
 
     ADCacheDB_SafeCloseDb(&hDb);
-    
-    if (hDirectory != (HANDLE)NULL)
-    {
-        LsaLdapCloseDirectory(hDirectory);
-    }
 
     return dwError;
-    
-error: 
+
+error:
 
     if (ppResults){
         ADCacheDB_SafeFreeObjectList(
                 sCount,
                 &ppResults);
     }
-    
+
     goto cleanup;
 }
 
@@ -3565,24 +3272,22 @@ AD_FindObjectBySid(
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     PAD_SECURITY_OBJECT *ppResultArray = NULL;
-    
+
     if (IsNullOrEmptyString(pszDomainName)) {
         pszDomainName = gpADProviderData->szDomain;
     }
-    
+
     if (IsNullOrEmptyString(pszDomainNetBiosName)) {
         pszDomainNetBiosName = gpADProviderData->szShortDomain;
     }
 
     dwError = AD_FindObjectsBySidList(
-                    hProvider,
-                    pszDomainName,
-                    pszDomainNetBiosName,
+                    hProvider,                  
                     1,
                     (PSTR *)&pszSid,
                     &ppResultArray);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (ppResultArray && !ppResultArray[0])
     {
         dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
@@ -3594,22 +3299,20 @@ AD_FindObjectBySid(
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(ppResultArray);
-    
+
     return dwError;
 
 error:
 
     *ppResult = NULL;
     ADCacheDB_SafeFreeObjectList(1, &ppResultArray);
-    
+
     goto cleanup;
 }
 
 DWORD
 AD_FindObjectsBySidList(
     HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszDomainNetBiosName,    
     size_t sCount,
     PSTR* ppszSidList,
     PAD_SECURITY_OBJECT **pppResults)
@@ -3618,41 +3321,16 @@ AD_FindObjectsBySidList(
     PAD_SECURITY_OBJECT *ppResults = NULL;
     HANDLE hDb = 0;
     size_t sIndex;
-    PSTR pszDirectoryRoot = NULL;
-    PSTR szAttributeListName[] = 
-            {
-                AD_LDAP_SAM_NAME_TAG,
-                AD_LDAP_GROUP_TYPE,
-                NULL
-            };    
-    LDAPMessage *pMessageReal = NULL;
     struct timeval current_tv;
-    HANDLE hDirectory = (HANDLE)NULL;
-    PSTR pszQuery = NULL;
-    DWORD dwCount;
-    LDAP *pLd = NULL;
-    PSTR pszSamAccountName = NULL;
-    PSTR pszNt4Name = NULL;
-    PSTR pszGroupType = NULL;
-    PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
+    PSTR pszObjectNT4Name = NULL;
 
     if (gettimeofday(&current_tv, NULL) < 0)
     {
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    if (IsNullOrEmptyString(pszDomainName))
-    {
-        pszDomainName = gpADProviderData->szDomain;
-    }
-    
-    if (IsNullOrEmptyString(pszDomainNetBiosName))
-    {
-        pszDomainNetBiosName = gpADProviderData->szShortDomain;
-    }       
 
-    /* 
+    /*
      * Lookup as many users as possible from the cache.
      */
 
@@ -3667,7 +3345,7 @@ AD_FindObjectsBySidList(
     BAIL_ON_LSA_ERROR(dwError);
 
     for (sIndex = 0; sIndex < sCount; sIndex++)
-    {          
+    {
         if ((ppResults[sIndex] != NULL) &&
             (ppResults[sIndex]->cache.tLastUpdated >= 0) &&
             (ppResults[sIndex]->cache.tLastUpdated +
@@ -3677,150 +3355,58 @@ AD_FindObjectsBySidList(
                             ppResults[sIndex]->pszObjectSid);
             ADCacheDB_SafeFreeObject(&ppResults[sIndex]);
         }
-        
+
         if (ppResults[sIndex] != NULL)
         {
             continue;
         }
-
-        if (hDirectory == (HANDLE)NULL)
+        
+        dwError = LsaDmWrapNetLookupNameByObjectSid(
+                         gpADProviderData->szDomain,
+                         ppszSidList[sIndex],
+                         &pszObjectNT4Name);
+        BAIL_ON_LSA_ERROR(dwError);                
+        
+        dwError = AD_FindUserObjectByName(
+                     hProvider,
+                     pszObjectNT4Name,
+                     &ppResults[sIndex]);
+        if (dwError == LSA_ERROR_NO_SUCH_USER || dwError == LSA_ERROR_NOT_HANDLED)
         {
-            dwError = LsaLdapConvertDomainToDN(
-                            pszDomainName,
-                            &pszDirectoryRoot);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaDmWrapLdapOpenDirectoryDomain(pszDomainName,
-                                                       &hDirectory);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            pLd = LsaLdapGetSession(hDirectory);
+            dwError = LSA_ERROR_SUCCESS;
         }
-
-        LSA_SAFE_FREE_STRING(pszQuery);
-        
-        dwError = LsaAllocateStringPrintf(
-                        &pszQuery,
-                        "(objectSid=%s)",
-                        ppszSidList[sIndex]);
         BAIL_ON_LSA_ERROR(dwError);
-
-        if (pMessageReal) {
-            ldap_msgfree(pMessageReal);
-            pMessageReal = NULL;
-        }
         
-        dwError = LsaLdapDirectorySearch(
-                              hDirectory,
-                              pszDirectoryRoot,
-                              LDAP_SCOPE_SUBTREE,
-                              pszQuery,
-                              szAttributeListName,
-                              &pMessageReal);                      
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwCount = ldap_count_entries(
-                              pLd,
-                              pMessageReal);               
-        if (dwCount < 0 || dwCount > 1)
+        //if we couldn't find object as user, try find object as group
+        if (!ppResults[sIndex])
         {
-            dwError = LSA_ERROR_LDAP_ERROR;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        
-        //If the object doesn't exist, then ignore it and leave the result
-        //field as NULL.
-        if (dwCount == 0)
-        {
-            continue;
-        }
-        
-        LSA_SAFE_FREE_STRING(pszSamAccountName);
-
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessageReal,
-                    AD_LDAP_SAM_NAME_TAG,
-                    &pszSamAccountName);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        BAIL_ON_INVALID_STRING(pszSamAccountName);
-
-        LSA_SAFE_FREE_STRING(pszNt4Name);
-        
-        dwError = LsaAllocateStringPrintf(
-                        &pszNt4Name,
-                        "%s\\%s",
-                        pszDomainNetBiosName,
-                        pszSamAccountName);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        LSA_SAFE_FREE_STRING(pszGroupType);
-        
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessageReal,
-                    "groupType",
-                    &pszGroupType);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        if (IsNullOrEmptyString(pszGroupType))
-        {  
-            dwError = AD_FindUserObjectByName(
-                          hProvider,
-                          pszNt4Name,
-                          &ppResults[sIndex]);
-
-            if (dwError == LSA_ERROR_NO_SUCH_USER)
+            dwError = AD_FindGroupObjectByName(
+                                hProvider,
+                                pszObjectNT4Name,
+                                &ppResults[sIndex]);
+            if (dwError == LSA_ERROR_NO_SUCH_GROUP  || dwError == LSA_ERROR_NOT_HANDLED)
             {
-                //The user isn't enabled. Leave ppResults[sIndex] as NULL.
                 dwError = LSA_ERROR_SUCCESS;
             }
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        else
-        {
-            dwError = AD_FindCachedGroupByNT4Name(
-                         hProvider,
-                         pszNt4Name,
-                         &ppResults[sIndex]);
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADCacheDB_CacheObjectEntry(hDb, ppResults[sIndex]);
-        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *pppResults = ppResults;
 
 cleanup:
 
-    if (hDirectory != (HANDLE)NULL) {
-        LsaLdapCloseDirectory(hDirectory);
-    }
-    
     ADCacheDB_SafeCloseDb(&hDb);
-    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
     
-    if (pMessageReal) {
-        ldap_msgfree(pMessageReal);
-    }
-    
-    LSA_SAFE_FREE_STRING(pszQuery);
-    LSA_SAFE_FREE_STRING(pszSamAccountName);
-    LSA_SAFE_FREE_STRING(pszNt4Name);
-    LSA_SAFE_FREE_STRING(pszGroupType);
-    
-    if (pUserNameInfo) {
-        LsaFreeNameInfo(pUserNameInfo);
-    }
-    
+    LSA_SAFE_FREE_STRING(pszObjectNT4Name);
+
     return dwError;
 
 error:
 
     ADCacheDB_SafeFreeObjectList(sCount, &ppResults);
     *pppResults = NULL;
-    
+
     goto cleanup;
 }
 
@@ -3844,7 +3430,7 @@ AD_OnlineGetNamesBySidList(
                     sizeof(*ppszDomainNames) * sCount,
                     (PVOID*)&ppszDomainNames);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateMemory(
                     sizeof(*ppszSamAccounts) * sCount,
                     (PVOID*)&ppszSamAccounts);
@@ -3856,9 +3442,7 @@ AD_OnlineGetNamesBySidList(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_FindObjectsBySidList(
-                    hProvider,
-                    NULL,
-                    NULL,
+                    hProvider,                    
                     sCount,
                     ppszSidList,
                     &ppObjects);
@@ -3871,7 +3455,7 @@ AD_OnlineGetNamesBySidList(
             pTypes[sIndex] = AccountType_NotFound;
             continue;
         }
-        
+
         if (!IsNullOrEmptyString(ppObjects[sIndex]->pszNetbiosDomainName))
         {
             dwError = LsaAllocateString(
@@ -3887,7 +3471,7 @@ AD_OnlineGetNamesBySidList(
                         &ppszSamAccounts[sIndex]);
             BAIL_ON_LSA_ERROR(dwError);
         }
-        
+
         pTypes[sIndex] = ppObjects[sIndex]->type;
     }
 
@@ -3914,60 +3498,33 @@ error:
     goto cleanup;
 }
 
-VOID
-AD_FreeLinkedCellInfoInList(
-    PVOID pLinkedCellInfo,
-    PVOID pUserData
-    )
-{
-    if (pLinkedCellInfo) {
-        AD_FreeLinkedCellInfo((PAD_LINKED_CELL_INFO)pLinkedCellInfo);
-    }
-}
-
-VOID
-AD_FreeLinkedCellInfo(
-    PAD_LINKED_CELL_INFO pLinkedCellInfo
-    )
-{
-    LSA_SAFE_FREE_STRING(pLinkedCellInfo->pszCellDN);
-    LSA_SAFE_FREE_STRING(pLinkedCellInfo->pszDomain);
-    LsaFreeMemory(pLinkedCellInfo);
-}
-
 DWORD
 AD_OnlineFindUserObjectByName(
     HANDLE  hProvider,
-    PCSTR   pszLoginId,    
+    PCSTR   pszLoginId,
     PAD_SECURITY_OBJECT* ppCachedUser
     )
 {
     DWORD dwError = 0;
-    
-    DWORD dwFlags = 0;
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
     PSTR  pszLoginId_copy = NULL;
     PSTR  pszLookupName = NULL;
     HANDLE hDb = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pCachedUser = NULL;
-    PSTR pszObjectDN = NULL;
     PSTR pszObjectDomainName = NULL;
-    PSTR pszObjectSamaccountName = NULL;
-    TrustMode trustMode = UnHandledTrust;   
-    
+    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+    LSA_TRUST_MODE dwTrustMode = LSA_TRUST_MODE_UNKNOWN;
+    PSTR pszCrackedDomainName = NULL;
+
     BAIL_ON_INVALID_STRING(pszLoginId);
-    
-    if (AD_GetLDAPSignAndSeal()) {
-       dwFlags |= LSA_LDAP_OPT_SIGN_AND_SEAL;
-    }
-    
+
     dwError = LsaAllocateString(
                     pszLoginId,
                     &pszLoginId_copy);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LsaStrCharReplace(pszLoginId_copy, AD_GetSeparator(),' ');
-    
+
     dwError = LsaCrackDomainQualifiedName(
                         pszLoginId_copy,
                         gpADProviderData->szDomain,
@@ -3985,11 +3542,11 @@ AD_OnlineFindUserObjectByName(
     {
         dwError = AD_CheckExpiredObject(&pCachedUser);
     }
-    
+
     if (dwError == 0){
         goto FoundInCacheValid;
     }
-    
+
     if (dwError != LSA_ERROR_NOT_HANDLED){
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -4000,160 +3557,159 @@ AD_OnlineFindUserObjectByName(
                          pszLoginId_copy,
                          &pszLookupName);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         if (pUserNameInfo)
         {
             LsaFreeNameInfo(pUserNameInfo);
             pUserNameInfo = NULL;
         }
-        
+
         //pszUpnName is formatted as NT4, crack again to fill in pUserNameInfo
         dwError = LsaCrackDomainQualifiedName(
                             pszLookupName,
                             NULL,
                             &pUserNameInfo);
         BAIL_ON_LSA_ERROR(dwError);
-       
+
     }
     else
-    {    
+    {
         dwError = LsaAllocateString(
                      pszLoginId_copy,
                      &pszLookupName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    pszCrackedDomainName = pUserNameInfo->pszDomainNetBiosName;
+    pUserNameInfo->pszDomainNetBiosName = NULL;
+
     LSA_SAFE_FREE_STRING(pUserNameInfo->pszFullDomainName);
-    
-    //Get the trustMode and complete filling in correct information for pUserNameInfo
+
+    //Get the dwTrustMode and complete filling in correct information for pUserNameInfo
     dwError = AD_DetermineTrustModeandDomainName(
-                        pUserNameInfo->pszDomainNetBiosName,                        
-                        &trustMode,
+                        pszCrackedDomainName,
+                        &dwTrustDirection,
+                        &dwTrustMode,
                         &pUserNameInfo->pszFullDomainName,
-                        NULL);
+                        &pUserNameInfo->pszDomainNetBiosName);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_STRING(pUserNameInfo->pszDomainNetBiosName);
-    
-    dwError = ADGetDomainNetBios(
-                pUserNameInfo->pszFullDomainName,
-                &pUserNameInfo->pszDomainNetBiosName);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_STRING(pUserNameInfo->pszObjectSid);
-    
+
     dwError = LsaDmWrapNetLookupObjectSidByName(
                 gpADProviderData->szDomain,
                 pszLookupName,
                 &pUserNameInfo->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (trustMode){
-        case OneWayTrust:
-            
-               switch (gpADProviderData->dwDirectoryMode) 
-               {                        
-                   case DEFAULT_MODE:      
+
+    switch (dwTrustDirection){
+        case LSA_TRUST_DIRECTION_ONE_WAY:
+
+               switch (gpADProviderData->dwDirectoryMode)
+               {
+                   case DEFAULT_MODE:
+                        dwError = LSA_ERROR_NO_SUCH_USER;
+                          
+                        break;
+                          
                    case UNPROVISIONED_MODE:
-                          dwError = LSA_ERROR_NO_SUCH_USER;
-                           
-                           break;                        
-                           
+
+                        dwError = UnprovisionedModeFindUserByNameInOneWayTrust(
+                                           pUserNameInfo,
+                                           &pCachedUser);
+
+                        break;
+
                    case CELL_MODE:
-                           dwError = CellModeFindUserByName(
-                                           gpADProviderData->szDomain,                                           
+
+                        dwError = CellModeFindUserByName(
+                                           gpADProviderData->szDomain,
                                            gpADProviderData->cell.szCellDN,
                                            NULL,
                                            pUserNameInfo,
-                                           &pCachedUser);                          
-                           
-                           break;
-                           
+                                           &pCachedUser);
+
+                        break;
+
                    default:
-                           dwError = LSA_ERROR_NOT_HANDLED;
-                                               
+                        dwError = LSA_ERROR_NOT_HANDLED;
+
                }
                BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
             
-        case TwoWayTrust_inforest:                
-            dwError =ADLdap_GetGCObjectInfoBySid(
-                    gpADProviderData->szDomain,            
-                    pUserNameInfo->pszObjectSid,
-                    &pszObjectDN,
-                    &pszObjectDomainName,
-                    &pszObjectSamaccountName);
+        case LSA_TRUST_DIRECTION_TWO_WAY:
+            
+             dwError = LsaAllocateString(pUserNameInfo->pszFullDomainName,
+                                         &pszObjectDomainName);
+          
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
-        case TwoWayTrust_acrossforest:
-            dwError =ADLdap_GetGCObjectInfoBySid(
-                    pUserNameInfo->pszFullDomainName,            
-                    pUserNameInfo->pszObjectSid,
-                    &pszObjectDN,
-                    &pszObjectDomainName,
-                    &pszObjectSamaccountName);
-            BAIL_ON_LSA_ERROR(dwError);
-                            
-            break;
-             
-        case OneSelfTrust:  //Single dc scenario
+
+        case LSA_TRUST_DIRECTION_SELF:  //Single dc scenario
             dwError = LsaAllocateString(gpADProviderData->szDomain,
                                         &pszObjectDomainName);
-            BAIL_ON_LSA_ERROR(dwError);           
-            
+            BAIL_ON_LSA_ERROR(dwError);
+
              break;
-                 
+
         default:
             dwError = LSA_ERROR_NOT_HANDLED;
             BAIL_ON_LSA_ERROR(dwError);
-    }        
-    
-    if (trustMode == TwoWayTrust_inforest || trustMode == TwoWayTrust_acrossforest || trustMode == OneSelfTrust){
-        
-         switch (gpADProviderData->dwDirectoryMode) 
+    }
+
+    if (dwTrustDirection == LSA_TRUST_DIRECTION_TWO_WAY || dwTrustDirection == LSA_TRUST_DIRECTION_SELF){
+
+         switch (gpADProviderData->dwDirectoryMode)
          {
              case DEFAULT_MODE:
-                     dwError = DefaultModeFindUserByName(
-                                     pszObjectDomainName,
-                                     pUserNameInfo,
-                                     &pCachedUser);       
-                     
+                     if (dwTrustMode != LSA_TRUST_MODE_EXTERNAL)
+                     {
+                         dwError = DefaultModeFindUserByName(
+                                         pszObjectDomainName,
+                                         pUserNameInfo,
+                                         &pCachedUser);
+                     }
+                     else
+                     {
+                         dwError = LSA_ERROR_NO_SUCH_USER;
+                     }
+
                      break;
-    
+
              case CELL_MODE:
                      dwError = CellModeFindUserByName(
                                      gpADProviderData->szDomain,
                                      gpADProviderData->cell.szCellDN,
                                      pszObjectDomainName,
                                      pUserNameInfo,
-                                     &pCachedUser);                     
-                     
+                                     &pCachedUser);
+
                      break;
-    
+
              case UNPROVISIONED_MODE:
                      dwError = UnprovisionedModeFindUserByName(
-                                     pszObjectDomainName,             
+                                     pszObjectDomainName,
                                      pUserNameInfo,
-                                     &pCachedUser);                     
-                     
+                                     &pCachedUser);
+
                      break;
-    
+
              default:
-                     dwError = LSA_ERROR_NOT_HANDLED;                     
+                     dwError = LSA_ERROR_NOT_HANDLED;
          }
-         BAIL_ON_LSA_ERROR(dwError); 
-    }    
+         BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = ADCacheDB_CacheObjectEntry(hDb, pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
 FoundInCacheValid:
-    
-    *ppCachedUser = pCachedUser;    
-       
+
+    *ppCachedUser = pCachedUser;
+
 cleanup:
 
     ADCacheDB_SafeCloseDb(&hDb);
@@ -4161,270 +3717,21 @@ cleanup:
     if (pUserNameInfo) {
         LsaFreeNameInfo(pUserNameInfo);
     }
-    
-    LSA_SAFE_FREE_STRING(pszLoginId_copy);    
+
+    LSA_SAFE_FREE_STRING(pszLoginId_copy);
     LSA_SAFE_FREE_STRING(pszLookupName);    
-    
-    LSA_SAFE_FREE_STRING(pszObjectDN);    
-    LSA_SAFE_FREE_STRING(pszObjectDomainName);
-    LSA_SAFE_FREE_STRING(pszObjectSamaccountName);
+    LSA_SAFE_FREE_STRING(pszObjectDomainName);    
+    LSA_SAFE_FREE_STRING(pszCrackedDomainName);
 
     return dwError;
 
 error:
 
     *ppCachedUser = NULL;
-    
+
     ADCacheDB_SafeFreeObject(&pCachedUser);
-    
-    if (dwError != LSA_ERROR_NO_SUCH_USER) {
-       LSA_LOG_DEBUG("Failed to find user [error code:%d]", dwError);
-       dwError = LSA_ERROR_NO_SUCH_USER;
-    }
 
-    goto cleanup;
-}
-
-DWORD
-AD_FindCachedGroupByNT4Name(
-    HANDLE  hProvider,
-    PCSTR   pszGroupName,    
-    PAD_SECURITY_OBJECT* ppCachedGroup
-    )
-{
-    DWORD dwError = 0;
-    //handle the current domain directory, which is where all the psedu objects shall be found except for default mode
-    HANDLE hPseudoDirectory = (HANDLE)NULL; 
-    //handle the domain directory where the real object resides (for all modes)
-    HANDLE hRealDirectory = (HANDLE)NULL; 
-    
-    DWORD dwFlags = 0;
-    PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
-    PSTR  pszGroupName_copy = NULL;
-    HANDLE hDb = (HANDLE)NULL;
-    PAD_SECURITY_OBJECT pCachedGroup = NULL;
-    PSTR pszObjectDN = NULL;
-    PSTR pszObjectDomainName = NULL;
-    PSTR pszObjectSamaccountName = NULL;
-    TrustMode trustMode = UnHandledTrust;
-    
-    
-    BAIL_ON_INVALID_STRING(pszGroupName);
-    
-    if (AD_GetLDAPSignAndSeal()) {
-       dwFlags |= LSA_LDAP_OPT_SIGN_AND_SEAL;
-    }
-    
-    dwError = LsaAllocateString(
-                    pszGroupName,
-                    &pszGroupName_copy);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LsaStrCharReplace(pszGroupName_copy, AD_GetSeparator(),' ');
-    
-    dwError = LsaCrackDomainQualifiedName(
-                        pszGroupName_copy,
-                        gpADProviderData->szDomain,
-                        &pGroupNameInfo);    
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindGroupByName(
-            hDb,
-            pGroupNameInfo,
-            &pCachedGroup);
-    if (dwError == LSA_ERROR_SUCCESS)
-    {
-        dwError = AD_CheckExpiredObject(&pCachedGroup);
-    }
-    
-    if (dwError == 0){
-        
-        LSA_SAFE_FREE_STRING(pGroupNameInfo->pszFullDomainName);
-        
-        dwError = AD_DetermineTrustModeandDomainName(
-                            pGroupNameInfo->pszDomainNetBiosName,                        
-                            &trustMode,
-                            &pGroupNameInfo->pszFullDomainName,
-                            NULL);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        goto FoundInCacheValid;
-    }
-    
-    if (dwError != LSA_ERROR_NOT_HANDLED){
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    LSA_SAFE_FREE_STRING(pGroupNameInfo->pszFullDomainName);
-    
-    //Get the trustMode and complete filling in correct information for pUserNameInfo
-    dwError = AD_DetermineTrustModeandDomainName(
-                        pGroupNameInfo->pszDomainNetBiosName,                        
-                        &trustMode,
-                        &pGroupNameInfo->pszFullDomainName,
-                        NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_STRING(pGroupNameInfo->pszDomainNetBiosName);
-    
-    dwError = ADGetDomainNetBios(
-                pGroupNameInfo->pszFullDomainName,
-                &pGroupNameInfo->pszDomainNetBiosName);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_STRING(pGroupNameInfo->pszObjectSid);
-    
-    dwError = LsaDmWrapNetLookupObjectSidByName(
-                gpADProviderData->szDomain,
-                pszGroupName_copy,
-                &pGroupNameInfo->pszObjectSid);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (trustMode){
-        case OneWayTrust:
-            
-               switch (gpADProviderData->dwDirectoryMode) 
-               {                        
-                   case DEFAULT_MODE:      
-                   case UNPROVISIONED_MODE:
-                          dwError = LSA_ERROR_NO_SUCH_GROUP;
-                           
-                           break;                        
-                           
-                   case CELL_MODE:
-                           dwError = CellModeFindGroupByName(
-                                           gpADProviderData->szDomain,                                           
-                                           gpADProviderData->cell.szCellDN,
-                                           NULL,
-                                           pGroupNameInfo,
-                                           &pCachedGroup);
-                           
-                           break;
-                           
-                   default:
-                           dwError = LSA_ERROR_NOT_HANDLED;
-                                               
-               }
-               BAIL_ON_LSA_ERROR(dwError);
-            
-            break;
-            
-        case TwoWayTrust_inforest:                
-            dwError =ADLdap_GetGCObjectInfoBySid(
-                    gpADProviderData->szDomain,            
-                    pGroupNameInfo->pszObjectSid,
-                    &pszObjectDN,
-                    &pszObjectDomainName,
-                    &pszObjectSamaccountName);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            break;
-            
-        case TwoWayTrust_acrossforest:
-            dwError =ADLdap_GetGCObjectInfoBySid(
-                    pGroupNameInfo->pszFullDomainName,            
-                    pGroupNameInfo->pszObjectSid,
-                    &pszObjectDN,
-                    &pszObjectDomainName,
-                    &pszObjectSamaccountName);
-            BAIL_ON_LSA_ERROR(dwError);
-                            
-            break;
-             
-        case OneSelfTrust:  //Single dc scenario
-            dwError = LsaAllocateString(gpADProviderData->szDomain,
-                                        &pszObjectDomainName);
-            BAIL_ON_LSA_ERROR(dwError);           
-            
-             break;
-                 
-        default:
-            dwError = LSA_ERROR_NOT_HANDLED;
-            BAIL_ON_LSA_ERROR(dwError);
-    }        
-    
-    if (trustMode == TwoWayTrust_inforest || trustMode == TwoWayTrust_acrossforest || trustMode == OneSelfTrust){
-        
-         switch (gpADProviderData->dwDirectoryMode) 
-         {
-             case DEFAULT_MODE:
-
-                     dwError = DefaultModeFindGroupByName(
-                                     pszObjectDomainName,
-                                     pGroupNameInfo,
-                                     &pCachedGroup);       
-                
-                     break;
-    
-             case CELL_MODE:
-                     dwError = CellModeFindGroupByName(
-                                     gpADProviderData->szDomain,
-                                     gpADProviderData->cell.szCellDN,
-                                     pszObjectDomainName,
-                                     pGroupNameInfo,
-                                     &pCachedGroup);                     
-                     
-                     break;
-    
-             case UNPROVISIONED_MODE:
-                     dwError = UnprovisionedModeFindGroupByName(
-                                     pszObjectDomainName,             
-                                     pGroupNameInfo,
-                                     &pCachedGroup);     
-
-                     
-                     break;
-    
-             default:
-                     dwError = LSA_ERROR_NOT_HANDLED;                     
-         }
-         BAIL_ON_LSA_ERROR(dwError); 
-    }    
-
-    dwError = ADCacheDB_CacheObjectEntry(hDb, pCachedGroup);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-FoundInCacheValid:
-
-    *ppCachedGroup = pCachedGroup;
-     
-    
-cleanup:
-
-    if (hPseudoDirectory != (HANDLE)NULL) {
-        LsaLdapCloseDirectory(hPseudoDirectory);
-    }
-    
-    if (hRealDirectory != (HANDLE)NULL) {
-        LsaLdapCloseDirectory(hRealDirectory);
-    }
-    
-    ADCacheDB_SafeCloseDb(&hDb);
-    
-    if (pGroupNameInfo) {
-        LsaFreeNameInfo(pGroupNameInfo);
-    }
-    
-    LSA_SAFE_FREE_STRING(pszGroupName_copy);    
-    
-    LSA_SAFE_FREE_STRING(pszObjectDN);
-    LSA_SAFE_FREE_STRING(pszObjectDomainName);
-    LSA_SAFE_FREE_STRING(pszObjectSamaccountName);        
-    
-    return dwError;
-
-error:
-
-    *ppCachedGroup = NULL;
-    ADCacheDB_SafeFreeObject(&pCachedGroup);
-    
-    if (dwError != LSA_ERROR_NO_SUCH_GROUP) {
-       LSA_LOG_DEBUG("Failed to find group [error code:%d]", dwError);
-       dwError = LSA_ERROR_NO_SUCH_GROUP;
-    }
+    LSA_REMAP_FIND_USER_BY_NAME_ERROR(dwError, FALSE, pszLoginId);
 
     goto cleanup;
 }
@@ -4444,9 +3751,9 @@ AD_OnlineEnumNSSArtefacts(
 
     dwError = LsaDmWrapLdapOpenDirectoryDomain(gpADProviderData->szDomain,
                                                &hDirectory);
-    BAIL_ON_LSA_ERROR(dwError);    
+    BAIL_ON_LSA_ERROR(dwError);
 
-    switch (gpADProviderData->dwDirectoryMode) 
+    switch (gpADProviderData->dwDirectoryMode)
     {
     case DEFAULT_MODE:
         dwError = DefaultModeEnumNSSArtefacts(
@@ -4470,15 +3777,15 @@ AD_OnlineEnumNSSArtefacts(
                 dwMaxNSSArtefacts,
                 pdwNSSArtefactsFound,
                 pppNSSArtefactInfoList
-                );      
+                );
         break;
 
     case UNPROVISIONED_MODE:
-        
+
         dwError = LSA_ERROR_NOT_SUPPORTED;
         break;
     }
-    
+
 cleanup:
 
     if (hDirectory) {
@@ -4486,7 +3793,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *pdwNSSArtefactsFound = 0;
@@ -4529,7 +3836,7 @@ AD_UpdateUserObjectFlags(
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     struct timeval current_tv;
-    UINT64 u64current_NTtime = 0;    
+    UINT64 u64current_NTtime = 0;
     int64_t qwNanosecsToPasswordExpiry;
 
     if (gettimeofday(&current_tv, NULL) < 0)
@@ -4548,7 +3855,7 @@ AD_UpdateUserObjectFlags(
     }
 
     qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-        (u64current_NTtime - pUser->userInfo.qwPwdLastSet);             
+        (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
 
     if (!pUser->userInfo.bPasswordNeverExpires &&
         gpADProviderData->adMaxPwdAge != 0 &&
@@ -4559,10 +3866,104 @@ AD_UpdateUserObjectFlags(
     }
 
 cleanup:
-    
+
     return dwError;
 
 error:
+
+    goto cleanup;
+}
+
+DWORD
+AD_VerifyUserAccountCanLogin(
+    IN PAD_SECURITY_OBJECT pUserInfo
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = AD_UpdateUserObjectFlags(
+                pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pUserInfo->userInfo.bAccountDisabled) {
+        dwError = LSA_ERROR_ACCOUNT_DISABLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo->userInfo.bAccountLocked) {
+        dwError = LSA_ERROR_ACCOUNT_LOCKED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo->userInfo.bAccountExpired) {
+        dwError = LSA_ERROR_ACCOUNT_EXPIRED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo->userInfo.bPasswordExpired) {
+        dwError = LSA_ERROR_PASSWORD_EXPIRED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+ADFindUserOrGroupObjectByDN(
+    HANDLE hProvider,
+    PCSTR  pszObjectDN,
+    PAD_SECURITY_OBJECT *ppObjectInfo)
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PAD_SECURITY_OBJECT pObjectInfo = NULL;    
+    ADAccountType objectType = 0;
+    PSTR pszNT4Name = NULL;
     
+    
+    dwError = ADFindObjectNameByDN(
+                    pszObjectDN,
+                    &pszNT4Name,
+                    &objectType);
+    BAIL_ON_LSA_ERROR(dwError);    
+    
+    
+    switch (objectType){
+            case AccountType_User:
+                dwError = AD_FindUserObjectByName(
+                                hProvider,
+                                pszNT4Name,
+                                &pObjectInfo);
+                break;
+
+            case AccountType_Group:
+                dwError = AD_FindGroupObjectByName(
+                                hProvider,
+                                pszNT4Name,
+                                &pObjectInfo);
+                break;
+
+            default:
+                dwError = LSA_ERROR_NOT_HANDLED;                
+        }
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    *ppObjectInfo = pObjectInfo;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszNT4Name);
+
+    return dwError;
+
+error:
+
+    *ppObjectInfo = NULL;
+
+    ADCacheDB_SafeFreeObject(&pObjectInfo);
+
     goto cleanup;
 }

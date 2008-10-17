@@ -73,8 +73,12 @@ LsaSrvOpenSession(
                                         hProvider,
                                         pszLoginId);
         if (!dwError) {
-
-           LsaSrvWriteLoginSuccessEvent(hServer, pszLoginId);
+            
+           if (LsaSrvEventlogEnabled()){
+                  LsaSrvWriteLoginSuccessEvent(hServer,
+                                               pszLoginId,
+                                               dwError);
+           }
             
            break;
            
@@ -110,11 +114,15 @@ cleanup:
         LsaSrvIncrementMetricValue(LsaMetricFailedOpenSession);
     }
     
-    return(dwError);
+    return dwError;
     
 error:
-
-    LsaSrvWriteLoginFailedEvent(hServer, pszLoginId);
+    
+    if (LsaSrvEventlogEnabled()){
+            LsaSrvWriteLoginFailedEvent(hServer,
+                                        pszLoginId,
+                                        dwError);
+    }
 
     goto cleanup;
 }
@@ -128,7 +136,7 @@ LsaSrvCloseSession(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
-    HANDLE hProvider = (HANDLE)NULL;    
+    HANDLE hProvider = (HANDLE)NULL;
     
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
     
@@ -145,8 +153,12 @@ LsaSrvCloseSession(
                                 hProvider,
                                 pszLoginId);
         if (!dwError) {
-
-           LsaSrvWriteLogoutSuccessEvent(hServer, pszLoginId);
+            
+            if (LsaSrvEventlogEnabled()){
+                    LsaSrvWriteLogoutSuccessEvent(hServer,
+                                                  pszLoginId,
+                                                  dwError);
+            }
             
            break;
            
@@ -182,9 +194,15 @@ cleanup:
         LsaSrvIncrementMetricValue(LsaMetricFailedCloseSession);
     }
     
-    return(dwError);
+    return dwError;
     
 error:
+    
+    if (LsaSrvEventlogEnabled()){
+            LsaSrvWriteLogoutFailedEvent(hServer,
+                                         pszLoginId,
+                                         dwError);
+    }
 
     goto cleanup;
 }

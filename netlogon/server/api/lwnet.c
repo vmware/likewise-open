@@ -231,6 +231,7 @@ LWNetSrvPingCLdapThread(
     PSTR pszAddress = NULL;
     DWORD dwServerIndex = 0;
     PLWNET_DC_INFO pDcInfo = NULL;
+    BOOLEAN shouldSignal = FALSE;
 
     for (;;)
     {
@@ -298,6 +299,8 @@ LWNetSrvPingCLdapThread(
 
         if (!pContext->bIsDone && !pContext->pDcInfo)
         {
+            shouldSignal = TRUE;
+
             pContext->pDcInfo = pDcInfo;
             pDcInfo = NULL;
 
@@ -307,11 +310,25 @@ LWNetSrvPingCLdapThread(
         }
     }
 
-    // We really cannot do anything about an error here.
-    dwError = pthread_cond_signal(pContext->pCondition);
-    if (dwError)
+    if (!isAcquired)
     {
-        LWNET_LOG_ERROR("Failed to signal condition in %s() at %s:%d (error %d/0x%08x)", __FUNCTION__, __FILE__, __LINE__, dwError, dwError);
+        LWNET_CLDAP_THREAD_CONTEXT_ACQUIRE(pContext);
+        isAcquired = TRUE;
+    }
+    pContext->dwActiveThreadCount--;
+    if (pContext->dwActiveThreadCount <= 0)
+    {
+        shouldSignal = TRUE;
+    }
+
+    if (shouldSignal)
+    {
+        // We really cannot do anything about an error here.
+        dwError = pthread_cond_signal(pContext->pCondition);
+        if (dwError)
+        {
+            LWNET_LOG_ERROR("Failed to signal condition in %s() at %s:%d (error %d/0x%08x)", __FUNCTION__, __FILE__, __LINE__, dwError, dwError);
+        }
     }
 
     if (isAcquired)
@@ -383,6 +400,7 @@ LWNetSrvPingCLdapArray(
     pContext->pServerArray = pServerArray;
     pContext->dwServerCount = dwServerCount;
     pContext->dwDsFlags = dwDsFlags;
+    pContext->dwActiveThreadCount = 0;
 
     dwError = LWNetAllocateString(pszDnsDomainName, &pContext->pszDnsDomainName);
     BAIL_ON_LWNET_ERROR(dwError);
@@ -411,6 +429,7 @@ LWNetSrvPingCLdapArray(
                                  pContext);
         BAIL_ON_LWNET_ERROR(dwError);
 
+        pContext->dwActiveThreadCount++;
         pContext->dwRefCount++;
     }
 
@@ -428,6 +447,10 @@ LWNetSrvPingCLdapArray(
     // TODO: Error code conversion
     dwError = pthread_cond_timedwait(pContext->pCondition, pContext->pMutex, &stopTime);
     isAcquired = TRUE;
+    if (ETIMEDOUT == dwError)
+    {
+        dwError = LWNET_ERROR_FAILED_FIND_DC;
+    }
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!pContext->pDcInfo)

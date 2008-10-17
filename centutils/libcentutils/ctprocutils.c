@@ -54,7 +54,7 @@
  * license@likewisesoftware.com
  */
 
-#include "config/config.h"
+#include "config.h"
 #include "ctbase.h"
 #include "ctprocutils.h"
 #if HAVE_SYS_PARAM_H
@@ -96,7 +96,7 @@ CTMatchProgramToPID(
     CHAR szBuf[PATH_MAX+1];
     FILE* pFile = NULL;
 
-#if defined(__LWI_MACINTOSH__) || defined(__LWI_FREEBSD__)
+#if defined(__LWI_DARWIN__) || defined(__LWI_FREEBSD__)
     sprintf(szBuf, "ps -p %d -o command= | grep %s", pid, pszProgramName);
 #elif defined(__LWI_SOLARIS__) || defined(__LWI_HP_UX__) || defined(__LWI_AIX__)
     sprintf(szBuf, "UNIX95=1 ps -p %ld -o comm= | grep %s", (long)pid, pszProgramName);
@@ -398,7 +398,7 @@ CTGetPidOfCmdLine(
         if(dirEntry->d_name[0] == '.')
             continue;
         // On AIX, there is a /proc/sys which does not contain a psinfo
-        if(!isdigit(dirEntry->d_name[0]))
+        if(!isdigit((int)dirEntry->d_name[0]))
             continue;
         CT_SAFE_FREE_STRING(filePath);
         GCE(ceError = CTAllocateStringPrintf(&filePath, "/proc/%s/psinfo",

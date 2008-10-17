@@ -172,7 +172,7 @@ KtKrb5SearchKeys(
 		}
 
         if (ret == 0) {
-            krb5_kt_free_entry(ctx, &entry);
+            krb5_free_keytab_entry_contents(ctx, &entry);
         }
 
     } while (ret != KRB5_KT_END);

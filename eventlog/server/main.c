@@ -56,10 +56,15 @@ EVTSERVERINFO gServerInfo =
     "",                         /* Cache path        */
     "",                         /* Prefix path       */
     0,                          /* Process exit flag */
+    0,                          /* Process exit code */
+    0,                          /* Replace existing db flag */
     0,                          /* Max log size  */
     0,                          /* Max records */
     0,                          /* Remove records older than*/
-    0                           /* Enable/disable Remove records a boolean value TRUE or FALSE*/
+    0,                          /* Enable/disable Remove records a boolean value TRUE or FALSE*/
+    { NULL, NULL },             /* Who is allowed to read events   */
+    { NULL, NULL },             /* Who is allowed to write events  */
+    { NULL, NULL }              /* Who is allowed to delete events */
 };
 
 #define EVT_LOCK_SERVERINFO   pthread_mutex_lock(&gServerInfo.lock)
@@ -282,15 +287,15 @@ EVTGetMaxLogSize(
 }
 
 DWORD
-EVTGetRemoveEventsFlag(
-    PBOOLEAN pbRemoveEvents
+EVTGetDBPurgeInterval(
+    PDWORD pdwPurgeInterval
     )
 {
     DWORD dwError = 0;
 
     EVT_LOCK_SERVERINFO;
 
-    *pbRemoveEvents = gServerInfo.bRemoveRecordsAsNeeded;
+    *pdwPurgeInterval = gServerInfo.dwPurgeInterval;
 
     EVT_UNLOCK_SERVERINFO;
 
@@ -307,6 +312,93 @@ EVTGetPrefixPath(
     EVT_LOCK_SERVERINFO;
 
     dwError = EVTAllocateString(gServerInfo.szPrefixPath, ppszPath);
+
+    EVT_UNLOCK_SERVERINFO;
+
+    return (dwError);
+}
+
+DWORD
+EVTGetAllowReadToLocked(
+    PEVTALLOWEDDATA * ppAllowReadTo
+    )
+{
+    DWORD dwError = 0;
+
+    EVT_LOCK_SERVERINFO;
+
+    *ppAllowReadTo = &gServerInfo.pAllowReadTo;
+
+    return (dwError);
+}
+
+DWORD
+EVTGetAllowWriteToLocked(
+    PEVTALLOWEDDATA * ppAllowWriteTo
+    )
+{
+    DWORD dwError = 0;
+
+    EVT_LOCK_SERVERINFO;
+
+    *ppAllowWriteTo = &gServerInfo.pAllowWriteTo;
+
+    return (dwError);
+}
+
+DWORD
+EVTGetAllowDeleteToLocked(
+    PEVTALLOWEDDATA * ppAllowDeleteTo
+    )
+{
+    DWORD dwError = 0;
+
+    EVT_LOCK_SERVERINFO;
+
+    *ppAllowDeleteTo = &gServerInfo.pAllowDeleteTo;
+
+    return (dwError);
+}
+
+void
+EVTUnlockServerInfo()
+{
+    EVT_UNLOCK_SERVERINFO;
+}
+
+void
+EVTFreeAllowData(
+    PEVTALLOWEDDATA pAllowData
+    )
+{
+    EVT_SAFE_FREE_STRING(pAllowData->configData);
+    EVTAccessFreeData(pAllowData->pAllowedTo);
+    pAllowData->configData = NULL;
+    pAllowData->pAllowedTo = NULL;
+}
+
+DWORD
+EVTSetAllowData(
+    PCSTR   pszValue,
+    PEVTALLOWEDDATA pAllowData
+    )
+{
+    DWORD dwError = 0;
+
+    EVT_LOCK_SERVERINFO;
+
+    EVTFreeAllowData(pAllowData);
+
+    dwError = EVTAllocateString(
+                  pszValue,
+                  &pAllowData->configData);    
+
+    if ( !dwError )
+    {
+        dwError = EVTAccessGetData(
+                      pszValue,
+                      &pAllowData->pAllowedTo);
+    }
 
     EVT_UNLOCK_SERVERINFO;
 
@@ -602,6 +694,28 @@ EVTCreatePIDFile()
 
 static
 DWORD
+EVTSetConfigDefaults()
+{
+    DWORD dwError = 0;
+
+    EVT_LOCK_SERVERINFO;
+
+    gServerInfo.dwMaxLogSize = EVT_DEFAULT_MAX_LOG_SIZE;
+    gServerInfo.dwMaxRecords =  EVT_DEFAULT_MAX_RECORDS;
+    gServerInfo.dwMaxAge = EVT_DEFAULT_MAX_AGE;
+    gServerInfo.dwPurgeInterval = EVT_DEFAULT_PURGE_INTERVAL;
+
+    EVTFreeAllowData(&gServerInfo.pAllowReadTo);
+    EVTFreeAllowData(&gServerInfo.pAllowWriteTo);
+    EVTFreeAllowData(&gServerInfo.pAllowDeleteTo);
+
+    EVT_UNLOCK_SERVERINFO;
+
+    return dwError;
+}
+
+static
+DWORD
 EVTSetServerDefaults()
 {
     DWORD dwError = 0;
@@ -617,26 +731,27 @@ EVTSetServerDefaults()
     strcpy(gServerInfo.szCachePath, CACHEDIR);
     strcpy(gServerInfo.szPrefixPath, PREFIXDIR);
 
-
-    //Set config values
-    gServerInfo.dwMaxLogSize = EVT_DEFAULT_MAX_LOG_SIZE;
-    gServerInfo.dwMaxRecords =  EVT_DEFAULT_MAX_RECORDS;
-    gServerInfo.dwMaxAge = EVT_DEFAULT_MAX_AGE;
-    gServerInfo.bRemoveRecordsAsNeeded = EVT_DEFAULT_REM_RECORD_AGE;
-
     EVT_UNLOCK_SERVERINFO;
+
+    dwError = EVTSetConfigDefaults();
 
     return dwError;
 }
 
 static
 void
-EVTBlockAllSignals()
+EVTBlockSelectedSignals()
 {
     sigset_t default_signal_mask;
     sigset_t old_signal_mask;
 
     sigemptyset(&default_signal_mask);
+    sigaddset(&default_signal_mask, SIGINT);
+    sigaddset(&default_signal_mask, SIGTERM);
+    sigaddset(&default_signal_mask, SIGHUP);
+    sigaddset(&default_signal_mask, SIGQUIT);
+    sigaddset(&default_signal_mask, SIGPIPE);
+
     pthread_sigmask(SIG_BLOCK,  &default_signal_mask, &old_signal_mask);
 }
 
@@ -726,29 +841,42 @@ EVTConfigNameValuePair(
         (IsNullOrEmptyString(pszName) ? "" : pszName),
         (IsNullOrEmptyString(pszValue) ? "" : pszValue));
 
-    if ( !strcmp(pszName, "MaxLogSize") ) {
+    if ( !strcmp(pszName, "max-disk-usage") ) {
+        DWORD dwDiskUsage = 0;
+        EVTParseDiskUsage((PCSTR)pszValue, &dwDiskUsage);
         EVT_LOCK_SERVERINFO;
-        gServerInfo.dwMaxLogSize = atoi(pszValue);
+        gServerInfo.dwMaxLogSize = dwDiskUsage;
         EVT_UNLOCK_SERVERINFO;
     }
-    else if ( !strcmp(pszName, "MaxNumOfRecords") ) {
+    else if ( !strcmp(pszName, "max-num-events") ) {
+        DWORD dwMaxEntries = 0;
+        EVTParseMaxEntries((PCSTR)pszValue, &dwMaxEntries);
         EVT_LOCK_SERVERINFO;
-        gServerInfo.dwMaxRecords = atoi(pszValue);
+        gServerInfo.dwMaxRecords = dwMaxEntries;
         EVT_UNLOCK_SERVERINFO;
     }
-    else if ( !strcmp(pszName, "MaxAge") ) {
+    else if ( !strcmp(pszName, "max-event-lifespan") ) {
+        DWORD dwMaxLifeSpan = 0;
+        EVTParseDays((PCSTR)pszValue, &dwMaxLifeSpan);
         EVT_LOCK_SERVERINFO;
-        gServerInfo.dwMaxAge = atoi(pszValue);
+        gServerInfo.dwMaxAge = dwMaxLifeSpan;
         EVT_UNLOCK_SERVERINFO;
     }
-    else if ( !strcmp(pszName, "RemoveRecordsAsNeeded") ) {
+    else if ( !strcmp(pszName, "event-db-purge-interval") ) {
+		DWORD dwPurgeInterval = 0;
+		EVTParseDays((PCSTR)pszValue, &dwPurgeInterval);
         EVT_LOCK_SERVERINFO;
-        if ( !strcmp(pszValue, "true") ) {
-            gServerInfo.bRemoveRecordsAsNeeded = 1;
-        }else if ( !strcmp(pszValue, "false") ) {
-            gServerInfo.bRemoveRecordsAsNeeded = 0;
-        }
+        gServerInfo.dwPurgeInterval = dwPurgeInterval;
         EVT_UNLOCK_SERVERINFO;
+    }
+    else if ( !strcmp(pszName, "allow-read-to") ) {
+        EVTSetAllowData( pszValue, &gServerInfo.pAllowReadTo);
+    }
+    else if ( !strcmp(pszName, "allow-write-to") ) {
+        EVTSetAllowData( pszValue, &gServerInfo.pAllowWriteTo);
+    }
+    else if ( !strcmp(pszName, "allow-delete-to") ) {
+        EVTSetAllowData( pszValue, &gServerInfo.pAllowDeleteTo);
     }
 
     *pbContinue = TRUE;
@@ -779,6 +907,9 @@ EVTReadEventLogConfigSettings()
     PSTR pszConfigFilePath = NULL;
 
     EVT_LOG_INFO("Read Eventlog configuration settings");
+
+    dwError = EVTSetConfigDefaults();
+    BAIL_ON_EVT_ERROR(dwError);
 
     dwError = EVTGetConfigPath(&pszConfigFilePath);
     BAIL_ON_EVT_ERROR(dwError);
@@ -811,21 +942,56 @@ error:
 }
 
 static
+VOID
+EVTInterruptHandler(
+    int Signal
+    )
+{
+    if (Signal == SIGINT)
+    {
+        raise(SIGTERM);
+    }
+}
+
+static
 PVOID
 EVTHandleSignals(
     PVOID pArg
     )
 {
     DWORD dwError = 0;
+    struct sigaction action;
     sigset_t catch_signal_mask;
-    sigset_t old_signal_mask;
-    int which_signal;
-    unsigned32 status;
+    int which_signal = 0;
+    int sysRet = 0;
+    unsigned32 status = 0;
 
+    // After starting up threads, we now want to handle SIGINT async
+    // instead of using sigwait() on it.  The reason for this is so
+    // that a debugger (such as gdb) can break in properly.
+    // See http://sourceware.org/ml/gdb/2007-03/msg00145.html and
+    // http://bugzilla.kernel.org/show_bug.cgi?id=9039.
+
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = EVTInterruptHandler;
+
+    sysRet = sigaction(SIGINT, &action, NULL);
+    dwError = (sysRet != 0) ? errno : 0;
+    BAIL_ON_EVT_ERROR(dwError);
+
+    // Unblock SIGINT
     sigemptyset(&catch_signal_mask);
     sigaddset(&catch_signal_mask, SIGINT);
 
-    pthread_sigmask(SIG_BLOCK,  &catch_signal_mask, &old_signal_mask);
+    dwError = pthread_sigmask(SIG_UNBLOCK, &catch_signal_mask, NULL);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    // These should already be blocked...
+    sigemptyset(&catch_signal_mask);
+    sigaddset(&catch_signal_mask, SIGTERM);
+    sigaddset(&catch_signal_mask, SIGQUIT);
+    sigaddset(&catch_signal_mask, SIGHUP);
+    sigaddset(&catch_signal_mask, SIGPIPE);
 
     while (1)
     {
@@ -836,17 +1002,27 @@ EVTHandleSignals(
         {
             case SIGINT:
             case SIGQUIT:
+            case SIGTERM:
             {
                 rpc_mgmt_stop_server_listening(NULL, &status);
                 EVTSetProcessShouldExit(TRUE);
+
                 break;
             }
+
+            case SIGPIPE:
+            {
+                EVT_LOG_DEBUG("Handled SIGPIPE");
+
+                break;
+            } 
             case SIGHUP:
             {
                 dwError = EVTReadEventLogConfigSettings();
                 BAIL_ON_EVT_ERROR(dwError);
-            }
 
+                break;
+            }
         }
     }
 
@@ -904,6 +1080,9 @@ main(
     dwError = EVTSetServerDefaults();
     BAIL_ON_EVT_ERROR(dwError);
 
+    dwError = EVTLoadLsaLibrary();
+    BAIL_ON_EVT_ERROR(dwError);
+
     dwError = EVTParseArgs(
                     argc,
                     argv,
@@ -935,6 +1114,8 @@ main(
     dwError = EVTInitLogging(get_program_name(argv[0]));
     BAIL_ON_EVT_ERROR(dwError);
 
+    EVTBlockSelectedSignals();
+
     /* Binding to our RPC endpoint might fail if dcerpcd is not
        yet ready when we start, so attempt it in a loop with
        a small delay between attempts */
@@ -954,8 +1135,6 @@ main(
     }
     /* Bail if we still haven't succeeded after several attempts */
     BAIL_ON_EVT_ERROR(dwError);
-
-    EVTBlockAllSignals();
 
     //Read the event log information from eventlog-settings.conf
     dwError = EVTReadEventLogConfigSettings();
@@ -993,9 +1172,12 @@ main(
 
     SrvShutdownEventDatabase();
 
+    EVTSetConfigDefaults();
+    EVTUnloadLsaLibrary();
+
     EVTSetProcessExitCode(dwError);
 
-    return (dwError);
+    exit (dwError);
 
 error:
 

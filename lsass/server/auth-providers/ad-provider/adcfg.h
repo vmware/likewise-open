@@ -49,6 +49,51 @@
 #ifndef __AD_CFG_H__
 #define __AD_CFG_H__
 
+typedef DWORD (*PFN_AD_CONFIG_HANDLER)(
+                    PLSA_AD_CONFIG pConfig,
+                    PCSTR          pszName,
+                    PCSTR          pszValue
+                    );
+
+typedef struct __AD_CONFIG_HANDLER
+{
+    PCSTR                 pszId;
+    PFN_AD_CONFIG_HANDLER pfnHandler;
+} AD_CONFIG_HANDLER, *PAD_CONFIG_HANDLER;
+
+DWORD
+AD_TransferConfigContents(
+    PLSA_AD_CONFIG pSrcConfig,
+    PLSA_AD_CONFIG pDstConfig
+    );
+
+DWORD
+AD_InitializeConfig(
+    PLSA_AD_CONFIG pConfig
+    );
+
+VOID
+AD_FreeConfig(
+    PLSA_AD_CONFIG pConfig
+    );
+
+VOID
+AD_FreeConfigContents(
+    PLSA_AD_CONFIG pConfig
+    );
+
+VOID
+AD_FreeConfigMemberInList(
+    PVOID pItem,
+    PVOID pUserData
+    );
+
+DWORD
+AD_ParseConfigFile(
+    PCSTR          pszConfigFilePath,
+    PLSA_AD_CONFIG pConfig
+    );
+
 DWORD
 AD_ConfigStartSection(
     PCSTR    pszSectionName,
@@ -81,28 +126,18 @@ AD_GetConfigFilePath(
     );
 
 DWORD
-AD_SetUnprovisionedModeShell(
-    PCSTR pszUnprovisionedModeShell
-    );
-
-DWORD
 AD_GetUnprovisionedModeShell(
     PSTR* ppszUnprovisionedModeShell
     );
 
 DWORD
-AD_SetUnprovisionedModeHomedirTemplate(
-    PCSTR pszUnprovisionedModeHomedirTemplate
+AD_GetHomedirPrefixPath(
+    PSTR* ppszPath
     );
 
 DWORD
 AD_GetUnprovisionedModeHomedirTemplate(
     PSTR* ppszUnprovisionedModeHomedirTemplate
-    );
-
-DWORD
-AD_SetSeparator(
-    CHAR pszSeparator
     );
 
 CHAR
@@ -111,18 +146,8 @@ AD_GetSeparator(
     );
 
 DWORD
-AD_SetCacheReaperTimeoutSecs(
-    DWORD dwCacheReaperTimeoutSecs
-    );
-
-DWORD
 AD_GetCacheReaperTimeoutSecs(
     VOID
-    );
-
-DWORD
-AD_SetMachinePasswordSyncPwdLifetime(
-    DWORD dwMachinePasswordSyncPwdLifetime
     );
 
 DWORD
@@ -136,18 +161,18 @@ AD_GetClockDriftSeconds(
     );
 
 DWORD
-AD_SetCacheEntryExpirySeconds(
-    DWORD dwExpirySecs
-    );
-
-DWORD
 AD_GetCacheEntryExpirySeconds(
     VOID
     );
 
 DWORD
-AD_SetLDAPSignAndSeal(
-    BOOLEAN bValue
+AD_GetUmask(
+    VOID
+    );
+
+DWORD
+AD_GetSkelDirs(
+    PSTR* ppszSkelDirs
     );
 
 BOOLEAN
@@ -156,11 +181,24 @@ AD_GetLDAPSignAndSeal(
     );
 
 double
-AD_GetMachineTGTGraceSeconds();
+AD_GetMachineTGTGraceSeconds(
+    VOID
+    );
 
 DWORD
-AD_AddAllowedGroup(
-    PCSTR pszNetbiosGroupName
+AD_AddAllowedMember(
+    PCSTR pszSID
+    );
+
+VOID
+AD_DeleteFromMembersList(
+    PCSTR pszMember
+    );
+
+DWORD
+AD_GetAllowedMembersList(
+    PSTR** pppszMembers,
+    PDWORD pdwNumMembers
     );
 
 BOOLEAN
@@ -169,12 +207,12 @@ AD_ShouldFilterUserLoginsByGroup(
     );
 
 BOOLEAN
-AD_IsGroupAllowed(
-    PCSTR pszNetbiosGroupName
+AD_IsMemberAllowed(
+    PCSTR pszSID
     );
 
 VOID
-AD_FreeAllowedGroups_InLock(
+AD_FreeAllowedSIDs_InLock(
     VOID);
 
 BOOLEAN
@@ -182,19 +220,29 @@ AD_ShouldAssumeDefaultDomain(
     VOID
     );
 
-VOID
-AD_SetAssumeDefaultDomain(
-    BOOLEAN bValue
-    );
-
 BOOLEAN
 AD_ShouldSyncSystemTime(
     VOID
     );
 
-VOID
-AD_SetSyncSystemTime(
-    BOOLEAN bValue
+BOOLEAN
+AD_EventlogEnabled(
+    VOID
+    );
+
+BOOLEAN
+AD_ShouldLogNetworkConnectionEvents(
+    VOID
+    );
+
+BOOLEAN
+AD_ShouldCreateK5Login(
+    VOID
+    );
+
+BOOLEAN
+AD_ShouldCreateHomeDir(
+    VOID
     );
 
 #endif /* __AD_CFG_H__ */

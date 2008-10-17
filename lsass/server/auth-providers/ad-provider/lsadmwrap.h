@@ -58,6 +58,18 @@ LsaDmWrapEnumExtraForestTrustDomains(
     );
 
 DWORD
+LsaDmWrapEnumExtraTwoWayForestTrustDomains(
+    OUT PSTR** pppszDomainNames,
+    OUT PDWORD pdwCount
+    );
+
+DWORD
+LsaDmWrapEnumInMyForestTrustDomains(
+    OUT PSTR** pppszDomainNames,
+    OUT PDWORD pdwCount
+    );
+
+DWORD
 LsaDmWrapGetForestName(
     IN PCSTR pszDomainName,
     OUT PSTR* ppszDnsForestName

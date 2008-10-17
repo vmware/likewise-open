@@ -157,6 +157,20 @@ LsaLogToConsole(
             break;
         }
 
+        case LSA_LOG_LEVEL_VERBOSE:
+        {
+            pszEntryType = LSA_VERBOSE_TAG;
+            pTarget = pConsoleLog->fp_out;
+            break;
+        }
+
+        case LSA_LOG_LEVEL_DEBUG:
+        {
+            pszEntryType = LSA_DEBUG_TAG;
+            pTarget = pConsoleLog->fp_out;
+            break;
+        }
+
         default:
         {
             pszEntryType = LSA_VERBOSE_TAG;

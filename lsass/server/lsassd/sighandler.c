@@ -60,6 +60,44 @@ LsaSrvInterruptHandler(
     }
 }
 
+static
+void
+LsaSrvHandleSIGHUP(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hServer = (HANDLE)NULL;
+
+    LSA_LOG_VERBOSE("Refreshing configuration");
+
+    dwError = LsaSrvOpenServer(
+                getuid(),
+                getgid(),
+                &hServer);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvRefreshConfiguration(hServer);
+    BAIL_ON_LSA_ERROR(dwError); 
+
+    LSA_LOG_INFO("Refreshed configuration successfully");
+
+cleanup:
+
+    if (hServer != (HANDLE)NULL)
+    {
+        LsaSrvCloseServer(hServer);
+    }
+
+    return;
+
+error:
+
+    LSA_LOG_ERROR("Failed to refresh configuration. [Error code:%d]", dwError);
+
+    goto cleanup;
+}
+
 DWORD
 LsaSrvHandleSignals(
     VOID
@@ -130,6 +168,14 @@ LsaSrvHandleSignals(
 
           {
              LSA_LOG_DEBUG("Handled SIGPIPE");
+
+             break;
+          }
+
+        case SIGHUP:
+
+          {
+             LsaSrvHandleSIGHUP();
 
              break;
           }

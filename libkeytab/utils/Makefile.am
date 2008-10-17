@@ -1,6 +1,8 @@
 lib_LTLIBRARIES = libktutils.la
 
-libktutils_la_CFLAGS = @LIBUNISTR_INCLUDES@
+libktutils_la_CFLAGS = \
+       $(AM_CFLAGS) \
+       @LIBUNISTR_INCLUDES@
 
 libktutils_la_SOURCES = \
        ktmem.c \

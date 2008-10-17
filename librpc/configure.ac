@@ -157,8 +157,13 @@ AC_SUBST(LWNET_LDFLAGS)
 AC_SUBST(KEYTAB_INCLUDES)
 AC_SUBST(KEYTAB_LDFLAGS)
 
-IDLFLAGS="$IDLFLAGS `(for i in ${CPPFLAGS} ${DCERPC_INCLUDES} ${UNISTR_INCLUDES}; do echo $i; done) | grep '^-I' | xargs`"
-
+for i in $CPPFLAGS ${DCERPC_INCLUDES} ${UNISTR_INCLUDES}; do
+    j=`echo $i | grep '^-I'`
+    if test x != x"$j"
+    then
+        IDLFLAGS="$IDLFLAGS $j"
+    fi
+done
 AC_SUBST(IDLFLAGS)	
 
 LIBICONV_LDFLAGS=""

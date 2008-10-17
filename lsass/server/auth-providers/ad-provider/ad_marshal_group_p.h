@@ -147,5 +147,11 @@ ADUnprovisionedMarshalToGroupCache(
     PAD_SECURITY_OBJECT*    ppGroupInfo
     );
 
+DWORD
+ADUnprovisionedMarshalToGroupCacheInOneWayTrust(
+    PLSA_LOGIN_NAME_INFO    pGroupNameInfo,
+    PAD_SECURITY_OBJECT*    ppGroupInfo
+    );
+
 #endif //__LSALDAP_MARSHAL_GROUP_P_H__
 

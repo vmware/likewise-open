@@ -44,11 +44,12 @@
 //Character indices to use in PRINT_TABLE option.
 //This allows printing a user-readable table to stdout that 80 characters wide.
 #define TABLOC_ID 0
-#define TABLOC_TYPE (TABLOC_ID+7)
-#define TABLOC_DATE (TABLOC_TYPE+12)
-#define TABLOC_TIME (TABLOC_DATE+11)
-#define TABLOC_SOURCE (TABLOC_TIME+14)
-#define TABLOC_CATEGORY (TABLOC_SOURCE+30)
+#define TABLOC_TYPE     (TABLOC_ID+7)
+#define TABLOC_DATE     (TABLOC_TYPE+20)
+#define TABLOC_TIME     (TABLOC_DATE+16)
+#define TABLOC_SOURCE   (TABLOC_TIME+14)
+#define TABLOC_CATEGORY (TABLOC_SOURCE+25)
+#define TABLOC_DATA     (TABLOC_CATEGORY+16)
 #define TABLOC_BORDER " | "
 
 //
@@ -438,7 +439,7 @@ ExportEventRecord (
     strftime(eventDate, 255, "%F", localtime(&eventTimeStruct));
     strftime(eventTime, 255, "%r", localtime(&eventTimeStruct));
 
-    fprintf(fpExport, "%d,%s,%s,%s,%s,%s,%d,%s,%s,\"%s\"\n",
+    fprintf(fpExport, "%d,%s,%s,%s,%s,%s,%d,%s,%s,\"%s\", \"%s\"\n",
         pRecord->dwEventTableCategoryId,
         eventDate, //PSTR
         eventTime, //PSTR
@@ -448,7 +449,8 @@ ExportEventRecord (
         pRecord->dwEventSourceId, //DWORD
         IsNullOrEmptyString(pRecord->pszUser) ? "<null>" : (PSTR)pRecord->pszUser,
         IsNullOrEmptyString(pRecord->pszComputer) ? "<null>" : (PSTR)pRecord->pszComputer,
-        IsNullOrEmptyString(pRecord->pszDescription) ? "<null>" : (PSTR)pRecord->pszDescription);
+        IsNullOrEmptyString(pRecord->pszDescription) ? "<null>" : (PSTR)pRecord->pszDescription,
+        IsNullOrEmptyString(pRecord->pszData) ? "<null>" : (PSTR)pRecord->pszData);
 
     return dwError;
 }
@@ -464,7 +466,7 @@ PrintEventRecordTableRow (
 {
 
     DWORD dwError = 0;
-    DWORD i = 0;
+    DWORD i = 0;   
 
     char eventDate[256];
     char eventTime[256];
@@ -487,7 +489,7 @@ PrintEventRecordTableRow (
     sprintf(buf,                  "%d", pRecord->dwEventRecordId);
 
     sprintf(buf+TABLOC_TYPE,     "%s%s", TABLOC_BORDER,
-        IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventType);
+        IsNullOrEmptyString(pRecord->pszEventType) ? "<null>" : (PSTR)pRecord->pszEventType);
 
     sprintf(buf+TABLOC_DATE,     "%s%s", TABLOC_BORDER,
         eventDate);
@@ -499,9 +501,13 @@ PrintEventRecordTableRow (
         IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventSource);
 
     sprintf(buf+TABLOC_CATEGORY, "%s%s", TABLOC_BORDER,
-        IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventCategory);
+        IsNullOrEmptyString(pRecord->pszEventCategory) ? "<null>" : (PSTR)pRecord->pszEventCategory);
+    
+    sprintf(buf+TABLOC_DATA, "%s%s", TABLOC_BORDER,
+        IsNullOrEmptyString(pRecord->pszData) ? "<null>" : (PSTR)pRecord->pszData);
+            
 
-    for (i = 0; i <= TABLOC_CATEGORY; i++) {
+    for (i = 0; i <= TABLOC_DATA; i++) {
         if (buf[i] == (char)0)
         {
             buf[i] = ' ';
@@ -892,8 +898,9 @@ PrintEventRecordsTable(
     sprintf(buf+TABLOC_TIME,     "%sTime", TABLOC_BORDER);
     sprintf(buf+TABLOC_SOURCE,   "%sSource", TABLOC_BORDER);
     sprintf(buf+TABLOC_CATEGORY, "%sCategory", TABLOC_BORDER);
+    sprintf(buf+TABLOC_DATA,     "%sData", TABLOC_BORDER);
 
-    for (i = 0; i <= TABLOC_CATEGORY; i++) {
+    for (i = 0; i <= TABLOC_DATA; i++) {
     if (buf[i] == (char)0) {
         buf[i] = ' ';
     }

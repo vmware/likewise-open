@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Private header for Active Directory Authentication Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -53,6 +53,69 @@
 
 #define AD_BUILTIN_GROUP_SID_PREFIX "S-1-5-32-"
 
+#define AD_DEFAULT_SHELL            "/bin/sh"
+
+#define AD_DEFAULT_UMASK            022
+
+#if defined(__LWI_DARWIN__)
+
+#define AD_DEFAULT_HOMEDIR_PREFIX "/Users"
+
+#elif defined(__LWI_SOLARIS__)
+
+#define AD_DEFAULT_HOMEDIR_PREFIX "/export/home"
+
+#else
+
+#define AD_DEFAULT_HOMEDIR_PREFIX "/home"
+#endif
+
+#if defined(__LWI_DARWIN__)
+    // ISSUE-2008/10/03-dalmeida -- The only difference between this and the
+    // createhomedir utility is that the latter uses locale info and sets
+    // "AppleLocale" in ~/Library/Preferences/.GlobalPreferences.plist
+    // The latter is done by adding at the end of the <dict> section:
+    //
+    //   <key>AppleLocale</key>
+    //   <string>en_US</string>
+    //
+    // To determine the right thing to do wrt locale, verify createhomedir
+    // behavior wrt locale.
+    //
+    // Note that we must do the non-localized first then the localized to
+    // make sure that the localized files overwrite non-localized ones.
+    // This actually comes into play, at least on Mac OS X 10.5.
+    // Note that this does not handle ACLs (ls -le), which are normally
+    // present, at least on Mac OS X 10.5.  But the default ACLs do
+    // not appear to be useful.
+
+#define AD_DEFAULT_SKELDIRS         "System/Library/User Template/Non_localized, /System/Library/User Template/English.lproj"
+
+#else
+
+#define AD_DEFAULT_SKELDIRS         "/etc/skel"
+
+#endif
+
+#define AD_DEFAULT_HOMEDIR_TEMPLATE "%H/%D/%U"
+
+#define AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS (5 * LSA_SECONDS_IN_MINUTE)
+#define AD_CACHE_REAPER_TIMEOUT_DEFAULT_SECS (30 * LSA_SECONDS_IN_DAY)
+#define AD_CACHE_REAPER_TIMEOUT_MAXIMUM_SECS (60 * LSA_SECONDS_IN_DAY)
+
+#define AD_CACHE_ENTRY_EXPIRY_MINIMUM_SECS   (0)
+#define AD_CACHE_ENTRY_EXPIRY_DEFAULT_SECS   (5 * LSA_SECONDS_IN_MINUTE)
+#define AD_CACHE_ENTRY_EXPIRY_MAXIMUM_SECS   (60 * LSA_SECONDS_IN_MINUTE)
+
+#define AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS LSA_SECONDS_IN_HOUR
+#define AD_MACHINE_PASSWORD_SYNC_DEFAULT_SECS (30 * LSA_SECONDS_IN_DAY)
+#define AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS (60 * LSA_SECONDS_IN_DAY)
+
+#define AD_NAME_SEPARATOR_DEFAULT            '^'
+
+#define AD_STR_IS_SID(str) \
+    (!IsNullOrEmptyString(str) && !strncasecmp(str, "s-", sizeof("s-")-1))
+
 typedef enum
 {
     SchemaMode = 0,
@@ -63,15 +126,6 @@ typedef enum
 #define DEFAULT_MODE		1
 #define CELL_MODE		2
 #define UNPROVISIONED_MODE	3
-
-typedef enum
-{
-    OneWayTrust = 0,
-    TwoWayTrust_inforest = 1,
-    TwoWayTrust_acrossforest = 2,
-    OneSelfTrust = 3, //this represents the single domain scenario
-    UnHandledTrust = 4
-} TrustMode;
 
 #endif /* __AD_DEF_H__ */
 

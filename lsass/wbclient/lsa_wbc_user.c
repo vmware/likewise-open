@@ -104,7 +104,7 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
 
 	/* Now lookup groups for user SID */
 
-	dwErr = LsaGetGroupsForUserName(hLsa, pszAccountName, 
+	dwErr = LsaGetGidsForUserByName(hLsa, pszAccountName, 
 					&dwNumGids, &gids);
 	BAIL_ON_LSA_ERR(dwErr);
 

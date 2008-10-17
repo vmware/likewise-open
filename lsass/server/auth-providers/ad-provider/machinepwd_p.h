@@ -68,7 +68,7 @@ ADSyncTimeToDC(
     PCSTR pszDomainFQDN
     );
 
-DWORD
+VOID
 ADShutdownMachinePasswordSync(
     VOID
     );
@@ -80,5 +80,10 @@ VOID
 ADSetMachineTGTExpiry(
 	DWORD dwGoodUntil
 	);
+
+VOID
+ADLogMachinePWUpdateFailureEvent(
+    DWORD dwErrCode
+    );
 
 #endif /* __MACHINEPWD_P_H__ */

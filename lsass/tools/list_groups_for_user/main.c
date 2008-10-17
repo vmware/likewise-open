@@ -180,7 +180,7 @@ main(
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaGetGroupsForUserName(
+    dwError = LsaGetGidsForUserByName(
                   hLsaConnection,
                   pszUserName,
                   &dwNumGroups,

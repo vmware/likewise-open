@@ -498,7 +498,7 @@ LsaNssCommonGroupGetGroupsByUserName(
     BAIL_ON_NSS_ERROR(ret);
     
     ret = MAP_LSA_ERROR(pErrorNumber,
-                        LsaGetGroupsForUserName(
+                        LsaGetGidsForUserByName(
                            hLsaConnection,
                            pszUserName,                           
                            &dwNumGroupsFound,

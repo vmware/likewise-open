@@ -54,6 +54,7 @@
  * license@likewisesoftware.com
  */
 
+#include "config.h"
 #include "ctexec.h"
 #include "ctshell.h"
 #include <sys/wait.h>
@@ -75,7 +76,6 @@ CTCaptureOutputWithStderr(
     PSTR* output
     )
 {
-    PCSTR args[] = { "/bin/sh", "-c", command, (char*) NULL };
     return CTShell("/bin/sh -c %command >%output 2>&%redirect_stderr",
                    CTSHELL_STRING(command, command),
                    CTSHELL_BUFFER(output, output),

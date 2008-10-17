@@ -5218,3 +5218,93 @@ error:
 
     goto cleanup;
 }
+
+DWORD
+LsaProviderLocal_DbGetUserCount(
+    HANDLE hDb,
+    PINT pUserCount)
+{
+    DWORD dwError = 0;
+    INT nUserCount = 0;    
+    int nCols = 0;    
+    PSTR* ppszResult = NULL;
+    PSTR pszError = NULL;    
+    sqlite3* pDbHandle = (sqlite3*)hDb;    
+    
+    dwError = sqlite3_get_table(pDbHandle,
+                                DB_QUERY_COUNT_EXISTING_USERS,
+                                &ppszResult,
+                                &nUserCount,
+                                &nCols,
+                                &pszError);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    if (nCols != 1) {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    *pUserCount = nUserCount;
+    
+cleanup:
+    if (ppszResult) {
+        sqlite3_free_table(ppszResult);
+    }
+    
+    return dwError;
+    
+error:
+
+    *pUserCount = 0;
+
+    if (pszError) {
+       sqlite3_free(pszError);
+    } 
+    
+    goto cleanup;
+}
+
+DWORD
+LsaProviderLocal_DbGetGroupCount(
+    HANDLE hDb,
+    PINT pGroupCount)
+{
+    DWORD dwError = 0;
+    INT nGroupCount = 0;    
+    int nCols = 0;    
+    PSTR* ppszResult = NULL;
+    PSTR pszError = NULL;    
+    sqlite3* pDbHandle = (sqlite3*)hDb;    
+    
+    dwError = sqlite3_get_table(pDbHandle,
+                                DB_QUERY_COUNT_EXISTING_GROUPS,
+                                &ppszResult,
+                                &nGroupCount,
+                                &nCols,
+                                &pszError);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    if (nCols != 1) {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    *pGroupCount = nGroupCount;
+    
+cleanup:
+    if (ppszResult) {
+        sqlite3_free_table(ppszResult);
+    }
+    
+    return dwError;
+    
+error:
+
+    *pGroupCount = 0;
+
+    if (pszError) {
+       sqlite3_free(pszError);
+    } 
+    
+    goto cleanup;
+}

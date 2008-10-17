@@ -53,8 +53,7 @@
 
 DWORD
 LsaDmEngineDiscoverTrusts(
-    IN PCSTR pszDnsPrimaryDomainName,
-    IN PCSTR pszDnsPrimaryForestName
+    IN PCSTR pszDnsPrimaryDomainName
     );
 
 #endif /* __LSA_DM_ENGINE_H__ */

@@ -111,6 +111,8 @@ LsaDmpAddTrustedDomain(
     IN DWORD dwTrustFlags,
     IN DWORD dwTrustType,
     IN DWORD dwTrustAttributes,
+    IN LSA_TRUST_DIRECTION dwTrustDirection,
+    IN LSA_TRUST_MODE dwTrustMode,
     IN OPTIONAL PCSTR pszDnsForestName,
     IN OPTIONAL PLWNET_DC_INFO pDcInfo
     );
@@ -159,6 +161,8 @@ LsaDmpQueryDomainInfo(
     OUT OPTIONAL PDWORD pdwTrustFlags,
     OUT OPTIONAL PDWORD pdwTrustType,
     OUT OPTIONAL PDWORD pdwTrustAttributes,
+    OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,
     OUT OPTIONAL PSTR* ppszForestName,
     OUT OPTIONAL PSTR* ppszClientSiteName,
     OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,

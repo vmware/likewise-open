@@ -23,7 +23,8 @@ liblsass_auth_provider_ad_la_SOURCES = \
        lsadm.c                   \
        lsadm_p.c                 \
        lsadmengine.c             \
-       lsadmwrap.c
+       lsadmwrap.c               \
+       media-sense.c
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
@@ -51,4 +52,6 @@ liblsass_auth_provider_ad_la_LDFLAGS = \
 	@PSTORE_LDFLAGS@ \
 	@NETAPI_LDFLAGS@ \
 	@NETLOGON_LDFLAGS@ \
-	@SQLITE_LDFLAGS@
+	@SQLITE_LDFLAGS@ \
+	@CF_FRAMEWORK_LDFLAGS@ \
+	@SC_FRAMEWORK_LDFLAGS@

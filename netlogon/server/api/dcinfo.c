@@ -249,6 +249,9 @@ LWNetSrvGetDCTime(
              NULL
         };
     UNIX_TIME_T result = 0;
+#ifndef HAVE_TIMEGM
+    struct tm epochTime = {0};
+#endif
 
     BAIL_ON_INVALID_POINTER(pDCTime);
 
@@ -283,8 +286,28 @@ LWNetSrvGetDCTime(
 #ifdef HAVE_TIMEGM
     ttDcTimeUTC = timegm(&dcTime);
 #else
-    tzset();
-    ttDcTimeUTC = mktime(&dcTime) - timezone;
+    epochTime.tm_mday = 1;
+    epochTime.tm_mon = 0;
+    epochTime.tm_year = 70;
+    /* AIX does not honor value 0 in tm_isdst (which should mean that daylight
+     * savings is not in effect). Instead AIX treats 0 like value -1 (check
+     * whether daylight savings is in effect based on time of year).
+     *
+     * AIX does however honor value 1 (which means that daylight savings is in
+     * effect). By setting tm_isdst to 1 in both epochTime and dcTime, they
+     * will cancel each other out.
+     */
+    epochTime.tm_isdst = 1;
+    dcTime.tm_isdst = 1;
+
+    /* 00:00 Jan 1, 1970 should be 0(time_t). Converting the epoch time
+     * and subtracting it adjusts for the local time zone.
+     *
+     * mktime(&epochTime) should be the same as the timezone global variable,
+     * but for some reason that variable is set to 0 on AIX, even after calling
+     * tzset.
+     */
+    ttDcTimeUTC = mktime(&dcTime) - mktime(&epochTime);
 #endif
 
     result = ttDcTimeUTC;

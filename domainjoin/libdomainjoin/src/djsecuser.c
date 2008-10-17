@@ -87,14 +87,14 @@ UnconfigureUserSecurity(
     GCE(ceError = CTSafeCloseFile(&fp));
 
     GCE(ceError = GetAuthSystem(&lines, &currentSystem));
-    beforeLwi = strstr(currentSystem, "LWIDENTITY");
+    beforeLwi = strstr(currentSystem, "LSASS");
     if(beforeLwi == NULL)
     {
         //Lwidentity is already not configured
         goto cleanup;
     }
 
-    afterLwi = beforeLwi + strlen("LWIDENTITY");
+    afterLwi = beforeLwi + strlen("LSASS");
     *beforeLwi = '\0';
     if(CTStrEndsWith(currentSystem, "or "))
         beforeLwi[-3] = '\0';
@@ -156,13 +156,13 @@ ConfigureUserSecurity(
     GCE(ceError = CTSafeCloseFile(&fp));
 
     GCE(ceError = GetAuthSystem(&lines, &currentSystem));
-    if(strstr(currentSystem, "LWIDENTITY") != NULL)
+    if(strstr(currentSystem, "LSASS") != NULL)
     {
         //Lwidentity is already configured
         goto cleanup;
     }
 
-    GCE(ceError = CTAllocateStringPrintf(&newSystem, "%s or LWIDENTITY", currentSystem));
+    GCE(ceError = CTAllocateStringPrintf(&newSystem, "%s or LSASS", currentSystem));
     GCE(ceError = SetAuthSystem(&lines, newSystem));
 
     GCE(ceError = CTAllocateStringPrintf(&pszTmpPath, "%s.new", pszFilePath));
@@ -211,12 +211,12 @@ static QueryResult QueryLamAuth(const JoinProcessOptions *options, LWException *
     LW_CLEANUP_CTERR(exc, GetAuthSystem(&lines, &currentSystem));
     if(options->joiningDomain)
     {
-        if(strstr(currentSystem, "LWIDENTITY") == NULL)
+        if(strstr(currentSystem, "LSASS") == NULL)
             goto cleanup;
     }
     else
     {
-        if(strstr(currentSystem, "LWIDENTITY") != NULL)
+        if(strstr(currentSystem, "LSASS") != NULL)
             goto cleanup;
     }
 
@@ -249,7 +249,7 @@ static PSTR GetLamAuthDescription(const JoinProcessOptions *options, LWException
     if(options->joiningDomain)
     {
         LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf( &ret,
-"Include lwidentity to the list of authentication modules by adding 'OR LWIDENTITY' to the SYSTEM value inside the default stanza of /etc/security/user"));
+"Include lwidentity to the list of authentication modules by adding 'OR LSASS' to the SYSTEM value inside the default stanza of /etc/security/user"));
     }
     else
     {

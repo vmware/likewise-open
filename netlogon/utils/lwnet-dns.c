@@ -1122,7 +1122,6 @@ LWNetDnsQueryWithBuffer(
     DWORD dwError = 0;
     PDNS_RESPONSE_HEADER pHeader = (PDNS_RESPONSE_HEADER)pBuffer;
     int responseSize =  0;
-    int retryCount = 0;
 
     // TODO: Add locking for res_init()?  See TODO wrt _res.options below.
     if (res_init() != 0)
@@ -1149,34 +1148,23 @@ LWNetDnsQueryWithBuffer(
         _res.options &= ~(RES_USEVC);
     }
 
-    while(TRUE)
+    responseSize = res_query(pszQuestion, ns_c_in, ns_t_srv,
+                             (PBYTE)pBuffer, dwBufferSize);
+    if (responseSize < 0)
     {
-        responseSize = res_query(pszQuestion, ns_c_in, ns_t_srv,
-                                 (PBYTE)pBuffer, dwBufferSize);
-        if (responseSize < 0)
-        {
-            LWNET_LOG_ERROR("DNS lookup for '%s' failed with errno %d, h_errno = %d", pszQuestion, errno, h_errno);
-            if (h_errno == TRY_AGAIN && retryCount < 5)
-            {
-                LWNET_LOG_ERROR("Going to retry DNS lookup for '%s'", pszQuestion);
-                retryCount++;
-                continue;
-            }
-            dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
-        if (responseSize < CT_FIELD_OFFSET(DNS_RESPONSE_HEADER, data))
-        {
-           dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
-           BAIL_ON_LWNET_ERROR(dwError);
-        }
-        if (responseSize > dwBufferSize)
-        {
-            dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
-
-        break;
+        LWNET_LOG_ERROR("DNS lookup for '%s' failed with errno %d, h_errno = %d", pszQuestion, errno, h_errno);
+        dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+    if (responseSize < CT_FIELD_OFFSET(DNS_RESPONSE_HEADER, data))
+    {
+       dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
+       BAIL_ON_LWNET_ERROR(dwError);
+    }
+    if (responseSize > dwBufferSize)
+    {
+        dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
+        BAIL_ON_LWNET_ERROR(dwError);
     }
 
     LWNetDnsFixHeaderForEndianness(pHeader);

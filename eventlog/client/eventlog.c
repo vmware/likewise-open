@@ -56,6 +56,7 @@ LWIFreeEventRecord(
     EVT_SAFE_FREE_STRING(pEventRecord->pszUser);
     EVT_SAFE_FREE_STRING(pEventRecord->pszComputer);
     EVT_SAFE_FREE_STRING(pEventRecord->pszDescription);
+    EVT_SAFE_FREE_MEMORY(pEventRecord->pszData);
 
     EVTFreeMemory(pEventRecord);
 
@@ -78,7 +79,8 @@ LWIFreeEventLogHandle(
     EVT_SAFE_FREE_MEMORY(pEventRecord->pszUser);
     EVT_SAFE_FREE_MEMORY(pEventRecord->pszComputer);
     EVT_SAFE_FREE_MEMORY(pEventRecord->pszDescription);
-    EVT_SAFE_FREE_MEMORY(pEventLogHandle->pszBindingString);
+    EVT_SAFE_FREE_MEMORY(pEventRecord->pszData);
+    EVT_SAFE_FREE_MEMORY(pEventLogHandle);
 }
 
 DWORD
@@ -87,14 +89,11 @@ LWIOpenEventLog(
     PHANDLE phEventLog
     )
 {
-    DWORD dwError = 0;
-    PEVENT_LOG_HANDLE* ppEventLogHandle = (PEVENT_LOG_HANDLE*) phEventLog;
+    volatile DWORD dwError = 0;
     PEVENT_LOG_HANDLE pEventLogHandle = NULL;
     char serverNameLocal[1024];
 
     handle_t eventBindingLocal = 0;
-    char* bindingStringLocal = NULL;
-    
 
 #ifdef _WIN32
     if (gBasicLogStreamFD == NULL) {
@@ -103,14 +102,12 @@ LWIOpenEventLog(
     }
 #endif //!_WIN32
 
-    EVT_LOG_VERBOSE("client::eventlog.c OpenEventLog(*ppEventLogHandle=%.16X, server=%s)\n",
-            *ppEventLogHandle, pszServerName);
+    EVT_LOG_VERBOSE("client::eventlog.c OpenEventLog(*phEventLog=%.16X, server=%s)\n",
+            *phEventLog, pszServerName);
 
-    dwError = EVTAllocateMemory(sizeof(EVENT_LOG_HANDLE), (PVOID*) ppEventLogHandle);
+    dwError = EVTAllocateMemory(sizeof(EVENT_LOG_HANDLE), (PVOID*) &pEventLogHandle);
     BAIL_ON_EVT_ERROR(dwError);
     
-    pEventLogHandle = *ppEventLogHandle;
-
     pEventLogHandle->bDefaultActive = FALSE;
 
     if (IsNullOrEmptyString(pszServerName))
@@ -120,20 +117,23 @@ LWIOpenEventLog(
         dwError = EVTGetHostname(&pszDefaultHostName);
         BAIL_ON_EVT_ERROR(dwError);
         
-        sprintf(serverNameLocal, "%s", pszDefaultHostName);
+        strncpy((char *)serverNameLocal,
+                 pszDefaultHostName,
+                 sizeof(serverNameLocal));
         
         EVT_SAFE_FREE_STRING(pszDefaultHostName);
     }
     else
     {
-        strcpy(serverNameLocal, pszServerName);
+        strncpy((char *)serverNameLocal,
+                pszServerName,
+                sizeof(serverNameLocal));
     }
     
 
     TRY
     {
         dwError = LWICreateEventLogRpcBinding(pszServerName,
-                                              &bindingStringLocal,
                                               &eventBindingLocal);
     }
     CATCH_ALL
@@ -159,13 +159,22 @@ LWIOpenEventLog(
     BAIL_ON_EVT_ERROR(dwError);
 
     pEventLogHandle->bindingHandle = (ULONG) eventBindingLocal;
-    pEventLogHandle->pszBindingString = (PSTR)bindingStringLocal;
+    *phEventLog = (HANDLE)pEventLogHandle;
+
 
 cleanup:
     return dwError;
 
 error:
     EVT_LOG_ERROR("Failed to open event log. Error code [%d]\n", dwError);
+
+    if (pEventLogHandle)
+    {
+        LWIFreeEventLogHandle((HANDLE)pEventLogHandle);
+    }
+
+    *phEventLog = (HANDLE) NULL;
+
     goto cleanup;
 
 }
@@ -215,13 +224,23 @@ LWIOpenEventLogEx(
 
     *phEventLog = hEventLogLocal;
 
- error:
+cleanup:
 
     EVT_LOG_VERBOSE("client::eventlog.c OpenEventLog(*phEventLog=%.16X)\n",
             *phEventLog);
 
     return dwError;
 
+error:
+
+    if (hEventLogLocal)
+    {
+        LWIFreeEventLogHandle(hEventLogLocal);
+    }
+
+    *phEventLog = (HANDLE)NULL;
+
+    goto cleanup;
 }
 
 
@@ -230,7 +249,7 @@ LWICloseEventLog(
     HANDLE hEventLog
     )
 {
-    DWORD dwError = 0;
+    volatile DWORD dwError = 0;
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
 
     if (pEventLogHandle == NULL) {
@@ -243,24 +262,27 @@ LWICloseEventLog(
         dwError = RpcLWICloseEventLog(
             (handle_t)(ULONG) pEventLogHandle->bindingHandle
             );
-        BAIL_ON_EVT_ERROR(dwError);
     }
     CATCH_ALL
     {
         dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_CLOSE);
-        BAIL_ON_EVT_ERROR(dwError);
     }
-    ENDTRY
+    ENDTRY;
+
+    BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
-    return dwError;
-
-error:
-    EVT_LOG_ERROR("Failed to close event log. Error code [%d]\n", dwError);
     if (pEventLogHandle)
     {
         LWIFreeEventLogHandle((HANDLE)pEventLogHandle);
     }
+
+    return dwError;
+
+error:
+
+    EVT_LOG_ERROR("Failed to close event log. Error code [%d]\n", dwError);
+
     goto cleanup;
 }
 
@@ -275,7 +297,7 @@ LWIReadEventLog(
     EVENT_LOG_RECORD** eventRecords
     )
 {
-    DWORD dwError = 0;
+    volatile DWORD dwError = 0;
     char* sqlFilterChar = NULL;
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
 
@@ -300,14 +322,15 @@ LWIReadEventLog(
                     (idl_char*)sqlFilterChar, 
                     (unsigned32*)pdwNumReturned, 
                     *eventRecords);
-        BAIL_ON_EVT_ERROR(dwError);
     }
     CATCH_ALL
     {
         dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_READ);
-        BAIL_ON_EVT_ERROR(dwError);
     }
-    ENDTRY
+    ENDTRY;
+
+    BAIL_ON_EVT_ERROR(dwError);
+
 
 cleanup:
     return dwError;
@@ -325,7 +348,7 @@ LWICountEventLog(
     DWORD* pdwNumMatched
     )
 {
-    DWORD dwError = 0;
+    volatile DWORD dwError = 0;
     char* sqlFilterChar = NULL;
 
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
@@ -346,14 +369,14 @@ LWICountEventLog(
                     (handle_t)(ULONG) pEventLogHandle->bindingHandle,
                     (idl_char*)sqlFilterChar,
                     (unsigned32*)pdwNumMatched);
-        BAIL_ON_EVT_ERROR(dwError);
     }
     CATCH_ALL
     {
         dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_COUNT);
-        BAIL_ON_EVT_ERROR(dwError);
     }
-    ENDTRY
+    ENDTRY;
+
+    BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
     return dwError;
@@ -394,9 +417,9 @@ LWISetEventLogType(
     PEVENT_LOG_RECORD pEventRecord = &(pEventLogHandle->defaultEventLogRecord);
 
     if (!IsNullOrEmptyString(pszEventType)) {
-    dwError = EVTAllocateString(pszEventType, (&pEventRecord->pszEventType));
-    BAIL_ON_EVT_ERROR(dwError);
-    pEventLogHandle->bDefaultActive = TRUE;
+        dwError = EVTAllocateString(pszEventType, (&pEventRecord->pszEventType));
+        BAIL_ON_EVT_ERROR(dwError);
+        pEventLogHandle->bDefaultActive = TRUE;
     }
 
 error:
@@ -416,14 +439,14 @@ LWISetEventLogSource(
     PEVENT_LOG_RECORD pEventRecord = &(pEventLogHandle->defaultEventLogRecord);
 
     if (!IsNullOrEmptyString(pszEventSource)) {
-    dwError = EVTAllocateString(pszEventSource, (&pEventRecord->pszEventSource));
-    BAIL_ON_EVT_ERROR(dwError);
-    pEventLogHandle->bDefaultActive = TRUE;
+        dwError = EVTAllocateString(pszEventSource, (&pEventRecord->pszEventSource));
+        BAIL_ON_EVT_ERROR(dwError);
+        pEventLogHandle->bDefaultActive = TRUE;
     }
 
     if (pEventRecord->dwEventSourceId != dwEventSourceId) {
-    pEventRecord->dwEventSourceId = dwEventSourceId;
-    pEventLogHandle->bDefaultActive = TRUE;
+        pEventRecord->dwEventSourceId = dwEventSourceId;
+        pEventLogHandle->bDefaultActive = TRUE;
     }
 
 error:
@@ -442,11 +465,11 @@ LWISetEventLogTableCategory(
     PEVENT_LOG_RECORD pEventRecord = &(pEventLogHandle->defaultEventLogRecord);
 
     if (!IsNullOrEmptyString(pszEventCategory)) {
-    dwError = EVTAllocateString(pszEventCategory, (&pEventRecord->pszEventCategory));
-    BAIL_ON_EVT_ERROR(dwError);
-    pEventLogHandle->bDefaultActive = TRUE;
+        dwError = EVTAllocateString(pszEventCategory, (&pEventRecord->pszEventCategory));
+        BAIL_ON_EVT_ERROR(dwError);
+        pEventLogHandle->bDefaultActive = TRUE;
     }
-
+    
 error:
     return dwError;
 }
@@ -463,7 +486,7 @@ LWISetEventLogUser(
     PEVENT_LOG_RECORD pEventRecord = &(pEventLogHandle->defaultEventLogRecord);
 
     if (IsNullOrEmptyString(pszUser)) {
-    #ifndef _WIN32
+#ifndef _WIN32
     uid_t processUID = getuid();
     struct passwd* processPWD = getpwuid(processUID);
     if (!IsNullOrEmptyString(processPWD->pw_name)) {
@@ -471,14 +494,14 @@ LWISetEventLogUser(
         BAIL_ON_EVT_ERROR(dwError);
         pEventLogHandle->bDefaultActive = TRUE;
     }
-    #endif
+#endif
     }
     else {
-    dwError = EVTAllocateString(pszUser, (&pEventRecord->pszUser));
-    BAIL_ON_EVT_ERROR(dwError);
-    pEventLogHandle->bDefaultActive = TRUE;
+        dwError = EVTAllocateString(pszUser, (&pEventRecord->pszUser));
+        BAIL_ON_EVT_ERROR(dwError);
+        pEventLogHandle->bDefaultActive = TRUE;
     }
-
+    
  error:
     return dwError;
 }
@@ -499,18 +522,18 @@ LWISetEventLogComputer(
         char currentHost[129];
         dwError = gethostname(currentHost, 128);
         if (!IsNullOrEmptyString(currentHost)) {
-    dwError = EVTAllocateString(currentHost, (&pEventRecord->pszComputer));
-    BAIL_ON_EVT_ERROR(dwError);
-    pEventLogHandle->bDefaultActive = TRUE;
+            dwError = EVTAllocateString(currentHost, (&pEventRecord->pszComputer));
+            BAIL_ON_EVT_ERROR(dwError);
+            pEventLogHandle->bDefaultActive = TRUE;
         }
 #endif
     }
     else {
-    dwError = EVTAllocateString(pszComputer, (&pEventRecord->pszComputer));
-    BAIL_ON_EVT_ERROR(dwError);
-    pEventLogHandle->bDefaultActive = TRUE;
+        dwError = EVTAllocateString(pszComputer, (&pEventRecord->pszComputer));
+        BAIL_ON_EVT_ERROR(dwError);
+        pEventLogHandle->bDefaultActive = TRUE;
     }
-
+    
 error:
     return dwError;
 }
@@ -522,12 +545,12 @@ LWIWriteEventLogBase(
     EVENT_LOG_RECORD eventRecord
     )
 {
-    DWORD dwError = 0;
+    volatile DWORD dwError = 0;
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
+    EVENT_LOG_RECORD  eventRecordLocal = eventRecord;
 
     EVT_LOG_VERBOSE("client::eventlog.c WriteEventLog(pEventLogHandle=%.16X, computer=%s)\n",
         pEventLogHandle, (IsNullOrEmptyString(eventRecord.pszComputer) ? "" : eventRecord.pszComputer));
-
 
     //Copy any empty fields from defaults
     if (pEventLogHandle->bDefaultActive)
@@ -537,67 +560,63 @@ LWIWriteEventLogBase(
 
     EVT_LOG_VERBOSE("client::eventlog.c WriteEventLog() checking defaults\n");
 
-    if (eventRecord.dwEventTableCategoryId == TABLE_CATEGORY_SENTINEL &&
+    if (eventRecordLocal.dwEventTableCategoryId == TABLE_CATEGORY_SENTINEL &&
         pEventLogHandle->defaultEventLogRecord.dwEventTableCategoryId != TABLE_CATEGORY_SENTINEL)
     {
-        eventRecord.dwEventTableCategoryId = pEventLogHandle->defaultEventLogRecord.dwEventTableCategoryId;
+        eventRecordLocal.dwEventTableCategoryId = pEventLogHandle->defaultEventLogRecord.dwEventTableCategoryId;
     }
 
-    if (eventRecord.dwEventDateTime == 0)
+    if (eventRecordLocal.dwEventDateTime == 0)
     {
         if (pEventLogHandle->defaultEventLogRecord.dwEventDateTime != 0)
         {
-        eventRecord.dwEventDateTime = pEventLogHandle->defaultEventLogRecord.dwEventDateTime;
+            eventRecordLocal.dwEventDateTime = pEventLogHandle->defaultEventLogRecord.dwEventDateTime;
         }
         else {
-        eventRecord.dwEventDateTime = (DWORD) time(NULL);
+            eventRecordLocal.dwEventDateTime = (DWORD) time(NULL);
         }
     }
 
     pszDefault = pEventLogHandle->defaultEventLogRecord.pszEventSource;
-    if (IsNullOrEmptyString(eventRecord.pszEventSource) && !IsNullOrEmptyString(pszDefault))
+    if (IsNullOrEmptyString(eventRecordLocal.pszEventSource) && !IsNullOrEmptyString(pszDefault))
     {
-        dwError = EVTAllocateMemory(sizeof(char)*(strlen(pszDefault)+1), (PVOID*) &(eventRecord.pszEventSource));
-        BAIL_ON_EVT_ERROR(dwError);
-        strcpy(eventRecord.pszEventSource, pszDefault);
+        eventRecordLocal.pszEventSource = pszDefault;
     }
 
     pszDefault = pEventLogHandle->defaultEventLogRecord.pszEventCategory;
-    if (IsNullOrEmptyString(eventRecord.pszEventCategory) && !IsNullOrEmptyString(pszDefault))
+    if (IsNullOrEmptyString(eventRecordLocal.pszEventCategory) && !IsNullOrEmptyString(pszDefault))
     {
-        dwError = EVTAllocateMemory(sizeof(char)*(strlen(pszDefault)+1), (PVOID*) &(eventRecord.pszEventCategory));
-        BAIL_ON_EVT_ERROR(dwError);
-        strcpy(eventRecord.pszEventCategory, pszDefault);
+        eventRecordLocal.pszEventCategory = pszDefault;
     }
 
     dwDefault = pEventLogHandle->defaultEventLogRecord.dwEventSourceId;
-    if (eventRecord.dwEventSourceId == 0 && dwDefault != 0)
+    if (eventRecordLocal.dwEventSourceId == 0 && dwDefault != 0)
     {
-        eventRecord.dwEventSourceId = dwDefault;
+        eventRecordLocal.dwEventSourceId = dwDefault;
     }
 
     pszDefault = pEventLogHandle->defaultEventLogRecord.pszUser;
-    if (IsNullOrEmptyString(eventRecord.pszUser) && !IsNullOrEmptyString(pszDefault))
+    if (IsNullOrEmptyString(eventRecordLocal.pszUser) && !IsNullOrEmptyString(pszDefault))
     {
-        dwError = EVTAllocateMemory(sizeof(char)*(strlen(pszDefault)+1), (PVOID*) &(eventRecord.pszUser));
-        BAIL_ON_EVT_ERROR(dwError);
-        strcpy(eventRecord.pszUser, pszDefault);
+        eventRecordLocal.pszUser = pszDefault;
     }
 
     pszDefault = pEventLogHandle->defaultEventLogRecord.pszComputer;
-    if (IsNullOrEmptyString(eventRecord.pszComputer) && !IsNullOrEmptyString(pszDefault))
+    if (IsNullOrEmptyString(eventRecordLocal.pszComputer) && !IsNullOrEmptyString(pszDefault))
     {
-        dwError = EVTAllocateMemory(sizeof(char)*(strlen(pszDefault)+1), (PVOID*) &(eventRecord.pszComputer));
-        BAIL_ON_EVT_ERROR(dwError);
-        strcpy(eventRecord.pszComputer, pszDefault);
+        eventRecordLocal.pszComputer = pszDefault;
     }
 
     pszDefault = pEventLogHandle->defaultEventLogRecord.pszDescription;
-    if (IsNullOrEmptyString(eventRecord.pszDescription) && !IsNullOrEmptyString(pszDefault))
+    if (IsNullOrEmptyString(eventRecordLocal.pszDescription) && !IsNullOrEmptyString(pszDefault))
     {
-        dwError = EVTAllocateMemory(sizeof(char)*(strlen(pszDefault)+1), (PVOID*) &(eventRecord.pszDescription));
-        BAIL_ON_EVT_ERROR(dwError);
-        strcpy(eventRecord.pszDescription, pszDefault);
+        eventRecordLocal.pszDescription = pszDefault;
+    }
+    
+    pszDefault = pEventLogHandle->defaultEventLogRecord.pszData;
+    if (IsNullOrEmptyString(eventRecordLocal.pszData) && !IsNullOrEmptyString(pszDefault))
+    {
+        eventRecordLocal.pszData = pszDefault;
     }
 
     } //end if (bDefaultActive)
@@ -606,17 +625,18 @@ LWIWriteEventLogBase(
     {
         dwError = RpcLWIWriteEventLog(
                     (handle_t)(ULONG) pEventLogHandle->bindingHandle,
-                    eventRecord);
-        BAIL_ON_EVT_ERROR(dwError);
+                    eventRecordLocal);
     }
     CATCH_ALL
     {
         dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_WRITE);        
-        BAIL_ON_EVT_ERROR(dwError);
     }
-    ENDTRY
+    ENDTRY;
+
+    BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
+
     return dwError;
     
 error:
@@ -631,7 +651,8 @@ LWIWriteEventLog(
     HANDLE hEventLog,
     PCSTR eventType,
     PCSTR eventCategory,
-    PCSTR eventDescription
+    PCSTR eventDescription,
+    PCSTR eventData
     )
 {
 
@@ -648,7 +669,8 @@ LWIWriteEventLog(
     eventRecord.dwEventSourceId = 0;
     eventRecord.pszUser = NULL;
     eventRecord.pszComputer = NULL;
-    eventRecord.pszDescription = (PSTR)eventDescription;
+    eventRecord.pszDescription = (PSTR)eventDescription;   
+    eventRecord.pszData = (PSTR)eventData;
 
     dwError = LWIWriteEventLogBase(
     hEventLog,
@@ -666,7 +688,7 @@ LWIDeleteFromEventLog(
     PCWSTR sqlFilter
     )
 {
-    DWORD dwError = 0;
+    volatile DWORD dwError = 0;
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
     PSTR sqlFilterChar = NULL;
 
@@ -678,14 +700,15 @@ LWIDeleteFromEventLog(
         dwError = RpcLWIDeleteFromEventLog(
                     (handle_t)(ULONG) pEventLogHandle->bindingHandle,
                     (idl_char*)sqlFilterChar);
-        BAIL_ON_EVT_ERROR(dwError);
     }
     CATCH_ALL
     {
         dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_DELETE);
-        BAIL_ON_EVT_ERROR(dwError);
     }
-    ENDTRY
+    ENDTRY;
+
+    BAIL_ON_EVT_ERROR(dwError);
+
 
 cleanup:
     return dwError;
@@ -700,21 +723,21 @@ LWIClearEventLog(
     HANDLE hEventLog
     )
 {
-    DWORD dwError = 0;
+    volatile DWORD dwError = 0;
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
 
     TRY
     {
         dwError = RpcLWIClearEventLog(
                     (handle_t)(ULONG) pEventLogHandle->bindingHandle);
-        BAIL_ON_EVT_ERROR(dwError);
     }
     CATCH_ALL
     {
         dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_CLEAR);
-        BAIL_ON_EVT_ERROR(dwError);
     }
-    ENDTRY
+    ENDTRY;
+
+    BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
     return dwError;

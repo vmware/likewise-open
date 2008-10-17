@@ -5,7 +5,7 @@ error_srcdir=$(top_srcdir)/Error
 lib_LTLIBRARIES = libnetapi.la
 
 libnetapi_la_SOURCES = \
-	globals.c NetConnection.c \
+	globals.c NetConnection.c NetMemory.c \
         NetUserEnum.c NetUserAdd.c NetLibUserInfo.c \
 	NetUserDel.c NetUser.c NetUserGetInfo.c NetUserSetInfo.c \
 	GroupInfo.c NetUserGetLocalGroups.c NetLocalGroupEnum.c \

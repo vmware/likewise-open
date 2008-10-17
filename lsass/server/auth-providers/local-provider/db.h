@@ -315,5 +315,15 @@ LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
     DWORD  dwUserInfoFlags
     );
 
+DWORD
+LsaProviderLocal_DbGetUserCount(
+    HANDLE hDb,
+    PINT pUserCount);
+
+DWORD
+LsaProviderLocal_DbGetGroupCount(
+    HANDLE hDb,
+    PINT pGroupCount);
+
 #endif /* __LSASSDB_H__ */
 

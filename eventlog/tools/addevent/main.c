@@ -101,6 +101,10 @@ BuildEventRecord(
     dwError = EVTAllocateString(
     "a useful description, within quotes",
     (PSTR*)(&pEventRecord->pszDescription));
+    
+    dwError = EVTAllocateString(
+    "Hex string representing the associated error code of this event",
+    (PSTR*)(&pEventRecord->pszData));
 
     BAIL_ON_EVT_ERROR(dwError);
 
@@ -135,6 +139,7 @@ main(
     char category[1024];
     char description[1024];
     char rand_str[1024];
+    char hostname[256];
 
     EVENT_LOG_RECORD* pEventRecord = NULL;
 
@@ -142,10 +147,15 @@ main(
     num_iters = atoi(argv[1]);
     }
 
+    dwError = gethostname(
+                  hostname,
+                  sizeof(hostname));
+    BAIL_ON_EVT_ERROR(dwError);
+
     TRY
     {
 
-    dwError = LWIOpenEventLogEx(NULL,
+    dwError = LWIOpenEventLogEx(hostname,
                     TableCategorySystem,       // DWORD dwEventTableCategoryId
                     "DefaultEventSource",      //char * pszEventSource
                     123,                       //DWORD dwEventSourceId
@@ -157,8 +167,9 @@ main(
     dwError = LWIWriteEventLog(hEventLog,
                     "smallishEventType",
                     "littleCategory",
-                    "shortDescription");
-        BAIL_ON_EVT_ERROR(dwError);
+                    "shortDescription",
+                    "<null>");
+    BAIL_ON_EVT_ERROR(dwError);
 
     dwError = LWISetEventLogUser(hEventLog,
                      "AStrangeUser");
@@ -167,7 +178,8 @@ main(
     dwError = LWIWriteEventLog(hEventLog,
                     "smallishEventType",
                     "littleCategory",
-                    "A slightly different shortDescription");
+                    "A slightly different shortDescription",
+                    "<null>");
         BAIL_ON_EVT_ERROR(dwError);
 
     dwError = BuildEventRecord(&pEventRecord);
@@ -210,7 +222,8 @@ main(
         dwError = LWIWriteEventLog(hEventLog,
                         type,
                         category,
-                        description);
+                        description,
+                        "<null>");
         BAIL_ON_EVT_ERROR(dwError);
     }
 

@@ -669,16 +669,16 @@
 #ifdef __ERROR_WIN32__
 #define ERROR_SUCCESS              0
 #define ERROR_INVALID_FUNCTION     1
+#define ERROR_ACCESS_DENIED        5
 #define ERROR_OUTOFMEMORY          14
 #define ERROR_MORE_DATA            234
 #define ERROR_INVALID_LEVEL        124
-#define ERROR_INVALID_PARAMETER    86
+#define ERROR_INVALID_PARAMETER    87
 #define ERROR_NO_SUCH_ALIAS        1376
 #define ERROR_INVALID_MEMBER       1388
 #define ERROR_MEMBER_IN_ALIAS      1378
 #define ERROR_NO_SUCH_MEMBER       1387
 #define ERROR_MEMBER_NOT_IN_ALIAS  1377
-#define ERROR_ACCESS_DENIED        5
 #define ERROR_NONE_MAPPED          1332
 /* NetApi error codes */
 #define NERR_AccountAlreadyExists  2224

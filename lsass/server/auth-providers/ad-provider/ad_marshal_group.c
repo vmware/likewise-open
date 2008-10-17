@@ -275,11 +275,6 @@ ADMarshalToGroupCacheEx(
         case DEFAULT_MODE:
         case CELL_MODE:
             
-            if (!pMessagePseudo){
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError); 
-            }
-             
              switch (adConfMode) 
              {
                  case SchemaMode:
@@ -416,6 +411,15 @@ ADMarshalFromGroupCache(
     if(pGroup->type != AccountType_Group)
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (!pGroup->enabled)
+    {
+        /* Unenabled groups can be represented in cache format, but not in
+         * group info format. So when marshalling an unenabled group, pretend
+         * like it doesn't exist.
+         */
+        dwError = LSA_ERROR_OBJECT_NOT_ENABLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1617,6 +1621,89 @@ error:
 }
 
 DWORD
+ADUnprovisionedMarshalToGroupCacheInOneWayTrust(
+    PLSA_LOGIN_NAME_INFO    pGroupNameInfo,
+    PAD_SECURITY_OBJECT*    ppGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    PAD_SECURITY_OBJECT pGroupInfo = NULL;    
+    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier = NULL;    
+    struct timeval current_tv;    
+    
+    dwError = LsaAllocateMemory(
+                    sizeof(AD_SECURITY_OBJECT),
+                    (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (gettimeofday(&current_tv, NULL) < 0)
+    {
+        dwError = errno;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    pGroupInfo->cache.qwCacheId = -1;
+    pGroupInfo->cache.tLastUpdated = current_tv.tv_sec;
+
+    pGroupInfo->type = AccountType_Group;
+
+    pGroupInfo->enabled = TRUE;
+    
+    //Group SamAccountName (generate using group name)
+    dwError = LsaAllocateString(
+                    pGroupNameInfo->pszName,
+                    &pGroupInfo->pszSamAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pGroupInfo->groupInfo.pszAliasName = NULL;
+    pGroupInfo->groupInfo.pszPasswd = NULL;
+
+    dwError = LsaAllocateString(
+                pGroupNameInfo->pszDomainNetBiosName,
+                &pGroupInfo->pszNetbiosDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    pGroupInfo->pszDN = NULL;
+    
+    //ObjectSid
+    dwError = LsaAllocateString(
+                pGroupNameInfo->pszObjectSid,
+                &pGroupInfo->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    //GID
+    dwError = LsaAllocSecurityIdentifierFromString(
+                    pGroupNameInfo->pszObjectSid,
+                    &pSecurityIdentifier);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    dwError = LsaGetSecurityIdentifierHashedRid(
+                    pSecurityIdentifier,
+                   (PDWORD)&pGroupInfo->groupInfo.gid);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    *ppGroupInfo = pGroupInfo;    
+    
+cleanup:
+
+    if (pSecurityIdentifier)
+    {
+        LsaFreeSecurityIdentifier(pSecurityIdentifier);
+    }
+    
+    return dwError;
+    
+error:
+
+    *ppGroupInfo = NULL;
+    
+    ADCacheDB_SafeFreeObject(&pGroupInfo);
+
+    goto cleanup;
+}
+
+
+DWORD
 ADUnprovisionedMarshalGroupInfo_0(
     HANDLE       hDirectory,
     PCSTR        pszNetBIOSDomainName,
@@ -1683,6 +1770,7 @@ cleanup:
         LsaFreeSecurityIdentifier(pSecurityIdentifier);
     }
     
+    LSA_SAFE_FREE_MEMORY(pucSIDBytes);
     LSA_SAFE_FREE_STRING(pszGroupName);
 
     return dwError;
@@ -1774,7 +1862,7 @@ cleanup:
     {
         LsaFreeSecurityIdentifier(pSecurityIdentifier);
     }
-
+    LSA_SAFE_FREE_MEMORY(pucSIDBytes);
     LSA_SAFE_FREE_STRING(pszGroupName);
 
     return dwError;
@@ -2513,6 +2601,8 @@ cleanup:
         LsaFreeStringArray(ppszValues, dwNumValues);
     }
     
+    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
+    
     return dwError;
 
 error:
@@ -2691,6 +2781,8 @@ cleanup:
     if (ppszValues) {
         LsaFreeStringArray(ppszValues, dwNumValues);
     }
+    
+    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
     
     return dwError;
 

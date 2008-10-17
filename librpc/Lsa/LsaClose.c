@@ -38,15 +38,7 @@ NTSTATUS LsaClose(handle_t b, PolicyHandle *handle)
     goto_if_invalid_param_ntstatus(b, done);
     goto_if_invalid_param_ntstatus(handle, done);
 
-    TRY
-    {
-        status = _LsaClose(b, handle);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_LsaClose(b, handle));
 
 done:
     return status;

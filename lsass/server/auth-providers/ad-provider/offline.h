@@ -50,6 +50,15 @@
 #ifndef __OFFLINE_H__
 #define __OFFLINE_H__
 
+DWORD
+AD_OfflineGetExpandedGroupUsers(
+    IN PCSTR pszGroupSid,
+    IN DWORD dwMaxDepth,
+    OUT PBOOLEAN pbIsFullyExpanded,
+    OUT size_t* psMemberUsersCount,
+    OUT PAD_SECURITY_OBJECT** pppMemberUsers
+    );
+
 BOOLEAN
 AD_IsOffline(
     VOID
@@ -86,11 +95,10 @@ AD_OfflineEnumUsers(
     );
 
 DWORD
-AD_OfflineFindGroupByName(
-    HANDLE  hProvider,
-    PCSTR   pszGroupName,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+AD_OfflineFindGroupObjectByName(
+    IN HANDLE hProvider,
+    IN PCSTR pszGroupName,
+    OUT PAD_SECURITY_OBJECT *ppResult
     );
 
 DWORD
@@ -102,12 +110,11 @@ AD_OfflineFindGroupById(
     );
 
 DWORD
-AD_OfflineGetUserGroupMembership(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
+AD_OfflineGetUserGroupObjectMembership(
+    HANDLE hProvider,
+    uid_t uid,
+    size_t* psNumGroupsFound,
+    PAD_SECURITY_OBJECT** pppResult
     );
 
 DWORD
@@ -155,8 +162,9 @@ AD_OfflineFindUserObjectByName(
 
 DWORD
 AD_OfflineInitializeOperatingMode(
-    PCSTR pszDomain,
-    PCSTR pszHostName
+    OUT PAD_PROVIDER_DATA* ppProviderData,
+    IN PCSTR pszDomain,
+    IN PCSTR pszHostName
     );
 
 #endif /* __OFFLINE_H__ */
