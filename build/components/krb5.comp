@@ -1,0 +1,108 @@
+#!/bin/sh
+
+#
+# krb5.comp -- see ../../helper.sh for how this file works.
+#
+
+COMP_SOURCES=${BUILD_ROOT}/krb5
+
+function _setup_build_env
+{
+    set_compiler_env
+
+    cd ${COMP_SOURCES}/src
+
+    CFLAGS="${_cflags} -fPIC"
+    LDFLAGS="${_ldflags}"
+
+    DEFINES="-D_FILE_OFFSET_BITS=64"
+
+    CFLAGS="$CFLAGS $DEFINES"
+    CPPFLAGS="$DEFINES"
+
+    export DEFINES CFLAGS CPPFLAGS LDFLAGS
+}
+
+function component_configure
+{
+    _setup_build_env
+
+    top=`pwd`
+
+    for configurein in `find . -name configure.in` ; do
+    	pushd `dirname $configurein`
+    	autoconf -I "$top"
+    	popd
+    done
+
+    ./configure \
+        CC="${CC}" \
+        CFLAGS="${CFLAGS}" \
+        CPPFLAGS="${CPPFLAGS}" \
+        LDFLAGS="${LDFLAGS}" \
+	--prefix=${PREFIXDIR} \
+	--exec-prefix=${PREFIXDIR} \
+	--libdir=${PREFIXDIR}/${_lib} \
+	--includedir=${PREFIXDIR}/include \
+        --sysconfdir=${SYSCONFDIR} \
+	--enable-shared \
+	--without-krb4 \
+        --without-tcl
+}
+
+function component_build
+{
+    _setup_build_env
+
+        # Now build it.  Override the RPATH_FLAG and PROG_LIBPATH to drop the
+        # rpath, and override LDCOMBINE to use gcc instead of ld to build
+        # shared libraries.
+
+	${MAKE} \
+	    RPATH_FLAG= \
+	    RPATH_TAIL= \
+	    PROG_RPATH= \
+	    LDCOMBINE='${CC} -shared -Wl,-soname=lib$(LIB)$(SHLIBSEXT) $(CFLAGS)' \
+	    SHLIB_EXPFLAGS='$(CFLAGS) $(SHLIB_DIRS) $(SHLIB_EXPLIBS) $(LDFLAGS)' \
+	    ${_mflags}
+}
+
+function component_install
+{
+    _setup_build_env
+
+    local INSTALL_ROOT="${STAGE_INSTALL_DIR}-krb5"
+    local INSTALL_PREFIX_DIR="${INSTALL_ROOT}/${PREFIXDIR}"
+    local STAGING_PREFIX_DIR="${STAGE_INSTALL_DIR}/${PREFIXDIR}"
+    local STAGING_SYSCONF_DIR="${STAGE_INSTALL_DIR}/${SYSCONFDIR}"
+
+    [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
+    mkdir -p ${INSTALL_ROOT}
+    ${MAKE} DESTDIR=${INSTALL_ROOT} install
+
+    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/bin
+    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/${_lib}
+    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/include
+    mkdir -m 0755 -p ${STAGING_SYSCONF_DIR}
+
+    for file in kinit klist kdestroy kpasswd kvno ksu krb5-config; do
+        cp ${INSTALL_PREFIX_DIR}/bin/${file} ${STAGING_PREFIX_DIR}/bin/.
+    done
+
+    for file in ktutil; do
+        cp ${INSTALL_PREFIX_DIR}/sbin/${file} ${STAGING_PREFIX_DIR}/bin/.
+    done
+
+    rsync -a --exclude=kerberosIV ${INSTALL_PREFIX_DIR}/include/ ${STAGING_PREFIX_DIR}/include/.
+
+    # Do we want to also exclude some others (libdes425, libgssrpc)?
+    rsync -a --exclude=krb5 --exclude="libkadm5*" --exclude="libkdb5*" ${INSTALL_PREFIX_DIR}/${_lib}/ ${STAGING_PREFIX_DIR}/${_lib}/.
+
+    # Create default krb5.conf
+    echo "[libdefaults]" > ${STAGING_SYSCONF_DIR}/krb5.conf
+
+    # Fix up libtool/dylib files
+    libtool_rewrite_staging
+}
+
+

@@ -1,0 +1,57 @@
+#!/bin/sh
+
+COMP_SOURCES=${BUILD_ROOT}/sqlite/sqlite-3.6.2
+
+function _setup_build_env
+{
+    set_compiler_env
+
+    cd ${COMP_SOURCES}/.
+    exit_on_error $?
+
+    # We need no-strict aliasing if we get optimized builds
+    CFLAGS="${_cflags} -D_REENTRANT -fPIC -fno-strict-aliasing"
+    LDSHFLAGS="${_ldshflags}"
+    LDFLAGS="${_ldflags}"
+
+    case `uname -s` in
+        Linux)
+            LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,${PREFIXDIR}/${_lib}"
+            ;;
+    esac
+
+    export PATH CPPFLAGS LDFLAGS CFLAGS LDSHFLAGS CC
+}
+
+function component_configure
+{
+    _setup_build_env
+
+    local with_linker=
+
+    ./configure                                               \
+	--prefix=${PREFIXDIR}                                \
+        --libdir=${PREFIXDIR}/${_lib}                        \
+        --disable-readline                                    \
+        --disable-tcl                                         \
+        --disable-static                                      \
+        --enable-shared                                       \
+        --enable-threadsafe
+}
+
+function component_build
+{
+    _setup_build_env
+
+    ${MAKE} ${_mflags} all
+}
+
+function component_install
+{
+    _setup_build_env
+
+    ${MAKE} DESTDIR=${STAGE_INSTALL_DIR} install
+
+    libtool_rewrite_staging
+}
+

@@ -1,0 +1,78 @@
+#!/bin/bash
+
+COMP_SOURCES=${BUILD_ROOT}/lsass
+
+function _setup_dirs
+{
+    NSS_DIR="/usr/lib"
+    PAM_DIR="/usr/lib/security"
+
+    case `uname -s` in
+	Linux)
+	    case `uname -m` in
+		i*86)
+		    NSS_DIR="/lib"
+		    PAM_DIR="/lib/security"
+		    ;;
+		x86_64)
+		    NSS_DIR="/lib64"
+		    PAM_DIR="/lib64/security"
+		    ;;
+	    esac
+	    ;;
+    esac
+
+    export NSS_DIR PAM_DIR
+}
+
+function _setup_build_env
+{
+    set_compiler_env
+
+    cd ${COMP_SOURCES}/.
+    exit_on_error $?
+
+    CFLAGS="${_cflags}"
+    LDFLAGS="${_ldflags}"
+    CPPFLAGS="${_cppflags}"
+
+    PATH=${STAGE_INSTALL_DIR}/${PREFIXDIR}/bin:$PATH
+
+    export PATH CPPFLAGS LDFLAGS CFLAGS CC
+}
+
+function component_configure
+{
+    local lsass_version=""
+    local build_version="${OFFICIAL_BUILD_NUMBER}"
+    local enable_debug=""
+    local enable_compat=""
+
+    _setup_build_env
+    _setup_dirs
+
+    ./autogen.sh
+    exit_on_error $?
+
+    ./configure                                        \
+	--prefix=${PREFIXDIR}                         \
+        --libdir=${PREFIXDIR}/${_lib}                 \
+	--sysconfdir=${SYSCONFDIR}               \
+	--localstatedir=${LOCALSTATEDIR}         \
+        --with-pam-libdir=${PAM_DIR}                   \
+        --with-nss-libdir=${NSS_DIR}   
+}
+
+function component_build
+{
+    _setup_build_env
+
+    ${MAKE} ${_mflags} all
+}
+
+function component_install
+{
+    _setup_build_env
+
+    ${MAKE} DESTDIR=${STAGE_INSTALL_DIR} install
+}

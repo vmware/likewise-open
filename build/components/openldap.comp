@@ -1,0 +1,60 @@
+#!/bin/sh
+
+COMP_SOURCES=${BUILD_ROOT}/openldap
+
+function _setup_build_env
+{
+    set_compiler_env
+
+    cd ${COMP_SOURCES}/.
+
+    CFLAGS="${_cflags} -D_REENTRANT -fPIC -DLDAP_CONNECTIONLESS -Wimplicit-function-declaration"
+    LDFLAGS="${_ldflags}"
+
+    export CFLAGS LDFLAGS
+}
+
+function component_configure
+{
+    _setup_build_env
+
+    ./autogen.sh && ./configure \
+        --prefix=${PREFIXDIR} \
+        --libdir=${PREFIXDIR}/${_lib} \
+        --disable-static \
+        --enable-shared \
+        --without-kerberos \
+        --without-cyrus-sasl \
+        --disable-slapd \
+        --disable-slurpd \
+        --without-tls 
+}
+
+function component_build
+{
+    _setup_build_env
+
+    ${MAKE} ${_mflags}
+}
+
+function component_install
+{
+    _setup_build_env
+
+    local INSTALL_ROOT="${STAGE_INSTALL_DIR}-openldap"
+    local INSTALL_PREFIX_DIR="${INSTALL_ROOT}/${PREFIXDIR}"
+    local STAGING_PREFIX_DIR="${STAGE_INSTALL_DIR}/${PREFIXDIR}"
+
+    [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
+    mkdir -p ${INSTALL_ROOT}
+    ${MAKE} DESTDIR=${INSTALL_ROOT} install
+
+    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/include
+    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/${_lib}
+
+    rsync -a --exclude=slapi-plugin.h ${INSTALL_PREFIX_DIR}/include/ ${STAGING_PREFIX_DIR}/include/
+    rsync -a ${INSTALL_PREFIX_DIR}/${_lib}/ ${STAGING_PREFIX_DIR}/${_lib}/
+
+    libtool_rewrite_staging
+}
+

@@ -1,0 +1,80 @@
+#!/bin/bash -c "exit 1"
+
+COMP_SOURCES=${BUILD_ROOT}/domainjoin
+
+function _setup_build_env
+{
+    set_compiler_env
+
+    cd ${COMP_SOURCES}
+    exit_on_error $?
+
+    CFLAGS="${_cflags} -D_REENTRANT -fPIC"
+    LDSHFLAGS="${_ldshflags}"
+    LDFLAGS="${_ldflags}"
+
+    WANT_GTK=no
+
+    case `uname -s` in
+        Linux)
+           WANT_GTK=yes
+            ;;
+    esac
+
+    export CC LDFLAGS CFLAGS LDSHFLAGS WANT_GTK
+}
+
+function component_configure
+{
+    _setup_build_env
+
+    ./autogen.sh && ./configure                              \
+        --prefix=${PREFIXDIR}                               \
+        --libexecdir=${PREFIXDIR}/bin                       \
+        --libdir=${PREFIXDIR}/${_lib}                       \
+        --sysconfdir=${SYSCONFDIR}                     \
+        --localstatedir=${LOCALSTATEDIR}               \
+        --disable-static                                     \
+        --enable-shared                                      \
+	--with-gtk=${WANT_GTK} \
+	--with-libxml2-dir=/usr
+
+}
+
+function component_build
+{
+   _setup_build_env
+
+   ${MAKE} ${_mflags} all
+}
+
+function component_install
+{
+    _setup_build_env
+
+    local STAGING_PREFIX_DIR=${STAGE_INSTALL_DIR}/${PREFIXDIR}
+
+    ${MAKE} DESTDIR=${STAGE_INSTALL_DIR} install
+
+    mkdir -m 755 -p ${STAGING_PREFIX_DIR}/bin
+    mkdir -m 755 -p ${STAGING_PREFIX_DIR}/${_lib}
+    mkdir -m 755 -p ${STAGING_PREFIX_DIR}/include
+    mkdir -m 755 -p ${STAGING_PREFIX_DIR}/share/likewise
+
+    cp libdomainjoin/include/*.h ${STAGING_PREFIX_DIR}/include/
+    cp scripts/ConfigureLogin ${STAGING_PREFIX_DIR}/bin/
+    cp scripts/gpcron ${STAGING_PREFIX_DIR}/bin/
+
+    if [ -x domainjoin-gui/gtk/domainjoin-gtk ] ; then
+        mkdir -m 755 -p ${STAGING_PREFIX_DIR}/share
+
+        mv ${STAGING_PREFIX_DIR}/bin/domainjoin-gtk ${STAGING_PREFIX_DIR}/bin/domainjoin-gui
+        cp domainjoin-gui/gtk/domainjoin-gtk.glade ${STAGING_PREFIX_DIR}/share/likewise
+        cp domainjoin-gui/gtk/*.png ${STAGING_PREFIX_DIR}/share/likewise
+    fi
+
+    if [ -f domainjoin-gui/carbon/libdomainjoin-mac/src/libdomainjoin-mac.so.1 ]; then
+       cp domainjoin-gui/carbon/libdomainjoin-mac/src/libdomainjoin-mac.so* ${STAGING_PREFIX_DIR}/${_lib}/
+
+    fi
+}

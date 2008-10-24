@@ -1,0 +1,52 @@
+#!/bin/sh
+
+COMP_SOURCES=${BUILD_ROOT}/lwdns
+
+function _setup_build_env
+{
+    set_compiler_env
+
+    cd ${COMP_SOURCES}/.
+    exit_on_error $?
+
+    # We need no-strict aliasing if we get optimized builds
+    CFLAGS="${_cflags}"
+    CPPFLAGS="${_cppflags}"
+    LDFLAGS="${_ldflags}"
+
+    export PATH CPPFLAGS LDFLAGS CFLAGS CC
+}
+
+function component_configure
+{
+    local enable_debug=""
+
+    _setup_build_env
+
+    ./autogen.sh
+    exit_on_error $?
+
+    ./configure                                       \
+	--prefix=${PREFIXDIR}                        \
+        --libdir=${PREFIXDIR}/${_lib}                \
+	--sysconfdir=${SYSCONFDIR}              \
+        --localstatedir=${LOCALSTATEDIR} 
+}
+
+function component_build
+{
+    _setup_build_env
+
+    ${MAKE} ${_mflags} all
+}
+
+function component_install
+{
+    _setup_build_env
+
+    ${MAKE} DESTDIR=${STAGE_INSTALL_DIR} install
+
+    libtool_rewrite_staging
+}
+
+
