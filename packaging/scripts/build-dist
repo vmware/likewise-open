@@ -3,6 +3,8 @@
 BASEDIR=`dirname $0`/../..
 RELEASE=""
 DIRS="\
+	krb5 \
+	openldap \
 	centutils \
 	dcerpc \
 	domainjoin \
@@ -19,10 +21,13 @@ DIRS="\
 	netlogon \
 	npcmuxer \
 	openssl \
+	build \
+	config \
 	packaging \
 	passwd \
 	pstore \
 	sqlite \
+	lwdns \
 	"
 
 . ${BASEDIR}/packaging/scripts/functions
@@ -41,7 +46,7 @@ for dir in ${DIRS}; do
 		$BASEDIR/$dir $BASEDIR/../$TARGET/ || exit 1
 done
 
-for file in Makefile Configure.sh autogen.sh; do
+for file in Build.sh Makefile Configure.sh autogen.sh; do
 	cp -p $file $BASEDIR/../$TARGET/ || exit 1
 done
 

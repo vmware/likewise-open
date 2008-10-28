@@ -1,0 +1,5 @@
+opt/likewise/bin/ConfigureLogin
+opt/likewise/bin/domainjoin-cli
+opt/likewise/bin/gpcron
+opt/likewise/lib/libdomainjoin.so*
+usr/bin/domainjoin-cli

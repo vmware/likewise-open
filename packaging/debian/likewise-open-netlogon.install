@@ -1,0 +1,10 @@
+etc/init.d/netlogond
+etc/likewise/netlogon.conf
+opt/likewise/bin/lw-get-current-domain
+opt/likewise/bin/lw-export-dc-cache
+opt/likewise/bin/lw-get-dc-name
+opt/likewise/bin/lw-get-dc-time
+opt/likewise/lib/liblwnetclientapi.so*
+opt/likewise/lib/liblwnetipc.so*
+opt/likewise/lib/liblwnetutils.so*
+opt/likewise/sbin/netlogond

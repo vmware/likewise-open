@@ -1,0 +1,8 @@
+etc/likewise
+opt/likewise
+opt/likewise/lib
+opt/likewise/bin
+opt/likewise/sbin
+var/log/likewise
+var/lib/likewise
+

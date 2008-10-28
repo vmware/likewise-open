@@ -1,0 +1,40 @@
+#! /bin/sh
+# ex: set tabstop=4 expandtab shiftwidth=4:
+#
+# Copyright (c) Likewise Corporation 2006
+# Author: Gerald Carter <jerry@likewise.com>
+#
+#LWI_STARTUP_TYPE_REDHAT###
+#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 91 9
+#LWI_STARTUP_TYPE_REDHAT# description: Start and Stop the Likewise DCE RPC Daemon
+#LWI_STARTUP_TYPE_REDHAT###
+#LWI_STARTUP_TYPE_REDHAT#
+#LWI_STARTUP_TYPE_SUSE### BEGIN INIT INFO
+#LWI_STARTUP_TYPE_SUSE# Provides: rpcd
+#LWI_STARTUP_TYPE_SUSE# Required-Start: $network
+#LWI_STARTUP_TYPE_SUSE# Required-Stop: $network
+#LWI_STARTUP_TYPE_SUSE# Default-Start: 3 5
+#LWI_STARTUP_TYPE_SUSE# Default-Stop: 0 1 2 6
+#LWI_STARTUP_TYPE_SUSE# Description: Start and Stop the Likewise DCE RPC Daemon
+#LWI_STARTUP_TYPE_SUSE### END INIT INFO
+
+PROG_DESC="Likewise DCE/RPC Portmapper Service"
+PROG_BIN=PREFIX_DIR/sbin/dcerpcd
+PROG_ERR=/var/run/likewise-rpcd.err
+SCRIPTNAME="dcerpcd"
+STARTHOOK="setup_endpoint"
+POSTSTARTHOOK="wait_ready"
+PIDFILE="/var/run/dcerpcd.pid"
+
+setup_endpoint()
+{
+    mkdir -p "/var/rpc"
+    rm -f "/var/rpc/epmapper"
+}
+
+wait_ready()
+{
+    sleep 1
+}
+
+. PREFIX_DIR/bin/init-base.sh

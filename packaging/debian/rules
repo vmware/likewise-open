@@ -17,9 +17,6 @@ export DEB_BUILD_GNU_TYPE
 export DEB_HOST_ARCH_OS
 pyversion := $(shell pyversions -vd)
 
-CFLAGS = -g -Wall
-LDFLAGS = -L$(PREFIX)/lib/$(PKGNAME) -Wl,-rpath,$(PREFIX)/lib/$(PKGNAME)
-
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
   CFLAGS += -O0
 else
@@ -46,11 +43,7 @@ configure: configure-stamp
 configure-stamp: $(QUILT_STAMPFN)
 	dh_testdir
 
-	(cd centutils && \
-	 ./configure --prefix=$(PREFIX) \
-	    --libdir=$(PREFIX)/lib \
-	    --localstatedir=$(LOCALSTATEDIR) \
-	    --sysconfdir=$(SYSCONFDIR))
+	## Everything is done during the build phase
 
 	touch configure-stamp
 
@@ -59,7 +52,10 @@ build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-	## $(MAKE) SCRIPTDIR=$(LIBEXECDIR) all
+	env PREFIXDIR=$(PREFIX) \
+	    LOCALSTATEDIR=$(LOCALSTATEDIR) \
+	    SYSCONFIDIR=$(SYSCONFDIR) \
+	    ./Build.sh
 
 	touch build-stamp
 clean: clean-patched unpatch
@@ -80,58 +76,33 @@ install: build
 #	dh_installdirs -P $(DESTDIR)
 	dh_installdirs
 
-	$(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
+	[ "$(DESTDIR)" != "/" ] && rm -rf $(DESTDIR)
 
-	mkdir -p $(DESTDIR)/usr/lib/
-	mkdir -p $(DESTDIR)/lib/security
+	mkdir -p $(DESTDIR)/usr/bin
 	mkdir -p $(DESTDIR)/usr/share/$(PKGNAME)
 	mkdir -p $(DESTDIR)/usr/share/applications
 	mkdir -p $(DESTDIR)/usr/share/icons
 
+	rsync -av --exclude-from=debian/install-excludes build-install/ $(DESTDIR)/
 
-	mv $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so.0.1
-	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so.0
-	ln -s libwbclient.so.0.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libwbclient.so
-	#(cd $(DESTDIR)/usr/lib && ln -s $(PKGNAME)/libwbclient.so.0 libwbclient.so.0)
-
-	mv $(DESTDIR)/$(PREFIX)/lib/libcentutils.so.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libcentutils.so.1
-	#(cd $(DESTDIR)/usr/lib && ln -s -f $(PKGNAME)/libcentutils.so.1 libcentutils.so.1)
-	mv $(DESTDIR)/$(PREFIX)/lib/libgpglib.so.1 $(DESTDIR)/$(PREFIX)/lib/$(PKGNAME)/libgpglib.so.1
-	#(cd $(DESTDIR)/usr/lib && ln -s -f $(PKGNAME)/libgpglib.so.1 libgpglib.so.1)
- 
-	/bin/mv $(DESTDIR)/usr/bin/lwi-domainjoin-cli $(DESTDIR)/usr/bin/domainjoin-cli
- 
-	/bin/mv $(DESTDIR)/usr/bin/domainjoin-gtk $(DESTDIR)/usr/bin/domainjoin-gui
-
-	install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-gtk.glade \
-		$(DESTDIR)/usr/share/$(PKGNAME)/domainjoin-gtk.glade
-	install -m644 domainjoin/domainjoin-gui/gtk/domainjoin-logo.png \
-		$(DESTDIR)/usr/share/$(PKGNAME)/domainjoin-logo.png
-	install -m644 domainjoin/domainjoin-gui/gtk/likewise-logo.png \
-		$(DESTDIR)/usr/share/$(PKGNAME)/likewise-logo.png
-
-	install --mode=755 samba/source/nsswitch/libnss_lwidentity.so $(DESTDIR)/lib/libnss_lwidentity.so.2
-	ln -s libnss_lwidentity.so.2 $(DESTDIR)/lib/libnss_lwidentity.so
-
-	install --mode=644 samba/source/bin/pam_lwidentity.so $(DESTDIR)/lib/security/pam_lwidentity.so
-
-	install -D --mode=0644 domainjoin/scripts/Centeris.pm $(DESTDIR)/usr/lib/$(PKGNAME)/Centeris.pm
-
-	for file in ConfigureLogin ConfigureShellPrompt gpcron; do \
-		install --mode=0755 domainjoin/scripts/$$file $(DESTDIR)/usr/lib/$(PKGNAME); \
+	mkdir -p $(DESTDIR)/etc/init.d
+	for file in dcerpcd eventlogd lsassd netlogond npcmuxd; do \
+		cat config/$$file | sed 's#PREFIX_DIR#$(PREFIX)#g' > $$file.new; \
+		install -m755 $$file.new $(DESTDIR)/etc/init.d/$$file; \
 	done
 
-	install -D --mode=0644 debian/lwiauthd.conf $(DESTDIR)/etc/samba/lwiauthd.conf
+	install -m755 config/init-base.sh $(DESTDIR)/$(PREFIX)/bin/
+	install -m644 config/likewise-krb5-ad.conf $(DESTDIR)/$(SYSCONFDIR)/
 
-	install -D --mode=0644 debian/pam_lwidentity.conf $(DESTDIR)/etc/security/pam_lwidentity.conf
-
-	install -D -m 644  debian/$(PKGNAME).lintian $(DESTDIR)/usr/share/lintian/overrides/$(PKGNAME) 
+	#install -D -m 644  debian/$(PKGNAME).lintian $(DESTDIR)/usr/share/lintian/overrides/$(PKGNAME) 
 
 	install -D -m 644 debian/likewise-open-gui.desktop $(DESTDIR)/usr/share/applications
 	install -D -m 644 debian/likewise-open-gui-kde.desktop $(DESTDIR)/usr/share/applications
 
 	install -D -m 644 debian/likewise-gui.xpm $(DESTDIR)/usr/share/icons/
 
+	ln -s $(PREFIX)/bin/domainjoin-cli $(DESTDIR)/usr/bin/domainjoin-cli
+	ln -s $(PREFIX)/bin/domainjoin-gui $(DESTDIR)/usr/bin/domainjoin-gui
 
 	dh_install --sourcedir=$(DESTDIR) --list-missing
 
@@ -166,7 +137,7 @@ binary-arch: build install
 	dh_perl
 	dh_makeshlibs
 	dh_installdeb
-	dh_shlibdeps -l`pwd`/debian/$(PKGNAME)/usr/lib/$(PKGNAME)
+	dh_shlibdeps -l`pwd`/debian/likewise-open-libs/$(PREFIX)/lib/
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
