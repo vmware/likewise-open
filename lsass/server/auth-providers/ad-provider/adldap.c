@@ -2952,6 +2952,259 @@ error:
     goto cleanup;
 }
 
+static
+VOID
+DestroyDNListEntry(
+    IN OUT PLSA_AD_DN_LISTS_ENTRY* ppEntry
+    )
+{
+    PLSA_AD_DN_LISTS_ENTRY pEntry = *ppEntry;
+    if (pEntry)
+    {
+        LsaFreeStringArray(pEntry->ppszDNValues, pEntry->dwDNCount);
+        LsaFreeMemory(pEntry);
+        *ppEntry = NULL;
+    }
+}
+
+static
+DWORD
+CreateDNListEntry(
+    OUT PLSA_AD_DN_LISTS_ENTRY* ppEntry,
+    IN DWORD dwDNCount,
+    IN PSTR* ppszDNValues
+    )
+{
+    DWORD dwError = 0;
+    PLSA_AD_DN_LISTS_ENTRY pEntry = NULL;
+
+    dwError = LsaAllocateMemory(sizeof(*pEntry), (PVOID*)&pEntry);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry->dwDNCount = dwDNCount;
+    pEntry->ppszDNValues = ppszDNValues;    
+
+    *ppEntry = pEntry;
+
+cleanup:
+    return dwError;
+
+error:
+    *ppEntry = NULL;
+    DestroyDNListEntry(&pEntry);
+    goto cleanup;
+}
+
+DWORD
+ADLdap_GetGroupMembersDNList(
+    IN HANDLE hDirectory,
+    IN PCSTR pszGroupDN,
+    OUT PDWORD pdwTotalDNCount,
+    OUT PSTR** pppszDNValues
+    )
+{
+    DWORD dwError = 0;
+    PSTR szAttributeListMembers[] =
+    {
+        AD_LDAP_MEMBER_TAG,
+        NULL
+    };
+    PSTR* ppszDNValuesTotal = NULL;
+    PSTR* ppszDNValues = NULL;
+    LDAPMessage* pMessage = NULL;
+    DWORD dwDNCount = 0;
+    DWORD dwTotalDNCount = 0;
+    PDLINKEDLIST pDNList = NULL;
+    PDLINKEDLIST pNode = NULL;
+    PLSA_AD_DN_LISTS_ENTRY pDNEntry = NULL;
+    PSTR pszRangeAttr = NULL;
+    LDAP* pLd = LsaLdapGetSession(hDirectory);
+    BerElement* pBer = NULL;
+    PSTR pszRetrievedAttr = NULL;
+    PSTR pszRetrievedRangeAttr = NULL;
+    BOOLEAN bIsEnd = FALSE;
+    DWORD iDNValues = 0;
+    DWORD iDNValuesTotal = 0;
+
+    for (;;)
+    {
+        if (pMessage)
+        {
+            ldap_msgfree(pMessage);
+            pMessage = NULL;
+        }
+
+        dwError = LsaLdapDirectorySearch(
+                        hDirectory,
+                        pszGroupDN,
+                        LDAP_SCOPE_BASE,
+                        "(objectClass=*)",
+                        szAttributeListMembers,
+                        &pMessage);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaLdapGetStrings(
+                        hDirectory,
+                        pMessage,
+                        AD_LDAP_MEMBER_TAG,
+                        &ppszDNValues,
+                        &dwDNCount);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (ppszDNValues && dwDNCount)
+        {
+            if (pDNList)
+            {
+                // This is the case where we started out getting
+                // ranged info but the info became non-ranged.
+                // We might actually want to allow this to handle
+                // a case where the membership list is trimmed
+                // while we are enumerating.
+                dwError = LSA_ERROR_LDAP_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwTotalDNCount = dwDNCount;
+            ppszDNValuesTotal = ppszDNValues;
+
+            dwDNCount = 0;
+            ppszDNValues = NULL;
+
+            break;
+        }
+
+        if (pszRetrievedAttr)
+        {
+            ldap_memfree(pszRetrievedAttr);
+        }
+
+        if (pBer)
+        {
+             ber_free(pBer, 0);
+        }
+
+        pszRetrievedAttr = ldap_first_attribute(pLd, pMessage, &pBer);
+        while (pszRetrievedAttr)
+        {
+            if (!strncasecmp(pszRetrievedAttr, "member;Range=", sizeof("member;Range=")-1))
+            {
+                pszRetrievedRangeAttr = pszRetrievedAttr;
+                break;
+            }
+            ldap_memfree(pszRetrievedAttr);
+            pszRetrievedAttr = ldap_next_attribute(pLd, pMessage, pBer);
+        }
+
+        if (!pszRetrievedRangeAttr)
+        {
+            // This happens when we have an group with no members,
+            break;
+        }
+
+        if ('*' == pszRetrievedRangeAttr[strlen(pszRetrievedRangeAttr)-1])
+        {
+            bIsEnd = TRUE;
+        }
+
+        dwError = LsaLdapGetStrings(
+                        hDirectory,
+                        pMessage,
+                        pszRetrievedRangeAttr,
+                        &ppszDNValues,
+                        &dwDNCount);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwTotalDNCount += dwDNCount;
+
+        dwError = CreateDNListEntry(
+                        &pDNEntry,
+                        dwDNCount,
+                        ppszDNValues);
+        BAIL_ON_LSA_ERROR(dwError);
+        ppszDNValues = NULL;
+        dwDNCount = 0;
+
+        dwError = LsaDLinkedListPrepend(&pDNList, pDNEntry);
+        BAIL_ON_LSA_ERROR(dwError);
+        pDNEntry = NULL;
+
+        if (bIsEnd)
+        {
+            break;
+        }
+
+        LSA_SAFE_FREE_STRING(pszRangeAttr);
+
+        dwError = LsaAllocateStringPrintf(
+                        &pszRangeAttr,
+                        "member;Range=%d-*",
+                        dwTotalDNCount);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        szAttributeListMembers[0] = pszRangeAttr;
+    }
+
+    if (pDNList && !ppszDNValuesTotal)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(PSTR) * dwTotalDNCount,
+                        (PVOID*)&ppszDNValuesTotal);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (pNode = pDNList; pNode; pNode = pNode->pNext)
+        {
+            PLSA_AD_DN_LISTS_ENTRY pEntry = (PLSA_AD_DN_LISTS_ENTRY)pNode->pItem;
+
+            for (iDNValues = 0; iDNValues < pEntry->dwDNCount; iDNValues++)
+            {
+                ppszDNValuesTotal[iDNValuesTotal] = pEntry->ppszDNValues[iDNValues];
+                pEntry->ppszDNValues[iDNValues] = NULL;
+                iDNValuesTotal++;
+            }
+        }
+    }
+
+    *pdwTotalDNCount = dwTotalDNCount;
+    *pppszDNValues = ppszDNValuesTotal;
+
+cleanup:
+    if (pMessage)
+    {
+        ldap_msgfree(pMessage);
+    }
+
+    if (pszRetrievedAttr)
+    {
+        ldap_memfree(pszRetrievedAttr);
+    }
+
+    if (pBer)
+    {
+        ber_free(pBer, 0);
+    }
+
+    LsaFreeStringArray(ppszDNValues, dwDNCount);
+    DestroyDNListEntry(&pDNEntry);
+    LSA_SAFE_FREE_STRING(pszRangeAttr);
+
+    for (pNode = pDNList; pNode; pNode = pNode->pNext)
+    {
+        PLSA_AD_DN_LISTS_ENTRY pEntry = (PLSA_AD_DN_LISTS_ENTRY)pNode->pItem;
+        DestroyDNListEntry(&pEntry);
+    }
+    LsaDLinkedListFree(pDNList);
+
+    return dwError;
+
+error:
+    LsaFreeStringArray(ppszDNValuesTotal, iDNValuesTotal);
+
+    *pdwTotalDNCount = 0;
+    *pppszDNValues = NULL;
+
+    goto cleanup;
+}
+
 DWORD
 ADLdap_GetGroupMembers(
     HANDLE hProvider,
@@ -2963,17 +3216,11 @@ ADLdap_GetGroupMembers(
     PAD_SECURITY_OBJECT** pppResults)
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    size_t sDnCount = 0;
+    DWORD dwDnCount = 0;
     PAD_SECURITY_OBJECT pGroupObj = NULL;
-    PSTR szAttributeListMembers[] =
-    {
-        AD_LDAP_MEMBER_TAG,
-        NULL
-    };
-    LDAPMessage* pMessage = NULL;
     PAD_SECURITY_OBJECT* ppResults = NULL;
     PSTR *ppszLDAPValues = NULL;
-    LDAP *pLd = LsaLdapGetSession(hDirectory);
+    DWORD dwFoundCount = 0;
 
     dwError = AD_FindObjectBySid(
                     hProvider,
@@ -2989,52 +3236,45 @@ ADLdap_GetGroupMembers(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaLdapDirectorySearch(
+    dwError = ADLdap_GetGroupMembersDNList(
                     hDirectory,
                     pGroupObj->pszDN,
-                    LDAP_SCOPE_BASE,
-                    "objectClass=*",
-                    szAttributeListMembers,
-                    &pMessage);
+                    &dwDnCount,
+                    &ppszLDAPValues);
     BAIL_ON_LSA_ERROR(dwError);
 
-    ppszLDAPValues = ldap_get_values(pLd, pMessage, AD_LDAP_MEMBER_TAG);
-    if (ppszLDAPValues == NULL)
-    {
-        sDnCount = 0;
-    }
-    else
-    {
-        sDnCount = ldap_count_values(ppszLDAPValues);
-    }
-
-    /* Get the list of results by calling AD_FindObjectsByDNList. */
+#if 0
     dwError = AD_FindObjectsByDNList(
             hProvider,
             sDnCount,
             ppszLDAPValues,
             &ppResults);
+            
+    BAIL_ON_LSA_ERROR(dwError);
+#endif
+    
+    dwError = ADLdap_FindObjectsByDNListBatched(
+            hProvider,
+            dwDnCount,
+            ppszLDAPValues,
+            &dwFoundCount,
+            &ppResults);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *psCount = sDnCount;
+    *psCount = dwFoundCount;
     *pppResults = ppResults;
 
 cleanup:
     ADCacheDB_SafeFreeObject(&pGroupObj);
-    if (pMessage)
-    {
-        ldap_msgfree(pMessage);
-    }
-    if (ppszLDAPValues) {
-        ldap_value_free(ppszLDAPValues);
-    }
+
+    LsaFreeStringArray(ppszLDAPValues, dwDnCount);  
 
     return dwError;
 
 error:
     *psCount = 0;
     *pppResults = NULL;
-    ADCacheDB_SafeFreeObjectList(sDnCount, &ppResults);
+    ADCacheDB_SafeFreeObjectList(dwFoundCount, &ppResults);
     goto cleanup;
 }
 
@@ -6520,8 +6760,9 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszNT4Name);
     LSA_SAFE_FREE_STRING(pszObjectDomainName);
     LSA_SAFE_FREE_STRING(pszObjectSamaccountName);
-
-    if (pUserNameInfo) {
+    
+    if (pUserNameInfo)
+    {
         LsaFreeNameInfo(pUserNameInfo);
     }
 
@@ -6533,256 +6774,6 @@ error:
 
     LSA_SAFE_FREE_STRING(pszUserSid);
     LSA_SAFE_FREE_STRING(pszUserDN);
-
-    goto cleanup;
-}
-
-DWORD
-ADGenericFindUserById(
-    HANDLE  hDirectory,
-    PCSTR   pszCellDN,
-    DWORD   dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,
-    PAD_SECURITY_OBJECT *ppUserInfo,
-    PSTR*   ppszUserDN)
-{
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    LDAP *pLd = NULL;
-    PSTR pszDirectoryRoot = NULL;
-    PSTR* ppszRealAttributeList = NULL;
-    PSTR* ppszPseudoAttributeList = NULL;
-    CHAR szQuery[1024];
-    CHAR szUsersContainerDN[1024];
-    LDAPMessage* pMessageReal = NULL;
-    LDAPMessage* pMessagePseudo = NULL;
-    DWORD dwCount = 0;
-    PCSTR pszFullDomainName = NULL;
-    PAD_SECURITY_OBJECT pUserInfo = NULL;
-    PSTR* ppszValues = NULL;
-    DWORD dwNumValues = 0;
-    DWORD iValue = 0;
-    PSTR  pszUnprovisionedUserSid = NULL;
-    PCSTR pszObjectSID = NULL;
-    PSTR  pszUserDN = NULL;
-    PBYTE pObjectSIDBytes = NULL;
-    DWORD objectSIDByteLen = 0;
-    BOOLEAN bValidADEntry = FALSE;
-
-
-    pLd = LsaLdapGetSession(hDirectory);
-
-   if ( !(dwDirectoryMode == DEFAULT_MODE && adConfMode == SchemaMode) && dwDirectoryMode != UNPROVISIONED_MODE )
-   {   //(1) Get pMessagePseudo  (except for DEFAULT schema mode)
-        dwError = ADGetUserPseudoAttributeList(
-                         adConfMode,
-                         &ppszPseudoAttributeList);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (IsNullOrEmptyString(pszCellDN)){
-            dwError = LSA_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        sprintf(szUsersContainerDN,"CN=Users,%s", pszCellDN);
-        switch (adConfMode){
-             case SchemaMode:
-                sprintf(szQuery, "(&(objectClass=posixAccount)(keywords=objectClass=centerisLikewiseUser)(uidNumber=%d))", dwUID);
-
-                break;
-
-             case NonSchemaMode:
-                sprintf(szQuery, "(&(objectClass=serviceConnectionPoint)(keywords=objectClass=centerisLikewiseUser)(keywords=uidNumber=%d))", dwUID);
-
-                break;
-
-             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-         }
-
-         dwError = LsaLdapDirectorySearch(
-                        hDirectory,
-                        szUsersContainerDN,
-                        LDAP_SCOPE_ONELEVEL,
-                        szQuery,
-                        ppszPseudoAttributeList,
-                        &pMessagePseudo);
-         BAIL_ON_LSA_ERROR(dwError);
-
-         dwCount = ldap_count_entries(
-                        pLd,
-                        pMessagePseudo);
-         if (dwCount < 0) {
-             dwError = LSA_ERROR_LDAP_ERROR;
-         } else if (dwCount == 0) {
-                    dwError = LSA_ERROR_NO_SUCH_USER;
-         } else if (dwCount > 1) {
-                    dwError = LSA_ERROR_DUPLICATE_USERNAME;
-         }
-         BAIL_ON_LSA_ERROR(dwError);
-
-         //Confirm the entry we obtain from AD is valid by retrieving its DN
-         dwError = LsaLdapIsValidADEntry(
-                         hDirectory,
-                         pMessagePseudo,
-                         &bValidADEntry);
-         BAIL_ON_LSA_ERROR(dwError);
-
-         if (!bValidADEntry){
-             dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-             BAIL_ON_LSA_ERROR(dwError);
-         }
-    }
-
-    //(2) Get pMessageReal (For Default schema, pMessageReal contains Pseudo attributes)
-    dwError = ADGetUserRealAttributeList(
-                   dwDirectoryMode,
-                   adConfMode,
-                   &ppszRealAttributeList);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pszFullDomainName = gpADProviderData->szDomain;
-    dwError = LsaLdapConvertDomainToDN(pszFullDomainName, &pszDirectoryRoot);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwDirectoryMode == DEFAULT_MODE && adConfMode == SchemaMode){
-        sprintf(szQuery, "(&(objectClass=User)(uidNumber=%d))", dwUID);
-    }
-    else{
-        if (dwDirectoryMode == UNPROVISIONED_MODE) {
-            dwError = ADUnprovisionalModeGetSid(
-                          hDirectory,
-                          dwUID,
-                          &pszUnprovisionedUserSid);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            pszObjectSID = pszUnprovisionedUserSid;
-        }
-        else {
-            dwError = LsaLdapGetStrings(hDirectory,
-                                   pMessagePseudo,
-                                   AD_LDAP_KEYWORDS_TAG,
-                                   &ppszValues,
-                                   &dwNumValues);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            for (iValue = 0; iValue < dwNumValues; iValue++)
-            {
-                if (!strncasecmp(ppszValues[iValue], "backLink=", sizeof("backLink=")-1))
-                {
-                   pszObjectSID = ppszValues[iValue] + sizeof("backLink=") - 1;
-                   break;
-                }
-            }
-        }
-
-        if (IsNullOrEmptyString(pszObjectSID)) {
-             dwError = LSA_ERROR_INVALID_SID;
-             BAIL_ON_LSA_ERROR(dwError);
-        }
-        sprintf(szQuery, "(&(objectClass=User)(!(objectClass=computer))(objectSid=%s))", pszObjectSID);
-    }
-
-    dwError = LsaLdapDirectorySearch(
-                hDirectory,
-                pszDirectoryRoot,
-                LDAP_SCOPE_SUBTREE,
-                szQuery,
-                ppszRealAttributeList,
-                &pMessageReal);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwCount = ldap_count_entries(
-                pLd,
-                pMessageReal);
-    if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
-    } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_SUCH_USER;
-    } else if (dwCount > 1) {
-        dwError = LSA_ERROR_DUPLICATE_USERNAME;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    //Confirm the entry we obtain from AD is valid by retrieving its DN
-    dwError = LsaLdapGetDN(
-                    hDirectory,
-                    pMessageReal,
-                    &pszUserDN);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (IsNullOrEmptyString(pszUserDN))
-    {
-        dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwDirectoryMode == DEFAULT_MODE && adConfMode == SchemaMode){
-        pMessagePseudo = pMessageReal;
-
-        //obtain the objectSid string in default schema mode
-        dwError = LsaLdapGetBytes(
-                   hDirectory,
-                   pMessageReal,
-                   AD_LDAP_OBJECTSID_TAG,
-                   &pObjectSIDBytes,
-                   &objectSIDByteLen);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    //(3) Marshal result to obtain UserInfo
-    dwError = ADMarshalToUserCache(
-                       hDirectory,
-                       hDirectory,
-                       dwDirectoryMode,
-                       adConfMode,
-                       pszNetBIOSDomainName,
-                       pMessageReal,
-                       pMessagePseudo,
-                       &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppUserInfo = pUserInfo;
-    *ppszUserDN = pszUserDN;
-
-cleanup:
-
-    LsaFreeNullTerminatedStringArray(ppszRealAttributeList);
-    LsaFreeNullTerminatedStringArray(ppszPseudoAttributeList);
-
-    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
-    LSA_SAFE_FREE_STRING(pszUnprovisionedUserSid);
-
-    if (pMessageReal) {
-        if (pMessageReal == pMessagePseudo)
-        {
-            pMessagePseudo = NULL;
-        }
-        ldap_msgfree(pMessageReal);
-    }
-
-    if (pMessagePseudo) {
-        ldap_msgfree(pMessagePseudo);
-    }
-
-    if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pObjectSIDBytes);
-
-    return dwError;
-
-error:
-
-    *ppUserInfo = NULL;
-    *ppszUserDN = NULL;
-
-    LSA_SAFE_FREE_STRING(pszUserDN);
-
-    ADCacheDB_SafeFreeObject(&pUserInfo);
 
     goto cleanup;
 }
@@ -6897,7 +6888,6 @@ error:
     {
         LsaFreeNameInfo(pLoginInfo);
     }
-
     goto cleanup;
 
     

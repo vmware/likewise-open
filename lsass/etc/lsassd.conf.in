@@ -131,3 +131,9 @@
     #          /System/Library/User Template/English.lproj
     #
     # skeleton-dirs = /etc/skel
+
+    # Forces lsass to use unprovisioned mode
+    # Values: full unprovisioned
+    # Default: full
+    #
+    # cell-support = full

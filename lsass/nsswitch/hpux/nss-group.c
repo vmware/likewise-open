@@ -118,6 +118,10 @@ LsaNssHpuxGroupGetgrent(
     {
         pXbyYArgs->erange = 1;
     }
+    else
+    {
+        errno = err;
+    }
 
     return ret;
 }
@@ -161,6 +165,14 @@ LsaNssHpuxGroupGetgrgid(
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
     }
+    else if (ret == NSS_STATUS_TRYAGAIN  && err == ERANGE)
+    {
+        pXbyYArgs->erange = 1;
+    }
+    else
+    {
+        errno = err;
+    }
 
     return ret;
 }
@@ -189,6 +201,14 @@ LsaNssHpuxGroupGetgrnam(
     if (ret == NSS_STATUS_SUCCESS)
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
+    }
+    else if (ret == NSS_STATUS_TRYAGAIN  && err == ERANGE)
+    {
+        pXbyYArgs->erange = 1;
+    }
+    else
+    {
+        errno = err;
     }
 
     return ret;

@@ -54,6 +54,7 @@ NetJoinDomainLocalInternal(
     uint32 options,
     const wchar16_t *osname,
     const wchar16_t *osver,
+    const wchar16_t *ospack,
     BOOLEAN is_retry
     )
 {
@@ -100,6 +101,8 @@ NetJoinDomainLocalInternal(
     wchar16_t *osname_attr_val[2] = {0};
     wchar16_t *osver_attr_name = NULL;
     wchar16_t *osver_attr_val[2] = {0};
+    wchar16_t *ospack_attr_name = NULL;
+    wchar16_t *ospack_attr_val[2] = {0};
     wchar16_t *sid_str = NULL;
     DWORD lwnet_err = 0;
     char *domname = NULL;
@@ -282,6 +285,13 @@ NetJoinDomainLocalInternal(
             err = MachAcctSetAttribute(ld, dn,
                                        osname_attr_name, osname_attr_val,
                                        0);
+            if (err == ERROR_ACCESS_DENIED)
+            {
+                /* The user must be a non-admin. In this case, we cannot
+                 * set the attribute.
+                 */
+                err = ERROR_SUCCESS;
+            }
             goto_if_err_not_success(err, disconn_samr);
 
             osver_attr_name = ambstowc16s("operatingSystemVersion");
@@ -291,6 +301,24 @@ NetJoinDomainLocalInternal(
             err = MachAcctSetAttribute(ld, dn,
                                        osver_attr_name, osver_attr_val,
                                        0);
+            if (err == ERROR_ACCESS_DENIED)
+            {
+                err = ERROR_SUCCESS;
+            }
+            goto_if_err_not_success(err, disconn_samr);
+
+            ospack_attr_name = ambstowc16s("operatingSystemServicePack");
+            ospack_attr_val[0] = wc16sdup(ospack);
+            ospack_attr_val[1] = NULL;
+
+            err = MachAcctSetAttribute(ld, dn,
+                                       ospack_attr_name, ospack_attr_val,
+                                       0);
+            if (err == ERROR_ACCESS_DENIED)
+            {
+                err = ERROR_SUCCESS;
+            }
+            goto_if_err_not_success(err, disconn_samr);
         }
 
         err = DirectoryDisconnect(ld);
@@ -357,13 +385,15 @@ done:
     SAFE_FREE(osname_attr_val[0]);
     SAFE_FREE(osver_attr_name);
     SAFE_FREE(osver_attr_val[0]);
+    SAFE_FREE(ospack_attr_name);
+    SAFE_FREE(ospack_attr_val[0]);
     SAFE_FREE(domain_controller_name);
 
     if (err && !is_retry)
     {
         err = NetJoinDomainLocalInternal(machine, domain, account_ou,
                                          account, password, options,
-                                         osname, osver, TRUE);
+                                         osname, osver, ospack, TRUE);
     }
 
     return err;
@@ -376,11 +406,12 @@ NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,
                                   const wchar16_t *password,
                                   uint32 options,
                                   const wchar16_t *osname,
-                                  const wchar16_t *osver)
+                                  const wchar16_t *osver,
+                                  const wchar16_t *ospack)
 {
     return NetJoinDomainLocalInternal(machine, domain, account_ou,
                                       account, password, options,
-                                      osname, osver, FALSE);
+                                      osname, osver, ospack, FALSE);
 }
 
 
@@ -431,7 +462,8 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
     }
 
     status = NetJoinDomainLocal(host, domain, account_ou, account,
-                                password, options, osName, osVersion);
+                                password, options, osName, osVersion,
+                                "");
 
 done:
     SAFE_FREE(osName);

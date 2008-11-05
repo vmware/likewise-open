@@ -264,6 +264,11 @@ main(
     PSTR argCopy = NULL;
     DWORD action = ACTION_NONE;
 
+    dwError = EVTInitLoggingToFile(
+         LOG_LEVEL_ERROR,
+         NULL);
+    BAIL_ON_EVT_ERROR(dwError);
+
     dwError = ParseArgs(
                 argc,
                 argv,
@@ -436,7 +441,7 @@ main(
  error:
 
     if (dwError != 0) {
-        EVT_LOG_VERBOSE("lw-eventlog-cli failed. Error code [%d]\n", dwError);
+        EVT_LOG_ERROR("The operation failed with error code [%d]\n", dwError);
     }
 
     if (sqlFilterChar != NULL && sqlFilterChar != sqlFilterCharDefault)

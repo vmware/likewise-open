@@ -121,7 +121,7 @@ error:
 
     *ppPamContext = NULL;
     
-    LSA_LOG_PAM_ERROR("LsaPamGetContext failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("LsaPamGetContext failed [error code: %d]", dwError);
 
     goto cleanup;
 }
@@ -230,7 +230,7 @@ error:
        *ppszLoginId = NULL;
     }
     
-    LSA_LOG_PAM_ERROR("LsaPamGetLoginId failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("LsaPamGetLoginId failed [error code: %d]", dwError);
 
     goto cleanup;
 }

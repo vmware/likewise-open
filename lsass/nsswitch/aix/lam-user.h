@@ -33,50 +33,69 @@
  *
  * Module Name:
  *
- *        nss-main.c
+ *        nss-user.h
  *
  * Abstract:
  * 
  *        Name Server Switch (Likewise LSASS)
  * 
- *        Main Entry Points
+ *        Handle NSS User Information
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Brian Koropoff (bkoropoff@likewisesoftware.com)
- *
+ * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
  */
 
-#include "lsanss.h"
-#include "nss-user.h"
-#include "nss-group.h"
-#include "nss-netgrp.h"
+#ifndef __LSA_NSS_AIX_USER_H__
+#define __LSA_NSS_AIX_USER_H__
 
-nss_backend_t*
-_nss_lsass_passwd_constr(
-    const char* pszDbName,
-    const char* pszSrcName,
-    const char* pszCfgStr
-    )
-{
-    return LsaNssSolarisPasswdCreateBackend();
-}
+#ifndef S_PGID
+#define S_PGID "pgid"
+#endif
 
-nss_backend_t*
-_nss_lsass_group_constr(
-    const char* pszDbName,
-    const char* pszSrcName,
-    const char* pszCfgStr
-    )
-{
-    return LsaNssSolarisGroupCreateBackend();
-}
+#define LSA_NSS_NOPASSWORD "*"
 
-nss_backend_t*
-_nss_lsass_netgroup_constr(
-    const char* pszDbName,
-    const char* pszSrcName,
-    const char* pszCfgStr
-    )
-{
-    return LsaNssSolarisNetgroupCreateBackend();
-}
+DWORD
+LsaNssFindUserByAixName(
+    HANDLE hLsaConnection,
+    PCSTR  pszName,
+    DWORD  dwUserInfoLevel,
+    PVOID* ppUserInfo
+    );
+
+void
+LsaNssFreeLastUser(
+        VOID
+        );
+
+DWORD LsaNssAllocateUserFromInfo0(
+        PLSA_USER_INFO_0 pInfo,
+        struct passwd** ppResult
+        );
+
+struct passwd *LsaNssGetPwUid(gid_t gid);
+
+struct passwd *LsaNssGetPwNam(PCSTR pszName);
+
+DWORD
+LsaNssListUsers(
+        HANDLE hLsaConnection,
+        attrval_t* pResult
+        );
+
+VOID
+LsaNssGetUserAttr(
+        HANDLE hLsaConnection,
+        PLSA_USER_INFO_2 pInfo,
+        PSTR pszAttribute,
+        attrval_t* pResult
+        );
+
+DWORD
+LsaNssGetUserAttrs(
+        HANDLE hLsaConnection,
+        PSTR pszKey,
+        PSTR* ppszAttributes,
+        attrval_t* pResults,
+        int iAttrCount
+        );
+
+#endif

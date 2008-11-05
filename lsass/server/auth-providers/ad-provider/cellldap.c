@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Local Authentication Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -63,33 +63,33 @@ CellModeFindUserByName(
     HANDLE hRealDirectory = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pUserInfo = NULL;
     ADConfigurationMode  adConfMode = NonSchemaMode;
-    
+
     //Get current joined domain's ldap directory
     dwError = LsaDmWrapLdapOpenDirectoryDomain(pszPseudoDomainName,
                                                &hPseudoDirectory);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     //Get execution mode:schema/non-schema (save in adConfMode)
     dwError = ADGetConfigurationMode(
                          hPseudoDirectory,
                          pszPseudoCellDN,
                          &adConfMode);
     if (dwError == LSA_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS){
-        dwError = LSA_ERROR_NO_SUCH_USER;       
-    }  
-    BAIL_ON_LSA_ERROR(dwError); 
-    
+        dwError = LSA_ERROR_NO_SUCH_USER;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (!IsNullOrEmptyString(pszRealDomainName))
     {
         dwError = LsaDmWrapLdapOpenDirectoryDomain(pszRealDomainName,
                                                    &hRealDirectory);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     switch (pUserNameInfo->nameType){
            case NameType_UPN:
            case NameType_NT4:
-               
+
                dwError = ADFindUserByNameNonAlias(
                                    hPseudoDirectory,
                                    hRealDirectory,
@@ -97,43 +97,43 @@ CellModeFindUserByName(
                                    CELL_MODE,
                                    adConfMode,
                                    pUserNameInfo,
-                                   &pUserInfo);      
-               
+                                   &pUserInfo);
+
                break;
-               
+
            case NameType_Alias:
-               
-               dwError = LSA_ERROR_INVALID_PARAMETER;                   
-               
+
+               dwError = LSA_ERROR_INVALID_PARAMETER;
+
                break;
-               
+
            default:
-               dwError = LSA_ERROR_INVALID_PARAMETER;               
+               dwError = LSA_ERROR_INVALID_PARAMETER;
     }
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppUserInfo = pUserInfo;
-    
+
 cleanup:
 
     if (hPseudoDirectory != (HANDLE)NULL)
     {
         LsaLdapCloseDirectory(hPseudoDirectory);
     }
-    
+
     if (hRealDirectory != (HANDLE)NULL)
     {
         LsaLdapCloseDirectory(hRealDirectory);
     }
-    
+
     return dwError;
-    
+
 error:
 
     *ppUserInfo = NULL;
-    
+
     ADCacheDB_SafeFreeObject(&pUserInfo);
-    
+
     goto cleanup;
 }
 
@@ -142,7 +142,7 @@ CellModeGetUserGroupMembership(
     HANDLE  hDirectory,
     PCSTR   pszCellDN,
     PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,    
+    DWORD   dwUID,
     int     *piPrimaryGroupIndex,
     PDWORD  pdwGroupsFound,
     PAD_SECURITY_OBJECT** pppGroupInfoList
@@ -153,13 +153,13 @@ CellModeGetUserGroupMembership(
     PAD_SECURITY_OBJECT* ppGroupInfoList = NULL;
     ADConfigurationMode adConfMode = NonSchemaMode;
     int    iPrimaryGroupIndex = -1;
-                
+
     dwError = ADGetConfigurationMode(
                          hDirectory,
                          pszCellDN,
                          &adConfMode);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (adConfMode)
     {
     case SchemaMode:
@@ -167,19 +167,19 @@ CellModeGetUserGroupMembership(
                         hDirectory,
                         pszCellDN,
                         pszNetBIOSDomainName,
-                        dwUID,                        
+                        dwUID,
                         &iPrimaryGroupIndex,
                         &dwGroupsFound,
                         &ppGroupInfoList);
         BAIL_ON_LSA_ERROR(dwError);
         break;
-        
+
     case NonSchemaMode:
         dwError = CellModeNonSchemaGetUserGroupMembership(
                         hDirectory,
                         pszCellDN,
                         pszNetBIOSDomainName,
-                        dwUID,                        
+                        dwUID,
                         &iPrimaryGroupIndex,
                         &dwGroupsFound,
                         &ppGroupInfoList);
@@ -188,32 +188,32 @@ CellModeGetUserGroupMembership(
     case UnknownMode:
         break;
     }
-    
+
     *pdwGroupsFound = dwGroupsFound;
     *pppGroupInfoList = ppGroupInfoList;
     *piPrimaryGroupIndex = iPrimaryGroupIndex;
-    
+
 cleanup:
-    
+
     return dwError;
-    
+
 error:
 
     *pdwGroupsFound = 0;
     *pppGroupInfoList = NULL;
     *piPrimaryGroupIndex = -1;
-    
+
     ADCacheDB_SafeFreeObjectList(dwGroupsFound, &ppGroupInfoList);
-    
+
     goto cleanup;
 }
- 
+
 DWORD
 CellModeSchemaGetUserGroupMembership(
     HANDLE  hDirectory,
     PCSTR   pszCellDN,
     PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,    
+    DWORD   dwUID,
     int     *piPrimaryGroupIndex,
     PDWORD  pdwGroupsFound,
     PAD_SECURITY_OBJECT** pppGroupInfoList
@@ -227,9 +227,9 @@ CellModeSchemaGetUserGroupMembership(
     PLSA_SECURITY_IDENTIFIER pUserSID = NULL;
     int    iPrimaryGroupIndex = -1;
     PSTR pszUserSid = NULL;
-    
+
     /*dwError = ADGenericFindUserById(
-                hDirectory, 
+                hDirectory,
                 pszCellDN,
                 CELL_MODE,
                 SchemaMode,
@@ -238,8 +238,8 @@ CellModeSchemaGetUserGroupMembership(
                 &pUserInfo,
                 &pszUserDN);
     BAIL_ON_LSA_ERROR(dwError);*/
-    
-    dwError = ADLdap_FindUserSidDNById( 
+
+    dwError = ADLdap_FindUserSidDNById(
                  dwUID,
                  &pszUserSid,
                  &pszUserDN);
@@ -249,7 +249,7 @@ CellModeSchemaGetUserGroupMembership(
                     pszUserSid,
                     &pUserSID);
     BAIL_ON_LSA_ERROR(dwError);
-                   
+
     dwError = ADGetUserPseudoGroupMembership(
                 hDirectory,
                 CELL_MODE,
@@ -257,47 +257,47 @@ CellModeSchemaGetUserGroupMembership(
                 pszCellDN,
                 pszNetBIOSDomainName,
                 pszUserDN,
-                pUserSID,                
+                pUserSID,
                 &iPrimaryGroupIndex,
                 &dwGroupsFound,
                 &ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-       
+
     *pppGroupInfoList = ppGroupInfoList;
-    *pdwGroupsFound = dwGroupsFound;      
+    *pdwGroupsFound = dwGroupsFound;
     *piPrimaryGroupIndex = iPrimaryGroupIndex;
-        
+
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pszUserDN);
     LSA_SAFE_FREE_MEMORY(pszUserSid);
-    
+
     ADCacheDB_SafeFreeObject(&pUserInfo);
-    
+
     if (pUserSID)
     {
         LsaFreeSecurityIdentifier(pUserSID);
     }
-    
+
     return dwError;
-    
+
 error:
 
     *pppGroupInfoList = NULL;
     *pdwGroupsFound = 0;
     *piPrimaryGroupIndex = -1;
-    
+
     ADCacheDB_SafeFreeObjectList(dwGroupsFound, &ppGroupInfoList);
 
     goto cleanup;
 }
-    
+
 DWORD
 CellModeNonSchemaGetUserGroupMembership(
     HANDLE  hDirectory,
     PCSTR   pszCellDN,
     PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,    
+    DWORD   dwUID,
     int     *piPrimaryGroupIndex,
     PDWORD  pdwGroupsFound,
     PAD_SECURITY_OBJECT** pppGroupInfoList
@@ -307,37 +307,37 @@ CellModeNonSchemaGetUserGroupMembership(
     DWORD dwGroupsFound = 0;
     PAD_SECURITY_OBJECT* ppGroupInfoList = NULL;
     int    iPrimaryGroupIndex = -1;
-    
+
     dwError = DefaultModeNonSchemaGetUserGroupMembership(
                                hDirectory,
                                pszCellDN,
                                pszNetBIOSDomainName,
-                               dwUID,                               
+                               dwUID,
                                &iPrimaryGroupIndex,
                                &dwGroupsFound,
                                &ppGroupInfoList
                                );
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     //TODO: If user is not found, search in the possible linked cell in order
-    
+
     *pdwGroupsFound = dwGroupsFound;
     *pppGroupInfoList = ppGroupInfoList;
     *piPrimaryGroupIndex = iPrimaryGroupIndex;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *pdwGroupsFound = 0;
     *pppGroupInfoList = NULL;
     *piPrimaryGroupIndex = -1;
-    
+
     ADCacheDB_SafeFreeObjectList(dwGroupsFound, &ppGroupInfoList);
-    
-    goto cleanup; 
+
+    goto cleanup;
 }
 
 DWORD
@@ -354,77 +354,77 @@ CellModeFindGroupByName(
     HANDLE hRealDirectory = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pGroupInfo = NULL;
     ADConfigurationMode  adConfMode = NonSchemaMode;
-    
+
     //Get current joined domain's ldap directory
     dwError = LsaDmWrapLdapOpenDirectoryDomain(pszPseudoDomainName,
                                                &hPseudoDirectory);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     //Get execution mode:schema/non-schema (save in adConfMode)
     dwError = ADGetConfigurationMode(
                          hPseudoDirectory,
                          pszPseudoCellDN,
                          &adConfMode);
     if (dwError == LSA_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS){
-        dwError = LSA_ERROR_NO_SUCH_GROUP;       
-    } 
-    BAIL_ON_LSA_ERROR(dwError); 
-    
+        dwError = LSA_ERROR_NO_SUCH_GROUP;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (!IsNullOrEmptyString(pszRealDomainName))
     {
         dwError = LsaDmWrapLdapOpenDirectoryDomain(pszRealDomainName,
                                                    &hRealDirectory);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    switch (pGroupNameInfo->nameType){           
+
+    switch (pGroupNameInfo->nameType){
            case NameType_NT4:
-               
+
                dwError = ADFindGroupByNameNT4(
                                    hPseudoDirectory,
-                                   hRealDirectory, 
+                                   hRealDirectory,
                                    pszPseudoCellDN,
                                    CELL_MODE,
                                    adConfMode,
                                    pGroupNameInfo,
-                                   &pGroupInfo);                
-               
+                                   &pGroupInfo);
+
                break;
-               
-           case NameType_Alias:               
-               
+
+           case NameType_Alias:
+
                dwError = LSA_ERROR_INVALID_PARAMETER;
-               
+
                break;
-               
+
            default:
-               dwError = LSA_ERROR_INVALID_PARAMETER;              
+               dwError = LSA_ERROR_INVALID_PARAMETER;
     }
     BAIL_ON_LSA_ERROR(dwError);
-    
-    
+
+
     *ppGroupInfo = pGroupInfo;
-    
+
 cleanup:
 
     if (hPseudoDirectory != (HANDLE)NULL)
     {
         LsaLdapCloseDirectory(hPseudoDirectory);
     }
-    
+
     if (hRealDirectory != (HANDLE)NULL)
     {
         LsaLdapCloseDirectory(hRealDirectory);
     }
-    
+
     return dwError;
-    
+
 error:
 
     *ppGroupInfo = NULL;
-    
+
     ADCacheDB_SafeFreeObject(&pGroupInfo);
-    
+
     goto cleanup;
 }
 
@@ -439,18 +439,18 @@ CellModeEnumUsers(
     PVOID**        pppUserInfoList
     )
 {
-    DWORD  dwError = 0;    
+    DWORD  dwError = 0;
     DWORD  dwNumUsersFound = 0;
     PVOID* ppUserInfoList = NULL;
-    
+
     ADConfigurationMode adConfMode = NonSchemaMode;
-                
+
     dwError = ADGetConfigurationMode(
                          hDirectory,
                          pszCellDN,
                          &adConfMode);
     BAIL_ON_LSA_ERROR(dwError);
-   
+
     switch (adConfMode)
     {
        case SchemaMode:
@@ -465,7 +465,7 @@ CellModeEnumUsers(
                        );
            BAIL_ON_LSA_ERROR(dwError);
            break;
-       
+
        case NonSchemaMode:
            dwError = CellModeNonSchemaEnumUsers(
                        hDirectory,
@@ -477,27 +477,27 @@ CellModeEnumUsers(
                        &ppUserInfoList
                        );
            BAIL_ON_LSA_ERROR(dwError);
-           break;        
+           break;
        case UnknownMode:
            break;
     }
-   
+
     *pppUserInfoList = ppUserInfoList;
     *pdwUsersFound = dwNumUsersFound;
-   
+
 cleanup:
-   
+
     return dwError;
-   
+
 error:
 
     *pppUserInfoList = NULL;
     *pdwUsersFound = 0;
-   
+
     if (ppUserInfoList) {
       LsaFreeUserInfoList(pEnumState->dwInfoLevel, ppUserInfoList, dwNumUsersFound);
     }
-   
+
     goto cleanup;
 }
 
@@ -515,13 +515,13 @@ CellModeSchemaEnumUsers(
     DWORD  dwError = 0;
     DWORD  dwCount = 0;
     CHAR   szQuery[1024];
-    CHAR   szBuffer[1024];    
+    CHAR   szBuffer[1024];
     PVOID* ppUserInfoList_accumulate = NULL;
-    PVOID* ppUserInfoList = NULL;    
+    PVOID* ppUserInfoList = NULL;
     DWORD  dwTotalNumUsersFound = 0;
     DWORD  dwNumUsersFound = 0;
-    DWORD  dwUserInfoLevel = 0;    
-    PSTR   szAttributeList[] = 
+    DWORD  dwUserInfoLevel = 0;
+    PSTR   szAttributeList[] =
             {
                      AD_LDAP_UID_TAG,
                      AD_LDAP_GID_TAG,
@@ -534,22 +534,22 @@ CellModeSchemaEnumUsers(
                      AD_LDAP_UPN_TAG,
                      AD_LDAP_KEYWORDS_TAG,
                      NULL
-            };   
+            };
 
     LDAPMessage *pMessagePseudo = NULL;
     LDAP *pLd = LsaLdapGetSession(hDirectory);
-    
+
     DWORD dwNumUsersWanted = dwMaxNumUsers;
-    
+
     dwUserInfoLevel = pEnumState->dwInfoLevel;
     sprintf(szBuffer,"CN=Users,%s", pszCellDN);
     sprintf(szQuery, "(&(objectClass=posixAccount)(uidNumber=*))");
-    
+
     if (!pEnumState->bMorePages){
            dwError = LSA_ERROR_NO_MORE_USERS;
            BAIL_ON_LSA_ERROR(dwError);
-    }       
-    
+    }
+
     do
     {
         dwError = LsaLdapDirectoryOnePagedSearch(
@@ -557,23 +557,23 @@ CellModeSchemaEnumUsers(
                        szBuffer,
                        szQuery,
                        szAttributeList,
-                       dwNumUsersWanted,                       
-                       &pEnumState->pCookie,        
+                       dwNumUsersWanted,
+                       &pEnumState->pCookie,
                        LDAP_SCOPE_ONELEVEL,
                        &pMessagePseudo,
-                       &pEnumState->bMorePages);    
+                       &pEnumState->bMorePages);
         BAIL_ON_LSA_ERROR(dwError);
-    
+
         dwCount = ldap_count_entries(
                           pLd,
-                          pMessagePseudo);    
+                          pMessagePseudo);
         if (dwCount < 0) {
            dwError = LSA_ERROR_LDAP_ERROR;
         } else if (dwCount == 0) {
            dwError = LSA_ERROR_NO_MORE_USERS;
-        } 
+        }
         BAIL_ON_LSA_ERROR(dwError);
-    
+
         dwError = ADSchemaMarshalUserInfoList(
                         hDirectory,
                         pszNetBIOSDomainName,
@@ -582,41 +582,41 @@ CellModeSchemaEnumUsers(
                         &ppUserInfoList,
                         &dwNumUsersFound);
         BAIL_ON_LSA_ERROR(dwError);
-       
+
         dwNumUsersWanted -= dwNumUsersFound;
-        
+
         dwError = LsaCoalesceUserInfoList(
                         &ppUserInfoList,
                         &dwNumUsersFound,
                         &ppUserInfoList_accumulate,
                         &dwTotalNumUsersFound);
         BAIL_ON_LSA_ERROR(dwError);
-           
+
         if (pMessagePseudo) {
                ldap_msgfree(pMessagePseudo);
-               pMessagePseudo = NULL;            
+               pMessagePseudo = NULL;
         }
-    } while (pEnumState->bMorePages && dwNumUsersWanted);    
-    
+    } while (pEnumState->bMorePages && dwNumUsersWanted);
+
     *pppUserInfoList = ppUserInfoList_accumulate;
     *pdwNumUsersFound = dwTotalNumUsersFound;
-    
+
 cleanup:
-    
+
     return dwError;
-    
+
 error:
 
     *pppUserInfoList = NULL;
     *pdwNumUsersFound = 0;
-    
+
     if (ppUserInfoList) {
         LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
     }
-    
+
     if (ppUserInfoList_accumulate) {
         LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList_accumulate, dwTotalNumUsersFound);
-    }  
+    }
 
     goto cleanup;
 }
@@ -632,10 +632,10 @@ CellModeNonSchemaEnumUsers(
     PVOID**        pppUserInfoList
     )
 {
-    DWORD dwError = 0;    
+    DWORD dwError = 0;
     PVOID* ppUserInfoList = NULL;
     DWORD  dwNumUsersFound = 0;
-    
+
     dwError = DefaultModeNonSchemaEnumUsers(
                        hDirectory,
                        pszCellDN,
@@ -645,21 +645,21 @@ CellModeNonSchemaEnumUsers(
                        &dwNumUsersFound,
                        &ppUserInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     //TODO: enum linked cell users
 
     *pppUserInfoList = ppUserInfoList;
     *pdwNumUsersFound = dwNumUsersFound;
-    
-cleanup:    
-    
+
+cleanup:
+
     return dwError;
-    
+
 error:
 
     *pppUserInfoList = NULL;
     *pdwNumUsersFound = 0;
-    
+
     if (ppUserInfoList) {
           LsaFreeUserInfoList(pEnumState->dwInfoLevel, ppUserInfoList, dwNumUsersFound);
        }
@@ -678,18 +678,18 @@ CellModeEnumGroups(
     PVOID**        pppGroupInfoList
     )
 {
-    DWORD  dwError = 0;    
+    DWORD  dwError = 0;
     DWORD  dwNumGroupsFound = 0;
     PVOID* ppGroupInfoList = NULL;
-    
+
     ADConfigurationMode adConfMode = NonSchemaMode;
-                
+
     dwError = ADGetConfigurationMode(
                          hDirectory,
                          pszCellDN,
                          &adConfMode);
     BAIL_ON_LSA_ERROR(dwError);
-   
+
     switch (adConfMode)
     {
        case SchemaMode:
@@ -704,7 +704,7 @@ CellModeEnumGroups(
                        );
            BAIL_ON_LSA_ERROR(dwError);
            break;
-       
+
        case NonSchemaMode:
            dwError = CellModeNonSchemaEnumGroups(
                        hDirectory,
@@ -716,27 +716,27 @@ CellModeEnumGroups(
                        &ppGroupInfoList
                        );
            BAIL_ON_LSA_ERROR(dwError);
-           break;      
+           break;
        case UnknownMode:
-           break; 
+           break;
     }
-   
+
     *pppGroupInfoList = ppGroupInfoList;
     *pdwNumGroupsFound = dwNumGroupsFound;
-   
+
 cleanup:
-   
+
     return dwError;
-   
+
 error:
 
     *pppGroupInfoList = NULL;
     *pdwNumGroupsFound = 0;
-   
+
     if (ppGroupInfoList) {
       LsaFreeGroupInfoList(pEnumState->dwInfoLevel, ppGroupInfoList, dwNumGroupsFound);
     }
-   
+
     goto cleanup;
 }
 
@@ -754,109 +754,109 @@ CellModeSchemaEnumGroups(
     DWORD  dwError = 0;
     DWORD  dwCount = 0;
     CHAR   szQuery[1024];
-    CHAR   szBuffer[1024];    
+    CHAR   szBuffer[1024];
     PVOID* ppGroupInfoList_accumulate = NULL;
-    PVOID* ppGroupInfoList = NULL;    
+    PVOID* ppGroupInfoList = NULL;
     DWORD  dwTotalNumGroupsFound = 0;
     DWORD  dwNumGroupsFound = 0;
-    DWORD  dwGroupInfoLevel = 0;    
-    PSTR   szAttributeList[] = 
+    DWORD  dwGroupInfoLevel = 0;
+    PSTR   szAttributeList[] =
             {
-                     AD_LDAP_KEYWORDS_TAG,             
+                     AD_LDAP_KEYWORDS_TAG,
                      AD_LDAP_SAM_NAME_TAG,
                      AD_LDAP_GID_TAG,
                      AD_LDAP_PASSWD_TAG,
                      AD_LDAP_MEMBER_TAG,
                      NULL
-            };   
+            };
 
     LDAPMessage *pMessagePseudo = NULL;
     LDAP *pLd = NULL;
-    
+
     DWORD dwNumGroupsWanted = dwMaxNumGroups;
 
     pLd = LsaLdapGetSession(hDirectory);
-    
+
     dwGroupInfoLevel = pEnumState->dwInfoLevel;
     sprintf(szBuffer,"CN=Groups,%s", pszCellDN);
     sprintf(szQuery, "(&(objectClass=posixGroup)(gidNumber=*))");
-    
+
     if (!pEnumState->bMorePages){
         dwError = LSA_ERROR_NO_MORE_GROUPS;
-        BAIL_ON_LSA_ERROR(dwError);       
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     do
-    {   
+    {
         dwError = LsaLdapDirectoryOnePagedSearch(
                        hDirectory,
                        szBuffer,
                        szQuery,
                        szAttributeList,
-                       dwNumGroupsWanted,                       
-                       &pEnumState->pCookie,        
+                       dwNumGroupsWanted,
+                       &pEnumState->pCookie,
                        LDAP_SCOPE_ONELEVEL,
                        &pMessagePseudo,
-                       &pEnumState->bMorePages);    
+                       &pEnumState->bMorePages);
         BAIL_ON_LSA_ERROR(dwError);
-    
+
         dwCount = ldap_count_entries(
                           pLd,
-                          pMessagePseudo);    
+                          pMessagePseudo);
         if (dwCount < 0) {
            dwError = LSA_ERROR_LDAP_ERROR;
         } else if (dwCount == 0) {
            dwError = LSA_ERROR_NO_MORE_GROUPS;
-        } 
+        }
         BAIL_ON_LSA_ERROR(dwError);
-    
+
         dwError = ADSchemaMarshalGroupInfoList(
                         hDirectory,
-                        pszNetBIOSDomainName,                    
+                        pszNetBIOSDomainName,
                         pMessagePseudo,
                         dwGroupInfoLevel,
                         &ppGroupInfoList,
                         &dwNumGroupsFound);
         BAIL_ON_LSA_ERROR(dwError);
-       
+
         dwNumGroupsWanted -= dwNumGroupsFound;
-        
+
         dwError = LsaCoalesceGroupInfoList(
                         &ppGroupInfoList,
                         &dwNumGroupsFound,
                         &ppGroupInfoList_accumulate,
                         &dwTotalNumGroupsFound);
         BAIL_ON_LSA_ERROR(dwError);
-           
+
         if (pMessagePseudo) {
             ldap_msgfree(pMessagePseudo);
-            pMessagePseudo = NULL;            
+            pMessagePseudo = NULL;
         }
-    } while (pEnumState->bMorePages && dwNumGroupsWanted);       
-    
+    } while (pEnumState->bMorePages && dwNumGroupsWanted);
+
     *pppGroupInfoList = ppGroupInfoList_accumulate;
     *pdwNumGroupsFound = dwTotalNumGroupsFound;
-    
+
 cleanup:
 
     if (pMessagePseudo) {
         ldap_msgfree(pMessagePseudo);
     }
-    
+
     return dwError;
-    
+
 error:
 
     *pppGroupInfoList = NULL;
     *pdwNumGroupsFound = 0;
-    
+
     if (ppGroupInfoList) {
         LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
     }
-    
+
     if (ppGroupInfoList_accumulate) {
         LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList_accumulate, dwTotalNumGroupsFound);
-    }  
+    }
 
     goto cleanup;
 }
@@ -872,10 +872,10 @@ CellModeNonSchemaEnumGroups(
     PVOID**        pppGroupInfoList
     )
 {
-    DWORD dwError = 0;    
+    DWORD dwError = 0;
     PVOID* ppGroupInfoList = NULL;
     DWORD  dwNumGroupsFound = 0;
-    
+
     dwError = DefaultModeNonSchemaEnumGroups(
                        hDirectory,
                        pszCellDN,
@@ -885,21 +885,21 @@ CellModeNonSchemaEnumGroups(
                        &dwNumGroupsFound,
                        &ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     //ToDo: enum linked cell groups
-    
+
     *pppGroupInfoList = ppGroupInfoList;
     *pdwNumGroupsFound = dwNumGroupsFound;
-    
-cleanup:    
-    
+
+cleanup:
+
     return dwError;
-    
+
 error:
 
     *pppGroupInfoList = NULL;
     *pdwNumGroupsFound = 0;
-    
+
     if (ppGroupInfoList) {
           LsaFreeGroupInfoList(pEnumState->dwInfoLevel, ppGroupInfoList, dwNumGroupsFound);
        }
@@ -920,18 +920,18 @@ CellModeEnumNSSArtefacts(
     PVOID**        pppNSSArtefactInfoList
     )
 {
-    DWORD  dwError = 0;    
+    DWORD  dwError = 0;
     DWORD  dwNumNSSArtefactsFound = 0;
     PVOID* ppNSSArtefactInfoList = NULL;
-    
+
     ADConfigurationMode adConfMode = NonSchemaMode;
-                
+
     dwError = ADGetConfigurationMode(
                          hDirectory,
                          pszCellDN,
                          &adConfMode);
     BAIL_ON_LSA_ERROR(dwError);
-   
+
     switch (adConfMode)
     {
        case SchemaMode:
@@ -947,7 +947,7 @@ CellModeEnumNSSArtefacts(
                        );
            BAIL_ON_LSA_ERROR(dwError);
            break;
-       
+
        case NonSchemaMode:
            dwError = CellModeNonSchemaEnumNSSArtefacts(
                        hDirectory,
@@ -960,27 +960,27 @@ CellModeEnumNSSArtefacts(
                        &ppNSSArtefactInfoList
                        );
            BAIL_ON_LSA_ERROR(dwError);
-           break;      
+           break;
        case UnknownMode:
-           break; 
+           break;
     }
-   
+
     *pppNSSArtefactInfoList = ppNSSArtefactInfoList;
     *pdwNumNSSArtefactsFound = dwNumNSSArtefactsFound;
-   
+
 cleanup:
-   
+
     return dwError;
-   
+
 error:
 
     *pppNSSArtefactInfoList = NULL;
     *pdwNumNSSArtefactsFound = 0;
-   
+
     if (ppNSSArtefactInfoList) {
       LsaFreeNSSArtefactInfoList(pEnumState->dwInfoLevel, ppNSSArtefactInfoList, dwNumNSSArtefactsFound);
     }
-   
+
     goto cleanup;
 }
 
@@ -1000,114 +1000,121 @@ CellModeSchemaEnumNSSArtefacts(
     DWORD  dwError = 0;
     DWORD  dwCount = 0;
     CHAR   szQuery[1024];
-    CHAR   szBuffer[1024];    
+    CHAR   szBuffer[1024];
     PVOID* ppNSSArtefactInfoList_accumulate = NULL;
-    PVOID* ppNSSArtefactInfoList = NULL;    
+    PVOID* ppNSSArtefactInfoList = NULL;
     DWORD  dwTotalNumNSSArtefactsFound = 0;
     DWORD  dwNumNSSArtefactsFound = 0;
     DWORD  dwNSSArtefactInfoLevel = 0;
     PSTR   pszMapType = NULL;
-    PSTR   szAttributeList[] = 
-            {
-                     AD_LDAP_KEYWORDS_TAG,             
-                     NULL
-            };   
+    PSTR szAttributeList[] =
+        {
+             AD_LDAP_NAME_TAG,
+             AD_LDAP_KEYWORDS_TAG,
+             NULL
+        };
 
     LDAPMessage *pMessagePseudo = NULL;
     LDAP *pLd = NULL;
-    
+
     DWORD dwNumNSSArtefactsWanted = dwMaxNumNSSArtefacts;
 
     pLd = LsaLdapGetSession(hDirectory);
-    
+
     dwNSSArtefactInfoLevel = pEnumState->dwInfoLevel;
-    
+
     dwError = ADLdap_GetMapTypeString(
                   dwMapType,
                   &pszMapType);
     BAIL_ON_LSA_ERROR(dwError);
-  
+
     sprintf(szBuffer,"CN=%s,CN=Maps,%s", pszMapType, pszCellDN);
-    sprintf(szQuery, "(objectClass=*)");
-    
+    sprintf(szQuery, "(&(objectClass=serviceConnectionPoint)(keywords=objectClass=centerisLikewiseMapEntry))");
+
     if (!pEnumState->bMorePages){
-        dwError = LSA_ERROR_NO_MORE_GROUPS;
-        BAIL_ON_LSA_ERROR(dwError);       
+        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     do
-    {   
+    {
         dwError = LsaLdapDirectoryOnePagedSearch(
                        hDirectory,
                        szBuffer,
                        szQuery,
                        szAttributeList,
-                       dwNumNSSArtefactsWanted,                       
-                       &pEnumState->pCookie,        
-                       LDAP_SCOPE_ONELEVEL,
+                       dwNumNSSArtefactsWanted,
+                       &pEnumState->pCookie,
+                       LDAP_SCOPE_SUBTREE,
                        &pMessagePseudo,
-                       &pEnumState->bMorePages);    
+                       &pEnumState->bMorePages);
         BAIL_ON_LSA_ERROR(dwError);
-    
+
         dwCount = ldap_count_entries(
                           pLd,
-                          pMessagePseudo);    
+                          pMessagePseudo);
         if (dwCount < 0) {
            dwError = LSA_ERROR_LDAP_ERROR;
         } else if (dwCount == 0) {
-           dwError = LSA_ERROR_NO_MORE_GROUPS;
-        } 
+           dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+        }
         BAIL_ON_LSA_ERROR(dwError);
-    
+
         dwError = ADSchemaMarshalNSSArtefactInfoList(
                         hDirectory,
-                        pszNetBIOSDomainName,                    
+                        pszNetBIOSDomainName,
                         pMessagePseudo,
+                        (LsaNSSMapType)dwMapType,
                         dwNSSArtefactInfoLevel,
                         &ppNSSArtefactInfoList,
                         &dwNumNSSArtefactsFound);
         BAIL_ON_LSA_ERROR(dwError);
-       
+
         dwNumNSSArtefactsWanted -= dwNumNSSArtefactsFound;
-        
+
         dwError = LsaCoalesceNSSArtefactInfoList(
                         &ppNSSArtefactInfoList,
                         &dwNumNSSArtefactsFound,
                         &ppNSSArtefactInfoList_accumulate,
                         &dwTotalNumNSSArtefactsFound);
         BAIL_ON_LSA_ERROR(dwError);
-           
+
         if (pMessagePseudo) {
             ldap_msgfree(pMessagePseudo);
-            pMessagePseudo = NULL;            
+            pMessagePseudo = NULL;
         }
-    } while (pEnumState->bMorePages && dwNumNSSArtefactsWanted);       
-    
+    } while (pEnumState->bMorePages && dwNumNSSArtefactsWanted);
+
     *pppNSSArtefactInfoList = ppNSSArtefactInfoList_accumulate;
     *pdwNumNSSArtefactsFound = dwTotalNumNSSArtefactsFound;
-    
+
 cleanup:
 
     if (pMessagePseudo) {
         ldap_msgfree(pMessagePseudo);
     }
-    
+
     LSA_SAFE_FREE_STRING(pszMapType);
-    
+
     return dwError;
-    
+
 error:
 
     *pppNSSArtefactInfoList = NULL;
     *pdwNumNSSArtefactsFound = 0;
-    
+
     if (ppNSSArtefactInfoList) {
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, ppNSSArtefactInfoList, dwNumNSSArtefactsFound);
     }
-    
+
     if (ppNSSArtefactInfoList_accumulate) {
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, ppNSSArtefactInfoList_accumulate, dwTotalNumNSSArtefactsFound);
-    }  
+    }
+
+    if (dwError == LDAP_NO_SUCH_OBJECT)
+    {
+        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+    }
 
     goto cleanup;
 }
@@ -1124,10 +1131,10 @@ CellModeNonSchemaEnumNSSArtefacts(
     PVOID**        pppNSSArtefactInfoList
     )
 {
-    DWORD dwError = 0;    
+    DWORD dwError = 0;
     PVOID* ppNSSArtefactInfoList = NULL;
     DWORD  dwNumNSSArtefactsFound = 0;
-    
+
     dwError = DefaultModeNonSchemaEnumNSSArtefacts(
                        hDirectory,
                        pszCellDN,
@@ -1137,24 +1144,29 @@ CellModeNonSchemaEnumNSSArtefacts(
                        &dwNumNSSArtefactsFound,
                        &ppNSSArtefactInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     //ToDo: enum linked cell groups
-    
+
     *pppNSSArtefactInfoList = ppNSSArtefactInfoList;
     *pdwNumNSSArtefactsFound = dwNumNSSArtefactsFound;
-    
-cleanup:    
-    
+
+cleanup:
+
     return dwError;
-    
+
 error:
 
     *pppNSSArtefactInfoList = NULL;
     *pdwNumNSSArtefactsFound = 0;
-    
+
     if (ppNSSArtefactInfoList) {
           LsaFreeNSSArtefactInfoList(pEnumState->dwInfoLevel, ppNSSArtefactInfoList, dwNumNSSArtefactsFound);
        }
+
+    if (dwError == LDAP_NO_SUCH_OBJECT)
+    {
+        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+    }
 
     goto cleanup;
 }

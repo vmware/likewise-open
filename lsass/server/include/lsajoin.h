@@ -55,6 +55,7 @@ typedef DWORD (*PFN_LSA_NET_JOIN_DOMAIN)(
                 PCSTR pszPassword,
                 PCSTR pszOSName,
                 PCSTR pszOSVersion,
+                PCSTR pszOSServicePack,
                 DWORD dwFlags);
 
 #define LSA_NET_JOIN_DOMAIN_NOTIMESYNC 1

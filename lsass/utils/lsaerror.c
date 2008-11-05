@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Error Message API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -50,7 +50,7 @@
 #include "includes.h"
 
 static
-const char* gLsaErrorMessages[] = 
+const char* gLsaErrorMessages[] =
 {
     // LSA_ERROR_INVALID_CACHE_PATH                              : 32768
     "An invalid cache path was specified",
@@ -213,7 +213,7 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_NO_DEFAULT_REALM                                : 32847
     "The kerberos default realm is not set",
     //  LSA_ERROR_NOT_SUPPORTED                                  : 32848
-    "The request is not supported",   
+    "The request is not supported",
     // LSA_ERROR_LOGON_FAILURE                                   : 32849
     "The logon request failed",
     // LSA_ERROR_NO_SITE_INFORMATION                             : 32850
@@ -303,11 +303,13 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND                    : 32892
     "Failed to find any names for SIDs using NetAPI",
     // LSA_ERROR_RPC_LSA_LOOKUPSIDS_FOUND_DUPLICATES             : 32893
-    "Password does not meet requirements",             
+    "Found duplicates using RPC Call to lookup SIDs",
     // LSA_ERROR_PASSWORD_RESTRICTION                            : 32894
     "Password does not meet requirements",
     // LSA_ERROR_OBJECT_NOT_ENABLED                              : 32895
     "The user/group is not enabled in the cell",
+    // LSA_ERROR_NO_MORE_NSS_ARTEFACTS                           : 32896
+    "No more NSS Artefacts"
 };
 
 size_t
@@ -318,17 +320,17 @@ LsaGetErrorString(
     )
 {
     size_t stResult = 0;
-    
+
     if (pszBuffer && stBufSize) {
        memset(pszBuffer, 0, stBufSize);
     }
-    
+
     if (!dwError)
     {
         // No error string for success
         goto cleanup;
     }
-        
+
     if (LSA_ERROR_MASK(dwError) != 0)
     {
         stResult = LsaMapLsaErrorToString(
@@ -343,9 +345,9 @@ LsaGetErrorString(
                         pszBuffer,
                         stBufSize);
     }
-    
+
 cleanup:
-    
+
     return stResult;
 }
 
@@ -358,27 +360,27 @@ LsaMapLsaErrorToString(
 {
     size_t stResult = 0;
     DWORD dwNMessages = sizeof(gLsaErrorMessages)/sizeof(PCSTR);
-    
+
     if ((dwError >= LSA_ERROR_INVALID_CACHE_PATH) &&
         (dwError < LSA_ERROR_SENTINEL))
     {
         DWORD dwErrorOffset = dwError - 0x8000;
-        
+
         if (dwErrorOffset < dwNMessages)
         {
             PCSTR pszMessage = gLsaErrorMessages[dwErrorOffset];
             DWORD dwRequiredLen = strlen(pszMessage) + 1;
-            
+
             if (stBufSize >= dwRequiredLen) {
                 memcpy(pszBuffer, pszMessage, dwRequiredLen);
             }
-            
+
             stResult = dwRequiredLen;
-           
+
             goto cleanup;
         }
-    }              
-    
+    }
+
     stResult = LsaGetUnmappedErrorString(
                         dwError,
                         pszBuffer,
@@ -409,7 +411,7 @@ LsaGetSystemErrorString(
                         stBufSize);
         goto cleanup;
     }
-    
+
     while (result != 0)
     {
         if (result == ERANGE)
@@ -434,7 +436,7 @@ LsaGetSystemErrorString(
 
         result = LsaStrError(dwConvertError, pszTempBuffer, stBufSize);
     }
-        
+
     if (pszTempBuffer != NULL)
     {
         stResult = strlen(pszTempBuffer) + 1;
@@ -447,13 +449,13 @@ LsaGetSystemErrorString(
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pszTempBuffer);
-    
+
     return stResult;
 
 error:
 
     stResult = 0;
-    
+
     goto cleanup;
 }
 
@@ -467,15 +469,15 @@ LsaGetUnmappedErrorString(
     size_t stResult = 0;
     CHAR  szBuf[128] = "";
     DWORD dwRequiredLen = 0;
-                        
+
     dwRequiredLen = sprintf(szBuf, "Error [code=%d] occurred.", dwError) + 1;
-                        
+
     if (stBufSize >= dwRequiredLen) {
         memcpy(pszBuffer, szBuf, dwRequiredLen);
     }
-    
+
     stResult = dwRequiredLen;
-   
+
     return stResult;
 }
 
@@ -484,42 +486,42 @@ LsaGetErrorMessageForLoggingEvent(
     DWORD dwErrCode,
     PSTR* ppszErrorMsg)
 {
-    DWORD dwErrorBufferSize = 0;    
+    DWORD dwErrorBufferSize = 0;
     DWORD dwError = 0;
     DWORD dwLen = 0;
     PSTR  pszErrorMsg = NULL;
     PSTR  pszErrorBuffer = NULL;
 
     dwErrorBufferSize = LsaGetErrorString(dwErrCode, NULL, 0);
-    
+
     if (!dwErrorBufferSize)
         goto cleanup;
-        
+
     dwError = LsaAllocateMemory(
                 dwErrorBufferSize,
                 (PVOID*)&pszErrorBuffer);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwLen = LsaGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
-        
+
     if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
     {
         dwError = LsaAllocateStringPrintf(
                      &pszErrorMsg,
                      "Error: %s [error code: %d]",
                      pszErrorBuffer,
-                     dwErrCode);         
+                     dwErrCode);
         BAIL_ON_LSA_ERROR(dwError);
-    }    
-    
+    }
+
     *ppszErrorMsg = pszErrorMsg;
-    
+
 cleanup:
-    
+
     LSA_SAFE_FREE_STRING(pszErrorBuffer);
-    
+
     return dwError;
-    
+
 error:
 
     LSA_SAFE_FREE_STRING(pszErrorMsg);

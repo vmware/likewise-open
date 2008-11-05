@@ -504,8 +504,9 @@ AD_ValidateUser(
 
 cleanup:
     ADCacheDB_SafeFreeObject(&pUserInfo);
-
-    if (pLoginInfo) {
+    
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
     }
 
@@ -1080,19 +1081,16 @@ AD_GroupObjectToGroupInfo(
                             NULL);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (dwTrustDirection != LSA_TRUST_DIRECTION_ONE_WAY)
-            {
-                dwError = AD_GetExpandedGroupUsers(
-                    hProvider,
-                    pszFullDomainName,
-                    pGroupObject->pszNetbiosDomainName,
-                    pGroupObject->pszObjectSid,
-                    5,
-                    NULL,
-                    &sMembers,
-                    &ppMembers);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
+            dwError = AD_GetExpandedGroupUsers(
+                hProvider,
+                pszFullDomainName,
+                pGroupObject->pszNetbiosDomainName,
+                pGroupObject->pszObjectSid,
+                5,
+                NULL,
+                &sMembers,
+                &ppMembers);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LSA_ERROR_INVALID_GROUP_INFO_LEVEL;
@@ -1156,6 +1154,14 @@ AD_GetUserGroupMembership(
 
     for (sIndex = 0; sIndex < sGroupObjectsCount; sIndex++)
     {
+        if (ppGroupObjects[sIndex]->type != AccountType_Group)
+        {
+            LSA_LOG_DEBUG("Skipping non-group SID %s (type = %d)",
+                          LSA_SAFE_LOG_STRING(ppGroupObjects[sIndex]->pszObjectSid),
+                          ppGroupObjects[sIndex]->type);
+            continue;
+        }
+
         dwError = AD_GroupObjectToGroupInfo(
                     hProvider,
                     ppGroupObjects[sIndex],
@@ -1442,10 +1448,12 @@ AD_OpenSession(
 
     }
 
-cleanup:
-    if (pLoginInfo) {
+cleanup:   
+    
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
-    }
+    }    
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
@@ -2249,7 +2257,6 @@ AD_FindUserObjectByName(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszLocalLoginId);
-
     if (pUserNameInfo)
     {
         LsaFreeNameInfo(pUserNameInfo);
@@ -2381,7 +2388,6 @@ AD_FindGroupObjectByName(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszLocalGroupName);
-
     if (pGroupNameInfo)
     {
         LsaFreeNameInfo(pGroupNameInfo);

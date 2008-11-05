@@ -97,4 +97,6 @@ DJGetDistroInfo(const char *testPrefix, DistroInfo *info);
 //been zeroed out.
 void DJFreeDistroInfo(DistroInfo *info);
 
+CENTERROR DJGetLikewiseVersion(PSTR *version, PSTR *build, PSTR *revision);
+
 #endif // __DJDISTROINFO_H__

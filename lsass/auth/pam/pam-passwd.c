@@ -123,13 +123,37 @@ cleanup:
 
     LSA_LOG_PAM_DEBUG("pam_sm_chauthtok::end");
 
+#ifdef __LWI_AIX__
+     /* If PAM_SUCCESS is returned on AIX 5.3 TL4, AIX will not call back
+        with PAM_UPDATE_AUTHTOK; AIX will think the password change has
+        finished and was successful. It seems like any error code other
+        than PAM_SUCCESS will convince AIX to call back.
+ 
+        On AIX 5.3 TL6, PAM_SUCCESS can be returned, however most other
+        error codes (including PAM_NEW_AUTHTOK_REQD) will cause AIX to
+        think an unrecoverable error occurred.
+
+        PAM_IGNORE is the magic error code that works on both AIX 5.3
+        TL4 and AIX 5.3 TL6.
+      */
+    if ( !dwError && (flags & PAM_PRELIM_CHECK) )
+    {
+        iPamError = PAM_IGNORE;
+    }
+    else
+    {
+        iPamError = LsaPamMapErrorCode(dwError, pPamContext);
+    }
+#else
     iPamError = LsaPamMapErrorCode(dwError, pPamContext);
+#endif
+
     LSA_LOG_PAM_DEBUG("pam_sm_chauthtok::returning pam error code %d", iPamError);
     return iPamError;
 
 error:
 
-    LSA_LOG_PAM_ERROR("pam_sm_chauthtok failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("pam_sm_chauthtok failed [error code: %d]", dwError);
 
     goto cleanup;
 }
@@ -194,7 +218,9 @@ cleanup:
 
 error:
 
-    LSA_LOG_PAM_ERROR("LsaPamCheckCurrentPassword failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("LsaPamCheckCurrentPassword failed [login:%s][error code: %d]",
+                      LSA_SAFE_LOG_STRING(pszLoginId),
+                      dwError);
 
     goto cleanup;
 }
@@ -248,7 +274,9 @@ error:
 
     *pbCheckOldPassword = TRUE;
 
-    LSA_LOG_PAM_ERROR("LsaPamMustCheckCurrentPassword failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("LsaPamMustCheckCurrentPassword failed [login:%s][error code: %d]",
+                      LSA_SAFE_LOG_STRING(pszLoginId),
+                      dwError);
 
     goto cleanup;
 }
@@ -355,7 +383,9 @@ error:
             NULL);
     }
 
-    LSA_LOG_PAM_ERROR("LsaPamUpdatePassword failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("LsaPamUpdatePassword failed [login:%s][error code: %d]",
+                      LSA_SAFE_LOG_STRING(pszLoginId),
+                      dwError);
 
     goto cleanup;
 }
@@ -445,7 +475,7 @@ error:
 
     *ppszPassword = NULL;
 
-    LSA_LOG_PAM_ERROR("LsaPamGetCurrentPassword failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("LsaPamGetCurrentPassword failed [error code: %d]", dwError);
 
     goto cleanup;
 }
@@ -551,7 +581,7 @@ error:
 
     *ppszPassword = NULL;
 
-    LSA_LOG_PAM_ERROR("LsaPamGetOldPassword failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("LsaPamGetOldPassword failed [error code: %d]", dwError);
 
     goto cleanup;
 }
@@ -652,7 +682,7 @@ error:
 
     *ppszPassword = NULL;
 
-    LSA_LOG_PAM_ERROR("LsaPamGetNewPassword failed [code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("LsaPamGetNewPassword failed [error code: %d]", dwError);
 
     goto cleanup;
 }

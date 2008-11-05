@@ -50,6 +50,11 @@
  
 typedef DWORD (*PFN_DEFAULT_FINDUSER_NAMEBYALIAS_FUNC)(PCSTR pszAlias, PCSTR pszRootDomainName, PSTR* ppszUpnName);
 
+typedef struct _LSA_AD_DN_LISTS_ENTRY {
+    DWORD dwDNCount;
+    PSTR* ppszDNValues;    
+} LSA_AD_DN_LISTS_ENTRY, *PLSA_AD_DN_LISTS_ENTRY;
+
 DWORD
 ADBuildGetUsersByDNQuery(
     PSTR*  ppszUserDNList,
@@ -341,6 +346,13 @@ ADFindGroupByNameNT4Helper(
     PLSA_LOGIN_NAME_INFO pGroupNameInfo,
     PAD_SECURITY_OBJECT* ppGroupInfo);
 
+DWORD
+ADLdap_GetGroupMembersDNList(
+    IN HANDLE hDirectory,
+    IN PCSTR pszGroupDN,
+    OUT PDWORD pdwTotalDNCount,
+    OUT PSTR** pppszDNValues
+    );
 
 #endif 
 

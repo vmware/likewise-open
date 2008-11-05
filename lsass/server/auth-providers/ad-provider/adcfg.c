@@ -185,6 +185,14 @@ AD_SetConfig_HomedirPrefix(
     PCSTR          pszValue
     );
 
+static
+DWORD
+AD_SetConfig_CellSupport(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
 static AD_CONFIG_HANDLER gADConfigHandlers[] =
 {
     {"enable-eventlog",               &AD_SetConfig_EnableEventLog},
@@ -203,7 +211,8 @@ static AD_CONFIG_HANDLER gADConfigHandlers[] =
     {"create-homedir",                &AD_SetConfig_CreateHomeDir},
     {"skeleton-dirs",                 &AD_SetConfig_SkelDirs},
     {"homedir-umask",                 &AD_SetConfig_Umask},
-    {"homedir-prefix",                &AD_SetConfig_HomedirPrefix}
+    {"homedir-prefix",                &AD_SetConfig_HomedirPrefix},
+    {"cell-support",                  &AD_SetConfig_CellSupport},
 };
 
 DWORD
@@ -243,6 +252,7 @@ AD_InitializeConfig(
     
     pConfig->bEnableEventLog = FALSE;
     pConfig->bShouldLogNetworkConnectionEvents = TRUE;    
+    pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
     
     dwError = LsaAllocateString(
                     AD_DEFAULT_SHELL,
@@ -928,6 +938,45 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_SetConfig_CellSupport(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    DWORD dwError = 0;
+    if (!strcasecmp(pszValue, "unprovisioned"))
+    {
+        pConfig->CellSupport = AD_CELL_SUPPORT_UNPROVISIONED;
+    }
+#if 0
+    else if (!strcasecmp(pszValue, "file"))
+    {
+        pConfig->CellSupport = AD_CELL_SUPPORT_FILE;
+    }
+#endif
+    else if (!strcasecmp(pszValue, "full"))
+    {
+        pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
+    }
+    else
+    {
+        LSA_LOG_ERROR("Invalid value for cell-support parameter");
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 BOOLEAN
 AD_GetBooleanConfigValue(
     PCSTR pszValue
@@ -1589,4 +1638,21 @@ AD_ShouldCreateHomeDir(
     LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     return bCreateHomeDir;
+}
+
+AD_CELL_SUPPORT
+AD_GetCellSupport(
+    VOID
+    )
+{
+    AD_CELL_SUPPORT result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    result = gpLsaAdProviderState->config.CellSupport;
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
 }

@@ -56,18 +56,6 @@
 #define LSA_AD_UF_PASSWORD_EXPIRED   0x00800000
 
 DWORD
-ADMarshalToUserCache(
-    HANDLE                  hPseudoDirectory,
-    HANDLE                  hRealDirectory,
-    DWORD                   dwDirectoryMode,
-    ADConfigurationMode     adConfMode,
-    PCSTR                   pszNetBIOSDomainName,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppUserInfo
-    );
-
-DWORD
 ADMarshalToUserCacheEx(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,

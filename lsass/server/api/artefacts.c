@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        NSSArtefact Lookup and Management (Server)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -59,7 +59,7 @@ LsaSrvBeginEnumNSSArtefacts(
     DWORD dwError = 0;
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PSTR pszGUID = NULL;
-    
+
     dwError = LsaSrvAddNSSArtefactEnumState(
                     hServer,
                     dwMapType,
@@ -67,16 +67,16 @@ LsaSrvBeginEnumNSSArtefacts(
                     dwMaxNumNSSArtefacts,
                     &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateString(pEnumState->pszGUID, &pszGUID);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppszGUID = pszGUID;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppszGUID = NULL;
@@ -102,17 +102,17 @@ LsaSrvEnumNSSArtefacts(
     DWORD  dwNumNSSArtefactsRemaining = 0;
     DWORD  dwNSSArtefactInfoLevel = 0;
     DWORD  dwMapType = 0;
-    
+
     pEnumState = LsaSrvFindNSSArtefactEnumState(hServer, pszGUID);
     if (!pEnumState) {
         dwError = LSA_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwNSSArtefactInfoLevel = pEnumState->dwInfoLevel;
     dwNumNSSArtefactsRemaining = pEnumState->dwNumMaxRecords;
     dwMapType = pEnumState->dwMapType;
-    
+
     while (dwNumNSSArtefactsRemaining &&
            pEnumState->pCurProviderState)
     {
@@ -122,31 +122,31 @@ LsaSrvEnumNSSArtefacts(
         HANDLE hResume = pProviderState->hResume;
 
         dwNumNSSArtefactsFound = 0;
-        
-        
+
+
         dwError = pProvider->pFnTable->pfnEnumNSSArtefacts(
                         hProvider,
                         hResume,
                         dwNumNSSArtefactsRemaining,
                         &dwNumNSSArtefactsFound,
                         &ppNSSArtefactInfoList);
-                       
-        
+
+
         if (dwError) {
-           if (dwError != LSA_ERROR_NO_MORE_GROUPS) {
+           if (dwError != LSA_ERROR_NO_MORE_NSS_ARTEFACTS) {
               BAIL_ON_LSA_ERROR(dwError);
            }
         }
-        
-        dwNumNSSArtefactsRemaining -= dwNumNSSArtefactsFound;        
-        
+
+        dwNumNSSArtefactsRemaining -= dwNumNSSArtefactsFound;
+
         if (dwNumNSSArtefactsRemaining) {
            pEnumState->pCurProviderState = pEnumState->pCurProviderState->pNext;
-           if (dwError == LSA_ERROR_NO_MORE_GROUPS){ 
-             dwError = 0;           
+           if (dwError == LSA_ERROR_NO_MORE_NSS_ARTEFACTS){
+             dwError = 0;
            }
         }
-        
+
         dwError = LsaCoalesceNSSArtefactInfoList(
                         &ppNSSArtefactInfoList,
                         &dwNumNSSArtefactsFound,
@@ -154,26 +154,26 @@ LsaSrvEnumNSSArtefacts(
                         &dwTotalNumNSSArtefactsFound);
         BAIL_ON_LSA_ERROR(dwError);
     }
-   
+
     *pdwNSSArtefactInfoLevel = dwNSSArtefactInfoLevel;
     *pppNSSArtefactInfoList = ppNSSArtefactInfoList_accumulate;
     *pdwNumNSSArtefactsFound = dwTotalNumNSSArtefactsFound;
-    
+
 cleanup:
-    
+
     return(dwError);
 
 error:
-    
+
     *pdwNSSArtefactInfoLevel = 0;
     *pppNSSArtefactInfoList = NULL;
     *pdwNumNSSArtefactsFound = 0;
-    
-    
+
+
     if (ppNSSArtefactInfoList) {
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, ppNSSArtefactInfoList, dwNumNSSArtefactsFound);
     }
-    
+
     if (ppNSSArtefactInfoList_accumulate) {
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, ppNSSArtefactInfoList_accumulate, dwTotalNumNSSArtefactsFound);
     }
@@ -190,7 +190,7 @@ LsaSrvEndEnumNSSArtefacts(
     DWORD dwError = 0;
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
-    
+
     pEnumState = LsaSrvFindNSSArtefactEnumState(hServer, pszGUID);
     if (!pEnumState) {
         dwError = LSA_ERROR_INTERNAL;
@@ -209,7 +209,7 @@ LsaSrvEndEnumNSSArtefacts(
                                        pszGUID);
         }
     }
-        
+
     LsaSrvFreeNSSArtefactEnumState(
                         hServer,
                         pszGUID);
@@ -217,7 +217,7 @@ LsaSrvEndEnumNSSArtefacts(
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;

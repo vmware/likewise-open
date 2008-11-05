@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        AD LDAP NSS Artefact Marshalling functions (private header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -50,74 +50,22 @@
 
 DWORD
 ADSchemaMarshalNSSArtefactInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pNumNSSArtefacts
-    );
-
-DWORD
-ADSchemaMarshalNSSArtefactInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    PVOID*       ppNSSArtefactInfo
-    );
-
-DWORD
-ADSchemaMarshalNSSArtefactInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pNumNSSArtefacts
-    );
-
-DWORD
-ADSchemaMarshalNSSArtefactInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    PVOID*       ppNSSArtefactInfo
+    HANDLE        hDirectory,
+    PCSTR         pszDomainName,
+    LDAPMessage*  pMessagePseudo,
+    LsaNSSMapType mapType,
+    PVOID**       pppNSSArtefactInfoList,
+    PDWORD        pNumNSSArtefacts
     );
 
 DWORD
 ADNonSchemaMarshalNSSArtefactInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pwdNumNSSArtefacts
-    );
-
-DWORD
-ADNonSchemaMarshalNSSArtefactInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    PVOID*       ppNSSArtefactInfo
-    );
-
-DWORD
-ADNonSchemaMarshalNSSArtefactInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pwdNumNSSArtefacts
-    );
-
-DWORD
-ADNonSchemaMarshalNSSArtefactInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    PVOID*       ppNSSArtefactInfo
+    HANDLE        hDirectory,
+    PCSTR         pszDomainName,
+    LDAPMessage*  pMessagePseudo,
+    LsaNSSMapType mapType,
+    PVOID**       pppNSSArtefactInfoList,
+    PDWORD        pwdNumNSSArtefacts
     );
 
 #endif //__AD_MARSHAL_NSS_ARTEFACT_P_H__

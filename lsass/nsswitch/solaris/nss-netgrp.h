@@ -33,67 +33,25 @@
  *
  * Module Name:
  *
- *        nss-user.h
+ *        nss-group.h
  *
  * Abstract:
  * 
  *        Name Server Switch (Likewise LSASS)
  * 
- *        Handle NSS User Information
+ *        Handle NSS Net Group Information
  *
- * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  */
 
-#ifndef __LSA_NSS_AIX_USER_H__
-#define __LSA_NSS_AIX_USER_H__
+#ifndef __LSA_NSS_SOLARIS_NETGROUP_H__
+#define __LSA_NSS_SOLARIS_NETGROUP_H__
 
-#ifndef S_PGID
-#define S_PGID "pgid"
-#endif
+#include "lsanss.h"
 
-DWORD
-LsaNssFindUserByAixName(
-    HANDLE hLsaConnection,
-    PCSTR  pszName,
-    DWORD  dwUserInfoLevel,
-    PVOID* ppUserInfo
+nss_backend_t*
+LsaNssSolarisNetgroupCreateBackend(
+    void			       
     );
-
-void
-LsaNssFreeLastUser(
-        VOID
-        );
-
-DWORD LsaNssAllocateUserFromInfo0(
-        PLSA_USER_INFO_0 pInfo,
-        struct passwd** ppResult
-        );
-
-struct passwd *LsaNssGetPwUid(gid_t gid);
-
-struct passwd *LsaNssGetPwNam(PCSTR pszName);
-
-DWORD
-LsaNssListUsers(
-        HANDLE hLsaConnection,
-        attrval_t* pResult
-        );
-
-VOID
-LsaNssGetUserAttr(
-        HANDLE hLsaConnection,
-        PLSA_USER_INFO_2 pInfo,
-        PSTR pszAttribute,
-        attrval_t* pResult
-        );
-
-DWORD
-LsaNssGetUserAttrs(
-        HANDLE hLsaConnection,
-        PSTR pszKey,
-        PSTR* ppszAttributes,
-        attrval_t* pResults,
-        int iAttrCount
-        );
 
 #endif

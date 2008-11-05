@@ -60,7 +60,8 @@ ParseArgs(
     int    argc,
     char*  argv[],
     PSTR*  ppszGroupId,
-    PDWORD pdwInfoLevel
+    PDWORD pdwInfoLevel,
+    PBOOLEAN pbCountOnly
     );
 
 VOID
@@ -73,7 +74,8 @@ PrintGroupInfo_0(
 
 VOID
 PrintGroupInfo_1(
-    PLSA_GROUP_INFO_1 pGroupInfo
+    PLSA_GROUP_INFO_1 pGroupInfo,
+    BOOLEAN bCountOnly
     );
 
 DWORD
@@ -99,8 +101,9 @@ main(
     PVOID pGroupInfo = NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
+    BOOLEAN bCountOnly = FALSE;
     
-    dwError = ParseArgs(argc, argv, &pszGroupId, &dwInfoLevel);
+    dwError = ParseArgs(argc, argv, &pszGroupId, &dwInfoLevel, &bCountOnly);
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaOpenServer(&hLsaConnection);
@@ -119,7 +122,7 @@ main(
             PrintGroupInfo_0((PLSA_GROUP_INFO_0)pGroupInfo);
             break;
         case 1:
-            PrintGroupInfo_1((PLSA_GROUP_INFO_1)pGroupInfo);
+            PrintGroupInfo_1((PLSA_GROUP_INFO_1)pGroupInfo, bCountOnly);
             break;
         default:
             
@@ -183,7 +186,8 @@ ParseArgs(
     int    argc,
     char*  argv[],
     PSTR*  ppszGroupId,
-    PDWORD pdwInfoLevel
+    PDWORD pdwInfoLevel,
+    PBOOLEAN pbCountOnly
     )
 {
     typedef enum {
@@ -198,6 +202,7 @@ ParseArgs(
     PSTR pszGroupId = NULL;
     ParseMode parseMode = PARSE_MODE_OPEN;
     DWORD dwInfoLevel = 0;
+    BOOLEAN bCountOnly = FALSE;
 
     do {
         pszArg = argv[iArg++];
@@ -215,6 +220,9 @@ ParseArgs(
                 {
                     ShowUsage();
                     exit(0);
+                }
+                else if (!strcmp(pszArg, "--count")) {
+                    bCountOnly = TRUE;
                 }
                 else if (!strcmp(pszArg, "--level")) {
                     parseMode = PARSE_MODE_LEVEL;
@@ -252,13 +260,14 @@ ParseArgs(
     }
     
     if (IsNullOrEmptyString(pszGroupId)) {
-       fprintf(stderr, "Please specify a group id to query for.\n");
+       fprintf(stderr, "Please specify a group name to query for.\n");
        ShowUsage();
        exit(1);
     }
 
     *ppszGroupId = pszGroupId;
     *pdwInfoLevel = dwInfoLevel;
+    *pbCountOnly = bCountOnly;
 
 cleanup:
     
@@ -268,6 +277,7 @@ error:
 
     *ppszGroupId = NULL;
     *pdwInfoLevel = 0;
+    *pbCountOnly = FALSE;
 
     LSA_SAFE_FREE_STRING(pszGroupId);
 
@@ -277,7 +287,28 @@ error:
 void
 ShowUsage()
 {
-    printf("Usage: lw-find-group-by-name {--level [0, 1]} <group id>\n");
+    PCSTR pszProgramName = "lw-find-group-by-name";
+    printf("Usage: %s [OPTIONS] <GROUP_NAME>\n"
+           "\n"
+           "    Lookup a group by name.\n"
+           "\n"
+           "  Options:\n"
+           "\n"
+           "    --level LEVEL   - Output level can be 0 or 1.\n"
+           "                      0 does not include membership info.\n"
+           "                      1 include group membership info.\n"
+           "\n"
+           "    --count         - If used with level 1, shows membership count only\n"
+           "                      instead of listing group members.\n"
+           "\n"
+           "  Examples:\n"
+           "\n"
+           "    %s DOMAIN\\groupname\n"
+           "    %s --level 1 groupalias\n"
+           "\n",
+           pszProgramName,
+           pszProgramName,
+           pszProgramName);
 }
 
 VOID
@@ -285,47 +316,53 @@ PrintGroupInfo_0(
     PLSA_GROUP_INFO_0 pGroupInfo
     )
 {
-    fprintf(stdout, "Group info (Level-0):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-                IsNullOrEmptyString(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
-    fprintf(stdout, "SID:     %s\n",
-                    IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
+    printf("Group info (Level 0):\n"
+           "====================\n"
+           "Name: %s\n"
+           "Gid:  %u\n"
+           "SID:  %s\n",
+           LSA_SAFE_LOG_STRING(pGroupInfo->pszName),
+           (unsigned int)pGroupInfo->gid,
+           LSA_SAFE_LOG_STRING(pGroupInfo->pszSid));
 }
 
 VOID
 PrintGroupInfo_1(
-    PLSA_GROUP_INFO_1 pGroupInfo
+    PLSA_GROUP_INFO_1 pGroupInfo,
+    BOOLEAN bCountOnly
     )
 {
     PSTR* ppszMembers = NULL;
     DWORD iMember = 0;
 
-    fprintf(stdout, "Group info (Level-1):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-            IsNullOrEmptyString(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
-    fprintf(stdout, "SID:     %s\n",
-                        IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
-    
-    fprintf(stdout, "Members:\n");
+    printf("Group info (Level 1):\n"
+           "====================\n"
+           "Name: %s\n"
+           "Gid:  %u\n"
+           "SID:  %s\n",
+           LSA_SAFE_LOG_STRING(pGroupInfo->pszName),
+           (unsigned int)pGroupInfo->gid,
+           LSA_SAFE_LOG_STRING(pGroupInfo->pszSid));
+
+    if (!bCountOnly)
+    {
+        printf("Members:\n");
+    }
 
     ppszMembers = pGroupInfo->ppszMembers;
-    
-    if (ppszMembers){
-    while (!IsNullOrEmptyString(*ppszMembers)) {
-          if (iMember) {
-             fprintf(stdout, "\n%s", *ppszMembers);
-          } else {
-             fprintf(stdout, "%s", *ppszMembers);
-          }
-          iMember++;
-          ppszMembers++;
-       }
+    if (ppszMembers)
+    {
+        while (!IsNullOrEmptyString(ppszMembers[iMember]))
+        {
+            if (!bCountOnly)
+            {
+                printf("%s\n", ppszMembers[iMember]);
+            }
+            iMember++;
+        }
     }
-    fprintf(stdout, "\n");
+
+    printf("Members Count: %d\n", iMember);
 }
 
 DWORD

@@ -43,6 +43,7 @@ typedef nss_status_t NSS_STATUS;
 #define NSS_STATUS_NOTFOUND NSS_NOTFOUND
 #define NSS_STATUS_UNAVAIL NSS_UNAVAIL
 #define NSS_STATUS_TRYAGAIN NSS_TRYAGAIN
+#define NSS_STATUS_RETURN NSS_RETURN
 
 #elif HAVE_NSS_H
 
@@ -60,6 +61,7 @@ typedef nss_status_t NSS_STATUS;
 #define NSS_STATUS_NOTFOUND NSS_NOTFOUND
 #define NSS_STATUS_UNAVAIL NSS_UNAVAIL
 #define NSS_STATUS_TRYAGAIN NSS_TRYAGAIN
+#define NSS_STATUS_RETURN NSS_RETURN
 
 #else
 
@@ -76,11 +78,18 @@ typedef enum nss_status NSS_STATUS;
 
 #endif
 
-#define BAIL_ON_NSS_ERROR(errCode)            \
-        do {                                  \
-           if (NSS_STATUS_SUCCESS != errCode) \
-              goto error;                     \
-        } while(0);
+#define BAIL_ON_NSS_ERROR(errCode)                      \
+    do {                                                \
+        if (NSS_STATUS_SUCCESS != (errCode))            \
+            goto error;                                 \
+    } while(0);
+
+typedef enum
+{
+    LSA_NSS_NETGROUP_ENTRY_TRIPLE,
+    LSA_NSS_NETGROUP_ENTRY_GROUP,
+    LSA_NSS_NETGROUP_ENTRY_END
+} LSA_NSS_NETGROUP_ENTRY_TYPE;
 
 #include <pwd.h>
 #include <grp.h>
@@ -112,6 +121,17 @@ typedef struct __LSA_ENUMUSERS_STATE
     DWORD   idxUser;
     BOOLEAN bTryAgain;
 } LSA_ENUMUSERS_STATE, *PLSA_ENUMUSERS_STATE;
+
+typedef struct __LSA_ENUMARTEFACTS_STATE
+{
+    HANDLE  hLsaConnection;
+    HANDLE  hResume;
+    PVOID*  ppArtefactInfoList;
+    DWORD   dwNumArtefacts;
+    DWORD   dwArtefactInfoLevel;
+    DWORD   idxArtefact;
+    BOOLEAN bTryAgain;
+} LSA_ENUMARTEFACTS_STATE, *PLSA_ENUMARTEFACTS_STATE;
 
 VOID
 LsaNssClearEnumUsersState(
@@ -156,6 +176,11 @@ LsaNssWriteGroupInfo(
     group_ptr_t pResultGroup,
     char**      ppszBuf,
     int         bufLen
+    );
+
+VOID
+LsaNssClearEnumArtefactsState(
+    PLSA_ENUMARTEFACTS_STATE pState
     );
 
 NSS_STATUS
@@ -242,5 +267,20 @@ LsaNssCommonGroupGetGroupsByUserName(
     int*                    pErrorNumber
     );
 
+NSS_STATUS
+LsaNssCommonNetgroupFindByName(
+    PCSTR pszName,
+    PSTR* ppszValue
+    );
+
+NSS_STATUS
+LsaNssCommonNetgroupParse(
+    PSTR* ppszCursor,
+    LSA_NSS_NETGROUP_ENTRY_TYPE* pType,
+    PSTR* ppszHost,
+    PSTR* ppszUser,
+    PSTR* ppszDomain,
+    PSTR* ppszGroup
+    );
 
 #endif

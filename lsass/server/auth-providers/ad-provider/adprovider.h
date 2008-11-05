@@ -96,5 +96,7 @@
 #include "provider-main.h"
 #include "offline-helper.h"
 
+#include "batch.h"
+
 #include "externs.h"
 

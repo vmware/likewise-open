@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Tool to enumerate NSS Maps
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -107,10 +107,10 @@ main(
                     &dwBatchSize,
                     &mapType);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaBeginEnumNSSArtefacts(
                     hLsaConnection,
                     dwMapInfoLevel,
@@ -118,58 +118,58 @@ main(
                     dwBatchSize,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     do
     {
         DWORD iMap = 0;
-        
+
         dwError = LsaEnumNSSArtefacts(
                     hLsaConnection,
                     hResume,
-                    &dwNumMapsFound,                    
+                    &dwNumMapsFound,
                     &ppMapInfoList);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         if (!dwNumMapsFound) {
             break;
         }
-       
+
         dwTotalMapsFound += dwNumMapsFound;
-        
+
         for (iMap = 0; iMap < dwNumMapsFound; iMap++)
         {
             PVOID pMapInfo = *(ppMapInfoList + iMap);
-            
+
             switch(dwMapInfoLevel)
             {
                 case 0:
-                    
+
                     PrintMapInfo_0((PLSA_NSS_ARTEFACT_INFO_0)pMapInfo);
                     break;
-                    
+
                 default:
-            
+
                     fprintf(stderr,
                             "Error: Invalid map info level [%d]\n",
                             dwMapInfoLevel);
                     break;
             }
-        }        
+        }
     } while (dwNumMapsFound);
-    
+
     fprintf(stdout, "TotalNumMapsFound:      %u\n", dwTotalMapsFound);
-        
+
 cleanup:
 
     if (ppMapInfoList) {
        LsaFreeNSSArtefactInfoList(dwMapInfoLevel, ppMapInfoList, dwNumMapsFound);
     }
-    
+
     if ((hResume != (HANDLE)NULL) &&
         (hLsaConnection != (HANDLE)NULL)) {
         LsaEndEnumNSSArtefacts(hLsaConnection, hResume);
     }
-    
+
     if (hLsaConnection != (HANDLE)NULL) {
         LsaCloseServer(hLsaConnection);
     }
@@ -179,32 +179,32 @@ cleanup:
 error:
 
     dwError = MapErrorCode(dwError);
-    
+
     dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
-    
+
     if (dwErrorBufferSize > 0)
     {
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
-        
+
         dwError2 = LsaAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
-        
+
         if (!dwError2)
         {
             DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
-            
+
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to enumerate maps.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
-        
+
         LSA_SAFE_FREE_STRING(pszErrorBuffer);
     }
-    
+
     if (bPrintOrigError)
     {
         fprintf(stderr, "Failed to enumerate maps. Error code [%d]\n", dwError);
@@ -229,7 +229,7 @@ ParseArgs(
             PARSE_MODE_MAPTYPE,
             PARSE_MODE_DONE
         } ParseMode;
-        
+
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
@@ -244,11 +244,11 @@ ParseArgs(
         {
             break;
         }
-        
+
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-        
+
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -270,25 +270,25 @@ ParseArgs(
                     exit(1);
                 }
                 break;
-                
+
             case PARSE_MODE_LEVEL:
-                
+
                 if (!IsUnsignedInteger(pszArg))
                 {
                     fprintf(stderr, "please use an info level which is an unsigned integer.\n");
                 }
                 dwInfoLevel = atoi(pszArg);
                 parseMode = PARSE_MODE_OPEN;
-                
+
                 break;
-                
+
             case PARSE_MODE_BATCHSIZE:
-                
+
                 if (!IsUnsignedInteger(pszArg))
                 {
                     fprintf(stderr, "please use a batch size which is an unsigned integer.\n");
                 }
-                
+
                 dwBatchSize = atoi(pszArg);
                 if ((dwBatchSize < 0) ||
                     (dwBatchSize > 1000)) {
@@ -296,11 +296,11 @@ ParseArgs(
                     exit(1);
                 }
                 parseMode = PARSE_MODE_OPEN;
-                
+
                 break;
-                
+
             case PARSE_MODE_MAPTYPE:
-                
+
                 if (!strcasecmp(pszArg, "services"))
                 {
                     mapType = LSA_NSS_ARTEFACT_TYPE_SERVICE;
@@ -315,20 +315,20 @@ ParseArgs(
                 }
                 parseMode = PARSE_MODE_DONE;
                 break;
-                
+
             case PARSE_MODE_DONE:
                 ShowUsage();
                 exit(1);
         }
-        
+
     } while (iArg < argc);
-    
+
     if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
     {
         ShowUsage();
-        exit(1);  
+        exit(1);
     }
-    
+
     if (mapType == LSA_NSS_ARTEFACT_TYPE_UNKNOWN)
     {
         ShowUsage();
@@ -338,9 +338,9 @@ ParseArgs(
     if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
     {
         ShowUsage();
-        exit(1);  
+        exit(1);
     }
-    
+
     *pNSSMapType = mapType;
     *pdwInfoLevel = dwInfoLevel;
     *pdwBatchSize = dwBatchSize;
@@ -359,23 +359,9 @@ PrintMapInfo_0(
     PLSA_NSS_ARTEFACT_INFO_0 pMapInfo
     )
 {
-    fprintf(stdout, "NSS Map info (Level-0):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-            IsNullOrEmptyString(pMapInfo->pszName) ? "<null>" : pMapInfo->pszName);
-    if (pMapInfo->dwNumMembers)
-    {
-        DWORD iMember = 0;
-        
-        fprintf(stdout, "\n[Members]\n\n");
-        for (; iMember < pMapInfo->dwNumMembers; iMember++)
-        {
-            PSTR pszMember = *(pMapInfo->ppszMembers + iMember);
-            
-            fprintf(stdout, "%5d. %s\n", iMember+1, IsNullOrEmptyString(pszMember) ? "" : pszMember);
-        }
-    }
-    fprintf(stdout, "\n\n");
+    fprintf(stdout, "%s : %s\n",
+            (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName),
+            (IsNullOrEmptyString(pMapInfo->pszValue) ? "" : pMapInfo->pszValue));
 }
 
 DWORD
@@ -384,22 +370,22 @@ MapErrorCode(
     )
 {
     DWORD dwError2 = dwError;
-    
+
     switch (dwError)
     {
         case ECONNREFUSED:
         case ENETUNREACH:
         case ETIMEDOUT:
-            
+
             dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
-            
+
             break;
-            
+
         default:
-            
+
             break;
     }
-    
+
     return dwError2;
 }
 
@@ -419,19 +405,19 @@ IsUnsignedInteger(
     INT iLength = 0;
     INT iCharIdx = 0;
     CHAR cNext = '\0';
-    
+
     if (IsNullOrEmptyString(pszIntegerCandidate))
     {
         bIsUnsignedInteger = FALSE;
         goto error;
     }
-    
+
     iLength = strlen(pszIntegerCandidate);
-    
+
     do {
 
       cNext = pszIntegerCandidate[iCharIdx++];
-      
+
       switch(parseMode) {
 
           case PARSE_MODE_LEADING_SPACE:
@@ -446,7 +432,7 @@ IsUnsignedInteger(
               }
               break;
           }
-          
+
           case PARSE_MODE_INTEGER:
           {
               if (isspace((int)cNext))
@@ -459,7 +445,7 @@ IsUnsignedInteger(
               }
               break;
           }
-          
+
           case PARSE_MODE_TRAILING_SPACE:
           {
               if (!isspace((int)cNext))
@@ -467,14 +453,14 @@ IsUnsignedInteger(
                   bIsUnsignedInteger = FALSE;
               }
               break;
-          }    
+          }
       }
 
     } while (iCharIdx < iLength && bIsUnsignedInteger == TRUE);
 
-    
+
 error:
 
-    return bIsUnsignedInteger;   
+    return bIsUnsignedInteger;
 }
 

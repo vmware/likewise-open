@@ -228,12 +228,10 @@ AD_OfflineFindGroupObjectByName(
 cleanup:
 
     ADCacheDB_SafeCloseDb(&hDb);
-
     if (pGroupNameInfo)
     {
         LsaFreeNameInfo(pGroupNameInfo);
     }
-
     LSA_SAFE_FREE_STRING(pszGroupNameCopy);
 
     return dwError;
@@ -566,11 +564,10 @@ AD_OfflineFindUserObjectByName(
 cleanup:
 
     ADCacheDB_SafeCloseDb(&hDb);
-
-    if (pUserNameInfo) {
+    if (pUserNameInfo)
+    {
         LsaFreeNameInfo(pUserNameInfo);
     }
-
     LSA_SAFE_FREE_STRING(pszLoginId_copy);
 
     return dwError;

@@ -42,6 +42,76 @@
  */
 #include "includes.h"
 
+static
+BOOLEAN
+LWIIsLocalHost(
+    const char * hostname
+    )
+{
+    DWORD            dwError = 0;
+    BOOLEAN          bResult = FALSE;
+    char             localHost[256];
+    struct addrinfo* localInfo = NULL;
+    struct addrinfo* remoteInfo = NULL;
+    PCSTR            pcszLocalHost = NULL;
+    PCSTR            pcszRemoteHost = NULL;
+    
+
+    memset(localHost, 0, sizeof(localHost));
+
+    if ( !strcasecmp(hostname, "localhost") ||
+         !strcmp(hostname, "127.0.0.1") )
+    {
+        bResult = TRUE;
+        goto cleanup;
+    }
+
+    dwError = gethostname(localHost, sizeof(localHost) - 1);
+    if ( !IsNullOrEmptyString(localHost) )
+    {
+        dwError = getaddrinfo(localHost, NULL, NULL, &localInfo);
+        if ( dwError )
+        {
+            pcszLocalHost = localHost;
+        }
+        else
+        {
+            pcszLocalHost = localInfo->ai_canonname ?
+                            localInfo->ai_canonname :
+                            localHost;
+        }
+
+        dwError = getaddrinfo(hostname, NULL, NULL, &remoteInfo);
+        if ( dwError )
+        {
+            pcszRemoteHost = hostname;
+        }
+        else
+        {
+            pcszRemoteHost = remoteInfo->ai_canonname ?
+                             remoteInfo->ai_canonname :
+                             hostname;
+        }
+
+        if ( !strcasecmp(pcszLocalHost,pcszRemoteHost) )
+        {
+            bResult = TRUE;
+        }
+    }
+
+cleanup:
+
+    if (localInfo)
+    {
+        freeaddrinfo(localInfo);
+    }
+    if (remoteInfo)
+    {
+        freeaddrinfo(remoteInfo);
+    }
+
+    return bResult;
+}
 
 DWORD
 LWICreateEventLogRpcBinding(
@@ -58,10 +128,12 @@ LWICreateEventLogRpcBinding(
     size_t hostPrincipalSize = 0;
     int ret = 0;
     handle_t eventBinding_local = 0;
+    BOOLEAN bLocalHost = FALSE;
 
-    if (hostname == NULL)
+    if ( (hostname == NULL) || ((geteuid() == 0) && LWIIsLocalHost(hostname)) )
     {
         /* If no host is specified, connect to the local host over ncalrpc */
+        bLocalHost = TRUE;
         protocol = "ncalrpc";
         endpoint = CACHEDIR "/rpc/socket";
     }
@@ -92,7 +164,7 @@ LWICreateEventLogRpcBinding(
                     eventBinding_local);
 
 
-    if (hostname != NULL)
+    if (hostname != NULL && !bLocalHost)
     {
         /* Set up authentication if we are connecting to a remote host */
         hostPrincipalSize = strlen(hostname) + 6;

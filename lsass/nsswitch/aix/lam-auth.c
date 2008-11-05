@@ -29,8 +29,8 @@
  */
 
 #include "includes.h"
-#include "nss-auth.h"
-#include "nss-user.h"
+#include "lam-auth.h"
+#include "lam-user.h"
 
 int
 LsaNssNormalizeUsername(
@@ -133,10 +133,14 @@ LsaNssAuthenticate(
     PSTR* ppszOutputMessage
     )
 {
+    int iError = 0;
     DWORD dwError = LSA_ERROR_SUCCESS;
     HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
+
+    LSA_LOG_PAM_DEBUG("Lsass LAM authenticating user [%s]",
+            pszUser? pszUser: "(null)");
 
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
@@ -182,17 +186,25 @@ cleanup:
     switch(dwError)
     {
         case LSA_ERROR_SUCCESS:
-            return AUTH_SUCCESS;
+            iError = AUTH_SUCCESS;
+            break;
         case LSA_ERROR_NOT_HANDLED:
         case LSA_ERROR_NO_SUCH_USER:
-            return AUTH_NOTFOUND;
+            iError = AUTH_NOTFOUND;
+            break;
         case LSA_ERROR_ACCOUNT_EXPIRED:
         case LSA_ERROR_ACCOUNT_DISABLED:
         case LSA_ERROR_ACCOUNT_LOCKED:
-            return AUTH_FAILURE;
+            iError = AUTH_FAILURE;
+            break;
         default:
-            return AUTH_UNAVAIL;
+            iError = AUTH_UNAVAIL;
+            break;
     }
+    LSA_LOG_PAM_DEBUG("Lsass LAM authenticate finishing with likewise code %u and LAM code %d",
+            dwError,
+            iError);
+    return iError;
 
 error:
     
@@ -209,7 +221,10 @@ LsaNssIsPasswordExpired(
     const DWORD dwInfoLevel = 2;
     HANDLE hLsaConnection = (HANDLE)NULL;
     DWORD dwError = LSA_ERROR_SUCCESS;
+    int iError = 0;
 
+    LSA_LOG_PAM_DEBUG("Lsass LAM checking expired password for user [%s]",
+            pszUser? pszUser: "(null)");
     *ppszMessage = NULL;
 
     dwError = LsaOpenServer(&hLsaConnection);
@@ -259,14 +274,21 @@ cleanup:
     switch(dwError)
     {
         case LSA_ERROR_SUCCESS:
-            return 0;
+            iError = 0;
+            break;
         case LSA_ERROR_PASSWORD_EXPIRED:
-            return 1;
+            iError = 1;
+            break;
         default:
             // password is expired and cannot login
             LsaNssMapErrorCode(dwError, &errno);
-            return 2;
+            iError = 2;
+            break;
     }
+    LSA_LOG_PAM_DEBUG("Lsass LAM expired password check finishing with likewise code %u and LAM code %d",
+            dwError,
+            iError);
+    return iError;
 
 error:
 

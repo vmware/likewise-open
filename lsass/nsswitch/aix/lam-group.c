@@ -29,7 +29,7 @@
  */
 
 #include "includes.h"
-#include "nss-group.h"
+#include "lam-group.h"
 
 void
 LsaNssFreeLastGroup(

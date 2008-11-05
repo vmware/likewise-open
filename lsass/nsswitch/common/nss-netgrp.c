@@ -49,26 +49,26 @@
 
 #include "lsanss.h"
 
-static const DWORD MAX_NUM_GROUPS = 500;
+static const DWORD MAX_NUM_ARTEFACTS = 500;
 
 VOID
-LsaNssClearEnumNetGroupsState(
-    PLSA_ENUMGROUPS_STATE pState
+LsaNssClearEnumArtefactsState(
+    PLSA_ENUMARTEFACTS_STATE pState
     )
 {
     if (pState->hLsaConnection != (HANDLE)NULL) {
 
-        if (pState->ppNetGroupInfoList) {
-            LsaFreeNetGroupInfoList(
-                pState->dwNetGroupInfoLevel,
-                pState->ppNetGroupInfoList,
-                pState->dwNumNetGroups
+        if (pState->ppArtefactInfoList) {
+            LsaFreeNSSArtefactInfoList(
+                pState->dwArtefactInfoLevel,
+                pState->ppArtefactInfoList,
+                pState->dwNumArtefacts
                 );
-            pState->ppNetGroupInfoList = (HANDLE)NULL;
+            pState->ppArtefactInfoList = (HANDLE)NULL;
         }
         
         if (pState->hResume != (HANDLE)NULL) {
-            LsaEndEnumNetGroups(pState->hLsaConnection, pState->hResume);
+            LsaEndEnumNSSArtefacts(pState->hLsaConnection, pState->hResume);
             pState->hResume = (HANDLE)NULL;
         }
         
@@ -77,239 +77,232 @@ LsaNssClearEnumNetGroupsState(
         pState->hLsaConnection = (HANDLE)NULL;
     }
 
-    memset(pState, 0, sizeof(LSA_ENUMGROUPS_STATE));
+    memset(pState, 0, sizeof(*pState));
     
-    pState->dwNetGroupInfoLevel = 1;
+    pState->dwArtefactInfoLevel = 0;
 }
 
-
-
-DWORD
-LsaNssWriteNetGroupInfo(
-    DWORD       dwNetGroupInfoLevel,
-    PVOID       pNetGroupInfo,
-    group_ptr_t pResultNetGroup,
-    char**      ppszBuf,
-    int         bufLen)
+NSS_STATUS
+LsaNssCommonNetgroupFindByName(
+    PCSTR pszName,
+    PSTR* ppszValue
+    )
 {
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_1 pNetGroupInfo_1 = NULL;
-    PSTR  pszMarker = *ppszBuf;
-    DWORD dwLen = 0;
-    DWORD dwAlignBytes = 0;
-    DWORD dwNumMembers = 0;
-    
-    memset(pResultNetGroup, 0, sizeof(struct group));
-    
-    if ((dwNetGroupInfoLevel != 0) && (dwGroupInfoLevel != 1)) {
-        dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    pNetGroupInfo_1 = (PLSA_GROUP_INFO_1)pGroupInfo;
-    
-    dwNumMembers = LsaNssGetNumberNetGroupMembers(pGroupInfo_1->ppszMembers);
-    
-    dwAlignBytes = (dwNumMembers ? ((((HANDLE)pszMarker) % sizeof(ULONG)) * sizeof(ULONG)) : 0);
+    NSS_STATUS status = NSS_STATUS_SUCCESS;
+    LSA_ENUMARTEFACTS_STATE state = {0};
+    DWORD dwNumFound = 0;
+    PVOID* ppInfoList = NULL;
+    int iGroup;
+    BOOLEAN bFound = FALSE;
 
-    if (LsaNssComputeNetGroupStringLength(dwAlignBytes, pGroupInfo_1) > bufLen) {
-       dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
+    LsaNssClearEnumArtefactsState(&state);
     
-    pResultNetGroup->gr_gid = pGroupInfo_1->gid;
+    status = MAP_LSA_ERROR(NULL,
+                           LsaOpenServer(&state.hLsaConnection));
+    BAIL_ON_NSS_ERROR(status);
+    
+    status = MAP_LSA_ERROR(NULL,
+                           LsaBeginEnumNSSArtefacts(
+                               state.hLsaConnection,
+                               state.dwArtefactInfoLevel,
+                               LSA_NSS_ARTEFACT_TYPE_NETGROUP,
+                               MAX_NUM_ARTEFACTS,
+                               &state.hResume));
+    BAIL_ON_NSS_ERROR(status);
 
-    memset(pszMarker, 0, bufLen);
-    
-    pszMarker += dwAlignBytes;
-    pResultNetGroup->gr_mem = (PSTR*)pszMarker;
-    
-    //
-    // Handle NetGroup Members first, because we computed the
-    // alignment adjustment based on the first pointer position
-    //
-    if (!dwNumMembers) {        
-       *(pResultNetGroup->gr_mem) = NULL;
-       pszMarker += sizeof(ULONG) + 1;
-       
-    } else {
-        PSTR pszMemberMarker = NULL;
-        DWORD iMember = 0;
+    status = MAP_LSA_ERROR(NULL,
+                           LsaEnumNSSArtefacts(
+                               state.hLsaConnection,
+                               state.hResume,
+                               &dwNumFound,
+                               &ppInfoList));
+    BAIL_ON_NSS_ERROR(status);
+
+    for (iGroup = 0; iGroup < dwNumFound; iGroup++)
+    {
+        PLSA_NSS_ARTEFACT_INFO_0 pInfo = (PLSA_NSS_ARTEFACT_INFO_0) ppInfoList[iGroup];
         
-        // This is where we start writing the members
-        pszMemberMarker = pszMarker + (sizeof(PSTR) * (dwNumMembers + 1));
-
-        for (iMember = 0; iMember < dwNumMembers; iMember++)
+        if (!strcmp(pInfo->pszName, pszName))
         {
-            *(pResultNetGroup->gr_mem+iMember) = pszMemberMarker;
-            pszMarker += sizeof(PSTR);
-            
-            dwLen = strlen(*(pNetGroupInfo_1->ppszMembers + iMember));
-            memcpy(pszMemberMarker, *(pNetGroupInfo_1->ppszMembers + iMember), dwLen);
-            pszMemberMarker += dwLen + 1;
+            *ppszValue = pInfo->pszValue;
+            pInfo->pszValue = NULL;
+            bFound = TRUE;
         }
-        // Handle the terminating NULL
-        *(pResultNetGroup->gr_mem+iMember) = NULL;
-        pszMarker = ++pszMemberMarker; // skip NULL
-    }
-    
-    if (!IsNullOrEmptyString(pNetGroupInfo_1->pszName)) {
-       dwLen = strlen(pNetGroupInfo_1->pszName);
-       memcpy(pszMarker, pNetGroupInfo_1->pszName, dwLen);
-       pResultNetGroup->gr_name = pszMarker;
-       pszMarker += dwLen + 1;
+        LSA_SAFE_FREE_MEMORY(pInfo->pszValue);
+        LSA_SAFE_FREE_MEMORY(ppInfoList[iGroup]);
     }
 
-    if (!IsNullOrEmptyString(pNetGroupInfo_1->pszPasswd)) {
-       dwLen = strlen(pNetGroupInfo_1->pszPasswd);
-       memcpy(pszMarker, pNetGroupInfo_1->pszPasswd, dwLen);
-       pResultNetGroup->gr_passwd = pszMarker;
-       pszMarker += dwLen + 1;
-    }
-    else{
-        dwLen = sizeof("x") - 1;
-        *pszMarker = 'x';
-        pResultNetGroup->gr_passwd = pszMarker;
-        pszMarker += dwLen + 1;
-    }
-    
-cleanup:
+    LSA_SAFE_FREE_MEMORY(ppInfoList);
 
-    return dwError;
-    
+    /* Nothing found, so raise an error */
+    if (!bFound)
+    {
+        status = NSS_STATUS_NOTFOUND;
+        BAIL_ON_NSS_ERROR(status);
+    }
+
+done:
+
+    LsaNssClearEnumArtefactsState(&state);
+
+    return status;
+
 error:
-
-    goto cleanup;
+    
+    goto done;
 }
 
-NSS_STATUS
-LsaNssCommonNetGroupSetgrent(
-    PLSA_ENUMGROUPS_STATE     pEnumNetGroupsState
+static
+void
+LsaNssSkipSpace(
+    PSTR* ppszCursor
     )
 {
-    int                       ret = NSS_STATUS_SUCCESS;
-    
-    LsaNssClearEnumNetGroupsState(pEnumGroupsState);
-    
-    ret = MAP_LSA_ERROR(NULL,
-                        LsaOpenServer(&pEnumNetGroupsState->hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
-    
-    ret = MAP_LSA_ERROR(NULL,
-                        LsaBeginEnumNetGroups(
-                            pEnumNetGroupsState->hLsaConnection,
-                            pEnumNetGroupsState->dwGroupInfoLevel,
-                            MAX_NUM_GROUPS,
-                            &pEnumNetGroupsState->hResume));
-    BAIL_ON_NSS_ERROR(ret);
-
-cleanup:
-
-    return ret;
-    
-error:
-
-    LsaNssClearEnumNetGroupsState(pEnumGroupsState);
-
-    goto cleanup;
+    while (**ppszCursor && isspace((int) **ppszCursor))
+    {
+        (*ppszCursor)++;
+    }
 }
 
-NSS_STATUS
-LsaNssCommonNetGroupGetgrent(
-    PLSA_ENUMGROUPS_STATE     pEnumNetGroupsState,
-    struct group*             pResultNetGroup,
-    char *                    pszBuf,
-    size_t                    bufLen,
-    int*                      pErrorNumber
+static 
+void
+LsaNssNextDelim(
+    PSTR* ppszCursor
     )
 {
-    int                       ret = NSS_STATUS_NOTFOUND;
-    
-    if (pEnumNetGroupsState->hLsaConnection == (HANDLE)NULL)
+    while (**ppszCursor && **ppszCursor != ',' && **ppszCursor != ')')
     {
-        ret = MAP_LSA_ERROR(pErrorNumber, LSA_ERROR_INVALID_LSA_CONNECTION);
-        BAIL_ON_NSS_ERROR(ret);
+        (*ppszCursor)++;
     }
-    
-    if (!pEnumNetGroupsState->bTryAgain)
+}
+
+static void
+LsaNssChomp(
+    PSTR pszToken
+    )
+{
+    PSTR pszEnd = pszToken + strlen(pszToken) - 1;
+
+    while (pszEnd >= pszToken && isspace((int) *pszEnd))
     {
-        if (!pEnumNetGroupsState->idxGroup ||
-            (pEnumNetGroupsState->idxGroup >= pEnumGroupsState->dwNumGroups))
-        {    
-            if (pEnumNetGroupsState->ppGroupInfoList) {
-                LsaFreeNetGroupInfoList(
-                   pEnumNetGroupsState->dwGroupInfoLevel,
-                   pEnumNetGroupsState->ppGroupInfoList,
-                   pEnumNetGroupsState->dwNumGroups);
-                pEnumNetGroupsState->ppGroupInfoList = NULL;
-                pEnumNetGroupsState->dwNumGroups = 0;
-                pEnumNetGroupsState->idxGroup = 0;
-            }
-            
-            ret = MAP_LSA_ERROR(pErrorNumber,
-                           LsaEnumNetGroups(
-                               pEnumNetGroupsState->hLsaConnection,
-                               pEnumNetGroupsState->hResume,
-                               &pEnumNetGroupsState->dwNumGroups,
-                               &pEnumNetGroupsState->ppGroupInfoList));
-            BAIL_ON_NSS_ERROR(ret);
-        }
-        
+        *pszEnd = '\0';
+        pszEnd--;
     }
-
-    if (pEnumNetGroupsState->dwNumGroups) {
-        PLSA_GROUP_INFO_1 pNetGroupInfo = 
-            (PLSA_GROUP_INFO_1)*(pEnumNetGroupsState->ppGroupInfoList+pEnumGroupsState->idxGroup);
-        ret = MAP_LSA_ERROR(pErrorNumber,
-                            LsaNssWriteNetGroupInfo(
-                                pEnumNetGroupsState->dwGroupInfoLevel,
-                                pNetGroupInfo,
-                                pResultNetGroup,
-                                &pszBuf,
-                                bufLen));
-        BAIL_ON_NSS_ERROR(ret);
-        pEnumNetGroupsState->idxGroup++;
-        
-        ret = NSS_STATUS_SUCCESS;
-    } else {
-        ret = NSS_STATUS_UNAVAIL;
-        
-        if (pErrorNumber) {
-            *pErrorNumber = ENOENT;
-        }
-    }   
+}
     
-    pEnumNetGroupsState->bTryAgain = FALSE;
-    
-cleanup:
+static
+PSTR
+LsaNssGetToken(
+    PSTR* ppszCursor
+    )
+{
+    PSTR pszToken = NULL;
 
-    return ret;
-     
-error:
+    LsaNssSkipSpace(ppszCursor);
 
-    if ((ret == NSS_STATUS_TRYAGAIN) && pErrorNumber && (*pErrorNumber == ERANGE))
+    if (!**ppszCursor)
     {
-        pEnumNetGroupsState->bTryAgain = TRUE;
+        return NULL;
     }
     else
     {
-       LsaNssClearEnumNetGroupsState(pEnumGroupsState);
+        pszToken = *ppszCursor;
+        LsaNssNextDelim(ppszCursor);
+        if (**ppszCursor)
+        {
+            **ppszCursor = '\0';
+            (*ppszCursor)++;
+        }
+        LsaNssChomp(pszToken);
+        return pszToken;
     }
-    
-    if (bufLen && pszBuf) {
-        memset(pszBuf, 0, bufLen);
-    }
-
-    goto cleanup;
 }
 
 NSS_STATUS
-LsaNssCommonNetGroupEndgrent(
-    PLSA_ENUMGROUPS_STATE     pEnumNetGroupsState
+LsaNssCommonNetgroupParse(
+    PSTR* ppszCursor,
+    LSA_NSS_NETGROUP_ENTRY_TYPE* pType,
+    PSTR* ppszHost,
+    PSTR* ppszUser,
+    PSTR* ppszDomain,
+    PSTR* ppszGroup
     )
 {
-    LsaNssClearEnumNetGroupsState(pEnumGroupsState);
+    NSS_STATUS ret = NSS_STATUS_SUCCESS;
 
-    return NSS_STATUS_SUCCESS;
+    LsaNssSkipSpace(ppszCursor);
+
+    if (**ppszCursor == '(')
+    {
+        /* Move past the open parenthesis */
+        (*ppszCursor)++;
+        /* First token, the hostname */
+        *ppszHost = LsaNssGetToken(ppszCursor);
+        /* Second token, the username */
+        *ppszUser = LsaNssGetToken(ppszCursor);
+        /* Third token, the domain */
+        *ppszDomain = LsaNssGetToken(ppszCursor);
+
+        LsaNssSkipSpace(ppszCursor);
+
+        /* Make sure we didn't run out of tokens */
+        if (!*ppszHost || !*ppszUser || !*ppszDomain)
+        {
+            ret = NSS_STATUS_UNAVAIL;
+            BAIL_ON_NSS_ERROR(ret);
+        }
+        
+        /* If we are not at the end of the list */
+        if (**ppszCursor)
+        {
+            /* There should have been a comma after the close parenthesis */
+            if (**ppszCursor == ',')
+            {
+                (*ppszCursor)++;
+            }
+            else
+            {
+                ret = NSS_STATUS_UNAVAIL;
+                BAIL_ON_NSS_ERROR(ret);
+            }
+        }
+
+        /* Convert empty strings to NULL strings */
+        if (!**ppszHost)
+        {
+            *ppszHost = NULL;
+        }
+
+        if (!**ppszUser)
+        {
+            *ppszUser = NULL;
+        }
+
+        if (!**ppszDomain)
+        {
+            *ppszDomain = NULL;
+        }
+
+        
+        *pType = LSA_NSS_NETGROUP_ENTRY_TRIPLE;
+    }
+    else
+    {
+        /* Parse a group name */
+        *ppszGroup = LsaNssGetToken(ppszCursor);
+        if (!*ppszGroup || !**ppszGroup)
+        {
+            /* End of entries */
+            *pType = LSA_NSS_NETGROUP_ENTRY_END;
+        }
+        else
+        {
+            /* Nested group */
+            *pType = LSA_NSS_NETGROUP_ENTRY_GROUP;
+        }
+    }
+
+error:
+
+    return ret;
 }
-

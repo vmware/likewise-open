@@ -60,7 +60,8 @@ NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,
 				  const wchar16_t *password,
 				  uint32 options,
 				  const wchar16_t *osname,
-				  const wchar16_t *osver);
+				  const wchar16_t *osver,
+                                  const wchar16_t *ospack);
 
 NET_API_STATUS NetUnjoinDomain(const wchar16_t *hostname,
 			       const wchar16_t *account,

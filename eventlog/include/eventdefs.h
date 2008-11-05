@@ -67,6 +67,7 @@
 
 #define TRY DCETHREAD_TRY
 #define CATCH_ALL DCETHREAD_CATCH_ALL(THIS_CATCH)
+#define CATCH(x) DCETHREAD_CATCH(x)
 #define ENDTRY DCETHREAD_ENDTRY
 
 #ifdef _WIN32
@@ -165,7 +166,7 @@ void __RPC_USER midl_user_free(void __RPC_FAR * p);
 
 #define BAIL_ON_EVT_ERROR(dwError) \
     if (dwError) {                 \
-        EVT_LOG_ERROR("Error at %s:%d. Error [code:%d]", __FILE__, __LINE__, dwError); \
+        EVT_LOG_DEBUG("Error at %s:%d. Error [code:%d]", __FILE__, __LINE__, dwError); \
         goto error;                \
     }
 

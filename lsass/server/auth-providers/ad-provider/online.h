@@ -136,6 +136,14 @@ AD_AddAllowedGroup(
     );
 
 DWORD
+AD_OnlineFindCellDN(
+    IN HANDLE hDirectory,
+    IN PCSTR pszComputerDN,
+    IN PCSTR pszRootDN,
+    OUT PSTR* ppszCellDN
+    );
+
+DWORD
 AD_OnlineInitializeOperatingMode(
     OUT PAD_PROVIDER_DATA* ppProviderData,
     IN PCSTR pszDomain,

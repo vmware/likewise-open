@@ -113,9 +113,13 @@ LsaNssHpuxPasswdGetpwent(
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
     }
-    else if (ret == NSS_STATUS_TRYAGAIN && err == ERANGE)
+    else if (ret == NSS_STATUS_TRYAGAIN  && err == ERANGE)
     {
         pXbyYArgs->erange = 1;
+    }
+    else
+    {
+        errno = err;
     }
 
     return ret;
@@ -158,6 +162,14 @@ LsaNssHpuxPasswdGetpwnam(
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
     }
+    else if (ret == NSS_STATUS_TRYAGAIN  && err == ERANGE)
+    {
+        pXbyYArgs->erange = 1;
+    }
+    else
+    {
+        errno = err;
+    }
 
     return ret;
 }
@@ -186,6 +198,14 @@ LsaNssHpuxPasswdGetpwuid(
     if (ret == NSS_STATUS_SUCCESS)
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
+    }
+    else if (ret == NSS_STATUS_TRYAGAIN  && err == ERANGE)
+    {
+        pXbyYArgs->erange = 1;
+    }
+    else
+    {
+        errno = err;
     }
 
     return ret;

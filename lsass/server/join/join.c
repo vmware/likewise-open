@@ -59,6 +59,7 @@ LsaNetJoinDomain(
     PCSTR pszPassword,
     PCSTR pszOSName,
     PCSTR pszOSVersion,
+    PCSTR pszOSServicePack,
     DWORD dwFlags
     )
 {
@@ -69,6 +70,7 @@ LsaNetJoinDomain(
     PWSTR pwszOU = NULL;
     PWSTR pwszOSName = NULL;
     PWSTR pwszOSVersion = NULL;
+    PWSTR pwszOSServicePack = NULL;
     DWORD dwOptions = (NETSETUP_JOIN_DOMAIN |
                        NETSETUP_ACCT_CREATE |
                        NETSETUP_DOMAIN_JOIN_IF_JOINED);
@@ -167,6 +169,13 @@ LsaNetJoinDomain(
         BAIL_ON_LSA_ERROR(dwError);
     }
     
+    if (!IsNullOrEmptyString(pszOSServicePack)) {
+        dwError = LsaMbsToWc16s(
+                    pszOSServicePack,
+                    &pwszOSServicePack);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
     dwError = Win32ErrorToErrno(
         NetJoinDomainLocal(
             pwszHostname,
@@ -176,7 +185,8 @@ LsaNetJoinDomain(
             NULL,
             dwOptions,
             pwszOSName,
-            pwszOSVersion));
+            pwszOSVersion,
+            pwszOSServicePack));
     BAIL_ON_LSA_ERROR(dwError);
     
 cleanup:
@@ -193,6 +203,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszOU);
     LSA_SAFE_FREE_MEMORY(pwszOSName);
     LSA_SAFE_FREE_MEMORY(pwszOSVersion);
+    LSA_SAFE_FREE_MEMORY(pwszOSServicePack);
 
     if (ctx != NULL)
     {

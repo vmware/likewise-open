@@ -255,30 +255,10 @@ ADNonSchemaKeywordGetUInt32(
     );
 
 DWORD
-ADSchemaMarshalToUserCache(
-    HANDLE                  hPseudoDirectory,
-    HANDLE                  hRealDirectory,
-    PCSTR                   pszNetBIOSDomainName,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppUserInfo
-    );
-
-DWORD
 ADSchemaMarshalToUserCacheEx(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,
     PLSA_LOGIN_NAME_INFO    pUserNameInfo,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppUserInfo
-    );
-
-DWORD
-ADNonSchemaMarshalToUserCache(
-    HANDLE                  hPseudoDirectory,
-    HANDLE                  hRealDirectory,    
-    PCSTR                   pszNetBIOSDomainName,
     LDAPMessage*            pMessageReal,
     LDAPMessage*            pMessagePseudo,
     PAD_SECURITY_OBJECT*    ppUserInfo

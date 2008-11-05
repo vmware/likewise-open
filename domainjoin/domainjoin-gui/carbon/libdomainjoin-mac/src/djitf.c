@@ -42,7 +42,7 @@ DJInitJoinInterface(
     PSTR pszLogFilePath = "/tmp/lwidentity.join.log";
     CENTERROR ceError = 0;
 
-    ceError = dj_init_logging_to_file(LOG_LEVEL_WARNING, pszLogFilePath);
+    ceError = dj_init_logging_to_file(LOG_LEVEL_VERBOSE, pszLogFilePath);
 
     LW_TRY(&pException, DJNetInitialize(&LW_EXC));
 

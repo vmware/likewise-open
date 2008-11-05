@@ -113,9 +113,17 @@ LsaNssSolarisPasswdGetpwent(
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
     }
-    else if (ret == NSS_STATUS_TRYAGAIN && err == ERANGE)
+    else if (ret == NSS_STATUS_TRYAGAIN  && err == ERANGE)
     {
         pXbyYArgs->erange = 1;
+        /* Solaris 8 will call again with the same buffer size if tryagain
+         * is returned.
+         */
+        ret = NSS_STATUS_UNAVAIL;
+    }
+    else
+    {
+        errno = err;
     }
 
     return ret;
@@ -158,6 +166,18 @@ LsaNssSolarisPasswdGetpwnam(
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
     }
+    else if (ret == NSS_STATUS_TRYAGAIN  && err == ERANGE)
+    {
+        pXbyYArgs->erange = 1;
+        /* Solaris 8 will call again with the same buffer size if tryagain
+         * is returned.
+         */
+        ret = NSS_STATUS_UNAVAIL;
+    }
+    else
+    {
+        errno = err;
+    }
 
     return ret;
 }
@@ -186,6 +206,18 @@ LsaNssSolarisPasswdGetpwuid(
     if (ret == NSS_STATUS_SUCCESS)
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
+    }
+    else if (ret == NSS_STATUS_TRYAGAIN  && err == ERANGE)
+    {
+        pXbyYArgs->erange = 1;
+        /* Solaris 8 will call again with the same buffer size if tryagain
+         * is returned.
+         */
+        ret = NSS_STATUS_UNAVAIL;
+    }
+    else
+    {
+        errno = err;
     }
 
     return ret;

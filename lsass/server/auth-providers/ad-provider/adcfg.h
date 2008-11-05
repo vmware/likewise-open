@@ -245,5 +245,10 @@ AD_ShouldCreateHomeDir(
     VOID
     );
 
+AD_CELL_SUPPORT
+AD_GetCellSupport(
+    VOID
+    );
+
 #endif /* __AD_CFG_H__ */
 

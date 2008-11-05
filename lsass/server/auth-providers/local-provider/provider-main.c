@@ -241,9 +241,10 @@ cleanup:
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
+    }   
 
-    if (pLoginInfo) {
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
     }
 
@@ -304,8 +305,9 @@ cleanup:
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
-
-    if (pLoginInfo) {
+    
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
     }
 
@@ -376,9 +378,10 @@ cleanup:
         LsaProviderLocal_DbClose(hDb);
     }
 
-    if (pLoginInfo) {
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
-    }
+    }   
 
     return dwError;
 
@@ -618,8 +621,9 @@ cleanup:
     if (hDb != (HANDLE)NULL) {
         LsaProviderLocal_DbClose(hDb);
     }
-
-    if (pLoginInfo) {
+    
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
     }
 
@@ -857,8 +861,9 @@ cleanup:
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
-
-    if (pLoginInfo) {
+    
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
     }
 
@@ -959,8 +964,9 @@ cleanup:
     if (hDb != (HANDLE)NULL) {
         LsaProviderLocal_DbClose(hDb);
     }
-
-    if (pLoginInfo) {
+   
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
     }
 
@@ -1103,7 +1109,8 @@ cleanup:
         LsaProviderLocal_DbClose(hDb);
     }
 
-    if (pLoginInfo) {
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
     }
 
@@ -1192,8 +1199,9 @@ cleanup:
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
-
-    if (pLoginInfo) {
+    
+    if (pLoginInfo)
+    {
         LsaFreeNameInfo(pLoginInfo);
     }
 

@@ -309,7 +309,7 @@ size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
     size_t converted = iconv(handle, (ICONV_IN_TYPE) &inbuf, &cbin, &outbuf, &cbout);
 
     if(cbout >= sizeof(dest[0]))
-        *(wchar_t *)outbuf = 0;
+        *(wchar16_t *)outbuf = 0;
     iconv_close(handle);
     if(converted == (size_t)-1 && cbout != 0)
         return (size_t)-1;

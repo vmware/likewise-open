@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -33,12 +33,12 @@
  *
  * Module Name:
  *
- *        groupinfo.c
+ *        lsaartefactinfo.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        NSSArtefact Info
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -91,12 +91,7 @@ LsaFreeNSSArtefactInfo_0(
     )
 {
     LSA_SAFE_FREE_STRING(pNSSArtefactInfo->pszName);
-    if (pNSSArtefactInfo->dwNumMembers)
-    {
-        LsaFreeStringArray(
-            pNSSArtefactInfo->ppszMembers,
-            pNSSArtefactInfo->dwNumMembers);
-    }
+    LSA_SAFE_FREE_STRING(pNSSArtefactInfo->pszValue);
     LsaFreeMemory(pNSSArtefactInfo);
 }
 
@@ -124,40 +119,40 @@ LsaCoalesceNSSArtefactInfoList(
        *pdwTotalNumNSSArtefactsFound = dwNumNewNSSArtefactsFound;
        *pppNSSArtefactInfoList = NULL;
        *pdwNumNSSArtefactsFound = 0;
-       
+
        goto cleanup;
     }
-    
+
     dwNumTotalNSSArtefactsFound = dwNumCurNSSArtefactsFound;
     dwNumTotalNSSArtefactsFound += dwNumNewNSSArtefactsFound;
-        
+
     dwError = LsaAllocateMemory(
                         sizeof(PVOID) * dwNumTotalNSSArtefactsFound,
                         (PVOID*)&ppNSSArtefactInfoList_total);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     for (iNSSArtefact = 0; iNSSArtefact < dwNumCurNSSArtefactsFound; iNSSArtefact++) {
         *(ppNSSArtefactInfoList_total+iNSSArtefact) = *(ppNSSArtefactInfoList_current+iNSSArtefact);
         *(ppNSSArtefactInfoList_current+iNSSArtefact) = NULL;
     }
-    
+
     for (iNewNSSArtefact = 0; iNewNSSArtefact < dwNumNewNSSArtefactsFound; iNewNSSArtefact++, iNSSArtefact++) {
         *(ppNSSArtefactInfoList_total+iNSSArtefact) = *(ppNSSArtefactInfoList_new+iNewNSSArtefact);
         *(ppNSSArtefactInfoList_new+iNewNSSArtefact) = NULL;
     }
-    
+
     LsaFreeMemory(ppNSSArtefactInfoList_new);
-    
+
     *pppNSSArtefactInfoList_accumulate = ppNSSArtefactInfoList_total;
     *pdwTotalNumNSSArtefactsFound = dwNumTotalNSSArtefactsFound;
-    
+
     *pppNSSArtefactInfoList = NULL;
     *pdwNumNSSArtefactsFound = 0;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     if (ppNSSArtefactInfoList_total) {

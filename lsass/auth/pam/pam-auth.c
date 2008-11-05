@@ -181,7 +181,9 @@ cleanup:
 
 error:
 
-    LSA_LOG_PAM_ERROR("pam_sm_authenticate error [code:%d]", dwError);
+    LSA_LOG_PAM_ERROR("pam_sm_authenticate error [login:%s][error code:%d]",
+                      LSA_SAFE_LOG_STRING(pszLoginId),
+                      dwError);
 
     goto cleanup;
 }

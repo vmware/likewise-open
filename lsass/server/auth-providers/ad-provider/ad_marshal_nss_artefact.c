@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        AD LDAP Group Marshalling
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -50,267 +50,32 @@
 
 #include "adprovider.h"
 
+static
 DWORD
-ADMarshalNSSArtefactInfo(
-    HANDLE              hDirectory,
-    DWORD               dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PCSTR               pszDomainName,
-    LDAPMessage*        pMessageReal,
-    LDAPMessage*        pMessagePseudo,
-    DWORD               dwNSSArtefactInfoLevel,
-    PVOID*              ppNSSArtefactInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pNSSArtefactInfo = NULL;
-
-    switch (dwDirectoryMode){
-    
-        case UNPROVISIONED_MODE:
-            dwError = LSA_ERROR_NOT_SUPPORTED;
-        
-            break;
-        
-        case DEFAULT_MODE:
-        case CELL_MODE:
-            
-            if (!pMessagePseudo){
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError); 
-            }
-             
-             switch (adConfMode) 
-             {
-                 case SchemaMode:
-
-                     dwError = ADSchemaMarshalNSSArtefactInfo(
-                                   hDirectory,
-                                   pszDomainName,
-                                   pMessageReal,
-                                   pMessagePseudo,
-                                   dwNSSArtefactInfoLevel,
-                                   &pNSSArtefactInfo);
-                     BAIL_ON_LSA_ERROR(dwError);
-
-                     break;
-
-                 case NonSchemaMode:
-
-                     dwError = ADNonSchemaMarshalNSSArtefactInfo(
-                                   hDirectory,
-                                   pszDomainName,
-                                   pMessageReal,
-                                   pMessagePseudo,
-                                   dwNSSArtefactInfoLevel,
-                                   &pNSSArtefactInfo);
-                     BAIL_ON_LSA_ERROR(dwError);
-
-                     break; 
-          
-                 default:           
-                     dwError = LSA_ERROR_INVALID_PARAMETER;
-                     BAIL_ON_LSA_ERROR(dwError); 
-             }
-             
-             break;
-        
-         default:           
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppNSSArtefactInfo = pNSSArtefactInfo;
-
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *ppNSSArtefactInfo = NULL;
-    
-    if (pNSSArtefactInfo) {
-        LsaFreeNSSArtefactInfo(dwNSSArtefactInfoLevel, pNSSArtefactInfo);
-    }        
-
-    goto cleanup;
-}
-
-DWORD
-ADSchemaMarshalNSSArtefactInfo(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwNSSArtefactInfoLevel,
-    PVOID*      ppNSSArtefactInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pNSSArtefactInfo = NULL;
-    
-    switch(dwNSSArtefactInfoLevel)
-    {
-        case 0:
-            dwError = ADSchemaMarshalNSSArtefactInfo_0(
-                            hDirectory,
-                            pszDomainName,
-                            pMessageReal,
-                            pMessagePseudo,
-                            &pNSSArtefactInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case 1:
-            dwError = ADSchemaMarshalNSSArtefactInfo_1(
-                            hDirectory,
-                            pszDomainName,
-                            pMessageReal,
-                            pMessagePseudo,
-                            &pNSSArtefactInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *ppNSSArtefactInfo = pNSSArtefactInfo;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *ppNSSArtefactInfo = NULL;
-    
-    if (pNSSArtefactInfo) {
-        LsaFreeNSSArtefactInfo(dwNSSArtefactInfoLevel, pNSSArtefactInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADSchemaMarshalNSSArtefactInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppNSSArtefactInfo
-    )
-{
-    return LSA_ERROR_NOT_IMPLEMENTED;
-}
-
-DWORD
-ADSchemaMarshalNSSArtefactInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppNSSArtefactInfo
-    )
-{
-    return LSA_ERROR_NOT_IMPLEMENTED;
-}
-
-DWORD
-ADNonSchemaMarshalNSSArtefactInfo(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwNSSArtefactInfoLevel,
-    PVOID*      ppNSSArtefactInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pNSSArtefactInfo = NULL;
-    
-    switch(dwNSSArtefactInfoLevel)
-    {
-        case 0:
-            dwError = ADNonSchemaMarshalNSSArtefactInfo_0(
-                            hDirectory,
-                            pszDomainName,
-                            pMessageReal,
-                            pMessagePseudo,
-                            &pNSSArtefactInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case 1:
-            dwError = ADNonSchemaMarshalNSSArtefactInfo_1(
-                            hDirectory,
-                            pszDomainName,
-                            pMessageReal,
-                            pMessagePseudo,
-                            &pNSSArtefactInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *ppNSSArtefactInfo = pNSSArtefactInfo;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *ppNSSArtefactInfo = NULL;
-    
-    if (pNSSArtefactInfo) {
-        LsaFreeNSSArtefactInfo(dwNSSArtefactInfoLevel, pNSSArtefactInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADNonSchemaMarshalNSSArtefactInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppNSSArtefactInfo
-    )
-{
-    return LSA_ERROR_NOT_IMPLEMENTED;
-}
-
-DWORD
-ADNonSchemaMarshalNSSArtefactInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppNSSArtefactInfo
-    )
-{
-    return LSA_ERROR_NOT_IMPLEMENTED;
-}
+ADMarshalNSSArtefactInfoList_0(
+    HANDLE        hDirectory,
+    PCSTR         pszDomainName,
+    LDAPMessage*  pMessage,
+    LsaNSSMapType mapType,
+    PVOID**       pppNSSArtefactInfoList,
+    PDWORD        pwdNumNSSArtefacts
+    );
 
 DWORD
 ADSchemaMarshalNSSArtefactInfoList(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,    
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwNSSArtefactInfoLevel,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pNumNSSArtefacts
+    HANDLE        hDirectory,
+    PCSTR         pszDomainName,
+    LDAPMessage*  pMessagePseudo,
+    LsaNSSMapType mapType,
+    DWORD         dwNSSArtefactInfoLevel,
+    PVOID**       pppNSSArtefactInfoList,
+    PDWORD        pNumNSSArtefacts
     )
 {
     DWORD dwError = 0;
     PVOID* ppNSSArtefactInfoList = NULL;
     DWORD NumNSSArtefacts = 0;
-    
+
     switch(dwNSSArtefactInfoLevel)
     {
         case 0:
@@ -318,37 +83,30 @@ ADSchemaMarshalNSSArtefactInfoList(
                             hDirectory,
                             pszDomainName,
                             pMessagePseudo,
+                            mapType,
                             &ppNSSArtefactInfoList,
                             &NumNSSArtefacts);
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        case 1:
-            dwError = ADSchemaMarshalNSSArtefactInfoList_1(
-                            hDirectory,
-                            pszDomainName,
-                            pMessagePseudo,
-                            &ppNSSArtefactInfoList,
-                            &NumNSSArtefacts);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
+
         default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LSA_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
-    
-    *pppNSSArtefactInfoList = ppNSSArtefactInfoList;    
+
+    *pppNSSArtefactInfoList = ppNSSArtefactInfoList;
     *pNumNSSArtefacts = NumNSSArtefacts;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
-    *pppNSSArtefactInfoList = NULL; 
+    *pppNSSArtefactInfoList = NULL;
     *pNumNSSArtefacts = 0;
-    
+
     if (ppNSSArtefactInfoList) {
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, (PVOID*)ppNSSArtefactInfoList, NumNSSArtefacts);
     }
@@ -357,42 +115,38 @@ error:
 
 DWORD
 ADSchemaMarshalNSSArtefactInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pwdNumNSSArtefacts
-    )    
+    HANDLE        hDirectory,
+    PCSTR         pszDomainName,
+    LDAPMessage*  pMessagePseudo,
+    LsaNSSMapType mapType,
+    PVOID**       pppNSSArtefactInfoList,
+    PDWORD        pwdNumNSSArtefacts
+    )
 {
-    return LSA_ERROR_NOT_IMPLEMENTED;
-}
-
-DWORD
-ADSchemaMarshalNSSArtefactInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pwdNumNSSArtefacts
-    )    
-{
-    return LSA_ERROR_NOT_IMPLEMENTED;
+    return ADMarshalNSSArtefactInfoList_0(
+                    hDirectory,
+                    pszDomainName,
+                    pMessagePseudo,
+                    mapType,
+                    pppNSSArtefactInfoList,
+                    pwdNumNSSArtefacts);
 }
 
 DWORD
 ADNonSchemaMarshalNSSArtefactInfoList(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,    
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwNSSArtefactInfoLevel,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pNumArtefacts
+    HANDLE        hDirectory,
+    PCSTR         pszDomainName,
+    LDAPMessage*  pMessagePseudo,
+    LsaNSSMapType mapType,
+    DWORD         dwNSSArtefactInfoLevel,
+    PVOID**       pppNSSArtefactInfoList,
+    PDWORD        pNumArtefacts
     )
 {
     DWORD dwError = 0;
     PVOID* ppNSSArtefactInfoList = NULL;
     DWORD dwNumArtefacts = 0;
-    
+
     switch(dwNSSArtefactInfoLevel)
     {
         case 0:
@@ -400,37 +154,30 @@ ADNonSchemaMarshalNSSArtefactInfoList(
                             hDirectory,
                             pszDomainName,
                             pMessagePseudo,
+                            mapType,
                             &ppNSSArtefactInfoList,
                             &dwNumArtefacts);
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        case 1:
-            dwError = ADNonSchemaMarshalNSSArtefactInfoList_1(
-                            hDirectory,
-                            pszDomainName,
-                            pMessagePseudo,
-                            &ppNSSArtefactInfoList,
-                            &dwNumArtefacts);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
+
         default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LSA_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
-    
-    *pppNSSArtefactInfoList = ppNSSArtefactInfoList;    
+
+    *pppNSSArtefactInfoList = ppNSSArtefactInfoList;
     *pNumArtefacts = dwNumArtefacts;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
-    *pppNSSArtefactInfoList = NULL; 
+    *pppNSSArtefactInfoList = NULL;
     *pNumArtefacts = 0;
-    
+
     if (ppNSSArtefactInfoList) {
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, (PVOID*)ppNSSArtefactInfoList, dwNumArtefacts);
     }
@@ -439,24 +186,144 @@ error:
 
 DWORD
 ADNonSchemaMarshalNSSArtefactInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pwdNumNSSArtefacts
-    )    
+    HANDLE        hDirectory,
+    PCSTR         pszDomainName,
+    LDAPMessage*  pMessagePseudo,
+    LsaNSSMapType mapType,
+    PVOID**       pppNSSArtefactInfoList,
+    PDWORD        pwdNumNSSArtefacts
+    )
 {
-    return LSA_ERROR_NOT_IMPLEMENTED;
+    return ADMarshalNSSArtefactInfoList_0(
+                    hDirectory,
+                    pszDomainName,
+                    pMessagePseudo,
+                    mapType,
+                    pppNSSArtefactInfoList,
+                    pwdNumNSSArtefacts);
 }
 
+static
 DWORD
-ADNonSchemaMarshalNSSArtefactInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppNSSArtefactInfoList,
-    PDWORD      pwdNumNSSArtefacts
-    )    
+ADMarshalNSSArtefactInfoList_0(
+    HANDLE        hDirectory,
+    PCSTR         pszDomainName,
+    LDAPMessage*  pMessagePseudo,
+    LsaNSSMapType mapType,
+    PVOID**       pppNSSArtefactInfoList,
+    PDWORD        pwdNumNSSArtefacts
+    )
 {
-    return LSA_ERROR_NOT_IMPLEMENTED;
+    DWORD dwError = 0;
+    PLSA_NSS_ARTEFACT_INFO_0* ppArtefactInfoList = NULL;
+    PLSA_NSS_ARTEFACT_INFO_0  pArtefactInfo = NULL;
+    DWORD iArtefact = 0;
+    DWORD nArtefact = 0;
+    DWORD dwArtefactInfoLevel = 0;
+    // Do not free
+    LDAPMessage *pArtefactMessage = NULL;
+    PSTR* ppszValues = NULL;
+    DWORD dwNumValues = 0;
+    LDAP *pLd = NULL;
+
+    if (!pMessagePseudo)
+    {
+        goto done;
+    }
+
+    pLd = LsaLdapGetSession(hDirectory);
+
+    nArtefact = ldap_count_entries(
+                    pLd,
+                    pMessagePseudo);
+    if (nArtefact < 0) {
+        dwError = LSA_ERROR_LDAP_ERROR;
+    } else if (nArtefact == 0) {
+        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateMemory(
+                    sizeof(PLSA_NSS_ARTEFACT_INFO_0) * nArtefact,
+                    (PVOID*)&ppArtefactInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pArtefactMessage = ldap_first_entry(
+                            pLd,
+                            pMessagePseudo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while (pArtefactMessage)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(LSA_NSS_ARTEFACT_INFO_0),
+                        (PVOID*)&pArtefactInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pArtefactInfo->artefactType = mapType;
+
+        dwError = LsaLdapGetString(
+                        hDirectory,
+                        pArtefactMessage,
+                        "name",
+                        &pArtefactInfo->pszName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (ppszValues) {
+            LsaFreeStringArray(ppszValues, dwNumValues);
+            ppszValues = NULL;
+        }
+
+        dwError = LsaLdapGetStrings(
+                        hDirectory,
+                        pArtefactMessage,
+                        AD_LDAP_KEYWORDS_TAG,
+                        &ppszValues,
+                        &dwNumValues);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = ADNonSchemaKeywordGetString(
+                        ppszValues,
+                        dwNumValues,
+                        "value",
+                        &pArtefactInfo->pszValue);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ppArtefactInfoList[iArtefact++] = pArtefactInfo;
+        pArtefactInfo = NULL;
+
+        pArtefactMessage = ldap_next_entry(
+                                     pLd,
+                                     pArtefactMessage);
+    }
+
+done:
+
+    *pppNSSArtefactInfoList = (PVOID*)ppArtefactInfoList;
+    *pwdNumNSSArtefacts = iArtefact;
+
+cleanup:
+
+    if (ppszValues) {
+        LsaFreeStringArray(ppszValues, dwNumValues);
+    }
+
+    return dwError;
+
+error:
+
+    *pppNSSArtefactInfoList = NULL;
+    *pwdNumNSSArtefacts = 0;
+
+    if (ppArtefactInfoList) {
+        LsaFreeNSSArtefactInfoList(dwArtefactInfoLevel, (PVOID*)ppArtefactInfoList, nArtefact);
+    }
+
+    if (pArtefactInfo)
+    {
+        LsaFreeNSSArtefactInfo(dwArtefactInfoLevel, pArtefactInfo);
+    }
+
+    goto cleanup;
 }
+

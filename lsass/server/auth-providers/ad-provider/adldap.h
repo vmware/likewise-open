@@ -192,17 +192,6 @@ ADFindGroupByNameNT4(
     PAD_SECURITY_OBJECT* ppGroupInfo);
 
 DWORD
-ADGenericFindUserById(
-    HANDLE  hDirectory, 
-    PCSTR   pszCellDN,
-    DWORD   dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,    
-    PAD_SECURITY_OBJECT *ppUserInfo,
-    PSTR*   ppszUserDN);
-
-DWORD
 ADLdap_GetGroupMembers(
     HANDLE hProvider,
     HANDLE hDirectory,

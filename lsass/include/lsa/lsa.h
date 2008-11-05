@@ -315,7 +315,8 @@ typedef int             BOOLEAN, *PBOOLEAN;
 #define LSA_ERORR_RPC_LSA_LOOKUPSIDS_FOUND_DUPLICATES       0x807D // 32893
 #define LSA_ERROR_PASSWORD_RESTRICTION                      0x807E // 32894
 #define LSA_ERROR_OBJECT_NOT_ENABLED                        0x807F // 32895
-#define LSA_ERROR_SENTINEL                                  0x8080 // 32896
+#define LSA_ERROR_NO_MORE_NSS_ARTEFACTS                     0x8080 // 32896
+#define LSA_ERROR_SENTINEL                                  0x8081 // 32897
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 
@@ -592,8 +593,7 @@ typedef struct __LSA_NSS_ARTEFACT_INFO_0
     LsaNSSMapType artefactType;
 
     PSTR  pszName;
-    PSTR* ppszMembers;
-    DWORD dwNumMembers;
+    PSTR  pszValue;
 
 } LSA_NSS_ARTEFACT_INFO_0, *PLSA_NSS_ARTEFACT_INFO_0;
 

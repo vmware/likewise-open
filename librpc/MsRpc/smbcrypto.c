@@ -87,17 +87,18 @@ void EncodePassBuffer(unsigned char buffer[516], const char* pass)
 
 void md4hash(uint8 h[16], const wchar16_t *password)
 {
-    size_t size;
+    size_t size = 0;
+    size_t sizew = 0;
     wchar16_t *password_le = NULL;
 
     memset(h, 0, sizeof(h));
 
-    size = wc16slen(password) * sizeof(wchar16_t);
-
+    sizew = wc16slen(password);
+    size = sizew * sizeof(wchar16_t);
     password_le = malloc(size + 1);
 
     /* Force string into little-endian byte ordering */
-    wc16stowc16les(password_le, password, size);
+    wc16stowc16les(password_le, password, sizew);
 
     md4(h, (uint8*)password_le, size);
 

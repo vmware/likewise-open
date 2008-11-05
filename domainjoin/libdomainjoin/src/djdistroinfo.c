@@ -606,3 +606,76 @@ void DJFreeDistroInfo(DistroInfo *info)
     if(info != NULL)
         CT_SAFE_FREE_STRING(info->version);
 }
+
+CENTERROR DJGetLikewiseVersion(PSTR *version, PSTR *build, PSTR *revision)
+{
+    FILE *versionFile = NULL;
+    PSTR line = NULL; 
+    BOOLEAN isEndOfFile = FALSE;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+
+    PSTR _version = NULL;
+    PSTR _build = NULL;
+    PSTR _revision = NULL;
+
+    *version = NULL;
+    *build = NULL;
+    *revision = NULL;
+
+    GCE(ceError = CTOpenFile(PREFIXDIR "/data/VERSION", "r", &versionFile));
+
+    while (TRUE)
+    {
+        GCE(ceError = CTReadNextLine(versionFile, &line, &isEndOfFile));
+        if (isEndOfFile)
+            break;
+        CTStripWhitespace(line);
+        if (!strncmp(line, "VERSION=", sizeof("VERSION=") - 1))
+        {
+            GCE(ceError = CTStrdup(line + sizeof("VERSION=") - 1,
+                        &_version));
+        }
+        else if (!strncmp(line, "BUILD=", sizeof("BUILD=") - 1))
+        {
+            GCE(ceError = CTStrdup(line + sizeof("BUILD=") - 1,
+                    &_build));
+        }
+        else if (!strncmp(line, "REVISION=", sizeof("REVISION=") - 1))
+        {
+            GCE(ceError = CTStrdup(line + sizeof("REVISION=") - 1,
+                    &_revision));
+        }
+    }
+
+    if (_version == NULL)
+    {
+        GCE(ceError = CTStrdup("unknown", &_version));
+    }
+    if (_build == NULL)
+    {
+        GCE(ceError = CTStrdup("unknown", &_build));
+    }
+    if (_revision == NULL)
+    {
+        GCE(ceError = CTStrdup("unknown", &_revision));
+    }
+
+    GCE(ceError = CTSafeCloseFile(&versionFile));
+
+    *version = _version;
+    *build = _build;
+    *revision = _revision;
+    _version = NULL;
+    _build = NULL;
+    _revision = NULL;
+    
+cleanup:
+
+    CTSafeCloseFile(&versionFile);
+    CT_SAFE_FREE_STRING(line);
+    CT_SAFE_FREE_STRING(_version);
+    CT_SAFE_FREE_STRING(_build);
+    CT_SAFE_FREE_STRING(_revision);
+
+    return ceError;
+}

@@ -97,23 +97,24 @@ typedef struct _AD_PROVIDER_DATA
 
 typedef struct _LSA_AD_CONFIG {
 
-    DWORD        dwCacheReaperTimeoutSecs;
-    DWORD        dwCacheEntryExpirySecs;
-    CHAR         chSeparator;
-    BOOLEAN      bEnableEventLog;
-    BOOLEAN      bShouldLogNetworkConnectionEvents;
-    BOOLEAN      bCreateK5Login;
-    BOOLEAN      bCreateHomeDir;
-    BOOLEAN      bLDAPSignAndSeal;
-    BOOLEAN      bAssumeDefaultDomain;
-    BOOLEAN      bSyncSystemTime;
-    DWORD        dwMachinePasswordSyncLifetime;
-    PSTR         pszShell;
-    PSTR         pszHomedirPrefix;
-    PSTR         pszHomedirTemplate;
-    DWORD        dwUmask;
-    PSTR         pszSkelDirs;
-    PDLINKEDLIST pUnresolvedMemberList;
+    DWORD               dwCacheReaperTimeoutSecs;
+    DWORD               dwCacheEntryExpirySecs;
+    CHAR                chSeparator;
+    BOOLEAN             bEnableEventLog;
+    BOOLEAN             bShouldLogNetworkConnectionEvents;
+    BOOLEAN             bCreateK5Login;
+    BOOLEAN             bCreateHomeDir;
+    BOOLEAN             bLDAPSignAndSeal;
+    BOOLEAN             bAssumeDefaultDomain;
+    BOOLEAN             bSyncSystemTime;
+    DWORD               dwMachinePasswordSyncLifetime;
+    PSTR                pszShell;
+    PSTR                pszHomedirPrefix;
+    PSTR                pszHomedirTemplate;
+    DWORD               dwUmask;
+    PSTR                pszSkelDirs;
+    PDLINKEDLIST        pUnresolvedMemberList;
+    AD_CELL_SUPPORT     CellSupport;
 
 } LSA_AD_CONFIG, *PLSA_AD_CONFIG;
 

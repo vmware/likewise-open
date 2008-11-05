@@ -33,41 +33,31 @@
  *
  * Module Name:
  *
- *        ad_marshal_nss_artefact.h
+ *        batch.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        AD LDAP NSS Artefact Marshalling functions (public header)
+ *        Active Directory Authentication Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Wei Fu (wfu@likewisesoftware.com)
+ *          Brian Dunstan (bdunstan@likewisesoftware.com)
+ *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#ifndef __AD_MARSHAL_NSS_ARTEFACT_H__
-#define __AD_MARSHAL_NSS_ARTEFACT_H__
+#ifndef __BATCH_H__
+#define __BATCH_H__
 
 DWORD
-ADSchemaMarshalNSSArtefactInfoList(
-    HANDLE        hDirectory,
-    PCSTR         pszDomainName,
-    LDAPMessage*  pMessageSudo,
-    LsaNSSMapType mapType,
-    DWORD         dwNSSArtefactInfoLevel,
-    PVOID**       pppNSSArtefactInfoList,
-    PDWORD        pNumNSSArtefacts
+ADLdap_FindObjectsByDNListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PSTR* ppszDnList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
     );
 
-DWORD
-ADNonSchemaMarshalNSSArtefactInfoList(
-    HANDLE        hDirectory,
-    PCSTR         pszDomainName,
-    LDAPMessage*  pMessagePseudo,
-    LsaNSSMapType mapType,
-    DWORD         dwNSSArtefactInfoLevel,
-    PVOID**       pppNSSArtefactInfoList,
-    PDWORD        pNumNSSArtefacts
-    );
-
-#endif //__AD_MARSHAL_NSS_ARTEFACT_H__
+#endif /* __BATCH_H__ */
 

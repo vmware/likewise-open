@@ -150,6 +150,10 @@ LWIOpenEventLog(
                                      (idl_char*)serverNameLocal,
                                      (idl_char*)serverNameLocal);
     }
+    CATCH (rpc_x_auth_method)
+    {
+        dwError = EVT_ERROR_ACCESS_DENIED;
+    }
     CATCH_ALL
     {
         dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_OPEN);
@@ -166,7 +170,15 @@ cleanup:
     return dwError;
 
 error:
-    EVT_LOG_ERROR("Failed to open event log. Error code [%d]\n", dwError);
+    switch(dwError)
+    {
+        case EVT_ERROR_ACCESS_DENIED:
+            EVT_LOG_ERROR("Failed to open event log. Access is denied.\n");
+            break;
+        default:
+            EVT_LOG_ERROR("Failed to open event log. Error code [%d]\n", dwError);
+            break;
+    }
 
     if (pEventLogHandle)
     {

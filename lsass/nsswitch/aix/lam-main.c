@@ -29,9 +29,9 @@
  */
 
 #include "includes.h"
-#include "nss-group.h"
-#include "nss-user.h"
-#include "nss-auth.h"
+#include "lam-group.h"
+#include "lam-user.h"
+#include "lam-auth.h"
 
 void
 LsaNssClearState(

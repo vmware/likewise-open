@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -66,30 +66,30 @@ LsaMarshalNSSArtefactInfoList(
                     dwNumNSSArtefacts,
                     &dwRequiredBufLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (!pszBuffer) {
         *pdwBufLen = dwRequiredBufLen;
         goto cleanup;
     }
-    
+
     if (*pdwBufLen < dwRequiredBufLen) {
         dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     memset(&header, 0, sizeof(header));
     header.dwInfoLevel = dwInfoLevel;
     header.dwNumRecords = dwNumNSSArtefacts;
-    
+
     memcpy(pszBuffer, &header, sizeof(header));
     dwBytesWritten = sizeof(header);
-    
+
     switch (dwInfoLevel)
     {
         case 0:
         {
             DWORD dwTmpBytesWritten = 0;
-            
+
             dwError = LsaMarshalNSSArtefact_0_InfoList(
                             ppNSSArtefactInfoList,
                             dwNumNSSArtefacts,
@@ -97,9 +97,9 @@ LsaMarshalNSSArtefactInfoList(
                             pszBuffer,
                             &dwTmpBytesWritten);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwBytesWritten += dwTmpBytesWritten;
-            
+
             break;
         }
         default:
@@ -110,11 +110,11 @@ LsaMarshalNSSArtefactInfoList(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-        
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -130,9 +130,9 @@ LsaComputeNSSArtefactBufferSize(
 {
     DWORD dwError = 0;
     DWORD dwTotalBufLen = sizeof(LSA_USER_NSS_ARTEFACT_RECORD_PREAMBLE);
-    
+
     if (dwNumNSSArtefacts) {
-        
+
         switch(dwInfoLevel)
         {
             case 0:
@@ -150,15 +150,15 @@ LsaComputeNSSArtefactBufferSize(
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
-    
+
     }
-    
+
     *pdwBufLen = dwTotalBufLen;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
      *pdwBufLen = 0;
@@ -175,33 +175,21 @@ LsaComputeBufferSize_NSSArtefact0(
     DWORD dwBufLen = 0;
     DWORD iNSSArtefact = 0;
     PLSA_NSS_ARTEFACT_INFO_0 pNSSArtefactInfo = NULL;
-    
+
     for (iNSSArtefact = 0; iNSSArtefact < dwNumNSSArtefacts; iNSSArtefact++)
     {
         pNSSArtefactInfo = (PLSA_NSS_ARTEFACT_INFO_0)*(ppNSSArtefactInfoList+iNSSArtefact);
         dwBufLen += sizeof(LSA_NSS_ARTEFACT_0_RECORD_HEADER);
-        
+
         if (!IsNullOrEmptyString(pNSSArtefactInfo->pszName)) {
             dwBufLen += strlen(pNSSArtefactInfo->pszName);
         }
-        
-        if (pNSSArtefactInfo->dwNumMembers)
-        {
-            DWORD iMember = 0;
-            
-            dwBufLen += (sizeof(DWORD) * pNSSArtefactInfo->dwNumMembers);
-            
-            for (;iMember < pNSSArtefactInfo->dwNumMembers; iMember++)
-            {
-                PSTR pszMember = *(pNSSArtefactInfo->ppszMembers + iMember);
-                if (!IsNullOrEmptyString(pszMember))
-                {
-                    dwBufLen += strlen(pszMember);
-                }
-            }
+
+        if (!IsNullOrEmptyString(pNSSArtefactInfo->pszValue)) {
+            dwBufLen += strlen(pNSSArtefactInfo->pszValue);
         }
     }
-    
+
     return dwBufLen;
 }
 
@@ -233,13 +221,13 @@ LsaMarshalNSSArtefact_0_InfoList(
     // This is where we will start writing strings
     DWORD dwCurrentDataOffset = dwBeginOffset + (sizeof(LSA_NSS_ARTEFACT_0_RECORD_HEADER) * dwNumNSSArtefacts);
     DWORD dwTotalDataBytesWritten = 0;
-    
+
     for (iNSSArtefact = 0; iNSSArtefact < dwNumNSSArtefacts; iNSSArtefact++)
     {
         DWORD dwDataBytesWritten = 0;
         PSTR  pszHeaderOffset = pszBuffer + dwBeginOffset + sizeof(LSA_NSS_ARTEFACT_0_RECORD_HEADER) * iNSSArtefact;
         PSTR  pszDataOffset = pszBuffer + dwCurrentDataOffset;
-        
+
         dwError = LsaMarshalNSSArtefact_0(
                         (PLSA_NSS_ARTEFACT_INFO_0)*(ppNSSArtefactInfoList+iNSSArtefact),
                         pszHeaderOffset,
@@ -250,13 +238,13 @@ LsaMarshalNSSArtefact_0_InfoList(
         dwTotalDataBytesWritten += dwDataBytesWritten;
         dwCurrentDataOffset += dwDataBytesWritten;
     }
-    
+
     *pdwDataBytesWritten = dwTotalDataBytesWritten;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *pdwDataBytesWritten = 0;
@@ -278,14 +266,12 @@ LsaMarshalNSSArtefact_0(
     DWORD dwOffset = 0;
     LSA_NSS_ARTEFACT_0_RECORD_HEADER header;
     DWORD dwDataBytesWritten = 0;
-    DWORD iMember = 0;
-    
+
     // Prepare and write the header
     memset(&header, 0, sizeof(header));
-    
+
     header.dwMapType = pNSSArtefactInfo->artefactType;
-    header.dwNumMembers = pNSSArtefactInfo->dwNumMembers;
-    
+
     if (!IsNullOrEmptyString(pNSSArtefactInfo->pszName)) {
        header.name.length = strlen(pNSSArtefactInfo->pszName);
        // We always indicate the offset from the beginning of the buffer
@@ -295,29 +281,19 @@ LsaMarshalNSSArtefact_0(
        dwGlobalOffset += header.name.length;
        dwDataBytesWritten += header.name.length;
     }
-    
-    header.dwMembersOffset = dwOffset;
-    for (iMember = 0; iMember < pNSSArtefactInfo->dwNumMembers; iMember++)
-    {
-        PSTR pszMember = *(pNSSArtefactInfo->ppszMembers + iMember);
-        DWORD dwLength = (IsNullOrEmptyString(pszMember) ? 0 : strlen(pszMember));
-        
-        memcpy(pszDataBuffer+dwOffset, &dwLength, sizeof(dwLength));
-        dwOffset += sizeof(dwLength);
-        dwGlobalOffset += sizeof(dwLength);
-        dwDataBytesWritten += sizeof(dwLength);
-        
-        if (dwLength)
-        {
-            memcpy(pszDataBuffer+dwOffset, pszMember, dwLength);
-            dwOffset += dwLength;
-            dwGlobalOffset += dwLength;
-            dwDataBytesWritten += dwLength;
-        }
+
+    if (!IsNullOrEmptyString(pNSSArtefactInfo->pszValue)) {
+       header.value.length = strlen(pNSSArtefactInfo->pszValue);
+       // We always indicate the offset from the beginning of the buffer
+       header.value.offset = dwGlobalOffset;
+       memcpy(pszDataBuffer+dwOffset, pNSSArtefactInfo->pszValue, header.value.length);
+       dwOffset += header.value.length;
+       dwGlobalOffset += header.value.length;
+       dwDataBytesWritten += header.value.length;
     }
-    
+
     memcpy(pszHeaderBuffer, &header, sizeof(header));
-    
+
     *pdwDataBytesWritten = dwDataBytesWritten;
 
     return dwError;
@@ -337,15 +313,15 @@ LsaUnmarshalNSSArtefactInfoList(
     LSA_USER_NSS_ARTEFACT_RECORD_PREAMBLE header;
     DWORD dwOffset = 0;
     DWORD dwInfoLevel = 0;
-    
+
     if (dwMsgLen < sizeof(header)) {
         dwError = LSA_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     memcpy(&header, pszMsgBuf, sizeof(header));
     dwOffset += sizeof(header);
-    
+
     switch(header.dwInfoLevel)
     {
         case 0:
@@ -367,21 +343,21 @@ LsaUnmarshalNSSArtefactInfoList(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     *pppNSSArtefactInfoList = ppNSSArtefactInfoList;
     *pdwNumNSSArtefacts = header.dwNumRecords;
     *pdwInfoLevel = dwInfoLevel;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *pppNSSArtefactInfoList = NULL;
     *pdwNumNSSArtefacts = 0;
     *pdwInfoLevel = 0;
-    
+
     if (ppNSSArtefactInfoList) {
         LsaFreeNSSArtefactInfoList(
                   header.dwInfoLevel,
@@ -405,43 +381,43 @@ LsaUnmarshalNSSArtefact_0_InfoList(
     PLSA_NSS_ARTEFACT_INFO_0 pNSSArtefactInfo = NULL;
     DWORD dwNSSArtefactInfoLevel = 0;
     DWORD iNSSArtefact = 0;
-    
+
     dwError = LsaAllocateMemory(
                     sizeof(PLSA_NSS_ARTEFACT_INFO_0) * dwNumNSSArtefacts,
                     (PVOID*)&ppNSSArtefactInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     for (iNSSArtefact = 0; iNSSArtefact < dwNumNSSArtefacts; iNSSArtefact++) {
         LSA_NSS_ARTEFACT_0_RECORD_HEADER header;
-                
+
         memcpy(&header,
                pszHdrBuf + (iNSSArtefact * sizeof(LSA_NSS_ARTEFACT_0_RECORD_HEADER)),
                sizeof(LSA_NSS_ARTEFACT_0_RECORD_HEADER));
-                
+
         dwError = LsaUnmarshalNSSArtefact_0(
                       pszMsgBuf,
                       &header,
                       &pNSSArtefactInfo);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         *(ppNSSArtefactInfoList+iNSSArtefact) = pNSSArtefactInfo;
         pNSSArtefactInfo = NULL;
     }
-    
+
     *pppNSSArtefactInfoList = (PVOID*)ppNSSArtefactInfoList;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *pppNSSArtefactInfoList = NULL;
-    
+
     if (pNSSArtefactInfo) {
         LsaFreeNSSArtefactInfo(dwNSSArtefactInfoLevel, pNSSArtefactInfo);
     }
-    
+
     if (ppNSSArtefactInfoList) {
         LsaFreeNSSArtefactInfoList(
                dwNSSArtefactInfoLevel,
@@ -463,58 +439,36 @@ LsaUnmarshalNSSArtefact_0(
     DWORD dwError = 0;
     PLSA_NSS_ARTEFACT_INFO_0 pNSSArtefactInfo = NULL;
     DWORD dwNSSArtefactInfoLevel = 0;
-    
+
     dwError = LsaAllocateMemory(
                     sizeof(LSA_NSS_ARTEFACT_INFO_0),
                     (PVOID*)&pNSSArtefactInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     pNSSArtefactInfo->artefactType = pHeader->dwMapType;
-    
+
     if (pHeader->name.length) {
-        
+
         dwError = LsaAllocateMemory(
                       pHeader->name.length+1,
                       (PVOID*)&pNSSArtefactInfo->pszName);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         memcpy(pNSSArtefactInfo->pszName, pszMsgBuf+pHeader->name.offset, pHeader->name.length);
     }
-    
-    if (pHeader->dwNumMembers)
-    {
-        DWORD dwMembersOffset = 0;
-        DWORD iMember = 0;
-        
+
+    if (pHeader->value.length) {
+
         dwError = LsaAllocateMemory(
-                        sizeof(PSTR) * pHeader->dwNumMembers,
-                        (PVOID*)&pNSSArtefactInfo->ppszMembers);
+                      pHeader->value.length+1,
+                      (PVOID*)&pNSSArtefactInfo->pszValue);
         BAIL_ON_LSA_ERROR(dwError);
-        
-        dwMembersOffset = pHeader->dwMembersOffset;
-        pNSSArtefactInfo->dwNumMembers = pHeader->dwNumMembers;
-        for (; iMember < pHeader->dwNumMembers; iMember++)
-        {
-            DWORD dwLength = 0;
-            
-            memcpy(&dwLength, pszMsgBuf+dwMembersOffset, sizeof(dwLength));
-            dwMembersOffset += sizeof(dwLength);
-            
-            if (dwLength)
-            {
-                dwError = LsaStrndup(
-                                pszMsgBuf + dwMembersOffset,
-                                dwLength,
-                                pNSSArtefactInfo->ppszMembers + iMember);
-                BAIL_ON_LSA_ERROR(dwError);
-                
-                dwMembersOffset += dwLength;
-            }
-        }
+
+        memcpy(pNSSArtefactInfo->pszValue, pszMsgBuf+pHeader->value.offset, pHeader->value.length);
     }
-        
+
     *ppNSSArtefactInfo = pNSSArtefactInfo;
-    
+
 cleanup:
 
     return dwError;
@@ -522,7 +476,7 @@ cleanup:
 error:
 
     *ppNSSArtefactInfo = NULL;
-    
+
     if (pNSSArtefactInfo) {
         LsaFreeNSSArtefactInfo(dwNSSArtefactInfoLevel, pNSSArtefactInfo);
     }
@@ -542,27 +496,27 @@ LsaMarshalBeginEnumNSSArtefactRecordsQuery(
     DWORD dwError = 0;
     LSA_BEGIN_ENUM_NSS_ARTEFACT_RECORDS_HEADER header = {0};
     DWORD dwRequiredLength = sizeof(header);
-    
+
     if (!pszBuffer) {
         *pdwBufLen = dwRequiredLength;
         goto cleanup;
     }
-    
+
     if (*pdwBufLen < dwRequiredLength) {
         dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     header.dwInfoLevel = dwInfoLevel;
     header.dwMapType = dwMapType;
     header.dwNumMaxRecords = dwNumMaxRecords;
-    
+
     memcpy(pszBuffer, &header, sizeof(header));
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -579,22 +533,22 @@ LsaUnmarshalBeginEnumNSSArtefactRecordsQuery(
 {
     DWORD dwError = 0;
     LSA_BEGIN_ENUM_NSS_ARTEFACT_RECORDS_HEADER header = {0};
-    
+
     if (dwMsgLen < sizeof(header)) {
         dwError = LSA_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     memcpy(&header, pszMsgBuf, sizeof(header));
-    
+
     *pdwInfoLevel = header.dwInfoLevel;
     *pdwMapType = header.dwMapType;
     *pdwNumMaxRecords = header.dwNumMaxRecords;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;

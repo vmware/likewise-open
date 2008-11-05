@@ -144,7 +144,8 @@ error:
 
     *ppNameInfo = NULL;
     
-    if (pNameInfo) {
+    if (pNameInfo)
+    {
         LsaFreeNameInfo(pNameInfo);
     }
 

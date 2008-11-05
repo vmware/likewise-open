@@ -127,5 +127,13 @@ typedef enum
 #define CELL_MODE		2
 #define UNPROVISIONED_MODE	3
 
+typedef enum
+{
+    AD_CELL_SUPPORT_UNINITIALIZED = 0, //not used
+    AD_CELL_SUPPORT_FULL          = 1, //default
+    AD_CELL_SUPPORT_FILE          = 2,
+    AD_CELL_SUPPORT_UNPROVISIONED = 3,
+} AD_CELL_SUPPORT;
+
 #endif /* __AD_DEF_H__ */
 

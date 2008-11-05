@@ -121,7 +121,9 @@ cleanup:
 
 error:
 
-    LSA_LOG_PAM_ERROR("pam_sm_open_session failed [Error: %d]", dwError);
+    LSA_LOG_PAM_ERROR("pam_sm_open_session failed [login:%s][error code: %d]", 
+                      LSA_SAFE_LOG_STRING(pszLoginId),
+                      dwError);
 
     goto cleanup;
 }
@@ -184,7 +186,7 @@ cleanup:
 
 error:
 
-    LSA_LOG_PAM_ERROR("Error: Failed to set MOTD. [Error code: %d]", dwError);
+    LSA_LOG_PAM_ERROR("Error: Failed to set MOTD. [error code: %d]", dwError);
 
     goto cleanup;
 }
@@ -252,7 +254,7 @@ cleanup:
 
 error:
 
-    LSA_LOG_PAM_ERROR("pam_sm_close_session error [code:%d]", dwError);
+    LSA_LOG_PAM_ERROR("pam_sm_close_session error [error code:%d]", dwError);
 
     goto cleanup;
 }

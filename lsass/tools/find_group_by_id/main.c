@@ -320,6 +320,7 @@ PrintGroupInfo_1(
               } else {
                  fprintf(stdout, "%s", *ppszMembers);
               }
+              iMember++;
               ppszMembers++;
         }
         fprintf(stdout, "\n");

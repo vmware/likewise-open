@@ -41,45 +41,153 @@
  * 
  *        Handle NSS Group Information
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
 
 #include "lsanss.h"
+#include "nss-netgrp.h"
 #include <assert.h>
 
-static const DWORD MAX_NUM_GROUPS = 500;
-static LSA_ENUMGROUPS_STATE gEnumGroupsState = {0};
+#define MAX_NUM_ARTEFACTS 500
 
 NSS_STATUS
-_nss_lsass_setnetgrent(
-    void
+buffer_alloc(char** buffer, size_t* buflen, size_t needed, char** chunk, int *errnop)
+{
+    size_t needed_aligned = ((needed / sizeof(size_t)) + 1) * sizeof(size_t);
+    if (needed_aligned > *buflen)
+    {
+        *errnop = ENOMEM;
+        return NSS_STATUS_UNAVAIL;
+    }
+    else
+    {
+        *chunk = *buffer;
+        *buffer += needed_aligned;
+        *buflen -= needed_aligned;
+        return NSS_STATUS_SUCCESS;
+    }
+}
+
+
+NSS_STATUS
+_nss_lsass_setnetgrent (
+    char *group,
+    struct __netgrent *result
     )
 {
-    return LsaNssCommonGroupSetgrent(&gEnumGroupsState);
+    NSS_STATUS ret = NSS_STATUS_SUCCESS;
+    PSTR pszValue = NULL;
+
+    ret = LsaNssCommonNetgroupFindByName(
+        group,
+        &pszValue);
+    BAIL_ON_NSS_ERROR(ret);
+
+    result->data = pszValue;
+    result->data_size = strlen(pszValue);
+    result->cursor = result->data;
+    result->first = 1;
+
+error:
+
+    return ret;
 }
 
 NSS_STATUS
-_nss_lsass_getnetgrent_r(
-    struct group*  pResultGroup,
-    char *         pszBuf,
-    size_t         bufLen,
-    int*           pErrorNumber
-    )
+_nss_lsass_endnetgrent (struct __netgrent * result)
 {
-    return LsaNssCommonGroupGetgrent(&gEnumGroupsState,
-                                     pResultGroup,
-                                     pszBuf,
-                                     bufLen,
-                                     pErrorNumber);
+    LSA_SAFE_FREE_MEMORY(result->data);
+
+    return NSS_STATUS_SUCCESS;
+}
+
+static
+NSS_STATUS
+nss_lsass_parse_entry(
+    struct __netgrent* result,
+    char** buffer,
+    size_t* buflen,
+    int* errnop)
+{
+    NSS_STATUS ret = NSS_STATUS_SUCCESS;
+    LSA_NSS_NETGROUP_ENTRY_TYPE type;
+    char* host = NULL;
+    char* user = NULL;
+    char* domain = NULL;
+    char* group = NULL;
+
+    ret = LsaNssCommonNetgroupParse(
+        &result->cursor,
+        &type,
+        &host,
+        &user,
+        &domain,
+        &group);
+    BAIL_ON_NSS_ERROR(ret);
+
+    switch (type)
+    {
+    case LSA_NSS_NETGROUP_ENTRY_TRIPLE:
+        result->type = triple_val;
+        memset(&result->val.triple, 0, sizeof(result->val.triple));
+
+        /* Copy the values into the provided buffer */
+        if (host)
+        {
+            ret = buffer_alloc(buffer, buflen, strlen(host) + 1, (char**) &result->val.triple.host, errnop);
+            BAIL_ON_NSS_ERROR(ret);
+            strcpy(*((char**)&result->val.triple.host), host);
+        }
+        if (user)
+        {
+            ret = buffer_alloc(buffer, buflen, strlen(user) + 1, (char**) &result->val.triple.user, errnop);
+            BAIL_ON_NSS_ERROR(ret);
+            strcpy(*((char**)&result->val.triple.user), user);
+        }
+        if (domain)
+        {
+            ret = buffer_alloc(buffer, buflen, strlen(domain) + 1, (char**) &result->val.triple.domain, errnop);
+            BAIL_ON_NSS_ERROR(ret);
+            strcpy(*((char**)&result->val.triple.domain), domain);
+        }
+        break;
+    case LSA_NSS_NETGROUP_ENTRY_GROUP:
+        result->type = group_val;
+
+        /* Copy the group into the provided buffer */
+        ret = buffer_alloc(buffer, buflen, strlen(group) + 1, (char**) &result->val.group, errnop);
+        BAIL_ON_NSS_ERROR(ret);
+        strcpy(*((char**)&result->val.group), group);
+        break;
+    case LSA_NSS_NETGROUP_ENTRY_END:
+        /* End of entries, return the appropriate status code */
+        ret = result->first ? NSS_STATUS_NOTFOUND : NSS_STATUS_RETURN;
+        BAIL_ON_NSS_ERROR(ret);
+        break;
+    }
+
+    result->first = 0;
+    
+error:
+
+    return ret;
 }
 
 NSS_STATUS
-_nss_lsass_endnetgrent(
-    void
-    )
+_nss_lsass_getnetgrent_r (struct __netgrent *result,
+			 char *buffer, size_t buflen, int *errnop)
 {
-    return LsaNssCommonGroupEndgrent(&gEnumGroupsState);
-}
+    NSS_STATUS status = NSS_STATUS_SUCCESS;
+    
+    status = nss_lsass_parse_entry(
+        result,
+        &buffer,
+        &buflen,
+        errnop);
+    BAIL_ON_NSS_ERROR(status);
 
+error:
+
+    return status;
+}

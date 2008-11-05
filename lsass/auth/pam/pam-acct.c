@@ -171,7 +171,9 @@ cleanup:
 
 error:
 
-    LSA_LOG_PAM_ERROR("pam_sm_acct_mgmt failed [code:%d]", dwError);
+    LSA_LOG_PAM_ERROR("pam_sm_acct_mgmt failed [login:%s][error code:%d]",
+                      LSA_SAFE_LOG_STRING(pszLoginId),
+                      dwError);
 
     goto cleanup;
 }

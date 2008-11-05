@@ -529,16 +529,14 @@ error:
         goto error;                                       \
     }
 
-typedef enum _PAC_TYPE {
-    PAC_TYPE_LOGON_INFO = 1,
-    PAC_TYPE_SRV_CHECKSUM = 6,
-    PAC_TYPE_KDC_CHECKSUM = 7,
-    PAC_TYPE_LOGON_NAME = 10,
-    PAC_TYPE_CONSTRAINED_DELEGATION = 11
-} PAC_TYPE;
+#define PAC_TYPE_LOGON_INFO              1
+#define PAC_TYPE_SRV_CHECKSUM            6
+#define PAC_TYPE_KDC_CHECKSUM            7
+#define PAC_TYPE_LOGON_NAME             10
+#define PAC_TYPE_CONSTRAINED_DELEGATION 11
 
 typedef struct _PAC_BUFFER {
-    PAC_TYPE type;
+    DWORD dwType;
     DWORD dwSize;
     uint64_t qwOffset;
 } PAC_BUFFER;
@@ -570,8 +568,8 @@ LsaKrb5DecodePac(
     PAC_LOGON_INFO **ppLogonInfo
     )
 {
-    const PAC_DATA *pPacData = (const PAC_DATA *)pPacBerVal->bv_val;
     krb5_error_code ret = 0;
+    PAC_DATA *pPacData = NULL;
     DWORD i;
     char *pchPacCopy = NULL;
     //Do not free
@@ -580,7 +578,7 @@ LsaKrb5DecodePac(
     krb5_checksum checksum = {0};
     //Do not free
     PAC_SIGNATURE_DATA *pServerSig = NULL;
-    const PAC_LOGON_NAME *pLogonName = NULL;
+    PAC_LOGON_NAME *pLogonName = NULL;
     size_t sServerSig = 0;
     //Do not free
     char *pchLogonInfoStart = NULL;
@@ -593,6 +591,23 @@ LsaKrb5DecodePac(
     PSTR pszClientPrincipal = NULL;
     PSTR pszLogonName = NULL;
     PAC_LOGON_INFO *pLogonInfo = NULL;
+
+    #if defined(WORDS_BIGENDIAN)
+    WORD * pwNameLocal = NULL;
+    DWORD dwCount = 0;
+    #endif
+
+    dwError = LsaAllocateMemory(
+                pPacBerVal->bv_len,
+                (PVOID*)&pPacData);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memcpy(pPacData, pPacBerVal->bv_val, pPacBerVal->bv_len);
+
+    #if defined(WORDS_BIGENDIAN)
+        pPacData->dwBufferCount = LW_ENDIAN_SWAP32(pPacData->dwBufferCount);
+        pPacData->dwVersion = LW_ENDIAN_SWAP32(pPacData->dwVersion);
+    #endif
 
     // We only know about version 0
     if (pPacData->dwVersion != 0)
@@ -613,6 +628,12 @@ LsaKrb5DecodePac(
     // bounds
     for (i = 0; i < pPacData->dwBufferCount; i++)
     {
+        #if defined(WORDS_BIGENDIAN)
+            pPacData->buffers[i].dwType = LW_ENDIAN_SWAP32(pPacData->buffers[i].dwType);
+            pPacData->buffers[i].dwSize = LW_ENDIAN_SWAP32(pPacData->buffers[i].dwSize);
+            pPacData->buffers[i].qwOffset = LW_ENDIAN_SWAP64(pPacData->buffers[i].qwOffset);
+        #endif
+
         if (pPacData->buffers[i].qwOffset + pPacData->buffers[i].dwSize <
                 pPacData->buffers[i].qwOffset)
         {
@@ -640,48 +661,67 @@ LsaKrb5DecodePac(
 
     for (i = 0; i < pPacData->dwBufferCount; i++)
     {
-    	switch (pPacData->buffers[i].type)
+    	switch (pPacData->buffers[i].dwType)
     	{
     	    case PAC_TYPE_LOGON_INFO:
-    		pchLogonInfoStart = (char *)pPacData + pPacData->buffers[i].qwOffset;
-    		sLogonInfoLen = pPacData->buffers[i].dwSize;
-    		break;
-                case PAC_TYPE_SRV_CHECKSUM:
-    		pServerSig = (PAC_SIGNATURE_DATA *)((char *)pPacData +
-                            pPacData->buffers[i].qwOffset);
-                    sServerSig = pPacData->buffers[i].dwSize -
+    	        pchLogonInfoStart = (char *)pPacData + pPacData->buffers[i].qwOffset;
+                sLogonInfoLen = pPacData->buffers[i].dwSize;
+                break;
+            case PAC_TYPE_SRV_CHECKSUM:
+                pServerSig = (PAC_SIGNATURE_DATA *)((char *)pPacData +
+                             pPacData->buffers[i].qwOffset);
+
+                #if defined(WORDS_BIGENDIAN)
+                    pServerSig->dwType = LW_ENDIAN_SWAP32(pServerSig->dwType);
+                #endif
+
+                sServerSig = pPacData->buffers[i].dwSize -
                         (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature;
-                    /* The checksum is calculated with the signatures zeroed out. */
-                    memset(pchPacCopy + pPacData->buffers[i].qwOffset +
-                                (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature,
-                            0,
-                            pPacData->buffers[i].dwSize -
-                                (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature);
-    		break;
-                case PAC_TYPE_KDC_CHECKSUM:
-                    /* The checksum is calculated with the signatures zeroed out. */
+                /* The checksum is calculated with the signatures zeroed out. */
+                memset(pchPacCopy + pPacData->buffers[i].qwOffset +
+                       (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature,
+                       0,
+                       pPacData->buffers[i].dwSize -
+                           (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature);
+                break;
+            case PAC_TYPE_KDC_CHECKSUM:
+                /* The checksum is calculated with the signatures zeroed out. */
     		memset(pchPacCopy + pPacData->buffers[i].qwOffset +
-    			    (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature,
-    			0,
-    			pPacData->buffers[i].dwSize -
-    			    (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature);
+    	               (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature,
+    		       0,
+    		       pPacData->buffers[i].dwSize -
+    		           (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature);
     		break;
-                case PAC_TYPE_LOGON_NAME:
-                    pLogonName = (const PAC_LOGON_NAME *)((char *)pPacData +
-                        pPacData->buffers[i].qwOffset);
-                    if ((char *)&pLogonName->pwszName +
-                            pLogonName->wAccountNameLen >
-                            (char *)pPacData + pPacData->buffers[i].qwOffset +
-                            pPacData->buffers[i].dwSize)
+            case PAC_TYPE_LOGON_NAME:
+                pLogonName = (PAC_LOGON_NAME *)((char *)pPacData +
+                             pPacData->buffers[i].qwOffset);
+
+                #if defined(WORDS_BIGENDIAN)
+                    pLogonName->ticketTime = LW_ENDIAN_SWAP64(pLogonName->ticketTime);
+                    pLogonName->wAccountNameLen = LW_ENDIAN_SWAP16(pLogonName->wAccountNameLen);
+                    pwNameLocal = pLogonName->pwszName;
+
+                    for ( dwCount = 0 ;
+                          dwCount < pLogonName->wAccountNameLen / 2 ;
+                          dwCount++ )
                     {
-                        // The message is invalid because the terminating null
-                        // of the name lands outside of the buffer.
-                        dwError = LSA_ERROR_INVALID_MESSAGE;
-                        BAIL_ON_LSA_ERROR(dwError);
+                        pwNameLocal[dwCount] = LW_ENDIAN_SWAP16(pwNameLocal[dwCount]);
                     }
-                    break;
-                default:
-                    break;
+                #endif
+
+                if ((char *)&pLogonName->pwszName +
+                    pLogonName->wAccountNameLen >
+                    (char *)pPacData + pPacData->buffers[i].qwOffset +
+                    pPacData->buffers[i].dwSize)
+                {
+                    // The message is invalid because the terminating null
+                    // of the name lands outside of the buffer.
+                    dwError = LSA_ERROR_INVALID_MESSAGE;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+                break;
+            default:
+                break;
     	}
     }
 
@@ -769,6 +809,7 @@ LsaKrb5DecodePac(
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszLogonName);
+    LSA_SAFE_FREE_MEMORY(pPacData);
     LSA_SAFE_FREE_MEMORY(pchPacCopy);
     if (pszClientPrincipal != NULL)
     {

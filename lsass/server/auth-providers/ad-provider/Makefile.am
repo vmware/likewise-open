@@ -24,7 +24,8 @@ liblsass_auth_provider_ad_la_SOURCES = \
        lsadm_p.c                 \
        lsadmengine.c             \
        lsadmwrap.c               \
-       media-sense.c
+       media-sense.c             \
+       batch.c
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \

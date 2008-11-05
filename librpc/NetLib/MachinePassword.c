@@ -163,9 +163,13 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
         goto done;
     }
 
-    /* TODO: handle the case where no kvno is stored on the DC (win2k srv) */
     ktstatus = KtLdapGetKeyVersionW(dc_name, base_dn, principal, &kvno);
-    if (ktstatus != 0) {
+    if (ktstatus == KT_STATUS_LDAP_NO_KVNO_FOUND) {
+        /* This is probably win2k DC we're talking to, because it doesn't
+           store kvno in directory. In such case return default key version */
+        kvno = 0;
+
+    } else if (ktstatus != 0) {
         err = NtStatusToWin32Error(STATUS_UNSUCCESSFUL);
         goto done;
     }

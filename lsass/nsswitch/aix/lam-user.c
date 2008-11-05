@@ -29,8 +29,8 @@
  */
 
 #include "includes.h"
-#include "nss-user.h"
-#include "nss-group.h"
+#include "lam-user.h"
+#include "lam-group.h"
 
 DWORD
 LsaNssFindUserByAixName(
@@ -143,7 +143,14 @@ DWORD LsaNssAllocateUserFromInfo0(
 
     sRequiredSize += sizeof(struct passwd);
     sRequiredSize += strlen(pInfo->pszName) + 1;
-    sRequiredSize += strlen(pInfo->pszPasswd) + 1;
+    if ( IsNullOrEmptyString(pInfo->pszPasswd) )
+    {
+        sRequiredSize += strlen(LSA_NSS_NOPASSWORD) + 1;
+    }
+    else
+    {
+        sRequiredSize += strlen(pInfo->pszPasswd) + 1;
+    }
     sRequiredSize += strlen(pInfo->pszGecos) + 1;
     sRequiredSize += strlen(pInfo->pszHomedir) + 1;
     sRequiredSize += strlen(pInfo->pszShell) + 1;
@@ -162,9 +169,17 @@ DWORD LsaNssAllocateUserFromInfo0(
     memcpy(pResult->pw_name, pInfo->pszName, sLen + 1);
     pMem += sLen + 1;
 
-    sLen = strlen(pInfo->pszPasswd);
     pResult->pw_passwd = (char *)pMem;
-    memcpy(pResult->pw_passwd, pInfo->pszPasswd, sLen + 1);
+    if ( IsNullOrEmptyString(pInfo->pszPasswd) )
+    {
+        sLen = strlen(LSA_NSS_NOPASSWORD);
+        memcpy(pResult->pw_passwd, LSA_NSS_NOPASSWORD, sLen + 1);
+    }
+    else
+    {
+        sLen = strlen(pInfo->pszPasswd);
+        memcpy(pResult->pw_passwd, pInfo->pszPasswd, sLen + 1);
+    }
     pMem += sLen + 1;
 
     pResult->pw_uid = pInfo->uid;

@@ -185,35 +185,24 @@ CENTERROR
 DJRemoveCacheFiles()
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
-    PSTR pattern = "/var/lib/lwidentity/*cache.tdb";
     BOOLEAN bFileExists = FALSE;
     BOOLEAN bDirExists = FALSE;
-    glob_t matches = {.gl_pathc = 0, .gl_pathv = NULL};
-    int result;
+    PSTR filePaths[] = {
+        /* Likewise 4.X cache location files ... */
+        "/var/lib/lwidentity/idmap_cache.tdb",
+        "/var/lib/lwidentity/netsamlogon_cache.tdb",
+        "/var/lib/lwidentity/winbindd_cache.tdb",
+        /* Likewise 5.0 cache location files... */
+        LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db",
+        NULL
+    };
     int i;
     const char *file;
     const char *cachePath;
 
-    /* Likewise 4.X cache location files ... */
-
-    result = glob(pattern, 0, NULL, &matches);
-
-    if (result != 0 && result != GLOB_NOMATCH)
+    for (i = 0; filePaths[i] != NULL; i++)
     {
-	switch (result)
-	{
-	case GLOB_NOSPACE:
-	    BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_OUT_OF_MEMORY);
-	case GLOB_ABORTED:
-	    BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_ACCESS_DENIED);
-	default:
-	    BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_FILE_NOT_FOUND);
-	}
-    }
-
-    for (i = 0; i < matches.gl_pathc; i++)
-    {
-	file = matches.gl_pathv[i];
+	file = filePaths[i];
 
 	ceError = CTCheckFileExists(file, &bFileExists);
 	BAIL_ON_CENTERIS_ERROR(ceError);
@@ -224,19 +213,6 @@ DJRemoveCacheFiles()
 	    ceError = CTRemoveFile(file);
 	    BAIL_ON_CENTERIS_ERROR(ceError);
 	}
-    }
-
-    /* Likewise 5.0 cache location files... */
-
-    file = LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db";
-    ceError = CTCheckFileExists(file, &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-    
-    if (bFileExists) 
-    {
-        DJ_LOG_VERBOSE("Removing cache file %s", file);
-        ceError = CTRemoveFile(file);
-        BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* Likewise 5.0 (Mac Workgroup Manager) cache files... */
@@ -266,8 +242,6 @@ DJRemoveCacheFiles()
     }
 
 error:
-    if (matches.gl_pathv)
-	globfree(&matches);
     return ceError;
 }
 
@@ -1312,10 +1286,23 @@ void DJCreateComputerAccount(
     DWORD dwFlags = 0;
     DWORD err = 0;
 
+    PSTR likewiseVersion = NULL;
+    PSTR likewiseBuild = NULL;
+    PSTR likewiseRevision = NULL;
+
+    PSTR likewiseOSServicePack = NULL;
+
     memset(&distro, 0, sizeof(distro));
 
     LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
     LW_CLEANUP_CTERR(exc, DJGetDistroString(distro.distro, &osName));
+
+    LW_CLEANUP_CTERR(exc, DJGetLikewiseVersion(&likewiseVersion,
+                &likewiseBuild, &likewiseRevision));
+
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&likewiseOSServicePack,
+                "Likewise Identity %s.%s.%s",
+                likewiseVersion, likewiseBuild, likewiseRevision));
 
     if(lsaFunctions)
     {
@@ -1357,6 +1344,7 @@ void DJCreateComputerAccount(
                   options->password,
                   osName,
                   distro.version,
+                  likewiseOSServicePack,
                   dwFlags);
         if (err)
         {
@@ -1383,8 +1371,8 @@ void DJCreateComputerAccount(
     {
         LW_TRY(exc, WBCreateComputerAccount(
                                     shortDomainName,
-                                    osName,
-                                    distro.version, options, &LW_EXC));
+                                    osName, distro.version,
+                                    options, &LW_EXC));
     }
 
 cleanup:
@@ -1400,6 +1388,11 @@ cleanup:
     } else {
        putenv("KRB5_CONFIG=/etc/krb5.conf");
     }
+
+    CT_SAFE_FREE_STRING(likewiseVersion);
+    CT_SAFE_FREE_STRING(likewiseBuild);
+    CT_SAFE_FREE_STRING(likewiseRevision);
+    CT_SAFE_FREE_STRING(likewiseOSServicePack);
 
     DJFreeDistroInfo(&distro);
 }
