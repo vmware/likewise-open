@@ -21,5 +21,7 @@ opt/likewise/bin/ksu
 opt/likewise/bin/kvno
 opt/likewise/bin/init-base.sh
 
+opt/likewise/share/likewise/VERSION
+
 etc/likewise/krb5.conf
 etc/likewise/likewise-krb5-ad.conf

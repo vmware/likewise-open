@@ -93,6 +93,8 @@ install: build
 
 	install -m755 config/init-base.sh $(DESTDIR)/$(PREFIX)/bin/
 	install -m644 config/likewise-krb5-ad.conf $(DESTDIR)/$(SYSCONFDIR)/
+	packaging/scripts/mkversion.sh > $(DESTDIR)/$(PREFIX)/share/$(PKGNAME)/VERSION
+	ln -s $(DESTDIR)/$(PREFIX)/share/$(PKGNAME) $(DESTDIR)/$(PREFIX)/data
 
 	#install -D -m 644  debian/$(PKGNAME).lintian $(DESTDIR)/usr/share/lintian/overrides/$(PKGNAME) 
 
