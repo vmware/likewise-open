@@ -52,8 +52,10 @@ typedef struct __AD_ENUM_STATE {
     PSTR pszGUID;
 
     DWORD dwInfoLevel;
-    DWORD dwMapType;
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags;
+    PSTR  pszMapName;
 
+    HANDLE hDirectory;
     struct berval *pCookie;
 
     BOOLEAN bMorePages;
@@ -99,7 +101,8 @@ typedef struct _LSA_AD_CONFIG {
 
     DWORD               dwCacheReaperTimeoutSecs;
     DWORD               dwCacheEntryExpirySecs;
-    CHAR                chSeparator;
+    CHAR                chSpaceReplacement;
+    CHAR                chDomainSeparator;
     BOOLEAN             bEnableEventLog;
     BOOLEAN             bShouldLogNetworkConnectionEvents;
     BOOLEAN             bCreateK5Login;
@@ -107,6 +110,7 @@ typedef struct _LSA_AD_CONFIG {
     BOOLEAN             bLDAPSignAndSeal;
     BOOLEAN             bAssumeDefaultDomain;
     BOOLEAN             bSyncSystemTime;
+    BOOLEAN             bRefreshUserCreds;
     DWORD               dwMachinePasswordSyncLifetime;
     PSTR                pszShell;
     PSTR                pszHomedirPrefix;
@@ -115,7 +119,9 @@ typedef struct _LSA_AD_CONFIG {
     PSTR                pszSkelDirs;
     PDLINKEDLIST        pUnresolvedMemberList;
     AD_CELL_SUPPORT     CellSupport;
-
+    BOOLEAN             bTrimUserMembershipEnabled;
+    BOOLEAN             bNssGroupMembersCacheOnlyEnabled;
+    BOOLEAN             bNssUserMembershipCacheOnlyEnabled;
 } LSA_AD_CONFIG, *PLSA_AD_CONFIG;
 
 typedef struct _LSA_AD_PROVIDER_STATE {

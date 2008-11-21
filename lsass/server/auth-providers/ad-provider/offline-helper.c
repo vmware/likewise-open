@@ -75,6 +75,7 @@ AD_OfflineGetGroupMembers(
     dwError = ADCacheDB_GetGroupMembers(
         hDb,
         pszGroupSid,
+        AD_GetTrimUserMembershipEnabled(),
         &sGroupMembershipsCount,
         &ppGroupMemberships);
     BAIL_ON_LSA_ERROR(dwError);
@@ -165,6 +166,7 @@ error:
 DWORD
 AD_GatherSidsFromGroupMemberships(
     IN BOOLEAN bGatherParentSids,
+    IN OPTIONAL PFN_LSA_GATHER_SIDS_FROM_GROUP_MEMBERSHIP_CALLBACK pfnIncludeCallback,
     IN size_t sMemberhipsCount,
     IN PAD_GROUP_MEMBERSHIP* ppMemberships,
     OUT size_t* psSidsCount,
@@ -180,31 +182,70 @@ AD_GatherSidsFromGroupMemberships(
     PSTR* ppszSids = NULL;
     size_t sSidsCount = 0;
     size_t sIndex = 0;
+    size_t sOldSidsCount = 0;
 
-    dwError = LsaAllocateMemory(sizeof(*ppszSids) * sMemberhipsCount,
-                                (PVOID*)&ppszSids);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    sSidsCount = 0;
-    for (sIndex = 0; sIndex < sMemberhipsCount; sIndex++)
+    for (;;)
     {
-        PAD_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
-        PSTR pszSid = NULL;
+        sSidsCount = 0;
+        for (sIndex = 0; sIndex < sMemberhipsCount; sIndex++)
+        {
+            PAD_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
+            PSTR pszSid = NULL;
 
-        if (bGatherParentSids)
-        {
-            pszSid = pMembership->pszParentSid;
+            if (!pMembership)
+            {
+                continue;
+            }
+
+            if (pfnIncludeCallback)
+            {
+                if (!pfnIncludeCallback(pMembership))
+                {
+                    continue;
+                }
+            }
+
+            if (bGatherParentSids)
+            {
+                pszSid = pMembership->pszParentSid;
+            }
+            else
+            {
+                pszSid = pMembership->pszChildSid;
+            }
+
+            if (pszSid)
+            {
+                if (ppszSids)
+                {
+                    ppszSids[sSidsCount] = pszSid;
+                }
+                sSidsCount++;
+            }
         }
-        else
+
+        if (ppszSids)
         {
-            pszSid = pMembership->pszChildSid;
+            // Done.
+            assert(sOldSidsCount == sSidsCount);
+            break;
         }
-        
-        if (pszSid)
+
+        if (sSidsCount < 1)
         {
-            ppszSids[sSidsCount++] = pszSid;
+            // Nothing to do.
+            break;
         }
+
+        // Allocate memory so we can gather up stuff.
+        dwError = LsaAllocateMemory(sizeof(*ppszSids) * sMemberhipsCount,
+                                    (PVOID*)&ppszSids);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        // Remember so that we can ASSERT.
+        sOldSidsCount = sSidsCount;
     }
+
 
 cleanup:
     *pppszSids = ppszSids;

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        LDAP API for Unprovisioned Mode
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -50,38 +50,14 @@
 #define __UNPROVISIONED_LDAP_H__
 
 DWORD
-UnprovisionedModeFindUserByName(
-    PCSTR                pszRealDomainName,
-    PLSA_LOGIN_NAME_INFO pUserNameInfo,
-    PAD_SECURITY_OBJECT *ppUserInfo
-    );
-
-DWORD
-UnprovisionedModeFindUserByNameInOneWayTrust(
-    PLSA_LOGIN_NAME_INFO pUserNameInfo,
-    PAD_SECURITY_OBJECT *ppUserInfo
-    );
-
-DWORD
-UnprovisionedModeGetUserGroupMembership(
-    HANDLE  hDirectory,
-    PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,    
-    int     *piPrimaryGroupIndex,
-    PDWORD  pdwGroupsFound,
-    PAD_SECURITY_OBJECT** pppGroupInfoList
-    );
-
-DWORD
 UnprovisionedModeEnumUsers(
-    HANDLE  hDirectory,
-    PCSTR   pszNetBIOSDomainName,
+    HANDLE  hProvider,
+    PCSTR   pszDomainDnsName,
     PAD_ENUM_STATE pEnumState,
     DWORD   dwMaxNumUsers,
     PDWORD  pdwNumUsersFound,
     PVOID** pppUserInfoList
     );
-
 
 DWORD
 UnprovisionedModeMakeLocalSID(
@@ -91,22 +67,9 @@ UnprovisionedModeMakeLocalSID(
     );
 
 DWORD
-UnprovisionedModeFindGroupByName(
-    PCSTR                pszRealDomainName,
-    PLSA_LOGIN_NAME_INFO pGroupNameInfo,
-    PAD_SECURITY_OBJECT *ppGroupInfo
-    );
-
-DWORD
-UnprovisionedModeFindGroupByNameInOneWayTrust(
-    PLSA_LOGIN_NAME_INFO pGroupNameInfo,
-    PAD_SECURITY_OBJECT *ppGroupInfo
-    );
-
-DWORD
 UnprovisionedModeEnumGroups(
-    HANDLE  hDirectory,
-    PCSTR   pszNetBIOSDomainName,
+    HANDLE  hProvider,
+    PCSTR   pszDomainDnsName,
     PAD_ENUM_STATE pEnumState,
     DWORD   dwMaxNumGroups,
     PDWORD  pdwNumGroupsFound,

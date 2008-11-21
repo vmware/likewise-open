@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Test Program for exercising LsaAllocSecurityIdentifierFromBinary
  *
  * Authors: Brian Dunstan (bdunstan@likewisesoftware.com)
@@ -74,23 +74,24 @@ main(
     DWORD dwError = 0;
     PSTR  pszSIDHexStr = NULL;
     PSTR  pszSIDStr = NULL;
-    
+
     UCHAR* pucSIDByteArr = NULL;
     DWORD dwSIDByteCount = 0;
-    
+
     PLSA_SECURITY_IDENTIFIER pSID = NULL;
-    
+
     dwError = ParseArgs(argc, argv, &pszSIDHexStr);
     BAIL_ON_LSA_ERROR(dwError);
- 
+
     printf("Converting hex SID string: \"%s\"\n", pszSIDHexStr);
-  
+
     dwError = LsaHexStrToByteArray(
         pszSIDHexStr,
+        NULL,
         &pucSIDByteArr,
         &dwSIDByteCount);
-    BAIL_ON_LSA_ERROR(dwError);  
-    
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaAllocSecurityIdentifierFromBinary(
         pucSIDByteArr, dwSIDByteCount, &pSID);
     BAIL_ON_LSA_ERROR(dwError);
@@ -99,10 +100,10 @@ main(
 
     dwError = LsaGetSecurityIdentifierString(pSID, &pszSIDStr);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     printf("LsaGetSecurityIdentifierString() returns: \"%s\"\n", pszSIDStr);
-    
-    
+
+
 
 cleanup:
 
@@ -110,7 +111,11 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszSIDStr);
     LSA_SAFE_FREE_MEMORY(pucSIDByteArr);
 
-    LsaFreeSecurityIdentifier(pSID);
+    if (pSID)
+    {
+        LsaFreeSecurityIdentifier(pSID);
+    }
+
 
     return (dwError);
 
@@ -131,7 +136,7 @@ ParseArgs(
     typedef enum {
             PARSE_MODE_OPEN = 0
         } ParseMode;
-        
+
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
@@ -144,11 +149,11 @@ ParseArgs(
         {
             break;
         }
-        
+
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-        
+
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -157,14 +162,14 @@ ParseArgs(
                 }
                 else
                 {
-                    
+
                     dwError = LsaAllocateString(pszArg, &pszSIDHexStr);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
-                
+
         }
-        
+
     } while (iArg < argc);
 
     if (IsNullOrEmptyString(pszSIDHexStr)) {
@@ -176,7 +181,7 @@ ParseArgs(
     *ppszSIDHexStr = pszSIDHexStr;
 
 cleanup:
-    
+
     return dwError;
 
 error:

@@ -54,6 +54,27 @@
 #define STANDARD_GROUP_EXPIRATION   (void *)1
 #define PAC_GROUP_EXPIRATION        (void *)2
 
+typedef DWORD (*LSA_AD_CACHEDB_FIND_OBJECTS_BY_LIST_CALLBACK)(
+    IN HANDLE hDb,
+    IN size_t sCount,
+    IN PSTR* ppszList,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    );
+
+typedef DWORD (*LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK)(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PSTR* ppszList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+typedef DWORD LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE;
+
+#define LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_UNDEFINED 0
+#define LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_DN     1
+#define LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_SID    2
+
 //
 // The LSA_REMAP_FIND_<TYPE>_BY_<INDEX>_ERROR() macros are used
 // in the AD_{Online,Offline}Find<TYPE>by<INDEX> functions to do
@@ -154,7 +175,7 @@ DWORD
 AD_DetermineTrustModeandDomainName(
     IN PCSTR pszDomain,
     OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
-    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,    
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
     OUT OPTIONAL PSTR* ppszNetbiosDomainName
     );
@@ -181,10 +202,11 @@ AD_OnlineFindUserObjectById(
 
 DWORD
 AD_OnlineGetUserGroupObjectMembership(
-    HANDLE hProvider,
-    uid_t uid,
-    size_t* psNumGroupsFound,
-    PAD_SECURITY_OBJECT** pppResult
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    IN BOOLEAN bIsCacheOnlyMode,
+    OUT size_t* psCount,
+    OUT PAD_SECURITY_OBJECT** pppResults
     );
 
 DWORD
@@ -198,10 +220,11 @@ AD_OnlineEnumUsers(
 
 DWORD
 AD_OnlineFindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN gid_t gid,
+    IN BOOLEAN bIsCacheOnlyMode,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 DWORD
@@ -245,7 +268,7 @@ AD_CreateK5Login(
 
 DWORD
 AD_CheckExpiredObject(
-    PAD_SECURITY_OBJECT *ppCachedUser
+    IN OUT PAD_SECURITY_OBJECT* ppCachedUser
     );
 
 int
@@ -265,46 +288,39 @@ AD_FreeHashObject(
     );
 
 DWORD
-AD_OnlineGetExpandedGroupUsers(
-    HANDLE  hProvider,
-    PCSTR pszDomainName,
-    PCSTR pszDomainNetBiosName,
-    PCSTR pszGroupSid,
-    int iMaxDepth,
-    BOOLEAN *pbAllExpanded,
-    size_t* psCount,
-    PAD_SECURITY_OBJECT** pppResults);
-
-DWORD
-AD_GetGroupMembers(
-    HANDLE hProvider,
-    PCSTR pszDomainName,
-    PCSTR pszDomainNetBiosName,
-    PCSTR pszSid,
-    size_t* psCount,
-    PAD_SECURITY_OBJECT** pppResults);
+AD_OnlineGetGroupMembers(
+    IN HANDLE hProvider,
+    IN PCSTR pszDomainName,
+    IN PCSTR pszSid,
+    IN BOOLEAN bIsCacheOnlyMode,
+    OUT size_t* psCount,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    );
 
 DWORD
 AD_FindObjectsByDNList(
-    HANDLE hProvider,
-    size_t sCount,
-    PSTR* ppszDnList,
-    PAD_SECURITY_OBJECT **pppResults);
+    IN HANDLE hProvider,
+    IN size_t sCount,
+    IN PSTR* ppszDNList,
+    OUT OPTIONAL size_t* psResultsCount,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    );
 
 DWORD
 AD_FindObjectBySid(
-    HANDLE hProvider,
-    PCSTR pszDomainName,
-    PCSTR pszDomainNetBiosName,
-    PCSTR pszSid,
-    PAD_SECURITY_OBJECT *ppResult);
+    IN HANDLE hProvider,
+    IN PCSTR pszSid,
+    OUT PAD_SECURITY_OBJECT* ppResult
+    );
 
 DWORD
 AD_FindObjectsBySidList(
-    HANDLE hProvider,
-    size_t sCount,
-    PSTR* ppszSidList,
-    PAD_SECURITY_OBJECT **pppResults);
+    IN HANDLE hProvider,
+    IN size_t sCount,
+    IN PSTR* ppszSidList,
+    OUT OPTIONAL size_t* psResultsCount,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    );
 
 DWORD
 AD_OnlineGetNamesBySidList(
@@ -323,27 +339,23 @@ AD_GetLinkedCellInfo(
     OUT PDLINKEDLIST* ppCellList
     );
 
-DWORD
-LsaValidateSeparatorCharacter(
-    CHAR cSeparator,
-    CHAR* pcValidatedSeparator
-    );
-
 void
 AD_FreeHashStringKey(
     const LSA_HASH_ENTRY *pEntry);
 
 DWORD
 AD_CacheGroupMembershipFromPac(
-    IN HANDLE              hProvider,
+    IN HANDLE hProvider,
     IN LSA_TRUST_DIRECTION dwTrustDirection,
     IN PAD_SECURITY_OBJECT pUserInfo,
-    IN PAC_LOGON_INFO *    pPac);
+    IN PAC_LOGON_INFO* pPac
+    );
 
 void
 AD_FilterNullEntries(
-    PAD_SECURITY_OBJECT* ppEntries,
-    size_t  *psCount);
+    IN OUT PAD_SECURITY_OBJECT* ppEntries,
+    IN OUT size_t* psCount
+    );
 
 DWORD
 AD_OnlineFindUserObjectByName(
@@ -356,6 +368,16 @@ AD_OnlineFindGroupObjectByName(
     HANDLE  hProvider,
     PCSTR   pszGroupName,
     PAD_SECURITY_OBJECT* ppResult);
+
+DWORD
+AD_OnlineFindNSSArtefactByKey(
+    HANDLE hProvider,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    );
 
 DWORD
 AD_OnlineEnumNSSArtefacts(
@@ -393,6 +415,18 @@ ADFindUserOrGroupObjectByDN(
     HANDLE hProvider,
     PCSTR  pszObjectDN,
     PAD_SECURITY_OBJECT *ppObjectInfo
+    );
+
+DWORD
+AD_FindObjectsByList(
+    IN HANDLE hProvider,
+    IN LSA_AD_CACHEDB_FIND_OBJECTS_BY_LIST_CALLBACK pFindInCacheCallback,
+    IN LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK pFindByListBatchedCallback,
+    IN LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE QueryType,
+    IN size_t sCount,
+    IN PSTR* ppszList,
+    OUT OPTIONAL size_t* psResultsCount,
+    OUT PAD_SECURITY_OBJECT** pppResults
     );
 
 #endif /* __ONLINE_H__ */

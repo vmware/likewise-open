@@ -115,4 +115,12 @@ LSAMESSAGEHANDLER gMessageHandlers[] =
  { LSA_R_REFRESH_CONFIGURATION,    LsaServer, NULL                            },//64
  { LSA_Q_CHECK_USER_IN_LIST,       LsaClient, &LsaSrvIpcCheckUserInList       },//65
  { LSA_R_CHECK_USER_IN_LIST,       LsaServer, NULL                            },//66
+ { LSA_Q_FIND_NSS_ARTEFACT_BY_KEY, LsaClient, &LsaSrvIpcFindNSSArtefactByKey  },//67
+ { LSA_R_FIND_NSS_ARTEFACT_BY_KEY, LsaServer, NULL                            },//68
+ { LSA_Q_SET_TRACE_INFO,           LsaClient, &LsaSrvIpcSetTraceInfo          },//71
+ { LSA_R_SET_TRACE_INFO,           LsaServer, NULL                            },//72
+ { LSA_Q_GET_TRACE_INFO,           LsaClient, &LsaSrvIpcGetTraceInfo          },//73
+ { LSA_R_GET_TRACE_INFO,           LsaServer, NULL                            },//74
+ { LSA_Q_ENUM_TRACE_INFO,          LsaClient, &LsaSrvIpcEnumTraceInfo         },//75
+ { LSA_R_ENUM_TRACE_INFO,          LsaServer, NULL                            },//76
 };

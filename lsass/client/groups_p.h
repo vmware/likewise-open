@@ -66,24 +66,6 @@ LsaAddGroup(
 
 LSASS_API
 DWORD
-LsaFindGroupByName(
-    HANDLE hLsaConnection,
-    PCSTR  pszGroupName,
-    DWORD  dwGroupInfoLevel,
-    PVOID* ppGroupInfo
-    );
-
-LSASS_API
-DWORD
-LsaFindGroupById(
-    HANDLE hLsaConnection,
-    gid_t  gid,
-    DWORD  dwGroupInfoLevel,
-    PVOID* ppGroupInfo
-    );
-
-LSASS_API
-DWORD
 LsaBeginEnumGroups(
     HANDLE  hLsaConnection,
     DWORD   dwGroupInfoLevel,

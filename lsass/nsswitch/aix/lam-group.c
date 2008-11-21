@@ -188,6 +188,7 @@ struct group *LsaNssGetGrGid(gid_t gid)
     dwError = LsaFindGroupById(
                 hLsaConnection,
                 gid,
+                LSA_FIND_FLAGS_NSS,
                 dwInfoLevel,
                 (PVOID*)&pInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -238,6 +239,7 @@ struct group *LsaNssGetGrNam(PCSTR pszName)
     dwError = LsaFindGroupByName(
                 hLsaConnection,
                 pszName,
+                LSA_FIND_FLAGS_NSS,
                 dwInfoLevel,
                 (PVOID*)&pInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -294,6 +296,7 @@ LsaNssGetGrAcct(
         dwError = LsaFindGroupByName(
                     hLsaConnection,
                     (PSTR)pId,
+                    LSA_FIND_FLAGS_NSS,
                     dwInfoLevel,
                     (PVOID*)&pInfo);
         BAIL_ON_LSA_ERROR(dwError);
@@ -303,6 +306,7 @@ LsaNssGetGrAcct(
         dwError = LsaFindGroupById(
                     hLsaConnection,
                     *(gid_t *)pId,
+                    LSA_FIND_FLAGS_NSS,
                     dwInfoLevel,
                     (PVOID*)&pInfo);
         BAIL_ON_LSA_ERROR(dwError);
@@ -531,6 +535,7 @@ LsaNssGetGidList(
     dwError = LsaGetGroupsForUserById(
         hLsaConnection,
         pInfo->uid,
+        LSA_FIND_FLAGS_NSS,
         dwGroupInfoLevel,
         &dwGroupCount,
         (PVOID**)&ppGroupList);
@@ -608,6 +613,7 @@ LsaNssGetGroupList(
     dwError = LsaGetGroupsForUserById(
         hLsaConnection,
         pInfo->uid,
+        LSA_FIND_FLAGS_NSS,
         dwGroupInfoLevel,
         &dwGroupCount,
         (PVOID**)&ppGroupList);
@@ -806,6 +812,7 @@ LsaNssGetGroupAttrs(
     dwError = LsaFindGroupByName(
                 hLsaConnection,
                 pszKey,
+                LSA_FIND_FLAGS_NSS,
                 dwInfoLevel,
                 (PVOID*)&pInfo);
     BAIL_ON_LSA_ERROR(dwError);

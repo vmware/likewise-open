@@ -125,6 +125,7 @@ LsaSrvIpcFindGroupByName(
     DWORD dwError = 0;
     PSTR pszGroupName = NULL;
     PVOID pGroupInfo = NULL;
+    LSA_FIND_FLAGS FindFlags = 0;
     DWORD dwGroupInfoLevel = 0;
     PLSAMESSAGE pResponse = NULL;
     DWORD dwMsgLen = 0;
@@ -136,6 +137,7 @@ LsaSrvIpcFindGroupByName(
                 pMessage->pData,
                 pMessage->header.messageLength,
                 &pszGroupName,
+                &FindFlags,
                 &dwGroupInfoLevel
                 );
     BAIL_ON_LSA_ERROR(dwError);
@@ -146,6 +148,7 @@ LsaSrvIpcFindGroupByName(
     dwError = LsaSrvFindGroupByName(
                        hServer,
                        pszGroupName,
+                       FindFlags,
                        dwGroupInfoLevel,
                        &pGroupInfo);
     if (dwError) {
@@ -211,6 +214,7 @@ LsaSrvIpcFindGroupById(
     DWORD dwError = 0;
     gid_t gid = 0;
     PVOID pGroupInfo = NULL;
+    LSA_FIND_FLAGS FindFlags = 0;
     DWORD dwGroupInfoLevel = 0;
     PLSAMESSAGE pResponse = NULL;
     DWORD dwMsgLen = 0;
@@ -222,6 +226,7 @@ LsaSrvIpcFindGroupById(
                  pQuery->pData,
                  pQuery->header.messageLength,
                  &gid,
+                 &FindFlags,
                  &dwGroupInfoLevel
                  );
     BAIL_ON_LSA_ERROR(dwError);
@@ -229,7 +234,8 @@ LsaSrvIpcFindGroupById(
     dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
     BAIL_ON_LSA_ERROR(dwError);
     
-    dwError = LsaSrvFindGroupById(hServer, gid, dwGroupInfoLevel, &pGroupInfo);
+    dwError = LsaSrvFindGroupById(hServer, gid, FindFlags,
+                                  dwGroupInfoLevel, &pGroupInfo);
     if (dwError) {
         
        dwError = LsaSrvIpcMarshalError(
@@ -284,6 +290,7 @@ LsaSrvIpcGetGroupsForUser(
     DWORD dwError = 0;
     uid_t uid = 0;
     DWORD dwGroupInfoLevel = 0;
+    LSA_FIND_FLAGS FindFlags = 0;
     PVOID* ppGroupInfoList = NULL;
     DWORD  dwNumGroupsFound = 0;
     PLSAMESSAGE pResponse = NULL;
@@ -296,6 +303,7 @@ LsaSrvIpcGetGroupsForUser(
                  pQuery->pData,
                  pQuery->header.messageLength,
                  &uid,
+                 &FindFlags,
                  &dwGroupInfoLevel
                  );
     BAIL_ON_LSA_ERROR(dwError);
@@ -303,7 +311,7 @@ LsaSrvIpcGetGroupsForUser(
     dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
     BAIL_ON_LSA_ERROR(dwError);
     
-    dwError = LsaSrvGetGroupsForUser(hServer, uid, dwGroupInfoLevel, &dwNumGroupsFound, &ppGroupInfoList);
+    dwError = LsaSrvGetGroupsForUser(hServer, uid, FindFlags, dwGroupInfoLevel, &dwNumGroupsFound, &ppGroupInfoList);
     if (dwError) {
         
        dwError = LsaSrvIpcMarshalError(

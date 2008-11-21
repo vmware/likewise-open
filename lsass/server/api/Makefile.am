@@ -13,6 +13,7 @@ liblsaserverapi_la_SOURCES = \
        session.c       \
        state.c         \
        status.c        \
+       traceinfo.c     \
        users.c
 
 liblsaserverapi_la_CPPFLAGS =         \

@@ -296,6 +296,7 @@ DomainJoinInterface::GetDomainJoinStatus(DomainJoinStatus& joinStatus)
     joinStatus.DomainName = (pInfo->pszDomainName ? pInfo->pszDomainName : "");
     joinStatus.ShortDomainName = (pInfo->pszDomainShortName ? pInfo->pszDomainShortName : "");
     joinStatus.LogFilePath = (pInfo->pszLogFilePath ? pInfo->pszLogFilePath : "");
+    joinStatus.OUPath = (pInfo->pszOU ? pInfo->pszOU : "");
     
     getInstance()._pDJApiFunctionTable->pfnFreeDomainJoinInfo(pInfo);
 }

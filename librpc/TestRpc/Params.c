@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -60,6 +60,10 @@ char* strndup(const char *s, size_t maxlen)
 #endif
 
 
+/*
+ * Handles "escaped" separator character. It allows separator character
+ * to be treated as part of value string.
+ */
 static char* cleanup_sep(char *s, char sep)
 {
     char *seppos;
@@ -81,6 +85,9 @@ static char* cleanup_sep(char *s, char sep)
 }
 
 
+/*
+ * Splits a string into array of strings given separator character
+ */
 char** get_string_list(char *list, const char sep)
 {
     char **ret;
@@ -129,6 +136,43 @@ char** get_string_list(char *list, const char sep)
 }
 
 
+/*
+ * Returns array of strings for multi-value parameters
+ */
+char** get_value_list(const char *list)
+{
+    const char start_list = '[';
+    const char end_list = ']';
+    const char element_sep = ':';
+
+    size_t input_str_len = 0;
+    char *str_list = NULL;
+    const char *start = NULL;
+    char **ret = NULL;
+
+    /* List has to start with '[' char ... */
+    if (list[0] != start_list) return NULL;
+
+    /* ... and has to end with ']' char */
+    input_str_len = strlen(list);
+    if (list[input_str_len - 1] != end_list) return NULL;
+
+    start = &(list[1]);
+    str_list = strndup(start, strlen(start) - 1);
+    if (str_list == NULL) return NULL;
+
+    /* Split the list to array of values */
+    ret = get_string_list(str_list, element_sep);
+
+    free(str_list);
+    return ret;
+}
+
+
+/*
+ * Parses string of optional parameters (key=value pairs) into array
+ * of structures.
+ */
 struct parameter* get_optional_params(char *opt, int *count)
 {
     const char separator = ',';
@@ -148,9 +192,12 @@ struct parameter* get_optional_params(char *opt, int *count)
     i = 0;
 
     opts = get_string_list(opt, separator);
+    if (opts == NULL) return NULL;
+
     while (opts[(*count)]) (*count)++;
 
     params = (struct parameter*) malloc(sizeof(struct parameter) * (*count));
+    if (params == NULL) return NULL;
 
     while (opts[i]) {
         size_t key_size, val_size;
@@ -175,6 +222,11 @@ struct parameter* get_optional_params(char *opt, int *count)
         }
     }
 
+    for (i = 0; i < (*count); i++) {
+        free(opts[i]);
+    }
+    free(opts);
+
     return params;
 }
 
@@ -191,6 +243,83 @@ const char* find_value(struct parameter *params, int count, const char *key)
 }
 
 
+/*
+ * Converts array of strings to array of 2-byte unicode strings
+ */
+wchar16_t **create_wc16str_list(char **strlist)
+{
+    int list_len = 0;
+    wchar16_t **wc16str_list = NULL;
+    int i = 0;
+
+    if (strlist == NULL) return NULL;
+
+    /* count the elements (including terminating zero) */
+    while (strlist[list_len++]);
+
+    /* allocate the wchar16_t strings array */
+    wc16str_list = (wchar16_t**) malloc(sizeof(wchar16_t*) * list_len);
+    if (wc16str_list == NULL) return NULL;
+
+    memset((void*)wc16str_list, 0, sizeof(wchar16_t*) * list_len);
+
+    /* copy mbs strings to wchar16_t strings */
+    for (i = 0; strlist[i] && i < list_len; i++) {
+        wc16str_list[i] = ambstowc16s(strlist[i]);
+        if (wc16str_list[i] == NULL) {
+            i--;
+            while (i >= 0) {
+                free(wc16str_list[i--]);
+            }
+            free(wc16str_list);
+
+            return NULL;
+        }
+
+    }
+
+    return wc16str_list;
+}
+
+
+/*
+ * Converts array of sid strings to array of sids
+ */
+DomSid **create_sid_list(char **strlist)
+{
+    int list_len = 0;
+    DomSid **sid_list = NULL;
+    int i = 0;
+
+    if (strlist == NULL) return NULL;
+
+    /* count the elements (including terminating zero) */
+    while (strlist[list_len++]);
+
+    /* allocate the wchar16_t strings array */
+    sid_list = (DomSid**) malloc(sizeof(DomSid*) * list_len);
+    if (sid_list == NULL) return NULL;
+
+    memset((void*)sid_list, 0, sizeof(DomSid*) * list_len);
+
+    /* copy mbs strings to wchar16_t strings */
+    for (i = 0; strlist[i] && i < list_len; i++) {
+        ParseSidString(&(sid_list[i]), strlist[i]);
+        if (sid_list[i] == NULL) {
+            i--;
+            while (i >= 0) {
+                SidFree(sid_list[i--]);
+            }
+            free(sid_list);
+
+            return NULL;
+        }
+    }
+
+    return sid_list;
+}
+
+
 enum param_err fetch_value(struct parameter *params, int count,
                            const char *key, enum param_type type,
                            void *val, const void *def)
@@ -200,10 +329,14 @@ enum param_err fetch_value(struct parameter *params, int count,
     char **valstr, **defstr;
     char *valchar, *defchar;
     wchar16_t **valw16str, **defw16str;
+    wchar16_t ***valw16str_list, **defw16str_list;
     int *valint, *defint;
     unsigned int *valuint, *defuint;
-    DomSid **valsid;
+    DomSid **valsid = NULL;
+    DomSid ***valsid_list = NULL;
+    char **strlist = NULL;
     enum param_err ret = perr_success;
+    int i = 0;
 
     if (params && !key) return perr_nullptr_passed;
     if (!val) return perr_invalid_out_param;
@@ -217,37 +350,67 @@ enum param_err fetch_value(struct parameter *params, int count,
         defstr = (char**)def;
         *valstr = (value) ? strdup(value) : strdup(*defstr);
         break;
+
     case pt_w16string:
         valw16str = (wchar16_t**)val;
         defstr = (char**)def;
         *valw16str = (value) ? ambstowc16s(value) : ambstowc16s(*defstr);
         break;
+
+    case pt_w16string_list:
+        valw16str_list = (wchar16_t***)val;
+        defstr = (char**)def;
+        strlist = (value) ? get_value_list(value) : get_value_list(*defstr);
+        *valw16str_list = create_wc16str_list(strlist);
+        if (*valw16str_list == NULL) ret = perr_invalid_out_param;
+        break;
+
     case pt_char:
         valchar = (char*)val;
         defchar = (char*)def;
         *valchar = (value) ? value[0] : *defchar;
         break;
+
     case pt_int32:
         valint = (int*)val;
         defint = (int*)def;
         *valint = (value) ? atoi(value) : *defint;
         break;
+
     case pt_uint32:
         valuint = (unsigned int*)val;
         defuint = (unsigned int*)def;
         *valuint = (unsigned int)((value) ? atol(value) : *defuint);
         break;
+
     case pt_sid:
         valsid = (DomSid**)val;
-        /* default SID is passed as string here for convenience */
         defstr = (char**)def;
         status = ParseSidString(valsid,
                                 ((value) ? (const char*)value : *defstr));
-        if (status != STATUS_SUCCESS) return perr_invalid_out_param;
+        if (status != STATUS_SUCCESS) ret = perr_invalid_out_param;
         break;
+
+    case pt_sid_list:
+        valsid_list = (DomSid***)val;
+        defstr = (char**)def;
+        strlist = get_value_list((value) ? (const char*)value : *defstr);
+        *valsid_list = create_sid_list(strlist);
+        if (*valsid_list == NULL) ret = perr_invalid_out_param;
+        break;
+
     default:
-        return perr_unknown_type;
+        ret = perr_unknown_type;
         break;
+    }
+
+    if (strlist) {
+        i = 0;
+        while (strlist[i]) {
+            free(strlist[i++]);
+        }
+
+        free(strlist);
     }
 
     return ret;

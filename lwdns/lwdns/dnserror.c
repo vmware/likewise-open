@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 #include "includes.h"
 
 static
@@ -330,4 +334,24 @@ DNSGetUnmappedErrorString(
     return stResult;
 }
 
-
+DWORD
+DNSMapHerrno(
+    DWORD dwHerrno
+    )
+{
+    switch (dwHerrno)
+    {
+        case HOST_NOT_FOUND:
+            return LWDNS_ERROR_RECORD_NOT_FOUND;
+        case NO_ADDRESS:
+#if NO_ADDRESS != NO_DATA
+        case NO_DATA:
+#endif
+            return LWDNS_ERROR_NO_SUCH_ADDRESS;
+        case NO_RECOVERY:
+            return LWDNS_ERROR_RCODE_SERVFAIL;
+        case TRY_AGAIN:
+            return EAGAIN;
+    }
+    return dwHerrno;
+}

@@ -97,6 +97,7 @@ LsaAccessGetData(
         dwError = LsaFindGroupByName(
                       hLsaConnection,
                       pczConfigData[dwCount],
+                      0,
                       dwInfoLevel,
                       &pGroupInfo);
         if ( !dwError )

@@ -249,6 +249,12 @@ done:
     SAFE_FREE(username);
     SAFE_FREE(password);
 
+    for (i = 0; i < params_len; i++) {
+        SAFE_FREE(params[i].key);
+        SAFE_FREE(params[i].val);
+    }
+    SAFE_FREE(params);
+
     return 0;
 }
 

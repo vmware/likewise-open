@@ -965,6 +965,7 @@ LsaKrb5CopyFromUserCache(
     krb5_error_code ret = 0;
     krb5_principal destClient = 0;
     BOOLEAN bIncludeTicket = TRUE;
+    DWORD dwTime = 0;
 
     ret = krb5_cc_get_principal(
             ctx,
@@ -1003,6 +1004,8 @@ LsaKrb5CopyFromUserCache(
     }
     BAIL_ON_KRB_ERROR(ctx, ret);
 
+    dwTime = time(NULL);
+
     while (1)
     {
         krb5_free_cred_contents(
@@ -1026,6 +1029,12 @@ LsaKrb5CopyFromUserCache(
         {
             /* Can't keep these creds. The client principal doesn't
              * match. */
+            continue;
+        }
+
+        if ( srcCreds.times.endtime < dwTime )
+        {
+            /* Credentials are too old. */
             continue;
         }
 
@@ -1177,7 +1186,8 @@ LsaSetupUserLoginSession(
     BOOLEAN bUpdateUserCache,
     PCSTR pszServicePrincipal,
     PCSTR pszServicePassword,
-    PAC_LOGON_INFO **ppLogonInfo
+    PAC_LOGON_INFO **ppLogonInfo,
+    PDWORD pdwGoodUntilTime
     )
 {
     DWORD dwError = 0;
@@ -1219,7 +1229,7 @@ LsaSetupUserLoginSession(
             pszUsername,
             pszPassword,
             krb5_cc_get_name(ctx, cc),
-            NULL
+            pdwGoodUntilTime
             );
     BAIL_ON_LSA_ERROR(dwError);
 

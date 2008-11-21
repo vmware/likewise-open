@@ -74,6 +74,18 @@ extern int verbose_mode;
 #define PASSED() printf("[\033[32;1mPASSED\033[31;0m] %s test\n", active_test)
 #define FAILED() printf("[\033[31;1mFAILED\033[0m] %s test: ", active_test)
 
+#define test_fail_if_no_memory(ptr)                                  \
+    if ((ptr) == NULL) {                                             \
+        ret = false;                                                 \
+        printf("Test failed: Couldn't allocate pointer %s\n", #ptr); \
+        goto done;                                                   \
+    }
+
+#define test_fail(printf_args) {                \
+        printf printf_args;                     \
+        ret = false;                            \
+        goto done;                              \
+    }
 
 #define netapi_fail(err) {                                    \
         const char *name = Win32ErrorToName(err);             \
@@ -95,12 +107,15 @@ extern int verbose_mode;
         goto done;                                          \
     }
 
+#define NTSTATUS_IS_OK(status)  ((status) == STATUS_SUCCESS)
+#define WINERR_IS_OK(err)       ((err) == ERROR_SUCCESS)
+
 
 #define SET_SESSION_CREDS(res, host, user, pass)                        \
     do {                                                                \
         int ret;                                                        \
         size_t host_len;                                                \
-        if ((host) && (user) && (pass)) {                               \
+        if ((host)) {                                                   \
             host_len = wc16slen((host));                                \
             (res).RemoteName = (wchar16_t*) malloc(sizeof(wchar16_t)*   \
                                                    (host_len+8));       \

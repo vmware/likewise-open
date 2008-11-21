@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        groups.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        NSSArtefact Lookup and Management API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -47,77 +47,89 @@
  */
 #include "client.h"
 
-
 LSASS_API
 DWORD
-LsaBeginEnumNSSArtefacts(
-    HANDLE  hLsaConnection,
-    DWORD   dwInfoLevel,
-    DWORD   dwMapType,
-    DWORD   dwMaxNumNSSArtefacts,
-    PHANDLE phResume
+LsaFindNSSArtefactByKey(
+    HANDLE   hLsaConnection,
+    DWORD    dwInfoLevel,
+    PCSTR    pszKeyName,
+    PCSTR    pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID*   ppNSSArtefactInfo
     )
 {
     DWORD dwError = 0;
-    PLSA_ENUM_NSS_ARTEFACTS_INFO pInfo = NULL;
+    PVOID* ppArtefactInfos = NULL;
+    DWORD dwNumArtefactsFound = 0;
     PLSAMESSAGE pMessage = NULL;
     DWORD   dwMsgLen = 0;
     PSTR    pszError = NULL;
-    PSTR    pszGUID = NULL;
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(phResume);
-    
+    BAIL_ON_INVALID_STRING(pszKeyName);
+    BAIL_ON_INVALID_STRING(pszMapName);
+
+    if (!dwFlags)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LsaValidateNSSArtefactInfoLevel(dwInfoLevel);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalBeginEnumNSSArtefactRecordsQuery(
+
+    dwError = LsaMarshalFindNSSArtefactByKeyQuery(
                     dwInfoLevel,
-                    dwMapType,
-                    dwMaxNumNSSArtefacts,
+                    pszKeyName,
+                    pszMapName,
+                    dwFlags,
                     NULL,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     dwError = LsaBuildMessage(
-                LSA_Q_BEGIN_ENUM_NSS_ARTEFACTS,
+                LSA_Q_FIND_NSS_ARTEFACT_BY_KEY,
                 dwMsgLen,
                 1,
                 1,
                 &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalBeginEnumNSSArtefactRecordsQuery(
+
+    dwError = LsaMarshalFindNSSArtefactByKeyQuery(
                     dwInfoLevel,
-                    dwMapType,
-                    dwMaxNumNSSArtefacts,
+                    pszKeyName,
+                    pszMapName,
+                    dwFlags,
                     pMessage->pData,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSendMessage(hLsaConnection, pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_MESSAGE(pMessage);
-    
+
     dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_BEGIN_ENUM_NSS_ARTEFACTS:
+
+    switch (pMessage->header.messageType)
+    {
+        case LSA_R_FIND_NSS_ARTEFACT_BY_KEY:
         {
-            dwError = LsaUnmarshalEnumRecordsToken(
+            dwError = LsaUnmarshalNSSArtefactInfoList(
                                 pMessage->pData,
                                 pMessage->header.messageLength,
-                                &pszGUID);
+                                &dwInfoLevel,
+                                &ppArtefactInfos,
+                                &dwNumArtefactsFound);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
         }
         case LSA_ERROR:
         {
             DWORD dwSrvError = 0;
-            
+
             dwError = LsaUnmarshalError(
                                 pMessage->pData,
                                 pMessage->header.messageLength,
@@ -135,24 +147,146 @@ LsaBeginEnumNSSArtefacts(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
+    if (dwNumArtefactsFound > 1) {
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppNSSArtefactInfo = *ppArtefactInfos;
+
+cleanup:
+
+    LSA_SAFE_FREE_MEMORY(ppArtefactInfos);
+    LSA_SAFE_FREE_MESSAGE(pMessage);
+
+    return dwError;
+
+error:
+
+    if (ppArtefactInfos)
+    {
+        LsaFreeNSSArtefactInfoList(dwInfoLevel, ppArtefactInfos, dwNumArtefactsFound);
+    }
+
+    goto cleanup;
+}
+
+
+LSASS_API
+DWORD
+LsaBeginEnumNSSArtefacts(
+    HANDLE  hLsaConnection,
+    DWORD   dwInfoLevel,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    DWORD   dwMaxNumNSSArtefacts,
+    PHANDLE phResume
+    )
+{
+    DWORD dwError = 0;
+    PLSA_ENUM_NSS_ARTEFACTS_INFO pInfo = NULL;
+    PLSAMESSAGE pMessage = NULL;
+    DWORD   dwMsgLen = 0;
+    PSTR    pszError = NULL;
+    PSTR    pszGUID = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_POINTER(phResume);
+
+    if (!dwFlags)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaValidateNSSArtefactInfoLevel(dwInfoLevel);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMarshalBeginEnumNSSArtefactRecordsQuery(
+                    dwInfoLevel,
+                    pszMapName,
+                    dwFlags,
+                    dwMaxNumNSSArtefacts,
+                    NULL,
+                    &dwMsgLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaBuildMessage(
+                LSA_Q_BEGIN_ENUM_NSS_ARTEFACTS,
+                dwMsgLen,
+                1,
+                1,
+                &pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMarshalBeginEnumNSSArtefactRecordsQuery(
+                    dwInfoLevel,
+                    pszMapName,
+                    dwFlags,
+                    dwMaxNumNSSArtefacts,
+                    pMessage->pData,
+                    &dwMsgLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSendMessage(hLsaConnection, pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_SAFE_FREE_MESSAGE(pMessage);
+
+    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (pMessage->header.messageType) {
+        case LSA_R_BEGIN_ENUM_NSS_ARTEFACTS:
+        {
+            dwError = LsaUnmarshalEnumRecordsToken(
+                                pMessage->pData,
+                                pMessage->header.messageLength,
+                                &pszGUID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            break;
+        }
+        case LSA_ERROR:
+        {
+            DWORD dwSrvError = 0;
+
+            dwError = LsaUnmarshalError(
+                                pMessage->pData,
+                                pMessage->header.messageLength,
+                                &dwSrvError,
+                                &pszError
+                                );
+            BAIL_ON_LSA_ERROR(dwError);
+            dwError = dwSrvError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        }
+        default:
+        {
+            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
     dwError = LsaAllocateMemory(
                     sizeof(LSA_ENUM_NSS_ARTEFACTS_INFO),
                     (PVOID*)&pInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     pInfo->dwNSSArtefactInfoLevel = dwInfoLevel;
     pInfo->dwNumMaxNSSArtefacts = dwMaxNumNSSArtefacts;
     pInfo->pszGUID = pszGUID;
-    
+
     *phResume = (HANDLE)pInfo;
-    
+
 cleanup:
 
     LSA_SAFE_FREE_MESSAGE(pMessage);
 
     return dwError;
-    
+
 error:
 
     *phResume = (HANDLE)NULL;
@@ -179,12 +313,12 @@ LsaEnumNSSArtefacts(
     DWORD   dwNumNSSArtefactsFound = 0;
     DWORD   dwNSSArtefactInfoLevel = 0;
     PLSA_ENUM_NSS_ARTEFACTS_INFO pInfo = (PLSA_ENUM_NSS_ARTEFACTS_INFO)hResume;
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_HANDLE(hResume);
     BAIL_ON_INVALID_POINTER(pdwNumNSSArtefactsFound);
     BAIL_ON_INVALID_POINTER(pppNSSArtefactInfoList);
-    
+
     dwNSSArtefactInfoLevel = pInfo->dwNSSArtefactInfoLevel;
 
     dwError = LsaMarshalEnumRecordsToken(
@@ -192,7 +326,7 @@ LsaEnumNSSArtefacts(
                     NULL,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     dwError = LsaBuildMessage(
                 LSA_Q_ENUM_NSS_ARTEFACTS,
                 dwMsgLen,
@@ -200,21 +334,21 @@ LsaEnumNSSArtefacts(
                 1,
                 &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaMarshalEnumRecordsToken(
                     pInfo->pszGUID,
                     pMessage->pData,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSendMessage(hLsaConnection, pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_MESSAGE(pMessage);
-    
+
     dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (pMessage->header.messageType) {
         case LSA_R_ENUM_NSS_ARTEFACTS:
         {
@@ -231,7 +365,7 @@ LsaEnumNSSArtefacts(
         case LSA_ERROR:
         {
             DWORD dwSrvError = 0;
-            
+
             dwError = LsaUnmarshalError(
                                 pMessage->pData,
                                 pMessage->header.messageLength,
@@ -249,7 +383,7 @@ LsaEnumNSSArtefacts(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     *pdwNumNSSArtefactsFound = dwNumNSSArtefactsFound;
     *pppNSSArtefactInfoList = ppNSSArtefactInfoList;
 
@@ -259,17 +393,17 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszError);
 
     return dwError;
-        
+
 error:
 
     if (ppNSSArtefactInfoList) {
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, ppNSSArtefactInfoList, dwNumNSSArtefactsFound);
     }
-    
+
     if (pppNSSArtefactInfoList) {
         *pppNSSArtefactInfoList = NULL;
     }
-    
+
     if (pdwNumNSSArtefactsFound) {
         *pdwNumNSSArtefactsFound = 0;
     }
@@ -289,16 +423,16 @@ LsaEndEnumNSSArtefacts(
     PLSAMESSAGE pMessage = NULL;
     DWORD   dwMsgLen = 0;
     PSTR    pszError = NULL;
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_HANDLE(hResume);
-    
+
     dwError = LsaMarshalEnumRecordsToken(
                     pInfo->pszGUID,
                     NULL,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     dwError = LsaBuildMessage(
                 LSA_Q_END_ENUM_NSS_ARTEFACTS,
                 dwMsgLen,
@@ -306,21 +440,21 @@ LsaEndEnumNSSArtefacts(
                 1,
                 &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaMarshalEnumRecordsToken(
                     pInfo->pszGUID,
                     pMessage->pData,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSendMessage(hLsaConnection, pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_MESSAGE(pMessage);
-    
+
     dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (pMessage->header.messageType) {
         case LSA_R_END_ENUM_NSS_ARTEFACTS:
         {
@@ -330,7 +464,7 @@ LsaEndEnumNSSArtefacts(
         case LSA_ERROR:
         {
             DWORD dwSrvError = 0;
-            
+
             dwError = LsaUnmarshalError(
                                 pMessage->pData,
                                 pMessage->header.messageLength,
@@ -348,15 +482,15 @@ LsaEndEnumNSSArtefacts(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     LsaFreeEnumNSSArtefactsInfo(pInfo);
-    
+
 cleanup:
 
     LSA_SAFE_FREE_MESSAGE(pMessage);
 
     return dwError;
-    
+
 error:
 
     goto cleanup;

@@ -468,6 +468,7 @@ LsaNssGetUserAttr(
         dwError = LsaFindGroupById(
                     hLsaConnection,
                     pInfo->gid,
+                    LSA_FIND_FLAGS_NSS,
                     dwGroupInfoLevel,
                     (PVOID*)&pGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);

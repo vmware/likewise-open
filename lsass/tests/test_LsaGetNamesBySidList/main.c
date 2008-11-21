@@ -81,7 +81,8 @@ main(
                     hLsaConnection,
                     argc - 1,
                     (PSTR *)argv + 1,
-                    &pNameList);
+                    &pNameList,
+                    NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     for (sIndex = 0; sIndex < argc - 1; sIndex++)

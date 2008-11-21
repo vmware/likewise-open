@@ -331,6 +331,7 @@ LADSFindGroupByName(
             dwError = gpAuthProvider->pFnTable->pfnLookupGroupByName(
                                           hProvider,
                                           pszName,
+                                          0,
                                           dwInfoLevel,
                                           &pGroupInfo);
             BAIL_ON_LSA_ERROR(dwError); 
@@ -404,6 +405,7 @@ LADSFindGroupById(
             dwError = gpAuthProvider->pFnTable->pfnLookupGroupById(
                                           hProvider,
                                           groupId,
+                                          0,
                                           dwInfoLevel,
                                           &pGroupInfo);
             BAIL_ON_LSA_ERROR(dwError); 

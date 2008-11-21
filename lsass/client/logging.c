@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        groups.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Group Lookup and Management API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,9 +55,9 @@ LsaSetLogLevel(
     )
 {
     LSA_LOG_INFO logInfo = {0};
-    
+
     logInfo.maxAllowedLogLevel = logLevel;
-    
+
     return LsaSetLogInfo(
                     hLsaConnection,
                     &logInfo);
@@ -74,10 +74,10 @@ LsaSetLogInfo(
     PLSAMESSAGE pMessage = NULL;
     DWORD   dwMsgLen = 0;
     PSTR    pszError = NULL;
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_POINTER(pLogInfo);
-    
+
     dwError = LsaMarshalLogInfo(
                     pLogInfo->maxAllowedLogLevel,
                     pLogInfo->logTarget,
@@ -85,7 +85,7 @@ LsaSetLogInfo(
                     NULL,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     dwError = LsaBuildMessage(
                 LSA_Q_SET_LOGINFO,
                 dwMsgLen,
@@ -93,7 +93,7 @@ LsaSetLogInfo(
                 1,
                 &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaMarshalLogInfo(
                     pLogInfo->maxAllowedLogLevel,
                     pLogInfo->logTarget,
@@ -101,15 +101,15 @@ LsaSetLogInfo(
                     pMessage->pData,
                     &dwMsgLen);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSendMessage(hLsaConnection, pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_MESSAGE(pMessage);
-    
+
     dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (pMessage->header.messageType) {
         case LSA_R_SET_LOGINFO:
         {
@@ -118,7 +118,7 @@ LsaSetLogInfo(
         case LSA_ERROR:
         {
             DWORD dwSrvError = 0;
-            
+
             dwError = LsaUnmarshalError(
                                 pMessage->pData,
                                 pMessage->header.messageLength,
@@ -143,7 +143,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszError);
 
     return dwError;
-        
+
 error:
 
     goto cleanup;
@@ -161,10 +161,10 @@ LsaGetLogInfo(
     DWORD   dwMsgLen = 0;
     PSTR    pszError = NULL;
     PLSA_LOG_INFO pLogInfo = NULL;
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_POINTER(ppLogInfo);
-        
+
     dwError = LsaBuildMessage(
                 LSA_Q_GET_LOGINFO,
                 dwMsgLen,
@@ -172,15 +172,15 @@ LsaGetLogInfo(
                 1,
                 &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSendMessage(hLsaConnection, pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LSA_SAFE_FREE_MESSAGE(pMessage);
-    
+
     dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (pMessage->header.messageType) {
         case LSA_R_GET_LOGINFO:
         {
@@ -194,7 +194,7 @@ LsaGetLogInfo(
         case LSA_ERROR:
         {
             DWORD dwSrvError = 0;
-            
+
             dwError = LsaUnmarshalError(
                                 pMessage->pData,
                                 pMessage->header.messageLength,
@@ -212,7 +212,7 @@ LsaGetLogInfo(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     *ppLogInfo = pLogInfo;
 
 cleanup:
@@ -221,7 +221,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszError);
 
     return dwError;
-        
+
 error:
 
     if (ppLogInfo)
@@ -236,3 +236,5 @@ error:
 
     goto cleanup;
 }
+
+

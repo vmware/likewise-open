@@ -270,20 +270,20 @@ LsaSrvApiConfigNameValuePair(
         }
     }    
     else if (!strcasecmp(pszName, "log-network-connection-events"))
+    {
+        if (!IsNullOrEmptyString(pszValue) &&
+            (!strcasecmp(pszValue, "false") ||
+             !strcasecmp(pszValue, "0") ||
+             (*pszValue == 'n') ||
+             (*pszValue == 'N')))
         {
-            if (!IsNullOrEmptyString(pszValue) &&
-                (!strcasecmp(pszValue, "false") ||
-                 !strcasecmp(pszValue, "0") ||
-                 (*pszValue == 'n') ||
-                 (*pszValue == 'N')))
-            {
-                pConfig->bLogNetworkConnectionEvents = FALSE;
-            }
-            else
-            {
-                pConfig->bLogNetworkConnectionEvents = TRUE;
-            }
+            pConfig->bLogNetworkConnectionEvents = FALSE;
         }
+        else
+        {
+            pConfig->bLogNetworkConnectionEvents = TRUE;
+        }
+    }
 
     *pbContinue = TRUE;
 

@@ -10,11 +10,11 @@
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
  *        Logging API
- * 
+ *
  * 		  Global variables
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
  */
 
 #ifndef __LSALOG_R_H__
@@ -40,6 +40,28 @@ LsaLogSetInfo_r(
 
 DWORD
 LsaShutdownLogging_r(
+    VOID
+    );
+
+DWORD
+LsaInitTracing_r(
+    VOID
+    );
+
+DWORD
+LsaTraceSetFlag_r(
+    DWORD   dwTraceFlag,
+    BOOLEAN bStatus
+    );
+
+DWORD
+LsaTraceGetInfo_r(
+    DWORD    dwTraceFlag,
+    PBOOLEAN pbStatus
+    );
+
+VOID
+LsaShutdownTracing_r(
     VOID
     );
 

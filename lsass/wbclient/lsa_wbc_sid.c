@@ -253,7 +253,7 @@ wbcErr wbcLookupName(const char *dom_name,
 
 	/* Fall back and try it as a group */
 
-	dwErr = LsaFindGroupByName(hLsa, pszQualifiedName, 1, (PVOID*)&pGroupInfo);
+	dwErr = LsaFindGroupByName(hLsa, pszQualifiedName, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 	BAIL_ON_LSA_ERR(dwErr);
 	if (sid) {
 		wbc_status = wbcStringToSid(pGroupInfo->pszSid, sid);
@@ -329,7 +329,8 @@ wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
                 hLsa,
                 1,
                 ppszSidList,
-		&pNameList);
+		&pNameList,
+                NULL);
 	BAIL_ON_LSA_ERR(dwErr);	
 
 	dwErr = LsaCloseServer(hLsa);

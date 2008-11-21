@@ -93,6 +93,7 @@ typedef DWORD (*PFNLOOKUPUSERBYID)(
 typedef DWORD (*PFNLOOKUPGROUPBYNAME)(
                         HANDLE  hProvider,
                         PCSTR   pszLoginId,
+                        LSA_FIND_FLAGS FindFlags,
                         DWORD   dwUserInfoLevel,
                         PVOID*  ppGroupInfo
                         );
@@ -100,6 +101,7 @@ typedef DWORD (*PFNLOOKUPGROUPBYNAME)(
 typedef DWORD (*PFNLOOKUPGROUPBYID)(
                         HANDLE  hProvider,
                         gid_t   gid,
+                        LSA_FIND_FLAGS FindFlags,
                         DWORD   dwGroupInfoLevel,
                         PVOID*  ppGroupInfo
                         );
@@ -107,6 +109,7 @@ typedef DWORD (*PFNLOOKUPGROUPBYID)(
 typedef DWORD (*PFNGETGROUPSFORUSER)(
                         HANDLE  hProvider,
                         uid_t   uid,
+                        LSA_FIND_FLAGS FindFlags,
                         DWORD   dwGroupInfoLevel,
                         PDWORD  pdwGroupsFound,
                         PVOID** pppGroupInfoList
@@ -202,15 +205,24 @@ typedef DWORD (*PFNGETNAMESBYSIDLIST) (
                         PSTR*           ppszSidList,
                         PSTR**          pppszDomainNames,
                         PSTR**          pppszSamAccounts,
-                        ADAccountType** ppTypes);
+                        ADAccountType** ppTypes
+                        );
 
-
+typedef DWORD (*PFNLOOKUP_NSS_ARTEFACT_BY_KEY)(
+                        HANDLE hProvider,
+                        PCSTR  pszKeyName,
+                        PCSTR  pszMapName,
+                        DWORD  dwInfoLevel,
+                        LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+                        PVOID* ppNSSArtefactInfo
+                        );
 
 typedef DWORD (*PFNBEGIN_ENUM_NSS_ARTEFACTS)(
                         HANDLE  hProvider,
                         PCSTR   pszGUID,
                         DWORD   dwInfoLevel,
-                        DWORD   dwMapType,
+                        PCSTR   pszMapName,
+                        LSA_NIS_MAP_QUERY_FLAGS dwFlags,
                         PHANDLE phResume
                         );
 
@@ -266,6 +278,7 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNOPENSESSION                 pfnOpenSession;
     PFNCLOSESESSION                pfnCloseSession;
     PFNGETNAMESBYSIDLIST           pfnGetNamesBySidList;
+    PFNLOOKUP_NSS_ARTEFACT_BY_KEY  pfnLookupNSSArtefactByKey;
     PFNBEGIN_ENUM_NSS_ARTEFACTS    pfnBeginEnumNSSArtefacts;
     PFNENUMNSS_ARTEFACTS           pfnEnumNSSArtefacts;
     PFNEND_ENUM_NSS_ARTEFACTS      pfnEndEnumNSSArtefacts;

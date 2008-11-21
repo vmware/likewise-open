@@ -310,6 +310,26 @@ const char* gLsaErrorMessages[] =
     "The user/group is not enabled in the cell",
     // LSA_ERROR_NO_MORE_NSS_ARTEFACTS                           : 32896
     "No more NSS Artefacts"
+    // LSA_ERROR_INVALID_NSS_MAP_NAME                            : 32897
+    "An invalid name was specified for the NIS map",
+    // LSA_ERROR_INVALID_NSS_KEY_NAME                            : 32898
+    "An invalid name was specified for the NIS key",
+    // LSA_ERROR_NO_SUCH_NSS_KEY                                 : 32899
+    "No such NIS Key is defined",
+    // LSA_ERROR_NO_SUCH_NSS_MAP                                 : 32900
+    "No such NIS Map is defined",
+    // LSA_ERROR_RPC_ERROR                                       : 32901
+    "An Error was encountered when negotiating with RPC",
+    // LSA_ERROR_LDAP_SERVER_UNAVAILABLE                         : 32902
+    "The LDAP server is unavailable",
+    // LSA_ERROR_CREATE_KEY_FAILED                               : 32903
+    "Could not create random key",
+    // LSA_ERROR_CANNOT_DETECT_USER_PROCESSES                    : 32904
+    "Cannot detect user processes",
+    // LSA_ERROR_TRACE_NOT_INITIALIZED                           : 32905
+    "Tracing has not been initialized",
+    // LSA_ERROR_NO_SUCH_TRACE_FLAG                              : 32906
+    "The trace flag is not defined"
 };
 
 size_t

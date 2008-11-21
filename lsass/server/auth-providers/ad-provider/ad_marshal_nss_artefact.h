@@ -52,7 +52,7 @@ ADSchemaMarshalNSSArtefactInfoList(
     HANDLE        hDirectory,
     PCSTR         pszDomainName,
     LDAPMessage*  pMessageSudo,
-    LsaNSSMapType mapType,
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags,
     DWORD         dwNSSArtefactInfoLevel,
     PVOID**       pppNSSArtefactInfoList,
     PDWORD        pNumNSSArtefacts
@@ -63,7 +63,7 @@ ADNonSchemaMarshalNSSArtefactInfoList(
     HANDLE        hDirectory,
     PCSTR         pszDomainName,
     LDAPMessage*  pMessagePseudo,
-    LsaNSSMapType mapType,
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags,
     DWORD         dwNSSArtefactInfoLevel,
     PVOID**       pppNSSArtefactInfoList,
     PDWORD        pNumNSSArtefacts

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-group.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS NetGroup Information (Common)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -66,19 +66,19 @@ LsaNssClearEnumArtefactsState(
                 );
             pState->ppArtefactInfoList = (HANDLE)NULL;
         }
-        
+
         if (pState->hResume != (HANDLE)NULL) {
             LsaEndEnumNSSArtefacts(pState->hLsaConnection, pState->hResume);
             pState->hResume = (HANDLE)NULL;
         }
-        
+
         LsaCloseServer(pState->hLsaConnection);
-        
+
         pState->hLsaConnection = (HANDLE)NULL;
     }
 
     memset(pState, 0, sizeof(*pState));
-    
+
     pState->dwArtefactInfoLevel = 0;
 }
 
@@ -96,16 +96,17 @@ LsaNssCommonNetgroupFindByName(
     BOOLEAN bFound = FALSE;
 
     LsaNssClearEnumArtefactsState(&state);
-    
+
     status = MAP_LSA_ERROR(NULL,
                            LsaOpenServer(&state.hLsaConnection));
     BAIL_ON_NSS_ERROR(status);
-    
+
     status = MAP_LSA_ERROR(NULL,
                            LsaBeginEnumNSSArtefacts(
                                state.hLsaConnection,
                                state.dwArtefactInfoLevel,
-                               LSA_NSS_ARTEFACT_TYPE_NETGROUP,
+                               LSA_NIS_MAP_NAME_NETGROUPS,
+                               LSA_NIS_MAP_QUERY_ALL,
                                MAX_NUM_ARTEFACTS,
                                &state.hResume));
     BAIL_ON_NSS_ERROR(status);
@@ -121,7 +122,7 @@ LsaNssCommonNetgroupFindByName(
     for (iGroup = 0; iGroup < dwNumFound; iGroup++)
     {
         PLSA_NSS_ARTEFACT_INFO_0 pInfo = (PLSA_NSS_ARTEFACT_INFO_0) ppInfoList[iGroup];
-        
+
         if (!strcmp(pInfo->pszName, pszName))
         {
             *ppszValue = pInfo->pszValue;
@@ -148,7 +149,7 @@ done:
     return status;
 
 error:
-    
+
     goto done;
 }
 
@@ -164,7 +165,7 @@ LsaNssSkipSpace(
     }
 }
 
-static 
+static
 void
 LsaNssNextDelim(
     PSTR* ppszCursor
@@ -189,7 +190,7 @@ LsaNssChomp(
         pszEnd--;
     }
 }
-    
+
 static
 PSTR
 LsaNssGetToken(
@@ -251,7 +252,7 @@ LsaNssCommonNetgroupParse(
             ret = NSS_STATUS_UNAVAIL;
             BAIL_ON_NSS_ERROR(ret);
         }
-        
+
         /* If we are not at the end of the list */
         if (**ppszCursor)
         {
@@ -283,7 +284,7 @@ LsaNssCommonNetgroupParse(
             *ppszDomain = NULL;
         }
 
-        
+
         *pType = LSA_NSS_NETGROUP_ENTRY_TRIPLE;
     }
     else

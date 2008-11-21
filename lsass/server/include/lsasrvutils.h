@@ -76,6 +76,11 @@ LsaSetSystemTime(
     time_t ttCurTime
     );
 
+DWORD
+LsaGetCurrentTimeSeconds(
+    OUT time_t* pTime
+    );
+
 VOID
 LsaSrvLogUserPWChangeSuccessEvent(
     PCSTR pszLoginId,

@@ -65,6 +65,7 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
 	PSTR ppszSidList[2];
 	CHAR pszAccountName[512] = "";	
 	PLSA_SID_INFO pNameList = NULL;	
+        CHAR chDomainSeparator = 0;
 
 	BAIL_ON_NULL_PTR_PARAM(user_sid, dwErr);
 	BAIL_ON_NULL_PTR_PARAM(num_sids, dwErr);
@@ -88,7 +89,8 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
                 hLsa,
                 1,
                 ppszSidList,
-		&pNameList);
+                &pNameList,
+                &chDomainSeparator);
 	BAIL_ON_LSA_ERR(dwErr);	
 
 	if (pNameList[0].accountType != AccountType_User) {
@@ -98,8 +100,9 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
 
 	snprintf(pszAccountName,
 		 sizeof(pszAccountName),
-		 "%s\\%s",
+		 "%s%c%s",
 		 pNameList[0].pszDomainName,
+                 chDomainSeparator,
 		 pNameList[0].pszSamAccountName);	
 
 	/* Now lookup groups for user SID */
@@ -116,7 +119,7 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
 	/* Now convert gids to SIDs */
 
 	for (i=0; i<dwNumGids; i++) {		
-		dwErr = LsaFindGroupById(hLsa, gids[i], 1, (PVOID*)&pGroupInfo);
+		dwErr = LsaFindGroupById(hLsa, gids[i], LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 		BAIL_ON_LSA_ERR(dwErr);
 
 		wbc_status = wbcStringToSid(pGroupInfo->pszSid, &sidList[i]);

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,6 +28,10 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 
@@ -37,10 +41,12 @@ NTSTATUS LsaLookupNames(handle_t b, PolicyHandle *handle,
                         uint32 level, uint32 *count)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ret_status = STATUS_SUCCESS;
     UnicodeString *lsa_names = NULL;
     RefDomainList *ref_domains = NULL;
+    RefDomainList *out_domains = NULL;
     TranslatedSidArray sid_array = {0};
-    TranslatedSid* sids_out = NULL;
+    TranslatedSid *out_sids = NULL;
 	
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(handle, cleanup);
@@ -56,22 +62,23 @@ NTSTATUS LsaLookupNames(handle_t b, PolicyHandle *handle,
 
     DCERPC_CALL(_LsaLookupNames(b, handle, num_names, lsa_names, &ref_domains,
                                 &sid_array, level, count));
-    goto_if_ntstatus_not_success(status, cleanup);
+    ret_status = status;
 
-    status = LsaAllocateTranslatedSids(&sids_out, &sid_array);
-    goto_if_ntstatus_not_success(status, cleanup);
+    /* Status other than success doesn't have to mean failure here */
+    if (ret_status != STATUS_SUCCESS &&
+        ret_status != STATUS_SOME_UNMAPPED) goto error;
 
-    status = LsaAllocateRefDomainList(domains, ref_domains);
-    goto_if_ntstatus_not_success(status, cleanup);
+    status = LsaAllocateTranslatedSids(&out_sids, &sid_array);
+    goto_if_ntstatus_not_success(status, error);
 
-    *sids = sids_out;
-    sids_out = NULL;
+    status = LsaAllocateRefDomainList(&out_domains, ref_domains);
+    goto_if_ntstatus_not_success(status, error);
+
+    *sids    = out_sids;
+    *domains = out_domains;
 
 cleanup:
     FreeUnicodeStringArray(lsa_names, num_names);
-    if (sids_out) {
-        LsaRpcFreeMemory((void*)sids_out);
-    }
 
     /* Free pointers returned from stub */
     LsaCleanStubTranslatedSidArray(&sid_array);
@@ -80,7 +87,27 @@ cleanup:
         LsaFreeStubRefDomainList(ref_domains);
     }
 
+    if (status == STATUS_SUCCESS &&
+        (ret_status == STATUS_SUCCESS ||
+         ret_status == STATUS_SOME_UNMAPPED)) {
+        status = ret_status;
+    }
+
     return status;
+
+error:
+    if (out_sids) {
+        LsaRpcFreeMemory((void*)out_sids);
+    }
+
+    if (out_domains) {
+        LsaRpcFreeMemory((void*)out_domains);
+    }
+
+    *sids    = NULL;
+    *domains = NULL;
+
+    goto cleanup;
 }
 
 

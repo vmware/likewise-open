@@ -261,3 +261,29 @@ error:
     goto cleanup;
 }
 
+// This function is just a wrapper to getting the current time as a time_t.
+DWORD
+LsaGetCurrentTimeSeconds(
+    OUT time_t* pTime
+    )
+{
+    DWORD dwError = 0;
+    struct timeval current_tv;
+
+    // ISSUE-2008/10/30-dalmeida -- Is gettimeofday() any better worse than time()?
+    // Preserve gettimeofday() since the code we are replacing currently uses that.
+    if (gettimeofday(&current_tv, NULL) < 0)
+    {
+        dwError = errno;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pTime = current_tv.tv_sec;
+
+cleanup:
+    return dwError;
+
+error:
+    *pTime = 0;
+    goto cleanup;
+}

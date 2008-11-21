@@ -60,6 +60,7 @@ ParseArgs(
     int    argc,
     char*  argv[],
     PSTR*  ppszGroupId,
+    PLSA_FIND_FLAGS pFindFlags,
     PDWORD pdwInfoLevel,
     PBOOLEAN pbCountOnly
     );
@@ -102,8 +103,9 @@ main(
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
     BOOLEAN bCountOnly = FALSE;
-    
-    dwError = ParseArgs(argc, argv, &pszGroupId, &dwInfoLevel, &bCountOnly);
+    LSA_FIND_FLAGS FindFlags = 0;
+
+    dwError = ParseArgs(argc, argv, &pszGroupId, &FindFlags, &dwInfoLevel, &bCountOnly);
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaOpenServer(&hLsaConnection);
@@ -112,6 +114,7 @@ main(
     dwError = LsaFindGroupByName(
                     hLsaConnection,
                     pszGroupId,
+                    FindFlags,
                     dwInfoLevel,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -186,86 +189,105 @@ ParseArgs(
     int    argc,
     char*  argv[],
     PSTR*  ppszGroupId,
+    PLSA_FIND_FLAGS pFindFlags,
     PDWORD pdwInfoLevel,
     PBOOLEAN pbCountOnly
     )
 {
-    typedef enum {
-            PARSE_MODE_OPEN = 0,
-            PARSE_MODE_LEVEL,
-            PARSE_MODE_DONE
-        } ParseMode;
-        
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
     PSTR pszGroupId = NULL;
-    ParseMode parseMode = PARSE_MODE_OPEN;
+    LSA_FIND_FLAGS FindFlags = 0;
     DWORD dwInfoLevel = 0;
     BOOLEAN bCountOnly = FALSE;
 
-    do {
-        pszArg = argv[iArg++];
-        if (pszArg == NULL || *pszArg == '\0')
+    for (iArg = 1; iArg < argc; iArg++)
+    {
+        pszArg = argv[iArg];
+        if (!strcmp(pszArg, "--help") ||
+            !strcmp(pszArg, "-h"))
+        {
+            ShowUsage();
+            exit(0);
+        }
+        else if (!strcmp(pszArg, "--count"))
+        {
+            bCountOnly = TRUE;
+        }
+        else if (!strcmp(pszArg, "--level"))
+        {
+            PCSTR pszValue;
+            if (iArg + 1 >= argc)
+            {
+                fprintf(stderr, "Missing argument for %s option.\n", pszArg);
+                ShowUsage();
+                exit(1);
+            }
+            pszValue = argv[++iArg];
+            if (!IsUnsignedInteger(pszValue))
+            {
+                fprintf(stderr, "Please enter an info level which is an unsigned integer.\n");
+                ShowUsage();
+                exit(1); 
+            }
+            dwInfoLevel = atoi(pszValue);
+        }
+        else if (!strcmp(pszArg, "--flags"))
+        {
+            PCSTR pszValue;
+            if (iArg + 1 >= argc)
+            {
+                fprintf(stderr, "Missing argument for %s option.\n", pszArg);
+                ShowUsage();
+                exit(1);
+            }
+            pszValue = argv[++iArg];
+            if (!IsUnsignedInteger(pszValue))
+            {
+                fprintf(stderr, "Please enter a flags value which is an unsigned integer.\n");
+                ShowUsage();
+                exit(1); 
+            }
+            FindFlags = atoi(pszValue);
+        }
+        else if (pszArg[0] == '-')
+        {
+            fprintf(stderr, "Invalid option '%s'.\n", pszArg);
+            ShowUsage();
+            exit(1); 
+        }
+        else
         {
             break;
         }
-        
-        switch (parseMode)
-        {
-            case PARSE_MODE_OPEN:
-        
-                if ((strcmp(pszArg, "--help") == 0) ||
-                    (strcmp(pszArg, "-h") == 0))
-                {
-                    ShowUsage();
-                    exit(0);
-                }
-                else if (!strcmp(pszArg, "--count")) {
-                    bCountOnly = TRUE;
-                }
-                else if (!strcmp(pszArg, "--level")) {
-                    parseMode = PARSE_MODE_LEVEL;
-                }
-                else
-                {
-                    dwError = LsaAllocateString(pszArg, &pszGroupId);
-                    BAIL_ON_LSA_ERROR(dwError);
-                    parseMode = PARSE_MODE_DONE;
-                }
-                break;
-                
-            case PARSE_MODE_LEVEL:
-                if (!IsUnsignedInteger(pszArg))
-                {
-                    fprintf(stderr, "Please enter an info level which is an unsigned integer.\n");
-                    ShowUsage();
-                    exit(1); 
-                }
-                dwInfoLevel = atoi(pszArg);
-                parseMode = PARSE_MODE_OPEN;
-                break;
-                
-            case PARSE_MODE_DONE:
-                ShowUsage();
-                exit(1);                
-        }
-        
-    } while (iArg < argc);
-
-    if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
-    {
-        ShowUsage();
-        exit(1);  
     }
+
+    if ((argc - iArg) < 1)
+    {
+        fprintf(stderr, "Missing required group name argument.\n");
+        ShowUsage();
+        exit(1);
+    }
+    dwError = LsaAllocateString(argv[iArg++], &pszGroupId);
+    BAIL_ON_LSA_ERROR(dwError);
     
-    if (IsNullOrEmptyString(pszGroupId)) {
-       fprintf(stderr, "Please specify a group name to query for.\n");
-       ShowUsage();
-       exit(1);
+    if ((argc - iArg) > 0)
+    {
+        fprintf(stderr, "Too many arguments.\n");
+        ShowUsage();
+        exit(1);
+    }
+
+    if (IsNullOrEmptyString(pszGroupId))
+    {
+        fprintf(stderr, "Please specify a non-empty group name to query for.\n");
+        ShowUsage();
+        exit(1);
     }
 
     *ppszGroupId = pszGroupId;
+    *pFindFlags = FindFlags;
     *pdwInfoLevel = dwInfoLevel;
     *pbCountOnly = bCountOnly;
 
@@ -276,6 +298,7 @@ cleanup:
 error:
 
     *ppszGroupId = NULL;
+    *pFindFlags = 0;
     *pdwInfoLevel = 0;
     *pbCountOnly = FALSE;
 
@@ -300,6 +323,8 @@ ShowUsage()
            "\n"
            "    --count         - If used with level 1, shows membership count only\n"
            "                      instead of listing group members.\n"
+           "\n"
+           "    --flags FLAGS   - Find flags can be 0 or 1.\n"
            "\n"
            "  Examples:\n"
            "\n"

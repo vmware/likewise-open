@@ -11,6 +11,7 @@ liblsaclient_la_SOURCES = \
     metrics.c   \
     session.c   \
     status.c    \
+    tracing.c   \
     users.c
 
 liblsaclient_la_LIBADD = \

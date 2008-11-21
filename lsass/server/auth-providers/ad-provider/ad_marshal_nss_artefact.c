@@ -56,7 +56,7 @@ ADMarshalNSSArtefactInfoList_0(
     HANDLE        hDirectory,
     PCSTR         pszDomainName,
     LDAPMessage*  pMessage,
-    LsaNSSMapType mapType,
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags,
     PVOID**       pppNSSArtefactInfoList,
     PDWORD        pwdNumNSSArtefacts
     );
@@ -66,8 +66,8 @@ ADSchemaMarshalNSSArtefactInfoList(
     HANDLE        hDirectory,
     PCSTR         pszDomainName,
     LDAPMessage*  pMessagePseudo,
-    LsaNSSMapType mapType,
     DWORD         dwNSSArtefactInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags,
     PVOID**       pppNSSArtefactInfoList,
     PDWORD        pNumNSSArtefacts
     )
@@ -83,7 +83,7 @@ ADSchemaMarshalNSSArtefactInfoList(
                             hDirectory,
                             pszDomainName,
                             pMessagePseudo,
-                            mapType,
+                            dwMapFlags,
                             &ppNSSArtefactInfoList,
                             &NumNSSArtefacts);
             BAIL_ON_LSA_ERROR(dwError);
@@ -118,7 +118,7 @@ ADSchemaMarshalNSSArtefactInfoList_0(
     HANDLE        hDirectory,
     PCSTR         pszDomainName,
     LDAPMessage*  pMessagePseudo,
-    LsaNSSMapType mapType,
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags,
     PVOID**       pppNSSArtefactInfoList,
     PDWORD        pwdNumNSSArtefacts
     )
@@ -127,7 +127,7 @@ ADSchemaMarshalNSSArtefactInfoList_0(
                     hDirectory,
                     pszDomainName,
                     pMessagePseudo,
-                    mapType,
+                    dwMapFlags,
                     pppNSSArtefactInfoList,
                     pwdNumNSSArtefacts);
 }
@@ -137,7 +137,7 @@ ADNonSchemaMarshalNSSArtefactInfoList(
     HANDLE        hDirectory,
     PCSTR         pszDomainName,
     LDAPMessage*  pMessagePseudo,
-    LsaNSSMapType mapType,
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags,
     DWORD         dwNSSArtefactInfoLevel,
     PVOID**       pppNSSArtefactInfoList,
     PDWORD        pNumArtefacts
@@ -154,7 +154,7 @@ ADNonSchemaMarshalNSSArtefactInfoList(
                             hDirectory,
                             pszDomainName,
                             pMessagePseudo,
-                            mapType,
+                            dwMapFlags,
                             &ppNSSArtefactInfoList,
                             &dwNumArtefacts);
             BAIL_ON_LSA_ERROR(dwError);
@@ -189,7 +189,7 @@ ADNonSchemaMarshalNSSArtefactInfoList_0(
     HANDLE        hDirectory,
     PCSTR         pszDomainName,
     LDAPMessage*  pMessagePseudo,
-    LsaNSSMapType mapType,
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags,
     PVOID**       pppNSSArtefactInfoList,
     PDWORD        pwdNumNSSArtefacts
     )
@@ -198,7 +198,7 @@ ADNonSchemaMarshalNSSArtefactInfoList_0(
                     hDirectory,
                     pszDomainName,
                     pMessagePseudo,
-                    mapType,
+                    dwMapFlags,
                     pppNSSArtefactInfoList,
                     pwdNumNSSArtefacts);
 }
@@ -209,7 +209,7 @@ ADMarshalNSSArtefactInfoList_0(
     HANDLE        hDirectory,
     PCSTR         pszDomainName,
     LDAPMessage*  pMessagePseudo,
-    LsaNSSMapType mapType,
+    LSA_NIS_MAP_QUERY_FLAGS dwMapFlags,
     PVOID**       pppNSSArtefactInfoList,
     PDWORD        pwdNumNSSArtefacts
     )
@@ -260,8 +260,6 @@ ADMarshalNSSArtefactInfoList_0(
                         (PVOID*)&pArtefactInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pArtefactInfo->artefactType = mapType;
-
         dwError = LsaLdapGetString(
                         hDirectory,
                         pArtefactMessage,
@@ -269,25 +267,28 @@ ADMarshalNSSArtefactInfoList_0(
                         &pArtefactInfo->pszName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (ppszValues) {
-            LsaFreeStringArray(ppszValues, dwNumValues);
-            ppszValues = NULL;
+        if (dwMapFlags & LSA_NIS_MAP_QUERY_VALUES)
+        {
+            if (ppszValues) {
+                LsaFreeStringArray(ppszValues, dwNumValues);
+                ppszValues = NULL;
+            }
+
+            dwError = LsaLdapGetStrings(
+                            hDirectory,
+                            pArtefactMessage,
+                            AD_LDAP_KEYWORDS_TAG,
+                            &ppszValues,
+                            &dwNumValues);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = ADNonSchemaKeywordGetString(
+                            ppszValues,
+                            dwNumValues,
+                            "value",
+                            &pArtefactInfo->pszValue);
+            BAIL_ON_LSA_ERROR(dwError);
         }
-
-        dwError = LsaLdapGetStrings(
-                        hDirectory,
-                        pArtefactMessage,
-                        AD_LDAP_KEYWORDS_TAG,
-                        &ppszValues,
-                        &dwNumValues);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADNonSchemaKeywordGetString(
-                        ppszValues,
-                        dwNumValues,
-                        "value",
-                        &pArtefactInfo->pszValue);
-        BAIL_ON_LSA_ERROR(dwError);
 
         ppArtefactInfoList[iArtefact++] = pArtefactInfo;
         pArtefactInfo = NULL;

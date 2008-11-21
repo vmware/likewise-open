@@ -152,7 +152,7 @@ wbcErr wbcGetgrnam(const char *name, struct group **grp)
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaFindGroupByName(hLsa, name, 1, (PVOID*)&pGroupInfo);
+	dwErr = LsaFindGroupByName(hLsa, name, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	dwErr = LsaCloseServer(hLsa);
@@ -195,7 +195,7 @@ wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaFindGroupById(hLsa, gid, 1, (PVOID*)&pGroupInfo);
+	dwErr = LsaFindGroupById(hLsa, gid, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	dwErr = LsaCloseServer(hLsa);

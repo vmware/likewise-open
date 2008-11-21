@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -59,11 +59,11 @@ LsaInitLogging(
     switch(logTarget)
     {
         case LSA_LOG_TARGET_DISABLED:
-            
+
             break;
-            
+
         case LSA_LOG_TARGET_SYSLOG:
-        
+
             dwError = LsaOpenSyslog(
                         pszProgramName,
                         maxAllowedLogLevel,
@@ -71,50 +71,50 @@ LsaInitLogging(
                         LOG_DAEMON,
                         &hLog);
             BAIL_ON_LSA_ERROR(dwError);
-      
+
             break;
-            
+
         case LSA_LOG_TARGET_CONSOLE:
 
             dwError = LsaOpenConsoleLog(
                             maxAllowedLogLevel,
                             &hLog);
             BAIL_ON_LSA_ERROR(dwError);
-              
+
             break;
 
         case LSA_LOG_TARGET_FILE:
-            
+
             if (IsNullOrEmptyString(pszPath))
             {
                 dwError = LSA_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
             }
-                        
+
             dwError = LsaOpenFileLog(
                           pszPath,
                           maxAllowedLogLevel,
                           &hLog);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
+
         default:
-            
+
             dwError = LSA_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LSA_ERROR(dwError);      
+            BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     gLogTarget = logTarget;
     gLsaMaxLogLevel = maxAllowedLogLevel;
     ghLog = hLog;
 
  cleanup:
-    
+
     return dwError;
 
  error:
- 
+
     gLogTarget = LSA_LOG_TARGET_DISABLED;
     ghLog = (HANDLE)NULL;
 
@@ -128,47 +128,47 @@ LsaLogGetInfo(
 {
     DWORD dwError = 0;
     PLSA_LOG_INFO pLogInfo = NULL;
-    
+
     switch(gLogTarget)
     {
         case LSA_LOG_TARGET_DISABLED:
         case LSA_LOG_TARGET_CONSOLE:
         case LSA_LOG_TARGET_SYSLOG:
-            
+
             dwError = LsaAllocateMemory(
                             sizeof(LSA_LOG_INFO),
                             (PVOID*)&pLogInfo);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             pLogInfo->logTarget = gLogTarget;
             pLogInfo->maxAllowedLogLevel = gLsaMaxLogLevel;
-            
+
             break;
-            
+
         case LSA_LOG_TARGET_FILE:
-            
+
             dwError = LsaGetFileLogInfo(
                             ghLog,
                             &pLogInfo);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
+
         default:
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     *ppLogInfo = pLogInfo;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppLogInfo = NULL;
-    
+
     if (pLogInfo)
     {
         LsaFreeLogInfo(pLogInfo);
@@ -183,35 +183,35 @@ LsaLogSetInfo(
     )
 {
     DWORD dwError = 0;
-    
+
     BAIL_ON_INVALID_POINTER(pLogInfo);
-    
+
     // The only information that is allowed
     // to be set after the log is initialized
     // is the log level
-    
+
     gLsaMaxLogLevel = pLogInfo->maxAllowedLogLevel;
-    
+
     switch (gLogTarget)
     {
         case LSA_LOG_TARGET_SYSLOG:
-            
+
             LsaSetSyslogMask(gLsaMaxLogLevel);
-            
+
             break;
-            
+
         default:
-            
+
             break;
     }
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
-    goto cleanup;    
+    goto cleanup;
 }
 
 DWORD
@@ -220,28 +220,28 @@ LsaShutdownLogging(
     )
 {
     DWORD dwError = 0;
-    
+
     if (ghLog != (HANDLE)NULL)
     {
         switch(gLogTarget)
         {
             case LSA_LOG_TARGET_DISABLED:
                 break;
-                
+
             case LSA_LOG_TARGET_CONSOLE:
                 LsaCloseConsoleLog(ghLog);
                 break;
-                
+
             case LSA_LOG_TARGET_FILE:
                 LsaCloseFileLog(ghLog);
                 break;
-                
+
             case LSA_LOG_TARGET_SYSLOG:
                 LsaCloseSyslog(ghLog);
             break;
         }
     }
-    
+
     return dwError;
 }
 
@@ -253,18 +253,18 @@ LsaSetupLogging(
 	)
 {
 	DWORD dwError = 0;
-	
+
 	if ((hLog == (HANDLE)NULL) ||
 		!pfnLogger)
 	{
 		dwError = LSA_ERROR_INVALID_PARAMETER;
 		goto error;
 	}
-	
+
 	ghLog = hLog;
 	gLsaMaxLogLevel = maxAllowedLogLevel;
 	gpfnLogger = pfnLogger;
-	
+
 error:
 
 	return dwError;
@@ -291,9 +291,9 @@ LsaLogMessage(
 {
 	va_list msgList;
 	va_start(msgList, pszFormat);
-	
+
 	pfnLogger(hLog, logLevel, pszFormat, msgList);
-	
+
 	va_end(msgList);
 }
 
@@ -318,6 +318,136 @@ LsaValidateLogLevel(
             dwError = LSA_ERROR_INVALID_LOG_LEVEL;
             break;
     }
-    
+
     return dwError;
+}
+
+DWORD
+LsaTraceInitialize(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PLSA_BIT_VECTOR pTraceVector = NULL;
+
+    dwError = LsaBitVectorCreate(
+                    LSA_TRACE_FLAG_SENTINEL,
+                    &pTraceVector);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (gpTraceFlags)
+    {
+        LsaBitVectorFree(gpTraceFlags);
+    }
+
+    gpTraceFlags = pTraceVector;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pTraceVector)
+    {
+        LsaBitVectorFree(pTraceVector);
+    }
+
+    goto cleanup;
+}
+
+BOOLEAN
+LsaTraceIsFlagSet(
+    DWORD dwTraceFlag
+    )
+{
+    BOOLEAN bResult = FALSE;
+
+    if (gpTraceFlags &&
+        dwTraceFlag &&
+        LsaBitVectorIsSet(gpTraceFlags, dwTraceFlag))
+    {
+        bResult = TRUE;
+    }
+
+    return bResult;
+}
+
+BOOLEAN
+LsaTraceIsAllowed(
+    DWORD dwTraceFlags[],
+    DWORD dwNumFlags
+    )
+{
+    BOOLEAN bResult = FALSE;
+    DWORD   iFlag = 0;
+
+    if (gpTraceFlags)
+    {
+        for (; !bResult && (iFlag < dwNumFlags); iFlag++)
+        {
+            if (LsaTraceIsFlagSet(dwTraceFlags[iFlag]))
+            {
+                bResult = TRUE;
+            }
+        }
+    }
+
+    return bResult;
+}
+
+DWORD
+LsaTraceSetFlag(
+    DWORD dwTraceFlag
+    )
+{
+    DWORD dwError = 0;
+
+    if (!gpTraceFlags)
+    {
+        dwError = LSA_ERROR_TRACE_NOT_INITIALIZED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaBitVectorSetBit(
+                    gpTraceFlags,
+                    dwTraceFlag);
+
+error:
+
+    return dwError;
+}
+
+DWORD
+LsaTraceUnsetFlag(
+    DWORD dwTraceFlag
+    )
+{
+    DWORD dwError = 0;
+
+    if (!gpTraceFlags)
+    {
+        dwError = LSA_ERROR_TRACE_NOT_INITIALIZED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaBitVectorUnsetBit(
+                    gpTraceFlags,
+                    dwTraceFlag);
+
+error:
+
+    return dwError;
+}
+
+VOID
+LsaTraceShutdown(
+    VOID
+    )
+{
+    if (gpTraceFlags)
+    {
+        LsaBitVectorFree(gpTraceFlags);
+        gpTraceFlags = NULL;
+    }
 }

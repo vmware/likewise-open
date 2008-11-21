@@ -51,6 +51,8 @@
 #include "lsa/lsa.h"
 
 #include <openssl/md4.h>
+#include <openssl/rand.h>
+#include <openssl/des.h>
 #include <sqlite3.h>
 #include <eventlog.h>
 #include <lwps/lwps.h>
@@ -74,10 +76,14 @@
 #include "lsadm.h"
 #include "lsadmengine.h"
 #include "lsadmwrap.h"
+#include "lsaum.h"
+#include "lsaumproc.h"
 #include "cachedbcreate.h"
 #include "cachedb.h"
+#include "ad_enum_objects.h"
 #include "adldap.h"
 #include "adldap_p.h"
+#include "batch.h"
 #include "ad_marshal_group.h"
 #include "ad_marshal_group_p.h"
 #include "ad_marshal_nss_artefact.h"
@@ -95,8 +101,6 @@
 #include "unprovisioned-ldap.h"
 #include "provider-main.h"
 #include "offline-helper.h"
-
-#include "batch.h"
 
 #include "externs.h"
 

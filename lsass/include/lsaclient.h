@@ -1,7 +1,7 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
- 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -15,7 +15,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
  */
 #ifndef __LSACLIENT_H__
 #define __LSACLIENT_H__
@@ -61,34 +61,9 @@ LsaDeleteGroupByName(
 DWORD
 LsaGetGidsForUserByName(
     HANDLE  hLsaConnection,
-    PCSTR   pszUserName,    
+    PCSTR   pszUserName,
     PDWORD  pdwGroupFound,
     gid_t** ppGidResults
-    );
-
-DWORD
-LsaGetGroupsForUserById(
-    HANDLE  hLsaConnection,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    );
-
-DWORD
-LsaFindGroupByName(
-    HANDLE hLsaConnection,
-    PCSTR  pszGroupName,
-    DWORD  dwGroupInfoLevel,
-    PVOID* ppGroupInfo
-    );
-
-DWORD
-LsaFindGroupById(
-    HANDLE hLsaConnection,
-    gid_t  gid,
-    DWORD  dwGroupInfoLevel,
-    PVOID* ppGroupInfo
     );
 
 DWORD
@@ -223,18 +198,21 @@ LsaCloseServer(
     );
 
 DWORD
-LsaGetNamesBySidList(
-    HANDLE          hLsaConnection,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PLSA_SID_INFO*  ppSIDInfoList
+LsaFindNSSArtefactByKey(
+    HANDLE   hLsaConnection,
+    DWORD    dwMapInfoLevel,
+    PCSTR    pszKeyName,
+    PCSTR    pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID*   ppNSSArtefactInfo
     );
 
 DWORD
 LsaBeginEnumNSSArtefacts(
     HANDLE  hLsaConnection,
     DWORD   dwInfoLevel,
-    DWORD   dwMapType,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD   dwMaxNumNSSArtefacts,
     PHANDLE phResume
     );
@@ -255,7 +233,7 @@ LsaEndEnumNSSArtefacts(
 
 //
 // GSS routines
-// 
+//
 
 DWORD
 LsaGSSBuildAuthMessage(

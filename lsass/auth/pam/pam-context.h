@@ -94,7 +94,8 @@ int
 LsaPamGetLoginId(
     pam_handle_t* pamh,
     PPAMCONTEXT   pContext,
-    PSTR*         ppszLoginId
+    PSTR*         ppszLoginId,
+    BOOLEAN       bAllowPrompt
     );
 
 void

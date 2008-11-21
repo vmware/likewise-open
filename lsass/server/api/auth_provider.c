@@ -137,6 +137,7 @@ LsaSrvValidateProvider(
         !pProvider->pFnTable->pfnOpenSession ||
         !pProvider->pFnTable->pfnCloseSession ||
         !pProvider->pFnTable->pfnGetNamesBySidList ||
+        !pProvider->pFnTable->pfnLookupNSSArtefactByKey ||
         !pProvider->pFnTable->pfnBeginEnumNSSArtefacts ||
         !pProvider->pFnTable->pfnEnumNSSArtefacts ||
         !pProvider->pFnTable->pfnEndEnumNSSArtefacts ||

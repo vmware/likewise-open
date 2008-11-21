@@ -41,11 +41,8 @@
  *
  *        Active Directory Authentication Provider
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Wei Fu (wfu@likewisesoftware.com)
- *          Brian Dunstan (bdunstan@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
+ * Authors: Wei Fu (wfu@likewisesoftware.com)
+ *          Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 #ifndef __BATCH_H__
 #define __BATCH_H__
@@ -57,6 +54,23 @@ ADLdap_FindObjectsByDNListBatched(
     IN PSTR* ppszDnList,
     OUT PDWORD pdwCount,
     OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+ADLdap_FindObjectsBySidListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PSTR* ppszSidList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+CreateObjectLoginNameInfo(
+    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszSamAccountName,
+    IN PCSTR pszSid
     );
 
 #endif /* __BATCH_H__ */

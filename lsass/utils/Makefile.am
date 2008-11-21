@@ -13,6 +13,7 @@ liblsautils_la_SOURCES =       \
        lsaerror.c              \
        lsagroupinfo.c          \
        lsaartefactinfo.c       \
+       lsabitvector.c          \
        lsalogger.c             \
        lsamem.c                \
        lsapaths.c              \

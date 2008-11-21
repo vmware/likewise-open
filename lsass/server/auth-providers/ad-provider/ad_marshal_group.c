@@ -51,197 +51,256 @@
 #include "adprovider.h"
 
 DWORD
-ADMarshalGroupInfo(
-    HANDLE              hDirectory,
-    DWORD               dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PCSTR               pszNetBIOSDomainName,
-    LDAPMessage*        pMessageReal,
-    LDAPMessage*        pMessagePseudo,
-    DWORD               dwGroupInfoLevel,
-    PVOID*              ppGroupInfo
+ADMarshalGroupInfoListDefaultNonSchemaOrCell(
+    HANDLE hProvider,
+    HANDLE hDirectory,
+    LDAPMessage* pMessagePseudo,
+    DWORD dwGroupInfoLevel,
+    PVOID** pppGroupInfoList,
+    PDWORD pdwNumGroups
     )
 {
     DWORD dwError = 0;
-    PVOID pGroupInfo = NULL;
+    PSTR* ppSidsList = NULL;
+    DWORD dwNumSidsFound = 0;
+    size_t sNumGroupsFound = 0;
+    PVOID* ppGroupInfoList = NULL;
+    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    DWORD iValue  = 0;
 
-    switch (dwDirectoryMode){
+    dwError = ADMarshalObjectSidListFromPseudo(
+                    hDirectory,
+                    pMessagePseudo,
+                    &ppSidsList,
+                    &dwNumSidsFound);
+    BAIL_ON_LSA_ERROR(dwError);
     
-        case UNPROVISIONED_MODE:
-            if (pMessagePseudo){
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError); 
-            }
-            
-            dwError = ADUnprovisionedMarshalGroupInfo(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessageReal,
-                            dwGroupInfoLevel,
-                            &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-        
-            break;
-        
-        case DEFAULT_MODE:
-        case CELL_MODE:
-            
-            if (!pMessagePseudo){
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError); 
-            }
-             
-             switch (adConfMode) 
-             {
-                 case SchemaMode:
+    dwError = AD_FindObjectsBySidList(
+                    hProvider,
+                    dwNumSidsFound,
+                    ppSidsList,
+                    &sNumGroupsFound,
+                    &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
 
-                     dwError = ADSchemaMarshalGroupInfo(
-                                   hDirectory,
-                                   pszNetBIOSDomainName,
-                                   pMessageReal,
-                                   pMessagePseudo,
-                                   dwGroupInfoLevel,
-                                   &pGroupInfo);
-                     BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaAllocateMemory(
+                    sizeof(*ppGroupInfoList) * sNumGroupsFound,
+                    (PVOID*)&ppGroupInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
 
-                     break;
-
-                 case NonSchemaMode:
-
-                     dwError = ADNonSchemaMarshalGroupInfo(
-                                   hDirectory,
-                                   pszNetBIOSDomainName,
-                                   pMessageReal,
-                                   pMessagePseudo,
-                                   dwGroupInfoLevel,
-                                   &pGroupInfo);
-                     BAIL_ON_LSA_ERROR(dwError);
-
-                     break; 
-          
-                 default:           
-                     dwError = LSA_ERROR_INVALID_PARAMETER;
-                     BAIL_ON_LSA_ERROR(dwError); 
-             }
-             
-             break;
-        
-         default:           
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
+    for (iValue = 0; iValue < sNumGroupsFound; iValue++)
+    {
+        dwError = AD_GroupObjectToGroupInfo(
+                     hProvider,
+                     ppObjects[iValue],
+                     TRUE,
+                     dwGroupInfoLevel,
+                     &ppGroupInfoList[iValue]);
+        BAIL_ON_LSA_ERROR(dwError);
     }
     
-    *ppGroupInfo = pGroupInfo;
+    *pppGroupInfoList = ppGroupInfoList;
+    *pdwNumGroups = sNumGroupsFound;
 
 cleanup:
+    LsaFreeStringArray(ppSidsList, dwNumSidsFound);
+    ADCacheDB_SafeFreeObjectList(sNumGroupsFound, &ppObjects);
 
     return dwError;
-    
-error:
 
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }        
+error:
+    if (ppGroupInfoList) 
+    {
+        LsaFreeUserInfoList(dwGroupInfoLevel, ppGroupInfoList, sNumGroupsFound);
+    }
+    *pppGroupInfoList = NULL;
+    *pdwNumGroups = 0;
 
     goto cleanup;
+}
+
+DWORD
+ADMarshalGroupInfoListDefaultSchemaOrUnprovision(
+    HANDLE hProvider,
+    HANDLE hDirectory,
+    DWORD dwDirectoryMode,
+    ADConfigurationMode adConfMode,
+    PCSTR pszDomainDnsName,
+    LDAPMessage* pMessageReal,
+    DWORD dwGroupInfoLevel,
+    PVOID** pppGroupInfoList,
+    PDWORD pdwNumGroups
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwMessageCount = 0;
+    PAD_SECURITY_OBJECT pObject = NULL;
+    PVOID* ppGroupInfoList = NULL;
+    // Do not free
+    LDAPMessage *pGroupMessage = NULL;    
+    PSTR pszGroupName = NULL;
+    PSTR pszGroupSid = NULL;
+    PLSA_LOGIN_NAME_INFO pLoginNameInfo = NULL;
+    LDAP *pLd = NULL;
+    DWORD dwNumGroups = 0;    
+
+    if (!pMessageReal)
+    {
+        goto cleanup;
+    }
+
+    pLd = LsaLdapGetSession(hDirectory);
+    dwMessageCount = ldap_count_entries(
+                    pLd,
+                    pMessageReal);
+    if ((INT)dwMessageCount < 0) {
+        dwError = LSA_ERROR_LDAP_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    } else if (dwMessageCount == 0) {
+        goto cleanup;
+    }    
+    
+    dwError = LsaAllocateMemory(
+                    sizeof(*ppGroupInfoList) * dwMessageCount,
+                    (PVOID*)&ppGroupInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pGroupMessage = ldap_first_entry(pLd, pMessageReal);
+    while (pGroupMessage)
+    {   
+        LSA_SAFE_FREE_STRING(pszGroupName);
+        dwError = LsaLdapGetString(
+                       hDirectory,
+                       pGroupMessage,
+                       AD_LDAP_SAM_NAME_TAG,
+                       &pszGroupName);
+        BAIL_ON_LSA_ERROR(dwError);
+        
+        LSA_SAFE_FREE_STRING(pszGroupSid);
+        dwError = ADLdap_GetObjectSid(
+                        hDirectory,
+                        pGroupMessage,
+                        &pszGroupSid);
+        BAIL_ON_LSA_ERROR(dwError);
+   
+        LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo);
+        dwError = CreateObjectLoginNameInfo(
+                        &pLoginNameInfo,
+                        pszDomainDnsName,
+                        pszGroupName,
+                        pszGroupSid);
+        BAIL_ON_LSA_ERROR(dwError);
+        
+        ADCacheDB_SafeFreeObject(&pObject);
+        dwError = ADMarshalToGroupCache(
+                    // hPseudoDirectory should be NULL for unprovision mode
+                    // hPseudoDirectory should be hRealDirectory for default schem mode
+                    dwDirectoryMode == UNPROVISIONED_MODE ? (HANDLE)NULL : hDirectory,
+                    hDirectory,
+                    dwDirectoryMode,
+                    adConfMode,
+                    pLoginNameInfo,                    
+                    pGroupMessage,
+                    // pMessagePseudo should be NULL for unprovision mode
+                    // pMessagePseudo should be pRealMessage for default schema mode
+                    dwDirectoryMode == UNPROVISIONED_MODE ? NULL : pGroupMessage,
+                    &pObject);
+        BAIL_ON_LSA_ERROR(dwError);
+        
+        dwError = AD_GroupObjectToGroupInfo(
+                     hProvider,
+                     pObject,                     
+                     TRUE,
+                     dwGroupInfoLevel,
+                     &ppGroupInfoList[dwNumGroups]);        
+        BAIL_ON_LSA_ERROR(dwError);
+        dwNumGroups++;
+        
+        pGroupMessage = ldap_next_entry(pLd, pGroupMessage);
+    }   
+    
+cleanup:
+    // We handle error here instead of error label
+    // because there is a goto cleanup above.
+    if (dwError)
+    {
+        if (ppGroupInfoList) 
+        {
+            LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroups);
+        }
+        ppGroupInfoList = NULL;
+        dwNumGroups = 0;;
+    }
+    
+    *pppGroupInfoList = ppGroupInfoList;
+    *pdwNumGroups = dwNumGroups;
+   
+    ADCacheDB_SafeFreeObject(&pObject);
+    LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo);
+    LSA_SAFE_FREE_STRING(pszGroupSid);
+    LSA_SAFE_FREE_STRING(pszGroupName);
+    
+    
+    return dwError;
+
+error:
+    // Do not actually handle any errors here.
+    goto cleanup;
+}
+
+DWORD
+ADMarshalGroupInfoList(
+    IN OPTIONAL HANDLE hProvider,
+    IN HANDLE hDirectory,    
+    IN OPTIONAL PCSTR pszDomainDnsName,
+    IN LSA_AD_MARSHAL_INFO_LIST_MODE InfoListMarshalMode,
+    IN LDAPMessage* pMessagePseudo,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID** pppGroupInfoList,
+    OUT PDWORD pdwNumGroups
+    )
+{
+    switch (InfoListMarshalMode)
+    {
+        case LSA_AD_MARSHAL_MODE_DEFAULT_SCHEMA:
+            return ADMarshalGroupInfoListDefaultSchemaOrUnprovision(
+                     hProvider,
+                     hDirectory,
+                     DEFAULT_MODE,
+                     SchemaMode,
+                     pszDomainDnsName,
+                     pMessagePseudo,
+                     dwGroupInfoLevel,
+                     pppGroupInfoList,
+                     pdwNumGroups);
+            
+        case LSA_AD_MARSHAL_MODE_UNPROVISIONED:
+            return ADMarshalGroupInfoListDefaultSchemaOrUnprovision(
+                     hProvider,
+                     hDirectory,
+                     UNPROVISIONED_MODE,
+                     UnknownMode,
+                     pszDomainDnsName,
+                     pMessagePseudo,
+                     dwGroupInfoLevel,
+                     pppGroupInfoList,
+                     pdwNumGroups);
+            
+        case LSA_AD_MARSHAL_MODE_OTHER:
+            return ADMarshalGroupInfoListDefaultNonSchemaOrCell(
+                     hProvider,
+                     hDirectory,    
+                     pMessagePseudo,
+                     dwGroupInfoLevel,
+                     pppGroupInfoList,
+                     pdwNumGroups);        
+    }
+    
+    return LSA_ERROR_NOT_SUPPORTED;
 }
 
 DWORD
 ADMarshalToGroupCache(
-    HANDLE                  hDirectory,
-    DWORD                   dwDirectoryMode,
-    ADConfigurationMode     adConfMode,
-    PCSTR                   pszNetBIOSDomainName,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pGroupInfo = NULL;    
-
-    switch (dwDirectoryMode){
-    
-        case UNPROVISIONED_MODE:
-            if (pMessagePseudo){
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError); 
-            }
-            
-            dwError = ADUnprovisionedMarshalToGroupCache(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessageReal,
-                            &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-        
-            break;
-        
-        case DEFAULT_MODE:
-        case CELL_MODE:
-            
-            if (!pMessagePseudo){
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError); 
-            }
-             
-             switch (adConfMode) 
-             {
-                 case SchemaMode:
-
-                     dwError = ADSchemaMarshalToGroupCache(
-                                   hDirectory,
-                                   pszNetBIOSDomainName,
-                                   pMessageReal,
-                                   pMessagePseudo,
-                                   &pGroupInfo);
-                     BAIL_ON_LSA_ERROR(dwError);
-
-                     break;
-
-                 case NonSchemaMode:
-
-                     dwError = ADNonSchemaMarshalToGroupCache(
-                                   hDirectory,
-                                   pszNetBIOSDomainName,
-                                   pMessageReal,
-                                   pMessagePseudo,
-                                   &pGroupInfo);
-                     BAIL_ON_LSA_ERROR(dwError);
-
-                     break; 
-          
-                 default:           
-                     dwError = LSA_ERROR_INVALID_PARAMETER;
-                     BAIL_ON_LSA_ERROR(dwError); 
-             }
-             
-             break;
-        
-         default:           
-                dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppGroupInfo = pGroupInfo;   
-
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    ADCacheDB_SafeFreeObject(&pGroupInfo);
-
-    goto cleanup;
-}
-
-DWORD
-ADMarshalToGroupCacheEx(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,
     DWORD                   dwDirectoryMode,
@@ -265,7 +324,7 @@ ADMarshalToGroupCacheEx(
             
             dwError = ADUnprovisionedMarshalToGroupCache(
                             hRealDirectory,
-                            pGroupNameInfo->pszDomainNetBiosName,
+                            pGroupNameInfo,
                             pMessageReal,
                             &pGroupInfo);
             BAIL_ON_LSA_ERROR(dwError);
@@ -279,7 +338,7 @@ ADMarshalToGroupCacheEx(
              {
                  case SchemaMode:
 
-                     dwError = ADSchemaMarshalToGroupCacheEx(
+                     dwError = ADSchemaMarshalToGroupCache(
                                    hPseudoDirectory,
                                    hRealDirectory,
                                    pGroupNameInfo,
@@ -292,7 +351,7 @@ ADMarshalToGroupCacheEx(
 
                  case NonSchemaMode:
 
-                     dwError = ADNonSchemaMarshalToGroupCacheEx(
+                     dwError = ADNonSchemaMarshalToGroupCache(
                                    hPseudoDirectory,
                                    hRealDirectory,
                                    pGroupNameInfo,
@@ -358,15 +417,16 @@ ADMarshalGetCanonicalName(
     {
         dwError = LsaAllocateStringPrintf(
             &pszResult,
-            "%s\\%s",
+            "%s%c%s",
             pObject->pszNetbiosDomainName,
+            LsaGetDomainSeparator(),
             pObject->pszSamAccountName);
         BAIL_ON_LSA_ERROR(dwError);
 
         LsaStrCharReplace(
             pszResult,
             ' ',
-            AD_GetSeparator());
+            AD_GetSpaceReplacement());
 
         LsaStrnToUpper(
             pszResult,
@@ -540,128 +600,6 @@ error:
 
 DWORD
 ADSchemaMarshalToGroupCache(
-    HANDLE                  hDirectory,
-    PCSTR                   pszNetBIOSDomainName,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppGroupInfo    
-    )
-{
-    DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pGroupInfo = NULL;
-    
-    struct timeval current_tv;
-    UCHAR* pucSIDBytes = NULL;
-    DWORD dwSIDByteLength = 0;
-
-    dwError = LsaAllocateMemory(
-                    sizeof(AD_SECURITY_OBJECT),
-                    (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (gettimeofday(&current_tv, NULL) < 0)
-    {
-        dwError = errno;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pGroupInfo->cache.qwCacheId = -1;
-    pGroupInfo->cache.tLastUpdated = current_tv.tv_sec;
-
-    pGroupInfo->type = AccountType_Group;
-
-    if (pMessageReal){
-    
-        dwError = LsaLdapGetBytes(
-                    hDirectory,
-                    pMessageReal,
-                    AD_LDAP_OBJECTSID_TAG,
-                    &pucSIDBytes,
-                    &dwSIDByteLength);
-        BAIL_ON_LSA_ERROR(dwError);
-        BAIL_ON_INVALID_POINTER(pucSIDBytes);
-
-        dwError = LsaSidBytesToString(
-                    pucSIDBytes,
-                    dwSIDByteLength,
-                    &pGroupInfo->pszObjectSid);
-
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessageReal,
-                    AD_LDAP_SAM_NAME_TAG,
-                    &pGroupInfo->pszSamAccountName);
-        BAIL_ON_LSA_ERROR(dwError);
-        BAIL_ON_INVALID_STRING(pGroupInfo->pszSamAccountName);
-    
-        dwError = LsaAllocateString(
-                    pszNetBIOSDomainName,
-                    &pGroupInfo->pszNetbiosDomainName);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        dwError = LsaLdapGetDN(
-                    hDirectory,
-                    pMessageReal,
-                    &pGroupInfo->pszDN);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    if (pMessagePseudo){
-        pGroupInfo->enabled = TRUE;
-    
-        dwError = LsaLdapGetUInt32(
-                    hDirectory,
-                    pMessagePseudo,
-                    AD_LDAP_GID_TAG,
-                    (PDWORD)&pGroupInfo->groupInfo.gid);
-        if(dwError == LSA_ERROR_INVALID_LDAP_ATTR_VALUE)
-        {
-            pGroupInfo->enabled = FALSE;
-            dwError = LSA_ERROR_SUCCESS;
-        }
-        else
-        {
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    if (pGroupInfo->enabled)
-    {
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessagePseudo,
-                    AD_LDAP_DISPLAY_NAME_TAG,
-                    &pGroupInfo->groupInfo.pszAliasName
-                    );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessagePseudo,
-                    AD_LDAP_PASSWD_TAG,
-                    &pGroupInfo->groupInfo.pszPasswd
-                    );
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppGroupInfo = pGroupInfo;
-    
-cleanup:
-    LSA_SAFE_FREE_MEMORY(pucSIDBytes);
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    ADCacheDB_SafeFreeObject(&pGroupInfo);
-
-    goto cleanup;
-}
-
-DWORD
-ADSchemaMarshalToGroupCacheEx(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,
     PLSA_LOGIN_NAME_INFO    pGroupNameInfo,
@@ -801,337 +739,7 @@ error:
 }
 
 DWORD
-ADSchemaMarshalGroupInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-    DWORD dwGroupInfoLevel = 0;
-    PSTR  pszGroupName = NULL;
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_GROUP_INFO_0),
-                    (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    if (pMessagePseudo) {
-    
-        dwError = LsaLdapGetUInt32(
-                    hDirectory,
-                    pMessagePseudo,
-                    AD_LDAP_GID_TAG,
-                    (PDWORD)&pGroupInfo->gid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    if (pMessageReal) {
-
-            dwError = LsaLdapGetString(
-                        hDirectory,
-                        pMessageReal,
-                        AD_LDAP_SAM_NAME_TAG,
-                        &pszGroupName);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            BAIL_ON_INVALID_STRING(pszGroupName);
-        
-            dwError = ADGetDomainQualifiedString(
-                        pszNetBIOSDomainName,
-                        pszGroupName,
-                        &pGroupInfo->pszName);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            LsaStrCharReplace(pGroupInfo->pszName, ' ', AD_GetSeparator());
-    }
-    
-    *ppGroupInfo = (PVOID)pGroupInfo;
-    
-cleanup:
-
-    LSA_SAFE_FREE_STRING(pszGroupName);
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADSchemaMarshalGroupInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
-    DWORD dwGroupInfoLevel = 1;
-    DWORD dwNumGroups = 0;
-    PSTR  pszGroupName = NULL;
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_GROUP_INFO_1),
-                    (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    if (pMessagePseudo) {
-    
-        dwError = LsaLdapGetUInt32(
-                    hDirectory,
-                    pMessagePseudo,
-                    AD_LDAP_GID_TAG,
-                    (PDWORD)&pGroupInfo->gid);
-        BAIL_ON_LSA_ERROR(dwError);
-    
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessagePseudo,
-                    AD_LDAP_PASSWD_TAG,
-                    &pGroupInfo->pszPasswd);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    if (pMessageReal) {
-
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessageReal,
-                    AD_LDAP_SAM_NAME_TAG,
-                    &pszGroupName);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        BAIL_ON_INVALID_STRING(pszGroupName);
-    
-        dwError = ADGetDomainQualifiedString(
-                    pszNetBIOSDomainName,
-                    pszGroupName,
-                    &pGroupInfo->pszName);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        LsaStrCharReplace(pGroupInfo->pszName, ' ', AD_GetSeparator());
-        
-        dwError = ADGetGroupMembers(
-                    hDirectory,
-                    pMessageReal,                    
-                    pszNetBIOSDomainName,
-                    gpADProviderData->szDomain,
-                    &pGroupInfo->ppszMembers,
-                    &dwNumGroups);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppGroupInfo = (PVOID)pGroupInfo;
-    
-cleanup:
-
-    LSA_SAFE_FREE_STRING(pszGroupName);
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADSchemaMarshalGroupInfo(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwGroupInfoLevel,
-    PVOID*      ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pGroupInfo = NULL;
-    
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-            dwError = ADSchemaMarshalGroupInfo_0(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessageReal,
-                            pMessagePseudo,
-                            &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case 1:
-            dwError = ADSchemaMarshalGroupInfo_1(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessageReal,
-                            pMessagePseudo,
-                            &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *ppGroupInfo = pGroupInfo;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
 ADNonSchemaMarshalToGroupCache(
-    HANDLE                  hDirectory,
-    PCSTR                   pszNetBIOSDomainName,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppGroupInfo    
-    )
-{
-    DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pGroupInfo = NULL;    
-    DWORD dwNumValues = 0;
-    struct timeval current_tv;
-    PSTR* ppszValues = NULL;
-    UCHAR* pucSIDBytes = NULL;
-    DWORD dwSIDByteLength = 0;
-
-    dwError = LsaAllocateMemory(
-                    sizeof(AD_SECURITY_OBJECT),
-                    (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (gettimeofday(&current_tv, NULL) < 0)
-    {
-        dwError = errno;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pGroupInfo->cache.qwCacheId = -1;
-    pGroupInfo->cache.tLastUpdated = current_tv.tv_sec;
-
-    pGroupInfo->type = AccountType_Group;
-
-    if (pMessageReal){
-    
-        dwError = LsaLdapGetBytes(
-                    hDirectory,
-                    pMessageReal,
-                    AD_LDAP_OBJECTSID_TAG,
-                    &pucSIDBytes,
-                    &dwSIDByteLength);
-        BAIL_ON_LSA_ERROR(dwError);
-        BAIL_ON_INVALID_POINTER(pucSIDBytes);
-
-        dwError = LsaSidBytesToString(
-                    pucSIDBytes,
-                    dwSIDByteLength,
-                    &pGroupInfo->pszObjectSid);
-
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessageReal,
-                    AD_LDAP_SAM_NAME_TAG,
-                    &pGroupInfo->pszSamAccountName);
-        BAIL_ON_LSA_ERROR(dwError);
-        BAIL_ON_INVALID_STRING(pGroupInfo->pszSamAccountName);
-    
-        dwError = LsaAllocateString(
-                    pszNetBIOSDomainName,
-                    &pGroupInfo->pszNetbiosDomainName);
-        BAIL_ON_LSA_ERROR(dwError);      
-        
-        dwError = LsaLdapGetDN(
-                    hDirectory,
-                    pMessageReal,
-                    &pGroupInfo->pszDN);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    if (pMessagePseudo){
-        pGroupInfo->enabled = TRUE;
-
-        dwError = LsaLdapGetStrings(hDirectory,
-                               pMessagePseudo,
-                               AD_LDAP_KEYWORDS_TAG,
-                               &ppszValues,
-                               &dwNumValues);
-        BAIL_ON_LSA_ERROR(dwError);
-    
-        dwError = ADNonSchemaKeywordGetUInt32(
-                    ppszValues,
-                    dwNumValues,
-                    AD_LDAP_GID_TAG,
-                    (PDWORD)&pGroupInfo->groupInfo.gid);
-        BAIL_ON_LSA_ERROR(dwError);    
-
-        dwError = ADNonSchemaKeywordGetString(
-                    ppszValues,
-                    dwNumValues,
-                    AD_LDAP_DISPLAY_NAME_TAG,
-                    &pGroupInfo->groupInfo.pszAliasName
-                    );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADNonSchemaKeywordGetString(
-                    ppszValues,
-                    dwNumValues,
-                    AD_LDAP_PASSWD_TAG,
-                    &pGroupInfo->groupInfo.pszPasswd
-                    );
-        BAIL_ON_LSA_ERROR(dwError);
-        
-    }
-    
-    *ppGroupInfo = pGroupInfo;    
-    
-cleanup:
-    LSA_SAFE_FREE_MEMORY(pucSIDBytes);
-    LsaFreeStringArray(ppszValues, dwNumValues);
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;    
-    
-    ADCacheDB_SafeFreeObject(&pGroupInfo);
-
-    goto cleanup;
-}
-
-DWORD
-ADNonSchemaMarshalToGroupCacheEx(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,    
     PLSA_LOGIN_NAME_INFO    pGroupNameInfo,
@@ -1271,251 +879,9 @@ error:
 }
 
 DWORD
-ADNonSchemaMarshalGroupInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-    DWORD dwGroupInfoLevel = 0;
-    PSTR  pszGroupName = NULL;
-    
-    PSTR* ppszValues = NULL;
-    DWORD dwNumValues = 0;
-    DWORD i = 0;   
-    
-    dwError = LsaAllocateMemory(
-                      sizeof(LSA_GROUP_INFO_0),
-                      (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);    
-    
-    if (pMessagePseudo){    
-        dwError = LsaLdapGetStrings(
-                    hDirectory,
-                    pMessagePseudo,
-                    AD_LDAP_KEYWORDS_TAG,
-                    &ppszValues,
-                    &dwNumValues);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        for (i = 0; i < dwNumValues; i++)
-        {
-            PSTR pszValue = NULL;
-        
-            if (!strncasecmp(ppszValues[i], "gidNumber=", sizeof("gidNumber=")-1))
-            {
-                pszValue = ppszValues[i] + sizeof("gidNumber=") - 1;
-            
-                if (!IsNullOrEmptyString(pszValue)){
-                    pGroupInfo->gid = atoi(pszValue);
-                 }
-            }
-         }
-    }
-    
-    if (pMessageReal) {
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessageReal,
-                    AD_LDAP_SAM_NAME_TAG,
-                    &pszGroupName);
-        BAIL_ON_LSA_ERROR(dwError);
-        BAIL_ON_INVALID_STRING(pszGroupName);
-    
-        dwError = ADGetDomainQualifiedString(
-                    pszNetBIOSDomainName,
-                    pszGroupName,
-                    &pGroupInfo->pszName);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        LsaStrCharReplace(pGroupInfo->pszName, ' ', AD_GetSeparator());
-    }
-    
-    *ppGroupInfo = (PVOID)pGroupInfo;
-    
-cleanup:
-
-    LSA_SAFE_FREE_STRING(pszGroupName);
-
-    if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
-    }
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADNonSchemaMarshalGroupInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
-    DWORD dwGroupInfoLevel = 1;
-    DWORD dwNumGroups = 0;
-    PSTR  pszGroupName = NULL;
-    
-    PSTR* ppszValues = NULL;
-    DWORD dwNumValues = 0;
-    DWORD i = 0;   
-    
-    dwError = LsaAllocateMemory(
-                      sizeof(LSA_GROUP_INFO_1),
-                      (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);    
-    
-    if (pMessagePseudo){    
-        dwError = LsaLdapGetStrings(
-                    hDirectory,
-                    pMessagePseudo,
-                    AD_LDAP_KEYWORDS_TAG,
-                    &ppszValues,
-                    &dwNumValues);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        for (i = 0; i < dwNumValues; i++)
-        {
-            PSTR pszValue = NULL;
-        
-            if (!strncasecmp(ppszValues[i], "gidNumber=", sizeof("gidNumber=")-1))
-            {
-                pszValue = ppszValues[i] + sizeof("gidNumber=") - 1;
-            
-                if (!IsNullOrEmptyString(pszValue)){
-                    pGroupInfo->gid = atoi(pszValue);
-                 }
-            }
-         }
-    }
-    
-    if (pMessageReal){
-        dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessageReal,
-                    AD_LDAP_SAM_NAME_TAG,
-                    &pszGroupName);
-        BAIL_ON_LSA_ERROR(dwError);
-        BAIL_ON_INVALID_STRING(pszGroupName);
-    
-        dwError = ADGetDomainQualifiedString(
-                    pszNetBIOSDomainName,
-                    pszGroupName,
-                    &pGroupInfo->pszName);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        LsaStrCharReplace(pGroupInfo->pszName, ' ', AD_GetSeparator());
-        
-        dwError = ADGetGroupMembers(
-                    hDirectory,
-                    pMessageReal,                    
-                    pszNetBIOSDomainName,
-                    gpADProviderData->szDomain,
-                    &pGroupInfo->ppszMembers,
-                    &dwNumGroups);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppGroupInfo = (PVOID)pGroupInfo;
-    
-cleanup:
-
-    LSA_SAFE_FREE_STRING(pszGroupName);
-
-    if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
-    }
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADNonSchemaMarshalGroupInfo(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwGroupInfoLevel,
-    PVOID*      ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pGroupInfo = NULL;
-    
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-            dwError = ADNonSchemaMarshalGroupInfo_0(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessageReal,
-                            pMessagePseudo,
-                            &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case 1:
-            dwError = ADNonSchemaMarshalGroupInfo_1(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessageReal,
-                            pMessagePseudo,
-                            &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *ppGroupInfo = pGroupInfo;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
 ADUnprovisionedMarshalToGroupCache(
     HANDLE                  hDirectory,
-    PCSTR                   pszNetBIOSDomainName,
+    PLSA_LOGIN_NAME_INFO    pGroupNameInfo,
     LDAPMessage*            pMessage,
     PAD_SECURITY_OBJECT*    ppGroupInfo
     )
@@ -1527,13 +893,17 @@ ADUnprovisionedMarshalToGroupCache(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier = NULL;    
     struct timeval current_tv;
     
-    if (hDirectory == (HANDLE)NULL){
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+    if ((hDirectory == (HANDLE)NULL && pMessage) ||
+        (hDirectory != (HANDLE)NULL && !pMessage))
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
+    
+    BAIL_ON_INVALID_POINTER(pGroupNameInfo);
 
     dwError = LsaAllocateMemory(
-                    sizeof(AD_SECURITY_OBJECT),
+                    sizeof(*pGroupInfo),
                     (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1550,6 +920,16 @@ ADUnprovisionedMarshalToGroupCache(
 
     pGroupInfo->enabled = TRUE;
     
+    if (hDirectory == (HANDLE)NULL && !pMessage)
+    {
+        dwError = ADUnprovisionedMarshalToGroupCacheInOneWayTrust(
+                                 pGroupNameInfo,
+                                 &pGroupInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+        
+        goto cleanup;
+    }
+    
     dwError = LsaLdapGetString(
                 hDirectory,
                 pMessage,
@@ -1562,7 +942,7 @@ ADUnprovisionedMarshalToGroupCache(
     pGroupInfo->groupInfo.pszPasswd = NULL;
 
     dwError = LsaAllocateString(
-                gpADProviderData->szShortDomain,
+                pGroupNameInfo->pszDomainNetBiosName,
                 &pGroupInfo->pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);
     
@@ -1598,9 +978,8 @@ ADUnprovisionedMarshalToGroupCache(
         (PDWORD)&pGroupInfo->groupInfo.gid);
     BAIL_ON_LSA_ERROR(dwError);
     
-    *ppGroupInfo = pGroupInfo;    
-    
 cleanup:
+    *ppGroupInfo = pGroupInfo;
 
     if (pSecurityIdentifier)
     {
@@ -1612,8 +991,7 @@ cleanup:
     return dwError;
     
 error:
-
-    *ppGroupInfo = NULL;
+    // Output parameter has been explicitly set in cleanup due to use of "goto cleanup"    
     
     ADCacheDB_SafeFreeObject(&pGroupInfo);
 
@@ -1632,7 +1010,7 @@ ADUnprovisionedMarshalToGroupCacheInOneWayTrust(
     struct timeval current_tv;    
     
     dwError = LsaAllocateMemory(
-                    sizeof(AD_SECURITY_OBJECT),
+                    sizeof(*pGroupInfo),
                     (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1701,1386 +1079,6 @@ error:
 
     goto cleanup;
 }
-
-
-DWORD
-ADUnprovisionedMarshalGroupInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessage,
-    PVOID*       ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-    DWORD dwGroupInfoLevel = 0;
-    PSTR  pszGroupName = NULL;
-    
-    UCHAR* pucSIDBytes = NULL;
-    DWORD dwSIDByteLength = 0;
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier = NULL;
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_GROUP_INFO_0),
-                    (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessage,
-                    AD_LDAP_SAM_NAME_TAG,
-                    &pszGroupName);
-    BAIL_ON_LSA_ERROR(dwError);
-    BAIL_ON_INVALID_STRING(pszGroupName);
-    
-    dwError = ADGetDomainQualifiedString(
-                    pszNetBIOSDomainName,
-                    pszGroupName,
-                    &pGroupInfo->pszName);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LsaStrCharReplace(pGroupInfo->pszName, ' ', AD_GetSeparator());
-    
-    //Get the GID from objectSID.
-    dwError = LsaLdapGetBytes(
-                hDirectory,
-                pMessage,
-                AD_LDAP_OBJECTSID_TAG,
-                &pucSIDBytes,
-                &dwSIDByteLength);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaAllocSecurityIdentifierFromBinary(
-                pucSIDBytes,
-                dwSIDByteLength,
-                &pSecurityIdentifier);
-    BAIL_ON_LSA_ERROR(dwError);  
-    
-    dwError = LsaGetSecurityIdentifierHashedRid(
-                pSecurityIdentifier,
-                (PDWORD)&(((PLSA_GROUP_INFO_0)pGroupInfo)->gid));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppGroupInfo = (PVOID)pGroupInfo;
-    
-cleanup:
-
-    if(pSecurityIdentifier)
-    {
-        LsaFreeSecurityIdentifier(pSecurityIdentifier);
-    }
-    
-    LSA_SAFE_FREE_MEMORY(pucSIDBytes);
-    LSA_SAFE_FREE_STRING(pszGroupName);
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADUnprovisionedMarshalGroupInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessage,
-    PVOID*       ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
-    DWORD dwGroupInfoLevel = 1;
-    DWORD dwNumGroups = 0;
-    PSTR  pszGroupName = NULL;
-    
-    UCHAR* pucSIDBytes = NULL;
-    DWORD dwSIDByteLength = 0;
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier = NULL;
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_GROUP_INFO_1),
-                    (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaLdapGetString(
-                    hDirectory,
-                    pMessage,
-                    AD_LDAP_SAM_NAME_TAG,
-                    &pszGroupName);
-    BAIL_ON_LSA_ERROR(dwError);
-    BAIL_ON_INVALID_STRING(pszGroupName);
-    
-    dwError = ADGetDomainQualifiedString(
-                    pszNetBIOSDomainName,
-                    pszGroupName,
-                    &pGroupInfo->pszName);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LsaStrCharReplace(pGroupInfo->pszName, ' ', AD_GetSeparator());
-
-    dwError = ADGetGroupMembers(
-                hDirectory,
-                pMessage,                    
-                pszNetBIOSDomainName,
-                gpADProviderData->szDomain,
-                &pGroupInfo->ppszMembers,
-                &dwNumGroups);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    //Get the GID from objectSID.
-    dwError = LsaLdapGetBytes(
-                hDirectory,
-                pMessage,
-                AD_LDAP_OBJECTSID_TAG,
-                &pucSIDBytes,
-                &dwSIDByteLength);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaAllocSecurityIdentifierFromBinary(
-                pucSIDBytes,
-                dwSIDByteLength,
-                &pSecurityIdentifier);
-    BAIL_ON_LSA_ERROR(dwError);  
-    
-    dwError = LsaGetSecurityIdentifierHashedRid(
-                pSecurityIdentifier,
-                (PDWORD)&(((PLSA_GROUP_INFO_1)pGroupInfo)->gid));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppGroupInfo = (PVOID)pGroupInfo;
-    
-cleanup:
-
-    if(pSecurityIdentifier)
-    {
-        LsaFreeSecurityIdentifier(pSecurityIdentifier);
-    }
-    LSA_SAFE_FREE_MEMORY(pucSIDBytes);
-    LSA_SAFE_FREE_STRING(pszGroupName);
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADUnprovisionedMarshalGroupInfo(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessage,
-    DWORD       dwGroupInfoLevel,
-    PVOID*      ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pGroupInfo = NULL;
-    
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-            dwError = ADUnprovisionedMarshalGroupInfo_0(
-                hDirectory, 
-                pszNetBIOSDomainName, 
-                pMessage, 
-                &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case 1:
-            dwError = ADUnprovisionedMarshalGroupInfo_1(
-                hDirectory, 
-                pszNetBIOSDomainName, 
-                pMessage, 
-                &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *ppGroupInfo = pGroupInfo;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *ppGroupInfo = NULL;
-    
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADSchemaMarshalGroupInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pwdNumGroups
-    )    
-{
-    
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
-    PLSA_GROUP_INFO_0  pGroupInfo = NULL;
-    DWORD iGroup = 0;
-    DWORD nGroup = 0;
-    DWORD dwGroupInfoLevel = 0;
-    // Do not free
-    LDAPMessage *pGroupMessage = NULL;
-    LDAPMessage *pGroupMessageReal = NULL;
-    PSTR pszGroupName = NULL;
-    LDAP *pLd = LsaLdapGetSession(hDirectory);
-    
-    PSTR  pszObjectSID = NULL;
-    PSTR* ppszValues = NULL;
-    DWORD dwNumValues = 0;
-    PSTR pszDirectoryRoot = NULL;
-    CHAR szQuery[1024];    
-        
-    PSTR szAttributeListName[] = 
-                    {AD_LDAP_SAM_NAME_TAG,
-                     AD_LDAP_UPN_TAG,
-                     AD_LDAP_MEMBER_TAG,
-                     NULL
-                    };   
-
-    if (!pMessagePseudo)
-    { 
-        goto done;
-    }
-    
-    nGroup = ldap_count_entries(
-                    pLd, 
-                    pMessagePseudo);
-    if (nGroup < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
-    } else if (nGroup == 0) {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(PLSA_GROUP_INFO_0) * nGroup,
-                    (PVOID*)&ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-       
-    pGroupMessage = ldap_first_entry(
-                           pLd,
-                           pMessagePseudo);
-    BAIL_ON_LSA_ERROR(dwError);   
-           
-    while (pGroupMessage)
-    {
-        BOOLEAN bValidADEntry = false;
-        
-        dwError = LsaLdapIsValidADEntry(
-                        hDirectory,
-                        pGroupMessage,
-                        &bValidADEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        if (!bValidADEntry){
-            dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-            BAIL_ON_LSA_ERROR(dwError);            
-        } 
-        
-        dwError = LsaLdapGetString(
-                       hDirectory,
-                       pGroupMessage,
-                       AD_LDAP_SAM_NAME_TAG,
-                       &pszGroupName);
-        BAIL_ON_LSA_ERROR(dwError);
-           
-        //if group's Pseudo attribute is stored in the real group object(default schema mode)
-        if (!IsNullOrEmptyString(pszGroupName)){               
-
-            dwError = ADSchemaMarshalGroupInfo(
-                            hDirectory, 
-                            pszNetBIOSDomainName, 
-                            pGroupMessage, 
-                            pGroupMessage, 
-                            dwGroupInfoLevel, 
-                            (PVOID*)&pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            *(ppGroupInfoList + iGroup++) = pGroupInfo;
-            pGroupInfo = NULL;
-        }
-        else
-        {
-            // Otherwise, use group backlink to locate the real group object
-            // and grab the sAMAccountName etc. attributes
-            
-            DWORD iValue = 0;
-            DWORD dwCount = 0;
-            
-            dwError = LsaLdapGetStrings(
-                            hDirectory,
-                            pGroupMessage,
-                            AD_LDAP_KEYWORDS_TAG,
-                            &ppszValues,
-                            &dwNumValues);
-            BAIL_ON_LSA_ERROR(dwError);
-               
-            for ( iValue = 0; iValue < dwNumValues; iValue++)
-            {
-                 if (!strncasecmp(ppszValues[iValue],
-                                  "backLink=",
-                                  sizeof("backLink=")-1))
-                 {
-                     pszObjectSID = ppszValues[iValue] + sizeof("backLink=") - 1;           
-                     break;
-                 }        
-            }
-               
-            if (IsNullOrEmptyString(pszObjectSID)) {
-                dwError = LSA_ERROR_INVALID_SID;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-               
-            sprintf(szQuery, "(objectSid=%s)", pszObjectSID);    
-
-            if (ppszValues) {
-                LsaFreeStringArray(ppszValues, dwNumValues);
-                ppszValues = NULL;
-                dwNumValues = 0;
-            }
-
-            dwError = LsaLdapConvertDomainToDN(
-                            gpADProviderData->szDomain,
-                            &pszDirectoryRoot);
-            BAIL_ON_LSA_ERROR(dwError);
-               
-            dwError = LsaLdapDirectorySearch(
-                                  hDirectory,
-                                  pszDirectoryRoot,
-                                  LDAP_SCOPE_SUBTREE,
-                                  szQuery,
-                                  szAttributeListName,
-                                  &pGroupMessageReal);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwCount = ldap_count_entries(
-                                  pLd,
-                                  pGroupMessageReal);               
-            if (dwCount < 0) {
-                dwError = LSA_ERROR_LDAP_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-            } else if (dwCount == 0) {
-                //this means the current user is an "orphan"
-                dwError = 0;
-            } else if (dwCount > 1) {
-                dwError = LSA_ERROR_DUPLICATE_GROUPNAME;
-                BAIL_ON_LSA_ERROR(dwError);
-            } else {
-                  
-                  dwError = ADSchemaMarshalGroupInfo(
-                                  hDirectory,
-                                  pszNetBIOSDomainName,
-                                  pGroupMessageReal,
-                                  pGroupMessage,
-                                  dwGroupInfoLevel,
-                                  (PVOID*)&pGroupInfo);
-                  BAIL_ON_LSA_ERROR(dwError);
-                  
-                  *(ppGroupInfoList + iGroup++) = pGroupInfo;               
-                  pGroupInfo = NULL;
-           }
-            
-           if (pGroupMessageReal) {
-               ldap_msgfree(pGroupMessageReal);
-               pGroupMessageReal = NULL;
-           }
-
-           LSA_SAFE_FREE_STRING(pszDirectoryRoot);
-       }               
-       pGroupMessage = ldap_next_entry(
-                                     pLd, 
-                                     pGroupMessage);     
-    }
-    
-done:
-    
-    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
-    *pwdNumGroups = iGroup;
-    
-cleanup:
-    
-    if (pGroupMessageReal) {
-        ldap_msgfree(pGroupMessageReal);    
-    }
-    
-    if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
-    }
-
-    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
-    LSA_SAFE_FREE_STRING(pszGroupName);
-    
-    return dwError;
-
-error:
-
-    *pppGroupInfoList = NULL;
-    *pwdNumGroups = 0;
-
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, nGroup);        
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADSchemaMarshalGroupInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pwdNumGroups
-    )    
-{
-    
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_1* ppGroupInfoList = NULL;
-    PLSA_GROUP_INFO_1  pGroupInfo = NULL;
-    DWORD iGroup = 0;
-    DWORD nGroup = 0;
-    DWORD dwGroupInfoLevel = 1;
-    // Do not free
-    LDAPMessage *pGroupMessage = NULL;
-    LDAPMessage *pGroupMessageReal = NULL;
-    PSTR pszGroupName = NULL;
-    LDAP *pLd = LsaLdapGetSession(hDirectory);
-    
-    PSTR  pszObjectSID = NULL;
-    PSTR* ppszValues = NULL;
-    DWORD dwNumValues = 0;
-    PSTR pszDirectoryRoot = NULL;
-    CHAR szQuery[1024];    
-        
-    PSTR szAttributeListName[] = 
-                    {AD_LDAP_SAM_NAME_TAG,
-                     AD_LDAP_UPN_TAG,
-                     AD_LDAP_MEMBER_TAG,
-                     NULL
-                    };   
-
-    if (!pMessagePseudo)
-    { 
-        goto done;
-    }
-    
-    nGroup = ldap_count_entries(
-                    pLd, 
-                    pMessagePseudo);
-    if (nGroup < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
-    } else if (nGroup == 0) {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(PLSA_GROUP_INFO_1) * nGroup,
-                    (PVOID*)&ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-       
-    pGroupMessage = ldap_first_entry(
-                           pLd,
-                           pMessagePseudo);
-    BAIL_ON_LSA_ERROR(dwError);   
-           
-    while (pGroupMessage)
-    {
-        BOOLEAN bValidADEntry = false;
-        
-        dwError = LsaLdapIsValidADEntry(
-                        hDirectory,
-                        pGroupMessage,
-                        &bValidADEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        if (!bValidADEntry){
-            dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-            BAIL_ON_LSA_ERROR(dwError);            
-        }
-        
-        LSA_SAFE_FREE_STRING(pszGroupName);
-        
-        dwError = LsaLdapGetString(
-                       hDirectory,
-                       pGroupMessage,
-                       AD_LDAP_SAM_NAME_TAG,
-                       &pszGroupName);
-        BAIL_ON_LSA_ERROR(dwError);
-           
-        //if group's Pseudo attribute is stored in the real group object(default schema mode)
-        if (!IsNullOrEmptyString(pszGroupName)){               
-
-            dwError = ADSchemaMarshalGroupInfo(
-                            hDirectory, 
-                            pszNetBIOSDomainName, 
-                            pGroupMessage, 
-                            pGroupMessage, 
-                            dwGroupInfoLevel, 
-                            (PVOID*)&pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            *(ppGroupInfoList + iGroup++) = pGroupInfo;
-            pGroupInfo = NULL;
-        }
-        else
-        {
-            // Otherwise, use group backlink to locate the real group object
-            // and grab the sAMAccountName etc. attributes
-            
-            DWORD iValue = 0;
-            DWORD dwCount = 0;
-            
-            dwError = LsaLdapGetStrings(
-                            hDirectory,
-                            pGroupMessage,
-                            AD_LDAP_KEYWORDS_TAG,
-                            &ppszValues,
-                            &dwNumValues);
-            BAIL_ON_LSA_ERROR(dwError);
-               
-            for ( iValue = 0; iValue < dwNumValues; iValue++)
-            {
-                 if (!strncasecmp(ppszValues[iValue],
-                                  "backLink=",
-                                  sizeof("backLink=")-1))
-                 {
-                     pszObjectSID = ppszValues[iValue] + sizeof("backLink=") - 1;           
-                     break;
-                 }        
-            }
-               
-            if (IsNullOrEmptyString(pszObjectSID)) {
-                dwError = LSA_ERROR_INVALID_SID;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-               
-            sprintf(szQuery, "(objectSid=%s)", pszObjectSID);    
-
-            if (ppszValues) {
-                LsaFreeStringArray(ppszValues, dwNumValues);
-                ppszValues = NULL;
-                dwNumValues = 0;
-            }
-
-            dwError = LsaLdapConvertDomainToDN(
-                            gpADProviderData->szDomain,
-                            &pszDirectoryRoot);
-            BAIL_ON_LSA_ERROR(dwError);
-               
-            dwError = LsaLdapDirectorySearch(
-                                  hDirectory,
-                                  pszDirectoryRoot,
-                                  LDAP_SCOPE_SUBTREE,
-                                  szQuery,
-                                  szAttributeListName,
-                                  &pGroupMessageReal);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwCount = ldap_count_entries(
-                                  pLd,
-                                  pGroupMessageReal);               
-            if (dwCount < 0) {
-                dwError = LSA_ERROR_LDAP_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-            } else if (dwCount == 0) {
-                //this means the current user is an "orphan"
-                dwError = 0;
-            } else if (dwCount > 1) {
-                dwError = LSA_ERROR_DUPLICATE_GROUPNAME;
-                BAIL_ON_LSA_ERROR(dwError);
-            } else {
-                  
-                  dwError = ADSchemaMarshalGroupInfo(
-                                  hDirectory,
-                                  pszNetBIOSDomainName,
-                                  pGroupMessageReal,
-                                  pGroupMessage,
-                                  dwGroupInfoLevel,
-                                  (PVOID*)&pGroupInfo);
-                  BAIL_ON_LSA_ERROR(dwError);
-                  
-                  *(ppGroupInfoList + iGroup++) = pGroupInfo;               
-                  pGroupInfo = NULL;
-           }
-            
-           if (pGroupMessageReal) {
-               ldap_msgfree(pGroupMessageReal);
-               pGroupMessageReal = NULL;
-           }
-
-           LSA_SAFE_FREE_STRING(pszDirectoryRoot);
-       }               
-       pGroupMessage = ldap_next_entry(
-                                     pLd, 
-                                     pGroupMessage);     
-    }
-    
-done:
-    
-    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
-    *pwdNumGroups = iGroup;
-    
-cleanup:
-    
-    if (pGroupMessageReal) {
-        ldap_msgfree(pGroupMessageReal);    
-    }
-    
-    if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
-    }
-
-    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
-    LSA_SAFE_FREE_STRING(pszGroupName);
-    
-    return dwError;
-
-error:
-
-    *pppGroupInfoList = NULL;
-    *pwdNumGroups = 0;
-
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, nGroup);        
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADSchemaMarshalGroupInfoList(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwGroupInfoLevel,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pNumGroups
-    )
-{
-    DWORD dwError = 0;
-    PVOID* ppGroupInfoList = NULL;
-    DWORD NumGroups = 0;
-    
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-            dwError = ADSchemaMarshalGroupInfoList_0(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessagePseudo,
-                            &ppGroupInfoList,
-                            &NumGroups);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case 1:
-            dwError = ADSchemaMarshalGroupInfoList_1(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessagePseudo,
-                            &ppGroupInfoList,
-                            &NumGroups);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *pppGroupInfoList = ppGroupInfoList;    
-    *pNumGroups = NumGroups;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *pppGroupInfoList = NULL; 
-    *pNumGroups = 0;
-    
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, NumGroups);
-    }
-    goto cleanup;
-}
-
-
-DWORD
-ADNonSchemaMarshalGroupInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pwdNumGroups
-    )    
-{
-    
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
-    PLSA_GROUP_INFO_0  pGroupInfo = NULL;
-    DWORD iGroup = 0;
-    DWORD nGroup = 0;
-    DWORD dwGroupInfoLevel = 0;
-    // Do not free
-    LDAPMessage *pGroupMessage = NULL;
-    LDAPMessage *pGroupMessageReal = NULL;
-    LDAP *pLd = LsaLdapGetSession(hDirectory);
-    
-    PSTR  pszObjectSID = NULL;
-    PSTR* ppszValues = NULL;
-    DWORD dwNumValues = 0;
-    PSTR pszDirectoryRoot = NULL;
-    CHAR szQuery[1024];
-    DWORD iValue = 0;
-    DWORD dwCount = 0;    
-    
-    PSTR szAttributeListName[] = 
-                    {AD_LDAP_SAM_NAME_TAG,
-                     AD_LDAP_UPN_TAG,
-                     AD_LDAP_MEMBER_TAG,
-                     NULL
-                    };   
-
-    if (!pMessagePseudo)
-    {
-        goto done;
-    }
-    
-    nGroup = ldap_count_entries(
-                    pLd, 
-                    pMessagePseudo);
-    if (nGroup < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
-    } else if (nGroup == 0) {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(PLSA_GROUP_INFO_0) * nGroup,
-                    (PVOID*)&ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-       
-    pGroupMessage = ldap_first_entry(
-                           pLd,
-                           pMessagePseudo);
-    BAIL_ON_LSA_ERROR(dwError);   
-           
-    while (pGroupMessage)
-    {
-        BOOLEAN bValidADEntry = false;
-        
-        dwError = LsaLdapIsValidADEntry(
-                        hDirectory,
-                        pGroupMessage,
-                        &bValidADEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        if (!bValidADEntry){
-            dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-            BAIL_ON_LSA_ERROR(dwError);            
-        }
-
-        dwError = LsaLdapGetStrings(
-                       hDirectory,
-                       pGroupMessage,
-                       AD_LDAP_KEYWORDS_TAG,
-                       &ppszValues,
-                       &dwNumValues);
-        BAIL_ON_LSA_ERROR(dwError);
-             
-        for ( iValue = 0; iValue < dwNumValues; iValue++)
-        {
-             if (!strncasecmp(ppszValues[iValue], "backLink=", sizeof("backLink=")-1))
-             {
-                 pszObjectSID = ppszValues[iValue] + sizeof("backLink=") - 1;           
-                 break;
-             }        
-        }
-               
-        if (IsNullOrEmptyString(pszObjectSID)) {
-            dwError = LSA_ERROR_INVALID_SID;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-               
-        sprintf(szQuery, "(objectSid=%s)", pszObjectSID);    
-            
-        dwError = LsaLdapConvertDomainToDN(
-                        gpADProviderData->szDomain,
-                        &pszDirectoryRoot);
-        BAIL_ON_LSA_ERROR(dwError);
-               
-        dwError = LsaLdapDirectorySearch(
-                         hDirectory,
-                         pszDirectoryRoot,
-                         LDAP_SCOPE_SUBTREE,
-                         szQuery,
-                         szAttributeListName,
-                         &pGroupMessageReal);
-                  
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwCount = ldap_count_entries(
-                         pLd,
-                         pGroupMessageReal);               
-        if (dwCount < 0) {
-           dwError = LSA_ERROR_LDAP_ERROR;
-           BAIL_ON_LSA_ERROR(dwError);
-        } else if (dwCount == 0) {
-                //this means the current user is an "orphan"
-                dwError = 0;
-        } else if (dwCount > 1){
-            dwError = LSA_ERROR_DUPLICATE_GROUPNAME;
-            BAIL_ON_LSA_ERROR(dwError);
-        } else {                  
-            dwError = ADNonSchemaMarshalGroupInfo(
-                        hDirectory,
-                        pszNetBIOSDomainName,
-                        pGroupMessageReal,
-                        pGroupMessage,
-                        dwGroupInfoLevel,
-                        (PVOID*)&pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-                  
-            *(ppGroupInfoList + iGroup++) = pGroupInfo;
-            pGroupInfo = NULL;
-        }
-            
-       if (pGroupMessageReal) {
-           ldap_msgfree(pGroupMessageReal);
-           pGroupMessageReal = NULL;
-       }
-       
-       pGroupMessage = ldap_next_entry(
-           pLd, 
-           pGroupMessage);     
-    }
-    
-done:
-    
-    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
-    *pwdNumGroups = iGroup;
-    
-cleanup:
-
-    if (pGroupMessageReal)
-            ldap_msgfree(pGroupMessageReal);    
-    
-    if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
-    }
-    
-    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
-    
-    return dwError;
-
-error:
-
-    *pppGroupInfoList = NULL;
-    *pwdNumGroups = 0;
-
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, nGroup);        
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADNonSchemaMarshalGroupInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pwdNumGroups
-    )    
-{
-    
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_1* ppGroupInfoList = NULL;
-    PLSA_GROUP_INFO_1  pGroupInfo = NULL;
-    DWORD iGroup = 0;
-    DWORD nGroup = 0;
-    DWORD dwGroupInfoLevel = 1;
-    // Do not free
-    LDAPMessage *pGroupMessage = NULL;
-    LDAPMessage *pGroupMessageReal = NULL;
-    LDAP *pLd = LsaLdapGetSession(hDirectory);
-    
-    PSTR  pszObjectSID = NULL;
-    PSTR* ppszValues = NULL;
-    DWORD dwNumValues = 0;
-    PSTR pszDirectoryRoot = NULL;
-    CHAR szQuery[1024];
-    DWORD iValue = 0;
-    DWORD dwCount = 0;    
-    
-    PSTR szAttributeListName[] = 
-                    {AD_LDAP_SAM_NAME_TAG,
-                     AD_LDAP_UPN_TAG,
-                     AD_LDAP_MEMBER_TAG,
-                     NULL
-                    };   
-
-    if (!pMessagePseudo)
-    {
-        goto done;
-    }
-    
-    nGroup = ldap_count_entries(
-                    pLd, 
-                    pMessagePseudo);
-    if (nGroup < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
-    } else if (nGroup == 0) {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(PLSA_GROUP_INFO_1) * nGroup,
-                    (PVOID*)&ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-       
-    pGroupMessage = ldap_first_entry(
-                           pLd,
-                           pMessagePseudo);
-    BAIL_ON_LSA_ERROR(dwError);   
-           
-    while (pGroupMessage)
-    {
-        BOOLEAN bValidADEntry = false;
-        
-        dwError = LsaLdapIsValidADEntry(
-                        hDirectory,
-                        pGroupMessage,
-                        &bValidADEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        if (!bValidADEntry){
-            dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-            BAIL_ON_LSA_ERROR(dwError);            
-        }
-
-        dwError = LsaLdapGetStrings(
-                       hDirectory,
-                       pGroupMessage,
-                       AD_LDAP_KEYWORDS_TAG,
-                       &ppszValues,
-                       &dwNumValues);
-        BAIL_ON_LSA_ERROR(dwError);
-             
-        for ( iValue = 0; iValue < dwNumValues; iValue++)
-        {
-             if (!strncasecmp(ppszValues[iValue], "backLink=", sizeof("backLink=")-1))
-             {
-                 pszObjectSID = ppszValues[iValue] + sizeof("backLink=") - 1;           
-                 break;
-             }        
-        }
-               
-        if (IsNullOrEmptyString(pszObjectSID)) {
-            dwError = LSA_ERROR_INVALID_SID;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-               
-        sprintf(szQuery, "(objectSid=%s)", pszObjectSID);    
-            
-        dwError = LsaLdapConvertDomainToDN(
-                        gpADProviderData->szDomain,
-                        &pszDirectoryRoot);
-        BAIL_ON_LSA_ERROR(dwError);
-               
-        dwError = LsaLdapDirectorySearch(
-                         hDirectory,
-                         pszDirectoryRoot,
-                         LDAP_SCOPE_SUBTREE,
-                         szQuery,
-                         szAttributeListName,
-                         &pGroupMessageReal);
-                  
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwCount = ldap_count_entries(
-                         pLd,
-                         pGroupMessageReal);               
-        if (dwCount < 0) {
-           dwError = LSA_ERROR_LDAP_ERROR;
-           BAIL_ON_LSA_ERROR(dwError);
-        } else if (dwCount == 0) {
-                //this means the current user is an "orphan"
-                dwError = 0;
-        } else if (dwCount > 1){
-            dwError = LSA_ERROR_DUPLICATE_GROUPNAME;
-            BAIL_ON_LSA_ERROR(dwError);
-        } else {                  
-            dwError = ADNonSchemaMarshalGroupInfo(
-                        hDirectory,
-                        pszNetBIOSDomainName,
-                        pGroupMessageReal,
-                        pGroupMessage,
-                        dwGroupInfoLevel,
-                        (PVOID*)&pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-                  
-            *(ppGroupInfoList + iGroup++) = pGroupInfo;
-            pGroupInfo = NULL;
-        }
-            
-       if (pGroupMessageReal) {
-           ldap_msgfree(pGroupMessageReal);
-           pGroupMessageReal = NULL;
-       }
-       
-       pGroupMessage = ldap_next_entry(
-           pLd, 
-           pGroupMessage);     
-    }
-    
-done:
-    
-    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
-    *pwdNumGroups = iGroup;
-    
-cleanup:
-
-    if (pGroupMessageReal)
-            ldap_msgfree(pGroupMessageReal);    
-    
-    if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
-    }
-    
-    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
-    
-    return dwError;
-
-error:
-
-    *pppGroupInfoList = NULL;
-    *pwdNumGroups = 0;
-
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, nGroup);        
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADNonSchemaMarshalGroupInfoList(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwGroupInfoLevel,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pNumGroups
-    )
-{
-    DWORD dwError = 0;
-    PVOID* ppGroupInfoList = NULL;
-    DWORD NumGroups = 0;
-    
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-            dwError = ADNonSchemaMarshalGroupInfoList_0(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessagePseudo,
-                            &ppGroupInfoList,
-                            &NumGroups);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case 1:
-            dwError = ADNonSchemaMarshalGroupInfoList_1(
-                            hDirectory,
-                            pszNetBIOSDomainName,
-                            pMessagePseudo,
-                            &ppGroupInfoList,
-                            &NumGroups);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *pppGroupInfoList = ppGroupInfoList;    
-    *pNumGroups = NumGroups;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *pppGroupInfoList = NULL; 
-    *pNumGroups = 0;
-    
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, NumGroups);
-    }
-    goto cleanup;
-}
-
-
-
-DWORD
-ADUnprovisionedMarshalGroupInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessage,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pdwNumGroupsFound
-    )    
-{   
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
-    DWORD iGroup = 0;
-    DWORD dwGroupInfoLevel = 0;
-    DWORD dwCount = 0;
-    // Do not free
-    LDAPMessage *pGroupMessage = NULL;    
-    LDAP *pLd = LsaLdapGetSession(hDirectory);
-    
-    dwCount = ldap_count_entries(pLd, 
-                                 pMessage);
-    if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
-    } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_MORE_GROUPS;
-    } 
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaAllocateMemory(dwCount * sizeof(PLSA_GROUP_INFO_0),
-                                (PVOID*)&ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    pGroupMessage = ldap_first_entry(
-                        pLd,
-                        pMessage);
-    BAIL_ON_LSA_ERROR(dwError);   
-        
-    while (pGroupMessage)
-    {
-        BOOLEAN bValidADEntry = false;
-        
-        dwError = LsaLdapIsValidADEntry(
-                        hDirectory,
-                        pGroupMessage,
-                        &bValidADEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        if (!bValidADEntry){
-            dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-            BAIL_ON_LSA_ERROR(dwError);            
-        } 
-        
-        dwError = ADUnprovisionedMarshalGroupInfo(
-                    hDirectory, 
-                    pszNetBIOSDomainName,
-                    pGroupMessage, 
-                    dwGroupInfoLevel, 
-                    (PVOID)(&(ppGroupInfoList[iGroup])));
-        BAIL_ON_LSA_ERROR(dwError);          
-        
-        pGroupMessage = ldap_next_entry(
-                         pLd, 
-                         pGroupMessage);
-        iGroup++;                   
-    }  
-
-    *pppGroupInfoList = (PVOID)ppGroupInfoList;
-    *pdwNumGroupsFound = dwCount;
-    
-cleanup:
-
-    return dwError;
-
-error:
-
-    *pppGroupInfoList = NULL;
-
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwCount);        
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADUnprovisionedMarshalGroupInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessage,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pdwNumGroupsFound
-    )    
-{   
-    DWORD dwError = 0;
-    PLSA_GROUP_INFO_1* ppGroupInfoList = NULL;
-    DWORD iGroup = 0;
-    DWORD dwGroupInfoLevel = 1;
-    DWORD dwCount = 0;
-    // Do not free
-    LDAPMessage *pGroupMessage = NULL;    
-    LDAP *pLd = LsaLdapGetSession(hDirectory);
-    
-    dwCount = ldap_count_entries(pLd, 
-                                 pMessage);
-    if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
-    } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_MORE_GROUPS;
-    } 
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaAllocateMemory(dwCount * sizeof(PLSA_GROUP_INFO_1),
-                                (PVOID*)&ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    pGroupMessage = ldap_first_entry(
-                        pLd,
-                        pMessage);
-    BAIL_ON_LSA_ERROR(dwError);   
-        
-    while (pGroupMessage)
-    {
-        BOOLEAN bValidADEntry = false;
-        
-        dwError = LsaLdapIsValidADEntry(
-                        hDirectory,
-                        pGroupMessage,
-                        &bValidADEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        if (!bValidADEntry){
-            dwError = LSA_ERROR_LDAP_FAILED_GETDN;
-            BAIL_ON_LSA_ERROR(dwError);            
-        } 
-        
-        dwError = ADUnprovisionedMarshalGroupInfo(
-                    hDirectory, 
-                    pszNetBIOSDomainName,
-                    pGroupMessage, 
-                    dwGroupInfoLevel, 
-                    (PVOID)(&(ppGroupInfoList[iGroup])));
-        BAIL_ON_LSA_ERROR(dwError);          
-        
-        pGroupMessage = ldap_next_entry(
-                         pLd, 
-                         pGroupMessage);
-        iGroup++;                   
-    }  
-
-    *pppGroupInfoList = (PVOID)ppGroupInfoList;
-    *pdwNumGroupsFound = dwCount;
-    
-cleanup:
-
-    return dwError;
-
-error:
-
-    *pppGroupInfoList = NULL;
-
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwCount);        
-    }
-
-    goto cleanup;
-}
-
-DWORD
-ADUnprovisionedMarshalGroupInfoList(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessage,
-    DWORD       dwGroupInfoLevel,
-    PVOID**     pppGroupInfoList,
-    PDWORD      pdwNumGroupsFound
-    )
-{
-    DWORD  dwError = 0;
-    PVOID* ppGroupInfoList = NULL;
-    DWORD  dwNumGroupsFound = 0;
-    
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-            dwError = ADUnprovisionedMarshalGroupInfoList_0(
-                hDirectory, 
-                pszNetBIOSDomainName, 
-                pMessage, 
-                &ppGroupInfoList, 
-                &dwNumGroupsFound);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case 1:
-            dwError = ADUnprovisionedMarshalGroupInfoList_1(
-                hDirectory, 
-                pszNetBIOSDomainName, 
-                pMessage, 
-                &ppGroupInfoList, 
-                &dwNumGroupsFound);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *pppGroupInfoList = ppGroupInfoList;
-    *pdwNumGroupsFound = dwNumGroupsFound;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *pppGroupInfoList = NULL;    
-    
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroupsFound);
-    }
-    goto cleanup;
-}
-
 
 /*
 local variables:

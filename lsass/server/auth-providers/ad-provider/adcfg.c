@@ -75,7 +75,23 @@ AD_SetConfig_HomeDirTemplate(
 
 static
 DWORD
-AD_SetConfig_SeparatorCharacter(
+AD_CheckPunctuationChar(
+    IN PCSTR pszName,
+    IN PCSTR pszValue,
+    IN BOOLEAN bAllowSpace
+    );
+
+static
+DWORD
+AD_SetConfig_SpaceReplacement(
+    IN OUT PLSA_AD_CONFIG pConfig,
+    IN PCSTR          pszName,
+    IN PCSTR          pszValue
+    );
+
+static
+DWORD
+AD_SetConfig_DomainSeparator(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
     PCSTR          pszValue
@@ -163,6 +179,14 @@ AD_SetConfig_CreateHomeDir(
 
 static
 DWORD
+AD_SetConfig_RefreshUserCreds(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
+static
+DWORD
 AD_SetConfig_SkelDirs(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
@@ -193,12 +217,37 @@ AD_SetConfig_CellSupport(
     PCSTR          pszValue
     );
 
+static
+DWORD
+AD_SetConfig_TrimUserMembershipEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
+static
+DWORD
+AD_SetConfig_NssGroupMembersCacheOnlyEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
+static
+DWORD
+AD_SetConfig_NssUserMembershipCacheOnlyEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
 static AD_CONFIG_HANDLER gADConfigHandlers[] =
 {
     {"enable-eventlog",               &AD_SetConfig_EnableEventLog},
     {"login-shell-template",          &AD_SetConfig_LoginShellTemplate},
     {"homedir-template",              &AD_SetConfig_HomeDirTemplate},
-    {"separator-character",           &AD_SetConfig_SeparatorCharacter},
+    {"space-replacement",             &AD_SetConfig_SpaceReplacement},
+    {"domain-separator",              &AD_SetConfig_DomainSeparator},
     {"cache-purge-timeout",           &AD_SetConfig_CachePurgeTimeout},
     {"machine-password-lifespan",     &AD_SetConfig_MachinePasswordLifespan},
     {"cache-entry-expiry",            &AD_SetConfig_CacheEntryExpiry},
@@ -212,7 +261,11 @@ static AD_CONFIG_HANDLER gADConfigHandlers[] =
     {"skeleton-dirs",                 &AD_SetConfig_SkelDirs},
     {"homedir-umask",                 &AD_SetConfig_Umask},
     {"homedir-prefix",                &AD_SetConfig_HomedirPrefix},
+    {"refresh-user-credentials",      &AD_SetConfig_RefreshUserCreds},
     {"cell-support",                  &AD_SetConfig_CellSupport},
+    {"trim-user-membership",          &AD_SetConfig_TrimUserMembershipEnabled},
+    {"nss-group-members-query-cache-only",   &AD_SetConfig_NssGroupMembersCacheOnlyEnabled},
+    {"nss-user-membership-query-cache-only", &AD_SetConfig_NssUserMembershipCacheOnlyEnabled},
 };
 
 DWORD
@@ -244,7 +297,14 @@ AD_InitializeConfig(
     pConfig->bCreateK5Login   = TRUE;
     pConfig->bLDAPSignAndSeal = FALSE;    
     pConfig->bSyncSystemTime  = TRUE;
-    pConfig->chSeparator      = AD_NAME_SEPARATOR_DEFAULT;
+    /* Leave chSpaceReplacement and chDomainSeparator set as '\0' for now.
+     * After the config file is parsed, they will be assigned default values
+     * if they are still set to '\0'.
+     *
+     * This is done so that their values
+     * can be swapped (chSpaceReplacement=\ chDomainSeparator=^), but not
+     * assigned to the same value.
+     */
     pConfig->dwCacheReaperTimeoutSecs = AD_CACHE_REAPER_TIMEOUT_DEFAULT_SECS;
     pConfig->dwCacheEntryExpirySecs   = AD_CACHE_ENTRY_EXPIRY_DEFAULT_SECS;
     pConfig->dwMachinePasswordSyncLifetime = AD_MACHINE_PASSWORD_SYNC_DEFAULT_SECS;
@@ -252,8 +312,12 @@ AD_InitializeConfig(
     
     pConfig->bEnableEventLog = FALSE;
     pConfig->bShouldLogNetworkConnectionEvents = TRUE;    
+    pConfig->bRefreshUserCreds = TRUE;
     pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
-    
+    pConfig->bTrimUserMembershipEnabled = TRUE;
+    pConfig->bNssGroupMembersCacheOnlyEnabled = TRUE;
+    pConfig->bNssUserMembershipCacheOnlyEnabled = FALSE;
+
     dwError = LsaAllocateString(
                     AD_DEFAULT_SHELL,
                     &pConfig->pszShell);
@@ -330,7 +394,9 @@ AD_ParseConfigFile(
     PLSA_AD_CONFIG pConfig
     )
 {
-    return LsaParseConfigFile(
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    dwError = LsaParseConfigFile(
                 pszConfigFilePath,
                 LSA_CFG_OPTION_STRIP_ALL,
                 &AD_ConfigStartSection,
@@ -338,6 +404,32 @@ AD_ParseConfigFile(
                 &AD_ConfigNameValuePair,
                 NULL,
                 pConfig);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pConfig->chSpaceReplacement == 0)
+    {
+        pConfig->chSpaceReplacement = AD_SPACE_REPLACEMENT_DEFAULT;
+    }
+    if (pConfig->chDomainSeparator == 0)
+    {
+        pConfig->chDomainSeparator = LSA_DOMAIN_SEPARATOR_DEFAULT;
+    }
+
+    if (pConfig->chSpaceReplacement == pConfig->chDomainSeparator)
+    {
+        LSA_LOG_ERROR("Error: space-replacement and domain-separator are set to '%c' in the config file. Their values must be unique.",
+                        pConfig->chSpaceReplacement);
+        dwError = LSA_ERROR_INVALID_CONFIG;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
@@ -499,7 +591,60 @@ error:
 
 static
 DWORD
-AD_SetConfig_SeparatorCharacter(
+AD_CheckPunctuationChar(
+    IN PCSTR pszName,
+    IN PCSTR pszValue,
+    IN BOOLEAN bAllowSpace
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    BAIL_ON_INVALID_STRING(pszValue);
+
+    if (pszValue[0] == 0 || pszValue[1] != 0)
+    {
+        LSA_LOG_ERROR(
+                "Error: '%s' is an invalid setting for %s. %s may only be set to a single character.",
+                pszValue,
+                pszName,
+                pszName);
+        dwError = LSA_ERROR_INVALID_CONFIG;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!ispunct((int)pszValue[0]) && !(bAllowSpace && pszValue[0] == ' '))
+    {
+        LSA_LOG_ERROR(
+                "Error: %s must be set to a punctuation character%s; the value provided is '%s'.",
+                pszName,
+                bAllowSpace ? " or space" : "",
+                pszValue);
+        dwError = LSA_ERROR_INVALID_CONFIG;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pszValue[0] == '@')
+    {
+        LSA_LOG_ERROR(
+                "Error: %s may not be set to @; the value provided is '%s'.",
+                pszName,
+                pszValue);
+        dwError = LSA_ERROR_INVALID_CONFIG;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+AD_SetConfig_SpaceReplacement(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
     PCSTR          pszValue
@@ -509,9 +654,38 @@ AD_SetConfig_SeparatorCharacter(
 
     BAIL_ON_INVALID_STRING(pszValue);
 
-    dwError = LsaValidateSeparatorCharacter(
-                    *pszValue,
-                    &pConfig->chSeparator);
+    dwError = AD_CheckPunctuationChar(
+                    pszName,
+                    pszValue,
+                    TRUE);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pConfig->chSpaceReplacement = pszValue[0];
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+AD_SetConfig_DomainSeparator(
+    IN OUT PLSA_AD_CONFIG pConfig,
+    IN PCSTR          pszName,
+    IN PCSTR          pszValue
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_STRING(pszValue);
+
+    dwError = AD_CheckPunctuationChar(
+                    pszName,
+                    pszValue,
+                    FALSE);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pConfig->chDomainSeparator = pszValue[0];
 
 error:
 
@@ -802,6 +976,19 @@ AD_SetConfig_CreateHomeDir(
 
 static
 DWORD
+AD_SetConfig_RefreshUserCreds(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    pConfig->bRefreshUserCreds = AD_GetBooleanConfigValue(pszValue);
+
+    return 0;
+}
+
+static
+DWORD
 AD_SetConfig_SkelDirs(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
@@ -975,6 +1162,45 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+DWORD
+AD_SetConfig_TrimUserMembershipEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    pConfig->bTrimUserMembershipEnabled = AD_GetBooleanConfigValue(pszValue);
+
+    return 0;
+}
+
+static
+DWORD
+AD_SetConfig_NssGroupMembersCacheOnlyEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    pConfig->bNssGroupMembersCacheOnlyEnabled = AD_GetBooleanConfigValue(pszValue);
+
+    return 0;
+}
+
+static
+DWORD
+AD_SetConfig_NssUserMembershipCacheOnlyEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    pConfig->bNssUserMembershipCacheOnlyEnabled = AD_GetBooleanConfigValue(pszValue);
+
+    return 0;
 }
 
 BOOLEAN
@@ -1171,20 +1397,20 @@ error:
 }
 
 CHAR
-AD_GetSeparator(
+AD_GetSpaceReplacement(
     VOID
     )
 {
     BOOLEAN bInLock = FALSE;
-    CHAR cSeparatorLocal = AD_NAME_SEPARATOR_DEFAULT;
+    CHAR chSaved = 0;
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    cSeparatorLocal = gpLsaAdProviderState->config.chSeparator;
+    chSaved = gpLsaAdProviderState->config.chSpaceReplacement;
 
     LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    return cSeparatorLocal;
+    return chSaved;
 }
 
 DWORD
@@ -1486,6 +1712,22 @@ error:
     goto cleanup;
 }
 
+static
+BOOLEAN
+AD_ShouldFilterUserLoginsByGroup_InLock(
+    VOID
+    )
+{
+    BOOLEAN bFilter = FALSE;
+
+    if (gpAllowedSIDs || gpLsaAdProviderState->config.pUnresolvedMemberList)
+    {
+        bFilter = TRUE;
+    }
+
+    return bFilter;
+}
+
 BOOLEAN
 AD_ShouldFilterUserLoginsByGroup(
     VOID
@@ -1496,7 +1738,7 @@ AD_ShouldFilterUserLoginsByGroup(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    bFilter = (gpAllowedSIDs != NULL);
+    bFilter = AD_ShouldFilterUserLoginsByGroup_InLock();
 
     LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
@@ -1514,11 +1756,12 @@ AD_IsMemberAllowed(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    if (!gpAllowedSIDs ||
-        !LsaHashGetValue(
+    if (!AD_ShouldFilterUserLoginsByGroup_InLock() ||
+        (gpAllowedSIDs &&
+         !LsaHashGetValue(
                         gpAllowedSIDs,
                         pszSID,
-                        (PVOID*)&pszValue))
+                        (PVOID*)&pszValue)))
     {
         bAllowed = TRUE;
     }
@@ -1580,11 +1823,11 @@ AD_EventlogEnabled(
     BOOLEAN bResult = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     bResult = gpLsaAdProviderState->config.bEnableEventLog;
 
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     return bResult;
 }
@@ -1597,11 +1840,11 @@ AD_ShouldLogNetworkConnectionEvents(
     BOOLEAN bResult = TRUE;
     BOOLEAN bInLock = FALSE;
 
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     bResult = gpLsaAdProviderState->config.bShouldLogNetworkConnectionEvents;
 
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     return bResult;
 }
@@ -1614,11 +1857,11 @@ AD_ShouldCreateK5Login(
     BOOLEAN bResult = TRUE;
     BOOLEAN bInLock = FALSE;
 
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     bResult = gpLsaAdProviderState->config.bCreateK5Login;
 
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     return bResult;
 }
@@ -1640,6 +1883,23 @@ AD_ShouldCreateHomeDir(
     return bCreateHomeDir;
 }
 
+BOOLEAN
+AD_ShouldRefreshUserCreds(
+    VOID
+    )
+{
+    BOOLEAN bRefreshUserCreds = FALSE;
+    BOOLEAN bInLock          = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    bRefreshUserCreds = gpLsaAdProviderState->config.bRefreshUserCreds;
+
+    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    return bRefreshUserCreds;
+}
+
 AD_CELL_SUPPORT
 AD_GetCellSupport(
     VOID
@@ -1651,6 +1911,58 @@ AD_GetCellSupport(
     ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
     result = gpLsaAdProviderState->config.CellSupport;
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
+}
+
+
+BOOLEAN
+AD_GetTrimUserMembershipEnabled(
+    VOID
+    )
+{
+    BOOLEAN result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    result = gpLsaAdProviderState->config.bTrimUserMembershipEnabled;
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
+}
+
+BOOLEAN
+AD_GetNssGroupMembersCacheOnlyEnabled(
+    VOID
+    )
+{
+    BOOLEAN result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    result = gpLsaAdProviderState->config.bNssGroupMembersCacheOnlyEnabled;
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
+}
+
+BOOLEAN
+AD_GetNssUserMembershipCacheOnlyEnabled(
+    VOID
+    )
+{
+    BOOLEAN result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    result = gpLsaAdProviderState->config.bNssUserMembershipCacheOnlyEnabled;
 
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 

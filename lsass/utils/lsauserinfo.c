@@ -83,6 +83,41 @@ LsaFreeUserInfoContents_2(
     LsaFreeUserInfoContents_1(&pUserInfo->info1);
 }
 
+CHAR
+LsaGetDomainSeparator(
+    VOID
+    )
+{
+    return gchDomainSeparator;
+}
+
+DWORD
+LsaSetDomainSeparator(
+    CHAR chValue
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    if (!ispunct((int)chValue))
+    {
+        LSA_LOG_ERROR(
+                "Error: the domain separator must be set to a punctuation character; the value provided is '%c'.",
+                chValue);
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    gchDomainSeparator = chValue;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 DWORD
 LsaCrackDomainQualifiedName(
     PCSTR pszId,
@@ -100,7 +135,7 @@ LsaCrackDomainQualifiedName(
                     (PVOID*)&pNameInfo);    
     BAIL_ON_LSA_ERROR(dwError);
     
-    if ((pszIndex = index(pszId, '\\')) != NULL) {
+    if ((pszIndex = strchr(pszId, LsaGetDomainSeparator())) != NULL) {
         idx = pszIndex-pszId;
         dwError = LsaStrndup(pszId, idx, &pNameInfo->pszDomainNetBiosName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -111,7 +146,7 @@ LsaCrackDomainQualifiedName(
         }
         pNameInfo->nameType = NameType_NT4;        
     }
-    else if ((pszIndex = index(pszId, '@')) != NULL) {
+    else if ((pszIndex = strchr(pszId, '@')) != NULL) {
         idx = pszIndex-pszId;
         dwError = LsaStrndup(pszId, idx, &pNameInfo->pszName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -547,33 +582,17 @@ LsaValidateUserName(
     )
 {
     DWORD dwError = 0;
-    PCSTR pszIndex = NULL;
-    
-    if (IsNullOrEmptyString(pszName))
-    {
-        dwError = LSA_ERROR_INVALID_USER_NAME;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else if ((pszIndex = index(pszName, '\\')) != NULL)
-    {
-        PCSTR pszUserId = pszIndex + 1;
+    PLSA_LOGIN_NAME_INFO pParsedName = NULL;
+    size_t sNameLen = 0;
 
-        if (IsNullOrEmptyString(pszUserId) ||
-            (strlen(pszUserId) > LSA_MAX_USER_NAME_LENGTH))
-        {
-            dwError = LSA_ERROR_INVALID_USER_NAME;
-            BAIL_ON_LSA_ERROR(dwError);
-        }       
-    }
-    else if ((pszIndex = index(pszName, '@')) != NULL)
-    {    
-        if ( (pszIndex - pszName) > LSA_MAX_USER_NAME_LENGTH)
-        {
-            dwError = LSA_ERROR_INVALID_USER_NAME;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    else if (strlen(pszName) > LSA_MAX_USER_NAME_LENGTH)
+    dwError = LsaCrackDomainQualifiedName(
+                pszName,
+                "unset",
+                &pParsedName);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    sNameLen = strlen(pParsedName->pszName);
+    if (sNameLen > LSA_MAX_USER_NAME_LENGTH || sNameLen == 0)
     {
         dwError = LSA_ERROR_INVALID_USER_NAME;
         BAIL_ON_LSA_ERROR(dwError);
@@ -581,6 +600,10 @@ LsaValidateUserName(
     
 cleanup:
 
+    if (pParsedName != NULL)
+    {
+        LsaFreeNameInfo(pParsedName);
+    }
     return dwError;
     
 error:

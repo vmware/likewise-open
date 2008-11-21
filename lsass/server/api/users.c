@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        User Lookup and Management (Server)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,65 +55,68 @@ LsaSrvFindUserByName(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PSTR pszDomain = NULL;
     PSTR pszUserName = NULL;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     BOOLEAN bInLock = FALSE;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     dwError = LsaValidateUserName(pszLoginId);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     for (pProvider = gpAuthProviderList;
          pProvider;
          pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
-        BAIL_ON_LSA_ERROR(dwError);       
-        
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = pProvider->pFnTable->pfnLookupUserByName(
                                         hProvider,
                                         pszLoginId,
                                         dwUserInfoLevel,
                                         ppUserInfo);
         if (!dwError) {
-            
+
             break;
-            
+
         } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
                    (dwError == LSA_ERROR_NO_SUCH_USER)) {
-            
+
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
-            
+
             continue;
-            
+
         } else {
-            
+
             BAIL_ON_LSA_ERROR(dwError);
-            
+
         }
     }
-    
+
     if (pProvider == NULL)
     {
        dwError = LSA_ERROR_NO_SUCH_USER;
     }
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
-   
+
     LSA_SAFE_FREE_STRING(pszDomain);
     LSA_SAFE_FREE_STRING(pszUserName);
-    
+
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
-    
+
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     if (!dwError)
     {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulUserLookupsByName);
@@ -122,7 +125,9 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedUserLookupsByName);
     }
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
@@ -136,7 +141,7 @@ error:
     }
 
     *ppUserInfo = NULL;
-    
+
     goto cleanup;
 }
 
@@ -149,40 +154,43 @@ LsaSrvFindUserById(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_AUTH_PROVIDER pProvider = NULL;
     BOOLEAN bInLock = FALSE;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     for (pProvider = gpAuthProviderList;
          pProvider;
          pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnLookupUserById(
                                         hProvider,
                                         uid,
                                         dwUserInfoLevel,
                                         ppUserInfo);
         if (!dwError) {
-            
+
             break;
-            
+
         } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
                    (dwError == LSA_ERROR_NO_SUCH_USER)) {
-            
+
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
-            
+
             continue;
-            
+
         } else {
-            
+
             BAIL_ON_LSA_ERROR(dwError);
-            
+
         }
     }
 
@@ -191,15 +199,15 @@ LsaSrvFindUserById(
         dwError = LSA_ERROR_NO_SUCH_USER;
     }
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
-    
+
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
-    
+
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     if (!dwError)
     {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulUserLookupsById);
@@ -208,7 +216,9 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedUserLookupsById);
     }
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
@@ -222,7 +232,7 @@ error:
     }
 
     *ppUserInfo = NULL;
-    
+
     goto cleanup;
 }
 
@@ -234,73 +244,78 @@ LsaSrvAddUser(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
     BOOLEAN bInLock = FALSE;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));;
+
     if (pServerState->peerUID)
     {
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (dwUserInfoLevel != 0) {
         dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaValidateUserInfo(
                     pUserInfo,
                     dwUserInfoLevel);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList;
          pProvider;
          pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnAddUser(
                                         hProvider,
                                         dwUserInfoLevel,
                                         pUserInfo);
         if (!dwError) {
-            
+
             break;
-            
+
         }
         else if (dwError == LSA_ERROR_NOT_HANDLED) {
-            
+
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
-            
+
             continue;
-            
+
         } else {
-            
+
             BAIL_ON_LSA_ERROR(dwError);
-            
+
         }
     }
-    
+
 cleanup:
-    
+
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
-    
+
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
-    
+
     goto cleanup;
 }
 
@@ -311,62 +326,67 @@ LsaSrvModifyUser(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
     BOOLEAN bInLock = FALSE;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     if (pServerState->peerUID)
     {
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList;
          pProvider;
          pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnModifyUser(
                                         hProvider,
                                         pUserModInfo);
         if (!dwError) {
-            
+
             break;
-            
+
         }
         else if (dwError == LSA_ERROR_NOT_HANDLED) {
-            
+
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
-            
+
             continue;
-            
+
         } else {
-            
+
             BAIL_ON_LSA_ERROR(dwError);
-            
+
         }
     }
-    
+
 cleanup:
-    
+
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
-    
+
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
-    
+
     goto cleanup;
 }
 
@@ -377,28 +397,31 @@ LsaSrvDeleteUser(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     BOOLEAN bInLock = FALSE;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     if (pServerState->peerUID)
     {
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList;
          pProvider;
          pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnDeleteUser(
                                         hProvider,
                                         uid);
@@ -408,13 +431,13 @@ LsaSrvDeleteUser(
               (dwError == LSA_ERROR_NO_SUCH_USER)) {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
-            
+
             continue;
         } else {
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -422,11 +445,13 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
-    
+
     goto cleanup;
 }
 
@@ -439,25 +464,30 @@ LsaSrvBeginEnumUsers(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PSTR pszGUID = NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     dwError = LsaSrvAddUserEnumState(
                     hServer,
                     dwUserInfoLevel,
                     dwMaxNumUsers,
                     &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateString(pEnumState->pszGUID, &pszGUID);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppszGUID = pszGUID;
-    
+
 cleanup:
 
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return dwError;
-    
+
 error:
 
     *ppszGUID = NULL;
@@ -475,6 +505,7 @@ LsaSrvEnumUsers(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PVOID* ppUserInfoList_accumulate = NULL;
     DWORD  dwTotalNumUsersFound = 0;
@@ -482,16 +513,18 @@ LsaSrvEnumUsers(
     DWORD  dwNumUsersFound = 0;
     DWORD  dwNumUsersRemaining = 0;
     DWORD  dwUserInfoLevel = 0;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     pEnumState = LsaSrvFindUserEnumState(hServer, pszGUID);
     if (!pEnumState) {
         dwError = LSA_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwUserInfoLevel = pEnumState->dwInfoLevel;
     dwNumUsersRemaining = pEnumState->dwNumMaxRecords;
-    
+
     while (dwNumUsersRemaining &&
            pEnumState->pCurProviderState)
     {
@@ -501,29 +534,29 @@ LsaSrvEnumUsers(
         HANDLE hResume = pProviderState->hResume;
 
         dwNumUsersFound = 0;
-        
+
         dwError = pProvider->pFnTable->pfnEnumUsers(
                         hProvider,
                         hResume,
                         dwNumUsersRemaining,
                         &dwNumUsersFound,
                         &ppUserInfoList);
-        
+
         if (dwError) {
            if (dwError != LSA_ERROR_NO_MORE_USERS) {
               BAIL_ON_LSA_ERROR(dwError);
            }
         }
-        
+
         dwNumUsersRemaining -= dwNumUsersFound;
-        
+
         if (dwNumUsersRemaining) {
            pEnumState->pCurProviderState = pEnumState->pCurProviderState->pNext;
            if (dwError == LSA_ERROR_NO_MORE_USERS){
                dwError = 0;
             }
         }
-                
+
         dwError = LsaCoalesceUserInfoList(
                         &ppUserInfoList,
                         &dwNumUsersFound,
@@ -531,25 +564,27 @@ LsaSrvEnumUsers(
                         &dwTotalNumUsersFound);
         BAIL_ON_LSA_ERROR(dwError);
     }
-   
+
     *pdwUserInfoLevel = dwUserInfoLevel;
     *pppUserInfoList = ppUserInfoList_accumulate;
     *pdwNumUsersFound = dwTotalNumUsersFound;
-    
+
 cleanup:
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
-    
+
     *pdwUserInfoLevel = 0;
     *pppUserInfoList = NULL;
     *pdwNumUsersFound = 0;
-    
+
     if (ppUserInfoList) {
         LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
     }
-    
+
     if (ppUserInfoList_accumulate) {
         LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList_accumulate, dwTotalNumUsersFound);
     }
@@ -564,9 +599,12 @@ LsaSrvEndEnumUsers(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     pEnumState = LsaSrvFindUserEnumState(hServer, pszGUID);
     if (!pEnumState) {
         dwError = LSA_ERROR_INTERNAL;
@@ -585,15 +623,17 @@ LsaSrvEndEnumUsers(
                                        pszGUID);
         }
     }
-        
+
     LsaSrvFreeUserEnumState(
                         hServer,
                         pszGUID);
 
 cleanup:
 
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -601,14 +641,17 @@ error:
 
 DWORD
 LsaSrvGetNamesBySidList(
-    HANDLE hServer,
-    size_t sCount,
-    PSTR* ppszSidList,
-    PSTR** pppszDomainNames,
-    PSTR** pppszSamAccounts,
-    ADAccountType **ppTypes)
+    IN HANDLE hServer,
+    IN size_t sCount,
+    IN PSTR* ppszSidList,
+    OUT PSTR** pppszDomainNames,
+    OUT PSTR** pppszSamAccounts,
+    OUT ADAccountType **ppTypes,
+    OUT CHAR* pchDomainSeparator
+    )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_AUTH_PROVIDER pProvider = NULL;
     BOOLEAN bInLock = FALSE;
     HANDLE hProvider = (HANDLE)NULL;
@@ -619,7 +662,9 @@ LsaSrvGetNamesBySidList(
     PSTR* ppszTotalSamAccounts = NULL;
     ADAccountType *pTotalTypes = NULL;
     size_t sIndex = 0;
- 
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
     dwError = LsaAllocateMemory(
@@ -636,14 +681,14 @@ LsaSrvGetNamesBySidList(
         sizeof(*pTotalTypes) * sCount,
         (PVOID*)&pTotalTypes);
     BAIL_ON_LSA_ERROR(dwError);
- 
+
     for (pProvider = gpAuthProviderList;
          pProvider;
          pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
-        BAIL_ON_LSA_ERROR(dwError);       
- 
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = pProvider->pFnTable->pfnGetNamesBySidList(
             hProvider,
             sCount,
@@ -678,13 +723,14 @@ LsaSrvGetNamesBySidList(
         ppszTempSamAccounts = NULL;
         LSA_SAFE_FREE_MEMORY(pTempTypes);
     }
- 
+
     *pppszDomainNames = ppszTotalDomainNames;
     *pppszSamAccounts = ppszTotalSamAccounts;
     *ppTypes = pTotalTypes;
- 
+    *pchDomainSeparator = LsaGetDomainSeparator();
+
 cleanup:
- 
+
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
@@ -692,19 +738,22 @@ cleanup:
     LsaFreeStringArray(ppszTempDomainNames, sCount);
     LsaFreeStringArray(ppszTempSamAccounts, sCount);
     LSA_SAFE_FREE_MEMORY(pTempTypes);
- 
+
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
- 
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
     *pppszDomainNames = NULL;
     *pppszSamAccounts = NULL;
     *ppTypes = NULL;
+    *pchDomainSeparator = 0;
 
     LsaFreeStringArray(ppszTotalDomainNames, sCount);
     LsaFreeStringArray(ppszTotalSamAccounts, sCount);
     LSA_SAFE_FREE_MEMORY(pTotalTypes);
-    
+
     goto cleanup;
 }

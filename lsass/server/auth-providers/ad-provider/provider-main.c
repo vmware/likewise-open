@@ -173,6 +173,10 @@ LsaInitializeProvider(
                         &gpLsaAdProviderState->config);
         BAIL_ON_LSA_ERROR(dwError);
 
+        dwError = LsaSetDomainSeparator(
+                    gpLsaAdProviderState->config.chDomainSeparator);
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = AD_SetConfigFilePath(pszConfigFilePath);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -234,6 +238,9 @@ LsaInitializeProvider(
                 pszDomainDnsName,
                 pszHostname,
                 bIsDomainOffline);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaUmInitialize();
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADInitCacheReaper();
@@ -352,6 +359,8 @@ LsaShutdownProvider(
     // This will clean up media sense too.
     LsaAdProviderStateDestroy(gpLsaAdProviderState);
     gpLsaAdProviderState = NULL;
+
+    LsaUmCleanup();
 
     // Clean up the domain manager last since it does not depend on any
     // other facilities provided by the AD provider.
@@ -504,7 +513,7 @@ AD_ValidateUser(
 
 cleanup:
     ADCacheDB_SafeFreeObject(&pUserInfo);
-    
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
@@ -554,6 +563,7 @@ AD_CheckUserInList(
     dwError = AD_GetUserGroupObjectMembership(
                     hProvider,
                     pUserInfo->uid,
+                    FALSE,
                     &sNumGroupsFound,
                     &ppGroupList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -669,7 +679,7 @@ AD_FindUserById(
             dwUserInfoLevel,
             &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (AD_ShouldAssumeDefaultDomain())
     {
         dwError = AD_SetUserCanonicalNameToAlias(
@@ -762,6 +772,19 @@ AD_BeginEnumUsers(
     pEnumState->pCookie = NULL;
     pEnumState->bMorePages = TRUE;
 
+    if (!AD_IsOffline())
+    {
+        dwError = LsaDmWrapLdapOpenDirectoryDomain(
+                    gpADProviderData->szDomain,
+                    &pEnumState->hDirectory);
+        if (dwError == LSA_ERROR_DOMAIN_IS_OFFLINE)
+        {
+            pEnumState->hDirectory = 0;
+            dwError = LSA_ERROR_SUCCESS;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     *phResume = (HANDLE)pEnumState;
 
 cleanup:
@@ -787,7 +810,7 @@ AD_EnumUsers(
     DWORD dwError = 0;
     DWORD dwNumUsersFound = 0;
     PVOID* ppUserInfoList = NULL;
-    
+
     if (AD_IsOffline())
     {
         dwError = AD_OfflineEnumUsers(
@@ -806,18 +829,18 @@ AD_EnumUsers(
                     &dwNumUsersFound,
                     &ppUserInfoList);
     }
-    
+
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (AD_ShouldAssumeDefaultDomain())
     {
         DWORD iUser = 0;
         PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
-        
+
         for (iUser = 0; iUser < dwNumUsersFound; iUser++)
         {
             PVOID pUserInfo = *(ppUserInfoList + iUser);
-            
+
             dwError = AD_SetUserCanonicalNameToAlias(
                             gpADProviderData->szShortDomain,
                             pEnumState->dwInfoLevel,
@@ -825,23 +848,23 @@ AD_EnumUsers(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     *pppUserInfoList = ppUserInfoList;
     *pdwUsersFound = dwNumUsersFound;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *pppUserInfoList = NULL;
     *pdwUsersFound = 0;
-    
+
     if (ppUserInfoList)
     {
         PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
-        
+
         LsaFreeUserInfoList(pEnumState->dwInfoLevel, ppUserInfoList, dwNumUsersFound);
     }
 
@@ -859,10 +882,35 @@ AD_EndEnumUsers(
 
 DWORD
 AD_FindGroupByName(
-    HANDLE  hProvider,
-    PCSTR   pszGroupName,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN PCSTR pszGroupName,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
+    )
+{
+    BOOLEAN bIsCacheOnlyMode = FALSE;
+
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
+    {
+        bIsCacheOnlyMode = AD_GetNssGroupMembersCacheOnlyEnabled();
+    }
+
+    return AD_FindGroupByNameWithCacheMode(
+                hProvider,
+                pszGroupName,
+                bIsCacheOnlyMode,
+                dwGroupInfoLevel,
+                ppGroupInfo);
+}
+
+DWORD
+AD_FindGroupByNameWithCacheMode(
+    IN HANDLE hProvider,
+    IN PCSTR pszGroupName,
+    IN BOOLEAN bIsCacheOnlyMode,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     )
 {
     DWORD   dwError = 0;
@@ -880,10 +928,11 @@ AD_FindGroupByName(
     dwError = AD_GroupObjectToGroupInfo(
                 hProvider,
                 pInObjectForm,
+                bIsCacheOnlyMode,
                 dwGroupInfoLevel,
                 &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (AD_ShouldAssumeDefaultDomain())
     {
         dwError = AD_SetGroupCanonicalNamesToAliases(
@@ -913,16 +962,123 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_GetExpandedGroupUsersEx(
+    IN HANDLE hProvider,
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bIsOffline,
+    IN PCSTR pszGroupSid,
+    IN BOOLEAN bIsCacheOnlyMode,
+    IN DWORD dwMaxDepth,
+    OUT PBOOLEAN pbIsFullyExpanded,
+    OUT size_t* psMemberUsersCount,
+    OUT PAD_SECURITY_OBJECT** pppMemberUsers
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    BOOLEAN bIsFullyExpanded = FALSE;
+    PLSA_AD_GROUP_EXPANSION_DATA pExpansionData = NULL;
+    PAD_SECURITY_OBJECT* ppGroupMembers = NULL;
+    size_t sGroupMembersCount = 0;
+    PAD_SECURITY_OBJECT pGroupToExpand = NULL;
+    DWORD dwGroupToExpandDepth = 0;
+    PCSTR pszGroupToExpandSid = NULL;
+    PAD_SECURITY_OBJECT* ppExpandedUsers = NULL;
+    size_t sExpandedUsersCount = 0;
+
+    dwError = AD_GroupExpansionDataCreate(
+                &pExpansionData,
+                LSA_MAX(1, dwMaxDepth));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pszGroupToExpandSid = pszGroupSid;
+    dwGroupToExpandDepth = 1;
+
+    while (pszGroupToExpandSid)
+    {
+        if (bIsOffline)
+        {
+            dwError = AD_OfflineGetGroupMembers(
+                        pszGroupToExpandSid,
+                        &sGroupMembersCount,
+                        &ppGroupMembers);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            // ISSUE-2008/11/03-dalmeida -- Need to get domain from SID.
+            dwError = AD_OnlineGetGroupMembers(
+                        hProvider,
+                        pszDomainName,
+                        pszGroupToExpandSid,
+                        bIsCacheOnlyMode,
+                        &sGroupMembersCount,
+                        &ppGroupMembers);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = AD_GroupExpansionDataAddExpansionResults(
+                    pExpansionData,
+                    dwGroupToExpandDepth,
+                    &sGroupMembersCount,
+                    &ppGroupMembers);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = AD_GroupExpansionDataGetNextGroupToExpand(
+                    pExpansionData,
+                    &pGroupToExpand,
+                    &dwGroupToExpandDepth);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pGroupToExpand)
+        {
+            pszGroupToExpandSid = pGroupToExpand->pszObjectSid;
+        }
+        else
+        {
+            pszGroupToExpandSid = NULL;
+        }
+    }
+
+    dwError = AD_GroupExpansionDataGetResults(pExpansionData,
+                                              &bIsFullyExpanded,
+                                              &sExpandedUsersCount,
+                                              &ppExpandedUsers);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    AD_GroupExpansionDataDestroy(pExpansionData);
+    ADCacheDB_SafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
+
+    if (pbIsFullyExpanded)
+    {
+        *pbIsFullyExpanded = bIsFullyExpanded;
+    }
+
+    *psMemberUsersCount = sExpandedUsersCount;
+    *pppMemberUsers = ppExpandedUsers;
+
+    return dwError;
+
+error:
+    ADCacheDB_SafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
+    sExpandedUsersCount = 0;
+    bIsFullyExpanded = FALSE;
+    goto cleanup;
+}
+
 DWORD
 AD_GetExpandedGroupUsers(
-    HANDLE  hProvider,
-    PCSTR pszDomainName,
-    PCSTR pszDomainNetBiosName,
-    PCSTR pszGroupSid,
-    int iMaxDepth,
-    BOOLEAN *pbAllExpanded,
-    size_t* psCount,
-    PAD_SECURITY_OBJECT** pppResults)
+    IN HANDLE hProvider,
+    IN PCSTR pszDomainName,
+    IN PCSTR pszGroupSid,
+    IN BOOLEAN bIsCacheOnlyMode,
+    IN int iMaxDepth,
+    OUT BOOLEAN* pbAllExpanded,
+    OUT size_t* psCount,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
 
@@ -932,11 +1088,12 @@ AD_GetExpandedGroupUsers(
     }
     else
     {
-        dwError = AD_OnlineGetExpandedGroupUsers(
+        dwError = AD_GetExpandedGroupUsersEx(
             hProvider,
             pszDomainName,
-            pszDomainNetBiosName,
+            FALSE,
             pszGroupSid,
+            bIsCacheOnlyMode,
             iMaxDepth,
             pbAllExpanded,
             psCount,
@@ -945,8 +1102,12 @@ AD_GetExpandedGroupUsers(
 
     if (dwError == LSA_ERROR_DOMAIN_IS_OFFLINE)
     {
-        dwError = AD_OfflineGetExpandedGroupUsers(
+        dwError = AD_GetExpandedGroupUsersEx(
+            hProvider,
+            pszDomainName,
+            TRUE,
             pszGroupSid,
+            bIsCacheOnlyMode,
             iMaxDepth,
             pbAllExpanded,
             psCount,
@@ -958,14 +1119,21 @@ AD_GetExpandedGroupUsers(
 
 DWORD
 AD_FindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN gid_t gid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
     PVOID pGroupInfo = NULL;
+    BOOLEAN bIsCacheOnlyMode = FALSE;
+
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
+    {
+        bIsCacheOnlyMode = AD_GetNssGroupMembersCacheOnlyEnabled();
+    }
 
     if (AD_IsOffline())
     {
@@ -976,6 +1144,7 @@ AD_FindGroupById(
         dwError = AD_OnlineFindGroupById(
             hProvider,
             gid,
+            bIsCacheOnlyMode,
             dwGroupInfoLevel,
             &pGroupInfo);
     }
@@ -985,11 +1154,12 @@ AD_FindGroupById(
         dwError = AD_OfflineFindGroupById(
             hProvider,
             gid,
+            bIsCacheOnlyMode,
             dwGroupInfoLevel,
             &pGroupInfo);
     }
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (AD_ShouldAssumeDefaultDomain())
     {
         dwError = AD_SetGroupCanonicalNamesToAliases(
@@ -998,20 +1168,20 @@ AD_FindGroupById(
                         pGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     *ppGroupInfo = pGroupInfo;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     if (pGroupInfo)
     {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
     }
-    
+
     *ppGroupInfo = NULL;
 
     goto cleanup;
@@ -1019,10 +1189,11 @@ error:
 
 DWORD
 AD_GetUserGroupObjectMembership(
-    HANDLE  hProvider,
-    uid_t   uid,
-    size_t* psNumGroupsFound,
-    PAD_SECURITY_OBJECT** pppResult
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    IN BOOLEAN bIsCacheOnlyMode,
+    OUT size_t* psNumGroupsFound,
+    OUT PAD_SECURITY_OBJECT** pppResult
     )
 {
     DWORD dwError = 0;
@@ -1036,6 +1207,7 @@ AD_GetUserGroupObjectMembership(
         dwError = AD_OnlineGetUserGroupObjectMembership(
             hProvider,
             uid,
+            bIsCacheOnlyMode,
             psNumGroupsFound,
             pppResult);
     }
@@ -1054,8 +1226,9 @@ AD_GetUserGroupObjectMembership(
 
 DWORD
 AD_GroupObjectToGroupInfo(
-    HANDLE  hProvider,
+    IN HANDLE hProvider,
     IN PAD_SECURITY_OBJECT pGroupObject,
+    IN BOOLEAN bIsCacheOnlyMode,
     IN DWORD dwGroupInfoLevel,
     OUT PVOID* ppGroupInfo
     )
@@ -1063,7 +1236,6 @@ AD_GroupObjectToGroupInfo(
     DWORD dwError = 0;
     size_t sMembers = 0;
     PAD_SECURITY_OBJECT *ppMembers = NULL;
-    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
     PSTR pszFullDomainName = NULL;
 
     switch (dwGroupInfoLevel)
@@ -1073,10 +1245,8 @@ AD_GroupObjectToGroupInfo(
             break;
         case 1:
             // need to expand membership
-            dwError = AD_DetermineTrustModeandDomainName(
+            dwError = LsaDmWrapGetDomainName(
                             pGroupObject->pszNetbiosDomainName,
-                            &dwTrustDirection,
-                            NULL,
                             &pszFullDomainName,
                             NULL);
             BAIL_ON_LSA_ERROR(dwError);
@@ -1084,8 +1254,8 @@ AD_GroupObjectToGroupInfo(
             dwError = AD_GetExpandedGroupUsers(
                 hProvider,
                 pszFullDomainName,
-                pGroupObject->pszNetbiosDomainName,
                 pGroupObject->pszObjectSid,
+                bIsCacheOnlyMode,
                 5,
                 NULL,
                 &sMembers,
@@ -1108,12 +1278,12 @@ AD_GroupObjectToGroupInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-
     ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
+    LSA_SAFE_FREE_STRING(pszFullDomainName);
+
     return dwError;
 
 error:
-
     *ppGroupInfo = NULL;
 
     goto cleanup;
@@ -1122,11 +1292,12 @@ error:
 
 DWORD
 AD_GetUserGroupMembership(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    IN PDWORD pdwNumGroupsFound,
+    IN PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
@@ -1135,10 +1306,17 @@ AD_GetUserGroupMembership(
     PVOID* ppGroupInfoList = NULL;
     size_t sIndex = 0;
     size_t sEnabledCount = 0;
+    BOOLEAN bIsCacheOnlyMode = FALSE;
+
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
+    {
+        bIsCacheOnlyMode = AD_GetNssUserMembershipCacheOnlyEnabled();
+    }
 
     dwError = AD_GetUserGroupObjectMembership(
                 hProvider,
                 uid,
+                bIsCacheOnlyMode,
                 &sGroupObjectsCount,
                 &ppGroupObjects);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1165,6 +1343,7 @@ AD_GetUserGroupMembership(
         dwError = AD_GroupObjectToGroupInfo(
                     hProvider,
                     ppGroupObjects[sIndex],
+                    bIsCacheOnlyMode,
                     dwGroupInfoLevel,
                     &ppGroupInfoList[sEnabledCount]);
         if (dwError == LSA_ERROR_OBJECT_NOT_ENABLED)
@@ -1183,15 +1362,15 @@ AD_GetUserGroupMembership(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     if (AD_ShouldAssumeDefaultDomain())
     {
         DWORD iGroup = 0;
-        
+
         for (iGroup = 0; iGroup < (DWORD)sEnabledCount; iGroup++)
         {
             PVOID pGroupInfo = *(ppGroupInfoList + iGroup);
-            
+
             dwError = AD_SetGroupCanonicalNamesToAliases(
                             gpADProviderData->szShortDomain,
                             dwGroupInfoLevel,
@@ -1244,6 +1423,19 @@ AD_BeginEnumGroups(
     pEnumState->pCookie = NULL;
     pEnumState->bMorePages = TRUE;
 
+    if (!AD_IsOffline())
+    {
+        dwError = LsaDmWrapLdapOpenDirectoryDomain(
+                    gpADProviderData->szDomain,
+                    &pEnumState->hDirectory);
+        if (dwError == LSA_ERROR_DOMAIN_IS_OFFLINE)
+        {
+            pEnumState->hDirectory = 0;
+            dwError = LSA_ERROR_SUCCESS;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     *phResume = (HANDLE)pEnumState;
 
 cleanup:
@@ -1269,7 +1461,7 @@ AD_EnumGroups(
     DWORD dwError = 0;
     PVOID* ppGroupInfoList = NULL;
     DWORD  dwNumGroupsFound = 0;
-    
+
     if (AD_IsOffline())
     {
         dwError = AD_OfflineEnumGroups(
@@ -1288,18 +1480,18 @@ AD_EnumGroups(
                     &dwNumGroupsFound,
                     &ppGroupInfoList);
     }
-    
+
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (AD_ShouldAssumeDefaultDomain())
     {
         DWORD iGroup = 0;
         PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
-        
+
         for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
         {
             PVOID pGroupInfo = *(ppGroupInfoList + iGroup);
-            
+
             dwError = AD_SetGroupCanonicalNamesToAliases(
                             gpADProviderData->szShortDomain,
                             pEnumState->dwInfoLevel,
@@ -1307,23 +1499,23 @@ AD_EnumGroups(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     *pppGroupInfoList = ppGroupInfoList;
     *pdwGroupsFound = dwNumGroupsFound;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *pppGroupInfoList = NULL;
     *pdwGroupsFound = 0;
-    
+
     if (ppGroupInfoList)
     {
         PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
-        
+
         LsaFreeGroupInfoList(pEnumState->dwInfoLevel, ppGroupInfoList, dwNumGroupsFound);
     }
 
@@ -1448,12 +1640,12 @@ AD_OpenSession(
 
     }
 
-cleanup:   
-    
+cleanup:
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
-    }    
+    }
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
@@ -1481,6 +1673,10 @@ AD_CloseSession(
                     pszLoginId,
                     dwUserInfoLevel,
                     &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaUmRemoveUser(
+                  ((PLSA_USER_INFO_0)pUserInfo)->uid);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -1529,16 +1725,55 @@ AD_GetNamesBySidList(
 }
 
 DWORD
+AD_FindNSSArtefactByKey(
+    HANDLE hProvider,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    )
+{
+    if (AD_IsOffline())
+    {
+        return AD_OfflineFindNSSArtefactByKey(
+                        hProvider,
+                        pszKeyName,
+                        pszMapName,
+                        dwInfoLevel,
+                        dwFlags,
+                        ppNSSArtefactInfo);
+    }
+    else
+    {
+        return AD_OnlineFindNSSArtefactByKey(
+                        hProvider,
+                        pszKeyName,
+                        pszMapName,
+                        dwInfoLevel,
+                        dwFlags,
+                        ppNSSArtefactInfo);
+    }
+}
+
+DWORD
 AD_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
     PCSTR   pszGUID,
     DWORD   dwInfoLevel,
-    DWORD   dwMapType,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PHANDLE phResume
     )
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
+
+    if (!dwFlags)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     switch (gpADProviderData->dwDirectoryMode)
     {
@@ -1549,7 +1784,8 @@ AD_BeginEnumNSSArtefacts(
                                 hProvider,
                                 pszGUID,
                                 dwInfoLevel,
-                                dwMapType,
+                                pszMapName,
+                                dwFlags,
                                 &pEnumState);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -2077,6 +2313,10 @@ AD_RefreshConfiguration(
                         &gpLsaAdProviderState->config);
         BAIL_ON_LSA_ERROR(dwError);
 
+        dwError = LsaSetDomainSeparator(
+                    gpLsaAdProviderState->config.chDomainSeparator);
+        BAIL_ON_LSA_ERROR(dwError);
+
         AD_FreeAllowedSIDs_InLock();
     }
 
@@ -2107,7 +2347,7 @@ AD_GetNameWithReplacedSeparators(
     DWORD dwError = 0;
     // Capture the separator here so we consistent within
     // this function in case it changes.
-    const CHAR chSeparator = AD_GetSeparator();
+    const CHAR chSeparator = AD_GetSpaceReplacement();
     PSTR pszLocalName = NULL;
     PCSTR pszUseName = NULL;
 
@@ -2228,11 +2468,10 @@ AD_FindUserObjectByName(
 
         if (pUserNameInfo->nameType == NameType_Alias)
         {
-            dwError = LsaAllocateStringPrintf(
-                            &pszLocalLoginId,
-                            "%s\\%s",
-                            gpADProviderData->szShortDomain,
-                            pszLoginId);
+            dwError = ADGetDomainQualifiedString(
+                        gpADProviderData->szShortDomain,
+                        pszLoginId,
+                        &pszLocalLoginId);
             BAIL_ON_LSA_ERROR(dwError);
 
             dwError = AD_FindUserObjectByNameInternal(
@@ -2359,11 +2598,10 @@ AD_FindGroupObjectByName(
 
         if (pGroupNameInfo->nameType == NameType_Alias)
         {
-            dwError = LsaAllocateStringPrintf(
-                            &pszLocalGroupName,
-                            "%s\\%s",
-                            gpADProviderData->szShortDomain,
-                            pszGroupName);
+            dwError = ADGetDomainQualifiedString(
+                        gpADProviderData->szShortDomain,
+                        pszGroupName,
+                        &pszLocalGroupName);
             BAIL_ON_LSA_ERROR(dwError);
 
             dwError = AD_FindGroupObjectByNameInternal(
@@ -2398,7 +2636,7 @@ cleanup:
 error:
 
     *ppResult = NULL;
-    
+
     ADCacheDB_SafeFreeObject(&pResult);
 
     goto cleanup;
@@ -2765,8 +3003,11 @@ AD_ResolveConfiguredLists(
 
                 AD_DeleteFromMembersList(pszMember);
 
-                LsaFreeSecurityIdentifier(pSID);
-                pSID = NULL;
+                if (pSID)
+                {
+                    LsaFreeSecurityIdentifier(pSID);
+                    pSID = NULL;
+                }
             }
         }
         else // User or Group Name
@@ -2847,9 +3088,9 @@ AD_SetUserCanonicalNameToAlias(
     DWORD dwError = 0;
     PSTR  pszCanonicalName = NULL;
     DWORD dwDomainNameLen = 0;
-    
+
     BAIL_ON_INVALID_STRING(pszCurrentNetBIOSDomainName);
-    
+
     dwDomainNameLen = strlen(pszCurrentNetBIOSDomainName);
 
     switch (dwUserInfoLevel)
@@ -2889,7 +3130,7 @@ AD_SetUserCanonicalNameToAlias(
     if (pszCanonicalName)
     {
         dwError = AD_SetCanonicalNameToAlias(
-                        pszCurrentNetBIOSDomainName, 
+                        pszCurrentNetBIOSDomainName,
                         pszCanonicalName);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -2910,9 +3151,9 @@ AD_SetGroupCanonicalNamesToAliases(
     PSTR  pszCanonicalName = NULL;
     DWORD dwDomainNameLen = 0;
     PSTR* ppszMembers = NULL;
-    
+
     BAIL_ON_INVALID_STRING(pszCurrentNetBIOSDomainName);
-    
+
     dwDomainNameLen = strlen(pszCurrentNetBIOSDomainName);
 
     switch (dwGroupInfoLevel)
@@ -2945,11 +3186,11 @@ AD_SetGroupCanonicalNamesToAliases(
     if (pszCanonicalName)
     {
         dwError = AD_SetCanonicalNameToAlias(
-                        pszCurrentNetBIOSDomainName, 
+                        pszCurrentNetBIOSDomainName,
                         pszCanonicalName);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (ppszMembers)
     {
        for (; ppszMembers && !IsNullOrEmptyString(*ppszMembers); ppszMembers++)
@@ -2975,14 +3216,14 @@ AD_SetCanonicalNameToAlias(
 {
     DWORD dwError = 0;
     DWORD dwDomainNameLen = 0;
-    
+
     BAIL_ON_INVALID_STRING(pszCurrentNetBIOSDomainName);
-    
+
     dwDomainNameLen = strlen(pszCurrentNetBIOSDomainName);
-    
+
     if (pszCanonicalName &&
         !strncasecmp(pszCanonicalName, pszCurrentNetBIOSDomainName, dwDomainNameLen) &&
-        (*(pszCanonicalName + dwDomainNameLen) == '\\') && 
+        (*(pszCanonicalName + dwDomainNameLen) == LsaGetDomainSeparator()) &&
         (!IsNullOrEmptyString(pszCanonicalName + dwDomainNameLen + 1)))
     {
         PCSTR pszIndex = pszCanonicalName + dwDomainNameLen + 1;

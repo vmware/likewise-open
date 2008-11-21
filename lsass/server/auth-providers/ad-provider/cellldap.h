@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Active Directory Authentication Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -57,129 +57,66 @@ CellModeInitializeMiniProvider(
     );
 
 DWORD
-CellModeFindUserByName(
-    PCSTR                pszPseudoDomainName,
-    PCSTR                pszPseudoCellDN,
-    PCSTR                pszRealDomainName,
-    PLSA_LOGIN_NAME_INFO pUserNameInfo,
-    PAD_SECURITY_OBJECT *ppUserInfo
-    );
-
-DWORD
-CellModeGetUserGroupMembership(
-    HANDLE  hDirectory,
-    PCSTR   pszCellDN,
-    PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,    
-    int     *piPrimaryGroupIndex,
-    PDWORD  pdwGroupsFound,
-    PAD_SECURITY_OBJECT** pppGroupInfoList
-    );
-    
-DWORD
-CellModeSchemaGetUserGroupMembership(
-    HANDLE  hDirectory,
-    PCSTR   pszCellDN,
-    PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,    
-    int     *piPrimaryGroupIndex,
-    PDWORD  pdwGroupsFound,
-    PAD_SECURITY_OBJECT** pppGroupInfoList
-    );
-    
-DWORD
-CellModeNonSchemaGetUserGroupMembership(
-    HANDLE  hDirectory,
-    PCSTR   pszCellDN,
-    PCSTR   pszNetBIOSDomainName,
-    DWORD   dwUID,   
-    int     *piPrimaryGroupIndex,
-    PDWORD  pdwGroupsFound,
-    PAD_SECURITY_OBJECT** pppGroupInfoList
-    );
-
-DWORD
-CellModeFindGroupByName(
-    PCSTR                pszPseudoDomainName,
-    PCSTR                pszPseudoCellDN,
-    PCSTR                pszRealDomainName,
-    PLSA_LOGIN_NAME_INFO pGroupNameInfo,
-    PAD_SECURITY_OBJECT *ppGroupInfo
-    );
-
-DWORD
 CellModeEnumUsers(
-    HANDLE         hDirectory,
-    PCSTR          pszCellDN,
-    PCSTR          pszNetBIOSDomainName,
+    HANDLE hProvider,
+    PCSTR pszCellDN,
     PAD_ENUM_STATE pEnumState,
-    DWORD          dwMaxNumUsers,
-    PDWORD         pdwUsersFound,
-    PVOID**        pppUserInfoList
-    );
-
-DWORD
-CellModeSchemaEnumUsers(
-    HANDLE         hDirectory,
-    PCSTR          pszCellDN,
-    PCSTR          pszNetBIOSDomainName,
-    PAD_ENUM_STATE pEnumState,
-    DWORD          dwMaxNumUsers,
-    PDWORD         pdwUsersFound,
-    PVOID**        pppUserInfoList
-    );
-
-DWORD
-CellModeNonSchemaEnumUsers(
-    HANDLE         hDirectory,
-    PCSTR          pszCellDN,
-    PCSTR          pszNetBIOSDomainName,
-    PAD_ENUM_STATE pEnumState,
-    DWORD          dwMaxNumUsers,
-    PDWORD         pdwUsersFound,
-    PVOID**        pppUserInfoList
+    DWORD dwMaxNumUsers,
+    PDWORD pdwUsersFound,
+    PVOID** pppUserInfoList
     );
 
 DWORD
 CellModeEnumGroups(
-    HANDLE         hDirectory,
-    PCSTR          pszCellDN,
-    PCSTR          pszNetBIOSDomainName,
+    HANDLE hProvider,
+    PCSTR pszCellDN,
     PAD_ENUM_STATE pEnumState,
-    DWORD          dwMaxNumGroups,
-    PDWORD         pdwNumGroupsFound,
-    PVOID**        pppGroupInfoList
+    DWORD dwMaxNumGroups,
+    PDWORD pdwGroupsFound,
+    PVOID** pppGroupInfoList
     );
 
 DWORD
-CellModeSchemaEnumGroups(
-    HANDLE         hDirectory,
-    PCSTR          pszCellDN,
-    PCSTR          pszNetBIOSDomainName,
-    PAD_ENUM_STATE pEnumState,
-    DWORD          dwMaxNumGroups,
-    PDWORD         pdwNumGroupsFound,
-    PVOID**        pppGroupInfoList
+CellModeFindNSSArtefactByKey(
+    HANDLE hDirectory,
+    PCSTR  pszCellDN,
+    PCSTR  pszNetBIOSDomainName,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
     );
 
 DWORD
-CellModeNonSchemaEnumGroups(
-    HANDLE         hDirectory,
-    PCSTR          pszCellDN,
-    PCSTR          pszNetBIOSDomainName,
-    PAD_ENUM_STATE pEnumState,
-    DWORD          dwMaxNumGroups,
-    PDWORD         pdwNumGroupsFound,
-    PVOID**        pppGroupInfoList
+CellModeSchemaFindNSSArtefactByKey(
+    HANDLE hDirectory,
+    PCSTR  pszCellDN,
+    PCSTR  pszNetBIOSDomainName,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
     );
 
+DWORD
+CellModeNonSchemaFindNSSArtefactByKey(
+    HANDLE hDirectory,
+    PCSTR  pszCellDN,
+    PCSTR  pszNetBIOSDomainName,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    );
 
 DWORD
 CellModeEnumNSSArtefacts(
     HANDLE         hDirectory,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
-    DWORD          dwMapType,
     PAD_ENUM_STATE pEnumState,
     DWORD          dwMaxNumNSSArtefacts,
     PDWORD         pdwNumNSSArtefactsFound,
@@ -191,7 +128,6 @@ CellModeSchemaEnumNSSArtefacts(
     HANDLE         hDirectory,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
-    DWORD          dwMapType,
     PAD_ENUM_STATE pEnumState,
     DWORD          dwMaxNumNSSArtefacts,
     PDWORD         pdwNumNSSArtefactsFound,
@@ -203,7 +139,6 @@ CellModeNonSchemaEnumNSSArtefacts(
     HANDLE         hDirectory,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
-    DWORD          dwMapType,
     PAD_ENUM_STATE pEnumState,
     DWORD          dwMaxNumNSSArtefacts,
     PDWORD         pdwNumNSSArtefactsFound,

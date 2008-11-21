@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Server State Management API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -50,29 +50,30 @@
 #include "auth_provider_p.h"
 
 typedef struct __LSA_SRV_PROVIDER_STATE {
-    
+
     PLSA_AUTH_PROVIDER pProvider;
     HANDLE hProvider;
     HANDLE hResume;
-    
+
     struct __LSA_SRV_PROVIDER_STATE *pNext;
-    
+
 } LSA_SRV_PROVIDER_STATE, *PLSA_SRV_PROVIDER_STATE;
 
 typedef struct __LSA_SRV_RECORD_ENUM_STATE {
-    
+
     PSTR    pszGUID;
     DWORD   dwInfoLevel;
-    DWORD   dwMapType;
     DWORD   dwNumMaxRecords;
-    
+    DWORD   dwMapFlags;
+    PSTR    pszMapName;
+
     BOOLEAN bInLock;
 
     PLSA_SRV_PROVIDER_STATE pProviderStateList;
     PLSA_SRV_PROVIDER_STATE pCurProviderState;
 
     struct __LSA_SRV_RECORD_ENUM_STATE * pNext;
-    
+
 } LSA_SRV_RECORD_ENUM_STATE, *PLSA_SRV_RECORD_ENUM_STATE;
 
 typedef struct __LSA_SRV_API_STATE
@@ -81,13 +82,13 @@ typedef struct __LSA_SRV_API_STATE
     gid_t  peerGID;
 
     HANDLE hEventLog;
-    
+
     PLSA_SRV_RECORD_ENUM_STATE pUserEnumStateList;
-    
+
     PLSA_SRV_RECORD_ENUM_STATE pGroupEnumStateList;
-    
+
     PLSA_SRV_RECORD_ENUM_STATE pNSSArtefactEnumStateList;
-    
+
 } LSA_SRV_API_STATE, *PLSA_SRV_API_STATE;
 
 DWORD
@@ -156,7 +157,8 @@ LsaSrvFreeGroupEnumState(
 DWORD
 LsaSrvAddNSSArtefactEnumState(
     HANDLE  hServer,
-    DWORD   dwMapType,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD   dwNSSArtefactInfoLevel,
     DWORD   dwMaxNumArtefacts,
     PLSA_SRV_RECORD_ENUM_STATE* ppEnumState

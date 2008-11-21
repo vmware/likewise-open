@@ -48,22 +48,6 @@
 #define __GROUPS_P_H__
 
 DWORD
-LsaSrvFindGroupByName(
-    HANDLE hServer,
-    PCSTR  pszGroup,
-    DWORD  dwGroupInfoLevel,
-    PVOID* ppGroupInfo
-    );
-
-DWORD
-LsaSrvFindGroupById(
-    HANDLE hServer,
-    gid_t  gid,
-    DWORD  dwGroupInfoLevel,
-    PVOID* ppGroupInfo
-    );
-
-DWORD
 LsaSrvAddGroup(
     HANDLE hServer,
     DWORD  dwGroupInfoLevel,

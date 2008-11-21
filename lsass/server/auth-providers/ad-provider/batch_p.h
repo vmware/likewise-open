@@ -41,31 +41,55 @@
  *
  *        Active Directory Authentication Provider
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Wei Fu (wfu@likewisesoftware.com)
- *          Brian Dunstan (bdunstan@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
+ * Authors: Wei Fu (wfu@likewisesoftware.com)
+ *          Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 #ifndef __BATCH_P_H__
 #define __BATCH_P_H__
 
-#define LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo) \
-        do {                      \
-           if (pLoginNameInfo) {             \
-              LsaFreeNameInfo(pLoginNameInfo); \
-              (pLoginNameInfo) = NULL;       \
-           }                      \
-        } while(0);
+typedef size_t LSA_AD_BATCH_QUERY_TYPE;
+
+#define LSA_AD_BATCH_QUERY_TYPE_UNDEFINED 0
+#define LSA_AD_BATCH_QUERY_TYPE_BY_DN     1
+#define LSA_AD_BATCH_QUERY_TYPE_BY_SID    2
+
+static
+DWORD
+ADLdap_FindObjectsByList(
+    IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN DWORD dwQueryItemsCount,
+    IN PSTR* ppszQueryList,
+    OUT PDWORD pdwObjectsCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
 
 typedef struct _LSA_AD_BATCH_DOMAIN_ENTRY {
+    PSTR pszDnsDomainName;
+
+    // If this is set, we are not supposed to process
+    // this domain.
+    BOOLEAN bSkip;
+
+    // If this is set, we are dealing with one-way trust scenario
+    BOOLEAN bIsOneWayTrust;
+
+    // Either pszDcPart of pszDomainSid is used
+    // depending on the query type.
+
     // pszDcPart is not allocated, but points to
     // strings that last longer than this structure.
     PCSTR pszDcPart;
-    PSTR pszDnsDomainName;
-    DWORD dwCount;
+
+    // Allocated
+    PSTR pszDomainSid;
+    size_t sDomainSidLength;
+
+    // Number of query items
+    DWORD dwQueryItemsCount;
     // List of PCSTR
-    PDLINKEDLIST pDnList;
+    PDLINKEDLIST pQueryList;
+
     // Results
     DWORD dwObjectsCount;
     PAD_SECURITY_OBJECT* ppObjects;
@@ -75,7 +99,8 @@ static
 DWORD
 CreateBatchDomainEntry(
     OUT PLSA_AD_BATCH_DOMAIN_ENTRY* ppEntry,
-    IN PCSTR pszDcPart
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN PCSTR pszQueryTerm
     );
 
 static
@@ -85,9 +110,9 @@ DestroyBatchDomainEntry(
     );
 
 typedef struct _LSA_AD_BATCH_ITEM {
-    // pszDn is not allocated, but points to
+    // pszQuery is not allocated, but points to
     // strings that last longer than this structure.
-    PCSTR pszDn;
+    PCSTR pszQuery;
     // This needs to be freed.
     PSTR pszSid;
     // This needs to be freed
@@ -96,8 +121,10 @@ typedef struct _LSA_AD_BATCH_ITEM {
     // to structures that last longer than this structure.
     LDAPMessage* pRealMessage;
     LDAPMessage* pPseudoMessage;
-    ADAccountType objectType;    
+    ADAccountType objectType;
     ADConfigurationMode adConfMode;
+    // bFound is set if and only if
+    // The pseudo information for batch item object has been found.
     BOOLEAN bFound;
 } LSA_AD_BATCH_ITEM, *PLSA_AD_BATCH_ITEM;
 
@@ -135,14 +162,25 @@ DestroyBatchMessages(
 
 static
 DWORD
-CheckDomainModeCompatibilityForDefaultMode(
-    PCSTR pszDnsDomainName,
-    PCSTR pszDomainDN
+GetDomainEntryType(
+    IN PCSTR pszDomainName,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN OPTIONAL PCSTR pszDomainDN,
+    OUT PBOOLEAN pbSkip,
+    OUT PBOOLEAN pbIsOneWayTrust
     );
 
 static
 DWORD
-CheckCellConfigurationMode(
+CheckDomainModeCompatibility(
+    IN PCSTR pszDnsDomainName,
+    IN BOOLEAN bIsExternalTrust,
+    IN OPTIONAL PCSTR pszDomainDN
+    );
+
+static
+DWORD
+GetCellConfigurationMode(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszCellDN,
     OUT ADConfigurationMode* pAdMode
@@ -150,28 +188,43 @@ CheckCellConfigurationMode(
 
 static
 DWORD
-MakeObjectLoginNameInfo(
-    IN PLSA_AD_BATCH_ITEM pBatchItem,
-    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo
+AD_FindObjectsByListForDomain(
+    IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN OUT PLSA_AD_BATCH_DOMAIN_ENTRY pEntry
     );
 
 static
 DWORD
-AD_FindObjectsByDNListForDomain(
+AD_FindObjectsByListForDomainInternal(
     IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
+    IN BOOLEAN bIsOneWayTrust,
     IN DWORD dwCount,
     // List of PCSTR
-    IN PDLINKEDLIST pDnList,
+    IN PDLINKEDLIST pQueryList,
     OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT **pppObjects
+    OUT PAD_SECURITY_OBJECT** pppObjects
     );
 
 // Fills in real and SIDs.
+
 static
 DWORD
-AD_ResolveRealObjectsByDNList(
+AD_ResolveRealObjectsByListRpc(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN PCSTR pszDnsDomainName,
+    IN DWORD dwTotalItemCount,
+    // List of PLSA_AD_BATCH_ITEM
+    IN OUT PDLINKEDLIST pBatchItemList
+    );
+
+static
+DWORD
+AD_ResolveRealObjectsByList(
     IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
@@ -194,7 +247,6 @@ static
 DWORD
 AD_ResolvePseudoObjectsByRealObjectsWithLinkedCell(
     IN HANDLE hProvider,
-    IN PCSTR pszDnsDomainName,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PDLINKEDLIST pBatchItemList,
@@ -205,10 +257,9 @@ static
 DWORD
 AD_ResolvePseudoObjectsByRealObjectsInternal(
     IN HANDLE hProvider,
-    IN PCSTR pszDnsDomainName,
-    IN DWORD dwTotalItemCount,
+    IN OPTIONAL PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszCellDn,
     IN BOOLEAN bIsSchemaMode,
-    IN PCSTR pszCellDn,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PDLINKEDLIST pBatchItemList,
     OUT OPTIONAL PDWORD pdwTotalItemFoundCount,
@@ -221,7 +272,8 @@ AD_ResolvePseudoObjectsByRealObjectsInternal(
 
 static
 DWORD
-AD_BuildBatchQueryForRealByDn(
+AD_BuildBatchQueryForReal(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN PDLINKEDLIST pBatchItemList,
     OUT PDLINKEDLIST* ppNextBatchItemList,
@@ -233,7 +285,28 @@ AD_BuildBatchQueryForRealByDn(
 
 static
 DWORD
-AD_RecordRealObjectByDn(
+AD_BuildBatchQueryForRealRpc(
+    IN PDLINKEDLIST pBatchItemList,
+    OUT PDLINKEDLIST* ppNextBatchItemList,
+    IN DWORD dwMaxQueryCount,
+    OUT PDWORD pdwQueryCount,
+    OUT PSTR** pppszQueryList
+    );
+
+static
+DWORD
+AD_RecordRealObjectFromRpc(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN OUT PDLINKEDLIST pStartBatchItemList,
+    IN PDLINKEDLIST pEndBatchItemList,
+    IN PSTR pszObjectSid,
+    IN PLSA_TRANSLATED_NAME_OR_SID pTranslatedName
+    );
+
+static
+DWORD
+AD_RecordRealObject(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OUT PDLINKEDLIST pStartBatchItemList,
     IN PDLINKEDLIST pEndBatchItemList,
     IN HANDLE hDirectory,
@@ -277,6 +350,17 @@ AD_BuildBatchQueryScopeForPseudoBySid(
     IN OPTIONAL PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszCellDn,
     OUT PSTR* ppszScopeDn
+    );
+
+static
+DWORD
+AD_MarshalBatchItem(
+    IN PCSTR pszDnsDomainName,
+    IN BOOLEAN bIsOneWayTrust,
+    IN PLSA_AD_BATCH_ITEM pItem,
+    IN HANDLE hRealLdapHandle,
+    IN HANDLE hPseudoLdapHandle,
+    OUT PAD_SECURITY_OBJECT* ppObject
     );
 
 #endif /* __BATCH_P_H__ */

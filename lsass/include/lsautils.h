@@ -1,7 +1,7 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
- 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -55,7 +55,7 @@
     }
 
 #define BAIL_WITH_LSA_ERROR(_newerror_) \
-    do {dwError = (_newerror_); BAIL_ON_LSA_ERROR(dwError);} while (0)    
+    do {dwError = (_newerror_); BAIL_ON_LSA_ERROR(dwError);} while (0)
 
 #endif
 
@@ -96,9 +96,9 @@
 
 #define IsNullOrEmptyString(str) (!(str) || !(*(str)))
 
-/* 
+/*
  * Logging
- */ 
+ */
 #if defined(LW_ENABLE_THREADS)
 
 extern pthread_mutex_t gLogLock;
@@ -114,8 +114,8 @@ extern pthread_mutex_t gLogLock;
 
 #else
 
-#define LSA_LOCK_LOGGER    
-#define LSA_UNLOCK_LOGGER  
+#define LSA_LOCK_LOGGER
+#define LSA_UNLOCK_LOGGER
 
 #define _LSA_LOG_WITH_THREAD(Level, Format, ...) \
     _LSA_LOG_MESSAGE(Level, \
@@ -177,6 +177,94 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
 #define LSA_LOG_DEBUG(szFmt, ...) \
     _LSA_LOG_IF(LSA_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
+#define LSA_IS_XOR(Expression1, Expression2) \
+    (!!(Expression1) ^ !!(Expression2))
+
+#define LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo) \
+    do { \
+        if (pLoginNameInfo) \
+        { \
+            LsaFreeNameInfo(pLoginNameInfo); \
+            (pLoginNameInfo) = NULL; \
+        } \
+    } while(0);
+
+#if defined(LW_ENABLE_THREADS)
+
+extern pthread_mutex_t gTraceLock;
+
+#define LSA_LOCK_TRACER   pthread_mutex_lock(&gTraceLock)
+#define LSA_UNLOCK_TRACER pthread_mutex_unlock(&gTraceLock)
+
+#else
+
+#define LSA_LOCK_TRACER
+#define LSA_UNLOCK_TRACER
+
+#endif
+
+#define LSA_TRACE_BEGIN_FUNCTION(traceFlagArray, dwNumFlags)  \
+    do {                                                      \
+        LSA_LOCK_TRACER;                                      \
+        if (LsaTraceIsAllowed(traceFlagArray, dwNumFlags)) {  \
+            LSA_LOG_ALWAYS("Begin %s() %s:%d",                \
+                           __FUNCTION__,                      \
+                           __FILE__,                          \
+                           __LINE__);                         \
+        }                                                     \
+        LSA_UNLOCK_TRACER;                                    \
+    } while (0)
+
+#define LSA_TRACE_END_FUNCTION(traceFlagArray, dwNumFlags)   \
+    do {                                                     \
+        LSA_LOCK_TRACER;                                     \
+        if (LsaTraceIsAllowed(traceFlagArray, dwNumFlags)) { \
+            LSA_LOG_ALWAYS("End %s() %s:%d",                 \
+                           __FUNCTION__,                     \
+                           __FILE__,                         \
+                           __LINE__);                        \
+        }                                                    \
+        LSA_UNLOCK_TRACER;                                   \
+    } while (0)
+
+#if defined(LW_ENABLE_THREADS)
+
+extern pthread_mutex_t gTraceLock;
+
+#define LSA_LOCK_TRACER   pthread_mutex_lock(&gTraceLock)
+#define LSA_UNLOCK_TRACER pthread_mutex_unlock(&gTraceLock)
+
+#else
+
+#define LSA_LOCK_TRACER
+#define LSA_UNLOCK_TRACER
+
+#endif
+
+#define LSA_TRACE_BEGIN_FUNCTION(traceFlagArray, dwNumFlags)  \
+    do {                                                      \
+        LSA_LOCK_TRACER;                                      \
+        if (LsaTraceIsAllowed(traceFlagArray, dwNumFlags)) {  \
+            LSA_LOG_ALWAYS("Begin %s() %s:%d",                \
+                           __FUNCTION__,                      \
+                           __FILE__,                          \
+                           __LINE__);                         \
+        }                                                     \
+        LSA_UNLOCK_TRACER;                                    \
+    } while (0)
+
+#define LSA_TRACE_END_FUNCTION(traceFlagArray, dwNumFlags)   \
+    do {                                                     \
+        LSA_LOCK_TRACER;                                     \
+        if (LsaTraceIsAllowed(traceFlagArray, dwNumFlags)) { \
+            LSA_LOG_ALWAYS("End %s() %s:%d",                 \
+                           __FUNCTION__,                     \
+                           __FILE__,                         \
+                           __LINE__);                        \
+        }                                                    \
+        LSA_UNLOCK_TRACER;                                   \
+    } while (0)
+
 #define SERVICE_LDAP        1
 #define SERVICE_KERBEROS    2
 
@@ -192,8 +280,8 @@ typedef struct _DNS_FQDN
 #define LSA_CFG_OPTION_STRIP_ALL              (LSA_CFG_OPTION_STRIP_SECTION | \
                                               LSA_CFG_OPTION_STRIP_NAME_VALUE_PAIR)
 
-#define INIT_SEC_BUFFER_S(_s_, _l_) do{(_s_)->length = (_s_)->maxLength = (_l_); memset((_s_)->buffer, 0, S_BUFLEN);} while (0) 
-#define INIT_SEC_BUFFER_S_VAL(_s_, _l_, _v_) do{(_s_)->length = (_s_)->maxLength = (_l_); memcpy((_s_)->buffer,(_v_), _l_);} while (0) 
+#define INIT_SEC_BUFFER_S(_s_, _l_) do{(_s_)->length = (_s_)->maxLength = (_l_); memset((_s_)->buffer, 0, S_BUFLEN);} while (0)
+#define INIT_SEC_BUFFER_S_VAL(_s_, _l_, _v_) do{(_s_)->length = (_s_)->maxLength = (_l_); memcpy((_s_)->buffer,(_v_), _l_);} while (0)
 #define SEC_BUFFER_COPY(_d_,_s_) memcpy((_d_)->buffer,(_s_)->buffer,(_s_)->maxLength)
 #define SEC_BUFFER_S_CONVERT(_sb_,_sbs_) do{(_sb_)->length = (_sbs_)->length;(_sb_)->maxLength=(_sbs_)->maxLength;(_sb_)->buffer = (_sbs_)->buffer;} while (0)
 
@@ -256,6 +344,12 @@ typedef DWORD (*PFNCONFIG_END_SECTION)(
                         PBOOLEAN pbContinue
                         );
 
+typedef struct __LSA_BIT_VECTOR
+{
+    DWORD  dwNumBits;
+    PDWORD pVector;
+} LSA_BIT_VECTOR, *PLSA_BIT_VECTOR;
+
 typedef struct __LSA_HASH_ENTRY LSA_HASH_ENTRY;
 
 typedef int (*LSA_HASH_KEY_COMPARE)(PCVOID, PCVOID);
@@ -290,11 +384,11 @@ typedef struct __LSA_HASH_ITERATOR
 typedef struct __DLINKEDLIST
 {
     PVOID pItem;
-    
+
     struct __DLINKEDLIST * pNext;
-    
+
     struct __DLINKEDLIST * pPrev;
-    
+
 } DLINKEDLIST, *PDLINKEDLIST;
 
 typedef VOID (*PFN_DLINKEDLIST_FUNC)(PVOID pData, PVOID pUserData);
@@ -304,9 +398,9 @@ typedef DWORD (*PFN_LSA_FOREACH_STACK_ITEM)(PVOID pItem, PVOID pUserData);
 typedef struct __LSA_STACK
 {
     PVOID pItem;
-    
+
     struct __LSA_STACK * pNext;
-    
+
 } LSA_STACK, *PLSA_STACK;
 
 /* wire definition */
@@ -366,7 +460,7 @@ typedef struct __LSA_LOGIN_NAME_INFO
     PSTR  pszDomainNetBiosName;
     PSTR  pszFullDomainName;
     PSTR  pszName;
-    PSTR  pszObjectSid;    
+    PSTR  pszObjectSid;
 } LSA_LOGIN_NAME_INFO, *PLSA_LOGIN_NAME_INFO;
 
 typedef struct __LSADATACOORDINATES {
@@ -469,7 +563,7 @@ LsaFreeMemory(
 
 DWORD
 LsaAllocateString(
-    PCSTR pszInputString, 
+    PCSTR pszInputString,
     PSTR *ppszOutputString
     );
 
@@ -543,14 +637,14 @@ LsaAllocateStringPrintfV(
 
 VOID
 LsaStrCharReplace(
-    PSTR pszStr, 
+    PSTR pszStr,
     CHAR oldCh,
     CHAR newCh);
 
 // If pszInputString == NULL, then *ppszOutputString = NULL
 DWORD
 LsaStrDupOrNull(
-    PCSTR pszInputString, 
+    PCSTR pszInputString,
     PSTR *ppszOutputString
     );
 
@@ -589,6 +683,40 @@ LsaPrincipalNonRealmToLower(
 VOID
 LsaPrincipalRealmToUpper(
     IN OUT PSTR pszPrincipal
+    );
+
+DWORD
+LsaBitVectorCreate(
+    DWORD dwNumBits,
+    PLSA_BIT_VECTOR* ppBitVector
+    );
+
+VOID
+LsaBitVectorFree(
+    PLSA_BIT_VECTOR pBitVector
+    );
+
+BOOLEAN
+LsaBitVectorIsSet(
+    PLSA_BIT_VECTOR pBitVector,
+    DWORD           iBit
+    );
+
+DWORD
+LsaBitVectorSetBit(
+    PLSA_BIT_VECTOR pBitVector,
+    DWORD           iBit
+    );
+
+DWORD
+LsaBitVectorUnsetBit(
+    PLSA_BIT_VECTOR pBitVector,
+    DWORD           iBit
+    );
+
+VOID
+LsaBitVectorReset(
+    PLSA_BIT_VECTOR pBitVector
     );
 
 DWORD
@@ -907,6 +1035,18 @@ LsaValidateUserName(
     PCSTR pszName
     );
 
+#define LSA_DOMAIN_SEPARATOR_DEFAULT    '\\'
+
+CHAR
+LsaGetDomainSeparator(
+    VOID
+    );
+
+DWORD
+LsaSetDomainSeparator(
+    CHAR chValue
+    );
+
 DWORD
 LsaCrackDomainQualifiedName(
     PCSTR pszId,
@@ -1056,6 +1196,42 @@ LsaValidateLogLevel(
     );
 
 DWORD
+LsaTraceInitialize(
+    VOID
+    );
+
+BOOLEAN
+LsaTraceIsFlagSet(
+    DWORD dwTraceFlag
+    );
+
+BOOLEAN
+LsaTraceIsAllowed(
+    DWORD dwTraceFlags[],
+    DWORD dwNumFlags
+    );
+
+DWORD
+LsaTraceSetFlag(
+    DWORD dwTraceFlag
+    );
+
+DWORD
+LsaTraceUnsetFlag(
+    DWORD dwTraceFlag
+    );
+
+VOID
+LsaTraceShutdown(
+    VOID
+    );
+
+VOID
+LsaTraceShutdown(
+    VOID
+    );
+
+DWORD
 LsaAllocSecurityIdentifierFromBinary(
     UCHAR* sidBytes,
     DWORD dwSidBytesLength,
@@ -1086,7 +1262,7 @@ LsaSetSecurityIdentifierRid(
     );
 
 //The UID is a DWORD constructued using
-//a non-cryptographic, 2-way hash of 
+//a non-cryptographic, 2-way hash of
 //the User SID and Domain SID.
 DWORD
 LsaGetSecurityIdentifierHashedRid(
@@ -1122,10 +1298,11 @@ LsaGetDomainSecurityIdentifier(
 
 DWORD
 LsaHexStrToByteArray(
-        PCSTR pszHexString,
-        UCHAR** ppucByteArray,
-        DWORD* pdwByteArrayLength
-        );
+    IN PCSTR pszHexString,
+    IN OPTIONAL DWORD* pdwHexStringLength,
+    OUT UCHAR** ppucByteArray,
+    OUT DWORD* pdwByteArrayLength
+    );
 
 DWORD
 LsaByteArrayToHexStr(

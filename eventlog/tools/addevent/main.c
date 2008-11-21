@@ -190,6 +190,7 @@ main(
 
     dwError = LWICloseEventLog(hEventLog);
     BAIL_ON_EVT_ERROR(dwError);
+    hEventLog = 0;
 
     //Try this with most things set to null
     dwError = LWIOpenEventLogEx(NULL,   //target host -- should end up going to localhost
@@ -230,6 +231,7 @@ main(
 
     dwError = LWICloseEventLog(hEventLog);
     BAIL_ON_EVT_ERROR(dwError);
+    hEventLog = 0;
 
     }
     CATCH_ALL
@@ -243,9 +245,14 @@ main(
     error:
 
     if (hEventLog)
-    LWICloseEventLog(hEventLog);
+    {
+        LWICloseEventLog(hEventLog);
+    }
 
-    RPCFreeMemory(pEventRecord);
+    if (pEventRecord)
+    {
+        LWIFreeEventRecord(pEventRecord);
+    }
 
     if (dwError != 0) {
     printf("In error section: dwError=%d\n", dwError);

@@ -62,4 +62,9 @@ FakeClientConnection(
     VOID
     );
 
+DWORD
+LsaSrvIgnoreSIGHUP(
+    VOID
+    );
+
 #endif /* __SIGHANDLER_H__ */

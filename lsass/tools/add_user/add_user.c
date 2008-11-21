@@ -265,6 +265,7 @@ GetGroupId(
     dwError = LsaFindGroupByName(
                     hLsaConnection,
                     pszGroupName,
+                    0,
                     dwGroupInfoLevel,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);

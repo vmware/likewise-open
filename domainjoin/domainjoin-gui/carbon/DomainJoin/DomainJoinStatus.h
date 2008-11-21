@@ -54,6 +54,7 @@ struct DomainJoinStatus
         std::string ShortDomainName; /* empty if not joined  */
         std::string WorkgroupName;   /* empty if not joined  */
         std::string LogFilePath;     /* empty if not logging */
+        std::string OUPath;          /* empty if not joined  */
 };
 
 #endif /* __DOMAINJOINSTATUS_H__ */

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -36,9 +36,11 @@ NTSTATUS LsaLookupSids(handle_t b, PolicyHandle *handle, SidArray *sids,
                        uint16 level, uint32 *count)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ret_status = STATUS_SUCCESS;
     TranslatedNameArray name_array = {0};
     RefDomainList *ref_domains = NULL;
-    TranslatedName *names_out = NULL;
+    TranslatedName *out_names = NULL;
+    RefDomainList *out_domains = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(handle, cleanup);
@@ -53,21 +55,22 @@ NTSTATUS LsaLookupSids(handle_t b, PolicyHandle *handle, SidArray *sids,
 
     DCERPC_CALL(_LsaLookupSids(b, handle, sids, &ref_domains, &name_array,
                                level, count));
-    goto_if_ntstatus_not_success(status, cleanup);
+    ret_status = status;
 
-    status = LsaAllocateTranslatedNames(&names_out, &name_array);
-    goto_if_ntstatus_not_success(status, cleanup);
+    /* Status other than success doesn't have to mean failure here */
+    if (ret_status != STATUS_SUCCESS &&
+        ret_status != STATUS_SOME_UNMAPPED) goto error;
 
-    status = LsaAllocateRefDomainList(domains, ref_domains);
-    goto_if_ntstatus_not_success(status, cleanup);
+    status = LsaAllocateTranslatedNames(&out_names, &name_array);
+    goto_if_ntstatus_not_success(status, error);
 
-    *names = names_out;
-    names_out = NULL;
+    status = LsaAllocateRefDomainList(&out_domains, ref_domains);
+    goto_if_ntstatus_not_success(status, error);
+
+    *names   = out_names;
+    *domains = out_domains;
 
 cleanup:
-    if (names_out) {
-        LsaRpcFreeMemory((void*)names_out);
-    }
 
     /* Free pointers returned from stub */
     if (ref_domains) {
@@ -76,8 +79,27 @@ cleanup:
 
     LsaCleanStubTranslatedNameArray(&name_array);
 
+    if (status == STATUS_SUCCESS &&
+        (ret_status == STATUS_SUCCESS ||
+         ret_status == STATUS_SOME_UNMAPPED)) {
+        status = ret_status;
+    }
 
     return status;
+
+error:
+    if (out_names) {
+        LsaRpcFreeMemory((void*)out_names);
+    }
+
+    if (out_domains) {
+        LsaRpcFreeMemory((void*)out_domains);
+    }
+
+    *names   = NULL;
+    *domains = NULL;
+
+    goto cleanup;
 }
 
 

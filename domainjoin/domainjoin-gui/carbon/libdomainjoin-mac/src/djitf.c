@@ -308,11 +308,19 @@ DJItfQueryInformation(
     LWException* pException = NULL;
     PDOMAINJOININFO pJoinInfo = NULL;
     PDOMAIN_JOIN_INFO pJoinInfo_client = NULL;
+    char* pszOU = NULL;
     
     LW_TRY(&pException, QueryInformation(&pJoinInfo, &LW_EXC));
     
     ceError = DJItfConvertDomainJoinInfo(pJoinInfo, &pJoinInfo_client);
     GOTO_CLEANUP_ON_CENTERROR(ceError);
+
+    if (pJoinInfo_client->pszDomainName)
+    {
+        LW_TRY(&pException, DJGetComputerDN(&pszOU, &LW_EXC));
+        pJoinInfo_client->pszOU = pszOU;
+        pszOU = NULL;
+    }
     
     *ppDomainJoinInfo = pJoinInfo_client;
     pJoinInfo_client = NULL;
@@ -325,6 +333,10 @@ cleanup:
     
     if (pJoinInfo_client) {
         DJItfFreeDomainJoinInfo(pJoinInfo_client);
+    }
+
+    if (pszOU) {
+        CT_SAFE_FREE_STRING(pszOU);
     }
 
     if (pException) {
@@ -402,6 +414,7 @@ DJItfFreeDomainJoinInfo(
        CT_SAFE_FREE_STRING(pDomainJoinInfo->pszDomainName);
        CT_SAFE_FREE_STRING(pDomainJoinInfo->pszDomainShortName);
        CT_SAFE_FREE_STRING(pDomainJoinInfo->pszLogFilePath);
+       CT_SAFE_FREE_STRING(pDomainJoinInfo->pszOU);
     }
 }
 

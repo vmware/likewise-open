@@ -649,6 +649,7 @@ LsaSrvIpcGetNamesBySidList(
     PLSASERVERCONNECTIONCONTEXT pContext =
        (PLSASERVERCONNECTIONCONTEXT)hConnection;
     HANDLE hServer = (HANDLE)NULL;
+    CHAR chDomainSeparator = 0;
     
     dwError = LsaUnmarshalGetNamesBySidListQuery(
                     pMessage->pData,
@@ -666,7 +667,8 @@ LsaSrvIpcGetNamesBySidList(
                     ppszSidList,
                     &ppszDomainNames,
                     &ppszSamAccounts,
-                    &pTypes);
+                    &pTypes,
+                    &chDomainSeparator);
     if (dwError) {
         dwError = LsaSrvIpcMarshalError(
                         dwError,
@@ -681,6 +683,7 @@ LsaSrvIpcGetNamesBySidList(
                ppszDomainNames,
                ppszSamAccounts,
                pTypes,
+               chDomainSeparator,
                NULL,
                &dwMsgLen);
        BAIL_ON_LSA_ERROR(dwError);
@@ -698,6 +701,7 @@ LsaSrvIpcGetNamesBySidList(
                ppszDomainNames,
                ppszSamAccounts,
                pTypes,
+               chDomainSeparator,
                pResponse->pData,
                &dwMsgLen);
        BAIL_ON_LSA_ERROR(dwError);

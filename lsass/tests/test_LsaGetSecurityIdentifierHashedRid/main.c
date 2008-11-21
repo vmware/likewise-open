@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Test Program for exercising LsaGetSecurityIdentifierHashedRid
  *
  * Authors: Brian Dunstan (bdunstan@likewisesoftware.com)
@@ -71,39 +71,42 @@ main(
 {
     DWORD dwError = 0;
     PSTR  pszSIDStr = NULL;
-    
+
     DWORD dwRid = 0;
     DWORD dwHashedRid = 0;
-    
+
     PLSA_SECURITY_IDENTIFIER pSID = NULL;
-    
+
     dwError = ParseArgs(argc, argv, &pszSIDStr);
     BAIL_ON_LSA_ERROR(dwError);
- 
+
     printf("Converting SID string: \"%s\"\n", pszSIDStr);
-  
+
     dwError = LsaAllocSecurityIdentifierFromString(
         pszSIDStr, &pSID);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaGetSecurityIdentifierRid(pSID, &dwRid);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     printf("RID = 0x%.8X = %u\n", dwRid, dwRid);
-    
+
     dwError = LsaGetSecurityIdentifierHashedRid(pSID, &dwHashedRid);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     printf("Hashed RID = 0x%.8X = %u\n", dwHashedRid, dwHashedRid);
-    
-    
-   
+
+
+
 
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszSIDStr);
 
-    LsaFreeSecurityIdentifier(pSID);
+    if (pSID)
+    {
+        LsaFreeSecurityIdentifier(pSID);
+    }
 
     return (dwError);
 
@@ -124,7 +127,7 @@ ParseArgs(
     typedef enum {
             PARSE_MODE_OPEN = 0
         } ParseMode;
-        
+
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
@@ -137,11 +140,11 @@ ParseArgs(
         {
             break;
         }
-        
+
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-        
+
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -150,14 +153,14 @@ ParseArgs(
                 }
                 else
                 {
-                    
+
                     dwError = LsaAllocateString(pszArg, &pszSIDStr);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
-                
+
         }
-        
+
     } while (iArg < argc);
 
     if (IsNullOrEmptyString(pszSIDStr)) {
@@ -169,7 +172,7 @@ ParseArgs(
     *ppszSIDStr = pszSIDStr;
 
 cleanup:
-    
+
     return dwError;
 
 error:

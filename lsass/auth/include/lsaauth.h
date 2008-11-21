@@ -90,10 +90,23 @@ extern DWORD gdwLogLevel;
 #define PAM_LOG_LEVEL_VERBOSE  5
 #define PAM_LOG_LEVEL_DEBUG    6
 
+#if defined(EXPLICIT_OPEN_CLOSE_LOG)
+
+#define LOG_FMT_MODULE_NAME "%s"
+#define LOG_MODULE_NAME     ""
+
+#else
+
+#define LOG_FMT_MODULE_NAME "[module:%s]"
+#define LOG_MODULE_NAME MODULE_NAME
+
+#endif /* defined(EXPLICIT_OPEN_CLOSE_LOG) */
+
 #define LSA_LOG_PAM_ALWAYS(szFmt, ...)              \
     do {                                            \
         LsaPamLogMessage(PAM_LOG_LEVEL_ALWAYS,      \
-                         szFmt,                     \
+                         LOG_FMT_MODULE_NAME szFmt, \
+                         LOG_MODULE_NAME,           \
                          ## __VA_ARGS__);           \
     } while(0)
 
@@ -101,7 +114,8 @@ extern DWORD gdwLogLevel;
     do {                                            \
         if (gdwLogLevel >= PAM_LOG_LEVEL_ERROR) {   \
             LsaPamLogMessage(PAM_LOG_LEVEL_ERROR,   \
-                             szFmt,                 \
+                             LOG_FMT_MODULE_NAME szFmt,   \
+                             LOG_MODULE_NAME,       \
                              ## __VA_ARGS__);       \
         }                                           \
     } while(0)
@@ -110,7 +124,8 @@ extern DWORD gdwLogLevel;
     do {                                            \
         if (gdwLogLevel >= PAM_LOG_LEVEL_WARNING) { \
             LsaPamLogMessage(PAM_LOG_LEVEL_WARNING, \
-                             szFmt,                 \
+                             LOG_FMT_MODULE_NAME szFmt,   \
+                             LOG_MODULE_NAME,       \
                              ## __VA_ARGS__);       \
         }                                           \
     } while(0)
@@ -119,7 +134,8 @@ extern DWORD gdwLogLevel;
     do {                                            \
         if (gdwLogLevel >= PAM_LOG_LEVEL_INFO)    { \
             LsaPamLogMessage(PAM_LOG_LEVEL_INFO,    \
-                             szFmt,                 \
+                             LOG_FMT_MODULE_NAME szFmt,   \
+                             LOG_MODULE_NAME,       \
                              ## __VA_ARGS__);       \
         }                                           \
     } while(0)
@@ -128,7 +144,8 @@ extern DWORD gdwLogLevel;
     do {                                            \
         if (gdwLogLevel >= PAM_LOG_LEVEL_VERBOSE) { \
             LsaPamLogMessage(PAM_LOG_LEVEL_VERBOSE, \
-                             szFmt,                 \
+                             LOG_FMT_MODULE_NAME szFmt,   \
+                             LOG_MODULE_NAME,       \
                              ## __VA_ARGS__);       \
         }                                           \
     } while(0)
@@ -137,7 +154,8 @@ extern DWORD gdwLogLevel;
     do {                                            \
         if (gdwLogLevel >= PAM_LOG_LEVEL_DEBUG) {   \
            LsaPamLogMessage(PAM_LOG_LEVEL_DEBUG,    \
-                            "[%s() %s:%d] " szFmt,  \
+                            LOG_FMT_MODULE_NAME "[%s() %s:%d] " szFmt,  \
+                            LOG_MODULE_NAME,        \
                             __FUNCTION__,           \
                             __FILE__,               \
                             __LINE__,               \

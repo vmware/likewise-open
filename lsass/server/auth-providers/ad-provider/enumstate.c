@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,13 +38,13 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Enumeration State Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Wei Fu (wfu@likewisesoftware.com)
- *          
+ *
  */
 #include "adprovider.h"
 
@@ -54,7 +54,8 @@ AD_AddEnumState(
     PAD_ENUM_STATE* ppStateList,
     PCSTR pszGUID,
     DWORD dwInfoLevel,
-    DWORD dwMapType,
+    PCSTR pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppNewEnumState
     );
 
@@ -78,19 +79,23 @@ AD_FreeStateList(
     )
 {
     PAD_ENUM_STATE pState = NULL;
-    
+
     while (pStateList)
     {
         pState = pStateList;
         pStateList = pStateList->pNext;
-        
+
         LSA_SAFE_FREE_STRING(pState->pszGUID);
-        
+
         if (pState->pCookie)
         {
             LsaLdapFreeCookie(pState->pCookie);
         }
-        
+        if (pState->hDirectory)
+        {
+            LsaLdapCloseDirectory(pState->hDirectory);
+        }
+
         LsaFreeMemory(pState);
     }
 }
@@ -104,11 +109,12 @@ AD_AddUserState(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_AddEnumState(
                 &pContext->pUserEnumStateList,
                 pszGUID,
                 dwInfoLevel,
+                NULL,
                 0,
                 ppEnumState);
 }
@@ -120,7 +126,7 @@ AD_FindUserState(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_FindEnumState(pContext->pUserEnumStateList, pszGUID);
 }
 
@@ -131,7 +137,7 @@ AD_FreeUserState(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_FreeEnumState(&pContext->pUserEnumStateList, pszGUID);
 }
 
@@ -144,11 +150,12 @@ AD_AddGroupState(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_AddEnumState(
                     &pContext->pGroupEnumStateList,
                     pszGUID,
                     dwInfoLevel,
+                    NULL,
                     0,
                     ppEnumState);
 }
@@ -160,7 +167,7 @@ AD_FindGroupState(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_FindEnumState(pContext->pGroupEnumStateList, pszGUID);
 }
 
@@ -171,7 +178,7 @@ AD_FreeGroupState(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_FreeEnumState(&pContext->pGroupEnumStateList, pszGUID);
 }
 
@@ -180,17 +187,19 @@ AD_AddNSSArtefactState(
     HANDLE hProvider,
     PCSTR  pszGUID,
     DWORD  dwInfoLevel,
-    DWORD  dwMapType,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppEnumState
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_AddEnumState(
                     &pContext->pNSSArtefactEnumStateList,
                     pszGUID,
                     dwInfoLevel,
-                    dwMapType,
+                    pszMapName,
+                    dwFlags,
                     ppEnumState);
 }
 
@@ -201,7 +210,7 @@ AD_FindNSSArtefactState(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_FindEnumState(pContext->pNSSArtefactEnumStateList, pszGUID);
 }
 
@@ -212,7 +221,7 @@ AD_FreeNSSArtefactState(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    
+
     return AD_FreeEnumState(&pContext->pNSSArtefactEnumStateList, pszGUID);
 }
 
@@ -222,47 +231,54 @@ AD_AddEnumState(
     PAD_ENUM_STATE* ppStateList,
     PCSTR pszGUID,
     DWORD dwInfoLevel,
-    DWORD dwMapType,
+    PCSTR pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppNewEnumState
     )
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
     BOOLEAN bFreeState = FALSE;
-    
+
     if (!(pEnumState = AD_FindEnumState(*ppStateList, pszGUID))) {
         dwError = LsaAllocateMemory(
                         sizeof(AD_ENUM_STATE),
                         (PVOID*)&pEnumState);
         BAIL_ON_LSA_ERROR(dwError);
         bFreeState = TRUE;
-        
+
         dwError = LsaAllocateString(pszGUID, &pEnumState->pszGUID);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         pEnumState->dwInfoLevel = dwInfoLevel;
-        pEnumState->dwMapType = dwMapType;
-        
+        pEnumState->dwMapFlags = dwFlags;
+
+        if (pszMapName)
+        {
+            dwError = LsaAllocateString(pszMapName, &pEnumState->pszMapName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
         pEnumState->pNext = *ppStateList;
         *ppStateList = pEnumState;
-        
+
         bFreeState = FALSE;
     }
-    
+
     if (ppNewEnumState) {
        *ppNewEnumState = pEnumState;
     }
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     if (ppNewEnumState) {
         *ppNewEnumState = NULL;
     }
-    
+
     if (bFreeState && pEnumState) {
        AD_FreeStateList(pEnumState);
     }

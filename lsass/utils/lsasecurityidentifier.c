@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Security Identifier API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,37 +55,37 @@ LsaAllocSecurityIdentifierFromBinary(
     )
 {
     DWORD dwError = 0;
-    
+
     PLSA_SECURITY_IDENTIFIER pSID = NULL;
-    
+
     dwError = LsaAllocateMemory(
-                   sizeof(LSA_SECURITY_IDENTIFIER), 
+                   sizeof(LSA_SECURITY_IDENTIFIER),
                   (PVOID*)&pSID);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateMemory(
-                  dwSidBytesLength * sizeof(UCHAR), 
+                  dwSidBytesLength * sizeof(UCHAR),
                   (PVOID*)&(pSID->pucSidBytes));
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     pSID->dwByteLength = dwSidBytesLength;
-    
+
     memcpy(pSID->pucSidBytes, pucSidBytes, dwSidBytesLength);
-    
+
     *ppSecurityIdentifier = pSID;
-    
+
 cleanup:
 
     return dwError;
 
 error:
-    
-    if (pSID) 
+
+    if (pSID)
     {
        LsaFreeSecurityIdentifier(pSID);
     }
     *ppSecurityIdentifier = NULL;
-        
+
     goto cleanup;
 }
 
@@ -97,32 +97,32 @@ LsaAllocSecurityIdentifierFromString(
 {
     DWORD dwError = 0;
     PLSA_SECURITY_IDENTIFIER pSID = NULL;
-    
+
     dwError = LsaAllocateMemory(
-                   sizeof(LSA_SECURITY_IDENTIFIER), 
+                   sizeof(LSA_SECURITY_IDENTIFIER),
                    (PVOID*)&pSID);
     BAIL_ON_LSA_ERROR(dwError);
-   
-    
+
+
     dwError = LsaStringToBytes(
-                    pszSidString, 
-                    &(pSID->pucSidBytes), 
+                    pszSidString,
+                    &(pSID->pucSidBytes),
                     &(pSID->dwByteLength));
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppSecurityIdentifier = pSID;
-    
+
 cleanup:
 
     return dwError;
 
 error:
-    
+
     if (pSID) {
        LsaFreeSecurityIdentifier(pSID);
     }
     *ppSecurityIdentifier = NULL;
-        
+
     goto cleanup;
 }
 
@@ -131,8 +131,9 @@ LsaFreeSecurityIdentifier(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier
     )
 {
+
     LSA_SAFE_FREE_MEMORY(pSecurityIdentifier->pucSidBytes);
-    
+
     LsaFreeMemory(pSecurityIdentifier);
 }
 
@@ -146,52 +147,52 @@ LsaGetSecurityIdentifierRid(
 {
     DWORD dwError = 0;
     DWORD dwRid = 0;
-     
+
     UCHAR* pucSidBytes = NULL;
     DWORD dwByteLength = 0;
-     
-    if(!pSecurityIdentifier || 
-       !pSecurityIdentifier->pucSidBytes || 
+
+    if(!pSecurityIdentifier ||
+       !pSecurityIdentifier->pucSidBytes ||
        pSecurityIdentifier->dwByteLength < SECURITY_IDENTIFIER_MINIMUM_SIZE)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-     
+
     pucSidBytes = pSecurityIdentifier->pucSidBytes;
     dwByteLength = pSecurityIdentifier->dwByteLength;
-     
+
     //verify the SID is version 1.
     if(pucSidBytes[0] != 1)
     {
         dwError = LSA_ERROR_INVALID_SID_REVISION;
         BAIL_ON_LSA_ERROR(dwError);
     }
-     
+
     //verify the number of bytes is plausible
-    if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0) 
+    if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     memcpy(&dwRid, pucSidBytes+dwByteLength-sizeof(DWORD), sizeof(dwRid));
-    
+
     #if defined(WORDS_BIGENDIAN)
         dwRid = LW_ENDIAN_SWAP32(dwRid);
     #endif
-    
+
     *pdwRid = dwRid;
-    
+
     return dwError;
-    
+
 error:
- 
+
     *pdwRid = 0;
 
     return dwError;
-    
-    
+
+
 }
 
 DWORD
@@ -204,27 +205,27 @@ LsaSetSecurityIdentifierRid(
     DWORD dwRidLocal = dwRid;
     UCHAR* pucSidBytes = NULL;
     DWORD dwByteLength = 0;
-     
-    if(!pSecurityIdentifier || 
-       !pSecurityIdentifier->pucSidBytes || 
+
+    if(!pSecurityIdentifier ||
+       !pSecurityIdentifier->pucSidBytes ||
        pSecurityIdentifier->dwByteLength < SECURITY_IDENTIFIER_MINIMUM_SIZE)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-     
+
     pucSidBytes = pSecurityIdentifier->pucSidBytes;
     dwByteLength = pSecurityIdentifier->dwByteLength;
-     
+
     //verify the SID is version 1.
     if(pucSidBytes[0] != 1)
     {
         dwError = LSA_ERROR_INVALID_SID_REVISION;
         BAIL_ON_LSA_ERROR(dwError);
     }
-     
+
     //verify the number of bytes is plausible
-    if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0) 
+    if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
@@ -233,19 +234,19 @@ LsaSetSecurityIdentifierRid(
     #if defined(WORDS_BIGENDIAN)
         dwRidLocal = LW_ENDIAN_SWAP32(dwRidLocal);
     #endif
-        
+
     memcpy(pucSidBytes+dwByteLength-sizeof(DWORD), &dwRidLocal, sizeof(DWORD));
-    
-    
+
+
 error:
- 
+
     return dwError;
-    
-    
+
+
 }
 
 //The UID is a DWORD constructued using
-//a non-cryptographic, 2-way hash of 
+//a non-cryptographic, 2-way hash of
 //the User SID and Domain SID.
 DWORD
 LsaGetSecurityIdentifierHashedRid(
@@ -255,72 +256,72 @@ LsaGetSecurityIdentifierHashedRid(
 {
     DWORD i = 0;
     DWORD dwError = 0;
-    
+
     //dwAuthorityCount includes the final RID
     DWORD dwAuthorityCount = 0;
     PDWORD pdwAuthorities = NULL;
     DWORD dwHash = 0;
-    
+
     UCHAR* pucSidBytes = NULL;
     DWORD dwByteLength = 0;
-    
-    if(!pSecurityIdentifier || 
-       !pSecurityIdentifier->pucSidBytes || 
+
+    if(!pSecurityIdentifier ||
+       !pSecurityIdentifier->pucSidBytes ||
        pSecurityIdentifier->dwByteLength < SECURITY_IDENTIFIER_MINIMUM_SIZE)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     pucSidBytes = pSecurityIdentifier->pucSidBytes;
     dwByteLength = pSecurityIdentifier->dwByteLength;
-    
+
     //verify the SID is version 1.
     if(pucSidBytes[0] != 1)
     {
         dwError = LSA_ERROR_INVALID_SID_REVISION;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     //verify the number of bytes is plausible
-    if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0) 
+    if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-  
-    dwAuthorityCount = 
-        ((dwByteLength - SECURITY_IDENTIFIER_HEADER_SIZE) / 
+
+    dwAuthorityCount =
+        ((dwByteLength - SECURITY_IDENTIFIER_HEADER_SIZE) /
         sizeof(DWORD));
-    
+
     dwError = LsaAllocateMemory(
-              dwAuthorityCount * sizeof(DWORD), 
+              dwAuthorityCount * sizeof(DWORD),
               (PVOID*)&pdwAuthorities);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    memcpy((PVOID)pdwAuthorities, 
+
+    memcpy((PVOID)pdwAuthorities,
            (PVOID)(pucSidBytes + SECURITY_IDENTIFIER_HEADER_SIZE),
            dwByteLength - SECURITY_IDENTIFIER_HEADER_SIZE);
-    
+
     for(i = 0; i < dwAuthorityCount; i++)
     {
         #if defined(WORDS_BIGENDIAN)
             pdwAuthorities[i] = LW_ENDIAN_SWAP32(pdwAuthorities[i]);
         #endif
-    } 
-    
+    }
+
     LsaUidHashCalc(pdwAuthorities, dwAuthorityCount, &dwHash);
-    
+
     *dwHashedRid = dwHash;
-    
+
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pdwAuthorities);
-    
+
     return dwError;
 
 error:
-            
+
     *dwHashedRid = 0;
 
     goto cleanup;
@@ -335,37 +336,37 @@ LsaGetSecurityIdentifierBinary(
 {
     DWORD dwError = 0;
     UCHAR* pucSidBytes = NULL;
-    
+
     if (pSecurityIdentifier->dwByteLength <= 0 ||
         pSecurityIdentifier->pucSidBytes == NULL)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaAllocateMemory(
-                    pSecurityIdentifier->dwByteLength * sizeof(UCHAR), 
+                    pSecurityIdentifier->dwByteLength * sizeof(UCHAR),
                     (PVOID*)&pucSidBytes);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    memcpy(pucSidBytes, 
-           pSecurityIdentifier->pucSidBytes, 
+
+    memcpy(pucSidBytes,
+           pSecurityIdentifier->pucSidBytes,
            pSecurityIdentifier->dwByteLength);
-    
+
     *ppucSidBytes = pucSidBytes;
     *pdwSidBytesLength = pSecurityIdentifier->dwByteLength;
-    
+
 cleanup:
 
     return dwError;
 
-error:  
-    
+error:
+
     LSA_SAFE_FREE_MEMORY(pucSidBytes);
 
     *ppucSidBytes = NULL;
     *pdwSidBytesLength = 0;
-        
+
     goto cleanup;
 }
 
@@ -377,21 +378,21 @@ LsaGetSecurityIdentifierString(
 {
     DWORD dwError = 0;
     PSTR pszSidStr = NULL;
-    
+
     if (pSecurityIdentifier->dwByteLength < 8 ||
         pSecurityIdentifier->pucSidBytes == NULL)
     {
        dwError = LSA_ERROR_INVALID_SID;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    dwError = LsaSidBytesToString(pSecurityIdentifier->pucSidBytes, 
+
+    dwError = LsaSidBytesToString(pSecurityIdentifier->pucSidBytes,
             pSecurityIdentifier->dwByteLength, &(pszSidStr));
     BAIL_ON_LSA_ERROR(dwError);
 
-    
+
     *ppszSidStr = pszSidStr;
-    
+
 cleanup:
 
     return dwError;
@@ -401,7 +402,7 @@ error:
     LSA_SAFE_FREE_STRING(pszSidStr);
 
     ppszSidStr = NULL;
-    
+
     goto cleanup;
 }
 
@@ -415,108 +416,121 @@ LsaGetDomainSecurityIdentifier(
     PLSA_SECURITY_IDENTIFIER pDomainSID = NULL;
     UCHAR* pucDomainSID = NULL;
     DWORD dwDomainSIDByteLength = 0;
-    
-    if ((pSecurityIdentifier->dwByteLength <= 
+
+    if ((pSecurityIdentifier->dwByteLength <=
          SECURITY_IDENTIFIER_MINIMUM_SIZE + sizeof(DWORD)) ||
         pSecurityIdentifier->pucSidBytes == NULL)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwDomainSIDByteLength = pSecurityIdentifier->dwByteLength - sizeof(DWORD);
     dwError = LsaAllocateMemory(
                 dwDomainSIDByteLength,
                 (PVOID*)&pucDomainSID);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     memcpy(pucDomainSID,
            pSecurityIdentifier->pucSidBytes,
            dwDomainSIDByteLength);
-    
+
     pucDomainSID[1]--; //decrement word count
-    
+
     dwError = LsaAllocSecurityIdentifierFromBinary(
                 pucDomainSID,
                 dwDomainSIDByteLength,
                 &pDomainSID);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppDomainSID = pDomainSID;
-    
+
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pucDomainSID);
 
     return dwError;
 
-error:  
-    
+error:
+
     if (pDomainSID)
     {
         LsaFreeSecurityIdentifier(pDomainSID);
     }
 
     *ppDomainSID = NULL;
-        
+
     goto cleanup;
 }
 
 DWORD
 LsaHexStrToByteArray(
-    PCSTR   pszHexString,
-    UCHAR** ppucByteArray,
-    DWORD*  pdwByteArrayLength
+    IN PCSTR pszHexString,
+    IN OPTIONAL DWORD* pdwHexStringLength,
+    OUT UCHAR** ppucByteArray,
+    OUT DWORD*  pdwByteArrayLength
     )
 {
     DWORD dwError = 0;
     DWORD i = 0;
-    DWORD dwHexChars = strlen(pszHexString);
+    DWORD dwHexChars = 0;
     UCHAR* pucByteArray = NULL;
-    DWORD dwByteArrayLength = dwHexChars / 2;
-    
-    if ((dwHexChars & 0x00000001) != 0) 
+    DWORD dwByteArrayLength = 0;
+
+    BAIL_ON_INVALID_POINTER(pszHexString);
+
+    if (*pdwHexStringLength)
+    {
+        dwHexChars = *pdwHexStringLength;
+    }
+    else
+    {
+        dwHexChars = strlen(pszHexString);
+    }
+    dwByteArrayLength = dwHexChars / 2;
+
+    if ((dwHexChars & 0x00000001) != 0)
     {
        dwError = LSA_ERROR_INVALID_PARAMETER;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaAllocateMemory(
-                  sizeof(UCHAR)*(dwByteArrayLength), 
+                  sizeof(UCHAR)*(dwByteArrayLength),
                   (PVOID*)&pucByteArray
                   );
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     for (i = 0; i < dwByteArrayLength; i++)
     {
         CHAR hexHi = pszHexString[2*i];
         CHAR hexLow = pszHexString[2*i + 1];
-        
+
         UCHAR ucHi = 0;
         UCHAR ucLow = 0;
-      
+
         dwError = HexCharToByte(hexHi, &ucHi);
         BAIL_ON_LSA_ERROR(dwError);
-      
+
         dwError = HexCharToByte(hexLow, &ucLow);
         BAIL_ON_LSA_ERROR(dwError);
-      
+
         pucByteArray[i] = (ucHi * 16) + ucLow;
     }
-    
+
     *ppucByteArray = pucByteArray;
     *pdwByteArrayLength = dwByteArrayLength;
-    
+
 cleanup:
-    
+
     return dwError;
 
 error:
-    
+
     LSA_SAFE_FREE_MEMORY(pucByteArray);
     *ppucByteArray = NULL;
     *pdwByteArrayLength = 0;
-    
+
     goto cleanup;
 }
 
@@ -530,19 +544,19 @@ LsaByteArrayToHexStr(
     DWORD dwError = 0;
     DWORD i = 0;
     PSTR pszHexString = NULL;
-    
+
     dwError = LsaAllocateMemory(
-                (dwByteArrayLength*2 + 1) * sizeof(CHAR), 
+                (dwByteArrayLength*2 + 1) * sizeof(CHAR),
                 (PVOID*)&pszHexString);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     for (i = 0; i < dwByteArrayLength; i++)
     {
         sprintf((char*)pszHexString+(2*i), "%.2X", pucByteArray[i]);
     }
-    
+
     *ppszHexString = pszHexString;
-    
+
 cleanup:
 
     return dwError;
@@ -562,7 +576,7 @@ HexCharToByte(
 {
     DWORD dwError = 0;
     UCHAR ucByte = 0;
-    
+
     if (cHexChar >= '0' && cHexChar <= '9')
     {
        ucByte = (UCHAR)(cHexChar - '0');
@@ -575,25 +589,25 @@ HexCharToByte(
     {
        ucByte = 10 + (UCHAR)(cHexChar - 'A');
     }
-    else 
+    else
     {
        dwError = LSA_ERROR_INVALID_PARAMETER;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     *pucByte = ucByte;
-    
+
 cleanup:
 
     return dwError;
 
 error:
-    
+
     *pucByte = 0;
 
     goto cleanup;
 }
-    
+
 void
 LsaUidHashCalc(
     PDWORD pdwAuthorities,
@@ -603,7 +617,7 @@ LsaUidHashCalc(
 {
     DWORD dwHash = 0;
     DWORD dwHashTemp = 0;
-    
+
     // xor the last three (non rid) subauths
     if(dwAuthorityCount > 3)
     {
@@ -613,21 +627,21 @@ LsaUidHashCalc(
     }
 
     dwHashTemp = dwHash;
-    
+
     // squish into 12 bits
     dwHash = (dwHashTemp & 0xFFF00000) >> 20;
     dwHash += (dwHashTemp & 0x000FFF00) >> 8;
     dwHash += (dwHashTemp & 0x000000FF);
     dwHash &= 0x0000FFF;
-    
-    
+
+
 
     // now, combine with 19 bits of the RID
     dwHash <<= 19;
     dwHash += (pdwAuthorities[dwAuthorityCount - 1] & 0x0007FFFF);
-    
+
     *pdwHash = dwHash;
-    
+
 }
 
 DWORD
@@ -652,20 +666,20 @@ LsaStringToBytes(
     DWORD dwSidBytesLength = 0;
     UCHAR* pucSidBytes = NULL;
     DWORD i = 0;
-    
+
     if (IsNullOrEmptyString(pszSidString))
     {
        dwError = LSA_ERROR_INVALID_SID;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaAllocateString(
-                 pszSidString, 
+                 pszSidString,
                  &pszSidCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwSidStringLength = strlen(pszSidString);
-       
+
     //expecting to find S-<revision>-<authority>[-<tailA>-<tailB>-...<tailN>]
     //This will find the number of talk tokens, i.e., the number of '-'
     //characters in the bracketed portion above.
@@ -676,25 +690,25 @@ LsaStringToBytes(
            iTailCount++;
         }
     }
-    if (iTailCount <= 0) 
+    if (iTailCount <= 0)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaAllocateMemory(
                    iTailCount * sizeof(DWORD),
                    (PVOID*)&pdwTail);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     pszToken = strtok_r(pszSidCopy, pszDelim, &pszStrTokState);
-    
-    for (dwTokenCount = 0; 
-        pszToken != NULL; 
+
+    for (dwTokenCount = 0;
+        pszToken != NULL;
         pszToken = strtok_r(NULL, pszDelim,  &pszStrTokState), dwTokenCount++)
     {
         PSTR pszEndPtr = NULL;
-        
+
         switch(dwParseMode)
         {
         case PARSE_MODE_OPEN:
@@ -702,7 +716,7 @@ LsaStringToBytes(
             {
                 dwParseMode = PARSE_MODE_REVISION;
             }
-            else 
+            else
             {
                 dwError = LSA_ERROR_INVALID_SID;
             }
@@ -751,13 +765,13 @@ LsaStringToBytes(
             dwError = LSA_ERROR_INVALID_SID;
             BAIL_ON_LSA_ERROR(dwError);
         }
-       
+
     }
-    
-    
+
+
     //see comments in lsasecurityidentifier_p.h
     dwSidBytesLength = 1 + 1 + 6 + 4*(iTailCount);
-    
+
     dwError = LsaAllocateMemory(
                     dwSidBytesLength * sizeof(UCHAR),
                     (PVOID*)&pucSidBytes);
@@ -765,33 +779,33 @@ LsaStringToBytes(
 
     pucSidBytes[0] = (UCHAR)dwRevision;
     pucSidBytes[1] = (UCHAR)iTailCount;
-    
+
     #if !defined(WORDS_BIGENDIAN)
         uiAuth = LW_ENDIAN_SWAP64(uiAuth);
     #endif
-    
+
     memcpy((PVOID)(pucSidBytes+2), (PVOID)((UCHAR*)(&uiAuth) + 2), 6);
-    
+
     for (i = 0; i < iTailCount; i++)
     {
-        
+
         #if defined(WORDS_BIGENDIAN)
             pdwTail[i] = LW_ENDIAN_SWAP32(pdwTail[i]);
         #endif
-        
-        memcpy((PVOID)(pucSidBytes+8+(sizeof(DWORD)*i)), 
-               (PVOID)&(pdwTail[i]), 
+
+        memcpy((PVOID)(pucSidBytes+8+(sizeof(DWORD)*i)),
+               (PVOID)&(pdwTail[i]),
                sizeof(DWORD));
     }
-    
+
     *ppucSidBytes = pucSidBytes;
     *pdwSidBytesLength = dwSidBytesLength;
-    
+
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pszSidCopy);
     LSA_SAFE_FREE_MEMORY(pdwTail);
-    
+
     return dwError;
 
 error:
@@ -800,7 +814,7 @@ error:
 
     *ppucSidBytes = NULL;
     *pdwSidBytesLength = 0;
-   
+
     goto cleanup;
 }
 
@@ -818,11 +832,11 @@ LsaSidBytesToString(
     //revision string is an integer, "0" - "255"
     CHAR pszRevision[16];
     //Auth string is an integer, "0" - "255", usually, "5"
-    CHAR pszAuth[32];  
+    CHAR pszAuth[32];
     //This is a count of the number of DWORDs which constitute the combined
     //<domain_computer_id> and trailing <rid>
     DWORD dwWordCount = 0;
-    
+
     //the minimum binary SID length is 8
     if ((pucSidBytes == NULL) ||
         (dwSidBytesLength < 8))
@@ -830,43 +844,43 @@ LsaSidBytesToString(
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    
+
+
     sprintf((char*)pszRevision, "%u", pucSidBytes[0]);
     dwWordCount = pucSidBytes[1];
-    
+
     //The byte length should be 8 + wordlength*words
-    if(dwSidBytesLength != 
+    if(dwSidBytesLength !=
         8 + (sizeof(DWORD) * dwWordCount))
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
 
     if (pucSidBytes[2] != 0 || pucSidBytes[3] != 0)
     {
         CHAR pszAuthTemp[16];
-        
+
         for (i = 0; i < 6; i++)
         {
             sprintf((char*)pszAuthTemp+(2*i), "%.2X", (unsigned int) pucSidBytes[2+i]);
         }
-        
+
         sprintf((char*)pszAuth, "0x%s", pszAuthTemp);
     }
     else
     {
-        DWORD dwAuth = 
+        DWORD dwAuth =
             (pucSidBytes[4] << 24) |
             (pucSidBytes[5] << 16) |
             (pucSidBytes[6] << 8)  |
             (pucSidBytes[7] << 0);
-            
+
         sprintf((char*)pszAuth, "%u", dwAuth);
     }
-    
-    
+
+
     dwError = LsaBuildSIDString(
                     pszRevision,
                     pszAuth,
@@ -874,19 +888,19 @@ LsaSidBytesToString(
                     dwWordCount,
                     &pszSidString);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    
+
+
     *ppszSidString = pszSidString;
-    
+
 cleanup:
-    
+
     return dwError;
 
 error:
-    
+
     LSA_SAFE_FREE_STRING(pszSidString);
     *ppszSidString = NULL;
-    
+
     goto cleanup;
 }
 
@@ -907,85 +921,85 @@ LsaBuildSIDString(
     DWORD dwSidStringMemory = 64;  //initial memory amount
     DWORD dwMemoryUsed = 0;
     DWORD i = 0;
-    
+
     //allow this many characters for each DWORD
     DWORD dwDecimalCharsForDWORD = 10;
-    
+
     //add the component strings, dashes, wordcound * max wordsize, plus padding.
     dwSidStringMemory = dwSidStringMemory +
-                        strlen(pszRevision) + 
-                        strlen(pszAuth) + 
+                        strlen(pszRevision) +
+                        strlen(pszAuth) +
                         dwWordCount + 2 + //for the dashes
                         (dwWordCount * dwDecimalCharsForDWORD);
-    
+
     dwError = LsaAllocateMemory(
-                dwSidStringMemory, 
+                dwSidStringMemory,
                 (PVOID*)&pszSidString);
-    BAIL_ON_LSA_ERROR(dwError); 
-    
-    
+    BAIL_ON_LSA_ERROR(dwError);
+
+
     dwError = LsaAllocateStringPrintf(
                    &pszSidPart,
                    "S-%s-%s",
                    pszRevision,
                    pszAuth);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwCurLen = strlen(pszSidPart);
     dwCurOffset = 0;
-    
+
     memcpy(pszSidString+dwCurOffset, pszSidPart, dwCurLen);
     dwCurOffset += dwCurLen;
     dwMemoryUsed += dwCurLen;
-    
+
     LSA_SAFE_FREE_STRING(pszSidPart);
 
     for (i = 0; i < dwWordCount; i++)
     {
         DWORD dwTempWrongEndian = 0;
         memcpy(&dwTempWrongEndian, pucSidBytes+8+(i*4), sizeof(dwTempWrongEndian));
-         
+
         #if defined(WORDS_BIGENDIAN)
-            dwTempWrongEndian = LW_ENDIAN_SWAP32(dwTempWrongEndian);     
+            dwTempWrongEndian = LW_ENDIAN_SWAP32(dwTempWrongEndian);
         #endif
-                
+
         dwError = LsaAllocateStringPrintf(
                          &pszSidPart, "-%u",
                          dwTempWrongEndian);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwCurLen = strlen(pszSidPart);
-        
+
         if(dwMemoryUsed + dwCurLen > dwSidStringMemory)
         {
             dwSidStringMemory = 2*(dwMemoryUsed + dwCurLen);
-            
+
             dwError = LsaReallocMemory(
                 (PVOID)pszSidString,
                 (PVOID*)&pszSidString,
                 dwSidStringMemory);
-            BAIL_ON_LSA_ERROR(dwError); 
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        
+
         memcpy(pszSidString+dwCurOffset, pszSidPart, dwCurLen);
         dwCurOffset += dwCurLen;
         dwMemoryUsed += dwCurLen;
-        
+
         LSA_SAFE_FREE_STRING(pszSidPart);
 
     }
-    
+
     *ppszSidString = pszSidString;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     LSA_SAFE_FREE_STRING(pszSidString);
     *ppszSidString = NULL;
-    
+
     goto cleanup;
 }
 

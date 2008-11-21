@@ -386,6 +386,7 @@ LsaNssCommonGroupGetgrgid(
                         LsaFindGroupById(
                             hLsaConnection,
                             gid,
+                            LSA_FIND_FLAGS_NSS,
                             dwGroupInfoLevel,
                             &pGroupInfo));
     BAIL_ON_NSS_ERROR(ret);
@@ -439,6 +440,7 @@ LsaNssCommonGroupGetgrnam(
                         LsaFindGroupByName(
                             hLsaConnection,
                             pszGroupName,
+                            LSA_FIND_FLAGS_NSS,
                             dwGroupInfoLevel,
                             &pGroupInfo));
     BAIL_ON_NSS_ERROR(ret);

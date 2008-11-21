@@ -32,18 +32,20 @@
 #define _PARAMS_H_
 
 struct parameter {
-    const char *key;
-    const char *val;
+    char *key;
+    char *val;
 };
 
 
 enum param_type {
     pt_string = 1,
     pt_w16string,
+    pt_w16string_list,
     pt_char,
     pt_int32,
     pt_uint32,
-    pt_sid
+    pt_sid,
+    pt_sid_list
 };
 
 

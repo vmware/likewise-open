@@ -65,9 +65,14 @@ AD_OfflineFindObjectsBySidList(
     OUT PAD_SECURITY_OBJECT** pppObjects
     );
 
+typedef BOOLEAN (*PFN_LSA_GATHER_SIDS_FROM_GROUP_MEMBERSHIP_CALLBACK)(
+    IN PAD_GROUP_MEMBERSHIP pMembership
+    );
+
 DWORD
 AD_GatherSidsFromGroupMemberships(
     IN BOOLEAN bGatherParentSids,
+    IN OPTIONAL PFN_LSA_GATHER_SIDS_FROM_GROUP_MEMBERSHIP_CALLBACK pfnIncludeCallback,
     IN size_t sMemberhipsCount,
     IN PAD_GROUP_MEMBERSHIP* ppMemberships,
     OUT size_t* psSidsCount,

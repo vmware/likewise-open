@@ -80,6 +80,7 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     &LsaProviderLocal_OpenSession,
     &LsaProviderLocal_CloseSession,
     &LsaProviderLocal_GetNamesBySidList,
+    &LsaProviderLocal_FindNSSArtefactByKey,
     &LsaProviderLocal_BeginEnumNSSArtefacts,
     &LsaProviderLocal_EnumNSSArtefacts,
     &LsaProviderLocal_EndEnumNSSArtefacts,

@@ -57,11 +57,11 @@
 
 DWORD
 ParseArgs(
-    int            argc,
-    char*          argv[],
-    PDWORD         pdwInfoLevel,
-    PDWORD         pdwBatchSize,
-    LsaNSSMapType* pNSSMapType
+    int    argc,
+    char*  argv[],
+    PDWORD pdwInfoLevel,
+    PDWORD pdwBatchSize,
+    PSTR*  ppszMapName
     );
 
 VOID
@@ -98,14 +98,14 @@ main(
     DWORD  dwTotalMapsFound = 0;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
-    LsaNSSMapType mapType = LSA_NSS_ARTEFACT_TYPE_UNKNOWN;
+    PSTR    pszMapName = NULL;
 
     dwError = ParseArgs(
                     argc,
                     argv,
                     &dwMapInfoLevel,
                     &dwBatchSize,
-                    &mapType);
+                    &pszMapName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenServer(&hLsaConnection);
@@ -114,7 +114,7 @@ main(
     dwError = LsaBeginEnumNSSArtefacts(
                     hLsaConnection,
                     dwMapInfoLevel,
-                    mapType,
+                    pszMapName,
                     dwBatchSize,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
@@ -174,6 +174,8 @@ cleanup:
         LsaCloseServer(hLsaConnection);
     }
 
+    LSA_SAFE_FREE_STRING(pszMapName);
+
     return (dwError);
 
 error:
@@ -219,14 +221,13 @@ ParseArgs(
     char*          argv[],
     PDWORD         pdwInfoLevel,
     PDWORD         pdwBatchSize,
-    LsaNSSMapType* pNSSMapType
+    PSTR*          ppszMapName
     )
 {
     typedef enum {
             PARSE_MODE_OPEN = 0,
             PARSE_MODE_LEVEL,
             PARSE_MODE_BATCHSIZE,
-            PARSE_MODE_MAPTYPE,
             PARSE_MODE_DONE
         } ParseMode;
 
@@ -236,7 +237,7 @@ ParseArgs(
     ParseMode parseMode = PARSE_MODE_OPEN;
     DWORD dwInfoLevel = 0;
     DWORD dwBatchSize = 10;
-    LsaNSSMapType mapType = LSA_NSS_ARTEFACT_TYPE_UNKNOWN;
+    PSTR pszMapName = NULL;
 
     do {
         pszArg = argv[iArg++];
@@ -261,13 +262,14 @@ ParseArgs(
                 else if (!strcmp(pszArg, "--batchsize")) {
                     parseMode = PARSE_MODE_BATCHSIZE;
                 }
-                else if (!strcmp(pszArg, "--maptype")) {
-                    parseMode = PARSE_MODE_MAPTYPE;
-                }
                 else
                 {
-                    ShowUsage();
-                    exit(1);
+                    LSA_SAFE_FREE_STRING(pszMapName);
+
+                    dwError = LsaAllocateString(
+                                    pszArg,
+                                    &pszMapName);
+                    BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
 
@@ -299,23 +301,6 @@ ParseArgs(
 
                 break;
 
-            case PARSE_MODE_MAPTYPE:
-
-                if (!strcasecmp(pszArg, "services"))
-                {
-                    mapType = LSA_NSS_ARTEFACT_TYPE_SERVICE;
-                }
-                else if (!strcasecmp(pszArg, "netgroups"))
-                {
-                    mapType = LSA_NSS_ARTEFACT_TYPE_NETGROUP;
-                }
-                else if (!strcasecmp(pszArg, "automounts"))
-                {
-                    mapType = LSA_NSS_ARTEFACT_TYPE_MOUNT;
-                }
-                parseMode = PARSE_MODE_DONE;
-                break;
-
             case PARSE_MODE_DONE:
                 ShowUsage();
                 exit(1);
@@ -329,29 +314,31 @@ ParseArgs(
         exit(1);
     }
 
-    if (mapType == LSA_NSS_ARTEFACT_TYPE_UNKNOWN)
+    if (IsNullOrEmptyString(pszMapName))
     {
         ShowUsage();
         exit(1);
     }
 
-    if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
-    {
-        ShowUsage();
-        exit(1);
-    }
-
-    *pNSSMapType = mapType;
+    *ppszMapName = pszMapName;
     *pdwInfoLevel = dwInfoLevel;
     *pdwBatchSize = dwBatchSize;
 
+cleanup:
+
     return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszMapName);
+
+    goto cleanup;
 }
 
 void
 ShowUsage()
 {
-    printf("Usage: lw-enum-maps {--level [0]} {--batchsize [1..1000]} --maptype {services, netgroups, automounts}\n");
+    printf("Usage: lw-enum-maps {--level [0]} {--batchsize [1..1000]} <map name>\n");
 }
 
 VOID

@@ -80,7 +80,8 @@ pam_sm_open_session(
     dwError = LsaPamGetLoginId(
                     pamh,
                     pPamContext,
-                    &pszLoginId);
+                    &pszLoginId,
+                    TRUE);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenServer(&hLsaConnection);
@@ -206,12 +207,12 @@ pam_sm_close_session(
     HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_PAM_CONFIG pConfig = NULL;
 
-    LSA_LOG_PAM_DEBUG("pam_sm_close_session::begin");
-
     dwError = LsaPamReadConfigFile(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaPamSetLogLevel(pConfig->dwLogLevel);
+
+    LSA_LOG_PAM_DEBUG("pam_sm_close_session::begin");
 
     dwError = LsaPamGetContext(
                     pamh,
@@ -224,8 +225,15 @@ pam_sm_close_session(
     dwError = LsaPamGetLoginId(
                     pamh,
                     pPamContext,
-                    &pszLoginId);
+                    &pszLoginId,
+                    FALSE);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (pszLoginId == NULL)
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);

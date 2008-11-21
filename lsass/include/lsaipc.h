@@ -91,6 +91,14 @@ typedef enum {
     LSA_R_REFRESH_CONFIGURATION    =  64,
     LSA_Q_CHECK_USER_IN_LIST       =  65,
     LSA_R_CHECK_USER_IN_LIST       =  66,
+    LSA_Q_FIND_NSS_ARTEFACT_BY_KEY =  67,
+    LSA_R_FIND_NSS_ARTEFACT_BY_KEY =  68,
+    LSA_Q_SET_TRACE_INFO           =  71,
+    LSA_R_SET_TRACE_INFO           =  72,
+    LSA_Q_GET_TRACE_INFO           =  73,
+    LSA_R_GET_TRACE_INFO           =  74,
+    LSA_Q_ENUM_TRACE_INFO          =  75,
+    LSA_R_ENUM_TRACE_INFO          =  76,
     LSA_MESSAGE_SENTINEL
 } LsaMessageType;
 
@@ -130,11 +138,13 @@ typedef struct __LSA_ENUM_RECORD_QUERY_HEADER {
 } LSA_ENUM_RECORD_QUERY_HEADER, *PLSA_ENUM_RECORD_QUERY_HEADER;
 
 typedef struct __LSA_QUERY_RECORD_BY_NAME_HEADER {
+    LSA_FIND_FLAGS FindFlags;
     DWORD dwInfoLevel;
     LSADATACOORDINATES name;
 } LSA_QUERY_RECORD_BY_NAME_HEADER, *PLSA_QUERY_RECORD_BY_NAME_HEADER;
 
 typedef struct __LSA_QUERY_RECORD_BY_ID_HEADER {
+    LSA_FIND_FLAGS FindFlags;
     DWORD dwInfoLevel;
     DWORD id;
 } LSA_QUERY_RECORD_BY_ID_HEADER, *PLSA_QUERY_RECORD_BY_ID_HEADER;
@@ -156,6 +166,7 @@ typedef struct __LSA_QUERY_GET_NAMES_BY_SID_LIST {
 
 typedef struct __LSA_REPLY_GET_NAMES_BY_SID_LIST {
     DWORD dwCount;
+    CHAR chDomainSeparator;
     struct
     {
         LSADATACOORDINATES domainName;
@@ -238,9 +249,17 @@ typedef struct __LSA_BEGIN_ENUM_RECORDS_HEADER {
 
 typedef struct __LSA_BEGIN_ENUM_NSS_ARTEFACT_RECORDS_HEADER {
     DWORD dwInfoLevel;
-    DWORD dwMapType;
     DWORD dwNumMaxRecords;
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags;
+    LSADATACOORDINATES mapName;
 } LSA_BEGIN_ENUM_NSS_ARTEFACT_RECORDS_HEADER, *PLSA_BEGIN_ENUM_NSS_ARTEFACT_RECORDS_HEADER;
+
+typedef struct __LSA_FIND_NSS_ARTEFACT_BY_KEY_HEADER {
+    DWORD dwInfoLevel;
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags;
+    LSADATACOORDINATES mapName;
+    LSADATACOORDINATES keyName;
+} LSA_FIND_NSS_ARTEFACT_BY_KEY_HEADER, *PLSA_FIND_NSS_ARTEFACT_BY_KEY_HEADER;
 
 typedef struct __LSA_NSS_ARTEFACT_0_RECORD_HEADER {
     DWORD dwMapType;
@@ -440,6 +459,7 @@ LsaUnmarshalDeleteUserByIdQuery(
 DWORD
 LsaMarshalFindGroupByNameQuery(
     PCSTR  pszGroupName,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwInfoLevel,
     PSTR   pszBuffer,
     PDWORD pdwBufLen
@@ -450,12 +470,14 @@ LsaUnmarshalFindGroupByNameQuery(
     PCSTR pszMsgBuf,
     DWORD dwMsgLen,
     PSTR* ppszGroupName,
+    PLSA_FIND_FLAGS pFindFlags,
     PDWORD pdwInfoLevel
     );
 
 DWORD
 LsaMarshalFindGroupByIdQuery(
     gid_t  gid,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwInfoLevel,
     PSTR   pszBuffer,
     PDWORD pdwBufLen
@@ -466,6 +488,7 @@ LsaUnmarshalFindGroupByIdQuery(
     PCSTR  pszMsgBuf,
     DWORD  dwMsgLen,
     gid_t* pGid,
+    PLSA_FIND_FLAGS pFindFlags,
     PDWORD pdwInfoLevel
     );
 
@@ -486,6 +509,7 @@ LsaUnmarshalDeleteGroupByIdQuery(
 DWORD
 LsaMarshalGetGroupsForUserQuery(
     uid_t  uid,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwInfoLevel,
     PSTR   pszBuffer,
     PDWORD pdwBufLen
@@ -496,6 +520,7 @@ LsaUnmarshalGetGroupsForUserQuery(
     PCSTR  pszMsgBuf,
     DWORD  dwMsgLen,
     uid_t* pUid,
+    PLSA_FIND_FLAGS pFindFlags,
     PDWORD pdwInfoLevel
     );
 
@@ -557,7 +582,8 @@ LsaUnmarshalNSSArtefactInfoList(
 DWORD
 LsaMarshalBeginEnumNSSArtefactRecordsQuery(
     DWORD  dwInfoLevel,
-    DWORD  dwMapType,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwNumMaxRecords,
     PSTR   pszBuffer,
     PDWORD pdwBufLen
@@ -568,8 +594,29 @@ LsaUnmarshalBeginEnumNSSArtefactRecordsQuery(
     PCSTR  pszMsgBuf,
     DWORD  dwMsgLen,
     PDWORD pdwInfoLevel,
-    PDWORD pdwMapType,
+    LSA_NIS_MAP_QUERY_FLAGS* pdwFlags,
+    PSTR*  ppszMapName,
     PDWORD pdwNumMaxRecords
+    );
+
+DWORD
+LsaMarshalFindNSSArtefactByKeyQuery(
+    DWORD  dwInfoLevel,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PSTR   pszBuffer,
+    PDWORD pdwMsgLen
+    );
+
+DWORD
+LsaUnmarshalFindNSSArtefactByKeyQuery(
+    PCSTR  pszMsgBuf,
+    DWORD  dwMsgLen,
+    PDWORD pdwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS* pdwFlags,
+    PSTR*  ppszMapName,
+    PSTR*  ppszKeyName
     );
 
 DWORD
@@ -600,6 +647,36 @@ LsaUnmarshalLogInfo(
     PCSTR pszMsgBuf,
     DWORD dwMsgLen,
     PLSA_LOG_INFO* ppLogInfo
+    );
+
+DWORD
+LsaMarshalTraceFlags(
+    PLSA_TRACE_INFO pTraceFlagArray,
+    DWORD           dwNumFlags,
+    PSTR            pszBuffer,
+    PDWORD          pdwMsgLen
+    );
+
+DWORD
+LsaUnmarshalTraceFlags(
+    PCSTR            pszBuffer,
+    DWORD            dwMsgLen,
+    PLSA_TRACE_INFO* ppTraceFlagArray,
+    PDWORD           pdwNumFlags
+    );
+
+DWORD
+LsaMarshalQueryTraceFlag(
+    DWORD           dwTraceFlag,
+    PSTR            pszBuffer,
+    PDWORD          pdwMsgLen
+    );
+
+DWORD
+LsaUnmarshalQueryTraceFlag(
+    PSTR            pszBuffer,
+    DWORD           dwMsgLen,
+    PDWORD          pdwTraceFlag
     );
 
 /* Builds a message object with the data field allocated - but, not filled in */
@@ -691,20 +768,22 @@ LsaUnmarshalGetNamesBySidListQuery(
 
 DWORD
 LsaMarshalGetNamesBySidListReply(
-    size_t          sCount,
-    PSTR*           ppszDomainNames,
-    PSTR*           ppszSamAccounts,
-    ADAccountType*  pTypes,
-    PSTR            pszBuffer,
-    PDWORD          pdwBufLen
+    IN size_t sCount,
+    IN PSTR* ppszDomainNames,
+    IN PSTR* ppszSamAccounts,
+    IN ADAccountType* pTypes,
+    IN CHAR chDomainSeparator,
+    IN OUT PSTR pszBuffer,
+    IN OUT PDWORD pdwBufLen
     );
 
 DWORD
 LsaUnmarshalGetNamesBySidListReply(
-    PCSTR           pszMsgBuf,
-    DWORD           dwMsgLen,
-    size_t*         psCount,
-    PLSA_SID_INFO*  ppSIDInfoList
+    IN PCSTR pszMsgBuf,
+    IN DWORD dwMsgLen,
+    OUT size_t* psCount,
+    OUT PLSA_SID_INFO* ppSIDInfoList,
+    OUT CHAR* pchDomainSeparator
     );
 
 DWORD

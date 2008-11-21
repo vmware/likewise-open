@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,13 +38,13 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        AD LDAP definitions
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Wei Fu (wfu@likewisesoftware.com)
- *            
+ *
  */
 
 #ifndef __ADLDAPDEF_H__
@@ -61,6 +61,7 @@
 #define AD_LDAP_GECOS_TAG        "gecos"
 #define AD_LDAP_SHELL_TAG        "loginShell"
 #define AD_LDAP_MEMBER_TAG       "member"
+#define AD_LDAP_MEMBEROF_TAG     "memberOf"
 #define AD_LDAP_SEC_DESC_TAG     "nTSecurityDescriptor"
 #define AD_LDAP_KEYWORDS_TAG     "keywords"
 #define AD_LDAP_DESCRIPTION_TAG  "description"
@@ -76,6 +77,7 @@
 #define AD_LDAP_OBJECTCLASS_TAG  "objectClass"
 #define AD_LDAP_CONFNAM_CTXT_TAG "configurationNamingContext"
 #define AD_LDAP_NETBIOS_TAG      "netBIOSName"
+#define AD_LDAP_DN_TAG           "distinguishedName"
 
 #endif /* __ADLDAPDEF_H__ */
 

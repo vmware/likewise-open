@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Wrappers for calls to NETAPI
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -61,6 +61,11 @@
 #include <lwrpc/netlogonbinding.h>
 #include <lwrpc/LMjoin.h>
 #include <lwrpc/errcheck.h>
+
+typedef struct _LSA_TRANSLATED_NAME_OR_SID {
+    PSTR pszNT4NameOrSid;
+    ADAccountType ObjectType;
+} LSA_TRANSLATED_NAME_OR_SID, *PLSA_TRANSLATED_NAME_OR_SID;
 
 DWORD
 AD_NetInitMemory(
@@ -89,10 +94,30 @@ AD_NetLookupObjectSidByName(
     );
 
 DWORD
+AD_NetLookupObjectSidsByNames(
+    IN PCSTR pszHostname,
+    IN DWORD dwNamesCount,
+    IN PSTR* ppszNames,
+    OUT PLSA_TRANSLATED_NAME_OR_SID** pppTranslatedSids,
+    OUT OPTIONAL PDWORD pdwFoundSidsCount,
+    OUT PBOOLEAN pbIsNetworkError
+    );
+
+DWORD
 AD_NetLookupObjectNameBySid(
     IN PCSTR     pszHostname,
     IN PCSTR     pszObjectSid,
-    OUT PSTR*    ppszNetbiosName,
+    OUT PSTR*    ppszNT4Name,
+    OUT PBOOLEAN pbIsNetworkError
+    );
+
+DWORD
+AD_NetLookupObjectNamesBySids(
+    IN PCSTR pszHostname,
+    IN DWORD dwSidsCount,
+    IN PSTR* ppszObjectSids,
+    OUT PLSA_TRANSLATED_NAME_OR_SID** pppTranslatedNames,
+    OUT OPTIONAL PDWORD pdwFoundNamesCount,
     OUT PBOOLEAN pbIsNetworkError
     );
 
@@ -119,6 +144,17 @@ AD_SidToString(
 DWORD
 AD_MapNetApiError(
     DWORD dwADError
+    );
+
+void
+LsaFreeTranslatedNameInfo(
+    IN OUT PLSA_TRANSLATED_NAME_OR_SID pNameInfo
+    );
+
+void
+LsaFreeTranslatedNameList(
+    IN OUT PLSA_TRANSLATED_NAME_OR_SID* pNameList,
+    IN DWORD dwNumNames
     );
 
 #endif /* __ADNETAPI_H__ */

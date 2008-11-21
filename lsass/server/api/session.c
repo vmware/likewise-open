@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -54,57 +54,60 @@ LsaSrvOpenSession(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList;
          pProvider;
          pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
-        BAIL_ON_LSA_ERROR(dwError);       
-       
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = pProvider->pFnTable->pfnOpenSession(
                                         hProvider,
                                         pszLoginId);
         if (!dwError) {
-            
+
            if (LsaSrvEventlogEnabled()){
                   LsaSrvWriteLoginSuccessEvent(hServer,
                                                pszLoginId,
                                                dwError);
            }
-            
+
            break;
-           
+
         } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
                    (dwError == LSA_ERROR_NO_SUCH_USER)) {
-            
+
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
 
             continue;
-            
+
         } else {
-            
+
             BAIL_ON_LSA_ERROR(dwError);
-            
-        }                           
+
+        }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
-    
+
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     if (!dwError)
     {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulOpenSession);
@@ -113,11 +116,13 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedOpenSession);
     }
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return dwError;
-    
+
 error:
-    
+
     if (LsaSrvEventlogEnabled()){
             LsaSrvWriteLoginFailedEvent(hServer,
                                         pszLoginId,
@@ -134,34 +139,37 @@ LsaSrvCloseSession(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList;
          pProvider;
          pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnCloseSession(
                                 hProvider,
                                 pszLoginId);
         if (!dwError) {
-            
+
             if (LsaSrvEventlogEnabled()){
                     LsaSrvWriteLogoutSuccessEvent(hServer,
                                                   pszLoginId,
                                                   dwError);
             }
-            
+
            break;
-           
+
         } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
                    (dwError == LSA_ERROR_NO_SUCH_USER)) {
 
@@ -169,22 +177,22 @@ LsaSrvCloseSession(
             hProvider = (HANDLE)NULL;
 
             continue;
-            
+
         } else {
-            
+
             BAIL_ON_LSA_ERROR(dwError);
-            
-        }                           
+
+        }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
-    
+
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     if (!dwError)
     {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulCloseSession);
@@ -193,11 +201,13 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedCloseSession);
     }
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return dwError;
-    
+
 error:
-    
+
     if (LsaSrvEventlogEnabled()){
             LsaSrvWriteLogoutFailedEvent(hServer,
                                          pszLoginId,

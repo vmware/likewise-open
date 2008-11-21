@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -69,7 +69,7 @@ LsaDmWrappFilterExtraForestDomainsCallback(
     }
 
     return bWantThis;
-}    
+}
 
 // ISSUE-2008/08/15-dalmeida -- The old code looked for
 // two-way trusts across forest boundaries (external or forest trust).
@@ -99,14 +99,14 @@ LsaDmWrappFilterExtraTwoWayForestDomainsCallback(
     // trust to a domain in another forest or a forest trust.
     // including one-way trusts as well
     if (!(pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_IN_FOREST) &&
-        (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_OUTBOUND) && 
+        (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_OUTBOUND) &&
         (pDomainInfo->dwTrustFlags & NETR_TRUST_FLAG_INBOUND))
     {
         bWantThis = TRUE;
     }
 
     return bWantThis;
-}    
+}
 
 // ISSUE-2008/08/15-dalmeida -- The old code looked for
 // two-way trusts across forest boundaries (external or forest trust).
@@ -426,8 +426,22 @@ typedef struct _LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT {
 
 typedef struct _LSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT {
     IN PCSTR pszSid;
-    OUT PSTR pszName;
+    OUT PSTR pszNT4Name;
 } LSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT;
+
+typedef struct _LSA_DM_WRAP_LOOKUP_NAMES_BY_SIDS_CALLBACK_CONTEXT {
+    IN DWORD dwSidCounts;
+    IN PSTR* ppszSids;
+    OUT DWORD dwFoundNamesCount;
+    OUT PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedNames;
+} LSA_DM_WRAP_LOOKUP_NAMES_BY_SIDS_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_NAMES_BY_SIDS_CALLBACK_CONTEXT;
+
+typedef struct _LSA_DM_WRAP_LOOKUP_SIDS_BY_NAMES_CALLBACK_CONTEXT {
+    IN DWORD dwNameCounts;
+    IN PSTR* ppszNames;
+    OUT DWORD dwFoundSidsCount;
+    OUT PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedSids;
+} LSA_DM_WRAP_LOOKUP_SIDS_BY_NAMES_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_SIDS_BY_NAMES_CALLBACK_CONTEXT;
 
 typedef struct _LSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT {
     IN DWORD dwFlags;
@@ -526,7 +540,47 @@ LsaDmWrappLookupNameBySidCallback(
     return AD_NetLookupObjectNameBySid(
                     pDcInfo->pszDomainControllerName,
                     pCtx->pszSid,
-                    &pCtx->pszName,
+                    &pCtx->pszNT4Name,
+                    pbIsNetworkError);
+}
+
+static
+DWORD
+LsaDmWrappLookupNamesBySidsCallback(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    PLSA_DM_WRAP_LOOKUP_NAMES_BY_SIDS_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_LOOKUP_NAMES_BY_SIDS_CALLBACK_CONTEXT) pContext;
+
+    return AD_NetLookupObjectNamesBySids(
+                    pDcInfo->pszDomainControllerName,
+                    pCtx->dwSidCounts,
+                    pCtx->ppszSids,
+                    &pCtx->ppTranslatedNames,
+                    &pCtx->dwFoundNamesCount,
+                    pbIsNetworkError);
+}
+
+static
+DWORD
+LsaDmWrappLookupSidsByNamesCallback(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    PLSA_DM_WRAP_LOOKUP_SIDS_BY_NAMES_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_LOOKUP_SIDS_BY_NAMES_CALLBACK_CONTEXT) pContext;
+
+    return AD_NetLookupObjectSidsByNames(
+                    pDcInfo->pszDomainControllerName,
+                    pCtx->dwNameCounts,
+                    pCtx->ppszNames,
+                    &pCtx->ppTranslatedSids,
+                    &pCtx->dwFoundSidsCount,
                     pbIsNetworkError);
 }
 
@@ -663,7 +717,63 @@ LsaDmWrapNetLookupNameByObjectSid(
                                       LsaDmWrappLookupNameBySidCallback,
                                       &context);
 
-    *ppszName = context.pszName;
+    *ppszName = context.pszNT4Name;
+
+    return dwError;
+}
+
+DWORD
+LsaDmWrapNetLookupNamesByObjectSids(
+    IN PCSTR pszDnsDomainName,
+    IN DWORD dwSidCounts,
+    IN PSTR* ppszSids,
+    OUT PLSA_TRANSLATED_NAME_OR_SID** pppTranslatedNames,
+    OUT PDWORD pdwFoundNamesCount
+    )
+{
+    DWORD dwError = 0;
+    LSA_DM_WRAP_LOOKUP_NAMES_BY_SIDS_CALLBACK_CONTEXT context = { 0 };
+
+    context.ppszSids = ppszSids;
+    context.dwSidCounts = dwSidCounts;
+
+    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
+                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+                                      NULL,
+                                      LsaDmWrappLookupNamesBySidsCallback,
+                                      &context);
+
+    *pdwFoundNamesCount = context.dwFoundNamesCount;
+    *pppTranslatedNames = context.ppTranslatedNames;
+
+    return dwError;
+}
+
+DWORD
+LsaDmWrapNetLookupObjectSidsByNames(
+    IN PCSTR pszDnsDomainName,
+    IN DWORD dwNameCounts,
+    IN PSTR* ppszNames,
+    OUT PLSA_TRANSLATED_NAME_OR_SID** pppTranslatedSids,
+    OUT PDWORD pdwFoundSidsCount
+    )
+{
+    DWORD dwError = 0;
+    LSA_DM_WRAP_LOOKUP_SIDS_BY_NAMES_CALLBACK_CONTEXT context = { 0 };
+
+    context.ppszNames = ppszNames;
+    context.dwNameCounts = dwNameCounts;
+
+    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
+                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+                                      NULL,
+                                      LsaDmWrappLookupSidsByNamesCallback,
+                                      &context);
+
+    *pdwFoundSidsCount = context.dwFoundSidsCount;
+    *pppTranslatedSids = context.ppTranslatedSids;
 
     return dwError;
 }
