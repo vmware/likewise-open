@@ -26,6 +26,7 @@ typedef struct __LSADATACOORDINATES {
 } LSADATACOORDINATES, *PLSADATACOORDINATES;
 
 #include "lsaipc.h"
+#include "lsalist.h"
 
 #ifndef LW_ENDIAN_SWAP16
 

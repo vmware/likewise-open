@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        adldap_p.h
+ *        adldap.h
  *
  * Abstract:
  *

@@ -33,51 +33,50 @@
  *
  * Module Name:
  *
- *        adldapdef.h
+ *        batch_gather.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        AD LDAP definitions
+ *        AD LDAP User/Group information gathering functions
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  *          Wei Fu (wfu@likewisesoftware.com)
- *
  */
 
-#ifndef __ADLDAPDEF_H__
-#define __ADLDAPDEF_H__
+#ifndef _BATCH_GATHER_H_
+#define _BATCH_GATHER_H_
 
-#define AD_LDAP_NAME_TAG         "name"
-#define AD_LDAP_SAM_NAME_TAG     "sAMAccountName"
-#define AD_LDAP_DISPLAY_NAME_TAG "displayName"
-#define AD_LDAP_PASSWD_TAG       "unixUserPassword"
-#define AD_LDAP_UID_TAG          "uidNumber"
-#define AD_LDAP_ALIAS_TAG        "uid"
-#define AD_LDAP_GID_TAG          "gidNumber"
-#define AD_LDAP_HOMEDIR_TAG      "unixHomeDirectory"
-#define AD_LDAP_GECOS_TAG        "gecos"
-#define AD_LDAP_SHELL_TAG        "loginShell"
-#define AD_LDAP_MEMBER_TAG       "member"
-#define AD_LDAP_MEMBEROF_TAG     "memberOf"
-#define AD_LDAP_SEC_DESC_TAG     "nTSecurityDescriptor"
-#define AD_LDAP_KEYWORDS_TAG     "keywords"
-#define AD_LDAP_DESCRIPTION_TAG  "description"
-#define AD_LDAP_OBJECTSID_TAG    "objectSid"
-#define AD_LDAP_UPN_TAG          "userPrincipalName"
-#define AD_LDAP_PRIMEGID_TAG     "primaryGroupID"
-#define AD_LDAP_USER_CTRL_TAG    "userAccountControl"
-#define AD_LDAP_PWD_LASTSET_TAG  "pwdLastSet"
-#define AD_LDAP_ACCOUT_EXP_TAG   "accountExpires"
-#define AD_LDAP_MAX_PWDAGE_TAG   "maxPwdAge"
-#define AD_LDAP_DESCRIP_TAG      "description"
-#define AD_LDAP_GROUP_TYPE       "groupType"
-#define AD_LDAP_OBJECTCLASS_TAG  "objectClass"
-#define AD_LDAP_CONFNAM_CTXT_TAG "configurationNamingContext"
-#define AD_LDAP_NETBIOS_TAG      "netBIOSName"
-#define AD_LDAP_DN_TAG           "distinguishedName"
+#include "batch_common.h"
 
-#endif /* __ADLDAPDEF_H__ */
+DWORD
+LsaAdBatchGatherRealObject(
+    IN OUT PLSA_AD_BATCH_ITEM pItem,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    IN OUT PSTR* ppszSid,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    );
 
+DWORD
+LsaAdBatchGatherPseudoObject(
+    IN OUT PLSA_AD_BATCH_ITEM pItem,
+    IN OUT PCSTR pszSid,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    IN BOOLEAN bIsSchemaMode,
+    IN OPTIONAL DWORD dwKeywordValuesCount,
+    IN OPTIONAL PSTR* ppszKeywordValues,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    );
+
+DWORD
+LsaAdBatchGatherRpcObject(
+    IN OUT PLSA_AD_BATCH_ITEM pItem,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    IN OUT PSTR* ppszSid,
+    IN OUT PSTR* ppszSamAccountName
+    );
+
+#endif /* _BATCH_GATHER_H_ */
