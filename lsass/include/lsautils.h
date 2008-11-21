@@ -247,7 +247,7 @@ do { \
         } \
     } while (0)
 #endif
-#endif    
+#endif
 
 #define LSA_IS_XOR(Expression1, Expression2) \
     (!!(Expression1) ^ !!(Expression2))
@@ -534,6 +534,12 @@ typedef enum
     LsaMetricUnauthorizedAccesses         = 17,
     LsaMetricSentinel
 } LsaMetricType;
+
+typedef struct __LSA_NIS_NICKNAME
+{
+    PSTR pszMapAlias;
+    PSTR pszMapName;
+} LSA_NIS_NICKNAME, *PLSA_NIS_NICKNAME;
 
 #if !defined(HAVE_STRTOLL)
 
@@ -1541,6 +1547,16 @@ LsaFreeDomainInfo(
 VOID
 LsaFreeDomainInfoContents(
     PLSA_TRUSTED_DOMAIN_INFO pDomainInfo
+    );
+
+DWORD
+LsaNISGetNicknames(
+    PDLINKEDLIST* ppNicknameList
+    );
+
+VOID
+LsaNISFreeNicknameList(
+    PDLINKEDLIST pNicknameList
     );
 
 #endif /* __LSA_UTILS_H__ */
