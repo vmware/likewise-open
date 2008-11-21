@@ -316,7 +316,17 @@ typedef int             BOOLEAN, *PBOOLEAN;
 #define LSA_ERROR_PASSWORD_RESTRICTION                      0x807E // 32894
 #define LSA_ERROR_OBJECT_NOT_ENABLED                        0x807F // 32895
 #define LSA_ERROR_NO_MORE_NSS_ARTEFACTS                     0x8080 // 32896
-#define LSA_ERROR_SENTINEL                                  0x8081 // 32897
+#define LSA_ERROR_INVALID_NSS_MAP_NAME                      0x8081 // 32897
+#define LSA_ERROR_INVALID_NSS_KEY_NAME                      0x8082 // 32898
+#define LSA_ERROR_NO_SUCH_NSS_KEY                           0x8083 // 32899
+#define LSA_ERROR_NO_SUCH_NSS_MAP                           0x8084 // 32900
+#define LSA_ERROR_RPC_ERROR                                 0x8085 // 32901
+#define LSA_ERROR_LDAP_SERVER_UNAVAILABLE                   0x8086 // 32902
+#define LSA_ERROR_CREATE_KEY_FAILED                         0x8087 // 32903
+#define LSA_ERROR_CANNOT_DETECT_USER_PROCESSES              0x8088 // 32904
+#define LSA_ERROR_TRACE_NOT_INITIALIZED                     0x8089 // 32905
+#define LSA_ERROR_NO_SUCH_TRACE_FLAG                        0x808A // 32906
+#define LSA_ERROR_SENTINEL                                  0x808B // 32907
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 
@@ -428,6 +438,34 @@ typedef DWORD LSA_TRUST_MODE;
 #define LSA_TRUST_MODE_EXTERNAL      0x00000001
 #define LSA_TRUST_MODE_MY_FOREST     0x00000002
 #define LSA_TRUST_MODE_OTHER_FOREST  0x00000003
+
+#define LSA_NIS_MAP_NAME_NETGROUPS  "netgroups"
+#define LSA_NIS_MAP_NAME_SERVICES   "services"
+#define LSA_NIS_MAP_NAME_AUTOMOUNTS "automounts"
+
+typedef DWORD LSA_NIS_MAP_QUERY_FLAGS;
+
+#define LSA_NIS_MAP_QUERY_KEYS       0x00000001
+#define LSA_NIS_MAP_QUERY_VALUES     0x00000002
+#define LSA_NIS_MAP_QUERY_ALL        (LSA_NIS_MAP_QUERY_KEYS | LSA_NIS_MAP_QUERY_VALUES)
+
+typedef DWORD LSA_FIND_FLAGS, *PLSA_FIND_FLAGS;
+
+#define LSA_FIND_FLAGS_NSS 0x00000001
+
+/*
+ * Tracing support
+ */
+#define LSA_TRACE_FLAG_USER_GROUP_QUERIES        1
+#define LSA_TRACE_FLAG_AUTHENTICATION            2
+#define LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION 3
+#define LSA_TRACE_FLAG_SENTINEL                  4
+
+typedef struct __LSA_TRACE_INFO
+{
+    DWORD   dwTraceFlag;
+    BOOLEAN bStatus;
+} LSA_TRACE_INFO, *PLSA_TRACE_INFO;
 
 /*
  * Logging
@@ -580,18 +618,8 @@ typedef struct __LSA_GROUP_INFO_1
     PSTR* ppszMembers;
 } LSA_GROUP_INFO_1, *PLSA_GROUP_INFO_1;
 
-typedef enum
-{
-    LSA_NSS_ARTEFACT_TYPE_UNKNOWN = 0,
-    LSA_NSS_ARTEFACT_TYPE_NETGROUP,
-    LSA_NSS_ARTEFACT_TYPE_SERVICE,
-    LSA_NSS_ARTEFACT_TYPE_MOUNT
-} LsaNSSMapType;
-
 typedef struct __LSA_NSS_ARTEFACT_INFO_0
 {
-    LsaNSSMapType artefactType;
-
     PSTR  pszName;
     PSTR  pszValue;
 
@@ -732,6 +760,62 @@ typedef struct __LSASTATUS
 
 } LSASTATUS, *PLSASTATUS;
 
+
+/*
+ * AuthenticateUserEx() parameters
+ */
+
+typedef enum
+{
+	LSA_MARSHALL_DATA = 1,
+	LSA_UNMARSHALL_DATA
+} LsaMarshallType;
+
+typedef enum
+{
+	LSA_AUTH_PLAINTEXT = 1,
+	LSA_AUTH_CHAP
+} LsaAuthType;
+
+typedef struct __LSA_AUTH_CLEARTEXT_PARAM
+{
+	PCSTR pszPassword;
+
+} LSA_AUTH_CLEARTEXT_PARAM, *PLSA_AUTH_CLEARTEXT_PARAM;
+
+typedef struct __LSA_DATA_BLOB
+{
+	DWORD dwLen;
+	PBYTE pData;
+
+} LSA_DATA_BLOB, *PLSA_DATA_BLOB;
+
+typedef struct __LSA_AUTH_CHAP_PARAM
+{
+	PLSA_DATA_BLOB pChallenge;
+	PLSA_DATA_BLOB pLM_resp;
+	PLSA_DATA_BLOB pNT_resp;
+
+} LSA_AUTH_CHAP_PARAM, *PLSA_AUTH_CHAP_PARAM;
+
+typedef struct __LSA_AUTH_USER_PARAMS
+{
+	LsaAuthType AuthType;
+	PCSTR pszAccountName;
+	PCSTR pszDomain;
+	PCSTR pszWorkstation;
+	union {
+		LSA_AUTH_CLEARTEXT_PARAM clear;
+		LSA_AUTH_CHAP_PARAM      chap;
+	} pass;
+
+} LSA_AUTH_USER_PARAMS, *PLSA_AUTH_USER_PARAMS;
+
+typedef struct __LSA_AUTH_USER_INFO
+{
+	DWORD dwDummy;
+} LSA_AUTH_USER_INFO, *PLSA_AUTH_USER_INFO;
+
 DWORD
 LsaOpenServer(
     PHANDLE phConnection
@@ -769,6 +853,27 @@ LsaFreeLogInfo(
     );
 
 DWORD
+LsaSetTraceFlags(
+    HANDLE          hLsaConnection,
+    PLSA_TRACE_INFO pTraceFlagArray,
+    DWORD           dwNumFlags
+    );
+
+DWORD
+LsaEnumTraceFlags(
+    HANDLE           hLsaConnection,
+    PLSA_TRACE_INFO* ppTraceFlagArray,
+    PDWORD           pdwNumFlags
+    );
+
+DWORD
+LsaGetTraceFlag(
+    HANDLE           hLsaConnection,
+    DWORD            dwTraceFlag,
+    PLSA_TRACE_INFO* ppTraceFlag
+    );
+
+DWORD
 LsaAddGroup(
     HANDLE hLsaConnection,
     PVOID  pGroupInfo,
@@ -799,6 +904,7 @@ DWORD
 LsaGetGroupsForUserById(
     HANDLE  hLsaConnection,
     uid_t   uid,
+    LSA_FIND_FLAGS FindFlags,
     DWORD   dwGroupInfoLevel,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
@@ -808,6 +914,7 @@ DWORD
 LsaFindGroupByName(
     HANDLE hLsaConnection,
     PCSTR  pszGroupName,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwGroupInfoLevel,
     PVOID* ppGroupInfo
     );
@@ -816,6 +923,7 @@ DWORD
 LsaFindGroupById(
     HANDLE hLsaConnection,
     gid_t  gid,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwGroupInfoLevel,
     PVOID* ppGroupInfo
     );
@@ -918,10 +1026,11 @@ LsaFindUserById(
 
 DWORD
 LsaGetNamesBySidList(
-    HANDLE          hLsaConnection,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PLSA_SID_INFO*  ppSIDInfoList
+    IN HANDLE hLsaConnection,
+    IN size_t sCount,
+    IN PSTR* ppszSidList,
+    OUT PLSA_SID_INFO* ppSIDInfoList,
+    OUT OPTIONAL CHAR *pchDomainSeparator
     );
 
 VOID
@@ -976,6 +1085,13 @@ LsaAuthenticateUser(
     PCSTR  pszLoginName,
     PCSTR  pszPassword
     );
+
+DWORD
+LsaAuthenticateUserEx(
+	HANDLE hLsaConnection,
+	LSA_AUTH_USER_PARAMS *pParams,
+	LSA_AUTH_USER_INFO *pUserInfo
+	);
 
 DWORD
 LsaValidateUser(
@@ -1056,5 +1172,43 @@ LsaGetErrorMessageForLoggingEvent(
     DWORD dwError,
     PSTR* ppszErrorMsg
     );
+
+
+/*
+ * LSA_DATA_BLOB access functions and methods
+ */
+
+DWORD
+LsaDataBlobAllocate(
+	PLSA_DATA_BLOB *ppBlob,
+	DWORD dwSize
+	);
+DWORD
+LsaDataBlobFree(
+	PLSA_DATA_BLOB *ppBlob
+	);
+
+DWORD
+LsaDataBlobStore(
+	PLSA_DATA_BLOB *ppBlob,
+	DWORD dwSize,
+	const PBYTE pBuffer
+	);
+
+DWORD
+LsaDataBlobCopy(
+	PLSA_DATA_BLOB *ppDst,
+	PLSA_DATA_BLOB pSrc
+	);
+
+DWORD
+LsaDataBlobLength(
+	PLSA_DATA_BLOB pBlob
+	);
+
+PBYTE
+LsaDataBlobBuffer(
+	PLSA_DATA_BLOB pBlob
+	);
 
 #endif /* __LSA_H__ */

@@ -932,6 +932,7 @@ LsaFindNumberOfMembers(
 DWORD
 LsaMarshalFindGroupByNameQuery(
     PCSTR  pszGroupName,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwInfoLevel,
     PSTR   pszBuffer,
     PDWORD pdwBufLen
@@ -954,7 +955,8 @@ LsaMarshalFindGroupByNameQuery(
         dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
+    header.FindFlags = FindFlags;
     header.dwInfoLevel = dwInfoLevel;
     
     if (!IsNullOrEmptyString(pszGroupName)) {
@@ -988,6 +990,7 @@ LsaUnmarshalFindGroupByNameQuery(
     PCSTR pszMsgBuf,
     DWORD dwMsgLen,
     PSTR* ppszGroupName,
+    PLSA_FIND_FLAGS pFindFlags,
     PDWORD pdwInfoLevel
     )
 {
@@ -1008,6 +1011,7 @@ LsaUnmarshalFindGroupByNameQuery(
     }
     
     *ppszGroupName = pszGroupName;
+    *pFindFlags = header.FindFlags;
     *pdwInfoLevel = header.dwInfoLevel;
     
 cleanup:
@@ -1017,6 +1021,7 @@ cleanup:
 error:
 
     *ppszGroupName = NULL;
+    *pFindFlags = 0;
     *pdwInfoLevel = 0;
     
     LSA_SAFE_FREE_STRING(pszGroupName);
@@ -1027,6 +1032,7 @@ error:
 DWORD
 LsaMarshalFindGroupByIdQuery(
     gid_t  gid,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwInfoLevel,
     PSTR   pszBuffer,
     PDWORD pdwBufLen
@@ -1050,6 +1056,7 @@ LsaMarshalFindGroupByIdQuery(
         BAIL_ON_LSA_ERROR(dwError);
     }
     
+    header.FindFlags = FindFlags;
     header.dwInfoLevel = dwInfoLevel;
     header.id = gid;
     
@@ -1078,6 +1085,7 @@ LsaUnmarshalFindGroupByIdQuery(
     PCSTR  pszMsgBuf,
     DWORD  dwMsgLen,
     gid_t* pGid,
+    PLSA_FIND_FLAGS pFindFlags,
     PDWORD pdwInfoLevel
     )
 {
@@ -1092,6 +1100,7 @@ LsaUnmarshalFindGroupByIdQuery(
     memcpy(&header, pszMsgBuf, sizeof(header));
     
     *pGid = header.id;
+    *pFindFlags = header.FindFlags;
     *pdwInfoLevel = header.dwInfoLevel;
     
 cleanup:
@@ -1101,6 +1110,7 @@ cleanup:
 error:
 
     *pGid = 0;
+    *pFindFlags = 0;
     *pdwInfoLevel = 0;
 
     goto cleanup;
@@ -1167,6 +1177,7 @@ error:
 DWORD
 LsaMarshalGetGroupsForUserQuery(
     uid_t  uid,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwInfoLevel,
     PSTR   pszBuffer,
     PDWORD pdwBufLen
@@ -1190,6 +1201,7 @@ LsaMarshalGetGroupsForUserQuery(
         BAIL_ON_LSA_ERROR(dwError);
     }
     
+    header.FindFlags = FindFlags;
     header.dwInfoLevel = dwInfoLevel;
     header.id = uid;
     
@@ -1219,6 +1231,7 @@ LsaUnmarshalGetGroupsForUserQuery(
     PCSTR  pszMsgBuf,
     DWORD  dwMsgLen,
     uid_t* pUid,
+    PLSA_FIND_FLAGS pFindFlags,
     PDWORD pdwInfoLevel
     )
 {
@@ -1233,6 +1246,7 @@ LsaUnmarshalGetGroupsForUserQuery(
     memcpy(&header, pszMsgBuf, sizeof(header));
     
     *pUid = header.id;
+    *pFindFlags = header.FindFlags;
     *pdwInfoLevel = header.dwInfoLevel;
     
 cleanup:
@@ -1242,6 +1256,7 @@ cleanup:
 error:
 
     *pUid = 0;
+    *pFindFlags = 0;
     *pdwInfoLevel = 0;
 
     goto cleanup;

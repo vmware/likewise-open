@@ -38,6 +38,8 @@
 static PSTR pszChkConfigPath = "/sbin/chkconfig";
 static PSTR pszUpdateRcDFilePath = "/usr/sbin/update-rc.d";
 
+#define DAEMON_BINARY_SEARCH_PATH "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/opt/dce/sbin:/usr/sbin:/usr/bin:/sbin:/bin:" BINDIR ":" SBINDIR
+
 CENTERROR
 GetInitScriptDir(PSTR *store)
 {
@@ -93,6 +95,13 @@ DJGetDaemonStatus(
     {
         status = 1;
     }
+    else if(!strcmp(prefixedPath, "/sbin/init.d/Rpcd"))
+    {
+        /* HP-UX has this script. When it is run with the status option, it
+         * prints out the usage info and leaves with exit code 0.
+         */
+        status = 1;
+    }
     else
     {
         LW_CLEANUP_CTERR(exc, CTShell("%script status >/dev/null 2>&1; echo $? >%statusBuffer",
@@ -126,19 +135,35 @@ DJGetDaemonStatus(
         pid_t daemonPid;
         const char *daemonBaseName = strrchr(pszDaemonName, '/');
         if(daemonBaseName == NULL)
+        {
             daemonBaseName = pszDaemonName;
+        }
+        else
+        {
+            daemonBaseName++;
+        }
 
         DJ_LOG_VERBOSE("Looking for %s", daemonBaseName);
         if(!strcmp(daemonBaseName, "likewise-open"))
             daemonBaseName = "likewise-winbindd";
 
-        ceError = CTFindFileInPath(daemonBaseName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:" BINDIR ":" SBINDIR, &daemonPath);
+        ceError = CTFindFileInPath(daemonBaseName,
+                DAEMON_BINARY_SEARCH_PATH, &daemonPath);
+        if(ceError == CENTERROR_FILE_NOT_FOUND)
+        {
+            CT_SAFE_FREE_STRING(altDaemonName);
+            LW_CLEANUP_CTERR(exc, CTStrdup(daemonBaseName, &altDaemonName));
+            CTStrToLower(altDaemonName);
+            ceError = CTFindFileInPath(altDaemonName,
+                    DAEMON_BINARY_SEARCH_PATH, &daemonPath);
+        }
         if(ceError == CENTERROR_FILE_NOT_FOUND)
         {
             CT_SAFE_FREE_STRING(altDaemonName);
             LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&altDaemonName,
                     "%sd", daemonBaseName));
-            ceError = CTFindFileInPath(altDaemonName, "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/usr/sbin:/usr/bin:/sbin:/bin:" BINDIR ":" SBINDIR, &daemonPath);
+            ceError = CTFindFileInPath(altDaemonName,
+                    DAEMON_BINARY_SEARCH_PATH, &daemonPath);
         }
         if(ceError == CENTERROR_FILE_NOT_FOUND)
         {
@@ -181,33 +206,49 @@ static void FindDaemonScript(PCSTR name, PSTR *path, LWException **exc)
     PSTR altName = NULL;
     CENTERROR ceError;
     const char *searchPath = "/etc/init.d:/etc/rc.d/init.d:/sbin/init.d:/etc/rc.d";
+    BOOLEAN fileExists = FALSE;
 
     *path = NULL;
 
-    ceError = CTFindFileInPath(name, searchPath, path);
-    if(ceError == CENTERROR_FILE_NOT_FOUND)
+    if (name[0] == '/')
     {
-        CT_SAFE_FREE_STRING(altName);
-        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&altName,
-                    "%s.rc", name));
-        ceError = CTFindFileInPath(altName, searchPath, path);
+        LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(name, &fileExists));
+        if (!fileExists)
+        {
+            LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON,
+                    "Unable to find daemon",
+                    "The '%s' daemon could not be found.",
+                    name);
+        }
+        LW_CLEANUP_CTERR(exc, CTAllocateString(name, path));
     }
-    if(ceError == CENTERROR_FILE_NOT_FOUND && !strcmp(name, "dtlogin"))
+    else
     {
-        CT_SAFE_FREE_STRING(altName);
-        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&altName,
-                    "rc.dt"));
-        ceError = CTFindFileInPath(altName, searchPath, path);
+        ceError = CTFindFileInPath(name, searchPath, path);
+        if(ceError == CENTERROR_FILE_NOT_FOUND)
+        {
+            CT_SAFE_FREE_STRING(altName);
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&altName,
+                        "%s.rc", name));
+            ceError = CTFindFileInPath(altName, searchPath, path);
+        }
+        if(ceError == CENTERROR_FILE_NOT_FOUND && !strcmp(name, "dtlogin"))
+        {
+            CT_SAFE_FREE_STRING(altName);
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&altName,
+                        "rc.dt"));
+            ceError = CTFindFileInPath(altName, searchPath, path);
+        }
+        if(ceError == CENTERROR_FILE_NOT_FOUND)
+        {
+            LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON,
+                    "Unable to find daemon",
+                    "The '%s' daemon could not be found in the search path '%s'. It could not be found with the alternative name '%s' either.",
+                    name, searchPath, altName);
+            goto cleanup;
+        }
+        LW_CLEANUP_CTERR(exc, ceError);
     }
-    if(ceError == CENTERROR_FILE_NOT_FOUND)
-    {
-        LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_MISSING_DAEMON,
-                "Unable to find daemon",
-                "The '%s' daemon could not be found in the serach path '%s'. It could not be found with the alternative name '%s' either.",
-                name, searchPath, altName);
-        goto cleanup;
-    }
-    LW_CLEANUP_CTERR(exc, ceError);
 
 cleanup:
     CT_SAFE_FREE_STRING(altName);
@@ -457,6 +498,63 @@ error:
 }
 
 void
+DJOverwriteSymlink(
+    PCSTR symlinkTarget,
+    PCSTR symlinkName,
+    LWException **exc
+    )
+{
+    BOOLEAN bFileExists = FALSE;
+
+    DJ_LOG_INFO("Creating symlink [%s] -> [%s]", symlinkName, symlinkTarget);
+    LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(symlinkName, &bFileExists));
+    if (bFileExists)
+    {
+        LW_CLEANUP_CTERR(exc, CTRemoveFile(symlinkName));
+    }
+    LW_CLEANUP_CTERR(exc, CTCreateSymLink(symlinkTarget,
+                symlinkName));
+cleanup:
+    ;
+}
+
+void
+DJRemoveDaemonLinksInDirectories(
+    PCSTR *directories,
+    PCSTR daemonName,
+    LWException **exc
+    )
+{
+    PSTR searchExpression = NULL;
+    PSTR *matchingPaths = NULL;
+    int i, j;
+    DWORD matchCount = 0;
+
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&searchExpression,
+            "^.*%s$", daemonName));
+
+    for(i = 0; directories[i] != NULL; i++)
+    {
+        LW_CLEANUP_CTERR(exc, CTGetMatchingFilePathsInFolder(
+            directories[i], searchExpression, &matchingPaths,
+            &matchCount));
+        for(j = 0; j < matchCount; j++)
+        {
+            DJ_LOG_INFO("Removing init script symlink [%s]",
+                    matchingPaths[j]);
+            LW_CLEANUP_CTERR(exc, CTRemoveFile(matchingPaths[j]));
+        }
+        //CTFreeStringArray will ignore matchingPaths if it is NULL
+        CTFreeStringArray(matchingPaths, matchCount);
+        matchingPaths = NULL;
+    }
+
+cleanup:
+    CTFreeStringArray(matchingPaths, matchCount);
+    CT_SAFE_FREE_STRING(searchExpression);
+}
+
+void
 DJConfigureForDaemonRestart(
     PCSTR pszDaemonName,
     BOOLEAN bStatus,
@@ -467,9 +565,6 @@ DJConfigureForDaemonRestart(
 {
     BOOLEAN bFileExists = FALSE;
     DistroInfo distro;
-    PSTR searchExpression = NULL;
-    PSTR *matchingPaths = NULL;
-    DWORD matchCount;
     PSTR symlinkTarget = NULL;
     PSTR symlinkName = NULL;
 
@@ -533,29 +628,15 @@ DJConfigureForDaemonRestart(
                         &symlinkTarget, &LW_EXC));
             LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
                     "/etc/rc.d/rc2.d/K%02d%s", stopPriority, pszDaemonName));
-            DJ_LOG_INFO("Creating symlink [%s] -> [%s]", symlinkName, symlinkTarget);
-            LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(symlinkName, &bFileExists));
-            if (bFileExists)
-            {
-                LW_CLEANUP_CTERR(exc, CTRemoveFile(symlinkName));
-            }
-            LW_CLEANUP_CTERR(exc, CTCreateSymLink(symlinkTarget,
-                        symlinkName));
+            LW_TRY(exc, DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
             CT_SAFE_FREE_STRING(symlinkName);
+
             LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
                     "/etc/rc.d/rc2.d/S%02d%s", startPriority, pszDaemonName));
-            DJ_LOG_INFO("Creating symlink [%s] -> [%s]", symlinkName, symlinkTarget);
-            LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(symlinkName, &bFileExists));
-            if (bFileExists)
-            {
-                LW_CLEANUP_CTERR(exc, CTRemoveFile(symlinkName));
-            }
-            LW_CLEANUP_CTERR(exc, CTCreateSymLink(symlinkTarget,
-                        symlinkName));
+            LW_TRY(exc, DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
         }
         else
         {
-            /* Remove any symlinks to the daemon if they exist */
             PCSTR directories[] = {
                 "/etc/rc.d/rc2.d",
                 "/etc/rc.d/rc3.d",
@@ -566,34 +647,61 @@ DJConfigureForDaemonRestart(
                 "/etc/rc.d/rc8.d",
                 "/etc/rc.d/rc9.d",
                 NULL };
-            int i, j;
+            LW_TRY(exc, DJRemoveDaemonLinksInDirectories(
+                        directories, pszDaemonName, &LW_EXC));
+        }
+    }
+    else if(distro.os == OS_HPUX)
+    {
+        /* On HP-UX, in order for a daemon to start in multi-user mode,
+         * a start symlink must be put in /sbin/rc2.d, and a stop symlink
+         * must be put in /sbin/rc1.d
+         */
+        if(bStatus)
+        {
+            PCSTR relativeName = strrchr(pszDaemonName, '/');
 
-            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&searchExpression,
-                    "^.*%s$", pszDaemonName));
-            for(i = 0; directories[i] != NULL; i++)
+            if (relativeName == NULL)
             {
-                LW_CLEANUP_CTERR(exc, CTGetMatchingFilePathsInFolder(
-                    directories[i], searchExpression, &matchingPaths,
-                    &matchCount));
-                for(j = 0; j < matchCount; j++)
-                {
-                    DJ_LOG_INFO("Removing init script symlink [%s]",
-                            matchingPaths[j]);
-                    LW_CLEANUP_CTERR(exc, CTRemoveFile(matchingPaths[j]));
-                }
-                //CTFreeStringArray will ignore matchingPaths if it is NULL
-                CTFreeStringArray(matchingPaths, matchCount);
-                matchingPaths = NULL;
+                relativeName = pszDaemonName;
             }
+            else
+            {
+                relativeName++;
+            }
+
+            LW_TRY(exc, FindDaemonScript(pszDaemonName,
+                        &symlinkTarget, &LW_EXC));
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
+                    "/sbin/rc1.d/K%02d%s", stopPriority, relativeName));
+            LW_TRY(exc,
+                    DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
+            CT_SAFE_FREE_STRING(symlinkName);
+
+            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
+                    "/sbin/rc2.d/S%02d%s", startPriority, relativeName));
+            LW_TRY(exc,
+                    DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
+        }
+        else
+        {
+            /* Remove any symlinks to the daemon if they exist */
+            PCSTR directories[] = {
+                "/sbin/rc0.d",
+                "/sbin/rc1.d",
+                "/sbin/rc2.d",
+                "/sbin/rc3.d",
+                "/sbin/rc4.d",
+                NULL };
+            LW_TRY(exc, DJRemoveDaemonLinksInDirectories(
+                        directories, pszDaemonName, &LW_EXC));
         }
     }
 
 done:
 cleanup:
-    CT_SAFE_FREE_STRING(searchExpression);
     CT_SAFE_FREE_STRING(symlinkTarget);
     CT_SAFE_FREE_STRING(symlinkName);
-    CTFreeStringArray(matchingPaths, matchCount);
 }
 
 void
@@ -674,10 +782,6 @@ cleanup:
 }
 
 struct _DaemonList daemonList[] = {    
-#if !defined(__LWI_HP_UX__)
-    { "dcerpcd", {NULL}, FALSE, 91, 12 },
-#endif /* __LWI_HP_UX__ */
-    { "eventlogd", {NULL}, FALSE, 92, 11 },
     { "lsassd", {"likewise-open", NULL}, TRUE, 93, 10 },
     { "gpagentd", {NULL}, FALSE, 94, 9 },
     { "lwmgmtd", {NULL}, FALSE, 95, 8 },

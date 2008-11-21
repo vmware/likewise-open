@@ -207,3 +207,338 @@ LsaGetCredentialBufferLength(
     
     return dwError;
 }
+
+
+/***********************************************************************
+ */
+
+static DWORD
+IpcParseAuthParamClear(
+	LsaMarshallType Action,
+	PBYTE pBuffer,
+	DWORD dwBufLen,
+	PLSA_AUTH_CLEARTEXT_PARAM pClearParams,
+	PDWORD pdwNeeded
+	)
+{
+	DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
+	DWORD dwOffset = 0;
+	DWORD dwNeeded = 0;
+
+	/* Just the password */
+
+	dwError = IpcParseString(Action, 
+				 SAFE_BUFFER_OFFSET(pBuffer, dwOffset),
+				 SAFE_BUFFER_LENGTH(pBuffer, dwBufLen, dwOffset),
+				 &pClearParams->pszPassword,
+				 &dwNeeded);
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded;	
+
+cleanup:
+	*pdwNeeded = dwOffset;
+
+	return dwError;
+	
+error:
+	goto cleanup;	
+}
+
+/***********************************************************************
+ */
+
+static DWORD
+IpcParseAuthParamChap(
+	LsaMarshallType Action,
+	PBYTE pBuffer,
+	DWORD dwBufLen,
+	PLSA_AUTH_CHAP_PARAM pChapParams,
+	PDWORD pdwNeeded
+	)
+{
+	DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
+	DWORD dwOffset = 0;
+	DWORD dwNeeded = 0;
+
+	/* Challenge */
+
+	dwError = IpcParseDataBlob(Action, 
+				   SAFE_BUFFER_OFFSET(pBuffer, dwOffset),
+				   SAFE_BUFFER_LENGTH(pBuffer, dwBufLen, dwOffset),
+				   &pChapParams->pChallenge,
+				   &dwNeeded);
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded;	
+
+	/* NT Response */
+
+	dwError = IpcParseDataBlob(Action, 
+				   SAFE_BUFFER_OFFSET(pBuffer, dwOffset),
+				   SAFE_BUFFER_LENGTH(pBuffer, dwBufLen, dwOffset),
+				   &pChapParams->pNT_resp,
+				   &dwNeeded);
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded;	
+
+	/* Lanman Response */
+
+	dwError = IpcParseDataBlob(Action, 
+				   SAFE_BUFFER_OFFSET(pBuffer, dwOffset),
+				   SAFE_BUFFER_LENGTH(pBuffer, dwBufLen, dwOffset),
+				   &pChapParams->pLM_resp,
+				   &dwNeeded);
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded;	
+
+cleanup:
+	*pdwNeeded = dwOffset;
+	
+	return dwError;
+	
+error:
+	goto cleanup;	
+	
+}
+
+
+/***********************************************************************
+ */
+
+static DWORD
+LsaQMarshallAuthenticateUserEx(
+	LsaMarshallType Action,
+	LSA_AUTH_USER_PARAMS *pParams,
+	PBYTE pszBuffer,
+	DWORD dwBufLen,
+	PDWORD pdwNeeded
+	)
+{
+	DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
+	DWORD dwOffset = 0;
+	DWORD dwNeeded = 0;
+
+	BAIL_ON_INVALID_POINTER(pParams);
+
+	dwError = IpcParseDword(Action, 
+				SAFE_BUFFER_OFFSET(pszBuffer, dwOffset),
+				SAFE_BUFFER_LENGTH(pszBuffer, dwBufLen, dwOffset),
+				(PDWORD)&pParams->AuthType,
+				&dwNeeded);
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded;	
+	
+	dwError = IpcParseString(Action, 
+				 SAFE_BUFFER_OFFSET(pszBuffer, dwOffset),
+				 SAFE_BUFFER_LENGTH(pszBuffer, dwBufLen, dwOffset),
+				 &pParams->pszAccountName,
+				 &dwNeeded);
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded;	
+
+	dwError = IpcParseString(Action, 
+				 SAFE_BUFFER_OFFSET(pszBuffer, dwOffset),
+				 SAFE_BUFFER_LENGTH(pszBuffer, dwBufLen, dwOffset),
+				 &pParams->pszDomain,
+				 &dwNeeded);
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded;	
+
+	dwError = IpcParseString(Action, 
+				 SAFE_BUFFER_OFFSET(pszBuffer, dwOffset),
+				 SAFE_BUFFER_LENGTH(pszBuffer, dwBufLen, dwOffset),
+				 &pParams->pszWorkstation,
+				 &dwNeeded);
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded; 
+	
+	switch (pParams->AuthType)
+	{
+	case LSA_AUTH_PLAINTEXT:
+		dwError = IpcParseAuthParamClear(Action,
+						 SAFE_BUFFER_OFFSET(pszBuffer, dwOffset),
+						 SAFE_BUFFER_LENGTH(pszBuffer, dwBufLen, dwOffset),
+						 &pParams->pass.clear,
+						 &dwNeeded);		
+			break;
+	case LSA_AUTH_CHAP:
+		dwError = IpcParseAuthParamChap(Action,
+						SAFE_BUFFER_OFFSET(pszBuffer, dwOffset),
+						SAFE_BUFFER_LENGTH(pszBuffer, dwBufLen, dwOffset),
+						&pParams->pass.chap,
+						&dwNeeded);
+		break;
+	default:
+		dwError = LSA_ERROR_INVALID_PARAMETER;
+		break;		
+	}	
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwOffset += dwNeeded;	
+
+cleanup:
+	*pdwNeeded = dwOffset;
+	
+	return dwError;
+    
+error:
+	goto cleanup;
+}
+
+DWORD
+LsaMarshallAuthenticateUserExQuery(
+        PLSAMESSAGE *ppMessage,
+	LSA_AUTH_USER_PARAMS *pParms
+	)
+{
+	DWORD dwError = LSA_ERROR_INTERNAL;
+	DWORD dwMsgLen = 0;
+	DWORD dwNeeded = 0;	
+
+	dwError = LsaQMarshallAuthenticateUserEx(
+		LSA_MARSHALL_DATA,
+		pParms,
+		NULL,
+		dwMsgLen,
+		&dwNeeded);
+	/* We expect INSUFFICIENT_BUFFER error here */
+	BAIL_ON_LSA_PARSE_ERROR(dwError);
+
+	dwMsgLen = dwNeeded;
+	
+	dwError = LsaBuildMessage(
+		LSA_Q_AUTH_USER_EX,
+		dwMsgLen,
+		1,
+		1,
+		ppMessage);
+	BAIL_ON_LSA_ERROR(dwError);
+	
+	dwError = LsaQMarshallAuthenticateUserEx(
+		LSA_MARSHALL_DATA,
+		pParms,
+		(PBYTE)(*ppMessage)->pData,
+		dwMsgLen,
+		&dwNeeded);
+	BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+	return dwError;
+	
+error:
+	goto cleanup;
+}
+
+DWORD
+LsaUnmarshallAuthenticateUserExQuery(
+	PSTR   pszBuffer,
+	PDWORD pdwBufLen,
+	LSA_AUTH_USER_PARAMS *pParms
+	)
+{
+	DWORD dwNeeded = 0;
+	
+	return LsaQMarshallAuthenticateUserEx(
+		LSA_UNMARSHALL_DATA,
+		pParms,
+		(PBYTE)pszBuffer,
+		*pdwBufLen,
+		&dwNeeded);	
+}
+
+static DWORD
+LsaRMarshallAuthenticateUserEx(
+	LsaMarshallType Action,
+	LSA_AUTH_USER_INFO *pUserInfo,
+	PBYTE pszBuffer,
+	DWORD dwBufLen,
+	PDWORD pdwNeeded
+	)
+{
+	DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
+
+	switch (Action)
+	{
+	case LSA_MARSHALL_DATA:
+		break;
+		
+	case LSA_UNMARSHALL_DATA:
+		break;
+
+	default:
+		dwError = LSA_ERROR_INVALID_PARAMETER;
+		BAIL_ON_LSA_ERROR(dwError);
+		break;		
+	}
+
+cleanup:
+    return dwError;
+    
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaMarshallAuthenticateUserExReply(
+        PLSAMESSAGE *ppMessage,
+	LSA_AUTH_USER_INFO *pUserInfo
+	)
+{
+	DWORD dwError = LSA_ERROR_INTERNAL;
+	DWORD dwMsgLen = 0;
+	DWORD dwNeeded = 0;	
+	
+	dwError = LsaRMarshallAuthenticateUserEx(
+		LSA_MARSHALL_DATA,
+		pUserInfo,
+		NULL,
+		dwMsgLen,
+		&dwNeeded);
+	BAIL_ON_LSA_ERROR(dwError);
+	
+	dwError = LsaBuildMessage(
+		LSA_R_AUTH_USER_EX,
+		dwMsgLen,
+		1,
+		1,
+		ppMessage);
+	BAIL_ON_LSA_ERROR(dwError);
+	
+	dwError = LsaRMarshallAuthenticateUserEx(
+		LSA_MARSHALL_DATA,
+		pUserInfo,
+		(PBYTE)(*ppMessage)->pData,
+		dwMsgLen,
+		&dwNeeded);
+	BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+	return dwError;
+	
+error:
+	goto cleanup;
+}
+
+DWORD
+LsaUnmarshallAuthenticateUserExReply(
+	PCSTR pszMsgBuf,
+	PDWORD pdwMsgLen,
+	LSA_AUTH_USER_INFO *pUserInfo
+	)
+{
+	DWORD dwNeeded = 0;
+
+	return LsaRMarshallAuthenticateUserEx(
+		LSA_UNMARSHALL_DATA,
+		pUserInfo,
+		(PBYTE)pszMsgBuf,
+		*pdwMsgLen,
+		&dwNeeded);	
+}

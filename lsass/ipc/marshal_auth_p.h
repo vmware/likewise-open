@@ -73,4 +73,35 @@ LsaGetCredentialBufferLength(
     PDWORD pdwBufLen
     );
 
+/*
+ * LsaAuthenticateUserEx() parsing routines 
+ */
+
+DWORD
+LsaMarshallAuthenticateUserExQuery(
+        PLSAMESSAGE *ppMessage,
+	LSA_AUTH_USER_PARAMS *pParms
+	);
+
+DWORD
+LsaUnmarshallAuthenticateUserExQuery(
+	PSTR   pszBuffer,
+	PDWORD pdwBufLen,
+	LSA_AUTH_USER_PARAMS *pParms
+	);
+
+DWORD
+LsaMarshallAuthenticateUserExReply(
+        PLSAMESSAGE *ppMessage,
+	LSA_AUTH_USER_INFO *pUserInfo
+	);
+
+DWORD
+LsaUnmarshallAuthenticateUserExReply(
+	PCSTR pszMsgBuf,
+	PDWORD pdwMsgLen,
+	LSA_AUTH_USER_INFO *pUserInfo
+	);
+
+
 #endif /* __MARSHAL_AUTH_P_H__ */

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Group Lookup and Management (Server)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -48,32 +48,37 @@
 
 DWORD
 LsaSrvFindGroupByName(
-    HANDLE hServer,
-    PCSTR  pszGroup,
-    DWORD  dwGroupInfoLevel,
-    PVOID* ppGroupInfo
+    IN HANDLE hServer,
+    IN PCSTR pszGroup,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_AUTH_PROVIDER pProvider = NULL;
     BOOLEAN bInLock = FALSE;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     dwError = LsaValidateGroupName(pszGroup);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnLookupGroupByName(
                                             hProvider,
                                             pszGroup,
+                                            FindFlags,
                                             dwGroupInfoLevel,
                                             ppGroupInfo);
         if (!dwError) {
@@ -89,7 +94,7 @@ LsaSrvFindGroupByName(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -97,7 +102,7 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     if (!dwError)
     {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulGroupLookupsByName);
@@ -106,7 +111,9 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedGroupLookupsByName);
     }
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
@@ -114,35 +121,40 @@ error:
     LSA_LOG_ERROR("Failed to find group by name [%s]", IsNullOrEmptyString(pszGroup) ? "" : pszGroup);
 
     *ppGroupInfo = NULL;
-    
+
     goto cleanup;
 }
 
 DWORD
 LsaSrvFindGroupById(
-    HANDLE hServer,
-    gid_t  gid,
-    DWORD  dwGroupInfoLevel,
-    PVOID* ppGroupInfo
+    IN HANDLE hServer,
+    IN gid_t gid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     BOOLEAN bInLock = FALSE;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnLookupGroupById(
                                             hProvider,
                                             gid,
+                                            FindFlags,
                                             dwGroupInfoLevel,
                                             ppGroupInfo);
         if (!dwError) {
@@ -158,7 +170,7 @@ LsaSrvFindGroupById(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -166,7 +178,7 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     if (!dwError)
     {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulGroupLookupsById);
@@ -175,6 +187,8 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedGroupLookupsById);
     }
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     return(dwError);
 
@@ -189,29 +203,33 @@ error:
 
 DWORD
 LsaSrvGetGroupsForUser(
-    HANDLE hServer,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+    IN HANDLE hServer,
+    IN uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsFound,
+    OUT PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     BOOLEAN bInLock = FALSE;
 
     *pdwGroupsFound = 0;
     *pppGroupInfoList = NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         if (pProvider->pFnTable->pfnGetGroupsForUser == NULL)
             dwError = LSA_ERROR_NOT_HANDLED;
         else
@@ -219,6 +237,7 @@ LsaSrvGetGroupsForUser(
             dwError = pProvider->pFnTable->pfnGetGroupsForUser(
                                                 hProvider,
                                                 uid,
+                                                FindFlags,
                                                 dwGroupInfoLevel,
                                                 pdwGroupsFound,
                                                 pppGroupInfoList);
@@ -234,7 +253,7 @@ LsaSrvGetGroupsForUser(
         LsaSrvCloseProvider(pProvider, hProvider);
         hProvider = (HANDLE)NULL;
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -242,6 +261,8 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     return(dwError);
 
@@ -263,39 +284,42 @@ LsaSrvAddGroup(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
     PLSA_GROUP_INFO_1 pGroup = NULL;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     BOOLEAN bInLock = FALSE;
     HANDLE hProvider = (HANDLE)NULL;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     if (pServerState->peerUID)
     {
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (dwGroupInfoLevel != 1) {
         dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaValidateGroupInfo(
                     pGroupInfo,
                     dwGroupInfoLevel);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     pGroup = (PLSA_GROUP_INFO_1)pGroupInfo;
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnAddGroup(
                                         hProvider,
                                         dwGroupInfoLevel,
@@ -312,7 +336,7 @@ LsaSrvAddGroup(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -320,11 +344,13 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
-    
+
     goto cleanup;
 }
 
@@ -335,26 +361,29 @@ LsaSrvDeleteGroup(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     BOOLEAN bInLock = FALSE;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     if (pServerState->peerUID)
     {
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
     dwError = LSA_ERROR_NOT_HANDLED;
-    
+
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = pProvider->pFnTable->pfnDeleteGroup(hProvider, gid);
         if (!dwError) {
             break;
@@ -369,7 +398,7 @@ LsaSrvDeleteGroup(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (hProvider != (HANDLE)NULL) {
@@ -377,11 +406,13 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
-    
+
     goto cleanup;
 }
 
@@ -394,25 +425,30 @@ LsaSrvBeginEnumGroups(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PSTR pszGUID = NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     dwError = LsaSrvAddGroupEnumState(
                     hServer,
                     dwGroupInfoLevel,
                     dwMaxNumGroups,
                     &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateString(pEnumState->pszGUID, &pszGUID);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppszGUID = pszGUID;
-    
+
 cleanup:
 
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return dwError;
-    
+
 error:
 
     *ppszGUID = NULL;
@@ -430,6 +466,7 @@ LsaSrvEnumGroups(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PVOID* ppGroupInfoList_accumulate = NULL;
     DWORD  dwTotalNumGroupsFound = 0;
@@ -437,16 +474,18 @@ LsaSrvEnumGroups(
     DWORD  dwNumGroupsFound = 0;
     DWORD  dwNumGroupsRemaining = 0;
     DWORD  dwGroupInfoLevel = 0;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     pEnumState = LsaSrvFindGroupEnumState(hServer, pszGUID);
     if (!pEnumState) {
         dwError = LSA_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwGroupInfoLevel = pEnumState->dwInfoLevel;
     dwNumGroupsRemaining = pEnumState->dwNumMaxRecords;
-    
+
     while (dwNumGroupsRemaining &&
            pEnumState->pCurProviderState)
     {
@@ -456,31 +495,31 @@ LsaSrvEnumGroups(
         HANDLE hResume = pProviderState->hResume;
 
         dwNumGroupsFound = 0;
-        
-        
+
+
         dwError = pProvider->pFnTable->pfnEnumGroups(
                         hProvider,
                         hResume,
                         dwNumGroupsRemaining,
                         &dwNumGroupsFound,
                         &ppGroupInfoList);
-                       
-        
+
+
         if (dwError) {
            if (dwError != LSA_ERROR_NO_MORE_GROUPS) {
               BAIL_ON_LSA_ERROR(dwError);
            }
         }
-        
-        dwNumGroupsRemaining -= dwNumGroupsFound;        
-        
+
+        dwNumGroupsRemaining -= dwNumGroupsFound;
+
         if (dwNumGroupsRemaining) {
            pEnumState->pCurProviderState = pEnumState->pCurProviderState->pNext;
-           if (dwError == LSA_ERROR_NO_MORE_GROUPS){ 
-             dwError = 0;           
+           if (dwError == LSA_ERROR_NO_MORE_GROUPS){
+             dwError = 0;
            }
         }
-        
+
         dwError = LsaCoalesceGroupInfoList(
                         &ppGroupInfoList,
                         &dwNumGroupsFound,
@@ -488,26 +527,28 @@ LsaSrvEnumGroups(
                         &dwTotalNumGroupsFound);
         BAIL_ON_LSA_ERROR(dwError);
     }
-   
+
     *pdwGroupInfoLevel = dwGroupInfoLevel;
     *pppGroupInfoList = ppGroupInfoList_accumulate;
     *pdwNumGroupsFound = dwTotalNumGroupsFound;
-    
+
 cleanup:
-    
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
-    
+
     *pdwGroupInfoLevel = 0;
     *pppGroupInfoList = NULL;
     *pdwNumGroupsFound = 0;
-    
-    
+
+
     if (ppGroupInfoList) {
         LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
     }
-    
+
     if (ppGroupInfoList_accumulate) {
         LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList_accumulate, dwTotalNumGroupsFound);
     }
@@ -522,9 +563,12 @@ LsaSrvEndEnumGroups(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
-    
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     pEnumState = LsaSrvFindGroupEnumState(hServer, pszGUID);
     if (!pEnumState) {
         dwError = LSA_ERROR_INTERNAL;
@@ -543,15 +587,17 @@ LsaSrvEndEnumGroups(
                                        pszGUID);
         }
     }
-        
+
     LsaSrvFreeGroupEnumState(
                         hServer,
                         pszGUID);
 
 cleanup:
 
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return dwError;
-    
+
 error:
 
     goto cleanup;

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        LDAP API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -99,7 +99,7 @@ LsaLdapOpenDirectoryServer(
     IN PCSTR pszServerAddress,
     IN PCSTR pszServerName,
     IN DWORD dwFlags,
-    OUT PHANDLE phDirectory    
+    OUT PHANDLE phDirectory
     );
 
 DWORD
@@ -146,12 +146,13 @@ LsaLdapDirectorySearch(
 DWORD
 LsaLdapDirectorySearchEx(
     HANDLE hDirectory,
-    PCSTR  pszObjectDN,
-    int    scope,
-    PCSTR  pszQuery,
-    PSTR * ppszAttributeList,
-    DWORD  dwNumMaxEntries,
-    LDAPMessage **ppMessage
+    PCSTR pszObjectDN,
+    int scope,
+    PCSTR pszQuery,
+    PSTR* ppszAttributeList,
+    LDAPControl** ppServerControls,
+    DWORD dwNumMaxEntries,
+    LDAPMessage** ppMessage
     );
 
 DWORD
@@ -170,7 +171,7 @@ LsaLdapDirectoryOnePagedSearch(
     PCSTR          pszObjectDN,
     PCSTR          pszQuery,
     PSTR*          ppszAttributeList,
-    DWORD          dwPageSize,       
+    DWORD          dwPageSize,
     struct berval **ppCookie,
     int            scope,
     LDAPMessage**  ppMessage,
@@ -200,7 +201,7 @@ LsaLdapGetBytes(
         LDAPMessage* pMessage,
         PSTR pszFieldName,
         PBYTE* ppszByteValue,
-        PDWORD pszByteLen        
+        PDWORD pszByteLen
         );
 
 DWORD
@@ -234,12 +235,30 @@ LsaLdapGetUInt32(
     );
 
 DWORD
+LsaLdapGetUInt64(
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage,
+    IN PCSTR pszFieldName,
+    OUT UINT64* pqwValue
+    );
+
+DWORD
 LsaLdapGetStrings(
-    HANDLE hDirectory,
-    LDAPMessage* pMessage,
-    PCSTR pszFieldName,
-    PSTR** pppszValues,
-    PDWORD pdwNumValues
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage,
+    IN PCSTR pszFieldName,
+    OUT PSTR** pppszValues,
+    OUT PDWORD pdwNumValues
+    );
+
+DWORD
+LsaLdapGetStringsWithExtDnResult(
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage,
+    IN PCSTR pszFieldName,
+    IN BOOLEAN bDoSidParsing,
+    OUT PSTR** pppszValues,
+    OUT PDWORD pdwNumValues
     );
 
 DWORD
@@ -251,6 +270,21 @@ LsaLdapEscapeString(
 VOID
 LsaLdapFreeCookie(
     PVOID pCookie
+    );
+
+DWORD
+LsaLdapParseExtendedDNResult(
+    IN PCSTR pszResult,
+    OUT PSTR* ppszSid);
+
+DWORD
+LsaLdapDirectoryExtendedDNSearch(
+    IN HANDLE hDirectory,
+    IN PCSTR pszObjectDN,
+    IN PCSTR pszQuery,
+    IN PSTR* ppszAttributeList,
+    IN int scope,
+    OUT LDAPMessage** ppMessage
     );
 
 #endif /* __LSALDAP_H__ */

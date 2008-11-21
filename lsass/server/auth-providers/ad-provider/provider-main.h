@@ -150,35 +150,48 @@ AD_EndEnumUsers(
 
 DWORD
 AD_FindGroupByName(
-    HANDLE  hProvider,
-    PCSTR   pszGroupName,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN PCSTR pszGroupName,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
+    );
+
+DWORD
+AD_FindGroupByNameWithCacheMode(
+    IN HANDLE hProvider,
+    IN PCSTR pszGroupName,
+    IN BOOLEAN bIsCacheOnlyMode,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 DWORD
 AD_FindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN gid_t gid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 DWORD
 AD_GetUserGroupObjectMembership(
-    IN HANDLE  hProvider,
-    IN uid_t   uid,
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psNumGroupsFound,
     OUT PAD_SECURITY_OBJECT** pppResult
     );
 
 DWORD
 AD_GetUserGroupMembership(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    IN PDWORD pdwNumGroupsFound,
+    IN PVOID** pppGroupInfoList
     );
 
 DWORD
@@ -267,11 +280,22 @@ AD_GetNamesBySidList(
     );
 
 DWORD
+AD_FindNSSArtefactByKey(
+    HANDLE hProvider,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    );
+
+DWORD
 AD_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
     PCSTR   pszGUID,
     DWORD   dwInfoLevel,
-    DWORD   dwMapType,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PHANDLE phResume
     );
 
@@ -358,19 +382,21 @@ AD_MachineCredentialsCacheInitialize(
 
 DWORD
 AD_GetExpandedGroupUsers(
-    HANDLE  hProvider,
-    PCSTR pszDomainName,
-    PCSTR pszDomainNetBiosName,
-    PCSTR pszGroupSid,
-    int iMaxDepth,
-    BOOLEAN *pbAllExpanded,
-    size_t* psCount,
-    PAD_SECURITY_OBJECT** pppResults);
+    IN HANDLE hProvider,
+    IN PCSTR pszDomainName,
+    IN PCSTR pszGroupSid,
+    IN BOOLEAN bIsCacheOnlyMode,
+    IN int iMaxDepth,
+    OUT BOOLEAN* pbAllExpanded,
+    OUT size_t* psCount,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    );
 
 DWORD
 AD_GroupObjectToGroupInfo(
-    HANDLE  hProvider,
+    IN HANDLE hProvider,
     IN PAD_SECURITY_OBJECT pGroupObject,
+    IN BOOLEAN bIsCacheOnlyMode,
     IN DWORD dwGroupInfoLevel,
     OUT PVOID* ppGroupInfo
     );

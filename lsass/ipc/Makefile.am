@@ -13,6 +13,8 @@ liblsaipc_la_SOURCES =    \
        marshal_records.c  \
        marshal_session.c  \
        marshal_status.c   \
-       marshal_user.c
+       marshal_tracing.c  \
+       marshal_user.c     \
+       basic_types.c
 
 liblsaipc_la_LIBADD = @top_builddir@/utils/liblsautils.la

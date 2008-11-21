@@ -84,13 +84,14 @@ LsaDmEnginepAddTrust(
                                     dwTrustMode,
                                     pszDnsForestName,
                                     NULL);
-    if (dwError == LSA_ERROR_DUPLICATE_DOMAINNAME)
+    if (dwError == LSA_ERROR_DUPLICATE_DOMAINNAME ||
+        dwError == LSA_ERROR_NO_SUCH_DOMAIN)
     {
         // We enumerate at the current domain we are joined to
         // And later we might enumerate at the forest root
         // Since we request all members of the forest at each
         // query, we would get duplicates.
-        // Ignore the duplicates.
+        // Ignore the duplicates, and also ignore the domains without domainSid.
         dwError = 0;
     }
     BAIL_ON_LSA_ERROR(dwError);

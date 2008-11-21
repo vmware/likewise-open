@@ -25,7 +25,11 @@ liblsass_auth_provider_ad_la_SOURCES = \
        lsadmengine.c             \
        lsadmwrap.c               \
        media-sense.c             \
-       batch.c
+       batch.c                   \
+       lsaum.c                   \
+       lsaum_p.c                 \
+       lsaumproc.c               \
+       ad_enum_objects.c
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
@@ -45,6 +49,8 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@NETLOGON_LIBS@ \
+	@PROC_LIBS@ \
+	@KVM_LIBS@  \
 	@SQLITE_LIBS@ \
 	@UUID_LIBS@
 

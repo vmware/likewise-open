@@ -14,6 +14,7 @@ liblsaserveripc_la_SOURCES = \
        ipc_session.c   \
        ipc_status.c    \
        ipc_state.c     \
+       ipc_tracing.c   \
        ipc_user.c      \
        msg_dispatch.c
 

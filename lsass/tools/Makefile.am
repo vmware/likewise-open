@@ -8,7 +8,8 @@ SUBDIRS = \
         add_group \
         del_group \
         enum_groups \
-        enum_maps  \
+        lw-ypcat  \
+        lw-ypmatch  \
         enum_users \
         find_group_by_id \
         find_group_by_name \
@@ -21,5 +22,6 @@ SUBDIRS = \
         migrator \
         set_log_level \
         get_status \
-        refresh_configuration
+        refresh_configuration \
+        trace_info
 

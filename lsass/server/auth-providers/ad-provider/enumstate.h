@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,12 +38,12 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Enumeration State Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
  */
 #ifndef __ENUM_STATE_H__
 #define __ENUM_STATE_H__
@@ -98,7 +98,8 @@ AD_AddNSSArtefactState(
     HANDLE hProvider,
     PCSTR  pszGUID,
     DWORD  dwInfoLevel,
-    DWORD  dwMapType,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppEnumState
     );
 

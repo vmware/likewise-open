@@ -175,7 +175,8 @@ LsaPamCheckCurrentPassword(
     dwError = LsaPamGetLoginId(
                     pamh,
                     pPamContext,
-                    &pszLoginId);
+                    &pszLoginId,
+                    TRUE);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenServer(&hLsaConnection);
@@ -311,7 +312,8 @@ LsaPamUpdatePassword(
     dwError = LsaPamGetLoginId(
                     pamh,
                     pPamContext,
-                    &pszLoginId);
+                    &pszLoginId,
+                    TRUE);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenServer(&hLsaConnection);

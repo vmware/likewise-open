@@ -110,6 +110,12 @@ AD_OfflineAuthenticateUser(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = LsaUmAddUser(
+                  pUserInfo->userInfo.uid,
+                  pszPassword,
+                  0); 
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
 
     ADCacheDB_SafeFreeObject(&pUserInfo);
@@ -206,7 +212,7 @@ AD_OfflineFindGroupObjectByName(
                     &pszGroupNameCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrCharReplace(pszGroupNameCopy, AD_GetSeparator(), ' ');
+    LsaStrCharReplace(pszGroupNameCopy, AD_GetSpaceReplacement(), ' ');
 
     dwError = LsaCrackDomainQualifiedName(
                         pszGroupNameCopy,
@@ -250,6 +256,7 @@ DWORD
 AD_OfflineFindGroupById(
     IN HANDLE hProvider,
     IN gid_t gid,
+    IN BOOLEAN bIsCacheOnlyMode,
     IN DWORD dwGroupInfoLevel,
     OUT PVOID* ppGroupInfo
     )
@@ -276,6 +283,7 @@ AD_OfflineFindGroupById(
     dwError = AD_GroupObjectToGroupInfo(
                 hProvider,
                 pGroupObject,
+                bIsCacheOnlyMode,
                 dwGroupInfoLevel,
                 ppGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -291,92 +299,6 @@ error:
 
     LSA_REMAP_FIND_GROUP_BY_ID_ERROR(dwError, TRUE, gid);
 
-    goto cleanup;
-}
-
-DWORD
-AD_OfflineGetExpandedGroupUsers(
-    IN PCSTR pszGroupSid,
-    IN DWORD dwMaxDepth,
-    OUT PBOOLEAN pbIsFullyExpanded,
-    OUT size_t* psMemberUsersCount,
-    OUT PAD_SECURITY_OBJECT** pppMemberUsers
-    )
-{
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    BOOLEAN bIsFullyExpanded = FALSE;
-    PLSA_AD_GROUP_EXPANSION_DATA pExpansionData = NULL;
-    PAD_SECURITY_OBJECT* ppGroupMembers = NULL;
-    size_t sGroupMembersCount = 0;
-    PAD_SECURITY_OBJECT pGroupToExpand = NULL;
-    DWORD dwGroupToExpandDepth = 0;
-    PCSTR pszGroupToExpandSid = NULL;
-    PAD_SECURITY_OBJECT* ppExpandedUsers = NULL;
-    size_t sExpandedUsersCount = 0;
-
-    dwError = AD_GroupExpansionDataCreate(
-                &pExpansionData,
-                LSA_MAX(1, dwMaxDepth));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pszGroupToExpandSid = pszGroupSid;
-    dwGroupToExpandDepth = 1;
-
-    while (pszGroupToExpandSid)
-    {
-        dwError = AD_OfflineGetGroupMembers(
-                    pszGroupToExpandSid,
-                    &sGroupMembersCount,
-                    &ppGroupMembers);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        dwError = AD_GroupExpansionDataAddExpansionResults(
-                    pExpansionData,
-                    dwGroupToExpandDepth,
-                    &sGroupMembersCount,
-                    &ppGroupMembers);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = AD_GroupExpansionDataGetNextGroupToExpand(
-                    pExpansionData,
-                    &pGroupToExpand,
-                    &dwGroupToExpandDepth);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (pGroupToExpand)
-        {
-            pszGroupToExpandSid = pGroupToExpand->pszObjectSid;
-        }
-        else
-        {
-            pszGroupToExpandSid = NULL;
-        }
-    }
-
-    dwError = AD_GroupExpansionDataGetResults(pExpansionData,
-                                              &bIsFullyExpanded,
-                                              &sExpandedUsersCount,
-                                              &ppExpandedUsers);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    AD_GroupExpansionDataDestroy(pExpansionData);
-    ADCacheDB_SafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
-
-    if (pbIsFullyExpanded)
-    {
-        *pbIsFullyExpanded = bIsFullyExpanded;
-    }
-
-    *psMemberUsersCount = sExpandedUsersCount;
-    *pppMemberUsers = ppExpandedUsers;
-
-    return dwError;
-
-error:
-    ADCacheDB_SafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
-    sExpandedUsersCount = 0;
-    bIsFullyExpanded = FALSE;
     goto cleanup;
 }
 
@@ -413,6 +335,7 @@ AD_OfflineGetUserGroupObjectMembership(
     dwError = ADCacheDB_GetGroupsForUser(
                 hDb,
                 pUserInfo->pszSid,
+                AD_GetTrimUserMembershipEnabled(),
                 &sUserGroupMembershipsCount,
                 &ppUserGroupMemberships);
     BAIL_ON_LSA_ERROR(dwError);
@@ -423,6 +346,7 @@ AD_OfflineGetUserGroupObjectMembership(
 
     dwError = AD_GatherSidsFromGroupMemberships(
                 TRUE,
+                NULL,
                 sUserGroupMembershipsCount,
                 ppUserGroupMemberships,
                 &sParentSidsCount,
@@ -511,6 +435,21 @@ AD_OfflineGetNamesBySidList(
 }
 
 DWORD
+AD_OfflineFindNSSArtefactByKey(
+    HANDLE hProvider,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    )
+{
+    *ppNSSArtefactInfo = NULL;
+
+    return LSA_ERROR_NO_SUCH_NSS_MAP;
+}
+
+DWORD
 AD_OfflineEnumNSSArtefacts(
     HANDLE  hProvider,
     HANDLE  hResume,
@@ -542,7 +481,7 @@ AD_OfflineFindUserObjectByName(
                     &pszLoginId_copy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrCharReplace(pszLoginId_copy, AD_GetSeparator(),' ');
+    LsaStrCharReplace(pszLoginId_copy, AD_GetSpaceReplacement(),' ');
 
     dwError = LsaCrackDomainQualifiedName(
                         pszLoginId_copy,

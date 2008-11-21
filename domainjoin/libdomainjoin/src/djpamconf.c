@@ -63,6 +63,9 @@ struct PamConf
 /* return the next line in the pam configuration, or -1 if there are no more lines. */
 static int NextLine(const struct PamConf *conf, int line);
 
+/* return the previous line in the pam configuration, or -1 if there are no more lines. */
+static int PrevLine(const struct PamConf *conf, int line);
+
 /* return the next line in the pam configuration that has the given service
  * name and phase name. So you could search for the next su auth line. NULL
  * may be passed for service or phase to match any value. If there are no more
@@ -71,6 +74,16 @@ static int NextLine(const struct PamConf *conf, int line);
  * -1 may be passed for the line to indicate that the first line with that
  * service should be found */
 static int NextLineForService(const struct PamConf *conf, int line, const char *service, const char *phase);
+
+/* Search backwards in the pam configuration for the previous line with given
+ * service name and phase name. So you could search for the previous su auth
+ * line.
+ * If there are no more matching lines, -1 is returned.
+ * NULL may be passed for service or phase to match any value.
+ *
+ * -1 may be passed for the line to indicate that the last line with that
+ * service should be found */
+static int PrevLineForService(const struct PamConf *conf, int line, const char *service, const char *phase);
 
 /* Find a line with a different service. This can be used to iterate through
  * all services in the file. Doing this may repeat service names though.
@@ -94,6 +107,8 @@ static CENTERROR AddFormattedService(struct PamConf *conf, const char *filename,
 
 /* Copy a pam configuration line and add it below the old line. */
 static CENTERROR CopyLine(struct PamConf *conf, int oldLine, int *newLine);
+
+static CENTERROR CopyLineAndUpdateSkips(struct PamConf *conf, int oldLine, int *newLine);
 
 static CENTERROR RemoveLine(struct PamConf *conf, int *line);
 
@@ -122,6 +137,11 @@ static int NextLine(const struct PamConf *conf, int line)
     return line;
 }
 
+static int PrevLine(const struct PamConf *conf, int line)
+{
+    return line - 1;
+}
+
 static int NextLineForService(const struct PamConf *conf, int line, const char *service, const char *phase)
 {
     /* Start the search on the next line */
@@ -130,6 +150,37 @@ static int NextLineForService(const struct PamConf *conf, int line, const char *
         return -1;
 
     for(; line != -1; line = NextLine(conf, line))
+    {
+        struct PamLine *lineObj = &conf->lines[line];
+        if(service != NULL && (lineObj->service == NULL ||
+                    strcmp(lineObj->service->value, service)))
+            continue;
+        if(lineObj->phase != NULL &&
+                    !strcmp(lineObj->phase->value, "@include"))
+            return line;
+        if(phase != NULL && (lineObj->phase == NULL ||
+                    strcmp(lineObj->phase->value, phase)))
+            continue;
+        return line;
+    }
+    return -1;
+}
+
+static int PrevLineForService(const struct PamConf *conf, int line, const char *service, const char *phase)
+{
+    /* Start the search on the prev line */
+    if (line == -1)
+    {
+        line = conf->lineCount - 1;
+    }
+    else
+    {
+        line--;
+    }
+    if(line < 0)
+        return -1;
+
+    for(; line != -1; line = PrevLine(conf, line))
     {
         struct PamLine *lineObj = &conf->lines[line];
         if(service != NULL && (lineObj->service == NULL ||
@@ -468,6 +519,112 @@ error:
     return ceError;
 }
 
+static CENTERROR UpdateSkipCounts(
+        struct PamLine *lineObj,
+        unsigned long minSkipCount,
+        int offsetSkipCount)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PCSTR inputPos = lineObj->control->value;
+    PCSTR inputCopiedPos = lineObj->control->value;
+    PSTR parsedSkipCountEnd = NULL;
+    unsigned long parsedSkipCount = 0;
+    StringBuffer outputBuffer = {0};
+    char newSkipCount[32] = {0};
+
+    if (inputPos == NULL)
+        goto done;
+
+    /* Skip the leading whitespace in the control */
+    while (isblank(*inputPos)) inputPos++;
+
+    if (*inputPos != '[')
+    {
+        // This is not an extended control option (there are no skip counts)
+        goto done;
+    }
+
+    *inputPos++;
+
+    while (*inputPos != 0)
+    {
+        while (*inputPos != 0 && *inputPos != '=') inputPos++;
+
+        if (*inputPos == 0)
+            break;
+
+        // Skip the =
+        *inputPos++;
+
+        parsedSkipCount = strtoul(inputPos, &parsedSkipCountEnd, 10);
+
+        if (parsedSkipCountEnd > inputPos && parsedSkipCount >= minSkipCount)
+        {
+            // This skip count needs to be updated
+            BAIL_ON_CENTERIS_ERROR(ceError =
+                    CTStringBufferAppendLength(&outputBuffer, inputCopiedPos,
+                    inputPos - inputCopiedPos));
+
+            snprintf(newSkipCount, sizeof(newSkipCount), "%lu",
+                    parsedSkipCount + offsetSkipCount);
+            newSkipCount[sizeof(newSkipCount) - 1] = 0;
+
+            BAIL_ON_CENTERIS_ERROR(ceError = CTStringBufferAppend(
+                        &outputBuffer, newSkipCount));
+
+            inputCopiedPos = parsedSkipCountEnd;
+        }
+    }
+
+    if (outputBuffer.data != NULL)
+    {
+        // This string has been modified. It needs to be saved back
+        BAIL_ON_CENTERIS_ERROR(ceError =
+                CTStringBufferAppendLength(&outputBuffer, inputCopiedPos,
+                inputPos - inputCopiedPos));
+
+        CT_SAFE_FREE_STRING(lineObj->control->value);
+        lineObj->control->value = outputBuffer.data;
+        outputBuffer.data = NULL;
+    }
+
+done:
+error:
+
+    CTStringBufferDestroy(&outputBuffer);
+    return ceError;
+}
+
+static CENTERROR CopyLineAndUpdateSkips(
+        struct PamConf *conf, int oldLine, int *newLine)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    int searchLine = oldLine;
+    struct PamLine *oldLineObj = NULL;
+    int minSkipDistance = 0;
+
+    BAIL_ON_CENTERIS_ERROR(ceError = CopyLine(conf, oldLine, newLine));
+
+    oldLineObj = &conf->lines[oldLine];
+    searchLine = PrevLineForService(conf, searchLine,
+            oldLineObj->service->value, oldLineObj->phase->value);
+    minSkipDistance++;
+
+    while (searchLine != -1)
+    {
+        UpdateSkipCounts(&conf->lines[searchLine], minSkipDistance,
+                1);
+
+        searchLine = PrevLineForService(conf, searchLine,
+                oldLineObj->service->value, oldLineObj->phase->value);
+
+        minSkipDistance++;
+    }
+
+error:
+    return ceError;
+}
+
 static CENTERROR RemoveLine(struct PamConf *conf, int *line)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -478,6 +635,33 @@ static CENTERROR RemoveLine(struct PamConf *conf, int *line)
 
     if(*line >= conf->lineCount)
         *line = -1;
+
+error:
+    return ceError;
+}
+
+static CENTERROR RemoveLineAndUpdateSkips(struct PamConf *conf, int *line)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    int searchLine = *line;
+    struct PamLine *oldLineObj = &conf->lines[*line];
+    int minSkipDistance = 0;
+
+    searchLine = PrevLineForService(conf, searchLine,
+            oldLineObj->service->value, oldLineObj->phase->value);
+    minSkipDistance++;
+
+    while (searchLine != -1)
+    {
+        UpdateSkipCounts(&conf->lines[searchLine], minSkipDistance,
+                -1);
+
+        searchLine = PrevLineForService(conf, searchLine,
+                oldLineObj->service->value, oldLineObj->phase->value);
+        minSkipDistance++;
+    }
+
+    BAIL_ON_CENTERIS_ERROR(ceError = RemoveLine(conf, line));
 
 error:
     return ceError;
@@ -653,44 +837,86 @@ static CENTERROR ReadPamConfiguration(const char *rootPrefix, struct PamConf *co
     CENTERROR ceError = CENTERROR_SUCCESS;
     DIR *dp = NULL;
     struct dirent *dirp;
-    char *fullPath = NULL;
+    PSTR pszDirPath = NULL;
     BOOLEAN foundPamd = FALSE;
+    PSTR pszFilePath = NULL;
+    PSTR pszNonPrefixedFilePath = NULL;
 
     memset(conf, 0, sizeof(struct PamConf));
 
     DJ_LOG_INFO("Reading pam configuration");
 
-    BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&fullPath, "%s/etc/pam.d", rootPrefix));
-    dp = opendir(fullPath);
-    CT_SAFE_FREE_STRING(fullPath);
+    ceError = CTAllocateStringPrintf(&pszDirPath, "%s/etc/pam.d", rootPrefix);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    dp = opendir(pszDirPath);
     if(dp != NULL)
     {
         while((dirp = readdir(dp)) != NULL)
         {
-            if(dirp->d_name[0] != '.' && /*Ignore hidden files*/
-                    !CTStrEndsWith(dirp->d_name, ".bak") &&
-                    !CTStrEndsWith(dirp->d_name, ".new") &&
-                    !CTStrEndsWith(dirp->d_name, ".orig"))
+            BOOLEAN bIsDir = FALSE;
+
+            if(dirp->d_name[0] == '.' || /*Ignore hidden files*/
+               CTStrEndsWith(dirp->d_name, ".bak") ||
+               CTStrEndsWith(dirp->d_name, ".new") ||
+               CTStrEndsWith(dirp->d_name, ".orig"))
             {
-                BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&fullPath, "/etc/pam.d/%s", dirp->d_name));
-                BAIL_ON_CENTERIS_ERROR(ceError = ReadPamFile(conf, rootPrefix, fullPath));
-                CT_SAFE_FREE_STRING(fullPath);
-                foundPamd = TRUE;
+              continue;
             }
+
+            CT_SAFE_FREE_STRING(pszFilePath);
+
+            ceError = CTAllocateStringPrintf(
+                            &pszFilePath,
+                            "%s/%s",
+                            pszDirPath,
+                            dirp->d_name);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+            ceError = CTCheckDirectoryExists(pszFilePath, &bIsDir);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+            if(bIsDir)
+            {
+              continue;
+            }
+
+            CT_SAFE_FREE_STRING(pszNonPrefixedFilePath);
+
+            ceError = CTAllocateStringPrintf(
+                            &pszNonPrefixedFilePath,
+                            "/etc/pam.d/%s",
+                            dirp->d_name);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+            ceError = ReadPamFile(conf, rootPrefix, pszNonPrefixedFilePath);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+            foundPamd = TRUE;
         }
     }
 
     ceError = ReadPamFile(conf, rootPrefix, "/etc/pam.conf");
+
     if(ceError == CENTERROR_INVALID_FILENAME && foundPamd)
+    {
         ceError = CENTERROR_SUCCESS;
+    }
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     conf->modified = 0;
 
 error:
-    CT_SAFE_FREE_STRING(fullPath);
+
+    CT_SAFE_FREE_STRING(pszDirPath);
+    CT_SAFE_FREE_STRING(pszFilePath);
+    CT_SAFE_FREE_STRING(pszNonPrefixedFilePath);
+
     if(dp != NULL)
+    {
         closedir(dp);
+    }
+
     return ceError;
 }
 
@@ -1074,6 +1300,8 @@ static BOOLEAN PamModuleChecksCaller( const char * phase, const char * module)
     //Used by Opsware. Found at Gap
     if(!strcmp(buffer, "/opt/OPSWsshd/libexec/opsw_auth"))
         return TRUE;
+    if(!strcmp(buffer, "pam_succeed_if"))
+        return TRUE;
 
     return FALSE;
 }
@@ -1209,7 +1437,7 @@ static BOOLEAN PamModuleDenies( const char * phase, const char * module)
 
 /* returns true if the pam module will always return an error code for a domain user (assuming that a local account by the same name doesn't exist)
  */
-static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char * module)
+static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char * module, DistroInfo *distro)
 {
     char buffer[256];
     NormalizeModuleName( buffer, module, sizeof(buffer));
@@ -1270,12 +1498,28 @@ static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char
     if(!strcmp(buffer, "pam_dhkeys") && !strcmp(phase, "password"))
         return FALSE;
 
+    /* This allows pam_lsass to go after pam_unix. This is necessary so that
+     * pam_console or pam_foreground gets run if present.
+     */
+    if (!strcmp(buffer, "pam_unix") && !strcmp(phase, "session"))
+    {
+        if (distro->os == OS_HPUX)
+        {
+            return TRUE;
+        }
+        else
+        {
+            return FALSE;
+        }
+    }
+
     /* Assume that if it prompts for a password, it will complain about a
      * domain user
      */
     return PamModulePrompts("auth", module);
 }
 
+#if 0
 static BOOLEAN PamModuleGivesLocalAccess(const char * phase, const char * module)
 {
     char buffer[256];
@@ -1289,6 +1533,7 @@ static BOOLEAN PamModuleGivesLocalAccess(const char * phase, const char * module
 
     return FALSE;
 }
+#endif
 
 /* returns true if the pam module at least sometimes returns success for AD users
  */
@@ -1342,7 +1587,7 @@ struct ConfigurePamModuleState
     BOOLEAN configuredRequestedModule;
     /* Set to true if a line has been passed that has "sufficient" as the control and a module that lets users in based off of a password. This will not be set to true for modules that use caller based authentication like pam_rootok.
      */
-    BOOLEAN sawSufficientPasswordCheck;
+    BOOLEAN sawNonDomainUserSufficientCheck;
     /* Set to true if a line has been passed that has a module that prompts for passwords (assuming that try_first_pass, etc. are not on the line), regardless of what the control is.
      */
     BOOLEAN sawPromptingModule;
@@ -1359,6 +1604,11 @@ struct ConfigurePamModuleState
     /* On Solaris, pam_lwidentity has to be called with 'set_default_repository' at the beginning of the auth stage in order for password changes to work. Later on pam_lwidentity has to also be installed without 'set_default_repository'.
      */
     BOOLEAN hasSetDefaultRepository;
+
+    /* Set to true if a line is found that is not an include. This is used to
+     * check if the pam stack is essentially empty for a service.
+     */
+    BOOLEAN sawNonincludeLine;
 
     int includeLevel;
 };
@@ -1400,7 +1650,7 @@ static CENTERROR PamOldCenterisDisable(struct PamConf *conf, const char *service
         if(PamModuleIsOldCenteris(phase, module))
         {
             DJ_LOG_INFO("Removing pam_centeris from service %s", service);
-            BAIL_ON_CENTERIS_ERROR(ceError = RemoveLine(conf, &line));
+            BAIL_ON_CENTERIS_ERROR(ceError = RemoveLineAndUpdateSkips(conf, &line));
             state->configuredRequestedModule = TRUE;
             continue;
         }
@@ -1504,7 +1754,7 @@ static CENTERROR PamLwidentityDisable(struct PamConf *conf, const char *service,
                 !strcmp(module, "pam_lwidentity_set_repo"))
         {
             DJ_LOG_INFO("Removing pam_lwidentity from service %s", service);
-            BAIL_ON_CENTERIS_ERROR(ceError = RemoveLine(conf, &line));
+            BAIL_ON_CENTERIS_ERROR(ceError = RemoveLineAndUpdateSkips(conf, &line));
             state->configuredRequestedModule = TRUE;
             continue;
         }
@@ -1610,6 +1860,7 @@ error:
     return ceError;
 }
 
+#if 0
 static void MoveLine(struct PamConf *conf, int oldPos, int newPos)
 {
     struct PamLine temp;
@@ -1635,29 +1886,7 @@ static void MoveLine(struct PamConf *conf, int oldPos, int newPos)
     memcpy(&conf->lines[newPos], &temp, sizeof(conf->lines[newPos]));
     conf->modified = TRUE;
 }
-
-static CENTERROR MoveUpInteractiveCheck(struct PamConf *conf, int insertPos, const char *service, const char * phase)
-{
-    /* Do not free this variable */
-    struct PamLine *lineObj;
-    const char *module;
-    const char *control;
-    int line = NextLineForService(conf, insertPos, service, phase);
-    while(line != -1)
-    {
-        lineObj = &conf->lines[line];
-        GetModuleControl(lineObj, &module, &control);
-
-        if(PamModuleGivesLocalAccess(phase, module))
-        {
-            MoveLine(conf, line, insertPos);
-            break;
-        }
-        line = NextLineForService(conf, line, service, phase);
-    }
-
-    return CENTERROR_SUCCESS;
-}
+#endif
 
 static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro, struct PamConf *conf, const char *service, const char * phase, const char *pam_lwidentity, struct ConfigurePamModuleState *state, LWException **exc)
 {
@@ -1670,7 +1899,6 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
     const char *module;
     const char *control;
     char *includeService = NULL;
-    BOOLEAN sawNonincludeLine = FALSE;
     char *pam_deny_path = NULL;
     char *pam_deny_option = NULL;
     StringBuffer comment;
@@ -1785,7 +2013,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
              * auth required pam_deny.so.1
              */
             int newLine = -1;
-            LW_CLEANUP_CTERR(exc, CopyLine(conf, line, &newLine));
+            LW_CLEANUP_CTERR(exc, CopyLineAndUpdateSkips(conf, line, &newLine));
             lineObj = &conf->lines[newLine];
             if(pam_deny_path == NULL)
             {
@@ -1808,7 +2036,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
                 !strcmp(phase, "auth") && PamModulePrompts(phase, module))
         {
             int newLine = -1;
-            LW_CLEANUP_CTERR(exc, CopyLine(conf, line, &newLine));
+            LW_CLEANUP_CTERR(exc, CopyLineAndUpdateSkips(conf, line, &newLine));
             LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->control, lineObj->phase, "requisite"));
             LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->module, lineObj->control, pam_lwidentity));
             lineObj->optionCount = 0;
@@ -1821,7 +2049,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
             state->hasSetDefaultRepository = TRUE;
         }
 
-        if(PamModuleAlwaysDeniesDomainLogins(phase, module) && (
+        if(PamModuleAlwaysDeniesDomainLogins(phase, module, distro) && (
                     !strcmp(control, "required") ||
                     !strcmp(control, "requisite")))
             break;
@@ -1853,7 +2081,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
             break;
         }
 
-        if(!strcmp(control, "sufficient") &&
+        if (!strcmp(control, "sufficient") &&
                 PamModuleGrants(phase, module) &&
                 !PamModulePrompts(phase, module) &&
                 !PamModuleChecksCaller(phase, module))
@@ -1865,7 +2093,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
         if(includeService == NULL)
         {
             DJ_LOG_VERBOSE("It is not an include line");
-            sawNonincludeLine = TRUE;
+            state->sawNonincludeLine = TRUE;
         }
 
         if(PamModulePrompts(phase, module))
@@ -1874,11 +2102,23 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
             state->sawPromptingModule = TRUE;
         }
 
-        if( !strcmp(control, "sufficient") &&
-                PamModulePrompts(phase, module) &&
-                PamModuleAlwaysDeniesDomainLogins(phase, module))
+        /* Ubuntu 8.10 has this configuration:
+         * auth [success=1 default=ignore] pam_unix.so nullok_secure
+         * auth requisite pam_deny.so
+         *
+         * As a workaround for the above configuration, 'success=1' is treated
+         * as sufficient, although this does not hold true in general.
+         *
+         * An updated version of Ubuntu 8.10 has this configuration:
+         * account [success=1 new_authtok_reqd=done default=ignore]        pam_unix.so
+         * account requisite                       pam_deny.so
+         */
+        if ((!strcmp(control, "sufficient") ||
+                !strncmp(control, "[success=1 ", sizeof("[success=1 ") - 1)) &&
+                PamModuleGrants(phase, module) &&
+                PamModuleAlwaysDeniesDomainLogins(phase, module, distro))
         {
-            state->sawSufficientPasswordCheck = TRUE;
+            state->sawNonDomainUserSufficientCheck = TRUE;
         }
 
         if( (!strcmp(control, "required") ||
@@ -1888,7 +2128,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
             state->sawCallerRequirementLine = TRUE;
         }
 
-        if(!PamModuleAlwaysDeniesDomainLogins(phase, module))
+        if(!PamModuleAlwaysDeniesDomainLogins(phase, module, distro))
         {
             state->sawDomainUserGrantingLine = TRUE;
         }
@@ -1897,9 +2137,16 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
         line = NextLineForService(conf, line, service, phase);
     }
 
-    if(line == -1)
+    if (line == -1)
     {
-        DJ_LOG_INFO("Bottomed out of pam stack");
+        if (state->includeLevel == 0)
+        {
+            DJ_LOG_INFO("Bottomed out of pam stack");
+        }
+        else
+        {
+            goto cleanup;
+        }
     }
 
     if(!state->configuredRequestedModule)
@@ -1907,7 +2154,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
         if(!strcmp(phase, "auth") &&
                 line == -1 &&
                 !state->sawDomainUserGrantingLine &&
-                sawNonincludeLine)
+                state->sawNonincludeLine)
         {
             /* This tries to fix the user's pam configuration. The user has
              * something like:
@@ -1924,7 +2171,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
              * - chage on Ubuntu
              * - quagga on Centos
              */
-            LW_CLEANUP_CTERR(exc, CopyLine(conf, prevLine, &line));
+            LW_CLEANUP_CTERR(exc, CopyLineAndUpdateSkips(conf, prevLine, &line));
             lineObj = &conf->lines[line];
             LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->phase, lineObj->service, "auth"));
             LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->control, lineObj->phase, "required"));
@@ -2033,7 +2280,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
         if(line != -1)
         {
             char buffer[256] = "";
-            if(!state->sawSufficientPasswordCheck &&
+            if(!state->sawNonDomainUserSufficientCheck &&
                     (!PamModuleGrants(phase, module) || PamModuleChecksCaller(phase, module)) &&
                     (!strcmp(control, "required") ||
                     !strcmp(control, "requisite")))
@@ -2054,12 +2301,12 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
             NormalizeModuleName( buffer, module, sizeof(buffer));
             if(!strcmp(phase, "password") && !strcmp(buffer, "pam_aix"))
                 doingPasswdForAIX = TRUE;
-            LW_CLEANUP_CTERR(exc, CopyLine(conf, line, NULL));
+            LW_CLEANUP_CTERR(exc, CopyLineAndUpdateSkips(conf, line, NULL));
             lwidentityLine = line;
         }
         else
         {
-            if(!sawNonincludeLine)
+            if (!state->sawNonincludeLine)
             {
                 LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_PAM_MISSING_SERVICE);
             }
@@ -2069,7 +2316,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
              * Since this is not an auth phase, our module is still added because we should do things like support password changes, make home directories, etc..
              */
             DJ_LOG_INFO("Inserting pam_lwidentity at the end of the pam stack");
-            LW_CLEANUP_CTERR(exc, CopyLine(conf, prevLine, &lwidentityLine));
+            LW_CLEANUP_CTERR(exc, CopyLineAndUpdateSkips(conf, prevLine, &lwidentityLine));
         }
 
         /* Fill in the correct values for lwidentityLine */
@@ -2102,7 +2349,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
             * account required pam_lwidentity unknown_ok
             * account sufficient pam_lwidentity
             */
-            LW_CLEANUP_CTERR(exc, CopyLine(conf, lwidentityLine, NULL));
+            LW_CLEANUP_CTERR(exc, CopyLineAndUpdateSkips(conf, lwidentityLine, NULL));
             lineObj = &conf->lines[lwidentityLine];
             LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->control, lineObj->phase, "required"));
             LW_CLEANUP_CTERR(exc, AddOption(conf, lwidentityLine, "unknown_ok"));
@@ -2147,7 +2394,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
              * passwd  password  sufficient    pam_lwidentity.so
              * passwd  password  required      /usr/lib/security/pam_aix
              */
-            LW_CLEANUP_CTERR(exc, CopyLine(conf, lwidentityLine, &secondPasswd));
+            LW_CLEANUP_CTERR(exc, CopyLineAndUpdateSkips(conf, lwidentityLine, &secondPasswd));
             LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->control, lineObj->phase, "requisite"));
             LW_CLEANUP_CTERR(exc, AddOption(conf, lwidentityLine, "unknown_ok"));
             LW_CLEANUP_CTERR(exc, AddOption(conf, lwidentityLine, "remember_chpass"));
@@ -2178,18 +2425,6 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
         }*/
         line = NextLineForService(conf, lwidentityLine, service, phase);
         state->configuredRequestedModule = TRUE;
-    }
-
-    if(line != -1 && state->configuredRequestedModule &&
-            !strcmp(phase, "session"))
-    {
-        int moveTo = prevLine;
-
-        if(lwidentityLine != -1)
-            moveTo = lwidentityLine;
-
-        LW_CLEANUP_CTERR(exc, MoveUpInteractiveCheck(conf, moveTo,
-                    service, phase));
     }
 
     /* If pam_lwidentity is the first prompting module on the stack, the next module needs to have something like try_first_pass added.
@@ -2281,7 +2516,7 @@ static CENTERROR PamLwiPassPolicyDisable(struct PamConf *conf, const char *servi
         if(PamModuleIsLwiPassPolicy(phase, module))
         {
             DJ_LOG_INFO("Removing pam_lwipasspolicy from service %s", service);
-            BAIL_ON_CENTERIS_ERROR(ceError = RemoveLine(conf, &line));
+            BAIL_ON_CENTERIS_ERROR(ceError = RemoveLineAndUpdateSkips(conf, &line));
             state->configuredRequestedModule = TRUE;
             continue;
         }
@@ -2325,7 +2560,6 @@ static CENTERROR PamLwiPassPolicyEnable(struct PamConf *conf, const char *servic
     const char *module;
     const char *control;
     char *includeService = NULL;
-    BOOLEAN sawNonincludeLine = FALSE;
 
     if(strcmp(phase, "password"))
     {
@@ -2374,7 +2608,7 @@ static CENTERROR PamLwiPassPolicyEnable(struct PamConf *conf, const char *servic
         if(includeService == NULL)
         {
             DJ_LOG_VERBOSE("It is not an include line");
-            sawNonincludeLine = TRUE;
+            state->sawNonincludeLine = TRUE;
         }
 
         if(PamModulePrompts(phase, module))
@@ -2386,7 +2620,7 @@ static CENTERROR PamLwiPassPolicyEnable(struct PamConf *conf, const char *servic
             if(!state->configuredRequestedModule && !PamModuleIsLwidentity(phase, module) && !PamModuleIsPwcheck(phase, module))
             {
                 DJ_LOG_INFO("Inserting %s before %s", pam_lwipasspolicy, module);
-                BAIL_ON_CENTERIS_ERROR(ceError = CopyLine(conf, line, NULL));
+                BAIL_ON_CENTERIS_ERROR(ceError = CopyLineAndUpdateSkips(conf, line, NULL));
                 /* Fill in the correct values for the password policy */
                 lineObj = &conf->lines[line];
 
@@ -2432,7 +2666,7 @@ static CENTERROR PamLwiPassPolicyEnable(struct PamConf *conf, const char *servic
         line = NextLineForService(conf, line, service, phase);
     }
 
-    if(!state->configuredRequestedModule && !sawNonincludeLine)
+    if(!state->configuredRequestedModule && !state->sawNonincludeLine)
     {
         BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_DOMAINJOIN_PAM_MISSING_SERVICE);
     }
@@ -2647,6 +2881,16 @@ void DJUpdatePamConf(const char *testPrefix,
              * common-auth instead.
              */
             DJ_LOG_INFO("Ignoring pam service common-pammount");
+            continue;
+        }
+        if(!strcmp(services[i], "system-auth"))
+        {
+            /* Centos uses system-auth only as an include file. We should
+             * not directly try to enable lsass for this entry point because
+             * we want to insert "session sufficient pam_lsass" in
+             * gdm instead.
+             */
+            DJ_LOG_INFO("Not directly enabling pam entry point 'system-auth'");
             continue;
         }
         if(!strcmp(services[i], "vmware-authd") && enable &&
@@ -3027,8 +3271,13 @@ static CENTERROR IsLwidentityEnabled(struct PamConf *conf, const char *service, 
     const char *control;
     char *includeService = NULL;
     BOOLEAN sawNonincludeLine = FALSE;
+    DistroInfo distro;
 
+    memset(&distro, 0, sizeof(distro));
     *configured = FALSE;
+
+    ceError = DJGetDistroInfo("", &distro);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
     if(line == -1)
     {
@@ -3061,7 +3310,7 @@ static CENTERROR IsLwidentityEnabled(struct PamConf *conf, const char *service, 
         else
             sawNonincludeLine = TRUE;
 
-        if(PamModuleAlwaysDeniesDomainLogins(phase, module) && (
+        if(PamModuleAlwaysDeniesDomainLogins(phase, module, &distro) && (
                     !strcmp(control, "required") ||
                     !strcmp(control, "requisite")))
             break;
@@ -3090,6 +3339,7 @@ static CENTERROR IsLwidentityEnabled(struct PamConf *conf, const char *service, 
 
 error:
     CT_SAFE_FREE_STRING(includeService);
+    DJFreeDistroInfo(&distro);
     return ceError;
 }
 

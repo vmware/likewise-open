@@ -94,7 +94,7 @@ LsaPamGetContext(
         }
     }
 
-    dwError = LsaPamGetLoginId(pamh, pPamContext, NULL);
+    dwError = LsaPamGetLoginId(pamh, pPamContext, NULL, FALSE);
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaPamGetOptions(
@@ -179,7 +179,8 @@ int
 LsaPamGetLoginId(
     pam_handle_t* pamh,
     PPAMCONTEXT   pPamContext,
-    PSTR*         ppszLoginId
+    PSTR*         ppszLoginId,
+    BOOLEAN       bAllowPrompt
     )
 {
     DWORD dwError = 0;
@@ -191,14 +192,26 @@ LsaPamGetLoginId(
 
         PSTR pszPamId = NULL;
         
-        dwError = pam_get_user(pamh, (PPCHAR_ARG_CAST)&pszPamId, NULL);
-        if ((dwError != PAM_SUCCESS) || IsNullOrEmptyString(pszPamId))
+        if (bAllowPrompt)
         {
-           dwError = (dwError == PAM_CONV_AGAIN) ? PAM_INCOMPLETE : PAM_SERVICE_ERR;
-           BAIL_ON_LSA_ERROR(dwError);
+            dwError = pam_get_user(pamh, (PPCHAR_ARG_CAST)&pszPamId, NULL);
+            if ((dwError != PAM_SUCCESS) || IsNullOrEmptyString(pszPamId))
+            {
+               dwError = (dwError == PAM_CONV_AGAIN) ?
+                   PAM_INCOMPLETE : PAM_SERVICE_ERR;
+               BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else
+        {
+            dwError = pam_get_item(
+                            pamh,
+                            PAM_USER,
+                            (PAM_GET_ITEM_TYPE)&pszPamId);
+            BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAllocateString(pszPamId, &pPamContext->pszLoginName);
+        dwError = LsaStrDupOrNull(pszPamId, &pPamContext->pszLoginName);
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -247,6 +260,9 @@ LsaPamCleanupContext(
     if (pData) {
         LsaPamFreeContext((PPAMCONTEXT)pData);
     }
+
+    // Syslog must be reset before this pam module is unloaded
+    LsaPamCloseLog();
     
     LSA_LOG_PAM_DEBUG("LsaPamCleanupContext::end");
 }

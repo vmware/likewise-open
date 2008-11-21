@@ -140,7 +140,7 @@ done:
 wbcErr wbcGetgrnam(const char *name, struct group **grp)
 {
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -152,7 +152,7 @@ wbcErr wbcGetgrnam(const char *name, struct group **grp)
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaFindGroupByName(hLsa, name, 1, (PVOID*)&pGroupInfo);
+	dwErr = LsaFindGroupByName(hLsa, name, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	dwErr = LsaCloseServer(hLsa);
@@ -184,7 +184,7 @@ done:
 wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
 {
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -195,7 +195,7 @@ wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaFindGroupById(hLsa, gid, 1, (PVOID*)&pGroupInfo);
+	dwErr = LsaFindGroupById(hLsa, gid, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	dwErr = LsaCloseServer(hLsa);

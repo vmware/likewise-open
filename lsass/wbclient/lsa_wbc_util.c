@@ -98,7 +98,7 @@ void wbcFreeMemory(void* p)
 
 wbcErr wbcPing(void)
 {
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 

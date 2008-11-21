@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        AD LDAP helper functions (private header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -47,27 +47,19 @@
  */
 #ifndef __ADLDAP_P_H__
 #define __ADLDAP_P_H__
- 
+
 typedef DWORD (*PFN_DEFAULT_FINDUSER_NAMEBYALIAS_FUNC)(PCSTR pszAlias, PCSTR pszRootDomainName, PSTR* ppszUpnName);
 
-typedef struct _LSA_AD_DN_LISTS_ENTRY {
-    DWORD dwDNCount;
-    PSTR* ppszDNValues;    
-} LSA_AD_DN_LISTS_ENTRY, *PLSA_AD_DN_LISTS_ENTRY;
+typedef struct _LSA_AD_QUERY_LISTS_ENTRY {
+    DWORD dwQueryCount;
+    PSTR* ppszQueryValues;
+} LSA_AD_QUERY_LISTS_ENTRY, *PLSA_AD_QUERY_LISTS_ENTRY;
 
 DWORD
 ADBuildGetUsersByDNQuery(
     PSTR*  ppszUserDNList,
     DWORD  dwNumUsersFound,
     PDWORD pdwNumUsersProcessed, /* in/out parameter */
-    PSTR*  ppszQuery
-    );
-
-DWORD
-ADBuildGetPseudoGroupsBySIDQuery(
-    PCSTR* ppszRealSIDList,
-    DWORD  dwRealGroupsFound,
-    PDWORD pdwRealSIDsProcessed, /* in/out parameter */
     PSTR*  ppszQuery
     );
 
@@ -85,9 +77,9 @@ UnprovisionedModeMakeLocalSID(
 
 DWORD
 ADUnprovisionalModeGetSid(
-    HANDLE  hDirectory,    
+    HANDLE  hDirectory,
     DWORD   dwUID, //this is assumed to be a hashed UID.
-    PSTR*   ppszObjectSID      
+    PSTR*   ppszObjectSID
     );
 
 DWORD
@@ -97,7 +89,7 @@ ADLdap_DefaultFindUserNameByAlias(
     );
 
 DWORD
-ADLdap_CellFindUserNameByAlias(        
+ADLdap_CellFindUserNameByAlias(
     PCSTR pszAlias,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
@@ -106,8 +98,8 @@ ADLdap_CellFindUserNameByAlias(
 
 DWORD
 ADLdap_DefaultFindUserNameByAliasInDomain(
-    PCSTR pszAlias,   
-    PCSTR pszDomainName,    
+    PCSTR pszAlias,
+    PCSTR pszDomainName,
     PSTR* ppszNT4Name
     );
 
@@ -119,41 +111,41 @@ ADLdap_DefaultFindUserNameById(
 
 DWORD
 ADLdap_DefaultFindUserNameByIdInDomain(
-    uid_t uid,  
-    PCSTR pszDomainName,    
+    uid_t uid,
+    PCSTR pszDomainName,
     PSTR* ppszNT4Name
     );
 
 DWORD
 ADLdap_DefaultSchemaFindUserNameByAlias(
-    PCSTR pszAlias,    
-    PCSTR pszRootDomainName,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_DefaultSchemaFindUserNameById(
-    uid_t uid,    
-    PCSTR pszRootDomainName,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_DefaultSchemaFindUserNameHelper(
-    HANDLE hGCDirectory,    
-    PCSTR pszQuery,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_DefaultNonSchemaFindUserNameByAlias(        
     PCSTR pszAlias,
     PCSTR pszRootDomainName,
     PSTR* ppszNT4Name
     );
 
 DWORD
-ADLdap_DefaultNonSchemaFindUserNameById(        
+ADLdap_DefaultSchemaFindUserNameById(
+    uid_t uid,
+    PCSTR pszRootDomainName,
+    PSTR* ppszNT4Name
+    );
+
+DWORD
+ADLdap_DefaultSchemaFindUserNameHelper(
+    HANDLE hGCDirectory,
+    PCSTR pszQuery,
+    PSTR* ppszNT4Name
+    );
+
+DWORD
+ADLdap_DefaultNonSchemaFindUserNameByAlias(
+    PCSTR pszAlias,
+    PCSTR pszRootDomainName,
+    PSTR* ppszNT4Name
+    );
+
+DWORD
+ADLdap_DefaultNonSchemaFindUserNameById(
     uid_t uid,
     PCSTR pszRootDomainName,
     PSTR* ppszNT4Name
@@ -168,32 +160,32 @@ ADLdap_DefaultNonSchemaFindUserNameHelper(
     );
 
 DWORD
-ADLdap_CellFindUserNameByAlias(        
-    PCSTR pszAlias,    
+ADLdap_CellFindUserNameByAlias(
+    PCSTR pszAlias,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PSTR* ppszNT4Name
     );
 
 DWORD
-ADLdap_CellFindUserNameByAliasInOneCell(        
-    PCSTR pszAlias,    
+ADLdap_CellFindUserNameByAliasInOneCell(
+    PCSTR pszAlias,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PSTR* ppszNT4Name
     );
 
 DWORD
-ADLdap_CellFindUserNameById(        
-    uid_t uid,    
+ADLdap_CellFindUserNameById(
+    uid_t uid,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PSTR* ppszNT4Name
     );
 
 DWORD
-ADLdap_CellFindUserNameByIdInOneCell(        
-    uid_t uid,    
+ADLdap_CellFindUserNameByIdInOneCell(
+    uid_t uid,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PSTR* ppszNT4Name
@@ -201,30 +193,30 @@ ADLdap_CellFindUserNameByIdInOneCell(
 
 DWORD
 ADLdap_CellFindUserNameHelper(
-    HANDLE hDirectory,    
+    HANDLE hDirectory,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PCSTR pszQuery,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_UnprovisionedFindUserNameById( 
+ADLdap_UnprovisionedFindUserNameById(
     uid_t uid,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_UnprovisionedFindGroupNameById( 
+ADLdap_UnprovisionedFindGroupNameById(
     gid_t gid,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_UnprovisionedFindObjectNameByIdInDomain( 
+ADLdap_UnprovisionedFindObjectNameByIdInDomain(
     DWORD dwId,
     PCSTR pszDomainName,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_UnprovisionedFindObjectNameByIdInDomainHelper(    
+ADLdap_UnprovisionedFindObjectNameByIdInDomainHelper(
     DWORD dwId,
     PCSTR pszPrimaryDomainName,
     PCSTR pszDomainName,
@@ -237,34 +229,34 @@ ADLdap_DefaultFindGroupNameByAlias(
 
 DWORD
 ADLdap_DefaultFindGroupNameByAliasInDomain(
-    PCSTR pszAlias,   
-    PCSTR pszDomainName,    
+    PCSTR pszAlias,
+    PCSTR pszDomainName,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_CellFindGroupNameByAlias(        
-    PCSTR pszAlias,    
+ADLdap_CellFindGroupNameByAlias(
+    PCSTR pszAlias,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_CellFindGroupNameByAliasInOneCell(        
-    PCSTR pszAlias,    
+ADLdap_CellFindGroupNameByAliasInOneCell(
+    PCSTR pszAlias,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_CellFindGroupNameById(        
-    gid_t gid,    
+ADLdap_CellFindGroupNameById(
+    gid_t gid,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_CellFindGroupNameByIdInOneCell(        
-    gid_t gid,    
+ADLdap_CellFindGroupNameByIdInOneCell(
+    gid_t gid,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PSTR* ppszNT4Name
@@ -272,19 +264,19 @@ ADLdap_CellFindGroupNameByIdInOneCell(
 
 DWORD
 ADLdap_DefaultSchemaFindGroupNameByAlias(
-    PCSTR pszAlias,    
+    PCSTR pszAlias,
     PCSTR pszRootDomainName,
     PSTR* ppszNT4Name);
 
 DWORD
 ADLdap_DefaultSchemaFindGroupNameById(
-    gid_t gid,    
+    gid_t gid,
     PCSTR pszRootDomainName,
     PSTR* ppszNT4Name);
 
 DWORD
 ADLdap_CellFindGroupNameHelper(
-    HANDLE hDirectory,    
+    HANDLE hDirectory,
     PCSTR pszDomainName,
     PCSTR pszCellDN,
     PCSTR pszQuery,
@@ -292,18 +284,18 @@ ADLdap_CellFindGroupNameHelper(
 
 DWORD
 ADLdap_DefaultSchemaFindGroupNameHelper(
-    HANDLE hGCDirectory,    
+    HANDLE hGCDirectory,
     PCSTR pszQuery,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_DefaultNonSchemaFindGroupNameByAlias(        
+ADLdap_DefaultNonSchemaFindGroupNameByAlias(
     PCSTR pszAlias,
     PCSTR pszRootDomainName,
     PSTR* ppszNT4Name);
 
 DWORD
-ADLdap_DefaultNonSchemaFindGroupNameById(        
+ADLdap_DefaultNonSchemaFindGroupNameById(
     gid_t gid,
     PCSTR pszRootDomainName,
     PSTR* ppszNT4Name);
@@ -322,37 +314,20 @@ ADLdap_DefaultFindGroupNameById(
 
 DWORD
 ADLdap_DefaultFindGroupNameByIdInDomain(
-    uid_t uid,  
-    PCSTR pszDomainName,    
+    uid_t uid,
+    PCSTR pszDomainName,
     PSTR* ppszNT4Name);
 
 DWORD
-ADFindUserByNameNonAliasHelper(
-    HANDLE  hPseudoDirectory,
-    HANDLE  hRealDirectory,    
-    PCSTR   pszCellDN,
-    DWORD   dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PLSA_LOGIN_NAME_INFO pUserNameInfo,
-    PAD_SECURITY_OBJECT *ppUserInfo);
-
-DWORD
-ADFindGroupByNameNT4Helper(
-    HANDLE  hPseudoDirectory,
-    HANDLE  hRealDirectory, 
-    PCSTR   pszCellDN,
-    DWORD   dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PLSA_LOGIN_NAME_INFO pGroupNameInfo,
-    PAD_SECURITY_OBJECT* ppGroupInfo);
-
-DWORD
-ADLdap_GetGroupMembersDNList(
+ADLdap_GetAttributeValuesList(
     IN HANDLE hDirectory,
-    IN PCSTR pszGroupDN,
-    OUT PDWORD pdwTotalDNCount,
-    OUT PSTR** pppszDNValues
+    IN PCSTR pszDN,
+    IN PCSTR pszAttributeName,
+    IN BOOLEAN bDoExtDnSearch,
+    IN BOOLEAN bDoSidParsing,
+    OUT PDWORD pdwTotalCount,
+    OUT PSTR** pppszValues
     );
 
-#endif 
+#endif
 

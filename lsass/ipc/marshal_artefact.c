@@ -270,8 +270,6 @@ LsaMarshalNSSArtefact_0(
     // Prepare and write the header
     memset(&header, 0, sizeof(header));
 
-    header.dwMapType = pNSSArtefactInfo->artefactType;
-
     if (!IsNullOrEmptyString(pNSSArtefactInfo->pszName)) {
        header.name.length = strlen(pNSSArtefactInfo->pszName);
        // We always indicate the offset from the beginning of the buffer
@@ -445,8 +443,6 @@ LsaUnmarshalNSSArtefact_0(
                     (PVOID*)&pNSSArtefactInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pNSSArtefactInfo->artefactType = pHeader->dwMapType;
-
     if (pHeader->name.length) {
 
         dwError = LsaAllocateMemory(
@@ -487,7 +483,8 @@ error:
 DWORD
 LsaMarshalBeginEnumNSSArtefactRecordsQuery(
     DWORD  dwInfoLevel,
-    DWORD  dwMapType,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwNumMaxRecords,
     PSTR   pszBuffer,
     PDWORD pdwBufLen
@@ -496,6 +493,10 @@ LsaMarshalBeginEnumNSSArtefactRecordsQuery(
     DWORD dwError = 0;
     LSA_BEGIN_ENUM_NSS_ARTEFACT_RECORDS_HEADER header = {0};
     DWORD dwRequiredLength = sizeof(header);
+
+    BAIL_ON_INVALID_STRING(pszMapName);
+
+    dwRequiredLength += strlen(pszMapName);
 
     if (!pszBuffer) {
         *pdwBufLen = dwRequiredLength;
@@ -508,10 +509,13 @@ LsaMarshalBeginEnumNSSArtefactRecordsQuery(
     }
 
     header.dwInfoLevel = dwInfoLevel;
-    header.dwMapType = dwMapType;
     header.dwNumMaxRecords = dwNumMaxRecords;
+    header.dwFlags = dwFlags;
+    header.mapName.length = strlen(pszMapName);
+    header.mapName.offset = sizeof(header);
 
     memcpy(pszBuffer, &header, sizeof(header));
+    memcpy(pszBuffer + header.mapName.offset, pszMapName, header.mapName.length);
 
 cleanup:
 
@@ -527,12 +531,14 @@ LsaUnmarshalBeginEnumNSSArtefactRecordsQuery(
     PCSTR  pszMsgBuf,
     DWORD  dwMsgLen,
     PDWORD pdwInfoLevel,
-    PDWORD pdwMapType,
+    LSA_NIS_MAP_QUERY_FLAGS* pdwFlags,
+    PSTR*  ppszMapName,
     PDWORD pdwNumMaxRecords
     )
 {
     DWORD dwError = 0;
     LSA_BEGIN_ENUM_NSS_ARTEFACT_RECORDS_HEADER header = {0};
+    PSTR pszMapName = NULL;
 
     if (dwMsgLen < sizeof(header)) {
         dwError = LSA_ERROR_INVALID_MESSAGE;
@@ -541,9 +547,76 @@ LsaUnmarshalBeginEnumNSSArtefactRecordsQuery(
 
     memcpy(&header, pszMsgBuf, sizeof(header));
 
+    dwError = LsaStrndup(
+                   pszMsgBuf + header.mapName.offset,
+                   header.mapName.length,
+                   &pszMapName);
+    BAIL_ON_LSA_ERROR(dwError);
+
     *pdwInfoLevel = header.dwInfoLevel;
-    *pdwMapType = header.dwMapType;
+    *pdwFlags = header.dwFlags;
+    *ppszMapName = pszMapName;
     *pdwNumMaxRecords = header.dwNumMaxRecords;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszMapName);
+
+    goto cleanup;
+}
+
+DWORD
+LsaMarshalFindNSSArtefactByKeyQuery(
+    DWORD  dwInfoLevel,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PSTR   pszBuffer,
+    PDWORD pdwBufLen
+    )
+{
+    DWORD dwError = 0;
+    LSA_FIND_NSS_ARTEFACT_BY_KEY_HEADER header = {0};
+    DWORD dwRequiredLength = sizeof(header);
+    DWORD dwOffset = 0;
+
+    BAIL_ON_INVALID_STRING(pszMapName);
+    BAIL_ON_INVALID_STRING(pszKeyName);
+
+    dwRequiredLength += strlen(pszMapName);
+    dwRequiredLength += strlen(pszKeyName);
+
+    if (!pszBuffer) {
+        *pdwBufLen = dwRequiredLength;
+        goto cleanup;
+    }
+
+    if (*pdwBufLen < dwRequiredLength) {
+        dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    header.dwInfoLevel = dwInfoLevel;
+    header.dwFlags = dwFlags;
+
+    dwOffset = sizeof(header);
+
+    header.mapName.length = strlen(pszMapName);
+    header.mapName.offset = dwOffset;
+
+    memcpy(pszBuffer + dwOffset, pszMapName, header.mapName.length);
+    dwOffset += header.mapName.length;
+
+    header.keyName.length = strlen(pszKeyName);
+    header.keyName.offset = dwOffset;
+
+    memcpy(pszBuffer + dwOffset, pszKeyName, header.keyName.length);
+
+    memcpy(pszBuffer, &header, sizeof(header));
 
 cleanup:
 
@@ -554,4 +627,53 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaUnmarshalFindNSSArtefactByKeyQuery(
+    PCSTR  pszMsgBuf,
+    DWORD  dwMsgLen,
+    PDWORD pdwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS* pdwFlags,
+    PSTR*  ppszMapName,
+    PSTR*  ppszKeyName
+    )
+{
+    DWORD dwError = 0;
+    LSA_FIND_NSS_ARTEFACT_BY_KEY_HEADER header = {0};
+    PSTR pszMapName = NULL;
+    PSTR pszKeyName = NULL;
 
+    if (dwMsgLen < sizeof(header)) {
+        dwError = LSA_ERROR_INVALID_MESSAGE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    memcpy(&header, pszMsgBuf, sizeof(header));
+
+    dwError = LsaStrndup(
+                   pszMsgBuf + header.mapName.offset,
+                   header.mapName.length,
+                   &pszMapName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrndup(
+                   pszMsgBuf + header.keyName.offset,
+                   header.keyName.length,
+                   &pszKeyName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwInfoLevel = header.dwInfoLevel;
+    *pdwFlags = header.dwFlags;
+    *ppszMapName = pszMapName;
+    *ppszKeyName = pszKeyName;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszMapName);
+    LSA_SAFE_FREE_STRING(pszKeyName);
+
+    goto cleanup;
+}

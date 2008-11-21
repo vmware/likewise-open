@@ -42,6 +42,7 @@ typedef struct __DOMAIN_JOIN_INFO
     char* pszDomainName;      /* Null if not joined  */
     char* pszDomainShortName; /* Null if not joined  */
     char* pszLogFilePath;     /* Null if not logging */
+    char* pszOU;              /* Null if not joined  */
 
 } DOMAIN_JOIN_INFO, *PDOMAIN_JOIN_INFO;
 

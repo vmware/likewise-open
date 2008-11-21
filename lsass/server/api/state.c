@@ -58,6 +58,7 @@ LsaFreeEnumRecordStateList(
         pStateList = pStateList->pNext;
 
         LSA_SAFE_FREE_STRING(pState->pszGUID);
+        LSA_SAFE_FREE_STRING(pState->pszMapName);
 
         if (pState->pProviderStateList) {
             LsaSrvFreeProviderStateList(pState->pProviderStateList);
@@ -502,7 +503,8 @@ LsaSrvFreeGroupEnumState(
 DWORD
 LsaSrvAddNSSArtefactEnumState(
     HANDLE  hServer,
-    DWORD   dwMapType,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD   dwNSSArtefactInfoLevel,
     DWORD   dwMaxNumArtefacts,
     PLSA_SRV_RECORD_ENUM_STATE* ppEnumState
@@ -533,7 +535,12 @@ LsaSrvAddNSSArtefactEnumState(
 
     pEnumState->dwInfoLevel = dwNSSArtefactInfoLevel;
     pEnumState->dwNumMaxRecords = dwMaxNumArtefacts;
-    pEnumState->dwMapType = dwMapType;
+    pEnumState->dwMapFlags = dwFlags;
+
+    dwError = LsaAllocateString(
+                    pszMapName,
+                    &pEnumState->pszMapName);
+    BAIL_ON_LSA_ERROR(dwError);
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(pEnumState->bInLock);
 
@@ -556,7 +563,8 @@ LsaSrvAddNSSArtefactEnumState(
                                             pProviderState->hProvider,
                                             pEnumState->pszGUID,
                                             pEnumState->dwInfoLevel,
-                                            dwMapType,
+                                            pEnumState->pszMapName,
+                                            pEnumState->dwMapFlags,
                                             &pProviderState->hResume);
         if (!dwError) {
 

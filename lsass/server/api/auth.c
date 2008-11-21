@@ -54,9 +54,12 @@ LsaSrvAuthenticateUser(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
@@ -105,6 +108,8 @@ cleanup:
         LsaSrvIncrementMetricValue(LsaMetricFailedAuthentications);
     }
 
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return dwError;
 
 error:
@@ -134,9 +139,12 @@ LsaSrvValidateUser(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
@@ -172,6 +180,8 @@ cleanup:
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return dwError;
 
 error:
@@ -194,9 +204,12 @@ LsaSrvCheckUserInList(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
@@ -232,6 +245,8 @@ cleanup:
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
@@ -255,9 +270,12 @@ LsaSrvChangePassword(
     )
 {
     DWORD  dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     BOOLEAN bInLock = FALSE;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
@@ -302,6 +320,8 @@ cleanup:
     {
         LsaSrvIncrementMetricValue(LsaMetricFailedChangePassword);
     }
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     return(dwError);
 

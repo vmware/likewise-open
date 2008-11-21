@@ -71,4 +71,10 @@ LsaSrvIpcChangePassword(
         PLSAMESSAGE pMessage
         );
 
+DWORD
+LsaSrvIpcAuthenticateUserEx(
+        HANDLE hConnection,
+        PLSAMESSAGE pMessage
+        );
+
 #endif /* __IPC_AUTH_P_H__ */

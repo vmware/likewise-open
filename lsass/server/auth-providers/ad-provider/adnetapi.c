@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Wrappers for calls to NETAPI
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -54,16 +54,16 @@ AD_NetInitMemory(
     )
 {
     DWORD dwError = 0;
-    
+
     dwError = LsaRpcInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = NetrInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = SamrInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 error:
 
     return dwError;
@@ -78,13 +78,13 @@ AD_NetShutdownMemory(
 
     dwError = SamrDestroyMemory();
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = NetrDestroyMemory();
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaRpcDestroyMemory();
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 error:
 
     return dwError;
@@ -103,45 +103,45 @@ AD_NetUserChangePassword(
     PWSTR pwszLoginId = NULL;
     PWSTR pwszOldPassword = NULL;
     PWSTR pwszNewPassword = NULL;
-    
+
     BAIL_ON_INVALID_STRING(pszDomainName);
     BAIL_ON_INVALID_STRING(pszLoginId);
-    
+
     dwError = LsaMbsToWc16s(
                     pszDomainName,
                     &pwszDomainName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaMbsToWc16s(
                     pszLoginId,
                     &pwszLoginId);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (!IsNullOrEmptyString(pszOldPassword)) {
-        
+
         dwError = LsaMbsToWc16s(
                     pszOldPassword,
                     &pwszOldPassword);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
     }
-    
+
     if (!IsNullOrEmptyString(pszNewPassword)) {
-        
+
         dwError = LsaMbsToWc16s(
                     pszNewPassword,
                     &pwszNewPassword);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
     }
-    
+
     dwError = NetUserChangePassword(
                     pwszDomainName,
                     pwszLoginId,
                     pwszOldPassword,
                     pwszNewPassword);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pwszDomainName);
@@ -150,7 +150,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszNewPassword);
 
     return AD_MapNetApiError(dwError);
-    
+
 error:
 
     goto cleanup;
@@ -162,41 +162,124 @@ error:
 #define STATUS_UNHANDLED_EXCEPTION 0xc0000144
 #endif
 
+#ifndef STATUS_SOME_UNMAPPED
+#define STATUS_SOME_UNMAPPED 0x00000107
+#endif
+
+static
+ADAccountType
+GetObjectType(
+    IN LsaSidType Type
+    )
+{
+    ADAccountType ObjectType = AccountType_NotFound;
+
+    switch(Type)
+    {
+        case SID_TYPE_USER:
+            ObjectType = AccountType_User;
+            break;
+
+        case SID_TYPE_DOM_GRP:
+        case SID_TYPE_ALIAS:
+        case SID_TYPE_WKN_GRP:
+            ObjectType = AccountType_Group;
+            break;
+
+        default:
+            ObjectType = AccountType_NotFound;
+    }
+
+    return ObjectType;
+}
+
 DWORD
 AD_NetLookupObjectSidByName(
     IN PCSTR pszHostname,
-    IN PCSTR pszLoginName,
+    IN PCSTR pszObjectName,
     OUT PSTR* ppszObjectSid,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    DWORD dwError = 0;
+    PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedSids = NULL;
+    PSTR pszObjectSid = NULL;
+    BOOLEAN bIsNetworkError = FALSE;
+
+    dwError = AD_NetLookupObjectSidsByNames(
+                 pszHostname,
+                 1,
+                 (PSTR*)&pszObjectName,
+                 &ppTranslatedSids,
+                 NULL,
+                 &bIsNetworkError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // In case of NOT found, the above function bails out with dwError == LSA_ERROR_RPC_LSA_LOOKUPNAMES_FAILED
+    // Double check here again
+    if (!ppTranslatedSids || !ppTranslatedSids[0])
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateString(ppTranslatedSids[0]->pszNT4NameOrSid,
+                                &pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszObjectSid = pszObjectSid;
+
+cleanup:
+    *pbIsNetworkError = bIsNetworkError;
+    if (ppTranslatedSids)
+    {
+       LsaFreeTranslatedNameList(ppTranslatedSids, 1);
+    }
+    return dwError;
+
+error:
+    *ppszObjectSid = NULL;
+    LSA_SAFE_FREE_STRING(pszObjectSid);
+    LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
+    dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+
+    goto cleanup;
+}
+
+DWORD
+AD_NetLookupObjectSidsByNames(
+    IN PCSTR pszHostname,
+    IN DWORD dwNamesCount,
+    IN PSTR* ppszNames,
+    OUT PLSA_TRANSLATED_NAME_OR_SID** pppTranslatedSids,
+    OUT OPTIONAL PDWORD pdwFoundSidsCount,
     OUT PBOOLEAN pbIsNetworkError
     )
 {
     DWORD dwError = 0;
     PWSTR pwcHost = NULL;
     RPCSTATUS rpcStatus;
-    NTSTATUS status = 0;    
+    NTSTATUS status = 0;
     handle_t lsa_binding = (HANDLE)NULL;
     DWORD dwAccess_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     PolicyHandle lsa_policy = {0};
-    DWORD dwNum_names = 1;
     DWORD dwLevel;
-    DWORD dwCount = 0;
-    PWSTR pwcNames[2];   
+    DWORD dwFoundSidsCount = 0;
+    PWSTR* ppwcNames = NULL;
     RefDomainList* pDomains = NULL;
     TranslatedSid2* pSids = NULL;
-    DomSid* pUsr_sid = NULL;
-    DomSid* pDom_sid = NULL;
-    DWORD dwSid_index = 0;          
-    PWSTR pwcSid = NULL;
-    PSTR pszObjectSid = NULL;
+    PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedSids = NULL;
+    DomSid* pObject_sid = NULL;
+    PWSTR pwcObjectSid = NULL;
     BOOLEAN bIsNetworkError = FALSE;
-           
+    DWORD i = 0;
+
     BAIL_ON_INVALID_STRING(pszHostname);
-    
     dwError = LsaMbsToWc16s(
                   pszHostname,
                   &pwcHost);
-    BAIL_ON_LSA_ERROR(dwError);        
-    
+    BAIL_ON_LSA_ERROR(dwError);
+
     rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
     if (rpcStatus != 0)
     {
@@ -204,21 +287,30 @@ AD_NetLookupObjectSidByName(
        bIsNetworkError = TRUE;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (lsa_binding == NULL)
     {
         dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    dwError = LsaMbsToWc16s(
-                  pszLoginName,
-                  &pwcNames[0]);
+
+    // Convert ppszNames to ppwcNames
+    dwError = LsaAllocateMemory(
+                    sizeof(*ppwcNames)*dwNamesCount,
+                    (PVOID*)&ppwcNames);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = LsaOpenPolicy2(lsa_binding, 
-                            pwcHost, 
-                            NULL, 
+    for (i = 0; i < dwNamesCount; i++)
+    {
+        dwError = LsaMbsToWc16s(
+                      ppszNames[i],
+                      &ppwcNames[i]);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    status = LsaOpenPolicy2(lsa_binding,
+                            pwcHost,
+                            NULL,
                             dwAccess_rights,
                             &lsa_policy);
     if (status != 0)
@@ -234,152 +326,268 @@ AD_NetLookupObjectSidByName(
 
     /* Lookup name to sid */
     dwLevel = 1;
-    
     status = LsaLookupNames2(
-                   lsa_binding, 
+                   lsa_binding,
                    &lsa_policy,
-                   dwNum_names, 
-                   pwcNames,
-                   &pDomains, 
+                   dwNamesCount,
+                   ppwcNames,
+                   &pDomains,
                    &pSids,
                    dwLevel,
-                   &dwCount);
+                   &dwFoundSidsCount);
     if (status != 0)
     {
-        LSA_LOG_DEBUG("LsaLookupNames2() failed with %d (0x%08x)", status, status);
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
-        if (IsDceRpcConnError(status))
+        if (STATUS_SOME_UNMAPPED == status)
         {
-            bIsNetworkError = TRUE;
+            dwError = 0;
+            LSA_LOG_DEBUG("LsaLookupNames2() succeeded incomplete results with %d (0x%08x) -- Partial results returned (got %u, expected %u)",
+                           status, status, dwFoundSidsCount, dwNamesCount);
+        }
+        else
+        {
+            LSA_LOG_DEBUG("LsaLookupNames2() failed with %d (0x%08x)", status, status);
+            dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
+            if (IsDceRpcConnError(status))
+            {
+                bIsNetworkError = TRUE;
+            }
         }
         BAIL_ON_LSA_ERROR(dwError);
-    }    
-    
-    if (dwCount == 0)
+    }
+    if (dwFoundSidsCount == 0)
     {
         dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if (dwCount > 1)
+    else if (dwFoundSidsCount > dwNamesCount)
     {
         dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FOUND_DUPLICATES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    if (!pSids)
+    else if (!pSids || !pDomains)
     {
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FOUND_DUPLICATES;
+        dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    dwSid_index = pSids[0].index;
-    
-    if (dwSid_index >= pDomains->count)
-    {
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }        
-    
-    pDom_sid = pDomains->domains[dwSid_index].sid;
-    
-    SidAllocateResizedCopy(&pUsr_sid,
-                           pDom_sid->subauth_count + 1,
-                           pDom_sid);
-    pUsr_sid->subauth[pUsr_sid->subauth_count - 1] = pSids[0].rid;     
-   
-    dwError = SidToString(pUsr_sid,
-                          &pwcSid);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaWc16sToMbs(pwcSid,
-                            &pszObjectSid);
+
+    // For incomplete results (STATUS_SOME_UNMAPPED == status), leave ppTranslatedSids[i] as NULL for those NOT found
+    // to maintain ppszNames[i] -> ppTranslatedSids[i]
+    dwError = LsaAllocateMemory(
+                    sizeof(*ppTranslatedSids)*dwNamesCount,
+                    (PVOID*)&ppTranslatedSids);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *ppszObjectSid = pszObjectSid;
-    
+    for (i = 0; i < dwNamesCount; i++)
+    {
+        ADAccountType ObjectType = AccountType_NotFound;
+        DWORD dwDomainSid_index = 0;
+        // Do not free pDom_sid, reference to pDomains
+        DomSid* pDom_sid = NULL;
+
+
+        ObjectType = GetObjectType(pSids[i].type);
+        if (ObjectType == AccountType_NotFound)
+        {
+            continue;
+        }
+
+        dwError = LsaAllocateMemory(
+                            sizeof(*ppTranslatedSids[i]),
+                            (PVOID*)&ppTranslatedSids[i]);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ppTranslatedSids[i]->ObjectType = ObjectType;
+
+        dwDomainSid_index = pSids[i].index;
+
+        if (dwDomainSid_index >= pDomains->count)
+        {
+            dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pDom_sid = pDomains->domains[dwDomainSid_index].sid;
+
+        if (pObject_sid)
+        {
+              SidFree(pObject_sid);
+              pObject_sid = NULL;
+        }
+        SidAllocateResizedCopy(&pObject_sid,
+                               pDom_sid->subauth_count + 1,
+                               pDom_sid);
+        pObject_sid->subauth[pObject_sid->subauth_count - 1] = pSids[i].rid;
+
+        if (pwcObjectSid)
+        {
+            SidFreeString(pwcObjectSid);
+            pwcObjectSid = NULL;
+        }
+        dwError = SidToString(pObject_sid,
+                              &pwcObjectSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaWc16sToMbs(pwcObjectSid,
+                                &ppTranslatedSids[i]->pszNT4NameOrSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pppTranslatedSids = ppTranslatedSids;
+    if (pdwFoundSidsCount)
+    {
+        *pdwFoundSidsCount = dwFoundSidsCount;
+    }
+
 cleanup:
-
-    LSA_SAFE_FREE_MEMORY(pwcHost);
-    LSA_SAFE_FREE_MEMORY(pwcNames[0]);    
-    
-    if (pDomains)
-    {
-        LsaRpcFreeMemory((void*)pDomains);
-    }
-    
-    if (pSids)
-    {
-        LsaRpcFreeMemory((void*)(pSids));
-    }
-    
-    if (pUsr_sid){
-          SidFree(pUsr_sid);
-    }
-    
-    if (pwcSid)
-    {
-        SidFreeString(pwcSid);
-    }
-
-    status = LsaClose(lsa_binding, &lsa_policy);
-    if (status != 0 && dwError == 0){
-        dwError = LSA_ERROR_RPC_CLOSEPOLICY_FAILED;        
-    }
-    
-    if (lsa_binding)
-    {
-        FreeLsaBinding(&lsa_binding);
-    }
-
     if (pbIsNetworkError)
     {
         *pbIsNetworkError = bIsNetworkError;
     }
 
+    LSA_SAFE_FREE_MEMORY(pwcHost);
+    if (ppwcNames)
+    {
+        for (i = 0; i < dwNamesCount; i++)
+        {
+            LSA_SAFE_FREE_MEMORY(ppwcNames[i]);
+        }
+        LsaFreeMemory(ppwcNames);
+    }
+    if (pDomains)
+    {
+        LsaRpcFreeMemory(pDomains);
+    }
+    if (pSids)
+    {
+        LsaRpcFreeMemory(pSids);
+    }
+    if (pObject_sid)
+    {
+          SidFree(pObject_sid);
+    }
+    if (pwcObjectSid)
+    {
+        SidFreeString(pwcObjectSid);
+    }
+    status = LsaClose(lsa_binding, &lsa_policy);
+    if (status != 0 && dwError == 0)
+    {
+        dwError = LSA_ERROR_RPC_CLOSEPOLICY_FAILED;
+    }
+    if (lsa_binding)
+    {
+        FreeLsaBinding(&lsa_binding);
+    }
+
     return dwError;
-   
+
 error:
+   *pppTranslatedSids = NULL;
+   if (pdwFoundSidsCount)
+   {
+       *pdwFoundSidsCount = 0;
+   }
+   if (ppTranslatedSids)
+   {
+       LsaFreeTranslatedNameList(ppTranslatedSids, dwNamesCount);
+   }
 
-    *ppszObjectSid = NULL;
-
-    LSA_SAFE_FREE_STRING(pszObjectSid);
-    
-    goto cleanup;
+   goto cleanup;
 }
 
 DWORD
 AD_NetLookupObjectNameBySid(
     IN PCSTR     pszHostname,
     IN PCSTR     pszObjectSid,
-    OUT PSTR*    ppszNetbiosName,
+    OUT PSTR*    ppszNT4Name,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    DWORD dwError = 0;
+    PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedNames = NULL;
+    PSTR pszNT4Name = NULL;
+    BOOLEAN bIsNetworkError = FALSE;
+
+    dwError = AD_NetLookupObjectNamesBySids(
+                 pszHostname,
+                 1,
+                 (PSTR*)&pszObjectSid,
+                 &ppTranslatedNames,
+                 NULL,
+                 &bIsNetworkError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // In case of NOT found, the above function bails out with dwError == LSA_ERROR_RPC_LSA_LOOKUPSIDS_FAILED
+    // Double check here again
+    if (!ppTranslatedNames || !ppTranslatedNames[0])
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateString(ppTranslatedNames[0]->pszNT4NameOrSid,
+                                &pszNT4Name);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszNT4Name = pszNT4Name;
+
+cleanup:
+    *pbIsNetworkError = bIsNetworkError;
+
+    if (ppTranslatedNames)
+    {
+       LsaFreeTranslatedNameList(ppTranslatedNames, 1);
+    }
+    return dwError;
+
+error:
+
+    *ppszNT4Name = NULL;
+    LSA_SAFE_FREE_STRING(pszNT4Name);
+
+    LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
+
+    dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+
+    goto cleanup;
+}
+
+DWORD
+AD_NetLookupObjectNamesBySids(
+    IN PCSTR pszHostname,
+    IN DWORD dwSidsCount,
+    IN PSTR* ppszObjectSids,
+    OUT PLSA_TRANSLATED_NAME_OR_SID** pppTranslatedNames,
+    OUT OPTIONAL PDWORD pdwFoundNamesCount,
     OUT PBOOLEAN pbIsNetworkError
     )
 {
     DWORD dwError = 0;
     PWSTR pwcHost = NULL;
     RPCSTATUS rpcStatus;
-    NTSTATUS status = 0;    
+    NTSTATUS status = 0;
     handle_t lsa_binding = (HANDLE)NULL;
     DWORD dwAccess_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     PolicyHandle lsa_policy = {0};
     SidArray sid_array  = {0};
-    SidPtr   sid_holder = {0};
     DWORD dwLevel = 1;
-    DWORD dwCount = 0;   
+    DWORD dwFoundNamesCount = 0;
     RefDomainList* pDomains = NULL;
+    PSTR* ppszDomainNames = NULL;
     PSID pObjectSID = NULL;
     TranslatedName* name_array = NULL;
-    PSTR pszDomainName = NULL;
     PSTR pszUsername = NULL;
-    PSTR pszNetbiosName = NULL;
+    PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedNames = NULL;
     BOOLEAN bIsNetworkError = FALSE;
-           
+    DWORD i = 0;
+
     BAIL_ON_INVALID_STRING(pszHostname);
-    
+
     dwError = LsaMbsToWc16s(
                   pszHostname,
                   &pwcHost);
-    BAIL_ON_LSA_ERROR(dwError);        
-    
+    BAIL_ON_LSA_ERROR(dwError);
+
     rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
     if (rpcStatus != 0)
     {
@@ -387,33 +595,38 @@ AD_NetLookupObjectNameBySid(
        bIsNetworkError = TRUE;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (lsa_binding == NULL)
     {
         dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-   
-    status = ParseSidString(
-                    &pObjectSID,
-                    pszObjectSid);
-    if (status != 0)
-    {
-        dwError = LSA_ERROR_RPC_PARSE_SID_STRING;
-        if (STATUS_UNHANDLED_EXCEPTION == status)
-        {
-            bIsNetworkError = TRUE;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    sid_holder.sid = pObjectSID;
-    sid_array.sids = &sid_holder;
-    sid_array.num_sids = 1;
 
-    status = LsaOpenPolicy2(lsa_binding, 
-                            pwcHost, 
-                            NULL, 
+    // Convert ppszObjectSids to sid_array
+    sid_array.num_sids = dwSidsCount;
+    dwError = LsaAllocateMemory(
+                    sizeof(*sid_array.sids)*sid_array.num_sids,
+                    (PVOID*)&sid_array.sids);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < sid_array.num_sids; i++)
+    {
+        status = ParseSidString(
+                        &pObjectSID,
+                        ppszObjectSids[i]);
+        if (status != 0)
+        {
+            dwError = LSA_ERROR_RPC_PARSE_SID_STRING;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        sid_array.sids[i].sid = pObjectSID;
+        pObjectSID = NULL;
+    }
+
+    status = LsaOpenPolicy2(lsa_binding,
+                            pwcHost,
+                            NULL,
                             dwAccess_rights,
                             &lsa_policy);
     if (status != 0)
@@ -427,134 +640,181 @@ AD_NetLookupObjectNameBySid(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    /* Lookup sid to name */   
+    /* Lookup sid to name */
     status = LsaLookupSids(
-                   lsa_binding, 
+                   lsa_binding,
                    &lsa_policy,
                    &sid_array,
-                   &pDomains, 
+                   &pDomains,
                    &name_array,
                    dwLevel,
-                   &dwCount);
+                   &dwFoundNamesCount);
     if (status != 0)
     {
-        LSA_LOG_DEBUG("LsaLookupSids() failed with %d (0x%08x)", status, status);
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_FAILED;
-        if (IsDceRpcConnError(status))
+        if (STATUS_SOME_UNMAPPED == status)
         {
-            bIsNetworkError = TRUE;
+            dwError = 0;
+            LSA_LOG_DEBUG("LsaLookupSids() succeeded incomplete results with %d (0x%08x) -- Partial results returned (got %u, expected %u)",
+                           status, status, dwFoundNamesCount, dwSidsCount);
+        }
+        else
+        {
+            LSA_LOG_DEBUG("LsaLookupSids() failed with %d (0x%08x)", status, status);
+
+            dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_FAILED;
+            if (IsDceRpcConnError(status))
+            {
+                bIsNetworkError = TRUE;
+            }
         }
         BAIL_ON_LSA_ERROR(dwError);
-    }    
-    
-    if (dwCount == 0)
+    }
+    if (dwFoundNamesCount == 0)
     {
         dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if (dwCount > 1)
+    else if (dwFoundNamesCount > dwSidsCount)
     {
         dwError = LSA_ERORR_RPC_LSA_LOOKUPSIDS_FOUND_DUPLICATES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
-    if (!name_array)
+    else if (!name_array || !pDomains)
     {
         dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else
-    {
-        wchar16_t *domainname = NULL, *username = NULL;
-        uint32 sid_index = name_array[0].sid_index;
 
-        if (pDomains->domains[sid_index].name.size > 0)
-        {
-            domainname = pDomains->domains[sid_index].name.string;
-            domainname[pDomains->domains[sid_index].name.len / 2] = 0;
-            
-            dwError = LsaWc16sToMbs(
-                            domainname,
-                            &pszDomainName);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        if (name_array[0].name.size > 0)
-        {
-            username = name_array[0].name.string;
-            username[name_array[0].name.len / 2] = 0;
-            
-            dwError = LsaWc16sToMbs(
-                            username,
-                            &pszUsername);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    if (IsNullOrEmptyString(pszDomainName) ||
-        IsNullOrEmptyString(pszUsername))
-    {
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    dwError = LsaAllocateStringPrintf(
-                    &pszNetbiosName,
-                    "%s\\%s",
-                    pszDomainName,
-                    pszUsername);
+    dwError = LsaAllocateMemory(
+                     sizeof(*ppszDomainNames)*pDomains->count,
+                     (PVOID*)&ppszDomainNames);
     BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < pDomains->count; i++)
+    {
+        if (pDomains->domains[i].name.len > 0)
+        {
+            dwError = LsaWc16snToMbs(
+                          pDomains->domains[i].name.string,
+                          &ppszDomainNames[i],
+                          pDomains->domains[i].name.len / 2);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    // For incomplete results (STATUS_SOME_UNMAPPED == status), leave ppTranslatedNames[i] as NULL for those NOT found
+    // to maintain ppszObjectSids[i] -> ppTranslatedNames[i]
+    dwError = LsaAllocateMemory(
+                    sizeof(*ppTranslatedNames)*dwSidsCount,
+                    (PVOID*)&ppTranslatedNames);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < dwSidsCount; i++)
+    {
+        ADAccountType ObjectType = AccountType_NotFound;
+
+        ObjectType = GetObjectType(name_array[i].type);
+
+        if (ObjectType == AccountType_NotFound)
+        {
+            continue;
+        }
+
+        dwError = LsaAllocateMemory(
+                            sizeof(*ppTranslatedNames[i]),
+                            (PVOID*)&ppTranslatedNames[i]);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ppTranslatedNames[i]->ObjectType = ObjectType;
+
+        if (name_array[i].name.len > 0)
+        {
+            dwError = LsaWc16snToMbs(
+                           name_array[i].name.string,
+                           &pszUsername,
+                           name_array[i].name.len / 2);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (IsNullOrEmptyString(ppszDomainNames[name_array[i].sid_index]) ||
+            IsNullOrEmptyString(pszUsername))
+        {
+            dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = ADGetDomainQualifiedString(
+                    ppszDomainNames[name_array[i].sid_index],
+                    pszUsername,
+                    &ppTranslatedNames[i]->pszNT4NameOrSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LSA_SAFE_FREE_STRING(pszUsername);
+    }
+
+    *pppTranslatedNames = ppTranslatedNames;
+
+cleanup:
+
+    if (pdwFoundNamesCount)
+    {
+        *pdwFoundNamesCount = dwFoundNamesCount;
+    }
 
     if (pbIsNetworkError)
     {
         *pbIsNetworkError = bIsNetworkError;
     }
-    
-    *ppszNetbiosName = pszNetbiosName;
-    
-cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDomainName);
-    LSA_SAFE_FREE_STRING(pszUsername);
-    
-    LSA_SAFE_FREE_MEMORY(pwcHost);   
-    
     if (pDomains)
     {
-        LsaRpcFreeMemory((void*)pDomains);
+        LsaFreeStringArray(ppszDomainNames,pDomains->count);
+        LsaRpcFreeMemory(pDomains);
     }
-    
+
+    LSA_SAFE_FREE_STRING(pszUsername);
+    LSA_SAFE_FREE_MEMORY(pwcHost);
+
+
     if (name_array)
     {
-        LsaRpcFreeMemory((void*)(name_array));
+        LsaRpcFreeMemory(name_array);
     }
-    
+
+    if (sid_array.sids)
+    {
+        for (i = 0; i < sid_array.num_sids; i++)
+        {
+            LSA_SAFE_FREE_MEMORY(sid_array.sids[i].sid);
+        }
+        LSA_SAFE_FREE_MEMORY(sid_array.sids);
+    }
+
     if (pObjectSID){
         SidFree(pObjectSID);
     }
 
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0){
-        dwError = LSA_ERROR_RPC_CLOSEPOLICY_FAILED;        
+        dwError = LSA_ERROR_RPC_CLOSEPOLICY_FAILED;
     }
-    
+
     if (lsa_binding)
     {
         FreeLsaBinding(&lsa_binding);
     }
 
     return dwError;
-   
+
 error:
 
-    *ppszNetbiosName = NULL;
+    *pppTranslatedNames = NULL;
 
-    LSA_SAFE_FREE_STRING(pszNetbiosName);
-    
-    LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
-    
-    dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
-    
+    if (ppTranslatedNames)
+    {
+        LsaFreeTranslatedNameList(ppTranslatedNames, dwSidsCount);
+    }
+
     goto cleanup;
 }
 
@@ -578,7 +838,7 @@ AD_DsEnumerateDomainTrusts(
 
     dwError = LsaMbsToWc16s(pszDomainControllerName, &pwcDomainControllerName);
     BAIL_ON_LSA_ERROR(dwError);
-   
+
     status = InitNetlogonBindingDefault(&netr_b,
                                         (PUCHAR)pszDomainControllerName);
     if (status != 0)
@@ -657,7 +917,7 @@ AD_SidToString(
 
     dwError = SidToString(pSid, &pwszSid);
     BAIL_ON_LSA_ERROR(dwError);
-              
+
     dwError = LsaWc16sToMbs(
                   pwszSid,
                   &pszSid);
@@ -703,6 +963,34 @@ AD_MapNetApiError(
     }
 
     return dwError;
+}
+
+void
+LsaFreeTranslatedNameInfo(
+    IN OUT PLSA_TRANSLATED_NAME_OR_SID pNameInfo
+    )
+{
+    LSA_SAFE_FREE_STRING(pNameInfo->pszNT4NameOrSid);
+    LsaFreeMemory(pNameInfo);
+}
+
+void
+LsaFreeTranslatedNameList(
+    IN OUT PLSA_TRANSLATED_NAME_OR_SID* pNameList,
+    IN DWORD dwNumNames
+    )
+{
+    DWORD iName = 0;
+
+    for (iName = 0; iName < dwNumNames; iName++)
+    {
+        PLSA_TRANSLATED_NAME_OR_SID pNameInfo = pNameList[iName];
+        if (pNameInfo)
+        {
+            LsaFreeTranslatedNameInfo(pNameInfo);
+        }
+    }
+    LsaFreeMemory(pNameList);
 }
 
 /*

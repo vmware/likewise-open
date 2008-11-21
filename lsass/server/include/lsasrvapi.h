@@ -100,27 +100,30 @@ LsaSrvChangePassword(
 
 DWORD
 LsaSrvFindGroupByName(
-    HANDLE  hServer,
-    PCSTR   pszGroupname,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hServer,
+    IN PCSTR pszGroup,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 DWORD
 LsaSrvFindGroupById(
-    HANDLE  hServer,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hServer,
+    IN gid_t gid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 DWORD
 LsaSrvGetGroupsForUser(
-    HANDLE hServer,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+    IN HANDLE hServer,
+    IN uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsFound,
+    OUT PVOID** pppGroupInfoList
     );
 
 DWORD
@@ -218,9 +221,20 @@ LsaSrvEndEnumGroups(
     );
 
 DWORD
+LsaSrvFindNSSArtefactByKey(
+    HANDLE hServer,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    DWORD  dwMapInfoLevel,
+    PVOID* ppNSSArtefactInfo
+    );
+
+DWORD
 LsaSrvBeginEnumNSSArtefacts(
     HANDLE hServer,
-    DWORD  dwMapType,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwGroupInfoLevel,
     DWORD  dwNumMaxGroups,
     PSTR*  ppszGUID
@@ -269,12 +283,14 @@ LsaSrvCloseSession(
 
 DWORD
 LsaSrvGetNamesBySidList(
-    HANDLE hServer,
-    size_t sCount,
-    PSTR* ppszSidList,
-    PSTR** pppszDomainNames,
-    PSTR** pppszSamAccounts,
-    ADAccountType **ppTypes);
+    IN HANDLE hServer,
+    IN size_t sCount,
+    IN PSTR* ppszSidList,
+    OUT PSTR** pppszDomainNames,
+    OUT PSTR** pppszSamAccounts,
+    OUT ADAccountType **ppTypes,
+    OUT CHAR* pchDomainSeparator
+    );
 
 DWORD
 LsaSrvGetLogInfo(
@@ -286,6 +302,27 @@ DWORD
 LsaSrvSetLogInfo(
     HANDLE hServer,
     PLSA_LOG_INFO pLogInfo
+    );
+
+DWORD
+LsaSrvSetTraceFlags(
+    HANDLE          hServer,
+    PLSA_TRACE_INFO pTraceFlagArray,
+    DWORD           dwNumFlags
+    );
+
+DWORD
+LsaSrvGetTraceInfo(
+    HANDLE hServer,
+    DWORD  dwTraceFlag,
+    PLSA_TRACE_INFO* ppTraceInfo
+    );
+
+DWORD
+LsaSrvEnumTraceFlags(
+    HANDLE           hServer,
+    PLSA_TRACE_INFO* ppTraceFlagArray,
+    PDWORD           pdwNumFlags
     );
 
 DWORD

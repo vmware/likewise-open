@@ -55,17 +55,26 @@
     }
 
 #define BAIL_ON_SQLITE3_ERROR(dwError, pszError) \
-    if (dwError) {                               \
-       LSA_LOG_DEBUG("Sqlite3 error '%s' at %s:%d [code: %d]", \
-               LsaEmptyStrForNull(pszError), __FILE__, __LINE__, dwError); \
-       goto error;                               \
-    }
+    do { \
+        if (dwError) \
+        { \
+           LSA_LOG_DEBUG("Sqlite3 error '%s' (code = %d)", \
+                         LSA_SAFE_LOG_STRING(pszError), dwError); \
+           goto error;                               \
+        } \
+    } while (0)
+
+#define BAIL_ON_SQLITE3_ERROR_DB(dwError, pDb) \
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pDb))
+
+#define BAIL_ON_SQLITE3_ERROR_STMT(dwError, pStatement) \
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, sqlite3_db_handle(pStatement))
 
 #define ADCACHEDB_FREE_UNUSED_CACHEIDS   \
-    "delete from lwicachetags where CacheId NOT IN " \
-        "( select CacheId from lwigroupmembership ) AND " \
-        "CacheId NOT IN ( select CacheId from lwiobjects ) AND " \
-        "CacheId NOT IN ( select CacheId from lwipasswordverifiers );\n"
+    "delete from " AD_CACHEDB_TABLE_NAME_CACHE_TAGS " where CacheId NOT IN " \
+        "( select CacheId from " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " ) AND " \
+        "CacheId NOT IN ( select CacheId from " AD_CACHEDB_TABLE_NAME_OBJECTS " ) AND " \
+        "CacheId NOT IN ( select CacheId from " AD_CACHEDB_TABLE_NAME_VERIFIERS " );\n"
 
 typedef struct _CACHE_CONNECTION
 {
@@ -90,12 +99,40 @@ typedef struct _CACHE_CONNECTION
     sqlite3_stmt *pstGetProviderData;
     sqlite3_stmt *pstGetDomainTrustList;
     sqlite3_stmt *pstGetCellList;
+
+    sqlite3_stmt *pstInsertCacheTag;
+    sqlite3_stmt *pstGetLastInsertedRow;
+    sqlite3_stmt *pstSetLdapMembership;
+    sqlite3_stmt *pstSetPrimaryGroupMembership;
+    sqlite3_stmt *pstAddMembership;
 } CACHE_CONNECTION, *PCACHE_CONNECTION;
 
 // This is the maximum number of characters necessary to store a guid in
 // string form.
 #define UUID_STR_SIZE 37
 
+typedef DWORD (*PFN_AD_CACHEDB_EXEC_CALLBACK)(
+    IN PCACHE_CONNECTION pConnection,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
+    );
+
+typedef struct _AD_CACHEDB_CACHE_GROUP_MEMBERSHIP_CONTEXT
+{
+    IN PCSTR pszParentSid;
+    IN size_t sMemberCount;
+    IN PAD_GROUP_MEMBERSHIP* ppMembers;
+} AD_CACHEDB_CACHE_GROUP_MEMBERSHIP_CONTEXT, *PAD_CACHEDB_CACHE_GROUP_MEMBERSHIP_CONTEXT;
+
+typedef struct _AD_CACHEDB_CACHE_USER_MEMBERSHIP_CONTEXT
+{
+    IN PCSTR pszChildSid;
+    IN size_t sMemberCount;
+    IN PAD_GROUP_MEMBERSHIP* ppMembers;
+    IN BOOLEAN bIsPacAuthoritative;
+} AD_CACHEDB_CACHE_USER_MEMBERSHIP_CONTEXT, *PAD_CACHEDB_CACHE_USER_MEMBERSHIP_CONTEXT;
+
+static
 DWORD
 ADCacheDB_ReadSqliteUInt64(
     sqlite3_stmt *pstQuery,
@@ -103,6 +140,7 @@ ADCacheDB_ReadSqliteUInt64(
     PCSTR name,
     uint64_t *pqwResult);
 
+static
 DWORD
 ADCacheDB_ReadSqliteInt64(
     sqlite3_stmt *pstQuery,
@@ -110,6 +148,7 @@ ADCacheDB_ReadSqliteInt64(
     PCSTR name,
     int64_t *pqwResult);
 
+static
 DWORD
 ADCacheDB_ReadSqliteUInt32(
     sqlite3_stmt *pstQuery,
@@ -117,6 +156,7 @@ ADCacheDB_ReadSqliteUInt32(
     PCSTR name,
     DWORD *pdwResult);
 
+static
 DWORD
 ADCacheDB_ReadSqliteBoolean(
     sqlite3_stmt *pstQuery,
@@ -124,6 +164,7 @@ ADCacheDB_ReadSqliteBoolean(
     PCSTR name,
     BOOLEAN *pbResult);
 
+static
 DWORD
 ADCacheDB_ReadSqliteString(
     sqlite3_stmt *pstQuery,
@@ -131,6 +172,7 @@ ADCacheDB_ReadSqliteString(
     PCSTR name,
     PSTR *ppszResult);
 
+static
 DWORD
 ADCacheDB_ReadSqliteStringInPlace(
     IN sqlite3_stmt *pstQuery,
@@ -140,6 +182,7 @@ ADCacheDB_ReadSqliteStringInPlace(
     //Includes NULL
     IN size_t sMaxSize);
 
+static
 DWORD
 ADCacheDB_ReadSqliteSid(
     IN sqlite3_stmt *pstQuery,
@@ -147,6 +190,7 @@ ADCacheDB_ReadSqliteSid(
     IN PCSTR name,
     OUT PSID* ppSid);
 
+static
 DWORD
 ADCacheDB_ReadSqliteGuid(
     IN sqlite3_stmt *pstQuery,
@@ -154,30 +198,35 @@ ADCacheDB_ReadSqliteGuid(
     IN PCSTR name,
     OUT uuid_t** ppGuid);
 
+static
 DWORD
 ADCacheDB_UnpackCacheInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     AD_CACHE_INFO *pResult);
 
+static
 DWORD
 ADCacheDB_UnpackObjectInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PAD_SECURITY_OBJECT pResult);
 
+static
 DWORD
 ADCacheDB_UnpackUserInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PAD_SECURITY_OBJECT pResult);
 
+static
 DWORD
 ADCacheDB_UnpackGroupInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PAD_SECURITY_OBJECT pResult);
 
+static
 DWORD
 ADCacheDB_UnpackDomainTrust(
     IN sqlite3_stmt *pstQuery,
@@ -185,31 +234,96 @@ ADCacheDB_UnpackDomainTrust(
     IN OUT PLSA_DM_ENUM_DOMAIN_INFO pResult
     );
 
+static
 DWORD
 ADCacheDB_UnpackLinkedCellInfo(
     IN sqlite3_stmt *pstQuery,
     IN OUT int *piColumnPos,
     IN OUT PAD_LINKED_CELL_INFO pResult);
 
+static
+DWORD
+ADCacheDB_SqlBindInt64(
+    IN OUT sqlite3_stmt* pstQuery,
+    IN int Index,
+    IN int64_t Value
+    );
+
+static
+DWORD
+ADCacheDB_SqlBindString(
+    IN OUT sqlite3_stmt* pstQuery,
+    IN int Index,
+    IN PCSTR pszValue
+    );
+
+static
+DWORD
+ADCacheDB_SqlBindBoolean(
+    IN OUT sqlite3_stmt* pstQuery,
+    IN int Index,
+    IN BOOLEAN bValue
+    );
+
+static
+DWORD
+ADCacheDB_SqlAllocPrintf(
+    OUT PSTR* ppszSqlCommand,
+    IN PCSTR pszSqlFormat,
+    IN ...
+    );
+
+static
+DWORD
+ADCacheDB_SqlExec(
+    IN sqlite3* pSqlDatabase,
+    IN PCSTR pszSqlCommand,
+    OUT PSTR* ppszSqlError
+    );
+
+static
+DWORD
+ADCacheDB_ExecCallbackWithRetry(
+    IN PCACHE_CONNECTION pConn,
+    IN PFN_AD_CACHEDB_EXEC_CALLBACK pfnCallback,
+    IN PVOID pContext
+    );
+
+static
 DWORD
 ADCacheDB_ExecWithRetry(
-    PCACHE_CONNECTION pConn,
-    PCSTR pszTransaction);
+    IN PCACHE_CONNECTION pConn,
+    IN PCSTR pszTransaction
+    );
 
+static
+DWORD
+ADCacheDB_BasicCallback(
+    IN PCACHE_CONNECTION pConn,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
+    );
+
+static
 DWORD
 ADCacheDB_QueryObject(
-        sqlite3_stmt *pstQuery,
-        PAD_SECURITY_OBJECT *ppObject);
+    IN sqlite3_stmt* pstQuery,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    );
 
+static
 PCSTR
 ADCacheDB_GetObjectFieldList(
     VOID
     );
 
+static
 DWORD
 ADCacheDB_FreePreparedStatements(
-    PCACHE_CONNECTION pConn);
+    IN OUT PCACHE_CONNECTION pConn
+    );
 
+static
 DWORD
 ADCacheDB_GetCellListNoLock(
     IN HANDLE hDb,
@@ -217,6 +331,7 @@ ADCacheDB_GetCellListNoLock(
     IN OUT PDLINKEDLIST* ppCellList
     );
 
+static
 DWORD
 ADCacheDB_GetCacheCellListCommand(
     IN HANDLE hDb,
@@ -236,6 +351,53 @@ static
 VOID
 ADCacheDB_FreeEnumDomainInfo(
     IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
+    );
+
+static
+DWORD
+ADCacheDB_CreateCacheTag(
+    IN PCACHE_CONNECTION pConn,
+    IN time_t tLastUpdated,
+    OUT int64_t *pqwCacheId
+    );
+
+static
+DWORD
+ADCacheDB_UpdateMembership(
+    IN sqlite3_stmt* pstQuery,
+    IN int64_t CacheId,
+    IN PCSTR pszParentSid,
+    IN PCSTR pszChildSid
+    );
+
+static
+DWORD
+ADCacheDB_AddMembership(
+    IN PCACHE_CONNECTION pConn,
+    IN time_t tLastUpdated,
+    IN int64_t CacheId,
+    IN PCSTR pszParentSid,
+    IN PCSTR pszChildSid,
+    IN BOOLEAN bIsInPac,
+    IN BOOLEAN bIsInPacOnly,
+    IN BOOLEAN bIsInLdap,
+    IN BOOLEAN bIsDomainPrimaryGroup
+    );
+
+static
+DWORD
+ADCacheDB_CacheGroupMembershipCallback(
+    IN PCACHE_CONNECTION pConnection,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
+    );
+
+static
+DWORD
+ADCacheDB_CacheUserMembershipCallback(
+    IN PCACHE_CONNECTION pConn,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
     );
 
 #endif /* __CACHEDB_P_H__ */

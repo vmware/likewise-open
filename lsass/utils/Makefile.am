@@ -13,6 +13,7 @@ liblsautils_la_SOURCES =       \
        lsaerror.c              \
        lsagroupinfo.c          \
        lsaartefactinfo.c       \
+       lsabitvector.c          \
        lsalogger.c             \
        lsamem.c                \
        lsapaths.c              \
@@ -28,6 +29,8 @@ liblsautils_la_SOURCES =       \
        sidinfo.c               \
        sysfuncs.c              \
        syslog.c                \
-       lsaxnet.c
+       datablob.c              \
+       lsaxnet.c               \
+       lsalist.c
 
 liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@

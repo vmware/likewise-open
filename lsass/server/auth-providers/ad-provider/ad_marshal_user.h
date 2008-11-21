@@ -56,7 +56,21 @@
 #define LSA_AD_UF_PASSWORD_EXPIRED   0x00800000
 
 DWORD
-ADMarshalToUserCacheEx(
+ADMarshalUserInfoList(
+    IN OPTIONAL HANDLE hProvider,
+    IN HANDLE hDirectory,    
+    IN OPTIONAL PCSTR pszDomainDnsName,
+    IN LSA_AD_MARSHAL_INFO_LIST_MODE InfoListMarshalMode,
+    // In Default Schema or Unprovision, pMessage is pMessageReal
+    // In Cell or Default Non-Schema, pMessage is pMessagePseudo 
+    IN LDAPMessage* pMessage, 
+    IN DWORD dwUserInfoLevel,
+    OUT PVOID** pppUserInfoList,
+    OUT PDWORD pdwNumUsers
+    );
+
+DWORD
+ADMarshalToUserCache(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,
     DWORD                   dwDirectoryMode,
@@ -72,65 +86,6 @@ ADMarshalFromUserCache(
     PAD_SECURITY_OBJECT pUser,
     DWORD       dwUserInfoLevel,
     PVOID*      ppUserInfo
-    );
-
-DWORD
-ADSchemaMarshalUserInfo(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessagePseudo,
-    DWORD       dwUserInfoLevel,
-    PVOID*      ppUserInfo
-    );
-
-DWORD
-ADNonSchemaMarshalUserInfo(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessageReal,
-    LDAPMessage *pMessageSudo,
-    DWORD       dwUserInfoLevel,
-    PVOID*      ppUserInfo
-    );
-
-DWORD
-ADUnprovisionedMarshalUserInfo(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessage,
-    DWORD       dwUserInfoLevel,
-    PVOID*      ppUserInfo
-    );
-
-DWORD
-ADSchemaMarshalUserInfoList(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessageSudo,
-    DWORD       dwUserInfoLevel,
-    PVOID**     pppUserInfoList,
-    PDWORD      pdwNumUsers
-    );
-
-DWORD
-ADNonSchemaMarshalUserInfoList(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessageSudo,
-    DWORD       dwUserInfoLevel,
-    PVOID**     pppUserInfoList,
-    PDWORD      pwdNumUsers
-    );
-
-DWORD
-ADUnprovisionedMarshalUserInfoList(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessage,
-    DWORD       dwUserInfoLevel,
-    PVOID**     pppUserInfoList,
-    PDWORD      pdwNumUsersFound
     );
 
 #endif //__LSALDAP_MARSHAL_USER_H__

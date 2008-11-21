@@ -52,13 +52,14 @@ wbcErr wbcSidToUid(const struct wbcDomainSid *sid,
 		   uid_t *puid)
 {
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	PSTR pszSidString = NULL;
 	PSTR ppszSidList[2];
 	CHAR pszAccountName[512] ="";	
 	LSA_USER_INFO_0 *pUserInfo = NULL;
 	PLSA_SID_INFO pNameList = NULL;
+        CHAR chDomainSeparator = 0;
 	
 	BAIL_ON_NULL_PTR_PARAM(sid, dwErr);	
 
@@ -78,7 +79,8 @@ wbcErr wbcSidToUid(const struct wbcDomainSid *sid,
                 hLsa,
                 1,
                 ppszSidList,
-		&pNameList);
+                &pNameList,
+                &chDomainSeparator);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	/* Make sure we have a user accouint */
@@ -92,8 +94,9 @@ wbcErr wbcSidToUid(const struct wbcDomainSid *sid,
 
 	snprintf(pszAccountName, 
 		 sizeof(pszAccountName),
-		 "%s\\%s",
+		 "%s%c%s",
 		 pNameList[0].pszDomainName,
+                 chDomainSeparator,
 		 pNameList[0].pszSamAccountName);
 
 	dwErr = LsaFindUserByName(hLsa, pszAccountName, 0, (PVOID*)&pUserInfo);
@@ -134,7 +137,7 @@ wbcErr wbcUidToSid(uid_t uid,
 		   struct wbcDomainSid *sid)
 {
 	LSA_USER_INFO_0 *pUserInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -173,13 +176,14 @@ wbcErr wbcSidToGid(const struct wbcDomainSid *sid,
 		   gid_t *pgid)
 {
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	PSTR pszSidString = NULL;
 	PSTR ppszSidList[2];
 	CHAR pszAccountName[512] ="";	
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
 	PLSA_SID_INFO pNameList = NULL;
+        CHAR chDomainSeparator = 0;
 
 	BAIL_ON_NULL_PTR_PARAM(sid, dwErr);	
 
@@ -199,7 +203,8 @@ wbcErr wbcSidToGid(const struct wbcDomainSid *sid,
                 hLsa,
                 1,
                 ppszSidList,
-		&pNameList);
+		&pNameList,
+                &chDomainSeparator);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	/* Make sure we have a user accouint */
@@ -213,11 +218,12 @@ wbcErr wbcSidToGid(const struct wbcDomainSid *sid,
 
 	snprintf(pszAccountName, 
 		 sizeof(pszAccountName),
-		 "%s\\%s",
+		 "%s%c%s",
 		 pNameList[0].pszDomainName,
+                 chDomainSeparator,
 		 pNameList[0].pszSamAccountName);
 
-	dwErr = LsaFindGroupByName(hLsa, pszAccountName, 1, (PVOID*)&pGroupInfo);
+	dwErr = LsaFindGroupByName(hLsa, pszAccountName, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	dwErr = LsaCloseServer(hLsa);
@@ -254,7 +260,7 @@ wbcErr wbcGidToSid(gid_t gid,
 		   struct wbcDomainSid *sid)
 {
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -263,7 +269,7 @@ wbcErr wbcGidToSid(gid_t gid,
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaFindGroupById(hLsa, gid, 1, (PVOID*)&pGroupInfo);
+	dwErr = LsaFindGroupById(hLsa, gid, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	dwErr = LsaCloseServer(hLsa);

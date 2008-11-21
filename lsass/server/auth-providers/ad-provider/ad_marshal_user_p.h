@@ -49,6 +49,11 @@
 #define __LSALDAP_MARSHAL_USER_P_H__
 
 DWORD
+ADGetCurrentNtTime(
+    OUT UINT64* pqwResult
+    );
+
+DWORD
 ADParseUserCtrl(
     DWORD            dwUserAccountCtrl,
     PLSA_USER_INFO_2 pUserInfo
@@ -80,165 +85,6 @@ ADStr2UINT64(
     );
 
 DWORD
-ADSchemaMarshalUserInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,    
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADSchemaMarshalUserInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADSchemaMarshalUserInfo_2(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADNonSchemaMarshalUserInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADNonSchemaMarshalUserInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADNonSchemaMarshalUserInfo_2(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADUnprovisionedMarshalUserInfo_0(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,    
-    LDAPMessage* pMessage,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADUnprovisionedMarshalUserInfo_1(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,    
-    LDAPMessage* pMessage,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADUnprovisionedMarshalUserInfo_2(
-    HANDLE       hDirectory,
-    PCSTR        pszNetBIOSDomainName,    
-    LDAPMessage* pMessage,
-    PVOID*       ppUserInfo
-    );
-
-DWORD
-ADSchemaMarshalUserInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppUserInfoList,
-    PDWORD      pwdNumUsers
-        );
-
-DWORD
-ADSchemaMarshalUserInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppUserInfoList,
-    PDWORD      pwdNumUsers
-        );
-
-DWORD
-ADSchemaMarshalUserInfoList_2(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppUserInfoList,
-    PDWORD      pwdNumUsers
-        );
-
-DWORD
-ADNonSchemaMarshalUserInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppUserInfoList,
-    PDWORD      pwdNumUsers
-        );
-
-DWORD
-ADNonSchemaMarshalUserInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppUserInfoList,
-    PDWORD      pwdNumUsers
-        );
-
-DWORD
-ADNonSchemaMarshalUserInfoList_2(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,    
-    LDAPMessage *pMessagePseudo,
-    PVOID**     pppUserInfoList,
-    PDWORD      pwdNumUsers
-        );
-
-DWORD
-ADUnprovisionedMarshalUserInfoList_0(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessage,
-    PVOID**     pppUserInfoList,
-    PDWORD      pdwNumUsersFound
-    );
-
-DWORD
-ADUnprovisionedMarshalUserInfoList_1(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessage,
-    PVOID**     pppUserInfoList,
-    PDWORD      pdwNumUsersFound
-    );
-
-DWORD
-ADUnprovisionedMarshalUserInfoList_2(
-    HANDLE      hDirectory,
-    PCSTR       pszNetBIOSDomainName,
-    LDAPMessage *pMessage,
-    PVOID**     pppUserInfoList,
-    PDWORD      pdwNumUsersFound
-    );
-
-DWORD
 ADNonSchemaKeywordGetString(
     PSTR *ppszValues,
     DWORD dwNumValues,
@@ -255,7 +101,7 @@ ADNonSchemaKeywordGetUInt32(
     );
 
 DWORD
-ADSchemaMarshalToUserCacheEx(
+ADSchemaMarshalToUserCache(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,
     PLSA_LOGIN_NAME_INFO    pUserNameInfo,
@@ -265,7 +111,7 @@ ADSchemaMarshalToUserCacheEx(
     );
 
 DWORD
-ADNonSchemaMarshalToUserCacheEx(
+ADNonSchemaMarshalToUserCache(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,    
     PLSA_LOGIN_NAME_INFO    pUserNameInfo,
@@ -277,7 +123,7 @@ ADNonSchemaMarshalToUserCacheEx(
 DWORD
 ADUnprovisionedMarshalToUserCache(
     HANDLE                  hDirectory,
-    PCSTR                   pszNetBIOSDomainName,
+    PLSA_LOGIN_NAME_INFO    pUserNameInfo,
     LDAPMessage*            pMessage,
     PAD_SECURITY_OBJECT*    ppUserInfo
     );
@@ -294,6 +140,28 @@ AD_BuildHomeDirFromTemplate(
     PCSTR pszNetBIOSDomainName,
     PCSTR pszSamAccountName,
     PSTR* ppszHomedir
+    );
+
+DWORD
+ADMarshalUserInfoListDefaultNonSchemaOrCell(
+    HANDLE hProvider,
+    HANDLE hDirectory,    
+    LDAPMessage* pMessagePseudo,
+    DWORD dwUserInfoLevel,
+    PVOID** pppUserInfoList,
+    PDWORD pdwNumUsers
+    );
+
+DWORD
+ADMarshalUserInfoListDefaultSchemaOrUnprovision(
+    HANDLE hDirectory,
+    DWORD dwDirectoryMode,
+    ADConfigurationMode adConfMode,
+    PCSTR pszDomainDnsName,
+    LDAPMessage* pMessageReal,
+    DWORD dwUserInfoLevel,
+    PVOID** pppUserInfoList,
+    PDWORD pdwNumUsers
     );
 
 #endif //__LSALDAP_MARSHAL_USER_P_H__

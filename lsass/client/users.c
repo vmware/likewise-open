@@ -937,10 +937,11 @@ LsaFreeEnumUsersInfo(
 LSASS_API
 DWORD
 LsaGetNamesBySidList(
-    HANDLE          hLsaConnection,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PLSA_SID_INFO*  ppSIDInfoList
+    IN HANDLE hLsaConnection,
+    IN size_t sCount,
+    IN PSTR* ppszSidList,
+    OUT PLSA_SID_INFO* ppSIDInfoList,
+    OUT OPTIONAL CHAR *pchDomainSeparator
     )
 {
     DWORD dwError = 0;
@@ -950,6 +951,7 @@ LsaGetNamesBySidList(
     size_t  sIndex = 0;
     size_t  sReplyCount = 0;
     PLSA_SID_INFO pSIDInfoList = NULL;
+    CHAR chDomainSeparator = 0;
     
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_POINTER(ppszSidList);
@@ -997,7 +999,8 @@ LsaGetNamesBySidList(
                                 pMessage->pData,
                                 pMessage->header.messageLength,
                                 &sReplyCount,
-                                &pSIDInfoList);
+                                &pSIDInfoList,
+                                &chDomainSeparator);
             BAIL_ON_LSA_ERROR(dwError);
             if(sReplyCount != sCount)
             {
@@ -1029,6 +1032,11 @@ LsaGetNamesBySidList(
     }
     
     *ppSIDInfoList = pSIDInfoList;
+    
+    if (pchDomainSeparator != NULL)
+    {
+        *pchDomainSeparator = chDomainSeparator;
+    }
 
 cleanup:
 
@@ -1044,6 +1052,11 @@ error:
     }
     
     *ppSIDInfoList = NULL;
+
+    if (pchDomainSeparator != NULL)
+    {
+        *pchDomainSeparator = 0;
+    }
     
     goto cleanup;
 }

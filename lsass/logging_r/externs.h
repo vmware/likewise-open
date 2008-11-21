@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -40,11 +40,11 @@
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
  *        External Variables
- * 
+ *
  *        Logging API
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
  */
 
 #ifndef __EXTERNS_H__
@@ -52,6 +52,7 @@
 
 #if defined(LW_ENABLE_THREADS)
 extern pthread_mutex_t gLogLock;
+extern pthread_mutex_t gTraceLock;
 #endif
 
 #endif /* __EXTERNS_H__ */

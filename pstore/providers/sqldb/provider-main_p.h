@@ -81,6 +81,14 @@ SqlDB_ReadPasswordByDomainName(
     );
 
 DWORD
+SqlDB_ReadHostListByDomainName(
+    HANDLE hProvider,
+    PCSTR  pszDomainName,
+    PSTR **ppszHostNames,
+    DWORD *pdwNumEntries
+    );
+
+DWORD
 SqlDB_WritePassword(
     HANDLE hProvider,
     PLWPS_PASSWORD_INFO pInfo
@@ -89,6 +97,12 @@ SqlDB_WritePassword(
 DWORD
 SqlDB_DeleteAllEntries(
     HANDLE hProvider
+    );
+
+DWORD
+SqlDB_DeleteHostEntry(
+    HANDLE hProvider,
+    PCSTR  pszHostname
     );
 
 VOID

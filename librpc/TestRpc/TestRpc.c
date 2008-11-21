@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
     printf("No test name specified. Available tests:\n");
     runtest = tests;
     while (runtest) {
-        printf("%s ", runtest->name);
+        printf("%s\n", runtest->name);
         runtest = runtest->next;
     }
     printf("\n");
@@ -248,6 +248,12 @@ done:
 
     SAFE_FREE(username);
     SAFE_FREE(password);
+
+    for (i = 0; i < params_len; i++) {
+        SAFE_FREE(params[i].key);
+        SAFE_FREE(params[i].val);
+    }
+    SAFE_FREE(params);
 
     return 0;
 }

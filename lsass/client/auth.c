@@ -408,3 +408,89 @@ error:
 }
 
 
+
+LSASS_API
+DWORD
+LsaAuthenticateUserEx(
+	HANDLE hLsaConnection,
+	LSA_AUTH_USER_PARAMS *pParams,
+	LSA_AUTH_USER_INFO *pUserInfo
+	)
+{
+    DWORD dwError = 0;
+    PLSAMESSAGE pMessage = NULL;
+    PSTR    pszError = NULL;
+    LSA_AUTH_USER_INFO UserInfo;    
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_POINTER(pParams);
+
+    memset(&UserInfo, 0x0, sizeof(LSA_AUTH_USER_INFO));
+
+    /* Marshall and send the request */
+
+    dwError = LsaMarshallAuthenticateUserExQuery(
+	    &pMessage,
+	    pParams);    
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSendMessage(hLsaConnection, pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_SAFE_FREE_MESSAGE(pMessage);
+
+    /* Get the reply and check for success */
+
+    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (pMessage->header.messageType) {
+    case LSA_R_AUTH_USER_EX:
+    {
+	    /* Success */
+            break;
+    }
+    
+    case LSA_ERROR:
+    {
+            DWORD dwSrvError = 0;
+
+            dwError = LsaUnmarshalError(
+		    pMessage->pData,
+		    pMessage->header.messageLength,
+		    &dwSrvError,
+		    &pszError
+		    );
+            BAIL_ON_LSA_ERROR(dwError);
+            dwError = dwSrvError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+    }
+
+    default:
+            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            BAIL_ON_LSA_ERROR(dwError);
+	    break;
+    }
+
+    /* Now unmarshall the response and fill in the data for the caller */
+    /* Unfinished */
+
+    dwError = LsaUnmarshallAuthenticateUserExReply(
+	    pMessage->pData,
+	    &pMessage->header.messageLength,
+	    &UserInfo
+	    );    
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_MESSAGE(pMessage);
+    LSA_SAFE_FREE_STRING(pszError);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}

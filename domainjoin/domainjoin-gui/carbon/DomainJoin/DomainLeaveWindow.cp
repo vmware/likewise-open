@@ -15,6 +15,7 @@ const int DomainLeaveWindow::COMPUTER_NAME_ID = 304;
 const int DomainLeaveWindow::DOMAIN_NAME_ID   = 306;
 const int DomainLeaveWindow::LEAVE_ID         = 308;
 const int DomainLeaveWindow::CLOSE_ID         = 309;
+const int DomainLeaveWindow::OU_ID            = 310;
 
 const int DomainLeaveWindow::LEAVE_CMD_ID     = 'leav';
 const int DomainLeaveWindow::CLOSE_CMD_ID     = 'not!';
@@ -58,6 +59,17 @@ DomainLeaveWindow::SetDomainName(const std::string& name)
 	if (err != noErr)
 	{
 	   std::string errMsg("Failed to set domain name in control");
+	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
+	}
+}
+
+void
+DomainLeaveWindow::SetOU(const std::string& ou)
+{
+    OSStatus err = SetLabelControlString(OU_ID, ou);
+	if (err != noErr)
+	{
+	   std::string errMsg("Failed to set OU path in control");
 	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
 }
@@ -137,33 +149,52 @@ DomainLeaveWindow::ConfirmLeave(const std::string& domainName)
 }
 
 void
+DomainLeaveWindow::ShowLeftDomainDialog(const std::string& domainName)
+{
+    SInt16 outItemHit;
+    char msgStr[256];
+    sprintf(msgStr, "Domain leave operaton completed successfully");
+    CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+    CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+    StandardAlert(kAlertNoteAlert,
+                  "\pLikewise - Active Directory",
+				  (StringPtr)msgStr,
+				  NULL,
+				  &outItemHit);
+}
+
+void
 DomainLeaveWindow::HandleLeaveDomain()
 {
-	try
-	{
-	    std::string computerName = GetComputerName();
-		std::string domainName = GetDomainName();
-		
-		if (!ConfirmLeave(domainName))
-		   return;
-		
-		setuid(0);
-		
-		DomainJoinInterface::LeaveDomain();
-		PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
-	}
-	catch(DomainJoinException& dje)
+    try
     {
-		SInt16 outItemHit;
-		const char* err = dje.what();	
-		const char* message = dje.GetLongErrorMessage();
-		DialogRef dialog;	
-		CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
-		CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
-		CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
-		CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
-		CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
-		RunStandardAlert(dialog, NULL, &outItemHit);
+        std::string computerName = GetComputerName();
+        std::string domainName = GetDomainName();
+		
+        if (!ConfirmLeave(domainName))
+            return;
+		
+        setuid(0);
+
+        DomainJoinInterface::LeaveDomain();
+
+        ShowLeftDomainDialog(domainName);
+
+        /* Bail out of the application now */
+        this->Close();
+    }
+    catch(DomainJoinException& dje)
+    {
+	SInt16 outItemHit;
+	const char* err = dje.what();	
+	const char* message = dje.GetLongErrorMessage();
+	DialogRef dialog;	
+	CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
+	CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
+	CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
+	CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
+	CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
+	RunStandardAlert(dialog, NULL, &outItemHit);
     }
     catch(...)
     {

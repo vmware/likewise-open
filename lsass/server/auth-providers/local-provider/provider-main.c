@@ -81,7 +81,7 @@ LsaInitializeProvider(
 
     dwError = LsaProviderLocal_DbCreate();
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (LsaProviderLocal_EventlogEnabled())
     {
         LsaLocalProviderLogServiceStartEvent();
@@ -241,7 +241,7 @@ cleanup:
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }   
+    }
 
     if (pLoginInfo)
     {
@@ -305,7 +305,7 @@ cleanup:
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
-    
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
@@ -381,7 +381,7 @@ cleanup:
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
-    }   
+    }
 
     return dwError;
 
@@ -444,11 +444,12 @@ error:
 
 DWORD
 LsaProviderLocal_GetGroupsForUser(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    IN PDWORD pdwGroupsFound,
+    IN PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
@@ -574,10 +575,11 @@ LsaProviderLocal_EndEnumUsers(
 
 DWORD
 LsaProviderLocal_FindGroupByName(
-    HANDLE  hProvider,
-    PCSTR   pszGroupName,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN PCSTR pszGroupName,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
@@ -621,7 +623,7 @@ cleanup:
     if (hDb != (HANDLE)NULL) {
         LsaProviderLocal_DbClose(hDb);
     }
-    
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
@@ -640,10 +642,11 @@ error:
 
 DWORD
 LsaProviderLocal_FindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN gid_t gid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
@@ -848,9 +851,9 @@ LsaProviderLocal_ChangePassword(
                     ((PLSA_USER_INFO_2)pUserInfo)->uid,
                     pszPassword);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (LsaProviderLocal_EventlogEnabled())
-    {        
+    {
         LsaSrvLogUserPWChangeSuccessEvent(
                 pszLoginId,
                 "Local");
@@ -861,7 +864,7 @@ cleanup:
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
-    
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
@@ -876,7 +879,7 @@ cleanup:
 error:
 
     if (LsaProviderLocal_EventlogEnabled())
-    {        
+    {
         LsaSrvLogUserPWChangeFailureEvent(
                 pszLoginId,
                 "Local",
@@ -954,8 +957,8 @@ LsaProviderLocal_AddUser(
                     pUserInfo
                     );
     BAIL_ON_LSA_ERROR(dwError);
-    
-    if (LsaProviderLocal_EventlogEnabled()){        
+
+    if (LsaProviderLocal_EventlogEnabled()){
         LsaLocalProviderLogUserAddEvent(pLoginInfo->pszName);
     }
 
@@ -964,7 +967,7 @@ cleanup:
     if (hDb != (HANDLE)NULL) {
         LsaProviderLocal_DbClose(hDb);
     }
-   
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
@@ -1035,8 +1038,8 @@ LsaProviderLocal_DeleteUser(
                     hDb,
                     uid);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    if (LsaProviderLocal_EventlogEnabled()){        
+
+    if (LsaProviderLocal_EventlogEnabled()){
         LsaLocalProviderLogUserDeleteEvent(uid);
     }
 
@@ -1199,7 +1202,7 @@ cleanup:
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
-    
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
@@ -1360,13 +1363,29 @@ LsaProviderLocal_GetNamesBySidList(
     return LSA_ERROR_NOT_HANDLED;
 }
 
+DWORD
+LsaProviderLocal_FindNSSArtefactByKey(
+    HANDLE hProvider,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    )
+{
+    *ppNSSArtefactInfo = NULL;
+
+    return LSA_ERROR_NOT_HANDLED;
+}
+
 
 DWORD
 LsaProviderLocal_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
     PCSTR   pszGUID,
     DWORD   dwInfoLevel,
-    DWORD   dwMapType,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PHANDLE phResume
     )
 {
@@ -1508,51 +1527,51 @@ LsaLocalProviderLogServiceStartEvent(
     VOID
     )
 {
-    DWORD dwError = 0;    
-    HANDLE hDb = (HANDLE)NULL;    
+    DWORD dwError = 0;
+    HANDLE hDb = (HANDLE)NULL;
     int nUserCount = 0;
-    int nGroupCount = 0;    
-    
+    int nGroupCount = 0;
+
     PSTR pszDescription = NULL;
-    
+
     dwError = LsaProviderLocal_DbOpen(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);    
-    
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaProviderLocal_DbGetUserCount(
                     hDb,
-                    &nUserCount);        
-    BAIL_ON_LSA_ERROR(dwError);   
-    
+                    &nUserCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaProviderLocal_DbGetGroupCount(
                     hDb,
-                    &nGroupCount);        
-    BAIL_ON_LSA_ERROR(dwError);    
+                    &nGroupCount);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
                  "Local provider starts successfully. Details: Current number of local accounts in DB are: [%d].",
                  nUserCount + nGroupCount);
-    BAIL_ON_LSA_ERROR(dwError);       
-    
-    LsaSrvLogServiceSuccessEvent( 
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
             SERVICESTART_EVENT_CATEGORY,
             pszDescription,
             "<null>");
-    
+
 cleanup:
 
     if (hDb != (HANDLE)NULL) {
         LsaProviderLocal_DbClose(hDb);
     }
-    
+
     LSA_SAFE_FREE_STRING(pszDescription);
-    
+
     return;
-    
+
 error:
 
-    goto cleanup;    
-}       
+    goto cleanup;
+}
 
 VOID
 LsaLocalProviderLogUserAddEvent(
@@ -1561,13 +1580,13 @@ LsaLocalProviderLogUserAddEvent(
 {
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
-    
+
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
-                 "A local user account was created for user '%s'.",                 
+                 "A local user account was created for user '%s'.",
                  LSA_SAFE_LOG_STRING(pszUsername));
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LsaSrvLogServiceSuccessEvent(
             GENERAL_EVENT_CATEGORY,
             pszDescription,
@@ -1575,9 +1594,9 @@ LsaLocalProviderLogUserAddEvent(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszDescription);
-    
+
     return;
-    
+
 error:
     goto cleanup;
 }
@@ -1589,13 +1608,13 @@ LsaLocalProviderLogUserDeleteEvent(
 {
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
-    
+
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
-                 "A local user account was deleted for user with uid '%d'.",                 
+                 "A local user account was deleted for user with uid '%d'.",
                  uid);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LsaSrvLogServiceSuccessEvent(
             GENERAL_EVENT_CATEGORY,
             pszDescription,
@@ -1603,9 +1622,9 @@ LsaLocalProviderLogUserDeleteEvent(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszDescription);
-    
+
     return;
-    
+
 error:
     goto cleanup;
 }

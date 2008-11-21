@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -87,8 +87,9 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
 {
     const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
 
-    NTSTATUS status;
-    handle_t lsa_binding;
+    int ret = true;
+    NTSTATUS status = STATUS_SUCCESS;
+    handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
     PolicyHandle lsa_policy = {0};
 
@@ -96,30 +97,30 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(nr, hostname, user, pass);
 
-    lsa_binding = CreateLsaBinding(&lsa_binding, hostname);
-    if (lsa_binding == NULL) goto done;
+    lsa_b = CreateLsaBinding(&lsa_b, hostname);
+    if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
 
-    INPUT_ARG_PTR(lsa_binding);
+    INPUT_ARG_PTR(lsa_b);
     INPUT_ARG_WSTR(hostname);
     INPUT_ARG_UINT(access_rights);
 
-    CALL_MSRPC(status = LsaOpenPolicy2(lsa_binding, hostname, NULL,
+    CALL_MSRPC(status = LsaOpenPolicy2(lsa_b, hostname, NULL,
                                        access_rights, &lsa_policy));
     if (status != 0) rpc_fail(status);
 
-    OUTPUT_ARG_PTR(lsa_binding);
+    OUTPUT_ARG_PTR(lsa_b);
     OUTPUT_ARG_PTR(&lsa_policy);
 
-    status = LsaClose(lsa_binding, &lsa_policy);
+    status = LsaClose(lsa_b, &lsa_policy);
 
-    FreeLsaBinding(&lsa_binding);
+    FreeLsaBinding(&lsa_b);
 
     RELEASE_SESSION_CREDS(nr);
 
 done:
     LsaRpcDestroyMemory();
 
-    return true;
+    return ret;
 }
 
 
@@ -128,31 +129,35 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
                        struct parameter *options, int optcount)
 {
     const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-    const uint32 num_names = 1;
-    const char *def_username = "BUILTIN\\Guest";
+    const char *def_usernames = "[BUILTIN\\Users:BUILTIN\\Administrators]";
     const uint32 def_revlookup = 0;
 
+    int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
-    handle_t lsa_b;
+    enum param_err perr = perr_success;
+    handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
-    wchar16_t *domname, buffer[512], *names[2];
-    wchar16_t *username;
-    uint32 revlookup;
+    wchar16_t *domname = NULL;
+    wchar16_t buffer[512] = {0};
+    wchar16_t **names = NULL;
+    uint32 num_names = 0;
+    wchar16_t **usernames = NULL;
+    int usernames_count = 0;
+    uint32 revlookup = 0;
     PolicyHandle lsa_policy = {0};
     RefDomainList *domains = NULL;
     TranslatedSid *sids = NULL;
     SidArray sid_array = {0};
     TranslatedName *trans_names = NULL;
     uint32 level, names_count, sids_count;
-    int i;
+    int i = 0;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(nr, hostname, user, pass);
 
-    perr = fetch_value(options, optcount, "username", pt_w16string, &username,
-                       &def_username);
+    perr = fetch_value(options, optcount, "usernames", pt_w16string_list,
+                       &usernames, &def_usernames);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "revlookup", pt_uint32, &revlookup,
@@ -160,25 +165,38 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
-    if (lsa_b == NULL) return false;
+    if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
     
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
-
-    names[0] = (wchar16_t*) wc16sdup(username);
 
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
                             &lsa_policy);
     if (status != 0) rpc_fail(status);
 
+    while (usernames[usernames_count++]);
+    names = (wchar16_t**) malloc(sizeof(wchar16_t*) * usernames_count);
+    test_fail_if_no_memory(names);
+
+    memset(names, 0, sizeof(wchar16_t*) * usernames_count);
+    num_names = usernames_count - 1;
+
+    for (i = 0; i < (int)num_names; i++) {
+        names[i] = (wchar16_t*) wc16sdup(usernames[i]);
+        test_fail_if_no_memory(names[i]);
+    }
+    
     /* Lookup name to sid */
     level = 1;
 
     INPUT_ARG_PTR(lsa_b);
     INPUT_ARG_PTR(&lsa_policy);
     INPUT_ARG_UINT(num_names);
-    INPUT_ARG_WSTR(names[0]);
-    INPUT_ARG_WSTR(names[1]);
+
+    for (i = 0; i < num_names; i++) {
+        INPUT_ARG_WSTR(names[i]);
+    }
+
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(sids);
     INPUT_ARG_UINT(level);
@@ -247,17 +265,39 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     }
 
 done:
-    if (sids) LsaRpcFreeMemory((void*)sids);
-    if (trans_names) LsaRpcFreeMemory((void*)trans_names);
+    if (sids) {
+        LsaRpcFreeMemory((void*)sids);
+    }
+
+    if (trans_names) {
+        LsaRpcFreeMemory((void*)trans_names);
+    }
 
     LsaRpcDestroyMemory();
 
     SAFE_FREE(sid_array.sids);
-    SAFE_FREE(names[0]);
-    SAFE_FREE(username);
+
+    if (names) {
+        i = 0;
+        while (names[i]) {
+            SAFE_FREE(names[i]);
+            i++;
+        }
+        SAFE_FREE(names);
+    }
+
+    if (usernames) {
+        i = 0;
+        while (usernames[i]) {
+            SAFE_FREE(usernames[i]);
+            i++;
+        }
+        SAFE_FREE(usernames);
+    }
+
     SAFE_FREE(domname);
 
-    return true;
+    return ret;
 }
 
 
@@ -268,16 +308,20 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
                         struct parameter *options, int optcount)
 {
     const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-    const uint32 num_names = 1;
-    const char *def_username = "BUILTIN\\Guest";
+    const char *def_username = "[BUILTIN\\Users:BUILTIN\\Administrators]";
     const uint32 def_revlookup = 0;
 
+    int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
-    handle_t lsa_b;
+    enum param_err perr = perr_success;
+    handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
-    wchar16_t *domname, buffer[512], *names[2];
-    wchar16_t *username;
+    wchar16_t *domname = NULL;
+    wchar16_t buffer[512] = {0};
+    wchar16_t **names = NULL;
+    uint32 num_names = 0;
+    wchar16_t **usernames = NULL;
+    int usernames_count = 0;
     uint32 revlookup;
     PolicyHandle lsa_policy = {0};
     RefDomainList *domains = NULL;
@@ -285,14 +329,16 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     SidArray sid_array = {0};
     TranslatedName *trans_names = NULL;
     uint32 level, names_count, sids_count;
-    int i;
+    int i = 0;
+    uint8 *sess_key = NULL;
+    size_t sess_key_len = 0;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(nr, hostname, user, pass);
 
-    perr = fetch_value(options, optcount, "username", pt_w16string, &username,
-                       &def_username);
+    perr = fetch_value(options, optcount, "usernames", pt_w16string_list,
+                       &usernames, &def_username);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "revlookup", pt_uint32, &revlookup,
@@ -300,16 +346,26 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
-    if (lsa_b == NULL) return false;
+    if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
     
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
-    names[0] = (wchar16_t*) wc16sdup(username);
-
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
                             &lsa_policy);
     if (status != 0) rpc_fail(status);
+
+    while (usernames[usernames_count++]);
+    names = (wchar16_t**) malloc(sizeof(wchar16_t*) * usernames_count);
+    test_fail_if_no_memory(names);
+
+    memset(names, 0, sizeof(wchar16_t*) * usernames_count);
+    num_names = usernames_count - 1;
+
+    for (i = 0; i < (int)num_names; i++) {
+        names[i] = (wchar16_t*) wc16sdup(usernames[i]);
+        test_fail_if_no_memory(names[i]);
+    }
 
     /* Lookup name to sid */
     level = 1;
@@ -317,8 +373,11 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(lsa_b);
     INPUT_ARG_PTR(&lsa_policy);
     INPUT_ARG_UINT(num_names);
-    INPUT_ARG_WSTR(names[0]);
-    INPUT_ARG_WSTR(names[1]);
+
+    for (i = 0; i < num_names; i++) {
+        INPUT_ARG_WSTR(names[i]);
+    }
+
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(sids);
     INPUT_ARG_UINT(level);
@@ -337,6 +396,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     for (i = 0; i < sid_array.num_sids; i++) {
         DomSid *usr_sid, *dom_sid;
         uint32 sid_index;
+        wchar16_t *sidstr = NULL;
 
         dom_sid = NULL;
         sid_index = sids[i].index;
@@ -348,6 +408,11 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
                                    dom_sid);
             usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
+
+            SidToString(usr_sid, &sidstr);
+            DUMP_WSTR(" ", sidstr);
+
+            SidFreeString(sidstr);
         }
     }
 
@@ -387,16 +452,35 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     }
 
 done:
-    if (trans_names) LsaRpcFreeMemory((void*)trans_names);
+    if (trans_names) {
+        LsaRpcFreeMemory((void*)trans_names);
+    }
 
     LsaRpcDestroyMemory();
 
     SAFE_FREE(sid_array.sids);
-    SAFE_FREE(names[0]);
-    SAFE_FREE(username);
+
+    if (names) {
+        i = 0;
+        while (names[i]) {
+            SAFE_FREE(names[i]);
+            i++;
+        }
+        SAFE_FREE(names);
+    }
+
+    if (usernames) {
+        i = 0;
+        while (usernames[i]) {
+            SAFE_FREE(usernames[i]);
+            i++;
+        }
+        SAFE_FREE(usernames);
+    }
+
     SAFE_FREE(domname);
 
-    return true;
+    return ret;
 }
 
 
@@ -406,13 +490,15 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
 {
     const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
 
-    const char *def_input_sid = "S-1-5-21-500";
+    const char *def_input_sids = "[S-1-5-32-544]";
 
+    int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr;
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
-    DomSid *input_sid = NULL;
+    DomSid **input_sids = NULL;
+    int input_sid_count = 0;
     wchar16_t *domname = NULL;
     wchar16_t buffer[512] = {0};
     wchar16_t *names[2] = {0};
@@ -422,6 +508,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     RefDomainList *domains = NULL;
     SidArray sid_array = {0};
     TranslatedName *trans_names = NULL;
+    wchar16_t *sidstr = NULL;
     uint32 level = 0;
     uint32 count = 0;
     int i = 0;
@@ -430,12 +517,12 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(nr, hostname, user, pass);
 
-    perr = fetch_value(options, optcount, "sid", pt_sid, &input_sid,
-                       &def_input_sid);
+    perr = fetch_value(options, optcount, "sids", pt_sid_list, &input_sids,
+                       &def_input_sids);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
-    if (lsa_b == NULL) return false;
+    if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
     
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
@@ -444,17 +531,26 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
                             &lsa_policy);
     if (status != 0) rpc_fail(status);
 
-    /* Prepare SID to name lookup */
-    sid_array.num_sids = 1;
-    sid_array.sids = (SidPtr*) malloc(sizeof(SidPtr));
+    /* Count SIDs to resolve */
+    while (input_sids[input_sid_count++]);
 
-    sid_array.sids[0].sid = input_sid;
+    /* Prepare SID to name lookup */
+    sid_array.num_sids = input_sid_count - 1;
+    sid_array.sids = (SidPtr*) malloc(sizeof(SidPtr) * sid_array.num_sids);
+    test_fail_if_no_memory(sid_array.sids);
+
+    for (i = 0; i < sid_array.num_sids; i++) {
+        sid_array.sids[i].sid = input_sids[i];
+
+        SidToString(input_sids[i], &sidstr);
+        test_fail_if_no_memory(sidstr);
+
+        DUMP_WSTR(" ", sidstr);
+
+        SidFreeString(sidstr);
+    }
 
     level = 1;
-
-    wchar16_t *sidstr = NULL;
-    SidToString(input_sid, &sidstr);
-    INPUT_ARG_WSTR(sidstr);
 
     INPUT_ARG_PTR(lsa_b);
     INPUT_ARG_PTR(&lsa_policy);
@@ -473,21 +569,24 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
         if (status != 0) rpc_fail(status);
     }
 
-done:
     status = LsaClose(lsa_b, &lsa_policy);
 
     FreeLsaBinding(&lsa_b);
 
     RELEASE_SESSION_CREDS(nr);
 
+done:
     LsaRpcDestroyMemory();
 
-    SAFE_FREE(input_sid);
+    for (i = 0; i < sid_array.num_sids; i++) {
+        SidFree(sid_array.sids[i].sid);
+    }
     SAFE_FREE(sid_array.sids);
 
+    SAFE_FREE(input_sids);
     SAFE_FREE(domname);
 
-    return true;
+    return ret;
 }
 
 
@@ -510,8 +609,9 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
 
     const uint32 def_level = 0;
 
+    int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
     DomSid *input_sid = NULL;
@@ -529,7 +629,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
-    if (lsa_b == NULL) return false;
+    if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
     
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
@@ -544,8 +644,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
 
     if (level) {
         if (level == 1) {
-            printf("Level %d unsupported. Exiting...\n", level);
-            goto close;
+            test_fail(("Level %d unsupported. Exiting...\n", level));
         }
 
         INPUT_ARG_PTR(lsa_b);
@@ -584,7 +683,6 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
         }
     }
 
-close:
     status = LsaClose(lsa_b, &lsa_policy);
     FreeLsaBinding(&lsa_b);
 
@@ -593,9 +691,9 @@ close:
 done:
     SAFE_FREE(domname);
 
-    status = LsaRpcDestroyMemory();
+    LsaRpcDestroyMemory();
 
-    return (status == STATUS_SUCCESS);
+    return ret;
 }
 
 
@@ -618,8 +716,9 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
 
     const uint32 def_level = 0;
 
+    int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
     DomSid *input_sid = NULL;
@@ -637,7 +736,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
-    if (lsa_b == NULL) return false;
+    if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
     
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
@@ -652,8 +751,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
 
     if (level) {
         if (level == 1) {
-            printf("Level %d unsupported. Exiting...\n", level);
-            goto close;
+            test_fail(("Level %d unsupported. Exiting...\n", level));
         }
 
         INPUT_ARG_PTR(lsa_b);
@@ -701,9 +799,9 @@ close:
 done:
     SAFE_FREE(domname);
 
-    status = LsaRpcDestroyMemory();
+    LsaRpcDestroyMemory();
 
-    return (status == STATUS_SUCCESS);
+    return ret;
 }
 
 

@@ -121,6 +121,8 @@ typedef struct rid_with_attribute_array {
 #define SEC_STD_ALL                           0x001f0000
 
 
+typedef uint16 LsaSidType;
+
 #define SID_TYPE_USE_NONE   0
 #define SID_TYPE_USER       1
 #define SID_TYPE_DOM_GRP    2
@@ -131,7 +133,7 @@ typedef struct rid_with_attribute_array {
 #define SID_TYPE_INVALID    7
 #define SID_TYPE_UNKNOWN    8
 #define SID_TYPE_COMPUTER   9
-
+#define SID_TYPE_LABEL      10
 
 #endif /* _SECURITY_H_ */
 

@@ -1135,6 +1135,80 @@ LsaDmpMustFindDomain(
     return dwError;
 }
 
+static
+BOOLEAN
+LsaDmpIsObjectSidInDomainSid(
+    IN PSID pObjectSid,
+    IN PSID pDomainSid
+    )
+{
+    return ((pDomainSid->revision == pObjectSid->revision) &&
+            !memcmp(pDomainSid->authid, pObjectSid->authid, sizeof(pObjectSid->authid)) &&
+            (pDomainSid->subauth_count <= pObjectSid->subauth_count) &&
+            !memcmp(pDomainSid->subauth, pObjectSid->subauth, sizeof(pObjectSid->subauth[0]) * pDomainSid->subauth_count)) ? TRUE : FALSE;
+}
+
+static
+PLSA_DM_DOMAIN_STATE
+LsaDmpFindDomainBySid(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PSID pObjectSid
+    )
+///<
+/// Find a domain containing the SID.
+///
+/// @param[in] Handle - Offline state.
+/// @param[in] pObjectSid - Sid of object for which we want to find a domain.
+///
+/// @return Domain entry found, if any.
+///
+/// @note The state must already be locked.
+///
+{
+    PDLINKEDLIST listEntry = NULL;
+    PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
+
+    for (listEntry = Handle->DomainList;
+         listEntry;
+         listEntry = listEntry->pNext)
+    {
+        PLSA_DM_DOMAIN_STATE pDomain = (PLSA_DM_DOMAIN_STATE)listEntry->pItem;
+        if (LsaDmpIsObjectSidInDomainSid(pObjectSid, pDomain->pSid))
+        {
+            pFoundDomain = pDomain;
+            break;
+        }
+    }
+
+    return pFoundDomain;
+}
+
+static
+DWORD
+LsaDmpMustFindDomainByObjectSid(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PSID pObjectSid,
+    OUT PLSA_DM_DOMAIN_STATE* ppFoundDomain
+    )
+{
+    DWORD dwError = 0;
+    PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
+
+    pFoundDomain = LsaDmpFindDomainBySid(Handle, pObjectSid);
+    if (!pFoundDomain)
+    {
+        PSTR pszSid = NULL;
+        dwError = AD_SidToString(pObjectSid, &pszSid);
+        // ignore error
+        LSA_LOG_DEBUG("Do not know about domain for object SID '%s'",
+                      LSA_SAFE_LOG_STRING(pszSid));
+        LSA_SAFE_FREE_STRING(pszSid);
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+    }
+    *ppFoundDomain = pFoundDomain;
+    return dwError;
+}
+
 DWORD
 LsaDmpAddTrustedDomain(
     IN LSA_DM_STATE_HANDLE Handle,
@@ -1157,6 +1231,13 @@ LsaDmpAddTrustedDomain(
     PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
     PLSA_DM_DOMAIN_STATE pDomain = NULL;
 
+    if (!pDomainSid)
+    {
+        LSA_LOG_DEBUG("Missing SID for domain '%s'.", pszDnsDomainName);
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
     if (IS_BOTH_OR_NEITHER(pszTrusteeDnsDomainName, IsSetFlag(dwTrustFlags, NETR_TRUST_FLAG_PRIMARY)))
     {
         if (pszTrusteeDnsDomainName)
@@ -1581,10 +1662,12 @@ LsaDmpEnumDomainInfo(
             pdwCount);
 }
 
+static
 DWORD
-LsaDmpQueryDomainInfo(
+LsaDmpQueryDomainInfoInternal(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN PCSTR pszDomainName,
+    IN OPTIONAL PCSTR pszDomainName,
+    IN OPTIONAL PSID pObjectSid,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
     OUT OPTIONAL PSTR* ppszNetbiosDomainName,
     OUT OPTIONAL PSID* ppSid,
@@ -1619,14 +1702,28 @@ LsaDmpQueryDomainInfo(
     DWORD dwTrustAttributes = 0;
     LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
     LSA_TRUST_MODE dwTrustMode = LSA_TRUST_MODE_UNKNOWN;
-    
     LSA_DM_DOMAIN_FLAGS Flags = 0;
 
+    if ((pszDomainName && pObjectSid) ||
+        (!pszDomainName && !pObjectSid))
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+        
     LsaDmpAcquireMutex(Handle->pMutex);
     bIsAcquired = TRUE;
 
-    dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pDomain);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pszDomainName)
+    {
+        dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaDmpMustFindDomainByObjectSid(Handle, pObjectSid, &pDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (ppszDnsDomainName)
     {
@@ -1749,6 +1846,7 @@ cleanup:
         *ppGcInfo = pGcInfo;
     }
     return dwError;
+
 error:
     LSA_SAFE_FREE_STRING(pszDnsDomainName);
     LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
@@ -1761,6 +1859,90 @@ error:
     LsaDmFreeDcInfo(pGcInfo);
     pGcInfo = NULL;
     goto cleanup;
+}
+
+DWORD
+LsaDmpQueryDomainInfo(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PSID* ppSid,
+    OUT OPTIONAL uuid_t* pGuid,
+    OUT OPTIONAL PSTR* ppszTrusteeDnsDomainName,
+    OUT OPTIONAL PDWORD pdwTrustFlags,
+    OUT OPTIONAL PDWORD pdwTrustType,
+    OUT OPTIONAL PDWORD pdwTrustAttributes,
+    OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,
+    OUT OPTIONAL PSTR* ppszForestName,
+    OUT OPTIONAL PSTR* ppszClientSiteName,
+    OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppDcInfo,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppGcInfo
+    )
+{
+    return LsaDmpQueryDomainInfoInternal(
+                Handle,
+                pszDomainName,
+                NULL,
+                ppszDnsDomainName,
+                ppszNetbiosDomainName,
+                ppSid,
+                pGuid,
+                ppszTrusteeDnsDomainName,
+                pdwTrustFlags,
+                pdwTrustType,
+                pdwTrustAttributes,
+                pdwTrustDirection,
+                pdwTrustMode,
+                ppszForestName,
+                ppszClientSiteName,
+                pFlags,
+                ppDcInfo,
+                ppGcInfo);
+}
+
+DWORD
+LsaDmpQueryDomainInfoByObjectSid(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PSID pObjectSid,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PSID* ppSid,
+    OUT OPTIONAL uuid_t* pGuid,
+    OUT OPTIONAL PSTR* ppszTrusteeDnsDomainName,
+    OUT OPTIONAL PDWORD pdwTrustFlags,
+    OUT OPTIONAL PDWORD pdwTrustType,
+    OUT OPTIONAL PDWORD pdwTrustAttributes,
+    OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,
+    OUT OPTIONAL PSTR* ppszForestName,
+    OUT OPTIONAL PSTR* ppszClientSiteName,
+    OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppDcInfo,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppGcInfo
+    )
+{
+    return LsaDmpQueryDomainInfoInternal(
+                Handle,
+                NULL,
+                pObjectSid,
+                ppszDnsDomainName,
+                ppszNetbiosDomainName,
+                ppSid,
+                pGuid,
+                ppszTrusteeDnsDomainName,
+                pdwTrustFlags,
+                pdwTrustType,
+                pdwTrustAttributes,
+                pdwTrustDirection,
+                pdwTrustMode,
+                ppszForestName,
+                ppszClientSiteName,
+                pFlags,
+                ppDcInfo,
+                ppGcInfo);
 }
 
 static

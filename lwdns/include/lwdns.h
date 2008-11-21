@@ -403,4 +403,9 @@ DNSGetErrorString(
     size_t stBufSize
     );
 
+DWORD
+DNSMapHerrno(
+    DWORD dwHerrno
+    );
+
 #endif /* __LWDNS_H__ */

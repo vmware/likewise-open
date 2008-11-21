@@ -57,6 +57,33 @@
            bInLock = FALSE;                                \
         }
 
+static
+DWORD
+ADCacheDB_Setup(
+    IN sqlite3* pSqlHandle
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszError = NULL;
+
+    dwError = ADCacheDB_SqlExec(pSqlHandle,
+                                AD_CACHEDB_CREATE_TABLES,
+                                &pszError);
+    if (dwError)
+    {
+        LSA_LOG_DEBUG("SQL failed: code = %d, message = '%s'\nSQL =\n%s",
+                      dwError, pszError, AD_CACHEDB_CREATE_TABLES);
+    }
+    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+
+cleanup:
+    SQLITE3_SAFE_FREE_STRING(pszError);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 ADCacheDB_Initialize(
     VOID
@@ -71,11 +98,11 @@ ADCacheDB_Initialize(
     PCSTR pszQueryFormat =
         "select "
         "%s "
-        "from lwicachetags, lwiobjects left outer join lwiusers ON "
+        "from " AD_CACHEDB_TABLE_NAME_CACHE_TAGS ", lwiobjects left outer join lwiusers ON "
             "lwiobjects.ObjectSid = lwiusers.ObjectSid "
             "left outer join lwigroups ON "
             "lwiobjects.ObjectSid = lwigroups.ObjectSid "
-        "where lwicachetags.CacheId = lwiobjects.CacheId AND "
+        "where " AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".CacheId = lwiobjects.CacheId AND "
             "%s";
 
     if (gpCacheConnection != NULL)
@@ -93,43 +120,29 @@ ADCacheDB_Initialize(
     BAIL_ON_LSA_ERROR(dwError);
     bLockCreated = TRUE;
 
-    dwError = LsaCheckFileExists(LSASS_DB, &bExists);
+    dwError = LsaCheckDirectoryExists(LSASS_DB_DIR, &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!bExists)
     {
-        dwError = LsaCheckDirectoryExists(LSASS_DB_DIR, &bExists);
-        BAIL_ON_LSA_ERROR(dwError);
+        mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
 
-        if (!bExists) {
-            mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
-            
-            dwError = LsaCreateDirectory(LSASS_DB_DIR, cacheDirMode);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        /* restrict access to u+rwx to the db folder */
-        dwError = LsaChangeOwnerAndPermissions(LSASS_DB_DIR, 0, 0, S_IRWXU);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = sqlite3_open(LSASS_DB, &pConn->pDb);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        dwError = sqlite3_exec(pConn->pDb,
-                               AD_CACHEDB_CREATE_TABLES,
-                               NULL,
-                               NULL,
-                               &pszError);
-        BAIL_ON_SQLITE3_ERROR(dwError, pszError);
-
-        dwError = LsaChangeOwnerAndPermissions(LSASS_DB, 0, 0, S_IRWXU);
+        dwError = LsaCreateDirectory(LSASS_DB_DIR, cacheDirMode);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else
-    {
-        dwError = sqlite3_open(LSASS_DB, &pConn->pDb);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+
+    /* restrict access to u+rwx to the db folder */
+    dwError = LsaChangeOwnerAndPermissions(LSASS_DB_DIR, 0, 0, S_IRWXU);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = sqlite3_open(LSASS_DB, &pConn->pDb);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaChangeOwnerAndPermissions(LSASS_DB, 0, 0, S_IRWXU);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDB_Setup(pConn->pDb);
+    BAIL_ON_LSA_ERROR(dwError);
 
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
@@ -262,13 +275,17 @@ ADCacheDB_Initialize(
     dwError = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
-            "lwicachetags.CacheId, "
-            "lwicachetags.LastUpdated, "
-            "lwigroupmembership.ParentSid, "
-            "lwigroupmembership.ChildSid "
-            "from lwicachetags, lwigroupmembership "
-            "where lwicachetags.CacheId = lwigroupmembership.CacheId "
-                "AND lwigroupmembership.ParentSid = ?1",
+            AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".CacheId, "
+            AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".LastUpdated, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".ParentSid, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".ChildSid, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".IsInPac, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".IsInPacOnly, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".IsInLdap, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".IsDomainPrimaryGroup "
+            "from " AD_CACHEDB_TABLE_NAME_CACHE_TAGS ", " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " "
+            "where " AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".CacheId = " AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".CacheId "
+                "AND " AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".ParentSid = ?1",
             -1, //search for null termination in szQuery to get length
             &pConn->pstGetGroupMembers,
             NULL);
@@ -277,13 +294,17 @@ ADCacheDB_Initialize(
     dwError = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
-            "lwicachetags.CacheId, "
-            "lwicachetags.LastUpdated, "
-            "lwigroupmembership.ParentSid, "
-            "lwigroupmembership.ChildSid "
-            "from lwicachetags, lwigroupmembership "
-            "where lwicachetags.CacheId = lwigroupmembership.CacheId "
-                "AND lwigroupmembership.ChildSid = ?1",
+            AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".CacheId, "
+            AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".LastUpdated, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".ParentSid, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".ChildSid, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".IsInPac, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".IsInPacOnly, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".IsInLdap, "
+            AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".IsDomainPrimaryGroup "
+            "from " AD_CACHEDB_TABLE_NAME_CACHE_TAGS ", " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " "
+            "where " AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".CacheId = " AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".CacheId "
+                "AND " AD_CACHEDB_TABLE_NAME_MEMBERSHIP ".ChildSid = ?1",
             -1, //search for null termination in szQuery to get length
             &pConn->pstGetGroupsForUser,
             NULL);
@@ -292,13 +313,13 @@ ADCacheDB_Initialize(
     dwError = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
-            "lwicachetags.CacheId, "
-            "lwicachetags.LastUpdated, "
-            "lwipasswordverifiers.ObjectSid, "
-            "lwipasswordverifiers.PasswordVerifier "
-            "from lwicachetags, lwipasswordverifiers "
-            "where lwicachetags.CacheId = lwipasswordverifiers.CacheId "
-                "AND lwipasswordverifiers.ObjectSid = ?1",
+            AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".CacheId, "
+            AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".LastUpdated, "
+            AD_CACHEDB_TABLE_NAME_VERIFIERS ".ObjectSid, "
+            AD_CACHEDB_TABLE_NAME_VERIFIERS ".PasswordVerifier "
+            "from " AD_CACHEDB_TABLE_NAME_CACHE_TAGS ", " AD_CACHEDB_TABLE_NAME_VERIFIERS " "
+            "where " AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".CacheId = " AD_CACHEDB_TABLE_NAME_VERIFIERS ".CacheId "
+                "AND " AD_CACHEDB_TABLE_NAME_VERIFIERS ".ObjectSid = ?1",
             -1, //search for null termination in szQuery to get length
             &pConn->pstGetPasswordVerifier,
             NULL);
@@ -355,6 +376,71 @@ ADCacheDB_Initialize(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            "insert into " AD_CACHEDB_TABLE_NAME_CACHE_TAGS " ("
+                "LastUpdated"
+                ") values ("
+                "?1)",
+            -1,
+            &pConn->pstInsertCacheTag,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            "select last_insert_rowid()",
+            -1, //search for null termination in szQuery to get length
+            &pConn->pstGetLastInsertedRow,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            "update OR IGNORE " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " set "
+                "CacheId = ?1,"
+                "IsInPacOnly = 0,"
+                "IsInLdap = 1"
+            " where ParentSid = ?2 AND ChildSid = ?3",
+            -1,
+            &pConn->pstSetLdapMembership,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            "update OR IGNORE " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " set "
+                "CacheId = ?1,"
+                "IsDomainPrimaryGroup = 1"
+            " where ParentSid = ?2 AND ChildSid = ?3",
+            -1,
+            &pConn->pstSetPrimaryGroupMembership,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            "insert OR IGNORE into " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " ("
+                "CacheId, "
+                "ParentSid, "
+                "ChildSid, "
+                "IsInPac, "
+                "IsInPacOnly, "
+                "IsInLdap, "
+                "IsDomainPrimaryGroup"
+            ") values ("
+                "?1,"
+                "?2,"
+                "?3,"
+                "?4,"
+                "?5,"
+                "?6,"
+                "?7)",
+            -1,
+            &pConn->pstAddMembership,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
     gpCacheConnection = pConn;
 
 cleanup:
@@ -386,9 +472,11 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 ADCacheDB_FreePreparedStatements(
-        PCACHE_CONNECTION pConn)
+    IN OUT PCACHE_CONNECTION pConn
+    )
 {
     int i;
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -412,6 +500,12 @@ ADCacheDB_FreePreparedStatements(
         &pConn->pstGetProviderData,
         &pConn->pstGetDomainTrustList,
         &pConn->pstGetCellList,
+
+        &pConn->pstInsertCacheTag,
+        &pConn->pstGetLastInsertedRow,
+        &pConn->pstSetLdapMembership,
+        &pConn->pstSetPrimaryGroupMembership,
+        &pConn->pstAddMembership,
     };
 
     for (i = 0; i < sizeof(pppstFreeList)/sizeof(pppstFreeList[0]); i++)
@@ -433,7 +527,8 @@ error:
 
 DWORD
 ADCacheDB_Shutdown(
-    VOID)
+    VOID
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
 
@@ -767,6 +862,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 ADCacheDB_ReadSqliteUInt64(
     sqlite3_stmt *pstQuery,
@@ -837,6 +933,7 @@ error:
     return dwError;
 }
 
+static
 DWORD
 ADCacheDB_ReadSqliteTimeT(
     sqlite3_stmt *pstQuery,
@@ -860,6 +957,7 @@ error:
     return dwError;
 }
 
+static
 DWORD
 ADCacheDB_ReadSqliteUInt32(
     sqlite3_stmt *pstQuery,
@@ -891,6 +989,7 @@ error:
     return dwError;
 }
 
+static
 DWORD
 ADCacheDB_ReadSqliteBoolean(
     sqlite3_stmt *pstQuery,
@@ -914,6 +1013,7 @@ error:
     return dwError;
 }
 
+static
 DWORD
 ADCacheDB_ReadSqliteString(
     sqlite3_stmt *pstQuery,
@@ -950,6 +1050,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 ADCacheDB_ReadSqliteStringInPlace(
     IN sqlite3_stmt *pstQuery,
@@ -1035,6 +1136,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 ADCacheDB_ReadSqliteGuid(
     IN sqlite3_stmt *pstQuery,
@@ -1083,6 +1185,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 ADCacheDB_UnpackCacheInfo(
     sqlite3_stmt *pstQuery,
@@ -1109,6 +1212,7 @@ error:
     return dwError;
 }
 
+static
 DWORD
 ADCacheDB_UnpackObjectInfo(
     sqlite3_stmt *pstQuery,
@@ -1163,6 +1267,7 @@ error:
     return dwError;
 }
 
+static
 DWORD
 ADCacheDB_UnpackUserInfo(
     sqlite3_stmt *pstQuery,
@@ -1308,6 +1413,7 @@ error:
     return dwError;
 }
 
+static
 DWORD
 ADCacheDB_UnpackGroupInfo(
     sqlite3_stmt *pstQuery,
@@ -1348,6 +1454,63 @@ error:
     return dwError;
 }
 
+static
+DWORD
+ADCacheDB_UnpackGroupMembershipInfo(
+    IN sqlite3_stmt* pstQuery,
+    IN OUT int* piColumnPos,
+    IN OUT PAD_GROUP_MEMBERSHIP pResult
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    dwError = ADCacheDB_ReadSqliteString(
+        pstQuery,
+        piColumnPos,
+        "ParentSid",
+        &pResult->pszParentSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDB_ReadSqliteString(
+        pstQuery,
+        piColumnPos,
+        "ChildSid",
+        &pResult->pszChildSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDB_ReadSqliteBoolean(
+        pstQuery,
+        piColumnPos,
+        "IsInPac",
+        &pResult->bIsInPac);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDB_ReadSqliteBoolean(
+        pstQuery,
+        piColumnPos,
+        "IsInPacOnly",
+        &pResult->bIsInPacOnly);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDB_ReadSqliteBoolean(
+        pstQuery,
+        piColumnPos,
+        "IsInLdap",
+        &pResult->bIsInLdap);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDB_ReadSqliteBoolean(
+        pstQuery,
+        piColumnPos,
+        "IsDomainPrimaryGroup",
+        &pResult->bIsDomainPrimaryGroup);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    return dwError;
+}
+
+static
 DWORD
 ADCacheDB_UnpackDomainTrust(
     IN sqlite3_stmt *pstQuery,
@@ -1453,6 +1616,7 @@ error:
     return dwError;
 }
 
+static
 DWORD
 ADCacheDB_UnpackLinkedCellInfo(
     IN sqlite3_stmt *pstQuery,
@@ -1489,10 +1653,82 @@ error:
     return dwError;
 }
 
+static
 DWORD
-ADCacheDB_ExecWithRetry(
-    PCACHE_CONNECTION pConn,
-    PCSTR pszTransaction)
+ADCacheDB_SqlBindInt64(
+    IN OUT sqlite3_stmt* pstQuery,
+    IN int Index,
+    IN int64_t Value
+    )
+{
+    return sqlite3_bind_int64(pstQuery, Index, (sqlite3_int64)Value);
+}
+
+static
+DWORD
+ADCacheDB_SqlBindString(
+    IN OUT sqlite3_stmt* pstQuery,
+    IN int Index,
+    IN PCSTR pszValue
+    )
+{
+    return sqlite3_bind_text(pstQuery, Index, pszValue,
+                             -1, SQLITE_TRANSIENT);
+}
+
+static
+DWORD
+ADCacheDB_SqlBindBoolean(
+    IN OUT sqlite3_stmt* pstQuery,
+    IN int Index,
+    IN BOOLEAN bValue
+    )
+{
+    return sqlite3_bind_int(pstQuery, Index, bValue ? 1 : 0);
+}
+
+static
+DWORD
+ADCacheDB_SqlAllocPrintf(
+    OUT PSTR* ppszSqlCommand,
+    IN PCSTR pszSqlFormat,
+    IN ...
+    )
+{
+    DWORD dwError = 0;
+    va_list args;
+
+    va_start(args, pszSqlFormat);
+    *ppszSqlCommand = sqlite3_vmprintf(pszSqlFormat, args);
+    va_end(args);
+
+    if (!*ppszSqlCommand)
+    {
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+    }
+
+    return dwError;
+}
+
+static
+DWORD
+ADCacheDB_SqlExec(
+    IN sqlite3* pSqlDatabase,
+    IN PCSTR pszSqlCommand,
+    OUT PSTR* ppszSqlError
+    )
+{
+    return sqlite3_exec(pSqlDatabase, pszSqlCommand,
+                        NULL, NULL, ppszSqlError);
+}
+
+static
+DWORD
+ADCacheDB_ExecCallbackWithRetry(
+    IN PCACHE_CONNECTION pConn,
+    IN PFN_AD_CACHEDB_EXEC_CALLBACK pfnCallback,
+    IN PVOID pContext
+    )
 {
     PSTR pszError = NULL;
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -1501,28 +1737,19 @@ ADCacheDB_ExecWithRetry(
 
     ENTER_CACHEDB_LOCK(pConn, bInLock);
 
-    for(dwRetry = 0; dwRetry < 20; dwRetry++)
+    for (dwRetry = 0; dwRetry < 20; dwRetry++)
     {
-        dwError = sqlite3_exec(pConn->pDb,
-                pszTransaction,
-                NULL,
-                NULL,
-                &pszError);
+        dwError = pfnCallback(pConn, pContext, &pszError);
         if (dwError == SQLITE_BUSY)
         {
             SQLITE3_SAFE_FREE_STRING(pszError);
             dwError = 0;
-            // sqlite3_exec runs pszSetFullEntry statement by statement. If
-            // it fails, it leaves the sqlite VM with half of the transaction
-            // finished. This rollsback the transaction so it can be retried
-            // in entirety.
-            sqlite3_exec(pConn->pDb,
-                    "ROLLBACK",
-                    NULL,
-                    NULL,
-                    NULL);
+            // Rollback the half completed transaction
+            ADCacheDB_SqlExec(pConn->pDb, "ROLLBACK", NULL);
 
-            LSA_LOG_ERROR("There is a conflict trying to access the cache database. This would happen if another process is trying to access it. Retrying...");
+            LSA_LOG_ERROR("There is a conflict trying to access the "
+                          "cache database.  This would happen if another "
+                          "process is trying to access it.  Retrying...");
         }
         else
         {
@@ -1530,12 +1757,39 @@ ADCacheDB_ExecWithRetry(
             break;
         }
     }
+    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
 
 error:
     LEAVE_CACHEDB_LOCK(pConn, bInLock);
-    
     SQLITE3_SAFE_FREE_STRING(pszError);
+
     return dwError;
+}
+
+static
+DWORD
+ADCacheDB_ExecWithRetry(
+    IN PCACHE_CONNECTION pConn,
+    IN PCSTR pszTransaction
+    )
+{
+    return ADCacheDB_ExecCallbackWithRetry(
+                pConn,
+                ADCacheDB_BasicCallback,
+                (PVOID)pszTransaction);
+}
+
+static
+DWORD
+ADCacheDB_BasicCallback(
+    IN PCACHE_CONNECTION pConn,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
+    )
+{
+    PCSTR pszTransaction = (PCSTR)pContext;
+
+    return ADCacheDB_SqlExec(pConn->pDb, pszTransaction, ppszError);
 }
 
 DWORD
@@ -1603,7 +1857,7 @@ ADCacheDB_CacheObjectEntries(
              */
             pszNewStatement = sqlite3_mprintf(
                 ";\n"
-                "delete from lwicachetags where CacheId IN "
+                "delete from " AD_CACHEDB_TABLE_NAME_CACHE_TAGS " where CacheId IN "
                     "( select CacheId from lwiobjects where ObjectSid = %Q)",
                 ppObjects[sIndex]->pszObjectSid);
 
@@ -1635,7 +1889,7 @@ ADCacheDB_CacheObjectEntries(
             pszNewStatement = sqlite3_mprintf(
                 ";\n"
                 // Make a new cache entry
-                "insert into lwicachetags ("
+                "insert into " AD_CACHEDB_TABLE_NAME_CACHE_TAGS " ("
                     "LastUpdated"
                     ") values ("
                     "%ld);\n"
@@ -1672,7 +1926,7 @@ ADCacheDB_CacheObjectEntries(
             pszNewStatement = sqlite3_mprintf(
                 ";\n"
                     // Update the existing cache entry
-                    "update lwicachetags set "
+                    "update " AD_CACHEDB_TABLE_NAME_CACHE_TAGS " set "
                         "LastUpdated = %ld "
                         "where CacheId = %llu;\n"
                     "update lwiobjects set "
@@ -1883,514 +2137,699 @@ ADCacheDB_SafeFreeObject(
     }
 }
 
+static
 DWORD
-ADCacheDB_CacheGroupMembership(
-    HANDLE hDb,
-    PCSTR pszParentSid,
-    size_t sMemberCount,
-    PAD_GROUP_MEMBERSHIP* ppMembers)
+ADCacheDB_CreateCacheTag(
+    IN PCACHE_CONNECTION pConn,
+    IN time_t tLastUpdated,
+    OUT int64_t *pqwCacheId
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    size_t iMember;
-    BOOLEAN newTagCreated = FALSE;
-    PSTR pszOldExpression = NULL;
-    PSTR pszSqlCommand = NULL;
-    PCACHE_CONNECTION pConn = (PCACHE_CONNECTION)hDb;
+    // Do not free
+    sqlite3_stmt *pstQuery = pConn->pstInsertCacheTag;
+    int64_t qwCacheId;
 
-    /* Make sure all of the group membership structures use pszParentSid */
+    dwError = ADCacheDB_SqlBindInt64(pstQuery, 1, tLastUpdated);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+
+    pstQuery = pConn->pstGetLastInsertedRow;
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        // The value is missing
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (dwError == SQLITE_ROW)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    if (sqlite3_column_count(pstQuery) != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    qwCacheId = sqlite3_column_int64(pstQuery, 0);
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_ROW)
+    {
+        // Duplicate value
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+
+    *pqwCacheId = qwCacheId;
+
+cleanup:
+    return dwError;
+
+error:
+    if (pstQuery)
+    {
+        sqlite3_reset(pstQuery);
+    }
+    *pqwCacheId = -1;
+    goto cleanup;
+}
+
+static
+DWORD
+ADCacheDB_UpdateMembership(
+    IN sqlite3_stmt* pstQuery,
+    IN int64_t CacheId,
+    IN PCSTR pszParentSid,
+    IN PCSTR pszChildSid
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    dwError = ADCacheDB_SqlBindInt64(pstQuery, 1, CacheId);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = ADCacheDB_SqlBindString(pstQuery, 2, pszParentSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = ADCacheDB_SqlBindString(pstQuery, 3, pszChildSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+cleanup:
+    return dwError;
+
+error:
+    if (pstQuery)
+    {
+        sqlite3_reset(pstQuery);
+    }
+    goto cleanup;
+}
+
+static
+DWORD
+ADCacheDB_AddMembership(
+    IN PCACHE_CONNECTION pConn,
+    IN time_t tLastUpdated,
+    IN int64_t CacheId,
+    IN PCSTR pszParentSid,
+    IN PCSTR pszChildSid,
+    IN BOOLEAN bIsInPac,
+    IN BOOLEAN bIsInPacOnly,
+    IN BOOLEAN bIsInLdap,
+    IN BOOLEAN bIsDomainPrimaryGroup
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    // Do not free
+    sqlite3_stmt *pstQuery = pConn->pstAddMembership;
+
+    dwError = ADCacheDB_SqlBindInt64(pstQuery, 1, CacheId);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = ADCacheDB_SqlBindString(pstQuery, 2, pszParentSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = ADCacheDB_SqlBindString(pstQuery, 3, pszChildSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = ADCacheDB_SqlBindBoolean(pstQuery, 4, bIsInPac);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = ADCacheDB_SqlBindBoolean(pstQuery, 5, bIsInPacOnly);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = ADCacheDB_SqlBindBoolean(pstQuery, 6, bIsInLdap);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = ADCacheDB_SqlBindBoolean(pstQuery, 7, bIsDomainPrimaryGroup);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+
+cleanup:
+    return dwError;
+
+error:
+    if (pstQuery)
+    {
+        sqlite3_reset(pstQuery);
+    }
+    goto cleanup;
+}
+
+static
+DWORD
+ADCacheDB_CacheGroupMembershipCallback(
+    IN PCACHE_CONNECTION pConn,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PAD_CACHEDB_CACHE_GROUP_MEMBERSHIP_CONTEXT pArgs = (PAD_CACHEDB_CACHE_GROUP_MEMBERSHIP_CONTEXT)pContext;
+    PCSTR pszParentSid = pArgs->pszParentSid;
+    PAD_GROUP_MEMBERSHIP* ppMembers = pArgs->ppMembers;
+    size_t sMemberCount = pArgs->sMemberCount;
+    size_t iMember;
+    BOOLEAN bCreatedTag = FALSE;
+    int64_t qwNewCacheId = -1;
+    PSTR pszSqlCommand = NULL;
+    PSTR pszError = NULL;
+    time_t now = 0;
+
+    dwError = LsaGetCurrentTimeSeconds(&now);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    //
+    // Start the transaction
+    //
+    // 1) Clear all cached group members for child SID.  However, keep
+    //    the PAC and primary group ones.
+    //
+    // 2) Update any remaining PAC items to clear IsInLdap so that we
+    //    can set it later in the transaction depending on what membership
+    //    info got passed in.
+    //
+    dwError = ADCacheDB_SqlAllocPrintf(&pszSqlCommand,
+        "begin;\n"
+        "    delete from " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " where\n"
+        "        ParentSid = %Q AND\n"
+        "        IsInPac = 0 AND\n"
+        "        IsDomainPrimaryGroup = 0;\n"
+        // ISSUE-2008/11/03-dalmeida -- Do we want to set update time here?
+        "    update OR IGNORE " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " set\n"
+        "        IsInLdap = 0\n"
+        "        where ParentSid = %Q;\n"
+        "",
+        pszParentSid,
+        pszParentSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDB_SqlExec(pConn->pDb, pszSqlCommand, &pszError);
+    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
+
+    //
+    // Put memberships into the cache.
+    //
+    // 1) We update any remaining entries (which must be from PAC
+    //    or primary group).
+    //
+    // 2) Insert new entries (which cannot be from PAC).
+    //
     for (iMember = 0; iMember < sMemberCount; iMember++)
     {
-        if (ppMembers[iMember]->pszParentSid == NULL)
+        if (!bCreatedTag)
         {
-            dwError = LsaAllocateString(
-                            pszParentSid, 
-                            &ppMembers[iMember]->pszParentSid);
+            dwError = ADCacheDB_CreateCacheTag(pConn, now, &qwNewCacheId);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            bCreatedTag = TRUE;
+        }
+
+        if (ppMembers[iMember]->bIsInLdap)
+        {
+            dwError = ADCacheDB_UpdateMembership(
+                            pConn->pstSetLdapMembership,
+                            qwNewCacheId,
+                            pszParentSid,
+                            ppMembers[iMember]->pszChildSid);
             BAIL_ON_LSA_ERROR(dwError);
         }
-        else if (strcmp(ppMembers[iMember]->pszParentSid, pszParentSid))
+
+        dwError = ADCacheDB_AddMembership(
+                        pConn,
+                        now,
+                        qwNewCacheId,
+                        pszParentSid,
+                        ppMembers[iMember]->pszChildSid,
+                        FALSE,
+                        FALSE,
+                        TRUE,
+                        FALSE);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    //
+    // End the transaction
+    //
+    // 1) Delete any cache tags which are no longer used.
+    //
+    dwError = ADCacheDB_SqlExec(
+                    pConn->pDb,
+                    ADCACHEDB_FREE_UNUSED_CACHEIDS "end;",
+                    &pszError);
+    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+
+cleanup:
+    *ppszError = NULL;
+    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
+    SQLITE3_SAFE_FREE_STRING(pszError);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+ADCacheDB_CacheGroupMembership(
+    IN HANDLE hDb,
+    IN PCSTR pszParentSid,
+    IN size_t sMemberCount,
+    IN PAD_GROUP_MEMBERSHIP* ppMembers
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PCACHE_CONNECTION pConn = (PCACHE_CONNECTION)hDb;
+    size_t iMember;
+    AD_CACHEDB_CACHE_GROUP_MEMBERSHIP_CONTEXT context = { 0 };
+
+    LSA_LOG_VERBOSE("ENTER: Caching %ld group memberships.",
+            (unsigned long)sMemberCount);
+
+    //
+    // Check each membership for consistency.
+    //
+    // 1) pszParentSid field must match the group or be NULL.
+    //
+    // 2) The should be no cache ID as this should be fresh data.
+    //
+    // 3) There must not be any PAC entries.
+    //
+    for (iMember = 0; iMember < sMemberCount; iMember++)
+    {
+        assert(ppMembers[iMember]->cache.qwCacheId == -1);
+        if (ppMembers[iMember]->pszParentSid &&
+            strcasecmp(ppMembers[iMember]->pszParentSid, pszParentSid))
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        if (ppMembers[iMember]->bIsInPac)
         {
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
-    pszSqlCommand = sqlite3_mprintf(
-        "begin;\n"
-             /* clear all expirable cached group members for pszParentSid
-              * (the entries in lwigroupmembership whose tLastUpdated time is
-              * not 0xFFFFFFFF).*/
-            "delete from lwigroupmembership where EXISTS "
-                "(select LastUpdated from lwicachetags where "
-                    "lwicachetags.CacheId = lwigroupmembership.CacheId AND "
-                    "lwicachetags.LastUpdated NOT IN "
-                        "(-1, -2)"
-                ") AND "
-                "lwigroupmembership.ParentSid = %Q;\n",
-        pszParentSid);
-    if (pszSqlCommand == NULL)
-    {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-    }
+    context.pszParentSid = pszParentSid;
+    context.sMemberCount = sMemberCount;
+    context.ppMembers = ppMembers;
 
-     /* put ppMembers into the cache. Replace any of the unexpirable entries
-      * if there are any already in the db. */
-    for (iMember = 0; iMember < sMemberCount; iMember++)
-    {
-        if (ppMembers[iMember]->cache.qwCacheId == -1)
-        {
-            if (!newTagCreated)
-            {
-                SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-                pszOldExpression = pszSqlCommand;
-                pszSqlCommand = sqlite3_mprintf(
-                    "%s"
-                    "insert into lwicachetags ("
-                        "LastUpdated"
-                        ") values ("
-                        "%ld);\n",
-                    pszOldExpression,
-                    ppMembers[iMember]->cache.tLastUpdated);
-                if (pszSqlCommand == NULL)
-                {
-                    dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-                    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-                }
-                newTagCreated = TRUE;
-            }
-            SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-            pszOldExpression = pszSqlCommand;
-            pszSqlCommand = sqlite3_mprintf(
-                "%s"
-                "replace into lwigroupmembership ("
-                    "CacheId, "
-                    "ParentSid, "
-                    "ChildSid"
-                ") values ("
-                    "(select max(lwicachetags.CacheId) from lwicachetags),"
-                    "%Q,"
-                    "%Q);\n",
-                pszOldExpression,
-                ppMembers[iMember]->pszParentSid,
-                ppMembers[iMember]->pszChildSid);
-        }
-        else
-        {
-            SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-            pszOldExpression = pszSqlCommand;
-            pszSqlCommand = sqlite3_mprintf(
-                "%s"
-                "replace into lwigroupmembership ("
-                    "CacheId, "
-                    "ParentSid, "
-                    "ChildSid"
-                ") values ("
-                    "%lld,"
-                    "%Q,"
-                    "%Q);\n",
-                pszOldExpression,
-                ppMembers[iMember]->cache.qwCacheId,
-                ppMembers[iMember]->pszParentSid,
-                ppMembers[iMember]->pszChildSid);
-        }
-
-        if (pszSqlCommand == NULL)
-        {
-            dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-            BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-        }
-    }
-
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-    pszOldExpression = pszSqlCommand;
-    pszSqlCommand = sqlite3_mprintf(
-            "%s"
-            /* delete any lwicachetags which are no longer being used. */
-            "%s"
-        "end;",
-        pszOldExpression,
-        ADCACHEDB_FREE_UNUSED_CACHEIDS
-        );
-    if (pszSqlCommand == NULL)
-    {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-    }
-
-    dwError = ADCacheDB_ExecWithRetry(
-        pConn,
-        pszSqlCommand);
+    dwError = ADCacheDB_ExecCallbackWithRetry(
+                    pConn,
+                    ADCacheDB_CacheGroupMembershipCallback,
+                    &context);
     BAIL_ON_LSA_ERROR(dwError);
 
-error:
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
+cleanup:
+    LSA_LOG_VERBOSE("LEAVE: caching group memberships.");
     return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+ADCacheDB_CacheUserMembershipCallback(
+    IN PCACHE_CONNECTION pConn,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PAD_CACHEDB_CACHE_USER_MEMBERSHIP_CONTEXT pArgs = (PAD_CACHEDB_CACHE_USER_MEMBERSHIP_CONTEXT)pContext;
+    PCSTR pszChildSid = pArgs->pszChildSid;
+    size_t sMemberCount = pArgs->sMemberCount;
+    PAD_GROUP_MEMBERSHIP* ppMembers = pArgs->ppMembers;
+    BOOLEAN bIsPacAuthoritative = pArgs->bIsPacAuthoritative;
+    size_t iMember;
+    BOOLEAN bCreatedTag = FALSE;
+    int64_t qwNewCacheId = -1;
+    PSTR pszSqlCommand = NULL;
+    PSTR pszError = NULL;
+    time_t now = 0;
+
+    dwError = LsaGetCurrentTimeSeconds(&now);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    //
+    // Start the transaction
+    //
+    // 1) Clear all cached group members for child SID.  However, we keep the
+    //    PAC ones unless we have authoritative PAC info.
+    //
+    // 2) Update any remaining items to clear IsInLdap and
+    //    IsDomainPrimaryGroup so that we can set them later in the
+    //    transaction depending on what membership info got passed in.
+    //
+    dwError = ADCacheDB_SqlAllocPrintf(&pszSqlCommand,
+        "begin;\n"
+        "    delete from " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " where\n"
+        "        ChildSid = %Q\n"
+        "        %s;\n"
+        // ISSUE-2008/11/03-dalmeida -- Do we want to set update time here?
+        "    update OR IGNORE " AD_CACHEDB_TABLE_NAME_MEMBERSHIP " set\n"
+        "        IsInLdap = 0,\n"
+        "        IsDomainPrimaryGroup = 0\n"
+        "        where ChildSid = %Q;\n"
+        "",
+        pszChildSid,
+        bIsPacAuthoritative ? "" : "AND IsInPac = 0",
+        pszChildSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDB_SqlExec(pConn->pDb, pszSqlCommand, &pszError);
+    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
+
+    //
+    // Put memberships into the cache.
+    //
+    // 1) We update any remaining entries (which must be from PAC).
+    //
+    // 2) If inserting a new entry, we need to compute the
+    //    "is in PAC only" bit.
+    //
+    for (iMember = 0; iMember < sMemberCount; iMember++)
+    {
+        BOOLEAN bIsNewEntryInPacOnly = FALSE;
+
+        if (!bCreatedTag)
+        {
+            dwError = ADCacheDB_CreateCacheTag(pConn, now, &qwNewCacheId);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            bCreatedTag = TRUE;
+        }
+
+        if (!bIsPacAuthoritative && ppMembers[iMember]->bIsInLdap)
+        {
+            dwError = ADCacheDB_UpdateMembership(
+                            pConn->pstSetLdapMembership,
+                            qwNewCacheId,
+                            ppMembers[iMember]->pszParentSid,
+                            pszChildSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (!bIsPacAuthoritative && ppMembers[iMember]->bIsDomainPrimaryGroup)
+        {
+            dwError = ADCacheDB_UpdateMembership(
+                            pConn->pstSetPrimaryGroupMembership,
+                            qwNewCacheId,
+                            ppMembers[iMember]->pszParentSid,
+                            pszChildSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (ppMembers[iMember]->bIsInPac && !ppMembers[iMember]->bIsInLdap)
+        {
+            bIsNewEntryInPacOnly = TRUE;
+        }
+
+        dwError = ADCacheDB_AddMembership(
+                        pConn,
+                        now,
+                        qwNewCacheId,
+                        ppMembers[iMember]->pszParentSid,
+                        pszChildSid,
+                        ppMembers[iMember]->bIsInPac,
+                        bIsNewEntryInPacOnly,
+                        ppMembers[iMember]->bIsInLdap,
+                        ppMembers[iMember]->bIsDomainPrimaryGroup);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    //
+    // End the transaction
+    //
+    // 1) Delete any cache tags which are no longer used.
+    //
+    dwError = ADCacheDB_SqlExec(
+                    pConn->pDb,
+                    ADCACHEDB_FREE_UNUSED_CACHEIDS "end;",
+                    &pszError);
+    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+
+cleanup:
+    *ppszError = NULL;
+    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
+    SQLITE3_SAFE_FREE_STRING(pszError);
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
 ADCacheDB_CacheGroupsForUser(
-    HANDLE hDb,
-    PCSTR pszChildSid,
-    size_t sMemberCount,
-    PAD_GROUP_MEMBERSHIP* ppMembers,
-    BOOLEAN bOverwritePacEntries)
+    IN HANDLE hDb,
+    IN PCSTR pszChildSid,
+    IN size_t sMemberCount,
+    IN PAD_GROUP_MEMBERSHIP* ppMembers,
+    IN BOOLEAN bIsPacAuthoritative
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    size_t iMember;
-    PSTR pszOldExpression = NULL;
-    PSTR pszSqlCommand = NULL;
     PCACHE_CONNECTION pConn = (PCACHE_CONNECTION)hDb;
+    size_t iMember;
+    AD_CACHEDB_CACHE_USER_MEMBERSHIP_CONTEXT context = { 0 };
 
-    /* Make sure all of the group membership structures use pszChildSid */
+    //
+    // Check each membership for consistency.
+    //
+    // 1) pszChildSid field must match the user or be NULL.
+    //
+    // 2) The should be no cache ID as this should be fresh data.
+    //
     for (iMember = 0; iMember < sMemberCount; iMember++)
     {
-        if (ppMembers[iMember]->pszChildSid == NULL)
-        {
-            dwError = LsaAllocateString(
-                            pszChildSid, 
-                            &ppMembers[iMember]->pszChildSid);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        else if (strcmp(ppMembers[iMember]->pszChildSid, pszChildSid))
+        assert(ppMembers[iMember]->cache.qwCacheId == -1);
+        if (ppMembers[iMember]->pszChildSid &&
+            strcasecmp(ppMembers[iMember]->pszChildSid, pszChildSid))
         {
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
-    pszSqlCommand = sqlite3_mprintf(
-        "begin;\n"
-             /* clear all expirable cached group members for pszChildSid
-              * (the entries in lwigroupmembership whose tLastUpdated time is
-              * not 0xFFFFFFFF).*/
-            "delete from lwigroupmembership where %s"
-                "lwigroupmembership.ChildSid = %Q;\n",
-        bOverwritePacEntries ? "" : " -1 NOT IN "
-                "(select LastUpdated from lwicachetags where "
-                    "lwicachetags.CacheId = lwigroupmembership.CacheId) AND ",
-        pszChildSid);
-    if (pszSqlCommand == NULL)
+    context.pszChildSid = pszChildSid;
+    context.sMemberCount = sMemberCount;
+    context.ppMembers = ppMembers;
+    context.bIsPacAuthoritative = bIsPacAuthoritative;
+
+    dwError = ADCacheDB_ExecCallbackWithRetry(
+                    pConn,
+                    ADCacheDB_CacheUserMembershipCallback,
+                    &context);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+ADCacheDB_GetMemberships(
+    IN HANDLE hDb,
+    IN PCSTR pszSid,
+    IN BOOLEAN bIsGroupMembers,
+    IN BOOLEAN bFilterNotInPacNorLdap,
+    OUT size_t* psCount,
+    OUT PAD_GROUP_MEMBERSHIP** pppResults
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PCACHE_CONNECTION pConn = (PCACHE_CONNECTION)hDb;
+    BOOLEAN bInLock = FALSE;
+    // do not free
+    sqlite3_stmt *pstQuery = NULL;
+    size_t sResultCapacity = 0;
+    size_t sResultCount = 0;
+    PAD_GROUP_MEMBERSHIP *ppResults = NULL;
+    const int nExpectedCols = 8;
+    int iColumnPos = 0;
+    int nGotColumns = 0;
+    PAD_GROUP_MEMBERSHIP pMembership = NULL;
+
+    ENTER_CACHEDB_LOCK(pConn, bInLock);
+
+    if (bIsGroupMembers)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        pstQuery = pConn->pstGetGroupMembers;
+    }
+    else
+    {
+        pstQuery = pConn->pstGetGroupsForUser;
     }
 
-     /* put ppMembers into the cache. Replace any of the unexpirable entries
-      * if there are any already in the db. */
-    for (iMember = 0; iMember < sMemberCount; iMember++)
-    {
-        if (ppMembers[iMember]->cache.qwCacheId == -1)
-        {
-            SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-            pszOldExpression = pszSqlCommand;
-            pszSqlCommand = sqlite3_mprintf(
-                "%s"
-                "insert into lwicachetags ("
-                    "LastUpdated"
-                    ") values ("
-                    "%ld);\n",
-                pszOldExpression,
-                ppMembers[iMember]->cache.tLastUpdated);
-            if (pszSqlCommand == NULL)
-            {
-                dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-                BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-            }
+    dwError = ADCacheDB_SqlBindString(pstQuery, 1, pszSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
-            SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-            pszOldExpression = pszSqlCommand;
-            pszSqlCommand = sqlite3_mprintf(
-                "%s"
-                "replace into lwigroupmembership ("
-                    "CacheId, "
-                    "ParentSid, "
-                    "ChildSid"
-                ") values ("
-                    "last_insert_rowid(),"
-                    "%Q,"
-                    "%Q);\n",
-                pszOldExpression,
-                ppMembers[iMember]->pszParentSid,
-                ppMembers[iMember]->pszChildSid);
+    while ((dwError = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
+    {
+        BOOLEAN bSkip = FALSE;
+
+        nGotColumns = sqlite3_column_count(pstQuery);
+        if (nGotColumns != nExpectedCols)
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (sResultCount >= sResultCapacity)
+        {
+            sResultCapacity *= 2;
+            sResultCapacity += 10;
+            dwError = LsaReallocMemory(
+                            ppResults,
+                            (PVOID*)&ppResults,
+                            sizeof(PAD_GROUP_MEMBERSHIP) * sResultCapacity);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = LsaAllocateMemory(
+                        sizeof(*pMembership),
+                        (PVOID*)&pMembership);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        iColumnPos = 0;
+
+        dwError = ADCacheDB_UnpackCacheInfo(pstQuery,
+                        &iColumnPos,
+                        &pMembership->cache);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = ADCacheDB_UnpackGroupMembershipInfo(pstQuery,
+                        &iColumnPos,
+                        pMembership);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (bFilterNotInPacNorLdap)
+        {
+            // Filter out stuff from PAC that was in LDAP
+            // but is no longer in LDAP.
+            if (pMembership->bIsInPac &&
+                !pMembership->bIsInPacOnly &&
+                !pMembership->bIsInLdap)
+            {
+                bSkip = TRUE;
+            }
+        }
+
+        if (bSkip)
+        {
+            ADCacheDB_SafeFreeGroupMembership(&pMembership);
         }
         else
         {
-            SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-            pszOldExpression = pszSqlCommand;
-            pszSqlCommand = sqlite3_mprintf(
-                "%s"
-                "replace into lwigroupmembership ("
-                    "CacheId, "
-                    "ParentSid, "
-                    "ChildSid"
-                ") values ("
-                    "%lld,"
-                    "%Q,"
-                    "%Q);\n",
-                pszOldExpression,
-                ppMembers[iMember]->cache.qwCacheId,
-                ppMembers[iMember]->pszParentSid,
-                ppMembers[iMember]->pszChildSid);
-        }
-
-        if (pszSqlCommand == NULL)
-        {
-            dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-            BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+            ppResults[sResultCount] = pMembership;
+            pMembership = NULL;
+            sResultCount++;
         }
     }
-
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-    pszOldExpression = pszSqlCommand;
-    pszSqlCommand = sqlite3_mprintf(
-            "%s"
-            /* delete any lwicachetags which are no longer being used. */
-            "%s"
-        "end;",
-        pszOldExpression,
-        ADCACHEDB_FREE_UNUSED_CACHEIDS
-        );
-    if (pszSqlCommand == NULL)
+    if (dwError == SQLITE_DONE)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        // No more results found
+        dwError = LSA_ERROR_SUCCESS;
     }
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
 
-    dwError = ADCacheDB_ExecWithRetry(
-        pConn,
-        pszSqlCommand);
-    BAIL_ON_LSA_ERROR(dwError);
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+
+    *pppResults = ppResults;
+    *psCount = sResultCount;
+    
+cleanup:
+    LEAVE_CACHEDB_LOCK(pConn, bInLock);
+    
+    return dwError;
 
 error:
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
-    return dwError;
+    *psCount = 0;
+    *pppResults = NULL;
+    ADCacheDB_SafeFreeGroupMembership(&pMembership);
+    ADCacheDB_SafeFreeGroupMembershipList(sResultCount, &ppResults);
+    if (pstQuery != NULL)
+    {
+        sqlite3_reset(pstQuery);
+    }
+
+    goto cleanup;
 }
 
 DWORD
 ADCacheDB_GetGroupMembers(
-    HANDLE hDb,
-    PCSTR pszSid,
-    size_t* psCount,
-    PAD_GROUP_MEMBERSHIP **pppResults)
+    IN HANDLE hDb,
+    IN PCSTR pszSid,
+    IN BOOLEAN bFilterNotInPacNorLdap,
+    OUT size_t* psCount,
+    OUT PAD_GROUP_MEMBERSHIP** pppResults
+    )
 {
-    /* 
-     * Search the cache for all members of pszSid.
-     */
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    PCACHE_CONNECTION pConn = (PCACHE_CONNECTION)hDb;
-    BOOLEAN bInLock = FALSE;
-    // do not free
-    sqlite3_stmt *pstQuery = NULL;
-    size_t sResultCapacity = 0;
-    size_t sResultCount = 0;
-    PAD_GROUP_MEMBERSHIP *ppResults = NULL;
-    const int nExpectedCols = 4;
-    int iColumnPos = 0;
-    int nGotColumns = 0;
-
-    ENTER_CACHEDB_LOCK(pConn, bInLock);
-
-    pstQuery = pConn->pstGetGroupMembers;
-    dwError = sqlite3_bind_text(
-            pstQuery,
-            1, 
-            pszSid,
-            -1, // let sqlite calculate the length
-            SQLITE_TRANSIENT //let sqlite make its own copy
-            );
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-
-    while((dwError = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
-    {
-        nGotColumns = sqlite3_column_count(pstQuery);
-        if (nGotColumns != nExpectedCols)
-        {
-            dwError = LSA_ERROR_DATA_ERROR;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        if (sResultCount >= sResultCapacity)
-        {
-            sResultCapacity *= 2;
-            sResultCapacity += 10;
-            dwError = LsaReallocMemory(
-                            ppResults,
-                            (PVOID*)&ppResults,
-                            sizeof(PAD_GROUP_MEMBERSHIP) * sResultCapacity);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        dwError = LsaAllocateMemory(
-                        sizeof(AD_GROUP_MEMBERSHIP),
-                        (PVOID*)&ppResults[sResultCount]);
-        BAIL_ON_LSA_ERROR(dwError);
-        /* Increment the result count here since this result is now partially
-         * filled. If an error occurs while filling in the fields for this
-         * result, the initialized fields will still get freed.
-         */
-        sResultCount++;
-        iColumnPos = 0;
-
-        dwError = ADCacheDB_UnpackCacheInfo(pstQuery,
-                &iColumnPos,
-                &ppResults[sResultCount - 1]->cache);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADCacheDB_ReadSqliteString(
-            pstQuery,
-            &iColumnPos,
-            "ParentSid",
-            &ppResults[sResultCount - 1]->pszParentSid);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADCacheDB_ReadSqliteString(
-            pstQuery,
-            &iColumnPos,
-            "ChildSid",
-            &ppResults[sResultCount - 1]->pszChildSid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    if (dwError == SQLITE_DONE)
-    {
-        // No more results found
-        dwError = LSA_ERROR_SUCCESS;
-    }
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-
-    *pppResults = ppResults;
-    *psCount = sResultCount;
-    
-cleanup:
-    LEAVE_CACHEDB_LOCK(pConn, bInLock);
-    
-    return dwError;
-
-error:
-    *psCount = 0;
-    *pppResults = NULL;
-    ADCacheDB_SafeFreeGroupMembershipList(sResultCount, &ppResults);
-    if (pstQuery != NULL)
-    {
-        sqlite3_reset(pstQuery);
-    }
-
-    goto cleanup;
+    return ADCacheDB_GetMemberships(hDb, pszSid, TRUE,
+                                    bFilterNotInPacNorLdap,
+                                    psCount, pppResults);
 }
 
 DWORD
 ADCacheDB_GetGroupsForUser(
-    HANDLE hDb,
-    PCSTR pszSid,
-    size_t* psCount,
-    PAD_GROUP_MEMBERSHIP **pppResults)
+    IN HANDLE hDb,
+    IN PCSTR pszSid,
+    IN BOOLEAN bFilterNotInPacNorLdap,
+    OUT size_t* psCount,
+    OUT PAD_GROUP_MEMBERSHIP** pppResults
+    )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    PCACHE_CONNECTION pConn = (PCACHE_CONNECTION)hDb;
-    BOOLEAN bInLock = FALSE;
-    // do not free
-    sqlite3_stmt *pstQuery = NULL;
-    size_t sResultCapacity = 0;
-    size_t sResultCount = 0;
-    PAD_GROUP_MEMBERSHIP *ppResults = NULL;
-    const int nExpectedCols = 4;
-    int iColumnPos = 0;
-    int nGotColumns = 0;
-
-    ENTER_CACHEDB_LOCK(pConn, bInLock);
-
-    pstQuery = pConn->pstGetGroupsForUser;
-    dwError = sqlite3_bind_text(
-            pstQuery,
-            1, 
-            pszSid,
-            -1, // let sqlite calculate the length
-            SQLITE_TRANSIENT //let sqlite make its own copy
-            );
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-
-    while((dwError = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
-    {
-        nGotColumns = sqlite3_column_count(pstQuery);
-        if (nGotColumns != nExpectedCols)
-        {
-            dwError = LSA_ERROR_DATA_ERROR;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        if (sResultCount >= sResultCapacity)
-        {
-            sResultCapacity *= 2;
-            sResultCapacity += 10;
-            dwError = LsaReallocMemory(
-                            ppResults,
-                            (PVOID*)&ppResults,
-                            sizeof(PAD_GROUP_MEMBERSHIP) * sResultCapacity);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        dwError = LsaAllocateMemory(
-                        sizeof(AD_GROUP_MEMBERSHIP),
-                        (PVOID*)&ppResults[sResultCount]);
-        BAIL_ON_LSA_ERROR(dwError);
-        /* Increment the result count here since this result is now partially
-         * filled. If an error occurs while filling in the fields for this
-         * result, the initialized fields will still get freed.
-         */
-        sResultCount++;
-        iColumnPos = 0;
-
-        dwError = ADCacheDB_UnpackCacheInfo(pstQuery,
-                &iColumnPos,
-                &ppResults[sResultCount - 1]->cache);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADCacheDB_ReadSqliteString(
-            pstQuery,
-            &iColumnPos,
-            "ParentSid",
-            &ppResults[sResultCount - 1]->pszParentSid);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADCacheDB_ReadSqliteString(
-            pstQuery,
-            &iColumnPos,
-            "ChildSid",
-            &ppResults[sResultCount - 1]->pszChildSid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    if (dwError == SQLITE_DONE)
-    {
-        // No more results found
-        dwError = LSA_ERROR_SUCCESS;
-    }
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-
-    *pppResults = ppResults;
-    *psCount = sResultCount;
-    
-cleanup:
-    LEAVE_CACHEDB_LOCK(pConn, bInLock);
-    
-    return dwError;
-
-error:
-    *psCount = 0;
-    *pppResults = NULL;
-    ADCacheDB_SafeFreeGroupMembershipList(sResultCount, &ppResults);
-    if (pstQuery != NULL)
-    {
-        sqlite3_reset(pstQuery);
-    }
-
-    goto cleanup;
+    return ADCacheDB_GetMemberships(hDb, pszSid, FALSE,
+                                    bFilterNotInPacNorLdap,
+                                    psCount, pppResults);
 }
 
 void
@@ -2437,10 +2876,12 @@ ADCacheDB_SafeFreeObjectList(
     }
 }
 
+static
 DWORD
 ADCacheDB_QueryObject(
-        sqlite3_stmt *pstQuery,
-        PAD_SECURITY_OBJECT *ppObject)
+    IN sqlite3_stmt* pstQuery,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    )
 {
     DWORD dwError = 0;
     const int nExpectedCols = 29; // This is the number of fields defined in cachedb.h (AD_SECURITY_OBJECT)
@@ -2547,14 +2988,15 @@ error:
     goto cleanup;
 }
 
+static
 PCSTR
 ADCacheDB_GetObjectFieldList(
     VOID
     )
 {
     return
-        "lwicachetags.CacheId, "
-        "lwicachetags.LastUpdated, "
+        "" AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".CacheId, "
+        "" AD_CACHEDB_TABLE_NAME_CACHE_TAGS ".LastUpdated, "
         "lwiobjects.ObjectSid, "
         "lwiobjects.DN, "
         "lwiobjects.Enabled, "
@@ -2625,10 +3067,11 @@ error:
 // cache.
 DWORD
 ADCacheDB_FindObjectsByDNList(
-    HANDLE hDb,
-    size_t sCount,
-    PSTR* ppszDnList,
-    PAD_SECURITY_OBJECT **pppResults)
+    IN HANDLE hDb,
+    IN size_t sCount,
+    IN PSTR* ppszDnList,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     size_t sIndex;
@@ -2701,10 +3144,11 @@ error:
 // cache.
 DWORD
 ADCacheDB_FindObjectsBySidList(
-    HANDLE hDb,
-    size_t sCount,
-    PSTR* ppszSidList,
-    PAD_SECURITY_OBJECT **pppResults)
+    IN HANDLE hDb,
+    IN size_t sCount,
+    IN PSTR* ppszSidList,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     size_t sIndex;
@@ -2873,7 +3317,7 @@ ADCacheDB_CachePasswordVerifier(
     {
         pszSqlCommand = sqlite3_mprintf(
             "begin;"
-                "insert into lwicachetags ("
+                "insert into " AD_CACHEDB_TABLE_NAME_CACHE_TAGS " ("
                     "LastUpdated"
                     ") values ("
                     "%ld);\n"
@@ -3382,6 +3826,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 ADCacheDB_GetCellListNoLock(
     IN HANDLE hDb,
@@ -3469,6 +3914,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 ADCacheDB_GetCacheCellListCommand(
     IN HANDLE hDb,

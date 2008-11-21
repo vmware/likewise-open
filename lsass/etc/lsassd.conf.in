@@ -16,6 +16,11 @@
     # Default: yes
     # log-network-connection-events = no
 
+    # Default: \
+    # Allowed: a punctuation character
+    # Excluded: whitespace, alphanumeric, space-replacement character
+    domain-separator = \
+
 [pam]
 
     # Default: error
@@ -76,10 +81,10 @@
     cache-purge-timeout = 30m
 
     # Cache entry expiration timespan
-    # Default: 60s
+    # Default: 4h
     # Minimum: 0
-    # Maximum: 60m
-    cache-entry-expiry = 5m
+    # Maximum: 1d
+    cache-entry-expiry = 4h
 
     # Machine password expiration lifespan
     # Default: 30d
@@ -88,9 +93,9 @@
     machine-password-lifespan = 30d
 
     # Default: ^
-    # Allowed: punctuation
-    # Excluded: whitespace, alphanumeric, @, /, \, #
-    separator-character = ^
+    # Allowed: a punctuation character
+    # Excluded: whitespace, alphanumeric, @, /, domain separator character, #
+    space-replacement = ^
     
     # Default: no
     # assume-default-domain = yes
@@ -132,8 +137,34 @@
     #
     # skeleton-dirs = /etc/skel
 
+    # Whether user credentials should automatically be
+    # refreshed
+    #
+    # Default: yes
+    # refresh-user-credentials = no
+
     # Forces lsass to use unprovisioned mode
     # Values: full unprovisioned
     # Default: full
     #
     # cell-support = full
+
+    # Whether to remove a cached group membership entry derived from PAC
+    # with information from LDAP showing the user disappearing from
+    # a group.
+    #
+    # Default: yes
+    #
+    # trim-user-membership = no
+
+    # Whether to return only cached info for NSS group members.
+    #
+    # Default: yes
+    #
+    # nss-group-members-query-cache-only = no
+
+    # Whether to return only cached info for NSS user's groups.
+    #
+    # Default: no
+    #
+    # nss-user-membership-query-cache-only = yes

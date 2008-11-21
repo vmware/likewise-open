@@ -60,6 +60,8 @@ pam_sm_authenticate(
     HANDLE      hLsaConnection = (HANDLE)NULL;
     PSTR        pszLoginId = NULL;
     PLSA_PAM_CONFIG pConfig = NULL;
+    PLSA_USER_INFO_0 pUserInfo = NULL;
+    DWORD dwUserInfoLevel = 0;
 
     LSA_LOG_PAM_DEBUG("pam_sm_authenticate::begin");
 
@@ -106,7 +108,8 @@ pam_sm_authenticate(
         dwError = LsaPamGetLoginId(
             pamh,
             pPamContext,
-            &pszLoginId);
+            &pszLoginId,
+            TRUE);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LsaPamGetCurrentPassword(
@@ -147,6 +150,34 @@ pam_sm_authenticate(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
+        /* On Centos, the pam_console module will grab the username from pam
+         * and create a file based off that name. The filename must match the
+         * user's canonical name. To fix this, pam_lsass will canonicalize
+         * the username before pam_console gets it.
+         *
+         * We know that the username can be found in AD, and that
+         * their password matches the AD user's password. At this point, it
+         * is very unlikely that we will mangle a local username. 
+         */
+
+        dwError = LsaFindUserByName(
+                        hLsaConnection,
+                        pszLoginId,
+                        dwUserInfoLevel,
+                        (PVOID*)&pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (strcmp(pszLoginId, pUserInfo->pszName))
+        {
+            LSA_LOG_PAM_INFO("Canonicalizing pam username from '%s' to '%s'\n",
+                    pszLoginId, pUserInfo->pszName);
+            dwError = pam_set_item(
+                    pamh,
+                    PAM_USER,
+                    pUserInfo->pszName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
 #if defined(__LWI_SOLARIS__)
         /* On Solaris, we must save the user's password in
            a custom location so that we can pull it out later
@@ -170,6 +201,10 @@ cleanup:
     if (pConfig)
     {
         LsaPamFreeConfig(pConfig);
+    }
+
+    if (pUserInfo) {
+        LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
     }
 
     LSA_SAFE_CLEAR_FREE_STRING(pszPassword);

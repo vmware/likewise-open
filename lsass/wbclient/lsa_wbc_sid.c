@@ -217,7 +217,7 @@ wbcErr wbcLookupName(const char *dom_name,
 {
 	LSA_USER_INFO_0 *pUserInfo = NULL;
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	CHAR pszQualifiedName[512] = "";
@@ -253,7 +253,7 @@ wbcErr wbcLookupName(const char *dom_name,
 
 	/* Fall back and try it as a group */
 
-	dwErr = LsaFindGroupByName(hLsa, pszQualifiedName, 1, (PVOID*)&pGroupInfo);
+	dwErr = LsaFindGroupByName(hLsa, pszQualifiedName, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 	BAIL_ON_LSA_ERR(dwErr);
 	if (sid) {
 		wbc_status = wbcStringToSid(pGroupInfo->pszSid, sid);
@@ -305,7 +305,7 @@ wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
 		    enum wbcSidType *name_type)
 {
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	PSTR pszSidString = NULL;
 	PSTR ppszSidList[2];
@@ -329,7 +329,8 @@ wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
                 hLsa,
                 1,
                 ppszSidList,
-		&pNameList);
+		&pNameList,
+                NULL);
 	BAIL_ON_LSA_ERR(dwErr);	
 
 	dwErr = LsaCloseServer(hLsa);

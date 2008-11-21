@@ -55,28 +55,35 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
+static
 DWORD
 ParseArgs(
-    int            argc,
-    char*          argv[],
-    PDWORD         pdwInfoLevel,
-    PDWORD         pdwBatchSize,
-    LsaNSSMapType* pNSSMapType
+    int    argc,
+    char*  argv[],
+    PDWORD pdwInfoLevel,
+    PDWORD pdwBatchSize,
+    PSTR*  ppszMapName,
+    PBOOLEAN pbPrintKeys
     );
 
+static
 VOID
 ShowUsage();
 
+static
 VOID
 PrintMapInfo_0(
-    PLSA_NSS_ARTEFACT_INFO_0 pMapInfo
+    PLSA_NSS_ARTEFACT_INFO_0 pMapInfo,
+    BOOLEAN bPrintKeys
     );
 
+static
 DWORD
 MapErrorCode(
     DWORD dwError
     );
 
+static
 BOOLEAN
 IsUnsignedInteger(
     PCSTR pszIntegerCandidate
@@ -98,14 +105,17 @@ main(
     DWORD  dwTotalMapsFound = 0;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
-    LsaNSSMapType mapType = LSA_NSS_ARTEFACT_TYPE_UNKNOWN;
+    PSTR    pszMapName = NULL;
+    BOOLEAN bPrintKeys = FALSE;
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags = LSA_NIS_MAP_QUERY_ALL;
 
     dwError = ParseArgs(
                     argc,
                     argv,
                     &dwMapInfoLevel,
                     &dwBatchSize,
-                    &mapType);
+                    &pszMapName,
+                    &bPrintKeys);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenServer(&hLsaConnection);
@@ -114,7 +124,8 @@ main(
     dwError = LsaBeginEnumNSSArtefacts(
                     hLsaConnection,
                     dwMapInfoLevel,
-                    mapType,
+                    pszMapName,
+                    dwFlags,
                     dwBatchSize,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
@@ -144,7 +155,7 @@ main(
             {
                 case 0:
 
-                    PrintMapInfo_0((PLSA_NSS_ARTEFACT_INFO_0)pMapInfo);
+                    PrintMapInfo_0((PLSA_NSS_ARTEFACT_INFO_0)pMapInfo, bPrintKeys);
                     break;
 
                 default:
@@ -156,8 +167,6 @@ main(
             }
         }
     } while (dwNumMapsFound);
-
-    fprintf(stdout, "TotalNumMapsFound:      %u\n", dwTotalMapsFound);
 
 cleanup:
 
@@ -173,6 +182,8 @@ cleanup:
     if (hLsaConnection != (HANDLE)NULL) {
         LsaCloseServer(hLsaConnection);
     }
+
+    LSA_SAFE_FREE_STRING(pszMapName);
 
     return (dwError);
 
@@ -213,20 +224,21 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 ParseArgs(
     int            argc,
     char*          argv[],
     PDWORD         pdwInfoLevel,
     PDWORD         pdwBatchSize,
-    LsaNSSMapType* pNSSMapType
+    PSTR*          ppszMapName,
+    PBOOLEAN       pbPrintKeys
     )
 {
     typedef enum {
             PARSE_MODE_OPEN = 0,
             PARSE_MODE_LEVEL,
             PARSE_MODE_BATCHSIZE,
-            PARSE_MODE_MAPTYPE,
             PARSE_MODE_DONE
         } ParseMode;
 
@@ -236,7 +248,8 @@ ParseArgs(
     ParseMode parseMode = PARSE_MODE_OPEN;
     DWORD dwInfoLevel = 0;
     DWORD dwBatchSize = 10;
-    LsaNSSMapType mapType = LSA_NSS_ARTEFACT_TYPE_UNKNOWN;
+    PSTR pszMapName = NULL;
+    BOOLEAN bPrintKeys = FALSE;
 
     do {
         pszArg = argv[iArg++];
@@ -261,13 +274,18 @@ ParseArgs(
                 else if (!strcmp(pszArg, "--batchsize")) {
                     parseMode = PARSE_MODE_BATCHSIZE;
                 }
-                else if (!strcmp(pszArg, "--maptype")) {
-                    parseMode = PARSE_MODE_MAPTYPE;
+                else if (!strcmp(pszArg, "-k"))
+                {
+                    bPrintKeys = TRUE;
                 }
                 else
                 {
-                    ShowUsage();
-                    exit(1);
+                    LSA_SAFE_FREE_STRING(pszMapName);
+
+                    dwError = LsaAllocateString(
+                                    pszArg,
+                                    &pszMapName);
+                    BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
 
@@ -299,23 +317,6 @@ ParseArgs(
 
                 break;
 
-            case PARSE_MODE_MAPTYPE:
-
-                if (!strcasecmp(pszArg, "services"))
-                {
-                    mapType = LSA_NSS_ARTEFACT_TYPE_SERVICE;
-                }
-                else if (!strcasecmp(pszArg, "netgroups"))
-                {
-                    mapType = LSA_NSS_ARTEFACT_TYPE_NETGROUP;
-                }
-                else if (!strcasecmp(pszArg, "automounts"))
-                {
-                    mapType = LSA_NSS_ARTEFACT_TYPE_MOUNT;
-                }
-                parseMode = PARSE_MODE_DONE;
-                break;
-
             case PARSE_MODE_DONE:
                 ShowUsage();
                 exit(1);
@@ -329,41 +330,58 @@ ParseArgs(
         exit(1);
     }
 
-    if (mapType == LSA_NSS_ARTEFACT_TYPE_UNKNOWN)
+    if (IsNullOrEmptyString(pszMapName))
     {
         ShowUsage();
         exit(1);
     }
 
-    if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
-    {
-        ShowUsage();
-        exit(1);
-    }
-
-    *pNSSMapType = mapType;
+    *ppszMapName = pszMapName;
     *pdwInfoLevel = dwInfoLevel;
     *pdwBatchSize = dwBatchSize;
+    *pbPrintKeys = bPrintKeys;
+
+cleanup:
 
     return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszMapName);
+
+    goto cleanup;
 }
 
+static
 void
 ShowUsage()
 {
-    printf("Usage: lw-enum-maps {--level [0]} {--batchsize [1..1000]} --maptype {services, netgroups, automounts}\n");
+    printf("Usage: lw-ypcat {--level [0]} {--batchsize [1..1000]} {-k} <map name>\n");
+    printf("\n");
+    printf("-k : print keys.\n");
 }
 
+static
 VOID
 PrintMapInfo_0(
-    PLSA_NSS_ARTEFACT_INFO_0 pMapInfo
+    PLSA_NSS_ARTEFACT_INFO_0 pMapInfo,
+    BOOLEAN bPrintKeys
     )
 {
-    fprintf(stdout, "%s : %s\n",
-            (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName),
-            (IsNullOrEmptyString(pMapInfo->pszValue) ? "" : pMapInfo->pszValue));
+    if (!bPrintKeys)
+    {
+        fprintf(stdout, "%s\n",
+                        (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName));
+    }
+    else
+    {
+        fprintf(stdout, "%s %s\n",
+                (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName),
+                (IsNullOrEmptyString(pMapInfo->pszValue) ? "" : pMapInfo->pszValue));
+    }
 }
 
+static
 DWORD
 MapErrorCode(
     DWORD dwError
@@ -389,6 +407,7 @@ MapErrorCode(
     return dwError2;
 }
 
+static
 BOOLEAN
 IsUnsignedInteger(
     PCSTR pszIntegerCandidate

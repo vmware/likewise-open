@@ -348,6 +348,112 @@ error:
 }
 
 DWORD
+SqlDB_ReadHostListByDomainName(
+    HANDLE hProvider,
+    PCSTR  pszDomainName,
+    PSTR **pppszHostnames,
+    DWORD *pdwHostnames
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hDB = (HANDLE)NULL;
+    PMACHINE_ACCT_INFO *ppAcctInfo = NULL;
+    PSTR *ppszHostNames = NULL;
+    DWORD dwAccounts = 0;
+    DWORD dwNumEntries = 0;
+    DWORD iEntry = 0;
+    PSQLDB_PROVIDER_CONTEXT pContext = NULL;
+    BOOLEAN bUnlock = FALSE;
+
+    BAIL_ON_INVALID_POINTER(pppszHostnames);
+    BAIL_ON_INVALID_POINTER(pdwHostnames);
+    
+    pContext = (PSQLDB_PROVIDER_CONTEXT)hProvider;
+
+    BAIL_ON_INVALID_POINTER(pContext);
+
+    dwError = LwpsAcquireReadLock(pContext->hRWLock);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    bUnlock = TRUE;
+
+    dwError = SqlDBOpen(&hDB);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = SqlDBGetPwdEntries(hDB, &ppAcctInfo, &dwAccounts);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    if (dwNumEntries == 0) {
+        *pppszHostnames = NULL;
+        *pdwHostnames = 0;
+        goto cleanup;
+    }
+
+    /*
+     * Make sure the entries match our hostname
+     */
+    for (iEntry = 0; iEntry < dwAccounts; iEntry++) {
+        if ((strcmp(ppAcctInfo[iEntry]->pszDomainName, 
+                        pszDomainName) == 0) ||
+                (strcmp(ppAcctInfo[iEntry]->pszDomainDnsName, 
+                        pszDomainName) == 0)) {
+            dwNumEntries++;
+        }
+    }
+
+    dwError = LwpsAllocateMemory(
+                  sizeof(PSTR) * dwNumEntries,
+                  (PVOID*)&ppszHostNames);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    memset(ppszHostNames, 0, sizeof(PSTR) * dwNumEntries);
+
+    dwNumEntries = 0;
+    for (iEntry = 0; iEntry < dwAccounts; iEntry++) {
+        if ((strcmp(ppAcctInfo[iEntry]->pszDomainName, 
+                        pszDomainName) == 0) ||
+                (strcmp(ppAcctInfo[iEntry]->pszDomainDnsName, 
+                        pszDomainName) == 0)) {
+            dwError = LwpsAllocateString(ppAcctInfo[iEntry]->pszHostName,
+                &ppszHostNames[dwNumEntries]);
+            BAIL_ON_LWPS_ERROR(dwError);
+            dwNumEntries++;
+        }
+    }
+    
+    *pppszHostnames = ppszHostNames;
+    *pdwHostnames = dwNumEntries;
+    ppszHostNames = NULL;
+
+cleanup:
+
+    if (hDB != (HANDLE)NULL) {
+       SqlDBClose(hDB);
+    }
+
+    if (ppszHostNames) {
+        for (iEntry = 0; iEntry < dwNumEntries; iEntry++) {
+            LWPS_SAFE_FREE_STRING(ppszHostNames[iEntry]);
+        }
+        LWPS_SAFE_FREE_MEMORY(ppszHostNames);
+    }
+                
+    if (ppAcctInfo) {
+       SqlDBFreeEntryList(ppAcctInfo, dwAccounts);
+    }
+
+    if (bUnlock) {
+       LwpsReleaseReadLock(pContext->hRWLock);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
 SqlDB_WritePassword(
     HANDLE hProvider,
     PLWPS_PASSWORD_INFO pInfo
@@ -480,6 +586,52 @@ error:
 
     goto cleanup;
 }
+
+DWORD
+SqlDB_DeleteHostEntry(
+    HANDLE hProvider,
+    PCSTR pszHostName
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hDB = (HANDLE)NULL;
+    PSQLDB_PROVIDER_CONTEXT pContext = NULL;
+    BOOLEAN bUnlock = FALSE;
+
+    BAIL_IF_NOT_SUPERUSER(geteuid());
+
+    pContext = (PSQLDB_PROVIDER_CONTEXT)hProvider;
+
+    BAIL_ON_INVALID_POINTER(pContext);
+
+    dwError = LwpsAcquireWriteLock(pContext->hRWLock);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    bUnlock = TRUE;
+
+    dwError = SqlDBOpen(&hDB);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = SqlDBDeletePwdEntryByHostName(hDB, pszHostName);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+cleanup:
+
+    if (hDB != (HANDLE)NULL) {
+       SqlDBClose(hDB);
+    }
+
+    if (bUnlock) {
+       LwpsReleaseWriteLock(pContext->hRWLock);
+    }
+    
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 
 DWORD
 SqlDB_CloseProvider(

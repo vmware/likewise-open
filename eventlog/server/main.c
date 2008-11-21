@@ -539,7 +539,8 @@ EVTStartAsDaemon()
     int fd = 0;
     int iFd = 0;
 
-    if ((pid = fork()) != 0) {
+    /* Use dcethread_fork() rather than fork() because we link with DCE/RPC */
+    if ((pid = dcethread_fork()) != 0) {
         // Parent terminates
         exit (0);
     }

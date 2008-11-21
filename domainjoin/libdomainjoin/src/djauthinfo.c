@@ -66,6 +66,8 @@ void *lsaHandle = NULL;
 	}					\
     } while (0)					\
 
+#define HPUX_SYSTEM_RPCD_PATH "/sbin/init.d/Rpcd"
+
 void
 LWRaiseLsassError(
     LWException** dest,
@@ -1036,6 +1038,7 @@ void DJNetInitialize(LWException **exc)
     BOOLEAN lsaExists;
     PFN_LSA_NET_JOIN_INITIALIZE init = NULL;
     BOOLEAN freeLsaHandle = TRUE;
+    BOOLEAN systemDcedExists = FALSE;
 
     DJ_LOG_INFO("Trying to load %s", lsaFilename);
     
@@ -1056,6 +1059,25 @@ void DJNetInitialize(LWException **exc)
                         92, 8, &LW_EXC));
             LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
                         92, 10, &LW_EXC));
+
+            // Use the system's dced daemon if it exists, otherwise use the
+            // Likewise version.
+            LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(
+                        HPUX_SYSTEM_RPCD_PATH,
+                        &systemDcedExists));
+            if (systemDcedExists)
+            {
+                LW_TRY(exc, DJManageDaemon(HPUX_SYSTEM_RPCD_PATH, TRUE,
+                            590, 410, &LW_EXC));
+            }
+            else
+            {
+                LW_TRY(exc, DJManageDaemon("dcerpcd", TRUE,
+                            92, 11, &LW_EXC));
+            }
+
+            LW_TRY(exc, DJManageDaemon("eventlogd", TRUE,
+                        92, 11, &LW_EXC));
         }
 
         LW_CLEANUP_LSERR(exc, init(&lsaFunctions));

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -40,17 +40,18 @@
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
  *        Logging API
- * 
+ *
  *           Global variables
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
  */
 
 #include "includes.h"
 
 #if defined(LW_ENABLE_THREADS)
 pthread_mutex_t gLogLock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t gTraceLock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 

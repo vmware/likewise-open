@@ -75,7 +75,7 @@ const char *wbcErrorString(wbcErr error);
  **/
 #define WBCLIENT_MAJOR_VERSION 0
 #define WBCLIENT_MINOR_VERSION 1
-#define WBCLIENT_VENDOR_VERSION "Samba libwbclient"
+#define WBCLIENT_VENDOR_VERSION "Likewise Security Authority libwbclient"
 struct wbcLibraryDetails {
 	uint16_t major_version;
 	uint16_t minor_version;

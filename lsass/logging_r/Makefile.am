@@ -2,7 +2,8 @@ lib_LTLIBRARIES = liblsalog_r.la
 
 liblsalog_r_la_SOURCES = \
 	globals.c \
-	logging.c
+	logging.c \
+	tracing.c
 	
 liblsalog_r_la_CPPFLAGS = \
         -DLW_ENABLE_THREADS=1

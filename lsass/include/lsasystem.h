@@ -104,4 +104,30 @@
 
 #include <assert.h>
 
+#if HAVE_SYS_PSTAT_H
+#include <sys/pstat.h>
+#endif
+
+#if HAVE_PROCFS_H
+#include <procfs.h>
+#elif HAVE_SYS_PROCFS_H
+#include <sys/procfs.h>
+#endif
+
+#if HAVE_KVM_H
+#include <kvm.h>
+#endif
+
+#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
+#if HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
+#endif
+
+#if HAVE_SYS_USER_H
+#include <sys/user.h>
+#endif
+
 #endif

@@ -80,6 +80,7 @@ LsaMacFindGroupByName(
     return LsaFindGroupByName(
                     hLsaConnection,
                     pszGroupName,
+                    0,
                     dwGroupInfoLevel,
                     ppGroupInfo);
 }
@@ -95,6 +96,7 @@ LsaMacFindGroupById(
     return LsaFindGroupById(
                     hLsaConnection,
                     gid,
+                    0,
                     dwGroupInfoLevel,
                     ppGroupInfo);
 }

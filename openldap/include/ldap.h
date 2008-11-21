@@ -1,6 +1,6 @@
 /* $OpenLDAP: pkg/ldap/include/ldap.h,v 1.263.2.24 2006/08/15 17:11:09 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
- * 
+ *
  * Copyright 1998-2006 The OpenLDAP Foundation.
  * All rights reserved.
  *
@@ -590,7 +590,7 @@ typedef struct ldapcontrol {
 #define LDAP_TOO_LATE				0x78
 #define LDAP_CANNOT_CANCEL			0x79
 
-/* Assertion control (122) */ 
+/* Assertion control (122) */
 #define LDAP_ASSERTION_FAILED		0x7A
 
 
@@ -973,7 +973,7 @@ ldap_abandon_ext LDAP_P((
 	LDAPControl		**serverctrls,
 	LDAPControl		**clientctrls ));
 
-#if LDAP_DEPRECATED	
+#if LDAP_DEPRECATED
 LDAP_F( int )
 ldap_abandon LDAP_P((	/* deprecated, use ldap_abandon_ext */
 	LDAP *ld,
@@ -1527,9 +1527,9 @@ LDAP_F( void ) ldap_rdnfree LDAP_P(( LDAPRDN rdn ));
 LDAP_F( void ) ldap_dnfree LDAP_P(( LDAPDN dn ));
 
 LDAP_F( int )
-ldap_bv2dn LDAP_P(( 
-	struct berval *bv, 
-	LDAPDN *dn, 
+ldap_bv2dn LDAP_P((
+	struct berval *bv,
+	LDAPDN *dn,
 	unsigned flags ));
 
 LDAP_F( int )
@@ -1705,8 +1705,8 @@ ldap_msgdelete LDAP_P((
  * in search.c:
  */
 LDAP_F( int )
-ldap_bv2escaped_filter_value LDAP_P(( 
-	struct berval *in, 
+ldap_bv2escaped_filter_value LDAP_P((
+	struct berval *in,
 	struct berval *out ));
 
 LDAP_F( int )

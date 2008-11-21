@@ -544,6 +544,9 @@ DJWriteHostsFileIfModified(
             fp = NULL;
         }
 
+        ceError = CTCloneFilePerms(filename, "/etc/hosts.domainjoin");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
         ceError = CTBackupFile(filename);
         BAIL_ON_CENTERIS_ERROR(ceError);
 

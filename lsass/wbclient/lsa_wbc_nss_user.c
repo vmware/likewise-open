@@ -114,7 +114,7 @@ done:
 wbcErr wbcGetpwnam(const char *name, struct passwd **pwd)
 {
 	LSA_USER_INFO_0 *pUserInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -159,7 +159,7 @@ done:
 wbcErr wbcGetpwuid(uid_t uid, struct passwd **pwd)
 {
 	LSA_USER_INFO_0 *pUserInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -219,7 +219,7 @@ wbcErr wbcGetGroups(const char *account,
 		    uint32_t *num_groups,
 		    gid_t **groups)
 {
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	DWORD dwNumGids = 0;

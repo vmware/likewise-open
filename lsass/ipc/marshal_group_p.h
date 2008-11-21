@@ -152,47 +152,15 @@ LsaFindNumberOfMembers(
     );
 
 DWORD
-LsaMarshalFindGroupByNameQuery(
-    PCSTR  pszGroupName,
-    DWORD  dwInfoLevel,
-    PSTR   pszBuffer,
-    PDWORD pdwBufLen
-    );
-
-DWORD
 LsaComputeBufferSize_FindGroupByNameQuery(
     PCSTR pszGroupName,
     DWORD dwInfoLevel
     );
 
 DWORD
-LsaUnmarshalFindGroupByNameQuery(
-    PCSTR pszMsgBuf,
-    DWORD dwMsgLen,
-    PSTR* ppszGroupName,
-    PDWORD pdwInfoLevel
-    );
-
-DWORD
-LsaMarshalFindGroupByIdQuery(
-    gid_t  gid,
-    DWORD  dwInfoLevel,
-    PSTR   pszBuffer,
-    PDWORD pdwBufLen
-    );
-
-DWORD
 LsaComputeBufferSize_FindGroupByIdQuery(
     gid_t gid,
     DWORD dwInfoLevel
-    );
-
-DWORD
-LsaUnmarshalFindGroupByIdQuery(
-    PCSTR  pszMsgBuf,
-    DWORD  dwMsgLen,
-    gid_t* pGid,
-    PDWORD pdwInfoLevel
     );
 
 DWORD
@@ -210,25 +178,9 @@ LsaUnmarshalDeleteGroupByIdQuery(
     );
 
 DWORD
-LsaMarshalGetGroupsForUserQuery(
-    uid_t  uid,
-    DWORD  dwInfoLevel,
-    PSTR   pszBuffer,
-    PDWORD pdwBufLen
-    );
-
-DWORD
 LsaComputeBufferSize_GetGroupsForUserQuery(
     uid_t uid,
     DWORD dwInfoLevel
-    );
-
-DWORD
-LsaUnmarshalGetGroupsForUserQuery(
-    PCSTR  pszMsgBuf,
-    DWORD  dwMsgLen,
-    uid_t* pUid,
-    PDWORD pdwInfoLevel
     );
 
 #endif /* __MARSHAL_GROUP_P_H__ */

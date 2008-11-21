@@ -98,8 +98,8 @@ DNSTCPOpen(
          pHost = gethostbyname (pszNameServer);
          if (!pHost)
          {
-            dwError = errno;
-            BAIL_ON_LWDNS_ERROR(dwError);
+            dwError = h_errno;
+            BAIL_ON_HERRNO_ERROR(dwError);
          }
          memcpy((char *)&ulAddress, pHost->h_addr, pHost->h_length);
     }
@@ -168,9 +168,10 @@ DNSUDPOpen(
     if (INADDR_NONE == ulAddress)
     {
         pHost = gethostbyname (pszNameServer);
-        if (NULL == pHost) {
-            dwError = errno;
-            BAIL_ON_LWDNS_ERROR(dwError);
+        if (NULL == pHost)
+        {
+            dwError = h_errno;
+            BAIL_ON_HERRNO_ERROR(dwError);
         }
         memcpy((char*)&ulAddress, pHost->h_addr, pHost->h_length);
     }

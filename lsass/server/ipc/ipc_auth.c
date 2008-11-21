@@ -365,3 +365,51 @@ error:
 
     goto cleanup;
 }
+
+
+/*********************************************************
+ * The Extended Authenticate function. 
+ */
+
+DWORD
+LsaSrvIpcAuthenticateUserEx(
+    HANDLE hConnection,
+    PLSAMESSAGE pMessage
+    )
+{
+	DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
+	PLSAMESSAGE pResponse = NULL;       
+	LSA_AUTH_USER_PARAMS Params;
+	LSA_AUTH_USER_INFO UserInfo;	
+
+	BAIL_ON_LSA_ERROR(dwError);
+
+	memset(&Params, 0x0, sizeof(Params));
+	memset(&UserInfo, 0x0, sizeof(UserInfo));
+
+	/* Unmarshall the request */	
+	
+	dwError = LsaUnmarshallAuthenticateUserExQuery(
+		pMessage->pData,
+		&pMessage->header.messageLength,
+		&Params);
+	BAIL_ON_LSA_ERROR(dwError);	
+
+	/* Do the work */
+
+	/* Marshall the response and send it */
+
+	dwError = LsaMarshallAuthenticateUserExReply(
+		&pResponse,
+		&UserInfo);
+	BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+	LSA_SAFE_FREE_MESSAGE(pResponse);	
+
+	return dwError;
+	
+error:
+	goto cleanup;	
+
+}

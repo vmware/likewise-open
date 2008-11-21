@@ -59,8 +59,31 @@ LsaPamInitLog(
     )
 {
     if (!gbLogInitialized) {
+
+#if defined(EXPLICIT_OPEN_CLOSE_LOG)
+
        openlog(MODULE_NAME, LOG_PID, LOG_AUTHPRIV);
+
+#endif
+
        gbLogInitialized = TRUE;
+    }
+}
+
+void
+LsaPamCloseLog(
+    void
+    )
+{
+    if (gbLogInitialized) {
+
+#if defined(EXPLICIT_OPEN_CLOSE_LOG)
+
+       closelog();
+
+#endif
+
+       gbLogInitialized = FALSE;
     }
 }
 

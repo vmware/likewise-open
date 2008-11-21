@@ -464,6 +464,8 @@ AC_CHECK_LIB([pthread], [pthread_self], [PTHREAD_LIBS="-lpthread"])
 AC_CHECK_LIB([rt], [clock_settime], [RT_LIBS="-lrt"])
 AC_CHECK_LIB([uuid], [uuid_copy], [UUID_LIBS="-luuid"])
 AC_CHECK_LIB([socket], [bind], [SOCKET_LIBS="-lsocket"])
+AC_CHECK_LIB([kvm], [kvm_open], [KVM_LIBS="-lkvm"])
+AC_CHECK_LIB([proc], [openproc], [PROC_LIBS="-lproc"])
 
 AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNISTR_LDFLAGS])
 AC_CHECK_LIB([crypto], [DES_set_key], [CRYPTO_LIBS="-lcrypto"], [], [$CRYPTO_LDFLAGS])
@@ -477,10 +479,12 @@ AC_SUBST(RT_LIBS)
 AC_SUBST(UUID_LIBS)
 AC_SUBST(SOCKET_LIBS)
 AC_SUBST(PAM_LIBS)
+AC_SUBST(KVM_LIBS)
+AC_SUBST(PROC_LIBS)
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h fcntl.h iconv.h sys/stat.h time.h sys/time.h sys/varargs.h nss.h nss_common.h nsswitch.h synch.h pthread.h wc16str.h wc16printf.h])
+AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h iconv.h sys/stat.h sys/pstat.h proc/readproc.h procfs.h sys/procfs.h kvm.h time.h sys/time.h sys/varargs.h nss.h nss_common.h nsswitch.h synch.h pthread.h wc16str.h wc16printf.h sys/param.h sys/sysctl.h sys/user.h])
 
 AC_CHECK_HEADERS([security/pam_appl.h], ,
     [AC_CHECK_HEADERS([pam/pam_appl.h], ,
@@ -531,6 +535,47 @@ AC_CHECK_TYPES([socklen_t], [], [], [AC_INCLUDES_DEFAULT
 AC_CHECK_TYPES([struct pam_repository], [], [], [AC_INCLUDES_DEFAULT
 #include <security/pam_appl.h>
 ])
+
+AC_CHECK_DECLS([kvm_open, kvm_getprocs], [], [], [
+#if HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+#if HAVE_KVM_H
+#include <kvm.h>
+#endif
+#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#if HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
+#endif
+#if HAVE_SYS_USER_H
+#include <sys/user.h>
+#endif])
+
+AC_CHECK_DECLS([isblank, pstat_getproc, KERN_PROC_PATHNAME], [], [], [
+#include <ctype.h>
+#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#if HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
+#endif
+#if HAVE_SYS_PSTAT_H
+#include <sys/pstat.h>
+#endif])
+
+AC_CHECK_TYPES([struct psinfo], , , [
+#if HAVE_PROCFS_H
+#include <procfs.h>
+#elif HAVE_SYS_PROCFS_H
+#include <sys/procfs.h>
+#endif
+])
+
+if test "$ac_cv_have_decl_pstat_getproc" = yes; then
+AM_CPPFLAGS="$AM_CPPFLAGS -D_PSTAT64"
+fi
 
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -Wall -Werror"
@@ -609,6 +654,7 @@ AC_CONFIG_FILES([Makefile
                  auth/common/Makefile
                  auth/pam/Makefile
                  wbclient/Makefile
+                 lwicompat/Makefile
                  tools/Makefile
                  tools/add_user/Makefile
 		 tools/mod_user/Makefile
@@ -616,7 +662,8 @@ AC_CONFIG_FILES([Makefile
                  tools/add_group/Makefile
                  tools/del_group/Makefile
                  tools/enum_groups/Makefile
-                 tools/enum_maps/Makefile
+                 tools/lw-ypcat/Makefile
+                 tools/lw-ypmatch/Makefile
                  tools/enum_users/Makefile
                  tools/find_group_by_id/Makefile
                  tools/find_group_by_name/Makefile
@@ -630,6 +677,7 @@ AC_CONFIG_FILES([Makefile
                  tools/get_metrics/Makefile
                  tools/get_status/Makefile
                  tools/refresh_configuration/Makefile
+                 tools/trace_info/Makefile
 		 etc/Makefile
 		 etc/lsassd.conf
                  include/Makefile
@@ -647,6 +695,7 @@ AC_CONFIG_FILES([Makefile
 		 tests/test_getpwnam/Makefile
                  tests/test_stress_ad_provider/Makefile
                  tests/test_authstress/Makefile
+                 tests/test_bitvector/Makefile
                  scripts/Makefile])
 
 AC_OUTPUT

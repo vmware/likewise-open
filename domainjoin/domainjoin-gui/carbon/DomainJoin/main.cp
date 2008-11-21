@@ -90,6 +90,7 @@ DomainJoinApp::JoinOrLeaveDomain()
 		   joinWindow.Hide();
 		   leaveWindow.SetComputerName(joinStatus.Name);
 		   leaveWindow.SetDomainName(joinStatus.DomainName);
+                   leaveWindow.SetOU(joinStatus.OUPath);
 		   leaveWindow.Show();
 		}
 		else

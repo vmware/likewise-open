@@ -112,7 +112,6 @@ MapErrorCode(
     DWORD dwError
     );
 
-
 int
 main(
     int argc,
@@ -127,6 +126,7 @@ main(
     BOOLEAN bPrintOrigError = TRUE;
     size_t  stSids = 1;
     PLSA_SID_INFO pSidInfoList = NULL;
+    CHAR  chDomainSeparator = 0;
 
     dwError = ParseArgs(argc, argv, &pszSID, &dwInfoLevel);
     BAIL_ON_LSA_ERROR(dwError);
@@ -138,7 +138,12 @@ main(
                     hLsaConnection,
                     stSids,
                     &pszSID,
-                    &pSidInfoList);
+                    &pSidInfoList,
+                    &chDomainSeparator);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSetDomainSeparator(
+                chDomainSeparator);
     BAIL_ON_LSA_ERROR(dwError);
     
     switch (pSidInfoList[0].accountType)
@@ -326,11 +331,12 @@ LookupUserByName(
     DWORD dwError = 0;
     PSTR  pszUsername = NULL;
     PVOID pUserInfo = NULL;
-    
+
     dwError = LsaAllocateStringPrintf(
                     &pszUsername,
-                    "%s\\%s",
+                    "%s%c%s",
                     pszDomain,
+                    LsaGetDomainSeparator(),
                     pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
     
@@ -483,14 +489,16 @@ LookupGroupByName(
     
     dwError = LsaAllocateStringPrintf(
                     &pszGroupname,
-                    "%s\\%s",
+                    "%s%c%s",
                     pszDomain,
+                    LsaGetDomainSeparator(),
                     pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaFindGroupByName(
                     hLsaConnection,
                     pszGroupname,
+                    0,
                     dwInfoLevel,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);

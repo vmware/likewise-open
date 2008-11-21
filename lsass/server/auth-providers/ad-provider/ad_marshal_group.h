@@ -48,30 +48,21 @@
 #define __LSALDAP_MARSHAL_GROUP_H__
 
 DWORD
-ADMarshalGroupInfo(
-    HANDLE              hDirectory,
-    DWORD               dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PCSTR               pszDomainName,
-    LDAPMessage*        pMessageReal,
-    LDAPMessage*        pMessagePseudo,
-    DWORD               dwGroupInfoLevel,
-    PVOID*              ppGroupInfo
+ADMarshalGroupInfoList(
+    IN OPTIONAL HANDLE hProvider,
+    IN HANDLE hDirectory,
+    IN OPTIONAL PCSTR pszDomainDnsName,
+    IN LSA_AD_MARSHAL_INFO_LIST_MODE InfoListMarshalMode,
+    // In Default Schema or Unprovision, pMessage is pMessageReal
+    // In Cell or Default Non-Schema, pMessage is pMessagePseudo 
+    IN LDAPMessage* pMessage,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID** pppGroupInfoList,
+    OUT PDWORD pdwNumGroups
     );
 
 DWORD
 ADMarshalToGroupCache(
-    HANDLE                  hDirectory,
-    DWORD                   dwDirectoryMode,
-    ADConfigurationMode     adConfMode,
-    PCSTR                   pszDomainName,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppGroupInfo    
-    );
-
-DWORD
-ADMarshalToGroupCacheEx(
     HANDLE                  hPseudoDirectory,
     HANDLE                  hRealDirectory,
     DWORD                   dwDirectoryMode,
@@ -94,65 +85,6 @@ ADMarshalFromGroupCache(
     PAD_SECURITY_OBJECT*    ppMembers,
     DWORD               dwGroupInfoLevel,
     PVOID*              ppGroupInfo
-    );
-
-DWORD
-ADSchemaMarshalGroupInfoList(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,    
-    LDAPMessage* pMessageSudo,
-    DWORD        dwGroupInfoLevel,
-    PVOID**      pppGroupInfoList,
-    PDWORD       pNumGroups
-    );
-
-DWORD
-ADSchemaMarshalGroupInfo(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    DWORD        dwGroupInfoLevel,
-    PVOID*       ppGroupInfo
-    );
-
-DWORD
-ADNonSchemaMarshalGroupInfoList(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,    
-    LDAPMessage* pMessagePseudo,
-    DWORD        dwGroupInfoLevel,
-    PVOID**      pppGroupInfoList,
-    PDWORD       pNumGroups
-    );
-
-DWORD
-ADNonSchemaMarshalGroupInfo(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage* pMessageReal,
-    LDAPMessage* pMessagePseudo,
-    DWORD        dwGroupInfoLevel,
-    PVOID*       ppGroupInfo
-    );
-
-DWORD
-ADUnprovisionedMarshalGroupInfoList(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,    
-    LDAPMessage* pMessage,
-    DWORD        dwGroupInfoLevel,
-    PVOID**      pppGroupInfoList,
-    PDWORD       pdwNumGroupsFound
-    );
-
-DWORD
-ADUnprovisionedMarshalGroupInfo(
-    HANDLE       hDirectory,
-    PCSTR        pszDomainName,
-    LDAPMessage* pMessage,
-    DWORD        dwGroupInfoLevel,
-    PVOID*       ppGroupInfo
     );
 
 #endif //__LSALDAP_MARSHAL_GROUP_H__

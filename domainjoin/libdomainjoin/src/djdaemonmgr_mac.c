@@ -162,9 +162,10 @@ DJWaitDaemonStatus(
     )
 {
     int count;
+    int retry = 5;
     BOOLEAN bStarted = FALSE;
 
-    for (count = 0; count < 5; count++) {
+    for (count = 0; count < retry; count++) {
 
         LW_TRY(exc, DJGetDaemonStatus(pszDaemonPath, &bStarted, &LW_EXC));
 
@@ -184,7 +185,7 @@ DJWaitDaemonStatus(
               similarly testing the hostname, and then waiting about 10 seconds before commencing.
            6) lsassd will then create its PID file and load the configured provider plugins. */
 
-        sleep(4); /* This is a sleep(1) on other platforms */
+        sleep(5);
     }
 
     if (bStarted != bStatus) {
@@ -783,8 +784,6 @@ cleanup:
 }
 
 struct _DaemonList daemonList[] = {
-    { "com.likewisesoftware.dcerpcd", {NULL}, FALSE, 91, 12 },
-    { "com.likewisesoftware.eventlogd", {NULL}, FALSE, 92, 11 },
     { "com.likewisesoftware.lsassd", {NULL}, TRUE, 92, 10 },
     { "com.likewisesoftware.gpagentd", {NULL}, FALSE, 94, 9 },
     { "com.likewisesoftware.lwmgmtd", {NULL}, FALSE, 95, 8 },

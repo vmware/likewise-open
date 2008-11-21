@@ -34,14 +34,52 @@
 #include <wchar.h>
 #include <wchar16.h>
 
+#ifndef LPSTR_DEFINED
+#define LPSTR_DEFINED 1
+
 typedef char *LPSTR;
+
+#endif
+
+#ifndef LPCSTR_DEFINED
+#define LPCSTR_DEFINED 1
+
 typedef const char *LPCSTR;
-typedef unsigned char UCHAR;
-typedef unsigned char *PUCHAR;
+
+#endif
+
+#ifndef UCHAR_DEFINED
+#define UCHAR_DEFINED 1
+
+typedef unsigned char UCHAR, *PUCHAR;
+
+#endif
+
+#ifndef LPW16STR_DEFINED
+#define LPW16STR_DEFINED 1
 
 typedef wchar16_t *LPW16STR;
+
+#endif
+
+#ifndef LPCW16STR_DEFINED
+#define LPCW16STR_DEFINED 1
+
 typedef const wchar16_t *LPCW16STR;
+#endif
+
+#ifndef LPWSTR_DEFINED
+#define LPWSTR_DEFINED 1
+
 typedef wchar_t *LPWSTR;
+
+#endif
+
+#ifndef LPCWSTR_DEFINED
+#define LPCWSTR_DEFINED 1
+
 typedef const wchar_t *LPCWSTR;
+
+#endif
 
 #endif /* WINNTTYPES_H */

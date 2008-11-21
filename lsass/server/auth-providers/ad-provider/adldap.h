@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        AD LDAP helper functions (public header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -59,50 +59,21 @@ ADGetDomainQualifiedString(
 
 DWORD
 ADGetLDAPUPNString(
-    IN OPTIONAL HANDLE hDirectory,    
+    IN OPTIONAL HANDLE hDirectory,
     IN OPTIONAL LDAPMessage* pMessage,
-    IN PSTR pszDnsDomainName,
-    IN PSTR pszSamaccountName,    
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszSamaccountName,
     OUT PSTR* ppszUPN,
     OUT PBOOLEAN pbIsGeneratedUPN
     );
 
 DWORD
-ADGetGroupMembers(
-    HANDLE hDirectory,
-    LDAPMessage* pMessage,    
-    PCSTR  pszNetBIOSDomainName, 
-    PCSTR  pszFullDomainName,
-    PSTR** pppszValues,
-    PDWORD pdwNumValues
-    );
-
-/* 
- * search for those pseudo groups whose associated real groups
- * have the given user referenced by pszUserDN as a member
- */
-DWORD
-ADGetUserPseudoGroupMembership(
-    HANDLE                   hDirectory,
-    DWORD                    dwDirectoryMode,
-    ADConfigurationMode      adConfMode,
-    PCSTR                    pszCellDN,
-    PCSTR                    pszNetBIOSDomainName,   
-    PSTR                     pszUserDN,
-    PLSA_SECURITY_IDENTIFIER pUserSID,
-    int                      *piPrimaryGroupIndex,
-    PDWORD                   pdwGroupsFound,
-    PAD_SECURITY_OBJECT**    pppGroupInfoList
-    );
-
-DWORD
-ADGetUserPrimaryGroupSID(
-    HANDLE hDirectory,
-    LDAP *pLd,
-    PCSTR pszDirectoryRoot,
-    PCSTR pszUserDN,
-    PLSA_SECURITY_IDENTIFIER pUserSID,
-    PSTR* ppszPrimaryGroupSID
+ADGetUserPrimaryGroupSid(
+    IN HANDLE hDirectory,
+    IN PCSTR pszDomainDnsName,
+    IN PCSTR pszUserDN,
+    IN PCSTR pszUserObjectsid,
+    OUT PSTR* ppszPrimaryGroupSID
     );
 
 DWORD
@@ -130,10 +101,10 @@ DWORD
 ADGetConfigurationMode(
     HANDLE hDirectory,
     PCSTR  pszDN,
-    ADConfigurationMode* pADConfMode   
+    ADConfigurationMode* pADConfMode
     );
 
-DWORD 
+DWORD
 ADisJoinedToAD(
     BOOLEAN *pbIsJoinedToAD
     );
@@ -141,125 +112,113 @@ ADisJoinedToAD(
 DWORD
 ADGuidStrToHex(
     PCSTR pszStr,
-    PSTR* ppszHexStr);
+    PSTR* ppszHexStr
+    );
 
 DWORD
 ADGetUserOrGroupRealAttributeList(
     DWORD dwDirectoryMode,
     ADConfigurationMode adConfMode,
-    PSTR** pppRealAttributeList);
+    PSTR** pppRealAttributeList
+    );
 
 DWORD
 ADGetUserRealAttributeList(
     DWORD dwDirectoryMode,
     ADConfigurationMode adConfMode,
-    PSTR** pppRealAttributeList);
+    PSTR** pppRealAttributeList
+    );
 
 DWORD
 ADGetUserPseudoAttributeList(
     ADConfigurationMode adConfMode,
-    PSTR** pppPseudoAttributeList);
+    PSTR** pppPseudoAttributeList
+    );
 
 DWORD
 ADGetGroupRealAttributeList(
     DWORD dwDirectoryMode,
     ADConfigurationMode adConfMode,
-    PSTR** pppRealAttributeList);
+    PSTR** pppRealAttributeList
+    );
 
 DWORD
 ADGetGroupPseudoAttributeList(
     ADConfigurationMode adConfMode,
-    PSTR** pppPseudoAttributeList);
-
-DWORD
-ADFindUserByNameNonAlias(
-    HANDLE  hPseudoDirectory,
-    HANDLE  hRealDirectory,
-    PCSTR   pszCellDN,
-    DWORD   dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PLSA_LOGIN_NAME_INFO pUserNameInfo,
-    PAD_SECURITY_OBJECT *ppUserInfo);
-
-DWORD
-ADFindGroupByNameNT4(
-    HANDLE  hPseudoDirectory,
-    HANDLE  hRealDirectory, 
-    PCSTR   pszCellDN,
-    DWORD   dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PLSA_LOGIN_NAME_INFO pGroupNameInfo,
-    PAD_SECURITY_OBJECT* ppGroupInfo);
+    PSTR** pppPseudoAttributeList
+    );
 
 DWORD
 ADLdap_GetGroupMembers(
-    HANDLE hProvider,
-    HANDLE hDirectory,
-    PCSTR  pszDomainName,
-    PCSTR  pszDomainNetBiosName,
-    PCSTR pszSid,
-    size_t* psCount,
-    PAD_SECURITY_OBJECT** pppResults);
+    IN HANDLE hProvider,
+    IN PCSTR pszDomainName,
+    IN PCSTR pszSid,
+    OUT size_t* psCount,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    );
 
 DWORD
 ADLdap_GetUserGroupMembership(
-    HANDLE  hProvider,
-    uid_t   uid,   
-    int     *piPrimaryGroupIndex,
-    PDWORD  pdwNumGroupsFound,
-    PAD_SECURITY_OBJECT** pppGroupInfoList);
-
-DWORD
-ADFindObjectNameByDN(
-    PCSTR pszObjectDN,
-    PSTR* ppszNT4Name,
-    ADAccountType* pObjectType);
+    IN HANDLE hProvider,
+    IN PAD_SECURITY_OBJECT pUserInfo,
+    OUT int* piPrimaryGroupIndex,
+    OUT size_t* psNumGroupsFound,
+    OUT PAD_SECURITY_OBJECT** pppGroupInfoList
+    );
 
 DWORD
 ADLdap_GetGCObjectInfoBySid(
-    PCSTR pszGCHostName,
-    PCSTR pszObjectSid,
-    PSTR* ppszObjectDN,
-    PSTR* ppszObjectDomainName,
-    PSTR* ppszObjectSamaccountName);
+    IN PCSTR pszGCHostName,
+    IN PCSTR pszObjectSid,
+    OUT OPTIONAL PSTR* ppszObjectDN,
+    OUT OPTIONAL PSTR* ppszObjectDomainName,
+    OUT OPTIONAL PSTR* ppszObjectSamaccountName
+    );
 
 DWORD
 ADLdap_FindUserNameByAlias(
     PCSTR pszAlias,
-    PSTR* ppszNT4Name);
+    PSTR* ppszNT4Name
+    );
 
 DWORD
 ADLdap_FindUserNameById(
     uid_t uid,
-    PSTR* ppszNT4Name);
+    PSTR* ppszNT4Name
+    );
 
 DWORD
 ADLdap_FindGroupNameByAlias(
     PCSTR pszAlias,
-    PSTR* ppszNT4Name);
+    PSTR* ppszNT4Name
+    );
 
 DWORD
 ADLdap_FindGroupNameById(
     gid_t gid,
-    PSTR* ppszNT4Name);
-
-DWORD
-ADLdap_FindUserSidDNById(
-    uid_t uid,
-    PSTR* ppszUserSid,
-    PSTR* ppszUserDN);
-
-DWORD
-ADLdap_GetMapTypeString(
-    LsaNSSMapType dwMapType,
-    PSTR*         ppszMapType
+    PSTR* ppszNT4Name
     );
 
 DWORD
-ADLdap_GetUserLoginInfo(
-    uid_t   uid,
-    PLSA_LOGIN_NAME_INFO* ppLoginInfo
+ADLdap_IsValidDN(
+    HANDLE   hDirectory,
+    PCSTR    pszDN,
+    PBOOLEAN pbValidDN
     );
 
-#endif 
+DWORD
+ADLdap_GetObjectSid(
+    HANDLE hDirectory,
+    LDAPMessage* pMessage,
+    PSTR* ppszSid
+    );
+
+DWORD
+ADLdap_GetAccountType(
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage,
+    OUT ADAccountType* pAccountType
+    );
+
+#endif
 

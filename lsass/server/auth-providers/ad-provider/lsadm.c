@@ -249,6 +249,45 @@ LsaDmQueryDomainInfo(
                                  ppGcInfo);
 }
 
+DWORD
+LsaDmQueryDomainInfoByObjectSid(
+    IN PSID pObjectSid,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PSID* ppSid,
+    OUT OPTIONAL uuid_t* pGuid,
+    OUT OPTIONAL PSTR* ppszTrusteeDnsDomainName,
+    OUT OPTIONAL PDWORD pdwTrustFlags,
+    OUT OPTIONAL PDWORD pdwTrustType,
+    OUT OPTIONAL PDWORD pdwTrustAttributes,
+    OUT OPTIONAL LSA_TRUST_DIRECTION* pdwTrustDirection,
+    OUT OPTIONAL LSA_TRUST_MODE* pdwTrustMode,
+    OUT OPTIONAL PSTR* ppszForestName,
+    OUT OPTIONAL PSTR* ppszClientSiteName,
+    OUT OPTIONAL PLSA_DM_DOMAIN_FLAGS pFlags,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppDcInfo,
+    OUT OPTIONAL PLSA_DM_DC_INFO* ppGcInfo
+    )
+{
+    return LsaDmpQueryDomainInfoByObjectSid(gLsaDmState,
+                                 pObjectSid,
+                                 ppszDnsDomainName,
+                                 ppszNetbiosDomainName,
+                                 ppSid,
+                                 pGuid,
+                                 ppszTrusteeDnsDomainName,
+                                 pdwTrustFlags,
+                                 pdwTrustType,
+                                 pdwTrustAttributes,
+                                 pdwTrustDirection,
+                                 pdwTrustMode,
+                                 ppszForestName,
+                                 ppszClientSiteName,
+                                 pFlags,
+                                 ppDcInfo,
+                                 ppGcInfo);
+}
+
 VOID
 LsaDmFreeDcInfo(
     IN OUT PLSA_DM_DC_INFO pDcInfo

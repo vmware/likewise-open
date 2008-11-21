@@ -141,7 +141,7 @@ AD_GetUnprovisionedModeHomedirTemplate(
     );
 
 CHAR
-AD_GetSeparator(
+AD_GetSpaceReplacement(
     VOID
     );
 
@@ -245,8 +245,28 @@ AD_ShouldCreateHomeDir(
     VOID
     );
 
+BOOLEAN
+AD_ShouldRefreshUserCreds(
+    VOID
+    );
+
 AD_CELL_SUPPORT
 AD_GetCellSupport(
+    VOID
+    );
+
+BOOLEAN
+AD_GetTrimUserMembershipEnabled(
+    VOID
+    );
+
+BOOLEAN
+AD_GetNssGroupMembersCacheOnlyEnabled(
+    VOID
+    );
+
+BOOLEAN
+AD_GetNssUserMembershipCacheOnlyEnabled(
     VOID
     );
 

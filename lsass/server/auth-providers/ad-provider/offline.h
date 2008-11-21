@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Active Directory Authentication Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -49,15 +49,6 @@
  */
 #ifndef __OFFLINE_H__
 #define __OFFLINE_H__
-
-DWORD
-AD_OfflineGetExpandedGroupUsers(
-    IN PCSTR pszGroupSid,
-    IN DWORD dwMaxDepth,
-    OUT PBOOLEAN pbIsFullyExpanded,
-    OUT size_t* psMemberUsersCount,
-    OUT PAD_SECURITY_OBJECT** pppMemberUsers
-    );
 
 BOOLEAN
 AD_IsOffline(
@@ -103,10 +94,11 @@ AD_OfflineFindGroupObjectByName(
 
 DWORD
 AD_OfflineFindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN gid_t gid,
+    IN BOOLEAN bIsCacheOnlyMode,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 DWORD
@@ -145,6 +137,16 @@ AD_OfflineGetNamesBySidList(
     );
 
 DWORD
+AD_OfflineFindNSSArtefactByKey(
+    HANDLE hProvider,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    );
+
+DWORD
 AD_OfflineEnumNSSArtefacts(
     HANDLE  hProvider,
     HANDLE  hResume,
@@ -156,7 +158,7 @@ AD_OfflineEnumNSSArtefacts(
 DWORD
 AD_OfflineFindUserObjectByName(
     IN HANDLE  hProvider,
-    IN PCSTR   pszLoginId,    
+    IN PCSTR   pszLoginId,
     OUT PAD_SECURITY_OBJECT* ppCachedUser
     );
 

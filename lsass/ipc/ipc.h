@@ -69,5 +69,7 @@
 #include "marshal_status_p.h"
 #include "marshal_log_p.h"
 
+#include "byteops.h"
 
+#include "basic_types_p.h"
 

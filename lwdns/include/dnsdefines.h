@@ -122,6 +122,13 @@ extern PFN_LWDNS_LOG_MESSAGE gpfnLWDNSLogger;
         goto error; \
     }
 
+#define BAIL_ON_HERRNO_ERROR(dwError) \
+    if (dwError) \
+    { \
+        dwError = DNSMapHerrno(dwError); \
+        goto error; \
+    }
+
 #ifdef WIN32
 #define BAIL_ON_SEC_ERROR(dwMajorStatus) \
     if ((dwMajorStatus!= SEC_E_OK)\

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,9 +38,9 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Utility API
- * 
+ *
  *        Globals
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -58,7 +58,9 @@
 // if LW_ENABLE_THREADS is enabled when compiling those
 // components. Also use liblsalog_r.so
 //
-HANDLE              ghLog           = (HANDLE)NULL;
-LsaLogLevel         gLsaMaxLogLevel = LSA_LOG_LEVEL_ERROR;
-LsaLogTarget        gLogTarget      = LSA_LOG_TARGET_DISABLED;
-PFN_LSA_LOG_MESSAGE gpfnLogger      = NULL;
+HANDLE              ghLog              = (HANDLE)NULL;
+LsaLogLevel         gLsaMaxLogLevel    = LSA_LOG_LEVEL_ERROR;
+LsaLogTarget        gLogTarget         = LSA_LOG_TARGET_DISABLED;
+PFN_LSA_LOG_MESSAGE gpfnLogger         = NULL;
+PLSA_BIT_VECTOR     gpTraceFlags       = NULL;
+CHAR                gchDomainSeparator = LSA_DOMAIN_SEPARATOR_DEFAULT;

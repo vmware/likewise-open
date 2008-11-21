@@ -102,7 +102,8 @@ pam_sm_acct_mgmt(
     dwError = LsaPamGetLoginId(
                     pamh,
                     pPamContext,
-                    &pszLoginId);
+                    &pszLoginId,
+                    TRUE);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenServer(&hLsaConnection);

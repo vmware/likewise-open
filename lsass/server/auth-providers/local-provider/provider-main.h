@@ -151,27 +151,30 @@ LsaProviderLocal_EndEnumUsers(
 
 DWORD
 LsaProviderLocal_FindGroupByName(
-    HANDLE  hProvider,
-    PCSTR   pszGroupName,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN PCSTR pszGroupName,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 DWORD
 LsaProviderLocal_FindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+    IN HANDLE hProvider,
+    IN gid_t gid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PVOID* ppGroupInfo
     );
 
 DWORD
 LsaProviderLocal_GetGroupsForUser(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+    IN HANDLE hProvider,
+    IN uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    IN PDWORD pdwGroupsFound,
+    IN PVOID** pppGroupInfoList
     );
 
 DWORD
@@ -277,11 +280,22 @@ LsaProviderLocal_GetNamesBySidList(
     ADAccountType** ppTypes);
 
 DWORD
+LsaProviderLocal_FindNSSArtefactByKey(
+    HANDLE hProvider,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    );
+
+DWORD
 LsaProviderLocal_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
     PCSTR   pszGUID,
     DWORD   dwInfoLevel,
-    DWORD   dwMapType,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PHANDLE phResume
     );
 

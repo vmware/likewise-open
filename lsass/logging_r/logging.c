@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -40,11 +40,11 @@
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
  *        Logging API (Private Header)
- * 
+ *
  *        Thread Safe
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
  */
 #include "includes.h"
 
@@ -57,17 +57,17 @@ LsaInitLogging_r(
     )
 {
     DWORD dwError = 0;
-    
+
     LSA_LOCK_LOGGER;
-    
+
     dwError = LsaInitLogging(
                     pszProgramName,
                     logTarget,
                     maxAllowedLogLevel,
                     pszPath);
-    
+
     LSA_UNLOCK_LOGGER;
-    
+
     return dwError;
 }
 
@@ -77,14 +77,14 @@ LsaLogGetInfo_r(
     )
 {
     DWORD dwError = 0;
-    
+
     LSA_LOCK_LOGGER;
-    
+
     dwError = LsaLogGetInfo(ppLogInfo);
-    
+
     LSA_UNLOCK_LOGGER;
-    
-    return dwError;    
+
+    return dwError;
 }
 
 DWORD
@@ -93,14 +93,14 @@ LsaLogSetInfo_r(
     )
 {
     DWORD dwError = 0;
-    
+
     LSA_LOCK_LOGGER;
-    
+
     dwError = LsaLogSetInfo(pLogInfo);
-    
+
     LSA_UNLOCK_LOGGER;
-    
-    return dwError;        
+
+    return dwError;
 }
 
 DWORD
@@ -109,12 +109,13 @@ LsaShutdownLogging_r(
     )
 {
     DWORD dwError = 0;
-    
+
     LSA_LOCK_LOGGER;
-    
+
     dwError = LsaShutdownLogging();
-    
+
     LSA_UNLOCK_LOGGER;
-    
+
     return dwError;
 }
+

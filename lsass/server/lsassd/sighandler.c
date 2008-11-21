@@ -50,6 +50,38 @@
 
 static
 void
+LsaSrvNOPHandler(
+    int unused
+    )
+{
+}
+
+DWORD
+LsaSrvIgnoreSIGHUP(
+    VOID
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    // Instead of ignoring the signal by passing SIG_IGN, we install a nop
+    // signal handler. This way if we later decide to catch it with sigwait,
+    // the signal will still get delivered to the process.
+    if (signal(SIGHUP, LsaSrvNOPHandler) < 0) {
+        dwError = errno;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+void
 LsaSrvInterruptHandler(
     int Signal
     )

@@ -109,6 +109,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_OpenSession,
             &AD_CloseSession,
             &AD_GetNamesBySidList,
+            &AD_FindNSSArtefactByKey,
             &AD_BeginEnumNSSArtefacts,
             &AD_EnumNSSArtefacts,
             &AD_EndEnumNSSArtefacts,

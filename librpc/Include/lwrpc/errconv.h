@@ -38,5 +38,6 @@ const char* NtStatusToName(NTSTATUS status);
 int NtStatusToErrno(NTSTATUS status);
 int ErrnoToWin32Error(int uerror);
 int Win32ErrorToErrno(int winerr);
+const char *Win32ErrorToName(int winerr);
 
 #endif

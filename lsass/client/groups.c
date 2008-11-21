@@ -153,6 +153,7 @@ DWORD
 LsaFindGroupByName(
     HANDLE hLsaConnection,
     PCSTR  pszGroupName,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwGroupInfoLevel,
     PVOID* ppGroupInfo
     )
@@ -177,6 +178,7 @@ LsaFindGroupByName(
     dwError = LsaMarshalFindGroupByNameQuery(
                 pszGroupName,
                 dwGroupInfoLevel,
+                FindFlags,
                 NULL,
                 &dwMsgLen
                 );
@@ -192,6 +194,7 @@ LsaFindGroupByName(
     
     dwError = LsaMarshalFindGroupByNameQuery(
                 pszGroupName,
+                FindFlags,
                 dwGroupInfoLevel,
                 pMessage->pData,
                 &dwMsgLen
@@ -277,6 +280,7 @@ DWORD
 LsaFindGroupById(
     HANDLE hLsaConnection,
     gid_t  gid,
+    LSA_FIND_FLAGS FindFlags,
     DWORD  dwGroupInfoLevel,
     PVOID* ppGroupInfo
     )
@@ -296,6 +300,7 @@ LsaFindGroupById(
     
     dwError = LsaMarshalFindGroupByIdQuery(
                 gid,
+                FindFlags,
                 dwGroupInfoLevel,
                 NULL,
                 &dwMsgLen
@@ -312,6 +317,7 @@ LsaFindGroupById(
     
     dwError = LsaMarshalFindGroupByIdQuery(
                 gid,
+                FindFlags,
                 dwGroupInfoLevel,
                 pMessage->pData,
                 &dwMsgLen
@@ -815,6 +821,7 @@ LsaDeleteGroupByName(
     dwError = LsaFindGroupByName(
                     hLsaConnection,
                     pszName,
+                    0,
                     dwGroupInfoLevel,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -872,6 +879,7 @@ LsaGetGidsForUserByName(
     dwError = LsaGetGroupsForUserById(
                 hLsaConnection,
                 ((PLSA_USER_INFO_0)pUserInfo)->uid,
+                LSA_FIND_FLAGS_NSS,
                 dwGroupInfoLevel,
                 &dwGroupFound,
                 &ppGroupInfoList);
@@ -926,6 +934,7 @@ DWORD
 LsaGetGroupsForUserById(
     HANDLE  hLsaConnection,
     uid_t   uid,
+    LSA_FIND_FLAGS FindFlags,
     DWORD   dwGroupInfoLevel,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
@@ -947,6 +956,7 @@ LsaGetGroupsForUserById(
     
     dwError = LsaMarshalGetGroupsForUserQuery(
                 uid,
+                FindFlags,
                 dwGroupInfoLevel,
                 NULL,
                 &dwMsgLen);
@@ -962,6 +972,7 @@ LsaGetGroupsForUserById(
     
     dwError = LsaMarshalGetGroupsForUserQuery(
                 uid,
+                FindFlags,
                 dwGroupInfoLevel,
                 pMessage->pData,
                 &dwMsgLen

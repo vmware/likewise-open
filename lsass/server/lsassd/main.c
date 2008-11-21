@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Service Entry API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -51,6 +51,9 @@
 #include "eventlog.h"
 #include "lsasrvutils.h"
 
+/* Needed for dcethread_fork() */
+#include <dce/dcethread.h>
+
 int
 main(
     int argc,
@@ -60,16 +63,16 @@ main(
     DWORD dwError = 0;
     pthread_t listenerThreadId;
     pthread_t* pListenerThreadId = NULL;
-    void* threadResult = NULL;    
+    void* threadResult = NULL;
 
     dwError = LsaSrvSetDefaults();
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvParseArgs(argc,
                               argv,
                               &gServerInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaInitLogging_r(
                     LsaGetProgramName(argv[0]),
                     gServerInfo.logTarget,
@@ -78,12 +81,15 @@ main(
     BAIL_ON_LSA_ERROR(dwError);
 
     LSA_LOG_VERBOSE("Logging started");
-    
+
+    dwError = LsaInitTracing_r();
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (atexit(LsaSrvExitHandler) < 0) {
        dwError = errno;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (LsaSrvShouldStartAsDaemon()) {
        dwError = LsaSrvStartAsDaemon();
        BAIL_ON_LSA_ERROR(dwError);
@@ -126,21 +132,23 @@ cleanup:
     }
 
     LsaSrvApiShutdown();
-    
+
     NTLMGssTeardownServer();
 
     LSA_LOG_INFO("LSA Service exiting...");
 
     LsaSrvSetProcessExitCode(dwError);
-    
+
     LsaShutdownLogging_r();
+
+    LsaShutdownTracing_r();
 
     return dwError;
 
 error:
 
-    LSA_LOG_ERROR("LSA Process exiting due to error [Code:%d]", dwError);    
-    
+    LSA_LOG_ERROR("LSA Process exiting due to error [Code:%d]", dwError);
+
     LsaSrvLogProcessFailureEvent(dwError);
 
     goto cleanup;
@@ -295,23 +303,23 @@ LsaSrvVerifyNetLogonStatus(
     dwError = LWNetGetCurrentDomain(&pszDomain);
     LSA_LOG_INFO("LsaSrvVerifyNetLogonStatus call to LWNet API returned %ld", dwError);
     BAIL_ON_LSA_ERROR(dwError);
- 
+
 cleanup:
-    
+
     if (pszDomain)
     {
         LWNetFreeString(pszDomain);
     }
 
     return dwError;
-    
-error:  
-        
+
+error:
+
     if (dwError == LWNET_ERROR_NOT_JOINED_TO_AD)
     {
         dwError = 0;
-    }   
-        
+    }
+
     goto cleanup;
 }
 #endif
@@ -345,7 +353,7 @@ LsaSrvParseArgs(
         PARSE_MODE_LOGFILE,
         PARSE_MODE_LOGLEVEL
     } ParseMode;
-    
+
     DWORD dwError = 0;
     ParseMode parseMode = PARSE_MODE_OPEN;
     int iArg = 1;
@@ -358,7 +366,7 @@ LsaSrvParseArgs(
       if (pArg == NULL || *pArg == '\0') {
         break;
       }
-      
+
       switch(parseMode) {
 
       case PARSE_MODE_OPEN:
@@ -374,7 +382,7 @@ LsaSrvParseArgs(
           }
           else if (strcmp(pArg, "--start-as-daemon") == 0) {
             pLsaServerInfo->dwStartAsDaemon = 1;
-            
+
             // If other arguments set before this set the log target
             // don't over-ride that setting
             if (!bLogTargetSet)
@@ -390,17 +398,17 @@ LsaSrvParseArgs(
             ShowUsage(LsaGetProgramName(argv[0]));
             exit(1);
           }
-          
+
           break;
         }
-        
+
       case PARSE_MODE_LOGFILE:
 
         {
           strcpy(pLsaServerInfo->szLogFilePath, pArg);
-          
+
           LsaStripWhitespace(pLsaServerInfo->szLogFilePath, TRUE, TRUE);
-          
+
           if (!strcmp(pLsaServerInfo->szLogFilePath, "."))
           {
               pLsaServerInfo->logTarget = LSA_LOG_TARGET_CONSOLE;
@@ -409,11 +417,11 @@ LsaSrvParseArgs(
           {
               pLsaServerInfo->logTarget = LSA_LOG_TARGET_FILE;
           }
-          
+
           bLogTargetSet = TRUE;
-          
+
           parseMode = PARSE_MODE_OPEN;
-          
+
           break;
         }
 
@@ -421,48 +429,48 @@ LsaSrvParseArgs(
 
         {
           if (!strcasecmp(pArg, "error")) {
-            
+
             pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_ERROR;
-            
+
           } else if (!strcasecmp(pArg, "warning")) {
-            
+
             pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_WARNING;
-            
+
           } else if (!strcasecmp(pArg, "info")) {
-            
+
             pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_INFO;
-            
+
           } else if (!strcasecmp(pArg, "verbose")) {
-            
+
             pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_VERBOSE;
-            
+
           } else if (!strcasecmp(pArg, "debug")) {
 
             pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_DEBUG;
-            
+
           } else {
-            
+
             LSA_LOG_ERROR("Error: Invalid log level [%s]", pArg);
             ShowUsage(LsaGetProgramName(argv[0]));
             exit(1);
-            
+
           }
-          
+
           parseMode = PARSE_MODE_OPEN;
 
           break;
         }
-        
+
       }
 
     } while (iArg < argc);
-    
+
     if (pLsaServerInfo->dwStartAsDaemon)
     {
         if (pLsaServerInfo->logTarget == LSA_LOG_TARGET_CONSOLE)
         {
             LSA_LOG_ERROR("%s", "Error: Cannot log to console when executing as a daemon");
-            
+
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -474,7 +482,7 @@ LsaSrvParseArgs(
             pLsaServerInfo->logTarget = LSA_LOG_TARGET_CONSOLE;
         }
     }
-    
+
 error:
 
     return dwError;
@@ -566,17 +574,17 @@ LsaSrvInitialize(
 {
     DWORD dwError = 0;
     PCSTR pszConfigFilePath = CONFIGDIR "/lsassd.conf";
-    
+
     dwError = LsaInitCacheFolders();
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvApiInit(pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -590,28 +598,28 @@ LsaInitCacheFolders(
     DWORD dwError = 0;
     PSTR  pszCachePath = NULL;
     BOOLEAN bExists = FALSE;
-    
+
     dwError = LsaSrvGetCachePath(&pszCachePath);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaCheckDirectoryExists(
                         pszCachePath,
                         &bExists);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (!bExists) {
         mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
-        
+
         dwError = LsaCreateDirectory(pszCachePath, cacheDirMode);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszCachePath);
-    
+
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -644,7 +652,8 @@ LsaSrvStartAsDaemon(
     int fd = 0;
     int iFd = 0;
 
-    if ((pid = fork()) != 0) {
+    /* Use dcethread_fork() rather than fork() because we link with DCE/RPC */
+    if ((pid = dcethread_fork()) != 0) {
         // Parent terminates
         exit (0);
     }
@@ -657,10 +666,8 @@ LsaSrvStartAsDaemon(
     // its session would receive the SIGHUP signal. By ignoring
     // this signal, we are ensuring that our second child will
     // ignore this signal and will continue execution.
-    if (signal(SIGHUP, SIG_IGN) < 0) {
-        dwError = errno;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    dwError = LsaSrvIgnoreSIGHUP();
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Spawn a second child
     if ((pid = fork()) != 0) {
@@ -724,7 +731,7 @@ LsaSrvSetProcessExitCode(
     )
 {
     BOOLEAN bInLock = FALSE;
-    
+
     LSA_LOCK_SERVERINFO(bInLock);
 
     gpServerInfo->dwExitCode = dwExitCode;
@@ -740,29 +747,29 @@ LsaSrvGetCachePath(
     DWORD dwError = 0;
     PSTR pszPath = NULL;
     BOOLEAN bInLock = FALSE;
-  
+
     LSA_LOCK_SERVERINFO(bInLock);
-    
+
     if (IsNullOrEmptyString(gpServerInfo->szCachePath)) {
       dwError = LSA_ERROR_INVALID_CACHE_PATH;
       BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaAllocateString(gpServerInfo->szCachePath, &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszPath = pszPath;
-    
+
  cleanup:
 
     LSA_UNLOCK_SERVERINFO(bInLock);
-    
+
     return dwError;
 
  error:
 
     LSA_SAFE_FREE_STRING(pszPath);
-    
+
     *ppszPath = NULL;
 
     goto cleanup;
@@ -776,23 +783,23 @@ LsaSrvGetPrefixPath(
     DWORD dwError = 0;
     PSTR pszPath = NULL;
     BOOLEAN bInLock = FALSE;
-  
+
     LSA_LOCK_SERVERINFO(bInLock);
-    
+
     if (IsNullOrEmptyString(gpServerInfo->szPrefixPath)) {
       dwError = LSA_ERROR_INVALID_PREFIX_PATH;
       BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaAllocateString(gpServerInfo->szPrefixPath, &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszPath = pszPath;
 
  cleanup:
-    
+
     LSA_UNLOCK_SERVERINFO(bInLock);
-    
+
     return dwError;
 
  error:
@@ -900,7 +907,7 @@ LsaBlockSelectedSignals(
     VOID
     )
 {
-    DWORD dwError = 0;    
+    DWORD dwError = 0;
     sigset_t default_signal_mask;
     sigset_t old_signal_mask;
 
@@ -913,7 +920,7 @@ LsaBlockSelectedSignals(
 
     dwError = pthread_sigmask(SIG_BLOCK,  &default_signal_mask, &old_signal_mask);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
     return dwError;
 error:
@@ -929,11 +936,11 @@ LsaSrvShouldProcessExit(
     BOOLEAN bInLock = FALSE;
 
     LSA_LOCK_SERVERINFO(bInLock);
-    
+
     bExit = gpServerInfo->bProcessShouldExit;
 
     LSA_UNLOCK_SERVERINFO(bInLock);
-    
+
     return bExit;
 }
 
@@ -943,7 +950,7 @@ LsaSrvSetProcessToExit(
     )
 {
     BOOLEAN bInLock = FALSE;
-    
+
     LSA_LOCK_SERVERINFO(bInLock);
 
     gpServerInfo->bProcessShouldExit = bExit;
@@ -965,23 +972,23 @@ LsaSrvLogProcessFailureEvent(
                  "The LSASSD process encountered a serious error with code '%d' which caused it to stop running.",
                  dwErrCode);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaGetErrorMessageForLoggingEvent(
                          dwErrCode,
                          &pszData);
-      
+
     LsaSrvLogServiceFailureEvent(
             SERVICESTOP_EVENT_CATEGORY,
             pszLsassdFailureDescription,
             pszData);
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszLsassdFailureDescription);
     LSA_SAFE_FREE_STRING(pszData);
 
     return;
-    
+
 error:
 
     goto cleanup;

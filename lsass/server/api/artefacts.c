@@ -46,23 +46,118 @@
  */
 #include "api.h"
 
+DWORD
+LsaSrvFindNSSArtefactByKey(
+    HANDLE hServer,
+    PCSTR  pszKeyName,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    DWORD  dwMapInfoLevel,
+    PVOID* ppNSSArtefactInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    BOOLEAN bInLock = FALSE;
+    HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    if (IsNullOrEmptyString(pszKeyName))
+    {
+        dwError = LSA_ERROR_INVALID_NSS_KEY_NAME;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (IsNullOrEmptyString(pszMapName))
+    {
+        dwError = LSA_ERROR_INVALID_NSS_MAP_NAME;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!dwFlags)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LSA_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable->pfnLookupNSSArtefactByKey(
+                                            hProvider,
+                                            pszKeyName,
+                                            pszMapName,
+                                            dwMapInfoLevel,
+                                            dwFlags,
+                                            ppNSSArtefactInfo);
+        if (!dwError) {
+            break;
+        }
+        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
+                   (dwError == LSA_ERROR_NO_SUCH_NSS_KEY) ||
+                   (dwError == LSA_ERROR_NO_SUCH_NSS_MAP)) {
+
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = (HANDLE)NULL;
+
+            continue;
+        } else {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL) {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return(dwError);
+
+error:
+
+    LSA_LOG_ERROR("Failed to find NIS Artefact [Map:%s][Key:%s]",
+                    LSA_SAFE_LOG_STRING(pszMapName),
+                    LSA_SAFE_LOG_STRING(pszKeyName));
+
+    *ppNSSArtefactInfo = NULL;
+
+    goto cleanup;
+}
 
 DWORD
 LsaSrvBeginEnumNSSArtefacts(
     HANDLE hServer,
-    DWORD  dwMapType,
+    PCSTR  pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwNSSArtefactInfoLevel,
     DWORD  dwMaxNumNSSArtefacts,
     PSTR*  ppszGUID
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PSTR pszGUID = NULL;
 
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     dwError = LsaSrvAddNSSArtefactEnumState(
                     hServer,
-                    dwMapType,
+                    pszMapName,
+                    dwFlags,
                     dwNSSArtefactInfoLevel,
                     dwMaxNumNSSArtefacts,
                     &pEnumState);
@@ -74,6 +169,8 @@ LsaSrvBeginEnumNSSArtefacts(
     *ppszGUID = pszGUID;
 
 cleanup:
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     return dwError;
 
@@ -94,6 +191,7 @@ LsaSrvEnumNSSArtefacts(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PVOID* ppNSSArtefactInfoList_accumulate = NULL;
     DWORD  dwTotalNumNSSArtefactsFound = 0;
@@ -101,7 +199,8 @@ LsaSrvEnumNSSArtefacts(
     DWORD  dwNumNSSArtefactsFound = 0;
     DWORD  dwNumNSSArtefactsRemaining = 0;
     DWORD  dwNSSArtefactInfoLevel = 0;
-    DWORD  dwMapType = 0;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     pEnumState = LsaSrvFindNSSArtefactEnumState(hServer, pszGUID);
     if (!pEnumState) {
@@ -111,7 +210,6 @@ LsaSrvEnumNSSArtefacts(
 
     dwNSSArtefactInfoLevel = pEnumState->dwInfoLevel;
     dwNumNSSArtefactsRemaining = pEnumState->dwNumMaxRecords;
-    dwMapType = pEnumState->dwMapType;
 
     while (dwNumNSSArtefactsRemaining &&
            pEnumState->pCurProviderState)
@@ -161,6 +259,8 @@ LsaSrvEnumNSSArtefacts(
 
 cleanup:
 
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
     return(dwError);
 
 error:
@@ -188,8 +288,11 @@ LsaSrvEndEnumNSSArtefacts(
     )
 {
     DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
     PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     pEnumState = LsaSrvFindNSSArtefactEnumState(hServer, pszGUID);
     if (!pEnumState) {
@@ -215,6 +318,8 @@ LsaSrvEndEnumNSSArtefacts(
                         pszGUID);
 
 cleanup:
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     return dwError;
 

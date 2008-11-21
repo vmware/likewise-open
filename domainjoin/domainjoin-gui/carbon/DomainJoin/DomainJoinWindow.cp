@@ -290,7 +290,7 @@ DomainJoinWindow::ShowDomainWelcomeDialog(const std::string& domainName)
 		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
 		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
 		 StandardAlert(kAlertNoteAlert,
-					   "\pLikewise Domain Join",
+					   "\pLikewise - Active Directory",
 					   (StringPtr)msgStr,
 					   NULL,
 					   &outItemHit);

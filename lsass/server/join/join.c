@@ -48,6 +48,7 @@
 #include "includes.h"
 
 #define LSA_JOIN_OU_PREFIX "OU="
+#define LSA_JOIN_CN_PREFIX "CN="
 #define LSA_JOIN_DC_PREFIX "DC="
 
 DWORD
@@ -290,108 +291,146 @@ LsaBuildOrgUnitDN(
     )
 {
     DWORD dwError = 0;
-    PSTR  pszOU_DN = NULL;
-    PSTR  pszWriteMark = NULL;
-    PCSTR pszIter = NULL;
-    DWORD dwRequiredOULen = 0;
-    DWORD dwRequiredDomainLen = 0;
-    size_t stLength = 0;
-    DWORD nOUParts = 0;
+    PSTR  pszOuDN = NULL;
+    // Do not free
+    PSTR  pszOutputPos = NULL;
+    PCSTR pszInputPos = NULL;
+    PCSTR pszInputSectionEnd = NULL;
+    size_t sOutputDnLen = 0;
+    size_t sSectionLen = 0;
     DWORD nDomainParts = 0;
     
     BAIL_ON_INVALID_STRING(pszDomain);
     BAIL_ON_INVALID_STRING(pszOU);
     
     // Figure out the length required to write the OU DN
-    pszIter = pszOU;
-    while ((stLength = strcspn(pszIter, "/")) != 0) {
-        dwRequiredOULen += sizeof(LSA_JOIN_OU_PREFIX) - 1;
-        dwRequiredOULen += stLength;
-        nOUParts++;
+    pszInputPos = pszOU;
+
+    // skip leading slashes
+    sSectionLen = strspn(pszInputPos, "/");
+    pszInputPos += sSectionLen;
+
+    while ((sSectionLen = strcspn(pszInputPos, "/")) != 0) {
+        sOutputDnLen += sizeof(LSA_JOIN_OU_PREFIX) - 1;
+        sOutputDnLen += sSectionLen;
+        // For the separating comma
+        sOutputDnLen++;
         
-        pszIter += stLength;
+        pszInputPos += sSectionLen;
         
-        stLength = strspn(pszIter, "/");
-        pszIter += stLength;
+        sSectionLen = strspn(pszInputPos, "/");
+        pszInputPos += sSectionLen;
     }
     
     // Figure out the length required to write the Domain DN
-    pszIter = pszDomain;
-    while ((stLength = strcspn(pszIter, ".")) != 0) {
-        dwRequiredDomainLen += sizeof(LSA_JOIN_DC_PREFIX) - 1;
-        dwRequiredDomainLen += stLength;
+    pszInputPos = pszDomain;
+    while ((sSectionLen = strcspn(pszInputPos, ".")) != 0) {
+        sOutputDnLen += sizeof(LSA_JOIN_DC_PREFIX) - 1;
+        sOutputDnLen += sSectionLen;
         nDomainParts++;
         
-        pszIter += stLength;
+        pszInputPos += sSectionLen;
         
-        stLength = strspn(pszIter, ".");
-        pszIter += stLength;
+        sSectionLen = strspn(pszInputPos, ".");
+        pszInputPos += sSectionLen;
+    }
+
+    // Add in space for the separating commas
+    if (nDomainParts > 1)
+    {
+        sOutputDnLen += nDomainParts - 1;
     }
     
     dwError = LsaAllocateMemory(
-                    sizeof(CHAR) * (dwRequiredDomainLen + 
-                                    dwRequiredOULen +
-                                    nOUParts + 
-                                    nDomainParts),
-                    (PVOID*)&pszOU_DN);
+                    sizeof(CHAR) * (sOutputDnLen + 1),
+                    (PVOID*)&pszOuDN);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    // Write out the Domain DN
-    pszWriteMark = pszOU_DN + sizeof(CHAR) * (dwRequiredOULen + nOUParts) - 1;
-    pszIter = pszDomain;
-    while ((stLength = strcspn(pszIter, ".")) != 0) {        
-        *pszWriteMark++ = ',';
-        
-        memcpy(pszWriteMark, LSA_JOIN_DC_PREFIX, sizeof(LSA_JOIN_DC_PREFIX) - 1);
-        pszWriteMark += sizeof(LSA_JOIN_DC_PREFIX) - 1;
-        
-        memcpy(pszWriteMark, pszIter, stLength);
-        pszWriteMark += stLength;
-        
-        pszIter += stLength;
-        
-        stLength = strspn(pszIter, ".");
-        pszIter += stLength;
-    }
-    
-    // Write out the OU DN in reverse
-    if (!strcasecmp(pszOU, "Computers"))
+
+    pszOutputPos = pszOuDN;
+    // Iterate through pszOU backwards and write to pszOuDN forwards
+    pszInputPos = pszOU + strlen(pszOU) - 1;
+
+    while(TRUE)
     {
-        //Use the CN prefix for Computers
-        memcpy(pszOU_DN, "CN=Computers,", sizeof("CN=Computers,")-1);
-    }
-    else
-    {
-        pszIter = pszOU;
-        pszWriteMark = pszOU_DN + sizeof(CHAR) * (dwRequiredOULen + nOUParts);
-        while ((stLength = strcspn(pszIter, "/")) != 0) {
-            DWORD dwOffset = sizeof(LSA_JOIN_OU_PREFIX) - 1;
-            dwOffset += stLength;
-            dwOffset += 1; /* for comma */
-            
-            pszWriteMark -= dwOffset;
-            
-            memcpy(pszWriteMark,
-                    LSA_JOIN_OU_PREFIX,
-                    sizeof(LSA_JOIN_OU_PREFIX) - 1);
-            pszWriteMark += sizeof(LSA_JOIN_OU_PREFIX) - 1;
-            
-            memcpy(pszWriteMark, pszIter, stLength);
-            pszWriteMark += stLength;
-            
-            memcpy(pszWriteMark, ",", 1);
-            pszWriteMark++;
-            
-            pszWriteMark -= dwOffset;
-            
-            pszIter += stLength;
-            
-            stLength = strspn(pszIter, "/");
-            pszIter += stLength;
+        // strip trailing slashes
+        while (pszInputPos >= pszOU && *pszInputPos == '/')
+        {
+            pszInputPos--;
         }
+
+        if (pszInputPos < pszOU)
+        {
+            break;
+        }
+
+        // Find the end of this section (so that we can copy it to
+        // the output string in forward order).
+        pszInputSectionEnd = pszInputPos;
+        while (pszInputPos >= pszOU && *pszInputPos != '/')
+        {
+            pszInputPos--;
+        }
+        sSectionLen = pszInputSectionEnd - pszInputPos;
+
+        if (sSectionLen == sizeof("Computers") - 1 &&
+                !strncasecmp(pszInputPos + 1, "Computers",
+                    sizeof("Computers") - 1))
+        {
+            // Add CN=<name>,
+            memcpy(pszOutputPos, LSA_JOIN_CN_PREFIX,
+                    sizeof(LSA_JOIN_CN_PREFIX) - 1);
+            pszOutputPos += sizeof(LSA_JOIN_CN_PREFIX) - 1;
+        }
+        else
+        {
+            // Add OU=<name>,
+            memcpy(pszOutputPos, LSA_JOIN_OU_PREFIX,
+                    sizeof(LSA_JOIN_OU_PREFIX) - 1);
+            pszOutputPos += sizeof(LSA_JOIN_OU_PREFIX) - 1;
+        }
+
+        memcpy(pszOutputPos,
+                pszInputPos + 1,
+                sSectionLen);
+        pszOutputPos += sSectionLen;
+
+        *pszOutputPos++ = ',';
     }
     
-    *ppszOU_DN = pszOU_DN;
+    // Read the domain name foward in sections and write it back out
+    // forward.
+    pszInputPos = pszDomain;
+    while (TRUE)
+    {
+        sSectionLen = strcspn(pszInputPos, ".");
+
+        memcpy(pszOutputPos,
+                LSA_JOIN_DC_PREFIX,
+                sizeof(LSA_JOIN_DC_PREFIX) - 1);
+        pszOutputPos += sizeof(LSA_JOIN_DC_PREFIX) - 1;
+        
+        memcpy(pszOutputPos, pszInputPos, sSectionLen);
+        pszOutputPos += sSectionLen;
+        
+        pszInputPos += sSectionLen;
+        
+        sSectionLen = strspn(pszInputPos, ".");
+        pszInputPos += sSectionLen;
+
+        if (*pszInputPos != 0)
+        {
+            // Add a comma for the next entry
+            *pszOutputPos++ = ',';
+        }
+        else
+            break;
+
+    }
+    
+    assert(pszOutputPos == pszOuDN + sizeof(CHAR) * (sOutputDnLen));
+    *pszOutputPos = 0;
+
+    *ppszOU_DN = pszOuDN;
     
 cleanup:
 
@@ -401,7 +440,7 @@ error:
 
     *ppszOU_DN = NULL;
     
-    LSA_SAFE_FREE_STRING(pszOU_DN);
+    LSA_SAFE_FREE_STRING(pszOuDN);
 
     goto cleanup;
 }

@@ -279,7 +279,7 @@ LWNetSrvPingCLdapThread(
         dwError = LWNetSrvPingCLdap(pContext->pszDnsDomainName, pszAddress, &pDcInfo);
         if (dwError)
         {
-            LWNET_LOG_ERROR("Failed CLDAP ping %s (%s) in %s() at %s:%d (error %d/0x%08x)", pContext->pszDnsDomainName, pszAddress, __FUNCTION__, __FILE__, __LINE__, dwError, dwError);
+            LWNET_LOG_INFO("Failed CLDAP ping %s (%s) in %s() at %s:%d (error %d/0x%08x)", pContext->pszDnsDomainName, pszAddress, __FUNCTION__, __FILE__, __LINE__, dwError, dwError);
             continue;
         }
         if (!LWNetSrvIsMatchingDcInfo(pDcInfo, pContext->dwDsFlags))

@@ -1646,12 +1646,13 @@ error:
 
 DWORD
 LsaMarshalGetNamesBySidListReply(
-    size_t          sCount,
-    PSTR*           ppszDomainNames,
-    PSTR*           ppszSamAccounts,
-    ADAccountType*  pTypes,
-    PSTR            pszBuffer,
-    PDWORD          pdwBufLen)
+    IN size_t sCount,
+    IN PSTR* ppszDomainNames,
+    IN PSTR* ppszSamAccounts,
+    IN ADAccountType* pTypes,
+    IN CHAR chDomainSeparator,
+    IN OUT PSTR pszBuffer,
+    IN OUT PDWORD pdwBufLen)
 {
     DWORD dwError = 0;
     DWORD dwRequiredBufLen = 0;
@@ -1742,6 +1743,8 @@ LsaMarshalGetNamesBySidListReply(
         
         pHeader->entries[sIndex].dwType = pTypes[sIndex];
     }
+
+    pHeader->chDomainSeparator = chDomainSeparator;
     
 cleanup:
 
@@ -1754,10 +1757,11 @@ error:
 
 DWORD
 LsaUnmarshalGetNamesBySidListReply(
-    PCSTR           pszMsgBuf,
-    DWORD           dwMsgLen,
-    size_t*         psCount,
-    PLSA_SID_INFO*  ppSIDInfoList
+    IN PCSTR pszMsgBuf,
+    IN DWORD dwMsgLen,
+    OUT size_t* psCount,
+    OUT PLSA_SID_INFO* ppSIDInfoList,
+    OUT CHAR* pchDomainSeparator
     )
 {
     DWORD dwError = 0;
@@ -1850,6 +1854,7 @@ LsaUnmarshalGetNamesBySidListReply(
 
     *psCount = sCount;
     *ppSIDInfoList = pSIDInfoList;
+    *pchDomainSeparator = pHeader->chDomainSeparator;
 
 cleanup:
 
@@ -1859,6 +1864,7 @@ error:
 
     *psCount = 0;
     *ppSIDInfoList = NULL;
+    *pchDomainSeparator = 0;
     
     if (pSIDInfoList) {
         LsaFreeSIDInfoList(pSIDInfoList, sCount);

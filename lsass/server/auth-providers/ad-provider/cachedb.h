@@ -57,14 +57,40 @@ typedef struct __AD_CACHE_INFO
     // database (it only exists in memory). Otherwise, this is an index into
     // the cache table.
     int64_t qwCacheId;
-    // This value is set to (time_t)-1 if the value does not expire following
-    // the normal algorithm. So far this only occurs if the data is obtained
-    // from the PAC and can only be obtained from the PAC.
-    //
-    // Set it to (time_t)-2 if geting the members of a group cannot expire
-    // this entry.
     time_t tLastUpdated;
 } AD_CACHE_INFO;
+
+typedef struct _AD_SECURITY_OBJECT_USER_INFO
+{
+    uid_t uid;
+    gid_t gid;
+    PSTR pszUPN;
+    PSTR pszAliasName;
+    PSTR pszPasswd;
+    PSTR pszGecos;
+    PSTR pszShell;
+    PSTR pszHomedir;
+    uint64_t qwPwdLastSet;
+    uint64_t qwAccountExpires;
+
+    BOOLEAN bIsGeneratedUPN;
+    // Calculated from userAccountControl, accountExpires, and pwdLastSet
+    // attributes from AD.
+    BOOLEAN bPasswordExpired;
+    BOOLEAN bPasswordNeverExpires;
+    BOOLEAN bPromptPasswordChange;
+    BOOLEAN bUserCanChangePassword;
+    BOOLEAN bAccountDisabled;
+    BOOLEAN bAccountExpired;
+    BOOLEAN bAccountLocked;
+} AD_SECURITY_OBJECT_USER_INFO, *PAD_SECURITY_OBJECT_USER_INFO;
+
+typedef struct _AD_SECURITY_OBJECT_GROUP_INFO
+{
+    gid_t gid;
+    PSTR pszAliasName;
+    PSTR pszPasswd;
+} AD_SECURITY_OBJECT_GROUP_INFO, *PAD_SECURITY_OBJECT_GROUP_INFO;
 
 typedef struct __AD_SECURITY_OBJECT
 {
@@ -80,37 +106,11 @@ typedef struct __AD_SECURITY_OBJECT
 
     ADAccountType type;
 
-    // These fields are only set if the object is enabled
+    // These fields are only set if the object is enabled base on the type.
     union
     {
-        struct
-        {
-            uid_t   uid;
-            gid_t   gid;
-            PSTR    pszUPN;
-            PSTR    pszAliasName;
-            PSTR    pszPasswd;
-            PSTR    pszGecos;
-            PSTR    pszShell;
-            PSTR    pszHomedir;
-            uint64_t qwPwdLastSet;
-            uint64_t qwAccountExpires;
-
-            //Calculated from userAccountControl, accountExpires, and pwdLastSet fields
-            BOOLEAN bIsGeneratedUPN;
-            BOOLEAN bPasswordExpired;
-            BOOLEAN bPasswordNeverExpires;
-            BOOLEAN bPromptPasswordChange;
-            BOOLEAN bUserCanChangePassword;
-            BOOLEAN bAccountDisabled;
-            BOOLEAN bAccountExpired;
-            BOOLEAN bAccountLocked;
-        } userInfo;
-        struct {
-            gid_t   gid;
-            PSTR    pszAliasName;
-            PSTR    pszPasswd;
-        } groupInfo;
+        AD_SECURITY_OBJECT_USER_INFO userInfo;
+        AD_SECURITY_OBJECT_GROUP_INFO groupInfo;
     };
 } AD_SECURITY_OBJECT, *PAD_SECURITY_OBJECT;
 
@@ -121,6 +121,10 @@ typedef struct __AD_GROUP_MEMBERSHIP
     AD_CACHE_INFO cache;
     PSTR    pszParentSid;
     PSTR    pszChildSid;
+    BOOLEAN bIsInPac;
+    BOOLEAN bIsInPacOnly;
+    BOOLEAN bIsInLdap;
+    BOOLEAN bIsDomainPrimaryGroup;
 } AD_GROUP_MEMBERSHIP, *PAD_GROUP_MEMBERSHIP;
 
 typedef struct __AD_PASSWORD_VERIFIER
@@ -138,7 +142,8 @@ ADCacheDB_Initialize(
 
 DWORD
 ADCacheDB_Shutdown(
-    VOID);
+    VOID
+    );
 
 DWORD
 ADCacheDB_OpenDb(
@@ -218,32 +223,38 @@ ADCacheDB_FreePasswordVerifier(
 
 DWORD
 ADCacheDB_CacheGroupMembership(
-    HANDLE hDb,
-    PCSTR pszParentSid,
-    size_t sMemberCount,
-    PAD_GROUP_MEMBERSHIP *ppMembers);
+    IN HANDLE hDb,
+    IN PCSTR pszParentSid,
+    IN size_t sMemberCount,
+    IN PAD_GROUP_MEMBERSHIP* ppMembers
+    );
 
 DWORD
 ADCacheDB_CacheGroupsForUser(
-    HANDLE hDb,
-    PCSTR pszChildSid,
-    size_t sMemberCount,
-    PAD_GROUP_MEMBERSHIP* ppMembers,
-    BOOLEAN bOverwritePacEntries);
+    IN HANDLE hDb,
+    IN PCSTR pszChildSid,
+    IN size_t sMemberCount,
+    IN PAD_GROUP_MEMBERSHIP* ppMembers,
+    IN BOOLEAN bIsPacAuthoritative
+    );
 
 DWORD
 ADCacheDB_GetGroupMembers(
-    HANDLE hDb,
-    PCSTR pszSid,
-    size_t* psCount,
-    PAD_GROUP_MEMBERSHIP **pppResults);
+    IN HANDLE hDb,
+    IN PCSTR pszSid,
+    IN BOOLEAN bFilterNotInPacNorLdap,
+    OUT size_t* psCount,
+    OUT PAD_GROUP_MEMBERSHIP** pppResults
+    );
 
 DWORD
 ADCacheDB_GetGroupsForUser(
-    HANDLE hDb,
-    PCSTR pszSid,
-    size_t* psCount,
-    PAD_GROUP_MEMBERSHIP **pppResults);
+    IN HANDLE hDb,
+    IN PCSTR pszSid,
+    IN BOOLEAN bFilterNotInPacNorLdap,
+    OUT size_t* psCount,
+    OUT PAD_GROUP_MEMBERSHIP** pppResults
+    );
 
 void
 ADCacheDB_SafeFreeGroupMembership(
@@ -256,17 +267,19 @@ ADCacheDB_SafeFreeGroupMembershipList(
 
 DWORD
 ADCacheDB_FindObjectsByDNList(
-    HANDLE hDb,
-    size_t sCount,
-    PSTR* ppszDnList,
-    PAD_SECURITY_OBJECT **pppResults);
+    IN HANDLE hDb,
+    IN size_t sCount,
+    IN PSTR* ppszDnList,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    );
 
 DWORD
 ADCacheDB_FindObjectsBySidList(
-    HANDLE hDb,
-    size_t sCount,
-    PSTR* ppszSidList,
-    PAD_SECURITY_OBJECT **pppResults);
+    IN HANDLE hDb,
+    IN size_t sCount,
+    IN PSTR* ppszSidList,
+    OUT PAD_SECURITY_OBJECT** pppResults
+    );
 
 DWORD
 ADCacheDB_FindObjectByDN(

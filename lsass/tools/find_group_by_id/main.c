@@ -108,6 +108,7 @@ main(
     dwError = LsaFindGroupById(
                     hLsaConnection,
                     gid,
+                    0,
                     dwInfoLevel,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
