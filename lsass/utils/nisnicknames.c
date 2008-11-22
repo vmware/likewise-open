@@ -202,6 +202,28 @@ error:
     goto cleanup;
 }
 
+PCSTR
+LsaNISLookupAlias(
+    PDLINKEDLIST pNicknameList,
+    PCSTR pszAlias
+    )
+{
+    PCSTR pszName = NULL;
+    PDLINKEDLIST pIter = pNicknameList;
+
+    for (; !pszName && pIter; pIter = pIter->pNext)
+    {
+        PLSA_NIS_NICKNAME pNickname = (PLSA_NIS_NICKNAME)pIter->pItem;
+
+        if (!strcasecmp(pNickname->pszMapAlias, pszAlias))
+        {
+            pszName = pNickname->pszMapName;
+        }
+    }
+
+    return pszName;
+}
+
 VOID
 LsaNISFreeNicknameList(
     PDLINKEDLIST pNicknameList

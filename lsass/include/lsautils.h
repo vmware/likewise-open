@@ -1555,6 +1555,12 @@ LsaNISGetNicknames(
     PDLINKEDLIST* ppNicknameList
     );
 
+PCSTR
+LsaNISLookupAlias(
+    PDLINKEDLIST pNicknameList,
+    PCSTR pszAlias
+    );
+
 VOID
 LsaNISFreeNicknameList(
     PDLINKEDLIST pNicknameList
