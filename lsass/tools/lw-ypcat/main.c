@@ -385,6 +385,7 @@ cleanup:
 error:
 
     LSA_SAFE_FREE_STRING(pszMapName);
+    LSA_SAFE_FREE_STRING(pszDomain);
 
     goto cleanup;
 }
