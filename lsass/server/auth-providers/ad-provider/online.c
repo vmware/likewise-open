@@ -2123,6 +2123,17 @@ AD_OnlineEnumUsers(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
 
+    // If BeginEnum was called in offline mode, it can successfully return
+    // with hDirectory set to 0.
+    //
+    // If the system later transitions online, this enumeration function can
+    // get called with a 0 hDirectory. Right now this function bails under
+    // this scenario (the enumeration must be restarted).
+    //
+    // In the future, it would be possible to instead attempt to reconnect
+    // (and set hDirectory to non-zero).
+    BAIL_ON_INVALID_HANDLE(pEnumState->hDirectory);
+
     switch (gpADProviderData->dwDirectoryMode)
     {
         case DEFAULT_MODE:
@@ -2394,6 +2405,17 @@ AD_OnlineEnumGroups(
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
+
+    // If BeginEnum was called in offline mode, it can successfully return
+    // with hDirectory set to 0.
+    //
+    // If the system later transitions online, this enumeration function can
+    // get called with a 0 hDirectory. Right now this function bails under
+    // this scenario (the enumeration must be restarted).
+    //
+    // In the future, it would be possible to instead attempt to reconnect
+    // (and set hDirectory to non-zero).
+    BAIL_ON_INVALID_HANDLE(pEnumState->hDirectory);
 
     switch (gpADProviderData->dwDirectoryMode)
     {
