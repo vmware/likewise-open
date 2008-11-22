@@ -782,7 +782,11 @@ AD_BeginEnumUsers(
             pEnumState->hDirectory = 0;
             dwError = LSA_ERROR_SUCCESS;
         }
-        BAIL_ON_LSA_ERROR(dwError);
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+            LSA_ASSERT(pEnumState->hDirectory);
+        }
     }
 
     *phResume = (HANDLE)pEnumState;
@@ -1433,7 +1437,11 @@ AD_BeginEnumGroups(
             pEnumState->hDirectory = 0;
             dwError = LSA_ERROR_SUCCESS;
         }
-        BAIL_ON_LSA_ERROR(dwError);
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+            LSA_ASSERT(pEnumState->hDirectory);
+        }
     }
 
     *phResume = (HANDLE)pEnumState;
