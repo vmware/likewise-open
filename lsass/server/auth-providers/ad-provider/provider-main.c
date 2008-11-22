@@ -785,7 +785,7 @@ AD_BeginEnumUsers(
         else
         {
             BAIL_ON_LSA_ERROR(dwError);
-            LSA_ASSERT(pEnumState->hDirectory);
+            // Fix build break - LSA_ASSERT(pEnumState->hDirectory);
         }
     }
 
@@ -1440,7 +1440,7 @@ AD_BeginEnumGroups(
         else
         {
             BAIL_ON_LSA_ERROR(dwError);
-            LSA_ASSERT(pEnumState->hDirectory);
+            // Fix build break - LSA_ASSERT(pEnumState->hDirectory);
         }
     }
 
