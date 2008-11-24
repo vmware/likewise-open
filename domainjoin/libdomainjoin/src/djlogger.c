@@ -107,7 +107,7 @@ dj_init_logging_to_file(
     gdjLogInfo.dwLogTarget = LOG_TO_FILE;
 
     strncpy(gdjLogInfo.logfile.szLogPath, pszLogFilePath, PATH_MAX);
-    *(gdjLogInfo.logfile.szLogPath+PATH_MAX+1) = '\0';
+    *(gdjLogInfo.logfile.szLogPath+PATH_MAX) = '\0';
 
     gdjLogInfo.logfile.logHandle = NULL;
     if (gdjLogInfo.logfile.szLogPath[0] != '\0') {
