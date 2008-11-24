@@ -1552,6 +1552,7 @@ LsaFreeDomainInfoContents(
 
 DWORD
 LsaNISGetNicknames(
+    PCSTR         pszNicknameFilePath,
     PDLINKEDLIST* ppNicknameList
     );
 

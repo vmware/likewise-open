@@ -61,6 +61,7 @@ LsaNISFreeNickname(
 
 DWORD
 LsaNISGetNicknames(
+    PCSTR         pszNicknameFilePath,
     PDLINKEDLIST* ppNicknameList
     )
 {
@@ -71,10 +72,10 @@ LsaNISGetNicknames(
     } NISNicknameTokenType;
     DWORD dwError = 0;
     PDLINKEDLIST pNicknameList = NULL;
-    PCSTR pszNicknameFilePath = "/var/yp/nicknames";
     BOOLEAN bFileExists = FALSE;
     PLSA_NIS_NICKNAME pNickname = NULL;
     FILE* fp = NULL;
+    NISNicknameTokenType nextTokenType = NIS_NICKNAME_ALIAS;
 
     dwError = LsaCheckFileExists(
                     pszNicknameFilePath,
@@ -96,11 +97,9 @@ LsaNISGetNicknames(
 
     while (1)
     {
-        CHAR szBuf[1024+1];
-        PSTR pszToken = NULL;
-        PSTR pszSavePtr = NULL;
+        CHAR  szBuf[1024+1];
+        PSTR  pszToken = NULL;
         PCSTR pszDelim = " \t\r\n";
-        NISNicknameTokenType nextTokenType = NIS_NICKNAME_ALIAS;
 
         szBuf[0] = '\0';
 
@@ -125,39 +124,60 @@ LsaNISGetNicknames(
             continue;
         }
 
-        // The alias and map name can occur on the same line or
-        // on consecutive lines
-        pszToken = strtok_r(szBuf, pszDelim, &pszSavePtr);
+        if ((pszToken = strchr(szBuf, '#')))
+        {
+            // Skip trailing comments
+            *pszToken = '\0';
+        }
+
+        pszToken = szBuf;
 
         if (nextTokenType == NIS_NICKNAME_ALIAS)
         {
+            size_t stLen = 0;
+
+            stLen = strcspn(pszToken, pszDelim);
+            if (!stLen)
+            {
+                dwError = LSA_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
             dwError = LsaAllocateMemory(
                             sizeof(LSA_NIS_NICKNAME),
                             (PVOID*)&pNickname);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaAllocateString(
+            dwError = LsaStrndup(
                             pszToken,
+                            stLen,
                             &pNickname->pszMapAlias);
             BAIL_ON_LSA_ERROR(dwError);
 
-            pszToken = NULL;
+            // Skip token
+            pszToken += stLen;
+
+            stLen = strspn(pszToken, pszDelim);
+            if (stLen)
+            {
+                // Skip delimiter
+                pszToken += stLen;
+            }
 
             nextTokenType = NIS_NICKNAME_NAME;
         }
 
+        // The name might appear on the same line
+        // Or it might appear on the next line
         if (nextTokenType == NIS_NICKNAME_NAME)
         {
-            if (!pszToken)
+            if (IsNullOrEmptyString(pszToken))
             {
-                pszToken = strtok_r(NULL, pszDelim, &pszSavePtr);
-
-                if (IsNullOrEmptyString(pszToken))
-                {
-                    continue;
-                }
+                continue;
             }
 
+            // The rest of the line is the name
+            // we already removed trailing comments
             dwError = LsaAllocateString(
                             pszToken,
                             &pNickname->pszMapName);

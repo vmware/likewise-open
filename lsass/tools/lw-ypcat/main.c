@@ -55,13 +55,8 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
-#ifdef LSA_SAFE_LOG_STRING
-#undef LSA_SAFE_LOG_STRING
-
-#define LSA_SAFE_LOG_STRING(x) \
+#define YPCAT_SAFE_LOG_STRING(x) \
     ( (x) ? (x) : "" )
-
-#endif
 
 static
 DWORD
@@ -150,6 +145,8 @@ main(
     BOOLEAN bPrintNicknameTable = FALSE;
     BOOLEAN bUseNicknameTable = TRUE;
     PDLINKEDLIST pNISNicknameList = NULL;
+    BOOLEAN bNoNicknameFile = FALSE;
+    PCSTR   pszNicknameFilePath = "/var/yp/nicknames";
 
     dwError = ParseArgs(
                     argc,
@@ -161,14 +158,23 @@ main(
                     &bUseNicknameTable);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaNISGetNicknames(&pNISNicknameList);
+    dwError = LsaNISGetNicknames(
+                    pszNicknameFilePath,
+                    &pNISNicknameList);
     if (dwError == ENOENT)
     {
+        bNoNicknameFile = TRUE;
         dwError = 0;
     }
 
     if (bPrintNicknameTable)
     {
+        if (bNoNicknameFile)
+        {
+            printf("nickname file %s does not exist.\n", pszNicknameFilePath);
+            goto cleanup;
+        }
+
         if (pNISNicknameList)
         {
             PrintNicknameTable(pNISNicknameList);
@@ -177,22 +183,30 @@ main(
         goto cleanup;
     }
 
-    if (bUseNicknameTable && pNISNicknameList)
+    if (bUseNicknameTable)
     {
         PCSTR pszLookupName = NULL;
 
-        pszLookupName = LsaNISLookupAlias(
-                            pNISNicknameList,
-                            pszMapName);
-
-        if (pszLookupName)
+        if (bNoNicknameFile)
         {
-            LSA_SAFE_FREE_STRING(pszMapName);
+            printf("nickname file %s does not exist.\n", pszNicknameFilePath);
+        }
 
-            dwError = LsaAllocateString(
-                            pszLookupName,
-                            &pszMapName);
-            BAIL_ON_LSA_ERROR(dwError);
+        if (pNISNicknameList)
+        {
+            pszLookupName = LsaNISLookupAlias(
+                                pNISNicknameList,
+                                pszMapName);
+
+            if (pszLookupName)
+            {
+                LSA_SAFE_FREE_STRING(pszMapName);
+
+                dwError = LsaAllocateString(
+                                pszLookupName,
+                                &pszMapName);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
         }
     }
 
@@ -267,6 +281,8 @@ error:
     {
         fprintf(stderr, "Failed to enumerate maps. Error code [%d]\n", dwError);
     }
+
+    dwError = 1;
 
     goto cleanup;
 }
@@ -350,6 +366,8 @@ ParseArgs(
                               pszArg,
                               &pszDomain);
                 BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
 
                 break;
 
@@ -632,13 +650,13 @@ PrintUserInfo_0(
     }
 
     printf("%s:%s:%u:%u:%s:%s:%s\n",
-           LSA_SAFE_LOG_STRING(pUserInfo->pszName),
-           LSA_SAFE_LOG_STRING(pUserInfo->pszPasswd),
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszName),
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszPasswd),
            (unsigned int)pUserInfo->uid,
            (unsigned int)pUserInfo->gid,
-           LSA_SAFE_LOG_STRING(pUserInfo->pszGecos),
-           LSA_SAFE_LOG_STRING(pUserInfo->pszHomedir),
-           LSA_SAFE_LOG_STRING(pUserInfo->pszShell));
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszGecos),
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszHomedir),
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszShell));
 }
 
 static
@@ -656,8 +674,8 @@ PrintGroupInfo_1(
     }
 
     printf("%s:%s:%u:",
-           LSA_SAFE_LOG_STRING(pGroupInfo->pszName),
-           LSA_SAFE_LOG_STRING(pGroupInfo->pszPasswd),
+           YPCAT_SAFE_LOG_STRING(pGroupInfo->pszName),
+           YPCAT_SAFE_LOG_STRING(pGroupInfo->pszPasswd),
            (unsigned int)pGroupInfo->gid);
 
     ppszMembers = pGroupInfo->ppszMembers;
@@ -693,14 +711,13 @@ PrintMapInfo_0(
 {
     if (!bPrintKeys)
     {
-        fprintf(stdout, "%s\n",
-                        (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName));
+        printf("%s\n", YPCAT_SAFE_LOG_STRING(pMapInfo->pszName));
     }
     else
     {
-        fprintf(stdout, "%s %s\n",
-                (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName),
-                (IsNullOrEmptyString(pMapInfo->pszValue) ? "" : pMapInfo->pszValue));
+        printf("%s %s\n",
+               YPCAT_SAFE_LOG_STRING(pMapInfo->pszName),
+               YPCAT_SAFE_LOG_STRING(pMapInfo->pszValue));
     }
 }
 

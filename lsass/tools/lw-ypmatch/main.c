@@ -55,13 +55,8 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
-#ifdef LSA_SAFE_LOG_STRING
-#undef LSA_SAFE_LOG_STRING
-
-#define LSA_SAFE_LOG_STRING(x) \
+#define YPMATCH_SAFE_LOG_STRING(x) \
     ( (x) ? (x) : "" )
-
-#endif
 
 static
 DWORD
@@ -155,6 +150,8 @@ main(
     BOOLEAN bPrintNicknameTable = FALSE;
     BOOLEAN bUseNicknameTable = TRUE;
     PDLINKEDLIST pNISNicknameList = NULL;
+    PCSTR   pszNicknameFilePath = "/var/yp/nicknames";
+    BOOLEAN bNoNicknameFile = FALSE;
 
     dwError = ParseArgs(
                     argc,
@@ -167,15 +164,22 @@ main(
                     &bUseNicknameTable);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaNISGetNicknames(&pNISNicknameList);
+    dwError = LsaNISGetNicknames(
+                    pszNicknameFilePath,
+                    &pNISNicknameList);
     if (dwError == ENOENT)
     {
+        bNoNicknameFile = TRUE;
         dwError = 0;
     }
 
     if (bPrintNicknameTable)
     {
-        if (pNISNicknameList)
+        if (bNoNicknameFile)
+        {
+           printf("nickname file %s does not exist.\n", pszNicknameFilePath);
+        }
+        else if (pNISNicknameList)
         {
             PrintNicknameTable(pNISNicknameList);
         }
@@ -183,22 +187,29 @@ main(
         goto cleanup;
     }
 
-    if (bUseNicknameTable && pNISNicknameList)
+    if (bUseNicknameTable)
     {
         PCSTR pszLookupName = NULL;
 
-        pszLookupName = LsaNISLookupAlias(
-                            pNISNicknameList,
-                            pszMapName);
-
-        if (pszLookupName)
+        if (bNoNicknameFile)
         {
-            LSA_SAFE_FREE_STRING(pszMapName);
+            printf("nickname file %s does not exist.\n", pszNicknameFilePath);
+        }
+        else if (pNISNicknameList)
+        {
+            pszLookupName = LsaNISLookupAlias(
+                                pNISNicknameList,
+                                pszMapName);
 
-            dwError = LsaAllocateString(
-                            pszLookupName,
-                            &pszMapName);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (pszLookupName)
+            {
+                LSA_SAFE_FREE_STRING(pszMapName);
+
+                dwError = LsaAllocateString(
+                                pszLookupName,
+                                &pszMapName);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
         }
     }
 
@@ -282,6 +293,8 @@ error:
         fprintf(stderr, "Failed to find key in map. Error code [%d]\n", dwError);
     }
 
+    dwError = 1;
+
     goto cleanup;
 }
 
@@ -312,7 +325,7 @@ ParseArgs(
     PSTR pszMapName = NULL;
     PSTR* ppszValues[2] = {0};
     DWORD iValue = 0;
-    DWORD dwMaxValues = 2;
+    DWORD dwMaxIndex = 1;
     BOOLEAN bPrintKeys = FALSE;
     BOOLEAN bUseNicknameTable = TRUE;
     BOOLEAN bPrintNicknameTable = FALSE;
@@ -355,7 +368,7 @@ ParseArgs(
                 }
                 else
                 {
-                    if (iValue > dwMaxValues)
+                    if (iValue > dwMaxIndex)
                     {
                         ShowUsage();
                         exit(1);
@@ -380,6 +393,8 @@ ParseArgs(
                               pszArg,
                               &pszDomain);
                 BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
 
                 break;
 
@@ -560,13 +575,13 @@ PrintUserInfo_0(
     }
 
     printf("%s:%s:%u:%u:%s:%s:%s\n",
-           LSA_SAFE_LOG_STRING(pUserInfo->pszName),
-           LSA_SAFE_LOG_STRING(pUserInfo->pszPasswd),
+           YPMATCH_SAFE_LOG_STRING(pUserInfo->pszName),
+           YPMATCH_SAFE_LOG_STRING(pUserInfo->pszPasswd),
            (unsigned int)pUserInfo->uid,
            (unsigned int)pUserInfo->gid,
-           LSA_SAFE_LOG_STRING(pUserInfo->pszGecos),
-           LSA_SAFE_LOG_STRING(pUserInfo->pszHomedir),
-           LSA_SAFE_LOG_STRING(pUserInfo->pszShell));
+           YPMATCH_SAFE_LOG_STRING(pUserInfo->pszGecos),
+           YPMATCH_SAFE_LOG_STRING(pUserInfo->pszHomedir),
+           YPMATCH_SAFE_LOG_STRING(pUserInfo->pszShell));
 }
 
 static
@@ -584,8 +599,8 @@ PrintGroupInfo_1(
     }
 
     printf("%s:%s:%u:",
-           LSA_SAFE_LOG_STRING(pGroupInfo->pszName),
-           LSA_SAFE_LOG_STRING(pGroupInfo->pszPasswd),
+           YPMATCH_SAFE_LOG_STRING(pGroupInfo->pszName),
+           YPMATCH_SAFE_LOG_STRING(pGroupInfo->pszPasswd),
            (unsigned int)pGroupInfo->gid);
 
     ppszMembers = pGroupInfo->ppszMembers;
@@ -621,14 +636,13 @@ PrintMapInfo_0(
 {
     if (!bPrintKeys)
     {
-        fprintf(stdout, "%s\n",
-                        (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName));
+        printf("%s\n", YPMATCH_SAFE_LOG_STRING(pMapInfo->pszName));
     }
     else
     {
-        fprintf(stdout, "%s %s\n",
-                (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName),
-                (IsNullOrEmptyString(pMapInfo->pszValue) ? "" : pMapInfo->pszValue));
+        printf("%s %s\n",
+               YPMATCH_SAFE_LOG_STRING(pMapInfo->pszName),
+               YPMATCH_SAFE_LOG_STRING(pMapInfo->pszValue));
     }
 }
 
@@ -673,5 +687,4 @@ MapErrorCode(
 
     return dwError2;
 }
-
 
