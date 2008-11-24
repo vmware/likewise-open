@@ -199,7 +199,7 @@ evt_init_logging_to_syslog(
     gLogInfo.logTarget = LOG_TO_SYSLOG;
 
     strncpy(gLogInfo.data.syslog.szIdentifier, pszIdentifier, PATH_MAX);
-    *(gLogInfo.data.syslog.szIdentifier+PATH_MAX+1) = '\0';
+    *(gLogInfo.data.syslog.szIdentifier+PATH_MAX) = '\0';
 
     gLogInfo.data.syslog.dwOption = dwOption;
     gLogInfo.data.syslog.dwFacility = dwFacility;
