@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Test Program for exercising LsaEnumGroups
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -107,38 +107,43 @@ main(
 
     dwError = ParseArgs(argc, argv, &dwGroupInfoLevel, &dwBatchSize);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaBeginEnumGroups(
                     hLsaConnection,
                     dwGroupInfoLevel,
                     dwBatchSize,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     do
     {
         DWORD iGroup = 0;
-        
+
+        if (ppGroupInfoList) {
+           LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
+           ppGroupInfoList = NULL;
+        }
+
         dwError = LsaEnumGroups(
                     hLsaConnection,
                     hResume,
-                    &dwNumGroupsFound,                    
+                    &dwNumGroupsFound,
                     &ppGroupInfoList);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         if (!dwNumGroupsFound) {
             break;
         }
-       
+
         dwTotalGroupsFound+=dwNumGroupsFound;
-        
+
         for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
         {
             PVOID pGroupInfo = *(ppGroupInfoList + iGroup);
-            
+
             switch(dwGroupInfoLevel)
             {
                 case 0:
@@ -148,28 +153,28 @@ main(
                     PrintGroupInfo_1((PLSA_GROUP_INFO_1)pGroupInfo);
                     break;
                 default:
-            
+
                     fprintf(stderr,
                             "Error: Invalid Group info level [%d]\n",
                             dwGroupInfoLevel);
                     break;
             }
-        }        
+        }
     } while (dwNumGroupsFound);
-    
+
     fprintf(stdout, "TotalNumGroupsFound:      %d\n", dwTotalGroupsFound);
-        
+
 cleanup:
 
     if (ppGroupInfoList) {
        LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
     }
-    
+
     if ((hResume != (HANDLE)NULL) &&
         (hLsaConnection != (HANDLE)NULL)) {
         LsaEndEnumGroups(hLsaConnection, hResume);
     }
-    
+
     if (hLsaConnection != (HANDLE)NULL) {
         LsaCloseServer(hLsaConnection);
     }
@@ -180,38 +185,38 @@ error:
 
 
     dwError = MapErrorCode(dwError);
-    
+
     dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
-    
+
     if (dwErrorBufferSize > 0)
     {
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
-        
+
         dwError2 = LsaAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
-        
+
         if (!dwError2)
         {
             DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
-            
+
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to enumerate groups.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
-        
+
         LSA_SAFE_FREE_STRING(pszErrorBuffer);
     }
-    
+
     if (bPrintOrigError)
     {
         fprintf(stderr, "Failed to enumerate groups. Error code [%d]\n", dwError);
     }
 
-    
+
     goto cleanup;
 }
 
@@ -228,7 +233,7 @@ ParseArgs(
             PARSE_MODE_LEVEL,
             PARSE_MODE_BATCHSIZE
         } ParseMode;
-        
+
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
@@ -242,11 +247,11 @@ ParseArgs(
         {
             break;
         }
-        
+
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-        
+
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -265,30 +270,30 @@ ParseArgs(
                     exit(0);
                 }
                 break;
-                
+
             case PARSE_MODE_LEVEL:
-                
+
                 if (!IsUnsignedInteger(pszArg))
                 {
                     fprintf(stderr, "Please use an info level which is an unsigned integer.\n");
                     ShowUsage();
                     exit(1);
                 }
-                
+
                 dwInfoLevel = atoi(pszArg);
                 parseMode = PARSE_MODE_OPEN;
-                
+
                 break;
-                
+
             case PARSE_MODE_BATCHSIZE:
-                
+
                 if (!IsUnsignedInteger(pszArg))
                 {
                     fprintf(stderr, "Please use a batchsize which is an unsigned integer.\n");
                     ShowUsage();
                     exit(1);
                 }
-                
+
                 dwBatchSize = atoi(pszArg);
                 if ((dwBatchSize < 0) ||
                     (dwBatchSize > 1000)) {
@@ -296,16 +301,16 @@ ParseArgs(
                     exit(1);
                 }
                 parseMode = PARSE_MODE_OPEN;
-                
+
                 break;
         }
-        
+
     } while (iArg < argc);
 
     if (parseMode != PARSE_MODE_OPEN)
     {
         ShowUsage();
-        exit(1);  
+        exit(1);
     }
 
     *pdwInfoLevel = dwInfoLevel;
@@ -352,7 +357,7 @@ PrintGroupInfo_1(
     fprintf(stdout, "Members:\n");
 
     ppszMembers = pGroupInfo->ppszMembers;
-    
+
     if (ppszMembers){
     while (!IsNullOrEmptyString(*ppszMembers)) {
           if (iMember) {
@@ -374,22 +379,22 @@ MapErrorCode(
     )
 {
     DWORD dwError2 = dwError;
-    
+
     switch (dwError)
     {
         case ECONNREFUSED:
         case ENETUNREACH:
         case ETIMEDOUT:
-            
+
             dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
-            
+
             break;
-            
+
         default:
-            
+
             break;
     }
-    
+
     return dwError2;
 }
 
@@ -409,19 +414,19 @@ IsUnsignedInteger(
     INT iLength = 0;
     INT iCharIdx = 0;
     CHAR cNext = '\0';
-    
+
     if (IsNullOrEmptyString(pszIntegerCandidate))
     {
         bIsUnsignedInteger = FALSE;
         goto error;
     }
-    
+
     iLength = strlen(pszIntegerCandidate);
-    
+
     do {
 
       cNext = pszIntegerCandidate[iCharIdx++];
-      
+
       switch(parseMode) {
 
           case PARSE_MODE_LEADING_SPACE:
@@ -436,7 +441,7 @@ IsUnsignedInteger(
               }
               break;
           }
-          
+
           case PARSE_MODE_INTEGER:
           {
               if (isspace((int)cNext))
@@ -449,7 +454,7 @@ IsUnsignedInteger(
               }
               break;
           }
-          
+
           case PARSE_MODE_TRAILING_SPACE:
           {
               if (!isspace((int)cNext))
@@ -457,13 +462,13 @@ IsUnsignedInteger(
                   bIsUnsignedInteger = FALSE;
               }
               break;
-          }    
+          }
       }
 
     } while (iCharIdx < iLength && bIsUnsignedInteger == TRUE);
 
-    
+
 error:
 
-    return bIsUnsignedInteger;   
+    return bIsUnsignedInteger;
 }

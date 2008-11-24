@@ -55,20 +55,60 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
+#define YPCAT_SAFE_LOG_STRING(x) \
+    ( (x) ? (x) : "" )
+
 static
 DWORD
 ParseArgs(
-    int    argc,
-    char*  argv[],
-    PDWORD pdwInfoLevel,
-    PDWORD pdwBatchSize,
-    PSTR*  ppszMapName,
-    PBOOLEAN pbQueryKeysOnly
+    int      argc,
+    char*    argv[],
+    PSTR*    ppszMapName,
+    PSTR*    ppszDomain,
+    PBOOLEAN pbPrintKeys,
+    PBOOLEAN pbPrintNicknameTable,
+    PBOOLEAN pbUseNicknameTable
     );
 
 static
 VOID
 ShowUsage();
+
+static
+DWORD
+EnumerateUsers(
+    HANDLE  hLsaConnection,
+    BOOLEAN bPrintKeys
+    );
+
+static
+DWORD
+EnumerateGroups(
+    HANDLE  hLsaConnection,
+    BOOLEAN bPrintKeys
+    );
+
+static
+DWORD
+EnumerateMaps(
+    HANDLE  hLsaConnection,
+    PCSTR   pszMapName,
+    BOOLEAN bPrintKeys
+    );
+
+static
+VOID
+PrintUserInfo_0(
+    PLSA_USER_INFO_0 pUserInfo,
+    BOOLEAN bPrintKeys
+    );
+
+static
+VOID
+PrintGroupInfo_1(
+    PLSA_GROUP_INFO_1 pGroupInfo,
+    BOOLEAN bPrintKeys
+    );
 
 static
 VOID
@@ -78,15 +118,15 @@ PrintMapInfo_0(
     );
 
 static
-DWORD
-MapErrorCode(
-    DWORD dwError
+VOID
+PrintNicknameTable(
+    PDLINKEDLIST pNicknameList
     );
 
 static
-BOOLEAN
-IsUnsignedInteger(
-    PCSTR pszIntegerCandidate
+DWORD
+MapErrorCode(
+    DWORD dwError
     );
 
 int
@@ -96,99 +136,115 @@ main(
     )
 {
     DWORD dwError = 0;
-    DWORD dwMapInfoLevel = 0;
-    DWORD dwBatchSize = 10;
     HANDLE hLsaConnection = (HANDLE)NULL;
-    HANDLE hResume = (HANDLE)NULL;
-    PVOID* ppMapInfoList = NULL;
-    DWORD  dwNumMapsFound = 0;
-    DWORD  dwTotalMapsFound = 0;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
     PSTR    pszMapName = NULL;
-    BOOLEAN bQueryKeysOnly = FALSE;
-    LSA_NIS_MAP_QUERY_FLAGS dwFlags = LSA_NIS_MAP_QUERY_ALL;
+    PSTR    pszDomain = NULL;
+    BOOLEAN bPrintKeys = FALSE;
+    BOOLEAN bPrintNicknameTable = FALSE;
+    BOOLEAN bUseNicknameTable = TRUE;
+    PDLINKEDLIST pNISNicknameList = NULL;
+    BOOLEAN bNoNicknameFile = FALSE;
+    PCSTR   pszNicknameFilePath = "/var/yp/nicknames";
 
     dwError = ParseArgs(
                     argc,
                     argv,
-                    &dwMapInfoLevel,
-                    &dwBatchSize,
                     &pszMapName,
-                    &bQueryKeysOnly);
+                    &pszDomain,
+                    &bPrintKeys,
+                    &bPrintNicknameTable,
+                    &bUseNicknameTable);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (bQueryKeysOnly)
+    dwError = LsaNISGetNicknames(
+                    pszNicknameFilePath,
+                    &pNISNicknameList);
+    if (dwError == ENOENT)
     {
-        dwFlags = LSA_NIS_MAP_QUERY_KEYS;
+        bNoNicknameFile = TRUE;
+        dwError = 0;
+    }
+
+    if (bPrintNicknameTable)
+    {
+        if (bNoNicknameFile)
+        {
+            printf("nickname file %s does not exist.\n", pszNicknameFilePath);
+            goto cleanup;
+        }
+
+        if (pNISNicknameList)
+        {
+            PrintNicknameTable(pNISNicknameList);
+        }
+
+        goto cleanup;
+    }
+
+    if (bUseNicknameTable)
+    {
+        PCSTR pszLookupName = NULL;
+
+        if (bNoNicknameFile)
+        {
+            printf("nickname file %s does not exist.\n", pszNicknameFilePath);
+        }
+
+        if (pNISNicknameList)
+        {
+            pszLookupName = LsaNISLookupAlias(
+                                pNISNicknameList,
+                                pszMapName);
+
+            if (pszLookupName)
+            {
+                LSA_SAFE_FREE_STRING(pszMapName);
+
+                dwError = LsaAllocateString(
+                                pszLookupName,
+                                &pszMapName);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
     }
 
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaBeginEnumNSSArtefacts(
-                    hLsaConnection,
-                    dwMapInfoLevel,
-                    pszMapName,
-                    dwFlags,
-                    dwBatchSize,
-                    &hResume);
+    if (!strcasecmp(pszMapName, "passwd.byname") ||
+        !strcasecmp(pszMapName, "passwd"))
+    {
+        dwError = EnumerateUsers(hLsaConnection, bPrintKeys);
+    }
+    else if (!strcasecmp(pszMapName, "group.byname") ||
+             !strcasecmp(pszMapName, "group"))
+    {
+        dwError = EnumerateGroups(hLsaConnection, bPrintKeys);
+    }
+    else
+    {
+        dwError = EnumerateMaps(
+                        hLsaConnection,
+                        pszMapName,
+                        bPrintKeys);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
-    do
-    {
-        DWORD iMap = 0;
-
-        dwError = LsaEnumNSSArtefacts(
-                    hLsaConnection,
-                    hResume,
-                    &dwNumMapsFound,
-                    &ppMapInfoList);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (!dwNumMapsFound) {
-            break;
-        }
-
-        dwTotalMapsFound += dwNumMapsFound;
-
-        for (iMap = 0; iMap < dwNumMapsFound; iMap++)
-        {
-            PVOID pMapInfo = *(ppMapInfoList + iMap);
-
-            switch(dwMapInfoLevel)
-            {
-                case 0:
-
-                    PrintMapInfo_0((PLSA_NSS_ARTEFACT_INFO_0)pMapInfo, bQueryKeysOnly);
-                    break;
-
-                default:
-
-                    fprintf(stderr,
-                            "Error: Invalid map info level [%d]\n",
-                            dwMapInfoLevel);
-                    break;
-            }
-        }
-    } while (dwNumMapsFound);
-
 cleanup:
-
-    if (ppMapInfoList) {
-       LsaFreeNSSArtefactInfoList(dwMapInfoLevel, ppMapInfoList, dwNumMapsFound);
-    }
-
-    if ((hResume != (HANDLE)NULL) &&
-        (hLsaConnection != (HANDLE)NULL)) {
-        LsaEndEnumNSSArtefacts(hLsaConnection, hResume);
-    }
 
     if (hLsaConnection != (HANDLE)NULL) {
         LsaCloseServer(hLsaConnection);
     }
 
+    if (pNISNicknameList)
+    {
+        LsaNISFreeNicknameList(pNISNicknameList);
+    }
+
     LSA_SAFE_FREE_STRING(pszMapName);
+    LSA_SAFE_FREE_STRING(pszDomain);
 
     return (dwError);
 
@@ -226,6 +282,8 @@ error:
         fprintf(stderr, "Failed to enumerate maps. Error code [%d]\n", dwError);
     }
 
+    dwError = 1;
+
     goto cleanup;
 }
 
@@ -234,16 +292,16 @@ DWORD
 ParseArgs(
     int            argc,
     char*          argv[],
-    PDWORD         pdwInfoLevel,
-    PDWORD         pdwBatchSize,
     PSTR*          ppszMapName,
-    PBOOLEAN       pbQueryKeysOnly
+    PSTR*          ppszDomain,
+    PBOOLEAN       pbPrintKeys,
+    PBOOLEAN       pbPrintNicknameTable,
+    PBOOLEAN       pbUseNicknameTable
     )
 {
     typedef enum {
             PARSE_MODE_OPEN = 0,
-            PARSE_MODE_LEVEL,
-            PARSE_MODE_BATCHSIZE,
+            PARSE_MODE_DOMAIN,
             PARSE_MODE_DONE
         } ParseMode;
 
@@ -251,10 +309,11 @@ ParseArgs(
     int iArg = 1;
     PSTR pszArg = NULL;
     ParseMode parseMode = PARSE_MODE_OPEN;
-    DWORD dwInfoLevel = 0;
-    DWORD dwBatchSize = 10;
     PSTR pszMapName = NULL;
     BOOLEAN bQueryKeysOnly = FALSE;
+    BOOLEAN bUseNicknameTable = TRUE;
+    BOOLEAN bPrintNicknameTable = FALSE;
+    PSTR    pszDomain = NULL;
 
     do {
         pszArg = argv[iArg++];
@@ -273,15 +332,20 @@ ParseArgs(
                     ShowUsage();
                     exit(0);
                 }
-                else if (!strcmp(pszArg, "--level")) {
-                    parseMode = PARSE_MODE_LEVEL;
-                }
-                else if (!strcmp(pszArg, "--batchsize")) {
-                    parseMode = PARSE_MODE_BATCHSIZE;
+                else if (!strcmp(pszArg, "-d")) {
+                    parseMode = PARSE_MODE_DOMAIN;
                 }
                 else if (!strcmp(pszArg, "-k"))
                 {
                     bQueryKeysOnly = TRUE;
+                }
+                else if (!strcmp(pszArg, "-t"))
+                {
+                    bUseNicknameTable = FALSE;
+                }
+                else if (!strcmp(pszArg, "-x"))
+                {
+                    bPrintNicknameTable = TRUE;
                 }
                 else
                 {
@@ -294,30 +358,15 @@ ParseArgs(
                 }
                 break;
 
-            case PARSE_MODE_LEVEL:
+            case PARSE_MODE_DOMAIN:
 
-                if (!IsUnsignedInteger(pszArg))
-                {
-                    fprintf(stderr, "please use an info level which is an unsigned integer.\n");
-                }
-                dwInfoLevel = atoi(pszArg);
-                parseMode = PARSE_MODE_OPEN;
+                LSA_SAFE_FREE_STRING(pszDomain);
 
-                break;
+                dwError = LsaAllocateString(
+                              pszArg,
+                              &pszDomain);
+                BAIL_ON_LSA_ERROR(dwError);
 
-            case PARSE_MODE_BATCHSIZE:
-
-                if (!IsUnsignedInteger(pszArg))
-                {
-                    fprintf(stderr, "please use a batch size which is an unsigned integer.\n");
-                }
-
-                dwBatchSize = atoi(pszArg);
-                if ((dwBatchSize < 0) ||
-                    (dwBatchSize > 1000)) {
-                    ShowUsage();
-                    exit(1);
-                }
                 parseMode = PARSE_MODE_OPEN;
 
                 break;
@@ -335,16 +384,17 @@ ParseArgs(
         exit(1);
     }
 
-    if (IsNullOrEmptyString(pszMapName))
+    if (!bPrintNicknameTable && IsNullOrEmptyString(pszMapName))
     {
         ShowUsage();
         exit(1);
     }
 
     *ppszMapName = pszMapName;
-    *pdwInfoLevel = dwInfoLevel;
-    *pdwBatchSize = dwBatchSize;
     *pbQueryKeysOnly = bQueryKeysOnly;
+    *ppszDomain = pszDomain;
+    *pbPrintNicknameTable = bPrintNicknameTable;
+    *pbUseNicknameTable = bUseNicknameTable;
 
 cleanup:
 
@@ -353,6 +403,7 @@ cleanup:
 error:
 
     LSA_SAFE_FREE_STRING(pszMapName);
+    LSA_SAFE_FREE_STRING(pszDomain);
 
     goto cleanup;
 }
@@ -361,9 +412,294 @@ static
 void
 ShowUsage()
 {
-    printf("Usage: lw-ypcat {--level [0]} {--batchsize [1..1000]} {-k} <map name>\n");
+    printf("Usage: lw-ypcat {-d <domain>} {-x} {-t} {-k} <map name>\n");
     printf("\n");
     printf("-k : query keys only.\n");
+    printf("-x : print nis nickname table.\n");
+    printf("-t : do not use nickname table.\n");
+}
+
+static
+DWORD
+EnumerateUsers(
+    HANDLE  hLsaConnection,
+    BOOLEAN bPrintKeys
+    )
+{
+    DWORD  dwError = 0;
+    DWORD  dwUserInfoLevel = 0;
+    DWORD  dwBatchSize = 100;
+    DWORD  dwNumUsersFound = 0;
+    PVOID* ppUserInfoList = NULL;
+    HANDLE hResume = (HANDLE)NULL;
+
+    dwError = LsaBeginEnumUsers(
+                    hLsaConnection,
+                    dwUserInfoLevel,
+                    dwBatchSize,
+                    &hResume);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    do
+    {
+        DWORD iUser = 0;
+
+        if (ppUserInfoList) {
+           LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
+           ppUserInfoList = NULL;
+        }
+
+        dwError = LsaEnumUsers(
+                    hLsaConnection,
+                    hResume,
+                    &dwNumUsersFound,
+                    &ppUserInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!dwNumUsersFound) {
+            break;
+        }
+
+        for (iUser = 0; iUser < dwNumUsersFound; iUser++)
+        {
+            PLSA_USER_INFO_0 pUserInfo = (PLSA_USER_INFO_0)*(ppUserInfoList + iUser);
+
+            PrintUserInfo_0(pUserInfo, bPrintKeys);
+        }
+
+    } while (dwNumUsersFound);
+
+cleanup:
+
+    if (ppUserInfoList) {
+       LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
+    }
+
+    if ((hResume != (HANDLE)NULL) &&
+        (hLsaConnection != (HANDLE)NULL)) {
+        LsaEndEnumUsers(hLsaConnection, hResume);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+EnumerateGroups(
+    HANDLE  hLsaConnection,
+    BOOLEAN bPrintKeys
+    )
+{
+    DWORD  dwError = 0;
+    DWORD  dwGroupInfoLevel = 1;
+    DWORD  dwBatchSize = 100;
+    DWORD  dwNumGroupsFound = 0;
+    PVOID* ppGroupInfoList = NULL;
+    HANDLE hResume = (HANDLE)NULL;
+
+    dwError = LsaBeginEnumGroups(
+                    hLsaConnection,
+                    dwGroupInfoLevel,
+                    dwBatchSize,
+                    &hResume);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    do
+    {
+        DWORD iGroup = 0;
+
+        if (ppGroupInfoList) {
+           LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
+           ppGroupInfoList = NULL;
+        }
+
+        dwError = LsaEnumGroups(
+                    hLsaConnection,
+                    hResume,
+                    &dwNumGroupsFound,
+                    &ppGroupInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!dwNumGroupsFound) {
+            break;
+        }
+
+        for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
+        {
+            PLSA_GROUP_INFO_1 pGroupInfo = (PLSA_GROUP_INFO_1)*(ppGroupInfoList + iGroup);
+
+            PrintGroupInfo_1(pGroupInfo, bPrintKeys);
+        }
+
+    } while (dwNumGroupsFound);
+
+cleanup:
+
+    if (ppGroupInfoList) {
+       LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
+    }
+
+    if ((hResume != (HANDLE)NULL) &&
+        (hLsaConnection != (HANDLE)NULL)) {
+        LsaEndEnumGroups(hLsaConnection, hResume);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+EnumerateMaps(
+    HANDLE  hLsaConnection,
+    PCSTR   pszMapName,
+    BOOLEAN bPrintKeys
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwMapInfoLevel = 0;
+    DWORD dwBatchSize = 100;
+    DWORD  dwNumMapsFound = 0;
+    DWORD  dwTotalMapsFound = 0;
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags = LSA_NIS_MAP_QUERY_ALL;
+    PVOID* ppMapInfoList = NULL;
+    HANDLE hResume = (HANDLE)NULL;
+
+    dwError = LsaBeginEnumNSSArtefacts(
+                    hLsaConnection,
+                    dwMapInfoLevel,
+                    pszMapName,
+                    dwFlags,
+                    dwBatchSize,
+                    &hResume);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    do
+    {
+        DWORD iMap = 0;
+
+        dwError = LsaEnumNSSArtefacts(
+                    hLsaConnection,
+                    hResume,
+                    &dwNumMapsFound,
+                    &ppMapInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!dwNumMapsFound) {
+            break;
+        }
+
+        dwTotalMapsFound += dwNumMapsFound;
+
+        for (iMap = 0; iMap < dwNumMapsFound; iMap++)
+        {
+            PVOID pMapInfo = *(ppMapInfoList + iMap);
+
+            switch(dwMapInfoLevel)
+            {
+                case 0:
+
+                    PrintMapInfo_0((PLSA_NSS_ARTEFACT_INFO_0)pMapInfo, bPrintKeys);
+                    break;
+
+                default:
+
+                    fprintf(stderr,
+                            "Error: Invalid map info level [%d]\n",
+                            dwMapInfoLevel);
+                    break;
+            }
+        }
+    } while (dwNumMapsFound);
+
+cleanup:
+
+    if (ppMapInfoList) {
+       LsaFreeNSSArtefactInfoList(dwMapInfoLevel, ppMapInfoList, dwNumMapsFound);
+    }
+
+    if ((hResume != (HANDLE)NULL) &&
+        (hLsaConnection != (HANDLE)NULL)) {
+        LsaEndEnumNSSArtefacts(hLsaConnection, hResume);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+PrintUserInfo_0(
+    PLSA_USER_INFO_0 pUserInfo,
+    BOOLEAN bPrintKeys
+    )
+{
+    if (bPrintKeys)
+    {
+        printf("%s ", pUserInfo->pszName);
+    }
+
+    printf("%s:%s:%u:%u:%s:%s:%s\n",
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszName),
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszPasswd),
+           (unsigned int)pUserInfo->uid,
+           (unsigned int)pUserInfo->gid,
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszGecos),
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszHomedir),
+           YPCAT_SAFE_LOG_STRING(pUserInfo->pszShell));
+}
+
+static
+VOID
+PrintGroupInfo_1(
+    PLSA_GROUP_INFO_1 pGroupInfo,
+    BOOLEAN bPrintKeys
+    )
+{
+    PSTR* ppszMembers = NULL;
+
+    if (bPrintKeys)
+    {
+        printf("%s ", pGroupInfo->pszName);
+    }
+
+    printf("%s:%s:%u:",
+           YPCAT_SAFE_LOG_STRING(pGroupInfo->pszName),
+           YPCAT_SAFE_LOG_STRING(pGroupInfo->pszPasswd),
+           (unsigned int)pGroupInfo->gid);
+
+    ppszMembers = pGroupInfo->ppszMembers;
+
+    if (ppszMembers)
+    {
+        DWORD iMember = 0;
+
+        while (!IsNullOrEmptyString(*ppszMembers))
+        {
+          if (iMember)
+          {
+             printf(",%s", *ppszMembers);
+          }
+          else
+          {
+             printf("%s", *ppszMembers);
+          }
+          iMember++;
+          ppszMembers++;
+       }
+    }
+
+    printf("\n");
 }
 
 static
@@ -375,14 +711,29 @@ PrintMapInfo_0(
 {
     if (bPrintKeysOnly)
     {
-        fprintf(stdout, "%s\n",
-                        (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName));
+        printf("%s\n", YPCAT_SAFE_LOG_STRING(pMapInfo->pszName));
     }
     else
     {
-        fprintf(stdout, "%s : %s\n",
-                (IsNullOrEmptyString(pMapInfo->pszName) ? "" : pMapInfo->pszName),
-                (IsNullOrEmptyString(pMapInfo->pszValue) ? "" : pMapInfo->pszValue));
+        printf("%s %s\n",
+               YPCAT_SAFE_LOG_STRING(pMapInfo->pszName),
+               YPCAT_SAFE_LOG_STRING(pMapInfo->pszValue));
+    }
+}
+
+static
+VOID
+PrintNicknameTable(
+    PDLINKEDLIST pNicknameList
+    )
+{
+    PDLINKEDLIST pIter = pNicknameList;
+
+    for (; pIter; pIter = pIter->pNext)
+    {
+        PLSA_NIS_NICKNAME pNickname = (PLSA_NIS_NICKNAME)pIter->pItem;
+
+        printf("Use \"%s\" for map \"%s\"\n", pNickname->pszMapAlias, pNickname->pszMapName);
     }
 }
 
@@ -412,79 +763,4 @@ MapErrorCode(
     return dwError2;
 }
 
-static
-BOOLEAN
-IsUnsignedInteger(
-    PCSTR pszIntegerCandidate
-    )
-{
-    typedef enum {
-        PARSE_MODE_LEADING_SPACE = 0,
-        PARSE_MODE_INTEGER,
-        PARSE_MODE_TRAILING_SPACE
-    } ParseMode;
-
-    ParseMode parseMode = PARSE_MODE_LEADING_SPACE;
-    BOOLEAN bIsUnsignedInteger = TRUE;
-    INT iLength = 0;
-    INT iCharIdx = 0;
-    CHAR cNext = '\0';
-
-    if (IsNullOrEmptyString(pszIntegerCandidate))
-    {
-        bIsUnsignedInteger = FALSE;
-        goto error;
-    }
-
-    iLength = strlen(pszIntegerCandidate);
-
-    do {
-
-      cNext = pszIntegerCandidate[iCharIdx++];
-
-      switch(parseMode) {
-
-          case PARSE_MODE_LEADING_SPACE:
-          {
-              if (isdigit((int)cNext))
-              {
-                  parseMode = PARSE_MODE_INTEGER;
-              }
-              else if (!isspace((int)cNext))
-              {
-                  bIsUnsignedInteger = FALSE;
-              }
-              break;
-          }
-
-          case PARSE_MODE_INTEGER:
-          {
-              if (isspace((int)cNext))
-              {
-                  parseMode = PARSE_MODE_TRAILING_SPACE;
-              }
-              else if (!isdigit((int)cNext))
-              {
-                  bIsUnsignedInteger = FALSE;
-              }
-              break;
-          }
-
-          case PARSE_MODE_TRAILING_SPACE:
-          {
-              if (!isspace((int)cNext))
-              {
-                  bIsUnsignedInteger = FALSE;
-              }
-              break;
-          }
-      }
-
-    } while (iCharIdx < iLength && bIsUnsignedInteger == TRUE);
-
-
-error:
-
-    return bIsUnsignedInteger;
-}
 

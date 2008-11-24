@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Test Program for exercising LsaEnumUsers
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -111,38 +111,43 @@ main(
 
     dwError = ParseArgs(argc, argv, &dwUserInfoLevel, &dwBatchSize);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaBeginEnumUsers(
                     hLsaConnection,
                     dwUserInfoLevel,
                     dwBatchSize,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     do
     {
         DWORD iUser = 0;
-        
+
+        if (ppUserInfoList) {
+           LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
+           ppUserInfoList = NULL;
+        }
+
         dwError = LsaEnumUsers(
                     hLsaConnection,
                     hResume,
-                    &dwNumUsersFound,                    
+                    &dwNumUsersFound,
                     &ppUserInfoList);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         if (!dwNumUsersFound) {
             break;
         }
-       
+
         dwTotalUsersFound+=dwNumUsersFound;
-        
+
         for (iUser = 0; iUser < dwNumUsersFound; iUser++)
         {
             PVOID pUserInfo = *(ppUserInfoList + iUser);
-            
+
             switch(dwUserInfoLevel)
             {
                 case 0:
@@ -155,28 +160,28 @@ main(
                     PrintUserInfo_2((PLSA_USER_INFO_2)pUserInfo);
                     break;
                 default:
-            
+
                     fprintf(stderr,
                             "Error: Invalid user info level [%d]\n",
                             dwUserInfoLevel);
                     break;
             }
-        }        
+        }
     } while (dwNumUsersFound);
-    
+
     fprintf(stdout, "TotalNumUsersFound:      %u\n", dwTotalUsersFound);
-        
+
 cleanup:
 
     if (ppUserInfoList) {
        LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
     }
-    
+
     if ((hResume != (HANDLE)NULL) &&
         (hLsaConnection != (HANDLE)NULL)) {
         LsaEndEnumUsers(hLsaConnection, hResume);
     }
-    
+
     if (hLsaConnection != (HANDLE)NULL) {
         LsaCloseServer(hLsaConnection);
     }
@@ -186,32 +191,32 @@ cleanup:
 error:
 
     dwError = MapErrorCode(dwError);
-    
+
     dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
-    
+
     if (dwErrorBufferSize > 0)
     {
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
-        
+
         dwError2 = LsaAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
-        
+
         if (!dwError2)
         {
             DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
-            
+
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to enumerate users.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
-        
+
         LSA_SAFE_FREE_STRING(pszErrorBuffer);
     }
-    
+
     if (bPrintOrigError)
     {
         fprintf(stderr, "Failed to enumerate users. Error code [%d]\n", dwError);
@@ -234,7 +239,7 @@ ParseArgs(
             PARSE_MODE_BATCHSIZE,
             PARSE_MODE_DONE
         } ParseMode;
-        
+
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
@@ -248,11 +253,11 @@ ParseArgs(
         {
             break;
         }
-        
+
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-        
+
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -271,28 +276,28 @@ ParseArgs(
                     exit(1);
                 }
                 break;
-                
+
             case PARSE_MODE_LEVEL:
-                
+
                 if (!IsUnsignedInteger(pszArg))
                 {
                     ShowUsage();
                     exit(1);
                 }
-                
+
                 dwInfoLevel = atoi(pszArg);
                 parseMode = PARSE_MODE_OPEN;
-                
+
                 break;
-                
+
             case PARSE_MODE_BATCHSIZE:
-                
+
                 if (!IsUnsignedInteger(pszArg))
                 {
                     ShowUsage();
                     exit(1);
                 }
-                
+
                 dwBatchSize = atoi(pszArg);
                 if ((dwBatchSize < 0) ||
                     (dwBatchSize > 1000)) {
@@ -300,28 +305,28 @@ ParseArgs(
                     exit(1);
                 }
                 parseMode = PARSE_MODE_DONE;
-                
+
                 break;
-                
+
             case PARSE_MODE_DONE:
                 ShowUsage();
-                exit(1);  
+                exit(1);
         }
-        
+
     } while (iArg < argc);
 
     if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
     {
         ShowUsage();
-        exit(1);  
+        exit(1);
     }
-    
+
     if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
     {
         ShowUsage();
-        exit(1);  
+        exit(1);
     }
-    
+
     *pdwInfoLevel = dwInfoLevel;
     *pdwBatchSize = dwBatchSize;
 
@@ -424,22 +429,22 @@ MapErrorCode(
     )
 {
     DWORD dwError2 = dwError;
-    
+
     switch (dwError)
     {
         case ECONNREFUSED:
         case ENETUNREACH:
         case ETIMEDOUT:
-            
+
             dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
-            
+
             break;
-            
+
         default:
-            
+
             break;
     }
-    
+
     return dwError2;
 }
 
@@ -459,19 +464,19 @@ IsUnsignedInteger(
     INT iLength = 0;
     INT iCharIdx = 0;
     CHAR cNext = '\0';
-    
+
     if (IsNullOrEmptyString(pszIntegerCandidate))
     {
         bIsUnsignedInteger = FALSE;
         goto error;
     }
-    
+
     iLength = strlen(pszIntegerCandidate);
-    
+
     do {
 
       cNext = pszIntegerCandidate[iCharIdx++];
-      
+
       switch(parseMode) {
 
           case PARSE_MODE_LEADING_SPACE:
@@ -486,7 +491,7 @@ IsUnsignedInteger(
               }
               break;
           }
-          
+
           case PARSE_MODE_INTEGER:
           {
               if (isspace((int)cNext))
@@ -499,7 +504,7 @@ IsUnsignedInteger(
               }
               break;
           }
-          
+
           case PARSE_MODE_TRAILING_SPACE:
           {
               if (!isspace((int)cNext))
@@ -507,14 +512,14 @@ IsUnsignedInteger(
                   bIsUnsignedInteger = FALSE;
               }
               break;
-          }    
+          }
       }
 
     } while (iCharIdx < iLength && bIsUnsignedInteger == TRUE);
 
-    
+
 error:
 
-    return bIsUnsignedInteger;   
+    return bIsUnsignedInteger;
 }
 

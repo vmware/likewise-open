@@ -26,6 +26,7 @@ liblsautils_la_SOURCES =       \
        lsasecurityidentifier.c \
        lsauserinfo.c           \
        lsaloginfo.c            \
+       nisnicknames.c          \
        sidinfo.c               \
        sysfuncs.c              \
        syslog.c                \

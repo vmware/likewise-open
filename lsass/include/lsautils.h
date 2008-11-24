@@ -506,6 +506,12 @@ typedef enum
     LsaMetricSentinel
 } LsaMetricType;
 
+typedef struct __LSA_NIS_NICKNAME
+{
+    PSTR pszMapAlias;
+    PSTR pszMapName;
+} LSA_NIS_NICKNAME, *PLSA_NIS_NICKNAME;
+
 #if !defined(HAVE_STRTOLL)
 
 long long int
@@ -1467,6 +1473,23 @@ LsaFreeDomainInfo(
 VOID
 LsaFreeDomainInfoContents(
     PLSA_TRUSTED_DOMAIN_INFO pDomainInfo
+    );
+
+DWORD
+LsaNISGetNicknames(
+    PCSTR         pszNicknameFilePath,
+    PDLINKEDLIST* ppNicknameList
+    );
+
+PCSTR
+LsaNISLookupAlias(
+    PDLINKEDLIST pNicknameList,
+    PCSTR pszAlias
+    );
+
+VOID
+LsaNISFreeNicknameList(
+    PDLINKEDLIST pNicknameList
     );
 
 #endif /* __LSA_UTILS_H__ */
