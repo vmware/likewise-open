@@ -326,7 +326,7 @@ ParseArgs(
     PSTR* ppszValues[2] = {0};
     DWORD iValue = 0;
     DWORD dwMaxIndex = 1;
-    BOOLEAN bQueryKeysOnly = FALSE;
+    BOOLEAN bPrintKeys = FALSE;
     BOOLEAN bUseNicknameTable = TRUE;
     BOOLEAN bPrintNicknameTable = FALSE;
     PSTR    pszDomain = NULL;
@@ -356,7 +356,7 @@ ParseArgs(
                 }
                 else if (!strcmp(pszArg, "-k"))
                 {
-                    bQueryKeysOnly = TRUE;
+                    bPrintKeys = TRUE;
                 }
                 else if (!strcmp(pszArg, "-t"))
                 {
@@ -421,7 +421,7 @@ ParseArgs(
 
     *ppszMapName = pszMapName;
     *ppszKeyName = pszKeyName;
-    *pbQueryKeysOnly = bQueryKeysOnly;
+    *pbPrintKeys = bPrintKeys;
     *ppszDomain = pszDomain;
     *pbPrintNicknameTable = bPrintNicknameTable;
     *pbUseNicknameTable = bUseNicknameTable;
