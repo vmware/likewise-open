@@ -709,16 +709,12 @@ PrintMapInfo_0(
     BOOLEAN bPrintKeys
     )
 {
-    if (!bPrintKeys)
+    if (bPrintKeys)
     {
-        printf("%s\n", YPCAT_SAFE_LOG_STRING(pMapInfo->pszName));
+        printf("%s ", YPCAT_SAFE_LOG_STRING(pMapInfo->pszName));
     }
-    else
-    {
-        printf("%s %s\n",
-               YPCAT_SAFE_LOG_STRING(pMapInfo->pszName),
-               YPCAT_SAFE_LOG_STRING(pMapInfo->pszValue));
-    }
+
+    printf("%s\n", YPCAT_SAFE_LOG_STRING(pMapInfo->pszValue));
 }
 
 static
