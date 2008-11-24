@@ -66,7 +66,7 @@ EVTInitLoggingToSyslog(
     gEvtLogInfo.logTarget = LOG_TO_SYSLOG;
 
     strncpy(gEvtLogInfo.data.syslog.szIdentifier, pszIdentifier, PATH_MAX);
-    *(gEvtLogInfo.data.syslog.szIdentifier+PATH_MAX+1) = '\0';
+    *(gEvtLogInfo.data.syslog.szIdentifier+PATH_MAX) = '\0';
 
     gEvtLogInfo.data.syslog.dwOption = dwOption;
     gEvtLogInfo.data.syslog.dwFacility = dwFacility;

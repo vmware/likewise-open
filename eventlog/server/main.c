@@ -497,7 +497,7 @@ EVTParseArgs(
             case PARSE_MODE_LOGFILE:
             {
                 strncpy(pEVTServerInfo->szLogFilePath, pArg, PATH_MAX);
-                *(pEVTServerInfo->szLogFilePath+PATH_MAX+1) = '\0';
+                *(pEVTServerInfo->szLogFilePath+PATH_MAX) = '\0';
                 parseMode = PARSE_MODE_OPEN;
             }
             break;
@@ -520,8 +520,9 @@ EVTParseArgs(
             case PARSE_MODE_CONFIGFILE:
             {
                 strncpy(pEVTServerInfo->szConfigFilePath, pArg, PATH_MAX);
-                *(pEVTServerInfo->szConfigFilePath+PATH_MAX+1) = '\0';
+                *(pEVTServerInfo->szConfigFilePath+PATH_MAX) = '\0';
                 parseMode = PARSE_MODE_OPEN;
+
             }
             break;
         }
