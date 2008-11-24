@@ -164,5 +164,13 @@ ADMarshalUserInfoListDefaultSchemaOrUnprovision(
     PDWORD pdwNumUsers
     );
 
+DWORD
+CreateObjectLoginNameInfo(
+    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszSamAccountName,
+    IN PCSTR pszSid
+    );
+
 #endif //__LSALDAP_MARSHAL_USER_P_H__
 

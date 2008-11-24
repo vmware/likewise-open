@@ -1972,6 +1972,51 @@ error:
     goto cleanup;
 }
 
+DWORD
+CreateObjectLoginNameInfo(
+    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszSamAccountName,
+    IN PCSTR pszSid
+    )
+{
+    DWORD dwError = 0;
+    PLSA_LOGIN_NAME_INFO pLoginNameInfo = NULL;
+
+    dwError = LsaAllocateMemory(
+                    sizeof(LSA_LOGIN_NAME_INFO),
+                    (PVOID*)&pLoginNameInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pLoginNameInfo->nameType = NameType_NT4;
+
+    dwError = LsaAllocateString(
+                    pszDnsDomainName,
+                    &pLoginNameInfo->pszFullDomainName);
+
+    dwError = LsaDmWrapGetDomainName(
+                    pszDnsDomainName,
+                    NULL,
+                    &pLoginNameInfo->pszDomainNetBiosName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pszSamAccountName, &pLoginNameInfo->pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pszSid, &pLoginNameInfo->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppLoginNameInfo = pLoginNameInfo;
+
+cleanup:
+    return dwError;
+
+error:
+    *ppLoginNameInfo = NULL;
+
+    LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo);
+    goto cleanup;
+}
 
 /*
 local variables:

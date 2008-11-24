@@ -122,9 +122,11 @@ typedef struct _LSA_AD_BATCH_DOMAIN_ENTRY {
 typedef struct _LSA_AD_BATCH_QUERY_TERM {
     LSA_AD_BATCH_QUERY_TYPE Type;
     union {
-        // This can be a DN, SID, NT4 name, or alias.
+        // This can be a DN, SID, SAM account name, or alias.
         // It is not allocated.  Rather, it points to data
         // that lasts longer than this structure.
+        // NOTE: For an "by NT4" query, we just put the SAM
+        // account name here.
         PCSTR pszString;
         // This can be a uid or gid.
         DWORD dwId;

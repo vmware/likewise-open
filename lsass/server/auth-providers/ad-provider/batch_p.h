@@ -138,7 +138,7 @@ AD_FindObjectsByListForDomainInternal(
 // Fills in real and SIDs.
 static
 DWORD
-AD_ResolveRealObjectsByListRpc(
+LsaAdBatchResolveRpcObjects(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
     IN DWORD dwTotalItemCount,
@@ -148,7 +148,7 @@ AD_ResolveRealObjectsByListRpc(
 
 static
 DWORD
-AD_ResolveRealObjectsByList(
+LsaAdBatchResolveRealObjects(
     IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
@@ -159,8 +159,9 @@ AD_ResolveRealObjectsByList(
 
 static
 DWORD
-AD_ResolvePseudoObjectsByRealObjects(
+LsaAdBatchResolvePseudoObjects(
     IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
@@ -169,8 +170,9 @@ AD_ResolvePseudoObjectsByRealObjects(
 
 static
 DWORD
-AD_ResolvePseudoObjectsByRealObjectsWithLinkedCell(
+LsaAdBatchResolvePseudoObjectsWithLinkedCells(
     IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pBatchItemList
@@ -178,8 +180,9 @@ AD_ResolvePseudoObjectsByRealObjectsWithLinkedCell(
 
 static
 DWORD
-AD_ResolvePseudoObjectsByRealObjectsInternal(
+LsaAdBatchResolvePseudoObjectsInternal(
     IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OPTIONAL PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszCellDn,
     IN BOOLEAN bIsSchemaMode,
@@ -195,7 +198,7 @@ AD_ResolvePseudoObjectsByRealObjectsInternal(
 
 static
 DWORD
-AD_BuildBatchQueryForReal(
+LsaAdBatchBuildQueryForReal(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,
@@ -209,7 +212,7 @@ AD_BuildBatchQueryForReal(
 
 static
 DWORD
-AD_BuildBatchQueryForRealRpc(
+LsaAdBatchBuildQueryForRpc(
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,
     IN PLSA_LIST_LINKS pEndLinks,
@@ -221,7 +224,7 @@ AD_BuildBatchQueryForRealRpc(
 
 static
 DWORD
-AD_RecordRealObjectFromRpc(
+LsaAdBatchProcessRpcObject(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
@@ -232,7 +235,7 @@ AD_RecordRealObjectFromRpc(
 
 static
 DWORD
-AD_RecordRealObject(
+LsaAdBatchProcessRealObject(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
@@ -243,7 +246,8 @@ AD_RecordRealObject(
 
 static
 DWORD
-AD_RecordPseudoObjectBySid(
+LsaAdBatchProcessPseudoObject(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
     IN PLSA_LIST_LINKS pEndBatchItemListLinks,
@@ -259,33 +263,21 @@ typedef DWORD LSA_PROVISIONING_MODE, *PLSA_PROVISIONING_MODE;
 
 static
 DWORD
-AD_BuildBatchQueryForPseudoBySid(
-    IN BOOLEAN bIsSchemaMode,
-    // List of PLSA_AD_BATCH_ITEM
-    IN PLSA_LIST_LINKS pFirstLinks,
-    IN PLSA_LIST_LINKS pEndLinks,
-    OUT PLSA_LIST_LINKS* ppNextLinks,
-    IN DWORD dwMaxQuerySize,
-    IN DWORD dwMaxQueryCount,
-    OUT PDWORD pdwQueryCount,
-    OUT PSTR* ppszQuery
-    );
-
-static
-DWORD
-AD_BuildBatchQueryScopeForPseudoBySid(
-    IN BOOLEAN bIsSchemaMode,
-    IN LSA_PROVISIONING_MODE Mode,
-    IN OPTIONAL PCSTR pszDnsDomainName,
-    IN OPTIONAL PCSTR pszCellDn,
-    OUT PSTR* ppszScopeDn
-    );
-
-static
-DWORD
 LsaAdBatchAccountTypeToObjectType(
     IN ADAccountType AccountType,
     OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType
+    );
+
+static
+LSA_AD_BATCH_OBJECT_TYPE
+LsaAdBatchGetObjectTypeFromQueryType(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType
+    );
+
+static
+BOOLEAN
+LsaAdBatchHasValidCharsForSid(
+    IN PCSTR pszSidString
     );
 
 #endif /* __BATCH_P_H__ */

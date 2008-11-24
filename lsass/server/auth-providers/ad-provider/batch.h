@@ -65,13 +65,5 @@ ADLdap_FindObjectsBySidListBatched(
     OUT PAD_SECURITY_OBJECT** pppObjects
     );
 
-DWORD
-CreateObjectLoginNameInfo(
-    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR pszSamAccountName,
-    IN PCSTR pszSid
-    );
-
 #endif /* __BATCH_H__ */
 

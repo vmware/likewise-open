@@ -858,52 +858,6 @@ error:
     goto cleanup;
 }
 
-DWORD
-CreateObjectLoginNameInfo(
-    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR pszSamAccountName,
-    IN PCSTR pszSid
-    )
-{
-    DWORD dwError = 0;
-    PLSA_LOGIN_NAME_INFO pLoginNameInfo = NULL;
-
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_LOGIN_NAME_INFO),
-                    (PVOID*)&pLoginNameInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pLoginNameInfo->nameType = NameType_NT4;
-
-    dwError = LsaAllocateString(
-                    pszDnsDomainName,
-                    &pLoginNameInfo->pszFullDomainName);
-
-    dwError = LsaDmWrapGetDomainName(
-                    pszDnsDomainName,
-                    NULL,
-                    &pLoginNameInfo->pszDomainNetBiosName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaAllocateString(pszSamAccountName, &pLoginNameInfo->pszName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaAllocateString(pszSid, &pLoginNameInfo->pszObjectSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppLoginNameInfo = pLoginNameInfo;
-
-cleanup:
-    return dwError;
-
-error:
-    *ppLoginNameInfo = NULL;
-
-    LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo);
-    goto cleanup;
-}
-
 static
 DWORD
 AD_FindObjectsByListForDomain(
@@ -944,7 +898,7 @@ AD_FindObjectsByListForDomainInternal(
 
     if (bIsOneWayTrust && LSA_AD_BATCH_QUERY_TYPE_BY_SID == QueryType)
     {
-        dwError = AD_ResolveRealObjectsByListRpc(
+        dwError = LsaAdBatchResolveRpcObjects(
                         QueryType,
                         pszDnsDomainName,
                         dwCount,
@@ -953,7 +907,7 @@ AD_FindObjectsByListForDomainInternal(
     }
     else
     {
-        dwError = AD_ResolveRealObjectsByList(
+        dwError = LsaAdBatchResolveRealObjects(
                         hProvider,
                         QueryType,
                         pszDnsDomainName,
@@ -967,8 +921,9 @@ AD_FindObjectsByListForDomainInternal(
     if (!LsaAdBatchIsDefaultSchemaMode() &&
         !LsaAdBatchIsUnprovisionedMode())
     {
-        dwError = AD_ResolvePseudoObjectsByRealObjects(
+        dwError = LsaAdBatchResolvePseudoObjects(
                         hProvider,
+                        QueryType,
                         pszDnsDomainName,
                         dwCount,
                         pBatchItemList);
@@ -1002,7 +957,7 @@ AD_GetMaxQueryCount(
 
 static
 DWORD
-AD_BuildBatchQueryForRealRpc(
+LsaAdBatchBuildQueryForRpc(
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,
     IN PLSA_LIST_LINKS pEndLinks,
@@ -1087,7 +1042,7 @@ error:
 
 static
 DWORD
-AD_ResolveRealObjectsByListRpc(
+LsaAdBatchResolveRpcObjects(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
     IN DWORD dwTotalItemCount,
@@ -1120,7 +1075,7 @@ AD_ResolveRealObjectsByListRpc(
         }
         ppTranslatedNames = NULL;
 
-        dwError = AD_BuildBatchQueryForRealRpc(
+        dwError = LsaAdBatchBuildQueryForRpc(
                         pLinks,
                         pBatchItemList,
                         &pNextLinks,
@@ -1156,7 +1111,7 @@ AD_ResolveRealObjectsByListRpc(
                 continue;
             }
 
-            dwError = AD_RecordRealObjectFromRpc(
+            dwError = LsaAdBatchProcessRpcObject(
                             QueryType,
                             pLinks,
                             pNextLinks,
@@ -1180,7 +1135,7 @@ error:
 
 static
 DWORD
-AD_ResolveRealObjectsByList(
+LsaAdBatchResolveRealObjects(
     IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
@@ -1255,7 +1210,7 @@ AD_ResolveRealObjectsByList(
             pMessage = NULL;
         }
 
-        dwError = AD_BuildBatchQueryForReal(
+        dwError = LsaAdBatchBuildQueryForReal(
                         QueryType,
                         pLinks,
                         pBatchItemList,
@@ -1291,7 +1246,7 @@ AD_ResolveRealObjectsByList(
         pCurrentMessage = ldap_first_entry(pLd, pMessage);
         while (pCurrentMessage)
         {
-            dwError = AD_RecordRealObject(
+            dwError = LsaAdBatchProcessRealObject(
                             QueryType,
                             pLinks,
                             pNextLinks,
@@ -1317,26 +1272,26 @@ error:
     goto cleanup;
 }
 
-typedef DWORD (*LSA_AD_BUILD_BATCH_QUERY_GET_ATTR_VALUE_CALLBACK)(
+typedef DWORD (*LSA_AD_BATCH_BUILDER_GET_ATTR_VALUE_CALLBACK)(
     IN PVOID pCallbackContext,
     IN PVOID pItem,
     OUT PCSTR* ppszValue,
-    OUT PVOID* ppFreeContext
+    OUT PVOID* ppFreeValueContext
     );
 
-typedef VOID (*LSA_AD_BUILD_BATCH_QUERY_FREE_CONTEXT_CALLBACK)(
+typedef VOID (*LSA_AD_BATCH_BUILDER_FREE_VALUE_CONTEXT_CALLBACK)(
     IN PVOID pCallbackContext,
-    IN OUT PVOID* ppFreeContext
+    IN OUT PVOID* ppFreeValueContext
     );
 
-typedef PVOID (*LSA_AD_BUILD_BATCH_QUERY_NEXT_ITEM_CALLBACK)(
+typedef PVOID (*LSA_AD_BATCH_BUILDER_NEXT_ITEM_CALLBACK)(
     IN PVOID pCallbackContext,
     IN PVOID pItem
     );
 
 static
 DWORD
-AD_BuildBatchQueryAppend(
+LsaAdBatchBuilderAppend(
     IN OUT PDWORD pdwQueryOffset,
     IN OUT PSTR pszQuery,
     IN DWORD dwQuerySize,
@@ -1377,7 +1332,7 @@ error:
 
 static
 DWORD
-AD_BuildBatchQuery(
+LsaAdBatchBuilderCreateQuery(
     IN PCSTR pszQueryPrefix,
     IN PCSTR pszQuerySuffix,
     IN PCSTR pszAttributeName,
@@ -1385,9 +1340,9 @@ AD_BuildBatchQuery(
     IN PVOID pEndItem,
     OUT PVOID* ppNextItem,
     IN OPTIONAL PVOID pCallbackContext,
-    IN LSA_AD_BUILD_BATCH_QUERY_GET_ATTR_VALUE_CALLBACK pGetAttributeValueCallback,
-    IN OPTIONAL LSA_AD_BUILD_BATCH_QUERY_FREE_CONTEXT_CALLBACK pFreeContextCallback,
-    IN LSA_AD_BUILD_BATCH_QUERY_NEXT_ITEM_CALLBACK pNextItemCallback,
+    IN LSA_AD_BATCH_BUILDER_GET_ATTR_VALUE_CALLBACK pGetAttributeValueCallback,
+    IN OPTIONAL LSA_AD_BATCH_BUILDER_FREE_VALUE_CONTEXT_CALLBACK pFreeValueContextCallback,
+    IN LSA_AD_BATCH_BUILDER_NEXT_ITEM_CALLBACK pNextItemCallback,
     IN DWORD dwMaxQuerySize,
     IN DWORD dwMaxQueryCount,
     OUT PDWORD pdwQueryCount,
@@ -1405,7 +1360,7 @@ AD_BuildBatchQuery(
     DWORD dwAttributeNameLength = strlen(pszAttributeName);
     DWORD dwQuerySize = 0;
     DWORD dwQueryCount = 0;
-    PVOID pFreeContext = NULL;
+    PVOID pFreeValueContext = NULL;
     DWORD dwQueryPrefixLength = 0;
     DWORD dwQuerySuffixLength = 0;
     DWORD dwQueryOffset = 0;
@@ -1429,16 +1384,16 @@ AD_BuildBatchQuery(
     {
         PCSTR pszAttributeValue = NULL;
 
-        if (pFreeContext)
+        if (pFreeValueContext)
         {
-            pFreeContextCallback(pCallbackContext, &pFreeContext);
+            pFreeValueContextCallback(pCallbackContext, &pFreeValueContext);
         }
 
         dwError = pGetAttributeValueCallback(
                         pCallbackContext,
                         pCurrentItem,
                         &pszAttributeValue,
-                        &pFreeContext);
+                        &pFreeValueContext);
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pszAttributeValue)
@@ -1483,12 +1438,12 @@ AD_BuildBatchQuery(
     // Set up the query
     dwQueryOffset = 0;
 
-    dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                       pszQueryPrefix, dwQueryPrefixLength);
+    dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                      pszQueryPrefix, dwQueryPrefixLength);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                       szOrPrefix, dwOrPrefixLength);
+    dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                      szOrPrefix, dwOrPrefixLength);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwQueryCount = 0;
@@ -1497,40 +1452,40 @@ AD_BuildBatchQuery(
     {
         PCSTR pszAttributeValue = NULL;
 
-        if (pFreeContext)
+        if (pFreeValueContext)
         {
-            pFreeContextCallback(pCallbackContext, &pFreeContext);
+            pFreeValueContextCallback(pCallbackContext, &pFreeValueContext);
         }
 
         dwError = pGetAttributeValueCallback(
                         pCallbackContext,
                         pCurrentItem,
                         &pszAttributeValue,
-                        &pFreeContext);
+                        &pFreeValueContext);
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pszAttributeValue)
         {
             DWORD dwAttributeValueLength = strlen(pszAttributeValue);
 
-            dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                               "(", 1);
+            dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                              "(", 1);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                               pszAttributeName, dwAttributeNameLength);
+            dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                              pszAttributeName, dwAttributeNameLength);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                               "=", 1);
+            dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                              "=", 1);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                               pszAttributeValue, dwAttributeValueLength);
+            dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                              pszAttributeValue, dwAttributeValueLength);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                               ")", 1);
+            dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                              ")", 1);
             BAIL_ON_LSA_ERROR(dwError);
 
             dwQueryCount++;
@@ -1539,12 +1494,12 @@ AD_BuildBatchQuery(
         pCurrentItem = pNextItemCallback(pCallbackContext, pCurrentItem);
     }
 
-    dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                       szOrSuffix, dwOrSuffixLength);
+    dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                      szOrSuffix, dwOrSuffixLength);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_BuildBatchQueryAppend(&dwQueryOffset, pszQuery, dwQuerySize,
-                                       pszQuerySuffix, dwQuerySuffixLength);
+    dwError = LsaAdBatchBuilderAppend(&dwQueryOffset, pszQuery, dwQuerySize,
+                                      pszQuerySuffix, dwQuerySuffixLength);
     BAIL_ON_LSA_ERROR(dwError);
 
     assert(dwQueryOffset + 1 == dwQuerySize);
@@ -1560,9 +1515,9 @@ cleanup:
         pLastItem = pFirstItem;
     }
 
-    if (pFreeContext)
+    if (pFreeValueContext)
     {
-        pFreeContextCallback(pCallbackContext, &pFreeContext);
+        pFreeValueContextCallback(pCallbackContext, &pFreeValueContext);
     }
 
     *ppszQuery = pszQuery;
@@ -1578,98 +1533,171 @@ error:
 
 static
 VOID
-AD_BuildBatchQueryLsaFreeMemoryFreeContext(
+LsaAdBatchBuilderGenericFreeValueContext(
     IN PVOID pCallbackContext,
-    IN OUT PVOID* ppFreeContext
+    IN OUT PVOID* ppFreeValueContext
     )
 {
-    LSA_SAFE_FREE_MEMORY(*ppFreeContext);
+    LSA_SAFE_FREE_MEMORY(*ppFreeValueContext);
 }
+
+typedef struct _LSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT {
+    LSA_AD_BATCH_QUERY_TYPE QueryType;
+    BOOLEAN bIsForRealObject;
+    // Buffer needs to contain 32-bit unsigned number in decimal.
+    // That's 10 digits plus a terminating NULL.
+    char szIdBuffer[11];
+} LSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT, *PLSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT;
 
 static
 DWORD
-AD_BuildBatchQueryFromBatchItemListGetQueryValueForReal(
+LsaAdBatchBuilderBatchItemGetAttributeValue(
     IN PVOID pCallbackContext,
     IN PVOID pItem,
     OUT PCSTR* ppszValue,
-    OUT PVOID* ppFreeContext
+    OUT PVOID* ppFreeValueContext
     )
 {
     DWORD dwError = 0;
-    LSA_AD_BATCH_QUERY_TYPE QueryType = *(PLSA_AD_BATCH_QUERY_TYPE)pCallbackContext;
+    PLSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT pContext = (PLSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT)pCallbackContext;
+    LSA_AD_BATCH_QUERY_TYPE QueryType = pContext->QueryType;
+    BOOLEAN bIsForRealObject = pContext->bIsForRealObject;
     PLSA_LIST_LINKS pLinks = (PLSA_LIST_LINKS)pItem;
     PLSA_AD_BATCH_ITEM pBatchItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
+    PSTR pszValueToEscape = NULL;
     PSTR pszValue = NULL;
-    PVOID pFreeContext = NULL;
+    PVOID pFreeValueContext = NULL;
+    BOOLEAN bHaveReal = IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL);
+    BOOLEAN bHavePseudo = IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO);
+
+    if ((bIsForRealObject && bHaveReal) ||
+        (!bIsForRealObject && bHavePseudo))
+    {
+        // This can only happen in the linked cells case, but even
+        // that should go away in the future as we just keep an
+        // unresolved batch items list.
+        LSA_ASSERT(!bIsForRealObject && (gpADProviderData->dwDirectoryMode == CELL_MODE));
+        goto cleanup;
+    }
 
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_DN:
-            pBatchItem->pszQueryMatchTerm = pBatchItem->QueryTerm.pszString;
+            // Must be looking for real object
+            LSA_ASSERT(bIsForRealObject);
+            LSA_ASSERT(QueryType == pBatchItem->QueryTerm.Type);
 
-            dwError = LsaLdapEscapeString(&pszValue, pBatchItem->QueryTerm.pszString);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            pFreeContext = pszValue;
-
+            pszValueToEscape = (PSTR)pBatchItem->QueryTerm.pszString;
+            LSA_ASSERT(pszValueToEscape);
             break;
 
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
             if (pBatchItem->pszSid)
             {
+                // This is case where we already got the SID by resolving
+                // the pseudo object by id/alias.
                 pszValue = pBatchItem->pszSid;
             }
-            else if (LSA_AD_BATCH_QUERY_TYPE_BY_SID == pBatchItem->QueryTerm.Type)
+            else if (QueryType == pBatchItem->QueryTerm.Type)
             {
+                // This is the case where the original query was
+                // a query by SID.
                 pszValue = (PSTR)pBatchItem->QueryTerm.pszString;
+                LSA_ASSERT(pszValue);
             }
-            pBatchItem->pszQueryMatchTerm = pszValue;
             // Will be NULL if we cannot find a SID for which to query.
-            // This is fine as it will cause us to skip this item.
+            // This can happen if this batch item is for an object
+            // that we did not find real but are trying to look up pseudo.
+            // In that case, we have NULL and will just skip it.
+
+            // If we have a SID string, make sure it looks like a SID.
+            // Note that we must do some sanity checking to make sure
+            // that the string does not need escaping since we are
+            // not setting pszValueToEscape.  (The SID check takes
+            // care of that.)
+            if (pszValue && !LsaAdBatchHasValidCharsForSid(pszValue))
+            {
+                LSA_ASSERT(FALSE);
+                dwError = LSA_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            break;
+
+        case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+            LSA_ASSERT(bIsForRealObject);
+            if (pBatchItem->pszSamAccountName)
+            {
+                // Unprovisioned id/alias case where id mapper returned
+                // a SAM account name (and domain name) but no SID.
+                pszValueToEscape = pBatchItem->pszSamAccountName;
+                // However, we currently do not have this sort of id mapper
+                // support, so we LSA_ASSERT(FALSE) for now.
+                LSA_ASSERT(FALSE);
+            }
+            else if (QueryType == pBatchItem->QueryTerm.Type)
+            {
+                pszValueToEscape = (PSTR)pBatchItem->QueryTerm.pszString;
+                LSA_ASSERT(pszValueToEscape);
+                // The query term will already have the domain stripped out.
+                LSA_ASSERT(!index(pszValueToEscape, '\\'));
+            }
+            break;
+
+        case LSA_AD_BATCH_QUERY_TYPE_BY_UID:
+        case LSA_AD_BATCH_QUERY_TYPE_BY_GID:
+            LSA_ASSERT(!bIsForRealObject);
+            LSA_ASSERT(QueryType == pBatchItem->QueryTerm.Type);
+
+            snprintf(pContext->szIdBuffer, sizeof(pContext->szIdBuffer),
+                     "%u", (unsigned int)pBatchItem->QueryTerm.dwId);
+            // There should have been enough space for the NULL termination.
+            LSA_ASSERT(!pContext->szIdBuffer[sizeof(pContext->szIdBuffer) - 1]);
+            pszValue = pContext->szIdBuffer;
+            break;
+
+        case LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS:
+        case LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS:
+            LSA_ASSERT(!bIsForRealObject);
+            LSA_ASSERT(QueryType == pBatchItem->QueryTerm.Type);
+
+            pszValueToEscape = (PSTR)pBatchItem->QueryTerm.pszString;
+            LSA_ASSERT(pszValueToEscape);
             break;
 
         default:
-            pBatchItem->pszQueryMatchTerm = NULL;
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
-    *ppszValue = pszValue;
-    *ppFreeContext = pFreeContext;
+    if (pszValueToEscape)
+    {
+        LSA_ASSERT(!pszValue);
+        dwError = LsaLdapEscapeString(&pszValue, pszValueToEscape);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pFreeValueContext = pszValue;
+    }
 
 cleanup:
+    // Note that the match value is different from the value,
+    // which we need to escape.
+    pBatchItem->pszQueryMatchTerm = pszValueToEscape ? pszValueToEscape : pszValue;
+    *ppszValue = pszValue;
+    *ppFreeValueContext = pFreeValueContext;
+
     return dwError;
 
 error:
-    *ppszValue = NULL;
-    *ppFreeContext = NULL;
-
-    LSA_SAFE_FREE_STRING(pszValue);
+    // assing output in cleanup in case of goto cleanup in function.
+    pszValueToEscape = NULL;
+    pszValue = NULL;
+    LSA_SAFE_FREE_STRING(pFreeValueContext);
     goto cleanup;
 }
 
 static
-DWORD
-AD_BuildBatchQueryFromBatchItemListGetSidValueForPseudo(
-    IN PVOID pCallbackContext,
-    IN PVOID pItem,
-    OUT PCSTR* ppszValue,
-    OUT PVOID* ppFreeContext
-    )
-{
-    PLSA_LIST_LINKS pLinks = (PLSA_LIST_LINKS)pItem;
-    PLSA_AD_BATCH_ITEM pBatchItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
-
-    *ppszValue = IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO) ? NULL : pBatchItem->pszSid;
-    pBatchItem->pszQueryMatchTerm = *ppszValue;
-    *ppFreeContext = NULL;
-
-    return 0;
-}
-
-static
 PVOID
-AD_BuildBatchQueryFromBatchItemListNextItem(
+LsaAdBatchBuilderBatchItemNextItem(
     IN PVOID pCallbackContext,
     IN PVOID pItem
     )
@@ -1680,7 +1708,7 @@ AD_BuildBatchQueryFromBatchItemListNextItem(
 
 static
 DWORD
-AD_BuildBatchQueryForReal(
+LsaAdBatchBuildQueryForReal(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,
@@ -1693,16 +1721,23 @@ AD_BuildBatchQueryForReal(
     )
 {
     DWORD dwError = 0;
-    PSTR pszPrefix = NULL;
-    PSTR pszAttributeName = NULL;
+    PLSA_LIST_LINKS pNextLinks = NULL;
+    DWORD dwQueryCount = 0;
+    PSTR pszQuery = NULL;
+    PCSTR pszAttributeName = NULL;
+    PCSTR pszPrefix = NULL;
+    LSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT context = { 0 };
 
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_DN:
-            pszAttributeName = "distinguishedName";
+            pszAttributeName = AD_LDAP_DN_TAG;
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
-            pszAttributeName = "objectSid";
+            pszAttributeName = AD_LDAP_OBJECTSID_TAG;
+            break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+            pszAttributeName = AD_LDAP_SAM_NAME_TAG;
             break;
         default:
             dwError = LSA_ERROR_INVALID_PARAMETER;
@@ -1721,30 +1756,37 @@ AD_BuildBatchQueryForReal(
         pszPrefix = "(&(|(objectClass=user)(objectClass=group))(!(objectClass=computer))";
     }
 
-    dwError = AD_BuildBatchQuery(
+    context.QueryType = QueryType;
+    context.bIsForRealObject = FALSE;
+
+    dwError = LsaAdBatchBuilderCreateQuery(
                     pszPrefix,
                     ")",
                     pszAttributeName,
                     pFirstLinks,
                     pEndLinks,
-                    (PVOID*)ppNextLinks,
-                    &QueryType,
-                    AD_BuildBatchQueryFromBatchItemListGetQueryValueForReal,
-                    AD_BuildBatchQueryLsaFreeMemoryFreeContext,
-                    AD_BuildBatchQueryFromBatchItemListNextItem,
+                    (PVOID*)&pNextLinks,
+                    &context,
+                    LsaAdBatchBuilderBatchItemGetAttributeValue,
+                    LsaAdBatchBuilderGenericFreeValueContext,
+                    LsaAdBatchBuilderBatchItemNextItem,
                     dwMaxQuerySize,
                     dwMaxQueryCount,
-                    pdwQueryCount,
-                    ppszQuery);
+                    &dwQueryCount,
+                    &pszQuery);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    *ppNextLinks = pNextLinks;
+    *pdwQueryCount = dwQueryCount;
+    *ppszQuery = pszQuery;
     return dwError;
 
 error:
-    *ppNextLinks = pFirstLinks;
-    *pdwQueryCount = 0;
-    *ppszQuery = NULL;
+    // set output on cleanup
+    pNextLinks = pFirstLinks;
+    dwQueryCount = 0;
+    LSA_SAFE_FREE_STRING(pszQuery);
     goto cleanup;
 }
 
@@ -1755,9 +1797,139 @@ error:
 #define AD_LDAP_QUERY_NON_SCHEMA "(objectClass=serviceConnectionPoint)"
 
 static
-DWORD
-AD_BuildBatchQueryForPseudoBySid(
+PCSTR
+LsaAdBatchBuilderGetPseudoQueryPrefix(
     IN BOOLEAN bIsSchemaMode,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    OUT PCSTR* ppszSuffix
+    )
+{
+    PCSTR pszPrefix = NULL;
+
+    if (bIsSchemaMode)
+    {
+        switch (ObjectType)
+        {
+            case LSA_AD_BATCH_OBJECT_TYPE_USER:
+                pszPrefix =
+                    "(&"
+                    "(&" AD_LDAP_QUERY_SCHEMA_USER AD_LDAP_QUERY_LW_USER ")"
+                    "";
+                break;
+            case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
+                pszPrefix =
+                    "(&"
+                    "(&" AD_LDAP_QUERY_SCHEMA_GROUP AD_LDAP_QUERY_LW_GROUP ")"
+                    "";
+                break;
+            default:
+                pszPrefix =
+                    "(&"
+                    "(|"
+                    "(&" AD_LDAP_QUERY_SCHEMA_USER AD_LDAP_QUERY_LW_USER ")"
+                    "(&" AD_LDAP_QUERY_SCHEMA_GROUP AD_LDAP_QUERY_LW_GROUP ")"
+                    ")"
+                    "";
+        }
+    }
+    else
+    {
+        switch (ObjectType)
+        {
+            case LSA_AD_BATCH_OBJECT_TYPE_USER:
+                pszPrefix =
+                    "(&"
+                    AD_LDAP_QUERY_NON_SCHEMA
+                    AD_LDAP_QUERY_LW_USER
+                    "";
+                break;
+            case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
+                pszPrefix =
+                    "(&"
+                    AD_LDAP_QUERY_NON_SCHEMA
+                    AD_LDAP_QUERY_LW_GROUP
+                    "";
+                break;
+            default:
+                pszPrefix =
+                    "(&"
+                    AD_LDAP_QUERY_NON_SCHEMA
+                    "(|"
+                    AD_LDAP_QUERY_LW_USER
+                    AD_LDAP_QUERY_LW_GROUP
+                    ")"
+                    "";
+        }
+    }
+
+    *ppszSuffix = pszPrefix ? ")" : NULL;
+    return pszPrefix;
+}
+
+static
+PCSTR
+LsaAdBatchBuilderGetPseudoQueryAttribute(
+    IN BOOLEAN bIsSchemaMode,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType
+    )
+{
+    PCSTR pszAttributeName = NULL;
+
+    switch (QueryType)
+    {
+        case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+            pszAttributeName = "keywords=backLink";
+            break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_UID:
+            if (bIsSchemaMode)
+            {
+                pszAttributeName = AD_LDAP_UID_TAG;
+            }
+            else
+            {
+                pszAttributeName = "keywords=" AD_LDAP_UID_TAG;
+            }
+            break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_GID:
+            if (bIsSchemaMode)
+            {
+                pszAttributeName = AD_LDAP_GID_TAG;
+            }
+            else
+            {
+                pszAttributeName = "keywords=" AD_LDAP_GID_TAG;
+            }
+            break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS:
+            if (bIsSchemaMode)
+            {
+                pszAttributeName = AD_LDAP_ALIAS_TAG;
+            }
+            else
+            {
+                pszAttributeName = "keywords=" AD_LDAP_ALIAS_TAG;
+            }
+            break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS:
+            if (bIsSchemaMode)
+            {
+                pszAttributeName = AD_LDAP_DISPLAY_NAME_TAG;
+            }
+            else
+            {
+                pszAttributeName = "keywords=" AD_LDAP_DISPLAY_NAME_TAG;
+            }
+            break;
+    }
+
+    return pszAttributeName;
+}
+
+static
+DWORD
+LsaAdBatchBuildQueryForPseudo(
+    IN BOOLEAN bIsSchemaMode,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,
     IN PLSA_LIST_LINKS pEndLinks,
@@ -1769,49 +1941,72 @@ AD_BuildBatchQueryForPseudoBySid(
     )
 {
     DWORD dwError = 0;
+    PLSA_LIST_LINKS pNextLinks = NULL;
+    DWORD dwQueryCount = 0;
+    PSTR pszQuery = NULL;
+    PCSTR pszAttributeName = NULL;
     PCSTR pszPrefix = NULL;
+    PCSTR pszSuffix = NULL;
+    LSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT context = { 0 };
 
-    if (bIsSchemaMode)
+    pszAttributeName = LsaAdBatchBuilderGetPseudoQueryAttribute(
+                            bIsSchemaMode,
+                            QueryType);
+    if (!pszAttributeName)
     {
-        pszPrefix =
-            "(&"
-            "(|"
-            "(&" AD_LDAP_QUERY_SCHEMA_USER AD_LDAP_QUERY_LW_USER ")"
-            "(&" AD_LDAP_QUERY_SCHEMA_GROUP AD_LDAP_QUERY_LW_GROUP ")"
-            ")";
-    }
-    else
-    {
-        pszPrefix =
-            "(&"
-            AD_LDAP_QUERY_NON_SCHEMA
-            "(|"
-            AD_LDAP_QUERY_LW_USER
-            AD_LDAP_QUERY_LW_GROUP
-            ")";
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = AD_BuildBatchQuery(
+    pszPrefix = LsaAdBatchBuilderGetPseudoQueryPrefix(
+                        bIsSchemaMode,
+                        LsaAdBatchGetObjectTypeFromQueryType(QueryType),
+                        &pszSuffix);
+    if (!pszPrefix || !pszSuffix)
+    {
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    context.QueryType = QueryType;
+    context.bIsForRealObject = FALSE;
+
+    dwError = LsaAdBatchBuilderCreateQuery(
                     pszPrefix,
-                    ")",
-                    "keywords=backLink",
+                    pszSuffix,
+                    pszAttributeName,
                     pFirstLinks,
                     pEndLinks,
-                    (PVOID*)ppNextLinks,
-                    NULL,
-                    AD_BuildBatchQueryFromBatchItemListGetSidValueForPseudo,
-                    NULL,
-                    AD_BuildBatchQueryFromBatchItemListNextItem,
+                    (PVOID*)&pNextLinks,
+                    &context,
+                    LsaAdBatchBuilderBatchItemGetAttributeValue,
+                    LsaAdBatchBuilderGenericFreeValueContext,
+                    LsaAdBatchBuilderBatchItemNextItem,
                     dwMaxQuerySize,
                     dwMaxQueryCount,
-                    pdwQueryCount,
-                    ppszQuery);
+                    &dwQueryCount,
+                    &pszQuery);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    *ppNextLinks = pNextLinks;
+    *pdwQueryCount = dwQueryCount;
+    *ppszQuery = pszQuery;
     return dwError;
+
+error:
+    // set output on cleanup
+    pNextLinks = pFirstLinks;
+    dwQueryCount = 0;
+    LSA_SAFE_FREE_STRING(pszQuery);
+    goto cleanup;
 }
 
 static
 DWORD
-AD_BuildBatchQueryScopeForPseudoBySid(
+LsaAdBatchBuildQueryScopeForPseudo(
     IN BOOLEAN bIsSchemaMode,
     IN LSA_PROVISIONING_MODE Mode,
     IN OPTIONAL PCSTR pszDnsDomainName,
@@ -1867,7 +2062,7 @@ error:
 
 static
 DWORD
-AD_RecordRealObjectFromRpc(
+LsaAdBatchProcessRpcObject(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
@@ -1948,7 +2143,7 @@ error:
 
 static
 DWORD
-AD_RecordRealObject(
+LsaAdBatchProcessRealObject(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
@@ -2038,8 +2233,9 @@ error:
 
 static
 DWORD
-AD_ResolvePseudoObjectsByRealObjects(
+LsaAdBatchResolvePseudoObjects(
     IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
@@ -2050,16 +2246,18 @@ AD_ResolvePseudoObjectsByRealObjects(
 
     if (gpADProviderData->dwDirectoryMode == CELL_MODE)
     {
-        dwError = AD_ResolvePseudoObjectsByRealObjectsWithLinkedCell(
+        dwError = LsaAdBatchResolvePseudoObjectsWithLinkedCells(
                      hProvider,
+                     QueryType,
                      dwTotalItemCount,
                      pBatchItemList);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
-        dwError = AD_ResolvePseudoObjectsByRealObjectsInternal(
+        dwError = LsaAdBatchResolvePseudoObjectsInternal(
                      hProvider,
+                     QueryType,
                      pszDnsDomainName,
                      NULL,
                      (gpADProviderData->adConfigurationMode == SchemaMode),
@@ -2078,8 +2276,9 @@ error:
 
 static
 DWORD
-AD_ResolvePseudoObjectsByRealObjectsWithLinkedCell(
+LsaAdBatchResolvePseudoObjectsWithLinkedCells(
     IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pBatchItemList
@@ -2091,8 +2290,9 @@ AD_ResolvePseudoObjectsByRealObjectsWithLinkedCell(
     DWORD dwFoundInCellCount = 0;
     HANDLE hDirectory = 0;
 
-    dwError = AD_ResolvePseudoObjectsByRealObjectsInternal(
+    dwError = LsaAdBatchResolvePseudoObjectsInternal(
                     hProvider,
+                    QueryType,
                     NULL,
                     gpADProviderData->cell.szCellDN,
                     (gpADProviderData->adConfigurationMode == SchemaMode),
@@ -2128,8 +2328,9 @@ AD_ResolvePseudoObjectsByRealObjectsWithLinkedCell(
             continue;
         }
 
-        dwError = AD_ResolvePseudoObjectsByRealObjectsInternal(
+        dwError = LsaAdBatchResolvePseudoObjectsInternal(
                     hProvider,
+                    QueryType,
                     NULL,
                     pCellInfo->pszCellDN,
                     (adMode == SchemaMode),
@@ -2151,8 +2352,9 @@ error:
 
 static
 DWORD
-AD_ResolvePseudoObjectsByRealObjectsInternal(
+LsaAdBatchResolvePseudoObjectsInternal(
     IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OPTIONAL PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszCellDn,
     IN BOOLEAN bIsSchemaMode,
@@ -2192,7 +2394,7 @@ AD_ResolvePseudoObjectsByRealObjectsInternal(
     PSTR pszDomainName = NULL;
     DWORD dwTotalItemFoundCount = 0;
 
-    dwError = AD_BuildBatchQueryScopeForPseudoBySid(
+    dwError = LsaAdBatchBuildQueryScopeForPseudo(
                     bIsSchemaMode,
                     gpADProviderData->dwDirectoryMode,
                     pszDnsDomainName,
@@ -2234,8 +2436,9 @@ AD_ResolvePseudoObjectsByRealObjectsInternal(
             pMessage = NULL;
         }
 
-        dwError = AD_BuildBatchQueryForPseudoBySid(
+        dwError = LsaAdBatchBuildQueryForPseudo(
                         bIsSchemaMode,
+                        QueryType,
                         pLinks,
                         pBatchItemList,
                         &pNextLinks,
@@ -2277,7 +2480,8 @@ AD_ResolvePseudoObjectsByRealObjectsInternal(
         pCurrentMessage = ldap_first_entry(pLd, pMessage);
         while (pCurrentMessage)
         {
-            dwError = AD_RecordPseudoObjectBySid(
+            dwError = LsaAdBatchProcessPseudoObject(
+                            QueryType,
                             pLinks,
                             pNextLinks,
                             bIsSchemaMode,
@@ -2394,7 +2598,8 @@ LsaAdBatchFindKeywordAttributeWithEqual(
 
 static
 DWORD
-AD_RecordPseudoObjectBySid(
+LsaAdBatchProcessPseudoObject(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
     IN PLSA_LIST_LINKS pEndBatchItemListLinks,
@@ -2583,5 +2788,54 @@ LsaAdBatchAccountTypeToObjectType(
 
     *pObjectType = objectType;
     return dwError;
+}
+
+static
+LSA_AD_BATCH_OBJECT_TYPE
+LsaAdBatchGetObjectTypeFromQueryType(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType
+    )
+{
+    LSA_AD_BATCH_OBJECT_TYPE objectType = LSA_AD_BATCH_OBJECT_TYPE_UNDEFINED;
+
+    switch (QueryType)
+    {
+        case LSA_AD_BATCH_QUERY_TYPE_BY_UID:
+        case LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS:
+            objectType = LSA_AD_BATCH_OBJECT_TYPE_USER;
+            break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_GID:
+        case LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS:
+            objectType = LSA_AD_BATCH_OBJECT_TYPE_GROUP;
+            break;
+        default:
+            // The default is undefined (i.e., any).
+            break;
+    }
+
+    return objectType;
+}
+
+static
+BOOLEAN
+LsaAdBatchHasValidCharsForSid(
+    IN PCSTR pszSidString
+    )
+{
+    BOOLEAN bHasOnlyValidChars = TRUE;
+    PCSTR pszCurrent = pszSidString;
+
+    while (*pszCurrent)
+    {
+        if (!(*pszCurrent == '-' ||
+              (*pszCurrent == 'S' || *pszCurrent == 's') ||
+              (*pszCurrent >= '0' && *pszCurrent <= '9')))
+        {
+            bHasOnlyValidChars = FALSE;
+            break;
+        }
+        pszCurrent++;
+    }
+    return bHasOnlyValidChars;
 }
 
