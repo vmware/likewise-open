@@ -177,6 +177,61 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
 #define LSA_LOG_DEBUG(szFmt, ...) \
     _LSA_LOG_IF(LSA_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
+// Like assert() but also calls LSA_LOG.
+#define _LSA_ASSERT(Expression, Action) \
+    do { \
+        if (!(Expression)) \
+        { \
+            LSA_LOG_DEBUG("Assertion failed: '" # Expression "'"); \
+            Action; \
+        } \
+    } while (0)
+#define _LSA_ASSERT_OR_BAIL(Expression, dwError, Action) \
+    _LSA_ASSERT(Expression, \
+                (dwError) = LSA_ERROR_INTERNAL; \
+                Action ; \
+                BAIL_ON_LSA_ERROR(dwError))
+#ifdef NDEBUG
+#define LSA_ASSERT(Expression)
+#define LSA_ASSERT_OR_BAIL(Expression, dwError) \
+    _LSA_ASSERT_OR_BAIL(Expression, dwError, 0)
+#if 0
+    do { \
+        if (!(Expression)) \
+        { \
+            LSA_LOG_DEBUG("Assertion failed: '" # Expression "'"); \
+            (dwError) = LSA_ERROR_INTERNAL; \
+            BAIL_ON_LSA_ERROR(dwError); \
+        } \
+    } while (0)
+#endif
+#else
+#define LSA_ASSERT(Expression) \
+    _LSA_ASSERT(Expression, abort())
+#if 0
+    do { \
+        if (!Expression) \
+        { \
+            LSA_LOG_DEBUG("Assertion failed: '" # Expression "'"); \
+            abort(); \
+        } \
+    } while (0)
+#endif
+#define LSA_ASSERT_OR_BAIL(Expression, dwError) \
+    _LSA_ASSERT_OR_BAIL(Expression, dwError, abort())
+#if 0
+do { \
+        if (!(Expression)) \
+        { \
+            LSA_LOG_DEBUG("Assertion failed: '" # Expression "'"); \
+            (dwError) = LSA_ERROR_INTERNAL; \
+            abort(); \
+            BAIL_ON_LSA_ERROR(dwError); \
+        } \
+    } while (0)
+#endif
+#endif
+
 #define LSA_IS_XOR(Expression1, Expression2) \
     (!!(Expression1) ^ !!(Expression2))
 
