@@ -170,11 +170,12 @@ compute_curr_prefix (const char *orig_installprefix,
 		     const char *orig_installdir,
 		     const char *curr_pathname)
 {
-  const char *curr_installdir;
+  char *curr_installdir = NULL;
   const char *rel_installdir;
+  const char *ret = NULL;
 
   if (curr_pathname == NULL)
-    return NULL;
+    goto done;
 
   /* Determine the relative installation directory, relative to the prefix.
      This is simply the difference between orig_installprefix and
@@ -182,7 +183,7 @@ compute_curr_prefix (const char *orig_installprefix,
   if (strncmp (orig_installprefix, orig_installdir, strlen (orig_installprefix))
       != 0)
     /* Shouldn't happen - nothing should be installed outside $(prefix).  */
-    return NULL;
+    goto done;
   rel_installdir = orig_installdir + strlen (orig_installprefix);
 
   /* Determine the current installation directory.  */
@@ -201,7 +202,7 @@ compute_curr_prefix (const char *orig_installprefix,
     q = (char *) xmalloc (p - curr_pathname + 1);
 #ifdef NO_XMALLOC
     if (q == NULL)
-      return NULL;
+      goto done;
 #endif
     memcpy (q, curr_pathname, p - curr_pathname);
     q[p - curr_pathname] = '\0';
@@ -255,7 +256,7 @@ compute_curr_prefix (const char *orig_installprefix,
 
     if (rp > rel_installdir)
       /* Unexpected: The curr_installdir does not end with rel_installdir.  */
-      return NULL;
+      goto done;
 
     {
       size_t curr_prefix_len = cp - curr_installdir;
@@ -264,14 +265,22 @@ compute_curr_prefix (const char *orig_installprefix,
       curr_prefix = (char *) xmalloc (curr_prefix_len + 1);
 #ifdef NO_XMALLOC
       if (curr_prefix == NULL)
-	return NULL;
+        goto done;
 #endif
       memcpy (curr_prefix, curr_installdir, curr_prefix_len);
       curr_prefix[curr_prefix_len] = '\0';
 
-      return curr_prefix;
+      ret = curr_prefix;
     }
   }
+
+done:
+
+  if (curr_installdir != NULL)
+  {
+    free(curr_installdir);
+  }
+  return ret;
 }
 
 #endif /* !IN_LIBRARY || PIC */
@@ -420,15 +429,21 @@ relocate (const char *pathname)
 	 orig_prefix.  */
       const char *orig_installprefix = INSTALLPREFIX;
       const char *orig_installdir = INSTALLDIR;
-      const char *curr_prefix_better;
+      char *curr_prefix_better;
+      char *free_curr_prefix_better = NULL;
 
       curr_prefix_better =
 	compute_curr_prefix (orig_installprefix, orig_installdir,
 			     get_shared_library_fullname ());
       if (curr_prefix_better == NULL)
 	curr_prefix_better = curr_prefix;
+      else
+        free_curr_prefix_better = curr_prefix_better;
 
       set_relocation_prefix (orig_installprefix, curr_prefix_better);
+
+      if (free_curr_prefix_better != NULL)
+        free(free_curr_prefix_better);
 
       initialized = 1;
     }
