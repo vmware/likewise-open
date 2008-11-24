@@ -629,6 +629,7 @@ static int writeJournalHdr(Pager *pPager){
   int rc = SQLITE_OK;
   char *zHeader = pPager->pTmpSpace;
   int nHeader = pPager->pageSize;
+  int nUsed = 0;
   int nWrite;
 
   if( nHeader>JOURNAL_HDR_SZ(pPager) ){
@@ -642,7 +643,8 @@ static int writeJournalHdr(Pager *pPager){
   seekJournalHdr(pPager);
   pPager->journalHdr = pPager->journalOff;
 
-  memcpy(zHeader, aJournalMagic, sizeof(aJournalMagic));
+  memcpy(zHeader + nUsed, aJournalMagic, sizeof(aJournalMagic));
+  nUsed += sizeof(aJournalMagic);
 
   /* 
   ** Write the nRec Field - the number of page records that follow this
@@ -668,22 +670,29 @@ static int writeJournalHdr(Pager *pPager){
   if( (pPager->noSync) 
    || (sqlite3OsDeviceCharacteristics(pPager->fd)&SQLITE_IOCAP_SAFE_APPEND) 
   ){
-    put32bits(&zHeader[sizeof(aJournalMagic)], 0xffffffff);
+    put32bits(&zHeader[nUsed], 0xffffffff);
   }else{
-    put32bits(&zHeader[sizeof(aJournalMagic)], 0);
+    put32bits(&zHeader[nUsed], 0);
   }
+  nUsed += 4;
 
   /* The random check-hash initialiser */ 
   sqlite3_randomness(sizeof(pPager->cksumInit), &pPager->cksumInit);
-  put32bits(&zHeader[sizeof(aJournalMagic)+4], pPager->cksumInit);
+  put32bits(&zHeader[nUsed], pPager->cksumInit);
+  nUsed += 4;
   /* The initial database size */
-  put32bits(&zHeader[sizeof(aJournalMagic)+8], pPager->dbSize);
+  put32bits(&zHeader[nUsed], pPager->dbSize);
+  nUsed += 4;
   /* The assumed sector size for this process */
-  put32bits(&zHeader[sizeof(aJournalMagic)+12], pPager->sectorSize);
+  put32bits(&zHeader[nUsed], pPager->sectorSize);
+  nUsed += 4;
   if( pPager->journalHdr==0 ){
     /* The page size */
-    put32bits(&zHeader[sizeof(aJournalMagic)+16], pPager->pageSize);
+    put32bits(&zHeader[nUsed], pPager->pageSize);
+    nUsed += 4;
   }
+  /* Blank out the rest of the buffer */
+  memset(&zHeader[nUsed], 0, nHeader - nUsed);
 
   for(nWrite=0; rc==SQLITE_OK&&nWrite<JOURNAL_HDR_SZ(pPager); nWrite+=nHeader){
     IOTRACE(("JHDR %p %lld %d\n", pPager, pPager->journalHdr, nHeader))
