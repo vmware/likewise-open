@@ -193,15 +193,16 @@ DNSFreeNameServerInfoInList(
 
 DWORD
 DNSGetNameServers(
-    PCSTR        pszDomain,
-    PLW_NS_INFO* ppNSInfoList,
-    PDWORD       pdwNumInfos
+    IN PCSTR pszDomain,
+    OUT PSTR* ppszZone,
+    OUT PLW_NS_INFO* ppNSInfoList,
+    OUT PDWORD pdwNumServers
     )
 {
     DWORD dwError = 0;
     const size_t dwBufferSize = (64 * 1024);
     PBYTE pBuffer = NULL;
-    int   responseLen = 0;
+    int   responseLen = -1;
     PDNS_RESPONSE_HEADER pHeader = NULL;
     PDNSDLINKEDLIST pAnswersList = NULL;
     PDNSDLINKEDLIST pAuthsList = NULL;
@@ -209,7 +210,8 @@ DNSGetNameServers(
     PDNSDLINKEDLIST pNameServerList = NULL;
     PLW_NS_INFO     pNSInfoArray = NULL;
     DWORD           dwNumInfos = 0;
-    PSTR pszDomainName = NULL;
+    PCSTR pszZone = NULL;
+    PSTR pszDupZone = NULL;
     
     dwError = DNSAllocateMemory(
                     dwBufferSize,
@@ -225,23 +227,47 @@ DNSGetNameServers(
     // Use TCP
     _res.options |= RES_USEVC;
 
-    dwError = DNSAllocateString(pszDomain, &pszDomainName);
-    BAIL_ON_LWDNS_ERROR(dwError);
-    
-    LWDNS_LOG_DEBUG("Querying DNS for NS Records for domain [%s]", pszDomainName);
-    
-    responseLen = res_query(
-                    pszDomainName,
-                    ns_c_in,
-                    ns_t_ns,
-                    pBuffer,
-                    dwBufferSize);
-    if (responseLen < 0)
+    pszZone = pszDomain;
+
+    while (responseLen < 0)
     {
-        LWDNS_LOG_ERROR("DNS Query for Name Servers failed [errno:%d] [h_errno:%d]", errno, h_errno);
+        LWDNS_LOG_DEBUG(
+                "Querying DNS for NS Records for zone [%s]",
+                pszZone);
         
-        dwError = LWDNS_ERROR_BAD_RESPONSE;
-        BAIL_ON_LWDNS_ERROR(dwError);
+        responseLen = res_query(
+                        pszZone,
+                        ns_c_in,
+                        ns_t_ns,
+                        pBuffer,
+                        dwBufferSize);
+        if (responseLen < 0)
+        {
+            if (h_errno == HOST_NOT_FOUND || h_errno == NO_DATA)
+            {
+                LWDNS_LOG_DEBUG("NS record not found [h_errno:%d]",
+                        h_errno);
+                // Try looking in the parent zone by jumping past the first
+                // component.
+                pszZone = strchr(pszZone, '.');
+                if (pszZone == NULL || pszZone[1] == 0)
+                {
+                    LWDNS_LOG_ERROR("No more zones to check");
+                    dwError = LWDNS_ERROR_BAD_RESPONSE;
+                    BAIL_ON_LWDNS_ERROR(dwError);
+                }
+                // Skip the .
+                pszZone++;
+                continue;
+            }
+            LWDNS_LOG_ERROR(
+                    "DNS Query for Name Servers failed [errno:%d] [h_errno:%d]",
+                    errno,
+                    h_errno);
+
+            dwError = LWDNS_ERROR_BAD_RESPONSE;
+            BAIL_ON_LWDNS_ERROR(dwError);
+        }
     }
     
     if (responseLen > dwBufferSize)
@@ -275,7 +301,7 @@ DNSGetNameServers(
     BAIL_ON_LWDNS_ERROR(dwError);
     
     dwError = DNSBuildNameServerList(
-                    pszDomain,
+                    pszZone,
                     pHeader,
                     pAnswersList,
                     pAuthsList,
@@ -288,9 +314,15 @@ DNSGetNameServers(
                     &pNSInfoArray,
                     &dwNumInfos);
     BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSAllocateString(
+                    pszZone,
+                    &pszDupZone);
+    BAIL_ON_LWDNS_ERROR(dwError);
                     
     *ppNSInfoList = pNSInfoArray;
-    *pdwNumInfos = dwNumInfos;
+    *pdwNumServers = dwNumInfos;
+    *ppszZone = pszDupZone;
     
 cleanup:
 
@@ -299,11 +331,6 @@ cleanup:
         DNSFreeMemory(pBuffer);
     }
 
-    if (pszDomainName)
-    {
-        DNSFreeMemory(pszDomainName);
-    }
-    
     if (pAnswersList)
     {
         DNSFreeRecordLinkedList(pAnswersList);
@@ -333,11 +360,14 @@ error:
         DNSFreeNameServerInfoArray(pNSInfoArray, dwNumInfos);
     }
 
+    LWDNS_SAFE_FREE_STRING(pszDupZone);
+
     *ppNSInfoList = NULL;
-    *pdwNumInfos = 0;
+    *pdwNumServers = 0;
+    *ppszZone = NULL;
     
     LWDNS_LOG_ERROR("Failed to find NS Records for domain [%s]. Error code: %d",
-                    IsNullOrEmptyString(pszDomainName) ? "" : pszDomainName,
+                    IsNullOrEmptyString(pszDomain) ? "" : pszDomain,
                     dwError);
 
     goto cleanup;

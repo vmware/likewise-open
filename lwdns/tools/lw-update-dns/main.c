@@ -45,6 +45,7 @@ main(
     DWORD dwError = 0;
     HANDLE hDNSServer = (HANDLE)NULL;
     PSTR   pszDomain = NULL;
+    PSTR   pszZone = NULL;
     PSTR   pszHostname = NULL;
     PSTR   pszHostnameFQDN = NULL;
     LWDNSLogLevel logLevel = LWDNS_LOG_LEVEL_ERROR;
@@ -91,6 +92,7 @@ main(
     
     dwError = DNSGetNameServers(
                     pszDomain,
+                    &pszZone,
                     &pNameServerInfos,
                     &dwNumNSInfos);
     BAIL_ON_LWDNS_ERROR(dwError);
@@ -206,7 +208,7 @@ main(
         dwError = DNSUpdateSecure(
                         hDNSServer,
                         pszNameServer,
-                        pszDomain,
+                        pszZone,
                         pszHostnameFQDN,
                         pAddrArray,
                         dwNumAddrs);
@@ -241,6 +243,7 @@ cleanup:
     LWDNS_SAFE_FREE_STRING(pszHostname);
     LWDNS_SAFE_FREE_STRING(pszHostnameFQDN);
     LWDNS_SAFE_FREE_STRING(pszIPAddress);
+    LWDNS_SAFE_FREE_STRING(pszZone);
     
     if (pNameServerInfos)
     {
