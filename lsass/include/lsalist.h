@@ -121,7 +121,10 @@ LsaListRemoveBefore(
     IN LSA_LIST_LINKS* Head
     );
 
-#define LsaListInsertTail LsaListInsertBefore
 #define LsaListInsertHead LsaListInsertAfter
+#define LsaListInsertTail LsaListInsertBefore
+
+#define LsaListRemoveHead LsaListRemoveAfter
+#define LsaListRemoveTail LsaListRemoveBefore
 
 #endif

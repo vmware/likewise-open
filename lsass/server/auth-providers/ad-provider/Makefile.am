@@ -30,6 +30,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        lsaum_p.c                 \
        lsaumproc.c               \
        ad_enum_objects.c         \
+       batch_build.c             \
        batch_gather.c            \
        batch_marshal.c
 

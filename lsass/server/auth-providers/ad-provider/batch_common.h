@@ -198,6 +198,14 @@ LsaAdBatchQueryTermDebugInfo(
     OUT OPTIONAL PDWORD pdwId
     );
 
+LSA_AD_BATCH_OBJECT_TYPE
+LsaAdBatchGetObjectTypeFromQueryType(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType
+    );
 
+BOOLEAN
+LsaAdBatchHasValidCharsForSid(
+    IN PCSTR pszSidString
+    );
 
 #endif /* BATCH_COMMON_H_ */

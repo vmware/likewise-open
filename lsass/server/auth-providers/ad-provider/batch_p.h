@@ -49,6 +49,15 @@
 
 #include "batch_common.h"
 
+// zero means unlimited
+#define LSA_AD_BATCH_MAX_QUERY_SIZE 0
+#define LSA_AD_BATCH_MAX_QUERY_COUNT 1000
+
+typedef DWORD LSA_PROVISIONING_MODE, *PLSA_PROVISIONING_MODE;
+#define LSA_PROVISIONING_MODE_DEFAULT_CELL     1
+#define LSA_PROVISIONING_MODE_NON_DEFAULT_CELL 2
+#define LSA_PROVISIONING_MODE_UNPROVISIONED    3
+
 static
 DWORD
 LsaAdBatchFindObjects(
@@ -62,7 +71,7 @@ LsaAdBatchFindObjects(
 
 static
 DWORD
-CreateBatchDomainEntry(
+LsaAdBatchCreateDomainEntry(
     OUT PLSA_AD_BATCH_DOMAIN_ENTRY* ppEntry,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszQueryTerm
@@ -70,13 +79,13 @@ CreateBatchDomainEntry(
 
 static
 VOID
-DestroyBatchDomainEntry(
+LsaAdBatchDestroyDomainEntry(
     IN OUT PLSA_AD_BATCH_DOMAIN_ENTRY* ppEntry
     );
 
 static
 DWORD
-CreateBatchItem(
+LsaAdBatchCreateBatchItem(
     OUT PLSA_AD_BATCH_ITEM* ppItem,
     IN PLSA_AD_BATCH_DOMAIN_ENTRY pDomainEntry,
     IN LSA_AD_BATCH_QUERY_TYPE QueryTermType,
@@ -86,39 +95,13 @@ CreateBatchItem(
 
 static
 VOID
-DestroyBatchItem(
+LsaAdBatchDestroyBatchItem(
     IN OUT PLSA_AD_BATCH_ITEM* ppItem
     );
 
 static
 DWORD
-GetDomainEntryType(
-    IN PCSTR pszDomainName,
-    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
-    IN OPTIONAL PCSTR pszDomainDN,
-    OUT PBOOLEAN pbSkip,
-    OUT PBOOLEAN pbIsOneWayTrust
-    );
-
-static
-DWORD
-CheckDomainModeCompatibility(
-    IN PCSTR pszDnsDomainName,
-    IN BOOLEAN bIsExternalTrust,
-    IN OPTIONAL PCSTR pszDomainDN
-    );
-
-static
-DWORD
-GetCellConfigurationMode(
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR pszCellDN,
-    OUT ADConfigurationMode* pAdMode
-    );
-
-static
-DWORD
-AD_FindObjectsByListForDomain(
+LsaAdBatchFindObjectsForDomainEntry(
     IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OUT PLSA_AD_BATCH_DOMAIN_ENTRY pEntry
@@ -126,7 +109,7 @@ AD_FindObjectsByListForDomain(
 
 static
 DWORD
-AD_FindObjectsByListForDomainInternal(
+LsaAdBatchFindObjectsForDomain(
     IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
@@ -135,7 +118,8 @@ AD_FindObjectsByListForDomainInternal(
     IN OUT PLSA_LIST_LINKS pBatchItemList
     );
 
-// Fills in real and SIDs.
+// Resolve Functions
+
 static
 DWORD
 LsaAdBatchResolveRpcObjects(
@@ -192,35 +176,7 @@ LsaAdBatchResolvePseudoObjectsInternal(
     IN OUT OPTIONAL PHANDLE phDirectory
     );
 
-// zero means unlimited
-#define BUILD_BATCH_QUERY_MAX_SIZE 0
-#define BUILD_BATCH_QUERY_MAX_COUNT 1000
-
-static
-DWORD
-LsaAdBatchBuildQueryForReal(
-    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
-    // List of PLSA_AD_BATCH_ITEM
-    IN PLSA_LIST_LINKS pFirstLinks,
-    IN PLSA_LIST_LINKS pEndLinks,
-    OUT PLSA_LIST_LINKS* ppNextLinks,
-    IN DWORD dwMaxQuerySize,
-    IN DWORD dwMaxQueryCount,
-    OUT PDWORD pdwQueryCount,
-    OUT PSTR* ppszQuery
-    );
-
-static
-DWORD
-LsaAdBatchBuildQueryForRpc(
-    // List of PLSA_AD_BATCH_ITEM
-    IN PLSA_LIST_LINKS pFirstLinks,
-    IN PLSA_LIST_LINKS pEndLinks,
-    OUT PLSA_LIST_LINKS* ppNextLinks,
-    IN DWORD dwMaxQueryCount,
-    OUT PDWORD pdwQueryCount,
-    OUT PSTR** pppszQueryList
-    );
+// Process Functions
 
 static
 DWORD
@@ -256,28 +212,13 @@ LsaAdBatchProcessPseudoObject(
     IN LDAPMessage* pMessage
     );
 
-typedef DWORD LSA_PROVISIONING_MODE, *PLSA_PROVISIONING_MODE;
-#define LSA_PROVISIONING_MODE_DEFAULT_CELL     1
-#define LSA_PROVISIONING_MODE_NON_DEFAULT_CELL 2
-#define LSA_PROVISIONING_MODE_UNPROVISIONED    3
+// Utility Functions
 
 static
 DWORD
 LsaAdBatchAccountTypeToObjectType(
     IN ADAccountType AccountType,
     OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType
-    );
-
-static
-LSA_AD_BATCH_OBJECT_TYPE
-LsaAdBatchGetObjectTypeFromQueryType(
-    IN LSA_AD_BATCH_QUERY_TYPE QueryType
-    );
-
-static
-BOOLEAN
-LsaAdBatchHasValidCharsForSid(
-    IN PCSTR pszSidString
     );
 
 #endif /* __BATCH_P_H__ */
