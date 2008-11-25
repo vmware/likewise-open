@@ -30,6 +30,7 @@ opt/likewise/bin/lw-trace-info
 opt/likewise/bin/lw-ypcat
 opt/likewise/bin/lw-ypmatch
 opt/likewise/bin/sqlite3
+opt/likewise/bin/lw-dump-machine-acct
 opt/likewise/lib/libgssntlm.so*
 opt/likewise/lib/liblsaaccess.so*
 opt/likewise/lib/liblsaauth.so*
