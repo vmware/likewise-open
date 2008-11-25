@@ -52,6 +52,7 @@ opt/likewise/lib/libntlmcommon.so*
 opt/likewise/lib/libntlmserver.so*
 opt/likewise/lib/libsqlite3.so*
 opt/likewise/lib/libwbclient.so*
+opt/likewise/lib/lwicompat_v*.so*
 opt/likewise/lib/pkgconfig/
 opt/likewise/lib/pkgconfig/sqlite3.pc
 opt/likewise/sbin/lsassd

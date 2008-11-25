@@ -1,3 +1,9 @@
+likewise-open (5.0.5104-1) intrepid; urgency=low
+
+  * New upstream (development) release 
+
+ -- Gerald Carter <gcarter@likewisesoftware.com>  Tue, 25 Nov 2008 08:00:53 -0600
+
 likewise-open (5.0.3867-1) intrepid; urgency=low
 
   * New upstream release
