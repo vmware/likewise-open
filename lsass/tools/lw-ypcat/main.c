@@ -412,7 +412,7 @@ static
 void
 ShowUsage()
 {
-    printf("Usage: lw-ypcat {-d <domain>} {-x} {-t} {-k} <map name>\n");
+    printf("Usage: lw-ypcat [-d domain] [-x] [-t] [-k] map-name\n");
     printf("\n");
     printf("-k : query keys only.\n");
     printf("-x : print nis nickname table.\n");

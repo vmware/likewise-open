@@ -443,9 +443,9 @@ static
 void
 ShowUsage()
 {
-    printf("Usage: lw-ypmatch {-d <domain>} {-x} {-t} {-k} <key name> <map name>\n");
+    printf("Usage: lw-ypmatch [-d domain] [-x] [-t] [-k] key-name map-name\n");
     printf("\n");
-    printf("-k : query key only.\n");
+    printf("-k : print keys.\n");
     printf("-x : print nis nickname table.\n");
     printf("-t : do not use nickname table.\n");
 }
