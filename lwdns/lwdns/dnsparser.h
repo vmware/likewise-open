@@ -88,9 +88,10 @@ res_query(
 
 DWORD
 DNSGetNameServers(
-    PCSTR        pszDomain,
-    PLW_NS_INFO* ppNSInfoList,
-    PDWORD       pdwNumInfos
+    IN PCSTR pszDomain,
+    OUT PSTR* ppszZone,
+    OUT PLW_NS_INFO* ppNSInfoList,
+    OUT PDWORD pdwNumServers
     );
 
 VOID
