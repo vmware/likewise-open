@@ -11,7 +11,6 @@ opt/likewise/bin/lw-add-user
 opt/likewise/bin/lw-del-group
 opt/likewise/bin/lw-del-user
 opt/likewise/bin/lw-enum-groups
-opt/likewise/bin/lw-enum-maps
 opt/likewise/bin/lw-enum-users
 opt/likewise/bin/lw-find-by-sid
 opt/likewise/bin/lw-find-group-by-id
@@ -27,6 +26,9 @@ opt/likewise/bin/lw-mod-user
 opt/likewise/bin/lw-refresh-configuration
 opt/likewise/bin/lw-set-log-level
 opt/likewise/bin/lw-update-dns
+opt/likewise/bin/lw-trace-info
+opt/likewise/bin/lw-ypcat
+opt/likewise/bin/lw-ypmatch
 opt/likewise/bin/sqlite3
 opt/likewise/lib/libgssntlm.so*
 opt/likewise/lib/liblsaaccess.so*

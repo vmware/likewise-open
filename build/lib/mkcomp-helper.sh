@@ -37,7 +37,8 @@ function _get_base_cflags
 {
     local flags="${BUILD_CFLAGS}"
 
-    flags="$flags -O2 -g -fmessage-length=0 -D_FORTIFY_SOURCE=2 -Wl,-rpath-link,${STAGE_INSTALL_DIR}/${PREFIXDIR}/${_lib}"
+    flags="$flags -O2 -g -fmessage-length=0 -D_GNU_SOURCE -D_FORTIFY_SOURCE=2"
+    flags="${flags}"
 
     echo "$flags"
 }
@@ -45,6 +46,8 @@ function _get_base_cflags
 function _get_base_ldflags
 {
     local flags="${BUILD_LDFLAGS}"
+
+    flags="${flags} -Wl,-rpath-link -Wl,${STAGE_INSTALL_DIR}/${PREFIXDIR}/${_lib} -Wl,-rpath -Wl,${PREFIXDIR}/${_lib}"
 
     echo "$flags"
 }
