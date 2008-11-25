@@ -234,9 +234,16 @@ DNSGetNameServers(
         LWDNS_LOG_DEBUG(
                 "Querying DNS for NS Records for zone [%s]",
                 pszZone);
+
+        LWDNS_SAFE_FREE_STRING(pszDupZone);
+
+        dwError = DNSAllocateString(
+                        pszZone,
+                        &pszDupZone);
+        BAIL_ON_LWDNS_ERROR(dwError);
         
         responseLen = res_query(
-                        pszZone,
+                        pszDupZone, //this parameter is char* on HP-UX
                         ns_c_in,
                         ns_t_ns,
                         pBuffer,
@@ -315,11 +322,6 @@ DNSGetNameServers(
                     &dwNumInfos);
     BAIL_ON_LWDNS_ERROR(dwError);
 
-    dwError = DNSAllocateString(
-                    pszZone,
-                    &pszDupZone);
-    BAIL_ON_LWDNS_ERROR(dwError);
-                    
     *ppNSInfoList = pNSInfoArray;
     *pdwNumServers = dwNumInfos;
     *ppszZone = pszDupZone;
