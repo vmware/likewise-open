@@ -502,6 +502,8 @@ LsaAdBatchBuilderBatchItemNextItem(
 #define AD_LDAP_QUERY_SCHEMA_USER "(objectClass=posixAccount)"
 #define AD_LDAP_QUERY_SCHEMA_GROUP "(objectClass=posixGroup)"
 #define AD_LDAP_QUERY_NON_SCHEMA "(objectClass=serviceConnectionPoint)"
+#define AD_LDAP_QUERY_USER "(objectClass=User)"
+#define AD_LDAP_QUERY_GROUP "(objectClass=Group)"
 
 static
 PCSTR
@@ -513,7 +515,33 @@ LsaAdBatchBuilderGetPseudoQueryPrefix(
 {
     PCSTR pszPrefix = NULL;
 
-    if (bIsSchemaMode)
+    if (LsaAdBatchIsDefaultSchemaMode())
+    {
+        switch (ObjectType)
+        {
+            case LSA_AD_BATCH_OBJECT_TYPE_USER:
+                pszPrefix =
+                    "(&"
+                    "(&" AD_LDAP_QUERY_USER ")"
+                    "";
+                break;
+            case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
+                pszPrefix =
+                    "(&"
+                    "(&" AD_LDAP_QUERY_GROUP ")"
+                    "";
+                break;
+            default:
+                pszPrefix =
+                    "(&"
+                    "(|"
+                    "(&" AD_LDAP_QUERY_USER ")"
+                    "(&" AD_LDAP_QUERY_GROUP ")"
+                    ")"
+                    "";
+        }
+    }
+    else if (bIsSchemaMode)
     {
         switch (ObjectType)
         {
