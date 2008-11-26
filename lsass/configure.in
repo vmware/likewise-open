@@ -654,6 +654,7 @@ AC_CONFIG_FILES([Makefile
                  auth/common/Makefile
                  auth/pam/Makefile
                  wbclient/Makefile
+                 lwicompat/Makefile
                  tools/Makefile
                  tools/add_user/Makefile
 		 tools/mod_user/Makefile
