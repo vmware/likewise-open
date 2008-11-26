@@ -56,7 +56,6 @@
 #define LSA_XFER_STRING(Source, Target) \
     ((Target) = (Source), (Source) = NULL)
 
-
 typedef UINT8 LSA_AD_BATCH_DOMAIN_ENTRY_FLAGS;
 // If this is set, we are not supposed to process
 // this domain.
@@ -75,20 +74,17 @@ typedef UINT8 LSA_AD_BATCH_QUERY_TYPE, *PLSA_AD_BATCH_QUERY_TYPE;
 #define LSA_AD_BATCH_QUERY_TYPE_BY_UID         6
 #define LSA_AD_BATCH_QUERY_TYPE_BY_GID         7
 
-
 typedef UINT8 LSA_AD_BATCH_OBJECT_TYPE, *PLSA_AD_BATCH_OBJECT_TYPE;
 #define LSA_AD_BATCH_OBJECT_TYPE_UNDEFINED 0
 #define LSA_AD_BATCH_OBJECT_TYPE_USER      1
 #define LSA_AD_BATCH_OBJECT_TYPE_GROUP     2
-
 
 typedef UINT8 LSA_AD_BATCH_ITEM_FLAGS, *PLSA_AD_BATCH_ITEM_FLAGS;
 #define LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO  0x01
 #define LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL    0x02
 #define LSA_AD_BATCH_ITEM_FLAG_DISABLED     0x04
 #define LSA_AD_BATCH_ITEM_FLAG_ERROR        0x08
-
-
+#define LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM 0x10
 
 typedef struct _LSA_AD_BATCH_DOMAIN_ENTRY {
     PSTR pszDnsDomainName;
@@ -161,7 +157,7 @@ XXX; // remove pDomainEntry as we should not need it.
 XXX; // eventually remove DN field...
 typedef struct _LSA_AD_BATCH_ITEM {
     LSA_AD_BATCH_QUERY_TERM QueryTerm;
-    PCSTR pszQueryMatchTerm;
+    PSTR pszQueryMatchTerm;
     PLSA_AD_BATCH_DOMAIN_ENTRY pDomainEntry;
     LSA_LIST_LINKS BatchItemListLinks;
     LSA_AD_BATCH_ITEM_FLAGS Flags;
@@ -188,6 +184,17 @@ BOOLEAN
 LsaAdBatchIsUnprovisionedMode(
     VOID
     );
+
+PCSTR
+LsaAdBatchFindKeywordAttributeWithEqual(
+    IN DWORD dwKeywordValuesCount,
+    IN PSTR* ppszKeywordValues,
+    IN PCSTR pszAttributeNameWithEqual,
+    IN size_t sAttributeNameWithEqualLength
+    );
+
+#define LsaAdBatchFindKeywordAttributeStatic(Count, Keywords, StaticString) \
+    LsaAdBatchFindKeywordAttributeWithEqual(Count, Keywords, StaticString "=", sizeof(StaticString "=") - 1)
 
 VOID
 LsaAdBatchQueryTermDebugInfo(

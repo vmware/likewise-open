@@ -79,5 +79,8 @@
 #define AD_LDAP_NETBIOS_TAG      "netBIOSName"
 #define AD_LDAP_DN_TAG           "distinguishedName"
 
+// Pseudo-only Attributes
+#define AD_LDAP_BACKLINK_PSEUDO_TAG   "backLink"
+
 #endif /* __ADLDAPDEF_H__ */
 

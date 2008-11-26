@@ -311,9 +311,6 @@ error:
 typedef struct _LSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT {
     LSA_AD_BATCH_QUERY_TYPE QueryType;
     BOOLEAN bIsForRealObject;
-    // Buffer needs to contain 32-bit unsigned number in decimal.
-    // That's 10 digits plus a terminating NULL.
-    char szIdBuffer[11];
 } LSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT, *PLSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT;
 
 static
@@ -334,8 +331,16 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
     PSTR pszValueToEscape = NULL;
     PSTR pszValue = NULL;
     PVOID pFreeValueContext = NULL;
+    // Free this on error only.
+    PSTR pszAllocatedMatchTermValue = NULL;
     BOOLEAN bHaveReal = IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL);
     BOOLEAN bHavePseudo = IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO);
+
+    if (IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM))
+    {
+        LSA_SAFE_FREE_STRING(pBatchItem->pszQueryMatchTerm);
+        ClearFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM);
+    }
 
     if ((bIsForRealObject && bHaveReal) ||
         (!bIsForRealObject && bHavePseudo))
@@ -415,11 +420,19 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
             LSA_ASSERT(!bIsForRealObject);
             LSA_ASSERT(QueryType == pBatchItem->QueryTerm.Type);
 
-            snprintf(pContext->szIdBuffer, sizeof(pContext->szIdBuffer),
-                     "%u", (unsigned int)pBatchItem->QueryTerm.dwId);
-            // There should have been enough space for the NULL termination.
-            LSA_ASSERT(!pContext->szIdBuffer[sizeof(pContext->szIdBuffer) - 1]);
-            pszValue = pContext->szIdBuffer;
+            dwError = LsaAllocateStringPrintf(
+                            &pszAllocatedMatchTermValue,
+                            "%u",
+                            (unsigned int)pBatchItem->QueryTerm.dwId);
+            BAIL_ON_LSA_ERROR(dwError);
+            pszValue = pszAllocatedMatchTermValue;
+
+            // Note: It is ok to set this here because it is ok for
+            // this flag to be set if the match term field in the
+            // batch item is still NULL (i.e., if we fail later in
+            // this function).
+            SetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM);
+
             break;
 
         case LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS:
@@ -459,6 +472,7 @@ error:
     pszValueToEscape = NULL;
     pszValue = NULL;
     LSA_SAFE_FREE_STRING(pFreeValueContext);
+    LSA_SAFE_FREE_STRING(pszAllocatedMatchTermValue);
     goto cleanup;
 }
 
@@ -571,7 +585,7 @@ LsaAdBatchBuilderGetPseudoQueryAttribute(
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
-            pszAttributeName = "keywords=backLink";
+            pszAttributeName = "keywords=" AD_LDAP_BACKLINK_PSEUDO_TAG;
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_UID:
             if (bIsSchemaMode)
