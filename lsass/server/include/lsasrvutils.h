@@ -57,8 +57,8 @@
 #define GENERAL_EVENT_CATEGORY      "General"
 #define NONE_EVENT_CATEGORY         "None"
 
-#define SUCCESS_AUDIT_EVENT_TYPE    "Audit Success"
-#define FAILURE_AUDIT_EVENT_TYPE    "Audit Failure"
+#define SUCCESS_AUDIT_EVENT_TYPE    "Success Audit"
+#define FAILURE_AUDIT_EVENT_TYPE    "Failure Audit"
 #define INFORMATION_EVENT_TYPE      "Information"
 #define WARNING_EVENT_TYPE          "Warning"
 #define ERROR_EVENT_TYPE            "Error"
