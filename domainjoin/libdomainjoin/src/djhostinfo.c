@@ -1104,7 +1104,9 @@ static void DoSetHostname(JoinProcessOptions *options, LWException **exc)
     if(ceError == CENTERROR_INVALID_FILENAME)
     {
         ceError = CENTERROR_SUCCESS;
+#if !defined(__LWI_MACOSX__)
         DJ_LOG_WARNING("Warning: Could not find nsswitch file");
+#endif
     }
     LW_CLEANUP_CTERR(exc, ceError);
 

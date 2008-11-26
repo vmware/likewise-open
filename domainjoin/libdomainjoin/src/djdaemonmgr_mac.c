@@ -55,8 +55,13 @@ static CENTERROR GetXPathString(PCSTR file, PSTR *result, PCSTR expression)
     xmlXPathContextPtr xpathCtx = NULL; 
     xmlXPathObjectPtr xpathObj = NULL; 
     CENTERROR ceError = CENTERROR_SUCCESS;
+    BOOLEAN bExists = FALSE;
 
     *result = NULL;
+
+    GCE(ceError = CTCheckFileExists(file, &bExists));
+    if (bExists == FALSE)
+        GCE(ceError = CENTERROR_DOMAINJOIN_INVALID_FORMAT);
 
     xmlDoc = xmlReadFile(file, NULL, XML_PARSE_NONET | XML_PARSE_NOERROR);
     if(xmlDoc == NULL)
@@ -68,8 +73,13 @@ static CENTERROR GetXPathString(PCSTR file, PSTR *result, PCSTR expression)
 
     xpathObj = xmlXPathEvalExpression((xmlChar*)expression, xpathCtx);
 
+    if(xpathObj == NULL)
+        GCE(ceError = CENTERROR_DOMAINJOIN_INVALID_FORMAT);
+
     if(xpathObj->type != XPATH_NODESET)
         GCE(ceError = CENTERROR_INVALID_VALUE);
+    if(xpathObj->nodesetval == NULL)
+        GCE(ceError = CENTERROR_CFG_VALUE_NOT_FOUND);
     if(xpathObj->nodesetval->nodeNr < 1)
         GCE(ceError = CENTERROR_CFG_VALUE_NOT_FOUND);
     if(xpathObj->nodesetval->nodeNr > 1 ||
