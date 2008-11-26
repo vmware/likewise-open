@@ -3,6 +3,7 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = utils     \
           api       \
           providers \
+	  tools     \
           etc       \
           include
 

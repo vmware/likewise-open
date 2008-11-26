@@ -12,6 +12,7 @@ full_subdirs= \
 	$(compat_subdirs) \
 	lsaunistr         \
         wbclient          \
+	lwicompat	  \
 	gssntlm	          \
         server            \
         access            \
