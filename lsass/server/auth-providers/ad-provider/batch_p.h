@@ -215,6 +215,12 @@ LsaAdBatchProcessPseudoObject(
 // Utility Functions
 
 static
+PCSTR
+LsaAdBatchGetQueryTypeAsString(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType
+    );
+
+static
 DWORD
 LsaAdBatchAccountTypeToObjectType(
     IN ADAccountType AccountType,

@@ -366,13 +366,6 @@ LsaAdBatchGatherNonSchemaModeUser(
     dwError = ADNonSchemaKeywordGetString(
                     ppszKeywordValues,
                     dwKeywordValuesCount,
-                    AD_LDAP_DISPLAY_NAME_TAG,
-                    &pItem->GroupInfo.pszAlias);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADNonSchemaKeywordGetString(
-                    ppszKeywordValues,
-                    dwKeywordValuesCount,
                     AD_LDAP_ALIAS_TAG,
                     &pItem->UserInfo.pszAlias);
     BAIL_ON_LSA_ERROR(dwError);
@@ -596,6 +589,8 @@ LsaAdBatchGatherRealUser(
 {
     DWORD dwError = 0;
 
+    LSA_ASSERT(!pItem->UserInfo.pszUserPrincipalName);
+
     dwError = LsaLdapGetString(
                     hDirectory,
                     pMessage,
@@ -657,7 +652,7 @@ DWORD
 LsaAdBatchGatherRealObject(
     IN OUT PLSA_AD_BATCH_ITEM pItem,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
-    IN OUT PSTR* ppszSid,
+    IN OUT OPTIONAL PSTR* ppszSid,
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage
     )
@@ -669,12 +664,26 @@ LsaAdBatchGatherRealObject(
     dwError = LsaAdBatchGatherObjectType(pItem, ObjectType);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_XFER_STRING(*ppszSid, pItem->pszSid);
+    if (!pItem->pszSid)
+    {
+        if (ppszSid)
+        {
+            LSA_XFER_STRING(*ppszSid, pItem->pszSid);
+        }
+        else
+        {
+            dwError = ADLdap_GetObjectSid(hDirectory, pMessage, &pItem->pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
     if (IsNullOrEmptyString(pItem->pszSid))
     {
         dwError = LSA_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    LSA_ASSERT(!pItem->pszSamAccountName);
 
     dwError = LsaLdapGetString(
                     hDirectory,
@@ -687,6 +696,8 @@ LsaAdBatchGatherRealObject(
         dwError = LSA_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    LSA_ASSERT(!pItem->pszDn);
 
     dwError = LsaLdapGetString(
                     hDirectory,
@@ -703,12 +714,17 @@ LsaAdBatchGatherRealObject(
     // Handle cases where real contains pseudo.
     if (LsaAdBatchIsDefaultSchemaMode())
     {
-        SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO);
-        dwError = LsaAdBatchGatherSchemaMode(
-                        pItem,
-                        hDirectory,
-                        pMessage);
-        BAIL_ON_LSA_ERROR(dwError);
+        // But only if we are not being called by a pseudo
+        // lookup for default schema mode.
+        if (!IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO))
+        {
+            SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO);
+            dwError = LsaAdBatchGatherSchemaMode(
+                            pItem,
+                            hDirectory,
+                            pMessage);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
     else if (LsaAdBatchIsUnprovisionedMode())
     {
@@ -737,10 +753,71 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+LsaAdBatchGatherPseudoSid(
+    IN OUT PSTR* ppszSid,
+    IN OPTIONAL PCSTR pszSid,
+    IN OPTIONAL DWORD dwKeywordValuesCount,
+    IN OPTIONAL PSTR* ppszKeywordValues,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszResult = *ppszSid;
+
+    if (!pszResult)
+    {
+        if (pszSid)
+        {
+            dwError = LsaAllocateString(pszSid, &pszResult);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else if (LsaAdBatchIsDefaultSchemaMode())
+        {
+            dwError = ADLdap_GetObjectSid(hDirectory, pMessage, &pszResult);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            PCSTR pszSidFromKeywords = NULL;
+
+            LSA_ASSERT(ppszKeywordValues);
+
+            pszSidFromKeywords = LsaAdBatchFindKeywordAttributeStatic(
+                                        dwKeywordValuesCount,
+                                        ppszKeywordValues,
+                                        AD_LDAP_BACKLINK_PSEUDO_TAG);
+            if (IsNullOrEmptyString(pszSidFromKeywords))
+            {
+                dwError = LSA_ERROR_INVALID_SID;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = LsaAllocateString(pszSidFromKeywords, &pszResult);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        *ppszSid = pszResult;
+    }
+    else if (pszSid && strcasecmp(pszSid, pszResult))
+    {
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 LsaAdBatchGatherPseudoObject(
     IN OUT PLSA_AD_BATCH_ITEM pItem,
-    IN OUT PCSTR pszSid,
+    IN OPTIONAL PCSTR pszSid,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     IN BOOLEAN bIsSchemaMode,
     IN OPTIONAL DWORD dwKeywordValuesCount,
@@ -751,24 +828,21 @@ LsaAdBatchGatherPseudoObject(
 {
     DWORD dwError = 0;
 
+    LSA_ASSERT(LsaAdBatchIsDefaultSchemaMode() || ppszKeywordValues);
+
     SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO);
 
     dwError = LsaAdBatchGatherObjectType(pItem, ObjectType);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pItem->pszSid)
-    {
-        dwError = LsaAllocateString(pszSid, &pItem->pszSid);
-    }
-    else
-    {
-        if (strcasecmp(pszSid, pItem->pszSid))
-        {
-            LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
+    dwError = LsaAdBatchGatherPseudoSid(
+                    &pItem->pszSid,
+                    pszSid,
+                    dwKeywordValuesCount,
+                    ppszKeywordValues,
+                    hDirectory,
+                    pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (bIsSchemaMode)
     {
@@ -777,6 +851,17 @@ LsaAdBatchGatherPseudoObject(
                         hDirectory,
                         pMessage);
         BAIL_ON_LSA_ERROR(dwError);
+        if (LsaAdBatchIsDefaultSchemaMode() &&
+            !IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL))
+        {
+            dwError = LsaAdBatchGatherRealObject(
+                            pItem,
+                            ObjectType,
+                            NULL,
+                            hDirectory,
+                            pMessage);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
     else
     {

@@ -447,11 +447,11 @@ LsaAdBatchMarshal(
                 &dwId);
         if (bIsString)
         {
-            LSA_LOG_DEBUG("Did not find object %s '%s'", pszType, pszString);
+            LSA_LOG_DEBUG("Did not find object by %s '%s'", pszType, pszString);
         }
         else
         {
-            LSA_LOG_DEBUG("Did not find object %s %u", pszType, dwId);
+            LSA_LOG_DEBUG("Did not find object by %s %u", pszType, dwId);
         }
         dwError = 0;
         goto cleanup;

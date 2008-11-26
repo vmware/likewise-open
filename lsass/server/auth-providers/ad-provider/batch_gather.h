@@ -54,7 +54,7 @@ DWORD
 LsaAdBatchGatherRealObject(
     IN OUT PLSA_AD_BATCH_ITEM pItem,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
-    IN OUT PSTR* ppszSid,
+    IN OUT OPTIONAL PSTR* ppszSid,
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage
     );
@@ -62,7 +62,7 @@ LsaAdBatchGatherRealObject(
 DWORD
 LsaAdBatchGatherPseudoObject(
     IN OUT PLSA_AD_BATCH_ITEM pItem,
-    IN OUT PCSTR pszSid,
+    IN OPTIONAL PCSTR pszSid,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     IN BOOLEAN bIsSchemaMode,
     IN OPTIONAL DWORD dwKeywordValuesCount,
