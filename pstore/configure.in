@@ -221,6 +221,8 @@ AC_CONFIG_FILES([Makefile
                  api/Makefile
                  providers/Makefile
                  providers/sqldb/Makefile
+		 tools/Makefile
+		 tools/dump_machine_account/Makefile
                  ])
 
 if $ENABLE_TDB
