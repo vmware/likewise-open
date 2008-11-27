@@ -261,7 +261,7 @@ LsaNssCommonNetgroupParse(
             {
                 (*ppszCursor)++;
             }
-            else
+            else if (**ppszCursor != '(' && !isalpha(**ppszCursor))
             {
                 ret = NSS_STATUS_UNAVAIL;
                 BAIL_ON_NSS_ERROR(ret);
