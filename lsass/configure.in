@@ -484,7 +484,7 @@ AC_SUBST(PROC_LIBS)
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h iconv.h sys/stat.h sys/pstat.h proc/readproc.h procfs.h sys/procfs.h kvm.h time.h sys/time.h sys/varargs.h nss.h nss_common.h nsswitch.h synch.h pthread.h wc16str.h wc16printf.h sys/param.h sys/sysctl.h sys/user.h pwd.h stdio.h grp.h])
+AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h iconv.h sys/stat.h sys/pstat.h proc/readproc.h procfs.h sys/procfs.h kvm.h time.h sys/time.h sys/varargs.h nss.h nss_common.h nsswitch.h synch.h pthread.h wc16str.h wc16printf.h sys/param.h sys/sysctl.h sys/user.h pwd.h stdio.h grp.h sys/wait.h])
 
 AC_CHECK_HEADERS([security/pam_appl.h], ,
     [AC_CHECK_HEADERS([pam/pam_appl.h], ,
