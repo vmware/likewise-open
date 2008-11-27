@@ -12,4 +12,5 @@ SUBDIRS = \
 	test_getpwnam \
         test_stress_ad_provider \
         test_authstress \
-        test_bitvector
+        test_bitvector \
+        test_perf
