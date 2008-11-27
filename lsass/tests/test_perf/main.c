@@ -52,7 +52,52 @@
 #if HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
+#if HAVE_GETTIMEOFDAY
+#include <sys/time.h>
+#endif
+#include <errno.h>
 #include "tests.h"
+
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME 0
+#endif
+
+#ifndef HAVE_CLOCK_GETTIME
+
+/* replacement implementation for systems that lack clock_gettime
+   support (e.g. Mac OS X) */
+
+typedef int clockid_t;
+
+int clock_gettime(clockid_t clk_id, struct timespec *tp)
+{
+    int ret;
+    struct timeval tv;
+
+    if (tp == NULL)
+    {
+	return EFAULT;
+    }
+
+    if (clk_id != CLOCK_REALTIME)
+    {
+	return EINVAL;
+    }
+
+    ret = gettimeofday(&tv, NULL);
+    if (ret)
+    {
+	return ret;
+    }
+
+    tp->tv_sec  = tv.tv_sec;
+    tp->tv_nsec = tv.tv_usec * 1000;
+
+    return 0;
+}
+
+#endif /* HAVE_CLOCK_GETTIME */
+
 
 int64_t
 GetTimeDiff(
