@@ -411,7 +411,7 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
                 pszValueToEscape = (PSTR)pBatchItem->QueryTerm.pszString;
                 LSA_ASSERT(pszValueToEscape);
                 // The query term will already have the domain stripped out.
-                LSA_ASSERT(!index(pszValueToEscape, '\\'));
+                LSA_ASSERT(!index(pszValueToEscape, LsaGetDomainSeparator()));
             }
             break;
 
@@ -497,11 +497,11 @@ LsaAdBatchBuilderBatchItemNextItem(
     return pLinks->Next;
 }
 
-#define AD_LDAP_QUERY_LW_USER  "(keywords=objectClass=centerisLikewiseUser)"
-#define AD_LDAP_QUERY_LW_GROUP "(keywords=objectClass=centerisLikewiseGroup)"
-#define AD_LDAP_QUERY_SCHEMA_USER "(objectClass=posixAccount)"
-#define AD_LDAP_QUERY_SCHEMA_GROUP "(objectClass=posixGroup)"
-#define AD_LDAP_QUERY_NON_SCHEMA "(objectClass=serviceConnectionPoint)"
+#define AD_LDAP_QUERY_LW_USER  "(keywords=objectClass=" AD_LDAP_CLASS_LW_USER ")"
+#define AD_LDAP_QUERY_LW_GROUP "(keywords=objectClass=" AD_LDAP_CLASS_LW_GROUP ")"
+#define AD_LDAP_QUERY_SCHEMA_USER  "(objectClass=" AD_LDAP_CLASS_SCHEMA_USER ")"
+#define AD_LDAP_QUERY_SCHEMA_GROUP "(objectClass=" AD_LDAP_CLASS_SCHEMA_GROUP ")"
+#define AD_LDAP_QUERY_NON_SCHEMA "(objectClass=" AD_LDAP_CLASS_NON_SCHEMA ")"
 #define AD_LDAP_QUERY_USER "(objectClass=User)"
 #define AD_LDAP_QUERY_GROUP "(objectClass=Group)"
 
@@ -662,6 +662,7 @@ LsaAdBatchBuilderGetPseudoQueryAttribute(
 
 DWORD
 LsaAdBatchBuildQueryForRpc(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,
     IN PLSA_LIST_LINKS pEndLinks,
@@ -681,9 +682,9 @@ LsaAdBatchBuildQueryForRpc(
     pLinks = pFirstLinks;
     for (pLinks = pFirstLinks; pLinks != pEndLinks; pLinks = pLinks->Next)
     {
-        PLSA_AD_BATCH_ITEM pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
+        PLSA_AD_BATCH_ITEM pBatchItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
 
-        if (!IsNullOrEmptyString(pEntry->QueryTerm.pszString))
+        if (!IsNullOrEmptyString(pBatchItem->QueryTerm.pszString))
         {
             DWORD dwNewQueryCount = dwQueryCount + 1;
 
@@ -709,13 +710,67 @@ LsaAdBatchBuildQueryForRpc(
     // Loop until we reach last links.
     for (pLinks = pFirstLinks; pLinks != pLastLinks; pLinks = pLinks->Next)
     {
-        PLSA_AD_BATCH_ITEM pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
+        PLSA_AD_BATCH_ITEM pBatchItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
 
-        if (!IsNullOrEmptyString(pEntry->QueryTerm.pszString))
+        if (IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM))
         {
-            dwError = LsaAllocateString(pEntry->QueryTerm.pszString,
-                                        &ppszQueryList[dwQueryCount]);
-            BAIL_ON_LSA_ERROR(dwError);
+            LSA_SAFE_FREE_STRING(pBatchItem->pszQueryMatchTerm);
+            ClearFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM);
+        }
+
+        if (!IsNullOrEmptyString(pBatchItem->QueryTerm.pszString))
+        {
+            switch (QueryType)
+            {
+                case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+                {
+                    PCSTR pszUseSid = NULL;
+                    if (pBatchItem->pszSid)
+                    {
+                        pszUseSid = pBatchItem->pszSid;
+                    }
+                    else if (QueryType == pBatchItem->QueryTerm.Type)
+                    {
+                        pszUseSid = pBatchItem->QueryTerm.pszString;
+                    }
+                    // We might not have a SID if we failed to find a pseudo.
+                    if (pszUseSid)
+                    {
+                        dwError = LsaAllocateString(pszUseSid,
+                                                    &ppszQueryList[dwQueryCount]);
+                        BAIL_ON_LSA_ERROR(dwError);
+                        pBatchItem->pszQueryMatchTerm = (PSTR)pszUseSid;
+                    }
+                    break;
+                }
+                case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+                {
+                    PCSTR pszUseSamAccountName = NULL;
+                    if (pBatchItem->pszSamAccountName)
+                    {
+                        pszUseSamAccountName = pBatchItem->pszSamAccountName;
+                    }
+                    else if (QueryType == pBatchItem->QueryTerm.Type)
+                    {
+                        pszUseSamAccountName = pBatchItem->QueryTerm.pszString;
+                    }
+                    if (pszUseSamAccountName)
+                    {
+                        dwError = LsaAllocateStringPrintf(
+                                        &ppszQueryList[dwQueryCount],
+                                        "%s\\%s",
+                                        pBatchItem->pDomainEntry->pszNetbiosDomainName,
+                                        pszUseSamAccountName);
+                        BAIL_ON_LSA_ERROR(dwError);
+                        pBatchItem->pszQueryMatchTerm = (PSTR)pszUseSamAccountName;
+                    }
+                    break;
+                }
+                default:
+                    LSA_ASSERT(FALSE);
+                    dwError = LSA_ERROR_INTERNAL;
+                    BAIL_ON_LSA_ERROR(dwError);
+            }
             dwQueryCount++;
         }
     }
@@ -794,7 +849,7 @@ LsaAdBatchBuildQueryForReal(
     }
 
     context.QueryType = QueryType;
-    context.bIsForRealObject = FALSE;
+    context.bIsForRealObject = TRUE;
 
     dwError = LsaAdBatchBuilderCreateQuery(
                     pszPrefix,

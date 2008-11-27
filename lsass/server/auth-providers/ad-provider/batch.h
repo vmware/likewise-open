@@ -65,5 +65,14 @@ ADLdap_FindObjectsBySidListBatched(
     OUT PAD_SECURITY_OBJECT** pppObjects
     );
 
+DWORD
+ADLdap_FindObjectsByNameListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PSTR* ppszNameList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
 #endif /* __BATCH_H__ */
 
