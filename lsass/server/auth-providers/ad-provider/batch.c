@@ -81,6 +81,21 @@ ADLdap_FindObjectsBySidListBatched(
                                  pdwCount, pppObjects);
 }
 
+DWORD
+ADLdap_FindObjectsByNameListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PSTR* ppszNameList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    )
+{
+    return LsaAdBatchFindObjects(hProvider,
+                                 LSA_AD_BATCH_QUERY_TYPE_BY_NT4,
+                                 dwCount, ppszNameList,
+                                 pdwCount, pppObjects);
+}
+
 static
 PCSTR
 LsaAdBatchParseDcPart(
@@ -239,6 +254,7 @@ LsaAdBatchGetDomainEntryType(
             break;
 
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+        case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
             switch (gpADProviderData->dwDirectoryMode)
             {
                 case DEFAULT_MODE:
@@ -300,6 +316,40 @@ error:
 
 static
 DWORD
+LsaAdBatchGetDomainFromNT4Name(
+    OUT PSTR* ppszDomainName,
+    IN PCSTR pszNT4Name
+    )
+{
+    DWORD dwError = 0;
+    PCSTR pszSeparator = NULL;
+    size_t sLength = 0;
+    PSTR pszDomainName = NULL;
+
+    pszSeparator = strchr(pszNT4Name, LsaGetDomainSeparator());
+    if (!pszSeparator)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    sLength = pszSeparator - pszNT4Name;
+
+    dwError = LsaStrndup(pszNT4Name, sLength, &pszDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    *ppszDomainName = pszDomainName;
+
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_STRING(pszDomainName);
+    goto cleanup;
+}
+
+static
+DWORD
 LsaAdBatchCreateDomainEntry(
     OUT PLSA_AD_BATCH_DOMAIN_ENTRY* ppEntry,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
@@ -314,6 +364,7 @@ LsaAdBatchCreateDomainEntry(
     PSTR pszDomainSid = NULL;
     BOOLEAN bSkip = FALSE;
     BOOLEAN bIsOneWayTrust = FALSE;
+    PSTR pszDomainName = NULL;
 
     switch (QueryType)
     {
@@ -342,7 +393,11 @@ LsaAdBatchCreateDomainEntry(
             break;
 
         case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
-            dwError = LsaDmWrapGetDomainName(pszMatchTerm,
+            dwError = LsaAdBatchGetDomainFromNT4Name(&pszDomainName,
+                                                     pszMatchTerm);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaDmWrapGetDomainName(pszDomainName,
                                              &pszDnsDomainName,
                                              &pszNetbiosDomainName);
             BAIL_ON_LSA_ERROR(dwError);
@@ -385,17 +440,28 @@ LsaAdBatchCreateDomainEntry(
         SetFlag(pEntry->Flags, LSA_AD_BATCH_DOMAIN_ENTRY_FLAG_IS_ONE_WAY_TRUST);
     }
 
-    if (pszDcPart)
+    switch (QueryType)
     {
-        pEntry->QueryMatch.ByDn.pszDcPart = pszDcPart;
-        pszDcPart = NULL;
-    }
-    else if (pszDomainSid)
-    {
-        pEntry->QueryMatch.BySid.pszDomainSid = pszDomainSid;
-        pszDomainSid = NULL;
-
-        pEntry->QueryMatch.BySid.sDomainSidLength = strlen(pEntry->QueryMatch.BySid.pszDomainSid);
+        case LSA_AD_BATCH_QUERY_TYPE_BY_DN:
+            LSA_ASSERT(pszDcPart);
+            pEntry->QueryMatch.ByDn.pszDcPart = pszDcPart;
+            pszDcPart = NULL;
+            break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+            LSA_ASSERT(pszDomainSid);
+            pEntry->QueryMatch.BySid.pszDomainSid = pszDomainSid;
+            pszDomainSid = NULL;
+            pEntry->QueryMatch.BySid.sDomainSidLength = strlen(pEntry->QueryMatch.BySid.pszDomainSid);
+            break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+            pEntry->QueryMatch.ByNT4.sNetbiosDomainNameLength = strlen(pEntry->pszNetbiosDomainName);
+            pEntry->QueryMatch.ByNT4.sDnsDomainNameLength = strlen(pEntry->pszDnsDomainName);
+            LSA_ASSERT(pEntry->QueryMatch.ByNT4.sNetbiosDomainNameLength > 0);
+            LSA_ASSERT(pEntry->QueryMatch.ByNT4.sDnsDomainNameLength > 0);
+            break;
+        default:
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
     *ppEntry = pEntry;
@@ -404,6 +470,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszDnsDomainName);
     LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
     LSA_SAFE_FREE_STRING(pszDomainSid);
+    LSA_SAFE_FREE_STRING(pszDomainName);
     return dwError;
 
 error:
@@ -455,14 +522,37 @@ LsaAdBatchCreateBatchItem(
 {
     DWORD dwError = 0;
     PLSA_AD_BATCH_ITEM pItem = NULL;
+    PCSTR pszQueryString = pszString;
+
+    LSA_ASSERT(LSA_IS_XOR(pszString, pdwId));
 
     dwError = LsaAllocateMemory(sizeof(*pItem), (PVOID*)&pItem);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pItem->QueryTerm.Type = QueryTermType;
-    if (pszString)
+    if (LSA_AD_BATCH_QUERY_TYPE_BY_NT4 == QueryTermType)
     {
-        pItem->QueryTerm.pszString = pszString;
+        LSA_ASSERT(pszQueryString);
+
+        // We only want the SAM account name portion.
+
+        pszQueryString = index(pszQueryString, LsaGetDomainSeparator());
+        if (!pszQueryString)
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        pszQueryString++;
+        if (IsNullOrEmptyString(pszQueryString))
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    pItem->QueryTerm.Type = QueryTermType;
+    if (pszQueryString)
+    {
+        pItem->QueryTerm.pszString = pszQueryString;
     }
     else if (pdwId)
     {
@@ -536,6 +626,9 @@ LsaAdBatchGetDomainMatchTerm(
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
             pszMatchTerm = pszQueryTerm;
             break;
+        case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+            pszMatchTerm = pszQueryTerm;
+            break;
         default:
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
@@ -574,6 +667,28 @@ LsaAdBatchIsDomainSidMatch(
 }
 
 static
+BOOLEAN
+LsaAdBatchIsDomainNameMatch(
+    IN PCSTR pszDomainName,
+    IN size_t sDomainNameLength,
+    IN PCSTR pszObjectNT4Name
+    )
+{
+    BOOLEAN bIsMatch = FALSE;
+
+    if (!strncasecmp(pszObjectNT4Name,
+                     pszDomainName,
+                     sDomainNameLength) &&
+        (!pszObjectNT4Name[sDomainNameLength] ||
+         (LsaGetDomainSeparator() == pszObjectNT4Name[sDomainNameLength])))
+    {
+        bIsMatch = TRUE;
+    }
+
+    return bIsMatch;
+}
+
+static
 DWORD
 LsaAdBatchMatchDomain(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
@@ -602,8 +717,12 @@ LsaAdBatchMatchDomain(
             }
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
-            if (!strcasecmp(pEntry->pszNetbiosDomainName, pszMatchTerm) ||
-                !strcasecmp(pEntry->pszDnsDomainName, pszMatchTerm))
+            if (LsaAdBatchIsDomainNameMatch(pEntry->pszNetbiosDomainName,
+                                            pEntry->QueryMatch.ByNT4.sNetbiosDomainNameLength,
+                                            pszMatchTerm) ||
+                LsaAdBatchIsDomainNameMatch(pEntry->pszDnsDomainName,
+                                            pEntry->QueryMatch.ByNT4.sDnsDomainNameLength,
+                                            pszMatchTerm))
             {
                 bIsMatch = TRUE;
             }
@@ -891,7 +1010,9 @@ LsaAdBatchFindObjectsForDomain(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (bIsOneWayTrust && LSA_AD_BATCH_QUERY_TYPE_BY_SID == QueryType)
+    if (bIsOneWayTrust &&
+        ((LSA_AD_BATCH_QUERY_TYPE_BY_SID == QueryType) ||
+         (LSA_AD_BATCH_QUERY_TYPE_BY_NT4 == QueryType)))
     {
         dwError = LsaAdBatchResolveRpcObjects(
                         QueryType,
@@ -918,7 +1039,7 @@ LsaAdBatchFindObjectsForDomain(
     {
         dwError = LsaAdBatchResolvePseudoObjects(
                         hProvider,
-                        QueryType,
+                        LSA_AD_BATCH_QUERY_TYPE_BY_SID,
                         pszDnsDomainName,
                         dwCount,
                         pBatchItemList);
@@ -962,7 +1083,7 @@ LsaAdBatchResolveRpcObjects(
 {
     DWORD dwError = 0;
     DWORD dwMaxQueryCount = LsaAdBatchGetMaxQueryCount();
-    PSTR* ppszSidList = NULL;
+    PSTR* ppszQueryList = NULL;
     PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedNames = NULL;
     DWORD dwQueryCount = 0;
     DWORD dwCount = 0;
@@ -976,8 +1097,8 @@ LsaAdBatchResolveRpcObjects(
     {
         pNextLinks = NULL;
 
-        LsaFreeStringArray(ppszSidList, dwQueryCount);
-        ppszSidList = NULL;
+        LsaFreeStringArray(ppszQueryList, dwQueryCount);
+        ppszQueryList = NULL;
 
         if (ppTranslatedNames)
         {
@@ -986,21 +1107,40 @@ LsaAdBatchResolveRpcObjects(
         ppTranslatedNames = NULL;
 
         dwError = LsaAdBatchBuildQueryForRpc(
+                        QueryType,
                         pLinks,
                         pBatchItemList,
                         &pNextLinks,
                         dwMaxQueryCount,
                         &dwQueryCount,
-                        &ppszSidList);
+                        &ppszQueryList);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaDmWrapNetLookupNamesByObjectSids(
-                       gpADProviderData->szDomain,
-                       dwQueryCount,
-                       ppszSidList,
-                       &ppTranslatedNames,
-                       &dwCount);
-        BAIL_ON_LSA_ERROR(dwError);
+        switch (QueryType)
+        {
+            case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+                dwError = LsaDmWrapNetLookupNamesByObjectSids(
+                               gpADProviderData->szDomain,
+                               dwQueryCount,
+                               ppszQueryList,
+                               &ppTranslatedNames,
+                               &dwCount);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+                dwError = LsaDmWrapNetLookupObjectSidsByNames(
+                               gpADProviderData->szDomain,
+                               dwQueryCount,
+                               ppszQueryList,
+                               &ppTranslatedNames,
+                               &dwCount);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            default:
+                LSA_ASSERT(FALSE);
+                dwError = LSA_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
+        }
 
         if (dwCount > dwQueryCount)
         {
@@ -1021,18 +1161,19 @@ LsaAdBatchResolveRpcObjects(
                 continue;
             }
 
+            XXX; // speed up by using a parallel list for direct a lookup.
             dwError = LsaAdBatchProcessRpcObject(
                             QueryType,
                             pLinks,
                             pNextLinks,
-                            ppszSidList[i],
+                            ppszQueryList[i],
                             ppTranslatedNames[i]);
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
 cleanup:
-    LsaFreeStringArray(ppszSidList, dwQueryCount);
+    LsaFreeStringArray(ppszQueryList, dwQueryCount);
     if (ppTranslatedNames)
     {
         LsaFreeTranslatedNameList(ppTranslatedNames, dwCount);
@@ -1378,6 +1519,8 @@ LsaAdBatchResolvePseudoObjectsInternal(
     PSTR pszQuery = 0;
     PSTR szAttributeList[] =
     {
+        // common:
+        AD_LDAP_OBJECTCLASS_TAG,
         // non-schema mode:
         AD_LDAP_KEYWORDS_TAG,
         // schema mode:
@@ -1536,6 +1679,211 @@ error:
 }
 
 static
+BOOLEAN
+LsaAdBatchIsUserOrGroupObjectType(
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType
+    )
+{
+    BOOLEAN bIsOk = FALSE;
+
+    switch (ObjectType)
+    {
+        case LSA_AD_BATCH_OBJECT_TYPE_USER:
+        case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
+            bIsOk = TRUE;
+            break;
+        default:
+            break;
+    }
+
+    return bIsOk;
+}
+
+static
+DWORD
+LsaAdBatchGetObjectTypeFromRealMessage(
+    OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    )
+{
+    DWORD dwError = 0;
+    LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
+    PSTR* ppszValues = NULL;
+    DWORD dwValuesCount = 0;
+    DWORD i = 0;
+
+    dwError = LsaLdapGetStrings(
+                    hDirectory,
+                    pMessage,
+                    AD_LDAP_OBJECTCLASS_TAG,
+                    &ppszValues,
+                    &dwValuesCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < dwValuesCount; i++)
+    {
+        if (!strcasecmp(ppszValues[i], "user"))
+        {
+            objectType = LSA_AD_BATCH_OBJECT_TYPE_USER;
+            break;
+        }
+        else if (!strcasecmp(ppszValues[i], "group"))
+        {
+            objectType = LSA_AD_BATCH_OBJECT_TYPE_GROUP;
+            break;
+        }
+    }
+
+    if (!LsaAdBatchIsUserOrGroupObjectType(objectType))
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    LsaFreeStringArray(ppszValues, dwValuesCount);
+
+    *pObjectType = objectType;
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+LsaAdBatchGetObjectTypeFromPseudoKeywords(
+    IN DWORD dwKeywordValuesCount,
+    IN PSTR* ppszKeywordValues
+    )
+{
+    LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
+    DWORD i = 0;
+
+    for (i = 0; i < dwKeywordValuesCount; i++)
+    {
+        if (!strcasecmp(ppszKeywordValues[i], "objectClass=" AD_LDAP_CLASS_LW_USER))
+        {
+            objectType = LSA_AD_BATCH_OBJECT_TYPE_USER;
+            break;
+        }
+        else if (!strcasecmp(ppszKeywordValues[i], "objectClass=" AD_LDAP_CLASS_LW_GROUP))
+        {
+            objectType = LSA_AD_BATCH_OBJECT_TYPE_GROUP;
+            break;
+        }
+    }
+
+    return objectType;
+}
+
+static
+DWORD
+LsaAdBatchGetObjectTypeFromPseudoMessage(
+    OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType,
+    IN BOOLEAN bIsSchemaMode,
+    IN OPTIONAL DWORD dwKeywordValuesCount,
+    IN OPTIONAL PSTR* ppszKeywordValues,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    )
+{
+    DWORD dwError = 0;
+    LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
+    LSA_AD_BATCH_OBJECT_TYPE keywordsObjectType = 0;
+    PSTR* ppszValues = NULL;
+    DWORD dwValuesCount = 0;
+    DWORD i = 0;
+
+    if (LsaAdBatchIsDefaultSchemaMode())
+    {
+        dwError = LsaAdBatchGetObjectTypeFromRealMessage(
+                        &objectType,
+                        hDirectory,
+                        pMessage);
+        BAIL_ON_LSA_ERROR(dwError);
+        goto cleanup;
+    }
+
+    keywordsObjectType = LsaAdBatchGetObjectTypeFromPseudoKeywords(
+                                dwKeywordValuesCount,
+                                ppszKeywordValues);
+    if (!keywordsObjectType)
+    {
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!LsaAdBatchIsUserOrGroupObjectType(keywordsObjectType))
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // double-check against the object class.
+
+    dwError = LsaLdapGetStrings(
+                    hDirectory,
+                    pMessage,
+                    AD_LDAP_OBJECTCLASS_TAG,
+                    &ppszValues,
+                    &dwValuesCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < dwValuesCount; i++)
+    {
+        if (bIsSchemaMode)
+        {
+            if (!strcasecmp(ppszValues[i], AD_LDAP_CLASS_SCHEMA_USER))
+            {
+                objectType = LSA_AD_BATCH_OBJECT_TYPE_USER;
+                break;
+            }
+            else if (!strcasecmp(ppszValues[i], AD_LDAP_CLASS_SCHEMA_GROUP))
+            {
+                objectType = LSA_AD_BATCH_OBJECT_TYPE_GROUP;
+                break;
+            }
+        }
+        else
+        {
+            if (!strcasecmp(ppszValues[i], AD_LDAP_CLASS_NON_SCHEMA))
+            {
+                objectType = keywordsObjectType;
+                break;
+            }
+        }
+    }
+
+    if (!LsaAdBatchIsUserOrGroupObjectType(objectType))
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (objectType != keywordsObjectType)
+    {
+        LSA_LOG_DEBUG("Object type mismatch: %u vs %u",
+                      keywordsObjectType, objectType);
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    LsaFreeStringArray(ppszValues, dwValuesCount);
+
+    *pObjectType = objectType;
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
 PCSTR
 LsaAdBatchFindKeywordAttribute(
     IN DWORD dwKeywordValuesCount,
@@ -1599,10 +1947,10 @@ LsaAdBatchFindKeywordAttributeWithEqual(
 static
 DWORD
 LsaAdBatchGetCompareStringFromRealObject(
+    OUT PSTR* ppszCompareString,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN HANDLE hDirectory,
-    IN LDAPMessage* pMessage,
-    OUT PSTR* ppszCompareString
+    IN LDAPMessage* pMessage
     )
 {
     DWORD dwError = 0;
@@ -1650,42 +1998,30 @@ error:
 static
 DWORD
 LsaAdBatchGetCompareStringFromPseudoObject(
+    OUT PCSTR* ppszCompareString,
+    OUT PSTR* ppszFreeString,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN BOOLEAN bIsSchemaMode,
+    IN OPTIONAL DWORD dwKeywordValuesCount,
+    IN OPTIONAL PSTR* ppszKeywordValues,
     IN HANDLE hDirectory,
-    IN LDAPMessage* pMessage,
-    OUT PSTR** pppszKeywordValues,
-    OUT PDWORD pdwKeywordValuesCount,
-    OUT PSTR* ppszFreeString,
-    OUT PCSTR* ppszCompareString
-
+    IN LDAPMessage* pMessage
     )
 {
     DWORD dwError = 0;
     PCSTR pszAttributeName = NULL;
-    PSTR* ppszKeywordValues = NULL;
-    DWORD dwKeywordValuesCount = 0;
     PSTR pszFreeCompare = NULL;
     PCSTR pszCompare = NULL;
 
-    // The SID backlink is stored in keywords except for in
-    // default schema mode.  We will need the SID later in
-    // gather even if we do not need it for message-to-item
-    // matching.
-    if (!LsaAdBatchIsDefaultSchemaMode())
-    {
-        dwError = LsaLdapGetStrings(
-                        hDirectory,
-                        pMessage,
-                        AD_LDAP_KEYWORDS_TAG,
-                        &ppszKeywordValues,
-                        &dwKeywordValuesCount);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    LSA_ASSERT(LSA_IS_XOR(LsaAdBatchIsDefaultSchemaMode(), ppszKeywordValues));
 
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+            // The SID backlink is stored in keywords except for in
+            // default schema mode.  But in default schema mode,
+            // we never do a pseudo lookup by SID.
+            LSA_ASSERT(!LsaAdBatchIsDefaultSchemaMode());
             pszCompare = LsaAdBatchFindKeywordAttributeStatic(
                                 dwKeywordValuesCount,
                                 ppszKeywordValues,
@@ -1743,15 +2079,11 @@ LsaAdBatchGetCompareStringFromPseudoObject(
 cleanup:
     LSA_ASSERT(!pszFreeCompare || (pszCompare == pszFreeCompare));
 
-    *pppszKeywordValues = ppszKeywordValues;
-    *pdwKeywordValuesCount = dwKeywordValuesCount;
     *ppszFreeString = pszFreeCompare;
     *ppszCompareString = pszCompare;
     return dwError;
 
 error:
-    LsaFreeStringArray(ppszKeywordValues, dwKeywordValuesCount);
-    dwKeywordValuesCount = 0;
     LSA_SAFE_FREE_STRING(pszFreeCompare);
     pszCompare = NULL;
     goto cleanup;
@@ -1764,42 +2096,92 @@ LsaAdBatchProcessRpcObject(
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
     IN PLSA_LIST_LINKS pEndBatchItemListLinks,
-    IN PSTR pszObjectSid,
+    IN PSTR pszObjectNT4NameOrSid,
     IN PLSA_TRANSLATED_NAME_OR_SID pTranslatedName
     )
 {
     DWORD dwError = 0;
     PSTR pszSid = NULL;
-    ADAccountType accountType = 0;
-    PLSA_LIST_LINKS pLinks = NULL;
-    PCSTR pszCompare = NULL;
+    PSTR pszSamAccountName = NULL;
+    PCSTR pszFoundSamAccountName = NULL;
     PLSA_LOGIN_NAME_INFO pLoginNameInfo = NULL;
-
-    dwError = LsaAllocateString(pszObjectSid, &pszSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaCrackDomainQualifiedName(
-                         pTranslatedName->pszNT4NameOrSid,
-                         gpADProviderData->szDomain,
-                         &pLoginNameInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    PCSTR pszCompare = NULL;
+    LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
+    LSA_AD_BATCH_OBJECT_TYPE desiredObjectType = 0;
+    PLSA_LIST_LINKS pLinks = NULL;
+    PLSA_AD_BATCH_ITEM pFoundItem = NULL;
 
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+            dwError = LsaCrackDomainQualifiedName(
+                                 pTranslatedName->pszNT4NameOrSid,
+                                 gpADProviderData->szDomain,
+                                 &pLoginNameInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaAllocateString(pszObjectNT4NameOrSid, &pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LSA_XFER_STRING(pLoginNameInfo->pszName, pszSamAccountName);
+
             pszCompare = pszSid;
             break;
+
+        case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+            // The name is in backslash format, not separator
+            pszFoundSamAccountName = index(pszObjectNT4NameOrSid, '\\');
+            if (!pszFoundSamAccountName)
+            {
+                LSA_ASSERT(FALSE);
+                dwError = LSA_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            pszFoundSamAccountName++;
+            if (!pszFoundSamAccountName[0])
+            {
+                LSA_ASSERT(FALSE);
+                dwError = LSA_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = LsaAllocateString(pszFoundSamAccountName, &pszSamAccountName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaAllocateString(pTranslatedName->pszNT4NameOrSid, &pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pszCompare = pszSamAccountName;
+            break;
+
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LSA_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
-    accountType = pTranslatedName->ObjectType;
-    if ((accountType != AccountType_User) &&
-        (accountType != AccountType_Group))
+    dwError = LsaAdBatchAccountTypeToObjectType(
+                    pTranslatedName->ObjectType,
+                    &objectType);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!LsaAdBatchIsUserOrGroupObjectType(objectType))
     {
+        // We found something else.
+        LSA_LOG_DEBUG("Found non-user/non-group object type %d",
+                      pTranslatedName->ObjectType);
         dwError = LSA_ERROR_DATA_ERROR;
+    }
+
+    desiredObjectType = LsaAdBatchGetObjectTypeFromQueryType(QueryType);
+    if ((desiredObjectType != LSA_AD_BATCH_OBJECT_TYPE_UNDEFINED) &&
+        (objectType != desiredObjectType))
+    {
+        LSA_LOG_DEBUG("Object type mismatch: got %u instead of %u",
+                      objectType, desiredObjectType);
+        // This cannot happen because we restrict the type we search on.
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1809,27 +2191,34 @@ LsaAdBatchProcessRpcObject(
     {
         PLSA_AD_BATCH_ITEM pItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
 
-        LSA_ASSERT(LSA_AD_BATCH_QUERY_TYPE_BY_SID == pItem->QueryTerm.Type);
-
-        if (!strcasecmp(pItem->QueryTerm.pszString, pszCompare))
+        if (pItem->pszQueryMatchTerm &&
+            !strcasecmp(pItem->pszQueryMatchTerm, pszCompare))
         {
-            dwError = LsaAdBatchAccountTypeToObjectType(
-                            accountType,
-                            &pItem->ObjectType);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaAdBatchGatherRpcObject(
-                            pItem,
-                            pItem->ObjectType,
-                            &pszSid,
-                            &pLoginNameInfo->pszName);
-            BAIL_ON_LSA_ERROR(dwError);
+            pFoundItem = pItem;
             break;
         }
     }
 
+    if (!pFoundItem)
+    {
+        PCSTR pszType = LsaAdBatchGetQueryTypeAsString(QueryType);
+        LSA_LOG_DEBUG("Did not find batch item for message for %s '%s'",
+                      pszType, pszCompare);
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAdBatchGatherRpcObject(
+                    pFoundItem,
+                    objectType,
+                    &pszSid,
+                    &pszSamAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LSA_SAFE_FREE_STRING(pszSid);
+    LSA_SAFE_FREE_STRING(pszSamAccountName);
     LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo);
 
     return dwError;
@@ -1851,27 +2240,43 @@ LsaAdBatchProcessRealObject(
 {
     DWORD dwError = 0;
     PSTR pszCompare = NULL;
-    ADAccountType accountType = 0;
+    LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
+    LSA_AD_BATCH_OBJECT_TYPE desiredObjectType = 0;
     PLSA_LIST_LINKS pLinks = NULL;
     PLSA_AD_BATCH_ITEM pFoundItem = NULL;
 
+    // Get compare string
+
     dwError = LsaAdBatchGetCompareStringFromRealObject(
+                    &pszCompare,
                     QueryType,
                     hDirectory,
-                    pMessage,
-                    &pszCompare);
+                    pMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADLdap_GetAccountType(hDirectory, pMessage, &accountType);
+    // Get and check object type
+
+    dwError = LsaAdBatchGetObjectTypeFromRealMessage(
+                    &objectType,
+                    hDirectory,
+                    pMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (accountType != AccountType_User && accountType != AccountType_Group)
+    // Sanity check.
+    desiredObjectType = LsaAdBatchGetObjectTypeFromQueryType(QueryType);
+    if ((desiredObjectType != LSA_AD_BATCH_OBJECT_TYPE_UNDEFINED) &&
+        (objectType != desiredObjectType))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        PCSTR pszType = LsaAdBatchGetQueryTypeAsString(QueryType);
+        LSA_LOG_DEBUG("Object type mismatch for %s '%s' - got %u instead of %u",
+                      pszType, pszCompare, objectType, desiredObjectType);
+        // This cannot happen because we restrict the type we search on.
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    XXX; // add a way to check that we get the correct object type?
+    // Search of corresponding batch item
 
     for (pLinks = pStartBatchItemListLinks;
          pLinks != pEndBatchItemListLinks;
@@ -1892,19 +2297,16 @@ LsaAdBatchProcessRealObject(
     if (!pFoundItem)
     {
         PCSTR pszType = LsaAdBatchGetQueryTypeAsString(QueryType);
-        LSA_LOG_DEBUG("Did not find object by %s '%s'", pszType, pszCompare);
-        dwError = 0;
-        goto cleanup;
+        LSA_LOG_DEBUG("Did not find batch item for message for %s '%s'",
+                      pszType, pszCompare);
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
     }
-
-    dwError = LsaAdBatchAccountTypeToObjectType(
-                    accountType,
-                    &pFoundItem->ObjectType);
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAdBatchGatherRealObject(
                     pFoundItem,
-                    pFoundItem->ObjectType,
+                    objectType,
                     (LSA_AD_BATCH_QUERY_TYPE_BY_SID == QueryType) ? &pszCompare : NULL,
                     hDirectory,
                     pMessage);
@@ -1937,12 +2339,10 @@ LsaAdBatchProcessPseudoObject(
     DWORD dwKeywordValuesCount = 0;
     PSTR pszFreeCompare = NULL;
     PCSTR pszCompare = NULL;
+    LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
+    LSA_AD_BATCH_OBJECT_TYPE desiredObjectType = 0;
     PLSA_LIST_LINKS pLinks = NULL;
     PLSA_AD_BATCH_ITEM pFoundItem = NULL;
-#if 0
-    LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
-    LSA_AD_BATCH_OBJECT_TYPE queryObjectType = 0;
-#endif
 
     dwError = LsaLdapIsValidADEntry(
                     hDirectory,
@@ -1956,28 +2356,28 @@ LsaAdBatchProcessPseudoObject(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    XXX; // Add code to get object type info from pseudo and verify against desired.
-#if 0
-    objectType = 0;
-    queryObjectType = LsaAdBatchGetObjectTypeFromQueryType(QueryType);
-    if ((queryObjectType != LSA_AD_BATCH_OBJECT_TYPE_UNDEFINED) &&
-        (objectType != queryObjectType))
+    if (!LsaAdBatchIsDefaultSchemaMode())
     {
-        LSA_LOG_DEBUG("Object type mismatch...");
-        dwError = 0;
-        goto cleanup;
+        dwError = LsaLdapGetStrings(
+                        hDirectory,
+                        pMessage,
+                        AD_LDAP_KEYWORDS_TAG,
+                        &ppszKeywordValues,
+                        &dwKeywordValuesCount);
+        BAIL_ON_LSA_ERROR(dwError);
     }
-#endif
+
+    // Get compare string
 
     dwError = LsaAdBatchGetCompareStringFromPseudoObject(
+                    &pszCompare,
+                    &pszFreeCompare,
                     QueryType,
                     bIsSchemaMode,
+                    dwKeywordValuesCount,
+                    ppszKeywordValues,
                     hDirectory,
-                    pMessage,
-                    &ppszKeywordValues,
-                    &dwKeywordValuesCount,
-                    &pszFreeCompare,
-                    &pszCompare);
+                    pMessage);
     if (IsNullOrEmptyString(pszCompare))
     {
         LSA_ASSERT(FALSE);
@@ -1985,14 +2385,53 @@ LsaAdBatchProcessPseudoObject(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    // Get and check object type
+
+    dwError = LsaAdBatchGetObjectTypeFromPseudoMessage(
+                    &objectType,
+                    bIsSchemaMode,
+                    dwKeywordValuesCount,
+                    ppszKeywordValues,
+                    hDirectory,
+                    pMessage);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Sanity check.
+    desiredObjectType = LsaAdBatchGetObjectTypeFromQueryType(QueryType);
+    if ((desiredObjectType != LSA_AD_BATCH_OBJECT_TYPE_UNDEFINED) &&
+        (objectType != desiredObjectType))
+    {
+        PCSTR pszType = LsaAdBatchGetQueryTypeAsString(QueryType);
+        LSA_LOG_DEBUG("Object type mismatch for %s '%s' - got %u instead of %u",
+                      pszType, pszCompare, objectType, desiredObjectType);
+        // This cannot happen because we restrict the type we search on.
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Search of corresponding batch item
+
     for (pLinks = pStartBatchItemListLinks;
          pLinks != pEndBatchItemListLinks;
          pLinks = pLinks->Next)
     {
         PLSA_AD_BATCH_ITEM pItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
 
-        XXX; // may want to just skip if no query term...hmm...
-        LSA_ASSERT(pItem->pszQueryMatchTerm);
+        if (!pItem->pszQueryMatchTerm)
+        {
+            // There are two possible cases here:
+            //
+            // 1) This is a linked cell case where we are searching
+            //    linked cells since we keep using the main batch
+            //    item list (though this case should go away in the
+            //    future as we just keep an unresolved batch items list).
+            //
+            // 2) This is an item for which we did not find a real object.
+            //    This case might be eliminated in the future by removing
+            //    unresolvable objects from the batch items list.
+            continue;
+        }
 
         if (!strcasecmp(pItem->pszQueryMatchTerm, pszCompare))
         {
@@ -2004,18 +2443,19 @@ LsaAdBatchProcessPseudoObject(
     if (!pFoundItem)
     {
         PCSTR pszType = LsaAdBatchGetQueryTypeAsString(QueryType);
-        LSA_LOG_DEBUG("Did not find object by %s '%s'", pszType, pszCompare);
-        dwError = 0;
-        goto cleanup;
+        LSA_LOG_DEBUG("Did not find batch item for message for %s '%s'",
+                      pszType, pszCompare);
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaAdBatchGatherPseudoObject(
                     pFoundItem,
-                    (LSA_AD_BATCH_QUERY_TYPE_BY_SID == QueryType) ? pszCompare : NULL,
-                    pFoundItem->ObjectType,
+                    objectType,
                     bIsSchemaMode,
-                    bIsSchemaMode ? 0 : dwKeywordValuesCount,
-                    bIsSchemaMode ? NULL : ppszKeywordValues,
+                    dwKeywordValuesCount,
+                    ppszKeywordValues,
                     hDirectory,
                     pMessage);
     BAIL_ON_LSA_ERROR(dwError);

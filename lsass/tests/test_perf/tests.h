@@ -33,46 +33,57 @@
  *
  * Module Name:
  *
- *        batch.h
+ *        tests.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Active Directory Authentication Provider
+ *        Test helper function declarations
  *
- * Authors: Wei Fu (wfu@likewisesoftware.com)
- *          Danilo Almeida (dalmeida@likewisesoftware.com)
+ * Authors: Kyle Stemen <kstemen@likewisesoftware.com>
+ *
  */
-#ifndef __BATCH_H__
-#define __BATCH_H__
 
-DWORD
-ADLdap_FindObjectsByDNListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszDnList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+#ifndef TESTS_H
+#define TESTS_H
+
+BOOL
+RunGrabUid(
+    IN PVOID arg
     );
 
-DWORD
-ADLdap_FindObjectsBySidListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszSidList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+BOOL
+SetupGrabUid(
+    IN PVOID username,
+    OUT PVOID *uid
     );
 
-DWORD
-ADLdap_FindObjectsByNameListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszNameList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+BOOL
+RunGrabGid(
+    IN PVOID arg
     );
 
-#endif /* __BATCH_H__ */
+BOOL
+SetupGrabGid(
+    IN PVOID groupname,
+    OUT PVOID *gid
+    );
 
+BOOL
+RunGrabUsers1_500(
+    IN PVOID prefix
+    );
+
+BOOL
+RunGrabGroups1_500(
+    IN PVOID prefix
+    );
+
+BOOL
+SetupClearCache(
+    IN PVOID prefix,
+    OUT PVOID *outPrefix
+    );
+
+#endif

@@ -680,6 +680,7 @@
 #define ERROR_NO_SUCH_MEMBER       1387
 #define ERROR_MEMBER_NOT_IN_ALIAS  1377
 #define ERROR_NONE_MAPPED          1332
+#define ERROR_INTERNAL_ERROR       1359
 /* NetApi error codes */
 #define NERR_AccountAlreadyExists  2224
 #define NERR_SetupAlreadyJoined    2691

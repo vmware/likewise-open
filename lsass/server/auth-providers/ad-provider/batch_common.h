@@ -56,6 +56,12 @@
 #define LSA_XFER_STRING(Source, Target) \
     ((Target) = (Source), (Source) = NULL)
 
+#define AD_LDAP_CLASS_LW_USER      "centerisLikewiseUser"
+#define AD_LDAP_CLASS_LW_GROUP     "centerisLikewiseGroup"
+#define AD_LDAP_CLASS_SCHEMA_USER  "posixAccount"
+#define AD_LDAP_CLASS_SCHEMA_GROUP "posixGroup"
+#define AD_LDAP_CLASS_NON_SCHEMA   "serviceConnectionPoint"
+
 typedef UINT8 LSA_AD_BATCH_DOMAIN_ENTRY_FLAGS;
 // If this is set, we are not supposed to process
 // this domain.
@@ -104,6 +110,10 @@ typedef struct _LSA_AD_BATCH_DOMAIN_ENTRY {
             PSTR pszDomainSid;
             size_t sDomainSidLength;
         } BySid;
+        struct {
+            size_t sNetbiosDomainNameLength;
+            size_t sDnsDomainNameLength;
+        } ByNT4;
     } QueryMatch;
 
     // Number of items in BatchItemList.

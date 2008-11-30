@@ -33,46 +33,61 @@
  *
  * Module Name:
  *
- *        batch.h
+ *        types.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Active Directory Authentication Provider
+ *        Declarations of types
  *
- * Authors: Wei Fu (wfu@likewisesoftware.com)
- *          Danilo Almeida (dalmeida@likewisesoftware.com)
+ * Authors: Kyle Stemen <kstemen@likewisesoftware.com>
+ *
  */
-#ifndef __BATCH_H__
-#define __BATCH_H__
 
-DWORD
-ADLdap_FindObjectsByDNListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszDnList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
+#ifndef TYPES_H
+#define TYPES_H
 
-DWORD
-ADLdap_FindObjectsBySidListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszSidList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
+#include "config.h"
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+#if HAVE_TIME_H
+#include <time.h>
+#endif
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
 
-DWORD
-ADLdap_FindObjectsByNameListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszNameList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
+typedef void *PVOID;
+typedef unsigned int BOOL;
+typedef char *PSTR;
 
-#endif /* __BATCH_H__ */
+#define IN
+#define OUT
 
+#define FALSE 0
+#define TRUE 1
+
+typedef BOOL (*TestSetupFunc)(
+        IN PVOID setupArg,
+        OUT PVOID *runArg
+        );
+typedef BOOL (*TestTimedFunc)(IN PVOID arg);
+
+typedef enum
+{
+    TEST_TYPE_RUNS_PER_MIN,
+    TEST_TYPE_SINGLE_RUN,
+} TestType;
+
+typedef struct
+{
+    PSTR description;
+    TestType type;
+    TestSetupFunc setup;
+    TestTimedFunc run;
+    PVOID setupArg;
+} PerfTest;
+
+#endif

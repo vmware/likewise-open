@@ -132,7 +132,7 @@ LsaAdBatchMarshalUserInfoAccountControl(
     {
         pObjectUserInfo->bPasswordExpired = IsSetFlag(AccountControl, LSA_AD_UF_PASSWORD_EXPIRED);
     }
-    pObjectUserInfo->bUserCanChangePassword = IsSetFlag(AccountControl, LSA_AD_UF_CANT_CHANGE_PASSWD);
+    pObjectUserInfo->bUserCanChangePassword = !IsSetFlag(AccountControl, LSA_AD_UF_CANT_CHANGE_PASSWD);
     pObjectUserInfo->bAccountDisabled = IsSetFlag(AccountControl, LSA_AD_UF_ACCOUNTDISABLE);
     pObjectUserInfo->bAccountLocked = IsSetFlag(AccountControl, LSA_AD_UF_LOCKOUT);
 }

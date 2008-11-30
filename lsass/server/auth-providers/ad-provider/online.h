@@ -307,6 +307,13 @@ AD_FindObjectsByDNList(
     );
 
 DWORD
+AD_FindObjectByNT4NameNoCache(
+    IN HANDLE hProvider,
+    IN PCSTR pszNT4Name,
+    OUT PAD_SECURITY_OBJECT* ppResult
+    );
+
+DWORD
 AD_FindObjectBySid(
     IN HANDLE hProvider,
     IN PCSTR pszSid,
