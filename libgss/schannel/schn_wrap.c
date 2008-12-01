@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,6 +28,10 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 
@@ -47,7 +51,7 @@ uint32 schn_wrap(void                 *sec_ctx,
     const uint32 testing_blob_len = 5;
 #endif
 
-    uint32 status;
+    uint32 status = 0;
     struct schn_auth_ctx *schn_ctx = NULL;
     unsigned char *schannel_sig = NULL;
     unsigned char sess_key[16], nonce[8], seq_number[8], digest[8];
@@ -58,17 +62,12 @@ uint32 schn_wrap(void                 *sec_ctx,
 
     out->len  = in->len;
     out->base = malloc(out->len);
+
     memcpy(out->base, in->base, out->len);
 
     /* Nonce ("pseudo_bytes" call is to be replaced with "bytes"
-       once we're ready to properly reseed the generator */
+       once we're ready to properly reseed the generator) */
     RAND_pseudo_bytes((unsigned char*)nonce, sizeof(nonce));
-
-#ifdef TESTING_HACK
-    /* HACK for testing */
-    memset(nonce, 0, sizeof(nonce));
-    nonce[0] = 1;
-#endif
 
     memcpy(sess_key, schn_ctx->session_key, 16);
 
@@ -112,8 +111,7 @@ uint32 schn_wrap(void                 *sec_ctx,
     }
 
     /* Sequence number */
-    schn_sign_update_seqnum(digest, sess_key,
-                            &schn_ctx->seq_num, seq_number);
+    schn_sign_update_seqnum(digest, sess_key, &schn_ctx->seq_num, seq_number);
 
     memcpy(tail->signature,  schannel_sig, 8);
     memcpy(tail->digest,     digest,       8);
