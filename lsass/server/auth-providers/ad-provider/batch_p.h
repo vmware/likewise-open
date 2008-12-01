@@ -60,17 +60,6 @@ typedef DWORD LSA_PROVISIONING_MODE, *PLSA_PROVISIONING_MODE;
 
 static
 DWORD
-LsaAdBatchFindObjects(
-    IN HANDLE hProvider,
-    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
-    IN DWORD dwQueryItemsCount,
-    IN PSTR* ppszQueryList,
-    OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
-static
-DWORD
 LsaAdBatchCreateDomainEntry(
     OUT PLSA_AD_BATCH_DOMAIN_ENTRY* ppEntry,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,

@@ -794,7 +794,6 @@ LsaAdBatchIsUnprovisionedMode(
     return (UNPROVISIONED_MODE == gpADProviderData->dwDirectoryMode);
 }
 
-static
 DWORD
 LsaAdBatchFindObjects(
     IN HANDLE hProvider,
@@ -969,6 +968,55 @@ error:
     *pppObjects = NULL;
 
     ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    goto cleanup;
+}
+
+DWORD
+LsaAdBatchFindSingleObject(
+    IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN PCSTR pszQueryTerm,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwCount = 0;
+    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PAD_SECURITY_OBJECT pObject = NULL;
+
+    dwError = LsaAdBatchFindObjects(
+                    hProvider,
+                    QueryType,
+                    1,
+                    (PSTR*)&pszQueryTerm,
+                    &dwCount,
+                    &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwCount < 1 || !ppObjects[0])
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (dwCount > 1)
+    {
+        LSA_ASSERT(FALSE);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pObject = ppObjects[0];
+    ppObjects[0] = NULL;
+
+cleanup:
+    ADCacheDB_SafeFreeObjectList(dwCount, &ppObjects);
+
+    *ppObject = pObject;
+
+    return dwError;
+
+error:
+    ADCacheDB_SafeFreeObject(&pObject);
     goto cleanup;
 }
 

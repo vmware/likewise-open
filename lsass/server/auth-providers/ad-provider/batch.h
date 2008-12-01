@@ -74,5 +74,33 @@ ADLdap_FindObjectsByNameListBatched(
     OUT PAD_SECURITY_OBJECT** pppObjects
     );
 
+typedef UINT8 LSA_AD_BATCH_QUERY_TYPE, *PLSA_AD_BATCH_QUERY_TYPE;
+#define LSA_AD_BATCH_QUERY_TYPE_UNDEFINED      0
+#define LSA_AD_BATCH_QUERY_TYPE_BY_DN          1
+#define LSA_AD_BATCH_QUERY_TYPE_BY_SID         2
+#define LSA_AD_BATCH_QUERY_TYPE_BY_NT4         3
+#define LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS  4
+#define LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS 5
+#define LSA_AD_BATCH_QUERY_TYPE_BY_UID         6
+#define LSA_AD_BATCH_QUERY_TYPE_BY_GID         7
+
+DWORD
+LsaAdBatchFindObjects(
+    IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN DWORD dwQueryItemsCount,
+    IN PSTR* ppszQueryList,
+    OUT PDWORD pdwObjectsCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LsaAdBatchFindSingleObject(
+    IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN PCSTR pszQueryTerm,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    );
+
 #endif /* __BATCH_H__ */
 
