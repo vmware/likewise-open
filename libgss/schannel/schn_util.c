@@ -37,7 +37,6 @@
 
 const unsigned char schannel_sig_sign[] = { 0x77, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00 };
 const unsigned char schannel_sig_seal[] = { 0x77, 0x00, 0x7a, 0x00, 0xff, 0xff, 0x00, 0x00 };
-const char *hack_sess_key = "0123456789ABCDEF";
 
 
 void schn_sign_digest(unsigned char sess_key[16],
@@ -51,7 +50,6 @@ void schn_sign_digest(unsigned char sess_key[16],
     MD5_CTX ctx;
     HMAC_CTX hmac_ctx;
     unsigned int digest_len;
-    int enable_hack = 0;
 
     memset(init_buffer, 0, sizeof(init_buffer));
     memset(&ctx, 0, sizeof(ctx));
@@ -66,10 +64,6 @@ void schn_sign_digest(unsigned char sess_key[16],
     }
     MD5_Update(&ctx, blob->base, blob->len);
     MD5_Final(dig, &ctx);
-
-    if (enable_hack) {
-        memcpy((void*)sess_key, (void*)hack_sess_key, 16);
-    }
 
     HMAC_Init(&hmac_ctx, (void*)sess_key, 16, EVP_md5());
     HMAC_Update(&hmac_ctx, (unsigned char*)dig, sizeof(dig));

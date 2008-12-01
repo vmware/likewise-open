@@ -45,12 +45,6 @@ uint32 schn_wrap(void                 *sec_ctx,
                  struct schn_blob     *out,
                  struct schn_tail     *tail)
 {
-#if TESTING_HACK
-    /* Testing blob */
-    const char *testing_blob = "RAFAL";
-    const uint32 testing_blob_len = 5;
-#endif
-
     uint32 status = 0;
     struct schn_auth_ctx *schn_ctx = NULL;
     unsigned char *schannel_sig = NULL;
@@ -82,8 +76,7 @@ uint32 schn_wrap(void                 *sec_ctx,
         break;
 
     default:
-        /* TODO: unsupported authz level ? */
-        status = -1;
+        status = 0x16c9a0e0; /* rpc_s_unsupported_protect_level */
         goto error;
     }
 
@@ -119,7 +112,7 @@ uint32 schn_wrap(void                 *sec_ctx,
     memcpy(tail->nonce,      nonce,        8);
 
 cleanup:
-    return 0;
+    return status;
 
 error:
     goto cleanup;
