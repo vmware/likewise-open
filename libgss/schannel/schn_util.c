@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,6 +28,10 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 
@@ -42,12 +46,16 @@ void schn_sign_digest(unsigned char sess_key[16],
                       const struct schn_blob *blob,
                       unsigned char digest[16])
 {
-    const unsigned char init_buffer[4] = {0, 0, 0, 0};
+    unsigned char init_buffer[4];
     unsigned char dig[16];
     MD5_CTX ctx;
     HMAC_CTX hmac_ctx;
     unsigned int digest_len;
     int enable_hack = 0;
+
+    memset(init_buffer, 0, sizeof(init_buffer));
+    memset(&ctx, 0, sizeof(ctx));
+    memset(&hmac_ctx, 0, sizeof(hmac_ctx));
 
     MD5_Init(&ctx);
     MD5_Update(&ctx, init_buffer, 4);
@@ -98,12 +106,16 @@ void schn_sign_update_seqnum(const unsigned char digest[8],
                              uint32 *seq_num,
                              unsigned char sequence[8])
 {
-    const unsigned char init_buffer[4] = {0, 0, 0, 0};
+    unsigned char init_buffer[4];
     unsigned char dig[16];
     unsigned char seq_key[16];
     HMAC_CTX hmac_ctx;
     unsigned int dig_len, seq_key_len;
     RC4_KEY rc4_key;
+
+    memset(init_buffer, 0, sizeof(init_buffer));
+    memset(&hmac_ctx, 0, sizeof(hmac_ctx));
+    memset(&rc4_key, 0, sizeof(rc4_key));
 
     HMAC_Init(&hmac_ctx, (unsigned char*)sess_key, 16, EVP_md5());
     HMAC_Update(&hmac_ctx, (unsigned char*)init_buffer, 4);
@@ -126,19 +138,27 @@ void schn_seal_generate_key(const unsigned char sess_key[16],
                             const unsigned char seq_number[8],
                             unsigned char seal_key[16])
 {
-    const unsigned char init_buffer[4] = {0, 0, 0, 0};
+    unsigned char init_buffer[4] = {0, 0, 0, 0};
     HMAC_CTX hmac_ctx;
     unsigned int digest_len, seal_key_len;
     unsigned char key[16];
     unsigned char digest[16];
     uint32 i;
 
-    for (i = 0; i < sizeof(key); i++) key[i] = sess_key[i] ^ 0xf0;
+    memset(init_buffer, 0, sizeof(init_buffer));
+    memset(&hmac_ctx, 0, sizeof(hmac_ctx));
+
+    for (i = 0; i < sizeof(key); i++)
+    {
+        key[i] = sess_key[i] ^ 0xf0;
+    }
 
     HMAC_Init(&hmac_ctx, (unsigned char*)key, 16, EVP_md5());
     HMAC_Update(&hmac_ctx, (unsigned char*)init_buffer, 4);
     HMAC_Final(&hmac_ctx, digest, &digest_len);
     HMAC_CTX_cleanup(&hmac_ctx);
+
+    memset(&hmac_ctx, 0, sizeof(hmac_ctx));
 
     HMAC_Init(&hmac_ctx, (unsigned char*)digest, 16, EVP_md5());
     HMAC_Update(&hmac_ctx, (unsigned char*)seq_number, 8);
