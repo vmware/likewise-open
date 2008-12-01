@@ -56,6 +56,10 @@ uint32 schn_wrap(void                 *sec_ctx,
 
     out->len  = in->len;
     out->base = malloc(out->len);
+    if (out->base == NULL) {
+        status = 0x16c9a012; /* rpc_s_no_memory */
+        goto error;
+    }
 
     memcpy(out->base, in->base, out->len);
 
