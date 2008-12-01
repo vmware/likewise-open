@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -27,6 +27,11 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
+
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 
 #ifndef _SCHN_TYPES_H_
 #define _SCHN_TYPES_H_
@@ -63,7 +68,7 @@ typedef int                    int32;
 typedef long long int          int64;
 #endif
 
-/* To avoid conflict with rpc/types.h */
+/* To avoid conflict with lwrpc/types.h */
 #define DEFINED_UINT32
 
 
