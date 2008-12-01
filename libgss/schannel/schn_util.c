@@ -161,6 +161,18 @@ void schn_seal_generate_key(const unsigned char sess_key[16],
 }
 
 
+void schn_free_blob(struct schn_blob *b)
+{
+    if (b == NULL) return;
+
+    memset(b->base, 0, b->len);
+    free(b->base);
+
+    b->base = NULL;
+    b->len  = 0;
+}
+
+
 /*
 local variables:
 mode: c
