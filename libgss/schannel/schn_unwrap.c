@@ -65,7 +65,7 @@ uint32 schn_unwrap(void                 *sec_ctx,
 
     default:
         status = 0x16c9a0e0; /* rpc_s_unsupported_protect_level */
-        return;
+        goto error;
     }
 
     out->len = in->len;
