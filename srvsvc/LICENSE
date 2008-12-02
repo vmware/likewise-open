@@ -1,7 +1,7 @@
-Code residing in the server, tests, eventlogd, and lw-eventlog-cli
-directories is licensed under the GNU General Public License version 2.
-See {server,eventlogd,tests}/COPYING for details.
+Code residing in the server and tests directories is licensed under
+the GNU General Public License version 2.  See {server,tests}/COPYING
+for details.
 
-Code residing in the client, common, and dhclient directories is licensed 
+Code residing in the client and include directories is licensed
 under the GNU Lesser General Public License version 2.1.  See 
-{client,common,dlclient}/COPYING for details.
+{client,include}/COPYING for details.
