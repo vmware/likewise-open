@@ -85,6 +85,9 @@ install: build
 
 	rsync -av --exclude-from=debian/install-excludes build-install/ $(DESTDIR)/
 
+	chmod 755 $(DESTDIR)/$(PREFIX)/bin/ConfigureLogin
+	chmod 755 $(DESTDIR)/$(PREFIX)/bin/gpcron
+
 	mkdir -p $(DESTDIR)/etc/init.d
 	for file in dcerpcd eventlogd lsassd netlogond npcmuxd; do \
 		cat config/$$file | sed 's#PREFIX_DIR#$(PREFIX)#g' > $$file.new; \
@@ -106,6 +109,13 @@ install: build
 	ln -s $(PREFIX)/bin/domainjoin-cli $(DESTDIR)/usr/bin/domainjoin-cli
 	ln -s $(PREFIX)/bin/domainjoin-gui $(DESTDIR)/usr/bin/domainjoin-gui
 
+	## Config files
+	cat $(DESTDIR)/etc/likewise/lsassd.conf |\
+		sed 's#homedir-template.*$$#homedir-template = %H/%D/%U#' |\
+		sed 's#login-shell-template.*#login-shell-template = /bin/bash#' \
+	> $(DESTDIR)/etc/likewise/lsassd.conf.new && \
+	  /bin/mv -f $(DESTDIR)/etc/likewise/lsassd.conf.new $(DESTDIR)/etc/likewise/lsassd.conf
+
 	dh_install --sourcedir=$(DESTDIR) --list-missing
 
 # Build architecture-independent files here.
@@ -113,7 +123,7 @@ binary-indep: build install
 # We have nothing to do by default.
 
 # Build architecture-dependent files here.
-binary-arch: build install
+binary-arch: install
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs
