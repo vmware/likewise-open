@@ -93,6 +93,9 @@ uint32 schn_wrap(void                 *sec_ctx,
     if (sec_level == SCHANNEL_SEC_LEVEL_PRIVACY) {
         RC4_KEY key_nonce, key_data;
 
+        memset(&key_nonce, 0, sizeof(key_nonce));
+        memset(&key_data, 0, sizeof(key_data));
+
         /* Prepare sealing key */
         schn_seal_generate_key(schn_ctx->session_key, seq_number, seal_key);
 
