@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,16 +28,31 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <string.h>
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#include "config.h"
+#ifndef _SCHANNEL_P_H_
+#define _SCHANNEL_P_H_
 
-#include <schtypes.h>
-#include <schannel.h>
-#include "schannel_p.h"
 
-#include <openssl/md5.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>
+void schn_sign_digest(unsigned char sess_key[16],
+                      const unsigned char nonce[8],
+                      const unsigned char schannel_sig[8],
+                      const struct schn_blob *blob,
+                      unsigned char digest[16]);
+
+void schn_sign_get_seq_number(void *sec_ctx,
+                              uint32 sender_flags,
+                              uint8 seq_number[8]);
+
+void schn_sign_update_seqnum(const unsigned char digest[8],
+                             const unsigned char sess_key[16],
+                             uint32 *seq_num,
+                             unsigned char sequence[8]);
+
+void schn_seal_generate_key(const unsigned char sess_key[16],
+                            const unsigned char seq_number[8],
+                            unsigned char seal_key[16]);
+
+#endif /* _SCHANNEL_P_H_ */

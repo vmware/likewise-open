@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,16 +28,24 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <string.h>
+#include <pthread.h>
 
-#include "config.h"
+/* This is a pointer to list of allocated pointers.
+   The list enables freeing a pointer and dependant pointers */
+void *srvsvc_ptr_list = NULL;
 
-#include <schtypes.h>
-#include <schannel.h>
-#include "schannel_p.h"
 
-#include <openssl/md5.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>
+/* Library initialisation guard */
+pthread_mutex_t g_srvsvc_data_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+int bSrvSvcInitialised = 0;
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

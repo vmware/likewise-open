@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -26,6 +26,10 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
+ */
+
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
 #ifndef _SCHANNEL_H_
@@ -89,6 +93,8 @@ uint32 schn_unwrap(void                 *sec_ctx,
                    struct schn_blob     *in,
                    struct schn_blob     *out,
                    struct schn_tail     *tail);
+
+void schn_free_blob(struct schn_blob *b);
 
 
 #endif /* _SCHANNEL_H_ */

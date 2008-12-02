@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,16 +28,40 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <string.h>
+#ifndef _MEMPTR_H_
+#define _MEMPTR_H_
 
-#include "config.h"
+typedef struct ptr_node {
+    void *ptr;               /* pointer to be allocated */
+    size_t size;             /* number of bytes to allocate */
+    void *dep;               /* other pointer that ptr depends on */
 
-#include <schtypes.h>
-#include <schannel.h>
-#include "schannel_p.h"
+    struct ptr_node *next;   /* next node */
+} PtrNode;
 
-#include <openssl/md5.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>
+
+typedef struct ptr_list {
+    struct ptr_node *p;
+    pthread_mutex_t mutex;
+} PtrList;
+
+
+NTSTATUS MemPtrListInit(PtrList **out);
+NTSTATUS MemPtrListDestroy(PtrList **out);
+
+NTSTATUS MemPtrAllocate(PtrList *list, void **out, size_t size, void *dep);
+NTSTATUS MemPtrFree(PtrList *list, void *ptr);
+NTSTATUS MemPtrAddDependant(PtrList *list, void *ptr, void *dep);
+
+
+#endif /* _MEMPTR_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

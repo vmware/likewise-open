@@ -307,10 +307,12 @@ AD_FindObjectsByDNList(
     );
 
 DWORD
-AD_FindObjectByNT4NameNoCache(
+AD_FindObjectByNameTypeNoCache(
     IN HANDLE hProvider,
-    IN PCSTR pszNT4Name,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    IN PCSTR pszName,
+    IN ADLogInNameType NameType,
+    IN ADAccountType AccountType,
+    OUT PAD_SECURITY_OBJECT* ppObject
     );
 
 DWORD

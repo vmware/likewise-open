@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,16 +28,48 @@
  * license@likewisesoftware.com
  */
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 
-#include "config.h"
+#ifdef __GNUC__
+#include <dce/rpc.h>
+#elif _WIN32
+#include <rpc.h>
+#endif
 
-#include <schtypes.h>
-#include <schannel.h>
-#include "schannel_p.h"
+#include <compat/dcerpc.h>
+#include <compat/rpcstatus.h>
 
-#include <openssl/md5.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>
+#include "srvsvc_h.h"
+
+#include <wc16str.h>
+
+#include "SrvSvcUtil.h"
+
+NET_API_STATUS NetFileClose(
+    handle_t b,
+    const wchar16_t *servername,
+    uint32 fileid
+    )
+{
+    NET_API_STATUS status = ERROR_SUCCESS;
+
+    goto_if_invalid_param_err(b, done);
+
+    DCERPC_CALL(_NetrFileClose(b, (wchar16_t *)servername, fileid));
+
+done:
+    return status;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

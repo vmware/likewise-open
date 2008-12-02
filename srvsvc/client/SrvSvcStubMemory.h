@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,16 +28,19 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <string.h>
+void SrvSvcClearNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr);
+void SrvSvcClearNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr);
+void SrvSvcClearNetFileInfo(uint32 level, srvsvc_NetFileInfo *info);
+void SrvSvcClearNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr);
+void SrvSvcClearNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr);
+void SrvSvcClearNetShareInfo(uint32 level, srvsvc_NetShareInfo *info);
+void SrvSvcClearNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info);
 
-#include "config.h"
-
-#include <schtypes.h>
-#include <schannel.h>
-#include "schannel_p.h"
-
-#include <openssl/md5.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

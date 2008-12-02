@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -26,6 +26,10 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
+ */
+
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
 #include "includes.h"
@@ -60,9 +64,8 @@ uint32 schn_unwrap(void                 *sec_ctx,
         break;
 
     default:
-        /* TODO: unsupported authz level ? */
-        status = -1;
-        return;
+        status = 0x16c9a0e0; /* rpc_s_unsupported_protect_level */
+        goto error;
     }
 
     out->len = in->len;

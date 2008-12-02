@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,46 +28,69 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#ifndef _PARAMS_H_
+#define _PARAMS_H_
 
-#include "includes.h"
+struct parameter {
+    const char *key;
+    const char *val;
+};
 
 
-uint32 schn_init_creds(struct schn_auth_ctx   *ctx,
-                       struct schn_blob       *creds)
-{
-    const uint32 flag1 = 0x00000000;
-    const uint32 flag2 = 0x00000003;
+enum param_type {
+    pt_string = 1,
+    pt_w16string,
+    pt_char,
+    pt_int32,
+    pt_uint32,
+    pt_sid
+};
 
-    size_t domain_name_len = 0;
-    size_t machine_name_len = 0;
-    int len, i;
 
-    domain_name_len  = strlen((char*)ctx->domain_name);
-    machine_name_len = strlen((char*)ctx->machine_name);
+enum param_err {
+    perr_not_found = 1,
+    perr_invalid_out_param = 2,
+    perr_unknown_type = 3,
+    perr_nullptr_passed = 4,
 
-    len  = domain_name_len + 1;
-    len += machine_name_len + 1;
-    len += sizeof(uint32) * 2;
+    perr_success = 0,
+    perr_unknown = -1
+};
 
-    memset(creds->base, 0, len);
 
-    i = 0;
-    memcpy(&creds->base[i], &flag1, sizeof(uint32));
-    i += sizeof(uint32);
-    memcpy(&creds->base[i], &flag2, sizeof(uint32));
-    i += sizeof(uint32);
-    strncpy((char*)&creds->base[i], (char*)ctx->domain_name, domain_name_len);
-    i += domain_name_len + 1;
-    strncpy((char*)&creds->base[i], (char*)ctx->machine_name, machine_name_len);
-    i += machine_name_len + 1;
+struct param_errstr_map {
+    enum param_err perr;
+    const char* desc;
+};
 
-    creds->len = len;
+static const
+struct param_errstr_map param_errstr_maps[] = {
+    { perr_not_found, "parameter not found" },
+    { perr_invalid_out_param, "invalid output parameter" },
+    { perr_unknown_type, "unknown parameter type" },
+    { perr_nullptr_passed, "null pointer passed" },
+    { perr_success, "success" },
+    { perr_unknown, "unknown error" }
+};
 
-    return 0;
-}
+const char *param_errstr(enum param_err perr);
+
+
+#define perr_is_ok(perr_code)  ((perr_code) == perr_success)
+#define perr_fail(perr_code) { \
+	printf("Parameter error: %s\n", param_errstr(perr_code)); \
+	return false; \
+    }
+
+
+struct parameter* get_optional_params(char *opt, int *count);
+const char* find_value(struct parameter *params, int count, const char *key);
+enum param_err fetch_value(struct parameter *params, int count,
+			   const char *key, enum param_type type, void *val,
+			   const void *def);
+
+
+#endif /* _PARAMS_H_ */
 
 
 /*

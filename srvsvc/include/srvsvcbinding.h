@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,16 +28,27 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <string.h>
+#ifndef _SRVSVC_BINDING_H_
+#define _SRVSVC_BINDING_H_
 
-#include "config.h"
+#include <types.h>
 
-#include <schtypes.h>
-#include <schannel.h>
-#include "schannel_p.h"
+#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
+#define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
 
-#include <openssl/md5.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>
+#ifdef CHAR_T
+#undef CHAR_T
+#endif
+
+#if defined(_WIN32)
+# define CHAR_T  wchar_t
+#elif defined (__GNUC__)
+# define CHAR_T  unsigned char
+#endif
+
+
+RPCSTATUS InitSrvSvcBindingDefault(handle_t *binding, const CHAR_T *hostname);
+RPCSTATUS InitSrvSvcBindingFull();
+RPCSTATUS FreeSrvSvcBinding();
+
+#endif /* _SRVSVC_BINDING_H_ */

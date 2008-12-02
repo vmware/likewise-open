@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,46 +28,45 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#ifndef _EXTERNS_H_
+#define _EXTERNS_H_
 
-#include "includes.h"
+extern void *srvsvc_ptr_list;
+
+extern pthread_mutex_t g_srvsvc_data_mutex;
+
+extern int bSrvSvcInitialised;
 
 
-uint32 schn_init_creds(struct schn_auth_ctx   *ctx,
-                       struct schn_blob       *creds)
-{
-    const uint32 flag1 = 0x00000000;
-    const uint32 flag2 = 0x00000003;
+#define GLOBAL_DATA_LOCK(locked)                      \
+    do {                                              \
+        int ret = 0;                                  \
+        ret = pthread_mutex_lock(&g_srvsvc_data_mutex);  \
+        if (ret) {                                    \
+            status = STATUS_UNSUCCESSFUL;		      \
+            goto done;                                \
+                                                      \
+        } else {                                      \
+            locked = 1;                               \
+        }                                             \
+    } while (0);
 
-    size_t domain_name_len = 0;
-    size_t machine_name_len = 0;
-    int len, i;
 
-    domain_name_len  = strlen((char*)ctx->domain_name);
-    machine_name_len = strlen((char*)ctx->machine_name);
+#define GLOBAL_DATA_UNLOCK(locked)                    \
+    do {                                              \
+        int ret = 0;                                  \
+        if (!locked) break;                           \
+        ret = pthread_mutex_unlock(&g_srvsvc_data_mutex);\
+        if (ret && status == STATUS_SUCCESS) {        \
+            status = STATUS_UNSUCCESSFUL;             \
+                                                      \
+        } else {                                      \
+            locked = 0;                               \
+        }                                             \
+    } while (0);
 
-    len  = domain_name_len + 1;
-    len += machine_name_len + 1;
-    len += sizeof(uint32) * 2;
 
-    memset(creds->base, 0, len);
-
-    i = 0;
-    memcpy(&creds->base[i], &flag1, sizeof(uint32));
-    i += sizeof(uint32);
-    memcpy(&creds->base[i], &flag2, sizeof(uint32));
-    i += sizeof(uint32);
-    strncpy((char*)&creds->base[i], (char*)ctx->domain_name, domain_name_len);
-    i += domain_name_len + 1;
-    strncpy((char*)&creds->base[i], (char*)ctx->machine_name, machine_name_len);
-    i += machine_name_len + 1;
-
-    creds->len = len;
-
-    return 0;
-}
+#endif /* _EXTERN_H_ */
 
 
 /*

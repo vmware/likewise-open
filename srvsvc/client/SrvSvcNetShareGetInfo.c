@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,16 +28,66 @@
  * license@likewisesoftware.com
  */
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 
-#include "config.h"
+#ifdef __GNUC__
+#include <dce/rpc.h>
+#elif _WIN32
+#include <rpc.h>
+#endif
 
-#include <schtypes.h>
-#include <schannel.h>
-#include "schannel_p.h"
+#include <compat/dcerpc.h>
+#include <compat/rpcstatus.h>
 
-#include <openssl/md5.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>
+#include "srvsvc_h.h"
+
+#include <wc16str.h>
+
+#include "SrvSvcUtil.h"
+#include "SrvSvcMemory.h"
+#include "SrvSvcStubMemory.h"
+
+NET_API_STATUS NetShareGetInfo(
+    handle_t b,
+    const wchar16_t *servername,
+    const wchar16_t *netname,
+    uint32 level,
+    uint8 **bufptr
+    )
+{
+    NET_API_STATUS status = ERROR_SUCCESS;
+    NET_API_STATUS memerr = ERROR_SUCCESS;
+    srvsvc_NetShareInfo info;
+
+    goto_if_invalid_param_err(b, done);
+    goto_if_invalid_param_err(netname, done);
+    goto_if_invalid_param_err(bufptr, done);
+
+    memset(&info, 0, sizeof(info));
+    *bufptr = NULL;
+
+    DCERPC_CALL(_NetrShareGetInfo(b,
+                                  (wchar16_t *)servername,
+                                  (wchar16_t *)netname,
+                                  level, &info));
+
+    memerr = SrvSvcCopyNetShareInfo(level, &info, bufptr);
+    goto_if_err_not_success(memerr, done);
+
+done:
+    SrvSvcClearNetShareInfo(level, &info);
+    return status;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
