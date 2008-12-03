@@ -316,6 +316,14 @@ AD_FindObjectByNameTypeNoCache(
     );
 
 DWORD
+AD_FindObjectByIdTypeNoCache(
+    IN HANDLE hProvider,
+    IN DWORD dwId,
+    IN ADAccountType AccountType,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    );
+
+DWORD
 AD_FindObjectBySid(
     IN HANDLE hProvider,
     IN PCSTR pszSid,

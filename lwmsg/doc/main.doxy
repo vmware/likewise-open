@@ -1,0 +1,117 @@
+/*
+ * Copyright (c) Likewise Software.  All rights Reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Module Name:
+ *
+ *        main.doxy
+ *
+ * Abstract:
+ *
+ *        Main documentation page
+ *
+ * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
+ *
+ */
+/**
+@mainpage Overview
+
+The Likewise message library (<tt>LWMsg</tt>) is a data serialization
+and transmission system designed for the following scenarios:
+
+- Local interprocess communication using native C data structures
+- Communication with a remote host over a network as a light-weight alternative to RPC
+- Serialization of data structures to disk for long-term storage
+
+Towards this end, the library has been designed as a series of layers:
+
+- A type specification system for describing the layout of C data structures and binding sets of these structures into protocol descriptions
+- A marshaller which can use type specifications to convert data structures to and from a flat octet stream representation
+- An association system which encapsulates the notion of a stateful, full-duplex communication channels between two peers
+- A connection system which allows associations to be established over UNIX domain sockets and other transport mechanisms
+- A generic multi-threaded server implementation
+- A generic multi-threaded client implementation
+
+
+A public API is exposed at each of these layers, allowing client code to choose the level of functionality it needs.  For example, a full fledged IPC service would likely use the stock multi-threaded server implementation, whereas a program which needs to serialize data to disk might use the marshaller directly.
+
+@section specs Type and Protocol Specification
+LWMsg requires that C data structures be described by type descriptors -- statically-initialized arrays within the C source code.  A series of macros allows for easy construction of these descriptors.  The LWMsg marshaller supports the following core types:
+
+
+- Structures consisting of one or more members of other types
+- Pointers and arrays of elements of another type
+- Unions consisting of one or more arms of other types
+- Signed or unsigned integer types of arbitrary width
+- Custom types with arbitrary marshal and unmarshal functions
+
+
+In addition, associations and connections extend the core set of types:
+
+
+- Handles: opaque, persistent, peer-addressable objects which facilitate stateful connections
+- File descriptors: UNIX file descriptors may be transferred to the peer for purposes of authentication, establishing out-of-band communication (including shared memory), and enforcing privilege separation.
+
+
+Once a set of data structures have been specified, they may be bound together with a corresponding set of integral messages tags into a protocol specification.  One or more protocol specifications may be combined into a single protocol which is suitable for establishing associations.  The ability to combine multiple specifications together allows for flexible protocol versioning and extensibility.
+
+@section structures Structures
+A structure specification consists of an ordered set of members of other types and should correspond to the layout of a C struct type.  The members are specified in the order in which they are marshaled, which may differ from the in-memory order of the C struct (with some caveats).  Structure members may be correlated -- e.g. the number of elements contained in an array member may be equal to the value of another member.  Members which are dependencies must be marshaled before the dependent member.
+
+@section pointers_and_arrays Pointers and arrays
+Pointers and arrays point to or contain zero or more elements of another type.  An array is considered an inline member of a structure – and thus occupies the same contiguous block of memory as the other members – while a pointer references a potentially separate memory block.  A pointer may be null.
+
+The length of an array or the referent of a pointer may be specified in 3 different ways:
+
+
+- As a static length
+- As the dynamic value of another integer member of the enclosing struct
+- Implicitly through nul-termination
+
+
+Dynamically-sized arrays may only appear as the last of member a structure, which is the same restriction imposed by the C99 standard.
+
+@section unions Unions
+A union, like a structure, is a collection of members of other types.  Unlike a structure, however, only one such member (called an "arm") may be active for a particular union instance.  Each member of a union is associated with a unique integer "tag".  All instances of unions must be preceded by a correlated integer member which holds the tag value indicating the active arm.  This integer is known as the discriminator.  This commonplace C idiom is mandatory in LWMsg.
+
+@section integers Integers
+An integer may be signed or unsigned and have any arbitrary width in bytes.  This width may differ from its in-memory representation; widening or truncating integer conversions occur automatically, although care must be taken to avoid overflow and underflow during truncating conversions.
+
+@section marshalling Marshalling and Unmarshalling
+Given a context, suitable type information, and a buffer, the LWMsg marshaller may be invoked to marshal an object graph with lwmsg_marshal() and unmarshal it with lwmsg_unmarshal().  Marshalling contexts manage various settings and abstract out memory management and other ancillary concerns.  Marshalling buffers are a semi-abstract type which employ a callback to handle buffer over- or under-runs during marshalling operations.
+
+@section associations Associations
+An association represents a full-duplex communication channel with a peer.  An association has a particular protocol and only allows message within that protocol to be transmitted.  Associations formalize connection state through the notion of handles and sessions and provide a generic authentication mechanism for accessing the identity and credentials of the peer.  Associations are fully abstract – a concrete association using a UNIX socket as its message transport is known as a connection.
+
+The stateful aspects of associations are actually managed by a separate mechanism known as a session manager.  It is possible for several associations to share a single session manager, allowing handle and session lifecycles to be decoupled from individual connections.  It is also possible to implement custom session and handle management logic.
+
+@section threaded Multi-threaded Clients and Servers
+Although associations provide all the tools necessary to perform communication between peers, real-world systems typically require an additional layer to manage multiple connections.  Modern servers need to be able to establish and service multiple concurrent client connections, and modern multi-threaded client applications may need to establish several connections to a server to avoid contention between threads.  The client and server abstractions in LWMsg allow this with a minimum of work.
+
+The provided server abstraction allows the creation of a server thread which listens for connections on a socket and services incoming requests with a series of workers from a thread pool.  The server automatically managers connection, session, and handle lifetimes.
+
+The client abstraction allows multi-threaded applications which may need to exchange messages with a server from multiple threads to do so safely and easily.  The client will automatically establish and reuse connections as necessary.
+
+**/

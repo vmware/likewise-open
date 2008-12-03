@@ -838,6 +838,14 @@ LsaAdBatchGatherPseudoObject(
                         hDirectory,
                         pMessage);
         BAIL_ON_LSA_ERROR(dwError);
+
+        // In default Schema mode, originally the following portion of code tries to gather real use information
+        // using 'pMessage' obtained during pseudo objects lookup
+        // However, a GC search is used on pseudo objects lookup,
+        // Some of the attributes, such as user-specific attributes, i.e. 'accountExpires' etc.
+        // are not available in GC. We still need to look up real objects in that particular domain for those missing attributes
+        // Hence, we do not gather real object information until we actually do a real object lookup later on.
+#if 0
         if (LsaAdBatchIsDefaultSchemaMode() &&
             !IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL))
         {
@@ -849,6 +857,7 @@ LsaAdBatchGatherPseudoObject(
                             pMessage);
             BAIL_ON_LSA_ERROR(dwError);
         }
+#endif
     }
     else
     {

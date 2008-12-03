@@ -1869,20 +1869,17 @@ AD_OnlineFindUserObjectById(
         dwError = AD_CheckExpiredObject(&pCachedUser);
     }
 
-    if (dwError == LSA_ERROR_NOT_HANDLED) {
-        //convert uid -> NT4 name
-        dwError = ADLdap_FindUserNameById(
-                         uid,
-                         &pszNT4Name);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = AD_FindUserObjectByName(
+    if (dwError == LSA_ERROR_NOT_HANDLED)
+    {
+        dwError = AD_FindObjectByIdTypeNoCache(
                     hProvider,
-                    pszNT4Name,
+                    uid,
+                    AccountType_User,
                     &pCachedUser);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else {
+    else
+    {
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2311,20 +2308,13 @@ AD_OnlineFindGroupById(
 
     if (dwError == LSA_ERROR_NOT_HANDLED)
     {
-        //convert gid -> NT4 name
-        dwError = ADLdap_FindGroupNameById(
-                         gid,
-                         &pszNT4Name);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = AD_FindGroupByNameWithCacheMode(
+        dwError = AD_FindGroupByIdWithCacheMode(
                     hProvider,
-                    pszNT4Name,
+                    gid,
                     bIsCacheOnlyMode,
                     dwGroupInfoLevel,
                     ppGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);
-
     }
     else if (dwError == 0)
     {
@@ -3103,6 +3093,7 @@ AD_FindObjectBySidNoCache(
                 hProvider,
                 LSA_AD_BATCH_QUERY_TYPE_BY_SID,
                 pszSid,
+                NULL,
                 ppObject);
 }
 
@@ -3118,6 +3109,7 @@ AD_FindObjectByNT4NameNoCache(
                 hProvider,
                 LSA_AD_BATCH_QUERY_TYPE_BY_NT4,
                 pszNT4Name,
+                NULL,
                 ppObject);
 }
 
@@ -3166,41 +3158,12 @@ AD_FindObjectByAliasNoCache(
     OUT PAD_SECURITY_OBJECT* ppResult
     )
 {
-    DWORD dwError = 0;
-    PSTR pszNT4Name = NULL;
-    PAD_SECURITY_OBJECT pObject = NULL;
-
-    if (bIsUserAlias)
-    {
-        dwError = ADLdap_FindUserNameByAlias(
-                        pszAlias,
-                        &pszNT4Name);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        dwError = ADLdap_FindGroupNameByAlias(
-                        pszAlias,
-                        &pszNT4Name);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = AD_FindObjectByNT4NameNoCache(
-                    hProvider,
-                    pszNT4Name,
-                    &pObject);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    LSA_SAFE_FREE_STRING(pszNT4Name);
-
-    *ppResult = pObject;
-
-    return dwError;
-
-error:
-    ADCacheDB_SafeFreeObject(&pObject);
-    goto cleanup;
+    return LsaAdBatchFindSingleObject(
+                   hProvider,
+                   bIsUserAlias ? LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS : LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS,
+                   pszAlias,
+                   NULL,
+                   ppResult);
 }
 
 DWORD
@@ -3254,6 +3217,69 @@ AD_FindObjectByNameTypeNoCache(
                             &pObject);
             BAIL_ON_LSA_ERROR(dwError);
             break;
+        default:
+            LSA_ASSERT(FALSE);
+            dwError = LSA_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Check whether the object we find is correct type or not
+    if (AccountType != pObject->type)
+    {
+        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    *ppObject = pObject;
+
+    return dwError;
+
+error:
+    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    {
+        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+    }
+    ADCacheDB_SafeFreeObject(&pObject);
+    goto cleanup;
+}
+
+DWORD
+AD_FindObjectByIdTypeNoCache(
+    IN HANDLE hProvider,
+    IN DWORD dwId,
+    IN ADAccountType AccountType,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsUser = FALSE;
+    PAD_SECURITY_OBJECT pObject = NULL;
+
+    switch (AccountType)
+    {
+        case AccountType_User:
+            bIsUser = TRUE;
+            dwError = LsaAdBatchFindSingleObject(
+                           hProvider,
+                           LSA_AD_BATCH_QUERY_TYPE_BY_UID,
+                           NULL,
+                           &dwId,
+                           &pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+
+        case AccountType_Group:
+            bIsUser = FALSE;
+            dwError = LsaAdBatchFindSingleObject(
+                           hProvider,
+                           LSA_AD_BATCH_QUERY_TYPE_BY_GID,
+                           NULL,
+                           &dwId,
+                           &pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+
         default:
             LSA_ASSERT(FALSE);
             dwError = LSA_ERROR_INTERNAL;

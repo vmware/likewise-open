@@ -1,0 +1,108 @@
+AC_INIT(lwmsg, 0.1, support@likewisesoftware.com)
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AC_CONFIG_HEADER([include/config.h])
+AC_CANONICAL_HOST
+
+LWMSG_CPPFLAGS=""
+MOD_EXT=".so"
+
+case "$host_os:$host_cpu" in
+        solaris*:*)
+                LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE=500 -D_EXTENSIONS -D_REENTRANT"
+		;;
+	hpux*:hppa*)
+		LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE_EXTENDED=1 -D_XOPEN_SOURCE=500"
+		LIB_XNET="-lxnet"
+		MOD_EXT=".sl"
+		;;
+	hpux*:ia64*)
+		LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE_EXTENDED=1 -D_XOPEN_SOURCE=500"
+		LIB_XNET="-lxnet"
+		MOD_EXT=".so"
+		;;
+	aix*:*)
+		LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_THREAD_SAFE"
+		;;	
+esac
+
+AC_SUBST(LWMSG_CPPFLAGS)
+AC_SUBST(LIB_XNET)
+AC_SUBST(LIB_DL)
+AC_SUBST(LIB_PTHREAD)
+AC_SUBST(MOD_EXT)
+AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of dynamic shared modules])
+
+# Checks for programs.
+AC_PROG_CC
+AC_GNU_SOURCE
+AC_PROG_INSTALL
+AC_PROG_MKDIR_P
+AC_PROG_LIBTOOL
+
+AC_CHECK_PROG([DOXYGEN], [doxygen], [doxygen], [false])
+if test x"$DOXYGEN" != x"false"
+then
+	HAVE_DOXYGEN=true
+else
+	HAVE_DOXYGEN=false
+fi
+
+AM_CONDITIONAL([HAVE_DOXYGEN], [$HAVE_DOXYGEN])
+
+# Checks for libraries.
+AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
+AC_CHECK_LIB(dl, dlopen, [LIB_DL="-ldl"], [LIB_DL=""])
+
+# Checks for header files.
+AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_INT8_T
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_INT64_T
+AC_TYPE_UINT8_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+AC_TYPE_INTMAX_T
+AC_TYPE_UINTMAX_T
+AC_TYPE_SIZE_T
+AC_C_BIGENDIAN
+
+# Checks for library functions.
+AC_HEADER_STDC
+AC_CHECK_FUNCS([memset])
+
+# Check for eid method
+
+AC_CHECK_DECLS([SO_PEERCRED, getpeereid],,,
+[
+#include <sys/types.h>
+#include <sys/socket.h>
+])
+
+AC_CHECK_FUNCS([getpeereid])
+
+# Check for moonunit bits
+AC_CHECK_HEADERS([moonunit/moonunit.h], [HAVE_MOONUNIT_H=true], [HAVE_MOONUNIT_H=false])
+AC_CHECK_LIB(moonunit, Mu_Interface_Result, [HAVE_MOONUNIT_LIB=true], [HAVE_MOONUNIT_LIB=false])
+AC_CHECK_PROG(MOONUNIT_STUB, moonunit-stub, moonunit-stub, false)
+
+if test "${MOONUNIT_STUB}" = "moonunit-stub" && $HAVE_MOONUNIT_H && $HAVE_MOONUNIT_LIB
+then
+	HAVE_MOONUNIT="true"
+	LIB_moonunit="-lmoonunit"
+	AC_DEFINE([HAVE_MOONUNIT], [], [Have MoonUnit])
+else
+	HAVE_MOONUNIT="false"
+fi
+
+AC_SUBST(LIB_moonunit)
+AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
+
+AC_CONFIG_FILES([Makefile include/Makefile include/lwmsg/Makefile src/Makefile test/Makefile doc/Makefile doc/Doxyfile example/Makefile])
+
+AC_OUTPUT

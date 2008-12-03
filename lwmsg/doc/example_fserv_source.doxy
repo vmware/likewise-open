@@ -1,0 +1,222 @@
+/*
+ * Copyright (c) Likewise Software.  All rights Reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Module Name:
+ *
+ *        example_fserv_source.doxy
+ *
+ * Abstract:
+ *
+ *        Fserv source code walkthrough documentation page
+ *
+ * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
+ *
+ */
+
+/**
+@page example_fserv_source Source Code Walkthrough
+
+@section common Common
+
+Creating a message protocol requires the following:
+
+- A set of C data structures for exchanging information
+- A corresponding set of type specifications which describe
+  the layout and relationships of these structure
+- A protocol specification which binds a set of message tags
+  and payload types together into a description of the protocol
+
+Because these elements are the same for both the client and server,
+they should be factored out into their own library in order to
+reduce memory usage at runtime.
+
+The file <tt>include/protocol.h</tt> contains the basic C type
+definitions and message type enumeration for the Fserv message
+protocol.  The type and protocol specifications are contained
+in <tt>src/protocol.c</tt>.
+
+@subsection phs Message Structures
+
+First, we define the types that will be used to transmit data
+between client and server:
+
+@dontinclude fserv/include/protocol.h
+@skip Begin message structures
+@until End message structures
+
+Note the presence of the opaque <tt>FileHandle</tt> structure.
+This type will be transmitted to the client as a handle.  By
+placing the structure definition in a separate header, the C compiler
+can ensure that the client does not attempt to dereference
+proxies while also enforcing type safety.  The server will include
+<tt>protocol-server.h</tt> so that it can create and manipulate
+its handles.  This technique is not necessary for the security of
+the server but is a good practice to catch potential bugs.
+
+Also note that there are no <tt>OpenReply</tt> or <tt>CloseRequest</tt>
+structures.  This is because both can be represented as <tt>FileHandle</tt>s
+without being wrapped in an outer structure -- LWMsg permits any
+pointer or pointer-like type to be the payload of a message.
+
+@subsection mte Message Tag Enumeration
+
+We then enumerates all possible message tags.  These tags
+comprise the set of messages that may be sent between client and
+server. Each element of the enumeration has a comment specifying
+the C structure which is the payload for that type of message.
+
+@skip Begin message enumeration
+@until End message enumeration
+
+For clarity, we organize messages into blocks of 3.  The first
+message is the request sent to the server.  The second and third
+are the success and error messages sent in response to the client.
+
+LWMsg does not impose limitations on when certain message types
+can be sent or by whom.  Although LWMsg guarantees that all
+message payloads are well-formed, it is up to the application
+to ensure that they are used appropriately and in the correct
+sequence.  Future versions may support encoding some restrictions
+directly into the protocol specification.
+
+@subsection ts Type Specification
+
+Each C structure that we want to use in the message protocol must
+have a type specification describing it:
+
+@dontinclude fserv/src/protocol.c
+@skip Begin type specifications
+@until End type specifications
+
+@subsection ps Protocol Specification
+
+Finally, we need a protocol specification which binds together
+our enumerated set of messages tags and indicates the payload
+type of each message.
+
+@skip Begin protocol specification
+@until End protocol specification
+
+@section c Client
+
+The client API implementation is contained in <tt>src/fserv.c</tt>.
+It abstracts away the details of creating connections and exchanging
+messages in order to perform Fserv operations.
+
+@subsection connect Connecting
+
+Connections are created to the server by <tt>fserv_connect()</tt>.
+Before establishing the connection, the function must first create
+a protocol object if it has not already.  A protocol object allows
+one or more protocol specifications to be combined together.  This
+protocol object is what is then used to create a connection.  First,
+a new protocol object is created.
+
+@dontinclude fserv/src/fserv.c
+@skip Create protocol object
+@until ;
+
+The protocol specification is then added to the object.
+
+@skip Add protocol spec
+@until ;
+
+After ensuring that a protocol object has been created, the function
+then establishes the actual connection.  This is done in two steps.
+First, it creates a new connection object:
+
+@skip Create connection
+@until ;
+
+Next, it sets the connection mode and endpoint:
+
+@skip Set connection endpoint
+@until ;
+
+The connection mode, #LWMSG_CONNECTION_MODE_LOCAL, indicates a UNIX domain
+socket connection.  The endpoint is the path of the special socket file.
+
+Note that connections are lazy -- that is, they are established on
+demand when a message operation is performed and not when the endpoint
+is set.
+
+Connections are simply a concrete variety of association, so "association"
+and "connection" will be used interchangably for the remainder of this
+document.
+
+@subsection discon Disconnecting
+
+To disconnect from the server, the client simply closes the association
+inside <tt>fserv_disconnect()</tt>:
+
+@skip Close association
+@until ;
+
+This operation attempts to cleanly tear down the connection with the
+server and may fail.  Whether it succeeds or fails, the function deletes
+the association before returning:
+
+@skip Delete association
+@until ;
+
+Deleting an association does not cleanly tear down the connection if
+it has not been closed, but it is guaranteed to succeed and release
+all resources that were being held.  The sequence of #lwmsg_assoc_close()
+followed by #lwmsg_assoc_delete() is the preferred way to shut down
+a connection.
+
+@subsection open Opening a File
+
+Opening a file involves sending a request message to the server and
+receiving a response back that contains a file handle.  The function
+<tt>fserv_open()</tt> begins by filling out the <tt>OpenRequest</tt>
+structure that it will send:
+
+@skip Set up
+@until ;
+@until ;
+
+The function then sends the message and receives a reply in a single
+transact operation:
+
+@skip Send message
+@until ;
+
+If the transaction succeeds, <tt>reply_type</tt> is set to the tag
+of the reply message and <tt>reply_object</tt> is set to the unmarshalled
+message payload.  The function then checks what kind of reply it received.
+If it received a success message, it allocates a wrapper around the
+handle it received and returns that to the caller.  If it received a failure
+message, it extracts the error code and returns the error to the caller.
+Otherwise, it indicates that it received an invalid message type.
+
+@skip switch
+@until default:
+@until }
+
+@section s Server
+
+**/
