@@ -111,8 +111,9 @@ install: build
 
 	## Config files
 	cat $(DESTDIR)/etc/likewise/lsassd.conf |\
-		sed 's#homedir-template.*$$#homedir-template = %H/%D/%U#' |\
-		sed 's#login-shell-template.*#login-shell-template = /bin/bash#' \
+		sed 's#.*homedir-template\s*=.*$$#    homedir-template = %H/%D/%U#' |\
+		sed 's#.*login-shell-template\s*=.*#    login-shell-template = /bin/bash#' |\
+		sed 's/.*cell-support\s*=.*/    cell-support = unprovisioned/' \
 	> $(DESTDIR)/etc/likewise/lsassd.conf.new && \
 	  /bin/mv -f $(DESTDIR)/etc/likewise/lsassd.conf.new $(DESTDIR)/etc/likewise/lsassd.conf
 
