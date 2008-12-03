@@ -55,9 +55,6 @@ main(
     )
 {
     DWORD dwError = 0;
-    pthread_t listenerThreadId;
-    pthread_t* pListenerThreadId = NULL;
-    void* threadResult = NULL;
 
     dwError = LWNetSrvSetDefaults();
     BAIL_ON_LWNET_ERROR(dwError);
@@ -95,7 +92,7 @@ main(
     dwError = LWNetSrvInitialize();
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetSrvStartListenThread(&listenerThreadId, &pListenerThreadId);
+    dwError = LWNetSrvStartListenThread();
     BAIL_ON_LWNET_ERROR(dwError);
 
     // Handle signals, blocking until we are supposed to exit.
@@ -108,10 +105,7 @@ main(
 
     LWNetSrvStopProcess();
 
-    if (pListenerThreadId)
-    {
-        pthread_join(listenerThreadId, &threadResult);
-    }
+    LWNetSrvStopListenThread();
 
     LWNetSrvApiShutdown();
 

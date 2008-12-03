@@ -48,6 +48,8 @@
 #ifndef __CACHEDB_H__
 #define __CACHEDB_H__
 
+#include <lwnet-utils.h>
+
 //
 // Default DB location
 //

@@ -12,12 +12,10 @@ case "$host_os:$host_cpu" in
 		;;
 	hpux*:hppa*)
 		LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE_EXTENDED=1 -D_XOPEN_SOURCE=500"
-		LIB_XNET="-lxnet"
 		MOD_EXT=".sl"
 		;;
 	hpux*:ia64*)
 		LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE_EXTENDED=1 -D_XOPEN_SOURCE=500"
-		LIB_XNET="-lxnet"
 		MOD_EXT=".so"
 		;;
 	aix*:*)
@@ -26,7 +24,6 @@ case "$host_os:$host_cpu" in
 esac
 
 AC_SUBST(LWMSG_CPPFLAGS)
-AC_SUBST(LIB_XNET)
 AC_SUBST(LIB_DL)
 AC_SUBST(LIB_PTHREAD)
 AC_SUBST(MOD_EXT)

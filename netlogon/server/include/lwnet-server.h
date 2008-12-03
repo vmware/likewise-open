@@ -46,39 +46,11 @@
 #ifndef __LWNETSERVER_H__
 #define __LWNETSERVER_H__
 
-#include "lwnet-utils.h"
-#include "lwnet-ipc.h"
+#include <lwmsg/lwmsg.h>
 
-typedef struct __LWNETSERVERCONNECTIONCONTEXT {
-    int    fd;
-    uid_t  peerUID;
-    gid_t  peerGID;
-    short  bConnected;
-    HANDLE hServer;
-} LWNETSERVERCONNECTIONCONTEXT, *PLWNETSERVERCONNECTIONCONTEXT;
-
-#define LWNET_SAFE_FREE_CONNECTION_CONTEXT(pContext) \
-    if (pContext)  {                                  \
-       LWNetSrvFreeContext(pContext);                \
-       pContext = NULL;                               \
-    }
-
-DWORD
-LWNetSrvOpenConnection(
-    int     fd,
-    uid_t   uid,
-    gid_t   gid,
-    PHANDLE phConnection
-    );
-
-void
-LWNetSrvCloseConnection(
-    HANDLE hConnection
-    );
-
-void
-LWNetSrvHandleConnection(
-    HANDLE hConnection
+extern LWMsgDispatchSpec*
+LWNetSrvGetDispatchSpec(
+    void
     );
 
 #endif /* __LWNETSERVER_H__ */

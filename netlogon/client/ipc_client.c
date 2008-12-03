@@ -53,34 +53,26 @@ LWNetOpenServer(
     )
 {
     DWORD dwError = 0;
-    int   fd = -1;
     PLWNET_CLIENT_CONNECTION_CONTEXT pContext = NULL;
-    struct sockaddr_un unixaddr;
     
     BAIL_ON_INVALID_POINTER(phConnection);
 
-    if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    memset(&unixaddr, 0, sizeof(unixaddr));
-    unixaddr.sun_family = AF_UNIX;
-    sprintf(unixaddr.sun_path, "%s/%s", LWNET_CACHE_DIR, LWNET_SERVER_FILENAME);
-
-    if (connect(fd, (struct sockaddr*)&unixaddr, sizeof(unixaddr)) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    dwError = LWNetAllocateMemory(sizeof(LWNET_CLIENT_CONNECTION_CONTEXT),
-                                (PVOID*)&pContext);
+    dwError = LWNetAllocateMemory(sizeof(LWNET_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_LWNET_ERROR(dwError);
-    
-    pContext->fd = fd;
-    fd = -1;
 
-    dwError = LWNetSendCreds(pContext->fd);
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(&pContext->pProtocol));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, LWNetIPCGetProtocolSpec()));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(pContext->pProtocol, &pContext->pAssoc));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
+                                  pContext->pAssoc,
+                                  LWMSG_CONNECTION_MODE_LOCAL,
+                                  LWNET_CACHE_DIR "/" LWNET_SERVER_FILENAME));
     BAIL_ON_LWNET_ERROR(dwError);
 
     *phConnection = (HANDLE)pContext;
@@ -91,46 +83,27 @@ cleanup:
 
 error:
 
-    if (pContext) {
-       if (pContext->fd >= 0) {
-          close(pContext->fd);
-       }
-       LWNetFreeMemory(pContext);
+    if (pContext)
+    {
+        if (pContext->pAssoc)
+        {
+            lwmsg_assoc_delete(pContext->pAssoc);
+        }
+
+        if (pContext->pProtocol)
+        {
+            lwmsg_protocol_delete(pContext->pProtocol);
+        }
+
+        LWNetFreeMemory(pContext);
     }
 
-    if (fd >= 0) {
-        close(fd);
-    }
-
-    if (phConnection) {
+    if (phConnection)
+    {
         *phConnection = (HANDLE)NULL;
     }
 
     goto cleanup;
-}
-
-DWORD
-LWNetSendMessage(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
-    )
-{
-    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
-            (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
-
-    return LWNetWriteMessage(pContext->fd, pMessage);
-}
-
-DWORD
-LWNetGetNextMessage(
-    HANDLE hConnection,
-    PLWNETMESSAGE* ppMessage
-    )
-{
-    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
-            (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
-
-    return LWNetReadNextMessage(pContext->fd, ppMessage);
 }
 
 DWORD
@@ -142,9 +115,15 @@ LWNetCloseServer(
     PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
 
-    if (pContext && (pContext->fd >= 0))
+    if (pContext->pAssoc)
     {
-       close(pContext->fd);
+        lwmsg_assoc_close(pContext->pAssoc);
+        lwmsg_assoc_delete(pContext->pAssoc);
+    }
+
+    if (pContext->pProtocol)
+    {
+        lwmsg_protocol_delete(pContext->pProtocol);
     }
 
     LWNetFreeMemory(pContext);
@@ -152,3 +131,237 @@ LWNetCloseServer(
     return dwError;
 }
 
+
+DWORD
+LWNetTransactGetDCName(
+    HANDLE hConnection,
+    PCSTR pszServerFQDN,
+    PCSTR pszDomainFQDN,
+    PCSTR pszSiteName,
+    DWORD dwFlags,
+    PLWNET_DC_INFO* ppDCInfo
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
+    LWNET_IPC_DCNAME_REQ dcReq;
+    PLWNET_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    dcReq.pszServerFQDN = pszServerFQDN;
+    dcReq.pszDomainFQDN = pszDomainFQDN;
+    dcReq.pszSiteName = pszSiteName;
+    dcReq.dwFlags = dwFlags;
+
+    request.tag = LWNET_Q_DCINFO;
+    request.object = &dcReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                                  pContext->pAssoc,
+                                  &request,
+                                  &response));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    switch (response.tag)
+    {
+    case LWNET_R_DCINFO_SUCCESS:
+        *ppDCInfo = (PLWNET_DC_INFO) response.object;
+        break;
+    case LWNET_R_DCINFO_FAILURE:
+        pError = (PLWNET_IPC_ERROR) response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LWNET_ERROR(dwError);
+        break;
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    if (ppDCInfo)
+    {
+        *ppDCInfo = NULL;
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LWNetTransactGetDCTime(
+    HANDLE hConnection,
+    PCSTR pszDomainFQDN,
+    PUNIX_TIME_T pDCTime
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
+    PLWNET_IPC_ERROR pError = NULL;
+    LWNET_IPC_DCTIME_REQ dcTimeReq;
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    dcTimeReq.pszDomainFQDN = pszDomainFQDN;
+    request.tag = LWNET_Q_DCTIME;
+    request.object = &dcTimeReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                                  pContext->pAssoc,
+                                  &request,
+                                  &response));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    switch (response.tag)
+    {
+    case LWNET_R_DCTIME_SUCCESS:
+        *pDCTime = ((PLWNET_IPC_DCTIME_RES) response.object)->dcTime;
+        break;
+    case LWNET_R_DCTIME_FAILURE:
+        pError = (PLWNET_IPC_ERROR) response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LWNET_ERROR(dwError);
+        break;
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LWNetTransactGetDomainController(
+    HANDLE hConnection,
+    PCSTR pszDomainFQDN,
+    PSTR* ppszDomainControllerFQDN
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
+        (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
+    PLWNET_IPC_ERROR pError = NULL;
+    LWNET_IPC_DC_REQ dcReq;
+    PLWNET_IPC_DC_RES dcRes = NULL;
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    dcReq.pszDomainFQDN = pszDomainFQDN;
+    request.tag = LWNET_Q_DC;
+    request.object = &dcReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                                  pContext->pAssoc,
+                                  &request,
+                                  &response));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    switch (response.tag)
+    {
+    case LWNET_R_DC_SUCCESS:
+        dcRes = response.object;
+        *ppszDomainControllerFQDN = dcRes->pszDCFQDN;
+        /* NULL out the field so it does not get freed */
+        dcRes->pszDCFQDN = NULL;
+        break;
+    case LWNET_R_DC_FAILURE:
+        pError = (PLWNET_IPC_ERROR) response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LWNET_ERROR(dwError);
+        break;
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LWNetTransactGetCurrentDomain(
+    HANDLE hConnection,
+    PSTR* ppszDomainFQDN
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
+        (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
+    PLWNET_IPC_ERROR pError = NULL;
+    PLWNET_IPC_CURRENT_RES pCurRes = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    request.tag = LWNET_Q_CURRENT_DOMAIN;
+    request.object = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                                  pContext->pAssoc,
+                                  &request,
+                                  &response));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    switch (response.tag)
+    {
+    case LWNET_R_CURRENT_DOMAIN_SUCCESS:
+        pCurRes = response.object;
+        *ppszDomainFQDN = pCurRes->pszDomainFQDN;
+        pCurRes->pszDomainFQDN = NULL;
+        break;
+    case LWNET_R_CURRENT_DOMAIN_FAILURE:
+        pError = (PLWNET_IPC_ERROR) response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LWNET_ERROR(dwError);
+        break;
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}

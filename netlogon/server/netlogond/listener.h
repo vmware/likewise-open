@@ -49,8 +49,12 @@
 
 DWORD
 LWNetSrvStartListenThread(
-    pthread_t* pThreadId,
-    pthread_t** ppThreadId
+    void
+    );
+
+DWORD
+LWNetSrvStopListenThread(
+    void
     );
 
 #endif /* __LISTENER_H__ */

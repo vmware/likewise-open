@@ -182,7 +182,9 @@ lwmsg_connection_recvbuffer(LWMsgAssoc* assoc)
 
     buffer->base_length += received;
 
-    if (msghdr.msg_controllen > 0)
+    if (msghdr.msg_controllen > 0 &&
+        /* Work around bizarre behavior of X/Open recvmsg on HP-UX 11.11 */
+        msghdr.msg_controllen <= sizeof(buf_un.buf))
     {
         for (cmsg = CMSG_FIRSTHDR(&msghdr); cmsg; cmsg = CMSG_NXTHDR(&msghdr, cmsg))
         {

@@ -50,8 +50,12 @@
 #ifndef __IPC_CLIENT_P_H__
 #define __IPC_CLIENT_P_H__
 
-typedef struct __LWNET_CLIENT_CONNECTION_CONTEXT {
-    int    fd;
+#include <lwmsg/lwmsg.h>
+
+typedef struct __LWNET_CLIENT_CONNECTION_CONTEXT
+{
+    LWMsgProtocol* pProtocol;
+    LWMsgAssoc* pAssoc;
 } LWNET_CLIENT_CONNECTION_CONTEXT, *PLWNET_CLIENT_CONNECTION_CONTEXT;
 
 DWORD
@@ -60,20 +64,38 @@ LWNetOpenServer(
     );
 
 DWORD
-LWNetSendMessage(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
-    );
-
-DWORD
-LWNetGetNextMessage(
-    HANDLE hConnection,
-    PLWNETMESSAGE* ppMessage
-    );
-
-DWORD
 LWNetCloseServer(
     HANDLE hConnection
+    );
+
+DWORD
+LWNetTransactGetDCName(
+    HANDLE hConnection,
+    PCSTR pszServerFQDN,
+    PCSTR pszDomainFQDN,
+    PCSTR pszSiteName,
+    DWORD dwFlags,
+    PLWNET_DC_INFO* ppDCInfo
+    );
+
+DWORD
+LWNetTransactGetDCTime(
+    HANDLE hConnection,
+    PCSTR pszDomainFQDN,
+    PUNIX_TIME_T pDCTime
+    );
+
+DWORD
+LWNetTransactGetDomainController(
+    HANDLE hConnection,
+    PCSTR pszDomainFQDN,
+    PSTR* ppszDomainControllerFQDN
+    );
+
+DWORD
+LWNetTransactGetCurrentDomain(
+    HANDLE hConnection,
+    PSTR* ppszDomainFQDN
     );
 
 #endif /* __IPC_CLIENT_P_H__ */

@@ -55,4 +55,13 @@ void schn_seal_generate_key(const unsigned char sess_key[16],
                             const unsigned char seq_number[8],
                             unsigned char seal_key[16]);
 
+/*
+  Status codes taken from dcerpc/include/dce/rpcsts.idl
+*/
+#define schn_s_no_memory                 (0x16c9a012)  /* rpc_s_no_memory */
+#define schn_s_unsupported_protect_level (0x16c9a0e0)  /* rpc_s_unsupported_protect_level */
+#define schn_s_invalid_credentials       (0x16c9a0e2)  /* rpc_s_invalid_credentials */
+#define schn_s_ok                        (0x00000000)  /* rpc_s_ok */
+
+
 #endif /* _SCHANNEL_P_H_ */

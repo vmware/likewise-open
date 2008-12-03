@@ -48,228 +48,71 @@
 #ifndef __LWNETIPC_H__
 #define __LWNETIPC_H__
 
+#include <lwmsg/lwmsg.h>
+
 #include "lwnet-utils.h"
 
-typedef enum {
-    LWNET_ERROR            =   0,
-    LWNET_Q_DCTIME         =   1,
-    LWNET_R_DCTIME         =   2,
-    LWNET_Q_DCINFO         =   3,
-    LWNET_R_DCINFO         =   4,
-    LWNET_Q_DC             =   5,
-    LWNET_R_DC             =   6,
-    LWNET_Q_CURRENT_DOMAIN =   7,
-    LWNET_R_CURRENT_DOMAIN =   8,
-    LWNET_MESSAGE_SENTINEL
-} LWNetMessageType;
-
-typedef struct LWNetMessageHeaderTag {
-    /* type of group policy message */
-    uint8_t   messageType;
-    /* protocol version */
-    uint8_t   version;
-    /* This may be used for sequencing
-     * For instance, 1 of 10, 2 of 10
-     */
-    uint16_t  reserved[2];
-    /* The length of the attached message
-     * This is in network format
-     */
-    uint32_t  messageLength;
-} LWNETMESSAGEHEADER, *PLWNETMESSAGEHEADER;
-
-typedef struct LWNetMessageTag {
-    LWNETMESSAGEHEADER header;
-    PSTR pData;
-} LWNETMESSAGE, *PLWNETMESSAGE;
-
-#define LWNET_SAFE_FREE_MESSAGE(pMessage) \
-    if (pMessage) {                     \
-        LWNetFreeMessage(pMessage);    \
-        pMessage = NULL;                \
-    }
-
-typedef DWORD (*PFNMESSAGESCREENER) (PLWNETMESSAGE pMessage, uid_t peerUID);
-
-typedef struct __LWNETDATACOORDINATES {
-    DWORD offset;
-    DWORD length;
-} LWNETDATACOORDINATES, *PLWNETDATACOORDINATES;
-
-typedef struct __LWNET_DC_NAME_REQ_HEADER
+typedef struct _LWNET_IPC_ERROR
 {
-    LWNETDATACOORDINATES serverFQDN;
-    LWNETDATACOORDINATES domainFQDN;
-    LWNETDATACOORDINATES siteName;
-    DWORD flags;
-} LWNET_DC_NAME_REQ_HEADER, *PLWNET_DC_NAME_REQ_HEADER;
+    DWORD dwError;
+    PCSTR pszErrorMessage;
+} LWNET_IPC_ERROR, *PLWNET_IPC_ERROR;
 
-typedef struct __LWNET_DC_INFO_HEADER
+typedef struct _LWNET_IPC_DCNAME_REQ
 {
-    DWORD domainControllerAddressType;
-    DWORD flags;
-    DWORD version;
-    WORD LMToken;
-    WORD NTToken;
-    UCHAR domainGUID[LWNET_GUID_SIZE];
-    LWNETDATACOORDINATES domainControllerName;
-    LWNETDATACOORDINATES domainControllerAddress;
-    LWNETDATACOORDINATES netBIOSDomainName;
-    LWNETDATACOORDINATES fullyQualifiedDomainName;
-    LWNETDATACOORDINATES DNSForestName;
-    LWNETDATACOORDINATES DCSiteName;
-    LWNETDATACOORDINATES clientSiteName;
-    LWNETDATACOORDINATES netBIOSHostName;
-    LWNETDATACOORDINATES userName;
-} LWNET_DC_INFO_HEADER, *PLWNET_DC_INFO_HEADER;
+    PCSTR   pszServerFQDN;
+    PCSTR   pszDomainFQDN;
+    PCSTR   pszSiteName;
+    DWORD   dwFlags;
+} LWNET_IPC_DCNAME_REQ, *PLWNET_IPC_DCNAME_REQ;
 
-typedef struct __LWNETERRORRECORDHEADER {
-    DWORD              errorCode;
-    LWNETDATACOORDINATES message;
-} LWNETERRORRECORDHEADER, *PLWNETERRORRECORDHEADER;
+typedef struct _LWNET_IPC_DCTIME_REQ
+{
+    PCSTR pszDomainFQDN;
+} LWNET_IPC_DCTIME_REQ, *PLWNET_IPC_DCTIME_REQ;
 
-DWORD
-LWNetOpenServer(
-    PHANDLE phConnection
+typedef struct _LWNET_IPC_DCTIME_RES
+{
+    UNIX_TIME_T dcTime;
+} LWNET_IPC_DCTIME_RES, *PLWNET_IPC_DCTIME_RES;
+
+typedef struct _LWNET_IPC_DC_REQ
+{
+    PCSTR pszDomainFQDN;
+} LWNET_IPC_DC_REQ, *PLWNET_IPC_DC_REQ;
+
+typedef struct _LWNET_IPC_DC_RES
+{
+    PSTR pszDCFQDN;
+} LWNET_IPC_DC_RES, *PLWNET_IPC_DC_RES;
+
+typedef struct _LWNET_IPC_CURRENT_RES
+{
+    PSTR pszDomainFQDN;
+} LWNET_IPC_CURRENT_RES, *PLWNET_IPC_CURRENT_RES;
+
+typedef enum _LWNET_IPC_TAG
+{
+    LWNET_Q_DCTIME,
+    LWNET_R_DCTIME_SUCCESS,
+    LWNET_R_DCTIME_FAILURE,
+    LWNET_Q_DCINFO,
+    LWNET_R_DCINFO_SUCCESS,
+    LWNET_R_DCINFO_FAILURE,
+    LWNET_Q_DC,
+    LWNET_R_DC_SUCCESS,
+    LWNET_R_DC_FAILURE,
+    LWNET_Q_CURRENT_DOMAIN,
+    LWNET_R_CURRENT_DOMAIN_SUCCESS,
+    LWNET_R_CURRENT_DOMAIN_FAILURE
+} LWNET_IPC_TAG;
+
+LWMsgProtocolSpec*
+LWNetIPCGetProtocolSpec(
+    void
     );
 
-DWORD
-LWNetCloseServer(
-    HANDLE hConnection
-    );
-
-/* Builds a message object with the data field allocated - but, not filled in */
-DWORD
-LWNetBuildMessage(
-    LWNetMessageType msgType,
-    uint32_t       msgLen,
-    uint16_t       iData,
-    uint16_t       nData,
-    PLWNETMESSAGE*   ppMessage
-    );
-
-void
-LWNetFreeMessage(
-    PLWNETMESSAGE pMessage
-    );
-
-DWORD
-LWNetReadNextMessage(
-    int         fd,
-    PLWNETMESSAGE *ppMessage
-    );
-
-DWORD
-LWNetSecureReadNextMessage(
-    int                fd,
-    uid_t              peerUID,
-    PFNMESSAGESCREENER pFnScreener,
-    PLWNETMESSAGE        *ppMessage
-    );
-
-DWORD
-LWNetWriteMessage(
-    int   fd,
-    const PLWNETMESSAGE pMessage
-    );
-
-DWORD
-LWNetSendCreds(
-    int fd
-    );
-
-DWORD
-LWNetRecvCreds(
-    int fd,
-    uid_t* pUid,
-    gid_t* pGid
-    );
-
-DWORD
-LWNetWriteData(
-    DWORD dwFd,
-    PSTR  pszBuf,
-    DWORD dwLen);
-
-DWORD
-LWNetReadData(
-    DWORD  dwFd,
-    PSTR   pszBuf,
-    DWORD  dwBytesToRead,
-    PDWORD pdwBytesRead);
-
-DWORD
-LWNetSendMsg(
-    DWORD dwFd,
-    const struct msghdr *pMsg
-    );
-
-DWORD
-LWNetRecvMsg(
-    DWORD dwFd,
-    struct msghdr *pMsg
-    );
-
-DWORD
-LWNetMarshalError(
-    DWORD errorCode,
-    PCSTR pszErrorMessage,
-    PSTR  pszBuf,
-    PDWORD pdwBufLen
-    );
-
-DWORD
-LWNetUnmarshalError(
-    PCSTR  pszMsgBuf,
-    DWORD  dwMsgLen,
-    PDWORD pdwError,
-    PSTR*  ppszError
-    );
-
-DWORD
-LWNetMarshalDCNameReq(
-    PCSTR   pszServerFQDN,
-    PCSTR   pszDomainFQDN,
-    PCSTR   pszSiteName,
-    DWORD   dwFlags,
-    PSTR    pszBuf,
-    PDWORD  pdwBufLen
-    );
-
-DWORD
-LWNetComputeDCNameReqLength(
-    PCSTR   pszServerFQDN,
-    PCSTR   pszDomainFQDN,
-    PCSTR   pszSiteName
-    );
-
-DWORD
-LWNetUnmarshalDCNameReq(
-    PCSTR   pszMsgBuf,
-    DWORD   dwMsgLen,
-    PSTR*   ppszServerFQDN,
-    PSTR*   ppszDomainFQDN,
-    PSTR*   ppszSiteName,
-    PDWORD  pdwFlags
-    );
-
-DWORD
-LWNetMarshalDCInfo(
-    PLWNET_DC_INFO  pDCInfo,
-    PSTR            pszBuffer,
-    PDWORD          pdwBufLen
-    );
-
-DWORD
-LWNetUnmarshalDCInfo(
-    PCSTR         pszMsgBuf,
-    DWORD         dwBufLen,
-    PLWNET_DC_INFO* ppDCInfo
-    );
-
-DWORD
-LWNetComputeBufferLength(
-    PLWNET_DC_INFO pDCInfo
-    );
+#define MAP_LWMSG_ERROR(_e_) ((_e_) ? -1 : 0)
+#define MAP_LWNET_ERROR(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 #endif /*__LWNETIPC_H__*/

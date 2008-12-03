@@ -66,8 +66,8 @@ struct schn_tail {
 
 
 struct schn_blob {
-    uint8          *base;
-    size_t          len;
+    void          *base;
+    size_t         len;
 };
 
 
