@@ -55,6 +55,7 @@ build-stamp: configure-stamp
 	env PREFIXDIR=$(PREFIX) \
 	    LOCALSTATEDIR=$(LOCALSTATEDIR) \
 	    SYSCONFIDIR=$(SYSCONFDIR) \
+	    BUILD_LIBDIR="lib" \
 	    ./Build.sh
 
 	touch build-stamp

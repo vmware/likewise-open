@@ -4,21 +4,13 @@ COMP_SOURCES=${BUILD_ROOT}/lsass
 
 function _setup_dirs
 {
-    NSS_DIR="/usr/lib"
-    PAM_DIR="/usr/lib/security"
+    NSS_DIR="/usr/${_lib}"
+    PAM_DIR="/usr/${_lib}/security"
 
     case `uname -s` in
 	Linux)
-	    case `uname -m` in
-		i*86)
-		    NSS_DIR="/lib"
-		    PAM_DIR="/lib/security"
-		    ;;
-		x86_64)
-		    NSS_DIR="/lib64"
-		    PAM_DIR="/lib64/security"
-		    ;;
-	    esac
+	    NSS_DIR="/${_lib}"
+	    PAM_DIR="/${_lib}/security"
 	    ;;
     esac
 
