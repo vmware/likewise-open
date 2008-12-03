@@ -59,9 +59,6 @@
 #include "lwnet-server.h"
 #include "lwnet-server-api.h"
 
-#include "ipc_connect_p.h"
 #include "ipc_dcinfo_p.h"
-#include "ipc_state_p.h"
-#include "msg_dispatch_p.h"
 #include "externs_p.h"
 

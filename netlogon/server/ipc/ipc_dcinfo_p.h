@@ -49,26 +49,34 @@
 
 DWORD
 LWNetSrvIpcGetDCName(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 DWORD
 LWNetSrvIpcGetDCTime(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 DWORD
 LWNetSrvIpcGetDomainController(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 DWORD
 LWNetSrvIpcGetCurrentDomain(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 #endif /* __IPC_DCINFO_P_H__ */
