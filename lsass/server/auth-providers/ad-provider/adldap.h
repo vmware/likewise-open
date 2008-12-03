@@ -176,30 +176,6 @@ ADLdap_GetGCObjectInfoBySid(
     );
 
 DWORD
-ADLdap_FindUserNameByAlias(
-    PCSTR pszAlias,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_FindUserNameById(
-    uid_t uid,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_FindGroupNameByAlias(
-    PCSTR pszAlias,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_FindGroupNameById(
-    gid_t gid,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
 ADLdap_IsValidDN(
     HANDLE   hDirectory,
     PCSTR    pszDN,
