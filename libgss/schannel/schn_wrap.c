@@ -45,7 +45,7 @@ uint32 schn_wrap(void                 *sec_ctx,
                  struct schn_blob     *out,
                  struct schn_tail     *tail)
 {
-    uint32 status = 0;
+    uint32 status = schn_s_ok;
     struct schn_auth_ctx *schn_ctx = NULL;
     unsigned char *schannel_sig = NULL;
     unsigned char sess_key[16], nonce[8], seq_number[8], digest[8];
@@ -54,10 +54,15 @@ uint32 schn_wrap(void                 *sec_ctx,
 
     schn_ctx = (struct schn_auth_ctx*)sec_ctx;
 
+    memset(sess_key, 0, sizeof(digest));
+    memset(nonce, 0, sizeof(nonce));
+    memset(seq_number, 0, sizeof(seq_number));
+    memset(digest, 0, sizeof(digest));
+
     out->len  = in->len;
     out->base = malloc(out->len);
     if (out->base == NULL) {
-        status = 0x16c9a012; /* rpc_s_no_memory */
+        status = schn_s_no_memory;
         goto error;
     }
 
@@ -80,7 +85,7 @@ uint32 schn_wrap(void                 *sec_ctx,
         break;
 
     default:
-        status = 0x16c9a0e0; /* rpc_s_unsupported_protect_level */
+        status = schn_s_unsupported_protect_level;
         goto error;
     }
 
