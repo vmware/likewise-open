@@ -12,7 +12,7 @@ Homepage: http://www.likewisesoftware.com/
 
 Package: likewise-open
 Architecture: any
-Depends: likewise-open-lsass
+Depends: likewise-open-domainjoin
 Recommends: ${likewise-open:Recommends}
 Provides: domain-lsa-service
 Conflicts: domain-lsa-service
