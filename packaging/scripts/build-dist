@@ -15,16 +15,12 @@ DIRS="\
 	librpc \
 	libsmbclient \
 	libunistr \
-	libuuid \
 	lsass \
-	lwidsplugin \
 	netlogon \
 	npcmuxer \
-	openssl \
 	build \
 	config \
 	packaging \
-	passwd \
 	pstore \
 	sqlite \
 	lwdns \
