@@ -1,0 +1,263 @@
+/*
+ * Copyright (c) Likewise Software.  All rights Reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Module Name:
+ *
+ *        arch_rep.doxy
+ *
+ * Abstract:
+ *
+ *        Architecture documentation
+ *        Data representation page
+ *
+ * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
+ *
+ */
+/**
+@page arch_rep Data Representation
+
+This portion of the architecture guide describes the octet
+stream form of data types understood by the <tt>LWMsg</tt> marshaller.
+All data encoding follow several common rules unless otherwise
+specified:
+
+- Type information is not encoded in the stream.
+- All multi-octet fields in the data stream are encoded in
+big-endian byte order.
+- Fields are not padded or aligned
+- Bits which do not have a specified meaning or value should
+be set to zero.
+
+@section arch_rep_core Core Data Types
+
+This section describes the core data types understood by
+the marshaller, and does not include extended types added
+by the association and connection abstractions, nor common
+type aliases which may be reduced to combinations of core types.
+
+@subsection arch_rep_int Integers
+
+Integers are arbitrary-length integral values (although the length
+must be a multiple of 8 bytes).  They are encoded starting with the
+most significant byte and ending with the least.  Integers may
+be signed or unsigned.  Signed integers are encoded using two's
+complement representation.
+
+@lwmsg_rep{Integer}
+@lwmsg_field{0, 8, Most significant byte}
+@lwmsg_discon
+@lwmsg_field{..., 8, Least significant byte}
+@lwmsg_endrep
+
+@subsection arch_rep_ptr Pointers
+
+Pointers represent a potentially-null reference to one or more
+contiguous, homogenous referents of a particular referant type.
+If a pointer is not null, it must be unique -- that is, no two
+pointers in an encoded <tt>LWMsg</tt> octet stream share a referent.
+
+The number of the referents may be specified in three ways:
+
+-# As a static length
+-# As the value of an earlier field in the stream (correlated length)
+-# Implicitly through nul-termination (nul-terminated referents)
+
+In order to simplify decoder implementation, pointers using
+the third method have a slightly different representation.
+
+The first byte of a pointer representation is always a flag which indicates
+whether the pointer is null:
+
+- 0x00 indicates a null pointer
+- 0xff indicates a non-null pointer
+
+@lwmsg_rep{Pointer\, null}
+@lwmsg_field{0, 8, 0x00}
+@lwmsg_endrep
+
+If a pointer is non-null, the flag byte is followed by the encoding
+of the referents.  In the case that the referents are nul-terminated,
+this encoding begins with a 32-bit integer specifying the number
+of referents, including the nul value.  Each referent is encoded
+recursively according to the rules for its type.
+
+@lwmsg_rep{Pointer\, non-null\, nul-terminated referents}
+@lwmsg_field{0, 8, 0xff}
+@lwmsg_field{8, 32, Number of referents}
+@lwmsg_field{40, <i>w</i>, Representation of 1st referent}
+@lwmsg_field{40 + <i>w</i>,..., Representation of 2nd referent}
+@lwmsg_discon
+@lwmsg_field{...,..., Representation of nul referent}
+@lwmsg_endrep
+
+Pointers with an explicit referrant count (either static or correlated)
+do not have the count represented in the encoding.
+
+@lwmsg_rep{Pointer\, non-null\, static or correlated referent count}
+@lwmsg_field{0, 8, 0xff}
+@lwmsg_field{8, <i>w</i>, Representation of 1st referent}
+@lwmsg_field{8 + <i>w</i>,..., Representation of 2nd referent}
+@lwmsg_discon
+@lwmsg_field{...,..., Representation of <i>n</i>th referent}
+@lwmsg_endrep
+
+Each referent is encoded recursively according to the rules of the
+referent type.
+
+@subsection arch_rep_arr Arrays
+
+Arrays are very similar to pointers, with the exception that they
+may not be null.  Because of this, their encoding is identical to a
+pointer with the ommission of the flag byte.
+
+Conceptually, arrays are in inline, contiguous portion of their
+containing type.  Thus, some encodings which are possible in theory
+are not allowed in practice because they cannot be decoded to
+a usable in-memory structure.  In particular, an array with a variable
+length cannot occur in the middle of a structure -- it must come
+at the end.  This is known as a flexible array member.
+
+@lwmsg_rep{Array\, nul-terminated referents}
+@lwmsg_field{0, 32, Number of referents}
+@lwmsg_field{32, <i>w</i>, Representation of first referent}
+@lwmsg_field{32 + <i>w</i>,..., Representation of second referent}
+@lwmsg_discon
+@lwmsg_field{...,..., Representation of nul referent}
+@lwmsg_endrep
+
+@lwmsg_rep{Array\, static or correlated length}
+@lwmsg_field{0, <i>w</i>, Representation of 1st referent}
+@lwmsg_field{<i>w</i>,..., Representation of 2nd referent}
+@lwmsg_discon
+@lwmsg_field{...,..., Representation of <i>n</i>th referent}
+@lwmsg_endrep
+
+@subsection arch_rep_str Structures
+
+Structures are heterogeneous tuples of zero or more members,
+each of a specific type. Members in structures may be correlated:
+
+- The length of an array or number of referents of a pointer
+can be the value of an earlier field
+- The active arm of a union may be determined by the value
+of an earlier field
+
+These correlations affect how structures must be decoded
+but do not change their octet stream representation.
+
+The last member of a structure may optionally be an array
+with a non-static (dynamic) length.  This is known as a flexible array
+member.  A dynamic array may not appear in any other position in
+a structure.
+
+The encoding of a structure is merely the recursive encoding of its
+members in order.
+
+@lwmsg_rep{Structure}
+@lwmsg_field{0, w, Representation of the 1st member}
+@lwmsg_field{w, ..., Representation of the 2nd member}
+@lwmsg_discon
+@lwmsg_field{..., ..., Representation of the <i>n</i>th member}
+@lwmsg_endrep
+
+The ability to combine and correlate members makes structures
+the workhorse of <tt>LWMsg</tt>.  A structure always contains
+sufficient information to be fully decoded from its definition
+and octect stream representation, which is not always the
+case for other compound types.  For this reason, top-level
+types in <tt>LWMsg</tt> protocols and applications tend
+to be structures.
+
+@subsection arch_rep_union Unions
+
+Unions are a heterogeneous union of one or more arms,
+each of a specific type.  Each arm is also associated with
+a unique integer tag which identifies it.  In any instance
+of a union, only one arm is active.  To identify this arm,
+unions are always correlated with an integer member of a containing
+structure known as a discriminator.  This discriminator member
+holds the tag value corresponding to the active arm of the union.
+Only the representation of this active arm is encoded.
+
+@lwmsg_rep{Union}
+@lwmsg_field{0, ..., Representation of the active arm}
+@lwmsg_endrep
+
+@section arch_rep_assoc Association Data Types
+
+The association abstraction extends the set of core marshaller
+types with primitives that are not meaningful outside the
+context of an association.  However, they remain an integral
+component of the <tt>LWMsg</tt> stack and are included here
+for completeness.
+
+@subsection arch_rep_hand Handles
+
+Handles are opaque, persistent pointers which allow peers joined
+by an association to reference each other's objects without transmitting
+them.  Handles are the primary means of achieving stateful connections.
+
+A handle's representation consists of its locality and handle ID.
+The locality is an 8-bit value which specifies the side of an association
+ -- local or remote -- where the physical object represented by the
+handle resides.  The handle ID is a 32-bit integer distinguishing the handle
+from all other possible active handles in the session.
+
+@lwmsg_rep{Handle}
+@lwmsg_field{0, 8, Locality}
+@lwmsg_field{8, 32, Handle ID}
+@lwmsg_endrep
+
+The locality field has two legal values:
+
+- 0x00: The handle is local from the perspective of the encoder
+- 0x01: The handle is remote from the perspective of the encoder
+
+@section arch_rep_conn Connection Data Types
+
+The connection abstraction builds on associations by adding
+additional primivite data types to exploit features of
+the underlying transport mechanism and operating system.
+
+@subsection arch_rep_fd File Descriptors
+
+The file descriptor type allows <tt>LWMsg</tt> applications
+communicating over UNIX domain sockets to exchange UNIX file descriptors
+between processes.  Because the mechanism to achieve this involves
+passing special ancillary data to the kernel, the actual file descriptor
+is not encoded into the representation.  Instead, an 8-bit flag is
+sent indicating whether the file descriptor was valid.
+
+@lwmsg_rep{File descriptor}
+@lwmsg_field{0, 8, Flag}
+@lwmsg_endrep
+
+The flag field has two legal values:
+
+- 0x00: The file descriptor was invalid (-1)
+- 0xFF: The file descriptor was valid and was transmitted as ancillary data
+
+**/
