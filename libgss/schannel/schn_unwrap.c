@@ -117,10 +117,12 @@ uint32 schn_unwrap(void                 *sec_ctx,
         schn_seal_generate_key(schn_ctx->session_key,
                                tail->seq_number, seal_key);
 
+        /* Decrypt nonce */
         RC4_set_key(&key_nonce, sizeof(seal_key), (unsigned char*)seal_key);
         RC4(&key_nonce, sizeof(tail->nonce), (unsigned char*)tail->nonce,
             (unsigned char*)tail->nonce);
 
+        /* Decrypt the payload */
         RC4_set_key(&key_data, sizeof(seal_key), (unsigned char*)seal_key);
         RC4(&key_data, out->len, (unsigned char*)out->base,
             (unsigned char*)out->base);
