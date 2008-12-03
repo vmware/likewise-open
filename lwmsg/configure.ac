@@ -80,6 +80,7 @@ AC_CHECK_FUNCS([memset])
 
 AC_CHECK_DECLS([SO_PEERCRED, getpeereid],,,
 [
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 ])
