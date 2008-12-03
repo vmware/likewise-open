@@ -717,8 +717,41 @@ LsaAdBatchBuildQueryForRpc(
     for (pLinks = pFirstLinks; pLinks != pEndLinks; pLinks = pLinks->Next)
     {
         PLSA_AD_BATCH_ITEM pBatchItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
+        PCSTR pszQueryTerm = NULL;
 
-        if (!IsNullOrEmptyString(pBatchItem->QueryTerm.pszString))
+        switch (QueryType)
+        {
+            case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+            {
+                if (pBatchItem->pszSid)
+                {
+                    pszQueryTerm = pBatchItem->pszSid;
+                }
+                else if (QueryType == pBatchItem->QueryTerm.Type)
+                {
+                    pszQueryTerm = pBatchItem->QueryTerm.pszString;
+                }
+                break;
+            }
+            case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+            {
+                if (pBatchItem->pszSamAccountName)
+                {
+                    pszQueryTerm = pBatchItem->pszSamAccountName;
+                }
+                else if (QueryType == pBatchItem->QueryTerm.Type)
+                {
+                    pszQueryTerm = pBatchItem->QueryTerm.pszString;
+                }
+                break;
+            }
+            default:
+                LSA_ASSERT(FALSE);
+                dwError = LSA_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (!IsNullOrEmptyString(pszQueryTerm))
         {
             DWORD dwNewQueryCount = dwQueryCount + 1;
 
@@ -752,60 +785,57 @@ LsaAdBatchBuildQueryForRpc(
             ClearFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM);
         }
 
-        if (!IsNullOrEmptyString(pBatchItem->QueryTerm.pszString))
+        switch (QueryType)
         {
-            switch (QueryType)
+            case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
             {
-                case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
+                PCSTR pszUseSid = NULL;
+                if (pBatchItem->pszSid)
                 {
-                    PCSTR pszUseSid = NULL;
-                    if (pBatchItem->pszSid)
-                    {
-                        pszUseSid = pBatchItem->pszSid;
-                    }
-                    else if (QueryType == pBatchItem->QueryTerm.Type)
-                    {
-                        pszUseSid = pBatchItem->QueryTerm.pszString;
-                    }
-                    // We might not have a SID if we failed to find a pseudo.
-                    if (pszUseSid)
-                    {
-                        dwError = LsaAllocateString(pszUseSid,
-                                                    &ppszQueryList[dwQueryCount]);
-                        BAIL_ON_LSA_ERROR(dwError);
-                        pBatchItem->pszQueryMatchTerm = (PSTR)pszUseSid;
-                    }
-                    break;
+                    pszUseSid = pBatchItem->pszSid;
                 }
-                case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+                else if (QueryType == pBatchItem->QueryTerm.Type)
                 {
-                    PCSTR pszUseSamAccountName = NULL;
-                    if (pBatchItem->pszSamAccountName)
-                    {
-                        pszUseSamAccountName = pBatchItem->pszSamAccountName;
-                    }
-                    else if (QueryType == pBatchItem->QueryTerm.Type)
-                    {
-                        pszUseSamAccountName = pBatchItem->QueryTerm.pszString;
-                    }
-                    if (pszUseSamAccountName)
-                    {
-                        dwError = LsaAllocateStringPrintf(
-                                        &ppszQueryList[dwQueryCount],
-                                        "%s\\%s",
-                                        pBatchItem->pDomainEntry->pszNetbiosDomainName,
-                                        pszUseSamAccountName);
-                        BAIL_ON_LSA_ERROR(dwError);
-                        pBatchItem->pszQueryMatchTerm = (PSTR)pszUseSamAccountName;
-                    }
-                    break;
+                    pszUseSid = pBatchItem->QueryTerm.pszString;
                 }
-                default:
-                    LSA_ASSERT(FALSE);
-                    dwError = LSA_ERROR_INTERNAL;
+                // We might not have a SID if we failed to find a pseudo.
+                if (pszUseSid)
+                {
+                    dwError = LsaAllocateString(pszUseSid,
+                                                &ppszQueryList[dwQueryCount++]);
                     BAIL_ON_LSA_ERROR(dwError);
+                    pBatchItem->pszQueryMatchTerm = (PSTR)pszUseSid;
+                }
+                break;
             }
-            dwQueryCount++;
+
+            case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
+            {
+                PCSTR pszUseSamAccountName = NULL;
+                if (pBatchItem->pszSamAccountName)
+                {
+                    pszUseSamAccountName = pBatchItem->pszSamAccountName;
+                }
+                else if (QueryType == pBatchItem->QueryTerm.Type)
+                {
+                    pszUseSamAccountName = pBatchItem->QueryTerm.pszString;
+                }
+                if (pszUseSamAccountName)
+                {
+                    dwError = LsaAllocateStringPrintf(
+                                    &ppszQueryList[dwQueryCount++],
+                                    "%s\\%s",
+                                    pBatchItem->pDomainEntry->pszNetbiosDomainName,
+                                    pszUseSamAccountName);
+                    BAIL_ON_LSA_ERROR(dwError);
+                    pBatchItem->pszQueryMatchTerm = (PSTR)pszUseSamAccountName;
+                }
+                break;
+            }
+            default:
+                LSA_ASSERT(FALSE);
+                dwError = LSA_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
