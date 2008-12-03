@@ -93,6 +93,7 @@ DWORD
 LsaAdBatchFindObjectsForDomainEntry(
     IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN BOOLEAN bResolvePseudoObjects,
     IN OUT PLSA_AD_BATCH_DOMAIN_ENTRY pEntry
     );
 
@@ -103,6 +104,7 @@ LsaAdBatchFindObjectsForDomain(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
     IN BOOLEAN bIsOneWayTrust,
+    IN BOOLEAN bResolvePseudoObjects,
     IN DWORD dwCount,
     IN OUT PLSA_LIST_LINKS pBatchItemList
     );
@@ -158,7 +160,8 @@ LsaAdBatchResolvePseudoObjectsInternal(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OPTIONAL PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszCellDn,
-    IN BOOLEAN bIsSchemaMode,
+    IN BOOLEAN bDoGCSearch,
+    IN ADConfigurationMode adMode,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pBatchItemList,
     OUT OPTIONAL PDWORD pdwTotalItemFoundCount,
@@ -214,6 +217,24 @@ DWORD
 LsaAdBatchAccountTypeToObjectType(
     IN ADAccountType AccountType,
     OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType
+    );
+
+static
+DWORD
+LsaAdBatchConvertQTListToBIList(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN DWORD dwQueryItemsCount,
+    IN OPTIONAL PSTR* ppszQueryList,
+    IN OPTIONAL PDWORD pdwId,
+    OUT PLSA_LIST_LINKS pBatchItemList,
+    OUT PDWORD pdwTotalBatchItemCount
+    );
+
+static
+DWORD
+LsaAdBatchSplitBIListToBIListPerDomain(
+    IN OUT PLSA_LIST_LINKS pBatchItemList,
+    OUT PLSA_LIST_LINKS pDomainList
     );
 
 #endif /* __BATCH_P_H__ */

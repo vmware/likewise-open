@@ -504,11 +504,15 @@ LsaAdBatchBuilderBatchItemNextItem(
 #define AD_LDAP_QUERY_NON_SCHEMA "(objectClass=" AD_LDAP_CLASS_NON_SCHEMA ")"
 #define AD_LDAP_QUERY_USER "(objectClass=User)"
 #define AD_LDAP_QUERY_GROUP "(objectClass=Group)"
+#define AD_LDAP_QUERY_DEFAULT_SCHEMA_ENABLED_USER "(uidNumber=*)"
+#define AD_LDAP_QUERY_DEFAULT_SCHEMA_ENABLED_GROUP "(gidNumber=*)"
+
 
 static
 PCSTR
 LsaAdBatchBuilderGetPseudoQueryPrefix(
     IN BOOLEAN bIsSchemaMode,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     OUT PCSTR* ppszSuffix
     )
@@ -517,28 +521,58 @@ LsaAdBatchBuilderGetPseudoQueryPrefix(
 
     if (LsaAdBatchIsDefaultSchemaMode())
     {
-        switch (ObjectType)
+        if (LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS == QueryType ||
+            LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS == QueryType)
         {
-            case LSA_AD_BATCH_OBJECT_TYPE_USER:
-                pszPrefix =
-                    "(&"
-                    "(&" AD_LDAP_QUERY_USER ")"
-                    "";
-                break;
-            case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
-                pszPrefix =
-                    "(&"
-                    "(&" AD_LDAP_QUERY_GROUP ")"
-                    "";
-                break;
-            default:
-                pszPrefix =
-                    "(&"
-                    "(|"
-                    "(&" AD_LDAP_QUERY_USER ")"
-                    "(&" AD_LDAP_QUERY_GROUP ")"
-                    ")"
-                    "";
+            switch (ObjectType)
+            {
+                case LSA_AD_BATCH_OBJECT_TYPE_USER:
+                    pszPrefix =
+                        "(&"
+                        "(&" AD_LDAP_QUERY_USER AD_LDAP_QUERY_DEFAULT_SCHEMA_ENABLED_USER")"
+                        "";
+                    break;
+                case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
+                    pszPrefix =
+                        "(&"
+                        "(&" AD_LDAP_QUERY_GROUP AD_LDAP_QUERY_DEFAULT_SCHEMA_ENABLED_GROUP")"
+                        "";
+                    break;
+                default:
+                    pszPrefix =
+                        "(&"
+                        "(|"
+                        "(&" AD_LDAP_QUERY_USER AD_LDAP_QUERY_DEFAULT_SCHEMA_ENABLED_USER")"
+                        "(&" AD_LDAP_QUERY_GROUP AD_LDAP_QUERY_DEFAULT_SCHEMA_ENABLED_GROUP")"
+                        ")"
+                        "";
+            }
+        }
+        else
+        {
+            switch (ObjectType)
+            {
+                case LSA_AD_BATCH_OBJECT_TYPE_USER:
+                    pszPrefix =
+                        "(&"
+                        "(&" AD_LDAP_QUERY_USER ")"
+                        "";
+                    break;
+                case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
+                    pszPrefix =
+                        "(&"
+                        "(&" AD_LDAP_QUERY_GROUP ")"
+                        "";
+                    break;
+                default:
+                    pszPrefix =
+                        "(&"
+                        "(|"
+                        "(&" AD_LDAP_QUERY_USER ")"
+                        "(&" AD_LDAP_QUERY_GROUP ")"
+                        ")"
+                        "";
+            }
         }
     }
     else if (bIsSchemaMode)
@@ -918,6 +952,7 @@ LsaAdBatchBuildQueryForPseudo(
 
     pszPrefix = LsaAdBatchBuilderGetPseudoQueryPrefix(
                         bIsSchemaMode,
+                        QueryType,
                         LsaAdBatchGetObjectTypeFromQueryType(QueryType),
                         &pszSuffix);
     if (!pszPrefix || !pszSuffix)
