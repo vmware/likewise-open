@@ -194,7 +194,7 @@ SetupClearCache(
             "/var/lib/lwidentity/idmap_cache.tdb "
             "/var/lib/lwidentity/netsamlogon_cache.tdb "
             "/var/lib/lwidentity/winbindd_cache.tdb "
-            "/lib/likewise/db/lsass-adcache.tdb");
+            "/var/lib/likewise/db/lsass-adcache.db");
 
     status = system("/etc/init.d/likewise-open start 2>/dev/null || /etc/init.d/lsassd start 2>/dev/null");
 

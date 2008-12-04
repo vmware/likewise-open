@@ -218,21 +218,21 @@ int main(int argc, const char *argv[])
     PerfTest testList[] =
     {
         {
-            "Cached getpwuid's per minute for user0001",
+            "Cached getpwuid's per second for user0001",
             TEST_TYPE_RUNS_PER_MIN,
             SetupGrabUid,
             RunGrabUid,
             user0001,
         },
         {
-            "Cached getgrgid's per minute for groupsize1",
+            "Cached getgrgid's per second for groupsize1",
             TEST_TYPE_RUNS_PER_MIN,
             SetupGrabGid,
             RunGrabGid,
             groupsize1
         },
         {
-            "Cached getgrgid's per minute for groupsize1000",
+            "Cached getgrgid's per second for groupsize1000",
             TEST_TYPE_RUNS_PER_MIN,
             SetupGrabGid,
             RunGrabGid,
