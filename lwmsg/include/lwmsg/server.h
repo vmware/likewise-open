@@ -72,7 +72,7 @@
  * This structure defines a table of dispatch functions
  * to handle incoming messages in a server.  It should
  * be constructed as a statically-initialized array
- * using #LWMSG_DISPATCH() and #LWMSG_ENDDISPATCH macros.
+ * using #LWMSG_DISPATCH() and #LWMSG_DISPATCH_END macros.
  */
 typedef struct LWMsgDispatchSpec
 #ifndef DOXYGEN
@@ -81,7 +81,7 @@ typedef struct LWMsgDispatchSpec
     LWMsgDispatchFunction func;
 }
 #endif
-LWMsgDispatchSpec;
+const LWMsgDispatchSpec;
 
 /**
  * @ingroup server
@@ -103,7 +103,7 @@ LWMsgDispatchSpec;
  * mark the end of the table
  * @hideinitializer
  */
-#define LWMSG_ENDDISPATCH {0, NULL}
+#define LWMSG_DISPATCH_END {0, NULL}
 
 
 /**

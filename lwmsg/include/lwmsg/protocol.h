@@ -112,7 +112,7 @@ typedef struct LWMsgProtocolSpec
     LWMsgTypeSpec* type;
 }
 #endif
-LWMsgProtocolSpec;
+const LWMsgProtocolSpec;
 
 /**
  * @brief Get marshaller type by message tag

@@ -206,7 +206,7 @@ LWMsgDispatchSpec counter_dispatch[] =
     LWMSG_DISPATCH(COUNTER_ADD, counter_srv_add),
     LWMSG_DISPATCH(COUNTER_READ, counter_srv_read),
     LWMSG_DISPATCH(COUNTER_CLOSE, counter_srv_close),
-    LWMSG_ENDDISPATCH
+    LWMSG_DISPATCH_END
 };
 
 typedef struct

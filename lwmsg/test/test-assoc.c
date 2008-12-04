@@ -853,7 +853,7 @@ static LWMsgDispatchSpec handle_dispatch[] =
     LWMSG_DISPATCH(HANDLE_CREATE_REQUEST, handle_create_srv),
     LWMSG_DISPATCH(HANDLE_DESTROY_REQUEST, handle_destroy_srv),
     LWMSG_DISPATCH(HANDLE_GET_REQUEST, handle_get_srv),
-    LWMSG_ENDDISPATCH
+    LWMSG_DISPATCH_END
 };
 
 static void*

@@ -357,7 +357,7 @@ static LWMsgDispatchSpec fserv_dispatch[] =
     LWMSG_DISPATCH(FSERV_WRITE, fserv_write_srv),
     LWMSG_DISPATCH(FSERV_READ, fserv_read_srv),
     LWMSG_DISPATCH(FSERV_CLOSE, fserv_close_srv),
-    LWMSG_ENDDISPATCH
+    LWMSG_DISPATCH_END
 };
 
 LWMsgDispatchSpec*
