@@ -28,7 +28,7 @@ function component_configure
 {
     _setup_build_env
 
-    ./autogen.sh && ./configure                              \
+    ./configure                              \
         --prefix=${PREFIXDIR}                               \
         --libexecdir=${PREFIXDIR}/bin                       \
         --libdir=${PREFIXDIR}/${_lib}                       \

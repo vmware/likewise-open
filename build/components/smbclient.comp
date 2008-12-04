@@ -106,9 +106,6 @@ function component_configure
 {
     _setup_build_env
 
-    ./autogen.sh
-    exit_on_error $?
-
     local with_dnsupdate=
     if [ -z "${IS_COMPAT}" ]; then
         with_dnsupdate="--with-dnsupdate"

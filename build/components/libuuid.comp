@@ -26,7 +26,6 @@ function component_configure
 {
     _setup_build_env
 
-    autoreconf -fi &&
     ./configure                        \
 	--prefix=${PREFIX_DIR}         \
         --libdir=${PREFIX_DIR}/${_lib}
