@@ -1,0 +1,14 @@
+There are two ways of building DEBs for likewise-open:
+
+1.  If you are working in a git branch, run "make dpkg" from the 
+    top level of the repository.
+
+2.  If you are using an official source release, run the following
+    two commands  from the top level of the extracted archive:
+
+      $ ln -s packaging/debian debian
+      $ dpkg-buildpackage -rfakeroot
+
+Both should created a set of debs in the parent directory that can be
+installed on the local system. 
+
