@@ -50,11 +50,11 @@
 
 static LWMsgDispatchSpec gMessageHandlers[] =
 {
-    LWMSG_MESSAGE(LWNET_Q_DCTIME, LWNetSrvIpcGetDCTime),
-    LWMSG_MESSAGE(LWNET_Q_DCINFO, LWNetSrvIpcGetDCName),
-    LWMSG_MESSAGE(LWNET_Q_DC, LWNetSrvIpcGetDomainController),
-    LWMSG_MESSAGE(LWNET_Q_CURRENT_DOMAIN, &LWNetSrvIpcGetCurrentDomain),
-    LWMSG_ENDDISPATCH
+    LWMSG_DISPATCH(LWNET_Q_DCTIME, LWNetSrvIpcGetDCTime),
+    LWMSG_DISPATCH(LWNET_Q_DCINFO, LWNetSrvIpcGetDCName),
+    LWMSG_DISPATCH(LWNET_Q_DC, LWNetSrvIpcGetDomainController),
+    LWMSG_DISPATCH(LWNET_Q_CURRENT_DOMAIN, &LWNetSrvIpcGetCurrentDomain),
+    LWMSG_DISPATCH_END
 };
 
 LWMsgDispatchSpec*
