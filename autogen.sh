@@ -31,16 +31,14 @@ DIRS="\
 	netlogon \
 	npcmuxer \
 	pstore \
+	dcerpc \
+	lwdns \
 	"
 
 for d in ${DIRS}; do
     echo "::: Running autogen in ${d}"
 
-    (cd $d && ./autogen.sh)
-    if [ $? != 0 ]; then
-	echo "Failure!"
-	break
-    fi
+    (cd $d && ./autogen.sh) || exit 1
 
     echo " "
 done
