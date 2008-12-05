@@ -1290,6 +1290,9 @@ static BOOLEAN PamModuleChecksCaller( const char * phase, const char * module)
         return TRUE;
     if(!strcmp(buffer, "pam_krb5"))
         return TRUE;
+    // This is the same as pam_krb5 except that it grabs an AFS token too
+    if(!strcmp(buffer, "pam_krb5afs"))
+        return TRUE;
     if(!strcmp(buffer, "pam_securid"))
         return TRUE;
     if(!strcmp(buffer, "pam_opie"))
