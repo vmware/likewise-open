@@ -209,7 +209,6 @@ typedef struct freeinfo
 {
     LWMsgFreeFunction free;
     void* data;
-    LWMsgBool partial;
 } freeinfo;
 
 static
@@ -232,16 +231,6 @@ lwmsg_context_free_graph_visit(
                           lwmsg_context_free_graph_visit,
                           data));
         info->free(*(void **) object, info->data);
-        break;
-    case LWMSG_KIND_ARRAY:
-        if (!info->partial || iter->info.kind_indirect.term != LWMSG_TERM_MEMBER)
-        {
-            BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
-                              iter,
-                              object,
-                              lwmsg_context_free_graph_visit,
-                              data));
-        }
         break;
     default:
         BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
@@ -268,31 +257,6 @@ lwmsg_context_free_graph_internal(
 
     info.free = lwmsg_context_get_free(context);
     info.data = lwmsg_context_get_memdata(context);
-    info.partial = LWMSG_FALSE;
-
-    BAIL_ON_ERROR(status = lwmsg_type_visit_graph(
-                      iter,
-                      object,
-                      lwmsg_context_free_graph_visit,
-                      &info));
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_context_free_partial_graph_internal(
-    LWMsgContext* context,
-    LWMsgTypeIter* iter,
-    unsigned char* object)
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    freeinfo info;
-
-    info.free = lwmsg_context_get_free(context);
-    info.data = lwmsg_context_get_memdata(context);
-    info.partial = LWMSG_TRUE;
 
     BAIL_ON_ERROR(status = lwmsg_type_visit_graph(
                       iter,

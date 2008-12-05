@@ -83,10 +83,4 @@ lwmsg_context_free_graph_internal(
     LWMsgTypeIter* iter,
     unsigned char* object);
 
-LWMsgStatus
-lwmsg_context_free_partial_graph_internal(
-    LWMsgContext* context,
-    LWMsgTypeIter* iter,
-    unsigned char* object);
-
 #endif

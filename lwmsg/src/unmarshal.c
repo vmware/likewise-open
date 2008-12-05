@@ -185,6 +185,7 @@ error:
     return status;
 }
 
+/* Find or unmarshal the length of a pointer or array */
 static LWMsgStatus
 lwmsg_unmarshal_indirect_prologue(
     LWMsgContext* context,
@@ -198,7 +199,6 @@ lwmsg_unmarshal_indirect_prologue(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     unsigned char temp[4];
 
-    /* Determine how many pointees are present */
     switch (iter->info.kind_indirect.term)
     {
     case LWMSG_TERM_STATIC:
@@ -206,13 +206,14 @@ lwmsg_unmarshal_indirect_prologue(
         *out_count = iter->info.kind_indirect.static_length;
         break;
     case LWMSG_TERM_MEMBER:
+        /* The length is present in a member we have already unmarshalled */
         BAIL_ON_ERROR(status = lwmsg_type_extract_length(
                           state->dominating_member,
                           state->dominating_object,
                           out_count));
         break;
     case LWMSG_TERM_ZERO:
-        /* The length is implicitly written into the data stream as an uint32 */
+        /* The length is present in the data stream as an unsigned 32-bit integer */
         BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, temp, sizeof(temp)));
         BAIL_ON_ERROR(status = lwmsg_convert_integer(
                           temp,
@@ -291,7 +292,7 @@ lwmsg_unmarshal_pointees(
 
     lwmsg_type_enter(iter, &inner);
 
-    /* Determine element size and count */
+    /* Determine element count */
     BAIL_ON_ERROR(status = lwmsg_unmarshal_indirect_prologue(
                       context,
                       state,
@@ -300,9 +301,8 @@ lwmsg_unmarshal_pointees(
                       buffer,
                       &count));
 
-    /* As a special case, when we have a single struct pointee,
-       use a different code path that can handle structs with flexible
-       array members */
+    /* Handle a single struct pointee as a special case as it could
+       hold a flexible array member */
     if (inner.kind == LWMSG_KIND_STRUCT && count == 1)
     {
         BAIL_ON_ERROR(status = lwmsg_unmarshal_struct_pointee(
@@ -466,6 +466,39 @@ error:
     return status;
 }
 
+/* Free a structure that is missing its flexible array member */
+static LWMsgStatus
+lwmsg_unmarshal_free_partial_struct(
+    LWMsgContext* context,
+    LWMsgTypeIter* iter,
+    unsigned char* object)
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTypeIter member;
+
+    for (lwmsg_type_enter(iter, &member);
+         lwmsg_type_valid(&member);
+         lwmsg_type_next(&member))
+    {
+        if (member.kind == LWMSG_KIND_ARRAY &&
+            member.info.kind_indirect.term != LWMSG_TERM_STATIC)
+        {
+            break;
+        }
+
+        BAIL_ON_ERROR(status = lwmsg_context_free_graph_internal(
+                          context,
+                          &member,
+                          object + member.member_offset));
+    }
+
+    lwmsg_object_free(context, object);
+
+error:
+
+    return status;
+}
+
 static LWMsgStatus
 lwmsg_unmarshal_struct_pointee(
     LWMsgContext* context,
@@ -559,10 +592,10 @@ error:
         /* We must avoid visiting flexible array members when
            freeing the base object because it does not have
            space for them in the allocated block */
-        lwmsg_context_free_partial_graph_internal(
+        lwmsg_unmarshal_free_partial_struct(
             context,
-            pointer_iter,
-            (unsigned char*) &base_object);
+            struct_iter,
+            base_object);
     }
 
     if (full_object)
