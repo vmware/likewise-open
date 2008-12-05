@@ -1816,11 +1816,11 @@ ADCacheDB_CacheObjectEntries(
     size_t sIndex = 0;
     //Free with sqlite3_free
     char *pszError = NULL;
-
     //Free with sqlite3_free
     char *pszNewStatement = NULL;
-
     LSA_STRING_BUFFER buffer = {0};
+    BOOLEAN bGotNow = FALSE;
+    time_t now = 0;
 
     /* This function generates a SQL transaction to update multiple cache
      * entries at a time. The SQL command is in this format:
@@ -1884,6 +1884,14 @@ ADCacheDB_CacheObjectEntries(
 
         if (ppObjects[sIndex]->cache.qwCacheId == -1)
         {
+            if (!bGotNow)
+            {
+                dwError = LsaGetCurrentTimeSeconds(&now);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                bGotNow = TRUE;
+            }
+
             // The object is either not cached yet, or the existing cache entry
             // needs to be replaced.
             pszNewStatement = sqlite3_mprintf(
@@ -1911,7 +1919,7 @@ ADCacheDB_CacheObjectEntries(
                     "%Q," //domain name
                     "%Q," //sam account
                     "%d)" /*type*/,
-                ppObjects[sIndex]->cache.tLastUpdated,
+                now,
                 ppObjects[sIndex]->pszObjectSid,
                 ppObjects[sIndex]->pszDN,
                 ppObjects[sIndex]->enabled,
@@ -3315,6 +3323,11 @@ ADCacheDB_CachePasswordVerifier(
 
     if (pVerifier->cache.qwCacheId == -1)
     {
+        time_t now = 0;
+
+        dwError = LsaGetCurrentTimeSeconds(&now);
+        BAIL_ON_LSA_ERROR(dwError);
+
         pszSqlCommand = sqlite3_mprintf(
             "begin;"
                 "insert into " AD_CACHEDB_TABLE_NAME_CACHE_TAGS " ("
@@ -3331,7 +3344,7 @@ ADCacheDB_CachePasswordVerifier(
                     "%Q);\n"
                 "%s"
             "end;",
-            pVerifier->cache.tLastUpdated,
+            now,
             pVerifier->pszObjectSid,
             pVerifier->pszPasswordVerifier,
             ADCACHEDB_FREE_UNUSED_CACHEIDS);

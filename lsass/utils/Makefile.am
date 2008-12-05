@@ -30,6 +30,7 @@ liblsautils_la_SOURCES =       \
        sidinfo.c               \
        sysfuncs.c              \
        syslog.c                \
-       lsaxnet.c
+       lsaxnet.c               \
+       lsalist.c
 
 liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@

@@ -82,6 +82,14 @@ LsaDmWrapGetDomainName(
     OUT OPTIONAL PSTR* ppszNetbiosDomainName
     );
 
+DWORD
+LsaDmWrapGetDomainNameAndSidByObjectSid(
+    IN PCSTR pszObjectSid,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PSTR* ppszDomainSid
+    );
+
 //
 // Connectivity-oriented calls
 //

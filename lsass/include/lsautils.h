@@ -20,6 +20,8 @@
 #ifndef __LSA_UTILS_H__
 #define __LSA_UTILS_H__
 
+#include "lsalist.h"
+
 #ifndef LW_ENDIAN_SWAP16
 
 #define LW_ENDIAN_SWAP16(wX)                     \
@@ -195,41 +197,11 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
 #define LSA_ASSERT(Expression)
 #define LSA_ASSERT_OR_BAIL(Expression, dwError) \
     _LSA_ASSERT_OR_BAIL(Expression, dwError, 0)
-#if 0
-    do { \
-        if (!(Expression)) \
-        { \
-            LSA_LOG_DEBUG("Assertion failed: '" # Expression "'"); \
-            (dwError) = LSA_ERROR_INTERNAL; \
-            BAIL_ON_LSA_ERROR(dwError); \
-        } \
-    } while (0)
-#endif
 #else
 #define LSA_ASSERT(Expression) \
     _LSA_ASSERT(Expression, abort())
-#if 0
-    do { \
-        if (!Expression) \
-        { \
-            LSA_LOG_DEBUG("Assertion failed: '" # Expression "'"); \
-            abort(); \
-        } \
-    } while (0)
-#endif
 #define LSA_ASSERT_OR_BAIL(Expression, dwError) \
     _LSA_ASSERT_OR_BAIL(Expression, dwError, abort())
-#if 0
-do { \
-        if (!(Expression)) \
-        { \
-            LSA_LOG_DEBUG("Assertion failed: '" # Expression "'"); \
-            (dwError) = LSA_ERROR_INTERNAL; \
-            abort(); \
-            BAIL_ON_LSA_ERROR(dwError); \
-        } \
-    } while (0)
-#endif
 #endif
 
 #define LSA_IS_XOR(Expression1, Expression2) \
@@ -1322,13 +1294,24 @@ LsaSetSecurityIdentifierRid(
     DWORD dwRid
     );
 
-//The UID is a DWORD constructued using
-//a non-cryptographic, 2-way hash of
-//the User SID and Domain SID.
 DWORD
 LsaGetSecurityIdentifierHashedRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PDWORD dwHashedRid
+    );
+
+// The UID is a DWORD constructued using a non-cryptographic hash
+// of the User's domain SID and user RID.
+DWORD
+LsaHashSecurityIdentifierToId(
+    IN PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
+    OUT PDWORD pdwId
+    );
+
+DWORD
+LsaHashSidStringToId(
+    IN PCSTR pszSidString,
+    OUT PDWORD pdwId
     );
 
 DWORD

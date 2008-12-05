@@ -66,11 +66,78 @@ ADLdap_FindObjectsBySidListBatched(
     );
 
 DWORD
-CreateObjectLoginNameInfo(
-    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR pszSamAccountName,
-    IN PCSTR pszSid
+ADLdap_FindObjectsByNameListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PSTR* ppszNameList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+ADLdap_FindObjectsByUidListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PDWORD pdwId,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+ADLdap_FindObjectsByGidListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PDWORD pdwId,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+ADLdap_FindObjectsByUserAliasListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PSTR* ppszUserAliasList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+ADLdap_FindObjectsByGroupAliasListBatched(
+    IN HANDLE hProvider,
+    IN DWORD dwCount,
+    IN PSTR* ppszGroupAliasList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+typedef UINT8 LSA_AD_BATCH_QUERY_TYPE, *PLSA_AD_BATCH_QUERY_TYPE;
+#define LSA_AD_BATCH_QUERY_TYPE_UNDEFINED      0
+#define LSA_AD_BATCH_QUERY_TYPE_BY_DN          1
+#define LSA_AD_BATCH_QUERY_TYPE_BY_SID         2
+#define LSA_AD_BATCH_QUERY_TYPE_BY_NT4         3
+#define LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS  4
+#define LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS 5
+#define LSA_AD_BATCH_QUERY_TYPE_BY_UID         6
+#define LSA_AD_BATCH_QUERY_TYPE_BY_GID         7
+
+DWORD
+LsaAdBatchFindObjects(
+    IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN DWORD dwQueryItemsCount,
+    IN OPTIONAL PSTR* ppszQueryList,
+    IN OPTIONAL PDWORD pdwId,
+    OUT PDWORD pdwObjectsCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LsaAdBatchFindSingleObject(
+    IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN OPTIONAL PCSTR pszQueryTerm,
+    IN OPTIONAL PDWORD dwId,
+    OUT PAD_SECURITY_OBJECT* ppObject
     );
 
 #endif /* __BATCH_H__ */

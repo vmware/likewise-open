@@ -49,6 +49,11 @@
 #define __LSALDAP_MARSHAL_USER_P_H__
 
 DWORD
+ADGetCurrentNtTime(
+    OUT UINT64* pqwResult
+    );
+
+DWORD
 ADParseUserCtrl(
     DWORD            dwUserAccountCtrl,
     PLSA_USER_INFO_2 pUserInfo
@@ -157,6 +162,14 @@ ADMarshalUserInfoListDefaultSchemaOrUnprovision(
     DWORD dwUserInfoLevel,
     PVOID** pppUserInfoList,
     PDWORD pdwNumUsers
+    );
+
+DWORD
+CreateObjectLoginNameInfo(
+    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszSamAccountName,
+    IN PCSTR pszSid
     );
 
 #endif //__LSALDAP_MARSHAL_USER_P_H__

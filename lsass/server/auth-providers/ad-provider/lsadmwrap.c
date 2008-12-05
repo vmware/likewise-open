@@ -205,6 +205,79 @@ LsaDmWrapGetDomainName(
                                 NULL);
 }
 
+DWORD
+LsaDmWrapGetDomainNameAndSidByObjectSid(
+    IN PCSTR pszObjectSid,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
+    OUT OPTIONAL PSTR* ppszDomainSid
+    )
+{
+    DWORD dwError = 0;
+    PSID pObjectSid = NULL;
+    PSTR pszDnsDomainName = NULL;
+    PSTR pszNetbiosDomainName = NULL;
+    PSID pDomainSid = NULL;
+    PSTR pszDomainSid = NULL;
+
+    dwError = ParseSidString(&pObjectSid, pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmQueryDomainInfoByObjectSid(
+                    pObjectSid,
+                    ppszDnsDomainName ? &pszDnsDomainName : NULL,
+                    ppszNetbiosDomainName ? &pszNetbiosDomainName : NULL,
+                    ppszDomainSid ? &pDomainSid : NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppszDomainSid)
+    {
+        dwError = AD_SidToString(pDomainSid, &pszDomainSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    if (pObjectSid)
+    {
+        SidFree(pObjectSid);
+    }
+    LSA_SAFE_FREE_MEMORY(pDomainSid);
+
+    if (ppszDnsDomainName)
+    {
+        *ppszDnsDomainName = pszDnsDomainName;
+    }
+    if (ppszNetbiosDomainName)
+    {
+        *ppszNetbiosDomainName = pszNetbiosDomainName;
+    }
+    if (ppszDomainSid)
+    {
+        *ppszDomainSid = pszDomainSid;
+    }
+
+    return dwError;
+
+error:
+    // set output in cleanup.
+    LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LSA_SAFE_FREE_STRING(pszDomainSid);
+    goto cleanup;
+}
+
 static
 DWORD
 LsaDmWrappQueryForestNameFromNetlogon(

@@ -235,6 +235,14 @@ LsaLdapGetUInt32(
     );
 
 DWORD
+LsaLdapGetUInt64(
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage,
+    IN PCSTR pszFieldName,
+    OUT UINT64* pqwValue
+    );
+
+DWORD
 LsaLdapGetStrings(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,

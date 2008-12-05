@@ -307,6 +307,23 @@ AD_FindObjectsByDNList(
     );
 
 DWORD
+AD_FindObjectByNameTypeNoCache(
+    IN HANDLE hProvider,
+    IN PCSTR pszName,
+    IN ADLogInNameType NameType,
+    IN ADAccountType AccountType,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    );
+
+DWORD
+AD_FindObjectByIdTypeNoCache(
+    IN HANDLE hProvider,
+    IN DWORD dwId,
+    IN ADAccountType AccountType,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    );
+
+DWORD
 AD_FindObjectBySid(
     IN HANDLE hProvider,
     IN PCSTR pszSid,
@@ -408,13 +425,6 @@ AD_UpdateUserObjectFlags(
 DWORD
 AD_VerifyUserAccountCanLogin(
     IN PAD_SECURITY_OBJECT pUserInfo
-    );
-
-DWORD
-ADFindUserOrGroupObjectByDN(
-    HANDLE hProvider,
-    PCSTR  pszObjectDN,
-    PAD_SECURITY_OBJECT *ppObjectInfo
     );
 
 DWORD
