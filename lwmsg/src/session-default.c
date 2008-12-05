@@ -55,6 +55,10 @@ typedef struct LWMsgSession
     struct HandleEntry* handles;
     /* Links to other sessions in the manager */
     struct LWMsgSession* next, *prev;
+    /* User data pointer */
+    void* data;
+    /* Data pointer cleanup function */
+    LWMsgSessionDataCleanupFunction cleanup;
 } SessionEntry;
 
 typedef struct HandleEntry
@@ -182,6 +186,12 @@ default_free_session(
     }
 
     lwmsg_security_token_delete(session->sec_token);
+
+    if (session->cleanup)
+    {
+        session->cleanup(session->data);
+    }
+
     free(session);
 }
 
@@ -485,6 +495,34 @@ error:
     goto done;
 }
 
+LWMsgStatus
+default_set_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    )
+{
+    if (session->cleanup)
+    {
+        session->cleanup(session->data);
+    }
+
+    session->data = data;
+    session->cleanup = cleanup;
+
+    return LWMSG_STATUS_SUCCESS;
+}
+
+void*
+default_get_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return session->data;
+}
+
 static LWMsgSessionManagerClass default_class = 
 {
     .private_size = sizeof(DefaultPrivate),
@@ -495,7 +533,9 @@ static LWMsgSessionManagerClass default_class =
     .register_handle = default_register_handle,
     .unregister_handle = default_unregister_handle,
     .handle_pointer_to_id = default_handle_pointer_to_id,
-    .handle_id_to_pointer = default_handle_id_to_pointer
+    .handle_id_to_pointer = default_handle_id_to_pointer,
+    .set_session_data = default_set_session_data,
+    .get_session_data = default_get_session_data
 };
                                          
 LWMsgStatus

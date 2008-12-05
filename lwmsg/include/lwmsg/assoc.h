@@ -680,9 +680,9 @@ lwmsg_assoc_register_handle(
  * handles must be explicitly unregistered to avoid resource leaks -- the
  * association cannot infer a handle's lifetime by itself.  This means
  * that most practical protocols will have symmetrical messages that open and
- * close handles so that both sides of an association can agree on their
- * life cycle.  New handles received from a peer are implictly registered, so
- * take care to explicitly unregister them when they are no longer needed.
+ * close handles so that both peers can agree on their life cycle.  New
+ * handles received from a peer are implictly registered, so take care to
+ * explicitly unregister them when they are no longer needed.
  *
  * If do_cleanup is true, the cleanup function specified when the handle was
  * registered will be run.
@@ -914,6 +914,49 @@ lwmsg_assoc_set_action(
     LWMsgAssocException exception,
     LWMsgAssocAction action
     );
+
+/**
+ * @ingroup assoc
+ * @brief Set user data for session
+ *
+ * Sets a user data pointer for the session which the specified association is
+ * part of.  If a cleanup function is provided, it will be called when the
+ * session is destroyed.
+ *
+ * The association may need to establish a session if it has not already. Thus,
+ * this function may fail or time out.
+ *
+ * @param[in] assoc the association
+ * @param[in] data the user data pointer
+ * @param[in] cleanup a cleanup function for the data pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{TIMEOUT, the operation timed out}
+ * @lwmsg_etc{implementation-specific failure}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_set_session_data(
+    LWMsgAssoc* assoc,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Get user data for session
+ *
+ * Gets a user data pointer for the session which the specified assocation
+ * is part of.
+ *
+ * @param assoc the association
+ * @return the user data pointer for the session
+ */
+void*
+lwmsg_assoc_get_session_data(
+    LWMsgAssoc* assoc
+    );
+
 
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_handle_type_class;

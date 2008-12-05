@@ -128,6 +128,24 @@ LWMsgProtocolSpec counterprotocol_spec[] =
 };
 
 static LWMsgStatus
+counter_srv_connect(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    void* data
+    )
+{
+    LWMsgSecurityToken* token = NULL;
+    uid_t uid;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_peer_security_token(assoc, &token));
+    MU_TRY(lwmsg_local_token_get_eid(token, &uid, NULL));
+
+    MU_INFO("Connection on association %p from uid %lu", assoc, (unsigned long) uid);
+
+    return LWMSG_STATUS_SUCCESS;
+}
+
+static LWMsgStatus
 counter_srv_open(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -281,6 +299,7 @@ MU_TEST(client_server, parallel)
     MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_set_max_clients(server, NUM_THREADS));
+    MU_TRY(lwmsg_server_set_connect_callback(server, counter_srv_connect));
     MU_TRY(lwmsg_server_start(server));
 
     MU_TRY(lwmsg_client_new(&client));

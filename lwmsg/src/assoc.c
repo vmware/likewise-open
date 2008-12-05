@@ -606,3 +606,49 @@ error:
 
     return status;
 }
+
+LWMsgStatus
+lwmsg_assoc_set_session_data(
+    LWMsgAssoc* assoc,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSessionManager* manager = NULL;
+    LWMsgSession* session = NULL;
+
+    /* In order to set the session data, we first need a session */
+    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+
+    BAIL_ON_ERROR(status = lwmsg_session_manager_set_session_data(
+                      manager,
+                      session,
+                      data,
+                      cleanup));
+
+error:
+
+    return status;
+}
+
+void*
+lwmsg_assoc_get_session_data(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgSession* session = NULL;
+
+    if (!assoc->manager)
+    {
+        return NULL;
+    }
+
+    if (assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session))
+    {
+        return NULL;
+    }
+
+    return lwmsg_session_manager_get_session_data(assoc->manager, session);
+}

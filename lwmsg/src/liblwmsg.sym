@@ -10,6 +10,9 @@ lwmsg_server_set_fd
 lwmsg_server_set_endpoint
 lwmsg_server_start
 lwmsg_server_stop
+lwmsg_server_set_user_data
+lwmsg_server_get_user_data
+lwmsg_server_set_connect_callback
 lwmsg_client_new
 lwmsg_client_set_endpoint
 lwmsg_client_add_protocol_spec

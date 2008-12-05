@@ -102,6 +102,20 @@ lwmsg_session_manager_handle_id_to_pointer (
     );
 
 LWMsgStatus
+lwmsg_session_manager_set_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    );
+
+void*
+lwmsg_session_manager_get_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    );
+
+LWMsgStatus
 lwmsg_default_session_manager_new(
     LWMsgSessionManager** out_manager
     );

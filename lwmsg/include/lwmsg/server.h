@@ -59,9 +59,9 @@
  * listener thread to queue new connections for the pool, providing a completely
  * asynchronous external interface.
  *
- * Because threads are not desirable in some applications, this functionality is 
- * only available by defining LWMSG_THREADS before including <lwmsg/lwmsg.h>
- * and linking against liblwmsgthr instead of liblwmsg.
+ * Because this API requires threads, it is not available in <tt>liblwmsg_nothr</tt>.
+ * Type definitions, function prototypes, and macros for this API may be disabled
+ * by defining <tt>LWMSG_NO_THREADS</tt> before including <tt>&lt;lwmsg/lwmsg.h&gt;</tt>.
  *
  */
 
@@ -129,6 +129,37 @@ typedef enum LWMsgServerMode
     /** Server should support remote connectiosn (listen on a TCP socket) */
     LWMSG_SERVER_MODE_REMOTE
 } LWMsgServerMode;
+
+/**
+ * @ingroup server
+ * @brief Connection callback
+ *
+ * A function which is invoked whenever a new connection is
+ * established with a client.  Use #lwmsg_server_set_connect_callback()
+ * to register one with a server. There is no guarantee as to which server
+ * thread the callback will be invoked in. It is guaranteed that no other
+ * server thread will attempt to use the association until the callback
+ * returns.  Returning a status code other than #LWMSG_STATUS_SUCCESS will
+ * cause the connection to be rejected.
+ *
+ * @warning This function must leave the association in a usable state --
+ * #lwmsg_assoc_get_state() should return #LWMSG_ASSOC_STATE_READY_RECV
+ * or #LWMSG_ASSOC_STATE_READY_SEND_RECV.
+ *
+ * @param server the server object
+ * @param assoc the association with the client
+ * @param data the user data pointer set with #lwmsg_server_set_user_data()
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_etc{a status code indicating the reason for rejection}
+ * (e.g. #LWMSG_STATUS_SECURITY)
+ */
+typedef LWMsgStatus
+(*LWMsgServerConnectFunction) (
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    void* data
+    );
 
 /**
  * @ingroup server
@@ -347,6 +378,70 @@ lwmsg_server_set_endpoint(
     LWMsgServerMode mode,
     const char* endpoint,
     mode_t      permissions
+    );
+
+/**
+ * @ingroup server
+ * @brief Set user data pointer
+ *
+ * Sets the user data pointer which is passed to various callback
+ * functions invoked by the server, such as:
+ *
+ * - Message dispatch functions
+ * - Connect callback
+ *
+ * This function may only be used while the server is stopped.
+ *
+ * @param server the server object
+ * @param data the data pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID, the server is already running}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_server_set_user_data(
+    LWMsgServer* server,
+    void* data
+    );
+
+/**
+ * @ingroup server
+ * @brief Get user data pointer
+ *
+ * Gets the user data pointer which is passed to various callback
+ * functions invoked by the server.  If no pointer was explicitly
+ * set, the value defaults to NULL.
+ *
+ *
+ * @param server the server object
+ * @return the data pointer
+ */
+void*
+lwmsg_server_get_user_data(
+    LWMsgServer* server
+    );
+
+/**
+ * @ingroup server
+ * @brief Set connection callback
+ *
+ * Sets a function which will be invoked whenever a new connection
+ * is created.
+ *
+ * This function may only be used while the server is stopped.
+ *
+ * @param server the server object
+ * @param func the callback function
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID, the server is already running}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_server_set_connect_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
     );
 
 /**

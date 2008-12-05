@@ -67,7 +67,8 @@ struct LWMsgServer
     size_t max_clients;
     size_t max_backlog;
     LWMsgTime timeout;
-    int timeout_set;
+    void* user_data;
+    LWMsgServerConnectFunction connect_callback;
 
     pthread_t* worker_threads;
     LWMsgAssoc** volatile pending_assocs;
@@ -87,6 +88,7 @@ struct LWMsgServer
     LWMsgServerState volatile state;
 
     unsigned protocol_is_private:1;
+    unsigned timeout_set:1;
 };
 
 #define SERVER_RAISE_ERROR(_server_, _status_, ...) RAISE_ERROR(&(_server_)->context, _status_, __VA_ARGS__)

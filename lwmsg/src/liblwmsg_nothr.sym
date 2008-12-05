@@ -21,6 +21,8 @@ lwmsg_assoc_set_timeout_ms
 lwmsg_assoc_get_error_message
 lwmsg_assoc_get_peer_security_token
 lwmsg_assoc_get_state
+lwmsg_assoc_get_session_data
+lwmsg_assoc_set_session_data
 lwmsg_assoc_verify_handle_local
 lwmsg_assoc_verify_handle_remote
 lwmsg_connection_new

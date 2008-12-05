@@ -303,7 +303,7 @@ lwmsg_server_dispatch_message(
         assoc,
         recv_message,
         send_message,
-        data);
+        server->user_data);
 }
 
 static void*
@@ -346,16 +346,29 @@ lwmsg_server_client_thread(void* arg)
 
         SERVER_UNLOCK(server, locked);
 
-        do
+        /* Invoke connection callback */
+        if (server->connect_callback)
         {
-            status = lwmsg_assoc_recv_message_transact(
+            status = server->connect_callback(
+                server,
                 assoc,
-                lwmsg_server_dispatch_message,
-                server
-                );
-        } while (status == LWMSG_STATUS_SUCCESS);
-        
-        /* Certain errors are not fatal to the thread, so handle them */
+                server->user_data);
+        }
+
+        /* Don't pump messages if the connect callback complained */
+        if (!status)
+        {
+            do
+            {
+                status = lwmsg_assoc_recv_message_transact(
+                    assoc,
+                    lwmsg_server_dispatch_message,
+                    server
+                    );
+            } while (status == LWMSG_STATUS_SUCCESS);
+        }
+
+        /* Connection errors are not fatal to the thread, so handle them */
         switch (status)
         {
         case LWMSG_STATUS_EOF:
@@ -942,4 +955,60 @@ error:
     SERVER_UNLOCK(server, locked);
 
     return status;
+}
+
+LWMsgStatus
+lwmsg_server_set_connect_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    lwmsg_server_lock(server);
+
+    if (server->state != LWMSG_SERVER_STOPPED)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+    }
+
+    server->connect_callback = func;
+
+error:
+
+    lwmsg_server_unlock(server);
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_server_set_user_data(
+    LWMsgServer* server,
+    void* data
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    lwmsg_server_lock(server);
+
+    if (server->state != LWMSG_SERVER_STOPPED)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+    }
+
+    server->user_data = data;
+
+error:
+
+    lwmsg_server_unlock(server);
+
+    return status;
+}
+
+void*
+lwmsg_server_get_user_data(
+    LWMsgServer* server
+    )
+{
+    return server->user_data;
 }

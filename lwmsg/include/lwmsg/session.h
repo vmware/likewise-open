@@ -50,6 +50,11 @@ typedef struct LWMsgSessionID
 
 typedef struct LWMsgSession LWMsgSession;
 
+typedef void
+(*LWMsgSessionDataCleanupFunction) (
+    void* data
+    );
+
 /**
  * @brief Handle locality
  *
@@ -131,6 +136,20 @@ typedef struct LWMsgSessionManagerClass
         unsigned long hid,
         LWMsgBool autoreg,
         void** out_ptr
+        );
+
+    LWMsgStatus
+    (*set_session_data) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session,
+        void* data,
+        LWMsgSessionDataCleanupFunction cleanup
+        );
+
+    void*
+    (*get_session_data) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
         );
 } LWMsgSessionManagerClass;
 

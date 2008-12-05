@@ -61,6 +61,10 @@ typedef struct LWMsgSession
     pthread_mutex_t lock;
     /* Next handle ID */
     unsigned long volatile next_hid;
+    /* User data pointer */
+    void* data;
+    /* Data pointer cleanup function */
+    LWMsgSessionDataCleanupFunction cleanup;
 } SessionEntry;
 
 typedef struct HandleEntry
@@ -226,6 +230,12 @@ shared_free_session(
     }
 
     lwmsg_security_token_delete(session->sec_token);
+
+    if (session->cleanup)
+    {
+        session->cleanup(session->data);
+    }
+
     pthread_mutex_destroy(&session->lock);
     free(session);
 }
@@ -580,6 +590,47 @@ error:
     goto done;
 }
 
+LWMsgStatus
+shared_set_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    )
+{
+    session_lock(session);
+
+    if (session->cleanup)
+    {
+        session->cleanup(session->data);
+    }
+
+    session->data = data;
+    session->cleanup = cleanup;
+
+    session_unlock(session);
+
+    return LWMSG_STATUS_SUCCESS;
+}
+
+void*
+shared_get_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    void* data = NULL;
+
+    session_lock(session);
+
+    data = session->data;
+
+    session_unlock(session);
+
+    return data;
+}
+
+
 static LWMsgSessionManagerClass shared_class = 
 {
     .private_size = sizeof(SharedPrivate),
@@ -590,7 +641,9 @@ static LWMsgSessionManagerClass shared_class =
     .register_handle = shared_register_handle,
     .unregister_handle = shared_unregister_handle,
     .handle_pointer_to_id = shared_handle_pointer_to_id,
-    .handle_id_to_pointer = shared_handle_id_to_pointer
+    .handle_id_to_pointer = shared_handle_id_to_pointer,
+    .set_session_data = shared_set_session_data,
+    .get_session_data = shared_get_session_data
 };
                                          
 LWMsgStatus
