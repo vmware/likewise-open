@@ -1038,6 +1038,7 @@ LsaAdBatchSplitBIListToBIListPerDomain(
             if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
             {
                 LSA_LOG_DEBUG("Domain not found for query item - '%s'", pBatchItem->pszSid);
+                dwError = 0;
                 continue;
             }
             BAIL_ON_LSA_ERROR(dwError);
@@ -1125,6 +1126,7 @@ LsaAdBatchSplitQTListToBIListPerDomain(
             if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
             {
                 LSA_LOG_DEBUG("Domain not found for query item - '%s'", ppszQueryList[i]);
+                dwError = 0;
                 continue;
             }
             BAIL_ON_LSA_ERROR(dwError);
