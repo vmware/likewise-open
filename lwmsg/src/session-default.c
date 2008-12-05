@@ -185,7 +185,10 @@ default_free_session(
         default_free_handle(handle, LWMSG_TRUE);
     }
 
-    lwmsg_security_token_delete(session->sec_token);
+    if (session->sec_token)
+    {
+        lwmsg_security_token_delete(session->sec_token);
+    }
 
     if (session->cleanup)
     {
@@ -238,7 +241,7 @@ default_enter_session(
     
     if (session)
     {
-        if (!lwmsg_security_token_can_access(session->sec_token, rtoken))
+        if (!session->sec_token || !lwmsg_security_token_can_access(session->sec_token, rtoken))
         {
             BAIL_ON_ERROR(status = LWMSG_STATUS_SECURITY);
         }
@@ -255,7 +258,10 @@ default_enter_session(
 
         memcpy(session->rsmid.bytes, rsmid->bytes, sizeof(rsmid->bytes));
 
-        BAIL_ON_ERROR(status = lwmsg_security_token_copy(rtoken, &session->sec_token));
+        if (rtoken)
+        {
+            BAIL_ON_ERROR(status = lwmsg_security_token_copy(rtoken, &session->sec_token));
+        }
         
         session->refs = 1;
         session->next = priv->sessions;

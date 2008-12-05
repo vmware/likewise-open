@@ -327,4 +327,12 @@ lwmsg_local_token_from_socket_peer(
     LWMsgSecurityToken** out_token
     );
 
+LWMsgStatus
+lwmsg_connection_get_endpoint_owner(
+    LWMsgAssoc* assoc,
+    const char* endpoint,
+    uid_t *uid,
+    gid_t *gid
+    );
+
 #endif

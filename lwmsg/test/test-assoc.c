@@ -121,7 +121,7 @@ MU_TEST(assoc, empty_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -130,7 +130,7 @@ MU_TEST(assoc, empty_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, empty_sender, send_assoc)))
@@ -287,7 +287,7 @@ MU_TEST(assoc, foo_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -296,7 +296,7 @@ MU_TEST(assoc, foo_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, foo_sender, send_assoc)))
@@ -350,7 +350,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
 
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -363,7 +363,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, foo_sender, send_assoc)))
@@ -412,7 +412,7 @@ MU_TEST(assoc, foo_send_timeout)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
     
     request.size = 4;
@@ -560,7 +560,7 @@ MU_TEST(assoc, auth_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -569,7 +569,7 @@ MU_TEST(assoc, auth_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, auth_sender, send_assoc)))
@@ -916,7 +916,7 @@ MU_TEST(assoc, handle_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -925,7 +925,7 @@ MU_TEST(assoc, handle_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, handle_sender, send_assoc)))
@@ -1085,7 +1085,7 @@ MU_TEST(assoc, fd_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -1094,7 +1094,7 @@ MU_TEST(assoc, fd_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, fd_sender, send_assoc)))

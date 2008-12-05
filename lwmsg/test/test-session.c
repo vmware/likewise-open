@@ -202,12 +202,12 @@ MU_TEST(session, trivial_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assocs[0],
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets_a[0]));
 
     MU_TRY(lwmsg_connection_set_fd(
                send_assocs[1],
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets_b[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -220,12 +220,12 @@ MU_TEST(session, trivial_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assocs[0],
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets_a[1]));
 
     MU_TRY(lwmsg_connection_set_fd(
                recv_assocs[1],
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets_b[1]));
 
     /* Put send sockets and recv sockets into same session managers */
