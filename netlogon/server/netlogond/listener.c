@@ -46,6 +46,7 @@
  */
 #include "includes.h"
 
+static LWMsgProtocol* gpProtocol = NULL;
 static LWMsgServer* gpServer = NULL;
 
 DWORD
@@ -77,12 +78,17 @@ LWNetSrvStartListenThread(
                                         pszCachePath, LWNET_SERVER_FILENAME);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_server_new(&gpServer));
+    /* Set up IPC protocol object */
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &gpProtocol));
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_server_add_protocol_spec(
-                                  gpServer,
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(
+                                  gpProtocol,
                                   LWNetIPCGetProtocolSpec()));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    /* Set up IPC server object */
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_new(gpProtocol, &gpServer));
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_server_add_dispatch_spec(
@@ -136,6 +142,12 @@ error:
     {
         lwmsg_server_delete(gpServer);
         gpServer = NULL;
+    }
+
+    if (gpProtocol)
+    {
+        lwmsg_protocol_delete(gpProtocol);
+        gpProtocol = NULL;
     }
 
     return dwError;
