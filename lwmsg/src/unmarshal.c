@@ -558,6 +558,8 @@ lwmsg_unmarshal_struct_pointee(
 
         BAIL_ON_ERROR(status = lwmsg_object_free(context, base_object));
 
+        base_object = NULL;
+
         BAIL_ON_ERROR(status = lwmsg_unmarshal_indirect(
                           context,
                           &my_state,
@@ -566,8 +568,6 @@ lwmsg_unmarshal_struct_pointee(
                           buffer,
                           full_object + flex_iter.member_offset,
                           count));
-
-        base_object = NULL;
     }
     else
     {
