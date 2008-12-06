@@ -169,9 +169,7 @@ lwmsg_unmarshal_struct_member(
     LWMsgUnmarshalState my_state;
     unsigned char* member_object = struct_object + member_iter->member_offset;
 
-    my_state.dominating_member = member_iter;
     my_state.dominating_object = struct_object;
-    my_state.dominating_type = struct_iter;
 
     BAIL_ON_ERROR(status = lwmsg_unmarshal_internal(
                       context,
@@ -208,7 +206,7 @@ lwmsg_unmarshal_indirect_prologue(
     case LWMSG_TERM_MEMBER:
         /* The length is present in a member we have already unmarshalled */
         BAIL_ON_ERROR(status = lwmsg_type_extract_length(
-                          state->dominating_member,
+                          iter,
                           state->dominating_object,
                           out_count));
         break;
@@ -542,8 +540,6 @@ lwmsg_unmarshal_struct_pointee(
         lwmsg_type_enter(&flex_iter, &inner_iter);
 
         my_state.dominating_object = base_object;
-        my_state.dominating_member = &flex_iter;
-        my_state.dominating_type = struct_iter;
         
         BAIL_ON_ERROR(status = lwmsg_unmarshal_indirect_prologue(
                           context,
@@ -623,7 +619,6 @@ lwmsg_unmarshal_union(
     /* Find the active arm */
     BAIL_ON_ERROR(status = lwmsg_type_extract_active_arm(
                       iter,
-                      state->dominating_member,
                       state->dominating_object,
                       &arm));
 
@@ -718,7 +713,7 @@ LWMsgStatus
 lwmsg_unmarshal(LWMsgContext* context, LWMsgTypeSpec* type, LWMsgBuffer* buffer, void** out)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgUnmarshalState my_state = {NULL, NULL, NULL};
+    LWMsgUnmarshalState my_state = {NULL};
     LWMsgTypeIter iter;
 
     lwmsg_type_iterate_promoted(type, &iter);

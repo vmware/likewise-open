@@ -43,8 +43,6 @@
 typedef struct LWMsgUnmarshalState
 {
     unsigned char* dominating_object;
-    LWMsgTypeIter* dominating_member;
-    LWMsgTypeIter* dominating_type;
 } LWMsgUnmarshalState;
 
 #endif

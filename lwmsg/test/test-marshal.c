@@ -485,13 +485,13 @@ static LWMsgTypeSpec two_union_spec[] =
     LWMSG_MEMBER_INT8(two_union_struct, tag1),
     LWMSG_MEMBER_POINTER_BEGIN(two_union_struct, u1),
     LWMSG_TYPESPEC(number_string_spec),
-    LWMSG_POINTER_END,
     LWMSG_ATTR_DISCRIM(two_union_struct, tag1),
+    LWMSG_POINTER_END,
     LWMSG_MEMBER_INT8(two_union_struct, tag2),
     LWMSG_MEMBER_POINTER_BEGIN(two_union_struct, u2),
     LWMSG_TYPESPEC(number_string_spec),
-    LWMSG_POINTER_END,
     LWMSG_ATTR_DISCRIM(two_union_struct, tag2),
+    LWMSG_POINTER_END,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -862,4 +862,160 @@ MU_TEST(marshal, flexible_array)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in->array[1], out->array[1]);
 
     free(in);
+}
+
+typedef struct info_level_struct
+{
+    unsigned int length;
+    int level;
+    union level_union
+    {
+        struct level_1_struct
+        {
+            short number1;
+        } *level_1;
+        struct level_2_struct
+        {
+            short number1;
+            short number2;
+        } *level_2;
+    } array;
+} info_level_struct;
+
+static LWMsgTypeSpec info_level_spec[] =
+{
+    LWMSG_STRUCT_BEGIN(struct info_level_struct),
+    LWMSG_MEMBER_UINT32(struct info_level_struct, length),
+    LWMSG_MEMBER_INT8(struct info_level_struct, level),
+    LWMSG_MEMBER_UNION_BEGIN(struct info_level_struct, array),
+    LWMSG_MEMBER_POINTER_BEGIN(union level_union, level_1),
+    LWMSG_STRUCT_BEGIN(struct level_1_struct),
+    LWMSG_MEMBER_INT16(struct level_1_struct, number1),
+    LWMSG_STRUCT_END,
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(struct info_level_struct, length),
+    LWMSG_ATTR_TAG(1),
+    LWMSG_MEMBER_POINTER_BEGIN(union level_union, level_2),
+    LWMSG_STRUCT_BEGIN(struct level_2_struct),
+    LWMSG_MEMBER_INT16(struct level_2_struct, number1),
+    LWMSG_MEMBER_INT16(struct level_2_struct, number2),
+    LWMSG_STRUCT_END,
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(struct info_level_struct, length),
+    LWMSG_ATTR_TAG(2),
+    LWMSG_UNION_END,
+    LWMSG_ATTR_DISCRIM(struct info_level_struct, level),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+MU_TEST(marshal, info_level_1)
+{
+    static const unsigned char expected[] =
+    {
+        /* Implicit pointer set */
+        0xFF,
+        /* length */
+        0x00, 0x00, 0x00, 0x02,
+        /* level */
+        0x01,
+        /* array.level_1 set */
+        0xFF,
+        /* array.level_1[0].number1 */
+        0x00, 0x2A,
+        /* array.level_1[1].number1 */
+        0x00, 0x54
+    };
+
+    static struct level_1_struct array[] =
+    {
+        {42},
+        {84}
+    };
+
+    LWMsgTypeSpec* type = info_level_spec;
+    LWMsgBuffer buffer;
+    info_level_struct in;
+    info_level_struct* out;
+    int i;
+
+    in.length = sizeof(array) / sizeof(*array);
+    in.level = 1;
+    in.array.level_1 = array;
+
+    allocate_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &in, &buffer));
+
+    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+
+    rewind_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
+
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.length, out->length);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.level, out->level);
+
+    for (i = 0; i < out->length; i++)
+    {
+        MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array.level_1[0].number1, out->array.level_1[0].number1);
+    }
+}
+
+MU_TEST(marshal, info_level_2)
+{
+    static const unsigned char expected[] =
+    {
+        /* Implicit pointer set */
+        0xFF,
+        /* length */
+        0x00, 0x00, 0x00, 0x02,
+        /* level */
+        0x02,
+        /* array.level_2 set */
+        0xFF,
+        /* array.level_2[0].number1 */
+        0x00, 0x2A,
+        /* array.level_2[0].number2 */
+        0xFF, 0xD6,
+        /* array.level_2[1].number1 */
+        0x00, 0x54,
+        /* array.level_2[1].number2 */
+        0xFF, 0xAC
+    };
+
+    static struct level_2_struct array[] =
+    {
+        {42, -42},
+        {84, -84}
+    };
+
+    LWMsgTypeSpec* type = info_level_spec;
+    LWMsgBuffer buffer;
+    info_level_struct in;
+    info_level_struct* out;
+    int i;
+
+    in.length = sizeof(array) / sizeof(*array);
+    in.level = 2;
+    in.array.level_2 = array;
+
+    allocate_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &in, &buffer));
+
+    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+
+    rewind_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
+
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.length, out->length);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.level, out->level);
+
+    for (i = 0; i < out->length; i++)
+    {
+        MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array.level_2[0].number1, out->array.level_2[0].number1);
+        MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array.level_2[0].number2, out->array.level_2[0].number2);
+    }
 }

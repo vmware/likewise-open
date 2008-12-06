@@ -396,7 +396,7 @@ lwmsg_type_visit_graph_indirect(
         break;
     case LWMSG_TERM_MEMBER:
         BAIL_ON_ERROR(status = lwmsg_type_extract_length(
-                          iter->dom_iter,
+                          iter,
                           iter->dom_object,
                           &count));
         break;
@@ -440,7 +440,6 @@ lwmsg_type_visit_graph_children(
         inner.dom_object = object;
         for (; lwmsg_type_valid(&inner); lwmsg_type_next(&inner))
         {
-            inner.dom_iter = &inner;
             BAIL_ON_ERROR(status = func(&inner, object + inner.member_offset, data));
         }
         break;
@@ -448,7 +447,6 @@ lwmsg_type_visit_graph_children(
         /* Find the active arm */
         BAIL_ON_ERROR(status = lwmsg_type_extract_active_arm(
                           iter,
-                          iter->dom_iter,
                           iter->dom_object,
                           &inner));
         BAIL_ON_ERROR(status = func(&inner, object, data));

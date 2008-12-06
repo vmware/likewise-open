@@ -87,7 +87,6 @@ typedef struct LWMsgTypeIter
 
     LWMsgTypeSpec* inner;
     LWMsgTypeSpec* next;
-    struct LWMsgTypeIter* dom_iter;
     unsigned char* dom_object;
 
     struct
@@ -151,7 +150,6 @@ lwmsg_type_enter(
     {
         lwmsg_type_iterate(iter->inner, new_iter);
 
-        new_iter->dom_iter = iter->dom_iter;
         new_iter->dom_object = iter->dom_object;
     }
     else
@@ -168,22 +166,21 @@ lwmsg_type_iterate_promoted(
 
 LWMsgStatus
 lwmsg_type_extract_discrim_tag(
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     intmax_t* tag
     );
 
 LWMsgStatus
 lwmsg_type_extract_length(
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     size_t *length
     );
 
 LWMsgStatus
 lwmsg_type_extract_active_arm(
-    LWMsgTypeIter* union_iter,
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     LWMsgTypeIter* active_iter
     );

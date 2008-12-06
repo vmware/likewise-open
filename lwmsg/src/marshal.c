@@ -97,7 +97,7 @@ lwmsg_marshal_indirect_prologue(
     case LWMSG_TERM_MEMBER:
         /* Extract the length out of the field of the actual structure */
         BAIL_ON_ERROR(status = lwmsg_type_extract_length(
-                          state->dominating_member,
+                          iter,
                           state->dominating_object,
                           count));
         break;
@@ -261,8 +261,6 @@ lwmsg_marshal_struct_member(
     unsigned char* member_object = object + member_iter->member_offset;
     
     my_state.dominating_object = object;
-    my_state.dominating_member = member_iter;
-    my_state.dominating_type = struct_iter;
 
     return lwmsg_marshal_internal(
         context, 
@@ -304,7 +302,6 @@ lwmsg_marshal_union(LWMsgContext* context, LWMsgMarshalState* state, LWMsgTypeIt
     /* Find the active arm */
     BAIL_ON_ERROR(status = lwmsg_type_extract_active_arm(
                       iter,
-                      state->dominating_member,
                       state->dominating_object,
                       &arm));
 
@@ -407,12 +404,8 @@ LWMsgStatus
 lwmsg_marshal(LWMsgContext* context, LWMsgTypeSpec* type, void* object, LWMsgBuffer* buffer)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgMarshalState state;
+    LWMsgMarshalState state = {NULL};
     LWMsgTypeIter iter;
-
-    state.dominating_object = NULL;
-    state.dominating_member = NULL;
-    state.dominating_type = NULL;
 
     lwmsg_type_iterate_promoted(type, &iter);
 
