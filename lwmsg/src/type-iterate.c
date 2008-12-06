@@ -331,7 +331,8 @@ lwmsg_type_iterate_promoted(
         iter->info.kind_indirect.static_length = 1;
         iter->inner = spec;
         iter->next = NULL;
-        iter->verify = NULL;
+        iter->verify = lwmsg_type_verify_not_null;
+        iter->verify_data = NULL;
         iter->member_size = sizeof(void*);
         iter->member_offset = 0;
         break;
