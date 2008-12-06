@@ -376,6 +376,19 @@ lwmsg_assoc_new(
     );
 
 /**
+ * @brief Set marshalling context
+ *
+ * Sets the marshalling context for the specified association.
+ * This affects the marshalling settings used for messages
+ * sent and received on the association.
+ */
+void
+lwmsg_assoc_set_context(
+    LWMsgAssoc* assoc,
+    LWMsgContext* context
+    );
+
+/**
  * @ingroup assoc
  * @brief Delete an association
  *

@@ -92,15 +92,22 @@ int main(int argc, char** argv)
 {
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgProtocol* protocol = NULL;
     LWMsgServer* server = NULL;
 
-    status = lwmsg_server_new(&server);
+    status = lwmsg_protocol_new(NULL, &protocol);
     if (status)
     {
         goto error;
     }
 
-    status = lwmsg_server_add_protocol_spec(server, fserv_get_protocol());
+    status = lwmsg_protocol_add_protocol_spec(protocol, fserv_get_protocol());
+    if (status)
+    {
+        goto error;
+    }
+
+    status = lwmsg_server_new(protocol, &server);
     if (status)
     {
         goto error;

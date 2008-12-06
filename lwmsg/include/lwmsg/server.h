@@ -165,34 +165,20 @@ typedef LWMsgStatus
  * @ingroup server
  * @brief Create a new server object
  *
- * Creates a new, unconfigured server object.  The created server must be
- * configured with a protocol, dispatch table, and endpoint before it
- * can be started.
+ * Creates a new server object
  *
- * @param out_server the created server object
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_MEMORY if out of memory
+ * @param[in] protocol a protocol object which describes the protocol spoken by the server
+ * @param[out] server the created server object
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{INVALID, protocol was <tt>NULL</tt>}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_new(
-    LWMsgServer** out_server
-    );
-
-/**
- * @ingroup server
- * @brief Create a new server object with context
- *
- * Creates a new, unconfigured server object which inherits settings from
- * the specified context.  Any connections created by the server will in
- * turn inherit these settigns.
- *
- * @param context the context from which to inherit
- * @param out_server the created server object
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_MEMORY if out of memory
- */
-LWMsgStatus
-lwmsg_server_new_with_context(
-    LWMsgContext* context,
-    LWMsgServer** out_server
+    LWMsgProtocol* protocol,
+    LWMsgServer** server
     );
 
 /**
@@ -201,8 +187,8 @@ lwmsg_server_new_with_context(
  *
  * Deletes a server object.
  *
- * @warning Attempting to delete a server which has been started but not stopped
- * will block until the server stops
+ * @warning Attempting to delete a server which has been started
+ * but not stopped will block until the server stops
  *
  * @param server the server object to delete
  */
@@ -267,52 +253,6 @@ LWMsgStatus
 lwmsg_server_set_max_backlog(
     LWMsgServer* server,
     unsigned int max_backlog
-    );
-
-/**
- * @ingroup server
- * @brief Add a protocol specification
- *
- * Adds a protocol specification to the specified server object,
- * which will become part of the protocol supported by the server.
- * This function may be invoked multiple times to combine several
- * protocol specifications.  This function should not be used in
- * concert with lwmsg_server_set_protocol().
- *
- * @param server the server object
- * @param spec the protocol specification
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_etc{any error returned by lwmsg_prototol_add_spec()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_server_add_protocol_spec(
-    LWMsgServer* server,
-    LWMsgProtocolSpec* spec
-    );
-
-/**
- * @ingroup server
- * @brief Set server protocol
- *
- * Sets the protocol object which describes the protocol understood
- * by the server.  This function should not be used in concert
- * with lwmsg_server_add_protocol_spec().
- *
- * @param server the server object
- * @param prot the protocol object
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_etc{any error returned by lwmsg_prototol_add_spec()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_server_set_protocol(
-    LWMsgServer* server,
-    LWMsgProtocol* prot
     );
 
 /**

@@ -39,6 +39,8 @@
 #include <lwmsg/protocol.h>
 #include <pthread.h>
 
+#include "context-private.h"
+
 struct LWMsgClient
 {
     LWMsgConnectionMode mode;
@@ -53,5 +55,5 @@ struct LWMsgClient
     pthread_mutex_t lock;
     pthread_cond_t event;
 
-    unsigned protocol_is_private:1;
+    LWMsgContext context;
 };

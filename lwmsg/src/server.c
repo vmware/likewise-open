@@ -41,6 +41,7 @@
 #include "connection-private.h"
 #include "protocol-private.h"
 #include "session-private.h"
+#include "assoc-private.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -137,6 +138,9 @@ lwmsg_server_queue_client(
     size_t i;
 
     BAIL_ON_ERROR(status = lwmsg_connection_new(server->protocol, &assoc));
+
+    /* Make assoc's internal context route through us */
+    assoc->context.parent = &server->context;
 
     if (server->timeout_set)
     {
@@ -405,15 +409,7 @@ error:
 
 LWMsgStatus
 lwmsg_server_new(
-    LWMsgServer** out_server
-    )
-{
-    return lwmsg_server_new_with_context(NULL, out_server);
-}
-
-LWMsgStatus
-lwmsg_server_new_with_context(
-    LWMsgContext* context,
+    LWMsgProtocol* protocol,
     LWMsgServer** out_server
     )
 {
@@ -431,14 +427,20 @@ lwmsg_server_new_with_context(
     server->fd = -1;
     server->max_clients = 4;
     server->max_backlog = 4;
+    server->protocol = protocol;
 
-    lwmsg_context_setup(&server->context, context);
+    lwmsg_context_setup(&server->context, &protocol->context);
 
     err = pthread_mutex_init(&server->lock, NULL);
     if (err)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
+
+    err = pthread_cond_init(&server->client_queued, NULL);
+    if (err)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);    }
 
     err = pthread_cond_init(&server->client_queued, NULL);
     if (err)
@@ -483,7 +485,7 @@ lwmsg_server_delete(
 
     lwmsg_server_unlock(server);
 
-    lwmsg_protocol_delete(server->protocol);
+    lwmsg_context_cleanup(&server->context);
     lwmsg_connection_signal_delete(server->interrupt);
     lwmsg_session_manager_delete(server->manager);
     free(server->endpoint);
@@ -623,73 +625,6 @@ error:
 
     return status;
 }
-
-LWMsgStatus
-lwmsg_server_add_protocol_spec(
-    LWMsgServer* server,
-    LWMsgProtocolSpec* spec
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    lwmsg_server_lock(server);
-
-    if (server->state != LWMSG_SERVER_STOPPED)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
-    }
-
-    if (server->protocol && !server->protocol_is_private)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
-    }
-
-    if (!server->protocol)
-    {
-        BAIL_ON_ERROR(status = lwmsg_protocol_new_with_context(&server->context, &server->protocol));
-        server->protocol_is_private = 1;
-    }
-
-    PROPAGATE_ERROR(&server->protocol->context, &server->context,
-                    status = lwmsg_protocol_add_protocol_spec(server->protocol, spec));
-
-error:
-
-    lwmsg_server_unlock(server);
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_server_set_protocol(
-    LWMsgServer* server,
-    LWMsgProtocol* prot
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    lwmsg_server_lock(server);
-
-    if (server->state != LWMSG_SERVER_STOPPED)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
-    }
-
-    if (server->protocol && server->protocol_is_private)
-    {
-        lwmsg_protocol_delete(server->protocol);
-    }
-
-    server->protocol = prot;
-    server->protocol_is_private = LWMSG_FALSE;
-
-error:
-
-    lwmsg_server_unlock(server);
-
-    return status;
-}
-
 
 LWMsgStatus
 lwmsg_server_set_fd(

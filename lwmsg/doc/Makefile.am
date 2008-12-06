@@ -38,6 +38,6 @@ all-local: doxygen-html doxygen-pdf
 
 install-data-local: doxygen-html-install doxygen-pdf-install
 
-.PHONY: doxygen-html doxygen-pdf doxygen-html-install
+.PHONY: doxygen-pdf doxygen-html-install doxygen-pdf-install
 
 endif

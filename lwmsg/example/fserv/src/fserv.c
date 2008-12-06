@@ -20,7 +20,7 @@ fserv_connect(
     if (!protocol)
     {
         /* Create protocol object */
-        status = lwmsg_protocol_new(&protocol);
+        status = lwmsg_protocol_new(NULL, &protocol);
         if (status)
         {
             ret = -1;

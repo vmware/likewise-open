@@ -43,13 +43,10 @@
 #include "type-private.h"
 
 LWMsgStatus
-lwmsg_protocol_new(LWMsgProtocol** prot)
-{
-    return lwmsg_protocol_new_with_context(NULL, prot);
-}
-
-LWMsgStatus
-lwmsg_protocol_new_with_context(LWMsgContext* context, LWMsgProtocol** prot)
+lwmsg_protocol_new(
+    LWMsgContext* context,
+    LWMsgProtocol** prot
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 

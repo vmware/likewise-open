@@ -3,9 +3,7 @@ lwmsg_server_delete
 lwmsg_server_set_timeout
 lwmsg_server_set_max_clients
 lwmsg_server_set_max_backlog
-lwmsg_server_add_protocol_spec
 lwmsg_server_add_dispatch_spec
-lwmsg_server_set_protocol
 lwmsg_server_set_fd
 lwmsg_server_set_endpoint
 lwmsg_server_start
@@ -15,7 +13,6 @@ lwmsg_server_get_user_data
 lwmsg_server_set_connect_callback
 lwmsg_client_new
 lwmsg_client_set_endpoint
-lwmsg_client_add_protocol_spec
 lwmsg_client_acquire_assoc
 lwmsg_client_release_assoc
 lwmsg_client_send_message
@@ -27,5 +24,4 @@ lwmsg_client_send_transact
 lwmsg_client_set_max_concurrent
 lwmsg_client_shutdown
 lwmsg_client_delete
-lwmsg_client_set_protocol
 lwmsg_client_create_assoc

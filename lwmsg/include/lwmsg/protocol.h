@@ -142,6 +142,7 @@ lwmsg_protocol_get_message_type(
  * Creates a new protocol object with no known messages.
  * Messages must be added with lwmsg_protocol_add_protocol_spec().
  *
+ * @param context a marshalling context, or <tt>NULL</tt> for default settings
  * @param prot the created protocol
  * @lwmsg_status
  * @lwmsg_success
@@ -150,25 +151,6 @@ lwmsg_protocol_get_message_type(
  */
 LWMsgStatus
 lwmsg_protocol_new(
-    LWMsgProtocol** prot
-    );
-
-/**
- * @brief Create a new protocol object with context
- *
- * Creates a new protocol object which inherits its marshalling settings from
- * the specified context.  Associations created from the specified protocol object
- * will in turn inherit these settings.
- * 
- * @param context the context from which to inherit
- * @param prot the created protocol
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_protocol_new_with_context(
     LWMsgContext* context,
     LWMsgProtocol** prot
     );

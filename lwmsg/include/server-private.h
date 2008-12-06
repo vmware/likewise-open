@@ -87,7 +87,6 @@ struct LWMsgServer
     LWMsgStatus volatile status;
     LWMsgServerState volatile state;
 
-    unsigned protocol_is_private:1;
     unsigned timeout_set:1;
 };
 

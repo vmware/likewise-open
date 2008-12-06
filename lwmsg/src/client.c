@@ -38,6 +38,8 @@
 #include "client-private.h"
 #include "util-private.h"
 #include "session-private.h"
+#include "assoc-private.h"
+#include "protocol-private.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -76,6 +78,7 @@ lwmsg_client_signal(
 
 LWMsgStatus
 lwmsg_client_new(
+    LWMsgProtocol* protocol,
     LWMsgClient** out_client
     )
 {
@@ -83,6 +86,8 @@ lwmsg_client_new(
     LWMsgClient* client = NULL;
 
     client = calloc(1, sizeof(*client));
+
+    lwmsg_context_setup(&client->context, &protocol->context);
 
     if (!client)
     {
@@ -101,6 +106,7 @@ lwmsg_client_new(
 
     BAIL_ON_ERROR(status = lwmsg_shared_session_manager_new(&client->manager));
 
+    client->protocol = protocol;
     client->assoc_pool_capacity = 4;
     client->assoc_pool_created = 0;
     client->assoc_pool_available = 0;
@@ -170,67 +176,6 @@ error:
 }
 
 LWMsgStatus
-lwmsg_client_add_protocol_spec(
-    LWMsgClient* client,
-    LWMsgProtocolSpec* spec
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    lwmsg_client_lock(client);
-
-    if (client->assoc_pool_created)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
-    }
-
-    if (!client->protocol)
-    {
-        BAIL_ON_ERROR(status = lwmsg_protocol_new(&client->protocol));
-        client->protocol_is_private = LWMSG_TRUE;
-    }
-
-    BAIL_ON_ERROR(status = lwmsg_protocol_add_protocol_spec(client->protocol, spec));
-
-error:
-
-    lwmsg_client_unlock(client);
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_client_set_protocol(
-    LWMsgClient* client,
-    LWMsgProtocol* protocol
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    lwmsg_client_lock(client);
-
-    if (client->assoc_pool_created)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
-    }
-
-    if (client->protocol && client->protocol_is_private)
-    {
-        lwmsg_protocol_delete(client->protocol);
-    }
-
-    client->protocol = protocol;
-    client->protocol_is_private = LWMSG_FALSE;
-
-error:
-
-    lwmsg_client_unlock(client);
-
-    return status;
-}
-
-
-LWMsgStatus
 lwmsg_client_acquire_assoc(
     LWMsgClient* client,
     LWMsgAssoc** out_assoc
@@ -263,6 +208,9 @@ lwmsg_client_acquire_assoc(
     else if (client->assoc_pool_created < client->assoc_pool_capacity)
     {
         BAIL_ON_ERROR(status = lwmsg_connection_new(client->protocol, &assoc));
+        /* Force assoc context to route through us */
+        assoc->context.parent = &client->context;
+
         BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(assoc, client->manager));
         BAIL_ON_ERROR(status = lwmsg_connection_set_endpoint(assoc, client->mode, client->endpoint));
 
@@ -583,11 +531,10 @@ lwmsg_client_delete(
     pthread_mutex_destroy(&client->lock);
     pthread_cond_destroy(&client->event);
     
-    if (client->protocol_is_private)
-    {
-        lwmsg_protocol_delete(client->protocol);
-    }
     lwmsg_session_manager_delete(client->manager);
+
+    lwmsg_context_cleanup(&client->context);
+
     free(client->endpoint);
     free(client->assoc_pool);
     free(client);

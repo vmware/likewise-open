@@ -81,17 +81,10 @@ typedef struct LWMsgClient LWMsgClient;
  * @brief Create a new client object
  *
  * Creates a new client object with no endpoint set
- * and all options set to their default values.  Before
- * the new object may be used for messaging, the following
- * must first occur:
+ * and all options set to their default values.
  *
- * <ul>
- * <li>A protocol must be established using one of
- * lwmsg_client_add_protocol_spec() or lwmsg_client_set_protocol()</li>
- * <li>An endpoint must be set with lwmsg_client_set_endpoint()</li>
- * </ul>
- *
- * @param out_client the created client object
+ * @param[in] protocol the protocol object describing the protocol spoken by the client
+ * @param[out] client the created client object
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -99,7 +92,8 @@ typedef struct LWMsgClient LWMsgClient;
  */
 LWMsgStatus
 lwmsg_client_new(
-    LWMsgClient** out_client
+    LWMsgProtocol* protocol,
+    LWMsgClient** client
     );
 
 /**
@@ -123,56 +117,6 @@ lwmsg_client_set_endpoint(
     LWMsgClient* client,
     LWMsgConnectionMode mode,
     const char* endpoint
-    );
-
-/**
- * @brief Add protocol specification
- *
- * Adds a protocol specification to the protocol
- * understood by the specified client object.  This
- * is a convenient shortcut that allows you to avoid
- * creating and populating a protocol object by hand.
- * This function may not be used in conjunction with
- * lwmsg_client_set_protocol().  This function may not
- * be called after the client is already in use.
- *
- * @param client the client object
- * @param spec the protocol specification
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_code{INVALID, a protocol has already been set or the client is already in use}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_add_protocol_spec(
-    LWMsgClient* client,
-    LWMsgProtocolSpec* spec
-    );
-
-/**
- * @brief Set protocol
- *
- * Sets the protocol object used by the specified
- * client object.  This function may not be called
- * after a protocol has already been set.  This function
- * may not be used in conjunction with lwmsg_client_add_protocol_spec()
- *
- * @warning Making further modifications to the specified
- * protocol object after calling this function will result
- * in undefined behavior.
- * 
- * @param client the client object
- * @param protocol the protocol object
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID, a protocol has already been set}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_set_protocol(
-    LWMsgClient* client,
-    LWMsgProtocol* protocol
     );
 
 /**

@@ -44,7 +44,6 @@ lwmsg_context_free_object
 lwmsg_marshal
 lwmsg_protocol_get_message_type
 lwmsg_protocol_new
-lwmsg_protocol_new_with_context
 lwmsg_protocol_add_protocol_spec
 lwmsg_protocol_delete
 lwmsg_protocol_marshal
@@ -57,6 +56,7 @@ lwmsg_time_compare
 lwmsg_time_normalize
 lwmsg_unmarshal
 lwmsg_context_setup
+lwmsg_context_cleanup
 lwmsg_error_raise
 lwmsg_error_propagate
 lwmsg_convert_integer

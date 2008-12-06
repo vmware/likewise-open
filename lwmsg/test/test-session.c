@@ -179,7 +179,7 @@ MU_TEST(session, trivial_send_recv)
     LWMsgSessionManager* manager = NULL;
     char smid_str[17];
 
-    MU_TRY(lwmsg_protocol_new(&trivial_protocol));
+    MU_TRY(lwmsg_protocol_new(NULL, &trivial_protocol));
     MU_TRY_PROTOCOL(trivial_protocol, lwmsg_protocol_add_protocol_spec(trivial_protocol, trivialprotocol_spec));
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets_a))

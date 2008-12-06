@@ -287,6 +287,7 @@ MU_TEST(client_server, parallel)
     Data data;
     pthread_t threads[NUM_THREADS];
     int i;
+    LWMsgProtocol* protocol = NULL;
     LWMsgClient* client = NULL;
     LWMsgServer* server = NULL;
     CounterRequest request;
@@ -294,16 +295,17 @@ MU_TEST(client_server, parallel)
     LWMsgMessage request_msg;
     LWMsgMessage reply_msg;
 
-    MU_TRY(lwmsg_server_new(&server));
-    MU_TRY(lwmsg_server_add_protocol_spec(server, counterprotocol_spec));
+    MU_TRY(lwmsg_protocol_new(NULL, &protocol));
+    MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, counterprotocol_spec));
+
+    MU_TRY(lwmsg_server_new(protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_set_max_clients(server, NUM_THREADS));
     MU_TRY(lwmsg_server_set_connect_callback(server, counter_srv_connect));
     MU_TRY(lwmsg_server_start(server));
 
-    MU_TRY(lwmsg_client_new(&client));
-    MU_TRY(lwmsg_client_add_protocol_spec(client, counterprotocol_spec));
+    MU_TRY(lwmsg_client_new(protocol, &client));
     MU_TRY(lwmsg_client_set_max_concurrent(client, NUM_THREADS));
     MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
 
