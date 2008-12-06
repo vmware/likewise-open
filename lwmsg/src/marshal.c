@@ -60,7 +60,7 @@ lwmsg_object_is_zero(LWMsgMarshalState* state, LWMsgTypeIter* iter, unsigned cha
 
     *is_zero = 1;
 
-    for (i = 0; i < iter->member_size; i++)
+    for (i = 0; i < iter->size; i++)
     {
         if (object[i] != 0)
         {
@@ -92,7 +92,7 @@ lwmsg_marshal_indirect_prologue(
     switch (iter->info.kind_indirect.term)
     {
     case LWMSG_TERM_STATIC:
-        *count = iter->info.kind_indirect.static_length;
+        *count = iter->info.kind_indirect.term_info.static_length;
         break;
     case LWMSG_TERM_MEMBER:
         /* Extract the length out of the field of the actual structure */
@@ -114,7 +114,7 @@ lwmsg_marshal_indirect_prologue(
                               element,
                               &is_zero));
 
-            element += inner_iter->member_size;
+            element += inner_iter->size;
         }
 
         /* The length is implicitly written into the output to
@@ -162,7 +162,7 @@ lwmsg_marshal_indirect(
     
     if (inner_iter.kind == LWMSG_KIND_INTEGER &&
         inner_iter.info.kind_integer.width == 1 &&
-        inner_iter.member_size == 1)
+        inner_iter.size == 1)
     {
         /* As an optimization, if the element type if an 1-byte integer both
            packed and unpacked, we can write the entire array directly into
@@ -185,7 +185,7 @@ lwmsg_marshal_indirect(
                               &inner_iter, 
                               element, 
                               buffer));
-            element += inner_iter.member_size;
+            element += inner_iter.size;
         }
     }
 
@@ -209,7 +209,7 @@ lwmsg_marshal_integer(
     size_t out_size;
 
     out_size = iter->info.kind_integer.width;
-    in_size = iter->member_size;
+    in_size = iter->size;
 
     BAIL_ON_ERROR(status = lwmsg_convert_integer(in,
                                                  in_size,
@@ -239,7 +239,7 @@ lwmsg_marshal_custom(
 
     BAIL_ON_ERROR(status = iter->info.kind_custom.typeclass->marshal(
                       context,
-                      iter->member_size,
+                      iter->size,
                       object,
                       buffer,
                       iter->info.kind_custom.typedata));
@@ -258,7 +258,7 @@ lwmsg_marshal_struct_member(
     LWMsgBuffer* buffer)
 {
     LWMsgMarshalState my_state;
-    unsigned char* member_object = object + member_iter->member_offset;
+    unsigned char* member_object = object + member_iter->offset;
     
     my_state.dominating_object = object;
 
@@ -362,7 +362,7 @@ lwmsg_marshal_internal(
 
     if (iter->verify)
     {
-        BAIL_ON_ERROR(status = iter->verify(context, LWMSG_FALSE, iter->member_size, object, iter->verify_data));
+        BAIL_ON_ERROR(status = iter->verify(context, LWMSG_FALSE, iter->size, object, iter->verify_data));
     }
 
     switch (iter->kind)

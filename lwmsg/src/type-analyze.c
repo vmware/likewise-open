@@ -48,8 +48,8 @@ lwmsg_type_extract_discrim_tag(
     )
 {
     return lwmsg_convert_integer(
-        dominating_struct + iter->assoc_discrim.offset,
-        iter->assoc_discrim.size,
+        dominating_struct + iter->info.kind_compound.discrim.offset,
+        iter->info.kind_compound.discrim.size,
         LWMSG_NATIVE_ENDIAN,
         tag,
         sizeof(*tag),
@@ -65,8 +65,8 @@ lwmsg_type_extract_length(
     )
 {
     return lwmsg_convert_integer(
-        dominating_struct + iter->assoc_length.offset,
-        iter->assoc_length.size,
+        dominating_struct + iter->info.kind_indirect.term_info.member.offset,
+        iter->info.kind_indirect.term_info.member.size,
         LWMSG_NATIVE_ENDIAN,
         length,
         sizeof(*length),

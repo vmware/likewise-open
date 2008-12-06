@@ -115,7 +115,7 @@ lwmsg_unmarshal_integer_immediate(
     size_t out_size;
     
     in_size = iter->info.kind_integer.width;
-    out_size = iter->member_size;
+    out_size = iter->size;
 
     BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, temp, in_size));
 
@@ -147,7 +147,7 @@ lwmsg_unmarshal_custom_immediate(
     BAIL_ON_ERROR(status = iter->info.kind_custom.typeclass->unmarshal(
                       context,
                       buffer,
-                      iter->member_size,
+                      iter->size,
                       object,
                       iter->info.kind_custom.typedata));
 
@@ -167,7 +167,7 @@ lwmsg_unmarshal_struct_member(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgUnmarshalState my_state;
-    unsigned char* member_object = struct_object + member_iter->member_offset;
+    unsigned char* member_object = struct_object + member_iter->offset;
 
     my_state.dominating_object = struct_object;
 
@@ -201,7 +201,7 @@ lwmsg_unmarshal_indirect_prologue(
     {
     case LWMSG_TERM_STATIC:
         /* Static lengths are easy */
-        *out_count = iter->info.kind_indirect.static_length;
+        *out_count = iter->info.kind_indirect.term_info.static_length;
         break;
     case LWMSG_TERM_MEMBER:
         /* The length is present in a member we have already unmarshalled */
@@ -246,12 +246,12 @@ lwmsg_unmarshal_indirect(
 
     if (inner->kind == LWMSG_KIND_INTEGER &&
         inner->info.kind_integer.width == 1 &&
-        inner->member_size == 1)
+        inner->size == 1)
     {
         /* If the element type is an integer and the packed and unpacked sizes are both 1,
            then we can copy directly from the marshalled data into the object.  This
            is an important optimization for unmarshalling character strings */
-        BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, object, count * inner->member_size));
+        BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, object, count * inner->size));
     }
     else
     {
@@ -266,7 +266,7 @@ lwmsg_unmarshal_indirect(
                               inner,
                               buffer,
                               element));
-            element += inner->member_size;
+            element += inner->size;
         }
     }
 
@@ -314,7 +314,7 @@ lwmsg_unmarshal_pointees(
     else
     {
         /* Allocate the object */
-        BAIL_ON_ERROR(status = lwmsg_object_alloc(context, count * inner.member_size, &object));
+        BAIL_ON_ERROR(status = lwmsg_object_alloc(context, count * inner.size, &object));
         
         /* Unmarshal elements */
         BAIL_ON_ERROR(status = lwmsg_unmarshal_indirect(
@@ -487,7 +487,7 @@ lwmsg_unmarshal_free_partial_struct(
         BAIL_ON_ERROR(status = lwmsg_context_free_graph_internal(
                           context,
                           &member,
-                          object + member.member_offset));
+                          object + member.offset));
     }
 
     lwmsg_object_free(context, object);
@@ -515,7 +515,7 @@ lwmsg_unmarshal_struct_pointee(
     /* Allocate enough memory to hold the base of the object */
     BAIL_ON_ERROR(status = lwmsg_object_alloc(
                       context,
-                      struct_iter->member_size,
+                      struct_iter->size,
                       &base_object));
     
     /* Unmarshal all base members of the structure and find any flexible member */
@@ -551,10 +551,10 @@ lwmsg_unmarshal_struct_pointee(
 
         BAIL_ON_ERROR(status = lwmsg_object_alloc(
                       context,
-                      struct_iter->member_size + inner_iter.member_size * count,
+                      struct_iter->size + inner_iter.size * count,
                       &full_object));
 
-        memcpy(full_object, base_object, struct_iter->member_size);
+        memcpy(full_object, base_object, struct_iter->size);
 
         BAIL_ON_ERROR(status = lwmsg_object_free(context, base_object));
 
@@ -566,7 +566,7 @@ lwmsg_unmarshal_struct_pointee(
                           &flex_iter,
                           &inner_iter,
                           buffer,
-                          full_object + flex_iter.member_offset,
+                          full_object + flex_iter.offset,
                           count));
     }
     else
@@ -700,7 +700,7 @@ lwmsg_unmarshal_internal(
     
     if (iter->verify)
     {
-        BAIL_ON_ERROR(status = iter->verify(context, LWMSG_TRUE, iter->member_size, object, iter->verify_data));
+        BAIL_ON_ERROR(status = iter->verify(context, LWMSG_TRUE, iter->size, object, iter->verify_data));
     }
 
 error:

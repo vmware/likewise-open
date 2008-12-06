@@ -138,8 +138,8 @@ lwmsg_type_iterate(
 
     iter->spec = spec;
     iter->verify = NULL;
-    iter->member_size = 0;
-    iter->member_offset = 0;
+    iter->size = 0;
+    iter->offset = 0;
 
     cmd = *(spec++);
 
@@ -161,10 +161,10 @@ lwmsg_type_iterate(
     switch (cmd & LWMSG_CMD_MASK)
     {
     case LWMSG_CMD_INTEGER:
-        iter->member_size = *(spec++);
+        iter->size = *(spec++);
         if (cmd & LWMSG_FLAG_MEMBER)
         {
-            iter->member_offset = *(spec++);
+            iter->offset = *(spec++);
         }
 
         iter->kind = LWMSG_KIND_INTEGER;
@@ -172,48 +172,48 @@ lwmsg_type_iterate(
         iter->info.kind_integer.sign = *(spec++);
         break;
     case LWMSG_CMD_STRUCT:
-        iter->member_size = *(spec++);
+        iter->size = *(spec++);
         if (cmd & LWMSG_FLAG_MEMBER)
         {
-            iter->member_offset = *(spec++);
+            iter->offset = *(spec++);
         }
         iter->kind = LWMSG_KIND_STRUCT;
         iter->inner = spec;
         lwmsg_type_find_end(&spec);
         break;
     case LWMSG_CMD_UNION:
-        iter->member_size = *(spec++);
+        iter->size = *(spec++);
         if (cmd & LWMSG_FLAG_MEMBER)
         {
-            iter->member_offset = *(spec++);
+            iter->offset = *(spec++);
         }
         iter->kind = LWMSG_KIND_UNION;
         iter->inner = spec;
         lwmsg_type_find_end(&spec);
         break;
     case LWMSG_CMD_POINTER:
-        iter->member_size = sizeof(void*);
+        iter->size = sizeof(void*);
         if (cmd & LWMSG_FLAG_MEMBER)
         {
-            iter->member_offset = *(spec++);
+            iter->offset = *(spec++);
         }
         iter->kind = LWMSG_KIND_POINTER;
         iter->inner = spec;
         /* Default termination settings for a pointer */
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
-        iter->info.kind_indirect.static_length = 1;
+        iter->info.kind_indirect.term_info.static_length = 1;
         lwmsg_type_find_end(&spec);
         break;
     case LWMSG_CMD_ARRAY:
         if (cmd & LWMSG_FLAG_MEMBER)
         {
-            iter->member_offset = *(spec++);
+            iter->offset = *(spec++);
         }
         iter->kind = LWMSG_KIND_ARRAY;
         iter->inner = spec;
         /* Default termination settings for an array */
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
-        iter->info.kind_indirect.static_length = 1;
+        iter->info.kind_indirect.term_info.static_length = 1;
         lwmsg_type_find_end(&spec);
         break;
     case LWMSG_CMD_TYPESPEC:
@@ -225,17 +225,17 @@ lwmsg_type_iterate(
             my_offset = *(spec++);
         }
         lwmsg_type_iterate((LWMsgTypeSpec*) *(spec++), iter);
-        if (!iter->member_size)
+        if (!iter->size)
         {
-            iter->member_size = my_size;
+            iter->size = my_size;
         }
-        iter->member_offset = my_offset;
+        iter->offset = my_offset;
         break;
     case LWMSG_CMD_CUSTOM:
         if (cmd & LWMSG_FLAG_MEMBER)
         {
-            iter->member_size = *(spec++);
-            iter->member_offset = *(spec++);
+            iter->size = *(spec++);
+            iter->offset = *(spec++);
         }
         iter->kind = LWMSG_KIND_CUSTOM;
         iter->info.kind_custom.typeclass = (LWMsgCustomTypeClass*) *(spec++);
@@ -272,11 +272,11 @@ lwmsg_type_iterate(
             switch (term)
             {
             case LWMSG_TERM_STATIC:
-                iter->info.kind_indirect.static_length = *(spec++);
+                iter->info.kind_indirect.term_info.static_length = *(spec++);
                 break;
             case LWMSG_TERM_MEMBER:
-                iter->assoc_length.offset = *(spec++);
-                iter->assoc_length.size = *(spec++);
+                iter->info.kind_indirect.term_info.member.offset = *(spec++);
+                iter->info.kind_indirect.term_info.member.size = *(spec++);
                 break;
             case LWMSG_TERM_ZERO:
                 break;
@@ -286,8 +286,8 @@ lwmsg_type_iterate(
             iter->tag = *(spec++);
             break;
         case LWMSG_CMD_DISCRIM:
-            iter->assoc_discrim.offset = *(spec++);
-            iter->assoc_discrim.size = *(spec++);
+            iter->info.kind_compound.discrim.offset = *(spec++);
+            iter->info.kind_compound.discrim.size = *(spec++);
             break;
         case LWMSG_CMD_VERIFY:
             iter->verify = (LWMsgVerifyFunction) *(spec++);
@@ -325,16 +325,17 @@ lwmsg_type_iterate_promoted(
 {
     switch (*spec & LWMSG_CMD_MASK)
     {
+    case LWMSG_CMD_INTEGER:
     case LWMSG_CMD_STRUCT:
         iter->kind = LWMSG_KIND_POINTER;
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
-        iter->info.kind_indirect.static_length = 1;
+        iter->info.kind_indirect.term_info.static_length = 1;
         iter->inner = spec;
         iter->next = NULL;
         iter->verify = lwmsg_type_verify_not_null;
         iter->verify_data = NULL;
-        iter->member_size = sizeof(void*);
-        iter->member_offset = 0;
+        iter->size = sizeof(void*);
+        iter->offset = 0;
         break;
     default:
         lwmsg_type_iterate(spec, iter);
@@ -393,7 +394,7 @@ lwmsg_type_visit_graph_indirect(
     switch (iter->info.kind_indirect.term)
     {
     case LWMSG_TERM_STATIC:
-        count = iter->info.kind_indirect.static_length;
+        count = iter->info.kind_indirect.term_info.static_length;
         break;
     case LWMSG_TERM_MEMBER:
         BAIL_ON_ERROR(status = lwmsg_type_extract_length(
@@ -403,7 +404,7 @@ lwmsg_type_visit_graph_indirect(
         break;
     case LWMSG_TERM_ZERO:
         count = 1;
-        for (element = object; lwmsg_is_zero(element, inner.member_size); element += inner.member_size)
+        for (element = object; lwmsg_is_zero(element, inner.size); element += inner.size)
         {
             count++;
         }
@@ -414,7 +415,7 @@ lwmsg_type_visit_graph_indirect(
     for (i = 0; i < count; i++)
     {
         BAIL_ON_ERROR(status = func(&inner, element, data));
-        element += inner.member_size;
+        element += inner.size;
     }
 
 error:
@@ -441,7 +442,7 @@ lwmsg_type_visit_graph_children(
         inner.dom_object = object;
         for (; lwmsg_type_valid(&inner); lwmsg_type_next(&inner))
         {
-            BAIL_ON_ERROR(status = func(&inner, object + inner.member_offset, data));
+            BAIL_ON_ERROR(status = func(&inner, object + inner.offset, data));
         }
         break;
     case LWMSG_KIND_UNION:

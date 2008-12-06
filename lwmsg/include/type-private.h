@@ -48,15 +48,8 @@ typedef struct LWMsgTypeIter
 {
     LWMsgTypeSpec* spec;
     LWMsgKind kind;
-    size_t member_offset;
-    size_t member_size;
-
-    struct
-    {
-        size_t offset;
-        size_t size;
-    } assoc_length, assoc_discrim;
-
+    size_t offset;
+    size_t size;
     intmax_t tag;
 
     LWMsgVerifyFunction verify;
@@ -72,11 +65,26 @@ typedef struct LWMsgTypeIter
         } kind_integer;
         struct
         {
+            struct
+            {
+                size_t offset;
+                size_t size;
+            } discrim;
         } kind_compound;
         struct
         {
             LWMsgArrayTermination term;
-            size_t static_length;
+            union
+            {
+                struct
+                {
+                    size_t offset;
+                    size_t size;
+                } member;
+                size_t static_length;
+            } term_info;
+            unsigned nonnull:1;
+            unsigned aliasable:1;
         } kind_indirect;
         struct
         {
