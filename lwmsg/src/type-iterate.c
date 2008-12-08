@@ -404,7 +404,7 @@ lwmsg_type_visit_graph_indirect(
         break;
     case LWMSG_TERM_ZERO:
         count = 1;
-        for (element = object; lwmsg_is_zero(element, inner.size); element += inner.size)
+        for (element = object; !lwmsg_is_zero(element, inner.size); element += inner.size)
         {
             count++;
         }
