@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 #define MODAUTHKERB_VERSION "5.3"
 
@@ -79,6 +80,13 @@
 #define apr_pool_cleanup_null	ap_null_cleanup
 #define apr_pool_cleanup_register	ap_register_cleanup
 #endif /* STANDARD20_MODULE_STUFF */
+
+#ifndef AP_REGEX_H
+#define ap_regex_t regex_t
+#define ap_regmatch_t regmatch_t
+#define AP_REG_ICASE REG_ICASE
+#define AP_REG_EXTENDED REG_EXTENDED
+#endif
 
 #ifdef _WIN32
 #define vsnprintf _vsnprintf
@@ -139,12 +147,16 @@ module auth_kerb_module;
 #define MK_POOL apr_pool_t
 #define MK_TABLE_GET apr_table_get
 #define MK_USER r->user
+#define MK_MAIN_USER mainr->user
 #define MK_AUTH_TYPE r->ap_auth_type
+#define MK_MAIN_AUTH_TYPE mainr->ap_auth_type
 #else
 #define MK_POOL pool
 #define MK_TABLE_GET ap_table_get
 #define MK_USER r->connection->user
+#define MK_MAIN_USER mainr->connection->user
 #define MK_AUTH_TYPE r->connection->ap_auth_type
+#define MK_MAIN_AUTH_TYPE mainr->connection->ap_auth_type
 #define PROXYREQ_PROXY STD_PROXY
 #endif
 
@@ -158,6 +170,7 @@ typedef struct {
 	const char *krb_service_name;
 	int krb_authoritative;
 	int krb_delegate_basic;
+	const char* krb_auth_user_format;
 #if 0
 	int krb_ssl_preauthentication;
 #endif
@@ -275,34 +288,6 @@ mkstemp(char *template)
 }
 #endif
 
-#if defined(KRB5) && !defined(HEIMDAL)
-/* Needed to work around problems with replay caches */
-#include "mit-internals.h"
-
-/* This is our replacement krb5_rc_store function */
-static krb5_error_code KRB5_LIB_FUNCTION
-mod_auth_kerb_rc_store(krb5_context context, krb5_rcache rcache,
-                       krb5_donot_replay_internal *donot_replay)
-{
-   return 0;
-}
-
-/* And this is the operations vector for our replay cache */
-const krb5_rc_ops_internal mod_auth_kerb_rc_ops = {
-  0,
-  "dfl",
-  krb5_rc_dfl_init,
-  krb5_rc_dfl_recover,
-  krb5_rc_dfl_destroy,
-  krb5_rc_dfl_close,
-  mod_auth_kerb_rc_store,
-  krb5_rc_dfl_expunge,
-  krb5_rc_dfl_get_span,
-  krb5_rc_dfl_get_name,
-  krb5_rc_dfl_resolve
-};
-#endif
-
 
 /*************************************************************************** 
  Auth Configuration Initialization
@@ -314,6 +299,7 @@ static void *kerb_dir_create_config(MK_POOL *p, char *d)
 	rec = (kerb_auth_config *) apr_pcalloc(p, sizeof(kerb_auth_config));
         ((kerb_auth_config *)rec)->krb_verify_kdc = 1;
 	((kerb_auth_config *)rec)->krb_service_name = NULL;
+	((kerb_auth_config *)rec)->krb_auth_user_format = NULL;
 	((kerb_auth_config *)rec)->krb_authoritative = 1;
 	((kerb_auth_config *)rec)->krb_delegate_basic = 0;
 #if 0
@@ -354,6 +340,22 @@ log_rerror(const char *file, int line, int level, int status,
 #else
    ap_log_rerror(file, line, level | APLOG_NOERRNO, r, "%s", errstr);
 #endif
+}
+
+static int
+is_basic_auth_on(const kerb_auth_config *conf)
+{
+#ifdef KRB5
+   if (conf->krb_method_k5pass || conf->krb_delegate_basic)
+       return 1;
+#endif
+
+#ifdef KRB4
+   if (conf->krb_method_k4pass || conf->krb_delegate_basic)
+       return 1;
+#endif
+
+   return 0;
 }
 
 #ifdef KRB4
@@ -512,9 +514,10 @@ authenticate_user_krb4pwd(request_rec *r,
    }
 
    user = apr_pstrdup(r->pool, sent_name);
-   if (sent_instance)
-      user = apr_pstrcat(r->pool, user, ".", sent_instance, NULL);
-   user = apr_pstrcat(r->pool, user, "@", realm, NULL);
+
+   log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
+	      "Setting the request user to %s",
+	      user ? user : "(NULL)");
 
    MK_USER = user;
    MK_AUTH_TYPE = "Basic";
@@ -538,6 +541,14 @@ end:
  Username/Password Validation for Krb5
  ***************************************************************************/
 
+#ifdef HEIMDAL
+static void krb5_free_unparsed_name(krb5_context context, char *p)
+{
+    if (p)
+        free(p);
+}
+#endif
+
 /* MIT kerberos uses replay cache checks even during credential verification
  * (i.e. in krb5_verify_init_creds()), which is obviosuly useless. In order to
  * avoid problems with multiple apache processes accessing the same rcache file
@@ -560,7 +571,7 @@ verify_krb5_init_creds(request_rec *r, krb5_context context, krb5_creds *creds,
    if (ap_req_keytab == NULL) {
       ret = krb5_kt_default (context, &keytab);
       if (ret)
-	 return ret;
+	     goto end;
    } else
       keytab = ap_req_keytab;
 
@@ -568,7 +579,7 @@ verify_krb5_init_creds(request_rec *r, krb5_context context, krb5_creds *creds,
    if (ret) {
       log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
 	         "krb5_cc_resolve() failed when verifying KDC");
-      return ret;
+      goto end;
    }
 
    ret = krb5_cc_initialize(context, local_ccache, creds->client);
@@ -593,7 +604,7 @@ verify_krb5_init_creds(request_rec *r, krb5_context context, krb5_creds *creds,
    }
    log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
 	      "Trying to verify authenticity of KDC using principal %s", server_name);
-   free(server_name);
+   krb5_free_unparsed_name(context, server_name);
 
    if (!krb5_principal_compare (context, ap_req_server, creds->server)) {
       krb5_creds match_cred;
@@ -679,7 +690,7 @@ verify_krb5_user(request_rec *r, krb5_context context, krb5_principal principal,
    if (ret == 0) {
       log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
 	         "Trying to get TGT for user %s", name);
-      free(name);
+      krb5_free_unparsed_name(context,name);
    }
 
    ret = krb5_get_init_creds_password(context, &creds, principal, 
@@ -873,13 +884,158 @@ store_krb5_creds(krb5_context kcontext,
 }
 
 
+static char*
+apply_httpd_mapping( request_rec *r,
+		     const char *input_string,
+		     char *mapping )
+{
+
+    char *regex = NULL;
+    char *target = NULL;
+    char *tmp = NULL;
+    char arg[10];
+    char *result = NULL;
+    const char *saveresult = apr_pstrdup(r->pool, input_string);
+    ap_regex_t *preg = NULL;
+    ap_regmatch_t *matches = NULL;
+    int nmatches = 0;
+    long int i = 0;
+
+    if ( mapping && strlen(mapping) > 0 ) {
+
+	/*
+	   the mapping will consist of a regular expression match and a target separated by space
+	   such as: DOMAIN\\(.*) $1@DOMAIN.COM
+	        or: (.*)@DOMAIN\.COM DOMAIN\\$1
+	*/
+
+	regex = ap_getword_white_nc( r->pool, &mapping );
+	target = ap_getword_white_nc( r->pool, &mapping );
+
+	while ( regex && *regex && target && *target ) {
+	    log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
+		       "Trying httpd mapping %s => %s", regex, target );
+
+	    nmatches = 1;
+	    tmp = regex;
+	    while( *tmp )
+	      if ( *tmp++ == '(' )
+		nmatches++;
+
+	    matches = (ap_regmatch_t*)apr_pcalloc( r->pool, nmatches * sizeof( ap_regex_t ) );
+	    preg = ap_pregcomp( r->pool, regex, AP_REG_EXTENDED | AP_REG_ICASE );
+
+	    if ( !preg ) {
+		log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+			   "Failed to compile regular expression [%s]", regex );
+	    }
+	    else {
+		if ( ap_regexec(preg, input_string, nmatches, matches, 0) != 0 ) {
+		    regex = ap_getword_white_nc( r->pool, &mapping );
+		    target = ap_getword_white_nc( r->pool, &mapping );
+		}
+		else {
+		    saveresult = result = (char*)apr_pcalloc( r->pool, strlen(input_string) + strlen(target) );
+		    tmp = target;
+		    while ( *tmp ) {
+			if ( *tmp == '$' ) {
+			    tmp++;
+			    i = 0;
+			    while ( isdigit( *tmp ) && (i < (sizeof( arg )-1))  ) {
+				arg[i++] = *tmp;
+				tmp++;
+			    }
+			    arg[i] = '\0';
+			    i = strtol(arg, NULL, 10);
+			    if ( i >= 0 && i < nmatches && matches[i].rm_so != -1 ) {
+				memcpy( result, input_string + matches[i].rm_so, matches[i].rm_eo - matches[i].rm_so );
+				result += matches[i].rm_eo - matches[i].rm_so;
+			    }
+			}
+			else {
+			    *result++ = *tmp++;
+			}
+		    }
+		    *result = '\0';
+		    log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
+			       "[%s] was mapped to [%s]", input_string, saveresult );
+		    break;
+		}
+	    }
+	}
+    }
+
+    return (char*)saveresult;
+}
+
+static char*
+map_principal_to_domain_user( request_rec *r,
+			      const krb5_context *pkcontext,
+			      const char* principal)
+{
+    char *mapping = NULL;
+    krb5_appdefault_string(*pkcontext, "httpd", NULL, "reverse_mappings", "", &mapping);
+    return apply_httpd_mapping( r, principal, mapping );
+}
+
+static char*
+map_domain_user_to_principal( request_rec *r,
+			      const krb5_context *pkcontext,
+			      char *login_creds )
+{
+    char *mapping = NULL;
+    krb5_appdefault_string(*pkcontext, "httpd", NULL, "mappings", "", &mapping);
+    return apply_httpd_mapping( r, login_creds, mapping );
+}
+
+static
+char* get_first_principal_name( request_rec *r, krb5_context kcontext, krb5_keytab kt )
+{
+     krb5_keytab_entry entry;
+     krb5_kt_cursor cursor;
+     char *pname;
+     char *ret = NULL;
+     int code;
+
+     if ((code = krb5_kt_start_seq_get(kcontext, kt, &cursor))) {
+	 log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+		    "krb5_kt_start_seq_get() failed %s",
+		    krb5_get_err_text(kcontext, code) );
+	 return NULL;
+     }
+
+     if ( (code = krb5_kt_next_entry(kcontext, kt, &entry, &cursor)) == 0) {
+	 if ((code = krb5_unparse_name(kcontext, entry.principal, &pname))) {
+	     log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+			"krb5_unparse_name() failed %s",
+			krb5_get_err_text(kcontext, code) );
+	 }
+     }
+     else
+     {
+	 log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+		    "krb5_kt_ntext_entry() failed %s",
+		    krb5_get_err_text(kcontext, code) );
+     }
+
+     code = krb5_kt_end_seq_get(kcontext, kt, &cursor);
+
+     if ( pname )
+     {
+	 ret = strdup( pname );
+	 krb5_free_unparsed_name(kcontext, pname);
+     }
+
+     return ret;
+}
+
 static int
 authenticate_user_krb5pwd(request_rec *r,
                           kerb_auth_config *conf,
                           const char *auth_line)
 {
    const char      *sent_pw = NULL; 
-   const char      *sent_name = NULL;
+   char            *sent_name = NULL;
    const char      *realms = NULL;
    const char      *realm = NULL;
    krb5_context    kcontext = NULL;
@@ -892,6 +1048,7 @@ authenticate_user_krb5pwd(request_rec *r,
    char            *name = NULL;
    int             all_principals_unkown;
    char            *p = NULL;
+   char            *tmp = NULL;
 
    code = krb5_init_context(&kcontext);
    if (code) {
@@ -915,6 +1072,8 @@ authenticate_user_krb5pwd(request_rec *r,
 
    if (conf->krb_service_name && strchr(conf->krb_service_name, '/') != NULL)
       ret = krb5_parse_name (kcontext, conf->krb_service_name, &server);
+   else if ( !conf->krb_service_name && keytab && (name = get_first_principal_name( r, kcontext, keytab )) )
+       ret = krb5_parse_name(kcontext, name, &server);
    else
       ret = krb5_sname_to_principal(kcontext, ap_get_server_name(r),
 	    			    (conf->krb_service_name) ? conf->krb_service_name : SERVICE_NAME,
@@ -929,27 +1088,48 @@ authenticate_user_krb5pwd(request_rec *r,
       goto end;
    }
 
-   code = krb5_unparse_name(kcontext, server, &name);
-   if (code) {
-      log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
-	         "krb5_unparse_name() failed: %s",
-		 krb5_get_err_text(kcontext, code));
-      ret = HTTP_UNAUTHORIZED;
-      goto end;
+   if ( !name )
+   {
+       code = krb5_unparse_name(kcontext, server, &name);
+       if (code) {
+	   log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+		      "krb5_unparse_name() failed: %s",
+		      krb5_get_err_text(kcontext, code));
+	   ret = HTTP_UNAUTHORIZED;
+	   goto end;
+       }
    }
+
    log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "Using %s as server principal for password verification", name);
-   free(name);
+   krb5_free_unparsed_name(kcontext, name);
    name = NULL;
+
+   sent_name = map_domain_user_to_principal( r, &kcontext, sent_name );
 
    p = strchr(sent_name, '@');
    if (p) {
-      *p++ = '\0';
+       *p++ = '\0';
+   } else if ( (p = strchr(sent_name, '\\' )) ) {
+       /* perhaps we have realm\user rather than user@realm */
+       *p++ = '\0';
+       tmp = p;
+       p = sent_name;
+       sent_name = tmp;
+   }
+
+   if (p) {
       if (conf->krb_auth_realms && !ap_find_token(r->pool, conf->krb_auth_realms, p)) {
 	 log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
 	            "Specified realm `%s' not allowed by configuration", p);
          ret = HTTP_UNAUTHORIZED;
          goto end;
       }
+      tmp = p;
+      while( *tmp ) {
+	  *tmp = toupper(*tmp);
+	  tmp++;
+      }
+      log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "Received user=%s realm=%s" , sent_name, p );
    }
 
    realms = (p) ? p : conf->krb_auth_realms;
@@ -1006,9 +1186,16 @@ authenticate_user_krb5pwd(request_rec *r,
       ret = HTTP_UNAUTHORIZED;
       goto end;
    }
-   MK_USER = apr_pstrdup (r->pool, name);
+
+   tmp = map_principal_to_domain_user(r, &kcontext, name);
+
+   log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
+	      "Setting the request user to %s",
+	      tmp ? tmp : "(NULL)");
+
+   MK_USER = tmp;
    MK_AUTH_TYPE = "Basic";
-   free(name);
+   krb5_free_unparsed_name(kcontext, name);
 
    if (conf->krb_save_credentials)
       store_krb5_creds(kcontext, r, conf, ccache);
@@ -1137,6 +1324,13 @@ get_gss_creds(request_rec *r,
    int have_server_princ;
 
 
+   /* match any prinicipal name from the krb5.keytab */
+   if ( !conf->krb_service_name )
+   {
+       server_creds = GSS_C_NO_CREDENTIAL;
+       return 0;
+   }
+
    have_server_princ = conf->krb_service_name && strchr(conf->krb_service_name, '/') != NULL;
    if (have_server_princ)
       strncpy(buf, conf->krb_service_name, sizeof(buf));
@@ -1184,31 +1378,6 @@ get_gss_creds(request_rec *r,
       return HTTP_INTERNAL_SERVER_ERROR;
    }
 
-#ifndef HEIMDAL
-   /*
-    * With MIT Kerberos 5 1.3.x the gss_cred_id_t is the same as
-    * krb5_gss_cred_id_t and krb5_gss_cred_id_rec contains a pointer to
-    * the replay cache.
-    * This allows us to override the replay cache function vector with
-    * our own one.
-    * Note that this is a dirty hack to get things working and there may
-    * well be unknown side-effects.
-    */
-   {
-      krb5_gss_cred_id_t gss_creds = (krb5_gss_cred_id_t) *server_creds;
-
-      /* First we try to verify we are linked with 1.3.x to prevent from
-         crashing when linked with 1.4.x */
-      if (gss_creds && (gss_creds->usage == GSS_C_ACCEPT)) {
-	 if (gss_creds->rcache && gss_creds->rcache->ops &&
-	     gss_creds->rcache->ops->type &&  
-	     memcmp(gss_creds->rcache->ops->type, "dfl", 3) == 0)
-          /* Override the rcache operations */
-	 gss_creds->rcache->ops = &mod_auth_kerb_rc_ops;
-      }
-   }
-#endif
-   
    return 0;
 }
 
@@ -1258,6 +1427,9 @@ authenticate_user_gss(request_rec *r, kerb_auth_config *conf,
   gss_OID_desc spnego_oid;
   gss_ctx_id_t context = GSS_C_NO_CONTEXT;
   gss_cred_id_t server_creds = GSS_C_NO_CREDENTIAL;
+  char* tmp = NULL;
+  krb5_context kcontext = NULL;
+  krb5_error_code code;
 
   *negotiate_ret_value = "\0";
 
@@ -1331,7 +1503,8 @@ authenticate_user_gss(request_rec *r, kerb_auth_config *conf,
 				  &delegated_cred);
   log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
 	     "Verification returned code %d", major_status);
-  if (output_token.length) {
+
+  if (output_token.length && ( !is_basic_auth_on(conf) || major_status & GSS_S_CONTINUE_NEEDED )) {
      char *token = NULL;
      size_t len;
      
@@ -1351,8 +1524,10 @@ authenticate_user_gss(request_rec *r, kerb_auth_config *conf,
 	        "GSS-API token of length %d bytes will be sent back",
 		output_token.length);
      gss_release_buffer(&minor_status2, &output_token);
-     set_kerb_auth_headers(r, conf, 0, 0, *negotiate_ret_value);
   }
+  else
+      /* don't offer more Kerberos */
+      *negotiate_ret_value = NULL;
 
   if (GSS_ERROR(major_status)) {
      if (input_token.length > 7 && memcmp(input_token.value, "NTLMSSP", 7) == 0)
@@ -1362,21 +1537,9 @@ authenticate_user_gss(request_rec *r, kerb_auth_config *conf,
      log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
 	        "%s", get_gss_error(r->pool, major_status, minor_status,
 		                    "gss_accept_sec_context() failed"));
-     /* Don't offer the Negotiate method again if call to GSS layer failed */
-     *negotiate_ret_value = NULL;
      ret = HTTP_UNAUTHORIZED;
      goto end;
   }
-
-#if 0
-  /* This is a _Kerberos_ module so multiple authentication rounds aren't
-   * supported. If we wanted a generic GSS authentication we would have to do
-   * some magic with exporting context etc. */
-  if (major_status & GSS_S_CONTINUE_NEEDED) {
-     ret = HTTP_UNAUTHORIZED;
-     goto end;
-  }
-#endif
 
   major_status = gss_display_name(&minor_status, client_name, &output_token, NULL);
   gss_release_name(&minor_status, &client_name); 
@@ -1388,8 +1551,22 @@ authenticate_user_gss(request_rec *r, kerb_auth_config *conf,
     goto end;
   }
 
+  code = krb5_init_context(&kcontext);
+  if (code) {
+      log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+		 "Cannot initialize Kerberos5 context (%d)", code);
+      ret = HTTP_INTERNAL_SERVER_ERROR;
+      goto end;
+  }
+
+  tmp = map_principal_to_domain_user( r, &kcontext, output_token.value );
+
+  log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
+             "Setting the request user to %s",
+	     tmp ? tmp : "(NULL)");
+
   MK_AUTH_TYPE = MECH_NEGOTIATE;
-  MK_USER = apr_pstrdup(r->pool, output_token.value);
+  MK_USER = tmp;
 
   if (conf->krb_save_credentials && delegated_cred != GSS_C_NO_CREDENTIAL)
      store_gss_creds(r, conf, (char *)output_token.value, delegated_cred);
@@ -1414,19 +1591,40 @@ end:
   if (context != GSS_C_NO_CONTEXT)
      gss_delete_sec_context(&minor_status, &context, GSS_C_NO_BUFFER);
 
+  if ( kcontext )
+     krb5_free_context(kcontext);
+
   return ret;
 }
 #endif /* KRB5 */
 
 static int
-already_succeeded(request_rec *r)
+already_succeeded(request_rec *r, int *pret)
 {
-   if (ap_is_initial_req(r) || MK_AUTH_TYPE == NULL)
-      return 0;
-   if (strcmp(MK_AUTH_TYPE, MECH_NEGOTIATE) ||
-       (strcmp(MK_AUTH_TYPE, "Basic") && strchr(MK_USER, '@')))
-      return 1;
-   return 0;
+    const char* strret = NULL;
+    request_rec *mainr = NULL;
+
+    if ( ap_is_initial_req(r) )
+	return 0;
+
+    mainr = r->main;
+
+    if ( mainr  )
+    {
+        while(mainr->main)
+	    mainr = mainr->main;
+
+	strret = MK_TABLE_GET( mainr->subprocess_env, "KRBAUTHRET" );
+
+	if ( strret && strlen(strret) > 0 && (*pret = atoi(strret)) == OK )
+	{
+	    MK_USER = apr_pstrdup( r->pool, MK_MAIN_USER );
+	    MK_AUTH_TYPE = apr_pstrdup( r->pool, MK_MAIN_AUTH_TYPE );
+	    return 1;
+	}
+    }
+
+    return 0;
 }
 
 static void
@@ -1435,9 +1633,12 @@ set_kerb_auth_headers(request_rec *r, const kerb_auth_config *conf,
 {
    const char *auth_name = NULL;
    int set_basic = 0;
+   int basic_on = 0;
    char *negoauth_param;
    const char *header_name = 
       (r->proxyreq == PROXYREQ_PROXY) ? "Proxy-Authenticate" : "WWW-Authenticate";
+
+   basic_on = is_basic_auth_on( conf );
 
    /* get the user realm specified in .htaccess */
    auth_name = ap_auth_name(r);
@@ -1450,7 +1651,7 @@ set_kerb_auth_headers(request_rec *r, const kerb_auth_config *conf,
 	          apr_pstrcat(r->pool, MECH_NEGOTIATE " ", negotiate_ret_value, NULL);
       apr_table_add(r->err_headers_out, header_name, negoauth_param);
    }
-   if ((use_krb5pwd && conf->krb_method_k5pass) || conf->krb_delegate_basic) {
+   if ( use_krb5pwd && basic_on ) {
       apr_table_add(r->err_headers_out, header_name,
 		   apr_pstrcat(r->pool, "Basic realm=\"", auth_name, "\"", NULL));
       set_basic = 1;
@@ -1458,8 +1659,7 @@ set_kerb_auth_headers(request_rec *r, const kerb_auth_config *conf,
 #endif
 
 #ifdef KRB4
-   if (!set_basic && 
-       ((use_krb4 && conf->krb_method_k4pass) || conf->krb_delegate_basic))
+   if (!set_basic && ( use_krb4 && basic_on ) )
       apr_table_add(r->err_headers_out, header_name,
 		  apr_pstrcat(r->pool, "Basic realm=\"", auth_name, "\"", NULL));
 #endif
@@ -1476,15 +1676,14 @@ kerb_authenticate_user(request_rec *r)
    const char *type = NULL;
    int use_krb5 = 0, use_krb4 = 0;
    int ret;
-   static int last_return = HTTP_UNAUTHORIZED;
    char *negotiate_ret_value = NULL;
 
    /* get the type specified in .htaccess */
    type = ap_auth_type(r);
 
    log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
-	      "kerb_authenticate_user entered with user %s and auth_type %s",
-	      (MK_USER)?MK_USER:"(NULL)",type?type:"(NULL)");
+	      "[pid %d] kerb_authenticate_user entered with user %s and auth_type %s",
+	      getpid(), (MK_USER)?MK_USER:"(NULL)",type?type:"(NULL)");
 
    if (type && strcasecmp(type, "Kerberos") == 0)
       use_krb5 = use_krb4 = 1;
@@ -1527,8 +1726,8 @@ kerb_authenticate_user(request_rec *r)
        (strcasecmp(auth_type, "Basic") == 0))
        return DECLINED;
 
-   if (already_succeeded(r))
-      return last_return;
+   if (already_succeeded(r, &ret))
+       return ret;
 
    ret = HTTP_UNAUTHORIZED;
 
@@ -1548,12 +1747,12 @@ kerb_authenticate_user(request_rec *r)
       ret = authenticate_user_krb4pwd(r, conf, auth_line);
 #endif
 
-   if (ret == HTTP_UNAUTHORIZED)
+   if (ret == HTTP_UNAUTHORIZED || negotiate_ret_value)
       set_kerb_auth_headers(r, conf, use_krb4, use_krb5, negotiate_ret_value);
 
-   /* XXX log_debug: if ret==OK, log(user XY authenticated) */
+   if ( ap_is_initial_req(r) )
+       apr_table_setn( r->subprocess_env, "KRBAUTHRET", apr_psprintf(r->pool, "%d", ret) );
 
-   last_return = ret;
    return ret;
 }
 

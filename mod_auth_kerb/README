@@ -19,6 +19,27 @@ plain text. To counter this, I would suggest also using mod_ssl or Apache-SSL.
 The use of SSL encryption is also recommended if you are using the Negotiate
 method.
 
+When password based authentication for Kerberos is used, via the Basic Auth
+mechanism, the incoming user name is mapped to a Kerberos principal name.
+The user may provide the logon credentials in one of the following formats
+    <REALM>\<user> or <user>@<REALM> or just <user>.
+The mapping can be controlled by a regular expression in the Kerberos
+configuration file (usually /etc/krb5.conf) under the appdefaults section
+as shown below. The mappings parameter takes a space separated list of
+"<regular expression> <target>" pairs where the matching entries from the
+<regular expression> are substituted in the <target> for the $1, $2, $3 ...
+placeholders.
+Similar to the mappings parameter is the reverse_mappings parameter. It maps
+the Kerberos principal name of the authenticated user back to the user in the
+HTTP request.
+
+[appdefaults]
+    httpd = {
+        mappings = SOMEDOMAIN\\(.*) $1@SOMEDOMAIN.SUFFIX.COM
+        reverse_mappings = (.*)@SOMEDOMAIN\.SUFFIX\.COM SOMEDOMAIN\$1
+    }
+
+
 Building and installing the module
 ----------------------------------
 see INSTALL
@@ -31,7 +52,6 @@ AuthType type
    the reasons of backwards compatibility the values KerberosV4 and KerberosV5
    are also supported. Their use is not recommended though, for finer setting
    use following three options.
-
 
 KrbMethodNegotiate on | off	(set to on by default)
    To enable or disable the use of the Negotiate method. You need a special

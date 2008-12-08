@@ -15,6 +15,12 @@ LIB_resolv=""
 AC_CHECK_LIB([resolv], [main], [LIB_resolv=-lresolv])
 AC_SUBST(LIB_resolv)
 
+# Checks for libraries.
+# FIXME: Replace `main' with a function in `-ldl':
+LIB_dl=""
+AC_CHECK_LIB([dl], [main], [LIB_dl=-ldl])
+AC_SUBST(LIB_dl)
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([limits.h netdb.h stddef.h stdlib.h string.h unistd.h])
@@ -40,17 +46,11 @@ AC_ARG_WITH(krb5,
   [ with_krb5="$withval" ])
 
 if test "x$with_krb5" != "xno" ; then
+  krb5_config_command="$with_krb5/bin/krb5-config"
+
   ac_save_CPPFLAGS="$CPPFLAGS"
   ac_save_LDFLAGS="$LDFLAGS"
   ac_save_LIBS="$LIBS"
-   
-  if test -n "$with_krb5"; then
-     if test -x "$with_krb5/bin/krb5-config"; then
-        krb5_config_command="$with_krb5/bin/krb5-config"
-     else
-        krb5_config_command=""
-     fi
-  fi
 
   dnl
   dnl find header files
@@ -58,9 +58,6 @@ if test "x$with_krb5" != "xno" ; then
 
   if test -z "$KRB5_CPPFLAGS"; then
      TMP_KRB5_CPPFLAGS=""
-     if test -n "$krb5_config_command"; then
-        TMP_KRB5_CPPFLAGS=`$krb5_config_command --cflags gssapi 2>/dev/null`
-     fi
      if test -z "$TMP_KRB5_CPPFLAGS"; then
         TMP_KRB5_CPPFLAGS="-I$with_krb5/include"
      fi
@@ -78,22 +75,33 @@ if test "x$with_krb5" != "xno" ; then
   dnl find libraries
   dnl
 
-  if test -z "$KRB5_LDFLAGS" -a -n "$krb5_config_command"; then
-     TMP_KRB5_LDFLAGS=`$krb5_config_command --libs gssapi 2>/dev/null`
-     if test -n "$TMP_KRB5_LDFLAGS"; then
-        LIBS="$LIBS $TMP_KRB5_LDFLAGS $LIB_resolv"
-        AC_CHECK_LIB(krb5, krb5_init_context,
-                     [ KRB5_LDFLAGS="$TMP_KRB5_LDFLAGS" ])
-        LIBS="$ac_save_LIBS"
-     fi
+  if test -z "$KRB5_LIBDIR"; then
+     KRB5_LIBDIR="lib"
   fi
 
   if test -z "$KRB5_LDFLAGS"; then
      #try MIT
-     TMP_KRB5_LDFLAGS="-L$with_krb5/lib -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err"
-     LIBS="$LIBS $TMP_KRB5_LDFLAGS $LIB_resolv"
-     AC_CHECK_LIB(krb5, krb5_init_context, [ KRB5_LDFLAGS="$TMP_KRB5_LDFLAGS" ])
-     LIBS="$ac_save_LIBS"
+     if test -n "$krb5_config_command"; then
+         CONFIG_KRB5_LDFLAGS=`CFLAGS= $krb5_config_command --libs gssapi 2>/dev/null`
+     fi
+     if test "x$with_krb5" != "xno" ; then
+         TMP_KRB5_LDFLAGS="$KRB5_TESTRPATH -L$with_krb5/$KRB5_LIBDIR -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err $LIB_dl"
+         if test -n "$CONFIG_KRB5_LDFLAGS"; then
+             NEW_KRB5_LDFLAGS="-L$with_krb5/$KRB5_LIBDIR $CONFIG_KRB5_LDFLAGS"
+         else
+             NEW_KRB5_LDFLAGS="-L$with_krb5/$KRB5_LIBDIR -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err $LIB_dl"
+         fi
+     else
+         if test -n "$CONFIG_KRB5_LDFLAGS"; then
+             TMP_KRB5_LDFLAGS="$CONFIG_KRB5_LDFLAGS"
+             NEW_KRB5_LDFLAGS="$CONFIG_KRB5_LDFLAGS"
+         fi
+     fi
+     if test -n "$TMP_KRB5_LDFLAGS"; then
+         LIBS="$LIBS $TMP_KRB5_LDFLAGS $LIB_resolv"
+         AC_CHECK_LIB(krb5, krb5_init_context, [ KRB5_LDFLAGS="$NEW_KRB5_LDFLAGS" ])
+         LIBS="$ac_save_LIBS"
+     fi
   fi
 
   if test -z "$KRB5_LDFLAGS"; then
@@ -139,7 +147,15 @@ if test "x$with_krb5" != "xno" ; then
      ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$KRB5_CPPFLAGS"
      ac_save_LDFLAGS="$LDFLAGS"
-     LDFLAGS=$KRB5_LDFLAGS
+     if test "x$with_krb5" != "xno" ; then
+         if test -n "$TMP_KRB5_LDFLAGS"; then
+             LDFLAGS="$TMP_KRB5_LDFLAGS"
+         else
+             LDFLAGS="$KRB5_TESTRPATH $KRB5_LDFLAGS"
+         fi
+     else
+         LDFLAGS=$KRB5_LDFLAGS
+     fi
 
      AC_TRY_RUN([
 #include <string.h>
@@ -303,7 +319,6 @@ fi
 AC_SUBST(KRB4_CPPFLAGS)
 AC_SUBST(KRB4_LDFLAGS)
 
-
 if test "x$with_krb5" = "xno" -a "x$with_krb4" = "xno"; then
   AC_MSG_ERROR([No Kerberos enviroment found])
 fi
@@ -322,6 +337,7 @@ if test -z "$APXS"; then
       AC_MSG_ERROR([failed to find apache apxs executable])
    fi
 fi
+
 AC_SUBST(APXS)
 
 AC_CONFIG_FILES([Makefile])
