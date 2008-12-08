@@ -270,16 +270,16 @@ error:
 }
 
 LWMsgStatus
-lwmsg_context_free_object(
+lwmsg_context_free_graph(
     LWMsgContext* context,
     LWMsgTypeSpec* type,
-    void* object)
+    void* root)
 {
     LWMsgTypeIter iter;
 
     lwmsg_type_iterate_promoted(type, &iter);
 
-    return lwmsg_context_free_graph_internal(context, &iter, (unsigned char*) &object);
+    return lwmsg_context_free_graph_internal(context, &iter, (unsigned char*) &root);
 }
 
 LWMsgStatus

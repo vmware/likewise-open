@@ -165,7 +165,7 @@ done:
     /* Ask the association to free the reply */
     if (reply_object)
     {
-        lwmsg_assoc_free(fserv->assoc, reply_type, reply_object);
+        lwmsg_assoc_free_graph(fserv->assoc, reply_type, reply_object);
     }
 
     return ret;
@@ -229,7 +229,7 @@ done:
     /* Ask the association to free the reply */
     if (reply_object)
     {
-        lwmsg_assoc_free(file->fserv->assoc, reply_type, reply_object);
+        lwmsg_assoc_free_graph(file->fserv->assoc, reply_type, reply_object);
     }
 
     return ret;
@@ -284,7 +284,7 @@ done:
     /* Ask the association to free the reply */
     if (reply_object)
     {
-        lwmsg_assoc_free(file->fserv->assoc, reply_type, reply_object);
+        lwmsg_assoc_free_graph(file->fserv->assoc, reply_type, reply_object);
     }
 
     return ret;
@@ -334,7 +334,7 @@ error:
     /* Ask the association to free the reply */
     if (reply_object)
     {
-        lwmsg_assoc_free(file->fserv->assoc, reply_type, reply_object);
+        lwmsg_assoc_free_graph(file->fserv->assoc, reply_type, reply_object);
     }
 
     if (ret == 0)

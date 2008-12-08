@@ -253,6 +253,27 @@ lwmsg_protocol_unmarshal(
     );
 
 /**
+ * @brief Free a message object graph
+ *
+ * Frees an object graph for the specified message tag
+ *
+ * @param prot the protocol object
+ * @param tag the message tag
+ * @param root the root of the object graph
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{NOT_FOUND, the specified message tag is unknown}
+ * @lwmsg_etc{an error returned by the memory manager}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_protocol_free_graph(
+    LWMsgProtocol* prot,
+    unsigned int tag,
+    void* root
+    );
+
+/**
  * @ingroup protocol
  * @brief Specify a message tag and type
  *
@@ -261,12 +282,12 @@ lwmsg_protocol_unmarshal(
  * integer tag and associated marshaller type
  * specification.
  *
- * @param _tag the integer identifier for the message
- * @param _spec the marshaller type specifier that describes the message payload
+ * @param tag the integer identifier for the message
+ * @param spec the marshaller type specifier that describes the message payload
  * @hideinitializer
  */
-#define LWMSG_MESSAGE(_tag, _spec) \
-    { (_tag), (_spec) }
+#define LWMSG_MESSAGE(tag, spec) \
+    { (tag), (spec) }
 
 /**
  * @ingroup protocol

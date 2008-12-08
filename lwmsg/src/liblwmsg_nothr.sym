@@ -15,7 +15,7 @@ lwmsg_assoc_register_handle
 lwmsg_assoc_unregister_handle
 lwmsg_assoc_get_handle_location
 lwmsg_assoc_free_message
-lwmsg_assoc_free
+lwmsg_assoc_free_graph
 lwmsg_assoc_set_timeout
 lwmsg_assoc_set_timeout_ms
 lwmsg_assoc_get_error_message
@@ -40,7 +40,7 @@ lwmsg_context_delete
 lwmsg_context_set_memory_functions
 lwmsg_context_set_data_function
 lwmsg_context_get_error_message
-lwmsg_context_free_object
+lwmsg_context_free_graph
 lwmsg_marshal
 lwmsg_protocol_get_message_type
 lwmsg_protocol_new
@@ -48,6 +48,7 @@ lwmsg_protocol_add_protocol_spec
 lwmsg_protocol_delete
 lwmsg_protocol_marshal
 lwmsg_protocol_unmarshal
+lwmsg_protocol_free_graph
 lwmsg_protocol_get_error_message
 lwmsg_time_now
 lwmsg_time_difference

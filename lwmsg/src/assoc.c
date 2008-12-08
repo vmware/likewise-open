@@ -455,7 +455,7 @@ lwmsg_assoc_free_message(
     LWMsgTypeSpec* type = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, message->tag, &type)); 
-    BAIL_ON_ERROR(status = lwmsg_context_free_object(&assoc->context, type, message->object));
+    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, message->object));
 
 error:
 
@@ -464,7 +464,7 @@ error:
 
 
 LWMsgStatus
-lwmsg_assoc_free(
+lwmsg_assoc_free_graph(
     LWMsgAssoc* assoc,
     LWMsgMessageTag mtype,
     void* object
@@ -474,7 +474,7 @@ lwmsg_assoc_free(
     LWMsgTypeSpec* type = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, mtype, &type)); 
-    BAIL_ON_ERROR(status = lwmsg_context_free_object(&assoc->context, type, object));
+    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, object));
 
 error:
 

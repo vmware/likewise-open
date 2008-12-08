@@ -449,7 +449,79 @@ MU_TEST(marshal, string_array)
     MU_ASSERT_EQUAL(MU_TYPE_STRING, strings.strings[0], out->strings[0]);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, strings.strings[1], out->strings[1]);
     MU_ASSERT(out->strings[2] == NULL);
+
+    lwmsg_context_free_graph(context, type, out);
 }
+
+MU_TEST(marshal, string_array_empty)
+{
+    static const unsigned char expected[] =
+    {
+        /* Implicit pointer set value */
+        0xFF,
+        /* strings = (set) */
+        0xFF,
+        /* (implicit) length of "strings" = 1 */
+        0x00, 0x00, 0x00, 0x01,
+        /* strings[0] = unset */
+        0x00
+    };
+
+    LWMsgTypeSpec* type = string_array_spec;
+    LWMsgBuffer buffer;
+    string_array_struct strings;
+    string_array_struct *out;
+    char* inner[] = { NULL };
+
+    strings.strings = (char**) inner;
+
+    allocate_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
+
+    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+
+    rewind_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
+
+    MU_ASSERT_EQUAL(MU_TYPE_POINTER, strings.strings[0], out->strings[0]);
+
+    lwmsg_context_free_graph(context, type, out);
+}
+
+MU_TEST(marshal, string_array_null)
+{
+    static const unsigned char expected[] =
+    {
+        /* Implicit pointer set value */
+        0xFF,
+        /* strings = (not set) */
+        0x00
+    };
+
+    LWMsgTypeSpec* type = string_array_spec;
+    LWMsgBuffer buffer;
+    string_array_struct strings;
+    string_array_struct *out;
+
+    strings.strings = NULL;
+
+    allocate_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
+
+    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+
+    rewind_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
+
+    MU_ASSERT_EQUAL(MU_TYPE_POINTER, out->strings, NULL);
+
+    lwmsg_context_free_graph(context, type, out);
+}
+
 
 #define TAG_NUMBER 1
 #define TAG_STRING 2

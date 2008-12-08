@@ -186,13 +186,13 @@ lwmsg_context_get_error_message(
  *
  * @param context the context
  * @param type the type of the root object
- * @param object the root object
+ * @param root the root of the object graph
  * @return LWMSG_STATUS_SUCCESS on success or appropriate status code on failure
  */
 LWMsgStatus
-lwmsg_context_free_object(
+lwmsg_context_free_graph(
     LWMsgContext* context,
     LWMsgTypeSpec* type,
-    void* object);
+    void* root);
 
 #endif

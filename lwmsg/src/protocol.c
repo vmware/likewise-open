@@ -193,3 +193,22 @@ error:
 
     return status;
 }
+
+LWMsgStatus
+lwmsg_protocol_free_graph(
+    LWMsgProtocol* prot,
+    unsigned int tag,
+    void* root
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTypeSpec* mtype = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, tag, &mtype));
+
+    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&prot->context, mtype, root));
+
+error:
+
+    return status;
+}

@@ -1019,7 +1019,7 @@ fd_sender(void* _assoc)
 
     MU_ASSERT_EQUAL(MU_TYPE_STRING, reply->message, message);
 
-    lwmsg_assoc_free(assoc, reply_type, reply_object);
+    lwmsg_assoc_free_graph(assoc, reply_type, reply_object);
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
     lwmsg_assoc_delete(assoc);
 
@@ -1053,7 +1053,7 @@ fd_receiver(void* _assoc)
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, FD_REPLY, &reply));
 
     close(request->readfd);
-    lwmsg_assoc_free(assoc, request_type, request_object);
+    lwmsg_assoc_free_graph(assoc, request_type, request_object);
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
     lwmsg_assoc_delete(assoc);

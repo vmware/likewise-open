@@ -744,14 +744,15 @@ lwmsg_assoc_get_handle_location(
  * @ingroup assoc
  * @brief Free a message
  *
- * Completely frees a message by recursively freeing the message's payload.
- * This allows a received message to be easily freed in one shot regardless
- * of the payload's structural complexity.
+ * Frees the object graph of a message using the memory manager and
+ * protocol of the specified association.
  *
  * @param[in] assoc the assocation
  * @param[in] message the message to free
  * @lwmsg_status
  * @lwmsg_success
+ * @lwmsg_code{NOT_FOUND, the message tag is not known by the association's protocol}
+ * @lwmsg_etc{an error returned by the memory manager}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -764,23 +765,22 @@ lwmsg_assoc_free_message(
  * @ingroup assoc
  * @brief Free a message (simple)
  *
- * This function allows a message to be freed without the complexity of
- * using an LWMsgMessage structure.
- *
- * @warning This function should not be confused with lwmsg_assoc_delete()
+ * Frees the object graph of a message using the memory manager and
+ * protocol of the specified association.  This function does not
+ * require a complete LWMsgMessage structure.
  *
  * @param[in] assoc the assocation
- * @param[in] type the type of the message to free
- * @param[in] object the payload of the object to free
+ * @param[in] tag the tag of the message to free
+ * @param[in] root the root of the object graph
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_assoc_free(
+lwmsg_assoc_free_graph(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag type,
-    void* object
+    LWMsgMessageTag tag,
+    void* root
     );
 
 /**
