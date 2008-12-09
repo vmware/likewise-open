@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -26,6 +26,10 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
+ */
+
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
 #include <stdlib.h>
@@ -88,17 +92,18 @@ void EncodePassBuffer(unsigned char buffer[516], const char* pass)
 void md4hash(uint8 h[16], const wchar16_t *password)
 {
     size_t size = 0;
-    size_t sizew = 0;
+    size_t len = 0;
     wchar16_t *password_le = NULL;
 
     memset(h, 0, sizeof(h));
 
-    sizew = wc16slen(password);
-    size = sizew * sizeof(wchar16_t);
-    password_le = malloc(size + 1);
+    len = wc16slen(password);
+    size = len * sizeof(wchar16_t);
+    password_le = malloc(size + sizeof(wchar16_t));
+    if (password_le == NULL) return;
 
     /* Force string into little-endian byte ordering */
-    wc16stowc16les(password_le, password, sizew);
+    wc16stowc16les(password_le, password, len);
 
     md4(h, (uint8*)password_le, size);
 
@@ -108,6 +113,7 @@ void md4hash(uint8 h[16], const wchar16_t *password)
 
 void deshash(uint8 h[16], const wchar16_t *password)
 {
+    const max_passlen = 14;
     const uint8 input[] = "KGS!@#$%";
     const size_t input_len = 8;
 
@@ -116,16 +122,45 @@ void deshash(uint8 h[16], const wchar16_t *password)
     uint8 deskey[8];
     int i;
 
+    /* Clear the hash first */
     memset(h, 0, sizeof(h));
 
     /* password can be 14 characters long at most */
     len = wc16slen(password);
     if (len > 14) return;
 
-    mbspass = (unsigned char*) malloc(len + 1);
+    mbspass = (unsigned char*) malloc(max_passlen);
+    if (mbspass == NULL) return;
+
+    memset((void*)mbspass, 0, max_passlen);
     wc16stombs((char*)mbspass, password, len + 1);
     for (i = 0; i < len; i++) mbspass[i] = toupper(mbspass[i]);
 
     des56(h, input, input_len, mbspass);
     des56(&h[8], input, input_len, &mbspass[7]);
+
+    free(mbspass);
 }
+
+
+void encrypt_challenge(uint8 out[24], uint8 chal[8], uint8 key[16])
+{
+    uint8 k[21];
+
+    memset(k, 0, sizeof(k));
+    memcpy((void*)k, (void*)key, 16);
+
+    des56(&out[0],  chal, 8, &k[0]);
+    des56(&out[8],  chal, 8, &k[7]);
+    des56(&out[16], chal, 8, &k[14]);
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
