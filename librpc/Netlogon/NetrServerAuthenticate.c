@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -35,10 +35,10 @@
 #include "includes.h"
 
 
-NTSTATUS NetrServerAuthenticate2(handle_t b, const wchar16_t *server,
-                                 const wchar16_t *account, uint16 sec_chan_type,
-                                 const wchar16_t *computer, uint8 cli_creds[8],
-                                 uint8 srv_creds[8], uint32 *neg_flags)
+NTSTATUS NetrServerAuthenticate(handle_t b, const wchar16_t *server,
+                                const wchar16_t *account, uint16 sec_chan_type,
+                                const wchar16_t *computer, uint8 cli_creds[8],
+                                uint8 srv_creds[8])
 {
     NTSTATUS status = STATUS_SUCCESS;
     NetrCred creds = {0};
@@ -52,7 +52,6 @@ NTSTATUS NetrServerAuthenticate2(handle_t b, const wchar16_t *server,
     goto_if_invalid_param_ntstatus(computer, cleanup);
     goto_if_invalid_param_ntstatus(cli_creds, cleanup);
     goto_if_invalid_param_ntstatus(srv_creds, cleanup);
-    goto_if_invalid_param_ntstatus(neg_flags, cleanup);
 
     memcpy(creds.data, cli_creds, sizeof(creds.data));
 
@@ -65,8 +64,8 @@ NTSTATUS NetrServerAuthenticate2(handle_t b, const wchar16_t *server,
     comp = wc16sdup(computer);
     goto_if_no_memory_ntstatus(comp, error);
 
-    DCERPC_CALL(status, _NetrServerAuthenticate2(b, srv, acc, sec_chan_type,
-                                                 comp, &creds, neg_flags));
+    DCERPC_CALL(status, _NetrServerAuthenticate(b, srv, acc, sec_chan_type,
+                                                comp, &creds));
     goto_if_ntstatus_not_success(status, error);
 
     memcpy(srv_creds, creds.data, sizeof(creds.data));
@@ -82,7 +81,6 @@ cleanup:
 
 error:
     memset(srv_creds, 0, sizeof(creds.data));
-    *neg_flags = 0;
 
     goto cleanup;
 }

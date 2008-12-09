@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,6 +28,10 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 
@@ -44,6 +48,151 @@ void NetrCleanStubDomainTrustList(NetrDomainTrustList *r)
     }
 
     free(r->array);
+}
+
+
+static void NetrCleanSamBaseInfo(NetrSamBaseInfo *r)
+{
+    FreeUnicodeString(&r->account_name);
+    FreeUnicodeString(&r->full_name);
+    FreeUnicodeString(&r->logon_script);
+    FreeUnicodeString(&r->profile_path);
+    FreeUnicodeString(&r->home_directory);
+    FreeUnicodeString(&r->home_drive);
+
+    r->groups.count = 0;
+    SAFE_FREE(r->groups.rids);
+
+    FreeUnicodeString(&r->logon_server);
+    FreeUnicodeString(&r->domain);
+
+    if (r->domain_sid) {
+        SidFree(r->domain_sid);
+        r->domain_sid = NULL;
+    }
+}
+
+
+static void NetrCleanSamInfo2(NetrSamInfo2 *r)
+{
+    NetrCleanSamBaseInfo(&r->base);
+}
+
+
+static void NetrFreeSamInfo2(NetrSamInfo2 *ptr)
+{
+    if (ptr == NULL) return;
+
+    NetrCleanSamInfo2(ptr);
+    free(ptr);
+}
+
+
+static NetrCleanSidAttr(NetrSidAttr *r, uint32 count)
+{
+    int i = 0;
+
+    for (i = 0; r && i < count; i++) {
+        if (r[i].sid) {
+            SidFree(r[i].sid);
+            r[i].sid = NULL;
+        }
+    }
+}
+
+
+static NetrFreeSidAttr(NetrSidAttr *ptr, uint32 count)
+{
+    NetrCleanSidAttr(ptr, count);
+    free(ptr);
+}
+
+static void NetrCleanSamInfo3(NetrSamInfo3 *r)
+{
+    NetrCleanSamBaseInfo(&r->base);
+
+    if (r->sids) {
+        NetrFreeSidAttr(r->sids, r->sidcount);
+    }
+}
+
+
+static void NetrFreeSamInfo3(NetrSamInfo3 *ptr)
+{
+    if (ptr == NULL) return;
+
+    NetrCleanSamInfo3(ptr);
+    free(ptr);
+}
+
+
+static void NetrCleanSamInfo6(NetrSamInfo6 *r)
+{
+    NetrCleanSamBaseInfo(&r->base);
+
+    if (r->sids) {
+        NetrFreeSidAttr(r->sids, r->sidcount);
+    }
+
+    FreeUnicodeString(&r->forest);
+    FreeUnicodeString(&r->principal);
+}
+
+
+static void NetrFreeSamInfo6(NetrSamInfo6 *ptr)
+{
+    if (ptr == NULL) return;
+
+    NetrCleanSamInfo6(ptr);
+    free(ptr);
+}
+
+
+static void NetrCleanPacInfo(NetrPacInfo *r)
+{
+    SAFE_FREE(r->pac);
+    SAFE_FREE(r->auth);
+
+    FreeUnicodeString(&r->logon_domain);
+    FreeUnicodeString(&r->logon_server);
+    FreeUnicodeString(&r->principal_name);
+    FreeUnicodeString(&r->unknown1);
+    FreeUnicodeString(&r->unknown2);
+    FreeUnicodeString(&r->unknown3);
+    FreeUnicodeString(&r->unknown4);
+}
+
+
+static void NetrFreePacInfo(NetrPacInfo *ptr)
+{
+    if (ptr == NULL) return;
+
+    NetrCleanPacInfo(ptr);
+    free(ptr);
+}
+
+
+void NetrCleanStubValidationInfo(NetrValidationInfo *r, uint16 level)
+{
+    switch (level) {
+    case 2:
+        NetrFreeSamInfo2(r->sam2);
+        break;
+    case 3:
+        NetrFreeSamInfo3(r->sam3);
+        break;
+    case 4:
+        NetrFreePacInfo(r->pac4);
+        break;
+    case 5:
+        NetrFreePacInfo(r->pac5);
+        break;
+    case 6:
+        NetrFreeSamInfo6(r->sam6);
+        break;
+    default:
+        break;
+    }
 }
 
 

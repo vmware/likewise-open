@@ -43,6 +43,7 @@
 #include <lwrpc/winerror.h>
 #include <wc16str.h>
 #include <lwrpc/allocate.h>
+#include <lwrpc/memptr.h>
 
 #include "NetrUtil.h"
 #include "NetrMemory.h"

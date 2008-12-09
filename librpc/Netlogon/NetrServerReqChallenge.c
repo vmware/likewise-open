@@ -1,6 +1,5 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,6 +27,10 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 
@@ -49,21 +52,28 @@ NTSTATUS NetrServerReqChallenge(handle_t b, const wchar16_t *server,
     memcpy(creds.data, cli_challenge, sizeof(creds.data));
 
     srv = wc16sdup(server);
-    goto_if_no_memory_ntstatus(srv, cleanup);
+    goto_if_no_memory_ntstatus(srv, error);
 
     comp = wc16sdup(computer);
-    goto_if_no_memory_ntstatus(comp, cleanup);
+    goto_if_no_memory_ntstatus(comp, error);
 
     DCERPC_CALL(status, _NetrServerReqChallenge(b, srv, comp, &creds));
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 
     memcpy(srv_challenge, creds.data, sizeof(creds.data));
 
 cleanup:
+    memset(&creds, 0, sizeof(creds));
+
     SAFE_FREE(srv);
     SAFE_FREE(comp);
 
     return status;
+
+error:
+    memset(srv_challenge, 0, sizeof(creds.data));
+
+    goto cleanup;
 }
 
 
