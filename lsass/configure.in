@@ -696,6 +696,7 @@ AC_CONFIG_FILES([Makefile
                  tests/test_stress_ad_provider/Makefile
                  tests/test_authstress/Makefile
                  tests/test_bitvector/Makefile
+                 tests/test_memcache/Makefile
                  tests/test_perf/Makefile
                  scripts/Makefile])
 
