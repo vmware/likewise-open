@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,6 +28,10 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _NETLOGON_H_
 #define _NETLOGON_H_
 
@@ -37,11 +41,22 @@ NTSTATUS NetrServerReqChallenge(handle_t b, const wchar16_t *server,
                                 const wchar16_t *computer,
                                 uint8 cli_challenge[8], uint8 srv_challenge[8]);
 
+NTSTATUS NetrServerAuthenticate(handle_t b, const wchar16_t *server,
+                                const wchar16_t *account, uint16 sec_chan_type,
+                                const wchar16_t *computer, uint8 cli_creds[8],
+                                uint8 srv_creds[8]);
+
 NTSTATUS NetrServerAuthenticate2(handle_t b, const wchar16_t *server,
                                  const wchar16_t *account, uint16 sec_chan_type,
                                  const wchar16_t *computer,
                                  uint8 cli_credentials[8],
                                  uint8 srv_credentials[8], uint32 *neg_flags);
+
+NTSTATUS NetrServerAuthenticate3(handle_t b, const wchar16_t *server,
+                                 const wchar16_t *account, uint16 sec_chan_type,
+                                 const wchar16_t *computer, uint8 cli_creds[8],
+                                 uint8 srv_creds[8], uint32 *neg_flags,
+                                 uint32 *rid);
 
 NTSTATUS NetrEnumerateTrustedDomainsEx(handle_t b, const wchar16_t *server,
                                        NetrDomainTrust **trusts, uint32 *count);
