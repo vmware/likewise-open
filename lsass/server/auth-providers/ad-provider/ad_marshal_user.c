@@ -586,25 +586,25 @@ ADParseUserCtrlToCache(
     return 0;
 }
 
-DWORD ADGetCurrentNtTime(UINT64 *qwResult)
+DWORD
+ADGetCurrentNtTime(
+    OUT UINT64* pqwResult
+    )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    struct timeval current_tv;
+    time_t now = 0;
 
-    if (gettimeofday(&current_tv, NULL) < 0)
-    {
-        dwError = errno;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    dwError = ADConvertTimeUnix2Nt(current_tv.tv_sec,
-        qwResult);
+    dwError = LsaGetCurrentTimeSeconds(&now);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADConvertTimeUnix2Nt(now, pqwResult);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     return dwError;
 
 error:
-    *qwResult = 0;
+    *pqwResult = 0;
     goto cleanup;
 }
 
@@ -1784,28 +1784,19 @@ AD_BuildHomeDirFromTemplate(
     PSTR* ppszHomedir
     )
 {
-    typedef enum {
-        HOMEDIR_PARSE_MODE_OPEN = 0,
-        HOMEDIR_PARSE_MODE_PERCENT
-    } HomeDirParseMode;
-
     DWORD dwError = 0;
-    PSTR  pszHomedirPrefix = NULL;
-    PSTR  pszHomedir = NULL;
+    PSTR pszHomedirPrefix = NULL;
+    PSTR pszHomedir = NULL;
     DWORD dwOffset = 0;
-    HomeDirParseMode parseMode = HOMEDIR_PARSE_MODE_OPEN;
     PCSTR pszIterTemplate = pszHomedirTemplate;
-    DWORD dwBytesRemaining = 0;
     DWORD dwBytesAllocated = 0;
-    BOOLEAN bNeedMemory = FALSE;
-    DWORD dwLenDomainName = 0;
-    DWORD dwLenUserName = 0;
-    DWORD dwHomedirPrefixLen = 0;
+    DWORD dwNetBIOSDomainNameLength = 0;
+    DWORD dwSamAccountNameLength = 0;
+    DWORD dwHomedirPrefixLength = 0;
 
     BAIL_ON_INVALID_STRING(pszHomedirTemplate);
     BAIL_ON_INVALID_STRING(pszNetBIOSDomainName);
     BAIL_ON_INVALID_STRING(pszSamAccountName);
-
 
     if (strstr(pszHomedirTemplate, "%H"))
     {
@@ -1814,164 +1805,167 @@ AD_BuildHomeDirFromTemplate(
 
         BAIL_ON_INVALID_STRING(pszHomedirPrefix);
 
-        dwHomedirPrefixLen = strlen(pszHomedirPrefix);
+        dwHomedirPrefixLength = strlen(pszHomedirPrefix);
     }
 
-    dwLenDomainName = strlen(pszNetBIOSDomainName);
-    dwLenUserName = strlen(pszSamAccountName);
+    dwNetBIOSDomainNameLength = strlen(pszNetBIOSDomainName);
+    dwSamAccountNameLength = strlen(pszSamAccountName);
 
-    dwBytesAllocated = strlen(pszHomedirTemplate) +
-                        dwLenDomainName +
-                        dwLenUserName +
-                        dwHomedirPrefixLen + 1;
+    // Handle common case where we might use all replacements.
+    dwBytesAllocated = (strlen(pszHomedirTemplate) +
+                        dwNetBIOSDomainNameLength +
+                        dwSamAccountNameLength +
+                        dwHomedirPrefixLength +
+                        1);
 
     dwError = LsaAllocateMemory(
                     sizeof(CHAR) * dwBytesAllocated,
                     (PVOID*)&pszHomedir);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwBytesRemaining = dwBytesAllocated;
-
-    while (!IsNullOrEmptyString(pszIterTemplate))
+    while (pszIterTemplate[0])
     {
-        if (bNeedMemory)
+        // Do not count the terminating NULL as "available".
+        DWORD dwBytesRemaining = dwBytesAllocated - dwOffset - 1;
+        PCSTR pszInsert = NULL;
+        DWORD dwInsertLength = 0;
+        BOOLEAN bNeedUpper = FALSE;
+        BOOLEAN bNeedLower = FALSE;
+
+        LSA_ASSERT(dwOffset < dwBytesAllocated);
+
+        if (pszIterTemplate[0] == '%')
         {
-            DWORD dwIncrement = 64;
-
-            dwError = LsaReallocMemory(
-                            pszHomedir,
-                            (PVOID*)&pszHomedir,
-                            dwBytesAllocated + dwIncrement);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwBytesAllocated += dwIncrement;
-            dwBytesRemaining += dwIncrement;
-
-            bNeedMemory = FALSE;
-        }
-
-        switch (parseMode)
-        {
-            case HOMEDIR_PARSE_MODE_OPEN:
-
-                if (*pszIterTemplate == '%')
-                {
-                    pszIterTemplate++;
-                    parseMode = HOMEDIR_PARSE_MODE_PERCENT;
-                }
-                else
-                {
-                    if (!dwBytesRemaining)
-                    {
-                        bNeedMemory = TRUE;
-                    }
-                    else
-                    {
-                        *(pszHomedir + dwOffset++) = *pszIterTemplate++;
-                        dwBytesRemaining--;
-                    }
-                }
-
-                break;
-
-            case HOMEDIR_PARSE_MODE_PERCENT:
-
-                if (*pszIterTemplate == 'D')
-                {
-                     if (dwBytesRemaining < dwLenDomainName)
-                     {
-                         bNeedMemory = TRUE;
-                     }
-                     else
-                     {
-                         memcpy(pszHomedir + dwOffset,
-                                pszNetBIOSDomainName,
-                                dwLenDomainName);
-                         dwOffset += dwLenDomainName;
-                         dwBytesRemaining -= dwLenDomainName;
-
-                         pszIterTemplate++;
-
-                         parseMode = HOMEDIR_PARSE_MODE_OPEN;
-                     }
-                }
-                else if (*pszIterTemplate == 'U')
-                {
-                    if (dwBytesRemaining < dwLenUserName)
-                    {
-                        bNeedMemory = TRUE;
-                    }
-                    else
-                    {
-                        memcpy(pszHomedir + dwOffset,
-                               pszSamAccountName,
-                               dwLenUserName);
-                        dwOffset += dwLenUserName;
-                        dwBytesRemaining -= dwLenUserName;
-
-                        pszIterTemplate++;
-
-                        parseMode = HOMEDIR_PARSE_MODE_OPEN;
-                    }
-                }
-                else if (*pszIterTemplate == 'H')
-                {
-                    if (dwBytesRemaining < dwHomedirPrefixLen)
-                    {
-                        bNeedMemory = TRUE;
-                    }
-                    else
-                    {
-                        memcpy(pszHomedir + dwOffset,
-                               pszHomedirPrefix,
-                               dwHomedirPrefixLen);
-                        dwOffset += dwHomedirPrefixLen;
-                        dwBytesRemaining -= dwHomedirPrefixLen;
-
-                        pszIterTemplate++;
-
-                        parseMode = HOMEDIR_PARSE_MODE_OPEN;
-                    }
-                }
-                else
-                {
+            switch (pszIterTemplate[1])
+            {
+                case 'D':
+                    pszInsert = pszNetBIOSDomainName;
+                    dwInsertLength = dwNetBIOSDomainNameLength;
+                    bNeedUpper = TRUE;
+                    break;
+                case 'U':
+                    pszInsert = pszSamAccountName;
+                    dwInsertLength = dwSamAccountNameLength;
+                    bNeedLower = TRUE;
+                    break;
+                case 'H':
+                    pszInsert = pszHomedirPrefix;
+                    dwInsertLength = dwHomedirPrefixLength;
+                    break;
+                default:
                     dwError = LSA_ERROR_INVALID_HOMEDIR_TEMPLATE;
                     BAIL_ON_LSA_ERROR(dwError);
-                }
-
-                break;
+            }
+            LSA_ASSERT(!(bNeedUpper && bNeedLower));
+            pszIterTemplate += 2;
         }
+        else
+        {
+            PCSTR pszEnd = strchr(pszIterTemplate, '%');
+            if (!pszEnd)
+            {
+                dwInsertLength = strlen(pszIterTemplate);
+            }
+            else
+            {
+                dwInsertLength = pszEnd - pszIterTemplate;
+            }
+            pszInsert = pszIterTemplate;
+            pszIterTemplate += dwInsertLength;
+        }
+
+        if (dwBytesRemaining < dwInsertLength)
+        {
+            // We will increment by at least a minimum amount.
+            DWORD dwAllocate = LSA_MAX(dwInsertLength - dwBytesRemaining, 64);
+            PSTR pszNewHomedir = NULL;
+            dwError = LsaReallocMemory(
+                            pszHomedir,
+                            (PVOID*)&pszNewHomedir,
+                            dwBytesAllocated + dwAllocate);
+            BAIL_ON_LSA_ERROR(dwError);
+            pszHomedir = pszNewHomedir;
+            dwBytesAllocated += dwAllocate;
+        }
+        memcpy(pszHomedir + dwOffset,
+               pszInsert,
+               dwInsertLength);
+        if (bNeedUpper)
+        {
+            LsaStrnToUpper(pszHomedir + dwOffset, dwInsertLength);
+        }
+        else if (bNeedLower)
+        {
+            LsaStrnToLower(pszHomedir + dwOffset, dwInsertLength);
+        }
+        dwOffset += dwInsertLength;
     }
 
-    if (!dwBytesRemaining)
-    {
-        // Null terminate string
-        dwError = LsaReallocMemory(
-                      pszHomedir,
-                      (PVOID*)&pszHomedir,
-                      dwBytesAllocated + 1);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    // We should still have enough room for NULL.
+    LSA_ASSERT(dwOffset < dwBytesAllocated);
 
-    *(pszHomedir + dwOffset) = '\0';
+    pszHomedir[dwOffset] = 0;
+    dwOffset++;
 
     *ppszHomedir = pszHomedir;
 
 cleanup:
-
     LSA_SAFE_FREE_STRING(pszHomedirPrefix);
 
     return dwError;
 
 error:
-
     *ppszHomedir = NULL;
-
     LSA_SAFE_FREE_MEMORY(pszHomedir);
 
     goto cleanup;
 }
 
+DWORD
+CreateObjectLoginNameInfo(
+    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszSamAccountName,
+    IN PCSTR pszSid
+    )
+{
+    DWORD dwError = 0;
+    PLSA_LOGIN_NAME_INFO pLoginNameInfo = NULL;
+
+    dwError = LsaAllocateMemory(
+                    sizeof(LSA_LOGIN_NAME_INFO),
+                    (PVOID*)&pLoginNameInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pLoginNameInfo->nameType = NameType_NT4;
+
+    dwError = LsaAllocateString(
+                    pszDnsDomainName,
+                    &pLoginNameInfo->pszFullDomainName);
+
+    dwError = LsaDmWrapGetDomainName(
+                    pszDnsDomainName,
+                    NULL,
+                    &pLoginNameInfo->pszDomainNetBiosName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pszSamAccountName, &pLoginNameInfo->pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pszSid, &pLoginNameInfo->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppLoginNameInfo = pLoginNameInfo;
+
+cleanup:
+    return dwError;
+
+error:
+    *ppLoginNameInfo = NULL;
+
+    LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo);
+    goto cleanup;
+}
 
 /*
 local variables:

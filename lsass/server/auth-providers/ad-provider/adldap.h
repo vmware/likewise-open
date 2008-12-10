@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        adldap_p.h
+ *        adldap.h
  *
  * Abstract:
  *
@@ -61,8 +61,8 @@ DWORD
 ADGetLDAPUPNString(
     IN OPTIONAL HANDLE hDirectory,
     IN OPTIONAL LDAPMessage* pMessage,
-    IN PSTR pszDnsDomainName,
-    IN PSTR pszSamaccountName,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszSamaccountName,
     OUT PSTR* ppszUPN,
     OUT PBOOLEAN pbIsGeneratedUPN
     );
@@ -176,30 +176,6 @@ ADLdap_GetGCObjectInfoBySid(
     );
 
 DWORD
-ADLdap_FindUserNameByAlias(
-    PCSTR pszAlias,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_FindUserNameById(
-    uid_t uid,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_FindGroupNameByAlias(
-    PCSTR pszAlias,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
-ADLdap_FindGroupNameById(
-    gid_t gid,
-    PSTR* ppszNT4Name
-    );
-
-DWORD
 ADLdap_IsValidDN(
     HANDLE   hDirectory,
     PCSTR    pszDN,
@@ -211,6 +187,13 @@ ADLdap_GetObjectSid(
     HANDLE hDirectory,
     LDAPMessage* pMessage,
     PSTR* ppszSid
+    );
+
+DWORD
+ADLdap_GetAccountType(
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage,
+    OUT ADAccountType* pAccountType
     );
 
 #endif

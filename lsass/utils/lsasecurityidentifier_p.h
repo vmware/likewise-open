@@ -103,10 +103,10 @@ LsaUidHashCalc(
     );
     
 DWORD
-LsaStringToBytes(
-    PCSTR pszSidString,
-    UCHAR** ppucSidbytes,
-    DWORD* pdwSidBytesLength
+LsaSidStringToBytes(
+    IN PCSTR pszSidString,
+    OUT UCHAR** ppucSidBytes,
+    OUT DWORD* pdwSidBytesLength
     );
 
 DWORD

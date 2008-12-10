@@ -1869,20 +1869,17 @@ AD_OnlineFindUserObjectById(
         dwError = AD_CheckExpiredObject(&pCachedUser);
     }
 
-    if (dwError == LSA_ERROR_NOT_HANDLED) {
-        //convert uid -> NT4 name
-        dwError = ADLdap_FindUserNameById(
-                         uid,
-                         &pszNT4Name);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = AD_FindUserObjectByName(
+    if (dwError == LSA_ERROR_NOT_HANDLED)
+    {
+        dwError = AD_FindObjectByIdTypeNoCache(
                     hProvider,
-                    pszNT4Name,
+                    uid,
+                    AccountType_User,
                     &pCachedUser);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else {
+    else
+    {
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2124,15 +2121,19 @@ AD_OnlineEnumUsers(
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
 
     // If BeginEnum was called in offline mode, it can successfully return
-    // with hDirectory set to 0.
-    //
-    // If the system later transitions online, this enumeration function can
-    // get called with a 0 hDirectory. Right now this function bails under
-    // this scenario (the enumeration must be restarted).
-    //
-    // In the future, it would be possible to instead attempt to reconnect
-    // (and set hDirectory to non-zero).
-    BAIL_ON_INVALID_HANDLE(pEnumState->hDirectory);
+    // with hDirectory set to 0. That is the only way this function can
+    // be called with hDirectory as 0. So we should continue enumerating
+    // in offline mode.
+    if (pEnumState->hDirectory == (HANDLE)NULL)
+    {
+        return AD_OfflineEnumUsers(
+            hProvider,
+            hResume,
+            dwMaxNumUsers,
+            pdwUsersFound,
+            pppUserInfoList);
+    }
+
 
     switch (gpADProviderData->dwDirectoryMode)
     {
@@ -2200,7 +2201,6 @@ AD_OnlineFindGroupObjectByName(
     PSTR  pszGroupName_copy = NULL;
     HANDLE hDb = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pCachedGroup = NULL;
-    PSTR pszLookupName = NULL; //this name should be limited to NT4 or UPN format only
 
     BAIL_ON_INVALID_STRING(pszGroupName);
     dwError = LsaAllocateString(
@@ -2245,46 +2245,13 @@ AD_OnlineFindGroupObjectByName(
     }
 
     // Otherwise, look up the group
-    // If name is alias, convert to NT4 name
-    if (pGroupNameInfo->nameType == NameType_Alias)
-    {
-        dwError = ADLdap_FindGroupNameByAlias(
-                         pszGroupName_copy,
-                         &pszLookupName);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        dwError = LsaAllocateString(
-                     pszGroupName_copy,
-                     &pszLookupName);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaDmWrapNetLookupObjectSidByName(
-                gpADProviderData->szDomain,
-                pszLookupName,
-                &pGroupNameInfo->pszObjectSid);
+    dwError = AD_FindObjectByNameTypeNoCache(
+                    hProvider,
+                    pszGroupName_copy,
+                    pGroupNameInfo->nameType,
+                    AccountType_Group,
+                    &pCachedGroup);
     BAIL_ON_LSA_ERROR(dwError);
-
-    if (IsNullOrEmptyString(pGroupNameInfo->pszObjectSid))
-    {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = AD_FindObjectBySid(
-                hProvider,
-                pGroupNameInfo->pszObjectSid,
-                &pCachedGroup);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    // Check whether the object we find is group type or not
-    if (AccountType_Group != pCachedGroup->type)
-    {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     dwError = ADCacheDB_CacheObjectEntry(hDb, pCachedGroup);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2303,7 +2270,6 @@ cleanup:
         LsaFreeNameInfo(pGroupNameInfo);
     }
     LSA_SAFE_FREE_STRING(pszGroupName_copy);
-    LSA_SAFE_FREE_STRING(pszLookupName);
 
     return dwError;
 
@@ -2346,20 +2312,13 @@ AD_OnlineFindGroupById(
 
     if (dwError == LSA_ERROR_NOT_HANDLED)
     {
-        //convert gid -> NT4 name
-        dwError = ADLdap_FindGroupNameById(
-                         gid,
-                         &pszNT4Name);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = AD_FindGroupByNameWithCacheMode(
+        dwError = AD_FindGroupByIdWithCacheMode(
                     hProvider,
-                    pszNT4Name,
+                    gid,
                     bIsCacheOnlyMode,
                     dwGroupInfoLevel,
                     ppGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);
-
     }
     else if (dwError == 0)
     {
@@ -3126,6 +3085,232 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_FindObjectBySidNoCache(
+    IN HANDLE hProvider,
+    IN PCSTR pszSid,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    )
+{
+    return LsaAdBatchFindSingleObject(
+                hProvider,
+                LSA_AD_BATCH_QUERY_TYPE_BY_SID,
+                pszSid,
+                NULL,
+                ppObject);
+}
+
+static
+DWORD
+AD_FindObjectByNT4NameNoCache(
+    IN HANDLE hProvider,
+    IN PCSTR pszNT4Name,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    )
+{
+    return LsaAdBatchFindSingleObject(
+                hProvider,
+                LSA_AD_BATCH_QUERY_TYPE_BY_NT4,
+                pszNT4Name,
+                NULL,
+                ppObject);
+}
+
+static
+DWORD
+AD_FindObjectByUpnNoCache(
+    IN HANDLE hProvider,
+    IN PCSTR pszUpn,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszSid = NULL;
+    PAD_SECURITY_OBJECT pObject = NULL;
+
+    dwError = LsaDmWrapNetLookupObjectSidByName(
+                    gpADProviderData->szDomain,
+                    pszUpn,
+                    &pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_FindObjectBySidNoCache(
+                    hProvider,
+                    pszSid,
+                    &pObject);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszSid);
+
+    *ppObject = pObject;
+
+    return dwError;
+
+error:
+    ADCacheDB_SafeFreeObject(&pObject);
+    goto cleanup;
+}
+
+static
+DWORD
+AD_FindObjectByAliasNoCache(
+    IN HANDLE hProvider,
+    IN PCSTR pszAlias,
+    BOOLEAN bIsUserAlias,
+    OUT PAD_SECURITY_OBJECT* ppResult
+    )
+{
+    return LsaAdBatchFindSingleObject(
+                   hProvider,
+                   bIsUserAlias ? LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS : LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS,
+                   pszAlias,
+                   NULL,
+                   ppResult);
+}
+
+DWORD
+AD_FindObjectByNameTypeNoCache(
+    IN HANDLE hProvider,
+    IN PCSTR pszName,
+    IN ADLogInNameType NameType,
+    IN ADAccountType AccountType,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsUser = FALSE;
+    PAD_SECURITY_OBJECT pObject = NULL;
+
+    switch (AccountType)
+    {
+        case AccountType_User:
+            bIsUser = TRUE;
+            break;
+        case AccountType_Group:
+            bIsUser = FALSE;
+            break;
+        default:
+            LSA_ASSERT(FALSE);
+            dwError = LSA_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    switch (NameType)
+    {
+        case NameType_NT4:
+            dwError = AD_FindObjectByNT4NameNoCache(
+                            hProvider,
+                            pszName,
+                            &pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        case NameType_UPN:
+            dwError = AD_FindObjectByUpnNoCache(
+                            hProvider,
+                            pszName,
+                            &pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        case NameType_Alias:
+            dwError = AD_FindObjectByAliasNoCache(
+                            hProvider,
+                            pszName,
+                            bIsUser,
+                            &pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            LSA_ASSERT(FALSE);
+            dwError = LSA_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Check whether the object we find is correct type or not
+    if (AccountType != pObject->type)
+    {
+        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    *ppObject = pObject;
+
+    return dwError;
+
+error:
+    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    {
+        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+    }
+    ADCacheDB_SafeFreeObject(&pObject);
+    goto cleanup;
+}
+
+DWORD
+AD_FindObjectByIdTypeNoCache(
+    IN HANDLE hProvider,
+    IN DWORD dwId,
+    IN ADAccountType AccountType,
+    OUT PAD_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsUser = FALSE;
+    PAD_SECURITY_OBJECT pObject = NULL;
+
+    switch (AccountType)
+    {
+        case AccountType_User:
+            bIsUser = TRUE;
+            dwError = LsaAdBatchFindSingleObject(
+                           hProvider,
+                           LSA_AD_BATCH_QUERY_TYPE_BY_UID,
+                           NULL,
+                           &dwId,
+                           &pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+
+        case AccountType_Group:
+            bIsUser = FALSE;
+            dwError = LsaAdBatchFindSingleObject(
+                           hProvider,
+                           LSA_AD_BATCH_QUERY_TYPE_BY_GID,
+                           NULL,
+                           &dwId,
+                           &pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+
+        default:
+            LSA_ASSERT(FALSE);
+            dwError = LSA_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Check whether the object we find is correct type or not
+    if (AccountType != pObject->type)
+    {
+        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    *ppObject = pObject;
+
+    return dwError;
+
+error:
+    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    {
+        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+    }
+    ADCacheDB_SafeFreeObject(&pObject);
+    goto cleanup;
+}
+
 DWORD
 AD_FindObjectBySid(
     IN HANDLE hProvider,
@@ -3456,7 +3641,6 @@ AD_OnlineFindUserObjectByName(
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
     PSTR  pszLoginId_copy = NULL;
-    PSTR  pszLookupName = NULL;
     HANDLE hDb = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pCachedUser = NULL;
 
@@ -3497,45 +3681,13 @@ AD_OnlineFindUserObjectByName(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserNameInfo->nameType == NameType_Alias)
-    {
-        dwError = ADLdap_FindUserNameByAlias(
-                         pszLoginId_copy,
-                         &pszLookupName);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        dwError = LsaAllocateString(
-                     pszLoginId_copy,
-                     &pszLookupName);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaDmWrapNetLookupObjectSidByName(
-                gpADProviderData->szDomain,
-                pszLookupName,
-                &pUserNameInfo->pszObjectSid);
+    dwError = AD_FindObjectByNameTypeNoCache(
+                    hProvider,
+                    pszLoginId_copy,
+                    pUserNameInfo->nameType,
+                    AccountType_User,
+                    &pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
-
-    if (IsNullOrEmptyString(pUserNameInfo->pszObjectSid))
-    {
-        dwError = LSA_ERROR_NO_SUCH_USER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = AD_FindObjectBySid(
-                hProvider,
-                pUserNameInfo->pszObjectSid,
-                &pCachedUser);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    // Check whether the object we find is user type or not
-    if (AccountType_User != pCachedUser->type)
-    {
-        dwError = LSA_ERROR_NO_SUCH_USER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     dwError = ADCacheDB_CacheObjectEntry(hDb, pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3554,7 +3706,6 @@ cleanup:
         LsaFreeNameInfo(pUserNameInfo);
     }
     LSA_SAFE_FREE_STRING(pszLoginId_copy);
-    LSA_SAFE_FREE_STRING(pszLookupName);
 
     return dwError;
 

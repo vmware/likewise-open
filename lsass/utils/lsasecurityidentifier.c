@@ -104,7 +104,7 @@ LsaAllocSecurityIdentifierFromString(
     BAIL_ON_LSA_ERROR(dwError);
 
 
-    dwError = LsaStringToBytes(
+    dwError = LsaSidStringToBytes(
                     pszSidString,
                     &(pSID->pucSidBytes),
                     &(pSID->dwByteLength));
@@ -136,8 +136,6 @@ LsaFreeSecurityIdentifier(
 
     LsaFreeMemory(pSecurityIdentifier);
 }
-
-
 
 DWORD
 LsaGetSecurityIdentifierRid(
@@ -178,9 +176,9 @@ LsaGetSecurityIdentifierRid(
 
     memcpy(&dwRid, pucSidBytes+dwByteLength-sizeof(DWORD), sizeof(dwRid));
 
-    #if defined(WORDS_BIGENDIAN)
-        dwRid = LW_ENDIAN_SWAP32(dwRid);
-    #endif
+#if defined(WORDS_BIGENDIAN)
+    dwRid = LW_ENDIAN_SWAP32(dwRid);
+#endif
 
     *pdwRid = dwRid;
 
@@ -231,9 +229,9 @@ LsaSetSecurityIdentifierRid(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    #if defined(WORDS_BIGENDIAN)
-        dwRidLocal = LW_ENDIAN_SWAP32(dwRidLocal);
-    #endif
+#if defined(WORDS_BIGENDIAN)
+    dwRidLocal = LW_ENDIAN_SWAP32(dwRidLocal);
+#endif
 
     memcpy(pucSidBytes+dwByteLength-sizeof(DWORD), &dwRidLocal, sizeof(DWORD));
 
@@ -245,29 +243,37 @@ error:
 
 }
 
-//The UID is a DWORD constructued using
-//a non-cryptographic, 2-way hash of
-//the User SID and Domain SID.
 DWORD
 LsaGetSecurityIdentifierHashedRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PDWORD dwHashedRid
     )
 {
-    DWORD i = 0;
-    DWORD dwError = 0;
+    return LsaHashSecurityIdentifierToId(pSecurityIdentifier, dwHashedRid);
+}
 
-    //dwAuthorityCount includes the final RID
+// The UID is a DWORD constructued using a non-cryptographic hash
+// of the User's domain SID and user RID.
+DWORD
+LsaHashSecurityIdentifierToId(
+    IN PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
+    OUT PDWORD pdwId
+    )
+{
+    DWORD dwError = 0;
+    // dwAuthorityCount includes the final RID.
     DWORD dwAuthorityCount = 0;
     PDWORD pdwAuthorities = NULL;
     DWORD dwHash = 0;
-
     UCHAR* pucSidBytes = NULL;
     DWORD dwByteLength = 0;
+#if defined(WORDS_BIGENDIAN)
+    DWORD i = 0;
+#endif
 
-    if(!pSecurityIdentifier ||
-       !pSecurityIdentifier->pucSidBytes ||
-       pSecurityIdentifier->dwByteLength < SECURITY_IDENTIFIER_MINIMUM_SIZE)
+    if (!pSecurityIdentifier ||
+        !pSecurityIdentifier->pucSidBytes ||
+        pSecurityIdentifier->dwByteLength < SECURITY_IDENTIFIER_MINIMUM_SIZE)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
@@ -276,15 +282,15 @@ LsaGetSecurityIdentifierHashedRid(
     pucSidBytes = pSecurityIdentifier->pucSidBytes;
     dwByteLength = pSecurityIdentifier->dwByteLength;
 
-    //verify the SID is version 1.
-    if(pucSidBytes[0] != 1)
+    // Verify that the SID is version 1.
+    if (pucSidBytes[0] != 1)
     {
         dwError = LSA_ERROR_INVALID_SID_REVISION;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    //verify the number of bytes is plausible
-    if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0)
+    // Verify that the number of bytes is plausible.
+    if ((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0)
     {
         dwError = LSA_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
@@ -303,27 +309,55 @@ LsaGetSecurityIdentifierHashedRid(
            (PVOID)(pucSidBytes + SECURITY_IDENTIFIER_HEADER_SIZE),
            dwByteLength - SECURITY_IDENTIFIER_HEADER_SIZE);
 
-    for(i = 0; i < dwAuthorityCount; i++)
+#if defined(WORDS_BIGENDIAN)
+    for (i = 0; i < dwAuthorityCount; i++)
     {
-        #if defined(WORDS_BIGENDIAN)
-            pdwAuthorities[i] = LW_ENDIAN_SWAP32(pdwAuthorities[i]);
-        #endif
+        pdwAuthorities[i] = LW_ENDIAN_SWAP32(pdwAuthorities[i]);
     }
+#endif
 
     LsaUidHashCalc(pdwAuthorities, dwAuthorityCount, &dwHash);
 
-    *dwHashedRid = dwHash;
+    *pdwId = dwHash;
 
 cleanup:
-
     LSA_SAFE_FREE_MEMORY(pdwAuthorities);
 
     return dwError;
 
 error:
+    *pdwId = 0;
 
-    *dwHashedRid = 0;
+    goto cleanup;
+}
 
+DWORD
+LsaHashSidStringToId(
+    IN PCSTR pszSidString,
+    OUT PDWORD pdwId
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwId = 0;
+    LSA_SECURITY_IDENTIFIER sid = { 0 };
+
+    dwError = LsaSidStringToBytes(
+                    pszSidString,
+                    &sid.pucSidBytes,
+                    &sid.dwByteLength);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaHashSecurityIdentifierToId(&sid, &dwId);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwId = dwId;
+
+cleanup:
+    LSA_SAFE_FREE_MEMORY(sid.pucSidBytes);
+    return dwError;
+
+error:
+    *pdwId = 0;
     goto cleanup;
 }
 
@@ -645,10 +679,10 @@ LsaUidHashCalc(
 }
 
 DWORD
-LsaStringToBytes(
-    PCSTR pszSidString,
-    UCHAR** ppucSidBytes,
-    DWORD* pdwSidBytesLength
+LsaSidStringToBytes(
+    IN PCSTR pszSidString,
+    OUT UCHAR** ppucSidBytes,
+    OUT DWORD* pdwSidBytesLength
     )
 {
     DWORD dwError = 0;
@@ -765,9 +799,7 @@ LsaStringToBytes(
             dwError = LSA_ERROR_INVALID_SID;
             BAIL_ON_LSA_ERROR(dwError);
         }
-
     }
-
 
     //see comments in lsasecurityidentifier_p.h
     dwSidBytesLength = 1 + 1 + 6 + 4*(iTailCount);
@@ -780,18 +812,18 @@ LsaStringToBytes(
     pucSidBytes[0] = (UCHAR)dwRevision;
     pucSidBytes[1] = (UCHAR)iTailCount;
 
-    #if !defined(WORDS_BIGENDIAN)
-        uiAuth = LW_ENDIAN_SWAP64(uiAuth);
-    #endif
+#if !defined(WORDS_BIGENDIAN)
+    uiAuth = LW_ENDIAN_SWAP64(uiAuth);
+#endif
 
     memcpy((PVOID)(pucSidBytes+2), (PVOID)((UCHAR*)(&uiAuth) + 2), 6);
 
     for (i = 0; i < iTailCount; i++)
     {
 
-        #if defined(WORDS_BIGENDIAN)
-            pdwTail[i] = LW_ENDIAN_SWAP32(pdwTail[i]);
-        #endif
+#if defined(WORDS_BIGENDIAN)
+        pdwTail[i] = LW_ENDIAN_SWAP32(pdwTail[i]);
+#endif
 
         memcpy((PVOID)(pucSidBytes+8+(sizeof(DWORD)*i)),
                (PVOID)&(pdwTail[i]),
@@ -959,9 +991,9 @@ LsaBuildSIDString(
         DWORD dwTempWrongEndian = 0;
         memcpy(&dwTempWrongEndian, pucSidBytes+8+(i*4), sizeof(dwTempWrongEndian));
 
-        #if defined(WORDS_BIGENDIAN)
-            dwTempWrongEndian = LW_ENDIAN_SWAP32(dwTempWrongEndian);
-        #endif
+#if defined(WORDS_BIGENDIAN)
+        dwTempWrongEndian = LW_ENDIAN_SWAP32(dwTempWrongEndian);
+#endif
 
         dwError = LsaAllocateStringPrintf(
                          &pszSidPart, "-%u",

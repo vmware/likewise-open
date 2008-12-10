@@ -286,7 +286,7 @@ LWNetSrvGetDCTime(
 #ifdef HAVE_TIMEGM
     ttDcTimeUTC = timegm(&dcTime);
 #else
-    epochTime.tm_mday = 1;
+    epochTime.tm_mday = 2;
     epochTime.tm_mon = 0;
     epochTime.tm_year = 70;
     /* AIX does not honor value 0 in tm_isdst (which should mean that daylight
@@ -306,8 +306,13 @@ LWNetSrvGetDCTime(
      * mktime(&epochTime) should be the same as the timezone global variable,
      * but for some reason that variable is set to 0 on AIX, even after calling
      * tzset.
+     *
+     * Note that Jan 2 is used instead of Jan 1 because a Jan 1 1970
+     * local time is not representable as an epoch time for timezones
+     * ahead of GMT.  Then the value is corrected by adding back
+     * a day (24 hours).
      */
-    ttDcTimeUTC = mktime(&dcTime) - mktime(&epochTime);
+    ttDcTimeUTC = mktime(&dcTime) - mktime(&epochTime) + (24 * 60 * 60);
 #endif
 
     result = ttDcTimeUTC;

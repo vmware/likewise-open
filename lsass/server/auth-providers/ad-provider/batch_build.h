@@ -33,54 +33,60 @@
  *
  * Module Name:
  *
- *        adldapdef.h
+ *        batch_build.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        AD LDAP definitions
+ *        AD batch query builder functions
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  *          Wei Fu (wfu@likewisesoftware.com)
- *
  */
 
-#ifndef __ADLDAPDEF_H__
-#define __ADLDAPDEF_H__
+#ifndef _BATCH_BUILD_H_
+#define _BATCH_BUILD_H_
 
-#define AD_LDAP_NAME_TAG         "name"
-#define AD_LDAP_SAM_NAME_TAG     "sAMAccountName"
-#define AD_LDAP_DISPLAY_NAME_TAG "displayName"
-#define AD_LDAP_PASSWD_TAG       "unixUserPassword"
-#define AD_LDAP_UID_TAG          "uidNumber"
-#define AD_LDAP_ALIAS_TAG        "uid"
-#define AD_LDAP_GID_TAG          "gidNumber"
-#define AD_LDAP_HOMEDIR_TAG      "unixHomeDirectory"
-#define AD_LDAP_GECOS_TAG        "gecos"
-#define AD_LDAP_SHELL_TAG        "loginShell"
-#define AD_LDAP_MEMBER_TAG       "member"
-#define AD_LDAP_MEMBEROF_TAG     "memberOf"
-#define AD_LDAP_SEC_DESC_TAG     "nTSecurityDescriptor"
-#define AD_LDAP_KEYWORDS_TAG     "keywords"
-#define AD_LDAP_DESCRIPTION_TAG  "description"
-#define AD_LDAP_OBJECTSID_TAG    "objectSid"
-#define AD_LDAP_UPN_TAG          "userPrincipalName"
-#define AD_LDAP_PRIMEGID_TAG     "primaryGroupID"
-#define AD_LDAP_USER_CTRL_TAG    "userAccountControl"
-#define AD_LDAP_PWD_LASTSET_TAG  "pwdLastSet"
-#define AD_LDAP_ACCOUT_EXP_TAG   "accountExpires"
-#define AD_LDAP_MAX_PWDAGE_TAG   "maxPwdAge"
-#define AD_LDAP_DESCRIP_TAG      "description"
-#define AD_LDAP_GROUP_TYPE       "groupType"
-#define AD_LDAP_OBJECTCLASS_TAG  "objectClass"
-#define AD_LDAP_CONFNAM_CTXT_TAG "configurationNamingContext"
-#define AD_LDAP_NETBIOS_TAG      "netBIOSName"
-#define AD_LDAP_DN_TAG           "distinguishedName"
+#include "batch_common.h"
 
-// Pseudo-only Attributes
-#define AD_LDAP_BACKLINK_PSEUDO_TAG   "backLink"
+DWORD
+LsaAdBatchBuildQueryForRpc(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    // List of PLSA_AD_BATCH_ITEM
+    IN PLSA_LIST_LINKS pFirstLinks,
+    IN PLSA_LIST_LINKS pEndLinks,
+    OUT PLSA_LIST_LINKS* ppNextLinks,
+    IN DWORD dwMaxQueryCount,
+    OUT PDWORD pdwQueryCount,
+    OUT PSTR** pppszQueryList
+    );
 
-#endif /* __ADLDAPDEF_H__ */
+DWORD
+LsaAdBatchBuildQueryForReal(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    // List of PLSA_AD_BATCH_ITEM
+    IN PLSA_LIST_LINKS pFirstLinks,
+    IN PLSA_LIST_LINKS pEndLinks,
+    OUT PLSA_LIST_LINKS* ppNextLinks,
+    IN DWORD dwMaxQuerySize,
+    IN DWORD dwMaxQueryCount,
+    OUT PDWORD pdwQueryCount,
+    OUT PSTR* ppszQuery
+    );
 
+DWORD
+LsaAdBatchBuildQueryForPseudo(
+    IN BOOLEAN bIsSchemaMode,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    // List of PLSA_AD_BATCH_ITEM
+    IN PLSA_LIST_LINKS pFirstLinks,
+    IN PLSA_LIST_LINKS pEndLinks,
+    OUT PLSA_LIST_LINKS* ppNextLinks,
+    IN DWORD dwMaxQuerySize,
+    IN DWORD dwMaxQueryCount,
+    OUT PDWORD pdwQueryCount,
+    OUT PSTR* ppszQuery
+    );
+
+#endif /* _BATCH_BUILD_H_ */

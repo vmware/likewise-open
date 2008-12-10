@@ -60,6 +60,38 @@ typedef struct __AD_CACHE_INFO
     time_t tLastUpdated;
 } AD_CACHE_INFO;
 
+typedef struct _AD_SECURITY_OBJECT_USER_INFO
+{
+    uid_t uid;
+    gid_t gid;
+    PSTR pszUPN;
+    PSTR pszAliasName;
+    PSTR pszPasswd;
+    PSTR pszGecos;
+    PSTR pszShell;
+    PSTR pszHomedir;
+    uint64_t qwPwdLastSet;
+    uint64_t qwAccountExpires;
+
+    BOOLEAN bIsGeneratedUPN;
+    // Calculated from userAccountControl, accountExpires, and pwdLastSet
+    // attributes from AD.
+    BOOLEAN bPasswordExpired;
+    BOOLEAN bPasswordNeverExpires;
+    BOOLEAN bPromptPasswordChange;
+    BOOLEAN bUserCanChangePassword;
+    BOOLEAN bAccountDisabled;
+    BOOLEAN bAccountExpired;
+    BOOLEAN bAccountLocked;
+} AD_SECURITY_OBJECT_USER_INFO, *PAD_SECURITY_OBJECT_USER_INFO;
+
+typedef struct _AD_SECURITY_OBJECT_GROUP_INFO
+{
+    gid_t gid;
+    PSTR pszAliasName;
+    PSTR pszPasswd;
+} AD_SECURITY_OBJECT_GROUP_INFO, *PAD_SECURITY_OBJECT_GROUP_INFO;
+
 typedef struct __AD_SECURITY_OBJECT
 {
     AD_CACHE_INFO cache;
@@ -74,37 +106,11 @@ typedef struct __AD_SECURITY_OBJECT
 
     ADAccountType type;
 
-    // These fields are only set if the object is enabled
+    // These fields are only set if the object is enabled base on the type.
     union
     {
-        struct
-        {
-            uid_t   uid;
-            gid_t   gid;
-            PSTR    pszUPN;
-            PSTR    pszAliasName;
-            PSTR    pszPasswd;
-            PSTR    pszGecos;
-            PSTR    pszShell;
-            PSTR    pszHomedir;
-            uint64_t qwPwdLastSet;
-            uint64_t qwAccountExpires;
-
-            //Calculated from userAccountControl, accountExpires, and pwdLastSet fields
-            BOOLEAN bIsGeneratedUPN;
-            BOOLEAN bPasswordExpired;
-            BOOLEAN bPasswordNeverExpires;
-            BOOLEAN bPromptPasswordChange;
-            BOOLEAN bUserCanChangePassword;
-            BOOLEAN bAccountDisabled;
-            BOOLEAN bAccountExpired;
-            BOOLEAN bAccountLocked;
-        } userInfo;
-        struct {
-            gid_t   gid;
-            PSTR    pszAliasName;
-            PSTR    pszPasswd;
-        } groupInfo;
+        AD_SECURITY_OBJECT_USER_INFO userInfo;
+        AD_SECURITY_OBJECT_GROUP_INFO groupInfo;
     };
 } AD_SECURITY_OBJECT, *PAD_SECURITY_OBJECT;
 

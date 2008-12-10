@@ -1399,6 +1399,48 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaLdapGetUInt64(
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage,
+    IN PCSTR pszFieldName,
+    OUT UINT64* pqwValue
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszValue = NULL;
+    PSTR pszEndPtr = NULL;
+
+    dwError = LsaLdapGetString(hDirectory, pMessage, pszFieldName, &pszValue);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pszValue)
+    {
+        *pqwValue = strtoull(pszValue, &pszEndPtr, 10);
+        if (pszEndPtr == NULL || pszEndPtr == pszValue || *pszEndPtr != '\0')
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+    else
+    {
+        dwError = LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
+        // This error occurs very frequently (every time an unenabled user
+        // or group is queried in default schema mode). So in order to avoid
+        // log noise, BAIL_ON_LSA_ERROR is not used here.
+        goto error;
+    }
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszValue);
+    return dwError;
+
+error:
+    *pqwValue = 0;
+    goto cleanup;
+}
+
 // This utility function parse a ldap result in the format of
 // <GUID=xxxxxxxx>;<SID=yyyyyyyyy>;distinguishedName (hexadecimal)
 // It also handles the case when AD object does not have a SID,

@@ -33,28 +33,28 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        batch_marshal.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Time Utilities
+ *        Active Directory Authentication Provider
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+#ifndef _BATCH_MARSHAL_H_
+#define _BATCH_MARSHAL_H_
 
-#include "eventlog.h"
+#include "batch_common.h"
 
-#include "lsautils.h"
-#include "lsaunistr.h"
+DWORD
+LsaAdBatchMarshalList(
+    IN OUT PLSA_LIST_LINKS pBatchItemList,
+    IN DWORD dwAvailableCount,
+    OUT PAD_SECURITY_OBJECT* ppObjects,
+    OUT PDWORD pdwUsedCount
+    );
 
-#include "lsasrvutils.h"
-
+#endif /* _BATCH_MARSHAL_H_ */
