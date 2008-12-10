@@ -372,9 +372,10 @@ LsaBuildOrgUnitDN(
         }
         sSectionLen = pszInputSectionEnd - pszInputPos;
 
-        if (sSectionLen == sizeof("Computers") - 1 &&
-                !strncasecmp(pszInputPos + 1, "Computers",
-                    sizeof("Computers") - 1))
+        // Only "Computers" as the first element is a CN.
+        if ((pszOutputPos ==  pszOuDN) &&
+            (sSectionLen == sizeof("Computers") - 1) &&
+            !strncasecmp(pszInputPos + 1, "Computers", sizeof("Computers") - 1))
         {
             // Add CN=<name>,
             memcpy(pszOutputPos, LSA_JOIN_CN_PREFIX,
@@ -395,6 +396,14 @@ LsaBuildOrgUnitDN(
         pszOutputPos += sSectionLen;
 
         *pszOutputPos++ = ',';
+    }
+
+    // Make sure to overwrite any initial "CN=Computers" as "OU=Computers".
+    // Note that it is safe to always set "OU=" as the start of the DN
+    // unless the DN so far is exacly "CN=Computers,".
+    if (strcasecmp(pszOuDN, LSA_JOIN_CN_PREFIX "Computers,"))
+    {
+        memcpy(pszOuDN, LSA_JOIN_OU_PREFIX, sizeof(LSA_JOIN_OU_PREFIX) - 1);
     }
     
     // Read the domain name foward in sections and write it back out
