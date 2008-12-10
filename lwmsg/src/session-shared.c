@@ -636,6 +636,14 @@ shared_get_session_data (
     return data;
 }
 
+const LWMsgSessionID*
+shared_get_session_id(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return &session->rsmid;
+}
 
 static LWMsgSessionManagerClass shared_class = 
 {
@@ -649,7 +657,8 @@ static LWMsgSessionManagerClass shared_class =
     .handle_pointer_to_id = shared_handle_pointer_to_id,
     .handle_id_to_pointer = shared_handle_id_to_pointer,
     .set_session_data = shared_set_session_data,
-    .get_session_data = shared_get_session_data
+    .get_session_data = shared_get_session_data,
+    .get_session_id = shared_get_session_id
 };
                                          
 LWMsgStatus

@@ -261,3 +261,12 @@ lwmsg_session_manager_get_session_data (
 {
     return manager->mclass->get_session_data(manager, session);
 }
+
+const LWMsgSessionID*
+lwmsg_session_manager_get_session_id(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return manager->mclass->get_session_id(manager, session);
+}

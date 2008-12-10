@@ -151,6 +151,12 @@ typedef struct LWMsgSessionManagerClass
         LWMsgSessionManager* manager,
         LWMsgSession* session
         );
+
+    const LWMsgSessionID*
+    (*get_session_id) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
+        );
 } LWMsgSessionManagerClass;
 
 LWMsgStatus

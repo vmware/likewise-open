@@ -115,12 +115,18 @@ lwmsg_session_manager_get_session_data (
     LWMsgSession* session
     );
 
+const LWMsgSessionID*
+lwmsg_session_manager_get_session_id(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    );
+
 LWMsgStatus
 lwmsg_default_session_manager_new(
     LWMsgSessionManager** out_manager
     );
 
-#ifndef LWMSG_REENTRANT
+#ifndef LWMSG_NO_THREADS
 LWMsgStatus
 lwmsg_shared_session_manager_new(
     LWMsgSessionManager** out_manager

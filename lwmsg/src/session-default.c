@@ -529,6 +529,15 @@ default_get_session_data (
     return session->data;
 }
 
+const LWMsgSessionID*
+default_get_session_id(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return &session->rsmid;
+}
+
 static LWMsgSessionManagerClass default_class = 
 {
     .private_size = sizeof(DefaultPrivate),
@@ -541,7 +550,8 @@ static LWMsgSessionManagerClass default_class =
     .handle_pointer_to_id = default_handle_pointer_to_id,
     .handle_id_to_pointer = default_handle_id_to_pointer,
     .set_session_data = default_set_session_data,
-    .get_session_data = default_get_session_data
+    .get_session_data = default_get_session_data,
+    .get_session_id = default_get_session_id
 };
                                          
 LWMsgStatus

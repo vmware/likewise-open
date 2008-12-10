@@ -418,6 +418,29 @@ error:
 }
 
 LWMsgStatus
+lwmsg_assoc_get_peer_session_id(
+    LWMsgAssoc* assoc,
+    LWMsgSessionID* id
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSession* session = NULL;
+    const LWMsgSessionID* my_id = NULL;
+
+retry:
+
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+
+    my_id = lwmsg_session_manager_get_session_id(assoc->manager, session);
+
+    memcpy(id->bytes, my_id->bytes, sizeof(id->bytes));
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
 lwmsg_assoc_close(
     LWMsgAssoc* assoc
     )

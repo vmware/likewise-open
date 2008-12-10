@@ -823,7 +823,7 @@ lwmsg_assoc_set_timeout_ms(
  * @ingroup assoc
  * @brief Retrieve peer security token
  *
- * Retrives credentials of the peer from an association.
+ * Retrieves credentials of the peer from an association.
  * This operation may block or time out.
  *
  * @param[in] assoc the assocation
@@ -837,6 +837,28 @@ LWMsgStatus
 lwmsg_assoc_get_peer_security_token(
     LWMsgAssoc* assoc,
     LWMsgSecurityToken** token
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Retrieve peer session ID
+ *
+ * Retrieves the session ID of the peer.  This operation
+ * may block or time out if a session has not yet been
+ * established.  It is usually not necessary for applications
+ * to access this value, but it may be useful in some scenarios.
+ *
+ * @param[in] assoc the association
+ * @param[out] id the session ID structure into which the ID will be written
+ * @lwmsg_status
+ * @lwmsg_code{TIMEOUT, the operation timed out}
+ * @lwmsg_etc{an implementation-specific error}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_get_peer_session_id(
+    LWMsgAssoc* assoc,
+    LWMsgSessionID* id
     );
 
 /**

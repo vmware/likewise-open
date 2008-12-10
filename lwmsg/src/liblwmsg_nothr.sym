@@ -20,6 +20,7 @@ lwmsg_assoc_set_timeout
 lwmsg_assoc_set_timeout_ms
 lwmsg_assoc_get_error_message
 lwmsg_assoc_get_peer_security_token
+lwmsg_assoc_get_peer_session_id
 lwmsg_assoc_get_state
 lwmsg_assoc_get_session_data
 lwmsg_assoc_set_session_data
