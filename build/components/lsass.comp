@@ -43,12 +43,12 @@ function component_configure
     _setup_build_env
     _setup_dirs
 
-    ./configure                                        \
-	--prefix=${PREFIXDIR}                         \
-        --libdir=${PREFIXDIR}/${_lib}                 \
+    ./configure                                  \
+	--prefix=${PREFIXDIR}                    \
+        --libdir=${PREFIXDIR}/${_lib}/likewise   \
 	--sysconfdir=${SYSCONFDIR}               \
 	--localstatedir=${LOCALSTATEDIR}         \
-        --with-pam-libdir=${PAM_DIR}                   \
+        --with-pam-libdir=${PAM_DIR}             \
         --with-nss-libdir=${NSS_DIR}   
 }
 

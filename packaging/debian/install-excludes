@@ -1,4 +1,4 @@
 *.la
 .libs
 *.a
-opt/likewise/include/
+usr/include/

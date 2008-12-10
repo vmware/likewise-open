@@ -22,7 +22,7 @@ function component_configure
 
     ./configure \
 	--prefix=${PREFIXDIR} \
-	--libdir=${PREFIXDIR}/${_lib} \
+	--libdir=${PREFIXDIR}/${_lib}/likewise \
 	--sysconfdir=${SYSCONFDIR} \
 	--localstatedir=${LOCALSTATEDIR} \
 	--enable-dependency-tracking

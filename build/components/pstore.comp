@@ -23,10 +23,10 @@ function component_configure
 
     _setup_build_env
 
-    ./configure                                       \
-	--prefix=${PREFIXDIR}                        \
-        --libdir=${PREFIXDIR}/${_lib}                \
-	--sysconfdir=${SYSCONFDIR}              \
+    ./configure                                     \
+	--prefix=${PREFIXDIR}                       \
+        --libdir=${PREFIXDIR}/${_lib}/likewise      \
+	--sysconfdir=${SYSCONFDIR}                  \
         --localstatedir=${LOCALSTATEDIR}  
 }
 

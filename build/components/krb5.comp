@@ -42,7 +42,7 @@ function component_configure
         LDFLAGS="${LDFLAGS}" \
 	--prefix=${PREFIXDIR} \
 	--exec-prefix=${PREFIXDIR} \
-	--libdir=${PREFIXDIR}/${_lib} \
+	--libdir=${PREFIXDIR}/${_lib}/likewise \
 	--includedir=${PREFIXDIR}/include \
         --sysconfdir=${SYSCONFDIR} \
 	--enable-shared \

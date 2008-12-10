@@ -30,8 +30,8 @@ function component_configure
     local with_linker=
 
     ./configure                                               \
-	--prefix=${PREFIXDIR}                                \
-        --libdir=${PREFIXDIR}/${_lib}                        \
+	--prefix=${PREFIXDIR}                                 \
+        --libdir=${PREFIXDIR}/${_lib}/likewise                \
         --disable-readline                                    \
         --disable-tcl                                         \
         --disable-static                                      \

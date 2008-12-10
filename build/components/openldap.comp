@@ -20,7 +20,7 @@ function component_configure
 
     ./configure \
         --prefix=${PREFIXDIR} \
-        --libdir=${PREFIXDIR}/${_lib} \
+        --libdir=${PREFIXDIR}/${_lib}/likewise \
         --disable-static \
         --enable-shared \
         --without-kerberos \

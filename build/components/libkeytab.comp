@@ -21,9 +21,9 @@ function component_configure
 {
     _setup_build_env
 
-    ./configure                                       \
+    ./configure                                      \
 	--prefix=${PREFIXDIR}                        \
-        --libdir=${PREFIXDIR}/${_lib}
+        --libdir=${PREFIXDIR}/${_lib}/likewise
 }
 
 function component_build

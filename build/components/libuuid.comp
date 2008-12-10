@@ -28,7 +28,7 @@ function component_configure
 
     ./configure                        \
 	--prefix=${PREFIX_DIR}         \
-        --libdir=${PREFIX_DIR}/${_lib}
+        --libdir=${PREFIX_DIR}/${_lib}/likewise
 }
 
 function component_build

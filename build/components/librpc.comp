@@ -29,7 +29,7 @@ function component_configure
     ./configure \
 	--enable-dependency-tracking \
 	--prefix=${PREFIXDIR} \
-	--libdir=${PREFIXDIR}/${_lib} 
+	--libdir=${PREFIXDIR}/${_lib}/likewise 
 }
 
 function component_build

@@ -1,32 +1,34 @@
 This package was Debianized by Gerald Carter <gcarter@likewisesoftware.com>
 
 The source was obtained from:
-http://archives.likewisesoftware.com/likewise-open/src/
 
-Parts of this code are based on Samba's Winbind (http://www.samba.org/)
-with the copyright being attributes to individual Samba developers.
-Supporting scripts and tools for managing the domain join process are
-copyright Centeris Corporation.
+   http://archives.likewisesoftware.com/likewise-open/src/
+
+All software developed by Likewise Software is copyright by Likewise
+Software.  The copyrights of all upstream components integrated into
+the Likewise Open maintained by their respective developers and/or
+foundations.
 
 This package was prepared by Gerald Carter <gcarter@likewisesoftware.com>
 and Rick Clark <rick.clark@ubuntu.com>
 
 Licensing:
 
-   This package is composed of components release under varying licenses.
+   This package is composed of components release under varying 
+   licenses.
 
-   The supporting libraries are licensing under the GNU Lesser General 
-   Public License version 2.1 (or at your option later).
+   Likewise Open is provided under the terms of the GNU General
+   Public License (GPL version 2) and the GNU Library General 
+   Public License (LGPL version 2.1). The additional components 
+   listed below are covered under separate license agreements:
 
-   The domain join utilities are licensing under the GNU General 
-   Public License version 2 (or at your option later).
+      Samba 3.0 Client libraries and tools - GPLv2
+      Novell DCE-RPC - BSD
+      libiconv - LGPLv2
 
-   All Samba derived code is licensed under the existing once chosen
-   by the Samba Team.   Currently this is the GNU General Public
-   License version 3 (or at your option later).
-
-   Please seeing the specific licensing details in the complete
-   source code release for further details.
+  For more details and for the full text for each of these 
+  licenses, read the LICENSES and COPYING files included with 
+  the source packaging of this software.
 
 On Debian GNU/Linux systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses/GPL'.
