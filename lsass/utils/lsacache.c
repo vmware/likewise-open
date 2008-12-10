@@ -298,7 +298,25 @@ LsaCacheFlush(
     PLSA_CACHE pCache
     )
 {
-    return 0;
+    DWORD dwError = 0;
+    DWORD dwIndex = 0;
+    PVOID pEntry = NULL;
+
+    for (dwIndex = 0;
+         dwIndex < pCache->dwNumBuckets * pCache->dwNumKeys;
+         dwIndex++)
+    {
+        pEntry = pCache->ppEntries[dwIndex];
+
+        LsaCacheRemove(pCache, pEntry);
+
+        dwError = pCache->pfKick(pEntry, pCache->pData);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+error:
+
+    return dwError;
 }
 
 VOID
@@ -306,5 +324,9 @@ LsaCacheDelete(
     PLSA_CACHE pCache
     )
 {
-    return;
+    /* Flush the cache, ignoring any failures */
+    LsaCacheFlush(pCache);
+
+    LSA_SAFE_FREE_MEMORY(pCache->ppEntries);
+    LSA_SAFE_FREE_MEMORY(pCache);
 }
