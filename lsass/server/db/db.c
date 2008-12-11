@@ -1402,7 +1402,7 @@ LsaDbStoreObjectEntries(
 
     dwError = LsaSqliteExecWithRetry(
         pConn->pDb,
-        pConn->lock,
+        &pConn->lock,
         buffer.pszBuffer);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1799,7 +1799,7 @@ LsaDbStoreGroupMembership(
 
     dwError = LsaSqliteExecCallbackWithRetry(
                     pConn->pDb,
-                    pConn->lock,
+                    &pConn->lock,
                     LsaDbStoreGroupMembershipCallback,
                     &context);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1985,7 +1985,7 @@ LsaDbStoreGroupsForUser(
 
     dwError = LsaSqliteExecCallbackWithRetry(
                     pConn->pDb,
-                    pConn->lock,
+                    &pConn->lock,
                     LsaDbStoreUserMembershipCallback,
                     &context);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2693,7 +2693,7 @@ LsaDbStorePasswordVerifier(
 
     dwError = LsaSqliteExecWithRetry(
                 pConn->pDb,
-                pConn->lock,
+                &pConn->lock,
                 pszSqlCommand);
     BAIL_ON_LSA_ERROR(dwError);
 

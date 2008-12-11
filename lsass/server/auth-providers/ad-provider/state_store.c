@@ -469,7 +469,7 @@ ADState_StoreProviderData(
 
     dwError = LsaSqliteExecWithRetry(
         pConn->pDb,
-        pConn->lock,
+        &pConn->lock,
         pszSqlCommand);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -698,7 +698,7 @@ ADState_StoreDomainTrustList(
 
     dwError = LsaSqliteExecWithRetry(
         pConn->pDb,
-        pConn->lock,
+        &pConn->lock,
         pszSqlCommand);
     BAIL_ON_LSA_ERROR(dwError);
 

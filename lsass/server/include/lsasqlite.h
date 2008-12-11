@@ -190,16 +190,16 @@ LsaSqliteExec(
 
 DWORD
 LsaSqliteExecCallbackWithRetry(
-    IN sqlite3 *pDb,
-    IN pthread_rwlock_t lock,
+    IN sqlite3* pDb,
+    IN pthread_rwlock_t* pLock,
     IN PFN_LSA_SQLITE_EXEC_CALLBACK pfnCallback,
     IN PVOID pContext
     );
 
 DWORD
 LsaSqliteExecWithRetry(
-    IN sqlite3 *pDb,
-    IN pthread_rwlock_t lock,
+    IN sqlite3* pDb,
+    IN pthread_rwlock_t* pLock,
     IN PCSTR pszTransaction
     );
 
