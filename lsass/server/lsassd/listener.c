@@ -114,27 +114,37 @@ LsaSrvListenerThreadRoutine(
 
         if (!bInvalidConnection) {
 
-           /* This assert is here to help diagnose bug 6901.
-            * connfd should return a fd larger than 2 because
-            * LsaSrvStartAsDaemon sets fds 0-2 to /dev/null.
-            */
-           LW_ASSERT(connfd > 2);
+            /* This assert is here to help diagnose bug 6901.
+             * connfd should return a fd larger than 2 because
+             * LsaSrvStartAsDaemon sets fds 0-2 to /dev/null.
+             */
+            LW_ASSERT(connfd > 2);
 
-           dwError = LsaSrvOpenConnection(
-                           connfd,
-                           peerUID,
-                           peerGID,
-                           &hConnection);
-           BAIL_ON_LSA_ERROR(dwError);
+            dwError = LsaSrvOpenConnection(
+                            connfd,
+                            peerUID,
+                            peerGID,
+                            &hConnection);
+            BAIL_ON_LSA_ERROR(dwError);
 
-           connfd = -1;
+            connfd = -1;
 
-           dwError = pthread_create(&threadId, NULL,
-                                    LsaSrvHandleConnectionThreadRoutine,
-                                    (PVOID)hConnection);
-           BAIL_ON_LSA_ERROR(dwError);
-           hConnection = (HANDLE)NULL;
-           
+            do
+            {
+                dwError = pthread_create(&threadId, NULL,
+                                         LsaSrvHandleConnectionThreadRoutine,
+                                        (PVOID)hConnection);
+                if ( dwError == ENOMEM || dwError == EAGAIN )
+                {
+                    LSA_LOG_DEBUG(
+                        "Lsass listener out of resources at %s:%d, pthread_create returned %d",
+                        __FILE__,
+                        __LINE__,
+                        dwError);
+                }
+            } while ( dwError == ENOMEM || dwError == EAGAIN );
+            BAIL_ON_LSA_ERROR(dwError);
+            hConnection = (HANDLE)NULL;
         }
     }
 
