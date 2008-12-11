@@ -34,6 +34,7 @@ DIRS= 	centutils \
         openssl \
         passwd \
         pstore \
+        krb5/src \
         sqlite/sqlite-3.6.2 \
 
 clean:
