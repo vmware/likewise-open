@@ -218,10 +218,9 @@ lwmsg_server_set_timeout(
  * @ingroup server
  * @brief Set maximum number of simultaneous active connections
  *
- * Sets the maximum numbers of clients which the server will service
- * simultaneously.  This corresponds to the size of the thread pool
- * used by the server.  Connections beyond this maximum will be answered
- * but queued until a slot becomes available.
+ * Sets the maximum numbers of connections which the server will track
+ * simultaneously.  Connections beyond this will wait until a slot becomes
+ * available.
  *
  * @param server the server object
  * @param max_clients the maximum number of simultaneous clients to support
@@ -234,15 +233,33 @@ lwmsg_server_set_max_clients(
     unsigned int max_clients
     );
 
+
 /**
  * @ingroup server
- * @brief Set maximum number of queued connections
+ * @brief Set maximum number of simultaneous dispatched messages
  *
- * Sets the maximum numbers of clients which the server will answer
- * but place into a queue until a slot is available to service the
- * connection.  If all active connection slots and the backlog queue
- * are full, the server will cease accepting connections until space
- * becomes available.
+ * Sets the maximum numbers of simultaneous messages which will be
+ * handed off to dispatch functions.  Messages beyond this number
+ * will be queued until another dispatch function finishes.
+ *
+ * @param server the server object
+ * @param max_clients the maximum number of simultaneous clients to support
+ * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID if the server
+ * has already been started
+ */
+LWMsgStatus
+lwmsg_server_set_max_dispatch(
+    LWMsgServer* server,
+    unsigned int max_dispatch
+    );
+
+/**
+ * @ingroup server
+ * @brief Set maximum number of backlogged connections
+ *
+ * Sets the maximum numbers of pending connections which the server will keep
+ * waiting until a client slot becomes available.  Pending connections beyond
+ * this value will be rejected outright.
  *
  * @param server the server object
  * @param max_backlog the maximum number of clients to queue
