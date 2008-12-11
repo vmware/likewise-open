@@ -413,9 +413,10 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
 LsaAdBatchMarshal(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN OUT PLSA_AD_BATCH_ITEM pItem,
     OUT PAD_SECURITY_OBJECT* ppObject
     )
@@ -480,7 +481,7 @@ LsaAdBatchMarshal(
     LSA_XFER_STRING(pItem->pszDn, pObject->pszDN);
 
     dwError = LsaAllocateString(
-                    pItem->pDomainEntry->pszNetbiosDomainName,
+                    pszNetbiosDomainName,
                     &pObject->pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -491,7 +492,7 @@ LsaAdBatchMarshal(
             dwError = LsaAdBatchMarshalUserInfo(
                             &pItem->UserInfo,
                             &pObject->userInfo,
-                            pItem->pDomainEntry->pszDnsDomainName,
+                            pszDnsDomainName,
                             pObject->pszNetbiosDomainName,
                             pObject->pszSamAccountName,
                             pObject->pszObjectSid);
@@ -503,7 +504,7 @@ LsaAdBatchMarshal(
             dwError = LsaAdBatchMarshalGroupInfo(
                             &pItem->GroupInfo,
                             &pObject->groupInfo,
-                            pItem->pDomainEntry->pszDnsDomainName,
+                            pszDnsDomainName,
                             pObject->pszNetbiosDomainName,
                             pObject->pszSamAccountName,
                             pObject->pszObjectSid);
@@ -530,6 +531,8 @@ error:
 
 DWORD
 LsaAdBatchMarshalList(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN OUT PLSA_LIST_LINKS pBatchItemList,
     IN DWORD dwAvailableCount,
     OUT PAD_SECURITY_OBJECT* ppObjects,
@@ -553,7 +556,11 @@ LsaAdBatchMarshalList(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAdBatchMarshal(pItem, &ppObjects[dwIndex]);
+        dwError = LsaAdBatchMarshal(
+                        pszDnsDomainName,
+                        pszNetbiosDomainName,
+                        pItem,
+                        &ppObjects[dwIndex]);
         BAIL_ON_LSA_ERROR(dwError);
         if (ppObjects[dwIndex])
         {

@@ -696,6 +696,7 @@ LsaAdBatchBuilderGetPseudoQueryAttribute(
 
 DWORD
 LsaAdBatchBuildQueryForRpc(
+    IN PCSTR pszNetbiosDomainName,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,
@@ -825,7 +826,7 @@ LsaAdBatchBuildQueryForRpc(
                     dwError = LsaAllocateStringPrintf(
                                     &ppszQueryList[dwQueryCount++],
                                     "%s\\%s",
-                                    pBatchItem->pDomainEntry->pszNetbiosDomainName,
+                                    pszNetbiosDomainName,
                                     pszUseSamAccountName);
                     BAIL_ON_LSA_ERROR(dwError);
                     pBatchItem->pszQueryMatchTerm = (PSTR)pszUseSamAccountName;

@@ -140,5 +140,17 @@ LsaAdBatchFindSingleObject(
     OUT PAD_SECURITY_OBJECT* ppObject
     );
 
+DWORD
+LsaAdBatchEnumObjects(
+    IN HANDLE hDirectory,
+    IN BOOLEAN bMorePages,
+    IN struct berval** ppCookie,
+    OUT PBOOLEAN pbMorePages,
+    IN ADAccountType AccountType,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    );
+
 #endif /* __BATCH_H__ */
 

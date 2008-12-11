@@ -11,7 +11,6 @@ liblsass_auth_provider_ad_la_SOURCES = \
        cellldap.c                \
        defldap.c                 \
        enumstate.c               \
-       unprovisioned-ldap.c      \
        globals.c                 \
        machinepwd.c              \
        offline.c                 \
@@ -29,10 +28,10 @@ liblsass_auth_provider_ad_la_SOURCES = \
        lsaum.c                   \
        lsaum_p.c                 \
        lsaumproc.c               \
-       ad_enum_objects.c         \
        batch_build.c             \
        batch_gather.c            \
-       batch_marshal.c
+       batch_marshal.c           \
+       batch_enum.c
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \

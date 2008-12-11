@@ -103,6 +103,7 @@ LsaAdBatchFindObjectsForDomain(
     IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN BOOLEAN bIsOneWayTrust,
     IN BOOLEAN bResolvePseudoObjects,
     IN DWORD dwCount,
@@ -116,6 +117,7 @@ DWORD
 LsaAdBatchResolveRpcObjects(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pBatchItemList
@@ -210,13 +212,6 @@ static
 PCSTR
 LsaAdBatchGetQueryTypeAsString(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType
-    );
-
-static
-DWORD
-LsaAdBatchAccountTypeToObjectType(
-    IN ADAccountType AccountType,
-    OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType
     );
 
 static
