@@ -243,6 +243,12 @@ DJRemoveCacheFiles()
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
+    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/{*}*";
+    (void) CTRemoveFiles(cachePath, FALSE, TRUE);
+
+    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/user-cache";
+    (void) CTRemoveFiles(cachePath, FALSE, TRUE);
+
 error:
     return ceError;
 }
