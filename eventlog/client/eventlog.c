@@ -194,7 +194,7 @@ error:
 DWORD
 LWIOpenEventLogEx(
     PCSTR pszServerName,
-    DWORD dwEventTableCategoryId,
+    PCSTR pszEventTableCategoryId,
     PCSTR pszSource,
     DWORD dwEventSourceId,
     PCSTR pszUser,
@@ -209,18 +209,19 @@ LWIOpenEventLogEx(
     EVT_LOG_VERBOSE("client::eventlog.c OpenEventLog(server=%s, source=%s, user=%s, computer=%s)\n",
             pszServerName, pszSource, pszUser, pszComputer);
 
-    dwError = LWIOpenEventLog(pszServerName, &hEventLogLocal);
+    dwError = LWIOpenEventLog( pszServerName,
+                               &hEventLogLocal);
     BAIL_ON_EVT_ERROR(dwError);
 
 
     dwError = LWISetEventLogTableCategoryId(hEventLogLocal,
-                        dwEventTableCategoryId);
+                                            pszEventTableCategoryId);
     BAIL_ON_EVT_ERROR(dwError);
 
 
     dwError = LWISetEventLogSource(hEventLogLocal,
-                    pszSource,
-                    dwEventSourceId);
+                                   pszSource,
+                                   dwEventSourceId);
     BAIL_ON_EVT_ERROR(dwError);
 
 
@@ -402,18 +403,20 @@ error:
 DWORD
 LWISetEventLogTableCategoryId(
     HANDLE hEventLog,
-    DWORD dwEventTableCategoryId
+    PCSTR  pszEventTableCategoryId
     )
 {
     DWORD dwError = 0;
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
     PEVENT_LOG_RECORD pEventRecord = &(pEventLogHandle->defaultEventLogRecord);
 
-    if (dwEventTableCategoryId >= 0 && dwEventTableCategoryId < TABLE_CATEGORY_SENTINEL) {
-        pEventRecord->dwEventTableCategoryId = dwEventTableCategoryId;
+    if (!IsNullOrEmptyString(pszEventTableCategoryId)) {
+        dwError = EVTAllocateString(pszEventTableCategoryId, (&pEventRecord->pszEventTableCategoryId));
+        BAIL_ON_EVT_ERROR(dwError);
         pEventLogHandle->bDefaultActive = TRUE;
     }
 
+error:
     return dwError;
 }
 
@@ -567,77 +570,76 @@ LWIWriteEventLogBase(
     //Copy any empty fields from defaults
     if (pEventLogHandle->bDefaultActive)
     {
-    char* pszDefault = NULL;
-    DWORD dwDefault = 0;
+        char* pszDefault = NULL;
+        DWORD dwDefault = 0;
 
-    EVT_LOG_VERBOSE("client::eventlog.c WriteEventLog() checking defaults\n");
+        EVT_LOG_VERBOSE("client::eventlog.c WriteEventLog() checking defaults\n");
 
-    if (eventRecordLocal.dwEventTableCategoryId == TABLE_CATEGORY_SENTINEL &&
-        pEventLogHandle->defaultEventLogRecord.dwEventTableCategoryId != TABLE_CATEGORY_SENTINEL)
-    {
-        eventRecordLocal.dwEventTableCategoryId = pEventLogHandle->defaultEventLogRecord.dwEventTableCategoryId;
-    }
-
-    if (eventRecordLocal.dwEventDateTime == 0)
-    {
-        if (pEventLogHandle->defaultEventLogRecord.dwEventDateTime != 0)
+        pszDefault = pEventLogHandle->defaultEventLogRecord.pszEventTableCategoryId;
+        if (IsNullOrEmptyString(eventRecordLocal.pszEventTableCategoryId) && !IsNullOrEmptyString(pszDefault))
         {
-            eventRecordLocal.dwEventDateTime = pEventLogHandle->defaultEventLogRecord.dwEventDateTime;
+            eventRecordLocal.pszEventTableCategoryId = pszDefault;
         }
-        else {
-            eventRecordLocal.dwEventDateTime = (DWORD) time(NULL);
+
+        if (eventRecordLocal.dwEventDateTime == 0)
+        {
+            if (pEventLogHandle->defaultEventLogRecord.dwEventDateTime != 0)
+            {
+                eventRecordLocal.dwEventDateTime = pEventLogHandle->defaultEventLogRecord.dwEventDateTime;
+            }
+            else {
+                eventRecordLocal.dwEventDateTime = (DWORD) time(NULL);
+            }
         }
-    }
 
-    pszDefault = pEventLogHandle->defaultEventLogRecord.pszEventSource;
-    if (IsNullOrEmptyString(eventRecordLocal.pszEventSource) && !IsNullOrEmptyString(pszDefault))
-    {
-        eventRecordLocal.pszEventSource = pszDefault;
-    }
+        pszDefault = pEventLogHandle->defaultEventLogRecord.pszEventSource;
+        if (IsNullOrEmptyString(eventRecordLocal.pszEventSource) && !IsNullOrEmptyString(pszDefault))
+        {
+            eventRecordLocal.pszEventSource = pszDefault;
+        }
 
-    pszDefault = pEventLogHandle->defaultEventLogRecord.pszEventCategory;
-    if (IsNullOrEmptyString(eventRecordLocal.pszEventCategory) && !IsNullOrEmptyString(pszDefault))
-    {
-        eventRecordLocal.pszEventCategory = pszDefault;
-    }
+        pszDefault = pEventLogHandle->defaultEventLogRecord.pszEventCategory;
+        if (IsNullOrEmptyString(eventRecordLocal.pszEventCategory) && !IsNullOrEmptyString(pszDefault))
+        {
+            eventRecordLocal.pszEventCategory = pszDefault;
+        }
 
-    dwDefault = pEventLogHandle->defaultEventLogRecord.dwEventSourceId;
-    if (eventRecordLocal.dwEventSourceId == 0 && dwDefault != 0)
-    {
-        eventRecordLocal.dwEventSourceId = dwDefault;
-    }
+        dwDefault = pEventLogHandle->defaultEventLogRecord.dwEventSourceId;
+        if (eventRecordLocal.dwEventSourceId == 0 && dwDefault != 0)
+        {
+            eventRecordLocal.dwEventSourceId = dwDefault;
+        }
 
-    pszDefault = pEventLogHandle->defaultEventLogRecord.pszUser;
-    if (IsNullOrEmptyString(eventRecordLocal.pszUser) && !IsNullOrEmptyString(pszDefault))
-    {
-        eventRecordLocal.pszUser = pszDefault;
-    }
+        pszDefault = pEventLogHandle->defaultEventLogRecord.pszUser;
+        if (IsNullOrEmptyString(eventRecordLocal.pszUser) && !IsNullOrEmptyString(pszDefault))
+        {
+            eventRecordLocal.pszUser = pszDefault;
+        }
 
-    pszDefault = pEventLogHandle->defaultEventLogRecord.pszComputer;
-    if (IsNullOrEmptyString(eventRecordLocal.pszComputer) && !IsNullOrEmptyString(pszDefault))
-    {
-        eventRecordLocal.pszComputer = pszDefault;
-    }
+        pszDefault = pEventLogHandle->defaultEventLogRecord.pszComputer;
+        if (IsNullOrEmptyString(eventRecordLocal.pszComputer) && !IsNullOrEmptyString(pszDefault))
+        {
+            eventRecordLocal.pszComputer = pszDefault;
+        }
 
-    pszDefault = pEventLogHandle->defaultEventLogRecord.pszDescription;
-    if (IsNullOrEmptyString(eventRecordLocal.pszDescription) && !IsNullOrEmptyString(pszDefault))
-    {
-        eventRecordLocal.pszDescription = pszDefault;
-    }
-    
-    pszDefault = pEventLogHandle->defaultEventLogRecord.pszData;
-    if (IsNullOrEmptyString(eventRecordLocal.pszData) && !IsNullOrEmptyString(pszDefault))
-    {
-        eventRecordLocal.pszData = pszDefault;
-    }
+        pszDefault = pEventLogHandle->defaultEventLogRecord.pszDescription;
+        if (IsNullOrEmptyString(eventRecordLocal.pszDescription) && !IsNullOrEmptyString(pszDefault))
+        {
+            eventRecordLocal.pszDescription = pszDefault;
+        }
+
+        pszDefault = pEventLogHandle->defaultEventLogRecord.pszData;
+        if (IsNullOrEmptyString(eventRecordLocal.pszData) && !IsNullOrEmptyString(pszDefault))
+        {
+            eventRecordLocal.pszData = pszDefault;
+        }
 
     } //end if (bDefaultActive)
 
     TRY
     {
-        dwError = RpcLWIWriteEventLog(
-                    (handle_t)(ULONG) pEventLogHandle->bindingHandle,
-                    eventRecordLocal);
+        dwError = RpcLWIWriteEventLog( (handle_t)(ULONG) pEventLogHandle->bindingHandle,
+						   eventRecordLocal);
     }
     CATCH_ALL
     {
@@ -673,7 +675,7 @@ LWIWriteEventLog(
     EVENT_LOG_RECORD eventRecord;
 
     eventRecord.dwEventRecordId = 0;
-    eventRecord.dwEventTableCategoryId = TABLE_CATEGORY_SENTINEL;
+    eventRecord.pszEventTableCategoryId = NULL;
     eventRecord.pszEventType = (PSTR)eventType;
     eventRecord.dwEventDateTime = (DWORD) time(NULL);
     eventRecord.pszEventSource = NULL;
@@ -684,10 +686,8 @@ LWIWriteEventLog(
     eventRecord.pszDescription = (PSTR)eventDescription;   
     eventRecord.pszData = (PSTR)eventData;
 
-    dwError = LWIWriteEventLogBase(
-    hEventLog,
-    eventRecord
-    );
+    dwError = LWIWriteEventLogBase( hEventLog,
+							    eventRecord );
 
     return dwError;
 
@@ -709,9 +709,8 @@ LWIDeleteFromEventLog(
 
     TRY
     {
-        dwError = RpcLWIDeleteFromEventLog(
-                    (handle_t)(ULONG) pEventLogHandle->bindingHandle,
-                    (idl_char*)sqlFilterChar);
+        dwError = RpcLWIDeleteFromEventLog( (handle_t)(ULONG) pEventLogHandle->bindingHandle,
+                                            (idl_char*)sqlFilterChar);
     }
     CATCH_ALL
     {
@@ -740,8 +739,7 @@ LWIClearEventLog(
 
     TRY
     {
-        dwError = RpcLWIClearEventLog(
-                    (handle_t)(ULONG) pEventLogHandle->bindingHandle);
+        dwError = RpcLWIClearEventLog( (handle_t)(ULONG) pEventLogHandle->bindingHandle);
     }
     CATCH_ALL
     {
@@ -777,7 +775,7 @@ EVTGetRpcError(
         dwError = dwEVTError;
     }
 #endif //!_WIN32
-	
+
     return dwError;
 }
 
