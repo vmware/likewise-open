@@ -11,15 +11,7 @@ usr/lib/likewise/libk5crypto.so*
 usr/lib/likewise/libkrb5.so*
 usr/lib/likewise/libkrb5support.so*
 
-usr/bin/krb5-config
-usr/bin/kdestroy
-usr/bin/kinit
-usr/bin/klist
-usr/bin/kpasswd
-usr/bin/ktutil
-usr/bin/ksu
-usr/bin/kvno
-usr/bin/init-base.sh
+usr/lib/likewise/init-base.sh
 
 usr/share/likewise/VERSION
 usr/data

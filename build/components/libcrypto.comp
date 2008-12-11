@@ -42,9 +42,9 @@ function component_configure
 
     if [ -n "${TARGET}" ]
     then
-        ./Configure --prefix="${PREFIX_DIR}" shared ${TARGET}
+        ./Configure --prefix="${PREFIXDIR}" shared ${TARGET}
     else 
-        ./config --prefix="${PREFIX_DIR}" shared 
+        ./config --prefix="${PREFIXDIR}" shared 
     fi
 }
 

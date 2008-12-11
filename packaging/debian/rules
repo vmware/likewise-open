@@ -90,7 +90,7 @@ install: build
 
 	rsync -av --exclude-from=debian/install-excludes build-install/ $(DESTDIR)/
 
-	for file in ConfigureLogin gpcron; do \
+	for file in ConfigureLogin gpcron sqlite3; do \
 		/bin/mv $(DESTDIR)/$(PREFIX)/bin/$$file $(DESTDIR)/$(LIBEXECDIR)/; \
 		chmod 755 $(DESTDIR)/$(LIBEXECDIR)/$$file; \
 	done
@@ -100,7 +100,7 @@ install: build
 		install -m755 $$file.new $(DESTDIR)/etc/init.d/$$file; \
 	done
 
-	install -m755 config/init-base.sh $(DESTDIR)/$(PREFIX)/bin/
+	install -m755 config/init-base.sh $(DESTDIR)/$(LIBEXECDIR)/
 	install -m644 config/likewise-krb5-ad.conf $(DESTDIR)/$(SYSCONFDIR)/
 	packaging/scripts/mkversion.sh > $(DESTDIR)/$(PREFIX)/share/$(PKGNAME)/VERSION
 	ln -s $(PREFIX)/share/$(PKGNAME) $(DESTDIR)/$(PREFIX)/data

@@ -29,7 +29,7 @@ usr/bin/lw-update-dns
 usr/bin/lw-trace-info
 usr/bin/lw-ypcat
 usr/bin/lw-ypmatch
-usr/bin/sqlite3
+usr/lib/likewise/sqlite3
 usr/bin/lw-dump-machine-acct
 usr/lib/likewise/libgssntlm.so*
 usr/lib/likewise/liblsaaccess.so*

@@ -31,7 +31,7 @@ function component_configure
 
     ./configure                                               \
 	--prefix=${PREFIXDIR}                                 \
-        --libdir=${PREFIXDIR}/${_lib}/likewise                \
+        --libdir=${PREFIXDIR}/${_lib}                \
         --disable-readline                                    \
         --disable-tcl                                         \
         --disable-static                                      \

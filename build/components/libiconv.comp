@@ -30,7 +30,7 @@ function component_configure
     ./configure \
         --build="`get_build_string`" \
 	--prefix=${PREFIX_DIR} \
-	--libdir=${PREFIX_DIR}/${_lib}/likewise \
+	--libdir=${PREFIX_DIR}/${_lib} \
 	--disable-nls
 }
 

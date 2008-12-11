@@ -30,8 +30,8 @@ function component_configure
 
     ./configure                                 \
         --prefix=${PREFIXDIR}                   \
-        --libexecdir=${PREFIXDIR}/bin           \
-        --libdir=${PREFIXDIR}/${_lib}/likewise  \
+        --libexecdir=${LIBEXECDIR}              \
+        --libdir=${PREFIXDIR}/${_lib}           \
         --sysconfdir=${SYSCONFDIR}              \
         --localstatedir=${LOCALSTATEDIR}        \
         --disable-static                        \
@@ -45,7 +45,13 @@ function component_build
 {
    _setup_build_env
 
-   ${MAKE} ${_mflags} all
+   local _make_build_flags=""
+
+   if [ -n "${BUILD_MAKE_FLAGS}" ]; then
+       _make_build_flags="${BUILD_MAKE_FLAGS}"
+   fi
+
+   ${MAKE} ${_mflags} ${_make_build_flags} all
 }
 
 function component_install
