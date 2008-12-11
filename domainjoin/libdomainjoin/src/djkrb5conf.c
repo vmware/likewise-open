@@ -999,12 +999,107 @@ cleanup:
 }
 
 static CENTERROR
+RestoreMacKeberosFile(
+    void
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    BOOLEAN   bFileExists = FALSE;
+
+    (void) CTRemoveFile("/Library/Preferences/edu.mit.Kerberos");
+
+    GCE(ceError = CTCheckFileExists("/Library/Preferences/edu.mit.Kerberos.orig", &bFileExists));
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Resstoring original /Library/Preferences/edu.mit.Kerberos");
+
+        GCE(ceError = CTCopyFileWithOriginalPerms("/Library/Preferences/edu.mit.Kerberos.orig",
+                                                  "/Library/Preferences/edu.mit.Kerberos"));
+    }
+
+cleanup:
+    return ceError;
+}
+
+static CENTERROR
+CreateMacKeberosFile(
+    PSTR pszDomainName,
+    PSTR pszRealm)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    BOOLEAN   bDirExists = FALSE;
+    BOOLEAN   bFileExists = FALSE;
+    FILE    * file = NULL;
+
+    /* Test for typical Mac system directory where edu.mit.Kerberos lives */
+    GCE(ceError = CTCheckDirectoryExists("/Library/Preferences", &bDirExists));
+
+    if (bDirExists)
+    {
+        /* Backup existing file */
+        GCE(ceError = CTCheckFileExists("/Library/Preferences/edu.mit.Kerberos", &bFileExists));
+
+        if (bFileExists)
+        {
+            GCE(ceError = CTCheckFileExists("/Library/Preferences/edu.mit.Kerberos.orig", &bFileExists));
+
+            if (bFileExists)
+            {
+                /* There is already a backup version, delete the edu.mit.Kerberos since we will create
+                   a new one below */
+                (void) CTRemoveFile("/Library/Preferences/edu.mit.Kerberos");
+            }
+            else
+            {
+                DJ_LOG_VERBOSE("Backing up original /Library/Preferences/edu.mit.Kerberos");
+
+                GCE(ceError = CTMoveFile("/Library/Preferences/edu.mit.Kerberos",
+                                         "/Library/Preferences/edu.mit.Kerberos.orig"));
+            }
+        }
+
+        ceError = CTOpenFile("/Library/Preferences/edu.mit.Kerberos", "w", &file);
+        if(!CENTERROR_IS_OK(ceError))
+        {
+            DJ_LOG_ERROR("Unable to open '%s' for writing", "/Library/Preferences/edu.mit.Kerberos");
+            GCE(ceError);
+        }
+
+        GCE(ceError = CTFilePrintf(file, "# WARNING This file is created during Likewise domain join.\n"));
+        GCE(ceError = CTFilePrintf(file, "# Any previous version of edu.mit.Kerberos is backed up to\n"));
+        GCE(ceError = CTFilePrintf(file, "# /Likewise/Preferences/edu.mit.Kerberos.orig\n"));
+        GCE(ceError = CTFilePrintf(file, "# Leaving the current domain will restore the file above.\n"));
+        GCE(ceError = CTFilePrintf(file, "[libdefaults]\n"));
+        GCE(ceError = CTFilePrintf(file, "\tdefault_realm = %s\n", pszRealm));
+        GCE(ceError = CTFilePrintf(file, "\tdns_lookup_kdc = yes\n"));
+        GCE(ceError = CTFilePrintf(file, "[domain_realm]\n"));
+        GCE(ceError = CTFilePrintf(file, "\t.%s = %s\n", pszDomainName, pszRealm));
+        CTCloseFile(file);
+        file = NULL;
+
+        GCE(ceError = CTChangeOwnerAndPermissions("/Library/Preferences/edu.mit.Kerberos",
+                                                   0, 80, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH));
+    }
+
+cleanup:
+
+    if(file != NULL)
+        CTCloseFile(file);
+
+    return ceError;
+}
+
+static CENTERROR
 Krb5LeaveDomain(Krb5Entry *conf)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     Krb5Entry *libdefaults;
     GCE(ceError = EnsureStanzaNode(conf, "libdefaults", &libdefaults));
     GCE(ceError = DeleteChildNode(libdefaults, "default_realm", NULL));
+
+    /* Revert changes needed for SSO support for Mac platforms */
+    GCE(ceError = RestoreMacKeberosFile());
 
 cleanup:
     return ceError;
@@ -1109,9 +1204,13 @@ Krb5JoinDomain(Krb5Entry *conf,
     GCE(ceError = GetReverseMappingsValueString( (DomainMapping *)trusts.data, &mappingString ));
     GCE(ceError = SetNodeValue( httpdGroup, "reverse_mappings", mappingString ));
 
+    /* Enable SSO for Mac platforms, by creating a suitable /Library/Preferences/edu.mit.Kerberos file */
+    GCE(ceError = CreateMacKeberosFile(pszDomainName, domainUpper));
+
 cleanup:
     CT_SAFE_FREE_STRING(mappingString);
     CT_SAFE_FREE_STRING(autoShortDomain);
+    CT_SAFE_FREE_STRING(domainUpper);
     FreeDomainMappings(&trusts);
     FreeKrb5Entry(&domainGroup);
     FreeKrb5Entry(&addNode);
