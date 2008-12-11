@@ -188,13 +188,30 @@ SetupClearCache(
 {
     int status;
 
-    system("/etc/init.d/likewise-open stop 2>/dev/null");
-    system("/etc/init.d/lsassd stop 2>/dev/null");
-    system("rm -rf "
-            "/var/lib/lwidentity/idmap_cache.tdb "
-            "/var/lib/lwidentity/netsamlogon_cache.tdb "
-            "/var/lib/lwidentity/winbindd_cache.tdb "
-            "/var/lib/likewise/db/lsass-adcache.db");
+    status = system("/etc/init.d/likewise-open stop 2>/dev/null");
+    if (WEXITSTATUS(status) != 0)
+    {
+        printf("Unable to stop authentication daemon using init script\n");
+        return FALSE;
+    }
+
+    status = system("/etc/init.d/lsassd stop 2>/dev/null");
+    if (WEXITSTATUS(status) != 0)
+    {
+        printf("Unable to stop authentication daemon\n");
+        return FALSE;
+    }
+
+    status = system("rm -rf "
+                    "/var/lib/lwidentity/idmap_cache.tdb "
+                    "/var/lib/lwidentity/netsamlogon_cache.tdb "
+                    "/var/lib/lwidentity/winbindd_cache.tdb "
+                    "/var/lib/likewise/db/lsass-adcache.db");
+    if (WEXITSTATUS(status) != 0)
+    {
+        printf("Unable to clear caches\n");
+        return FALSE;
+    }
 
     status = system("/etc/init.d/likewise-open start 2>/dev/null || /etc/init.d/lsassd start 2>/dev/null");
 
