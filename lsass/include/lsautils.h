@@ -1358,10 +1358,23 @@ LsaHexStrToByteArray(
 
 DWORD
 LsaByteArrayToHexStr(
-        UCHAR* pucByteArray,
-        DWORD dwByteArrayLength,
-        PSTR* ppszHexString
-        );
+    IN UCHAR* pucByteArray,
+    IN DWORD dwByteArrayLength,
+    OUT PSTR* ppszHexString
+    );
+
+DWORD
+LsaByteArrayToLdapFormatHexStr(
+    IN UCHAR* pucByteArray,
+    IN DWORD dwByteArrayLength,
+    OUT PSTR* ppszHexString
+    );
+
+DWORD
+LsaSidStrToLdapFormatHexStr(
+    IN PCSTR pszSid,
+    OUT PSTR* ppszHexSid
+    );
 
 int
 LsaStrError(
