@@ -1558,7 +1558,7 @@ cleanup:
         FreePacLogonInfo(pPac);
     }
 
-    ADCacheDB_SafeFreeObject(&pUserInfo);
+    LsaDbSafeFreeObject(&pUserInfo);
     LSA_SAFE_FREE_STRING(pszHostname);
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_CLEAR_FREE_STRING(pszServicePassword);

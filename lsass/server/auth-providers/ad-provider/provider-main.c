@@ -231,7 +231,13 @@ LsaInitializeProvider(
     dwError = LsaKrb5SetProcessDefaultCachePath(pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_Initialize();
+    dwError = ADState_OpenDb(
+                &gpLsaAdProviderState->hStateConnection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbOpen(
+                LSASS_AD_CACHE,
+                &gpLsaAdProviderState->hCacheConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_InitializeOperatingMode(
@@ -336,13 +342,6 @@ LsaShutdownProvider(
     {
         ADProviderFreeProviderData(gpADProviderData);
         gpADProviderData = NULL;
-    }
-
-    dwError = ADCacheDB_Shutdown();
-    if (dwError)
-    {
-        LSA_LOG_DEBUG("AD Provider Shutdown: Failed to shutdown cache DB (error = %d)", dwError);
-        dwError = 0;
     }
 
     dwError = LsaKrb5Shutdown();
@@ -512,7 +511,7 @@ AD_ValidateUser(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    ADCacheDB_SafeFreeObject(&pUserInfo);
+    LsaDbSafeFreeObject(&pUserInfo);
 
     if (pLoginInfo)
     {
@@ -581,7 +580,7 @@ AD_CheckUserInList(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObjectList(sNumGroupsFound, &ppGroupList);
+    LsaDbSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
     if (pUserInfo)
     {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
@@ -640,7 +639,7 @@ AD_FindUserByName(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObject(&pInObjectForm);
+    LsaDbSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -693,7 +692,7 @@ AD_FindUserById(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObject(&pInObjectForm);
+    LsaDbSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -950,7 +949,7 @@ AD_FindGroupByNameWithCacheMode(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObject(&pInObjectForm);
+    LsaDbSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -1006,7 +1005,7 @@ AD_FindGroupByIdWithCacheMode(
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
-    ADCacheDB_SafeFreeObject(&pInObjectForm);
+    LsaDbSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -1107,7 +1106,7 @@ AD_GetExpandedGroupUsersEx(
 
 cleanup:
     AD_GroupExpansionDataDestroy(pExpansionData);
-    ADCacheDB_SafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
+    LsaDbSafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
 
     if (pbIsFullyExpanded)
     {
@@ -1120,7 +1119,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
+    LsaDbSafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
     sExpandedUsersCount = 0;
     bIsFullyExpanded = FALSE;
     goto cleanup;
@@ -1336,7 +1335,7 @@ AD_GroupObjectToGroupInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
+    LsaDbSafeFreeObjectList(sMembers, &ppMembers);
     LSA_SAFE_FREE_STRING(pszFullDomainName);
 
     return dwError;
@@ -1442,7 +1441,7 @@ AD_GetUserGroupMembership(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
+    LsaDbSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
     return dwError;
 
 error:
@@ -2492,7 +2491,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObject(&pResult);
+    LsaDbSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -2569,7 +2568,7 @@ error:
 
     *ppResult = NULL;
 
-    ADCacheDB_SafeFreeObject(&pResult);
+    LsaDbSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -2622,7 +2621,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObject(&pResult);
+    LsaDbSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -2699,7 +2698,7 @@ error:
 
     *ppResult = NULL;
 
-    ADCacheDB_SafeFreeObject(&pResult);
+    LsaDbSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -2806,6 +2805,9 @@ LsaAdProviderStateDestroy(
 {
     if (pState)
     {
+        LsaDbSafeClose(&pState->hCacheConnection);
+        ADState_SafeCloseDb(&pState->hStateConnection);
+
         MediaSenseStop(&pState->MediaSenseHandle);
         if (pState->MachineCreds.pMutex)
         {
@@ -3095,7 +3097,7 @@ AD_ResolveConfiguredLists(
             }
             dwError = LSA_ERROR_SUCCESS;
 
-            ADCacheDB_SafeFreeObject(&pGroupInfo);
+            LsaDbSafeFreeObject(&pGroupInfo);
             dwError = AD_FindGroupObjectByName(
                             hProvider,
                             pszMember,
@@ -3131,7 +3133,7 @@ cleanup:
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
 
-    ADCacheDB_SafeFreeObject(&pGroupInfo);
+    LsaDbSafeFreeObject(&pGroupInfo);
 
     return dwError;
 

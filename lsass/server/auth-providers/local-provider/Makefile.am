@@ -17,6 +17,7 @@ liblsass_auth_provider_local_la_LIBADD = \
 	@top_builddir@/utils/liblsautils.la \
 	@top_builddir@/logging_r/liblsalog_r.la \
 	@top_builddir@/server/srvutils/liblsasrvutils.la \
+	@top_builddir@/lsaunistr/liblsaunistr.la \
 	@SQLITE_LIBS@
 
 liblsass_auth_provider_local_la_LDFLAGS = \

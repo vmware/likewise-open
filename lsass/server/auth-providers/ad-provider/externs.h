@@ -105,8 +105,6 @@ extern DWORD gdwMachineTGTExpiry;
 
 extern double gdwMachineTGTExpiryGraceSeconds;
 
-extern CACHE_CONNECTION_HANDLE gpCacheConnection;
-
 extern PLSA_HASH_TABLE gpAllowedSIDs;
 
 // please put all new globals in the following structure:

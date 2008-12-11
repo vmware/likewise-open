@@ -959,6 +959,12 @@ LsaCreateDirectory(
     );
 
 DWORD
+LsaGetDirectoryFromPath(
+    IN PCSTR pszPath,
+    OUT PSTR* ppszDir
+    );
+
+DWORD
 LsaCopyFileWithPerms(
     PCSTR pszSrcPath,
     PCSTR pszDstPath,

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,32 +33,63 @@
  *
  * Module Name:
  *
- *        adldap_p.h
+ *        state_store.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        AD LDAP helper functions (public header)
+ *
+ *        Caching for AD Provider Database Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Kyle Stemen (kstemen@likewisesoftware.com)
+ *
  */
-#ifndef __LSALDAP_MARSHAL_USER_H__
-#define __LSALDAP_MARSHAL_USER_H__
-
-#define LSA_AD_UF_ACCOUNTDISABLE     0x00000002
-#define LSA_AD_UF_LOCKOUT            0x00000010
-#define LSA_AD_UF_CANT_CHANGE_PASSWD 0x00000040
-#define LSA_AD_UF_DONT_EXPIRE_PASSWD 0x00010000
-#define LSA_AD_UF_PASSWORD_EXPIRED   0x00800000
+#ifndef __STATE_STORE_H__
+#define __STATE_STORE_H__
 
 DWORD
-ADMarshalFromUserCache(
-    PAD_SECURITY_OBJECT pUser,
-    DWORD       dwUserInfoLevel,
-    PVOID*      ppUserInfo
+ADState_OpenDb(
+    ADSTATE_CONNECTION_HANDLE* phDb
     );
 
-#endif //__LSALDAP_MARSHAL_USER_H__
+// Sets the handle to null after closing it. If a null handle is passed in,
+// it is ignored.
+void
+ADState_SafeCloseDb(
+    ADSTATE_CONNECTION_HANDLE* phDb
+    );
 
+DWORD
+ADState_GetProviderData(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    OUT PAD_PROVIDER_DATA* ppProvider
+    );
+
+DWORD
+ADState_StoreProviderData(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    IN PAD_PROVIDER_DATA pProvider
+    );
+
+DWORD
+ADState_GetDomainTrustList(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
+    OUT PDLINKEDLIST* ppList
+    );
+
+DWORD
+ADState_StoreDomainTrustList(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    IN PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
+    IN DWORD dwDomainInfoCount
+    );
+
+VOID
+ADState_FreeEnumDomainInfoList(
+    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
+    IN OUT PDLINKEDLIST pList
+    );
+
+#endif /* __STATE_STORE_H__ */

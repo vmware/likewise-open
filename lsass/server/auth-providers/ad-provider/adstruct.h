@@ -124,6 +124,9 @@ typedef struct _LSA_AD_CONFIG {
     BOOLEAN             bNssUserMembershipCacheOnlyEnabled;
 } LSA_AD_CONFIG, *PLSA_AD_CONFIG;
 
+struct _ADSTATE_CONNECTION;
+typedef struct _ADSTATE_CONNECTION *ADSTATE_CONNECTION_HANDLE;
+
 typedef struct _LSA_AD_PROVIDER_STATE {
     /// Tracks machine credentials state
     struct {
@@ -136,6 +139,10 @@ typedef struct _LSA_AD_PROVIDER_STATE {
     } MachineCreds;
     MEDIA_SENSE_HANDLE MediaSenseHandle;
     LSA_AD_CONFIG      config;
+
+    LSA_DB_HANDLE hCacheConnection;
+
+    ADSTATE_CONNECTION_HANDLE hStateConnection;
 } LSA_AD_PROVIDER_STATE, *PLSA_AD_PROVIDER_STATE;
 
 #endif /* __AD_STRUCT_H__ */

@@ -1259,7 +1259,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1307,7 +1307,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1381,7 +1381,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1446,14 +1446,14 @@ LsaAdBatchFindSingleObject(
     ppObjects[0] = NULL;
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(dwCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwCount, &ppObjects);
 
     *ppObject = pObject;
 
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObject(&pObject);
+    LsaDbSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -1588,12 +1588,12 @@ LsaAdBatchFilterMisTypeObjects(
     *pppObjects = ppRemainingObjects;
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(dwRemainingObjectsCount, &ppRemainingObjects);
+    LsaDbSafeFreeObjectList(dwRemainingObjectsCount, &ppRemainingObjects);
     *pdwRemainingObjectsCount = 0;
     *ppRemainingObjects = NULL;
 
@@ -1644,7 +1644,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 

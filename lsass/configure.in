@@ -649,6 +649,8 @@ AC_CONFIG_FILES([Makefile
                  server/auth-providers/local-provider/Makefile
                  server/ipc/Makefile
                  server/lsassd/Makefile
+                 server/db/Makefile
+                 server/sqlite/Makefile
                  access/Makefile
                  auth/Makefile
                  auth/common/Makefile

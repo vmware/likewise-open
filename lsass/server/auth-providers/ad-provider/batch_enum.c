@@ -280,7 +280,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -375,7 +375,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -453,7 +453,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -607,7 +607,7 @@ cleanup:
     {
         ldap_msgfree(pMessage);
     }
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     *pdwObjectsCount = dwTotalObjectsCount;
     *pppObjects = ppTotalObjects;
@@ -617,7 +617,7 @@ cleanup:
 
 error:
     // set OUT params in cleanup.
-    ADCacheDB_SafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
+    LsaDbSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
     dwTotalObjectsCount = 0;
 
     goto cleanup;
@@ -678,7 +678,7 @@ cleanup:
 
 error:
     // set OUT params in cleanup...
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
     goto cleanup;
 }

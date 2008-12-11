@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,32 +33,30 @@
  *
  * Module Name:
  *
- *        adldap_p.h
+ *        includes.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        AD LDAP helper functions (public header)
+ *
+ *        Cachedb API (Private Header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#ifndef __LSALDAP_MARSHAL_USER_H__
-#define __LSALDAP_MARSHAL_USER_H__
 
-#define LSA_AD_UF_ACCOUNTDISABLE     0x00000002
-#define LSA_AD_UF_LOCKOUT            0x00000010
-#define LSA_AD_UF_CANT_CHANGE_PASSWD 0x00000040
-#define LSA_AD_UF_DONT_EXPIRE_PASSWD 0x00010000
-#define LSA_AD_UF_PASSWORD_EXPIRED   0x00800000
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include <sqlite3.h>
+#include "lsautils.h"
+#include <uuid/uuid.h>
+#include <lwrpc/sidhelper.h>
+#include <eventlog.h>
+#include "lsasrvutils.h"
 
-DWORD
-ADMarshalFromUserCache(
-    PAD_SECURITY_OBJECT pUser,
-    DWORD       dwUserInfoLevel,
-    PVOID*      ppUserInfo
-    );
-
-#endif //__LSALDAP_MARSHAL_USER_H__
-
+#include "dbcreate.h"
+#include "lsadb.h"
+#include "db_p.h"
+#include "lsasqlite.h"

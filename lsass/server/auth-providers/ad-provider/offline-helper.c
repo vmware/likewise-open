@@ -58,7 +58,6 @@ AD_OfflineGetGroupMembers(
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hDb = 0;
     size_t sGroupMembershipsCount = 0;
     PAD_GROUP_MEMBERSHIP* ppGroupMemberships = NULL;
     size_t sMemberSidsCount = 0;
@@ -69,11 +68,8 @@ AD_OfflineGetGroupMembers(
     PAD_SECURITY_OBJECT* ppObjects = NULL;
     size_t sIndex = 0;
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_GetGroupMembers(
-        hDb,
+    dwError = LsaDbGetGroupMembers(
+        gpLsaAdProviderState->hCacheConnection,
         pszGroupSid,
         AD_GetTrimUserMembershipEnabled(),
         &sGroupMembershipsCount,
@@ -110,11 +106,10 @@ AD_OfflineGetGroupMembers(
     sObjectsCount = 0;
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(sObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(sObjectsCount, &ppObjects);
     LSA_SAFE_FREE_MEMORY(ppszMemberSids);
-    ADCacheDB_SafeFreeGroupMembershipList(sGroupMembershipsCount,
+    LsaDbSafeFreeGroupMembershipList(sGroupMembershipsCount,
                                           &ppGroupMemberships);
-    ADCacheDB_SafeCloseDb(&hDb);
 
     return dwError;
 
@@ -134,17 +129,13 @@ AD_OfflineFindObjectsBySidList(
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     PAD_SECURITY_OBJECT *ppObjects = NULL;
-    HANDLE hDb = 0;
 
     /* 
      * Lookup users and groups from the cache.
      */
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindObjectsBySidList(
-                    hDb,
+    dwError = LsaDbFindObjectsBySidList(
+                    gpLsaAdProviderState->hCacheConnection,
                     sCount,
                     ppszSidList,
                     &ppObjects);
@@ -154,8 +145,7 @@ AD_OfflineFindObjectsBySidList(
     ppObjects = NULL;
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(sCount, &ppObjects);
-    ADCacheDB_SafeCloseDb(&hDb);
+    LsaDbSafeFreeObjectList(sCount, &ppObjects);
     return dwError;
 
 error:
@@ -366,14 +356,14 @@ AD_GroupExpansionDataAddExpansionResults(
             if (dwExpandedGroupDepth >= pExpansionData->dwMaxDepth)
             {
                 pExpansionData->bDiscardedDueToDepth = TRUE;
-                ADCacheDB_SafeFreeObject(&ppMembers[sMembersCount-1]);
+                LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
             }
             else if (LsaHashExists(pExpansionData->pExpandedGroups,
                                    pCurrentMember) ||
                      LsaHashExists(pExpansionData->pGroupsToExpand,
                                    pCurrentMember))
             {
-                ADCacheDB_SafeFreeObject(&ppMembers[sMembersCount-1]);
+                LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
             }
             else
             {
@@ -388,21 +378,21 @@ AD_GroupExpansionDataAddExpansionResults(
         else
         {
             // some other kind of object -- should not happen
-            ADCacheDB_SafeFreeObject(&ppMembers[sMembersCount-1]);
+            LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
         }
     }
 
 cleanup:
     if (ppMembers && (sMembersCount == 0))
     {
-        ADCacheDB_SafeFreeObjectList(sMembersCount, &ppMembers);
+        LsaDbSafeFreeObjectList(sMembersCount, &ppMembers);
     }
     *psMembersCount = sMembersCount;
     *pppMembers = ppMembers;
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(sMembersCount, &ppMembers);
+    LsaDbSafeFreeObjectList(sMembersCount, &ppMembers);
     if (dwError && !pExpansionData->dwLastError)
     {
         pExpansionData->dwLastError = dwError;
@@ -483,7 +473,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObject(&pGroupToExpand);
+    LsaDbSafeFreeObject(&pGroupToExpand);
     dwGroupToExpandDepth = 0;
 
     if (dwError && !pExpansionData->dwLastError)
@@ -558,7 +548,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(sUserMembersCount, &ppUserMembers);
+    LsaDbSafeFreeObjectList(sUserMembersCount, &ppUserMembers);
     sUserMembersCount = 0;
 
     if (dwError && !pExpansionData->dwLastError)
