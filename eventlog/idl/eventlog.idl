@@ -49,7 +49,7 @@ interface eventlog {
     typedef struct _EVENT_LOG_RECORD 
     {
 	unsigned32              dwEventRecordId;
-	unsigned32              dwEventTableCategoryId;
+	[unique, string] char * pszEventTableCategoryId;
 	[unique, string] char * pszEventType;
 	unsigned32              dwEventDateTime;
 	[unique, string] char * pszEventSource;

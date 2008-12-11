@@ -57,7 +57,7 @@ DWORD
 ParseAndAddEvents(
     PEVENT_LOG_HANDLE pEventLogHandle,
     PSTR   pszFilePath,
-    DWORD dwEventTableCategoryId,
+    PSTR   pszEventTableCategoryId,
     BOOLEAN bEventTableCategoryIdInCSV,
     PFNEventRecordProcessor eventRecordProcessor
     );

@@ -77,7 +77,8 @@ BuildEventRecord(
 
     pEventRecord->dwEventRecordId = 0;
 
-    pEventRecord->dwEventTableCategoryId = (DWORD) TableCategoryApplication;
+    dwError = EVTAllocateString("Application", (PSTR*)(&pEventRecord->pszEventTableCategoryId));
+    BAIL_ON_EVT_ERROR(dwError);
 
     dwError = EVTAllocateString("Information", (PSTR*)(&pEventRecord->pszEventType));
     BAIL_ON_EVT_ERROR(dwError);
@@ -143,20 +144,18 @@ main(
 
     EVENT_LOG_RECORD* pEventRecord = NULL;
 
-    if (argc == 2) {
-    num_iters = atoi(argv[1]);
-    }
+    if (argc == 2)
+        num_iters = atoi(argv[1]);
 
-    dwError = gethostname(
-                  hostname,
-                  sizeof(hostname));
+    dwError = gethostname( hostname,
+                           sizeof(hostname));
     BAIL_ON_EVT_ERROR(dwError);
 
     TRY
     {
 
     dwError = LWIOpenEventLogEx(hostname,
-                    TableCategorySystem,       // DWORD dwEventTableCategoryId
+                    "System",             // char* pszEventTableCategoryId
                     "DefaultEventSource",      //char * pszEventSource
                     123,                       //DWORD dwEventSourceId
                     "DefaultUser",             //char * pszUser
@@ -194,7 +193,7 @@ main(
 
     //Try this with most things set to null
     dwError = LWIOpenEventLogEx(NULL,   //target host -- should end up going to localhost
-                    0,       // DWORD dwEventTableCategoryId
+                    "Application",       		// char* pszEventTableCategoryId
                     "DefaultEventSource",      //char * pszEventSource
                     0,                       //DWORD dwEventSourceId
                     NULL,             //char * pszUser

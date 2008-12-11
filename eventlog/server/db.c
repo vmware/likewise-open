@@ -44,7 +44,7 @@
 
 #define DB_QUERY_CREATE_EVENTS_TABLE "CREATE TABLE lwievents               \
                          (EventRecordId integer PRIMARY KEY AUTOINCREMENT, \
-                            EventTableCategoryId   integer,                  \
+                            EventTableCategoryId   varchar(128),            \
                             EventType     varchar(128),                      \
                             EventDateTime     integer,                       \
                             EventSource   varchar(128),                      \
@@ -120,7 +120,7 @@
                                         Data                   \
                                      )                       \
                                 VALUES( NULL,                 \
-                                        %d,                   \
+                                        \"%s\",               \
                                         \"%s\",               \
                                         %d,                   \
                                         \"%s\",               \
@@ -348,7 +348,7 @@ SrvWriteEventLog(
     dwError = EVTAllocateStringPrintf(
                &pszQuery,
                DB_QUERY_INSERT_EVENT,
-               pEventRecord->dwEventTableCategoryId,
+               IsNullOrEmptyString(pEventRecord->pszEventTableCategoryId) ? "" : pEventRecord->pszEventTableCategoryId,
                IsNullOrEmptyString(pEventRecord->pszEventType) ? "" : pEventRecord->pszEventType,
                pEventRecord->dwEventDateTime,
                IsNullOrEmptyString(pEventRecord->pszEventSource) ? "" : pEventRecord->pszEventSource,
@@ -798,7 +798,16 @@ BuildEventLogRecordList(
             {
                 case EventTableCategoryId:
                 {
-                    pRecord->dwEventTableCategoryId = atoi(ppszResult[iVal]);
+                    if (IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                        pRecord->pszEventTableCategoryId = NULL;
+                    }
+                    else
+                    {
+                        dwError = RPCAllocateString( ppszResult[iVal],
+                                      (PSTR*)(&pRecord->pszEventTableCategoryId));
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
                 }
                 break;
                 case EventRecordId:
