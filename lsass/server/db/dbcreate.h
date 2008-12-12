@@ -48,10 +48,10 @@
 #define __DBCREATE_H__
 
 #define LSA_DB_TABLE_NAME_CACHE_TAGS       "lwicachetags"
-#define LSA_DB_TABLE_NAME_OBJECTS          "lwiobjects"
-#define LSA_DB_TABLE_NAME_USERS            "lwiusers"
+#define LSA_DB_TABLE_NAME_OBJECTS          "lwiobjects2"
+#define LSA_DB_TABLE_NAME_USERS            "lwiusers2"
 #define LSA_DB_TABLE_NAME_VERIFIERS        "lwipasswordverifiers"
-#define LSA_DB_TABLE_NAME_GROUPS           "lwigroups"
+#define LSA_DB_TABLE_NAME_GROUPS           "lwigroups2"
 #define LSA_DB_TABLE_NAME_MEMBERSHIP       "lwigroupmembership2"
 
 #define _LSA_DB_SQL_DROP_TABLE(Table) \
@@ -78,8 +78,8 @@
     "    ObjectSid text PRIMARY KEY,\n" \
     "    DN text,\n" \
     "    Enabled integer,\n" \
-    "    NetbiosDomainName text,\n" \
-    "    SamAccountName text,\n" \
+    "    NetbiosDomainName text COLLATE NOCASE,\n" \
+    "    SamAccountName text COLLATE NOCASE,\n" \
     "    Type integer,\n" \
     "    UNIQUE (NetbiosDomainName, SamAccountName),\n" \
     "    UNIQUE (DN),\n" \
@@ -92,8 +92,8 @@
     "    ObjectSid text PRIMARY KEY,\n" \
     "    Uid integer,\n" \
     "    Gid integer,\n" \
-    "    UPN text,\n" \
-    "    AliasName text,\n" \
+    "    UPN text COLLATE NOCASE,\n" \
+    "    AliasName text COLLATE NOCASE,\n" \
     "    Passwd text,\n" \
     "    Gecos text,\n" \
     "    Shell text,\n" \
@@ -123,7 +123,7 @@
     _LSA_DB_SQL_CREATE_TABLE(LSA_DB_TABLE_NAME_GROUPS) "(\n" \
     "    ObjectSid text PRIMARY KEY,\n" \
     "    Gid integer,\n" \
-    "    AliasName text,\n" \
+    "    AliasName text COLLATE NOCASE,\n" \
     "    Passwd text,\n" \
     "    UNIQUE (Gid),\n" \
     "    UNIQUE (AliasName)\n" \
