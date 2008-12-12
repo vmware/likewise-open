@@ -3,8 +3,8 @@ etc/init.d/lsassd
 etc/likewise/lsassd.conf
 etc/likewise/pstore.conf
 
-lib/likewise/libnss_lsass.so*
-lib/likewise/security/pam_lsass.so
+lib/libnss_lsass.so*
+lib/security/pam_lsass.so
 
 usr/bin/lw-add-group
 usr/bin/lw-add-user

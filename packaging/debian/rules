@@ -87,6 +87,7 @@ install: build
 	mkdir -p $(DESTDIR)/usr/share/icons
 	mkdir -p $(DESTDIR)/etc/init.d
 	mkdir -p $(DESTDIR)/$(LIBEXECDIR)
+	mkdir -p $(DESTDIR)/lib/security
 
 	rsync -av --exclude-from=debian/install-excludes build-install/ $(DESTDIR)/
 
@@ -96,10 +97,19 @@ install: build
 	done
 
 	for file in dcerpcd eventlogd lsassd netlogond npcmuxd; do \
-		cat config/$$file | sed 's#EXECDIR#$(LIBEXECDIR)#g' > $$file.new; \
+		cat config/$$file |\
+			 sed 's#EXECDIR#$(LIBEXECDIR)#g' |\
+			 sed 's#PREFIX_DIR#$(PREFIX)#g' > $$file.new; \
 		/bin/mv $$file.new $(DESTDIR)/etc/init.d/$$file; \
 		chmod 755 $(DESTDIR)/etc/init.d/$$file; \
 	done
+
+	## Granted this is a bug cause by my misusing the ${_lib} build
+	## variable so just make sure the PAM and NSS modules get installed
+	## in the right place
+	mv $(DESTDIR)/lib/likewise/libnss* $(DESTDIR)/lib/
+	mv $(DESTDIR)/lib/likewise/security/pam_lsass.so $(DESTDIR)/lib/security/
+	/bin/rm -rf $(DESTDIR)/lib/likewise
 
 	install -m755 config/init-base.sh $(DESTDIR)/$(LIBEXECDIR)/
 	install -m644 config/likewise-krb5-ad.conf $(DESTDIR)/$(SYSCONFDIR)/
