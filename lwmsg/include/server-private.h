@@ -89,6 +89,8 @@ struct LWMsgServer
     AssocQueue listen_assocs;
     /* Associations that need to be serviced */
     AssocQueue service_assocs;
+    /* Total number of connected clients */
+    size_t num_clients;
 
     /* Synchronization lock for accessing this structure */
     pthread_mutex_t lock;

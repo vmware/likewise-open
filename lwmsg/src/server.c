@@ -284,6 +284,7 @@ lwmsg_server_accept_client(
     case LWMSG_STATUS_SUCCESS:
         /* Queue assocation for listening */
         assoc_queue_add(server, &server->listen_assocs, assoc);
+        server->num_clients++;
         break;
     default:
         /* Throw out association */
@@ -356,7 +357,7 @@ lwmsg_server_listen_thread(
         }
 
         /* Listen for more connections if we are below the maximum */
-        if (server->listen_assocs.count + server->service_assocs.count < server->max_clients)
+        if (server->num_clients < server->max_clients)
         {
             FD_SET(server->fd, &readfds);
             if (nfds < server->fd + 1)
@@ -518,6 +519,9 @@ lwmsg_server_worker_thread(void* arg)
             /* Shut down and free the association */
             BAIL_ON_ERROR(status = lwmsg_assoc_close(assoc));
             lwmsg_assoc_delete(assoc);
+            SERVER_LOCK(server, locked);
+            server->num_clients--;
+            SERVER_UNLOCK(server, locked);
             status = LWMSG_STATUS_SUCCESS;
             break;
         }
