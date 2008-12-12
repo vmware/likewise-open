@@ -52,9 +52,11 @@ typedef struct LWMsgSession
     /* Security token of session creator */
     LWMsgSecurityToken* sec_token;
     /* Reference count */
-    unsigned int volatile refs;
+    size_t volatile refs;
     /* Pointer to linked list of handles */
     struct HandleEntry* volatile handles;
+    /* Number of handles */
+    size_t num_handles;
     /* Links to other sessions in the manager */
     struct LWMsgSession * volatile next, * volatile prev;
     /* Lock */
@@ -187,6 +189,8 @@ shared_add_handle(
     }
 
     session->handles = handle;
+
+    session->num_handles++;
 
     *out_handle = handle;
 
@@ -448,6 +452,7 @@ shared_unregister_handle(
             }
 
             shared_free_handle(handle, do_cleanup);
+            session->num_handles--;
             goto done;
         }
     }
@@ -645,6 +650,34 @@ shared_get_session_id(
     return &session->rsmid;
 }
 
+size_t
+shared_get_session_assoc_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    size_t refs;
+
+    session_lock(session);
+    refs = session->refs;
+    session_unlock(session);
+    return refs;
+}
+
+size_t
+shared_get_session_handle_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    size_t handles;
+
+    session_lock(session);
+    handles = session->num_handles;
+    session_unlock(session);
+    return handles;
+}
+
 static LWMsgSessionManagerClass shared_class = 
 {
     .private_size = sizeof(SharedPrivate),
@@ -658,7 +691,9 @@ static LWMsgSessionManagerClass shared_class =
     .handle_id_to_pointer = shared_handle_id_to_pointer,
     .set_session_data = shared_set_session_data,
     .get_session_data = shared_get_session_data,
-    .get_session_id = shared_get_session_id
+    .get_session_id = shared_get_session_id,
+    .get_session_assoc_count = shared_get_session_assoc_count,
+    .get_session_handle_count = shared_get_session_handle_count
 };
                                          
 LWMsgStatus

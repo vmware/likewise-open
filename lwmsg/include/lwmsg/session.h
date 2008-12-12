@@ -157,6 +157,18 @@ typedef struct LWMsgSessionManagerClass
         LWMsgSessionManager* manager,
         LWMsgSession* session
         );
+
+    size_t
+    (*get_session_assoc_count) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
+        );
+
+    size_t
+    (*get_session_handle_count) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
+        );
 } LWMsgSessionManagerClass;
 
 LWMsgStatus
@@ -184,6 +196,18 @@ void
 lwmsg_session_id_to_string(
     const LWMsgSessionID* smid,
     char buffer[17]
+    );
+
+size_t
+lwmsg_session_manager_get_session_assoc_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    );
+
+size_t
+lwmsg_session_manager_get_session_handle_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
     );
 
 #endif

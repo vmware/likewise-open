@@ -270,3 +270,21 @@ lwmsg_session_manager_get_session_id(
 {
     return manager->mclass->get_session_id(manager, session);
 }
+
+size_t
+lwmsg_session_manager_get_session_assoc_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return manager->mclass->get_session_assoc_count(manager, session);
+}
+
+size_t
+lwmsg_session_manager_get_session_handle_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return manager->mclass->get_session_handle_count(manager, session);
+}

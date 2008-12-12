@@ -185,7 +185,11 @@ assoc_queue_remove_at_index(
     LWMsgAssoc** assoc
     )
 {
-    *assoc = queue->queue[index];
+    if (assoc)
+    {
+        *assoc = queue->queue[index];
+    }
+
     queue->queue[index] = NULL;
     queue->count--;
     pthread_cond_signal(&queue->event);
@@ -299,6 +303,99 @@ error:
     return status;
 }
 
+static
+LWMsgStatus
+lwmsg_server_timeout_clients(
+    LWMsgServer* server,
+    LWMsgTime* next
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    size_t i;
+    LWMsgTime now;
+    LWMsgTime abs_timeout;
+    LWMsgTime soonest_timeout;
+    ConnectionPrivate* priv = NULL;
+    LWMsgAssoc* assoc = NULL;
+    LWMsgServerTimeoutLevel level;
+    LWMsgSession* session = NULL;
+    size_t num_handles;
+    size_t num_assocs;
+
+    BAIL_ON_ERROR(status = lwmsg_time_now(&now));
+
+    soonest_timeout.seconds = 0x7fffffff;
+    soonest_timeout.microseconds = 0x7fffffff;
+
+    /* Move through our available levels of aggressiveness
+       until we manage to free up some client slots */
+    for (level = LWMSG_SERVER_TIMEOUT_SAFE;
+         server->num_clients == server->max_clients && level < LWMSG_SERVER_TIMEOUT_END;
+         level++)
+    {
+        for (i = 0; i < server->listen_assocs.size; i++)
+        {
+            assoc = server->listen_assocs.queue[i];
+
+            if (assoc)
+            {
+                priv = lwmsg_assoc_get_private(assoc);
+
+                lwmsg_time_sum(&priv->last_time, &server->timeout, &abs_timeout);
+
+                /* If the connection has exceeded its timeout */
+                if (lwmsg_time_compare(&abs_timeout, &now) == LWMSG_TIME_LESSER)
+                {
+                    /* Find out how many connections and handles are in its session */
+                    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, NULL, &session));
+                    num_assocs = lwmsg_session_manager_get_session_assoc_count(server->manager, session);
+                    num_handles = lwmsg_session_manager_get_session_handle_count(server->manager, session);
+
+                    if (num_assocs == 1 &&
+                        num_handles > 0 &&
+                        level <= LWMSG_SERVER_TIMEOUT_SAFE)
+                    {
+                        /* Try not to close a connection if it is the last
+                           in its session and there are handles that would be
+                           invalidated */
+                        continue;
+                    }
+                    else
+                    {
+                        lwmsg_assoc_reset(assoc);
+                        lwmsg_assoc_delete(assoc);
+                        assoc_queue_remove_at_index(server, &server->listen_assocs, i, NULL);
+                        server->num_clients--;
+                    }
+                }
+                else
+                {
+                    /* Calculate when we'll next need to wake up */
+                    if (lwmsg_time_compare(&abs_timeout, &soonest_timeout) == LWMSG_TIME_LESSER)
+                    {
+                        soonest_timeout = abs_timeout;
+                    }
+                }
+            }
+        }
+    }
+
+    if (server->num_clients == server->max_clients)
+    {
+        *next = soonest_timeout;
+    }
+    else
+    {
+        next->seconds = -1;
+        next->microseconds = -1;
+    }
+
+error:
+
+    return status;
+}
+
+
 static void*
 lwmsg_server_listen_thread(
     void* arg
@@ -318,10 +415,17 @@ lwmsg_server_listen_thread(
     ConnectionPrivate* priv = NULL;
     char c = 0;
     LWMsgAssoc* assoc = NULL;
+    LWMsgTime next;
+    LWMsgTime timeout;
+    LWMsgTime now;
+    struct timeval timeval;
+
+    SERVER_LOCK(server, locked);
 
     while (1)
     {
         /* Begin setting up set of descriptors to wait on */
+        next.seconds = -1;
         FD_ZERO(&readfds);
         nfds = 0;
 
@@ -333,12 +437,26 @@ lwmsg_server_listen_thread(
             nfds = server->listen_notify[0] + 1;
         }
 
-        /* Lock server to access queues */
-        SERVER_LOCK(server, locked);
-
         if (server->state == LWMSG_SERVER_SHUTDOWN)
         {
             goto done;
+        }
+
+        /* If we are out of client slots, start timing out old connections */
+        if (server->num_clients == server->max_clients &&
+            server->timeout_set)
+        {
+            BAIL_ON_ERROR(status = lwmsg_server_timeout_clients(server, &next));
+        }
+
+        /* Listen for more connections if we have free slots */
+        if (server->num_clients < server->max_clients)
+        {
+            FD_SET(server->fd, &readfds);
+            if (nfds < server->fd + 1)
+            {
+                nfds = server->fd + 1;
+            }
         }
 
         /* Add all assocs in the listen queue to fd set */
@@ -356,22 +474,19 @@ lwmsg_server_listen_thread(
             }
         }
 
-        /* Listen for more connections if we are below the maximum */
-        if (server->num_clients < server->max_clients)
-        {
-            FD_SET(server->fd, &readfds);
-            if (nfds < server->fd + 1)
-            {
-                nfds = server->fd + 1;
-            }
-        }
-
         SERVER_UNLOCK(server, locked);
 
         /* Wait for something to happen */
         do
         {
-            ret = select(nfds, &readfds, NULL, NULL, NULL);
+            if (next.seconds != -1)
+            {
+                lwmsg_time_now(&now);
+                lwmsg_time_difference(&now, &next, &timeout);
+                timeval.tv_sec = timeout.seconds;
+                timeval.tv_usec = timeout.microseconds;
+            }
+            ret = select(nfds, &readfds, NULL, NULL, timeout.seconds == -1 ? NULL: &timeval);
         } while (ret == -1 && errno == EINTR);
 
         if (ret == -1)
@@ -444,7 +559,6 @@ lwmsg_server_listen_thread(
 
             BAIL_ON_ERROR(status = lwmsg_server_accept_client(server, sock));
         }
-        SERVER_UNLOCK(server, locked);
     }
 
 done:
@@ -640,7 +754,7 @@ lwmsg_server_set_timeout(
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
     }
 
-    server->timeout_set = 1;
+    server->timeout_set = LWMSG_TRUE;
     server->timeout = *timeout;
 
 error:

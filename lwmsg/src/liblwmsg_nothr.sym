@@ -24,6 +24,7 @@ lwmsg_assoc_get_peer_session_id
 lwmsg_assoc_get_state
 lwmsg_assoc_get_session_data
 lwmsg_assoc_set_session_data
+lwmsg_assoc_set_action
 lwmsg_assoc_verify_handle_local
 lwmsg_assoc_verify_handle_remote
 lwmsg_connection_new
@@ -76,5 +77,7 @@ lwmsg_session_manager_delete
 lwmsg_session_manager_get_private
 lwmsg_session_manager_get_id
 lwmsg_session_id_to_string
+lwmsg_session_manager_get_session_assoc_count
+lwmsg_session_manager_get_session_handle_count
 lwmsg_fd_type_class
 lwmsg_handle_type_class

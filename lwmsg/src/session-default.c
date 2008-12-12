@@ -50,9 +50,11 @@ typedef struct LWMsgSession
     /* Security token of session creator */
     LWMsgSecurityToken* sec_token;
     /* Reference count */
-    unsigned int refs;
+    size_t refs;
     /* Pointer to linked list of handles */
     struct HandleEntry* handles;
+    /* Number of handles */
+    size_t num_handles;
     /* Links to other sessions in the manager */
     struct LWMsgSession* next, *prev;
     /* User data pointer */
@@ -143,6 +145,7 @@ default_add_handle(
     }
 
     session->handles = handle;
+    session->num_handles++;
 
     *out_handle = handle;
 
@@ -361,6 +364,7 @@ default_unregister_handle(
             }
 
             default_free_handle(handle, do_cleanup);
+            session->num_handles--;
             goto done;
         }
     }
@@ -538,6 +542,24 @@ default_get_session_id(
     return &session->rsmid;
 }
 
+size_t
+default_get_session_assoc_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return session->refs;
+}
+
+size_t
+default_get_session_handle_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return session->num_handles;
+}
+
 static LWMsgSessionManagerClass default_class = 
 {
     .private_size = sizeof(DefaultPrivate),
@@ -551,7 +573,9 @@ static LWMsgSessionManagerClass default_class =
     .handle_id_to_pointer = default_handle_id_to_pointer,
     .set_session_data = default_set_session_data,
     .get_session_data = default_get_session_data,
-    .get_session_id = default_get_session_id
+    .get_session_id = default_get_session_id,
+    .get_session_assoc_count = default_get_session_assoc_count,
+    .get_session_handle_count = default_get_session_handle_count
 };
                                          
 LWMsgStatus

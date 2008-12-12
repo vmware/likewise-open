@@ -43,20 +43,20 @@
 #include "protocol-private.h"
 #include "session-private.h"
 
-#define ACTION_ON_ERROR(_a_, _e_) do                            \
-    {                                                           \
-        LWMsgStatus __s__ = (_e_);                              \
-        LWMsgAssoc* __a__ = (_a_);                              \
-        switch (lwmsg_assoc_lookup_action(__a__, status))       \
-        {                                                       \
-        case LWMSG_ASSOC_ACTION_RETRY:                          \
-            goto retry;                                         \
-        case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                \
-            BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));   \
-            goto retry;                                         \
-        default:                                                \
-            BAIL_ON_ERROR(__s__);                               \
-        }                                                       \
+#define ACTION_ON_ERROR(_a_, _e_) do                                    \
+    {                                                                   \
+        LWMsgStatus __s__ = (_e_);                                      \
+        LWMsgAssoc* __a__ = (_a_);                                      \
+        switch (lwmsg_assoc_lookup_action(__a__, status))               \
+        {                                                               \
+        case LWMSG_ASSOC_ACTION_RETRY:                                  \
+            goto retry;                                                 \
+        case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                        \
+            BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));           \
+            goto retry;                                                 \
+        default:                                                        \
+            BAIL_ON_ERROR(__s__);                                       \
+        }                                                               \
     } while (0)
 
 LWMsgStatus
@@ -176,7 +176,7 @@ lwmsg_assoc_new(
 
     assoc->prot = prot;
     assoc->aclass = aclass;
-    
+
     lwmsg_context_setup(&assoc->context, &prot->context);
 
     lwmsg_context_set_data_function(&assoc->context, lwmsg_assoc_context_get_data, assoc);
@@ -185,6 +185,9 @@ lwmsg_assoc_new(
     {
         aclass->construct(assoc);
     }
+
+    /* Default action vector */
+    assoc->action_vector[LWMSG_ASSOC_EXCEPTION_PEER_RESET] = LWMSG_ASSOC_ACTION_RESET_AND_RETRY;
 
     *out_assoc = assoc;
 

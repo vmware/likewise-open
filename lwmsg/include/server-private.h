@@ -107,6 +107,13 @@ struct LWMsgServer
     unsigned timeout_set:1;
 };
 
+typedef enum LWMsgServerTimeoutLevel
+{
+    LWMSG_SERVER_TIMEOUT_SAFE,
+    LWMSG_SERVER_TIMEOUT_UNSAFE,
+    LWMSG_SERVER_TIMEOUT_END
+} LWMsgServerTimeoutLevel;
+
 #define SERVER_RAISE_ERROR(_server_, _status_, ...) RAISE_ERROR(&(_server_)->context, _status_, __VA_ARGS__)
 
 #define SERVER_RAISE_ERROR_LOCK(_server_, _lock_, _status_, ...) \

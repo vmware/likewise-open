@@ -400,6 +400,8 @@ lwmsg_connection_check_timeout(
         BAIL_ON_ERROR(status = LWMSG_STATUS_TIMEOUT);
     }
 
+    priv->last_time = now;
+
     lwmsg_time_difference(&now, &priv->end_time, &diff);
 
     if (diff.seconds < 0 || diff.microseconds < 0)
