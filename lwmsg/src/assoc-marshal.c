@@ -69,14 +69,22 @@ lwmsg_assoc_marshal_handle(
 
     pointer = *(void**) object;
 
-    BAIL_ON_ERROR(status = lwmsg_session_manager_handle_pointer_to_id(
+    status = lwmsg_session_manager_handle_pointer_to_id(
                       manager,
                       session,
                       (const char*) data,
                       pointer,
                       LWMSG_TRUE,
                       &location,
-                      &handle));
+                      &handle);
+
+    switch (status)
+    {
+    case LWMSG_STATUS_NOT_FOUND:
+        status = LWMSG_STATUS_MALFORMED;
+    default:
+        BAIL_ON_ERROR(status);
+    }
 
     blob[0] = (unsigned char) location;
     
@@ -134,14 +142,22 @@ lwmsg_assoc_unmarshal_handle(
                       LWMSG_UNSIGNED));
 
     /* Convert handle to pointer */
-    BAIL_ON_ERROR(status = lwmsg_session_manager_handle_id_to_pointer(
-                      manager,
-                      session,
-                      (const char*) data,
-                      location,
-                      handle,
-                      location == LWMSG_HANDLE_REMOTE,
-                      &pointer));
+    status = lwmsg_session_manager_handle_id_to_pointer(
+        manager,
+        session,
+        (const char*) data,
+        location,
+        handle,
+        location == LWMSG_HANDLE_REMOTE,
+        &pointer);
+
+    switch (status)
+    {
+    case LWMSG_STATUS_NOT_FOUND:
+        status = LWMSG_STATUS_MALFORMED;
+    default:
+        BAIL_ON_ERROR(status);
+    }
     
     /* Set pointer on unmarshalled object */
     *(void**) object = pointer;
