@@ -111,8 +111,8 @@ ParseArgs(
     char* argv[],
     PDWORD action,
     char** pstrArgCopy,
-    char* ipAddress,
-    PDWORD pdwEventTableCategoryId,
+    PSTR ipAddress,
+    PSTR *ppszEventTableCategoryId,
     PBOOLEAN pbEventTableCategoryIdInCSV)
 {
     int iArg = 1;
@@ -122,7 +122,7 @@ ParseArgs(
 
     DWORD dwError = 0;
     DWORD actionLocal = 0;
-    DWORD dwEventTableCategoryId = 0;
+    PSTR   pszEventTableCategoryId = 0;
     BOOLEAN bEventTableCategoryIdInCSV = TRUE;
 
     if (iArg > maxIndex || maxIndex > 8) {
@@ -131,42 +131,33 @@ ParseArgs(
     }
 
     pszArg = argv[iArg++];
-    if (pszArg == NULL || *pszArg == '\0')
-    {
+    if (pszArg == NULL || *pszArg == '\0') {
         ShowUsage();
         exit(0);
     }
-    else if ((strcmp(pszArg, "--help") == 0) || (strcmp(pszArg, "-h") == 0))
-    {
+    else if ((strcmp(pszArg, "--help") == 0) || (strcmp(pszArg, "-h") == 0)) {
         ShowUsage();
         exit(0);
     }
-    else if (strcmp(pszArg, "-s") == 0)
-    {
+    else if (strcmp(pszArg, "-s") == 0) {
         actionLocal = ACTION_SHOW;
     }
-    else if (strcmp(pszArg, "-t") == 0)
-    {
+    else if (strcmp(pszArg, "-t") == 0) {
         actionLocal = ACTION_TABLE;
     }
-    else if (strcmp(pszArg, "-c") == 0)
-    {
+    else if (strcmp(pszArg, "-c") == 0) {
         actionLocal = ACTION_COUNT;
     }
-    else if (strcmp(pszArg, "-i") == 0)
-    {
+    else if (strcmp(pszArg, "-i") == 0) {
         actionLocal = ACTION_IMPORT;
     }
-    else if (strcmp(pszArg, "-e") == 0)
-    {
+    else if (strcmp(pszArg, "-e") == 0) {
         actionLocal = ACTION_EXPORT;
     }
-    else if (strcmp(pszArg, "-d") == 0)
-    {
+    else if (strcmp(pszArg, "-d") == 0) {
         actionLocal = ACTION_DELETE;
     }
-    else
-    {
+    else {
         ShowUsage();
         exit(0);
     }
@@ -177,13 +168,11 @@ ParseArgs(
     }
 
     pszArg = argv[iArg++];
-    if (pszArg == NULL || *pszArg == '\0')
-    {
+    if (pszArg == NULL || *pszArg == '\0') {
         ShowUsage();
         exit(0);
     }
-    else
-    {
+    else {
         dwError = EVTAllocateMemory(strlen(pszArg)+1, (PVOID*)(&pstrArgLocal));
         BAIL_ON_EVT_ERROR(dwError);
         strcpy(pstrArgLocal, pszArg);
@@ -197,11 +186,11 @@ ParseArgs(
         *(argv[iArg]) != '-' &&
         strchr(argv[iArg], '.') == NULL) //if this arg is the IP address, ignore.
     {
-        dwEventTableCategoryId = atoi(argv[iArg++]);
-        if (dwEventTableCategoryId >= 0 && dwEventTableCategoryId < TABLE_CATEGORY_SENTINEL)
-        {
-            bEventTableCategoryIdInCSV = FALSE;
-        }
+        EVT_LOG_VERBOSE("  Category ID = %s", argv[iArg]);
+        dwError = EVTAllocateString(argv[iArg++], (PSTR*)pszEventTableCategoryId);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        bEventTableCategoryIdInCSV = FALSE;
     }
 
 
@@ -231,7 +220,7 @@ ParseArgs(
 
     *action = actionLocal;
     *pstrArgCopy = pstrArgLocal;
-    *pdwEventTableCategoryId = dwEventTableCategoryId;
+    *ppszEventTableCategoryId = pszEventTableCategoryId;
     *pbEventTableCategoryIdInCSV = bEventTableCategoryIdInCSV;
 
  error:
@@ -253,7 +242,7 @@ main(
     DWORD nRecords = 0;
     DWORD currentRecord = 0;
     DWORD nRecordsPerPage = 500;
-    DWORD dwEventTableCategoryId = 0;
+    PSTR  pszEventTableCategoryId = NULL;
     BOOLEAN bEventTableCategoryIdInCSV = FALSE;
 
     char ipAddress[256];
@@ -264,20 +253,17 @@ main(
     PSTR argCopy = NULL;
     DWORD action = ACTION_NONE;
 
-    dwError = EVTInitLoggingToFile(
-         LOG_LEVEL_ERROR,
-         NULL);
+    dwError = EVTInitLoggingToFile( LOG_LEVEL_ERROR,
+                                    NULL);
     BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = ParseArgs(
-                argc,
-                argv,
-                &action,
-                &argCopy,
-                ipAddress,
-                &dwEventTableCategoryId,
-                &bEventTableCategoryIdInCSV
-                );
+    dwError = ParseArgs( argc,
+                         argv,
+                         &action,
+                         &argCopy,
+                         ipAddress,
+                         &pszEventTableCategoryId,
+                         &bEventTableCategoryIdInCSV);
     BAIL_ON_EVT_ERROR(dwError);
 
     if (action <= ACTION_NONE || action > ACTION_LAST) {
@@ -297,7 +283,7 @@ main(
             dwError = ParseAndAddEvents(
                         pEventLogHandle,
                         argCopy,
-                        dwEventTableCategoryId,
+                        pszEventTableCategoryId,
                         bEventTableCategoryIdInCSV,
                         AddEventRecord
                         );

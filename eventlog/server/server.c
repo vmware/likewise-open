@@ -204,9 +204,8 @@ RpcLWIWriteEventLog(
     dwError =  SrvOpenEventDatabase(&hDB);
     BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = SrvWriteToDB(
-                    hDB,
-                    &EventRecord);
+    dwError = SrvWriteToDB( hDB,
+                            &EventRecord);
     BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:

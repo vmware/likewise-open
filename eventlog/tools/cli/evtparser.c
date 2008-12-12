@@ -439,8 +439,8 @@ ExportEventRecord (
     strftime(eventDate, 255, "%F", localtime(&eventTimeStruct));
     strftime(eventTime, 255, "%r", localtime(&eventTimeStruct));
 
-    fprintf(fpExport, "%d,%s,%s,%s,%s,%s,%d,%s,%s,\"%s\", \"%s\"\n",
-        pRecord->dwEventTableCategoryId,
+    fprintf(fpExport, "%s,%s,%s,%s,%s,%s,%d,%s,%s,\"%s\", \"%s\"\n",
+        IsNullOrEmptyString(pRecord->pszEventTableCategoryId) ? "<null>" : (PSTR)pRecord->pszEventTableCategoryId,
         eventDate, //PSTR
         eventTime, //PSTR
         IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventSource,
@@ -526,7 +526,7 @@ DWORD
 ParseAndAddEvents(
     PEVENT_LOG_HANDLE pEventLogHandle,
     PSTR   pszFilePath,
-    DWORD dwEventTableCategoryId,
+    PSTR   pszEventTableCategoryId,
     BOOLEAN bEventTableCategoryIdInCSV,
     PFNEventRecordProcessor eventRecordProcessor
     )
@@ -576,10 +576,8 @@ ParseAndAddEvents(
                 }
 
                 if (pEventRecord) {
-                    dwError = eventRecordProcessor(
-                                    pEventLogHandle,
-                                *pEventRecord
-                                );
+                    dwError = eventRecordProcessor( pEventLogHandle,
+                                                    *pEventRecord);
                     BAIL_ON_EVT_ERROR(dwError);
                     LWIFreeEventRecord(pEventRecord);
                     pEventRecord = NULL;
@@ -589,16 +587,19 @@ ParseAndAddEvents(
                 BAIL_ON_EVT_ERROR(dwError);
 
                 EVT_LOG_VERBOSE("TableCategoryId: %s", IsNullOrEmptyString(eventToken.szToken) ? NULL_STR : eventToken.szToken);
-                pEventRecord->dwEventTableCategoryId = atoi(eventToken.szToken);
-                pEventRecord->dwEventDateTime = 0;
+                if (!IsNullOrEmptyString(eventToken.szToken)) {
+                    dwError = EVTAllocateString(eventToken.szToken, (PSTR*)&pEventRecord->pszEventTableCategoryId);
+                    BAIL_ON_EVT_ERROR(dwError);
+                    pEventRecord->dwEventDateTime = 0;
+                }
                 break;
             }
             case EVENT_DATE:
             {
                 if (!bEventTableCategoryIdInCSV) {
                     if (pEventRecord) {
-                        dwError = eventRecordProcessor(pEventLogHandle,
-                                        *pEventRecord);
+                        dwError = eventRecordProcessor( pEventLogHandle,
+                                                        *pEventRecord);
                         BAIL_ON_EVT_ERROR(dwError);
                         LWIFreeEventRecord(pEventRecord);
                         pEventRecord = NULL;
@@ -607,7 +608,10 @@ ParseAndAddEvents(
                     dwError = EVTAllocateMemory(sizeof(EVENT_LOG_RECORD), (PVOID*)&pEventRecord);
                     BAIL_ON_EVT_ERROR(dwError);
 
-                    pEventRecord->dwEventTableCategoryId = dwEventTableCategoryId;
+			if (!IsNullOrEmptyString(pszEventTableCategoryId)) {
+			dwError = EVTAllocateString(pszEventTableCategoryId, (PSTR*)&pEventRecord->pszEventTableCategoryId);
+			BAIL_ON_EVT_ERROR(dwError);
+					}
                     pEventRecord->dwEventDateTime = 0;
                 }
 
@@ -656,8 +660,7 @@ ParseAndAddEvents(
             case EVENT_SOURCE:
             {
                 EVT_LOG_VERBOSE("  Source: %s", IsNullOrEmptyString(eventToken.szToken) ? NULL_STR : eventToken.szToken);
-                if (!IsNullOrEmptyString(eventToken.szToken))
-                {
+                if (!IsNullOrEmptyString(eventToken.szToken)) {
                     dwError = EVTAllocateString(eventToken.szToken, (PSTR*)&pEventRecord->pszEventSource);
                     BAIL_ON_EVT_ERROR(dwError);
                 }
@@ -666,8 +669,7 @@ ParseAndAddEvents(
             case EVENT_TYPE:
             {
                 EVT_LOG_VERBOSE("Type: %s", IsNullOrEmptyString(eventToken.szToken) ? NULL_STR : eventToken.szToken);
-                if (!IsNullOrEmptyString(eventToken.szToken))
-                {
+                if (!IsNullOrEmptyString(eventToken.szToken)) {
                     dwError = EVTAllocateString(eventToken.szToken, (PSTR*)&pEventRecord->pszEventType);
                     BAIL_ON_EVT_ERROR(dwError);
                 }
@@ -676,8 +678,7 @@ ParseAndAddEvents(
             case EVENT_CATEGORY:
             {
                 EVT_LOG_VERBOSE("Category: %s", IsNullOrEmptyString(eventToken.szToken) ? NULL_STR : eventToken.szToken);
-                if (!IsNullOrEmptyString(eventToken.szToken))
-                {
+                if (!IsNullOrEmptyString(eventToken.szToken)) {
                     dwError = EVTAllocateString(eventToken.szToken, (PSTR*)&pEventRecord->pszEventCategory);
                     BAIL_ON_EVT_ERROR(dwError);
                 }
@@ -691,13 +692,12 @@ ParseAndAddEvents(
             }
             case EVENT_USER:
             {
-                    EVT_LOG_VERBOSE("    User: %s", IsNullOrEmptyString(eventToken.szToken) ? NULL_STR : eventToken.szToken);
-                    if (!IsNullOrEmptyString(eventToken.szToken))
-                    {
-                        dwError = EVTAllocateString(eventToken.szToken, (PSTR*)&pEventRecord->pszUser);
+                EVT_LOG_VERBOSE("    User: %s", IsNullOrEmptyString(eventToken.szToken) ? NULL_STR : eventToken.szToken);
+                if (!IsNullOrEmptyString(eventToken.szToken)) {
+                    dwError = EVTAllocateString(eventToken.szToken, (PSTR*)&pEventRecord->pszUser);
                     BAIL_ON_EVT_ERROR(dwError);
-                    }
-                    break;
+                }
+                break;
             }
             case EVENT_COMPUTER:
             {
@@ -710,12 +710,9 @@ ParseAndAddEvents(
             }
             case EVENT_DESCRIPTION:
             {
-                if (!IsNullOrEmptyString(eventToken.szToken))
-                {
-                    dwError = EVTAllocateString(
-                        eventToken.szToken,
-                        (PSTR*)&pEventRecord->pszDescription
-                        );
+                if (!IsNullOrEmptyString(eventToken.szToken)) {
+                    dwError = EVTAllocateString( eventToken.szToken,
+                                                 (PSTR*)&pEventRecord->pszDescription);
                     BAIL_ON_EVT_ERROR(dwError);
                 }
 
@@ -725,39 +722,32 @@ ParseAndAddEvents(
                 * string - otherwise, we have to concatenate any
                 * remaining tokens until we get to a date.
                 */
-                while (eventToken.dwToken != TOKEN_EOF)
-                {
+                while (eventToken.dwToken != TOKEN_EOF) {
                     dwError = GetNextToken(pLexerState, &eventToken);
                     BAIL_ON_EVT_ERROR(dwError);
 
                     if (!bEventTableCategoryIdInCSV &&
-                        IsDate(eventToken.szToken))
-                    {
+                        IsDate(eventToken.szToken)) {
                         PushbackToken(pLexerState, &eventToken);
                         break;
                     }
                     if (bEventTableCategoryIdInCSV &&
                         strlen(eventToken.szToken) == 1 &&
                         isdigit((int)eventToken.szToken[0]) &&
-                        atoi(eventToken.szToken) >= 0 &&
-                        atoi(eventToken.szToken) < TABLE_CATEGORY_SENTINEL)
-                    {
+                        atoi(eventToken.szToken) >= 0 ) {
                         PushbackToken(pLexerState, &eventToken);
                         break;
                     }
 
-                    if (IsNullOrEmptyString(eventToken.szToken))
-                    {
+                    if (IsNullOrEmptyString(eventToken.szToken)) {
                         continue;
                     }
 
-                    if (IsNullOrEmptyString(pEventRecord->pszDescription))
-                    {
+                    if (IsNullOrEmptyString(pEventRecord->pszDescription)) {
                         dwError = EVTAllocateString(eventToken.szToken, (PSTR*)&pEventRecord->pszDescription);
                         BAIL_ON_EVT_ERROR(dwError);
                     }
-                    else
-                    {
+                    else {
                         dwError = EVTReallocMemory(pEventRecord->pszDescription,
                                     (PVOID*)&pEventRecord->pszDescription,
                                     strlen(pEventRecord->pszDescription) + strlen(eventToken.szToken)+1);
@@ -782,8 +772,7 @@ ParseAndAddEvents(
 
         } //end switch
 
-        if (iToken >= EVENT_FIELD_TYPE_SENTINEL)
-        {
+        if (iToken >= EVENT_FIELD_TYPE_SENTINEL) {
             EVT_LOG_ERROR("Parse error in in event import");
             dwError = EVT_ERROR_INTERNAL;
             BAIL_ON_EVT_ERROR(dwError);
@@ -793,7 +782,6 @@ ParseAndAddEvents(
 
     if (pEventRecord) {
         /* Add the record */
-
         dwError = eventRecordProcessor(pEventLogHandle,
                             *pEventRecord);
 
@@ -802,13 +790,11 @@ ParseAndAddEvents(
 
  cleanup:
 
-    if (pEventRecord)
-    {
+    if (pEventRecord) {
         LWIFreeEventRecord(pEventRecord);
     }
 
-    if (pLexerState)
-    {
+    if (pLexerState) {
         FreeLexerState(pLexerState);
     }
 
@@ -847,9 +833,8 @@ PrintEventRecords(
     printf("Event Record: (%d/%d) (%d total)\n", iRecord+1, nRecords, ++totalRecordsLocal);
     printf("========================================\n");
     printf("Event Record ID......... %d\n", pRecord->dwEventRecordId);
-    printf("Event Table Category.... %d(%s)\n",
-            pRecord->dwEventTableCategoryId,
-            TableCategoryToStr(pRecord->dwEventTableCategoryId));
+    printf("Event Table Category.............. %s\n",
+            IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (char*) (pRecord->pszEventTableCategoryId));
     printf("Event Type.............. %s\n",
             IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (char*) (pRecord->pszEventType));
     printf("Event Date.............. %s\n", eventDate);

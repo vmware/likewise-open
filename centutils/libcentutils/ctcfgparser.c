@@ -657,7 +657,7 @@ CTSetConfigValueBySectionName(
     }
 
     if (!pSection) {
-        ceError = CENTERROR_CFG_SECTION_NOT_FOUND;
+        ceError = CTCreateConfigSection(&pSectionList, &pSection, pszSectionName);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 

@@ -329,9 +329,11 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
     PLSA_LIST_LINKS pLinks = (PLSA_LIST_LINKS)pItem;
     PLSA_AD_BATCH_ITEM pBatchItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
     PSTR pszValueToEscape = NULL;
+    PSTR pszValueToHex = NULL;
     PSTR pszValue = NULL;
     PVOID pFreeValueContext = NULL;
     // Free this on error only.
+    PSTR pszMatchTerm = NULL;
     PSTR pszAllocatedMatchTermValue = NULL;
     BOOLEAN bHaveReal = IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL);
     BOOLEAN bHavePseudo = IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO);
@@ -393,6 +395,16 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
                 dwError = LSA_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
+
+            if (bIsForRealObject)
+            {
+                // "S-"-style SID string are only handled starting with
+                // Windows 2003.  So an LDAP hex-formatted SID string
+                // is needed to handle Windows 2000.
+
+                pszValueToHex = pszValue;
+                pszValue = NULL;
+            }
             break;
 
         case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
@@ -449,19 +461,36 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
             BAIL_ON_LSA_ERROR(dwError);
     }
 
+    LSA_ASSERT(!pszMatchTerm);
+    LSA_ASSERT(!(pszValueToEscape && pszValueToHex));
+
     if (pszValueToEscape)
     {
         LSA_ASSERT(!pszValue);
         dwError = LsaLdapEscapeString(&pszValue, pszValueToEscape);
         BAIL_ON_LSA_ERROR(dwError);
 
+        pszMatchTerm = pszValueToEscape;
         pFreeValueContext = pszValue;
+    }
+    else if (pszValueToHex)
+    {
+        LSA_ASSERT(!pszValue);
+        dwError = LsaSidStrToLdapFormatHexStr(pszValueToHex, &pszValue);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pszMatchTerm = pszValueToHex;
+        pFreeValueContext = pszValue;
+    }
+    else
+    {
+        pszMatchTerm = pszValue;
     }
 
 cleanup:
-    // Note that the match value is different from the value,
-    // which we need to escape.
-    pBatchItem->pszQueryMatchTerm = pszValueToEscape ? pszValueToEscape : pszValue;
+    // Note that the match value can be different from the value,
+    // which we may need to escape or hex.
+    pBatchItem->pszQueryMatchTerm = pszMatchTerm;
     *ppszValue = pszValue;
     *ppFreeValueContext = pFreeValueContext;
 

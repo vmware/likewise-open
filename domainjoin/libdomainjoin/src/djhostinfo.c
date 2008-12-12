@@ -891,8 +891,6 @@ cleanup:
         CTFreeString(pszPathifcfg);
 
     DJ_LOG_VERBOSE("FixNetworkInterfaces LEAVE -> 0x%08x (EE = %d)", ceError, EE);
-
-    return ceError;
 }
 
 static QueryResult QueryDescriptionSetHostname(const JoinProcessOptions *options, PSTR *changeDescription, LWException **exc)
@@ -1218,7 +1216,6 @@ DJSetComputerName(
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
-    int EE = 0;
     BOOLEAN bValidComputerName = FALSE;
     PSTR oldShortHostname = NULL;
     PSTR oldFqdnHostname = NULL;

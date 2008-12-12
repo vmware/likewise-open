@@ -60,7 +60,7 @@ LsaSrvWriteLoginSuccessEvent(
     if (pServerState->hEventLog == (HANDLE)NULL)
     {        
         dwError = LsaSrvOpenEventLog(
-                      TableCategorySecurity,
+                      "Security",
                       &pServerState->hEventLog);       
         BAIL_ON_LSA_ERROR(dwError); 
     }
@@ -105,7 +105,7 @@ LsaSrvWriteLoginFailedEvent(
     if (pServerState->hEventLog == (HANDLE)NULL)
     {        
         dwError = LsaSrvOpenEventLog(
-                      TableCategorySecurity,
+                      "Security",
                       &pServerState->hEventLog);       
         BAIL_ON_LSA_ERROR(dwError); 
     }
@@ -150,7 +150,7 @@ LsaSrvWriteLogoutSuccessEvent(
     if (pServerState->hEventLog == (HANDLE)NULL)
     {        
         dwError = LsaSrvOpenEventLog(
-                      TableCategorySecurity,
+                      "Security",
                       &pServerState->hEventLog);       
         BAIL_ON_LSA_ERROR(dwError); 
     }
@@ -195,7 +195,7 @@ LsaSrvWriteLogoutFailedEvent(
     if (pServerState->hEventLog == (HANDLE)NULL)
     {        
         dwError = LsaSrvOpenEventLog(
-                      TableCategorySecurity,
+                      "Security",
                       &pServerState->hEventLog);       
         BAIL_ON_LSA_ERROR(dwError); 
     }
