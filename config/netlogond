@@ -25,4 +25,4 @@ PROG_ERR=/var/cache/likewise/netlogond/netlogond.err
 PIDFILE=/var/run/netlogond.pid
 SCRIPTNAME="netlogond"
 
-. PREFIX_DIR/bin/init-base.sh
+. EXECDIR/init-base.sh

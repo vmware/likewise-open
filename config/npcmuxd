@@ -25,4 +25,4 @@ PROG_ERR=/var/run/likewise-npcmuxd.err
 SCRIPTNAME="npcmuxd"
 PIDFILE=/var/run/npcmuxd.pid
 
-. PREFIX_DIR/bin/init-base.sh
+. EXECDIR/init-base.sh

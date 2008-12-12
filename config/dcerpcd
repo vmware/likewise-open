@@ -37,4 +37,4 @@ wait_ready()
     sleep 1
 }
 
-. PREFIX_DIR/bin/init-base.sh
+. EXECDIR/init-base.sh
