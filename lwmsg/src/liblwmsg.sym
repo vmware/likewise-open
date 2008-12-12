@@ -3,6 +3,7 @@ lwmsg_server_delete
 lwmsg_server_set_timeout
 lwmsg_server_set_max_clients
 lwmsg_server_set_max_backlog
+lwmsg_server_set_max_dispatch
 lwmsg_server_add_dispatch_spec
 lwmsg_server_set_fd
 lwmsg_server_set_endpoint

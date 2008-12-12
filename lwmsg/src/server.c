@@ -510,10 +510,6 @@ lwmsg_server_worker_thread(void* arg)
             SERVER_LOCK(server, locked);
             assoc_queue_add(server, &server->listen_assocs, assoc);
             SERVER_UNLOCK(server, locked);
-            if (write(server->listen_notify[1], &c, 1) != 1)
-            {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-            }
             break;
         default:
             /* Shut down and free the association */
@@ -524,6 +520,11 @@ lwmsg_server_worker_thread(void* arg)
             SERVER_UNLOCK(server, locked);
             status = LWMSG_STATUS_SUCCESS;
             break;
+        }
+
+        if (write(server->listen_notify[1], &c, 1) != 1)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
         }
     }
 
