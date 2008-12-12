@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -26,6 +26,10 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
+ */
+
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
 #ifndef _NETRDEFS_H_
@@ -188,6 +192,7 @@ typedef struct netr_identity_info {
     UnicodeString domain_name;
     uint32        param_control;
     uint32        logon_id_low;
+    uint32        logon_id_high;
     UnicodeString account_name;
     UnicodeString workstation;
 } NetrIdentityInfo;
@@ -234,11 +239,10 @@ typedef struct netr_credentials {
     uint8  pass_hash[16];
     uint8  session_key[16];
     uint16 channel_type;
+    uint32 sequence;
 
     NetrCred  cli_chal;
     NetrCred  srv_chal;
-    NetrCred  cli_cred;
-    NetrCred  srv_cred;
     NetrCred  seed;
 } NetrCredentials;
 
@@ -266,12 +270,12 @@ typedef struct netr_sam_base_info {
     WinNtTime last_password_change;
     WinNtTime allow_password_change;
     WinNtTime force_password_change;
-    UnicodeString account_name;
-    UnicodeString full_name;
-    UnicodeString logon_script;
-    UnicodeString profile_path;
-    UnicodeString home_directory;
-    UnicodeString home_drive;
+    UnicodeStringEx account_name;
+    UnicodeStringEx full_name;
+    UnicodeStringEx logon_script;
+    UnicodeStringEx profile_path;
+    UnicodeStringEx home_directory;
+    UnicodeStringEx home_drive;
     uint16 logon_count;
     uint16 bad_password_count;
     uint32 rid;
@@ -279,8 +283,8 @@ typedef struct netr_sam_base_info {
     RidWithAttributeArray groups;
     uint32 user_flags;
     NetrUserSessionKey key;
-    UnicodeString logon_server;
-    UnicodeString domain;
+    UnicodeStringEx logon_server;
+    UnicodeStringEx domain;
     DomSid *domain_sid;
     NetrLMSessionKey lmkey;
     uint32 acct_flags;
@@ -345,13 +349,14 @@ typedef struct netr_pac_info {
 
 
 #ifndef _DCE_IDL_
-typedef union netr_validation {
+typedef union netr_validation_info {
     NetrSamInfo2 *sam2;
     NetrSamInfo3 *sam3;
     NetrPacInfo  *pac4;
     NetrPacInfo  *pac5;
     NetrSamInfo6 *sam6;
-} NetrValidation;
+} NetrValidationInfo;
+
 #endif /* _DCE_IDL_ */
 
 

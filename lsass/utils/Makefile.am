@@ -8,6 +8,7 @@ liblsautils_la_SOURCES =       \
        filelog.c               \
        fileutils.c             \
        globals.c               \
+       lsacache.c              \
        lsacfg.c                \
        lsadns.c                \
        lsaerror.c              \

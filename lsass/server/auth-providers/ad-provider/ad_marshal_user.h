@@ -47,39 +47,11 @@
 #ifndef __LSALDAP_MARSHAL_USER_H__
 #define __LSALDAP_MARSHAL_USER_H__
 
-#include "cachedb.h"
-
 #define LSA_AD_UF_ACCOUNTDISABLE     0x00000002
 #define LSA_AD_UF_LOCKOUT            0x00000010
 #define LSA_AD_UF_CANT_CHANGE_PASSWD 0x00000040
 #define LSA_AD_UF_DONT_EXPIRE_PASSWD 0x00010000
 #define LSA_AD_UF_PASSWORD_EXPIRED   0x00800000
-
-DWORD
-ADMarshalUserInfoList(
-    IN OPTIONAL HANDLE hProvider,
-    IN HANDLE hDirectory,    
-    IN OPTIONAL PCSTR pszDomainDnsName,
-    IN LSA_AD_MARSHAL_INFO_LIST_MODE InfoListMarshalMode,
-    // In Default Schema or Unprovision, pMessage is pMessageReal
-    // In Cell or Default Non-Schema, pMessage is pMessagePseudo 
-    IN LDAPMessage* pMessage, 
-    IN DWORD dwUserInfoLevel,
-    OUT PVOID** pppUserInfoList,
-    OUT PDWORD pdwNumUsers
-    );
-
-DWORD
-ADMarshalToUserCache(
-    HANDLE                  hPseudoDirectory,
-    HANDLE                  hRealDirectory,
-    DWORD                   dwDirectoryMode,
-    ADConfigurationMode     adConfMode,
-    PLSA_LOGIN_NAME_INFO    pUserNameInfo,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppUserInfo
-    );
 
 DWORD
 ADMarshalFromUserCache(

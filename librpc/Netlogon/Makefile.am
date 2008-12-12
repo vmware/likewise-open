@@ -5,7 +5,9 @@ lib_LTLIBRARIES = libnetlogon.la
 
 libnetlogon_la_SOURCES = \
 	netlogon_cstub.c NetlogonBinding.c NetrMemory.c globals.c NetrStubMemory.c \
-	NetrCredentials.c NetrServerReqChallenge.c NetrServerAuthenticate2.c \
+	NetrCredentials.c NetrServerReqChallenge.c NetrServerAuthenticate.c \
+	NetrServerAuthenticate2.c NetrServerAuthenticate3.c \
+	NetrSamLogon.c NetrSamLogoff.c NetrSamLogonEx.c \
 	NetrEnumerateTrustedDomainsEx.c DsrEnumerateDomainTrusts.c
 
 LIBRPC_INCDIR=$(librpc_srcdir)/Include

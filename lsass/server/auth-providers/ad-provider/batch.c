@@ -661,7 +661,6 @@ LsaAdBatchCreateBatchItem(
     {
         pItem->QueryTerm.dwId = *pdwId;
     }
-    pItem->pDomainEntry = pDomainEntry;
 
 cleanup:
     if (dwError)
@@ -1038,6 +1037,7 @@ LsaAdBatchSplitBIListToBIListPerDomain(
             if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
             {
                 LSA_LOG_DEBUG("Domain not found for query item - '%s'", pBatchItem->pszSid);
+                dwError = 0;
                 continue;
             }
             BAIL_ON_LSA_ERROR(dwError);
@@ -1047,8 +1047,6 @@ LsaAdBatchSplitBIListToBIListPerDomain(
 
         if (!IsSetFlag(pFoundEntry->Flags, LSA_AD_BATCH_DOMAIN_ENTRY_FLAG_SKIP))
         {
-            pBatchItem->pDomainEntry = pFoundEntry;
-
             LsaListInsertTail(&pFoundEntry->BatchItemList, &pBatchItem->BatchItemListLinks);
             pBatchItem = NULL;
             pFoundEntry->dwBatchItemCount++;
@@ -1125,6 +1123,7 @@ LsaAdBatchSplitQTListToBIListPerDomain(
             if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
             {
                 LSA_LOG_DEBUG("Domain not found for query item - '%s'", ppszQueryList[i]);
+                dwError = 0;
                 continue;
             }
             BAIL_ON_LSA_ERROR(dwError);
@@ -1170,7 +1169,8 @@ LsaAdBatchResolveObjectsForDomainList(
     IN PLSA_LIST_LINKS pDomainList,
     IN BOOLEAN bResolvePseudoObjects,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects)
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    )
 {
     DWORD dwError = 0;
     // Do not free pLinks
@@ -1220,6 +1220,8 @@ LsaAdBatchResolveObjectsForDomainList(
         }
 
         dwError = LsaAdBatchMarshalList(
+                        pEntry->pszDnsDomainName,
+                        pEntry->pszNetbiosDomainName,
                         &pEntry->BatchItemList,
                         dwObjectsCount - dwCurrentIndex,
                         &ppObjects[dwCurrentIndex],
@@ -1257,7 +1259,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1305,7 +1307,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1379,7 +1381,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1444,14 +1446,14 @@ LsaAdBatchFindSingleObject(
     ppObjects[0] = NULL;
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(dwCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwCount, &ppObjects);
 
     *ppObject = pObject;
 
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObject(&pObject);
+    LsaDbSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -1586,12 +1588,12 @@ LsaAdBatchFilterMisTypeObjects(
     *pppObjects = ppRemainingObjects;
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(dwRemainingObjectsCount, &ppRemainingObjects);
+    LsaDbSafeFreeObjectList(dwRemainingObjectsCount, &ppRemainingObjects);
     *pdwRemainingObjectsCount = 0;
     *ppRemainingObjects = NULL;
 
@@ -1642,7 +1644,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
@@ -1662,6 +1664,7 @@ LsaAdBatchFindObjectsForDomainEntry(
                 hProvider,
                 QueryType,
                 pEntry->pszDnsDomainName,
+                pEntry->pszNetbiosDomainName,
                 IsSetFlag(pEntry->Flags, LSA_AD_BATCH_DOMAIN_ENTRY_FLAG_IS_ONE_WAY_TRUST),
                 bResolvePseudoObjects,
                 pEntry->dwBatchItemCount,
@@ -1674,6 +1677,7 @@ LsaAdBatchFindObjectsForDomain(
     IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN BOOLEAN bIsOneWayTrust,
     IN BOOLEAN bResolvePseudoObjects,
     IN DWORD dwCount,
@@ -1697,6 +1701,7 @@ LsaAdBatchFindObjectsForDomain(
         dwError = LsaAdBatchResolveRpcObjects(
                         QueryType,
                         pszDnsDomainName,
+                        pszNetbiosDomainName,
                         dwCount,
                         pBatchItemList);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1757,6 +1762,7 @@ DWORD
 LsaAdBatchResolveRpcObjects(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pBatchItemList
@@ -1788,6 +1794,7 @@ LsaAdBatchResolveRpcObjects(
         ppTranslatedNames = NULL;
 
         dwError = LsaAdBatchBuildQueryForRpc(
+                        pszNetbiosDomainName,
                         QueryType,
                         pLinks,
                         pBatchItemList,
@@ -3603,7 +3610,6 @@ LsaAdBatchQueryTermDebugInfo(
     }
 }
 
-static
 DWORD
 LsaAdBatchAccountTypeToObjectType(
     IN ADAccountType AccountType,

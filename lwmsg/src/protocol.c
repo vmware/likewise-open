@@ -43,13 +43,10 @@
 #include "type-private.h"
 
 LWMsgStatus
-lwmsg_protocol_new(LWMsgProtocol** prot)
-{
-    return lwmsg_protocol_new_with_context(NULL, prot);
-}
-
-LWMsgStatus
-lwmsg_protocol_new_with_context(LWMsgContext* context, LWMsgProtocol** prot)
+lwmsg_protocol_new(
+    LWMsgContext* context,
+    LWMsgProtocol** prot
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
@@ -191,6 +188,25 @@ lwmsg_protocol_unmarshal(
     BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, tag, &mtype));
 
     BAIL_ON_ERROR(status = lwmsg_unmarshal(&prot->context, mtype, buffer, out_object));
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_protocol_free_graph(
+    LWMsgProtocol* prot,
+    unsigned int tag,
+    void* root
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTypeSpec* mtype = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, tag, &mtype));
+
+    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&prot->context, mtype, root));
 
 error:
 

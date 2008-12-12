@@ -52,31 +52,6 @@
 #define CELLLDAP_H_
 
 DWORD
-CellModeInitializeMiniProvider(
-    VOID
-    );
-
-DWORD
-CellModeEnumUsers(
-    HANDLE hProvider,
-    PCSTR pszCellDN,
-    PAD_ENUM_STATE pEnumState,
-    DWORD dwMaxNumUsers,
-    PDWORD pdwUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-CellModeEnumGroups(
-    HANDLE hProvider,
-    PCSTR pszCellDN,
-    PAD_ENUM_STATE pEnumState,
-    DWORD dwMaxNumGroups,
-    PDWORD pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    );
-
-DWORD
 CellModeFindNSSArtefactByKey(
     HANDLE hDirectory,
     PCSTR  pszCellDN,

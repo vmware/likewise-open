@@ -52,28 +52,6 @@
 #define DEFLDAP_H_
 
 DWORD
-DefaultModeEnumUsers(
-    HANDLE hProvider,
-    PCSTR pszDomainDnsName,
-    PCSTR pszCellDN,
-    PAD_ENUM_STATE pEnumState,
-    DWORD dwMaxNumUsers,
-    PDWORD pdwUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-DefaultModeEnumGroups(
-    HANDLE hProvider,
-    PCSTR pszCellDN,
-    PCSTR pszDomainDnsName,
-    PAD_ENUM_STATE pEnumState,
-    DWORD dwMaxNumGroups,
-    PDWORD pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    );
-
-DWORD
 DefaultModeFindNSSArtefactByKey(
     HANDLE         hDirectory,
     PCSTR          pszCellDN,

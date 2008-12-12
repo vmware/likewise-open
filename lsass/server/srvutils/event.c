@@ -48,13 +48,13 @@
 
 DWORD
 LsaSrvOpenEventLog(
-    TableCategoryType tabCategoryType,   
+    PSTR pszCategoryType,
     PHANDLE phEventLog
     )
 {
     return LWIOpenEventLogEx(
                   NULL,
-                  tabCategoryType,
+                  pszCategoryType,
                   "Likewise LSASS",
                   0x8000,
                   "lsassd",
@@ -161,7 +161,7 @@ LsaSrvLogServiceSuccessEvent(
     HANDLE hEventLog = (HANDLE)NULL;
     
     dwError = LsaSrvOpenEventLog(
-                  TableCategorySystem,
+                  "System",
                   &hEventLog);       
     BAIL_ON_LSA_ERROR(dwError);    
     
@@ -197,7 +197,7 @@ LsaSrvLogServiceWarningEvent(
     HANDLE hEventLog = (HANDLE)NULL;
     
     dwError = LsaSrvOpenEventLog(
-                  TableCategorySystem,
+                  "System",
                   &hEventLog);       
     BAIL_ON_LSA_ERROR(dwError);    
     
@@ -234,7 +234,7 @@ LsaSrvLogServiceFailureEvent(
     HANDLE hEventLog = (HANDLE)NULL;
     
     dwError = LsaSrvOpenEventLog(
-                  TableCategorySystem,
+                  "System",
                   &hEventLog);       
     BAIL_ON_LSA_ERROR(dwError);    
     

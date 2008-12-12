@@ -112,7 +112,7 @@ typedef struct LWMsgProtocolSpec
     LWMsgTypeSpec* type;
 }
 #endif
-LWMsgProtocolSpec;
+const LWMsgProtocolSpec;
 
 /**
  * @brief Get marshaller type by message tag
@@ -142,6 +142,7 @@ lwmsg_protocol_get_message_type(
  * Creates a new protocol object with no known messages.
  * Messages must be added with lwmsg_protocol_add_protocol_spec().
  *
+ * @param context a marshalling context, or <tt>NULL</tt> for default settings
  * @param prot the created protocol
  * @lwmsg_status
  * @lwmsg_success
@@ -150,25 +151,6 @@ lwmsg_protocol_get_message_type(
  */
 LWMsgStatus
 lwmsg_protocol_new(
-    LWMsgProtocol** prot
-    );
-
-/**
- * @brief Create a new protocol object with context
- *
- * Creates a new protocol object which inherits its marshalling settings from
- * the specified context.  Associations created from the specified protocol object
- * will in turn inherit these settings.
- * 
- * @param context the context from which to inherit
- * @param prot the created protocol
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_protocol_new_with_context(
     LWMsgContext* context,
     LWMsgProtocol** prot
     );
@@ -271,6 +253,27 @@ lwmsg_protocol_unmarshal(
     );
 
 /**
+ * @brief Free a message object graph
+ *
+ * Frees an object graph for the specified message tag
+ *
+ * @param prot the protocol object
+ * @param tag the message tag
+ * @param root the root of the object graph
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{NOT_FOUND, the specified message tag is unknown}
+ * @lwmsg_etc{an error returned by the memory manager}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_protocol_free_graph(
+    LWMsgProtocol* prot,
+    unsigned int tag,
+    void* root
+    );
+
+/**
  * @ingroup protocol
  * @brief Specify a message tag and type
  *
@@ -279,12 +282,12 @@ lwmsg_protocol_unmarshal(
  * integer tag and associated marshaller type
  * specification.
  *
- * @param _tag the integer identifier for the message
- * @param _spec the marshaller type specifier that describes the message payload
+ * @param tag the integer identifier for the message
+ * @param spec the marshaller type specifier that describes the message payload
  * @hideinitializer
  */
-#define LWMSG_MESSAGE(_tag, _spec) \
-    { (_tag), (_spec) }
+#define LWMSG_MESSAGE(tag, spec) \
+    { (tag), (spec) }
 
 /**
  * @ingroup protocol

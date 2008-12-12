@@ -102,7 +102,9 @@ SidCopyAlloc(
 
     size_t src_size = SidGetSize(SrcSid);
     *DstSid = (SID*) malloc(src_size);
-    memcpy(*DstSid, SrcSid, src_size);
+    if (*DstSid) {
+        memcpy(*DstSid, SrcSid, src_size);
+    }
 }
 
 

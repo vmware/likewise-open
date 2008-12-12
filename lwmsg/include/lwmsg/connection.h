@@ -106,6 +106,11 @@ typedef enum LWMsgConnectionMode
      * @hideinitializer
      */
     LWMSG_CONNECTION_MODE_REMOTE = 2,
+    /**
+     * Anonymous socket pair connection
+     * @hideinitializer
+     */
+    LWMSG_CONNECTION_MODE_PAIR = 3
 } LWMsgConnectionMode;
 
 /**

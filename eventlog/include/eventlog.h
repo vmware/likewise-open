@@ -282,22 +282,13 @@ typedef char idl_char;
 #define HOST_NAME_MAX 255
 #endif
 
-typedef enum
-{
-    TableCategoryApplication = 0,
-    TableCategoryWebBrowser,    //1
-    TableCategorySecurity,      //2
-    TableCategorySystem,        //3
-    TABLE_CATEGORY_SENTINEL
-} TableCategoryType;
-
 #ifndef EVENT_LOG_RECORD_DEFINED
 #define EVENT_LOG_RECORD_DEFINED 1
 
 typedef struct _EVENT_LOG_RECORD
 {
     DWORD   dwEventRecordId;
-    DWORD   dwEventTableCategoryId;
+    PSTR    pszEventTableCategoryId;
     PSTR    pszEventType;
     DWORD   dwEventDateTime;
     PSTR    pszEventSource;
@@ -336,7 +327,7 @@ LWIOpenEventLog(
 DWORD
 LWIOpenEventLogEx(
     PCSTR pszServerName,
-    DWORD dwEventTableCategoryId,
+    PCSTR pszEventTableCategoryId,
     PCSTR pszSource,
     DWORD dwEventSourceId,
     PCSTR pszUser,
@@ -364,7 +355,7 @@ LWICountEventLog(
 DWORD
 LWISetEventLogTableCategoryId(
     HANDLE hEventLog,
-    DWORD dwEventTableCategoryId
+    PCSTR pszEventTableCategoryId
     );
 
 DWORD

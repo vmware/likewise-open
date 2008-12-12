@@ -60,7 +60,7 @@ LWNetOpenServer(
     dwError = LWNetAllocateMemory(sizeof(LWNET_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(&pContext->pProtocol));
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, LWNetIPCGetProtocolSpec()));

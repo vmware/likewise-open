@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -66,17 +66,17 @@
  * Locking macros
  */
 
-#define PTR_LIST_LOCK(list)                       \
-    do {                                          \
-        int ret = 0;                              \
-        ret = pthread_mutex_lock(&(list)->mutex); \
-        if (ret) {                                \
-            status = STATUS_UNSUCCESSFUL;         \
-            goto error;                           \
-                                                  \
-        } else {                                  \
-            locked = 1;                           \
-        }                                         \
+#define PTR_LIST_LOCK(list)                         \
+    do {                                            \
+        int ret = 0;                                \
+        ret = pthread_mutex_lock(&(list)->mutex);   \
+        if (ret) {                                  \
+            status = STATUS_UNSUCCESSFUL;           \
+            goto error;                             \
+                                                    \
+        } else {                                    \
+            locked = 1;                             \
+        }                                           \
     } while (0);
 
 
@@ -134,12 +134,11 @@ static NTSTATUS MemPtrNodeRemove(PtrList *list, PtrNode *node)
 {
     NTSTATUS status = STATUS_SUCCESS;
     PtrNode *prev = NULL;
-    int locked = 0;
 
     goto_if_invalid_param_ntstatus(list, done);
     goto_if_invalid_param_ntstatus(node, done);
 
-    PTR_LIST_LOCK(list);
+    /* We're assuming the list has already been locked */
 
     /* Simple case - this happens to be the first node */
     if (node == list->p) {
@@ -161,7 +160,6 @@ static NTSTATUS MemPtrNodeRemove(PtrList *list, PtrNode *node)
     prev->next = node->next;
 
 done:
-    PTR_LIST_UNLOCK(list);
     return status;
 
 error:
@@ -282,10 +280,13 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
 {
     NTSTATUS status = STATUS_SUCCESS;
     PtrNode *node = NULL;
+    int locked = 0;
 
     goto_if_invalid_param_ntstatus(ptr, done);
 
-    /* Free the pointer and all pointer (nodes) depending on it */
+    PTR_LIST_LOCK(list);
+
+    /* Free the pointer and all pointers (nodes) depending on it */
     node = list->p;
     while (node) {
         if (node->dep == ptr || node->ptr == ptr) {
@@ -307,7 +308,11 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
     }
 
 done:
+    PTR_LIST_UNLOCK(list);
     return status;
+
+error:
+    goto done;
 }
 
 

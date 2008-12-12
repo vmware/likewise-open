@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,6 +28,10 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 
@@ -53,26 +57,34 @@ NTSTATUS NetrServerAuthenticate2(handle_t b, const wchar16_t *server,
     memcpy(creds.data, cli_creds, sizeof(creds.data));
 
     srv = wc16sdup(server);
-    goto_if_no_memory_ntstatus(srv, cleanup);
+    goto_if_no_memory_ntstatus(srv, error);
 
     acc = wc16sdup(account);
-    goto_if_no_memory_ntstatus(acc, cleanup);
+    goto_if_no_memory_ntstatus(acc, error);
 
     comp = wc16sdup(computer);
-    goto_if_no_memory_ntstatus(comp, cleanup);
+    goto_if_no_memory_ntstatus(comp, error);
 
     DCERPC_CALL(status, _NetrServerAuthenticate2(b, srv, acc, sec_chan_type,
                                                  comp, &creds, neg_flags));
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 
     memcpy(srv_creds, creds.data, sizeof(creds.data));
 
 cleanup:
+    memset(&creds, 0, sizeof(creds));
+
     SAFE_FREE(srv);
     SAFE_FREE(acc);
     SAFE_FREE(comp);
 
     return status;
+
+error:
+    memset(srv_creds, 0, sizeof(creds.data));
+    *neg_flags = 0;
+
+    goto cleanup;
 }
 
 

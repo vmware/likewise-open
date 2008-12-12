@@ -342,7 +342,7 @@ LsaHashSidStringToId(
     LSA_SECURITY_IDENTIFIER sid = { 0 };
 
     dwError = LsaSidStringToBytes(
-                    pszSidString, 
+                    pszSidString,
                     &sid.pucSidBytes,
                     &sid.dwByteLength);
     BAIL_ON_LSA_ERROR(dwError);
@@ -570,9 +570,9 @@ error:
 
 DWORD
 LsaByteArrayToHexStr(
-    UCHAR* pucByteArray,
-    DWORD dwByteArrayLength,
-    PSTR* ppszHexString
+    IN UCHAR* pucByteArray,
+    IN DWORD dwByteArrayLength,
+    OUT PSTR* ppszHexString
     )
 {
     DWORD dwError = 0;
@@ -586,7 +586,7 @@ LsaByteArrayToHexStr(
 
     for (i = 0; i < dwByteArrayLength; i++)
     {
-        sprintf((char*)pszHexString+(2*i), "%.2X", pucByteArray[i]);
+        sprintf(pszHexString+(2*i), "%.2X", pucByteArray[i]);
     }
 
     *ppszHexString = pszHexString;
@@ -596,8 +596,80 @@ cleanup:
     return dwError;
 
 error:
+    LSA_SAFE_FREE_STRING(pszHexString);
 
     *ppszHexString = NULL;
+    goto cleanup;
+}
+
+DWORD
+LsaByteArrayToLdapFormatHexStr(
+    IN UCHAR* pucByteArray,
+    IN DWORD dwByteArrayLength,
+    OUT PSTR* ppszHexString
+    )
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+    PSTR pszHexString = NULL;
+
+    dwError = LsaAllocateMemory(
+                (dwByteArrayLength*3 + 1) * sizeof(CHAR),
+                (PVOID*)&pszHexString);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < dwByteArrayLength; i++)
+    {
+        sprintf(pszHexString+(3*i), "\\%.2X", pucByteArray[i]);
+    }
+
+    *ppszHexString = pszHexString;
+
+cleanup:
+
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_STRING(pszHexString);
+
+    *ppszHexString = NULL;
+    goto cleanup;
+}
+
+DWORD
+LsaSidStrToLdapFormatHexStr(
+    IN PCSTR pszSid,
+    OUT PSTR* ppszHexSid
+    )
+{
+    DWORD dwError = 0;
+    UCHAR* pucSIDBytes = NULL;
+    DWORD dwSIDByteLength = 0;
+    PSTR pszHexSid = NULL;
+
+    dwError = LsaSidStringToBytes(
+                  pszSid,
+                  &pucSIDBytes,
+                  &dwSIDByteLength);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaByteArrayToLdapFormatHexStr(
+                pucSIDBytes,
+                dwSIDByteLength,
+                &pszHexSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszHexSid = pszHexSid;
+
+cleanup:
+    LSA_SAFE_FREE_MEMORY(pucSIDBytes);
+
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_STRING(pszHexSid);
+    *ppszHexSid = NULL;
+
     goto cleanup;
 }
 
@@ -877,8 +949,7 @@ LsaSidBytesToString(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-
-    sprintf((char*)pszRevision, "%u", pucSidBytes[0]);
+    sprintf(pszRevision, "%u", pucSidBytes[0]);
     dwWordCount = pucSidBytes[1];
 
     //The byte length should be 8 + wordlength*words
@@ -896,10 +967,10 @@ LsaSidBytesToString(
 
         for (i = 0; i < 6; i++)
         {
-            sprintf((char*)pszAuthTemp+(2*i), "%.2X", (unsigned int) pucSidBytes[2+i]);
+            sprintf(pszAuthTemp+(2*i), "%.2X", (unsigned int) pucSidBytes[2+i]);
         }
 
-        sprintf((char*)pszAuth, "0x%s", pszAuthTemp);
+        sprintf(pszAuth, "0x%s", pszAuthTemp);
     }
     else
     {
@@ -909,7 +980,7 @@ LsaSidBytesToString(
             (pucSidBytes[6] << 8)  |
             (pucSidBytes[7] << 0);
 
-        sprintf((char*)pszAuth, "%u", dwAuth);
+        sprintf(pszAuth, "%u", dwAuth);
     }
 
 

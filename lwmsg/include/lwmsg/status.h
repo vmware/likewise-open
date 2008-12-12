@@ -117,7 +117,12 @@ typedef enum
     /** Operation interrupted
      * @hideinitializer
      */
-    LWMSG_STATUS_INTERRUPT = 14
+    LWMSG_STATUS_INTERRUPT = 14,
+    /**
+     * File not found
+     * @hideinitializer
+     */
+    LWMSG_STATUS_FILE_NOT_FOUND = 15
 } LWMsgStatus;
 
 #endif

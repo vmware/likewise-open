@@ -48,15 +48,8 @@ typedef struct LWMsgTypeIter
 {
     LWMsgTypeSpec* spec;
     LWMsgKind kind;
-    size_t member_offset;
-    size_t member_size;
-
-    struct
-    {
-        size_t offset;
-        size_t size;
-    } assoc_length, assoc_discrim;
-
+    size_t offset;
+    size_t size;
     intmax_t tag;
 
     LWMsgVerifyFunction verify;
@@ -72,11 +65,26 @@ typedef struct LWMsgTypeIter
         } kind_integer;
         struct
         {
+            struct
+            {
+                size_t offset;
+                size_t size;
+            } discrim;
         } kind_compound;
         struct
         {
             LWMsgArrayTermination term;
-            size_t static_length;
+            union
+            {
+                struct
+                {
+                    size_t offset;
+                    size_t size;
+                } member;
+                size_t static_length;
+            } term_info;
+            unsigned nonnull:1;
+            unsigned aliasable:1;
         } kind_indirect;
         struct
         {
@@ -87,7 +95,6 @@ typedef struct LWMsgTypeIter
 
     LWMsgTypeSpec* inner;
     LWMsgTypeSpec* next;
-    struct LWMsgTypeIter* dom_iter;
     unsigned char* dom_object;
 
     struct
@@ -151,7 +158,6 @@ lwmsg_type_enter(
     {
         lwmsg_type_iterate(iter->inner, new_iter);
 
-        new_iter->dom_iter = iter->dom_iter;
         new_iter->dom_object = iter->dom_object;
     }
     else
@@ -168,22 +174,21 @@ lwmsg_type_iterate_promoted(
 
 LWMsgStatus
 lwmsg_type_extract_discrim_tag(
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     intmax_t* tag
     );
 
 LWMsgStatus
 lwmsg_type_extract_length(
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     size_t *length
     );
 
 LWMsgStatus
 lwmsg_type_extract_active_arm(
-    LWMsgTypeIter* union_iter,
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     LWMsgTypeIter* active_iter
     );

@@ -102,11 +102,31 @@ lwmsg_session_manager_handle_id_to_pointer (
     );
 
 LWMsgStatus
+lwmsg_session_manager_set_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    );
+
+void*
+lwmsg_session_manager_get_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    );
+
+const LWMsgSessionID*
+lwmsg_session_manager_get_session_id(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    );
+
+LWMsgStatus
 lwmsg_default_session_manager_new(
     LWMsgSessionManager** out_manager
     );
 
-#ifndef LWMSG_REENTRANT
+#ifndef LWMSG_NO_THREADS
 LWMsgStatus
 lwmsg_shared_session_manager_new(
     LWMsgSessionManager** out_manager

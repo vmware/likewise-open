@@ -261,7 +261,7 @@ typedef LWMsgStatus (*LWMsgVerifyFunction) (
  * This is considered an implementation detail.
  * @hideinitializer
  */
-typedef size_t LWMsgTypeSpec;
+typedef size_t const LWMsgTypeSpec;
 
 #ifndef DOXYGEN
 typedef enum LWMsgTypeDirective

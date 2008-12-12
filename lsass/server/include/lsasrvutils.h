@@ -139,8 +139,8 @@ LsaSrvLogServiceFailureEvent(
 
 DWORD
 LsaSrvOpenEventLog(
-    TableCategoryType tabCategoryType,   
-    PHANDLE           phEventLog
+    PSTR pszCategoryType,
+    PHANDLE phEventLog
     );
 
 DWORD

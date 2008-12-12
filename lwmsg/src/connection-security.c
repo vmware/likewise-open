@@ -40,10 +40,14 @@
 
 #include "connection-private.h"
 #include "util-private.h"
+#include "assoc-private.h"
 
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
 
 static
 LWMsgStatus
@@ -225,3 +229,40 @@ error:
     return status;
 }
 
+LWMsgStatus
+lwmsg_connection_get_endpoint_owner(
+    LWMsgAssoc* assoc,
+    const char* endpoint,
+    uid_t *uid,
+    gid_t *gid
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    struct stat endpoint_stat;
+
+    if (stat(endpoint, &endpoint_stat))
+    {
+        switch (errno)
+        {
+        case ENOENT:
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_FILE_NOT_FOUND,
+                              "%s", strerror(errno));
+        default:
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
+                              "%s", strerror(errno));
+        }
+    }
+
+    if (!S_ISSOCK(endpoint_stat.st_mode))
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID,
+                          "%s: not a socket", endpoint);
+    }
+
+    *uid = endpoint_stat.st_uid;
+    *gid = endpoint_stat.st_gid;
+
+error:
+
+    return status;
+}

@@ -4,6 +4,8 @@ SUBDIRS = \
          srvutils       \
          join           \
          api            \
+         sqlite         \
+         db             \
          auth-providers \
          ipc            \
          lsassd

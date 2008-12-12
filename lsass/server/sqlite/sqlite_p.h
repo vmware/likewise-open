@@ -33,48 +33,26 @@
  *
  * Module Name:
  *
- *        unprovisioned-ldap.h
+ *        sqlite_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        LDAP API for Unprovisioned Mode
+ *        Private functions for sqlite wrappers
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Wei Fu (wfu@likewisesoftware.com)
- *          Brian Dunstan (bdunstan@likewisesoftware.com)
+ * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ *
  */
-#ifndef __UNPROVISIONED_LDAP_H__
-#define __UNPROVISIONED_LDAP_H__
+#ifndef __SQLITE_P_H__
+#define __SQLITE_P_H__
 
+static
 DWORD
-UnprovisionedModeEnumUsers(
-    HANDLE  hProvider,
-    PCSTR   pszDomainDnsName,
-    PAD_ENUM_STATE pEnumState,
-    DWORD   dwMaxNumUsers,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList
+LsaSqliteBasicCallback(
+    IN sqlite3 *pDb,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
     );
 
-DWORD
-UnprovisionedModeMakeLocalSID(
-    PCSTR pszDomainSID,
-    DWORD dwID,
-    PSTR* ppszLocalSID
-    );
-
-DWORD
-UnprovisionedModeEnumGroups(
-    HANDLE  hProvider,
-    PCSTR   pszDomainDnsName,
-    PAD_ENUM_STATE pEnumState,
-    DWORD   dwMaxNumGroups,
-    PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
-    );
-
-#endif /* __UNPROVISIONED_LDAP_H__ */
-
+#endif /* __SQLITE_P_H__ */

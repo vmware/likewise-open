@@ -50,6 +50,11 @@ typedef struct LWMsgSessionID
 
 typedef struct LWMsgSession LWMsgSession;
 
+typedef void
+(*LWMsgSessionDataCleanupFunction) (
+    void* data
+    );
+
 /**
  * @brief Handle locality
  *
@@ -132,6 +137,38 @@ typedef struct LWMsgSessionManagerClass
         LWMsgBool autoreg,
         void** out_ptr
         );
+
+    LWMsgStatus
+    (*set_session_data) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session,
+        void* data,
+        LWMsgSessionDataCleanupFunction cleanup
+        );
+
+    void*
+    (*get_session_data) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
+        );
+
+    const LWMsgSessionID*
+    (*get_session_id) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
+        );
+
+    size_t
+    (*get_session_assoc_count) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
+        );
+
+    size_t
+    (*get_session_handle_count) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
+        );
 } LWMsgSessionManagerClass;
 
 LWMsgStatus
@@ -159,6 +196,18 @@ void
 lwmsg_session_id_to_string(
     const LWMsgSessionID* smid,
     char buffer[17]
+    );
+
+size_t
+lwmsg_session_manager_get_session_assoc_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    );
+
+size_t
+lwmsg_session_manager_get_session_handle_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
     );
 
 #endif

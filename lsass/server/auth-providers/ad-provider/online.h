@@ -55,7 +55,7 @@
 #define PAC_GROUP_EXPIRATION        (void *)2
 
 typedef DWORD (*LSA_AD_CACHEDB_FIND_OBJECTS_BY_LIST_CALLBACK)(
-    IN HANDLE hDb,
+    IN LSA_DB_HANDLE hDb,
     IN size_t sCount,
     IN PSTR* ppszList,
     OUT PAD_SECURITY_OBJECT** pppResults

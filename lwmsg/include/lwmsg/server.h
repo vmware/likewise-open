@@ -59,9 +59,9 @@
  * listener thread to queue new connections for the pool, providing a completely
  * asynchronous external interface.
  *
- * Because threads are not desirable in some applications, this functionality is 
- * only available by defining LWMSG_THREADS before including <lwmsg/lwmsg.h>
- * and linking against liblwmsgthr instead of liblwmsg.
+ * Because this API requires threads, it is not available in <tt>liblwmsg_nothr</tt>.
+ * Type definitions, function prototypes, and macros for this API may be disabled
+ * by defining <tt>LWMSG_NO_THREADS</tt> before including <tt>&lt;lwmsg/lwmsg.h&gt;</tt>.
  *
  */
 
@@ -72,7 +72,7 @@
  * This structure defines a table of dispatch functions
  * to handle incoming messages in a server.  It should
  * be constructed as a statically-initialized array
- * using #LWMSG_DISPATCH() and #LWMSG_ENDDISPATCH macros.
+ * using #LWMSG_DISPATCH() and #LWMSG_DISPATCH_END macros.
  */
 typedef struct LWMsgDispatchSpec
 #ifndef DOXYGEN
@@ -81,7 +81,7 @@ typedef struct LWMsgDispatchSpec
     LWMsgDispatchFunction func;
 }
 #endif
-LWMsgDispatchSpec;
+const LWMsgDispatchSpec;
 
 /**
  * @ingroup server
@@ -103,7 +103,7 @@ LWMsgDispatchSpec;
  * mark the end of the table
  * @hideinitializer
  */
-#define LWMSG_ENDDISPATCH {0, NULL}
+#define LWMSG_DISPATCH_END {0, NULL}
 
 
 /**
@@ -132,36 +132,53 @@ typedef enum LWMsgServerMode
 
 /**
  * @ingroup server
- * @brief Create a new server object
+ * @brief Connection callback
  *
- * Creates a new, unconfigured server object.  The created server must be
- * configured with a protocol, dispatch table, and endpoint before it
- * can be started.
+ * A function which is invoked whenever a new connection is
+ * established with a client.  Use #lwmsg_server_set_connect_callback()
+ * to register one with a server. There is no guarantee as to which server
+ * thread the callback will be invoked in. It is guaranteed that no other
+ * server thread will attempt to use the association until the callback
+ * returns.  Returning a status code other than #LWMSG_STATUS_SUCCESS will
+ * cause the connection to be rejected.
  *
- * @param out_server the created server object
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_MEMORY if out of memory
+ * @warning This function must leave the association in a usable state --
+ * #lwmsg_assoc_get_state() should return #LWMSG_ASSOC_STATE_READY_RECV
+ * or #LWMSG_ASSOC_STATE_READY_SEND_RECV.
+ *
+ * @param server the server object
+ * @param assoc the association with the client
+ * @param data the user data pointer set with #lwmsg_server_set_user_data()
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_etc{a status code indicating the reason for rejection}
+ * (e.g. #LWMSG_STATUS_SECURITY)
  */
-LWMsgStatus
-lwmsg_server_new(
-    LWMsgServer** out_server
+typedef LWMsgStatus
+(*LWMsgServerConnectFunction) (
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    void* data
     );
 
 /**
  * @ingroup server
- * @brief Create a new server object with context
+ * @brief Create a new server object
  *
- * Creates a new, unconfigured server object which inherits settings from
- * the specified context.  Any connections created by the server will in
- * turn inherit these settigns.
+ * Creates a new server object
  *
- * @param context the context from which to inherit
- * @param out_server the created server object
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_MEMORY if out of memory
+ * @param[in] protocol a protocol object which describes the protocol spoken by the server
+ * @param[out] server the created server object
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{INVALID, protocol was <tt>NULL</tt>}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_server_new_with_context(
-    LWMsgContext* context,
-    LWMsgServer** out_server
+lwmsg_server_new(
+    LWMsgProtocol* protocol,
+    LWMsgServer** server
     );
 
 /**
@@ -170,8 +187,8 @@ lwmsg_server_new_with_context(
  *
  * Deletes a server object.
  *
- * @warning Attempting to delete a server which has been started but not stopped
- * will block until the server stops
+ * @warning Attempting to delete a server which has been started
+ * but not stopped will block until the server stops
  *
  * @param server the server object to delete
  */
@@ -201,10 +218,9 @@ lwmsg_server_set_timeout(
  * @ingroup server
  * @brief Set maximum number of simultaneous active connections
  *
- * Sets the maximum numbers of clients which the server will service
- * simultaneously.  This corresponds to the size of the thread pool
- * used by the server.  Connections beyond this maximum will be answered
- * but queued until a slot becomes available.
+ * Sets the maximum numbers of connections which the server will track
+ * simultaneously.  Connections beyond this will wait until a slot becomes
+ * available.
  *
  * @param server the server object
  * @param max_clients the maximum number of simultaneous clients to support
@@ -217,15 +233,33 @@ lwmsg_server_set_max_clients(
     unsigned int max_clients
     );
 
+
 /**
  * @ingroup server
- * @brief Set maximum number of queued connections
+ * @brief Set maximum number of simultaneous dispatched messages
  *
- * Sets the maximum numbers of clients which the server will answer
- * but place into a queue until a slot is available to service the
- * connection.  If all active connection slots and the backlog queue
- * are full, the server will cease accepting connections until space
- * becomes available.
+ * Sets the maximum numbers of simultaneous messages which will be
+ * handed off to dispatch functions.  Messages beyond this number
+ * will be queued until another dispatch function finishes.
+ *
+ * @param server the server object
+ * @param max_clients the maximum number of simultaneous clients to support
+ * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID if the server
+ * has already been started
+ */
+LWMsgStatus
+lwmsg_server_set_max_dispatch(
+    LWMsgServer* server,
+    unsigned int max_dispatch
+    );
+
+/**
+ * @ingroup server
+ * @brief Set maximum number of backlogged connections
+ *
+ * Sets the maximum numbers of pending connections which the server will keep
+ * waiting until a client slot becomes available.  Pending connections beyond
+ * this value will be rejected outright.
  *
  * @param server the server object
  * @param max_backlog the maximum number of clients to queue
@@ -236,52 +270,6 @@ LWMsgStatus
 lwmsg_server_set_max_backlog(
     LWMsgServer* server,
     unsigned int max_backlog
-    );
-
-/**
- * @ingroup server
- * @brief Add a protocol specification
- *
- * Adds a protocol specification to the specified server object,
- * which will become part of the protocol supported by the server.
- * This function may be invoked multiple times to combine several
- * protocol specifications.  This function should not be used in
- * concert with lwmsg_server_set_protocol().
- *
- * @param server the server object
- * @param spec the protocol specification
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_etc{any error returned by lwmsg_prototol_add_spec()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_server_add_protocol_spec(
-    LWMsgServer* server,
-    LWMsgProtocolSpec* spec
-    );
-
-/**
- * @ingroup server
- * @brief Set server protocol
- *
- * Sets the protocol object which describes the protocol understood
- * by the server.  This function should not be used in concert
- * with lwmsg_server_add_protocol_spec().
- *
- * @param server the server object
- * @param prot the protocol object
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_etc{any error returned by lwmsg_prototol_add_spec()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_server_set_protocol(
-    LWMsgServer* server,
-    LWMsgProtocol* prot
     );
 
 /**
@@ -347,6 +335,70 @@ lwmsg_server_set_endpoint(
     LWMsgServerMode mode,
     const char* endpoint,
     mode_t      permissions
+    );
+
+/**
+ * @ingroup server
+ * @brief Set user data pointer
+ *
+ * Sets the user data pointer which is passed to various callback
+ * functions invoked by the server, such as:
+ *
+ * - Message dispatch functions
+ * - Connect callback
+ *
+ * This function may only be used while the server is stopped.
+ *
+ * @param server the server object
+ * @param data the data pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID, the server is already running}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_server_set_user_data(
+    LWMsgServer* server,
+    void* data
+    );
+
+/**
+ * @ingroup server
+ * @brief Get user data pointer
+ *
+ * Gets the user data pointer which is passed to various callback
+ * functions invoked by the server.  If no pointer was explicitly
+ * set, the value defaults to NULL.
+ *
+ *
+ * @param server the server object
+ * @return the data pointer
+ */
+void*
+lwmsg_server_get_user_data(
+    LWMsgServer* server
+    );
+
+/**
+ * @ingroup server
+ * @brief Set connection callback
+ *
+ * Sets a function which will be invoked whenever a new connection
+ * is created.
+ *
+ * This function may only be used while the server is stopped.
+ *
+ * @param server the server object
+ * @param func the callback function
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID, the server is already running}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_server_set_connect_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
     );
 
 /**

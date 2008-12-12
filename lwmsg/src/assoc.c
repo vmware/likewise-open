@@ -43,20 +43,20 @@
 #include "protocol-private.h"
 #include "session-private.h"
 
-#define ACTION_ON_ERROR(_a_, _e_) do                            \
-    {                                                           \
-        LWMsgStatus __s__ = (_e_);                              \
-        LWMsgAssoc* __a__ = (_a_);                              \
-        switch (lwmsg_assoc_lookup_action(__a__, status))       \
-        {                                                       \
-        case LWMSG_ASSOC_ACTION_RETRY:                          \
-            goto retry;                                         \
-        case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                \
-            BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));   \
-            goto retry;                                         \
-        default:                                                \
-            BAIL_ON_ERROR(__s__);                               \
-        }                                                       \
+#define ACTION_ON_ERROR(_a_, _e_) do                                    \
+    {                                                                   \
+        LWMsgStatus __s__ = (_e_);                                      \
+        LWMsgAssoc* __a__ = (_a_);                                      \
+        switch (lwmsg_assoc_lookup_action(__a__, status))               \
+        {                                                               \
+        case LWMSG_ASSOC_ACTION_RETRY:                                  \
+            goto retry;                                                 \
+        case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                        \
+            BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));           \
+            goto retry;                                                 \
+        default:                                                        \
+            BAIL_ON_ERROR(__s__);                                       \
+        }                                                               \
     } while (0)
 
 LWMsgStatus
@@ -176,7 +176,7 @@ lwmsg_assoc_new(
 
     assoc->prot = prot;
     assoc->aclass = aclass;
-    
+
     lwmsg_context_setup(&assoc->context, &prot->context);
 
     lwmsg_context_set_data_function(&assoc->context, lwmsg_assoc_context_get_data, assoc);
@@ -185,6 +185,9 @@ lwmsg_assoc_new(
     {
         aclass->construct(assoc);
     }
+
+    /* Default action vector */
+    assoc->action_vector[LWMSG_ASSOC_EXCEPTION_PEER_RESET] = LWMSG_ASSOC_ACTION_RESET_AND_RETRY;
 
     *out_assoc = assoc;
 
@@ -418,6 +421,29 @@ error:
 }
 
 LWMsgStatus
+lwmsg_assoc_get_peer_session_id(
+    LWMsgAssoc* assoc,
+    LWMsgSessionID* id
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSession* session = NULL;
+    const LWMsgSessionID* my_id = NULL;
+
+retry:
+
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+
+    my_id = lwmsg_session_manager_get_session_id(assoc->manager, session);
+
+    memcpy(id->bytes, my_id->bytes, sizeof(id->bytes));
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
 lwmsg_assoc_close(
     LWMsgAssoc* assoc
     )
@@ -455,7 +481,7 @@ lwmsg_assoc_free_message(
     LWMsgTypeSpec* type = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, message->tag, &type)); 
-    BAIL_ON_ERROR(status = lwmsg_context_free_object(&assoc->context, type, message->object));
+    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, message->object));
 
 error:
 
@@ -464,7 +490,7 @@ error:
 
 
 LWMsgStatus
-lwmsg_assoc_free(
+lwmsg_assoc_free_graph(
     LWMsgAssoc* assoc,
     LWMsgMessageTag mtype,
     void* object
@@ -474,7 +500,7 @@ lwmsg_assoc_free(
     LWMsgTypeSpec* type = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, mtype, &type)); 
-    BAIL_ON_ERROR(status = lwmsg_context_free_object(&assoc->context, type, object));
+    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, object));
 
 error:
 
@@ -605,4 +631,50 @@ lwmsg_assoc_set_action(
 error:
 
     return status;
+}
+
+LWMsgStatus
+lwmsg_assoc_set_session_data(
+    LWMsgAssoc* assoc,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSessionManager* manager = NULL;
+    LWMsgSession* session = NULL;
+
+    /* In order to set the session data, we first need a session */
+    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+
+    BAIL_ON_ERROR(status = lwmsg_session_manager_set_session_data(
+                      manager,
+                      session,
+                      data,
+                      cleanup));
+
+error:
+
+    return status;
+}
+
+void*
+lwmsg_assoc_get_session_data(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgSession* session = NULL;
+
+    if (!assoc->manager)
+    {
+        return NULL;
+    }
+
+    if (assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session))
+    {
+        return NULL;
+    }
+
+    return lwmsg_session_manager_get_session_data(assoc->manager, session);
 }

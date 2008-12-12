@@ -241,3 +241,50 @@ lwmsg_session_manager_handle_id_to_pointer (
 {
     return manager->mclass->handle_id_to_pointer(manager, session, type, location, hid, autoreg, out_ptr);
 }
+
+LWMsgStatus
+lwmsg_session_manager_set_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    )
+{
+    return manager->mclass->set_session_data(manager, session, data, cleanup);
+}
+
+void*
+lwmsg_session_manager_get_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return manager->mclass->get_session_data(manager, session);
+}
+
+const LWMsgSessionID*
+lwmsg_session_manager_get_session_id(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return manager->mclass->get_session_id(manager, session);
+}
+
+size_t
+lwmsg_session_manager_get_session_assoc_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return manager->mclass->get_session_assoc_count(manager, session);
+}
+
+size_t
+lwmsg_session_manager_get_session_handle_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return manager->mclass->get_session_handle_count(manager, session);
+}

@@ -345,6 +345,7 @@ lwmsg_connection_do_shutdown(
     {
         BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
         BAIL_ON_ERROR(status = lwmsg_session_manager_leave_session(manager, priv->session));
+        priv->session = NULL;
     }
 
     switch (type)

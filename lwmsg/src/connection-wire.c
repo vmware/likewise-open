@@ -400,6 +400,8 @@ lwmsg_connection_check_timeout(
         BAIL_ON_ERROR(status = LWMSG_STATUS_TIMEOUT);
     }
 
+    priv->last_time = now;
+
     lwmsg_time_difference(&now, &priv->end_time, &diff);
 
     if (diff.seconds < 0 || diff.microseconds < 0)
@@ -655,18 +657,37 @@ lwmsg_connection_send_greeting(
 
 #ifndef HAVE_PEERID_METHOD
     /* If this system does not have a simple method for getting the identity
-     * of a socket peer, explicitly send a file descriptor that proves our identity
+     * of a socket peer, improvise
      */
     if (priv->mode == LWMSG_CONNECTION_MODE_LOCAL)
     {
-        if (pipe(fds) != 0)
+        /* If we are connecting to a local endpoint */
+        if (priv->endpoint)
         {
-            ASSOC_RAISE_ERROR(assoc, LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+            uid_t uid;
+            gid_t gid;
+
+            BAIL_ON_ERROR(status = lwmsg_connection_get_endpoint_owner(
+                              assoc,
+                              priv->endpoint,
+                              &uid,
+                              &gid));
+
+            /* Only send a token to root or ourselves since it could
+               be used by the peer to impersonate us */
+            if (uid == 0 || uid == getuid())
+            {
+                /* Send an auth fd */
+                if (pipe(fds) != 0)
+                {
+                    ASSOC_RAISE_ERROR(assoc, LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+                }
+
+                BAIL_ON_ERROR(status = lwmsg_connection_queue_fd(assoc, fds[0]));
+
+                packet->contents.greeting.flags |= CONNECTION_GREETING_AUTH_LOCAL;
+            }
         }
-
-        BAIL_ON_ERROR(status = lwmsg_connection_queue_fd(assoc, fds[0]));
-
-        packet->contents.greeting.flags |= CONNECTION_GREETING_AUTH_LOCAL;
     }
 #endif
 
@@ -742,7 +763,25 @@ lwmsg_connection_recv_greeting(
             
             BAIL_ON_ERROR(status = lwmsg_local_token_new(statbuf.st_uid, statbuf.st_gid, &priv->sec_token));
         }
+        else if (priv->endpoint)
+        {
+            uid_t uid;
+            gid_t gid;
+
+            /* Attempt to stat endpoint for owner information */
+            BAIL_ON_ERROR(status = lwmsg_connection_get_endpoint_owner(
+                              assoc,
+                              priv->endpoint,
+                              &uid,
+                              &gid));
+
+            BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, &priv->sec_token));
+        }
 #endif
+    }
+    else if (priv->mode == LWMSG_CONNECTION_MODE_PAIR)
+    {
+        BAIL_ON_ERROR(status = lwmsg_local_token_new(getuid(), getgid(), &priv->sec_token));
     }
 
     /* Register session with local session manager */

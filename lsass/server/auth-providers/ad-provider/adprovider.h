@@ -66,6 +66,13 @@
 #include "lsasrvutils.h"
 #include "lsakrb5.h"
 #include "lsaldap.h"
+#include "lsadb.h"
+// TODO: remove these lines as part of the fix to bug 7532.
+// These lines are temporarily here to avoid remaining these types in the
+// same checkin as moving the caching code to the server layer.
+typedef LSA_SECURITY_OBJECT AD_SECURITY_OBJECT;
+typedef PLSA_SECURITY_OBJECT PAD_SECURITY_OBJECT;
+typedef PLSA_GROUP_MEMBERSHIP PAD_GROUP_MEMBERSHIP;
 
 #include "addef.h"
 #include "media-sense.h"
@@ -78,14 +85,11 @@
 #include "lsadmwrap.h"
 #include "lsaum.h"
 #include "lsaumproc.h"
-#include "cachedbcreate.h"
-#include "cachedb.h"
-#include "ad_enum_objects.h"
+#include "state_store.h"
 #include "adldap.h"
 #include "adldap_p.h"
 #include "batch.h"
 #include "ad_marshal_group.h"
-#include "ad_marshal_group_p.h"
 #include "ad_marshal_nss_artefact.h"
 #include "ad_marshal_nss_artefact_p.h"
 #include "ad_marshal_user.h"
@@ -98,9 +102,8 @@
 #include "offline.h"
 #include "online.h"
 #include "providerstate.h"
-#include "unprovisioned-ldap.h"
 #include "provider-main.h"
 #include "offline-helper.h"
+#include "lsasqlite.h"
 
 #include "externs.h"
-

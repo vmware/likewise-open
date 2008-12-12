@@ -48,32 +48,6 @@
 #define __LSALDAP_MARSHAL_GROUP_H__
 
 DWORD
-ADMarshalGroupInfoList(
-    IN OPTIONAL HANDLE hProvider,
-    IN HANDLE hDirectory,
-    IN OPTIONAL PCSTR pszDomainDnsName,
-    IN LSA_AD_MARSHAL_INFO_LIST_MODE InfoListMarshalMode,
-    // In Default Schema or Unprovision, pMessage is pMessageReal
-    // In Cell or Default Non-Schema, pMessage is pMessagePseudo 
-    IN LDAPMessage* pMessage,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID** pppGroupInfoList,
-    OUT PDWORD pdwNumGroups
-    );
-
-DWORD
-ADMarshalToGroupCache(
-    HANDLE                  hPseudoDirectory,
-    HANDLE                  hRealDirectory,
-    DWORD                   dwDirectoryMode,
-    ADConfigurationMode     adConfMode,
-    PLSA_LOGIN_NAME_INFO    pGroupNameInfo,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppGroupInfo
-    );
-
-DWORD
 ADMarshalGetCanonicalName(
     PAD_SECURITY_OBJECT     pObject,
     PSTR*                   ppszResult);

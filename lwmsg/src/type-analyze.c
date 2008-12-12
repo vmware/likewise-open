@@ -42,14 +42,14 @@
 
 LWMsgStatus
 lwmsg_type_extract_discrim_tag(
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     intmax_t* tag
     )
 {
     return lwmsg_convert_integer(
-        dominating_struct + dominating_member->assoc_discrim.offset,
-        dominating_member->assoc_discrim.size,
+        dominating_struct + iter->info.kind_compound.discrim.offset,
+        iter->info.kind_compound.discrim.size,
         LWMSG_NATIVE_ENDIAN,
         tag,
         sizeof(*tag),
@@ -59,14 +59,14 @@ lwmsg_type_extract_discrim_tag(
 
 LWMsgStatus
 lwmsg_type_extract_length(
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     size_t *length
     )
 {
     return lwmsg_convert_integer(
-        dominating_struct + dominating_member->assoc_length.offset,
-        dominating_member->assoc_length.size,
+        dominating_struct + iter->info.kind_indirect.term_info.member.offset,
+        iter->info.kind_indirect.term_info.member.size,
         LWMSG_NATIVE_ENDIAN,
         length,
         sizeof(*length),
@@ -76,8 +76,7 @@ lwmsg_type_extract_length(
 
 LWMsgStatus
 lwmsg_type_extract_active_arm(
-    LWMsgTypeIter* union_iter,
-    LWMsgTypeIter* dominating_member,
+    LWMsgTypeIter* iter,
     unsigned char* dominating_struct,
     LWMsgTypeIter* active_iter
     )
@@ -86,11 +85,11 @@ lwmsg_type_extract_active_arm(
     intmax_t tag;
 
     BAIL_ON_ERROR(status = lwmsg_type_extract_discrim_tag(
-                      dominating_member,
+                      iter,
                       dominating_struct,
                       &tag));
     
-    for (lwmsg_type_enter(union_iter, active_iter);
+    for (lwmsg_type_enter(iter, active_iter);
          lwmsg_type_valid(active_iter);
          lwmsg_type_next(active_iter))
     {

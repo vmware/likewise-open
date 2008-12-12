@@ -532,6 +532,54 @@ error:
 }
 
 DWORD
+LsaGetDirectoryFromPath(
+    IN PCSTR pszPath,
+    OUT PSTR* ppszDir
+    )
+{
+    PCSTR pszLastSlash = NULL;
+    PSTR pszDir = NULL;
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pszPath);
+
+    pszLastSlash = strrchr(pszPath, '/');
+    if (pszLastSlash == pszPath)
+    {
+        //Include the trailing / since this is the root directory ( / )
+        pszLastSlash++;
+    }
+
+    if (pszLastSlash == NULL)
+    {
+        dwError = LsaAllocateString(
+                        ".",
+                        &pszDir);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaStrndup(
+                        pszPath,
+                        pszLastSlash - pszPath,
+                        &pszDir);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppszDir = pszDir;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszDir);
+    *ppszDir = NULL;
+    goto cleanup;
+}
+
+DWORD
 LsaGetOwnerAndPermissions(
     PCSTR pszSrcPath,
     uid_t * uid,

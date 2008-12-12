@@ -50,11 +50,17 @@ typedef struct LWMsgSession
     /* Security token of session creator */
     LWMsgSecurityToken* sec_token;
     /* Reference count */
-    unsigned int refs;
+    size_t refs;
     /* Pointer to linked list of handles */
     struct HandleEntry* handles;
+    /* Number of handles */
+    size_t num_handles;
     /* Links to other sessions in the manager */
     struct LWMsgSession* next, *prev;
+    /* User data pointer */
+    void* data;
+    /* Data pointer cleanup function */
+    LWMsgSessionDataCleanupFunction cleanup;
 } SessionEntry;
 
 typedef struct HandleEntry
@@ -139,6 +145,7 @@ default_add_handle(
     }
 
     session->handles = handle;
+    session->num_handles++;
 
     *out_handle = handle;
 
@@ -181,7 +188,16 @@ default_free_session(
         default_free_handle(handle, LWMSG_TRUE);
     }
 
-    lwmsg_security_token_delete(session->sec_token);
+    if (session->sec_token)
+    {
+        lwmsg_security_token_delete(session->sec_token);
+    }
+
+    if (session->cleanup)
+    {
+        session->cleanup(session->data);
+    }
+
     free(session);
 }
 
@@ -228,7 +244,7 @@ default_enter_session(
     
     if (session)
     {
-        if (!lwmsg_security_token_can_access(session->sec_token, rtoken))
+        if (!session->sec_token || !lwmsg_security_token_can_access(session->sec_token, rtoken))
         {
             BAIL_ON_ERROR(status = LWMSG_STATUS_SECURITY);
         }
@@ -245,7 +261,10 @@ default_enter_session(
 
         memcpy(session->rsmid.bytes, rsmid->bytes, sizeof(rsmid->bytes));
 
-        BAIL_ON_ERROR(status = lwmsg_security_token_copy(rtoken, &session->sec_token));
+        if (rtoken)
+        {
+            BAIL_ON_ERROR(status = lwmsg_security_token_copy(rtoken, &session->sec_token));
+        }
         
         session->refs = 1;
         session->next = priv->sessions;
@@ -345,6 +364,7 @@ default_unregister_handle(
             }
 
             default_free_handle(handle, do_cleanup);
+            session->num_handles--;
             goto done;
         }
     }
@@ -485,6 +505,61 @@ error:
     goto done;
 }
 
+LWMsgStatus
+default_set_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    )
+{
+    if (session->cleanup)
+    {
+        session->cleanup(session->data);
+    }
+
+    session->data = data;
+    session->cleanup = cleanup;
+
+    return LWMSG_STATUS_SUCCESS;
+}
+
+void*
+default_get_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return session->data;
+}
+
+const LWMsgSessionID*
+default_get_session_id(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return &session->rsmid;
+}
+
+size_t
+default_get_session_assoc_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return session->refs;
+}
+
+size_t
+default_get_session_handle_count(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    return session->num_handles;
+}
+
 static LWMsgSessionManagerClass default_class = 
 {
     .private_size = sizeof(DefaultPrivate),
@@ -495,7 +570,12 @@ static LWMsgSessionManagerClass default_class =
     .register_handle = default_register_handle,
     .unregister_handle = default_unregister_handle,
     .handle_pointer_to_id = default_handle_pointer_to_id,
-    .handle_id_to_pointer = default_handle_id_to_pointer
+    .handle_id_to_pointer = default_handle_id_to_pointer,
+    .set_session_data = default_set_session_data,
+    .get_session_data = default_get_session_data,
+    .get_session_id = default_get_session_id,
+    .get_session_assoc_count = default_get_session_assoc_count,
+    .get_session_handle_count = default_get_session_handle_count
 };
                                          
 LWMsgStatus

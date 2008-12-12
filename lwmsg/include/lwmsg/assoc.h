@@ -376,6 +376,19 @@ lwmsg_assoc_new(
     );
 
 /**
+ * @brief Set marshalling context
+ *
+ * Sets the marshalling context for the specified association.
+ * This affects the marshalling settings used for messages
+ * sent and received on the association.
+ */
+void
+lwmsg_assoc_set_context(
+    LWMsgAssoc* assoc,
+    LWMsgContext* context
+    );
+
+/**
  * @ingroup assoc
  * @brief Delete an association
  *
@@ -680,9 +693,9 @@ lwmsg_assoc_register_handle(
  * handles must be explicitly unregistered to avoid resource leaks -- the
  * association cannot infer a handle's lifetime by itself.  This means
  * that most practical protocols will have symmetrical messages that open and
- * close handles so that both sides of an association can agree on their
- * life cycle.  New handles received from a peer are implictly registered, so
- * take care to explicitly unregister them when they are no longer needed.
+ * close handles so that both peers can agree on their life cycle.  New
+ * handles received from a peer are implictly registered, so take care to
+ * explicitly unregister them when they are no longer needed.
  *
  * If do_cleanup is true, the cleanup function specified when the handle was
  * registered will be run.
@@ -731,14 +744,15 @@ lwmsg_assoc_get_handle_location(
  * @ingroup assoc
  * @brief Free a message
  *
- * Completely frees a message by recursively freeing the message's payload.
- * This allows a received message to be easily freed in one shot regardless
- * of the payload's structural complexity.
+ * Frees the object graph of a message using the memory manager and
+ * protocol of the specified association.
  *
  * @param[in] assoc the assocation
  * @param[in] message the message to free
  * @lwmsg_status
  * @lwmsg_success
+ * @lwmsg_code{NOT_FOUND, the message tag is not known by the association's protocol}
+ * @lwmsg_etc{an error returned by the memory manager}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -751,23 +765,22 @@ lwmsg_assoc_free_message(
  * @ingroup assoc
  * @brief Free a message (simple)
  *
- * This function allows a message to be freed without the complexity of
- * using an LWMsgMessage structure.
- *
- * @warning This function should not be confused with lwmsg_assoc_delete()
+ * Frees the object graph of a message using the memory manager and
+ * protocol of the specified association.  This function does not
+ * require a complete LWMsgMessage structure.
  *
  * @param[in] assoc the assocation
- * @param[in] type the type of the message to free
- * @param[in] object the payload of the object to free
+ * @param[in] tag the tag of the message to free
+ * @param[in] root the root of the object graph
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_assoc_free(
+lwmsg_assoc_free_graph(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag type,
-    void* object
+    LWMsgMessageTag tag,
+    void* root
     );
 
 /**
@@ -810,7 +823,7 @@ lwmsg_assoc_set_timeout_ms(
  * @ingroup assoc
  * @brief Retrieve peer security token
  *
- * Retrives credentials of the peer from an association.
+ * Retrieves credentials of the peer from an association.
  * This operation may block or time out.
  *
  * @param[in] assoc the assocation
@@ -824,6 +837,28 @@ LWMsgStatus
 lwmsg_assoc_get_peer_security_token(
     LWMsgAssoc* assoc,
     LWMsgSecurityToken** token
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Retrieve peer session ID
+ *
+ * Retrieves the session ID of the peer.  This operation
+ * may block or time out if a session has not yet been
+ * established.  It is usually not necessary for applications
+ * to access this value, but it may be useful in some scenarios.
+ *
+ * @param[in] assoc the association
+ * @param[out] id the session ID structure into which the ID will be written
+ * @lwmsg_status
+ * @lwmsg_code{TIMEOUT, the operation timed out}
+ * @lwmsg_etc{an implementation-specific error}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_get_peer_session_id(
+    LWMsgAssoc* assoc,
+    LWMsgSessionID* id
     );
 
 /**
@@ -914,6 +949,49 @@ lwmsg_assoc_set_action(
     LWMsgAssocException exception,
     LWMsgAssocAction action
     );
+
+/**
+ * @ingroup assoc
+ * @brief Set user data for session
+ *
+ * Sets a user data pointer for the session which the specified association is
+ * part of.  If a cleanup function is provided, it will be called when the
+ * session is destroyed.
+ *
+ * The association may need to establish a session if it has not already. Thus,
+ * this function may fail or time out.
+ *
+ * @param[in] assoc the association
+ * @param[in] data the user data pointer
+ * @param[in] cleanup a cleanup function for the data pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{TIMEOUT, the operation timed out}
+ * @lwmsg_etc{implementation-specific failure}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_set_session_data(
+    LWMsgAssoc* assoc,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Get user data for session
+ *
+ * Gets a user data pointer for the session which the specified assocation
+ * is part of.
+ *
+ * @param assoc the association
+ * @return the user data pointer for the session
+ */
+void*
+lwmsg_assoc_get_session_data(
+    LWMsgAssoc* assoc
+    );
+
 
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_handle_type_class;

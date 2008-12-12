@@ -107,7 +107,7 @@ MU_TEST(assoc, empty_send_recv)
     pthread_t receiver;
     LWMsgProtocol* empty_protocol = NULL;
 
-    MU_TRY(lwmsg_protocol_new(&empty_protocol));
+    MU_TRY(lwmsg_protocol_new(NULL, &empty_protocol));
     MU_TRY_PROTOCOL(empty_protocol, lwmsg_protocol_add_protocol_spec(empty_protocol, EmptyProtocol_spec));
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets))
@@ -121,7 +121,7 @@ MU_TEST(assoc, empty_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -130,7 +130,7 @@ MU_TEST(assoc, empty_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, empty_sender, send_assoc)))
@@ -273,7 +273,7 @@ MU_TEST(assoc, foo_send_recv)
     pthread_t receiver;
     LWMsgProtocol* foo_protocol = NULL;
 
-    MU_TRY(lwmsg_protocol_new(&foo_protocol));
+    MU_TRY(lwmsg_protocol_new(NULL, &foo_protocol));
     MU_TRY_PROTOCOL(foo_protocol, lwmsg_protocol_add_protocol_spec(foo_protocol, FooProtocol_spec));
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets))
@@ -287,7 +287,7 @@ MU_TEST(assoc, foo_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -296,7 +296,7 @@ MU_TEST(assoc, foo_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, foo_sender, send_assoc)))
@@ -332,7 +332,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
     pthread_t receiver;
     LWMsgProtocol* foo_protocol = NULL;
 
-    MU_TRY(lwmsg_protocol_new(&foo_protocol));
+    MU_TRY(lwmsg_protocol_new(NULL, &foo_protocol));
     MU_TRY_PROTOCOL(foo_protocol, lwmsg_protocol_add_protocol_spec(foo_protocol, FooProtocol_spec));
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets))
@@ -350,7 +350,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
 
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -363,7 +363,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, foo_sender, send_assoc)))
@@ -398,7 +398,7 @@ MU_TEST(assoc, foo_send_timeout)
     LWMsgMessage reply_msg;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     
-    MU_TRY(lwmsg_protocol_new(&foo_protocol));
+    MU_TRY(lwmsg_protocol_new(NULL, &foo_protocol));
     MU_TRY_PROTOCOL(foo_protocol, lwmsg_protocol_add_protocol_spec(foo_protocol, FooProtocol_spec));
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets))
@@ -412,7 +412,7 @@ MU_TEST(assoc, foo_send_timeout)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
     
     request.size = 4;
@@ -546,7 +546,7 @@ MU_TEST(assoc, auth_send_recv)
     pthread_t receiver;
     LWMsgProtocol* auth_protocol = NULL;
 
-    MU_TRY(lwmsg_protocol_new(&auth_protocol));
+    MU_TRY(lwmsg_protocol_new(NULL, &auth_protocol));
     MU_TRY_PROTOCOL(auth_protocol, lwmsg_protocol_add_protocol_spec(auth_protocol, AuthProtocol_spec));
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets))
@@ -560,7 +560,7 @@ MU_TEST(assoc, auth_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -569,7 +569,7 @@ MU_TEST(assoc, auth_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, auth_sender, send_assoc)))
@@ -853,7 +853,7 @@ static LWMsgDispatchSpec handle_dispatch[] =
     LWMSG_DISPATCH(HANDLE_CREATE_REQUEST, handle_create_srv),
     LWMSG_DISPATCH(HANDLE_DESTROY_REQUEST, handle_destroy_srv),
     LWMSG_DISPATCH(HANDLE_GET_REQUEST, handle_get_srv),
-    LWMSG_ENDDISPATCH
+    LWMSG_DISPATCH_END
 };
 
 static void*
@@ -902,7 +902,7 @@ MU_TEST(assoc, handle_send_recv)
     pthread_t receiver;
     LWMsgProtocol* handle_protocol = NULL;
 
-    MU_TRY(lwmsg_protocol_new(&handle_protocol));
+    MU_TRY(lwmsg_protocol_new(NULL, &handle_protocol));
     MU_TRY_PROTOCOL(handle_protocol, lwmsg_protocol_add_protocol_spec(handle_protocol, HandleProtocol_spec));
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets))
@@ -916,7 +916,7 @@ MU_TEST(assoc, handle_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -925,7 +925,7 @@ MU_TEST(assoc, handle_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, handle_sender, send_assoc)))
@@ -1019,7 +1019,7 @@ fd_sender(void* _assoc)
 
     MU_ASSERT_EQUAL(MU_TYPE_STRING, reply->message, message);
 
-    lwmsg_assoc_free(assoc, reply_type, reply_object);
+    lwmsg_assoc_free_graph(assoc, reply_type, reply_object);
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
     lwmsg_assoc_delete(assoc);
 
@@ -1053,7 +1053,7 @@ fd_receiver(void* _assoc)
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, FD_REPLY, &reply));
 
     close(request->readfd);
-    lwmsg_assoc_free(assoc, request_type, request_object);
+    lwmsg_assoc_free_graph(assoc, request_type, request_object);
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
     lwmsg_assoc_delete(assoc);
@@ -1071,7 +1071,7 @@ MU_TEST(assoc, fd_send_recv)
     pthread_t receiver;
     LWMsgProtocol* fd_protocol = NULL;
 
-    MU_TRY(lwmsg_protocol_new(&fd_protocol));
+    MU_TRY(lwmsg_protocol_new(NULL, &fd_protocol));
     MU_TRY_PROTOCOL(fd_protocol, lwmsg_protocol_add_protocol_spec(fd_protocol, FdProtocol_spec));
 
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets))
@@ -1085,7 +1085,7 @@ MU_TEST(assoc, fd_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                send_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
     MU_TRY(lwmsg_connection_new(
@@ -1094,7 +1094,7 @@ MU_TEST(assoc, fd_send_recv)
     
     MU_TRY(lwmsg_connection_set_fd(
                recv_assoc,
-               LWMSG_CONNECTION_MODE_LOCAL,
+               LWMSG_CONNECTION_MODE_PAIR,
                sockets[1]));
 
     if ((err = pthread_create(&sender, NULL, fd_sender, send_assoc)))

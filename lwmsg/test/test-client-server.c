@@ -128,6 +128,24 @@ LWMsgProtocolSpec counterprotocol_spec[] =
 };
 
 static LWMsgStatus
+counter_srv_connect(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    void* data
+    )
+{
+    LWMsgSecurityToken* token = NULL;
+    uid_t uid;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_peer_security_token(assoc, &token));
+    MU_TRY(lwmsg_local_token_get_eid(token, &uid, NULL));
+
+    MU_INFO("Connection on association %p from uid %lu", assoc, (unsigned long) uid);
+
+    return LWMSG_STATUS_SUCCESS;
+}
+
+static LWMsgStatus
 counter_srv_open(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -206,7 +224,7 @@ LWMsgDispatchSpec counter_dispatch[] =
     LWMSG_DISPATCH(COUNTER_ADD, counter_srv_add),
     LWMSG_DISPATCH(COUNTER_READ, counter_srv_read),
     LWMSG_DISPATCH(COUNTER_CLOSE, counter_srv_close),
-    LWMSG_ENDDISPATCH
+    LWMSG_DISPATCH_END
 };
 
 typedef struct
@@ -259,7 +277,9 @@ add_thread(void* _data)
     return NULL;
 }
 
-#define NUM_THREADS 4
+#define MAX_CLIENTS 8
+#define MAX_DISPATCH 4
+#define NUM_THREADS 16
 #define NUM_ITERS 10
 
 #define ENDPOINT "/tmp/.counter_test_socket"
@@ -269,22 +289,28 @@ MU_TEST(client_server, parallel)
     Data data;
     pthread_t threads[NUM_THREADS];
     int i;
+    LWMsgProtocol* protocol = NULL;
     LWMsgClient* client = NULL;
     LWMsgServer* server = NULL;
     CounterRequest request;
     CounterReply* reply;
     LWMsgMessage request_msg;
     LWMsgMessage reply_msg;
+    LWMsgTime timeout = {1, 0};
 
-    MU_TRY(lwmsg_server_new(&server));
-    MU_TRY(lwmsg_server_add_protocol_spec(server, counterprotocol_spec));
+    MU_TRY(lwmsg_protocol_new(NULL, &protocol));
+    MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, counterprotocol_spec));
+
+    MU_TRY(lwmsg_server_new(protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
-    MU_TRY(lwmsg_server_set_max_clients(server, NUM_THREADS));
+    MU_TRY(lwmsg_server_set_max_clients(server, MAX_CLIENTS));
+    MU_TRY(lwmsg_server_set_max_dispatch(server, MAX_DISPATCH));
+    MU_TRY(lwmsg_server_set_timeout(server, &timeout));
+    MU_TRY(lwmsg_server_set_connect_callback(server, counter_srv_connect));
     MU_TRY(lwmsg_server_start(server));
 
-    MU_TRY(lwmsg_client_new(&client));
-    MU_TRY(lwmsg_client_add_protocol_spec(client, counterprotocol_spec));
+    MU_TRY(lwmsg_client_new(protocol, &client));
     MU_TRY(lwmsg_client_set_max_concurrent(client, NUM_THREADS));
     MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
 

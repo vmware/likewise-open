@@ -512,6 +512,35 @@ typedef struct __LSA_NIS_NICKNAME
     PSTR pszMapName;
 } LSA_NIS_NICKNAME, *PLSA_NIS_NICKNAME;
 
+typedef DWORD (*PFLSA_CACHE_HASH) (PVOID pKey, DWORD dwIndex, PVOID pData);
+typedef BOOLEAN (*PFLSA_CACHE_EQUAL) (PVOID pKey1, PVOID pKey2, DWORD dwIndex, PVOID pData);
+typedef PVOID (*PFLSA_CACHE_GETKEY) (PVOID pEntry, DWORD dwIndex, PVOID pData);
+typedef DWORD (*PFLSA_CACHE_MISS) (PVOID pKey, DWORD dwIndex, PVOID pData, PVOID* ppEntry);
+typedef DWORD (*PFLSA_CACHE_KICK) (PVOID pEntry, PVOID pData);
+
+typedef struct __LSA_CACHE_ENTRY
+{
+    DWORD dwRefCount;
+} LSA_CACHE_ENTRY, *PLSA_CACHE_ENTRY;
+
+typedef struct __LSA_CACHE
+{
+    DWORD dwNumKeys;
+    DWORD dwNumBuckets;
+    PVOID* ppEntries;
+    PFLSA_CACHE_HASH pfHash;
+    PFLSA_CACHE_EQUAL pfEqual;
+    PFLSA_CACHE_GETKEY pfGetKey;
+    PFLSA_CACHE_MISS pfMiss;
+    PFLSA_CACHE_KICK pfKick;
+    PVOID pData;
+    DWORD dwNumHashMisses;
+    DWORD dwNumFullMisses;
+    DWORD dwNumKicks;
+    DWORD dwNumUsedBuckets;
+    DWORD dwNumCollisions;
+} LSA_CACHE, *PLSA_CACHE;
+
 #if !defined(HAVE_STRTOLL)
 
 long long int
@@ -930,6 +959,12 @@ LsaCreateDirectory(
     );
 
 DWORD
+LsaGetDirectoryFromPath(
+    IN PCSTR pszPath,
+    OUT PSTR* ppszDir
+    );
+
+DWORD
 LsaCopyFileWithPerms(
     PCSTR pszSrcPath,
     PCSTR pszDstPath,
@@ -1323,10 +1358,23 @@ LsaHexStrToByteArray(
 
 DWORD
 LsaByteArrayToHexStr(
-        UCHAR* pucByteArray,
-        DWORD dwByteArrayLength,
-        PSTR* ppszHexString
-        );
+    IN UCHAR* pucByteArray,
+    IN DWORD dwByteArrayLength,
+    OUT PSTR* ppszHexString
+    );
+
+DWORD
+LsaByteArrayToLdapFormatHexStr(
+    IN UCHAR* pucByteArray,
+    IN DWORD dwByteArrayLength,
+    OUT PSTR* ppszHexString
+    );
+
+DWORD
+LsaSidStrToLdapFormatHexStr(
+    IN PCSTR pszSid,
+    OUT PSTR* ppszHexSid
+    );
 
 int
 LsaStrError(
@@ -1535,6 +1583,49 @@ LsaNISLookupAlias(
 VOID
 LsaNISFreeNicknameList(
     PDLINKEDLIST pNicknameList
+    );
+
+DWORD
+LsaCacheNew(
+    DWORD dwNumKeys,
+    DWORD dwNumBuckets,
+    PFLSA_CACHE_HASH pfHash,
+    PFLSA_CACHE_EQUAL pfEqual,
+    PFLSA_CACHE_GETKEY pfGetKey,
+    PFLSA_CACHE_MISS pfMiss,
+    PFLSA_CACHE_KICK pfKick,
+    PVOID pData,
+    PLSA_CACHE* ppCache
+    );
+
+DWORD
+LsaCacheInsert(
+    PLSA_CACHE pCache,
+    PVOID pEntry
+    );
+
+DWORD
+LsaCacheRemove(
+    PLSA_CACHE pCache,
+    PVOID pEntry
+    );
+
+DWORD
+LsaCacheLookup(
+    PLSA_CACHE pCache,
+    PVOID pkey,
+    DWORD dwIndex,
+    PVOID* ppEntry
+    );
+
+DWORD
+LsaCacheFlush(
+    PLSA_CACHE pCache
+    );
+
+VOID
+LsaCacheDelete(
+    PLSA_CACHE pCache
     );
 
 #endif /* __LSA_UTILS_H__ */

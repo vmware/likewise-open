@@ -13,4 +13,5 @@ SUBDIRS = \
         test_stress_ad_provider \
         test_authstress \
         test_bitvector \
-        test_perf
+        test_perf \
+	test_memcache

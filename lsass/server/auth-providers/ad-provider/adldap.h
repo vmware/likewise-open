@@ -48,8 +48,6 @@
 #ifndef __ADLDAP_H__
 #define __ADLDAP_H__
 
-#include "cachedb.h"
-
 DWORD
 ADGetDomainQualifiedString(
     PCSTR pszNetBIOSDomainName,

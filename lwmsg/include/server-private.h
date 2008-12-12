@@ -54,10 +54,19 @@ typedef enum LWMsgServerState
     LWMSG_SERVER_SHUTDOWN
 } LWMsgServerState;
 
+typedef struct AssocQueue
+{
+    size_t size;
+    volatile size_t count;
+    LWMsgAssoc** volatile queue;
+    pthread_cond_t event;
+} AssocQueue;
+
 struct LWMsgServer
 {    
     LWMsgContext context;
     LWMsgProtocol* protocol;
+    LWMsgSessionManager* manager;
     LWMsgDispatchFunction* dispatch_vector;
     size_t dispatch_vector_length;
     LWMsgServerMode mode;
@@ -65,29 +74,45 @@ struct LWMsgServer
     char* endpoint;
     mode_t permissions;
     size_t max_clients;
+    size_t max_dispatch;
     size_t max_backlog;
     LWMsgTime timeout;
-    int timeout_set;
+    void* user_data;
+    LWMsgServerConnectFunction connect_callback;
 
+    /* Worker thread pool */
     pthread_t* worker_threads;
-    LWMsgAssoc** volatile pending_assocs;
-    size_t volatile num_pending_assocs;
-
+    /* Listener thread */
     pthread_t listen_thread;
 
+    /* Associations that we are listening for messages from */
+    AssocQueue listen_assocs;
+    /* Associations that need to be serviced */
+    AssocQueue service_assocs;
+    /* Total number of connected clients */
+    size_t num_clients;
+
+    /* Synchronization lock for accessing this structure */
     pthread_mutex_t lock;
-    pthread_cond_t client_queued;
-    pthread_cond_t client_dequeued;
+    /* State change event */
     pthread_cond_t state_changed;
+    /* Interrupt for blocking operations in worker threads */
     LWMsgConnectionSignal* interrupt;
+    /* Self-pipe to wake up listener thread when an association goes back in its queue */
+    int listen_notify[2];
 
-    LWMsgSessionManager* manager;
-
-    LWMsgStatus volatile status;
+    /* Server state */
     LWMsgServerState volatile state;
 
-    unsigned protocol_is_private:1;
+    unsigned timeout_set:1;
 };
+
+typedef enum LWMsgServerTimeoutLevel
+{
+    LWMSG_SERVER_TIMEOUT_SAFE,
+    LWMSG_SERVER_TIMEOUT_UNSAFE,
+    LWMSG_SERVER_TIMEOUT_END
+} LWMsgServerTimeoutLevel;
 
 #define SERVER_RAISE_ERROR(_server_, _status_, ...) RAISE_ERROR(&(_server_)->context, _status_, __VA_ARGS__)
 
