@@ -188,17 +188,10 @@ SetupClearCache(
 {
     int status;
 
-    status = system("/etc/init.d/likewise-open stop 2>/dev/null");
+    status = system("/etc/init.d/likewise-open stop 2>/dev/null || /etc/init.d/lsassd stop 2>/dev/null");
     if (WEXITSTATUS(status) != 0)
     {
         printf("Unable to stop authentication daemon using init script\n");
-        return FALSE;
-    }
-
-    status = system("/etc/init.d/lsassd stop 2>/dev/null");
-    if (WEXITSTATUS(status) != 0)
-    {
-        printf("Unable to stop authentication daemon\n");
         return FALSE;
     }
 
