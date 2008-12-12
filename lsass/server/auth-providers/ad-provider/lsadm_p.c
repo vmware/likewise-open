@@ -352,6 +352,8 @@ LsaDmpThreadRoutine(
         memset(&wakeTime, 0, sizeof(wakeTime));
         wakeTime.tv_sec = nextCheckTime;
 
+retry_wait:
+
         LsaDmpAcquireMutex(pThreadInfo->pMutex);
         bIsDone = pThreadInfo->bIsDone;
         bIsTriggered = pThreadInfo->bTrigger;
@@ -370,7 +372,16 @@ LsaDmpThreadRoutine(
         {
             break;
         }
-        else if (ETIMEDOUT == dwError || bIsTriggered)
+        if (ETIMEDOUT == dwError && !bIsTriggered)
+        {
+            if (time(NULL) < wakeTime.tv_sec)
+            {
+                // It didn't really timeout. Something else happened
+                dwError = 0;
+                goto retry_wait;
+            }
+        }
+        if (ETIMEDOUT == dwError || bIsTriggered)
         {
             // Mark the time so we don't try to check again too soon.
             lastCheckTime = time(NULL);
