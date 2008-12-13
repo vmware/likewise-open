@@ -350,13 +350,13 @@ LsaAdBatchEnumProcessPseudoMessages(
         pCurrentMessage = ldap_next_entry(pLd, pCurrentMessage);
     }
 
-    dwError = LsaAdBatchFindObjects(0,
-                                    LSA_AD_BATCH_QUERY_TYPE_BY_SID,
-                                    dwSidsCount,
-                                    ppszSids,
-                                    NULL,
-                                    &dwObjectsCount,
-                                    &ppObjects);
+    dwError = LsaAdBatchFindObjects(
+                    LSA_AD_BATCH_QUERY_TYPE_BY_SID,
+                    dwSidsCount,
+                    ppszSids,
+                    NULL,
+                    &dwObjectsCount,
+                    &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Ideally, do extra sanity check on object type.
