@@ -62,18 +62,12 @@ typedef DWORD (*LSA_AD_CACHEDB_FIND_OBJECTS_BY_LIST_CALLBACK)(
     );
 
 typedef DWORD (*LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK)(
-    IN HANDLE hProvider,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN DWORD dwCount,
     IN PSTR* ppszList,
     OUT PDWORD pdwCount,
     OUT PAD_SECURITY_OBJECT** pppObjects
     );
-
-typedef DWORD LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE;
-
-#define LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_UNDEFINED 0
-#define LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_DN     1
-#define LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_SID    2
 
 //
 // The LSA_REMAP_FIND_<TYPE>_BY_<INDEX>_ERROR() macros are used
@@ -429,10 +423,9 @@ AD_VerifyUserAccountCanLogin(
 
 DWORD
 AD_FindObjectsByList(
-    IN HANDLE hProvider,
     IN LSA_AD_CACHEDB_FIND_OBJECTS_BY_LIST_CALLBACK pFindInCacheCallback,
     IN LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK pFindByListBatchedCallback,
-    IN LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE QueryType,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN size_t sCount,
     IN PSTR* ppszList,
     OUT OPTIONAL size_t* psResultsCount,

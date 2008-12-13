@@ -3095,7 +3095,6 @@ AD_FindObjectBySidNoCache(
     )
 {
     return LsaAdBatchFindSingleObject(
-                hProvider,
                 LSA_AD_BATCH_QUERY_TYPE_BY_SID,
                 pszSid,
                 NULL,
@@ -3111,7 +3110,6 @@ AD_FindObjectByNT4NameNoCache(
     )
 {
     return LsaAdBatchFindSingleObject(
-                hProvider,
                 LSA_AD_BATCH_QUERY_TYPE_BY_NT4,
                 pszNT4Name,
                 NULL,
@@ -3164,7 +3162,6 @@ AD_FindObjectByAliasNoCache(
     )
 {
     return LsaAdBatchFindSingleObject(
-                   hProvider,
                    bIsUserAlias ? LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS : LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS,
                    pszAlias,
                    NULL,
@@ -3266,7 +3263,6 @@ AD_FindObjectByIdTypeNoCache(
         case AccountType_User:
             bIsUser = TRUE;
             dwError = LsaAdBatchFindSingleObject(
-                           hProvider,
                            LSA_AD_BATCH_QUERY_TYPE_BY_UID,
                            NULL,
                            &dwId,
@@ -3277,7 +3273,6 @@ AD_FindObjectByIdTypeNoCache(
         case AccountType_Group:
             bIsUser = FALSE;
             dwError = LsaAdBatchFindSingleObject(
-                           hProvider,
                            LSA_AD_BATCH_QUERY_TYPE_BY_GID,
                            NULL,
                            &dwId,
@@ -3310,6 +3305,24 @@ error:
     }
     ADCacheDB_SafeFreeObject(&pObject);
     goto cleanup;
+}
+
+DWORD
+AD_FindObjectsByListNoCache(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN PSTR* ppszList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    )
+{
+    return LsaAdBatchFindObjects(
+                QueryType,
+                dwCount,
+                ppszList,
+                NULL,
+                pdwCount,
+                pppObjects);
 }
 
 DWORD
@@ -3350,10 +3363,9 @@ error:
 
 DWORD
 AD_FindObjectsByList(
-    IN HANDLE hProvider,
     IN LSA_AD_CACHEDB_FIND_OBJECTS_BY_LIST_CALLBACK pFindInCacheCallback,
     IN LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK pFindByListBatchedCallback,
-    IN LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE QueryType,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN size_t sCount,
     IN PSTR* ppszList,
     OUT OPTIONAL size_t* psResultsCount,
@@ -3405,22 +3417,20 @@ AD_FindObjectsByList(
         {
             switch (QueryType)
             {
-                case LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_SID:
-
+                case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
                     LSA_LOG_VERBOSE("Cache entry for Sid %s is expired",
                          LSA_SAFE_LOG_STRING(ppResults[sIndex]->pszObjectSid));
 
                     break;
 
-                case LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_DN:
-
+                case LSA_AD_BATCH_QUERY_TYPE_BY_DN:
                     LSA_LOG_VERBOSE("Cache entry for DN %s is expired",
                          LSA_SAFE_LOG_STRING(ppResults[sIndex]->pszDN));
 
                     break;
 
                 default:
-
+                    LSA_ASSERT(FALSE);
                     dwError = LSA_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
@@ -3445,7 +3455,7 @@ AD_FindObjectsByList(
     }
 
     dwError = pFindByListBatchedCallback(
-                     hProvider,
+                     QueryType,
                      sRemainNumsToFoundInAD,
                      ppszRemainingList,
                      &dwFoundInAD,
@@ -3513,10 +3523,9 @@ AD_FindObjectsBySidList(
     )
 {
     return AD_FindObjectsByList(
-               hProvider,
                ADCacheDB_FindObjectsBySidList,
-               ADLdap_FindObjectsBySidListBatched,
-               LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_SID,
+               AD_FindObjectsByListNoCache,
+               LSA_AD_BATCH_QUERY_TYPE_BY_SID,
                sCount,
                ppszSidList,
                psResultsCount,
@@ -3533,10 +3542,9 @@ AD_FindObjectsByDNList(
     )
 {
     return AD_FindObjectsByList(
-               hProvider,
                ADCacheDB_FindObjectsByDNList,
-               ADLdap_FindObjectsByDNListBatched,
-               LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_DN,
+               AD_FindObjectsByListNoCache,
+               LSA_AD_BATCH_QUERY_TYPE_BY_DN,
                sCount,
                ppszDNList,
                psResultsCount,
