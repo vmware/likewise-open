@@ -51,10 +51,20 @@
 
 DWORD
 LsaAdBatchMarshalList(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN OUT PLSA_LIST_LINKS pBatchItemList,
     IN DWORD dwAvailableCount,
     OUT PAD_SECURITY_OBJECT* ppObjects,
     OUT PDWORD pdwUsedCount
+    );
+
+DWORD
+LsaAdBatchMarshal(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
+    IN OUT PLSA_AD_BATCH_ITEM pItem,
+    OUT PAD_SECURITY_OBJECT* ppObject
     );
 
 #endif /* _BATCH_MARSHAL_H_ */

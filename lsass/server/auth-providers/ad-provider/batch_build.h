@@ -52,6 +52,7 @@
 
 DWORD
 LsaAdBatchBuildQueryForRpc(
+    IN PCSTR pszNetbiosDomainName,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,

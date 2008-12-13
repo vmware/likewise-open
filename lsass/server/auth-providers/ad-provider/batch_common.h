@@ -153,12 +153,10 @@ typedef struct _LSA_AD_BATCH_ITEM_GROUP_INFO {
     gid_t gid;
 } LSA_AD_BATCH_ITEM_GROUP_INFO, *PLSA_AD_BATCH_ITEM_GROUP_INFO;
 
-XXX; // remove pDomainEntry as we should not need it.
 XXX; // eventually remove DN field...
 typedef struct _LSA_AD_BATCH_ITEM {
     LSA_AD_BATCH_QUERY_TERM QueryTerm;
     PSTR pszQueryMatchTerm;
-    PLSA_AD_BATCH_DOMAIN_ENTRY pDomainEntry;
     LSA_LIST_LINKS BatchItemListLinks;
     LSA_AD_BATCH_ITEM_FLAGS Flags;
 
@@ -173,7 +171,6 @@ typedef struct _LSA_AD_BATCH_ITEM {
         LSA_AD_BATCH_ITEM_GROUP_INFO GroupInfo;
     };
 } LSA_AD_BATCH_ITEM, *PLSA_AD_BATCH_ITEM;
-
 
 BOOLEAN
 LsaAdBatchIsDefaultSchemaMode(
@@ -203,6 +200,12 @@ LsaAdBatchQueryTermDebugInfo(
     OUT OPTIONAL PBOOLEAN pbIsString,
     OUT OPTIONAL PCSTR* ppszString,
     OUT OPTIONAL PDWORD pdwId
+    );
+
+DWORD
+LsaAdBatchAccountTypeToObjectType(
+    IN ADAccountType AccountType,
+    OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType
     );
 
 LSA_AD_BATCH_OBJECT_TYPE
