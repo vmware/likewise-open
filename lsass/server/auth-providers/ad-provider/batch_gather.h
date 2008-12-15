@@ -78,4 +78,14 @@ LsaAdBatchGatherPseudoObject(
     IN LDAPMessage* pMessage
     );
 
+DWORD
+LsaAdBatchGatherPseudoObjectSidFromGc(
+    IN OUT PLSA_AD_BATCH_ITEM pItem,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    IN OPTIONAL DWORD dwKeywordValuesCount,
+    IN OPTIONAL PSTR* ppszKeywordValues,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    );
+
 #endif /* _BATCH_GATHER_H_ */
