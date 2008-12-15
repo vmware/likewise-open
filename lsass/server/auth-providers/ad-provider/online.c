@@ -2119,6 +2119,10 @@ AD_OnlineEnumUsers(
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
+    DWORD dwObjectsCount = 0;
+    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PVOID* ppInfoList = NULL;
+    DWORD dwInfoCount = 0;
 
     // If BeginEnum was called in offline mode, it can successfully return
     // with hDirectory set to 0. That is the only way this function can
@@ -2126,65 +2130,59 @@ AD_OnlineEnumUsers(
     // in offline mode.
     if (pEnumState->hDirectory == (HANDLE)NULL)
     {
-        return AD_OfflineEnumUsers(
-            hProvider,
-            hResume,
-            dwMaxNumUsers,
-            pdwUsersFound,
-            pppUserInfoList);
+        dwError = AD_OfflineEnumUsers(
+                        hProvider,
+                        hResume,
+                        dwMaxNumUsers,
+                        &dwInfoCount,
+                        &ppInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        goto cleanup;
     }
 
+    dwError = LsaAdBatchEnumObjects(
+                    pEnumState->hDirectory,
+                    pEnumState->bMorePages,
+                    &pEnumState->pCookie,
+                    &pEnumState->bMorePages,
+                    AccountType_User,
+                    dwMaxNumUsers,
+                    &dwObjectsCount,
+                    &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    switch (gpADProviderData->dwDirectoryMode)
+    dwError = LsaAllocateMemory(sizeof(*ppInfoList) * dwObjectsCount,
+                                (PVOID*)&ppInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwInfoCount = 0; dwInfoCount < dwObjectsCount; dwInfoCount++)
     {
-        case DEFAULT_MODE:
-            dwError = DefaultModeEnumUsers(
-                    hProvider,
-                    gpADProviderData->szDomain,
-                    gpADProviderData->cell.szCellDN,
-                    pEnumState,
-                    dwMaxNumUsers,
-                    pdwUsersFound,
-                    pppUserInfoList);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
+        dwError = ADMarshalFromUserCache(
+                        ppObjects[dwInfoCount],
+                        pEnumState->dwInfoLevel,
+                        &ppInfoList[dwInfoCount]);
+        BAIL_ON_LSA_ERROR(dwError);
 
-        case CELL_MODE:
-            dwError = CellModeEnumUsers(
-                    hProvider,
-                    gpADProviderData->cell.szCellDN,
-                    pEnumState,
-                    dwMaxNumUsers,
-                    pdwUsersFound,
-                    pppUserInfoList);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-
-        case UNPROVISIONED_MODE:
-            dwError = UnprovisionedModeEnumUsers(
-                    hProvider,
-                    gpADProviderData->szDomain,
-                    pEnumState,
-                    dwMaxNumUsers,
-                    pdwUsersFound,
-                    pppUserInfoList);
-                    BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LSA_ERROR_NOT_SUPPORTED;
-            BAIL_ON_LSA_ERROR(dwError);
+        ADCacheDB_SafeFreeObject(&ppObjects[dwInfoCount]);
     }
 
 cleanup:
+    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+
+    *pdwUsersFound = dwInfoCount;
+    *pppUserInfoList = ppInfoList;
+
     return dwError;
 
 error:
-    if (*pppUserInfoList)
+    // need to set OUT params in cleanup due to goto cleanup.
+    if (ppInfoList)
     {
-        LsaFreeGroupInfoList(pEnumState->dwInfoLevel, *pppUserInfoList, *pdwUsersFound);
+        LsaFreeUserInfoList(pEnumState->dwInfoLevel, ppInfoList, dwInfoCount);
+        ppInfoList = NULL;
+        dwInfoCount = 0;
     }
-    *pdwUsersFound = 0;
-    *pppUserInfoList = NULL;
 
     goto cleanup;
 }
@@ -2364,69 +2362,72 @@ AD_OnlineEnumGroups(
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
+    DWORD dwObjectsCount = 0;
+    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PVOID* ppInfoList = NULL;
+    DWORD dwInfoCount = 0;
 
     // If BeginEnum was called in offline mode, it can successfully return
-    // with hDirectory set to 0.
-    //
-    // If the system later transitions online, this enumeration function can
-    // get called with a 0 hDirectory. Right now this function bails under
-    // this scenario (the enumeration must be restarted).
-    //
-    // In the future, it would be possible to instead attempt to reconnect
-    // (and set hDirectory to non-zero).
-    BAIL_ON_INVALID_HANDLE(pEnumState->hDirectory);
-
-    switch (gpADProviderData->dwDirectoryMode)
+    // with hDirectory set to 0. That is the only way this function can
+    // be called with hDirectory as 0. So we should continue enumerating
+    // in offline mode.
+    if (pEnumState->hDirectory == (HANDLE)NULL)
     {
-        case DEFAULT_MODE:
-            dwError = DefaultModeEnumGroups(
-                    hProvider,
-                    gpADProviderData->szDomain,
-                    gpADProviderData->cell.szCellDN,
-                    pEnumState,
-                    dwMaxNumGroups,
-                    pdwGroupsFound,
-                    pppGroupInfoList);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
+        dwError = AD_OfflineEnumGroups(
+                        hProvider,
+                        hResume,
+                        dwMaxNumGroups,
+                        &dwInfoCount,
+                        &ppInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
 
-        case CELL_MODE:
-            dwError = CellModeEnumGroups(
-                    hProvider,
-                    gpADProviderData->cell.szCellDN,
-                    pEnumState,
-                    dwMaxNumGroups,
-                    pdwGroupsFound,
-                    pppGroupInfoList);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
+        goto cleanup;
+    }
 
-        case UNPROVISIONED_MODE:
-            dwError = UnprovisionedModeEnumGroups(
-                    hProvider,
-                    gpADProviderData->szDomain,
-                    pEnumState,
+    dwError = LsaAdBatchEnumObjects(
+                    pEnumState->hDirectory,
+                    pEnumState->bMorePages,
+                    &pEnumState->pCookie,
+                    &pEnumState->bMorePages,
+                    AccountType_Group,
                     dwMaxNumGroups,
-                    pdwGroupsFound,
-                    pppGroupInfoList);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
+                    &dwObjectsCount,
+                    &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        default:
-            dwError = LSA_ERROR_NOT_SUPPORTED;
-            BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaAllocateMemory(sizeof(*ppInfoList) * dwObjectsCount,
+                                (PVOID*)&ppInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwInfoCount = 0; dwInfoCount < dwObjectsCount; dwInfoCount++)
+    {
+        dwError = AD_GroupObjectToGroupInfo(
+                        hProvider,
+                        ppObjects[dwInfoCount],
+                        TRUE,
+                        pEnumState->dwInfoLevel,
+                        &ppInfoList[dwInfoCount]);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ADCacheDB_SafeFreeObject(&ppObjects[dwInfoCount]);
     }
 
 cleanup:
+    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+
+    *pdwGroupsFound = dwInfoCount;
+    *pppGroupInfoList = ppInfoList;
+
     return dwError;
 
 error:
-    if (*pppGroupInfoList)
+    // need to set OUT params in cleanup due to goto cleanup.
+    if (ppInfoList)
     {
-        LsaFreeGroupInfoList(pEnumState->dwInfoLevel, *pppGroupInfoList, *pdwGroupsFound);
+        LsaFreeGroupInfoList(pEnumState->dwInfoLevel, ppInfoList, dwInfoCount);
+        ppInfoList = NULL;
+        dwInfoCount = 0;
     }
-    *pdwGroupsFound = 0;
-    *pppGroupInfoList = NULL;
 
     goto cleanup;
 }
@@ -3094,7 +3095,6 @@ AD_FindObjectBySidNoCache(
     )
 {
     return LsaAdBatchFindSingleObject(
-                hProvider,
                 LSA_AD_BATCH_QUERY_TYPE_BY_SID,
                 pszSid,
                 NULL,
@@ -3110,7 +3110,6 @@ AD_FindObjectByNT4NameNoCache(
     )
 {
     return LsaAdBatchFindSingleObject(
-                hProvider,
                 LSA_AD_BATCH_QUERY_TYPE_BY_NT4,
                 pszNT4Name,
                 NULL,
@@ -3163,7 +3162,6 @@ AD_FindObjectByAliasNoCache(
     )
 {
     return LsaAdBatchFindSingleObject(
-                   hProvider,
                    bIsUserAlias ? LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS : LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS,
                    pszAlias,
                    NULL,
@@ -3265,7 +3263,6 @@ AD_FindObjectByIdTypeNoCache(
         case AccountType_User:
             bIsUser = TRUE;
             dwError = LsaAdBatchFindSingleObject(
-                           hProvider,
                            LSA_AD_BATCH_QUERY_TYPE_BY_UID,
                            NULL,
                            &dwId,
@@ -3276,7 +3273,6 @@ AD_FindObjectByIdTypeNoCache(
         case AccountType_Group:
             bIsUser = FALSE;
             dwError = LsaAdBatchFindSingleObject(
-                           hProvider,
                            LSA_AD_BATCH_QUERY_TYPE_BY_GID,
                            NULL,
                            &dwId,
@@ -3309,6 +3305,24 @@ error:
     }
     ADCacheDB_SafeFreeObject(&pObject);
     goto cleanup;
+}
+
+DWORD
+AD_FindObjectsByListNoCache(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN PSTR* ppszList,
+    OUT PDWORD pdwCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
+    )
+{
+    return LsaAdBatchFindObjects(
+                QueryType,
+                dwCount,
+                ppszList,
+                NULL,
+                pdwCount,
+                pppObjects);
 }
 
 DWORD
@@ -3349,10 +3363,9 @@ error:
 
 DWORD
 AD_FindObjectsByList(
-    IN HANDLE hProvider,
     IN LSA_AD_CACHEDB_FIND_OBJECTS_BY_LIST_CALLBACK pFindInCacheCallback,
     IN LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK pFindByListBatchedCallback,
-    IN LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE QueryType,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN size_t sCount,
     IN PSTR* ppszList,
     OUT OPTIONAL size_t* psResultsCount,
@@ -3404,22 +3417,20 @@ AD_FindObjectsByList(
         {
             switch (QueryType)
             {
-                case LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_SID:
-
+                case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
                     LSA_LOG_VERBOSE("Cache entry for Sid %s is expired",
                          LSA_SAFE_LOG_STRING(ppResults[sIndex]->pszObjectSid));
 
                     break;
 
-                case LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_DN:
-
+                case LSA_AD_BATCH_QUERY_TYPE_BY_DN:
                     LSA_LOG_VERBOSE("Cache entry for DN %s is expired",
                          LSA_SAFE_LOG_STRING(ppResults[sIndex]->pszDN));
 
                     break;
 
                 default:
-
+                    LSA_ASSERT(FALSE);
                     dwError = LSA_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
@@ -3444,7 +3455,7 @@ AD_FindObjectsByList(
     }
 
     dwError = pFindByListBatchedCallback(
-                     hProvider,
+                     QueryType,
                      sRemainNumsToFoundInAD,
                      ppszRemainingList,
                      &dwFoundInAD,
@@ -3512,10 +3523,9 @@ AD_FindObjectsBySidList(
     )
 {
     return AD_FindObjectsByList(
-               hProvider,
                ADCacheDB_FindObjectsBySidList,
-               ADLdap_FindObjectsBySidListBatched,
-               LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_SID,
+               AD_FindObjectsByListNoCache,
+               LSA_AD_BATCH_QUERY_TYPE_BY_SID,
                sCount,
                ppszSidList,
                psResultsCount,
@@ -3532,10 +3542,9 @@ AD_FindObjectsByDNList(
     )
 {
     return AD_FindObjectsByList(
-               hProvider,
                ADCacheDB_FindObjectsByDNList,
-               ADLdap_FindObjectsByDNListBatched,
-               LSA_AD_FIND_OBJECTS_BY_LIST_QUERY_TYPE_BY_DN,
+               AD_FindObjectsByListNoCache,
+               LSA_AD_BATCH_QUERY_TYPE_BY_DN,
                sCount,
                ppszDNList,
                psResultsCount,

@@ -875,3 +875,43 @@ error:
     SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ERROR);
     goto cleanup;
 }
+
+DWORD
+LsaAdBatchGatherPseudoObjectSidFromGc(
+    IN OUT PLSA_AD_BATCH_ITEM pItem,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    IN OPTIONAL DWORD dwKeywordValuesCount,
+    IN OPTIONAL PSTR* ppszKeywordValues,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    )
+{
+    DWORD dwError = 0;
+
+    LSA_ASSERT(LSA_IS_XOR(LsaAdBatchIsDefaultSchemaMode(), ppszKeywordValues));
+
+    LSA_ASSERT(!IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO));
+    LSA_ASSERT(!pItem->pszSid);
+
+    dwError = LsaAdBatchGatherObjectType(pItem, ObjectType);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pItem->pszSid)
+    {
+        dwError = LsaAdBatchGatherPseudoSid(
+                        &pItem->pszSid,
+                        dwKeywordValuesCount,
+                        ppszKeywordValues,
+                        hDirectory,
+                        pMessage);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ERROR);
+    goto cleanup;
+}
+

@@ -47,69 +47,6 @@
 #ifndef __BATCH_H__
 #define __BATCH_H__
 
-DWORD
-ADLdap_FindObjectsByDNListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszDnList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
-DWORD
-ADLdap_FindObjectsBySidListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszSidList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
-DWORD
-ADLdap_FindObjectsByNameListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszNameList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
-DWORD
-ADLdap_FindObjectsByUidListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PDWORD pdwId,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
-DWORD
-ADLdap_FindObjectsByGidListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PDWORD pdwId,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
-DWORD
-ADLdap_FindObjectsByUserAliasListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszUserAliasList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
-DWORD
-ADLdap_FindObjectsByGroupAliasListBatched(
-    IN HANDLE hProvider,
-    IN DWORD dwCount,
-    IN PSTR* ppszGroupAliasList,
-    OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
-    );
-
 typedef UINT8 LSA_AD_BATCH_QUERY_TYPE, *PLSA_AD_BATCH_QUERY_TYPE;
 #define LSA_AD_BATCH_QUERY_TYPE_UNDEFINED      0
 #define LSA_AD_BATCH_QUERY_TYPE_BY_DN          1
@@ -122,7 +59,6 @@ typedef UINT8 LSA_AD_BATCH_QUERY_TYPE, *PLSA_AD_BATCH_QUERY_TYPE;
 
 DWORD
 LsaAdBatchFindObjects(
-    IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN DWORD dwQueryItemsCount,
     IN OPTIONAL PSTR* ppszQueryList,
@@ -133,11 +69,22 @@ LsaAdBatchFindObjects(
 
 DWORD
 LsaAdBatchFindSingleObject(
-    IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OPTIONAL PCSTR pszQueryTerm,
     IN OPTIONAL PDWORD dwId,
     OUT PAD_SECURITY_OBJECT* ppObject
+    );
+
+DWORD
+LsaAdBatchEnumObjects(
+    IN HANDLE hDirectory,
+    IN BOOLEAN bMorePages,
+    IN struct berval** ppCookie,
+    OUT PBOOLEAN pbMorePages,
+    IN ADAccountType AccountType,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PAD_SECURITY_OBJECT** pppObjects
     );
 
 #endif /* __BATCH_H__ */

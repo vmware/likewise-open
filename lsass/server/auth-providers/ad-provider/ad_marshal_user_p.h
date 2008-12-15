@@ -54,19 +54,6 @@ ADGetCurrentNtTime(
     );
 
 DWORD
-ADParseUserCtrl(
-    DWORD            dwUserAccountCtrl,
-    PLSA_USER_INFO_2 pUserInfo
-    );
-
-DWORD
-ADParsePasswdInfo(
-    HANDLE            hDirectory,    
-    LDAPMessage*      pMessageReal,    
-    PLSA_USER_INFO_2  pUserInfo
-    );
-
-DWORD
 ADConvertTimeNt2Unix(
     UINT64 ntTime,
     PUINT64 pUnixTime
@@ -101,75 +88,11 @@ ADNonSchemaKeywordGetUInt32(
     );
 
 DWORD
-ADSchemaMarshalToUserCache(
-    HANDLE                  hPseudoDirectory,
-    HANDLE                  hRealDirectory,
-    PLSA_LOGIN_NAME_INFO    pUserNameInfo,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppUserInfo
-    );
-
-DWORD
-ADNonSchemaMarshalToUserCache(
-    HANDLE                  hPseudoDirectory,
-    HANDLE                  hRealDirectory,    
-    PLSA_LOGIN_NAME_INFO    pUserNameInfo,
-    LDAPMessage*            pMessageReal,
-    LDAPMessage*            pMessagePseudo,
-    PAD_SECURITY_OBJECT*    ppUserInfo
-    );
-
-DWORD
-ADUnprovisionedMarshalToUserCache(
-    HANDLE                  hDirectory,
-    PLSA_LOGIN_NAME_INFO    pUserNameInfo,
-    LDAPMessage*            pMessage,
-    PAD_SECURITY_OBJECT*    ppUserInfo
-    );
-
-DWORD
-ADUnprovisionedMarshalToUserCacheInOneWayTrust(    
-    PLSA_LOGIN_NAME_INFO    pUserNameInfo,
-    PAD_SECURITY_OBJECT*    ppUserInfo
-    );
-
-DWORD
 AD_BuildHomeDirFromTemplate(
     PCSTR pszHomedirTemplate,
     PCSTR pszNetBIOSDomainName,
     PCSTR pszSamAccountName,
     PSTR* ppszHomedir
-    );
-
-DWORD
-ADMarshalUserInfoListDefaultNonSchemaOrCell(
-    HANDLE hProvider,
-    HANDLE hDirectory,    
-    LDAPMessage* pMessagePseudo,
-    DWORD dwUserInfoLevel,
-    PVOID** pppUserInfoList,
-    PDWORD pdwNumUsers
-    );
-
-DWORD
-ADMarshalUserInfoListDefaultSchemaOrUnprovision(
-    HANDLE hDirectory,
-    DWORD dwDirectoryMode,
-    ADConfigurationMode adConfMode,
-    PCSTR pszDomainDnsName,
-    LDAPMessage* pMessageReal,
-    DWORD dwUserInfoLevel,
-    PVOID** pppUserInfoList,
-    PDWORD pdwNumUsers
-    );
-
-DWORD
-CreateObjectLoginNameInfo(
-    OUT PLSA_LOGIN_NAME_INFO* ppLoginNameInfo,
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR pszSamAccountName,
-    IN PCSTR pszSid
     );
 
 #endif //__LSALDAP_MARSHAL_USER_P_H__

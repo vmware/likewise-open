@@ -91,7 +91,6 @@ LsaAdBatchDestroyBatchItem(
 static
 DWORD
 LsaAdBatchFindObjectsForDomainEntry(
-    IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN BOOLEAN bResolvePseudoObjects,
     IN OUT PLSA_AD_BATCH_DOMAIN_ENTRY pEntry
@@ -100,9 +99,9 @@ LsaAdBatchFindObjectsForDomainEntry(
 static
 DWORD
 LsaAdBatchFindObjectsForDomain(
-    IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN BOOLEAN bIsOneWayTrust,
     IN BOOLEAN bResolvePseudoObjects,
     IN DWORD dwCount,
@@ -116,6 +115,7 @@ DWORD
 LsaAdBatchResolveRpcObjects(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pBatchItemList
@@ -124,7 +124,6 @@ LsaAdBatchResolveRpcObjects(
 static
 DWORD
 LsaAdBatchResolveRealObjects(
-    IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
     IN DWORD dwTotalItemCount,
@@ -135,18 +134,17 @@ LsaAdBatchResolveRealObjects(
 static
 DWORD
 LsaAdBatchResolvePseudoObjects(
-    IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN PCSTR pszDnsDomainName,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
-    IN OUT PLSA_LIST_LINKS pBatchItemList
+    IN OUT PLSA_LIST_LINKS pBatchItemList,
+    OUT OPTIONAL PBOOLEAN pbResolvedPseudo
     );
 
 static
 DWORD
 LsaAdBatchResolvePseudoObjectsWithLinkedCells(
-    IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN DWORD dwTotalItemCount,
     // List of PLSA_AD_BATCH_ITEM
@@ -156,7 +154,6 @@ LsaAdBatchResolvePseudoObjectsWithLinkedCells(
 static
 DWORD
 LsaAdBatchResolvePseudoObjectsInternal(
-    IN HANDLE hProvider,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OPTIONAL PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszCellDn,
@@ -199,6 +196,7 @@ LsaAdBatchProcessPseudoObject(
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
     IN PLSA_LIST_LINKS pEndBatchItemListLinks,
+    IN BOOLEAN bIsGcSearch,
     IN BOOLEAN bIsSchemaMode,
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage
@@ -210,13 +208,6 @@ static
 PCSTR
 LsaAdBatchGetQueryTypeAsString(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType
-    );
-
-static
-DWORD
-LsaAdBatchAccountTypeToObjectType(
-    IN ADAccountType AccountType,
-    OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType
     );
 
 static
