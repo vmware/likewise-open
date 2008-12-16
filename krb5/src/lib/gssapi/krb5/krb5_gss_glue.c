@@ -333,6 +333,21 @@ static OM_uint32 k5glue_validate_cred
          );
 #endif
 
+
+static OM_uint32 k5glue_inquire_context2
+(void *, OM_uint32*,       /* minor_status */
+	    gss_ctx_id_t,     /* context_handle */
+	    gss_name_t*,      /* initiator_name */
+	    gss_name_t*,      /* acceptor_name */
+	    OM_uint32*,       /* lifetime_rec */
+	    gss_OID*,         /* mech_type */
+	    OM_uint32*,       /* ret_flags */
+	    int*,             /* locally_initiated */
+	    int*,             /* open */
+            gss_buffer_t      /* session key */
+	   );
+
+
 /*
  * The krb5 mechanism provides two mech OIDs; use this initializer to
  * ensure that both dispatch tables contain identical function
@@ -367,7 +382,8 @@ static OM_uint32 k5glue_validate_cred
     k5glue_internal_release_oid,			\
     k5glue_wrap_size_limit,				\
     k5glue_export_name,					\
-    NULL			/* store_cred */
+    NULL,			/* store_cred */    \
+    k5glue_inquire_context2
 
 static struct gss_config krb5_mechanism = {
     100, "kerberos_v5",
@@ -1102,4 +1118,27 @@ gss_krb5_set_allowable_enctypes(
 						  num_ktypes, ktypes);
 
     return GSS_S_DEFECTIVE_CREDENTIAL;
+}
+
+
+static OM_uint32
+k5glue_inquire_context2(ctx, minor_status, context_handle, initiator_name, acceptor_name,
+		    lifetime_rec, mech_type, ret_flags,
+		    locally_initiated, open, session_key)
+    void *ctx;
+     OM_uint32 *minor_status;
+     gss_ctx_id_t context_handle;
+     gss_name_t *initiator_name;
+     gss_name_t *acceptor_name;
+     OM_uint32 *lifetime_rec;
+     gss_OID *mech_type;
+     OM_uint32 *ret_flags;
+     int *locally_initiated;
+     int *open;
+     gss_buffer_t session_key;
+{
+   return(krb5_gss_inquire_context2(minor_status, context_handle,
+				   initiator_name, acceptor_name, lifetime_rec,
+				   mech_type, ret_flags, locally_initiated,
+				   open, session_key));
 }
