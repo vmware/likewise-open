@@ -427,15 +427,14 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
                              uint32 options)
 {
     NET_API_STATUS status;
-	char localname[MAXHOSTNAMELEN];
-	wchar16_t host[MAXHOSTNAMELEN];
-    wchar16_t *osName, *osVersion;
+    char localname[MAXHOSTNAMELEN];
+    wchar16_t host[MAXHOSTNAMELEN];
+    wchar16_t *osName, *osVersion, *osSvcPack;
     struct utsname osname;
-    static const wchar16_t nullws[1] = {0};
 
     /* at the moment we support only locally triggered join */
     if (hostname) {
-        status = -1;
+        status = ERROR_INVALID_PARAMETER;
         goto done;
     }
 
@@ -445,8 +444,8 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
       Get local host name to pass for local join
     */
 	if (gethostname((char*)localname, sizeof(localname)) < 0) {
-	    /* TODO: figure out better error code */
-	    return ERROR_INVALID_PARAMETER;
+        status = ERROR_INTERNAL_ERROR;
+	    goto done;
 	}
 	mbstowc16s(host, localname, sizeof(wchar16_t)*MAXHOSTNAMELEN);
 
@@ -456,19 +455,22 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
     if (uname(&osname) < 0) {
         osName    = NULL;
         osVersion = NULL;
+        osSvcPack = NULL;
 
     } else {
         osName    = ambstowc16s(osname.sysname);
         osVersion = ambstowc16s(osname.release);
+        osSvcPack = ambstowc16s(" ");
     }
 
     status = NetJoinDomainLocal(host, domain, account_ou, account,
                                 password, options, osName, osVersion,
-                                nullws);
+                                osSvcPack);
 
 done:
     SAFE_FREE(osName);
     SAFE_FREE(osVersion);
+    SAFE_FREE(osSvcPack);
 
     return status;
 }
