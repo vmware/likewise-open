@@ -78,16 +78,13 @@ LsaNetJoinDomain(
     krb5_error_code ret = 0;
     krb5_context ctx = NULL;
     krb5_ccache cc = NULL;
-    PSTR pszOldCachePath = NULL;
     PCSTR pszNewCachePath = NULL;
-    
+    HANDLE hAccessToken = NULL;
+
     BAIL_ON_INVALID_STRING(pszHostname);
     BAIL_ON_INVALID_STRING(pszDomain);
     BAIL_ON_INVALID_STRING(pszUsername);
 
-    dwError = NpcInit();
-    BAIL_ON_LSA_ERROR(dwError);
-    
     if (geteuid() != 0) {
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
@@ -121,15 +118,16 @@ LsaNetJoinDomain(
                 NULL);
     BAIL_ON_LSA_ERROR(dwError);
     
-    dwError = LsaKrb5SetDefaultCachePath(
-		pszNewCachePath,
-                NULL);
+    dwError = SMBCreateKrb5AccessTokenA(
+        pszUsername,
+        pszNewCachePath,
+        &hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = NpcGetCredCacheName(&pszOldCachePath);
+    dwError = SMBSetThreadToken(hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = NpcSetCredCacheName(pszNewCachePath);
+    dwError = SMBCloseHandle(NULL, hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaMbsToWc16s(
@@ -192,11 +190,7 @@ LsaNetJoinDomain(
     
 cleanup:
 
-    if (pszOldCachePath != NULL)
-    {
-        NpcSetCredCacheName(pszOldCachePath);
-        NpcFreeCredCacheName(pszOldCachePath);
-    }
+    SMBSetThreadToken(NULL);
 
     LSA_SAFE_FREE_STRING(pszOU_DN);
     LSA_SAFE_FREE_MEMORY(pwszHostname);
@@ -214,8 +208,6 @@ cleanup:
         }
         krb5_free_context(ctx);
     }
-
-    NpcCleanup();
 
     return dwError;
     
