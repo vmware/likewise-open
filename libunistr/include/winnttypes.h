@@ -55,17 +55,17 @@ typedef unsigned char UCHAR, *PUCHAR;
 
 #endif
 
-#ifndef LPW16STR_DEFINED
-#define LPW16STR_DEFINED 1
+#ifndef LPWSTR_DEFINED
+#define LPWSTR_DEFINED 1
 
-typedef wchar16_t *LPW16STR;
+typedef wchar16_t *LPWSTR;
 
 #endif
 
-#ifndef LPCW16STR_DEFINED
-#define LPCW16STR_DEFINED 1
+#ifndef LPCWSTR_DEFINED
+#define LPCWSTR_DEFINED 1
 
-typedef const wchar16_t *LPCW16STR;
+typedef const wchar16_t *LPCWSTR;
 #endif
 
 #ifndef LPWSTR_DEFINED

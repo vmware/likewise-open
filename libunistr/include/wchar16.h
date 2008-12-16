@@ -31,6 +31,8 @@
 #ifndef WCHAR16_H
 #define WCHAR16_H
 
+#ifndef WCHAR16_T_DEFINED
+#define WCHAR16_T_DEFINED 1
 
 #ifdef __GNUC__
 typedef unsigned short int  wchar16_t;  /* 16-bit unsigned */
@@ -42,5 +44,7 @@ typedef wchar_t             wchar16_t;
 
 #define WCHAR16	wchar16_t
 #define WCHAR wchar_t
+
+#endif /* WCHAR16_T_DEFINED */
 
 #endif /* WCHAR16_H */
