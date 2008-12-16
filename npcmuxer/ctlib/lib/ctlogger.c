@@ -128,12 +128,8 @@ pthread_once_t gCtpLoggerOnce = PTHREAD_ONCE_INIT;
 
 CT_STATUS gCtpLoggerStatus;
 
-#define CT_LOGGER_ACQUIRE() CtLockAcquireMutex(&gCtpLoggerState.Lock)
-#define CT_LOGGER_RELEASE() CtLockReleaseMutex(&gCtpLoggerState.Lock)
-
-static
-int
-__CtpLoggerInitMutex()
+void
+__CtpLoggerInit()
 {
     int error;
     pthread_mutexattr_t attr;
@@ -149,51 +145,6 @@ __CtpLoggerInitMutex()
 
 cleanup:
 
-    return error;
-}
-
-static
-void
-__CtpLoggerPreFork()
-{
-    /* Acquire logger mutex right before a fork so that
-       the forking thread holds it */
-    CT_LOGGER_ACQUIRE();
-}
-
-static
-void
-__CtpLoggerParentFork()
-{
-    /* Release logger mutex after forking */
-    CT_LOGGER_RELEASE();
-}
-
-static
-void
-__CtpLoggerChildFork()
-{
-    /* Attempt to unlock.  This may fail since our thread ID has changed */
-    pthread_mutex_unlock(&gCtpLoggerState.Lock);
-    /* Re-initialize mutex in case unlocking did not work */
-    pthread_mutex_destroy(&gCtpLoggerState.Lock);
-    __CtpLoggerInitMutex();
-}
-
-static
-void
-__CtpLoggerInit()
-{
-    int error;
-
-    error = __CtpLoggerInitMutex();
-    GOTO_CLEANUP_ON_ERRNO(error);
-
-    error = pthread_atfork(__CtpLoggerPreFork, __CtpLoggerParentFork, __CtpLoggerChildFork);
-    GOTO_CLEANUP_ON_ERRNO(error);
-
-cleanup:
-
     gCtpLoggerStatus = CtErrnoToStatus(error);
 }
 
@@ -204,6 +155,9 @@ CtpLoggerInit()
 
     return gCtpLoggerStatus;
 }
+
+#define CT_LOGGER_ACQUIRE() CtLockAcquireMutex(&gCtpLoggerState.Lock)
+#define CT_LOGGER_RELEASE() CtLockReleaseMutex(&gCtpLoggerState.Lock)
 
 #define _CT_LOGGER_LOG_INIT_ERROR_FORMAT "Error at %s:%d. Error code [0x%8x]"
 #define CT_LOGGER_LOG_INIT_ERROR(status, EE) \
@@ -524,7 +478,7 @@ CtpLoggerFileLogMessageUnsafe(
         buffer[sizeof(buffer)-1] = 0;
     }
 
-    fprintf(stream, "[%s-%u-0x%lx-%s] ", buffer, (unsigned int) getpid(), (unsigned long)pthread_self(), tag);
+    fprintf(stream, "[%s-0x%lx-%s] ", buffer, (unsigned long)pthread_self(), tag);
     vfprintf(stream, Format, Args);
     if (Format[last-1] != '\n')
     {
