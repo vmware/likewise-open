@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        status.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Status API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -53,82 +53,47 @@ LsaGetStatus(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD dwMsgLen = 0;
-    PSTR  pszError = NULL;
-    PLSASTATUS pLsaStatus = NULL;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    PLSA_IPC_ERROR pError = NULL;
 
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(ppLsaStatus);
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
 
-    dwError = LsaBuildMessage(
-                LSA_Q_GET_STATUS,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_GET_STATUS:
-        {
-            dwError = LsaUnmarshalStatus(
-                                    pMessage->pData,
-                                    pMessage->header.messageLength,
-                                    &pLsaStatus);
-            BAIL_ON_LSA_ERROR(dwError);
+    request.tag = LSA_Q_GET_STATUS;
+    request.object = (PVOID)pContext->hServer;
 
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case LSA_R_GET_STATUS_SUCCESS:
+            *ppLsaStatus = (PLSASTATUS)response.object;
             break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
+        case LSA_R_GET_METRICS_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        }
         default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            dwError = EINVAL;
             BAIL_ON_LSA_ERROR(dwError);
-        }
     }
 
-    *ppLsaStatus = pLsaStatus;
-    
-
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
 
     return dwError;
 
 error:
-
-    if (ppLsaStatus)
+    if (response.object)
     {
-        *ppLsaStatus = NULL;
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-
-    if (pLsaStatus) {
-       LsaFreeStatus(pLsaStatus);
-    }
+    *ppLsaStatus  = NULL;
 
     goto cleanup;
 }

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@ BOOLEAN initialized;
 
 /*
  * Helper Exports
- */ 
+ */
 
 VOID
 NTLMGssFreeString(PLSA_STRING str)
@@ -59,7 +59,6 @@ NTLMGssFreeSecBuffer(PSEC_BUFFER buf)
     memset(buf, 0, sizeof(SEC_BUFFER));
 }
 
-
 BOOLEAN
 NTLMConvertGSSBufferToSecBufferAllocate(
     gss_buffer_t gssBuffer,
@@ -75,7 +74,7 @@ NTLMConvertGSSBufferToSecBufferAllocate(
     } else {
         if (allocate) {
             secBuffer->buffer = NTLMAllocateMemory(gssBuffer->length);
-            if (NULL == secBuffer->buffer) 
+            if (NULL == secBuffer->buffer)
                 return false;
             memcpy(secBuffer->buffer, gssBuffer->value, gssBuffer->length);
         } else
@@ -115,15 +114,15 @@ NTLMConvertSecBufferToGSSBufferAllocate(
     /*
      * A note about secbuffers - the length is data, maxLength is buffer
      * size.  Only worry about filled in data - typically length == max_length
-     */ 
+     */
     if (allocate)
     {
         gssBuffer->value = NTLMAllocateMemory(secBuffer->length);
-        if (NULL == gssBuffer->value) 
+        if (NULL == gssBuffer->value)
             return false;
         memcpy(gssBuffer->value, secBuffer->buffer, secBuffer->length);
         gssBuffer->length = secBuffer->length;
-    } 
+    }
     else
     {
         gssBuffer->value = secBuffer->buffer;
@@ -178,7 +177,7 @@ NTLMTranslateLsaErrorToGssError(DWORD lsaError)
 
 /*
  *      Assorted GSSAPI function calls
- */      
+ */
 
 OM_uint32
 ntlm_gss_release_buffer(
@@ -256,7 +255,7 @@ ntlm_gss_init(OM_uint32 *minorStatus)
         return NTLMTranslateMajorStatus(dwError);
     }
 
-    dwError = NTLMInitializeCrypto(); 
+    dwError = NTLMInitializeCrypto();
     if (dwError)
     {
         *minorStatus = dwError;

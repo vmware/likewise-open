@@ -46,370 +46,213 @@
  */
 #include "ipc.h"
 
-DWORD
+LWMsgStatus
 LsaSrvIpcAuthenticateUser(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PSTR  pszLoginName = NULL;
-    PSTR  pszPassword = NULL;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-        (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-
-    dwError = LsaUnmarshalCredentials(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &pszLoginName,
-                    &pszPassword,
-                    NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
+    PLSA_IPC_AUTH_USER_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
 
     dwError = LsaSrvAuthenticateUser(
-                    hServer,
-                    pszLoginName,
-                    pszPassword);
-    if (!dwError) {
+                        (HANDLE)pReq->Handle,
+                        pReq->pszLoginName,
+                        pReq->pszPassword);
 
-       dwError = LsaBuildMessage(
-                    LSA_R_AUTH_USER,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_AUTH_USER_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    } else {
-
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-
-       dwOrigErrCode = dwError;
-
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-
-       dwError = LsaBuildMessage(
-                    LSA_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+        pResponse->tag = LSA_R_AUTH_USER_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-
 cleanup:
-
-    LSA_SAFE_FREE_STRING(pszLoginName);
-    LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
-
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcValidateUser(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PSTR  pszLoginName = NULL;
-    PSTR  pszPassword = NULL;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-       (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
+    PLSA_IPC_AUTH_USER_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
 
-    dwError = LsaUnmarshalCredentials(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &pszLoginName,
-                    &pszPassword,
-                    NULL);
-    BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaSrvValidateUser(
+                        (HANDLE)pReq->Handle,
+                        pReq->pszLoginName,
+                        pReq->pszPassword);
 
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_VALIDATE_USER_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvValidateUser(hServer, pszLoginName, pszPassword);
-    if (!dwError) {
-
-       dwError = LsaBuildMessage(
-                    LSA_R_VALIDATE_USER,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-
-    } else {
-
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-
-       dwOrigErrCode = dwError;
-
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-
-       dwError = LsaBuildMessage(
-                    LSA_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+        pResponse->tag = LSA_R_VALIDATE_USER_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-
 cleanup:
-
-    LSA_SAFE_FREE_STRING(pszLoginName);
-    LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
-
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcCheckUserInList(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PSTR  pszLoginName = NULL;
-    PSTR  pszListName = NULL;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-       (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-
-    dwError = LsaUnmarshalCredentials(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &pszLoginName,
-                    &pszListName,
-                    NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
+    PLSA_IPC_CHECK_USER_IN_LIST_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
 
     dwError = LsaSrvCheckUserInList(
-                    hServer,
-                    pszLoginName,
-                    pszListName);
-    if (!dwError) {
+                        (HANDLE)pReq->Handle,
+                        pReq->pszLoginName,
+                        pReq->pszListName);
 
-       dwError = LsaBuildMessage(
-                    LSA_R_CHECK_USER_IN_LIST,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_CHECK_USER_IN_LIST_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    } else {
-
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-
-       dwOrigErrCode = dwError;
-
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-
-       dwError = LsaBuildMessage(
-                    LSA_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+        pResponse->tag = LSA_R_CHECK_USER_IN_LIST_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-
 cleanup:
-
-    LSA_SAFE_FREE_STRING(pszLoginName);
-    LSA_SAFE_CLEAR_FREE_STRING(pszListName);
-
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcChangePassword(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PSTR  pszLoginName = NULL;
-    PSTR  pszPassword = NULL;
-    PSTR  pszOldPassword = NULL;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-       (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-
-    dwError = LsaUnmarshalCredentials(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &pszLoginName,
-                    &pszPassword,
-                    &pszOldPassword);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
+    PLSA_IPC_CHANGE_PASSWORD_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
 
     dwError = LsaSrvChangePassword(
-                    hServer,
-                    pszLoginName,
-                    pszPassword,
-                    pszOldPassword);
-    if (!dwError) {
+                        (HANDLE)pReq->Handle,
+                        pReq->pszLoginName,
+                        pReq->pszOldPassword,
+                        pReq->pszNewPassword);
 
-       dwError = LsaBuildMessage(
-                    LSA_R_CHANGE_PASSWORD,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_CHANGE_PASSWORD_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    } else {
-
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-
-       dwOrigErrCode = dwError;
-
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-
-       dwError = LsaBuildMessage(
-                    LSA_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+        pResponse->tag = LSA_R_CHANGE_PASSWORD_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-
 cleanup:
-
-    LSA_SAFE_FREE_STRING(pszLoginName);
-    LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
-    LSA_SAFE_CLEAR_FREE_STRING(pszOldPassword);
-
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-
     goto cleanup;
 }
 
-
 /*********************************************************
- * The Extended Authenticate function. 
+ * The Extended Authenticate function.
  */
 
 DWORD
 LsaSrvIpcAuthenticateUserEx(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
 	DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
-	PLSAMESSAGE pResponse = NULL;       
-	LSA_AUTH_USER_PARAMS Params;
-	LSA_AUTH_USER_INFO UserInfo;	
+	PLSA_IPC_AUTH_USER_EX_REQ pReq = pRequest->object;
+	LSA_AUTH_USER_PARAMS Params = {0};
+	PLSA_AUTH_USER_INFO pUserInfo = NULL;
+	PLSA_IPC_ERROR pError = NULL;
 
 	BAIL_ON_LSA_ERROR(dwError);
 
 	memset(&Params, 0x0, sizeof(Params));
-	memset(&UserInfo, 0x0, sizeof(UserInfo));
 
-	/* Unmarshall the request */	
-	
-	dwError = LsaUnmarshallAuthenticateUserExQuery(
-		pMessage->pData,
-		&pMessage->header.messageLength,
-		&Params);
-	BAIL_ON_LSA_ERROR(dwError);	
+	//memset(pUserInfo, 0x0, sizeof(UserInfo));
 
-	/* Do the work */
+	/* Unmarshall the request */
+    Params.AuthType = pReq->pParams->AuthType;
+    Params.pass = pReq->pParams->pass;
+    Params.pszAccountName = pReq->pParams->pszAccountName;
+    Params.pszDomain = pReq->pParams->pszDomain;
+    Params.pszWorkstation = pReq->pParams->pszWorkstation;
 
-	/* Marshall the response and send it */
+	/* Do the work  (obtain pUserInfo)*/
 
-	dwError = LsaMarshallAuthenticateUserExReply(
-		&pResponse,
-		&UserInfo);
-	BAIL_ON_LSA_ERROR(dwError);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_AUTH_USER_EX_SUCCESS;
+        pResponse->object = pUserInfo;
+        pUserInfo = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_AUTH_USER_EX_FAILURE;
+        pResponse->object = pError;
+    }
 
 cleanup:
-	LSA_SAFE_FREE_MESSAGE(pResponse);	
+   LSA_SAFE_FREE_MEMORY(pUserInfo);
 
-	return dwError;
-	
+   return MAP_LSA_ERROR_IPC(dwError);
+
 error:
-	goto cleanup;	
-
+   goto cleanup;
 }
+

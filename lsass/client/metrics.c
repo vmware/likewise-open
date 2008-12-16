@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        groups.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Performance Metrics API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,89 +55,67 @@ LsaGetMetrics(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = sizeof(dwInfoLevel);
-    PSTR    pszError = NULL;
-    DWORD   dwReplyInfoLevel = 0;
-    PVOID   pMetricPack = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(ppMetricPack);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_GET_METRICS,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    memcpy(pMessage->pData, &dwInfoLevel, sizeof(dwInfoLevel));
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_GET_METRICS:
-        {
-            dwError = LsaUnmarshalMetricsInfo(
-                                    pMessage->pData,
-                                    pMessage->header.messageLength,
-                                    &dwReplyInfoLevel,
-                                    &pMetricPack);
-            BAIL_ON_LSA_ERROR(dwError);
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
 
-            if (dwInfoLevel != dwReplyInfoLevel)
+    LSA_IPC_GET_METRICS_REQ getMetricReq;
+    PLSA_METRIC_PACK pResult = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    getMetricReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
+    getMetricReq.dwInfoLevel = dwInfoLevel;
+
+    request.tag = LSA_Q_GET_METRICS;
+    request.object = &getMetricReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case LSA_R_GET_METRICS_SUCCESS:
+            pResult = (PLSA_METRIC_PACK)response.object;
+            switch (pResult->dwInfoLevel)
             {
-                dwError = LSA_ERROR_INTERNAL;
-                BAIL_ON_LSA_ERROR(dwError);
+                case 0:
+                    *ppMetricPack = (PVOID*)pResult->pMetricPack.pMetricPack0;
+                    pResult->pMetricPack.pMetricPack0 = NULL;
+                    break;
+                case 1:
+                    *ppMetricPack = (PVOID*)pResult->pMetricPack.pMetricPack1;
+                    pResult->pMetricPack.pMetricPack1 = NULL;
+                    break;
+                default:
+                   dwError = LSA_ERROR_INVALID_PARAMETER;
+                   BAIL_ON_LSA_ERROR(dwError);
             }
-
             break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
+        case LSA_R_GET_METRICS_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        }
         default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            dwError = EINVAL;
             BAIL_ON_LSA_ERROR(dwError);
-        }
     }
-    
-    *ppMetricPack = pMetricPack;
 
 cleanup:
 
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
+
 error:
-
-    if (ppMetricPack)
+    if (response.object)
     {
-        *ppMetricPack = NULL;
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-
-    LSA_SAFE_FREE_MEMORY(pMetricPack);
+    *ppMetricPack  = NULL;
 
     goto cleanup;
 }

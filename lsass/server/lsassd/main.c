@@ -61,9 +61,9 @@ main(
     )
 {
     DWORD dwError = 0;
-    pthread_t listenerThreadId;
-    pthread_t* pListenerThreadId = NULL;
-    void* threadResult = NULL;
+ //   pthread_t listenerThreadId;
+ //   pthread_t* pListenerThreadId = NULL;
+//    void* threadResult = NULL;
 
     dwError = LsaSrvSetDefaults();
     BAIL_ON_LSA_ERROR(dwError);
@@ -113,7 +113,8 @@ main(
     dwError = LsaSrvInitialize();
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvStartListenThread(&listenerThreadId, &pListenerThreadId);
+    //dwError = LsaSrvStartListenThread(&listenerThreadId, &pListenerThreadId);
+    dwError = LsaSrvStartListenThread();
     BAIL_ON_LSA_ERROR(dwError);
 
     // Handle signals, blocking until we are supposed to exit.
@@ -126,10 +127,12 @@ cleanup:
 
     LsaSrvStopProcess();
 
-    if (pListenerThreadId)
+/*    if (pListenerThreadId)
     {
         pthread_join(listenerThreadId, &threadResult);
-    }
+    }*/
+
+    LsaSrvStopListenThread();
 
     LsaSrvApiShutdown();
 

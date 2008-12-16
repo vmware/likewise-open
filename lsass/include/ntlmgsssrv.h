@@ -1,13 +1,13 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
- 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        ntlm_srv.h
+ *        ntlmgsssrv.h
  *
  * Abstract:
  *
@@ -48,7 +48,7 @@ NTLMGssCheckAuthenticateMessage(
     PSEC_BUFFER_S serverChallenge,
     PSEC_BUFFER targetInfo,
     PSEC_BUFFER authenticateMessageToken,
-    PSEC_BUFFER_S baseSessionKey 
+    PSEC_BUFFER_S baseSessionKey
     );
 
 VOID

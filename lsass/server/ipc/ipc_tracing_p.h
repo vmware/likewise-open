@@ -47,22 +47,28 @@
 #ifndef __IPC_TRACING_P_H__
 #define __IPC_TRACING_P_H__
 
-DWORD
+LWMsgStatus
 LsaSrvIpcSetTraceInfo(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcGetTraceInfo(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEnumTraceInfo(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 

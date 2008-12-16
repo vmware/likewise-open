@@ -467,6 +467,13 @@ typedef struct __LSA_TRACE_INFO
     BOOLEAN bStatus;
 } LSA_TRACE_INFO, *PLSA_TRACE_INFO;
 
+typedef struct __LSA_TRACE_INFO_LIST
+{
+    DWORD dwNumFlags;
+    PLSA_TRACE_INFO pTraceInfoArray;
+} LSA_TRACE_INFO_LIST, *PLSA_TRACE_INFO_LIST;
+
+
 /*
  * Logging
  */
@@ -573,11 +580,23 @@ typedef struct __LSA_USER_INFO_2
     BOOLEAN bAccountLocked;
 } LSA_USER_INFO_2, *PLSA_USER_INFO_2;
 
+typedef struct __LSA_USER_INFO_LIST
+{
+    DWORD dwUserInfoLevel;
+    DWORD dwNumUsers;
+    union _USER_INFO_LIST
+    {
+        PLSA_USER_INFO_0* ppInfoList0;
+        PLSA_USER_INFO_1* ppInfoList1;
+        PLSA_USER_INFO_2* ppInfoList2;
+    }ppUserInfoList;
+} LSA_USER_INFO_LIST, *PLSA_USER_INFO_LIST;
+
 typedef struct __LSA_USER_MOD_INFO
 {
     uid_t uid;
 
-    struct {
+    struct _actions{
         BOOLEAN bEnableUser;
         BOOLEAN bDisableUser;
         BOOLEAN bUnlockUser;
@@ -618,19 +637,70 @@ typedef struct __LSA_GROUP_INFO_1
     PSTR* ppszMembers;
 } LSA_GROUP_INFO_1, *PLSA_GROUP_INFO_1;
 
+typedef struct __LSA_GROUP_INFO_LIST
+{
+    DWORD dwGroupInfoLevel;
+    DWORD dwNumGroups;
+    union _GROUP_INFO_LIST
+    {
+        PLSA_GROUP_INFO_0* ppInfoList0;
+        PLSA_GROUP_INFO_1* ppInfoList1;
+    }ppGroupInfoList;
+} LSA_GROUP_INFO_LIST, *PLSA_GROUP_INFO_LIST;
+
+typedef struct __LSA_ENUM_OBJECTS_INFO
+{
+    DWORD dwObjectInfoLevel;
+    DWORD dwNumMaxObjects;
+    PSTR  pszGUID;
+} LSA_ENUM_OBJECTS_INFO, *PLSA_ENUM_OBJECTS_INFO;
+
 typedef struct __LSA_NSS_ARTEFACT_INFO_0
 {
     PSTR  pszName;
     PSTR  pszValue;
-
 } LSA_NSS_ARTEFACT_INFO_0, *PLSA_NSS_ARTEFACT_INFO_0;
 
+typedef struct __LSA_NSS_ARTEFACT_INFO_LIST
+{
+    DWORD dwNssArtefactInfoLevel;
+    DWORD dwNumNssArtefacts;
+    union _NSS_ARTEFACT_INFO_LIST
+    {
+        PLSA_NSS_ARTEFACT_INFO_0* ppInfoList0;
+    }ppNssArtefactInfoList;
+} LSA_NSS_ARTEFACT_INFO_LIST, *PLSA_NSS_ARTEFACT_INFO_LIST;
+
+
+typedef struct _SEC_BUFFER {
+    USHORT length;
+    USHORT maxLength;
+    PBYTE  buffer;
+} SEC_BUFFER, *PSEC_BUFFER;
+
+/* static buffer secbufer */
+#define S_BUFLEN 24
+
+typedef struct _SEC_BUFFER_S {
+    USHORT length;
+    USHORT maxLength;
+    BYTE buffer[S_BUFLEN];
+} SEC_BUFFER_S, *PSEC_BUFFER_S;
+
+#if 0
 typedef enum
 {
     AccountType_NotFound = 0,
     AccountType_Group = 1,
     AccountType_User = 2,
 } ADAccountType;
+#endif
+
+typedef UINT8 ADAccountType;
+
+#define AccountType_NotFound 0
+#define AccountType_Group 1
+#define AccountType_User 2
 
 typedef struct __LSA_SID_INFO
 {
@@ -638,6 +708,13 @@ typedef struct __LSA_SID_INFO
     PSTR          pszSamAccountName;
     PSTR          pszDomainName;
 } LSA_SID_INFO, *PLSA_SID_INFO;
+
+typedef struct __LSA_FIND_NAMES_BY_SIDS
+{
+    size_t sCount;
+    PLSA_SID_INFO pSIDInfoList;
+    CHAR chDomainSeparator;
+} LSA_FIND_NAMES_BY_SIDS, *PLSA_FIND_NAMES_BY_SIDS;
 
 typedef struct __LSA_METRIC_PACK_0
 {
@@ -675,6 +752,16 @@ typedef struct __LSA_METRIC_PACK_1
     UINT64 unauthorizedAccesses;
 
 } LSA_METRIC_PACK_1, *PLSA_METRIC_PACK_1;
+
+typedef struct __LSA_METRIC_PACK
+{
+    DWORD dwInfoLevel;
+    union _METRIC_PACK
+    {
+        PLSA_METRIC_PACK_0 pMetricPack0;
+        PLSA_METRIC_PACK_1 pMetricPack1;
+    }pMetricPack;
+} LSA_METRIC_PACK, *PLSA_METRIC_PACK;
 
 typedef enum
 {
@@ -804,7 +891,7 @@ typedef struct __LSA_AUTH_USER_PARAMS
 	PCSTR pszAccountName;
 	PCSTR pszDomain;
 	PCSTR pszWorkstation;
-	union {
+	union _PASS{
 		LSA_AUTH_CLEARTEXT_PARAM clear;
 		LSA_AUTH_CHAP_PARAM      chap;
 	} pass;
@@ -963,11 +1050,26 @@ LsaFreeGroupInfo(
     PVOID pGroupInfo
     );
 
+void
+LsaFreeIpcGroupInfoList(
+    PLSA_GROUP_INFO_LIST pGroupIpcInfoList
+    );
+
+VOID
+LsaFreeEnumObjectsInfo(
+    PLSA_ENUM_OBJECTS_INFO pInfo
+    );
+
 VOID
 LsaFreeNSSArtefactInfoList(
     DWORD  dwLevel,
     PVOID* pNSSArtefactInfoList,
     DWORD  dwNumNSSArtefacts
+    );
+
+void
+LsaFreeIpcNssArtefactInfoList(
+    PLSA_NSS_ARTEFACT_INFO_LIST pNssArtefactIpcInfoList
     );
 
 VOID
@@ -1039,6 +1141,11 @@ LsaFreeSIDInfoList(
     size_t         stNumSID
     );
 
+void
+LsaFreeIpcNameSidsList(
+    PLSA_FIND_NAMES_BY_SIDS pNameSidsList
+    );
+
 VOID
 LsaFreeSIDInfo(
     PLSA_SID_INFO pSIDInfo
@@ -1073,6 +1180,11 @@ LsaFreeUserInfoList(
     DWORD  dwNumUsers
     );
 
+void
+LsaFreeIpcUserInfoList(
+    PLSA_USER_INFO_LIST pUserIpcInfoList
+    );
+
 VOID
 LsaFreeUserInfo(
     DWORD dwLevel,
@@ -1088,9 +1200,9 @@ LsaAuthenticateUser(
 
 DWORD
 LsaAuthenticateUserEx(
-	HANDLE hLsaConnection,
-	LSA_AUTH_USER_PARAMS *pParams,
-	LSA_AUTH_USER_INFO *pUserInfo
+	IN HANDLE hLsaConnection,
+	IN LSA_AUTH_USER_PARAMS* pParams,
+	OUT LSA_AUTH_USER_INFO* pUserInfo
 	);
 
 DWORD
@@ -1210,5 +1322,10 @@ PBYTE
 LsaDataBlobBuffer(
 	PLSA_DATA_BLOB pBlob
 	);
+
+VOID
+LsaSrvFreeIpcMetriPack(
+    PLSA_METRIC_PACK pMetricPack
+    );
 
 #endif /* __LSA_H__ */

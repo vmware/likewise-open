@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for Errors
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -47,40 +47,28 @@
 #include "ipc.h"
 
 DWORD
-LsaSrvIpcMarshalError(
-    DWORD dwErrCode,
-    PLSAMESSAGE* ppMessage
+LsaSrvIpcCreateError(
+    DWORD dwErrorCode,
+    PCSTR pszErrorMessage,
+    PLSA_IPC_ERROR* ppError
     )
 {
     DWORD dwError = 0;
-    DWORD dwMsgLen = 0;
-    PLSAMESSAGE pMessage = NULL;
-    
-    dwError = LsaMarshalError(dwErrCode, NULL, NULL, &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-     
-    dwError = LsaBuildMessage(
-                 LSA_ERROR,
-                 dwMsgLen,
-                 1,
-                 1,
-                 &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-     
-    dwError = LsaMarshalError(dwErrCode, NULL, pMessage->pData, &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    *ppMessage = pMessage;
-    
-cleanup:
+    PLSA_IPC_ERROR pError = NULL;
 
-    return dwError;
+    dwError = LsaAllocateMemory(sizeof(*pError), (void**) (void*) &pError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pszErrorMessage)
+    {
+        dwError = LsaAllocateString(pszErrorMessage, (PSTR*) &pError->pszErrorMessage);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pError->dwError = dwErrorCode;
+
+    *ppError = pError;
 
 error:
-
-    *ppMessage = NULL;
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
-    goto cleanup;
+    return dwError;
 }

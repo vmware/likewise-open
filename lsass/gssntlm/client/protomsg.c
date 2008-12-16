@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -61,12 +61,12 @@ NTLMDumpNegotiateMessage(
 /*
  * NTLMBuildTargetInfo()
  *
- * @brief If the client is requesting target info, build 
+ * @brief If the client is requesting target info, build
  * it here.  For standalone / non-joined machines, we can only
  * offer local names.  For domain joined, we should also
  * include netbios and dns names (if requested).
  *
- * @todo - this should be global, and tied into change notification 
+ * @todo - this should be global, and tied into change notification
  * scheme domain, server name changes.  Right now, we compute every time.
  *
  * @param out targetInfo -  secbuffer (absolute), to be tacked on the end
@@ -108,7 +108,7 @@ NTLMBuildTargetInfo(
     dwError = NTLMGetNBDomainName(&nbDomain);
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwSize = server.length + serverDNSName.length + 
+    dwSize = server.length + serverDNSName.length +
         dnsDomain.length + nbDomain.length + (10 * sizeof(USHORT));
 
     targetInfo.buffer = NTLMAllocateMemory(dwSize);
@@ -124,7 +124,7 @@ NTLMBuildTargetInfo(
     ofs += sizeof(USHORT);
     PUT_BYTES(copyTo, ofs, nbDomain.buffer, nbDomain.length);
     ofs += nbDomain.length;
-    
+
     PUT_USHORT(copyTo,ofs,NAME_TYPE_SERVER);
     ofs += sizeof(USHORT);
     PUT_USHORT(copyTo,ofs,server.length);
@@ -235,9 +235,9 @@ NTLMFinalizedMessage(
 ULONG
 NTLMGetDefaultNegFlags(PNTLM_CONTEXT pCtxt)
 {
-    /* 
-     * @todo - this should be alterable via policy, and gss api 
-     * OID set during gss? 
+    /*
+     * @todo - this should be alterable via policy, and gss api
+     * OID set during gss?
      */
     return NEGOTIATE_CLI_DEFAULT;
 }
@@ -246,7 +246,7 @@ NTLMGetDefaultNegFlags(PNTLM_CONTEXT pCtxt)
  * NEGOTIATE
  */
 DWORD
-NTLMBuildNegotiateMessage( 
+NTLMBuildNegotiateMessage(
     PNTLM_CONTEXT pCtxt,
     PSEC_BUFFER pInputToken,
     PSEC_BUFFER pOutputToken
@@ -270,7 +270,7 @@ NTLMBuildNegotiateMessage(
 
     PUT_ULONG(negotiateMsg, ofs, NEGOTIATE_MSG);
     ofs += sizeof(ULONG);
-    
+
     negotiateFlags = NTLMGetDefaultNegFlags(pCtxt);
 
     PUT_ULONG(negotiateMsg, ofs, negotiateFlags);
@@ -293,12 +293,12 @@ NTLMBuildNegotiateMessage(
     pOutputToken->buffer = negotiateMsg;
     negotiateMsg = NULL;
 
-    /* 
-     * set flags on context 
+    /*
+     * set flags on context
      * no lock required - only we have ctxt handle
      */
     pCtxt->negotiateFlags = NEGOTIATE_CLI_DEFAULT;
-    pCtxt->processNextMessage = NTLMProcessChallengeMessage; 
+    pCtxt->processNextMessage = NTLMProcessChallengeMessage;
 
     DBGDumpSecBuffer(D_ERROR, "negotiate msg", pOutputToken);
 
@@ -307,7 +307,7 @@ error:
     /* if we err'd, this context is doa */
     if (dwError)
         pCtxt->processNextMessage = NTLMFinalizedMessage;
-    else 
+    else
         dwError = LSA_WARNING_CONTINUE_NEEDED;
 
     NTLM_SAFE_FREE(negotiateMsg);
@@ -328,13 +328,13 @@ NTLMParseNegotiateMessage(
         BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
 
     dwError = NTLMParseMessageHeader(
-                    pBuf, 
+                    pBuf,
                     &ofs,
                     NEGOTIATE_MSG
                     );
 
     BAIL_ON_NTLM_ERROR(dwError);
-    
+
     /* only interesting part is negotiate flag */
     (*negotiateFlags) = GET_ULONG(pBuf->buffer, ofs);
 
@@ -348,7 +348,7 @@ error:
 
 
 DWORD
-NTLMProcessNegotiateMessage( 
+NTLMProcessNegotiateMessage(
     PNTLM_CONTEXT pCtxt,
     PSEC_BUFFER pInputToken,
     PSEC_BUFFER pOutputToken
@@ -356,7 +356,7 @@ NTLMProcessNegotiateMessage(
 {
     DWORD dwError = 0;
     ULONG newFlags = 0;
-    ULONG negotiateFlags; 
+    ULONG negotiateFlags;
 
     /* parse the message */
     dwError = NTLMParseNegotiateMessage(
@@ -371,7 +371,7 @@ NTLMProcessNegotiateMessage(
                     negotiateFlags,
                     &newFlags
                     );
-    
+
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NTLMBuildChallengeMessage(
@@ -409,7 +409,7 @@ DWORD
 NTLMBuildChallengeMessage(
     PNTLM_CONTEXT pCtxt,
     DWORD challengeFlags,
-    PSEC_BUFFER challengeMsg 
+    PSEC_BUFFER challengeMsg
     )
 {
     DWORD dwError = 0;
@@ -428,7 +428,7 @@ NTLMBuildChallengeMessage(
     if (challengeFlags & NEGOTIATE_REQUEST_TARGET) {
 
         dwError = NTLMGetWorkstationName(&workstation);
-        BAIL_ON_NTLM_ERROR(dwError); 
+        BAIL_ON_NTLM_ERROR(dwError);
 
         /* add in target info buffer */
         dwSize += sizeof(SEC_BUFFER) + workstation.max;
@@ -479,13 +479,13 @@ NTLMBuildChallengeMessage(
 
     PUT_BYTES(challengeMsg->buffer, ofs, challenge, NTLM_CHALLENGE_LENGTH);
     ofs += NTLM_CHALLENGE_LENGTH;
-    
+
     /* huh - what are these here for? */
     SET_BYTES(challengeMsg->buffer, ofs, 0, 8);
     ofs += 8;
 
 
-    if (challengeFlags & CHALLENGE_TARGET_INFO) 
+    if (challengeFlags & CHALLENGE_TARGET_INFO)
         NTLMPutSecBuffer(&targetInfo, challengeMsg->buffer, &bufofs, &ofs);
 
     /* debug version info - send 2k3 version */
@@ -500,7 +500,7 @@ NTLMBuildChallengeMessage(
     COPY_CHALLENGE(pCtxt->challenge, challenge);
 
     /* add in target info flags, but not name type */
-    pCtxt->negotiateFlags |= (challengeFlags & CHALLENGE_TARGET_INFO); 
+    pCtxt->negotiateFlags |= (challengeFlags & CHALLENGE_TARGET_INFO);
     /* @todo - store off, or version, targetInfo */
     NTLM_UNLOCK_CONTEXT(pCtxt);
     challengeMsg->length = challengeMsg->maxLength = dwSize;
@@ -562,8 +562,8 @@ NTLMBuildAuthenticateMessage(
     BAIL_ON_NTLM_ERROR(dwError);
 
     /* @todo - dumb down */
-    DBGDumpSecBuffer(D_ERROR, "authenticate msg", pOutputToken); 
-    DBGDumpSecBufferS(D_ERROR, "sessionkey", &baseSessionKey); 
+    DBGDumpSecBuffer(D_ERROR, "authenticate msg", pOutputToken);
+    DBGDumpSecBufferS(D_ERROR, "sessionkey", &baseSessionKey);
 
     NTLM_LOCK_CONTEXTS();
     memcpy(&pCtxt->baseSessionKey, &baseSessionKey, sizeof(SEC_BUFFER_S));
@@ -588,14 +588,14 @@ NTLMCheckChallengeNegotiateFlags(
 
     /*@ todo - dumb down D_ERROR to D_TRACE */
     NTLMDumpNegotiateFlags(
-        D_ERROR, 
-        "challenge msg flags", 
+        D_ERROR,
+        "challenge msg flags",
         challengeMessage->negotiateFlags
         );
 
     NTLMDumpNegotiateFlags(
-        D_ERROR, 
-        "context flags", 
+        D_ERROR,
+        "context flags",
         cliNegFlags
         );
 
@@ -609,7 +609,7 @@ NTLMCheckChallengeNegotiateFlags(
         BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_TOKEN);
 
     /* @todo -hacky - we don't support weak keys, protocols, or ANSI */
-    if ((challengeMessage->negotiateFlags & NEGOTIATE_REQUIRED) != 
+    if ((challengeMessage->negotiateFlags & NEGOTIATE_REQUIRED) !=
         NEGOTIATE_REQUIRED)
         BAIL_WITH_NTLM_ERROR(LSA_ERROR_NOT_SUPPORTED);
 
@@ -617,12 +617,12 @@ NTLMCheckChallengeNegotiateFlags(
         BAIL_WITH_NTLM_ERROR(LSA_ERROR_NOT_SUPPORTED);
 
     /* finally, make sure all flags are accounted for */
-    if ((cliNegFlags | NEGOTIATE_VARIATIONS) != 
+    if ((cliNegFlags | NEGOTIATE_VARIATIONS) !=
         (challengeMessage->negotiateFlags | NEGOTIATE_VARIATIONS))
         BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_TOKEN);
-    
+
     /* @todo - update client context flags */
-    
+
     if (challengeMessage->negotiateFlags & CHALLENGE_TARGET_INFO)
     {
         NTLM_LOCK_CONTEXTS();
@@ -660,7 +660,7 @@ NTLMParseChallengeMessage(
         BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
 
     dwError = NTLMParseMessageHeader(
-                    pBuf, 
+                    pBuf,
                     &ofs,
                     CHALLENGE_MSG
                     );
@@ -681,14 +681,14 @@ NTLMParseChallengeMessage(
     /* handle reserved 0 padded bytes */
     ofs += 8;
 
-    if (pChallengeMsg->negotiateFlags & CHALLENGE_TARGET_INFO) 
+    if (pChallengeMsg->negotiateFlags & CHALLENGE_TARGET_INFO)
     {
         dwError = NTLMGetSecBuffer(pTargetInfo, pBuf, &ofs);
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
     /* skip version */
-    if (pChallengeMsg->negotiateFlags & NEGOTIATE_VERSION_DEBUG)  
+    if (pChallengeMsg->negotiateFlags & NEGOTIATE_VERSION_DEBUG)
         ofs += NTLM_VERSION_SIZE;
 error:
 
@@ -761,7 +761,7 @@ NTLMProcessAuthenticateMessage(
     SEC_BUFFER      targetInfo;
 
     INIT_SEC_BUFFER_S_VAL(
-        &serverChallenge, 
+        &serverChallenge,
         NTLM_CHALLENGE_LENGTH,
         pCtxt->challenge
         );
@@ -791,7 +791,7 @@ NTLMProcessAuthenticateMessage(
     pCtxt->processNextMessage = NTLMFinalizedMessage;
     NTLM_UNLOCK_CONTEXTS();
 
-    
+
 error:
 
     return dwError;

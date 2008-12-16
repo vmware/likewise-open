@@ -64,6 +64,12 @@ LsaSrvOpenServer(
     PHANDLE phServer
     );
 
+VOID
+LsaSrvGetUid(
+    HANDLE hServer,
+    PDWORD pUid
+    );
+
 void
 LsaSrvCloseServer(
     HANDLE hServer

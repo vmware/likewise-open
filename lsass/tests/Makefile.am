@@ -14,4 +14,9 @@ SUBDIRS = \
         test_authstress \
         test_bitvector \
         test_perf \
-	test_memcache
+	test_memcache \
+	test_authenticate \
+	test_validate \
+	test_changepasswd \
+	test_session \
+	test_checkuserinlist

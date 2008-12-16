@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -34,11 +34,11 @@
  * Module Name:
  *
  *        clientipc_p.h
- *  
+ *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Private Header (Library)
  *
  *        Inter-process Communication (Client) API
@@ -49,20 +49,194 @@
 #ifndef __CLIENTIPC_P_H__
 #define __CLIENTIPC_P_H__
 
+#include <lwmsg/lwmsg.h>
+
+#if 0
 typedef struct __LSA_CLIENT_CONNECTION_CONTEXT {
     int    fd;
 } LSA_CLIENT_CONNECTION_CONTEXT, *PLSA_CLIENT_CONNECTION_CONTEXT;
+#endif
+
+typedef struct __LSA_CLIENT_CONNECTION_CONTEXT
+{
+    LWMsgProtocol* pProtocol;
+    LWMsgAssoc* pAssoc;
+    HANDLE hServer; //PLSA_SRV_API_STATE
+} LSA_CLIENT_CONNECTION_CONTEXT, *PLSA_CLIENT_CONNECTION_CONTEXT;
 
 DWORD
-LsaSendMessage(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+LsaTransactOpenServer(
+   IN OUT HANDLE hServer
+   );
+
+DWORD
+LsaTransactOpenSession(
+    HANDLE hServer,
+    PCSTR pszLoginId
     );
 
 DWORD
-LsaGetNextMessage(
-    HANDLE hConnection,
-    PLSAMESSAGE* ppMessage
+LsaTransactCloseSession(
+    HANDLE hServer,
+    PCSTR pszLoginId
+    );
+
+DWORD
+LsaTransactFindGroupByName(
+   HANDLE hServer,
+   PCSTR pszGroupName,
+   LSA_FIND_FLAGS FindFlags,
+   DWORD dwGroupInfoLevel,
+   PVOID* ppGroupInfo
+   );
+
+DWORD
+LsaTransactFindGroupById(
+   HANDLE hServer,
+   DWORD id,
+   LSA_FIND_FLAGS FindFlags,
+   DWORD dwGroupInfoLevel,
+   PVOID* ppGroupInfo
+   );
+
+DWORD
+LsaTransactBeginEnumGroups(
+    HANDLE hServer,
+    DWORD   dwGroupInfoLevel,
+    DWORD   dwMaxNumGroups,
+    PHANDLE phResume
+    );
+
+DWORD
+LsaTransactEnumGroups(
+    HANDLE hServer,
+    HANDLE hResume,
+    PDWORD pdwNumGroupsFound,
+    PVOID** pppGroupInfoList
+    );
+
+DWORD
+LsaTransactEndEnumGroups(
+    HANDLE hServer,
+    HANDLE hResume
+    );
+
+DWORD
+LsaTransactAddGroup(
+    HANDLE hServer,
+    PVOID  pGroupInfo,
+    DWORD  dwGroupInfoLevel
+    );
+
+DWORD
+LsaTransactDeleteGroupById(
+    HANDLE hServer,
+    gid_t  gid
+    );
+
+DWORD
+LsaTransactGetGroupsForUserById(
+    HANDLE  hServer,
+    uid_t   uid,
+    LSA_FIND_FLAGS FindFlags,
+    DWORD   dwGroupInfoLevel,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
+    );
+
+DWORD
+LsaTransactFindUserByName(
+    HANDLE hServer,
+    PCSTR  pszName,
+    DWORD  dwUserInfoLevel,
+    PVOID* ppUserInfo
+    );
+
+DWORD
+LsaTransactFindUserById(
+    HANDLE hServer,
+    uid_t uid,
+    DWORD  dwUserInfoLevel,
+    PVOID* ppUserInfo
+    );
+
+DWORD
+LsaTransactBeginEnumUsers(
+    HANDLE hServer,
+    DWORD   dwUserInfoLevel,
+    DWORD   dwMaxNumUsers,
+    PHANDLE phResume
+    );
+
+DWORD
+LsaTransactEnumUsers(
+    HANDLE hServer,
+    HANDLE hResume,
+    PDWORD pdwNumUsersFound,
+    PVOID** pppUserInfoList
+    );
+
+DWORD
+LsaTransactEndEnumUsers(
+    HANDLE hServer,
+    HANDLE hResume
+    );
+
+DWORD
+LsaTransactAddUser(
+    HANDLE hServer,
+    PVOID  pUserInfo,
+    DWORD  dwUserInfoLevel
+    );
+
+DWORD
+LsaTransactDeleteUserById(
+    HANDLE hServer,
+    uid_t  uid
+    );
+
+DWORD
+LsaTransactAuthenticateUser(
+    HANDLE hServer,
+    PCSTR  pszLoginName,
+    PCSTR  pszPassword
+    );
+
+DWORD
+LsaTransactAuthenticateUserEx(
+    IN HANDLE hServer,
+    IN LSA_AUTH_USER_PARAMS* pParams,
+    OUT LSA_AUTH_USER_INFO* pUserInfo
+    );
+
+DWORD
+LsaTransactValidateUser(
+    HANDLE hServer,
+    PCSTR  pszLoginName,
+    PCSTR  pszPassword
+    );
+
+DWORD
+LsaTransactChangePassword(
+    HANDLE hServer,
+    PCSTR  pszLoginName,
+    PCSTR  pszNewPassword,
+    PCSTR  pszOldPassword
+    );
+
+DWORD
+LsaTransactModifyUser(
+    HANDLE hServer,
+    PLSA_USER_MOD_INFO pUserModInfo
+    );
+
+DWORD
+LsaTransactGetNamesBySidList(
+    IN HANDLE hServer,
+    IN size_t sCount,
+    IN PSTR* ppszSidList,
+    OUT PLSA_SID_INFO* ppSIDInfoList,
+    OUT OPTIONAL CHAR *pchDomainSeparator
     );
 
 #endif /* __CLIENTIPC_P_H__ */

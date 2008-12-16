@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        config.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Configuration API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -53,65 +53,44 @@ LsaRefreshConfiguration(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    PSTR    pszError = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    
-    dwError = LsaBuildMessage(
-                LSA_Q_REFRESH_CONFIGURATION,
-                0,
-                1,
-                1,
-                &pMessage);
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    request.tag = LSA_Q_REFRESH_CONFIGURATION;
+    request.object = (PVOID)pContext->hServer;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_REFRESH_CONFIGURATION:
-        {
+
+    switch (response.tag)
+    {
+        case LSA_R_REFRESH_CONFIGURATION_SUCCESS:
+            // response.object == NULL;
             break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-              
-            //
-            // TODO: Log error string if available
-            //
-            dwError = LsaUnmarshalError(
-                          pMessage->pData,
-                          pMessage->header.messageLength,
-                          &dwSrvError,
-                          &pszError
-                          );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
+        case LSA_R_REFRESH_CONFIGURATION_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        }
         default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            dwError = EINVAL;
             BAIL_ON_LSA_ERROR(dwError);
-        }
     }
 
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
-error:
 
+error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     goto cleanup;
 }

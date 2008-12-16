@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for GSS NTLM
  *
  * Author: Todd Stecher (v-todds@likewise.com) 2008
@@ -48,104 +48,82 @@
 
 #define ZERO_STRUCT(_s_) memset((char*)&(_s_),0,sizeof(_s_))
 
-
-DWORD
-LsaSrvIpcBuildAuthMessage(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+static
+VOID
+LsaNTLMGssFreeAuthMsg(
+    PLSA_GSS_R_MAKE_AUTH_MSG pAuthMsgReply
     )
 {
-    DWORD dwError;
-    DWORD msgStatus;
-    DWORD dwMsgLen;
-    ULONG negotiateFlags;
-    SEC_BUFFER marshaledCredential;
-    SEC_BUFFER authenticateMessage;
-    SEC_BUFFER targetInfo;
-    SEC_BUFFER_S serverChallenge;
-    SEC_BUFFER_S baseSessionKey;
-
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-        (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-
-    ZERO_STRUCT(marshaledCredential);
-    ZERO_STRUCT(authenticateMessage);
-    ZERO_STRUCT(targetInfo);
-    ZERO_STRUCT(baseSessionKey);
-
-    dwError = LsaUnMarshalGSSMakeAuthMsgQ(
-    		pMessage->pData,
-                pMessage->header.messageLength,
-                &marshaledCredential,
-                &serverChallenge,
-                &targetInfo,
-                &negotiateFlags
-                );
-
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    /* call NTLMSRV stub */
-    msgStatus = NTLMGssBuildAuthenticateMessage(
-                        negotiateFlags,
-                        pContext->peerUID,
-                        &marshaledCredential,
-                        &serverChallenge,
-                        &targetInfo,
-                        &authenticateMessage,
-                        &baseSessionKey
-                        );
-
-    dwError = LsaMarshalGSSMakeAuthMsgR(
-                        msgStatus,
-                        &authenticateMessage,
-                        &baseSessionKey,
-                        NULL,
-                        &dwMsgLen
-                        );
-
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaBuildMessage(
-                LSA_R_GSS_MAKE_AUTH_MSG,
-                dwMsgLen,
-                1,
-                1,
-                &pResponse
-                );
-
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMarshalGSSMakeAuthMsgR(
-                        msgStatus,
-                        &authenticateMessage,
-                        &baseSessionKey,
-                        pResponse->pData,
-                        &dwMsgLen
-                        );
-
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-error:
-
-    NTLMGssFreeSecBuffer(&authenticateMessage);
-    
-    return dwError;
+    if (pAuthMsgReply)
+    {
+        NTLMGssFreeSecBuffer(&pAuthMsgReply->authenticateMessage);
+        LSA_SAFE_FREE_MEMORY(pAuthMsgReply);
+    }
 }
 
-DWORD
-LsaSrvIpcCheckAuthMessage(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+LWMsgStatus
+LsaSrvIpcBuildAuthMessage(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
+    DWORD dwError = 0;
+    PLSA_IPC_MAKE_AUTH_MSG_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
+    PLSA_GSS_R_MAKE_AUTH_MSG pAuthMsgReply = NULL;
+    uid_t peerUID = 0;
+
+
+    dwError = LsaAllocateMemory(sizeof(*pAuthMsgReply),
+                                (PVOID*)&pAuthMsgReply);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ZERO_STRUCT(pAuthMsgReply->authenticateMessage);
+    ZERO_STRUCT(pAuthMsgReply->baseSessionKey);
+
+    LsaSrvGetUid((HANDLE)pReq->Handle, &peerUID);
+
+    pAuthMsgReply->msgError = NTLMGssBuildAuthenticateMessage(
+                        pReq->negotiateFlags,
+                        peerUID,
+                        &pReq->credentials,
+                        &pReq->serverChallenge,
+                        &pReq->targetInfo,
+                        &pAuthMsgReply->authenticateMessage,
+                        &pAuthMsgReply->baseSessionKey);
+
+    pResponse->tag = LSA_R_GSS_MAKE_AUTH_MSG_SUCCESS;
+    pResponse->object = pAuthMsgReply;
+
+cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
+
+error:
+    dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+
+    pResponse->tag = LSA_R_GSS_MAKE_AUTH_MSG_FAILURE;
+    pResponse->object = pError;
+
+    if(pAuthMsgReply)
+    {
+        LsaNTLMGssFreeAuthMsg(pAuthMsgReply);
+    }
+
+    goto cleanup;
+}
+
+LWMsgStatus
+LsaSrvIpcCheckAuthMessage(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    )
+{
+    return LSA_ERROR_NOT_IMPLEMENTED;
+#if 0
     DWORD dwError;
     DWORD msgStatus;
     DWORD dwMsgLen;
@@ -217,9 +195,9 @@ LsaSrvIpcCheckAuthMessage(
 
     dwError = LsaWriteMessage(pContext->fd, pResponse);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 error:
 
     return dwError;
+#endif
 }
-

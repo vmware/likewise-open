@@ -167,6 +167,17 @@ error:
     goto cleanup;
 }
 
+VOID
+LsaSrvGetUid(
+    HANDLE hServer,
+    PDWORD pUid
+    )
+{
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+
+    *pUid = pServerState->peerUID;
+}
+
 DWORD
 LsaSrvAddUserEnumState(
     HANDLE  hServer,
