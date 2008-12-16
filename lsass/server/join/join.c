@@ -111,6 +111,11 @@ LsaNetJoinDomain(
 
     pszNewCachePath = krb5_cc_get_name(ctx, cc);
     
+    dwError = LsaKrb5SetDefaultCachePath(
+              pszNewCachePath,
+              NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaKrb5GetTgt(
 		pszUsername,
 		pszPassword,
