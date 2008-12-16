@@ -40,35 +40,11 @@
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/mpr.h>
 #include <wc16str.h>
-#include <npc.h>
-#include <npctypes.h>
-
 
 int WNetCancelConnection2(wchar16_t *name, uint16 flags, bool force)
 {
-    char *hostname, *slash;
-    int result = 0;
-    int status = 0;
-
-    hostname = awc16stombs(name + 2);
-    slash = strchr(hostname, '\\');
-
-    if (!slash)
-    {
-	status = NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-	goto done;
-    }
-
-    *slash = '\0';
-
-    if (result = NpcClearAuthInfo(hostname))
-    {
-	status = ErrnoToWin32Error(result);
-	goto done;
-    }
-
-done:
-    if (hostname) free(hostname);
-
-    return status;
+    /* ! ! ! FIXME-LSMB ! ! !
+       Tear down impersonation/connection here
+    */
+    return 0;
 }

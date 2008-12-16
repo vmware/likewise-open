@@ -52,7 +52,7 @@
 #include <lwrpc/netlogon.h>
 #include <lwrpc/netlogonbinding.h>
 #include <lwrpc/mpr.h>
-#include <npc.h>
+#include <lsmb/lsmb.h>
 
 #include "TestRpc.h"
 #include "Params.h"
@@ -97,7 +97,7 @@ handle_t OpenSchannel(handle_t netr_b,
                       wchar16_t *server, wchar16_t *domain,
                       wchar16_t *computer, wchar16_t *machpass,
                       uint32 protection_level,
-                      NetrCredentials *creds, NPC_TOKEN_HANDLE *npc,
+                      NetrCredentials *creds,
                       NETRESOURCE *schnr)
 {
     RPCSTATUS st = rpc_s_ok;
@@ -111,6 +111,8 @@ handle_t OpenSchannel(handle_t netr_b,
     rpc_schannel_auth_info_t schnauth_info = {0};
     handle_t schn_b = NULL;
     size_t hostname_len = 0;
+    DWORD dwError = 0;
+    HANDLE auth = NULL;
 
     md4hash(pass_hash, machpass);
 
@@ -144,11 +146,26 @@ handle_t OpenSchannel(handle_t netr_b,
     schnauth_info.machine_name = awc16stombs(computer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
 
-    status = NpcCreateImpersonationToken(npc);
-    if (status != STATUS_SUCCESS) goto error;
+    dwError = SMBCreatePlainAccessTokenW(user, pass, &auth);
+    if (dwError)
+    {
+        err = -1;
+        goto error;
+    }
 
-    status = NpcImpersonate(*npc);
-    if (status != STATUS_SUCCESS) goto error;
+    dwError = SMBSetThreadToken(auth);
+    if (dwError)
+    {
+        err = -1;
+        goto error;
+    }
+
+    dwError = SMBCloseHandle(NULL, auth);
+    if (dwError)
+    {
+        err = -1;
+        goto error;
+    }
 
     hostname_len = wc16slen(hostname);
     schnr->RemoteName = (wchar16_t*) malloc((hostname_len + 8) * sizeof(wchar16_t));
@@ -196,25 +213,14 @@ error:
 }
 
 
-void CloseSchannel(handle_t schn_b, NETRESOURCE *schnr, NPC_TOKEN_HANDLE npc)
+void CloseSchannel(handle_t schn_b, NETRESOURCE *schnr)
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
 
     FreeNetlogonBinding(&schn_b);
 
-    err = WNetCancelConnection2(schnr->RemoteName, 0, 0);
-    if (err != ERROR_SUCCESS) {
-        status = STATUS_UNSUCCESSFUL;   /* TODO better nt status code */
-        goto close;
-    }
-
-    status = NpcRevertToSelf();
-    if (status != STATUS_SUCCESS) goto close;
-
-    status = NpcCloseImpersonationToken(npc);
-    npc = NULL;
-    if (status != STATUS_SUCCESS) goto close;
+    SMBSetThreadToken(NULL);
 
 close:
     SAFE_FREE(schnr->RemoteName);
@@ -241,7 +247,6 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     handle_t schn_b = NULL;
     NETRESOURCE nr = {0};
     NETRESOURCE schnr = {0};
-    NPC_TOKEN_HANDLE npc_token = NULL;
     enum param_err perr;
     wchar16_t *machine_acct = NULL;
     wchar16_t *computer = NULL;
@@ -311,7 +316,7 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     schn_b = OpenSchannel(netr_b, hostname, user, pass,
                           server, domain, computer, machpass,
                           rpc_c_authn_level_pkt_privacy,
-                          &creds, &npc_token, &schnr);
+                          &creds, &schnr);
 
     CALL_MSRPC(status = NetrSamLogon(schn_b, &creds, server, domain, computer,
                                      username, password,
@@ -320,7 +325,7 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
                                      &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
-    CloseSchannel(schn_b, &schnr, npc_token);
+    CloseSchannel(schn_b, &schnr);
 
 close:
     FreeNetlogonBinding(&netr_b);
@@ -359,7 +364,6 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     handle_t schn_b = NULL;
     NETRESOURCE nr = {0};
     NETRESOURCE schnr = {0};
-    NPC_TOKEN_HANDLE npc_token = NULL;
     enum param_err perr;
     wchar16_t *computer = NULL;
     wchar16_t *machpass = NULL;
@@ -374,10 +378,41 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     NetrCredentials creds = {0};
     NetrValidationInfo *validation_info = NULL;
     uint8 authoritative = 0;
+    int hostname_len;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    if (username && password)
+    {
+        /* Set up access token */
+        HANDLE hAccessToken = INVALID_HANDLE_VALUE;
+        DWORD dwError = 0;
+
+        dwError = SMBCreatePlainAccessTokenW(user, pass, &hAccessToken);
+        if (dwError)
+        {
+            err = -1;
+            goto cleanup;
+        }
+
+        dwError = SMBSetThreadToken(hAccessToken);
+        if (dwError)
+        {
+            err = -1;
+            goto cleanup;
+        }
+
+        dwError = SMBCloseHandle(NULL, hAccessToken);
+        if (dwError)
+        {
+            err = -1;
+            goto cleanup;
+        }
+    }
+
+    hostname_len = wc16slen(hostname);
+    schnr.RemoteName = (wchar16_t*) malloc((hostname_len + 8) * sizeof(wchar16_t));
+    if (schnr.RemoteName == NULL) goto cleanup;
 
     perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
                        &def_computer);
@@ -426,17 +461,29 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     schn_b = OpenSchannel(netr_b, hostname, user, pass,
                           server, domain, computer, machpass,
                           rpc_c_authn_level_pkt_privacy,
-                          &creds, &npc_token, &schnr);
+                          &creds, &schnr);
 
     CALL_MSRPC(status = NetrSamLogoff(schn_b, &creds, server, domain, computer,
                                       username, password, (uint16)logon_level));
     if (status != STATUS_SUCCESS) goto close;
 
-    CloseSchannel(schn_b, &schnr, npc_token);
+    CloseSchannel(schn_b, &schnr);
 
 close:
     FreeNetlogonBinding(&netr_b);
     RELEASE_SESSION_CREDS(nr);
+
+    if (username && password)
+    {
+        DWORD dwError = 0;
+
+        dwError = SMBSetThreadToken(INVALID_HANDLE_VALUE);
+        if (dwError)
+        {
+            err = -1;
+            goto cleanup;
+        }
+    }
 
 done:
 cleanup:
@@ -468,7 +515,6 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     rpc_schannel_auth_info_t schnauth_info = {0};
     NETRESOURCE nr = {0};
     NETRESOURCE schnr = {0};
-    NPC_TOKEN_HANDLE npc_token = NULL;
     enum param_err perr;
     wchar16_t *computer = NULL;
     wchar16_t *machine_acct = NULL;
@@ -539,7 +585,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     schn_b = OpenSchannel(netr_b, hostname, user, pass,
                           server, domain, computer, machpass,
                           rpc_c_authn_level_pkt_integrity,
-                          &creds, &npc_token, &schnr);
+                          &creds, &schnr);
     if (schn_b == NULL) goto cleanup;
 
     CALL_MSRPC(status = NetrSamLogonEx(schn_b, server, domain, computer,
@@ -549,7 +595,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
                                        &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
-    CloseSchannel(schn_b, &schnr, npc_token);
+    CloseSchannel(schn_b, &schnr);
 
 close:
     FreeNetlogonBinding(&netr_b);

@@ -34,9 +34,9 @@
 
 #include <random.h>
 #include <lwrpc/mpr.h>
-#include <npc.h>
 #include <lwps/lwps.h>
 #include <keytab.h>
+#include <lsmb/lsmb.h>
 
 #include "NetUtil.h"
 #include "NetGetDcName.h"
@@ -88,7 +88,6 @@ NetJoinDomainLocalInternal(
     uint32 rid, newacct;
     NetConn *conn = NULL;
     NetConn *lsa_conn = NULL;
-    NPC_TOKEN_HANDLE npc_token = NULL;
     LDAP *ld = NULL;
     wchar16_t *machname_lc = NULL;    /* machine name lower cased */
     wchar16_t *base_dn = NULL;
@@ -105,15 +104,8 @@ NetJoinDomainLocalInternal(
     wchar16_t *ospack_attr_val[2] = {0};
     wchar16_t *sid_str = NULL;
     DWORD lwnet_err = 0;
+    DWORD dwError = 0;
     char *domname = NULL;
-
-    err = ErrnoToWin32Error(NpcCreateImpersonationToken(
-                &npc_token));
-    goto_if_err_not_success(err, done);
-
-    err = ErrnoToWin32Error(NpcImpersonate(
-                npc_token));
-    goto_if_err_not_success(err, done);
 
     machname = wc16sdup(machine);
     goto_if_no_memory_winerr(machname, done);
@@ -129,11 +121,31 @@ NetJoinDomainLocalInternal(
     /* specify credentials for domain controller connection */
     sw16printf(nr.RemoteName, "\\\\%S\\IPC$", domain_controller_name);
 
-    /* If these are NULL, use the default credentials cache instead */
-    if ( account != NULL || password != NULL)
+    if (account && password)
     {
-        err = WNetAddConnection2(&nr, password, account);
-        goto_if_err_not_success(err, done);
+        /* Set up access token */
+        HANDLE hAccessToken = NULL;
+
+        dwError = SMBCreatePlainAccessTokenW(account, password, &hAccessToken);
+        if (dwError)
+        {
+            err = -1;
+            goto_if_err_not_success(err, done);
+        }
+
+        dwError = SMBSetThreadToken(hAccessToken);
+        if (dwError)
+        {
+            err = -1;
+            goto_if_err_not_success(err, done);
+        }
+
+        dwError = SMBCloseHandle(NULL, hAccessToken);
+        if (dwError)
+        {
+            err = -1;
+            goto_if_err_not_success(err, done);
+        }
     }
 
     status = NetConnectLsa(&lsa_conn, domain_controller_name, lsa_access);
@@ -344,26 +356,14 @@ disconn_lsa:
 close:
 
     /* release domain controller connection creds */
-    if ( account != NULL || password != NULL)
+    if (account && password)
     {
-        close_err = WNetCancelConnection2(nr.RemoteName, 0, 0);
-        if (err == ERROR_SUCCESS &&
-            close_err != ERROR_SUCCESS) {
-            return close_err;
+        dwError = SMBSetThreadToken(NULL);
+        if (dwError)
+        {
+            err = -1;
+            goto_if_err_not_success(err, done);
         }
-    }
-
-    close_err = ErrnoToWin32Error(NpcRevertToSelf());
-    if (err == ERROR_SUCCESS &&
-        close_err != ERROR_SUCCESS) {
-        return close_err;
-    }
-
-    close_err = ErrnoToWin32Error(NpcCloseImpersonationToken(npc_token));
-    npc_token = NULL;
-    if (err == ERROR_SUCCESS &&
-        close_err != ERROR_SUCCESS) {
-        return close_err;
     }
 
 done:
@@ -431,6 +431,7 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
 	wchar16_t host[MAXHOSTNAMELEN];
     wchar16_t *osName, *osVersion;
     struct utsname osname;
+    static const wchar16_t nullws[1] = {0};
 
     /* at the moment we support only locally triggered join */
     if (hostname) {
@@ -463,7 +464,7 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
 
     status = NetJoinDomainLocal(host, domain, account_ou, account,
                                 password, options, osName, osVersion,
-                                "");
+                                nullws);
 
 done:
     SAFE_FREE(osName);
