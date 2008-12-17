@@ -53,7 +53,7 @@ AC_CHECK_LIB(dl, dlopen, [LIB_DL="-ldl"], [LIB_DL=""])
 AC_CHECK_LIB(xnet, __xnet_connect, [LIB_XNET="-lxnet"], [LIB_XNET=""])
 
 # Checks for header files.
-AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h])
+AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
