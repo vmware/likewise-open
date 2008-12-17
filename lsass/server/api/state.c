@@ -170,7 +170,7 @@ error:
 VOID
 LsaSrvGetUid(
     HANDLE hServer,
-    PDWORD pUid
+    uid_t* pUid
     )
 {
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;

@@ -67,7 +67,7 @@ LsaSrvOpenServer(
 VOID
 LsaSrvGetUid(
     HANDLE hServer,
-    PDWORD pUid
+    uid_t* pUid
     );
 
 void

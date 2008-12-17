@@ -70,7 +70,7 @@ LsaSrvEnumNSSArtefacts(
 DWORD
 LsaSrvEndEnumNSSArtefacts(
     HANDLE hServer,
-    PSTR   pszGUID
+    PCSTR  pszGUID
     );
 
 #endif /* __ARTEFACTS_P_H__ */

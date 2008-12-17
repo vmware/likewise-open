@@ -80,7 +80,7 @@ LsaSrvEnumGroups(
 DWORD
 LsaSrvEndEnumGroups(
     HANDLE hServer,
-    PSTR   pszGUID
+    PCSTR  pszGUID
     );
 
 #endif /* __GROUPS_P_H__ */

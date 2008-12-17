@@ -78,4 +78,4 @@
 #include "event_p.h"
 
 #include "ntlmgsssrv.h"
-
+#include "lsasrvapi.h"

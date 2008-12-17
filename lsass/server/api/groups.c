@@ -559,7 +559,7 @@ error:
 DWORD
 LsaSrvEndEnumGroups(
     HANDLE hServer,
-    PSTR   pszGUID
+    PCSTR   pszGUID
     )
 {
     DWORD dwError = 0;

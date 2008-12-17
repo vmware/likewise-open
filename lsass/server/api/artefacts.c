@@ -284,7 +284,7 @@ error:
 DWORD
 LsaSrvEndEnumNSSArtefacts(
     HANDLE hServer,
-    PSTR   pszGUID
+    PCSTR   pszGUID
     )
 {
     DWORD dwError = 0;
