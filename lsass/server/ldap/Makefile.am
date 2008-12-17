@@ -11,8 +11,9 @@ liblsaldap_la_CPPFLAGS = \
 liblsaldap_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
 	@top_builddir@/utils/liblsautils.la \
+	@NETLOGON_LIBS@ \
 	@OPENLDAP_LIBS@
 
 liblsaldap_la_LDFLAGS = \
-	@OPENLDAP_LDFLAGS@
-
+	@OPENLDAP_LDFLAGS@ \
+	@NETLOGON_LIBS@

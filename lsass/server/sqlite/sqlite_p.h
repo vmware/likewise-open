@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,32 +33,26 @@
  *
  * Module Name:
  *
- *        adldap_p.h
+ *        sqlite_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        AD LDAP helper functions (public header)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Private functions for sqlite wrappers
+ *
+ * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ *
  */
-#ifndef __LSALDAP_MARSHAL_USER_H__
-#define __LSALDAP_MARSHAL_USER_H__
+#ifndef __SQLITE_P_H__
+#define __SQLITE_P_H__
 
-#define LSA_AD_UF_ACCOUNTDISABLE     0x00000002
-#define LSA_AD_UF_LOCKOUT            0x00000010
-#define LSA_AD_UF_CANT_CHANGE_PASSWD 0x00000040
-#define LSA_AD_UF_DONT_EXPIRE_PASSWD 0x00010000
-#define LSA_AD_UF_PASSWORD_EXPIRED   0x00800000
-
+static
 DWORD
-ADMarshalFromUserCache(
-    PAD_SECURITY_OBJECT pUser,
-    DWORD       dwUserInfoLevel,
-    PVOID*      ppUserInfo
+LsaSqliteBasicCallback(
+    IN sqlite3 *pDb,
+    IN PVOID pContext,
+    OUT PSTR* ppszError
     );
 
-#endif //__LSALDAP_MARSHAL_USER_H__
-
+#endif /* __SQLITE_P_H__ */

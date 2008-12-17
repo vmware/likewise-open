@@ -67,10 +67,9 @@ AD_OfflineAuthenticateUser(
 {
     DWORD dwError = 0;
     PAD_SECURITY_OBJECT pUserInfo = NULL;
-    PAD_PASSWORD_VERIFIER pVerifier = NULL;
+    PLSA_PASSWORD_VERIFIER pVerifier = NULL;
     PSTR pszEnteredPasswordVerifier = NULL;
     PBYTE pbHash = NULL;
-    HANDLE hDb = (HANDLE)NULL;
 
     dwError = AD_FindUserObjectByName(
                 hProvider,
@@ -82,11 +81,8 @@ AD_OfflineAuthenticateUser(
                 pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_GetPasswordVerifier(
-                hDb,
+    dwError = LsaDbGetPasswordVerifier(
+                gpLsaAdProviderState->hCacheConnection,
                 pUserInfo->pszObjectSid,
                 &pVerifier
                 );
@@ -118,9 +114,8 @@ AD_OfflineAuthenticateUser(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObject(&pUserInfo);
-    ADCACHEDB_SAFE_FREE_PASSWORD_VERIFIER(pVerifier);
-    ADCacheDB_SafeCloseDb(&hDb);
+    LsaDbSafeFreeObject(&pUserInfo);
+    LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pVerifier);
     LSA_SAFE_FREE_STRING(pszEnteredPasswordVerifier);
     LSA_SAFE_FREE_MEMORY(pbHash);
 
@@ -139,7 +134,6 @@ AD_OfflineFindUserObjectById(
     )
 {
     DWORD dwError = 0;
-    HANDLE hDb = 0;
     PAD_SECURITY_OBJECT pCachedUser = NULL;
 
     if (uid == 0)
@@ -148,11 +142,8 @@ AD_OfflineFindUserObjectById(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindUserById(
-            hDb,
+    dwError = LsaDbFindUserById(
+            gpLsaAdProviderState->hCacheConnection,
             uid,
             &pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
@@ -161,13 +152,12 @@ AD_OfflineFindUserObjectById(
 
 cleanup:
 
-    ADCacheDB_SafeCloseDb(&hDb);
     return dwError;
 
 error:
 
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObject(&pCachedUser);
+    LsaDbSafeFreeObject(&pCachedUser);
 
     LSA_REMAP_FIND_USER_BY_ID_ERROR(dwError, TRUE, uid);
 
@@ -196,7 +186,6 @@ AD_OfflineFindGroupObjectByName(
     DWORD dwError = 0;
     PSTR pszGroupNameCopy = NULL;
     PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
-    HANDLE hDb = 0;
     PAD_SECURITY_OBJECT pGroupObject = NULL;
 
     BAIL_ON_INVALID_STRING(pszGroupName);
@@ -220,11 +209,8 @@ AD_OfflineFindGroupObjectByName(
                         &pGroupNameInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindGroupByName(
-                hDb,
+    dwError = LsaDbFindGroupByName(
+                gpLsaAdProviderState->hCacheConnection,
                 pGroupNameInfo,
                 &pGroupObject);
     BAIL_ON_LSA_ERROR(dwError);
@@ -233,7 +219,6 @@ AD_OfflineFindGroupObjectByName(
 
 cleanup:
 
-    ADCacheDB_SafeCloseDb(&hDb);
     if (pGroupNameInfo)
     {
         LsaFreeNameInfo(pGroupNameInfo);
@@ -245,7 +230,7 @@ cleanup:
 error:
 
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObject(&pGroupObject);
+    LsaDbSafeFreeObject(&pGroupObject);
 
     LSA_REMAP_FIND_GROUP_BY_NAME_ERROR(dwError, TRUE, pszGroupName);
 
@@ -262,7 +247,6 @@ AD_OfflineFindGroupById(
     )
 {
     DWORD dwError = 0;
-    HANDLE hDb = 0;
     PAD_SECURITY_OBJECT pGroupObject = NULL;
 
     if (gid == 0)
@@ -271,11 +255,8 @@ AD_OfflineFindGroupById(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindGroupById(
-                hDb,
+    dwError = LsaDbFindGroupById(
+                gpLsaAdProviderState->hCacheConnection,
                 gid,
                 &pGroupObject);
     BAIL_ON_LSA_ERROR(dwError);
@@ -289,8 +270,7 @@ AD_OfflineFindGroupById(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    ADCacheDB_SafeCloseDb(&hDb);
-    ADCacheDB_SafeFreeObject(&pGroupObject);
+    LsaDbSafeFreeObject(&pGroupObject);
 
     return dwError;
 
@@ -311,7 +291,6 @@ AD_OfflineGetUserGroupObjectMembership(
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hDb = 0;
     const DWORD dwUserInfoLevel = 0;
     PLSA_USER_INFO_0 pUserInfo = NULL;
     size_t sUserGroupMembershipsCount = 0;
@@ -329,11 +308,8 @@ AD_OfflineGetUserGroupObjectMembership(
                     (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_GetGroupsForUser(
-                hDb,
+    dwError = LsaDbGetGroupsForUser(
+                gpLsaAdProviderState->hCacheConnection,
                 pUserInfo->pszSid,
                 AD_GetTrimUserMembershipEnabled(),
                 &sUserGroupMembershipsCount,
@@ -374,8 +350,7 @@ AD_OfflineGetUserGroupObjectMembership(
     *psNumGroupsFound = sGroupObjectsCount;
 
 cleanup:
-    ADCacheDB_SafeCloseDb(&hDb);
-    ADCacheDB_SafeFreeGroupMembershipList(sUserGroupMembershipsCount, &ppUserGroupMemberships);
+    LsaDbSafeFreeGroupMembershipList(sUserGroupMembershipsCount, &ppUserGroupMemberships);
     LSA_SAFE_FREE_MEMORY(ppszParentSids);
 
     if (pUserInfo)
@@ -393,7 +368,7 @@ error:
     LSA_LOG_ERROR("Failed to find user's group memberships of uid %d. [error code %d]",
                   uid, dwError);
 
-    ADCacheDB_SafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
+    LsaDbSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
 
     goto cleanup;
 }
@@ -471,7 +446,6 @@ AD_OfflineFindUserObjectByName(
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
     PSTR  pszLoginId_copy = NULL;
-    HANDLE hDb = (HANDLE)NULL;
     PAD_SECURITY_OBJECT pCachedUser = NULL;
 
     BAIL_ON_INVALID_STRING(pszLoginId);
@@ -489,11 +463,8 @@ AD_OfflineFindUserObjectByName(
                         &pUserNameInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindUserByName(
-            hDb,
+    dwError = LsaDbFindUserByName(
+            gpLsaAdProviderState->hCacheConnection,
             pUserNameInfo,
             &pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
@@ -502,7 +473,6 @@ AD_OfflineFindUserObjectByName(
 
 cleanup:
 
-    ADCacheDB_SafeCloseDb(&hDb);
     if (pUserNameInfo)
     {
         LsaFreeNameInfo(pUserNameInfo);
@@ -515,7 +485,7 @@ error:
 
     *ppCachedUser = NULL;
 
-    ADCacheDB_SafeFreeObject(&pCachedUser);
+    LsaDbSafeFreeObject(&pCachedUser);
 
     LSA_REMAP_FIND_USER_BY_NAME_ERROR(dwError, TRUE, pszLoginId);
 
@@ -530,17 +500,13 @@ AD_OfflineInitializeOperatingMode(
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hDb = (HANDLE)NULL;
     PAD_PROVIDER_DATA pProviderData = NULL;
     PDLINKEDLIST pDomains = NULL;
     const DLINKEDLIST* pPos = NULL;
     const LSA_DM_ENUM_DOMAIN_INFO* pDomain = NULL;
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_GetDomainTrustList(
-        hDb,
+    dwError = ADState_GetDomainTrustList(
+        gpLsaAdProviderState->hStateConnection,
         &pDomains);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -568,16 +534,15 @@ AD_OfflineInitializeOperatingMode(
         pPos = pPos->pNext;
     }
 
-    dwError = ADCacheDB_GetProviderData(
-                hDb,
+    dwError = ADState_GetProviderData(
+                gpLsaAdProviderState->hStateConnection,
                 &pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppProviderData = pProviderData;
 
 cleanup:
-    ADCacheDB_FreeEnumDomainInfoList(pDomains);
-    ADCacheDB_SafeCloseDb(&hDb);
+    ADState_FreeEnumDomainInfoList(pDomains);
     return dwError;
 
 error:

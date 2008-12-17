@@ -16,8 +16,10 @@ liblsakrb5_la_LIBADD = \
 	@top_builddir@/lsaunistr/liblsaunistr.la \
     @top_builddir@/logging_r/liblsalog_r.la \
 	@KRB5_LIBS@ \
-	@KRB5PAC_LIBS@
+	@KRB5PAC_LIBS@ \
+	-llber
 
 liblsakrb5_la_LDFLAGS = \
+	@OPENLDAP_LDFLAGS@ \
 	@KRB5_LDFLAGS@ \
 	@KRB5PAC_LDFLAGS@

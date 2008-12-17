@@ -118,8 +118,6 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_RefreshConfiguration
     };
 
-CACHE_CONNECTION_HANDLE gpCacheConnection = NULL;
-
 PLSA_HASH_TABLE gpAllowedSIDs   = NULL;
 
 // please put all new globals in the following structure:
