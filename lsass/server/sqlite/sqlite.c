@@ -426,8 +426,8 @@ LsaSqliteExec(
 
 DWORD
 LsaSqliteExecCallbackWithRetry(
-    IN sqlite3 *pDb,
-    IN pthread_rwlock_t lock,
+    IN sqlite3* pDb,
+    IN pthread_rwlock_t* pLock,
     IN PFN_LSA_SQLITE_EXEC_CALLBACK pfnCallback,
     IN PVOID pContext
     )
@@ -438,7 +438,7 @@ LsaSqliteExecCallbackWithRetry(
     BOOLEAN bInLock = FALSE;
 
     if (!bInLock) {
-       pthread_rwlock_wrlock(&lock);
+       pthread_rwlock_wrlock(pLock);
        bInLock = TRUE;
     }
 
@@ -466,7 +466,7 @@ LsaSqliteExecCallbackWithRetry(
 
 error:
     if (bInLock) {
-       pthread_rwlock_unlock(&lock);
+       pthread_rwlock_unlock(pLock);
        bInLock = FALSE;
     }
     SQLITE3_SAFE_FREE_STRING(pszError);
@@ -476,14 +476,14 @@ error:
 
 DWORD
 LsaSqliteExecWithRetry(
-    IN sqlite3 *pDb,
-    IN pthread_rwlock_t lock,
+    IN sqlite3* pDb,
+    IN pthread_rwlock_t* pLock,
     IN PCSTR pszTransaction
     )
 {
     return LsaSqliteExecCallbackWithRetry(
                 pDb,
-                lock,
+                pLock,
                 LsaSqliteBasicCallback,
                 (PVOID)pszTransaction);
 }

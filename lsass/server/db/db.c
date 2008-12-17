@@ -83,14 +83,32 @@ LsaDbOpen(
     PSTR pszError = NULL;
     BOOLEAN bExists = FALSE;
     PSTR pszQuery = NULL;
-    PCSTR pszQueryFormat =
+    PCSTR pszEitherQueryFormat =
         "select "
         "%s "
-        "from " LSA_DB_TABLE_NAME_CACHE_TAGS ", lwiobjects left outer join lwiusers ON "
-            "lwiobjects.ObjectSid = lwiusers.ObjectSid "
-            "left outer join lwigroups ON "
-            "lwiobjects.ObjectSid = lwigroups.ObjectSid "
-        "where " LSA_DB_TABLE_NAME_CACHE_TAGS ".CacheId = lwiobjects.CacheId AND "
+        "from " LSA_DB_TABLE_NAME_CACHE_TAGS ", " LSA_DB_TABLE_NAME_OBJECTS " left outer join " LSA_DB_TABLE_NAME_USERS " ON "
+            LSA_DB_TABLE_NAME_OBJECTS ".ObjectSid = " LSA_DB_TABLE_NAME_USERS ".ObjectSid "
+            "left outer join " LSA_DB_TABLE_NAME_GROUPS " ON "
+            LSA_DB_TABLE_NAME_OBJECTS ".ObjectSid = " LSA_DB_TABLE_NAME_GROUPS ".ObjectSid "
+        "where " LSA_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " LSA_DB_TABLE_NAME_OBJECTS ".CacheId AND "
+            "%s";
+    PCSTR pszUserQueryFormat =
+        "select "
+        "%s "
+        "from " LSA_DB_TABLE_NAME_CACHE_TAGS ", " LSA_DB_TABLE_NAME_USERS " join " LSA_DB_TABLE_NAME_OBJECTS " ON "
+            LSA_DB_TABLE_NAME_USERS ".ObjectSid = " LSA_DB_TABLE_NAME_OBJECTS ".ObjectSid "
+            "left outer join " LSA_DB_TABLE_NAME_GROUPS " ON "
+            LSA_DB_TABLE_NAME_USERS ".ObjectSid = " LSA_DB_TABLE_NAME_GROUPS ".ObjectSid "
+        "where " LSA_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " LSA_DB_TABLE_NAME_OBJECTS ".CacheId AND "
+            "%s";
+    PCSTR pszGroupQueryFormat =
+        "select "
+        "%s "
+        "from " LSA_DB_TABLE_NAME_CACHE_TAGS ", " LSA_DB_TABLE_NAME_GROUPS " join " LSA_DB_TABLE_NAME_OBJECTS " ON "
+            LSA_DB_TABLE_NAME_GROUPS ".ObjectSid = " LSA_DB_TABLE_NAME_OBJECTS ".ObjectSid "
+            "left outer join " LSA_DB_TABLE_NAME_USERS " ON "
+            LSA_DB_TABLE_NAME_GROUPS ".ObjectSid = " LSA_DB_TABLE_NAME_USERS ".ObjectSid "
+        "where " LSA_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " LSA_DB_TABLE_NAME_OBJECTS ".CacheId AND "
             "%s";
     PSTR pszDbDir = NULL;
 
@@ -135,9 +153,9 @@ LsaDbOpen(
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
         &pszQuery,
-        pszQueryFormat,
+        pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
-        "lower(lwiusers.UPN) = lower(?1 || '@' || ?2)");
+        LSA_DB_TABLE_NAME_USERS ".UPN = ?1 || '@' || ?2");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -151,10 +169,10 @@ LsaDbOpen(
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
         &pszQuery,
-        pszQueryFormat,
+        pszEitherQueryFormat,
         LsaDbGetObjectFieldList(),
-        "lower(lwiobjects.NetbiosDomainName) = lower(?1) AND "
-        "lower(lwiobjects.SamAccountName) = lower(?2)");
+        LSA_DB_TABLE_NAME_OBJECTS ".NetbiosDomainName = ?1 AND "
+        LSA_DB_TABLE_NAME_OBJECTS ".SamAccountName = ?2");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -168,9 +186,9 @@ LsaDbOpen(
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
         &pszQuery,
-        pszQueryFormat,
+        pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
-        "lower(lwiusers.AliasName) = lower(?1)");
+        LSA_DB_TABLE_NAME_USERS ".AliasName = ?1");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -184,9 +202,9 @@ LsaDbOpen(
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
         &pszQuery,
-        pszQueryFormat,
+        pszGroupQueryFormat,
         LsaDbGetObjectFieldList(),
-        "lower(lwigroups.AliasName) = lower(?1)");
+        LSA_DB_TABLE_NAME_GROUPS ".AliasName = ?1");
 
     dwError = sqlite3_prepare_v2(
             pConn->pDb,
@@ -199,9 +217,9 @@ LsaDbOpen(
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
         &pszQuery,
-        pszQueryFormat,
+        pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
-        "lwiusers.Uid = ?1");
+        LSA_DB_TABLE_NAME_USERS ".Uid = ?1");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -215,9 +233,9 @@ LsaDbOpen(
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
         &pszQuery,
-        pszQueryFormat,
+        pszGroupQueryFormat,
         LsaDbGetObjectFieldList(),
-        "lwigroups.Gid = ?1");
+        LSA_DB_TABLE_NAME_GROUPS ".Gid = ?1");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -231,9 +249,9 @@ LsaDbOpen(
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
         &pszQuery,
-        pszQueryFormat,
+        pszEitherQueryFormat,
         LsaDbGetObjectFieldList(),
-        "lwiobjects.DN = ?1");
+        LSA_DB_TABLE_NAME_OBJECTS ".DN = ?1");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -247,9 +265,9 @@ LsaDbOpen(
     LSA_SAFE_FREE_STRING(pszQuery);
     dwError = LsaAllocateStringPrintf(
         &pszQuery,
-        pszQueryFormat,
+        pszEitherQueryFormat,
         LsaDbGetObjectFieldList(),
-        "lwiobjects.ObjectSid = ?1");
+        LSA_DB_TABLE_NAME_OBJECTS ".ObjectSid = ?1");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -1134,7 +1152,7 @@ LsaDbStoreObjectEntries(
      * entries at a time. The SQL command is in this format:
      * 1. Delete database tag entries which are no longer referenced.
      * 2. Create/update the new database tag entries, and create/update the
-     *    lwiobjects.
+     *    " LSA_DB_TABLE_NAME_OBJECTS ".
      * 3. Create/update the lwiuser and lwigroup objects.
      */
 
@@ -1166,7 +1184,7 @@ LsaDbStoreObjectEntries(
             pszNewStatement = sqlite3_mprintf(
                 ";\n"
                 "delete from " LSA_DB_TABLE_NAME_CACHE_TAGS " where CacheId IN "
-                    "( select CacheId from lwiobjects where ObjectSid = %Q)",
+                    "( select CacheId from " LSA_DB_TABLE_NAME_OBJECTS " where ObjectSid = %Q)",
                 ppObjects[sIndex]->pszObjectSid);
 
             if (pszNewStatement == NULL)
@@ -1209,7 +1227,7 @@ LsaDbStoreObjectEntries(
                     "LastUpdated"
                     ") values ("
                     "%ld);\n"
-                "replace into lwiobjects ("
+                "replace into " LSA_DB_TABLE_NAME_OBJECTS " ("
                     "CacheId,"
                     "ObjectSid,"
                     "DN,"
@@ -1245,7 +1263,7 @@ LsaDbStoreObjectEntries(
                     "update " LSA_DB_TABLE_NAME_CACHE_TAGS " set "
                         "LastUpdated = %ld "
                         "where CacheId = %llu;\n"
-                    "update lwiobjects set "
+                    "update " LSA_DB_TABLE_NAME_OBJECTS " set "
                         "CacheId = %llu, "
                         "Enabled = %d, "
                         "NetbiosDomainName = %Q, "
@@ -1290,7 +1308,7 @@ LsaDbStoreObjectEntries(
                 case AccountType_User:
                     pszNewStatement = sqlite3_mprintf(
                         ";\n"
-                        "replace into lwiusers ("
+                        "replace into " LSA_DB_TABLE_NAME_USERS " ("
                             "ObjectSid,"
                             "Uid,"
                             "Gid,"
@@ -1357,7 +1375,7 @@ LsaDbStoreObjectEntries(
                 case AccountType_Group:
                     pszNewStatement = sqlite3_mprintf(
                         ";\n"
-                        "replace into lwigroups ("
+                        "replace into " LSA_DB_TABLE_NAME_GROUPS " ("
                             "ObjectSid,"
                             "Gid,"
                             "AliasName,"
@@ -1402,7 +1420,7 @@ LsaDbStoreObjectEntries(
 
     dwError = LsaSqliteExecWithRetry(
         pConn->pDb,
-        pConn->lock,
+        &pConn->lock,
         buffer.pszBuffer);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1799,7 +1817,7 @@ LsaDbStoreGroupMembership(
 
     dwError = LsaSqliteExecCallbackWithRetry(
                     pConn->pDb,
-                    pConn->lock,
+                    &pConn->lock,
                     LsaDbStoreGroupMembershipCallback,
                     &context);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1985,7 +2003,7 @@ LsaDbStoreGroupsForUser(
 
     dwError = LsaSqliteExecCallbackWithRetry(
                     pConn->pDb,
-                    pConn->lock,
+                    &pConn->lock,
                     LsaDbStoreUserMembershipCallback,
                     &context);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2319,35 +2337,35 @@ LsaDbGetObjectFieldList(
     )
 {
     return
-        "" LSA_DB_TABLE_NAME_CACHE_TAGS ".CacheId, "
-        "" LSA_DB_TABLE_NAME_CACHE_TAGS ".LastUpdated, "
-        "lwiobjects.ObjectSid, "
-        "lwiobjects.DN, "
-        "lwiobjects.Enabled, "
-        "lwiobjects.NetbiosDomainName, "
-        "lwiobjects.SamAccountName, "
-        "lwiobjects.Type, "
-        "lwiusers.Uid, "
-        "lwiusers.Gid, "
-        "lwiusers.UPN, "
-        "lwiusers.AliasName, "
-        "lwiusers.Passwd, "
-        "lwiusers.Gecos, "
-        "lwiusers.Shell, "
-        "lwiusers.Homedir, "
-        "lwiusers.PwdLastSet, "
-        "lwiusers.AccountExpires, "
-        "lwiusers.GeneratedUPN, "
-        "lwiusers.PasswordExpired, "
-        "lwiusers.PasswordNeverExpires, "
-        "lwiusers.PromptPasswordChange, "
-        "lwiusers.UserCanChangePassword, "
-        "lwiusers.AccountDisabled, "
-        "lwiusers.AccountExpired, "
-        "lwiusers.AccountLocked, "
-        "lwigroups.Gid, "
-        "lwigroups.AliasName, "
-        "lwigroups.Passwd";
+        LSA_DB_TABLE_NAME_CACHE_TAGS ".CacheId, "
+        LSA_DB_TABLE_NAME_CACHE_TAGS ".LastUpdated, "
+        LSA_DB_TABLE_NAME_OBJECTS ".ObjectSid, "
+        LSA_DB_TABLE_NAME_OBJECTS ".DN, "
+        LSA_DB_TABLE_NAME_OBJECTS ".Enabled, "
+        LSA_DB_TABLE_NAME_OBJECTS ".NetbiosDomainName, "
+        LSA_DB_TABLE_NAME_OBJECTS ".SamAccountName, "
+        LSA_DB_TABLE_NAME_OBJECTS ".Type, "
+        LSA_DB_TABLE_NAME_USERS ".Uid, "
+        LSA_DB_TABLE_NAME_USERS ".Gid, "
+        LSA_DB_TABLE_NAME_USERS ".UPN, "
+        LSA_DB_TABLE_NAME_USERS ".AliasName, "
+        LSA_DB_TABLE_NAME_USERS ".Passwd, "
+        LSA_DB_TABLE_NAME_USERS ".Gecos, "
+        LSA_DB_TABLE_NAME_USERS ".Shell, "
+        LSA_DB_TABLE_NAME_USERS ".Homedir, "
+        LSA_DB_TABLE_NAME_USERS ".PwdLastSet, "
+        LSA_DB_TABLE_NAME_USERS ".AccountExpires, "
+        LSA_DB_TABLE_NAME_USERS ".GeneratedUPN, "
+        LSA_DB_TABLE_NAME_USERS ".PasswordExpired, "
+        LSA_DB_TABLE_NAME_USERS ".PasswordNeverExpires, "
+        LSA_DB_TABLE_NAME_USERS ".PromptPasswordChange, "
+        LSA_DB_TABLE_NAME_USERS ".UserCanChangePassword, "
+        LSA_DB_TABLE_NAME_USERS ".AccountDisabled, "
+        LSA_DB_TABLE_NAME_USERS ".AccountExpired, "
+        LSA_DB_TABLE_NAME_USERS ".AccountLocked, "
+        LSA_DB_TABLE_NAME_GROUPS ".Gid, "
+        LSA_DB_TABLE_NAME_GROUPS ".AliasName, "
+        LSA_DB_TABLE_NAME_GROUPS ".Passwd";
 }
 
 DWORD
@@ -2693,7 +2711,7 @@ LsaDbStorePasswordVerifier(
 
     dwError = LsaSqliteExecWithRetry(
                 pConn->pDb,
-                pConn->lock,
+                &pConn->lock,
                 pszSqlCommand);
     BAIL_ON_LSA_ERROR(dwError);
 

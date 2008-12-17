@@ -49,14 +49,14 @@
 
 DWORD
 ADMarshalGetCanonicalName(
-    PAD_SECURITY_OBJECT     pObject,
+    PLSA_SECURITY_OBJECT     pObject,
     PSTR*                   ppszResult);
 
 DWORD
 ADMarshalFromGroupCache(
-    PAD_SECURITY_OBJECT pGroup,
+    PLSA_SECURITY_OBJECT pGroup,
     size_t                  sMembers,
-    PAD_SECURITY_OBJECT*    ppMembers,
+    PLSA_SECURITY_OBJECT*    ppMembers,
     DWORD               dwGroupInfoLevel,
     PVOID*              ppGroupInfo
     );

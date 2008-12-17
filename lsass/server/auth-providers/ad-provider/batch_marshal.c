@@ -418,11 +418,11 @@ LsaAdBatchMarshal(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszNetbiosDomainName,
     IN OUT PLSA_AD_BATCH_ITEM pItem,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     // To marshal, the following conditions to be satisfied:
     //
@@ -535,7 +535,7 @@ LsaAdBatchMarshalList(
     IN PCSTR pszNetbiosDomainName,
     IN OUT PLSA_LIST_LINKS pBatchItemList,
     IN DWORD dwAvailableCount,
-    OUT PAD_SECURITY_OBJECT* ppObjects,
+    OUT PLSA_SECURITY_OBJECT* ppObjects,
     OUT PDWORD pdwUsedCount
     )
 {

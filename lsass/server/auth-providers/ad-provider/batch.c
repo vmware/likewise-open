@@ -1060,14 +1060,14 @@ LsaAdBatchResolveObjectsForDomainList(
     IN PLSA_LIST_LINKS pDomainList,
     IN BOOLEAN bResolvePseudoObjects,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
     // Do not free pLinks
     PLSA_LIST_LINKS pLinks = NULL;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD dwCurrentIndex = 0;
 
     for (pLinks = pDomainList->Next;
@@ -1126,7 +1126,7 @@ LsaAdBatchResolveObjectsForDomainList(
     // Compress the output
     if (dwCurrentIndex < dwObjectsCount)
     {
-        PAD_SECURITY_OBJECT* ppTempObjects = NULL;
+        PLSA_SECURITY_OBJECT* ppTempObjects = NULL;
 
         dwError = LsaAllocateMemory(
                     dwCurrentIndex * sizeof(*ppTempObjects),
@@ -1160,12 +1160,12 @@ LsaAdBatchFindObjectsRealBeforePseudo(
     IN DWORD dwQueryItemsCount,
     IN PSTR* ppszQueryList,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     LSA_LIST_LINKS DomainList = {0};
 
     dwError = LsaAdBatchSplitQTListToBIListPerDomain(
@@ -1207,12 +1207,12 @@ LsaAdBatchFindObjectsPseudoBeforeReal(
     IN OPTIONAL PSTR* ppszQueryList,
     IN OPTIONAL PDWORD pdwId,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     LSA_LIST_LINKS BatchItemList = {0};
     LSA_LIST_LINKS DomainList = {0};
     DWORD dwTotalBatchItemCount = 0;
@@ -1278,13 +1278,13 @@ LsaAdBatchFindSingleObject(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OPTIONAL PCSTR pszQueryTerm,
     IN OPTIONAL PDWORD pdwId,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
     DWORD dwCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
-    PAD_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     if (!LSA_IS_XOR(!IsNullOrEmptyString(pszQueryTerm), pdwId))
     {
@@ -1351,7 +1351,7 @@ LsaAdBatchFindObjectsInternal(
     IN OPTIONAL PSTR* ppszQueryList,
     IN OPTIONAL PDWORD pdwId,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
@@ -1438,14 +1438,14 @@ DWORD
 LsaAdBatchFilterMisTypeObjects(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN DWORD dwObjectsCount,
-    IN OUT PAD_SECURITY_OBJECT** pppObjects,
+    IN OUT PLSA_SECURITY_OBJECT** pppObjects,
     OUT PDWORD pdwRemainingObjectsCount
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT* ppObjects = *pppObjects;
+    PLSA_SECURITY_OBJECT* ppObjects = *pppObjects;
     DWORD dwRemainingObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppRemainingObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppRemainingObjects = NULL;
     DWORD i = 0;
 
 
@@ -1506,12 +1506,12 @@ LsaAdBatchFindObjects(
     IN OPTIONAL PSTR* ppszQueryList,
     IN OPTIONAL PDWORD pdwId,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
 
     dwError = LsaAdBatchFindObjectsInternal(
                    QueryType,

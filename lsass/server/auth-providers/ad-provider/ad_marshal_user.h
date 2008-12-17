@@ -55,7 +55,7 @@
 
 DWORD
 ADMarshalFromUserCache(
-    PAD_SECURITY_OBJECT pUser,
+    PLSA_SECURITY_OBJECT pUser,
     DWORD       dwUserInfoLevel,
     PVOID*      ppUserInfo
     );

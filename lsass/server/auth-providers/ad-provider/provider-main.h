@@ -122,7 +122,7 @@ DWORD
 AD_FindUserObjectById(
     IN HANDLE  hProvider,
     IN uid_t uid,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     );
 
 DWORD
@@ -190,7 +190,7 @@ AD_GetUserGroupObjectMembership(
     IN uid_t uid,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psNumGroupsFound,
-    OUT PAD_SECURITY_OBJECT** pppResult
+    OUT PLSA_SECURITY_OBJECT** pppResult
     );
 
 DWORD
@@ -367,14 +367,14 @@ DWORD
 AD_FindUserObjectByName(
     IN HANDLE  hProvider,
     IN PCSTR   pszLoginId,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     );
 
 DWORD
 AD_FindGroupObjectByName(
     IN HANDLE  hProvider,
     IN PCSTR   pszGroupName,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     );
 
 DWORD
@@ -398,13 +398,13 @@ AD_GetExpandedGroupUsers(
     IN int iMaxDepth,
     OUT BOOLEAN* pbAllExpanded,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     );
 
 DWORD
 AD_GroupObjectToGroupInfo(
     IN HANDLE hProvider,
-    IN PAD_SECURITY_OBJECT pGroupObject,
+    IN PLSA_SECURITY_OBJECT pGroupObject,
     IN BOOLEAN bIsCacheOnlyMode,
     IN DWORD dwGroupInfoLevel,
     OUT PVOID* ppGroupInfo
