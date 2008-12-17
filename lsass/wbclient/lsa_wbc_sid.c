@@ -273,6 +273,7 @@ wbcErr wbcLookupName(const char *dom_name,
 done:
 	if ( hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}	
 
 	if (pUserInfo) {
@@ -374,6 +375,7 @@ done:
 	
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 
 	if (dwErr != LSA_ERROR_SUCCESS) {

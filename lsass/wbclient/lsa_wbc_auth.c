@@ -66,11 +66,13 @@ wbcErr wbcAuthenticateUser(const char *username,
 	BAIL_ON_LSA_ERR(dwErr);
 
 	dwErr = LsaCloseServer(hLsa);
+	hLsa = (HANDLE)NULL;
 	BAIL_ON_LSA_ERR(dwErr);
 
 done:
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 	
 	wbc_status = map_error_to_wbc_status(dwErr);
@@ -351,6 +353,7 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 	}
 
 	dwErr = LsaCloseServer(hLsa);
+	hLsa = (HANDLE)NULL;
 	BAIL_ON_LSA_ERR(dwErr);
 
 	/* Copy the out parms now if we have an out pointer */
@@ -368,6 +371,7 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 done:
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 	_WBC_FREE(pLsaParams);
 	_WBC_FREE(pLsaUserInfo);	
