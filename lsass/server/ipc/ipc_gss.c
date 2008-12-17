@@ -122,82 +122,43 @@ LsaSrvIpcCheckAuthMessage(
     void* data
     )
 {
-    return LSA_ERROR_NOT_IMPLEMENTED;
-#if 0
-    DWORD dwError;
-    DWORD msgStatus;
-    DWORD dwMsgLen;
-    ULONG negotiateFlags;
-    SEC_BUFFER authenticateMessage;
-    SEC_BUFFER targetInfo;
-    SEC_BUFFER_S serverChallenge;
-    SEC_BUFFER_S baseSessionKey;
+    DWORD dwError = 0;
+    PLSA_IPC_CHECK_AUTH_MSG_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
+    PLSA_GSS_R_CHECK_AUTH_MSG pCheckAuthMsgReply = NULL;
+    uid_t peerUID = 0;
 
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-        (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-
-    ZERO_STRUCT(authenticateMessage);
-    ZERO_STRUCT(targetInfo);
-    ZERO_STRUCT(baseSessionKey);
-
-    dwError = LsaUnMarshalGSSCheckAuthMsgQ(
-    		pMessage->pData,
-                pMessage->header.messageLength,
-                &negotiateFlags,
-                &serverChallenge,
-                &targetInfo,
-                &authenticateMessage
-                );
-
+    dwError = LsaAllocateMemory(sizeof(*pCheckAuthMsgReply),
+                                (PVOID*)&pCheckAuthMsgReply);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
+    ZERO_STRUCT(pCheckAuthMsgReply->baseSessionKey);
 
-    /* call NTLMSRV stub */
-    msgStatus = NTLMGssCheckAuthenticateMessage(
-                        negotiateFlags,
-                        &serverChallenge,
-                        &targetInfo,
-                        &authenticateMessage,
-                        &baseSessionKey
-                        );
+    LsaSrvGetUid((HANDLE)pReq->Handle, &peerUID);
 
-    dwError = LsaMarshalGSSCheckAuthMsgR(
-                        msgStatus,
-                        &baseSessionKey,
-                        NULL,
-                        &dwMsgLen
-                        );
+    pCheckAuthMsgReply->msgError = NTLMGssCheckAuthenticateMessage(
+                                        pReq->negotiateFlags,
+                                        &pReq->serverChallenge,
+                                        &pReq->targetInfo,
+                                        &pReq->authenticateMessage,
+                                        &pCheckAuthMsgReply->baseSessionKey);
 
-    BAIL_ON_LSA_ERROR(dwError);
+    pResponse->tag = LSA_R_GSS_CHECK_AUTH_MSG_SUCCESS;
+    pResponse->object = pCheckAuthMsgReply;
 
-    dwError = LsaBuildMessage(
-                LSA_R_GSS_CHECK_AUTH_MSG,
-                dwMsgLen,
-                1,
-                1,
-                &pResponse
-                );
-
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMarshalGSSCheckAuthMsgR(
-                        msgStatus,
-                        &baseSessionKey,
-                        pResponse->pData,
-                        &dwMsgLen
-                        );
-
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
+cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
+    dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
 
-    return dwError;
-#endif
+    pResponse->tag = LSA_R_GSS_CHECK_AUTH_MSG_FAILURE;
+    pResponse->object = pError;
+
+    if(pCheckAuthMsgReply)
+    {
+        LSA_SAFE_FREE_MEMORY(pCheckAuthMsgReply);
+    }
+
+    goto cleanup;
 }

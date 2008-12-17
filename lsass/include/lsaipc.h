@@ -25,12 +25,6 @@
 #define LSA_CLIENT_PATH_FORMAT "/var/tmp/.lsaclient_%05ld"
 #define LSA_SERVER_FILENAME    ".lsasd"
 
-typedef enum {
-    LSA_ERROR                      =   0,
-      LSA_Q_GSS_CHECK_AUTH_MSG       =  47,
-      LSA_R_GSS_CHECK_AUTH_MSG       =  48,
-} LsaMessageType;
-
 typedef enum __LSA_IPC_TAG
 {
     LSA_Q_OPEN_SERVER,
@@ -105,11 +99,9 @@ typedef enum __LSA_IPC_TAG
     LSA_Q_GSS_MAKE_AUTH_MSG,
     LSA_R_GSS_MAKE_AUTH_MSG_SUCCESS,
     LSA_R_GSS_MAKE_AUTH_MSG_FAILURE,
-#if 0
     LSA_Q_GSS_CHECK_AUTH_MSG,
     LSA_R_GSS_CHECK_AUTH_MSG_SUCCESS,
     LSA_R_GSS_CHECK_AUTH_MSG_FAILURE,
-#endif
     LSA_Q_AUTH_USER_EX,
     LSA_R_AUTH_USER_EX_SUCCESS,
     LSA_R_AUTH_USER_EX_FAILURE,
@@ -283,6 +275,21 @@ typedef struct __LSA_GSS_R_MAKE_AUTH_MSG
     SEC_BUFFER_S baseSessionKey;
 } LSA_GSS_R_MAKE_AUTH_MSG, *PLSA_GSS_R_MAKE_AUTH_MSG;
 
+typedef struct __LSA_IPC_CHECK_AUTH_MSG_REQ
+{
+    LsaIpcServerHandle* Handle;
+    ULONG negotiateFlags;
+    SEC_BUFFER_S serverChallenge;
+    SEC_BUFFER targetInfo;
+    SEC_BUFFER authenticateMessage;
+} LSA_IPC_CHECK_AUTH_MSG_REQ, *PLSA_IPC_CHECK_AUTH_MSG_REQ;
+
+typedef struct __LSA_GSS_R_CHECK_AUTH_MSG
+{
+    DWORD msgError;
+    SEC_BUFFER_S baseSessionKey;
+} LSA_GSS_R_CHECK_AUTH_MSG, *PLSA_GSS_R_CHECK_AUTH_MSG;
+
 typedef struct __LSA_IPC_SET_LOGINFO_REQ
 {
     LsaIpcServerHandle* Handle;
@@ -345,17 +352,5 @@ LsaReadData(
     PSTR   pszBuf,
     DWORD  dwBytesToRead,
     PDWORD pdwBytesRead);
-
-DWORD
-LsaSendMsg(
-    DWORD dwFd,
-    const struct msghdr *pMsg
-    );
-
-DWORD
-LsaRecvMsg(
-    DWORD dwFd,
-    struct msghdr *pMsg
-    );
 
 #endif /*__LSAIPC_H__*/
