@@ -30,7 +30,7 @@ liblwmsg_nothr_la_SOURCES = \
 	session.c \
 	session-default.c
 
-liblwmsg_nothr_la_LIBADD = @LIB_DL@
+liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@
 liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols liblwmsg_nothr.sym
 
 liblwmsg_la_SOURCES = \
@@ -38,5 +38,5 @@ liblwmsg_la_SOURCES = \
 	client.c \
 	session-shared.c
 
-liblwmsg_la_LIBADD = liblwmsg_nothr.la @LIB_PTHREAD@ @LIB_XNET@
+liblwmsg_la_LIBADD = liblwmsg_nothr.la @LIB_PTHREAD@
 liblwmsg_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols liblwmsg.sym
