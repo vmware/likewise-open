@@ -486,7 +486,7 @@ lwmsg_server_listen_thread(
                 timeval.tv_sec = timeout.seconds;
                 timeval.tv_usec = timeout.microseconds;
             }
-            ret = select(nfds, &readfds, NULL, NULL, timeout.seconds == -1 ? NULL: &timeval);
+            ret = select(nfds, &readfds, NULL, NULL, next.seconds == -1 ? NULL: &timeval);
         } while (ret == -1 && errno == EINTR);
 
         if (ret == -1)
