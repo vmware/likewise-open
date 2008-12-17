@@ -55,18 +55,18 @@ DWORD
 AD_OfflineGetGroupMembers(
     IN PCSTR pszGroupSid,
     OUT size_t* psMemberObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppMemberObjects
+    OUT PLSA_SECURITY_OBJECT** pppMemberObjects
     );
 
 DWORD
 AD_OfflineFindObjectsBySidList(
     IN size_t sCount,
     IN PSTR* ppszSidList,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
 typedef BOOLEAN (*PFN_LSA_GATHER_SIDS_FROM_GROUP_MEMBERSHIP_CALLBACK)(
-    IN PAD_GROUP_MEMBERSHIP pMembership
+    IN PLSA_GROUP_MEMBERSHIP pMembership
     );
 
 DWORD
@@ -74,7 +74,7 @@ AD_GatherSidsFromGroupMemberships(
     IN BOOLEAN bGatherParentSids,
     IN OPTIONAL PFN_LSA_GATHER_SIDS_FROM_GROUP_MEMBERSHIP_CALLBACK pfnIncludeCallback,
     IN size_t sMemberhipsCount,
-    IN PAD_GROUP_MEMBERSHIP* ppMemberships,
+    IN PLSA_GROUP_MEMBERSHIP* ppMemberships,
     OUT size_t* psSidsCount,
     OUT PSTR** pppszSids
     );
@@ -93,13 +93,13 @@ AD_GroupExpansionDataAddExpansionResults(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
     IN DWORD dwExpandedGroupDepth,
     IN OUT size_t* psMembersCount,
-    IN OUT PAD_SECURITY_OBJECT** pppMembers
+    IN OUT PLSA_SECURITY_OBJECT** pppMembers
     );
 
 DWORD
 AD_GroupExpansionDataGetNextGroupToExpand(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
-    OUT PAD_SECURITY_OBJECT* ppGroupToExpand,
+    OUT PLSA_SECURITY_OBJECT* ppGroupToExpand,
     OUT PDWORD pdwGroupToExpandDepth
     );
 
@@ -108,7 +108,7 @@ AD_GroupExpansionDataGetResults(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
     OUT OPTIONAL PBOOLEAN pbIsFullyExpanded,
     OUT size_t* psUserMembersCount,
-    OUT PAD_SECURITY_OBJECT** pppUserMembers
+    OUT PLSA_SECURITY_OBJECT** pppUserMembers
     );
 
 VOID

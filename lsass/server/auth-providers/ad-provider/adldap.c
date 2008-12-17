@@ -1546,14 +1546,14 @@ ADLdap_GetGroupMembers(
     IN PCSTR pszDomainName,
     IN PCSTR pszSid,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     HANDLE hDirectory = (HANDLE)NULL;
     DWORD dwSidCount = 0;
-    PAD_SECURITY_OBJECT pGroupObj = NULL;
-    PAD_SECURITY_OBJECT* ppResults = NULL;
+    PLSA_SECURITY_OBJECT pGroupObj = NULL;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
     PSTR *ppszLDAPValues = NULL;
     size_t sFoundCount = 0;
 
@@ -1615,10 +1615,10 @@ error:
 DWORD
 ADLdap_GetUserGroupMembership(
     IN HANDLE hProvider,
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     OUT int* piPrimaryGroupIndex,
     OUT size_t* psNumGroupsFound,
-    OUT PAD_SECURITY_OBJECT** pppGroupInfoList
+    OUT PLSA_SECURITY_OBJECT** pppGroupInfoList
     )
 {
     DWORD dwError =  0;
@@ -1626,7 +1626,7 @@ ADLdap_GetUserGroupMembership(
     PSTR pszPrimaryGroupSID = NULL;
     PSTR pszFullDomainName = NULL;
     INT i = 0;
-    PAD_SECURITY_OBJECT* ppGroupInfoList = NULL;
+    PLSA_SECURITY_OBJECT* ppGroupInfoList = NULL;
     size_t sNumGroupsFound = 0;
     int    iPrimaryGroupIndex = -1;
     DWORD dwSidCount = 0;

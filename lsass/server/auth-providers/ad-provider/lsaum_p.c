@@ -1447,7 +1447,7 @@ LsaUmpRefreshUserCreds(
     )
 {
     DWORD                       dwError = 0;
-    PAD_SECURITY_OBJECT         pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT         pUserInfo = NULL;
     PSTR                        pszHostname = NULL;
     PSTR                        pszUsername = NULL;
     PSTR                        pszServicePassword = NULL;
