@@ -34,7 +34,7 @@
 #include <lwrpc/types.h>
 
 #define LSA_DEFAULT_PROT_SEQ   "ncacn_np"
-#define LSA_DEFAULT_ENDPOINT   "\\pipe\\lsarpc"
+#define LSA_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
 
 #ifdef CHAR_T
 #undef CHAR_T
