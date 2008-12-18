@@ -58,6 +58,26 @@ NTSTATUS NetrServerAuthenticate3(handle_t b, const wchar16_t *server,
                                  uint8 srv_creds[8], uint32 *neg_flags,
                                  uint32 *rid);
 
+NTSTATUS NetrSamLogon(handle_t b, NetrCredentials *creds,
+                      const wchar16_t *server, const wchar16_t *domain,
+                      const wchar16_t *computer,
+                      const wchar16_t *username, const wchar16_t *password,
+                      uint16 logon_level, uint16 validation_level,
+                      NetrValidationInfo **info, uint8 *authoritative);
+
+NTSTATUS NetrSamLogoff(handle_t b, NetrCredentials *creds,
+                       const wchar16_t *server, const wchar16_t *domain,
+                       const wchar16_t *computer,
+                       const wchar16_t *username, const wchar16_t *password,
+                       uint32 logon_level);
+
+NTSTATUS NetrSamLogonEx(handle_t b,
+                        const wchar16_t *server, const wchar16_t *domain,
+                        const wchar16_t *computer,
+                        const wchar16_t *username, const wchar16_t *password,
+                        uint16 logon_level, uint16 validation_level,
+                        NetrValidationInfo **info, uint8 *authoritative);
+
 NTSTATUS NetrEnumerateTrustedDomainsEx(handle_t b, const wchar16_t *server,
                                        NetrDomainTrust **trusts, uint32 *count);
 
