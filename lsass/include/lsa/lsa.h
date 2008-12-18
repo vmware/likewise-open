@@ -76,6 +76,13 @@ typedef uint64_t        UINT64, *PUINT64;
 
 #endif
 
+#ifndef INT64_DEFINED
+#define INT64_DEFINED 1
+
+typedef int64_t        INT64, *PINT64;
+
+#endif
+
 #ifndef UINT32_DEFINED
 #define UINT32_DEFINED 1
 
@@ -926,9 +933,69 @@ typedef struct __LSA_AUTH_USER_PARAMS
 
 } LSA_AUTH_USER_PARAMS, *PLSA_AUTH_USER_PARAMS;
 
+#define LSA_MAX_SID_SUB_AUTHORITIES  15
+
+typedef struct __LSA_SID
+{
+	UINT8 Revision;
+	UINT8 NumSubAuths;
+	UINT8 AuthId[6];
+	UINT32 SubAuths[LSA_MAX_SID_SUB_AUTHORITIES];
+
+} LSA_SID, *PLSA_SID;
+
+typedef struct __LSA_SID_ATTRIB
+{
+	LSA_SID  Sid;
+	DWORD    dwAttrib;
+
+} LSA_SID_ATTRIB, *PLSA_SID_ATTRIB;
+
+#define LSA_SID_ATTR_GROUP_MANDATORY		0x00000001
+#define LSA_SID_ATTR_GROUP_ENABLED_BY_DEFAULT	0x00000002
+#define LSA_SID_ATTR_GROUP_ENABLED 		0x00000004
+#define LSA_SID_ATTR_GROUP_OWNER 		0x00000008
+#define LSA_SID_ATTR_GROUP_USEFOR_DENY_ONLY 	0x00000010
+#define LSA_SID_ATTR_GROUP_RESOURCE 		0x20000000
+#define LSA_SID_ATTR_GROUP_LOGON_ID 		0xC0000000
+
 typedef struct __LSA_AUTH_USER_INFO
 {
-	DWORD dwDummy;
+	DWORD dwUserFlags;
+
+	PCSTR pcszAccount;
+	PCSTR pcszUserPrincipalName;
+	PCSTR pcszFullName;
+	PCSTR pcszDomain;
+	PCSTR pcszDnsDomain;
+
+	DWORD dwAcctFlags;
+	LSA_DATA_BLOB  dbSessionKey;
+	LSA_DATA_BLOB  dbLmSessionKey;
+
+	UINT16 LogonCount;
+	UINT16 BadPasswordCount;
+
+	INT64 LogonTime;
+	INT64 LogoffTime;
+	INT64 KickoffTime;
+	INT64 LastPasswordChange;
+	INT64 CanChangePassword;
+	INT64 MustChangePassword;
+
+	PCSTR pcszLogonServer;
+	PCSTR pcszLogonScript;
+	PCSTR pcszProfilePath;
+	PCSTR pcszHomeDirectory;
+	PCSTR pcszHomeDrive;
+
+        LSA_SID DomainSid;
+	DWORD dwUserRid;
+	DWORD dwPrimaryGroupRid;
+
+	DWORD dwNumSids;
+	PLSA_SID_ATTRIB pSidAttribList;
+
 } LSA_AUTH_USER_INFO, *PLSA_AUTH_USER_INFO;
 
 DWORD

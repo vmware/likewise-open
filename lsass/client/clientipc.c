@@ -1310,7 +1310,10 @@ LsaTransactAuthenticateUserEx(
     {
         case LSA_R_AUTH_USER_EX_SUCCESS:
             pResult = (PLSA_AUTH_USER_INFO) response.object;
-            pUserInfo->dwDummy = pResult->dwDummy;
+
+	    /* Need a deep copy here since pResult will go away */
+
+            // pUserInfo->dwDummy = pResult->dwDummy;
             break;
 
         case LSA_R_AUTH_USER_EX_FAILURE:

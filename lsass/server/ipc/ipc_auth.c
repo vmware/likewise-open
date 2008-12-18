@@ -217,18 +217,11 @@ LsaSrvIpcAuthenticateUserEx(
 	PLSA_AUTH_USER_INFO pUserInfo = NULL;
 	PLSA_IPC_ERROR pError = NULL;
 
-	BAIL_ON_LSA_ERROR(dwError);
-
 	memset(&Params, 0x0, sizeof(Params));
 
-	//memset(pUserInfo, 0x0, sizeof(UserInfo));
-
 	/* Unmarshall the request */
-    Params.AuthType = pReq->pParams->AuthType;
-    Params.pass = pReq->pParams->pass;
-    Params.pszAccountName = pReq->pParams->pszAccountName;
-    Params.pszDomain = pReq->pParams->pszDomain;
-    Params.pszWorkstation = pReq->pParams->pszWorkstation;
+
+	memcpy(&Params, pReq->pParams, sizeof(Params));
 
 	/* Do the work  (obtain pUserInfo)*/
 
