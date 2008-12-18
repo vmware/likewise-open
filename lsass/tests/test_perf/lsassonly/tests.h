@@ -33,63 +33,56 @@
  *
  * Module Name:
  *
- *        types.h
+ *        tests.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Declarations of types
+ *        Test helper function declarations
  *
  * Authors: Kyle Stemen <kstemen@likewisesoftware.com>
  *
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef LSASS_TESTS_H
+#define LSASS_TESTS_H
 
 #include "config.h"
-#if HAVE_INTTYPES_H
-#include <inttypes.h>
-#endif
-#if HAVE_TIME_H
-#include <time.h>
-#endif
+#include <stdarg.h>
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
+#include <lsa/lsa.h>
+#include <lsautils.h>
 
-typedef void *PVOID;
-typedef unsigned int BOOL;
-typedef char *PSTR;
+typedef BOOLEAN BOOL;
 
-#define IN
-#define OUT
+BOOL
+RunConnectDisconnect(
+    IN PVOID unused
+    );
 
-#define FALSE 0
-#define TRUE 1
-
-typedef BOOL (*TestSetupFunc)(
-        IN PVOID setupArg,
-        OUT PVOID *runArg
-        );
-typedef BOOL (*TestTimedFunc)(IN PVOID arg);
-typedef BOOL (*TestCleanupFunc)(IN PVOID arg);
-
-typedef enum
+typedef struct _FIND_STATE
 {
-    TEST_TYPE_RUNS_PER_SEC,
-    TEST_TYPE_SINGLE_RUN,
-} TestType;
+    uid_t Uid;
+    HANDLE Connection;
+} FIND_STATE;
 
-typedef struct
-{
-    PSTR description;
-    TestType type;
-    TestSetupFunc setup;
-    TestTimedFunc run;
-    TestCleanupFunc cleanup;
-    PVOID setupArg;
-} PerfTest;
+BOOL
+SetupFindUserById(
+    IN PVOID username,
+    OUT PVOID *pvFindState
+    );
+
+BOOL
+RunFindUserById(
+    IN PVOID pvState
+    );
+
+void
+CleanupFindUserById(
+    IN PVOID pvState
+    );
 
 #endif

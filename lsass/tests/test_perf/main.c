@@ -55,6 +55,9 @@
 #if HAVE_GETTIMEOFDAY
 #include <sys/time.h>
 #endif
+#if HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
 #include <errno.h>
 #include "tests.h"
 
@@ -131,12 +134,21 @@ void RunTests(
         printf("Running: %s\n", tests[testIndex].description);
 
         runArg = NULL;
-        passed = tests[testIndex].setup(
-                tests[testIndex].setupArg,
-                &runArg);
-        if (!passed)
+        if (tests[testIndex].setup != NULL)
         {
-            printf("Failed\n");
+            passed = tests[testIndex].setup(
+                    tests[testIndex].setupArg,
+                    &runArg);
+            if (!passed)
+            {
+                printf("Failed\n");
+                continue;
+            }
+        }
+
+        if (tests[testIndex].run == NULL)
+        {
+            printf("Error: test function is null\n");
             continue;
         }
 
@@ -149,7 +161,7 @@ void RunTests(
 
         switch (tests[testIndex].type)
         {
-            case TEST_TYPE_RUNS_PER_MIN:
+            case TEST_TYPE_RUNS_PER_SEC:
                 runNum = 0;
                 do
                 {
@@ -205,7 +217,41 @@ void RunTests(
                 printf("Unknown test type %d\n", tests[testIndex].type);
                 return;
         }
+        if (tests[testIndex].cleanup != NULL)
+        {
+            tests[testIndex].cleanup(runArg);
+        }
     }
+}
+
+void RunLsassTests(
+        void *lsassTestLib,
+        const char *user0001
+        )
+{
+    PerfTest testList[] =
+    {
+        {
+            "Lsass server connect and disconnects per second",
+            TEST_TYPE_RUNS_PER_SEC,
+            NULL,
+            dlsym(lsassTestLib, "RunConnectDisconnect"),
+            NULL,
+            NULL
+        },
+        {
+            "Cached LsaFindUserById's per second for user0001 with shared connection",
+            TEST_TYPE_RUNS_PER_SEC,
+            dlsym(lsassTestLib, "SetupFindUserById"),
+            dlsym(lsassTestLib, "RunFindUserById"),
+            dlsym(lsassTestLib, "CleanupFindUserById"),
+            (PVOID)user0001
+        },
+    };
+
+    RunTests(
+            testList,
+            sizeof(testList)/sizeof(testList[0]));
 }
 
 int main(int argc, const char *argv[])
@@ -215,27 +261,32 @@ int main(int argc, const char *argv[])
     char groupsize1000[256];
     char user[256];
     char usergroup[256];
+    void *libperflsass = NULL;
+
     PerfTest testList[] =
     {
         {
             "Cached getpwuid's per second for user0001",
-            TEST_TYPE_RUNS_PER_MIN,
+            TEST_TYPE_RUNS_PER_SEC,
             SetupGrabUid,
             RunGrabUid,
+            NULL,
             user0001,
         },
         {
             "Cached getgrgid's per second for groupsize1",
-            TEST_TYPE_RUNS_PER_MIN,
+            TEST_TYPE_RUNS_PER_SEC,
             SetupGrabGid,
             RunGrabGid,
+            NULL,
             groupsize1
         },
         {
             "Cached getgrgid's per second for groupsize1000",
-            TEST_TYPE_RUNS_PER_MIN,
+            TEST_TYPE_RUNS_PER_SEC,
             SetupGrabGid,
             RunGrabGid,
+            NULL,
             groupsize1000
         },
         {
@@ -243,6 +294,7 @@ int main(int argc, const char *argv[])
             TEST_TYPE_SINGLE_RUN,
             SetupClearCache,
             RunGrabUsers1_500,
+            NULL,
             user
         },
         {
@@ -250,6 +302,7 @@ int main(int argc, const char *argv[])
             TEST_TYPE_SINGLE_RUN,
             SetupClearCache,
             RunGrabGroups1_500,
+            NULL,
             usergroup
         },
     };
@@ -281,5 +334,19 @@ int main(int argc, const char *argv[])
     RunTests(
             testList,
             sizeof(testList)/sizeof(testList[0]));
-    return 1;
+
+    libperflsass = dlopen("./libperflsass.so", RTLD_NOW | RTLD_LOCAL);
+
+    if (libperflsass != NULL)
+    {
+        printf("Running lsass specific tests:\n");
+        RunLsassTests(libperflsass, user0001);
+        dlclose(libperflsass);
+    }
+    else
+    {
+        printf("Unable to load libperflsass.so, so skipping lsass specific tests\n");
+    }
+
+    return 0;
 }

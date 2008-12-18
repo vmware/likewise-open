@@ -459,6 +459,12 @@ AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
 
 AS_AC_EXPAND(providerdir, $libdir)
 
+testbindir='$(exec_prefix)/test'
+AC_SUBST(testbindir)
+
+testlibdir='$(exec_prefix)/test'
+AC_SUBST(testlibdir)
+
 AS_AC_EXPAND(PREFIXDIR, $prefix)
 AC_DEFINE_UNQUOTED(PREFIXDIR, "$PREFIXDIR", [Prefix directory])
 
@@ -731,6 +737,7 @@ AC_CONFIG_FILES([Makefile
                  tests/test_bitvector/Makefile
                  tests/test_memcache/Makefile
                  tests/test_perf/Makefile
+                 tests/test_perf/lsassonly/Makefile
                  tests/test_authenticate/Makefile
                  tests/test_validate/Makefile
                  tests/test_changepasswd/Makefile
