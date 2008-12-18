@@ -72,7 +72,7 @@ typedef struct _FIND_STATE
 BOOL
 SetupFindUserById(
     IN PVOID username,
-    OUT PVOID *pvFindState
+    OUT PVOID *ppvFindState
     );
 
 BOOL
@@ -83,6 +83,22 @@ RunFindUserById(
 void
 CleanupFindUserById(
     IN PVOID pvState
+    );
+
+BOOL
+SetupConnectLsass(
+    IN PVOID username,
+    OUT PVOID *pHandle
+    );
+
+BOOL
+RunGetLogLevel(
+    IN PVOID handle
+    );
+
+void
+CleanupConnectLsass(
+    IN PVOID handle
     );
 
 #endif

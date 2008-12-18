@@ -163,3 +163,64 @@ CleanupFindUserById(
     }
     LSA_SAFE_FREE_MEMORY(state);
 }
+
+BOOL
+SetupConnectLsass(
+    IN PVOID username,
+    OUT PVOID *pHandle
+    )
+{
+    DWORD dwError = 0;
+    HANDLE connection = (HANDLE)NULL;
+
+    dwError = LsaOpenServer(&connection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *(HANDLE*)pHandle = connection;
+
+cleanup:
+    return dwError == 0;
+
+error:
+    if (connection != (HANDLE)NULL)
+    {
+        LsaCloseServer(connection);
+    }
+    *(HANDLE*)pHandle = (HANDLE)NULL;
+    goto cleanup;
+}
+
+BOOL
+RunGetLogLevel(
+    IN PVOID handle
+    )
+{
+    DWORD dwError = 0;
+    HANDLE connection = (HANDLE)handle;
+    PLSA_LOG_INFO logInfo = NULL;
+
+    dwError = LsaGetLogInfo(connection, &logInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError == 0;
+
+error:
+    if (logInfo != NULL)
+    {
+        LsaFreeLogInfo(logInfo);
+    }
+    goto cleanup;
+}
+
+void
+CleanupConnectLsass(
+    IN PVOID handle
+    )
+{
+    HANDLE connection = (HANDLE)handle;
+    if (connection != NULL)
+    {
+        LsaCloseServer(connection);
+    }
+}

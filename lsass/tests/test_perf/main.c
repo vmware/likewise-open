@@ -247,6 +247,14 @@ void RunLsassTests(
             dlsym(lsassTestLib, "CleanupFindUserById"),
             (PVOID)user0001
         },
+        {
+            "LsaGetLogInfo's per second with shared connection (tests marshalling latency)",
+            TEST_TYPE_RUNS_PER_SEC,
+            dlsym(lsassTestLib, "SetupConnectLsass"),
+            dlsym(lsassTestLib, "RunGetLogLevel"),
+            dlsym(lsassTestLib, "CleanupConnectLsass"),
+            (PVOID)user0001
+        },
     };
 
     RunTests(
