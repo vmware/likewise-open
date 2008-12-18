@@ -243,7 +243,7 @@ lwmsg_server_set_max_clients(
  * will be queued until another dispatch function finishes.
  *
  * @param server the server object
- * @param max_clients the maximum number of simultaneous clients to support
+ * @param max_dispatch the maximum number of simultaneous messages to dispatch
  * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID if the server
  * has already been started
  */
