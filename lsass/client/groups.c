@@ -365,15 +365,6 @@ error:
 }
 
 VOID
-LsaFreeEnumGroupsInfo(
-    PLSA_ENUM_GROUPS_INFO pInfo
-    )
-{
-    LSA_SAFE_FREE_STRING(pInfo->pszGUID);
-    LsaFreeMemory(pInfo);
-}
-
-VOID
 LsaFreeEnumObjectsInfo(
     PLSA_ENUM_OBJECTS_INFO pInfo
     )

@@ -337,12 +337,3 @@ LsaValidateNSSArtefactInfoLevel(
 {
     return ((dwNSSArtefactInfoLevel != 0) ? LSA_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL : 0);
 }
-
-VOID
-LsaFreeEnumNSSArtefactsInfo(
-    PLSA_ENUM_NSS_ARTEFACTS_INFO pInfo
-    )
-{
-    LSA_SAFE_FREE_STRING(pInfo->pszGUID);
-    LsaFreeMemory(pInfo);
-}

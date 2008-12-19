@@ -49,13 +49,6 @@
 #ifndef __GROUPS_P_H__
 #define __GROUPS_P_H__
 
-typedef struct __LSA_ENUM_GROUPS_INFO
-{
-    DWORD dwGroupInfoLevel;
-    DWORD dwNumMaxGroups;
-    PSTR  pszGUID;
-} LSA_ENUM_GROUPS_INFO, *PLSA_ENUM_GROUPS_INFO;
-
 LSASS_API
 DWORD
 LsaAddGroup(
@@ -101,11 +94,6 @@ DWORD
 LsaDeleteGroupByName(
     HANDLE hLsaConnection,
     PCSTR  pszName
-    );
-
-VOID
-LsaFreeEnumGroupsInfo(
-    PLSA_ENUM_GROUPS_INFO pInfo
     );
 
 #endif /* __GROUPS_P_H__ */

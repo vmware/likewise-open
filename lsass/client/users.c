@@ -251,15 +251,6 @@ error:
     goto cleanup;
 }
 
-VOID
-LsaFreeEnumUsersInfo(
-    PLSA_ENUM_USERS_INFO pInfo
-    )
-{
-    LSA_SAFE_FREE_STRING(pInfo->pszGUID);
-    LsaFreeMemory(pInfo);
-}
-
 LSASS_API
 DWORD
 LsaGetNamesBySidList(
