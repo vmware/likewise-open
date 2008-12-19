@@ -151,4 +151,11 @@ LsaDmWrapDsEnumerateDomainTrusts(
     OUT PDWORD pdwCount
     );
 
+DWORD
+LsaDmWrapAuthenticateUserEx(
+    IN PCSTR pszDnsDomainName,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo
+    );
+
 #endif /* __LSA_DM_WRAP_H__ */

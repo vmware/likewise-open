@@ -485,7 +485,33 @@ AD_AuthenticateUserEx(
     PLSA_AUTH_USER_INFO *ppUSerInfo
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PSTR pszDnsDomain = NULL;
+    PSTR pszNetbiosDomain = NULL;
+
+    /* The NTLM pass-through authentiocation gives us the NT4
+       style name.  We need the DNS domain fpr for the LsaDmConnectDomain() */
+
+    dwError = LsaDmWrapGetDomainName(pUserParams->pszDomain,
+				     &pszDnsDomain,
+				     &pszNetbiosDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Authenticate (passing through the proper server affinity calls) */
+
+    dwError = LsaDmWrapAuthenticateUserEx(pszDnsDomain,
+					  pUserParams,
+					  ppUSerInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LSA_SAFE_FREE_MEMORY(pszDnsDomain);
+    LSA_SAFE_FREE_MEMORY(pszNetbiosDomain);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD

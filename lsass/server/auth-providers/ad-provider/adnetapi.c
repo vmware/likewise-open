@@ -993,6 +993,18 @@ LsaFreeTranslatedNameList(
     LsaFreeMemory(pNameList);
 }
 
+DWORD
+AD_NetlogonAuthenticationUserEx(
+    IN PSTR pszDomainController,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    return LSA_ERROR_NOT_HANDLED;
+}
+
+
 /*
 local variables:
 mode: c

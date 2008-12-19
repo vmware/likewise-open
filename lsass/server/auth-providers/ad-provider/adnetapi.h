@@ -157,6 +157,15 @@ LsaFreeTranslatedNameList(
     IN DWORD dwNumNames
     );
 
+DWORD
+AD_NetlogonAuthenticationUserEx(
+    IN PSTR pszDomainController,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo,
+    OUT PBOOLEAN pbIsNetworkError
+    );
+
+
 #endif /* __ADNETAPI_H__ */
 
 
