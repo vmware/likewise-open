@@ -963,15 +963,15 @@ typedef struct __LSA_AUTH_USER_INFO
 {
 	DWORD dwUserFlags;
 
-	PCSTR pcszAccount;
-	PCSTR pcszUserPrincipalName;
-	PCSTR pcszFullName;
-	PCSTR pcszDomain;
-	PCSTR pcszDnsDomain;
+	PSTR pszAccount;
+	PSTR pszUserPrincipalName;
+	PSTR pszFullName;
+	PSTR pszDomain;
+	PSTR pszDnsDomain;
 
 	DWORD dwAcctFlags;
-	LSA_DATA_BLOB  dbSessionKey;
-	LSA_DATA_BLOB  dbLmSessionKey;
+	PLSA_DATA_BLOB  pSessionKey;
+	PLSA_DATA_BLOB  pLmSessionKey;
 
 	UINT16 LogonCount;
 	UINT16 BadPasswordCount;
@@ -983,11 +983,11 @@ typedef struct __LSA_AUTH_USER_INFO
 	INT64 CanChangePassword;
 	INT64 MustChangePassword;
 
-	PCSTR pcszLogonServer;
-	PCSTR pcszLogonScript;
-	PCSTR pcszProfilePath;
-	PCSTR pcszHomeDirectory;
-	PCSTR pcszHomeDrive;
+	PSTR pszLogonServer;
+	PSTR pszLogonScript;
+	PSTR pszProfilePath;
+	PSTR pszHomeDirectory;
+	PSTR pszHomeDrive;
 
         LSA_SID DomainSid;
 	DWORD dwUserRid;
