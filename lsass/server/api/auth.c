@@ -196,20 +196,24 @@ cleanup:
 
 error:
 
-    if (LsaSrvEventlogEnabled()) {
+    if (LsaSrvEventlogEnabled())
+    {
         LsaSrvWriteLoginFailedEvent(
             hServer,
             pUserParams && pUserParams->pszAccountName ?
 	        pUserParams->pszAccountName : "(no name)",
             dwError);
     }
+
     if (dwError == LSA_ERROR_NOT_HANDLED ||
-                   dwError == LSA_ERROR_NO_SUCH_USER) {
+                   dwError == LSA_ERROR_NO_SUCH_USER)
+    {
         LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]",
 			pUserParams && pUserParams->pszAccountName ?
 			    pUserParams->pszAccountName : "");
     }
-    else {
+    else
+    {
         LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]",
 		      pUserParams && pUserParams->pszAccountName ?
 		          pUserParams->pszAccountName : "");

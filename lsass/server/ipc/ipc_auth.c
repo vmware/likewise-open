@@ -209,28 +209,28 @@ error:
 static VOID
 FreeAuthUserInfo(PLSA_AUTH_USER_INFO *pUserInfo)
 {
-	if (!pUserInfo)
-		return;
+    if (!pUserInfo)
+        return;
 
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszAccount);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszUserPrincipalName);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszFullName);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszDomain);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszDnsDomain);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonServer);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonScript);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszProfilePath);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDirectory);
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDrive);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszAccount);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszUserPrincipalName);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszFullName);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszDomain);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszDnsDomain);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonServer);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonScript);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszProfilePath);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDirectory);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDrive);
 
-	LsaDataBlobFree(&(*pUserInfo)->pSessionKey);
-	LsaDataBlobFree(&(*pUserInfo)->pLmSessionKey);
+    LsaDataBlobFree(&(*pUserInfo)->pSessionKey);
+    LsaDataBlobFree(&(*pUserInfo)->pLmSessionKey);
 
-	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pSidAttribList);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pSidAttribList);
 
-	LSA_SAFE_FREE_MEMORY(*pUserInfo);
+    LSA_SAFE_FREE_MEMORY(*pUserInfo);
 
-	return;
+    return;
 }
 
 /*********************************************************
@@ -252,14 +252,17 @@ LsaSrvIpcAuthenticateUserEx(
     PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvAuthenticateUserEx((HANDLE)Handle,
-				       pParams,
-				       &pUserInfo);
+                                       pParams,
+                                       &pUserInfo);
 
-    if (!dwError) {
+    if (!dwError)
+    {
         pResponse->tag = LSA_R_AUTH_USER_EX_SUCCESS;
         pResponse->object = pUserInfo;
         pUserInfo = NULL;
-    } else {
+    }
+    else
+    {
         dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -268,8 +271,9 @@ LsaSrvIpcAuthenticateUserEx(
     }
 
 cleanup:
-    if (pUserInfo) {
-	    FreeAuthUserInfo(&pUserInfo);
+    if (pUserInfo)
+    {
+       FreeAuthUserInfo(&pUserInfo);
     }
 
     return MAP_LSA_ERROR_IPC(dwError);
