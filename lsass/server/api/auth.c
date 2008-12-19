@@ -157,7 +157,8 @@ LsaSrvAuthenticateUserEx(
                                             hProvider,
                                             pUserParams,
                                             ppUserInfo);
-        if (!dwError) {
+        if (!dwError)
+	{
             break;
         }
         else if ((dwError == LSA_ERROR_NOT_HANDLED) |
@@ -178,15 +179,19 @@ LsaSrvAuthenticateUserEx(
 
 cleanup:
 
-    if (hProvider != (HANDLE)NULL) {
+    if (hProvider != (HANDLE)NULL)
+    {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    if (!dwError) {
+    if (!dwError)
+    {
         LsaSrvIncrementMetricValue(LsaMetricSuccessfulAuthentications);
-    } else {
+    }
+    else
+    {
         LsaSrvIncrementMetricValue(LsaMetricFailedAuthentications);
     }
 
