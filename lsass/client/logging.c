@@ -73,17 +73,13 @@ LsaSetLogInfo(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
-    LSA_IPC_SET_LOGINFO_REQ setLoginfoReq;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    setLoginfoReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
-    setLoginfoReq.pLogInfo = pLogInfo;
-
     request.tag = LSA_Q_SET_LOGINFO;
-    request.object = &setLoginfoReq;
+    request.object = pLogInfo;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -134,9 +130,8 @@ LsaGetLogInfo(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-
     request.tag = LSA_Q_GET_LOGINFO;
-    request.object = (PVOID)pContext->hServer;
+    request.object = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,

@@ -61,7 +61,7 @@ LsaRefreshConfiguration(
     LWMsgMessage response = {-1, NULL};
 
     request.tag = LSA_Q_REFRESH_CONFIGURATION;
-    request.object = (PVOID)pContext->hServer;
+    request.object = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,

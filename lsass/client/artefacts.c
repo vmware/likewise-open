@@ -69,7 +69,6 @@ LsaFindNSSArtefactByKey(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    findNssArtefactByKeyReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
     findNssArtefactByKeyReq.dwInfoLevel = dwInfoLevel;
     findNssArtefactByKeyReq.pszMapName = pszMapName;
     findNssArtefactByKeyReq.pszKeyName = pszKeyName;
@@ -154,7 +153,7 @@ LsaBeginEnumNSSArtefacts(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    beginNssArtefactEnumReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
+    beginNssArtefactEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
     beginNssArtefactEnumReq.dwInfoLevel = dwInfoLevel;
     beginNssArtefactEnumReq.dwMaxNumNSSArtefacts = dwMaxNumNSSArtefacts;
     beginNssArtefactEnumReq.pszMapName = pszMapName;
@@ -220,7 +219,7 @@ LsaEnumNSSArtefacts(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    nssArtefactEnumReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
+    nssArtefactEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
     nssArtefactEnumReq.pszToken = pInfo->pszGUID;
 
     request.tag = LSA_Q_ENUM_NSS_ARTEFACTS;
@@ -291,7 +290,7 @@ LsaEndEnumNSSArtefacts(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    endNssArtefactEnumReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
+    endNssArtefactEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
     endNssArtefactEnumReq.pszToken = pInfo->pszGUID;
 
     request.tag = LSA_Q_END_ENUM_NSS_ARTEFACTS;

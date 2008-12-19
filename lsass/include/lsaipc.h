@@ -174,8 +174,9 @@ typedef enum __LSA_IPC_TAG
     LSA_R_ENUM_TRACE_INFO_FAILURE
 } LSA_IPC_TAG;
 
-/* Opaque type -- actual definition in state_p.h - LSA_SRV_API_STATE */
-typedef struct __LSA_SRV_API_STATE LsaIpcServerHandle;
+/* Opaque type -- actual definition in state_p.h - LSA_SRV_ENUM_STATE */
+
+typedef struct __LSA_SRV_ENUM_STATE LsaIpcEnumServerHandle;
 
 typedef struct __LSA_IPC_ERROR
 {
@@ -185,7 +186,6 @@ typedef struct __LSA_IPC_ERROR
 
 typedef struct __LSA_IPC_FIND_OBJECT_BY_NAME_REQ
 {
-    LsaIpcServerHandle* Handle;
     LSA_FIND_FLAGS FindFlags;
     DWORD dwInfoLevel;
     PCSTR pszName;
@@ -193,7 +193,6 @@ typedef struct __LSA_IPC_FIND_OBJECT_BY_NAME_REQ
 
 typedef struct __LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ
 {
-    LsaIpcServerHandle* Handle;
     LSA_NIS_MAP_QUERY_FLAGS dwFlags;
     DWORD dwInfoLevel;
     PCSTR pszKeyName;
@@ -202,94 +201,32 @@ typedef struct __LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ
 
 typedef struct __LSA_IPC_FIND_OBJECT_BY_ID_REQ
 {
-    LsaIpcServerHandle* Handle;
     LSA_FIND_FLAGS FindFlags;
     DWORD dwInfoLevel;
     DWORD id;
 } LSA_IPC_FIND_OBJECT_BY_ID_REQ, *PLSA_IPC_FIND_OBJECT_BY_ID_REQ;
 
-typedef struct __LSA_IPC_BEGIN_ENUM_RECORDS_REQ
-{
-    LsaIpcServerHandle* Handle;
-    DWORD dwInfoLevel;
-    DWORD dwNumMaxRecords;
-} LSA_IPC_BEGIN_ENUM_RECORDS_REQ, *PLSA_IPC_BEGIN_ENUM_RECORDS_REQ;
-
-typedef struct __LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ
-{
-    LsaIpcServerHandle* Handle;
-    DWORD dwInfoLevel;
-    DWORD dwMaxNumNSSArtefacts;
-    DWORD dwFlags;
-    PCSTR pszMapName;
-} LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, *PLSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ;
-
-typedef struct __LSA_IPC_ENUM_RECORDS_REQ {
-    LsaIpcServerHandle* Handle;
-    PCSTR pszToken;
-} LSA_IPC_ENUM_RECORDS_REQ, *PLSA_IPC_ENUM_RECORDS_REQ;
-
-typedef struct __LSA_IPC_ADD_GROUP_INFO_REQ
-{
-    LsaIpcServerHandle* Handle;
-    PLSA_GROUP_INFO_LIST pGroupInfoList;
-} LSA_IPC_ADD_GROUP_INFO_REQ, *PLSA_IPC_ADD_GROUP_INFO_REQ;
-
-typedef struct __LSA_IPC_ADD_USER_INFO_REQ
-{
-    LsaIpcServerHandle* Handle;
-    PLSA_USER_INFO_LIST pUserInfoList;
-} LSA_IPC_ADD_USER_INFO_REQ, *PLSA_IPC_ADD_USER_INFO_REQ;
-
-typedef struct __LSA_IPC_DEL_OBJECT_INFO_REQ
-{
-    LsaIpcServerHandle* Handle;
-    DWORD dwId;
-} LSA_IPC_DEL_OBJECT_INFO_REQ, *PLSA_IPC_DEL_OBJECT_INFO_REQ;
-
 typedef struct __LSA_IPC_AUTH_USER_REQ
 {
-    LsaIpcServerHandle* Handle;
     PCSTR pszLoginName;
     PCSTR pszPassword;
 } LSA_IPC_AUTH_USER_REQ, *PLSA_IPC_AUTH_USER_REQ;
 
-typedef struct __LSA_IPC_AUTH_USER_EX_REQ
-{
-    LsaIpcServerHandle* Handle;
-    PLSA_AUTH_USER_PARAMS pParams;
-} LSA_IPC_AUTH_USER_EX_REQ, *PLSA_IPC_AUTH_USER_EX_REQ;
-
 typedef struct __LSA_IPC_CHANGE_PASSWORD_REQ
 {
-    LsaIpcServerHandle* Handle;
     PCSTR pszLoginName;
     PCSTR pszNewPassword;
     PCSTR pszOldPassword;
 } LSA_IPC_CHANGE_PASSWORD_REQ, *PLSA_IPC_CHANGE_PASSWORD_REQ;
 
-typedef struct __LSA_IPC_OPEN_OR_CLOSE_SESSION_REQ
-{
-    LsaIpcServerHandle* Handle;
-    PCSTR pszLoginId;
-} LSA_IPC_OPEN_OR_CLOSE_SESSION_REQ, *PLSA_IPC_OPEN_OR_CLOSE_SESSION_REQ;
-
-typedef struct __LSA_IPC_MOD_USER_INFO_REQ
-{
-    LsaIpcServerHandle* Handle;
-    PLSA_USER_MOD_INFO pUserModInfo;
-} LSA_IPC_MOD_USER_INFO_REQ, *PLSA_IPC_MOD_USER_INFO_REQ;
-
 typedef struct __LSA_IPC_NAMES_BY_SIDS_REQ
 {
-    LsaIpcServerHandle* Handle;
     size_t sCount;
     PSTR* ppszSidList;
 } LSA_IPC_NAMES_BY_SIDS_REQ, *PLSA_IPC_NAMES_BY_SIDS_REQ;
 
 typedef struct __LSA_IPC_MAKE_AUTH_MSG_REQ
 {
-    LsaIpcServerHandle* Handle;
     ULONG negotiateFlags;
     SEC_BUFFER credentials;
     SEC_BUFFER_S serverChallenge;
@@ -305,7 +242,6 @@ typedef struct __LSA_GSS_R_MAKE_AUTH_MSG
 
 typedef struct __LSA_IPC_CHECK_AUTH_MSG_REQ
 {
-    LsaIpcServerHandle* Handle;
     ULONG negotiateFlags;
     SEC_BUFFER_S serverChallenge;
     SEC_BUFFER targetInfo;
@@ -318,37 +254,38 @@ typedef struct __LSA_GSS_R_CHECK_AUTH_MSG
     SEC_BUFFER_S baseSessionKey;
 } LSA_GSS_R_CHECK_AUTH_MSG, *PLSA_GSS_R_CHECK_AUTH_MSG;
 
-typedef struct __LSA_IPC_SET_LOGINFO_REQ
-{
-    LsaIpcServerHandle* Handle;
-    PLSA_LOG_INFO pLogInfo;
-} LSA_IPC_SET_LOGINFO_REQ, *PLSA_IPC_SET_LOGINFO_REQ;
-
-typedef struct __LSA_IPC_GET_METRICS_REQ
-{
-    LsaIpcServerHandle* Handle;
-    DWORD dwInfoLevel;
-} LSA_IPC_GET_METRICS_REQ, *PLSA_IPC_GET_METRICS_REQ;
-
 typedef struct __LSA_IPC_CHECK_USER_IN_LIST_REQ
 {
-    LsaIpcServerHandle* Handle;
     PCSTR pszLoginName;
     PCSTR pszListName;
 } LSA_IPC_CHECK_USER_IN_LIST_REQ, *PLSA_IPC_CHECK_USER_IN_LIST_REQ;
 
 typedef struct __LSA_IPC_SET_TRACE_INFO_REQ
 {
-    LsaIpcServerHandle* Handle;
     PLSA_TRACE_INFO pTraceFlagArray;
     DWORD dwNumFlags;
 } LSA_IPC_SET_TRACE_INFO_REQ, *PLSA_IPC_SET_TRACE_INFO_REQ;
 
-typedef struct __LSA_IPC_GET_TRACE_INFO_REQ
+typedef struct __LSA_IPC_BEGIN_ENUM_RECORDS_REQ
 {
-    LsaIpcServerHandle* Handle;
-    DWORD dwTraceFlags;
-} LSA_IPC_GET_TRACE_INFO_REQ, *PLSA_IPC_GET_TRACE_INFO_REQ;
+    LsaIpcEnumServerHandle* Handle;
+    DWORD dwInfoLevel;
+    DWORD dwNumMaxRecords;
+} LSA_IPC_BEGIN_ENUM_RECORDS_REQ, *PLSA_IPC_BEGIN_ENUM_RECORDS_REQ;
+
+typedef struct __LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ
+{
+    LsaIpcEnumServerHandle* Handle;
+    DWORD dwInfoLevel;
+    DWORD dwMaxNumNSSArtefacts;
+    DWORD dwFlags;
+    PCSTR pszMapName;
+} LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, *PLSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ;
+
+typedef struct __LSA_IPC_ENUM_RECORDS_REQ {
+    LsaIpcEnumServerHandle* Handle;
+    PCSTR pszToken;
+} LSA_IPC_ENUM_RECORDS_REQ, *PLSA_IPC_ENUM_RECORDS_REQ;
 
 #define MAP_LWMSG_ERROR(_e_) ((_e_) ? -1 : 0)
 #define MAP_LSA_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)

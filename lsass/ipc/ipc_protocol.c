@@ -452,10 +452,10 @@ static LWMsgTypeSpec gLsaStatusPtrSpec[] =
 };
 
 /* LsaIpcServerHandle (opaque) */
-static LWMsgTypeSpec gLsaIpcServerHandleSpec[] =
+static LWMsgTypeSpec gLsaIpcEnumServerHandleSpec[] =
 {
     /* Identify type name of handle */
-    LWMSG_HANDLE(LsaIpcServerHandle),
+    LWMSG_HANDLE(LsaIpcEnumServerHandle),
     /* End specification */
     LWMSG_TYPE_END
 };
@@ -463,9 +463,6 @@ static LWMsgTypeSpec gLsaIpcServerHandleSpec[] =
 static LWMsgTypeSpec gLsaIPCFindObjectByNameReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_FIND_OBJECT_BY_NAME_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_FIND_OBJECT_BY_NAME_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_NAME_REQ, FindFlags),
     LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_NAME_REQ, dwInfoLevel),
     LWMSG_MEMBER_PSTR(LSA_IPC_FIND_OBJECT_BY_NAME_REQ, pszName),
@@ -476,9 +473,6 @@ static LWMsgTypeSpec gLsaIPCFindObjectByNameReqSpec[] =
 static LWMsgTypeSpec gLsaIPCFindNssArtefactByKeyReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ, dwFlags),
     LWMSG_MEMBER_UINT32(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ, dwInfoLevel),
     LWMSG_MEMBER_PSTR(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ, pszKeyName),
@@ -490,9 +484,6 @@ static LWMsgTypeSpec gLsaIPCFindNssArtefactByKeyReqSpec[] =
 static LWMsgTypeSpec gLsaIPCFindObjectByIdReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_FIND_OBJECT_BY_ID_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_FIND_OBJECT_BY_ID_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_ID_REQ, FindFlags),
     LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_ID_REQ, dwInfoLevel),
     LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_ID_REQ, id),
@@ -503,8 +494,8 @@ static LWMsgTypeSpec gLsaIPCFindObjectByIdReqSpec[] =
 static LWMsgTypeSpec gLsaIPCBeginObjectEnumReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_RECORDS_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, Handle, gLsaIpcServerHandleSpec),
+    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
+    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
     LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, dwInfoLevel),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, dwNumMaxRecords),
@@ -515,8 +506,8 @@ static LWMsgTypeSpec gLsaIPCBeginObjectEnumReqSpec[] =
 static LWMsgTypeSpec gLsaIPCBeginNssArtefactEnumReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, Handle, gLsaIpcServerHandleSpec),
+    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
+    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, Handle, gLsaIpcEnumServerHandleSpec),
     LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, dwInfoLevel),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, dwMaxNumNSSArtefacts),
@@ -530,8 +521,8 @@ static LWMsgTypeSpec gLsaIPCBeginNssArtefactEnumReqSpec[] =
 static LWMsgTypeSpec gLsaIPCEnumObjectReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_ENUM_RECORDS_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_ENUM_RECORDS_REQ, Handle, gLsaIpcServerHandleSpec),
+    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
+    LWMSG_MEMBER_TYPESPEC(LSA_IPC_ENUM_RECORDS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
     LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_PSTR(LSA_IPC_ENUM_RECORDS_REQ, pszToken),
     LWMSG_STRUCT_END,
@@ -540,47 +531,30 @@ static LWMsgTypeSpec gLsaIPCEnumObjectReqSpec[] =
 
 static LWMsgTypeSpec gLsaIPCAddGroupInfoReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_ADD_GROUP_INFO_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_ADD_GROUP_INFO_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_ADD_GROUP_INFO_REQ, pGroupInfoList),
+    LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaGroupInfoListSpec),
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
 static LWMsgTypeSpec gLsaIPCAddUserInfoReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_ADD_USER_INFO_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_ADD_USER_INFO_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_ADD_USER_INFO_REQ, pUserInfoList),
+    LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaUserInfoListSpec),
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
 static LWMsgTypeSpec gLsaIPCDelObjectInfoReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_DEL_OBJECT_INFO_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_DEL_OBJECT_INFO_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_UINT32(LSA_IPC_DEL_OBJECT_INFO_REQ, dwId),
-    LWMSG_STRUCT_END,
+    LWMSG_POINTER_BEGIN,
+    LWMSG_UINT32(DWORD),
     LWMSG_TYPE_END
 };
 
 static LWMsgTypeSpec gLsaIPCAuthUserReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_AUTH_USER_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_AUTH_USER_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_PSTR(LSA_IPC_AUTH_USER_REQ, pszLoginName),
     LWMSG_MEMBER_PSTR(LSA_IPC_AUTH_USER_REQ, pszPassword),
     LWMSG_STRUCT_END,
@@ -590,9 +564,6 @@ static LWMsgTypeSpec gLsaIPCAuthUserReqSpec[] =
 static LWMsgTypeSpec gLsaIPCChangePasswordReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_CHANGE_PASSWORD_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_CHANGE_PASSWORD_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_PSTR(LSA_IPC_CHANGE_PASSWORD_REQ, pszLoginName),
     LWMSG_MEMBER_PSTR(LSA_IPC_CHANGE_PASSWORD_REQ, pszNewPassword),
     LWMSG_MEMBER_PSTR(LSA_IPC_CHANGE_PASSWORD_REQ, pszOldPassword),
@@ -602,34 +573,21 @@ static LWMsgTypeSpec gLsaIPCChangePasswordReqSpec[] =
 
 static LWMsgTypeSpec gLsaIPCOpenOrCloseSessionReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_OPEN_OR_CLOSE_SESSION_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_OPEN_OR_CLOSE_SESSION_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_PSTR(LSA_IPC_OPEN_OR_CLOSE_SESSION_REQ, pszLoginId),
-    LWMSG_STRUCT_END,
+    LWMSG_PSTR,
     LWMSG_TYPE_END
 };
 
 static LWMsgTypeSpec gLsaIPCModUserInfoReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_MOD_USER_INFO_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_MOD_USER_INFO_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_MOD_USER_INFO_REQ, pUserModInfo),
+    LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaIPCUserModInfoSpec),
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
 static LWMsgTypeSpec gLsaIPCFindNamesBySidListReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_NAMES_BY_SIDS_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_NAMES_BY_SIDS_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_NAMES_BY_SIDS_REQ, sCount),
     LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_NAMES_BY_SIDS_REQ, ppszSidList),
     LWMSG_PSTR,
@@ -643,9 +601,6 @@ static LWMsgTypeSpec gLsaIPCFindNamesBySidListReqSpec[] =
 static LWMsgTypeSpec gLsaIPCMakeAuthMsgReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_MAKE_AUTH_MSG_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_MAKE_AUTH_MSG_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_MAKE_AUTH_MSG_REQ, negotiateFlags),
     LWMSG_MEMBER_TYPESPEC(LSA_IPC_MAKE_AUTH_MSG_REQ, credentials, gLsaSecBufferSpec),
     LWMSG_MEMBER_TYPESPEC(LSA_IPC_MAKE_AUTH_MSG_REQ, serverChallenge, gLsaSecBufferSSpec),
@@ -657,9 +612,6 @@ static LWMsgTypeSpec gLsaIPCMakeAuthMsgReqSpec[] =
 static LWMsgTypeSpec gLsaIPCCheckAuthMsgReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_CHECK_AUTH_MSG_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_CHECK_AUTH_MSG_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_CHECK_AUTH_MSG_REQ, negotiateFlags),
     LWMSG_MEMBER_TYPESPEC(LSA_IPC_CHECK_AUTH_MSG_REQ, serverChallenge, gLsaSecBufferSSpec),
     LWMSG_MEMBER_TYPESPEC(LSA_IPC_CHECK_AUTH_MSG_REQ, targetInfo, gLsaSecBufferSpec),
@@ -679,35 +631,23 @@ static LWMsgTypeSpec gLsaIPCLoginfoSpec[] =
 
 static LWMsgTypeSpec gLsaIPCSetLoginfoReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_SET_LOGINFO_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_SET_LOGINFO_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_SET_LOGINFO_REQ, pLogInfo),
+    LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaIPCLoginfoSpec),
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
 
 static LWMsgTypeSpec gLsaIPCGetMetricsReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_GET_METRICS_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_GET_METRICS_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_UINT32(LSA_IPC_GET_METRICS_REQ, dwInfoLevel),
-    LWMSG_STRUCT_END,
+    LWMSG_POINTER_BEGIN,
+    LWMSG_UINT32(DWORD),
     LWMSG_TYPE_END
 };
 
 static LWMsgTypeSpec gLsaIPCCheckUserInListReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_CHECK_USER_IN_LIST_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_CHECK_USER_IN_LIST_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_PSTR(LSA_IPC_CHECK_USER_IN_LIST_REQ, pszLoginName),
     LWMSG_MEMBER_PSTR(LSA_IPC_CHECK_USER_IN_LIST_REQ, pszListName),
     LWMSG_STRUCT_END,
@@ -738,9 +678,6 @@ static LWMsgTypeSpec gLsaTraceinfoArraySpec[] =
 static LWMsgTypeSpec gLsaIPCSetTraceinfoReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_SET_TRACE_INFO_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_SET_TRACE_INFO_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_SET_TRACE_INFO_REQ, dwNumFlags),
     LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_SET_TRACE_INFO_REQ, pTraceFlagArray),
     LWMSG_TYPESPEC(gLsaTraceinfoSpec),
@@ -786,9 +723,6 @@ static LWMsgTypeSpec gLsaIPCAuthChapParamSpec[] =
     LWMSG_TYPE_END
 };
 
-//#define LSA_AUTH_PLAINTEXT 1
-//#define LSA_AUTH_CHAP 2
-
 static LWMsgTypeSpec gLsaIPCAuthUserParamSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_AUTH_USER_PARAMS),
@@ -809,14 +743,9 @@ static LWMsgTypeSpec gLsaIPCAuthUserParamSpec[] =
 
 static LWMsgTypeSpec gLsaIPCAuthUserExReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_AUTH_USER_EX_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_AUTH_USER_EX_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_AUTH_USER_EX_REQ, pParams),
+    LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaIPCAuthUserParamSpec),
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
@@ -926,19 +855,15 @@ static LWMsgTypeSpec gLsaAuthUserInfoPtrSpec[] =
 
 static LWMsgTypeSpec gLsaIPCGetTraceinfoReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_GET_TRACE_INFO_REQ),
-    /* handle - marshal as LsaIpcServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_GET_TRACE_INFO_REQ, Handle, gLsaIpcServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_UINT32(LSA_IPC_GET_TRACE_INFO_REQ, dwTraceFlags),
-    LWMSG_STRUCT_END,
+    LWMSG_POINTER_BEGIN,
+    LWMSG_UINT32(DWORD),
     LWMSG_TYPE_END
 };
 
 static LWMsgProtocolSpec gLsaIPCSpec[] =
 {
     LWMSG_MESSAGE(LSA_Q_OPEN_SERVER, NULL),
-    LWMSG_MESSAGE(LSA_R_OPEN_SERVER_SUCCESS, gLsaIpcServerHandleSpec),
+    LWMSG_MESSAGE(LSA_R_OPEN_SERVER_SUCCESS, gLsaIpcEnumServerHandleSpec),
     LWMSG_MESSAGE(LSA_R_OPEN_SERVER_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_GROUP_BY_NAME, gLsaIPCFindObjectByNameReqSpec),
     LWMSG_MESSAGE(LSA_R_GROUP_BY_NAME_SUCCESS, gLsaGroupInfoListSpec),
@@ -955,14 +880,12 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_END_ENUM_GROUPS, gLsaIPCEnumObjectReqSpec),
     LWMSG_MESSAGE(LSA_R_END_ENUM_GROUPS_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_END_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
-
     LWMSG_MESSAGE(LSA_Q_USER_BY_NAME, gLsaIPCFindObjectByNameReqSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_NAME_SUCCESS, gLsaUserInfoListSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_NAME_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_USER_BY_ID, gLsaIPCFindObjectByIdReqSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_ID_SUCCESS, gLsaUserInfoListSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_ID_FAILURE, gLsaIPCErrorSpec),
-
     LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_USERS, gLsaIPCBeginObjectEnumReqSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_SUCCESS, gLsaBeginObjectEnumSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
@@ -975,23 +898,18 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_AUTH_USER, gLsaIPCAuthUserReqSpec),
     LWMSG_MESSAGE(LSA_R_AUTH_USER_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_AUTH_USER_FAILURE, gLsaIPCErrorSpec),
-
     LWMSG_MESSAGE(LSA_Q_AUTH_USER_EX, gLsaIPCAuthUserExReqSpec),
     LWMSG_MESSAGE(LSA_R_AUTH_USER_EX_SUCCESS, gLsaAuthUserInfoPtrSpec),
     LWMSG_MESSAGE(LSA_R_AUTH_USER_EX_FAILURE, gLsaIPCErrorSpec),
-
     LWMSG_MESSAGE(LSA_Q_VALIDATE_USER, gLsaIPCAuthUserReqSpec),
     LWMSG_MESSAGE(LSA_R_VALIDATE_USER_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_VALIDATE_USER_FAILURE, gLsaIPCErrorSpec),
-
-
     LWMSG_MESSAGE(LSA_Q_ADD_GROUP, gLsaIPCAddGroupInfoReqSpec),
     LWMSG_MESSAGE(LSA_R_ADD_GROUP_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_ADD_GROUP_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_DELETE_GROUP, gLsaIPCDelObjectInfoReqSpec),
     LWMSG_MESSAGE(LSA_R_DELETE_GROUP_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_DELETE_GROUP_FAILURE, gLsaIPCErrorSpec),
-
     LWMSG_MESSAGE(LSA_Q_ADD_USER, gLsaIPCAddUserInfoReqSpec),
     LWMSG_MESSAGE(LSA_R_ADD_USER_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_ADD_USER_FAILURE, gLsaIPCErrorSpec),
@@ -1028,16 +946,16 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_SET_LOGINFO, gLsaIPCSetLoginfoReqSpec),
     LWMSG_MESSAGE(LSA_R_SET_LOGINFO_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_SET_LOGINFO_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_GET_LOGINFO, gLsaIpcServerHandleSpec),
+    LWMSG_MESSAGE(LSA_Q_GET_LOGINFO, NULL),
     LWMSG_MESSAGE(LSA_R_GET_LOGINFO_SUCCESS, gLsaIPCLoginfoSpec),
     LWMSG_MESSAGE(LSA_R_GET_LOGINFO_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_GET_METRICS, gLsaIPCGetMetricsReqSpec),
     LWMSG_MESSAGE(LSA_R_GET_METRICS_SUCCESS, gLsaMetricPackSpec),
     LWMSG_MESSAGE(LSA_R_GET_METRICS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_GET_STATUS, gLsaIpcServerHandleSpec),
+    LWMSG_MESSAGE(LSA_Q_GET_STATUS, NULL),
     LWMSG_MESSAGE(LSA_R_GET_STATUS_SUCCESS, gLsaStatusPtrSpec),
     LWMSG_MESSAGE(LSA_R_GET_STATUS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_REFRESH_CONFIGURATION, gLsaIpcServerHandleSpec),
+    LWMSG_MESSAGE(LSA_Q_REFRESH_CONFIGURATION, NULL),
     LWMSG_MESSAGE(LSA_R_REFRESH_CONFIGURATION_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_REFRESH_CONFIGURATION_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_NSS_ARTEFACTS, gLsaIPCBeginNssArtefactEnumReqSpec),
@@ -1058,7 +976,7 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_GET_TRACE_INFO, gLsaIPCGetTraceinfoReqSpec),
     LWMSG_MESSAGE(LSA_R_GET_TRACE_INFO_SUCCESS, gLsaTraceinfoArraySpec),
     LWMSG_MESSAGE(LSA_R_GET_TRACE_INFO_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_ENUM_TRACE_INFO, gLsaIpcServerHandleSpec),
+    LWMSG_MESSAGE(LSA_Q_ENUM_TRACE_INFO, NULL),
     LWMSG_MESSAGE(LSA_R_ENUM_TRACE_INFO_SUCCESS, gLsaTraceinfoArraySpec),
     LWMSG_MESSAGE(LSA_R_ENUM_TRACE_INFO_FAILURE, gLsaIPCErrorSpec),
     LWMSG_PROTOCOL_END

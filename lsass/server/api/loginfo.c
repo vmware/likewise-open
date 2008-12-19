@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Log Info Settings (Server)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -54,22 +54,22 @@ LsaSrvGetLogInfo(
 {
     DWORD dwError = 0;
     PLSA_LOG_INFO pLogInfo = NULL;
-    
+
     BAIL_ON_INVALID_POINTER(ppLogInfo);
-    
+
     dwError = LsaLogGetInfo_r(&pLogInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppLogInfo = pLogInfo;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppLogInfo = NULL;
-    
+
     if (pLogInfo)
     {
         LsaFreeLogInfo(pLogInfo);
@@ -86,22 +86,22 @@ LsaSrvSetLogInfo(
 {
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
-    
+
     BAIL_ON_INVALID_POINTER(pLogInfo);
-    
+
     if (pServerState->peerUID)
     {
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaLogSetInfo_r(pLogInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;

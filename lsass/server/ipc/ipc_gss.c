@@ -74,7 +74,7 @@ LsaSrvIpcBuildAuthMessage(
     PLSA_IPC_ERROR pError = NULL;
     PLSA_GSS_R_MAKE_AUTH_MSG pAuthMsgReply = NULL;
     uid_t peerUID = 0;
-
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaAllocateMemory(sizeof(*pAuthMsgReply),
                                 (PVOID*)&pAuthMsgReply);
@@ -83,7 +83,7 @@ LsaSrvIpcBuildAuthMessage(
     ZERO_STRUCT(pAuthMsgReply->authenticateMessage);
     ZERO_STRUCT(pAuthMsgReply->baseSessionKey);
 
-    LsaSrvGetUid((HANDLE)pReq->Handle, &peerUID);
+    LsaSrvGetUid((HANDLE)Handle, &peerUID);
 
     pAuthMsgReply->msgError = NTLMGssBuildAuthenticateMessage(
                         pReq->negotiateFlags,
@@ -126,15 +126,12 @@ LsaSrvIpcCheckAuthMessage(
     PLSA_IPC_CHECK_AUTH_MSG_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     PLSA_GSS_R_CHECK_AUTH_MSG pCheckAuthMsgReply = NULL;
-    uid_t peerUID = 0;
 
     dwError = LsaAllocateMemory(sizeof(*pCheckAuthMsgReply),
                                 (PVOID*)&pCheckAuthMsgReply);
     BAIL_ON_LSA_ERROR(dwError);
 
     ZERO_STRUCT(pCheckAuthMsgReply->baseSessionKey);
-
-    LsaSrvGetUid((HANDLE)pReq->Handle, &peerUID);
 
     pCheckAuthMsgReply->msgError = NTLMGssCheckAuthenticateMessage(
                                         pReq->negotiateFlags,

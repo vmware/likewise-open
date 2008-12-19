@@ -57,9 +57,10 @@ LsaSrvIpcAuthenticateUser(
     DWORD dwError = 0;
     PLSA_IPC_AUTH_USER_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvAuthenticateUser(
-                        (HANDLE)pReq->Handle,
+                        (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
 
@@ -95,9 +96,10 @@ LsaSrvIpcValidateUser(
     DWORD dwError = 0;
     PLSA_IPC_AUTH_USER_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvValidateUser(
-                        (HANDLE)pReq->Handle,
+                        (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
 
@@ -133,9 +135,10 @@ LsaSrvIpcCheckUserInList(
     DWORD dwError = 0;
     PLSA_IPC_CHECK_USER_IN_LIST_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvCheckUserInList(
-                        (HANDLE)pReq->Handle,
+                        (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszListName);
 
@@ -171,9 +174,10 @@ LsaSrvIpcChangePassword(
     DWORD dwError = 0;
     PLSA_IPC_CHANGE_PASSWORD_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvChangePassword(
-                        (HANDLE)pReq->Handle,
+                        (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszOldPassword,
                         pReq->pszNewPassword);
@@ -212,7 +216,7 @@ LsaSrvIpcAuthenticateUserEx(
     )
 {
 	DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
-	PLSA_IPC_AUTH_USER_EX_REQ pReq = pRequest->object;
+	PLSA_AUTH_USER_PARAMS pParams = (PLSA_AUTH_USER_PARAMS) pRequest->object;
 	LSA_AUTH_USER_PARAMS Params = {0};
 	PLSA_AUTH_USER_INFO pUserInfo = NULL;
 	PLSA_IPC_ERROR pError = NULL;
@@ -221,7 +225,7 @@ LsaSrvIpcAuthenticateUserEx(
 
 	/* Unmarshall the request */
 
-	memcpy(&Params, pReq->pParams, sizeof(Params));
+	memcpy(&Params, pParams, sizeof(Params));
 
 	/* Do the work  (obtain pUserInfo)*/
 

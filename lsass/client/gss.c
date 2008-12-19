@@ -105,8 +105,6 @@ LsaTransactGSSBuildAuthMessage(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-
-    makeAuthMsgReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
     makeAuthMsgReq.negotiateFlags = negotiateFlags;
 
     LsaNTMLCopyGssSecBuffer(credentials, makeAuthMsgReq.credentials);
@@ -181,8 +179,6 @@ LsaTransactGSSValidateAuthMessage(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-
-    checkAuthMsgReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
     checkAuthMsgReq.negotiateFlags = negotiateFlags;
 
     LsaNTMLCopyGssSecBufferS(serverChallenge, checkAuthMsgReq.serverChallenge);

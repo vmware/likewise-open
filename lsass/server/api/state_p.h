@@ -80,16 +80,18 @@ typedef struct __LSA_SRV_API_STATE
 {
     uid_t  peerUID;
     gid_t  peerGID;
-
     HANDLE hEventLog;
+} LSA_SRV_API_STATE, *PLSA_SRV_API_STATE;
 
+typedef struct __LSA_SRV_ENUM_STATE
+{
     PLSA_SRV_RECORD_ENUM_STATE pUserEnumStateList;
 
     PLSA_SRV_RECORD_ENUM_STATE pGroupEnumStateList;
 
     PLSA_SRV_RECORD_ENUM_STATE pNSSArtefactEnumStateList;
 
-} LSA_SRV_API_STATE, *PLSA_SRV_API_STATE;
+} LSA_SRV_ENUM_STATE, *PLSA_SRV_ENUM_STATE;
 
 DWORD
 LsaSrvOpenProvider(
@@ -117,6 +119,7 @@ LsaSrvReverseProviderStateList(
 DWORD
 LsaSrvAddUserEnumState(
     HANDLE  hServer,
+    HANDLE  hServerEnum,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
     PLSA_SRV_RECORD_ENUM_STATE* ppEnumState
@@ -136,7 +139,8 @@ LsaSrvFreeUserEnumState(
 
 DWORD
 LsaSrvAddGroupEnumState(
-    HANDLE  hServer,
+    HANDLE hServer,
+    HANDLE hEnumServer,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
     PLSA_SRV_RECORD_ENUM_STATE* ppEnumState
@@ -157,6 +161,7 @@ LsaSrvFreeGroupEnumState(
 DWORD
 LsaSrvAddNSSArtefactEnumState(
     HANDLE  hServer,
+    HANDLE  hEnumServer,
     PCSTR   pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD   dwNSSArtefactInfoLevel,

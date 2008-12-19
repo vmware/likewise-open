@@ -62,7 +62,6 @@ LsaSetTraceFlags(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    setTraceinfoReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
     setTraceinfoReq.dwNumFlags = dwNumFlags;
     setTraceinfoReq.pTraceFlagArray = pTraceFlagArray;
 
@@ -120,7 +119,7 @@ LsaEnumTraceFlags(
     LWMsgMessage response = {-1, NULL};
 
     request.tag = LSA_Q_ENUM_TRACE_INFO;
-    request.object = (PVOID)pContext->hServer;
+    request.object = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -172,18 +171,14 @@ LsaGetTraceFlag(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
-    LSA_IPC_GET_TRACE_INFO_REQ getTraceInfoReq;
     PLSA_TRACE_INFO_LIST pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    getTraceInfoReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
-    getTraceInfoReq.dwTraceFlags = dwTraceFlag;
-
     request.tag = LSA_Q_GET_TRACE_INFO;
-    request.object = &getTraceInfoReq;
+    request.object = &dwTraceFlag;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,

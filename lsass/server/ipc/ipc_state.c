@@ -97,10 +97,10 @@ LsaSrvIpcOpenServer(
 {
     DWORD dwError = 0;
     HANDLE Handle = (HANDLE)NULL;
+    HANDLE HandleEnum = (HANDLE)NULL;
     PLSA_IPC_ERROR pError = NULL;
     uid_t UID;
     gid_t GID;
-
 
     LSA_LOG_VERBOSE("LsaSrvIpc open hServer of on association %p\n", assoc);
 
@@ -110,12 +110,14 @@ LsaSrvIpcOpenServer(
         LSA_LOG_VERBOSE("Successfully opened hServer for association %p\n",
                         assoc);
 
-        dwError = LsaSrvOpenServer(
-                      UID,
-                      GID,
-                      &Handle);
+        dwError = LsaSrvOpenServer(UID, GID, &Handle);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError =  LsaSrvOpenServerEnum(&HandleEnum);
+        BAIL_ON_LSA_ERROR(dwError);
+
         pResponse->tag = LSA_R_OPEN_SERVER_SUCCESS;
-        pResponse->object = (PVOID)Handle;
+        pResponse->object = (PVOID)HandleEnum;
     }
     else
     {
@@ -127,7 +129,10 @@ LsaSrvIpcOpenServer(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(assoc, "LsaIpcServerHandle", (PVOID)Handle, free));
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(assoc, "LsaIpcEnumServerHandle", (PVOID)HandleEnum, LsaSrvCloseServerEnum));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_session_data(assoc, (PVOID)Handle, LsaSrvCloseServer));
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:

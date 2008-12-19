@@ -56,8 +56,9 @@ LsaSrvIpcRefreshConfiguration(
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
-    dwError = LsaSrvRefreshConfiguration((HANDLE)pRequest->object);
+    dwError = LsaSrvRefreshConfiguration((HANDLE)Handle);
 
     if (!dwError)
     {

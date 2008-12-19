@@ -91,7 +91,6 @@ LsaCheckUserInList(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    checkUserinListReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
     checkUserinListReq.pszLoginName = pszLoginName;
     checkUserinListReq.pszListName = pszListName;
 

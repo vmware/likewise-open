@@ -61,9 +61,10 @@ LsaSrvIpcFindNSSArtefactByKey(
     PLSA_NSS_ARTEFACT_INFO_LIST pResult = NULL;
     PLSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvFindNSSArtefactByKey(
-                       (HANDLE)pReq->Handle,
+                       (HANDLE)Handle,
                        pReq->pszKeyName,
                        pReq->pszMapName,
                        pReq->dwFlags,
@@ -145,8 +146,10 @@ LsaSrvIpcBeginEnumNSSArtefacts(
     PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvBeginEnumNSSArtefacts(
+                        (HANDLE)Handle,
                         (HANDLE)pReq->Handle,
                         pReq->pszMapName,
                         pReq->dwFlags,

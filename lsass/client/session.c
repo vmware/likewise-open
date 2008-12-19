@@ -53,9 +53,48 @@ LsaOpenSession(
     PCSTR  pszLoginId
     )
 {
-    return LsaTransactOpenSession(
-            hLsaConnection,
-            pszLoginId);
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    request.tag = LSA_Q_OPEN_SESSION;
+    request.object = (PVOID)pszLoginId;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case LSA_R_OPEN_SESSION_SUCCESS:
+            // response.object == NULL
+            break;
+        case LSA_R_OPEN_SESSION_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    goto cleanup;
 }
 
 LSASS_API
@@ -65,7 +104,46 @@ LsaCloseSession(
     PCSTR  pszLoginId
     )
 {
-    return LsaTransactCloseSession(
-            hLsaConnection,
-            pszLoginId);
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    request.tag = LSA_Q_CLOSE_SESSION;
+    request.object = (PVOID)pszLoginId;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case LSA_R_CLOSE_SESSION_SUCCESS:
+            // response.object == NULL
+            break;
+        case LSA_R_CLOSE_SESSION_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    goto cleanup;
 }

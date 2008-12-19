@@ -57,10 +57,10 @@ LsaSrvIpcGetStatus(
     DWORD dwError = 0;
     PLSASTATUS pLsaStatus = NULL;
     PLSA_IPC_ERROR pError = NULL;
-
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvGetStatus(
-                    (HANDLE)pRequest->object,
+                    (HANDLE)Handle,
                     &pLsaStatus);
 
     if (!dwError)

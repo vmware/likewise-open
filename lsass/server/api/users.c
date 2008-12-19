@@ -457,6 +457,7 @@ error:
 DWORD
 LsaSrvBeginEnumUsers(
     HANDLE hServer,
+    HANDLE hServerEnum,
     DWORD  dwUserInfoLevel,
     DWORD  dwMaxNumUsers,
     PSTR*  ppszGUID
@@ -471,6 +472,7 @@ LsaSrvBeginEnumUsers(
 
     dwError = LsaSrvAddUserEnumState(
                     hServer,
+                    hServerEnum,
                     dwUserInfoLevel,
                     dwMaxNumUsers,
                     &pEnumState);

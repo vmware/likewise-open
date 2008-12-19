@@ -58,18 +58,14 @@ LsaGetMetrics(
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
 
-    LSA_IPC_GET_METRICS_REQ getMetricReq;
     PLSA_METRIC_PACK pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    getMetricReq.Handle = (LsaIpcServerHandle*)pContext->hServer;
-    getMetricReq.dwInfoLevel = dwInfoLevel;
-
     request.tag = LSA_Q_GET_METRICS;
-    request.object = &getMetricReq;
+    request.object = &dwInfoLevel;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,

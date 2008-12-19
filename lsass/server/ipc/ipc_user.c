@@ -55,28 +55,28 @@ LsaSrvIpcAddUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_ADD_USER_INFO_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     // Do not free pUserInfoList
-    PLSA_USER_INFO_LIST pUserInfoList = pReq->pUserInfoList;
+    PLSA_USER_INFO_LIST pUserInfoList = (PLSA_USER_INFO_LIST)pRequest->object;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     switch (pUserInfoList->dwUserInfoLevel)
     {
         case 0:
             dwError = LsaSrvAddUser(
-                            (HANDLE)pReq->Handle,
+                            (HANDLE)Handle,
                             0,
                             pUserInfoList->ppUserInfoList.ppInfoList0[0]);
             break;
         case 1:
             dwError = LsaSrvAddUser(
-                            (HANDLE)pReq->Handle,
+                            (HANDLE)Handle,
                             1,
                             pUserInfoList->ppUserInfoList.ppInfoList1[0]);
             break;
         case 2:
             dwError = LsaSrvAddUser(
-                            (HANDLE)pReq->Handle,
+                            (HANDLE)Handle,
                             2,
                             pUserInfoList->ppUserInfoList.ppInfoList2[0]);
             break;
@@ -114,12 +114,12 @@ LsaSrvIpcModifyUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_MOD_USER_INFO_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvModifyUser(
-                    (HANDLE)pReq->Handle,
-                    pReq->pUserModInfo);
+                    (HANDLE)Handle,
+                    (PLSA_USER_MOD_INFO)pRequest->object);
 
     if (!dwError)
     {
@@ -157,19 +157,20 @@ LsaSrvIpcFindUserByName(
     PLSA_USER_INFO_LIST pResult = NULL;
     PLSA_IPC_FIND_OBJECT_BY_NAME_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaAllocateMemory(sizeof(*pResult),
-                                (PVOID)&pResult);
-    BAIL_ON_LSA_ERROR(dwError);
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvFindUserByName(
-                       (HANDLE)pReq->Handle,
+                       (HANDLE)Handle,
                        pReq->pszName,
                        pReq->dwInfoLevel,
                        &pUserInfo);
 
     if (!dwError)
     {
+        dwError = LsaAllocateMemory(sizeof(*pResult),
+                                        (PVOID)&pResult);
+        BAIL_ON_LSA_ERROR(dwError);
+
         pResult->dwUserInfoLevel = pReq->dwInfoLevel;
         pResult->dwNumUsers = 1;
         dwError = LsaAllocateMemory(
@@ -247,9 +248,10 @@ LsaSrvIpcFindUserById(
     PLSA_USER_INFO_LIST pResult = NULL;
     PLSA_IPC_FIND_OBJECT_BY_ID_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvFindUserById(
-                       (HANDLE)pReq->Handle,
+                       (HANDLE)Handle,
                        pReq->id,
                        pReq->dwInfoLevel,
                        &pUserInfo);
@@ -335,8 +337,10 @@ LsaSrvIpcBeginEnumUsers(
     PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_BEGIN_ENUM_RECORDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvBeginEnumUsers(
+                        (HANDLE)Handle,
                         (HANDLE)pReq->Handle,
                         pReq->dwInfoLevel,
                         pReq->dwNumMaxRecords,
@@ -507,12 +511,12 @@ LsaSrvIpcDeleteUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_DEL_OBJECT_INFO_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvDeleteUser(
-                        (HANDLE)pReq->Handle,
-                        pReq->dwId);
+                        (HANDLE)Handle,
+                        *((PDWORD)pRequest->object));
 
     if (!dwError)
     {
@@ -552,9 +556,10 @@ LsaSrvIpcGetNamesBySidList(
     PLSA_IPC_NAMES_BY_SIDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     DWORD i = 0;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvGetNamesBySidList(
-                    (HANDLE)pReq->Handle,
+                    (HANDLE)Handle,
                     pReq->sCount,
                     pReq->ppszSidList,
                     &ppszDomainNames,

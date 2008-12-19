@@ -57,12 +57,13 @@ LsaSrvIpcGetMetrics(
     DWORD dwError = 0;
     PVOID pMetricPack = NULL;
     PLSA_METRIC_PACK pResult = NULL;
-    PLSA_IPC_GET_METRICS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    DWORD dwInfoLevel = *(PDWORD)pRequest->object;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvGetMetrics(
-                        (HANDLE)pReq->Handle,
-                        pReq->dwInfoLevel,
+                        (HANDLE)Handle,
+                        dwInfoLevel,
                         &pMetricPack);
 
     if (!dwError)
@@ -71,7 +72,7 @@ LsaSrvIpcGetMetrics(
                                     (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pResult->dwInfoLevel = pReq->dwInfoLevel;
+        pResult->dwInfoLevel = dwInfoLevel;
 
         switch (pResult->dwInfoLevel)
         {

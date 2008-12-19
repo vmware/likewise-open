@@ -55,12 +55,12 @@ LsaSrvIpcOpenSession(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_OPEN_OR_CLOSE_SESSION_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvOpenSession(
-                    (HANDLE)pReq->Handle,
-                    pReq->pszLoginId);
+                    (HANDLE)Handle,
+                    (PSTR)pRequest->object);
 
     if (!dwError)
     {
@@ -92,12 +92,12 @@ LsaSrvIpcCloseSession(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_OPEN_OR_CLOSE_SESSION_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvCloseSession(
-                    (HANDLE)pReq->Handle,
-                    pReq->pszLoginId);
+                    (HANDLE)Handle,
+                    (PSTR)pRequest->object);
 
     if (!dwError)
     {

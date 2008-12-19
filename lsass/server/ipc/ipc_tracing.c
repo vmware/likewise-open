@@ -57,9 +57,10 @@ LsaSrvIpcSetTraceInfo(
     DWORD dwError = 0;
     PLSA_IPC_SET_TRACE_INFO_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvSetTraceFlags(
-                        (HANDLE)pReq->Handle,
+                        (HANDLE)Handle,
                         pReq->pTraceFlagArray,
                         pReq->dwNumFlags);
 
@@ -93,14 +94,14 @@ LsaSrvIpcGetTraceInfo(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_GET_TRACE_INFO_REQ pReq = pRequest->object;
     PLSA_TRACE_INFO_LIST pResult = NULL;
     PLSA_TRACE_INFO pTraceInfo = NULL;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvGetTraceInfo(
-                        (HANDLE)pReq->Handle,
-                        pReq->dwTraceFlags,
+                        (HANDLE)Handle,
+                        *(PDWORD)pRequest->object,
                         &pTraceInfo);
 
     if (!dwError)
@@ -151,13 +152,14 @@ LsaSrvIpcEnumTraceInfo(
     DWORD dwError = 0;
     PLSA_TRACE_INFO_LIST pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaAllocateMemory(sizeof(*pResult),
                                (PVOID)&pResult);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvEnumTraceFlags(
-                       (HANDLE)pRequest->object,
+                       (HANDLE)Handle,
                        &pResult->pTraceInfoArray,
                        &pResult->dwNumFlags);
 
@@ -187,4 +189,3 @@ error:
 
     goto cleanup;
 }
-

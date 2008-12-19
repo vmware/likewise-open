@@ -61,25 +61,13 @@ typedef struct __LSA_CLIENT_CONNECTION_CONTEXT
 {
     LWMsgProtocol* pProtocol;
     LWMsgAssoc* pAssoc;
-    HANDLE hServer; //PLSA_SRV_API_STATE
+    HANDLE hServer; //PLSA_SRV_ENUM_STATE
 } LSA_CLIENT_CONNECTION_CONTEXT, *PLSA_CLIENT_CONNECTION_CONTEXT;
 
 DWORD
 LsaTransactOpenServer(
    IN OUT HANDLE hServer
    );
-
-DWORD
-LsaTransactOpenSession(
-    HANDLE hServer,
-    PCSTR pszLoginId
-    );
-
-DWORD
-LsaTransactCloseSession(
-    HANDLE hServer,
-    PCSTR pszLoginId
-    );
 
 DWORD
 LsaTransactFindGroupByName(
