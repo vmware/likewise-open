@@ -97,6 +97,13 @@ LsaProviderLocal_AuthenticateUser(
     );
 
 DWORD
+LsaProviderLocal_AuthenticateUserEx(
+    HANDLE hProvider,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUserInfo
+    );
+
+DWORD
 LsaProviderLocal_ValidateUser(
     HANDLE hProvider,
     PCSTR  pszLoginId,

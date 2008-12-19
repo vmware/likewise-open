@@ -58,6 +58,7 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     &LsaProviderLocal_CloseHandle,
     &LsaProviderLocal_ServicesDomain,
     &LsaProviderLocal_AuthenticateUser,
+    &LsaProviderLocal_AuthenticateUserEx,
     &LsaProviderLocal_ValidateUser,
     &LsaProviderLocal_CheckUserInList,
     &LsaProviderLocal_FindUserByName,

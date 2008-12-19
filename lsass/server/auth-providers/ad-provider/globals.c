@@ -87,6 +87,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_CloseHandle,
             &AD_ServicesDomain,
             &AD_AuthenticateUser,
+            &AD_AuthenticateUserEx,
             &AD_ValidateUser,
             &AD_CheckUserInList,
             &AD_FindUserByName,

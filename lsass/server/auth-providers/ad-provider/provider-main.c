@@ -479,6 +479,16 @@ AD_AuthenticateUser(
 }
 
 DWORD
+AD_AuthenticateUserEx(
+    HANDLE hProvider,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUSerInfo
+    )
+{
+    return LSA_ERROR_NOT_HANDLED;
+}
+
+DWORD
 AD_ValidateUser(
     HANDLE hProvider,
     PCSTR  pszLoginId,

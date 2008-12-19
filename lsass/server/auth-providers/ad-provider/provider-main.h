@@ -89,6 +89,13 @@ AD_AuthenticateUser(
     );
 
 DWORD
+AD_AuthenticateUserEx(
+    HANDLE hProvider,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUSerInfo
+    );
+
+DWORD
 AD_ValidateUser(
     HANDLE hProvider,
     PCSTR  pszUserName,
