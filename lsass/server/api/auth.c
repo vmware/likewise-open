@@ -132,6 +132,93 @@ error:
 }
 
 DWORD
+LsaSrvAuthenticateUserEx(
+    HANDLE hServer,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
+    BOOLEAN bInLock = FALSE;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable->pfnAuthenticateUserEx(
+                                            hProvider,
+                                            pUserParams,
+                                            ppUserInfo);
+        if (!dwError) {
+            break;
+        }
+        else if ((dwError == LSA_ERROR_NOT_HANDLED) |
+                 (dwError == LSA_ERROR_NO_SUCH_USER))
+	{
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = (HANDLE)NULL;
+            continue;
+        } else {
+	    BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (pProvider == NULL) {
+        dwError = LSA_ERROR_NOT_HANDLED;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL) {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    if (!dwError) {
+        LsaSrvIncrementMetricValue(LsaMetricSuccessfulAuthentications);
+    } else {
+        LsaSrvIncrementMetricValue(LsaMetricFailedAuthentications);
+    }
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return dwError;
+
+error:
+
+    if (LsaSrvEventlogEnabled()) {
+        LsaSrvWriteLoginFailedEvent(
+            hServer,
+            pUserParams && pUserParams->pszAccountName ?
+	        pUserParams->pszAccountName : "(no name)",
+            dwError);
+    }
+    if (dwError == LSA_ERROR_NOT_HANDLED ||
+                   dwError == LSA_ERROR_NO_SUCH_USER) {
+        LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]",
+			pUserParams && pUserParams->pszAccountName ?
+			    pUserParams->pszAccountName : "");
+    }
+    else {
+        LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]",
+		      pUserParams && pUserParams->pszAccountName ?
+		          pUserParams->pszAccountName : "");
+    }
+
+    goto cleanup;
+}
+
+DWORD
 LsaSrvValidateUser(
     HANDLE hServer,
     PCSTR  pszLoginId,

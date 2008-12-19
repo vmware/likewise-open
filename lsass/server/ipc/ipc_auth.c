@@ -204,6 +204,36 @@ error:
 }
 
 /*********************************************************
+ */
+
+static VOID
+FreeAuthUserInfo(PLSA_AUTH_USER_INFO *pUserInfo)
+{
+	if (!pUserInfo)
+		return;
+
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszAccount);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszUserPrincipalName);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszFullName);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszDomain);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszDnsDomain);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonServer);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonScript);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszProfilePath);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDirectory);
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDrive);
+
+	LsaDataBlobFree(&(*pUserInfo)->pSessionKey);
+	LsaDataBlobFree(&(*pUserInfo)->pLmSessionKey);
+
+	LSA_SAFE_FREE_MEMORY((*pUserInfo)->pSidAttribList);
+
+	LSA_SAFE_FREE_MEMORY(*pUserInfo);
+
+	return;
+}
+
+/*********************************************************
  * The Extended Authenticate function.
  */
 
@@ -215,28 +245,21 @@ LsaSrvIpcAuthenticateUserEx(
     void* data
     )
 {
-	DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
-	PLSA_AUTH_USER_PARAMS pParams = (PLSA_AUTH_USER_PARAMS) pRequest->object;
-	LSA_AUTH_USER_PARAMS Params = {0};
-	PLSA_AUTH_USER_INFO pUserInfo = NULL;
-	PLSA_IPC_ERROR pError = NULL;
+    DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
+    PLSA_AUTH_USER_PARAMS pParams = (PLSA_AUTH_USER_PARAMS) pRequest->object;
+    PLSA_AUTH_USER_INFO pUserInfo = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
-	memset(&Params, 0x0, sizeof(Params));
+    dwError = LsaSrvAuthenticateUserEx((HANDLE)Handle,
+				       pParams,
+				       &pUserInfo);
 
-	/* Unmarshall the request */
-
-	memcpy(&Params, pParams, sizeof(Params));
-
-	/* Do the work  (obtain pUserInfo)*/
-
-    if (!dwError)
-    {
+    if (!dwError) {
         pResponse->tag = LSA_R_AUTH_USER_EX_SUCCESS;
         pResponse->object = pUserInfo;
         pUserInfo = NULL;
-    }
-    else
-    {
+    } else {
         dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -245,11 +268,14 @@ LsaSrvIpcAuthenticateUserEx(
     }
 
 cleanup:
-   LSA_SAFE_FREE_MEMORY(pUserInfo);
+    if (pUserInfo) {
+	    FreeAuthUserInfo(&pUserInfo);
+    }
 
-   return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
    goto cleanup;
 }
+
 
