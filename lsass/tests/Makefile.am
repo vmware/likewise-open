@@ -18,4 +18,5 @@ SUBDIRS = \
 	test_validate \
 	test_changepasswd \
 	test_session \
-	test_checkuserinlist
+	test_checkuserinlist \
+	test_openldap

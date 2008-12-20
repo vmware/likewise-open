@@ -742,6 +742,7 @@ AC_CONFIG_FILES([Makefile
                  tests/test_changepasswd/Makefile
                  tests/test_session/Makefile
                  tests/test_checkuserinlist/Makefile
+                 tests/test_openldap/Makefile
                  scripts/Makefile])
 
 AC_OUTPUT
