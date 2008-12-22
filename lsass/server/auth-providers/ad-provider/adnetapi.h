@@ -51,6 +51,7 @@
 #include <uuid/uuid.h>
 
 #include <lwrpc/LM.h>
+#include <lwrpc/ntstatus.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
 #include <lwrpc/samr.h>
@@ -61,6 +62,7 @@
 #include <lwrpc/netlogonbinding.h>
 #include <lwrpc/LMjoin.h>
 #include <lwrpc/errcheck.h>
+
 
 typedef struct _LSA_TRANSLATED_NAME_OR_SID {
     PSTR pszNT4NameOrSid;

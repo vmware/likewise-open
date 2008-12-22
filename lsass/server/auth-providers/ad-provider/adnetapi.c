@@ -1001,7 +1001,141 @@ AD_NetlogonAuthenticationUserEx(
     OUT PBOOLEAN pbIsNetworkError
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PWSTR pwszDomainController = NULL;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszShortDomain = NULL;
+    PWSTR pwszUsername = NULL;
+    PWSTR pwszUserPassword = NULL;
+    PSTR pszHostname = NULL;
+    HANDLE hPwdDb = (HANDLE)NULL;
+    RPCSTATUS status = 0;
+    handle_t netr_b = NULL;
+    PLWPS_PASSWORD_INFO pMachAcctInfo = NULL;
+    handle_t schn_b = NULL;
+    BOOLEAN bIsNetworkError = FALSE;
+    NetrCredentials Creds = { 0 };
+    NETRESOURCE SchanRes = { 0 };
+    NTSTATUS nt_status = STATUS_UNHANDLED_EXCEPTION;
+    NetrValidationInfo  *pValidationInfo = NULL;
+    UINT8 dwAuthoritative = 0;
+    PSTR pszServerName;
+    DWORD dwDCNameLen = 0;
+
+    /* Establish the initial bind to \NETLOGON */
+
+    status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
+    if (status != 0)
+    {
+        LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
+                      pszDomainController, status);
+        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        bIsNetworkError = TRUE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /* Grab the machine password and account info */
+
+    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_SQLDB,
+                                    &hPwdDb);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDnsGetHostInfo(&pszHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwpsGetPasswordByHostName(hPwdDb,
+                                        pszHostname,
+                                        &pMachAcctInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Gather other Schannel params */
+
+    /* Allocate space for the servername.  Include room for the terminating
+       NULL and \\ */
+
+    dwDCNameLen = strlen(pszDomainController) + 3;
+    dwError = LsaAllocateMemory(dwDCNameLen, (PVOID*)&pszServerName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    snprintf(pszServerName, dwDCNameLen, "\\\\%s", pszDomainController);
+    dwError = LsaMbsToWc16s(pszServerName, &pwszServerName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Now setup the Schannel session */
+
+    schn_b = OpenSchannel(netr_b,
+                          pwszDomainController,
+                          pwszServerName,
+                          pwszShortDomain,
+                          pMachAcctInfo->pwszHostname,
+                          pMachAcctInfo->pwszMachinePassword,
+                          &Creds,
+                          &SchanRes);
+
+    /* Time to do the authentication */
+
+    dwError = LsaMbsToWc16s(pUserParams->pszAccountName, &pwszUsername);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    nt_status = NetrSamLogon(schn_b,
+                             &Creds,
+                             pwszServerName,
+                             pwszShortDomain,
+                             pMachAcctInfo->pwszHostname,
+                             pwszUsername,
+                             pwszUserPassword,
+                             2,                /* Network login */
+                             3,                /* Return NetSamInfo3 */
+                             &pValidationInfo,
+                             &dwAuthoritative);
+
+    if (status != STATUS_SUCCESS)
+    {
+        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    CloseSchannel(schn_b, &SchanRes);
+
+cleanup:
+    if (hPwdDb)
+    {
+        if (pMachAcctInfo) {
+            LwpsFreePasswordInfo(hPwdDb, pMachAcctInfo);
+        }
+
+        LwpsClosePasswordStore(hPwdDb);
+        hPwdDb = (HANDLE)NULL;
+    }
+
+    LSA_SAFE_FREE_MEMORY(pszHostname);
+
+    if (netr_b)
+    {
+        FreeNetlogonBinding(&netr_b);
+        netr_b = NULL;
+    }
+
+    if (schn_b)
+    {
+        CloseSchannel(schn_b, &SchanRes);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszDomainController);
+    LSA_SAFE_FREE_MEMORY(pwszServerName);
+    LSA_SAFE_FREE_MEMORY(pwszShortDomain);
+    LSA_SAFE_FREE_MEMORY(pszServerName);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 
