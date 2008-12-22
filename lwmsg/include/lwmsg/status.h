@@ -122,7 +122,12 @@ typedef enum
      * File not found
      * @hideinitializer
      */
-    LWMSG_STATUS_FILE_NOT_FOUND = 15
+    LWMSG_STATUS_FILE_NOT_FOUND = 15,
+    /**
+     * Remote server not listening
+     * @hideinitializer
+     */
+    LWMSG_STATUS_CONNECTION_REFUSED = 16
 } LWMsgStatus;
 
 #endif
