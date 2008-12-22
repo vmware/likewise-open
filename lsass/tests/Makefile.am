@@ -20,7 +20,7 @@ SUBDIRS = \
 	test_session \
 	test_checkuserinlist
 
-if PLATFORM_IS_HPUX
+if !PLATFORM_IS_HPUX
     SUBDIRS += test_openldap
 endif
 
