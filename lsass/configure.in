@@ -25,6 +25,8 @@ AC_DEFINE(__LW_MOTD_MAX_SIZE__, 4096, [The maximum number of bytes which will be
 
 AC_USE_SYSTEM_EXTENSIONS
 
+PLATFORM_IS_HPUX=false
+
 case "$host_os:$host_cpu" in
 	linux*:i?86)
 		nss_libdir="/lib"
@@ -61,6 +63,7 @@ case "$host_os:$host_cpu" in
 		AC_DEFINE([__LWI_FREEBSD__], [], [Define if OS is FreeBSD])
 		;;
 	hpux*:hppa*)
+                PLATFORM_IS_HPUX=true
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="hpux"
@@ -71,6 +74,7 @@ case "$host_os:$host_cpu" in
         AC_DEFINE([_XOPEN_SOURCE_EXTENDED], [1], [Define on HP-UX])
 		;;
 	hpux*:ia64*)
+                PLATFORM_IS_HPUX=true
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="hpux"
@@ -89,6 +93,8 @@ case "$host_os:$host_cpu" in
                 AC_DEFINE([_LINUX_SOURCE_COMPAT], [], [Enable Linux source compatibility on AIX])
 		;;
 esac
+
+AM_CONDITIONAL(PLATFORM_IS_HPUX, [$PLATFORM_IS_HPUX])
 
 AC_SUBST(NSS_SUBDIR)
 AC_SUBST(MACCLIENT_DIR)
