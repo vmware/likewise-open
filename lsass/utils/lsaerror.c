@@ -550,3 +550,33 @@ error:
 
     goto cleanup;
 }
+
+DWORD
+LsaTranslateLwMsgError(
+        LWMsgAssoc *pAssoc,
+        DWORD dwMsgError,
+        const char *file,
+        int line
+        )
+{
+    DWORD dwLsaError = (DWORD)-1;
+
+    switch (dwMsgError)
+    {
+        case LWMSG_STATUS_SUCCESS:
+            return LSA_ERROR_SUCCESS;
+        case LWMSG_STATUS_FILE_NOT_FOUND:
+        case LWMSG_STATUS_CONNECTION_REFUSED:
+            dwLsaError = ECONNREFUSED;
+            break;
+    }
+
+    LSA_LOG_DEBUG("Lwmsg error at %s:%d [lwmsg code: %d] [lwmsg string: %s] [lsass code: %d]",
+            file,
+            line,
+            LSA_SAFE_LOG_STRING(
+                lwmsg_assoc_get_error_message(pAssoc, dwMsgError)),
+            dwLsaError);
+
+    return dwLsaError;
+}
