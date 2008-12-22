@@ -36,6 +36,27 @@
 #define _NETLOGON_H_
 
 #include <lwrpc/netrdefs.h>
+#include <lwrpc/mpr.h>
+
+handle_t
+OpenSchannel(
+    handle_t netr_b,
+    const wchar16_t * pwszHostname,
+    const wchar16_t * pwszServer,
+    const wchar16_t * pwszDomain,
+    const wchar16_t * pwszComputer,
+    const wchar16_t * pwszMachinePassword,
+    NetrCredentials *Creds,
+    NETRESOURCE *SchanRes
+    );
+
+void
+CloseSchannel(
+    handle_t schn_b,
+    NETRESOURCE *schnr
+    );
+
+
 
 NTSTATUS NetrServerReqChallenge(handle_t b, const wchar16_t *server,
                                 const wchar16_t *computer,

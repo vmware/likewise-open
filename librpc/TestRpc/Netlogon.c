@@ -57,8 +57,8 @@
 #include "TestRpc.h"
 #include "Params.h"
 
-
-handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
+static handle_t
+CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 {
     RPCSTATUS status;
     size_t hostname_size;
@@ -68,21 +68,12 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 
     hostname_size = wc16slen(host) + 1;
     hostname = (unsigned char*) malloc(hostname_size * sizeof(char));
-    if (hostname == NULL) return NULL;
+    if (hostname == NULL)
+        return NULL;
     wc16stombs(hostname, host, hostname_size);
 
     status = InitNetlogonBindingDefault(binding, hostname);
     if (status != RPC_S_OK) {
-        int result;
-        CHAR_T errmsg[dce_c_error_string_len];
-	
-        dce_error_inq_text(status, errmsg, &result);
-        if (result == 0) {
-            printf("Error: %s\n", errmsg);
-        } else {
-            printf("Unknown error: %08x\n", status);
-        }
-
         return NULL;
     }
 
@@ -91,7 +82,7 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 }
 
 
-handle_t OpenSchannel(handle_t netr_b,
+handle_t TestOpenSchannel(handle_t netr_b,
                       const wchar16_t *hostname,
                       const wchar16_t *user, const wchar16_t *pass,
                       wchar16_t *server, wchar16_t *domain,
@@ -213,7 +204,7 @@ error:
 }
 
 
-void CloseSchannel(handle_t schn_b, NETRESOURCE *schnr)
+void TestCloseSchannel(handle_t schn_b, NETRESOURCE *schnr)
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
@@ -313,7 +304,7 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
 
-    schn_b = OpenSchannel(netr_b, hostname, user, pass,
+    schn_b = TestOpenSchannel(netr_b, hostname, user, pass,
                           server, domain, computer, machpass,
                           rpc_c_authn_level_pkt_privacy,
                           &creds, &schnr);
@@ -325,7 +316,7 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
                                      &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
-    CloseSchannel(schn_b, &schnr);
+    TestCloseSchannel(schn_b, &schnr);
 
 close:
     FreeNetlogonBinding(&netr_b);
@@ -458,7 +449,7 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
 
-    schn_b = OpenSchannel(netr_b, hostname, user, pass,
+    schn_b = TestOpenSchannel(netr_b, hostname, user, pass,
                           server, domain, computer, machpass,
                           rpc_c_authn_level_pkt_privacy,
                           &creds, &schnr);
@@ -467,7 +458,7 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
                                       username, password, (uint16)logon_level));
     if (status != STATUS_SUCCESS) goto close;
 
-    CloseSchannel(schn_b, &schnr);
+    TestCloseSchannel(schn_b, &schnr);
 
 close:
     FreeNetlogonBinding(&netr_b);
@@ -582,7 +573,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
 
-    schn_b = OpenSchannel(netr_b, hostname, user, pass,
+    schn_b = TestOpenSchannel(netr_b, hostname, user, pass,
                           server, domain, computer, machpass,
                           rpc_c_authn_level_pkt_integrity,
                           &creds, &schnr);
@@ -595,7 +586,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
                                        &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
-    CloseSchannel(schn_b, &schnr);
+    TestCloseSchannel(schn_b, &schnr);
 
 close:
     FreeNetlogonBinding(&netr_b);

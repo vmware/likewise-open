@@ -8,7 +8,7 @@ libnetlogon_la_SOURCES = \
 	NetrCredentials.c NetrServerReqChallenge.c NetrServerAuthenticate.c \
 	NetrServerAuthenticate2.c NetrServerAuthenticate3.c \
 	NetrSamLogon.c NetrSamLogoff.c NetrSamLogonEx.c \
-	NetrEnumerateTrustedDomainsEx.c DsrEnumerateDomainTrusts.c
+	NetrEnumerateTrustedDomainsEx.c DsrEnumerateDomainTrusts.c schannel.c
 
 LIBRPC_INCDIR=$(librpc_srcdir)/Include
 LIBRPC_INCLUDES=-I$(LIBRPC_INCDIR)
