@@ -9,10 +9,11 @@ test_openldap_CPPFLAGS = \
 	@KRB5_INCLUDES@
 
 test_openldap_LDADD = \
-	@top_builddir@/utils/liblsautils.la \
-	@top_builddir@/logging_r/liblsalog_r.la \
 	@top_builddir@/server/ldap/liblsaldap.la \
+	@top_builddir@/server/krb5/liblsakrb5.la \
 	@top_builddir@/server/srvutils/liblsasrvutils.la \
+	@top_builddir@/logging_r/liblsalog_r.la \
+	@top_builddir@/utils/liblsautils.la \
 	@OPENLDAP_LIBS@ \
 	@KRB5_LIBS@ \
 	$(RT_LIBS)
