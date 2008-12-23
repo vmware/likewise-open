@@ -309,11 +309,11 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
                           rpc_c_authn_level_pkt_privacy,
                           &creds, &schnr);
 
-    CALL_MSRPC(status = NetrSamLogon(schn_b, &creds, server, domain, computer,
-                                     username, password,
-                                     (uint16)logon_level,
-                                     (uint16)validation_level,
-                                     &validation_info, &authoritative));
+    CALL_MSRPC(status = NetrSamLogonInteractive(schn_b, &creds, server, domain, computer,
+                                                username, password,
+                                                (uint16)logon_level,
+                                                (uint16)validation_level,
+                                                &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
     TestCloseSchannel(schn_b, &schnr);
