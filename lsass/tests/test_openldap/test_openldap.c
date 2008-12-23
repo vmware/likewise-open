@@ -73,12 +73,12 @@
 DWORD
 GetCurrentTime(
     OUT time_t* pSeconds,
-    OUT suseconds_t* pMicroSeconds
+    OUT USEC_T* pMicroSeconds
     )
 {
     DWORD dwError = 0;
     time_t seconds = 0;
-    suseconds_t microSeconds = 0;
+    USEC_T microSeconds = 0;
     struct timeval now;
 
     if (gettimeofday(&now, NULL) < 0)
@@ -117,7 +117,7 @@ LogV(
     )
 {
     time_t now = 0;
-    suseconds_t microSeconds = 0;
+    USEC_T microSeconds = 0;
     struct tm nowLocal = { 0 };
     char buffer[64];
     FILE* fp = stdout;
