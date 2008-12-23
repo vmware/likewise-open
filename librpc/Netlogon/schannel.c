@@ -82,10 +82,11 @@ CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
     return *binding;
 }
 
-
 handle_t
 OpenSchannel(
     handle_t netr_b,
+    const wchar16_t * pwszMachineAccount,
+    const wchar16_t * pwszCcachePath,
     const wchar16_t * pwszHostname,
     const wchar16_t * pwszServer,
     const wchar16_t * pwszDomain,
@@ -98,7 +99,6 @@ OpenSchannel(
     RPCSTATUS st = rpc_s_ok;
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    wchar16_t *machine_acct = NULL;
     uint8 pass_hash[16] = {0};
     uint8 cli_chal[8] = {0};
     uint8 srv_chal[8] = {0};
@@ -126,21 +126,13 @@ OpenSchannel(
                         pass_hash,
                         NETLOGON_NET_ADS_FLAGS);
 
-    machine_acct = (wchar16_t*) malloc((wc16slen(pwszComputer) + 2) * sizeof(wchar16_t));
-    if (machine_acct == NULL)
-    {
-        goto error;
-    }
-
-    sw16printf(machine_acct, "%S$", pwszComputer);
-
     status = NetrServerAuthenticate2(netr_b,
-				     pwszServer,
-				     machine_acct,
+                                     pwszServer,
+                                     pwszMachineAccount,
                                      Creds->channel_type,
-				     pwszComputer,
+                                     pwszComputer,
                                      Creds->cli_chal.data,
-				     srv_cred,
+                                     srv_cred,
                                      &Creds->negotiate_flags);
     if (status != STATUS_SUCCESS) {
         goto error;
@@ -156,8 +148,9 @@ OpenSchannel(
     schnauth_info.machine_name = awc16stombs(pwszComputer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
 
-#if 0
-    dwError = SMBCreatePlainAccessTokenW(user, pass, &auth);
+    dwError =  SMBCreateKrb5AccessTokenW(pwszMachineAccount,
+                                         pwszCcachePath,
+                                         &auth);
     if (dwError)
     {
         err = -1;
@@ -177,36 +170,28 @@ OpenSchannel(
         err = -1;
         goto error;
     }
-#endif
-
-#if 0
-    hostname_len = wc16slen(hostname);
-    schnr->RemoteName = (wchar16_t*) malloc((hostname_len + 8) * sizeof(wchar16_t));
-    if (schnr->RemoteName == NULL) goto error;
-
-    /* specify credentials for domain controller connection */
-    sw16printf(schnr->RemoteName, "\\\\%S\\IPC$", hostname);
-    err = WNetAddConnection2(schnr, pass, user);
-    if (err != ERROR_SUCCESS) {
-        status = STATUS_UNSUCCESSFUL;   /* TODO: better nt status code */
-        goto error;
-    }
-#endif
 
     schn_b = CreateNetlogonBinding(&schn_b, pwszHostname);
     if (schn_b == NULL)
-	goto error;
+    {
+        goto error;
+    }
 
     rpc_binding_set_auth_info(schn_b,
                               NULL,
-                              rpc_c_authn_level_pkt_privacy,
-			      rpc_c_authn_schannel,
+#if 0
+                              /* Helps to debug network traces */
+                              rpc_c_authn_level_pkt_integrity,
+#else
+                              /* Secure */
+                              rpc_c_authn_level_pkt_privacy
+#endif
+                              rpc_c_authn_schannel,
                               (rpc_auth_identity_handle_t)&schnauth_info,
                               rpc_c_authz_name, /* authz_protocol */
                               &st);
 
 done:
-    SAFE_FREE(machine_acct);
     SAFE_FREE(schnauth_info.domain_name);
     SAFE_FREE(schnauth_info.machine_name);
 
@@ -214,16 +199,10 @@ done:
             status == STATUS_SUCCESS) ? schn_b : NULL;
 
 error:
-    if (schn_b) {
+    if (schn_b)
+    {
         FreeNetlogonBinding(&schn_b);
     }
-
-#if 0
-    err = WNetCancelConnection2(schnr->RemoteName, 0, 0);
-    if (err != ERROR_SUCCESS) {
-        status = STATUS_UNSUCCESSFUL;   /* TODO better nt status code */
-    }
-#endif
 
     goto done;
 }
@@ -238,11 +217,13 @@ CloseSchannel(
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
 
-#if 0
-    FreeNetlogonBinding(&schn_b);
+    if (schn_b)
+    {
+        FreeNetlogonBinding(&schn_b);
+    }
 
     SMBSetThreadToken(NULL);
-#endif
+
 close:
     SAFE_FREE(schnr->RemoteName);
 }
