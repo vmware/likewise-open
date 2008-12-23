@@ -184,7 +184,7 @@ OpenSchannel(
                               rpc_c_authn_level_pkt_integrity,
 #else
                               /* Secure */
-                              rpc_c_authn_level_pkt_privacy
+                              rpc_c_authn_level_pkt_privacy,
 #endif
                               rpc_c_authn_schannel,
                               (rpc_auth_identity_handle_t)&schnauth_info,
@@ -214,8 +214,19 @@ CloseSchannel(
     NETRESOURCE *schnr
     )
 {
+    uint32 st = 0;
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
+
+    /* needed to release the binding cache entry from the dcerpc libs */
+
+    rpc_binding_set_auth_info(schn_b,
+                              NULL,
+                              0,
+                              rpc_c_authn_none,
+                              NULL,
+                              rpc_c_authz_name, /* authz_protocol */
+                              &st);
 
     if (schn_b)
     {
