@@ -264,16 +264,31 @@ error:
     goto cleanup;
 }
 
+/*
+ * Compatibility wrapper
+ */
+NTSTATUS NetrAllocateLogonInfo(
+    NetrLogonInfo **out, uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const wchar16_t *password
+    )
+{
+    return NetrAllocateLogonInfoHash(out, level, domain, workstation, account, password);
+}
 
-NTSTATUS NetrAllocateLogonInfo(NetrLogonInfo **out, uint16 level,
-                               const wchar16_t *domain,
-                               const wchar16_t *workstation,
-                               const wchar16_t *account,
-                               const wchar16_t *password)
+
+NTSTATUS NetrAllocateLogonInfoHash(
+    NetrLogonInfo **out, uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const wchar16_t *password
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     NetrLogonInfo *ptr = NULL;
-    NetrNetworkInfo *net = NULL;
     NetrPasswordInfo *pass = NULL;
     uint8 lm_hash[16] = {0};
     uint8 nt_hash[16] = {0};
@@ -287,13 +302,15 @@ NTSTATUS NetrAllocateLogonInfo(NetrLogonInfo **out, uint16 level,
     status = NetrAllocateMemory((void**)&ptr, sizeof(NetrLogonInfo), NULL);
     goto_if_ntstatus_not_success(status, cleanup);
 
-    /* Create password hashes (NT and LM) */
-    deshash(lm_hash, password);
-    md4hash(nt_hash, password);
 
-    if (level == 1 ||
-        level == 3 ||
-        level == 5) {
+    switch (level)
+    {
+    case 1:
+    case 3:
+    case 5:
+        /* Create password hashes (NT and LM) */
+        deshash(lm_hash, password);
+        md4hash(nt_hash, password);
 
         status = NetrAllocateMemory((void**)&pass, sizeof(NetrPasswordInfo),
                                     (void*)ptr);
@@ -308,37 +325,9 @@ NTSTATUS NetrAllocateLogonInfo(NetrLogonInfo **out, uint16 level,
                sizeof(pass->lmpassword.data));
         memcpy((void*)pass->ntpassword.data, (void*)nt_hash,
                sizeof(pass->ntpassword.data));
+        break;
 
-    } else if (level == 2 ||
-               level == 6) {
-
-        status = NetrAllocateMemory((void**)&net, sizeof(NetrNetworkInfo),
-                                    (void*)ptr);
-        goto_if_ntstatus_not_success(status, error);
-
-        status = NetrInitIdentityInfo(&net->identity, (void*)net,
-                                      domain, workstation, account, 0, 0, 0);
-        goto_if_ntstatus_not_success(status, error);
-
-        /* Allocate challenge structures */
-        status = NetrAllocateMemory((void**)&net->lm.data, 24, (void*)net);
-        goto_if_ntstatus_not_success(status, error);
-
-        net->lm.length = 24;
-        net->lm.size   = 24;
-
-        status = NetrAllocateMemory((void**)&net->nt.data, 24, (void*)net);
-        goto_if_ntstatus_not_success(status, error);
-
-        net->nt.length = 24;
-        net->nt.size   = 24;
-
-        /* Prepare nt and lm challenge */
-        get_random_buffer((uint8*)net->challenge, sizeof(net->challenge));
-        encrypt_challenge(net->lm.data, net->challenge, lm_hash);
-        encrypt_challenge(net->nt.data, net->challenge, nt_hash);
-
-    } else {
+    default:
         status = STATUS_INVALID_LEVEL;
         goto error;
     }
@@ -347,21 +336,102 @@ NTSTATUS NetrAllocateLogonInfo(NetrLogonInfo **out, uint16 level,
     case 1:
         ptr->password1 = pass;
         break;
-    case 2:
-        ptr->network2  = net;
-        break;
     case 3:
         ptr->password3 = pass;
         break;
     case 5:
         ptr->password5 = pass;
         break;
+    }
+
+cleanup:
+    *out = ptr;
+
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    ptr = NULL;
+    goto cleanup;
+}
+
+NTSTATUS NetrAllocateLogonInfoNet(
+    NetrLogonInfo **out,
+    uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const uint8_t *challenge,
+    const uint8_t *lm_resp,
+    const uint8_t *nt_resp
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrLogonInfo *ptr = NULL;
+    NetrNetworkInfo *net = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(domain, cleanup);
+    goto_if_invalid_param_ntstatus(account, cleanup);
+    goto_if_invalid_param_ntstatus(workstation, cleanup);
+    goto_if_invalid_param_ntstatus(challenge, cleanup);
+    /* LanMan Response can be NULL */
+    goto_if_invalid_param_ntstatus(nt_resp, cleanup);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrLogonInfo), NULL);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    switch (level)
+    {
+    case 2:
     case 6:
-        ptr->network6  = net;
+        status = NetrAllocateMemory((void**)&net, sizeof(NetrNetworkInfo),
+                                    (void*)ptr);
+        goto_if_ntstatus_not_success(status, error);
+
+        status = NetrInitIdentityInfo(&net->identity, (void*)net,
+                                      domain, workstation, account, 0, 0, 0);
+        goto_if_ntstatus_not_success(status, error);
+
+        memcpy(net->challenge, challenge, sizeof(net->challenge));
+
+        /* Allocate challenge structures */
+        if (lm_resp)
+        {
+            status = NetrAllocateMemory((void**)&net->lm.data, 24, (void*)net);
+            goto_if_ntstatus_not_success(status, error);
+
+            net->lm.length = 24;
+            net->lm.size   = 24;
+            memcpy(net->lm.data, lm_resp, net->lm.size);
+        }
+
+        /* Always have NT Response */
+
+        status = NetrAllocateMemory((void**)&net->nt.data, 24, (void*)net);
+        goto_if_ntstatus_not_success(status, error);
+
+        net->nt.length = 24;
+        net->nt.size   = 24;
+        memcpy(net->nt.data, nt_resp, net->nt.size);
+
         break;
+
     default:
         status = STATUS_INVALID_LEVEL;
         goto error;
+    }
+
+    switch (level) {
+    case 2:
+        ptr->network2  = net;
+        break;
+    case 6:
+        ptr->network6  = net;
+        break;
     }
 
 cleanup:
