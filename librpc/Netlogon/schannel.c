@@ -214,19 +214,8 @@ CloseSchannel(
     NETRESOURCE *schnr
     )
 {
-    uint32 st = 0;
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-
-    /* needed to release the binding cache entry from the dcerpc libs */
-
-    rpc_binding_set_auth_info(schn_b,
-                              NULL,
-                              0,
-                              rpc_c_authn_none,
-                              NULL,
-                              rpc_c_authz_name, /* authz_protocol */
-                              &st);
 
     if (schn_b)
     {
