@@ -358,7 +358,7 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 
 	/* Copy the out parms now if we have an out pointer */
 
-	if (info == NULL) {
+	if (!info || !pLsaUserInfo->pszAccount) {
 		goto done;
 	}
 	
