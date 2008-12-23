@@ -495,6 +495,7 @@ typedef struct _LSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT {
 typedef struct _LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT {
     IN PCSTR pszName;
     OUT PSTR pszSid;
+    OUT ADAccountType ObjectType;
 } LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT;
 
 typedef struct _LSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT {
@@ -600,6 +601,7 @@ LsaDmWrappLookupSidByNameCallback(
     dwError = AD_NetLookupObjectSidByName(pDcInfo->pszDomainControllerName,
                                           pCtx->pszName,
                                           &pCtx->pszSid,
+                                          &pCtx->ObjectType,
                                           pbIsNetworkError);
     return dwError;
 }
@@ -756,7 +758,8 @@ DWORD
 LsaDmWrapNetLookupObjectSidByName(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszName,
-    OUT PSTR* ppszSid
+    OUT PSTR* ppszSid,
+    OUT OPTIONAL PBOOLEAN pbIsUser
     )
 {
     DWORD dwError = 0;
@@ -772,6 +775,11 @@ LsaDmWrapNetLookupObjectSidByName(
                                       &context);
 
     *ppszSid = context.pszSid;
+
+    if (pbIsUser)
+    {
+        *pbIsUser = (context.ObjectType == AccountType_User);
+    }
 
     return dwError;
 }

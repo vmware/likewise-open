@@ -3093,7 +3093,8 @@ AD_FindObjectByUpnNoCache(
     dwError = LsaDmWrapNetLookupObjectSidByName(
                     gpADProviderData->szDomain,
                     pszUpn,
-                    &pszSid);
+                    &pszSid,
+                    NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_FindObjectBySidNoCache(

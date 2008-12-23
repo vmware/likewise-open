@@ -264,6 +264,9 @@ LsaInitializeProvider(
                            dwError);
     }
 
+    dwError = ADUnprovPlugin_Initialize();
+    BAIL_ON_LSA_ERROR(dwError);
+
     *ppFunctionTable = &gADProviderAPITable;
     *ppszProviderName = gpszADProviderName;
 
@@ -325,6 +328,8 @@ LsaShutdownProvider(
     BOOLEAN bInLock = FALSE;
 
     ADProviderSetShutdownFlag(TRUE);
+
+    ADUnprovPlugin_Cleanup();
 
     ADShutdownCacheReaper();
     ADShutdownMachinePasswordSync();

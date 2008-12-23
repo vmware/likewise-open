@@ -1312,6 +1312,13 @@ LsaSetSecurityIdentifierRid(
     );
 
 DWORD
+LsaReplaceSidRid(
+    IN PCSTR pszSid,
+    IN DWORD dwNewRid,
+    OUT PSTR* ppszNewSid
+    );
+
+DWORD
 LsaGetSecurityIdentifierHashedRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PDWORD dwHashedRid

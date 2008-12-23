@@ -115,7 +115,8 @@ DWORD
 LsaDmWrapNetLookupObjectSidByName(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszName,
-    OUT PSTR* ppszSid
+    OUT PSTR* ppszSid,
+    OUT OPTIONAL PBOOLEAN pbIsUser
     );
 
 DWORD

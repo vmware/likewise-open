@@ -151,20 +151,6 @@ LsaAdBatchResolvePseudoObjectsWithLinkedCells(
     IN OUT PLSA_LIST_LINKS pBatchItemList
     );
 
-static
-DWORD
-LsaAdBatchResolvePseudoObjectsInternal(
-    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
-    IN OPTIONAL PCSTR pszDnsDomainName,
-    IN OPTIONAL PCSTR pszCellDn,
-    IN BOOLEAN bDoGCSearch,
-    IN ADConfigurationMode adMode,
-    // List of PLSA_AD_BATCH_ITEM
-    IN OUT PLSA_LIST_LINKS pBatchItemList,
-    OUT OPTIONAL PDWORD pdwTotalItemFoundCount,
-    IN OUT OPTIONAL PHANDLE phDirectory
-    );
-
 // Process Functions
 
 static
@@ -226,6 +212,20 @@ DWORD
 LsaAdBatchSplitBIListToBIListPerDomain(
     IN OUT PLSA_LIST_LINKS pBatchItemList,
     OUT PLSA_LIST_LINKS pDomainList
+    );
+
+static
+DWORD
+LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN OPTIONAL PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszCellDn,
+    IN BOOLEAN bDoGCSearch,
+    IN ADConfigurationMode adMode,
+    // List of PLSA_AD_BATCH_ITEM
+    IN OUT PLSA_LIST_LINKS pBatchItemList,
+    OUT OPTIONAL PDWORD pdwTotalItemFoundCount,
+    IN OUT OPTIONAL PHANDLE phDirectory
     );
 
 #endif /* __BATCH_P_H__ */

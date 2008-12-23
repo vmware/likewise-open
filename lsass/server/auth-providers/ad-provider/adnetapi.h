@@ -90,8 +90,9 @@ AD_NetUserChangePassword(
 DWORD
 AD_NetLookupObjectSidByName(
     IN PCSTR pszHostname,
-    IN PCSTR pszLoginName,
+    IN PCSTR pszObjectName,
     OUT PSTR* ppszObjectSid,
+    OUT ADAccountType* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     );
 

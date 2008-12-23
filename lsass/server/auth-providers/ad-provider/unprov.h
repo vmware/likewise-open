@@ -33,72 +33,64 @@
  *
  * Module Name:
  *
- *        adprovider.h
+ *        unprov.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Active Directory Provider
+ *        Authentication Provider Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- */
+*/
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+#ifndef UNPROV_H_
+#define UNPROV_H_
 
-#include <openssl/md4.h>
-#include <openssl/rand.h>
-#include <openssl/des.h>
-#include <sqlite3.h>
-#include <eventlog.h>
-#include <lwps/lwps.h>
-#include <lwnet.h>
+//By default, ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME should not be defined
+#if 0
+#define ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME
+#endif
 
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsaipc.h"
-#include "lsaprovider.h"
+DWORD
+ADUnprovPlugin_Initialize(
+    VOID
+    );
 
-#include "lsasrvutils.h"
-#include "lsakrb5.h"
-#include "lsaldap.h"
-#include "lsadb.h"
+VOID
+ADUnprovPlugin_Cleanup(
+    VOID
+    );
 
-#include "addef.h"
-#include "media-sense.h"
-#include "adstruct.h"
-#include "adcfg.h"
-#include "adldapdef.h"
-#include "adnetapi.h"
-#include "lsadm.h"
-#include "lsadmengine.h"
-#include "lsadmwrap.h"
-#include "lsaum.h"
-#include "lsaumproc.h"
-#include "state_store.h"
-#include "adldap.h"
-#include "adldap_p.h"
-#include "batch.h"
-#include "unprov.h"
-#include "ad_marshal_group.h"
-#include "ad_marshal_nss_artefact.h"
-#include "ad_marshal_nss_artefact_p.h"
-#include "ad_marshal_user.h"
-#include "ad_marshal_user_p.h"
-#include "cache.h"
-#include "cellldap.h"
-#include "defldap.h"
-#include "enumstate.h"
-#include "machinepwd_p.h"
-#include "offline.h"
-#include "online.h"
-#include "providerstate.h"
-#include "provider-main.h"
-#include "offline-helper.h"
-#include "lsasqlite.h"
+BOOLEAN
+ADUnprovPlugin_SupportsAliases(
+    VOID
+    );
 
-#include "externs.h"
+DWORD
+ADUnprovPlugin_QueryByReal(
+    IN BOOLEAN bIsUser,
+    IN PCSTR pszNT4Name,
+    IN PCSTR pszSID,
+    OUT OPTIONAL PSTR* ppszAlias,
+    OUT PDWORD pdwId
+    );
+
+DWORD
+ADUnprovPlugin_QueryByAlias(
+    IN BOOLEAN bIsUser,
+    IN PCSTR pszAlias,
+    OUT PSTR* ppszSid,
+    OUT PDWORD pdwId
+    );
+
+DWORD
+ADUnprovPlugin_QueryById(
+    IN BOOLEAN bIsUser,
+    IN DWORD dwId,
+    OUT PSTR* ppszSid,
+    OUT PSTR* ppszAlias
+    );
+
+#endif /* UNPROV_H_ */

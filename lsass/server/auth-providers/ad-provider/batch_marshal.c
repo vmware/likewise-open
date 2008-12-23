@@ -229,33 +229,48 @@ LsaAdBatchMarshalUnprovisionedUser(
 {
     DWORD dwError = 0;
     DWORD dwId = 0;
-    PLSA_SECURITY_IDENTIFIER pSid = 0;
+    PSTR pszNT4Name = NULL;
+    PSTR pszPrimaryGroupSid = NULL;
 
-    // uid
-    dwError = LsaAllocSecurityIdentifierFromString(pszSid, &pSid);
+    dwError = LsaAllocateStringPrintf(
+                   &pszNT4Name,
+                   "%s\\%s",
+                   pszNetbiosDomainName,
+                   pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaHashSecurityIdentifierToId(pSid, &dwId);
+    // uid
+    dwError = ADUnprovPlugin_QueryByReal(
+                   TRUE,
+                   pszNT4Name,
+                   pszSid,
+                   &pUserInfo->pszAlias,
+                   &dwId);
     BAIL_ON_LSA_ERROR(dwError);
 
     pUserInfo->uid = (uid_t)dwId;
 
     // gid
-    dwError = LsaSetSecurityIdentifierRid(pSid, pUserInfo->dwPrimaryGroupRid);
+    dwError = LsaReplaceSidRid(
+                    pszSid,
+                    pUserInfo->dwPrimaryGroupRid,
+                    &pszPrimaryGroupSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaHashSecurityIdentifierToId(pSid, &dwId);
+    dwError = ADUnprovPlugin_QueryByReal(
+                   FALSE,
+                   NULL, // no knowledge of primarygroup's NT4 Name
+                   pszPrimaryGroupSid,
+                   NULL, //optional alias
+                   &dwId);
     BAIL_ON_LSA_ERROR(dwError);
 
     pUserInfo->gid = (gid_t)dwId;
 
-    // can add alias here
 
 cleanup:
-    if (pSid)
-    {
-        LsaFreeSecurityIdentifier(pSid);
-    }
+    LSA_SAFE_FREE_STRING(pszNT4Name);
+    LSA_SAFE_FREE_STRING(pszPrimaryGroupSid);
+
     return dwError;
 
 error:
@@ -274,16 +289,28 @@ LsaAdBatchMarshalUnprovisionedGroup(
 {
     DWORD dwError = 0;
     DWORD dwId = 0;
+    PSTR pszNT4Name = NULL;
 
-    // gid
-    dwError = LsaHashSidStringToId(pszSid, &dwId);
+    dwError = LsaAllocateStringPrintf(
+                   &pszNT4Name,
+                   "%s\\%s",
+                   pszNetbiosDomainName,
+                   pszSamAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // gid, alias
+    dwError = ADUnprovPlugin_QueryByReal(
+                   FALSE,
+                   pszNT4Name,
+                   pszSid,
+                   &pGroupInfo->pszAlias,
+                   &dwId);
     BAIL_ON_LSA_ERROR(dwError);
 
     pGroupInfo->gid = (gid_t)dwId;
 
-    // can add alias here
-
 cleanup:
+    LSA_SAFE_FREE_STRING(pszNT4Name);
     return dwError;
 
 error:
