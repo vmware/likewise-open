@@ -75,11 +75,7 @@ LsaNetJoinDomain(
     DWORD dwOptions = (NETSETUP_JOIN_DOMAIN |
                        NETSETUP_ACCT_CREATE |
                        NETSETUP_DOMAIN_JOIN_IF_JOINED);
-    krb5_error_code ret = 0;
-    krb5_context ctx = NULL;
-    krb5_ccache cc = NULL;
-    PCSTR pszNewCachePath = NULL;
-    HANDLE hAccessToken = NULL;
+    LSA_ACCESS_TOKEN_FREE_INFO accessInfo = {0};
 
     BAIL_ON_INVALID_STRING(pszHostname);
     BAIL_ON_INVALID_STRING(pszDomain);
@@ -90,51 +86,14 @@ LsaNetJoinDomain(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if ( !(dwFlags & LSA_NET_JOIN_DOMAIN_NOTIMESYNC) )
-    {    
-        dwError = LsaSyncTimeToDC(pszDomain);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    ret = krb5_init_context(&ctx);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    /* Generates a new filed based credentials cache in /tmp. The file will
-     * be owned by root and only accessible by root.
-     */
-    ret = krb5_cc_new_unique(
-            ctx, 
-            "FILE",
-            "hint",
-            &cc);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    pszNewCachePath = krb5_cc_get_name(ctx, cc);
-    
-    dwError = LsaKrb5SetDefaultCachePath(
-              pszNewCachePath,
-              NULL);
+    dwError = LsaSetSMBAccessToken(
+                pszDomain,
+                pszUsername,
+                pszPassword,
+                dwFlags,
+                &accessInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5GetTgt(
-		pszUsername,
-		pszPassword,
-		pszNewCachePath,
-                NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = SMBCreateKrb5AccessTokenA(
-        pszUsername,
-        pszNewCachePath,
-        &hAccessToken);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = SMBSetThreadToken(hAccessToken);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = SMBCloseHandle(NULL, hAccessToken);
-    BAIL_ON_LSA_ERROR(dwError);
-    
     dwError = LsaMbsToWc16s(
                     pszHostname,
                     &pwszHostname);
@@ -195,7 +154,7 @@ LsaNetJoinDomain(
     
 cleanup:
 
-    SMBSetThreadToken(NULL);
+    LsaFreeSMBAccessTokenContents(&accessInfo);
 
     LSA_SAFE_FREE_STRING(pszOU_DN);
     LSA_SAFE_FREE_MEMORY(pwszHostname);
@@ -204,15 +163,6 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszOSName);
     LSA_SAFE_FREE_MEMORY(pwszOSVersion);
     LSA_SAFE_FREE_MEMORY(pwszOSServicePack);
-
-    if (ctx != NULL)
-    {
-        if (cc != NULL)
-        {
-            krb5_cc_destroy(ctx, cc);
-        }
-        krb5_free_context(ctx);
-    }
 
     return dwError;
     
