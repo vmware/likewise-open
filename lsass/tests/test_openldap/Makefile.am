@@ -18,4 +18,3 @@ test_openldap_LDADD = \
 	@KRB5_LIBS@ \
 	$(RT_LIBS)
 
-test_openldap_LDFLAGS = -static
