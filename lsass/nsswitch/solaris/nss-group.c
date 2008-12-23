@@ -177,6 +177,14 @@ LsaNssSolarisGroupGetgrgid(
          */
         ret = NSS_STATUS_UNAVAIL;
     }
+    else if (ret == NSS_STATUS_UNAVAIL && err == ECONNREFUSED)
+    {
+        /* Librestart on Solaris does not like it when getpwnam_r returns
+         * ECONNREFUSED. So instead, we'll treat this case like the user
+         * was not found (0 for errno but NULL for result).
+         */
+        errno = 0;
+    }
     else
     {
         errno = err;
@@ -217,6 +225,14 @@ LsaNssSolarisGroupGetgrnam(
          * is returned.
          */
         ret = NSS_STATUS_UNAVAIL;
+    }
+    else if (ret == NSS_STATUS_UNAVAIL && err == ECONNREFUSED)
+    {
+        /* Librestart on Solaris does not like it when getpwnam_r returns
+         * ECONNREFUSED. So instead, we'll treat this case like the user
+         * was not found (0 for errno but NULL for result).
+         */
+        errno = 0;
     }
     else
     {
