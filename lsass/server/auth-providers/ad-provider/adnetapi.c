@@ -1006,8 +1006,9 @@ AD_NetlogonAuthenticationUserEx(
     PWSTR pwszServerName = NULL;
     PWSTR pwszShortDomain = NULL;
     PWSTR pwszUsername = NULL;
-    PWSTR pwszUserPassword = NULL;
     PSTR pszHostname = NULL;
+    PWSTR pwszCcachePath = NULL;
+    PSTR pszCcachePath = NULL;
     HANDLE hPwdDb = (HANDLE)NULL;
     RPCSTATUS status = 0;
     handle_t netr_b = NULL;
@@ -1021,18 +1022,10 @@ AD_NetlogonAuthenticationUserEx(
     UINT8 dwAuthoritative = 0;
     PSTR pszServerName;
     DWORD dwDCNameLen = 0;
-
-    /* Establish the initial bind to \NETLOGON */
-
-    status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
-    if (status != 0)
-    {
-        LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
-                      pszDomainController, status);
-        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
-        bIsNetworkError = TRUE;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    PSTR pszP = NULL;
+    PBYTE pChal = NULL;
+    PBYTE pLMResp = NULL;
+    PBYTE pNTResp = NULL;
 
     /* Grab the machine password and account info */
 
@@ -1067,9 +1060,37 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszCcachePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Check if we need to skip the "FILE:" prefix since the LSMB
+       Krb Access token doesn't expect that */
+
+    pszP = pszCcachePath;
+    if (strncmp(pszP, "FILE:", 5) == 0) {
+        pszP += 5;
+    }
+
+    dwError = LsaMbsToWc16s(pszP, &pwszCcachePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Establish the initial bind to \NETLOGON */
+
+    status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
+    if (status != 0)
+    {
+        LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
+                      pszDomainController, status);
+        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        bIsNetworkError = TRUE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     /* Now setup the Schannel session */
 
     schn_b = OpenSchannel(netr_b,
+                          pMachAcctInfo->pwszMachineAccount,
+                          pwszCcachePath,
                           pwszDomainController,
                           pwszServerName,
                           pwszShortDomain,
@@ -1083,25 +1104,36 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LsaMbsToWc16s(pUserParams->pszAccountName, &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
-    nt_status = NetrSamLogon(schn_b,
-                             &Creds,
-                             pwszServerName,
-                             pwszShortDomain,
-                             pMachAcctInfo->pwszHostname,
-                             pwszUsername,
-                             pwszUserPassword,
-                             2,                /* Network login */
-                             3,                /* Return NetSamInfo3 */
-                             &pValidationInfo,
-                             &dwAuthoritative);
+    /* Get the data blob buffers */
 
-    if (status != STATUS_SUCCESS)
+    if (pUserParams->pass.chap.pChallenge)
+        pChal = LsaDataBlobBuffer(pUserParams->pass.chap.pChallenge);
+
+    if (pUserParams->pass.chap.pLM_resp)
+        pLMResp = LsaDataBlobBuffer(pUserParams->pass.chap.pLM_resp);
+
+    if (pUserParams->pass.chap.pNT_resp)
+        pNTResp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
+
+    nt_status = NetrSamLogonNetwork(schn_b,
+                                    &Creds,
+                                    pwszServerName,
+                                    pwszShortDomain,
+                                    pMachAcctInfo->pwszHostname,
+                                    pwszUsername,
+                                    pChal,
+                                    pLMResp,
+                                    pNTResp,
+                                    2,                /* Network login */
+                                    3,                /* Return NetSamInfo3 */
+                                    &pValidationInfo,
+                                    &dwAuthoritative);
+
+    if (nt_status != STATUS_SUCCESS)
     {
         dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-
-    CloseSchannel(schn_b, &SchanRes);
 
 cleanup:
     if (hPwdDb)
@@ -1131,6 +1163,8 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszServerName);
     LSA_SAFE_FREE_MEMORY(pwszShortDomain);
     LSA_SAFE_FREE_MEMORY(pszServerName);
+    LSA_SAFE_FREE_MEMORY(pszCcachePath);
+    LSA_SAFE_FREE_MEMORY(pwszCcachePath);
 
     return dwError;
 
