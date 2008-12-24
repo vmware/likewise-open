@@ -48,6 +48,14 @@
 #include "adprovider.h"
 #include "adnetapi.h"
 
+#include <lsmb/lsmb.h>
+
+static HANDLE ghSchannelAuthToken = NULL;
+static NetrCredentials gSchannelCreds = { 0 };
+static NETRESOURCE gSchannelRes = { 0 };
+static handle_t ghSchannelBinding = NULL;
+static pthread_mutex_t gSchannelLock = PTHREAD_MUTEX_INITIALIZER;
+
 DWORD
 AD_NetInitMemory(
     VOID
@@ -1016,19 +1024,17 @@ AD_NetlogonAuthenticationUserEx(
     RPCSTATUS status = 0;
     handle_t netr_b = NULL;
     PLWPS_PASSWORD_INFO pMachAcctInfo = NULL;
-    handle_t schn_b = NULL;
     BOOLEAN bIsNetworkError = FALSE;
-    NetrCredentials Creds = { 0 };
-    NETRESOURCE SchanRes = { 0 };
     NTSTATUS nt_status = STATUS_UNHANDLED_EXCEPTION;
     NetrValidationInfo  *pValidationInfo = NULL;
     UINT8 dwAuthoritative = 0;
     PSTR pszServerName;
     DWORD dwDCNameLen = 0;
-    PSTR pszP = NULL;
     PBYTE pChal = NULL;
     PBYTE pLMResp = NULL;
     PBYTE pNTResp = NULL;
+
+    pthread_mutex_lock(&gSchannelLock);
 
     /* Grab the machine password and account info */
 
@@ -1066,41 +1072,43 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszCcachePath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    /* Check if we need to skip the "FILE:" prefix since the LSMB
-       Krb Access token doesn't expect that */
-
-    pszP = pszCcachePath;
-    if (strncmp(pszP, "FILE:", 5) == 0) {
-        pszP += 5;
-    }
-
-    dwError = LsaMbsToWc16s(pszP, &pwszCcachePath);
+    dwError = LsaMbsToWc16s(pszCcachePath, &pwszCcachePath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    /* Establish the initial bind to \NETLOGON */
-
-    status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
-    if (status != 0)
+    if (!ghSchannelBinding)
     {
-        LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
-                      pszDomainController, status);
-        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
-        bIsNetworkError = TRUE;
+        /* Establish the initial bind to \NETLOGON */
+
+        status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
+        if (status != 0)
+        {
+            LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
+                          pszDomainController, status);
+            dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+            bIsNetworkError = TRUE;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        /* Now setup the Schannel session */
+
+        dwError = SMBCreateKrb5AccessTokenW(pMachAcctInfo->pwszMachineAccount,
+                                            pwszCcachePath,
+                                            &ghSchannelAuthToken);
         BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = SMBAccessTokenSetSchannel(ghSchannelAuthToken);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ghSchannelBinding = OpenSchannel(netr_b,
+                                         pMachAcctInfo->pwszMachineAccount,
+                                         pwszDomainController,
+                                         pwszServerName,
+                                         pwszShortDomain,
+                                         pMachAcctInfo->pwszHostname,
+                                         pMachAcctInfo->pwszMachinePassword,
+                                         &gSchannelCreds,
+                                         &gSchannelRes);
     }
-
-    /* Now setup the Schannel session */
-
-    schn_b = OpenSchannel(netr_b,
-                          pMachAcctInfo->pwszMachineAccount,
-                          pwszCcachePath,
-                          pwszDomainController,
-                          pwszServerName,
-                          pwszShortDomain,
-                          pMachAcctInfo->pwszHostname,
-                          pMachAcctInfo->pwszMachinePassword,
-                          &Creds,
-                          &SchanRes);
 
     /* Time to do the authentication */
 
@@ -1118,8 +1126,11 @@ AD_NetlogonAuthenticationUserEx(
     if (pUserParams->pass.chap.pNT_resp)
         pNTResp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
 
-    nt_status = NetrSamLogonNetwork(schn_b,
-                                    &Creds,
+    dwError = SMBSetThreadToken(ghSchannelAuthToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    nt_status = NetrSamLogonNetwork(ghSchannelBinding,
+                                    &gSchannelCreds,
                                     pwszServerName,
                                     pwszShortDomain,
                                     pMachAcctInfo->pwszHostname,
@@ -1131,6 +1142,9 @@ AD_NetlogonAuthenticationUserEx(
                                     3,                /* Return NetSamInfo3 */
                                     &pValidationInfo,
                                     &dwAuthoritative);
+
+    dwError = SMBSetThreadToken(NULL);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (nt_status != STATUS_SUCCESS)
     {
@@ -1157,17 +1171,14 @@ cleanup:
         netr_b = NULL;
     }
 
-    if (schn_b)
-    {
-        CloseSchannel(schn_b, &SchanRes);
-    }
-
     LSA_SAFE_FREE_MEMORY(pwszDomainController);
     LSA_SAFE_FREE_MEMORY(pwszServerName);
     LSA_SAFE_FREE_MEMORY(pwszShortDomain);
     LSA_SAFE_FREE_MEMORY(pszServerName);
     LSA_SAFE_FREE_MEMORY(pszCcachePath);
     LSA_SAFE_FREE_MEMORY(pwszCcachePath);
+
+    pthread_mutex_unlock(&gSchannelLock);
 
     return dwError;
 
