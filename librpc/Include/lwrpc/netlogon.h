@@ -42,7 +42,6 @@ handle_t
 OpenSchannel(
     handle_t netr_b,
     const wchar16_t * pwszMachineAccount,
-    const wchar16_t * pwszCcachePath,
     const wchar16_t * pwszHostname,
     const wchar16_t * pwszServer,
     const wchar16_t * pwszDomain,

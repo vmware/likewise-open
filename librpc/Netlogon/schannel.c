@@ -86,7 +86,6 @@ handle_t
 OpenSchannel(
     handle_t netr_b,
     const wchar16_t * pwszMachineAccount,
-    const wchar16_t * pwszCcachePath,
     const wchar16_t * pwszHostname,
     const wchar16_t * pwszServer,
     const wchar16_t * pwszDomain,
@@ -107,7 +106,6 @@ OpenSchannel(
     handle_t schn_b = NULL;
     size_t hostname_len = 0;
     uint32_t dwError = 0;
-    HANDLE auth = NULL;
 
     md4hash(pass_hash, pwszMachinePassword);
 
@@ -147,29 +145,6 @@ OpenSchannel(
     schnauth_info.domain_name  = awc16stombs(pwszDomain);
     schnauth_info.machine_name = awc16stombs(pwszComputer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
-
-    dwError =  SMBCreateKrb5AccessTokenW(pwszMachineAccount,
-                                         pwszCcachePath,
-                                         &auth);
-    if (dwError)
-    {
-        err = -1;
-        goto error;
-    }
-
-    dwError = SMBSetThreadToken(auth);
-    if (dwError)
-    {
-        err = -1;
-        goto error;
-    }
-
-    dwError = SMBCloseHandle(NULL, auth);
-    if (dwError)
-    {
-        err = -1;
-        goto error;
-    }
 
     schn_b = CreateNetlogonBinding(&schn_b, pwszHostname);
     if (schn_b == NULL)
@@ -221,8 +196,6 @@ CloseSchannel(
     {
         FreeNetlogonBinding(&schn_b);
     }
-
-    SMBSetThreadToken(NULL);
 
 close:
     SAFE_FREE(schnr->RemoteName);
