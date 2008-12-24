@@ -3359,6 +3359,7 @@ AD_FindObjectsByList(
                     ppszList,
                     &ppResults);
     BAIL_ON_LSA_ERROR(dwError);
+    sResultsCount = sCount;
 
     dwError = LsaAllocateMemory(
                     sCount*sizeof(*ppszRemainingList),
@@ -3404,7 +3405,6 @@ AD_FindObjectsByList(
         ppszRemainingList[sRemainNumsToFoundInAD++] = ppszList[sIndex];
     }
 
-    sResultsCount = sCount;
     AD_FilterNullEntries(ppResults, &sResultsCount);
     assert(sResultsCount == sFoundInCache);
 
@@ -3423,21 +3423,21 @@ AD_FindObjectsByList(
 
     sFoundInAD = dwFoundInAD;
 
-    sResultsCount += sFoundInAD;
-
     dwError = LsaDbStoreObjectEntries(
                     gpLsaAdProviderState->hCacheConnection,
                     sFoundInAD,
                     ppRemainingObjectsResults);
     BAIL_ON_LSA_ERROR(dwError);
 
+    // Filtering the null entries created enough space to append the
+    // entries looked up through AD.
     memcpy(ppResults + sFoundInCache,
            ppRemainingObjectsResults,
            sizeof(*ppRemainingObjectsResults) * sFoundInAD);
-
     memset(ppRemainingObjectsResults,
            0,
            sizeof(*ppRemainingObjectsResults) * sFoundInAD);
+    sResultsCount += sFoundInAD;
 
 cleanup:
 
