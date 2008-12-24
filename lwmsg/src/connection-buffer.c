@@ -94,7 +94,7 @@ lwmsg_connection_destruct_buffer(ConnectionBuffer* buffer)
         free(buffer->fd);
     }
 
-    memset(buffer, 0, sizeof(buffer));
+    memset(buffer, 0, sizeof(*buffer));
 }
 
 void
