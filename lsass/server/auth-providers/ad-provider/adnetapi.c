@@ -48,13 +48,19 @@
 #include "adprovider.h"
 #include "adnetapi.h"
 
-#include <lsmb/lsmb.h>
-
 static HANDLE ghSchannelAuthToken = NULL;
 static NetrCredentials gSchannelCreds = { 0 };
+static NetrCredentials* gpSchannelCreds = NULL;
 static NETRESOURCE gSchannelRes = { 0 };
+static NETRESOURCE* gpSchannelRes = NULL;
 static handle_t ghSchannelBinding = NULL;
 static pthread_mutex_t gSchannelLock = PTHREAD_MUTEX_INITIALIZER;
+
+static
+VOID
+AD_ClearSchannelState(
+    VOID
+    );
 
 DWORD
 AD_NetInitMemory(
@@ -83,6 +89,8 @@ AD_NetShutdownMemory(
     )
 {
     DWORD dwError = 0;
+
+    AD_ClearSchannelState();
 
     dwError = SamrDestroyMemory();
     BAIL_ON_LSA_ERROR(dwError);
@@ -1091,6 +1099,12 @@ AD_NetlogonAuthenticationUserEx(
 
         /* Now setup the Schannel session */
 
+        if (ghSchannelAuthToken)
+        {
+            SMBCloseHandle(NULL, ghSchannelAuthToken);
+            ghSchannelAuthToken = NULL;
+        }
+
         dwError = SMBCreateKrb5AccessTokenW(pMachAcctInfo->pwszMachineAccount,
                                             pwszCcachePath,
                                             &ghSchannelAuthToken);
@@ -1108,6 +1122,15 @@ AD_NetlogonAuthenticationUserEx(
                                          pMachAcctInfo->pwszMachinePassword,
                                          &gSchannelCreds,
                                          &gSchannelRes);
+
+       if (!ghSchannelBinding)
+       {
+           dwError = LSA_ERROR_RPC_ERROR;
+           BAIL_ON_LSA_ERROR(dwError);
+       }
+
+       gpSchannelCreds = &gSchannelCreds;
+       gpSchannelRes = &gSchannelRes;
     }
 
     /* Time to do the authentication */
@@ -1186,6 +1209,35 @@ error:
     goto cleanup;
 }
 
+static
+VOID
+AD_ClearSchannelState(
+    VOID
+    )
+{
+    pthread_mutex_lock(&gSchannelLock);
+
+    if (ghSchannelBinding)
+    {
+        CloseSchannel(ghSchannelBinding, gpSchannelRes);
+
+        ghSchannelBinding = NULL;
+
+        memset(&gSchannelCreds, 0, sizeof(gSchannelCreds));
+        gpSchannelCreds = NULL;
+
+        memset(&gSchannelRes, 0, sizeof(gSchannelRes));
+        gpSchannelRes = NULL;
+    }
+
+    if (ghSchannelAuthToken)
+    {
+        SMBCloseHandle(NULL, ghSchannelAuthToken);
+        ghSchannelAuthToken = NULL;
+    }
+
+    pthread_mutex_unlock(&gSchannelLock);
+}
 
 /*
 local variables:
