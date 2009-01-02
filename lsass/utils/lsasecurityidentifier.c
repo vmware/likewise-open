@@ -247,21 +247,31 @@ LsaReplaceSidRid(
     )
 {
     DWORD dwError = 0;
-    LSA_SECURITY_IDENTIFIER sid = { 0 };
+    PLSA_SECURITY_IDENTIFIER pSid = NULL;
 
-   dwError = LsaSidStringToBytes(
-                   pszSid,
-                   &sid.pucSidBytes,
-                   &sid.dwByteLength);
-   BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSetSecurityIdentifierRid(&sid, dwNewRid);
+    dwError = LsaAllocateMemory(
+                    sizeof(*pSid),
+                    (PVOID*)&pSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaGetSecurityIdentifierString(&sid, ppszNewSid);
+    dwError = LsaSidStringToBytes(
+                    pszSid,
+                    &pSid->pucSidBytes,
+                    &pSid->dwByteLength);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSetSecurityIdentifierRid(pSid, dwNewRid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaGetSecurityIdentifierString(pSid, ppszNewSid);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    if (pSid)
+    {
+        LsaFreeSecurityIdentifier(pSid);
+    }
+
     return dwError;
 
 error:
