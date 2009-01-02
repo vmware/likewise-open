@@ -180,6 +180,67 @@ error:
     goto cleanup;
 }
 
+idl_long_int
+RpcLWIGetCategoryCount(
+    handle_t    bindingHandle,
+    unsigned32* pdwNumMatched
+    )
+{
+    DWORD  dwError = 0;
+    HANDLE hDB = (HANDLE)NULL;
+
+    dwError =  SrvOpenEventDatabase(&hDB);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = SrvGetCategoryCount( hDB,
+                                   (PDWORD)pdwNumMatched);
+    BAIL_ON_EVT_ERROR(dwError);
+
+
+cleanup:
+
+    if (hDB != (HANDLE)NULL) {
+        SrvCloseEventDatabase(hDB);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+idl_long_int
+RpcLWIGetDistinctCategories(
+    handle_t    bindingHandle,
+    unsigned32  dwCatCount,
+    EVENT_LOG_CATEGORY*  pCategory
+    )
+{
+    DWORD  dwError = 0;
+    HANDLE hDB = (HANDLE)NULL;
+
+    dwError =  SrvOpenEventDatabase(&hDB);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = SrvGetDistinctCategories( hDB,
+                                        &pCategory);
+    BAIL_ON_EVT_ERROR(dwError);
+
+
+cleanup:
+
+    if (hDB != (HANDLE)NULL) {
+        SrvCloseEventDatabase(hDB);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 
 idl_long_int
 RpcLWIWriteEventLog(

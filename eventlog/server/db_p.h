@@ -88,6 +88,18 @@ SrvEventLogCount(
     );
 
 DWORD
+SrvGetDistinctCategories(
+    HANDLE hDB,
+    PEVENT_LOG_CATEGORY* ppCategory
+    );
+
+DWORD
+SrvGetCategoryCount(
+    HANDLE hDB,
+    PDWORD pdwCount
+    );
+
+DWORD
 SrvReadEventLog(
     HANDLE hDB,
     DWORD  dwStartingRowId,
