@@ -551,30 +551,33 @@ CTCreateConfigSection(
     pSectionList = *ppSectionList;
 
     pSection = pSectionList;
-    while (pSection) {
+    while (pSection)
+    {
         if (!strcmp(pSection->pszName, pszSectionName))
             break;
+
+        pSection = pSection->pNext;
     }
 
-    if (!pSection) {
+    if (!pSection)
+    {
         ceError = CTAllocateMemory(sizeof(CFGSECTION), (PVOID*)&pSection);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
         ceError = CTAllocateString(pszSectionName, &pSection->pszName);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
-        if (!pSectionList) {
-
+        if (!pSectionList)
+        {
             pSectionList = pSection;
-
-        } else {
-
+        }
+        else
+        {
             pTmpSection = pSectionList;
             while (pTmpSection->pNext)
                 pTmpSection = pTmpSection->pNext;
 
             pTmpSection->pNext = pSection;
-
         }
     }
 
@@ -648,15 +651,19 @@ CTSetConfigValueBySectionName(
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    while (pSectionList) {
-        if (!strcmp(pSectionList->pszName, pszSectionName)) {
-            pSection = pSectionList;
+    pSection = pSectionList;
+
+    while (pSection)
+    {
+        if (!strcmp(pSection->pszName, pszSectionName))
+        {
             break;
         }
-        pSectionList = pSectionList->pNext;
+        pSection = pSection->pNext;
     }
 
-    if (!pSection) {
+    if (!pSection)
+    {
         ceError = CTCreateConfigSection(&pSectionList, &pSection, pszSectionName);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
@@ -670,7 +677,8 @@ CTSetConfigValueBySectionName(
 
 error:
 
-    if (pNVPair) {
+    if (pNVPair)
+    {
         CTFreeNVPair(pNVPair);
     }
 
