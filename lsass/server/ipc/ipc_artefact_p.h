@@ -47,34 +47,36 @@
 #ifndef __IPC_ARTEFACT_H__
 #define __IPC_ARTEFACT_H__
 
-DWORD
+LWMsgStatus
 LsaSrvIpcFindNSSArtefactByKey(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcBeginEnumNSSArtefacts(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEnumNSSArtefacts(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEndEnumNSSArtefacts(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
-    );
-
-DWORD
-LsaMarshalNSSArtefactInfoError(
-    DWORD dwErrCode,
-    PLSAMESSAGE* ppMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 #endif /* __IPC_ARTEFACT_H__ */

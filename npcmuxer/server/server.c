@@ -57,7 +57,6 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
-#include <sys/wait.h>
 
 #include <npcmsg.h>
 #include "proxy.h"
@@ -289,55 +288,6 @@ typedef struct _CTX {
 } CTX;
 
 static
-void
-CleanupChild(void* _pid)
-{
-    pid_t pid = (pid_t) (size_t) _pid;
-
-    CT_LOG_VERBOSE("Cleaning up child process %i...", (int) pid);
-    kill(pid, SIGTERM);
-    while (waitpid(pid, NULL, 0) != pid);
-    CT_LOG_VERBOSE("Child process %i done", (int) pid);
-
-}
-
-static
-void
-ChildTermHandler(int sig)
-{
-    _exit(0);
-}
-
-static
-void
-ChildSetup(CT_SERVER_CLIENT_HANDLE handle)
-{
-    sigset_t set;
-    int i;
-    int fd;
-    
-    /* Unblock signals now that we are a different process instead of just a different thread */
-    sigemptyset(&set);
-    sigprocmask(SIG_SETMASK, &set, NULL);
-    /* Create a handler for the term signal that exits without triggering atexit() callbacks */
-    signal(SIGTERM, ChildTermHandler);
-
-    /* Close fds we don't need */
-    fd = CtServerClientGetFd(handle);
-
-    for (i = 3; i < 1000; i++)
-    {
-        if (i != fd)
-        {
-            if (close(i) == 0)
-            {
-                CT_LOG_INFO("Successfully closed unneeded fd %i", i);
-            }
-        }
-    }
-}
-
-static
 CT_STATUS
 HandleConnectCheckCreds(
     IN CT_SERVER_CLIENT_HANDLE Handle,
@@ -360,10 +310,7 @@ HandleConnectCheckCreds(
     const char* username = NULL;
     const char* password = NULL;
     const char* credCache = NULL;
-    CT_STATUS localStatus = 0;
-    /* Initialize child pid to our own pid rather than 0 since 0 indicates
-       being in the child process after the fork */
-    pid_t child = getpid();
+    CT_STATUS localStatus;
 
     status = CtServerReadMessageData(fd, Size, (void**)&message);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -409,35 +356,10 @@ HandleConnectCheckCreds(
                  password ? ((*password) ? "*" : "") : "(null)",
                  CT_LOG_WRAP_STRING(credCache));
 
-    /* Because libsmbclient is not thread-safe, fork into a child process before
-       setting up the connection */
-    child = fork();
-
-    if (child == -1)
-    {
-        status = CT_ERRNO_TO_STATUS(errno);
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-    }
-    else if (child != 0)
-    {
-        /* In parent.  Wait for child to finish and then get out of here */
-        pthread_cleanup_push(CleanupChild, (void*) (size_t) child);
-        CT_LOG_VERBOSE("Spawned child process %i", (int) child);
-        while (waitpid(child, NULL, 0) != child);
-        CT_LOG_VERBOSE("Child process %i done", (int) child);
-        pthread_cleanup_pop(0);
-        goto cleanup;
-    }
-    else
-    {
-        /* In child */
-        ChildSetup(Handle);
-
-        localStatus = ProxyConnectionCheckCreds(Context->Proxy, uid, protocol,
-                                                address, endpoint, options,
-                                                message->AuthFlags,
-                                                username, password, credCache);
-    }
+    localStatus = ProxyConnectionCheckCreds(Context->Proxy, uid, protocol,
+                                            address, endpoint, options,
+                                            message->AuthFlags,
+                                            username, password, credCache);
 
     CT_LOG_TRACE("replying 0x%08x", localStatus);
     status = ReplyStatus(fd, Version, localStatus);
@@ -446,12 +368,6 @@ HandleConnectCheckCreds(
 cleanup:
     CT_SAFE_FREE(message);
     CT_LOG_TRACE("status = 0x%08x (EE = %d)", status, EE);
-
-    if (child == 0)
-    {
-        _exit(0);
-    }
-
     return status;
 }
 
@@ -485,13 +401,10 @@ HandleConnect(
     const char* endpoint = NULL;
     const char* options = NULL;
     const char* credCache = NULL;
-    CT_STATUS localStatus = 0;
+    CT_STATUS localStatus;
     PROXY_CONNECTION_HANDLE connection = NULL;
     size_t SessKeyLen = 0;
     unsigned char* SessKey = NULL;
-    /* Initialize child pid to our own pid rather than 0 since 0 indicates
-       being in the child process after the fork */
-    pid_t child = getpid();
 
     status = CtServerReadMessageData(fd, Size, (void**)&message);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -527,36 +440,15 @@ HandleConnect(
                  CT_LOG_WRAP_STRING(credCache),
                  message->Token);
 
-    /* Because libsmbclient is not thread-safe, fork into a child process before
-       setting up the connection */
-    child = fork();
-
-    if (child == -1)
+    localStatus = ProxyConnectionOpen(&connection, Context->Proxy, fd, uid,
+                                      protocol, address, endpoint, options, credCache, message->Token,
+				      &SessKeyLen, &SessKey);
+#if 0
+    if (CT_STATUS_IS_OK(localStatus))
     {
-        status = CT_ERRNO_TO_STATUS(errno);
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+        CtServerDissociate(Handle);
     }
-    else if (child != 0)
-    {
-        /* In parent.  Wait for child to finish and then get out of here */
-        pthread_cleanup_push(CleanupChild, (void*) (size_t) child);
-        CT_LOG_VERBOSE("Spawned child process %i", (int) child);
-        while (waitpid(child, NULL, 0) != child);
-        CT_LOG_VERBOSE("Child process %i done", (int) child);
-        pthread_cleanup_pop(0);
-        goto cleanup;
-    }
-    else
-    {
-        /* In child */
-        ChildSetup(Handle);
-
-        /* Open SMB connection */
-
-        localStatus = ProxyConnectionOpen(&connection, Context->Proxy, fd, uid,
-                                          protocol, address, endpoint, options, credCache, message->Token,
-                                          &SessKeyLen, &SessKey);
-    }
+#endif
 
     replySize = sizeof(NPC_MSG_PAYLOAD_SESSION_KEY) + SessKeyLen;
     status = CtAllocateMemory((void**)&reply, replySize);
@@ -591,13 +483,6 @@ cleanup:
     }
     CT_SAFE_FREE(message);
     CT_LOG_TRACE("status = 0x%08x (EE = %d)", status, EE);
-
-    if (child == 0)
-    {
-        /* We are the child, so exit completely */
-        _exit(0);
-    }
-
     return status;
 }
 

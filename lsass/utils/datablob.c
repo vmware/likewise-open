@@ -75,6 +75,8 @@ LsaDataBlobAllocate(
 
 		memset(pBlob->pData, 0x0, pBlob->dwLen);		
 	}
+
+	*ppBlob = pBlob;
 	
 cleanup:
 	return dwError;

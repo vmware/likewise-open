@@ -95,6 +95,28 @@ LsaFreeNSSArtefactInfo_0(
     LsaFreeMemory(pNSSArtefactInfo);
 }
 
+void
+LsaFreeIpcNssArtefactInfoList(
+    PLSA_NSS_ARTEFACT_INFO_LIST pNssArtefactIpcInfoList
+    )
+{
+    if (pNssArtefactIpcInfoList)
+    {
+        switch (pNssArtefactIpcInfoList->dwNssArtefactInfoLevel)
+        {
+            case 0:
+                LsaFreeNSSArtefactInfoList(0, (PVOID*)pNssArtefactIpcInfoList->ppNssArtefactInfoList.ppInfoList0, pNssArtefactIpcInfoList->dwNumNssArtefacts);
+                break;
+
+            default:
+            {
+                LSA_LOG_ERROR("Unsupported Nss Artefact Info Level [%d]", pNssArtefactIpcInfoList->dwNssArtefactInfoLevel);
+            }
+        }
+        LsaFreeMemory(pNssArtefactIpcInfoList);
+    }
+}
+
 DWORD
 LsaCoalesceNSSArtefactInfoList(
     PVOID** pppNSSArtefactInfoList,

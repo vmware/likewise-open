@@ -26,6 +26,7 @@ gss_import_sec_context
 gss_indicate_mechs
 gss_init_sec_context
 gss_inquire_context
+gss_inquire_context2
 gss_inquire_cred
 gss_inquire_cred_by_mech
 gss_inquire_mechs_for_name

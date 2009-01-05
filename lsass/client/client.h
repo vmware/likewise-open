@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        client.h
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        API (Client)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -52,6 +52,8 @@
 
 #include "lsadef.h"
 
+#include <lwmsg/lwmsg.h>
+
 #include "lsaclient.h"
 #include "lsaipc.h"
 
@@ -62,4 +64,6 @@
 #include "session_p.h"
 #include "users_p.h"
 #include "config_p.h"
+
+#include "ntlmgsssrv.h"
 

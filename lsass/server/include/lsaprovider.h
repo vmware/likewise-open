@@ -65,6 +65,12 @@ typedef DWORD (*PFNAUTHENTICATEUSER)(
                         PCSTR  pszPassword
                         );
 
+typedef DWORD (*PFNAUTHENTICATEUSEREX)(
+                        HANDLE hProvider,
+                        PLSA_AUTH_USER_PARAMS pUserParams,
+                        PLSA_AUTH_USER_INFO *ppUserInfo
+                        );
+
 typedef DWORD (*PFNVALIDATEUSER)(
                         HANDLE hProvider,
                         PCSTR  pszLoginId,
@@ -256,6 +262,7 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNCLOSEHANDLE                 pfnCloseHandle;
     PFNSERVICESDOMAIN              pfnServicesDomain;
     PFNAUTHENTICATEUSER            pfnAuthenticateUser;
+    PFNAUTHENTICATEUSEREX          pfnAuthenticateUserEx;
     PFNVALIDATEUSER                pfnValidateUser;
     PFNCHECKUSERINLIST             pfnCheckUserInList;
     PFNLOOKUPUSERBYNAME            pfnLookupUserByName;

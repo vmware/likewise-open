@@ -51,6 +51,7 @@
 DWORD
 LsaSrvBeginEnumNSSArtefacts(
     HANDLE hServer,
+    HANDLE hServerEnum,
     PCSTR  pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwNSSArtefactInfoLevel,
@@ -70,7 +71,7 @@ LsaSrvEnumNSSArtefacts(
 DWORD
 LsaSrvEndEnumNSSArtefacts(
     HANDLE hServer,
-    PSTR   pszGUID
+    PCSTR  pszGUID
     );
 
 #endif /* __ARTEFACTS_P_H__ */

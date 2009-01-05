@@ -49,7 +49,7 @@
 
 #define MAX_SID_STRING_LEN 1024
 
-DWORD SidCopy(struct wbcDomainSid *dst, struct wbcDomainSid *src)
+static DWORD _sidCopy(struct wbcDomainSid *dst, struct wbcDomainSid *src)
 {
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 
@@ -64,7 +64,7 @@ done:
 	return dwErr;	
 }
 
-DWORD SidAppendRid(struct wbcDomainSid *sid, DWORD rid)
+static DWORD _sidAppendRid(struct wbcDomainSid *sid, DWORD rid)
 {
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 
@@ -273,6 +273,7 @@ wbcErr wbcLookupName(const char *dom_name,
 done:
 	if ( hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}	
 
 	if (pUserInfo) {
@@ -374,6 +375,7 @@ done:
 	
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 
 	if (dwErr != LSA_ERROR_SUCCESS) {
@@ -417,10 +419,10 @@ wbcErr wbcLookupRids(struct wbcDomainSid *dom_sid,
 	}
 
 	for (i=0; i<num_rids; i++) {
-		dwErr = SidCopy(&sid, dom_sid);
+		dwErr = _sidCopy(&sid, dom_sid);
 		BAIL_ON_LSA_ERR(dwErr);
 
-		dwErr = SidAppendRid(&sid, rids[i]);
+		dwErr = _sidAppendRid(&sid, rids[i]);
 		BAIL_ON_LSA_ERR(dwErr);
 
 		wbc_status = wbcLookupSid(&sid,

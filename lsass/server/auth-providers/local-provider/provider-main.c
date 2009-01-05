@@ -257,6 +257,19 @@ error:
     goto cleanup;
 }
 
+
+DWORD
+LsaProviderLocal_AuthenticateUserEx(
+    HANDLE hProvider,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUserInfo
+    )
+{
+	/* Let the provider routing ignore this call */
+
+	return LSA_ERROR_NOT_HANDLED;
+}
+
 DWORD
 LsaProviderLocal_ValidateUser(
     HANDLE hProvider,

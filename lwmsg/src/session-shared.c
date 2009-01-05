@@ -361,15 +361,12 @@ shared_leave_session(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     SharedPrivate* priv = lwmsg_session_manager_get_private(manager);
 
-    session_lock(session);
-    
+    shared_lock(priv);
+
     session->refs--;
 
     if (session->refs == 0)
     {
-
-        shared_lock(priv);
-
         if (priv->sessions == session)
         {
             priv->sessions = priv->sessions->next;
@@ -385,14 +382,10 @@ shared_leave_session(
             session->prev->next = session->next;
         }
 
-        shared_unlock(priv);
-        session_unlock(session);
         shared_free_session(session);
     }
-    else
-    {
-        session_unlock(session);
-    }
+
+    shared_unlock(priv);
 
     return status;
 }

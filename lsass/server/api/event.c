@@ -47,7 +47,7 @@
 #include "api.h"
 
 VOID
-LsaSrvWriteLoginSuccessEvent(  
+LsaSrvWriteLoginSuccessEvent(
     HANDLE hServer,
     PCSTR  pszLoginId,
     DWORD  dwErrCode
@@ -58,19 +58,19 @@ LsaSrvWriteLoginSuccessEvent(
     PSTR pszData = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
-    {        
+    {
         dwError = LsaSrvOpenEventLog(
                       "Security",
-                      &pServerState->hEventLog);       
-        BAIL_ON_LSA_ERROR(dwError); 
+                      &pServerState->hEventLog);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaGetErrorMessageForLoggingEvent(
                      dwErrCode,
                      &pszData);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvLogSuccessAuditEvent(       
+
+    dwError = LsaSrvLogSuccessAuditEvent(
                      pServerState->hEventLog,
                      LOGIN_EVENT_CATEGORY,
                      pszLoginId,
@@ -98,24 +98,24 @@ LsaSrvWriteLoginFailedEvent(
     DWORD  dwErrCode
     )
 {
-    DWORD dwError = 0;    
+    DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     PSTR  pszData = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
-    {        
+    {
         dwError = LsaSrvOpenEventLog(
                       "Security",
-                      &pServerState->hEventLog);       
-        BAIL_ON_LSA_ERROR(dwError); 
+                      &pServerState->hEventLog);
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaGetErrorMessageForLoggingEvent(
                      dwErrCode,
                      &pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvLogFailureAuditEvent(       
+    dwError = LsaSrvLogFailureAuditEvent(
                      pServerState->hEventLog,
                      LOGIN_EVENT_CATEGORY,
                      pszLoginId,
@@ -143,32 +143,32 @@ LsaSrvWriteLogoutSuccessEvent(
     DWORD  dwErrCode
     )
 {
-    DWORD dwError = 0; 
+    DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     PSTR pszData = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
-    {        
+    {
         dwError = LsaSrvOpenEventLog(
                       "Security",
-                      &pServerState->hEventLog);       
-        BAIL_ON_LSA_ERROR(dwError); 
+                      &pServerState->hEventLog);
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaGetErrorMessageForLoggingEvent(
                      dwErrCode,
                      &pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvLogSuccessAuditEvent(       
+    dwError = LsaSrvLogSuccessAuditEvent(
                      pServerState->hEventLog,
                      LOGOUT_EVENT_CATEGORY,
                      pszLoginId,
                      pszData);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
-    
+
     LSA_SAFE_FREE_STRING(pszData);
 
     return;
@@ -193,25 +193,25 @@ LsaSrvWriteLogoutFailedEvent(
     PSTR pszData = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
-    {        
+    {
         dwError = LsaSrvOpenEventLog(
                       "Security",
-                      &pServerState->hEventLog);       
-        BAIL_ON_LSA_ERROR(dwError); 
+                      &pServerState->hEventLog);
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     dwError = LsaGetErrorMessageForLoggingEvent(
                      dwErrCode,
                      &pszData);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvLogFailureAuditEvent(       
+
+    dwError = LsaSrvLogFailureAuditEvent(
                      pServerState->hEventLog,
                      LOGOUT_EVENT_CATEGORY,
                      pszLoginId,
                      pszData);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszData);

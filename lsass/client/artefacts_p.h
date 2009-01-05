@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,11 +36,11 @@
  *        groups_p.h
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Private Header (Library)
- * 
+ *
  *        NSSArtefact Lookup and Management API (Client)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -49,21 +49,9 @@
 #ifndef __ARTEFACTS_P_H__
 #define __ARTEFACTS_P_H__
 
-typedef struct __LSA_ENUM_NSS_ARTEFACTS_INFO
-{
-    DWORD dwNSSArtefactInfoLevel;
-    DWORD dwNumMaxNSSArtefacts;
-    PSTR  pszGUID;
-} LSA_ENUM_NSS_ARTEFACTS_INFO, *PLSA_ENUM_NSS_ARTEFACTS_INFO;
-
 DWORD
 LsaValidateNSSArtefactInfoLevel(
     DWORD dwNSSArtefactInfoLevel
-    );
-
-VOID
-LsaFreeEnumNSSArtefactsInfo(
-    PLSA_ENUM_NSS_ARTEFACTS_INFO pInfo
     );
 
 #endif /* __NSS_ARTEFACTS_P_H__ */

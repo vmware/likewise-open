@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -94,7 +94,7 @@ NTLMInsertContext(NTLM_CONTEXT *pCtxt)
 
     NTLM_UNLOCK_CONTEXTS();
 }
-   
+
 static void
 NTLMFreeContext(NTLM_CONTEXT *pCtxt)
 {
@@ -138,7 +138,7 @@ NTLMReferenceContext(NTLM_CONTEXT *pCtxt)
 }
 
 PNTLM_CONTEXT
-NTLMLocateContext( 
+NTLMLocateContext(
     PNTLM_CONTEXT pCtxt,
     PNTLM_CREDENTIAL pCredential,
     DWORD direction
@@ -150,7 +150,7 @@ NTLMLocateContext(
     NTLM_LOCK_CONTEXTS();
 
     node = NTLMListFindNode(
-            g_contextList, 
+            g_contextList,
             &pCtxt->link
             );
 
@@ -183,7 +183,7 @@ NTLMCreateContext(
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     PNTLM_CONTEXT pCtxt = NULL;
-   
+
     NTLM_LOCK_CONTEXTS();
 
     pCtxt = (PNTLM_CONTEXT) NTLMAllocateMemory(sizeof(NTLM_CONTEXT));
@@ -193,7 +193,7 @@ NTLMCreateContext(
     /* we need the credential handle to live alongside of context */
 
     /* assign default handler - e.g. negotiate message */
-    if (direction & CONTEXT_SERVER) 
+    if (direction & CONTEXT_SERVER)
         pCtxt->processNextMessage = NTLMProcessNegotiateMessage;
     else
         pCtxt->processNextMessage = NTLMBuildNegotiateMessage;
@@ -229,10 +229,10 @@ error:
 
 /*
  * NTLMCleanupContextSystem
- * 
- * @todo - This should only be called *after* all of the 
+ *
+ * @todo - This should only be called *after* all of the
  * outstanding RPC calls have been made.
- */ 
+ */
 void
 NTLMCleanupContextSystem(DWORD dwInitFlags)
 {
@@ -266,7 +266,7 @@ NTLMInitializeContextSystem( void )
 
     if (pthread_mutex_init(&g_contextMtx, &attr))
         return LSA_ERROR_INTERNAL;
-	
+
     dwInitialized |= NTLM_CONTEXT_MUTEX_INIT;
 
     return LSA_ERROR_SUCCESS;
@@ -277,9 +277,6 @@ error:
 
     return dwError;
 }
-
-
-
 
 
 /*
@@ -309,7 +306,7 @@ NTLMGssInitSecContext(
     SEC_BUFFER outputToken;
 
     ZERO_STRUCT(outputToken);
-    
+
     pCtxt = (PNTLM_CONTEXT) (*pContext);
 
     /* locate, and reference credential handle */
@@ -336,7 +333,7 @@ NTLMGssInitSecContext(
     /* if null context, create a new one */
     if (pCtxt == (PNTLM_CONTEXT) GSS_C_NO_CONTEXT) {
 
-        dwError = NTLMCreateContext( 
+        dwError = NTLMCreateContext(
                         pCred,
                         CONTEXT_CLIENT,
                         &pCtxt
@@ -453,7 +450,7 @@ NTLMGssAcceptSecContext(
     /* if null context, create a new one */
     if (*pContext == GSS_C_NO_CONTEXT) {
 
-        dwError = NTLMCreateContext( 
+        dwError = NTLMCreateContext(
                         pCred,
                         CONTEXT_SERVER,
                         &pCtxt
@@ -544,7 +541,7 @@ NTLMContextGetMarshaledCreds(
     DWORD dwError;
     NTLM_LOCK_CONTEXTS(pCtxt);
     dwError = NTLMAllocCopySecBuffer(
-                    credCopy, 
+                    credCopy,
                     &pCtxt->cred->marshaledCredential
                     );
 
@@ -567,18 +564,18 @@ NTLMGssExportSecContext(
     DWORD dwError;
     PNTLM_CONTEXT pCtxt = NULL;
     BYTE tmp[S_BUFLEN];
-    
+
     NTLM_PACKED_CONTEXT prepackedContext;
-    
+
     ZERO_STRUCT(prepackedContext);
-    
+
     pCtxt = NTLMLocateContext(
                     (PNTLM_CONTEXT) pContext,
                     NULL,
                     CONTEXT_BOTH
                     );
 
-    if (pCtxt == NULL) 
+    if (pCtxt == NULL)
     {
         dwError = LSA_ERROR_NO_CONTEXT;
         BAIL_ON_NTLM_ERROR(dwError);
@@ -611,7 +608,7 @@ NTLMGssExportSecContext(
 
         BAIL_ON_NTLM_ERROR(dwError);
     }
-                    
+
 
     dwError = NTLMPackContext(
                     &prepackedContext,
@@ -642,14 +639,14 @@ NTLMGssDeleteSecContext(
 
     DWORD dwError = LSA_ERROR_SUCCESS;
     PNTLM_CONTEXT pCtxt = NULL;
-    
+
     pCtxt = NTLMLocateContext(
                     (PNTLM_CONTEXT) pContext,
                     NULL,
                     CONTEXT_BOTH
                     );
 
-    if (pCtxt == NULL) 
+    if (pCtxt == NULL)
     {
         dwError = LSA_ERROR_NO_CONTEXT;
         BAIL_ON_NTLM_ERROR(dwError);
@@ -669,10 +666,10 @@ error:
 
 /*
  *  GSS SEC CONTEXT APIs
- *  
+ *
  *  The following are stubs into IPC calls
  *
- */  
+ */
 
 OM_uint32
 ntlm_gss_init_sec_context(
@@ -700,14 +697,14 @@ ntlm_gss_init_sec_context(
     ZERO_STRUCT(targetName);
     ZERO_STRUCT(channelBindings);
     ZERO_STRUCT(outputToken);
-    
+
     *minorStatus = GSS_S_COMPLETE;
 
     dwError = NTLMInitializedCheck();
     BAIL_ON_NTLM_ERROR(dwError);
 
     /* @todo - validate parameters */
-    if (credHandle == NULL) 
+    if (credHandle == NULL)
     {
         dwError = LSA_ERROR_NO_CRED;
         BAIL_ON_NTLM_ERROR(dwError);
@@ -772,7 +769,7 @@ error:
     goto cleanup;
 
 }
-	 
+
 
 OM_uint32
 ntlm_gss_accept_sec_context(
@@ -828,9 +825,9 @@ ntlm_gss_accept_sec_context(
     MAKE_GSS_BUFFER(gssOutputToken, &outputToken);
     outputToken.buffer = NULL;
 
-    /* @todo translate actual mech type back */    
+    /* @todo translate actual mech type back */
     /* @todo src name */
-    
+
 
 cleanup:
 
@@ -890,7 +887,7 @@ error:
 
     /* this should delete the context */
     NTLMDereferenceContext(gssContext);
-    
+
     (*minorStatus) = NTLMTranslateMinorStatus(*minorStatus);
 
     return NTLMTranslateMajorStatus(majorStatus);

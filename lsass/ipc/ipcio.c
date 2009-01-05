@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -56,11 +56,11 @@ LsaWriteData(
     DWORD dwError = 0;
     DWORD dwRemaining = dwLen;
     PSTR  pStr = pszBuf;
-    
+
     while (dwRemaining > 0) {
-        
+
         int nWritten = write(dwFd, pStr, dwRemaining);
-        
+
         if (nWritten < 0)
         {
             if (errno != EAGAIN && errno != EINTR)
@@ -75,33 +75,7 @@ LsaWriteData(
             pStr += nWritten;
         }
     }
-    
-error:
 
-    return (dwError);
-}
-
-DWORD
-LsaSendMsg(
-    DWORD dwFd,
-    const struct msghdr *pMsg
-    )
-{
-    DWORD dwError = 0;
-    ssize_t result = -1;
-
-    do
-    {
-        result = sendmsg(dwFd, pMsg, 0);
-        
-    } while (result < 0 && (errno == EAGAIN || errno == EINTR));
-
-    if (result < 0)
-    {
-        dwError = errno;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
 error:
 
     return (dwError);
@@ -135,7 +109,7 @@ LsaReadData(
           FD_SET(dwFd, &read_fd_set);
 
           maxfd = dwFd + 1;
-          
+
           timeout.tv_sec = 5;
           timeout.tv_usec = 0;
 
@@ -150,11 +124,11 @@ LsaReadData(
              BAIL_ON_LSA_ERROR(dwError);
 
           } else if (select_status == 0) {
-            
+
             /* timed out */
 
-          } else {    
-          
+          } else {
+
              if (FD_ISSET(dwFd, &read_fd_set)) {
 
                 int nBytesRead = read(dwFd, pCurPos, dwBytesLeftToRead);
@@ -193,27 +167,4 @@ LsaReadData(
     return (dwError);
 }
 
-DWORD
-LsaRecvMsg(
-    DWORD dwFd,
-    struct msghdr *pMsg
-    )
-{
-    DWORD dwError = 0;
-    ssize_t result = -1;
 
-    do
-    {
-        result = recvmsg(dwFd, pMsg, 0);
-    } while (result < 0 && (errno == EAGAIN || errno == EINTR));
-
-    if (result < 0)
-    {
-        dwError = errno;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-error:
-
-    return (dwError);
-}

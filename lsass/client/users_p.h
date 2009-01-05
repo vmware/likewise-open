@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,11 +36,11 @@
  *        users_p.h
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Private Header (Library)
- * 
+ *
  *        User Lookup and Management API (Client)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -48,13 +48,6 @@
  */
 #ifndef __USERS_P_H__
 #define __USERS_P_H__
-
-typedef struct __LSA_ENUM_USERS_INFO
-{
-    DWORD dwUserInfoLevel;
-    DWORD dwNumMaxUsers;
-    PSTR  pszGUID;
-} LSA_ENUM_USERS_INFO, *PLSA_ENUM_USERS_INFO;
 
 LSASS_API
 DWORD
@@ -103,7 +96,7 @@ DWORD
 LsaEnumUsers(
     HANDLE  hLsaConnection,
     HANDLE  hResume,
-    PDWORD  pdwNumUsersFound,    
+    PDWORD  pdwNumUsersFound,
     PVOID** pppUserInfoList
     );
 
@@ -126,11 +119,6 @@ DWORD
 LsaDeleteUserByName(
     HANDLE hLsaConnection,
     PCSTR  pszName
-    );
-
-VOID
-LsaFreeEnumUsersInfo(
-    PLSA_ENUM_USERS_INFO pInfo
     );
 
 #endif /* __USERS_P_H__ */

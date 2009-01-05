@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        groups.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Group Lookup and Management API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,97 +55,10 @@ LsaAddGroup(
     DWORD  dwGroupInfoLevel
     )
 {
-    DWORD dwError = 0;
-    DWORD dwMsgLen = 0;
-    PLSAMESSAGE pMessage = NULL;
-    PSTR  pszError = NULL;
-
-    if (geteuid() != 0)
-    {
-        dwError = EACCES;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(pGroupInfo);
-    
-    dwError = LsaValidateGroupInfo(
-                    pGroupInfo,
-                    dwGroupInfoLevel);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalGroupInfoList(
-                    (PVOID*)&pGroupInfo,
-                    dwGroupInfoLevel,
-                    1,
-                    NULL,
-                    &dwMsgLen
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaBuildMessage(
-                LSA_Q_ADD_GROUP,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalGroupInfoList(
-                    (PVOID*)&pGroupInfo,
-                    dwGroupInfoLevel,
-                    1,
-                    pMessage->pData,
-                    &dwMsgLen
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    switch (pMessage->header.messageType)
-    {
-        case LSA_R_ADD_GROUP:
-        {
-            // successfully added group
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-                
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
-    return dwError;
-    
-error:
-
-    goto cleanup;
+    return LsaTransactAddGroup(
+            hLsaConnection,
+            pGroupInfo,
+            dwGroupInfoLevel);
 }
 
 LSASS_API
@@ -159,118 +72,20 @@ LsaFindGroupByName(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PVOID*  ppGroupInfoList = NULL;
-    DWORD   dwNumGroups = 0;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_STRING(pszGroupName);
-    BAIL_ON_INVALID_POINTER(ppGroupInfo);
-    
-    dwError = LsaValidateGroupName(pszGroupName);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalFindGroupByNameQuery(
-                pszGroupName,
-                dwGroupInfoLevel,
-                FindFlags,
-                NULL,
-                &dwMsgLen
-                );
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_GROUP_BY_NAME,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalFindGroupByNameQuery(
+
+    dwError = LsaTransactFindGroupByName(
+                hLsaConnection,
                 pszGroupName,
                 FindFlags,
                 dwGroupInfoLevel,
-                pMessage->pData,
-                &dwMsgLen
-                );
+                ppGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_GROUP_BY_NAME:
-        {
-            dwError = LsaUnmarshalGroupInfoList(
-                                    pMessage->pData,
-                                    pMessage->header.messageLength,
-                                    &dwGroupInfoLevel,
-                                    &ppGroupInfoList,
-                                    &dwNumGroups
-                                    );
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    if (dwNumGroups > 1) {
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppGroupInfo = *ppGroupInfoList;
 
 cleanup:
-
-    // The first entry from the group info list is being returned to the caller,
-    // but the parent list needs to be freed.
-    LSA_SAFE_FREE_MEMORY(ppGroupInfoList);
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
-error:
 
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroups);
-        ppGroupInfoList = NULL;
-    }
-    
-    if (ppGroupInfo) {
-        *ppGroupInfo = NULL;
-    }
+error:
+    *ppGroupInfo = NULL;
 
     goto cleanup;
 }
@@ -286,113 +101,20 @@ LsaFindGroupById(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PVOID*  ppGroupInfoList = NULL;
-    DWORD   dwNumGroups = 0;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(ppGroupInfo);
-    
-    dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalFindGroupByIdQuery(
+
+    dwError = LsaTransactFindGroupById(
+                hLsaConnection,
                 gid,
                 FindFlags,
                 dwGroupInfoLevel,
-                NULL,
-                &dwMsgLen
-                );
+                ppGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_GROUP_BY_ID,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalFindGroupByIdQuery(
-                gid,
-                FindFlags,
-                dwGroupInfoLevel,
-                pMessage->pData,
-                &dwMsgLen
-                );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_GROUP_BY_ID:
-        {
-            dwError = LsaUnmarshalGroupInfoList(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwGroupInfoLevel,
-                                &ppGroupInfoList,
-                                &dwNumGroups
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    if (dwNumGroups > 1) {
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppGroupInfo = *ppGroupInfoList;
 
 cleanup:
-
-    // The first entry from the group info list is being returned to the caller,
-    // but the parent list needs to be freed.
-    LSA_SAFE_FREE_MEMORY(ppGroupInfoList);
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
-error:
 
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroups);
-        ppGroupInfoList = NULL;
-    }
-    
-    if (ppGroupInfo) {
-        *ppGroupInfo = NULL;
-    }
+error:
+    *ppGroupInfo = NULL;
 
     goto cleanup;
 }
@@ -407,103 +129,19 @@ LsaBeginEnumGroups(
     )
 {
     DWORD dwError = 0;
-    PLSA_ENUM_GROUPS_INFO pInfo = NULL;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PSTR    pszGUID = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(phResume);
-    
-    dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
+
+    dwError = LsaTransactBeginEnumGroups(
+                hLsaConnection,
+                dwGroupInfoLevel,
+                dwMaxNumGroups,
+                phResume);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalBeginEnumRecordsQuery(
-                    dwGroupInfoLevel,
-                    dwMaxNumGroups,
-                    NULL,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_BEGIN_ENUM_GROUPS,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalBeginEnumRecordsQuery(
-                    dwGroupInfoLevel,
-                    dwMaxNumGroups,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_BEGIN_ENUM_GROUPS:
-        {
-            dwError = LsaUnmarshalEnumRecordsToken(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &pszGUID);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_ENUM_GROUPS_INFO),
-                    (PVOID*)&pInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    pInfo->dwGroupInfoLevel = dwGroupInfoLevel;
-    pInfo->dwNumMaxGroups = dwMaxNumGroups;
-    pInfo->pszGUID = pszGUID;
-    
-    *phResume = (HANDLE)pInfo;
-    
+
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
     return dwError;
-    
+
 error:
-
     *phResume = (HANDLE)NULL;
-
-    LSA_SAFE_FREE_STRING(pszGUID);
 
     goto cleanup;
 }
@@ -518,107 +156,20 @@ LsaEnumGroups(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PVOID*  ppGroupInfoList = NULL;
-    DWORD   dwNumGroupsFound = 0;
-    DWORD   dwGroupInfoLevel = 0;
-    PLSA_ENUM_GROUPS_INFO pInfo = (PLSA_ENUM_GROUPS_INFO)hResume;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_HANDLE(hResume);
-    BAIL_ON_INVALID_POINTER(pdwNumGroupsFound);
-    BAIL_ON_INVALID_POINTER(pppGroupInfoList);
-    
-    dwGroupInfoLevel = pInfo->dwGroupInfoLevel;
 
-    dwError = LsaMarshalEnumRecordsToken(
-                    pInfo->pszGUID,
-                    NULL,
-                    &dwMsgLen);
+    dwError = LsaTransactEnumGroups(
+                hLsaConnection,
+                hResume,
+                pdwNumGroupsFound,
+                pppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_ENUM_GROUPS,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalEnumRecordsToken(
-                    pInfo->pszGUID,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_ENUM_GROUPS:
-        {
-            dwError = LsaUnmarshalGroupInfoList(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwGroupInfoLevel,
-                                &ppGroupInfoList,
-                                &dwNumGroupsFound
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    *pdwNumGroupsFound = dwNumGroupsFound;
-    *pppGroupInfoList = ppGroupInfoList;
 
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
-error:
 
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
-    }
-    
-    if (pppGroupInfoList) {
-        *pppGroupInfoList = NULL;
-    }
-    
-    if (pdwNumGroupsFound) {
-        *pdwNumGroupsFound = 0;
-    }
+error:
+    *pdwNumGroupsFound = 0;
+    *pppGroupInfoList = NULL;
 
     goto cleanup;
 }
@@ -630,82 +181,9 @@ LsaEndEnumGroups(
     HANDLE hResume
     )
 {
-    DWORD dwError = 0;
-    PLSA_ENUM_GROUPS_INFO pInfo = (PLSA_ENUM_GROUPS_INFO)hResume;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_HANDLE(hResume);
-    
-    dwError = LsaMarshalEnumRecordsToken(
-                    pInfo->pszGUID,
-                    NULL,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_END_ENUM_GROUPS,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalEnumRecordsToken(
-                    pInfo->pszGUID,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_END_ENUM_GROUPS:
-        {
-            // Success
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    LsaFreeEnumGroupsInfo(pInfo);
-    
-cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
-    return dwError;
-    
-error:
-
-    goto cleanup;
+    return LsaTransactEndEnumGroups(
+                hLsaConnection,
+                hResume);
 }
 
 LSASS_API
@@ -715,84 +193,9 @@ LsaDeleteGroupById(
     gid_t  gid
     )
 {
-    DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-
-    if (geteuid() != 0)
-    {
-        dwError = EACCES;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    
-    dwError = LsaMarshalDeleteGroupByIdQuery(
-                gid,
-                NULL,
-                &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_DELETE_GROUP,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalDeleteGroupByIdQuery(
-                gid,
-                pMessage->pData,
-                &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_DELETE_GROUP:
-        {
-            // Success
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-
-cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
-    return dwError;
-        
-error:
-
-    goto cleanup;
+    return LsaTransactDeleteGroupById(
+            hLsaConnection,
+            gid);
 }
 
 LSASS_API
@@ -811,13 +214,13 @@ LsaDeleteGroupByName(
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_STRING(pszName);
-    
+
     dwError = LsaValidateGroupName(pszName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaFindGroupByName(
                     hLsaConnection,
                     pszName,
@@ -825,12 +228,12 @@ LsaDeleteGroupByName(
                     dwGroupInfoLevel,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaDeleteGroupById(
                     hLsaConnection,
                     ((PLSA_GROUP_INFO_0)pGroupInfo)->gid);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     if (pGroupInfo) {
@@ -838,7 +241,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -852,7 +255,7 @@ LsaGetGidsForUserByName(
     PDWORD  pdwGroupFound,
     gid_t** ppGidResults
     )
-{    
+{
     DWORD dwError = 0;
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 0;
@@ -862,20 +265,20 @@ LsaGetGidsForUserByName(
     PVOID*  ppGroupInfoList = NULL;
     DWORD iGroup = 0;
 
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);    
-    BAIL_ON_INVALID_STRING(pszUserName);   
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_STRING(pszUserName);
     BAIL_ON_INVALID_POINTER(ppGidResults);
-    
+
     dwError = LsaValidateUserName(pszUserName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaFindUserByName(
                   hLsaConnection,
                   pszUserName,
                   dwUserInfoLevel,
                   &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);  
-    
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaGetGroupsForUserById(
                 hLsaConnection,
                 ((PLSA_USER_INFO_0)pUserInfo)->uid,
@@ -884,28 +287,28 @@ LsaGetGidsForUserByName(
                 &dwGroupFound,
                 &ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateMemory(
                     sizeof(gid_t) * dwGroupFound,
                     (PVOID*)&pGidResult);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch(dwGroupInfoLevel)
     {
         case 0:
-            
+
             for (iGroup = 0; iGroup < dwGroupFound; iGroup++) {
-                   *(pGidResult+iGroup) = ((PLSA_GROUP_INFO_0)(*(ppGroupInfoList+iGroup)))->gid;                
+                   *(pGidResult+iGroup) = ((PLSA_GROUP_INFO_0)(*(ppGroupInfoList+iGroup)))->gid;
             }
-            
+
             break;
-            
+
         default:
             dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
-    
+
     *ppGidResults = pGidResult;
     *pdwGroupFound = dwGroupFound;
 
@@ -914,19 +317,19 @@ cleanup:
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
-    
+
     if (ppGroupInfoList) {
         LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwGroupFound);
     }
-    
+
     return dwError;
-        
+
 error:
 
     *ppGidResults = NULL;
     *pdwGroupFound = 0;
 
-    goto cleanup;   
+    goto cleanup;
 }
 
 LSASS_API
@@ -939,114 +342,31 @@ LsaGetGroupsForUserById(
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     )
-{    
+{
     DWORD dwError = 0;
-    DWORD dwGroupFound = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD dwMsgLen = 0;
-    PSTR  pszError = NULL;
-    PVOID*  ppGroupInfoList = NULL;
 
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);    
-    BAIL_ON_INVALID_POINTER(pdwGroupsFound);
-    BAIL_ON_INVALID_POINTER(pppGroupInfoList);
-    
-    dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
+    dwError = LsaTransactGetGroupsForUserById(
+               hLsaConnection,
+               uid,
+               FindFlags,
+               dwGroupInfoLevel,
+               pdwGroupsFound,
+               pppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalGetGroupsForUserQuery(
-                uid,
-                FindFlags,
-                dwGroupInfoLevel,
-                NULL,
-                &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaBuildMessage(
-                LSA_Q_GROUPS_FOR_USER,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalGetGroupsForUserQuery(
-                uid,
-                FindFlags,
-                dwGroupInfoLevel,
-                pMessage->pData,
-                &dwMsgLen
-                );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_GROUPS_FOR_USER:
-        {
-            dwError = LsaUnmarshalGroupInfoList(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwGroupInfoLevel,
-                                &ppGroupInfoList,
-                                &dwGroupFound
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    *pdwGroupsFound = dwGroupFound;
-    *pppGroupInfoList = ppGroupInfoList;
 
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
+
 error:
-
-    *pppGroupInfoList = NULL;
     *pdwGroupsFound = 0;
+    *pppGroupInfoList = NULL;
 
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwGroupFound);
-    }
-
-    goto cleanup;   
+   goto cleanup;
 }
 
 VOID
-LsaFreeEnumGroupsInfo(
-    PLSA_ENUM_GROUPS_INFO pInfo
+LsaFreeEnumObjectsInfo(
+    PLSA_ENUM_OBJECTS_INFO pInfo
     )
 {
     LSA_SAFE_FREE_STRING(pInfo->pszGUID);

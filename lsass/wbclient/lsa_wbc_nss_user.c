@@ -143,6 +143,7 @@ done:
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 
 	if (pUserInfo) {
@@ -187,6 +188,7 @@ done:
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 
 	if (pUserInfo) {
@@ -257,6 +259,7 @@ done:
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 
 	if (gids) {

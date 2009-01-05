@@ -31,7 +31,8 @@ liblsass_auth_provider_ad_la_SOURCES = \
        batch_build.c             \
        batch_gather.c            \
        batch_marshal.c           \
-       batch_enum.c
+       batch_enum.c              \
+       unprov.c
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \

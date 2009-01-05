@@ -57,7 +57,7 @@ void SetupSamrTests(struct test *t);
 void SetupLsaTests(struct test *t);
 handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host);
 handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host);
-handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host);
+// handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host);
 
 
 #define STATUS(a, b)                                                     \

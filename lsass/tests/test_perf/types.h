@@ -74,10 +74,11 @@ typedef BOOL (*TestSetupFunc)(
         OUT PVOID *runArg
         );
 typedef BOOL (*TestTimedFunc)(IN PVOID arg);
+typedef BOOL (*TestCleanupFunc)(IN PVOID arg);
 
 typedef enum
 {
-    TEST_TYPE_RUNS_PER_MIN,
+    TEST_TYPE_RUNS_PER_SEC,
     TEST_TYPE_SINGLE_RUN,
 } TestType;
 
@@ -87,6 +88,7 @@ typedef struct
     TestType type;
     TestSetupFunc setup;
     TestTimedFunc run;
+    TestCleanupFunc cleanup;
     PVOID setupArg;
 } PerfTest;
 

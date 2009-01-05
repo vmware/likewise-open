@@ -57,6 +57,7 @@
 #include <eventlog.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>
+#include <lsmb/lsmb.h>
 
 #include "lsautils.h"
 #include "lsaunistr.h"
@@ -67,12 +68,6 @@
 #include "lsakrb5.h"
 #include "lsaldap.h"
 #include "lsadb.h"
-// TODO: remove these lines as part of the fix to bug 7532.
-// These lines are temporarily here to avoid remaining these types in the
-// same checkin as moving the caching code to the server layer.
-typedef LSA_SECURITY_OBJECT AD_SECURITY_OBJECT;
-typedef PLSA_SECURITY_OBJECT PAD_SECURITY_OBJECT;
-typedef PLSA_GROUP_MEMBERSHIP PAD_GROUP_MEMBERSHIP;
 
 #include "addef.h"
 #include "media-sense.h"
@@ -89,6 +84,7 @@ typedef PLSA_GROUP_MEMBERSHIP PAD_GROUP_MEMBERSHIP;
 #include "adldap.h"
 #include "adldap_p.h"
 #include "batch.h"
+#include "unprov.h"
 #include "ad_marshal_group.h"
 #include "ad_marshal_nss_artefact.h"
 #include "ad_marshal_nss_artefact_p.h"

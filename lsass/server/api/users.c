@@ -355,11 +355,10 @@ LsaSrvModifyUser(
                                         hProvider,
                                         pUserModInfo);
         if (!dwError) {
-
             break;
-
         }
-        else if (dwError == LSA_ERROR_NOT_HANDLED) {
+        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
+                (dwError == LSA_ERROR_NO_SUCH_USER)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -458,6 +457,7 @@ error:
 DWORD
 LsaSrvBeginEnumUsers(
     HANDLE hServer,
+    HANDLE hServerEnum,
     DWORD  dwUserInfoLevel,
     DWORD  dwMaxNumUsers,
     PSTR*  ppszGUID
@@ -472,6 +472,7 @@ LsaSrvBeginEnumUsers(
 
     dwError = LsaSrvAddUserEnumState(
                     hServer,
+                    hServerEnum,
                     dwUserInfoLevel,
                     dwMaxNumUsers,
                     &pEnumState);

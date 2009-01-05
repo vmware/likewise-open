@@ -608,10 +608,10 @@ ParseAndAddEvents(
                     dwError = EVTAllocateMemory(sizeof(EVENT_LOG_RECORD), (PVOID*)&pEventRecord);
                     BAIL_ON_EVT_ERROR(dwError);
 
-			if (!IsNullOrEmptyString(pszEventTableCategoryId)) {
-			dwError = EVTAllocateString(pszEventTableCategoryId, (PSTR*)&pEventRecord->pszEventTableCategoryId);
-			BAIL_ON_EVT_ERROR(dwError);
-					}
+                    if (!IsNullOrEmptyString(pszEventTableCategoryId)) {
+                        dwError = EVTAllocateString(pszEventTableCategoryId, (PSTR*)&pEventRecord->pszEventTableCategoryId);
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
                     pEventRecord->dwEventDateTime = 0;
                 }
 
@@ -805,6 +805,26 @@ error:
 
 }
 
+VOID
+PrintCategories(
+    PEVENT_LOG_CATEGORY pCategory,
+    DWORD dwCount
+    )
+{
+    int dwCat = 0;
+
+    printf("========================================\n");
+    printf("Distinct Categories Found in Database \n");
+    printf("========================================\n");
+
+    for (dwCat = 0; dwCat < dwCount; dwCat++) {
+        PEVENT_LOG_CATEGORY pRecord = &(pCategory[dwCat]);
+        printf("[%d]. \t%s\n", dwCat,
+            IsNullOrEmptyString(pRecord->pszCategory) ? "<null>" : (char*) (pRecord->pszCategory));
+    }
+
+    printf("========================================\n");
+}
 
 DWORD
 PrintEventRecords(
@@ -858,9 +878,6 @@ PrintEventRecords(
 
     return dwError;
 }
-
-
-
 
 DWORD
 PrintEventRecordsTable(

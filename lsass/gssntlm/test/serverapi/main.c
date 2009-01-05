@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -47,7 +47,7 @@
 #include "../include/framework.h"
 
 #define USERNAME "user"
-#define DOMAINNAME "!test!" 
+#define DOMAINNAME "!test!"
 #define PASSWORD "password"
 #define NULLPASSWORD ""
 
@@ -114,7 +114,7 @@ AcquireCredentialsHandleQuickTest(
 
     /* @todo - compose desired mech */
 
-    TRACE(("*** %d.0 Testing acquire cred %s ***\n", cur_tn, 
+    TRACE(("*** %d.0 Testing acquire cred %s ***\n", cur_tn,
             (pCreds ?  "(supplied)" : "(default)")));
 
     /*
@@ -122,12 +122,12 @@ AcquireCredentialsHandleQuickTest(
      */
     TRACE(("*  Test %i - simply get a cred handle\n", tn));
 
-    /* 
+    /*
      * since these are internal APIs, we're ok w/ no consting - but
-     * that means we have to keep making copies of our supp. creds 
+     * that means we have to keep making copies of our supp. creds
      * in this test...  This assumption may have to change for "standalone"
      * mode.
-     */ 
+     */
     NTLMAllocCopySecBuffer(&creds, pCreds);
 
     CHK_ERR( NTLMGssAcquireSuppliedCred(
@@ -180,13 +180,13 @@ AcquireCredentialsHandleQuickTest(
     /*
      * test 1.3 make sure 2 calls to free are required before
      * cred handle is invalid.
-     */ 
+     */
     TRACE(("*  Test %i - test cred handle release\n", tn));
     CHK_ERR(NTLMGssReleaseCred(&dwMinor, h1));
     CHK_ERR(NTLMGssReleaseCred(&dwMinor, h2));
     CHK_EXPECTED(NTLMGssReleaseCred(&dwMinor, h1), LSA_ERROR_INVALID_CREDENTIAL);
     CHK_EXPECTED(NTLMGssReleaseCred(&dwMinor, h2), LSA_ERROR_INVALID_CREDENTIAL);
-    
+
     TEST_END(tn);
 
 error:
@@ -229,7 +229,7 @@ ChallengeResponseTests(
     ZERO_STRUCT(generatedResponse);
     ZERO_STRUCT(ctxt);
 
-    addedFlags |= (sessionKey->length ? NEGOTIATE_KEY_EXCH : 0); 
+    addedFlags |= (sessionKey->length ? NEGOTIATE_KEY_EXCH : 0);
 
     LsaInitializeLsaStringA("testProvider", &providerName);
     if (szUser)
@@ -259,7 +259,7 @@ ChallengeResponseTests(
 
     /* select auth provider - use test here */
     /* @todo - test uses test pwd, not supplied one */
-   
+
     provider = NTLMSelectNamedAuthProvider(
                     &providerName,
                     &authUser
@@ -295,7 +295,7 @@ ChallengeResponseTests(
                 challenge->buffer,
                 clientChallenge,
                 &generatedSessionKey,
-                false /* server */ 
+                false /* server */
                 ));
 
     /* @todo - run this through provider routine to do alternate validation */
@@ -305,11 +305,11 @@ ChallengeResponseTests(
     DBGDumpSecBufferS(D_ERROR,"generated session key", &generatedSessionKey);
     DBGDumpSecBuffer(D_ERROR,"generated response", &generatedResponse);
     DBGDumpSecBuffer(D_ERROR,"expected response", NTResponse);
-    
+
     /* if the session key arg is present, verify it */
     if (sessionKey->length)
     {
-        if (sessionKey->length != generatedSessionKey.length || 
+        if (sessionKey->length != generatedSessionKey.length ||
             sessionKey->length != 16)
         {
             ERROR(("invalid session key length - %u vs %u\n",
@@ -335,7 +335,7 @@ ChallengeResponseTests(
     if (NTResponse->length)
     {
 
-        if (NTResponse->length != generatedResponse.length || 
+        if (NTResponse->length != generatedResponse.length ||
             NTResponse->length != 24)
         {
             ERROR(("invalid response length - %u vs %u\n",
@@ -345,7 +345,7 @@ ChallengeResponseTests(
 
         if (memcmp(
                 NTResponse->buffer,
-                generatedResponse.buffer, 
+                generatedResponse.buffer,
                 generatedResponse.length
                 ))
         {
@@ -394,16 +394,16 @@ TestV1ChallengeResponsePairs(void)
     for (i=0;i < responseChallengePairsCount;i++)
     {
         INIT_SEC_BUFFER_S_VAL(
-            &challenge, 
-            NTLM_CHALLENGE_LENGTH, 
+            &challenge,
+            NTLM_CHALLENGE_LENGTH,
             responseChallengePairs[i].challenge
-            ); 
+            );
 
         INIT_SEC_BUFFER_S_VAL(
-            &clientChallenge, 
-            NTLM_CHALLENGE_LENGTH, 
+            &clientChallenge,
+            NTLM_CHALLENGE_LENGTH,
             responseChallengePairs[i].clientChallenge
-            ); 
+            );
 
         SEC_BUFFER_S_CONVERT(&response, &responseChallengePairs[i].response);
 
@@ -426,16 +426,6 @@ TestV1ChallengeResponsePairs(void)
 
     return fRet;
 }
-
-
-
-
-
-
-
-
-
-
 
 DWORD
 SimpleGssApi(
@@ -473,7 +463,7 @@ SimpleGssApi(
     TRACE(("*** %d.0 Testing simple gssapi ***\n", tn));
 
     /*
-     * Setup credential 
+     * Setup credential
      */
 
     NTLMAllocCopySecBuffer(&creds, pCreds);
@@ -504,11 +494,11 @@ SimpleGssApi(
                  &targetMech,
                  0, /* @todo - flags? */
                  timeReq,
-                 NULL, /* empty input token */ 
+                 NULL, /* empty input token */
                  &mechUsed,
                  &negToken,
                  &flags,
-                 &timeValid), 
+                 &timeValid),
         LSA_WARNING_CONTINUE_NEEDED);
 
 
@@ -517,8 +507,8 @@ SimpleGssApi(
 
     TEST_END(tn);
 
-    /*               
-     * test that asc consume negotiate, and returns challenge 
+    /*
+     * test that asc consume negotiate, and returns challenge
      */
     TRACE(("*  Test %i - first call to asc\n", tn));
     CHK_EXPECTED(NTLMGssAcceptSecContext(
@@ -557,12 +547,12 @@ SimpleGssApi(
                  &timeValid));
 
     /* for RFC gssapi, should this return continue, or ok w/ data? */
-    
-    CHK_BOOL(authToken.length); 
+
+    CHK_BOOL(authToken.length);
 
     TEST_END(tn);
 
-    /*               
+    /*
      * final call to ASC - should be S_OK
      */
     TRACE(("*  Test %i - second call to asc\n", tn));
@@ -591,7 +581,7 @@ error:
 
 
 DWORD
-RunQuickTests( 
+RunQuickTests(
     DWORD test,
     PSEC_BUFFER suppliedCreds
     )
@@ -599,7 +589,7 @@ RunQuickTests(
     DWORD dwError = 0;
     /* test 1 - basic ach test */
     RUN_TEST(AcquireCredentialsHandleQuickTest(suppliedCreds));
-    
+
     /* test 2 - ach - no creds */
     RUN_TEST(AcquireCredentialsHandleQuickTest(NULL));
 
@@ -656,7 +646,7 @@ ParseByteString(char* s, PSEC_BUFFER sb)
     /* note - we don't do a lot of validation here */
     for (;s[cur] != '\0'; cur++)
     {
-        if ((s[cur] >= '0') && 
+        if ((s[cur] >= '0') &&
             (s[cur] <= '9'))
             cc = 0x30;
         else if ((toupper(s[cur]) >= 'A') &&
@@ -665,12 +655,12 @@ ParseByteString(char* s, PSEC_BUFFER sb)
         else
             return -1;
 
-        if (b != 0x00) 
+        if (b != 0x00)
         {
             b = toupper(s[cur]) - cc;
             b = b << 4;
         }
-        else 
+        else
         {
             b |= ((toupper(s[cur]) - cc) & 0x0f);
             sb->buffer[sb->length++] = b;
@@ -731,9 +721,9 @@ main(int argc, char* argv[])
     for (i = 1; i < argc; i++)  {
 
         if (!strcasecmp(argv[i], QUICK_TESTS)) {
-            action = RUN_QUICK_TESTS;	
+            action = RUN_QUICK_TESTS;
         } else if (!strcasecmp(argv[i], REGRESS_CHALLENGE_RESPONSE)) {
-            action = RUN_REGRESS_CHALLENGE_RESPONSE;	
+            action = RUN_REGRESS_CHALLENGE_RESPONSE;
         } else if (!strcasecmp(argv[i], TEST_ARG)) {
             GET_NEXT_PARAM(i);
             test = strtol(argv[i],(char **)NULL, 10);
@@ -754,26 +744,26 @@ main(int argc, char* argv[])
             db_level = strtol(argv[i],(char **)NULL, 10);
         } else if (!strcasecmp(argv[i], SRV_CHALL_ARG)) {
             GET_NEXT_PARAM(i);
-            if (ParseByteString(argv[i], (PSEC_BUFFER) &challenge)) { 
+            if (ParseByteString(argv[i], (PSEC_BUFFER) &challenge)) {
                 printf("Bad HEX input - challenge\n");
                 return -13;
             }
         } else if (!strcasecmp(argv[i], CLI_CHALL_ARG)) {
             GET_NEXT_PARAM(i);
-            if (ParseByteString(argv[i], (PSEC_BUFFER) &cliChallenge)) { 
+            if (ParseByteString(argv[i], (PSEC_BUFFER) &cliChallenge)) {
                 printf("Bad HEX input - cli challenge\n");
                 return -13;
             }
         } else if (!strcasecmp(argv[i], SESKEY_ARG)) {
             GET_NEXT_PARAM(i);
-            if (ParseByteString(argv[i], (PSEC_BUFFER) &sessionKey)) { 
+            if (ParseByteString(argv[i], (PSEC_BUFFER) &sessionKey)) {
                 printf("Bad HEX input - sessionKey \n");
                 return -13;
             }
         } else if (!strcasecmp(argv[i], RESPONSE_ARG)) {
             GET_NEXT_PARAM(i);
             ntResponse.buffer = NTLMAllocateMemory(strlen(argv[i]) * 3);
-            if (ParseByteString(argv[i], &ntResponse)) { 
+            if (ParseByteString(argv[i], &ntResponse)) {
                 printf("Bad HEX input - response \n");
                 return -13;
             }
@@ -790,7 +780,7 @@ main(int argc, char* argv[])
                         domain,
                         password,
                         &suppliedCredentials
-                        )); 
+                        ));
 
     } else {
 
@@ -799,7 +789,7 @@ main(int argc, char* argv[])
                         DOMAINNAME,
                         PASSWORD,
                         &suppliedCredentials
-                        )); 
+                        ));
     }
 
     /* initialize server */
@@ -808,7 +798,7 @@ main(int argc, char* argv[])
     switch (action)
     {
         case RUN_QUICK_TESTS:
-        
+
         CHK_ERR(RunQuickTests(test, &suppliedCredentials ));
 
         break;

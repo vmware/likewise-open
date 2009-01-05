@@ -66,7 +66,7 @@ AD_OfflineAuthenticateUser(
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PLSA_PASSWORD_VERIFIER pVerifier = NULL;
     PSTR pszEnteredPasswordVerifier = NULL;
     PBYTE pbHash = NULL;
@@ -130,11 +130,11 @@ DWORD
 AD_OfflineFindUserObjectById(
     IN HANDLE hProvider,
     IN uid_t uid,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pCachedUser = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
 
     if (uid == 0)
     {
@@ -180,13 +180,13 @@ DWORD
 AD_OfflineFindGroupObjectByName(
     IN HANDLE hProvider,
     IN PCSTR pszGroupName,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = 0;
     PSTR pszGroupNameCopy = NULL;
     PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
-    PAD_SECURITY_OBJECT pGroupObject = NULL;
+    PLSA_SECURITY_OBJECT pGroupObject = NULL;
 
     BAIL_ON_INVALID_STRING(pszGroupName);
 
@@ -247,7 +247,7 @@ AD_OfflineFindGroupById(
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pGroupObject = NULL;
+    PLSA_SECURITY_OBJECT pGroupObject = NULL;
 
     if (gid == 0)
     {
@@ -287,19 +287,19 @@ AD_OfflineGetUserGroupObjectMembership(
     HANDLE hProvider,
     uid_t uid,
     size_t* psNumGroupsFound,
-    PAD_SECURITY_OBJECT** pppResult
+    PLSA_SECURITY_OBJECT** pppResult
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     const DWORD dwUserInfoLevel = 0;
     PLSA_USER_INFO_0 pUserInfo = NULL;
     size_t sUserGroupMembershipsCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppUserGroupMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppUserGroupMemberships = NULL;
     size_t sParentSidsCount = 0;
     // Do not free ppszParentSids at it points to ppUserGroupMemberships data.
     PSTR* ppszParentSids = NULL;
     size_t sGroupObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppGroupObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppGroupObjects = NULL;
 
     dwError = AD_FindUserById(
                     hProvider,
@@ -440,13 +440,13 @@ DWORD
 AD_OfflineFindUserObjectByName(
     IN HANDLE  hProvider,
     IN PCSTR   pszLoginId,
-    OUT PAD_SECURITY_OBJECT* ppCachedUser
+    OUT PLSA_SECURITY_OBJECT* ppCachedUser
     )
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
     PSTR  pszLoginId_copy = NULL;
-    PAD_SECURITY_OBJECT pCachedUser = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
 
     BAIL_ON_INVALID_STRING(pszLoginId);
 

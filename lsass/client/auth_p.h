@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,9 +38,9 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Private Header (Library)
- * 
+ *
  *        Authentication API (Client)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -70,8 +70,8 @@ DWORD
 LsaChangePassword(
     HANDLE hLsaConnection,
     PCSTR  pszLoginName,
-    PCSTR  pszNewPassword,
-    PCSTR  pszOldPassword
+    PCSTR  pszOldPassword,
+    PCSTR  pszNewPassword
     );
 
 #endif /* __AUTH_P_H__ */

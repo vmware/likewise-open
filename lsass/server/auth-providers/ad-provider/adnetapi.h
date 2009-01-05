@@ -51,6 +51,7 @@
 #include <uuid/uuid.h>
 
 #include <lwrpc/LM.h>
+#include <lwrpc/ntstatus.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
 #include <lwrpc/samr.h>
@@ -61,6 +62,7 @@
 #include <lwrpc/netlogonbinding.h>
 #include <lwrpc/LMjoin.h>
 #include <lwrpc/errcheck.h>
+
 
 typedef struct _LSA_TRANSLATED_NAME_OR_SID {
     PSTR pszNT4NameOrSid;
@@ -88,8 +90,9 @@ AD_NetUserChangePassword(
 DWORD
 AD_NetLookupObjectSidByName(
     IN PCSTR pszHostname,
-    IN PCSTR pszLoginName,
+    IN PCSTR pszObjectName,
     OUT PSTR* ppszObjectSid,
+    OUT ADAccountType* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     );
 
@@ -156,6 +159,15 @@ LsaFreeTranslatedNameList(
     IN OUT PLSA_TRANSLATED_NAME_OR_SID* pNameList,
     IN DWORD dwNumNames
     );
+
+DWORD
+AD_NetlogonAuthenticationUserEx(
+    IN PSTR pszDomainController,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo,
+    OUT PBOOLEAN pbIsNetworkError
+    );
+
 
 #endif /* __ADNETAPI_H__ */
 

@@ -48,6 +48,20 @@
 #include "adprovider.h"
 #include "adnetapi.h"
 
+static HANDLE ghSchannelAuthToken = NULL;
+static NetrCredentials gSchannelCreds = { 0 };
+static NetrCredentials* gpSchannelCreds = NULL;
+static NETRESOURCE gSchannelRes = { 0 };
+static NETRESOURCE* gpSchannelRes = NULL;
+static handle_t ghSchannelBinding = NULL;
+static pthread_mutex_t gSchannelLock = PTHREAD_MUTEX_INITIALIZER;
+
+static
+VOID
+AD_ClearSchannelState(
+    VOID
+    );
+
 DWORD
 AD_NetInitMemory(
     VOID
@@ -75,6 +89,8 @@ AD_NetShutdownMemory(
     )
 {
     DWORD dwError = 0;
+
+    AD_ClearSchannelState();
 
     dwError = SamrDestroyMemory();
     BAIL_ON_LSA_ERROR(dwError);
@@ -198,6 +214,7 @@ AD_NetLookupObjectSidByName(
     IN PCSTR pszHostname,
     IN PCSTR pszObjectName,
     OUT PSTR* ppszObjectSid,
+    OUT ADAccountType* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     )
 {
@@ -228,6 +245,7 @@ AD_NetLookupObjectSidByName(
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszObjectSid = pszObjectSid;
+    *pObjectType = ppTranslatedSids[0]->ObjectType;
 
 cleanup:
     *pbIsNetworkError = bIsNetworkError;
@@ -240,6 +258,7 @@ cleanup:
 error:
     *ppszObjectSid = NULL;
     LSA_SAFE_FREE_STRING(pszObjectSid);
+    *pObjectType = AccountType_NotFound;
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
     dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
 
@@ -991,6 +1010,233 @@ LsaFreeTranslatedNameList(
         }
     }
     LsaFreeMemory(pNameList);
+}
+
+DWORD
+AD_NetlogonAuthenticationUserEx(
+    IN PSTR pszDomainController,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PWSTR pwszDomainController = NULL;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszShortDomain = NULL;
+    PWSTR pwszUsername = NULL;
+    PSTR pszHostname = NULL;
+    PWSTR pwszCcachePath = NULL;
+    PSTR pszCcachePath = NULL;
+    HANDLE hPwdDb = (HANDLE)NULL;
+    RPCSTATUS status = 0;
+    handle_t netr_b = NULL;
+    PLWPS_PASSWORD_INFO pMachAcctInfo = NULL;
+    BOOLEAN bIsNetworkError = FALSE;
+    NTSTATUS nt_status = STATUS_UNHANDLED_EXCEPTION;
+    NetrValidationInfo  *pValidationInfo = NULL;
+    UINT8 dwAuthoritative = 0;
+    PSTR pszServerName;
+    DWORD dwDCNameLen = 0;
+    PBYTE pChal = NULL;
+    PBYTE pLMResp = NULL;
+    PBYTE pNTResp = NULL;
+
+    pthread_mutex_lock(&gSchannelLock);
+
+    /* Grab the machine password and account info */
+
+    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_SQLDB,
+                                    &hPwdDb);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDnsGetHostInfo(&pszHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwpsGetPasswordByHostName(hPwdDb,
+                                        pszHostname,
+                                        &pMachAcctInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Gather other Schannel params */
+
+    /* Allocate space for the servername.  Include room for the terminating
+       NULL and \\ */
+
+    dwDCNameLen = strlen(pszDomainController) + 3;
+    dwError = LsaAllocateMemory(dwDCNameLen, (PVOID*)&pszServerName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    snprintf(pszServerName, dwDCNameLen, "\\\\%s", pszDomainController);
+    dwError = LsaMbsToWc16s(pszServerName, &pwszServerName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszCcachePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pszCcachePath, &pwszCcachePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!ghSchannelBinding)
+    {
+        /* Establish the initial bind to \NETLOGON */
+
+        status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
+        if (status != 0)
+        {
+            LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
+                          pszDomainController, status);
+            dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+            bIsNetworkError = TRUE;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        /* Now setup the Schannel session */
+
+        if (ghSchannelAuthToken)
+        {
+            SMBCloseHandle(NULL, ghSchannelAuthToken);
+            ghSchannelAuthToken = NULL;
+        }
+
+        dwError = SMBCreateKrb5AccessTokenW(pMachAcctInfo->pwszMachineAccount,
+                                            pwszCcachePath,
+                                            &ghSchannelAuthToken);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = SMBAccessTokenSetSchannel(ghSchannelAuthToken);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ghSchannelBinding = OpenSchannel(netr_b,
+                                         pMachAcctInfo->pwszMachineAccount,
+                                         pwszDomainController,
+                                         pwszServerName,
+                                         pwszShortDomain,
+                                         pMachAcctInfo->pwszHostname,
+                                         pMachAcctInfo->pwszMachinePassword,
+                                         &gSchannelCreds,
+                                         &gSchannelRes);
+
+       if (!ghSchannelBinding)
+       {
+           dwError = LSA_ERROR_RPC_ERROR;
+           BAIL_ON_LSA_ERROR(dwError);
+       }
+
+       gpSchannelCreds = &gSchannelCreds;
+       gpSchannelRes = &gSchannelRes;
+    }
+
+    /* Time to do the authentication */
+
+    dwError = LsaMbsToWc16s(pUserParams->pszAccountName, &pwszUsername);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Get the data blob buffers */
+
+    if (pUserParams->pass.chap.pChallenge)
+        pChal = LsaDataBlobBuffer(pUserParams->pass.chap.pChallenge);
+
+    if (pUserParams->pass.chap.pLM_resp)
+        pLMResp = LsaDataBlobBuffer(pUserParams->pass.chap.pLM_resp);
+
+    if (pUserParams->pass.chap.pNT_resp)
+        pNTResp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
+
+    dwError = SMBSetThreadToken(ghSchannelAuthToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    nt_status = NetrSamLogonNetwork(ghSchannelBinding,
+                                    &gSchannelCreds,
+                                    pwszServerName,
+                                    pwszShortDomain,
+                                    pMachAcctInfo->pwszHostname,
+                                    pwszUsername,
+                                    pChal,
+                                    pLMResp,
+                                    pNTResp,
+                                    2,                /* Network login */
+                                    3,                /* Return NetSamInfo3 */
+                                    &pValidationInfo,
+                                    &dwAuthoritative);
+
+    dwError = SMBSetThreadToken(NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (nt_status != STATUS_SUCCESS)
+    {
+        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    if (hPwdDb)
+    {
+        if (pMachAcctInfo) {
+            LwpsFreePasswordInfo(hPwdDb, pMachAcctInfo);
+        }
+
+        LwpsClosePasswordStore(hPwdDb);
+        hPwdDb = (HANDLE)NULL;
+    }
+
+    LSA_SAFE_FREE_MEMORY(pszHostname);
+
+    if (netr_b)
+    {
+        FreeNetlogonBinding(&netr_b);
+        netr_b = NULL;
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszDomainController);
+    LSA_SAFE_FREE_MEMORY(pwszServerName);
+    LSA_SAFE_FREE_MEMORY(pwszShortDomain);
+    LSA_SAFE_FREE_MEMORY(pszServerName);
+    LSA_SAFE_FREE_MEMORY(pszCcachePath);
+    LSA_SAFE_FREE_MEMORY(pwszCcachePath);
+
+    pthread_mutex_unlock(&gSchannelLock);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+VOID
+AD_ClearSchannelState(
+    VOID
+    )
+{
+    pthread_mutex_lock(&gSchannelLock);
+
+    if (ghSchannelBinding)
+    {
+        CloseSchannel(ghSchannelBinding, gpSchannelRes);
+
+        ghSchannelBinding = NULL;
+
+        memset(&gSchannelCreds, 0, sizeof(gSchannelCreds));
+        gpSchannelCreds = NULL;
+
+        memset(&gSchannelRes, 0, sizeof(gSchannelRes));
+        gpSchannelRes = NULL;
+    }
+
+    if (ghSchannelAuthToken)
+    {
+        SMBCloseHandle(NULL, ghSchannelAuthToken);
+        ghSchannelAuthToken = NULL;
+    }
+
+    pthread_mutex_unlock(&gSchannelLock);
 }
 
 /*

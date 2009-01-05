@@ -161,7 +161,7 @@ LsaNssWriteGroupInfo(
     
     dwNumMembers = LsaNssGetNumberGroupMembers(pGroupInfo_1->ppszMembers);
     
-    dwAlignBytes = (dwNumMembers ? ((((HANDLE)pszMarker) % sizeof(ULONG)) * sizeof(ULONG)) : 0);
+    dwAlignBytes = (dwNumMembers ? ((((size_t)pszMarker) % sizeof(size_t)) * sizeof(size_t)) : 0);
 
     if (LsaNssComputeGroupStringLength(dwAlignBytes, pGroupInfo_1) > bufLen) {
        dwError = LSA_ERROR_INSUFFICIENT_BUFFER;

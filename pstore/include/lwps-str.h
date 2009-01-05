@@ -47,10 +47,6 @@
 #ifndef __LWPS_STR_H__
 #define __LWPS_STR_H__
 
-#if !HAVE_DECL_ISBLANK && !defined(isblank)
-int isblank(int c);
-#endif
-
 #if !defined(HAVE_STRTOLL)
 
 long long int

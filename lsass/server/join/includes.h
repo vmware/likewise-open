@@ -54,9 +54,9 @@
 #include <lwrpc/sidhelper.h>
 #include <lwrpc/errconv.h>
 
+#include <lsmb/lsmb.h>
+
 #include "join_p.h"
 #include "externs.h"
-
-#include <npc.h>
 
 #endif /* __INCLUDES_H__ */

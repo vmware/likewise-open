@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for Groups
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -46,54 +46,69 @@
  */
 #ifndef __IPC_GROUP_H__
 #define __IPC_GROUP_H__
-                  
-DWORD
+
+LWMsgStatus
 LsaSrvIpcBeginEnumGroups(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEnumGroups(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEndEnumGroups(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcFindGroupById(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
-);
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcGetGroupsForUser(
-    HANDLE hConnection,
-    PLSAMESSAGE pQuery
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcFindGroupByName(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
-);
-
-
-DWORD
-LsaSrvIpcAddGroup(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
+LsaSrvIpcAddGroup(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
 LsaSrvIpcDeleteGroup(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 #endif /* __IPC_GROUP_H__ */

@@ -34,7 +34,7 @@
 #include <lwrpc/types.h>
 
 #define NETLOGON_DEFAULT_PROT_SEQ   "ncacn_np"
-#define NETLOGON_DEFAULT_ENDPOINT   "\\pipe\\netlogon"
+#define NETLOGON_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
 
 #ifdef CHAR_T
 #undef CHAR_T

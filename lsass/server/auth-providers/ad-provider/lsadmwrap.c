@@ -495,6 +495,7 @@ typedef struct _LSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT {
 typedef struct _LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT {
     IN PCSTR pszName;
     OUT PSTR pszSid;
+    OUT ADAccountType ObjectType;
 } LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT;
 
 typedef struct _LSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT {
@@ -521,6 +522,11 @@ typedef struct _LSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT {
     OUT NetrDomainTrust* pTrusts;
     OUT DWORD dwCount;
 } LSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT, *PLSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT;
+
+typedef struct _LSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT {
+    IN PLSA_AUTH_USER_PARAMS pUserParams;
+    OUT PLSA_AUTH_USER_INFO  *ppUserInfo;
+} LSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT, *PLSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT;
 
 ///
 /// Callback functions
@@ -595,6 +601,7 @@ LsaDmWrappLookupSidByNameCallback(
     dwError = AD_NetLookupObjectSidByName(pDcInfo->pszDomainControllerName,
                                           pCtx->pszName,
                                           &pCtx->pszSid,
+                                          &pCtx->ObjectType,
                                           pbIsNetworkError);
     return dwError;
 }
@@ -751,7 +758,8 @@ DWORD
 LsaDmWrapNetLookupObjectSidByName(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszName,
-    OUT PSTR* ppszSid
+    OUT PSTR* ppszSid,
+    OUT OPTIONAL PBOOLEAN pbIsUser
     )
 {
     DWORD dwError = 0;
@@ -767,6 +775,11 @@ LsaDmWrapNetLookupObjectSidByName(
                                       &context);
 
     *ppszSid = context.pszSid;
+
+    if (pbIsUser)
+    {
+        *pbIsUser = (context.ObjectType == AccountType_User);
+    }
 
     return dwError;
 }
@@ -877,3 +890,45 @@ LsaDmWrapDsEnumerateDomainTrusts(
     return dwError;
 }
 
+static
+DWORD
+LsaDmWrappAuthenticateUserExCallback(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    PLSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT) pContext;
+
+    return AD_NetlogonAuthenticationUserEx(
+                    pDcInfo->pszDomainControllerName,
+                    pCtx->pUserParams,
+                    pCtx->ppUserInfo,
+                    pbIsNetworkError);
+}
+
+DWORD
+LsaDmWrapAuthenticateUserEx(
+    IN PCSTR pszDnsDomainName,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    LSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT context = { 0 };
+
+    context.pUserParams = pUserParams;
+    context.ppUserInfo = ppUserInfo;
+
+    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
+                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+                                      NULL,
+                                      LsaDmWrappAuthenticateUserExCallback,
+                                      &context);
+
+    *ppUserInfo = *(context.ppUserInfo);
+
+    return dwError;
+}

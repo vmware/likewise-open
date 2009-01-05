@@ -83,6 +83,7 @@ wchar16_t* _wc16pncpy(wchar16_t *dest, const wchar16_t *src, size_t n);
 #endif
 
 int wc16scasecmp(const wchar16_t *s1, const wchar16_t *s2);
+int wc16scmp(const wchar16_t *s1, const wchar16_t *s2);
 
 #ifndef HAVE_MBSTRLEN
 #define mbstrlen(x) mbstowcs(NULL, (x), 0)

@@ -22,22 +22,25 @@
 #ifndef _WBCLIENT_H
 #define _WBCLIENT_H
 
-#include <config.h>
-
-#if HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
-#ifdef HAVE_STDBOOL_H
-#include <stdbool.h>
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#  if HAVE_STDINT_H
+#    include <stdint.h>
+#  endif
+#  ifdef HAVE_STDBOOL_H
+#    include <stdbool.h>
+#  else
+#    define bool int
+#    ifndef false
+#      define false 0
+#    endif
+#    ifndef true
+#      define true 1
+#    endif
+#  endif
 #else
-#  define bool int
-#  ifndef false
-#    define false 0
-#  endif
-#  ifndef true
-#    define true 1
-#  endif
+#  include <stdint.h>
+#  include <stdbool.h>
 #endif
 
 #include <pwd.h>

@@ -781,15 +781,15 @@ DWORD
 AD_PacMembershipFilterWithLdap(
     IN HANDLE hProvider,
     IN LSA_TRUST_DIRECTION dwTrustDirection,
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN DWORD dwMembershipCount,
-    IN OUT PAD_GROUP_MEMBERSHIP* ppMemberships
+    IN OUT PLSA_GROUP_MEMBERSHIP* ppMemberships
     )
 {
     DWORD dwError = 0;
     int iPrimaryGroupIndex = -1;
     size_t sLdapGroupCount = 0;
-    PAD_SECURITY_OBJECT* ppLdapGroups = NULL;
+    PLSA_SECURITY_OBJECT* ppLdapGroups = NULL;
     LSA_HASH_TABLE* pMembershipHashTable = NULL;
     time_t now = 0;
     size_t i = 0;
@@ -838,7 +838,7 @@ AD_PacMembershipFilterWithLdap(
     // For anything that we find via LDAP, make it expirable or primary.
     for (i = 0; i < sLdapGroupCount; i++)
     {
-        PAD_GROUP_MEMBERSHIP pMembership = NULL;
+        PLSA_GROUP_MEMBERSHIP pMembership = NULL;
 
         dwError = LsaHashGetValue(pMembershipHashTable,
                                   ppLdapGroups[i]->pszObjectSid,
@@ -874,7 +874,7 @@ DWORD
 AD_CacheGroupMembershipFromPac(
     IN HANDLE hProvider,
     IN LSA_TRUST_DIRECTION dwTrustDirection,
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN PAC_LOGON_INFO* pPac
     )
 {
@@ -890,7 +890,7 @@ AD_CacheGroupMembershipFromPac(
     DWORD i = 0;
     DWORD dwIgnoreExtraSidCount = 0;
     DWORD dwMembershipCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
     DWORD dwMembershipIndex = 0;
     struct {
         PDWORD pdwCount;
@@ -901,7 +901,7 @@ AD_CacheGroupMembershipFromPac(
         { &dwExtraSidCount, &ppszExtraSidList }
     };
     DWORD dwSidsToCombineIndex = 0;
-    PAD_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
+    PLSA_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
 
     LSA_LOG_VERBOSE(
             "Updating user group membership for uid %lu with PAC information",
@@ -987,8 +987,8 @@ AD_CacheGroupMembershipFromPac(
         DWORD dwSidCount = *SidsToCombine[dwSidsToCombineIndex].pdwCount;
         for (i = 0; i < dwSidCount; i++)
         {
-            PAD_GROUP_MEMBERSHIP* ppMembership = &ppMemberships[dwMembershipIndex];
-            PAD_GROUP_MEMBERSHIP pMembership = &pMembershipBuffers[dwMembershipIndex];
+            PLSA_GROUP_MEMBERSHIP* ppMembership = &ppMemberships[dwMembershipIndex];
+            PLSA_GROUP_MEMBERSHIP pMembership = &pMembershipBuffers[dwMembershipIndex];
             PSTR* ppszSidList = *SidsToCombine[dwSidsToCombineIndex].pppszSidList;
             if (ppszSidList[i])
             {
@@ -1117,7 +1117,7 @@ error:
 
 DWORD
 AD_OnlineCachePasswordVerifier(
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN PCSTR  pszPassword
     )
 {
@@ -1183,7 +1183,7 @@ AD_OnlineAuthenticateUser(
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-    PAD_SECURITY_OBJECT pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PAC_LOGON_INFO *pPac = NULL;
     PSTR pszHostname = NULL;
     PSTR pszUsername = NULL;
@@ -1338,7 +1338,7 @@ error:
 
 DWORD
 AD_CheckExpiredObject(
-    IN OUT PAD_SECURITY_OBJECT* ppCachedUser
+    IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -1379,7 +1379,7 @@ static
 DWORD
 AD_CheckExpiredMemberships(
     IN size_t sCount,
-    IN PAD_GROUP_MEMBERSHIP* ppMemberships,
+    IN PLSA_GROUP_MEMBERSHIP* ppMemberships,
     IN BOOLEAN bCheckNullParentSid,
     OUT PBOOLEAN pbHaveExpired,
     OUT PBOOLEAN pbIsComplete
@@ -1408,7 +1408,7 @@ AD_CheckExpiredMemberships(
     dwCacheEntryExpirySeconds = AD_GetCacheEntryExpirySeconds();
     for (sIndex = 0; sIndex < sCount; sIndex++)
     {
-        PAD_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
+        PLSA_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
 
         // Ignore what cannot expire (assumes that we already
         // filtered out PAC entries that should not be returned).
@@ -1454,7 +1454,7 @@ static
 DWORD
 AD_FilterExpiredMemberships(
     IN OUT size_t* psCount,
-    IN OUT PAD_GROUP_MEMBERSHIP* ppMemberships
+    IN OUT PLSA_GROUP_MEMBERSHIP* ppMemberships
     )
 {
     DWORD dwError = 0;
@@ -1471,7 +1471,7 @@ AD_FilterExpiredMemberships(
     dwCacheEntryExpirySeconds = AD_GetCacheEntryExpirySeconds();
     for (sIndex = 0; sIndex < sCount; sIndex++)
     {
-        PAD_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
+        PLSA_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
 
         if (pMembership->bIsInPac ||
             pMembership->bIsDomainPrimaryGroup ||
@@ -1500,7 +1500,7 @@ error:
 static
 BOOLEAN
 AD_IncludeOnlyUnexpirableGroupMembershipsCallback(
-    IN PAD_GROUP_MEMBERSHIP pMembership
+    IN PLSA_GROUP_MEMBERSHIP pMembership
     )
 {
     BOOLEAN bInclude = FALSE;
@@ -1521,16 +1521,16 @@ AD_CacheMembershipFromRelatedObjects(
     IN int iPrimaryGroupIndex,
     IN BOOLEAN bIsParent,
     IN size_t sCount,
-    IN PAD_SECURITY_OBJECT* ppRelatedObjects
+    IN PLSA_SECURITY_OBJECT* ppRelatedObjects
     )
 {
     DWORD dwError = 0;
-    PAD_GROUP_MEMBERSHIP* ppMemberships = NULL;
-    PAD_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
     size_t sMaxMemberships = 0;
     size_t sIndex = 0;
     size_t sMembershipCount = 0;
-    PAD_SECURITY_OBJECT pPrimaryGroup = NULL;
+    PLSA_SECURITY_OBJECT pPrimaryGroup = NULL;
 
     if (iPrimaryGroupIndex >= 0)
     {
@@ -1557,8 +1557,8 @@ AD_CacheMembershipFromRelatedObjects(
 
     for (sIndex = 0; sIndex < sCount; sIndex++)
     {
-        PAD_GROUP_MEMBERSHIP* ppMembership = &ppMemberships[sMembershipCount];
-        PAD_GROUP_MEMBERSHIP pMembership = &pMembershipBuffers[sMembershipCount];
+        PLSA_GROUP_MEMBERSHIP* ppMembership = &ppMemberships[sMembershipCount];
+        PLSA_GROUP_MEMBERSHIP pMembership = &pMembershipBuffers[sMembershipCount];
         if (ppRelatedObjects[sIndex])
         {
             *ppMembership = pMembership;
@@ -1628,9 +1628,9 @@ static
 VOID
 AD_TransferCacheObjets(
     IN OUT size_t* psFromObjectsCount,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects,
     IN OUT size_t* psToObjectsCount,
-    IN OUT PAD_SECURITY_OBJECT* ppToObjects
+    IN OUT PLSA_SECURITY_OBJECT* ppToObjects
     )
 {
     size_t bytes = sizeof(ppFromObjects[0]) * (*psFromObjectsCount);
@@ -1648,15 +1648,15 @@ static
 DWORD
 AD_CombineCacheObjects(
     IN OUT size_t* psFromObjectsCount1,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects1,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects1,
     IN OUT size_t* psFromObjectsCount2,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects2,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects2,
     OUT size_t* psCombinedObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppCombinedObjects
+    OUT PLSA_SECURITY_OBJECT** pppCombinedObjects
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT* ppCombinedObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppCombinedObjects = NULL;
     size_t sCombinedObjectsCount = 0;
 
     sCombinedObjectsCount = *psFromObjectsCount1 + *psFromObjectsCount2;
@@ -1699,15 +1699,15 @@ static
 DWORD
 AD_CombineCacheObjectsRemoveDuplicates(
     IN OUT size_t* psFromObjectsCount1,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects1,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects1,
     IN OUT size_t* psFromObjectsCount2,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects2,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects2,
     OUT size_t* psCombinedObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppCombinedObjects
+    OUT PLSA_SECURITY_OBJECT** pppCombinedObjects
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT* ppCombinedObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppCombinedObjects = NULL;
     size_t sCombinedObjectsCount = 0;
     PLSA_HASH_TABLE pHashTable = NULL;
     size_t i = 0;
@@ -1759,7 +1759,7 @@ AD_CombineCacheObjectsRemoveDuplicates(
 
     for (i = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; i++)
     {
-        PAD_SECURITY_OBJECT pObject = (PAD_SECURITY_OBJECT) pHashEntry->pKey;
+        PLSA_SECURITY_OBJECT pObject = (PLSA_SECURITY_OBJECT) pHashEntry->pKey;
 
         dwError = LsaHashRemoveKey(pHashTable, pObject);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1806,7 +1806,7 @@ error:
 
 void
 AD_FilterNullEntries(
-    IN OUT PAD_SECURITY_OBJECT* ppEntries,
+    IN OUT PLSA_SECURITY_OBJECT* ppEntries,
     IN OUT size_t* psCount
     )
 {
@@ -1828,11 +1828,11 @@ DWORD
 AD_OnlineFindUserObjectById(
     HANDLE  hProvider,
     uid_t   uid,
-    PAD_SECURITY_OBJECT *ppResult
+    PLSA_SECURITY_OBJECT *ppResult
     )
 {
     DWORD dwError =  0;
-    PAD_SECURITY_OBJECT pCachedUser = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
     PSTR   pszNT4Name = NULL;
 
     if (uid == 0) {
@@ -1888,24 +1888,24 @@ AD_OnlineGetUserGroupObjectMembership(
     IN uid_t uid,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     size_t sMembershipCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
     BOOLEAN bExpired = FALSE;
     BOOLEAN bIsComplete = FALSE;
     BOOLEAN bUseCache = FALSE;
     size_t sUnexpirableResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppUnexpirableResults = NULL;
+    PLSA_SECURITY_OBJECT* ppUnexpirableResults = NULL;
     size_t sResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppResults = NULL;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
     size_t sFilteredResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppFilteredResults = NULL;
+    PLSA_SECURITY_OBJECT* ppFilteredResults = NULL;
     // Only free top level array, do not free string pointers.
     PSTR* ppszSids = NULL;
-    PAD_SECURITY_OBJECT pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PCSTR pszSid = NULL;
     int iPrimaryGroupIndex = -1;
 
@@ -2095,7 +2095,7 @@ AD_OnlineEnumUsers(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PVOID* ppInfoList = NULL;
     DWORD dwInfoCount = 0;
 
@@ -2166,13 +2166,13 @@ DWORD
 AD_OnlineFindGroupObjectByName(
     HANDLE  hProvider,
     PCSTR   pszGroupName,
-    PAD_SECURITY_OBJECT*  ppResult
+    PLSA_SECURITY_OBJECT*  ppResult
     )
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
     PSTR  pszGroupName_copy = NULL;
-    PAD_SECURITY_OBJECT pCachedGroup = NULL;
+    PLSA_SECURITY_OBJECT pCachedGroup = NULL;
 
     BAIL_ON_INVALID_STRING(pszGroupName);
     dwError = LsaAllocateString(
@@ -2258,7 +2258,7 @@ AD_OnlineFindGroupById(
     )
 {
     DWORD dwError =  0;
-    PAD_SECURITY_OBJECT pCachedGroup = NULL;
+    PLSA_SECURITY_OBJECT pCachedGroup = NULL;
     PSTR   pszNT4Name = NULL;
 
     if (gid == 0)
@@ -2330,7 +2330,7 @@ AD_OnlineEnumGroups(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PVOID* ppInfoList = NULL;
     DWORD dwInfoCount = 0;
 
@@ -2410,7 +2410,7 @@ AD_OnlineChangePassword(
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     DWORD dwUserInfoLevel = 2;
-    PAD_SECURITY_OBJECT pCachedUser = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
     PLSA_USER_INFO_2 pUserInfo = NULL;
     PSTR pszDomainController = NULL;
     PSTR pszFullDomainName = NULL;
@@ -2845,22 +2845,22 @@ AD_CompareObjectSids(
         PCVOID pObjectB)
 {
     return strcasecmp(
-            ((PAD_SECURITY_OBJECT)pObjectA)->pszObjectSid,
-            ((PAD_SECURITY_OBJECT)pObjectB)->pszObjectSid);
+            ((PLSA_SECURITY_OBJECT)pObjectA)->pszObjectSid,
+            ((PLSA_SECURITY_OBJECT)pObjectB)->pszObjectSid);
 }
 
 size_t
 AD_HashObjectSid(
         PCVOID pObject)
 {
-    return LsaHashCaselessString(((PAD_SECURITY_OBJECT)pObject)->pszObjectSid);
+    return LsaHashCaselessString(((PLSA_SECURITY_OBJECT)pObject)->pszObjectSid);
 }
 
 void
 AD_FreeHashObject(
     const LSA_HASH_ENTRY *pEntry)
 {
-    LsaDbSafeFreeObject((PAD_SECURITY_OBJECT *)&pEntry->pKey);
+    LsaDbSafeFreeObject((PLSA_SECURITY_OBJECT *)&pEntry->pKey);
 }
 
 DWORD
@@ -2870,21 +2870,21 @@ AD_OnlineGetGroupMembers(
     IN PCSTR pszSid,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     size_t sMembershipCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
     BOOLEAN bExpired = FALSE;
     BOOLEAN bIsComplete = FALSE;
     BOOLEAN bUseCache = FALSE;
     size_t sUnexpirableResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppUnexpirableResults = NULL;
+    PLSA_SECURITY_OBJECT* ppUnexpirableResults = NULL;
     size_t sResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppResults = NULL;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
     size_t sFilteredResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppFilteredResults = NULL;
+    PLSA_SECURITY_OBJECT* ppFilteredResults = NULL;
     // Only free top level array, do not free string pointers.
     PSTR* ppszSids = NULL;
 
@@ -3053,7 +3053,7 @@ DWORD
 AD_FindObjectBySidNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszSid,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     return LsaAdBatchFindSingleObject(
@@ -3068,7 +3068,7 @@ DWORD
 AD_FindObjectByNT4NameNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszNT4Name,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     return LsaAdBatchFindSingleObject(
@@ -3083,17 +3083,18 @@ DWORD
 AD_FindObjectByUpnNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszUpn,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
     PSTR pszSid = NULL;
-    PAD_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     dwError = LsaDmWrapNetLookupObjectSidByName(
                     gpADProviderData->szDomain,
                     pszUpn,
-                    &pszSid);
+                    &pszSid,
+                    NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_FindObjectBySidNoCache(
@@ -3120,7 +3121,7 @@ AD_FindObjectByAliasNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszAlias,
     BOOLEAN bIsUserAlias,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     return LsaAdBatchFindSingleObject(
@@ -3136,12 +3137,12 @@ AD_FindObjectByNameTypeNoCache(
     IN PCSTR pszName,
     IN ADLogInNameType NameType,
     IN ADAccountType AccountType,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
     BOOLEAN bIsUser = FALSE;
-    PAD_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     switch (AccountType)
     {
@@ -3213,12 +3214,12 @@ AD_FindObjectByIdTypeNoCache(
     IN HANDLE hProvider,
     IN DWORD dwId,
     IN ADAccountType AccountType,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
     BOOLEAN bIsUser = FALSE;
-    PAD_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     switch (AccountType)
     {
@@ -3275,7 +3276,7 @@ AD_FindObjectsByListNoCache(
     IN DWORD dwCount,
     IN PSTR* ppszList,
     OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     return LsaAdBatchFindObjects(
@@ -3291,11 +3292,11 @@ DWORD
 AD_FindObjectBySid(
     IN HANDLE hProvider,
     IN PCSTR pszSid,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    PAD_SECURITY_OBJECT* ppResultArray = NULL;
+    PLSA_SECURITY_OBJECT* ppResultArray = NULL;
 
     dwError = AD_FindObjectsBySidList(
                     hProvider,
@@ -3331,11 +3332,11 @@ AD_FindObjectsByList(
     IN size_t sCount,
     IN PSTR* ppszList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    PAD_SECURITY_OBJECT* ppResults = NULL;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
     size_t sResultsCount = 0;
     size_t sFoundInCache = 0;
     size_t sFoundInAD = 0;
@@ -3345,7 +3346,7 @@ AD_FindObjectsByList(
     time_t now = 0;
     // Do not free the strings that ppszRemainSidsList point to
     PSTR* ppszRemainingList = NULL;
-    PAD_SECURITY_OBJECT *ppRemainingObjectsResults = NULL;
+    PLSA_SECURITY_OBJECT *ppRemainingObjectsResults = NULL;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3358,6 +3359,7 @@ AD_FindObjectsByList(
                     ppszList,
                     &ppResults);
     BAIL_ON_LSA_ERROR(dwError);
+    sResultsCount = sCount;
 
     dwError = LsaAllocateMemory(
                     sCount*sizeof(*ppszRemainingList),
@@ -3403,7 +3405,6 @@ AD_FindObjectsByList(
         ppszRemainingList[sRemainNumsToFoundInAD++] = ppszList[sIndex];
     }
 
-    sResultsCount = sCount;
     AD_FilterNullEntries(ppResults, &sResultsCount);
     assert(sResultsCount == sFoundInCache);
 
@@ -3422,21 +3423,21 @@ AD_FindObjectsByList(
 
     sFoundInAD = dwFoundInAD;
 
-    sResultsCount += sFoundInAD;
-
     dwError = LsaDbStoreObjectEntries(
                     gpLsaAdProviderState->hCacheConnection,
                     sFoundInAD,
                     ppRemainingObjectsResults);
     BAIL_ON_LSA_ERROR(dwError);
 
+    // Filtering the null entries created enough space to append the
+    // entries looked up through AD.
     memcpy(ppResults + sFoundInCache,
            ppRemainingObjectsResults,
            sizeof(*ppRemainingObjectsResults) * sFoundInAD);
-
     memset(ppRemainingObjectsResults,
            0,
            sizeof(*ppRemainingObjectsResults) * sFoundInAD);
+    sResultsCount += sFoundInAD;
 
 cleanup:
 
@@ -3475,7 +3476,7 @@ AD_FindObjectsBySidList(
     IN size_t sCount,
     IN PSTR* ppszSidList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     return AD_FindObjectsByList(
@@ -3494,7 +3495,7 @@ AD_FindObjectsByDNList(
     IN size_t sCount,
     IN PSTR* ppszDNList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     return AD_FindObjectsByList(
@@ -3520,7 +3521,7 @@ AD_OnlineGetNamesBySidList(
     PSTR* ppszDomainNames = NULL;
     PSTR* ppszSamAccounts = NULL;
     ADAccountType* pTypes = NULL;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     size_t sIndex = 0;
 
     dwError = LsaAllocateMemory(
@@ -3600,13 +3601,13 @@ DWORD
 AD_OnlineFindUserObjectByName(
     HANDLE  hProvider,
     PCSTR   pszLoginId,
-    PAD_SECURITY_OBJECT* ppCachedUser
+    PLSA_SECURITY_OBJECT* ppCachedUser
     )
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
     PSTR  pszLoginId_copy = NULL;
-    PAD_SECURITY_OBJECT pCachedUser = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
 
     BAIL_ON_INVALID_STRING(pszLoginId);
     dwError = LsaAllocateString(
@@ -3836,7 +3837,7 @@ error:
 
 DWORD
 AD_UpdateUserObjectFlags(
-    IN OUT PAD_SECURITY_OBJECT pUser
+    IN OUT PLSA_SECURITY_OBJECT pUser
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -3881,7 +3882,7 @@ error:
 
 DWORD
 AD_VerifyUserAccountCanLogin(
-    IN PAD_SECURITY_OBJECT pUserInfo
+    IN PLSA_SECURITY_OBJECT pUserInfo
     )
 {
     DWORD dwError = 0;

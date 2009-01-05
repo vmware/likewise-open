@@ -64,6 +64,22 @@ LsaSrvOpenServer(
     PHANDLE phServer
     );
 
+DWORD
+LsaSrvOpenServerEnum(
+    PHANDLE phServer
+    );
+
+VOID
+LsaSrvGetUid(
+    HANDLE hServer,
+    uid_t* pUid
+    );
+
+void
+LsaSrvCloseServerEnum(
+    HANDLE hServer
+    );
+
 void
 LsaSrvCloseServer(
     HANDLE hServer
@@ -75,6 +91,14 @@ LsaSrvAuthenticateUser(
     PCSTR  pszLoginId,
     PCSTR  pszPassword
     );
+
+DWORD
+LsaSrvAuthenticateUserEx(
+    HANDLE hServer,
+    PLSA_AUTH_USER_PARAMS pUserParms,
+    PLSA_AUTH_USER_INFO *ppUserInfo
+    );
+
 
 DWORD
 LsaSrvValidateUser(
@@ -177,6 +201,7 @@ LsaSrvFindUserById(
 DWORD
 LsaSrvBeginEnumUsers(
     HANDLE hServer,
+    HANDLE hServerEnum,
     DWORD  dwUserInfoLevel,
     DWORD  dwNumMaxUsers,
     PSTR*  ppszGUID
@@ -200,14 +225,15 @@ LsaSrvEndEnumUsers(
 DWORD
 LsaSrvBeginEnumGroups(
     HANDLE hServer,
+    HANDLE hServerEnum,
     DWORD  dwGroupInfoLevel,
-    DWORD  dwNumMaxGroups,
+    DWORD  dwMaxNumGroups,
     PSTR*  ppszGUID
     );
 
 DWORD
 LsaSrvEnumGroups(
-    HANDLE  hServer,
+    HANDLE  hServerEnum,
     PCSTR   pszGUID,
     PDWORD  pdwGroupInfoLevel,
     PVOID** pppGroupInfoList,
@@ -216,7 +242,7 @@ LsaSrvEnumGroups(
 
 DWORD
 LsaSrvEndEnumGroups(
-    HANDLE hServer,
+    HANDLE hServerEnum,
     PCSTR  pszGUID
     );
 
@@ -233,6 +259,7 @@ LsaSrvFindNSSArtefactByKey(
 DWORD
 LsaSrvBeginEnumNSSArtefacts(
     HANDLE hServer,
+    HANDLE hServerEnum,
     PCSTR  pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwGroupInfoLevel,

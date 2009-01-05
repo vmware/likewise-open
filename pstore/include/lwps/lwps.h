@@ -147,7 +147,7 @@ typedef uint8_t UCHAR, *PUCHAR;
 #ifndef HANDLE_DEFINED
 #define HANDLE_DEFINED 1
 
-typedef unsigned long   HANDLE, *PHANDLE;
+typedef void *HANDLE, **PHANDLE;
 
 #endif
 

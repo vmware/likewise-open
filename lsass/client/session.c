@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        session.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Login Session API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -54,79 +54,45 @@ LsaOpenSession(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_STRING(pszLoginId);
-        
-    dwError = LsaMarshalSession(
-                    pszLoginId,
-                    NULL,
-                    &dwMsgLen);
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    request.tag = LSA_Q_OPEN_SESSION;
+    request.object = (PVOID)pszLoginId;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaBuildMessage(
-                LSA_Q_OPEN_SESSION,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalSession(
-                    pszLoginId,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_OPEN_SESSION:
-        {
+
+    switch (response.tag)
+    {
+        case LSA_R_OPEN_SESSION_SUCCESS:
+            // response.object == NULL
             break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-              
-            //
-            // TODO: Log error string if available
-            //
-            dwError = LsaUnmarshalError(
-                          pMessage->pData,
-                          pMessage->header.messageLength,
-                          &dwSrvError,
-                          &pszError
-                          );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
+        case LSA_R_OPEN_SESSION_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        }
         default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            dwError = EINVAL;
             BAIL_ON_LSA_ERROR(dwError);
-        }
     }
 
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
+
 error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
 
     goto cleanup;
 }
@@ -139,79 +105,45 @@ LsaCloseSession(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_STRING(pszLoginId);
-        
-    dwError = LsaMarshalSession(
-                    pszLoginId,
-                    NULL,
-                    &dwMsgLen);
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    request.tag = LSA_Q_CLOSE_SESSION;
+    request.object = (PVOID)pszLoginId;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaBuildMessage(
-                LSA_Q_CLOSE_SESSION,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalSession(
-                    pszLoginId,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_CLOSE_SESSION:
-        {
+
+    switch (response.tag)
+    {
+        case LSA_R_CLOSE_SESSION_SUCCESS:
+            // response.object == NULL
             break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-              
-            //
-            // TODO: Log error string if available
-            //
-            dwError = LsaUnmarshalError(
-                          pMessage->pData,
-                          pMessage->header.messageLength,
-                          &dwSrvError,
-                          &pszError
-                          );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
+        case LSA_R_CLOSE_SESSION_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        }
         default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            dwError = EINVAL;
             BAIL_ON_LSA_ERROR(dwError);
-        }
     }
 
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
+
 error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
 
     goto cleanup;
 }

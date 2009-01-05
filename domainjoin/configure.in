@@ -147,25 +147,6 @@ AC_ARG_WITH(
 )
 
 AC_ARG_WITH(
-        npcmuxer-dir,
-        [  --with-npcmuxer-dir=<prefix>     look for npcmuxer headers/libraries in <prefix>],
-        [
-            NPCMUXER_INCLUDE=-I$withval/include
-            NPCMUXER_LDFLAGS=-L$withval/lib
-            NPCMUXER_LIBDIR=$withval/lib
-        ]
-)
-
-AC_ARG_WITH(
-        npcmuxer-libdir,
-        [  --with-npcmuxer-libdir=<libdir>     look for npcmuxer libraries in <libdir>],
-        [
-            NPCMUXER_LDFLAGS=-L$withval
-            NPCMUXER_LIBDIR=$withval
-        ]
-)
-
-AC_ARG_WITH(
         dcerpc-dir,
         [  --with-dcerpc-dir=<prefix>     look for dcerpc headers/libraries in <prefix>],
         [
@@ -282,23 +263,15 @@ AC_SUBST(NETLOGON_INCLUDE)
 AC_SUBST(NETLOGON_LDFLAGS)
 AC_SUBST(NETLOGON_LIBS)
 
-NPCMUXER_LIBS=""
-AC_CHECK_LIB([npc], [NpcConnectExistingSocket], [NPCMUXER_LIBS="-lnpc"], AC_MSG_ERROR([Use --with-npcmuxer-dir to find libnpc.so]), [$NPCMUXER_LDFLAGS $KRB5_LDFLAGS $KRB5_LIBS])
-
-AC_SUBST(NPCMUXER_INCLUDE)
-AC_SUBST(NPCMUXER_LDFLAGS)
-AC_SUBST(NPCMUXER_LIBS)
-
-
 DCERPC_LIBS=""
-AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc -ldcethread"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS -ldcethread $NPCMUXER_LDFLAGS $NPCMUXER_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc -ldcethread"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS -ldcethread $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(DCERPC_INCLUDE)
 AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_LIBS)
 
 LIBRPC_LIBS=""
-AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi -lmsrpc -lsamr -llsa -lmpr"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS -lmsrpc -lsamr -llsa -lmpr $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $NPCMUXER_LDFLAGS $NPCMUXER_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi -lmsrpc -lsamr -llsa -lmpr"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS -lmsrpc -lsamr -llsa -lmpr $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(LIBRPC_INCLUDE)
 AC_SUBST(LIBRPC_LDFLAGS)
@@ -469,9 +442,9 @@ fi
 
 AM_CONDITIONAL([BUILD_GTK], [test "x$have_gtk" = "xyes"])
 
-LIBDOMAINJOIN_LDFLAGS="$KRB5_LDFLAGS $OPENLDAP_LDFLAGS $LIBXML2_LDFLAGS $CENTUTILS_LDFLAGS $LIBUNISTR_LDFLAGS $PSTORE_LDFLAGS $NETLOGON_LDFLAGS $DCERPC_LDFLAGS $NPCMUXER_LDFLAGS $LIBRPC_LDFLAGS"
+LIBDOMAINJOIN_LDFLAGS="$KRB5_LDFLAGS $OPENLDAP_LDFLAGS $LIBXML2_LDFLAGS $CENTUTILS_LDFLAGS $LIBUNISTR_LDFLAGS $PSTORE_LDFLAGS $NETLOGON_LDFLAGS $DCERPC_LDFLAGS $LIBRPC_LDFLAGS"
 
-LIBDOMAINJOIN_LIBS="$LIBXML2_LIBS $CENTUTILS_LIBS $NETLOGON_LIBS $LIBRPC_LIBS $DCERPC_LIBS $NPCMUXER_LIBS $PSTORE_LIBS $LIBUNISTR_LIBS $KRB5_LIBS"
+LIBDOMAINJOIN_LIBS="$LIBXML2_LIBS $CENTUTILS_LIBS $NETLOGON_LIBS $LIBRPC_LIBS $DCERPC_LIBS $PSTORE_LIBS $LIBUNISTR_LIBS $KRB5_LIBS"
 
 AC_SUBST(LIBDOMAINJOIN_LDFLAGS)
 AC_SUBST(LIBDOMAINJOIN_LIBS)

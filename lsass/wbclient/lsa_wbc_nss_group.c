@@ -169,6 +169,7 @@ done:
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 
 	if (pGroupInfo) {
@@ -212,6 +213,7 @@ done:
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;
 	}
 
 	if (pGroupInfo) {

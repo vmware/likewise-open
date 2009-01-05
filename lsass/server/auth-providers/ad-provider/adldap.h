@@ -152,16 +152,16 @@ ADLdap_GetGroupMembers(
     IN PCSTR pszDomainName,
     IN PCSTR pszSid,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     );
 
 DWORD
 ADLdap_GetUserGroupMembership(
     IN HANDLE hProvider,
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     OUT int* piPrimaryGroupIndex,
     OUT size_t* psNumGroupsFound,
-    OUT PAD_SECURITY_OBJECT** pppGroupInfoList
+    OUT PLSA_SECURITY_OBJECT** pppGroupInfoList
     );
 
 DWORD

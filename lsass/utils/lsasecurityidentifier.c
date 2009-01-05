@@ -189,8 +189,6 @@ error:
     *pdwRid = 0;
 
     return dwError;
-
-
 }
 
 DWORD
@@ -239,8 +237,47 @@ LsaSetSecurityIdentifierRid(
 error:
 
     return dwError;
+}
 
+DWORD
+LsaReplaceSidRid(
+    IN PCSTR pszSid,
+    IN DWORD dwNewRid,
+    OUT PSTR* ppszNewSid
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_IDENTIFIER pSid = NULL;
 
+    dwError = LsaAllocateMemory(
+                    sizeof(*pSid),
+                    (PVOID*)&pSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSidStringToBytes(
+                    pszSid,
+                    &pSid->pucSidBytes,
+                    &pSid->dwByteLength);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSetSecurityIdentifierRid(pSid, dwNewRid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaGetSecurityIdentifierString(pSid, ppszNewSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    if (pSid)
+    {
+        LsaFreeSecurityIdentifier(pSid);
+    }
+
+    return dwError;
+
+error:
+    *ppszNewSid = NULL;
+
+    goto cleanup;
 }
 
 DWORD

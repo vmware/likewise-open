@@ -268,7 +268,7 @@ LsaSrvApiConfigNameValuePair(
         {
             pConfig->bEnableEventLog = FALSE;
         }
-    }    
+    }
     else if (!strcasecmp(pszName, "log-network-connection-events"))
     {
         if (!IsNullOrEmptyString(pszValue) &&

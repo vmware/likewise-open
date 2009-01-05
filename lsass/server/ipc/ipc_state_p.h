@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -47,10 +47,14 @@
 #ifndef __IPC_STATE_P_H__
 #define __IPC_STATE_P_H__
 
-DWORD
+#include "ipc.h"
+
+LWMsgStatus
 LsaSrvIpcOpenServer(
-    HANDLE  hConnection,
-    PHANDLE phServer
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 #endif /* __IPC_STATE_P_H__ */

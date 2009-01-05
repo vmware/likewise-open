@@ -36,8 +36,6 @@
 #include <lwrpc/types.h>
 #include <lwrpc/ntstatus.h>
 #include <wc16str.h>
-#include <npc.h>
-#include <npctypes.h>
 
 #include <lwrpc/mpr.h>
 
@@ -46,61 +44,10 @@ int WNetAddConnection2(NETRESOURCE* netResource,
                        const wchar16_t* password16,
                        const wchar16_t* username16)
 {
-    const NPC_AUTH_FLAGS authflags = NPC_AUTH_FLAG_KERBEROS |
-                                     NPC_AUTH_FLAG_FALLBACK |
-                                     NPC_AUTH_FLAG_NO_ANONYMOUS;
-    char *password = awc16stombs(password16);
-    char *username = awc16stombs(username16);
-    char* host = awc16stombs(netResource->RemoteName + 2);
-    char* slash = strchr(host, '\\');
-    char* resource = NULL;
-    int result = 0;
-    int status = 0;
-
-    if (!slash)
-    {
-	status = NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-	goto cleanup;
-    }
-
-    resource = strdup(slash);
-    *slash = '\0';
-    
-    if ((result = NpcConnectCheckCreds(
-	     "np",
-	     host,
-	     "\\pipe\\srvsvc",
-	     NULL,
-	     authflags,
-	     username,
-	     password)))
-    {
-	status = ErrnoToWin32Error(result);
-	goto cleanup;
-    }
-
-    if ((result = NpcSetAuthInfo(
-	     host,
-	     authflags,
-	     username,
-	     password)))
-    {
-	status = ErrnoToWin32Error(result);
-	goto cleanup;
-    }
-
-cleanup:
-
-    if (host)
-	free(host);
-    if (username)
-	free (username);
-    if (password)
-	free (password);
-    if (resource)
-	free (resource);
-
-    return status;
+    /* ! ! ! FIXME-LSMB ! ! !
+       Set lsmb impersonation context here
+    */
+    return 0;
 }
 
 

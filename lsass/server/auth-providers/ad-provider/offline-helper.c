@@ -54,18 +54,18 @@ DWORD
 AD_OfflineGetGroupMembers(
     IN PCSTR pszGroupSid,
     OUT size_t* psMemberObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppMemberObjects
+    OUT PLSA_SECURITY_OBJECT** pppMemberObjects
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     size_t sGroupMembershipsCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppGroupMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppGroupMemberships = NULL;
     size_t sMemberSidsCount = 0;
     // Only free top level array, do not free string pointers as they
     // track elements inside ppMemberships.
     PSTR* ppszMemberSids = NULL;
     size_t sObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     size_t sIndex = 0;
 
     dwError = LsaDbGetGroupMembers(
@@ -124,11 +124,11 @@ DWORD
 AD_OfflineFindObjectsBySidList(
     IN size_t sCount,
     IN PSTR* ppszSidList,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    PAD_SECURITY_OBJECT *ppObjects = NULL;
+    PLSA_SECURITY_OBJECT *ppObjects = NULL;
 
     /* 
      * Lookup users and groups from the cache.
@@ -158,7 +158,7 @@ AD_GatherSidsFromGroupMemberships(
     IN BOOLEAN bGatherParentSids,
     IN OPTIONAL PFN_LSA_GATHER_SIDS_FROM_GROUP_MEMBERSHIP_CALLBACK pfnIncludeCallback,
     IN size_t sMemberhipsCount,
-    IN PAD_GROUP_MEMBERSHIP* ppMemberships,
+    IN PLSA_GROUP_MEMBERSHIP* ppMemberships,
     OUT size_t* psSidsCount,
     OUT PSTR** pppszSids
     )
@@ -179,7 +179,7 @@ AD_GatherSidsFromGroupMemberships(
         sSidsCount = 0;
         for (sIndex = 0; sIndex < sMemberhipsCount; sIndex++)
         {
-            PAD_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
+            PLSA_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
             PSTR pszSid = NULL;
 
             if (!pMembership)
@@ -316,12 +316,12 @@ AD_GroupExpansionDataAddExpansionResults(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
     IN DWORD dwExpandedGroupDepth,
     IN OUT size_t* psMembersCount,
-    IN OUT PAD_SECURITY_OBJECT** pppMembers
+    IN OUT PLSA_SECURITY_OBJECT** pppMembers
     )
 {
     DWORD dwError = 0;
     size_t sMembersCount = *psMembersCount;
-    PAD_SECURITY_OBJECT* ppMembers = *pppMembers;
+    PLSA_SECURITY_OBJECT* ppMembers = *pppMembers;
 
     dwError = pExpansionData->dwLastError;
     BAIL_ON_LSA_ERROR(dwError);
@@ -335,7 +335,7 @@ AD_GroupExpansionDataAddExpansionResults(
 
     for (; sMembersCount > 0; sMembersCount--)
     {
-        PAD_SECURITY_OBJECT pCurrentMember = ppMembers[sMembersCount-1];
+        PLSA_SECURITY_OBJECT pCurrentMember = ppMembers[sMembersCount-1];
 
         if (!pCurrentMember)
         {
@@ -403,12 +403,12 @@ error:
 DWORD
 AD_GroupExpansionDataGetNextGroupToExpand(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
-    OUT PAD_SECURITY_OBJECT* ppGroupToExpand,
+    OUT PLSA_SECURITY_OBJECT* ppGroupToExpand,
     OUT PDWORD pdwGroupToExpandDepth
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pGroupToExpand = NULL;
+    PLSA_SECURITY_OBJECT pGroupToExpand = NULL;
     DWORD dwGroupToExpandDepth = 0;
     const LSA_HASH_ENTRY* pHashEntry = NULL;
 
@@ -445,7 +445,7 @@ AD_GroupExpansionDataGetNextGroupToExpand(
         }
     }
 
-    pGroupToExpand = (PAD_SECURITY_OBJECT) pHashEntry->pKey;
+    pGroupToExpand = (PLSA_SECURITY_OBJECT) pHashEntry->pKey;
     dwGroupToExpandDepth = (size_t) pHashEntry->pValue;
     dwGroupToExpandDepth++;
 
@@ -488,14 +488,14 @@ AD_GroupExpansionDataGetResults(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
     OUT OPTIONAL PBOOLEAN pbIsFullyExpanded,
     OUT size_t* psUserMembersCount,
-    OUT PAD_SECURITY_OBJECT** pppUserMembers
+    OUT PLSA_SECURITY_OBJECT** pppUserMembers
     )
 {
     DWORD dwError = 0;
     LSA_HASH_ITERATOR hashIterator;
     LSA_HASH_ENTRY* pHashEntry = NULL;
     size_t sHashCount = 0;
-    PAD_SECURITY_OBJECT* ppUserMembers = NULL;
+    PLSA_SECURITY_OBJECT* ppUserMembers = NULL;
     size_t sUserMembersCount = 0;
     BOOLEAN bIsFullyExpanded = FALSE;
 
@@ -516,7 +516,7 @@ AD_GroupExpansionDataGetResults(
          (pHashEntry = LsaHashNext(&hashIterator)) != NULL;
          sUserMembersCount++)
     {
-        PAD_SECURITY_OBJECT pUser = (PAD_SECURITY_OBJECT) pHashEntry->pKey;
+        PLSA_SECURITY_OBJECT pUser = (PLSA_SECURITY_OBJECT) pHashEntry->pKey;
 
         dwError = LsaHashRemoveKey(pExpansionData->pUsers, pUser);
         BAIL_ON_LSA_ERROR(dwError);

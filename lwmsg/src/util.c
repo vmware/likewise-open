@@ -35,11 +35,15 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
+#include <config.h>
 #include "util-private.h"
 
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#if HAVE_SYS_VARARGS_H
+#include <sys/varargs.h>
+#endif
 
 char* lwmsg_formatv(const char* fmt, va_list ap)
 {

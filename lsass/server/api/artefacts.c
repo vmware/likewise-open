@@ -140,6 +140,7 @@ error:
 DWORD
 LsaSrvBeginEnumNSSArtefacts(
     HANDLE hServer,
+    HANDLE hServerEnum,
     PCSTR  pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwNSSArtefactInfoLevel,
@@ -156,6 +157,7 @@ LsaSrvBeginEnumNSSArtefacts(
 
     dwError = LsaSrvAddNSSArtefactEnumState(
                     hServer,
+                    hServerEnum,
                     pszMapName,
                     dwFlags,
                     dwNSSArtefactInfoLevel,
@@ -284,7 +286,7 @@ error:
 DWORD
 LsaSrvEndEnumNSSArtefacts(
     HANDLE hServer,
-    PSTR   pszGUID
+    PCSTR   pszGUID
     )
 {
     DWORD dwError = 0;

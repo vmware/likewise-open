@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,11 +36,11 @@
  *        groups_p.h
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Private Header (Library)
- * 
+ *
  *        Group Lookup and Management API (Client)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -48,13 +48,6 @@
  */
 #ifndef __GROUPS_P_H__
 #define __GROUPS_P_H__
-
-typedef struct __LSA_ENUM_GROUPS_INFO
-{
-    DWORD dwGroupInfoLevel;
-    DWORD dwNumMaxGroups;
-    PSTR  pszGUID;
-} LSA_ENUM_GROUPS_INFO, *PLSA_ENUM_GROUPS_INFO;
 
 LSASS_API
 DWORD
@@ -101,11 +94,6 @@ DWORD
 LsaDeleteGroupByName(
     HANDLE hLsaConnection,
     PCSTR  pszName
-    );
-
-VOID
-LsaFreeEnumGroupsInfo(
-    PLSA_ENUM_GROUPS_INFO pInfo
     );
 
 #endif /* __GROUPS_P_H__ */

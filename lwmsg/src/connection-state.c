@@ -423,7 +423,19 @@ lwmsg_connection_connect_local(
 
     if (connect(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == -1)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+        switch (errno)
+        {
+            case ENOENT:
+                status = LWMSG_STATUS_FILE_NOT_FOUND;
+                break;
+            case ECONNREFUSED:
+                status = LWMSG_STATUS_CONNECTION_REFUSED;
+                break;
+            default:
+                status = LWMSG_STATUS_SYSTEM;
+                break;
+        }
+        ASSOC_RAISE_ERROR(assoc, status, "%s", strerror(errno));
     }
 
     priv->fd = sock;

@@ -46,210 +46,146 @@
  */
 #include "ipc.h"
 
-DWORD
+LWMsgStatus
 LsaSrvIpcSetTraceInfo(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
-    DWORD  dwError = 0;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext  =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    PLSA_TRACE_INFO pTraceFlagArray = NULL;
-    DWORD dwNumFlags = 0;
-
-    dwError = LsaUnmarshalTraceFlags(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &pTraceFlagArray,
-                    &dwNumFlags);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
+    DWORD dwError = 0;
+    PLSA_IPC_SET_TRACE_INFO_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvSetTraceFlags(
-                    hServer,
-                    pTraceFlagArray,
-                    dwNumFlags);
-    if (!dwError) {
+                        (HANDLE)Handle,
+                        pReq->pTraceFlagArray,
+                        pReq->dwNumFlags);
 
-       dwError = LsaBuildMessage(
-                    LSA_R_SET_TRACE_INFO,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse);
-       BAIL_ON_LSA_ERROR(dwError);
-
-    } else {
-
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_SET_TRACE_INFO_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
 
+        pResponse->tag = LSA_R_SET_TRACE_INFO_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-
 cleanup:
-
-    LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcGetTraceInfo(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
-    DWORD  dwError = 0;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext  =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    DWORD dwTraceFlag = 0;
+    DWORD dwError = 0;
+    PLSA_TRACE_INFO_LIST pResult = NULL;
     PLSA_TRACE_INFO pTraceInfo = NULL;
-    DWORD dwMsgLen = 0;
-
-    dwError = LsaUnmarshalQueryTraceFlag(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &dwTraceFlag);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
     dwError = LsaSrvGetTraceInfo(
-                    hServer,
-                    dwTraceFlag,
-                    &pTraceInfo);
-    if (!dwError) {
+                        (HANDLE)Handle,
+                        *(PDWORD)pRequest->object,
+                        &pTraceInfo);
 
-        dwError = LsaMarshalTraceFlags(
-                        pTraceInfo,
-                        1,
-                        NULL,
-                        &dwMsgLen);
+    if (!dwError)
+    {
+        dwError = LsaAllocateMemory(sizeof(*pResult),
+                                    (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaBuildMessage(
-                        LSA_R_GET_TRACE_INFO,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse);
+        pResult->dwNumFlags = 1;
+        pResult->pTraceInfoArray = pTraceInfo;
+        pTraceInfo = NULL;
+
+        pResponse->tag = LSA_R_GET_TRACE_INFO_SUCCESS;
+        pResponse->object = pResult;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaMarshalTraceFlags(
-                        pTraceInfo,
-                        1,
-                        pResponse->pData,
-                        &dwMsgLen);
-        BAIL_ON_LSA_ERROR(dwError);
-
-    } else {
-
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse);
-        BAIL_ON_LSA_ERROR(dwError);
-
+        pResponse->tag = LSA_R_GET_TRACE_INFO_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-
 cleanup:
-
     LSA_SAFE_FREE_MEMORY(pTraceInfo);
-    LSA_SAFE_FREE_MESSAGE(pResponse);
 
-    return dwError;
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
+    if (pResult)
+    {
+        LSA_SAFE_FREE_MEMORY(pResult->pTraceInfoArray);
+        LsaFreeMemory(pResult);
+    }
 
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEnumTraceInfo(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
-    DWORD  dwError = 0;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext  =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    DWORD dwNumFlags = 0;
-    PLSA_TRACE_INFO pTraceFlagArray = NULL;
-    DWORD dwMsgLen = 0;
+    DWORD dwError = 0;
+    PLSA_TRACE_INFO_LIST pResult = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
 
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
+    dwError = LsaAllocateMemory(sizeof(*pResult),
+                               (PVOID)&pResult);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvEnumTraceFlags(
-                    hServer,
-                    &pTraceFlagArray,
-                    &dwNumFlags);
-    if (!dwError) {
+                       (HANDLE)Handle,
+                       &pResult->pTraceInfoArray,
+                       &pResult->dwNumFlags);
 
-        dwError = LsaMarshalTraceFlags(
-                        pTraceFlagArray,
-                        dwNumFlags,
-                        NULL,
-                        &dwMsgLen);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_ENUM_TRACE_INFO_SUCCESS;
+        pResponse->object = pResult;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaBuildMessage(
-                        LSA_R_ENUM_TRACE_INFO,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaMarshalTraceFlags(
-                        pTraceFlagArray,
-                        dwNumFlags,
-                        pResponse->pData,
-                        &dwMsgLen);
-        BAIL_ON_LSA_ERROR(dwError);
-
-    } else {
-
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse);
-        BAIL_ON_LSA_ERROR(dwError);
-
+        pResponse->tag = LSA_R_ENUM_TRACE_INFO_FAILURE;;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-
 cleanup:
-
-    LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LSA_ERROR_IPC(dwError);
 
 error:
+    if (pResult)
+    {
+        LSA_SAFE_FREE_MEMORY(pResult->pTraceInfoArray);
+        LsaFreeMemory(pResult);
+    }
 
     goto cleanup;
 }

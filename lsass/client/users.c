@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        users.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        User Lookup and Management API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,97 +55,10 @@ LsaAddUser(
     DWORD  dwUserInfoLevel
     )
 {
-    DWORD dwError = 0;
-    DWORD dwMsgLen = 0;
-    PLSAMESSAGE pMessage = NULL;
-    PSTR pszError = NULL;
-
-    if (geteuid() != 0)
-    {
-        dwError = EACCES;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(pUserInfo);
-    
-    dwError = LsaValidateUserInfo(
-                    pUserInfo,
-                    dwUserInfoLevel);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalUserInfoList(
-                    (PVOID*)&pUserInfo,
-                    dwUserInfoLevel,
-                    1,
-                    NULL,
-                    &dwMsgLen
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaBuildMessage(
-                LSA_Q_ADD_USER,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalUserInfoList(
-                    (PVOID*)&pUserInfo,
-                    dwUserInfoLevel,
-                    1,
-                    pMessage->pData,
-                    &dwMsgLen
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    switch (pMessage->header.messageType)
-    {
-        case LSA_R_ADD_USER:
-        {
-            // successfully added user
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-                
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
-    return dwError;
-    
-error:
-
-    goto cleanup;
+    return LsaTransactAddUser(
+            hLsaConnection,
+            pUserInfo,
+            dwUserInfoLevel);
 }
 
 LSASS_API
@@ -155,86 +68,9 @@ LsaModifyUser(
     PLSA_USER_MOD_INFO pUserModInfo
     )
 {
-    DWORD dwError = 0;
-    DWORD dwMsgLen = 0;
-    PLSAMESSAGE pMessage = NULL;
-    PSTR pszError = NULL;
-    
-    if (geteuid() != 0)
-    {
-        dwError = EACCES;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(pUserModInfo);
-    
-    dwError = LsaMarshalUserModInfo(
-                    pUserModInfo,
-                    NULL,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaBuildMessage(
-                LSA_Q_MODIFY_USER,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalUserModInfo(
-                    pUserModInfo,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    switch (pMessage->header.messageType)
-    {
-        case LSA_R_MODIFY_USER:
-        {
-            // successfully modified user
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-                
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
-    return dwError;
-    
-error:
-
-    goto cleanup;
+    return LsaTransactModifyUser(
+            hLsaConnection,
+            pUserModInfo);
 }
 
 LSASS_API
@@ -247,117 +83,19 @@ LsaFindUserByName(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PVOID*  ppUserInfoList = NULL;
-    DWORD   dwNumUsers = 0;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_STRING(pszName);
-    BAIL_ON_INVALID_POINTER(ppUserInfo);
-    
-    dwError = LsaValidateUserName(pszName);
+
+    dwError = LsaTransactFindUserByName(
+                hLsaConnection,
+                pszName,
+                dwUserInfoLevel,
+                ppUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaValidateUserInfoLevel(dwUserInfoLevel);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalFindUserByNameQuery(
-                 pszName,
-                 dwUserInfoLevel,
-                 NULL,
-                 &dwMsgLen
-                 );
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_USER_BY_NAME,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalFindUserByNameQuery(
-                 pszName,
-                 dwUserInfoLevel,
-                 pMessage->pData,
-                 &dwMsgLen
-                 );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_USER_BY_NAME:
-        {
-            dwError = LsaUnmarshalUserInfoList(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwUserInfoLevel,
-                                &ppUserInfoList,
-                                &dwNumUsers
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    if (dwNumUsers > 1) {
-        // Login Ids must be unique
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppUserInfo = *ppUserInfoList;
 
 cleanup:
-
-    // The first entry from the user info list is being returned to the caller,
-    // but the parent list needs to be freed.
-    LSA_SAFE_FREE_MEMORY(ppUserInfoList);
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
-error:
 
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsers);
-        ppUserInfoList = NULL;
-    }
-    
-    if (ppUserInfo) {
-       *ppUserInfo = NULL;
-    }
+error:
+    *ppUserInfo = NULL;
 
     goto cleanup;
 }
@@ -372,113 +110,20 @@ LsaFindUserById(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PVOID*  ppUserInfoList = NULL;
-    DWORD   dwNumUsers = 0;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(ppUserInfo);
-    
-    dwError = LsaValidateUserInfoLevel(dwUserInfoLevel);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalFindUserByIdQuery(
+
+    dwError = LsaTransactFindUserById(
+                hLsaConnection,
                 uid,
                 dwUserInfoLevel,
-                NULL,
-                &dwMsgLen
-                );
+                ppUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_USER_BY_ID,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalFindUserByIdQuery(
-                uid,
-                dwUserInfoLevel,
-                pMessage->pData,
-                &dwMsgLen
-                );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_USER_BY_ID:
-        {
-            dwError = LsaUnmarshalUserInfoList(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwUserInfoLevel,
-                                &ppUserInfoList,
-                                &dwNumUsers
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    if (dwNumUsers > 1) {
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    *ppUserInfo = *ppUserInfoList;
 
 cleanup:
-
-    // The first entry from the user info list is being returned to the caller,
-    // but the parent list needs to be freed.
-    LSA_SAFE_FREE_MEMORY(ppUserInfoList);
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
-error:
 
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsers);
-        ppUserInfoList = NULL;
-    }
-    
-    if (ppUserInfo) {
-        *ppUserInfo = NULL;
-    }
-    
+error:
+    *ppUserInfo = NULL;
+
     goto cleanup;
 }
 
@@ -492,105 +137,19 @@ LsaBeginEnumUsers(
     )
 {
     DWORD dwError = 0;
-    PLSA_ENUM_USERS_INFO pInfo = NULL;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PSTR    pszGUID = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(phResume);
-    
-    dwError = LsaValidateUserInfoLevel(dwUserInfoLevel);
+
+    dwError = LsaTransactBeginEnumUsers(
+                hLsaConnection,
+                dwUserInfoLevel,
+                dwMaxNumUsers,
+                phResume);
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalBeginEnumRecordsQuery(
-                    dwUserInfoLevel,
-                    dwMaxNumUsers,
-                    NULL,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_BEGIN_ENUM_USERS,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalBeginEnumRecordsQuery(
-                    dwUserInfoLevel,
-                    dwMaxNumUsers,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_BEGIN_ENUM_USERS:
-        {
-            dwError = LsaUnmarshalEnumRecordsToken(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &pszGUID);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_ENUM_USERS_INFO),
-                    (PVOID*)&pInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    pInfo->dwUserInfoLevel = dwUserInfoLevel;
-    pInfo->dwNumMaxUsers = dwMaxNumUsers;
-    pInfo->pszGUID = pszGUID;
-    
-    *phResume = (HANDLE)pInfo;
-    
+
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
     return dwError;
-    
+
 error:
-
-    if (phResume) {
-       *phResume = (HANDLE)NULL;
-    }
-
-    LSA_SAFE_FREE_STRING(pszGUID);
+    *phResume = (HANDLE)NULL;
 
     goto cleanup;
 }
@@ -605,105 +164,20 @@ LsaEnumUsers(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    DWORD   dwUserInfoLevel = 0;
-    PVOID*  ppUserInfoList = NULL;
-    DWORD   dwNumUsersFound = 0;    
-    PLSA_ENUM_USERS_INFO pInfo = (PLSA_ENUM_USERS_INFO)hResume;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_HANDLE(hResume);
-    BAIL_ON_INVALID_POINTER(pdwNumUsersFound);
-    BAIL_ON_INVALID_HANDLE(pppUserInfoList);
-    
-    dwError = LsaMarshalEnumRecordsToken(
-                    pInfo->pszGUID,
-                    NULL,
-                    &dwMsgLen);
+
+    dwError = LsaTransactEnumUsers(
+                hLsaConnection,
+                hResume,
+                pdwNumUsersFound,
+                pppUserInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_ENUM_USERS,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalEnumRecordsToken(
-                    pInfo->pszGUID,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_ENUM_USERS:
-        {
-            dwError = LsaUnmarshalUserInfoList(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwUserInfoLevel,
-                                &ppUserInfoList,
-                                &dwNumUsersFound
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    *pdwNumUsersFound = dwNumUsersFound;
-    *pppUserInfoList = ppUserInfoList;
 
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
-error:
 
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
-    }
-    
-    if (pppUserInfoList) {
-        *pppUserInfoList = NULL;
-    }
-    
-    if (pdwNumUsersFound) {
-        *pdwNumUsersFound = 0;
-    }
+error:
+    *pdwNumUsersFound = 0;
+    *pppUserInfoList = NULL;
 
     goto cleanup;
 }
@@ -715,82 +189,9 @@ LsaEndEnumUsers(
     HANDLE hResume
     )
 {
-    DWORD dwError = 0;
-    PLSA_ENUM_USERS_INFO pInfo = (PLSA_ENUM_USERS_INFO)hResume;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_HANDLE(hResume);
-    
-    dwError = LsaMarshalEnumRecordsToken(
-                    pInfo->pszGUID,
-                    NULL,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_END_ENUM_USERS,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalEnumRecordsToken(
-                    pInfo->pszGUID,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_END_ENUM_USERS:
-        {
-            // Success
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    LsaFreeEnumUsersInfo(pInfo);
-    
-cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
-    return dwError;
-    
-error:
-
-    goto cleanup;
+    return LsaTransactEndEnumUsers(
+                hLsaConnection,
+                hResume);
 }
 
 LSASS_API
@@ -800,84 +201,9 @@ LsaDeleteUserById(
     uid_t  uid
     )
 {
-    DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    
-    if (geteuid() != 0)
-    {
-        dwError = EACCES;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    
-    dwError = LsaMarshalDeleteUserByIdQuery(
-                uid,
-                NULL,
-                &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                LSA_Q_DELETE_USER,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalDeleteUserByIdQuery(
-                uid,
-                pMessage->pData,
-                &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_DELETE_USER:
-        {
-            // Success
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-
-cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
-    return dwError;
-        
-error:
-
-    goto cleanup;
+    return LsaTransactDeleteUserById(
+            hLsaConnection,
+            uid);
 }
 
 LSASS_API
@@ -890,28 +216,28 @@ LsaDeleteUserByName(
     DWORD dwError = 0;
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 0;
-    
+
     if (geteuid() != 0)
     {
         dwError = EACCES;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_STRING(pszName);
-    
+
     dwError = LsaFindUserByName(
                     hLsaConnection,
                     pszName,
                     dwUserInfoLevel,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaDeleteUserById(
                     hLsaConnection,
                     ((PLSA_USER_INFO_0)pUserInfo)->uid);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     if (pUserInfo) {
@@ -919,19 +245,10 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
-}
-
-VOID
-LsaFreeEnumUsersInfo(
-    PLSA_ENUM_USERS_INFO pInfo
-    )
-{
-    LSA_SAFE_FREE_STRING(pInfo->pszGUID);
-    LsaFreeMemory(pInfo);
 }
 
 LSASS_API
@@ -945,118 +262,20 @@ LsaGetNamesBySidList(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    size_t  sIndex = 0;
-    size_t  sReplyCount = 0;
-    PLSA_SID_INFO pSIDInfoList = NULL;
-    CHAR chDomainSeparator = 0;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(ppszSidList);
-    BAIL_ON_INVALID_POINTER(ppSIDInfoList);
 
-    for(sIndex = 0; sIndex < sCount; sIndex++)
-    {
-        BAIL_ON_INVALID_STRING(ppszSidList[sIndex]);
-    }
-    
-    dwError = LsaMarshalGetNamesBySidListQuery(
-                    sCount,
-                    ppszSidList,
-                    NULL,
-                    &dwMsgLen);
+    dwError = LsaTransactGetNamesBySidList(
+                hLsaConnection,
+                sCount,
+                ppszSidList,
+                ppSIDInfoList,
+                pchDomainSeparator);
     BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = LsaBuildMessage(
-                    LSA_Q_NAMES_BY_SID_LIST,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaMarshalGetNamesBySidListQuery(
-                    sCount,
-                    ppszSidList,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    switch (pMessage->header.messageType) {
-        case LSA_R_NAMES_BY_SID_LIST:
-        {
-            dwError = LsaUnmarshalGetNamesBySidListReply(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &sReplyCount,
-                                &pSIDInfoList,
-                                &chDomainSeparator);
-            BAIL_ON_LSA_ERROR(dwError);
-            if(sReplyCount != sCount)
-            {
-                dwError = LSA_ERROR_INVALID_MESSAGE;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-            
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-    
-    *ppSIDInfoList = pSIDInfoList;
-    
-    if (pchDomainSeparator != NULL)
-    {
-        *pchDomainSeparator = chDomainSeparator;
-    }
 
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
-        
-error:
 
-    if (pSIDInfoList) {
-        LsaFreeSIDInfoList(pSIDInfoList, sReplyCount);
-    }
-    
+error:
     *ppSIDInfoList = NULL;
 
-    if (pchDomainSeparator != NULL)
-    {
-        *pchDomainSeparator = 0;
-    }
-    
     goto cleanup;
 }

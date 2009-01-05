@@ -45,6 +45,7 @@
 #    include <strings.h>
 #endif
 #include <ctgoto.h>
+#include <ctlock.h>
 #include <stdio.h>
 #include <ctmemory.h>
 #include <stdlib.h>
@@ -53,6 +54,21 @@
 #include <cttypes.h>
 #include <ctserver.h>
 #include <time.h>
+
+/* global libsmbclient mutex */
+static pthread_mutex_t smbLock = PTHREAD_MUTEX_INITIALIZER;
+#define SMB_LOCK() CtLockAcquireMutex(&smbLock)
+#define SMB_UNLOCK() CtLockReleaseMutex(&smbLock)
+#define SMB_ENTER(_proxy_)                      \
+    do {                                        \
+        SMB_LOCK();                             \
+        SmbContextData = (_proxy_);             \
+    } while (0)
+#define SMB_LEAVE()                             \
+    do {                                        \
+        SmbContextData = NULL;                  \
+        SMB_UNLOCK();                           \
+    } while (0)
 
 #ifdef __APPLE__
 /* Darwin is stubborn about providing extensions */
@@ -97,9 +113,11 @@ int strncasecmp(const char *s1, const char *s2, size_t len);
 /* Proxy State */
 /***************************************************************************/
 
+static SMBCCTX* SmbContext = NULL;
+static size_t SmbContextRefs = 0;
+static void* SmbContextData = NULL;
+
 typedef struct {
-    /* Allocated by state: */
-    SMBCCTX* SmbContext;
     SMBCFILE* File;
     /* Not owned by state: */
     int Fd;
@@ -144,7 +162,7 @@ NppGetAuthDataWithCcName(
     IN int CcNameSize
     )
 {
-    NP_PROXY_STATE* state = smbc_option_get(Context, "user_data");
+    NP_PROXY_STATE* state = (NP_PROXY_STATE*) SmbContextData;
 
     CT_LOG_TRACE("called for '%s' '%s'", Server, Share);
 
@@ -194,60 +212,74 @@ NppGetAuthDataWithCcName(
 
 void
 NppDestroySmbContext(
-    IN SMBCCTX* SmbContext
+    void
     )
 {
-    if (SmbContext)
+    SMB_LOCK();
+    SmbContextRefs--;
+
+    if (SmbContextRefs == 0 && SmbContext != NULL)
     {
-        int hadError = smbc_free_context(SmbContext, 0);
+        int hadError;
+
+        hadError = smbc_free_context(SmbContext, 0);
         if (hadError)
         {
             CT_LOG_WARN("Shutting down SMB context aggressively");
             smbc_free_context(SmbContext, 1);
         }
+
+        SmbContext = NULL;
     }
+
+    SMB_UNLOCK();
 }
 
 CT_STATUS
 NppCreateSmbContext(
-    OUT SMBCCTX** SmbContext,
-    IN int Flags,
-    IN void* UserData
+    IN int Flags
     )
 {
     CT_STATUS status = CT_STATUS_SUCCESS;
-    SMBCCTX* smbContext = NULL;
 
-    smbContext = smbc_new_context();
-    if (!smbContext)
+    SMB_LOCK();
+
+    SmbContextRefs++;
+
+    if (!SmbContext)
     {
-        status = CT_STATUS_OUT_OF_MEMORY;
-        GOTO_CLEANUP();
-    }
+        SmbContext = smbc_new_context();
 
-    smbContext->debug = PROXY_NP_SMB_DEBUG_LEVEL;
-    smbContext->flags = Flags;
-
-    smbc_option_set(smbContext, "auth_ccname_function", NppGetAuthDataWithCcName);
-    smbc_option_set(smbContext, "user_data", UserData);
-
-    if (!smbc_init_context(smbContext))
-    {
-        status = CT_ERRNO_TO_STATUS(errno);
-        GOTO_CLEANUP();
-    }
-
-cleanup:
-    if (status)
-    {
-        if (smbContext)
+        if (!SmbContext)
         {
-            NppDestroySmbContext(smbContext);
-            smbContext = NULL;
+            status = CT_STATUS_OUT_OF_MEMORY;
+            GOTO_CLEANUP();
+        }
+
+        SmbContext->debug = PROXY_NP_SMB_DEBUG_LEVEL;
+        SmbContext->flags = Flags;
+
+        smbc_option_set(SmbContext, "auth_ccname_function", NppGetAuthDataWithCcName);
+        smbc_option_set(SmbContext, "user_data", NULL);
+
+        if (!smbc_init_context(SmbContext))
+        {
+            status = CT_ERRNO_TO_STATUS(errno);
+            GOTO_CLEANUP();
         }
     }
 
-    *SmbContext = smbContext;
+cleanup:
+
+    SMB_UNLOCK();
+
+    if (status)
+    {
+        if (SmbContext)
+        {
+            NppDestroySmbContext();
+        }
+    }
 
     return status;
 }
@@ -320,10 +352,15 @@ static int SmbWriteAll(NP_PROXY_STATE *Proxy, char *data, size_t len)
     size_t remaining = len;
     while (remaining > 0)
     {
-        ssize_t written = Proxy->SmbContext->write(Proxy->SmbContext,
-                                                   Proxy->File,
-                                                   data,
-                                                   remaining);
+        ssize_t written;
+
+        SMB_ENTER(Proxy);
+        written = SmbContext->write(SmbContext,
+                                    Proxy->File,
+                                    data,
+                                    remaining);
+        SMB_LEAVE();
+
         if (written == 0)
         {
             return 0;
@@ -368,40 +405,20 @@ static int FdWriteAll(NP_PROXY_STATE *Proxy, char *data, size_t len)
     return len;
 }
 
-CT_STATUS
+static
+int
 NppGetSmbContextFlags(
-    IN PROXY_CONNECTION_HANDLE Connection,
-    OUT int* SmbContextFlags
+    void
     )
 {
-    CT_STATUS status;
     int smbContextFlags = 0;
-    NPC_AUTH_FLAGS authFlags = 0;
 
-    status = ProxyConnectionGetAuthInfo(Connection, &authFlags, NULL, NULL, NULL);
-    GOTO_CLEANUP_ON_STATUS(status);
+    smbContextFlags = PROXY_NP_SMB_CTX_FLAGS_DEFAULT;
+    smbContextFlags |= SMB_CTX_FLAG_USE_KERBEROS;
+    smbContextFlags |= SMB_CTX_FLAG_FALLBACK_AFTER_KERBEROS;
+    smbContextFlags |= SMBCCTX_FLAG_NO_AUTO_ANONYMOUS_LOGON;
 
-    if (!(authFlags & NPC_AUTH_FLAG_NO_DEFAULT))
-    {
-        smbContextFlags = PROXY_NP_SMB_CTX_FLAGS_DEFAULT;
-    }
-
-    if (authFlags & NPC_AUTH_FLAG_KERBEROS)
-    {
-        smbContextFlags |= SMB_CTX_FLAG_USE_KERBEROS;
-    }
-    if (authFlags & NPC_AUTH_FLAG_FALLBACK)
-    {
-        smbContextFlags |= SMB_CTX_FLAG_FALLBACK_AFTER_KERBEROS;
-    }
-    if (authFlags & NPC_AUTH_FLAG_NO_ANONYMOUS)
-    {
-        smbContextFlags |= SMBCCTX_FLAG_NO_AUTO_ANONYMOUS_LOGON;
-    }
-
-cleanup:
-    *SmbContextFlags = smbContextFlags;
-    return status;
+    return smbContextFlags;
 }
 
 CT_STATUS
@@ -422,7 +439,7 @@ NpProxyConnect(
     char *uriPath = NULL;
     unsigned char *SessKey = NULL;
     size_t SessKeyLen = 0;
-    int smbContextFlags, i;
+    int i;
     int attempt = 0;
     const struct timespec sleepTime = { 0, 10000000 };
 
@@ -446,13 +463,10 @@ NpProxyConnect(
         }
     }
 
-    status = NppGetSmbContextFlags(Connection, &smbContextFlags);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
     status = CtAllocateMemory((void **)&context, sizeof(*context));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NppCreateSmbContext(&context->SmbContext, smbContextFlags, context);
+    status = NppCreateSmbContext(NppGetSmbContextFlags());
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     /* Proxy must be set before doing the create so that we can authenticate */
@@ -460,7 +474,8 @@ NpProxyConnect(
 
     while (1)
     {
-        context->File = smbc_nt_create(context->SmbContext,
+        SMB_ENTER(context);
+        context->File = smbc_nt_create(SmbContext,
                                        uriPath,
                                        0,
                                        GENERIC_READ_ACCESS | GENERIC_WRITE_ACCESS,
@@ -469,6 +484,7 @@ NpProxyConnect(
                                        OPEN_EXISTING,
                                        FILE_ATTRIBUTE_NORMAL,
                                        0);
+        SMB_LEAVE();
         if (context->File == NULL)
         {
             if (errno == ENOSYS)
@@ -494,7 +510,9 @@ NpProxyConnect(
         break;
     }
 
+    SMB_ENTER(context);
     smbc_get_session_key(context->File, &SessKey, &SessKeyLen);
+    SMB_LEAVE();
 
     context->Fd = Fd;
 
@@ -605,7 +623,7 @@ NpProxyRun(
                 // This means the remote server closed the named pipe
                 return;
             }
-            CT_LOG_INFO("Wrote packet to named pipe '%p'\n", proxy->SmbContext);
+            CT_LOG_INFO("Wrote packet to named pipe '%p'\n", SmbContext);
             localBufferCount -= packetSize;
             localBufferStart += packetSize;
         }
@@ -615,10 +633,12 @@ NpProxyRun(
                     namedPipeBufferCount);
             namedPipeBufferStart = 0;
             CT_LOG_INFO("Reading from named pipe\n");
-            readSize = proxy->SmbContext->read(proxy->SmbContext,
-                                               proxy->File,
-                                               namedPipeBuffer + namedPipeBufferCount,
-                                               sizeof(namedPipeBuffer) - namedPipeBufferCount);
+            SMB_ENTER(proxy);
+            readSize = SmbContext->read(SmbContext,
+                                        proxy->File,
+                                        namedPipeBuffer + namedPipeBufferCount,
+                                        sizeof(namedPipeBuffer) - namedPipeBufferCount);
+            SMB_LEAVE();
             CT_LOG_INFO("Read %d bytes\n", readSize);
             if (readSize < 0)
             {
@@ -666,12 +686,11 @@ NpProxyClose(
     {
         if (proxy->File)
         {
-            proxy->SmbContext->close_fn(proxy->SmbContext, proxy->File);
+            SMB_ENTER(proxy);
+            SmbContext->close_fn(SmbContext, proxy->File);
+            SMB_LEAVE();
         }
-        if (proxy->SmbContext)
-        {
-            NppDestroySmbContext(proxy->SmbContext);
-        }
+        NppDestroySmbContext();
         CtFreeMemory(proxy);
     }
 }

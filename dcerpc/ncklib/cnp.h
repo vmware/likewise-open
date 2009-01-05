@@ -142,8 +142,6 @@
                                                 RPC_C_CN_DBG_ROUTINE_TRACE,\
                                                 ("(" #s ")\n"))
 
-#include <npctypes.h>
-
 
 /***********************************************************************/
 /*
@@ -551,7 +549,7 @@ typedef struct rpc_cn_assoc_grp_s_t
     unsigned16                          grp_refcnt;
     rpc_addr_p_t                        grp_address;
     rpc_addr_p_t                        grp_secaddr;
-    NPC_TOKEN_ID			grp_imp_token;
+    rpc_id_token_t			grp_imp_token;
     rpc_cn_local_id_t                   grp_id;
     unsigned16                          grp_max_assoc;
     unsigned16                          grp_cur_assoc;
@@ -578,7 +576,7 @@ typedef struct
     unsigned_char_t                     *cn_listening_endpoint;
     rpc_socket_t                        cn_sock;
     rpc_addr_p_t                        rpc_addr;
-    NPC_TOKEN_ID                        imp_token;
+    rpc_id_token_t                      imp_token;
     unsigned                            exit_rcvr : 1;
     unsigned                            in_sendmsg : 1;
     unsigned                            waiting_for_sendmsg_complete : 1;
@@ -597,7 +595,7 @@ typedef struct
 #define RPC_C_CN_ASSOC_SCANNED                  0x00000008
 #define RPC_C_CN_ASSOC_AUTH_EXPECTED            0x00000010
 
-typedef struct rpc_cn_assoc_s_t
+struct rpc_cn_assoc_s_t
 {
     rpc_list_t                          link;   /* MUST BE 1ST */
     rpc_cn_sm_ctlblk_t                  assoc_state;
@@ -626,7 +624,8 @@ typedef struct rpc_cn_assoc_s_t
     rpc_cn_fragbuf_p_t                  raw_packet_p;
     rpc_cn_assoc_sm_work_p_t            assoc_sm_work;
     unsigned32                          bind_packets_sent;
-} rpc_cn_assoc_t, *rpc_cn_assoc_p_t;
+};
+// rpc_cn_assoc_t and rpc_cn_assoc_p_t are declared in comsoc.h
 
 /*
  * If KRB_CN is on, or it isn't explicitly off, turn on CN_AUTH.

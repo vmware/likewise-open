@@ -476,9 +476,9 @@ CENTERROR_CATALOG_DESC(
     
     "Required PAM module not found",
     
-    "The pam_lwidentity module or a required system PAM module "
+    "The pam_lsass module or a required system PAM module "
     "could not be found.  Please ensure that all pam modules are "
-    "present in correct location and that Likewise Enterprise is "
+    "present in correct location and that Likewise is "
     "completely installed." )
 
 CENTERROR_CATALOG_DESC(

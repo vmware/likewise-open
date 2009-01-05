@@ -57,11 +57,10 @@ LsaNetLeaveDomain(
     PSTR  pszHostname = NULL;
     PWSTR pwszHostname = NULL;
     PWSTR pwszDnsDomainName = NULL;
-    PWSTR pwszUsername = NULL;
-    PWSTR pwszPassword = NULL;
     DWORD dwOptions = (NETSETUP_ACCT_DELETE);
     PLWPS_PASSWORD_INFO pPassInfo = NULL;
     PLSA_MACHINE_ACCT_INFO pAcct = NULL;
+    LSA_ACCESS_TOKEN_FREE_INFO accessInfo = {0};
     
     if (geteuid() != 0) {
         dwError = EACCES;
@@ -107,22 +106,21 @@ LsaNetLeaveDomain(
     
     if (!IsNullOrEmptyString(pszUsername) &&
         !IsNullOrEmptyString(pszPassword)) {
-        dwError = LsaMbsToWc16s(
+
+        dwError = LsaSetSMBAccessToken(
+                    pAcct->pszDnsDomainName,
                     pszUsername,
-                    &pwszUsername);
-        BAIL_ON_LSA_ERROR(dwError);
-    
-        dwError = LsaMbsToWc16s(
                     pszPassword,
-                    &pwszPassword);
+                    LSA_NET_JOIN_DOMAIN_NOTIMESYNC,
+                    &accessInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = Win32ErrorToErrno(
             NetUnjoinDomainLocal(
                 pwszHostname,
                 pwszDnsDomainName,
-                pwszUsername,
-                pwszPassword,
+                NULL,
+                NULL,
                 dwOptions));
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -150,8 +148,7 @@ cleanup:
 
     LSA_SAFE_FREE_MEMORY(pwszHostname);
     LSA_SAFE_FREE_MEMORY(pwszDnsDomainName);
-    LSA_SAFE_FREE_MEMORY(pwszUsername);
-    LSA_SAFE_FREE_MEMORY(pwszPassword);
+    LsaFreeSMBAccessTokenContents(&accessInfo);
 
     return dwError;
     

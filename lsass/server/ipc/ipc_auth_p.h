@@ -47,34 +47,44 @@
 #ifndef __IPC_AUTH_P_H__
 #define __IPC_AUTH_P_H__
 
-DWORD
+LWMsgStatus
 LsaSrvIpcAuthenticateUser(
-        HANDLE hConnection,
-        PLSAMESSAGE pMessage
-        );
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcValidateUser(
-        HANDLE hConnection,
-        PLSAMESSAGE pMessage
-        );
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcCheckUserInList(
-        HANDLE hConnection,
-        PLSAMESSAGE pMessage
-        );
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcChangePassword(
-        HANDLE hConnection,
-        PLSAMESSAGE pMessage
-        );
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
 DWORD
 LsaSrvIpcAuthenticateUserEx(
-        HANDLE hConnection,
-        PLSAMESSAGE pMessage
-        );
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
 #endif /* __IPC_AUTH_P_H__ */
