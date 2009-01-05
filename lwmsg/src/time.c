@@ -56,7 +56,7 @@ lwmsg_time_now(
         switch (errno)
         {
         case EINVAL:
-            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
         default:
             BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
         }

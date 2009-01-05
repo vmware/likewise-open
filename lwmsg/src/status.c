@@ -51,13 +51,17 @@ static const char* default_message[] =
     [LWMSG_STATUS_EOF] = "End of file",
     [LWMSG_STATUS_NOT_FOUND] = "Item not found",
     [LWMSG_STATUS_UNIMPLEMENTED] = "Unimplemented",
-    [LWMSG_STATUS_INVALID] = "Invalid parameter",
+    [LWMSG_STATUS_INVALID_PARAMETER] = "Invalid parameter",
+    [LWMSG_STATUS_INVALID_STATE] = "Invalid state",
     [LWMSG_STATUS_OVERFLOW] = "Arithmetic overflow",
     [LWMSG_STATUS_UNDERFLOW] = "Arithmetic underflow",
     [LWMSG_STATUS_SYSTEM] = "Unhandled system error",
     [LWMSG_STATUS_TIMEOUT] = "Operation timed out",
     [LWMSG_STATUS_SECURITY] = "Security violation",
-    [LWMSG_STATUS_INTERRUPT] = "Operation interrupted"
+    [LWMSG_STATUS_INTERRUPT] = "Operation interrupted",
+    [LWMSG_STATUS_FILE_NOT_FOUND] = "File not found",
+    [LWMSG_STATUS_CONNECTION_REFUSED] = "Connection refused"
+
 };
 
 void
