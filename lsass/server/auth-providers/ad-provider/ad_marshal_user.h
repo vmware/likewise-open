@@ -47,8 +47,6 @@
 #ifndef __LSALDAP_MARSHAL_USER_H__
 #define __LSALDAP_MARSHAL_USER_H__
 
-#include "cachedb.h"
-
 #define LSA_AD_UF_ACCOUNTDISABLE     0x00000002
 #define LSA_AD_UF_LOCKOUT            0x00000010
 #define LSA_AD_UF_CANT_CHANGE_PASSWD 0x00000040
@@ -57,7 +55,7 @@
 
 DWORD
 ADMarshalFromUserCache(
-    PAD_SECURITY_OBJECT pUser,
+    PLSA_SECURITY_OBJECT pUser,
     DWORD       dwUserInfoLevel,
     PVOID*      ppUserInfo
     );

@@ -1546,14 +1546,14 @@ ADLdap_GetGroupMembers(
     IN PCSTR pszDomainName,
     IN PCSTR pszSid,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     HANDLE hDirectory = (HANDLE)NULL;
     DWORD dwSidCount = 0;
-    PAD_SECURITY_OBJECT pGroupObj = NULL;
-    PAD_SECURITY_OBJECT* ppResults = NULL;
+    PLSA_SECURITY_OBJECT pGroupObj = NULL;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
     PSTR *ppszLDAPValues = NULL;
     size_t sFoundCount = 0;
 
@@ -1595,7 +1595,7 @@ ADLdap_GetGroupMembers(
     *pppResults = ppResults;
 
 cleanup:
-    ADCacheDB_SafeFreeObject(&pGroupObj);
+    LsaDbSafeFreeObject(&pGroupObj);
     LsaFreeStringArray(ppszLDAPValues, dwSidCount);
     LsaLdapCloseDirectory(hDirectory);
 
@@ -1608,17 +1608,17 @@ error:
     LSA_LOG_ERROR("Failed to find group's members of objectSid=%s. [error code:%d]",
                   LSA_SAFE_LOG_STRING(pszSid), dwError);
 
-    ADCacheDB_SafeFreeObjectList((DWORD)sFoundCount, &ppResults);
+    LsaDbSafeFreeObjectList((DWORD)sFoundCount, &ppResults);
     goto cleanup;
 }
 
 DWORD
 ADLdap_GetUserGroupMembership(
     IN HANDLE hProvider,
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     OUT int* piPrimaryGroupIndex,
     OUT size_t* psNumGroupsFound,
-    OUT PAD_SECURITY_OBJECT** pppGroupInfoList
+    OUT PLSA_SECURITY_OBJECT** pppGroupInfoList
     )
 {
     DWORD dwError =  0;
@@ -1626,7 +1626,7 @@ ADLdap_GetUserGroupMembership(
     PSTR pszPrimaryGroupSID = NULL;
     PSTR pszFullDomainName = NULL;
     INT i = 0;
-    PAD_SECURITY_OBJECT* ppGroupInfoList = NULL;
+    PLSA_SECURITY_OBJECT* ppGroupInfoList = NULL;
     size_t sNumGroupsFound = 0;
     int    iPrimaryGroupIndex = -1;
     DWORD dwSidCount = 0;
@@ -1724,7 +1724,7 @@ error:
      LSA_LOG_ERROR("Failed to find user's group memberships of UID=%d. [error code:%d]",
                        pUserInfo->userInfo.uid, dwError);
 
-    ADCacheDB_SafeFreeObjectList((DWORD)sNumGroupsFound, &ppGroupInfoList);
+    LsaDbSafeFreeObjectList((DWORD)sNumGroupsFound, &ppGroupInfoList);
 
     goto cleanup;
 }

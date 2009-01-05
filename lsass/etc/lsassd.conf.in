@@ -74,12 +74,6 @@
 
     ldap-sign-and-seal = false
 
-    # Time interval when expired cache entries are purged
-    # Default: 30m
-    # Minimum: 5m
-    # Maximum: 1d
-    cache-purge-timeout = 30m
-
     # Cache entry expiration timespan
     # Default: 4h
     # Minimum: 0

@@ -231,7 +231,13 @@ LsaInitializeProvider(
     dwError = LsaKrb5SetProcessDefaultCachePath(pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_Initialize();
+    dwError = ADState_OpenDb(
+                &gpLsaAdProviderState->hStateConnection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbOpen(
+                LSASS_AD_CACHE,
+                &gpLsaAdProviderState->hCacheConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_InitializeOperatingMode(
@@ -336,13 +342,6 @@ LsaShutdownProvider(
     {
         ADProviderFreeProviderData(gpADProviderData);
         gpADProviderData = NULL;
-    }
-
-    dwError = ADCacheDB_Shutdown();
-    if (dwError)
-    {
-        LSA_LOG_DEBUG("AD Provider Shutdown: Failed to shutdown cache DB (error = %d)", dwError);
-        dwError = 0;
     }
 
     dwError = LsaKrb5Shutdown();
@@ -488,7 +487,7 @@ AD_ValidateUser(
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-    PAD_SECURITY_OBJECT pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -512,7 +511,7 @@ AD_ValidateUser(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    ADCacheDB_SafeFreeObject(&pUserInfo);
+    LsaDbSafeFreeObject(&pUserInfo);
 
     if (pLoginInfo)
     {
@@ -535,7 +534,7 @@ AD_CheckUserInList(
 {
     DWORD  dwError = 0;
     size_t  sNumGroupsFound = 0;
-    PAD_SECURITY_OBJECT* ppGroupList = NULL;
+    PLSA_SECURITY_OBJECT* ppGroupList = NULL;
     DWORD  dwUserInfoLevel  = 0;
     PLSA_USER_INFO_0 pUserInfo = NULL;
     size_t  iGroup = 0;
@@ -581,7 +580,7 @@ AD_CheckUserInList(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObjectList(sNumGroupsFound, &ppGroupList);
+    LsaDbSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
     if (pUserInfo)
     {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
@@ -613,7 +612,7 @@ AD_FindUserByName(
 {
     DWORD   dwError = 0;
     PVOID   pUserInfo = NULL;
-    PAD_SECURITY_OBJECT pInObjectForm = NULL;
+    PLSA_SECURITY_OBJECT pInObjectForm = NULL;
 
     dwError = AD_FindUserObjectByName(
                     hProvider,
@@ -640,7 +639,7 @@ AD_FindUserByName(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObject(&pInObjectForm);
+    LsaDbSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -666,7 +665,7 @@ AD_FindUserById(
 {
     DWORD   dwError = 0;
     PVOID   pUserInfo = NULL;
-    PAD_SECURITY_OBJECT pInObjectForm = NULL;
+    PLSA_SECURITY_OBJECT pInObjectForm = NULL;
 
     dwError = AD_FindUserObjectById(
                 hProvider,
@@ -693,7 +692,7 @@ AD_FindUserById(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObject(&pInObjectForm);
+    LsaDbSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -723,7 +722,7 @@ DWORD
 AD_FindUserObjectById(
     IN HANDLE  hProvider,
     IN uid_t   uid,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = 0;
@@ -919,7 +918,7 @@ AD_FindGroupByNameWithCacheMode(
 {
     DWORD   dwError = 0;
     PVOID   pGroupInfo = NULL;
-    PAD_SECURITY_OBJECT pInObjectForm = NULL;
+    PLSA_SECURITY_OBJECT pInObjectForm = NULL;
 
     BAIL_ON_INVALID_STRING(pszGroupName);
 
@@ -950,7 +949,7 @@ AD_FindGroupByNameWithCacheMode(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObject(&pInObjectForm);
+    LsaDbSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -977,7 +976,7 @@ AD_FindGroupByIdWithCacheMode(
 {
     DWORD   dwError = 0;
     PVOID   pGroupInfo = NULL;
-    PAD_SECURITY_OBJECT pInObjectForm = NULL;
+    PLSA_SECURITY_OBJECT pInObjectForm = NULL;
 
     dwError = AD_FindObjectByIdTypeNoCache(
                 hProvider,
@@ -1006,7 +1005,7 @@ AD_FindGroupByIdWithCacheMode(
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
-    ADCacheDB_SafeFreeObject(&pInObjectForm);
+    LsaDbSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -1031,18 +1030,18 @@ AD_GetExpandedGroupUsersEx(
     IN DWORD dwMaxDepth,
     OUT PBOOLEAN pbIsFullyExpanded,
     OUT size_t* psMemberUsersCount,
-    OUT PAD_SECURITY_OBJECT** pppMemberUsers
+    OUT PLSA_SECURITY_OBJECT** pppMemberUsers
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     BOOLEAN bIsFullyExpanded = FALSE;
     PLSA_AD_GROUP_EXPANSION_DATA pExpansionData = NULL;
-    PAD_SECURITY_OBJECT* ppGroupMembers = NULL;
+    PLSA_SECURITY_OBJECT* ppGroupMembers = NULL;
     size_t sGroupMembersCount = 0;
-    PAD_SECURITY_OBJECT pGroupToExpand = NULL;
+    PLSA_SECURITY_OBJECT pGroupToExpand = NULL;
     DWORD dwGroupToExpandDepth = 0;
     PCSTR pszGroupToExpandSid = NULL;
-    PAD_SECURITY_OBJECT* ppExpandedUsers = NULL;
+    PLSA_SECURITY_OBJECT* ppExpandedUsers = NULL;
     size_t sExpandedUsersCount = 0;
 
     dwError = AD_GroupExpansionDataCreate(
@@ -1107,7 +1106,7 @@ AD_GetExpandedGroupUsersEx(
 
 cleanup:
     AD_GroupExpansionDataDestroy(pExpansionData);
-    ADCacheDB_SafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
+    LsaDbSafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
 
     if (pbIsFullyExpanded)
     {
@@ -1120,7 +1119,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
+    LsaDbSafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
     sExpandedUsersCount = 0;
     bIsFullyExpanded = FALSE;
     goto cleanup;
@@ -1135,7 +1134,7 @@ AD_GetExpandedGroupUsers(
     IN int iMaxDepth,
     OUT BOOLEAN* pbAllExpanded,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -1251,7 +1250,7 @@ AD_GetUserGroupObjectMembership(
     IN uid_t uid,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psNumGroupsFound,
-    OUT PAD_SECURITY_OBJECT** pppResult
+    OUT PLSA_SECURITY_OBJECT** pppResult
     )
 {
     DWORD dwError = 0;
@@ -1285,7 +1284,7 @@ AD_GetUserGroupObjectMembership(
 DWORD
 AD_GroupObjectToGroupInfo(
     IN HANDLE hProvider,
-    IN PAD_SECURITY_OBJECT pGroupObject,
+    IN PLSA_SECURITY_OBJECT pGroupObject,
     IN BOOLEAN bIsCacheOnlyMode,
     IN DWORD dwGroupInfoLevel,
     OUT PVOID* ppGroupInfo
@@ -1293,7 +1292,7 @@ AD_GroupObjectToGroupInfo(
 {
     DWORD dwError = 0;
     size_t sMembers = 0;
-    PAD_SECURITY_OBJECT *ppMembers = NULL;
+    PLSA_SECURITY_OBJECT *ppMembers = NULL;
     PSTR pszFullDomainName = NULL;
 
     switch (dwGroupInfoLevel)
@@ -1336,7 +1335,7 @@ AD_GroupObjectToGroupInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(sMembers, &ppMembers);
+    LsaDbSafeFreeObjectList(sMembers, &ppMembers);
     LSA_SAFE_FREE_STRING(pszFullDomainName);
 
     return dwError;
@@ -1359,7 +1358,7 @@ AD_GetUserGroupMembership(
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT* ppGroupObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppGroupObjects = NULL;
     size_t sGroupObjectsCount = 0;
     PVOID* ppGroupInfoList = NULL;
     size_t sIndex = 0;
@@ -1442,7 +1441,7 @@ AD_GetUserGroupMembership(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
+    LsaDbSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
     return dwError;
 
 error:
@@ -2449,13 +2448,13 @@ DWORD
 AD_FindUserObjectByNameInternal(
     IN HANDLE  hProvider,
     IN PCSTR   pszLoginId,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = 0;
     PSTR pszFreeLoginId = NULL;
     PCSTR pszUseLoginId = NULL;
-    PAD_SECURITY_OBJECT pResult = NULL;
+    PLSA_SECURITY_OBJECT pResult = NULL;
 
     dwError = AD_GetNameWithReplacedSeparators(
                 pszLoginId,
@@ -2492,7 +2491,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObject(&pResult);
+    LsaDbSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -2501,13 +2500,13 @@ DWORD
 AD_FindUserObjectByName(
     IN HANDLE  hProvider,
     IN PCSTR   pszLoginId,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = 0;
     PSTR pszLocalLoginId = NULL;
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
-    PAD_SECURITY_OBJECT pResult = NULL;
+    PLSA_SECURITY_OBJECT pResult = NULL;
 
     if (!strcasecmp(pszLoginId, "root"))
     {
@@ -2569,7 +2568,7 @@ error:
 
     *ppResult = NULL;
 
-    ADCacheDB_SafeFreeObject(&pResult);
+    LsaDbSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -2579,13 +2578,13 @@ DWORD
 AD_FindGroupObjectByNameInternal(
     IN HANDLE  hProvider,
     IN PCSTR   pszGroupName,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = 0;
     PSTR pszFreeGroupName = NULL;
     PCSTR pszUseGroupName = NULL;
-    PAD_SECURITY_OBJECT pResult = NULL;
+    PLSA_SECURITY_OBJECT pResult = NULL;
 
     dwError = AD_GetNameWithReplacedSeparators(
                 pszGroupName,
@@ -2622,7 +2621,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObject(&pResult);
+    LsaDbSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -2631,13 +2630,13 @@ DWORD
 AD_FindGroupObjectByName(
     IN HANDLE  hProvider,
     IN PCSTR   pszGroupName,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = 0;
     PSTR pszLocalGroupName = NULL;
     PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
-    PAD_SECURITY_OBJECT pResult = NULL;
+    PLSA_SECURITY_OBJECT pResult = NULL;
 
     if (!strcasecmp(pszGroupName, "root"))
     {
@@ -2699,7 +2698,7 @@ error:
 
     *ppResult = NULL;
 
-    ADCacheDB_SafeFreeObject(&pResult);
+    LsaDbSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -2806,6 +2805,9 @@ LsaAdProviderStateDestroy(
 {
     if (pState)
     {
+        LsaDbSafeClose(&pState->hCacheConnection);
+        ADState_SafeCloseDb(&pState->hStateConnection);
+
         MediaSenseStop(&pState->MediaSenseHandle);
         if (pState->MachineCreds.pMutex)
         {
@@ -3030,7 +3032,7 @@ AD_ResolveConfiguredLists(
     PSTR* ppszMembers = 0;
     DWORD dwNumMembers = 0;
     PLSA_USER_INFO_0 pUserInfo = NULL;
-    PAD_SECURITY_OBJECT pGroupInfo = NULL;
+    PLSA_SECURITY_OBJECT pGroupInfo = NULL;
     PLSA_SECURITY_IDENTIFIER pSID = NULL;
     DWORD dwInfoLevel = 0;
 
@@ -3095,7 +3097,7 @@ AD_ResolveConfiguredLists(
             }
             dwError = LSA_ERROR_SUCCESS;
 
-            ADCacheDB_SafeFreeObject(&pGroupInfo);
+            LsaDbSafeFreeObject(&pGroupInfo);
             dwError = AD_FindGroupObjectByName(
                             hProvider,
                             pszMember,
@@ -3131,7 +3133,7 @@ cleanup:
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
 
-    ADCacheDB_SafeFreeObject(&pGroupInfo);
+    LsaDbSafeFreeObject(&pGroupInfo);
 
     return dwError;
 

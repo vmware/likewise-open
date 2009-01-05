@@ -233,13 +233,13 @@ LsaAdBatchEnumProcessRealMessages(
     IN LDAPMessage* pMessages,
     IN DWORD dwCount,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
     LDAPMessage* pCurrentMessage = NULL;
     LDAP* pLd = LsaLdapGetSession(hDirectory);
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD dwObjectsCount = 0;
 
     dwError = LsaAllocateMemory(
@@ -280,7 +280,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -296,7 +296,7 @@ LsaAdBatchEnumProcessPseudoMessages(
     IN LDAPMessage* pMessages,
     IN DWORD dwCount,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
@@ -304,7 +304,7 @@ LsaAdBatchEnumProcessPseudoMessages(
     LDAP* pLd = LsaLdapGetSession(hDirectory);
     PSTR* ppszSids = NULL;
     DWORD dwSidsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD dwObjectsCount = 0;
     PSTR* ppszKeywordValues = NULL;
     DWORD dwKeywordValuesCount = 0;
@@ -375,7 +375,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -392,13 +392,13 @@ LsaAdBatchEnumProcessMessages(
     IN LDAPMessage* pMessages,
     IN DWORD dwMaxCount,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
     DWORD dwCount = 0;
     LDAP* pLd = LsaLdapGetSession(hDirectory);
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD dwObjectsCount = 0;
 
     dwCount = ldap_count_entries(pLd, pMessages);
@@ -453,7 +453,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -473,7 +473,7 @@ LsaAdBatchEnumObjectsInternal(
     IN OPTIONAL PCSTR pszCellDn,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
@@ -516,11 +516,11 @@ LsaAdBatchEnumObjectsInternal(
     PCSTR pszQuery = NULL;
     PSTR pszNetbiosDomainName = NULL;
     LDAPMessage* pMessage = NULL;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppTotalObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppTotalObjects = NULL;
     DWORD dwTotalObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppNewTotalObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppNewTotalObjects = NULL;
 
     LSA_ASSERT(bMorePages);
 
@@ -607,7 +607,7 @@ cleanup:
     {
         ldap_msgfree(pMessage);
     }
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     *pdwObjectsCount = dwTotalObjectsCount;
     *pppObjects = ppTotalObjects;
@@ -617,7 +617,7 @@ cleanup:
 
 error:
     // set OUT params in cleanup.
-    ADCacheDB_SafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
+    LsaDbSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
     dwTotalObjectsCount = 0;
 
     goto cleanup;
@@ -632,14 +632,14 @@ LsaAdBatchEnumObjects(
     IN ADAccountType AccountType,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
     BOOLEAN bIsByRealObject = FALSE;
     LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
 
     if (LsaAdBatchIsDefaultSchemaMode() || LsaAdBatchIsUnprovisionedMode())
     {
@@ -678,7 +678,7 @@ cleanup:
 
 error:
     // set OUT params in cleanup...
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
     goto cleanup;
 }

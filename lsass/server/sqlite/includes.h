@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,33 +33,26 @@
  *
  * Module Name:
  *
- *        adldap_p.h
+ *        includes.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        AD LDAP Group Marshalling functions (public header)
+ *
+ *        Sqltie API (Private Header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#ifndef __LSALDAP_MARSHAL_GROUP_H__
-#define __LSALDAP_MARSHAL_GROUP_H__
 
-DWORD
-ADMarshalGetCanonicalName(
-    PLSA_SECURITY_OBJECT     pObject,
-    PSTR*                   ppszResult);
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include <sqlite3.h>
+#include "lsautils.h"
+#include <uuid/uuid.h>
+#include <lwrpc/sidhelper.h>
 
-DWORD
-ADMarshalFromGroupCache(
-    PLSA_SECURITY_OBJECT pGroup,
-    size_t                  sMembers,
-    PLSA_SECURITY_OBJECT*    ppMembers,
-    DWORD               dwGroupInfoLevel,
-    PVOID*              ppGroupInfo
-    );
-
-#endif //__LSALDAP_MARSHAL_GROUP_H__
-
+#include "lsasqlite.h"
+#include "sqlite_p.h"

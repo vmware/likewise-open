@@ -318,6 +318,15 @@ typedef struct _EVENT_LOG_HANDLE
 
 #endif /* EVENT_LOG_HANDLE_DEFINED */
 
+#ifndef EVENT_LOG_CATEGORY_DEFINED
+#define EVENT_LOG_CATEGORY_DEFINED 1
+typedef struct _EVENT_LOG_CATEGORY
+{
+    PSTR    pszCategory;
+} EVENT_LOG_CATEGORY, *PEVENT_LOG_CATEGORY;
+
+#endif /* EVENT_LOG_CATEGORY_DEFINED */
+
 DWORD
 LWIOpenEventLog(
     PCSTR pszServerName,
@@ -343,6 +352,19 @@ LWIReadEventLog(
     PCWSTR sqlFilter,
     PDWORD pdwNumReturned,
     EVENT_LOG_RECORD** eventRecords
+    );
+
+DWORD
+LWIGetDistinctCategories(
+    HANDLE 	hEventLog,
+    DWORD 	dwCatCount,
+    PEVENT_LOG_CATEGORY* ppCategory
+    );
+
+DWORD
+LWIGetCategoryCount(
+    HANDLE 	hEventLog,
+    DWORD* pdwNumMatched
     );
 
 DWORD

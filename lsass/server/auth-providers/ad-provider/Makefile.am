@@ -7,6 +7,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        ad_marshal_group.c        \
        ad_marshal_nss_artefact.c \
        adnetapi.c                \
+       state_store.c             \
        cache.c                   \
        cellldap.c                \
        defldap.c                 \
@@ -18,7 +19,6 @@ liblsass_auth_provider_ad_la_SOURCES = \
        online.c                  \
        provider-main.c           \
        providerstate.c           \
-       cachedb.c                 \
        lsadm.c                   \
        lsadm_p.c                 \
        lsadmengine.c             \
@@ -47,20 +47,22 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/server/krb5/liblsakrb5.la \
 	@top_builddir@/server/ldap/liblsaldap.la \
 	@top_builddir@/server/srvutils/liblsasrvutils.la \
+	@top_builddir@/server/db/liblsadb.la \
+	@top_builddir@/server/sqlite/liblsasqlite.la \
 	@top_builddir@/ipc/liblsaipc.la \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@NETLOGON_LIBS@ \
 	@PROC_LIBS@ \
 	@KVM_LIBS@  \
-	@SQLITE_LIBS@ \
-	@UUID_LIBS@
+	@UUID_LIBS@ \
+	@CRYPTO_LIBS@
 
 liblsass_auth_provider_ad_la_LDFLAGS = \
 	-module -avoid-version -export-dynamic \
 	@PSTORE_LDFLAGS@ \
 	@NETAPI_LDFLAGS@ \
 	@NETLOGON_LDFLAGS@ \
-	@SQLITE_LDFLAGS@ \
 	@CF_FRAMEWORK_LDFLAGS@ \
-	@SC_FRAMEWORK_LDFLAGS@
+	@SC_FRAMEWORK_LDFLAGS@ \
+	@CRYPTO_LDFLAGS@

@@ -64,7 +64,7 @@ LsaAdBatchFindObjects(
     IN OPTIONAL PSTR* ppszQueryList,
     IN OPTIONAL PDWORD pdwId,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
 DWORD
@@ -72,7 +72,7 @@ LsaAdBatchFindSingleObject(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN OPTIONAL PCSTR pszQueryTerm,
     IN OPTIONAL PDWORD dwId,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
@@ -84,7 +84,7 @@ LsaAdBatchEnumObjects(
     IN ADAccountType AccountType,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
 #endif /* __BATCH_H__ */

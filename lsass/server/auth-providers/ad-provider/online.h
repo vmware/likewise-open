@@ -55,10 +55,10 @@
 #define PAC_GROUP_EXPIRATION        (void *)2
 
 typedef DWORD (*LSA_AD_CACHEDB_FIND_OBJECTS_BY_LIST_CALLBACK)(
-    IN HANDLE hDb,
+    IN LSA_DB_HANDLE hDb,
     IN size_t sCount,
     IN PSTR* ppszList,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     );
 
 typedef DWORD (*LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK)(
@@ -66,7 +66,7 @@ typedef DWORD (*LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK)(
     IN DWORD dwCount,
     IN PSTR* ppszList,
     OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
 //
@@ -191,7 +191,7 @@ DWORD
 AD_OnlineFindUserObjectById(
     HANDLE  hProvider,
     uid_t   uid,
-    PAD_SECURITY_OBJECT* ppResult
+    PLSA_SECURITY_OBJECT* ppResult
     );
 
 DWORD
@@ -200,7 +200,7 @@ AD_OnlineGetUserGroupObjectMembership(
     IN uid_t uid,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     );
 
 DWORD
@@ -262,7 +262,7 @@ AD_CreateK5Login(
 
 DWORD
 AD_CheckExpiredObject(
-    IN OUT PAD_SECURITY_OBJECT* ppCachedUser
+    IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
     );
 
 int
@@ -288,7 +288,7 @@ AD_OnlineGetGroupMembers(
     IN PCSTR pszSid,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     );
 
 DWORD
@@ -297,7 +297,7 @@ AD_FindObjectsByDNList(
     IN size_t sCount,
     IN PSTR* ppszDNList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     );
 
 DWORD
@@ -306,7 +306,7 @@ AD_FindObjectByNameTypeNoCache(
     IN PCSTR pszName,
     IN ADLogInNameType NameType,
     IN ADAccountType AccountType,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
@@ -314,14 +314,14 @@ AD_FindObjectByIdTypeNoCache(
     IN HANDLE hProvider,
     IN DWORD dwId,
     IN ADAccountType AccountType,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
 AD_FindObjectBySid(
     IN HANDLE hProvider,
     IN PCSTR pszSid,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     );
 
 DWORD
@@ -330,7 +330,7 @@ AD_FindObjectsBySidList(
     IN size_t sCount,
     IN PSTR* ppszSidList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     );
 
 DWORD
@@ -358,13 +358,13 @@ DWORD
 AD_CacheGroupMembershipFromPac(
     IN HANDLE hProvider,
     IN LSA_TRUST_DIRECTION dwTrustDirection,
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN PAC_LOGON_INFO* pPac
     );
 
 void
 AD_FilterNullEntries(
-    IN OUT PAD_SECURITY_OBJECT* ppEntries,
+    IN OUT PLSA_SECURITY_OBJECT* ppEntries,
     IN OUT size_t* psCount
     );
 
@@ -372,13 +372,13 @@ DWORD
 AD_OnlineFindUserObjectByName(
     HANDLE  hProvider,
     PCSTR   pszLoginId,
-    PAD_SECURITY_OBJECT* ppCachedUser);
+    PLSA_SECURITY_OBJECT* ppCachedUser);
 
 DWORD
 AD_OnlineFindGroupObjectByName(
     HANDLE  hProvider,
     PCSTR   pszGroupName,
-    PAD_SECURITY_OBJECT* ppResult);
+    PLSA_SECURITY_OBJECT* ppResult);
 
 DWORD
 AD_OnlineFindNSSArtefactByKey(
@@ -413,12 +413,12 @@ AD_CanonicalizeDomainsInCrackedNameInfo(
 
 DWORD
 AD_UpdateUserObjectFlags(
-    IN OUT PAD_SECURITY_OBJECT pUser
+    IN OUT PLSA_SECURITY_OBJECT pUser
     );
 
 DWORD
 AD_VerifyUserAccountCanLogin(
-    IN PAD_SECURITY_OBJECT pUserInfo
+    IN PLSA_SECURITY_OBJECT pUserInfo
     );
 
 DWORD
@@ -429,7 +429,7 @@ AD_FindObjectsByList(
     IN size_t sCount,
     IN PSTR* ppszList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     );
 
 #endif /* __ONLINE_H__ */

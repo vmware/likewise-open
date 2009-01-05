@@ -120,16 +120,12 @@ AD_OnlineInitializeOperatingMode(
     PSTR  pszRootDN = NULL;
     HANDLE hDirectory = (HANDLE)NULL;
     ADConfigurationMode adConfMode = NonSchemaMode;
-    HANDLE hDb = (HANDLE)NULL;
     PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
     DWORD dwDomainInfoCount = 0;
     PAD_PROVIDER_DATA pProviderData = NULL;
     PSTR pszNetbiosDomainName = NULL;
 
     dwError = LsaAllocateMemory(sizeof(*pProviderData), (PVOID*)&pProviderData);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_OpenDb(&hDb);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmEngineDiscoverTrusts(pszDomain);
@@ -210,8 +206,8 @@ AD_OnlineInitializeOperatingMode(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = ADCacheDB_CacheProviderData(
-                hDb,
+    dwError = ADState_StoreProviderData(
+                gpLsaAdProviderState->hStateConnection,
                 pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -222,8 +218,8 @@ AD_OnlineInitializeOperatingMode(
                 &dwDomainInfoCount);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_CacheDomainTrustList(
-                hDb,
+    dwError = ADState_StoreDomainTrustList(
+                gpLsaAdProviderState->hStateConnection,
                 ppDomainInfo,
                 dwDomainInfoCount);
     BAIL_ON_LSA_ERROR(dwError);
@@ -236,7 +232,6 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszComputerDN);
     LSA_SAFE_FREE_STRING(pszCellDN);
     LsaLdapCloseDirectory(hDirectory);
-    ADCacheDB_SafeCloseDb(&hDb);
     LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
 
     return dwError;
@@ -786,15 +781,15 @@ DWORD
 AD_PacMembershipFilterWithLdap(
     IN HANDLE hProvider,
     IN LSA_TRUST_DIRECTION dwTrustDirection,
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN DWORD dwMembershipCount,
-    IN OUT PAD_GROUP_MEMBERSHIP* ppMemberships
+    IN OUT PLSA_GROUP_MEMBERSHIP* ppMemberships
     )
 {
     DWORD dwError = 0;
     int iPrimaryGroupIndex = -1;
     size_t sLdapGroupCount = 0;
-    PAD_SECURITY_OBJECT* ppLdapGroups = NULL;
+    PLSA_SECURITY_OBJECT* ppLdapGroups = NULL;
     LSA_HASH_TABLE* pMembershipHashTable = NULL;
     time_t now = 0;
     size_t i = 0;
@@ -843,7 +838,7 @@ AD_PacMembershipFilterWithLdap(
     // For anything that we find via LDAP, make it expirable or primary.
     for (i = 0; i < sLdapGroupCount; i++)
     {
-        PAD_GROUP_MEMBERSHIP pMembership = NULL;
+        PLSA_GROUP_MEMBERSHIP pMembership = NULL;
 
         dwError = LsaHashGetValue(pMembershipHashTable,
                                   ppLdapGroups[i]->pszObjectSid,
@@ -867,7 +862,7 @@ AD_PacMembershipFilterWithLdap(
     }
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(sLdapGroupCount, &ppLdapGroups);
+    LsaDbSafeFreeObjectList(sLdapGroupCount, &ppLdapGroups);
     LsaHashSafeFree(&pMembershipHashTable);
     return dwError;
 
@@ -879,13 +874,12 @@ DWORD
 AD_CacheGroupMembershipFromPac(
     IN HANDLE hProvider,
     IN LSA_TRUST_DIRECTION dwTrustDirection,
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN PAC_LOGON_INFO* pPac
     )
 {
     DWORD dwError = 0;
     time_t now = 0;
-    HANDLE hDb = (HANDLE)NULL;
     DWORD dwGroupSidCount = 0;
     PSTR* ppszGroupSidList = NULL;
     DWORD dwResourceGroupSidCount = 0;
@@ -896,7 +890,7 @@ AD_CacheGroupMembershipFromPac(
     DWORD i = 0;
     DWORD dwIgnoreExtraSidCount = 0;
     DWORD dwMembershipCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
     DWORD dwMembershipIndex = 0;
     struct {
         PDWORD pdwCount;
@@ -907,7 +901,7 @@ AD_CacheGroupMembershipFromPac(
         { &dwExtraSidCount, &ppszExtraSidList }
     };
     DWORD dwSidsToCombineIndex = 0;
-    PAD_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
+    PLSA_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
 
     LSA_LOG_VERBOSE(
             "Updating user group membership for uid %lu with PAC information",
@@ -993,13 +987,13 @@ AD_CacheGroupMembershipFromPac(
         DWORD dwSidCount = *SidsToCombine[dwSidsToCombineIndex].pdwCount;
         for (i = 0; i < dwSidCount; i++)
         {
-            PAD_GROUP_MEMBERSHIP* ppMembership = &ppMemberships[dwMembershipIndex];
-            PAD_GROUP_MEMBERSHIP pMembership = &pMembershipBuffers[dwMembershipIndex];
+            PLSA_GROUP_MEMBERSHIP* ppMembership = &ppMemberships[dwMembershipIndex];
+            PLSA_GROUP_MEMBERSHIP pMembership = &pMembershipBuffers[dwMembershipIndex];
             PSTR* ppszSidList = *SidsToCombine[dwSidsToCombineIndex].pppszSidList;
             if (ppszSidList[i])
             {
                 *ppMembership = pMembership;
-                pMembership->cache.qwCacheId = -1;
+                pMembership->version.qwDbId = -1;
                 pMembership->pszParentSid = ppszSidList[i];
                 pMembership->pszChildSid = pUserInfo->pszObjectSid;
                 pMembership->bIsInPac = TRUE;
@@ -1012,7 +1006,7 @@ AD_CacheGroupMembershipFromPac(
 
     // Set up NULL entry.
     ppMemberships[dwMembershipIndex] = &pMembershipBuffers[dwMembershipIndex];
-    ppMemberships[dwMembershipIndex]->cache.qwCacheId = -1;
+    ppMemberships[dwMembershipIndex]->version.qwDbId = -1;
     ppMemberships[dwMembershipIndex]->pszChildSid = pUserInfo->pszObjectSid;
 
     if (AD_GetTrimUserMembershipEnabled())
@@ -1026,11 +1020,8 @@ AD_CacheGroupMembershipFromPac(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_CacheGroupsForUser(
-                        hDb,
+    dwError = LsaDbStoreGroupsForUser(
+                        gpLsaAdProviderState->hCacheConnection,
                         pUserInfo->pszObjectSid,
                         dwMembershipCount,
                         ppMemberships,
@@ -1044,7 +1035,6 @@ cleanup:
     LsaFreeStringArray(ppszResourceGroupSidList, dwResourceGroupSidCount);
     LsaFreeStringArray(ppszExtraSidList, dwExtraSidCount);
     LSA_SAFE_FREE_MEMORY(pdwExtraSidAttributeList);
-    ADCacheDB_SafeCloseDb(&hDb);
 
     return dwError;
 
@@ -1127,15 +1117,14 @@ error:
 
 DWORD
 AD_OnlineCachePasswordVerifier(
-    IN PAD_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN PCSTR  pszPassword
     )
 {
     DWORD dwError = 0;
-    PAD_PASSWORD_VERIFIER pVerifier = NULL;
+    PLSA_PASSWORD_VERIFIER pVerifier = NULL;
     struct timeval current_tv;
     PBYTE pbHash = NULL;
-    HANDLE hDb = (HANDLE)NULL;
 
     if (gettimeofday(&current_tv, NULL) < 0)
     {
@@ -1148,8 +1137,8 @@ AD_OnlineCachePasswordVerifier(
                     (PVOID*)&pVerifier);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pVerifier->cache.tLastUpdated = current_tv.tv_sec;
-    pVerifier->cache.qwCacheId = -1;
+    pVerifier->version.tLastUpdated = current_tv.tv_sec;
+    pVerifier->version.qwDbId = -1;
 
     dwError = LsaAllocateString(
                     pUserInfo->pszObjectSid,
@@ -1168,19 +1157,15 @@ AD_OnlineCachePasswordVerifier(
                 &pVerifier->pszPasswordVerifier);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_CachePasswordVerifier(
-                hDb,
+    dwError = LsaDbStorePasswordVerifier(
+                gpLsaAdProviderState->hCacheConnection,
                 pVerifier);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
-    ADCACHEDB_SAFE_FREE_PASSWORD_VERIFIER(pVerifier);
+    LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pVerifier);
     LSA_SAFE_FREE_MEMORY(pbHash);
-    ADCacheDB_SafeCloseDb(&hDb);
 
     return dwError;
 
@@ -1198,7 +1183,7 @@ AD_OnlineAuthenticateUser(
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-    PAD_SECURITY_OBJECT pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PAC_LOGON_INFO *pPac = NULL;
     PSTR pszHostname = NULL;
     PSTR pszUsername = NULL;
@@ -1335,7 +1320,7 @@ cleanup:
         LsaFreeNameInfo(pLoginInfo);
     }
 
-    ADCacheDB_SafeFreeObject(&pUserInfo);
+    LsaDbSafeFreeObject(&pUserInfo);
     LSA_SAFE_FREE_STRING(pszHostname);
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_FREE_STRING(pszServicePassword);
@@ -1353,7 +1338,7 @@ error:
 
 DWORD
 AD_CheckExpiredObject(
-    IN OUT PAD_SECURITY_OBJECT* ppCachedUser
+    IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -1363,7 +1348,7 @@ AD_CheckExpiredObject(
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
 
-    expirationDate = (*ppCachedUser)->cache.tLastUpdated +
+    expirationDate = (*ppCachedUser)->version.tLastUpdated +
         AD_GetCacheEntryExpirySeconds();
 
     if (expirationDate <= now)
@@ -1374,7 +1359,7 @@ AD_CheckExpiredObject(
                 now - expirationDate);
 
         //Pretend like the object couldn't be found in the cache
-        ADCacheDB_SafeFreeObject(ppCachedUser);
+        LsaDbSafeFreeObject(ppCachedUser);
         dwError = LSA_ERROR_NOT_HANDLED;
     }
     else
@@ -1382,7 +1367,7 @@ AD_CheckExpiredObject(
         LSA_LOG_VERBOSE(
                 "Using cache entry for sid %s, updated %ld seconds ago",
                 (*ppCachedUser)->pszObjectSid,
-                now - (*ppCachedUser)->cache.tLastUpdated);
+                now - (*ppCachedUser)->version.tLastUpdated);
     }
 
 error:
@@ -1394,7 +1379,7 @@ static
 DWORD
 AD_CheckExpiredMemberships(
     IN size_t sCount,
-    IN PAD_GROUP_MEMBERSHIP* ppMemberships,
+    IN PLSA_GROUP_MEMBERSHIP* ppMemberships,
     IN BOOLEAN bCheckNullParentSid,
     OUT PBOOLEAN pbHaveExpired,
     OUT PBOOLEAN pbIsComplete
@@ -1423,7 +1408,7 @@ AD_CheckExpiredMemberships(
     dwCacheEntryExpirySeconds = AD_GetCacheEntryExpirySeconds();
     for (sIndex = 0; sIndex < sCount; sIndex++)
     {
-        PAD_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
+        PLSA_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
 
         // Ignore what cannot expire (assumes that we already
         // filtered out PAC entries that should not be returned).
@@ -1433,8 +1418,8 @@ AD_CheckExpiredMemberships(
             continue;
         }
 
-        if ((pMembership->cache.tLastUpdated > 0) &&
-            (pMembership->cache.tLastUpdated + dwCacheEntryExpirySeconds <= now))
+        if ((pMembership->version.tLastUpdated > 0) &&
+            (pMembership->version.tLastUpdated + dwCacheEntryExpirySeconds <= now))
         {
             bHaveExpired = TRUE;
             // Note that we only return whether complete
@@ -1469,7 +1454,7 @@ static
 DWORD
 AD_FilterExpiredMemberships(
     IN OUT size_t* psCount,
-    IN OUT PAD_GROUP_MEMBERSHIP* ppMemberships
+    IN OUT PLSA_GROUP_MEMBERSHIP* ppMemberships
     )
 {
     DWORD dwError = 0;
@@ -1486,12 +1471,12 @@ AD_FilterExpiredMemberships(
     dwCacheEntryExpirySeconds = AD_GetCacheEntryExpirySeconds();
     for (sIndex = 0; sIndex < sCount; sIndex++)
     {
-        PAD_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
+        PLSA_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
 
         if (pMembership->bIsInPac ||
             pMembership->bIsDomainPrimaryGroup ||
-            ((pMembership->cache.tLastUpdated > 0) &&
-             (pMembership->cache.tLastUpdated + dwCacheEntryExpirySeconds <= now)))
+            ((pMembership->version.tLastUpdated > 0) &&
+             (pMembership->version.tLastUpdated + dwCacheEntryExpirySeconds <= now)))
         {
             // Keep
             if (sOutputCount != sIndex)
@@ -1502,7 +1487,7 @@ AD_FilterExpiredMemberships(
         }
         else
         {
-            ADCacheDB_SafeFreeGroupMembership(&ppMemberships[sIndex]);
+            LsaDbSafeFreeGroupMembership(&ppMemberships[sIndex]);
         }
     }
 
@@ -1515,7 +1500,7 @@ error:
 static
 BOOLEAN
 AD_IncludeOnlyUnexpirableGroupMembershipsCallback(
-    IN PAD_GROUP_MEMBERSHIP pMembership
+    IN PLSA_GROUP_MEMBERSHIP pMembership
     )
 {
     BOOLEAN bInclude = FALSE;
@@ -1531,21 +1516,21 @@ AD_IncludeOnlyUnexpirableGroupMembershipsCallback(
 static
 DWORD
 AD_CacheMembershipFromRelatedObjects(
-    IN HANDLE hDb,
+    IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN int iPrimaryGroupIndex,
     IN BOOLEAN bIsParent,
     IN size_t sCount,
-    IN PAD_SECURITY_OBJECT* ppRelatedObjects
+    IN PLSA_SECURITY_OBJECT* ppRelatedObjects
     )
 {
     DWORD dwError = 0;
-    PAD_GROUP_MEMBERSHIP* ppMemberships = NULL;
-    PAD_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
     size_t sMaxMemberships = 0;
     size_t sIndex = 0;
     size_t sMembershipCount = 0;
-    PAD_SECURITY_OBJECT pPrimaryGroup = NULL;
+    PLSA_SECURITY_OBJECT pPrimaryGroup = NULL;
 
     if (iPrimaryGroupIndex >= 0)
     {
@@ -1572,12 +1557,12 @@ AD_CacheMembershipFromRelatedObjects(
 
     for (sIndex = 0; sIndex < sCount; sIndex++)
     {
-        PAD_GROUP_MEMBERSHIP* ppMembership = &ppMemberships[sMembershipCount];
-        PAD_GROUP_MEMBERSHIP pMembership = &pMembershipBuffers[sMembershipCount];
+        PLSA_GROUP_MEMBERSHIP* ppMembership = &ppMemberships[sMembershipCount];
+        PLSA_GROUP_MEMBERSHIP pMembership = &pMembershipBuffers[sMembershipCount];
         if (ppRelatedObjects[sIndex])
         {
             *ppMembership = pMembership;
-            pMembership->cache.qwCacheId = -1;
+            pMembership->version.qwDbId = -1;
             if (bIsParent)
             {
                 pMembership->pszParentSid = (PSTR)pszSid;
@@ -1599,7 +1584,7 @@ AD_CacheMembershipFromRelatedObjects(
 
     // Set up NULL entry.
     ppMemberships[sMembershipCount] = &pMembershipBuffers[sMembershipCount];
-    ppMemberships[sMembershipCount]->cache.qwCacheId = -1;
+    ppMemberships[sMembershipCount]->version.qwDbId = -1;
     if (bIsParent)
     {
         ppMemberships[sMembershipCount]->pszParentSid = (PSTR)pszSid;
@@ -1612,7 +1597,7 @@ AD_CacheMembershipFromRelatedObjects(
 
     if (bIsParent)
     {
-        dwError = ADCacheDB_CacheGroupMembership(
+        dwError = LsaDbStoreGroupMembership(
                         hDb,
                         pszSid,
                         sMembershipCount,
@@ -1621,7 +1606,7 @@ AD_CacheMembershipFromRelatedObjects(
     }
     else
     {
-        dwError = ADCacheDB_CacheGroupsForUser(
+        dwError = LsaDbStoreGroupsForUser(
                         hDb,
                         pszSid,
                         sMembershipCount,
@@ -1643,9 +1628,9 @@ static
 VOID
 AD_TransferCacheObjets(
     IN OUT size_t* psFromObjectsCount,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects,
     IN OUT size_t* psToObjectsCount,
-    IN OUT PAD_SECURITY_OBJECT* ppToObjects
+    IN OUT PLSA_SECURITY_OBJECT* ppToObjects
     )
 {
     size_t bytes = sizeof(ppFromObjects[0]) * (*psFromObjectsCount);
@@ -1663,15 +1648,15 @@ static
 DWORD
 AD_CombineCacheObjects(
     IN OUT size_t* psFromObjectsCount1,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects1,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects1,
     IN OUT size_t* psFromObjectsCount2,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects2,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects2,
     OUT size_t* psCombinedObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppCombinedObjects
+    OUT PLSA_SECURITY_OBJECT** pppCombinedObjects
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT* ppCombinedObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppCombinedObjects = NULL;
     size_t sCombinedObjectsCount = 0;
 
     sCombinedObjectsCount = *psFromObjectsCount1 + *psFromObjectsCount2;
@@ -1714,15 +1699,15 @@ static
 DWORD
 AD_CombineCacheObjectsRemoveDuplicates(
     IN OUT size_t* psFromObjectsCount1,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects1,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects1,
     IN OUT size_t* psFromObjectsCount2,
-    IN OUT PAD_SECURITY_OBJECT* ppFromObjects2,
+    IN OUT PLSA_SECURITY_OBJECT* ppFromObjects2,
     OUT size_t* psCombinedObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppCombinedObjects
+    OUT PLSA_SECURITY_OBJECT** pppCombinedObjects
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT* ppCombinedObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppCombinedObjects = NULL;
     size_t sCombinedObjectsCount = 0;
     PLSA_HASH_TABLE pHashTable = NULL;
     size_t i = 0;
@@ -1774,7 +1759,7 @@ AD_CombineCacheObjectsRemoveDuplicates(
 
     for (i = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; i++)
     {
-        PAD_SECURITY_OBJECT pObject = (PAD_SECURITY_OBJECT) pHashEntry->pKey;
+        PLSA_SECURITY_OBJECT pObject = (PLSA_SECURITY_OBJECT) pHashEntry->pKey;
 
         dwError = LsaHashRemoveKey(pHashTable, pObject);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1800,12 +1785,12 @@ cleanup:
     // Free any remaining objects.
     for (i = 0; i < *psFromObjectsCount1; i++)
     {
-        ADCacheDB_SafeFreeObject(&ppFromObjects1[i]);
+        LsaDbSafeFreeObject(&ppFromObjects1[i]);
     }
     *psFromObjectsCount1 = 0;
     for (i = 0; i < *psFromObjectsCount2; i++)
     {
-        ADCacheDB_SafeFreeObject(&ppFromObjects2[i]);
+        LsaDbSafeFreeObject(&ppFromObjects2[i]);
     }
     *psFromObjectsCount2 = 0;
     return dwError;
@@ -1814,14 +1799,14 @@ error:
     *pppCombinedObjects = NULL;
     *psCombinedObjectsCount = 0;
 
-    ADCacheDB_SafeFreeObjectList(sCombinedObjectsCount, &ppCombinedObjects);
+    LsaDbSafeFreeObjectList(sCombinedObjectsCount, &ppCombinedObjects);
     sCombinedObjectsCount = 0;
     goto cleanup;
 }
 
 void
 AD_FilterNullEntries(
-    IN OUT PAD_SECURITY_OBJECT* ppEntries,
+    IN OUT PLSA_SECURITY_OBJECT* ppEntries,
     IN OUT size_t* psCount
     )
 {
@@ -1843,12 +1828,11 @@ DWORD
 AD_OnlineFindUserObjectById(
     HANDLE  hProvider,
     uid_t   uid,
-    PAD_SECURITY_OBJECT *ppResult
+    PLSA_SECURITY_OBJECT *ppResult
     )
 {
     DWORD dwError =  0;
-    HANDLE hDb = (HANDLE)NULL;
-    PAD_SECURITY_OBJECT pCachedUser = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
     PSTR   pszNT4Name = NULL;
 
     if (uid == 0) {
@@ -1856,13 +1840,10 @@ AD_OnlineFindUserObjectById(
     	BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindUserById(
-            hDb,
-            uid,
-            &pCachedUser);
+    dwError = LsaDbFindUserById(
+                    gpLsaAdProviderState->hCacheConnection,
+                    uid,
+                    &pCachedUser);
     if (dwError == LSA_ERROR_SUCCESS)
     {
         // Frees object if it is expired
@@ -1888,14 +1869,13 @@ AD_OnlineFindUserObjectById(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszNT4Name);
-    ADCacheDB_SafeCloseDb(&hDb);
 
     return dwError;
 
 error:
 
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObject(&pCachedUser);
+    LsaDbSafeFreeObject(&pCachedUser);
 
     LSA_REMAP_FIND_USER_BY_ID_ERROR(dwError, FALSE, uid);
 
@@ -1908,25 +1888,24 @@ AD_OnlineGetUserGroupObjectMembership(
     IN uid_t uid,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hDb = (HANDLE)NULL;
     size_t sMembershipCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
     BOOLEAN bExpired = FALSE;
     BOOLEAN bIsComplete = FALSE;
     BOOLEAN bUseCache = FALSE;
     size_t sUnexpirableResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppUnexpirableResults = NULL;
+    PLSA_SECURITY_OBJECT* ppUnexpirableResults = NULL;
     size_t sResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppResults = NULL;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
     size_t sFilteredResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppFilteredResults = NULL;
+    PLSA_SECURITY_OBJECT* ppFilteredResults = NULL;
     // Only free top level array, do not free string pointers.
     PSTR* ppszSids = NULL;
-    PAD_SECURITY_OBJECT pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PCSTR pszSid = NULL;
     int iPrimaryGroupIndex = -1;
 
@@ -1938,11 +1917,8 @@ AD_OnlineGetUserGroupObjectMembership(
 
     pszSid = pUserInfo->pszObjectSid;
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_GetGroupsForUser(
-                    hDb,
+    dwError = LsaDbGetGroupsForUser(
+                    gpLsaAdProviderState->hCacheConnection,
                     pszSid,
                     AD_GetTrimUserMembershipEnabled(),
                     &sMembershipCount,
@@ -2024,7 +2000,7 @@ AD_OnlineGetUserGroupObjectMembership(
         BAIL_ON_LSA_ERROR(dwError);
 
         LSA_SAFE_FREE_MEMORY(ppszSids);
-        ADCacheDB_SafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+        LsaDbSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
 
         dwError = ADLdap_GetUserGroupMembership(
                          hProvider,
@@ -2037,7 +2013,7 @@ AD_OnlineGetUserGroupObjectMembership(
         AD_FilterNullEntries(ppResults, &sResultsCount);
 
         dwError = AD_CacheMembershipFromRelatedObjects(
-                        hDb,
+                        gpLsaAdProviderState->hCacheConnection,
                         pszSid,
                         iPrimaryGroupIndex,
                         FALSE,
@@ -2086,12 +2062,11 @@ AD_OnlineGetUserGroupObjectMembership(
     *pppResults = ppFilteredResults;
 
 cleanup:
-    ADCacheDB_SafeCloseDb(&hDb);
     LSA_SAFE_FREE_MEMORY(ppszSids);
-    ADCacheDB_SafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
-    ADCacheDB_SafeFreeObjectList(sResultsCount, &ppResults);
-    ADCacheDB_SafeFreeObjectList(sUnexpirableResultsCount, &ppUnexpirableResults);
-    ADCacheDB_SafeFreeObject(&pUserInfo);
+    LsaDbSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+    LsaDbSafeFreeObjectList(sResultsCount, &ppResults);
+    LsaDbSafeFreeObjectList(sUnexpirableResultsCount, &ppUnexpirableResults);
+    LsaDbSafeFreeObject(&pUserInfo);
 
     return dwError;
 
@@ -2102,7 +2077,7 @@ error:
     LSA_LOG_ERROR("Failed to find memberships for uid %d (error = %d)",
                   uid, dwError);
 
-    ADCacheDB_SafeFreeObjectList(sFilteredResultsCount, &ppFilteredResults);
+    LsaDbSafeFreeObjectList(sFilteredResultsCount, &ppFilteredResults);
     sFilteredResultsCount = 0;
 
     goto cleanup;
@@ -2120,7 +2095,7 @@ AD_OnlineEnumUsers(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PVOID* ppInfoList = NULL;
     DWORD dwInfoCount = 0;
 
@@ -2164,11 +2139,11 @@ AD_OnlineEnumUsers(
                         &ppInfoList[dwInfoCount]);
         BAIL_ON_LSA_ERROR(dwError);
 
-        ADCacheDB_SafeFreeObject(&ppObjects[dwInfoCount]);
+        LsaDbSafeFreeObject(&ppObjects[dwInfoCount]);
     }
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     *pdwUsersFound = dwInfoCount;
     *pppUserInfoList = ppInfoList;
@@ -2191,14 +2166,13 @@ DWORD
 AD_OnlineFindGroupObjectByName(
     HANDLE  hProvider,
     PCSTR   pszGroupName,
-    PAD_SECURITY_OBJECT*  ppResult
+    PLSA_SECURITY_OBJECT*  ppResult
     )
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pGroupNameInfo = NULL;
     PSTR  pszGroupName_copy = NULL;
-    HANDLE hDb = (HANDLE)NULL;
-    PAD_SECURITY_OBJECT pCachedGroup = NULL;
+    PLSA_SECURITY_OBJECT pCachedGroup = NULL;
 
     BAIL_ON_INVALID_STRING(pszGroupName);
     dwError = LsaAllocateString(
@@ -2221,13 +2195,10 @@ AD_OnlineFindGroupObjectByName(
     	BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindGroupByName(
-            hDb,
-            pGroupNameInfo,
-            &pCachedGroup);
+    dwError = LsaDbFindGroupByName(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pGroupNameInfo,
+                    &pCachedGroup);
     if (dwError == LSA_ERROR_SUCCESS)
     {
         dwError = AD_CheckExpiredObject(&pCachedGroup);
@@ -2251,18 +2222,19 @@ AD_OnlineFindGroupObjectByName(
                     &pCachedGroup);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_CacheObjectEntry(hDb, pCachedGroup);
+    dwError = LsaDbStoreObjectEntry(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pCachedGroup);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     if (dwError)
     {
-        ADCacheDB_SafeFreeObject(&pCachedGroup);
+        LsaDbSafeFreeObject(&pCachedGroup);
         LSA_REMAP_FIND_GROUP_BY_NAME_ERROR(dwError, FALSE, pszGroupName);
     }
     *ppResult = pCachedGroup;
 
-    ADCacheDB_SafeCloseDb(&hDb);
     if (pGroupNameInfo)
     {
         LsaFreeNameInfo(pGroupNameInfo);
@@ -2286,8 +2258,7 @@ AD_OnlineFindGroupById(
     )
 {
     DWORD dwError =  0;
-    HANDLE hDb = (HANDLE)NULL;
-    PAD_SECURITY_OBJECT pCachedGroup = NULL;
+    PLSA_SECURITY_OBJECT pCachedGroup = NULL;
     PSTR   pszNT4Name = NULL;
 
     if (gid == 0)
@@ -2296,13 +2267,10 @@ AD_OnlineFindGroupById(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindGroupById(
-            hDb,
-            gid,
-            &pCachedGroup);
+    dwError = LsaDbFindGroupById(
+                    gpLsaAdProviderState->hCacheConnection,
+                    gid,
+                    &pCachedGroup);
     if (dwError == LSA_ERROR_SUCCESS)
     {
         dwError = AD_CheckExpiredObject(&pCachedGroup);
@@ -2337,8 +2305,7 @@ AD_OnlineFindGroupById(
 cleanup:
     LSA_SAFE_FREE_STRING(pszNT4Name);
 
-    ADCacheDB_SafeCloseDb(&hDb);
-    ADCacheDB_SafeFreeObject(&pCachedGroup);
+    LsaDbSafeFreeObject(&pCachedGroup);
 
     return dwError;
 
@@ -2363,7 +2330,7 @@ AD_OnlineEnumGroups(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
     DWORD dwObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PVOID* ppInfoList = NULL;
     DWORD dwInfoCount = 0;
 
@@ -2409,11 +2376,11 @@ AD_OnlineEnumGroups(
                         &ppInfoList[dwInfoCount]);
         BAIL_ON_LSA_ERROR(dwError);
 
-        ADCacheDB_SafeFreeObject(&ppObjects[dwInfoCount]);
+        LsaDbSafeFreeObject(&ppObjects[dwInfoCount]);
     }
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(dwObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     *pdwGroupsFound = dwInfoCount;
     *pppGroupInfoList = ppInfoList;
@@ -2443,7 +2410,7 @@ AD_OnlineChangePassword(
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     DWORD dwUserInfoLevel = 2;
-    PAD_SECURITY_OBJECT pCachedUser = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
     PLSA_USER_INFO_2 pUserInfo = NULL;
     PSTR pszDomainController = NULL;
     PSTR pszFullDomainName = NULL;
@@ -2545,7 +2512,7 @@ cleanup:
         LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
     }
 
-    ADCacheDB_SafeFreeObject(&pCachedUser);
+    LsaDbSafeFreeObject(&pCachedUser);
 
     LSA_SAFE_FREE_STRING(pszFullDomainName);
 
@@ -2878,22 +2845,22 @@ AD_CompareObjectSids(
         PCVOID pObjectB)
 {
     return strcasecmp(
-            ((PAD_SECURITY_OBJECT)pObjectA)->pszObjectSid,
-            ((PAD_SECURITY_OBJECT)pObjectB)->pszObjectSid);
+            ((PLSA_SECURITY_OBJECT)pObjectA)->pszObjectSid,
+            ((PLSA_SECURITY_OBJECT)pObjectB)->pszObjectSid);
 }
 
 size_t
 AD_HashObjectSid(
         PCVOID pObject)
 {
-    return LsaHashCaselessString(((PAD_SECURITY_OBJECT)pObject)->pszObjectSid);
+    return LsaHashCaselessString(((PLSA_SECURITY_OBJECT)pObject)->pszObjectSid);
 }
 
 void
 AD_FreeHashObject(
     const LSA_HASH_ENTRY *pEntry)
 {
-    ADCacheDB_SafeFreeObject((PAD_SECURITY_OBJECT *)&pEntry->pKey);
+    LsaDbSafeFreeObject((PLSA_SECURITY_OBJECT *)&pEntry->pKey);
 }
 
 DWORD
@@ -2903,30 +2870,26 @@ AD_OnlineGetGroupMembers(
     IN PCSTR pszSid,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hDb = (HANDLE)NULL;
     size_t sMembershipCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
     BOOLEAN bExpired = FALSE;
     BOOLEAN bIsComplete = FALSE;
     BOOLEAN bUseCache = FALSE;
     size_t sUnexpirableResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppUnexpirableResults = NULL;
+    PLSA_SECURITY_OBJECT* ppUnexpirableResults = NULL;
     size_t sResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppResults = NULL;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
     size_t sFilteredResultsCount = 0;
-    PAD_SECURITY_OBJECT* ppFilteredResults = NULL;
+    PLSA_SECURITY_OBJECT* ppFilteredResults = NULL;
     // Only free top level array, do not free string pointers.
     PSTR* ppszSids = NULL;
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_GetGroupMembers(
-                    hDb,
+    dwError = LsaDbGetGroupMembers(
+                    gpLsaAdProviderState->hCacheConnection,
                     pszSid,
                     AD_GetTrimUserMembershipEnabled(),
                     &sMembershipCount,
@@ -3008,7 +2971,7 @@ AD_OnlineGetGroupMembers(
         BAIL_ON_LSA_ERROR(dwError);
 
         LSA_SAFE_FREE_MEMORY(ppszSids);
-        ADCacheDB_SafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+        LsaDbSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
 
         dwError = ADLdap_GetGroupMembers(
                         hProvider,
@@ -3019,7 +2982,7 @@ AD_OnlineGetGroupMembers(
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = AD_CacheMembershipFromRelatedObjects(
-                        hDb,
+                        gpLsaAdProviderState->hCacheConnection,
                         pszSid,
                         -1,
                         TRUE,
@@ -3068,11 +3031,10 @@ AD_OnlineGetGroupMembers(
     *pppResults = ppFilteredResults;
 
 cleanup:
-    ADCacheDB_SafeCloseDb(&hDb);
     LSA_SAFE_FREE_MEMORY(ppszSids);
-    ADCacheDB_SafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
-    ADCacheDB_SafeFreeObjectList(sResultsCount, &ppResults);
-    ADCacheDB_SafeFreeObjectList(sUnexpirableResultsCount, &ppUnexpirableResults);
+    LsaDbSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+    LsaDbSafeFreeObjectList(sResultsCount, &ppResults);
+    LsaDbSafeFreeObjectList(sUnexpirableResultsCount, &ppUnexpirableResults);
 
     return dwError;
 
@@ -3080,7 +3042,7 @@ error:
     *psCount = 0;
     *pppResults = NULL;
 
-    ADCacheDB_SafeFreeObjectList(sFilteredResultsCount, &ppFilteredResults);
+    LsaDbSafeFreeObjectList(sFilteredResultsCount, &ppFilteredResults);
     sFilteredResultsCount = 0;
 
     goto cleanup;
@@ -3091,7 +3053,7 @@ DWORD
 AD_FindObjectBySidNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszSid,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     return LsaAdBatchFindSingleObject(
@@ -3106,7 +3068,7 @@ DWORD
 AD_FindObjectByNT4NameNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszNT4Name,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     return LsaAdBatchFindSingleObject(
@@ -3121,12 +3083,12 @@ DWORD
 AD_FindObjectByUpnNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszUpn,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
     PSTR pszSid = NULL;
-    PAD_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     dwError = LsaDmWrapNetLookupObjectSidByName(
                     gpADProviderData->szDomain,
@@ -3148,7 +3110,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObject(&pObject);
+    LsaDbSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -3158,7 +3120,7 @@ AD_FindObjectByAliasNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszAlias,
     BOOLEAN bIsUserAlias,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     return LsaAdBatchFindSingleObject(
@@ -3174,12 +3136,12 @@ AD_FindObjectByNameTypeNoCache(
     IN PCSTR pszName,
     IN ADLogInNameType NameType,
     IN ADAccountType AccountType,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
     BOOLEAN bIsUser = FALSE;
-    PAD_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     switch (AccountType)
     {
@@ -3242,7 +3204,7 @@ error:
     {
         dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
     }
-    ADCacheDB_SafeFreeObject(&pObject);
+    LsaDbSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -3251,12 +3213,12 @@ AD_FindObjectByIdTypeNoCache(
     IN HANDLE hProvider,
     IN DWORD dwId,
     IN ADAccountType AccountType,
-    OUT PAD_SECURITY_OBJECT* ppObject
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
     BOOLEAN bIsUser = FALSE;
-    PAD_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     switch (AccountType)
     {
@@ -3303,7 +3265,7 @@ error:
     {
         dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
     }
-    ADCacheDB_SafeFreeObject(&pObject);
+    LsaDbSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -3313,7 +3275,7 @@ AD_FindObjectsByListNoCache(
     IN DWORD dwCount,
     IN PSTR* ppszList,
     OUT PDWORD pdwCount,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     return LsaAdBatchFindObjects(
@@ -3329,11 +3291,11 @@ DWORD
 AD_FindObjectBySid(
     IN HANDLE hProvider,
     IN PCSTR pszSid,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    PAD_SECURITY_OBJECT* ppResultArray = NULL;
+    PLSA_SECURITY_OBJECT* ppResultArray = NULL;
 
     dwError = AD_FindObjectsBySidList(
                     hProvider,
@@ -3357,7 +3319,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    ADCacheDB_SafeFreeObjectList(1, &ppResultArray);
+    LsaDbSafeFreeObjectList(1, &ppResultArray);
     goto cleanup;
 }
 
@@ -3369,37 +3331,34 @@ AD_FindObjectsByList(
     IN size_t sCount,
     IN PSTR* ppszList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    PAD_SECURITY_OBJECT* ppResults = NULL;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
     size_t sResultsCount = 0;
     size_t sFoundInCache = 0;
     size_t sFoundInAD = 0;
     DWORD  dwFoundInAD = 0;
-    HANDLE hDb = 0;
     size_t sRemainNumsToFoundInAD = 0;
     size_t sIndex;
     time_t now = 0;
     // Do not free the strings that ppszRemainSidsList point to
     PSTR* ppszRemainingList = NULL;
-    PAD_SECURITY_OBJECT *ppRemainingObjectsResults = NULL;
+    PLSA_SECURITY_OBJECT *ppRemainingObjectsResults = NULL;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
     /*
      * Lookup as many objects as possible from the cache.
      */
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = pFindInCacheCallback(
-                    hDb,
+                    gpLsaAdProviderState->hCacheConnection,
                     sCount,
                     ppszList,
                     &ppResults);
     BAIL_ON_LSA_ERROR(dwError);
+    sResultsCount = sCount;
 
     dwError = LsaAllocateMemory(
                     sCount*sizeof(*ppszRemainingList),
@@ -3411,8 +3370,8 @@ AD_FindObjectsByList(
          sIndex++)
     {
         if ((ppResults[sIndex] != NULL) &&
-            (ppResults[sIndex]->cache.tLastUpdated >= 0) &&
-            (ppResults[sIndex]->cache.tLastUpdated +
+            (ppResults[sIndex]->version.tLastUpdated >= 0) &&
+            (ppResults[sIndex]->version.tLastUpdated +
             AD_GetCacheEntryExpirySeconds() <= now))
         {
             switch (QueryType)
@@ -3434,7 +3393,7 @@ AD_FindObjectsByList(
                     dwError = LSA_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
-            ADCacheDB_SafeFreeObject(&ppResults[sIndex]);
+            LsaDbSafeFreeObject(&ppResults[sIndex]);
         }
 
         if (ppResults[sIndex] != NULL)
@@ -3445,7 +3404,6 @@ AD_FindObjectsByList(
         ppszRemainingList[sRemainNumsToFoundInAD++] = ppszList[sIndex];
     }
 
-    sResultsCount = sCount;
     AD_FilterNullEntries(ppResults, &sResultsCount);
     assert(sResultsCount == sFoundInCache);
 
@@ -3464,21 +3422,21 @@ AD_FindObjectsByList(
 
     sFoundInAD = dwFoundInAD;
 
-    sResultsCount += sFoundInAD;
-
-    dwError = ADCacheDB_CacheObjectEntries(
-                    hDb,
+    dwError = LsaDbStoreObjectEntries(
+                    gpLsaAdProviderState->hCacheConnection,
                     sFoundInAD,
                     ppRemainingObjectsResults);
     BAIL_ON_LSA_ERROR(dwError);
 
+    // Filtering the null entries created enough space to append the
+    // entries looked up through AD.
     memcpy(ppResults + sFoundInCache,
            ppRemainingObjectsResults,
            sizeof(*ppRemainingObjectsResults) * sFoundInAD);
-
     memset(ppRemainingObjectsResults,
            0,
            sizeof(*ppRemainingObjectsResults) * sFoundInAD);
+    sResultsCount += sFoundInAD;
 
 cleanup:
 
@@ -3486,7 +3444,7 @@ cleanup:
     // because there is a goto cleanup above.
     if (dwError)
     {
-        ADCacheDB_SafeFreeObjectList(sCount, &ppResults);
+        LsaDbSafeFreeObjectList(sCount, &ppResults);
         sResultsCount = 0;
     }
     else
@@ -3500,9 +3458,7 @@ cleanup:
         *psResultsCount = sResultsCount;
     }
 
-    ADCacheDB_SafeCloseDb(&hDb);
-
-    ADCacheDB_SafeFreeObjectList(sFoundInAD, &ppRemainingObjectsResults);
+    LsaDbSafeFreeObjectList(sFoundInAD, &ppRemainingObjectsResults);
     LSA_SAFE_FREE_MEMORY(ppszRemainingList);
 
     return dwError;
@@ -3519,11 +3475,11 @@ AD_FindObjectsBySidList(
     IN size_t sCount,
     IN PSTR* ppszSidList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     return AD_FindObjectsByList(
-               ADCacheDB_FindObjectsBySidList,
+               LsaDbFindObjectsBySidList,
                AD_FindObjectsByListNoCache,
                LSA_AD_BATCH_QUERY_TYPE_BY_SID,
                sCount,
@@ -3538,11 +3494,11 @@ AD_FindObjectsByDNList(
     IN size_t sCount,
     IN PSTR* ppszDNList,
     OUT OPTIONAL size_t* psResultsCount,
-    OUT PAD_SECURITY_OBJECT** pppResults
+    OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
     return AD_FindObjectsByList(
-               ADCacheDB_FindObjectsByDNList,
+               LsaDbFindObjectsByDNList,
                AD_FindObjectsByListNoCache,
                LSA_AD_BATCH_QUERY_TYPE_BY_DN,
                sCount,
@@ -3564,7 +3520,7 @@ AD_OnlineGetNamesBySidList(
     PSTR* ppszDomainNames = NULL;
     PSTR* ppszSamAccounts = NULL;
     ADAccountType* pTypes = NULL;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     size_t sIndex = 0;
 
     dwError = LsaAllocateMemory(
@@ -3623,7 +3579,7 @@ AD_OnlineGetNamesBySidList(
 
 cleanup:
 
-    ADCacheDB_SafeFreeObjectList(sCount, &ppObjects);
+    LsaDbSafeFreeObjectList(sCount, &ppObjects);
 
     return dwError;
 
@@ -3644,14 +3600,13 @@ DWORD
 AD_OnlineFindUserObjectByName(
     HANDLE  hProvider,
     PCSTR   pszLoginId,
-    PAD_SECURITY_OBJECT* ppCachedUser
+    PLSA_SECURITY_OBJECT* ppCachedUser
     )
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
     PSTR  pszLoginId_copy = NULL;
-    HANDLE hDb = (HANDLE)NULL;
-    PAD_SECURITY_OBJECT pCachedUser = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
 
     BAIL_ON_INVALID_STRING(pszLoginId);
     dwError = LsaAllocateString(
@@ -3670,13 +3625,10 @@ AD_OnlineFindUserObjectByName(
                         &pUserNameInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindUserByName(
-            hDb,
-            pUserNameInfo,
-            &pCachedUser);
+    dwError = LsaDbFindUserByName(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pUserNameInfo,
+                    &pCachedUser);
     if (dwError == LSA_ERROR_SUCCESS)
     {
         dwError = AD_CheckExpiredObject(&pCachedUser);
@@ -3698,18 +3650,19 @@ AD_OnlineFindUserObjectByName(
                     &pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheDB_CacheObjectEntry(hDb, pCachedUser);
+    dwError = LsaDbStoreObjectEntry(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     if (dwError)
     {
-        ADCacheDB_SafeFreeObject(&pCachedUser);
+        LsaDbSafeFreeObject(&pCachedUser);
         LSA_REMAP_FIND_USER_BY_NAME_ERROR(dwError, FALSE, pszLoginId);
     }
     *ppCachedUser = pCachedUser;
 
-    ADCacheDB_SafeCloseDb(&hDb);
     if (pUserNameInfo)
     {
         LsaFreeNameInfo(pUserNameInfo);
@@ -3883,7 +3836,7 @@ error:
 
 DWORD
 AD_UpdateUserObjectFlags(
-    IN OUT PAD_SECURITY_OBJECT pUser
+    IN OUT PLSA_SECURITY_OBJECT pUser
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -3928,7 +3881,7 @@ error:
 
 DWORD
 AD_VerifyUserAccountCanLogin(
-    IN PAD_SECURITY_OBJECT pUserInfo
+    IN PLSA_SECURITY_OBJECT pUserInfo
     )
 {
     DWORD dwError = 0;

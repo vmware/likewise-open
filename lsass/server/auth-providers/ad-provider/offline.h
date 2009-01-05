@@ -73,7 +73,7 @@ DWORD
 AD_OfflineFindUserObjectById(
     IN HANDLE hProvider,
     IN uid_t uid,
-    OUT PAD_SECURITY_OBJECT* ppResult
+    OUT PLSA_SECURITY_OBJECT* ppResult
     );
 
 DWORD
@@ -89,7 +89,7 @@ DWORD
 AD_OfflineFindGroupObjectByName(
     IN HANDLE hProvider,
     IN PCSTR pszGroupName,
-    OUT PAD_SECURITY_OBJECT *ppResult
+    OUT PLSA_SECURITY_OBJECT *ppResult
     );
 
 DWORD
@@ -106,7 +106,7 @@ AD_OfflineGetUserGroupObjectMembership(
     HANDLE hProvider,
     uid_t uid,
     size_t* psNumGroupsFound,
-    PAD_SECURITY_OBJECT** pppResult
+    PLSA_SECURITY_OBJECT** pppResult
     );
 
 DWORD
@@ -159,7 +159,7 @@ DWORD
 AD_OfflineFindUserObjectByName(
     IN HANDLE  hProvider,
     IN PCSTR   pszLoginId,
-    OUT PAD_SECURITY_OBJECT* ppCachedUser
+    OUT PLSA_SECURITY_OBJECT* ppCachedUser
     );
 
 DWORD

@@ -135,5 +135,8 @@ typedef enum
     AD_CELL_SUPPORT_UNPROVISIONED = 3,
 } AD_CELL_SUPPORT;
 
+#define LSASS_DB_DIR CACHEDIR "/db"
+#define LSASS_AD_CACHE     LSASS_DB_DIR "/lsass-adcache.db"
+
 #endif /* __AD_DEF_H__ */
 

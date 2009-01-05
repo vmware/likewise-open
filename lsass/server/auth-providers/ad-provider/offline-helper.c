@@ -54,26 +54,22 @@ DWORD
 AD_OfflineGetGroupMembers(
     IN PCSTR pszGroupSid,
     OUT size_t* psMemberObjectsCount,
-    OUT PAD_SECURITY_OBJECT** pppMemberObjects
+    OUT PLSA_SECURITY_OBJECT** pppMemberObjects
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hDb = 0;
     size_t sGroupMembershipsCount = 0;
-    PAD_GROUP_MEMBERSHIP* ppGroupMemberships = NULL;
+    PLSA_GROUP_MEMBERSHIP* ppGroupMemberships = NULL;
     size_t sMemberSidsCount = 0;
     // Only free top level array, do not free string pointers as they
     // track elements inside ppMemberships.
     PSTR* ppszMemberSids = NULL;
     size_t sObjectsCount = 0;
-    PAD_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     size_t sIndex = 0;
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_GetGroupMembers(
-        hDb,
+    dwError = LsaDbGetGroupMembers(
+        gpLsaAdProviderState->hCacheConnection,
         pszGroupSid,
         AD_GetTrimUserMembershipEnabled(),
         &sGroupMembershipsCount,
@@ -110,11 +106,10 @@ AD_OfflineGetGroupMembers(
     sObjectsCount = 0;
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(sObjectsCount, &ppObjects);
+    LsaDbSafeFreeObjectList(sObjectsCount, &ppObjects);
     LSA_SAFE_FREE_MEMORY(ppszMemberSids);
-    ADCacheDB_SafeFreeGroupMembershipList(sGroupMembershipsCount,
+    LsaDbSafeFreeGroupMembershipList(sGroupMembershipsCount,
                                           &ppGroupMemberships);
-    ADCacheDB_SafeCloseDb(&hDb);
 
     return dwError;
 
@@ -129,22 +124,18 @@ DWORD
 AD_OfflineFindObjectsBySidList(
     IN size_t sCount,
     IN PSTR* ppszSidList,
-    OUT PAD_SECURITY_OBJECT** pppObjects
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    PAD_SECURITY_OBJECT *ppObjects = NULL;
-    HANDLE hDb = 0;
+    PLSA_SECURITY_OBJECT *ppObjects = NULL;
 
     /* 
      * Lookup users and groups from the cache.
      */
 
-    dwError = ADCacheDB_OpenDb(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADCacheDB_FindObjectsBySidList(
-                    hDb,
+    dwError = LsaDbFindObjectsBySidList(
+                    gpLsaAdProviderState->hCacheConnection,
                     sCount,
                     ppszSidList,
                     &ppObjects);
@@ -154,8 +145,7 @@ AD_OfflineFindObjectsBySidList(
     ppObjects = NULL;
 
 cleanup:
-    ADCacheDB_SafeFreeObjectList(sCount, &ppObjects);
-    ADCacheDB_SafeCloseDb(&hDb);
+    LsaDbSafeFreeObjectList(sCount, &ppObjects);
     return dwError;
 
 error:
@@ -168,7 +158,7 @@ AD_GatherSidsFromGroupMemberships(
     IN BOOLEAN bGatherParentSids,
     IN OPTIONAL PFN_LSA_GATHER_SIDS_FROM_GROUP_MEMBERSHIP_CALLBACK pfnIncludeCallback,
     IN size_t sMemberhipsCount,
-    IN PAD_GROUP_MEMBERSHIP* ppMemberships,
+    IN PLSA_GROUP_MEMBERSHIP* ppMemberships,
     OUT size_t* psSidsCount,
     OUT PSTR** pppszSids
     )
@@ -189,7 +179,7 @@ AD_GatherSidsFromGroupMemberships(
         sSidsCount = 0;
         for (sIndex = 0; sIndex < sMemberhipsCount; sIndex++)
         {
-            PAD_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
+            PLSA_GROUP_MEMBERSHIP pMembership = ppMemberships[sIndex];
             PSTR pszSid = NULL;
 
             if (!pMembership)
@@ -326,12 +316,12 @@ AD_GroupExpansionDataAddExpansionResults(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
     IN DWORD dwExpandedGroupDepth,
     IN OUT size_t* psMembersCount,
-    IN OUT PAD_SECURITY_OBJECT** pppMembers
+    IN OUT PLSA_SECURITY_OBJECT** pppMembers
     )
 {
     DWORD dwError = 0;
     size_t sMembersCount = *psMembersCount;
-    PAD_SECURITY_OBJECT* ppMembers = *pppMembers;
+    PLSA_SECURITY_OBJECT* ppMembers = *pppMembers;
 
     dwError = pExpansionData->dwLastError;
     BAIL_ON_LSA_ERROR(dwError);
@@ -345,7 +335,7 @@ AD_GroupExpansionDataAddExpansionResults(
 
     for (; sMembersCount > 0; sMembersCount--)
     {
-        PAD_SECURITY_OBJECT pCurrentMember = ppMembers[sMembersCount-1];
+        PLSA_SECURITY_OBJECT pCurrentMember = ppMembers[sMembersCount-1];
 
         if (!pCurrentMember)
         {
@@ -366,14 +356,14 @@ AD_GroupExpansionDataAddExpansionResults(
             if (dwExpandedGroupDepth >= pExpansionData->dwMaxDepth)
             {
                 pExpansionData->bDiscardedDueToDepth = TRUE;
-                ADCacheDB_SafeFreeObject(&ppMembers[sMembersCount-1]);
+                LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
             }
             else if (LsaHashExists(pExpansionData->pExpandedGroups,
                                    pCurrentMember) ||
                      LsaHashExists(pExpansionData->pGroupsToExpand,
                                    pCurrentMember))
             {
-                ADCacheDB_SafeFreeObject(&ppMembers[sMembersCount-1]);
+                LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
             }
             else
             {
@@ -388,21 +378,21 @@ AD_GroupExpansionDataAddExpansionResults(
         else
         {
             // some other kind of object -- should not happen
-            ADCacheDB_SafeFreeObject(&ppMembers[sMembersCount-1]);
+            LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
         }
     }
 
 cleanup:
     if (ppMembers && (sMembersCount == 0))
     {
-        ADCacheDB_SafeFreeObjectList(sMembersCount, &ppMembers);
+        LsaDbSafeFreeObjectList(sMembersCount, &ppMembers);
     }
     *psMembersCount = sMembersCount;
     *pppMembers = ppMembers;
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(sMembersCount, &ppMembers);
+    LsaDbSafeFreeObjectList(sMembersCount, &ppMembers);
     if (dwError && !pExpansionData->dwLastError)
     {
         pExpansionData->dwLastError = dwError;
@@ -413,12 +403,12 @@ error:
 DWORD
 AD_GroupExpansionDataGetNextGroupToExpand(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
-    OUT PAD_SECURITY_OBJECT* ppGroupToExpand,
+    OUT PLSA_SECURITY_OBJECT* ppGroupToExpand,
     OUT PDWORD pdwGroupToExpandDepth
     )
 {
     DWORD dwError = 0;
-    PAD_SECURITY_OBJECT pGroupToExpand = NULL;
+    PLSA_SECURITY_OBJECT pGroupToExpand = NULL;
     DWORD dwGroupToExpandDepth = 0;
     const LSA_HASH_ENTRY* pHashEntry = NULL;
 
@@ -455,7 +445,7 @@ AD_GroupExpansionDataGetNextGroupToExpand(
         }
     }
 
-    pGroupToExpand = (PAD_SECURITY_OBJECT) pHashEntry->pKey;
+    pGroupToExpand = (PLSA_SECURITY_OBJECT) pHashEntry->pKey;
     dwGroupToExpandDepth = (size_t) pHashEntry->pValue;
     dwGroupToExpandDepth++;
 
@@ -483,7 +473,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObject(&pGroupToExpand);
+    LsaDbSafeFreeObject(&pGroupToExpand);
     dwGroupToExpandDepth = 0;
 
     if (dwError && !pExpansionData->dwLastError)
@@ -498,14 +488,14 @@ AD_GroupExpansionDataGetResults(
     IN PLSA_AD_GROUP_EXPANSION_DATA pExpansionData,
     OUT OPTIONAL PBOOLEAN pbIsFullyExpanded,
     OUT size_t* psUserMembersCount,
-    OUT PAD_SECURITY_OBJECT** pppUserMembers
+    OUT PLSA_SECURITY_OBJECT** pppUserMembers
     )
 {
     DWORD dwError = 0;
     LSA_HASH_ITERATOR hashIterator;
     LSA_HASH_ENTRY* pHashEntry = NULL;
     size_t sHashCount = 0;
-    PAD_SECURITY_OBJECT* ppUserMembers = NULL;
+    PLSA_SECURITY_OBJECT* ppUserMembers = NULL;
     size_t sUserMembersCount = 0;
     BOOLEAN bIsFullyExpanded = FALSE;
 
@@ -526,7 +516,7 @@ AD_GroupExpansionDataGetResults(
          (pHashEntry = LsaHashNext(&hashIterator)) != NULL;
          sUserMembersCount++)
     {
-        PAD_SECURITY_OBJECT pUser = (PAD_SECURITY_OBJECT) pHashEntry->pKey;
+        PLSA_SECURITY_OBJECT pUser = (PLSA_SECURITY_OBJECT) pHashEntry->pKey;
 
         dwError = LsaHashRemoveKey(pExpansionData->pUsers, pUser);
         BAIL_ON_LSA_ERROR(dwError);
@@ -558,7 +548,7 @@ cleanup:
     return dwError;
 
 error:
-    ADCacheDB_SafeFreeObjectList(sUserMembersCount, &ppUserMembers);
+    LsaDbSafeFreeObjectList(sUserMembersCount, &ppUserMembers);
     sUserMembersCount = 0;
 
     if (dwError && !pExpansionData->dwLastError)
