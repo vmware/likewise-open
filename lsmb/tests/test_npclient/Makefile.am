@@ -1,0 +1,10 @@
+noinst_PROGRAMS = test_npclient
+
+test_npclient_SOURCES = main.c
+
+test_npclient_CPPFLAGS = \
+	-DUNICODE
+	
+test_npclient_LDFLAGS = -static
+
+test_npclient_LDADD = @top_builddir@/client/liblsmbclient.la
