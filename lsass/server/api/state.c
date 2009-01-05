@@ -186,7 +186,7 @@ LsaSrvOpenServerEnum(
     PLSA_SRV_ENUM_STATE pServerState = NULL;
 
     dwError = LsaAllocateMemory(
-                    sizeof(PLSA_SRV_ENUM_STATE),
+                    sizeof(*pServerState),
                     (PVOID*)&pServerState);
     BAIL_ON_LSA_ERROR(dwError);
 
