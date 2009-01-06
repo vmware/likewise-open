@@ -241,6 +241,8 @@ IopConfigParse(
     status = IO_ALLOCATE(&pConfig, IOP_CONFIG, sizeof(*pConfig));
     GOTO_CLEANUP_ON_STATUS(status);
 
+    LwListInit(&pConfig->DriverConfigList);
+
     parseState.pConfig = pConfig;
 
     dwError = SMBParseConfigFile(

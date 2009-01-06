@@ -52,6 +52,8 @@ IopDriverLoad(
     status = IO_ALLOCATE(&pDriverObject, IO_DRIVER_OBJECT, sizeof(*pDriverObject));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
+    LwListInit(&pDriverObject->DriverObjectsListLinks);
+
     pDriverObject->ReferenceCount = 1;
     pDriverObject->Root = pRoot;
     pDriverObject->Config = pDriverConfig;

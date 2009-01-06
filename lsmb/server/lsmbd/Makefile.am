@@ -14,6 +14,7 @@ lsmbd_CPPFLAGS = \
 
 lsmbd_LDADD = \
     @top_builddir@/server/iomgr/libiomgr.la \
+    @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/logging_r/libsmblog_r.la  \
     @NETLOGON_LIBS@ \
     @LWMSG_LIBS@

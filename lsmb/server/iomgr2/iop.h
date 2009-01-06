@@ -77,6 +77,10 @@ struct _IO_DEVICE_OBJECT {
     PCSTR DeviceName;
     LW_LIST_LINKS IrpList;
     PVOID Context;
+
+    // For each list to which this device belongs.
+    LW_LIST_LINKS RootLinks;
+    LW_LIST_LINKS DriverLinks;
 };
 
 // iomem.c

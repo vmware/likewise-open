@@ -34,7 +34,6 @@ IopRootCreate(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    PIOP_CONFIG pConfig = NULL;
     PLW_LIST_LINKS pLinks = NULL;
     PIO_DRIVER_OBJECT pDriverObject = NULL;
     PIOP_ROOT_STATE pRoot = NULL;
@@ -42,11 +41,14 @@ IopRootCreate(
     status = IO_ALLOCATE(&pRoot, IOP_ROOT_STATE, sizeof(*pRoot));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
+    LwListInit(&pRoot->DriverObjectList);
+    LwListInit(&pRoot->DeviceObjectList);
+
     status = IopConfigParse(&pRoot->Config, pszConfigFilePath);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    for (pLinks = pConfig->DriverConfigList.Next;
-         pLinks != &pConfig->DriverConfigList;
+    for (pLinks = pRoot->Config->DriverConfigList.Next;
+         pLinks != &pRoot->Config->DriverConfigList;
          pLinks = pLinks->Next)
     {
         PIOP_DRIVER_CONFIG pDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);

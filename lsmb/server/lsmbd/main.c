@@ -46,6 +46,7 @@
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 #include "includes.h"
+#include "ioinit.h"
 
 static
 DWORD
@@ -218,6 +219,8 @@ main(
 cleanup:
 
     SMB_LOG_VERBOSE("SMB main cleaning up");
+
+    IoCleanup();
 
     IOMgrShutdown();
 
@@ -498,6 +501,9 @@ SMBSrvInitialize(
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = IOMgrInitialize(pszConfigPath);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = IoInitialize(pszConfigPath);
     BAIL_ON_SMB_ERROR(dwError);
 
 error:
