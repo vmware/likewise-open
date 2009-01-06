@@ -65,6 +65,27 @@ static int (*_p_xnet_socketpair) (int, int, int, int[2]);
 
 static void* volatile _xnet_handle = NULL;
 
+static const char* _xnet_paths[] =
+{
+  "/usr/lib/libxnet.sl",
+  "/usr/lib/hpux32/libxnet.so",
+  "/usr/lib/hpux64/libxnet.so",
+  NULL
+};
+
+static void* _xnet_open(void)
+{
+    void* handle = NULL;
+    int i = 0;
+
+    for (i = 0; _xnet_paths[i]; i++)
+    {
+        handle = dlopen(_xnet_paths[i], RTLD_LOCAL);
+        if (handle) return handle;
+    }
+    return NULL;
+}
+
 __attribute__((constructor))
 static void
 LsaXnetInit(
@@ -73,8 +94,7 @@ LsaXnetInit(
 {
     if (!_xnet_handle)
     {
-        _xnet_handle = dlopen("libxnet" MOD_EXT, RTLD_LOCAL);
-        
+        _xnet_handle = _xnet_open();
         _p_xnet_accept = dlsym(_xnet_handle, "accept");
         _p_xnet_bind = dlsym(_xnet_handle, "bind");
         _p_xnet_connect = dlsym(_xnet_handle, "connect");
@@ -97,48 +117,104 @@ int
 _xnet_accept (int s, struct sockaddr *addr, socklen_t *len)
 {
     LsaXnetInit();
-    return _p_xnet_accept(s, addr, len);
+    if (_p_xnet_accept != NULL)
+    {
+        return _p_xnet_accept(s, addr, len);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int
 _xnet_bind (int s, const struct sockaddr *addr, socklen_t len)
 {
     LsaXnetInit();
-    return _p_xnet_bind(s, addr, len);
+    if (_p_xnet_bind != NULL)
+    {
+        return _p_xnet_bind(s, addr, len);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int
 _xnet_connect (int s, const struct sockaddr *addr, socklen_t len)
 {
     LsaXnetInit();
-    return _p_xnet_connect(s, addr, len);
+    if (_p_xnet_connect != NULL)
+    {
+        return _p_xnet_connect(s, addr, len);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int
 _xnet_getpeername (int s, struct sockaddr *addr, socklen_t *len)
 {
     LsaXnetInit();
-    return _p_xnet_getpeername(s, addr, len);
+    if (_p_xnet_getpeername != NULL)
+    {
+        return _p_xnet_getpeername(s, addr, len);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int
 _xnet_getsockname (int s, struct sockaddr *addr, socklen_t *len)
 {
     LsaXnetInit();
-    return _p_xnet_getsockname(s, addr, len);
+    if (_p_xnet_getsockname != NULL)
+    {
+        return _p_xnet_getsockname(s, addr, len);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int _xnet_getsockopt (int s, int level, int name, void *val, socklen_t *len)
 {
     LsaXnetInit();
-    return _p_xnet_getsockopt(s, level, name, val, len);
+    if (_p_xnet_getsockopt != NULL)
+    {
+        return _p_xnet_getsockopt(s, level, name, val, len);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 ssize_t
 _xnet_recv (int s, void *buf, size_t len, int flags)
 {
     LsaXnetInit();
-    return _p_xnet_recv(s, buf, len, flags);
+    if (_p_xnet_recv != NULL)
+    {
+        return _p_xnet_recv(s, buf, len, flags);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 ssize_t
@@ -146,28 +222,60 @@ _xnet_recvfrom (int s, void *buf, size_t len, int flags,
                 struct sockaddr *addr, socklen_t *slen)
 {
     LsaXnetInit();
-    return _p_xnet_recvfrom(s, buf, len, flags, addr, slen);
+    if (_p_xnet_recvfrom != NULL)
+    {
+        return _p_xnet_recvfrom(s, buf, len, flags, addr, slen);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 ssize_t
 _xnet_recvmsg (int s, struct msghdr *msg, int flags)
 {
     LsaXnetInit();
-    return _p_xnet_recvmsg(s, msg, flags);
+    if (_p_xnet_recvmsg != NULL)
+    {
+        return _p_xnet_recvmsg(s, msg, flags);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 ssize_t
 _xnet_send (int s, const void *buf, size_t len, int flags)
 {
     LsaXnetInit();
-    return _p_xnet_send(s, buf, len, flags);
+    if (_p_xnet_send != NULL)
+    {
+        return _p_xnet_send(s, buf, len, flags);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 ssize_t
 _xnet_sendmsg (int s, const struct msghdr *msg, int flags)
 {
     LsaXnetInit();
-    return _p_xnet_sendmsg(s, msg, flags);
+    if (_p_xnet_sendmsg != NULL)
+    {
+        return _p_xnet_sendmsg(s, msg, flags);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 ssize_t
@@ -175,28 +283,60 @@ _xnet_sendto (int s, const void * buf, size_t len, int flags,
               const struct sockaddr *addr, socklen_t slen)
 {
     LsaXnetInit();
-    return _p_xnet_sendto(s, buf, len, flags, addr, slen);
+    if (_p_xnet_sendto != NULL)
+    {
+        return _p_xnet_sendto(s, buf, len, flags, addr, slen);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int
 _xnet_setsockopt (int s, int level, int opt, const void *val, socklen_t len)
 {
     LsaXnetInit();
-    return _p_xnet_setsockopt(s, level, opt, val, len);
+    if (_p_xnet_setsockopt != NULL)
+    {
+        return _p_xnet_setsockopt(s, level, opt, val, len);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int
 _xnet_socket (int d, int t, int p)
 {
     LsaXnetInit();
-    return _p_xnet_socket(d, t, p); 
+    if (_p_xnet_socket != NULL)
+    {
+        return _p_xnet_socket(d, t, p);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int
 _xnet_socketpair (int d, int t, int p, int pair[2])
 {
     LsaXnetInit();
-    return _p_xnet_socketpair(d, t, p, pair);
+    if (_p_xnet_socketpair != NULL)
+    {
+        return _p_xnet_socketpair(d, t, p, pair);
+    }
+    else
+    {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 #endif
