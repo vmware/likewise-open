@@ -503,7 +503,7 @@ IopRootFree(
 
     if (pRoot)
     {
-        // TODO -- Implement the rest...
+        // TODO -- Unload drivers
         IopConfigFree(&pRoot->Config);
     }
 }
