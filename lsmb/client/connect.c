@@ -27,6 +27,9 @@ SMBOpenServer(
                     SMB_SERVER_FILENAME);
     BAIL_ON_SMB_ERROR(status);
 
+    status = lwmsg_connection_establish(pConnection->pAssoc);
+    BAIL_ON_SMB_ERROR(status);
+
     *phConnection = (HANDLE)pConnection;
 
 cleanup:
