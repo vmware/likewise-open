@@ -75,6 +75,15 @@
        goto error;                                \
     }
 
+#define BAIL_ON_NT_STATUS(ntStatus)                \
+    if (ntStatus) {                                \
+       SMB_LOG_DEBUG("Error at %s:%d [code: %d]",  \
+                     __FILE__,                     \
+                     __LINE__,                     \
+                     ntStatus);                    \
+       goto error;                                 \
+    }
+
 #define GOTO_CLEANUP_ON_SMB_ERROR(error) \
     _GOTO_CLEANUP_ON_NONZERO(error)
 

@@ -402,10 +402,8 @@ AC_CONFIG_FILES([Makefile
         server/iomgr/Makefile
         server/iomgr2/Makefile
         server/srv/Makefile
-        server/srv/smbv1/Makefile
         server/npvfs/Makefile
         server/pvfs/Makefile
-        server/srv/listener/Makefile
         server/lsmbd/Makefile
         tools/Makefile
         tools/lw-smb-refresh/Makefile
