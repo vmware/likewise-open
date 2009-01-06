@@ -151,20 +151,6 @@ typedef NTSTATUS (*PIO_DRIVER_ENTRY)(
 
 // Driver functions
 
-// Called by I/O Manager
-NTSTATUS
-IoDriverLoad(
-    OUT PIO_DRIVER_HANDLE pDriverHandle,
-    IN PCSTR pszName,
-    IN PCSTR pszPath
-    );
-
-// Called by I/O Manager or in DriverEntry.
-PCSTR
-IoDriverGetName(
-    IN IO_DRIVER_HANDLE DriverHandle
-    );
-
 // Can only be called in DriverEntry.
 NTSTATUS
 IoDriverInitialize(
@@ -172,6 +158,11 @@ IoDriverInitialize(
     IN OPTIONAL PVOID DriverContext,
     IN PIO_DRIVER_SHUTDOWN_CALLBACK ShutdownCallback,
     IN PIO_DRIVER_DISPATCH_CALLBACK DispatchCallback
+    );
+
+PCSTR
+IoDriverGetName(
+    IN IO_DRIVER_HANDLE DriverHandle
     );
 
 PVOID

@@ -63,6 +63,7 @@ struct _IO_DRIVER_OBJECT {
     PIOP_ROOT_STATE Root;
     PIOP_DRIVER_CONFIG Config;
     LW_LIST_LINKS DeviceList;
+    LW_LIST_LINKS DriverObjectsListLinks;
 
     PVOID LibraryHandle;
     PIO_DRIVER_ENTRY DriverEntry;
@@ -332,7 +333,23 @@ IopConfigFree(
     IN OUT PIOP_CONFIG* ppConfig
     )
 {
-    // TODO -- implement
+    PIOP_CONFIG pConfig = *ppConfig;
+    if (pConfig)
+    {
+        PLW_LIST_LINKS pLinks = NULL;
+
+        for (pLinks = pConfig->DriverConfigList.Next;
+             pLinks != &pConfig->DriverConfigList;
+             pLinks = pLinks->Next)
+        {
+            PIOP_DRIVER_CONFIG pDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
+
+            LwListRemove(pLinks);
+            IopDriverConfigFree(&pDriverConfig);
+        }
+        IoFree(pConfig);
+        *ppConfig = NULL;
+    }
 }
 
 static
@@ -395,9 +412,12 @@ IopDriverUnload(
 
     if (pDriverObject)
     {
-        if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED))
+        if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_READY))
         {
             // TODO -- Add code to cancel IO and wait for IO to complete.
+        }
+        if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED))
+        {
             pDriverObject->Callback.Shutdown(pDriverObject);
 
             // TODO -- Add code to remove devices
@@ -479,6 +499,7 @@ IopDriverLoad(
         GOTO_CLEANUP_EE(EE);
     }
 
+    LwListInsertTail(&pRoot->DriverObjectList, &pDriverObject->DriverObjectsListLinks);
     SetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_READY);
 
 cleanup:
@@ -503,7 +524,19 @@ IopRootFree(
 
     if (pRoot)
     {
-        // TODO -- Unload drivers
+        PLW_LIST_LINKS pLinks = NULL;
+
+        // Unload drivers in reverse load order
+        for (pLinks = pRoot->DriverObjectList.Prev;
+             pLinks != &pRoot->DriverObjectList;
+             pLinks = pLinks->Prev)
+        {
+            PIO_DRIVER_OBJECT pDriverObject = LW_STRUCT_FROM_FIELD(pLinks, IO_DRIVER_OBJECT, DriverObjectsListLinks);
+
+            LwListRemove(pLinks);
+            IopDriverUnload(&pDriverObject);
+        }
+
         IopConfigFree(&pRoot->Config);
     }
 }
@@ -564,4 +597,56 @@ IoInitialize(
 {
     return IopRootCreate(&gpIoRoot, pszConfigFilePath);
 }
+
+NTSTATUS
+IoDriverInitialize(
+    IN OUT IO_DRIVER_HANDLE DriverHandle,
+    IN OPTIONAL PVOID DriverContext,
+    IN PIO_DRIVER_SHUTDOWN_CALLBACK ShutdownCallback,
+    IN PIO_DRIVER_DISPATCH_CALLBACK DispatchCallback
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+
+    if (!ShutdownCallback || !DispatchCallback)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    if (IsSetFlag(DriverHandle->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED))
+    {
+        // Already initialized.
+        status = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    DriverHandle->Callback.Shutdown = ShutdownCallback;
+    DriverHandle->Callback.Dispatch = DispatchCallback;
+    DriverHandle->Context = DriverContext;
+
+    SetFlag(DriverHandle->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED);
+
+cleanup:
+    IO_LOG_LEAVE_STATUS_ON_EE(status, EE);
+    return status;
+}
+
+PCSTR
+IoDriverGetName(
+    IN IO_DRIVER_HANDLE DriverHandle
+    )
+{
+    return DriverHandle->Config->pszName;
+}
+
+PVOID
+IoDriverGetContext(
+    IN IO_DRIVER_HANDLE DriverHandle
+    )
+{
+    return DriverHandle->Context;
+}
+
 
