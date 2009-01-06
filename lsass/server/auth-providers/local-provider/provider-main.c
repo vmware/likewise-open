@@ -45,8 +45,6 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include <stdio.h>
-#include <lwrpc/LMcrypt.h>
 #include "localprovider.h"
 
 DWORD

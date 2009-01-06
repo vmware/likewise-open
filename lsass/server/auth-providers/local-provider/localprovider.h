@@ -71,3 +71,5 @@
 
 #include "externs.h"
 
+#include <lwrpc/LMcrypt.h>
+
