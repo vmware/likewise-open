@@ -74,6 +74,9 @@ LWNetOpenServer(
                                   LWMSG_CONNECTION_MODE_LOCAL,
                                   LWNET_CACHE_DIR "/" LWNET_SERVER_FILENAME));
     BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_establish(pContext->pAssoc));
+    BAIL_ON_LWNET_ERROR(dwError);
     
     *phConnection = (HANDLE)pContext;
 
