@@ -150,13 +150,6 @@
 //To get records 'n' days older than current date
 #define DB_QUERY_GET_OLDER_THAN  "SELECT (*) FROM  lwievents    \
                                     WHERE  (datetime(EventDateTime,'unixepoch','localtime') < datetime('now','-%d day'))"
-
-//Get CategoryID Count
-#define DB_QUERY_COUNT_CATEGORIES        "SELECT COUNT (distinct EventTableCategoryId) FROM  lwievents"
-
-//Get distinct Categories
-#define DB_QUERY_DISTINCT_CATEGORIES      "SELECT distinct EventTableCategoryId FROM  lwievents"
-
 //Function prototype
 static
 DWORD
@@ -273,132 +266,6 @@ SrvEventLogCount(
         sqlite3_free_table(ppszResult);
     }
     LEAVE_RW_READER_LOCK;
-    return dwError;
- error:
-    goto cleanup;
-
-}
-
-DWORD
-BuildCategoryList(
-    PSTR *ppszResult,
-    DWORD dwRow,
-    PEVENT_LOG_CATEGORY *ppCategories
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwCount = 1;
-    PEVENT_LOG_CATEGORY pTmpCategory = NULL;
-    PEVENT_LOG_CATEGORY pCopyCategory = NULL;
-
-    if (ppszResult == NULL || IsNullOrEmptyString(ppszResult[0])) {
-        return -1;
-    }
-
-    if (ppCategories == NULL) {
-        return -1;
-    }
-
-    pCopyCategory = *ppCategories;
-
-    for( ;dwCount <= dwRow; dwCount++) {
-        pTmpCategory = &(pCopyCategory[dwCount-1]);
-
-        if (IsNullOrEmptyString(ppszResult[dwCount])) {
-
-            pTmpCategory->pszCategory = NULL;
-        } else {
-
-            dwError = RPCAllocateString(ppszResult[dwCount], (PSTR*)(&pTmpCategory->pszCategory));
-            BAIL_ON_EVT_ERROR(dwError);
-
-            EVT_LOG_VERBOSE("Copied category = %s \t nRows=%d\n", ppszResult[dwCount],dwRow);
-
-        }
-    }
-
-    EVT_LOG_VERBOSE("BuildEventLogRecordList() finished, nRows=%d\n", dwRow);
-
-error:
-    return dwError;
-}
-
-DWORD
-SrvGetDistinctCategories(
-    HANDLE hDB,
-    PEVENT_LOG_CATEGORY*  ppCategories
-    )
-{
-
-    DWORD dwError = 0;
-    CHAR  szQuery[1024];
-    DWORD nRows = 0;
-    DWORD nCols = 0;
-    PSTR* ppszResult = NULL;
-
-    ENTER_RW_READER_LOCK;
-
-    //Frame the query
-    sprintf(szQuery, DB_QUERY_DISTINCT_CATEGORIES);
-
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-
-    if (nRows > 0) {
-        dwError = BuildCategoryList(ppszResult,nRows,ppCategories);
-        BAIL_ON_EVT_ERROR(dwError);
-
-    } else {
-
-        EVT_LOG_VERBOSE("Failed to get distinct categories from database");
-    }
-
- cleanup:
-    if (ppszResult) {
-        sqlite3_free_table(ppszResult);
-    }
-
-    LEAVE_RW_READER_LOCK;
-
-    return dwError;
-
- error:
-    goto cleanup;
-}
-
-DWORD
-SrvGetCategoryCount(
-    HANDLE hDB,
-    PDWORD pdwCount
-    )
-{
-
-    DWORD dwError = 0;
-    CHAR  szQuery[1024];
-    DWORD nRows = 0;
-    DWORD nCols = 0;
-    PSTR* ppszResult = NULL;
-
-    ENTER_RW_READER_LOCK;
-
-    //Frame the sql query
-    sprintf(szQuery, DB_QUERY_COUNT_CATEGORIES);
-
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-
-    if (nRows == 1) {
-        *pdwCount = (DWORD) atoi(ppszResult[1]);
-        BAIL_ON_EVT_ERROR(dwError);
-    } else {
-        EVT_LOG_VERBOSE("Could not get category count from database");
-    }
-
- cleanup:
-    if (ppszResult) {
-        sqlite3_free_table(ppszResult);
-    }
-
-    LEAVE_RW_READER_LOCK;
-
     return dwError;
  error:
     goto cleanup;
@@ -583,7 +450,7 @@ SrvMaintainDB(
     EVT_LOG_VERBOSE("Actual Log size = %d ",dwActualSize);
     if(dwActualSize >= dwMaxLogSize) {
         EVT_LOG_VERBOSE("Log Size is exceeds the maximum limit set");
-        
+
         goto error;
     }
 
@@ -594,7 +461,7 @@ SrvMaintainDB(
 
 cleanup:
 
-    return dwError;
+	return dwError;
 
 error:
 
@@ -886,7 +753,6 @@ BuildEventLogRecordList(
 {
     DWORD dwError = 0;
     EVENT_LOG_RECORD* pRecord = NULL;
-    EVENT_LOG_RECORD* records = NULL;
     INT iCol = 0;
     INT iRow = 0;
     INT iVal = 0;
@@ -903,7 +769,7 @@ BuildEventLogRecordList(
         return -1;
     }
 
-    records = *eventLogRecords;
+    EVENT_LOG_RECORD* records = *eventLogRecords;
 
     for (iVal = 0; iVal < EVENT_DB_COL_SENTINEL; iVal++) {
         //TODO: find something useful to do with the header information.
