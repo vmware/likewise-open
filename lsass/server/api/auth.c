@@ -144,6 +144,9 @@ LsaSrvAuthenticateUserEx(
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
 
+    BAIL_ON_INVALID_POINTER(pUserParams);
+    BAIL_ON_INVALID_POINTER(ppUserInfo);
+
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);

@@ -44,6 +44,9 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+
+#include <stdio.h>
+#include <lwrpc/LMcrypt.h>
 #include "localprovider.h"
 
 DWORD
@@ -172,6 +175,44 @@ LsaProviderLocal_ServicesDomain(
     return bResult;
 }
 
+static DWORD
+CheckAccountFlags(
+    PLSA_USER_INFO_2 pUserInfo2
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+
+    BAIL_ON_INVALID_POINTER(pUserInfo2);
+
+    if (pUserInfo2->bAccountDisabled) {
+        dwError = LSA_ERROR_ACCOUNT_DISABLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo2->bAccountLocked) {
+        dwError = LSA_ERROR_ACCOUNT_LOCKED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo2->bAccountExpired) {
+        dwError = LSA_ERROR_ACCOUNT_EXPIRED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo2->bPasswordExpired) {
+        dwError = LSA_ERROR_PASSWORD_EXPIRED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LSA_ERROR_SUCCESS;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 LsaProviderLocal_AuthenticateUser(
     HANDLE hProvider,
@@ -200,25 +241,10 @@ LsaProviderLocal_AuthenticateUser(
                     (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pUserInfo->bAccountDisabled) {
-        dwError = LSA_ERROR_ACCOUNT_DISABLED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    /* Check for disable, expired, etc..  accounts */
 
-    if (pUserInfo->bAccountLocked) {
-        dwError = LSA_ERROR_ACCOUNT_LOCKED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserInfo->bAccountExpired) {
-        dwError = LSA_ERROR_ACCOUNT_EXPIRED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserInfo->bPasswordExpired) {
-        dwError = LSA_ERROR_PASSWORD_EXPIRED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    dwError = CheckAccountFlags(pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvComputeNTHash(pszPassword, &pHash, &dwHashLen);
     BAIL_ON_LSA_ERROR(dwError);
@@ -265,9 +291,94 @@ LsaProviderLocal_AuthenticateUserEx(
     PLSA_AUTH_USER_INFO *ppUserInfo
     )
 {
-	/* Let the provider routing ignore this call */
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PLSA_USER_INFO_2 pUserInfo2 = NULL;
+    PSTR pszAccountName = NULL;
+    PCSTR pszDomain = NULL;
+    DWORD dwLen = 0;
+    BYTE NTResponse[24] = { 0 };
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PBYTE pChal = NULL;
+    PBYTE pNTresp = NULL;
+    DWORD dwUserInfoLevel = 2;
 
-	return LSA_ERROR_NOT_HANDLED;
+    BAIL_ON_INVALID_POINTER(pUserParams->pszAccountName);
+
+    /* Assume the local domain (localhost) if we don't have one */
+
+    if (pUserParams->pszDomain)
+        pszDomain = pUserParams->pszDomain;
+    else
+        pszDomain = "LOCALHOST";
+
+    /* Allow the next provider to continue if we don't handle this domain */
+
+    if (!LsaProviderLocal_ServicesDomain(pszDomain)) {
+        dwError = LSA_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /* calculate length includeing '\' and terminating NULL */
+
+    dwLen = strlen(pszDomain) + strlen(pUserParams->pszAccountName) + 2;
+    dwError = LsaAllocateMemory(dwLen, (PVOID*)&pszAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    snprintf(pszAccountName, dwLen,
+             "%s\\%s",
+             pszDomain,
+             pUserParams->pszAccountName);
+
+    /* Find the user */
+
+    dwError = LsaProviderLocal_FindUserByName(hProvider,
+                                              pszAccountName,
+                                              dwUserInfoLevel,
+                                              (PVOID*)&pUserInfo2);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Check Account Status */
+
+    dwError = CheckAccountFlags(pUserInfo2);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* generate the responses and compare */
+
+    pChal = LsaDataBlobBuffer(pUserParams->pass.chap.pChallenge);
+    BAIL_ON_INVALID_POINTER(pChal);
+
+    ntError = NTLMv1EncryptChallenge(pChal,
+                                     NULL,     /* ignore LM hash */
+                                     pUserInfo2->info1.pNTHash,
+                                     NULL,
+                                     NTResponse);
+    if (ntError != STATUS_SUCCESS) {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pNTresp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
+    BAIL_ON_INVALID_POINTER(pNTresp);
+
+    if (memcmp(pNTresp, NTResponse, 24) != 0)
+    {
+        dwError = LSA_ERROR_PASSWORD_MISMATCH;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pUserInfo2) {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo2);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pszAccountName);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
@@ -1642,3 +1753,12 @@ error:
     goto cleanup;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
