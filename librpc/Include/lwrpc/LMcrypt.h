@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,16 +28,28 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _LM_H_
-#define _LM_H_
+#ifndef _LM_CRYPT_H_
+#define _LM_CRYPT_H_
 
-#ifdef _GNU_SOURCE
-#include <lwrpc/LMErr.h>
-#endif
-#include <lwrpc/LMaccess.h>
-#include <lwrpc/LMjoin.h>
-#include <lwrpc/LMldap.h>
-#include <lwrpc/LMdebug.h>
-#include <lwrpc/LMcrypt.h>
+#include <lwrpc/types.h>
+#include <lwrpc/ntstatus.h>
 
-#endif /* _LM_H_ */
+NTSTATUS
+NTLMv1EncryptChallenge(
+    uint8  Challenge[8],
+    uint8  *pLMHash,
+    uint8  *pNTHash,
+    uint8  LMResp[24],
+    uint8  NTResp[24]
+    );
+
+#endif   /* _LM_CRYPT_H_ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
