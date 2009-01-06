@@ -11,6 +11,7 @@ libsmbutils_la_SOURCES = \
     hashtable.c   \
     libmain.c     \
     logger.c      \
+    lwlist.c      \
     memory.c      \
     smbconfig.c   \
     smbloginfo.c  \

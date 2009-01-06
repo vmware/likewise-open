@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libiomgr2.la
 
 libiomgr2_la_SOURCES = \
+    libmain.c \
     iofile.c
 
 libiomgr2_la_CPPFLAGS = \

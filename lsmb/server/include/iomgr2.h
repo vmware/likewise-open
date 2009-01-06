@@ -132,8 +132,7 @@ typedef NTSTATUS (*PIO_IRP_CALLBACK)(
     IN PIRP Irp
     );
 
-// should return VOID?
-typedef NTSTATUS (*PIO_DRIVER_SHUTDOWN_CALLBACK)(
+typedef VOID (*PIO_DRIVER_SHUTDOWN_CALLBACK)(
     IN IO_DRIVER_HANDLE DriverHandle
     );
 
@@ -148,6 +147,7 @@ typedef NTSTATUS (*PIO_DRIVER_ENTRY)(
     );
 
 #define IO_DRIVER_ENTRY_FUNCTION_NAME "DriverEntry"
+#define IO_DRIVER_ENTRY_INTERFACE_VERSION 1
 
 // Driver functions
 

@@ -75,6 +75,12 @@
        goto error;                                \
     }
 
+#define GOTO_CLEANUP_ON_SMB_ERROR(error) \
+    _GOTO_CLEANUP_ON_NONZERO(error)
+
+#define GOTO_CLEANUP_ON_SMB_ERROR_EE(error, EE) \
+    _GOTO_CLEANUP_ON_NONZERO_EE(error, EE)
+
 #define SMB_SAFE_FREE_STRING(str) \
         do {                      \
            if (str) {             \
