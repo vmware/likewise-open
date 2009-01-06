@@ -1553,11 +1553,11 @@ LsaTransactOpenServer(
     request.tag = LSA_Q_OPEN_SERVER;
     request.object = NULL;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+    dwError = lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
                               &request,
-                              &response));
-    BAIL_ON_LSA_ERROR(dwError);
+                              &response);
+    BAIL_ON_LWMSG_ERROR(pContext->pAssoc, dwError);
 
     switch (response.tag)
     {

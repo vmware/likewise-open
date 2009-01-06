@@ -95,6 +95,15 @@
        goto error;                 \
     }
 
+#define BAIL_ON_LWMSG_ERROR(pAssoc, dwError) \
+    do { \
+        if (dwError) \
+        { \
+           (dwError) = LsaTranslateLwMsgError(pAssoc, dwError, __FILE__, __LINE__); \
+           goto error; \
+        } \
+    } while (0)
+
 #define BAIL_WITH_LSA_ERROR(_newerror_) \
     do {dwError = (_newerror_); BAIL_ON_LSA_ERROR(dwError);} while (0)
 
@@ -1463,6 +1472,14 @@ VOID
 LsaCacheDelete(
     PLSA_CACHE pCache
     );
+
+DWORD
+LsaTranslateLwMsgError(
+        LWMsgAssoc *pAssoc,
+        DWORD dwMsgError,
+        const char *file,
+        int line
+        );
 
 #endif /* __LSA_UTILS_H__ */
 
