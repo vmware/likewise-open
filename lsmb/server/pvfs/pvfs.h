@@ -47,6 +47,7 @@
 #ifndef __PVFS_H__
 #define __PVFS_H__
 
+#include "iodriver.h"
 
 #endif /* __PVFS_H__ */
 

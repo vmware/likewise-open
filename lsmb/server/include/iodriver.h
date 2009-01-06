@@ -245,4 +245,19 @@ IoFree(
         } \
     } while (0)
 
+#define IO_LOG_ENTER(Format, ...) \
+    SMB_LOG_DEBUG("ENTER: " Format, ## __VA_ARGS__)
+
+#define IO_LOG_LEAVE(Format, ...) \
+    SMB_LOG_DEBUG("LEAVE: " Format, ## __VA_ARGS__)
+
+#define IO_LOG_LEAVE_STATUS_ON_EE(status, EE) \
+    do { \
+        if (EE || status) \
+        { \
+            IO_LOG_LEAVE("-> 0x%08x (EE = %d)", status, EE); \
+        } \
+    } while (0)
+
+
 #endif /* __IODRIVER_H__ */

@@ -22,14 +22,12 @@
 
 
 NT_API
-DWORD
+NTSTATUS
 NTReadFile(
-    HANDLE      hConnection,
-    HANDLE      hFile,
-    PVOID       pBuffer,
-    DWORD       dwNumberOfBytesToRead,
-    PDWORD      pdwBytesRead,
-    POVERLAPPED pOverlapped
+    IN HANDLE      hConnection,
+    IN HANDLE      hFile,
+    OUT PVOID      pBuffer,
+    IN ULONG       Length,
     )
 {
     DWORD  ntStatus = 0;

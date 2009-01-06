@@ -21,34 +21,64 @@
 
 #include "pvfs.h"
 
+VOID
+DriverShutdown(
+    IN IO_DRIVER_HANDLE DriverHandle
+    )
+{
+}
+
 NTSTATUS
-DriverEntry(
-    PDRIVER_OBJECT pDriverObject,
-    PIRP pIrp
-	)
+DriverDispatch(
+    IN IO_DEVICE_HANDLE DeviceHandle,
+    IN PIRP Irp
+    )
 {
     NTSTATUS ntStatus = 0;
+    int EE = 0;
 
-    pDriverObject->MajorFunction[IRP_MJ_CREATE] = PvfsCreateFile;
-    pDriverObject->MajorFunction[IRP_MJ_CLOSE] = PvfsCloseFile;
-    pDriverObject->MajorFunction[IRP_MJ_READ] = PvfsReadFile;
-    pDriverObject->MajorFunction[IRP_MJ_WRITE] = PvfsWriteFile;
-    pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = PvfsDeviceControl;
-    pDriverObject->MajorFunction[IRP_MJ_CLEANUP] = PvfsCleanup;
-    
-    ntStatus = IoCreateDevice(
-                    pDriverObject,
-                    0,
-                    DeviceName,
-                    FILE_DEVICE_DISK_FILE_SYSTEM,
-                    0,
-                    &PvfsGlobalData.pDeviceObject,
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
+    switch (Irp->Type)
+    {
+    case IRP_TYPE_CREATE:
+    case IRP_TYPE_CLOSE:
+    case IRP_TYPE_READ:
+    case IRP_TYPE_WRITE:
+    case IRP_TYPE_IO_CONTROL:
+    case IRP_TYPE_FS_CONTROL:
+    case IRP_TYPE_FLUSH:
+    case IRP_TYPE_QUERY_INFORMATION:
+    case IRP_TYPE_SET_INFORMATION:
+    default:
+        ntStatus = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    }
 
-error:    
+cleanup:
     return ntStatus;
 }
 
 
+NTSTATUS
+DriverEntry(
+    IN IO_DRIVER_HANDLE DriverHandle,
+    IN ULONG InterfaceVersion
+    )
+{
+    NTSTATUS ntStatus = 0;
+    int EE = 0;
 
+    if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
+    {
+        ntStatus = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    }
+
+    ntStatus = IoDriverInitialize(DriverHandle,
+                                  NULL,
+                                  DriverShutdown,
+                                  DriverDispatch);
+
+cleanup:
+    IO_LOG_LEAVE_STATUS_ON_EE(status, EE);
+    return ntStatus;
+}

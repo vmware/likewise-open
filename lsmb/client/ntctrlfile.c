@@ -22,14 +22,14 @@
 
 
 NT_API
-DWORD
+NTSTATUS
 NTFsControlFile(
-    HANDLE      hConnection,
-    HANDLE      hFile,
-    PVOID       pBuffer,
-    DWORD       dwNumberOfBytesToFsControl,
-    PDWORD      pdwBytesFsControl,
-    POVERLAPPED pOverlapped
+    IN HANDLE      hConnection,
+    IN HANDLE      hFile,
+    IN PVOID       InputBuffer,
+    IN ULONG       InputBufferLength,
+    OUT PVOID      OutputBuffer,
+    IN ULONG       OutBufferBufferLength
     )
 {
     DWORD  ntStatus = 0;
