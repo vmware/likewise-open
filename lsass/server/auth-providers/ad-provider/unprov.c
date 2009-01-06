@@ -43,11 +43,14 @@
  *
  * Authors:
  *          Wei Fu (wfu@likewisesoftware.com)
- *          Brian Dunstan (bdunstan@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 
 #include "adprovider.h"
+
+//By default, ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME should not be enabled
+#if 0
+#define ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME
+#endif
 
 static
 DWORD
@@ -222,8 +225,11 @@ ADUnprovPlugin_QueryByReal(
     DWORD dwError = 0;
     DWORD dwId = 0;
     PSTR pszAlias = NULL;
+#ifdef ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME
     PLSA_LOGIN_NAME_INFO pNameInfo = NULL;
     PSTR pszName = NULL;
+    BOOLEAN bFoundIsUser = !bIsUser;
+#endif
 
     // lsass unprovisioned mode converts a group/user objectSid to uid/gid with the same algorithm
 
@@ -237,8 +243,15 @@ ADUnprovPlugin_QueryByReal(
         dwError = LsaDmWrapNetLookupNameByObjectSid(
                     gpADProviderData->szDomain,
                     pszSid,
-                    &pszName);
+                    &pszName,
+                    &bFoundIsUser);
         BAIL_ON_LSA_ERROR(dwError);
+
+        if (bFoundIsUser != bIsUser)
+        {
+            dwError = LSA_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
 
     dwError = LsaCrackDomainQualifiedName(
@@ -262,8 +275,10 @@ ADUnprovPlugin_QueryByReal(
     *pdwId = dwId;
 
 cleanup:
+#ifdef ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME
     LSA_SAFE_FREE_LOGIN_NAME_INFO(pNameInfo);
     LSA_SAFE_FREE_STRING(pszName);
+#endif
 
     return dwError;
 

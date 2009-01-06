@@ -41,17 +41,12 @@
  *
  *        Authentication Provider Interface
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors:
+ *        Wei Fu (wfu@likewisesoftware.com)
 */
 
 #ifndef UNPROV_H_
 #define UNPROV_H_
-
-//By default, ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME should not be defined
-#if 0
-#define ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME
-#endif
 
 DWORD
 ADUnprovPlugin_Initialize(
