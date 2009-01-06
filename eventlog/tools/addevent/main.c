@@ -179,10 +179,10 @@ main(
                     "littleCategory",
                     "A slightly different shortDescription",
                     "<null>");
-    BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_EVT_ERROR(dwError);
 
     dwError = BuildEventRecord(&pEventRecord);
-    BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_EVT_ERROR(dwError);
 
     dwError = LWIWriteEventLogBase(hEventLog, *pEventRecord);
     BAIL_ON_EVT_ERROR(dwError);
@@ -200,6 +200,7 @@ main(
                     NULL,          //char * pszComputer
                     &hEventLog);
     BAIL_ON_EVT_ERROR(dwError);
+
 
     for (i = 0; i < num_iters; i++) {
 

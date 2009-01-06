@@ -159,7 +159,7 @@ lwmsg_connection_new(
  * @param size the desired packet size
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the packet size cannot be changed in the connection's current state}
+ * @lwmsg_code{INVALID_STATE, the packet size cannot be changed in the connection's current state}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -182,8 +182,8 @@ lwmsg_connection_set_packet_size(
  * @param fd the file descriptor
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the file descriptor is invalid}
- * @lwmsg_code{INVALID, a file descriptor or endpoint is already set}
+ * @lwmsg_code{INVALID_PARAMETER, the file descriptor is invalid}
+ * @lwmsg_code{INVALID_STATE, a file descriptor or endpoint is already set}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -209,8 +209,8 @@ lwmsg_connection_set_fd(
  * @param endpoint the named endpoint
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the endpoint is invalid}
- * @lwmsg_code{INVALID, a file descriptor or endpoint is already set}
+ * @lwmsg_code{INVALID_PARAMETER, the endpoint is invalid}
+ * @lwmsg_code{INVALID_STATE, a file descriptor or endpoint is already set}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -237,7 +237,7 @@ lwmsg_connection_set_endpoint(
  * @param signal the signal
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the interrupt signal cannot be changed in the connection's present state}
+ * @lwmsg_code{INVALID_STATE, the interrupt signal cannot be changed in the connection's present state}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -325,7 +325,7 @@ lwmsg_connection_signal_delete(
  * @param out_egid the effective group id
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the provided token was not of the correct type}
+ * @lwmsg_code{INVALID_PARAMETER, the provided token was not of the correct type}
  */
 LWMsgStatus
 lwmsg_local_token_get_eid(

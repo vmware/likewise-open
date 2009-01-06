@@ -422,8 +422,6 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
             {
                 pszValueToEscape = (PSTR)pBatchItem->QueryTerm.pszString;
                 LSA_ASSERT(pszValueToEscape);
-                // The query term will already have the domain stripped out.
-                LSA_ASSERT(!index(pszValueToEscape, LsaGetDomainSeparator()));
             }
             break;
 

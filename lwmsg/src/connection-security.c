@@ -136,7 +136,7 @@ lwmsg_local_token_get_eid(
 
     if (strcmp(lwmsg_security_token_get_type(token), "local"))
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
     }
 
     if (out_euid)
@@ -255,7 +255,7 @@ lwmsg_connection_get_endpoint_owner(
 
     if (!S_ISSOCK(endpoint_stat.st_mode))
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID,
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER,
                           "%s: not a socket", endpoint);
     }
 

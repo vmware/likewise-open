@@ -93,7 +93,7 @@ typedef enum
     /** Invalid parameter or invalid state detected
      * @hideinitializer
      */
-    LWMSG_STATUS_INVALID = 8,
+    LWMSG_STATUS_INVALID_PARAMETER = 8,
     /** Arithmetic overflow
      * @hideinitializer
      */
@@ -127,7 +127,12 @@ typedef enum
      * Remote server not listening
      * @hideinitializer
      */
-    LWMSG_STATUS_CONNECTION_REFUSED = 16
+    LWMSG_STATUS_CONNECTION_REFUSED = 16,
+    /**
+     * Invalid state detected
+     * @hideinitializer
+     */
+    LWMSG_STATUS_INVALID_STATE = 17
 } LWMsgStatus;
 
 #endif

@@ -156,7 +156,7 @@ lwmsg_client_set_endpoint(
 
     if (client->assoc_pool_created)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     client->endpoint = strdup(endpoint);
@@ -260,7 +260,7 @@ lwmsg_client_release_assoc(
 
     if (!(client->assoc_pool_available < client->assoc_pool_created))
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     for (i = 0; i < client->assoc_pool_capacity; i++)

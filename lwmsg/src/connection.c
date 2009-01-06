@@ -359,7 +359,7 @@ lwmsg_connection_set_packet_size(
 
     if (priv->ready)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Cannot change packet size of established connection");
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_STATE, "Cannot change packet size of established connection");
     }
 
     priv->packet_size = size;
@@ -381,12 +381,12 @@ lwmsg_connection_set_fd(
 
     if (fd < 0)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid file descriptor");
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid file descriptor");
     }
 
     if (priv->fd != -1 || priv->endpoint != NULL)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Connection parameters already set");
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_STATE, "Connection parameters already set");
     }
 
     priv->fd = fd;
@@ -409,7 +409,7 @@ lwmsg_connection_set_endpoint(
 
     if (priv->fd != -1 || priv->endpoint != NULL)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Connection parameters already set");
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_STATE, "Connection parameters already set");
     }
 
     priv->endpoint = strdup(endpoint);

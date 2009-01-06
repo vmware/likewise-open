@@ -14,7 +14,6 @@ libsmbutils_la_SOURCES = \
     memory.c      \
     smbconfig.c   \
     smbloginfo.c  \
-    smbxnet.c     \
     stack.c       \
     strerror.c    \
     strings.c     \

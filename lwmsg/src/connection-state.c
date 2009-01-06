@@ -416,7 +416,7 @@ lwmsg_connection_connect_local(
 
     if (strlen(priv->endpoint) + 1 > sizeof(sockaddr.sun_path))
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Endpoint is too long for underlying protocol");
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Endpoint is too long for underlying protocol");
     }
 
     strcpy(sockaddr.sun_path, priv->endpoint);
@@ -463,7 +463,7 @@ lwmsg_connection_establish(
         ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_UNIMPLEMENTED,
                           "Remote connections not presently supported");
     default:
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID,
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER,
                           "Unknown connection mode");
     }
 
@@ -518,7 +518,7 @@ lwmsg_connection_run(
             /* Otherwise, we have a problem */
             else
             {
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID,
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_STATE,
                                   "Cannot initialize connection: no file descriptor or endpoint specified");
             }
             break;
@@ -557,7 +557,7 @@ lwmsg_connection_run(
                 /* Nothing to do, so return */
                 goto done;
             default:
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid event: %i", event);
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid event: %i", event);
             }
             event = CONNECTION_EVENT_NONE;
             break;
@@ -571,7 +571,7 @@ lwmsg_connection_run(
                 priv->state = CONNECTION_STATE_WAIT_RECV_REPLY;
                 break;
             default:
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid event: %i", event);
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid event: %i", event);
             }
             event = CONNECTION_EVENT_NONE;
             break;
@@ -585,7 +585,7 @@ lwmsg_connection_run(
                 priv->state = CONNECTION_STATE_WAIT_SEND_REPLY;
                 break;
             default:
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid event: %i", event);
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid event: %i", event);
             }
             event = CONNECTION_EVENT_NONE;
             break;
@@ -599,7 +599,7 @@ lwmsg_connection_run(
                 /* FIXME: to support async, we'll need resume incomplete operation here */
                 goto done;
             default:
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid event: %i", event);
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid event: %i", event);
             }
             event = CONNECTION_EVENT_NONE;
             break;
@@ -613,7 +613,7 @@ lwmsg_connection_run(
                 /* FIXME: to support async, we'll need resume incomplete operation here */
                 goto done;
             default:
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid event: %i", event);
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid event: %i", event);
             }
             event = CONNECTION_EVENT_NONE;
             break;
@@ -627,7 +627,7 @@ lwmsg_connection_run(
             case CONNECTION_EVENT_NONE:
                 goto done;
             default:
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid event: %i", event);
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid event: %i", event);
             }
             event = CONNECTION_EVENT_NONE;
             break;
@@ -641,7 +641,7 @@ lwmsg_connection_run(
             case CONNECTION_EVENT_NONE:
                 goto done;
             default:
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid event: %i", event);
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid event: %i", event);
             }
             event = CONNECTION_EVENT_NONE;
             break;
@@ -662,7 +662,7 @@ lwmsg_connection_run(
             }
             break;
         default:
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid state: %i\n", priv->state);
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_STATE, "Invalid state: %i\n", priv->state);
             break;
         }       
     } while (priv->state != target);

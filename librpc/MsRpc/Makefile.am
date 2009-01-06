@@ -7,7 +7,7 @@ libmsrpc_la_SOURCES = \
 	UnicodeString.c UnicodeStringEx.c \
 	SidHelper.c md4.c md5.c hmac_md5.c rc4.c des.c \
 	smbcrypto.c random.c \
-	MemPtr.c errcheck.c
+	MemPtr.c errcheck.c LMcrypt.c
 
 noinst_PROGRAMS=md4test md5test cryptotest randomtest destest
 

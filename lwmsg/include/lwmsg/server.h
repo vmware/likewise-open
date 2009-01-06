@@ -172,7 +172,7 @@ typedef LWMsgStatus
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
- * @lwmsg_code{INVALID, protocol was <tt>NULL</tt>}
+ * @lwmsg_code{INVALID_PARAMETER, protocol was <tt>NULL</tt>}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -206,7 +206,10 @@ lwmsg_server_delete(
  *
  * @param server the server object
  * @param timeout the timeout to set, or NULL for no timeout
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID on invalid timeout
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_PARAMETER, the timeout was invalid}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_set_timeout(
@@ -224,8 +227,10 @@ lwmsg_server_set_timeout(
  *
  * @param server the server object
  * @param max_clients the maximum number of simultaneous clients to support
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID if the server
- * has already been started
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already active}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_set_max_clients(
@@ -244,8 +249,10 @@ lwmsg_server_set_max_clients(
  *
  * @param server the server object
  * @param max_dispatch the maximum number of simultaneous messages to dispatch
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID if the server
- * has already been started
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already active}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_set_max_dispatch(
@@ -263,8 +270,10 @@ lwmsg_server_set_max_dispatch(
  *
  * @param server the server object
  * @param max_backlog the maximum number of clients to queue
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID if the server
- * has already been started
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already active}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_set_max_backlog(
@@ -304,8 +313,11 @@ lwmsg_server_add_dispatch_spec(
  * @param server the server object
  * @param mode the connection mode (local or remote)
  * @param fd the socket on which to listen
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID on a bad file descriptor
- * or if a listening endpoint is already set
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already active}
+ * @lwmsg_code{INVALID_PARAMETER, the file descriptor was invalid}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_set_fd(
@@ -326,8 +338,11 @@ lwmsg_server_set_fd(
  * @param mode the connection mode (local or remote)
  * @param endpoint the endpoint on which to listen
  * @param permissions permissions for the endpoint (only applicable to local mode)
- * @return LWMSG_STATUS_SUCCESS on success, LWMSG_STATUS_INVALID on a bad endpoint
- * or if a listening endpoint is already set
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already active}
+ * @lwmsg_code{INVALID_PARAMETER, the endpoint was invalid}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_set_endpoint(
@@ -353,7 +368,7 @@ lwmsg_server_set_endpoint(
  * @param data the data pointer
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the server is already running}
+ * @lwmsg_code{INVALID_STATE, the server is already running}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -392,7 +407,7 @@ lwmsg_server_get_user_data(
  * @param func the callback function
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the server is already running}
+ * @lwmsg_code{INVALID_STATE, the server is already running}
  * @lwmsg_endstatus
  */
 LWMsgStatus

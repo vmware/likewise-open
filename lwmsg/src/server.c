@@ -269,7 +269,7 @@ lwmsg_server_accept_client(
         BAIL_ON_ERROR(status = lwmsg_connection_set_fd(assoc, LWMSG_CONNECTION_MODE_REMOTE, sock));
         break;
     default:
-        SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_INVALID, "Invalid connection mode");
+        SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_INVALID_STATE, "Invalid connection mode");
         break;
     }
 
@@ -746,12 +746,12 @@ lwmsg_server_set_timeout(
 
     if (server->state != LWMSG_SERVER_STOPPED)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     if (timeout->seconds < 0 || timeout->microseconds < 0)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     server->timeout_set = LWMSG_TRUE;
@@ -776,7 +776,7 @@ lwmsg_server_set_max_clients(
 
     if (server->state != LWMSG_SERVER_STOPPED)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     server->max_clients = max_clients;
@@ -800,7 +800,7 @@ lwmsg_server_set_max_dispatch(
 
     if (server->state != LWMSG_SERVER_STOPPED)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     server->max_dispatch = max_dispatch;
@@ -824,7 +824,7 @@ lwmsg_server_set_max_backlog(
 
     if (server->state != LWMSG_SERVER_STOPPED)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     server->max_backlog = max_backlog;
@@ -897,9 +897,14 @@ lwmsg_server_set_fd(
 
     lwmsg_server_lock(server);
 
-    if (server->state != LWMSG_SERVER_STOPPED || server->fd != -1 || server->endpoint != NULL || fd < 0)
+    if (server->state != LWMSG_SERVER_STOPPED || server->fd != -1 || server->endpoint != NULL)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+    }
+
+    if (fd < 0)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
     }
 
     server->mode = mode;
@@ -924,9 +929,14 @@ lwmsg_server_set_endpoint(
 
     lwmsg_server_lock(server);
 
-    if (server->state != LWMSG_SERVER_STOPPED || server->fd != -1 || server->endpoint != NULL || endpoint == NULL)
+    if (server->state != LWMSG_SERVER_STOPPED || server->fd != -1 || server->endpoint != NULL)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+    }
+
+    if (endpoint == NULL)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
     }
 
     server->mode = mode;
@@ -966,7 +976,7 @@ lwmsg_server_create_local_listen_socket(
 
     if (strlen(server->endpoint) > sizeof(sockaddr.sun_path))
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
     }
 
     strcpy(sockaddr.sun_path, server->endpoint);
@@ -1017,7 +1027,7 @@ lwmsg_server_start(
             BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
             break;
         default:
-            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
             break;
         }
     }
@@ -1077,7 +1087,7 @@ lwmsg_server_stop(
 
     if (server->state != LWMSG_SERVER_RUNNING)
     {
-        SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_INVALID, "Server not running");
+        SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_INVALID_STATE, "Server not running");
     }
 
     lwmsg_server_change_state(server, LWMSG_SERVER_SHUTDOWN);
@@ -1160,7 +1170,7 @@ lwmsg_server_set_connect_callback(
 
     if (server->state != LWMSG_SERVER_STOPPED)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     server->connect_callback = func;
@@ -1184,7 +1194,7 @@ lwmsg_server_set_user_data(
 
     if (server->state != LWMSG_SERVER_STOPPED)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     server->user_data = data;

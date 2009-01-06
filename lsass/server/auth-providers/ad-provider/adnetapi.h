@@ -108,9 +108,10 @@ AD_NetLookupObjectSidsByNames(
 
 DWORD
 AD_NetLookupObjectNameBySid(
-    IN PCSTR     pszHostname,
-    IN PCSTR     pszObjectSid,
-    OUT PSTR*    ppszNT4Name,
+    IN PCSTR pszHostname,
+    IN PCSTR pszObjectSid,
+    OUT PSTR* ppszNT4Name,
+    OUT ADAccountType* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     );
 

@@ -516,9 +516,10 @@ error:
 
 DWORD
 AD_NetLookupObjectNameBySid(
-    IN PCSTR     pszHostname,
-    IN PCSTR     pszObjectSid,
-    OUT PSTR*    ppszNT4Name,
+    IN PCSTR pszHostname,
+    IN PCSTR pszObjectSid,
+    OUT PSTR* ppszNT4Name,
+    OUT ADAccountType* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     )
 {
@@ -549,6 +550,7 @@ AD_NetLookupObjectNameBySid(
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszNT4Name = pszNT4Name;
+    *pObjectType = ppTranslatedNames[0]->ObjectType;
 
 cleanup:
     *pbIsNetworkError = bIsNetworkError;
@@ -560,9 +562,9 @@ cleanup:
     return dwError;
 
 error:
-
     *ppszNT4Name = NULL;
     LSA_SAFE_FREE_STRING(pszNT4Name);
+    *pObjectType = AccountType_NotFound;
 
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
 

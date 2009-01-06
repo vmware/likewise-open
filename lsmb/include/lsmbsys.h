@@ -124,10 +124,6 @@
 #include <wc16printf.h>
 #endif
 
-#if defined(__hpux__) && defined(_XOPEN_SOURCE_EXTENDED)
-#    include "xpg_socket.h"
-#endif
-
 #ifdef HAVE_DLFCN_H
    #include <dlfcn.h>
 #endif
