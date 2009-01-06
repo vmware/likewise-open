@@ -105,6 +105,7 @@ lwmsg_connection_handle_urgent(LWMsgAssoc* assoc, ConnectionPacket* packet)
         {
             close(priv->fd);
             priv->fd = -1;
+            priv->open_read = priv->open_write = 0;
         }
 
         BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
@@ -341,7 +342,7 @@ lwmsg_connection_do_shutdown(
     LWMsgSessionManager* manager = NULL;
 
     /* Remove ourselves from the session if the connection was fully established */
-    if (priv->ready)
+    if (priv->session)
     {
         BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
         BAIL_ON_ERROR(status = lwmsg_session_manager_leave_session(manager, priv->session));
@@ -376,13 +377,12 @@ error:
         shutdown(priv->fd, SHUT_RDWR);
         close(priv->fd);
         priv->fd = -1;
+        priv->open_read = priv->open_write = 0;
     }
 
     /* Reset buffers */
     lwmsg_connection_buffer_reset(&priv->sendbuffer);
     lwmsg_connection_buffer_reset(&priv->recvbuffer);
-
-    priv->ready = LWMSG_FALSE;
 
     if (status == LWMSG_STATUS_EOF)
     {
@@ -439,6 +439,7 @@ lwmsg_connection_connect_local(
     }
 
     priv->fd = sock;
+    priv->open_read = priv->open_write = 1;
 
 error:
 
@@ -447,7 +448,7 @@ error:
 
 static
 LWMsgStatus
-lwmsg_connection_establish(
+lwmsg_connection_do_connect(
     LWMsgAssoc* assoc
     )
 {
@@ -524,7 +525,7 @@ lwmsg_connection_run(
             break;
         case CONNECTION_STATE_ESTABLISH:
             /* Attempt to establish connection */
-            BAIL_ON_ERROR(status = lwmsg_connection_establish(assoc));
+            BAIL_ON_ERROR(status = lwmsg_connection_do_connect(assoc));
             priv->state = CONNECTION_STATE_CONNECTED;
             break;
         case CONNECTION_STATE_CONNECTED:
@@ -540,7 +541,6 @@ lwmsg_connection_run(
             /* Receive greeting as part of handshake */
             BAIL_ON_ERROR(status = lwmsg_connection_recv_greeting(assoc));
             priv->state = CONNECTION_STATE_IDLE;
-            priv->ready = 1;
             break;
         case CONNECTION_STATE_IDLE:
             switch (event)

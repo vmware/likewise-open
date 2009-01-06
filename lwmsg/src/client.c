@@ -213,17 +213,27 @@ lwmsg_client_acquire_assoc(
 
         BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(assoc, client->manager));
         BAIL_ON_ERROR(status = lwmsg_connection_set_endpoint(assoc, client->mode, client->endpoint));
+        BAIL_ON_ERROR(status = lwmsg_connection_establish(assoc));
 
         client->assoc_pool_created++;
     }
 
     *out_assoc = assoc;
 
-error:
+done:
 
     lwmsg_client_unlock(client);
 
     return status;
+
+error:
+
+    if (assoc)
+    {
+        lwmsg_assoc_delete(assoc);
+    }
+
+    goto done;
 }
 
 LWMsgStatus

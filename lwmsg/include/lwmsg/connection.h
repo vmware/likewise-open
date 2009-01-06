@@ -247,6 +247,28 @@ lwmsg_connection_set_interrupt_signal(
     );
 
 /**
+ * @brief Establish session
+ *
+ * Establishes a session with the peer if one has not been established
+ * already.  If this function returns successfully, it is guaranteed
+ * that session and security token information is available from the
+ * association, and that the association is ready to send and receive
+ * messages.
+ *
+ * @param assoc the association
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, no endpoint was set}
+ * @lwmsg_code{INVALID_STATE, a session cannot be established in the current state}
+ * @lwmsg_code{CONNECTION_REFUSED, the peer refused the connection}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_connection_establish(
+    LWMsgAssoc* assoc
+    );
+
+/**
  * @brief Create new signal
  *
  * Creates a new signal object which may be used to asynchronously

@@ -28,6 +28,7 @@ lwmsg_assoc_set_action
 lwmsg_assoc_verify_handle_local
 lwmsg_assoc_verify_handle_remote
 lwmsg_connection_new
+lwmsg_connection_establish
 lwmsg_connection_set_packet_size
 lwmsg_connection_set_fd
 lwmsg_connection_set_endpoint
