@@ -36,8 +36,8 @@
  *
  */
 
-#ifndef __IOMGR_H__
-#define __IOMGR_H__
+#ifndef __IOMGR2_H__
+#define __IOMGR2_H__
 
 #include "io-types.h"
 
@@ -51,16 +51,29 @@ typedef IO_DEVICE_OBJECT *IO_DEVICE_HANDLE, **PIO_DEVICE_HANDLE;
 
 typedef ULONG IRP_TYPE;
 
-#define IRP_TYPE_UNKNOWN      0
-#define IRP_TYPE_CREATE       1
-#define IRP_TYPE_CLOSE        2
-#define IRP_TYPE_READ         3
-#define IRP_TYPE_WRITE        4
-#define IRP_TYPE_IO_CONTROL   5
-#define IRP_TYPE_FS_CONTROL   6
+#define IRP_TYPE_UNKNOWN                   0
+#define IRP_TYPE_CREATE                    1
+#define IRP_TYPE_CLOSE                     2
+#define IRP_TYPE_READ                      3
+#define IRP_TYPE_WRITE                     4
+#define IRP_TYPE_IO_CONTROL                5
+#define IRP_TYPE_FS_CONTROL                6
+#define IRP_TYPE_FLUSH                     7
+#define IRP_TYPE_QUERY_INFORMATION         8
+#define IRP_TYPE_SET_INFORMATION           9
+
+#if 0
+#define IRP_TYPE_QUERY_FULL_ATTRIBUTES    10
+#define IRP_TYPE_QUERY_DIRECTORY          11
+#define IRP_TYPE_QUERY_VOLUME_INFORMATION 12
+#define IRP_TYPE_SET_VOLUME_INFORMATION   13
+#define IRP_TYPE_LOCK                     14
+#define IRP_TYPE_UNLOCK                   15
+#endif
 
 typedef struct _IRP_ARGS_CREATE {
-    OUT PIO_FILE_HANDLE FileHandle;
+    // Used to set the context
+    IN IO_FILE_HANDLE FileHandle;
     IN PIO_FILE_NAME FileName;
     IN ACCESS_MASK DesiredAccess;
     IN OPTIONAL LONG64 AllocationSize;
@@ -69,7 +82,7 @@ typedef struct _IRP_ARGS_CREATE {
     IN FILE_CREATE_DISPOSITION CreateDisposition;
     IN FILE_CREATE_OPTIONS CreateOptions;
     IN OPTIONAL PIO_EA_BUFFER pEaBuffer;
-    IN PVOID SecurityDescriptor; // TBD
+    IN OPTIONAL PVOID SecurityDescriptor; // TBD
     IN PVOID SecurityQualityOfService; // TBD
 } IRP_ARGS_CREATE, *PIRP_ARGS_CREATE;
 
@@ -86,23 +99,29 @@ typedef struct _IRP_ARGS_READ_WRITE {
     IN OPTIONAL PULONG Key;
 } IRP_ARGS_READ_WRITE, *PIRP_ARGS_READ_WRITE;
 
-typedef struct _IRP_ARGS_FS_IO_CONTROL {
+typedef struct _IRP_ARGS_IO_FS_CONTROL {
     IN IO_FILE_HANDLE FileHandle;
-    IN ULONG IoControlCode;
+    IN ULONG ControlCode;
     IN PVOID InputBuffer;
     IN ULONG InputBufferLength;
     OUT PVOID OutputBuffer;
     IN ULONG OutputBufferLength;
-} IRP_ARGS_FS_IO_CONTROL, *PIRP_ARGS_FS_IO_CONTROL;
+} IRP_ARGS_IO_FS_CONTROL, *PIRP_ARGS_IO_FS_CONTROL;
 
 typedef struct _IRP {
     IN IRP_TYPE Type;
     OUT IO_STATUS_BLOCK IoStatus;
+    IN IO_DRIVER_HANDLE DriverHandle;
+    IN IO_DEVICE_HANDLE DeviceHandle;
     union {
+        // IRP_TYPE_CREATE
         IRP_ARGS_CREATE Create;
+        // IRP_TYPE_CLOSE
         IRP_ARGS_FILE_HANDLE Close;
+        // IRP_TYPE_READ, IRP_TYPE_WRITE
         IRP_ARGS_READ_WRITE ReadWrite;
-        IRP_ARGS_FS_IO_CONTROL FsIoControl;
+        // IRP_TYPE_IO_CONTROL, IRP_TYPE_FS_CONTROL
+        IRP_ARGS_IO_FS_CONTROL IoFsControl;
         IRP_ARGS_FILE_HANDLE FlushBuffers;
     } Args;
     // Private Data at the end...
@@ -128,10 +147,11 @@ typedef NTSTATUS (*PIO_DRIVER_ENTRY)(
     IN ULONG InterfaceVersion
     );
 
-#define IO_DRIVER_ENTRY_FUNCTION_NAME "IoDriverEntry"
+#define IO_DRIVER_ENTRY_FUNCTION_NAME "DriverEntry"
 
 // Driver functions
 
+// Called by I/O Manager
 NTSTATUS
 IoDriverLoad(
     OUT PIO_DRIVER_HANDLE pDriverHandle,
@@ -139,6 +159,7 @@ IoDriverLoad(
     IN PCSTR pszPath
     );
 
+// Called by I/O Manager or in DriverEntry.
 PCSTR
 IoDriverGetName(
     IN IO_DRIVER_HANDLE DriverHandle
@@ -147,7 +168,7 @@ IoDriverGetName(
 // Can only be called in DriverEntry.
 NTSTATUS
 IoDriverInitialize(
-    IN IO_DRIVER_HANDLE DriverHandle,
+    IN OUT IO_DRIVER_HANDLE DriverHandle,
     IN OPTIONAL PVOID DriverContext,
     IN PIO_DRIVER_SHUTDOWN_CALLBACK ShutdownCallback,
     IN PIO_DRIVER_DISPATCH_CALLBACK DispatchCallback
@@ -176,11 +197,9 @@ IoDeviceGetContext(
 // File functions
 
 NTSTATUS
-IoFileCreate(
-    OUT PIO_FILE_HANDLE FileHandle,
-    IN PIO_DEVICE_HANDLE DeviceHandle,
-    IN PIRP CreateRequestPacket,
-    IN OPTIONAL PVOID FileContext
+IoFileSetContext(
+    IN IO_FILE_HANDLE FileHandle,
+    IN PVOID FileContext
     );
 
 PVOID
@@ -210,4 +229,4 @@ IoIrpComplete(
     IN PIRP Irp
     );
 
-#endif /* __IOMGR_H__ */
+#endif /* __IOMGR2_H__ */

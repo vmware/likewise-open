@@ -3,6 +3,18 @@
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
 
+//
+// The operations below are in categories:
+//
+// - Core I/O
+// - Additional
+// - Namespace
+// - Advanced
+//
+
+//
+// Core I/O Operations
+//
 
 NTSTATUS
 IoCreateFile(
@@ -17,20 +29,8 @@ IoCreateFile(
     IN FILE_CREATE_DISPOSITION CreateDisposition,
     IN FILE_CREATE_OPTIONS CreateOptions,
     IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
-    IN PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
     IN PVOID SecurityQualityOfService // TBD
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
-
-NTSTATUS
-IoQueryFullAttributesFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PIO_FILE_NAME FileName,
-    OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
@@ -77,6 +77,49 @@ IoWriteFile(
 }
 
 NTSTATUS 
+IoDeviceIoControlFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN ULONG IoControlCode,
+    IN PVOID InputBuffer,
+    IN ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN ULONG OutputBufferLength
+    )
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+NTSTATUS
+IoFsControlFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN ULONG FsControlCode,
+    IN PVOID InputBuffer,
+    IN ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN ULONG OutputBufferLength
+    )
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+NTSTATUS
+IoFlushBuffersFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock
+    )
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+NTSTATUS
 IoQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -98,6 +141,23 @@ IoSetInformationFile(
     IN PVOID FileInformation,
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass
+    )
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+//
+// Additional Operations
+//
+
+NTSTATUS
+IoQueryFullAttributesFile(
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN PIO_FILE_NAME FileName,
+    OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
@@ -180,16 +240,11 @@ IoUnlockFile(
     return status;
 }
 
-NTSTATUS
-IoFlushBuffersFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+//
+// Namespace Operations
+//
+// These are in flux due NT vs POSIX issues.
+//
 
 NTSTATUS
 IoRemoveDirectoryFile(
@@ -229,38 +284,6 @@ IoRenameFile(
     IN PIO_FILE_NAME ToName
     );
 
-NTSTATUS 
-IoDeviceIoControlFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN ULONG IoControlCode,
-    IN PVOID InputBuffer,
-    IN ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN ULONG OutputBufferLength
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
-
-NTSTATUS
-IoFsControlFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN ULONG FsControlCode,
-    IN PVOID InputBuffer,
-    IN ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN ULONG OutputBufferLength
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
-
 NTSTATUS
 IoQueryQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
@@ -278,6 +301,10 @@ IoQueryQuotaInformationFile(
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
+
+//
+// Advanced Operations
+//
 
 NTSTATUS
 IoSetQuotaInformationFile(

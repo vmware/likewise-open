@@ -12,7 +12,7 @@ typedef ULONG ACCESS_MASK;
 typedef ULONG FILE_SHARE_FLAGS;
 
 // Allow file sharing for read access.
-#define FILE_SHARE_READ   0x1,
+#define FILE_SHARE_READ   0x1
 // Allow file sharing for write access.
 #define FILE_SHARE_WRITE  0x2
 // Allow file sharing for delete access.
