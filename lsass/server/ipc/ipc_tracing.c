@@ -57,7 +57,10 @@ LsaSrvIpcSetTraceInfo(
     DWORD dwError = 0;
     PLSA_IPC_SET_TRACE_INFO_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvSetTraceFlags(
                         (HANDLE)Handle,
@@ -97,7 +100,10 @@ LsaSrvIpcGetTraceInfo(
     PLSA_TRACE_INFO_LIST pResult = NULL;
     PLSA_TRACE_INFO pTraceInfo = NULL;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvGetTraceInfo(
                         (HANDLE)Handle,
@@ -152,7 +158,10 @@ LsaSrvIpcEnumTraceInfo(
     DWORD dwError = 0;
     PLSA_TRACE_INFO_LIST pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateMemory(sizeof(*pResult),
                                (PVOID)&pResult);

@@ -56,7 +56,10 @@ LsaSrvIpcSetLogInfo(
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvSetLogInfo((HANDLE)Handle,
                                 (PLSA_LOG_INFO)pRequest->object);
@@ -93,7 +96,10 @@ LsaSrvIpcGetLogInfo(
     DWORD dwError = 0;
     PLSA_LOG_INFO pLogInfo = NULL;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvGetLogInfo((HANDLE)Handle,
                                &pLogInfo);

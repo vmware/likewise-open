@@ -74,7 +74,10 @@ LsaSrvIpcBuildAuthMessage(
     PLSA_IPC_ERROR pError = NULL;
     PLSA_GSS_R_MAKE_AUTH_MSG pAuthMsgReply = NULL;
     uid_t peerUID = 0;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateMemory(sizeof(*pAuthMsgReply),
                                 (PVOID*)&pAuthMsgReply);

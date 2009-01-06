@@ -74,6 +74,9 @@ LsaOpenServer(
                                   CACHEDIR "/" LSA_SERVER_FILENAME));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_establish(pContext->pAssoc));
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaTransactOpenServer((HANDLE)pContext);
     BAIL_ON_LSA_ERROR(dwError);
 
