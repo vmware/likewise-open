@@ -47,7 +47,13 @@
 #ifndef __PVFS_H__
 #define __PVFS_H__
 
+#include "config.h"
+#include "lsmbsys.h"
+
 #include "iodriver.h"
+
+#include "goto.h"
+#include "smbutils.h"
 
 #endif /* __PVFS_H__ */
 

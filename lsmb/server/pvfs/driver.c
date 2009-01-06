@@ -79,6 +79,6 @@ DriverEntry(
                                   DriverDispatch);
 
 cleanup:
-    IO_LOG_LEAVE_STATUS_ON_EE(status, EE);
+    IO_LOG_LEAVE_STATUS_ON_EE(ntStatus, EE);
     return ntStatus;
 }
