@@ -59,7 +59,7 @@ SMBIPCMapLWMsgStatus(
                 dwError = SMB_ERROR_NOT_IMPLEMENTED;
                 break;
 
-        case LWMSG_STATUS_INVALID:
+        case LWMSG_STATUS_INVALID_PARAMETER:
 
                 dwError = SMB_ERROR_INVALID_PARAMETER;
                 break;
