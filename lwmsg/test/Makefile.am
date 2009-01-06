@@ -3,7 +3,7 @@ AM_CFLAGS = -Wall -Werror
 
 lib_LTLIBRARIES = lwmsg_mu.la
 
-TEST_SOURCES = test-convert.c test-marshal.c test-assoc.c test-session.c test-client-server.c
+TEST_SOURCES = test-main.c test-convert.c test-marshal.c test-assoc.c test-session.c test-client-server.c
 BUILT_SOURCES = stub.c
 
 lwmsg_mu_la_SOURCES = $(TEST_SOURCES) stub.c

@@ -273,6 +273,8 @@ lwmsg_server_accept_client(
         break;
     }
 
+    BAIL_ON_ERROR(status = lwmsg_connection_establish(assoc));
+
     /* Invoke connection callback */
     if (server->connect_callback)
     {
@@ -347,7 +349,7 @@ lwmsg_server_timeout_clients(
                 if (lwmsg_time_compare(&abs_timeout, &now) == LWMSG_TIME_LESSER)
                 {
                     /* Find out how many connections and handles are in its session */
-                    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, NULL, &session));
+                    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
                     num_assocs = lwmsg_session_manager_get_session_assoc_count(server->manager, session);
                     num_handles = lwmsg_session_manager_get_session_handle_count(server->manager, session);
                     

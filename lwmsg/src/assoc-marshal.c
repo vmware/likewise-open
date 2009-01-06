@@ -65,7 +65,7 @@ lwmsg_assoc_marshal_handle(
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     pointer = *(void**) object;
 
@@ -125,7 +125,7 @@ lwmsg_assoc_unmarshal_handle(
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
     
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
     
     /* Read handle type and number */
     BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &temp, sizeof(temp)));

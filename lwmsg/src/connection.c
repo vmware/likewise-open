@@ -45,7 +45,6 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <string.h>
-#include <stdio.h>
 #include <unistd.h>
 
 static LWMsgStatus
@@ -82,19 +81,23 @@ lwmsg_connection_destruct(
     if (priv->fd != -1)
     {
         close(priv->fd);
+        priv->fd = -1;
+        priv->open_read = priv->open_write = 0;
     }
 
     if (priv->endpoint)
     {
         free(priv->endpoint);
+        priv->endpoint = NULL;
     }
 
     if (priv->sec_token)
     {
         lwmsg_security_token_delete(priv->sec_token);
+        priv->sec_token = NULL;
     }
 
-    if (priv->ready)
+    if (priv->session)
     {
         if (lwmsg_assoc_get_session_manager(assoc, &manager))
         {
@@ -107,6 +110,8 @@ lwmsg_connection_destruct(
             /* Neither should this */
             abort();
         }
+
+        priv->session = NULL;
     }
 }
 
@@ -219,19 +224,15 @@ error:
 static LWMsgStatus
 lwmsg_connection_get_peer_security_token(
     LWMsgAssoc* assoc,
-    LWMsgTime* timeout,
     LWMsgSecurityToken** out_token
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     
-    lwmsg_connection_set_end_time(priv, timeout);
-    
-    /* If the connection isn't fully established, run the state machine until it is */
-    while (!priv->ready)
+    if (!priv->sec_token)
     {
-        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
     
     *out_token = priv->sec_token;
@@ -244,22 +245,15 @@ error:
 static LWMsgStatus
 lwmsg_connection_get_session(
     LWMsgAssoc* assoc,
-    LWMsgTime* timeout,
     LWMsgSession** session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     
-    /* If the connection isn't fully established, run the state machine until it is */
-    if (!priv->ready)
+    if (!priv->session)
     {
-        lwmsg_connection_set_end_time(priv, timeout);
-            
-        while (!priv->ready)
-        {
-            BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
-        }
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
     
     *session = priv->session;
@@ -357,7 +351,7 @@ lwmsg_connection_set_packet_size(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
 
-    if (priv->ready)
+    if (priv->session)
     {
         ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_STATE, "Cannot change packet size of established connection");
     }
@@ -391,6 +385,8 @@ lwmsg_connection_set_fd(
 
     priv->fd = fd;
     priv->mode = mode;
+    priv->open_read = 1;
+    priv->open_write = 1;
 
 error:
 
@@ -518,4 +514,22 @@ lwmsg_connection_signal_delete(
     close(signal->fd[1]);
 
     free(signal);
+}
+
+LWMsgStatus
+lwmsg_connection_establish(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+
+    if (!priv->session)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
+    }
+
+error:
+
+     return status;
 }

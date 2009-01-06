@@ -294,15 +294,14 @@ typedef struct LWMsgAssocClass
      * This method retrieves a security information token for the peer.
      *
      * @param[in] assoc the association
-     * @param[in] timeout the maximum time to allow before the operation times out
      * @param[out] token the security token
      * @lwmsg_status
      * @lwmsg_success
-     * @lwmsg_code{TIMEOUT, operation timed out}
+     * @lwmsg_code{INVALID_STATE, the security token is not available in the current state}
      * @lwmsg_etc{implementation-specific failure}
      * @lwmsg_endstatus
      */
-    LWMsgStatus (*get_peer_security_token)(LWMsgAssoc* assoc, LWMsgTime* timeout, LWMsgSecurityToken** token);
+    LWMsgStatus (*get_peer_security_token)(LWMsgAssoc* assoc, LWMsgSecurityToken** token);
     /**
      * @ingroup assoc_impl
      * @brief Peer session manager ID access method
@@ -310,15 +309,14 @@ typedef struct LWMsgAssocClass
      * This method retrieves the session handle for the association.
      *
      * @param[in] assoc the association
-     * @param[in] timeout the maximum time to allow before the operation times out
      * @param[out] session the retrieved session handle
      * @lwmsg_status
      * @lwmsg_success
-     * @lwmsg_code{TIMEOUT, operation timed out}
+     * @lwmsg_code{INVALID_STATE, the session handle in not available in the current state}
      * @lwmsg_etc{implementation-specific failure}
      * @lwmsg_endstatus
      */
-    LWMsgStatus (*get_session)(LWMsgAssoc* assoc, LWMsgTime* timeout, LWMsgSession** session);
+    LWMsgStatus (*get_session)(LWMsgAssoc* assoc, LWMsgSession** session);
     /**
      * @ingroup assoc_impl
      * @brief Get association state
@@ -824,12 +822,11 @@ lwmsg_assoc_set_timeout_ms(
  * @brief Retrieve peer security token
  *
  * Retrieves credentials of the peer from an association.
- * This operation may block or time out.
  *
  * @param[in] assoc the assocation
  * @param[out] token the retrieved security token
  * @lwmsg_status
- * @lwmsg_code{TIMEOUT, the operation timed out}
+ * @lwmsg_code{INVALID_STATE, no session is established}
  * @lwmsg_etc{an implementation-specific error}
  * @lwmsg_endstatus
  */
@@ -843,15 +840,14 @@ lwmsg_assoc_get_peer_security_token(
  * @ingroup assoc
  * @brief Retrieve peer session ID
  *
- * Retrieves the session ID of the peer.  This operation
- * may block or time out if a session has not yet been
- * established.  It is usually not necessary for applications
- * to access this value, but it may be useful in some scenarios.
+ * Retrieves the session ID of the peer.  It is usually
+ * not necessary for applications to access this value,
+ * but it may be useful in some scenarios.
  *
  * @param[in] assoc the association
  * @param[out] id the session ID structure into which the ID will be written
  * @lwmsg_status
- * @lwmsg_code{TIMEOUT, the operation timed out}
+ * @lwmsg_code{INVALID_STATE, no session is established}
  * @lwmsg_etc{an implementation-specific error}
  * @lwmsg_endstatus
  */
@@ -958,15 +954,12 @@ lwmsg_assoc_set_action(
  * part of.  If a cleanup function is provided, it will be called when the
  * session is destroyed.
  *
- * The association may need to establish a session if it has not already. Thus,
- * this function may fail or time out.
- *
  * @param[in] assoc the association
  * @param[in] data the user data pointer
  * @param[in] cleanup a cleanup function for the data pointer
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{TIMEOUT, the operation timed out}
+ * @lwmsg_code{INVALID_STATE, no session was established}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
  */
@@ -985,11 +978,16 @@ lwmsg_assoc_set_session_data(
  * is part of.
  *
  * @param assoc the association
- * @return the user data pointer for the session
+ * @param[out] data the user data pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, no session was established}
+ * @lwmsg_endstatus
  */
-void*
+LWMsgStatus
 lwmsg_assoc_get_session_data(
-    LWMsgAssoc* assoc
+    LWMsgAssoc* assoc,
+    void** data
     );
     
 

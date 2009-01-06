@@ -47,15 +47,18 @@
     {                                                                   \
         LWMsgStatus __s__ = (_e_);                                      \
         LWMsgAssoc* __a__ = (_a_);                                      \
-        switch (lwmsg_assoc_lookup_action(__a__, status))               \
+        if (__s__)                                                      \
         {                                                               \
-        case LWMSG_ASSOC_ACTION_RETRY:                                  \
-            goto retry;                                                 \
-        case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                        \
-            BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));           \
-            goto retry;                                                 \
-        default:                                                        \
-            BAIL_ON_ERROR(__s__);                                       \
+            switch (lwmsg_assoc_lookup_action(__a__, status))           \
+            {                                                           \
+            case LWMSG_ASSOC_ACTION_RETRY:                              \
+                goto retry;                                             \
+            case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                    \
+                BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));       \
+                goto retry;                                             \
+            default:                                                    \
+                BAIL_ON_ERROR(__s__);                                   \
+            }                                                           \
         }                                                               \
     } while (0)
 
@@ -72,7 +75,7 @@ lwmsg_assoc_register_handle(
     LWMsgSession* session = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle(
                       manager,
@@ -98,7 +101,7 @@ lwmsg_assoc_unregister_handle(
     LWMsgSession* session = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     BAIL_ON_ERROR(status = lwmsg_session_manager_unregister_handle(
                       manager,
@@ -124,7 +127,7 @@ lwmsg_assoc_get_handle_location(
     LWMsgSession* session = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     BAIL_ON_ERROR(status = lwmsg_session_manager_handle_pointer_to_id(
                       manager,
@@ -413,7 +416,7 @@ lwmsg_assoc_get_peer_security_token(
 
 retry:
 
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->get_peer_security_token(assoc, assoc->timeout_set ? &assoc->timeout : NULL, out_token));
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->get_peer_security_token(assoc, out_token));
 
 error:
 
@@ -432,7 +435,7 @@ lwmsg_assoc_get_peer_session_id(
 
 retry:
 
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->get_session(assoc, &session));
 
     my_id = lwmsg_session_manager_get_session_id(assoc->manager, session);
     
@@ -601,13 +604,7 @@ lwmsg_assoc_get_state(
     LWMsgAssoc* assoc
     )
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    BAIL_ON_ERROR(status = assoc->aclass->get_state(assoc));
-
-error:
-
-    return status;
+    return assoc->aclass->get_state(assoc);
 }
 
 LWMsgStatus
@@ -646,7 +643,7 @@ lwmsg_assoc_set_session_data(
 
     /* In order to set the session data, we first need a session */
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     BAIL_ON_ERROR(status = lwmsg_session_manager_set_session_data(
                       manager,
@@ -659,22 +656,28 @@ error:
     return status;
 }
 
-void*
+LWMsgStatus
 lwmsg_assoc_get_session_data(
-    LWMsgAssoc* assoc
+    LWMsgAssoc* assoc,
+    void** data
     )
 {
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgSession* session = NULL;
 
     if (!assoc->manager)
     {
-        return NULL;
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
     
-    if (assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session))
+    if (assoc->aclass->get_session(assoc, &session))
     {
-        return NULL;
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
-    return lwmsg_session_manager_get_session_data(assoc->manager, session);
+    *data = lwmsg_session_manager_get_session_data(assoc->manager, session);
+
+error:
+
+    return status;
 }

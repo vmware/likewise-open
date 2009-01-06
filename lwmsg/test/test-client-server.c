@@ -140,7 +140,7 @@ counter_srv_connect(
     MU_TRY_ASSOC(assoc, lwmsg_assoc_get_peer_security_token(assoc, &token));
     MU_TRY(lwmsg_local_token_get_eid(token, &uid, NULL));
 
-    MU_INFO("Connection on association %p from uid %lu", assoc, (unsigned long) uid);
+    MU_VERBOSE("Connection on association %p from uid %lu", assoc, (unsigned long) uid);
 
     return LWMSG_STATUS_SUCCESS;
 }

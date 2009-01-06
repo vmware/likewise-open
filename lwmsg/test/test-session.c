@@ -114,6 +114,8 @@ trivial_sender(void* _assocs)
     char smid_str[17];
     LWMsgSessionID id;
 
+    MU_TRY_ASSOC(assocs[0], lwmsg_connection_establish(assocs[0]));
+
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_get_peer_session_id(assocs[0], &id));
     lwmsg_session_id_to_string(&id, smid_str);
     MU_INFO("Sending first message to peer with session ID %s", smid_str);
@@ -124,6 +126,8 @@ trivial_sender(void* _assocs)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_type, TRIVIAL_OPEN_SUCCESS);
 
     handle = reply_object;
+
+    MU_TRY_ASSOC(assocs[1], lwmsg_connection_establish(assocs[1]));
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_get_peer_session_id(assocs[1], &id));
     lwmsg_session_id_to_string(&id, smid_str);
@@ -152,6 +156,8 @@ trivial_receiver(void* _assocs)
     char smid_str[17];
     LWMsgSessionID id;    
 
+    MU_TRY_ASSOC(assocs[0], lwmsg_connection_establish(assocs[0]));
+
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_get_peer_session_id(assocs[0], &id));
     lwmsg_session_id_to_string(&id, smid_str);
     MU_INFO("Receiving first message from peer with session ID %s", smid_str);
@@ -163,6 +169,8 @@ trivial_receiver(void* _assocs)
     handle->trivial = 42;
     
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_send(assocs[0], TRIVIAL_OPEN_SUCCESS, handle));
+
+    MU_TRY_ASSOC(assocs[1], lwmsg_connection_establish(assocs[1]));
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_get_peer_session_id(assocs[1], &id));
     lwmsg_session_id_to_string(&id, smid_str);

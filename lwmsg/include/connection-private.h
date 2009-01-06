@@ -131,6 +131,8 @@ typedef struct ConnectionPrivate
 {
     LWMsgConnectionMode mode;
     int fd;
+    unsigned open_read:1;
+    unsigned open_write:1;
     char* endpoint;
     ConnectionBuffer sendbuffer;
     ConnectionBuffer recvbuffer;
@@ -143,7 +145,6 @@ typedef struct ConnectionPrivate
     LWMsgSecurityToken* sec_token;
     LWMsgSession* session;
     LWMsgConnectionSignal* interrupt;
-    unsigned ready:1;
 } ConnectionPrivate;
 
 typedef enum ConnectionGreetingFlags

@@ -48,10 +48,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <config.h>
-
 
 #ifndef CMSG_ALIGN
 #    if defined(_CMSG_DATA_ALIGN)
@@ -219,7 +217,6 @@ lwmsg_connection_discard_recv_packet(
         
         memmove(buffer->base, buffer->base + used, buffer->base_length - used);
         buffer->base_length -= used;
-        
     }
 
     return status;
@@ -437,7 +434,7 @@ lwmsg_connection_transceive(
     FD_ZERO(&writefds);
     nfds = 0;
     
-    if (sendbuffer->cursor < sendbuffer->base + sendbuffer->base_length)
+    if (priv->open_write && sendbuffer->cursor < sendbuffer->base + sendbuffer->base_length)
     {
         FD_SET(fd, &writefds);
         if (nfds < fd + 1)
@@ -446,7 +443,7 @@ lwmsg_connection_transceive(
         }
     }
     
-    if (recvbuffer->base_length < recvbuffer->base_capacity)
+    if (priv->open_read && recvbuffer->base_length < recvbuffer->base_capacity)
     {
         FD_SET(fd, &readfds);
         if (nfds < fd + 1)
@@ -493,11 +490,15 @@ lwmsg_connection_transceive(
 
             if (FD_ISSET(fd, &readfds))
             {
-                BAIL_ON_ERROR(status = lwmsg_connection_recvbuffer(assoc));
+                status = lwmsg_connection_recvbuffer(assoc);
+                if (status == LWMSG_STATUS_EOF)
+                {
+                    priv->open_read = 0;
+                    status = LWMSG_STATUS_SUCCESS;
+                }
+                BAIL_ON_ERROR(status);
             }
-            
-            /* If there is an urgent packet available, allow the caller
-               to process it before attempting to flush the send buffer */
+
             if (lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
             {
                 goto error;
@@ -505,7 +506,13 @@ lwmsg_connection_transceive(
 
             if (FD_ISSET(fd, &writefds))
             {
-                BAIL_ON_ERROR(status = lwmsg_connection_sendbuffer(assoc));
+                status = lwmsg_connection_sendbuffer(assoc);
+                if (status == LWMSG_STATUS_EOF)
+                {
+                    priv->open_write = 0;
+                    status = LWMSG_STATUS_SUCCESS;
+                }
+                BAIL_ON_ERROR(status);
             }
         }
         else
@@ -536,6 +543,10 @@ lwmsg_connection_recv_packet(
     {
         while (buffer->base_length - (buffer->cursor - buffer->base) < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
         {
+            if (!priv->open_read)
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+            }
             BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
         }
         
@@ -550,6 +561,10 @@ lwmsg_connection_recv_packet(
     /* Transceive until we have the entire packet */
     while (buffer->base_length < curlength)
     {
+        if (!priv->open_read)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+        }
         BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
     }
 
@@ -615,12 +630,23 @@ lwmsg_connection_send_packet(
     {
         BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
 
-        if (urgent && lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
+        if (lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
         {
-            BAIL_ON_ERROR(status = lwmsg_connection_recv_packet(assoc, urgent));
+            if (urgent)
+            {
+                BAIL_ON_ERROR(status = lwmsg_connection_recv_packet(assoc, urgent));
+            }
+            else
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+            }
             break;
         }
-            
+
+        if (!priv->open_write && !priv->open_read)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+        }
     }
 
 error:
