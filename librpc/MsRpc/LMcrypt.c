@@ -51,15 +51,15 @@ NTLMv1EncryptChallenge(
         return STATUS_INVALID_PARAMETER;
     }
 
-	if (pLMHash)
-	{
-		encrypt_challenge(LMResp, Challenge, pLMHash);
-	}
+    if (pLMHash)
+    {
+        encrypt_challenge(LMResp, Challenge, pLMHash);
+    }
 
-	if (pLMHash)
-	{
-		encrypt_challenge(NTResp, Challenge, pNTHash);
-	}
+    if (pNTHash)
+    {
+        encrypt_challenge(NTResp, Challenge, pNTHash);
+    }
 
     return STATUS_SUCCESS;
 }
