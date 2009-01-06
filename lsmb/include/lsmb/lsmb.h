@@ -20,6 +20,7 @@
 #ifndef __LSMB_H__
 #define __LSMB_H__
 
+#include <stddef.h>
 #include <inttypes.h>
 #include <stdarg.h>
 
