@@ -299,42 +299,6 @@ error:
     goto cleanup;
 }
 
-DWORD
-LWIGetDistinctCategories(
-    HANDLE     hEventLog,
-    DWORD     dwCatCount,
-    EVENT_LOG_CATEGORY** ppCategory
-    )
-{
-    volatile DWORD dwError = 0;
-    PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
-
-    EVT_LOG_VERBOSE("client::eventlog.c GetDistinctCategories \n");
-
-    EVTAllocateMemory(dwCatCount * sizeof(EVENT_LOG_CATEGORY), (PVOID*)(ppCategory));
-
-    TRY
-    {
-        dwError = RpcLWIGetDistinctCategories( (handle_t)(ULONG) pEventLogHandle->bindingHandle,
-                                               dwCatCount,
-                                               *ppCategory);
-    }
-    CATCH_ALL
-    {
-        dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_READ);
-    }
-    ENDTRY;
-
-    BAIL_ON_EVT_ERROR(dwError);
-
-
-cleanup:
-    return dwError;
-
-error:
-    EVT_LOG_ERROR("Failed to get category list. Error code [%d]\n", dwError);
-    goto cleanup;
-}
 
 DWORD
 LWIReadEventLog(
@@ -435,35 +399,6 @@ error:
     goto cleanup;
 }
 
-DWORD
-LWIGetCategoryCount(
-    HANDLE hEventLog,
-    DWORD* pdwNumMatched
-    )
-{
-    volatile DWORD dwError = 0;
-    PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
-
-    TRY
-    {
-        dwError = RpcLWIGetCategoryCount( (handle_t)(ULONG) pEventLogHandle->bindingHandle,
-                                          (unsigned32*)pdwNumMatched);
-    }
-    CATCH_ALL
-    {
-        dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_COUNT);
-    }
-    ENDTRY;
-
-    BAIL_ON_EVT_ERROR(dwError);
-
-cleanup:
-    return dwError;
-
-error:
-    EVT_LOG_ERROR("Failed to get distinct category count. Error code [%d]\n", dwError);
-    goto cleanup;
-}
 
 DWORD
 LWISetEventLogTableCategoryId(
@@ -704,7 +639,7 @@ LWIWriteEventLogBase(
     TRY
     {
         dwError = RpcLWIWriteEventLog( (handle_t)(ULONG) pEventLogHandle->bindingHandle,
-                                       eventRecordLocal);
+						   eventRecordLocal);
     }
     CATCH_ALL
     {
@@ -752,7 +687,7 @@ LWIWriteEventLog(
     eventRecord.pszData = (PSTR)eventData;
 
     dwError = LWIWriteEventLogBase( hEventLog,
-                                    eventRecord );
+							    eventRecord );
 
     return dwError;
 

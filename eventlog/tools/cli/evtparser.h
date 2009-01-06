@@ -70,12 +70,6 @@ PrintEventRecords(
     PDWORD totalRecords
     );
 
-VOID
-PrintCategories(
-	PEVENT_LOG_CATEGORY pCategory,
-	DWORD dwCount
-	);
-
 DWORD
 PrintEventRecordsTable(
     FILE* output, 

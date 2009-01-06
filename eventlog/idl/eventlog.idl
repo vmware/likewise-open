@@ -46,102 +46,83 @@ interface eventlog {
 
     cpp_quote("#ifndef EVENT_LOG_RECORD_DEFINED")
     cpp_quote("#define EVENT_LOG_RECORD_DEFINED 1")
-    typedef struct _EVENT_LOG_RECORD 
+    typedef struct _EVENT_LOG_RECORD
     {
-        unsigned32              dwEventRecordId;
-        [unique, string] char * pszEventTableCategoryId;
-        [unique, string] char * pszEventType;
-        unsigned32              dwEventDateTime;
-        [unique, string] char * pszEventSource;
-        [unique, string] char * pszEventCategory;
-        unsigned32              dwEventSourceId;
-        [unique, string] char * pszUser;
-        [unique, string] char * pszComputer;
-        [unique, string] char * pszDescription;
-        [unique, string] char * pszData;
+	unsigned32              dwEventRecordId;
+	[unique, string] char * pszEventTableCategoryId;
+	[unique, string] char * pszEventType;
+	unsigned32              dwEventDateTime;
+	[unique, string] char * pszEventSource;
+	[unique, string] char * pszEventCategory;
+	unsigned32              dwEventSourceId;
+	[unique, string] char * pszUser;
+	[unique, string] char * pszComputer;
+	[unique, string] char * pszDescription;
+	[unique, string] char * pszData;
 
     } EVENT_LOG_RECORD, *PEVENT_LOG_RECORD;
     cpp_quote("#endif /* EVENT_LOG_RECORD_DEFINED */")
-
-    cpp_quote("#ifndef EVENT_LOG_CATEGORY_DEFINED")
-    cpp_quote("#define EVENT_LOG_CATEGORY_DEFINED 1")
-    typedef struct _EVENT_LOG_CATEGORY
-    {
-        [unique, string] char * pszCategory;
-
-    } EVENT_LOG_CATEGORY, *PEVENT_LOG_CATEGORY;
-    cpp_quote("#endif")
 
     cpp_quote("#ifndef EVENT_LOG_HANDLE_DEFINED")
     cpp_quote("#define EVENT_LOG_HANDLE_DEFINED 1")
     typedef struct _EVENT_LOG_HANDLE
     {
-        hyper bindingHandle;
-        [unique, string] char * pszBindingString;
-        unsigned short int bDefaultActive;
-        EVENT_LOG_RECORD defaultEventLogRecord;
+	hyper bindingHandle;
+	[unique, string] char * pszBindingString;
+
+	unsigned short int bDefaultActive;
+
+	EVENT_LOG_RECORD defaultEventLogRecord;
 
     } EVENT_LOG_HANDLE, *PEVENT_LOG_HANDLE;
     cpp_quote("#endif")
 
+
     long
     RpcLWIOpenEventLog(
-        [in] handle_t bindingHandle,
-        [in, string] char * szServerName,
-        [in, string] char * szEventLog
-    );
+	[in] handle_t bindingHandle,
+	[in, string] char * szServerName,
+	[in, string] char * szEventLog
+	);
 
     long
     RpcLWICloseEventLog(
-        [in] handle_t bindingHandle
-    );
-    
+	[in] handle_t bindingHandle
+	);
+
     long
     RpcLWIEventLogCount(
-        [in] handle_t bindingHandle,
-        [in, string] char * sqlFilter,
-        [out] unsigned32 * pdwNumMatched
-    );
-
-    long
-    RpcLWIGetCategoryCount(
-        [in] handle_t bindingHandle,
-        [out] unsigned32 * pdwNumMatched
-    );
-
-    long
-    RpcLWIGetDistinctCategories(
-        [in] handle_t bindingHandle,
-        [in] unsigned32 dwCatCount,
-        [out, size_is(dwCatCount)] EVENT_LOG_CATEGORY* pszCategories
-    );
+	[in] handle_t bindingHandle,
+	[in, string] char * sqlFilter,
+	[out] unsigned32 * pdwNumMatched
+	);
 
     long
     RpcLWIReadEventLog(
-        [in] handle_t bindingHandle,
-        [in] unsigned32 dwIndex,
+	[in] handle_t bindingHandle,
+	[in] unsigned32 dwIndex,
         [in] unsigned32 nRecordsPerPage,
-        [in, string] char* sqlFilter,
-        [out] unsigned32 * pdwNumReturned,
-        [out, size_is(nRecordsPerPage), length_is(*pdwNumReturned)] EVENT_LOG_RECORD* eventRecords
-    );
+	[in, string] char* sqlFilter,
+	[out] unsigned32 * pdwNumReturned,
+	[out, size_is(nRecordsPerPage), length_is(*pdwNumReturned)] EVENT_LOG_RECORD* eventRecords
+	);
 
     long
     RpcLWIWriteEventLog(
         [in] handle_t bindingHandle,
-        [in] EVENT_LOG_RECORD EventRecord
-    );
+	[in] EVENT_LOG_RECORD EventRecord
+	);
 
     long
     RpcLWIClearEventLog(
         [in] handle_t bindingHandle
-    );
+	);
 
     long
     RpcLWIDeleteFromEventLog(
         [in] handle_t bindingHandle,
-        [in, string] char* sqlFilter
-    );
+	[in, string] char* sqlFilter
+	);
 
     cpp_quote("#endif /* __EVENTLOG_IDL__ */")
 }
