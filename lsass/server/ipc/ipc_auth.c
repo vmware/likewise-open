@@ -57,7 +57,10 @@ LsaSrvIpcAuthenticateUser(
     DWORD dwError = 0;
     PLSA_IPC_AUTH_USER_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvAuthenticateUser(
                         (HANDLE)Handle,
@@ -96,7 +99,10 @@ LsaSrvIpcValidateUser(
     DWORD dwError = 0;
     PLSA_IPC_AUTH_USER_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvValidateUser(
                         (HANDLE)Handle,
@@ -135,7 +141,10 @@ LsaSrvIpcCheckUserInList(
     DWORD dwError = 0;
     PLSA_IPC_CHECK_USER_IN_LIST_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvCheckUserInList(
                         (HANDLE)Handle,
@@ -174,7 +183,10 @@ LsaSrvIpcChangePassword(
     DWORD dwError = 0;
     PLSA_IPC_CHANGE_PASSWORD_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvChangePassword(
                         (HANDLE)Handle,
@@ -249,7 +261,10 @@ LsaSrvIpcAuthenticateUserEx(
     PLSA_AUTH_USER_PARAMS pParams = (PLSA_AUTH_USER_PARAMS) pRequest->object;
     PLSA_AUTH_USER_INFO pUserInfo = NULL;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);    
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvAuthenticateUserEx((HANDLE)Handle,
                                        pParams,
