@@ -482,7 +482,7 @@ SMBCfgParseSections(
         }
     }
 
-    if (bContinue && !IsNullOrEmptyString(pParseState->pszSectionName))
+    if (!IsNullOrEmptyString(pParseState->pszSectionName))
     {
         dwError = SMBCfgProcessEndSection(
                         pParseState,
