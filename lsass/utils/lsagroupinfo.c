@@ -204,6 +204,12 @@ LsaValidateGroupName(
                 &pParsedName);
     BAIL_ON_LSA_ERROR(dwError);
     
+    if (pParsedName->pszName == NULL)
+    {
+        dwError = LSA_ERROR_INVALID_GROUP_NAME;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     sNameLen = strlen(pParsedName->pszName);
     if (sNameLen > LSA_MAX_GROUP_NAME_LENGTH || sNameLen == 0)
     {
