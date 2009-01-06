@@ -109,7 +109,8 @@ lwmsg_client_new(
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
- * @lwmsg_code{INVALID, the endpoint is invalid or an endpoint is already set}
+ * @lwmsg_code{INVALID_PARAMETER, the endpoint is invalid}
+ * @lwmsg_code{INVALID_STATE, an endpoint is already set or the client is already in use}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -136,7 +137,7 @@ lwmsg_client_set_endpoint(
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
- * @lwmsg_code{INVALID, the client has not been fully configured}
+ * @lwmsg_code{INVALID_STATE, the client has not been fully configured}
  * @lwmsg_endstatus
  */
 LWMsgStatus

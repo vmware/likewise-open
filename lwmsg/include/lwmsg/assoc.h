@@ -674,7 +674,7 @@ lwmsg_assoc_reset(
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
- * @lwmsg_code{INVALID, the specified handle was already registered}
+ * @lwmsg_code{INVALID_PARAMETER, the specified handle was already registered}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -794,7 +794,7 @@ lwmsg_assoc_free_graph(
  * @param[in] timeout the time value, or NULL to disable timeouts
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the specified time was invalid}
+ * @lwmsg_code{INVALID_PARAMETER, the specified time was invalid}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -890,7 +890,7 @@ lwmsg_assoc_get_error_message(
  * @param[in] manager the session manager
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID, the session manager cannot be changed in the association's current state}
+ * @lwmsg_code{INVALID_STATE, the session manager cannot be changed in the association's current state}
  * @lwmsg_endstatus
  */
 LWMsgStatus

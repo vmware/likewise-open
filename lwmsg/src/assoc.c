@@ -519,7 +519,7 @@ lwmsg_assoc_set_timeout(
     {
         if (timeout->seconds < 0 || timeout->microseconds < 0)
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID);
+            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
         }
 
         assoc->timeout_set = 1;
@@ -623,7 +623,7 @@ lwmsg_assoc_set_action(
     if (exception >= LWMSG_ASSOC_EXCEPTION_COUNT ||
         action >= LWMSG_ASSOC_ACTION_COUNT)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID, "Invalid exception or action");
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid exception or action");
     }
 
     assoc->action_vector[exception] = action;
