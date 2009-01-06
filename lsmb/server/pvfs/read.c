@@ -29,6 +29,19 @@ PvfsReadFile(
 {
     NTSTATUS ntStatus = 0;
     
+
+    PtrFileObject = PtrIoStackLocation->FileObject;
+    PtrCCB = (PtrSFsdCCB)(PtrFileObject->FsContext2);
+
+    ByteOffset = PtrIoStackLocation->Parameters.Read.ByteOffset;
+    ReadLength = PtrIoStackLocation->Parameters.Read.Length;
+
+    ntStatus = PvfsGetUnixdfFromCCB(
+                    PtrCCB
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+
     return ntStatus;
 }
 

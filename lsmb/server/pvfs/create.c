@@ -28,7 +28,31 @@ PvfsCreateFile(
     )
 {
     NTSTATUS ntStatus = 0;
+
+
+    PtrFileObject = PtrIoStackLocation->FileObject;
+    PtrCCB = (PtrSFsdCCB)(PtrFileObject->FsContext2);
+
+    ByteOffset = PtrIoStackLocation->Parameters.Read.ByteOffset;
+    ReadLength = PtrIoStackLocation->Parameters.Read.Length;
+
     
+    switch (uMode)
+    ntStatus = PvfsGetUNIXFileDescriptor(
+                hFile,
+                &fd
+                );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    while(pread(fd, InputBuffer, Length, offset->QuadPart)) == -1){
+        if (errno !=
+
+
+    }
+
+
+error:
+
     return ntStatus;
 }
 

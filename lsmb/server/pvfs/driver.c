@@ -27,7 +27,7 @@ DriverEntry(
     PIRP pIrp
 	)
 {
-	NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = 0;
 
     pDriverObject->MajorFunction[IRP_MJ_CREATE] = PvfsCreateFile;
     pDriverObject->MajorFunction[IRP_MJ_CLOSE] = PvfsCloseFile;
@@ -45,10 +45,9 @@ DriverEntry(
                     &PvfsGlobalData.pDeviceObject,
                     );
     BAIL_ON_NT_STATUS(ntStatus);
+
 error:    
-    
-                        
-	return ntStatus;
+    return ntStatus;
 }
 
 
