@@ -1,11 +1,9 @@
 #include "config.h"
 #include "lsmbsys.h"
 
-//#include "lsmb/lsmb.h"
+#include "iodriver.h"
+#include "ioinit.h"
 
-//#include "smbdef.h"
-
-#include "iomgr2.h"
 #include "lwlist.h"
 #include "goto.h"
 #include "smbutils.h"

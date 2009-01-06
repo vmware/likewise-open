@@ -26,18 +26,18 @@
 /*
  * Module Name:
  *
- *        iomgr.h
+ *        iodriver.h
  *
  * Abstract:
  *
- *        IO Manager Public Main Header File
+ *        IO Manager Driver Header File
  *
  * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  *
  */
 
-#ifndef __IOMGR2_H__
-#define __IOMGR2_H__
+#ifndef __IODRIVER_H__
+#define __IODRIVER_H__
 
 #include "io-types.h"
 
@@ -245,4 +245,4 @@ IoFree(
         } \
     } while (0)
 
-#endif /* __IOMGR2_H__ */
+#endif /* __IODRIVER_H__ */
