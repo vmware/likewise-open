@@ -149,6 +149,48 @@ LsaSrvAuthenticateUserEx(
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
+    /* Validate the AuthType */
+
+    switch (pUserParams->AuthType)
+    {
+    case LSA_AUTH_PLAINTEXT:
+    {
+	    PSTR pszAccountName = NULL;
+	    DWORD dwLen = 0;
+
+	    /* calculate length includeing '\' and terminating NULL */
+
+	    dwLen = strlen(pUserParams->pszDomain) + strlen(pUserParams->pszAccountName) + 2;
+	    dwError = LsaAllocateMemory(dwLen, (PVOID*)&pszAccountName);
+	    BAIL_ON_LSA_ERROR(dwError);
+
+	    snprintf(pszAccountName, dwLen,
+		     "%s%s%s",
+		     pUserParams->pszDomain,
+		     pUserParams->pszDomain ? "\\" : "",
+		     pUserParams->pszAccountName);
+
+	    /* Pass off plain text auth to AuthenticateUser() */
+	    dwError = LsaSrvAuthenticateUser(hServer,
+					     "",
+					     pUserParams->pass.clear.pszPassword);
+	    LSA_SAFE_FREE_MEMORY(pszAccountName);
+	    goto cleanup;
+	    break;
+    }
+
+    case LSA_AUTH_CHAP:
+	    /* NTLM is what we'll do for the rest of the routine */
+	    break;
+    default:
+	    /* Bad AuthType */
+	    dwError = LSA_ERROR_INVALID_PARAMETER;
+	    goto cleanup;
+	    break;
+    }
+
+    /* Do the NTLM authentication */
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
@@ -429,3 +471,12 @@ error:
     LSA_LOG_VERBOSE("Failed to change password of user [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
     goto cleanup;
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
