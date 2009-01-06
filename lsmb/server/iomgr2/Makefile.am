@@ -2,6 +2,10 @@ noinst_LTLIBRARIES = libiomgr2.la
 
 libiomgr2_la_SOURCES = \
     ioinit.c \
+    ioroot.c \
+    ioconfig.c \
+    iodriver.c \
+    iomem.c \
     ioapi.c
 
 libiomgr2_la_CPPFLAGS = \

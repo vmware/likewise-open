@@ -170,6 +170,7 @@ IoDriverGetContext(
     IN IO_DRIVER_HANDLE DriverHandle
     );
 
+
 // Device functions
 
 NTSTATUS
@@ -219,5 +220,29 @@ NTSTATUS
 IoIrpComplete(
     IN PIRP Irp
     );
+
+// Drivrer memory
+
+PVOID
+IoAllocate(
+    IN size_t Size
+    );
+
+VOID
+IoFree(
+    PVOID Pointer
+    );
+
+#define IO_ALLOCATE(PointerToPointer, Type, Size) \
+    ( (*PointerToPointer) = (Type*) IoAllocate(Size), (*PointerToPointer) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
+
+#define IO_FREE(PointerToPointer) \
+    do { \
+        if (*(PointerToPointer)) \
+        { \
+            IoFree(*(PointerToPointer)); \
+            (*(PointerToPointer)) = NULL; \
+        } \
+    } while (0)
 
 #endif /* __IOMGR2_H__ */
