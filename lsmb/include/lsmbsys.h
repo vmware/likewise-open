@@ -21,6 +21,10 @@
 #define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 
+#ifdef HAVE_STDDEF_H
+#include <stddef.h>
+#endif
+
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
 #endif

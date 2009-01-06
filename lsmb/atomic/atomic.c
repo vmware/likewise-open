@@ -28,7 +28,9 @@
  * license@likewisesoftware.com
  */
 
-#include <pthread.h>
+#include "config.h"
+#include "lsmbsys.h"
+#include "lsmb/lsmb.h"
 #include "smbatomic.h"
 
 pthread_mutex_t gAtomicMutex = PTHREAD_MUTEX_INITIALIZER;

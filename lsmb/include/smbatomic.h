@@ -21,8 +21,6 @@
 #ifndef __SMB_ATOMIC_H__
 #define __SMB_ATOMIC_H__
 
-#include <lsmb/lsmb.h>
-
 LONG
 InterlockedCompareExchange(
     LONG volatile *plDestination,
