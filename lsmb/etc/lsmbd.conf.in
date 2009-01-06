@@ -24,3 +24,9 @@
 #[virtual file system provider: posix file system]
 #
 #	path = @providerdir@/libpvfs.sys@MOD_EXT@
+
+[driver:pvfs]
+	path = @providerdir@/libpvfs.sys@MOD_EXT@
+
+#[driver:srv]
+#	path = @providerdir@/libsrv.sys@MOD_EXT@

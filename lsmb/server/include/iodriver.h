@@ -251,7 +251,10 @@ IoFree(
 #define IO_LOG_LEAVE(Format, ...) \
     SMB_LOG_DEBUG("LEAVE: " Format, ## __VA_ARGS__)
 
-#define IO_LOG_LEAVE_STATUS_ON_EE(status, EE) \
+#define IO_LOG_ENTER_LEAVE(Format, ...) \
+    SMB_LOG_DEBUG("ENTER/LEAVE: " Format, ## __VA_ARGS__)
+
+#define IO_LOG_LEAVE_ON_STATUS_EE(status, EE) \
     do { \
         if (EE || status) \
         { \
@@ -259,5 +262,10 @@ IoFree(
         } \
     } while (0)
 
+#define IO_LOG_ENTER_LEAVE_STATUS_EE(status, EE) \
+    IO_LOG_ENTER_LEAVE("-> 0x%08x (EE = %d)", status, EE)
+
+#define IO_LOG_ENTER_LEAVE_STATUS_EE_EX(status, EE, Format, ...) \
+    IO_LOG_ENTER_LEAVE(Format " -> 0x%08x (EE = %d)", ## __VA_ARGS__, status, EE)
 
 #endif /* __IODRIVER_H__ */

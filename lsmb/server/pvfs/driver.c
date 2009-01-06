@@ -26,6 +26,7 @@ DriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
+    IO_LOG_ENTER_LEAVE("");
 }
 
 NTSTATUS
@@ -54,6 +55,7 @@ DriverDispatch(
     }
 
 cleanup:
+    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
     return ntStatus;
 }
 
@@ -79,6 +81,6 @@ DriverEntry(
                                   DriverDispatch);
 
 cleanup:
-    IO_LOG_LEAVE_STATUS_ON_EE(ntStatus, EE);
+    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
     return ntStatus;
 }

@@ -41,6 +41,8 @@ IopConfigParseStartSection(
     assert(pState);
     assert(!pState->pDriverConfig);
 
+    SMB_LOG_DEBUG("Section = '%s'", pszSectionName);
+
     if (strncasecmp(pszSectionName, IOP_CONFIG_TAG_DRIVER, sizeof(IOP_CONFIG_TAG_DRIVER)-1))
     {
         bSkipSection = TRUE;
@@ -117,6 +119,8 @@ IopConfigParseEndSection(
     assert(pState);
     assert(pState->pDriverConfig);
 
+    SMB_LOG_DEBUG("Section = '%s'", pszSectionName);
+
     // Finished last driver, if any.
     if (pState->pDriverConfig)
     {
@@ -160,6 +164,11 @@ IopConfigParseNameValuePair(
     assert(pszValue);
     assert(pState);
     assert(pState->pDriverConfig);
+
+    SMB_LOG_DEBUG("Driver = '%s', Name = '%s', Value = '%s'",
+                  pState->pDriverConfig->pszName,
+                  pszName,
+                  pszValue);
 
     if (strcasecmp(pszName, "path"))
     {

@@ -20,5 +20,4 @@ libiomgr2_la_LIBADD = \
     @SEM_LIBS@ \
     @SOCKET_LIBS@
 
-libiomgr2_la_LDFLAGS = -static
-
+libiomgr2_la_LDFLAGS =

@@ -65,6 +65,6 @@ cleanup:
 
     *ppRoot = pRoot;
 
-    IO_LOG_LEAVE_STATUS_ON_EE(status, EE);
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }

@@ -9,6 +9,10 @@ IopDriverUnload(
 
     if (pDriverObject)
     {
+        if (pDriverObject->Config->pszName)
+        {
+            SMB_LOG_DEBUG("Unloading driver '%s'", pDriverObject->Config->pszName);
+        }
         if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_READY))
         {
             // TODO -- Add code to cancel IO and wait for IO to complete.
@@ -46,8 +50,10 @@ IopDriverLoad(
     int EE = 0;
     PCSTR pszError = NULL;
     PIO_DRIVER_OBJECT pDriverObject = NULL;
-    PCSTR pszPath = pDriverObject->Config->pszPath;
-    PCSTR pszName = pDriverObject->Config->pszName;
+    PCSTR pszPath = pDriverConfig->pszPath;
+    PCSTR pszName = pDriverConfig->pszName;
+
+    SMB_LOG_DEBUG("Loading driver '%s'", pszName);
 
     status = IO_ALLOCATE(&pDriverObject, IO_DRIVER_OBJECT, sizeof(*pDriverObject));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -61,7 +67,7 @@ IopDriverLoad(
     dlerror();
 
     pDriverObject->LibraryHandle = dlopen(pszPath, RTLD_NOW | RTLD_GLOBAL);
-    if (!pDriverObject->Config->pszPath)
+    if (!pDriverObject->LibraryHandle)
     {
         pszError = dlerror();
 
@@ -108,7 +114,7 @@ cleanup:
 
     *ppDriverObject = pDriverObject;
 
-    IO_LOG_LEAVE_STATUS_ON_EE(status, EE);
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -143,7 +149,7 @@ IoDriverInitialize(
     SetFlag(DriverHandle->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED);
 
 cleanup:
-    IO_LOG_LEAVE_STATUS_ON_EE(status, EE);
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
