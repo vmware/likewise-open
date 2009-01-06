@@ -1,4 +1,5 @@
 SUBDIRS = \
+         iomgr2 \
          smb   \
          npvfs \
          pvfs  \

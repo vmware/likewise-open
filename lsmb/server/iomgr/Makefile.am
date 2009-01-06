@@ -1,7 +1,6 @@
 noinst_LTLIBRARIES = libiomgr.la
 
 libiomgr_la_SOURCES = \
-    zwfile.c \
     globals.c \
     libmain.c \
     ntvfs.c   \

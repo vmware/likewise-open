@@ -400,6 +400,7 @@ AC_CONFIG_FILES([Makefile
         server/rdr/Makefile
         server/smb/Makefile
         server/iomgr/Makefile
+        server/iomgr2/Makefile
         server/srv/Makefile
         server/srv/smbv1/Makefile
         server/npvfs/Makefile

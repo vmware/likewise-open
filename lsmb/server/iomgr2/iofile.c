@@ -76,7 +76,7 @@ IoWriteFile(
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -133,7 +133,7 @@ IoQueryInformationFile(
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -164,7 +164,7 @@ IoQueryFullAttributesFile(
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -210,7 +210,7 @@ IoSetVolumeInformationFile(
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoLockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -226,7 +226,7 @@ IoLockFile(
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -328,7 +328,7 @@ IoQuerySecurityFile(
     OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
-    ); 
+    );
 
 NTSTATUS
 IoSetSecurityFile(
@@ -337,7 +337,7 @@ IoSetSecurityFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    ); 
+    );
 
 // TODO: QueryEaFile and SetEaFile.
 
