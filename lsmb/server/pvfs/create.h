@@ -71,3 +71,49 @@ PvfsCommonCreateFileOverwriteIf(
     PPVFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
+
+
+NTSTATUS
+PvfsCommonCreateDirectory(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileSupersede(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileCreate(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileOpen(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileOpenIf(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileOverwrite(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileOverwriteIf(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+

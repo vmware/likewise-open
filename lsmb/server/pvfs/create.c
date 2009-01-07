@@ -247,17 +247,6 @@ PvfsGetFilePathName(
 }
 
 NTSTATUS
-PvfsCommonCreateDirectory(
-    PPVFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return(ntStatus);
-}
-
-NTSTATUS
 PvfsCommonCreateFileSupersede(
     PPVFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
@@ -324,3 +313,151 @@ PvfsCommonCreateFileOverwriteIf(
 
     return(ntStatus);
 }
+
+
+NTSTATUS
+PvfsCommonCreateDirectory(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+    IO_UNICODE_STRING RootPathName;
+    IO_UNICODE_STRING RelativePathName;
+    IO_UNICODE_STRING AbsolutePathName;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    FILE_CREATE_DISPOSITION CreateDisposition = 0;
+
+    ntStatus = PvfsGetFilePathName(
+                    hFileHandle,
+                    RootPathName
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = PvfsBuildAbsolutePathName(
+                        RootPathName,
+                        RelativePathName,
+                        AbsolutePathName
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (CreateDisposition){
+
+        case FILE_SUPERSEDE:
+                ntStatus = PvfsCommonCreateDirectoryFileSupersede(
+                                pIrpContext,
+                                pIrp
+                                );
+                break;
+
+        case FILE_CREATE:
+                ntStatus = PvfsCommonCreateDirectoryFileCreate(
+                                    pIrpContext,
+                                    pIrp
+                                    );
+                break;
+
+        case FILE_OPEN:
+                ntStatus = PvfsCommonCreateDirectoryFileOpen(
+                                    pIrpContext,
+                                    pIrp
+                                    );
+                break;
+
+        case FILE_OPEN_IF:
+                ntStatus = PvfsCommonCreateDirectoryFileOpenIf(
+                                pIrpContext,
+                                pIrp
+                                );
+                break;
+
+        case FILE_OVERWRITE:
+                ntStatus = PvfsCommonCreateDirectoryFileOverwrite(
+                                pIrpContext,
+                                pIrp
+                                );
+                break;
+
+        case FILE_OVERWRITE_IF:
+                ntStatus = PvfsCommonCreateDirectoryFileOverwriteIf(
+                                    pIrpContext,
+                                    pIrp
+                                    );
+                break;
+    }
+
+error:
+
+    return(ntStatus);
+}
+
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileSupersede(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+
+}
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileCreate(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileOpen(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileOpenIf(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileOverwrite(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+
+}
+
+NTSTATUS
+PvfsCommonCreateDirectoryFileOverwriteIf(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+
