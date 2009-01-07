@@ -22,7 +22,7 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsCreateFile(
+PvfsCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )

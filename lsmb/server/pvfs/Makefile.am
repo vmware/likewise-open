@@ -7,8 +7,10 @@ libpvfs_sys_la_SOURCES = \
     read.c   \
     write.c  \
     deviceio.c \
-    fsctrl.c
-
+    fsctrl.c \
+    queryinfo.c \
+    setinfo.c \
+    close.c
 
 libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \
