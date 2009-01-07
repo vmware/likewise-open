@@ -2,7 +2,13 @@
 lib_LTLIBRARIES = libpvfs.sys.la
 
 libpvfs_sys_la_SOURCES = \
-    driver.c
+    driver.c \
+    create.c \
+    read.c   \
+    write.c  \
+    deviceio.c \
+    fsctrl.c
+
 
 libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

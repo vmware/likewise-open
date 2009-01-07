@@ -22,13 +22,13 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsWrite(
-    IO_DEVICE_HANDLE DeviceHandle,
+PvfsQueryInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    
+
     return ntStatus;
 }
 

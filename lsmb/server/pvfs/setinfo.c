@@ -13,7 +13,7 @@
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Device I/O Function
+ *        Driver Entry Function
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -22,10 +22,10 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsCtrlFile(
-    PDEVICE_OBJECT pDriverObject,
+PvfsSetInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
-	)
+    )
 {
     NTSTATUS ntStatus = 0;
 

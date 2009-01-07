@@ -23,9 +23,9 @@
 
 NTSTATUS
 PvfsDeviceIo(
-    PDEVICE_OBJECT pDriverObject,
+    IO_DEVICE_HANDLE DriverHandle,
     PIRP pIrp
-	)
+    )
 {
     NTSTATUS ntStatus = 0;
     

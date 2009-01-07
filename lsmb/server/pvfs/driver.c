@@ -32,23 +32,65 @@ DriverShutdown(
 NTSTATUS
 DriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
-    IN PIRP Irp
+    IN PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     int EE = 0;
 
-    switch (Irp->Type)
+    switch (pIrp->Type)
     {
-    case IRP_TYPE_CREATE:
-    case IRP_TYPE_CLOSE:
-    case IRP_TYPE_READ:
-    case IRP_TYPE_WRITE:
-    case IRP_TYPE_IO_CONTROL:
-    case IRP_TYPE_FS_CONTROL:
-    case IRP_TYPE_FLUSH:
-    case IRP_TYPE_QUERY_INFORMATION:
-    case IRP_TYPE_SET_INFORMATION:
+        case IRP_TYPE_CREATE:
+            ntStatus = PvfsCreate(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+
+        case IRP_TYPE_CLOSE:
+            ntStatus = PvfsClose(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+
+
+        case IRP_TYPE_READ:
+            ntStatus = PvfsRead(
+			  DeviceHandle,
+			  pIrp
+			  );
+             break;
+
+        case IRP_TYPE_WRITE:
+            ntStatus = PvfsWrite(
+                          DeviceHandle,
+                          pIrp
+                          );
+            break;
+
+        case IRP_TYPE_IO_CONTROL:
+            break;
+
+        case IRP_TYPE_FS_CONTROL:
+            ntStatus = PvfsFsCtrl(
+                            DeviceHandle,
+			    pIrp
+			    );
+            break;
+        case IRP_TYPE_FLUSH:
+        case IRP_TYPE_QUERY_INFORMATION:
+            ntStatus = PvfsQueryInformation(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+        case IRP_TYPE_SET_INFORMATION:
+            ntStatus = PvfsSetInformation(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
     default:
         ntStatus = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);

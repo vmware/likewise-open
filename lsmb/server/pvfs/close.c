@@ -22,10 +22,10 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsCloseFile(
-    PDEVICE_OBJECT pDriverObject,
+PvfsClose(
+    IO_DEVICE_HANDLE DeviceHandle,
     PIRP pIrp
-	)
+    )
 {
     NTSTATUS ntStatus = 0;
     

@@ -55,6 +55,55 @@
 #include "goto.h"
 #include "smbutils.h"
 
+NTSTATUS
+PvfsCreate(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsDeviceIo(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsFsCtrl(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsWrite(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+
+NTSTATUS
+PvfsRead(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsClose(
+    IO_DEVICE_HANDLE DeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsQueryInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+PvfsSetInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
 #endif /* __PVFS_H__ */
 
 
