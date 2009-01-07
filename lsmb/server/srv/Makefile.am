@@ -7,6 +7,7 @@ libsrv_sys_la_SOURCES = \
     createtemp.c   \
     createX.c      \
     deldir.c       \
+    device.c       \
     driver.c       \
     echo.c         \
     findfirst2.c   \

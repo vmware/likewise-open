@@ -72,21 +72,74 @@ DriverDispatch(
     {
         case IRP_TYPE_CREATE:
 
+            ntStatus = SrvDeviceCreate(
+                            hDevice,
+                            pIrp);
+            break;
+
         case IRP_TYPE_CLOSE:
+
+            ntStatus = SrvDeviceClose(
+                            hDevice,
+                            pIrp);
+
+            break;
 
         case IRP_TYPE_READ:
 
+            ntStatus = SrvDeviceRead(
+                            hDevice,
+                            pIrp);
+
+            break;
+
         case IRP_TYPE_WRITE:
+
+            ntStatus = SrvDeviceWrite(
+                            hDevice,
+                            pIrp);
+
+            break;
 
         case IRP_TYPE_IO_CONTROL:
 
+            ntStatus = SrvDeviceControlIO(
+                            hDevice,
+                            pIrp);
+
+            break;
+
         case IRP_TYPE_FS_CONTROL:
+
+            ntStatus = SrvDeviceControlFS(
+                            hDevice,
+                            pIrp);
+
+            break;
 
         case IRP_TYPE_FLUSH:
 
+            ntStatus = SrvDeviceFlush(
+                            hDevice,
+                            pIrp);
+
+            break;
+
         case IRP_TYPE_QUERY_INFORMATION:
 
+            ntStatus = SrvDeviceQueryInfo(
+                            hDevice,
+                            pIrp);
+
+            break;
+
         case IRP_TYPE_SET_INFORMATION:
+
+            ntStatus = SrvDeviceSetInfo(
+                            hDevice,
+                            pIrp);
+
+            break;
 
         default:
 

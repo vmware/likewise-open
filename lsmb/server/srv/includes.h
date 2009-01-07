@@ -50,6 +50,7 @@
 #include "ntrename.h"
 #include "rename.h"
 #include "seek.h"
+#include "device.h"
 
 #include "externs.h"
 
