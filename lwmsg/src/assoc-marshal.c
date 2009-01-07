@@ -156,7 +156,7 @@ lwmsg_assoc_unmarshal_handle(
     case LWMSG_STATUS_NOT_FOUND:
         status = LWMSG_STATUS_MALFORMED;
     default:
-        BAIL_ON_ERROR(status);
+        BAIL_ON_ERROR(status);    
     }
     
     /* Set pointer on unmarshalled object */

@@ -852,8 +852,8 @@ attach_log_file(
     char *fname;
     char *p;
 
-    if ((fname = malloc(strlen(rpcd_c_database_name_prefix1) +
-                        strlen(rpcd_c_database_name_prefix2) +
+    if ((fname = malloc(strlen(rpcd_c_database_name_prefix1) + 
+                        strlen(rpcd_c_database_name_prefix2) + 
                         strlen(rpcd_c_logfile_name) + 1)) != NULL)
     {
         sprintf((char *) fname, "%s%s%s", rpcd_c_database_name_prefix1,

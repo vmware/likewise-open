@@ -1551,7 +1551,7 @@ rpc_dg_recvq_elt_p_t rqe;
         sp->sock,
         iov,
         i,
-        (rpc_addr_p_t)(&rqe->from),
+        (rpc_addr_p_t)(&rqe->from), 
         &recv_len);
 
     RPC_DG_SOCK_UPDATE_ERR_COUNT(sp, serr);

@@ -54,7 +54,7 @@ rpc__socket_open (
     }
 
 done:
-
+    
     return err;
 
 error:
@@ -74,7 +74,7 @@ rpc__socket_close (
     )
 {
     rpc_socket_error_t err = sock->vtbl->socket_destruct(sock);
-
+    
     if (!err)
     {
         free(sock);
@@ -171,7 +171,7 @@ rpc__socket_inq_endpoint (
 {
     return sock->vtbl->socket_inq_endpoint(sock, addr);
 }
-
+    
 /* Enabled broadcasting on datagram socket */
 rpc_socket_error_t
 rpc__socket_set_broadcast (

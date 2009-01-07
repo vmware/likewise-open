@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -467,7 +467,7 @@ LsaSqliteExecCallbackWithRetry(
 error:
     if (bInLock) {
        pthread_rwlock_unlock(pLock);
-       bInLock = FALSE;
+       bInLock = FALSE;                                
     }
     SQLITE3_SAFE_FREE_STRING(pszError);
 

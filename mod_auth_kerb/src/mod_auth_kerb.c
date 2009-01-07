@@ -516,8 +516,8 @@ authenticate_user_krb4pwd(request_rec *r,
    user = apr_pstrdup(r->pool, sent_name);
 
    log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
-	      "Setting the request user to %s",
-	      user ? user : "(NULL)");
+ 	      "Setting the request user to %s",
+ 	      user ? user : "(NULL)");
 
    MK_USER = user;
    MK_AUTH_TYPE = "Basic";
@@ -884,8 +884,8 @@ store_krb5_creds(krb5_context kcontext,
 }
 
 
-static char*
-apply_httpd_mapping( request_rec *r,
+static char* 
+apply_httpd_mapping( request_rec *r, 
 		     const char *input_string,
 		     char *mapping )
 {
@@ -898,17 +898,17 @@ apply_httpd_mapping( request_rec *r,
     const char *saveresult = apr_pstrdup(r->pool, input_string);
     ap_regex_t *preg = NULL;
     ap_regmatch_t *matches = NULL;
-    int nmatches = 0;
+    int nmatches = 0;   
     long int i = 0;
 
     if ( mapping && strlen(mapping) > 0 ) {
 
-	/*
+	/* 
 	   the mapping will consist of a regular expression match and a target separated by space
 	   such as: DOMAIN\\(.*) $1@DOMAIN.COM
 	        or: (.*)@DOMAIN\.COM DOMAIN\\$1
 	*/
-
+      
 	regex = ap_getword_white_nc( r->pool, &mapping );
 	target = ap_getword_white_nc( r->pool, &mapping );
 
@@ -921,10 +921,10 @@ apply_httpd_mapping( request_rec *r,
 	    while( *tmp )
 	      if ( *tmp++ == '(' )
 		nmatches++;
-
+	    
 	    matches = (ap_regmatch_t*)apr_pcalloc( r->pool, nmatches * sizeof( ap_regex_t ) );
-	    preg = ap_pregcomp( r->pool, regex, AP_REG_EXTENDED | AP_REG_ICASE );
-
+	    preg = ap_pregcomp( r->pool, regex, AP_REG_EXTENDED | AP_REG_ICASE );	   
+	    
 	    if ( !preg ) {
 		log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
 			   "Failed to compile regular expression [%s]", regex );
@@ -953,24 +953,24 @@ apply_httpd_mapping( request_rec *r,
 			    }
 			}
 			else {
-			    *result++ = *tmp++;
-			}
+			    *result++ = *tmp++;	      
+			}		    
 		    }
 		    *result = '\0';
 		    log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r,
 			       "[%s] was mapped to [%s]", input_string, saveresult );
 		    break;
 		}
-	    }
+	    }	     
 	}
     }
-
+    
     return (char*)saveresult;
 }
 
 static char*
-map_principal_to_domain_user( request_rec *r,
-			      const krb5_context *pkcontext,
+map_principal_to_domain_user( request_rec *r, 
+			      const krb5_context *pkcontext, 
 			      const char* principal)
 {
     char *mapping = NULL;
@@ -996,7 +996,7 @@ char* get_first_principal_name( request_rec *r, krb5_context kcontext, krb5_keyt
      char *pname;
      char *ret = NULL;
      int code;
-
+     
      if ((code = krb5_kt_start_seq_get(kcontext, kt, &cursor))) {
 	 log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
 		    "krb5_kt_start_seq_get() failed %s",
@@ -1008,22 +1008,22 @@ char* get_first_principal_name( request_rec *r, krb5_context kcontext, krb5_keyt
 	 if ((code = krb5_unparse_name(kcontext, entry.principal, &pname))) {
 	     log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
 			"krb5_unparse_name() failed %s",
-			krb5_get_err_text(kcontext, code) );
+			krb5_get_err_text(kcontext, code) );	     
 	 }
      }
      else
      {
 	 log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
 		    "krb5_kt_ntext_entry() failed %s",
-		    krb5_get_err_text(kcontext, code) );
+		    krb5_get_err_text(kcontext, code) );	 
      }
 
-     code = krb5_kt_end_seq_get(kcontext, kt, &cursor);
-
+     code = krb5_kt_end_seq_get(kcontext, kt, &cursor);    
+     
      if ( pname )
      {
 	 ret = strdup( pname );
-	 krb5_free_unparsed_name(kcontext, pname);
+	 krb5_free_unparsed_name(kcontext, pname);	 
      }
 
      return ret;
@@ -1048,7 +1048,7 @@ authenticate_user_krb5pwd(request_rec *r,
    char            *name = NULL;
    int             all_principals_unkown;
    char            *p = NULL;
-   char            *tmp = NULL;
+   char            *tmp = NULL;  
 
    code = krb5_init_context(&kcontext);
    if (code) {
@@ -1110,7 +1110,7 @@ authenticate_user_krb5pwd(request_rec *r,
    if (p) {
        *p++ = '\0';
    } else if ( (p = strchr(sent_name, '\\' )) ) {
-       /* perhaps we have realm\user rather than user@realm */
+       /* perhaps we have realm\user rather than user@realm */ 
        *p++ = '\0';
        tmp = p;
        p = sent_name;
@@ -1125,7 +1125,7 @@ authenticate_user_krb5pwd(request_rec *r,
          goto end;
       }
       tmp = p;
-      while( *tmp ) {
+      while( *tmp ) { 
 	  *tmp = toupper(*tmp);
 	  tmp++;
       }
@@ -1550,11 +1550,11 @@ authenticate_user_gss(request_rec *r, kerb_auth_config *conf,
     ret = HTTP_INTERNAL_SERVER_ERROR;
     goto end;
   }
-
+ 
   code = krb5_init_context(&kcontext);
   if (code) {
       log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
-		 "Cannot initialize Kerberos5 context (%d)", code);
+    		 "Cannot initialize Kerberos5 context (%d)", code);
       ret = HTTP_INTERNAL_SERVER_ERROR;
       goto end;
   }
@@ -1607,7 +1607,7 @@ already_succeeded(request_rec *r, int *pret)
     if ( ap_is_initial_req(r) )
 	return 0;
 
-    mainr = r->main;
+    mainr = r->main;    
 
     if ( mainr  )
     {
@@ -1617,7 +1617,7 @@ already_succeeded(request_rec *r, int *pret)
 	strret = MK_TABLE_GET( mainr->subprocess_env, "KRBAUTHRET" );
 
 	if ( strret && strlen(strret) > 0 && (*pret = atoi(strret)) == OK )
-	{
+	{	    
 	    MK_USER = apr_pstrdup( r->pool, MK_MAIN_USER );
 	    MK_AUTH_TYPE = apr_pstrdup( r->pool, MK_MAIN_AUTH_TYPE );
 	    return 1;

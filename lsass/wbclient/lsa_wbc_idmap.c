@@ -121,7 +121,7 @@ done:
 	
 	if (hLsa) {
 		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pUserInfo) {
@@ -161,7 +161,7 @@ wbcErr wbcUidToSid(uid_t uid,
 done:
 	if (hLsa) {
 		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pUserInfo) {
@@ -246,7 +246,7 @@ done:
 	
 	if (hLsa) {
 		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pGroupInfo) {
@@ -286,7 +286,7 @@ wbcErr wbcGidToSid(gid_t gid,
 done:
 	if (hLsa) {
 		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pGroupInfo) {

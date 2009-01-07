@@ -178,10 +178,10 @@ inline static void RPC_SOCKET_SENDMSG(
 	int iovlen,
 	rpc_addr_p_t addrp,
 	volatile int *ccp,
-	volatile rpc_socket_error_t *serrp
+  	volatile rpc_socket_error_t *serrp
 		)
 {
-	struct msghdr msg;
+	struct msghdr msg; 
 sendmsg_again:
 	memset(&msg, 0, sizeof(msg));
 	RPC_LOG_SOCKET_SENDMSG_NTR;
@@ -290,7 +290,7 @@ rpc__bsd_socket_construct(
     )
 {
     rpc_socket_error_t  serr;
-
+    
     RPC_SOCKET_DISABLE_CANCEL;
     sock->data.word = socket(
         (int) RPC_PROTSEQ_INQ_NAF_ID(pseq_id),
@@ -338,13 +338,13 @@ rpc__bsd_socket_close_basic(
     )
 {
     rpc_socket_error_t  serr;
-
+    
     RPC_LOG_SOCKET_CLOSE_NTR;
     RPC_SOCKET_DISABLE_CANCEL;
     serr = (close(sock) == -1) ? errno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     RPC_LOG_SOCKET_CLOSE_XIT;
-
+    
     return (serr);
 }
 
@@ -455,7 +455,7 @@ rpc_addr_p_t        addr;
                 unlink((const char*)addr->sa.data);
             }
             serr = 
-                (bind(sock->data.word, (struct sockaddr *)&addr->sa, addr->len) == -1) ?
+                (bind(sock->data.word, (struct sockaddr *)&addr->sa, addr->len) == -1) ? 
                       errno : RPC_C_SOCKET_OK;
         }
     }                                   /* no port restriction */
@@ -663,12 +663,12 @@ rpc_socket_t        *newsock;
     rpc_socket_error_t  serr;
 
     *newsock = malloc(sizeof (**newsock));
-
+    
     if (!*newsock)
     {
         return ENOMEM;
     }
-
+    
     (*newsock)->vtbl = sock->vtbl;
     (*newsock)->pseq_id = sock->pseq_id;
 
@@ -903,7 +903,7 @@ rpc_socket_t        sock;
     rpc_socket_error_t  serr;
 
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (setsockopt(sock->data.word, SOL_SOCKET, SO_BROADCAST,
+    serr = (setsockopt(sock->data.word, SOL_SOCKET, SO_BROADCAST, 
             &setsock_val, sizeof(setsock_val)) == -1) ? errno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr)
@@ -971,7 +971,7 @@ unsigned32          *nrxsize;
         if (e == -1)
         {
             RPC_DBG_GPRINTF
-(("(rpc__bsd_socket_set_bufs) WARNING: set sndbuf (%d) failed - error = %d\n",
+(("(rpc__bsd_socket_set_bufs) WARNING: set sndbuf (%d) failed - error = %d\n", 
                 txsize, errno));
         }
     }
@@ -983,7 +983,7 @@ unsigned32          *nrxsize;
         if (e == -1)
         {
             RPC_DBG_GPRINTF
-(("(rpc__bsd_socket_set_bufs) WARNING: set rcvbuf (%d) failed - error = %d\n",
+(("(rpc__bsd_socket_set_bufs) WARNING: set rcvbuf (%d) failed - error = %d\n", 
                 rxsize, errno));
         }
     }
@@ -1134,7 +1134,7 @@ rpc_socket_t        sock;
  * (see BSD UNIX getpeername(2)).
  */
 
-INTERNAL rpc_socket_error_t rpc__bsd_socket_getpeername
+INTERNAL rpc_socket_error_t rpc__bsd_socket_getpeername 
 #ifdef _DCE_PROTO_
 (
     rpc_socket_t sock,
@@ -1165,7 +1165,7 @@ rpc_addr_p_t addr;
  * (see BSD UNIX getsockopt(2)).
  */
 
-INTERNAL rpc_socket_error_t rpc__bsd_socket_get_if_id
+INTERNAL rpc_socket_error_t rpc__bsd_socket_get_if_id 
 #ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
@@ -1412,7 +1412,7 @@ rpc__bsd_socket_enum_ifaces(
     ifc.ifc_buf = (caddr_t) buf;
 
 ifconf_again:
-    if (ioctl (desc, SIOCGIFCONF, (caddr_t) &ifc) < 0)
+    if (ioctl (desc, SIOCGIFCONF, (caddr_t) &ifc) < 0) 
     {
         if (errno == EINTR)
         {
@@ -1423,7 +1423,7 @@ ifconf_again:
     }
 
     /*
-     * Figure out how many interfaces there must be and allocate an
+     * Figure out how many interfaces there must be and allocate an  
      * RPC address vector with the appropriate number of elements.
      * (We may ask for a few too many in case some of the interfaces
      * are uninteresting.)
@@ -1459,7 +1459,7 @@ ifconf_again:
             (sizeof **rpc_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))),
             RPC_C_MEM_RPC_ADDR_VEC,
             RPC_C_MEM_WAITOK);
-
+        
         if (*rpc_addr_vec == NULL)
         {
             err = ENOMEM;
@@ -1475,7 +1475,7 @@ ifconf_again:
          (sizeof **netmask_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))),
             RPC_C_MEM_RPC_ADDR_VEC,
             RPC_C_MEM_WAITOK);
-
+        
         if (*netmask_addr_vec == NULL)
         {
             err = ENOMEM;
@@ -1494,7 +1494,7 @@ ifconf_again:
          (sizeof **broadcast_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))),
             RPC_C_MEM_RPC_ADDR_VEC,
             RPC_C_MEM_WAITOK);
-
+        
         if (*broadcast_addr_vec == NULL)
         {
             err = ENOMEM;
@@ -1528,7 +1528,7 @@ ifconf_again:
          * at a time.)
          */
         memcpy(&ifreq, ifr, sizeof(ifreq));
-ifflags_again:
+ifflags_again:        
         if (ioctl(desc, SIOCGIFFLAGS, &ifreq) < 0)
         {
             RPC_DBG_PRINTF(rpc_e_dbg_general, 10,
@@ -1542,11 +1542,11 @@ ifflags_again:
         if_flags = ifreq.ifr_flags;     /* Copy out the flags */
         RPC_DBG_PRINTF(rpc_e_dbg_general, 10, ("flags are %x\n", if_flags));
 
-        /*
-         * Ignore interfaces which are not 'up'.
+        /* 
+         * Ignore interfaces which are not 'up'. 
          */
         if ((if_flags & IFF_UP) == 0)
-
+ 
 	  continue;
 
 #ifndef USE_LOOPBACK
@@ -1580,9 +1580,9 @@ ifflags_again:
          * NO_SIOCGIFADDR in their platform specific include file.
          */
         if_addr = ifr->ifr_addr;
-
+        
 #else
-
+        
         /*
          * Do the SIOCGIFADDR on a copy of the ifr.  See above.
          */
@@ -1596,15 +1596,15 @@ ifflags_again:
             {
                 goto ifaddr_again;
             }
-
+            
             err = errno;
             goto FREE_IT;
         }
-
+        
         memcpy (&if_addr, &ifr->ifr_addr, sizeof(struct sockaddr));
-
+        
 #endif  /* NO_SIOCGIFADDR */
-
+        
         /*
          * If this isn't an Internet-family address, ignore it.
          */
@@ -1614,7 +1614,7 @@ ifflags_again:
                                                    if_addr.sa_family));
             continue;
         }
-
+        
         if (rpc_addr_vec != NULL)
         {
             /*
@@ -1626,17 +1626,17 @@ ifflags_again:
                 sizeof (rpc_ip_addr_t),
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
-
+            
             if (ip_addr == NULL)
             {
                 err = ENOMEM;
                 goto FREE_IT;
             }
-
+            
             ip_addr->rpc_protseq_id = sock->pseq_id;
             ip_addr->len            = sizeof (struct sockaddr_in);
-
-            memcpy (&ip_addr->sa, &if_addr, sizeof(struct sockaddr_in));
+            
+            memcpy (&ip_addr->sa, &if_addr, sizeof(struct sockaddr_in));     
         }
         else
         {
@@ -1646,7 +1646,7 @@ ifflags_again:
         if (netmask_addr_vec != NULL && (if_flags & IFF_LOOPBACK) == 0)
         {
             memcpy(&ifreq, ifr, sizeof(ifreq));
-
+            
             while (ioctl(desc, SIOCGIFNETMASK, &ifreq) == -1)
             {
                 if (errno != EINTR)
@@ -1655,20 +1655,20 @@ ifflags_again:
                     goto FREE_IT;
                 }
             }
-
+            
             RPC_MEM_ALLOC (
                 netmask_addr,
                 rpc_ip_addr_p_t,
                 sizeof (rpc_ip_addr_t),
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
-
+            
             if (netmask_addr == NULL)
             {
                 err = ENOMEM;
                 goto FREE_IT;
             }
-
+            
             netmask_addr->rpc_protseq_id = sock->pseq_id;
             netmask_addr->len            = sizeof (struct sockaddr_in);
             memcpy(&netmask_addr->sa, &ifreq.ifr_addr, sizeof(struct sockaddr_in));
@@ -1697,22 +1697,22 @@ ifflags_again:
                 sizeof (rpc_ip_addr_t),
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
-
+            
             if (broadcast_addr == NULL)
             {
                 err = ENOMEM;
                 goto FREE_IT;
             }
-
+            
             broadcast_addr->rpc_protseq_id = sock->pseq_id;
-            broadcast_addr->len            = sizeof (struct sockaddr_in);
+            broadcast_addr->len            = sizeof (struct sockaddr_in);            
             memcpy(&broadcast_addr->sa, &ifreq.ifr_broadaddr, sizeof(struct sockaddr_in));
         }
         else
         {
             broadcast_addr = NULL;
         }
-
+        
         /*
          * Call out to do any final filtering and get the desired IP address
          * for this interface.  If the callout function returns false, we
@@ -1740,7 +1740,7 @@ ifflags_again:
                 = (rpc_addr_p_t) broadcast_addr;
     }
 
-    if ((*rpc_addr_vec)->len == 0)
+    if ((*rpc_addr_vec)->len == 0) 
     {
         err = EINVAL;   /* !!! */
         goto FREE_IT;

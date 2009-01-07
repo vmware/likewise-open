@@ -435,7 +435,7 @@ retry:
     ACTION_ON_ERROR(assoc, status = assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session));
 
     my_id = lwmsg_session_manager_get_session_id(assoc->manager, session);
-
+    
     memcpy(id->bytes, my_id->bytes, sizeof(id->bytes));
 
 error:
@@ -670,7 +670,7 @@ lwmsg_assoc_get_session_data(
     {
         return NULL;
     }
-
+    
     if (assoc->aclass->get_session(assoc, assoc->timeout_set ? &assoc->timeout : NULL, &session))
     {
         return NULL;

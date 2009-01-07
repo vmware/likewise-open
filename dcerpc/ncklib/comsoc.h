@@ -89,7 +89,7 @@ typedef int rpc_socket_error_t;
  *
  * New types that allow for socket handles that are more abstract than just a file descriptor
  */
-
+    
 typedef boolean (*rpc_socket_enum_iface_fn_p_t) (
     rpc_socket_t sock,
     rpc_addr_p_t ip_addr,
@@ -246,7 +246,7 @@ typedef struct rpc_socket_vtbl_s
         rpc_addr_vector_p_t *broadcast_addr_vec
         );
 } rpc_socket_vtbl_t, *rpc_socket_vtbl_p_t;
-
+    
 typedef struct rpc_socket_handle_s
 {
     rpc_socket_vtbl_t* vtbl;
@@ -257,7 +257,7 @@ typedef struct rpc_socket_handle_s
         void* pointer;
     } data;
 } rpc_socket_handle_t, *rpc_socket_handle_p_t;
-
+    
 typedef int rpc_socket_basic_t;
 
 #include <comsoc_sys.h>

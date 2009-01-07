@@ -90,7 +90,7 @@ LsaAdBatchEnumGetScopeRoot(
     if (bIsByRealObject)
     {
         dwError = LsaLdapConvertDomainToDN(pszDnsDomainName, &pszScopeRoot);
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);        
     }
     else
     {
@@ -114,7 +114,7 @@ LsaAdBatchEnumGetScopeRoot(
                         "CN=%s,%s",
                         pszContainer,
                         pszCellDn);
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);        
     }
 
 cleanup:
@@ -220,7 +220,7 @@ LsaAdBatchEnumGetQuery(
         pszQuery = LsaAdBatchEnumGetPseudoQuery(bIsSchemaMode, ObjectType);
     }
 
-    return pszQuery;
+    return pszQuery;    
 }
 
 static
@@ -246,7 +246,7 @@ LsaAdBatchEnumProcessRealMessages(
                     dwCount * sizeof(*ppObjects),
                     (PVOID*)&ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
-
+                    
     pCurrentMessage = ldap_first_entry(pLd, pMessages);
     while (pCurrentMessage)
     {
@@ -313,7 +313,7 @@ LsaAdBatchEnumProcessPseudoMessages(
                     dwCount * sizeof(*ppszSids),
                     (PVOID*)&ppszSids);
     BAIL_ON_LSA_ERROR(dwError);
-
+                    
     pCurrentMessage = ldap_first_entry(pLd, pMessages);
     while (pCurrentMessage)
     {
@@ -603,7 +603,7 @@ LsaAdBatchEnumObjectsInternal(
 cleanup:
     LSA_SAFE_FREE_STRING(pszScopeRoot);
     LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-    if (pMessage)
+    if (pMessage) 
     {
         ldap_msgfree(pMessage);
     }

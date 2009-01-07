@@ -515,7 +515,7 @@ unsigned32 *status;
     CODING_ERROR (status);
 
     err = rpc__socket_open(RPC_C_PROTSEQ_ID_NCADG_IP_UDP, &sock);
-
+    
     if (err)
     {
         *status = rpc_s_cant_create_socket;;
@@ -523,7 +523,7 @@ unsigned32 *status;
     }
 
     err = rpc__socket_enum_ifaces(sock, get_addr, &rpc_addr_vec, &netmask_addr_vec, NULL);
-
+    
     if (err)
     {
         *status = -1;

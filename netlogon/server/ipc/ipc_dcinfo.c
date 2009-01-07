@@ -64,7 +64,7 @@ LWNetSrvIpcCreateError(
         dwError = LWNetAllocateString(pszErrorMessage, (PSTR*) &pError->pszErrorMessage);
         BAIL_ON_LWNET_ERROR(dwError);
     }
-
+    
     pError->dwError = dwErrorCode;
 
     *ppError = pError;
@@ -111,7 +111,7 @@ LWNetSrvIpcGetDCName(
 cleanup:
 
     return MAP_LWNET_ERROR(dwError);
-
+    
 error:
 
     if(pDCInfo != NULL)
@@ -258,7 +258,7 @@ LWNetSrvIpcGetCurrentDomain(
     }
     
 cleanup:
-
+    
     if (pRes && pError)
     {
         LWNetFreeMemory(pRes);

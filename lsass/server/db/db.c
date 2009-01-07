@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -550,7 +550,7 @@ LsaDbFindUserByName(
             pstQuery = pConn->pstFindUserByUPN;
             dwError = sqlite3_bind_text(
                     pstQuery,
-                    1,
+                    1, 
                     pUserNameInfo->pszName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
@@ -559,7 +559,7 @@ LsaDbFindUserByName(
 
             dwError = sqlite3_bind_text(
                     pstQuery,
-                    2,
+                    2, 
                     pUserNameInfo->pszFullDomainName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
@@ -570,7 +570,7 @@ LsaDbFindUserByName(
             pstQuery = pConn->pstFindObjectByNT4;
             dwError = sqlite3_bind_text(
                     pstQuery,
-                    1,
+                    1, 
                     pUserNameInfo->pszDomainNetBiosName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
@@ -579,7 +579,7 @@ LsaDbFindUserByName(
 
             dwError = sqlite3_bind_text(
                     pstQuery,
-                    2,
+                    2, 
                     pUserNameInfo->pszName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
@@ -590,7 +590,7 @@ LsaDbFindUserByName(
             pstQuery = pConn->pstFindUserByAlias;
             dwError = sqlite3_bind_text(
                     pstQuery,
-                    1,
+                    1, 
                     pUserNameInfo->pszName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
@@ -612,7 +612,7 @@ LsaDbFindUserByName(
     }
 
     *ppObject = pObject;
-
+    
 cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
@@ -644,7 +644,7 @@ LsaDbFindUserById(
     pstQuery = pConn->pstFindUserById;
     dwError = sqlite3_bind_int64(
             pstQuery,
-            1,
+            1, 
             (uint64_t)uid
             );
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
@@ -659,7 +659,7 @@ LsaDbFindUserById(
     }
 
     *ppObject = pObject;
-
+    
 cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
@@ -677,7 +677,7 @@ LsaDbFindGroupByName(
     PLSA_LOGIN_NAME_INFO pGroupNameInfo,
     PLSA_SECURITY_OBJECT* ppObject
     )
-{
+{    
     DWORD dwError = 0;
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
@@ -693,7 +693,7 @@ LsaDbFindGroupByName(
             pstQuery = pConn->pstFindObjectByNT4;
             dwError = sqlite3_bind_text(
                     pstQuery,
-                    1,
+                    1, 
                     pGroupNameInfo->pszDomainNetBiosName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
@@ -702,7 +702,7 @@ LsaDbFindGroupByName(
 
             dwError = sqlite3_bind_text(
                     pstQuery,
-                    2,
+                    2, 
                     pGroupNameInfo->pszName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
@@ -713,7 +713,7 @@ LsaDbFindGroupByName(
             pstQuery = pConn->pstFindGroupByAlias;
             dwError = sqlite3_bind_text(
                     pstQuery,
-                    1,
+                    1, 
                     pGroupNameInfo->pszName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
@@ -735,7 +735,7 @@ LsaDbFindGroupByName(
     }
 
     *ppObject = pObject;
-
+    
 cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
@@ -766,7 +766,7 @@ LsaDbFindGroupById(
     pstQuery = pConn->pstFindGroupById;
     dwError = sqlite3_bind_int64(
             pstQuery,
-            1,
+            1, 
             (uint64_t)gid
             );
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
@@ -781,7 +781,7 @@ LsaDbFindGroupById(
     }
 
     *ppObject = pObject;
-
+    
 cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
@@ -828,14 +828,14 @@ LsaDbUnpackObjectInfo(
     PLSA_SECURITY_OBJECT pResult)
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-
+    
     dwError = LsaSqliteReadString(
         pstQuery,
         piColumnPos,
         "ObjectSid",
         &pResult->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
-
+    
     dwError = LsaSqliteReadString(
         pstQuery,
         piColumnPos,
@@ -1228,7 +1228,7 @@ LsaDbStoreObjectEntries(
                     ") values ("
                     "%ld);\n"
                 "replace into " LSA_DB_TABLE_NAME_OBJECTS " ("
-                    "CacheId,"
+                    "CacheId,"	        
                     "ObjectSid,"
                     "DN,"
                     "Enabled,"
@@ -1293,7 +1293,7 @@ LsaDbStoreObjectEntries(
         BAIL_ON_LSA_ERROR(dwError);
         SQLITE3_SAFE_FREE_STRING(pszNewStatement);
     }
-
+    
     for (sIndex = 0; sIndex < sObjectCount; sIndex++)
     {
         if (ppObjects[sIndex] == NULL)
@@ -2127,10 +2127,10 @@ LsaDbGetMemberships(
 
     *pppResults = ppResults;
     *psCount = sResultCount;
-
+    
 cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
-
+    
     return dwError;
 
 error:
@@ -2317,9 +2317,9 @@ LsaDbQueryObject(
             sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
 
     *ppObject = pObject;
-
+    
 cleanup:
-
+    
     return dwError;
 
 error:
@@ -2385,7 +2385,7 @@ LsaDbFindObjectByDN(
     pstQuery = pConn->pstFindObjectByDN;
     dwError = sqlite3_bind_text(
             pstQuery,
-            1,
+            1, 
             pszDN,
             -1, // let sqlite calculate the length
             SQLITE_TRANSIENT //let sqlite make its own copy
@@ -2462,7 +2462,7 @@ LsaDbFindObjectBySid(
     pstQuery = pConn->pstFindObjectBySid;
     dwError = sqlite3_bind_text(
             pstQuery,
-            1,
+            1, 
             pszSid,
             -1, // let sqlite calculate the length
             SQLITE_TRANSIENT //let sqlite make its own copy
@@ -2545,7 +2545,7 @@ LsaDbGetPasswordVerifier(
     pstQuery = pConn->pstGetPasswordVerifier;
     dwError = sqlite3_bind_text(
             pstQuery,
-            1,
+            1, 
             pszUserSid,
             -1, // let sqlite calculate the length
             SQLITE_TRANSIENT //let sqlite make its own copy
@@ -2621,9 +2621,9 @@ LsaDbGetPasswordVerifier(
             sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
 
     *ppResult = pResult;
-
+    
 cleanup:
-
+    
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
     return dwError;
 

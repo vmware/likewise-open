@@ -20,7 +20,7 @@ liblsaserveripc_la_CPPFLAGS =         \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
 	@LWMSG_INCLUDES@
-
+	
 
 liblsaserveripc_la_LIBADD = \
 	@top_builddir@/ipc/liblsaipc.la \
@@ -28,6 +28,6 @@ liblsaserveripc_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
 	@LWMSG_LIBS@ \
 	@PTHREAD_LIBS@
-
+		
 
 liblsaserveripc_la_LDFLAGS = -static

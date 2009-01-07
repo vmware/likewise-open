@@ -991,7 +991,7 @@ void*
 lwmsg_assoc_get_session_data(
     LWMsgAssoc* assoc
     );
-
+    
 
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_handle_type_class;

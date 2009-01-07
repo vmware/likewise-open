@@ -84,7 +84,7 @@ struct LWMsgServer
     pthread_t* worker_threads;
     /* Listener thread */
     pthread_t listen_thread;
-
+    
     /* Associations that we are listening for messages from */
     AssocQueue listen_assocs;
     /* Associations that need to be serviced */

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
- *
+ *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        
  *        Test helper functions
  *
  * Authors: Kyle Stemen <kstemen@likewisesoftware.com>
@@ -194,7 +194,7 @@ SetupClearCache(
         printf("Unable to stop authentication daemon using init script\n");
         return FALSE;
     }
-
+    
     status = system("rm -rf "
                     "/var/lib/lwidentity/idmap_cache.tdb "
                     "/var/lib/lwidentity/netsamlogon_cache.tdb "
@@ -205,7 +205,7 @@ SetupClearCache(
         printf("Unable to clear caches\n");
         return FALSE;
     }
-
+    
     status = system("/etc/init.d/likewise-open start 2>/dev/null || /etc/init.d/lsassd start 2>/dev/null");
 
     if (WEXITSTATUS(status) != 0)

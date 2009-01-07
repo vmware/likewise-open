@@ -474,7 +474,7 @@ MU_TEST(marshal, string_array_empty)
     char* inner[] = { NULL };
 
     strings.strings = (char**) inner;
-
+    
     allocate_buffer(&buffer);
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
@@ -506,7 +506,7 @@ MU_TEST(marshal, string_array_null)
     string_array_struct *out;
 
     strings.strings = NULL;
-
+    
     allocate_buffer(&buffer);
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
@@ -999,7 +999,7 @@ MU_TEST(marshal, info_level_1)
         0x00, 0x54
     };
 
-    static struct level_1_struct array[] =
+    static struct level_1_struct array[] = 
     {
         {42},
         {84}
@@ -1027,7 +1027,7 @@ MU_TEST(marshal, info_level_1)
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.length, out->length);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.level, out->level);
-
+    
     for (i = 0; i < out->length; i++)
     {
         MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array.level_1[0].number1, out->array.level_1[0].number1);
@@ -1056,7 +1056,7 @@ MU_TEST(marshal, info_level_2)
         0xFF, 0xAC
     };
 
-    static struct level_2_struct array[] =
+    static struct level_2_struct array[] = 
     {
         {42, -42},
         {84, -84}
@@ -1084,7 +1084,7 @@ MU_TEST(marshal, info_level_2)
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.length, out->length);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.level, out->level);
-
+    
     for (i = 0; i < out->length; i++)
     {
         MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array.level_2[0].number1, out->array.level_2[0].number1);

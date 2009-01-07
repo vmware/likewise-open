@@ -102,7 +102,7 @@ LWNetSrvStartListenThread(
                                   pszCommPath,
                                   0666));
     BAIL_ON_LWNET_ERROR(dwError);
-
+    
     dwError = MAP_LWMSG_ERROR(lwmsg_server_start(gpServer));
 
 error:

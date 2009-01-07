@@ -54,7 +54,7 @@ typedef struct LWMsgTypeIter
 
     LWMsgVerifyFunction verify;
     void* verify_data;
-
+    
     union
     {
         struct
@@ -96,13 +96,13 @@ typedef struct LWMsgTypeIter
     LWMsgTypeSpec* inner;
     LWMsgTypeSpec* next;
     unsigned char* dom_object;
-
+    
     struct
     {
         const char* type_name;
         const char* member_name;
     } meta;
-
+    
     struct
     {
         const char* file;

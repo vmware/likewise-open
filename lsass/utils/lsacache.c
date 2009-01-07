@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -123,7 +123,7 @@ error:
         LSA_SAFE_FREE_MEMORY(pCache);
     }
 
-    goto cleanup;
+    goto cleanup;    
 }
 
 static inline
@@ -146,12 +146,12 @@ LsaCacheInsertKey(
         dwError = LsaCacheKick(pCache, *ppBucket);
         BAIL_ON_LSA_ERROR(dwError);
     }
-
+    
     if (!*ppBucket)
     {
         pCache->dwNumUsedBuckets++;
     }
-
+    
     *ppBucket = pEntry;
     ((PLSA_CACHE_ENTRY) pEntry)->dwRefCount++;
 
@@ -177,7 +177,7 @@ LsaCacheInsert(
         if (pKey)
         {
             dwHash = pCache->pfHash(pKey, dwIndex, pCache->pData);
-
+            
             dwError = LsaCacheInsertKey(pCache, pEntry, dwHash, dwIndex);
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -187,7 +187,7 @@ error:
 
     return dwError;
 }
-
+    
 DWORD
 LsaCacheRemove(
     PLSA_CACHE pCache,
@@ -239,7 +239,7 @@ LsaCacheLookup(
 
     dwHash = pCache->pfHash(pKey, dwIndex, pCache->pData);
     ppBucket = LsaCacheGetBucket(pCache, dwHash, dwIndex);
-
+    
     if (*ppBucket)
     {
         pEntry = *ppBucket;
@@ -249,7 +249,7 @@ LsaCacheLookup(
             *ppEntry = pEntry;
         }
     }
-
+    
     if (!*ppEntry)
     {
         pCache->dwNumHashMisses++;
@@ -267,7 +267,7 @@ LsaCacheLookup(
                 {
                     dwError = LsaCacheInsert(pCache, pEntry);
                     BAIL_ON_LSA_ERROR(dwError);
-                    *ppEntry = pEntry;
+                    *ppEntry = pEntry;                
                     break;
                 }
             }

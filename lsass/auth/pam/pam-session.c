@@ -124,13 +124,13 @@ error:
 
     if ((dwError == LSA_ERROR_NO_SUCH_USER) || (dwError == LSA_ERROR_NOT_HANDLED))
     {
-        LSA_LOG_PAM_WARNING("pam_sm_open_session failed [login:%s][error code: %d]",
+        LSA_LOG_PAM_WARNING("pam_sm_open_session failed [login:%s][error code: %d]", 
                             LSA_SAFE_LOG_STRING(pszLoginId),
                             dwError);
     }
     else
     {
-        LSA_LOG_PAM_ERROR("pam_sm_open_session failed [login:%s][error code: %d]",
+        LSA_LOG_PAM_ERROR("pam_sm_open_session failed [login:%s][error code: %d]", 
                           LSA_SAFE_LOG_STRING(pszLoginId),
                           dwError);
     }

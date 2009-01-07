@@ -150,7 +150,7 @@ trivial_receiver(void* _assocs)
     TrivialHandle* handle;
     TrivialReply reply;
     char smid_str[17];
-    LWMsgSessionID id;
+    LWMsgSessionID id;    
 
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_get_peer_session_id(assocs[0], &id));
     lwmsg_session_id_to_string(&id, smid_str);

@@ -28,10 +28,10 @@ userinfo_create(DWORD uid)
 
     pUser->uid = uid;
     pUser->gid = ~uid;
-
+    
     LsaAllocateStringPrintf(&pUser->pszUpn, "user%.4lu@domain.com", (unsigned long) uid);
     LsaAllocateStringPrintf(&pUser->pszSid, "S-NOT-A-REAL-SID-%.4lu", (unsigned long) uid);
-
+    
     return pUser;
 }
 
@@ -125,7 +125,7 @@ userinfo_miss(void* pKey, DWORD dwIndex, void* data, PVOID* ppEntry)
         break;
     case USERINFO_UPN:
         uid = atoi(((char*) pKey) + strlen("user"));
-        break;
+        break;        
     }
 
     *ppEntry = userinfo_create(uid);

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -940,15 +940,15 @@ typedef struct __LSA_SID
 	UINT8 Revision;
 	UINT8 NumSubAuths;
 	UINT8 AuthId[6];
-	UINT32 SubAuths[LSA_MAX_SID_SUB_AUTHORITIES];
-
+	UINT32 SubAuths[LSA_MAX_SID_SUB_AUTHORITIES];	
+	
 } LSA_SID, *PLSA_SID;
 
 typedef struct __LSA_SID_ATTRIB
 {
 	LSA_SID  Sid;
 	DWORD    dwAttrib;
-
+	
 } LSA_SID_ATTRIB, *PLSA_SID_ATTRIB;
 
 #define LSA_SID_ATTR_GROUP_MANDATORY		0x00000001
@@ -971,7 +971,7 @@ typedef struct __LSA_AUTH_USER_INFO
 
 	DWORD dwAcctFlags;
 	PLSA_DATA_BLOB  pSessionKey;
-	PLSA_DATA_BLOB  pLmSessionKey;
+	PLSA_DATA_BLOB  pLmSessionKey;	
 
 	UINT16 LogonCount;
 	UINT16 BadPasswordCount;
@@ -979,17 +979,17 @@ typedef struct __LSA_AUTH_USER_INFO
 	INT64 LogonTime;
 	INT64 LogoffTime;
 	INT64 KickoffTime;
-	INT64 LastPasswordChange;
-	INT64 CanChangePassword;
-	INT64 MustChangePassword;
+	INT64 LastPasswordChange;	
+	INT64 CanChangePassword;	
+	INT64 MustChangePassword;	
 
 	PSTR pszLogonServer;
 	PSTR pszLogonScript;
-	PSTR pszProfilePath;
+	PSTR pszProfilePath;	
 	PSTR pszHomeDirectory;
-	PSTR pszHomeDrive;
+	PSTR pszHomeDrive;	
 
-        LSA_SID DomainSid;
+        LSA_SID DomainSid;	
 	DWORD dwUserRid;
 	DWORD dwPrimaryGroupRid;
 

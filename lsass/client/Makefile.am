@@ -13,7 +13,7 @@ liblsaclient_la_SOURCES = \
     status.c    \
     tracing.c   \
     users.c
-
+    
 liblsaclient_la_CPPFLAGS = \
 	@LWMSG_INCLUDES@
 

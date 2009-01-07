@@ -228,7 +228,7 @@ NTSTATUS NetrInitIdentityInfo(NetrIdentityInfo *ptr, void *dep,
         status = NetrAddDepMemory((void*)ptr->domain_name.string, (void*)dep);
         goto_if_ntstatus_not_success(status, error);
     }
-
+    
     status = InitUnicodeString(&ptr->account_name, account);
     goto_if_ntstatus_not_success(status, error);
 
@@ -484,11 +484,11 @@ static NTSTATUS NetrInitSamBaseInfo(NetrSamBaseInfo *ptr,
 
     if (in->domain_sid) {
         SidCopyAlloc(&ptr->domain_sid, in->domain_sid);
-        goto_if_no_memory_ntstatus(ptr->domain_sid, error);
+        goto_if_no_memory_ntstatus(ptr->domain_sid, error); 
 
         status = NetrAddDepMemory((void*)ptr->domain_sid, (void*)dep);
         goto_if_ntstatus_not_success(status, error);
-
+       
     } else {
         ptr->domain_sid = NULL;
     }

@@ -628,7 +628,7 @@ shared_get_session_data (
     session_lock(session);
 
     data = session->data;
-
+    
     session_unlock(session);
 
     return data;

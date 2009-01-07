@@ -1199,7 +1199,7 @@ unsigned32                      *st;
     base += auth_pad_len;
 
     /* common trailer [idx = tlr_idx] */
-    memcpy(base, (void*)com_tlr, RPC_CN_PKT_SIZEOF_COM_AUTH_TLR);
+    memcpy(base, (void*)com_tlr, RPC_CN_PKT_SIZEOF_COM_AUTH_TLR);    
     base += RPC_CN_PKT_SIZEOF_COM_AUTH_TLR;
 
     /* schannel trailer */

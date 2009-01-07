@@ -271,7 +271,7 @@ DNSGetNameServers(
                     "DNS Query for Name Servers failed [errno:%d] [h_errno:%d]",
                     errno,
                     h_errno);
-
+            
             dwError = LWDNS_ERROR_BAD_RESPONSE;
             BAIL_ON_LWDNS_ERROR(dwError);
         }

@@ -224,7 +224,7 @@ PRIVATE void rpc__np_desc_inq_addr
      */
 
     err = rpc__socket_inq_endpoint(sock, (rpc_addr_p_t) &loc_np_addr);
-
+    
     if (err)
     {
         *status = -1;
@@ -237,38 +237,38 @@ PRIVATE void rpc__np_desc_inq_addr
         sizeof (rpc_np_addr_t),
         RPC_C_MEM_RPC_ADDR,
         RPC_C_MEM_WAITOK);
-
+    
     if (np_addr == NULL)
     {
         *status = rpc_s_no_memory;
         return;
     }
-
+    
     RPC_MEM_ALLOC (
         *rpc_addr_vec,
         rpc_addr_vector_p_t,
         sizeof **rpc_addr_vec,
         RPC_C_MEM_RPC_ADDR_VEC,
         RPC_C_MEM_WAITOK);
-
+    
     if (*rpc_addr_vec == NULL)
     {
         RPC_MEM_FREE (np_addr, RPC_C_MEM_RPC_ADDR);
         *status = rpc_s_no_memory;
         return;
     }
-
+    
     memset(np_addr, 0, sizeof(rpc_np_addr_t));
     np_addr->rpc_protseq_id = protseq_id;
     np_addr->len = sizeof (struct sockaddr_un);
     np_addr->sa = loc_np_addr.sa;
-
+    
     /*
      * Force the address family to AF_UNIX as getsockname()
      * does not work for UNIX domain sockets on all platforms
      */
     np_addr->sa.sun_family = AF_UNIX;
-
+    
     if (np_addr->rpc_protseq_id == RPC_C_PROTSEQ_ID_NCACN_NP)
     {
 #ifdef NP_NETADDR
@@ -281,10 +281,10 @@ PRIVATE void rpc__np_desc_inq_addr
         *p = '\0';
 #endif /* NP_NETADDR */
     }
-
+    
     (*rpc_addr_vec)->len = 1;
     (*rpc_addr_vec)->addrs[0] = (rpc_addr_p_t) np_addr;
-
+    
     *status = rpc_s_ok;
     return;
 }

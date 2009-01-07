@@ -121,12 +121,12 @@ assoc_queue_add(
     )
 {
     size_t i;
-
+    
     while (queue->count == queue->size && server->state == LWMSG_SERVER_RUNNING)
     {
         pthread_cond_wait(&queue->event, &server->lock);
     }
-
+    
     if (server->state == LWMSG_SERVER_SHUTDOWN)
     {
         return;
@@ -278,7 +278,7 @@ lwmsg_server_accept_client(
     {
         status = server->connect_callback(
             server,
-            assoc,
+            assoc, 
             server->user_data);
     }
 
@@ -323,7 +323,7 @@ lwmsg_server_timeout_clients(
     size_t num_assocs;
 
     BAIL_ON_ERROR(status = lwmsg_time_now(&now));
-
+    
     soonest_timeout.seconds = 0x7fffffff;
     soonest_timeout.microseconds = 0x7fffffff;
 
@@ -336,13 +336,13 @@ lwmsg_server_timeout_clients(
         for (i = 0; i < server->listen_assocs.size; i++)
         {
             assoc = server->listen_assocs.queue[i];
-
+            
             if (assoc)
             {
                 priv = lwmsg_assoc_get_private(assoc);
-
+                
                 lwmsg_time_sum(&priv->last_time, &server->timeout, &abs_timeout);
-
+                
                 /* If the connection has exceeded its timeout */
                 if (lwmsg_time_compare(&abs_timeout, &now) == LWMSG_TIME_LESSER)
                 {
@@ -350,12 +350,12 @@ lwmsg_server_timeout_clients(
                     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, NULL, &session));
                     num_assocs = lwmsg_session_manager_get_session_assoc_count(server->manager, session);
                     num_handles = lwmsg_session_manager_get_session_handle_count(server->manager, session);
-
+                    
                     if (num_assocs == 1 &&
                         num_handles > 0 &&
                         level <= LWMSG_SERVER_TIMEOUT_SAFE)
                     {
-                        /* Try not to close a connection if it is the last
+                        /* Try not to close a connection if it is the last 
                            in its session and there are handles that would be
                            invalidated */
                         continue;
@@ -394,7 +394,7 @@ error:
 
     return status;
 }
-
+    
 
 static void*
 lwmsg_server_listen_thread(
@@ -516,7 +516,7 @@ lwmsg_server_listen_thread(
         {
             goto done;
         }
-
+        
         /* Check for associations that are ready to be serviced */
         for (i = 0, count = server->listen_assocs.count; i < server->listen_assocs.size && count; i++)
         {
@@ -556,7 +556,7 @@ lwmsg_server_listen_thread(
                     BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
                 }
             }
-
+            
             BAIL_ON_ERROR(status = lwmsg_server_accept_client(server, sock));
         }
     }
@@ -623,7 +623,7 @@ lwmsg_server_worker_thread(void* arg)
             /* Put association back on listen queue */
             SERVER_LOCK(server, locked);
             assoc_queue_add(server, &server->listen_assocs, assoc);
-            SERVER_UNLOCK(server, locked);
+            SERVER_UNLOCK(server, locked);    
             break;
         default:
             /* Shut down and free the association */
@@ -635,7 +635,7 @@ lwmsg_server_worker_thread(void* arg)
             status = LWMSG_STATUS_SUCCESS;
             break;
         }
-
+        
         if (write(server->listen_notify[1], &c, 1) != 1)
         {
             BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
@@ -1101,9 +1101,9 @@ lwmsg_server_stop(
 
     if (write(server->listen_notify[1], &c, 1) != 1)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);  
     }
-
+    
     SERVER_UNLOCK(server, locked);
 
     /* Wait for listener thread to stop */

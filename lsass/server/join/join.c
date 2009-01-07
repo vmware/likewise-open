@@ -128,7 +128,7 @@ LsaNetJoinDomain(
         pszNewCachePath,
         &hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
-
+        
     dwError = SMBSetThreadToken(hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 

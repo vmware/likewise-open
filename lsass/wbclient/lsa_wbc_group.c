@@ -163,12 +163,12 @@ done:
 
 	if (hResume) {
 		LsaEndEnumGroups(hLsa, hResume);		
-		hResume = (HANDLE)NULL;
+		hResume = (HANDLE)NULL;	
 	}
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pGroupInfo) {

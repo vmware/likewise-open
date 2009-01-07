@@ -125,7 +125,7 @@ NetJoinDomainLocalInternal(
     {
         /* Set up access token */
         HANDLE hAccessToken = NULL;
-
+        
         dwError = SMBCreatePlainAccessTokenW(account, password, &hAccessToken);
         if (dwError)
         {
@@ -139,7 +139,7 @@ NetJoinDomainLocalInternal(
             err = -1;
             goto_if_err_not_success(err, done);
         }
-
+        
         dwError = SMBCloseHandle(NULL, hAccessToken);
         if (dwError)
         {

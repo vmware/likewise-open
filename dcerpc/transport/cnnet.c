@@ -1215,7 +1215,7 @@ unsigned32              *st;
                  * The socket close failed.
                  */
                 RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_ERRORS,
-                                ("(rpc__cn_network_req_connect) desc->%x RPC_SOCKET_CLOSE failed, error = %d\n",
+                                ("(rpc__cn_network_req_connect) desc->%x RPC_SOCKET_CLOSE failed, error = %d\n", 
                                  assoc->cn_ctlblk.cn_sock, 
                                  RPC_SOCKET_ETOI(serr)));
             }
@@ -1246,7 +1246,7 @@ unsigned32              *st;
                  * The socket close failed.
                  */
                 RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_ERRORS,
-                                ("(rpc__cn_network_req_connect) desc->%x RPC_SOCKET_CLOSE failed, error = %d\n",
+                                ("(rpc__cn_network_req_connect) desc->%x RPC_SOCKET_CLOSE failed, error = %d\n", 
                                  assoc->cn_ctlblk.cn_sock, 
                                  RPC_SOCKET_ETOI(serr)));
             }
@@ -1373,7 +1373,7 @@ unsigned32              *st;
                  * The socket close failed.
                  */
                 RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_ERRORS,
-                                ("(rpc__cn_network_req_connect) desc->%x RPC_SOCKET_CLOSE failed, error = %d\n",
+                                ("(rpc__cn_network_req_connect) desc->%x RPC_SOCKET_CLOSE failed, error = %d\n", 
                                  assoc->cn_ctlblk.cn_sock, 
                                  RPC_SOCKET_ETOI(serr)));
             }

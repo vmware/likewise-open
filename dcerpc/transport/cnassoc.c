@@ -251,7 +251,7 @@ PRIVATE rpc_id_token_t rpc__get_current_token_id(unsigned32 *st)
         return NULL;
     }
     else
-    {
+    {   
         *st = rpc_s_ok;
         return handle;
     }
@@ -2011,8 +2011,8 @@ unsigned32              *st;
 	    dcethread_checkinterrupt_throw();
 #endif /* NON_CANCELLABLE_IO */
             serr = rpc__socket_sendmsg (
-                assoc->cn_ctlblk.cn_sock,
-                iovp,
+                assoc->cn_ctlblk.cn_sock, 
+                iovp, 
                 iovcnt,
                 addr,
                 (int*) &cc);

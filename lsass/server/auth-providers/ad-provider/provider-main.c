@@ -487,9 +487,9 @@ AD_AuthenticateUserEx(
 {
     DWORD dwError = LSA_ERROR_INTERNAL;
     PSTR pszDnsDomain = NULL;
-    PSTR pszNetbiosDomain = NULL;
+    PSTR pszNetbiosDomain = NULL;    
 
-    /* The NTLM pass-through authentiocation gives us the NT4
+    /* The NTLM pass-through authentiocation gives us the NT4 
        style name.  We need the DNS domain fpr for the LsaDmConnectDomain() */
 
     dwError = LsaDmWrapGetDomainName(pUserParams->pszDomain,
@@ -502,7 +502,7 @@ AD_AuthenticateUserEx(
     dwError = LsaDmWrapAuthenticateUserEx(pszDnsDomain,
 					  pUserParams,
 					  ppUSerInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);    
 
 cleanup:
     LSA_SAFE_FREE_MEMORY(pszDnsDomain);

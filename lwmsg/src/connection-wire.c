@@ -682,9 +682,9 @@ lwmsg_connection_send_greeting(
                 {
                     ASSOC_RAISE_ERROR(assoc, LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
                 }
-
+                
                 BAIL_ON_ERROR(status = lwmsg_connection_queue_fd(assoc, fds[0]));
-
+                
                 packet->contents.greeting.flags |= CONNECTION_GREETING_AUTH_LOCAL;
             }
         }
@@ -774,7 +774,7 @@ lwmsg_connection_recv_greeting(
                               priv->endpoint,
                               &uid,
                               &gid));
-
+         
             BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, &priv->sec_token));
         }
 #endif

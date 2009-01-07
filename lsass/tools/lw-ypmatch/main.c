@@ -638,7 +638,7 @@ PrintMapInfo_0(
     {
         printf("%s ", YPMATCH_SAFE_LOG_STRING(pMapInfo->pszName));
     }
-
+    
     printf("%s\n", YPMATCH_SAFE_LOG_STRING(pMapInfo->pszValue));
 }
 

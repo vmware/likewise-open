@@ -497,7 +497,7 @@ AD_BuildHomeDirFromTemplate(
         }
         dwOffset += dwInsertLength;
     }
-
+    
     // We should still have enough room for NULL.
     LSA_ASSERT(dwOffset < dwBytesAllocated);
 

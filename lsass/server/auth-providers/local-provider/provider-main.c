@@ -267,7 +267,7 @@ LsaProviderLocal_AuthenticateUserEx(
 {
 	/* Let the provider routing ignore this call */
 
-	return LSA_ERROR_NOT_HANDLED;
+	return LSA_ERROR_NOT_HANDLED;	
 }
 
 DWORD

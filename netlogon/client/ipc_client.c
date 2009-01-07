@@ -70,11 +70,11 @@ LWNetOpenServer(
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
-                                  pContext->pAssoc,
+                                  pContext->pAssoc, 
                                   LWMSG_CONNECTION_MODE_LOCAL,
                                   LWNET_CACHE_DIR "/" LWNET_SERVER_FILENAME));
     BAIL_ON_LWNET_ERROR(dwError);
-
+    
     *phConnection = (HANDLE)pContext;
 
 cleanup:
@@ -98,11 +98,11 @@ error:
         LWNetFreeMemory(pContext);
     }
 
-    if (phConnection)
+    if (phConnection) 
     {
         *phConnection = (HANDLE)NULL;
     }
-
+    
     goto cleanup;
 }
 
@@ -164,7 +164,7 @@ LWNetTransactGetDCName(
                                   &request,
                                   &response));
     BAIL_ON_LWNET_ERROR(dwError);
-
+    
     switch (response.tag)
     {
     case LWNET_R_DCINFO_SUCCESS:
@@ -195,7 +195,7 @@ error:
     {
         *ppDCInfo = NULL;
     }
-
+                    
     goto cleanup;
 }
 
@@ -223,7 +223,7 @@ LWNetTransactGetDCTime(
                                   &request,
                                   &response));
     BAIL_ON_LWNET_ERROR(dwError);
-
+    
     switch (response.tag)
     {
     case LWNET_R_DCTIME_SUCCESS:
@@ -278,7 +278,7 @@ LWNetTransactGetDomainController(
                                   &request,
                                   &response));
     BAIL_ON_LWNET_ERROR(dwError);
-
+    
     switch (response.tag)
     {
     case LWNET_R_DC_SUCCESS:
@@ -334,7 +334,7 @@ LWNetTransactGetCurrentDomain(
                                   &request,
                                   &response));
     BAIL_ON_LWNET_ERROR(dwError);
-
+    
     switch (response.tag)
     {
     case LWNET_R_CURRENT_DOMAIN_SUCCESS:

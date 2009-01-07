@@ -1001,7 +1001,7 @@ AD_NetlogonAuthenticationUserEx(
     OUT PBOOLEAN pbIsNetworkError
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LSA_ERROR_NOT_HANDLED;    
 }
 
 

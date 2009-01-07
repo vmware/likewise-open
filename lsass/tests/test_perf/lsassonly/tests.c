@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
- *
+ *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        
  *        Test helper functions
  *
  * Authors: Kyle Stemen <kstemen@likewisesoftware.com>
@@ -54,7 +54,7 @@ RunConnectDisconnect(
 {
     DWORD dwError = 0;
     HANDLE connection = (HANDLE)NULL;
-
+    
     dwError = LsaOpenServer(&connection);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -83,7 +83,7 @@ SetupFindUserById(
     PLSA_USER_INFO_0 userInfo = NULL;
     HANDLE connection = (HANDLE)NULL;
     FIND_STATE *state = NULL;
-
+    
     dwError = LsaOpenServer(&connection);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -133,7 +133,7 @@ RunFindUserById(
                 0,
                 (PVOID*)&userInfo);
     BAIL_ON_LSA_ERROR(dwError);
-
+    
 cleanup:
     return dwError == 0;
 
@@ -172,7 +172,7 @@ SetupConnectLsass(
 {
     DWORD dwError = 0;
     HANDLE connection = (HANDLE)NULL;
-
+    
     dwError = LsaOpenServer(&connection);
     BAIL_ON_LSA_ERROR(dwError);
 

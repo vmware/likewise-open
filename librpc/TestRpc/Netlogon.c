@@ -145,28 +145,28 @@ handle_t OpenSchannel(handle_t netr_b,
     schnauth_info.domain_name  = awc16stombs(domain);
     schnauth_info.machine_name = awc16stombs(computer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
-
+  
     dwError = SMBCreatePlainAccessTokenW(user, pass, &auth);
     if (dwError)
     {
         err = -1;
         goto error;
     }
-
+    
     dwError = SMBSetThreadToken(auth);
     if (dwError)
     {
         err = -1;
         goto error;
     }
-
+    
     dwError = SMBCloseHandle(NULL, auth);
     if (dwError)
     {
         err = -1;
         goto error;
     }
-
+    
     hostname_len = wc16slen(hostname);
     schnr->RemoteName = (wchar16_t*) malloc((hostname_len + 8) * sizeof(wchar16_t));
     if (schnr->RemoteName == NULL) goto error;
@@ -383,7 +383,7 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     TESTINFO(t, hostname, user, pass);
 
     if (username && password)
-    {
+    {        
         /* Set up access token */
         HANDLE hAccessToken = INVALID_HANDLE_VALUE;
         DWORD dwError = 0;
@@ -401,7 +401,7 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
             err = -1;
             goto cleanup;
         }
-
+        
         dwError = SMBCloseHandle(NULL, hAccessToken);
         if (dwError)
         {

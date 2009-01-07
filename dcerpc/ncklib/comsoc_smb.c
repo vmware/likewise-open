@@ -93,28 +93,28 @@ rpc__smb_buffer_ensure_available(
             serr = ENOMEM;
             goto error;
         }
-
+        
         buffer->end_cursor = buffer->start_cursor = buffer->base;
     }
-
+    
     if (space > rpc__smb_buffer_available(buffer))
     {
         while (space > rpc__smb_buffer_available(buffer))
         {
             buffer->capacity *= 2;
         }
-
+            
         new_base = realloc(buffer->base, buffer->capacity);
-
+        
         if (!new_base)
         {
             serr = ENOMEM;
             goto error;
         }
-
+        
         buffer->start_cursor = new_base + (buffer->start_cursor - buffer->base);
         buffer->end_cursor = new_base + (buffer->end_cursor - buffer->base);
-
+        
         buffer->base = new_base;
     }
 
@@ -146,7 +146,7 @@ rpc__smb_buffer_packet_size(
     else
     {
         int packet_order = ((packet->drep[0] >> 4) & 1);
-
+        
         if (packet_order != NATIVE_ORDER)
         {
             swab(&packet->frag_len, &result, 2);
@@ -182,7 +182,7 @@ rpc__smb_buffer_append(
     )
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
-
+ 
     serr = rpc__smb_buffer_ensure_available(buffer, data_size);
     if (serr)
     {
@@ -194,7 +194,7 @@ rpc__smb_buffer_append(
     buffer->end_cursor += data_size;
 
 error:
-
+    
     return serr;
 }
 
@@ -283,7 +283,7 @@ rpc__smb_socket_create(
     *out = sock;
 
 done:
-
+    
     return err;
 
 error:
@@ -304,7 +304,7 @@ error:
         dcethread_mutex_destroy_throw(&sock->lock);
         dcethread_cond_destroy_throw(&sock->event);
     }
-
+    
     goto done;
 }
 
@@ -325,17 +325,17 @@ rpc__smb_socket_destroy(
         {
             SMBCloseServer(sock->connection);
         }
-
+        
         if (sock->selectfd[0] != -1)
         {
             close(sock->selectfd[0]);
             close(sock->selectfd[1]);
         }
-
+        
         dcethread_mutex_destroy_throw(&sock->lock);
         dcethread_cond_destroy_throw(&sock->event);
     }
-
+    
     return;
 }
 
@@ -401,7 +401,7 @@ rpc__smb_socket_construct(
     sock->data.pointer = (void*) smb_sock;
 
 done:
-
+    
     return serr;
 
 error:
@@ -451,7 +451,7 @@ rpc__smb_socket_set_session_key(
     rpc_np_auth_info_t *np_auth = NULL;
 
     RPC_MEM_ALLOC(np_auth, rpc_np_auth_info_t*, sizeof(rpc_np_auth_info_t), RPC_C_MEM_NP_SEC_CONTEXT, 0);
-
+    
     if (!np_auth)
     {
         serr = ENOMEM;
@@ -462,7 +462,7 @@ rpc__smb_socket_set_session_key(
     np_auth->princ_name = NULL;
     np_auth->workstation = NULL;
     np_auth->session_key_len = len;
-
+    
     RPC_MEM_ALLOC(np_auth->session_key, unsigned char*,
                   (sizeof(unsigned char)*(len+1)),
                   RPC_C_MEM_NP_SEC_CONTEXT, 0);
@@ -474,7 +474,7 @@ rpc__smb_socket_set_session_key(
     }
 
     memcpy(np_auth->session_key, key, len);
-
+    
     assoc->security.assoc_named_pipe_info = np_auth;
 
     np_auth->refcount++;
@@ -639,7 +639,7 @@ rpc__smb_socket_listen(
     )
 {
     rpc_socket_error_t serr = ENOTSUP;
-
+    
     fprintf(stderr, "WARNING: unsupported smb socket function %s\n", __FUNCTION__);
 
     return serr;
@@ -663,9 +663,9 @@ rpc__smb_socket_do_transact(
     {
         goto error;
     }
-
+    
     bytes_read = 0;
-
+    
     smb_status = SMBTransactNamedPipe(
         /* IPC connection */
         smb->connection,
@@ -685,7 +685,7 @@ rpc__smb_socket_do_transact(
         NULL);
 
     smb->recvbuffer.end_cursor += bytes_read;
-
+    
     /* If we didn't get the full reply, keep increasing buffer space until
        we finish the transaction */
     while (smb_status == SMB_ERROR_INSUFFICIENT_BUFFER)
@@ -695,9 +695,9 @@ rpc__smb_socket_do_transact(
         {
             goto error;
         }
-
+        
         bytes_read = 0;
-
+        
         smb_status = SMBTransactNamedPipe(
             /* IPC connection */
             smb->connection,
@@ -714,25 +714,25 @@ rpc__smb_socket_do_transact(
             &bytes_read,
             /* No overlapped IO */
             NULL);
-
+        
         smb->recvbuffer.end_cursor += bytes_read;
     }
-
+    
     if (smb_status)
     {
         serr = -1;
         goto error;
     }
-
+    
     /* Settle the remaining data (which hopefully should be zero if
        the runtime calls us with complete packets) to the start of
        the send buffer */
     rpc__smb_buffer_settle(&smb->sendbuffer);
-
+    
     /* Now that a complete message has been sent, we must switch
        into recv mode so the receiver thread can empty the recv buffer */
     rpc__smb_socket_change_state(smb, SMB_STATE_RECV);
-
+    
     /* Write a byte into the write end of the select pipe to wake up
        anything in a select */
     if (write(smb->selectfd[1], &c, sizeof(c)) < (ssize_t) sizeof(c))
@@ -740,11 +740,11 @@ rpc__smb_socket_do_transact(
         serr = errno;
         goto error;
     }
-
+    
     smb->selectfd_triggered = true;
 
 error:
-
+    
     return serr;
 }
 
@@ -778,9 +778,9 @@ rpc__smb_socket_do_send_recv(
             &bytes_written,
             /* No overlapped IO */
             NULL);
-
+        
         cursor += bytes_written;
-
+    
         if (smb_status)
         {
             serr = -1;
@@ -795,7 +795,7 @@ rpc__smb_socket_do_send_recv(
         {
             goto error;
         }
-
+        
         bytes_read = 0;
         bytes_requested = rpc__smb_buffer_available(&smb->recvbuffer);
 
@@ -818,7 +818,7 @@ rpc__smb_socket_do_send_recv(
             serr = -1;
             goto error;
         }
-
+        
         smb->recvbuffer.end_cursor += bytes_read;
     } while (bytes_read == bytes_requested);
 
@@ -827,16 +827,16 @@ rpc__smb_socket_do_send_recv(
         serr = -1;
         goto error;
     }
-
+    
     /* Settle the remaining data (which hopefully should be zero if
        the runtime calls us with complete packets) to the start of
        the send buffer */
     rpc__smb_buffer_settle(&smb->sendbuffer);
-
+    
     /* Now that a complete message has been sent, we must switch
        into recv mode so the receiver thread can empty the recv buffer */
     rpc__smb_socket_change_state(smb, SMB_STATE_RECV);
-
+    
     /* Write a byte into the write end of the select pipe to wake up
        anything in a select */
     if (write(smb->selectfd[1], &c, sizeof(c)) < (ssize_t) sizeof(c))
@@ -844,11 +844,11 @@ rpc__smb_socket_do_send_recv(
         serr = errno;
         goto error;
     }
-
+    
     smb->selectfd_triggered = true;
 
 error:
-
+    
     return serr;
 }
 
@@ -987,7 +987,7 @@ rpc__smb_socket_recvmsg(
         else
         {
             memcpy(iov[i].iov_base, smb->recvbuffer.start_cursor, pending);
-
+            
             *cc += pending;
 
             /* Reset buffer because we have emptied it */
@@ -1108,13 +1108,13 @@ rpc__smb_socket_getpeername(
     rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
 
     SMB_SOCKET_LOCK(sock);
-
+    
     if (!smb->np)
     {
         serr = EINVAL;
         goto error;
     }
-
+    
     memcpy(addr, &smb->peeraddr, sizeof(smb->peeraddr));
 
 error:
@@ -1143,7 +1143,7 @@ rpc__smb_socket_set_keepalive(
     )
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
-
+    
     return serr;
 }
 
@@ -1155,7 +1155,7 @@ rpc__smb_socket_nowriteblock_wait(
     )
 {
     rpc_socket_error_t serr = ENOTSUP;
-
+    
     fprintf(stderr, "WARNING: unsupported smb socket function %s\n", __FUNCTION__);
 
     return serr;

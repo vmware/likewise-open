@@ -206,7 +206,7 @@ error:
 /*********************************************************
  */
 
-static VOID
+static VOID 
 FreeAuthUserInfo(PLSA_AUTH_USER_INFO *pUserInfo)
 {
     if (!pUserInfo)
@@ -226,11 +226,11 @@ FreeAuthUserInfo(PLSA_AUTH_USER_INFO *pUserInfo)
     LsaDataBlobFree(&(*pUserInfo)->pSessionKey);
     LsaDataBlobFree(&(*pUserInfo)->pLmSessionKey);
 
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pSidAttribList);
+    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pSidAttribList);	
 
     LSA_SAFE_FREE_MEMORY(*pUserInfo);
 
-    return;
+    return;	
 }
 
 /*********************************************************
@@ -249,13 +249,13 @@ LsaSrvIpcAuthenticateUserEx(
     PLSA_AUTH_USER_PARAMS pParams = (PLSA_AUTH_USER_PARAMS) pRequest->object;
     PLSA_AUTH_USER_INFO pUserInfo = NULL;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = lwmsg_assoc_get_session_data(assoc);    
 
     dwError = LsaSrvAuthenticateUserEx((HANDLE)Handle,
                                        pParams,
-                                       &pUserInfo);
+                                       &pUserInfo);    
 
-    if (!dwError)
+    if (!dwError) 
     {
         pResponse->tag = LSA_R_AUTH_USER_EX_SUCCESS;
         pResponse->object = pUserInfo;
@@ -272,10 +272,10 @@ LsaSrvIpcAuthenticateUserEx(
 
 cleanup:
     if (pUserInfo)
-    {
+    {	    
        FreeAuthUserInfo(&pUserInfo);
     }
-
+    
     return MAP_LSA_ERROR_IPC(dwError);
 
 error:

@@ -48,7 +48,7 @@
 
 DWORD
 LsaSrvOpenEventLog(
-    PSTR pszCategoryType,
+    PSTR pszCategoryType,   
     PHANDLE phEventLog
     )
 {

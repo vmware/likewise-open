@@ -150,7 +150,7 @@ done:
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (gids) {
@@ -281,12 +281,12 @@ done:
 
 	if (hResume) {
 		LsaEndEnumUsers(hLsa, hResume);		
-		hResume = (HANDLE)NULL;
+		hResume = (HANDLE)NULL;	
 	}
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pUserInfo) {
