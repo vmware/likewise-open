@@ -434,6 +434,11 @@ lwmsg_connection_transceive(
     FD_ZERO(&writefds);
     nfds = 0;
     
+    if (!priv->open_write && !priv->open_read)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+    }
+
     if (priv->open_write && sendbuffer->cursor < sendbuffer->base + sendbuffer->base_length)
     {
         FD_SET(fd, &writefds);
@@ -452,17 +457,17 @@ lwmsg_connection_transceive(
         }
     }
     
-    if (priv->interrupt)
-    {
-        FD_SET(priv->interrupt->fd[0], &readfds);
-        if (nfds < priv->interrupt->fd[0] + 1)
-        {
-            nfds = priv->interrupt->fd[0] + 1;
-        }
-    }
-
     if (nfds)
     {
+        if (priv->interrupt)
+        {
+            FD_SET(priv->interrupt->fd[0], &readfds);
+            if (nfds < priv->interrupt->fd[0] + 1)
+            {
+                nfds = priv->interrupt->fd[0] + 1;
+            }
+        }
+
         if (priv->timeout_set)
         {
             BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
@@ -543,10 +548,6 @@ lwmsg_connection_recv_packet(
     {
         while (buffer->base_length - (buffer->cursor - buffer->base) < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
         {
-            if (!priv->open_read)
-            {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
-            }
             BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
         }
         
@@ -641,11 +642,6 @@ lwmsg_connection_send_packet(
                 BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
             }
             break;
-        }
-
-        if (!priv->open_write && !priv->open_read)
-        {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
         }
     }
 
