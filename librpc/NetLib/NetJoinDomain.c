@@ -27,10 +27,15 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
+#include <config.h>
 
 #include <sys/utsname.h>
 
 #include "includes.h"
+
+#if HAVE_SYS_VARARGS_H
+#include <sys/varargs.h>
+#endif
 
 #include <random.h>
 #include <lwrpc/mpr.h>

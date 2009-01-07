@@ -183,7 +183,7 @@ AC_CHECK_LIB(lsmbclient, SMBSetThreadToken, [], AC_MSG_ERROR([liblsmbclient not 
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_STDBOOL
-AC_CHECK_HEADERS([stdlib.h string.h inttypes.h])
+AC_CHECK_HEADERS([stdlib.h string.h inttypes.h sys/varargs.h])
 
 # Check for programs
 AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])
