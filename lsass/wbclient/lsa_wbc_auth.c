@@ -253,7 +253,7 @@ done:
 static DWORD
 CopyLsaUserInfoToWbcInfo(
 	struct wbcAuthUserInfo *pWbcUserInfo,
-	LSA_AUTH_USER_INFO *pUserInfo
+	PLSA_AUTH_USER_INFO pUserInfo
 	)
 {
 	return LSA_ERROR_NOT_IMPLEMENTED;	
@@ -310,10 +310,6 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 				      NULL);
 	BAIL_ON_NULL_PTR(pLsaParams, dwErr);
 	
-	pLsaUserInfo = _wbc_malloc_zero(sizeof(LSA_AUTH_USER_INFO),
-					NULL);	
-	BAIL_ON_NULL_PTR(pLsaUserInfo, dwErr);
-
 	/* Open connection to the server and get moving */
 
 	dwErr = LsaOpenServer(&hLsa);
@@ -346,7 +342,7 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 	{		
 		dwErr = LsaAuthenticateUserEx(hLsa, 
 					      pLsaParams, 
-					      pLsaUserInfo);
+					      &pLsaUserInfo);
 		BAIL_ON_LSA_ERR(dwErr);
 		break;
 	}	
@@ -374,7 +370,7 @@ done:
 		hLsa = (HANDLE)NULL;
 	}
 	_WBC_FREE(pLsaParams);
-	_WBC_FREE(pLsaUserInfo);	
+	// FreeLsaAuthUserInfo(pLsaUserInfo);
 	
 	wbc_status = map_error_to_wbc_status(dwErr);
 

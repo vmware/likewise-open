@@ -1253,15 +1253,13 @@ DWORD
 LsaTransactAuthenticateUserEx(
     IN HANDLE hServer,
     IN LSA_AUTH_USER_PARAMS* pParams,
-    //pUserInfo is allocated by the caller
-    OUT LSA_AUTH_USER_INFO* pUserInfo
+    OUT PLSA_AUTH_USER_INFO* ppUserInfo
     )
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_AUTH_USER_PARAMS authUserExReq;
-    PLSA_AUTH_USER_INFO pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
@@ -1285,11 +1283,7 @@ LsaTransactAuthenticateUserEx(
     switch (response.tag)
     {
         case LSA_R_AUTH_USER_EX_SUCCESS:
-            pResult = (PLSA_AUTH_USER_INFO) response.object;
-
-	    /* Need a deep copy here since pResult will go away */
-
-            // pUserInfo->dwDummy = pResult->dwDummy;
+            *ppUserInfo = (PLSA_AUTH_USER_INFO) response.object;
             break;
 
         case LSA_R_AUTH_USER_EX_FAILURE:

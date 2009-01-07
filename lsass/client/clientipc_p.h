@@ -194,7 +194,7 @@ DWORD
 LsaTransactAuthenticateUserEx(
     IN HANDLE hServer,
     IN LSA_AUTH_USER_PARAMS* pParams,
-    OUT LSA_AUTH_USER_INFO* pUserInfo
+    OUT PLSA_AUTH_USER_INFO* ppUserInfo
     );
 
 DWORD
