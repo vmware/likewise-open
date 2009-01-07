@@ -54,6 +54,7 @@
 
 #include "goto.h"
 #include "smbutils.h"
+#include "structs.h"
 
 NTSTATUS
 PvfsCreate(
@@ -103,6 +104,8 @@ PvfsSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
+
+#include "create.h"
 
 #endif /* __PVFS_H__ */
 
