@@ -253,13 +253,90 @@ done:
 static DWORD
 CopyLsaUserInfoToWbcInfo(
 	struct wbcAuthUserInfo *pWbcUserInfo,
-	PLSA_AUTH_USER_INFO pUserInfo
+	PLSA_AUTH_USER_INFO pLsaUserInfo
 	)
 {
-	return LSA_ERROR_NOT_IMPLEMENTED;	
+	DWORD dwErr = LSA_ERROR_INTERNAL;
+
+	BAIL_ON_NULL_PTR_PARAM(pWbcUserInfo, dwErr);
+	BAIL_ON_NULL_PTR_PARAM(pLsaUserInfo, dwErr);
+
+	pWbcUserInfo->user_flags = pLsaUserInfo->dwUserFlags;
+
+	if (pLsaUserInfo->pszAccount) {
+		pWbcUserInfo->account_name = _wbc_strdup(pLsaUserInfo->pszAccount);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->account_name, dwErr);
+	}
+
+	if (pLsaUserInfo->pszUserPrincipalName) {
+		pWbcUserInfo->user_principal = _wbc_strdup(pLsaUserInfo->pszUserPrincipalName);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->user_principal, dwErr);
+	}
+
+	if (pLsaUserInfo->pszFullName) {
+		pWbcUserInfo->full_name = _wbc_strdup(pLsaUserInfo->pszFullName);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->full_name, dwErr);
+	}
+
+	if (pLsaUserInfo->pszDomain) {
+		pWbcUserInfo->domain_name = _wbc_strdup(pLsaUserInfo->pszDomain);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->domain_name, dwErr);
+	}
+
+	if (pLsaUserInfo->pszDnsDomain) {
+		pWbcUserInfo->dns_domain_name = _wbc_strdup(pLsaUserInfo->pszDnsDomain);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->dns_domain_name, dwErr);
+	}
+
+	pWbcUserInfo->acct_flags = pLsaUserInfo->dwAcctFlags;
+	memcpy(pWbcUserInfo->user_session_key,
+	       LsaDataBlobBuffer(pLsaUserInfo->pSessionKey),
+	       sizeof(pWbcUserInfo->user_session_key));
+	memcpy(pWbcUserInfo->lm_session_key,
+	       LsaDataBlobBuffer(pLsaUserInfo->pLmSessionKey),
+	       sizeof(pWbcUserInfo->lm_session_key));
+
+	pWbcUserInfo->logon_count        = pLsaUserInfo->LogonCount;
+	pWbcUserInfo->bad_password_count = pLsaUserInfo->BadPasswordCount;
+
+	pWbcUserInfo->logon_time            = pLsaUserInfo->LogonTime;
+	pWbcUserInfo->logoff_time           = pLsaUserInfo->LogoffTime;
+	pWbcUserInfo->kickoff_time          = pLsaUserInfo->KickoffTime;
+	pWbcUserInfo->pass_last_set_time    = pLsaUserInfo->LastPasswordChange;
+	pWbcUserInfo->pass_can_change_time  = pLsaUserInfo->CanChangePassword;
+	pWbcUserInfo->pass_must_change_time = pLsaUserInfo->MustChangePassword;
+
+	if (pLsaUserInfo->pszLogonServer) {
+		pWbcUserInfo->logon_server = _wbc_strdup(pLsaUserInfo->pszLogonServer);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->logon_server, dwErr);
+	}
+
+	if (pLsaUserInfo->pszLogonScript) {
+		pWbcUserInfo->logon_script = _wbc_strdup(pLsaUserInfo->pszLogonScript);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->logon_script, dwErr);
+	}
+
+	if (pLsaUserInfo->pszProfilePath) {
+		pWbcUserInfo->profile_path = _wbc_strdup(pLsaUserInfo->pszProfilePath);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->profile_path, dwErr);
+	}
+
+	if (pLsaUserInfo->pszHomeDirectory) {
+		pWbcUserInfo->home_directory = _wbc_strdup(pLsaUserInfo->pszHomeDirectory);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->home_directory, dwErr);
+	}
+
+	if (pLsaUserInfo->pszHomeDrive) {
+		pWbcUserInfo->home_drive = _wbc_strdup(pLsaUserInfo->pszHomeDrive);
+		BAIL_ON_NULL_PTR(pWbcUserInfo->home_drive, dwErr);
+	}
+
+
+	dwErr = LSA_ERROR_SUCCESS;
+
+done:
+	return dwErr;
 }
-
-
 
 /******************************************************************
  */
