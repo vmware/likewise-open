@@ -1014,6 +1014,173 @@ LsaFreeTranslatedNameList(
     LsaFreeMemory(pNameList);
 }
 
+static INT64
+WinTimeToInt64(
+    WinNtTime WinTime
+    )
+{
+    INT64 Int64Time = 0;
+
+    Int64Time = WinTime.high;
+    Int64Time = Int64Time << 32;
+    Int64Time |= WinTime.low;
+
+    return Int64Time;
+}
+
+static DWORD
+LsaCopyDomainSid(
+    PLSA_SID pLsaSid,
+    DomSid *pNetrSid
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+
+    BAIL_ON_INVALID_POINTER(pLsaSid);
+    BAIL_ON_INVALID_POINTER(pNetrSid);
+
+    pLsaSid->Revision     = pNetrSid->revision;
+    pLsaSid->NumSubAuths  = pNetrSid->subauth_count;
+
+    memcpy(pLsaSid->AuthId, pNetrSid->authid, sizeof(pLsaSid->AuthId));
+    memcpy(pLsaSid->SubAuths, pNetrSid->subauth, sizeof(UINT32)*pLsaSid->NumSubAuths);
+
+    dwError = LSA_ERROR_SUCCESS;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static DWORD
+LsaCopyNetrUserInfo3(
+    OUT PLSA_AUTH_USER_INFO pUserInfo,
+    IN NetrValidationInfo *pNetrUserInfo3
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    NetrSamBaseInfo *pBase = NULL;
+
+    BAIL_ON_INVALID_POINTER(pUserInfo);
+    BAIL_ON_INVALID_POINTER(pNetrUserInfo3);
+
+    pBase = &pNetrUserInfo3->sam3->base;
+
+    pUserInfo->dwUserFlags = pBase->user_flags;
+
+    pUserInfo->LogonTime          = WinTimeToInt64(pBase->last_logon);
+    pUserInfo->LogoffTime         = WinTimeToInt64(pBase->last_logoff);
+    pUserInfo->KickoffTime        = WinTimeToInt64(pBase->acct_expiry);
+    pUserInfo->LastPasswordChange = WinTimeToInt64(pBase->last_password_change);
+    pUserInfo->CanChangePassword  = WinTimeToInt64(pBase->allow_password_change);
+    pUserInfo->MustChangePassword = WinTimeToInt64(pBase->force_password_change);
+
+    pUserInfo->LogonCount       = pBase->logon_count;
+    pUserInfo->BadPasswordCount = pBase->bad_password_count;
+
+    pUserInfo->dwAcctFlags = pBase->acct_flags;
+
+    dwError = LsaDataBlobStore(&pUserInfo->pSessionKey,
+                               sizeof(pBase->key.key),
+                               pBase->key.key);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDataBlobStore(&pUserInfo->pLmSessionKey,
+                               sizeof(pBase->lmkey.key),
+                               pBase->lmkey.key);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->pszUserPrincipalName = NULL;
+    pUserInfo->pszDnsDomain = NULL;
+
+    if (pBase->account_name.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->account_name.string, &pUserInfo->pszAccount);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pBase->full_name.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->full_name.string, &pUserInfo->pszFullName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pBase->domain.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->domain.string, &pUserInfo->pszDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pBase->logon_server.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->logon_server.string, &pUserInfo->pszLogonServer);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pBase->logon_script.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->logon_script.string, &pUserInfo->pszLogonScript);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pBase->home_directory.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->home_directory.string, &pUserInfo->pszHomeDirectory);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pBase->home_drive.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->home_drive.string, &pUserInfo->pszHomeDrive);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pBase->profile_path.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->profile_path.string, &pUserInfo->pszProfilePath);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaCopyDomainSid(&pUserInfo->DomainSid, pBase->domain_sid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->dwUserRid         = pBase->rid;
+    pUserInfo->dwPrimaryGroupRid = pBase->primary_gid;
+
+    pUserInfo->dwNumSids = pNetrUserInfo3->sam3->sidcount;
+    if (pUserInfo->dwNumSids != 0)
+    {
+        int i = 0;
+
+        dwError = LsaAllocateMemory(sizeof(LSA_SID_ATTRIB)*(pUserInfo->dwNumSids),
+                                    (PVOID*)pUserInfo->pSidAttribList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i=0; i<pUserInfo->dwNumSids; i++)
+        {
+            PLSA_SID_ATTRIB pSidAttrib = &(pUserInfo->pSidAttribList[i]);
+
+            pSidAttrib->dwAttrib = pNetrUserInfo3->sam3->sids[i].attribute;
+
+            dwError = LsaCopyDomainSid(&pSidAttrib->Sid,
+                                       pNetrUserInfo3->sam3->sids[i].sid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    /* All done */
+
+    dwError = LSA_ERROR_SUCCESS;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 AD_NetlogonAuthenticationUserEx(
     IN PSTR pszDomainController,
@@ -1177,6 +1344,15 @@ AD_NetlogonAuthenticationUserEx(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    /* Translate the returned NetrValidationInfo to the
+       LSA_AUTH_USER_INFO out param */
+
+    dwError = LsaAllocateMemory(sizeof(LSA_AUTH_USER_INFO), (PVOID*)ppUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaCopyNetrUserInfo3(*ppUserInfo, pValidationInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     if (hPwdDb)
     {
@@ -1208,6 +1384,8 @@ cleanup:
     return dwError;
 
 error:
+    LSA_SAFE_FREE_MEMORY(*ppUserInfo);
+
     goto cleanup;
 }
 
