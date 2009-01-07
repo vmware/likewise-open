@@ -1,13 +1,6 @@
 #ifndef __VFSPROVIDER_H__
 #define __VFSPROVIDER_H__
 
-typedef USHORT TID;
-typedef USHORT FID;
-typedef DWORD  ACCESS_MASK;
-typedef DWORD  LOCKING_ANDX_RANGE;
-typedef DWORD  SMB_DATE;
-typedef DWORD  SMB_TIME;
-
 typedef NTSTATUS (*PVFS_LW_CREATEFILE)(
                     PSMB_SECURITY_TOKEN_REP pSecurityToken,
                     LPCWSTR pwszFileName,

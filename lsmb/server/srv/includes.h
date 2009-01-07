@@ -20,18 +20,17 @@
  */
 #include "config.h"
 #include "lsmbsys.h"
-#include "smbdef.h"
 
 #include "lsmb/lsmb.h"
 
+#include "smbdef.h"
 #include "smbutils.h"
 #include "smblog_r.h"
 
 #include "ntstatus.h"
 #include "smb.h"
 
-#include "ntvfsprovider.h"
-
+#include "iodriver.h"
 
 #include "defs.h"
 #include "structs.h"
@@ -44,7 +43,13 @@
 #include "createX.h"
 #include "createtemp.h"
 #include "deldir.h"
-#include "libmain.h"
+#include "findfirst2.h"
+#include "lockX.h"
+#include "logoffX.h"
+#include "negotiate.h"
+#include "ntrename.h"
+#include "rename.h"
+#include "seek.h"
 
 #include "externs.h"
 

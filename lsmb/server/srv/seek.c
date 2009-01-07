@@ -10,10 +10,12 @@ SmbProcessSeek(
     ntStatus = UnmarshallSeekRequest(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
+#if 0
     ntStatus = SrvWriteFile(
                         hTreeObject
                         );
     BAIL_ON_NT_STATUS(ntStatus);
+#endif
 
 
     ntStatus = MarshallSeekResponse(pSmbRequest);

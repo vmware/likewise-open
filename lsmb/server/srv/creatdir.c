@@ -16,7 +16,6 @@ SmbProcessCreateDirectory(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-
     ntStatus = MarshallCreateDirectoryResponse(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 

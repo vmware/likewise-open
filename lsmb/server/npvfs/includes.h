@@ -7,6 +7,7 @@
 #include "smbutils.h"
 
 #include "ntstatus.h"
+#include "io-types.h"
 #include "ntvfsprovider.h"
 
 #include "npvfs.h"

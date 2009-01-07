@@ -2,8 +2,8 @@
 
 DWORD
 SMBSrvProcessRequest_V1(
-    PSMB_CONNECTION pSmbRequest,
-    PSMB_CONNECTION pSmbResponse
+    PSMB_PACKET pSmbRequest,
+    PSMB_PACKET pSmbResponse
     )
 {
     DWORD dwError = 0;

@@ -19,3 +19,13 @@ error:
     return (ntStatus);
 }
 
+NTSTATUS
+MarshallNegotiateResponse(
+    PSMB_CONNECTION pSmbRequest
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+

@@ -6,12 +6,16 @@ SmbProcessNTRename(
     )
 {
     NTSTATUS ntStatus = 0;
+    HANDLE hTreeObject = (HANDLE)NULL;
 
     ntStatus = UnmarshallNTRenameRequest(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvNTRenameFile(
-                        hTreeObject
+    ntStatus = SrvRenameFile(
+                        hTreeObject,
+                        0,
+                        NULL,
+                        NULL
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -37,6 +41,17 @@ UnmarshallNTRenameRequest(
     NTSTATUS ntStatus = 0;
 
     return (ntStatus);
+}
+
+NTSTATUS
+SrvRenameFile(
+    HANDLE hTreeObject,
+    USHORT usSearchAttributes,
+    LPWSTR pszOldFileName,
+    LPWSTR pszNewFileName
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 

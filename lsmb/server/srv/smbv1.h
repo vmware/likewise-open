@@ -8,8 +8,8 @@ SMBSrvInitialize_V1(
 
 DWORD
 SMBSrvProcessRequest_V1(
-    PSMB_CONNECTION pRequest,
-    PSMB_CONNECTION pResponse
+    PSMB_PACKET pRequest,
+    PSMB_PACKET pResponse
     );
 
 DWORD

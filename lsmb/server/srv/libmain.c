@@ -21,36 +21,6 @@
 #include "includes.h"
 
 DWORD
-VFSInitializeProvider(
-    PCSTR pszConfigFilePath,
-    PSTR* ppszProviderName,
-    PNTVFS_DRIVER* ppFnTable
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = SMBSrvInitialize_V1(pszConfigFilePath);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    dwError = SMBSrvListenerStart();
-    BAIL_ON_SMB_ERROR(dwError);
-
-    *ppszProviderName = gpszSrvProviderName;
-    *ppFnTable = &gSrvProviderTable;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *ppszProviderName = NULL;
-    *ppFnTable = NULL;
-
-    goto cleanup;
-}
-
-DWORD
 SrvCreateFileEx(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
     LPCWSTR pwszFileName,
@@ -164,18 +134,6 @@ SrvCreateTemporary(
 }
 
 NTSTATUS
-SrvReadFile(
-    HANDLE hTreeObject,
-    USHORT usFid,
-    ULONG ulOffset,
-    UCHAR  *pBuffer,
-    USHORT MaxCount
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
 SrvWriteFile(
     HANDLE hTreeObject,
     USHORT WriteMode,
@@ -187,20 +145,7 @@ SrvWriteFile(
     return STATUS_NOT_IMPLEMENTED;
 }
 
-NTSTATUS
-SrvLockFile(
-    HANDLE hTreeObject,
-    USHORT usFid,
-    UCHAR LockType,
-    ULONG TimeOut,
-    USHORT NumberofUnlocks,
-    USHORT NumberOfLocks,
-    LOCKING_ANDX_RANGE Unlocks[],
-    LOCKING_ANDX_RANGE Locks[]
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
+
 
 NTSTATUS
 SrvSeekFile(
@@ -244,17 +189,6 @@ SrvDeleteFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
     LPWSTR pszFileName
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
-SrvRenameFile(
-    HANDLE hTreeObject,
-    USHORT usSearchAttributes,
-    LPWSTR pszOldFileName,
-    LPWSTR pszNewFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -335,24 +269,6 @@ SrvTrans2CheckDirectory(
 }
 
 NTSTATUS
-SrvTrans2FindFirst2(
-    HANDLE hTreeObject,
-    USHORT SearchAttributes,
-    USHORT Flags,
-    USHORT InformationLevel,
-    ULONG SearchStorageType,
-    LPWSTR FileName,
-    USHORT * pusSid,
-    USHORT * puSearchCount,
-    USHORT * pusEndofSearch,
-    USHORT * pusLastNameOffset,
-    PVOID * lppBuffer
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
 SrvTrans2FindNext2(
     HANDLE hTreeObject,
     USHORT usSid,
@@ -387,29 +303,5 @@ SrvTrans2GetDFSReferral(
     )
 {
     return STATUS_NOT_IMPLEMENTED;
-}
-
-DWORD
-VFSShutdownProvider(
-    PSTR pszProviderName,
-    PNTVFS_DRIVER pFnTable
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwError2 = 0;
-
-    dwError = SMBSrvListenerStop();
-    if (dwError)
-    {
-        SMB_LOG_ERROR("Failed to stop listener [code:%d]", dwError);
-    }
-
-    dwError2 = SMBSrvShutdown_V1();
-    if (dwError2)
-    {
-        SMB_LOG_ERROR("Failed to shutdown SMB V1 Handler [code:%d]", dwError);
-    }
-
-    return dwError ? dwError : dwError2;
 }
 

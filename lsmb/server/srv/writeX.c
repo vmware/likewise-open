@@ -7,6 +7,7 @@ SmbProcessWriteAndX(
 {
     NTSTATUS ntStatus = 0;
 
+#if 0
     ntStatus = UnmarshallWriteAndXRequest(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -24,6 +25,8 @@ SmbProcessWriteAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+
+#endif
 
     return (ntStatus);
 }

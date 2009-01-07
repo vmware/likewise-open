@@ -1,12 +1,13 @@
 #include "includes.h"
 
 NTSTATUS
-SmbProcessWriteAndX(
+SmbProcessTrans2WriteAndX(
     PSMB_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
 
+#if 0
     ntStatus = UnmarshallWriteAndXRequest(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -25,12 +26,14 @@ SmbProcessWriteAndX(
 
 error:
 
+#endif
+
     return (ntStatus);
 }
 
 
 NTSTATUS
-UnmarshallWriteAndXRequest(
+UnmarshallTrans2WriteAndXRequest(
     PSMB_CONNECTION pSmbRequest
     )
 {
@@ -41,7 +44,7 @@ UnmarshallWriteAndXRequest(
 
 
 NTSTATUS
-MarshallWriteAndXResponse(
+MarshallTrans2WriteAndXResponse(
     PSMB_CONNECTION pSmbRequest
     )
 {

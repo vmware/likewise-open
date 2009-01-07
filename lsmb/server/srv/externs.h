@@ -21,9 +21,6 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern PSTR           gpszSrvProviderName;
-extern NTVFS_DRIVER   gSrvProviderTable;
-
 extern pthread_mutex_t gListenerLock;
 extern BOOLEAN         gbStopListener;
 extern pthread_t       gListenerThread;

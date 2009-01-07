@@ -266,8 +266,8 @@ SMBSrvHandleConnection(
 
     while(!SMBSrvListenerShouldStop())
     {
-        SMB_CONNECTION request_packet;
-        SMB_CONNECTION response_packet;
+        SMB_PACKET request_packet;
+        SMB_PACKET response_packet;
 
         // TODO: Use a timeout
         dwError = SMBPacketReceiveAndUnmarshall(

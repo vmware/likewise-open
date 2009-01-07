@@ -6,7 +6,18 @@ SmbProcessReadAndX(
 
 NTSTATUS
 UnmarshallReadAndXRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_CONNECTION pSmbRequest,
+    PBYTE* ppBuffer,
+    PDWORD pdwBytesRead
+    );
+
+NTSTATUS
+SrvReadFile(
+    HANDLE hTreeObject,
+    USHORT usFid,
+    ULONG ulOffset,
+    UCHAR  *pBuffer,
+    USHORT MaxCount
     );
 
 NTSTATUS

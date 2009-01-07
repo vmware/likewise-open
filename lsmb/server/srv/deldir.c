@@ -12,7 +12,9 @@ SmbProcessDeleteDirectory(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvDeleteFile(
-                        hTreeObject
+                        hTreeObject,
+                        0,
+                        NULL
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -31,7 +33,9 @@ error:
 
 NTSTATUS
 SrvDeleteFile(
-    HANDLE hTreeObject
+    HANDLE hTreeObject,
+    USHORT usSearchAttributes,
+    LPWSTR pszFileName
     )
 {
     NTSTATUS ntStatus = 0;

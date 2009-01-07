@@ -48,8 +48,9 @@
 #include "config.h"
 #include "lsmbsys.h"
 
-#include "smbdef.h"
 #include "lsmb/lsmb.h"
+
+#include "smbdef.h"
 #include "smbutils.h"
 
 #include "externs.h"

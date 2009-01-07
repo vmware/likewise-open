@@ -1,7 +1,7 @@
 #include "includes.h"
 
 NTSTATUS
-SmbProcessReadAndX(
+SmbProcessCloseAndX(
     PSMB_CONNECTION pSmbRequest
     )
 {

@@ -7,6 +7,7 @@ SmbProcessQueryFileInformation(
 {
     NTSTATUS ntStatus = 0;
 
+#if 0
     ntStatus = UnmarshallQueryFileInformationRequest(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -24,6 +25,8 @@ SmbProcessQueryFileInformation(
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+
+#endif
 
     return (ntStatus);
 }

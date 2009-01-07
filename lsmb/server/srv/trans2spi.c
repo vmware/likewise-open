@@ -7,6 +7,7 @@ SmbProcessSetPathInformation(
 {
     NTSTATUS ntStatus = 0;
 
+#if 0
     ntStatus = UnmarshallSetPathInformationRequest(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -24,6 +25,8 @@ SmbProcessSetPathInformation(
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+
+#endif
 
     return (ntStatus);
 }

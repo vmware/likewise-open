@@ -6,6 +6,7 @@ SmbProcessCreateAndX(
     )
 {
     NTSTATUS ntStatus = 0;
+    HANDLE hTreeObject = (HANDLE)NULL;
 
     ntStatus = UnmarshallCreateAndXRequest(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);

@@ -34,6 +34,7 @@
 #include "ntstatus.h"
 #include "smb.h"
 
+#include "io-types.h"
 #include "iomgr.h"
 #include "smbclient.h"
 #include "smbserver.h"

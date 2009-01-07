@@ -127,4 +127,10 @@ typedef struct _SMB_SECURITY_TOKEN_REP
 
 typedef struct SMB_FILE_HANDLE SMB_FILE_HANDLE, *PSMB_FILE_HANDLE;
 
+typedef USHORT TID;
+typedef USHORT FID;
+typedef ULONG  LOCKING_ANDX_RANGE;
+typedef ULONG  SMB_DATE;
+typedef ULONG  SMB_TIME;
+
 #endif /* __SMBDEF_H__ */

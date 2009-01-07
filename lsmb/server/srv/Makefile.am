@@ -12,7 +12,6 @@ libsrv_sys_la_SOURCES = \
     findfirst2.c   \
     flush.c        \
     globals.c      \
-    libmain.c      \
     listener.c     \
     lockX.c        \
     logoffX.c      \
@@ -41,6 +40,7 @@ libsrv_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 libsrv_sys_la_LIBADD = \
+	@top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/server/smb/libsmb.la \
     @top_builddir@/utils/libsmbutils.la \
     @UUID_LIBS@ \

@@ -7,6 +7,7 @@ SmbProcessTreeConnectAndX(
 {
     NTSTATUS ntStatus = 0;
 
+#if 0
     pSession = GetSessionObject(pSmbRequest);
 
     ntStatus = MarshallTconAndXResponse(pSmbRequest);
@@ -32,6 +33,7 @@ SmbProcessTreeConnectAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+#endif
 
     return (ntStatus);
 }

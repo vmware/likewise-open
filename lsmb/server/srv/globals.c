@@ -20,43 +20,8 @@
  */
 #include "includes.h"
 
-
 pthread_mutex_t gListenerLock = PTHREAD_MUTEX_INITIALIZER;
 BOOLEAN         gbStopListener = FALSE;
 pthread_t       gListenerThread;
 PVOID           gpListenerThread = NULL;
 
-PSTR gpszSrvProviderName = "cifs server";
-
-NTVFS_DRIVER gSrvProviderTable =
-{
-        &SrvCreateFileEx,
-        &SrvReadFileEx,
-        &SrvWriteFileEx,
-        &SrvGetSessionKey,
-        &SrvCloseFileEx,
-        &SrvTreeConnect,
-        &SrvNTCreate,
-        &SrvNTTransactCreate,
-        &SrvCreateTemporary,
-        &SrvReadFile,
-        &SrvWriteFile,
-        &SrvLockFile,
-        &SrvSeekFile,
-        &SrvFlushFile,
-        &SrvCloseFile,
-        &SrvCloseFileAndDisconnect,
-        &SrvDeleteFile,
-        &SrvRenameFile,
-        &SrvCopyFile,
-        &SrvTrans2QueryFileInformation,
-        &SrvTrans2SetPathInformation,
-        &SrvTrans2QueryPathInformation,
-        &SrvTrans2CreateDirectory,
-        &SrvTrans2DeleteDirectory,
-        &SrvTrans2CheckDirectory,
-        &SrvTrans2FindFirst2,
-        &SrvTrans2FindNext2,
-        &SrvNTTransactNotifyChange,
-        &SrvTrans2GetDFSReferral
-};

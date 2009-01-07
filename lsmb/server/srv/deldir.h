@@ -6,7 +6,9 @@ SmbProcessDeleteDirectory(
 
 NTSTATUS
 SrvDeleteFile(
-    HANDLE hTreeObject
+    HANDLE hTreeObject,
+    USHORT usSearchAttributes,
+    LPWSTR pszFileName
     );
 
 NTSTATUS

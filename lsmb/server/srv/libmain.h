@@ -163,13 +163,6 @@ SrvCloseFileAndDisconnect(
     );
 
 NTSTATUS
-SrvDeleteFile(
-    HANDLE hTreeObject,
-    USHORT usSearchAttributes,
-    LPWSTR pszFileName
-    );
-
-NTSTATUS
 SrvRenameFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
@@ -228,21 +221,6 @@ NTSTATUS
 SrvTrans2CheckDirectory(
     HANDLE hTreeObject,
     LPWSTR DirectoryName[]
-    );
-
-NTSTATUS
-SrvTrans2FindFirst2(
-    HANDLE hTreeObject,
-    USHORT SearchAttributes,
-    USHORT Flags,
-    USHORT InformationLevel,
-    ULONG SearchStorageType,
-    LPWSTR FileName,
-    USHORT * pusSid,
-    USHORT * puSearchCount,
-    USHORT * pusEndofSearch,
-    USHORT * pusLastNameOffset,
-    PVOID * lppBuffer
     );
 
 NTSTATUS
