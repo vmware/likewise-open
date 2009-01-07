@@ -9,7 +9,7 @@ IopStringLogRotate(
 NTSTATUS
 IoUnicodeStringCreateFromCString(
     OUT PIO_UNICODE_STRING pString,
-    IN PSTR pszString
+    IN PCSTR pszString
     )
 {
     NTSTATUS status = 0;
@@ -39,7 +39,7 @@ cleanup:
 NTSTATUS
 IoWC16StringCreateFromCString(
     OUT PWSTR* ppszNewString,
-    IN PSTR pszOriginalString
+    IN PCSTR pszOriginalString
     )
 {
     NTSTATUS status = 0;
@@ -242,7 +242,7 @@ IoCStringDuplicate(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    size = strlen(pszOriginalString) * sizeof(pszOriginalString[0]);
+    size = (strlen(pszOriginalString) + 1) * sizeof(pszOriginalString[0]);
 
     status = IO_ALLOCATE(&pszNewString, CHAR, size);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -259,6 +259,54 @@ cleanup:
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
+}
+
+BOOLEAN
+IoUnicodeStringIsEqual(
+    IN PIO_UNICODE_STRING pString1,
+    IN PIO_UNICODE_STRING pString2,
+    IN BOOLEAN bIsCaseSensitive
+    )
+{
+    BOOLEAN bIsEqual = FALSE;
+
+    // TODO--comparison -- need fix in libunistr...
+
+    if (pString1->Length != pString2->Length)
+    {
+        GOTO_CLEANUP();
+    }
+    else if (bIsCaseSensitive)
+    {
+        ULONG i;
+        for (i = 0; i < pString1->Length / sizeof(pString1->Buffer[0]); i++)
+        {
+            if (pString1->Buffer[i] != pString2->Buffer[i])
+            {
+                GOTO_CLEANUP();
+            }
+        }
+    }
+    else
+    {
+        ULONG i;
+        for (i = 0; i < pString1->Length / sizeof(pString1->Buffer[0]); i++)
+        {
+            wchar16_t c1[] = { pString1->Buffer[i], 0 };
+            wchar16_t c2[] = { pString2->Buffer[i], 0 };
+            wc16supper(c1);
+            wc16supper(c2);
+            if (c1[0] != c2[0])
+            {
+                GOTO_CLEANUP();
+            }
+        }
+    }
+
+    bIsEqual = TRUE;
+
+cleanup:
+    return bIsEqual;
 }
 
 // XXX - HACK!!!

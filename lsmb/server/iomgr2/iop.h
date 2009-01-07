@@ -62,7 +62,7 @@ struct _IO_DRIVER_OBJECT {
 
 struct _IO_DEVICE_OBJECT {
     LONG ReferenceCount;
-    PSTR DeviceName;
+    IO_UNICODE_STRING DeviceName;
     PIO_DRIVER_OBJECT Driver;
     LW_LIST_LINKS IrpList;
     PVOID Context;
@@ -94,10 +94,15 @@ IopRootCreate(
     IN PCSTR pszConfigFilePath
     );
 
+NTSTATUS
+IopRootLoadDrivers(
+    IN PIOP_ROOT_STATE pRoot
+    );
+
 PIO_DEVICE_OBJECT
 IopRootFindDevice(
     IN PIOP_ROOT_STATE pRoot,
-    IN PCSTR pszDeviceName
+    IN PIO_UNICODE_STRING pDeviceName
     );
 
 VOID
@@ -152,8 +157,17 @@ BOOLEAN
 IopIsSeparator(
     IN wchar16_t Character
     );
-#if 0
-{
-    return (('/' == Character) || ('\\' == Character)) ? TRUE : FALSE;
-}
-#endif
+
+NTSTATUS
+IopRootParse(
+    IN PIOP_ROOT_STATE pRoot,
+    IN OUT PIO_FILE_NAME pFileName,
+    OUT PIO_DEVICE_OBJECT* ppDevice
+    );
+
+NTSTATUS
+IopParse(
+    IN OUT PIO_FILE_NAME pFileName,
+    OUT PIO_DEVICE_OBJECT* ppDevice
+    );
+

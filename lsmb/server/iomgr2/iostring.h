@@ -30,13 +30,13 @@ IoAnsiStringInit(
 NTSTATUS
 IoUnicodeStringCreateFromCString(
     OUT PIO_UNICODE_STRING pString,
-    IN PSTR pszString
+    IN PCSTR pszString
     );
 
 NTSTATUS
 IoWC16StringCreateFromCString(
     OUT PWSTR* ppszNewString,
-    IN PSTR pszOriginalString
+    IN PCSTR pszOriginalString
     );
 
 VOID
@@ -71,6 +71,13 @@ NTSTATUS
 IoCStringDuplicate(
     OUT PSTR* ppszNewString,
     IN PCSTR pszOriginalString
+    );
+
+BOOLEAN
+IoUnicodeStringIsEqual(
+    IN PIO_UNICODE_STRING pString1,
+    IN PIO_UNICODE_STRING pString2,
+    IN BOOLEAN bIsCaseSensitive
     );
 
 PCSTR

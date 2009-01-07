@@ -14,7 +14,7 @@ IopConfigFreeDriverConfig(
     {
         IO_FREE(&pDriverConfig->pszName);
         IO_FREE(&pDriverConfig->pszPath);
-        IoFree(pDriverConfig);
+        IoMemoryFree(pDriverConfig);
         *ppDriverConfig = NULL;
     }
 }
@@ -164,6 +164,7 @@ IopConfigParseNameValuePair(
     assert(pszValue);
     assert(pState);
     assert(pState->pDriverConfig);
+    assert(pState->pDriverConfig->pszName);
 
     SMB_LOG_DEBUG("Driver = '%s', Name = '%s', Value = '%s'",
                   pState->pDriverConfig->pszName,
@@ -231,7 +232,7 @@ IopConfigFreeConfig(
             LwListRemove(pLinks);
             IopConfigFreeDriverConfig(&pDriverConfig);
         }
-        IoFree(pConfig);
+        IoMemoryFree(pConfig);
         *ppConfig = NULL;
     }
 }

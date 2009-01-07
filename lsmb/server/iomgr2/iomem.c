@@ -1,7 +1,16 @@
 #include "iop.h"
 
+VOID
+IoMemoryZero(
+    IN OUT PVOID pMemory,
+    IN size_t Size
+    )
+{
+    memset(pMemory, 0, Size);
+}
+
 PVOID
-IoAllocate(
+IoMemoryAllocate(
     IN size_t Size
     )
 {
@@ -22,10 +31,11 @@ IoAllocate(
 
 
 VOID
-IoFree(
-    PVOID pMemory
+IoMemoryFree(
+    IN OUT PVOID pMemory
     )
 {
     assert(pMemory);
     free(pMemory);
 }
+

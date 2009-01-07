@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libiomgr2.la
+lib_LTLIBRARIES = libiomgr2.la
 
 libiomgr2_la_SOURCES = \
     ioinit.c \
@@ -11,6 +11,7 @@ libiomgr2_la_SOURCES = \
     ioapi.c
 
 libiomgr2_la_CPPFLAGS = \
+    -DLW_ENABLE_THREADS=1 \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include
 
@@ -22,4 +23,5 @@ libiomgr2_la_LIBADD = \
     @SEM_LIBS@ \
     @SOCKET_LIBS@
 
-libiomgr2_la_LDFLAGS =
+libiomgr2_la_LDFLAGS = \
+    -no-undefined

@@ -12,7 +12,7 @@ IoDeviceCreate(
     int EE = 0;
     PIO_DEVICE_OBJECT pDeviceObject = NULL;
     PIO_DEVICE_OBJECT pFoundDevice = NULL;
-    PSTR pszDeviceNameCopy = NULL;
+    IO_UNICODE_STRING deviceName = { 0 };
 
     if (!DriverHandle)
     {
@@ -20,23 +20,23 @@ IoDeviceCreate(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    if (!IsNullOrEmptyString(pszName))
+    if (IsNullOrEmptyString(pszName))
     {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
+    status = IoUnicodeStringCreateFromCString(&deviceName, pszName);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
     // TODO-Add locking
 
-    pFoundDevice = IopRootFindDevice(DriverHandle->Root, pszName);
+    pFoundDevice = IopRootFindDevice(DriverHandle->Root, &deviceName);
     if (pFoundDevice)
     {
         status = STATUS_DUPLICATE_NAME;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
-
-    status = IoCStringDuplicate(&pszDeviceNameCopy, pszName);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IO_ALLOCATE(&pDeviceObject, IO_DEVICE_OBJECT, sizeof(*pDeviceObject));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -45,8 +45,8 @@ IoDeviceCreate(
 
     pDeviceObject->ReferenceCount = 1;
     pDeviceObject->Driver = DriverHandle;
-    pDeviceObject->DeviceName = pszDeviceNameCopy;
-    pszDeviceNameCopy = NULL;
+    pDeviceObject->DeviceName = deviceName;
+    IoMemoryZero(&deviceName, sizeof(deviceName));
     pDeviceObject->Context = DeviceContext;
     LwListInit(&pDeviceObject->IrpList);
 
@@ -54,6 +54,9 @@ IoDeviceCreate(
     IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
 
 cleanup:
+    IoUnicodeStringFree(&deviceName);
+
+    IO_LOG_ENTER_LEAVE_STATUS_EE(status, EE);
     return status;
 }
 
@@ -72,8 +75,8 @@ IoDeviceDelete(
         // TODO - refcounts?
         IopDriverRemoveDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
         IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
-        IO_FREE(&pDeviceObject->DeviceName);
-        IoFree(pDeviceObject);
+        IoUnicodeStringFree(&pDeviceObject->DeviceName);
+        IoMemoryFree(pDeviceObject);
         *pDeviceHandle = NULL;
     }
 }

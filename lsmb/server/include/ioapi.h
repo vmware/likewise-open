@@ -1,4 +1,7 @@
-#include "iop.h"
+#ifndef __IO_API_H__
+#define __IO_API_H__
+
+#include "io-types.h"
 
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
@@ -31,24 +34,12 @@ IoCreateFile(
     IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
     IN OPTIONAL PVOID SecurityDescriptor, // TBD
     IN PVOID SecurityQualityOfService // TBD
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    PIO_DEVICE_OBJECT pDevice = NULL;
-
-    IopParse(FileName, &pDevice);
-
-    return status;
-}
+    );
 
 NTSTATUS
 IoCloseFile(
     IN IO_FILE_HANDLE FileHandle
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoReadFile(
@@ -59,11 +50,7 @@ IoReadFile(
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoWriteFile(
@@ -74,11 +61,7 @@ IoWriteFile(
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoDeviceIoControlFile(
@@ -90,11 +73,7 @@ IoDeviceIoControlFile(
     IN ULONG InputBufferLength,
     OUT PVOID OutputBuffer,
     IN ULONG OutputBufferLength
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoFsControlFile(
@@ -106,22 +85,14 @@ IoFsControlFile(
     IN ULONG InputBufferLength,
     OUT PVOID OutputBuffer,
     IN ULONG OutputBufferLength
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoFlushBuffersFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoQueryInformationFile(
@@ -131,11 +102,7 @@ IoQueryInformationFile(
     OUT PVOID FileInformation,
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoSetInformationFile(
@@ -145,12 +112,7 @@ IoSetInformationFile(
     IN PVOID FileInformation,
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
-
+    );
 
 //
 // Additional Operations
@@ -162,11 +124,7 @@ IoQueryFullAttributesFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoQueryDirectoryFile(
@@ -180,11 +138,7 @@ IoQueryDirectoryFile(
     IN OPTIONAL PIO_FILE_SPEC FileSpec,
     IN IO_NAME_OPTIONS IoNameOptions,
     IN BOOLEAN RestartScan
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoQueryVolumeInformationFile(
@@ -194,11 +148,7 @@ IoQueryVolumeInformationFile(
     OUT PVOID FsInformation,
     IN ULONG Length,
     IN FS_INFORMATION_CLASS FsInformationClass
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoSetVolumeInformationFile(
@@ -208,11 +158,7 @@ IoSetVolumeInformationFile(
     IN PVOID FsInformation,
     IN ULONG Length,
     IN FS_INFORMATION_CLASS FsInformationClass
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoLockFile(
@@ -224,11 +170,7 @@ IoLockFile(
     IN ULONG Key,
     IN BOOLEAN FailImmediately,
     IN BOOLEAN ExclusiveLock
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoUnlockFile(
@@ -238,11 +180,7 @@ IoUnlockFile(
     IN LONG64 ByteOffset,
     IN LONG64 Length,
     IN ULONG Key
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 //
 // Namespace Operations
@@ -255,22 +193,14 @@ IoRemoveDirectoryFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoDeleteFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoLinkFile(
@@ -278,11 +208,7 @@ IoLinkFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME LinkName
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoRenameFile(
@@ -290,11 +216,7 @@ IoRenameFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FromName,
     IN PIO_FILE_NAME ToName
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoQueryQuotaInformationFile(
@@ -308,11 +230,7 @@ IoQueryQuotaInformationFile(
     IN ULONG SidListLength,
     IN OPTIONAL PSID StartSid,
     IN BOOLEAN RestartScan
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 //
 // Advanced Operations
@@ -325,11 +243,7 @@ IoSetQuotaInformationFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoQuerySecurityFile(
@@ -340,11 +254,7 @@ IoQuerySecurityFile(
     OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 NTSTATUS
 IoSetSecurityFile(
@@ -353,11 +263,8 @@ IoSetSecurityFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
+    );
 
 // TODO: QueryEaFile and SetEaFile.
 
+#endif /* __IO_API_H__ */

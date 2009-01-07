@@ -228,24 +228,30 @@ IoIrpComplete(
 
 // Drivrer memory
 
+VOID
+IoMemoryZero(
+    IN OUT PVOID pMemory,
+    IN size_t Size
+    );
+
 PVOID
-IoAllocate(
+IoMemoryAllocate(
     IN size_t Size
     );
 
 VOID
-IoFree(
-    PVOID pMemory
+IoMemoryFree(
+    IN OUT PVOID pMemory
     );
 
 #define IO_ALLOCATE(ppMemory, Type, Size) \
-    ( (*(ppMemory)) = (Type*) IoAllocate(Size), (*(ppMemory)) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
+    ( (*(ppMemory)) = (Type*) IoMemoryAllocate(Size), (*(ppMemory)) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
 
 #define IO_FREE(ppMemory) \
     do { \
         if (*(ppMemory)) \
         { \
-            IoFree(*(ppMemory)); \
+            IoMemoryFree(*(ppMemory)); \
             (*(ppMemory)) = NULL; \
         } \
     } while (0)

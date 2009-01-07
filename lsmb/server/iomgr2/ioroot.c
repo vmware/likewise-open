@@ -34,8 +34,6 @@ IopRootCreate(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    PLW_LIST_LINKS pLinks = NULL;
-    PIO_DRIVER_OBJECT pDriverObject = NULL;
     PIOP_ROOT_STATE pRoot = NULL;
 
     status = IO_ALLOCATE(&pRoot, IOP_ROOT_STATE, sizeof(*pRoot));
@@ -46,16 +44,6 @@ IopRootCreate(
 
     status = IopConfigParse(&pRoot->Config, pszConfigFilePath);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    for (pLinks = pRoot->Config->DriverConfigList.Next;
-         pLinks != &pRoot->Config->DriverConfigList;
-         pLinks = pLinks->Next)
-    {
-        PIOP_DRIVER_CONFIG pDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
-
-        status = IopDriverLoad(&pDriverObject, pRoot, pDriverConfig);
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-    }
 
 cleanup:
     if (status)
@@ -69,10 +57,35 @@ cleanup:
     return status;
 }
 
+NTSTATUS
+IopRootLoadDrivers(
+    IN PIOP_ROOT_STATE pRoot
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PLW_LIST_LINKS pLinks = NULL;
+    PIO_DRIVER_OBJECT pDriverObject = NULL;
+
+    for (pLinks = pRoot->Config->DriverConfigList.Next;
+         pLinks != &pRoot->Config->DriverConfigList;
+         pLinks = pLinks->Next)
+    {
+        PIOP_DRIVER_CONFIG pDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
+
+        status = IopDriverLoad(&pDriverObject, pRoot, pDriverConfig);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+
+cleanup:
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    return status;
+}
+
 PIO_DEVICE_OBJECT
 IopRootFindDevice(
     IN PIOP_ROOT_STATE pRoot,
-    IN PCSTR pszDeviceName
+    IN PIO_UNICODE_STRING pDeviceName
     )
 {
     PLW_LIST_LINKS pLinks = NULL;
@@ -83,7 +96,7 @@ IopRootFindDevice(
          pLinks = pLinks->Next)
     {
         PIO_DEVICE_OBJECT pDevice = LW_STRUCT_FROM_FIELD(pLinks, IO_DEVICE_OBJECT, RootLinks);
-        if (!strcasecmp(pszDeviceName, pDevice->DeviceName))
+        if (IoUnicodeStringIsEqual(pDeviceName, &pDevice->DeviceName, FALSE))
         {
             pFoundDevice = pDevice;
             break;
@@ -137,7 +150,14 @@ IopRootRemoveDevice(
     pRoot->DeviceCount--;
 }
 
-#if 0
+BOOLEAN
+IopIsSeparator(
+    IN wchar16_t Character
+    )
+{
+    return (('/' == Character) || ('\\' == Character)) ? TRUE : FALSE;
+}
+
 NTSTATUS
 IopRootParse(
     IN PIOP_ROOT_STATE pRoot,
@@ -147,7 +167,9 @@ IopRootParse(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    PWSTR pszCurrent = NULL;
+    PCWSTR pszCurrent = NULL;
+    IO_UNICODE_STRING deviceName = { 0 };
+    PIO_DEVICE_OBJECT pDevice = NULL;
 
     if (pFileName->RootFileHandle)
     {
@@ -176,9 +198,22 @@ IopRootParse(
         pszCurrent++;
     }
 
+    deviceName.Buffer = (PWSTR) pFileName->FileName + 1;
+    deviceName.Length = (pszCurrent - deviceName.Buffer) * sizeof(deviceName.Buffer[0]);
+    deviceName.MaximumLength = deviceName.Length;
+
+    pDevice = IopRootFindDevice(pRoot, &deviceName);
+    if (!pDevice)
+    {
+        status = STATUS_OBJECT_PATH_NOT_FOUND;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    pFileName->FileName = pszCurrent;
+
 cleanup:
+    *ppDevice = pDevice;
+
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
-#endif
-

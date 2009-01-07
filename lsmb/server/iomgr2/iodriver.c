@@ -35,7 +35,7 @@ IopDriverUnload(
                               pDriverObject->Config->pszPath);
             }
         }
-        IoFree(pDriverObject);
+        IoMemoryFree(pDriverObject);
         *ppDriverObject = NULL;
     }
 }
