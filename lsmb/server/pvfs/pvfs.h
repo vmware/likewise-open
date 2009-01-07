@@ -50,6 +50,7 @@
 #include "config.h"
 #include "lsmbsys.h"
 
+#include "iostring.h"
 #include "iodriver.h"
 
 #include "goto.h"

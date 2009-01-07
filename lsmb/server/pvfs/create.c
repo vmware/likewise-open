@@ -98,5 +98,88 @@ PvfsCommonCreate(
     pEaBuffer = pIrp->Args.Create.pEaBuffer;
     SecurityDescriptor = pIrp->Args.Create.SecurityDescriptor;
 
+    if (CreateOptions & FILE_DIRECTORY_FILE) {
+
+            ntStatus = PvfsCommonCreateDirectory(
+                            pIrpContext,
+                            pIrp
+                            );
+            BAIL_ON_NT_STATUS(ntStatus);
+    }else {
+
+        ntStatus = PvfsCommonCreateFile(
+                            pIrpContext,
+                            pIrp
+                            );
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+error:
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateFile(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+    IO_UNICODE_STRING RootPathName;
+    IO_UNICODE_STRING RelativePathName;
+    IO_UNICODE_STRING AbsolutePathName;
+    IO_FILE_HANDLE hFileHandle = NULL;
+
+
+    ntStatus = PvfsGetFilePathName(
+                    hFileHandle,
+                    RootPathName
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = PvfsBuildAbsolutePathName(
+                        RootPathName,
+                        RelativePathName,
+                        AbsolutePathName
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsBuildAbsolutePathName(
+    IO_UNICODE_STRING RootPathName,
+    IO_UNICODE_STRING RelativePathName,
+    IO_UNICODE_STRING AbsolutePathName
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsGetFilePathName(
+    IO_FILE_HANDLE hFileHandle,
+    IO_UNICODE_STRING PathName
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateDirectory(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
     return(ntStatus);
 }
