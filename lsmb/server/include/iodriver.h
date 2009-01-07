@@ -235,7 +235,7 @@ IoAllocate(
 
 VOID
 IoFree(
-    PVOID Pointer
+    PVOID pMemory
     );
 
 #define IO_ALLOCATE(ppMemory, Type, Size) \

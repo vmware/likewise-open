@@ -183,7 +183,7 @@ typedef void *HANDLE, **PHANDLE;
 #ifndef CHAR_DEFINED
 #define CHAR_DEFINED 1
 
-typedef char            CHAR;
+typedef char            CHAR, *PCHAR;
 
 #endif
 

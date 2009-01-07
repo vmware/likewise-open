@@ -5,25 +5,27 @@ IoAllocate(
     IN size_t Size
     )
 {
-    PVOID pointer = NULL;
-    SMBAllocateMemory(Size, &pointer);
-    return pointer;
+    PVOID pMemory = NULL;
+
+    // TODO-Document behavior for Size == 0.
+    assert(Size > 0);
+
+    // Note -- If this allocator changes, need to change iostring routines.
+    pMemory = malloc(Size);
+    if (pMemory)
+    {
+        memset(pMemory, 0, Size);
+    }
+
+    return pMemory;
 }
 
 
 VOID
 IoFree(
-    PVOID Pointer
+    PVOID pMemory
     )
 {
-    SMBFreeMemory(Pointer);
-}
-
-NTSTATUS
-IopDuplicateString(
-    OUT PSTR* ppszNewString,
-    IN PCSTR pszOriginalString
-    )
-{
-    return SMBAllocateString(pszOriginalString, ppszNewString) ? STATUS_INSUFFICIENT_RESOURCES : STATUS_SUCCESS;
+    assert(pMemory);
+    free(pMemory);
 }

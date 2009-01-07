@@ -3,6 +3,7 @@
 
 #include "iodriver.h"
 #include "ioinit.h"
+#include "iostring.h"
 
 #include "lwlist.h"
 #include "goto.h"
@@ -70,12 +71,6 @@ struct _IO_DEVICE_OBJECT {
     LW_LIST_LINKS RootLinks;
     LW_LIST_LINKS DriverLinks;
 };
-
-NTSTATUS
-IopDuplicateString(
-    OUT PSTR* ppszNewString,
-    IN PCSTR pszOriginalString
-    );
 
 VOID
 IopConfigFreeConfig(
@@ -153,3 +148,12 @@ IopDriverRemoveDevice(
     IN PLW_LIST_LINKS pDeviceDriverLinks
     );
 
+BOOLEAN
+IopIsSeparator(
+    IN wchar16_t Character
+    );
+#if 0
+{
+    return (('/' == Character) || ('\\' == Character)) ? TRUE : FALSE;
+}
+#endif

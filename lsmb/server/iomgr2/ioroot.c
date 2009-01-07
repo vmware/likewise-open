@@ -137,4 +137,48 @@ IopRootRemoveDevice(
     pRoot->DeviceCount--;
 }
 
+#if 0
+NTSTATUS
+IopRootParse(
+    IN PIOP_ROOT_STATE pRoot,
+    IN OUT PIO_FILE_NAME pFileName,
+    OUT PIO_DEVICE_OBJECT* ppDevice
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PWSTR pszCurrent = NULL;
+
+    if (pFileName->RootFileHandle)
+    {
+        // Relative path -- not yet supported.
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    // Absolute path.
+
+    if (!pFileName->FileName)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    if (!IopIsSeparator(pFileName->FileName[0]))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    pszCurrent = pFileName->FileName + 1;
+    while (pszCurrent[0] && !IopIsSeparator(pszCurrent[0]))
+    {
+        pszCurrent++;
+    }
+
+cleanup:
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    return status;
+}
+#endif
 

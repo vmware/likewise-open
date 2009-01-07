@@ -35,7 +35,7 @@ IoDeviceCreate(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    status = IopDuplicateString(&pszDeviceNameCopy, pszName);
+    status = IoCStringDuplicate(&pszDeviceNameCopy, pszName);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IO_ALLOCATE(&pDeviceObject, IO_DEVICE_OBJECT, sizeof(*pDeviceObject));

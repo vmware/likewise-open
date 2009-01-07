@@ -7,6 +7,7 @@ libiomgr2_la_SOURCES = \
     iodriver.c \
     iodevice.c \
     iomem.c \
+    iostring.c \
     ioapi.c
 
 libiomgr2_la_CPPFLAGS = \
