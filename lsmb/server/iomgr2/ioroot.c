@@ -68,3 +68,73 @@ cleanup:
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
+
+PIO_DEVICE_OBJECT
+IopRootFindDevice(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PCSTR pszDeviceName
+    )
+{
+    PLW_LIST_LINKS pLinks = NULL;
+    PIO_DEVICE_OBJECT pFoundDevice = NULL;
+
+    for (pLinks = pRoot->DeviceObjectList.Next;
+         pLinks != &pRoot->DeviceObjectList;
+         pLinks = pLinks->Next)
+    {
+        PIO_DEVICE_OBJECT pDevice = LW_STRUCT_FROM_FIELD(pLinks, IO_DEVICE_OBJECT, RootLinks);
+        if (!strcasecmp(pszDeviceName, pDevice->DeviceName))
+        {
+            pFoundDevice = pDevice;
+            break;
+        }
+    }
+
+    return pFoundDevice;
+}
+
+VOID
+IopRootInsertDriver(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PLW_LIST_LINKS pDriverRootLinks
+    )
+{
+    LwListInsertTail(&pRoot->DriverObjectList,
+                     pDriverRootLinks);
+    pRoot->DriverCount++;
+}
+
+VOID
+IopRootRemoveDriver(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PLW_LIST_LINKS pDriverRootLinks
+    )
+{
+    LwListRemove(pDriverRootLinks);
+    pRoot->DriverCount--;
+}
+
+
+
+VOID
+IopRootInsertDevice(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PLW_LIST_LINKS pDeviceRootLinks
+    )
+{
+    LwListInsertTail(&pRoot->DeviceObjectList,
+                     pDeviceRootLinks);
+    pRoot->DeviceCount++;
+}
+
+VOID
+IopRootRemoveDevice(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PLW_LIST_LINKS pDeviceRootLinks
+    )
+{
+    LwListRemove(pDeviceRootLinks);
+    pRoot->DeviceCount--;
+}
+
+

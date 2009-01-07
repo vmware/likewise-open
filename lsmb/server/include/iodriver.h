@@ -175,10 +175,15 @@ IoDriverGetContext(
 
 NTSTATUS
 IoDeviceCreate(
-    OUT PIO_DEVICE_HANDLE DeviceHandle,
+    OUT PIO_DEVICE_HANDLE pDeviceHandle,
     IN IO_DRIVER_HANDLE DriverHandle,
     IN PCSTR pszName,
     IN OPTIONAL PVOID DeviceContext
+    );
+
+VOID
+IoDeviceDelete(
+    IN OUT PIO_DEVICE_HANDLE pDeviceHandle
     );
 
 PVOID
@@ -233,15 +238,15 @@ IoFree(
     PVOID Pointer
     );
 
-#define IO_ALLOCATE(PointerToPointer, Type, Size) \
-    ( (*PointerToPointer) = (Type*) IoAllocate(Size), (*PointerToPointer) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
+#define IO_ALLOCATE(ppMemory, Type, Size) \
+    ( (*(ppMemory)) = (Type*) IoAllocate(Size), (*(ppMemory)) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
 
-#define IO_FREE(PointerToPointer) \
+#define IO_FREE(ppMemory) \
     do { \
-        if (*(PointerToPointer)) \
+        if (*(ppMemory)) \
         { \
-            IoFree(*(PointerToPointer)); \
-            (*(PointerToPointer)) = NULL; \
+            IoFree(*(ppMemory)); \
+            (*(ppMemory)) = NULL; \
         } \
     } while (0)
 

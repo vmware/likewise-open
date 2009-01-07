@@ -5,6 +5,7 @@ libiomgr2_la_SOURCES = \
     ioroot.c \
     ioconfig.c \
     iodriver.c \
+    iodevice.c \
     iomem.c \
     ioapi.c
 

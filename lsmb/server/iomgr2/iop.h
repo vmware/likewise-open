@@ -47,6 +47,7 @@ struct _IO_DRIVER_OBJECT {
     PIOP_ROOT_STATE Root;
     PIOP_DRIVER_CONFIG Config;
     LW_LIST_LINKS DeviceList;
+    ULONG DeviceCount;
     LW_LIST_LINKS DriverObjectsListLinks;
 
     PVOID LibraryHandle;
@@ -60,7 +61,8 @@ struct _IO_DRIVER_OBJECT {
 
 struct _IO_DEVICE_OBJECT {
     LONG ReferenceCount;
-    PCSTR DeviceName;
+    PSTR DeviceName;
+    PIO_DRIVER_OBJECT Driver;
     LW_LIST_LINKS IrpList;
     PVOID Context;
 
@@ -68,8 +70,6 @@ struct _IO_DEVICE_OBJECT {
     LW_LIST_LINKS RootLinks;
     LW_LIST_LINKS DriverLinks;
 };
-
-// iomem.c
 
 NTSTATUS
 IopDuplicateString(
@@ -89,6 +89,47 @@ IopConfigParse(
     );
 
 VOID
+IopRootFree(
+    IN OUT PIOP_ROOT_STATE* ppRoot
+    );
+
+NTSTATUS
+IopRootCreate(
+    OUT PIOP_ROOT_STATE* ppRoot,
+    IN PCSTR pszConfigFilePath
+    );
+
+PIO_DEVICE_OBJECT
+IopRootFindDevice(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PCSTR pszDeviceName
+    );
+
+VOID
+IopRootInsertDriver(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PLW_LIST_LINKS pDriverRootLinks
+    );
+
+VOID
+IopRootRemoveDriver(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PLW_LIST_LINKS pDriverRootLinks
+    );
+
+VOID
+IopRootInsertDevice(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PLW_LIST_LINKS pDeviceRootLinks
+    );
+
+VOID
+IopRootRemoveDevice(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PLW_LIST_LINKS pDeviceRootLinks
+    );
+
+VOID
 IopDriverUnload(
     IN OUT PIO_DRIVER_OBJECT* ppDriverObject
     );
@@ -101,13 +142,14 @@ IopDriverLoad(
     );
 
 VOID
-IopRootFree(
-    IN OUT PIOP_ROOT_STATE* ppRoot
+IopDriverInsertDevice(
+    IN PIO_DRIVER_OBJECT pDriver,
+    IN PLW_LIST_LINKS pDeviceDriverLinks
     );
 
-NTSTATUS
-IopRootCreate(
-    OUT PIOP_ROOT_STATE* ppRoot,
-    IN PCSTR pszConfigFilePath
+VOID
+IopDriverRemoveDevice(
+    IN PIO_DRIVER_OBJECT pDriver,
+    IN PLW_LIST_LINKS pDeviceDriverLinks
     );
 

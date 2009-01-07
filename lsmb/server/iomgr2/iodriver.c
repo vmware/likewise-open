@@ -16,6 +16,7 @@ IopDriverUnload(
         if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_READY))
         {
             // TODO -- Add code to cancel IO and wait for IO to complete.
+            IopRootRemoveDriver(pDriverObject->Root, &pDriverObject->DriverObjectsListLinks);
         }
         if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED))
         {
@@ -58,7 +59,7 @@ IopDriverLoad(
     status = IO_ALLOCATE(&pDriverObject, IO_DRIVER_OBJECT, sizeof(*pDriverObject));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    LwListInit(&pDriverObject->DriverObjectsListLinks);
+    LwListInit(&pDriverObject->DeviceList);
 
     pDriverObject->ReferenceCount = 1;
     pDriverObject->Root = pRoot;
@@ -103,7 +104,7 @@ IopDriverLoad(
         GOTO_CLEANUP_EE(EE);
     }
 
-    LwListInsertTail(&pRoot->DriverObjectList, &pDriverObject->DriverObjectsListLinks);
+    IopRootInsertDriver(pDriverObject->Root, &pDriverObject->DriverObjectsListLinks);
     SetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_READY);
 
 cleanup:
@@ -168,3 +169,25 @@ IoDriverGetContext(
 {
     return DriverHandle->Context;
 }
+
+VOID
+IopDriverInsertDevice(
+    IN PIO_DRIVER_OBJECT pDriver,
+    IN PLW_LIST_LINKS pDeviceDriverLinks
+    )
+{
+    LwListInsertTail(&pDriver->DeviceList,
+                     pDeviceDriverLinks);
+    pDriver->DeviceCount++;
+}
+
+VOID
+IopDriverRemoveDevice(
+    IN PIO_DRIVER_OBJECT pDriver,
+    IN PLW_LIST_LINKS pDeviceDriverLinks
+    )
+{
+    LwListRemove(pDeviceDriverLinks);
+    pDriver->DeviceCount--;
+}
+
