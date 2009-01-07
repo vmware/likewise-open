@@ -25,6 +25,7 @@
 //#undef DO_TEST
 
 #ifdef DO_TEST
+// TODO-Remove this temporary code once iomgr2 is further along.
 #include "ioapi.h"
 #include "../iomgr2/iostring.h"
 
