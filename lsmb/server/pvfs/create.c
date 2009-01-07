@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        driver.c
+ *        create.c
  *
  * Abstract:
  *
@@ -158,7 +158,7 @@ PvfsCommonCreateFile(
     IO_UNICODE_STRING RelativePathName;
     IO_UNICODE_STRING AbsolutePathName;
     IO_FILE_HANDLE hFileHandle = NULL;
-
+    FILE_CREATE_DISPOSITION CreateDisposition = 0;
 
     ntStatus = PvfsGetFilePathName(
                     hFileHandle,
@@ -172,6 +172,51 @@ PvfsCommonCreateFile(
                         AbsolutePathName
                         );
     BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (CreateDisposition){
+
+        case FILE_SUPERSEDE:
+                ntStatus = PvfsCommonCreateFileSupersede(
+                                pIrpContext,
+                                pIrp
+                                );
+                break;
+
+        case FILE_CREATE:
+                ntStatus = PvfsCommonCreateFileCreate(
+                                    pIrpContext,
+                                    pIrp
+                                    );
+                break;
+
+        case FILE_OPEN:
+                ntStatus = PvfsCommonCreateFileOpen(
+                                    pIrpContext,
+                                    pIrp
+                                    );
+                break;
+
+        case FILE_OPEN_IF:
+                ntStatus = PvfsCommonCreateFileOpenIf(
+                                pIrpContext,
+                                pIrp
+                                );
+                break;
+
+        case FILE_OVERWRITE:
+                ntStatus = PvfsCommonCreateFileOverwrite(
+                                pIrpContext,
+                                pIrp
+                                );
+                break;
+
+        case FILE_OVERWRITE_IF:
+                ntStatus = PvfsCommonCreateFileOverwriteIf(
+                                    pIrpContext,
+                                    pIrp
+                                    );
+                break;
+    }
 
 error:
 
@@ -203,6 +248,74 @@ PvfsGetFilePathName(
 
 NTSTATUS
 PvfsCommonCreateDirectory(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateFileSupersede(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+
+}
+
+NTSTATUS
+PvfsCommonCreateFileCreate(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateFileOpen(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateFileOpenIf(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+PvfsCommonCreateFileOverwrite(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+
+}
+
+NTSTATUS
+PvfsCommonCreateFileOverwriteIf(
     PPVFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
