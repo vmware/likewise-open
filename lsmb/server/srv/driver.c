@@ -51,6 +51,9 @@ DriverEntry(
                     NULL,
                     DriverShutdown,
                     DriverDispatch);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBSrvListenerStart();
 
 error:
 
@@ -101,6 +104,12 @@ DriverShutdown(
     IN IO_DRIVER_HANDLE hDriver
     )
 {
+    NTSTATUS ntStatus = SMBSrvListenerStop();
+
+    if (ntStatus)
+    {
+        SMB_LOG_ERROR("[srv] driver failed to stop. [code: %d]", ntStatus);
+    }
 }
 
 
