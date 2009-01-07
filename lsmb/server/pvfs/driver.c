@@ -17,6 +17,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
 #include "pvfs.h"
@@ -25,9 +26,9 @@
 //#undef DO_TEST
 
 #ifdef DO_TEST
-// TODO-Remove this temporary code once iomgr2 is further along.
+// TODO-Remove this test code once iomgr2 is further along.
 #include "ioapi.h"
-#include "../iomgr2/iostring.h"
+#include "iostring.h"
 
 static
 VOID
@@ -112,16 +113,16 @@ DriverDispatch(
 
         case IRP_TYPE_READ:
             ntStatus = PvfsRead(
-			  DeviceHandle,
-			  pIrp
-			  );
+                            DeviceHandle,
+                            pIrp
+                            );
              break;
 
         case IRP_TYPE_WRITE:
             ntStatus = PvfsWrite(
-                          DeviceHandle,
-                          pIrp
-                          );
+                            DeviceHandle,
+                            pIrp
+                            );
             break;
 
         case IRP_TYPE_IO_CONTROL:
@@ -130,8 +131,8 @@ DriverDispatch(
         case IRP_TYPE_FS_CONTROL:
             ntStatus = PvfsFsCtrl(
                             DeviceHandle,
-			    pIrp
-			    );
+                            pIrp
+                            );
             break;
         case IRP_TYPE_FLUSH:
         case IRP_TYPE_QUERY_INFORMATION:
