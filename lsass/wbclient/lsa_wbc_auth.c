@@ -80,36 +80,6 @@ done:
 	return wbc_status;	
 }
 
-
-static int
-FreeLsaAuthParams(void *p)
-{
-	PLSA_AUTH_USER_PARAMS pParams = (LSA_AUTH_USER_PARAMS *)p;
-
-	if (!pParams) {		
-		return 0;
-	}
-
-	_WBC_FREE(pParams->pszAccountName);
-	_WBC_FREE(pParams->pszDomain);
-	_WBC_FREE(pParams->pszWorkstation);
-
-	switch (pParams->AuthType)
-	{
-	case LSA_AUTH_PLAINTEXT:
-		_WBC_FREE(pParams->pass.clear.pszPassword);		
-		break;
-	case LSA_AUTH_CHAP:
-		LsaDataBlobFree(&pParams->pass.chap.pChallenge);		
-		LsaDataBlobFree(&pParams->pass.chap.pNT_resp);
-		LsaDataBlobFree(&pParams->pass.chap.pLM_resp);		
-		break;
-	}
-	
-	return 0;
-}
-
-
 /******************************************************************
  */
 
@@ -120,8 +90,8 @@ CopyPlaintextParams(PLSA_AUTH_USER_PARAMS pLsaParams,
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	PSTR pszPass = NULL;
 
-	pszPass = _wbc_strdup(params->password.plaintext);
-	BAIL_ON_NULL_PTR(pszPass, dwErr);	
+	dwErr = LsaAllocateString(params->password.plaintext, &pszPass);
+	BAIL_ON_LSA_ERR(dwErr);
 	
 	pLsaParams->pass.clear.pszPassword = pszPass;
 
@@ -210,17 +180,17 @@ static DWORD InitLsaAuthParams(PLSA_AUTH_USER_PARAMS pLsaParams,
 
 	/* Get the string data first */
 
-	pLsaParams->pszAccountName = _wbc_strdup(params->account_name);
-	BAIL_ON_NULL_PTR(pLsaParams->pszAccountName, dwErr);
+	dwErr = LsaAllocateString(params->account_name, &pLsaParams->pszAccountName);
+	BAIL_ON_LSA_ERR(dwErr);
 
 	if (params->domain_name) {
-		pLsaParams->pszDomain = _wbc_strdup(params->domain_name);
-		BAIL_ON_NULL_PTR(pLsaParams->pszDomain, dwErr);
+		dwErr = LsaAllocateString(params->domain_name, &pLsaParams->pszDomain);
+		BAIL_ON_LSA_ERR(dwErr);
 	}
 
 	if (params->workstation_name) {
-		pLsaParams->pszWorkstation = _wbc_strdup(params->workstation_name);
-		BAIL_ON_NULL_PTR(pLsaParams->pszWorkstation, dwErr);
+		dwErr = LsaAllocateString(params->workstation_name, &pLsaParams->pszWorkstation);
+		BAIL_ON_LSA_ERR(dwErr);
 	}
 
 	/* Now deal with the level specific parms */
@@ -239,16 +209,56 @@ static DWORD InitLsaAuthParams(PLSA_AUTH_USER_PARAMS pLsaParams,
 	}
 	
 done:
-	if (!LSA_ERROR_IS_OK(dwErr)) {		
-		/* Cleans up members bu leaves top level structure */
-		FreeLsaAuthParams(pLsaParams);
-	}
-		
 	return dwErr;
 }
 
 /******************************************************************
  */
+
+static DWORD
+CopyLsaSidToWbcSid(
+	struct wbcDomainSid *pWbcSid,
+	PLSA_SID pLsaSid
+	)
+{
+	DWORD dwErr = LSA_ERROR_INTERNAL;
+
+	BAIL_ON_NULL_PTR_PARAM(pWbcSid, dwErr);
+
+	pWbcSid->sid_rev_num = pLsaSid->Revision;
+	pWbcSid->num_auths = pLsaSid->NumSubAuths;
+	memcpy(pWbcSid->id_auth, pLsaSid->AuthId, sizeof(pWbcSid->id_auth));
+	memcpy(pWbcSid->sub_auths, pLsaSid->SubAuths, sizeof(uint32_t)*(pWbcSid->num_auths));
+
+	dwErr = LSA_ERROR_SUCCESS;
+
+done:
+	return dwErr;
+}
+
+static DWORD
+wbcSidAppendRid(
+	struct wbcDomainSid *pWbcSid,
+	uint32_t rid
+	)
+{
+	DWORD dwErr = LSA_ERROR_INTERNAL;
+
+	BAIL_ON_NULL_PTR_PARAM(pWbcSid, dwErr);
+
+	if (pWbcSid->num_auths  >= WBC_MAXSUBAUTHS) {
+		dwErr = LSA_ERROR_INVALID_SID;
+		BAIL_ON_LSA_ERR(dwErr);
+	}
+
+	pWbcSid->sub_auths[pWbcSid->num_auths] = rid;
+	pWbcSid->num_auths++;
+
+	dwErr = LSA_ERROR_SUCCESS;
+
+done:
+	return dwErr;
+}
 
 static DWORD
 CopyLsaUserInfoToWbcInfo(
@@ -257,6 +267,7 @@ CopyLsaUserInfoToWbcInfo(
 	)
 {
 	DWORD dwErr = LSA_ERROR_INTERNAL;
+	int i = 0;
 
 	BAIL_ON_NULL_PTR_PARAM(pWbcUserInfo, dwErr);
 	BAIL_ON_NULL_PTR_PARAM(pLsaUserInfo, dwErr);
@@ -331,6 +342,36 @@ CopyLsaUserInfoToWbcInfo(
 		BAIL_ON_NULL_PTR(pWbcUserInfo->home_drive, dwErr);
 	}
 
+	/* Copy the SIDs (include the user and primary group sids here) */
+
+	pWbcUserInfo->num_sids = pLsaUserInfo->dwNumSids + 2;
+
+	pWbcUserInfo->sids = _wbc_malloc_zero(sizeof(struct wbcSidWithAttr) *
+					      pWbcUserInfo->num_sids,
+					      NULL);
+	BAIL_ON_NULL_PTR(pWbcUserInfo->sids, dwErr);
+
+	/* User SID must be first */
+	dwErr = CopyLsaSidToWbcSid(&(pWbcUserInfo->sids[0].sid), &pLsaUserInfo->DomainSid);
+	BAIL_ON_LSA_ERR(dwErr);
+	dwErr = wbcSidAppendRid(&(pWbcUserInfo->sids[0].sid), pLsaUserInfo->dwUserRid);
+	BAIL_ON_LSA_ERR(dwErr);
+
+	/* Primary group SID is second */
+	dwErr = CopyLsaSidToWbcSid(&(pWbcUserInfo->sids[1].sid), &pLsaUserInfo->DomainSid);
+	BAIL_ON_LSA_ERR(dwErr);
+	dwErr = wbcSidAppendRid(&(pWbcUserInfo->sids[1].sid), pLsaUserInfo->dwPrimaryGroupRid);
+	BAIL_ON_LSA_ERR(dwErr);
+
+	for (i=0; i<pLsaUserInfo->dwNumSids; i++) {
+		dwErr = CopyLsaSidToWbcSid(&(pWbcUserInfo->sids[i+2].sid),
+					   &pLsaUserInfo->pSidAttribList[i].Sid);
+		BAIL_ON_LSA_ERR(dwErr);
+
+		pWbcUserInfo->sids[i+2].attributes = pLsaUserInfo->pSidAttribList[i].dwAttrib;
+		BAIL_ON_LSA_ERR(dwErr);
+	}
+
 
 	dwErr = LSA_ERROR_SUCCESS;
 
@@ -367,6 +408,31 @@ BuildDomainAccountName(
 /******************************************************************
  */
 
+static int
+FreeWbcUserInfo(
+	void *p
+	)
+{
+	struct wbcAuthUserInfo *info = (struct wbcAuthUserInfo*)p;
+
+	_WBC_FREE(info->account_name);
+	_WBC_FREE(info->user_principal);
+	_WBC_FREE(info->full_name);
+	_WBC_FREE(info->domain_name);
+	_WBC_FREE(info->dns_domain_name);
+
+	_WBC_FREE(info->logon_server);
+	_WBC_FREE(info->logon_script);
+	_WBC_FREE(info->profile_path);
+	_WBC_FREE(info->home_directory);
+	_WBC_FREE(info->home_drive);
+
+	_WBC_FREE(info->sids);
+
+	return 0;
+}
+
+
 wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 			     struct wbcAuthUserInfo **info,
 			     struct wbcAuthErrorInfo **error)
@@ -383,9 +449,8 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 	BAIL_ON_NULL_PTR_PARAM(params, dwErr);
 	BAIL_ON_NULL_PTR_PARAM(params->account_name, dwErr);
 
-	pLsaParams = _wbc_malloc_zero(sizeof(LSA_AUTH_USER_PARAMS),
-				      NULL);
-	BAIL_ON_NULL_PTR(pLsaParams, dwErr);
+	dwErr = LsaAllocateMemory(sizeof(LSA_AUTH_USER_PARAMS), (PVOID*)&pLsaParams);
+	BAIL_ON_LSA_ERR(dwErr);
 	
 	/* Open connection to the server and get moving */
 
@@ -436,7 +501,7 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 	}
 	
 	pWbcUserInfo = _wbc_malloc_zero(sizeof(struct wbcAuthUserInfo),
-					NULL);
+					FreeWbcUserInfo);
 
 	dwErr = CopyLsaUserInfoToWbcInfo(pWbcUserInfo, pLsaUserInfo);
 	BAIL_ON_LSA_ERR(dwErr);	
@@ -446,9 +511,14 @@ done:
 		LsaCloseServer(hLsa);
 		hLsa = (HANDLE)NULL;
 	}
-	_WBC_FREE(pLsaParams);
-	// FreeLsaAuthUserInfo(pLsaUserInfo);
 	
+	LsaFreeAuthUserInfo(&pLsaUserInfo);
+	LsaFreeAuthUserParams(&pLsaParams);
+
+	if (!LSA_ERROR_IS_OK(dwErr)) {
+		_WBC_FREE(pWbcUserInfo);
+	}
+
 	wbc_status = map_error_to_wbc_status(dwErr);
 
 	return wbc_status;	
