@@ -185,8 +185,6 @@ typedef int             BOOLEAN, *PBOOLEAN;
 
 #endif
 
-#if defined(HAVE_WCHAR16_T) || defined(WCHAR16)
-
 #ifndef PWSTR_DEFINED
 #define PWSTR_DEFINED 1
 
@@ -200,8 +198,6 @@ typedef wchar16_t *     PWSTR;
 typedef const wchar16_t * PCWSTR;
 
 #endif
-
-#endif /* HAVE_WCHAR16_T */
 
 #endif /* _WIN32 */
 
