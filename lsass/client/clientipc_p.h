@@ -90,8 +90,9 @@ LsaTransactFindGroupById(
 DWORD
 LsaTransactBeginEnumGroups(
     HANDLE hServer,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwMaxNumGroups,
+    DWORD dwGroupInfoLevel,
+    DWORD dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
     PHANDLE phResume
     );
 

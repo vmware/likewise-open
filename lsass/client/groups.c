@@ -134,6 +134,37 @@ LsaBeginEnumGroups(
                 hLsaConnection,
                 dwGroupInfoLevel,
                 dwMaxNumGroups,
+                //By default, do not checkOnline for group membership when enumerating
+                FALSE,
+                phResume);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    *phResume = (HANDLE)NULL;
+
+    goto cleanup;
+}
+
+LSASS_API
+DWORD
+LsaBeginEnumGroupsWithCheckOnlineOption(
+    HANDLE  hLsaConnection,
+    DWORD   dwGroupInfoLevel,
+    DWORD   dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
+    PHANDLE phResume
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LsaTransactBeginEnumGroups(
+                hLsaConnection,
+                dwGroupInfoLevel,
+                dwMaxNumGroups,
+                bCheckGroupMembersOnline,
                 phResume);
     BAIL_ON_LSA_ERROR(dwError);
 

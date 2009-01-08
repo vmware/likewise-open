@@ -1358,6 +1358,10 @@ AD_GroupObjectToGroupInfo(
                 NULL,
                 &sMembers,
                 &ppMembers);
+            if (dwError == LSA_ERROR_NO_SUCH_USER_OR_GROUP)
+            {
+                dwError = 0;
+            }
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
@@ -1505,6 +1509,7 @@ AD_BeginEnumGroups(
     HANDLE  hProvider,
     PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
     PHANDLE phResume
     )
 {
@@ -1515,6 +1520,7 @@ AD_BeginEnumGroups(
                         hProvider,
                         pszGUID,
                         dwInfoLevel,
+                        bCheckGroupMembersOnline,
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 

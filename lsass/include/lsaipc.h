@@ -266,12 +266,20 @@ typedef struct __LSA_IPC_SET_TRACE_INFO_REQ
     DWORD dwNumFlags;
 } LSA_IPC_SET_TRACE_INFO_REQ, *PLSA_IPC_SET_TRACE_INFO_REQ;
 
-typedef struct __LSA_IPC_BEGIN_ENUM_RECORDS_REQ
+typedef struct __LSA_IPC_BEGIN_ENUM_USERS_REQ
 {
     LsaIpcEnumServerHandle* Handle;
     DWORD dwInfoLevel;
     DWORD dwNumMaxRecords;
-} LSA_IPC_BEGIN_ENUM_RECORDS_REQ, *PLSA_IPC_BEGIN_ENUM_RECORDS_REQ;
+} LSA_IPC_BEGIN_ENUM_USERS_REQ, *PLSA_IPC_BEGIN_ENUM_USERS_REQ;
+
+typedef struct __LSA_IPC_BEGIN_ENUM_GROUPS_REQ
+{
+    LsaIpcEnumServerHandle* Handle;
+    DWORD dwInfoLevel;
+    DWORD dwNumMaxRecords;
+    BOOLEAN bCheckGroupMembersOnline;
+} LSA_IPC_BEGIN_ENUM_GROUPS_REQ, *PLSA_IPC_BEGIN_ENUM_GROUPS_REQ;
 
 typedef struct __LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ
 {

@@ -145,6 +145,7 @@ typedef DWORD (*PFNBEGIN_ENUM_GROUPS)(
                         HANDLE  hProvider,
                         PCSTR   pszGUID,
                         DWORD   dwInfoLevel,
+                        BOOLEAN bCheckGroupMembersOnline,
                         PHANDLE phResume
                         );
 

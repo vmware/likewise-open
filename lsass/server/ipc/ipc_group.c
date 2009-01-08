@@ -375,7 +375,7 @@ LsaSrvIpcBeginEnumGroups(
     PSTR pszGUID = NULL;
     PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     //PLSA_ENUM_OBJECTS_INFO pResult = NULL;
-    PLSA_IPC_BEGIN_ENUM_RECORDS_REQ pReq = pRequest->object;
+    PLSA_IPC_BEGIN_ENUM_GROUPS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
@@ -387,6 +387,7 @@ LsaSrvIpcBeginEnumGroups(
                         (HANDLE)pReq->Handle,
                         pReq->dwInfoLevel,
                         pReq->dwNumMaxRecords,
+                        pReq->bCheckGroupMembersOnline,
                         &pszGUID);
 
     if (!dwError)

@@ -228,6 +228,7 @@ LsaSrvBeginEnumGroups(
     HANDLE hServerEnum,
     DWORD  dwGroupInfoLevel,
     DWORD  dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
     PSTR*  ppszGUID
     );
 

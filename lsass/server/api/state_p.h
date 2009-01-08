@@ -64,6 +64,7 @@ typedef struct __LSA_SRV_RECORD_ENUM_STATE {
     PSTR    pszGUID;
     DWORD   dwInfoLevel;
     DWORD   dwNumMaxRecords;
+    BOOLEAN bCheckOnline;
     DWORD   dwMapFlags;
     PSTR    pszMapName;
 
@@ -143,6 +144,7 @@ LsaSrvAddGroupEnumState(
     HANDLE hEnumServer,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
+    BOOLEAN bCheckOnline,
     PLSA_SRV_RECORD_ENUM_STATE* ppEnumState
     );
 

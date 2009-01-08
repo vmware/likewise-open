@@ -816,6 +816,7 @@ LsaProviderLocal_BeginEnumGroups(
     HANDLE  hProvider,
     PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    BOOLEAN bCheckOnline,
     PHANDLE phResume
     )
 {

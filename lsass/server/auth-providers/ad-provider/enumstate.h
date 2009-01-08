@@ -78,6 +78,7 @@ AD_AddGroupState(
     HANDLE hProvider,
     PCSTR  pszGUID,
     DWORD  dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
     PAD_ENUM_STATE* ppEnumState
     );
 

@@ -300,15 +300,16 @@ error:
 DWORD
 LsaTransactBeginEnumGroups(
     HANDLE hServer,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwMaxNumGroups,
+    DWORD dwGroupInfoLevel,
+    DWORD dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
     PHANDLE phResume
     )
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    LSA_IPC_BEGIN_ENUM_RECORDS_REQ beginGroupEnumReq;
+    LSA_IPC_BEGIN_ENUM_GROUPS_REQ beginGroupEnumReq;
     // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
 
@@ -318,6 +319,7 @@ LsaTransactBeginEnumGroups(
     beginGroupEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
     beginGroupEnumReq.dwInfoLevel = dwGroupInfoLevel;
     beginGroupEnumReq.dwNumMaxRecords = dwMaxNumGroups;
+    beginGroupEnumReq.bCheckGroupMembersOnline = bCheckGroupMembersOnline;
 
     request.tag = LSA_Q_BEGIN_ENUM_GROUPS;
     request.object = &beginGroupEnumReq;
@@ -881,7 +883,7 @@ LsaTransactBeginEnumUsers(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    LSA_IPC_BEGIN_ENUM_RECORDS_REQ beginUserEnumReq;
+    LSA_IPC_BEGIN_ENUM_USERS_REQ beginUserEnumReq;
     // Do not free pResult and pError
     PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;

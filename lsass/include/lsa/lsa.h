@@ -1119,6 +1119,15 @@ LsaBeginEnumGroups(
     );
 
 DWORD
+LsaBeginEnumGroupsWithCheckOnlineOption(
+    HANDLE  hLsaConnection,
+    DWORD   dwGroupInfoLevel,
+    DWORD   dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
+    PHANDLE phResume
+    );
+
+DWORD
 LsaEnumGroups(
     HANDLE  hLsaConnection,
     HANDLE  hResume,

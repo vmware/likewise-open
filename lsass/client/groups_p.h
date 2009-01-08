@@ -68,6 +68,16 @@ LsaBeginEnumGroups(
 
 LSASS_API
 DWORD
+LsaBeginEnumGroupsWithCheckOnlineOption(
+    HANDLE  hLsaConnection,
+    DWORD   dwGroupInfoLevel,
+    DWORD   dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
+    PHANDLE phResume
+    );
+
+LSASS_API
+DWORD
 LsaEnumGroups(
     HANDLE  hLsaConnection,
     HANDLE  hResume,

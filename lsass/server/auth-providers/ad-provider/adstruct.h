@@ -52,6 +52,7 @@ typedef struct __AD_ENUM_STATE {
     PSTR pszGUID;
 
     DWORD dwInfoLevel;
+    BOOLEAN bCheckGroupMembersOnline;
     LSA_NIS_MAP_QUERY_FLAGS dwMapFlags;
     PSTR  pszMapName;
 

@@ -495,14 +495,27 @@ static LWMsgTypeSpec gLsaIPCFindObjectByIdReqSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaIPCBeginObjectEnumReqSpec[] =
+static LWMsgTypeSpec gLsaIPCBeginUserEnumReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_RECORDS_REQ),
+    LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_USERS_REQ),
     /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
+    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_USERS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
     LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, dwInfoLevel),
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, dwNumMaxRecords),
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, dwNumMaxRecords),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIPCBeginGroupEnumReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_GROUPS_REQ),
+    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
+    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
+    LWMSG_ATTR_HANDLE_LOCAL,
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, dwNumMaxRecords),
+    LWMSG_MEMBER_INT8(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, bCheckGroupMembersOnline),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -877,7 +890,7 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_GROUP_BY_ID, gLsaIPCFindObjectByIdReqSpec),
     LWMSG_MESSAGE(LSA_R_GROUP_BY_ID_SUCCESS, gLsaGroupInfoListSpec),
     LWMSG_MESSAGE(LSA_R_GROUP_BY_ID_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_GROUPS, gLsaIPCBeginObjectEnumReqSpec),
+    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_GROUPS, gLsaIPCBeginGroupEnumReqSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_SUCCESS, gLsaBeginObjectEnumSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_ENUM_GROUPS, gLsaIPCEnumObjectReqSpec),
@@ -892,7 +905,7 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_USER_BY_ID, gLsaIPCFindObjectByIdReqSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_ID_SUCCESS, gLsaUserInfoListSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_ID_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_USERS, gLsaIPCBeginObjectEnumReqSpec),
+    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_USERS, gLsaIPCBeginUserEnumReqSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_SUCCESS, gLsaBeginObjectEnumSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_ENUM_USERS, gLsaIPCEnumObjectReqSpec),
