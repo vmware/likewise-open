@@ -141,7 +141,7 @@
     # Values: full unprovisioned
     # Default: full
     #
-    # cell-support = full
+    # cell-support = unprovisioned
 
     # Whether to remove a cached group membership entry derived from PAC
     # with information from LDAP showing the user disappearing from
