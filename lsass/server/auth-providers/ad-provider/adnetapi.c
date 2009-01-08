@@ -1384,7 +1384,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(*ppUserInfo);
+    LsaFreeAuthUserInfo(ppUserInfo);
 
     goto cleanup;
 }
