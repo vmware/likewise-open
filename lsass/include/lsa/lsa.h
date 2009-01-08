@@ -901,7 +901,7 @@ typedef enum
 
 typedef struct __LSA_AUTH_CLEARTEXT_PARAM
 {
-	PCSTR pszPassword;
+	PSTR pszPassword;
 
 } LSA_AUTH_CLEARTEXT_PARAM, *PLSA_AUTH_CLEARTEXT_PARAM;
 
@@ -923,9 +923,9 @@ typedef struct __LSA_AUTH_CHAP_PARAM
 typedef struct __LSA_AUTH_USER_PARAMS
 {
 	LsaAuthType AuthType;
-	PCSTR pszAccountName;
-	PCSTR pszDomain;
-	PCSTR pszWorkstation;
+	PSTR pszAccountName;
+	PSTR pszDomain;
+	PSTR pszWorkstation;
 	union _PASS{
 		LSA_AUTH_CLEARTEXT_PARAM clear;
 		LSA_AUTH_CHAP_PARAM      chap;
@@ -1301,6 +1301,16 @@ LsaAuthenticateUser(
     PCSTR  pszLoginName,
     PCSTR  pszPassword
     );
+
+DWORD
+LsaFreeAuthUserInfo(
+	PLSA_AUTH_USER_INFO *ppAuthUserInfo
+	);
+
+DWORD
+LsaFreeAuthUserParams(
+	PLSA_AUTH_USER_PARAMS *ppAuthUserParams
+	);
 
 DWORD
 LsaAuthenticateUserEx(
