@@ -41,7 +41,7 @@
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Driver Entry Function
+ *       Create Dispatch Routine
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -81,7 +81,21 @@ PvfsAllocateIrpContext(
     )
 {
     NTSTATUS ntStatus = 0;
+    PPVFS_IRP_CONTEXT pIrpContext = NULL;
 
+    /*ntStatus = IoMemoryAllocate(
+                    sizeof(PVFS_IRP_CONTEXT),
+                    &pIrpContext
+                    );*/
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppIrpContext = pIrpContext;
+
+    return(ntStatus);
+
+error:
+
+    *ppIrpContext = NULL;
     return(ntStatus);
 }
 
@@ -92,6 +106,21 @@ PvfsAllocateCCB(
     )
 {
     NTSTATUS ntStatus = 0;
+    PPVFS_CCB pCCB = NULL;
+
+   /* ntStatus = IoMemoryAllocate(
+                    sizeof(PVFS_CCB),
+                    &pCCB
+                    );*/
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppCCB = pCCB;
+
+    return(ntStatus);
+
+error:
+
+    *ppCCB = NULL;
 
     return(ntStatus);
 }
@@ -157,14 +186,8 @@ PvfsCommonCreateFile(
     IO_UNICODE_STRING RootPathName;
     IO_UNICODE_STRING RelativePathName;
     IO_UNICODE_STRING AbsolutePathName;
-    IO_FILE_HANDLE hFileHandle = NULL;
+    //IO_FILE_HANDLE hFileHandle = NULL;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
-
-    ntStatus = PvfsGetFilePathName(
-                    hFileHandle,
-                    RootPathName
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = PvfsBuildAbsolutePathName(
                         RootPathName,
@@ -172,6 +195,10 @@ PvfsCommonCreateFile(
                         AbsolutePathName
                         );
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pIrpContext->RootPathName = RootPathName;
+    pIrpContext->RelativePathName = RelativePathName;
+    pIrpContext->AbsolutePathName = AbsolutePathName;
 
     switch (CreateDisposition){
 
@@ -253,9 +280,19 @@ PvfsCommonCreateFileSupersede(
     )
 {
     NTSTATUS ntStatus = 0;
+	IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+	ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return(ntStatus);
-
 }
 
 NTSTATUS
@@ -265,6 +302,19 @@ PvfsCommonCreateFileCreate(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+
+error:
 
     return(ntStatus);
 }
@@ -276,6 +326,18 @@ PvfsCommonCreateFileOpen(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+	ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+error:
 
     return(ntStatus);
 }
@@ -287,6 +349,18 @@ PvfsCommonCreateFileOpenIf(
     )
 {
     NTSTATUS ntStatus = 0;
+	IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+	ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+error:
 
     return(ntStatus);
 }
@@ -298,6 +372,18 @@ PvfsCommonCreateFileOverwrite(
     )
 {
     NTSTATUS ntStatus = 0;
+	IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+error:
 
     return(ntStatus);
 
@@ -310,6 +396,18 @@ PvfsCommonCreateFileOverwriteIf(
     )
 {
     NTSTATUS ntStatus = 0;
+	IO_FILE_HANDLE hFileHandle = NULL;
+	PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+error:
 
     return(ntStatus);
 }
@@ -399,9 +497,21 @@ PvfsCommonCreateDirectoryFileSupersede(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     return(ntStatus);
+error:
 
+    return(ntStatus);
 }
 
 NTSTATUS
@@ -411,6 +521,18 @@ PvfsCommonCreateDirectoryFileCreate(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+error:
 
     return(ntStatus);
 }
@@ -422,6 +544,18 @@ PvfsCommonCreateDirectoryFileOpen(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+error:
 
     return(ntStatus);
 }
@@ -433,6 +567,18 @@ PvfsCommonCreateDirectoryFileOpenIf(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+error:
 
     return(ntStatus);
 }
@@ -444,9 +590,25 @@ PvfsCommonCreateDirectoryFileOverwrite(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+	//
+	//
+	//
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
 
     return(ntStatus);
+error:
 
+    return(ntStatus);
 }
 
 NTSTATUS
@@ -456,6 +618,18 @@ PvfsCommonCreateDirectoryFileOverwriteIf(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE hFileHandle = NULL;
+    PPVFS_CCB pCCB = NULL;
+
+    hFileHandle = pIrpContext->pIrp->FileHandle;
+    ntStatus = PvfsAllocateCCB(&pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(hFileHandle, pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    return(ntStatus);
+error:
 
     return(ntStatus);
 }

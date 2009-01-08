@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        driver.c
+ *        close.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Driver Entry Function
+ *        Close Dispatch Function
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
