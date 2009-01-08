@@ -46,7 +46,7 @@ IopDriverUnload(
         if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_READY))
         {
             // TODO -- Add code to cancel IO and wait for IO to complete.
-            IopRootRemoveDriver(pDriverObject->Root, &pDriverObject->DriverObjectsListLinks);
+            IopRootRemoveDriver(pDriverObject->Root, &pDriverObject->RootLinks);
         }
         if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED))
         {
@@ -134,7 +134,7 @@ IopDriverLoad(
         GOTO_CLEANUP_EE(EE);
     }
 
-    IopRootInsertDriver(pDriverObject->Root, &pDriverObject->DriverObjectsListLinks);
+    IopRootInsertDriver(pDriverObject->Root, &pDriverObject->RootLinks);
     SetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_READY);
 
 cleanup:

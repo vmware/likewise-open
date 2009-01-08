@@ -77,9 +77,6 @@ struct _IO_DRIVER_OBJECT {
     IO_DRIVER_OBJECT_FLAGS Flags;
     PIOP_ROOT_STATE Root;
     PIOP_DRIVER_CONFIG Config;
-    LW_LIST_LINKS DeviceList;
-    ULONG DeviceCount;
-    LW_LIST_LINKS DriverObjectsListLinks;
 
     PVOID LibraryHandle;
     PIO_DRIVER_ENTRY DriverEntry;
@@ -88,19 +85,51 @@ struct _IO_DRIVER_OBJECT {
         PIO_DRIVER_DISPATCH_CALLBACK Dispatch;
     } Callback;
     PVOID Context;
+
+    // Devices
+    LW_LIST_LINKS DeviceList;
+    ULONG DeviceCount;
+
+    // For each list to which this object belongs.
+    LW_LIST_LINKS RootLinks;
+
 };
 
 struct _IO_DEVICE_OBJECT {
     LONG ReferenceCount;
     IO_UNICODE_STRING DeviceName;
     PIO_DRIVER_OBJECT Driver;
-    LW_LIST_LINKS IrpList;
     PVOID Context;
 
-    // For each list to which this device belongs.
-    LW_LIST_LINKS RootLinks;
+    // File objects for this device.
+    LW_LIST_LINKS FileObjectsList;
+
+    // For each list to which this object belongs.
     LW_LIST_LINKS DriverLinks;
+    LW_LIST_LINKS RootLinks;
 };
+
+struct _IO_FILE_OBJECT {
+    LONG ReferenceCount;
+    PIO_DEVICE_OBJECT pDevice;
+    PVOID pContext;
+
+    // IRPs for this file object.
+    LW_LIST_LINKS IrpList;
+
+    // For each list to which this object belongs.
+    LW_LIST_LINKS DeviceLinks;
+};
+
+// ioinit.c
+
+NTSTATUS
+IopParse(
+    IN OUT PIO_FILE_NAME pFileName,
+    OUT PIO_DEVICE_OBJECT* ppDevice
+    );
+
+// ioconfig.c
 
 VOID
 IopConfigFreeConfig(
@@ -112,6 +141,8 @@ IopConfigParse(
     OUT PIOP_CONFIG* ppConfig,
     IN PCSTR pszConfigFilePath
     );
+
+// ioroot.c
 
 VOID
 IopRootFree(
@@ -159,6 +190,20 @@ IopRootRemoveDevice(
     IN PLW_LIST_LINKS pDeviceRootLinks
     );
 
+BOOLEAN
+IopIsSeparator(
+    IN wchar16_t Character
+    );
+
+NTSTATUS
+IopRootParse(
+    IN PIOP_ROOT_STATE pRoot,
+    IN OUT PIO_FILE_NAME pFileName,
+    OUT PIO_DEVICE_OBJECT* ppDevice
+    );
+
+// iodriver.c
+
 VOID
 IopDriverUnload(
     IN OUT PIO_DRIVER_OBJECT* ppDriverObject
@@ -183,21 +228,38 @@ IopDriverRemoveDevice(
     IN PLW_LIST_LINKS pDeviceDriverLinks
     );
 
-BOOLEAN
-IopIsSeparator(
-    IN wchar16_t Character
-    );
+// iodevice.c
 
 NTSTATUS
-IopRootParse(
-    IN PIOP_ROOT_STATE pRoot,
-    IN OUT PIO_FILE_NAME pFileName,
-    OUT PIO_DEVICE_OBJECT* ppDevice
+IopDeviceCallDriver(
+    IN IO_DEVICE_HANDLE DeviceHandle,
+    IN OUT PIRP pIrp
     );
 
+// ioirp.c
+
 NTSTATUS
-IopParse(
-    IN OUT PIO_FILE_NAME pFileName,
-    OUT PIO_DEVICE_OBJECT* ppDevice
+IopIrpCreate(
+    OUT PIRP* ppIrp,
+    IN IRP_TYPE Type,
+    IN PIO_FILE_OBJECT pFileObject
+    );
+
+VOID
+IopIrpFree(
+    IN OUT PIRP* ppIrp
+    );
+
+// iofile.c
+
+NTSTATUS
+IopFileObjectAllocate(
+    OUT PIO_FILE_OBJECT* ppFileObject,
+    IN PIO_DEVICE_OBJECT pDevice
+    );
+
+VOID
+IopFileObjectFree(
+    IN OUT PIO_FILE_OBJECT* ppFileObject
     );
 

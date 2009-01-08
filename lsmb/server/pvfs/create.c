@@ -117,7 +117,7 @@ PvfsCommonCreate(
     PVOID SecurityDescriptor;
     //PVOID SecurityQualityOfService;
 
-    FileHandle = pIrp->Args.Create.FileHandle;
+    FileHandle = pIrp->FileHandle;
     DesiredAccess = pIrp->Args.Create.DesiredAccess;
     AllocationSize = pIrp->Args.Create.AllocationSize;
     ShareAccess = pIrp->Args.Create.ShareAccess;

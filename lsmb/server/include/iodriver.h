@@ -72,9 +72,7 @@ typedef ULONG IRP_TYPE;
 #endif
 
 typedef struct _IRP_ARGS_CREATE {
-    // Used to set the context
-    IN IO_FILE_HANDLE FileHandle;
-    IN PIO_FILE_NAME FileName;
+    IN IO_FILE_NAME FileName;
     IN ACCESS_MASK DesiredAccess;
     IN OPTIONAL LONG64 AllocationSize;
     IN FILE_ATTRIBUTES FileAttributes;
@@ -86,12 +84,7 @@ typedef struct _IRP_ARGS_CREATE {
     IN PVOID SecurityQualityOfService; // TBD
 } IRP_ARGS_CREATE, *PIRP_ARGS_CREATE;
 
-typedef struct _IRP_ARGS_FILE_HANDLE {
-    IN IO_FILE_HANDLE FileHandle;
-} IRP_ARGS_FILE_HANDLE, *PIRP_ARGS_FILE_HANDLE;
-
 typedef struct _IRP_ARGS_READ_WRITE {
-    IN IO_FILE_HANDLE FileHandle;
     // IN for write, OUT for read
     IN OUT PVOID Buffer;
     IN ULONG Length;
@@ -100,7 +93,6 @@ typedef struct _IRP_ARGS_READ_WRITE {
 } IRP_ARGS_READ_WRITE, *PIRP_ARGS_READ_WRITE;
 
 typedef struct _IRP_ARGS_IO_FS_CONTROL {
-    IN IO_FILE_HANDLE FileHandle;
     IN ULONG ControlCode;
     IN PVOID InputBuffer;
     IN ULONG InputBufferLength;
@@ -113,18 +105,17 @@ typedef struct _IRP {
     OUT IO_STATUS_BLOCK IoStatus;
     IN IO_DRIVER_HANDLE DriverHandle;
     IN IO_DEVICE_HANDLE DeviceHandle;
+    IN IO_FILE_HANDLE FileHandle;
     union {
         // IRP_TYPE_CREATE
         IRP_ARGS_CREATE Create;
-        // IRP_TYPE_CLOSE
-        IRP_ARGS_FILE_HANDLE Close;
         // IRP_TYPE_READ, IRP_TYPE_WRITE
         IRP_ARGS_READ_WRITE ReadWrite;
         // IRP_TYPE_IO_CONTROL, IRP_TYPE_FS_CONTROL
         IRP_ARGS_IO_FS_CONTROL IoFsControl;
-        IRP_ARGS_FILE_HANDLE FlushBuffers;
+        // No args for IRP_TYPE_CLOSE, IRP_TYPE_FLUSH
     } Args;
-    // Private Data at the end...
+    // Internal data at the end...
 } IRP, *PIRP;
 
 typedef NTSTATUS (*PIO_IRP_CALLBACK)(

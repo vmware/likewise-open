@@ -2,10 +2,12 @@ lib_LTLIBRARIES = libiomgr2.la
 
 libiomgr2_la_SOURCES = \
     ioinit.c \
-    ioroot.c \
     ioconfig.c \
+    ioroot.c \
     iodriver.c \
     iodevice.c \
+    ioirp.c \
+    iofile.c \
     iomem.c \
     iostring.c \
     ioapi.c

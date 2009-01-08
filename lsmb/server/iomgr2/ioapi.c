@@ -63,11 +63,82 @@ IoCreateFile(
     IN PVOID SecurityQualityOfService // TBD
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_FILE_NAME fileName = *FileName;
     PIO_DEVICE_OBJECT pDevice = NULL;
+    PWSTR pszFileName = NULL;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatus = { 0 };
+    PIO_FILE_OBJECT pFileObject = NULL;
 
-    IopParse(FileName, &pDevice);
+    if (AsyncControlBlock ||
+        pEaBuffer ||
+        SecurityDescriptor ||
+        SecurityQualityOfService)
+    {
+        // Not yet implemented.
+        assert(FALSE);
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
 
+    // TODO -- Add basic param validation...
+
+    status = IopParse(&fileName, &pDevice);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    if (fileName.FileName)
+    {
+        status = IoWC16StringDuplicate(&pszFileName, fileName.FileName);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+
+    status = IopFileObjectAllocate(&pFileObject, pDevice);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = IopIrpCreate(&pIrp, IRP_TYPE_CREATE, pFileObject);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.Create.FileName = fileName;
+    pIrp->Args.Create.FileName.FileName = pszFileName;
+    pszFileName = NULL;
+
+    pIrp->Args.Create.DesiredAccess = DesiredAccess;
+    pIrp->Args.Create.AllocationSize = AllocationSize;
+    pIrp->Args.Create.FileAttributes = FileAttributes;
+    pIrp->Args.Create.ShareAccess = ShareAccess;
+    pIrp->Args.Create.CreateDisposition = CreateDisposition;
+    pIrp->Args.Create.CreateOptions = CreateOptions;
+    pIrp->Args.Create.pEaBuffer = pEaBuffer;
+    pIrp->Args.Create.SecurityDescriptor = SecurityDescriptor;
+    pIrp->Args.Create.SecurityQualityOfService = SecurityQualityOfService;
+
+    status = IopDeviceCallDriver(pDevice, pIrp);
+    ioStatus = pIrp->IoStatus;
+    // TODO -- handle asyc behavior.
+    assert(ioStatus.Status == status);
+
+cleanup:
+    // TODO -- handle asych behavior.
+    if (status)
+    {
+        ioStatus.Status = status;
+        IopFileObjectFree(&pFileObject);
+    }
+
+    IO_FREE(&pszFileName);
+    if (pIrp)
+    {
+        pszFileName = (PWSTR) pIrp->Args.Create.FileName.FileName;
+        IO_FREE(&pszFileName);
+    }
+    IopIrpFree(&pIrp);
+
+    *FileHandle = pFileObject;
+    *IoStatusBlock = ioStatus;
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -76,7 +147,22 @@ IoCloseFile(
     IN IO_FILE_HANDLE FileHandle
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+
+    status = IopIrpCreate(&pIrp, IRP_TYPE_CLOSE, FileHandle);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
+    // TODO -- handle asyc behavior.
+    assert(pIrp->IoStatus.Status == status);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    IopIrpFree(&pIrp);
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 

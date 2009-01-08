@@ -78,7 +78,8 @@ IoDeviceCreate(
     pDeviceObject->DeviceName = deviceName;
     IoMemoryZero(&deviceName, sizeof(deviceName));
     pDeviceObject->Context = DeviceContext;
-    LwListInit(&pDeviceObject->IrpList);
+
+    LwListInit(&pDeviceObject->FileObjectsList);
 
     IopDriverInsertDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
     IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
@@ -101,8 +102,8 @@ IoDeviceDelete(
 
     if (pDeviceObject)
     {
-        // TODO - tear down I/O
-        // TODO - refcounts?
+        // TODO -- add proper drain support...
+        assert(LwListIsEmpty(&pDeviceObject->FileObjectsList));
         IopDriverRemoveDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
         IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
         IoUnicodeStringFree(&pDeviceObject->DeviceName);
@@ -117,5 +118,15 @@ IoDeviceGetContext(
     )
 {
     return DeviceHandle->Context;
+}
+
+NTSTATUS
+IopDeviceCallDriver(
+    IN IO_DEVICE_HANDLE DeviceHandle,
+    IN OUT PIRP pIrp
+    )
+{
+    // TODO -- Add IRP list management, etc.
+    return DeviceHandle->Driver->Callback.Dispatch(DeviceHandle, pIrp);
 }
 

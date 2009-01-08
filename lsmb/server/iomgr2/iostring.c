@@ -236,7 +236,7 @@ IoWC16StringDuplicate(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    size = wc16slen(pszOriginalString) * sizeof(pszOriginalString[0]);
+    size = (wc16slen(pszOriginalString) + 1) * sizeof(pszOriginalString[0]);
 
     status = IO_ALLOCATE(&pszNewString, wchar16_t, size);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);

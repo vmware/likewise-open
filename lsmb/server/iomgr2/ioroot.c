@@ -46,7 +46,7 @@ IopRootFree(
              pLinks != &pRoot->DriverObjectList;
              pLinks = pLinks->Prev)
         {
-            PIO_DRIVER_OBJECT pDriverObject = LW_STRUCT_FROM_FIELD(pLinks, IO_DRIVER_OBJECT, DriverObjectsListLinks);
+            PIO_DRIVER_OBJECT pDriverObject = LW_STRUCT_FROM_FIELD(pLinks, IO_DRIVER_OBJECT, RootLinks);
 
             LwListRemove(pLinks);
             IopDriverUnload(&pDriverObject);
