@@ -467,6 +467,21 @@ lwmsg_server_listen_thread(
             if (server->listen_assocs.queue[i])
             {
                 priv = lwmsg_assoc_get_private(server->listen_assocs.queue[i]);
+
+                /* If there is already residual data, don't bother waiting for more */
+                if (priv->recvbuffer.base_length > 0)
+                {
+                    assoc_queue_remove_at_index(server, &server->listen_assocs, i, &assoc);
+                    assoc_queue_add(server, &server->service_assocs, assoc);
+
+                    if (server->state == LWMSG_SERVER_SHUTDOWN)
+                    {
+                        goto done;
+                    }
+
+                    pthread_cond_signal(&server->listen_assocs.event);
+                }
+
                 FD_SET(priv->fd, &readfds);
                 if (nfds < priv->fd + 1)
                 {

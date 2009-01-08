@@ -131,8 +131,6 @@ typedef struct ConnectionPrivate
 {
     LWMsgConnectionMode mode;
     int fd;
-    unsigned open_read:1;
-    unsigned open_write:1;
     char* endpoint;
     ConnectionBuffer sendbuffer;
     ConnectionBuffer recvbuffer;
@@ -253,11 +251,6 @@ LWMsgStatus
 lwmsg_connection_dequeue_fd(
     LWMsgAssoc* assoc,
     int* out_fd
-    );
-
-LWMsgStatus
-lwmsg_connection_transceive(
-    LWMsgAssoc* assoc
     );
 
 LWMsgStatus

@@ -105,7 +105,6 @@ lwmsg_connection_handle_urgent(LWMsgAssoc* assoc, ConnectionPacket* packet)
         {
             close(priv->fd);
             priv->fd = -1;
-            priv->open_read = priv->open_write = 0;
         }
 
         BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
@@ -377,7 +376,6 @@ error:
         shutdown(priv->fd, SHUT_RDWR);
         close(priv->fd);
         priv->fd = -1;
-        priv->open_read = priv->open_write = 0;
     }
 
     /* Reset buffers */
@@ -439,7 +437,6 @@ lwmsg_connection_connect_local(
     }
 
     priv->fd = sock;
-    priv->open_read = priv->open_write = 1;
 
 error:
 

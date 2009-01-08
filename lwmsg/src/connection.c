@@ -82,7 +82,6 @@ lwmsg_connection_destruct(
     {
         close(priv->fd);
         priv->fd = -1;
-        priv->open_read = priv->open_write = 0;
     }
 
     if (priv->endpoint)
@@ -385,8 +384,6 @@ lwmsg_connection_set_fd(
 
     priv->fd = fd;
     priv->mode = mode;
-    priv->open_read = 1;
-    priv->open_write = 1;
 
 error:
 
