@@ -42,9 +42,6 @@ typedef wchar_t             wchar16_t;
 #define WCHAR16_IS_WCHAR
 #endif
 
-#define WCHAR16	wchar16_t
-#define WCHAR wchar_t
-
 #endif /* WCHAR16_T_DEFINED */
 
 #endif /* WCHAR16_H */
