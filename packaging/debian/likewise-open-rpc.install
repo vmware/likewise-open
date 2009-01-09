@@ -1,6 +1,8 @@
 etc/init.d/lsmbd
 etc/init.d/dcerpcd
 
+etc/likewise/lsmbd.conf
+
 usr/bin/demo/echo_client
 usr/bin/demo/echo_server
 usr/bin/demo/echon_client
