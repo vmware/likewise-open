@@ -4,24 +4,28 @@ function _get_lib_dir
 {
     local dir=
 
-    case `uname -s` in
-	Linux)
-	    case `uname -m` in
-		i*86)
-		    dir=lib
-		    ;;
-		x86_64)
-		    dir=lib64
-		    ;;
-		*)
-		    dir=lib
-		    ;;
-	    esac
-	    ;;
-	*)
-	    dir=lib
-	    ;;
-    esac
+    if [ -n "${BUILD_LIBDIR}" ]; then
+	dir="${BUILD_LIBDIR}"
+    else
+	case `uname -s` in
+	    Linux)
+		case `uname -m` in
+		    i*86)
+			dir=lib
+			;;
+		    x86_64)
+			dir=lib64
+			;;
+		    *)
+			dir=lib
+			;;
+		esac
+		;;
+	    *)
+		dir=lib
+		;;
+	esac
+    fi
 
     echo "$dir"
 }
