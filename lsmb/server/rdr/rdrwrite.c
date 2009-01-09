@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (PVFS)
+ *        Likewise Posix File System Driver (RDR)
  *
  *       Write Dispatch Routine
  *
@@ -50,21 +50,21 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsWrite(
+RdrWrite(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = PvfsAllocateIrpContext(
+    ntStatus = RdrAllocateIrpContext(
                         pIrp,
                         &pIrpContext
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = PvfsCommonWrite(pIrpContext, pIrp);
+    ntStatus = RdrCommonWrite(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -74,8 +74,8 @@ error:
 
 
 NTSTATUS
-PvfsCommonWrite(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonWrite(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {

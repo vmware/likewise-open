@@ -50,21 +50,21 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsCreate(
+RdrCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = PvfsAllocateIrpContext(
+    ntStatus = RdrAllocateIrpContext(
                         pIrp,
                         &pIrpContext
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = PvfsCommonCreate(pIrpContext, pIrp);
+    ntStatus = RdrCommonCreate(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -75,16 +75,16 @@ error:
 
 
 NTSTATUS
-PvfsAllocateIrpContext(
+RdrAllocateIrpContext(
     PIRP pIrp,
-    PPVFS_IRP_CONTEXT * ppIrpContext
+    PRDR_IRP_CONTEXT * ppIrpContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_IRP_CONTEXT pIrpContext = NULL;
 
     /*ntStatus = IoMemoryAllocate(
-                    sizeof(PVFS_IRP_CONTEXT),
+                    sizeof(RDR_IRP_CONTEXT),
                     &pIrpContext
                     );*/
     BAIL_ON_NT_STATUS(ntStatus);
@@ -101,15 +101,15 @@ error:
 
 
 NTSTATUS
-PvfsAllocateCCB(
-    PPVFS_CCB *ppCCB
+RdrAllocateCCB(
+    PRDR_CCB *ppCCB
     )
 {
     NTSTATUS ntStatus = 0;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
    /* ntStatus = IoMemoryAllocate(
-                    sizeof(PVFS_CCB),
+                    sizeof(RDR_CCB),
                     &pCCB
                     );*/
     BAIL_ON_NT_STATUS(ntStatus);
@@ -128,8 +128,8 @@ error:
 
 
 NTSTATUS
-PvfsCommonCreate(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreate(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
@@ -157,14 +157,14 @@ PvfsCommonCreate(
 
     if (CreateOptions & FILE_DIRECTORY_FILE) {
 
-            ntStatus = PvfsCommonCreateDirectory(
+            ntStatus = RdrCommonCreateDirectory(
                             pIrpContext,
                             pIrp
                             );
             BAIL_ON_NT_STATUS(ntStatus);
     }else {
 
-        ntStatus = PvfsCommonCreateFile(
+        ntStatus = RdrCommonCreateFile(
                             pIrpContext,
                             pIrp
                             );
@@ -177,8 +177,8 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateFile(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFile(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
@@ -189,7 +189,7 @@ PvfsCommonCreateFile(
     //IO_FILE_HANDLE hFileHandle = NULL;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
 
-    ntStatus = PvfsBuildAbsolutePathName(
+    ntStatus = RdrBuildAbsolutePathName(
                         RootPathName,
                         RelativePathName,
                         AbsolutePathName
@@ -203,42 +203,42 @@ PvfsCommonCreateFile(
     switch (CreateDisposition){
 
         case FILE_SUPERSEDE:
-                ntStatus = PvfsCommonCreateFileSupersede(
+                ntStatus = RdrCommonCreateFileSupersede(
                                 pIrpContext,
                                 pIrp
                                 );
                 break;
 
         case FILE_CREATE:
-                ntStatus = PvfsCommonCreateFileCreate(
+                ntStatus = RdrCommonCreateFileCreate(
                                     pIrpContext,
                                     pIrp
                                     );
                 break;
 
         case FILE_OPEN:
-                ntStatus = PvfsCommonCreateFileOpen(
+                ntStatus = RdrCommonCreateFileOpen(
                                     pIrpContext,
                                     pIrp
                                     );
                 break;
 
         case FILE_OPEN_IF:
-                ntStatus = PvfsCommonCreateFileOpenIf(
+                ntStatus = RdrCommonCreateFileOpenIf(
                                 pIrpContext,
                                 pIrp
                                 );
                 break;
 
         case FILE_OVERWRITE:
-                ntStatus = PvfsCommonCreateFileOverwrite(
+                ntStatus = RdrCommonCreateFileOverwrite(
                                 pIrpContext,
                                 pIrp
                                 );
                 break;
 
         case FILE_OVERWRITE_IF:
-                ntStatus = PvfsCommonCreateFileOverwriteIf(
+                ntStatus = RdrCommonCreateFileOverwriteIf(
                                     pIrpContext,
                                     pIrp
                                     );
@@ -251,7 +251,7 @@ error:
 }
 
 NTSTATUS
-PvfsBuildAbsolutePathName(
+RdrBuildAbsolutePathName(
     IO_UNICODE_STRING RootPathName,
     IO_UNICODE_STRING RelativePathName,
     IO_UNICODE_STRING AbsolutePathName
@@ -263,7 +263,7 @@ PvfsBuildAbsolutePathName(
 }
 
 NTSTATUS
-PvfsGetFilePathName(
+RdrGetFilePathName(
     IO_FILE_HANDLE hFileHandle,
     IO_UNICODE_STRING PathName
     )
@@ -274,17 +274,17 @@ PvfsGetFilePathName(
 }
 
 NTSTATUS
-PvfsCommonCreateFileSupersede(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileSupersede(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
 	IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
 	ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -296,17 +296,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateFileCreate(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileCreate(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -320,17 +320,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateFileOpen(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileOpen(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
 	ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -343,17 +343,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateFileOpenIf(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileOpenIf(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
 	IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
 	ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -366,17 +366,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateFileOverwrite(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileOverwrite(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
 	IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -390,17 +390,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateFileOverwriteIf(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileOverwriteIf(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
 	IO_FILE_HANDLE hFileHandle = NULL;
-	PPVFS_CCB pCCB = NULL;
+	PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -414,8 +414,8 @@ error:
 
 
 NTSTATUS
-PvfsCommonCreateDirectory(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectory(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
@@ -426,13 +426,13 @@ PvfsCommonCreateDirectory(
     IO_FILE_HANDLE hFileHandle = NULL;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
 
-    ntStatus = PvfsGetFilePathName(
+    ntStatus = RdrGetFilePathName(
                     hFileHandle,
                     RootPathName
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = PvfsBuildAbsolutePathName(
+    ntStatus = RdrBuildAbsolutePathName(
                         RootPathName,
                         RelativePathName,
                         AbsolutePathName
@@ -442,42 +442,42 @@ PvfsCommonCreateDirectory(
     switch (CreateDisposition){
 
         case FILE_SUPERSEDE:
-                ntStatus = PvfsCommonCreateDirectoryFileSupersede(
+                ntStatus = RdrCommonCreateDirectoryFileSupersede(
                                 pIrpContext,
                                 pIrp
                                 );
                 break;
 
         case FILE_CREATE:
-                ntStatus = PvfsCommonCreateDirectoryFileCreate(
+                ntStatus = RdrCommonCreateDirectoryFileCreate(
                                     pIrpContext,
                                     pIrp
                                     );
                 break;
 
         case FILE_OPEN:
-                ntStatus = PvfsCommonCreateDirectoryFileOpen(
+                ntStatus = RdrCommonCreateDirectoryFileOpen(
                                     pIrpContext,
                                     pIrp
                                     );
                 break;
 
         case FILE_OPEN_IF:
-                ntStatus = PvfsCommonCreateDirectoryFileOpenIf(
+                ntStatus = RdrCommonCreateDirectoryFileOpenIf(
                                 pIrpContext,
                                 pIrp
                                 );
                 break;
 
         case FILE_OVERWRITE:
-                ntStatus = PvfsCommonCreateDirectoryFileOverwrite(
+                ntStatus = RdrCommonCreateDirectoryFileOverwrite(
                                 pIrpContext,
                                 pIrp
                                 );
                 break;
 
         case FILE_OVERWRITE_IF:
-                ntStatus = PvfsCommonCreateDirectoryFileOverwriteIf(
+                ntStatus = RdrCommonCreateDirectoryFileOverwriteIf(
                                     pIrpContext,
                                     pIrp
                                     );
@@ -491,18 +491,18 @@ error:
 
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileSupersede(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileSupersede(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
 
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -515,17 +515,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileCreate(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileCreate(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -538,17 +538,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileOpen(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileOpen(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -561,17 +561,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileOpenIf(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileOpenIf(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(hFileHandle, pCCB);
@@ -584,17 +584,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileOverwrite(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileOverwrite(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
 	//
@@ -612,17 +612,17 @@ error:
 }
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileOverwriteIf(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileOverwriteIf(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE hFileHandle = NULL;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = PvfsAllocateCCB(&pCCB);
+    ntStatus = RdrAllocateCCB(&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(hFileHandle, pCCB);

@@ -1,5 +1,5 @@
 
-typedef struct _PVFS_CCB{
+typedef struct _RDR_CCB{
     //LIST_ENTRY NextCCB;
     IO_UNICODE_STRING AbsolutePathName;
     ACCESS_MASK DesiredAccess;
@@ -14,12 +14,12 @@ typedef struct _PVFS_CCB{
     char *path;
     int oflags;
     mode_t mode;
-} PVFS_CCB, *PPVFS_CCB;
+} RDR_CCB, *PRDR_CCB;
 
-typedef struct _PVFS_IRP_CONTEXT {
+typedef struct _RDR_IRP_CONTEXT {
     PIRP pIrp;
     IO_DEVICE_HANDLE TargetDeviceHandle;
     IO_UNICODE_STRING RootPathName;
     IO_UNICODE_STRING RelativePathName;
     IO_UNICODE_STRING AbsolutePathName;
-} PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
+} RDR_IRP_CONTEXT, *PRDR_IRP_CONTEXT;

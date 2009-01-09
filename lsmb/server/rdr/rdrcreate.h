@@ -1,118 +1,118 @@
 
 NTSTATUS
-PvfsCommonCreate(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreate(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsAllocateIrpContext(
+RdrAllocateIrpContext(
     PIRP pIrp,
-    PPVFS_IRP_CONTEXT * ppIrpContext
+    PRDR_IRP_CONTEXT * ppIrpContext
     );
 
 NTSTATUS
-PvfsCommonCreateFile(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFile(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsBuildAbsolutePathName(
+RdrBuildAbsolutePathName(
     IO_UNICODE_STRING RootPathName,
     IO_UNICODE_STRING RelativePathName,
     IO_UNICODE_STRING AbsolutePathName
     );
 
 NTSTATUS
-PvfsGetFilePathName(
+RdrGetFilePathName(
     IO_FILE_HANDLE hFileHandle,
     IO_UNICODE_STRING PathName
     );
 
 NTSTATUS
-PvfsCommonCreateDirectory(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectory(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateFileSupersede(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileSupersede(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateFileCreate(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileCreate(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateFileOpen(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileOpen(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateFileOpenIf(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileOpenIf(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateFileOverwrite(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileOverwrite(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateFileOverwriteIf(
-    PPVFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    );
-
-
-NTSTATUS
-PvfsCommonCreateDirectory(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateFileOverwriteIf(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileSupersede(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectory(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+
+NTSTATUS
+RdrCommonCreateDirectoryFileSupersede(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileCreate(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileCreate(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileOpen(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileOpen(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileOpenIf(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileOpenIf(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileOverwrite(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileOverwrite(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsCommonCreateDirectoryFileOverwriteIf(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonCreateDirectoryFileOverwriteIf(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 

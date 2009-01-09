@@ -58,50 +58,50 @@
 #include "structs.h"
 
 NTSTATUS
-PvfsCreate(
+RdrCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsDeviceIo(
+RdrDeviceIo(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsFsCtrl(
+RdrFsCtrl(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsWrite(
+RdrWrite(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
 
 
 NTSTATUS
-PvfsRead(
+RdrRead(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsClose(
+RdrClose(
     IO_DEVICE_HANDLE DeviceHandle,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsQueryInformation(
+RdrQueryInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
 
 NTSTATUS
-PvfsSetInformation(
+RdrSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );

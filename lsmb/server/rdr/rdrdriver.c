@@ -125,14 +125,14 @@ DriverDispatch(
     switch (pIrp->Type)
     {
         case IRP_TYPE_CREATE:
-            ntStatus = PvfsCreate(
+            ntStatus = RdrCreate(
                             DeviceHandle,
                             pIrp
                             );
             break;
 
         case IRP_TYPE_CLOSE:
-            ntStatus = PvfsClose(
+            ntStatus = RdrClose(
                             DeviceHandle,
                             pIrp
                             );
@@ -140,14 +140,14 @@ DriverDispatch(
 
 
         case IRP_TYPE_READ:
-            ntStatus = PvfsRead(
+            ntStatus = RdrRead(
                             DeviceHandle,
                             pIrp
                             );
              break;
 
         case IRP_TYPE_WRITE:
-            ntStatus = PvfsWrite(
+            ntStatus = RdrWrite(
                             DeviceHandle,
                             pIrp
                             );
@@ -157,20 +157,20 @@ DriverDispatch(
             break;
 
         case IRP_TYPE_FS_CONTROL:
-            ntStatus = PvfsFsCtrl(
+            ntStatus = RdrFsCtrl(
                             DeviceHandle,
                             pIrp
                             );
             break;
         case IRP_TYPE_FLUSH:
         case IRP_TYPE_QUERY_INFORMATION:
-            ntStatus = PvfsQueryInformation(
+            ntStatus = RdrQueryInformation(
                             DeviceHandle,
                             pIrp
                             );
             break;
         case IRP_TYPE_SET_INFORMATION:
-            ntStatus = PvfsSetInformation(
+            ntStatus = RdrSetInformation(
                             DeviceHandle,
                             pIrp
                             );
@@ -209,11 +209,11 @@ DriverEntry(
 
     ntStatus = IoDeviceCreate(&deviceHandle,
                               DriverHandle,
-                              "pvfs",
+                              "rdr",
                               NULL);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
 
-    DoTest("/pvfs");
+    DoTest("/rdr");
 
 cleanup:
     IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);

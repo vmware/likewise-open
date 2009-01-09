@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (PVFS)
+ *        Likewise Posix File System Driver (RDR)
  *
  *       Read Dispatch Routine
  *
@@ -50,21 +50,21 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsRead(
+RdrRead(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = PvfsAllocateIrpContext(
+    ntStatus = RdrAllocateIrpContext(
                         pIrp,
                         &pIrpContext
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = PvfsCommonRead(pIrpContext, pIrp);
+    ntStatus = RdrCommonRead(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -74,8 +74,8 @@ error:
 
 
 NTSTATUS
-PvfsCommonRead(
-    PPVFS_IRP_CONTEXT pIrpContext,
+RdrCommonRead(
+    PRDR_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
@@ -83,7 +83,7 @@ PvfsCommonRead(
     PVOID Buffer = NULL;
     ULONG Length = 0;
     ULONG BytesRead = 0;
-    PPVFS_CCB pCCB = NULL;
+    PRDR_CCB pCCB = NULL;
 
     fd = pCCB->fd;
     Buffer = pIrp->Args.ReadWrite.Buffer;

@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (PVFS)
+ *        Likewise SMB Redirector File System Driver (RDR)
  *
  *        Close Dispatch Function
  *
@@ -50,7 +50,7 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsClose(
+RdrClose(
     IO_DEVICE_HANDLE DeviceHandle,
     PIRP pIrp
     )

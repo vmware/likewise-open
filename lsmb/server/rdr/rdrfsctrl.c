@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (PVFS)
+ *        Likewise Posix File System Driver (RDR)
  *
  *        Device I/O Function
  *
@@ -50,7 +50,7 @@
 #include "pvfs.h"
 
 NTSTATUS
-PvfsFsCtrl(
+RdrFsCtrl(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
