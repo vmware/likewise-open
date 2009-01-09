@@ -75,4 +75,6 @@ function component_install
     _setup_build_env
 
     ${MAKE} DESTDIR=${STAGE_INSTALL_DIR} install
+
+    libtool_rewrite_staging
 }
