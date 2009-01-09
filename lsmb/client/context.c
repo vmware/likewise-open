@@ -298,36 +298,26 @@ error:
 }
 
 DWORD
-SMBAcquireState(
-    PSMB_SERVER_CONNECTION pConnection,
-    PSMB_CLIENT_CONTEXT* ppContext
+SMBAcquireConnection(
+    OUT PSMB_SERVER_CONNECTION pConnection
     )
 {
     DWORD dwError = 0;
-    PSMB_CLIENT_CONTEXT pContext = NULL;
 
     pConnection->pAssoc = NULL;
-    *ppContext = NULL;
-
-    dwError = SMBGetClientContext(&pContext);
-    BAIL_ON_SMB_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_client_acquire_assoc(
                                    gpClient,
                                    &pConnection->pAssoc));
     BAIL_ON_SMB_ERROR(dwError);
 
-    *ppContext = pContext;
-
 error:
-
     return dwError;
 }
 
 VOID
-SMBReleaseState(
-    PSMB_SERVER_CONNECTION pConnection,
-    PSMB_CLIENT_CONTEXT pContext
+SMBReleaseConnection(
+    IN OUT PSMB_SERVER_CONNECTION pConnection
     )
 {
     if (pConnection->pAssoc)
@@ -335,5 +325,39 @@ SMBReleaseState(
         lwmsg_client_release_assoc(
             gpClient,
             pConnection->pAssoc);
+        pConnection->pAssoc = NULL;
     }
+}
+
+DWORD
+SMBAcquireState(
+    OUT PSMB_SERVER_CONNECTION pConnection,
+    OUT PSMB_CLIENT_CONTEXT* ppContext
+    )
+{
+    DWORD dwError = 0;
+    PSMB_CLIENT_CONTEXT pContext = NULL;
+
+    memset(pConnection, 0, sizeof(*pConnection));
+    *ppContext = NULL;
+
+    dwError = SMBGetClientContext(&pContext);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBAcquireConnection(pConnection);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    *ppContext = pContext;
+
+error:
+    return dwError;
+}
+
+VOID
+SMBReleaseState(
+    IN OUT PSMB_SERVER_CONNECTION pConnection,
+    IN OUT PSMB_CLIENT_CONTEXT pContext
+    )
+{
+    SMBReleaseConnection(pConnection);
 }

@@ -158,6 +158,8 @@ typedef struct _IO_FILE_SPEC {
 
 typedef struct _IO_STATUS_BLOCK {
     NTSTATUS Status;
+    // NOTE: If the union below is changed, the IPC layer may need
+    //       to be changed as well.
     union {
         ULONG BytesTransferred;
         FILE_CREATE_RESULT CreateResult;

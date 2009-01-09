@@ -28,6 +28,23 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        goto.h
+ *
+ * Abstract:
+ *
+ *        GOTO_CLEANUP<XXX> macros used to bail.  Logging is done separately
+ *        by using a local EE (early exit) variable (of type int),
+ *        which contains the line nubmer of the GOTO_CLEANUP<XXX>_EE
+ *        operation.
+ *
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
+ */
+
 #ifndef __GOTO_H__
 #define __GOTO_H__
 

@@ -81,7 +81,7 @@ typedef struct _IRP_ARGS_CREATE {
     IN FILE_CREATE_OPTIONS CreateOptions;
     IN OPTIONAL PIO_EA_BUFFER pEaBuffer;
     IN OPTIONAL PVOID SecurityDescriptor; // TBD
-    IN PVOID SecurityQualityOfService; // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService; // TBD
 } IRP_ARGS_CREATE, *PIRP_ARGS_CREATE;
 
 typedef struct _IRP_ARGS_READ_WRITE {

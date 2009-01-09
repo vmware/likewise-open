@@ -39,15 +39,25 @@ SMBGetClientContext(
     );
 
 DWORD
+SMBAcquireConnection(
+    OUT PSMB_SERVER_CONNECTION pConnection
+    );
+
+VOID
+SMBReleaseConnection(
+    IN OUT PSMB_SERVER_CONNECTION pConnection
+    );
+
+DWORD
 SMBAcquireState(
-    PSMB_SERVER_CONNECTION pConnection,
-    PSMB_CLIENT_CONTEXT* ppContext
+    OUT PSMB_SERVER_CONNECTION pConnection,
+    OUT PSMB_CLIENT_CONTEXT* ppContext
     );
 
 VOID
 SMBReleaseState(
-    PSMB_SERVER_CONNECTION pConnection,
-    PSMB_CLIENT_CONTEXT pContext
+    IN OUT PSMB_SERVER_CONNECTION pConnection,
+    IN OUT PSMB_CLIENT_CONTEXT pContext
     );
 
 DWORD

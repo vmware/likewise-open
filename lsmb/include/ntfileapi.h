@@ -33,17 +33,17 @@
  *
  * Module Name:
  *
- *        ioapi.h
+ *        ntfileapi.h
  *
  * Abstract:
  *
- *        IO Manager File API
+ *        NT File API
  *
  * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#ifndef __IO_API_H__
-#define __IO_API_H__
+#ifndef __NT_FILE_API_H__
+#define __NT_FILE_API_H__
 
 #include "io-types.h"
 
@@ -64,7 +64,7 @@
 //
 
 NTSTATUS
-IoCreateFile(
+NtCreateFile(
     OUT PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -81,12 +81,23 @@ IoCreateFile(
     );
 
 NTSTATUS
-IoCloseFile(
+NtCloseFile(
     IN IO_FILE_HANDLE FileHandle
     );
 
 NTSTATUS
-IoReadFile(
+NtReadFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG Key
+    );
+
+NTSTATUS
+NtWriteFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -97,18 +108,7 @@ IoReadFile(
     );
 
 NTSTATUS
-IoWriteFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PVOID Buffer,
-    IN ULONG Length,
-    IN OPTIONAL PLONG64 ByteOffset,
-    IN OPTIONAL PULONG Key
-    );
-
-NTSTATUS
-IoDeviceIoControlFile(
+NtDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -120,7 +120,7 @@ IoDeviceIoControlFile(
     );
 
 NTSTATUS
-IoFsControlFile(
+NtFsControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -132,14 +132,14 @@ IoFsControlFile(
     );
 
 NTSTATUS
-IoFlushBuffersFile(
+NtFlushBuffersFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock
     );
 
 NTSTATUS
-IoQueryInformationFile(
+NtQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -149,7 +149,7 @@ IoQueryInformationFile(
     );
 
 NTSTATUS
-IoSetInformationFile(
+NtSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -163,7 +163,7 @@ IoSetInformationFile(
 //
 
 NTSTATUS
-IoQueryFullAttributesFile(
+NtQueryFullAttributesFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
@@ -171,7 +171,7 @@ IoQueryFullAttributesFile(
     );
 
 NTSTATUS
-IoQueryDirectoryFile(
+NtQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -185,7 +185,7 @@ IoQueryDirectoryFile(
     );
 
 NTSTATUS
-IoQueryVolumeInformationFile(
+NtQueryVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -195,7 +195,7 @@ IoQueryVolumeInformationFile(
     );
 
 NTSTATUS
-IoSetVolumeInformationFile(
+NtSetVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -205,7 +205,7 @@ IoSetVolumeInformationFile(
     );
 
 NTSTATUS
-IoLockFile(
+NtLockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -217,7 +217,7 @@ IoLockFile(
     );
 
 NTSTATUS
-IoUnlockFile(
+NtUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -233,21 +233,21 @@ IoUnlockFile(
 //
 
 NTSTATUS
-IoRemoveDirectoryFile(
+NtRemoveDirectoryFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
 
 NTSTATUS
-IoDeleteFile(
+NtDeleteFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
 
 NTSTATUS
-IoLinkFile(
+NtLinkFile(
     IN PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -255,7 +255,7 @@ IoLinkFile(
     );
 
 NTSTATUS
-IoRenameFile(
+NtRenameFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FromName,
@@ -263,7 +263,7 @@ IoRenameFile(
     );
 
 NTSTATUS
-IoQueryQuotaInformationFile(
+NtQueryQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -281,7 +281,7 @@ IoQueryQuotaInformationFile(
 //
 
 NTSTATUS
-IoSetQuotaInformationFile(
+NtSetQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -290,7 +290,7 @@ IoSetQuotaInformationFile(
     );
 
 NTSTATUS
-IoQuerySecurityFile(
+NtQuerySecurityFile(
     IN IO_FILE_HANDLE  Handle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -301,7 +301,7 @@ IoQuerySecurityFile(
     );
 
 NTSTATUS
-IoSetSecurityFile(
+NtSetSecurityFile(
     IN IO_FILE_HANDLE Handle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -311,4 +311,4 @@ IoSetSecurityFile(
 
 // TODO: QueryEaFile and SetEaFile.
 
-#endif /* __IO_API_H__ */
+#endif /* __NT_FILE_API_H__ */

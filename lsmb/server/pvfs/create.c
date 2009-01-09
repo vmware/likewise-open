@@ -83,11 +83,10 @@ PvfsAllocateIrpContext(
     NTSTATUS ntStatus = 0;
     PPVFS_IRP_CONTEXT pIrpContext = NULL;
 
-    /*ntStatus = IoMemoryAllocate(
-                    sizeof(PVFS_IRP_CONTEXT),
-                    &pIrpContext
-                    );*/
+    ntStatus = IO_ALLOCATE(&pIrpContext, PVFS_IRP_CONTEXT, sizeof(*pIrpContext));
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pIrpContext->pIrp = pIrp;
 
     *ppIrpContext = pIrpContext;
 

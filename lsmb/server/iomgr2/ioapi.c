@@ -28,6 +28,20 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        ioapi.c
+ *
+ * Abstract:
+ *
+ *        IO Manager File API Implementation
+ *
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
+ */
+
 #include "iop.h"
 
 // Need to add a way to cancel operation from outside IRP layer.
@@ -60,7 +74,7 @@ IoCreateFile(
     IN FILE_CREATE_OPTIONS CreateOptions,
     IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
     IN OPTIONAL PVOID SecurityDescriptor, // TBD
-    IN PVOID SecurityQualityOfService // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService // TBD
     )
 {
     NTSTATUS status = 0;
@@ -171,7 +185,7 @@ IoReadFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PVOID Buffer,
+    OUT PVOID Buffer,
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key

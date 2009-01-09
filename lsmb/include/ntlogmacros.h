@@ -28,5 +28,39 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        ntlogmacros.h
+ *
+ * Abstract:
+ *
+ *        Log Macros -- TEMPORARY (see TODO below)
+ *
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
+ */
 
+#ifndef __NT_LOG_MACROS_H__
+#define __NT_LOG_MACROS_H__
 
+// TODO -- Fold IO_LOG stuff and these together somewhere...
+
+#define LOG_LEAVE_IF_STATUS_EE(status, EE) \
+    do { \
+        if (EE || status) \
+        { \
+            SMB_LOG_DEBUG("LEAVE_IF: -> 0x%08x (EE = %d)", status, EE); \
+        } \
+    } while (0)
+
+#define LOG_LEAVE_IF_STATUS_EE_EX(status, EE, Format, ...) \
+    do { \
+        if (EE || status) \
+        { \
+            SMB_LOG_DEBUG("LEAVE_IF: " Format " -> 0x%08x (EE = %d)", ## __VA_ARGS__, status, EE); \
+        } \
+    } while (0)
+
+#endif /* __NT_LOG_MACROS_H__ */

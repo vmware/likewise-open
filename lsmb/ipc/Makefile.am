@@ -8,7 +8,8 @@ lib_LTLIBRARIES = libsmbipc.la
 
 libsmbipc_la_SOURCES = \
     globals.c \
-    libmain.c
+    libmain.c \
+    ntipc.c
 
 libsmbipc_la_CPPFLAGS = \
     -I@top_srcdir@/include  \

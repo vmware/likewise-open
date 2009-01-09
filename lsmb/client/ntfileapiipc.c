@@ -6,23 +6,23 @@
  * Copyright Likewise Software
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
  * your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
- * <http://www.gnu.org/licenses/>.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
  * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
  * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
  * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
- * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
@@ -33,19 +33,77 @@
  *
  * Module Name:
  *
- *        ioapi.h
+ *        ntfileapiipc.c
  *
  * Abstract:
  *
- *        IO Manager File API
+ *        NT File API IPC Implementation
  *
  * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#ifndef __IO_API_H__
-#define __IO_API_H__
+#include "includes.h"
+#include "ntfileapiipc.h"
+#include "ntipcmsg.h"
+#include "goto.h"
+#include "ntlogmacros.h"
 
-#include "io-types.h"
+static
+VOID
+NtpIpcFreeResponse(
+    IN PSMB_SERVER_CONNECTION pConnection,
+    IN LWMsgMessageTag ReponseType,
+    IN PVOID pResponse
+    )
+{
+    if (pResponse)
+    {
+        lwmsg_assoc_free_graph(pConnection->pAssoc, ReponseType, pResponse);
+    }
+}
+
+static
+NTSTATUS
+NtpIpcCall(
+    IN PSMB_SERVER_CONNECTION pConnection,
+    IN LWMsgMessageTag RequestType,
+    IN PVOID pRequest,
+    IN LWMsgMessageTag ResponseType,
+    OUT PVOID* ppResponse
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    LWMsgMessageTag actualResponseType = (LWMsgMessageTag) -1;
+    PVOID pResponse = NULL;
+
+    status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_send_transact(
+                pConnection->pAssoc,
+                RequestType,
+                pRequest,
+                &actualResponseType,
+                &pResponse));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    if (actualResponseType != ResponseType)
+    {
+        assert(false);
+        status = STATUS_INTERNAL_ERROR;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+cleanup:
+    if (status)
+    {
+        NtpIpcFreeResponse(pConnection, actualResponseType, pResponse);
+        pResponse = NULL;
+    }
+
+    *ppResponse = pResponse;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
 
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
@@ -64,7 +122,9 @@
 //
 
 NTSTATUS
-IoCreateFile(
+NtIpcCreateFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
+    IN PSMB_SECURITY_TOKEN_REP pSecurityToken,
     OUT PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -78,15 +138,107 @@ IoCreateFile(
     IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
     IN OPTIONAL PVOID SecurityDescriptor, // TBD
     IN PVOID SecurityQualityOfService // TBD
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_CREATE_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_CREATE_FILE_RESULT;
+    NT_IPC_MESSAGE_CREATE_FILE request = { 0 };
+    PNT_IPC_MESSAGE_CREATE_FILE_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_FILE_HANDLE fileHandle = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.pSecurityToken = pSecurityToken;
+    request.FileName = *FileName;
+    request.DesiredAccess = DesiredAccess;
+    request.AllocationSize = AllocationSize;
+    request.FileAttributes = FileAttributes;
+    request.ShareAccess = ShareAccess;
+    request.CreateDisposition = CreateDisposition;
+    request.CreateOptions = CreateOptions;
+
+    // TODO -- EAs, SDs, etc.
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_CREATE_FILE_RESULT) pReply;
+
+    fileHandle = pResponse->FileHandle;
+    ioStatusBlock.Status = pResponse->Status;
+    ioStatusBlock.CreateResult = pResponse->CreateResult;
+
+    status = ioStatusBlock.Status;
+
+cleanup:
+    if (status)
+    {
+        // TODO !!!! -- ASK BRIAN ABOUT FileHandle and failures...
+        assert(!fileHandle);
+        assert(!pResponse || !pResponse->FileHandle);
+    }
+
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    *FileHandle = fileHandle;
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
 
 NTSTATUS
-IoCloseFile(
+NtIpcCloseFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
+    NT_IPC_MESSAGE_GENERIC_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    // In case we add IO_STATUS_BLOCK to close later, which we may want/need.
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
+
+    ioStatusBlock.Status = pResponse->Status;
+    assert(0 == pResponse->BytesTransferred);
+
+    status = ioStatusBlock.Status;
+
+cleanup:
+    // TODO !!!! -- ASK BRIAN ABOUT FileHandle...
+
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
 
 NTSTATUS
-IoReadFile(
+NtIpcReadFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -94,10 +246,14 @@ IoReadFile(
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 NTSTATUS
-IoWriteFile(
+NtIpcWriteFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -105,10 +261,14 @@ IoWriteFile(
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 NTSTATUS
-IoDeviceIoControlFile(
+NtIpcDeviceIoControlFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -117,10 +277,14 @@ IoDeviceIoControlFile(
     IN ULONG InputBufferLength,
     OUT PVOID OutputBuffer,
     IN ULONG OutputBufferLength
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 NTSTATUS
-IoFsControlFile(
+NtIpcFsControlFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -129,41 +293,57 @@ IoFsControlFile(
     IN ULONG InputBufferLength,
     OUT PVOID OutputBuffer,
     IN ULONG OutputBufferLength
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 NTSTATUS
-IoFlushBuffersFile(
+NtIpcFlushBuffersFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 NTSTATUS
-IoQueryInformationFile(
+NtIpcQueryInformationFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 NTSTATUS
-IoSetInformationFile(
+NtIpcSetInformationFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FileInformation,
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 //
 // Additional Operations
 //
 
 NTSTATUS
-IoQueryFullAttributesFile(
+NtIpcQueryFullAttributesFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
@@ -171,7 +351,8 @@ IoQueryFullAttributesFile(
     );
 
 NTSTATUS
-IoQueryDirectoryFile(
+NtIpcQueryDirectoryFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -185,7 +366,8 @@ IoQueryDirectoryFile(
     );
 
 NTSTATUS
-IoQueryVolumeInformationFile(
+NtIpcQueryVolumeInformationFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -195,7 +377,8 @@ IoQueryVolumeInformationFile(
     );
 
 NTSTATUS
-IoSetVolumeInformationFile(
+NtIpcSetVolumeInformationFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -205,7 +388,8 @@ IoSetVolumeInformationFile(
     );
 
 NTSTATUS
-IoLockFile(
+NtIpcLockFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -217,7 +401,8 @@ IoLockFile(
     );
 
 NTSTATUS
-IoUnlockFile(
+NtIpcUnlockFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -233,21 +418,24 @@ IoUnlockFile(
 //
 
 NTSTATUS
-IoRemoveDirectoryFile(
+NtIpcRemoveDirectoryFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
 
 NTSTATUS
-IoDeleteFile(
+NtIpcDeleteFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
 
 NTSTATUS
-IoLinkFile(
+NtIpcLinkFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -255,7 +443,8 @@ IoLinkFile(
     );
 
 NTSTATUS
-IoRenameFile(
+NtIpcRenameFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FromName,
@@ -263,7 +452,8 @@ IoRenameFile(
     );
 
 NTSTATUS
-IoQueryQuotaInformationFile(
+NtIpcQueryQuotaInformationFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -281,7 +471,8 @@ IoQueryQuotaInformationFile(
 //
 
 NTSTATUS
-IoSetQuotaInformationFile(
+NtIpcSetQuotaInformationFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -290,7 +481,8 @@ IoSetQuotaInformationFile(
     );
 
 NTSTATUS
-IoQuerySecurityFile(
+NtIpcQuerySecurityFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE  Handle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -301,7 +493,8 @@ IoQuerySecurityFile(
     );
 
 NTSTATUS
-IoSetSecurityFile(
+NtIpcSetSecurityFile(
+    IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE Handle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -311,4 +504,3 @@ IoSetSecurityFile(
 
 // TODO: QueryEaFile and SetEaFile.
 
-#endif /* __IO_API_H__ */

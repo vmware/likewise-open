@@ -18,9 +18,9 @@ liblsmbclient_nothr_la_SOURCES = \
     globals.c              \
     handle.c               \
     handlestate.c          \
-    ipc.c                  \
     libmain.c              \
     logging.c              \
+    ntfileapiipc.c         \
     peeknp.c               \
     readfile.c             \
     transactnp.c           \
@@ -43,6 +43,7 @@ liblsmbclient_nothr_la_LIBADD = \
 
 liblsmbclient_la_SOURCES = \
     context.c              \
+    ntfileapi.c            \
     win32.c
 
 liblsmbclient_la_CPPFLAGS = \
