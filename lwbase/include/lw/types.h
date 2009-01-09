@@ -5,80 +5,128 @@
 #include <inttypes.h>
 #include <wchar16.h>
 
-typedef char               LW_CHAR;
-typedef wchar16_t          LW_WCHAR;
-typedef char *             LW_PSTR;
-typedef char const *       LW_PCSTR;
-typedef wchar16_t *        LW_PWSTR;
-typedef wchar16_t const *  LW_PCWSTR;
-typedef int16_t            LW_SHORT;
-typedef uint16_t           LW_USHORT;
-typedef int32_t            LW_LONG;
-typedef uint32_t           LW_ULONG;
-typedef int64_t            LW_LONG64;
-typedef uint64_t           LW_ULONG64;
+typedef void               LW_VOID, *LW_PVOID;
+typedef void const        *LW_PCVOID;
+typedef uint8_t            LW_BOOLEAN, *LW_PBOOLEAN;
+typedef uint8_t            LW_BYTE, *LW_PBYTE;
+typedef char               LW_CHAR, *LW_PCHAR;
+typedef unsigned char      LW_UCHAR, *LW_PUCHAR;
+typedef wchar16_t          LW_WCHAR, *LW_PWCHAR;
+typedef char              *LW_PSTR;
+typedef char const        *LW_PCSTR;
+typedef wchar16_t         *LW_PWSTR;
+typedef wchar16_t const   *LW_PCWSTR;
+typedef int16_t            LW_SHORT, *LW_PSHORT;
+typedef uint16_t           LW_USHORT, *LW_PUSHORT;
+typedef int32_t            LW_LONG, *LW_PLONG;
+typedef uint32_t           LW_ULONG, *LW_PULONG;
+typedef int64_t            LW_LONG64, *LW_PLONG64;
+typedef uint64_t           LW_ULONG64, *LW_PULONG64;
+typedef int                LW_INT, *LW_PINT;
+typedef unsigned int       LW_UINT, *LW_PUINT;
+typedef uint8_t            LW_UINT8, *LW_PUINT8;
+typedef uint16_t           LW_UINT16, *LW_PUINT16;
+typedef uint32_t           LW_UINT32, *LW_PUINT32;
+typedef uint64_t           LW_UINT64, *LW_PUINT64;
+typedef int8_t             LW_INT8, *LW_PINT8;
+typedef int16_t            LW_INT16, *LW_PINT16;
+typedef int32_t            LW_INT32, *LW_PINT32;
+typedef int64_t            LW_INT64, *LW_PINT64;
+typedef void              *LW_HANDLE, **LW_PHANDLE;
+
+typedef int32_t            LW_BOOL, *LW_PBOOL;
+typedef uint16_t           LW_WORD, *LW_PWORD;
+typedef uint32_t           LW_DWORD, *LW_PDWORD;
+
+#ifdef UNICODE
+typedef LW_WCHAR           LW_TCHAR;
+#else
+typedef LW_CHAR            LW_TCHAR;
+#endif
+
+#define LW_TRUE  (1)
+#define LW_FALSE (0)
+
+#define LW_INVALID_HANDLE_VALUE (NULL)
+
+#define LW_WORD_MAX ((WORD) 0xFFFFU)
+#define LW_DWORD_MAX ((DWORD) 0xFFFFFFFFU)
 
 #ifndef LW_STRICT_NAMESPACE
 
-#ifndef CHAR_DEFINED
-#define CHAR_DEFINED
-typedef LW_CHAR CHAR;
+typedef LW_VOID     VOID;
+typedef LW_PVOID    PVOID;
+typedef LW_PCVOID   PCVOID;
+typedef LW_BOOLEAN  BOOLEAN;
+typedef LW_PBOOLEAN PBOOLEAN;
+typedef LW_BYTE     BYTE;
+typedef LW_PBYTE    PBYTE;
+typedef LW_CHAR     CHAR;
+typedef LW_WCHAR    WCHAR;
+typedef LW_PCHAR    PCHAR;
+typedef LW_PWCHAR   PWCHAR;
+typedef LW_UCHAR    UCHAR;
+typedef LW_PUCHAR   PUCHAR;
+typedef LW_PSTR     PSTR;
+typedef LW_PCSTR    PCSTR;
+typedef LW_PWSTR    PWSTR;
+typedef LW_PCWSTR   PCWSTR;
+typedef LW_SHORT    SHORT;
+typedef LW_PSHORT   PSHORT;
+typedef LW_USHORT   USHORT;
+typedef LW_PUSHORT  PUSHORT;
+typedef LW_LONG     LONG;
+typedef LW_PLONG    PLONG;
+typedef LW_ULONG    ULONG;
+typedef LW_PULONG   PULONG;
+typedef LW_LONG64   LONG64;
+typedef LW_PLONG64  PLONG64;
+typedef LW_ULONG64  ULONG64;
+typedef LW_PULONG64 PULONG64;
+typedef LW_INT      INT;
+typedef LW_PINT     PINT;
+typedef LW_UINT     UINT;
+typedef LW_PUINT    PUINT;
+typedef LW_UINT8    UINT8;
+typedef LW_PUINT8   PUINT8;
+typedef LW_UINT16   UINT16;
+typedef LW_PUINT16  PUINT16;
+typedef LW_UINT32   UINT32;
+typedef LW_PUINT32  PUINT32;
+typedef LW_UINT64   UINT64;
+typedef LW_PUINT64  PUINT64;
+typedef LW_INT8     INT8;
+typedef LW_PINT8    PINT8;
+typedef LW_INT16    INT16;
+typedef LW_PINT16   PINT16;
+typedef LW_INT32    INT32;
+typedef LW_PINT32   PINT32;
+typedef LW_INT64    INT64;
+typedef LW_PINT64   PINT64;
+typedef LW_HANDLE   HANDLE;
+typedef LW_PHANDLE  PHANDLE;
+
+typedef LW_BOOL     BOOL;
+typedef LW_PBOOL    PBOOL;
+typedef LW_WORD     WORD;
+typedef LW_PWORD    PWORD;
+typedef LW_DWORD    DWORD;
+typedef LW_PDWORD   PDWORD;
+
+typedef LW_TCHAR    TCHAR;
+
+#ifndef TRUE
+#define TRUE LW_TRUE
 #endif
 
-#ifndef WCHAR_DEFINED
-#define WCHAR_DEFINED
-typedef LW_WCHAR WCHAR;
+#ifndef FALSE
+#define FALSE LW_FALSE
 #endif
 
-#ifndef PSTR_DEFINED
-#define PSTR_DEFINED
-typedef LW_PSTR PSTR;
-#endif
+#define INVALID_HANDLE_VALUE LW_INVALID_HANDLE_VALUE;
 
-#ifndef PCSTR_DEFINED
-#define PCSTR_DEFINED
-typedef LW_PCSTR PCSTR;
-#endif
-
-#ifndef PWSTR_DEFINED
-#define PWSTR_DEFINED
-typedef LW_PWSTR PWSTR;
-#endif
-
-#ifndef PCWSTR_DEFINED
-#define PCWSTR_DEFINED
-typedef LW_PCWSTR PCWSTR;
-#endif
-
-#ifndef SHORT_DEFINED
-#define SHORT_DEFINED
-typedef LW_SHORT SHORT;
-#endif
-
-#ifndef USHORT_DEFINED
-#define USHORT_DEFINED
-typedef LW_USHORT USHORT;
-#endif
-
-#ifndef LONG_DEFINED
-#define LONG_DEFINED
-typedef LW_LONG LONG;
-#endif
-
-#ifndef ULONG_DEFINED
-#define ULONG_DEFINED
-typedef LW_ULONG ULONG;
-#endif
-
-#ifndef LONG64_DEFINED
-#define LONG64_DEFINED
-typedef LW_LONG64 LONG64;
-#endif
-
-#ifndef ULONG64_DEFINED
-#define ULONG64_DEFINED
-typedef LW_ULONG64 ULONG64;
-#endif
+#define WORD_MAX ((WORD) 0xFFFFU)
+#define DWORD_MAX ((DWORD) 0xFFFFFFFFU)
 
 #endif /* LW_STRICT_NAMESPACE */
 
