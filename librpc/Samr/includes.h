@@ -37,9 +37,10 @@
 #include <compat/rpcstatus.h>
 #endif
 
+#include <lw/ntstatus.h>
+
 #include "samr_h.h"
 
-#include <lwrpc/ntstatus.h>
 #include <wc16str.h>
 #include <lwrpc/samrbinding.h>
 #include <lwrpc/unicodestring.h>

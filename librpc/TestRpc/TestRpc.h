@@ -31,7 +31,7 @@
 #ifndef _TESTRPC_H_
 #define _TESTRPC_H_
 
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/errconv.h>
 #include <wc16str.h>

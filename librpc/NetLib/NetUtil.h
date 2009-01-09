@@ -31,7 +31,7 @@
 #ifndef _NET_UTIL_H_
 #define _NET_UTIL_H_
 
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <ldap.h>
 

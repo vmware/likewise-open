@@ -31,77 +31,36 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-#if !defined(DEFINED_UINT32)
-
-#ifdef _DCE_IDL_
+#if defined(_DCE_IDL_)
+cpp_quote("#include <lwrpc/types.h>")
+cpp_quote("#if 0 /* Don't leak typedefs outside of IDL */")
 typedef unsigned small int uint8;
-#elif !defined(HAVE_UINT8)
-typedef unsigned char uint8;
-#endif
-
-#if !defined(HAVE_UINT16)
 typedef unsigned short int uint16;
-#endif
-
-#if !defined(HAVE_UINT32)
-typedef unsigned int uint32;
-#endif
-
-#ifdef _DCE_IDL_
+typedef unsigned long int uint32;
 typedef unsigned hyper int uint64;
-#elif !defined(HAVE_UINT64)
-typedef unsigned long long int uint64;
-#endif
-
-#ifdef _DCE_IDL_
 typedef small int int8;
-#elif !defined(HAVE_INT8)
-typedef char int8;
-#endif
-
-#if !defined(HAVE_INT16)
 typedef short int int16;
-#endif
-
-#if !defined(HAVE_INT32)
 typedef int int32;
-#endif
-
-#ifdef _DCE_IDL_
 typedef hyper int int64;
-#elif !defined(HAVE_INT64)
-typedef long long int int64;
-#endif
-
-#define DEFINED_UINT32
-#endif /* !defined (DEFINED_UINT32) */
-
-
-#if !defined(NTSTATUS_DEFINED)
 typedef uint32 NTSTATUS;
+typedef uint16 wchar16_t;
+#else
+#include <inttypes.h>
+#include <lw/ntstatus.h>
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
+#endif
+
 typedef uint32 RPCSTATUS;
-
-#define NTSTATUS_DEFINED
-#endif
-
-#if !defined(WINERR_DEFINED)
 typedef uint32 WINERR;
-
-#define WINERR_DEFINED
-#endif
-
-
-#if !defined(NTTIME_DEFINED)
 typedef uint64 NtTime;
 
-#define NTTIME_DEFINED
-#endif
-
-#if !defined(WCHAR16)
-#include <wchar16.h>
-#endif
-
-#if !defined(UNISTR_DEFINED)
 typedef struct unicode_string {
 	uint16 len;
 	uint16 size;
@@ -120,8 +79,9 @@ typedef struct unicode_string_ex {
 	wchar16_t *string;
 } UnicodeStringEx;
 
-#define UNISTR_DEFINED
-#endif /* !defined(UNISTR_DEFINED) */
+#ifdef _DCE_IDL_
+cpp_quote("#endif /* Don't leak typedefs out of IDL */")
+#endif
 
 /* Don't require DCE/RPC environment when simply building
    a client using rpc library */
@@ -135,7 +95,6 @@ typedef unsigned long error_status_t;
 #endif /* !defined(_DCE_IDL_) */
 
 #endif /* _TYPES_H_ */
-
 
 /*
 local variables:

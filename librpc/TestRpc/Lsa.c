@@ -38,7 +38,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <wc16str.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/lsabinding.h>

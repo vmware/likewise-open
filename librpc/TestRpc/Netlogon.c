@@ -43,7 +43,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <wc16str.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <md5.h>
 #include <hmac_md5.h>
 #include <lwrpc/allocate.h>
@@ -477,7 +477,7 @@ close:
     {
         DWORD dwError = 0;
 
-        dwError = SMBSetThreadToken(INVALID_HANDLE_VALUE);
+        dwError = SMBSetThreadToken(NULL);
         if (dwError)
         {
             err = -1;

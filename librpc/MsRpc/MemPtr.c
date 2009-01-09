@@ -33,7 +33,7 @@
 #include <pthread.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/allocate.h>
 

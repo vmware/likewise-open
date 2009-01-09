@@ -31,7 +31,7 @@
 #ifndef _NETR_UTIL_H_
 #define _NETR_UTIL_H_
 
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <compat/rpcstatus.h>
 

@@ -1,7 +1,7 @@
 idl_srcdir=$(top_srcdir)/Idl
 
 include_HEADERS=lwrpc/types.h lwrpc/security.h \
-	lwrpc/ntstatus.h lwrpc/winerror.h lwrpc/error.inc lwrpc/errcheck.h \
+	lwrpc/winerror.h lwrpc/error.inc lwrpc/errcheck.h \
 	byteops.h random.h rc4.h md4.h md5.h hmac_md5.h des.h crypto.h \
 	lwrpc/sidhelper.h lwrpc/mpr.h lwrpc/unicodestring.h lwrpc/allocate.h lwrpc/memptr.h \
 	lwrpc/lsa.h lwrpc/lsabinding.h lwrpc/lsadefs.h \

@@ -39,7 +39,7 @@
 
 #include "netlogon_h.h"
 
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <wc16str.h>
 #include <lwrpc/allocate.h>

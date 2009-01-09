@@ -29,7 +29,7 @@
  */
 
 #include <lwrpc/types.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 
 /*
  * Provide dummy stubs for those functions that aren't implemented
