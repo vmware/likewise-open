@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,39 +28,63 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        structs.h
+ *        dbquery.h
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Listener structures
+ *        Local Authentication Provider
+ *
+ *        User/Group Database Query Templates
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+#ifndef __DBQUERY_H__
+#define __DBQUERY_H__
 
-typedef struct _SHARE_INFO
-{
-    PSTR pszShareName;
-    PSTR pszPath;
-    PSTR pszComment;
-} SHARE_INFO, *PSHARE_INFO;
+#define DB_QUERY_LOOKUP_SHARE_BY_NAME  \
+    "SELECT ShareName,  \
+            Path,       \
+            Comment     \
+      from  ShareTable  \
+      where ShareName = %Q"
 
-typedef struct __SMB_CONNECTION
-{
-    int fd;
-    struct sockaddr_in cliaddr;
+#define DB_QUERY_COUNT_EXISTING_SHARES \
+    "SELECT count(*) from ShareTable"
 
-} SMB_CONNECTION, *PSMB_CONNECTION;
+#define DB_QUERY_FIND_SHARES_LIMIT \
+    "select ShareName,   \
+            Path,        \
+            Comment      \
+    from    ShareTable   \
+    order by ShareName   \
+    LIMIT %d OFFSET %d"
 
-#endif /* __STRUCTS_H__ */
+#define DB_QUERY_CREATE_SHARE_TABLE                            \
+    "create table ShareTable (ShareName        varchar(256),   \
+                              Path             varchar(1024),  \
+                              Comment          varchar(1024)   \
+                             )"
+
+
+#define DB_QUERY_INSERT_SHARE  "INSERT INTO ShareTable \
+                                     (ShareName,       \
+                                      Path,            \
+                                      Comment          \
+                                      )                \
+                               VALUES( %Q,             \
+                                       %Q,             \
+                                       %Q              \
+                                     )"
+
+#define DB_QUERY_DELETE_SHARE "delete from ShareTable where ShareName = %Q"
+
+#endif /* __DBQUERY_H__ */
+

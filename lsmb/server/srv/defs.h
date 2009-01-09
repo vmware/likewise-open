@@ -52,4 +52,9 @@
 #define SMB_SERVER_PORT      445
 #define SMB_LISTEN_Q         5
 
+#define LSMB_SRV_DB_DIR CACHEDIR     "/db"
+#define LSMB_SRV_SHARE_DB LSMB_SRV_DB_DIR "/lsmb-shares.db"
+
+#define
+
 #endif /* __DEFS_H__ */

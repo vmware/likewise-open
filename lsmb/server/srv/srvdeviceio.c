@@ -81,5 +81,29 @@ SrvCommonDeviceIo(
 {
     NTSTATUS ntStatus = 0;
 
+    switch (ControlCode)
+    {
+
+      case SRV_DEVCTL_ADD_SHARE:
+          ntStatus = SrvDevCtlAddShare();
+          break;
+
+      case SRV_DEVCTL_DELETE_SHARE:
+          ntStatus = SrvDevCtlDeleteShare();
+          break;
+
+      case SRV_DEVCTL_ENUM_SHARE:
+          ntStatus = SrvDevCtlEnumShares();
+          break;
+      case SRV_DEVCTL_SET_SHARE_INFO:
+          ntStatus = SrvDevCtlSetShareInfo();
+          break;
+      case SRV_DEVCTL_GET_SHARE_INFO:
+          ntStatus = SrvDevCtlGetShareInfo();
+          break;
+    }
+
     return(ntStatus);
 }
+
+

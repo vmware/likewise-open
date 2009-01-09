@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,39 +28,72 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        structs.h
+ *        db.h
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Listener structures
+ *        Local Authentication Provider
+ *
+ *        User/Group Database Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+#ifndef __SRVDB_H__
+#define __SRVDB_H__
 
-typedef struct _SHARE_INFO
-{
-    PSTR pszShareName;
-    PSTR pszPath;
-    PSTR pszComment;
-} SHARE_INFO, *PSHARE_INFO;
+void
+SrvShareDbInitGlobals(
+    void
+    );
 
-typedef struct __SMB_CONNECTION
-{
-    int fd;
-    struct sockaddr_in cliaddr;
+DWORD
+SrvShareDbCreate(
+    void
+    );
 
-} SMB_CONNECTION, *PSMB_CONNECTION;
+DWORD
+SrvShareDbOpen(
+    PHANDLE phDb
+    );
 
-#endif /* __STRUCTS_H__ */
+void
+SrvShareDbClose(
+    HANDLE hDb
+    );
+
+DWORD
+SrvShareDbFindShareByName(
+    HANDLE hDb,
+    PCSTR  pszShareName,
+    PSHARE_INFO* ppShareInfo
+    );
+
+DWORD
+SrvShareDbAddShare(
+    HANDLE hDb,
+    PCSTR  pszShareName,
+    PCSTR  pszPath,
+    PCSTR  pszComment
+    );
+
+DWORD
+SrvShareDbDeleteShare(
+    HANDLE hDb,
+    PCSTR  pszShareName
+    );
+
+DWORD
+SrvShareDbGetShareCount(
+    HANDLE hDb,
+    PINT   pShareCount);
+
+#endif /* __LSASSDB_H__ */
+
