@@ -28,4 +28,4 @@ PROG_ERR=/var/cache/likewise/eventlogd/eventlogd.err
 PIDFILE=/var/run/likewise-eventlogd.pid
 SCRIPTNAME="eventlogd"
 
-. PREFIX_DIR/bin/init-base.sh
+. EXECDIR/init-base.sh

@@ -25,4 +25,4 @@ PROG_ERR=/var/lib/likewise/lsassd/lsassd.err
 PIDFILE=/var/run/lsassd.pid
 SCRIPTNAME="lsassd"
 
-. PREFIX_DIR/bin/init-base.sh
+. EXECDIR/init-base.sh
