@@ -413,6 +413,25 @@ typedef struct __SMB_STACK
 
 } SMB_STACK, *PSMB_STACK;
 
+typedef VOID (*PFNSMB_QUEUE_FUNC)(PVOID pData, PVOID pUserData);
+
+typedef DWORD (*PFNSMB_FOREACH_QUEUE_ITEM)(PVOID pItem, PVOID pUserData);
+
+typedef struct __SMB_QUEUE_ITEM
+{
+    PVOID pItem;
+
+    struct __SMB_QUEUE_ITEM * pNext;
+} SMB_QUEUE_ITEM, *PSMB_QUEUE_ITEM;
+
+typedef struct __SMB_QUEUE
+{
+
+    PSMB_QUEUE_ITEM pHead;
+    PSMB_QUEUE_ITEM pTail;
+
+} SMB_QUEUE, *PSMB_QUEUE;
+
 typedef DWORD SMBHANDLE, *PSMBHANDLE;
 
 typedef enum
@@ -722,6 +741,40 @@ SMBStackReverse(
 VOID
 SMBStackFree(
     PSMB_STACK pStack
+    );
+
+DWORD
+SMBQueueCreate(
+    PSMB_QUEUE* ppQueue
+    );
+
+DWORD
+SMBEnqueue(
+    PSMB_QUEUE pQueue,
+    PVOID      pItem
+    );
+
+DWORD
+SMBDequeue(
+    PSMB_QUEUE pQueue,
+    PVOID*     ppItem
+    );
+
+BOOLEAN
+SMBQueueIsEmpty(
+    PSMB_QUEUE pQueue
+    );
+
+DWORD
+SMBQueueForeach(
+    PSMB_QUEUE pQueue,
+    PFNSMB_FOREACH_QUEUE_ITEM pfnAction,
+    PVOID pUserData
+    );
+
+VOID
+SMBQueueFree(
+    PSMB_QUEUE pQueue
     );
 
 DWORD

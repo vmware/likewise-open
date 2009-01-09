@@ -13,6 +13,7 @@ libsmbutils_la_SOURCES = \
     logger.c      \
     lwlist.c      \
     memory.c      \
+    queue.c       \
     smbconfig.c   \
     smbloginfo.c  \
     smbxnet.c     \
