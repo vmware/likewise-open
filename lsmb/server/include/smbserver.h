@@ -33,7 +33,7 @@
 
 DWORD
 ServerCreateNamedPipe(
-    LPCWSTR pwszName,
+    PCWSTR pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -72,7 +72,7 @@ DWORD
 ServerGetClientComputerName(
     HANDLE  hNamedPipe,
     DWORD   dwComputerNameMaxSize,
-    LPWSTR* ppwszName,
+    PWSTR* ppwszName,
     PDWORD  pdwLength
     );
 

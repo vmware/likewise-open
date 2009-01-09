@@ -103,7 +103,7 @@ RdrNTCreate(
     ULONG CreateOptions,
     ULONG ImpersonationLevel,
     UCHAR SecurityFlags,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     FID * pFid
     )
 {
@@ -123,7 +123,7 @@ RdrNTTransactCreate(
     ULONG SecurityDescriptorLength,
     ULONG EaLengyh,
     ULONG ImpersonationLevel,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     FID * pFid
     )
 {
@@ -133,8 +133,8 @@ RdrNTTransactCreate(
 NTSTATUS
 RdrCreateTemporary(
     HANDLE hTreeObject,
-    LPWSTR pszDirectoryName,
-    LPWSTR * ppszFileName,
+    PWSTR pszDirectoryName,
+    PWSTR * ppszFileName,
     USHORT * usFid
     )
 {
@@ -221,7 +221,7 @@ NTSTATUS
 RdrDeleteFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszFileName
+    PWSTR pszFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -231,8 +231,8 @@ NTSTATUS
 RdrRenameFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszOldFileName,
-    LPWSTR pszNewFileName
+    PWSTR pszOldFileName,
+    PWSTR pszNewFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -245,9 +245,9 @@ RdrCopyFile(
     USHORT OpenFunction,
     USHORT Flags,
     UCHAR SourceFileFormat,
-    LPWSTR SourceFileName,
+    PWSTR SourceFileName,
     UCHAR TargetFileFormat,
-    LPWSTR TargetFileName
+    PWSTR TargetFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -258,7 +258,7 @@ RdrTrans2QueryPathInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -269,7 +269,7 @@ RdrTrans2QueryFileInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -280,7 +280,7 @@ RdrTrans2SetPathInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -297,7 +297,7 @@ RdrTrans2CreateDirectory(
 NTSTATUS
 RdrTrans2DeleteDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -306,7 +306,7 @@ RdrTrans2DeleteDirectory(
 NTSTATUS
 RdrTrans2CheckDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -319,7 +319,7 @@ RdrTrans2FindFirst2(
     USHORT Flags,
     USHORT InformationLevel,
     ULONG SearchStorageType,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSid,
     USHORT * puSearchCount,
     USHORT * pusEndofSearch,
@@ -338,7 +338,7 @@ RdrTrans2FindNext2(
     USHORT InformationLevel,
     ULONG ResumeKey,
     USHORT Flags,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSearchCount,
     USHORT * pusEndOfSearch,
     USHORT *pusEaErrorOffset,

@@ -39,7 +39,7 @@ SMBSrvClientInit(
 DWORD
 ClientCallNamedPipe(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR   pwszNamedPipeName,
+    PCWSTR   pwszNamedPipeName,
     PVOID     pInBuffer,
     DWORD     dwInBufferSize,
     DWORD     dwOutBufferSize,
@@ -70,7 +70,7 @@ ClientTransactNamedPipe(
 DWORD
 ClientWaitNamedPipe(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszName,
+    PCWSTR pwszName,
     DWORD dwTimeout
     );
 
@@ -93,7 +93,7 @@ ClientPeekNamedPipe(
 DWORD
 ClientCreateFile(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszFileName,
+    PCWSTR pwszFileName,
     DWORD dwDesiredAccess,
     DWORD dwSharedMode,
     DWORD dwCreationDisposition,

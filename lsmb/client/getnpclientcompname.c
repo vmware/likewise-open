@@ -58,7 +58,7 @@ SMBGetNamedPipeClientComputerNameA(
     )
 {
     DWORD dwError = 0;
-    LPWSTR pwszClientComputerName = NULL;
+    PWSTR pwszClientComputerName = NULL;
     PSTR     pszName = NULL;
 
     if (dwClientComputerNameLength == 0)
@@ -103,7 +103,7 @@ DWORD
 SMBGetNamedPipeClientComputerNameW(
     HANDLE   hConnection,
     HANDLE   hNamedPipe,
-    LPWSTR pwszClientComputerName,
+    PWSTR pwszClientComputerName,
     DWORD    dwClientComputerNameLength
     )
 {

@@ -138,7 +138,7 @@ typedef struct _SMB_ID_REPLY
 typedef struct _SMB_CALL_NP_REQUEST
 {
     PSMB_SECURITY_TOKEN_REP pSecurityToken;
-    LPWSTR   pwszNamedPipeName;
+    PWSTR   pwszNamedPipeName;
     DWORD    dwInBufferSize;
     PBYTE    pInBuffer;
     DWORD    dwOutBufferSize;
@@ -154,7 +154,7 @@ typedef struct _SMB_CALL_NP_RESPONSE
 typedef struct _SMB_CREATE_NP_REQUEST
 {
     PSMB_SECURITY_TOKEN_REP pSecurityToken;
-    LPWSTR   pwszName;
+    PWSTR   pwszName;
     DWORD    dwOpenMode;
     DWORD    dwPipeMode;
     DWORD    dwMaxInstances;
@@ -183,7 +183,7 @@ typedef struct _SMB_TRANSACT_NP_REQUEST
 typedef struct _SMB_WAIT_NP_REQUEST
 {
     PSMB_SECURITY_TOKEN_REP pSecurityToken;
-    LPWSTR pwszName;
+    PWSTR pwszName;
     DWORD    dwTimeout;
 } SMB_WAIT_NP_REQUEST, *PSMB_WAIT_NP_REQUEST;
 
@@ -195,7 +195,7 @@ typedef struct _SMB_GET_CLIENT_COMPUTER_NAME_REQUEST
 
 typedef struct _SMB_GET_CLIENT_COMPUTER_NAME_RESPONSE
 {
-    LPWSTR pwszName;
+    PWSTR pwszName;
     DWORD    dwLength;
 } SMB_GET_CLIENT_COMPUTER_NAME_RESPONSE, *PSMB_GET_CLIENT_COMPUTER_NAME_RESPONSE;
 
@@ -216,7 +216,7 @@ typedef struct _SMB_PEEK_NP_RESPONSE
 typedef struct _SMB_CREATE_FILE_REQUEST
 {
     PSMB_SECURITY_TOKEN_REP pSecurityToken;
-    LPWSTR   pwszFileName;
+    PWSTR   pwszFileName;
     DWORD    dwDesiredAccess;
     DWORD    dwSharedMode;
     DWORD    dwCreationDisposition;

@@ -59,7 +59,7 @@
 #include "smblog_r.h"
 #include "smbipc.h"
 
-#include "ntstatus.h"
+#include <lw/ntstatus.h>
 #include "smb.h"
 
 #include "io-types.h"

@@ -65,7 +65,7 @@ NTSTATUS
 SrvDeleteFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszFileName
+    PWSTR pszFileName
     )
 {
     NTSTATUS ntStatus = 0;

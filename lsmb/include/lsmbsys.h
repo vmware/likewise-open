@@ -116,10 +116,6 @@
 #include <sys/socket.h>
 #endif
 
-#if HAVE_WINNTTYPES_H
-#include <winnttypes.h>
-#endif
-
 #if HAVE_WC16STR_H
 #include <wc16str.h>
 #endif

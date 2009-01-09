@@ -35,11 +35,11 @@
 DWORD
 SMBMbsToWc16s(
     PCSTR     pszInput,
-    LPWSTR* ppwszOutput
+    PWSTR* ppwszOutput
     )
 {
     DWORD    dwError = 0;
-    LPWSTR pwszOutput = NULL;
+    PWSTR pwszOutput = NULL;
 
     if (!pszInput) {
         dwError = SMB_ERROR_INVALID_PARAMETER;
@@ -67,13 +67,13 @@ error:
 
 DWORD
 SMBWc16snToMbs(
-    LPCWSTR pwszInput,
+    PCWSTR pwszInput,
     size_t    sMaxChars,
     PSTR*     ppszOutput
     )
 {
     DWORD dwError = 0;
-    LPWSTR pwszTruncated = NULL;
+    PWSTR pwszTruncated = NULL;
     PSTR pszOutput = NULL;
 
     if (!pwszInput) {
@@ -110,7 +110,7 @@ error:
 
 DWORD
 SMBWc16sToMbs(
-    LPCWSTR pwszInput,
+    PCWSTR pwszInput,
     PSTR*     ppszOutput
     )
 {
@@ -143,7 +143,7 @@ error:
 
 DWORD
 SMBWc16sLen(
-    LPCWSTR  pwszInput,
+    PCWSTR  pwszInput,
     size_t*    psLen
     )
 {
@@ -172,8 +172,8 @@ error:
 
 DWORD
 SMBWc16sCmp(
-    LPCWSTR  pwszFirst,
-    LPCWSTR  pwszSecond
+    PCWSTR  pwszFirst,
+    PCWSTR  pwszSecond
     )
 {
     return wc16scmp(pwszFirst, pwszSecond);
@@ -181,13 +181,13 @@ SMBWc16sCmp(
 
 DWORD
 SMBSW16printf(
-    LPWSTR* ppwszStrOutput,
+    PWSTR* ppwszStrOutput,
     PCSTR     pszFormat,
     ...)
 {
     DWORD dwError = 0;
     INT ret = 0;
-    LPWSTR pwszStrOutput = NULL;
+    PWSTR pwszStrOutput = NULL;
     va_list args;
 
     va_start(args, pszFormat);
@@ -220,8 +220,8 @@ error:
 
 DWORD
 SMBWc16sDup(
-    LPCWSTR pwszInput,
-    LPWSTR* pwszOutput
+    PCWSTR pwszInput,
+    PWSTR* pwszOutput
     )
 {
     *pwszOutput = wc16sdup(pwszInput);

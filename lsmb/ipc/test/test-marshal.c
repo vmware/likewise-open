@@ -57,10 +57,10 @@ static LWMsgBuffer buffer;
 
 #define MU_ASSERT_EQUAL_DWORD(_a_, _b_) MU_ASSERT_EQUAL(MU_TYPE_INTEGER, _a_, _b_)
 
-static inline LPWSTR
+static inline PWSTR
 wstr(const char* str)
 {
-    LPWSTR wstr = NULL;
+    PWSTR wstr = NULL;
 
     TRY ( SMBMbsToWc16s(str, &wstr) );
 

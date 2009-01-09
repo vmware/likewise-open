@@ -52,7 +52,7 @@ DWORD
 SMBCreateNamedPipeA(
     HANDLE hConnection,
     HANDLE hAccessToken,
-    LPCSTR pszName,
+    PCSTR pszName,
     DWORD  dwOpenMode,
     DWORD  dwPipeMode,
     DWORD  dwMaxInstances,
@@ -64,7 +64,7 @@ SMBCreateNamedPipeA(
     )
 {
     DWORD dwError = 0;
-    LPWSTR pwszName = NULL;
+    PWSTR pwszName = NULL;
 
     BAIL_ON_INVALID_POINTER(phNamedPipe);
 
@@ -107,7 +107,7 @@ DWORD
 SMBCreateNamedPipeW(
     HANDLE    hConnection,
     HANDLE    hAccessToken,
-    LPCWSTR   pwszName,
+    PCWSTR   pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -133,7 +133,7 @@ SMBCreateNamedPipeW(
     dwError = SMBAPIHandleGetSecurityToken(hAccessToken, &request.pSecurityToken);
     BAIL_ON_SMB_ERROR(dwError);
 
-    request.pwszName = (LPWSTR)pwszName;
+    request.pwszName = (PWSTR)pwszName;
     request.dwOpenMode = dwOpenMode;
     request.dwPipeMode = dwPipeMode;
     request.dwMaxInstances = dwMaxInstances;

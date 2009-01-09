@@ -51,7 +51,7 @@
 DWORD
 SrvCreateFileEx(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszFileName,
+    PCWSTR pwszFileName,
     DWORD   dwDesiredAccess,
     DWORD   dwSharedMode,
     DWORD   dwCreationDisposition,
@@ -123,7 +123,7 @@ SrvNTCreate(
     ULONG CreateOptions,
     ULONG ImpersonationLevel,
     UCHAR SecurityFlags,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     FID * pFid
     )
 {
@@ -143,7 +143,7 @@ SrvNTTransactCreate(
     ULONG SecurityDescriptorLength,
     ULONG EaLengyh,
     ULONG ImpersonationLevel,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     FID * pFid
     )
 {
@@ -153,8 +153,8 @@ SrvNTTransactCreate(
 NTSTATUS
 SrvCreateTemporary(
     HANDLE hTreeObject,
-    LPWSTR pszDirectoryName,
-    LPWSTR * ppszFileName,
+    PWSTR pszDirectoryName,
+    PWSTR * ppszFileName,
     USHORT * usFid
     )
 {
@@ -216,7 +216,7 @@ NTSTATUS
 SrvDeleteFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszFileName
+    PWSTR pszFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -229,9 +229,9 @@ SrvCopyFile(
     USHORT OpenFunction,
     USHORT Flags,
     UCHAR SourceFileFormat,
-    LPWSTR SourceFileName,
+    PWSTR SourceFileName,
     UCHAR TargetFileFormat,
-    LPWSTR TargetFileName
+    PWSTR TargetFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -242,7 +242,7 @@ SrvTrans2QueryPathInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -253,7 +253,7 @@ SrvTrans2QueryFileInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -264,7 +264,7 @@ SrvTrans2SetPathInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -281,7 +281,7 @@ SrvTrans2CreateDirectory(
 NTSTATUS
 SrvTrans2DeleteDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -290,7 +290,7 @@ SrvTrans2DeleteDirectory(
 NTSTATUS
 SrvTrans2CheckDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -304,7 +304,7 @@ SrvTrans2FindNext2(
     USHORT InformationLevel,
     ULONG ResumeKey,
     USHORT Flags,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSearchCount,
     USHORT * pusEndOfSearch,
     USHORT *pusEaErrorOffset,

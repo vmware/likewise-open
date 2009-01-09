@@ -48,246 +48,7 @@
 #ifndef __LSMB_H__
 #define __LSMB_H__
 
-#ifndef SMB_CLIENT_API
-#define SMB_CLIENT_API
-#endif
-
-#ifndef SMB_SERVER_API
-#define SMB_SERVER_API
-#endif
-
-#ifndef SMB_API
-#define SMB_API
-#endif
-
-#ifndef WCHAR16_T_DEFINED
-#define WCHAR16_T_DEFINED 1
-
-typedef uint16_t wchar16_t;
-
-#endif
-
-#ifndef VOID_DEFINED
-#define VOID_DEFINED 1
-
-typedef void            VOID, *PVOID;
-
-#endif
-
-#ifndef PCVOID_DEFINED
-#define PCVOID_DEFINED 1
-
-typedef const void      *PCVOID;
-
-#endif
-
-#ifndef BOOLEAN_DEFINED
-#define BOOLEAN_DEFINED 1
-
-typedef uint8_t             BOOLEAN, *PBOOLEAN;
-
-#endif
-
-#ifndef BOOL_DEFINED
-#define BOOL_DEFINED 1
-
-typedef uint8_t             BOOL, *PBOOL;
-
-#endif
-
-#ifndef TRUE
-#define TRUE (1)
-#endif
-
-#ifndef FALSE
-#define FALSE (0)
-#endif
-
-#ifndef OPTIONAL
-#define OPTIONAL
-#endif
-
-#ifndef IN
-#define IN
-#endif
-
-#ifndef OUT
-#define OUT
-#endif
-
-#ifndef PSTR_DEFINED
-#define PSTR_DEFINED 1
-
-typedef char *          PSTR;
-
-#endif
-
-#ifndef LPSTR_DEFINED
-#define LPSTR_DEFINED 1
-
-typedef char *          LPSTR;
-
-#endif
-
-#ifndef PCSTR_DEFINED
-#define PCSTR_DEFINED 1
-
-typedef const char *    PCSTR;
-
-#endif
-
-#ifndef LPCSTR_DEFINED
-#define LPCSTR_DEFINED 1
-
-typedef const char *    LPCSTR;
-
-#endif
-
-
-#ifndef PWSTR_DEFINED
-#define PWSTR_DEFINED 1
-
-typedef wchar16_t *          PWSTR;
-
-#endif
-
-#ifndef LPWSTR_DEFINED
-#define LPWSTR_DEFINED 1
-
-typedef wchar16_t *          LPWSTR;
-
-#endif
-
-#ifndef PCWSTR_DEFINED
-#define PCWSTR_DEFINED 1
-
-typedef const wchar16_t *    PCWSTR;
-
-#endif
-
-#ifndef LPCWSTR_DEFINED
-#define LPCWSTR_DEFINED 1
-
-typedef const wchar16_t *    LPCWSTR;
-
-#endif
-
-#ifndef BYTE_DEFINED
-#define BYTE_DEFINED
-
-typedef uint8_t BYTE, *PBYTE;
-
-#endif
-
-#ifndef UCHAR_DEFINED
-#define UCHAR_DEFINED 1
-
-typedef uint8_t UCHAR, *PUCHAR;
-
-#endif
-
-#ifndef ULONG_DEFINED
-#define ULONG_DEFINED 1
-
-typedef uint32_t ULONG, *PULONG;
-
-#endif
-
-#ifndef USHORT_DEFINED
-#define USHORT_DEFINED 1
-
-typedef uint16_t USHORT, *PUSHORT;
-
-#endif
-
-#ifndef HANDLE_DEFINED
-#define HANDLE_DEFINED 1
-
-typedef void *HANDLE, **PHANDLE;
-#define INVALID_HANDLE_VALUE (NULL)
-
-#endif
-
-#ifndef CHAR_DEFINED
-#define CHAR_DEFINED 1
-
-typedef char            CHAR, *PCHAR;
-
-#endif
-
-#ifndef INT_DEFINED
-#define INT_DEFINED 1
-
-typedef int             INT, *PINT;
-
-#endif
-
-#ifndef LONG_DEFINED
-#define LONG_DEFINED 1
-
-typedef int32_t        LONG, *PLONG;
-
-#endif
-
-#ifndef DWORD_DEFINED
-#define DWORD_DEFINED 1
-
-typedef uint32_t        DWORD, *PDWORD;
-
-#endif
-
-#ifndef WORD_DEFINED
-#define WORD_DEFINED 1
-
-typedef uint16_t WORD, *PWORD;
-
-#endif
-
-#ifndef TCHAR_DEFINED
-#define TCHAR_DEFINED 1
-
-#if defined(UNICODE)
-
-#define TCHAR wchar16_t
-
-#else
-
-#define TCHAR CHAR
-
-#endif /* defined(UNICODE) */
-
-#endif /* TCHAR_DEFINED */
-
-#ifndef LPTSTR_DEFINED
-#define LPTSTR_DEFINED 1
-
-#if defined(UNICODE)
-
-#define LPTSTR LPWSTR
-
-#else
-
-#define LPTSTR LPSTR
-
-#endif /* defined(UNICODE) */
-
-#endif /* LPTSTR_DEFINED */
-
-#ifndef LPCTSTR_DEFINED
-#define LPCTSTR_DEFINED 1
-
-#if defined(UNICODE)
-
-#define LPCTSTR LPCWSTR
-
-#else
-
-#define LPCTSTR LPCSTR
-
-#endif /* defined(UNICODE) */
-
-#endif /* LPCTSTR_DEFINED */
-
+#include <lw/base.h>
 
 #ifndef OVERLAPPED_DEFINED
 #define OVERLAPPED_DEFINED 1
@@ -503,25 +264,25 @@ typedef struct __SMB_LOG_INFO {
     PSTR         pszPath;
 } SMB_LOG_INFO, *PSMB_LOG_INFO;
 
-SMB_API
+
 DWORD
 SMBInitialize(
     VOID
     );
 
-SMB_API
+
 DWORD
 SMBOpenServer(
     PHANDLE phConnection
     );
 
-SMB_API
+
 DWORD
 SMBRefreshConfiguration(
     HANDLE hConnection
     );
 
-SMB_API
+
 DWORD
 SMBBuildLogInfo(
     SMBLogLevel    maxAllowedLogLevel,
@@ -530,51 +291,51 @@ SMBBuildLogInfo(
     PSMB_LOG_INFO* ppLogInfo
     );
 
-SMB_API
+
 DWORD
 SMBSetLogLevel(
     HANDLE      hSMBConnection,
     SMBLogLevel logLevel
     );
 
-SMB_API
+
 DWORD
 SMBGetLogInfo(
     HANDLE         hSMBConnection,
     PSMB_LOG_INFO* ppLogInfo
     );
 
-SMB_API
+
 DWORD
 SMBSetLogInfo(
     HANDLE        hSMBConnection,
     PSMB_LOG_INFO pLogInfo
     );
 
-SMB_API
+
 VOID
 SMBFreeLogInfo(
     PSMB_LOG_INFO pLogInfo
     );
 
-SMB_API
+
 DWORD
 SMBCloseServer(
     HANDLE hConnection
     );
 
-SMB_API
+
 DWORD
 SMBShutdown(
     VOID
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBCallNamedPipeA(
     HANDLE  hConnection,
     HANDLE  hAccessToken,
-    LPCSTR  pszNamedPipeName,
+    PCSTR  pszNamedPipeName,
     PVOID   pInBuffer,
     DWORD   dwInBufferSize,
     PVOID   pOutBuffer,
@@ -583,12 +344,12 @@ SMBCallNamedPipeA(
     DWORD   dwTimeout
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBCallNamedPipeW(
     HANDLE  hConnection,
     HANDLE  hAccessToken,
-    LPCWSTR pwszNamedPipeName,
+    PCWSTR pwszNamedPipeName,
     PVOID     pInBuffer,
     DWORD     dwInBufferSize,
     PVOID     pOutBuffer,
@@ -597,12 +358,12 @@ SMBCallNamedPipeW(
     DWORD     dwTimeout
     );
 
-SMB_SERVER_API
+
 DWORD
 SMBCreateNamedPipeA(
     HANDLE    hConnection,
     HANDLE    hAccessToken,
-    LPCSTR    pwszName,
+    PCSTR    pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -613,12 +374,12 @@ SMBCreateNamedPipeA(
     PHANDLE   phNamedPipe
     );
 
-SMB_SERVER_API
+
 DWORD
 SMBCreateNamedPipeW(
     HANDLE    hConnection,
     HANDLE    hAccessToken,
-    LPCWSTR pwszName,
+    PCWSTR pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -629,7 +390,7 @@ SMBCreateNamedPipeW(
     PHANDLE   phNamedPipe
     );
 
-SMB_API
+
 DWORD
 SMBGetNamedPipeInfo(
     HANDLE hConnection,
@@ -640,7 +401,7 @@ SMBGetNamedPipeInfo(
     PDWORD pdwMaxInstances
     );
 
-SMB_SERVER_API
+
 DWORD
 SMBConnectNamedPipe(
     HANDLE      hConnection,
@@ -648,7 +409,7 @@ SMBConnectNamedPipe(
     POVERLAPPED pOverlapped
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBTransactNamedPipe(
     HANDLE      hConnection,
@@ -661,25 +422,25 @@ SMBTransactNamedPipe(
     POVERLAPPED pOverlapped
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBWaitNamedPipeA(
     HANDLE hConnection,
     HANDLE hAccessToken,
-    LPCSTR pszNamedPipeName,
+    PCSTR pszNamedPipeName,
     DWORD  dwTimeOut
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBWaitNamedPipeW(
     HANDLE hConnection,
     HANDLE hAccessToken,
-    LPCWSTR pwszNamedPipeName,
+    PCWSTR pwszNamedPipeName,
     DWORD     dwTimeOut
     );
 
-SMB_API
+
 DWORD
 SMBGetNamedPipeClientComputerNameA(
     HANDLE hConnection,
@@ -688,16 +449,16 @@ SMBGetNamedPipeClientComputerNameA(
     DWORD  dwClientComputerNameLength
     );
 
-SMB_API
+
 DWORD
 SMBGetNamedPipeClientComputerNameW(
     HANDLE   hConnection,
     HANDLE   hNamedPipe,
-    LPWSTR pszClientComputerName,
+    PWSTR pszClientComputerName,
     DWORD    dwClientComputerNameLength
     );
 
-SMB_API
+
 DWORD
 SMBGetNamedPipeClientProcessId(
     HANDLE hConnection,
@@ -705,7 +466,7 @@ SMBGetNamedPipeClientProcessId(
     PDWORD pdwClientProcessId
     );
 
-SMB_SERVER_API
+
 DWORD
 SMBGetNamedPipeServerProcessId(
     HANDLE hConnection,
@@ -713,7 +474,7 @@ SMBGetNamedPipeServerProcessId(
     PDWORD pdwServerProcessId
     );
 
-SMB_API
+
 DWORD
 SMBGetNamedPipeClientSessionId(
     HANDLE hConnection,
@@ -721,7 +482,7 @@ SMBGetNamedPipeClientSessionId(
     PDWORD pdwClientSessionId
     );
 
-SMB_API
+
 DWORD
 SMBPeekNamedPipe(
     HANDLE hConnection,
@@ -733,19 +494,19 @@ SMBPeekNamedPipe(
     PDWORD pdwBytesLeftThisMessage
     );
 
-SMB_API
+
 DWORD
 SMBDisconnectNamedPipe(
     HANDLE hConnection,
     HANDLE hNamedPipe
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBCreateFileA(
     HANDLE               hConnection,
     HANDLE               hAccessToken,
-    LPCSTR               pszFileName,
+    PCSTR               pszFileName,
     DWORD                dwDesiredAccess,
     DWORD                dwSharedMode,
     PSECURITY_ATTRIBUTES pSecurityAttributes,
@@ -755,12 +516,12 @@ SMBCreateFileA(
     PHANDLE              phFile
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBCreateFileW(
     HANDLE               hConnection,
     HANDLE               hAccessToken,
-    LPCWSTR            pwszFileName,
+    PCWSTR            pwszFileName,
     DWORD                dwDesiredAccess,
     DWORD                dwSharedMode,
     PSECURITY_ATTRIBUTES pSecurityAttributes,
@@ -770,7 +531,7 @@ SMBCreateFileW(
     PHANDLE              phFile
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBSetNamedPipeHandleState(
     HANDLE      hConnection,
@@ -780,7 +541,7 @@ SMBSetNamedPipeHandleState(
     PDWORD      pdwMaxTimeout
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBReadFile(
     HANDLE      hConnection,
@@ -791,7 +552,7 @@ SMBReadFile(
     POVERLAPPED pOverlapped
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBWriteFile(
     HANDLE      hConnection,
@@ -802,14 +563,14 @@ SMBWriteFile(
     POVERLAPPED pOverlapped
     );
 
-SMB_CLIENT_API
+
 DWORD
 SMBCloseHandle(
     HANDLE hConnection,
     HANDLE hFile
     );
 
-SMB_API
+
 DWORD
 SMBGetSessionKey(
     HANDLE hConnection,
@@ -818,7 +579,7 @@ SMBGetSessionKey(
     PBYTE* ppSessionKey
     );
 
-SMB_API
+
 VOID
 SMBFreeSessionKey(
     PBYTE pSessionKey
@@ -826,29 +587,29 @@ SMBFreeSessionKey(
 
 DWORD
 SMBCreatePlainAccessTokenW(
-    LPCWSTR pwszUsername,
-    LPCWSTR pwszPassword,
+    PCWSTR pwszUsername,
+    PCWSTR pwszPassword,
     PHANDLE phAccessToken
     );
 
 DWORD
 SMBCreatePlainAccessTokenA(
-    LPCSTR pszUsername,
-    LPCSTR pszPassword,
+    PCSTR pszUsername,
+    PCSTR pszPassword,
     PHANDLE phAccessToken
     );
 
 DWORD
 SMBCreateKrb5AccessTokenW(
-    LPCWSTR pwszPrincipal,
-    LPCWSTR pwszCachePath,
+    PCWSTR pwszPrincipal,
+    PCWSTR pwszCachePath,
     PHANDLE phAccessToken
     );
 
 DWORD
 SMBCreateKrb5AccessTokenA(
-    LPCSTR pszPrincipal,
-    LPCSTR pszCachePath,
+    PCSTR pszPrincipal,
+    PCSTR pszCachePath,
     PHANDLE phAccessToken
     );
 
@@ -920,10 +681,10 @@ SetLastError(
     DWORD dwError
     );
 
-SMB_CLIENT_API
+
 BOOL
 CallNamedPipeA(
-    LPCSTR  pszNamedPipeName,
+    PCSTR  pszNamedPipeName,
     PVOID   pInBuffer,
     DWORD   dwInBufferSize,
     PVOID   pOutBuffer,
@@ -932,10 +693,10 @@ CallNamedPipeA(
     DWORD   dwTimeout
     );
 
-SMB_CLIENT_API
+
 BOOL
 CallNamedPipeW(
-    LPCWSTR pwszNamedPipeName,
+    PCWSTR pwszNamedPipeName,
     PVOID     pInBuffer,
     DWORD     dwInBufferSize,
     PVOID     pOutBuffer,
@@ -944,10 +705,10 @@ CallNamedPipeW(
     DWORD     dwTimeout
     );
 
-SMB_SERVER_API
+
 HANDLE
 CreateNamedPipeA(
-    LPCSTR    pwszName,
+    PCSTR    pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -957,10 +718,10 @@ CreateNamedPipeA(
     PSECURITY_ATTRIBUTES pSecurityAttributes
     );
 
-SMB_SERVER_API
+
 HANDLE
 CreateNamedPipeW(
-    LPCWSTR pwszName,
+    PCWSTR pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -970,7 +731,7 @@ CreateNamedPipeW(
     PSECURITY_ATTRIBUTES pSecurityAttributes
     );
 
-SMB_API
+
 BOOL
 GetNamedPipeInfo(
     HANDLE hNamedPipe,
@@ -980,14 +741,14 @@ GetNamedPipeInfo(
     PDWORD pdwMaxInstances
     );
 
-SMB_SERVER_API
+
 BOOL
 ConnectNamedPipe(
     HANDLE      hNamedPipe,
     POVERLAPPED pOverlapped
     );
 
-SMB_CLIENT_API
+
 BOOL
 TransactNamedPipe(
     HANDLE      hNamedPipe,
@@ -999,21 +760,21 @@ TransactNamedPipe(
     POVERLAPPED pOverlapped
     );
 
-SMB_CLIENT_API
+
 BOOL
 WaitNamedPipeA(
-    LPCSTR pszNamedPipeName,
+    PCSTR pszNamedPipeName,
     DWORD  dwTimeOut
     );
 
-SMB_CLIENT_API
+
 BOOL
 WaitNamedPipeW(
-    LPCWSTR pwszNamedPipeName,
+    PCWSTR pwszNamedPipeName,
     DWORD     dwTimeOut
     );
 
-SMB_API
+
 BOOL
 GetNamedPipeClientComputerNameA(
     HANDLE hNamedPipe,
@@ -1021,36 +782,36 @@ GetNamedPipeClientComputerNameA(
     DWORD  dwClientComputerNameLength
     );
 
-SMB_API
+
 BOOL
 GetNamedPipeClientComputerNameW(
     HANDLE   hNamedPipe,
-    LPWSTR   pszClientComputerName,
+    PWSTR   pszClientComputerName,
     DWORD    dwClientComputerNameLength
     );
 
-SMB_API
+
 BOOL
 GetNamedPipeClientProcessId(
     HANDLE hNamedPipe,
     PDWORD pdwClientProcessId
     );
 
-SMB_SERVER_API
+
 BOOL
 GetNamedPipeServerProcessId(
     HANDLE hNamedPipe,
     PDWORD pdwServerProcessId
     );
 
-SMB_API
+
 BOOL
 GetNamedPipeClientSessionId(
     HANDLE hNamedPipe,
     PDWORD pdwClientSessionId
     );
 
-SMB_API
+
 BOOL
 PeekNamedPipe(
     HANDLE hNamedPipe,
@@ -1061,16 +822,16 @@ PeekNamedPipe(
     PDWORD pdwBytesLeftThisMessage
     );
 
-SMB_API
+
 BOOL
 DisconnectNamedPipe(
     HANDLE hNamedPipe
     );
 
-SMB_CLIENT_API
+
 HANDLE
 CreateFileA(
-    LPCSTR               pszFileName,
+    PCSTR               pszFileName,
     DWORD                dwDesiredAccess,
     DWORD                dwSharedMode,
     PSECURITY_ATTRIBUTES pSecurityAttributes,
@@ -1079,10 +840,10 @@ CreateFileA(
     HANDLE               hTemplateFile
     );
 
-SMB_CLIENT_API
+
 HANDLE
 CreateFileW(
-    LPCWSTR              pwszFileName,
+    PCWSTR              pwszFileName,
     DWORD                dwDesiredAccess,
     DWORD                dwSharedMode,
     PSECURITY_ATTRIBUTES pSecurityAttributes,
@@ -1091,7 +852,7 @@ CreateFileW(
     HANDLE               hTemplateFile
     );
 
-SMB_CLIENT_API
+
 BOOL
 SetNamedPipeHandleState(
     HANDLE      hPipe,
@@ -1100,7 +861,7 @@ SetNamedPipeHandleState(
     PDWORD      pdwMaxTimeout
     );
 
-SMB_CLIENT_API
+
 BOOL
 ReadFile(
     HANDLE      hFile,
@@ -1110,7 +871,7 @@ ReadFile(
     POVERLAPPED pOverlapped
     );
 
-SMB_CLIENT_API
+
 BOOL
 WriteFile(
     HANDLE      hFile,
@@ -1120,7 +881,6 @@ WriteFile(
     POVERLAPPED pOverlapped
     );
 
-SMB_CLIENT_API
 BOOL
 CloseHandle(
     HANDLE hFile

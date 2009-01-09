@@ -33,7 +33,7 @@
 
 typedef NTSTATUS (*PVFS_LW_CREATEFILE)(
                     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-                    LPCWSTR pwszFileName,
+                    PCWSTR pwszFileName,
                     DWORD   dwDesiredAccess,
                     DWORD   dwSharedMode,
                     DWORD   dwCreationDisposition,
@@ -81,7 +81,7 @@ typedef NTSTATUS (*PVFS_NT_CREATE)(
                     ULONG CreateOptions,
                     ULONG ImpersonationLevel,
                     UCHAR SecurityFlags,
-                    LPWSTR pszFileName,
+                    PWSTR pszFileName,
                     FID * pFid
                     );
 
@@ -97,14 +97,14 @@ typedef NTSTATUS (*PVFS_NT_TRANSACT_CREATE)(
                     ULONG SecurityDescriptorLength,
                     ULONG EaLengyh,
                     ULONG ImpersonationLevel,
-                    LPWSTR pszFileName,
+                    PWSTR pszFileName,
                     FID * pFid
                     );
 
 typedef NTSTATUS (*PVFS_CREATE_TEMPORARY)(
                     HANDLE hTreeObject,
-                    LPWSTR pszDirectoryName,
-                    LPWSTR * ppszFileName,
+                    PWSTR pszDirectoryName,
+                    PWSTR * ppszFileName,
                     USHORT * usFid
                     );
 
@@ -159,14 +159,14 @@ typedef NTSTATUS (*PVFS_CLOSE_FILE_AND_DISCONNECT)(
 typedef NTSTATUS (*PVFS_DELETE_FILE)(
                     HANDLE hTreeObject,
                     USHORT usSearchAttributes,
-                    LPWSTR pszFileName
+                    PWSTR pszFileName
                     );
 
 typedef NTSTATUS (*PVFS_RENAME_FILE)(
                     HANDLE hTreeObject,
                     USHORT usSearchAttributes,
-                    LPWSTR pszOldFileName,
-                    LPWSTR pszNewFileName
+                    PWSTR pszOldFileName,
+                    PWSTR pszNewFileName
                     );
 
 typedef NTSTATUS (*PVFS_COPY_FILE)(
@@ -175,30 +175,30 @@ typedef NTSTATUS (*PVFS_COPY_FILE)(
                     USHORT OpenFunction,
                     USHORT Flags,
                     UCHAR SourceFileFormat,
-                    LPWSTR SourceFileName,
+                    PWSTR SourceFileName,
                     UCHAR TargetFileFormat,
-                    LPWSTR TargetFileName
+                    PWSTR TargetFileName
                     );
 
 typedef NTSTATUS (*PVFS_TRANS2_QUERY_PATH_INFORMATION)(
                     HANDLE hTreeObject,
                     USHORT InformationLevel,
                     ULONG Reserved,
-                    LPWSTR FileName
+                    PWSTR FileName
                     );
 
 typedef NTSTATUS (*PVFS_TRANS2_QUERY_FILE_INFORMATION)(
                     HANDLE hTreeObject,
                     USHORT InformationLevel,
                     ULONG Reserved,
-                    LPWSTR FileName
+                    PWSTR FileName
                     );
 
 typedef NTSTATUS (*PVFS_TRANS2_SET_PATH_INFORMATION)(
                     HANDLE hTreeObject,
                     USHORT InformationLevel,
                     ULONG Reserved,
-                    LPWSTR FileName
+                    PWSTR FileName
                     );
 
 typedef NTSTATUS (*PVFS_TRANS2_CREATE_DIRECTORY)(
@@ -207,12 +207,12 @@ typedef NTSTATUS (*PVFS_TRANS2_CREATE_DIRECTORY)(
 
 typedef NTSTATUS (*PVFS_TRANS2_DELETE_DIRECTORY)(
                     HANDLE hTreeObject,
-                    LPWSTR DirectoryName[]
+                    PWSTR DirectoryName[]
                     );
 
 typedef NTSTATUS (*PVFS_TRANS2_CHECK_DIRECTORY)(
                     HANDLE hTreeObject,
-                    LPWSTR DirectoryName[]
+                    PWSTR DirectoryName[]
                     );
 
 typedef NTSTATUS (*PVFS_TRANS2_FIND_FIRST2)(
@@ -221,7 +221,7 @@ typedef NTSTATUS (*PVFS_TRANS2_FIND_FIRST2)(
                     USHORT Flags,
                     USHORT InformationLevel,
                     ULONG SearchStorageType,
-                    LPWSTR FileName,
+                    PWSTR FileName,
                     USHORT * pusSid,
                     USHORT * puSearchCount,
                     USHORT * pusEndofSearch,
@@ -236,7 +236,7 @@ typedef NTSTATUS (*PVFS_TRANS2_FIND_NEXT2)(
                     USHORT InformationLevel,
                     ULONG ResumeKey,
                     USHORT Flags,
-                    LPWSTR FileName,
+                    PWSTR FileName,
                     USHORT * pusSearchCount,
                     USHORT * pusEndOfSearch,
                     USHORT *pusEaErrorOffset,

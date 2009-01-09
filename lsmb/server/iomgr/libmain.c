@@ -48,7 +48,7 @@ error:
 DWORD
 IOMgrCallNamedPipe(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszNamedPipeName,
+    PCWSTR pwszNamedPipeName,
     PVOID     pInBuffer,
     DWORD     dwInBufferSize,
     DWORD     dwOutBufferSize,
@@ -63,7 +63,7 @@ IOMgrCallNamedPipe(
 DWORD
 IOMgrCreateNamedPipe(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszName,
+    PCWSTR pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -113,7 +113,7 @@ IOMgrTransactNamedPipe(
 DWORD
 IOMgrWaitNamedPipe(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszName,
+    PCWSTR pwszName,
     DWORD dwTimeout
     )
 {
@@ -124,7 +124,7 @@ DWORD
 IOMgrGetClientComputerName(
     PSMB_FILE_HANDLE pNamedPipe,
     DWORD     dwComputerNameMaxSize,
-    LPWSTR* ppwszName,
+    PWSTR* ppwszName,
     PDWORD    pdwLength
     )
 {
@@ -182,7 +182,7 @@ IOMgrDisconnectNamedPipe(
 DWORD
 IOMgrCreateFile(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszFileName,
+    PCWSTR pwszFileName,
     DWORD dwDesiredAccess,
     DWORD dwSharedMode,
     DWORD dwCreationDisposition,

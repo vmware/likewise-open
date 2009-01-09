@@ -146,8 +146,8 @@ SMBSrvClientReaperMain(
 
         while ((pSocket = (SMB_SOCKET *) SMBStackPop(&pSocketStack)))
         {
-            BOOL bSocketIsStale = false;
-            BOOL bReapedSocket = false;
+            BOOLEAN bSocketIsStale = false;
+            BOOLEAN bReapedSocket = false;
 
             dwError = pthread_rwlock_rdlock(&pSocket->hashLock);
             if (dwError) goto error_session_hash_lock;
@@ -171,8 +171,8 @@ SMBSrvClientReaperMain(
 
             while ((pSession = SMBStackPop(&pSessionStack)))
             {
-                BOOL bSessionIsStale = false;
-                BOOL bReapedSession = false;
+                BOOLEAN bSessionIsStale = false;
+                BOOLEAN bReapedSession = false;
 
                 dwError = pthread_rwlock_rdlock(&pSession->hashLock);
                 if (dwError) goto error_tree_hash_lock;
@@ -196,8 +196,8 @@ SMBSrvClientReaperMain(
 
                 while ((pTree = SMBStackPop(&pTreeStack)))
                 {
-                    BOOL bTreeIsStale = false;
-                    BOOL bReapedTree = false;
+                    BOOLEAN bTreeIsStale = false;
+                    BOOLEAN bReapedTree = false;
 
                     dwError = SMBSrvClientTreeIsStale_inlock(pTree, &bTreeIsStale);
                     BAIL_ON_SMB_ERROR(dwError);
@@ -303,8 +303,8 @@ SMBSrvClientReaperManageTree_inlock(
     DWORD dwError = 0;
     SMB_TREE *pFoundTree = NULL;
     SMB_SESSION *pSession = pTree->pSession;
-    BOOL bTreeIsStale = false;
-    BOOL bHashLocked = false;
+    BOOLEAN bTreeIsStale = false;
+    BOOLEAN bHashLocked = false;
     BOOLEAN bTreeInLock = FALSE;
     BOOLEAN bTreeSetupInLock = FALSE;
     BOOLEAN bReaped = false;
@@ -406,10 +406,10 @@ SMBSrvClientReaperManageSession_inlock(
     DWORD dwError = 0;
     SMB_SESSION *pFoundSession = NULL;
     SMB_SOCKET *pSocket = pSession->pSocket;
-    BOOL bSessionIsStale = false;
-    BOOL bHashLocked = false;
-    BOOL bSessionLocked = false;
-    BOOL bSessionSetupLocked = false;
+    BOOLEAN bSessionIsStale = false;
+    BOOLEAN bHashLocked = false;
+    BOOLEAN bSessionLocked = false;
+    BOOLEAN bSessionSetupLocked = false;
     BOOLEAN bReaped = false;
 
     /* Lock the parent session for write */
@@ -513,9 +513,9 @@ SMBSrvClientReaperManageSocket_inlock(
     )
 {
     SMB_SOCKET *pFoundSocket = NULL;
-    BOOL bSocketIsStale = false;
-    BOOL bHashLocked = false;
-    BOOL bSocketLocked = false;
+    BOOLEAN bSocketIsStale = false;
+    BOOLEAN bHashLocked = false;
+    BOOLEAN bSocketLocked = false;
     DWORD dwError = 0;
     BOOLEAN bReaped = false;
 

@@ -52,7 +52,7 @@
 DWORD
 ClientWaitNamedPipe(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszName,
+    PCWSTR pwszName,
     DWORD dwTimeout
     )
 {

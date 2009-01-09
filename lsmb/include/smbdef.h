@@ -142,13 +142,13 @@ typedef struct _SMB_SECURITY_TOKEN_REP
     {
         struct _SMB_SECURITY_TOKEN_PLAIN
         {
-            LPWSTR pwszUsername;
-            LPWSTR pwszPassword;
+            PWSTR pwszUsername;
+            PWSTR pwszPassword;
         } plain;
         struct _SMB_SECURITY_TOKEN_KRB5
         {
-            LPWSTR pwszPrincipal;
-            LPWSTR pwszCachePath;
+            PWSTR pwszPrincipal;
+            PWSTR pwszCachePath;
         } krb5;
     } payload;
 } SMB_SECURITY_TOKEN_REP, *PSMB_SECURITY_TOKEN_REP;

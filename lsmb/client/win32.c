@@ -65,7 +65,7 @@ SetLastError(
 
 BOOL
 CallNamedPipeA(
-    LPCSTR  pszNamedPipeName,
+    PCSTR  pszNamedPipeName,
     PVOID   pInBuffer,
     DWORD   dwInBufferSize,
     PVOID   pOutBuffer,
@@ -105,7 +105,7 @@ error:
 
 BOOL
 CallNamedPipeW(
-    LPCWSTR   pwszNamedPipeName,
+    PCWSTR   pwszNamedPipeName,
     PVOID     pInBuffer,
     DWORD     dwInBufferSize,
     PVOID     pOutBuffer,
@@ -144,7 +144,7 @@ error:
 
 HANDLE
 CreateNamedPipeA(
-    LPCSTR    pszName,
+    PCSTR    pszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -187,7 +187,7 @@ error:
 
 HANDLE
 CreateNamedPipeW(
-    LPCWSTR   pwszName,
+    PCWSTR   pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
     DWORD     dwMaxInstances,
@@ -330,7 +330,7 @@ error:
 
 BOOL
 WaitNamedPipeA(
-    LPCSTR pszNamedPipeName,
+    PCSTR pszNamedPipeName,
     DWORD  dwTimeOut
     )
 {
@@ -360,7 +360,7 @@ error:
 
 BOOL
 WaitNamedPipeW(
-    LPCWSTR   pwszNamedPipeName,
+    PCWSTR   pwszNamedPipeName,
     DWORD     dwTimeOut
     )
 {
@@ -420,7 +420,7 @@ error:
 BOOL
 GetNamedPipeClientComputerNameW(
     HANDLE   hNamedPipe,
-    LPWSTR   pwszClientComputerName,
+    PWSTR   pwszClientComputerName,
     DWORD    dwClientComputerNameLength
     )
 {
@@ -596,7 +596,7 @@ error:
 
 HANDLE
 CreateFileA(
-    LPCSTR               pszFileName,
+    PCSTR               pszFileName,
     DWORD                dwDesiredAccess,
     DWORD                dwSharedMode,
     PSECURITY_ATTRIBUTES pSecurityAttributes,
@@ -637,7 +637,7 @@ error:
 
 HANDLE
 CreateFileW(
-    LPCWSTR              pwszFileName,
+    PCWSTR              pwszFileName,
     DWORD                dwDesiredAccess,
     DWORD                dwSharedMode,
     PSECURITY_ATTRIBUTES pSecurityAttributes,
@@ -676,7 +676,6 @@ error:
     return hHandle;
 }
 
-SMB_CLIENT_API
 BOOL
 SetNamedPipeHandleState(
     HANDLE      hPipe,

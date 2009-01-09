@@ -53,7 +53,7 @@ DWORD
 SMBCreateFileA(
     HANDLE               hConnection,
     HANDLE               hAccessToken,
-    LPCSTR               pszFileName,
+    PCSTR               pszFileName,
     DWORD                dwDesiredAccess,
     DWORD                dwSharedMode,
     PSECURITY_ATTRIBUTES pSecurityAttributes,
@@ -64,7 +64,7 @@ SMBCreateFileA(
     )
 {
     DWORD dwError = 0;
-    LPWSTR pwszFileName = NULL;
+    PWSTR pwszFileName = NULL;
 
     BAIL_ON_INVALID_POINTER(phFile);
 
@@ -107,7 +107,7 @@ DWORD
 SMBCreateFileW(
     HANDLE               hConnection,
     HANDLE               hAccessToken,
-    LPCWSTR              pwszFileName,
+    PCWSTR              pwszFileName,
     DWORD                dwDesiredAccess,
     DWORD                dwSharedMode,
     PSECURITY_ATTRIBUTES pSecurityAttributes,
@@ -130,7 +130,7 @@ SMBCreateFileW(
     dwError = SMBAPIHandleGetSecurityToken(hAccessToken, &request.pSecurityToken);
     BAIL_ON_SMB_ERROR(dwError);
 
-    request.pwszFileName = (LPWSTR)pwszFileName;
+    request.pwszFileName = (PWSTR)pwszFileName;
     request.dwDesiredAccess = dwDesiredAccess;
     request.dwSharedMode = dwSharedMode;
     request.dwCreationDisposition = dwCreationDisposition;

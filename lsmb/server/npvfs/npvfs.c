@@ -75,7 +75,7 @@ error:
 DWORD
 NPVfsCreateFileEx(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszFileName,
+    PCWSTR pwszFileName,
     DWORD   dwDesiredAccess,
     DWORD   dwSharedMode,
     DWORD   dwCreationDisposition,
@@ -146,7 +146,7 @@ NPVfsNTCreate(
     ULONG CreateOptions,
     ULONG ImpersonationLevel,
     UCHAR SecurityFlags,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     HANDLE * phFileObject
     )
 {
@@ -166,7 +166,7 @@ NPVfsNTTransactCreate(
     ULONG SecurityDescriptorLength,
     ULONG EaLengyh,
     ULONG ImpersonationLevel,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     HANDLE * phFileObject
     )
 {
@@ -176,8 +176,8 @@ NPVfsNTTransactCreate(
 NTSTATUS
 NPVfsCreateTemporary(
     HANDLE hTreeObject,
-    LPWSTR pszDirectoryName,
-    LPWSTR * ppszFileName,
+    PWSTR pszDirectoryName,
+    PWSTR * ppszFileName,
     USHORT * usFid
     )
 {
@@ -264,7 +264,7 @@ NTSTATUS
 NPVfsDeleteFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszFileName
+    PWSTR pszFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -274,8 +274,8 @@ NTSTATUS
 NPVfsRenameFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszOldFileName,
-    LPWSTR pszNewFileName
+    PWSTR pszOldFileName,
+    PWSTR pszNewFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -288,9 +288,9 @@ NPVfsCopyFile(
     USHORT OpenFunction,
     USHORT Flags,
     UCHAR SourceFileFormat,
-    LPWSTR SourceFileName,
+    PWSTR SourceFileName,
     UCHAR TargetFileFormat,
-    LPWSTR TargetFileName
+    PWSTR TargetFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -301,7 +301,7 @@ NPVfsTrans2QueryPathInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -312,7 +312,7 @@ NPVfsTrans2QueryFileInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -323,7 +323,7 @@ NPVfsTrans2SetPathInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -340,7 +340,7 @@ NPVfsTrans2CreateDirectory(
 NTSTATUS
 NPVfsTrans2DeleteDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -349,7 +349,7 @@ NPVfsTrans2DeleteDirectory(
 NTSTATUS
 NPVfsTrans2CheckDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -362,7 +362,7 @@ NPVfsTrans2FindFirst2(
     USHORT Flags,
     USHORT InformationLevel,
     ULONG SearchStorageType,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSid,
     USHORT * puSearchCount,
     USHORT * pusEndofSearch,
@@ -381,7 +381,7 @@ NPVfsTrans2FindNext2(
     USHORT InformationLevel,
     ULONG ResumeKey,
     USHORT Flags,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSearchCount,
     USHORT * pusEndOfSearch,
     USHORT *pusEaErrorOffset,

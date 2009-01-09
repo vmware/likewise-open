@@ -52,7 +52,7 @@
 DWORD
 SrvCreateFileEx(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszFileName,
+    PCWSTR pwszFileName,
     DWORD   dwDesiredAccess,
     DWORD   dwSharedMode,
     DWORD   dwCreationDisposition,
@@ -106,7 +106,7 @@ SrvNTCreate(
     ULONG CreateOptions,
     ULONG ImpersonationLevel,
     UCHAR SecurityFlags,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     FID * pFid
     );
 
@@ -123,15 +123,15 @@ SrvNTTransactCreate(
     ULONG SecurityDescriptorLength,
     ULONG EaLengyh,
     ULONG ImpersonationLevel,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     FID * pFid
     );
 
 NTSTATUS
 SrvCreateTemporary(
     HANDLE hTreeObject,
-    LPWSTR pszDirectoryName,
-    LPWSTR * ppszFileName,
+    PWSTR pszDirectoryName,
+    PWSTR * ppszFileName,
     USHORT * usFid
     );
 
@@ -194,8 +194,8 @@ NTSTATUS
 SrvRenameFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszOldFileName,
-    LPWSTR pszNewFileName
+    PWSTR pszOldFileName,
+    PWSTR pszNewFileName
     );
 
 NTSTATUS
@@ -205,9 +205,9 @@ SrvCopyFile(
     USHORT OpenFunction,
     USHORT Flags,
     UCHAR SourceFileFormat,
-    LPWSTR SourceFileName,
+    PWSTR SourceFileName,
     UCHAR TargetFileFormat,
-    LPWSTR TargetFileName
+    PWSTR TargetFileName
     );
 
 NTSTATUS
@@ -215,7 +215,7 @@ SrvTrans2QueryPathInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     );
 
 NTSTATUS
@@ -223,7 +223,7 @@ SrvTrans2QueryFileInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     );
 
 NTSTATUS
@@ -231,7 +231,7 @@ SrvTrans2SetPathInformation(
     HANDLE hTreeObject,
     USHORT InformationLevel,
     ULONG Reserved,
-    LPWSTR FileName
+    PWSTR FileName
     );
 
 NTSTATUS
@@ -242,13 +242,13 @@ SrvTrans2CreateDirectory(
 NTSTATUS
 SrvTrans2DeleteDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     );
 
 NTSTATUS
 SrvTrans2CheckDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     );
 
 NTSTATUS
@@ -259,7 +259,7 @@ SrvTrans2FindNext2(
     USHORT InformationLevel,
     ULONG ResumeKey,
     USHORT Flags,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSearchCount,
     USHORT * pusEndOfSearch,
     USHORT *pusEaErrorOffset,

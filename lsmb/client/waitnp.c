@@ -53,12 +53,12 @@ DWORD
 SMBWaitNamedPipeA(
     HANDLE hConnection,
     HANDLE hAccessToken,
-    LPCSTR pszNamedPipeName,
+    PCSTR pszNamedPipeName,
     DWORD  dwTimeout
     )
 {
     DWORD    dwError = 0;
-    LPWSTR pwszNamedPipeName = NULL;
+    PWSTR pwszNamedPipeName = NULL;
 
     dwError = SMBMbsToWc16s(
                     pszNamedPipeName,
@@ -88,7 +88,7 @@ DWORD
 SMBWaitNamedPipeW(
     HANDLE    hConnection,
     HANDLE    hAccessToken,
-    LPCWSTR   pwszNamedPipeName,
+    PCWSTR   pwszNamedPipeName,
     DWORD     dwTimeout
     )
 {
@@ -105,7 +105,7 @@ SMBWaitNamedPipeW(
     dwError = SMBAPIHandleGetSecurityToken(hAccessToken, &request.pSecurityToken);
     BAIL_ON_SMB_ERROR(dwError);
 
-    request.pwszName = (LPWSTR)pwszNamedPipeName;
+    request.pwszName = (PWSTR)pwszNamedPipeName;
     request.dwTimeout = dwTimeout;
 
     dwError = MAP_LWMSG_STATUS(lwmsg_assoc_send_transact(

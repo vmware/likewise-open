@@ -147,7 +147,7 @@ NTVfsNTCreate(
     ULONG CreateOptions,
     ULONG ImpersonationLevel,
     UCHAR SecurityFlags,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     HANDLE * phFileObject
     )
 {
@@ -170,7 +170,7 @@ NTVfsNTTransactCreate(
     ULONG SecurityDescriptorLength,
     ULONG EaLengyh,
     ULONG ImpersonationLevel,
-    LPWSTR pszFileName,
+    PWSTR pszFileName,
     HANDLE * phFileObject
     )
 {
@@ -200,8 +200,8 @@ NTVfsNTTransactCreate(
 NTSTATUS
 NTVfsCreateTemporary(
     HANDLE hTreeObject,
-    LPWSTR pszDirectoryName,
-    LPWSTR * ppszFileName,
+    PWSTR pszDirectoryName,
+    PWSTR * ppszFileName,
     HANDLE * hFileObject
     )
 {
@@ -392,7 +392,7 @@ NTSTATUS
 NTVfsDeleteFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszFileName
+    PWSTR pszFileName
     )
 {
     NTSTATUS ntStatus = 0;
@@ -414,8 +414,8 @@ NTSTATUS
 NTVfsRenameFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszOldFileName,
-    LPWSTR pszNewFileName
+    PWSTR pszOldFileName,
+    PWSTR pszNewFileName
     )
 {
     NTSTATUS ntStatus = 0;
@@ -456,9 +456,9 @@ NTVfsCopyFile(
     USHORT OpenFunction,
     USHORT Flags,
     UCHAR SourceFileFormat,
-    LPWSTR SourceFileName,
+    PWSTR SourceFileName,
     UCHAR TargetFileFormat,
-    LPWSTR TargetFileName
+    PWSTR TargetFileName
     )
 {
     NTSTATUS ntStatus = 0;
@@ -600,7 +600,7 @@ NTVfsTrans2CreateDirectory(
 NTSTATUS
 NTVfsDeleteDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     )
 {
     NTSTATUS ntStatus = 0;
@@ -629,7 +629,7 @@ NTVfsDeleteDirectory(
 NTSTATUS
 NTVfsCheckDirectory(
     HANDLE hTreeObject,
-    LPWSTR DirectoryName[]
+    PWSTR DirectoryName[]
     )
 {
     NTSTATUS ntStatus = 0;
@@ -662,7 +662,7 @@ NTVfsTrans2FindFirst2(
     USHORT Flags,
     USHORT InformationLevel,
     ULONG SearchStorageType,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSid,
     USHORT * puSearchCount,
     USHORT * pusEndofSearch,
@@ -701,7 +701,7 @@ NTVfsTrans2FindNext2(
     USHORT InformationLevel,
     ULONG ResumeKey,
     USHORT Flags,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSearchCount,
     USHORT * pusEndOfSearch,
     USHORT *pusEaErrorOffset,

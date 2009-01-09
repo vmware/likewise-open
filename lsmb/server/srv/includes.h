@@ -55,7 +55,7 @@
 #include "smbutils.h"
 #include "smblog_r.h"
 
-#include "ntstatus.h"
+#include <lw/ntstatus.h>
 #include "smb.h"
 
 #include "iodriver.h"

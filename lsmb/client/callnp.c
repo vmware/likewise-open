@@ -52,7 +52,7 @@ DWORD
 SMBCallNamedPipeA(
     HANDLE  hConnection,
     HANDLE  hAccessToken,
-    LPCSTR  pszNamedPipeName,
+    PCSTR  pszNamedPipeName,
     PVOID   pInBuffer,
     DWORD   dwInBufferSize,
     PVOID   pOutBuffer,
@@ -62,7 +62,7 @@ SMBCallNamedPipeA(
     )
 {
     DWORD    dwError = 0;
-    LPWSTR pwszNamedPipeName = NULL;
+    PWSTR pwszNamedPipeName = NULL;
 
     dwError = SMBMbsToWc16s(
                     pszNamedPipeName,
@@ -96,7 +96,7 @@ DWORD
 SMBCallNamedPipeW(
     HANDLE    hConnection,
     HANDLE    hAccessToken,
-    LPCWSTR   pwszNamedPipeName,
+    PCWSTR   pwszNamedPipeName,
     PVOID     pInBuffer,
     DWORD     dwInBufferSize,
     PVOID     pOutBuffer,
@@ -126,7 +126,7 @@ SMBCallNamedPipeW(
     request.dwOutBufferSize = dwOutBufferSize;
     request.pInBuffer = (PBYTE)pInBuffer;
     request.dwTimeout = dwTimeout;
-    request.pwszNamedPipeName = (LPWSTR)pwszNamedPipeName;
+    request.pwszNamedPipeName = (PWSTR)pwszNamedPipeName;
 
     dwError = MAP_LWMSG_STATUS(lwmsg_assoc_send_transact(
                     pConnection->pAssoc,

@@ -52,7 +52,7 @@
 DWORD
 ClientCallNamedPipe(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR   pwszNamedPipeName,
+    PCWSTR   pwszNamedPipeName,
     PVOID     pInBuffer,
     DWORD     dwInBufferSize,
     DWORD     dwOutBufferSize,

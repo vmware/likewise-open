@@ -31,7 +31,6 @@
 
 #include "includes.h"
 
-SMB_CLIENT_API
 DWORD
 SMBWriteFile(
     HANDLE      hConnection,

@@ -32,14 +32,14 @@
 
 DWORD
 SMBCreatePlainAccessTokenA(
-    LPCSTR pszUsername,
-    LPCSTR pszPassword,
+    PCSTR pszUsername,
+    PCSTR pszPassword,
     PHANDLE phAccessToken
     )
 {
     DWORD dwError = 0;
-    LPWSTR pwszUsername = NULL;
-    LPWSTR pwszPassword = NULL;
+    PWSTR pwszUsername = NULL;
+    PWSTR pwszPassword = NULL;
     
     dwError = SMBMbsToWc16s(pszUsername, &pwszUsername);
     BAIL_ON_SMB_ERROR(dwError);
@@ -60,8 +60,8 @@ error:
 
 DWORD
 SMBCreatePlainAccessTokenW(
-    LPCWSTR pwszUsername,
-    LPCWSTR pwszPassword,
+    PCWSTR pwszUsername,
+    PCWSTR pwszPassword,
     PHANDLE phAccessToken
     )
 {
@@ -102,14 +102,14 @@ error:
 
 DWORD
 SMBCreateKrb5AccessTokenA(
-    LPCSTR pszPrincipal,
-    LPCSTR pszCachePath,
+    PCSTR pszPrincipal,
+    PCSTR pszCachePath,
     PHANDLE phAccessToken
     )
 {
     DWORD dwError = 0;
-    LPWSTR pwszPrincipal = NULL;
-    LPWSTR pwszCachePath = NULL;
+    PWSTR pwszPrincipal = NULL;
+    PWSTR pwszCachePath = NULL;
     
     dwError = SMBMbsToWc16s(pszPrincipal, &pwszPrincipal);
     BAIL_ON_SMB_ERROR(dwError);
@@ -130,8 +130,8 @@ error:
 
 DWORD
 SMBCreateKrb5AccessTokenW(
-    LPCWSTR pwszPrincipal,
-    LPCWSTR pwszCachePath,
+    PCWSTR pwszPrincipal,
+    PCWSTR pwszCachePath,
     PHANDLE phAccessToken
     )
 {

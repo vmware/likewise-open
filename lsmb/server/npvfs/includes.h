@@ -36,7 +36,7 @@
 #include "smbdef.h"
 #include "smbutils.h"
 
-#include "ntstatus.h"
+#include <lw/ntstatus.h>
 #include "io-types.h"
 #include "ntvfsprovider.h"
 

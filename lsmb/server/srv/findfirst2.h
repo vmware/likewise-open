@@ -41,7 +41,7 @@ SrvTrans2FindFirst2(
     USHORT Flags,
     USHORT InformationLevel,
     ULONG SearchStorageType,
-    LPWSTR FileName,
+    PWSTR FileName,
     USHORT * pusSid,
     USHORT * puSearchCount,
     USHORT * pusEndofSearch,

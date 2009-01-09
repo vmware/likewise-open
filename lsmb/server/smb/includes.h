@@ -39,7 +39,7 @@
 #include "smbutils.h"
 #include "smbkrb5.h"
 
-#include "ntstatus.h"
+#include <lw/ntstatus.h>
 
 #include "smb.h"
 

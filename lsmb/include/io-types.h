@@ -31,15 +31,12 @@
 #ifndef __IO_TYPES_H__
 #define __IO_TYPES_H__
 
+#include <lw/types.h>
 #include "lsmb/lsmb.h"
-#include "ntstatus.h"
 
 #define SetFlag(Variable, Flags)   ((Variable) |= (Flags))
 #define ClearFlag(Variable, Flags) ((Variable) &= ~(Flags))
 #define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
-
-typedef uint64_t ULONG64, *PULONG64;
-typedef int64_t LONG64, *PLONG64;
 
 typedef ULONG ACCESS_MASK;
 

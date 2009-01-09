@@ -51,7 +51,7 @@
 static
 DWORD
 ParseSharePath(
-    LPCWSTR pwszPath,
+    PCWSTR pwszPath,
     PSTR*   ppszServer,
     PSTR*   ppszShare,
     PSTR*   ppszFilename
@@ -60,7 +60,7 @@ ParseSharePath(
 DWORD
 RdrCreateFileEx(
     PSMB_SECURITY_TOKEN_REP pSecurityToken,
-    LPCWSTR pwszFileName,
+    PCWSTR pwszFileName,
     DWORD   dwDesiredAccess,
     DWORD   dwSharedMode,
     DWORD   dwCreationDisposition,
@@ -157,7 +157,7 @@ error:
 static
 DWORD
 ParseSharePath(
-    LPCWSTR pwszPath,
+    PCWSTR pwszPath,
     PSTR*   ppszServer,
     PSTR*   ppszShare,
     PSTR*   ppszFilename

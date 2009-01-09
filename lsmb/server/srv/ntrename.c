@@ -77,8 +77,8 @@ NTSTATUS
 SrvRenameFile(
     HANDLE hTreeObject,
     USHORT usSearchAttributes,
-    LPWSTR pszOldFileName,
-    LPWSTR pszNewFileName
+    PWSTR pszOldFileName,
+    PWSTR pszNewFileName
     )
 {
     return STATUS_NOT_IMPLEMENTED;

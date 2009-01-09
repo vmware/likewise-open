@@ -608,44 +608,44 @@ SMBFreeNullTerminatedStringArray(
 DWORD
 SMBMbsToWc16s(
     PCSTR     pszInput,
-    LPWSTR* ppwszOutput
+    PWSTR* ppwszOutput
     );
 
 DWORD
 SMBWc16snToMbs(
-    LPCWSTR pwszInput,
+    PCWSTR pwszInput,
     size_t    sMaxChars,
     PSTR*     ppszOutput
     );
 
 DWORD
 SMBWc16sToMbs(
-    LPCWSTR pwszInput,
+    PCWSTR pwszInput,
     PSTR*     ppszOutput
     );
 
 DWORD
 SMBWc16sLen(
-    LPCWSTR  pwszInput,
+    PCWSTR  pwszInput,
     size_t*    psLen
     );
 
 DWORD
 SMBSW16printf(
-    LPWSTR* ppwszStrOutput,
+    PWSTR* ppwszStrOutput,
     PCSTR     pszFormat,
     ...);
 
 DWORD
 SMBWc16sCmp(
-    LPCWSTR  pwszFirst,
-    LPCWSTR  pwszSecond
+    PCWSTR  pwszFirst,
+    PCWSTR  pwszSecond
     );
 
 DWORD
 SMBWc16sDup(
-    LPCWSTR pwszInput,
-    LPWSTR* pwszOutput
+    PCWSTR pwszInput,
+    PWSTR* pwszOutput
     );
 
 #endif /* defined(UNICODE) */

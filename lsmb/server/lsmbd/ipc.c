@@ -558,7 +558,7 @@ SMBSrvIpcGetClientComputerName(
     PSMB_GET_CLIENT_COMPUTER_NAME_REQUEST pNPRequest = NULL;
     PSMB_STATUS_REPLY pStatusResponse = NULL;
     PSMB_GET_CLIENT_COMPUTER_NAME_RESPONSE pNPResponse = NULL;
-    LPWSTR pwszName = NULL;
+    PWSTR pwszName = NULL;
     DWORD    dwLength = 0;
     DWORD    dwAlignBytes = 0;
 
@@ -598,7 +598,7 @@ SMBSrvIpcGetClientComputerName(
 
     if (dwLength)
     {
-        pNPResponse->pwszName = (LPWSTR)((PBYTE)pNPResponse + sizeof(SMB_GET_CLIENT_COMPUTER_NAME_RESPONSE) + dwAlignBytes);
+        pNPResponse->pwszName = (PWSTR)((PBYTE)pNPResponse + sizeof(SMB_GET_CLIENT_COMPUTER_NAME_RESPONSE) + dwAlignBytes);
         memcpy(pNPResponse->pwszName, pwszName, dwLength * sizeof(wchar16_t));
         pNPResponse->dwLength = dwLength;
     }
