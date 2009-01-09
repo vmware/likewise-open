@@ -52,7 +52,7 @@ function component_configure
 {
     _setup_build_env
 
-    autoreconf -fi && ./configure --prefix=${PREFIX_DIR}
+    autoreconf -fi && ./configure --prefix=${PREFIXDIR}
 }
 
 function component_build

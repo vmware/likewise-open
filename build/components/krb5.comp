@@ -80,7 +80,6 @@ function component_install
     mkdir -p ${INSTALL_ROOT}
     ${MAKE} DESTDIR=${INSTALL_ROOT} install
 
-    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/bin
     mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/${_lib}
     mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/include
     mkdir -m 0755 -p ${STAGING_SYSCONF_DIR}
@@ -96,7 +95,7 @@ function component_install
     rsync -a --exclude=kerberosIV ${INSTALL_PREFIX_DIR}/include/ ${STAGING_PREFIX_DIR}/include/.
 
     # Do we want to also exclude some others (libdes425, libgssrpc)?
-    rsync -a --exclude=krb5 --exclude="libkadm5*" --exclude="libkdb5*" ${INSTALL_PREFIX_DIR}/${_lib}/ ${STAGING_PREFIX_DIR}/${_lib}/.
+    rsync -a --exclude=krb5 --exclude=bin --exclude="libkadm5*" --exclude="libkdb5*" ${INSTALL_PREFIX_DIR}/${_lib}/ ${STAGING_PREFIX_DIR}/${_lib}/.
 
     # Create default krb5.conf
     echo "[libdefaults]" > ${STAGING_SYSCONF_DIR}/krb5.conf

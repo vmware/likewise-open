@@ -20,7 +20,7 @@ function component_configure
 {
     _setup_build_env
 
-    ./buildconf && ./configure \
+    ./configure \
 	--prefix=${PREFIXDIR} \
 	--libdir=${PREFIXDIR}/${_lib} \
 	--sysconfdir=${SYSCONFDIR} \
