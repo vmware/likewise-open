@@ -66,6 +66,7 @@ LsaSqliteReadUInt64(
     }
 #endif
 
+    BAIL_ON_INVALID_STRING(pszColumnValue);
     *pqwResult = strtoull(pszColumnValue, &pszEndPtr, 10);
     if (pszEndPtr == NULL || pszEndPtr == pszColumnValue || *pszEndPtr != '\0')
     {
