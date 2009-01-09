@@ -291,10 +291,10 @@ SrvReadEventLog(
     ENTER_RW_READER_LOCK;
 
     if (IsNullOrEmptyString(sqlFilter)) {
-        sprintf(szQuery, DB_QUERY_ALL_WITH_LIMIT, (ULONG)nRecordsPerPage, (ULONG)dwStartingRowId);
+        sprintf(szQuery, DB_QUERY_ALL_WITH_LIMIT, (long)nRecordsPerPage, (long)dwStartingRowId);
     }
     else {
-        sprintf(szQuery, DB_QUERY_WITH_LIMIT, sqlFilter, (ULONG)nRecordsPerPage, (ULONG)dwStartingRowId);
+        sprintf(szQuery, DB_QUERY_WITH_LIMIT, sqlFilter, (long)nRecordsPerPage, (long)dwStartingRowId);
     }
 
     dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);

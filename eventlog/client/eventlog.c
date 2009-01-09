@@ -162,7 +162,7 @@ LWIOpenEventLog(
 
     BAIL_ON_EVT_ERROR(dwError);
 
-    pEventLogHandle->bindingHandle = (ULONG) eventBindingLocal;
+    pEventLogHandle->bindingHandle = eventBindingLocal;
     *phEventLog = (HANDLE)pEventLogHandle;
 
 
@@ -273,7 +273,7 @@ LWICloseEventLog(
     TRY
     {
         dwError = RpcLWICloseEventLog(
-            (handle_t)(ULONG) pEventLogHandle->bindingHandle
+            (handle_t) pEventLogHandle->bindingHandle
             );
     }
     CATCH_ALL
@@ -329,7 +329,7 @@ LWIReadEventLog(
     TRY
     {
         dwError = RpcLWIReadEventLog(
-                    (handle_t)(ULONG) pEventLogHandle->bindingHandle,
+                    (handle_t) pEventLogHandle->bindingHandle,
                     dwLastRecordId, 
                     nRecordsPerPage,
                     (idl_char*)sqlFilterChar, 
@@ -379,7 +379,7 @@ LWICountEventLog(
     TRY
     {
         dwError = RpcLWIEventLogCount(
-                    (handle_t)(ULONG) pEventLogHandle->bindingHandle,
+                    (handle_t) pEventLogHandle->bindingHandle,
                     (idl_char*)sqlFilterChar,
                     (unsigned32*)pdwNumMatched);
     }
@@ -638,8 +638,8 @@ LWIWriteEventLogBase(
 
     TRY
     {
-        dwError = RpcLWIWriteEventLog( (handle_t)(ULONG) pEventLogHandle->bindingHandle,
-                    				   eventRecordLocal);
+        dwError = RpcLWIWriteEventLog( (handle_t) pEventLogHandle->bindingHandle,
+                                       eventRecordLocal);
     }
     CATCH_ALL
     {
@@ -709,7 +709,7 @@ LWIDeleteFromEventLog(
 
     TRY
     {
-        dwError = RpcLWIDeleteFromEventLog( (handle_t)(ULONG) pEventLogHandle->bindingHandle,
+        dwError = RpcLWIDeleteFromEventLog( (handle_t) pEventLogHandle->bindingHandle,
                                             (idl_char*)sqlFilterChar);
     }
     CATCH_ALL
@@ -739,7 +739,7 @@ LWIClearEventLog(
 
     TRY
     {
-        dwError = RpcLWIClearEventLog( (handle_t)(ULONG) pEventLogHandle->bindingHandle);
+        dwError = RpcLWIClearEventLog( (handle_t) pEventLogHandle->bindingHandle);
     }
     CATCH_ALL
     {
