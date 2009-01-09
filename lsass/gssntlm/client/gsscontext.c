@@ -60,8 +60,8 @@ NTLMDumpContext(
 
   DBG(lvl,("context(0x%p) - %s\n", pCtxt, (pCtxt->flags & CONTEXT_CLIENT ?
               "outbound" : "inbound")));
-  DBG(lvl,("link:0x%p:0x%p ref: %ld \n", pCtxt->link.prev, pCtxt->link.next, pCtxt->refCount));
-  DBG(lvl,("Negflags: 0x%lx\n", pCtxt->negotiateFlags));
+  DBG(lvl,("link:0x%p:0x%p ref: %ld \n", pCtxt->link.prev, pCtxt->link.next, (unsigned long) pCtxt->refCount));
+  DBG(lvl,("Negflags: 0x%lx\n", (unsigned long) pCtxt->negotiateFlags));
 
 
   /* @todo - dump out function table */

@@ -56,8 +56,6 @@
 #include <lsa/lsa.h>
 #include <lsautils.h>
 
-typedef BOOLEAN BOOL;
-
 BOOL
 RunConnectDisconnect(
     IN PVOID unused
