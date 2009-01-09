@@ -597,7 +597,7 @@ rpc__smb_socket_connect(
 
 done:
 
-    if (acctoken != INVALID_HANDLE_VALUE)
+    if (acctoken != NULL)
     {
         SMBCloseHandle(NULL, acctoken);
     }
