@@ -1206,6 +1206,7 @@ LsaSetupUserLoginSession(
     // Do not free
     krb5_data machinePassword = {0};
     krb5_flags flags = 0;
+    krb5_int32 authcon_flags = 0;
     PAC_LOGON_INFO *pLogonInfo = NULL;
     BOOLEAN bInLock = FALSE;
     PCSTR pszTempCacheName = NULL;
@@ -1331,6 +1332,16 @@ LsaSetupUserLoginSession(
             authContext,
             &serviceKey);
     BAIL_ON_KRB_ERROR(ctx, ret);
+
+    /* Disable replay detection which is unnecessary and
+     * can fail when authenticating large numbers of users.
+     */
+    krb5_auth_con_getflags(ctx,
+                           authContext,
+                           &authcon_flags);
+    krb5_auth_con_setflags(ctx,
+                           authContext,
+                           authcon_flags & ~KRB5_AUTH_CONTEXT_DO_TIME);
 
     /* This decrypts the TGS. As a side effect it ensures that the KDC that
      * the user's TGT came from is in the same realm that the machine was

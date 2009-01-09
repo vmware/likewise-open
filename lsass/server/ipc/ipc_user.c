@@ -58,7 +58,10 @@ LsaSrvIpcAddUser(
     PLSA_IPC_ERROR pError = NULL;
     // Do not free pUserInfoList
     PLSA_USER_INFO_LIST pUserInfoList = (PLSA_USER_INFO_LIST)pRequest->object;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (pUserInfoList->dwUserInfoLevel)
     {
@@ -115,7 +118,10 @@ LsaSrvIpcModifyUser(
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvModifyUser(
                     (HANDLE)Handle,
@@ -157,7 +163,10 @@ LsaSrvIpcFindUserByName(
     PLSA_USER_INFO_LIST pResult = NULL;
     PLSA_IPC_FIND_OBJECT_BY_NAME_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvFindUserByName(
                        (HANDLE)Handle,
@@ -248,7 +257,10 @@ LsaSrvIpcFindUserById(
     PLSA_USER_INFO_LIST pResult = NULL;
     PLSA_IPC_FIND_OBJECT_BY_ID_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvFindUserById(
                        (HANDLE)Handle,
@@ -335,9 +347,12 @@ LsaSrvIpcBeginEnumUsers(
     DWORD dwError = 0;
     PSTR pszGUID = NULL;
     PLSA_ENUM_OBJECTS_INFO pResult = NULL;
-    PLSA_IPC_BEGIN_ENUM_RECORDS_REQ pReq = pRequest->object;
+    PLSA_IPC_BEGIN_ENUM_USERS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvBeginEnumUsers(
                         (HANDLE)Handle,
@@ -512,7 +527,10 @@ LsaSrvIpcDeleteUser(
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvDeleteUser(
                         (HANDLE)Handle,
@@ -556,7 +574,10 @@ LsaSrvIpcGetNamesBySidList(
     PLSA_IPC_NAMES_BY_SIDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     DWORD i = 0;
-    PVOID Handle = lwmsg_assoc_get_session_data(assoc);
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvGetNamesBySidList(
                     (HANDLE)Handle,

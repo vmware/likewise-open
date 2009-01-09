@@ -33,6 +33,7 @@ liblsautils_la_SOURCES =       \
        syslog.c                \
        datablob.c              \
        lsaxnet.c               \
+       lsaauthex.c             \
        lsalist.c
 
 liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@

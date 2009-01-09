@@ -33,78 +33,93 @@
  *
  * Module Name:
  *
- *        groups_p.h
+ *        lsaauthex.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Private Header (Library)
+ * Authors: Gerald Carter <gcarter@likewisesoftware.com>
  *
- *        Group Lookup and Management API (Client)
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __GROUPS_P_H__
-#define __GROUPS_P_H__
 
-LSASS_API
+#include "includes.h"
+
 DWORD
-LsaAddGroup(
-    HANDLE hLsaConnection,
-    PVOID  pGroupInfo,
-    DWORD  dwGroupInfoLevel
-    );
+LsaFreeAuthUserInfo(
+	PLSA_AUTH_USER_INFO *ppAuthUserInfo
+	)
+{
+	PLSA_AUTH_USER_INFO p = NULL;
 
-LSASS_API
+	if (!ppAuthUserInfo || !*ppAuthUserInfo)
+	{
+		return LSA_ERROR_SUCCESS;
+	}
+
+	p = *ppAuthUserInfo;
+
+	LSA_SAFE_FREE_MEMORY(p->pszAccount);
+	LSA_SAFE_FREE_MEMORY(p->pszUserPrincipalName);
+	LSA_SAFE_FREE_MEMORY(p->pszFullName);
+	LSA_SAFE_FREE_MEMORY(p->pszDomain);
+	LSA_SAFE_FREE_MEMORY(p->pszDnsDomain);
+
+	LsaDataBlobFree(&p->pSessionKey);
+	LsaDataBlobFree(&p->pLmSessionKey);
+
+	LSA_SAFE_FREE_MEMORY(p->pszLogonServer);
+	LSA_SAFE_FREE_MEMORY(p->pszLogonScript);
+	LSA_SAFE_FREE_MEMORY(p->pszProfilePath);
+	LSA_SAFE_FREE_MEMORY(p->pszHomeDirectory);
+	LSA_SAFE_FREE_MEMORY(p->pszHomeDrive);
+
+	LSA_SAFE_FREE_MEMORY(p->pSidAttribList);
+
+
+	LSA_SAFE_FREE_MEMORY(p);
+
+	*ppAuthUserInfo = NULL;
+
+	return LSA_ERROR_SUCCESS;
+}
+
+
 DWORD
-LsaBeginEnumGroups(
-    HANDLE  hLsaConnection,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwMaxNumGroups,
-    PHANDLE phResume
-    );
+LsaFreeAuthUserParams(
+	PLSA_AUTH_USER_PARAMS *ppAuthUserParams
+	)
+{
+	PLSA_AUTH_USER_PARAMS p = NULL;
 
-LSASS_API
-DWORD
-LsaBeginEnumGroupsWithCheckOnlineOption(
-    HANDLE  hLsaConnection,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwMaxNumGroups,
-    BOOLEAN bCheckGroupMembersOnline,
-    PHANDLE phResume
-    );
+	if (!ppAuthUserParams || !*ppAuthUserParams)
+	{
+		return LSA_ERROR_SUCCESS;
+	}
 
-LSASS_API
-DWORD
-LsaEnumGroups(
-    HANDLE  hLsaConnection,
-    HANDLE  hResume,
-    PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
-    );
+	p = *ppAuthUserParams;
 
-LSASS_API
-DWORD
-LsaEndEnumGroups(
-    HANDLE hLsaConnection,
-    HANDLE hResume
-    );
+	LSA_SAFE_FREE_MEMORY(p->pszAccountName);
+	LSA_SAFE_FREE_MEMORY(p->pszDomain);
+	LSA_SAFE_FREE_MEMORY(p->pszWorkstation);
 
-LSASS_API
-DWORD
-LsaDeleteGroupById(
-    HANDLE hLsaConnection,
-    gid_t  gid
-    );
+	switch (p->AuthType)
+	{
+	case LSA_AUTH_PLAINTEXT:
+		LSA_SAFE_FREE_MEMORY(p->pass.clear.pszPassword);
+		break;
+	case LSA_AUTH_CHAP:
+		LsaDataBlobFree(&p->pass.chap.pChallenge);
+		LsaDataBlobFree(&p->pass.chap.pNT_resp);
+		LsaDataBlobFree(&p->pass.chap.pLM_resp);
+		break;
+	}
 
-LSASS_API
-DWORD
-LsaDeleteGroupByName(
-    HANDLE hLsaConnection,
-    PCSTR  pszName
-    );
+	LSA_SAFE_FREE_MEMORY(p);
 
-#endif /* __GROUPS_P_H__ */
+	*ppAuthUserParams = NULL;
+
+	return LSA_ERROR_SUCCESS;
+}
+
 

@@ -407,6 +407,7 @@ LsaSrvAddGroupEnumState(
     HANDLE hEnumServer,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
+    BOOLEAN bCheckOnline,
     PLSA_SRV_RECORD_ENUM_STATE* ppEnumState
     )
 {
@@ -435,6 +436,7 @@ LsaSrvAddGroupEnumState(
 
     pEnumState->dwInfoLevel = dwGroupInfoLevel;
     pEnumState->dwNumMaxRecords = dwMaxNumGroups;
+    pEnumState->bCheckOnline = bCheckOnline;
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(pEnumState->bInLock);
 
@@ -457,6 +459,7 @@ LsaSrvAddGroupEnumState(
                                             pProviderState->hProvider,
                                             pEnumState->pszGUID,
                                             pEnumState->dwInfoLevel,
+                                            pEnumState->bCheckOnline,
                                             &pProviderState->hResume);
         if (!dwError) {
 

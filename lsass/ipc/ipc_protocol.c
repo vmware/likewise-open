@@ -1,3 +1,52 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        ipc_protocol.c
+ *
+ * Abstract:
+ *
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
+ *
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Wei Fu (wfu@likewisesoftware.com)
+ *
+ */
+
 #include "ipc.h"
 
 static LWMsgTypeSpec gLsaIPCErrorSpec[] =
@@ -495,14 +544,27 @@ static LWMsgTypeSpec gLsaIPCFindObjectByIdReqSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaIPCBeginObjectEnumReqSpec[] =
+static LWMsgTypeSpec gLsaIPCBeginUserEnumReqSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_RECORDS_REQ),
+    LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_USERS_REQ),
     /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
+    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_USERS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
     LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, dwInfoLevel),
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, dwNumMaxRecords),
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, dwNumMaxRecords),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIPCBeginGroupEnumReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_GROUPS_REQ),
+    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
+    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
+    LWMSG_ATTR_HANDLE_LOCAL,
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, dwNumMaxRecords),
+    LWMSG_MEMBER_INT8(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, bCheckGroupMembersOnline),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -767,9 +829,9 @@ static LWMsgTypeSpec gLsaIPCLsaSidSpec[] =
     LWMSG_ATTR_LENGTH_STATIC(6),
 
     LWMSG_MEMBER_ARRAY_BEGIN(LSA_SID, SubAuths),
-    LWMSG_UINT32(BYTE),
+    LWMSG_UINT32(UINT32),
     LWMSG_ARRAY_END,
-    LWMSG_ATTR_LENGTH_MEMBER(LSA_SID, NumSubAuths),
+    LWMSG_ATTR_LENGTH_STATIC(LSA_MAX_SID_SUB_AUTHORITIES),
 
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -780,7 +842,6 @@ static LWMsgTypeSpec gLsaIPCLsaSidPtrSpec[] =
     LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaIPCLsaSidSpec),
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
@@ -789,7 +850,6 @@ static LWMsgTypeSpec gLsaIPCLsaSidAttribSpec[] =
     LWMSG_STRUCT_BEGIN(LSA_SID_ATTRIB),
     LWMSG_MEMBER_TYPESPEC(LSA_SID_ATTRIB, Sid, gLsaIPCLsaSidSpec),
     LWMSG_MEMBER_UINT32(LSA_SID_ATTRIB, dwAttrib),
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
@@ -798,7 +858,6 @@ static LWMsgTypeSpec gLsaIPCLsaSidAttribPtrSpec[] =
     LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaIPCLsaSidAttribSpec),
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
@@ -859,7 +918,6 @@ static LWMsgTypeSpec gLsaAuthUserInfoPtrSpec[] =
     LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaAuthUserInfoSpec),
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
@@ -881,7 +939,7 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_GROUP_BY_ID, gLsaIPCFindObjectByIdReqSpec),
     LWMSG_MESSAGE(LSA_R_GROUP_BY_ID_SUCCESS, gLsaGroupInfoListSpec),
     LWMSG_MESSAGE(LSA_R_GROUP_BY_ID_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_GROUPS, gLsaIPCBeginObjectEnumReqSpec),
+    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_GROUPS, gLsaIPCBeginGroupEnumReqSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_SUCCESS, gLsaBeginObjectEnumSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_ENUM_GROUPS, gLsaIPCEnumObjectReqSpec),
@@ -896,7 +954,7 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_USER_BY_ID, gLsaIPCFindObjectByIdReqSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_ID_SUCCESS, gLsaUserInfoListSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_ID_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_USERS, gLsaIPCBeginObjectEnumReqSpec),
+    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_USERS, gLsaIPCBeginUserEnumReqSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_SUCCESS, gLsaBeginObjectEnumSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_ENUM_USERS, gLsaIPCEnumObjectReqSpec),

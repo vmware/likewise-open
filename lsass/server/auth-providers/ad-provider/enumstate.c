@@ -54,6 +54,7 @@ AD_AddEnumState(
     PAD_ENUM_STATE* ppStateList,
     PCSTR pszGUID,
     DWORD dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
     PCSTR pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppNewEnumState
@@ -114,6 +115,7 @@ AD_AddUserState(
                 &pContext->pUserEnumStateList,
                 pszGUID,
                 dwInfoLevel,
+                FALSE,
                 NULL,
                 0,
                 ppEnumState);
@@ -146,6 +148,7 @@ AD_AddGroupState(
     HANDLE hProvider,
     PCSTR  pszGUID,
     DWORD  dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
     PAD_ENUM_STATE* ppEnumState
     )
 {
@@ -155,6 +158,7 @@ AD_AddGroupState(
                     &pContext->pGroupEnumStateList,
                     pszGUID,
                     dwInfoLevel,
+                    bCheckGroupMembersOnline,
                     NULL,
                     0,
                     ppEnumState);
@@ -198,6 +202,7 @@ AD_AddNSSArtefactState(
                     &pContext->pNSSArtefactEnumStateList,
                     pszGUID,
                     dwInfoLevel,
+                    FALSE,
                     pszMapName,
                     dwFlags,
                     ppEnumState);
@@ -231,6 +236,7 @@ AD_AddEnumState(
     PAD_ENUM_STATE* ppStateList,
     PCSTR pszGUID,
     DWORD dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
     PCSTR pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppNewEnumState
@@ -252,6 +258,7 @@ AD_AddEnumState(
 
         pEnumState->dwInfoLevel = dwInfoLevel;
         pEnumState->dwMapFlags = dwFlags;
+        pEnumState->bCheckGroupMembersOnline = bCheckGroupMembersOnline;
 
         if (pszMapName)
         {

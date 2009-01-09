@@ -215,6 +215,7 @@ AD_BeginEnumGroups(
     HANDLE  hProvider,
     PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
     PHANDLE phResume
     );
 

@@ -901,7 +901,7 @@ typedef enum
 
 typedef struct __LSA_AUTH_CLEARTEXT_PARAM
 {
-	PCSTR pszPassword;
+	PSTR pszPassword;
 
 } LSA_AUTH_CLEARTEXT_PARAM, *PLSA_AUTH_CLEARTEXT_PARAM;
 
@@ -923,9 +923,9 @@ typedef struct __LSA_AUTH_CHAP_PARAM
 typedef struct __LSA_AUTH_USER_PARAMS
 {
 	LsaAuthType AuthType;
-	PCSTR pszAccountName;
-	PCSTR pszDomain;
-	PCSTR pszWorkstation;
+	PSTR pszAccountName;
+	PSTR pszDomain;
+	PSTR pszWorkstation;
 	union _PASS{
 		LSA_AUTH_CLEARTEXT_PARAM clear;
 		LSA_AUTH_CHAP_PARAM      chap;
@@ -1119,6 +1119,15 @@ LsaBeginEnumGroups(
     );
 
 DWORD
+LsaBeginEnumGroupsWithCheckOnlineOption(
+    HANDLE  hLsaConnection,
+    DWORD   dwGroupInfoLevel,
+    DWORD   dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
+    PHANDLE phResume
+    );
+
+DWORD
 LsaEnumGroups(
     HANDLE  hLsaConnection,
     HANDLE  hResume,
@@ -1294,10 +1303,20 @@ LsaAuthenticateUser(
     );
 
 DWORD
+LsaFreeAuthUserInfo(
+	PLSA_AUTH_USER_INFO *ppAuthUserInfo
+	);
+
+DWORD
+LsaFreeAuthUserParams(
+	PLSA_AUTH_USER_PARAMS *ppAuthUserParams
+	);
+
+DWORD
 LsaAuthenticateUserEx(
 	IN HANDLE hLsaConnection,
 	IN LSA_AUTH_USER_PARAMS* pParams,
-	OUT LSA_AUTH_USER_INFO* pUserInfo
+	OUT PLSA_AUTH_USER_INFO* ppUserInfo
 	);
 
 DWORD

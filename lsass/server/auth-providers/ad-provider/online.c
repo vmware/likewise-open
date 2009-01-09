@@ -2371,7 +2371,7 @@ AD_OnlineEnumGroups(
         dwError = AD_GroupObjectToGroupInfo(
                         hProvider,
                         ppObjects[dwInfoCount],
-                        TRUE,
+                        !pEnumState->bCheckGroupMembersOnline, //if Do not bCheckGroupMembersOnline, then bIsCacheOnlyMode == TRUE
                         pEnumState->dwInfoLevel,
                         &ppInfoList[dwInfoCount]);
         BAIL_ON_LSA_ERROR(dwError);

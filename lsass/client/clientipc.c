@@ -74,6 +74,9 @@ LsaOpenServer(
                                   CACHEDIR "/" LSA_SERVER_FILENAME));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_establish(pContext->pAssoc));
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaTransactOpenServer((HANDLE)pContext);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -297,15 +300,16 @@ error:
 DWORD
 LsaTransactBeginEnumGroups(
     HANDLE hServer,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwMaxNumGroups,
+    DWORD dwGroupInfoLevel,
+    DWORD dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
     PHANDLE phResume
     )
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    LSA_IPC_BEGIN_ENUM_RECORDS_REQ beginGroupEnumReq;
+    LSA_IPC_BEGIN_ENUM_GROUPS_REQ beginGroupEnumReq;
     // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
 
@@ -315,6 +319,7 @@ LsaTransactBeginEnumGroups(
     beginGroupEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
     beginGroupEnumReq.dwInfoLevel = dwGroupInfoLevel;
     beginGroupEnumReq.dwNumMaxRecords = dwMaxNumGroups;
+    beginGroupEnumReq.bCheckGroupMembersOnline = bCheckGroupMembersOnline;
 
     request.tag = LSA_Q_BEGIN_ENUM_GROUPS;
     request.object = &beginGroupEnumReq;
@@ -878,7 +883,7 @@ LsaTransactBeginEnumUsers(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    LSA_IPC_BEGIN_ENUM_RECORDS_REQ beginUserEnumReq;
+    LSA_IPC_BEGIN_ENUM_USERS_REQ beginUserEnumReq;
     // Do not free pResult and pError
     PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
@@ -1250,15 +1255,13 @@ DWORD
 LsaTransactAuthenticateUserEx(
     IN HANDLE hServer,
     IN LSA_AUTH_USER_PARAMS* pParams,
-    //pUserInfo is allocated by the caller
-    OUT LSA_AUTH_USER_INFO* pUserInfo
+    OUT PLSA_AUTH_USER_INFO* ppUserInfo
     )
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_AUTH_USER_PARAMS authUserExReq;
-    PLSA_AUTH_USER_INFO pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
@@ -1282,11 +1285,7 @@ LsaTransactAuthenticateUserEx(
     switch (response.tag)
     {
         case LSA_R_AUTH_USER_EX_SUCCESS:
-            pResult = (PLSA_AUTH_USER_INFO) response.object;
-
-	    /* Need a deep copy here since pResult will go away */
-
-            // pUserInfo->dwDummy = pResult->dwDummy;
+            *ppUserInfo = (PLSA_AUTH_USER_INFO) response.object;
             break;
 
         case LSA_R_AUTH_USER_EX_FAILURE:

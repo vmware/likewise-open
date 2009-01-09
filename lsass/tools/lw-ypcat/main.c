@@ -61,13 +61,14 @@
 static
 DWORD
 ParseArgs(
-    int      argc,
-    char*    argv[],
-    PSTR*    ppszMapName,
-    PSTR*    ppszDomain,
-    PBOOLEAN pbPrintKeys,
-    PBOOLEAN pbPrintNicknameTable,
-    PBOOLEAN pbUseNicknameTable
+    int            argc,
+    char*          argv[],
+    PSTR*          ppszMapName,
+    PSTR*          ppszDomain,
+    PBOOLEAN       pbPrintKeys,
+    PBOOLEAN       pbPrintNicknameTable,
+    PBOOLEAN       pbUseNicknameTable,
+    PBOOLEAN       pbCheckGroupMembersOnline
     );
 
 static
@@ -85,6 +86,7 @@ static
 DWORD
 EnumerateGroups(
     HANDLE  hLsaConnection,
+    BOOLEAN bCheckGroupMembersOnline,
     BOOLEAN bPrintKeys
     );
 
@@ -147,6 +149,7 @@ main(
     PDLINKEDLIST pNISNicknameList = NULL;
     BOOLEAN bNoNicknameFile = FALSE;
     PCSTR   pszNicknameFilePath = "/var/yp/nicknames";
+    BOOLEAN bCheckGroupMembersOnline = FALSE;
 
     dwError = ParseArgs(
                     argc,
@@ -155,7 +158,8 @@ main(
                     &pszDomain,
                     &bPrintKeys,
                     &bPrintNicknameTable,
-                    &bUseNicknameTable);
+                    &bUseNicknameTable,
+                    &bCheckGroupMembersOnline);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaNISGetNicknames(
@@ -221,7 +225,7 @@ main(
     else if (!strcasecmp(pszMapName, "group.byname") ||
              !strcasecmp(pszMapName, "group"))
     {
-        dwError = EnumerateGroups(hLsaConnection, bPrintKeys);
+        dwError = EnumerateGroups(hLsaConnection, bCheckGroupMembersOnline, bPrintKeys);
     }
     else
     {
@@ -296,7 +300,8 @@ ParseArgs(
     PSTR*          ppszDomain,
     PBOOLEAN       pbPrintKeys,
     PBOOLEAN       pbPrintNicknameTable,
-    PBOOLEAN       pbUseNicknameTable
+    PBOOLEAN       pbUseNicknameTable,
+    PBOOLEAN       pbCheckGroupMembersOnline
     )
 {
     typedef enum {
@@ -313,6 +318,7 @@ ParseArgs(
     BOOLEAN bPrintKeys = FALSE;
     BOOLEAN bUseNicknameTable = TRUE;
     BOOLEAN bPrintNicknameTable = FALSE;
+    BOOLEAN bCheckGroupMembersOnline = FALSE;
     PSTR    pszDomain = NULL;
 
     do {
@@ -346,6 +352,11 @@ ParseArgs(
                 else if (!strcmp(pszArg, "-x"))
                 {
                     bPrintNicknameTable = TRUE;
+                }
+                else if (!strcmp(pszArg, "--check-group-members-online") ||
+                         !strcmp(pszArg, "-c"))
+                {
+                    bCheckGroupMembersOnline = TRUE;
                 }
                 else
                 {
@@ -395,6 +406,7 @@ ParseArgs(
     *ppszDomain = pszDomain;
     *pbPrintNicknameTable = bPrintNicknameTable;
     *pbUseNicknameTable = bUseNicknameTable;
+    *pbCheckGroupMembersOnline = bCheckGroupMembersOnline;
 
 cleanup:
 
@@ -412,7 +424,7 @@ static
 void
 ShowUsage()
 {
-    printf("Usage: lw-ypcat [-d domain] [-x] [-t] [-k] map-name\n");
+    printf("Usage: lw-ypcat [-d domain] [-x] [-t] [-k] [--check-group-members-online | -c] map-name\n");
     printf("\n");
     printf("-k : print keys.\n");
     printf("-x : print nis nickname table.\n");
@@ -491,6 +503,7 @@ static
 DWORD
 EnumerateGroups(
     HANDLE  hLsaConnection,
+    BOOLEAN bCheckGroupMembersOnline,
     BOOLEAN bPrintKeys
     )
 {
@@ -501,10 +514,11 @@ EnumerateGroups(
     PVOID* ppGroupInfoList = NULL;
     HANDLE hResume = (HANDLE)NULL;
 
-    dwError = LsaBeginEnumGroups(
+    dwError = LsaBeginEnumGroupsWithCheckOnlineOption(
                     hLsaConnection,
                     dwGroupInfoLevel,
                     dwBatchSize,
+                    bCheckGroupMembersOnline,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
 

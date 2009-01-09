@@ -143,7 +143,6 @@ typedef struct ConnectionPrivate
     LWMsgSecurityToken* sec_token;
     LWMsgSession* session;
     LWMsgConnectionSignal* interrupt;
-    unsigned ready:1;
 } ConnectionPrivate;
 
 typedef enum ConnectionGreetingFlags
@@ -252,11 +251,6 @@ LWMsgStatus
 lwmsg_connection_dequeue_fd(
     LWMsgAssoc* assoc,
     int* out_fd
-    );
-
-LWMsgStatus
-lwmsg_connection_transceive(
-    LWMsgAssoc* assoc
     );
 
 LWMsgStatus

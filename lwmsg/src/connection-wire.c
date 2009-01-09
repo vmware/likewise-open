@@ -48,10 +48,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <config.h>
-
 
 #ifndef CMSG_ALIGN
 #    if defined(_CMSG_DATA_ALIGN)
@@ -219,7 +217,6 @@ lwmsg_connection_discard_recv_packet(
         
         memmove(buffer->base, buffer->base + used, buffer->base_length - used);
         buffer->base_length -= used;
-        
     }
 
     return status;
@@ -417,6 +414,7 @@ error:
     return status;
 }
 
+static
 LWMsgStatus
 lwmsg_connection_transceive(
     LWMsgAssoc* assoc
@@ -436,7 +434,12 @@ lwmsg_connection_transceive(
     FD_ZERO(&readfds);
     FD_ZERO(&writefds);
     nfds = 0;
-    
+
+    if (fd == -1)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+    }
+
     if (sendbuffer->cursor < sendbuffer->base + sendbuffer->base_length)
     {
         FD_SET(fd, &writefds);
@@ -455,17 +458,17 @@ lwmsg_connection_transceive(
         }
     }
     
-    if (priv->interrupt)
-    {
-        FD_SET(priv->interrupt->fd[0], &readfds);
-        if (nfds < priv->interrupt->fd[0] + 1)
-        {
-            nfds = priv->interrupt->fd[0] + 1;
-        }
-    }
-
     if (nfds)
     {
+        if (priv->interrupt)
+        {
+            FD_SET(priv->interrupt->fd[0], &readfds);
+            if (nfds < priv->interrupt->fd[0] + 1)
+            {
+                nfds = priv->interrupt->fd[0] + 1;
+            }
+        }
+
         if (priv->timeout_set)
         {
             BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
@@ -495,9 +498,7 @@ lwmsg_connection_transceive(
             {
                 BAIL_ON_ERROR(status = lwmsg_connection_recvbuffer(assoc));
             }
-            
-            /* If there is an urgent packet available, allow the caller
-               to process it before attempting to flush the send buffer */
+
             if (lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
             {
                 goto error;
@@ -614,16 +615,24 @@ lwmsg_connection_send_packet(
     while (buffer->cursor < buffer->base + buffer->base_length)
     {
         BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
-
-        if (urgent && lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
-        {
-            BAIL_ON_ERROR(status = lwmsg_connection_recv_packet(assoc, urgent));
-            break;
-        }
-            
     }
 
 error:
+
+    if (status == LWMSG_STATUS_EOF && urgent)
+    {
+        /* If we get an EOF while writing, try to read an urgent packet */
+        lwmsg_connection_transceive(assoc);
+
+        if (lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
+        {
+            *urgent = (ConnectionPacket*) priv->recvbuffer.base;
+
+            lwmsg_connection_packet_ntoh(*urgent);
+
+            status = LWMSG_STATUS_SUCCESS;
+        }
+    }
 
     return status;
 }

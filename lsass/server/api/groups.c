@@ -422,6 +422,7 @@ LsaSrvBeginEnumGroups(
     HANDLE hServerEnum,
     DWORD  dwGroupInfoLevel,
     DWORD  dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
     PSTR*  ppszGUID
     )
 {
@@ -437,6 +438,7 @@ LsaSrvBeginEnumGroups(
                     hServerEnum,
                     dwGroupInfoLevel,
                     dwMaxNumGroups,
+                    bCheckGroupMembersOnline,
                     &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
