@@ -25,11 +25,11 @@ DIRS="\
 	libgss \
 	libkeytab \
 	librpc \
-	libsmbclient \
 	libunistr \
 	lsass \
 	netlogon \
-	npcmuxer \
+	lwmsg \
+	lsmb \
 	pstore \
 	"
 

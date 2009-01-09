@@ -3,14 +3,14 @@
 COMPONENTS="\
 	krb5 \
 	openldap \
+        lwmsg \
 	centutils \
 	sqlite \
 	libunistr \
 	pstore \
 	netlogon \
-	libsmbclient \
+        lsmb \
 	libkeytab \
-	npcmuxer \
 	libgss \
 	dcerpc \
 	librpc \
