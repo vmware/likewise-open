@@ -889,6 +889,10 @@ LsaDbUnpackUserInfo(
         piColumnPos,
         "Uid",
         (DWORD*)&pResult->userInfo.uid);
+    if (dwError == LSA_ERROR_INVALID_PARAMETER)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSqliteReadUInt32(
@@ -2275,6 +2279,14 @@ LsaDbQueryObject(
         dwError = LsaDbUnpackUserInfo(pstQuery,
                 &iColumnPos,
                 pObject);
+        if (dwError == LSA_ERROR_DATA_ERROR)
+        {
+            LSA_LOG_ERROR("The user attributes in the cache data for '%s\\%s' are invalid. The cache database or user data in Active Directory could be corrupt.",
+                LSA_SAFE_LOG_STRING(pObject->pszNetbiosDomainName),
+                LSA_SAFE_LOG_STRING(pObject->pszSamAccountName));
+            // Pretend like the whole object is not in the database.
+            dwError = LSA_ERROR_NOT_HANDLED;
+        }
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
