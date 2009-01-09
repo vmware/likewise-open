@@ -4,6 +4,5 @@ SUBDIRS = \
          npvfs \
          pvfs  \
          rdr   \
-         srv   \
          iomgr \
          lsmbd

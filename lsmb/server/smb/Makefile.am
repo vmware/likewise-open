@@ -5,14 +5,9 @@ libsmb_la_SOURCES = \
     echo.c          \
     negotiate.c     \
     open.c          \
-    packet.c        \
     read.c          \
-    response.c      \
-    session.c       \
     session_setup.c \
-    socket.c        \
     transaction.c   \
-    tree.c          \
     tree_connect.c  \
     write.c
 

@@ -14,8 +14,11 @@ librdr_sys_la_SOURCES = \
     globals.c             \
     handlestate.c         \
     libmain.c             \
+    packet.c              \
     peeknp.c              \
     readfile.c            \
+    response.c            \
+    session.c             \
     smb_logoff.c          \
     smb_negotiate.c       \
     smb_npclose.c         \
@@ -26,7 +29,9 @@ librdr_sys_la_SOURCES = \
     smb_tree_connect.c    \
     smb_tree_disconnect.c \
     smb_write.c           \
+    socket.c              \
     transactnp.c          \
+    tree.c                \
     waitnp.c              \
     writefile.c           \
     rdrdriver.c           \
