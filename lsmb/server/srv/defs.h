@@ -55,6 +55,4 @@
 #define LSMB_SRV_DB_DIR CACHEDIR     "/db"
 #define LSMB_SRV_SHARE_DB LSMB_SRV_DB_DIR "/lsmb-shares.db"
 
-#define
-
 #endif /* __DEFS_H__ */

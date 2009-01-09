@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        deviceio.c
+ *        srvshares.c
  *
  * Abstract:
  *
@@ -50,60 +50,103 @@
 #include "Srv.h"
 
 NTSTATUS
-SrvDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PSRV_IRP_CONTEXT pIrpContext = NULL;
-
-    ntStatus = SrvAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvCommonDeviceIo(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
-}
-
-
-NTSTATUS
-SrvCommonDeviceIo(
-    PSRV_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
+SrvDevCtlAddShare()
 {
     NTSTATUS ntStatus = 0;
 
-    switch (ControlCode)
+    switch(Level)
     {
+        case 2:
+            break;
 
-      case SRV_DEVCTL_ADD_SHARE:
-          ntStatus = SrvDevCtlAddShare();
-          break;
+        case 502:
+            break;
 
-      case SRV_DEVCTL_DELETE_SHARE:
-          ntStatus = SrvDevCtlDeleteShare();
-          break;
+        case 503:
+            break;
 
-      case SRV_DEVCTL_ENUM_SHARE:
-          ntStatus = SrvDevCtlEnumShares();
-          break;
-      case SRV_DEVCTL_SET_SHARE_INFO:
-          ntStatus = SrvDevCtlSetShareInfo();
-          break;
-      case SRV_DEVCTL_GET_SHARE_INFO:
-          ntStatus = SrvDevCtlGetShareInfo();
-          break;
     }
+    return(ntStatus);
+
+}
+NTSTATUS
+SrvDevCtlDeleteShare()
+{
+    NTSTATUS ntStatus = 0;
 
     return(ntStatus);
+
+}
+NTSTATUS
+SrvDevCtlEnumShares()
+{
+    NTSTATUS ntStatus = 0;
+
+    switch(Level)
+    {
+        case 0:
+            break;
+
+        case 1:
+            break;
+
+        case 2:
+            break;
+
+        case 502:
+            break;
+
+        case 501:
+            break;
+
+    }
+    return(ntStatus);
+
+}
+NTSTATUS
+SrvDevCtlGetShareInfo()
+{
+    NTSTATUS ntStatus = 0;
+
+    switch(Level)
+    {
+        case 1:
+            break;
+
+        case 2:
+            break;
+
+        case 502:
+            break;
+
+        case 503:
+            break;
+
+    }
+    return(ntStatus);
+
 }
 
+NTSTATUS
+SrvDevCtlSetShareInfo()
+{
+    NTSTATUS ntStatus = 0;
 
+    switch(Level)
+    {
+        case 1:
+            break;
+
+        case 2:
+            break;
+
+        case 502:
+            break;
+
+        case 503:
+            break;
+
+    }
+    return(ntStatus);
+
+}
