@@ -47,7 +47,7 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "pvfs.h"
+#include "rdr.h"
 
 NTSTATUS
 RdrWrite(
@@ -64,15 +64,14 @@ RdrWrite(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RdrCommonWrite(pIrpContext, pIrp);
+    //ntStatus = RdrCommonWrite(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
 
     return ntStatus;
 }
-
-
+/*
 NTSTATUS
 RdrCommonWrite(
     PRDR_IRP_CONTEXT pIrpContext,
@@ -80,7 +79,24 @@ RdrCommonWrite(
     )
 {
     NTSTATUS ntStatus = 0;
+    PVOID Buffer = NULL;
+    ULONG Length = 0;
+    ULONG BytesRead = 0;
+    PRDR_CCB pCCB = NULL;
 
-    write(fd, );
+    hFile = pCCB->hFile;
+    Buffer = pIrp->Args.ReadWrite.Buffer;
+    Length = pIrp->Args.ReadWrite.Length;
+
+    BytesRead =  read(fd, Buffer, Length);
+
+    dwError = RdrReadFilEx(
+                    hFile,
+                    Length,
+                    &pOutBuffer,
+                    &dwBytesRead
+                    );
+
     return(ntStatus);
 }
+*/

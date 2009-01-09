@@ -55,7 +55,7 @@
 
 #include "goto.h"
 #include "smbutils.h"
-#include "structs.h"
+#include "rdrstructs.h"
 
 NTSTATUS
 RdrCreate(
@@ -106,7 +106,7 @@ RdrSetInformation(
     PIRP pIrp
     );
 
-#include "create.h"
+#include "rdrcreate.h"
 
 #endif /* __PVFS_H__ */
 

@@ -28,7 +28,11 @@ librdr_sys_la_SOURCES = \
     smb_write.c           \
     transactnp.c          \
     waitnp.c              \
-    writefile.c
+    writefile.c           \
+    rdrdriver.c           \
+    rdrcreate.c           \
+    rdrread.c             \
+    rdrwrite.c
 
 librdr_sys_la_CPPFLAGS = \
     -I@top_srcdir@  	   \

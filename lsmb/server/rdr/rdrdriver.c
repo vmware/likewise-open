@@ -48,62 +48,8 @@
  *          Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "pvfs.h"
+#include "rdr.h"
 
-#define DO_TEST
-//#undef DO_TEST
-
-#ifdef DO_TEST
-// TODO-Remove this test code once iomgr2 is further along.
-#include "ioapi.h"
-#include "iostring.h"
-
-static
-VOID
-DoTest(
-    PCSTR pszPath
-    )
-{
-    NTSTATUS ntStatus = 0;
-    int EE = 0;
-    IO_FILE_HANDLE fileHandle = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IO_FILE_NAME fileName = { 0 };
-    PWSTR filePath = NULL;
-
-    ntStatus = IoWC16StringCreateFromCString(&filePath, pszPath);
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
-
-    fileName.FileName = filePath;
-
-    ntStatus = IoCreateFile(&fileHandle,
-                            NULL,
-                            &ioStatusBlock,
-                            &fileName,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            NULL,
-                            NULL,
-                            NULL);
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
-
-cleanup:
-    IO_FREE(&filePath);
-
-    if (fileHandle)
-    {
-        IoCloseFile(fileHandle);
-    }
-
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
-}
-#else
-#define DoTest(pszPath)
-#endif
 
 VOID
 DriverShutdown(
@@ -212,8 +158,6 @@ DriverEntry(
                               "rdr",
                               NULL);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
-
-    DoTest("/rdr");
 
 cleanup:
     IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
