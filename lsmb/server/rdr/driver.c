@@ -47,7 +47,7 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "npvfs.h"
+#include "rdr.h"
 
 NTSTATUS
 DriverEntry(

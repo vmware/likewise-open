@@ -32,7 +32,12 @@ librdr_sys_la_SOURCES = \
     rdrdriver.c           \
     rdrcreate.c           \
     rdrread.c             \
-    rdrwrite.c
+    rdrwrite.c            \
+    rdrsetinfo.c          \
+    rdrqueryinfo.c        \
+    rdrdeviceio.c         \
+    rdrfsctrl.c           \
+    rdrclose.c
 
 librdr_sys_la_CPPFLAGS = \
     -I@top_srcdir@  	   \

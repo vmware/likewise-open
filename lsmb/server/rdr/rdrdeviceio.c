@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        Likewise Re-director Driver (RDR)
  *
  *        Device I/O Function
  *
@@ -50,8 +50,8 @@
 #include "rdr.h"
 
 NTSTATUS
-RdrFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
+RdrDeviceIo(
+    IO_DEVICE_HANDLE DriverHandle,
     PIRP pIrp
     )
 {
@@ -59,6 +59,5 @@ RdrFsCtrl(
 
     return ntStatus;
 }
-
 
 

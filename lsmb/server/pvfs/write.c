@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        driver.c
+ *        write.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Driver Entry Function
+ *       Write Dispatch Routine
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -51,14 +51,24 @@
 
 NTSTATUS
 PvfsWrite(
-    IO_DEVICE_HANDLE DeviceHandle,
+    IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    
+    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+
+    ntStatus = PvfsAllocateIrpContext(
+                        pIrp,
+                        &pIrpContext
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    //ntStatus = PvfsCommonWrite(pIrpContext, pIrp);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
     return ntStatus;
 }
-
-
 
