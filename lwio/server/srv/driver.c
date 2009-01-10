@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -60,6 +60,18 @@ DriverShutdown(
     IN IO_DRIVER_HANDLE hDriver
     );
 
+static
+NTSTATUS
+SrvInitialize(
+    VOID
+    );
+
+static
+NTSTATUS
+SrvShutdown(
+    VOID
+    );
+
 NTSTATUS
 DriverEntry(
     IN IO_DRIVER_HANDLE hDriver,
@@ -81,7 +93,7 @@ DriverEntry(
                     DriverDispatch);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSrvListenerStart();
+    ntStatus = SrvInitialize();
 
 error:
 
@@ -185,12 +197,128 @@ DriverShutdown(
     IN IO_DRIVER_HANDLE hDriver
     )
 {
-    NTSTATUS ntStatus = SMBSrvListenerStop();
+    NTSTATUS ntStatus = SrvShutdown();
 
     if (ntStatus)
     {
         SMB_LOG_ERROR("[srv] driver failed to stop. [code: %d]", ntStatus);
     }
+}
+
+static
+NTSTATUS
+SrvInitialize(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = 0;
+    INT      iReader = 0;
+    INT      iWorker = 0;
+
+    memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
+
+    gSMBSrvGlobals.bStop = FALSE;
+
+    gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
+    gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
+
+    ntStatus = SrvProdConsInit(&gSMBSrvGlobals.workQueue);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBAllocateMemory(
+                    gSMBSrvGlobals.config.ulNumReaders * sizeof(SMB_SRV_SOCKET_READER),
+                    (PVOID*)&gSMBSrvGlobals.pReaderArray);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    gSMBSrvGlobals.ulNumReaders = gSMBSrvGlobals.config.ulNumReaders;
+
+    for (; iReader < gSMBSrvGlobals.config.ulNumReaders; iReader++)
+    {
+        ntStatus = SrvSocketReaderInit(
+                        &gSMBSrvGlobals.pReaderArray[iReader]);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SMBAllocateMemory(
+                    gSMBSrvGlobals.config.ulNumWorkers * sizeof(SMB_SRV_WORKER),
+                    (PVOID*)&gSMBSrvGlobals.pWorkerArray);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    gSMBSrvGlobals.ulNumWorkers = gSMBSrvGlobals.config.ulNumWorkers;
+
+    for (; iWorker < gSMBSrvGlobals.config.ulNumWorkers; iWorker++)
+    {
+        ntStatus = SrvWorkerInit(
+                        &gSMBSrvGlobals.pWorkerArray[iWorker]);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvListenerInit(
+                    &gSMBSrvGlobals.listener);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvShutdown(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    pthread_mutex_lock(&gSMBSrvGlobals.mutex);
+
+    ntStatus = SrvListenerShutdown(
+                    &gSMBSrvGlobals.listener);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (gSMBSrvGlobals.pReaderArray)
+    {
+        if (gSMBSrvGlobals.ulNumReaders)
+        {
+            INT      iReader = 0;
+
+            for (; iReader < gSMBSrvGlobals.ulNumReaders; iReader++)
+            {
+                ntStatus = SrvReaderFreeContents(
+                                &gSMBSrvGlobals.pReaderArray[iReader]);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+        }
+
+        SMBFreeMemory(gSMBSrvGlobals.pReaderArray);
+    }
+
+    if (gSMBSrvGlobals.pWorkerArray)
+    {
+        if (gSMBSrvGlobals.ulNumWorkers)
+        {
+            INT iWorker = 0;
+
+            for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+            {
+                ntStatus = SrvWorkerFreeContents(
+                                &gSMBSrvGlobals.pWorkerArray[iWorker]);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+        }
+    }
+
+    SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
+
+cleanup:
+
+    pthread_mutex_unlock(&gSMBSrvGlobals.mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 

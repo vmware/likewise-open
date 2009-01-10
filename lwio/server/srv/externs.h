@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -49,12 +49,6 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern pthread_mutex_t gListenerLock;
-extern BOOLEAN         gbStopListener;
-extern pthread_t       gListenerThread;
-extern PVOID           gpListenerThread;
-
-#define SMB_LOCK_LISTENER   pthread_mutex_lock(&gListenerLock)
-#define SMB_UNLOCK_LISTENER pthread_mutex_unlock(&gListenerLock)
+extern SMB_SRV_RUNTIME_GLOBALS gSMBSrvGlobals;
 
 #endif /* __EXTERNS_H__ */

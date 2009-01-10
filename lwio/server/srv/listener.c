@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -50,7 +50,7 @@
 
 static
 PVOID
-SMBSrvListenerMain(
+SrvListenerMain(
     PVOID pData
     );
 
@@ -68,7 +68,7 @@ SMBSrvFreeConnection(
 
 static
 DWORD
-SMBSrvFakeClientConnection(
+SrvFakeClientConnection(
     VOID
     );
 
@@ -78,55 +78,63 @@ SMBSrvGetLocalIPAddress(
     PSTR* ppszIpAddress
     );
 
-DWORD
-SMBSrvListenerStart(
-    VOID
+static
+BOOLEAN
+SrvListenerMustStop(
+    PSMB_SRV_LISTENER_CONTEXT pContext
+    );
+
+NTSTATUS
+SrvListenerInit(
+    PSMB_SRV_LISTENER pListener
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
-    dwError = pthread_create(
-                    &gListenerThread,
+    memset(&pListener->context, 0, sizeof(pListener->context));
+
+    ntStatus = pthread_create(
+                    pListener->listener,
                     NULL,
-                    &SMBSrvListenerMain,
-                    NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+                    &SrvListenerMain,
+                    &pListener->context);
+    BAIL_ON_NT_STATUS;
 
-    gpListenerThread = &gListenerThread;
-
-cleanup:
-
-    return dwError;
+    pListener->pListener = &pListener->listener;
 
 error:
 
-    goto cleanup;
+    return ntStatus;
 }
 
-DWORD
-SMBSrvListenerStop(
-    VOID
+NTSTATUS
+SrvListenerStop(
+    PSMB_SRV_LISTENER pListener
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
-    if (gpListenerThread)
+    if (pListener->pListener)
     {
-        SMBSrvListenerIndicateMustStop();
+        pthread_mutex_lock(&pListener->context.mutex);
 
-        SMBSrvFakeClientConnection();
+        pListener->context.bStop = TRUE;
 
-        pthread_join(gListenerThread, NULL);
+        pthread_mutex_unlock(&pListener->context.mutex);
 
-        gpListenerThread = NULL;
+        SrvFakeClientConnection();
+
+        pthread_join(pListener->listener, NULL);
+
+        pListener->pListener = NULL;
     }
 
-    return dwError;
+    return ntStatus;
 }
 
 static
 PVOID
-SMBSrvListenerMain(
+SrvListenerMain(
     PVOID pData
     )
 {
@@ -134,8 +142,8 @@ SMBSrvListenerMain(
     int sockFd = -1;
     int connFd = -1;
     struct sockaddr_in servaddr;
-    pthread_t handlerThrId;
-    PSMB_CONNECTION pConnection = NULL;
+    PSMB_SRV_SOCKET pSocket = NULL;
+    PSMB_SRV_LISTENER_CONTEXT pContext = (PSMB_SRV_LISTENER_CONTEXT)pData;
 
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
@@ -161,7 +169,7 @@ SMBSrvListenerMain(
         BAIL_ON_SMB_ERROR(dwError);
     }
 
-    while (!SMBSrvListenerShouldStop())
+    while (!SrvListenerMustStop(pContext))
     {
         struct sockaddr_in cliaddr;
         SOCKLEN_T clilen;
@@ -182,7 +190,7 @@ SMBSrvListenerMain(
             }
             else if (errno == EINTR)
             {
-                if (SMBSrvListenerShouldStop())
+                if (SrvListenerMustStop(pContext))
                 {
                     goto cleanup;
                 }
@@ -241,32 +249,21 @@ error:
     goto cleanup;
 }
 
+static
 BOOLEAN
-SMBSrvListenerShouldStop(
-    VOID
+SrvListenerMustStop(
+    PSMB_SRV_LISTENER_CONTEXT pContext
     )
 {
-    BOOLEAN bStopListener = FALSE;
+    BOOLEAN bStop = FALSE;
 
-    SMB_LOCK_LISTENER;
+    pthread_mutex_lock(&pContext->mutex);
 
-    bStopListener = gbStopListener;
+    bStop = pContext->bStop;
 
-    SMB_UNLOCK_LISTENER;
+    pthread_mutex_unlock(&pContext->mutex);
 
-    return bStopListener;
-}
-
-VOID
-SMBSrvListenerIndicateMustStop(
-    VOID
-    )
-{
-    SMB_LOCK_LISTENER;
-
-    gbStopListener = TRUE;
-
-    SMB_UNLOCK_LISTENER;
+    return bStop;
 }
 
 static
@@ -352,7 +349,7 @@ SMBSrvFreeConnection(
 
 static
 DWORD
-SMBSrvFakeClientConnection(
+SrvFakeClientConnection(
     VOID
     )
 {

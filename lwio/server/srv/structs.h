@@ -85,11 +85,11 @@ typedef struct _SMB_SRV_SOCKET
 
 typedef struct _SMB_SRV_CONNECTION
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t     mutex;
 
-    SMB_SRV_CONN_STATUS status;
+    SMB_SRV_CONN_STATE  state;
 
-    PSMB_SRV_SOCKET pSocket;
+    PSMB_SRV_SOCKET     pSocket;
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
 
@@ -97,8 +97,10 @@ typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
 {
     pthread_mutex_t mutex;
 
+    BOOLEAN        bStop;
+
     PDLINKEDLIST pSocketList;
-    DWORD        dwNumSockets;
+    ULONG        ulNumSockets;
 
     PSMB_PROD_CONS_QUEUE pWorkQueue;
 
@@ -109,31 +111,67 @@ typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
 
 typedef struct _SMB_SRV_SOCKET_READER
 {
-    pthread_t reader;
+    pthread_t  reader;
+    pthread_t* pReader;
 
     SMB_SRV_SOCKET_READER_CONTEXT context;
 
 } SMB_SRV_SOCKET_READER, *PSMB_SRV_SOCKET_READER;
 
-typedef struct _SMB_SRV_WORKER
-{
-    pthread_t worker;
-
-} SMB_SRV_WORKER, *PSMB_SRV_WORKER;
-
-typedef struct _SMB_SRV_RUNTIME_GLOBALS
+typedef struct _SMB_SRV_WORKER_CONTEXT
 {
     pthread_mutex_t mutex;
 
-    SMB_SRV_CONFIG config;
+    BOOLEAN bStop;
 
-    SMB_PROD_CONS_QUEUE workQueue;
+} SMB_SRV_WORKER_CONTEXT, *PSMB_SRV_WORKER_CONTEXT;
+
+typedef struct _SMB_SRV_WORKER
+{
+    pthread_t  worker;
+    pthread_t* pWorker;
+
+    SMB_SRV_WORKER_CONTEXT context;
+
+} SMB_SRV_WORKER, *PSMB_SRV_WORKER;
+
+typedef struct _SMB_SRV_LISTENER_CONTEXT
+{
+    pthread_mutex_t mutex;
+
+    BOOLEAN bStop;
+
+    // Invariant
+    // Not owned
+    PSMB_SRV_SOCKET_READER pReaderArray;
+    ULONG                  ulNumReaders;
+
+} SMB_SRV_LISTENER_CONTEXT, *PSMB_SRV_LISTENER_CONTEXT;
+
+typedef struct _SMB_SRV_LISTENER
+{
+    pthread_t  listener;
+    pthread_t* pListener;
+
+    SMB_SRV_LISTENER_CONTEXT context;
+
+} SMB_SRV_LISTENER, *PSMB_SRV_LISTENER;
+
+typedef struct _SMB_SRV_RUNTIME_GLOBALS
+{
+    pthread_mutex_t        mutex;
+
+    SMB_SRV_CONFIG         config;
+
+    SMB_PROD_CONS_QUEUE    workQueue;
 
     PSMB_SRV_SOCKET_READER pReaderArray;
+    ULONG                  ulNumReaders;
 
-    PSMB_SRV_WORKER pWorkerArray;
+    PSMB_SRV_WORKER        pWorkerArray;
+    ULONG                  ulNumWorkers;
 
-    pthread_t listener;
+    SMB_SRV_LISTENER       listener;
 
 } SMB_SRV_RUNTIME_GLOBALS, *PSMB_SRV_RUNTIME_GLOBALS;
 

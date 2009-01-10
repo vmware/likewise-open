@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -48,8 +48,6 @@
  */
 #include "includes.h"
 
-pthread_mutex_t gListenerLock = PTHREAD_MUTEX_INITIALIZER;
-BOOLEAN         gbStopListener = FALSE;
-pthread_t       gListenerThread;
-PVOID           gpListenerThread = NULL;
+SMB_SRV_RUNTIME_GLOBALS gSMBSrvGlobals = { PTHREAD_MUTEX_INITIALIZER };
+
 
