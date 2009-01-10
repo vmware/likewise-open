@@ -30,7 +30,7 @@ liblwioclient_nothr_la_SOURCES = \
 
 liblwioclient_nothr_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
-    -DSMB_NO_THREADS \
+    -DLWIO_NO_THREADS \
     -I@top_srcdir@/include  \
     @LWMSG_INCLUDES@
 
@@ -39,7 +39,7 @@ liblwioclient_nothr_la_CFLAGS = \
     -Wmissing-prototypes
 
 liblwioclient_nothr_la_LIBADD = \
-    @top_builddir@/ipc/libsmbipc.la
+    @top_builddir@/ipc/liblwioipc.la
 
 liblwioclient_la_SOURCES = \
     context.c              \

@@ -1,6 +1,6 @@
-noinst_LTLIBRARIES = libsmbutils.la
+noinst_LTLIBRARIES = liblwioutils.la
 
-libsmbutils_la_SOURCES = \
+liblwioutils_la_SOURCES = \
     bitvector.c   \
     consolelog.c  \
     dlinkedlist.c \
@@ -14,9 +14,9 @@ libsmbutils_la_SOURCES = \
     lwlist.c      \
     memory.c      \
     queue.c       \
-    smbconfig.c   \
-    smbloginfo.c  \
-    smbxnet.c     \
+    lwioconfig.c   \
+    lwiologinfo.c  \
+    lwioxnet.c     \
     stack.c       \
     strerror.c    \
     strings.c     \
@@ -24,10 +24,10 @@ libsmbutils_la_SOURCES = \
     syslog.c      \
     unistr.c
 
-libsmbutils_la_CPPFLAGS = \
+liblwioutils_la_CPPFLAGS = \
     -I@top_srcdir@/include
 
-libsmbutils_la_LIBADD = \
+liblwioutils_la_LIBADD = \
     @LIBUNISTR_LIBS@ \
     @DL_LIBS@
 

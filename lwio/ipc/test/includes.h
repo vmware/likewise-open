@@ -29,7 +29,7 @@
  */
 
 #include "config.h"
-#include "lsmbsys.h"
+#include "lwiosys.h"
 
 #include <lwio/lwio.h>
 
@@ -37,6 +37,6 @@
 #include <lwmsg/protocol.h>
 #include <moonunit/moonunit.h>
 
-#include "smbdef.h"
-#include "smbutils.h"
-#include "smbipc.h"
+#include "lwiodef.h"
+#include "lwioutils.h"
+#include "lwioipc.h"

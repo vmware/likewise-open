@@ -47,7 +47,7 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 #include "config.h"
-#include "lsmbsys.h"
+#include "lwiosys.h"
 
 #include <krb5.h>
 #include <lwio/lwio.h>
@@ -55,9 +55,9 @@
 #include <lwmsg/lwmsg.h>
 #include <lwmsg/protocol.h>
 
-#include <smbdef.h>
-#include <smbutils.h>
-#include <smbipc.h>
+#include <lwiodef.h>
+#include <lwioutils.h>
+#include <lwioipc.h>
 
 #include "structs.h"
 

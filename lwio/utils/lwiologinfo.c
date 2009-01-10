@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise IO (LWIO)
- * 
+ *
  *        Log Info
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -57,14 +57,14 @@ SMBBuildLogInfo(
 {
     DWORD dwError = 0;
     PSMB_LOG_INFO pLogInfo = NULL;
-    
+
     BAIL_ON_INVALID_POINTER(ppLogInfo);
-    
+
     dwError = SMBAllocateMemory(
                     sizeof(SMB_LOG_INFO),
                     (PVOID*)&pLogInfo);
     BAIL_ON_SMB_ERROR(dwError);
-    
+
     if (!IsNullOrEmptyString(pszPath))
     {
         dwError = SMBAllocateString(
@@ -72,28 +72,28 @@ SMBBuildLogInfo(
                         &pLogInfo->pszPath);
         BAIL_ON_SMB_ERROR(dwError);
     }
-    
+
     pLogInfo->maxAllowedLogLevel  = maxAllowedLogLevel;
     pLogInfo->logTarget = logTarget;
-    
+
     *ppLogInfo = pLogInfo;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
-    
+
     if (ppLogInfo)
     {
         *ppLogInfo = NULL;
     }
-    
+
     if (pLogInfo)
     {
         SMBFreeLogInfo(pLogInfo);
     }
-    
+
     goto cleanup;
 }
 

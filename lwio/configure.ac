@@ -390,7 +390,6 @@ AC_CONFIG_FILES([Makefile
         etc/Makefile
         etc/lwiod.conf
         utils/Makefile
-        atomic/Makefile
         logging_r/Makefile
         ipc/Makefile
         ipc/test/Makefile
@@ -406,9 +405,9 @@ AC_CONFIG_FILES([Makefile
         server/pvfs/Makefile
         server/lwiod/Makefile
         tools/Makefile
-        tools/lw-smb-refresh/Makefile
-        tools/lw-smb-get-log-info/Makefile
-        tools/lw-smb-set-log-level/Makefile
+        tools/lw-io-refresh/Makefile
+        tools/lw-io-get-log-info/Makefile
+        tools/lw-io-set-log-level/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
         tests/test_npclient/Makefile

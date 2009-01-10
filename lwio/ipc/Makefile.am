@@ -4,17 +4,17 @@ if HAVE_MOONUNIT
 SUBDIRS += test
 endif
 
-lib_LTLIBRARIES = libsmbipc.la
+lib_LTLIBRARIES = liblwioipc.la
 
-libsmbipc_la_SOURCES = \
+liblwioipc_la_SOURCES = \
     globals.c \
     libmain.c \
     ntipc.c
 
-libsmbipc_la_CPPFLAGS = \
+liblwioipc_la_CPPFLAGS = \
     -I@top_srcdir@/include  \
     @LWMSG_INCLUDES@
 
-libsmbipc_la_LIBADD = \
-    @top_builddir@/utils/libsmbutils.la \
+liblwioipc_la_LIBADD = \
+    @top_builddir@/utils/liblwioutils.la \
     @LWMSG_NOTHR_LIBS@

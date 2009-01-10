@@ -29,7 +29,7 @@
  */
 
 #include "config.h"
-#include "lsmbsys.h"
+#include "lwiosys.h"
 
 #include "iodriver.h"
 #include "ioinit.h"
@@ -37,7 +37,7 @@
 
 #include "lwlist.h"
 #include "goto.h"
-#include "smbutils.h"
+#include "lwioutils.h"
 
 typedef struct _IOP_DRIVER_CONFIG {
     PSTR pszName;

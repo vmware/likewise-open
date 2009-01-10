@@ -47,19 +47,19 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 #include "config.h"
-#include "lsmbsys.h"
+#include "lwiosys.h"
 
 #include "lwio/lwio.h"
 
-#include "smbdef.h"
-#include "smbutils.h"
+#include "lwiodef.h"
+#include "lwioutils.h"
 
 #include "sysfuncs_p.h"
 #include "syslog_p.h"
 #include "consolelog_p.h"
 #include "filelog_p.h"
 #include "logger.h"
-#include "smbconfig.h"
+#include "lwioconfig.h"
 
 #include "externs.h"
 

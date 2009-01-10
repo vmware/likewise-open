@@ -1,4 +1,4 @@
 SUBDIRS = \
-         lw-smb-refresh \
-         lw-smb-get-log-info \
-         lw-smb-set-log-level
+         lw-io-refresh \
+         lw-io-get-log-info \
+         lw-io-set-log-level

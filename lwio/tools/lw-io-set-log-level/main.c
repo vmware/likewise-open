@@ -39,7 +39,7 @@
  *
  *        Likewise IO (LWIO)
  *
- *        Tool to get the LWIO log information
+ *        Tool to set the SMBSS Log Level at runtime
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -48,15 +48,16 @@
 #define _POSIX_PTHREAD_SEMANTICS 1
 
 #include "config.h"
-#include "lsmbsys.h"
+#include "lwiosys.h"
 #include "lwio/lwio.h"
-#include "smbdef.h"
-#include "smbutils.h"
+#include "lwiodef.h"
+#include "lwioutils.h"
 
 DWORD
 ParseArgs(
     int    argc,
-    char*  argv[]
+    char*  argv[],
+    SMBLogLevel* pLogLevel
     );
 
 VOID
@@ -79,22 +80,36 @@ main(
     )
 {
     DWORD dwError = 0;
+    SMBLogLevel logLevel = SMB_LOG_LEVEL_ERROR;
+    HANDLE hSMBConnection = (HANDLE)NULL;
     PSMB_LOG_INFO pLogInfo = NULL;
-    HANDLE hConnection = (HANDLE)NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
 
-    dwError = ParseArgs(argc, argv);
+    if (geteuid() != 0) {
+        fprintf(stderr, "This program requires super-user privileges.\n");
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    dwError = ParseArgs(argc, argv, &logLevel);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBInitialize();
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBOpenServer(&hConnection);
+    dwError = SMBOpenServer(&hSMBConnection);
     BAIL_ON_SMB_ERROR(dwError);
 
+    dwError = SMBSetLogLevel(
+                    hSMBConnection,
+                    logLevel);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    fprintf(stdout, "The log level was set successfully\n\n");
+
     dwError = SMBGetLogInfo(
-                    hConnection,
+                    hSMBConnection,
                     &pLogInfo);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -103,12 +118,13 @@ main(
 
 cleanup:
 
-    if (pLogInfo) {
-       SMBFreeLogInfo(pLogInfo);
+    if (pLogInfo)
+    {
+        SMBFreeLogInfo(pLogInfo);
     }
 
-    if (hConnection != (HANDLE)NULL) {
-        SMBCloseServer(hConnection);
+    if (hSMBConnection != (HANDLE)NULL) {
+        SMBCloseServer(hSMBConnection);
     }
 
     SMBShutdown();
@@ -136,7 +152,7 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to get LWIO log setting information.  %s\n", pszErrorBuffer);
+                fprintf(stderr, "Failed to set log level.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -146,7 +162,7 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to get LWIO log setting information. Error code [%d]\n", dwError);
+        fprintf(stderr, "Failed to set log level. Error code [%d]\n", dwError);
     }
 
     goto cleanup;
@@ -155,7 +171,8 @@ error:
 DWORD
 ParseArgs(
     int    argc,
-    char*  argv[]
+    char*  argv[],
+    SMBLogLevel* pLogLevel
     )
 {
     typedef enum {
@@ -166,6 +183,8 @@ ParseArgs(
     int iArg = 1;
     PSTR pszArg = NULL;
     ParseMode parseMode = PARSE_MODE_OPEN;
+    SMBLogLevel logLevel = SMB_LOG_LEVEL_ERROR;
+    BOOLEAN bLogLevelSpecified = FALSE;
 
     do {
         pszArg = argv[iArg++];
@@ -186,13 +205,49 @@ ParseArgs(
                 }
                 else
                 {
-                    ShowUsage();
-                    exit(1);
+                    if (!strcasecmp(pszArg, "error"))
+                    {
+                        logLevel = SMB_LOG_LEVEL_ERROR;
+                        bLogLevelSpecified = TRUE;
+                    }
+                    else if (!strcasecmp(pszArg, "warning"))
+                    {
+                        logLevel = SMB_LOG_LEVEL_WARNING;
+                        bLogLevelSpecified = TRUE;
+                    }
+                    else if (!strcasecmp(pszArg, "info"))
+                    {
+                        logLevel = SMB_LOG_LEVEL_INFO;
+                        bLogLevelSpecified = TRUE;
+                    }
+                    else if (!strcasecmp(pszArg, "verbose"))
+                    {
+                        logLevel = SMB_LOG_LEVEL_VERBOSE;
+                        bLogLevelSpecified = TRUE;
+                    }
+                    else if (!strcasecmp(pszArg, "debug"))
+                    {
+                        logLevel = SMB_LOG_LEVEL_DEBUG;
+                        bLogLevelSpecified = TRUE;
+                    }
+                    else
+                    {
+                        ShowUsage();
+                        exit(1);
+                    }
                 }
                 break;
         }
 
     } while (iArg < argc);
+
+    if (!bLogLevelSpecified)
+    {
+        ShowUsage();
+        exit(1);
+    }
+
+    *pLogLevel = logLevel;
 
     return dwError;
 }
@@ -200,7 +255,7 @@ ParseArgs(
 void
 ShowUsage()
 {
-    printf("Usage: lw-smb-get-log-info\n");
+    printf("Usage: lw-smb-set-log-level {error, warning, info, verbose}\n");
 }
 
 DWORD

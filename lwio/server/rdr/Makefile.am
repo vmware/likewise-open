@@ -50,9 +50,9 @@ librdr_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 librdr_sys_la_LIBADD = \
-    @top_builddir@/server/smb/libsmb.la \
-    @top_builddir@/smbkrb5/libsmbkrb5.la \
-    @top_builddir@/utils/libsmbutils.la \
+    @top_builddir@/server/smb/liblwiosmb.la \
+    @top_builddir@/smbkrb5/liblwiosmbkrb5.la \
+    @top_builddir@/utils/liblwioutils.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@ \
     @SOCKET_LIBS@

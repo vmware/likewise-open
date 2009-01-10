@@ -18,7 +18,7 @@ libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 libpvfs_sys_la_LIBADD = \
-    @top_builddir@/utils/libsmbutils.la \
+    @top_builddir@/utils/liblwioutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@

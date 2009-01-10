@@ -48,13 +48,13 @@
 #define __PVFS_H__
 
 #include "config.h"
-#include "lsmbsys.h"
+#include "lwiosys.h"
 
 #include "iostring.h"
 #include "iodriver.h"
 
 #include "goto.h"
-#include "smbutils.h"
+#include "lwioutils.h"
 #include "structs.h"
 
 NTSTATUS

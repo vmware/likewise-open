@@ -45,7 +45,7 @@
 #ifndef __NT_IPC_MSG_H__
 #define __NT_IPC_MSG_H__
 
-#include "smbipc.h"
+#include "lwioipc.h"
 #include "io-types.h"
 
 // TODO-Add async completion support.

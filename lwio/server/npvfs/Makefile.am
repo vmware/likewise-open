@@ -9,7 +9,7 @@ libnpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 libnpvfs_sys_la_LIBADD = \
-    @top_builddir@/utils/libsmbutils.la \
+    @top_builddir@/utils/liblwioutils.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
     

@@ -18,7 +18,7 @@ libiomgr2_la_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 libiomgr2_la_LIBADD = \
-    @top_builddir@/ipc/libsmbipc.la \
+    @top_builddir@/ipc/liblwioipc.la \
     @LWMSG_LIBS@ \
     @UUID_LIBS@  \
     @PTHREAD_LIBS@ \

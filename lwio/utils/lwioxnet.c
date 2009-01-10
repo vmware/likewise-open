@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        HP-UX X/Open socket API wrappers        
+ *        HP-UX X/Open socket API wrappers
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  */
@@ -74,7 +74,7 @@ SMBXnetInit(
     if (!_xnet_handle)
     {
         _xnet_handle = dlopen("libxnet" MOD_EXT, RTLD_LOCAL);
-        
+
         _p_xnet_accept = dlsym(_xnet_handle, "accept");
         _p_xnet_bind = dlsym(_xnet_handle, "bind");
         _p_xnet_connect = dlsym(_xnet_handle, "connect");
@@ -189,7 +189,7 @@ int
 _xnet_socket (int d, int t, int p)
 {
     SMBXnetInit();
-    return _p_xnet_socket(d, t, p); 
+    return _p_xnet_socket(d, t, p);
 }
 
 int

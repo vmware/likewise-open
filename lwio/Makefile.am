@@ -4,7 +4,6 @@ SUBDIRS = \
     include   \
     etc       \
     utils     \
-    atomic    \
     logging_r \
     smbkrb5   \
     ipc       \
