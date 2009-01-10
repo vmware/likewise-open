@@ -371,13 +371,27 @@ LsaRecvCreds(
     /* Extract credential fd */
     
 #ifdef MSGHDR_HAS_MSG_CONTROL
-    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg))
+    cmsg = CMSG_FIRSTHDR(&msg);
+    if (!cmsg)
+    {
+        dwError = EBADF;
+        LSA_LOG_ERROR("The received local socket authentication message has no headers in it.");
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    while (cmsg)
     {
         if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
         {
             memcpy(&credFd, CMSG_DATA(cmsg), sizeof(credFd));
+            if (credFd == -1)
+            {
+                dwError = EBADF;
+                LSA_LOG_ERROR("The received local socket authentication message has -1 for the file descriptor.");
+                BAIL_ON_LSA_ERROR(dwError);
+            }
             break;
         }
+        cmsg = CMSG_NXTHDR(&msg, cmsg);
     }
 #endif
 
@@ -385,6 +399,7 @@ LsaRecvCreds(
     if (credFd == -1)
     {
         dwError = EBADF;
+        LSA_LOG_ERROR("The received local socket authentication message did not have a rights header.");
         BAIL_ON_LSA_ERROR(dwError);
     }
 
