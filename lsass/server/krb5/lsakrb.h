@@ -56,6 +56,7 @@
 #include "lsakrb5.h"
 
 #include "krb5sys.h"
+#include "lsakrb5_error.h"
 
 #include "krbtgt.h"
 #include "externs.h"

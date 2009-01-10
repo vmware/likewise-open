@@ -57,40 +57,6 @@ typedef enum
     KRB5_File_Cache
 } Krb5CacheType;
 
-#define BAIL_ON_KRB_ERROR(ctx, ret)                                     \
-    if (ret) {                                                          \
-        if (ctx)  {                                                     \
-            PCSTR pszKrb5Error = krb5_get_error_message(ctx, ret);      \
-            if (pszKrb5Error) {                                         \
-                LSA_LOG_ERROR("KRB5 Error at %s:%d: [Code:%d] [Message: %s]",\
-                        __FILE__,                                       \
-                        __LINE__,                                       \
-                        ret,                                            \
-                        pszKrb5Error);                                  \
-                krb5_free_error_message(ctx, pszKrb5Error);             \
-            }                                                           \
-        } else {                                                        \
-            LSA_LOG_ERROR("KRB5 Error at %s:%d [Code:%d]",              \
-                    __FILE__,                                           \
-                    __LINE__,                                           \
-                    ret);                                               \
-        }                                                               \
-        if (ret == KRB5KDC_ERR_KEY_EXP) {                               \
-            dwError = LSA_ERROR_PASSWORD_EXPIRED;                       \
-        } else if (ret == KRB5_LIBOS_BADPWDMATCH) {                     \
-            dwError = LSA_ERROR_PASSWORD_MISMATCH;                      \
-        } else if (ret == KRB5KRB_AP_ERR_SKEW) {                        \
-            dwError = LSA_ERROR_CLOCK_SKEW;                             \
-        } else if (ret == KRB5KDC_ERR_CLIENT_REVOKED) {                 \
-            dwError = LSA_ERROR_ACCOUNT_DISABLED;                       \
-        } else if (ret == ENOENT) {                                     \
-            dwError = LSA_ERROR_KRB5_NO_KEYS_FOUND;                     \
-        } else {                                                        \
-            dwError = LSA_ERROR_KRB5_CALL_FAILED;                       \
-        }                                                               \
-        goto error;                                                     \
-    }
-
 #ifdef WIN32
 
 #define BAIL_ON_SEC_ERROR(dwMajorStatus)                        \

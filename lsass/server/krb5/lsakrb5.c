@@ -1651,6 +1651,69 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaTranslateKrb5Error(
+    krb5_context ctx,
+    krb5_error_code krbError,
+    PCSTR pszFile,
+    DWORD dwLine
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PCSTR pszKrb5Error = NULL;
+
+    if (ctx)
+    {
+        pszKrb5Error = krb5_get_error_message(ctx, krbError);
+    }
+    if (pszKrb5Error)
+    {
+        LSA_LOG_ERROR("KRB5 Error at %s:%d: [Code:%d] [Message: %s]",
+                pszFile,
+                dwLine,
+                krbError,
+                pszKrb5Error);
+    }
+    else
+    {
+        LSA_LOG_ERROR("KRB5 Error at %s:%d [Code:%d]",
+                pszFile,
+                dwLine,
+                krbError);
+    }
+
+    switch (krbError)
+    {
+        case KRB5KDC_ERR_KEY_EXP:
+            dwError = LSA_ERROR_PASSWORD_EXPIRED;
+            break;
+        case KRB5_LIBOS_BADPWDMATCH:
+            dwError = LSA_ERROR_PASSWORD_MISMATCH;
+            break;
+        case KRB5KRB_AP_ERR_SKEW:
+            dwError = LSA_ERROR_CLOCK_SKEW;
+            break;
+        case KRB5KDC_ERR_CLIENT_REVOKED:
+            dwError = LSA_ERROR_ACCOUNT_DISABLED;
+            break;
+        case ENOENT:
+            dwError = LSA_ERROR_KRB5_NO_KEYS_FOUND;
+            break;
+        case KRB5KDC_ERR_PREAUTH_FAILED:
+            dwError = LSA_ERROR_PASSWORD_MISMATCH;
+            break;
+        default:
+            dwError = LSA_ERROR_KRB5_CALL_FAILED;
+            break;
+    }
+
+    if (pszKrb5Error)
+    {
+        krb5_free_error_message(ctx, pszKrb5Error);
+    }
+    return dwError;
+}
+
 /*
 local variables:
 mode: c
