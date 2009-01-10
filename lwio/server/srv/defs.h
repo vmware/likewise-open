@@ -55,4 +55,12 @@
 #define LWIO_SRV_DB_DIR CACHEDIR     "/db"
 #define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR "/lwio-shares.db"
 
+typedef enum
+{
+    SMB_SRV_CONN_STATUS_INITIAL = 0,
+    SMB_SRV_CONN_STATUS_READY,
+    SMB_SRV_CONN_STATUS_CLOSED,
+    SMB_SRV_CONN_STATUS_INVALID
+} SMB_SRV_CONN_STATUS;
+
 #endif /* __DEFS_H__ */

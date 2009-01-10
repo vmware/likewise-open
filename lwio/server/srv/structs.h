@@ -49,6 +49,13 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+typedef struct _SMB_SRV_CONFIG
+{
+    ULONG ulNumReaders;
+    ULONG ulNumWorkers;
+
+} SMB_SRV_CONFIG, *PSMB_SRV_CONFIG;
+
 typedef struct _SHARE_INFO
 {
     PSTR pszShareName;
@@ -56,11 +63,78 @@ typedef struct _SHARE_INFO
     PSTR pszComment;
 } SHARE_INFO, *PSHARE_INFO;
 
-typedef struct __SMB_CONNECTION
+typedef struct _SMB_PROD_CONS_QUEUE
 {
+
+    pthread_mutex_t mutex;
+    pthread_cond_t  event;
+
+    SMB_QUEUE       queue;
+
+} SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
+
+typedef struct _SMB_SRV_SOCKET
+{
+    pthread_mutex_t mutex;
+
     int fd;
+
     struct sockaddr_in cliaddr;
 
-} SMB_CONNECTION, *PSMB_CONNECTION;
+} SMB_SRV_SOCKET, *PSMB_SRV_SOCKET;
+
+typedef struct _SMB_SRV_CONNECTION
+{
+    pthread_mutex_t mutex;
+
+    SMB_SRV_CONN_STATUS status;
+
+    PSMB_SRV_SOCKET pSocket;
+
+} SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
+
+typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
+{
+    pthread_mutex_t mutex;
+
+    PDLINKEDLIST pSocketList;
+    DWORD        dwNumSockets;
+
+    PSMB_PROD_CONS_QUEUE pWorkQueue;
+
+    // pipe used to interrupt the reader
+    int fd[2];
+
+} SMB_SRV_SOCKET_READER_CONTEXT, *PSMB_SRV_SOCKET_READER_CONTEXT;
+
+typedef struct _SMB_SRV_SOCKET_READER
+{
+    pthread_t reader;
+
+    SMB_SRV_SOCKET_READER_CONTEXT context;
+
+} SMB_SRV_SOCKET_READER, *PSMB_SRV_SOCKET_READER;
+
+typedef struct _SMB_SRV_WORKER
+{
+    pthread_t worker;
+
+} SMB_SRV_WORKER, *PSMB_SRV_WORKER;
+
+typedef struct _SMB_SRV_RUNTIME_GLOBALS
+{
+    pthread_mutex_t mutex;
+
+    SMB_SRV_CONFIG config;
+
+    SMB_PROD_CONS_QUEUE workQueue;
+
+    PSMB_SRV_SOCKET_READER pReaderArray;
+
+    PSMB_SRV_WORKER pWorkerArray;
+
+    pthread_t listener;
+
+} SMB_SRV_RUNTIME_GLOBALS, *PSMB_SRV_RUNTIME_GLOBALS;
 
 #endif /* __STRUCTS_H__ */
