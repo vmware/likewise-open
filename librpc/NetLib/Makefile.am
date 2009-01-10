@@ -16,7 +16,7 @@ libnetapi_la_SOURCES = \
 	NetGetDomainName.c NetMachineChangePassword.c NetNotImplemented.c \
 	LdapUtil.c NetDebug.c MachinePassword.c NetGetDcName.c
 
-libnetapi_la_LIBADD = -lunistr -lldap_r -lktkrb5 -llsmbclient \
+libnetapi_la_LIBADD = -lunistr -lldap_r -lktkrb5 -llwioclient \
 	$(top_builddir)/Samr/libsamr.la \
 	$(top_builddir)/Lsa/liblsa.la $(top_builddir)/MsRpc/libmsrpc.la \
 	$(top_builddir)/Mpr/libmpr.la
