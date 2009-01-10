@@ -5,6 +5,7 @@ compat_subdirs = \
 	    logging_r  \
         ipc            \
         client         \
+        provider       \
         auth @MACCLIENT_DIR@ \
         nsswitch
 

@@ -87,7 +87,8 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     &LsaProviderLocal_EndEnumNSSArtefacts,
     &LsaProviderLocal_GetStatus,
     &LsaProviderLocal_FreeStatus,
-    &LsaProviderLocal_RefreshConfiguration
+    &LsaProviderLocal_RefreshConfiguration,
+    &LsaProviderLocal_ProviderIoControl
 };
 
 pthread_rwlock_t g_dbLock;

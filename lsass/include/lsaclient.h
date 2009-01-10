@@ -268,6 +268,17 @@ LsaEndEnumNSSArtefacts(
     HANDLE hResume
     );
 
+DWORD
+LsaProviderIoControl(
+    IN HANDLE    hLsaConnection,
+    IN PCSTR     pszProviderId,
+    IN DWORD     dwIoControlCode,
+    IN DWORD     dwInputBufferSize,
+    IN PVOID     pInputBuffer,
+    OUT OPTIONAL DWORD* pdwOutputBufferSize,
+    OUT OPTIONAL PVOID* ppOutputBuffer
+    );
+
 //
 // GSS routines
 //

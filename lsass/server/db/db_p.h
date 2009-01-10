@@ -68,6 +68,13 @@ typedef struct _LSA_DB_CONNECTION
     sqlite3_stmt *pstFindGroupByAlias;
     sqlite3_stmt *pstFindGroupById;
 
+    sqlite3_stmt *pstRemoveObjectBySid;
+    sqlite3_stmt *pstRemoveUserBySid;
+    sqlite3_stmt *pstRemoveGroupBySid;
+
+    sqlite3_stmt *pstEnumUsers;
+    sqlite3_stmt *pstEnumGroups;
+
     sqlite3_stmt *pstGetGroupMembers;
     sqlite3_stmt *pstGetGroupsForUser;
 

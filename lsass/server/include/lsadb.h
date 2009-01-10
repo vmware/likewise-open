@@ -180,6 +180,23 @@ LsaDbFindGroupById(
     );
 
 DWORD
+LsaDbRemoveUserBySid(
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszSid
+    );
+
+DWORD
+LsaDbRemoveGroupBySid(
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszSid
+    );
+
+DWORD
+LsaDbEmptyCache(
+    IN LSA_DB_HANDLE hDb
+    );
+
+DWORD
 LsaDbStoreObjectEntry(
     LSA_DB_HANDLE hDb,
     PLSA_SECURITY_OBJECT pObject
@@ -284,6 +301,24 @@ LsaDbFindObjectBySid(
     LSA_DB_HANDLE hDb,
     PCSTR pszSid,
     PLSA_SECURITY_OBJECT *ppObject);
+
+DWORD
+LsaDbEnumUsersCache(
+    IN LSA_DB_HANDLE           hDb,
+    IN DWORD                   dwMaxNumUsers,
+    IN PCSTR                   pszResume,
+    OUT DWORD*                 dwNumUsersFound,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LsaDbEnumGroupsCache(
+    IN LSA_DB_HANDLE           hDb,
+    IN DWORD                   dwMaxNumGroups,
+    IN PCSTR                   pszResume,
+    OUT DWORD *                dwNumGroupsFound,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
 
 // returns LSA_ERROR_NOT_HANDLED if the user is not in the database
 DWORD

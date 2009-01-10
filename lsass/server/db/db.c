@@ -110,6 +110,8 @@ LsaDbOpen(
             LSA_DB_TABLE_NAME_GROUPS ".ObjectSid = " LSA_DB_TABLE_NAME_USERS ".ObjectSid "
         "where " LSA_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " LSA_DB_TABLE_NAME_OBJECTS ".CacheId AND "
             "%s";
+    PCSTR pszRemoveBySidFormat =
+        "delete from %s where ObjectSid = ?1;";
     PSTR pszDbDir = NULL;
 
     dwError = LsaGetDirectoryFromPath(
@@ -275,6 +277,88 @@ LsaDbOpen(
             pszQuery,
             -1, //search for null termination in szQuery to get length
             &pConn->pstFindObjectBySid,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    LSA_SAFE_FREE_STRING(pszQuery);
+    dwError = LsaAllocateStringPrintf(
+        &pszQuery,
+        pszUserQueryFormat,
+        LsaDbGetObjectFieldList(),
+        LSA_DB_TABLE_NAME_OBJECTS ".Type = 2 and " LSA_DB_TABLE_NAME_OBJECTS
+            ".SamAccountName > ?1 order by "
+            LSA_DB_TABLE_NAME_OBJECTS
+            ".SamAccountName limit ?2");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            pszQuery,
+            -1, //search for null termination in szQuery to get length
+            &pConn->pstEnumUsers,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    LSA_SAFE_FREE_STRING(pszQuery);
+    dwError = LsaAllocateStringPrintf(
+        &pszQuery,
+        pszGroupQueryFormat,
+        LsaDbGetObjectFieldList(),
+        LSA_DB_TABLE_NAME_OBJECTS ".Type = 1 and " LSA_DB_TABLE_NAME_OBJECTS
+             ".SamAccountName > ?1 order by " LSA_DB_TABLE_NAME_OBJECTS
+             ".SamAccountName limit ?2");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            pszQuery,
+            -1, //search for null termination in szQuery to get length
+            &pConn->pstEnumGroups,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    LSA_SAFE_FREE_STRING(pszQuery);
+    dwError = LsaAllocateStringPrintf(
+        &pszQuery,
+        pszRemoveBySidFormat,
+        LSA_DB_TABLE_NAME_OBJECTS);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            pszQuery,
+            -1, //search for null termination in szQuery to get length
+            &pConn->pstRemoveObjectBySid,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    LSA_SAFE_FREE_STRING(pszQuery);
+    dwError = LsaAllocateStringPrintf(
+        &pszQuery,
+        pszRemoveBySidFormat,
+        LSA_DB_TABLE_NAME_USERS);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            pszQuery,
+            -1, //search for null termination in szQuery to get length
+            &pConn->pstRemoveUserBySid,
+            NULL);
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    LSA_SAFE_FREE_STRING(pszQuery);
+    dwError = LsaAllocateStringPrintf(
+        &pszQuery,
+        pszRemoveBySidFormat,
+        LSA_DB_TABLE_NAME_GROUPS);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = sqlite3_prepare_v2(
+            pConn->pDb,
+            pszQuery,
+            -1, //search for null termination in szQuery to get length
+            &pConn->pstRemoveGroupBySid,
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
@@ -448,6 +532,13 @@ LsaDbFreePreparedStatements(
 
         &pConn->pstFindGroupByAlias,
         &pConn->pstFindGroupById,
+
+        &pConn->pstRemoveObjectBySid,
+        &pConn->pstRemoveUserBySid,
+        &pConn->pstRemoveGroupBySid,
+
+        &pConn->pstEnumUsers,
+        &pConn->pstEnumGroups,
 
         &pConn->pstGetGroupMembers,
         &pConn->pstGetGroupsForUser,
@@ -790,6 +881,154 @@ cleanup:
 error:
     *ppObject = NULL;
     LsaDbSafeFreeObject(&pObject);
+    goto cleanup;
+}
+
+DWORD
+LsaDbRemoveUserBySid(
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszSid
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+    PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
+    // Do not free
+    sqlite3_stmt *pstQuery = pConn->pstRemoveObjectBySid;
+
+    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+
+    dwError = LsaSqliteBindString(pstQuery, 1, pszSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+
+    pstQuery = pConn->pstRemoveUserBySid;
+
+    dwError = LsaSqliteBindString(pstQuery, 1, pszSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+
+cleanup:
+
+    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+
+    return dwError;
+
+error:
+
+    if (pstQuery)
+    {
+        sqlite3_reset(pstQuery);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LsaDbRemoveGroupBySid(
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszSid
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+    PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
+    // Do not free
+    sqlite3_stmt *pstQuery = pConn->pstRemoveObjectBySid;
+
+    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+
+    dwError = LsaSqliteBindString(pstQuery, 1, pszSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+
+    pstQuery = pConn->pstRemoveGroupBySid;
+
+    dwError = LsaSqliteBindString(pstQuery, 1, pszSid);
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+
+cleanup:
+
+    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+
+    return dwError;
+
+error:
+
+    if (pstQuery)
+    {
+        sqlite3_reset(pstQuery);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LsaDbEmptyCache(
+    IN LSA_DB_HANDLE hDb
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
+    PCSTR pszEmptyCache =
+        "begin;\n"
+        "delete from " LSA_DB_TABLE_NAME_CACHE_TAGS ";\n"
+        "delete from " LSA_DB_TABLE_NAME_OBJECTS ";\n"
+        "delete from " LSA_DB_TABLE_NAME_USERS ";\n"
+        "delete from " LSA_DB_TABLE_NAME_VERIFIERS ";\n"
+        "delete from " LSA_DB_TABLE_NAME_GROUPS ";\n"
+        "delete from " LSA_DB_TABLE_NAME_MEMBERSHIP ";\n"
+        "end";
+
+    dwError = LsaSqliteExecWithRetry(
+        pConn->pDb,
+        &pConn->lock,
+        pszEmptyCache);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
     goto cleanup;
 }
 
@@ -2220,6 +2459,256 @@ LsaDbSafeFreeObjectList(
         }
         LSA_SAFE_FREE_MEMORY(*pppObjectList);
     }
+}
+
+DWORD
+LsaDbQueryObjectMulti(
+    IN sqlite3_stmt* pstQuery,
+    OUT PLSA_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    const int nExpectedCols = 29; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
+    int iColumnPos = 0;
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    int nGotColumns = 0;
+
+    dwError = (DWORD)sqlite3_step(pstQuery);
+    if (dwError == SQLITE_DONE)
+    {
+        // No results found
+        dwError = LSA_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (dwError == SQLITE_ROW)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    else
+    {
+        BAIL_ON_SQLITE3_ERROR(dwError,
+                sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
+    }
+
+    nGotColumns = sqlite3_column_count(pstQuery);
+    if (nGotColumns != nExpectedCols)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateMemory(
+                    sizeof(LSA_SECURITY_OBJECT),
+                    (PVOID*)&pObject);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbUnpackCacheInfo(pstQuery,
+                  &iColumnPos,
+                  &pObject->version);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbUnpackObjectInfo(pstQuery,
+                  &iColumnPos,
+                  pObject);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pObject->type == AccountType_User && pObject->enabled)
+    {
+        dwError = LsaDbUnpackUserInfo(pstQuery,
+                      &iColumnPos,
+                      pObject);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        iColumnPos += 18; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
+    }
+
+    if (pObject->type == AccountType_Group && pObject->enabled)
+    {
+        dwError = LsaDbUnpackGroupInfo(pstQuery,
+                      &iColumnPos,
+                      pObject);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppObject = pObject;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppObject = NULL;
+
+    LsaDbSafeFreeObject(&pObject);
+    sqlite3_reset(pstQuery);
+
+    goto cleanup;
+}
+
+DWORD
+LsaDbEnumUsersCache(
+    IN LSA_DB_HANDLE           hDb,
+    IN DWORD                   dwMaxNumUsers,
+    IN PCSTR                   pszResume,
+    OUT DWORD*                 dwNumUsersFound,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD                 dwError = 0;
+    PLSA_DB_CONNECTION    pConn = (PLSA_DB_CONNECTION)hDb;
+    BOOLEAN               bInLock = FALSE;
+    sqlite3_stmt *        pstQuery = pConn->pstEnumUsers;
+    DWORD                 dwUserCount = 0;
+    PLSA_SECURITY_OBJECT* ppObjectsLocal = NULL;
+
+    dwError = LsaAllocateMemory(
+                  sizeof(PLSA_SECURITY_OBJECT) * dwMaxNumUsers,
+                  (PVOID*)&ppObjectsLocal);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+
+    dwError = sqlite3_bind_text(
+                  pstQuery,
+                  1,
+                  pszResume ? pszResume : "",
+                  -1, // let sqlite calculate the length
+                  SQLITE_TRANSIENT //let sqlite make its own copy
+                  );
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    dwError = sqlite3_bind_int64(
+                  pstQuery,
+                  2,
+                  (uint64_t)dwMaxNumUsers
+                  );
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    for ( dwUserCount = 0 ;
+          dwUserCount < dwMaxNumUsers ;
+          dwUserCount++ )
+    {
+        dwError = LsaDbQueryObjectMulti(
+                      pstQuery,
+                      &ppObjectsLocal[dwUserCount]);
+        if ( dwError )
+        {
+            break;
+        }
+    }
+    if ( dwError == LSA_ERROR_NOT_HANDLED && dwUserCount > 0 )
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR(dwError,
+            sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
+
+    *dwNumUsersFound = dwUserCount;
+    *pppObjects = ppObjectsLocal;
+
+cleanup:
+
+    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+
+    return dwError;
+
+error:
+
+    *dwNumUsersFound = 0;
+    *pppObjects = NULL;
+
+    LsaDbSafeFreeObjectList(dwUserCount, &ppObjectsLocal);
+
+    sqlite3_reset(pstQuery);
+
+    goto cleanup;
+}
+
+DWORD
+LsaDbEnumGroupsCache(
+    IN LSA_DB_HANDLE           hDb,
+    IN DWORD                   dwMaxNumGroups,
+    IN PCSTR                   pszResume,
+    OUT DWORD*                 dwNumGroupsFound,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD                 dwError = 0;
+    PLSA_DB_CONNECTION    pConn = (PLSA_DB_CONNECTION)hDb;
+    BOOLEAN               bInLock = FALSE;
+    sqlite3_stmt *        pstQuery = pConn->pstEnumGroups;
+    DWORD                 dwGroupCount = 0;
+    PLSA_SECURITY_OBJECT* ppObjectsLocal = NULL;
+
+    dwError = LsaAllocateMemory(
+                  sizeof(PLSA_SECURITY_OBJECT) * dwMaxNumGroups,
+                  (PVOID*)&ppObjectsLocal);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+
+    dwError = sqlite3_bind_text(
+                  pstQuery,
+                  1,
+                  pszResume ? pszResume : "",
+                  -1, // let sqlite calculate the length
+                  SQLITE_TRANSIENT //let sqlite make its own copy
+                  );
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    dwError = sqlite3_bind_int64(
+                  pstQuery,
+                  2,
+                  (uint64_t)dwMaxNumGroups
+                  );
+    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+
+    for ( dwGroupCount = 0 ;
+          dwGroupCount < dwMaxNumGroups ;
+          dwGroupCount++ )
+    {
+        dwError = LsaDbQueryObjectMulti(
+                      pstQuery,
+                      &ppObjectsLocal[dwGroupCount]);
+        if ( dwError )
+        {
+            break;
+        }
+    }
+    if ( dwError == LSA_ERROR_NOT_HANDLED && dwGroupCount > 0 )
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR(dwError,
+            sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
+
+    *dwNumGroupsFound = dwGroupCount;
+    *pppObjects = ppObjectsLocal;
+
+cleanup:
+
+    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+
+    return dwError;
+
+error:
+
+    *dwNumGroupsFound = 0;
+    *pppObjects = NULL;
+
+    LsaDbSafeFreeObjectList(dwGroupCount, &ppObjectsLocal);
+    sqlite3_reset(pstQuery);
+
+    goto cleanup;
 }
 
 static

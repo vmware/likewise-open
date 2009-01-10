@@ -156,6 +156,33 @@ AD_EndEnumUsers(
     );
 
 DWORD
+AD_EnumUsersFromCache(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    );
+
+DWORD
+AD_RemoveUserByNameFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN PCSTR  pszLoginId
+    );
+
+DWORD
+AD_RemoveUserByIdFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN uid_t  uid
+    );
+
+DWORD
 AD_FindGroupByName(
     IN HANDLE hProvider,
     IN PCSTR pszGroupName,
@@ -235,6 +262,33 @@ AD_EndEnumGroups(
     );
 
 DWORD
+AD_EnumGroupsFromCache(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    );
+
+DWORD
+AD_RemoveGroupByNameFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN PCSTR  pszGroupName
+    );
+
+DWORD
+AD_RemoveGroupByIdFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN gid_t  gid
+    );
+
+DWORD
 AD_ChangePassword(
     HANDLE hProvider,
     PCSTR pszUserName,
@@ -272,6 +326,13 @@ DWORD
 AD_DeleteGroup(
     HANDLE hProvider,
     gid_t  gid
+    );
+
+DWORD
+AD_EmptyCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID
     );
 
 DWORD
@@ -369,6 +430,18 @@ AD_FreeStatus(
 DWORD
 AD_RefreshConfiguration(
     HANDLE hProvider
+    );
+
+DWORD
+AD_ProviderIoControl(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
     );
 
 DWORD

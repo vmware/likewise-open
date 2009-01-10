@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,74 +33,27 @@
  *
  * Module Name:
  *
- *        adprovider.h
+ *        ipc_provider_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Active Directory Provider
+ *        Inter-process communication (Server) API for Users
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#ifndef __IPC_PROVIDER_P_H__
+#define __IPC_PROVIDER_P_H__
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+LWMsgStatus
+LsaSrvIpcProviderIoControl(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-#include <openssl/md4.h>
-#include <openssl/rand.h>
-#include <openssl/des.h>
-#include <sqlite3.h>
-#include <eventlog.h>
-#include <lwps/lwps.h>
-#include <lwnet.h>
-#include <lsmb/lsmb.h>
+#endif /* __IPC_PROVIDER_P_H__ */
 
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsaipc.h"
-#include "lsaprovider.h"
-#include "lsaadprovider.h"
-
-#include "lsasrvutils.h"
-#include "lsakrb5.h"
-#include "lsaldap.h"
-#include "lsadb.h"
-
-#include "addef.h"
-#include "media-sense.h"
-#include "adstruct.h"
-#include "adcfg.h"
-#include "adldapdef.h"
-#include "adnetapi.h"
-#include "lsadm.h"
-#include "lsadmengine.h"
-#include "lsadmwrap.h"
-#include "lsaum.h"
-#include "lsaumproc.h"
-#include "state_store.h"
-#include "adldap.h"
-#include "adldap_p.h"
-#include "batch.h"
-#include "unprov.h"
-#include "ad_marshal_group.h"
-#include "ad_marshal_nss_artefact.h"
-#include "ad_marshal_nss_artefact_p.h"
-#include "ad_marshal_user.h"
-#include "ad_marshal_user_p.h"
-#include "cache.h"
-#include "cellldap.h"
-#include "defldap.h"
-#include "enumstate.h"
-#include "machinepwd_p.h"
-#include "offline.h"
-#include "online.h"
-#include "providerstate.h"
-#include "provider-main.h"
-#include "offline-helper.h"
-#include "lsasqlite.h"
-
-#include "externs.h"

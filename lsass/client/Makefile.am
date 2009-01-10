@@ -9,6 +9,7 @@ liblsaclient_la_SOURCES = \
     gss.c       \
     logging.c   \
     metrics.c   \
+    provider.c  \
     session.c   \
     status.c    \
     tracing.c   \

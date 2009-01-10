@@ -371,5 +371,17 @@ LsaSrvRefreshConfiguration(
     HANDLE hServer
     );
 
+DWORD
+LsaSrvProviderIoControl(
+    IN HANDLE  hServer,
+    IN PCSTR   pszProvider,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    );
+
+
 #endif /* __LSASRVAPI_H__ */
 
