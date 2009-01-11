@@ -40,7 +40,7 @@
 
 #include "lwiodef.h"
 #include "lwioutils.h"
-#include "lwiokrb5.h"
+#include "smbkrb5.h"
 
 #include "defs.h"
 #include "structs.h"
