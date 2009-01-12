@@ -118,10 +118,12 @@ SrvSvcNetShareAdd(
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
+    DWORD dwReturnCode = 0;
+    DWORD dwParmError = 0;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
-                    info,
+                    &info,
                     &pInBuffer,
                     &dwInLength
                     );
@@ -144,19 +146,25 @@ SrvSvcNetShareAdd(
     bRet = DeviceIoControl(
                     hDevice,
                     SRV_IOCTL_ADD_SHARE,
-                    lpInBuffer,
-                    nInBufferSize,
-                    lpOutBuffer,
-                    nOutBufferSize,
-                    &dwBytesReturned
+                    pInBuffer,
+                    dwInLength,
+                    pOutBuffer,
+                    dwOutLength,
+                    &dwBytesReturned,
                     NULL
                     );
     if(!bRet) {
         dwError = GetLastError();
         BAIL_ON_ERROR(dwError);
     }
-    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+
+    dwError = UnmarshallAddSetResponse(
+                    pOutBuffer,
+                    &dwReturnCode,
+                    &dwParmError);
+
     *parm_error = dwParmError;
+
     dwError = dwReturnCode;
 
 cleanup:
@@ -201,10 +209,12 @@ SrvSvcNetShareEnum(
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
+    DWORD dwReturnCode = 0;
+    DWORD dwParmError = 0;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
-                    info,
+                    ctr,
                     &pInBuffer,
                     &dwInLength
                     );
@@ -227,20 +237,27 @@ SrvSvcNetShareEnum(
     bRet = DeviceIoControl(
                     hDevice,
                     SRV_IOCTL_SET_SHARE,
-                    lpInBuffer,
-                    nInBufferSize,
-                    lpOutBuffer,
-                    nOutBufferSize,
-                    &dwBytesReturned
+                    pInBuffer,
+                    dwInLength,
+                    pOutBuffer,
+                    dwOutLength,
+                    &dwBytesReturned,
                     NULL
                     );
     if(!bRet) {
         dwError = GetLastError();
         BAIL_ON_ERROR(dwError);
     }
-    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+
+    dwError = UnmarshallAddSetResponse(
+                    pOutBuffer,
+                    &dwReturnCode,
+                    &dwParmError);
+
+#if 0
     *parm_error = dwParmError;
     dwError = dwReturnCode;
+#endif
 
 cleanup:
 
@@ -283,6 +300,8 @@ SrvSvcNetShareGetInfo(
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
+    DWORD  dwReturnCode = 0;
+    DWORD  dwParmError = 0;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
@@ -309,20 +328,27 @@ SrvSvcNetShareGetInfo(
     bRet = DeviceIoControl(
                     hDevice,
                     SRV_IOCTL_SET_SHARE,
-                    lpInBuffer,
-                    nInBufferSize,
-                    lpOutBuffer,
-                    nOutBufferSize,
-                    &dwBytesReturned
+                    pInBuffer,
+                    dwInLength,
+                    pOutBuffer,
+                    dwOutLength,
+                    &dwBytesReturned,
                     NULL
                     );
     if(!bRet) {
         dwError = GetLastError();
         BAIL_ON_ERROR(dwError);
     }
-    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+
+    dwError = UnmarshallAddSetResponse(
+                    pOutBuffer,
+                    &dwReturnCode,
+                    &dwParmError);
+
+#if 0
     *parm_error = dwParmError;
     dwError = dwReturnCode;
+#endif
 
 cleanup:
 
@@ -365,10 +391,12 @@ SrvSvcNetShareSetInfo(
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
+    DWORD dwParmError = 0;
+    DWORD dwReturnCode = 0;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
-                    info,
+                    &info,
                     &pInBuffer,
                     &dwInLength
                     );
@@ -391,18 +419,23 @@ SrvSvcNetShareSetInfo(
     bRet = DeviceIoControl(
                     hDevice,
                     SRV_IOCTL_SET_SHARE,
-                    lpInBuffer,
-                    nInBufferSize,
-                    lpOutBuffer,
-                    nOutBufferSize,
-                    &dwBytesReturned
+                    pInBuffer,
+                    dwInLength,
+                    pOutBuffer,
+                    dwOutLength,
+                    &dwBytesReturned,
                     NULL
                     );
     if(!bRet) {
         dwError = GetLastError();
         BAIL_ON_ERROR(dwError);
     }
-    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+
+    dwError = UnmarshallAddSetResponse(
+                    pOutBuffer,
+                    &dwReturnCode,
+                    &dwParmError);
+
     *parm_error = dwParmError;
     dwError = dwReturnCode;
 
@@ -445,8 +478,8 @@ SrvSvcNetShareDel(
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
-
-
+    DWORD dwParmError = 0;
+    DWORD dwReturnCode = 0;
 
     hDevice = (HANDLE)CreateFile(
                     lpFileName,
@@ -465,20 +498,27 @@ SrvSvcNetShareDel(
     bRet = DeviceIoControl(
                     hDevice,
                     SRV_IOCTL_SET_SHARE,
-                    lpInBuffer,
-                    nInBufferSize,
-                    lpOutBuffer,
-                    nOutBufferSize,
-                    &dwBytesReturned
+                    pInBuffer,
+                    dwInLength,
+                    pOutBuffer,
+                    dwOutLength,
+                    &dwBytesReturned,
                     NULL
                     );
     if(!bRet) {
         dwError = GetLastError();
         BAIL_ON_ERROR(dwError);
     }
-    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+
+    dwError = UnmarshallAddSetResponse(
+                    pOutBuffer,
+                    &dwReturnCode,
+                    &dwParmError);
+
+#if 0
     *parm_error = dwParmError;
     dwError = dwReturnCode;
+#endif
 
 cleanup:
 

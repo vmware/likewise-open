@@ -4,9 +4,10 @@ sbin_PROGRAMS = srvsvcd
 idl_srcdir=$(top_srcdir)/idl
 include_srcdir=$(top_srcdir)/include
 
-srvsvcd_SOURCES = \
-    driver.c \
-    main.c \
+srvsvcd_SOURCES =  \
+    driver.c       \
+    main.c         \
+    marshall.c     \
     srvsvc_sstub.c \
     srvsvc_server.c
 

@@ -1,88 +1,100 @@
+#include "includes.h"
 
-
-
+static
 DWORD
 MarshallShareInfo1toFlatBuffer(
     PNET_SHARE_INFO1 pNetShareInfo1,
     PBYTE  * ppByte,
     DWORD * pdwBufferSize
-    )
-{
-    DWORD dwError = 0;
+    );
 
-    return dwError;
-}
-
+static
 DWORD
 MarshallShareInfo0toFlatBuffer(
     PNET_SHARE_INFO0 pNetShareInfo0,
     PBYTE * ppByte,
     DWORD * pdwBufferSize
-    )
-{
-    DWORD dwError = 0;
+    );
 
-    return(dwError);
-}
-
-
+static
 DWORD
 MarshallShareInfo2toFlatBuffer(
     PNET_SHARE_INFO2 pNetShareInfo2,
     PBYTE * ppByte,
     DWORD * pdwBufferSize
-    )
-{
-    DWORD dwError = 0;
+    );
 
-    return(dwError);
-
-}
-
+static
 DWORD
 MarshallShareInfo502toFlatBuffer(
     PNET_SHARE_INFO502 pNetShareInfo502,
     PBYTE * ppByte,
     DWORD * pdwBufferSize
-    )
-{
-    DWORD dwError = 0;
+    );
 
-    return(dwError);
-}
-
-
+static
 DWORD
 MarshallShareInfo501toFlatBuffer(
     PNET_SHARE_INFO501 pNetShareInfo501,
     PBYTE * ppByte,
     DWORD * pdwBufferSize
-    )
-{
-    DWORD dwError = 0;
+    );
 
-    return(dwError);
-
-}
-
+static
 DWORD
 MarshallShareInfo503toFlatBuffer(
     PNET_SHARE_INFO503 pNetShareInfo503,
     PBYTE * ppByte,
     DWORD * pdwBufferSize
-    )
-{
-    DWORD dwError = 0;
+    );
 
+static
+DWORD
+ConvertOffsetstoPointers_L0(
+    PBYTE pBuffer,
+    PVOID pShareInfo
+    );
 
-    return(dwError);
-}
+static
+DWORD
+ConvertOffsetstoPointers_L1(
+    PBYTE pBuffer,
+    PVOID pShareInfo
+    );
+
+static
+DWORD
+ConvertOffsetstoPointers_L2(
+    PBYTE pBuffer,
+    PVOID pShareInfo
+    );
+
+static
+DWORD
+ConvertOffsetstoPointers_L501(
+    PBYTE pBuffer,
+    PVOID pShareInfo
+    );
+
+static
+DWORD
+ConvertOffsetstoPointers_L502(
+    PBYTE pBuffer,
+    PVOID pShareInfo
+    );
+
+static
+DWORD
+ConvertOffsetstoPointers_L503(
+    PBYTE pBuffer,
+    PVOID pShareInfo
+    );
 
 DWORD
 MarshallShareInfotoFlatBuffer(
-    DWORD dwLevel,
-    PVOID pShareInfo,
-    PBYTE * ppBuffer,
+    DWORD  dwLevel,
+    PVOID  pShareInfo,
+    PBYTE* ppBuffer,
     PDWORD pdwBufferSize
     )
 {
@@ -140,10 +152,8 @@ MarshallShareInfotoFlatBuffer(
             break;
     }
 
-    return(dwError)
-
+    return(dwError);
 }
-
 
 DWORD
 ConvertOffsetstoPointers(
@@ -160,7 +170,6 @@ ConvertOffsetstoPointers(
         case 0:
             dwError = ConvertOffsetstoPointer_L0(
                                 pInBuffer,
-                                dwNumEntries,
                                 pShareInfo
                                 );
             break;
@@ -168,7 +177,6 @@ ConvertOffsetstoPointers(
         case 1:
             dwError = ConvertOffsetstoPointers_L1(
                                 pInBuffer,
-                                dwNumEntries,
                                 pShareInfo
                                 );
             break;
@@ -177,7 +185,6 @@ ConvertOffsetstoPointers(
         case 2:
             dwError = ConvertOffsetstoPointers_L2(
                                 pInBuffer,
-                                dwNumEntries,
                                 pShareInfo
                                 );
             break;
@@ -185,7 +192,6 @@ ConvertOffsetstoPointers(
         case 3:
             dwError = ConvertOffsetstoPointers_L3(
                                 pInBuffer,
-                                dwNumEntries,
                                 pShareInfo
                                 );
             break;
@@ -193,7 +199,6 @@ ConvertOffsetstoPointers(
         case 502:
             dwError = ConvertOffsetstoPointers_L502(
                                 pInBuffer,
-                                dwNumEntries,
                                 pShareInfo
                                 );
             break;
@@ -201,20 +206,100 @@ ConvertOffsetstoPointers(
         case 503:
             dwError = ConvertOffsetstoPointers_L503(
                                 pInBuffer,
-                                dwNumEntries,
                                 pShareInfo
                                 );
             break;
+    }
 
+    return dwError;
+}
+
+static
+DWORD
+MarshallShareInfo1toFlatBuffer(
+    PNET_SHARE_INFO1 pNetShareInfo1,
+    PBYTE  * ppByte,
+    DWORD * pdwBufferSize
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
+
+static
+DWORD
+MarshallShareInfo0toFlatBuffer(
+    PNET_SHARE_INFO0 pNetShareInfo0,
+    PBYTE * ppByte,
+    DWORD * pdwBufferSize
+    )
+{
+    DWORD dwError = 0;
+
+    return(dwError);
+}
+
+static
+DWORD
+MarshallShareInfo2toFlatBuffer(
+    PNET_SHARE_INFO2 pNetShareInfo2,
+    PBYTE * ppByte,
+    DWORD * pdwBufferSize
+    )
+{
+    DWORD dwError = 0;
+
+    return(dwError);
 
 }
 
+static
+DWORD
+MarshallShareInfo502toFlatBuffer(
+    PNET_SHARE_INFO502 pNetShareInfo502,
+    PBYTE * ppByte,
+    DWORD * pdwBufferSize
+    )
+{
+    DWORD dwError = 0;
 
+    return(dwError);
+}
+
+static
+DWORD
+MarshallShareInfo501toFlatBuffer(
+    PNET_SHARE_INFO501 pNetShareInfo501,
+    PBYTE * ppByte,
+    DWORD * pdwBufferSize
+    )
+{
+    DWORD dwError = 0;
+
+    return(dwError);
+
+}
+
+static
+DWORD
+MarshallShareInfo503toFlatBuffer(
+    PNET_SHARE_INFO503 pNetShareInfo503,
+    PBYTE * ppByte,
+    DWORD * pdwBufferSize
+    )
+{
+    DWORD dwError = 0;
+
+
+    return(dwError);
+}
+
+static
 DWORD
 ConvertOffsetstoPointers_L0(
     PBYTE pBuffer,
-    DWORD dwLevel,
-    DWORD dwNumEntries,
+    PVOID pShareInfo
     )
 {
     DWORD dwError = 0;
@@ -223,11 +308,11 @@ ConvertOffsetstoPointers_L0(
 
 }
 
+static
 DWORD
 ConvertOffsetstoPointers_L1(
     PBYTE pBuffer,
-    DWORD dwLevel,
-    DWORD dwNumEntries,
+    PVOID pShareInfo
     )
 {
     DWORD dwError = 0;
@@ -236,11 +321,11 @@ ConvertOffsetstoPointers_L1(
 
 }
 
+static
 DWORD
 ConvertOffsetstoPointers_L2(
     PBYTE pBuffer,
-    DWORD dwLevel,
-    DWORD dwNumEntries,
+    PVOID pShareInfo
     )
 {
     DWORD dwError = 0;
@@ -249,11 +334,11 @@ ConvertOffsetstoPointers_L2(
 
 }
 
+static
 DWORD
 ConvertOffsetstoPointers_L501(
     PBYTE pBuffer,
-    DWORD dwLevel,
-    DWORD dwNumEntries,
+    PVOID pShareInfo
     )
 {
     DWORD dwError = 0;
@@ -262,11 +347,11 @@ ConvertOffsetstoPointers_L501(
 
 }
 
+static
 DWORD
 ConvertOffsetstoPointers_L502(
     PBYTE pBuffer,
-    DWORD dwLevel,
-    DWORD dwNumEntries,
+    PVOID pShareInfo
     )
 {
     DWORD dwError = 0;
@@ -275,16 +360,15 @@ ConvertOffsetstoPointers_L502(
 
 }
 
+static
 DWORD
 ConvertOffsetstoPointers_L503(
     PBYTE pBuffer,
-    DWORD dwLevel,
-    DWORD dwNumEntries,
+    PVOID pShareInfo
     )
 {
     DWORD dwError = 0;
 
     return(dwError);
-
 }
 
