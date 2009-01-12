@@ -315,7 +315,7 @@ AC_FUNC_VPRINTF
 AC_FUNC_STRERROR_R
 old_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS $RT_LIBS"
-AC_CHECK_FUNCS([atexit localtime_r memset select socket strchr strerror strerror_r vsyslog rpl_realloc rpl_malloc clock_gettime clock_settime settimeofday gettimeofday timegm strtoll __strtoll strtoull __strtoull strtol strtoul])
+AC_CHECK_FUNCS([atexit localtime_r memset select socket strchr strerror strerror_r strndup vsyslog rpl_realloc rpl_malloc clock_gettime clock_settime settimeofday gettimeofday timegm strtoll __strtoll strtoull __strtoull strtol strtoul])
 LDFLAGS="$old_LDFLAGS"
 AC_CHECK_DECLS([isblank], [], [], [#include <ctype.h>])
 AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT

@@ -36,6 +36,7 @@
  * SrvSvc Server
  *
  */
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -53,4 +54,8 @@
 #include "srvsvc_h.h"
 
 #include <wc16str.h>
+
+#include <lw/ntstatus.h>
+
+#include "defs.h"
 

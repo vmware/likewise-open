@@ -84,12 +84,11 @@ typedef long long int int64;
 #define DEFINED_UINT32
 #endif /* !defined (DEFINED_UINT32) */
 
+#if !defined(RPCSTATUS_DEFINED)
 
-#if !defined(NTSTATUS_DEFINED)
-typedef uint32 NTSTATUS;
 typedef uint32 RPCSTATUS;
 
-#define NTSTATUS_DEFINED
+#define RPCSTATUS_DEFINED
 #endif
 
 #if !defined(WINERR_DEFINED)

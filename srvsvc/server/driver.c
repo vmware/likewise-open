@@ -65,9 +65,7 @@ SrvSvcNetFileGetInfo(
     /* [out] */ srvsvc_NetFileInfo *info
     )
 {
-
     return ERROR_NOT_SUPPORTED;
-    return(dwError);
 }
 
 NET_API_STATUS
@@ -89,16 +87,7 @@ SrvSvcNetSessionEnum(
     /* [in] */ wchar16_t *username,
     /* [in, out] */ uint32 *level,
     /* [in, out] */ srvsvc_NetSessCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,NDLE WINAPI CreateFile(
-  __in      LPCTSTR lpFileName,
-  __in      DWORD dwDesiredAccess,
-  __in      DWORD dwShareMode,
-  __in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-  __in      DWORD dwCreationDisposition,
-  __in      DWORD dwFlagsAndAttributes,
-  __in_opt  HANDLE hTemplateFile
-);
-
+    /* [in] */ uint32 prefered_maximum_length,
     /* [out] */ uint32 *total_entries,
     /* [in, out] */ uint32 *resume_handle
     )
@@ -127,6 +116,7 @@ SrvSvcNetShareAdd(
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 0;
     DWORD dwBytesReturned = 0;
+    HANDLE hDevice = (HANDLE)NULL;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,

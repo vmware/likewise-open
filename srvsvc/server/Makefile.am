@@ -5,6 +5,7 @@ idl_srcdir=$(top_srcdir)/idl
 include_srcdir=$(top_srcdir)/include
 
 srvsvcd_SOURCES = \
+    driver.c \
     main.c \
     srvsvc_sstub.c \
     srvsvc_server.c

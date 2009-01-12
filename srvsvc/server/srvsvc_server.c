@@ -39,8 +39,6 @@
 
 #include "includes.h"
 
-#define ERROR_NOT_SUPPORTED 50
-
 void _srvsvc_Function0(
     /* [in] */ handle_t IDL_handle
     )
@@ -156,7 +154,7 @@ NET_API_STATUS _NetrFileGetInfo(
                     fileid,
                     level,
                     info
-                    )
+                    );
     return dwError;
 }
 
