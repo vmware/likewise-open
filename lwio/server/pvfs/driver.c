@@ -153,7 +153,8 @@ PvfsDriverDispatch(
                             );      
             break;
 
-        case IRP_TYPE_IO_CONTROL:
+        case IRP_TYPE_DEVICE_IO_CONTROL:
+            ntStatus = STATUS_NOT_IMPLEMENTED;
             break;
 
         case IRP_TYPE_FS_CONTROL:
@@ -162,7 +163,9 @@ PvfsDriverDispatch(
                             pIrp
                             );
             break;
-        case IRP_TYPE_FLUSH:
+        case IRP_TYPE_FLUSH_BUFFERS:
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+            break;
         case IRP_TYPE_QUERY_INFORMATION:
             ntStatus = PvfsQueryInformation(
                             DeviceHandle,

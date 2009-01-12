@@ -95,10 +95,10 @@ IopIpcCreateFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    PNT_IPC_MESSAGE_CREATE_FILE pMessage = (PNT_IPC_MESSAGE_CREATE_FILE) pRequest->object;
-    PNT_IPC_MESSAGE_CREATE_FILE_RESULT pReply = NULL;
     const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_CREATE_FILE;
     const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_CREATE_FILE_RESULT;
+    PNT_IPC_MESSAGE_CREATE_FILE pMessage = (PNT_IPC_MESSAGE_CREATE_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_CREATE_FILE_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IO_FILE_HANDLE fileHandle = NULL;
     IO_FILE_NAME fileName = { 0 };
@@ -174,33 +174,31 @@ IopIpcCloseFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    PNT_IPC_MESSAGE_GENERIC_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_FILE) pRequest->object;
-    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
     const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE;
     const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
+    PNT_IPC_MESSAGE_GENERIC_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
 
     assert(messageType == pRequest->tag);
 
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT, sizeof(*pReply));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
     pReply->Status = IoCloseFile(pMessage->FileHandle);
     if (!pReply->Status)
     {
         NtIpcUnregisterFileHandle(pAssoc, pMessage->FileHandle);
     }
-    pResponse->tag = replyType;
-    pResponse->object = pReply;
 
 cleanup:
-    if (status)
-    {
-        IO_FREE(&pReply);
-    }
-
     LOG_LEAVE_IF_STATUS_EE(status, EE);
     return NtIpcNtStatusToLWMsgStatus(status);
 }
+
+// TODO -- ASK BRIAN ABOUT HANDLING on pResponse on error (wrt free).
 
 LWMsgStatus
 IopIpcReadFile(
@@ -210,8 +208,40 @@ IopIpcReadFile(
     IN void* pData
     )
 {
-    // If someone calls this, the server aborts the connection.
-    return LWMSG_STATUS_UNIMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_READ_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_READ_FILE_RESULT;
+    PNT_IPC_MESSAGE_READ_FILE pMessage = (PNT_IPC_MESSAGE_READ_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    // TODO--make sure allocate handles 0...
+    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+
+    pReply->Status = IoReadFile(
+                            pMessage->FileHandle,
+                            NULL,
+                            &ioStatusBlock,
+                            pReply->Buffer,
+                            pMessage->Length,
+                            pMessage->ByteOffset,
+                            pMessage->Key);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
 }
 
 LWMsgStatus
@@ -222,8 +252,36 @@ IopIpcWriteFile(
     IN void* pData
     )
 {
-    // If someone calls this, the server aborts the connection.
-    return LWMSG_STATUS_UNIMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_WRITE_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_WRITE_FILE_RESULT;
+    PNT_IPC_MESSAGE_WRITE_FILE pMessage = (PNT_IPC_MESSAGE_WRITE_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    pReply->Status = IoWriteFile(
+                            pMessage->FileHandle,
+                            NULL,
+                            &ioStatusBlock,
+                            pMessage->Buffer,
+                            pMessage->Length,
+                            pMessage->ByteOffset,
+                            pMessage->Key);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
 }
 
 LWMsgStatus
@@ -234,8 +292,41 @@ IopIpcDeviceIoControlFile(
     IN void* pData
     )
 {
-    // If someone calls this, the server aborts the connection.
-    return LWMSG_STATUS_UNIMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE_RESULT;
+    PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    // TODO--make sure allocate handles 0...
+    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->OutputBufferLength);
+    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+
+    pReply->Status = IoDeviceIoControlFile(
+                            pMessage->FileHandle,
+                            NULL,
+                            &ioStatusBlock,
+                            pMessage->ControlCode,
+                            pMessage->InputBuffer,
+                            pMessage->InputBufferLength,
+                            pReply->Buffer,
+                            pMessage->OutputBufferLength);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
 }
 
 LWMsgStatus
@@ -246,8 +337,41 @@ IopIpcFsControlFile(
     IN void* pData
     )
 {
-    // If someone calls this, the server aborts the connection.
-    return LWMSG_STATUS_UNIMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE_RESULT;
+    PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    // TODO--make sure allocate handles 0...
+    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->OutputBufferLength);
+    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+
+    pReply->Status = IoFsControlFile(
+                            pMessage->FileHandle,
+                            NULL,
+                            &ioStatusBlock,
+                            pMessage->ControlCode,
+                            pMessage->InputBuffer,
+                            pMessage->InputBufferLength,
+                            pReply->Buffer,
+                            pMessage->OutputBufferLength);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
 }
 
 LWMsgStatus
@@ -258,8 +382,29 @@ IopIpcFlushBuffersFile(
     IN void* pData
     )
 {
-    // If someone calls this, the server aborts the connection.
-    return LWMSG_STATUS_UNIMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE_RESULT;
+    PNT_IPC_MESSAGE_GENERIC_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    pReply->Status = IoFlushBuffersFile(pMessage->FileHandle, NULL, &ioStatusBlock);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
 }
 
 LWMsgStatus
@@ -270,8 +415,39 @@ IopIpcQueryInformationFile(
     IN void* pData
     )
 {
-    // If someone calls this, the server aborts the connection.
-    return LWMSG_STATUS_UNIMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE_RESULT;
+    PNT_IPC_MESSAGE_QUERY_INFORMATION_FILE pMessage = (PNT_IPC_MESSAGE_QUERY_INFORMATION_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    // TODO--make sure allocate handles 0...
+    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+
+    pReply->Status = IoQueryInformationFile(
+                            pMessage->FileHandle,
+                            NULL,
+                            &ioStatusBlock,
+                            pReply->Buffer,
+                            pMessage->Length,
+                            pMessage->FileInformationClass);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
 }
 
 LWMsgStatus
@@ -282,8 +458,35 @@ IopIpcSetInformationFile(
     IN void* pData
     )
 {
-    // If someone calls this, the server aborts the connection.
-    return LWMSG_STATUS_UNIMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE_RESULT;
+    PNT_IPC_MESSAGE_SET_INFORMATION_FILE pMessage = (PNT_IPC_MESSAGE_SET_INFORMATION_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    pReply->Status = IoSetInformationFile(
+                            pMessage->FileHandle,
+                            NULL,
+                            &ioStatusBlock,
+                            pMessage->FileInformation,
+                            pMessage->Length,
+                            pMessage->FileInformationClass);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
 }
 
 static

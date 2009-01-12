@@ -38,6 +38,7 @@
 #include "lwlist.h"
 #include "goto.h"
 #include "lwioutils.h"
+#include "ntlogmacros.h"
 
 typedef struct _IOP_DRIVER_CONFIG {
     PSTR pszName;

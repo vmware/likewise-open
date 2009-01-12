@@ -105,6 +105,34 @@ cleanup:
     return status;
 }
 
+static
+NTSTATUS
+NtpIpcGetIoResult(
+    OUT PIO_STATUS_BLOCK pIoStatusBlock,
+    IN PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse
+    )
+{
+    pIoStatusBlock->Status = pResponse->Status;
+    pIoStatusBlock->BytesTransferred = pResponse->BytesTransferred;
+    return pIoStatusBlock->Status;
+}
+
+static
+NTSTATUS
+NtpIpcGetBufferResult(
+    OUT PIO_STATUS_BLOCK pIoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse
+    )
+{
+    pIoStatusBlock->Status = pResponse->Status;
+    pIoStatusBlock->BytesTransferred = pResponse->BytesTransferred;
+    assert(pResponse->BytesTransferred <= Length);
+    memcpy(Buffer, pResponse->Buffer, SMB_MIN(pResponse->BytesTransferred, Length));
+    return pIoStatusBlock->Status;
+}
+
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
 
@@ -234,10 +262,8 @@ NtIpcCloseFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
 
-    ioStatusBlock.Status = pResponse->Status;
-    assert(0 == pResponse->BytesTransferred);
-
-    status = ioStatusBlock.Status;
+    status = NtpIpcGetIoResult(&ioStatusBlock, pResponse);
+    assert(0 == ioStatusBlock.BytesTransferred);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtIpcUnregisterFileHandle(pConnection->pAssoc, FileHandle);
@@ -255,13 +281,46 @@ NtIpcReadFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PVOID Buffer,
+    OUT PVOID Buffer,
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_READ_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_READ_FILE_RESULT;
+    NT_IPC_MESSAGE_READ_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+    request.Length = Length;
+    request.ByteOffset = ByteOffset;
+    request.Key = Key;
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
+
+    status = NtpIpcGetBufferResult(&ioStatusBlock, Buffer, Length, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
 }
 
 NTSTATUS
@@ -276,7 +335,42 @@ NtIpcWriteFile(
     IN OPTIONAL PULONG Key
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_WRITE_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_WRITE_FILE_RESULT;
+    NT_IPC_MESSAGE_WRITE_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+    request.Buffer = Buffer;
+    request.Length = Length;
+    request.ByteOffset = ByteOffset;
+    request.Key = Key;
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
+
+    status = NtpIpcGetIoResult(&ioStatusBlock, pResponse);
+    assert(ioStatusBlock.BytesTransferred <= Length);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
 }
 
 NTSTATUS 
@@ -292,7 +386,41 @@ NtIpcDeviceIoControlFile(
     IN ULONG OutputBufferLength
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE_RESULT;
+    NT_IPC_MESSAGE_GENERIC_CONTROL_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+    request.ControlCode = IoControlCode;
+    request.InputBuffer = InputBuffer;
+    request.InputBufferLength = InputBufferLength;
+    request.OutputBufferLength = OutputBufferLength;
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
+
+    status = NtpIpcGetBufferResult(&ioStatusBlock, OutputBuffer, OutputBufferLength, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
 }
 
 NTSTATUS
@@ -308,7 +436,41 @@ NtIpcFsControlFile(
     IN ULONG OutputBufferLength
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE_RESULT;
+    NT_IPC_MESSAGE_GENERIC_CONTROL_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+    request.ControlCode = FsControlCode;
+    request.InputBuffer = InputBuffer;
+    request.InputBufferLength = InputBufferLength;
+    request.OutputBufferLength = OutputBufferLength;
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
+
+    status = NtpIpcGetBufferResult(&ioStatusBlock, OutputBuffer, OutputBufferLength, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
 }
 
 NTSTATUS
@@ -319,7 +481,37 @@ NtIpcFlushBuffersFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE_RESULT;
+    NT_IPC_MESSAGE_GENERIC_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
+
+    status = NtpIpcGetIoResult(&ioStatusBlock, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
 }
 
 NTSTATUS 
@@ -333,7 +525,39 @@ NtIpcQueryInformationFile(
     IN FILE_INFORMATION_CLASS FileInformationClass
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE_RESULT;
+    NT_IPC_MESSAGE_QUERY_INFORMATION_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+    request.Length = Length;
+    request.FileInformationClass = FileInformationClass;
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
+
+    status = NtpIpcGetBufferResult(&ioStatusBlock, FileInformation, Length, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
 }
 
 NTSTATUS 
@@ -347,7 +571,40 @@ NtIpcSetInformationFile(
     IN FILE_INFORMATION_CLASS FileInformationClass
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE_RESULT;
+    NT_IPC_MESSAGE_SET_INFORMATION_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+    request.FileInformation = FileInformation;
+    request.Length = Length;
+    request.FileInformationClass = FileInformationClass;
+
+    status = NtpIpcCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
+
+    status = NtpIpcGetIoResult(&ioStatusBlock, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
 }
 
 //

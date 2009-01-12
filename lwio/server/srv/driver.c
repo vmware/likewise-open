@@ -141,7 +141,7 @@ DriverDispatch(
 
             break;
 
-        case IRP_TYPE_IO_CONTROL:
+        case IRP_TYPE_DEVICE_IO_CONTROL:
 
             ntStatus = SrvDeviceControlIO(
                             hDevice,
@@ -157,7 +157,7 @@ DriverDispatch(
 
             break;
 
-        case IRP_TYPE_FLUSH:
+        case IRP_TYPE_FLUSH_BUFFERS:
 
             ntStatus = SrvDeviceFlush(
                             hDevice,

@@ -82,7 +82,7 @@ IoCreateFile(
 
 NTSTATUS
 IoCloseFile(
-    IN IO_FILE_HANDLE FileHandle
+    IN OUT IO_FILE_HANDLE FileHandle
     );
 
 NTSTATUS

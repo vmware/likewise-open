@@ -56,9 +56,9 @@ typedef ULONG IRP_TYPE;
 #define IRP_TYPE_CLOSE                     2
 #define IRP_TYPE_READ                      3
 #define IRP_TYPE_WRITE                     4
-#define IRP_TYPE_IO_CONTROL                5
+#define IRP_TYPE_DEVICE_IO_CONTROL         5
 #define IRP_TYPE_FS_CONTROL                6
-#define IRP_TYPE_FLUSH                     7
+#define IRP_TYPE_FLUSH_BUFFERS             7
 #define IRP_TYPE_QUERY_INFORMATION         8
 #define IRP_TYPE_SET_INFORMATION           9
 
@@ -100,6 +100,12 @@ typedef struct _IRP_ARGS_IO_FS_CONTROL {
     IN ULONG OutputBufferLength;
 } IRP_ARGS_IO_FS_CONTROL, *PIRP_ARGS_IO_FS_CONTROL;
 
+typedef struct _IRP_ARGS_QUERY_SET_INFORMATION {
+    IN OUT PVOID FileInformation;
+    IN ULONG Length;
+    IN FILE_INFORMATION_CLASS FileInformationClass;
+} IRP_ARGS_QUERY_SET_INFORMATION, *PIRP_ARGS_QUERY_SET_INFORMATION;
+
 typedef struct _IRP {
     IN IRP_TYPE Type;
     OUT IO_STATUS_BLOCK IoStatus;
@@ -113,6 +119,8 @@ typedef struct _IRP {
         IRP_ARGS_READ_WRITE ReadWrite;
         // IRP_TYPE_IO_CONTROL, IRP_TYPE_FS_CONTROL
         IRP_ARGS_IO_FS_CONTROL IoFsControl;
+        // IRP_TYPE_QUERY_INFORMATION, IRP_TYPE_SET_INFORMATION
+        IRP_ARGS_QUERY_SET_INFORMATION QuerySetInformation;
         // No args for IRP_TYPE_CLOSE, IRP_TYPE_FLUSH
     } Args;
     // Internal data at the end...
