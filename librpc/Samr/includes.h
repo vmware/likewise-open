@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,24 +28,34 @@
  * license@likewisesoftware.com
  */
 
-#ifdef __GNUC__
+/*
+ * Abstract: Samr interface (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <iconv.h>
 #include <string.h>
+
 #include <DceSupport.h>
 #include <compat/rpcstatus.h>
-#endif
-
+#include <wc16str.h>
+#include <secdesc/secdesc.h>
 #include <lw/ntstatus.h>
 
-#include "samr_h.h"
-
-#include <wc16str.h>
+#include <lwrpc/types.h>
 #include <lwrpc/samrbinding.h>
 #include <lwrpc/unicodestring.h>
+#include <lwrpc/domaininfo.h>
+#include <lwrpc/userinfo.h>
+#include <lwrpc/aliasinfo.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+#include <rid.h>
+
+#include "samr_stub.h"
 
 #include "SamrUtil.h"
 #include "SamrMemory.h"
