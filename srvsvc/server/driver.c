@@ -117,6 +117,7 @@ SrvSvcNetShareAdd(
     DWORD dwOutLength = 0;
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
+    BOOLEAN bRet = FALSE;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
@@ -126,7 +127,7 @@ SrvSvcNetShareAdd(
                     );
     BAIL_ON_ERROR(dwError);
 
-    hDevice = CreateFile(
+    hDevice = (HANDLE)CreateFile(
                     lpFileName,
                     dwDesiredAccess,
                     dwShareMode,
@@ -198,6 +199,8 @@ SrvSvcNetShareEnum(
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 0;
     DWORD dwBytesReturned = 0;
+    HANDLE hDevice = (HANDLE)NULL;
+    BOOLEAN bRet = FALSE;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
@@ -207,7 +210,7 @@ SrvSvcNetShareEnum(
                     );
     BAIL_ON_ERROR(dwError);
 
-    hDevice = CreateFile(
+    hDevice = (HANDLE)CreateFile(
                     lpFileName,
                     dwDesiredAccess,
                     dwShareMode,
@@ -278,6 +281,8 @@ SrvSvcNetShareGetInfo(
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 0;
     DWORD dwBytesReturned = 0;
+    HANDLE hDevice = (HANDLE)NULL;
+    BOOLEAN bRet = FALSE;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
@@ -287,7 +292,7 @@ SrvSvcNetShareGetInfo(
                     );
     BAIL_ON_ERROR(dwError);
 
-    hDevice = CreateFile(
+    hDevice = (HANDLE)CreateFile(
                     lpFileName,
                     dwDesiredAccess,
                     dwShareMode,
@@ -358,6 +363,8 @@ SrvSvcNetShareSetInfo(
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 0;
     DWORD dwBytesReturned = 0;
+    HANDLE hDevice = (HANDLE)NULL;
+    BOOLEAN bRet = FALSE;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
@@ -367,7 +374,7 @@ SrvSvcNetShareSetInfo(
                     );
     BAIL_ON_ERROR(dwError);
 
-    hDevice = CreateFile(
+    hDevice = (HANDLE)CreateFile(
                     lpFileName,
                     dwDesiredAccess,
                     dwShareMode,
@@ -436,11 +443,12 @@ SrvSvcNetShareDel(
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 0;
     DWORD dwBytesReturned = 0;
+    HANDLE hDevice = (HANDLE)NULL;
+    BOOLEAN bRet = FALSE;
 
 
 
-
-    hDevice = CreateFile(
+    hDevice = (HANDLE)CreateFile(
                     lpFileName,
                     dwDesiredAccess,
                     dwShareMode,
