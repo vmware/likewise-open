@@ -112,71 +112,53 @@ SrvShareDbWriteToShareInfo(
     DWORD dwError = 0;
     DWORD iCol = 0, iRow = 0;
     DWORD iVal = nHeaderColsToSkip;
-    PLSA_USER_INFO_0* ppUserInfoList = NULL;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
+    PLSA_USER_INFO_0* ppShareEntryList = NULL;
+    PLSA_USER_INFO_0 pShareEntry = NULL;
     DWORD dwNumUsersFound = nRows;
-    DWORD dwUserInfoLevel = 0;
+    DWORD dwShareEntryLevel = 0;
 
     dwError = LsaAllocateMemory(
                     sizeof(PLSA_USER_INFO_0) * dwNumUsersFound,
-                    (PVOID*)&ppUserInfoList);
+                    (PVOID*)&ppShareEntryList);
     BAIL_ON_LSA_ERROR(dwError);
 
     for (iRow = 0; iRow < nRows; iRow++) {
 
         dwError = LsaAllocateMemory(
                         sizeof(SHARE_INFO),
-                        (PVOID*)&pUserInfo);
+                        (PVOID*)&pShareEntry);
         BAIL_ON_LSA_ERROR(dwError);
 
         for (iCol = 0; iCol < nCols; iCol++) {
             switch(iCol) {
-                case 0: /* Name */
+                case 0: /* ShareName */
                 {
                     if (!IsNullOrEmptyString(ppszResult[iVal])) {
-                       dwError = LsaAllocateString(ppszResult[iVal], &pUserInfo->pszName);
+                       dwError = LsaAllocateString(ppszResult[iVal], &pShareEntryi->pszShareName);
                        BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
                 }
-                case 1: /* Passwd */
+                case 1: /* PathName */
                 {
                     if (!IsNullOrEmptyString(ppszResult[iVal])) {
-                       dwError = LsaAllocateString(ppszResult[iVal], &pUserInfo->pszPasswd);
+                       dwError = LsaAllocateString(ppszResult[iVal], &pShareEntry->pszPathName);
                        BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
                 }
-                case 2: /* Uid */
-                {
-                    pUserInfo->uid = atoi(ppszResult[iVal]);
-                    break;
-                }
-                case 3: /* Gid */
-                {
-                    pUserInfo->gid = atoi(ppszResult[iVal]);
-                    break;
-                }
-                case 4: /* Gecos */
+                case 2: /* Comment */
                 {
                     if (!IsNullOrEmptyString(ppszResult[iVal])) {
-                       dwError = LsaAllocateString(ppszResult[iVal], &pUserInfo->pszGecos);
+                       dwError = LsaAllocateString(ppszResult[iVal], &pShareEntry->pszGecos);
                        BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
                 }
-                case 5: /* HomeDir */
+                case 3: /* Security Descriptor */
                 {
                     if (!IsNullOrEmptyString(ppszResult[iVal])) {
-                       dwError = LsaAllocateString(ppszResult[iVal], &pUserInfo->pszHomedir);
-                       BAIL_ON_LSA_ERROR(dwError);
-                    }
-                    break;
-                }
-                case 6: /* Shell */
-                {
-                    if (!IsNullOrEmptyString(ppszResult[iVal])) {
-                       dwError = LsaAllocateString(ppszResult[iVal], &pUserInfo->pszShell);
+                       dwError = LsaAllocateString(ppszResult[iVal], &pShareEntry->pSecurityDescriptor);
                        BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
@@ -186,16 +168,16 @@ SrvShareDbWriteToShareInfo(
         }
 
         dwError = LsaAllocateStringPrintf(
-        				&pUserInfo->pszSid,
+					&pShareEntry->pszSid,
         				LOCAL_USER_SID_FORMAT,
-        				pUserInfo->uid);
+					pShareEntry->uid);
         BAIL_ON_LSA_ERROR(dwError);
 
-        *(ppUserInfoList + iRow) = pUserInfo;
-        pUserInfo = NULL;
+        *(ppShareEntryList + iRow) = pShareEntry;
+        pShareEntry = NULL;
     }
 
-    *pppUserInfoList = ppUserInfoList;
+    *pppShareEntryList = ppShareEntryList;
     *pdwNumUsersFound = dwNumUsersFound;
 
 cleanup:
@@ -204,14 +186,14 @@ cleanup:
 
 error:
 
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
+    if (ppShareEntryList) {
+        LsaFreeShareEntryList(dwShareEntryLevel, (PVOID*)ppShareEntryList, dwNumUsersFound);
     }
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    if (pShareEntry) {
+        LsaFreeShareEntry(dwShareEntryLevel, pShareEntry);
     }
 
-    *pppUserInfoList = NULL;
+    *pppShareEntryList = NULL;
     *pdwNumUsersFound = 0;
 
     goto cleanup;

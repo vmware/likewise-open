@@ -85,21 +85,46 @@ SrvCommonDeviceIo(
     {
 
       case SRV_DEVCTL_ADD_SHARE:
-          ntStatus = SrvDevCtlAddShare();
+          ntStatus = SrvDevCtlAddShare(
+                        lpInBuffer,
+                        dwInBuffeSize,
+                        lpOutBuffer,
+                        dwOutBufferSize
+                        );
           break;
 
       case SRV_DEVCTL_DELETE_SHARE:
-          ntStatus = SrvDevCtlDeleteShare();
+          ntStatus = SrvDevCtlDeleteShare(
+                        lpInBuffer,
+                        dwInBufferSize,
+                        lpOutBuffer,
+                        dwOutBufferSize
+                        );
           break;
 
       case SRV_DEVCTL_ENUM_SHARE:
-          ntStatus = SrvDevCtlEnumShares();
+          ntStatus = SrvDevCtlEnumShares(
+                        lpInBuffer,
+                        dwInBufferSize,
+                        lpOutBuffer,
+                        dwOutBufferSize
+                        );
           break;
       case SRV_DEVCTL_SET_SHARE_INFO:
-          ntStatus = SrvDevCtlSetShareInfo();
+          ntStatus = SrvDevCtlSetShareInfo(
+                        lpInBuffer,
+                        dwInBufferSize,
+                        lpOutBufferSize,
+                        dwOutBufferSize
+                        );
           break;
       case SRV_DEVCTL_GET_SHARE_INFO:
-          ntStatus = SrvDevCtlGetShareInfo();
+          ntStatus = SrvDevCtlGetShareInfo(
+                        lpInBuffer,
+                        dwInBufferSize,
+                        lpOutBufferSize,
+                        dwOutBufferSize
+                        );
           break;
     }
 
