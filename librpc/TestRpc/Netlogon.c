@@ -37,15 +37,16 @@
 #include <string.h>
 
 #include <compat/rpcstatus.h>
+#include <dce/rpc.h>
 #include <dce/dce_error.h>
 #include <dce/schannel.h>
 
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
+
 #include <md5.h>
 #include <hmac_md5.h>
+#include <lwrpc/types.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/lsabinding.h>
