@@ -29,6 +29,8 @@
  */
 
 /*
+ * Abstract: Netlogon memory (de)allocation routines (rpc client library)
+ *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
@@ -176,7 +178,7 @@ NTSTATUS NetrAllocateDomainTrusts(NetrDomainTrust **out,
 
         if (tin->sid)
         {
-            SidCopyAlloc(&tout->sid, tin->sid);
+            RtlSidCopyAlloc(&tout->sid, tin->sid);
             goto_if_no_memory_ntstatus(tout->sid, error);
 
             status = NetrAddDepMemory((void*)tout->sid, (void*)ptr);
@@ -483,7 +485,7 @@ static NTSTATUS NetrInitSamBaseInfo(NetrSamBaseInfo *ptr,
     }
 
     if (in->domain_sid) {
-        SidCopyAlloc(&ptr->domain_sid, in->domain_sid);
+        RtlSidCopyAlloc(&ptr->domain_sid, in->domain_sid);
         goto_if_no_memory_ntstatus(ptr->domain_sid, error); 
 
         status = NetrAddDepMemory((void*)ptr->domain_sid, (void*)dep);
@@ -583,7 +585,7 @@ static NTSTATUS NetrAllocateSamInfo3(NetrSamInfo3 **out, NetrSamInfo3 *in,
             NetrSidAttr *in_sa = &(in->sids[i]);
 
             if (in_sa->sid) {
-                SidCopyAlloc(&ptr_sa->sid, in_sa->sid);
+                RtlSidCopyAlloc(&ptr_sa->sid, in_sa->sid);
                 goto_if_no_memory_ntstatus(ptr_sa->sid, error);
 
                 status = NetrAddDepMemory((void*)ptr_sa->sid, (void*)ptr);
