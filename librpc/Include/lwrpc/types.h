@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,12 +28,18 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: RPC client library
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
 #if defined(_DCE_IDL_)
-cpp_quote("#include <lwrpc/types.h>")
-cpp_quote("#if 0 /* Don't leak typedefs outside of IDL */")
+
+/* Types needed for idl compiler pass */
 typedef unsigned small int uint8;
 typedef unsigned short int uint16;
 typedef unsigned long int uint32;
@@ -44,57 +50,62 @@ typedef int int32;
 typedef hyper int int64;
 typedef uint32 NTSTATUS;
 typedef uint16 wchar16_t;
+
 #else
+
+/* Types needed for librpc build pass */
 #include <inttypes.h>
 #include <lw/ntstatus.h>
+
+#ifndef UINT8_DEFINED
 typedef uint8_t uint8;
+#define UINT8_DEFINED
+#endif
+
+#ifndef UINT16_DEFINED
 typedef uint16_t uint16;
+#define UINT16_DEFINED
+#endif
+
+#ifndef UINT32_DEFINED
 typedef uint32_t uint32;
+#define UINT32_DEFINED
+#endif
+
+#ifndef UINT64_DEFINED
 typedef uint64_t uint64;
+#define UINT64_DEFINED
+#endif
+
+#ifndef INT8_DEFINED
 typedef int8_t int8;
+#define INT8_DEFINED
+#endif
+
+#ifndef INT16_DEFINED
 typedef int16_t int16;
+#define INT16_DEFINED
+#endif
+
+#ifndef INT32_DEFINED
 typedef int32_t int32;
+#define INT32_DEFINED
+#endif
+
+#ifndef INT64_DEFINED
+#define INT64_DEFINED
 typedef int64_t int64;
 #endif
+
+#endif /* _DCE_IDL_ */
 
 typedef uint32 RPCSTATUS;
 typedef uint32 WINERR;
 typedef uint64 NtTime;
 
-typedef struct unicode_string {
-	uint16 len;
-	uint16 size;
-#ifdef _DCE_IDL_
-	[size_is(size/2),length_is(len/2)]
-#endif
-	wchar16_t *string;
-} UnicodeString;
-
-typedef struct unicode_string_ex {
-	uint16 len;
-	uint16 size;   /* size = len + 1 (for terminating char) */
-#ifdef _DCE_IDL_
-	[size_is(size/2),length_is(len/2)]
-#endif
-	wchar16_t *string;
-} UnicodeStringEx;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif /* Don't leak typedefs out of IDL */")
-#endif
-
-/* Don't require DCE/RPC environment when simply building
-   a client using rpc library */
-#if !defined(_DCE_IDL_)
-#if defined(LIBRPC_BUILD)
-#include <dce/rpc.h>
-#else
-typedef void* handle_t;
-typedef unsigned long error_status_t;
-#endif /* defined(LIBRPC_BUILD) */
-#endif /* !defined(_DCE_IDL_) */
 
 #endif /* _TYPES_H_ */
+
 
 /*
 local variables:
