@@ -117,15 +117,30 @@ SrvSvcNetShareAdd(
     )
 {
     DWORD dwError = 0;
+    PBYTE pInBuffer = NULL;
+    DWORD dwInLength = 0;
+    PWSTR lpFileName = NULL;
+    DWORD dwDesiredAccess = 0;
+    DWORD dwShareMode = 0;
+    DWORD dwCreationDisposition = 0;
+    DWORD dwFlagsAndAttributes = 0;
+    PBYTE pOutBuffer = NULL;
+    DWORD dwOutLength = 0;
+    DWORD dwBytesReturned = 0;
 
-    dwError = MarshallShareAddBuffer(level, info, &pBuffer, &dwLength);
+    dwError = MarshallShareInfotoFlatBuffer(
+                    level,
+                    info,
+                    &pInBuffer,
+                    &dwInLength
+                    );
     BAIL_ON_ERROR(dwError);
 
     hDevice = CreateFile(
                     lpFileName,
                     dwDesiredAccess,
                     dwShareMode,
-                    lpSecurityAttributes,
+                    NULL,
                     dwCreationDisposition,
                     dwFlagsAndAttributes,
                     NULL
@@ -149,8 +164,26 @@ SrvSvcNetShareAdd(
         dwError = GetLastError();
         BAIL_ON_ERROR(dwError);
     }
-    dweError = UnmarshallResponse();
+    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+    *parm_error = dwParmError;
+    dwError = dwReturnCode;
 
+cleanup:
+
+    if(pInBuffer) {
+        SrvSvcFreeMemory(pInBuffer);
+    }
+
+    return(dwError);
+
+error:
+
+
+    if (pOutBuffer) {
+        SrvSvcFreeMemory(pOutBuffer);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -164,13 +197,75 @@ SrvSvcNetShareEnum(
     /* [in, out] */ uint32 *resume_handle
     )
 {
-    dwError = ServerShareEnum(
-                    server_name,
+    DWORD dwError = 0;
+    PBYTE pInBuffer = NULL;
+    DWORD dwInLength = 0;
+    PWSTR lpFileName = NULL;
+    DWORD dwDesiredAccess = 0;
+    DWORD dwShareMode = 0;
+    DWORD dwCreationDisposition = 0;
+    DWORD dwFlagsAndAttributes = 0;
+    PBYTE pOutBuffer = NULL;
+    DWORD dwOutLength = 0;
+    DWORD dwBytesReturned = 0;
+
+    dwError = MarshallShareInfotoFlatBuffer(
                     level,
                     info,
-                    parm_error
+                    &pInBuffer,
+                    &dwInLength
                     );
+    BAIL_ON_ERROR(dwError);
+
+    hDevice = CreateFile(
+                    lpFileName,
+                    dwDesiredAccess,
+                    dwShareMode,
+                    NULL,
+                    dwCreationDisposition,
+                    dwFlagsAndAttributes,
+                    NULL
+                    );
+    if(!hDevice) {
+        dwError = GetLastError();
+        BAIL_ON_WIN32_ERROR(dwError);
+    }
+
+    bRet = DeviceIoControl(
+                    hDevice,
+                    SRV_IOCTL_SET_SHARE,
+                    lpInBuffer,
+                    nInBufferSize,
+                    lpOutBuffer,
+                    nOutBufferSize,
+                    &dwBytesReturned
+                    NULL
+                    );
+    if(!bRet) {
+        dwError = GetLastError();
+        BAIL_ON_ERROR(dwError);
+    }
+    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+    *parm_error = dwParmError;
+    dwError = dwReturnCode;
+
+cleanup:
+
+    if(pInBuffer) {
+        SrvSvcFreeMemory(pInBuffer);
+    }
+
     return(dwError);
+
+error:
+
+
+    if (pOutBuffer) {
+        SrvSvcFreeMemory(pOutBuffer);
+    }
+
+    goto cleanup;
+    return ERROR_NOT_SUPPORTED;
 }
 
 NET_API_STATUS
@@ -182,9 +277,74 @@ SrvSvcNetShareGetInfo(
     /* [out] */ srvsvc_NetShareInfo *info
     )
 {
-    dwError = ServerShareGetInfo(
-                    server_name,
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+    PBYTE pInBuffer = NULL;
+    DWORD dwInLength = 0;
+    PWSTR lpFileName = NULL;
+    DWORD dwDesiredAccess = 0;
+    DWORD dwShareMode = 0;
+    DWORD dwCreationDisposition = 0;
+    DWORD dwFlagsAndAttributes = 0;
+    PBYTE pOutBuffer = NULL;
+    DWORD dwOutLength = 0;
+    DWORD dwBytesReturned = 0;
+
+    dwError = MarshallShareInfotoFlatBuffer(
+                    level,
+                    info,
+                    &pInBuffer,
+                    &dwInLength
+                    );
+    BAIL_ON_ERROR(dwError);
+
+    hDevice = CreateFile(
+                    lpFileName,
+                    dwDesiredAccess,
+                    dwShareMode,
+                    NULL,
+                    dwCreationDisposition,
+                    dwFlagsAndAttributes,
+                    NULL
+                    );
+    if(!hDevice) {
+        dwError = GetLastError();
+        BAIL_ON_WIN32_ERROR(dwError);
+    }
+
+    bRet = DeviceIoControl(
+                    hDevice,
+                    SRV_IOCTL_SET_SHARE,
+                    lpInBuffer,
+                    nInBufferSize,
+                    lpOutBuffer,
+                    nOutBufferSize,
+                    &dwBytesReturned
+                    NULL
+                    );
+    if(!bRet) {
+        dwError = GetLastError();
+        BAIL_ON_ERROR(dwError);
+    }
+    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+    *parm_error = dwParmError;
+    dwError = dwReturnCode;
+
+cleanup:
+
+    if(pInBuffer) {
+        SrvSvcFreeMemory(pInBuffer);
+    }
+
+    return(dwError);
+
+error:
+
+
+    if (pOutBuffer) {
+        SrvSvcFreeMemory(pOutBuffer);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -197,7 +357,74 @@ SrvSvcNetShareSetInfo(
     /* [in, out] */ uint32 *parm_error
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+    PBYTE pInBuffer = NULL;
+    DWORD dwInLength = 0;
+    PWSTR lpFileName = NULL;
+    DWORD dwDesiredAccess = 0;
+    DWORD dwShareMode = 0;
+    DWORD dwCreationDisposition = 0;
+    DWORD dwFlagsAndAttributes = 0;
+    PBYTE pOutBuffer = NULL;
+    DWORD dwOutLength = 0;
+    DWORD dwBytesReturned = 0;
+
+    dwError = MarshallShareInfotoFlatBuffer(
+                    level,
+                    info,
+                    &pInBuffer,
+                    &dwInLength
+                    );
+    BAIL_ON_ERROR(dwError);
+
+    hDevice = CreateFile(
+                    lpFileName,
+                    dwDesiredAccess,
+                    dwShareMode,
+                    NULL,
+                    dwCreationDisposition,
+                    dwFlagsAndAttributes,
+                    NULL
+                    );
+    if(!hDevice) {
+        dwError = GetLastError();
+        BAIL_ON_WIN32_ERROR(dwError);
+    }
+
+    bRet = DeviceIoControl(
+                    hDevice,
+                    SRV_IOCTL_SET_SHARE,
+                    lpInBuffer,
+                    nInBufferSize,
+                    lpOutBuffer,
+                    nOutBufferSize,
+                    &dwBytesReturned
+                    NULL
+                    );
+    if(!bRet) {
+        dwError = GetLastError();
+        BAIL_ON_ERROR(dwError);
+    }
+    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+    *parm_error = dwParmError;
+    dwError = dwReturnCode;
+
+cleanup:
+
+    if(pInBuffer) {
+        SrvSvcFreeMemory(pInBuffer);
+    }
+
+    return(dwError);
+
+error:
+
+
+    if (pOutBuffer) {
+        SrvSvcFreeMemory(pOutBuffer);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -208,7 +435,69 @@ SrvSvcNetShareDel(
     /* [in] */ uint32 reserved
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+    PBYTE pInBuffer = NULL;
+    DWORD dwInLength = 0;
+    PWSTR lpFileName = NULL;
+    DWORD dwDesiredAccess = 0;
+    DWORD dwShareMode = 0;
+    DWORD dwCreationDisposition = 0;
+    DWORD dwFlagsAndAttributes = 0;
+    PBYTE pOutBuffer = NULL;
+    DWORD dwOutLength = 0;
+    DWORD dwBytesReturned = 0;
+
+
+
+
+    hDevice = CreateFile(
+                    lpFileName,
+                    dwDesiredAccess,
+                    dwShareMode,
+                    NULL,
+                    dwCreationDisposition,
+                    dwFlagsAndAttributes,
+                    NULL
+                    );
+    if(!hDevice) {
+        dwError = GetLastError();
+        BAIL_ON_WIN32_ERROR(dwError);
+    }
+
+    bRet = DeviceIoControl(
+                    hDevice,
+                    SRV_IOCTL_SET_SHARE,
+                    lpInBuffer,
+                    nInBufferSize,
+                    lpOutBuffer,
+                    nOutBufferSize,
+                    &dwBytesReturned
+                    NULL
+                    );
+    if(!bRet) {
+        dwError = GetLastError();
+        BAIL_ON_ERROR(dwError);
+    }
+    dwError = UnmarshallAddSetResponse(lpOutBuffer, &dwReturnCode, &dwParmError);
+    *parm_error = dwParmError;
+    dwError = dwReturnCode;
+
+cleanup:
+
+    if(pInBuffer) {
+        SrvSvcFreeMemory(pInBuffer);
+    }
+
+    return(dwError);
+
+error:
+
+
+    if (pOutBuffer) {
+        SrvSvcFreeMemory(pOutBuffer);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
