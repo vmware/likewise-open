@@ -40,6 +40,32 @@ SrvDevCtlAddShare(
 {
     NTSTATUS ntStatus = 0;
 
+
+    ntStatus = SrvUnmarshallInBuffer_AddShare(
+                    lpInBuffer,
+                    dwInBuffer,
+                    &pShareInfo,
+                    &dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareAddShare(
+                    pShareInfo,
+                    dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvMarshallOutBuffer_AddShare(
+                        SRV_DEV_CTL_ADD_SHARE,
+                        ntStatus
+                        lpOutBuffer,
+                        dwOutBuffer,
+                        pdwBytesWritten
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
     return(ntStatus);
 }
 
@@ -52,6 +78,31 @@ SrvDevCtlDeleteShare(
     )
 {
     NTSTATUS ntStatus = 0;
+
+    ntStatus = SrvUnmarshallInBuffer_DeleteShare(
+                    lpInBuffer,
+                    dwInBuffer,
+                    &pShareInfo,
+                    &dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareDeleteShare(
+                    pShareInfo,
+                    dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvMarshallOutBuffer_DeleteShare(
+                        SRV_DEV_CTL_DELETE_SHARE,
+                        ntStatus,
+                        lpOutBuffer,
+                        dwOutBuffer,
+                        pdwBytesWritten
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return(ntStatus);
 }
@@ -66,6 +117,30 @@ SrvDevCtlEnumShares(
 {
     NTSTATUS ntStatus = 0;
 
+    ntStatus = SrvUnmarshallInBuffer_EnumShares(
+                    lpInBuffer,
+                    dwInBuffer,
+                    &pShareInfo,
+                    &dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareEnumShares(
+                    pShareInfo,
+                    dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvMarshallOutBuffer_EnumShares(
+                        ntStatus,
+                        lpOutBuffer,
+                        dwOutBuffer,
+                        pdwBytesWritten
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
     return(ntStatus);
 }
 
@@ -79,6 +154,31 @@ SrvDevCtlSetShareInfo(
 {
     NTSTATUS ntStatus = 0;
 
+    ntStatus = SrvMarshallInBuffer_SetShareInfo(
+                    lpInBuffer,
+                    dwInBuffer,
+                    &pShareInfo,
+                    &dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareSetShareInfo(
+                    pShareInfo,
+                    dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvMarshallOutBuffer_SetShareInfo(
+                        SRV_DEV_CTL_SET_SHARE_INFO,
+                        ntStatus,
+                        lpOutBuffer,
+                        dwOutBuffer,
+                        pdwBytesWritten
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
     return(ntStatus);
 }
 
@@ -91,6 +191,31 @@ SrvDevCtlGetShareInfo(
     )
 {
     NTSTATUS ntStatus = 0;
+
+    ntStatus = SrvMarshallInBuffer_GetShareInfo(
+                    lpInBuffer,
+                    dwInBuffer,
+                    &pShareInfo,
+                    &dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareGetShareInfo(
+                    pShareInfo,
+                    dwLevel
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvMarshallOutBuffer_GetShareInfo(
+                        SRV_DEV_CTL_GET_SHARE_INFO,
+                        ntStatus,
+                        lpOutBuffer,
+                        dwOutBuffer,
+                        pdwBytesWritten
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return(ntStatus);
 }
