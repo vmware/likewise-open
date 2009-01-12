@@ -16,8 +16,11 @@ INCLUDES=-I$(LIBRPC_INCDIR) -I$(librpc_srcdir)
 
 testrpc_CFLAGS=-g $(INCLUDES) -D_GNU_SOURCE -DLIBRPC_BUILD
 testrpc_LDFLAGS=$(PSTORE_LDFLAGS) $(KEYTAB_LDFLAGS) -rpath ${libdir}
-testrpc_LDADD=$(libsamr_builddir)/libsamr.la $(liblsa_builddir)/liblsa.la \
+testrpc_LDADD = \
+	$(libsamr_builddir)/libsamr.la \
+	$(liblsa_builddir)/liblsa.la \
 	$(libnetlogon_builddir)/libnetlogon.la \
-	$(liballoc_builddir)/liballoc.la $(libmpr_builddir)/libmpr.la \
+	$(liballoc_builddir)/liballoc.la \
+	$(libmpr_builddir)/libmpr.la \
 	$(libmsrpc_builddir)/libmsrpc.la \
 	$(libnetapi_builddir)/libnetapi.la
