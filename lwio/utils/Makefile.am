@@ -14,9 +14,10 @@ liblwioutils_la_SOURCES = \
     lwlist.c      \
     memory.c      \
     queue.c       \
-    lwioconfig.c   \
-    lwiologinfo.c  \
-    lwioxnet.c     \
+    lwioconfig.c  \
+    lwiologinfo.c \
+    lwioxnet.c    \
+    rbtree.c      \
     stack.c       \
     strerror.c    \
     strings.c     \

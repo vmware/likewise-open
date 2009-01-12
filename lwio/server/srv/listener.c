@@ -55,15 +55,16 @@ SrvListenerMain(
     );
 
 static
-PVOID
-SMBSrvHandleConnection(
-    PVOID pData
+BOOLEAN
+SrvListenerMustStop(
+    PSMB_SRV_LISTENER_CONTEXT pContext
     );
 
 static
-VOID
-SMBSrvFreeConnection(
-    PSMB_CONNECTION pConnection
+PSMB_SRV_READER
+SrvFindLeastBusyReader(
+    PSMB_SRV_READER pReaderArray,
+    ULONG           ulNumReaders
     );
 
 static
@@ -76,12 +77,6 @@ static
 DWORD
 SMBSrvGetLocalIPAddress(
     PSTR* ppszIpAddress
-    );
-
-static
-BOOLEAN
-SrvListenerMustStop(
-    PSMB_SRV_LISTENER_CONTEXT pContext
     );
 
 NTSTATUS
@@ -144,6 +139,7 @@ SrvListenerMain(
     struct sockaddr_in servaddr;
     PSMB_SRV_SOCKET pSocket = NULL;
     PSMB_SRV_LISTENER_CONTEXT pContext = (PSMB_SRV_LISTENER_CONTEXT)pData;
+    PSMB_SRV_READER pReader = NULL;
 
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
@@ -206,20 +202,33 @@ SrvListenerMain(
             }
         }
 
-        dwError = SMBAllocateMemory(
-                    sizeof(SMB_CONNECTION),
-                    (PVOID*)&pConnection);
+        SMB_LOG_INFO("Handling client from [%s]",
+                     SMB_SAFE_LOG_STRING(inet_ntoa(cliaddr.sin_addr)));
+
+        dwError = SrvSocketCreate(
+                        connFd,
+                        &cliaddr,
+                        &pSocket);
         BAIL_ON_SMB_ERROR(dwError);
 
-        pConnection->fd = connFd;
         connFd = -1;
-        memcpy(&pConnection->cliaddr, &cliaddr, sizeof(cliaddr));
 
-        dwError = pthread_create(
-                    &handlerThrId,
-                    NULL,
-                    &SMBSrvHandleConnection,
-                    pConnection);
+        dwError = SrvConnectionCreate(
+                        pSocket,
+                        &pConnection);
+        BAIL_ON_SMB_ERROR(dwError);
+
+        pSocket = NULL;
+
+        pReader = SrvFindLeastBusyReader(
+                        pContext->pReaderArray,
+                        pContext->ulNumReaders);
+
+        assert(pReader != NULL);
+
+        dwError = SrvReaderEnqueueConnection(
+                        pReader,
+                        pConnection);
         BAIL_ON_SMB_ERROR(dwError);
 
         pConnection = NULL;
@@ -239,7 +248,7 @@ cleanup:
 
     if (pConnection)
     {
-        SMBSrvFreeConnection(pConnection);
+        SrvConnectionRelease(pConnection);
     }
 
     return NULL;
@@ -267,85 +276,39 @@ SrvListenerMustStop(
 }
 
 static
-PVOID
-SMBSrvHandleConnection(
-    PVOID pData
+PSMB_SRV_READER
+SrvFindLeastBusyReader(
+    PSMB_SRV_READER pReaderArray,
+    ULONG           ulNumReaders
     )
 {
-    DWORD dwError = 0;
-    PSMB_CONNECTION pConnection = (PSMB_CONNECTION)pData;
-    PSMB_SOCKET pSocket = NULL;
+    PSMB_SRV_READER pReaderMin = NULL;
+    ULONG           ulNumSocketsMin = 0;
+    ULONG           iReader = 0;
 
-    pthread_detach(pthread_self());
-
-    BAIL_ON_INVALID_POINTER(pConnection);
-
-    SMB_LOG_INFO("Handling client from [%s]",
-                 SMB_SAFE_LOG_STRING(inet_ntoa(pConnection->cliaddr.sin_addr)));
-
-    dwError = SMBSrvSocketCreate(
-                    pConnection->fd,
-                    pConnection->cliaddr,
-                    &pSocket);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    while(!SMBSrvListenerShouldStop())
+    for (; iReader < ulNumReaders; iReader++)
     {
-        SMB_PACKET request_packet;
-        SMB_PACKET response_packet;
+        PSMB_SRV_READER pReader = &pReaderArray[iReader];
 
-        // TODO: Use a timeout
-        dwError = SMBPacketReceiveAndUnmarshall(
-                    pSocket,
-                    &request_packet);
-        BAIL_ON_SMB_ERROR(dwError);
+        if (!iReader)
+        {
+            pReaderMin = pReader;
+            ulNumSocketsMin = SrvSocketReaderGetCount(pReader);
+        }
+        else
+        {
+            ULONG ulNumSockets = SrvSocketReaderGetCount(pReader);
 
-        dwError = SMBSrvProcessRequest_V1(
-                    &request_packet,
-                    &response_packet);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        dwError = SMBPacketSend(
-                    pSocket,
-                    &response_packet);
-        BAIL_ON_SMB_ERROR(dwError);
+            if (ulNumSockets < ulNumSocketsMin)
+            {
+                ulNumSocketsMin = ulNumSockets;
+                pReaderMin = pReader;
+            }
+        }
     }
 
-cleanup:
-
-    SMB_LOG_INFO("Closing connection from client [%s] [fd:%d]",
-                 SMB_SAFE_LOG_STRING(inet_ntoa(pConnection->cliaddr.sin_addr)),
-                    pConnection->fd);
-
-    if (pSocket)
-    {
-        SMBSocketRelease(pSocket);
-    }
-
-    SMBSrvFreeConnection(pConnection);
-
-    return NULL;
-
-error:
-
-    SMB_LOG_ERROR("Error when handling SMB Connection [code:%d]", dwError);
-
-    goto cleanup;
+    return pReaderMin;
 }
-
-static
-VOID
-SMBSrvFreeConnection(
-    PSMB_CONNECTION pConnection
-    )
-{
-    if (pConnection->fd >= 0)
-    {
-        close(pConnection->fd);
-    }
-    SMBFreeMemory(pConnection);
-}
-
 
 static
 DWORD

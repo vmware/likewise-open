@@ -87,6 +87,8 @@ typedef struct _SMB_SRV_CONNECTION
 {
     pthread_mutex_t     mutex;
 
+    int                 refCount;
+
     SMB_SRV_CONN_STATE  state;
 
     PSMB_SRV_SOCKET     pSocket;

@@ -410,6 +410,7 @@ AC_CONFIG_FILES([Makefile
         tools/lw-io-set-log-level/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
+        tests/test_rbtree/Makefile
         tests/test_npclient/Makefile
         tests/test_npclient_transactnp/Makefile
         tests/tcon/Makefile

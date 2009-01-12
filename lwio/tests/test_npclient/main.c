@@ -48,10 +48,10 @@
 #define _POSIX_PTHREAD_SEMANTICS 1
 
 #include "config.h"
-#include "lsmbsys.h"
+#include "lwiosys.h"
 #include "lwio/lwio.h"
-#include "smbdef.h"
-#include "smbutils.h"
+#include "lwiodef.h"
+#include "lwioutils.h"
 
 static
 int

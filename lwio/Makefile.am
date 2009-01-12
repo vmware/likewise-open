@@ -9,4 +9,5 @@ SUBDIRS = \
     ipc       \
     client    \
     server    \
-    tools
+    tools     \
+    tests

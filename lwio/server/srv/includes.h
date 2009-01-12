@@ -79,6 +79,10 @@
 #include "rename.h"
 #include "seek.h"
 #include "device.h"
+#include "srvconnection.h"
+#include "srvsocket.h"
+#include "reader.h"
+#include "worker.h"
 
 #include "externs.h"
 

@@ -432,6 +432,37 @@ typedef struct __SMB_QUEUE
 
 } SMB_QUEUE, *PSMB_QUEUE;
 
+typedef enum
+{
+    SMB_TREE_TRAVERSAL_TYPE_PRE_ORDER = 0,
+    SMB_TREE_TRAVERSAL_TYPE_IN_ORDER,
+    SMB_TREE_TRAVERSAL_TYPE_POST_ORDER
+} SMB_TREE_TRAVERSAL_TYPE;
+
+typedef int   (*PFN_SMB_RB_TREE_COMPARE)(
+                    PVOID pData1,
+                    PVOID pData2
+                    );
+
+typedef VOID  (*PFN_SMB_RB_TREE_FREE)(PVOID pData);
+
+typedef DWORD (*PFN_SMB_RB_TREE_VISIT)(
+                    PVOID pData,
+                    PVOID pUserData,
+                    PBOOLEAN pbContinue
+                    );
+
+typedef struct __SMB_RB_TREE
+{
+
+    PFN_SMB_RB_TREE_COMPARE pfnCompare;
+    PFN_SMB_RB_TREE_FREE    pfnFree;
+
+    HANDLE hRoot;
+
+} SMB_RB_TREE, *PSMB_RB_TREE;
+
+
 typedef DWORD SMBHANDLE, *PSMBHANDLE;
 
 typedef enum
@@ -775,6 +806,43 @@ SMBQueueForeach(
 VOID
 SMBQueueFree(
     PSMB_QUEUE pQueue
+    );
+
+DWORD
+SMBRBTreeCreate(
+    PFN_SMB_RB_TREE_COMPARE pfnRBTreeCompare,
+    PFN_SMB_RB_TREE_FREE    pfnRBTreeFree,
+    PSMB_RB_TREE* ppRBTree
+    );
+
+PVOID
+SMBRBTreeFind(
+    PSMB_RB_TREE pRBTree,
+    PVOID   pData
+    );
+
+DWORD
+SMBRBTreeAdd(
+    PSMB_RB_TREE pRBTree,
+    PVOID       pData
+    );
+
+DWORD
+SMBRBTreeTraverse(
+    PSMB_RB_TREE pRBTree,
+    SMB_TREE_TRAVERSAL_TYPE traversalType,
+    PFN_SMB_RB_TREE_VISIT pfnVisit,
+    PVOID                 pUserData
+    );
+
+DWORD
+SMBRBTreeRemove(
+    PSMB_RB_TREE pRBTree,
+    PVOID   pData);
+
+VOID
+SMBRBTreeFree(
+    PSMB_RB_TREE pRBTree
     );
 
 DWORD
