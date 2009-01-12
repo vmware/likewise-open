@@ -142,7 +142,9 @@ LsaSrvValidateProvider(
         !pProvider->pFnTable->pfnEnumNSSArtefacts ||
         !pProvider->pFnTable->pfnEndEnumNSSArtefacts ||
         !pProvider->pFnTable->pfnGetStatus ||
-        !pProvider->pFnTable->pfnFreeStatus
+        !pProvider->pFnTable->pfnFreeStatus ||
+        !pProvider->pFnTable->pfnRefreshConfiguration ||
+        !pProvider->pFnTable->pfnProviderIoControl
         )
     {
         return LSA_ERROR_INVALID_AUTH_PROVIDER;

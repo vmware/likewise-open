@@ -10,6 +10,7 @@ liblsaserveripc_la_SOURCES = \
        ipc_gss.c       \
        ipc_log.c       \
        ipc_metrics.c   \
+       ipc_provider.c  \
        ipc_session.c   \
        ipc_status.c    \
        ipc_state.c     \

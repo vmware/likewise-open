@@ -257,6 +257,17 @@ typedef VOID (*PFNFREE_STATUS)(
 
 typedef DWORD (*PFNREFRESH_CONFIGURATION)();
 
+typedef DWORD (*PFNPROVIDER_IO_CONTROL) (
+                HANDLE hProvider,
+                uid_t  peerUid,
+                gid_t  peerGID,
+                DWORD  dwIoControlCode,
+                DWORD  dwInputBufferSize,
+                PVOID  pInputBuffer,
+                DWORD* pdwOutputBufferSize,
+                PVOID* ppOutputBuffer
+                );
+
 typedef struct __LSA_PROVIDER_FUNCTION_TABLE
 {
     PFNOPENHANDLE                  pfnOpenHandle;
@@ -293,6 +304,7 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNGET_STATUS                  pfnGetStatus;
     PFNFREE_STATUS                 pfnFreeStatus;
     PFNREFRESH_CONFIGURATION       pfnRefreshConfiguration;
+    PFNPROVIDER_IO_CONTROL         pfnProviderIoControl;
 } LSA_PROVIDER_FUNCTION_TABLE, *PLSA_PROVIDER_FUNCTION_TABLE;
 
 #define LSA_SYMBOL_NAME_INITIALIZE_PROVIDER "LsaInitializeProvider"

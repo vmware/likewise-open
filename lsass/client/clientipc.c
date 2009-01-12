@@ -1537,6 +1537,83 @@ error:
 }
 
 DWORD
+LsaTransactProviderIoControl(
+    IN HANDLE  hServer,
+    IN PCSTR   pszProvider,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+        (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
+    LSA_IPC_PROVIDER_IO_CONTROL_REQ providerIoControlReq;
+    // Do not free pResultBuffer and pError
+    PLSA_DATA_BLOB pResultBuffer = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = { -1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    providerIoControlReq.pszProvider = pszProvider;
+    providerIoControlReq.dwIoControlCode = dwIoControlCode;
+    providerIoControlReq.dwDataLen = dwInputBufferSize;
+    providerIoControlReq.pData = pInputBuffer;
+
+    request.tag = LSA_Q_PROVIDER_IO_CONTROL;
+    request.object = &providerIoControlReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case LSA_R_PROVIDER_IO_CONTROL_SUCCESS:
+            *pdwOutputBufferSize = 0;
+            *ppOutputBuffer = NULL;
+            break;
+        case LSA_R_PROVIDER_IO_CONTROL_SUCCESS_DATA:
+            pResultBuffer = (PLSA_DATA_BLOB)response.object;
+            *pdwOutputBufferSize = pResultBuffer->dwLen;
+            *ppOutputBuffer = (PVOID)(pResultBuffer->pData);
+            pResultBuffer->pData = NULL;
+            break;
+        case LSA_R_PROVIDER_IO_CONTROL_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if ( response.object )
+    {
+        lwmsg_assoc_free_message(
+            pContext->pAssoc,
+            &response);
+    }
+
+    return dwError;
+
+error:
+
+    *pdwOutputBufferSize = 0;
+    *ppOutputBuffer = NULL;
+
+    goto cleanup;
+}
+
+DWORD
 LsaTransactOpenServer(
    IN HANDLE hServer
    )

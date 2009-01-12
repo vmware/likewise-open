@@ -252,7 +252,7 @@ LsaAdBatchGatherSchemaModeGroup(
     dwError = LsaLdapGetString(
                     hDirectory,
                     pMessage,
-                    AD_LDAP_ALIAS_TAG,
+                    AD_LDAP_DISPLAY_NAME_TAG,
                     &pItem->GroupInfo.pszAlias);
     BAIL_ON_LSA_ERROR(dwError);
 

@@ -52,5 +52,6 @@
 #include "lsautils.h"
 #include "lsaldap.h"
 #include "lsakrb5.h"
+#include "lsakrb5_error.h"
 #include "lsaldap_p.h"
 #include "lwnet.h"

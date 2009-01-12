@@ -661,6 +661,10 @@ AC_CONFIG_FILES([Makefile
                  lsaunistr/Makefile
                  ipc/Makefile
                  client/Makefile
+                 provider/Makefile
+                 provider/ad-provider/Makefile
+                 provider/ad-provider/ipc/Makefile
+                 provider/ad-provider/client/Makefile
                  macclient/Makefile
 		 nsswitch/Makefile
 		 nsswitch/common/Makefile
@@ -720,6 +724,7 @@ AC_CONFIG_FILES([Makefile
                  tools/get_status/Makefile
                  tools/refresh_configuration/Makefile
                  tools/trace_info/Makefile
+                 tools/ad_cache/Makefile
 		 etc/Makefile
 		 etc/lsassd.conf
                  include/Makefile

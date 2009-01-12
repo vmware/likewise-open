@@ -88,6 +88,7 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH(LSA_Q_SET_TRACE_INFO, LsaSrvIpcSetTraceInfo),
     LWMSG_DISPATCH(LSA_Q_GET_TRACE_INFO, LsaSrvIpcGetTraceInfo),
     LWMSG_DISPATCH(LSA_Q_ENUM_TRACE_INFO, LsaSrvIpcEnumTraceInfo),
+    LWMSG_DISPATCH(LSA_Q_PROVIDER_IO_CONTROL, LsaSrvIpcProviderIoControl),
     LWMSG_DISPATCH_END
 };
 

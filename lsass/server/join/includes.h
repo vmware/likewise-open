@@ -46,6 +46,7 @@
 
 #include <lwps/lwps.h>
 #include <lwnet.h>
+#include "lsakrb5_error.h"
 
 #include <lwrpc/LM.h>
 #include <lwrpc/lsa.h>

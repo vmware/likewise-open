@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,31 +33,45 @@
  *
  * Module Name:
  *
- *        lsakrb.h
+ *        lsakrb5_error.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Krb5 (Private Header)
+ *        Kerberos 5 API
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ *
  */
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
-#include "lsautils.h"
-#include "lsaunistr.h"
+#ifndef __LSAKRB5_ERROR_H__
+#define __LSAKRB5_ERROR_H__
 
-#include "lwnet.h"
+#define BAIL_ON_KRB_ERROR(ctx, ret) \
+    do { \
+        if (ret) \
+        { \
+           (dwError) = LsaTranslateKrb5Error(ctx, ret, __FILE__, __LINE__); \
+           goto error; \
+        } \
+    } while (0)
 
-#include "lsakrb5.h"
+DWORD
+LsaTranslateKrb5Error(
+    krb5_context ctx,
+    krb5_error_code krbError,
+    PCSTR pszFile,
+    DWORD dwLine
+    );
 
-#include "krb5sys.h"
-#include "lsakrb5_error.h"
+#endif /* __LSAKRB5_ERROR_H__ */
 
-#include "krbtgt.h"
-#include "externs.h"
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

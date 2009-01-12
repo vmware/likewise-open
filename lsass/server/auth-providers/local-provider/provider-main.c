@@ -1645,6 +1645,21 @@ LsaProviderLocal_FreeStatus(
     LsaFreeMemory(pProviderStatus);
 }
 
+DWORD
+LsaProviderLocal_ProviderIoControl(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    )
+{
+    return LSA_ERROR_NOT_HANDLED;
+}
+
 VOID
 LsaLocalProviderLogServiceStartEvent(
     VOID

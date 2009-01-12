@@ -338,6 +338,18 @@ LsaProviderLocal_RefreshConfiguration(
     HANDLE hProvider
     );
 
+DWORD
+LsaProviderLocal_ProviderIoControl(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN uid_t   peerGID,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    );
+
 VOID
 LsaLocalProviderLogServiceStartEvent(
     VOID);

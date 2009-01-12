@@ -1,0 +1,2 @@
+SUBDIRS = \
+         ad-provider

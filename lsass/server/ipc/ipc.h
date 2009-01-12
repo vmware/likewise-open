@@ -72,5 +72,6 @@
 #include "ipc_metrics_p.h"
 #include "ipc_status_p.h"
 #include "ipc_config_p.h"
+#include "ipc_provider_p.h"
 #include "externs_p.h"
 

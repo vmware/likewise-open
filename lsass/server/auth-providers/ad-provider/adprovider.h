@@ -63,6 +63,7 @@
 #include "lsaunistr.h"
 #include "lsaipc.h"
 #include "lsaprovider.h"
+#include "lsaadprovider.h"
 
 #include "lsasrvutils.h"
 #include "lsakrb5.h"

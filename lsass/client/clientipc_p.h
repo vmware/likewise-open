@@ -228,5 +228,16 @@ LsaTransactGetNamesBySidList(
     OUT OPTIONAL CHAR *pchDomainSeparator
     );
 
+DWORD
+LsaTransactProviderIoControl(
+    IN HANDLE  hServer,
+    IN PCSTR   pszProvider,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    );
+
 #endif /* __CLIENTIPC_P_H__ */
 

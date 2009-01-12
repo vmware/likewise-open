@@ -23,5 +23,6 @@ SUBDIRS = \
         set_log_level \
         get_status \
         refresh_configuration \
-        trace_info
+        trace_info \
+        ad_cache
 
