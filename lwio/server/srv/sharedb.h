@@ -49,24 +49,14 @@
 #ifndef __SRVDB_H__
 #define __SRVDB_H__
 
-void
-SrvShareDbInitGlobals(
-    void
-    );
-
-DWORD
-SrvShareDbCreate(
-    void
+VOID
+SrvShareDbInit(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
     );
 
 DWORD
 SrvShareDbOpen(
     PHANDLE phDb
-    );
-
-void
-SrvShareDbClose(
-    HANDLE hDb
     );
 
 DWORD
@@ -93,7 +83,18 @@ SrvShareDbDeleteShare(
 DWORD
 SrvShareDbGetShareCount(
     HANDLE hDb,
-    PINT   pShareCount);
+    PINT   pShareCount
+    );
+
+VOID
+SrvShareDbClose(
+    HANDLE hDb
+    );
+
+VOID
+SrvShareDbShutdown(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
+    );
 
 #endif /* __LSASSDB_H__ */
 

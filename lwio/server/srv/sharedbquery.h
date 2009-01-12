@@ -37,11 +37,11 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Server Message Block (LSMB)
  *
- *        Local Authentication Provider
+ *        Server sub-system
  *
- *        User/Group Database Query Templates
+ *        Server share database query templates
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -49,42 +49,49 @@
 #ifndef __DBQUERY_H__
 #define __DBQUERY_H__
 
+#define DB_QUERY_CREATE_SHARE_TABLE                     \
+    "create table shares (name    text primary key,     \
+                          path    text,                 \
+                          comment text  collate nocase, \
+                          sid     text nocase,          \
+                          unique (name, path),          \
+                          )"
+
 #define DB_QUERY_LOOKUP_SHARE_BY_NAME  \
-    "SELECT ShareName,  \
-            Path,       \
-            Comment     \
-      from  ShareTable  \
-      where ShareName = %Q"
+    "select name,      \
+            path,      \
+            comment,   \
+            sid        \
+      from  shares     \
+      where name = %Q"
 
 #define DB_QUERY_COUNT_EXISTING_SHARES \
-    "SELECT count(*) from ShareTable"
+    "select count(*) from shares"
 
 #define DB_QUERY_FIND_SHARES_LIMIT \
-    "select ShareName,   \
-            Path,        \
-            Comment      \
-    from    ShareTable   \
-    order by ShareName   \
-    LIMIT %d OFFSET %d"
+    "select     name,       \
+                path,       \
+                comment,    \
+                sid         \
+       from     shares      \
+       order by name       \
+       limit %d offset %d"
 
-#define DB_QUERY_CREATE_SHARE_TABLE                            \
-    "create table ShareTable (ShareName        varchar(256),   \
-                              Path             varchar(1024),  \
-                              Comment          varchar(1024)   \
-                             )"
+#define DB_QUERY_INSERT_SHARE  \
+    "insert into shares \
+     (name,      \
+      path,      \
+      comment,   \
+      sid        \
+     )           \
+     values( %Q, \
+             %Q, \
+             %Q, \
+             %Q  \
+           )"
 
-
-#define DB_QUERY_INSERT_SHARE  "INSERT INTO ShareTable \
-                                     (ShareName,       \
-                                      Path,            \
-                                      Comment          \
-                                      )                \
-                               VALUES( %Q,             \
-                                       %Q,             \
-                                       %Q              \
-                                     )"
-
-#define DB_QUERY_DELETE_SHARE "delete from ShareTable where ShareName = %Q"
+#define DB_QUERY_DELETE_SHARE \
+    "delete from shares where name = %Q"
 
 #endif /* __DBQUERY_H__ */
 

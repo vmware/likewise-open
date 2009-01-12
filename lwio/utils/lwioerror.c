@@ -117,7 +117,11 @@ const char* gSMBErrorMessages[] =
     // SMB_ERROR_HOST_NOT_FOUND                                  : 61472
     "Failed to look up host in DNS",
     // SMB_ERROR_INVALID_VFS_PROVIDER                            : 61473
-    "The virtual file system provider is invalid"
+    "The virtual file system provider is invalid",
+    // SMB_ERROR_NO_SUCH_SHARE                                   : 61474
+    "The requested share could not be located",
+    // SMB_ERROR_DATA_ERROR                                      : 61475
+    "A database format error has been encountered"
 };
 
 size_t

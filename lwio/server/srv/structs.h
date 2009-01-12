@@ -61,7 +61,15 @@ typedef struct _SHARE_INFO
     PSTR pszShareName;
     PSTR pszPath;
     PSTR pszComment;
+    PSTR pszSID;
 } SHARE_INFO, *PSHARE_INFO;
+
+typedef struct _SMB_SRV_SHARE_DB_CONTEXT
+{
+    pthread_rwlock_t  dbLock;
+    pthread_rwlock_t* pDbLock;
+
+} SMB_SRV_SHARE_DB_CONTEXT, *PSMB_SRV_SHARE_DB_CONTEXT;
 
 typedef struct _SMB_PROD_CONS_QUEUE
 {
@@ -162,19 +170,21 @@ typedef struct _SMB_SRV_LISTENER
 
 typedef struct _SMB_SRV_RUNTIME_GLOBALS
 {
-    pthread_mutex_t        mutex;
+    pthread_mutex_t          mutex;
 
-    SMB_SRV_CONFIG         config;
+    SMB_SRV_CONFIG           config;
 
-    SMB_PROD_CONS_QUEUE    workQueue;
+    SMB_SRV_SHARE_DB_CONTEXT shareDBContext;
 
-    PSMB_SRV_SOCKET_READER pReaderArray;
-    ULONG                  ulNumReaders;
+    SMB_PROD_CONS_QUEUE      workQueue;
 
-    PSMB_SRV_WORKER        pWorkerArray;
-    ULONG                  ulNumWorkers;
+    PSMB_SRV_SOCKET_READER   pReaderArray;
+    ULONG                    ulNumReaders;
 
-    SMB_SRV_LISTENER       listener;
+    PSMB_SRV_WORKER          pWorkerArray;
+    ULONG                    ulNumWorkers;
+
+    SMB_SRV_LISTENER         listener;
 
 } SMB_SRV_RUNTIME_GLOBALS, *PSMB_SRV_RUNTIME_GLOBALS;
 

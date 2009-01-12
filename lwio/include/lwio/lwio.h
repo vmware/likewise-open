@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -226,7 +226,9 @@ typedef uint32_t SMB_ERROR;
 #define SMB_ERROR_GSS                          0xF01F // 61471
 #define SMB_ERROR_HOST_NOT_FOUND               0xF020 // 61472
 #define SMB_ERROR_INVALID_VFS_PROVIDER         0xF021 // 61473
-#define SMB_ERROR_SENTINEL                     0xF022 // 61474
+#define SMB_ERROR_NO_SUCH_SHARE                0xF022 // 61474
+#define SMB_ERROR_DATA_ERROR                   0xF023 // 61475
+#define SMB_ERROR_SENTINEL                     0xF024 // 61476
 
 #define SMB_ERROR_MASK(_e_)                    (_e_ & 0xF000)
 
