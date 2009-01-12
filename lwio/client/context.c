@@ -304,6 +304,8 @@ SMBAcquireConnection(
 {
     DWORD dwError = 0;
 
+    SMBInit();
+
     pConnection->pAssoc = NULL;
 
     dwError = MAP_LWMSG_STATUS(lwmsg_client_acquire_assoc(

@@ -47,6 +47,7 @@
  */
 #include "includes.h"
 #include "ioinit.h"
+#include "ioipc.h"
 
 static
 DWORD
@@ -772,12 +773,18 @@ SMBSrvExecute(
                                    pProtocolSpec));
     BAIL_ON_SMB_ERROR(dwError);
 
+    dwError = IoIpcAddProtocolSpec(pProtocol);
+    BAIL_ON_SMB_ERROR(dwError);
+
     dwError = MAP_LWMSG_STATUS(lwmsg_server_new(pProtocol, &pServer));
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_add_dispatch_spec(
                     pServer,
                     gLWIOdispatch));
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = IoIpcAddDispatch(pServer);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_set_endpoint(

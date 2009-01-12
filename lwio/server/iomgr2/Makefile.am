@@ -10,7 +10,8 @@ libiomgr2_la_SOURCES = \
     iofile.c \
     iomem.c \
     iostring.c \
-    ioapi.c
+    ioapi.c \
+    ioipc.c
 
 libiomgr2_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1 \

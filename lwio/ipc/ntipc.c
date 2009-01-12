@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        ntipc.h
+ *        ntipc.c
  *
  * Abstract:
  *
@@ -46,12 +46,68 @@
 
 #include "includes.h"
 #include "ntipcmsg.h"
+#include "goto.h"
+#include "ntlogmacros.h"
 
 #define _LWMSG_MEMBER_BUFFER(Type, BufferField, LengthField) \
     LWMSG_MEMBER_POINTER_BEGIN(Type, BufferField), \
     LWMSG_UINT8(BYTE), \
     LWMSG_POINTER_END, \
     LWMSG_ATTR_LENGTH_MEMBER(Type, LengthField)
+
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+
+#if 0
+#define _LWMSG_MEMBER_EMPTY_STRUCT(Type, Field) \
+    LWMSG_MEMBER_STRUCT_BEGIN(Type, Field), \
+    LWMSG_STRUCT_END
+#endif
+
+static
+LWMsgTypeSpec gNtIpcTypeSpecPseudoOptionalIoFileHandle[] =
+{
+    LWMSG_STRUCT_BEGIN(NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE),
+    // Union Discriminator
+    LWMSG_MEMBER_UINT8(NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE, IsValid),
+    // Union - Begin
+    LWMSG_MEMBER_UNION_BEGIN(NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE, Variant),
+    // Union arm -- Invalid
+#if 0
+    _LWMSG_MEMBER_EMPTY_STRUCT(_NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE_VARIANT, Invalid),
+#endif
+    LWMSG_MEMBER_UINT8(_NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE_VARIANT, Invalid),
+    LWMSG_ATTR_TAG(FALSE),
+    // Union arm -- FileHandle
+    LWMSG_MEMBER_HANDLE(_NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE_VARIANT, FileHandle, IO_FILE_HANDLE),
+    LWMSG_ATTR_TAG(TRUE),
+    LWMSG_UNION_END,
+    LWMSG_ATTR_DISCRIM(NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE, IsValid),
+    // Union - End
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+#define _LWMSG_MEMBER_OPTIONAL_IO_FILE_HANDLE(Type, Field) \
+    LWMSG_MEMBER_TYPESPEC(Type, Field, gNtIpcTypeSpecPseudoOptionalIoFileHandle)
+
+static
+LWMsgTypeSpec gNtIpcTypeSpecPseudoIoFileName[] =
+{
+    LWMSG_STRUCT_BEGIN(NT_IPC_PSEUDO_IO_FILE_NAME),
+    _LWMSG_MEMBER_OPTIONAL_IO_FILE_HANDLE(NT_IPC_PSEUDO_IO_FILE_NAME, RootFileHandle),
+    LWMSG_MEMBER_PWSTR(NT_IPC_PSEUDO_IO_FILE_NAME, FileName),
+    LWMSG_MEMBER_UINT32(NT_IPC_PSEUDO_IO_FILE_NAME, IoNameOptions),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+#define _LWMSG_MEMBER_IO_FILE_NAME(Type, Field) \
+    LWMSG_MEMBER_TYPESPEC(Type, Field, gNtIpcTypeSpecPseudoIoFileName)
+
+#else // _NT_IPC_USE_PSEUDO_TYPES -> !_NT_IPC_USE_PSEUDO_TYPES
+
+#define _LWMSG_MEMBER_OPTIONAL_IO_FILE_HANDLE(Type, Field) \
+    LWMSG_MEMBER_HANDLE(Type, Field, IO_FILE_HANDLE)
 
 static
 LWMsgTypeSpec gNtIpcTypeSpecIoFileName[] =
@@ -63,6 +119,11 @@ LWMsgTypeSpec gNtIpcTypeSpecIoFileName[] =
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
+
+#define _LWMSG_MEMBER_IO_FILE_NAME(Type, Field) \
+    LWMSG_MEMBER_TYPESPEC(Type, Field, gNtIpcTypeSpecIoFileName)
+
+#endif // !_NT_IPC_USE_PSEUDO_TYPES
 
 static
 LWMsgTypeSpec gNtIpcTypeSpecMessageGenericFile[] =
@@ -112,7 +173,7 @@ LWMsgTypeSpec gNtIpcTypeSpecMessageCreateFile[] =
 {
     LWMSG_STRUCT_BEGIN(NT_IPC_MESSAGE_CREATE_FILE),
     LWMSG_MEMBER_PSECTOKEN(NT_IPC_MESSAGE_CREATE_FILE, pSecurityToken),
-    LWMSG_MEMBER_TYPESPEC(NT_IPC_MESSAGE_CREATE_FILE, FileName, gNtIpcTypeSpecIoFileName),
+    _LWMSG_MEMBER_IO_FILE_NAME(NT_IPC_MESSAGE_CREATE_FILE, FileName),
     LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE, DesiredAccess),
     LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE, AllocationSize),
     LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE, FileAttributes),
@@ -128,7 +189,7 @@ static
 LWMsgTypeSpec gNtIpcTypeSpecMessageCreateFileResult[] =
 {
     LWMSG_STRUCT_BEGIN(NT_IPC_MESSAGE_CREATE_FILE_RESULT),
-    LWMSG_MEMBER_HANDLE(NT_IPC_MESSAGE_CREATE_FILE_RESULT, FileHandle, IO_FILE_HANDLE),
+    _LWMSG_MEMBER_OPTIONAL_IO_FILE_HANDLE(NT_IPC_MESSAGE_CREATE_FILE_RESULT, FileHandle),
     LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE_RESULT, Status),
     LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE_RESULT, CreateResult),
     LWMSG_STRUCT_END,
@@ -207,20 +268,12 @@ LWMsgProtocolSpec gNtIpcProtocolSpec[] =
     LWMSG_PROTOCOL_END
 };
 
-LWMsgProtocolSpec*
-NtIpcGetProtocolSpec(
-    VOID
-    )
-{
-    return gNtIpcProtocolSpec;
-}
-
 NTSTATUS
 NtIpcLWMsgStatusToNtStatus(
     IN LWMsgStatus LwMsgStatus
     )
 {
-    NTSTATUS status = 0;
+    NTSTATUS status = STATUS_NONE_MAPPED;
 
     switch (LwMsgStatus)
     {
@@ -289,4 +342,105 @@ NtIpcLWMsgStatusToNtStatus(
 
     return status;
 }
+
+LWMsgStatus
+NtIpcNtStatusToLWMsgStatus(
+    IN NTSTATUS Status
+    )
+{
+    LWMsgStatus lwMsgStatus = LWMSG_STATUS_ERROR;
+
+    // TODO -- Implement this properly
+
+    switch (Status)
+    {
+        case STATUS_SUCCESS:
+            lwMsgStatus = LWMSG_STATUS_SUCCESS;
+            break;
+        case STATUS_NOT_IMPLEMENTED:
+            lwMsgStatus = LWMSG_STATUS_UNIMPLEMENTED;
+            break;
+        default:
+            lwMsgStatus = LWMSG_STATUS_ERROR;
+    }
+
+    return lwMsgStatus;
+}
+
+NTSTATUS
+NtIpcAddProtocolSpec(
+    IN OUT LWMsgProtocol* pProtocol
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+
+    status = NtIpcLWMsgStatusToNtStatus(lwmsg_protocol_add_protocol_spec(
+                    pProtocol,
+                    gNtIpcProtocolSpec));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
+
+NTSTATUS
+NtIpcUnregisterFileHandle(
+    IN LWMsgAssoc* pAssoc,
+    IN IO_FILE_HANDLE FileHandle
+    )
+{
+    NTSTATUS status = 0;
+
+    status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_unregister_handle(
+                                    pAssoc,
+                                    FileHandle,
+                                    LWMSG_FALSE));
+    assert(!status);
+    return status;
+}
+
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+VOID
+NtIpcRealToPseudoIoFileHandle(
+    IN OPTIONAL IO_FILE_HANDLE FileHandle,
+    OUT PNT_IPC_PSEUDO_OPTIONALIO_FILE_HANDLE pPseudoFileHandle
+    )
+{
+    pPseudoFileHandle->IsValid = FileHandle ? TRUE : FALSE;
+    pPseudoFileHandle->Variant.FileHandle = FileHandle;
+}
+
+VOID
+NtIpcRealFromPseudoIoFileHandle(
+    OUT PIO_FILE_HANDLE pFileHandle,
+    IN PNT_IPC_PSEUDO_OPTIONALIO_FILE_HANDLE pPseudoFileHandle
+    )
+{
+    *pFileHandle = pPseudoFileHandle->IsValid ? pPseudoFileHandle->Variant.FileHandle : NULL;
+}
+
+VOID
+NtIpcRealToPseudoIoFileName(
+    IN PIO_FILE_NAME FileName,
+    OUT PNT_IPC_PSEUDO_IO_FILE_NAME pPseudoFileName
+    )
+{
+    NtIpcRealToPseudoIoFileHandle(FileName->RootFileHandle, &pPseudoFileName->RootFileHandle);
+    pPseudoFileName->FileName = FileName->FileName;
+    pPseudoFileName->IoNameOptions = FileName->IoNameOptions;
+}
+
+VOID
+NtIpcRealFromPseudoIoFileName(
+    OUT PIO_FILE_NAME FileName,
+    IN PNT_IPC_PSEUDO_IO_FILE_NAME pPseudoFileName
+    )
+{
+    NtIpcRealFromPseudoIoFileHandle(&FileName->RootFileHandle, &pPseudoFileName->RootFileHandle);
+    FileName->FileName = pPseudoFileName->FileName;
+    FileName->IoNameOptions = pPseudoFileName->IoNameOptions;
+}
+#endif
 

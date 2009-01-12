@@ -106,7 +106,7 @@ cleanup:
 #endif
 
 VOID
-DriverShutdown(
+PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
@@ -114,7 +114,7 @@ DriverShutdown(
 }
 
 NTSTATUS
-DriverDispatch(
+PvfsDriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
     IN PIRP pIrp
     )
@@ -181,7 +181,7 @@ DriverDispatch(
     }
 
 cleanup:
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
+    IO_LOG_ENTER_LEAVE_STATUS_EE_EX(ntStatus, EE, "Type = %u", pIrp->Type);
     return ntStatus;
 }
 
@@ -203,8 +203,8 @@ DriverEntry(
 
     ntStatus = IoDriverInitialize(DriverHandle,
                                   NULL,
-                                  DriverShutdown,
-                                  DriverDispatch);
+                                  PvfsDriverShutdown,
+                                  PvfsDriverDispatch);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
 
     ntStatus = IoDeviceCreate(&deviceHandle,

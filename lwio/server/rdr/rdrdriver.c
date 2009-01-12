@@ -52,7 +52,7 @@
 
 
 VOID
-DriverShutdown(
+RdrDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
@@ -60,7 +60,7 @@ DriverShutdown(
 }
 
 NTSTATUS
-DriverDispatch(
+RdrDriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
     IN PIRP pIrp
     )
@@ -149,8 +149,8 @@ DriverEntry(
 
     ntStatus = IoDriverInitialize(DriverHandle,
                                   NULL,
-                                  DriverShutdown,
-                                  DriverDispatch);
+                                  RdrDriverShutdown,
+                                  RdrDriverDispatch);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
 
     ntStatus = IoDeviceCreate(&deviceHandle,

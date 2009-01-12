@@ -151,7 +151,11 @@ NtIpcCreateFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
 
     request.pSecurityToken = pSecurityToken;
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+    NtIpcRealToPseudoIoFileName(FileName, &request.FileName);
+#else
     request.FileName = *FileName;
+#endif
     request.DesiredAccess = DesiredAccess;
     request.AllocationSize = AllocationSize;
     request.FileAttributes = FileAttributes;
@@ -171,7 +175,11 @@ NtIpcCreateFile(
 
     pResponse = (PNT_IPC_MESSAGE_CREATE_FILE_RESULT) pReply;
 
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+    NtIpcRealFromPseudoIoFileHandle(&fileHandle, &pResponse->FileHandle);
+#else
     fileHandle = pResponse->FileHandle;
+#endif
     ioStatusBlock.Status = pResponse->Status;
     ioStatusBlock.CreateResult = pResponse->CreateResult;
 
@@ -182,7 +190,11 @@ cleanup:
     {
         // TODO !!!! -- ASK BRIAN ABOUT FileHandle and failures...
         assert(!fileHandle);
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+        assert(!pResponse || !pResponse->FileHandle.IsValid);
+#else
         assert(!pResponse || !pResponse->FileHandle);
+#endif
     }
 
     NtpIpcFreeResponse(pConnection, responseType, pResponse);
@@ -226,10 +238,11 @@ NtIpcCloseFile(
     assert(0 == pResponse->BytesTransferred);
 
     status = ioStatusBlock.Status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtIpcUnregisterFileHandle(pConnection->pAssoc, FileHandle);
 
 cleanup:
-    // TODO !!!! -- ASK BRIAN ABOUT FileHandle...
-
     NtpIpcFreeResponse(pConnection, responseType, pResponse);
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);

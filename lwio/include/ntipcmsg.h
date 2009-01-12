@@ -45,12 +45,16 @@
 #ifndef __NT_IPC_MSG_H__
 #define __NT_IPC_MSG_H__
 
+#include <lwmsg/lwmsg.h>
+#include "lwiodef.h"
 #include "lwioipc.h"
 #include "io-types.h"
 
 // TODO-Add async completion support.
 
-#define _NT_IPC_MESSAGE_TYPE_BASE 100000
+// TODO-Add check in lwmsg to check for protocol tags > 16 bits.
+// Apparently, the server crashed if you do that.
+#define _NT_IPC_MESSAGE_TYPE_BASE 10000
 
 //
 // Protocol Message Types
@@ -83,6 +87,39 @@ typedef enum _NT_IPC_MESSAGE_TYPE
     NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE,
     NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE_RESULT     // NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT
 } NT_IPC_MESSAGE_TYPE, *PNT_IPC_MESSAGE_TYPE;
+
+//
+// Protocol Pseudo Types
+//
+
+// TODO-Remove pseudo-types (requires support for "optional handle" in lwmsg).
+// The issue that that handles cannot be NULL.
+
+#define _NT_IPC_USE_PSEUDO_TYPES 1
+
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+typedef union __NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE_VARIANT {
+#if 0
+    struct {} Invalid;
+#else
+    // Dummy field
+    BYTE Invalid;
+#endif
+    IO_FILE_HANDLE FileHandle;
+} _NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE_VARIANT;
+
+typedef struct _NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE {
+    BOOLEAN IsValid;
+    _NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE_VARIANT Variant;
+} NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE, *PNT_IPC_PSEUDO_OPTIONALIO_FILE_HANDLE;
+
+// For IO_FILE_NAME
+typedef struct _NT_IPC_PSEUDO_IO_FILE_NAME {
+    OPTIONAL NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE RootFileHandle;
+    PCWSTR FileName;
+    IO_NAME_OPTIONS IoNameOptions;
+} NT_IPC_PSEUDO_IO_FILE_NAME, *PNT_IPC_PSEUDO_IO_FILE_NAME;
+#endif
 
 //
 // Protocol Messages
@@ -130,7 +167,11 @@ typedef struct _NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT {
 
 typedef struct _NT_IPC_MESSAGE_CREATE_FILE {
     IN PSMB_SECURITY_TOKEN_REP pSecurityToken;
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+    IN NT_IPC_PSEUDO_IO_FILE_NAME FileName;
+#else
     IN IO_FILE_NAME FileName;
+#endif
     IN ACCESS_MASK DesiredAccess;
     IN OPTIONAL LONG64 AllocationSize;
     IN FILE_ATTRIBUTES FileAttributes;
@@ -146,7 +187,11 @@ typedef struct _NT_IPC_MESSAGE_CREATE_FILE {
 } NT_IPC_MESSAGE_CREATE_FILE, *PNT_IPC_MESSAGE_CREATE_FILE;
 
 typedef struct _NT_IPC_MESSAGE_CREATE_FILE_RESULT {
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+    OUT NT_IPC_PSEUDO_OPTIONAL_IO_FILE_HANDLE FileHandle;
+#else
     OUT IO_FILE_HANDLE FileHandle;
+#endif
 
     // From IO_STATUS_BLOCK (which uses context-based union):
     OUT NTSTATUS Status;
@@ -265,14 +310,51 @@ typedef struct _NT_IPC_MESSAGE_SET_INFORMATION_FILE {
 // Functions
 //
 
-LWMsgProtocolSpec*
-NtIpcGetProtocolSpec(
-    VOID
-    );
-
 NTSTATUS
 NtIpcLWMsgStatusToNtStatus(
     IN LWMsgStatus LwMsgStatus
     );
+
+LWMsgStatus
+NtIpcNtStatusToLWMsgStatus(
+    IN NTSTATUS Status
+    );
+
+NTSTATUS
+NtIpcAddProtocolSpec(
+    IN OUT LWMsgProtocol* pProtocol
+    );
+
+NTSTATUS
+NtIpcUnregisterFileHandle(
+    IN LWMsgAssoc* pAssoc,
+    IN IO_FILE_HANDLE FileHandle
+    );
+
+#ifdef _NT_IPC_USE_PSEUDO_TYPES
+VOID
+NtIpcRealToPseudoIoFileHandle(
+    IN OPTIONAL IO_FILE_HANDLE FileHandle,
+    OUT PNT_IPC_PSEUDO_OPTIONALIO_FILE_HANDLE pPseudoFileHandle
+    );
+
+VOID
+NtIpcRealFromPseudoIoFileHandle(
+    OUT PIO_FILE_HANDLE pFileHandle,
+    IN PNT_IPC_PSEUDO_OPTIONALIO_FILE_HANDLE pPseudoFileHandle
+    );
+
+VOID
+NtIpcRealToPseudoIoFileName(
+    IN PIO_FILE_NAME FileName,
+    OUT PNT_IPC_PSEUDO_IO_FILE_NAME pPseudoFileName
+    );
+
+VOID
+NtIpcRealFromPseudoIoFileName(
+    OUT PIO_FILE_NAME FileName,
+    IN PNT_IPC_PSEUDO_IO_FILE_NAME pPseudoFileName
+    );
+#endif
 
 #endif /* __NT_IPC_MSG_H__ */

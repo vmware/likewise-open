@@ -29,6 +29,7 @@
  */
 
 #include "includes.h"
+#include "ntipcmsg.h"
 
 DWORD
 SMBInitialize(
@@ -49,6 +50,9 @@ SMBInitialize(
     dwError = MAP_LWMSG_STATUS(lwmsg_protocol_add_protocol_spec(
                     pProtocol,
                     pProtocolSpec));
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = NtIpcAddProtocolSpec(pProtocol);
     BAIL_ON_SMB_ERROR(dwError);
 
     gpSMBProtocol = pProtocol;

@@ -408,6 +408,7 @@ AC_CONFIG_FILES([Makefile
         tools/lw-io-refresh/Makefile
         tools/lw-io-get-log-info/Makefile
         tools/lw-io-set-log-level/Makefile
+        tools/lwio-tool/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
         tests/test_rbtree/Makefile
