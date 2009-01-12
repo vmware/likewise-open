@@ -432,6 +432,45 @@ FreeWbcUserInfo(
 	return 0;
 }
 
+static int
+FreeWbcErrorInfo(
+	void *p
+	)
+{
+	struct wbcAuthErrorInfo *e = (struct wbcAuthErrorInfo*)p;
+
+	if (e == NULL)
+		return 0;
+
+	_WBC_FREE(e->nt_string);
+	_WBC_FREE(e->display_string);
+
+	return 0;
+}
+
+
+static DWORD
+FillErrorInfo(
+	DWORD dwError,
+	struct wbcAuthErrorInfo **ppWbcError
+	)
+{
+	DWORD dwErr = LSA_ERROR_INTERNAL;
+
+	struct wbcAuthErrorInfo *pError = NULL;
+
+	pError = _wbc_malloc_zero(sizeof(struct wbcAuthErrorInfo),
+				  FreeWbcErrorInfo);
+	BAIL_ON_NULL_PTR(pError, dwErr);
+
+	/* Fill in errors here */
+
+	*ppWbcError = pError;
+
+done:
+	return dwErr;
+}
+
 
 wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 			     struct wbcAuthUserInfo **info,
@@ -506,6 +545,10 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 	dwErr = CopyLsaUserInfoToWbcInfo(pWbcUserInfo, pLsaUserInfo);
 	BAIL_ON_LSA_ERR(dwErr);	
 
+	/* Copy OUT params */
+	*info = pWbcUserInfo;
+
+
 done:
 	if (hLsa) {
 		LsaCloseServer(hLsa);
@@ -517,6 +560,9 @@ done:
 
 	if (!LSA_ERROR_IS_OK(dwErr)) {
 		_WBC_FREE(pWbcUserInfo);
+
+		/* Try to explain why we failed */
+		FillErrorInfo(dwErr, error);
 	}
 
 	wbc_status = map_error_to_wbc_status(dwErr);
