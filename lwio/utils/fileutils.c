@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise IO (LWIO)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)

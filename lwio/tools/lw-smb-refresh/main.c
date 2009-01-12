@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise IO (LWIO)
  *
  *        Tool to refresh SMB Configuration
  *
@@ -49,7 +49,7 @@
 
 #include "config.h"
 #include "lsmbsys.h"
-#include "lsmb/lsmb.h"
+#include "lwio/lwio.h"
 #include "smbdef.h"
 #include "smbutils.h"
 

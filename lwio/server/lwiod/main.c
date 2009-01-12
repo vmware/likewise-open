@@ -777,7 +777,7 @@ SMBSrvExecute(
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_add_dispatch_spec(
                     pServer,
-                    gLSMBdispatch));
+                    gLWIOdispatch));
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_set_endpoint(

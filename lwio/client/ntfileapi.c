@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -60,7 +60,7 @@ NtpGetSecurityToken(
     DWORD dwError = 0;
     PSMB_CLIENT_CONTEXT pClientContext = NULL;
     PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
-
+    
     dwError = SMBGetClientContext(&pClientContext);
     if (dwError)
     {
@@ -297,7 +297,7 @@ cleanup:
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 NtDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -401,7 +401,7 @@ cleanup:
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 NtQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -435,7 +435,7 @@ cleanup:
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 NtSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -481,7 +481,7 @@ NtQueryFullAttributesFile(
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
-NTSTATUS
+NTSTATUS 
 NtQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -515,7 +515,7 @@ NtSetVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     );
 
-NTSTATUS
+NTSTATUS 
 NtLockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -527,7 +527,7 @@ NtLockFile(
     IN BOOLEAN ExclusiveLock
     );
 
-NTSTATUS
+NTSTATUS 
 NtUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -609,7 +609,7 @@ NtQuerySecurityFile(
     OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
-    );
+    ); 
 
 NTSTATUS
 NtSetSecurityFile(
@@ -618,7 +618,7 @@ NtSetSecurityFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    );
+    ); 
 
 // TODO: QueryEaFile and SetEaFile.
 

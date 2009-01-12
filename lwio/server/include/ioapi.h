@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -107,7 +107,7 @@ IoWriteFile(
     IN OPTIONAL PULONG Key
     );
 
-NTSTATUS
+NTSTATUS 
 IoDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -138,7 +138,7 @@ IoFlushBuffersFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock
     );
 
-NTSTATUS
+NTSTATUS 
 IoQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -148,7 +148,7 @@ IoQueryInformationFile(
     IN FILE_INFORMATION_CLASS FileInformationClass
     );
 
-NTSTATUS
+NTSTATUS 
 IoSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -170,7 +170,7 @@ IoQueryFullAttributesFile(
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
-NTSTATUS
+NTSTATUS 
 IoQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -204,7 +204,7 @@ IoSetVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     );
 
-NTSTATUS
+NTSTATUS 
 IoLockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -216,7 +216,7 @@ IoLockFile(
     IN BOOLEAN ExclusiveLock
     );
 
-NTSTATUS
+NTSTATUS 
 IoUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -298,7 +298,7 @@ IoQuerySecurityFile(
     OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
-    );
+    ); 
 
 NTSTATUS
 IoSetSecurityFile(
@@ -307,7 +307,7 @@ IoSetSecurityFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    );
+    ); 
 
 // TODO: QueryEaFile and SetEaFile.
 

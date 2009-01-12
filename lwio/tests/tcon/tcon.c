@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,7 +36,7 @@
 #include <gssapi/gssapi_generic.h>
 #include <gssapi/gssapi_krb5.h>
 
-#include <lsmb/lsmb.h>
+#include <lwio/lwio.h>
 
 #include "smbdef.h"
 #include "smbutils.h"
@@ -47,7 +47,7 @@
 
 #include "smbclient.h"
 
-#define SMB_CONFIG_FILE_PATH CONFIGDIR "/lsmbd.conf"
+#define SMB_CONFIG_FILE_PATH CONFIGDIR "/lwiod.conf"
 
 static
 DWORD

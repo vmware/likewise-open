@@ -1,7 +1,7 @@
 
 typedef struct _PVFS_CCB{
     //LIST_ENTRY NextCCB;
-    IO_UNICODE_STRING AbsolutePathName;
+    IO_UNICODE_STRING AbsolutePathName; 
     ACCESS_MASK DesiredAccess;
     LONG64 AllocationSize;
     FILE_ATTRIBUTES FileAttributes;
@@ -9,7 +9,7 @@ typedef struct _PVFS_CCB{
     FILE_CREATE_DISPOSITION CreateDisposition;
     FILE_CREATE_OPTIONS CreateOptions;
     PIO_EA_BUFFER pEaBuffer;
-
+    
     int fd;
     char *path;
     int oflags;

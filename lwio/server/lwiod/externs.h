@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -55,9 +55,9 @@ extern PSMBSERVERINFO gpServerInfo;
 extern pthread_t gSignalHandlerThread;
 extern pthread_t* gpSignalHandlerThread;
 
-extern LWMsgDispatchSpec gLSMBdispatch[];
+extern LWMsgDispatchSpec gLWIOdispatch[];
 
-#define DAEMON_NAME "lsmbd"
+#define DAEMON_NAME "lwiod"
 #define PID_DIR "/var/run"
 #define PID_FILE PID_DIR "/" DAEMON_NAME ".pid"
 

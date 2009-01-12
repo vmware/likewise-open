@@ -1,6 +1,6 @@
-lib_LTLIBRARIES = liblsmbclient_nothr.la liblsmbclient.la
+lib_LTLIBRARIES = liblwioclient_nothr.la liblwioclient.la
 
-liblsmbclient_nothr_la_SOURCES = \
+liblwioclient_nothr_la_SOURCES = \
     access.c               \
     callnp.c               \
     closehandle.c          \
@@ -28,28 +28,28 @@ liblsmbclient_nothr_la_SOURCES = \
     writefile.c            \
     getsesskey.c 
 
-liblsmbclient_nothr_la_CPPFLAGS = \
+liblwioclient_nothr_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
     -DSMB_NO_THREADS \
     -I@top_srcdir@/include  \
     @LWMSG_INCLUDES@
 
-liblsmbclient_nothr_la_CFLAGS = \
+liblwioclient_nothr_la_CFLAGS = \
     $(AM_CFLAGS) \
     -Wmissing-prototypes
 
-liblsmbclient_nothr_la_LIBADD = \
+liblwioclient_nothr_la_LIBADD = \
     @top_builddir@/ipc/libsmbipc.la
 
-liblsmbclient_la_SOURCES = \
+liblwioclient_la_SOURCES = \
     context.c              \
     ntfileapi.c            \
     win32.c
 
-liblsmbclient_la_CPPFLAGS = \
+liblwioclient_la_CPPFLAGS = \
     -I@top_srcdir@/include
 
-liblsmbclient_la_LIBADD = \
-    liblsmbclient_nothr.la \
+liblwioclient_la_LIBADD = \
+    liblwioclient_nothr.la \
     @LWMSG_LIBS@ \
     -lkrb5

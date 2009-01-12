@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise IO (LWIO)
  *
  *        Logging API
  *
@@ -70,7 +70,7 @@ SMBOpenSyslog(
     }
 
     dwError = SMBAllocateString(
-                  (IsNullOrEmptyString(pszIdentifier) ? "lsmb" : pszIdentifier),
+                  (IsNullOrEmptyString(pszIdentifier) ? "lwio" : pszIdentifier),
                   &pSyslog->pszIdentifier);
     if (dwError)
     {

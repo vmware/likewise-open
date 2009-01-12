@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise IO (LWIO)
  *
  *        Config (INF Style) parser
  *

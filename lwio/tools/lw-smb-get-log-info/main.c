@@ -37,9 +37,9 @@
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise IO (LWIO)
  *
- *        Tool to get the LSMB log information
+ *        Tool to get the LWIO log information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -49,7 +49,7 @@
 
 #include "config.h"
 #include "lsmbsys.h"
-#include "lsmb/lsmb.h"
+#include "lwio/lwio.h"
 #include "smbdef.h"
 #include "smbutils.h"
 
@@ -136,7 +136,7 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to get LSMB log setting information.  %s\n", pszErrorBuffer);
+                fprintf(stderr, "Failed to get LWIO log setting information.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -146,7 +146,7 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to get LSMB log setting information. Error code [%d]\n", dwError);
+        fprintf(stderr, "Failed to get LWIO log setting information. Error code [%d]\n", dwError);
     }
 
     goto cleanup;

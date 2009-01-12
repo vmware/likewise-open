@@ -1,3 +1,3 @@
-lsmbincludedir = $(includedir)/lsmb
+lwioincludedir = $(includedir)/lwio
 
-lsmbinclude_HEADERS = lsmb/lsmb.h
+lwioinclude_HEADERS = lwio/lwio.h

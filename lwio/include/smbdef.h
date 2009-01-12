@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise IO (LWIO)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -64,22 +64,6 @@
 #define SMB_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#ifndef TRUE
-#define TRUE  1
-#endif
-
-#ifndef true
-#define true 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef false
-#define false 0
-#endif
-
 #ifndef WIN32
 #define PATH_SEPARATOR_STR "/"
 #else
@@ -88,40 +72,7 @@
 
 #define SMB_DEFAULT_HANDLE_MAX 100000
 
-#ifndef DWORD_MAX
-
-#ifdef  UINT_MAX
-#define DWORD_MAX   UINT_MAX
-#else
-#define DWORD_MAX   4294967295U
-#endif
-
-#endif
-
-#ifndef UINT32_MAX
-#define UINT32_MAX UINT_MAX
-#endif
-
-#if defined(__sparc__) || defined(__ppc__)
-
-#ifndef uint32_t
-#define u_int32_t uint32_t
-#endif
-
-#ifndef uint16_t
-#define u_int16_t uint16_t
-#endif
-
-#ifndef uint8_t
-#define u_int8_t  uint8_t
-#endif
-
-#ifndef SOCKET_DEFINED
 typedef int             SOCKET;
-#define SOCKET_DEFINED 1
-#endif
-
-#endif /* defined(__sparc__) || defined(__ppc__) */
 
 #if defined(HAVE_SOCKLEN_T) && defined(GETSOCKNAME_TAKES_SOCKLEN_T)
 #    define SOCKLEN_T socklen_t

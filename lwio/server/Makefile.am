@@ -5,4 +5,4 @@ SUBDIRS = \
          pvfs  \
          rdr   \
          iomgr \
-         lsmbd
+         lwiod

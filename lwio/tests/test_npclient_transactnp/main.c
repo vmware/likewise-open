@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise IO (LWIO)
  *
  *        Test Program for exercising SMB Client API
  *
@@ -49,7 +49,7 @@
 
 #include "config.h"
 #include "lsmbsys.h"
-#include "lsmb/lsmb.h"
+#include "lwio/lwio.h"
 #include "smbdef.h"
 #include "smbutils.h"
 
@@ -86,7 +86,7 @@ main(
     wchar16_t wszPipe[1024];
     wchar16_t wszClientMessage[256];
     wchar16_t wszBuf[BUFFER_SIZE+1];
-    PCSTR pszDefaultClientMessage = "Message from LSMB Client";
+    PCSTR pszDefaultClientMessage = "Message from LWIO Client";
     DWORD cbRead = 0;
     DWORD dwMode = 0;
 

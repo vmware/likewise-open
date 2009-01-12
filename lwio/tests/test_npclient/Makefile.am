@@ -7,4 +7,4 @@ test_npclient_CPPFLAGS = \
 	
 test_npclient_LDFLAGS = -static
 
-test_npclient_LDADD = @top_builddir@/client/liblsmbclient.la
+test_npclient_LDADD = @top_builddir@/client/liblwioclient.la

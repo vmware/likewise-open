@@ -67,7 +67,7 @@ SrvShareDbOpen(
     DWORD dwError = 0;
     sqlite3* pDbHandle = NULL;
 
-    dwError = sqlite3_open(LSMB_SRV_SHARE_DB, &pDbHandle);
+    dwError = sqlite3_open(LWIO_SRV_SHARE_DB, &pDbHandle);
     BAIL_ON_LSA_ERROR(dwError);
 
     *phDb = (HANDLE)pDbHandle;
@@ -186,9 +186,9 @@ SrvShareDbWriteToShareInfo(
         }
 
         dwError = LsaAllocateStringPrintf(
-					&pUserInfo->pszSid,
-					LOCAL_USER_SID_FORMAT,
-					pUserInfo->uid);
+        				&pUserInfo->pszSid,
+        				LOCAL_USER_SID_FORMAT,
+        				pUserInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
 
         *(ppUserInfoList + iRow) = pUserInfo;
@@ -240,7 +240,7 @@ SrvShareDbCreate(
     PSTR pszError = NULL;
     BOOLEAN bExists = FALSE;
 
-    dwError = LsaCheckFileExists(LSMB_SRV_SHARE_DB, &bExists);
+    dwError = LsaCheckFileExists(LWIO_SRV_SHARE_DB, &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
     // TODO: Implement an upgrade scenario
@@ -248,19 +248,19 @@ SrvShareDbCreate(
        goto cleanup;
     }
 
-    dwError = SMBCheckDirectoryExists(LSMB_SRV_DB_DIR, &bExists);
+    dwError = SMBCheckDirectoryExists(LWIO_SRV_DB_DIR, &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!bExists) {
         mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
 
         /* Allow go+rx to the base LSASS folder */
-        dwError = SMBCreateDirectory(LSMB_SRV_DB_DIR, cacheDirMode);
+        dwError = SMBCreateDirectory(LWIO_SRV_DB_DIR, cacheDirMode);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     /* restrict access to u+rwx to the db folder */
-    dwError = SMBChangeOwnerAndPermissions(LSMB_SRV_DB_DIR, 0, 0, S_IRWXU);
+    dwError = SMBChangeOwnerAndPermissions(LWIO_SRV_DB_DIR, 0, 0, S_IRWXU);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = SMBSrvDbOpen(&hDb);
@@ -275,7 +275,7 @@ SrvShareDbCreate(
                            &pszError);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBChangeOwnerAndPermissions(LSMB_SRV_SHARE_DB, 0, 0, S_IRWXU);
+    dwError = SMBChangeOwnerAndPermissions(LWIO_SRV_SHARE_DB, 0, 0, S_IRWXU);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:

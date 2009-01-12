@@ -1,1 +1,1 @@
-lsmbconf_DATA = lsmbd.conf
+lwioconf_DATA = lwiod.conf

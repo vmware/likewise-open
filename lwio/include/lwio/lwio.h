@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -39,14 +39,14 @@
  *
  * Abstract:
  *
- *        Likewise SMB Subsystem (LSMB)
+ *        Likewise SMB Subsystem (LWIO)
  *
  *        Public API
 
  * Author: Kaya Bekiroglu (kaya@likewisesoftware.com)
  */
-#ifndef __LSMB_H__
-#define __LSMB_H__
+#ifndef __LWIO_H__
+#define __LWIO_H__
 
 #include <lw/base.h>
 
@@ -903,5 +903,5 @@ CloseHandle(
 
 #endif /* ! SMB_NO_THREADS */
 
-#endif /* __LSMB_H__ */
+#endif /* __LWIO_H__ */
 

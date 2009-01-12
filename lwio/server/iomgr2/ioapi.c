@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -210,7 +210,7 @@ IoWriteFile(
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 IoDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -253,7 +253,7 @@ IoFlushBuffersFile(
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 IoQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -267,7 +267,7 @@ IoQueryInformationFile(
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 IoSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -298,7 +298,7 @@ IoQueryFullAttributesFile(
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 IoQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -344,7 +344,7 @@ IoSetVolumeInformationFile(
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 IoLockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -360,7 +360,7 @@ IoLockFile(
     return status;
 }
 
-NTSTATUS
+NTSTATUS 
 IoUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,

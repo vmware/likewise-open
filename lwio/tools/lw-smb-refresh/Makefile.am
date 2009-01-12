@@ -8,5 +8,5 @@ lw_smb_refresh_CPPFLAGS =  \
     -I@top_srcdir@/include
 
 lw_smb_refresh_LDADD = \
-    @top_builddir@/client/liblsmbclient.la
+    @top_builddir@/client/liblwioclient.la
 

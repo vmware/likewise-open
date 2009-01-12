@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -50,7 +50,7 @@
 #include "lsmbsys.h"
 
 #include <krb5.h>
-#include <lsmb/lsmb.h>
+#include <lwio/lwio.h>
 
 #include <lwmsg/lwmsg.h>
 #include <lwmsg/protocol.h>

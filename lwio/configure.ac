@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(lsmb, 5.0.0, support@likewisesoftware.com)
+AC_INIT(lwio, 5.0.0, support@likewisesoftware.com)
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADERS([include/config.h])
@@ -244,14 +244,14 @@ AM_CFLAGS="$AM_CFLAGS -Wall -Werror -fno-strict-aliasing"
 AC_SUBST(AM_CPPFLAGS)
 AC_SUBST(AM_CFLAGS)
 
-lsmbconfdir="$sysconfdir"
-AC_SUBST(lsmbconfdir)
-AS_AC_EXPAND(CONFIGDIR, $lsmbconfdir)
+lwioconfdir="$sysconfdir"
+AC_SUBST(lwioconfdir)
+AS_AC_EXPAND(CONFIGDIR, $lwioconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
-lsmbcachedir="$localstatedir/lib/likewise"
-AC_SUBST(lsmbcachedir)
-AS_AC_EXPAND(CACHEDIR, $lsmbcachedir)
+lwiocachedir="$localstatedir/lib/likewise"
+AC_SUBST(lwiocachedir)
+AS_AC_EXPAND(CACHEDIR, $lwiocachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
 
 AS_AC_EXPAND(providerdir, $libdir)
@@ -388,7 +388,7 @@ CFLAGS="$saved_CFLAGS"
 AC_CONFIG_FILES([Makefile
         include/Makefile
         etc/Makefile
-        etc/lsmbd.conf
+        etc/lwiod.conf
         utils/Makefile
         atomic/Makefile
         logging_r/Makefile
@@ -404,7 +404,7 @@ AC_CONFIG_FILES([Makefile
         server/srv/Makefile
         server/npvfs/Makefile
         server/pvfs/Makefile
-        server/lsmbd/Makefile
+        server/lwiod/Makefile
         tools/Makefile
         tools/lw-smb-refresh/Makefile
         tools/lw-smb-get-log-info/Makefile

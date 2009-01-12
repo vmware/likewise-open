@@ -30,7 +30,7 @@
 
 #include "config.h"
 #include "lsmbsys.h"
-#include "lsmb/lsmb.h"
+#include "lwio/lwio.h"
 #include "smbatomic.h"
 
 pthread_mutex_t gAtomicMutex = PTHREAD_MUTEX_INITIALIZER;

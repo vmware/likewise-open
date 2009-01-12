@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -266,7 +266,7 @@ NtIpcWriteFile(
     return STATUS_NOT_IMPLEMENTED;
 }
 
-NTSTATUS
+NTSTATUS 
 NtIpcDeviceIoControlFile(
     IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -309,7 +309,7 @@ NtIpcFlushBuffersFile(
     return STATUS_NOT_IMPLEMENTED;
 }
 
-NTSTATUS
+NTSTATUS 
 NtIpcQueryInformationFile(
     IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -323,7 +323,7 @@ NtIpcQueryInformationFile(
     return STATUS_NOT_IMPLEMENTED;
 }
 
-NTSTATUS
+NTSTATUS 
 NtIpcSetInformationFile(
     IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -350,7 +350,7 @@ NtIpcQueryFullAttributesFile(
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
-NTSTATUS
+NTSTATUS 
 NtIpcQueryDirectoryFile(
     IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -387,7 +387,7 @@ NtIpcSetVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     );
 
-NTSTATUS
+NTSTATUS 
 NtIpcLockFile(
     IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -400,7 +400,7 @@ NtIpcLockFile(
     IN BOOLEAN ExclusiveLock
     );
 
-NTSTATUS
+NTSTATUS 
 NtIpcUnlockFile(
     IN PSMB_SERVER_CONNECTION pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -490,7 +490,7 @@ NtIpcQuerySecurityFile(
     OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
-    );
+    ); 
 
 NTSTATUS
 NtIpcSetSecurityFile(
@@ -500,7 +500,7 @@ NtIpcSetSecurityFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    );
+    ); 
 
 // TODO: QueryEaFile and SetEaFile.
 

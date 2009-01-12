@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise IO (LWIO)
  *
  *        Listener Definitions
  *
@@ -52,7 +52,7 @@
 #define SMB_SERVER_PORT      445
 #define SMB_LISTEN_Q         5
 
-#define LSMB_SRV_DB_DIR CACHEDIR     "/db"
-#define LSMB_SRV_SHARE_DB LSMB_SRV_DB_DIR "/lsmb-shares.db"
+#define LWIO_SRV_DB_DIR CACHEDIR     "/db"
+#define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR "/lwio-shares.db"
 
 #endif /* __DEFS_H__ */

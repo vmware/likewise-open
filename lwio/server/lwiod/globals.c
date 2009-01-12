@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -62,7 +62,7 @@ SMBSERVERINFO gServerInfo =
     0                           /* Process exit code */
 };
 
-LWMsgDispatchSpec gLSMBdispatch[] =
+LWMsgDispatchSpec gLWIOdispatch[] =
 {
     LWMSG_DISPATCH(SMB_REFRESH_CONFIG,           SMBSrvIpcRefreshConfiguration),
     LWMSG_DISPATCH(SMB_SET_LOG_LEVEL,            SMBSrvIpcSetLogInfo),
