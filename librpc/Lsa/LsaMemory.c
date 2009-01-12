@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -26,6 +26,12 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
+ */
+
+/*
+ * Abstract: Lsa memory (de)allocation routines (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
 #include "includes.h"
@@ -205,7 +211,7 @@ NTSTATUS LsaAllocateRefDomainList(RefDomainList **out,
             goto_if_ntstatus_not_success(status, error);
         }
 
-        SidCopyAlloc(&info->sid, in->domains[i].sid);
+        RtlSidCopyAlloc(&info->sid, in->domains[i].sid);
         goto_if_no_memory_ntstatus(info->sid, error);
 
         if (info->sid) {
@@ -338,7 +344,7 @@ static NTSTATUS LsaCopyPolInfoLsaDomain(LsaDomainInfo *out,
         goto_if_ntstatus_not_success(status, cleanup);
     }
 
-    SidCopyAlloc(&out->sid, in->sid);
+    RtlSidCopyAlloc(&out->sid, in->sid);
     goto_if_no_memory_ntstatus(out->sid, cleanup);
 
     if (out->sid) {
@@ -439,7 +445,7 @@ static NTSTATUS LsaCopyPolInfoDnsDomain(DnsDomainInfo *out,
     memcpy((void*)&out->domain_guid, (void*)&in->domain_guid,
            sizeof(Guid));
 
-    SidCopyAlloc(&out->sid, in->sid);
+    RtlSidCopyAlloc(&out->sid, in->sid);
     goto_if_no_memory_ntstatus(out->sid, cleanup);
 
     if (out->sid) {

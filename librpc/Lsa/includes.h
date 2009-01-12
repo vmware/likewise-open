@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,24 +28,33 @@
  * license@likewisesoftware.com
  */
 
-#ifdef __GNUC__
+/*
+ * Abstract: Lsa interface (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <iconv.h>
 #include <string.h>
+
 #include <DceSupport.h>
 #include <compat/rpcstatus.h>
 #include <dce/rpc.h>
-#endif
-
-#include "lsa_h.h"
-
-#include <lw/ntstatus.h>
 #include <wc16str.h>
+#include <secdesc/secdesc.h>
+#include <lw/ntstatus.h>
+
+#include <lwrpc/types.h>
 #include <lwrpc/lsabinding.h>
+#include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+
+
+#include "lsa_stub.h"
 
 #include "LsaUtil.h"
 #include "LsaMemory.h"
