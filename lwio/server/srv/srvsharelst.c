@@ -33,54 +33,67 @@
 NTSTATUS
 SrvDevCtlAddShare(
     PBYTE lpInBuffer,
-    DWO
-          ntStatus = SrvDevCtlAddShare(
-                        lpInBuffer,
-                        dwInBuffeSize,
-                        lpOutBuffer,
-                        dwOutBufferSize
-                        );
-          break;
-
-      case SRV_DEVCTL_DELETE_SHARE:
-          ntStatus = SrvDevCtlDeleteShare(
-                        lpInBuffer,
-                        dwInBufferSize,
-                        lpOutBuffer,
-                        dwOutBufferSize
-                        );
-          break;
-
-      case SRV_DEVCTL_ENUM_SHARE:
-          ntStatus = SrvDevCtlEnumShares(
-                        lpInBuffer,
-                        dwInBufferSize,
-                        lpOutBuffer,
-                        dwOutBufferSize
-                        );
-          break;
-      case SRV_DEVCTL_SET_SHARE_INFO:
-          ntStatus = SrvDevCtlSetShareInfo(
-                        lpInBuffer,
-                        dwInBufferSize,
-                        lpOutBufferSize,
-                        dwOutBufferSize
-                        );
-          break;
-      case SRV_DEVCTL_GET_SHARE_INFO:
-          ntStatus = SrvDevCtlGetShareInfo(
-                        lpInBuffer,
-                        dwInBufferSize,
-                        lpOutBufferSize,
-                        dwOutBufferSize
-                        );
-          break;
-    }
+    DWORD dwInBuffer,
+    PBYTE lpOutBuffer,
+    DWORD dwOutBuffer
+    )
+{
+    NTSTATUS ntStatus = 0;
 
     return(ntStatus);
 }
 
+NTSTATUS
+SrvDevCtlDeleteShare(
+    PBYTE lpInBuffer,
+    DWORD dwInBuffer,
+    PBYTE lpOutBuffer,
+    DWORD dwOutBuffer
+    )
+{
+    NTSTATUS ntStatus = 0;
 
+    return(ntStatus);
+}
+
+NTSTATUS
+SrvDevCtlEnumShares(
+    PBYTE lpInBuffer,
+    DWORD dwInBuffer,
+    PBYTE lpOutBuffer,
+    DWORD dwOutBuffer
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+SrvDevCtlSetShareInfo(
+    PBYTE lpInBuffer,
+    DWORD dwInBuffer,
+    PBYTE lpOutBuffer,
+    DWORD dwOutBuffer
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+NTSTATUS
+SrvDevCtlGetShareInfo(
+    PBYTE lpInBuffer,
+    DWORD dwInBuffer,
+    PBYTE lpOutBuffer,
+    DWORD dwOutBuffer
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
 
 NTSTATUS
 SrvInitializeShareList(
@@ -88,10 +101,7 @@ SrvInitializeShareList(
 {
     NTSTATUS status = 0;
 
-    LwListInit(&ShareObjectList);
-
-cleanup:
-    return status;
+    return(ntStatus);
 }
 
 
