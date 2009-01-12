@@ -49,7 +49,7 @@
 #ifndef __DBQUERY_H__
 #define __DBQUERY_H__
 
-#define DB_QUERY_CREATE_SHARE_TABLE                     \
+#define DB_QUERY_CREATE_SHARES_TABLE                    \
     "create table shares (name    text primary key,     \
                           path    text,                 \
                           comment text  collate nocase, \

@@ -23,7 +23,9 @@ libsrv_sys_la_SOURCES = \
     rename.c       \
     seek.c         \
     sessionsetup.c \
+    sharedb.c      \
     smbv1.c        \
+    srvshareutil.c \
     stubs.c        \
     tconX.c        \
     tdiscon.c      \
@@ -44,6 +46,7 @@ libsrv_sys_la_LIBADD = \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/server/smb/liblwiosmb.la \
     @top_builddir@/utils/liblwioutils.la \
+    @SQLITE_LIBS@ \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
 

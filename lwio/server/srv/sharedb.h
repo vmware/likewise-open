@@ -49,7 +49,7 @@
 #ifndef __SRVDB_H__
 #define __SRVDB_H__
 
-VOID
+DWORD
 SrvShareDbInit(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
     );
@@ -60,14 +60,15 @@ SrvShareDbOpen(
     );
 
 DWORD
-SrvShareDbFindShareByName(
+SrvShareDbFindByName(
     HANDLE hDb,
     PCSTR  pszShareName,
+    DWORD  dwShareInfoLevel,
     PSHARE_INFO* ppShareInfo
     );
 
 DWORD
-SrvShareDbAddShare(
+SrvShareDbAdd(
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
@@ -75,13 +76,23 @@ SrvShareDbAddShare(
     );
 
 DWORD
-SrvShareDbDeleteShare(
+SrvShareDbEnum(
+    HANDLE        hDb,
+    DWORD         dwOffset,
+    DWORD         dwLimit,
+    DWORD         dwShareInfoLevel,
+    PSHARE_INFO** pppShareInfoList,
+    PDWORD        pdwNumSharesFound
+    );
+
+DWORD
+SrvShareDbDelete(
     HANDLE hDb,
     PCSTR  pszShareName
     );
 
 DWORD
-SrvShareDbGetShareCount(
+SrvShareDbGetCount(
     HANDLE hDb,
     PINT   pShareCount
     );

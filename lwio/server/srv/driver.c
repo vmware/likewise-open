@@ -217,6 +217,9 @@ SrvInitialize(
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
+    ntStatus = SrvShareDbInit(&gSMBSrvGlobals.shareDBContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
     gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
 
@@ -307,6 +310,8 @@ SrvShutdown(
     }
 
     SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
+
+    SrvShareDbShutdown(&gSMBSrvGlobals.shareDBContext);
 
 cleanup:
 

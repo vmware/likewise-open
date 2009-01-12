@@ -58,7 +58,7 @@ typedef struct _SMB_SRV_CONFIG
 
 typedef struct _SHARE_INFO
 {
-    PSTR pszShareName;
+    PSTR pszName;
     PSTR pszPath;
     PSTR pszComment;
     PSTR pszSID;

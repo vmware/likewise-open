@@ -120,7 +120,9 @@ const char* gSMBErrorMessages[] =
     "The virtual file system provider is invalid",
     // SMB_ERROR_NO_SUCH_SHARE                                   : 61474
     "The requested share could not be located",
-    // SMB_ERROR_DATA_ERROR                                      : 61475
+    // SMB_ERROR_NO_MORE_SHARES                                  : 61475
+    "No more shares found",
+    // SMB_ERROR_DATA_ERROR                                      : 61476
     "A database format error has been encountered"
 };
 

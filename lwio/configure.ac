@@ -193,6 +193,33 @@ AC_ARG_WITH([lwmsg-libs],
 		LWMSG_LDFLAGS="-L$withval"
         ])
 
+# sqlite
+
+AC_ARG_WITH([sqlite],
+        [AC_HELP_STRING([--with-sqlite=<dir>], [use sqlite located in prefix <dir>])],
+        [
+                SQLITE_INCLUDES="-I$withval/include"
+                SQLITE_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([sqlite-includes],
+        [AC_HELP_STRING([--with-sqlite-includes=<dir>], [use sqlite includes located in <dir>])],
+        [
+                SQLITE_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([sqlite-libs],
+        [AC_HELP_STRING([--with-sqlite-libs=<dir>], [use sqlite libs located in <dir>])],
+        [
+                SQLITE_LDFLAGS="-L$withval"
+        ])
+
+SQLITE_LIBS="-lsqlite3"
+
+AC_SUBST(SQLITE_INCLUDES)
+AC_SUBST(SQLITE_LDFLAGS)
+AC_SUBST(SQLITE_LIBS)
+
 #####
 ## Unit tests
 #####

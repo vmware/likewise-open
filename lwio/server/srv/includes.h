@@ -49,6 +49,8 @@
 #include "config.h"
 #include "lwiosys.h"
 
+#include "sqlite3.h"
+
 #include "lwio/lwio.h"
 
 #include "lwiodef.h"
@@ -84,6 +86,8 @@
 #include "reader.h"
 #include "worker.h"
 #include "prodcons.h"
+#include "srvshareutil.h"
+#include "sharedb.h"
 
 #include "externs.h"
 
