@@ -28,20 +28,28 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Network Management API, aka LanMan API (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
 
-#include <lwrpc/types.h>
 #include <lw/ntstatus.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/security.h>
 #include <wc16str.h>
+#include <secdesc/secdesc.h>
+
+#include <lwrpc/types.h>
+#include <lwrpc/winerror.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
+#include <lwrpc/netlogon.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/LM.h>
