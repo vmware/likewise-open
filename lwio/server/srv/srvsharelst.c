@@ -88,8 +88,7 @@ SrvDevCtlDeleteShare(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareDeleteShare(
-                    pShareInfo,
-                    dwLevel
+                    lpszShareName
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -126,8 +125,11 @@ SrvDevCtlEnumShares(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareEnumShares(
-                    pShareInfo,
                     dwLevel
+                    dwResumeHandle,
+                    pOutBuffer,
+                    dwOutBuffer,
+                    &dwBytesWritten
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
