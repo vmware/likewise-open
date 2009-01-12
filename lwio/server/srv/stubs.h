@@ -31,6 +31,6 @@
 
 NTSTATUS
 SmbSendReply(
-    PSMB_CONNECTION pResponse
+    PSMB_SRV_CONNECTION pConnection
     );
 

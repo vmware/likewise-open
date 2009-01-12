@@ -102,8 +102,8 @@ typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
 
     BOOLEAN        bStop;
 
-    PDLINKEDLIST pSocketList;
-    ULONG        ulNumSockets;
+    PSMBDLINKEDLIST pSocketList;
+    ULONG           ulNumSockets;
 
     PSMB_PROD_CONS_QUEUE pWorkQueue;
 

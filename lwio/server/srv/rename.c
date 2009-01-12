@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessRenameFile(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -63,7 +63,7 @@ error:
 
 NTSTATUS
 UnmarshallRenameFileRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -74,7 +74,7 @@ UnmarshallRenameFileRequest(
 
 NTSTATUS
 MarshallRenameFileResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

@@ -47,13 +47,13 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 #include "config.h"
-#include "lsmbsys.h"
+#include "lwiosys.h"
 
 #include "lwio/lwio.h"
 
-#include "smbdef.h"
-#include "smbutils.h"
-#include "smblog_r.h"
+#include "lwiodef.h"
+#include "lwioutils.h"
+#include "lwiolog_r.h"
 
 #include <lw/ntstatus.h>
 #include "smb.h"
@@ -83,6 +83,7 @@
 #include "srvsocket.h"
 #include "reader.h"
 #include "worker.h"
+#include "prodcons.h"
 
 #include "externs.h"
 

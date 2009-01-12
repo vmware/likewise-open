@@ -31,10 +31,10 @@
 
 NTSTATUS
 SmbProcessLogoffAndX(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 MarshallLogoffAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );

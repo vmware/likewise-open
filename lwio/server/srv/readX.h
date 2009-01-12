@@ -31,12 +31,12 @@
 
 NTSTATUS
 SmbProcessReadAndX(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 UnmarshallReadAndXRequest(
-    PSMB_CONNECTION pSmbRequest,
+    PSMB_SRV_CONNECTION pSmbRequest,
     PBYTE* ppBuffer,
     PDWORD pdwBytesRead
     );
@@ -52,6 +52,6 @@ SrvReadFile(
 
 NTSTATUS
 MarshallReadAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 

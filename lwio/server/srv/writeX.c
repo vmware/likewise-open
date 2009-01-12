@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessWriteAndX(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -64,7 +64,7 @@ error:
 
 NTSTATUS
 UnmarshallWriteAndXRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -75,7 +75,7 @@ UnmarshallWriteAndXRequest(
 
 NTSTATUS
 MarshallWriteAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

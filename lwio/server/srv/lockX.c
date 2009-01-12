@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessLockAndX(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -85,7 +85,7 @@ SrvLockFile(
 
 NTSTATUS
 UnmarshallLockAndXRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -96,7 +96,7 @@ UnmarshallLockAndXRequest(
 
 NTSTATUS
 MarshallLockAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

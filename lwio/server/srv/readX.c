@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessReadAndX(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -73,7 +73,7 @@ error:
 
 NTSTATUS
 UnmarshallReadAndXRequest(
-    PSMB_CONNECTION pSmbRequest,
+    PSMB_SRV_CONNECTION pSmbRequest,
     PBYTE* ppBuffer,
     PDWORD pdwBytesRead
     )
@@ -98,7 +98,7 @@ SrvReadFile(
 
 NTSTATUS
 MarshallReadAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessSeek(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -63,7 +63,7 @@ error:
 
 NTSTATUS
 UnmarshallSeekRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -74,7 +74,7 @@ UnmarshallSeekRequest(
 
 NTSTATUS
 MarshallSeekResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

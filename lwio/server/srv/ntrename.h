@@ -31,12 +31,12 @@
 
 NTSTATUS
 SmbProcessNTRename(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 UnmarshallNTRenameRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
@@ -49,6 +49,6 @@ SrvRenameFile(
 
 NTSTATUS
 MarshallNTRenameResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 

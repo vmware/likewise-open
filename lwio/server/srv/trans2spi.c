@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessSetPathInformation(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -64,7 +64,7 @@ error:
 
 NTSTATUS
 UnmarshallSetPathInformationAndXRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -75,7 +75,7 @@ UnmarshallSetPathInformationAndXRequest(
 
 NTSTATUS
 MarshallSetPathInformationAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

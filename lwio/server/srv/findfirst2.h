@@ -31,7 +31,7 @@
 
 NTSTATUS
 SmbProcessFindFirst2(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
@@ -51,11 +51,11 @@ SrvTrans2FindFirst2(
 
 NTSTATUS
 UnmarshallFindFirst2Request(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 MarshallFindFirst2Response(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 

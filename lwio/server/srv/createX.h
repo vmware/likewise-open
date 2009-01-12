@@ -31,7 +31,7 @@
 
 NTSTATUS
 SmbProcessCreateAndX(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
@@ -41,11 +41,11 @@ SrvCreateFile(
 
 NTSTATUS
 UnmarshallCreateAndXRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 MarshallCreateAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 

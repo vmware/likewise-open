@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessQueryFileInformationAndX(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -63,7 +63,7 @@ error:
 
 NTSTATUS
 UnmarshallQueryFileInformationAndXRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -74,7 +74,7 @@ UnmarshallQueryFileInformationAndXRequest(
 
 NTSTATUS
 MarshallQueryFileInformationAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

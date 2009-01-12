@@ -61,9 +61,9 @@ SrvListenerMustStop(
     );
 
 static
-PSMB_SRV_READER
+PSMB_SRV_SOCKET_READER
 SrvFindLeastBusyReader(
-    PSMB_SRV_READER pReaderArray,
+    PSMB_SRV_SOCKET_READER pReaderArray,
     ULONG           ulNumReaders
     );
 
@@ -89,11 +89,11 @@ SrvListenerInit(
     memset(&pListener->context, 0, sizeof(pListener->context));
 
     ntStatus = pthread_create(
-                    pListener->listener,
+                    &pListener->listener,
                     NULL,
                     &SrvListenerMain,
                     &pListener->context);
-    BAIL_ON_NT_STATUS;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pListener->pListener = &pListener->listener;
 
@@ -139,7 +139,8 @@ SrvListenerMain(
     struct sockaddr_in servaddr;
     PSMB_SRV_SOCKET pSocket = NULL;
     PSMB_SRV_LISTENER_CONTEXT pContext = (PSMB_SRV_LISTENER_CONTEXT)pData;
-    PSMB_SRV_READER pReader = NULL;
+    PSMB_SRV_SOCKET_READER pReader = NULL;
+    PSMB_SRV_CONNECTION pConnection = NULL;
 
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
@@ -173,7 +174,7 @@ SrvListenerMain(
         memset(&cliaddr, 0, sizeof(cliaddr));
 
         connFd = accept(sockFd, (struct sockaddr*)&cliaddr, &clilen);
-        if (SMBSrvListenerShouldStop())
+        if (SrvListenerMustStop(pContext))
         {
             goto cleanup;
         }
@@ -226,7 +227,7 @@ SrvListenerMain(
 
         assert(pReader != NULL);
 
-        dwError = SrvReaderEnqueueConnection(
+        dwError = SrvSocketReaderEnqueueConnection(
                         pReader,
                         pConnection);
         BAIL_ON_SMB_ERROR(dwError);
@@ -276,19 +277,19 @@ SrvListenerMustStop(
 }
 
 static
-PSMB_SRV_READER
+PSMB_SRV_SOCKET_READER
 SrvFindLeastBusyReader(
-    PSMB_SRV_READER pReaderArray,
-    ULONG           ulNumReaders
+    PSMB_SRV_SOCKET_READER pReaderArray,
+    ULONG                  ulNumReaders
     )
 {
-    PSMB_SRV_READER pReaderMin = NULL;
-    ULONG           ulNumSocketsMin = 0;
-    ULONG           iReader = 0;
+    PSMB_SRV_SOCKET_READER pReaderMin = NULL;
+    ULONG                  ulNumSocketsMin = 0;
+    ULONG                  iReader = 0;
 
     for (; iReader < ulNumReaders; iReader++)
     {
-        PSMB_SRV_READER pReader = &pReaderArray[iReader];
+        PSMB_SRV_SOCKET_READER pReader = &pReaderArray[iReader];
 
         if (!iReader)
         {

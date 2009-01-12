@@ -69,7 +69,7 @@ SrvSocketReaderGetCount(
 
     pthread_mutex_unlock(&pReader->context.mutex);
 
-    reutrn ulSockets;
+    return ulSockets;
 }
 
 NTSTATUS

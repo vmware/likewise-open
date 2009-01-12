@@ -31,7 +31,7 @@
 
 NTSTATUS
 SmbProcessCreateDirectory(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
@@ -42,11 +42,11 @@ SrvCreateDirectory(
 
 NTSTATUS
 UnmarshallCreateDirectoryRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 
 NTSTATUS
 MarshallCreateDirectoryResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );

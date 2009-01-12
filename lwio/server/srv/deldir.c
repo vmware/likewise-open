@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessDeleteDirectory(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -76,7 +76,7 @@ SrvDeleteFile(
 
 NTSTATUS
 UnmarshallDeleteDirectoryRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -87,7 +87,7 @@ UnmarshallDeleteDirectoryRequest(
 
 NTSTATUS
 MarshallDeleteDirectoryResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

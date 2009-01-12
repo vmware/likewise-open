@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessCheckDirectory(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -69,7 +69,7 @@ SrvCheckDirectory(
 
 NTSTATUS
 UnmarshallCheckDirectoryRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -80,7 +80,7 @@ UnmarshallCheckDirectoryRequest(
 
 NTSTATUS
 MarshallCheckDirectoryResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

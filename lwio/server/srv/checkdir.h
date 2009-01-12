@@ -31,7 +31,7 @@
 
 NTSTATUS
 SmbProcessCheckDirectory(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
@@ -41,11 +41,11 @@ SrvCheckDirectory(
 
 NTSTATUS
 UnmarshallCheckDirectoryRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 MarshallCheckDirectoryResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     );
 

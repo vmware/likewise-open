@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessCreateAndX(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -72,7 +72,7 @@ SrvCreateFile(
 
 NTSTATUS
 UnmarshallCreateAndXRequest(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -83,7 +83,7 @@ UnmarshallCreateAndXRequest(
 
 NTSTATUS
 MarshallCreateAndXResponse(
-    PSMB_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

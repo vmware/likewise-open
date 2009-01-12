@@ -217,8 +217,6 @@ SrvInitialize(
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
-    gSMBSrvGlobals.bStop = FALSE;
-
     gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
     gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
 
@@ -284,7 +282,7 @@ SrvShutdown(
 
             for (; iReader < gSMBSrvGlobals.ulNumReaders; iReader++)
             {
-                ntStatus = SrvReaderFreeContents(
+                ntStatus = SrvSocketReaderFreeContents(
                                 &gSMBSrvGlobals.pReaderArray[iReader]);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
