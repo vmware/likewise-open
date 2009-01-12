@@ -72,6 +72,7 @@ typedef ULONG IRP_TYPE;
 #endif
 
 typedef struct _IRP_ARGS_CREATE {
+    IN PIO_CREATE_SECURITY_CONTEXT SecurityContext;
     IN IO_FILE_NAME FileName;
     IN ACCESS_MASK DesiredAccess;
     IN OPTIONAL LONG64 AllocationSize;

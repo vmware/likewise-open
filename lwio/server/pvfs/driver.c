@@ -79,6 +79,7 @@ DoTest(
     ntStatus = IoCreateFile(&fileHandle,
                             NULL,
                             &ioStatusBlock,
+                            NULL,
                             &fileName,
                             0,
                             0,

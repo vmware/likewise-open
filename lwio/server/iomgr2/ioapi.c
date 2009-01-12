@@ -65,6 +65,7 @@ IoCreateFile(
     OUT PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN PIO_CREATE_SECURITY_CONTEXT SecurityContext,
     IN PIO_FILE_NAME FileName,
     IN ACCESS_MASK DesiredAccess,
     IN OPTIONAL LONG64 AllocationSize,
@@ -113,6 +114,8 @@ IoCreateFile(
 
     status = IopIrpCreate(&pIrp, IRP_TYPE_CREATE, pFileObject);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.Create.SecurityContext = SecurityContext;
 
     pIrp->Args.Create.FileName = fileName;
     pIrp->Args.Create.FileName.FileName = pszFileName;

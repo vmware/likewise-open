@@ -85,6 +85,40 @@ IopIpcRegisterFileHandle(
 }
 
 static
+NTSTATUS
+IopIpcGetProcessSecurity(
+    IN LWMsgAssoc* pAssoc,
+    OUT uid_t* pUid,
+    OUT gid_t* pGid
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    LWMsgSecurityToken* token = NULL;
+    uid_t uid = (uid_t) -1;
+    gid_t gid = (gid_t) -1;
+
+    status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_get_peer_security_token(pAssoc, &token));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    status = NtIpcLWMsgStatusToNtStatus(lwmsg_local_token_get_eid(token, &uid, &gid));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    *pUid = uid;
+    *pGid = gid;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
+
+static
 LWMsgStatus
 IopIpcCreateFile(
     IN LWMsgAssoc* pAssoc,
@@ -102,13 +136,38 @@ IopIpcCreateFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IO_FILE_HANDLE fileHandle = NULL;
     IO_FILE_NAME fileName = { 0 };
+    IO_CREATE_SECURITY_CONTEXT securityContext = { 0 };
 
     assert(messageType == pRequest->tag);
+
+    status = IopIpcGetProcessSecurity(
+                    pAssoc,
+                    &securityContext.Process.Uid,
+                    &securityContext.Process.Gid);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_CREATE_FILE_RESULT, sizeof(*pReply));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    // TODO -- SECURITY TOKEN!!!
+    if (pMessage->pSecurityToken)
+    {
+        switch (pMessage->pSecurityToken->type)
+        {
+            case SMB_SECURITY_TOKEN_TYPE_PLAIN:
+                securityContext.ImpersonationType = IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_PASSWORD;
+                securityContext.Impersonation.Password.Username = pMessage->pSecurityToken->payload.plain.pwszUsername;
+                securityContext.Impersonation.Password.Password = pMessage->pSecurityToken->payload.plain.pwszPassword;
+                break;
+            case SMB_SECURITY_TOKEN_TYPE_KRB5:
+                securityContext.ImpersonationType = IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_KERBEROS;
+                securityContext.Impersonation.Kerberos.Principal = pMessage->pSecurityToken->payload.krb5.pwszPrincipal;
+                securityContext.Impersonation.Kerberos.CachePath = pMessage->pSecurityToken->payload.krb5.pwszCachePath;
+                break;
+            default:
+                pReply->Status = STATUS_INVALID_PARAMETER;
+                GOTO_CLEANUP_EE(EE);
+        }
+    }
 
 #ifdef _NT_IPC_USE_PSEUDO_TYPES
     NtIpcRealFromPseudoIoFileName(&fileName, &pMessage->FileName);
@@ -121,6 +180,7 @@ IopIpcCreateFile(
                             &fileHandle,
                             NULL,
                             &ioStatusBlock,
+                            &securityContext,
                             &fileName,
                             pMessage->DesiredAccess,
                             pMessage->AllocationSize,

@@ -177,6 +177,30 @@ typedef struct _IO_ASYNC_CONTROL_BLOCK {
     OPTIONAL PVOID CallbackContext;
 } IO_ASYNC_CONROL_BLOCK, *PIO_ASYNC_CONTROL_BLOCK;
 
+typedef UCHAR IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE;
+
+#define IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_NONE     0
+#define IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_PASSWORD 1
+#define IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_KERBEROS 2
+
+typedef struct _IO_CREATE_SECURITY_CONTEXT {
+    IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE ImpersonationType;
+    struct {
+        uid_t Uid;
+        gid_t Gid;
+    } Process;
+    union {
+        struct {
+            PWSTR Username;
+            PWSTR Password;
+        } Password;
+        struct {
+            PWSTR Principal;
+            PWSTR CachePath;
+        } Kerberos;
+    } Impersonation;
+} IO_CREATE_SECURITY_CONTEXT, *PIO_CREATE_SECURITY_CONTEXT;
+
 // TDB:
 #if 1
 typedef struct _IO_EA_BUFFER IO_EA_BUFFER, *PIO_EA_BUFFER;

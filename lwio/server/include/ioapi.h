@@ -68,6 +68,7 @@ IoCreateFile(
     OUT PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN PIO_CREATE_SECURITY_CONTEXT SecurityContext,
     IN PIO_FILE_NAME FileName,
     IN ACCESS_MASK DesiredAccess,
     IN OPTIONAL LONG64 AllocationSize,
