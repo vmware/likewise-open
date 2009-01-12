@@ -6,9 +6,9 @@ pointer_default(unique)
 ]
 interface lsa
 {
-#include <types.idl>
+#include <lwrpc/types.h>
 #include <security.idl>
-
+#include <lwrpc/unistrdef.h>
 #include <lwrpc/lsadefs.h>
 
 	/* LsaPolicyInformation union returned from LsaQueryInfoPolicy */
@@ -26,22 +26,6 @@ interface lsa
 		[case(LSA_POLICY_INFO_AUDIT_FULL_QUERY)] AuditFullQueryInfo  audit_query;
 		[case(LSA_POLICY_INFO_DNS)]              DnsDomainInfo       dns;
 	} LsaPolicyInformation;
-
-/* macro definitions for lsa library internal use */
-cpp_quote("#define LSA_POLICY_INFO_AUDIT_LOG          1")
-cpp_quote("#define LSA_POLICY_INFO_AUDIT_EVENTS       2")
-cpp_quote("#define LSA_POLICY_INFO_DOMAIN             3")
-cpp_quote("#define LSA_POLICY_INFO_PD                 4")
-cpp_quote("#define LSA_POLICY_INFO_ACCOUNT_DOMAIN     5")
-cpp_quote("#define LSA_POLICY_INFO_ROLE               6")
-cpp_quote("#define LSA_POLICY_INFO_REPLICA            7")
-cpp_quote("#define LSA_POLICY_INFO_QUOTA              8") 
-cpp_quote("#define LSA_POLICY_INFO_DB                 9")
-cpp_quote("#define LSA_POLICY_INFO_AUDIT_FULL_SET    10")
-cpp_quote("#define LSA_POLICY_INFO_AUDIT_FULL_QUERY  11")
-cpp_quote("#define LSA_POLICY_INFO_DNS               12")
-
-
 
 	/* function 0x00 */
 	NTSTATUS _LsaClose(

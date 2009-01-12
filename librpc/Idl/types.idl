@@ -19,21 +19,6 @@ cpp_quote("#define WINERR_DEFINED")
 cpp_quote("#define NTTIME_DEFINED")
 cpp_quote("#define UNISTR_DEFINED")
 
-typedef struct entry {
-	uint32 idx;
-	UnicodeString name;
-} Entry;
-
-typedef struct entry_array {
-	uint32 count;
-	[size_is(count)] Entry *entries;
-} EntryArray;
-
-typedef struct unicode_string_array {
-	uint32 count;
-	[size_is(count)] UnicodeString *names;
-} UnicodeStringArray;
-
 cpp_quote("#endif /* _GEN_TYPES_H_ */")
 
 

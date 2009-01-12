@@ -6,8 +6,10 @@ pointer_default(unique)
 ]
 interface samr
 {
-#include <types.idl>
+#include <lwrpc/types.h>
 #include <security.idl>
+#include <lwrpc/unistrdef.h>
+#include <rid.h>
 
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/aliasinfo.h>
