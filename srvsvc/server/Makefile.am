@@ -14,10 +14,11 @@ srvsvcd_SOURCES =  \
 srvsvcd_CFLAGS=-g $(INCLUDES) -DSRVSVC_BUILD
 srvsvcd_CPPFLAGS = \
     @DCERPC_INCLUDES@   \
-    @LIBUNISTR_INCLUDES@
+    @LIBUNISTR_INCLUDES@ \
+    @LWIO_INCLUDES@
 
-srvsvcd_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
-srvsvcd_LDADD=-ldcerpc -lunistr
+srvsvcd_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS) @LWIO_LDFLAGS@
+srvsvcd_LDADD=-ldcerpc -lunistr @LWIO_LIBS@
 
 CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c
 

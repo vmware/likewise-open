@@ -6,5 +6,8 @@
 #define SRV_IOCTL_ADD_SHARE 0
 #define SRV_IOCTL_SET_SHARE 1
 
+#define BAIL_ON_ERROR(dwError) \
+    if (dwError) goto error;
+
 #endif /* __DEFS_H__ */
 
