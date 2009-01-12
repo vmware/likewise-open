@@ -68,6 +68,7 @@ typedef struct _SMB_PROD_CONS_QUEUE
 
     pthread_mutex_t mutex;
     pthread_cond_t  event;
+    pthread_cond_t* pEvent;
 
     SMB_QUEUE       queue;
 
