@@ -1,0 +1,27 @@
+lib_LTLIBRARIES = libeventlogutils.la
+
+libeventlogutils_la_SOURCES = \
+    evtcfg.c    \
+    evtfutils.c \
+    evthost.c   \
+    evtlogger.c \
+    evtcfgutils.c \
+    evtmem.c    \
+    evtrpcmem.c \
+    evtstack.c  \
+    evtstr.c    \
+    globals.c   \
+    sysfuncs.c
+
+libeventlogutils_la_LIBADD = \
+    @DCERPC_LIBS@    \
+    @LIBUNISTR_LIBS@
+
+libeventlogutils_la_CPPFLAGS = \
+    @DCERPC_INCLUDES@   \
+    @LIBUNISTR_INCLUDES@
+
+libeventlogutils_la_LDFLAGS = \
+    @DCERPC_LDFLAGS@   \
+    @LIBUNISTR_LDFLAGS@
+
