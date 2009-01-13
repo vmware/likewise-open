@@ -5,4 +5,5 @@ lwinclude_HEADERS = \
 	types.h \
 	attrs.h \
 	atomic.h \
+	memory.h \
 	base.h
