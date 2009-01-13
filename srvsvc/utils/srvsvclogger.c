@@ -49,7 +49,7 @@ static PCSTR VERBOSE_TAG = "VERBOSE";
 static PCSTR LOG_TIME_FORMAT = "%Y%m%d%H%M%S";
 
 DWORD
-EVTInitLoggingToSyslog(
+SRVSVCInitLoggingToSyslog(
     DWORD dwLogLevel,
     PCSTR pszIdentifier,
     DWORD dwOption,
@@ -58,34 +58,34 @@ EVTInitLoggingToSyslog(
 {
     DWORD dwError = 0;
 
-    EVT__LOCK_LOGGER;
+    SRVSVC_LOCK_LOGGER;
 
-    dwError = EVTValidateLogLevel(dwLogLevel);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCValidateLogLevel(dwLogLevel);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    gEvtLogInfo.logTarget = LOG_TO_SYSLOG;
+    gSrvSvcLogInfo.logTarget = LOG_TO_SYSLOG;
 
-    strncpy(gEvtLogInfo.data.syslog.szIdentifier, pszIdentifier, PATH_MAX);
-    *(gEvtLogInfo.data.syslog.szIdentifier+PATH_MAX) = '\0';
+    strncpy(gSrvSvcLogInfo.data.syslog.szIdentifier, pszIdentifier, PATH_MAX);
+    *(gSrvSvcLogInfo.data.syslog.szIdentifier+PATH_MAX) = '\0';
 
-    gEvtLogInfo.data.syslog.dwOption = dwOption;
-    gEvtLogInfo.data.syslog.dwFacility = dwFacility;
+    gSrvSvcLogInfo.data.syslog.dwOption = dwOption;
+    gSrvSvcLogInfo.data.syslog.dwFacility = dwFacility;
 
     openlog(pszIdentifier, dwOption, dwFacility);
 
-    EVTSetSyslogMask(dwLogLevel);
+    SRVSVCSetSyslogMask(dwLogLevel);
 
-    gEvtLogInfo.bLoggingInitiated = 1;
+    gSrvSvcLogInfo.bLoggingInitiated = 1;
 
 error:
 
-    EVT__UNLOCK_LOGGER;
+    SRVSVC_UNLOCK_LOGGER;
 
     return dwError;
 }
 
 VOID
-EVTSetSyslogMask(
+SRVSVCSetSyslogMask(
     DWORD dwLogLevel
     )
 {
@@ -127,7 +127,7 @@ EVTSetSyslogMask(
 }
 
 DWORD
-EVTInitLoggingToFile(
+SRVSVCInitLoggingToFile(
      DWORD dwLogLevel,
      PCSTR  pszLogFilePath
      )
@@ -135,46 +135,46 @@ EVTInitLoggingToFile(
     DWORD dwError = 0;
     FILE* pLog = NULL;
 
-    EVT__LOCK_LOGGER;
+    SRVSVC_LOCK_LOGGER;
 
-    dwError = EVTValidateLogLevel(dwLogLevel);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCValidateLogLevel(dwLogLevel);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (IsNullOrEmptyString(pszLogFilePath))
     {
-        gEvtLogInfo.logTarget = LOG_TO_CONSOLE;
-        gEvtLogInfo.data.logfile.szLogPath[0] = '\0';
-        gEvtLogInfo.data.logfile.logHandle = stdout;
+        gSrvSvcLogInfo.logTarget = LOG_TO_CONSOLE;
+        gSrvSvcLogInfo.data.logfile.szLogPath[0] = '\0';
+        gSrvSvcLogInfo.data.logfile.logHandle = stdout;
     }
     else
     {
-        gEvtLogInfo.logTarget = LOG_TO_FILE;
-        strcpy(gEvtLogInfo.data.logfile.szLogPath, pszLogFilePath);
+        gSrvSvcLogInfo.logTarget = LOG_TO_FILE;
+        strcpy(gSrvSvcLogInfo.data.logfile.szLogPath, pszLogFilePath);
 
-        gEvtLogInfo.data.logfile.logHandle = NULL;
+        gSrvSvcLogInfo.data.logfile.logHandle = NULL;
 
-        if (gEvtLogInfo.data.logfile.szLogPath[0] != '\0')
+        if (gSrvSvcLogInfo.data.logfile.szLogPath[0] != '\0')
         {
              pLog = freopen(
-                        gEvtLogInfo.data.logfile.szLogPath,
+                        gSrvSvcLogInfo.data.logfile.szLogPath,
                         "w",
                         stderr);
-            if (gEvtLogInfo.data.logfile.logHandle == NULL) {
+            if (gSrvSvcLogInfo.data.logfile.logHandle == NULL) {
                 dwError = errno;
-                BAIL_ON_EVT_ERROR(dwError);
+                BAIL_ON_SRVSVC_ERROR(dwError);
             }
         }
 
-        gEvtLogInfo.data.logfile.logHandle = pLog;
+        gSrvSvcLogInfo.data.logfile.logHandle = pLog;
     }
 
-    gEvtLogInfo.dwLogLevel = dwLogLevel;
+    gSrvSvcLogInfo.dwLogLevel = dwLogLevel;
 
-    gEvtLogInfo.bLoggingInitiated = 1;
+    gSrvSvcLogInfo.bLoggingInitiated = 1;
 
 cleanup:
 
-    EVT__UNLOCK_LOGGER;
+    SRVSVC_UNLOCK_LOGGER;
 
     return (dwError);
 
@@ -189,28 +189,28 @@ cleanup:
 
 
 DWORD
-EVTSetLogLevel(
+SRVSVCSetLogLevel(
     DWORD dwLogLevel
     )
 {
     DWORD dwError = 0;
 
-    EVT__LOCK_LOGGER;
+    SRVSVC_LOCK_LOGGER;
 
-    dwError = EVTValidateLogLevel(dwLogLevel);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCValidateLogLevel(dwLogLevel);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    gEvtLogInfo.dwLogLevel = dwLogLevel;
+    gSrvSvcLogInfo.dwLogLevel = dwLogLevel;
 
 error:
 
-    EVT__UNLOCK_LOGGER;
+    SRVSVC_UNLOCK_LOGGER;
 
     return dwError;
 }
 
 DWORD
-EVTValidateLogLevel(
+SRVSVCValidateLogLevel(
     DWORD dwLogLevel
     )
 {
@@ -224,7 +224,7 @@ EVTValidateLogLevel(
 }
 
 VOID
-EVTLogMessage(
+SRVSVCLogMessage(
     DWORD dwLogLevel,
     PCSTR pszFormat,
     ...
@@ -232,24 +232,24 @@ EVTLogMessage(
 {
     va_list argp;
 
-    EVT__LOCK_LOGGER;
+    SRVSVC_LOCK_LOGGER;
 
-    if ( !gEvtLogInfo.bLoggingInitiated ||
-        gEvtLogInfo.logTarget == LOG_DISABLED ) {
+    if ( !gSrvSvcLogInfo.bLoggingInitiated ||
+        gSrvSvcLogInfo.logTarget == LOG_DISABLED ) {
         goto cleanup;
     }
 
-    if (gEvtLogInfo.dwLogLevel < dwLogLevel) {
+    if (gSrvSvcLogInfo.dwLogLevel < dwLogLevel) {
         goto cleanup;
     }
 
     va_start(argp, pszFormat);
 
-    switch (gEvtLogInfo.logTarget)
+    switch (gSrvSvcLogInfo.logTarget)
     {
         case LOG_TO_SYSLOG:
         {
-            EVTLogToSyslog_InLock(
+            SRVSVCLogToSyslog_InLock(
                             dwLogLevel,
                             pszFormat,
                             argp);
@@ -258,8 +258,8 @@ EVTLogMessage(
         case LOG_TO_FILE:
         case LOG_TO_CONSOLE:
         {
-            EVTLogToFile_InLock(
-                            &gEvtLogInfo.data.logfile,
+            SRVSVCLogToFile_InLock(
+                            &gSrvSvcLogInfo.data.logfile,
                             dwLogLevel,
                             pszFormat,
                             argp);
@@ -271,13 +271,13 @@ EVTLogMessage(
 
 cleanup:
 
-    EVT__UNLOCK_LOGGER;
+    SRVSVC_UNLOCK_LOGGER;
 
     return;
 }
 
 VOID
-EVTLogToFile_InLock(
+SRVSVCLogToFile_InLock(
     PLOGFILEINFO pLogInfo,
     DWORD        dwLogLevel,
     PCSTR        pszFormat,
@@ -343,7 +343,7 @@ EVTLogToFile_InLock(
 }
 
 VOID
-EVTLogToSyslog_InLock(
+SRVSVCLogToSyslog_InLock(
     DWORD   dwLogLevel,
     PCSTR   pszFormat,
     va_list msgList
@@ -383,15 +383,15 @@ EVTLogToSyslog_InLock(
 }
 
 VOID
-EVTCloseLog()
+SRVSVCCloseLog()
 {
-    EVT__LOCK_LOGGER;
+    SRVSVC_LOCK_LOGGER;
 
-    if (!gEvtLogInfo.bLoggingInitiated) {
+    if (!gSrvSvcLogInfo.bLoggingInitiated) {
         goto cleanup;
     }
 
-    switch (gEvtLogInfo.logTarget)
+    switch (gSrvSvcLogInfo.logTarget)
     {
         case LOG_TO_SYSLOG:
             {
@@ -401,9 +401,9 @@ EVTCloseLog()
             break;
         case LOG_TO_FILE:
             {
-                if (gEvtLogInfo.data.logfile.logHandle != NULL) {
-                    fclose(gEvtLogInfo.data.logfile.logHandle);
-                    gEvtLogInfo.data.logfile.logHandle = NULL;
+                if (gSrvSvcLogInfo.data.logfile.logHandle != NULL) {
+                    fclose(gSrvSvcLogInfo.data.logfile.logHandle);
+                    gSrvSvcLogInfo.data.logfile.logHandle = NULL;
                 }
             }
             break;
@@ -411,7 +411,7 @@ EVTCloseLog()
 
 cleanup:
 
-    EVT__UNLOCK_LOGGER;
+    SRVSVC_UNLOCK_LOGGER;
 
     return;
 }

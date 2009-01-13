@@ -48,23 +48,23 @@
 #include "includes.h"
 
 DWORD
-EVTStackPush(
+SRVSVCStackPush(
     PVOID pItem,
-    PEVT_STACK* ppStack
+    PSRVSVC_STACK* ppStack
     )
 {
     DWORD dwError = 0;
-    PEVT_STACK pStack = NULL;
+    PSRVSVC_STACK pStack = NULL;
 
     if (!ppStack) {
-        dwError = EVT_ERROR_INVALID_PARAMETER;
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVC_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = EVTAllocateMemory(
-                    sizeof(EVT_STACK),
+    dwError = SRVSVCAllocateMemory(
+                    sizeof(SRVSVC_STACK),
                     (PVOID*)&pStack);
-    BAIL_ON_EVT_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     pStack->pItem = pItem;
 
@@ -78,19 +78,19 @@ cleanup:
 error:
 
     if (pStack) {
-        EVTFreeMemory(pStack);
+        SRVSVCFreeMemory(pStack);
     }
 
     goto cleanup;
 }
 
 PVOID
-EVTStackPop(
-    PEVT_STACK* ppStack
+SRVSVCStackPop(
+    PSRVSVC_STACK* ppStack
     )
 {
     PVOID pItem = NULL;
-    PEVT_STACK pTop = (ppStack && *ppStack ? *ppStack : NULL);
+    PSRVSVC_STACK pTop = (ppStack && *ppStack ? *ppStack : NULL);
 
     if (pTop)
     {
@@ -98,29 +98,29 @@ EVTStackPop(
 
         pItem = pTop->pItem;
 
-        EVTFreeMemory(pTop);
+        SRVSVCFreeMemory(pTop);
     }
 
     return pItem;
 }
 
 PVOID
-EVTStackPeek(
-    PEVT_STACK pStack
+SRVSVCStackPeek(
+    PSRVSVC_STACK pStack
     )
 {
     return (pStack ? pStack->pItem : NULL);
 }
 
 DWORD
-EVTStackForeach(
-    PEVT_STACK pStack,
-    PFN_EVT_FOREACH_STACK_ITEM pfnAction,
+SRVSVCStackForeach(
+    PSRVSVC_STACK pStack,
+    PFN_SRVSVC_FOREACH_STACK_ITEM pfnAction,
     PVOID pUserData
     )
 {
     DWORD dwError = 0;
-    PEVT_STACK pIter = pStack;
+    PSRVSVC_STACK pIter = pStack;
 
     if (!pfnAction) {
         goto cleanup;
@@ -129,7 +129,7 @@ EVTStackForeach(
     for (; pIter; pIter = pIter->pNext)
     {
         dwError = pfnAction(pIter->pItem, pUserData);
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
 cleanup:
@@ -141,14 +141,14 @@ error:
     goto cleanup;
 }
 
-PEVT_STACK
-EVTStackReverse(
-    PEVT_STACK pStack
+PSRVSVC_STACK
+SRVSVCStackReverse(
+    PSRVSVC_STACK pStack
     )
 {
-    PEVT_STACK pP = NULL;
-    PEVT_STACK pQ = pStack;
-    PEVT_STACK pR = NULL;
+    PSRVSVC_STACK pP = NULL;
+    PSRVSVC_STACK pQ = pStack;
+    PSRVSVC_STACK pR = NULL;
 
     while ( pQ ) {
         pR = pQ->pNext;
@@ -161,16 +161,16 @@ EVTStackReverse(
 }
 
 VOID
-EVTStackFree(
-    PEVT_STACK pStack
+SRVSVCStackFree(
+    PSRVSVC_STACK pStack
     )
 {
     while (pStack)
     {
-        PEVT_STACK pTmp = pStack;
+        PSRVSVC_STACK pTmp = pStack;
 
         pStack = pStack->pNext;
 
-        EVTFreeMemory(pTmp);
+        SRVSVCFreeMemory(pTmp);
     }
 }

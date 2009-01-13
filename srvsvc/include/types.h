@@ -130,17 +130,6 @@ typedef struct unicode_string_ex {
 #define UNISTR_DEFINED
 #endif /* !defined(UNISTR_DEFINED) */
 
-/* Don't require DCE/RPC environment when simply building
-   a client using rpc library */
-#if !defined(_DCE_IDL_)
-#if defined(SRVSVC_BUILD)
-#include <dce/rpc.h>
-#else
-typedef void* handle_t;
-typedef unsigned long error_status_t;
-#endif /* defined(SRVSVC_BUILD) */
-#endif /* !defined(_DCE_IDL_) */
-
 #endif /* _TYPES_H_ */
 
 

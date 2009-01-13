@@ -34,6 +34,147 @@
 #include <types.h>
 #include <security.h>
 
+/* ERRORS */
+#define SRVSVC_ERROR_SUCCESS                   0x0000
+#define SRVSVC_ERROR_INVALID_CONFIG_PATH       0x9400 // 37888
+#define SRVSVC_ERROR_INVALID_PREFIX_PATH       0x9401 // 37889
+#define SRVSVC_ERROR_INSUFFICIENT_BUFFER       0x9402 // 37890
+#define SRVSVC_ERROR_OUT_OF_MEMORY             0x9403 // 37891
+#define SRVSVC_ERROR_INVALID_MESSAGE           0x9404 // 37892
+#define SRVSVC_ERROR_UNEXPECTED_MESSAGE        0x9405 // 37893
+#define SRVSVC_ERROR_NO_SUCH_USER              0x9406 // 37894
+#define SRVSVC_ERROR_DATA_ERROR                0x9407 // 37895
+#define SRVSVC_ERROR_NOT_IMPLEMENTED           0x9408 // 37896
+#define SRVSVC_ERROR_NO_CONTEXT_ITEM           0x9409 // 37897
+#define SRVSVC_ERROR_NO_SUCH_GROUP             0x940A // 37898
+#define SRVSVC_ERROR_REGEX_COMPILE_FAILED      0x940B // 37899
+#define SRVSVC_ERROR_NSS_EDIT_FAILED           0x940C // 37900
+#define SRVSVC_ERROR_NO_HANDLER                0x940D // 37901
+#define SRVSVC_ERROR_INTERNAL                  0x940E // 37902
+#define SRVSVC_ERROR_NOT_HANDLED               0x940F // 37903
+#define SRVSVC_ERROR_UNEXPECTED_DB_RESULT      0x9410 // 37904
+#define SRVSVC_ERROR_INVALID_PARAMETER         0x9411 // 37905
+#define SRVSVC_ERROR_LOAD_LIBRARY_FAILED       0x9412 // 37906
+#define SRVSVC_ERROR_LOOKUP_SYMBOL_FAILED      0x9413 // 37907
+#define SRVSVC_ERROR_INVALID_EVENTLOG          0x9414 // 37908
+#define SRVSVC_ERROR_INVALID_CONFIG            0x9415 // 37909
+#define SRVSVC_ERROR_STRING_CONV_FAILED        0x9416 // 37910
+#define SRVSVC_ERROR_INVALID_DB_HANDLE         0x9417 // 37911
+#define SRVSVC_ERROR_FAILED_CONVERT_TIME       0x9418 // 37912
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_RPC_BINDING 0x9419 // 37913
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_OPEN   0x941A // 37914
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_CLOSE  0x941B // 37915
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_COUNT  0x941C // 37916
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_READ   0x941D // 37917
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_WRITE  0x941E // 37918
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_CLEAR  0x941F // 37919
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_DELETE 0x9420 // 37920
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER 0x9421 // 37921
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_UNREGISTER 0x9422 // 37922
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_LISTEN 0x9423 // 37923
+#define SRVSVC_ERROR_RPC_EXCEPTION             0x9424 // 37924
+#define SRVSVC_ERROR_ACCESS_DENIED             0x9425 // 37925
+#define SRVSVC_ERROR_SENTINEL                  0x9426 // 37926
+
+/*
+ * Log levels
+ */
+#define LOG_LEVEL_ALWAYS  0
+#define LOG_LEVEL_ERROR   1
+#define LOG_LEVEL_WARNING 2
+#define LOG_LEVEL_INFO    3
+#define LOG_LEVEL_VERBOSE 4
+#define LOG_LEVEL_DEBUG   5
+
+/*
+ * Logging targets
+ */
+#define LOG_DISABLED   0
+#define LOG_TO_SYSLOG  1
+#define LOG_TO_FILE    2
+#define LOG_TO_CONSOLE 3
+
+#define SRVSVC_SAFE_FREE_MEMORY(mem) \
+        do {                      \
+           if (mem) {             \
+              SRVSVCFreeMemory(mem); \
+              (mem) = NULL;       \
+           }                      \
+        } while(0);
+
+#define IsNullOrEmptyString(pszStr)     \
+    (pszStr == NULL || *pszStr == '\0')
+
+#define SRVSVC_SAFE_FREE_STRING(str) \
+    do {                          \
+        if (str) {                \
+            SRVSVCFreeString(str);   \
+            (str) = NULL;         \
+        }                         \
+    } while(0);
+
+#define SRVSVC_LOG_ALWAYS(szFmt...)                     \
+    SRVSVCLogMessage(LOG_LEVEL_ALWAYS, ## szFmt);
+
+#define SRVSVC_LOG_ERROR(szFmt...)                         \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_ERROR) {    \
+        SRVSVCLogMessage(LOG_LEVEL_ERROR, ## szFmt);       \
+    }
+
+#define SRVSVC_LOG_WARNING(szFmt...)                       \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_WARNING) {  \
+        SRVSVCLogMessage(LOG_LEVEL_WARNING, ## szFmt);     \
+    }
+
+#define SRVSVC_LOG_INFO(szFmt...)                          \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_INFO)    {  \
+        SRVSVCLogMessage(LOG_LEVEL_INFO, ## szFmt);        \
+    }
+
+#define SRVSVC_LOG_VERBOSE(szFmt...)                       \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
+        SRVSVCLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
+    }
+
+#define SRVSVC_LOG_DEBUG(szFmt...)                         \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
+        SRVSVCLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
+    }
+
+#define BAIL_ON_SRVSVC_ERROR(dwError) \
+    if (dwError) {                 \
+        SRVSVC_LOG_DEBUG("Error at %s:%d. Error [code:%d]", __FILE__, __LINE__, dwError); \
+        goto error;                \
+    }
+#define BAIL_ON_DCE_ERROR(dwError, rpcstatus)                           \
+    if ((rpcstatus) != RPC_S_OK)                                        \
+    {                                                                   \
+        dce_error_string_t errstr;                                      \
+        int error_status;                                               \
+        dce_error_inq_text((rpcstatus), (unsigned char*)errstr,         \
+                           &error_status);                              \
+        if (error_status == error_status_ok)                            \
+        {                                                               \
+            SRVSVC_LOG_ERROR("DCE Error [0x%8x] Reason [%s]",              \
+                          (rpcstatus), errstr);                         \
+        }                                                               \
+        else                                                            \
+        {                                                               \
+            SRVSVC_LOG_ERROR("DCE Error [0x%8x]", (rpcstatus));            \
+        }                                                               \
+                                                                        \
+        switch ((rpcstatus)) {                                          \
+        case RPC_S_INVALID_STRING_BINDING:                              \
+            (dwError) = SRVSVC_ERROR_RPC_EXCEPTION_UPON_RPC_BINDING;       \
+            break;                                                      \
+                                                                        \
+        default:                                                        \
+            (dwError) = SRVSVC_ERROR_RPC_EXCEPTION;                        \
+        }                                                               \
+                                                                        \
+        goto error;                                                     \
+    }
+
 typedef uint32 NET_API_STATUS;
 
 typedef struct _CONNECTION_INFO_0 {

@@ -39,8 +39,8 @@
  * Eventlog logging utilities
  *
  */
-#ifndef __EVTLOGGER_H_
-#define __EVTLOGGER_H_
+#ifndef __SRVSVCLOGGER_H_
+#define __SRVSVCLOGGER_H_
 
 #include "evtbase.h"
 
@@ -65,30 +65,30 @@ extern DWORD gLogLevel;
 
 #define LOG_PRINT(...) ((gBasicLogStreamFD == NULL) ? fprintf(stdout, __VA_ARGS__) : fprintf(gBasicLogStreamFD, __VA_ARGS__))
 
-#define EVT_LOG_ALWAYS(...)                     \
+#define SRVSVC_LOG_ALWAYS(...)                     \
     LOG_PRINT(__VA_ARGS__);
 
-#define EVT_LOG_ERROR(...)                      \
+#define SRVSVC_LOG_ERROR(...)                      \
     if (gLogLevel >= LOG_LEVEL_ERROR) {    \
         LOG_PRINT(__VA_ARGS__);  \
     }
 
-#define EVT_LOG_WARNING(...)                    \
+#define SRVSVC_LOG_WARNING(...)                    \
     if (gLogLevel >= LOG_LEVEL_WARNING) {  \
        LOG_PRINT(__VA_ARGS__);\
     }
 
-#define EVT_LOG_INFO(...)                       \
+#define SRVSVC_LOG_INFO(...)                       \
     if (gLogLevel >= LOG_LEVEL_INFO)    {  \
         LOG_PRINT(__VA_ARGS__);   \
     }
 
-#define EVT_LOG_VERBOSE(...)                    \
+#define SRVSVC_LOG_VERBOSE(...)                    \
     if (gLogLevel >= LOG_LEVEL_VERBOSE) {  \
         LOG_PRINT(__VA_ARGS__);\
     }
 
-#define EVT_LOG_DEBUG(...)                    \
+#define SRVSVC_LOG_DEBUG(...)                    \
     if (gLogLevel >= LOG_LEVEL_VERBOSE) {  \
         LOG_PRINT(__VA_ARGS__);\
     }
@@ -144,33 +144,33 @@ evt_init_logging_to_syslog(
 
 
 
-extern LOGINFO gEvtLogInfo;
+extern LOGINFO gSrvSvcLogInfo;
 
-#define EVT_LOG_ALWAYS(szFmt...)                     \
+#define SRVSVC_LOG_ALWAYS(szFmt...)                     \
     evt_log_message(LOG_LEVEL_ALWAYS, ## szFmt);
 
-#define EVT_LOG_ERROR(szFmt...)                      \
-    if (gEvtLogInfo.dwLogLevel >= LOG_LEVEL_ERROR) {    \
+#define SRVSVC_LOG_ERROR(szFmt...)                      \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_ERROR) {    \
         evt_log_message(LOG_LEVEL_ERROR, ## szFmt);  \
     }
 
-#define EVT_LOG_WARNING(szFmt...)                    \
-    if (gEvtLogInfo.dwLogLevel >= LOG_LEVEL_WARNING) {  \
+#define SRVSVC_LOG_WARNING(szFmt...)                    \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_WARNING) {  \
         evt_log_message(LOG_LEVEL_WARNING, ## szFmt);\
     }
 
-#define EVT_LOG_INFO(szFmt...)                       \
-    if (gEvtLogInfo.dwLogLevel >= LOG_LEVEL_INFO)    {  \
+#define SRVSVC_LOG_INFO(szFmt...)                       \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_INFO)    {  \
         evt_log_message(LOG_LEVEL_INFO, ## szFmt);   \
     }
 
-#define EVT_LOG_VERBOSE(szFmt...)                    \
-    if (gEvtLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
+#define SRVSVC_LOG_VERBOSE(szFmt...)                    \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
         evt_log_message(LOG_LEVEL_VERBOSE, ## szFmt);\
     }
 
-#define EVT_LOG_DEBUG(szFmt...)                    \
-    if (gEvtLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
+#define SRVSVC_LOG_DEBUG(szFmt...)                    \
+    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
         evt_log_message(LOG_LEVEL_VERBOSE, ## szFmt);\
     }
 #endif //non-_WIN32
@@ -190,4 +190,4 @@ void
 evt_close_log();
 
 
-#endif /*__EVTLOGGER_H__*/
+#endif /*__SRVSVCLOGGER_H__*/

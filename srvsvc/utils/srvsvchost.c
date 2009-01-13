@@ -28,50 +28,63 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        evtlogger_p.h
- *
- * Abstract:
- *
- *        Likewise Eventlog Service (LWEVT)
- *
- *        Utilities
- *
- *        Private header (Logging API)
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- */
-#ifndef __EVTLOGGER_P_H__
-#define __EVTLOGGER_P_H__
+#include "includes.h"
 
 DWORD
-EVTValidateLogLevel(
-    DWORD dwLogLevel
-    );
+SRVSVCGetHostname(
+    PSTR* ppszHostname
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszHostname = NULL;
+    BOOLEAN bDone = FALSE;
+    DWORD dwLength = HOST_NAME_MAX + 1;
 
-VOID
-EVTSetSyslogMask(
-    DWORD dwLogLevel
-    );
+    dwError = SRVSVCAllocateMemory(
+                    dwLength,
+                    (PVOID*)&pszHostname);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-VOID
-EVTLogToFile_InLock(
-    PLOGFILEINFO logInfo,
-    DWORD dwLogLevel,
-    PCSTR pszFormat,
-    va_list msgList
-    );
+    do
+    {
+        dwError = 0;
 
-VOID
-EVTLogToSyslog_InLock(
-    DWORD   dwLogLevel,
-    PCSTR   pszFormat,
-    va_list msgList
-    );
+        if (gethostname(pszHostname, dwLength) < 0)
+        {
+            dwError = errno;
 
-#endif /* __EVTLOGGER_P_H__ */
+            if (dwError == ENAMETOOLONG)
+            {
+                DWORD dwLength2 = dwLength + 256;
+
+                dwError = SRVSVCReallocMemory(
+                            pszHostname,
+                            (PVOID*)&pszHostname,
+                            dwLength2);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+
+                dwLength = dwLength2;
+
+                continue;
+            }
+            BAIL_ON_SRVSVC_ERROR(dwError);
+        }
+
+        bDone = TRUE;
+
+    } while (!bDone);
+
+    *ppszHostname = pszHostname;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    SRVSVC_SAFE_FREE_STRING(pszHostname);
+    *ppszHostname = NULL;
+
+    goto cleanup;
+
+}

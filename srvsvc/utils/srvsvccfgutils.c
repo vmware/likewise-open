@@ -1,7 +1,7 @@
 #include "includes.h"
 
 DWORD
-EVTParseDays(
+SRVSVCParseDays(
     PCSTR  pszTimeInterval,
     PDWORD pdwTimeInterval
     )
@@ -12,13 +12,13 @@ EVTParseDays(
     BOOLEAN  bConvert = FALSE;
     PSTR   pszUnitCode = NULL;
 
-    EVTStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+    SRVSVCStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
-    dwError = EVTAllocateString(
+    dwError = SRVSVCAllocateString(
                     pszTimeInterval,
                     &pszTimeIntervalLocal
                     );
-    BAIL_ON_EVT_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwTimeIntervalLocalLen = strlen(pszTimeIntervalLocal);
 
@@ -34,18 +34,18 @@ EVTParseDays(
     }
 
     if(bConvert) {
-        EVTStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+        SRVSVCStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 	*pdwTimeInterval = (DWORD) atoi(pszTimeIntervalLocal);
     }
     else
     {
 	*pdwTimeInterval = 0;
-        dwError = EVT_ERROR_INVALID_PARAMETER;
+        dwError = SRVSVC_ERROR_INVALID_PARAMETER;
     }
 
 cleanup:
 
-    EVT_SAFE_FREE_STRING(pszTimeIntervalLocal);
+    SRVSVC_SAFE_FREE_STRING(pszTimeIntervalLocal);
 
     return dwError;
 
@@ -55,7 +55,7 @@ error:
 }
 
 DWORD
-EVTParseDiskUsage(
+SRVSVCParseDiskUsage(
     PCSTR  pszDiskUsage,
     PDWORD pdwDiskUsage
     )
@@ -66,13 +66,13 @@ EVTParseDiskUsage(
     DWORD  dwUnitMultiplier = 0;
     PSTR   pszUnitCode = NULL;
 
-    EVTStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
+    SRVSVCStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
 
-    dwError = EVTAllocateString(
+    dwError = SRVSVCAllocateString(
                     pszDiskUsage,
                     &pszDiskUsageLocal
                     );
-    BAIL_ON_EVT_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwLen = strlen(pszDiskUsageLocal);
 
@@ -84,31 +84,31 @@ EVTParseDiskUsage(
     }
     else if(*pszUnitCode == 'k' || *pszUnitCode == 'K')
     {
-        dwUnitMultiplier = EVT_BYTES_IN_KB;
+        dwUnitMultiplier = SRVSVC_BYTES_IN_KB;
     }
     else if(*pszUnitCode == 'm' || *pszUnitCode == 'M')
     {
-        dwUnitMultiplier = EVT_BYTES_IN_MB;
+        dwUnitMultiplier = SRVSVC_BYTES_IN_MB;
     }
     else if(*pszUnitCode == 'g' || *pszUnitCode == 'G')
     {
-        dwUnitMultiplier = EVT_BYTES_IN_GB;
+        dwUnitMultiplier = SRVSVC_BYTES_IN_GB;
     }
     else
     {
-        dwError = EVT_ERROR_INVALID_PARAMETER;
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVC_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     *pszUnitCode = ' ';
 
-    EVTStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
+    SRVSVCStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
 
     *pdwDiskUsage = (DWORD) atoi(pszDiskUsageLocal) * dwUnitMultiplier;
 
 cleanup:
 
-    EVT_SAFE_FREE_STRING(pszDiskUsageLocal);
+    SRVSVC_SAFE_FREE_STRING(pszDiskUsageLocal);
 
     return dwError;
 
@@ -118,7 +118,7 @@ error:
 }
 
 DWORD
-EVTParseMaxEntries(
+SRVSVCParseMaxEntries(
     PCSTR  pszMaxEntries,
     PDWORD pdwMaxEntries
     )
@@ -129,13 +129,13 @@ EVTParseMaxEntries(
     DWORD  dwUnitMultiplier = 0;
     PSTR   pszUnitCode = NULL;
 
-    EVTStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
+    SRVSVCStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
 
-    dwError = EVTAllocateString(
+    dwError = SRVSVCAllocateString(
                     pszMaxEntries,
                     &pszMaxEntriesLocal
                     );
-    BAIL_ON_EVT_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwLen = strlen(pszMaxEntriesLocal);
 
@@ -147,27 +147,27 @@ EVTParseMaxEntries(
     }
     else if(*pszUnitCode == 'k' || *pszUnitCode == 'K')
     {
-        dwUnitMultiplier = EVT_RECS_IN_K;
+        dwUnitMultiplier = SRVSVC_RECS_IN_K;
     }
     else if(*pszUnitCode == 'm' || *pszUnitCode == 'M')
     {
-        dwUnitMultiplier = EVT_RECS_IN_M;
+        dwUnitMultiplier = SRVSVC_RECS_IN_M;
     }
     else
     {
-        dwError = EVT_ERROR_INVALID_PARAMETER;
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVC_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     *pszUnitCode = ' ';
 
-    EVTStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
+    SRVSVCStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
 
     *pdwMaxEntries = (DWORD) atoi(pszMaxEntriesLocal) * dwUnitMultiplier;
 
 cleanup:
 
-    EVT_SAFE_FREE_STRING(pszMaxEntriesLocal);
+    SRVSVC_SAFE_FREE_STRING(pszMaxEntriesLocal);
 
     return dwError;
 

@@ -44,12 +44,12 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
-#ifndef __EVTCFG_P_H__
-#define __EVTCFG_P_H__
+#ifndef __SRVSVCCFG_P_H__
+#define __SRVSVCCFG_P_H__
 
-#define EVT_CFG_TOKEN_DEFAULT_LENGTH 128
+#define SRVSVC_CFG_TOKEN_DEFAULT_LENGTH 128
 
-typedef struct __EVT_CONFIG_PARSE_STATE
+typedef struct __SRVSVC_CONFIG_PARSE_STATE
 {
     PSTR  pszFilePath;
 
@@ -62,48 +62,48 @@ typedef struct __EVT_CONFIG_PARSE_STATE
 
     PSTR pszSectionName;
 
-    PEVT_STACK pLexerTokenStack; //only for lexer
+    PSRVSVC_STACK pLexerTokenStack; //only for lexer
 
     PFNCONFIG_START_SECTION   pfnStartSectionHandler;
     PFNCONFIG_COMMENT         pfnCommentHandler;
     PFNCONFIG_NAME_VALUE_PAIR pfnNameValuePairHandler;
     PFNCONFIG_END_SECTION     pfnEndSectionHandler;
 
-} EVT_CONFIG_PARSE_STATE, *PEVT_CONFIG_PARSE_STATE;
+} SRVSVC_CONFIG_PARSE_STATE, *PSRVSVC_CONFIG_PARSE_STATE;
 
 typedef enum
 {
     Consume,
     Pushback,
     Skip
-} EVTLexAction;
+} SRVSVCLexAction;
 
 typedef enum
 {
-    EVTLexBegin = 0,
-    EVTLexChar,
-    EVTLexLSqBrace,
-    EVTLexRSqBrace,
-    EVTLexEquals,
-    EVTLexHash,
-    EVTLexNewline,
-    EVTLexOther,
-    EVTLexEOF,
-    EVTLexEnd
-} EVTCfgLexState;
+    SRVSVCLexBegin = 0,
+    SRVSVCLexChar,
+    SRVSVCLexLSqBrace,
+    SRVSVCLexRSqBrace,
+    SRVSVCLexEquals,
+    SRVSVCLexHash,
+    SRVSVCLexNewline,
+    SRVSVCLexOther,
+    SRVSVCLexEOF,
+    SRVSVCLexEnd
+} SRVSVCCfgLexState;
 
 typedef enum
 {
-    EVTCfgNone = 0,
-    EVTCfgString,
-    EVTCfgHash,
-    EVTCfgNewline,
-    EVTCfgEquals,
-    EVTCfgRightSquareBrace,
-    EVTCfgLeftSquareBrace,
-    EVTCfgOther,
-    EVTCfgEOF
-} EVTCfgTokenType;
+    SRVSVCCfgNone = 0,
+    SRVSVCCfgString,
+    SRVSVCCfgHash,
+    SRVSVCCfgNewline,
+    SRVSVCCfgEquals,
+    SRVSVCCfgRightSquareBrace,
+    SRVSVCCfgLeftSquareBrace,
+    SRVSVCCfgOther,
+    SRVSVCCfgEOF
+} SRVSVCCfgTokenType;
 
 typedef enum {
     PARSE_STATE_COMMENT       = 0,
@@ -113,197 +113,197 @@ typedef enum {
     PARSE_STATE_NAME,
     PARSE_STATE_EQUALS,
     PARSE_STATE_VALUE
-} EVTCfgParseState;
+} SRVSVCCfgParseState;
 
-typedef struct __EVT_CFG_ELEMENT
+typedef struct __SRVSVC_CFG_ELEMENT
 {
-    EVTCfgParseState parseState;
+    SRVSVCCfgParseState parseState;
     PSTR             pszToken;
     DWORD            dwMaxLen;
     DWORD            dwLen;
-} EVT_CFG_ELEMENT, *PEVT_CFG_ELEMENT;
+} SRVSVC_CFG_ELEMENT, *PSRVSVC_CFG_ELEMENT;
 
-typedef struct __EVT_CFG_TOKEN
+typedef struct __SRVSVC_CFG_TOKEN
 {
-    EVTCfgTokenType tokenType;
+    SRVSVCCfgTokenType tokenType;
     PSTR            pszToken;
     DWORD           dwMaxLen;
     DWORD           dwLen;
-} EVT_CFG_TOKEN, *PEVT_CFG_TOKEN;
+} SRVSVC_CFG_TOKEN, *PSRVSVC_CFG_TOKEN;
 
-typedef struct __EVT_CFG_LEXER_STATE
+typedef struct __SRVSVC_CFG_LEXER_STATE
 {
-    EVTCfgLexState  nextState;
-    EVTLexAction action;
-    EVTCfgTokenType tokenId;
-} EVT_CFG_LEXER_STATE, *PEVT_CFG_LEXER_STATE;
+    SRVSVCCfgLexState  nextState;
+    SRVSVCLexAction action;
+    SRVSVCCfgTokenType tokenId;
+} SRVSVC_CFG_LEXER_STATE, *PSRVSVC_CFG_LEXER_STATE;
 
 DWORD
-EVTCfgInitParseState(
+SRVSVCCfgInitParseState(
     PCSTR                     pszFilePath,
     PFNCONFIG_START_SECTION   pfnStartSectionHandler,
     PFNCONFIG_COMMENT         pfnCommentHandler,
     PFNCONFIG_NAME_VALUE_PAIR pfnNameValuePairHandler,
     PFNCONFIG_END_SECTION     pfnEndSectionHandler,
-    PEVT_CONFIG_PARSE_STATE*  ppParseState
+    PSRVSVC_CONFIG_PARSE_STATE*  ppParseState
     );
 
 VOID
-EVTCfgFreeParseState(
-    PEVT_CONFIG_PARSE_STATE pParseState
+SRVSVCCfgFreeParseState(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 DWORD
-EVTCfgParse(
-    PEVT_CONFIG_PARSE_STATE pParseState
+SRVSVCCfgParse(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 DWORD
-EVTCfgParseSections(
-    PEVT_CONFIG_PARSE_STATE pParseState
+SRVSVCCfgParseSections(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 DWORD
-EVTCfgParseComment(
-    PEVT_CONFIG_PARSE_STATE pParseState,
+SRVSVCCfgParseComment(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN    pbContinue
     );
 
 DWORD
-EVTCfgParseSectionHeader(
-    PEVT_CONFIG_PARSE_STATE pParseState,
+SRVSVCCfgParseSectionHeader(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN pbContinue
     );
 
 DWORD
-EVTAssertWhitespaceOnly(
-    PEVT_CONFIG_PARSE_STATE pParseState
+SRVSVCAssertWhitespaceOnly(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 DWORD
-EVTCfgParseNameValuePair(
-    PEVT_CONFIG_PARSE_STATE pParseState,
+SRVSVCCfgParseNameValuePair(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN pbContinue
     );
 
 DWORD
-EVTCfgProcessComment(
-    PEVT_CONFIG_PARSE_STATE pParseState,
-    PEVT_STACK*             ppTokenStack,
+SRVSVCCfgProcessComment(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
+    PSRVSVC_STACK*             ppTokenStack,
     PBOOLEAN                pbContinue
     );
 
 DWORD
-EVTCfgProcessBeginSection(
-    PEVT_CONFIG_PARSE_STATE pParseState,
-    PEVT_STACK*             ppTokenStack,
+SRVSVCCfgProcessBeginSection(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
+    PSRVSVC_STACK*             ppTokenStack,
     PBOOLEAN                pbContinue
     );
 
 DWORD
-EVTCfgProcessNameValuePair(
-    PEVT_CONFIG_PARSE_STATE pParseState,
-    PEVT_STACK*             ppTokenStack,
+SRVSVCCfgProcessNameValuePair(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
+    PSRVSVC_STACK*             ppTokenStack,
     PBOOLEAN                pbContinue
     );
 
 DWORD
-EVTCfgProcessEndSection(
-    PEVT_CONFIG_PARSE_STATE pParseState,
+SRVSVCCfgProcessEndSection(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN                pbContinue
     );
 
 DWORD
-EVTCfgDetermineTokenLength(
-    PEVT_STACK pStack
+SRVSVCCfgDetermineTokenLength(
+    PSRVSVC_STACK pStack
     );
 
 //this will consume the token stack
 DWORD
-EVTCfgProcessTokenStackIntoString(
-    PEVT_STACK* ppTokenStack,
+SRVSVCCfgProcessTokenStackIntoString(
+    PSRVSVC_STACK* ppTokenStack,
     PSTR* ppszConcatenated
     );
 
 DWORD
-EVTCfgAllocateToken(
+SRVSVCCfgAllocateToken(
     DWORD           dwSize,
-    PEVT_CFG_TOKEN* ppToken
+    PSRVSVC_CFG_TOKEN* ppToken
     );
 
 DWORD
-EVTCfgReallocToken(
-    PEVT_CFG_TOKEN pToken,
+SRVSVCCfgReallocToken(
+    PSRVSVC_CFG_TOKEN pToken,
     DWORD          dwNewSize
     );
 
 VOID
-EVTCfgResetToken(
-    PEVT_CFG_TOKEN pToken
+SRVSVCCfgResetToken(
+    PSRVSVC_CFG_TOKEN pToken
     );
 
 DWORD
-EVTCfgCopyToken(
-    PEVT_CFG_TOKEN pTokenSrc,
-    PEVT_CFG_TOKEN pTokenDst
+SRVSVCCfgCopyToken(
+    PSRVSVC_CFG_TOKEN pTokenSrc,
+    PSRVSVC_CFG_TOKEN pTokenDst
     );
 
 DWORD
-EVTCfgFreeTokenStack(
-    PEVT_STACK* ppTokenStack
+SRVSVCCfgFreeTokenStack(
+    PSRVSVC_STACK* ppTokenStack
     );
 
 DWORD
-EVTCfgFreeTokenInStack(
+SRVSVCCfgFreeTokenInStack(
     PVOID pToken,
     PVOID pUserData
     );
 
 VOID
-EVTCfgFreeToken(
-    PEVT_CFG_TOKEN pToken
+SRVSVCCfgFreeToken(
+    PSRVSVC_CFG_TOKEN pToken
     );
 
 DWORD
-EVTCfgGetNextToken(
-    PEVT_CONFIG_PARSE_STATE pParseState,
-    PEVT_CFG_TOKEN*         ppToken
+SRVSVCCfgGetNextToken(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
+    PSRVSVC_CFG_TOKEN*         ppToken
     );
 
 DWORD
-EVTCfgGetCharacter(
-    PEVT_CONFIG_PARSE_STATE pParseState
+SRVSVCCfgGetCharacter(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
-EVTCfgLexState
-EVTCfgGetLexClass(
+SRVSVCCfgLexState
+SRVSVCCfgGetLexClass(
     DWORD ch
     );
 
 DWORD
-EVTCfgPushBackCharacter(
-    PEVT_CONFIG_PARSE_STATE pParseState,
+SRVSVCCfgPushBackCharacter(
+    PSRVSVC_CONFIG_PARSE_STATE pParseState,
     BYTE ch
     );
 
-EVTCfgLexState
-EVTCfgGetNextLexState(
-    EVTCfgLexState currentState,
+SRVSVCCfgLexState
+SRVSVCCfgGetNextLexState(
+    SRVSVCCfgLexState currentState,
     DWORD chId
     );
 
-EVTLexAction
-EVTCfgGetLexAction(
-    EVTCfgLexState currentState,
+SRVSVCLexAction
+SRVSVCCfgGetLexAction(
+    SRVSVCCfgLexState currentState,
     DWORD chId
     );
 
-EVTCfgTokenType
-EVTCfgGetTokenType(
-    EVTCfgLexState currentState,
+SRVSVCCfgTokenType
+SRVSVCCfgGetTokenType(
+    SRVSVCCfgLexState currentState,
     DWORD chId
     );
 
 
 
-#endif /* __EVTCFG_P_H__ */
+#endif /* __SRVSVCCFG_P_H__ */

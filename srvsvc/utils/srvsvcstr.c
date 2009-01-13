@@ -43,7 +43,7 @@
 #include "includes.h"
 
 DWORD
-EVTStrndup(
+SRVSVCStrndup(
     PCSTR pszInputString,
     size_t size,
     PSTR * ppszOutputString
@@ -55,15 +55,15 @@ EVTStrndup(
 
     if (!pszInputString || !ppszOutputString){
         dwError = EINVAL;
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     copylen = strlen(pszInputString);
     if (copylen > size)
         copylen = size;
 
-    dwError = EVTAllocateMemory(copylen+1, (PVOID *)&pszOutputString);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCAllocateMemory(copylen+1, (PVOID *)&pszOutputString);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     memcpy(pszOutputString, pszInputString, copylen);
     pszOutputString[copylen] = 0;
@@ -102,7 +102,7 @@ TableCategoryToStr(
 
 
 BOOLEAN
-EVTIsWhiteSpace(
+SRVSVCIsWhiteSpace(
     char c
     )
 {
@@ -120,7 +120,7 @@ EVTIsWhiteSpace(
 
 /* modify PSTR in-place to conver sequences of whitespace characters into single spaces (0x20) */
 DWORD
-EVTCompressWhitespace(
+SRVSVCCompressWhitespace(
     PSTR pszString
     )
 {
@@ -137,7 +137,7 @@ EVTCompressWhitespace(
 
     for (i = 0; i < pszStringLen; i++) {
 
-    if (EVTIsWhiteSpace(pszString[i])) {
+    if (SRVSVCIsWhiteSpace(pszString[i])) {
         if (!whitespace) {
         whitespace = true;
         pszString[j++] = ' ';
@@ -155,7 +155,7 @@ EVTCompressWhitespace(
 
 /* convert a 16-bit string to an 8-bit string, allocating new memory in the process */
 DWORD
-EVTLpwStrToLpStr(
+SRVSVCLpwStrToLpStr(
     PCWSTR pszwString,
     PSTR* ppszString
     )
@@ -174,8 +174,8 @@ EVTLpwStrToLpStr(
 
     pszwStringLen = wc16slen(pszwString);
 
-    dwError = EVTAllocateMemory(pszwStringLen+1, (PVOID*)ppszString);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCAllocateMemory(pszwStringLen+1, (PVOID*)ppszString);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     pszString = *ppszString;
 
@@ -194,7 +194,7 @@ EVTLpwStrToLpStr(
 }
 
 void
-EVTStripLeadingWhitespace(
+SRVSVCStripLeadingWhitespace(
     PSTR pszString
     )
 {
@@ -216,7 +216,7 @@ EVTStripLeadingWhitespace(
 }
 
 void
-EVTStripTrailingWhitespace(
+SRVSVCStripTrailingWhitespace(
     PSTR pszString
     )
 {
@@ -238,7 +238,7 @@ EVTStripTrailingWhitespace(
 }
 
 void
-EVTStripWhitespace(
+SRVSVCStripWhitespace(
     PSTR pszString,
     BOOLEAN bLeading,
     BOOLEAN bTrailing
@@ -249,16 +249,16 @@ EVTStripWhitespace(
     }
 
     if (bLeading) {
-        EVTStripLeadingWhitespace(pszString);
+        SRVSVCStripLeadingWhitespace(pszString);
     }
 
     if (bTrailing) {
-        EVTStripTrailingWhitespace(pszString);
+        SRVSVCStripTrailingWhitespace(pszString);
     }
 }
 
 void
-EVTStrToUpper(
+SRVSVCStrToUpper(
     PSTR pszString
     )
 {
@@ -272,7 +272,7 @@ EVTStrToUpper(
 }
 
 void
-EVTStrToLower(
+SRVSVCStrToLower(
     PSTR pszString
     )
 {
@@ -286,7 +286,7 @@ EVTStrToLower(
 }
 
 DWORD
-EVTEscapeString(
+SRVSVCEscapeString(
     PSTR pszOrig,
     PSTR * ppszEscapedString
     )
@@ -299,7 +299,7 @@ EVTEscapeString(
 
     if ( !ppszEscapedString || !pszOrig ) {
          dwError = EINVAL;
-         BAIL_ON_EVT_ERROR(dwError);
+         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     while (pszTmp && *pszTmp)
@@ -311,15 +311,15 @@ EVTEscapeString(
     }
 
     if (!nQuotes) {
-         dwError = EVTAllocateString(pszOrig, &pszNew);
-         BAIL_ON_EVT_ERROR(dwError);
+         dwError = SRVSVCAllocateString(pszOrig, &pszNew);
+         BAIL_ON_SRVSVC_ERROR(dwError);
     } else {
          /*
             * We are going to escape each single quote and enclose it in two other
             * single-quotes
             */
-         dwError = EVTAllocateMemory( strlen(pszOrig)+3*nQuotes+1, (PVOID*)&pszNew );
-         BAIL_ON_EVT_ERROR(dwError);
+         dwError = SRVSVCAllocateMemory( strlen(pszOrig)+3*nQuotes+1, (PVOID*)&pszNew );
+         BAIL_ON_SRVSVC_ERROR(dwError);
 
          pszTmp = pszOrig;
          pszNewTmp = pszNew;
@@ -346,14 +346,14 @@ EVTEscapeString(
 error:
 
     if (pszNew) {
-        EVTFreeMemory(pszNew);
+        SRVSVCFreeMemory(pszNew);
     }
 
     return dwError;
 }
 
 DWORD
-EVTAllocateStringPrintf(
+SRVSVCAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,
     ...
@@ -364,7 +364,7 @@ EVTAllocateStringPrintf(
 
     va_start(args, pszFormat);
 
-    dwError = EVTAllocateStringPrintfV(
+    dwError = SRVSVCAllocateStringPrintfV(
                       ppszOutputString,
                       pszFormat,
                       args);
@@ -375,7 +375,7 @@ EVTAllocateStringPrintf(
 }
 
 DWORD
-EVTAllocateStringPrintfV(
+SRVSVCAllocateStringPrintfV(
     PSTR*   ppszOutputString,
     PCSTR   pszFormat,
     va_list args
@@ -395,10 +395,10 @@ EVTAllocateStringPrintfV(
     /* Use a small buffer in case libc does not like NULL */
     do
     {
-        dwError = EVTAllocateMemory(
+        dwError = SRVSVCAllocateMemory(
                         dwBufsize,
                         (PVOID*) &pszSmallBuffer);
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         requiredLength = vsnprintf(
                               pszSmallBuffer,
@@ -409,7 +409,7 @@ EVTAllocateStringPrintfV(
         {
             dwBufsize *= 2;
         }
-        EVTFreeMemory(pszSmallBuffer);
+        SRVSVCFreeMemory(pszSmallBuffer);
         pszSmallBuffer = NULL;
 
     } while (requiredLength < 0);
@@ -417,13 +417,13 @@ EVTAllocateStringPrintfV(
     if (requiredLength >= (UINT32_MAX - 1))
     {
         dwError = ENOMEM;
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = EVTAllocateMemory(
+    dwError = SRVSVCAllocateMemory(
                     requiredLength + 2,
                     (PVOID*)&pszOutputString);
-    BAIL_ON_EVT_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwNewRequiredLength = vsnprintf(
                             pszOutputString,
@@ -433,13 +433,13 @@ EVTAllocateStringPrintfV(
     if (dwNewRequiredLength < 0)
     {
         dwError = errno;
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
     else if (dwNewRequiredLength > requiredLength)
     {
         /* unexpected, ideally should log something, or use better error code */
         dwError = ENOMEM;
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
     else if (dwNewRequiredLength < requiredLength)
     {
@@ -456,7 +456,7 @@ cleanup:
 
 error:
 
-    EVT_SAFE_FREE_MEMORY(pszOutputString);
+    SRVSVC_SAFE_FREE_MEMORY(pszOutputString);
 
     *ppszOutputString = NULL;
 

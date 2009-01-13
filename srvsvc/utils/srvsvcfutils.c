@@ -43,7 +43,7 @@
 
 
 DWORD
-EVTRemoveFile(
+SRVSVCRemoveFile(
     PCSTR pszPath
     )
 {
@@ -55,7 +55,7 @@ EVTRemoveFile(
                 continue;
             }
             dwError = errno;
-            BAIL_ON_EVT_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         } else {
             break;
         }
@@ -67,7 +67,7 @@ error:
 }
 
 DWORD
-EVTCheckFileExists(
+SRVSVCCheckFileExists(
     PCSTR pszPath,
     PBOOLEAN pbFileExists
     )
@@ -87,7 +87,7 @@ EVTCheckFileExists(
              break;
             }
             dwError = errno;
-            BAIL_ON_EVT_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         } else {
             *pbFileExists = 1;
             break;
@@ -100,7 +100,7 @@ error:
 }
 
 DWORD
-EVTGetFileSize(
+SRVSVCGetFileSize(
     PCSTR pszPath,
     PDWORD pdwFileSize
     )
@@ -120,7 +120,7 @@ EVTGetFileSize(
              break;
             }
             dwError = errno;
-            BAIL_ON_EVT_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         } else {
             *pdwFileSize = statbuf.st_size;
             break;
@@ -133,7 +133,7 @@ error:
 }
 
 DWORD
-EVTMoveFile(
+SRVSVCMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath
     )
@@ -148,7 +148,7 @@ EVTMoveFile(
 }
 
 DWORD
-EVTChangePermissions(
+SRVSVCChangePermissions(
     PCSTR pszPath,
     mode_t dwFileMode
     )
@@ -161,7 +161,7 @@ EVTChangePermissions(
                 continue;
             }
             dwError = errno;
-            BAIL_ON_EVT_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         } else {
             break;
         }
@@ -173,7 +173,7 @@ error:
 }
 
 DWORD
-EVTChangeOwner(
+SRVSVCChangeOwner(
     PCSTR pszPath,
     uid_t uid,
     gid_t gid
@@ -187,7 +187,7 @@ EVTChangeOwner(
                 continue;
             }
             dwError = errno;
-            BAIL_ON_EVT_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         } else {
             break;
         }
@@ -199,7 +199,7 @@ error:
 }
 
 DWORD
-EVTChangeOwnerAndPermissions(
+SRVSVCChangeOwnerAndPermissions(
     PCSTR pszPath,
     uid_t uid,
     gid_t gid,
@@ -208,11 +208,11 @@ EVTChangeOwnerAndPermissions(
 {
     DWORD dwError = 0;
 
-    dwError = EVTChangeOwner(pszPath, uid, gid);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCChangeOwner(pszPath, uid, gid);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = EVTChangePermissions(pszPath, dwFileMode);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCChangePermissions(pszPath, dwFileMode);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
 error:
 
@@ -220,7 +220,7 @@ error:
 }
 
 DWORD
-EVTChangeDirectory(
+SRVSVCChangeDirectory(
     PCSTR pszPath
     )
 {
@@ -237,7 +237,7 @@ EVTChangeDirectory(
 // TODO: Check access and removability before actual deletion
 */
 DWORD
-EVTRemoveDirectory(
+SRVSVCRemoveDirectory(
     PCSTR pszPath
     )
 {
@@ -249,7 +249,7 @@ EVTRemoveDirectory(
 
     if ((pDir = opendir(pszPath)) == NULL) {
         dwError = errno;
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     while ((pDirEntry = readdir(pDir)) != NULL) {
@@ -264,22 +264,22 @@ EVTRemoveDirectory(
 
         if (stat(szBuf, &statbuf) < 0) {
             dwError = errno;
-            BAIL_ON_EVT_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         }
 
         if ((statbuf.st_mode & S_IFMT) == S_IFDIR) {
-            dwError = EVTRemoveDirectory(szBuf);
-            BAIL_ON_EVT_ERROR(dwError);
+            dwError = SRVSVCRemoveDirectory(szBuf);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             if (rmdir(szBuf) < 0) {
                 dwError = errno;
-                BAIL_ON_EVT_ERROR(dwError);
+                BAIL_ON_SRVSVC_ERROR(dwError);
             }
 
         } else {
 
-            dwError = EVTRemoveFile(szBuf);
-            BAIL_ON_EVT_ERROR(dwError);
+            dwError = SRVSVCRemoveFile(szBuf);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
         }
     }
@@ -293,7 +293,7 @@ error:
 }
 
 DWORD
-EVTCheckDirectoryExists(
+SRVSVCCheckDirectoryExists(
     PCSTR pszPath,
     PBOOLEAN pbDirExists
     )
@@ -316,7 +316,7 @@ EVTCheckDirectoryExists(
                 break;
             }
             dwError = errno;
-            BAIL_ON_EVT_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
         }
 
@@ -334,7 +334,7 @@ error:
 }
 
 DWORD
-EVTGetCurrentDirectoryPath(
+SRVSVCGetCurrentDirectoryPath(
     PSTR* ppszPath
     )
 {
@@ -344,11 +344,11 @@ EVTGetCurrentDirectoryPath(
 
     if (getcwd(szBuf, PATH_MAX) == NULL) {
         dwError = errno;
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = EVTAllocateString(szBuf, &pszPath);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCAllocateString(szBuf, &pszPath);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     *ppszPath = pszPath;
 
@@ -357,7 +357,7 @@ EVTGetCurrentDirectoryPath(
 error:
 
     if (pszPath) {
-        EVTFreeString(pszPath);
+        SRVSVCFreeString(pszPath);
     }
 
     return dwError;
@@ -365,7 +365,7 @@ error:
 
 static
 DWORD
-EVTCreateDirectoryRecursive(
+SRVSVCCreateDirectoryRecursive(
     PCSTR pszCurDirPath,
     PSTR pszTmpPath,
     PSTR *ppszTmp,
@@ -384,30 +384,30 @@ EVTCreateDirectoryRecursive(
 
     if (pszToken != NULL) {
 
-        dwError = EVTAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
+        dwError = SRVSVCAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
                                     (PVOID*)&pszDirPath);
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         sprintf(pszDirPath,
                 "%s/%s",
                 (!strcmp(pszCurDirPath, "/") ? "" : pszCurDirPath),
                 pszToken);
 
-        dwError = EVTCheckDirectoryExists(pszDirPath, &bDirExists);
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVCCheckDirectoryExists(pszDirPath, &bDirExists);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         if (!bDirExists) {
             if (mkdir(pszDirPath, dwWorkingFileMode) < 0) {
                 dwError = errno;
-                BAIL_ON_EVT_ERROR(dwError);
+                BAIL_ON_SRVSVC_ERROR(dwError);
             }
             bDirCreated = TRUE;
         }
 
-        dwError = EVTChangeDirectory(pszDirPath);
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVCChangeDirectory(pszDirPath);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = EVTCreateDirectoryRecursive(
+        dwError = SRVSVCCreateDirectoryRecursive(
             pszDirPath,
             pszTmpPath,
             ppszTmp,
@@ -415,15 +415,15 @@ EVTCreateDirectoryRecursive(
             dwWorkingFileMode,
             iPart+1
             );
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     if (bDirCreated && (dwFileMode != dwWorkingFileMode)) {
-        dwError = EVTChangePermissions(pszDirPath, dwFileMode);
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVCChangePermissions(pszDirPath, dwFileMode);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
     if (pszDirPath) {
-        EVTFreeMemory(pszDirPath);
+        SRVSVCFreeMemory(pszDirPath);
     }
 
     return dwError;
@@ -431,18 +431,18 @@ EVTCreateDirectoryRecursive(
 error:
 
     if (bDirCreated) {
-        EVTRemoveDirectory(pszDirPath);
+        SRVSVCRemoveDirectory(pszDirPath);
     }
 
     if (pszDirPath) {
-        EVTFreeMemory(pszDirPath);
+        SRVSVCFreeMemory(pszDirPath);
     }
 
     return dwError;
 }
 
 DWORD
-EVTCreateDirectory(
+SRVSVCCreateDirectory(
     PCSTR pszPath,
     mode_t dwFileMode
     )
@@ -455,7 +455,7 @@ EVTCreateDirectory(
 
     if (pszPath == NULL || *pszPath == '\0') {
         dwError = EINVAL;
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     dwWorkingFileMode = dwFileMode;
@@ -467,23 +467,23 @@ EVTCreateDirectory(
         dwWorkingFileMode |= S_IXUSR;
     }
 
-    dwError = EVTGetCurrentDirectoryPath(&pszCurDirPath);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCGetCurrentDirectoryPath(&pszCurDirPath);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = EVTAllocateString(pszPath, &pszTmpPath);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCAllocateString(pszPath, &pszTmpPath);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (*pszPath == '/') {
-        dwError = EVTChangeDirectory("/");
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVCChangeDirectory("/");
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = EVTCreateDirectoryRecursive("/", pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVCCreateDirectoryRecursive("/", pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
     } else {
 
-        dwError = EVTCreateDirectoryRecursive(pszCurDirPath, pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
-        BAIL_ON_EVT_ERROR(dwError);
+        dwError = SRVSVCCreateDirectoryRecursive(pszCurDirPath, pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
     }
 
@@ -491,14 +491,14 @@ error:
 
     if (pszCurDirPath) {
 
-        EVTChangeDirectory(pszCurDirPath);
+        SRVSVCChangeDirectory(pszCurDirPath);
 
-        EVTFreeMemory(pszCurDirPath);
+        SRVSVCFreeMemory(pszCurDirPath);
 
     }
 
     if (pszTmpPath) {
-        EVTFreeMemory(pszTmpPath);
+        SRVSVCFreeMemory(pszTmpPath);
     }
 
     return dwError;

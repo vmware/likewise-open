@@ -1,13 +1,16 @@
 #include "config.h"
 
-#include "eventsys.h"
-#include "eventlog.h"
-#include "eventdefs.h"
+#include "srvsvcsys.h"
 
-#include "eventutils.h"
+#include <lw/ntstatus.h>
 
-#include "evtcfg_p.h"
+#include "srvsvc.h"
+#include "srvsvcdefs.h"
+
+#include "srvsvcutils.h"
+
+#include "srvsvccfg_p.h"
 #include "sysfuncs_p.h"
-#include "evtlogger_p.h"
-#include "evtcfgutils.h"
+#include "srvsvclogger_p.h"
+#include "srvsvccfgutils.h"
 #include "externs.h"

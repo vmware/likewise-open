@@ -43,7 +43,7 @@
 #include "includes.h"
 
 DWORD
-EVTAllocateMemory(
+SRVSVCAllocateMemory(
     DWORD dwSize,
     PVOID * ppMemory
     )
@@ -63,7 +63,7 @@ EVTAllocateMemory(
 }
 
 DWORD
-EVTReallocMemory(
+SRVSVCReallocMemory(
     PVOID  pMemory,
     PVOID * ppNewMemory,
     DWORD dwSize
@@ -90,7 +90,7 @@ EVTReallocMemory(
 
 
 void
-EVTFreeMemory(
+SRVSVCFreeMemory(
     PVOID pMemory
     )
 {
@@ -99,7 +99,7 @@ EVTFreeMemory(
 
 
 DWORD
-EVTAllocateString(
+SRVSVCAllocateString(
     PCSTR  pszInputString,
     PSTR* ppszOutputString
     )
@@ -110,11 +110,11 @@ EVTAllocateString(
 
     if (!pszInputString || !*pszInputString){
         dwError = EINVAL;
-        BAIL_ON_EVT_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
     dwLen = (DWORD)strlen(pszInputString);
-    dwError = EVTAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
-    BAIL_ON_EVT_ERROR(dwError);
+    dwError = SRVSVCAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     strcpy(pszOutputString, pszInputString);
 
@@ -126,17 +126,17 @@ error:
 }
 
 void
-EVTFreeString(
+SRVSVCFreeString(
     PSTR pszString
     )
 {
     if (pszString) {
-        EVTFreeMemory(pszString);
+        SRVSVCFreeMemory(pszString);
     }
 }
 
 void
-EVTFreeStringArray(
+SRVSVCFreeStringArray(
     PSTR * ppStringArray,
     DWORD dwCount
     )
@@ -147,11 +147,11 @@ EVTFreeStringArray(
         for (i = 0; i < dwCount; i++)
         {
             if (ppStringArray[i]) {
-                EVTFreeString(ppStringArray[i]);
+                SRVSVCFreeString(ppStringArray[i]);
             }
         }
 
-        EVTFreeMemory(ppStringArray);
+        SRVSVCFreeMemory(ppStringArray);
     }
 
     return;

@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Eventlog Service (LWEVT)
+ *        Likewise Server Service (LWSRVSVC)
  *
  *        Utilities
  *
@@ -48,7 +48,7 @@
  */
 #include "includes.h"
 
-LOGINFO gEvtLogInfo =
+LOGINFO gSrvSvcLogInfo =
 {
     PTHREAD_MUTEX_INITIALIZER,
     LOG_LEVEL_ERROR,

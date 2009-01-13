@@ -337,6 +337,7 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 
 AC_CONFIG_FILES([Makefile
                  include/Makefile
+                 utils/Makefile
                  client/Makefile
                  test/Makefile
                  server/Makefile

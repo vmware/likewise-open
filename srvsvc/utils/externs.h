@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Eventlog Service (LWEVT)
+ *        Likewise Server Service (LWSRVSVC)
  *
  *        Utilities
  *
@@ -49,9 +49,9 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern LOGINFO gEvtLogInfo;
+extern LOGINFO gSrvSvcLogInfo;
 
-#define EVT__LOCK_LOGGER   pthread_mutex_lock(&gEvtLogInfo.lock)
-#define EVT__UNLOCK_LOGGER pthread_mutex_unlock(&gEvtLogInfo.lock)
+#define SRVSVC_LOCK_LOGGER   pthread_mutex_lock(&gSrvSvcLogInfo.lock)
+#define SRVSVC_UNLOCK_LOGGER pthread_mutex_unlock(&gSrvSvcLogInfo.lock)
 
 #endif /* __EXTERNS_H__ */

@@ -29,82 +29,49 @@
  */
 
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007
- * All rights reserved.
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        evtlogger_p.h
+ *
+ * Abstract:
+ *
+ *        Likewise Eventlog Service (LWSRVSVC)
+ *
+ *        Utilities
+ *
+ *        Private header (Logging API)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *
- * Eventlog RPC Memory utilities
- *
  */
-
-#include "includes.h"
-
-DWORD
-RPCAllocateMemory(
-    DWORD dwSize,
-    PVOID * ppMemory
-    )
-{
-    DWORD dwError = 0;
-    PVOID pMemory = NULL;
-
-    pMemory = RPC_SS_ALLOCATE(dwSize);
-    if (!pMemory){
-        dwError = ENOMEM;
-        *ppMemory = NULL;
-    }else {
-        memset(pMemory,0, dwSize);
-        *ppMemory = pMemory;
-    }
-    return (dwError);
-}
-
-void
-RPCFreeMemory(
-    PVOID pMemory
-    )
-{
-    RPC_SS_FREE(pMemory);
-}
-
+#ifndef __SRVSVCLOGGER_P_H__
+#define __SRVSVCLOGGER_P_H__
 
 DWORD
-RPCAllocateString(
-    PCSTR pszInputString,
-    PSTR* ppszOutputString
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwLen = 0;
-    char * pszOutputString = NULL;
+SRVSVCValidateLogLevel(
+    DWORD dwLogLevel
+    );
 
-    if (!pszInputString || !*pszInputString){
-        dwError = EINVAL;
-        BAIL_ON_EVT_ERROR(dwError);
-    }
-    dwLen = (DWORD)strlen(pszInputString);
-    dwError = RPCAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
-    BAIL_ON_EVT_ERROR(dwError);
+VOID
+SRVSVCSetSyslogMask(
+    DWORD dwLogLevel
+    );
 
-    strcpy(pszOutputString, pszInputString);
+VOID
+SRVSVCLogToFile_InLock(
+    PLOGFILEINFO logInfo,
+    DWORD dwLogLevel,
+    PCSTR pszFormat,
+    va_list msgList
+    );
 
-error:
+VOID
+SRVSVCLogToSyslog_InLock(
+    DWORD   dwLogLevel,
+    PCSTR   pszFormat,
+    va_list msgList
+    );
 
-    *ppszOutputString = pszOutputString;
-
-    return(dwError);
-}
-
-void
-RPCFreeString(
-    PSTR pszString
-    )
-{
-    if (pszString) {
-        RPCFreeMemory(pszString);
-    }
-}
-
+#endif /* __SRVSVCLOGGER_P_H__ */
