@@ -3,7 +3,16 @@
 
 NTSTATUS
 SrvProdConsInit(
-    PSMB_PROD_CONS_QUEUE pQueue
+    ULONG                         ulNumMaxItems,
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,
+    PSMB_PROD_CONS_QUEUE*         ppQueue
+    );
+
+NTSTATUS
+SrvProdConsInitContents(
+    PSMB_PROD_CONS_QUEUE          pQueue,
+    ULONG                         ulNumMaxItems,
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem
     );
 
 NTSTATUS
@@ -16,6 +25,11 @@ NTSTATUS
 SrvProdConsDequeue(
     PSMB_PROD_CONS_QUEUE pQueue,
     PVOID*               ppItem
+    );
+
+VOID
+SrvProdConsFree(
+    PSMB_PROD_CONS_QUEUE pQueue
     );
 
 VOID

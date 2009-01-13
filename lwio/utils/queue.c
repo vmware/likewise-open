@@ -111,13 +111,11 @@ error:
     goto cleanup;
 }
 
-DWORD
+PVOID
 SMBDequeue(
-    PSMB_QUEUE pQueue,
-    PVOID*     ppItem
+    PSMB_QUEUE pQueue
     )
 {
-    DWORD dwError = 0;
     PVOID pItem = NULL;
 
     if (pQueue->pHead)
@@ -135,9 +133,7 @@ SMBDequeue(
         SMBFreeMemory(pQueueItem);
     }
 
-    *ppItem = pItem;
-
-    return dwError;
+    return pItem;
 }
 
 BOOLEAN

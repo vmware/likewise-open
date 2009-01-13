@@ -222,8 +222,12 @@ SrvInitialize(
 
     gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
     gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
+    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
 
-    ntStatus = SrvProdConsInit(&gSMBSrvGlobals.workQueue);
+    ntStatus = SrvProdConsInitContents(
+                    &gSMBSrvGlobals.workQueue,
+                    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue,
+                    &SrvFreeTask);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBAllocateMemory(

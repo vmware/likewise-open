@@ -785,10 +785,9 @@ SMBEnqueue(
     PVOID      pItem
     );
 
-DWORD
+PVOID
 SMBDequeue(
-    PSMB_QUEUE pQueue,
-    PVOID*     ppItem
+    PSMB_QUEUE pQueue
     );
 
 BOOLEAN

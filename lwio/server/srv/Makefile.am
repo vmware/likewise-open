@@ -26,6 +26,7 @@ libsrv_sys_la_SOURCES = \
     sharedb.c      \
     smbv1.c        \
     srvshareutil.c \
+    srvtask.c      \
     stubs.c        \
     tconX.c        \
     tdiscon.c      \

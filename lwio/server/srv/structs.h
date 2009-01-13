@@ -53,6 +53,7 @@ typedef struct _SMB_SRV_CONFIG
 {
     ULONG ulNumReaders;
     ULONG ulNumWorkers;
+    ULONG ulMaxNumWorkItemsInQueue;
 
 } SMB_SRV_CONFIG, *PSMB_SRV_CONFIG;
 
@@ -71,14 +72,21 @@ typedef struct _SMB_SRV_SHARE_DB_CONTEXT
 
 } SMB_SRV_SHARE_DB_CONTEXT, *PSMB_SRV_SHARE_DB_CONTEXT;
 
+typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
+
 typedef struct _SMB_PROD_CONS_QUEUE
 {
-
     pthread_mutex_t mutex;
-    pthread_cond_t  event;
-    pthread_cond_t* pEvent;
 
     SMB_QUEUE       queue;
+
+    ULONG           ulNumMaxItems;
+    ULONG           ulNumItems;
+
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem;
+
+    pthread_cond_t  event;
+    pthread_cond_t* pEvent;
 
 } SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
 
