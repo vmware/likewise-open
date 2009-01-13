@@ -271,7 +271,11 @@ main(
     pszCommand = LwParseArgsNext(&args);
     if (!pszCommand)
     {
-        asprintf(&pszUsageError, "Missing command.\n");
+        if (asprintf(&pszUsageError, "Missing command.\n") < 0)
+        {
+            GOTO_CLEANUP_EE(EE);
+        }
+
         assert(pszUsageError);
         GOTO_CLEANUP_EE(EE);
     }
