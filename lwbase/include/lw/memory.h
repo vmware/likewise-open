@@ -1,5 +1,10 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
- * Copyright (c) Likewise Software.  All rights Reserved.
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,17 +27,52 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-#include <config.h>
 
-#include <lw/base.h>
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        memory.h
+ *
+ * Abstract:
+ *
+ *        Likewise Memory Utilities
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+            Sriram Nambakam (snambakam@likewise.com)
+ */
+#ifndef __LW_MEMORY_H__
+#define __LW_MEMORY_H__
 
-#include <pthread.h>
-#include <errno.h>
-#include <stdlib.h>
+#ifndef LW_SAFE_FREE_MEMORY \
 
-#include <string.h>
+#define LW_SAFE_FREE_MEMORY(pMemory) \
+    if (pMemory) { \
+        LWFreeMemory(pMemory); \
+        (pMemory) = NULL; \
+    }
 
-#ifdef HAVE_STRINGS_H
-   #include <strings.h>
-#endif
+#endif /* LW_SAFE_FREE_MEMORY */
+
+
+NTSTATUS
+LWAllocateMemory(
+    size_t size,
+    PVOID* ppMemory
+    );
+
+NTSTATUS
+LWReallocMemory(
+    PVOID  pMemory,
+    PVOID* ppNewMemory,
+    size_t size
+    );
+
+VOID
+LWFreeMemory(
+    PVOID pMemory
+    );
+
+#endif /* __LW_MEMORY_H__ */
 

@@ -43,5 +43,6 @@
 #include <lw/attrs.h>
 #include <lw/atomic.h>
 #include <lw/ntstatus.h>
+#include <lw/memory.h>
 
 #endif
