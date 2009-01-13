@@ -39,7 +39,7 @@
 
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
-#include <rid.h>
+#include <lwrpc/rid.h>
 #include <secdesc/siddef.h>
 #include <lwrpc/security.h>
 #include <lwrpc/userinfo.h>

@@ -53,7 +53,7 @@
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
-#include <rid.h>
+#include <lwrpc/rid.h>
 
 #include "samr_stub.h"
 
