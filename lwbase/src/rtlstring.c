@@ -32,13 +32,13 @@
 
 static
 PCSTR
-IopStringLogRotate(
+RtlpStringLogRotate(
     IN OPTIONAL PSTR pszString
     );
 
 NTSTATUS
-IoUnicodeStringCreateFromCString(
-    OUT PIO_UNICODE_STRING pString,
+RtlUnicodeStringCreateFromCString(
+    OUT PUNICODE_STRING pString,
     IN PCSTR pszString
     )
 {
@@ -46,7 +46,7 @@ IoUnicodeStringCreateFromCString(
     PWSTR pszNewString = NULL;
     IO_UNICODE_STRING newString = { 0 };
 
-    status = IoWC16StringCreateFromCString(&pszNewString, pszString);
+    status = RtlWC16StringCreateFromCString(&pszNewString, pszString);
     GOTO_CLEANUP_ON_STATUS(status);
 
     newString.Buffer = pszNewString;
@@ -58,7 +58,7 @@ cleanup:
     if (status)
     {
         IO_FREE(&pszNewString);
-        IoUnicodeStringFree(&newString);
+        RtlUnicodeStringFree(&newString);
     }
 
     *pString = newString;
@@ -67,7 +67,7 @@ cleanup:
 }
 
 NTSTATUS
-IoWC16StringCreateFromCString(
+RtlWC16StringCreateFromCString(
     OUT PWSTR* ppszNewString,
     IN PCSTR pszOriginalString
     )
@@ -96,8 +96,8 @@ cleanup:
 }
 
 VOID
-IoUnicodeStringInit(
-    OUT PIO_UNICODE_STRING pString,
+RtlUnicodeStringInit(
+    OUT PUNICODE_STRING pString,
     IN PWSTR pszString
     )
 {
@@ -107,8 +107,8 @@ IoUnicodeStringInit(
 }
 
 VOID
-IoAnsiStringInit(
-    OUT PIO_ANSI_STRING pString,
+RtlAnsiStringInit(
+    OUT PANSI_STRING pString,
     IN PSTR pszString
     )
 {
@@ -118,8 +118,8 @@ IoAnsiStringInit(
 }
 
 VOID
-IoUnicodeStringFree(
-    IN OUT PIO_UNICODE_STRING pString
+RtlUnicodeStringFree(
+    IN OUT PUNICODE_STRING pString
     )
 {
     IO_FREE(&pString->Buffer);
@@ -127,8 +127,8 @@ IoUnicodeStringFree(
 }
 
 VOID
-IoAnsiStringFree(
-    IN OUT PIO_ANSI_STRING pString
+RtlAnsiStringFree(
+    IN OUT PANSI_STRING pString
     )
 {
     IO_FREE(&pString->Buffer);
@@ -136,9 +136,9 @@ IoAnsiStringFree(
 }
 
 NTSTATUS
-IoUnicodeStringDuplicate(
-    OUT PIO_UNICODE_STRING pNewString,
-    IN PIO_UNICODE_STRING pOriginalString
+RtlUnicodeStringDuplicate(
+    OUT PUNICODE_STRING pNewString,
+    IN PUNICODE_STRING pOriginalString
     )
 {
     NTSTATUS status = 0;
@@ -168,7 +168,7 @@ IoUnicodeStringDuplicate(
 cleanup:
     if (status)
     {
-        IoUnicodeStringFree(&newString);
+        RtlUnicodeStringFree(&newString);
     }
 
     *pNewString = newString;
@@ -178,9 +178,9 @@ cleanup:
 }
 
 NTSTATUS
-IoAnsiStringDuplicate(
-    OUT PIO_ANSI_STRING pNewString,
-    IN PIO_ANSI_STRING pOriginalString
+RtlAnsiStringDuplicate(
+    OUT PANSI_STRING pNewString,
+    IN PANSI_STRING pOriginalString
     )
 {
     NTSTATUS status = 0;
@@ -210,7 +210,7 @@ IoAnsiStringDuplicate(
 cleanup:
     if (status)
     {
-        IoAnsiStringFree(&newString);
+        RtlAnsiStringFree(&newString);
     }
 
     *pNewString = newString;
@@ -220,7 +220,7 @@ cleanup:
 }
 
 NTSTATUS
-IoWC16StringDuplicate(
+RtlWC16StringDuplicate(
     OUT PWSTR* ppszNewString,
     IN PCWSTR pszOriginalString
     )
@@ -256,7 +256,7 @@ cleanup:
 }
 
 NTSTATUS
-IoCStringDuplicate(
+RtlCStringDuplicate(
     OUT PSTR* ppszNewString,
     IN PCSTR pszOriginalString
     )
@@ -292,9 +292,9 @@ cleanup:
 }
 
 BOOLEAN
-IoUnicodeStringIsEqual(
-    IN PIO_UNICODE_STRING pString1,
-    IN PIO_UNICODE_STRING pString2,
+RtlUnicodeStringIsEqual(
+    IN PUNICODE_STRING pString1,
+    IN PUNICODE_STRING pString2,
     IN BOOLEAN bIsCaseSensitive
     )
 {
@@ -347,13 +347,13 @@ typedef struct _IOP_STRING_LOG_DATA {
     PSTR ppszString[IOP_STRING_LOG_COUNT];
 } IOP_STRING_LOG_DATA, *PIOP_STRING_LOG_DATA;
 
-IOP_STRING_LOG_DATA gpIoStringLogData = { 0 };
+IOP_STRING_LOG_DATA gpRtlStringLogData = { 0 };
 #define IOP_STRING_NULL_TEXT "<null>"
 
 static
 BOOLEAN
-IopUnicodeStringIsNullTerminated(
-    IN PIO_UNICODE_STRING pString
+RtlpUnicodeStringIsNullTerminated(
+    IN PUNICODE_STRING pString
     )
 {
     BOOLEAN bIsNullTermianted = FALSE;
@@ -371,8 +371,8 @@ IopUnicodeStringIsNullTerminated(
 
 static
 BOOLEAN
-IopAnsiStringIsNullTerminated(
-    IN PIO_ANSI_STRING pString
+RtlpAnsiStringIsNullTerminated(
+    IN PANSI_STRING pString
     )
 {
     BOOLEAN bIsNullTermianted = FALSE;
@@ -389,73 +389,73 @@ IopAnsiStringIsNullTerminated(
 }
 
 PCSTR
-IoUnicodeStringToLog(
-    IN PIO_UNICODE_STRING pString
+RtlUnicodeStringToLog(
+    IN PUNICODE_STRING pString
     )
 {
     PCSTR pszOutput = NULL;
 
-    if (IopUnicodeStringIsNullTerminated(pString))
+    if (RtlpUnicodeStringIsNullTerminated(pString))
     {
-        pszOutput = IoWC16StringToLog(pString->Buffer);
+        pszOutput = RtlWC16StringToLog(pString->Buffer);
     }
     else
     {
         IO_UNICODE_STRING tempString = { 0 };
-        IoUnicodeStringDuplicate(&tempString, pString);
-        pszOutput = IoWC16StringToLog(tempString.Buffer);
-        IoUnicodeStringFree(&tempString);
+        RtlUnicodeStringDuplicate(&tempString, pString);
+        pszOutput = RtlWC16StringToLog(tempString.Buffer);
+        RtlUnicodeStringFree(&tempString);
     }
 
     return pszOutput;
 }
 
 PCSTR
-IoAnsiStringToLog(
-    IN PIO_ANSI_STRING pString
+RtlAnsiStringToLog(
+    IN PANSI_STRING pString
     )
 {
     PCSTR pszOutput = NULL;
 
-    if (IopAnsiStringIsNullTerminated(pString))
+    if (RtlpAnsiStringIsNullTerminated(pString))
     {
         pszOutput = pString->Buffer;
     }
     else
     {
         IO_ANSI_STRING tempString = { 0 };
-        IoAnsiStringDuplicate(&tempString, pString);
-        pszOutput = IopStringLogRotate(tempString.Buffer ? strdup(tempString.Buffer) : NULL);
-        IoAnsiStringFree(&tempString);
+        RtlAnsiStringDuplicate(&tempString, pString);
+        pszOutput = RtlpStringLogRotate(tempString.Buffer ? strdup(tempString.Buffer) : NULL);
+        RtlAnsiStringFree(&tempString);
     }
 
     return pszOutput;
 }
 
 PCSTR
-IoWC16StringToLog(
+RtlWC16StringToLog(
     IN PCWSTR pszString
     )
 {
-    return IopStringLogRotate(pszString ? awc16stombs(pszString) : NULL);
+    return RtlpStringLogRotate(pszString ? awc16stombs(pszString) : NULL);
 }
 
 static
 PCSTR
-IopStringLogRotate(
+RtlpStringLogRotate(
     IN OPTIONAL PSTR pszString
     )
 {
     // TODO-Locking or interlocked increment.
-    if (gpIoStringLogData.ppszString[gpIoStringLogData.NextIndex])
+    if (gpRtlStringLogData.ppszString[gpRtlStringLogData.NextIndex])
     {
-       free(gpIoStringLogData.ppszString[gpIoStringLogData.NextIndex]);
+       free(gpRtlStringLogData.ppszString[gpRtlStringLogData.NextIndex]);
     }
-    gpIoStringLogData.ppszString[gpIoStringLogData.NextIndex] = pszString;
-    gpIoStringLogData.NextIndex++;
-    if (gpIoStringLogData.NextIndex >= IOP_STRING_LOG_COUNT)
+    gpRtlStringLogData.ppszString[gpRtlStringLogData.NextIndex] = pszString;
+    gpRtlStringLogData.NextIndex++;
+    if (gpRtlStringLogData.NextIndex >= IOP_STRING_LOG_COUNT)
     {
-        gpIoStringLogData.NextIndex = 0;
+        gpRtlStringLogData.NextIndex = 0;
     }
     return pszString ? pszString : IOP_STRING_NULL_TEXT;
 }

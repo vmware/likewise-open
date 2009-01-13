@@ -37,91 +37,91 @@ typedef struct _IO_UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;
     wchar16_t* Buffer;
-} IO_UNICODE_STRING, *PIO_UNICODE_STRING;
+} IO_UNICODE_STRING, *PUNICODE_STRING;
 
 typedef struct _IO_ANSI_STRING {
     USHORT Length;
     USHORT MaximumLength;
     PCHAR Buffer;
-} IO_ANSI_STRING, *PIO_ANSI_STRING;
+} IO_ANSI_STRING, *PANSI_STRING;
 
 VOID
-IoUnicodeStringInit(
-    OUT PIO_UNICODE_STRING pString,
+RtlUnicodeStringInit(
+    OUT PUNICODE_STRING pString,
     IN PWSTR pszString
     );
 
 VOID
-IoAnsiStringInit(
-    OUT PIO_ANSI_STRING pString,
+RtlAnsiStringInit(
+    OUT PANSI_STRING pString,
     IN PSTR pszString
     );
 
 NTSTATUS
-IoUnicodeStringCreateFromCString(
-    OUT PIO_UNICODE_STRING pString,
+RtlUnicodeStringCreateFromCString(
+    OUT PUNICODE_STRING pString,
     IN PCSTR pszString
     );
 
 NTSTATUS
-IoWC16StringCreateFromCString(
+RtlWC16StringCreateFromCString(
     OUT PWSTR* ppszNewString,
     IN PCSTR pszOriginalString
     );
 
 VOID
-IoUnicodeStringFree(
-    IN OUT PIO_UNICODE_STRING pString
+RtlUnicodeStringFree(
+    IN OUT PUNICODE_STRING pString
     );
 
 VOID
-IoAnsiStringFree(
-    IN OUT PIO_ANSI_STRING pString
+RtlAnsiStringFree(
+    IN OUT PANSI_STRING pString
     );
 
 NTSTATUS
-IoUnicodeStringDuplicate(
-    OUT PIO_UNICODE_STRING pNewString,
-    IN PIO_UNICODE_STRING pOriginalString
+RtlUnicodeStringDuplicate(
+    OUT PUNICODE_STRING pNewString,
+    IN PUNICODE_STRING pOriginalString
     );
 
 NTSTATUS
-IoAnsiStringDuplicate(
-    OUT PIO_ANSI_STRING pNewString,
-    IN PIO_ANSI_STRING pOriginalString
+RtlAnsiStringDuplicate(
+    OUT PANSI_STRING pNewString,
+    IN PANSI_STRING pOriginalString
     );
 
 NTSTATUS
-IoWC16StringDuplicate(
+RtlWC16StringDuplicate(
     OUT PWSTR* ppszNewString,
     IN PCWSTR pszOriginalString
     );
 
 NTSTATUS
-IoCStringDuplicate(
+RtlCStringDuplicate(
     OUT PSTR* ppszNewString,
     IN PCSTR pszOriginalString
     );
 
 BOOLEAN
-IoUnicodeStringIsEqual(
-    IN PIO_UNICODE_STRING pString1,
-    IN PIO_UNICODE_STRING pString2,
+RtlUnicodeStringIsEqual(
+    IN PUNICODE_STRING pString1,
+    IN PUNICODE_STRING pString2,
     IN BOOLEAN bIsCaseSensitive
     );
 
 PCSTR
-IoUnicodeStringToLog(
-    IN PIO_UNICODE_STRING pString
+RtlUnicodeStringToLog(
+    IN PUNICODE_STRING pString
     );
 
 PCSTR
-IoAnsiStringToLog(
-    IN PIO_ANSI_STRING pString
+RtlAnsiStringToLog(
+    IN PANSI_STRING pString
     );
 
 PCSTR
-IoWC16StringToLog(
+RtlWC16StringToLog(
     IN PCWSTR pszString
     );
 
