@@ -135,7 +135,7 @@ RdrCommonCreate(
 {
     NTSTATUS ntStatus = 0;
     IO_FILE_HANDLE FileHandle;
-    //PIO_FILE_NAME FileName;
+    PIO_FILE_NAME pFileName;
     ACCESS_MASK DesiredAccess;
     LONG64 AllocationSize;
     //FILE_ATTRIBUTES FileAttributes;
@@ -145,6 +145,9 @@ RdrCommonCreate(
     PIO_EA_BUFFER pEaBuffer;
     PVOID SecurityDescriptor;
     //PVOID SecurityQualityOfService;
+    HANDLE hFile = NULL;
+
+    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
 
     FileHandle = pIrp->FileHandle;
     DesiredAccess = pIrp->Args.Create.DesiredAccess;
@@ -154,19 +157,24 @@ RdrCommonCreate(
     CreateOptions = pIrp->Args.Create.CreateOptions;
     pEaBuffer = pIrp->Args.Create.pEaBuffer;
     SecurityDescriptor = pIrp->Args.Create.SecurityDescriptor;
-/*
-    RdrCreateFileEx(
-            pSecurityToken,
-            pwszFileName,
-            dwDesiredAccess,
-            dwShareMode,
-            dwCreationDisposition,
-            dwFlagsAndAttributes,
-            pSecurityAttributes,
-            &hFile
-            );
+    pFileName = &pIrp->Args.Create.FileName;
+
+    ntStatus = RdrCreateFileEx(
+                    pSecurityToken,
+                    pFileName->FileName,
+                    DesiredAccess,
+                    ShareAccess,
+                    CreateDisposition,
+                    CreateOptions,
+                    NULL,
+                    &hFile
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(FileHandle, hFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
 error:
-*/
 
     return(ntStatus);
 }

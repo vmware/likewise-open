@@ -46,7 +46,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "includes.h"
+#include "rdr.h"
 
 /* @todo: return real NT system error codes? */
 DWORD

@@ -13,7 +13,6 @@ librdr_sys_la_SOURCES = \
     getsesskey.c          \
     globals.c             \
     handlestate.c         \
-    libmain.c             \
     packet.c              \
     peeknp.c              \
     readfile.c            \

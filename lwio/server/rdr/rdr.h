@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,27 +28,69 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes
+ *        includes.h
  *
  * Abstract:
  *
- *        Likewise Posix File System (SMBSS)
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Service Entry API
+ *        API (Client)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __PVFS_H__
-#define __PVFS_H__
-
 #include "config.h"
 #include "lwiosys.h"
+
+#include <openssl/md5.h>
+
+#include <lwio/lwio.h>
+
+#include "lwiodef.h"
+#include "lwioutils.h"
+#include "smbkrb5.h"
+
+#include <lw/ntstatus.h>
+#include "smb.h"
+
+#include "smbclient.h"
+#include <lwio/io-types.h>
+#include "ntvfsprovider.h"
+
+#include "structs.h"
+#include "createfile.h"
+#include "readfile.h"
+#include "writefile.h"
+#include "getsesskey.h"
+#include "closehandle.h"
+#include "libmain.h"
+#include "smb_npopen.h"
+#include "smb_negotiate.h"
+#include "smb_session_setup.h"
+#include "smb_tree_connect.h"
+#include "smb_write.h"
+#include "smb_read.h"
+#include "smb_tree_disconnect.h"
+#include "smb_logoff.h"
+#include "socket.h"
+#include "packet.h"
+#include "tree.h"
+#include "session.h"
+#include "response.h"
+
+#include "client_socket.h"
+#include "client_session.h"
+#include "client_tree.h"
+#include "client_reaper.h"
+
+#include "externs.h"
 
 #include "iostring.h"
 #include "iodriver.h"
@@ -108,7 +150,31 @@ RdrSetInformation(
 
 #include "rdrcreate.h"
 
-#endif /* __PVFS_H__ */
+DWORD
+RdrReadFileEx(
+    HANDLE hFile,
+    DWORD  dwBytesToRead,
+    PVOID* ppOutBuffer,
+    PDWORD pdwBytesRead
+    );
+
+DWORD
+RdrWriteFileEx(
+    HANDLE hFile,
+    DWORD  dwNumBytesToWrite,
+    PVOID  pBuffer,
+    PDWORD pdwNumBytesWritten
+    );
 
 
-
+DWORD
+RdrCreateFileEx(
+    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PCWSTR pwszFileName,
+    DWORD   dwDesiredAccess,
+    DWORD   dwSharedMode,
+    DWORD   dwCreationDisposition,
+    DWORD   dwFlagsAndAttributes,
+    PSECURITY_ATTRIBUTES pSecurityAttributes,
+    PHANDLE phFile
+    );

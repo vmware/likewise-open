@@ -49,7 +49,7 @@
  * @todo: switch to NT error codes where appropriate
  */
 
-#include "includes.h"
+#include "rdr.h"
 
 /* @todo: clean up */
 /* @todo: the first session on a socket is always VC 0; increment

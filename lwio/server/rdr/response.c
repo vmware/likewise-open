@@ -49,7 +49,7 @@
  * @todo: switch to NT error codes where appropriate
  */
 
-#include "includes.h"
+#include "rdr.h"
 
 DWORD
 SMBResponseCreate(

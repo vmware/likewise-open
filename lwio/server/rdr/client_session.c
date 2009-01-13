@@ -28,7 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+#include "rdr.h"
 
 /* @todo: support internationalized principals */
 DWORD

@@ -72,7 +72,7 @@ error:
     return ntStatus;
 }
 
-/*
+
 NTSTATUS
 RdrCommonRead(
     PRDR_IRP_CONTEXT pIrpContext,
@@ -82,22 +82,28 @@ RdrCommonRead(
     NTSTATUS ntStatus = 0;
     PVOID Buffer = NULL;
     ULONG Length = 0;
-    ULONG BytesRead = 0;
-    PRDR_CCB pCCB = NULL;
+    DWORD dwBytesRead = 0;
+    HANDLE hFile = NULL;
 
-    hFile = pCCB->hFile;
     Buffer = pIrp->Args.ReadWrite.Buffer;
     Length = pIrp->Args.ReadWrite.Length;
 
-    BytesRead =  read(fd, Buffer, Length);
+    hFile = IoFileGetContext(pIrp->FileHandle);
 
-    dwError = RdrReadFilEx(
+    ntStatus = RdrReadFileEx(
                     hFile,
                     Length,
-                    &pOutBuffer,
+                    Buffer,
                     &dwBytesRead
                     );
-
+    BAIL_ON_NT_STATUS(ntStatus);
+    pIrp->IoStatus.Status = ntStatus;
+    pIrp->IoStatus.BytesTransferred = dwBytesRead;
     return(ntStatus);
+
+error:
+    pIrp->IoStatus.Status = ntStatus;
+    return(ntStatus);
+
 }
-*/
+
