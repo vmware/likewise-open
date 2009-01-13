@@ -9,5 +9,8 @@
 #define BAIL_ON_ERROR(dwError) \
     if (dwError) goto error;
 
+#define BAIL_ON_NT_STATUS(ntStatus) \
+    if (ntStatus) goto error;
+
 #endif /* __DEFS_H__ */
 

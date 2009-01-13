@@ -168,7 +168,7 @@ ConvertOffsetstoPointers(
     switch (dwLevel) {
 
         case 0:
-            dwError = ConvertOffsetstoPointer_L0(
+            dwError = ConvertOffsetstoPointers_L0(
                                 pInBuffer,
                                 pShareInfo
                                 );
@@ -184,13 +184,6 @@ ConvertOffsetstoPointers(
 
         case 2:
             dwError = ConvertOffsetstoPointers_L2(
-                                pInBuffer,
-                                pShareInfo
-                                );
-            break;
-
-        case 3:
-            dwError = ConvertOffsetstoPointers_L3(
                                 pInBuffer,
                                 pShareInfo
                                 );
@@ -370,5 +363,15 @@ ConvertOffsetstoPointers_L503(
     DWORD dwError = 0;
 
     return(dwError);
+}
+
+DWORD
+UnmarshallAddSetResponse(
+    PBYTE  pOutBuffer,
+    PDWORD pdwReturnCode,
+    PDWORD pdwParmError
+    )
+{
+    return 0;
 }
 

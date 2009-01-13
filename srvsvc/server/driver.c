@@ -105,6 +105,7 @@ SrvSvcNetShareAdd(
     /* [in, out] */ uint32 *parm_error
     )
 {
+    NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
@@ -120,6 +121,16 @@ SrvSvcNetShareAdd(
     BOOLEAN bRet = FALSE;
     DWORD dwReturnCode = 0;
     DWORD dwParmError = 0;
+    IO_FILE_HANDLE FileHandle;
+    IO_STATUS_BLOCK IoStatusBlock;
+    PIO_FILE_NAME FileName = NULL;
+    ACCESS_MASK DesiredAccess = 0;
+    LONG64 AllocationSize = 0;
+    FILE_ATTRIBUTES FileAttributes = 0;
+    FILE_SHARE_FLAGS ShareAccess = 0;
+    FILE_CREATE_DISPOSITION CreateDisposition = 0;
+    FILE_CREATE_OPTIONS CreateOptions = 0;
+    ULONG IoControlCode = 0;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
@@ -177,7 +188,7 @@ cleanup:
 
     if (FileHandle) {
 
-        NtClose(FileHandle);
+        NtCloseFile(FileHandle);
 
     }
 
@@ -204,6 +215,7 @@ SrvSvcNetShareEnum(
     /* [in, out] */ uint32 *resume_handle
     )
 {
+    NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
@@ -219,9 +231,19 @@ SrvSvcNetShareEnum(
     BOOLEAN bRet = FALSE;
     DWORD dwReturnCode = 0;
     DWORD dwParmError = 0;
+    IO_FILE_HANDLE FileHandle;
+    IO_STATUS_BLOCK IoStatusBlock;
+    PIO_FILE_NAME FileName = NULL;
+    ACCESS_MASK DesiredAccess = 0;
+    LONG64 AllocationSize = 0;
+    FILE_ATTRIBUTES FileAttributes = 0;
+    FILE_SHARE_FLAGS ShareAccess = 0;
+    FILE_CREATE_DISPOSITION CreateDisposition = 0;
+    FILE_CREATE_OPTIONS CreateOptions = 0;
+    ULONG IoControlCode = 0;
 
     dwError = MarshallShareInfotoFlatBuffer(
-                    level,
+                    *level,
                     ctr,
                     &pInBuffer,
                     &dwInLength
@@ -295,6 +317,7 @@ SrvSvcNetShareGetInfo(
     /* [out] */ srvsvc_NetShareInfo *info
     )
 {
+    NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
@@ -310,6 +333,16 @@ SrvSvcNetShareGetInfo(
     BOOLEAN bRet = FALSE;
     DWORD  dwReturnCode = 0;
     DWORD  dwParmError = 0;
+    IO_FILE_HANDLE FileHandle;
+    IO_STATUS_BLOCK IoStatusBlock;
+    PIO_FILE_NAME FileName = NULL;
+    ACCESS_MASK DesiredAccess = 0;
+    LONG64 AllocationSize = 0;
+    FILE_ATTRIBUTES FileAttributes = 0;
+    FILE_SHARE_FLAGS ShareAccess = 0;
+    FILE_CREATE_DISPOSITION CreateDisposition = 0;
+    FILE_CREATE_OPTIONS CreateOptions = 0;
+    ULONG IoControlCode = 0;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
@@ -386,6 +419,7 @@ SrvSvcNetShareSetInfo(
     /* [in, out] */ uint32 *parm_error
     )
 {
+    NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
@@ -401,6 +435,16 @@ SrvSvcNetShareSetInfo(
     BOOLEAN bRet = FALSE;
     DWORD dwParmError = 0;
     DWORD dwReturnCode = 0;
+    IO_FILE_HANDLE FileHandle;
+    IO_STATUS_BLOCK IoStatusBlock;
+    PIO_FILE_NAME FileName = NULL;
+    ACCESS_MASK DesiredAccess = 0;
+    LONG64 AllocationSize = 0;
+    FILE_ATTRIBUTES FileAttributes = 0;
+    FILE_SHARE_FLAGS ShareAccess = 0;
+    FILE_CREATE_DISPOSITION CreateDisposition = 0;
+    FILE_CREATE_OPTIONS CreateOptions = 0;
+    ULONG IoControlCode = 0;
 
     dwError = MarshallShareInfotoFlatBuffer(
                     level,
@@ -473,6 +517,7 @@ SrvSvcNetShareDel(
     /* [in] */ uint32 reserved
     )
 {
+    NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
@@ -488,6 +533,16 @@ SrvSvcNetShareDel(
     BOOLEAN bRet = FALSE;
     DWORD dwParmError = 0;
     DWORD dwReturnCode = 0;
+    IO_FILE_HANDLE FileHandle;
+    IO_STATUS_BLOCK IoStatusBlock;
+    PIO_FILE_NAME FileName = NULL;
+    ACCESS_MASK DesiredAccess = 0;
+    LONG64 AllocationSize = 0;
+    FILE_ATTRIBUTES FileAttributes = 0;
+    FILE_SHARE_FLAGS ShareAccess = 0;
+    FILE_CREATE_DISPOSITION CreateDisposition = 0;
+    FILE_CREATE_OPTIONS CreateOptions = 0;
+    ULONG IoControlCode = 0;
 
     ntStatus = NtCreateFile(
                         &FileHandle,

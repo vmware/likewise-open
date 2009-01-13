@@ -58,8 +58,10 @@
 #include <lw/ntstatus.h>
 
 #include <lwio/lwio.h>
+#include <lwio/ntfileapi.h>
 
 #include "defs.h"
 #include "structs.h"
 #include "marshall.h"
+#include "memutil.h"
 

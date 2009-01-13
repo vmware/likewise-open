@@ -17,6 +17,7 @@ cpp_quote("#define DEFINED_UINT32")
 cpp_quote("#define WINERR_DEFINED")
 cpp_quote("#define NTTIME_DEFINED")
 cpp_quote("#define UNISTR_DEFINED")
+cpp_quote("#define PSECURITY_DESCRIPTOR_DEFINED")
 
 
 typedef struct ids {

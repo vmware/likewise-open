@@ -8,6 +8,7 @@ srvsvcd_SOURCES =  \
     driver.c       \
     main.c         \
     marshall.c     \
+    memutil.c      \
     srvsvc_sstub.c \
     srvsvc_server.c
 

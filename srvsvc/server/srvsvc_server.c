@@ -100,6 +100,7 @@ NET_API_STATUS _NetrConnectionEnum(
 {
     DWORD dwError = 0;
 
+#if 0
     dwError = SrvSvcNetConnectionEnum(
                     server_name,
                     qualifier,
@@ -109,6 +110,8 @@ NET_API_STATUS _NetrConnectionEnum(
                     total_entries,
                     resume_handle
                     );
+#endif
+
     return dwError;
 }
 

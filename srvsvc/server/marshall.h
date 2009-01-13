@@ -16,5 +16,12 @@ ConvertOffsetstoPointers(
     PVOID  pShareInfo
     );
 
+DWORD
+UnmarshallAddSetResponse(
+    PBYTE  pOutBuffer,
+    PDWORD pdwReturnCode,
+    PDWORD pdwParmError
+    );
+
 #endif /* __MARSHALL_H__ */
 

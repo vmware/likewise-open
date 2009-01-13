@@ -133,9 +133,22 @@ typedef struct rid_with_attribute_array {
 #define SID_TYPE_COMPUTER   9
 
 #ifndef _DCE_IDL_
+
+#ifndef PSECURITY_DESCRIPTOR_DEFINED
+
 typedef void *PSECURITY_DESCRIPTOR;
+
+#define PSECURITY_DESCRIPTOR_DEFINED
+
+#endif
+
 #else
+
+#ifndef PSECURITY_DESCRIPTOR_DEFINED
 typedef uint8 *PSECURITY_DESCRIPTOR;
+#define PSECURITY_DESCRIPTOR_DEFINED
+#endif
+
 #endif
 
 #endif /* _SECURITY_H_ */
