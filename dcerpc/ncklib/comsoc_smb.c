@@ -332,8 +332,20 @@ rpc__smb_socket_destroy(
             close(sock->selectfd[1]);
         }
 
+        if (sock->sendbuffer.base)
+        {
+            free(sock->sendbuffer.base);
+        }
+
+        if (sock->recvbuffer.base)
+        {
+            free(sock->recvbuffer.base);
+        }
+
         dcethread_mutex_destroy_throw(&sock->lock);
         dcethread_cond_destroy_throw(&sock->event);
+
+        free(sock);
     }
 
     return;
@@ -378,7 +390,16 @@ rpc__smb_socket_wait(
     rpc_smb_socket_p_t sock
     )
 {
-    dcethread_cond_wait_throw(&sock->event, &sock->lock);
+    DCETHREAD_TRY
+    {
+        dcethread_cond_wait_throw(&sock->event, &sock->lock);
+    }
+    DCETHREAD_CATCH_ALL(e)
+    {
+        dcethread_mutex_unlock(&sock->lock);
+        DCETHREAD_RAISE(*e);
+    }
+    DCETHREAD_ENDTRY;
 }
 
 INTERNAL
@@ -1123,6 +1144,8 @@ rpc__smb_socket_getpeername(
 
 error:
 
+    SMB_SOCKET_UNLOCK(sock);
+
     return serr;
 }
 
@@ -1219,7 +1242,7 @@ rpc__smb_socket_enum_ifaces(
     return serr;
 }
 
-PRIVATE rpc_socket_vtbl_t rpc_g_smb_socket_vtbl =
+rpc_socket_vtbl_t rpc_g_smb_socket_vtbl =
 {
     .socket_construct = rpc__smb_socket_construct,
     .socket_destruct = rpc__smb_socket_destruct,

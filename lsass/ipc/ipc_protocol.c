@@ -815,7 +815,6 @@ static LWMsgTypeSpec gLsaIPCAuthUserExReqSpec[] =
     LWMSG_TYPE_END
 };
 
-
 static LWMsgTypeSpec gLsaIPCLsaSidSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_SID),
@@ -845,11 +844,29 @@ static LWMsgTypeSpec gLsaIPCLsaSidPtrSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaIPCLsaRidAttribSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_RID_ATTRIB),
+    LWMSG_MEMBER_UINT32(LSA_RID_ATTRIB, Rid),
+    LWMSG_MEMBER_UINT32(LSA_RID_ATTRIB, dwAttrib),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIPCLsaRidAttribPtrSpec[] =
+{
+    LWMSG_POINTER_BEGIN,
+    LWMSG_TYPESPEC(gLsaIPCLsaRidAttribSpec),
+    LWMSG_POINTER_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaIPCLsaSidAttribSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_SID_ATTRIB),
     LWMSG_MEMBER_TYPESPEC(LSA_SID_ATTRIB, Sid, gLsaIPCLsaSidSpec),
     LWMSG_MEMBER_UINT32(LSA_SID_ATTRIB, dwAttrib),
+    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
@@ -903,9 +920,15 @@ static LWMsgTypeSpec gLsaAuthUserInfoSpec[] =
     LWMSG_MEMBER_UINT32(LSA_AUTH_USER_INFO, dwUserRid),
     LWMSG_MEMBER_UINT32(LSA_AUTH_USER_INFO, dwPrimaryGroupRid),
 
+    LWMSG_MEMBER_UINT32(LSA_AUTH_USER_INFO, dwNumRids),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_AUTH_USER_INFO, pRidAttribList),
+    LWMSG_TYPESPEC(gLsaIPCLsaRidAttribSpec),
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_AUTH_USER_INFO, dwNumRids),
+
     LWMSG_MEMBER_UINT32(LSA_AUTH_USER_INFO, dwNumSids),
     LWMSG_MEMBER_POINTER_BEGIN(LSA_AUTH_USER_INFO, pSidAttribList),
-    LWMSG_TYPESPEC(gLsaIPCLsaSidAttribPtrSpec),
+    LWMSG_TYPESPEC(gLsaIPCLsaSidAttribSpec),
     LWMSG_POINTER_END,
     LWMSG_ATTR_LENGTH_MEMBER(LSA_AUTH_USER_INFO, dwNumSids),
 

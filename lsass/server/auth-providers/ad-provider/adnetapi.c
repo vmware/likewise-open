@@ -1149,13 +1149,30 @@ LsaCopyNetrUserInfo3(
     pUserInfo->dwUserRid         = pBase->rid;
     pUserInfo->dwPrimaryGroupRid = pBase->primary_gid;
 
+    pUserInfo->dwNumRids = pBase->groups.count;
+    if (pUserInfo->dwNumRids != 0)
+    {
+        int i = 0;
+
+        dwError = LsaAllocateMemory(sizeof(LSA_RID_ATTRIB)*(pUserInfo->dwNumRids),
+                                    (PVOID*)&pUserInfo->pRidAttribList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i=0; i<pUserInfo->dwNumRids; i++)
+        {
+            pUserInfo->pRidAttribList[i].Rid      = pBase->groups.rids[i].rid;
+            pUserInfo->pRidAttribList[i].dwAttrib = pBase->groups.rids[i].attributes;
+        }
+
+    }
+
     pUserInfo->dwNumSids = pNetrUserInfo3->sam3->sidcount;
     if (pUserInfo->dwNumSids != 0)
     {
         int i = 0;
 
         dwError = LsaAllocateMemory(sizeof(LSA_SID_ATTRIB)*(pUserInfo->dwNumSids),
-                                    (PVOID*)pUserInfo->pSidAttribList);
+                                    (PVOID*)&pUserInfo->pSidAttribList);
         BAIL_ON_LSA_ERROR(dwError);
 
         for (i=0; i<pUserInfo->dwNumSids; i++)

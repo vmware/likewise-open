@@ -74,6 +74,7 @@ LsaFreeAuthUserInfo(
 	LSA_SAFE_FREE_MEMORY(p->pszHomeDirectory);
 	LSA_SAFE_FREE_MEMORY(p->pszHomeDrive);
 
+	LSA_SAFE_FREE_MEMORY(p->pRidAttribList);
 	LSA_SAFE_FREE_MEMORY(p->pSidAttribList);
 
 

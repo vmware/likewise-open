@@ -951,6 +951,13 @@ typedef struct __LSA_SID_ATTRIB
 
 } LSA_SID_ATTRIB, *PLSA_SID_ATTRIB;
 
+typedef struct __LSA_RID_ATTRIB
+{
+    UINT32   Rid;
+    DWORD    dwAttrib;
+
+} LSA_RID_ATTRIB, *PLSA_RID_ATTRIB;
+
 #define LSA_SID_ATTR_GROUP_MANDATORY		0x00000001
 #define LSA_SID_ATTR_GROUP_ENABLED_BY_DEFAULT	0x00000002
 #define LSA_SID_ATTR_GROUP_ENABLED 		0x00000004
@@ -992,6 +999,9 @@ typedef struct __LSA_AUTH_USER_INFO
         LSA_SID DomainSid;
 	DWORD dwUserRid;
 	DWORD dwPrimaryGroupRid;
+
+	DWORD dwNumRids;
+	PLSA_RID_ATTRIB pRidAttribList;
 
 	DWORD dwNumSids;
 	PLSA_SID_ATTRIB pSidAttribList;
@@ -1443,3 +1453,12 @@ LsaSrvFreeIpcMetriPack(
     );
 
 #endif /* __LSA_H__ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
