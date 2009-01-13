@@ -48,6 +48,7 @@ usr/lib/likewise/liblsass_auth_provider_ad.so*
 usr/lib/likewise/liblsass_auth_provider_local.so*
 usr/lib/likewise/liblsaunistr.so*
 usr/lib/likewise/liblsautils.so*
+usr/lib/likewise/liblsaadipc.so*
 usr/lib/likewise/libntlmcommon.so*
 usr/lib/likewise/libntlmserver.so*
 usr/lib/likewise/libwbclient.so*
