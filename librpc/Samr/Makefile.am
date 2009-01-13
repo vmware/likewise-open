@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libsamr.la libsamr_cs.la libsamr_ss.la
+lib_LTLIBRARIES = libsamr_cs.la libsamr_ss.la libsamr.la
 
 libsamr_la_SOURCES = \
 	SamrBinding.c SamrMemory.c globals.c SamrStubMemory.c \

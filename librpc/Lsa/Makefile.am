@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = liblsa.la liblsa_cs.la liblsa_ss.la
+lib_LTLIBRARIES = liblsa_cs.la liblsa_ss.la liblsa.la
 
 liblsa_la_SOURCES = \
 	globals.c LsaBinding.c LsaMemory.c LsaStubMemory.c \

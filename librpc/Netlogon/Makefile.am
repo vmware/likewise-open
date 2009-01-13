@@ -1,7 +1,7 @@
 librpc_srcdir=$(top_srcdir)
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libnetlogon.la libnetlogon_cs.la libnetlogon_ss.la
+lib_LTLIBRARIES = libnetlogon_cs.la libnetlogon_ss.la libnetlogon.la
 
 libnetlogon_la_SOURCES = \
 	NetlogonBinding.c NetrMemory.c globals.c NetrStubMemory.c \
