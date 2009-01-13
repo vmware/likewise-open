@@ -46,10 +46,9 @@
 
 #include "config.h"
 #include "lwiosys.h"
-#include "lwio/lwio.h"
+#include <lwio/ntfileapi.h>
 #include "lwiodef.h"
 #include "lwioutils.h"
-#include "ntfileapi.h"
 #include "goto.h"
 #include "ntlogmacros.h"
 
@@ -73,6 +72,73 @@ LwGetProgramName(
     }
 
     return pszProgramName;
+}
+
+typedef struct _LW_PARSE_ARGS {
+    PCSTR* Args;
+    int Count;
+    int Index;
+} LW_PARSE_ARGS, *PLW_PARSE_ARGS;
+
+static
+VOID
+LwParseArgsInit(
+    OUT PLW_PARSE_ARGS pParseArgs,
+    IN int argc,
+    IN PCSTR argv[]
+    )
+{
+    pParseArgs->Args = argv;
+    pParseArgs->Count = argc;
+    pParseArgs->Index = 0;
+}
+
+int
+LwParseArgsGetRemaining(
+    IN PLW_PARSE_ARGS pParseArgs
+    )
+{
+    return pParseArgs->Count - pParseArgs->Index;
+}
+
+static
+PCSTR
+LwParseArgsGetAt(
+    IN PLW_PARSE_ARGS pParseArgs,
+    IN int Index
+    )
+{
+    return (Index < pParseArgs->Count) ? pParseArgs->Args[Index] : NULL;
+}
+
+int
+LwParseArgsGetIndex(
+    IN PLW_PARSE_ARGS pParseArgs
+    )
+{
+    return pParseArgs->Index;
+}
+
+PCSTR
+LwParseArgsGetCurrent(
+    IN OUT PLW_PARSE_ARGS pParseArgs
+    )
+{
+    return LwParseArgsGetAt(pParseArgs, pParseArgs->Index);
+}
+
+static
+PCSTR
+LwParseArgsNext(
+    IN OUT PLW_PARSE_ARGS pParseArgs
+    )
+{
+    PCSTR pszNext = LwParseArgsGetAt(pParseArgs, pParseArgs->Index + 1);
+    if (pszNext)
+    {
+        pParseArgs->Index++;
+    }
+    return pszNext;
 }
 
 static
@@ -154,6 +220,26 @@ Usage(
     // etc..
 }
 
+#if 0
+NTSTATUS
+LwCStringAppendV(
+    IN OUT PSTR* pszUsageError,
+    IN PCSTR pszFormat,
+    IN va_list Args
+    )
+{
+}
+
+NTSTATUS
+LwCStringAppend(
+    IN OUT PSTR* pszUsageError,
+    IN PCSTR pszFormat,
+    ...
+    )
+{
+}
+#endif
+
 int
 main(
     IN int argc,
@@ -162,9 +248,15 @@ main(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    BOOLEAN bShowUsage = FALSE;
+    PSTR pszUsageError = NULL;
     PCSTR pszProgramName = LwGetProgramName(argv[0]);
     PCSTR pszPath = argv[1];
+    LW_PARSE_ARGS args = { 0 };
+    PCSTR pszCommand = NULL;
+    BOOLEAN bShowUsage = FALSE;
+
+    LwParseArgsInit(&args, argc, argv);
+    pszProgramName = LwGetProgramName(LwParseArgsNext(&args));
 
     // TODO-clean up logging stuff used here
     if (SMBInitLogging(pszProgramName,
@@ -174,6 +266,14 @@ main(
     {
         fprintf(stderr, "Cannot log\n");
         exit(1);
+    }
+
+    pszCommand = LwParseArgsNext(&args);
+    if (!pszCommand)
+    {
+        asprintf(&pszUsageError, "Missing command.\n");
+        assert(pszUsageError);
+        GOTO_CLEANUP_EE(EE);
     }
 
     // TODO -- add arg parsing (need to argc/argv walker to common lib)

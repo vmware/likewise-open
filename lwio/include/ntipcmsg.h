@@ -48,7 +48,7 @@
 #include <lwmsg/lwmsg.h>
 #include "lwiodef.h"
 #include "lwioipc.h"
-#include "io-types.h"
+#include <lwio/io-types.h>
 
 // TODO-Add async completion support.
 

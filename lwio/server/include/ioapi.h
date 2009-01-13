@@ -45,7 +45,7 @@
 #ifndef __IO_API_H__
 #define __IO_API_H__
 
-#include "io-types.h"
+#include <lwio/io-types.h>
 
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.

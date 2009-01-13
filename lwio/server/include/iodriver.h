@@ -39,7 +39,7 @@
 #ifndef __IODRIVER_H__
 #define __IODRIVER_H__
 
-#include "io-types.h"
+#include <lwio/io-types.h>
 
 struct _IO_DRIVER_OBJECT;
 typedef struct _IO_DRIVER_OBJECT IO_DRIVER_OBJECT, *PIO_DRIVER_OBJECT;

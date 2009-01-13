@@ -31,13 +31,13 @@
 #include "config.h"
 #include "lwiosys.h"
 
-#include "lwio/lwio.h"
+#include <lwio/lwio.h>
 
 #include "lwiodef.h"
 #include "lwioutils.h"
 
 #include <lw/ntstatus.h>
-#include "io-types.h"
+#include <lwio/io-types.h>
 #include "ntvfsprovider.h"
 
 #include "npvfs.h"

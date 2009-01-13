@@ -43,7 +43,7 @@
  */
 
 #include "includes.h"
-#include "ntfileapi.h"
+#include <lwio/ntfileapi.h>
 #include "ntfileapiipc.h"
 #include "goto.h"
 #include "ntlogmacros.h"

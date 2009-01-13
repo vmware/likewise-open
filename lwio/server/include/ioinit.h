@@ -39,7 +39,7 @@
 #ifndef __IOINIT_H__
 #define __IOINIT_H__
 
-#include "io-types.h"
+#include <lwio/io-types.h>
 
 VOID
 IoCleanup(

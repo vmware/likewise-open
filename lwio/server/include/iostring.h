@@ -31,7 +31,7 @@
 #ifndef __IOSTRING_H__
 #define __IOSTRING_H__
 
-#include "io-types.h"
+#include <lwio/io-types.h>
 
 typedef struct _IO_UNICODE_STRING {
     USHORT Length;

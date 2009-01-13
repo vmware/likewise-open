@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -45,7 +45,7 @@
 #ifndef __NT_FILE_API_H__
 #define __NT_FILE_API_H__
 
-#include "io-types.h"
+#include <lwio/io-types.h>
 
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
@@ -107,7 +107,7 @@ NtWriteFile(
     IN OPTIONAL PULONG Key
     );
 
-NTSTATUS 
+NTSTATUS
 NtDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -138,7 +138,7 @@ NtFlushBuffersFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock
     );
 
-NTSTATUS 
+NTSTATUS
 NtQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -148,7 +148,7 @@ NtQueryInformationFile(
     IN FILE_INFORMATION_CLASS FileInformationClass
     );
 
-NTSTATUS 
+NTSTATUS
 NtSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -170,7 +170,7 @@ NtQueryFullAttributesFile(
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
-NTSTATUS 
+NTSTATUS
 NtQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -204,7 +204,7 @@ NtSetVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     );
 
-NTSTATUS 
+NTSTATUS
 NtLockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -216,7 +216,7 @@ NtLockFile(
     IN BOOLEAN ExclusiveLock
     );
 
-NTSTATUS 
+NTSTATUS
 NtUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -298,7 +298,7 @@ NtQuerySecurityFile(
     OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
-    ); 
+    );
 
 NTSTATUS
 NtSetSecurityFile(
@@ -307,7 +307,7 @@ NtSetSecurityFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    ); 
+    );
 
 // TODO: QueryEaFile and SetEaFile.
 

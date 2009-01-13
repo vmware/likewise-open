@@ -45,7 +45,7 @@
 #ifndef __NT_FILE_API_IPC_H__
 #define __NT_FILE_API_IPC_H__
 
-#include "io-types.h"
+#include <lwio/io-types.h>
 
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
