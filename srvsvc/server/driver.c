@@ -129,34 +129,36 @@ SrvSvcNetShareAdd(
                     );
     BAIL_ON_ERROR(dwError);
 
-    hDevice = (HANDLE)CreateFile(
-                    lpFileName,
-                    dwDesiredAccess,
-                    dwShareMode,
-                    NULL,
-                    dwCreationDisposition,
-                    dwFlagsAndAttributes,
-                    NULL
-                    );
-    if(!hDevice) {
-        dwError = GetLastError();
-        BAIL_ON_WIN32_ERROR(dwError);
-    }
+    ntStatus = NtCreateFile(
+                        &FileHandle,
+                        NULL,
+                        &IoStatusBlock,
+                        FileName,
+                        DesiredAccess,
+                        AllocationSize,
+                        FileAttributes,
+                        ShareAccess,
+                        CreateDisposition,
+                        CreateOptions,
+                        NULL,
+                        NULL,
+                        NULL
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    bRet = DeviceIoControl(
-                    hDevice,
-                    SRV_IOCTL_ADD_SHARE,
+    ntStatus = NtDeviceIoControlFile(
+                    FileHandle,
+                    NULL,
+                    &IoStatusBlock,
+                    IoControlCode,
                     pInBuffer,
                     dwInLength,
                     pOutBuffer,
-                    dwOutLength,
-                    &dwBytesReturned,
-                    NULL
+                    dwOutLength
                     );
-    if(!bRet) {
-        dwError = GetLastError();
-        BAIL_ON_ERROR(dwError);
-    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+
 
     dwError = UnmarshallAddSetResponse(
                     pOutBuffer,
@@ -171,6 +173,12 @@ cleanup:
 
     if(pInBuffer) {
         SrvSvcFreeMemory(pInBuffer);
+    }
+
+    if (FileHandle) {
+
+        NtClose(FileHandle);
+
     }
 
     return(dwError);
@@ -220,34 +228,34 @@ SrvSvcNetShareEnum(
                     );
     BAIL_ON_ERROR(dwError);
 
-    hDevice = (HANDLE)CreateFile(
-                    lpFileName,
-                    dwDesiredAccess,
-                    dwShareMode,
-                    NULL,
-                    dwCreationDisposition,
-                    dwFlagsAndAttributes,
-                    NULL
-                    );
-    if(!hDevice) {
-        dwError = GetLastError();
-        BAIL_ON_WIN32_ERROR(dwError);
-    }
+    ntStatus = NtCreateFile(
+                        &FileHandle,
+                        NULL,
+                        &IoStatusBlock,
+                        FileName,
+                        DesiredAccess,
+                        AllocationSize,
+                        FileAttributes,
+                        ShareAccess,
+                        CreateDisposition,
+                        CreateOptions,
+                        NULL,
+                        NULL,
+                        NULL
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    bRet = DeviceIoControl(
-                    hDevice,
-                    SRV_IOCTL_SET_SHARE,
+    ntStatus = NtDeviceIoControlFile(
+                    FileHandle,
+                    NULL,
+                    &IoStatusBlock,
+                    IoControlCode,
                     pInBuffer,
                     dwInLength,
                     pOutBuffer,
-                    dwOutLength,
-                    &dwBytesReturned,
-                    NULL
+                    dwOutLength
                     );
-    if(!bRet) {
-        dwError = GetLastError();
-        BAIL_ON_ERROR(dwError);
-    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = UnmarshallAddSetResponse(
                     pOutBuffer,
@@ -311,34 +319,34 @@ SrvSvcNetShareGetInfo(
                     );
     BAIL_ON_ERROR(dwError);
 
-    hDevice = (HANDLE)CreateFile(
-                    lpFileName,
-                    dwDesiredAccess,
-                    dwShareMode,
-                    NULL,
-                    dwCreationDisposition,
-                    dwFlagsAndAttributes,
-                    NULL
-                    );
-    if(!hDevice) {
-        dwError = GetLastError();
-        BAIL_ON_WIN32_ERROR(dwError);
-    }
+    ntStatus = NtCreateFile(
+                        &FileHandle,
+                        NULL,
+                        &IoStatusBlock,
+                        FileName,
+                        DesiredAccess,
+                        AllocationSize,
+                        FileAttributes,
+                        ShareAccess,
+                        CreateDisposition,
+                        CreateOptions,
+                        NULL,
+                        NULL,
+                        NULL
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    bRet = DeviceIoControl(
-                    hDevice,
-                    SRV_IOCTL_SET_SHARE,
+    ntStatus = NtDeviceIoControlFile(
+                    FileHandle,
+                    NULL,
+                    &IoStatusBlock,
+                    IoControlCode,
                     pInBuffer,
                     dwInLength,
                     pOutBuffer,
-                    dwOutLength,
-                    &dwBytesReturned,
-                    NULL
+                    dwOutLength
                     );
-    if(!bRet) {
-        dwError = GetLastError();
-        BAIL_ON_ERROR(dwError);
-    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = UnmarshallAddSetResponse(
                     pOutBuffer,
@@ -402,34 +410,34 @@ SrvSvcNetShareSetInfo(
                     );
     BAIL_ON_ERROR(dwError);
 
-    hDevice = (HANDLE)CreateFile(
-                    lpFileName,
-                    dwDesiredAccess,
-                    dwShareMode,
-                    NULL,
-                    dwCreationDisposition,
-                    dwFlagsAndAttributes,
-                    NULL
-                    );
-    if(!hDevice) {
-        dwError = GetLastError();
-        BAIL_ON_WIN32_ERROR(dwError);
-    }
+    ntStatus = NtCreateFile(
+                        &FileHandle,
+                        NULL,
+                        &IoStatusBlock,
+                        FileName,
+                        DesiredAccess,
+                        AllocationSize,
+                        FileAttributes,
+                        ShareAccess,
+                        CreateDisposition,
+                        CreateOptions,
+                        NULL,
+                        NULL,
+                        NULL
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    bRet = DeviceIoControl(
-                    hDevice,
-                    SRV_IOCTL_SET_SHARE,
+    ntStatus = NtDeviceIoControlFile(
+                    FileHandle,
+                    NULL,
+                    &IoStatusBlock,
+                    IoControlCode,
                     pInBuffer,
                     dwInLength,
                     pOutBuffer,
-                    dwOutLength,
-                    &dwBytesReturned,
-                    NULL
+                    dwOutLength
                     );
-    if(!bRet) {
-        dwError = GetLastError();
-        BAIL_ON_ERROR(dwError);
-    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = UnmarshallAddSetResponse(
                     pOutBuffer,
@@ -481,34 +489,34 @@ SrvSvcNetShareDel(
     DWORD dwParmError = 0;
     DWORD dwReturnCode = 0;
 
-    hDevice = (HANDLE)CreateFile(
-                    lpFileName,
-                    dwDesiredAccess,
-                    dwShareMode,
-                    NULL,
-                    dwCreationDisposition,
-                    dwFlagsAndAttributes,
-                    NULL
-                    );
-    if(!hDevice) {
-        dwError = GetLastError();
-        BAIL_ON_WIN32_ERROR(dwError);
-    }
+    ntStatus = NtCreateFile(
+                        &FileHandle,
+                        NULL,
+                        &IoStatusBlock,
+                        FileName,
+                        DesiredAccess,
+                        AllocationSize,
+                        FileAttributes,
+                        ShareAccess,
+                        CreateDisposition,
+                        CreateOptions,
+                        NULL,
+                        NULL,
+                        NULL
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    bRet = DeviceIoControl(
-                    hDevice,
-                    SRV_IOCTL_SET_SHARE,
+    ntStatus = NtDeviceIoControlFile(
+                    FileHandle,
+                    NULL,
+                    &IoStatusBlock,
+                    IoControlCode,
                     pInBuffer,
                     dwInLength,
                     pOutBuffer,
-                    dwOutLength,
-                    &dwBytesReturned,
-                    NULL
+                    dwOutLength
                     );
-    if(!bRet) {
-        dwError = GetLastError();
-        BAIL_ON_ERROR(dwError);
-    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = UnmarshallAddSetResponse(
                     pOutBuffer,
