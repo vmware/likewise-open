@@ -328,13 +328,13 @@ LsaSendCreds(
 
         dwError = LsaWriteData(
                         fd,
-                        &bFdTerminator,
+                        (PSTR)&bFdTerminator,
                         sizeof(bFdTerminator));
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LsaReadData(
                         fd,
-                        &bServerReply,
+                        (PSTR)&bServerReply,
                         sizeof(bServerReply),
                         &dwServerReplyLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -442,7 +442,7 @@ LsaRecvCreds(
 
         dwError = LsaWriteData(
             fd,
-            &bReply,
+            (PSTR)&bReply,
             sizeof(bReply));
         BAIL_ON_LSA_ERROR(dwError);
     }
