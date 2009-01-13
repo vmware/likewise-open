@@ -46,7 +46,7 @@ typedef unsigned long int uint32;
 typedef unsigned hyper int uint64;
 typedef small int int8;
 typedef short int int16;
-typedef int int32;
+typedef long int int32;
 typedef hyper int int64;
 typedef uint32 NTSTATUS;
 typedef uint16 wchar16_t;
