@@ -44,6 +44,7 @@ librdr_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 librdr_sys_la_LIBADD = \
+    @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/server/smb/liblwiosmb.la \
     @top_builddir@/smbkrb5/liblwiosmbkrb5.la \
     @top_builddir@/utils/liblwioutils.la \
