@@ -90,6 +90,8 @@ typedef LW_CHAR            LW_TCHAR;
 #define LW_WORD_MAX ((WORD) 0xFFFFU)
 #define LW_DWORD_MAX ((DWORD) 0xFFFFFFFFU)
 
+#define LW_OUT_PPVOID(_expr_) ((PVOID*) (PVOID) (_expr_))
+
 #ifndef LW_STRICT_NAMESPACE
 
 typedef LW_VOID     VOID;
@@ -165,6 +167,8 @@ typedef LW_TCHAR    TCHAR;
 
 #define WORD_MAX ((WORD) 0xFFFFU)
 #define DWORD_MAX ((DWORD) 0xFFFFFFFFU)
+
+#define OUT_PPVOID LW_OUT_PPVOID
 
 #endif /* LW_STRICT_NAMESPACE */
 
