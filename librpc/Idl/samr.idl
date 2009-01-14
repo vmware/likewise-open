@@ -8,7 +8,7 @@ interface samr
 {
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
-#include <rid.h>
+#include <lwrpc/rid.h>
 #include <security.idl>
 
 #include <lwrpc/domaininfo.h>
