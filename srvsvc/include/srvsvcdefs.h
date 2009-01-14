@@ -94,6 +94,10 @@
 #define LOG_TO_FILE    2
 #define LOG_TO_CONSOLE 3
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
 #define TRY DCETHREAD_TRY
 #define CATCH_ALL DCETHREAD_CATCH_ALL(THIS_CATCH)
 #define CATCH(x) DCETHREAD_CATCH(x)
