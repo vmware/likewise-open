@@ -26,9 +26,14 @@ liblwioutils_la_SOURCES = \
     unistr.c
 
 liblwioutils_la_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     -I@top_srcdir@/include
 
 liblwioutils_la_LIBADD = \
     @LIBUNISTR_LIBS@ \
+    @LWBASE_LIBS@ \
     @DL_LIBS@
 
+liblwioutils_la_LDFLAGS = \
+   $(AM_LDFLAGS) \
+   @LWBASE_LDFLAGS@

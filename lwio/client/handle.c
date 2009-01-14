@@ -33,7 +33,7 @@
 DWORD
 SMBAPIHandleGetSecurityToken(
     HANDLE hHandle,
-    PSMB_SECURITY_TOKEN_REP* ppSecurityToken
+    PIO_ACCESS_TOKEN* ppSecurityToken
     )
 {
     DWORD dwError = 0;
@@ -65,7 +65,7 @@ SMBAPIHandleFreeSecurityToken(
     )
 {
     DWORD dwError = 0;
-    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
+    PIO_ACCESS_TOKEN pSecurityToken = NULL;
  
     dwError = SMBAPIHandleGetSecurityToken(
         hHandle,
@@ -74,11 +74,11 @@ SMBAPIHandleFreeSecurityToken(
 
     switch (pSecurityToken->type)
     {
-    case SMB_SECURITY_TOKEN_TYPE_PLAIN:
+    case IO_ACCESS_TOKEN_TYPE_PLAIN:
         SMB_SAFE_FREE_MEMORY(pSecurityToken->payload.plain.pwszUsername);
         SMB_SAFE_FREE_MEMORY(pSecurityToken->payload.plain.pwszPassword);
         break;
-    case SMB_SECURITY_TOKEN_TYPE_KRB5:
+    case IO_ACCESS_TOKEN_TYPE_KRB5:
         SMB_SAFE_FREE_MEMORY(pSecurityToken->payload.krb5.pwszPrincipal);
         SMB_SAFE_FREE_MEMORY(pSecurityToken->payload.krb5.pwszCachePath);
         break;
@@ -98,8 +98,8 @@ SMBCopyHandle(
     DWORD dwError = 0;
     PSMB_API_HANDLE pAPIHandle = (PSMB_API_HANDLE) hHandle;
     PSMB_API_HANDLE pAPIHandleCopy = NULL;
-    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
-    PSMB_SECURITY_TOKEN_REP pSecurityTokenCopy = NULL;
+    PIO_ACCESS_TOKEN pSecurityToken = NULL;
+    PIO_ACCESS_TOKEN pSecurityTokenCopy = NULL;
 
     if (hHandle)
     {
@@ -122,7 +122,7 @@ SMBCopyHandle(
             
             switch (pSecurityToken->type)
             {
-            case SMB_SECURITY_TOKEN_TYPE_PLAIN:
+            case IO_ACCESS_TOKEN_TYPE_PLAIN:
                 dwError = SMBWc16sDup(
                     pSecurityToken->payload.plain.pwszUsername,
                     &pSecurityTokenCopy->payload.plain.pwszUsername);
@@ -132,7 +132,7 @@ SMBCopyHandle(
                     &pSecurityTokenCopy->payload.plain.pwszPassword);
                 BAIL_ON_SMB_ERROR(dwError);
                 break;
-            case SMB_SECURITY_TOKEN_TYPE_KRB5:
+            case IO_ACCESS_TOKEN_TYPE_KRB5:
                 dwError = SMBWc16sDup(
                     pSecurityToken->payload.krb5.pwszPrincipal,
                     &pSecurityTokenCopy->payload.krb5.pwszPrincipal);
@@ -177,8 +177,8 @@ SMBCompareHandles(
     DWORD dwError = 0;
     PSMB_API_HANDLE pAPIOne = (PSMB_API_HANDLE) hHandleOne;
     PSMB_API_HANDLE pAPITwo = (PSMB_API_HANDLE) hHandleTwo;
-    PSMB_SECURITY_TOKEN_REP pSecurityOne = NULL;
-    PSMB_SECURITY_TOKEN_REP pSecurityTwo = NULL;
+    PIO_ACCESS_TOKEN pSecurityOne = NULL;
+    PIO_ACCESS_TOKEN pSecurityTwo = NULL;
 
     BAIL_ON_INVALID_POINTER(pAPIOne);
     BAIL_ON_INVALID_POINTER(pAPITwo);
@@ -205,7 +205,7 @@ SMBCompareHandles(
             {
                 switch (pSecurityOne->type)
                 {
-                case SMB_SECURITY_TOKEN_TYPE_PLAIN:
+                case IO_ACCESS_TOKEN_TYPE_PLAIN:
                     if (!SMBWc16sCmp(pSecurityOne->payload.plain.pwszUsername,
                                      pSecurityTwo->payload.plain.pwszUsername) &&
                         !SMBWc16sCmp(pSecurityOne->payload.plain.pwszPassword,
@@ -214,7 +214,7 @@ SMBCompareHandles(
                         *pbEqual = TRUE;
                     }
                     break;
-                case SMB_SECURITY_TOKEN_TYPE_KRB5:
+                case IO_ACCESS_TOKEN_TYPE_KRB5:
                     if (!SMBWc16sCmp(pSecurityOne->payload.krb5.pwszPrincipal,
                                      pSecurityTwo->payload.krb5.pwszPrincipal) &&
                         !SMBWc16sCmp(pSecurityOne->payload.krb5.pwszCachePath,

@@ -43,7 +43,7 @@ SMBGetSessionKey(
     PSMB_API_HANDLE pAPIHandle = (PSMB_API_HANDLE)hFile;
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
-    PSMB_SERVER_CONNECTION pConnection = (PSMB_SERVER_CONNECTION) hConnection;
+    PIO_CONTEXT pConnection = (PIO_CONTEXT) hConnection;
     PSMB_GET_SESSION_KEY_RESPONSE pSessResponse = NULL;
 
     BAIL_IF_NOT_FILE_HANDLE(hFile);

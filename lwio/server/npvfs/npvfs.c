@@ -74,7 +74,7 @@ error:
 
 DWORD
 NPVfsCreateFileEx(
-    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszFileName,
     DWORD   dwDesiredAccess,
     DWORD   dwSharedMode,

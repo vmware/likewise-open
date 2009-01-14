@@ -73,9 +73,9 @@ SMBSetLogInfo(
     DWORD dwError = 0;
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
+    PIO_CONTEXT pConnection = NULL;
 
-    pConnection = (PSMB_SERVER_CONNECTION)hSMBConnection;
+    pConnection = (PIO_CONTEXT)hSMBConnection;
 
     dwError = MAP_LWMSG_STATUS(lwmsg_assoc_send_transact(
                     pConnection->pAssoc,
@@ -132,9 +132,9 @@ SMBGetLogInfo(
     SMB_REQUEST request = {0};
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
+    PIO_CONTEXT pConnection = NULL;
 
-    pConnection = (PSMB_SERVER_CONNECTION)hSMBConnection;
+    pConnection = (PIO_CONTEXT)hSMBConnection;
 
     request.dwCurTime = time(NULL);
 

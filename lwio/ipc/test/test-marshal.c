@@ -107,10 +107,10 @@ MU_FIXTURE_TEARDOWN(marshal)
 
 MU_TEST(marshal, SMB_CREATE_FILE)
 {
-    SMB_SECURITY_TOKEN_REP token;
+    IO_ACCESS_TOKEN token;
     SMB_CREATE_FILE_REQUEST request, *pCopy;
 
-    token.type = SMB_SECURITY_TOKEN_TYPE_PLAIN;
+    token.type = IO_ACCESS_TOKEN_TYPE_PLAIN;
     token.payload.plain.pwszUsername = wstr("FOODOMAIN\\foouser");
     token.payload.plain.pwszPassword = wstr("foopassword");
 

@@ -153,12 +153,12 @@ IopIpcCreateFile(
     {
         switch (pMessage->pSecurityToken->type)
         {
-            case SMB_SECURITY_TOKEN_TYPE_PLAIN:
+            case IO_ACCESS_TOKEN_TYPE_PLAIN:
                 securityContext.ImpersonationType = IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_PASSWORD;
                 securityContext.Impersonation.Password.Username = pMessage->pSecurityToken->payload.plain.pwszUsername;
                 securityContext.Impersonation.Password.Password = pMessage->pSecurityToken->payload.plain.pwszPassword;
                 break;
-            case SMB_SECURITY_TOKEN_TYPE_KRB5:
+            case IO_ACCESS_TOKEN_TYPE_KRB5:
                 securityContext.ImpersonationType = IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_KERBEROS;
                 securityContext.Impersonation.Kerberos.Principal = pMessage->pSecurityToken->payload.krb5.pwszPrincipal;
                 securityContext.Impersonation.Kerberos.CachePath = pMessage->pSecurityToken->payload.krb5.pwszCachePath;

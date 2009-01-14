@@ -40,30 +40,30 @@ SMBGetClientContext(
 
 DWORD
 SMBAcquireConnection(
-    OUT PSMB_SERVER_CONNECTION pConnection
+    OUT PIO_CONTEXT pConnection
     );
 
 VOID
 SMBReleaseConnection(
-    IN OUT PSMB_SERVER_CONNECTION pConnection
+    IN OUT PIO_CONTEXT pConnection
     );
 
 DWORD
 SMBAcquireState(
-    OUT PSMB_SERVER_CONNECTION pConnection,
+    OUT PIO_CONTEXT pConnection,
     OUT PSMB_CLIENT_CONTEXT* ppContext
     );
 
 VOID
 SMBReleaseState(
-    IN OUT PSMB_SERVER_CONNECTION pConnection,
+    IN OUT PIO_CONTEXT pConnection,
     IN OUT PSMB_CLIENT_CONTEXT pContext
     );
 
 DWORD
 SMBAPIHandleGetSecurityToken(
     HANDLE hHandle,
-    PSMB_SECURITY_TOKEN_REP* ppSecurityToken
+    PIO_ACCESS_TOKEN* ppSecurityToken
     );
 
 DWORD

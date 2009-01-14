@@ -30,79 +30,76 @@
 
 #include "includes.h"
 
-DWORD
-SMBOpenServer(
-    PHANDLE phConnection
+NTSTATUS
+LwIoOpenContext(
+    PIO_CONTEXT* ppContext
     )
 {
-    DWORD dwError = 0;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    PIO_CONTEXT pContext = NULL;
+    NTSTATUS Status = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_POINTER(gpSMBProtocol);
+    Status = LwIoAllocateMemory(
+        sizeof(*pContext),
+        OUT_PPVOID(&pContext));
+    BAIL_ON_NT_STATUS(Status);
 
-    dwError = SMBAllocateMemory(
-                    sizeof(SMB_SERVER_CONNECTION),
-                    (PVOID*)&pConnection);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = NtIpcLWMsgStatusToNtStatus(
+        lwmsg_connection_new(
+            gpSMBProtocol,
+            &pContext->pAssoc));
+    BAIL_ON_NT_STATUS(Status);
 
-    status = lwmsg_connection_new(
-                    gpSMBProtocol,
-                    &pConnection->pAssoc);
-    BAIL_ON_SMB_ERROR(status);
+    Status = NtIpcLWMsgStatusToNtStatus(
+        lwmsg_connection_set_endpoint(
+            pContext->pAssoc,
+            LWMSG_CONNECTION_MODE_LOCAL,
+            SMB_SERVER_FILENAME));
+    BAIL_ON_NT_STATUS(Status);
 
-    status = lwmsg_connection_set_endpoint(
-                    pConnection->pAssoc,
-                    LWMSG_CONNECTION_MODE_LOCAL,
-                    SMB_SERVER_FILENAME);
-    BAIL_ON_SMB_ERROR(status);
+    Status = NtIpcLWMsgStatusToNtStatus(
+        lwmsg_connection_establish(pContext->pAssoc));
+    BAIL_ON_NT_STATUS(Status);
 
-    status = lwmsg_connection_establish(pConnection->pAssoc);
-    BAIL_ON_SMB_ERROR(status);
-
-    *phConnection = (HANDLE)pConnection;
+    *ppContext = pContext;
 
 cleanup:
 
-    return dwError;
+    return Status;
 
 error:
 
-    if (pConnection)
+    if (pContext)
     {
-        SMBCloseServer((HANDLE)pConnection);
+        LwIoCloseContext(pContext);
     }
 
-    *phConnection = (HANDLE)NULL;
+    *ppContext = NULL;
 
     goto cleanup;
 }
 
-DWORD
-SMBCloseServer(
-    HANDLE hConnection
+NTSTATUS
+LwIoCloseContext(
+    PIO_CONTEXT pContext
     )
 {
-    DWORD dwError = 0;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
+    NTSTATUS Status = STATUS_SUCCESS;
 
-    pConnection = (PSMB_SERVER_CONNECTION)hConnection;
-
-    if (pConnection)
+    if (pContext)
     {
-        if (pConnection->pAssoc)
+        if (pContext->pAssoc)
         {
-            LWMsgStatus status = lwmsg_assoc_close(pConnection->pAssoc);
+            LWMsgStatus status = lwmsg_assoc_close(pContext->pAssoc);
             if (status)
             {
                 SMB_LOG_ERROR("Failed to close association [Error code:%d]", status);
             }
 
-            lwmsg_assoc_delete(pConnection->pAssoc);
+            lwmsg_assoc_delete(pContext->pAssoc);
         }
 
-        SMBFreeMemory(pConnection);
+        LwIoFreeMemory(pContext);
     }
 
-    return dwError;
+    return Status;
 }

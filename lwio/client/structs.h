@@ -31,10 +31,10 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-typedef struct __SMB_SERVER_CONNECTION
+struct __LW_IO_CONTEXT
 {
     LWMsgAssoc* pAssoc;
-} SMB_SERVER_CONNECTION, *PSMB_SERVER_CONNECTION;
+};
 
 typedef enum __SMB_API_HANDLE_TYPE
 {
@@ -48,7 +48,7 @@ typedef struct __SMB_API_HANDLE
     union
     {
         HANDLE hIPCHandle;
-        SMB_SECURITY_TOKEN_REP securityToken;
+        IO_ACCESS_TOKEN securityToken;
     } variant;
 } SMB_API_HANDLE, *PSMB_API_HANDLE;
 

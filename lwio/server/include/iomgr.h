@@ -38,7 +38,7 @@ IOMgrInitialize(
 
 DWORD
 IOMgrCallNamedPipe(
-    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszNamedPipeName,
     PVOID     pInBuffer,
     DWORD     dwInBufferSize,
@@ -50,7 +50,7 @@ IOMgrCallNamedPipe(
 
 DWORD
 IOMgrCreateNamedPipe(
-    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszName,
     DWORD     dwOpenMode,
     DWORD     dwPipeMode,
@@ -88,7 +88,7 @@ IOMgrTransactNamedPipe(
 
 DWORD
 IOMgrWaitNamedPipe(
-    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszName,
     DWORD dwTimeout
     );
@@ -136,7 +136,7 @@ IOMgrDisconnectNamedPipe(
 
 DWORD
 IOMgrCreateFile(
-    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszFileName,
     DWORD dwDesiredAccess,
     DWORD dwSharedMode,

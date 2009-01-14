@@ -43,15 +43,11 @@
  */
 
 #include "includes.h"
-#include "ntfileapiipc.h"
-#include "ntipcmsg.h"
-#include "goto.h"
-#include "ntlogmacros.h"
 
 static
 VOID
-NtpIpcFreeResponse(
-    IN PSMB_SERVER_CONNECTION pConnection,
+NtpCtxFreeResponse(
+    IN PIO_CONTEXT pConnection,
     IN LWMsgMessageTag ReponseType,
     IN PVOID pResponse
     )
@@ -64,8 +60,8 @@ NtpIpcFreeResponse(
 
 static
 NTSTATUS
-NtpIpcCall(
-    IN PSMB_SERVER_CONNECTION pConnection,
+NtpCtxCall(
+    IN PIO_CONTEXT pConnection,
     IN LWMsgMessageTag RequestType,
     IN PVOID pRequest,
     IN LWMsgMessageTag ResponseType,
@@ -95,7 +91,7 @@ NtpIpcCall(
 cleanup:
     if (status)
     {
-        NtpIpcFreeResponse(pConnection, actualResponseType, pResponse);
+        NtpCtxFreeResponse(pConnection, actualResponseType, pResponse);
         pResponse = NULL;
     }
 
@@ -107,7 +103,7 @@ cleanup:
 
 static
 NTSTATUS
-NtpIpcGetIoResult(
+NtpCtxGetIoResult(
     OUT PIO_STATUS_BLOCK pIoStatusBlock,
     IN PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse
     )
@@ -119,7 +115,7 @@ NtpIpcGetIoResult(
 
 static
 NTSTATUS
-NtpIpcGetBufferResult(
+NtpCtxGetBufferResult(
     OUT PIO_STATUS_BLOCK pIoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
@@ -150,9 +146,9 @@ NtpIpcGetBufferResult(
 //
 
 NTSTATUS
-NtIpcCreateFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
-    IN PSMB_SECURITY_TOKEN_REP pSecurityToken,
+LwNtCtxCreateFile(
+    IN PIO_CONTEXT pConnection,
+    IN LW_PIO_ACCESS_TOKEN pSecurityToken,
     OUT PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -178,7 +174,7 @@ NtIpcCreateFile(
     IO_FILE_HANDLE fileHandle = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
 
-    request.pSecurityToken = pSecurityToken;
+    request.pSecurityToken = (PIO_ACCESS_TOKEN) pSecurityToken;
 #ifdef _NT_IPC_USE_PSEUDO_TYPES
     NtIpcRealToPseudoIoFileName(FileName, &request.FileName);
 #else
@@ -193,7 +189,7 @@ NtIpcCreateFile(
 
     // TODO -- EAs, SDs, etc.
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -225,7 +221,7 @@ cleanup:
 #endif
     }
 
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *FileHandle = fileHandle;
     *IoStatusBlock = ioStatusBlock;
@@ -235,8 +231,8 @@ cleanup:
 }
 
 NTSTATUS
-NtIpcCloseFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxCloseFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle
     )
 {
@@ -252,7 +248,7 @@ NtIpcCloseFile(
 
     request.FileHandle = FileHandle;
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -262,22 +258,22 @@ NtIpcCloseFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
 
-    status = NtpIpcGetIoResult(&ioStatusBlock, pResponse);
+    status = NtpCtxGetIoResult(&ioStatusBlock, pResponse);
     assert(0 == ioStatusBlock.BytesTransferred);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtIpcUnregisterFileHandle(pConnection->pAssoc, FileHandle);
 
 cleanup:
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);
     return status;
 }
 
 NTSTATUS
-NtIpcReadFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxReadFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -301,7 +297,7 @@ NtIpcReadFile(
     request.ByteOffset = ByteOffset;
     request.Key = Key;
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -311,11 +307,11 @@ NtIpcReadFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
 
-    status = NtpIpcGetBufferResult(&ioStatusBlock, Buffer, Length, pResponse);
+    status = NtpCtxGetBufferResult(&ioStatusBlock, Buffer, Length, pResponse);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -324,8 +320,8 @@ cleanup:
 }
 
 NTSTATUS
-NtIpcWriteFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxWriteFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -350,7 +346,7 @@ NtIpcWriteFile(
     request.ByteOffset = ByteOffset;
     request.Key = Key;
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -360,12 +356,12 @@ NtIpcWriteFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
 
-    status = NtpIpcGetIoResult(&ioStatusBlock, pResponse);
+    status = NtpCtxGetIoResult(&ioStatusBlock, pResponse);
     assert(ioStatusBlock.BytesTransferred <= Length);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -374,8 +370,8 @@ cleanup:
 }
 
 NTSTATUS 
-NtIpcDeviceIoControlFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxDeviceIoControlFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -401,7 +397,7 @@ NtIpcDeviceIoControlFile(
     request.InputBufferLength = InputBufferLength;
     request.OutputBufferLength = OutputBufferLength;
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -411,11 +407,11 @@ NtIpcDeviceIoControlFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
 
-    status = NtpIpcGetBufferResult(&ioStatusBlock, OutputBuffer, OutputBufferLength, pResponse);
+    status = NtpCtxGetBufferResult(&ioStatusBlock, OutputBuffer, OutputBufferLength, pResponse);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -424,8 +420,8 @@ cleanup:
 }
 
 NTSTATUS
-NtIpcFsControlFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxFsControlFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -451,7 +447,7 @@ NtIpcFsControlFile(
     request.InputBufferLength = InputBufferLength;
     request.OutputBufferLength = OutputBufferLength;
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -461,11 +457,11 @@ NtIpcFsControlFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
 
-    status = NtpIpcGetBufferResult(&ioStatusBlock, OutputBuffer, OutputBufferLength, pResponse);
+    status = NtpCtxGetBufferResult(&ioStatusBlock, OutputBuffer, OutputBufferLength, pResponse);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -474,8 +470,8 @@ cleanup:
 }
 
 NTSTATUS
-NtIpcFlushBuffersFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxFlushBuffersFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock
@@ -492,7 +488,7 @@ NtIpcFlushBuffersFile(
 
     request.FileHandle = FileHandle;
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -502,11 +498,11 @@ NtIpcFlushBuffersFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
 
-    status = NtpIpcGetIoResult(&ioStatusBlock, pResponse);
+    status = NtpCtxGetIoResult(&ioStatusBlock, pResponse);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -515,8 +511,8 @@ cleanup:
 }
 
 NTSTATUS 
-NtIpcQueryInformationFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxQueryInformationFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -538,7 +534,7 @@ NtIpcQueryInformationFile(
     request.Length = Length;
     request.FileInformationClass = FileInformationClass;
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -548,11 +544,11 @@ NtIpcQueryInformationFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
 
-    status = NtpIpcGetBufferResult(&ioStatusBlock, FileInformation, Length, pResponse);
+    status = NtpCtxGetBufferResult(&ioStatusBlock, FileInformation, Length, pResponse);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -561,8 +557,8 @@ cleanup:
 }
 
 NTSTATUS 
-NtIpcSetInformationFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxSetInformationFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -585,7 +581,7 @@ NtIpcSetInformationFile(
     request.Length = Length;
     request.FileInformationClass = FileInformationClass;
 
-    status = NtpIpcCall(pConnection,
+    status = NtpCtxCall(pConnection,
                         requestType,
                         &request,
                         responseType,
@@ -595,11 +591,11 @@ NtIpcSetInformationFile(
 
     pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
 
-    status = NtpIpcGetIoResult(&ioStatusBlock, pResponse);
+    status = NtpCtxGetIoResult(&ioStatusBlock, pResponse);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpIpcFreeResponse(pConnection, responseType, pResponse);
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -612,8 +608,8 @@ cleanup:
 //
 
 NTSTATUS
-NtIpcQueryFullAttributesFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxQueryFullAttributesFile(
+    IN PIO_CONTEXT pConnection,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
@@ -621,8 +617,8 @@ NtIpcQueryFullAttributesFile(
     );
 
 NTSTATUS 
-NtIpcQueryDirectoryFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxQueryDirectoryFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -636,8 +632,8 @@ NtIpcQueryDirectoryFile(
     );
 
 NTSTATUS
-NtIpcQueryVolumeInformationFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxQueryVolumeInformationFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -647,8 +643,8 @@ NtIpcQueryVolumeInformationFile(
     );
 
 NTSTATUS
-NtIpcSetVolumeInformationFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxSetVolumeInformationFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -658,8 +654,8 @@ NtIpcSetVolumeInformationFile(
     );
 
 NTSTATUS 
-NtIpcLockFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxLockFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -671,8 +667,8 @@ NtIpcLockFile(
     );
 
 NTSTATUS 
-NtIpcUnlockFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxUnlockFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -688,24 +684,24 @@ NtIpcUnlockFile(
 //
 
 NTSTATUS
-NtIpcRemoveDirectoryFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxRemoveDirectoryFile(
+    IN PIO_CONTEXT pConnection,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
 
 NTSTATUS
-NtIpcDeleteFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxDeleteFile(
+    IN PIO_CONTEXT pConnection,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
 
 NTSTATUS
-NtIpcLinkFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxLinkFile(
+    IN PIO_CONTEXT pConnection,
     IN PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -713,8 +709,8 @@ NtIpcLinkFile(
     );
 
 NTSTATUS
-NtIpcRenameFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxRenameFile(
+    IN PIO_CONTEXT pConnection,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FromName,
@@ -722,8 +718,8 @@ NtIpcRenameFile(
     );
 
 NTSTATUS
-NtIpcQueryQuotaInformationFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxQueryQuotaInformationFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -741,8 +737,8 @@ NtIpcQueryQuotaInformationFile(
 //
 
 NTSTATUS
-NtIpcSetQuotaInformationFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxSetQuotaInformationFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -751,8 +747,8 @@ NtIpcSetQuotaInformationFile(
     );
 
 NTSTATUS
-NtIpcQuerySecurityFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxQuerySecurityFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE  Handle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -763,8 +759,8 @@ NtIpcQuerySecurityFile(
     ); 
 
 NTSTATUS
-NtIpcSetSecurityFile(
-    IN PSMB_SERVER_CONNECTION pConnection,
+LwNtCtxSetSecurityFile(
+    IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE Handle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,

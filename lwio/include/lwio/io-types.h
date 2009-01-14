@@ -32,7 +32,8 @@
 #define __IO_TYPES_H__
 
 #include <lw/types.h>
-#include <lwio/lwio.h>
+#include <lw/attrs.h>
+#include <lw/ntstatus.h>
 
 #define SetFlag(Variable, Flags)   ((Variable) |= (Flags))
 #define ClearFlag(Variable, Flags) ((Variable) &= ~(Flags))
@@ -233,6 +234,9 @@ typedef struct _FILE_FULL_EA_INFORMATION {
 } FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
 #endif
 
+typedef struct __LW_IO_CONTEXT LW_IO_CONTEXT, *LW_PIO_CONTEXT;
+typedef struct __LW_IO_ACCESS_TOKEN LW_IO_ACCESS_TOKEN, *LW_PIO_ACCESS_TOKEN;
+
 #ifndef PSECURITY_DESCRIPTOR_DEFINED
 
 typedef PVOID PSECURITY_DESCRIPTOR;
@@ -245,4 +249,14 @@ typedef PVOID PFILE_NETWORK_OPEN_INFORMATION;
 
 typedef ULONG FILE_INFORMATION_CLASS;
 typedef ULONG FS_INFORMATION_CLASS;
+
+#ifndef LW_STRICT_NAMESPACE
+
+typedef LW_IO_CONTEXT IO_CONTEXT;
+typedef LW_PIO_CONTEXT PIO_CONTEXT;
+typedef LW_IO_ACCESS_TOKEN IO_ACCESS_TOKEN;
+typedef LW_PIO_ACCESS_TOKEN PIO_ACCESS_TOKEN;
+
+#endif /* ! LW_STRICT_NAMESPACE */
+
 #endif

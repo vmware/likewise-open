@@ -106,7 +106,7 @@ SMBCallNamedPipeW(
     )
 {
     DWORD  dwError = 0;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
+    PIO_CONTEXT pConnection = NULL;
     SMB_CALL_NP_REQUEST request = {0};
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
@@ -117,7 +117,7 @@ SMBCallNamedPipeW(
     BAIL_ON_INVALID_POINTER(pOutBuffer);
     BAIL_ON_INVALID_POINTER(pdwBytesRead);
 
-    pConnection = (PSMB_SERVER_CONNECTION)hConnection;
+    pConnection = (PIO_CONTEXT)hConnection;
 
     dwError = SMBAPIHandleGetSecurityToken(hAccessToken, &request.pSecurityToken);
     BAIL_ON_SMB_ERROR(dwError);

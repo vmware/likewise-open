@@ -32,7 +32,7 @@
 #define __VFSPROVIDER_H__
 
 typedef NTSTATUS (*PVFS_LW_CREATEFILE)(
-                    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+                    PIO_ACCESS_TOKEN pSecurityToken,
                     PCWSTR pwszFileName,
                     DWORD   dwDesiredAccess,
                     DWORD   dwSharedMode,

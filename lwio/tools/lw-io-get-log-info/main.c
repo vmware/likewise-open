@@ -80,7 +80,7 @@ main(
 {
     DWORD dwError = 0;
     PSMB_LOG_INFO pLogInfo = NULL;
-    HANDLE hConnection = (HANDLE)NULL;
+    PIO_CONTEXT pContext = NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
 
@@ -90,12 +90,12 @@ main(
     dwError = SMBInitialize();
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBOpenServer(&hConnection);
+    dwError = LwIoOpenContext(&pContext);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBGetLogInfo(
-                    hConnection,
-                    &pLogInfo);
+        (HANDLE) pContext,
+        &pLogInfo);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = PrintLogInfo(pLogInfo);
@@ -103,12 +103,14 @@ main(
 
 cleanup:
 
-    if (pLogInfo) {
-       SMBFreeLogInfo(pLogInfo);
+    if (pLogInfo)
+    {
+        SMBFreeLogInfo(pLogInfo);
     }
 
-    if (hConnection != (HANDLE)NULL) {
-        SMBCloseServer(hConnection);
+    if (pContext != NULL)
+    {
+        LwIoCloseContext(pContext);
     }
 
     SMBShutdown();

@@ -39,9 +39,9 @@ SMBRefreshConfiguration(
     SMB_REQUEST request = {0};
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
+    PIO_CONTEXT pConnection = NULL;
 
-    pConnection = (PSMB_SERVER_CONNECTION)hConnection;
+    pConnection = (PIO_CONTEXT)hConnection;
 
     request.dwCurTime = time(NULL);
 

@@ -122,7 +122,7 @@ SMBCreateFileW(
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
     PSMB_API_HANDLE pAPIHandle = NULL;
-    PSMB_SERVER_CONNECTION pConnection = (PSMB_SERVER_CONNECTION) hConnection;
+    PIO_CONTEXT pConnection = (PIO_CONTEXT) hConnection;
 
     BAIL_ON_INVALID_WSTRING(pwszFileName);
     BAIL_ON_INVALID_POINTER(phFile);

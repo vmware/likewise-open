@@ -49,6 +49,7 @@
 #define __LWIO_H__
 
 #include <lw/base.h>
+#include <lwio/io-types.h>
 
 #ifndef OVERLAPPED_DEFINED
 #define OVERLAPPED_DEFINED 1
@@ -267,16 +268,15 @@ typedef struct __SMB_LOG_INFO {
     PSTR         pszPath;
 } SMB_LOG_INFO, *PSMB_LOG_INFO;
 
-
 DWORD
 SMBInitialize(
     VOID
     );
 
 
-DWORD
-SMBOpenServer(
-    PHANDLE phConnection
+LW_NTSTATUS
+LwIoOpenContext(
+    LW_PIO_CONTEXT* ppContext
     );
 
 
@@ -322,11 +322,10 @@ SMBFreeLogInfo(
     );
 
 
-DWORD
-SMBCloseServer(
-    HANDLE hConnection
+LW_NTSTATUS
+LwIoCloseContext(
+    LW_PIO_CONTEXT pContext
     );
-
 
 DWORD
 SMBShutdown(
@@ -650,9 +649,9 @@ SMBCopyHandle(
 
 #ifndef SMB_NO_THREADS
 
-DWORD
-SMBOpenServerShared(
-    PHANDLE phConnection
+LW_NTSTATUS
+LwIoOpenContextShared(
+    LW_PIO_CONTEXT* ppContext
     );
 
 DWORD
@@ -910,6 +909,8 @@ CloseHandle(
 #endif
 
 #endif /* ! SMB_NO_THREADS */
+
+#include <lwio/ntfileapi.h>
 
 #endif /* __LWIO_H__ */
 

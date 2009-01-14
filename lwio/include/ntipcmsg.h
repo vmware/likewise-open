@@ -166,7 +166,7 @@ typedef struct _NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT {
 //
 
 typedef struct _NT_IPC_MESSAGE_CREATE_FILE {
-    IN PSMB_SECURITY_TOKEN_REP pSecurityToken;
+    IN PIO_ACCESS_TOKEN pSecurityToken;
 #ifdef _NT_IPC_USE_PSEUDO_TYPES
     IN NT_IPC_PSEUDO_IO_FILE_NAME FileName;
 #else

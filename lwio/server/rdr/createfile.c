@@ -59,7 +59,7 @@ ParseSharePath(
 
 DWORD
 RdrCreateFileEx(
-    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszFileName,
     DWORD   dwDesiredAccess,
     DWORD   dwSharedMode,
@@ -77,7 +77,7 @@ RdrCreateFileEx(
     PSMB_CLIENT_FILE_HANDLE pFile = NULL;
 
     if (!pSecurityToken ||
-        pSecurityToken->type != SMB_SECURITY_TOKEN_TYPE_KRB5)
+        pSecurityToken->type != IO_ACCESS_TOKEN_TYPE_KRB5)
     {
         dwError = EACCES;
         BAIL_ON_SMB_ERROR(dwError);

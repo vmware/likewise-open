@@ -147,7 +147,7 @@ RdrCommonCreate(
     //PVOID SecurityQualityOfService;
     HANDLE hFile = NULL;
 
-    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
+    PIO_ACCESS_TOKEN pSecurityToken = NULL;
 
     FileHandle = pIrp->FileHandle;
     DesiredAccess = pIrp->Args.Create.DesiredAccess;

@@ -123,12 +123,12 @@ SMBCreateNamedPipeW(
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
     PSMB_API_HANDLE pAPIHandle = NULL;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
+    PIO_CONTEXT pConnection = NULL;
 
     BAIL_ON_INVALID_WSTRING(pwszName);
     BAIL_ON_INVALID_POINTER(phNamedPipe);
 
-    pConnection = (PSMB_SERVER_CONNECTION) hConnection;
+    pConnection = (PIO_CONTEXT) hConnection;
 
     dwError = SMBAPIHandleGetSecurityToken(hAccessToken, &request.pSecurityToken);
     BAIL_ON_SMB_ERROR(dwError);

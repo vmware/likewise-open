@@ -58,7 +58,7 @@ SMBGetNamedPipeClientProcessId(
     )
 {
     DWORD  dwError = 0;
-    PSMB_SERVER_CONNECTION pConnection = (PSMB_SERVER_CONNECTION)hConnection;
+    PIO_CONTEXT pConnection = (PIO_CONTEXT)hConnection;
     PSMB_API_HANDLE pAPIHandle = (PSMB_API_HANDLE)hNamedPipe;
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;

@@ -46,6 +46,55 @@
  */
 #include "includes.h"
 
+LW_NTSTATUS
+LwIoAllocateMemory(
+    size_t Size,
+    LW_PVOID * ppMemory
+    )
+{
+    PVOID pMemory = LwRtlMemoryAllocate((size_t) Size);
+
+    if (!pMemory)
+    {
+        *ppMemory = NULL;
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+    else
+    {
+        *ppMemory = pMemory;
+        return STATUS_SUCCESS;
+    }
+}
+
+LW_NTSTATUS
+LwIoReallocMemory(
+    LW_PVOID pMemory,
+    size_t Size,
+    LW_PVOID * ppNewMemory
+    )
+{
+    PVOID pNewMemory = LwRtlMemoryRealloc(pMemory, (size_t) Size);
+
+    if (!pNewMemory)
+    {
+        *ppNewMemory = NULL;
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+    else
+    {
+        *ppNewMemory = pNewMemory;
+        return STATUS_SUCCESS;
+    }
+}
+
+VOID
+LwIoFreeMemory(
+    PVOID pMemory
+    )
+{
+    LwRtlMemoryFree(pMemory);
+}
+
 DWORD
 SMBAllocateMemory(
     DWORD dwSize,

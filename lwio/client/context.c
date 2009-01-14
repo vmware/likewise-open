@@ -69,7 +69,7 @@ SMBGetProcessKrb5AccessToken(
     char* pszPrincipalName = NULL;
     const char* pszCredCachePath = NULL;
     PSMB_API_HANDLE pAPIHandle = NULL;
-    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
+    PIO_ACCESS_TOKEN pSecurityToken = NULL;
 
     *phAccessToken = NULL;
 
@@ -114,7 +114,7 @@ SMBGetProcessKrb5AccessToken(
     pAPIHandle->type = SMB_API_HANDLE_ACCESS;
     pSecurityToken = &pAPIHandle->variant.securityToken;
 
-    pSecurityToken->type = SMB_SECURITY_TOKEN_TYPE_KRB5;
+    pSecurityToken->type = IO_ACCESS_TOKEN_TYPE_KRB5;
 
     dwError = SMBMbsToWc16s(pszPrincipalName, &pSecurityToken->payload.krb5.pwszPrincipal);
     BAIL_ON_SMB_ERROR(dwError);
@@ -299,7 +299,7 @@ error:
 
 DWORD
 SMBAcquireConnection(
-    OUT PSMB_SERVER_CONNECTION pConnection
+    OUT PIO_CONTEXT pConnection
     )
 {
     DWORD dwError = 0;
@@ -319,7 +319,7 @@ error:
 
 VOID
 SMBReleaseConnection(
-    IN OUT PSMB_SERVER_CONNECTION pConnection
+    IN OUT PIO_CONTEXT pConnection
     )
 {
     if (pConnection->pAssoc)
@@ -333,7 +333,7 @@ SMBReleaseConnection(
 
 DWORD
 SMBAcquireState(
-    OUT PSMB_SERVER_CONNECTION pConnection,
+    OUT PIO_CONTEXT pConnection,
     OUT PSMB_CLIENT_CONTEXT* ppContext
     )
 {
@@ -357,51 +357,52 @@ error:
 
 VOID
 SMBReleaseState(
-    IN OUT PSMB_SERVER_CONNECTION pConnection,
+    IN OUT PIO_CONTEXT pConnection,
     IN OUT PSMB_CLIENT_CONTEXT pContext
     )
 {
     SMBReleaseConnection(pConnection);
 }
 
-DWORD
-SMBOpenServerShared(
-    PHANDLE phConnection
+NTSTATUS
+LwIoOpenContextShared(
+    PIO_CONTEXT* ppContext
     )
 {
-    DWORD dwError = 0;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    PIO_CONTEXT pContext = NULL;
+    NTSTATUS Status = STATUS_SUCCESS;
 
     SMBInit();
 
-    dwError = SMBAllocateMemory(
-        sizeof(SMB_SERVER_CONNECTION),
-        (PVOID*)&pConnection);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwIoAllocateMemory(
+        sizeof(*pContext),
+        OUT_PPVOID(&pContext));
+    BAIL_ON_NT_STATUS(Status);
 
-    status = lwmsg_client_create_assoc(
-        gpClient,
-        &pConnection->pAssoc);
-    BAIL_ON_SMB_ERROR(status);
+    Status = NtIpcLWMsgStatusToNtStatus(
+        lwmsg_client_create_assoc(
+            gpClient,
+            &pContext->pAssoc));
+    BAIL_ON_NT_STATUS(Status);
 
-    status = lwmsg_connection_establish(pConnection->pAssoc);
-    BAIL_ON_SMB_ERROR(status);
+    Status = NtIpcLWMsgStatusToNtStatus(
+        lwmsg_connection_establish(pContext->pAssoc));
+    BAIL_ON_NT_STATUS(Status);
 
-    *phConnection = (HANDLE)pConnection;
+    *ppContext = pContext;
 
 cleanup:
 
-    return dwError;
+    return Status;
 
 error:
 
-    if (pConnection)
+    if (pContext)
     {
-        SMBCloseServer((HANDLE)pConnection);
+        LwIoCloseContext(pContext);
     }
 
-    *phConnection = (HANDLE)NULL;
+    *ppContext = NULL;
 
     goto cleanup;
 }

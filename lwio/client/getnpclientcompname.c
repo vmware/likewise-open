@@ -113,7 +113,7 @@ SMBGetNamedPipeClientComputerNameW(
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
     PSMB_GET_CLIENT_COMPUTER_NAME_RESPONSE pNPResponse = NULL;
-    PSMB_SERVER_CONNECTION pConnection = (PSMB_SERVER_CONNECTION) hConnection;
+    PIO_CONTEXT pConnection = (PIO_CONTEXT) hConnection;
 
     BAIL_ON_INVALID_POINTER(pwszClientComputerName);
     BAIL_IF_NOT_FILE_HANDLE(hNamedPipe);

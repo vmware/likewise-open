@@ -50,6 +50,8 @@
 #ifndef __SMBUTILS_H__
 #define __SMBUTILS_H__
 
+#include <lwio/lwio.h>
+
 #ifndef SMB_ENDIAN_SWAP16
 
 #define SMB_ENDIAN_SWAP16(wX)                     \
@@ -523,6 +525,24 @@ strnlen(
 
 #endif /* !defined(HAVE_STRNLEN) */
 
+
+LW_NTSTATUS
+LwIoAllocateMemory(
+    size_t Size,
+    LW_PVOID * ppMemory
+    );
+
+LW_NTSTATUS
+LwIoReallocMemory(
+    LW_PVOID pMemory,
+    size_t Size,
+    LW_PVOID * ppNewMemory
+    );
+
+VOID
+LwIoFreeMemory(
+    PVOID pMemory
+    );
 
 DWORD
 SMBAllocateMemory(

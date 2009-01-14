@@ -373,14 +373,17 @@ typedef enum
        parameter must be some combination of the following values: */
 
     FILE_NO_SHARE     = 0x00000000, /* Prevents the file from being shared. */
+#if 0
     FILE_SHARE_READ   = 0x00000001, /* Other open operations can be performed
                                        on the file for read access. */
     FILE_SHARE_WRITE  = 0x00000002, /* Other open operations can be performed
                                        on the file for write access. */
     FILE_SHARE_DELETE = 0x00000004  /* Other open operations can be performed
                                        on the file for delete access. */
+#endif
 } SHARE_ACCESS;
 
+#if 0
 typedef enum
 {
     /* Indicates that if the file already exists then it should be superseded
@@ -410,8 +413,8 @@ typedef enum
        overwritten.  If the file does not already exist then it should be
        created.*/
     FILE_OVERWRITE_IF = 0x00000005
-
 } CREATE_DISPOSITION;
+#endif
 
 typedef enum
 {

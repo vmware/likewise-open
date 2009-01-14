@@ -67,7 +67,7 @@ SMBCreatePlainAccessTokenW(
 {
     DWORD dwError = 0;
     PSMB_API_HANDLE pAPIHandle = NULL;
-    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
+    PIO_ACCESS_TOKEN pSecurityToken = NULL;
 
     dwError = SMBAllocateMemory(sizeof(*pAPIHandle), (void**) (void*) &pAPIHandle);
     BAIL_ON_SMB_ERROR(dwError);
@@ -76,7 +76,7 @@ SMBCreatePlainAccessTokenW(
 
     pSecurityToken = &pAPIHandle->variant.securityToken;
     
-    pSecurityToken->type = SMB_SECURITY_TOKEN_TYPE_PLAIN;
+    pSecurityToken->type = IO_ACCESS_TOKEN_TYPE_PLAIN;
     
     dwError = SMBWc16sDup(pwszUsername, &pSecurityToken->payload.plain.pwszUsername);
     BAIL_ON_SMB_ERROR(dwError);
@@ -137,7 +137,7 @@ SMBCreateKrb5AccessTokenW(
 {
     DWORD dwError = 0;
     PSMB_API_HANDLE pAPIHandle = NULL;
-    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
+    PIO_ACCESS_TOKEN pSecurityToken = NULL;
 
     dwError = SMBAllocateMemory(sizeof(*pAPIHandle), (void**) (void*) &pAPIHandle);
     BAIL_ON_SMB_ERROR(dwError);
@@ -146,7 +146,7 @@ SMBCreateKrb5AccessTokenW(
 
     pSecurityToken = &pAPIHandle->variant.securityToken;
     
-    pSecurityToken->type = SMB_SECURITY_TOKEN_TYPE_KRB5;
+    pSecurityToken->type = IO_ACCESS_TOKEN_TYPE_KRB5;
     
     dwError = SMBWc16sDup(pwszPrincipal, &pSecurityToken->payload.krb5.pwszPrincipal);
     BAIL_ON_SMB_ERROR(dwError);

@@ -93,14 +93,14 @@ SMBWaitNamedPipeW(
     )
 {
     DWORD  dwError = 0;
-    PSMB_SERVER_CONNECTION pConnection = NULL;
+    PIO_CONTEXT pConnection = NULL;
     SMB_WAIT_NP_REQUEST request = {0};
     LWMsgMessageTag replyType;
     PVOID pResponse = NULL;
 
     BAIL_ON_INVALID_WSTRING(pwszNamedPipeName);
 
-    pConnection = (PSMB_SERVER_CONNECTION)hConnection;
+    pConnection = (PIO_CONTEXT)hConnection;
 
     dwError = SMBAPIHandleGetSecurityToken(hAccessToken, &request.pSecurityToken);
     BAIL_ON_SMB_ERROR(dwError);

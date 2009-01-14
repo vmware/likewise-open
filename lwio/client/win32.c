@@ -75,7 +75,7 @@ CallNamedPipeA(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -115,7 +115,7 @@ CallNamedPipeW(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -155,7 +155,7 @@ CreateNamedPipeA(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
     HANDLE hHandle = INVALID_HANDLE_VALUE;
 
@@ -198,7 +198,7 @@ CreateNamedPipeW(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
     HANDLE hHandle = INVALID_HANDLE_VALUE;
 
@@ -238,7 +238,7 @@ GetNamedPipeInfo(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -269,7 +269,7 @@ ConnectNamedPipe(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -302,7 +302,7 @@ TransactNamedPipe(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -335,7 +335,7 @@ WaitNamedPipeA(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -365,7 +365,7 @@ WaitNamedPipeW(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -395,7 +395,7 @@ GetNamedPipeClientComputerNameA(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -425,7 +425,7 @@ GetNamedPipeClientComputerNameW(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -454,7 +454,7 @@ GetNamedPipeClientProcessId(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -482,7 +482,7 @@ GetNamedPipeServerProcessId(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -510,7 +510,7 @@ GetNamedPipeClientSessionId(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -543,7 +543,7 @@ PeekNamedPipe(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -574,7 +574,7 @@ DisconnectNamedPipe(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -606,7 +606,7 @@ CreateFileA(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
     HANDLE hHandle = INVALID_HANDLE_VALUE;
 
@@ -647,7 +647,7 @@ CreateFileW(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
     HANDLE hHandle = INVALID_HANDLE_VALUE;
 
@@ -685,7 +685,7 @@ SetNamedPipeHandleState(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -718,7 +718,7 @@ ReadFile(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -752,7 +752,7 @@ WriteFile(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);
@@ -782,7 +782,7 @@ CloseHandle(
     )
 {
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection;
+    IO_CONTEXT connection;
     PSMB_CLIENT_CONTEXT pContext = NULL;
 
     dwError = SMBAcquireState(&connection, &pContext);

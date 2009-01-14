@@ -43,23 +43,19 @@
  */
 
 #include "includes.h"
-#include <lwio/ntfileapi.h>
-#include "ntfileapiipc.h"
-#include "goto.h"
-#include "ntlogmacros.h"
 
 // TODO-Clean up security token API a little.
 static
 NTSTATUS
 NtpGetSecurityToken(
-    OUT PSMB_SECURITY_TOKEN_REP* ppSecurityToken
+    OUT LW_PIO_ACCESS_TOKEN* ppSecurityToken
     )
 {
     NTSTATUS status = 0;
     int EE = 0;
     DWORD dwError = 0;
     PSMB_CLIENT_CONTEXT pClientContext = NULL;
-    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
+    LW_PIO_ACCESS_TOKEN pSecurityToken = NULL;
     
     dwError = SMBGetClientContext(&pClientContext);
     if (dwError)
@@ -87,13 +83,13 @@ cleanup:
 static
 NTSTATUS
 NtpAcquireConnection(
-    OUT PSMB_SERVER_CONNECTION pConnection
+    OUT PIO_CONTEXT pConnection
     )
 {
     NTSTATUS status = 0;
     int EE = 0;
     DWORD dwError = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     dwError = SMBAcquireConnection(&connection);
     if (dwError)
@@ -118,7 +114,7 @@ cleanup:
 static
 VOID
 NtpReleaseConnection(
-    IN OUT PSMB_SERVER_CONNECTION pConnection
+    IN OUT PIO_CONTEXT pConnection
     )
 {
     SMBReleaseConnection(pConnection);
@@ -168,8 +164,8 @@ NtCreateFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
-    PSMB_SECURITY_TOKEN_REP pSecurityToken = NULL;
+    IO_CONTEXT connection = { 0 };
+    LW_PIO_ACCESS_TOKEN pSecurityToken = NULL;
 
     *FileHandle = NULL;
     NtpInitializeIoStatusBlock(IoStatusBlock);
@@ -182,7 +178,7 @@ NtCreateFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcCreateFile(
+    status = NtCtxCreateFile(
                     &connection,
                     pSecurityToken,
                     FileHandle,
@@ -211,12 +207,12 @@ NtCloseFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     status = NtpAcquireConnection(&connection);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcCloseFile(
+    status = NtCtxCloseFile(
                     &connection,
                     FileHandle);
 
@@ -238,7 +234,7 @@ NtReadFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
@@ -246,7 +242,7 @@ NtReadFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcReadFile(
+    status = NtCtxReadFile(
                     &connection,
                     FileHandle,
                     AsyncControlBlock,
@@ -274,7 +270,7 @@ NtWriteFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
@@ -282,7 +278,7 @@ NtWriteFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcWriteFile(
+    status = NtCtxWriteFile(
                     &connection,
                     FileHandle,
                     AsyncControlBlock,
@@ -311,7 +307,7 @@ NtDeviceIoControlFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
@@ -319,7 +315,7 @@ NtDeviceIoControlFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcDeviceIoControlFile(
+    status = NtCtxDeviceIoControlFile(
                     &connection,
                     FileHandle,
                     AsyncControlBlock,
@@ -349,7 +345,7 @@ NtFsControlFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
@@ -357,7 +353,7 @@ NtFsControlFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcFsControlFile(
+    status = NtCtxFsControlFile(
                     &connection,
                     FileHandle,
                     AsyncControlBlock,
@@ -382,7 +378,7 @@ NtFlushBuffersFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
@@ -390,7 +386,7 @@ NtFlushBuffersFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcFlushBuffersFile(
+    status = NtCtxFlushBuffersFile(
                     &connection,
                     FileHandle,
                     AsyncControlBlock,
@@ -413,7 +409,7 @@ NtQueryInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
@@ -421,7 +417,7 @@ NtQueryInformationFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcQueryInformationFile(
+    status = NtCtxQueryInformationFile(
                     &connection,
                     FileHandle,
                     AsyncControlBlock,
@@ -447,7 +443,7 @@ NtSetInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    SMB_SERVER_CONNECTION connection = { 0 };
+    IO_CONTEXT connection = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
@@ -455,7 +451,7 @@ NtSetInformationFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcSetInformationFile(
+    status = NtCtxSetInformationFile(
                     &connection,
                     FileHandle,
                     AsyncControlBlock,

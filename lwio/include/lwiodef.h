@@ -82,27 +82,27 @@ typedef int             SOCKET;
 
 #define LW_ASSERT(x)   assert( (x) )
 
-typedef struct _SMB_SECURITY_TOKEN_REP
+struct __LW_IO_ACCESS_TOKEN
 {
     enum
     {
-        SMB_SECURITY_TOKEN_TYPE_PLAIN = 0,
-        SMB_SECURITY_TOKEN_TYPE_KRB5 = 1
+        IO_ACCESS_TOKEN_TYPE_PLAIN = 0,
+        IO_ACCESS_TOKEN_TYPE_KRB5 = 1
     } type;
-    union _SMB_SECURITY_TOKEN_U
+    union _LW_IO_ACCESS_TOKEN_U
     {
-        struct _SMB_SECURITY_TOKEN_PLAIN
+        struct _LW_IO_ACCESS_TOKEN_PLAIN
         {
             PWSTR pwszUsername;
             PWSTR pwszPassword;
         } plain;
-        struct _SMB_SECURITY_TOKEN_KRB5
+        struct _LW_IO_ACCESS_TOKEN_KRB5
         {
             PWSTR pwszPrincipal;
             PWSTR pwszCachePath;
         } krb5;
     } payload;
-} SMB_SECURITY_TOKEN_REP, *PSMB_SECURITY_TOKEN_REP;
+};
 
 typedef struct SMB_FILE_HANDLE SMB_FILE_HANDLE, *PSMB_FILE_HANDLE;
 

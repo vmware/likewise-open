@@ -81,7 +81,7 @@ main(
 {
     DWORD dwError = 0;
     SMBLogLevel logLevel = SMB_LOG_LEVEL_ERROR;
-    HANDLE hSMBConnection = (HANDLE)NULL;
+    PIO_CONTEXT pContext = (HANDLE)NULL;
     PSMB_LOG_INFO pLogInfo = NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
@@ -98,19 +98,19 @@ main(
     dwError = SMBInitialize();
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBOpenServer(&hSMBConnection);
+    dwError = LwIoOpenContext(&pContext);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBSetLogLevel(
-                    hSMBConnection,
-                    logLevel);
+        (HANDLE) pContext,
+        logLevel);
     BAIL_ON_SMB_ERROR(dwError);
 
     fprintf(stdout, "The log level was set successfully\n\n");
 
     dwError = SMBGetLogInfo(
-                    hSMBConnection,
-                    &pLogInfo);
+        (HANDLE) pContext,
+        &pLogInfo);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = PrintLogInfo(pLogInfo);
@@ -123,8 +123,8 @@ cleanup:
         SMBFreeLogInfo(pLogInfo);
     }
 
-    if (hSMBConnection != (HANDLE)NULL) {
-        SMBCloseServer(hSMBConnection);
+    if (pContext != NULL) {
+        LwIoCloseContext(pContext);
     }
 
     SMBShutdown();
