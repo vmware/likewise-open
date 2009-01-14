@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Eventlog
+ *        Likewise Server Service
  *
  *        Stack
  *

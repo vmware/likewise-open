@@ -11,7 +11,7 @@
  *
  * Abstract:
  *
- *        Likewise Eventlog Services
+ *        Likewise Server Service Services
  *
  *        System Functions
  *

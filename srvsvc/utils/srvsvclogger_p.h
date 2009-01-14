@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise Eventlog Service (LWSRVSVC)
+ *        Likewise Server Service Service (LWSRVSVC)
  *
  *        Utilities
  *

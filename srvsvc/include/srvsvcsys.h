@@ -6,7 +6,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *
- * Eventlog module - system headers
+ * Server Service module - system headers
  *
  */
 

@@ -36,7 +36,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *
- * Eventlog String Utilities
+ * Server Service String Utilities
  *
  */
 

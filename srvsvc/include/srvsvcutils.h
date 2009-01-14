@@ -33,11 +33,11 @@
  *
  * Module Name:
  *
- *        eventutils.h
+ *        srvsvcutils.h
  *
  * Abstract:
  *
- *        Likewise Eventlog Service (LWSRVSVC)
+ *        Likewise Server Service Service (LWSRVSVC)
  *
  *        Public header
  *
@@ -45,8 +45,8 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#ifndef __EVENTUTILS_H__
-#define __EVENTUTILS_H__
+#ifndef __SRVSVCUTILS_H__
+#define __SRVSVCUTILS_H__
 
 #ifndef _WIN32
 
@@ -399,4 +399,4 @@ SRVSVCCloseLog(
     VOID
     );
 
-#endif /* __EVENTUTILS_H__ */
+#endif /* __SRVSVCUTILS_H__ */

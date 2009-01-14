@@ -36,7 +36,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *
- * Eventlog logging utilities
+ * Server Service logging utilities
  *
  */
 #ifndef __SRVSVCLOGGER_H_

@@ -36,7 +36,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *
- * Eventlog file utilities
+ * Server Service file utilities
  *
  */
 #include "includes.h"

@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(eventlog, 1.0, support@likewisesoftware.com)
+AC_INIT(srvsvc, 1.0, support@likewisesoftware.com)
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADERS([include/config.h])
@@ -246,13 +246,13 @@ for i in $CPPFLAGS ${DCERPC_INCLUDES} ${UNISTR_INCLUDES} ${LSASS_INCLUDES}; do
 done
 AC_SUBST(IDLFLAGS)
 
-eventlogconfdir="$sysconfdir"
-AC_SUBST(eventlogconfdir)
-AS_AC_EXPAND(CONFIGDIR, $eventlogconfdir)
+srvsvcconfdir="$sysconfdir"
+AC_SUBST(srvsvcconfdir)
+AS_AC_EXPAND(CONFIGDIR, $srvsvcconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
-eventlogcachedir="$localstatedir/lib/likewise"
-AC_SUBST(eventlogcachedir)
-AS_AC_EXPAND(CACHEDIR, $eventlogcachedir)
+srvsvccachedir="$localstatedir/lib/likewise"
+AC_SUBST(srvsvccachedir)
+AS_AC_EXPAND(CACHEDIR, $srvsvccachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
 
 AS_AC_EXPAND(PREFIXDIR, $prefix)
