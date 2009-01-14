@@ -697,7 +697,7 @@ SRVSVCConfigEndSection(
 
 static
 DWORD
-SRVSVCReadEventLogConfigSettings()
+SRVSVCReadConfigSettings()
 {
     DWORD dwError = 0;
     PSTR pszConfigFilePath = NULL;
@@ -814,7 +814,7 @@ SRVSVCHandleSignals(
             }
             case SIGHUP:
             {
-                dwError = SRVSVCReadEventLogConfigSettings();
+                dwError = SRVSVCReadConfigSettings();
                 BAIL_ON_SRVSVC_ERROR(dwError);
 
                 break;
@@ -921,8 +921,7 @@ main(
     /* Bail if we still haven't succeeded after several attempts */
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    //Read the event log information from srvsvcd.conf
-    dwError = SRVSVCReadEventLogConfigSettings();
+    dwError = SRVSVCReadConfigSettings();
     if (dwError != 0)
     {
         SRVSVC_LOG_ERROR("Failed to read srvsvcd config file.  Error code: [%u]\n", dwError);
