@@ -40,7 +40,6 @@
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
-#include <secdesc/phdef.h>
 #include <secdesc/siddef.h>
 #include <lwrpc/security.h>
 #include <lwrpc/userinfo.h>
@@ -134,6 +133,9 @@
 #define NETR_TRUST_ATTR_WITHIN_FOREST        0x00000020
 #define NETR_TRUST_ATTR_TREAT_AS_EXTERNAL    0x00000040
 
+#if !defined(_DCE_IDL_) && defined(LIBRPC_BUILD)
+#include <dce/nbase.h>      /* uuid_t definition */
+#endif
 
 typedef struct netr_domain_trust {
 #ifdef _DCE_IDL_
@@ -149,7 +151,7 @@ typedef struct netr_domain_trust {
     uint16 trust_type;
     uint32 trust_attrs;
     DomSid *sid;
-    Guid guid;
+    uuid_t guid;
 } NetrDomainTrust;
 
 

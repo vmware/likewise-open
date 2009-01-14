@@ -38,8 +38,6 @@
 #ifndef _SAMR_H_
 #define _SAMR_H_
 
-#include <dce/rpc.h>
-
 #include <secdesc/secdesc.h>
 
 #include <lwrpc/unicodestring.h>

@@ -103,6 +103,16 @@ typedef uint32 RPCSTATUS;
 typedef uint32 WINERR;
 typedef uint64 NtTime;
 
+/* Don't require DCE/RPC environment when simply building
+   a client using rpc library */
+#if !defined(_DCE_IDL_)
+#if defined(LIBRPC_BUILD)
+#include <dce/rpc.h>
+#else
+typedef void* handle_t;
+typedef unsigned long error_status_t;
+#endif /* defined(LIBRPC_BUILD) */
+#endif /* !defined(_DCE_IDL_) */
 
 #endif /* _TYPES_H_ */
 
