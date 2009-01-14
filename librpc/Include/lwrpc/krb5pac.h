@@ -33,7 +33,9 @@
 
 #include <lwrpc/krb5pacdefs.h>
 
+#if !defined(_DCE_IDL_) && !defined(LIBRPC_BUILD)
 typedef unsigned long error_status_t;
+#endif
 
 error_status_t
 DecodePacLogonInfo(
