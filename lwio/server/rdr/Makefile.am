@@ -35,7 +35,7 @@ librdr_sys_la_SOURCES = \
     rdrsetinfo.c          \
     rdrqueryinfo.c        \
     rdrdeviceio.c         \
-    rdrfsctrl.c           \
+    rdrfsctl.c           \
     rdrclose.c
 
 librdr_sys_la_CPPFLAGS = \
