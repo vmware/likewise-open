@@ -32,6 +32,22 @@ error:
     goto cleanup;
 }
 
+BOOLEAN
+SrvConnectionIsInvalid(
+    PSMB_SRV_CONNECTION pConnection
+    )
+{
+    BOOLEAN bInvalid = FALSE;
+
+    pthread_mutex_lock(&pConnection->mutex);
+
+    bInvalid = pConnection->state == SMB_SRV_CONN_STATE_INVALID;
+
+    pthread_mutex_unlock(&pConnection->mutex);
+
+    return bInvalid;
+}
+
 VOID
 SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection

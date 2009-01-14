@@ -104,7 +104,7 @@ typedef struct _SMB_SRV_CONNECTION
 {
     pthread_mutex_t     mutex;
 
-    int                 refCount;
+    LONG                refCount;
 
     SMB_SRV_CONN_STATE  state;
 
@@ -118,8 +118,8 @@ typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
 
     BOOLEAN        bStop;
 
-    PSMBDLINKEDLIST pSocketList;
-    ULONG           ulNumSockets;
+    PSMB_RB_TREE   pConnections;
+    ULONG          ulNumSockets;
 
     PSMB_PROD_CONS_QUEUE pWorkQueue;
 

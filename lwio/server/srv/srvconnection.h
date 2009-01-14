@@ -7,6 +7,11 @@ SrvConnectionCreate(
     PSMB_SRV_CONNECTION* ppConnection
     );
 
+BOOLEAN
+SrvConnectionIsInvalid(
+    PSMB_SRV_CONNECTION pConnection
+    );
+
 VOID
 SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection
