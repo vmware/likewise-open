@@ -73,6 +73,17 @@ LwRtlMemoryAllocate(
     return pMemory;
 }
 
+PVOID
+LwRtlMemoryRealloc(
+    LW_IN LW_PVOID pMemory,
+    LW_IN size_t Size
+    )
+{
+    assert(Size > 0);
+
+    return realloc(pMemory, Size);
+}
+
 VOID
 LwRtlMemoryFree(
     IN OUT LW_PVOID pMemory

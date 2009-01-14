@@ -60,6 +60,12 @@ LwRtlMemoryAllocate(
     LW_IN size_t Size
     );
 
+PVOID
+LwRtlMemoryRealloc(
+    LW_IN LW_PVOID pMemory,
+    LW_IN size_t Size
+    );
+
 VOID
 LwRtlMemoryFree(
     LW_IN LW_OUT LW_PVOID pMemory
