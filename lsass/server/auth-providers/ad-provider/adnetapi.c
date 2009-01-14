@@ -413,17 +413,17 @@ AD_NetLookupObjectSidsByNames(
               SidFree(pObject_sid);
               pObject_sid = NULL;
         }
-        SidAllocateResizedCopy(&pObject_sid,
+        RtlSidAllocateResizedCopy(&pObject_sid,
                                pDom_sid->subauth_count + 1,
                                pDom_sid);
         pObject_sid->subauth[pObject_sid->subauth_count - 1] = pSids[i].rid;
 
         if (pwcObjectSid)
         {
-            SidFreeString(pwcObjectSid);
+            SidStrFreeW(pwcObjectSid);
             pwcObjectSid = NULL;
         }
-        dwError = SidToString(pObject_sid,
+        dwError = RtlSidToStringW(pObject_sid,
                               &pwcObjectSid);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -467,7 +467,7 @@ cleanup:
     }
     if (pwcObjectSid)
     {
-        SidFreeString(pwcObjectSid);
+        SidStrFreeW(pwcObjectSid);
     }
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0)
@@ -611,7 +611,7 @@ AD_NetLookupObjectNamesBySids(
 
     for (i = 0; i < sid_array.num_sids; i++)
     {
-        status = ParseSidString(
+        status = RtlParseSidStringA(
                         &pObjectSID,
                         ppszObjectSids[i]);
         if (status != 0)
@@ -915,7 +915,7 @@ AD_SidToString(
     PSTR  pszSid = NULL;
     wchar16_t* pwszSid = NULL;
 
-    dwError = SidToString(pSid, &pwszSid);
+    dwError = RtlSidToStringW(pSid, &pwszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaWc16sToMbs(
@@ -929,7 +929,7 @@ cleanup:
 
     if (pwszSid)
     {
-        SidFreeString(pwszSid);
+        SidStrFreeW(pwszSid);
     }
 
     return dwError;

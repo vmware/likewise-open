@@ -47,11 +47,11 @@
 #include <lwps/lwps.h>
 #include <lwnet.h>
 
+#include <secdesc/secdesc.h>
 #include <lwrpc/LM.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
 #include <lwrpc/samr.h>
-#include <lwrpc/sidhelper.h>
 #include <lwrpc/errconv.h>
 
 #include <lwio/lwio.h>

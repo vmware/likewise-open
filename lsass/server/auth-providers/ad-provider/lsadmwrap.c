@@ -220,7 +220,7 @@ LsaDmWrapGetDomainNameAndSidByObjectSid(
     PSID pDomainSid = NULL;
     PSTR pszDomainSid = NULL;
 
-    dwError = ParseSidString(&pObjectSid, pszObjectSid);
+    dwError = RtlParseSidStringA(&pObjectSid, pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmQueryDomainInfoByObjectSid(

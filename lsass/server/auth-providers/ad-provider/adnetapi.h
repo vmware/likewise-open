@@ -49,6 +49,7 @@
 #define __ADNETAPI_H__
 
 #include <uuid/uuid.h>
+#include <secdesc/secdesc.h>
 
 #include <lwrpc/LM.h>
 #include <lwrpc/lsa.h>
@@ -56,7 +57,6 @@
 #include <lwrpc/samr.h>
 #include <lwrpc/mpr.h>
 #include <lwrpc/security.h>
-#include <lwrpc/sidhelper.h>
 #include <lwrpc/lsabinding.h>
 #include <lwrpc/netlogonbinding.h>
 #include <lwrpc/LMjoin.h>

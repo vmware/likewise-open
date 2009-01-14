@@ -241,7 +241,7 @@ LsaSrvJoinBuildDomSid(
     pPos = pSID->pucSidBytes;
     subAuthCount = pPos[1];
     
-    dwError = SidAllocate(
+    dwError = RtlSidAllocate(
                     &pDomSID,
                     subAuthCount);
     BAIL_ON_LSA_ERROR(dwError);
