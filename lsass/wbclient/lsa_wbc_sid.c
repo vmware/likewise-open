@@ -225,13 +225,10 @@ wbcErr wbcLookupName(const char *dom_name,
 	BAIL_ON_NULL_PTR_PARAM(name, dwErr);
 
 	if (dom_name) {
-		snprintf(pszQualifiedName, 
-			sizeof(pszQualifiedName), 
+		snprintf(pszQualifiedName, sizeof(pszQualifiedName),
 			"%s\\", dom_name);
 	}
-	strncat(pszQualifiedName, 
-		name,
-		sizeof(dom_name) - strlen(pszQualifiedName));
+	strncat(pszQualifiedName, name, sizeof(pszQualifiedName) - (strlen(pszQualifiedName)+1));
 
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
