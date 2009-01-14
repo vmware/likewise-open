@@ -62,7 +62,6 @@
 
 #include "smbclient.h"
 #include <lwio/io-types.h>
-#include "ntvfsprovider.h"
 
 #include "structs.h"
 #include "createfile.h"
