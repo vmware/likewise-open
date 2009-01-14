@@ -37,34 +37,49 @@
 #ifndef __LW_MEMORY_H__
 #define __LW_MEMORY_H__
 
-#ifndef LW_SAFE_FREE_MEMORY \
+#include <stddef.h>
+#include <lw/types.h>
 
-#define LW_SAFE_FREE_MEMORY(pMemory) \
-    if (pMemory) { \
-        LWFreeMemory(pMemory); \
-        (pMemory) = NULL; \
-    }
+#define LW_SAFE_FREE_MEMORY(pMemory)            \
+    do                                          \
+    {                                           \
+        if ((pMemory))                          \
+        {                                       \
+            LwRtlFreeMemory((pMemory));         \
+            ((pMemory)) = NULL;                 \
+        }                                       \
+    } while (0)
 
-#endif /* LW_SAFE_FREE_MEMORY */
-
-
-NTSTATUS
-RtlAllocateMemory(
+LW_NTSTATUS
+LwRtlAllocateMemory(
     size_t size,
-    PVOID* ppMemory
+    LW_PVOID* ppMemory
     );
 
-NTSTATUS
-RtlReallocMemory(
-    PVOID  pMemory,
-    PVOID* ppNewMemory,
+LW_NTSTATUS
+LwRtlReallocMemory(
+    LW_PVOID  pMemory,
+    LW_PVOID* ppNewMemory,
     size_t size
     );
 
-VOID
-RtlFreeMemory(
-    PVOID pMemory
+LW_VOID
+LwRtlFreeMemory(
+    LW_PVOID pMemory
     );
+
+#ifndef LW_STRICT_NAMESPACE
+
+#define RtlAllocateMemory     LwRtlAllocateMemory
+#define RtlReallocMemory      LwRtlReallocMemory
+#define RtlFreeMemory         LwRtlFreeMemory
+
+/* FIXME: ensure this is safe, then uncomment it */
+/*
+#define SAFE_FREE_MEMORY      LW_SAFE_FREE_MEMORY
+*/
+
+#endif /* LW_STRICT_NAMESPACE */
 
 #endif /* __LW_MEMORY_H__ */
 

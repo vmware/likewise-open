@@ -39,8 +39,16 @@
 #ifndef __LWBASE_ATTRS_H__
 #define __LWBASE_ATTRS_H__
 
-#define OPTIONAL
-#define IN
-#define OUT
+#define LW_OPTIONAL
+#define LW_IN
+#define LW_OUT
+
+#ifndef LW_STRICT_NAMESPACE
+
+#define OPTIONAL LW_OPTIONAL
+#define IN LW_IN
+#define OUT LW_OUT
+
+#endif /* LW_STRICT_NAMESPACE */
 
 #endif
