@@ -8,13 +8,10 @@ librdr_sys_la_SOURCES = \
     client_tree.c         \
     closehandle.c         \
     createfile.c          \
-    getnpinfo.c           \
-    getnpserverprocid.c   \
     getsesskey.c          \
     globals.c             \
     handlestate.c         \
     packet.c              \
-    peeknp.c              \
     readfile.c            \
     response.c            \
     session.c             \
@@ -31,7 +28,6 @@ librdr_sys_la_SOURCES = \
     socket.c              \
     transactnp.c          \
     tree.c                \
-    waitnp.c              \
     writefile.c           \
     rdrdriver.c           \
     rdrcreate.c           \
