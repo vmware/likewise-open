@@ -31,9 +31,6 @@
 #ifndef _KRB5PAC_H_
 #define _KRB5PAC_H_
 
-#if !defined(_DCE_IDL_) && !defined(LIBRPC_BUILD)
-#include <uuid/uuid.h>
-#endif
 #include <lwrpc/netrdefs.h>
 
 typedef struct {
