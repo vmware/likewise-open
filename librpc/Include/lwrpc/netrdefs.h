@@ -40,13 +40,10 @@
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
+#include <secdesc/phdef.h>
 #include <secdesc/siddef.h>
 #include <lwrpc/security.h>
 #include <lwrpc/userinfo.h>
-
-#if !defined(_DCE_IDL_) && defined(LIBRPC_BUILD)
-#include <dce/nbase.h>      /* uuid_t definition */
-#endif
 
 /*
  * Domain trust definitions
@@ -152,7 +149,7 @@ typedef struct netr_domain_trust {
     uint16 trust_type;
     uint32 trust_attrs;
     DomSid *sid;
-    uuid_t guid;
+    Guid guid;
 } NetrDomainTrust;
 
 
