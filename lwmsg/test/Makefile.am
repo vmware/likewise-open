@@ -1,5 +1,5 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include @LWMSG_CPPFLAGS@
-AM_CFLAGS = -Wall -Werror
+AM_CFLAGS = @LWMSG_CFLAGS@
 
 lib_LTLIBRARIES = lwmsg_mu.la
 
@@ -7,7 +7,7 @@ TEST_SOURCES = test-main.c test-convert.c test-marshal.c test-assoc.c test-sessi
 BUILT_SOURCES = stub.c
 
 lwmsg_mu_la_SOURCES = $(TEST_SOURCES) stub.c
-lwmsg_mu_la_CFLAGS = -shared -Wall -Werror
+lwmsg_mu_la_CFLAGS = -shared $(AM_CFLAGS)
 lwmsg_mu_la_LIBADD = @LIB_moonunit@ $(top_builddir)/src/liblwmsg.la
 lwmsg_mu_la_LDFLAGS = -shared -module -export-dynamic -avoid-version
 

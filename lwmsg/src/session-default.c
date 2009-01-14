@@ -505,6 +505,7 @@ error:
     goto done;
 }
 
+static
 LWMsgStatus
 default_set_session_data (
     LWMsgSessionManager* manager,
@@ -524,6 +525,7 @@ default_set_session_data (
     return LWMSG_STATUS_SUCCESS;
 }
 
+static
 void*
 default_get_session_data (
     LWMsgSessionManager* manager,
@@ -533,6 +535,7 @@ default_get_session_data (
     return session->data;
 }
 
+static
 const LWMsgSessionID*
 default_get_session_id(
     LWMsgSessionManager* manager,
@@ -542,6 +545,7 @@ default_get_session_id(
     return &session->rsmid;
 }
 
+static
 size_t
 default_get_session_assoc_count(
     LWMsgSessionManager* manager,
@@ -551,6 +555,7 @@ default_get_session_assoc_count(
     return session->refs;
 }
 
+static
 size_t
 default_get_session_handle_count(
     LWMsgSessionManager* manager,

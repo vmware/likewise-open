@@ -38,6 +38,7 @@
 #include <lwmsg/type.h>
 #include <lwmsg/status.h>
 #include "util-private.h"
+#include "convert.h"
 
 #include <config.h>
 #include <stdlib.h>

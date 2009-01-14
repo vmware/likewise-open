@@ -4,6 +4,8 @@ AC_CONFIG_HEADER([include/config.h])
 AC_CANONICAL_HOST
 
 LWMSG_CPPFLAGS=""
+LWMSG_CFLAGS="-Wall -Werror -Wmissing-prototypes"
+LWMSG_LDFLAGS=""
 MOD_EXT=".so"
 
 case "$host_os:$host_cpu" in
@@ -24,6 +26,8 @@ case "$host_os:$host_cpu" in
 esac
 
 AC_SUBST(LWMSG_CPPFLAGS)
+AC_SUBST(LWMSG_CFLAGS)
+AC_SUBST(LWMSG_LDFLAGS)
 AC_SUBST(LIB_DL)
 AC_SUBST(LIB_XNET)
 AC_SUBST(LIB_PTHREAD)
