@@ -651,6 +651,11 @@ SMBCopyHandle(
 #ifndef SMB_NO_THREADS
 
 DWORD
+SMBOpenServerShared(
+    PHANDLE phConnection
+    );
+
+DWORD
 SMBSetThreadToken(
     HANDLE hAccessToken
     );
