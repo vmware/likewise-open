@@ -7,6 +7,8 @@ LWBASE_CPPFLAGS=""
 LWBASE_CFLAGS="-Wall -Werror -Wmissing-prototypes"
 LWBASE_LDFLAGS=""
 
+CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_GNU_SOURCE"
+
 case "$host_os:$host_cpu" in
         solaris*:*)
                 LWBASE_CPPFLAGS="$LWBASE_CPPFLAGS -D_XOPEN_SOURCE=500 -D_EXTENSIONS -D_REENTRANT"

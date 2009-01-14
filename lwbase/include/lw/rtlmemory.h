@@ -51,22 +51,22 @@
 
 VOID
 LwRtlMemoryZero(
-    IN OUT LW_PVOID pMemory,
-    IN size_t Size
+    LW_IN LW_OUT LW_PVOID pMemory,
+    LW_IN size_t Size
     );
 
 PVOID
 LwRtlMemoryAllocate(
-    IN size_t Size
+    LW_IN size_t Size
     );
 
 VOID
 LwRtlMemoryFree(
-    IN OUT LW_PVOID pMemory
+    LW_IN LW_OUT LW_PVOID pMemory
     );
 
 #define LW_RTL_ALLOCATE(ppMemory, Type, Size) \
-    ( (*(ppMemory)) = (Type*) LwRtlMemoryAllocate(Size), (*(ppMemory)) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
+    ( (*(ppMemory)) = (Type*) LwRtlMemoryAllocate(Size), (*(ppMemory)) ? LW_NT_STATUS_SUCCESS : LW_NT_STATUS_INSUFFICIENT_RESOURCES )
 
 #define LW_RTL_FREE(ppMemory) \
     do { \

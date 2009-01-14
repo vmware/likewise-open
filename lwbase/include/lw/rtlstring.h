@@ -36,15 +36,15 @@
 #include <lw/ntstatus.h>
 
 typedef struct _LW_UNICODE_STRING {
-    USHORT Length;
-    USHORT MaximumLength;
-    wchar16_t* Buffer;
+    LW_USHORT Length;
+    LW_USHORT MaximumLength;
+    LW_PWCHAR Buffer;
 } LW_UNICODE_STRING, *LW_PUNICODE_STRING;
 
 typedef struct _LW_ANSI_STRING {
-    USHORT Length;
-    USHORT MaximumLength;
-    PCHAR Buffer;
+    LW_USHORT Length;
+    LW_USHORT MaximumLength;
+    LW_PCHAR Buffer;
 } LW_ANSI_STRING, *LW_PANSI_STRING;
 
 #ifndef LW_STRICT_NAMESPACE
@@ -57,102 +57,179 @@ typedef LW_PANSI_STRING PANSI_STRING;
 
 #endif /* LW_STRICT_NAMESPAE */
 
-VOID
-LwRtlUnicodeStringInit(
-    OUT LW_PUNICODE_STRING pString,
-    IN LW_PWSTR pszString
+// c-style (null-terminated) strings
+
+size_t
+LwRtlCStringNumChars(
+    LW_IN LW_PCSTR pszString
     );
 
-VOID
-LwRtlAnsiStringInit(
-    OUT LW_PANSI_STRING pString,
-    IN LW_PSTR pszString
+LW_NTSTATUS
+LwRtlCStringAllocateFromWC16String(
+    LW_OUT LW_PSTR* ppszNewString,
+    LW_IN LW_PCWSTR pszOriginalString
     );
 
-NTSTATUS
-LwRtlUnicodeStringCreateFromCString(
-    OUT LW_PUNICODE_STRING pString,
-    IN LW_PCSTR pszString
-    );
-
-NTSTATUS
-LwRtlWC16StringCreateFromCString(
-    OUT LW_PWSTR* ppszNewString,
-    IN LW_PCSTR pszOriginalString
-    );
-
-VOID
-LwRtlUnicodeStringFree(
-    IN OUT LW_PUNICODE_STRING pString
-    );
-
-VOID
-LwRtlAnsiStringFree(
-    IN OUT LW_PANSI_STRING pString
-    );
-
-NTSTATUS
-LwRtlUnicodeStringDuplicate(
-    OUT LW_PUNICODE_STRING pNewString,
-    IN LW_PUNICODE_STRING pOriginalString
-    );
-
-NTSTATUS
-LwRtlAnsiStringDuplicate(
-    OUT LW_PANSI_STRING pNewString,
-    IN LW_PANSI_STRING pOriginalString
-    );
-
-NTSTATUS
-LwRtlWC16StringDuplicate(
-    OUT LW_PWSTR* ppszNewString,
-    IN LW_PCWSTR pszOriginalString
-    );
-
-NTSTATUS
+LW_NTSTATUS
 LwRtlCStringDuplicate(
-    OUT LW_PSTR* ppszNewString,
-    IN LW_PCSTR pszOriginalString
+    LW_OUT LW_PSTR* ppszNewString,
+    LW_IN LW_PCSTR pszOriginalString
     );
 
-BOOLEAN
+LW_VOID
+LwRtlCStringFree(
+    LW_IN LW_OUT LW_PSTR* ppszString
+    );
+
+LW_NTSTATUS
+LwRtlCStringAllocatePrintf(
+    LW_OUT PSTR* ppszString,
+    LW_IN PCSTR pszFormat,
+    LW_IN ...
+    );
+
+LW_NTSTATUS
+LwRtlCStringAllocateAppendPrintf(
+    LW_IN LW_OUT LW_PSTR* ppszString,
+    LW_IN LW_PCSTR pszFormat,
+    ...
+    );
+
+#define LwRtlCStringIsNullOrEmpty(String) (!(String) || !(*(String)))
+
+// wc16-style (null-terminated) strings
+
+size_t
+LwRtlWC16StringNumChars(
+    LW_IN LW_PCWSTR pszString
+    );
+
+LW_NTSTATUS
+LwRtlWC16StringAllocateFromCString(
+    LW_OUT LW_PWSTR* ppszNewString,
+    LW_IN LW_PCSTR pszOriginalString
+    );
+
+LW_NTSTATUS
+LwRtlWC16StringDuplicate(
+    LW_OUT LW_PWSTR* ppszNewString,
+    LW_IN LW_PCWSTR pszOriginalString
+    );
+
+LW_VOID
+LwRtlWC16StringFree(
+    LW_OUT LW_PWSTR* ppszString
+    );
+
+#define LwRtlWC16StringIsNullOrEmpty(String) LwRtlCStringIsNullOrEmpty(String)
+
+// UNICODE_STRING strings
+
+LW_VOID
+LwRtlUnicodeStringInit(
+    LW_OUT LW_PUNICODE_STRING pString,
+    LW_IN LW_PWSTR pszString
+    );
+
+LW_NTSTATUS
+LwRtlUnicodeStringAllocateFromWC16String(
+    LW_OUT LW_PUNICODE_STRING pString,
+    LW_IN LW_PCWSTR pszString
+    );
+
+LW_NTSTATUS
+LwRtlUnicodeStringAllocateFromCString(
+    LW_OUT LW_PUNICODE_STRING pString,
+    LW_IN LW_PCSTR pszString
+    );
+
+LW_NTSTATUS
+LwRtlUnicodeStringDuplicate(
+    LW_OUT LW_PUNICODE_STRING pNewString,
+    LW_IN LW_PUNICODE_STRING pOriginalString
+    );
+
+LW_VOID
+LwRtlUnicodeStringFree(
+    LW_IN LW_OUT LW_PUNICODE_STRING pString
+    );
+
+LW_BOOLEAN
 LwRtlUnicodeStringIsEqual(
-    IN LW_PUNICODE_STRING pString1,
-    IN LW_PUNICODE_STRING pString2,
-    IN LW_BOOLEAN bIsCaseSensitive
+    LW_IN LW_PUNICODE_STRING pString1,
+    LW_IN LW_PUNICODE_STRING pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
     );
 
+// ANSI strings
+
+LW_VOID
+LwRtlAnsiStringInit(
+    LW_OUT LW_PANSI_STRING pString,
+    LW_IN LW_PSTR pszString
+    );
+
+LW_NTSTATUS
+LwRtlAnsiStringAllocateFromCString(
+    LW_OUT LW_PANSI_STRING pNewString,
+    LW_IN LW_PCSTR pszString
+    );
+
+LW_NTSTATUS
+LwRtlAnsiStringDuplicate(
+    LW_OUT LW_PANSI_STRING pNewString,
+    LW_IN LW_PANSI_STRING pOriginalString
+    );
+
+LW_VOID
+LwRtlAnsiStringFree(
+    LW_IN LW_OUT LW_PANSI_STRING pString
+    );
 
 #ifndef LW_STRICT_NAMESPACE
-#define RtlUnicodeStringInit LwRtlUnicodeStringInit
-#define RtlAnsiStringInit LwRtlAnsiStringInit
-#define RtlUnicodeStringCreateFromCString LwRtlUnicodeStringCreateFromCString
-#define RtlWC16StringCreateFromCString LwRtlWC16StringCreateFromCString
-#define RtlUnicodeStringFree LwRtlUnicodeStringFree
-#define RtlAnsiStringFree LwRtlAnsiStringFree
-#define RtlUnicodeStringDuplicate LwRtlUnicodeStringDuplicate
-#define RtlAnsiStringDuplicate LwRtlAnsiStringDuplicate
-#define RtlWC16StringDuplicate LwRtlWC16StringDuplicate
+
+#define RtlCStringNumChars LwRtlCStringNumChars
+#define RtlCStringAllocateFromWC16String LwRtlCStringAllocateFromWC16String
 #define RtlCStringDuplicate LwRtlCStringDuplicate
+#define RtlCStringFree LwRtlCStringFree
+#define RtlCStringAllocatePrintf LwRtlCStringAllocatePrintf
+#define RtlCStringAllocateAppendPrintf LwRtlCStringAllocateAppendPrintf
+
+#define RtlWC16StringNumChars LwRtlWC16StringNumChars
+#define RtlWC16StringAllocateFromCString LwRtlWC16StringAllocateFromCString
+#define RtlWC16StringDuplicate LwRtlWC16StringDuplicate
+#define RtlWC16StringFree LwRtlWC16StringFree
+
+#define RtlUnicodeStringInit LwRtlUnicodeStringInit
+#define RtlUnicodeStringAllocateFromWC16String LwRtlUnicodeStringAllocateFromWC16String
+#define RtlUnicodeStringAllocateFromCString LwRtlUnicodeStringAllocateFromCString
+#define RtlUnicodeStringDuplicate LwRtlUnicodeStringDuplicate
+#define RtlUnicodeStringFree LwRtlUnicodeStringFree
 #define RtlUnicodeStringIsEqual LwRtlUnicodeStringIsEqual
+
+#define RtlAnsiStringInit LwRtlAnsiStringInit
+#define RtlAnsiStringAllocateFromCString LwRtlAnsiStringAllocateFromCString
+#define RtlAnsiStringDuplicate LwRtlAnsiStringDuplicate
+#define RtlAnsiStringFree LwRtlAnsiStringFree
+
 #endif /* LW_STRICT_NAMESPAE */
 
 #define USE_RTL_STRING_LOG_HACK 1
 
 #ifdef USE_RTL_STRING_LOG_HACK
-PCSTR
+LW_PCSTR
 LwRtlUnicodeStringToLog(
-    IN LW_PUNICODE_STRING pString
+    LW_IN LW_PUNICODE_STRING pString
     );
 
-PCSTR
+LW_PCSTR
 LwRtlAnsiStringToLog(
-    IN LW_PANSI_STRING pString
+    LW_IN LW_PANSI_STRING pString
     );
 
-PCSTR
+LW_PCSTR
 LwRtlWC16StringToLog(
-    IN LW_PCWSTR pszString
+    LW_IN LW_PCWSTR pszString
     );
 
 #ifndef LW_STRICT_NAMESPACE
