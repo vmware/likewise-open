@@ -33,37 +33,74 @@
  * Copyright (C) Likewise Software 2007
  * All rights reserved.
  *
- * SrvSvc Server
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
+ * Likewise Server Service
  *
  */
-#include <config.h>
-#include <srvsvcsys.h>
+#ifndef __MAIN_P_H__
+#define __MAIN_P_H__
 
-#ifdef __GNUC__
-#include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
+/* This structure captures the arguments that must be
+ * sent to the Group Policy Service
+ */
+typedef struct {
+    /* MT safety */
+    pthread_mutex_t lock;
+    /* Should start as daemon */
+    DWORD dwStartAsDaemon;
+    /* How much logging do you want? */
+    DWORD dwLogLevel;
+    /* log file path */
+    char szLogFilePath[PATH_MAX + 1];
+    /* config file path */
+    char szConfigFilePath[PATH_MAX + 1];
+    /* Cache path */
+    char szCachePath[PATH_MAX+1];
+    /* Prefix path */
+    char szPrefixPath[PATH_MAX+1];
+    /* Process termination flag */
+    BOOLEAN  bProcessShouldExit;
+    /* Process Exit Code */
+    DWORD dwExitCode;
 
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
+} SRVSVCSERVERINFO, *PSRVSVCSERVERINFO;
 
-#include "srvsvc_h.h"
+extern SRVSVCSERVERINFO gServerInfo;
 
-#include <wc16str.h>
+DWORD
+SRVSVCGetConfigPath(
+    PSTR* ppszPath
+    );
 
-#include <lw/ntstatus.h>
+DWORD
+SRVSVCGetCachePath(
+    PSTR* ppszPath
+    );
 
-#include <lwio/lwio.h>
-#include <lwio/ntfileapi.h>
+DWORD
+SRVSVCGetPrefixPath(
+    PSTR* ppszPath
+    );
 
-#include "srvsvcdefs.h"
-#include "srvsvcutils.h"
+BOOLEAN
+SRVSVCProcessShouldExit();
 
-#include "defs.h"
-#include "structs.h"
-#include "marshall.h"
-#include "memutil.h"
+void
+SRVSVCSetProcessShouldExit(
+	BOOLEAN val
+	);
 
-#include "externs.h"
+DWORD
+SRVSVCServerMain(
+    int argc,
+    char* argv[]
+    );
 
+void
+SRVSVCServerExit(
+    int retCode
+    );
+
+#endif /* __MAIN_P_H__ */

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -33,51 +33,144 @@
 
 #include <types.h>
 
+#ifndef GUID_DEFINED
+#define GUID_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef GUID_DEFINED")
+cpp_quote("#define GUID_DEFINED 1")
+#endif
+
 typedef struct guid {
-	uint32 time_low;
-	uint16 time_mid;
-	uint16 time_hi_and_version;
-	uint8 clock_seq[2];
-	uint8 node[6];
+    uint32 time_low;
+    uint16 time_mid;
+    uint16 time_hi_and_version;
+    uint8 clock_seq[2];
+    uint8 node[6];
 } Guid;
 
+
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
+#ifndef POLICY_HANDLE_DEFINED
+#define POLICY_HANDLE_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef POLICY_HANDLE_DEFINED")
+cpp_quote("#define POLICY_HANDLE_DEFINED 1")
+#endif
+
 typedef struct policy_handle {
-	uint32 handle_type;
-	Guid guid;
+    uint32 handle_type;
+    Guid guid;
 } PolicyHandle;
+
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
+#ifndef DOM_SID_DEFINED
+#define DOM_SID_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef DOM_SID_DEFINED")
+cpp_quote("#define DOM_SID_DEFINED 1")
+#endif
 
 typedef struct dom_sid {
         uint8 revision;
 #ifdef _DCE_IDL_
-	[range(0,15)]
+    [range(0,15)]
 #endif
         uint8 subauth_count;
         uint8 authid[6];
 #ifdef _DCE_IDL_
-	[size_is(subauth_count)]
+    [size_is(subauth_count)]
 #endif
         uint32 *subauth;
 } DomSid;
 
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
+#ifndef SID_PTR_DEFINED
+#define SID_PTR_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef SID_PTR_DEFINED")
+cpp_quote("#define SID_PTR_DEFINED 1")
+#endif
+
 typedef struct sid_ptr {
-	DomSid *sid;
+    DomSid *sid;
 } SidPtr;
+
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
+#ifndef SID_ARRAY_DEFINED
+#define SID_ARRAY_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef SID_ARRAY_DEFINED")
+cpp_quote("#define SID_ARRAY_DEFINED 1")
+#endif
 
 typedef struct sid_array {
 #ifdef _DCE_IDL_
-	[range(0,1000)]
+    [range(0,1000)]
 #endif
-	uint32 num_sids;
+    uint32 num_sids;
 #ifdef _DCE_IDL_
-	[size_is(num_sids)]
+    [size_is(num_sids)]
 #endif
-	SidPtr *sids;
+    SidPtr *sids;
 } SidArray;
+
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
+#ifndef RID_WITH_ATTRIBUTE_DEFINED
+#define RID_WITH_ATTRIBUTE_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef RID_WITH_ATTRIBUTE_DEFINED")
+cpp_quote("#define RID_WITH_ATTRIBUTE_DEFINED 1")
+#endif
 
 typedef struct rid_with_attribute {
     uint32 rid;
     uint32 attributes;
 } RidWithAttribute;
+
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
+#ifndef RID_WITH_ATTRIBUTE_ARRAY_DEFINED
+#define RID_WITH_ATTRIBUTE_ARRAY_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef RID_WITH_ATTRIBUTE_ARRAY_DEFINED")
+cpp_quote("#define RID_WITH_ATTRIBUTE_ARRAY_DEFINED 1")
+#endif
 
 typedef struct rid_with_attribute_array {
     uint32     count;
@@ -87,6 +180,11 @@ typedef struct rid_with_attribute_array {
     RidWithAttribute *rids;
 } RidWithAttributeArray;
 
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
 
 /* Secure Channel types */
 #define SCHANNEL_WKSTA     2

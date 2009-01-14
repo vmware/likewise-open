@@ -81,6 +81,22 @@ typedef hyper int int64;
 typedef long long int int64;
 #endif
 
+#ifndef WCHAR16_T_DEFINED
+#define WCHAR16_T_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef WCHAR16_T_DEFINED")
+cpp_quote("#define WCHAR16_T_DEFINED 1")
+#endif
+
+typedef uint16 wchar16_t;
+
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
 #define DEFINED_UINT32
 #endif /* !defined (DEFINED_UINT32) */
 
@@ -102,10 +118,6 @@ typedef uint32 WINERR;
 typedef uint64 NtTime;
 
 #define NTTIME_DEFINED
-#endif
-
-#if !defined(WCHAR16)
-#include <wchar16.h>
 #endif
 
 #if !defined(UNISTR_DEFINED)
