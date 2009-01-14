@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-group.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS Group Information (Common)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -66,19 +66,17 @@ LsaNssClearEnumGroupsState(
                 );
             pState->ppGroupInfoList = (HANDLE)NULL;
         }
-        
+
         if (pState->hResume != (HANDLE)NULL) {
             LsaEndEnumGroups(pState->hLsaConnection, pState->hResume);
             pState->hResume = (HANDLE)NULL;
         }
-        
-        LsaCloseServer(pState->hLsaConnection);
-        
+
         pState->hLsaConnection = (HANDLE)NULL;
     }
 
     memset(pState, 0, sizeof(LSA_ENUMGROUPS_STATE));
-    
+
     pState->dwGroupInfoLevel = 1;
 }
 
@@ -88,14 +86,14 @@ LsaNssGetNumberGroupMembers(
     )
 {
     DWORD dwNumMembers = 0;
-    
+
     if (ppszMembers){
        for (; ppszMembers && !IsNullOrEmptyString(*ppszMembers); ppszMembers++)
        {
            dwNumMembers++;
        }
     }
-    
+
     return dwNumMembers;
 }
 
@@ -119,7 +117,7 @@ LsaNssComputeGroupStringLength(
 
     /* Adding space for group members */
     dwLength += dwAlignBytes;
-    
+
     for(ppszMember = pGroupInfo->ppszMembers;
         ppszMember && !IsNullOrEmptyString(*ppszMember);
         ppszMember++)
@@ -149,44 +147,44 @@ LsaNssWriteGroupInfo(
     DWORD dwLen = 0;
     DWORD dwAlignBytes = 0;
     DWORD dwNumMembers = 0;
-    
+
     memset(pResultGroup, 0, sizeof(struct group));
-    
+
     if ((dwGroupInfoLevel != 0) && (dwGroupInfoLevel != 1)) {
         dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     pGroupInfo_1 = (PLSA_GROUP_INFO_1)pGroupInfo;
-    
+
     dwNumMembers = LsaNssGetNumberGroupMembers(pGroupInfo_1->ppszMembers);
-    
+
     dwAlignBytes = (dwNumMembers ? ((((size_t)pszMarker) % sizeof(size_t)) * sizeof(size_t)) : 0);
 
     if (LsaNssComputeGroupStringLength(dwAlignBytes, pGroupInfo_1) > bufLen) {
        dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     pResultGroup->gr_gid = pGroupInfo_1->gid;
 
     memset(pszMarker, 0, bufLen);
-    
+
     pszMarker += dwAlignBytes;
     pResultGroup->gr_mem = (PSTR*)pszMarker;
-    
+
     //
     // Handle Group Members first, because we computed the
     // alignment adjustment based on the first pointer position
     //
-    if (!dwNumMembers) {        
+    if (!dwNumMembers) {
        *(pResultGroup->gr_mem) = NULL;
        pszMarker += sizeof(ULONG) + 1;
-       
+
     } else {
         PSTR pszMemberMarker = NULL;
         DWORD iMember = 0;
-        
+
         // This is where we start writing the members
         pszMemberMarker = pszMarker + (sizeof(PSTR) * (dwNumMembers + 1));
 
@@ -194,7 +192,7 @@ LsaNssWriteGroupInfo(
         {
             *(pResultGroup->gr_mem+iMember) = pszMemberMarker;
             pszMarker += sizeof(PSTR);
-            
+
             dwLen = strlen(*(pGroupInfo_1->ppszMembers + iMember));
             memcpy(pszMemberMarker, *(pGroupInfo_1->ppszMembers + iMember), dwLen);
             pszMemberMarker += dwLen + 1;
@@ -203,7 +201,7 @@ LsaNssWriteGroupInfo(
         *(pResultGroup->gr_mem+iMember) = NULL;
         pszMarker = ++pszMemberMarker; // skip NULL
     }
-    
+
     if (!IsNullOrEmptyString(pGroupInfo_1->pszName)) {
        dwLen = strlen(pGroupInfo_1->pszName);
        memcpy(pszMarker, pGroupInfo_1->pszName, dwLen);
@@ -223,11 +221,11 @@ LsaNssWriteGroupInfo(
         pResultGroup->gr_passwd = pszMarker;
         pszMarker += dwLen + 1;
     }
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -235,17 +233,26 @@ error:
 
 NSS_STATUS
 LsaNssCommonGroupSetgrent(
-    PLSA_ENUMGROUPS_STATE     pEnumGroupsState
+    PHANDLE phLsaConnection,
+    PLSA_ENUMGROUPS_STATE pEnumGroupsState
     )
 {
-    int                       ret = NSS_STATUS_SUCCESS;
-    
+    int ret = NSS_STATUS_SUCCESS;
+    HANDLE hLsaConnection = *phLsaConnection;
+
     LsaNssClearEnumGroupsState(pEnumGroupsState);
-    
-    ret = MAP_LSA_ERROR(NULL,
-                        LsaOpenServer(&pEnumGroupsState->hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
-    
+
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        ret = MAP_LSA_ERROR(NULL,
+                            LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(ret);
+
+        *phLsaConnection = hLsaConnection;
+    }
+
+    pEnumGroupsState->hLsaConnection = hLsaConnection;
+
     ret = MAP_LSA_ERROR(NULL,
                         LsaBeginEnumGroups(
                             pEnumGroupsState->hLsaConnection,
@@ -257,10 +264,16 @@ LsaNssCommonGroupSetgrent(
 cleanup:
 
     return ret;
-    
+
 error:
 
     LsaNssClearEnumGroupsState(pEnumGroupsState);
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+    }
+    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
@@ -275,18 +288,18 @@ LsaNssCommonGroupGetgrent(
     )
 {
     int                       ret = NSS_STATUS_NOTFOUND;
-    
+
     if (pEnumGroupsState->hLsaConnection == (HANDLE)NULL)
     {
         ret = MAP_LSA_ERROR(pErrorNumber, LSA_ERROR_INVALID_LSA_CONNECTION);
         BAIL_ON_NSS_ERROR(ret);
     }
-    
+
     if (!pEnumGroupsState->bTryAgain)
     {
         if (!pEnumGroupsState->idxGroup ||
             (pEnumGroupsState->idxGroup >= pEnumGroupsState->dwNumGroups))
-        {    
+        {
             if (pEnumGroupsState->ppGroupInfoList) {
                 LsaFreeGroupInfoList(
                    pEnumGroupsState->dwGroupInfoLevel,
@@ -296,7 +309,7 @@ LsaNssCommonGroupGetgrent(
                 pEnumGroupsState->dwNumGroups = 0;
                 pEnumGroupsState->idxGroup = 0;
             }
-            
+
             ret = MAP_LSA_ERROR(pErrorNumber,
                            LsaEnumGroups(
                                pEnumGroupsState->hLsaConnection,
@@ -305,11 +318,11 @@ LsaNssCommonGroupGetgrent(
                                &pEnumGroupsState->ppGroupInfoList));
             BAIL_ON_NSS_ERROR(ret);
         }
-        
+
     }
 
     if (pEnumGroupsState->dwNumGroups) {
-        PLSA_GROUP_INFO_1 pGroupInfo = 
+        PLSA_GROUP_INFO_1 pGroupInfo =
             (PLSA_GROUP_INFO_1)*(pEnumGroupsState->ppGroupInfoList+pEnumGroupsState->idxGroup);
         ret = MAP_LSA_ERROR(pErrorNumber,
                             LsaNssWriteGroupInfo(
@@ -320,22 +333,22 @@ LsaNssCommonGroupGetgrent(
                                 bufLen));
         BAIL_ON_NSS_ERROR(ret);
         pEnumGroupsState->idxGroup++;
-        
+
         ret = NSS_STATUS_SUCCESS;
     } else {
         ret = NSS_STATUS_UNAVAIL;
-        
+
         if (pErrorNumber) {
             *pErrorNumber = ENOENT;
         }
-    }   
-    
+    }
+
     pEnumGroupsState->bTryAgain = FALSE;
-    
+
 cleanup:
 
     return ret;
-     
+
 error:
 
     if ((ret == NSS_STATUS_TRYAGAIN) && pErrorNumber && (*pErrorNumber == ERANGE))
@@ -346,7 +359,7 @@ error:
     {
        LsaNssClearEnumGroupsState(pEnumGroupsState);
     }
-    
+
     if (bufLen && pszBuf) {
         memset(pszBuf, 0, bufLen);
     }
@@ -366,22 +379,28 @@ LsaNssCommonGroupEndgrent(
 
 NSS_STATUS
 LsaNssCommonGroupGetgrgid(
-    gid_t                     gid,
-    struct group*             pResultGroup,
-    char*                     pszBuf,
-    size_t                    bufLen,
-    int*                      pErrorNumber
+    PHANDLE phLsaConnection,
+    gid_t gid,
+    struct group* pResultGroup,
+    char* pszBuf,
+    size_t bufLen,
+    int* pErrorNumber
     )
 {
-    int                       ret = NSS_STATUS_SUCCESS;
-    HANDLE                    hLsaConnection = (HANDLE)NULL;
-    PVOID                     pGroupInfo = NULL;
-    DWORD                     dwGroupInfoLevel = 1;
-    
-    ret = MAP_LSA_ERROR(pErrorNumber,
-                        LsaOpenServer(&hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
-    
+    int ret = NSS_STATUS_SUCCESS;
+    HANDLE hLsaConnection = *phLsaConnection;
+    PVOID pGroupInfo = NULL;
+    DWORD dwGroupInfoLevel = 1;
+
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        ret = MAP_LSA_ERROR(NULL,
+                            LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(ret);
+
+        *phLsaConnection = hLsaConnection;
+    }
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaFindGroupById(
                             hLsaConnection,
@@ -390,7 +409,7 @@ LsaNssCommonGroupGetgrgid(
                             dwGroupInfoLevel,
                             &pGroupInfo));
     BAIL_ON_NSS_ERROR(ret);
-    
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaNssWriteGroupInfo(
                             dwGroupInfoLevel,
@@ -400,42 +419,50 @@ LsaNssCommonGroupGetgrgid(
                             bufLen
                             ));
     BAIL_ON_NSS_ERROR(ret);
-    
+
 cleanup:
 
     if (pGroupInfo) {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
     }
 
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return ret;
 
 error:
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+    }
+    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
 
 NSS_STATUS
 LsaNssCommonGroupGetgrnam(
-    const char *              pszGroupName,
-    struct group *            pResultGroup,
-    char *                    pszBuf,
-    size_t                    bufLen,
-    int*                      pErrorNumber
+    PHANDLE phLsaConnection,
+    const char * pszGroupName,
+    struct group * pResultGroup,
+    char * pszBuf,
+    size_t bufLen,
+    int* pErrorNumber
     )
 {
-    int                       ret = NSS_STATUS_SUCCESS;
-    HANDLE                    hLsaConnection = (HANDLE)NULL;
-    PVOID                     pGroupInfo = NULL;
-    DWORD                     dwGroupInfoLevel = 1;
-    
-    ret = MAP_LSA_ERROR(pErrorNumber,
-                        LsaOpenServer(&hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
-    
+    int ret = NSS_STATUS_SUCCESS;
+    HANDLE  hLsaConnection = *phLsaConnection;
+    PVOID pGroupInfo = NULL;
+    DWORD dwGroupInfoLevel = 1;
+
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        ret = MAP_LSA_ERROR(NULL,
+                            LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(ret);
+
+        *phLsaConnection = hLsaConnection;
+    }
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaFindGroupByName(
                             hLsaConnection,
@@ -444,7 +471,7 @@ LsaNssCommonGroupGetgrnam(
                             dwGroupInfoLevel,
                             &pGroupInfo));
     BAIL_ON_NSS_ERROR(ret);
-    
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaNssWriteGroupInfo(
                             dwGroupInfoLevel,
@@ -453,66 +480,73 @@ LsaNssCommonGroupGetgrnam(
                             &pszBuf,
                             bufLen));
     BAIL_ON_NSS_ERROR(ret);
-    
+
 cleanup:
 
     if (pGroupInfo) {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
     }
 
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return ret;
 
 error:
 
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+    }
+    *phLsaConnection = (HANDLE)NULL;
     goto cleanup;
 }
 
 NSS_STATUS
 LsaNssCommonGroupGetGroupsByUserName(
-    PCSTR                   pszUserName,
-    size_t                  resultsExistingSize,
-    size_t                  resultsCapacity,
-    size_t*                 pResultSize,
-    gid_t*                  pGidResults,
-    int*                    pErrorNumber
+    PHANDLE phLsaConnection,
+    PCSTR pszUserName,
+    size_t resultsExistingSize,
+    size_t resultsCapacity,
+    size_t* pResultSize,
+    gid_t* pGidResults,
+    int* pErrorNumber
     )
 {
     int                     ret = NSS_STATUS_SUCCESS;
-    HANDLE                  hLsaConnection = (HANDLE)NULL;
+    HANDLE                  hLsaConnection = *phLsaConnection;
     DWORD                   dwNumGroupsFound = 0;
-    gid_t*                  pGidNewResult = NULL;    
+    gid_t*                  pGidNewResult = NULL;
     DWORD                   dwNumTotalGroup = 0;
     DWORD                   iGroup, iNewGroup, iOldGroup;
-    
+
     if (resultsExistingSize > resultsCapacity)
     {
         ret = NSS_STATUS_UNAVAIL;
         *pErrorNumber = EINVAL;
-        BAIL_ON_NSS_ERROR(ret);        
+        BAIL_ON_NSS_ERROR(ret);
     }
-    
-    ret = MAP_LSA_ERROR(pErrorNumber,
-                        LsaOpenServer(&hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
-    
+
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        ret = MAP_LSA_ERROR(pErrorNumber,
+                            LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(ret);
+
+        *phLsaConnection = hLsaConnection;
+    }
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaGetGidsForUserByName(
                            hLsaConnection,
-                           pszUserName,                           
+                           pszUserName,
                            &dwNumGroupsFound,
                            &pGidNewResult));
-    BAIL_ON_NSS_ERROR(ret);   
-    
+    BAIL_ON_NSS_ERROR(ret);
+
     dwNumTotalGroup = dwNumGroupsFound + resultsExistingSize;
     *pResultSize = dwNumTotalGroup;
-    
+
     if (dwNumTotalGroup > resultsCapacity)
         dwNumTotalGroup = resultsCapacity;
-    
+
     for (iGroup = resultsExistingSize, iNewGroup = 0;
 	 iGroup < dwNumTotalGroup && iNewGroup < dwNumGroupsFound;
          iNewGroup++)
@@ -537,15 +571,16 @@ cleanup:
 
     LSA_SAFE_FREE_MEMORY(pGidNewResult);
 
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return ret;
 
 error:
 
     LSA_SAFE_FREE_MEMORY(pGidNewResult);
+
+    if (hLsaConnection != (HANDLE)NULL) {
+       LsaCloseServer(hLsaConnection);
+    }
+    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }

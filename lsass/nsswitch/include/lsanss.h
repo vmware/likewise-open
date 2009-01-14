@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -48,7 +48,7 @@ typedef nss_status_t NSS_STATUS;
 #elif HAVE_NSS_H
 
 #include <nss.h>
-  
+
 typedef enum nss_status NSS_STATUS;
 
 #elif defined(__LWI_HP_UX__)
@@ -185,7 +185,8 @@ LsaNssClearEnumArtefactsState(
 
 NSS_STATUS
 LsaNssCommonPasswdSetpwent(
-    PLSA_ENUMUSERS_STATE    pEnumUsersState
+    PHANDLE phLsaConnection,
+    PLSA_ENUMUSERS_STATE pEnumUsersState
     );
 
 NSS_STATUS
@@ -204,25 +205,28 @@ LsaNssCommonPasswdEndpwent(
 
 NSS_STATUS
 LsaNssCommonPasswdGetpwnam(
-    const char *            pszLoginId,
-    struct passwd *         pResultUser,
-    char *                  pszBuf,
-    size_t                  bufLen,
-    int *                   pErrorNumber
+    PHANDLE phLsaConnection,
+    const char * pszLoginId,
+    struct passwd * pResultUser,
+    char * pszBuf,
+    size_t bufLen,
+    int * pErrorNumber
     );
 
 NSS_STATUS
 LsaNssCommonPasswdGetpwuid(
-    uid_t                   uid,
-    struct passwd *         pResultUser,
-    char *                  pszBuf,
-    size_t                  bufLen,
-    int *                   pErrorNumber
+    PHANDLE phLsaConnection,
+    uid_t uid,
+    struct passwd * pResultUser,
+    char * pszBuf,
+    size_t bufLen,
+    int * pErrorNumber
     );
 
 NSS_STATUS
 LsaNssCommonGroupSetgrent(
-    PLSA_ENUMGROUPS_STATE     pEnumGroupsState
+    PHANDLE phLsaConnection,
+    PLSA_ENUMGROUPS_STATE pEnumGroupsState
     );
 
 NSS_STATUS
@@ -241,34 +245,44 @@ LsaNssCommonGroupEndgrent(
 
 NSS_STATUS
 LsaNssCommonGroupGetgrgid(
-    gid_t                     gid,
-    struct group*             pResultGroup,
-    char*                     pszBuf,
-    size_t                    bufLen,
-    int*                      pErrorNumber
+    PHANDLE phLsaConnection,
+    gid_t gid,
+    struct group* pResultGroup,
+    char* pszBuf,
+    size_t bufLen,
+    int* pErrorNumber
     );
 
 NSS_STATUS
 LsaNssCommonGroupGetgrnam(
-    const char *              pszGroupName,
-    struct group *            pResultGroup,
-    char *                    pszBuf,
-    size_t                    bufLen,
-    int*                      pErrorNumber
+    PHANDLE phLsaConnection,
+    const char * pszGroupName,
+    struct group * pResultGroup,
+    char * pszBuf,
+    size_t bufLen,
+    int* pErrorNumber
     );
 
 NSS_STATUS
 LsaNssCommonGroupGetGroupsByUserName(
-    PCSTR                   pszUserName,
-    size_t                  resultsExistingSize,
-    size_t                  resultsCapacity,
-    size_t*                 pResultSize,
-    gid_t*                  pGidResults,
-    int*                    pErrorNumber
+    PHANDLE phLsaConnection,
+    PCSTR pszUserName,
+    size_t resultsExistingSize,
+    size_t resultsCapacity,
+    size_t* pResultSize,
+    gid_t* pGidResults,
+    int* pErrorNumber
     );
 
 NSS_STATUS
 LsaNssCommonNetgroupFindByName(
+    PHANDLE phLsaConnection,
+    PCSTR pszName,
+    PSTR* ppszValue
+    );
+
+NSS_STATUS
+LsaNssCommonNetgroupFindByNameAIX(
     PCSTR pszName,
     PSTR* ppszValue
     );

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-user.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS User Information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,7 +55,8 @@ _nss_lsass_setpwent(
     void
     )
 {
-    return LsaNssCommonPasswdSetpwent(&gEnumUsersState);
+    return LsaNssCommonPasswdSetpwent(&hLsaConnection,
+                                      &gEnumUsersState);
 }
 
 NSS_STATUS
@@ -90,7 +91,8 @@ _nss_lsass_getpwnam_r(
     int *            pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwnam(pszLoginId,
+    return LsaNssCommonPasswdGetpwnam(&pLsaConnection,
+                                      pszLoginId,
                                       pResultUser,
                                       pszBuf,
                                       bufLen,
@@ -106,7 +108,8 @@ _nss_lsass_getpwuid_r(
     int *           pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwuid(uid,
+    return LsaNssCommonPasswdGetpwuid(&pLsaConnection,
+                                      uid,
                                       pResultUser,
                                       pszBuf,
                                       bufLen,

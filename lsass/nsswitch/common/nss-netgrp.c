@@ -72,8 +72,6 @@ LsaNssClearEnumArtefactsState(
             pState->hResume = (HANDLE)NULL;
         }
 
-        LsaCloseServer(pState->hLsaConnection);
-
         pState->hLsaConnection = (HANDLE)NULL;
     }
 
@@ -84,11 +82,13 @@ LsaNssClearEnumArtefactsState(
 
 NSS_STATUS
 LsaNssCommonNetgroupFindByName(
+    PHANDLE phLsaConnection,
     PCSTR pszName,
     PSTR* ppszValue
     )
 {
     NSS_STATUS status = NSS_STATUS_SUCCESS;
+    HANDLE hLsaConnection = *phLsaConnection;
     LSA_ENUMARTEFACTS_STATE state = {0};
     DWORD dwNumFound = 0;
     PVOID* ppInfoList = NULL;
@@ -97,9 +97,16 @@ LsaNssCommonNetgroupFindByName(
 
     LsaNssClearEnumArtefactsState(&state);
 
-    status = MAP_LSA_ERROR(NULL,
-                           LsaOpenServer(&state.hLsaConnection));
-    BAIL_ON_NSS_ERROR(status);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        status = MAP_LSA_ERROR(NULL,
+                               LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(status);
+
+        *phLsaConnection = hLsaConnection;
+    }
+
+    state.hLsaConnection = hLsaConnection;
 
     status = MAP_LSA_ERROR(NULL,
                            LsaBeginEnumNSSArtefacts(
@@ -149,6 +156,12 @@ done:
     return status;
 
 error:
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+    }
+    *phLsaConnection = (HANDLE)NULL;
 
     goto done;
 }
@@ -306,4 +319,80 @@ LsaNssCommonNetgroupParse(
 error:
 
     return ret;
+}
+
+NSS_STATUS
+LsaNssCommonNetgroupFindByNameAIX(
+    PCSTR pszName,
+    PSTR* ppszValue
+    )
+{
+    NSS_STATUS status = NSS_STATUS_SUCCESS;
+    LSA_ENUMARTEFACTS_STATE state = {0};
+    DWORD dwNumFound = 0;
+    PVOID* ppInfoList = NULL;
+    int iGroup;
+    BOOLEAN bFound = FALSE;
+
+    LsaNssClearEnumArtefactsState(&state);
+
+    status = MAP_LSA_ERROR(NULL,
+                       LsaOpenServer(&state.hLsaConnection));
+    BAIL_ON_NSS_ERROR(status);
+
+    status = MAP_LSA_ERROR(NULL,
+                           LsaBeginEnumNSSArtefacts(
+                               state.hLsaConnection,
+                               state.dwArtefactInfoLevel,
+                               LSA_NIS_MAP_NAME_NETGROUPS,
+                               LSA_NIS_MAP_QUERY_ALL,
+                               MAX_NUM_ARTEFACTS,
+                               &state.hResume));
+    BAIL_ON_NSS_ERROR(status);
+
+    status = MAP_LSA_ERROR(NULL,
+                           LsaEnumNSSArtefacts(
+                               state.hLsaConnection,
+                               state.hResume,
+                               &dwNumFound,
+                               &ppInfoList));
+    BAIL_ON_NSS_ERROR(status);
+
+    for (iGroup = 0; iGroup < dwNumFound; iGroup++)
+    {
+        PLSA_NSS_ARTEFACT_INFO_0 pInfo = (PLSA_NSS_ARTEFACT_INFO_0) ppInfoList[iGroup];
+
+        if (!strcmp(pInfo->pszName, pszName))
+        {
+            *ppszValue = pInfo->pszValue;
+            pInfo->pszValue = NULL;
+            bFound = TRUE;
+        }
+        LSA_SAFE_FREE_MEMORY(pInfo->pszValue);
+        LSA_SAFE_FREE_MEMORY(ppInfoList[iGroup]);
+    }
+
+    LSA_SAFE_FREE_MEMORY(ppInfoList);
+
+    /* Nothing found, so raise an error */
+    if (!bFound)
+    {
+        status = NSS_STATUS_NOTFOUND;
+        BAIL_ON_NSS_ERROR(status);
+    }
+
+done:
+
+    LsaNssClearEnumArtefactsState(&state);
+
+    if (state.hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(state.hLsaConnection);
+    }
+
+    return status;
+
+error:
+
+    goto done;
 }

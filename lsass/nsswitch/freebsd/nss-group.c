@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-group.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS Group Information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -47,6 +47,7 @@
  */
 
 #include "lsanss.h"
+#include "externs.h"
 #include <assert.h>
 
 static const DWORD MAX_NUM_GROUPS = 500;
@@ -57,7 +58,8 @@ _nss_lsass_setgrent(
     void
     )
 {
-    return LsaNssCommonGroupSetgrent(&gEnumGroupsState);
+    return LsaNssCommonGroupSetgrent(&phLsaConnection,
+                                     &gEnumGroupsState);
 }
 
 NSS_STATUS
@@ -92,7 +94,8 @@ _nss_lsass_getgrgid_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrgid(gid,
+    return LsaNssCommonGroupGetgrgid(&hLsaConnection,
+                                     gid,
                                      pResultGroup,
                                      pszBuf,
                                      bufLen,
@@ -108,7 +111,8 @@ _nss_lsass_getgrnam_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrnam(pszGroupName,
+    return LsaNssCommonGroupGetgrnam(&hLsaConnection,
+                                     pszGroupName,
                                      pResultGroup,
                                      pszBuf,
                                      bufLen,
@@ -117,11 +121,11 @@ _nss_lsass_getgrnam_r(
 
 NSS_STATUS
 _nss_lsass_initgroups_dyn(
-    PCSTR     pszUserName, 
-    gid_t     groupGid, 
-    long int* pResultsSize, 
-    long int* pResultsCapacity, 
-    gid_t**   ppGidResults, 
+    PCSTR     pszUserName,
+    gid_t     groupGid,
+    long int* pResultsSize,
+    long int* pResultsCapacity,
+    gid_t**   ppGidResults,
     long int  maxGroups,
     int*      pErrorNumber
     )
@@ -130,88 +134,88 @@ _nss_lsass_initgroups_dyn(
     HANDLE hLsaConnection = (HANDLE)NULL;
     DWORD dwNumGroupsFound = 0;
     gid_t* pGidTotalResult = NULL;
-    gid_t* pGidNewResult = NULL;    
-    gid_t* pExistingResult = NULL;  
+    gid_t* pGidNewResult = NULL;
+    gid_t* pExistingResult = NULL;
     DWORD dwNumTotalGroup = 0;
     DWORD iGroup = 0, iExistingGroup = 0, iNewGroup = 0;
-    
+
     if ((*pResultsCapacity > maxGroups && maxGroups != -1) ||
         *pResultsSize > *pResultsCapacity)
     {
         ret = NSS_STATUS_UNAVAIL;
         *pErrorNumber = EINVAL;
-        BAIL_ON_NSS_ERROR(ret);        
+        BAIL_ON_NSS_ERROR(ret);
     }
-    
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaOpenServer(&hLsaConnection));
     BAIL_ON_NSS_ERROR(ret);
-    
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaGetGidsForUserByName(
                            hLsaConnection,
-                           pszUserName,                           
+                           pszUserName,
                            &dwNumGroupsFound,
                            &pGidNewResult));
-    BAIL_ON_NSS_ERROR(ret);   
-    
+    BAIL_ON_NSS_ERROR(ret);
+
     dwNumTotalGroup += dwNumGroupsFound;
 
     dwNumTotalGroup += 1; //count in the group that is passed in
 
-    //count in the groups that are already in ppGidResults    
+    //count in the groups that are already in ppGidResults
     dwNumTotalGroup += *pResultsSize;
-    
+
     if (dwNumTotalGroup > *pResultsCapacity)
-    {    
+    {
         if (dwNumTotalGroup > maxGroups && maxGroups != -1)
             dwNumTotalGroup = maxGroups;
-        
+
         ret = MAP_LSA_ERROR(pErrorNumber,
                             LsaAllocateMemory(
                                 sizeof(gid_t) * dwNumTotalGroup * 2,
                                 (PVOID*)&pGidTotalResult));
         BAIL_ON_NSS_ERROR(ret);
-     
-        pExistingResult = *ppGidResults;    
+
+        pExistingResult = *ppGidResults;
         for (iExistingGroup = 0, iGroup = 0;
              iExistingGroup < *pResultsSize;
              iExistingGroup++, iGroup++)
         {
             pGidTotalResult[iGroup] = pExistingResult[iExistingGroup];
-        }        
-        
+        }
+
         for (iNewGroup = 0;
              iNewGroup < dwNumGroupsFound && iGroup < dwNumTotalGroup;
              iNewGroup++, iGroup++)
-        {            
+        {
             pGidTotalResult[iGroup] = pGidNewResult[iNewGroup];
         }
-        
+
         *pResultsCapacity = dwNumTotalGroup * 2;
         *pResultsSize = dwNumTotalGroup;
         *ppGidResults = pGidTotalResult;
-        pGidTotalResult = NULL;              
+        pGidTotalResult = NULL;
 
-        LSA_SAFE_FREE_MEMORY(pExistingResult);   
-    }       
- 
-    else 
+        LSA_SAFE_FREE_MEMORY(pExistingResult);
+    }
+
+    else
     {
-        pExistingResult = *ppGidResults;    
+        pExistingResult = *ppGidResults;
         iGroup = *pResultsSize;
         pExistingResult[iGroup++] = groupGid;
-             
+
         for (iNewGroup = 0;
              iNewGroup < dwNumGroupsFound && iGroup < dwNumTotalGroup;
              iNewGroup++, iGroup++)
-        {            
+        {
             pExistingResult[iGroup] = pGidNewResult[iNewGroup];
         }
     }
-    
-    *pResultsSize = iGroup; 
-    
+
+    *pResultsSize = iGroup;
+
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pGidNewResult);

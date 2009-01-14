@@ -3,7 +3,8 @@ nsslib_LTLIBRARIES = nss_lsass.la
 nss_lsass_la_SOURCES = \
 	nss-group.c \
 	nss-main.c \
-	nss-user.c
+	nss-user.c \
+	globals.c
 
 nss_lsass_la_CPPFLAGS = -I@top_srcdir@/nsswitch/include
 nss_lsass_la_LIBADD = \

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-user.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS User Information (Common)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -65,14 +65,12 @@ LsaNssClearEnumUsersState(
                 );
             pState->ppUserInfoList = (HANDLE)NULL;
         }
-        
+
         if (pState->hResume != (HANDLE)NULL) {
             LsaEndEnumUsers(pState->hLsaConnection, pState->hResume);
             pState->hResume = (HANDLE)NULL;
         }
-        
-        LsaCloseServer(pState->hLsaConnection);
-        
+
         pState->hLsaConnection = (HANDLE)NULL;
     }
 
@@ -85,7 +83,7 @@ LsaNssComputeUserStringLength(
     )
 {
     DWORD dwLength = 0;
-    
+
     if (!IsNullOrEmptyString(pUserInfo->pszName)) {
        dwLength += strlen(pUserInfo->pszName) + 1;
     }
@@ -101,7 +99,7 @@ LsaNssComputeUserStringLength(
     if (!IsNullOrEmptyString(pUserInfo->pszGecos)) {
        dwLength += strlen(pUserInfo->pszGecos) + 1;
     }
-   
+
     if (!IsNullOrEmptyString(pUserInfo->pszHomedir)) {
        dwLength += strlen(pUserInfo->pszHomedir) + 1;
     }
@@ -121,30 +119,30 @@ LsaNssWriteUserInfo(
     PLSA_USER_INFO_0 pUserInfo_0 = NULL;
     PSTR  pszMarker = NULL;
     DWORD dwLen = 0;
-    
+
     if (dwUserInfoLevel != 0) {
         dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if(!ppszBuf)
     {
         dwError = LSA_ERROR_NULL_BUFFER;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     pszMarker = *ppszBuf;
-    
+
     pUserInfo_0 = (PLSA_USER_INFO_0)pUserInfo;
 
     if (LsaNssComputeUserStringLength(pUserInfo_0) > bufLen) {
        dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     pResultUser->pw_uid = pUserInfo_0->uid;
     pResultUser->pw_gid = pUserInfo_0->gid;
-    
+
     memset(pszMarker, 0, bufLen);
 
     if (!IsNullOrEmptyString(pUserInfo_0->pszName)) {
@@ -192,11 +190,11 @@ LsaNssWriteUserInfo(
        pResultUser->pw_dir = pszMarker;
        pszMarker += dwLen + 1;
     }
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -204,17 +202,26 @@ error:
 
 NSS_STATUS
 LsaNssCommonPasswdSetpwent(
-    PLSA_ENUMUSERS_STATE    pEnumUsersState
+    PHANDLE phLsaConnection,
+    PLSA_ENUMUSERS_STATE pEnumUsersState
     )
 {
-    int ret = NSS_STATUS_SUCCESS;   
+    int ret = NSS_STATUS_SUCCESS;
+    HANDLE hLsaConnection = *phLsaConnection;
 
     LsaNssClearEnumUsersState(pEnumUsersState);
-        
-    ret = MAP_LSA_ERROR(NULL,
-                        LsaOpenServer(&pEnumUsersState->hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
-        
+
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        ret = MAP_LSA_ERROR(NULL,
+                            LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(ret);
+
+        *phLsaConnection = hLsaConnection;
+    }
+
+    pEnumUsersState->hLsaConnection = hLsaConnection;
+
     ret = MAP_LSA_ERROR(NULL,
                         LsaBeginEnumUsers(
                                 pEnumUsersState->hLsaConnection,
@@ -222,7 +229,7 @@ LsaNssCommonPasswdSetpwent(
                                 MAX_NUM_USERS,
                                 &pEnumUsersState->hResume));
     BAIL_ON_NSS_ERROR(ret);
-    
+
 cleanup:
 
     return ret;
@@ -230,6 +237,12 @@ cleanup:
 error:
 
     LsaNssClearEnumUsersState(pEnumUsersState);
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+    }
+    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
@@ -244,14 +257,14 @@ LsaNssCommonPasswdGetpwent(
     )
 {
     int  ret = NSS_STATUS_NOTFOUND;
-    
+
     if (pEnumUsersState->hLsaConnection == (HANDLE)NULL)
     {
         ret = MAP_LSA_ERROR(pErrorNumber,
                             LSA_ERROR_INVALID_LSA_CONNECTION);
         BAIL_ON_NSS_ERROR(ret);
     }
-    
+
     if (!pEnumUsersState->bTryAgain)
     {
         if (!pEnumUsersState->idxUser ||
@@ -270,14 +283,14 @@ LsaNssCommonPasswdGetpwent(
                            LsaEnumUsers(
                                pEnumUsersState->hLsaConnection,
                                pEnumUsersState->hResume,
-                               &pEnumUsersState->dwNumUsers,                               
+                               &pEnumUsersState->dwNumUsers,
                                &pEnumUsersState->ppUserInfoList));
             BAIL_ON_NSS_ERROR(ret);
         }
     }
-    
+
     if (pEnumUsersState->dwNumUsers) {
-        PLSA_USER_INFO_0 pUserInfo = 
+        PLSA_USER_INFO_0 pUserInfo =
             (PLSA_USER_INFO_0)*(pEnumUsersState->ppUserInfoList+pEnumUsersState->idxUser);
         ret = MAP_LSA_ERROR(pErrorNumber,
                             LsaNssWriteUserInfo(
@@ -289,7 +302,7 @@ LsaNssCommonPasswdGetpwent(
         BAIL_ON_NSS_ERROR(ret);
 
         pEnumUsersState->idxUser++;
-        
+
         ret = NSS_STATUS_SUCCESS;
     } else {
         ret = NSS_STATUS_UNAVAIL;
@@ -297,13 +310,13 @@ LsaNssCommonPasswdGetpwent(
             *pErrorNumber = ENOENT;
         }
     }
-    
+
     pEnumUsersState->bTryAgain = FALSE;
-    
+
 cleanup:
- 
+
     return ret;
-     
+
 error:
 
     if ((ret == NSS_STATUS_TRYAGAIN) && pErrorNumber && (*pErrorNumber == ERANGE))
@@ -314,7 +327,7 @@ error:
     {
         LsaNssClearEnumUsersState(pEnumUsersState);
     }
-    
+
     if (bufLen && pszBuf)
     {
         memset(pszBuf, 0, bufLen);
@@ -335,22 +348,29 @@ LsaNssCommonPasswdEndpwent(
 
 NSS_STATUS
 LsaNssCommonPasswdGetpwnam(
-    const char *            pszLoginId,
-    struct passwd *         pResultUser,
-    char *                  pszBuf,
-    size_t                  bufLen,
-    int *                   pErrorNumber
+    PHANDLE phLsaConnection,
+    const char * pszLoginId,
+    struct passwd * pResultUser,
+    char * pszBuf,
+    size_t bufLen,
+    int * pErrorNumber
     )
 {
-    int                     ret;
-    HANDLE                  hLsaConnection = (HANDLE)NULL;
-    PVOID                   pUserInfo = NULL;
-    DWORD                   dwUserInfoLevel = 0;
+    int ret;
+    HANDLE hLsaConnection = *phLsaConnection;
+    PVOID pUserInfo = NULL;
+    DWORD dwUserInfoLevel = 0;
 
-    ret = MAP_LSA_ERROR(pErrorNumber,
-                        LsaOpenServer(&hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
-    
+
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        ret = MAP_LSA_ERROR(pErrorNumber,
+                            LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(ret);
+
+        *phLsaConnection = hLsaConnection;
+    }
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaFindUserByName(
                             hLsaConnection,
@@ -358,7 +378,7 @@ LsaNssCommonPasswdGetpwnam(
                             dwUserInfoLevel,
                             &pUserInfo));
     BAIL_ON_NSS_ERROR(ret);
-    
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaNssWriteUserInfo(
                             dwUserInfoLevel,
@@ -367,42 +387,48 @@ LsaNssCommonPasswdGetpwnam(
                             &pszBuf,
                             bufLen));
     BAIL_ON_NSS_ERROR(ret);
-    
+
 cleanup:
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
-
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return ret;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL) {
+       LsaCloseServer(hLsaConnection);
+    }
+    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
 
 NSS_STATUS
 LsaNssCommonPasswdGetpwuid(
-    uid_t                   uid,
-    struct passwd *         pResultUser,
-    char *                  pszBuf,
-    size_t                  bufLen,
-    int *                   pErrorNumber
+    PHANDLE phLsaConnection,
+    uid_t uid,
+    struct passwd * pResultUser,
+    char * pszBuf,
+    size_t bufLen,
+    int * pErrorNumber
     )
 {
-    int                     ret = NSS_STATUS_SUCCESS;
-    HANDLE                  hLsaConnection = (HANDLE)NULL;
-    PVOID                   pUserInfo = NULL;
-    DWORD                   dwUserInfoLevel = 0;
+    int ret = NSS_STATUS_SUCCESS;
+    HANDLE hLsaConnection = *phLsaConnection;
+    PVOID pUserInfo = NULL;
+    DWORD dwUserInfoLevel = 0;
 
-    ret = MAP_LSA_ERROR(pErrorNumber,
-                        LsaOpenServer(&hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
-    
+
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        ret = MAP_LSA_ERROR(pErrorNumber,
+                            LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(ret);
+
+        *phLsaConnection = hLsaConnection;
+    }
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaFindUserById(
                             hLsaConnection,
@@ -410,7 +436,7 @@ LsaNssCommonPasswdGetpwuid(
                             dwUserInfoLevel,
                             &pUserInfo));
     BAIL_ON_NSS_ERROR(ret);
-    
+
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaNssWriteUserInfo(
                             dwUserInfoLevel,
@@ -419,21 +445,21 @@ LsaNssCommonPasswdGetpwuid(
                             &pszBuf,
                             bufLen));
     BAIL_ON_NSS_ERROR(ret);
-    
+
 cleanup:
 
-    if (pUserInfo) {
+    if (pUserInfo)
+    {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
     }
 
     return ret;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL) {
+       LsaCloseServer(hLsaConnection);
+    }
+    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
-

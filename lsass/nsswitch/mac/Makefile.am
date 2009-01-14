@@ -4,7 +4,8 @@ libnss_lsass_la_SOURCES = \
 	nss-auth.c \
 	nss-group.c \
 	nss-main.c \
-	nss-user.c
+	nss-user.c \
+	globals.c
 
 libnss_lsass_la_CPPFLAGS = -I@top_srcdir@/nsswitch/include
 libnss_lsass_la_LIBADD = \
