@@ -31,9 +31,8 @@
 #ifndef __IO_TYPES_H__
 #define __IO_TYPES_H__
 
-#include <lw/types.h>
-#include <lw/attrs.h>
-#include <lw/ntstatus.h>
+#include <lw/base.h>
+#include <secdesc/secdesc.h>
 
 #define SetFlag(Variable, Flags)   ((Variable) |= (Flags))
 #define ClearFlag(Variable, Flags) ((Variable) &= ~(Flags))
@@ -237,14 +236,7 @@ typedef struct _FILE_FULL_EA_INFORMATION {
 typedef struct __LW_IO_CONTEXT LW_IO_CONTEXT, *LW_PIO_CONTEXT;
 typedef struct __LW_IO_ACCESS_TOKEN LW_IO_ACCESS_TOKEN, *LW_PIO_ACCESS_TOKEN;
 
-#ifndef PSECURITY_DESCRIPTOR_DEFINED
-
 typedef PVOID PSECURITY_DESCRIPTOR;
-
-#define PSECURITY_DESCRIPTOR_DEFINED
-#endif
-
-typedef PVOID PSID;
 typedef PVOID PFILE_NETWORK_OPEN_INFORMATION;
 
 typedef ULONG FILE_INFORMATION_CLASS;
