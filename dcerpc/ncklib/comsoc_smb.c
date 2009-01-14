@@ -13,6 +13,7 @@
 #include <stddef.h>
 
 #include <lwio/lwio.h>
+#include <lw/base.h>
 
 #define SMB_SOCKET_LOCK(sock) (rpc__smb_socket_lock((rpc_smb_socket_p_t) (sock)->data.pointer))
 #define SMB_SOCKET_UNLOCK(sock) (rpc__smb_socket_unlock((rpc_smb_socket_p_t) (sock)->data.pointer))
@@ -42,8 +43,8 @@ typedef struct rpc_smb_socket_s
 {
     rpc_smb_state_t volatile state;
     rpc_np_addr_t peeraddr;
-    HANDLE connection;
-    HANDLE np;
+    PIO_CONTEXT context;
+    IO_FILE_HANDLE np;
     int selectfd[2];
     volatile boolean selectfd_triggered;
     rpc_smb_buffer_t sendbuffer;
@@ -249,7 +250,6 @@ rpc__smb_socket_create(
     )
 {
     rpc_smb_socket_p_t sock = NULL;
-    DWORD status = 0;
     int err = 0;
 
     sock = calloc(1, sizeof(*sock));
@@ -272,11 +272,9 @@ rpc__smb_socket_create(
         goto error;
     }
 
-    status = SMBOpenServer(&sock->connection);
-
-    if (status)
+    err = LwNtStatusToUnixErrno(LwIoOpenContextShared(&sock->context));
+    if (err)
     {
-        err = -1;
         goto error;
     }
 
@@ -290,9 +288,9 @@ error:
 
     if (sock)
     {
-        if (sock->connection)
+        if (sock->context)
         {
-            SMBCloseServer(sock->connection);
+            LwIoCloseContext(sock->context);
         }
 
         if (sock->selectfd[0] != -1)
@@ -316,14 +314,14 @@ rpc__smb_socket_destroy(
 {
     if (sock)
     {
-        if (sock->np && sock->connection)
+        if (sock->np && sock->context)
         {
-            SMBCloseHandle(sock->connection, sock->np);
+            NtCtxCloseFile(sock->context, sock->np);
         }
 
-        if (sock->connection)
+        if (sock->context)
         {
-            SMBCloseServer(sock->connection);
+            LwIoCloseContext(sock->context);
         }
         
         if (sock->selectfd[0] != -1)
@@ -516,6 +514,8 @@ rpc__smb_socket_connect(
     HANDLE acctoken = INVALID_HANDLE_VALUE;
     PBYTE sesskey = NULL;
     DWORD sesskeylen = 0;
+    IO_FILE_NAME filename;
+    IO_STATUS_BLOCK io_status;
 
     SMB_SOCKET_LOCK(sock);
 
@@ -531,6 +531,18 @@ rpc__smb_socket_connect(
 
     smbpath[sizeof(smbpath) - 1] = '\0';
 
+    filename.RootFileHandle = NULL;
+    filename.IoNameOptions = 0;
+
+    serr = NtStatusToUnixErrno(
+        LwRtlWC16StringAllocateFromCString(
+            &filename.FileName,
+            smbpath));
+    if (serr)
+    {
+        goto error;
+    }
+
     smb_status = SMBGetThreadToken(&acctoken);
 
     if (smb_status)
@@ -539,51 +551,50 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    smb_status = SMBCreateFileA(
-        /* IPC connection */
-        smb->connection,
-        /* Security token */
-        acctoken,
-        /* Pipe path */
-        smbpath,
-        /* Access mode */
-        GENERIC_READ | GENERIC_WRITE,
-        /* Sharing mode */
-        SHARE_WRITE | SHARE_READ,
-        /* Security attributes */
-        NULL,
-        /* Open existing pipe */
-        OPEN_EXISTING,
-        /* Other attributes */
-        0,
-        /* Template file */
-        NULL,
-        /* Created handle */
-        &smb->np);
-
-    if (smb_status)
+    /* Behold the full horror of NtCreate */
+    serr = NtStatusToUnixErrno(
+        NtCtxCreateFile(
+            /* IO context */
+            smb->context,
+            /* Security token */
+            acctoken,
+            /* Created handle */
+            &smb->np,
+            /* Async control block */
+            NULL,
+            /* Status block ??? */
+            &io_status,
+            /* Filename */
+            &filename,
+            /* Access mode */
+            GENERIC_READ | GENERIC_WRITE,
+            /* Allocation size */
+            0,
+            /* File attributes */
+            0,
+            /* Sharing mode */
+            SHARE_WRITE | SHARE_READ,
+            /* Create disposition */
+            OPEN_EXISTING,
+            /* Create options */
+            0,
+            /* EA buffer */
+            NULL,
+            /* Security descriptor */
+            NULL,
+            /* Security QOS */
+            NULL));
+    if (serr)
     {
-        serr = -1;
         goto error;
     }
 
-    smb_status = SMBGetSessionKey(
-        smb->connection,
-        smb->np,
-        &sesskeylen,
-        &sesskey);
-
-    if (smb_status)
-    {
-        serr = -1;
-        goto error;
-    }
+    /* FIXME: get session key */
 
     serr = rpc__smb_socket_set_session_key(
         assoc,
         (size_t) sesskeylen,
         (unsigned char*) sesskey);
-
     if (serr)
     {
         goto error;
@@ -605,6 +616,11 @@ done:
     if (sesskey)
     {
         SMBFreeSessionKey(sesskey);
+    }
+
+    if (filename.FileName)
+    {
+        RtlMemoryFree(filename.FileName);
     }
 
     SMB_SOCKET_UNLOCK(sock);
@@ -667,8 +683,8 @@ rpc__smb_socket_do_transact(
     bytes_read = 0;
     
     smb_status = SMBTransactNamedPipe(
-        /* IPC connection */
-        smb->connection,
+        /* IO context */
+        smb->context,
         /* Named pipe handle */
         smb->np,
         /* Send buffer */
@@ -699,8 +715,8 @@ rpc__smb_socket_do_transact(
         bytes_read = 0;
         
         smb_status = SMBTransactNamedPipe(
-            /* IPC connection */
-            smb->connection,
+            /* IO context */
+            smb->context,
             /* Named pipe handle */
             smb->np,
             /* Don't send anything */
@@ -766,8 +782,8 @@ rpc__smb_socket_do_send_recv(
     do
     {
         smb_status = SMBWriteFile(
-            /* IPC connection */
-            smb->connection,
+            /* IO context */
+            smb->context,
             /* Named pipe handle */
             smb->np,
             /* Send buffer */
@@ -800,8 +816,8 @@ rpc__smb_socket_do_send_recv(
         bytes_requested = rpc__smb_buffer_available(&smb->recvbuffer);
 
         smb_status = SMBReadFile(
-            /* IPC connection */
-            smb->connection,
+            /* IO context */
+            smb->context,
             /* Named pipe handle */
             smb->np,
             /* Recv buffer */
