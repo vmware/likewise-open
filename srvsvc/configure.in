@@ -337,6 +337,8 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 
 AC_CONFIG_FILES([Makefile
                  include/Makefile
+                 etc/Makefile
+                 etc/srvsvcd.conf
                  utils/Makefile
                  client/Makefile
                  test/Makefile
