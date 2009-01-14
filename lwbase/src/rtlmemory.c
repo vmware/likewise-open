@@ -45,8 +45,8 @@
 #include "includes.h"
 
 VOID
-RtlMemoryZero(
-    IN OUT PVOID pMemory,
+LwRtlMemoryZero(
+    IN OUT LW_PVOID pMemory,
     IN size_t Size
     )
 {
@@ -54,7 +54,7 @@ RtlMemoryZero(
 }
 
 PVOID
-RtlMemoryAllocate(
+LwRtlMemoryAllocate(
     IN size_t Size
     )
 {
@@ -74,8 +74,8 @@ RtlMemoryAllocate(
 }
 
 VOID
-RtlMemoryFree(
-    IN OUT PVOID pMemory
+LwRtlMemoryFree(
+    IN OUT LW_PVOID pMemory
     )
 {
     assert(pMemory);

@@ -35,100 +35,132 @@
 #include <lw/attrs.h>
 #include <lw/ntstatus.h>
 
-typedef struct _UNICODE_STRING {
+typedef struct _LW_UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;
     wchar16_t* Buffer;
-} UNICODE_STRING, *PUNICODE_STRING;
+} LW_UNICODE_STRING, *LW_PUNICODE_STRING;
 
-typedef struct _ANSI_STRING {
+typedef struct _LW_ANSI_STRING {
     USHORT Length;
     USHORT MaximumLength;
     PCHAR Buffer;
-} ANSI_STRING, *PANSI_STRING;
+} LW_ANSI_STRING, *LW_PANSI_STRING;
+
+#ifndef LW_STRICT_NAMESPACE
+
+typedef LW_UNICODE_STRING UNICODE_STRING;
+typedef LW_PUNICODE_STRING PUNICODE_STRING;
+
+typedef LW_ANSI_STRING ANSI_STRING;
+typedef LW_PANSI_STRING PANSI_STRING;
+
+#endif /* LW_STRICT_NAMESPAE */
 
 VOID
-RtlUnicodeStringInit(
-    OUT PUNICODE_STRING pString,
-    IN PWSTR pszString
-    );
-
-VOID
-RtlAnsiStringInit(
-    OUT PANSI_STRING pString,
-    IN PSTR pszString
-    );
-
-NTSTATUS
-RtlUnicodeStringCreateFromCString(
-    OUT PUNICODE_STRING pString,
-    IN PCSTR pszString
-    );
-
-NTSTATUS
-RtlWC16StringCreateFromCString(
-    OUT PWSTR* ppszNewString,
-    IN PCSTR pszOriginalString
+LwRtlUnicodeStringInit(
+    OUT LW_PUNICODE_STRING pString,
+    IN LW_PWSTR pszString
     );
 
 VOID
-RtlUnicodeStringFree(
-    IN OUT PUNICODE_STRING pString
+LwRtlAnsiStringInit(
+    OUT LW_PANSI_STRING pString,
+    IN LW_PSTR pszString
+    );
+
+NTSTATUS
+LwRtlUnicodeStringCreateFromCString(
+    OUT LW_PUNICODE_STRING pString,
+    IN LW_PCSTR pszString
+    );
+
+NTSTATUS
+LwRtlWC16StringCreateFromCString(
+    OUT LW_PWSTR* ppszNewString,
+    IN LW_PCSTR pszOriginalString
     );
 
 VOID
-RtlAnsiStringFree(
-    IN OUT PANSI_STRING pString
+LwRtlUnicodeStringFree(
+    IN OUT LW_PUNICODE_STRING pString
+    );
+
+VOID
+LwRtlAnsiStringFree(
+    IN OUT LW_PANSI_STRING pString
     );
 
 NTSTATUS
-RtlUnicodeStringDuplicate(
-    OUT PUNICODE_STRING pNewString,
-    IN PUNICODE_STRING pOriginalString
+LwRtlUnicodeStringDuplicate(
+    OUT LW_PUNICODE_STRING pNewString,
+    IN LW_PUNICODE_STRING pOriginalString
     );
 
 NTSTATUS
-RtlAnsiStringDuplicate(
-    OUT PANSI_STRING pNewString,
-    IN PANSI_STRING pOriginalString
+LwRtlAnsiStringDuplicate(
+    OUT LW_PANSI_STRING pNewString,
+    IN LW_PANSI_STRING pOriginalString
     );
 
 NTSTATUS
-RtlWC16StringDuplicate(
-    OUT PWSTR* ppszNewString,
-    IN PCWSTR pszOriginalString
+LwRtlWC16StringDuplicate(
+    OUT LW_PWSTR* ppszNewString,
+    IN LW_PCWSTR pszOriginalString
     );
 
 NTSTATUS
-RtlCStringDuplicate(
-    OUT PSTR* ppszNewString,
-    IN PCSTR pszOriginalString
+LwRtlCStringDuplicate(
+    OUT LW_PSTR* ppszNewString,
+    IN LW_PCSTR pszOriginalString
     );
 
 BOOLEAN
-RtlUnicodeStringIsEqual(
-    IN PUNICODE_STRING pString1,
-    IN PUNICODE_STRING pString2,
-    IN BOOLEAN bIsCaseSensitive
+LwRtlUnicodeStringIsEqual(
+    IN LW_PUNICODE_STRING pString1,
+    IN LW_PUNICODE_STRING pString2,
+    IN LW_BOOLEAN bIsCaseSensitive
     );
+
+
+#ifndef LW_STRICT_NAMESPACE
+#define RtlUnicodeStringInit LwRtlUnicodeStringInit
+#define RtlAnsiStringInit LwRtlAnsiStringInit
+#define RtlUnicodeStringCreateFromCString LwRtlUnicodeStringCreateFromCString
+#define RtlWC16StringCreateFromCString LwRtlWC16StringCreateFromCString
+#define RtlUnicodeStringFree LwRtlUnicodeStringFree
+#define RtlAnsiStringFree LwRtlAnsiStringFree
+#define RtlUnicodeStringDuplicate LwRtlUnicodeStringDuplicate
+#define RtlAnsiStringDuplicate LwRtlAnsiStringDuplicate
+#define RtlWC16StringDuplicate LwRtlWC16StringDuplicate
+#define RtlCStringDuplicate LwRtlCStringDuplicate
+#define RtlUnicodeStringIsEqual LwRtlUnicodeStringIsEqual
+#endif /* LW_STRICT_NAMESPAE */
 
 #define USE_RTL_STRING_LOG_HACK 1
 
 #ifdef USE_RTL_STRING_LOG_HACK
 PCSTR
-RtlUnicodeStringToLog(
-    IN PUNICODE_STRING pString
+LwRtlUnicodeStringToLog(
+    IN LW_PUNICODE_STRING pString
     );
 
 PCSTR
-RtlAnsiStringToLog(
-    IN PANSI_STRING pString
+LwRtlAnsiStringToLog(
+    IN LW_PANSI_STRING pString
     );
 
 PCSTR
-RtlWC16StringToLog(
-    IN PCWSTR pszString
+LwRtlWC16StringToLog(
+    IN LW_PCWSTR pszString
     );
-#endif
+
+#ifndef LW_STRICT_NAMESPACE
+#define RtlUnicodeStringToLog LwRtlUnicodeStringToLog
+#define RtlAnsiStringToLog LwRtlAnsiStringToLog
+#define RtlWC16StringToLog LwRtlWC16StringToLog
+#endif /* LW_STRICT_NAMESPAE */
+
+#endif /* USE_RTL_STRING_LOG_HACK */
 
 #endif /* __RTL_STRING_H__ */

@@ -45,32 +45,50 @@
 #ifndef __RTL_MEMORY_H__
 #define __RTL_MEMORY_H__
 
+#include <lw/types.h>
+#include <lw/attrs.h>
+#include <lw/ntstatus.h>
+
 VOID
-RtlMemoryZero(
-    IN OUT PVOID pMemory,
+LwRtlMemoryZero(
+    IN OUT LW_PVOID pMemory,
     IN size_t Size
     );
 
 PVOID
-RtlMemoryAllocate(
+LwRtlMemoryAllocate(
     IN size_t Size
     );
 
 VOID
-RtlMemoryFree(
-    IN OUT PVOID pMemory
+LwRtlMemoryFree(
+    IN OUT LW_PVOID pMemory
     );
 
-#define RTL_ALLOCATE(ppMemory, Type, Size) \
-    ( (*(ppMemory)) = (Type*) RtlMemoryAllocate(Size), (*(ppMemory)) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
+#define LW_RTL_ALLOCATE(ppMemory, Type, Size) \
+    ( (*(ppMemory)) = (Type*) LwRtlMemoryAllocate(Size), (*(ppMemory)) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
 
-#define RTL_FREE(ppMemory) \
+#define LW_RTL_FREE(ppMemory) \
     do { \
         if (*(ppMemory)) \
         { \
-            RtlMemoryFree(*(ppMemory)); \
+            LwRtlMemoryFree(*(ppMemory)); \
             (*(ppMemory)) = NULL; \
         } \
     } while (0)
+
+#ifndef LW_STRICT_NAMESPACE
+
+#define RtlMemoryZero     LwRtlMemoryZero
+#define RtlMemoryAllocate LwRtlMemoryAllocate
+#define RtlMemoryFree     LwRtlMemoryFree
+
+#define RTL_ALLOCATE(ppMemory, Type, Size) \
+    LW_RTL_ALLOCATE(ppMemory, Type, Size)
+
+#define RTL_FREE(ppMemory) \
+    LW_RTL_FREE(ppMemory)
+
+#endif /* LW_STRICT_NAMESPACE */
 
 #endif /* __RTL_MEMORY_H__ */

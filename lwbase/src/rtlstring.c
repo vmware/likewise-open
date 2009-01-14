@@ -36,14 +36,8 @@
 
 #define RTL_LOG_LEAVE_ON_STATUS_EE(status, EE)
 
-static
-PCSTR
-RtlpStringLogRotate(
-    IN OPTIONAL PSTR pszString
-    );
-
 NTSTATUS
-RtlUnicodeStringCreateFromCString(
+LwRtlUnicodeStringCreateFromCString(
     OUT PUNICODE_STRING pString,
     IN PCSTR pszString
     )
@@ -73,7 +67,7 @@ cleanup:
 }
 
 NTSTATUS
-RtlWC16StringCreateFromCString(
+LwRtlWC16StringCreateFromCString(
     OUT PWSTR* ppszNewString,
     IN PCSTR pszOriginalString
     )
@@ -102,7 +96,7 @@ cleanup:
 }
 
 VOID
-RtlUnicodeStringInit(
+LwRtlUnicodeStringInit(
     OUT PUNICODE_STRING pString,
     IN PWSTR pszString
     )
@@ -113,7 +107,7 @@ RtlUnicodeStringInit(
 }
 
 VOID
-RtlAnsiStringInit(
+LwRtlAnsiStringInit(
     OUT PANSI_STRING pString,
     IN PSTR pszString
     )
@@ -124,7 +118,7 @@ RtlAnsiStringInit(
 }
 
 VOID
-RtlUnicodeStringFree(
+LwRtlUnicodeStringFree(
     IN OUT PUNICODE_STRING pString
     )
 {
@@ -133,7 +127,7 @@ RtlUnicodeStringFree(
 }
 
 VOID
-RtlAnsiStringFree(
+LwRtlAnsiStringFree(
     IN OUT PANSI_STRING pString
     )
 {
@@ -142,7 +136,7 @@ RtlAnsiStringFree(
 }
 
 NTSTATUS
-RtlUnicodeStringDuplicate(
+LwRtlUnicodeStringDuplicate(
     OUT PUNICODE_STRING pNewString,
     IN PUNICODE_STRING pOriginalString
     )
@@ -184,7 +178,7 @@ cleanup:
 }
 
 NTSTATUS
-RtlAnsiStringDuplicate(
+LwRtlAnsiStringDuplicate(
     OUT PANSI_STRING pNewString,
     IN PANSI_STRING pOriginalString
     )
@@ -226,7 +220,7 @@ cleanup:
 }
 
 NTSTATUS
-RtlWC16StringDuplicate(
+LwRtlWC16StringDuplicate(
     OUT PWSTR* ppszNewString,
     IN PCWSTR pszOriginalString
     )
@@ -262,7 +256,7 @@ cleanup:
 }
 
 NTSTATUS
-RtlCStringDuplicate(
+LwRtlCStringDuplicate(
     OUT PSTR* ppszNewString,
     IN PCSTR pszOriginalString
     )
@@ -298,7 +292,7 @@ cleanup:
 }
 
 BOOLEAN
-RtlUnicodeStringIsEqual(
+LwRtlUnicodeStringIsEqual(
     IN PUNICODE_STRING pString1,
     IN PUNICODE_STRING pString2,
     IN BOOLEAN bIsCaseSensitive
@@ -353,12 +347,12 @@ typedef struct _RTLP_STRING_LOG_DATA {
     PSTR ppszString[RTLP_STRING_LOG_COUNT];
 } RTLP_STRING_LOG_DATA, *PRTLP_STRING_LOG_DATA;
 
-RTLP_STRING_LOG_DATA gpRtlStringLogData = { 0 };
+RTLP_STRING_LOG_DATA gpLwRtlStringLogData = { 0 };
 #define RTLP_STRING_NULL_TEXT "<null>"
 
 static
 BOOLEAN
-RtlpUnicodeStringIsNullTerminated(
+LwRtlpUnicodeStringIsNullTerminated(
     IN PUNICODE_STRING pString
     )
 {
@@ -377,7 +371,7 @@ RtlpUnicodeStringIsNullTerminated(
 
 static
 BOOLEAN
-RtlpAnsiStringIsNullTerminated(
+LwRtlpAnsiStringIsNullTerminated(
     IN PANSI_STRING pString
     )
 {
@@ -394,14 +388,34 @@ RtlpAnsiStringIsNullTerminated(
     return bIsNullTermianted;
 }
 
+static
 PCSTR
-RtlUnicodeStringToLog(
+LwRtlpStringLogRotate(
+    IN OPTIONAL PSTR pszString
+    )
+{
+    // TODO-Locking or interlocked increment.
+    if (gpLwRtlStringLogData.ppszString[gpLwRtlStringLogData.NextIndex])
+    {
+       free(gpLwRtlStringLogData.ppszString[gpLwRtlStringLogData.NextIndex]);
+    }
+    gpLwRtlStringLogData.ppszString[gpLwRtlStringLogData.NextIndex] = pszString;
+    gpLwRtlStringLogData.NextIndex++;
+    if (gpLwRtlStringLogData.NextIndex >= RTLP_STRING_LOG_COUNT)
+    {
+        gpLwRtlStringLogData.NextIndex = 0;
+    }
+    return pszString ? pszString : RTLP_STRING_NULL_TEXT;
+}
+
+PCSTR
+LwRtlUnicodeStringToLog(
     IN PUNICODE_STRING pString
     )
 {
     PCSTR pszOutput = NULL;
 
-    if (RtlpUnicodeStringIsNullTerminated(pString))
+    if (LwRtlpUnicodeStringIsNullTerminated(pString))
     {
         pszOutput = RtlWC16StringToLog(pString->Buffer);
     }
@@ -417,13 +431,13 @@ RtlUnicodeStringToLog(
 }
 
 PCSTR
-RtlAnsiStringToLog(
+LwRtlAnsiStringToLog(
     IN PANSI_STRING pString
     )
 {
     PCSTR pszOutput = NULL;
 
-    if (RtlpAnsiStringIsNullTerminated(pString))
+    if (LwRtlpAnsiStringIsNullTerminated(pString))
     {
         pszOutput = pString->Buffer;
     }
@@ -431,7 +445,7 @@ RtlAnsiStringToLog(
     {
         ANSI_STRING tempString = { 0 };
         RtlAnsiStringDuplicate(&tempString, pString);
-        pszOutput = RtlpStringLogRotate(tempString.Buffer ? strdup(tempString.Buffer) : NULL);
+        pszOutput = LwRtlpStringLogRotate(tempString.Buffer ? strdup(tempString.Buffer) : NULL);
         RtlAnsiStringFree(&tempString);
     }
 
@@ -439,30 +453,10 @@ RtlAnsiStringToLog(
 }
 
 PCSTR
-RtlWC16StringToLog(
+LwRtlWC16StringToLog(
     IN PCWSTR pszString
     )
 {
-    return RtlpStringLogRotate(pszString ? awc16stombs(pszString) : NULL);
-}
-
-static
-PCSTR
-RtlpStringLogRotate(
-    IN OPTIONAL PSTR pszString
-    )
-{
-    // TODO-Locking or interlocked increment.
-    if (gpRtlStringLogData.ppszString[gpRtlStringLogData.NextIndex])
-    {
-       free(gpRtlStringLogData.ppszString[gpRtlStringLogData.NextIndex]);
-    }
-    gpRtlStringLogData.ppszString[gpRtlStringLogData.NextIndex] = pszString;
-    gpRtlStringLogData.NextIndex++;
-    if (gpRtlStringLogData.NextIndex >= RTLP_STRING_LOG_COUNT)
-    {
-        gpRtlStringLogData.NextIndex = 0;
-    }
-    return pszString ? pszString : RTLP_STRING_NULL_TEXT;
+    return LwRtlpStringLogRotate(pszString ? awc16stombs(pszString) : NULL);
 }
 
