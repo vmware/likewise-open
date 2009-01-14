@@ -33,6 +33,8 @@
 
 #include <lwrpc/krb5pacdefs.h>
 
+typedef unsigned long error_status_t;
+
 error_status_t
 DecodePacLogonInfo(
         const char *pchBuffer,
