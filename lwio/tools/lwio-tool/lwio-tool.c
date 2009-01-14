@@ -49,9 +49,8 @@
 #include <lwio/ntfileapi.h>
 #include "lwiodef.h"
 #include "lwioutils.h"
-#include "lwstring.h"
 #include "lwparseargs.h"
-#include "goto.h"
+#include <lw/rtlgoto.h>
 #include "ntlogmacros.h"
 
 static
@@ -81,13 +80,8 @@ DoTestFileApiCreateFile(
         GOTO_CLEANUP_EE(EE);
     }
 
-    // TODO -- Rtl-type stuff for strings...
-    fileName.FileName = ambstowc16s(pszPath);
-    if (!fileName.FileName)
-    {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        GOTO_CLEANUP_EE(EE);
-    }
+    status = RtlWC16StringAllocateFromCString(&fileName.FileName, pszPath);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCreateFile(
                     &fileHandle,
@@ -108,6 +102,8 @@ DoTestFileApiCreateFile(
     SMB_LOG_ALWAYS("Opened file '%s'", pszPath);
 
 cleanup:
+    RtlWC16StringFree(&fileName.FileName);
+
     if (fileHandle)
     {
         NtCloseFile(fileHandle);
@@ -133,7 +129,7 @@ DoTestFileApi(
     pszCommand = LwParseArgsNext(pParseArgs);
     if (!pszCommand)
     {
-        status = LwCStringAppendPrintf(&pszUsageError, "Missing command.\n");
+        status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Missing command.\n");
         assert(!status && pszUsageError);
         GOTO_CLEANUP_EE(EE);
     }
@@ -143,14 +139,14 @@ DoTestFileApi(
         pszPath = LwParseArgsNext(pParseArgs);
         if (!pszPath)
         {
-            status = LwCStringAppendPrintf(&pszUsageError, "Missing path argument.\n");
+            status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Missing path argument.\n");
             assert(!status && pszUsageError);
             GOTO_CLEANUP_EE(EE);
         }
 
         if (LwParseArgsGetRemaining(pParseArgs) > 1)
         {
-            status = LwCStringAppendPrintf(&pszUsageError, "Too many arguments.\n");
+            status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Too many arguments.\n");
             assert(!status && pszUsageError);
             GOTO_CLEANUP_EE(EE);
         }
@@ -160,7 +156,7 @@ DoTestFileApi(
     }
     else
     {
-        status = LwCStringAppendPrintf(&pszUsageError, "Invalid command '%s'\n", pszCommand);
+        status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Invalid command '%s'\n", pszCommand);
         assert(!status);
         GOTO_CLEANUP_EE(EE);
     }
@@ -229,7 +225,7 @@ main(
     pszCommand = LwParseArgsNext(&args);
     if (!pszCommand)
     {
-        status = LwCStringAppendPrintf(&pszUsageError, "Missing command.\n");
+        status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Missing command.\n");
         assert(!status && pszUsageError);
         GOTO_CLEANUP_EE(EE);
     }
@@ -241,7 +237,7 @@ main(
     }
     else
     {
-        status = LwCStringAppendPrintf(&pszUsageError, "Invalid command '%s'\n", pszCommand);
+        status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Invalid command '%s'\n", pszCommand);
         assert(!status && pszUsageError);
         GOTO_CLEANUP_EE(EE);
     }
@@ -250,7 +246,7 @@ cleanup:
     if (pszUsageError)
     {
         printf("%s", pszUsageError);
-        LwCStringFree(&pszUsageError);
+        RtlCStringFree(&pszUsageError);
         Usage(pszProgramName);
         status = STATUS_INVALID_PARAMETER;
     }

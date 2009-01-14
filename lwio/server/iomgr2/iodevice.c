@@ -56,7 +56,7 @@ IoDeviceCreate(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    status = RtlUnicodeStringCreateFromCString(&deviceName, pszName);
+    status = RtlUnicodeStringAllocateFromCString(&deviceName, pszName);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     // TODO-Add locking

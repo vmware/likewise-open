@@ -62,7 +62,7 @@ DoStartupTest(
     IO_FILE_NAME fileName = { 0 };
     PWSTR filePath = NULL;
 
-    status = RtlWC16StringCreateFromCString(&filePath, pszPath);
+    status = RtlWC16StringAllocateFromCString(&filePath, pszPath);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     fileName.FileName = filePath;
@@ -84,7 +84,7 @@ DoStartupTest(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    RTL_FREE(&filePath);
+    RtlWC16StringFree(&filePath);
 
     if (fileHandle)
     {

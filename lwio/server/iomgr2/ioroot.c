@@ -197,7 +197,7 @@ IopRootParse(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    PCWSTR pszCurrent = NULL;
+    PWSTR pszCurrent = NULL;
     UNICODE_STRING deviceName = { 0 };
     PIO_DEVICE_OBJECT pDevice = NULL;
 

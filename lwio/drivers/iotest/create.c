@@ -57,7 +57,7 @@ ItDispatchCreate(
 
     RtlUnicodeStringInit(&path, (PWSTR)pIrp->Args.Create.FileName.FileName);
 
-    status = RtlUnicodeStringCreateFromCString(&allowPath, IOTEST_INTERNAL_PATH_ALLOW);
+    status = RtlUnicodeStringAllocateFromCString(&allowPath, IOTEST_INTERNAL_PATH_ALLOW);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     // Only succeed for a certain path.

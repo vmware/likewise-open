@@ -42,8 +42,8 @@ IopConfigFreeDriverConfig(
 
     if (pDriverConfig)
     {
-        RTL_FREE(&pDriverConfig->pszName);
-        RTL_FREE(&pDriverConfig->pszPath);
+        RtlCStringFree(&pDriverConfig->pszName);
+        RtlCStringFree(&pDriverConfig->pszPath);
         IoMemoryFree(pDriverConfig);
         *ppDriverConfig = NULL;
     }

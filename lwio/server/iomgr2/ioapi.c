@@ -137,11 +137,11 @@ IoCreateFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    RTL_FREE(&pszFileName);
+    RtlWC16StringFree(&pszFileName);
     if (pIrp)
     {
         pszFileName = (PWSTR) pIrp->Args.Create.FileName.FileName;
-        RTL_FREE(&pszFileName);
+        RtlWC16StringFree(&pszFileName);
     }
     IopIrpFree(&pIrp);
 
