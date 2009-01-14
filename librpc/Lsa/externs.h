@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,10 +28,14 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Lsa interface (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _EXTERNS_H_
 #define _EXTERNS_H_
-
-#include "includes.h"
 
 
 extern void *lsa_ptr_list;
