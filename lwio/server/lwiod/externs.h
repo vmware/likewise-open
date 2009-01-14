@@ -55,7 +55,7 @@ extern PSMBSERVERINFO gpServerInfo;
 extern pthread_t gSignalHandlerThread;
 extern pthread_t* gpSignalHandlerThread;
 
-extern LWMsgDispatchSpec gLWIOdispatch[];
+//extern LWMsgDispatchSpec gLWIOdispatch[];
 
 #define DAEMON_NAME "lwiod"
 #define PID_DIR "/var/run"

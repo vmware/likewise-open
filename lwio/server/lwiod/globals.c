@@ -62,32 +62,6 @@ SMBSERVERINFO gServerInfo =
     0                           /* Process exit code */
 };
 
-LWMsgDispatchSpec gLWIOdispatch[] =
-{
-    LWMSG_DISPATCH(SMB_REFRESH_CONFIG,           SMBSrvIpcRefreshConfiguration),
-    LWMSG_DISPATCH(SMB_SET_LOG_LEVEL,            SMBSrvIpcSetLogInfo),
-    LWMSG_DISPATCH(SMB_GET_LOG_INFO,             SMBSrvIpcGetLogInfo),
-    LWMSG_DISPATCH(SMB_CALL_NAMED_PIPE,          SMBSrvIpcCallNamedPipe),
-    LWMSG_DISPATCH(SMB_CREATE_NAMED_PIPE,        SMBSrvIpcCreateNamedPipe),
-    LWMSG_DISPATCH(SMB_GET_NAMED_PIPE_INFO,      SMBSrvIpcGetNamedPipeInfo),
-    LWMSG_DISPATCH(SMB_CONNECT_NAMED_PIPE,       SMBSrvIpcConnectNamedPipe),
-    LWMSG_DISPATCH(SMB_TRANSACT_NAMED_PIPE,      SMBSrvIpcTransactNamedPipe),
-    LWMSG_DISPATCH(SMB_WAIT_NAMED_PIPE,          SMBSrvIpcWaitNamedPipe),
-    LWMSG_DISPATCH(SMB_GET_CLIENT_COMPUTER_NAME, SMBSrvIpcGetClientComputerName),
-    LWMSG_DISPATCH(SMB_GET_CLIENT_PROCESS_ID,    SMBSrvIpcGetClientProcessId),
-    LWMSG_DISPATCH(SMB_GET_SERVER_PROCESS_ID,    SMBSrvIpcGetServerProcessId),
-    LWMSG_DISPATCH(SMB_GET_CLIENT_SESSION_ID,    SMBSrvIpcGetClientSessionId),
-    LWMSG_DISPATCH(SMB_PEEK_NAMED_PIPE,          SMBSrvIpcPeekNamedPipe),
-    LWMSG_DISPATCH(SMB_DISCONNECT_NAMED_PIPE,    SMBSrvIpcDisconnectNamedPipe),
-    LWMSG_DISPATCH(SMB_CREATE_FILE,              SMBSrvIpcCreateFile),
-    LWMSG_DISPATCH(SMB_SET_NAMED_PIPE_HANDLE_STATE, SMBSrvIpcSetNamedPipeHandleState),
-    LWMSG_DISPATCH(SMB_READ_FILE,                SMBSrvIpcReadFile),
-    LWMSG_DISPATCH(SMB_WRITE_FILE,               SMBSrvIpcWriteFile),
-    LWMSG_DISPATCH(SMB_CLOSE_FILE,               SMBSrvIpcCloseFile),
-    LWMSG_DISPATCH(SMB_GET_SESSION_KEY,          SMBSrvIpcGetSessionKey),
-    LWMSG_DISPATCH_END
-};
-
 PSMBSERVERINFO gpServerInfo = &gServerInfo;
 
 pthread_t  gSignalHandlerThread;

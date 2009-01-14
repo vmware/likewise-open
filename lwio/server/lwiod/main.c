@@ -223,8 +223,6 @@ cleanup:
 
     IoCleanup();
 
-    IOMgrShutdown();
-
     SMB_LOG_INFO("SMB Service exiting...");
 
     SMBSrvSetProcessExitCode(dwError);
@@ -501,9 +499,6 @@ SMBSrvInitialize(
     dwError = SMBInitCacheFolders();
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = IOMgrInitialize(pszConfigPath);
-    BAIL_ON_SMB_ERROR(dwError);
-
     dwError = IoInitialize(pszConfigPath);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -762,9 +757,6 @@ SMBSrvExecute(
     LWMsgProtocol* pProtocol = NULL;
     LWMsgTime timeout = { 30, 0 }; /* 30 seconds */
 
-    dwError = SMBIPCGetProtocolSpec(&pProtocolSpec);
-    BAIL_ON_SMB_ERROR(dwError);
-
     dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(NULL, &pProtocol));
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -777,11 +769,6 @@ SMBSrvExecute(
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_new(pProtocol, &pServer));
-    BAIL_ON_SMB_ERROR(dwError);
-
-    dwError = MAP_LWMSG_STATUS(lwmsg_server_add_dispatch_spec(
-                    pServer,
-                    gLWIOdispatch));
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = IoIpcAddDispatch(pServer);

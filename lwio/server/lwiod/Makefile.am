@@ -2,7 +2,6 @@ sbin_PROGRAMS = lwiod
 
 lwiod_SOURCES = \
     globals.c   \
-    ipc.c       \
     main.c      \
     lwiocfg.c
 
