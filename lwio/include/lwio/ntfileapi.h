@@ -63,167 +63,167 @@
 // Core I/O Operations
 //
 
-NTSTATUS
-NtCreateFile(
-    OUT PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PIO_FILE_NAME FileName,
-    IN ACCESS_MASK DesiredAccess,
-    IN OPTIONAL LONG64 AllocationSize,
-    IN FILE_ATTRIBUTES FileAttributes,
-    IN FILE_SHARE_FLAGS ShareAccess,
-    IN FILE_CREATE_DISPOSITION CreateDisposition,
-    IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
-    IN OPTIONAL PVOID SecurityDescriptor, // TBD
-    IN PVOID SecurityQualityOfService // TBD
+LW_NTSTATUS
+LwNtCreateFile(
+    LW_OUT PIO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN PIO_FILE_NAME FileName,
+    LW_IN ACCESS_MASK DesiredAccess,
+    LW_IN LW_OPTIONAL LONG64 AllocationSize,
+    LW_IN FILE_ATTRIBUTES FileAttributes,
+    LW_IN FILE_SHARE_FLAGS ShareAccess,
+    LW_IN FILE_CREATE_DISPOSITION CreateDisposition,
+    LW_IN FILE_CREATE_OPTIONS CreateOptions,
+    LW_IN LW_OPTIONAL PIO_EA_BUFFER pEaBuffer,
+    LW_IN LW_OPTIONAL LW_PVOID SecurityDescriptor, // TBD
+    LW_IN LW_PVOID SecurityQualityOfService // TBD
     );
 
-NTSTATUS
-NtCloseFile(
-    IN IO_FILE_HANDLE FileHandle
+LW_NTSTATUS
+LwNtCloseFile(
+    LW_IN IO_FILE_HANDLE FileHandle
     );
 
-NTSTATUS
-NtReadFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    OUT PVOID Buffer,
-    IN ULONG Length,
-    IN OPTIONAL PLONG64 ByteOffset,
-    IN OPTIONAL PULONG Key
+LW_NTSTATUS
+LwNtReadFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_OUT LW_PVOID Buffer,
+    LW_IN LW_ULONG Length,
+    LW_IN LW_OPTIONAL LW_PLONG64 ByteOffset,
+    LW_IN LW_OPTIONAL LW_PULONG Key
     );
 
-NTSTATUS
-NtWriteFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PVOID Buffer,
-    IN ULONG Length,
-    IN OPTIONAL PLONG64 ByteOffset,
-    IN OPTIONAL PULONG Key
+LW_NTSTATUS
+LwNtWriteFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN LW_PVOID Buffer,
+    LW_IN LW_ULONG Length,
+    LW_IN LW_OPTIONAL LW_PLONG64 ByteOffset,
+    LW_IN LW_OPTIONAL LW_PULONG Key
     );
 
-NTSTATUS
-NtDeviceIoControlFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN ULONG IoControlCode,
-    IN PVOID InputBuffer,
-    IN ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN ULONG OutputBufferLength
+LW_NTSTATUS
+LwNtDeviceIoControlFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN LW_ULONG IoControlCode,
+    LW_IN LW_PVOID InputBuffer,
+    LW_IN LW_ULONG InputBufferLength,
+    LW_OUT LW_PVOID OutputBuffer,
+    LW_IN LW_ULONG OutputBufferLength
     );
 
-NTSTATUS
-NtFsControlFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN ULONG FsControlCode,
-    IN PVOID InputBuffer,
-    IN ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN ULONG OutputBufferLength
+LW_NTSTATUS
+LwNtFsControlFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN LW_ULONG FsControlCode,
+    LW_IN LW_PVOID InputBuffer,
+    LW_IN LW_ULONG InputBufferLength,
+    LW_OUT LW_PVOID OutputBuffer,
+    LW_IN LW_ULONG OutputBufferLength
     );
 
-NTSTATUS
-NtFlushBuffersFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock
+LW_NTSTATUS
+LwNtFlushBuffersFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock
     );
 
-NTSTATUS
-NtQueryInformationFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    OUT PVOID FileInformation,
-    IN ULONG Length,
-    IN FILE_INFORMATION_CLASS FileInformationClass
+LW_NTSTATUS
+LwNtQueryInformationFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_OUT LW_PVOID FileInformation,
+    LW_IN LW_ULONG Length,
+    LW_IN FILE_INFORMATION_CLASS FileInformationClass
     );
 
-NTSTATUS
-NtSetInformationFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PVOID FileInformation,
-    IN ULONG Length,
-    IN FILE_INFORMATION_CLASS FileInformationClass
+LW_NTSTATUS
+LwNtSetInformationFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN LW_PVOID FileInformation,
+    LW_IN LW_ULONG Length,
+    LW_IN FILE_INFORMATION_CLASS FileInformationClass
     );
 
 //
 // Additional Operations
 //
 
-NTSTATUS
-NtQueryFullAttributesFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PIO_FILE_NAME FileName,
-    OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
+LW_NTSTATUS
+LwNtQueryFullAttributesFile(
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN PIO_FILE_NAME FileName,
+    LW_OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
-NTSTATUS
-NtQueryDirectoryFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    OUT PVOID FileInformation,
-    IN ULONG Length,
-    IN FILE_INFORMATION_CLASS FileInformationClass,
-    IN BOOLEAN ReturnSingleEntry,
-    IN OPTIONAL PIO_FILE_SPEC FileSpec,
-    IN IO_NAME_OPTIONS IoNameOptions,
-    IN BOOLEAN RestartScan
+LW_NTSTATUS
+LwNtQueryDirectoryFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_OUT LW_PVOID FileInformation,
+    LW_IN LW_ULONG Length,
+    LW_IN FILE_INFORMATION_CLASS FileInformationClass,
+    LW_IN LW_BOOLEAN ReturnSingleEntry,
+    LW_IN LW_OPTIONAL PIO_FILE_SPEC FileSpec,
+    LW_IN IO_NAME_OPTIONS IoNameOptions,
+    LW_IN LW_BOOLEAN RestartScan
     );
 
-NTSTATUS
-NtQueryVolumeInformationFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    OUT PVOID FsInformation,
-    IN ULONG Length,
-    IN FS_INFORMATION_CLASS FsInformationClass
+LW_NTSTATUS
+LwNtQueryVolumeInformationFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_OUT LW_PVOID FsInformation,
+    LW_IN LW_ULONG Length,
+    LW_IN FS_INFORMATION_CLASS FsInformationClass
     );
 
-NTSTATUS
-NtSetVolumeInformationFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PVOID FsInformation,
-    IN ULONG Length,
-    IN FS_INFORMATION_CLASS FsInformationClass
+LW_NTSTATUS
+LwNtSetVolumeInformationFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN LW_PVOID FsInformation,
+    LW_IN LW_ULONG Length,
+    LW_IN FS_INFORMATION_CLASS FsInformationClass
     );
 
-NTSTATUS
-NtLockFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN LONG64 ByteOffset,
-    IN LONG64 Length,
-    IN ULONG Key,
-    IN BOOLEAN FailImmediately,
-    IN BOOLEAN ExclusiveLock
+LW_NTSTATUS
+LwNtLockFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN LONG64 ByteOffset,
+    LW_IN LONG64 Length,
+    LW_IN LW_ULONG Key,
+    LW_IN LW_BOOLEAN FailImmediately,
+    LW_IN LW_BOOLEAN ExclusiveLock
     );
 
-NTSTATUS
-NtUnlockFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN LONG64 ByteOffset,
-    IN LONG64 Length,
-    IN ULONG Key
+LW_NTSTATUS
+LwNtUnlockFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN LONG64 ByteOffset,
+    LW_IN LONG64 Length,
+    LW_IN LW_ULONG Key
     );
 
 //
@@ -232,83 +232,111 @@ NtUnlockFile(
 // These are in flux due NT vs POSIX issues.
 //
 
-NTSTATUS
-NtRemoveDirectoryFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PIO_FILE_NAME FileName
+LW_NTSTATUS
+LwNtRemoveDirectoryFile(
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN PIO_FILE_NAME FileName
     );
 
-NTSTATUS
-NtDeleteFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PIO_FILE_NAME FileName
+LW_NTSTATUS
+LwNtDeleteFile(
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN PIO_FILE_NAME FileName
     );
 
-NTSTATUS
-NtLinkFile(
-    IN PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PIO_FILE_NAME LinkName
+LW_NTSTATUS
+LwNtLinkFile(
+    LW_IN PIO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN PIO_FILE_NAME LinkName
     );
 
-NTSTATUS
-NtRenameFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PIO_FILE_NAME FromName,
-    IN PIO_FILE_NAME ToName
+LW_NTSTATUS
+LwNtRenameFile(
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN PIO_FILE_NAME FromName,
+    LW_IN PIO_FILE_NAME ToName
     );
 
-NTSTATUS
-NtQueryQuotaInformationFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    OUT PVOID Buffer,
-    IN ULONG Length,
-    IN BOOLEAN ReturnSingleEntry,
-    IN OPTIONAL PVOID SidList,
-    IN ULONG SidListLength,
-    IN OPTIONAL PSID StartSid,
-    IN BOOLEAN RestartScan
+LW_NTSTATUS
+LwNtQueryQuotaInformationFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_OUT LW_PVOID Buffer,
+    LW_IN LW_ULONG Length,
+    LW_IN LW_BOOLEAN ReturnSingleEntry,
+    LW_IN LW_OPTIONAL LW_PVOID SidList,
+    LW_IN LW_ULONG SidListLength,
+    LW_IN LW_OPTIONAL PSID StartSid,
+    LW_IN LW_BOOLEAN RestartScan
     );
 
 //
 // Advanced Operations
 //
 
-NTSTATUS
-NtSetQuotaInformationFile(
-    IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN PVOID Buffer,
-    IN ULONG Length
+LW_NTSTATUS
+LwNtSetQuotaInformationFile(
+    LW_IN IO_FILE_HANDLE FileHandle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN LW_PVOID Buffer,
+    LW_IN LW_ULONG Length
     );
 
-NTSTATUS
-NtQuerySecurityFile(
-    IN IO_FILE_HANDLE  Handle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN SECURITY_INFORMATION SecurityInformation,
-    OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
-    IN ULONG Length,
-    OUT PULONG LengthNeeded
+LW_NTSTATUS
+LwNtQuerySecurityFile(
+    LW_IN IO_FILE_HANDLE  Handle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN SECURITY_INFORMATION SecurityInformation,
+    LW_OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
+    LW_IN LW_ULONG Length,
+    LW_OUT LW_PULONG LengthNeeded
     );
 
-NTSTATUS
-NtSetSecurityFile(
-    IN IO_FILE_HANDLE Handle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    OUT PIO_STATUS_BLOCK IoStatusBlock,
-    IN SECURITY_INFORMATION SecurityInformation,
-    IN PSECURITY_DESCRIPTOR SecurityDescriptor
+LW_NTSTATUS
+LwNtSetSecurityFile(
+    LW_IN IO_FILE_HANDLE Handle,
+    LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
+    LW_IN SECURITY_INFORMATION SecurityInformation,
+    LW_IN PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 // TODO: QueryEaFile and SetEaFile.
 
-#endif /* __NT_FILE_API_H__ */
+#ifndef LW_STRICT_NAMESPACE
+
+#define NtCreateFile                    LwNtCreateFile
+#define NtCloseFile                     LwNtCloseFile
+#define NtReadFile                      LwNtReadFile
+#define NtWriteFile                     LwNtWriteFile
+#define NtDeviceIoControlFile           LwNtDeviceIoControlFile
+#define NtFsControlFile                 LwNtFsControlFile
+#define NtFlushBuffersFile              LwNtFlushBuffersFile
+#define NtQueryInformationFile          LwNtQueryInformationFile
+#define NtSetInformationFile            LwNtSetInformationFile
+#define NtQueryFullAttributesFile       LwNtQueryFullAttributesFile
+#define NtQueryDirectoryFile            LwNtQueryDirectoryFile
+#define NtQueryVolumeInformationFile    LwNtQueryVolumeInformationFile
+#define NtSetVolumeInformationFile      LwNtSetVolumeInformationFile
+#define NtLockFile                      LwNtLockFile
+#define NtUnlockFile                    LwNtUnlockFile
+#define NtRemoveDirectoryFile           LwNtRemoveDirectoryFile
+#define NtDeleteFile                    LwNtDeleteFile
+#define NtLinkFile                      LwNtLinkFile
+#define NtRenameFile                    LwNtRenameFile
+#define NtQueryQuotaInformationFile     LwNtQueryQuotaInformationFile
+#define NtSetQuotaInformationFile       LwNtSetQuotaInformationFile
+#define NtQuerySecurityFile             LwNtQuerySecurityFile
+#define NtSetSecurityFile               LwNtSetSecurityFile
+
+#endif /* LW_STRICT_NAMESPACE */
+
+#endif /* __NT_FILE_API__ */
