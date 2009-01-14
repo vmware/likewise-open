@@ -97,13 +97,12 @@ RdrCommonRead(
                     &dwBytesRead
                     );
     BAIL_ON_NT_STATUS(ntStatus);
-    pIrp->IoStatus.Status = ntStatus;
-    pIrp->IoStatus.BytesTransferred = dwBytesRead;
+    pIrp->IoStatusBlock.Status = ntStatus;
+    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
     return(ntStatus);
 
 error:
-    pIrp->IoStatus.Status = ntStatus;
+    pIrp->IoStatusBlock.Status = ntStatus;
     return(ntStatus);
-
 }
 

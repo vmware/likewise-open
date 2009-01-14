@@ -28,80 +28,28 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        write.c
+ *        iocontrol.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        IO Test Driver
  *
- *       Write Dispatch Routine
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "rdr.h"
+#include "includes.h"
 
 NTSTATUS
-RdrWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+ItDispatchDeviceIoControl(
+    IN PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
-
-    ntStatus = RdrAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    //ntStatus = RdrCommonWrite(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    pIrp->IoStatusBlock.Status = status;
+    return status;
 }
-
-NTSTATUS
-RdrCommonWrite(
-    PRDR_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PVOID Buffer = NULL;
-    ULONG Length = 0;
-    DWORD dwBytesRead = 0;
-    HANDLE hFile = NULL;
-
-    Buffer = pIrp->Args.ReadWrite.Buffer;
-    Length = pIrp->Args.ReadWrite.Length;
-
-    hFile = IoFileGetContext(pIrp->FileHandle);
-
-    ntStatus = RdrWriteFileEx(
-                    hFile,
-                    Length,
-                    Buffer,
-                    &dwBytesRead
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-    pIrp->IoStatusBlock.Status = ntStatus;
-    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
-    return(ntStatus);
-
-error:
-    pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
-}
-

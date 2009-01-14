@@ -28,80 +28,100 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        write.c
+ *        includes.h
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        IO Test Driver
  *
- *       Write Dispatch Routine
+ *        Internal Includes
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "rdr.h"
+#ifndef __INCLUDES_H__
+#define __INCLUDES_H__
+
+#include "config.h"
+#include "lwiosys.h"
+
+#include <lw/rtlstring.h>
+#include <lw/rtlgoto.h>
+
+#include "iodriver.h"
+
+#include "ntlogmacros.h"
+#include "lwioutils.h"
+
+#define IOTEST_DEVICE_NAME "iotest"
+#define IOTEST_DEVICE_PATH "/" IOTEST_DEVICE_NAME
+
+#define IOTEST_INTERNAL_PATH_ALLOW "/allow"
+#define IOTEST_PATH_ALLOW IOTEST_DEVICE_PATH IOTEST_INTERNAL_PATH_ALLOW
+
+typedef struct _IT_CCB {
+    UNICODE_STRING Path;
+} IT_CCB, *PIT_CCB;
 
 NTSTATUS
-RdrWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
+ItpCreateCcb(
+    OUT PIT_CCB* ppCcb,
+    IN PUNICODE_STRING pPath
+    );
 
-    ntStatus = RdrAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    //ntStatus = RdrCommonWrite(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
-}
+VOID
+ItpDestroyCcb(
+    IN OUT PIT_CCB* ppCcb
+    );
 
 NTSTATUS
-RdrCommonWrite(
-    PRDR_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PVOID Buffer = NULL;
-    ULONG Length = 0;
-    DWORD dwBytesRead = 0;
-    HANDLE hFile = NULL;
+ItDispatchCreate(
+    IN PIRP pIrp
+    );
 
-    Buffer = pIrp->Args.ReadWrite.Buffer;
-    Length = pIrp->Args.ReadWrite.Length;
+NTSTATUS
+ItDispatchClose(
+    IN PIRP pIrp
+    );
 
-    hFile = IoFileGetContext(pIrp->FileHandle);
+NTSTATUS
+ItDispatchRead(
+    IN PIRP pIrp
+    );
 
-    ntStatus = RdrWriteFileEx(
-                    hFile,
-                    Length,
-                    Buffer,
-                    &dwBytesRead
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-    pIrp->IoStatusBlock.Status = ntStatus;
-    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
-    return(ntStatus);
+NTSTATUS
+ItDispatchWrite(
+    IN PIRP pIrp
+    );
 
-error:
-    pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
-}
+NTSTATUS
+ItDispatchDeviceIoControl(
+    IN PIRP pIrp
+    );
 
+NTSTATUS
+ItDispatchFsControl(
+    IN PIRP pIrp
+    );
+
+NTSTATUS
+ItDispatchFlushBuffers(
+    IN PIRP pIrp
+    );
+
+NTSTATUS
+ItDispatchQueryInformation(
+    IN PIRP pIrp
+    );
+
+NTSTATUS
+ItDispatchSetInformation(
+    IN PIRP pIrp
+    );
+
+#endif /* __INCLUDES_H__ */

@@ -109,7 +109,7 @@ typedef struct _IRP_ARGS_QUERY_SET_INFORMATION {
 
 typedef struct _IRP {
     IN IRP_TYPE Type;
-    OUT IO_STATUS_BLOCK IoStatus;
+    OUT IO_STATUS_BLOCK IoStatusBlock;
     IN IO_DRIVER_HANDLE DriverHandle;
     IN IO_DEVICE_HANDLE DeviceHandle;
     IN IO_FILE_HANDLE FileHandle;

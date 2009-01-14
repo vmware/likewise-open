@@ -9,7 +9,6 @@ libiomgr2_la_SOURCES = \
     ioirp.c \
     iofile.c \
     iomem.c \
-    iostring.c \
     ioapi.c \
     ioipc.c
 
@@ -20,6 +19,7 @@ libiomgr2_la_CPPFLAGS = \
 
 libiomgr2_la_LIBADD = \
     @top_builddir@/ipc/liblwioipc.la \
+    @LWBASE_LIBS@ \
     @LWMSG_LIBS@ \
     @UUID_LIBS@  \
     @PTHREAD_LIBS@ \

@@ -28,80 +28,56 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        write.c
+ *        lwstring.h
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        LW RTL String Routines
  *
- *       Write Dispatch Routine
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "rdr.h"
+#ifndef __LW_STRING_H__
+#define __LW_STRING_H__
+
+#include <lw/base.h>
+
+VOID
+LwCStringFree(
+    IN OUT PSTR* ppszString
+    );
 
 NTSTATUS
-RdrWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
-
-    ntStatus = RdrAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    //ntStatus = RdrCommonWrite(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
-}
+LwCStringPrintfV(
+    OUT PSTR* ppszString,
+    IN PCSTR pszFormat,
+    IN va_list Args
+    );
 
 NTSTATUS
-RdrCommonWrite(
-    PRDR_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PVOID Buffer = NULL;
-    ULONG Length = 0;
-    DWORD dwBytesRead = 0;
-    HANDLE hFile = NULL;
+LwCStringPrintf(
+    OUT PSTR* ppszString,
+    IN PCSTR pszFormat,
+    IN ...
+    );
 
-    Buffer = pIrp->Args.ReadWrite.Buffer;
-    Length = pIrp->Args.ReadWrite.Length;
+NTSTATUS
+LwCStringAppendPrintfV(
+    IN OUT PSTR* ppszString,
+    IN PCSTR pszFormat,
+    IN va_list Args
+    );
 
-    hFile = IoFileGetContext(pIrp->FileHandle);
+NTSTATUS
+LwCStringAppendPrintf(
+    IN OUT PSTR* ppszString,
+    IN PCSTR pszFormat,
+    ...
+    );
 
-    ntStatus = RdrWriteFileEx(
-                    hFile,
-                    Length,
-                    Buffer,
-                    &dwBytesRead
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-    pIrp->IoStatusBlock.Status = ntStatus;
-    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
-    return(ntStatus);
-
-error:
-    pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
-}
-
+#endif /* __LW_STRING_H__ */

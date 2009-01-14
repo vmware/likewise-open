@@ -42,7 +42,7 @@ IoDeviceCreate(
     int EE = 0;
     PIO_DEVICE_OBJECT pDeviceObject = NULL;
     PIO_DEVICE_OBJECT pFoundDevice = NULL;
-    IO_UNICODE_STRING deviceName = { 0 };
+    UNICODE_STRING deviceName = { 0 };
 
     if (!DriverHandle)
     {
@@ -56,7 +56,7 @@ IoDeviceCreate(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    status = IoUnicodeStringCreateFromCString(&deviceName, pszName);
+    status = RtlUnicodeStringCreateFromCString(&deviceName, pszName);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     // TODO-Add locking
@@ -85,7 +85,7 @@ IoDeviceCreate(
     IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
 
 cleanup:
-    IoUnicodeStringFree(&deviceName);
+    RtlUnicodeStringFree(&deviceName);
 
     IO_LOG_ENTER_LEAVE_STATUS_EE(status, EE);
     return status;
@@ -106,7 +106,7 @@ IoDeviceDelete(
         assert(LwListIsEmpty(&pDeviceObject->FileObjectsList));
         IopDriverRemoveDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
         IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
-        IoUnicodeStringFree(&pDeviceObject->DeviceName);
+        RtlUnicodeStringFree(&pDeviceObject->DeviceName);
         IoMemoryFree(pDeviceObject);
         *pDeviceHandle = NULL;
     }

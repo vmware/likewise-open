@@ -46,6 +46,10 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+
+#ifndef __RDR_H__
+#define __RDR_H__
+
 #include "config.h"
 #include "lwiosys.h"
 
@@ -91,10 +95,11 @@
 
 #include "externs.h"
 
-#include "iostring.h"
+#include <lw/rtlstring.h>
+#include <lw/rtlgoto.h>
+
 #include "iodriver.h"
 
-#include "goto.h"
 #include "lwioutils.h"
 #include "rdrstructs.h"
 
@@ -177,3 +182,5 @@ RdrCreateFileEx(
     PSECURITY_ATTRIBUTES pSecurityAttributes,
     PHANDLE phFile
     );
+
+#endif /* __RDR_H__ */

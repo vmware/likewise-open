@@ -42,8 +42,8 @@ IopConfigFreeDriverConfig(
 
     if (pDriverConfig)
     {
-        IO_FREE(&pDriverConfig->pszName);
-        IO_FREE(&pDriverConfig->pszPath);
+        RTL_FREE(&pDriverConfig->pszName);
+        RTL_FREE(&pDriverConfig->pszPath);
         IoMemoryFree(pDriverConfig);
         *ppDriverConfig = NULL;
     }
@@ -106,7 +106,7 @@ IopConfigParseStartSection(
     status = IO_ALLOCATE(&pDriverConfig, IOP_DRIVER_CONFIG, sizeof(*pDriverConfig));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = IoCStringDuplicate(&pDriverConfig->pszName, pszName);
+    status = RtlCStringDuplicate(&pDriverConfig->pszName, pszName);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     LwListInsertTail(&pState->pConfig->DriverConfigList, &pDriverConfig->Links);
@@ -225,7 +225,7 @@ IopConfigParseNameValuePair(
         GOTO_CLEANUP_EE(EE);
     }
 
-    status = IoCStringDuplicate(&pState->pDriverConfig->pszPath,
+    status = RtlCStringDuplicate(&pState->pDriverConfig->pszPath,
                                 pszValue);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 

@@ -33,10 +33,10 @@
 
 #include "iodriver.h"
 #include "ioinit.h"
-#include "iostring.h"
+#include <lw/rtlstring.h>
+#include <lw/rtlgoto.h>
 
 #include "lwlist.h"
-#include "goto.h"
 #include "lwioutils.h"
 #include "ntlogmacros.h"
 
@@ -98,7 +98,7 @@ struct _IO_DRIVER_OBJECT {
 
 struct _IO_DEVICE_OBJECT {
     LONG ReferenceCount;
-    IO_UNICODE_STRING DeviceName;
+    UNICODE_STRING DeviceName;
     PIO_DRIVER_OBJECT Driver;
     PVOID Context;
 
@@ -164,7 +164,7 @@ IopRootLoadDrivers(
 PIO_DEVICE_OBJECT
 IopRootFindDevice(
     IN PIOP_ROOT_STATE pRoot,
-    IN PIO_UNICODE_STRING pDeviceName
+    IN PUNICODE_STRING pDeviceName
     );
 
 VOID

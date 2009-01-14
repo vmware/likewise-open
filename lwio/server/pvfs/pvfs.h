@@ -50,10 +50,11 @@
 #include "config.h"
 #include "lwiosys.h"
 
-#include "iostring.h"
+#include <lw/rtlstring.h>
+#include <lw/rtlgoto.h>
+
 #include "iodriver.h"
 
-#include "goto.h"
 #include "lwioutils.h"
 #include "structs.h"
 

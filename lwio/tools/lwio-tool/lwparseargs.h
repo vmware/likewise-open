@@ -28,80 +28,67 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        write.c
+ *        lwparseargs.h
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        LW Parse Args Library
  *
- *       Write Dispatch Routine
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "rdr.h"
+#ifndef __LW_PARSE_ARGS_H__
+#define __LW_PARSE_ARGS_H__
 
-NTSTATUS
-RdrWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
+#include <lw/base.h>
 
-    ntStatus = RdrAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
+typedef struct _LW_PARSE_ARGS {
+    PCSTR* Args;
+    int Count;
+    int Index;
+} LW_PARSE_ARGS, *PLW_PARSE_ARGS;
 
-    //ntStatus = RdrCommonWrite(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
+VOID
+LwParseArgsInit(
+    OUT PLW_PARSE_ARGS pParseArgs,
+    IN int argc,
+    IN PCSTR argv[]
+    );
 
-error:
+int
+LwParseArgsGetRemaining(
+    IN PLW_PARSE_ARGS pParseArgs
+    );
 
-    return ntStatus;
-}
+PCSTR
+LwParseArgsGetAt(
+    IN PLW_PARSE_ARGS pParseArgs,
+    IN int Index
+    );
 
-NTSTATUS
-RdrCommonWrite(
-    PRDR_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PVOID Buffer = NULL;
-    ULONG Length = 0;
-    DWORD dwBytesRead = 0;
-    HANDLE hFile = NULL;
+int
+LwParseArgsGetIndex(
+    IN PLW_PARSE_ARGS pParseArgs
+    );
 
-    Buffer = pIrp->Args.ReadWrite.Buffer;
-    Length = pIrp->Args.ReadWrite.Length;
+PCSTR
+LwParseArgsGetCurrent(
+    IN OUT PLW_PARSE_ARGS pParseArgs
+    );
 
-    hFile = IoFileGetContext(pIrp->FileHandle);
+PCSTR
+LwParseArgsNext(
+    IN OUT PLW_PARSE_ARGS pParseArgs
+    );
 
-    ntStatus = RdrWriteFileEx(
-                    hFile,
-                    Length,
-                    Buffer,
-                    &dwBytesRead
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-    pIrp->IoStatusBlock.Status = ntStatus;
-    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
-    return(ntStatus);
+PCSTR
+LwGetProgramName(
+    IN PCSTR pszProgramPath
+    );
 
-error:
-    pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
-}
-
+#endif /* __LW_PARSE_ARGS_H__ */

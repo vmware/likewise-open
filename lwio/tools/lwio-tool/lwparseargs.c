@@ -28,80 +28,99 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        write.c
+ *        lwparseargs.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        LW Parse Args Library
  *
- *       Write Dispatch Routine
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "rdr.h"
+#include "config.h"
+#include "lwiosys.h"
+#include "lwparseargs.h"
+#include "goto.h"
 
-NTSTATUS
-RdrWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+VOID
+LwParseArgsInit(
+    OUT PLW_PARSE_ARGS pParseArgs,
+    IN int argc,
+    IN PCSTR argv[]
     )
 {
-    NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
-
-    ntStatus = RdrAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    //ntStatus = RdrCommonWrite(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
+    pParseArgs->Args = argv;
+    pParseArgs->Count = argc;
+    pParseArgs->Index = 0;
 }
 
-NTSTATUS
-RdrCommonWrite(
-    PRDR_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
+int
+LwParseArgsGetRemaining(
+    IN PLW_PARSE_ARGS pParseArgs
     )
 {
-    NTSTATUS ntStatus = 0;
-    PVOID Buffer = NULL;
-    ULONG Length = 0;
-    DWORD dwBytesRead = 0;
-    HANDLE hFile = NULL;
-
-    Buffer = pIrp->Args.ReadWrite.Buffer;
-    Length = pIrp->Args.ReadWrite.Length;
-
-    hFile = IoFileGetContext(pIrp->FileHandle);
-
-    ntStatus = RdrWriteFileEx(
-                    hFile,
-                    Length,
-                    Buffer,
-                    &dwBytesRead
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-    pIrp->IoStatusBlock.Status = ntStatus;
-    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
-    return(ntStatus);
-
-error:
-    pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
+    return pParseArgs->Count - pParseArgs->Index;
 }
 
+PCSTR
+LwParseArgsGetAt(
+    IN PLW_PARSE_ARGS pParseArgs,
+    IN int Index
+    )
+{
+    return (Index < pParseArgs->Count) ? pParseArgs->Args[Index] : NULL;
+}
+
+int
+LwParseArgsGetIndex(
+    IN PLW_PARSE_ARGS pParseArgs
+    )
+{
+    return pParseArgs->Index;
+}
+
+PCSTR
+LwParseArgsGetCurrent(
+    IN OUT PLW_PARSE_ARGS pParseArgs
+    )
+{
+    return LwParseArgsGetAt(pParseArgs, pParseArgs->Index);
+}
+
+PCSTR
+LwParseArgsNext(
+    IN OUT PLW_PARSE_ARGS pParseArgs
+    )
+{
+    PCSTR pszNext = LwParseArgsGetAt(pParseArgs, pParseArgs->Index + 1);
+    if (pszNext)
+    {
+        pParseArgs->Index++;
+    }
+    return pszNext;
+}
+
+PCSTR
+LwGetProgramName(
+    IN PCSTR pszProgramPath
+    )
+{
+    PCSTR pszProgramName = pszProgramPath;
+    PCSTR pszCurrent = pszProgramName;
+
+    while (pszCurrent[0])
+    {
+        if ('/' == pszCurrent[0])
+        {
+            pszProgramName = pszCurrent + 1;
+        }
+        pszCurrent++;
+    }
+
+    return pszProgramName;
+}

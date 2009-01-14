@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -49,101 +49,14 @@
 #include <lwio/ntfileapi.h>
 #include "lwiodef.h"
 #include "lwioutils.h"
+#include "lwstring.h"
+#include "lwparseargs.h"
 #include "goto.h"
 #include "ntlogmacros.h"
 
-// TODO -- common lib
-static
-PCSTR
-LwGetProgramName(
-    IN PCSTR pszProgramPath
-    )
-{
-    PCSTR pszProgramName = pszProgramPath;
-    PCSTR pszCurrent = pszProgramName;
-
-    while (pszCurrent[0])
-    {
-        if ('/' == pszCurrent[0])
-        {
-            pszProgramName = pszCurrent + 1;
-        }
-        pszCurrent++;
-    }
-
-    return pszProgramName;
-}
-
-typedef struct _LW_PARSE_ARGS {
-    PCSTR* Args;
-    int Count;
-    int Index;
-} LW_PARSE_ARGS, *PLW_PARSE_ARGS;
-
-static
-VOID
-LwParseArgsInit(
-    OUT PLW_PARSE_ARGS pParseArgs,
-    IN int argc,
-    IN PCSTR argv[]
-    )
-{
-    pParseArgs->Args = argv;
-    pParseArgs->Count = argc;
-    pParseArgs->Index = 0;
-}
-
-int
-LwParseArgsGetRemaining(
-    IN PLW_PARSE_ARGS pParseArgs
-    )
-{
-    return pParseArgs->Count - pParseArgs->Index;
-}
-
-static
-PCSTR
-LwParseArgsGetAt(
-    IN PLW_PARSE_ARGS pParseArgs,
-    IN int Index
-    )
-{
-    return (Index < pParseArgs->Count) ? pParseArgs->Args[Index] : NULL;
-}
-
-int
-LwParseArgsGetIndex(
-    IN PLW_PARSE_ARGS pParseArgs
-    )
-{
-    return pParseArgs->Index;
-}
-
-PCSTR
-LwParseArgsGetCurrent(
-    IN OUT PLW_PARSE_ARGS pParseArgs
-    )
-{
-    return LwParseArgsGetAt(pParseArgs, pParseArgs->Index);
-}
-
-static
-PCSTR
-LwParseArgsNext(
-    IN OUT PLW_PARSE_ARGS pParseArgs
-    )
-{
-    PCSTR pszNext = LwParseArgsGetAt(pParseArgs, pParseArgs->Index + 1);
-    if (pszNext)
-    {
-        pParseArgs->Index++;
-    }
-    return pszNext;
-}
-
 static
 NTSTATUS
-TestCreateFile(
+DoTestFileApiCreateFile(
     IN PCSTR pszPath
     )
 {
@@ -192,7 +105,7 @@ TestCreateFile(
                     pSecurityQualityOfService);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = 2;
+    SMB_LOG_ALWAYS("Opened file '%s'", pszPath);
 
 cleanup:
     if (fileHandle)
@@ -205,40 +118,85 @@ cleanup:
 }
 
 static
+NTSTATUS
+DoTestFileApi(
+    IN OUT PLW_PARSE_ARGS pParseArgs,
+    OUT PSTR* ppszUsageError
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PSTR pszUsageError = NULL;
+    PCSTR pszCommand = NULL;
+    PCSTR pszPath = NULL;
+
+    pszCommand = LwParseArgsNext(pParseArgs);
+    if (!pszCommand)
+    {
+        status = LwCStringAppendPrintf(&pszUsageError, "Missing command.\n");
+        assert(!status && pszUsageError);
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    if (!strcmp(pszCommand, "create"))
+    {
+        pszPath = LwParseArgsNext(pParseArgs);
+        if (!pszPath)
+        {
+            status = LwCStringAppendPrintf(&pszUsageError, "Missing path argument.\n");
+            assert(!status && pszUsageError);
+            GOTO_CLEANUP_EE(EE);
+        }
+
+        if (LwParseArgsGetRemaining(pParseArgs) > 1)
+        {
+            status = LwCStringAppendPrintf(&pszUsageError, "Too many arguments.\n");
+            assert(!status && pszUsageError);
+            GOTO_CLEANUP_EE(EE);
+        }
+
+        status = DoTestFileApiCreateFile(pszPath);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+    else
+    {
+        status = LwCStringAppendPrintf(&pszUsageError, "Invalid command '%s'\n", pszCommand);
+        assert(!status);
+        GOTO_CLEANUP_EE(EE);
+    }
+
+cleanup:
+    if (pszUsageError)
+    {
+        status = STATUS_INVALID_PARAMETER;
+    }
+
+    *ppszUsageError = pszUsageError;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
+
+static
 VOID
 Usage(
     IN PCSTR pszProgramName
     )
 {
-    printf("Usage: %s <path>\n",
+    printf("Usage: %s <command> [command-args]\n"
+           "\n"
+           "  commands:\n"
+           "\n"
+           "    testfileapi create <path>\n"
+           "\n",
            pszProgramName);
     // TODO--We really want something like:
     //
-    // <TOOL> testapi createfile <path> [options]
+    // <TOOL> testfileapi createfile <path> [options]
     // <TOOL> load <drivername>
     // <TOOL> unload <drivername>
     // etc..
 }
-
-#if 0
-NTSTATUS
-LwCStringAppendV(
-    IN OUT PSTR* pszUsageError,
-    IN PCSTR pszFormat,
-    IN va_list Args
-    )
-{
-}
-
-NTSTATUS
-LwCStringAppend(
-    IN OUT PSTR* pszUsageError,
-    IN PCSTR pszFormat,
-    ...
-    )
-{
-}
-#endif
 
 int
 main(
@@ -249,51 +207,50 @@ main(
     NTSTATUS status = 0;
     int EE = 0;
     PSTR pszUsageError = NULL;
-    PCSTR pszProgramName = LwGetProgramName(argv[0]);
-    PCSTR pszPath = argv[1];
     LW_PARSE_ARGS args = { 0 };
+    PCSTR pszProgramName = NULL;
     PCSTR pszCommand = NULL;
-    BOOLEAN bShowUsage = FALSE;
 
     LwParseArgsInit(&args, argc, argv);
-    pszProgramName = LwGetProgramName(LwParseArgsNext(&args));
+    pszProgramName = LwGetProgramName(LwParseArgsGetAt(&args, 0));
 
     // TODO-clean up logging stuff used here
+    // We should really be using printf and just doing logging
+    // for diagnostics.
     if (SMBInitLogging(pszProgramName,
                        SMB_LOG_TARGET_CONSOLE,
                        SMB_LOG_LEVEL_DEBUG,
                        NULL))
     {
-        fprintf(stderr, "Cannot log\n");
+        fprintf(stderr, "Failed to initialize logging.\n");
         exit(1);
     }
 
     pszCommand = LwParseArgsNext(&args);
     if (!pszCommand)
     {
-        if (asprintf(&pszUsageError, "Missing command.\n") < 0)
-        {
-            GOTO_CLEANUP_EE(EE);
-        }
-
-        assert(pszUsageError);
+        status = LwCStringAppendPrintf(&pszUsageError, "Missing command.\n");
+        assert(!status && pszUsageError);
         GOTO_CLEANUP_EE(EE);
     }
 
-    // TODO -- add arg parsing (need to argc/argv walker to common lib)
-
-    if (!pszPath || !pszPath[0])
+    if (!strcmp(pszCommand, "testfileapi"))
     {
-        bShowUsage = TRUE;
+        status = DoTestFileApi(&args, &pszUsageError);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+    else
+    {
+        status = LwCStringAppendPrintf(&pszUsageError, "Invalid command '%s'\n", pszCommand);
+        assert(!status && pszUsageError);
         GOTO_CLEANUP_EE(EE);
     }
-
-    status = TestCreateFile(pszPath);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    if (bShowUsage)
+    if (pszUsageError)
     {
+        printf("%s", pszUsageError);
+        LwCStringFree(&pszUsageError);
         Usage(pszProgramName);
         status = STATUS_INVALID_PARAMETER;
     }

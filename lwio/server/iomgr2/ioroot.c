@@ -115,7 +115,7 @@ cleanup:
 PIO_DEVICE_OBJECT
 IopRootFindDevice(
     IN PIOP_ROOT_STATE pRoot,
-    IN PIO_UNICODE_STRING pDeviceName
+    IN PUNICODE_STRING pDeviceName
     )
 {
     PLW_LIST_LINKS pLinks = NULL;
@@ -126,7 +126,7 @@ IopRootFindDevice(
          pLinks = pLinks->Next)
     {
         PIO_DEVICE_OBJECT pDevice = LW_STRUCT_FROM_FIELD(pLinks, IO_DEVICE_OBJECT, RootLinks);
-        if (IoUnicodeStringIsEqual(pDeviceName, &pDevice->DeviceName, FALSE))
+        if (RtlUnicodeStringIsEqual(pDeviceName, &pDevice->DeviceName, FALSE))
         {
             pFoundDevice = pDevice;
             break;
@@ -198,7 +198,7 @@ IopRootParse(
     NTSTATUS status = 0;
     int EE = 0;
     PCWSTR pszCurrent = NULL;
-    IO_UNICODE_STRING deviceName = { 0 };
+    UNICODE_STRING deviceName = { 0 };
     PIO_DEVICE_OBJECT pDevice = NULL;
 
     if (pFileName->RootFileHandle)

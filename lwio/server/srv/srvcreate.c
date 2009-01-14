@@ -183,9 +183,9 @@ SrvCommonCreateFile(
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_UNICODE_STRING RootPathName;
-    IO_UNICODE_STRING RelativePathName;
-    IO_UNICODE_STRING AbsolutePathName;
+    UNICODE_STRING RootPathName;
+    UNICODE_STRING RelativePathName;
+    UNICODE_STRING AbsolutePathName;
     //IO_FILE_HANDLE hFileHandle = NULL;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
 
@@ -252,9 +252,9 @@ error:
 
 NTSTATUS
 SrvBuildAbsolutePathName(
-    IO_UNICODE_STRING RootPathName,
-    IO_UNICODE_STRING RelativePathName,
-    IO_UNICODE_STRING AbsolutePathName
+    UNICODE_STRING RootPathName,
+    UNICODE_STRING RelativePathName,
+    UNICODE_STRING AbsolutePathName
     )
 {
     NTSTATUS ntStatus = 0;
@@ -265,7 +265,7 @@ SrvBuildAbsolutePathName(
 NTSTATUS
 SrvGetFilePathName(
     IO_FILE_HANDLE hFileHandle,
-    IO_UNICODE_STRING PathName
+    UNICODE_STRING PathName
     )
 {
     NTSTATUS ntStatus = 0;
@@ -420,9 +420,9 @@ SrvCommonCreateDirectory(
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_UNICODE_STRING RootPathName;
-    IO_UNICODE_STRING RelativePathName;
-    IO_UNICODE_STRING AbsolutePathName;
+    UNICODE_STRING RootPathName;
+    UNICODE_STRING RelativePathName;
+    UNICODE_STRING AbsolutePathName;
     IO_FILE_HANDLE hFileHandle = NULL;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
 

@@ -193,6 +193,27 @@ AC_ARG_WITH([lwmsg-libs],
 		LWMSG_LDFLAGS="-L$withval"
         ])
 
+# lwbase
+
+AC_ARG_WITH([lwbase],
+        [AC_HELP_STRING([--with-lwbase=<dir>], [use lwbase located in prefix <dir>])],
+        [
+		LWBASE_INCLUDES="-I$withval/include"
+        LWBASE_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwbase-includes],
+        [AC_HELP_STRING([--with-lwbase-includes=<dir>], [use lwbase includes located in <dir>])],
+        [
+		LWBASE_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwbase-libs],
+        [AC_HELP_STRING([--with-lwbase-libs=<dir>], [use lwbase libs located in <dir>])],
+        [
+		LWBASE_LDFLAGS="-L$withval"
+        ])
+
 # sqlite
 
 AC_ARG_WITH([sqlite],
@@ -370,6 +391,15 @@ AC_SUBST(LWMSG_LDFLAGS)
 AC_SUBST(LWMSG_NOTHR_LIBS)
 AC_SUBST(LWMSG_LIBS)
 
+AC_CHECK_HEADER([lw/base.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
+AC_CHECK_LIB([lwbase_nothr], [RtlMemoryAllocate], [LWBASE_NOTHR_LIBS="-llwbase_nothr"], [AC_MSG_ERROR([Could not find liblwbase_nothr])], [$LWBASE_LDFLAGS])
+AC_CHECK_LIB([lwbase], [LwInterlockedIncrement], [LWBASE_LIBS="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
+
+AC_SUBST(LWBASE_INCLUDES)
+AC_SUBST(LWBASE_LDFLAGS)
+AC_SUBST(LWBASE_NOTHR_LIBS)
+AC_SUBST(LWBASE_LIBS)
+
 AC_CHECK_TYPES([socklen_t], [], [], [AC_INCLUDES_DEFAULT
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -425,12 +455,13 @@ AC_CONFIG_FILES([Makefile
         server/Makefile
         server/rdr/Makefile
         server/smb/Makefile
-        server/iomgr/Makefile
         server/iomgr2/Makefile
         server/srv/Makefile
         server/npvfs/Makefile
         server/pvfs/Makefile
         server/lwiod/Makefile
+        drivers/Makefile
+        drivers/iotest/Makefile
         tools/Makefile
         tools/lw-io-refresh/Makefile
         tools/lw-io-get-log-info/Makefile

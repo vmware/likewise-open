@@ -1,6 +1,8 @@
 bin_PROGRAMS = lwio-tool
 
 lwio_tool_SOURCES = \
+    lwstring.c \
+    lwparseargs.c \
     lwio-tool.c
 
 lwio_tool_CPPFLAGS =  \

@@ -105,7 +105,7 @@ IoCreateFile(
 
     if (fileName.FileName)
     {
-        status = IoWC16StringDuplicate(&pszFileName, fileName.FileName);
+        status = RtlWC16StringDuplicate(&pszFileName, fileName.FileName);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
@@ -132,25 +132,26 @@ IoCreateFile(
     pIrp->Args.Create.SecurityQualityOfService = SecurityQualityOfService;
 
     status = IopDeviceCallDriver(pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatus;
+    ioStatusBlock = pIrp->IoStatusBlock;
     // TODO -- handle asyc behavior.
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    // TODO -- handle asych behavior.
-    if (status)
-    {
-        ioStatusBlock.Status = status;
-        IopFileObjectFree(&pFileObject);
-    }
-
-    IO_FREE(&pszFileName);
+    RTL_FREE(&pszFileName);
     if (pIrp)
     {
         pszFileName = (PWSTR) pIrp->Args.Create.FileName.FileName;
-        IO_FREE(&pszFileName);
+        RTL_FREE(&pszFileName);
     }
     IopIrpFree(&pIrp);
+
+    // TODO -- handle asych behavior.
+    if (status)
+    {
+        // Note that the IRP must be freed before the File Object.
+        ioStatusBlock.Status = status;
+        IopFileObjectFree(&pFileObject);
+    }
 
     *FileHandle = pFileObject;
     *IoStatusBlock = ioStatusBlock;
@@ -176,7 +177,7 @@ IoCloseFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatus;
+    ioStatusBlock = pIrp->IoStatusBlock;
     // TODO -- handle asyc behavior.
     assert(ioStatusBlock.Status == status);
 
@@ -220,7 +221,7 @@ IopReadWriteFile(
     pIrp->Args.ReadWrite.Key = Key;
 
     status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatus;
+    ioStatusBlock = pIrp->IoStatusBlock;
     // TODO -- handle asyc behavior.
     assert(ioStatusBlock.Status == status);
 
@@ -308,7 +309,7 @@ IopControlFile(
     pIrp->Args.IoFsControl.OutputBufferLength = OutputBufferLength;
 
     status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatus;
+    ioStatusBlock = pIrp->IoStatusBlock;
     // TODO -- handle asyc behavior.
     assert(ioStatusBlock.Status == status);
 
@@ -386,7 +387,7 @@ IoFlushBuffersFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatus;
+    ioStatusBlock = pIrp->IoStatusBlock;
     // TODO -- handle asyc behavior.
     assert(ioStatusBlock.Status == status);
 
@@ -426,7 +427,7 @@ IopQuerySetInformationFile(
     pIrp->Args.QuerySetInformation.FileInformationClass = FileInformationClass;
 
     status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatus;
+    ioStatusBlock = pIrp->IoStatusBlock;
     // TODO -- handle asyc behavior.
     assert(ioStatusBlock.Status == status);
 

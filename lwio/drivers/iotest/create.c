@@ -28,80 +28,72 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        write.c
+ *        create.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        IO Test Driver
  *
- *       Write Dispatch Routine
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "rdr.h"
+#include "includes.h"
 
 NTSTATUS
-RdrWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+ItDispatchCreate(
+    IN PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    int EE = 0;
+    UNICODE_STRING path = { 0 };
+    UNICODE_STRING allowPath = { 0 };
+    PIT_CCB pCcb = NULL;
 
-    ntStatus = RdrAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
+    RtlUnicodeStringInit(&path, (PWSTR)pIrp->Args.Create.FileName.FileName);
 
-    //ntStatus = RdrCommonWrite(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
+    status = RtlUnicodeStringCreateFromCString(&allowPath, IOTEST_INTERNAL_PATH_ALLOW);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-error:
+    // Only succeed for a certain path.
+    if (RtlUnicodeStringIsEqual(&path, &allowPath, FALSE))
+    {
+        status = ItpCreateCcb(&pCcb, &path);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    return ntStatus;
+        status = IoFileSetContext(pIrp->FileHandle, pCcb);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+        pCcb = NULL;
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+cleanup:
+    ItpDestroyCcb(&pCcb);
+    RtlUnicodeStringFree(&allowPath);
+
+    pIrp->IoStatusBlock.Status = status;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
 }
 
 NTSTATUS
-RdrCommonWrite(
-    PRDR_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
+ItDispatchClose(
+    IN PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = 0;
-    PVOID Buffer = NULL;
-    ULONG Length = 0;
-    DWORD dwBytesRead = 0;
-    HANDLE hFile = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
 
-    Buffer = pIrp->Args.ReadWrite.Buffer;
-    Length = pIrp->Args.ReadWrite.Length;
-
-    hFile = IoFileGetContext(pIrp->FileHandle);
-
-    ntStatus = RdrWriteFileEx(
-                    hFile,
-                    Length,
-                    Buffer,
-                    &dwBytesRead
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-    pIrp->IoStatusBlock.Status = ntStatus;
-    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
-    return(ntStatus);
-
-error:
-    pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
+    pIrp->IoStatusBlock.Status = status;
+    return status;
 }
-

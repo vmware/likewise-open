@@ -752,17 +752,11 @@ SMBSrvExecute(
     )
 {
     DWORD dwError = 0;
-    LWMsgServer* pServer = NULL;
-    LWMsgProtocolSpec* pProtocolSpec = NULL;
     LWMsgProtocol* pProtocol = NULL;
+    LWMsgServer* pServer = NULL;
     LWMsgTime timeout = { 30, 0 }; /* 30 seconds */
 
     dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(NULL, &pProtocol));
-    BAIL_ON_SMB_ERROR(dwError);
-
-    dwError = MAP_LWMSG_STATUS(lwmsg_protocol_add_protocol_spec(
-                                   pProtocol,
-                                   pProtocolSpec));
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = IoIpcAddProtocolSpec(pProtocol);

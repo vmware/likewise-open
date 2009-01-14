@@ -19,15 +19,15 @@ RdrCommonCreateFile(
 
 NTSTATUS
 RdrBuildAbsolutePathName(
-    IO_UNICODE_STRING RootPathName,
-    IO_UNICODE_STRING RelativePathName,
-    IO_UNICODE_STRING AbsolutePathName
+    UNICODE_STRING RootPathName,
+    UNICODE_STRING RelativePathName,
+    UNICODE_STRING AbsolutePathName
     );
 
 NTSTATUS
 RdrGetFilePathName(
     IO_FILE_HANDLE hFileHandle,
-    IO_UNICODE_STRING PathName
+    UNICODE_STRING PathName
     );
 
 NTSTATUS

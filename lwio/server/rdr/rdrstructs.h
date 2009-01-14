@@ -1,7 +1,7 @@
 
 typedef struct _RDR_CCB{
     //LIST_ENTRY NextCCB;
-    IO_UNICODE_STRING AbsolutePathName;
+    UNICODE_STRING AbsolutePathName;
     ACCESS_MASK DesiredAccess;
     LONG64 AllocationSize;
     FILE_ATTRIBUTES FileAttributes;
@@ -19,7 +19,7 @@ typedef struct _RDR_CCB{
 typedef struct _RDR_IRP_CONTEXT {
     PIRP pIrp;
     IO_DEVICE_HANDLE TargetDeviceHandle;
-    IO_UNICODE_STRING RootPathName;
-    IO_UNICODE_STRING RelativePathName;
-    IO_UNICODE_STRING AbsolutePathName;
+    UNICODE_STRING RootPathName;
+    UNICODE_STRING RelativePathName;
+    UNICODE_STRING AbsolutePathName;
 } RDR_IRP_CONTEXT, *PRDR_IRP_CONTEXT;
