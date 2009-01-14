@@ -151,6 +151,7 @@ error:
     return status;
 }
 
+static
 LWMsgStatus
 lwmsg_connection_recvbuffer(LWMsgAssoc* assoc)
 {
@@ -279,6 +280,7 @@ error:
     return status;
 }
 
+static
 LWMsgStatus
 lwmsg_connection_sendbuffer(LWMsgAssoc* assoc)
 {

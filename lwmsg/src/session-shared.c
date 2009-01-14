@@ -594,6 +594,7 @@ error:
     goto done;
 }
 
+static
 LWMsgStatus
 shared_set_session_data (
     LWMsgSessionManager* manager,
@@ -617,6 +618,7 @@ shared_set_session_data (
     return LWMSG_STATUS_SUCCESS;
 }
 
+static
 void*
 shared_get_session_data (
     LWMsgSessionManager* manager,
@@ -634,6 +636,7 @@ shared_get_session_data (
     return data;
 }
 
+static
 const LWMsgSessionID*
 shared_get_session_id(
     LWMsgSessionManager* manager,
@@ -643,6 +646,7 @@ shared_get_session_id(
     return &session->rsmid;
 }
 
+static
 size_t
 shared_get_session_assoc_count(
     LWMsgSessionManager* manager,
@@ -657,6 +661,7 @@ shared_get_session_assoc_count(
     return refs;
 }
 
+static
 size_t
 shared_get_session_handle_count(
     LWMsgSessionManager* manager,
