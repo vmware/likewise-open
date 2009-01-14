@@ -13,18 +13,6 @@
     # Default: yes
     # sign-messages-if-supported = no
 
-[virtual file system provider: re-director]
-
-	path = @providerdir@/librdr.sys@MOD_EXT@
-
-#[virtual file system provider: named pipe file system]
-#
-#	path = @providerdir@/libnpfs.sys@MOD_EXT@
-#
-#[virtual file system provider: posix file system]
-#
-#	path = @providerdir@/libpvfs.sys@MOD_EXT@
-
 [driver:pvfs]
 	path = @providerdir@/libpvfs.sys@MOD_EXT@
 
