@@ -6,7 +6,11 @@ lib_LTLIBRARIES = liblwbase_nothr.la liblwbase.la
 
 liblwbase_nothr_la_SOURCES = \
 	ntstatus.c \
-        memory.c
+        rtlmemory.c \
+        rtlstring.c
+
+liblwbase_nothr_la_LIBADD = \
+    @LIBUNISTR_LIBS@
 
 liblwbase_la_SOURCES = \
 	atomic.c

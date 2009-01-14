@@ -5,5 +5,7 @@ lwinclude_HEADERS = \
 	types.h \
 	attrs.h \
 	atomic.h \
-	memory.h \
-	base.h
+	rtlmemory.h \
+	rtlstring.h \
+	base.h \
+	rtlgoto.h

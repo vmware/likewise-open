@@ -28,22 +28,24 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __IOSTRING_H__
-#define __IOSTRING_H__
+#ifndef __RTL_STRING_H__
+#define __RTL_STRING_H__
 
-#include <lwio/io-types.h>
+#include <lw/types.h>
+#include <lw/attrs.h>
+#include <lw/ntstatus.h>
 
-typedef struct _IO_UNICODE_STRING {
+typedef struct _UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;
     wchar16_t* Buffer;
-} IO_UNICODE_STRING, *PUNICODE_STRING;
+} UNICODE_STRING, *PUNICODE_STRING;
 
-typedef struct _IO_ANSI_STRING {
+typedef struct _ANSI_STRING {
     USHORT Length;
     USHORT MaximumLength;
     PCHAR Buffer;
-} IO_ANSI_STRING, *PANSI_STRING;
+} ANSI_STRING, *PANSI_STRING;
 
 VOID
 RtlUnicodeStringInit(
@@ -110,6 +112,9 @@ RtlUnicodeStringIsEqual(
     IN BOOLEAN bIsCaseSensitive
     );
 
+#define USE_RTL_STRING_LOG_HACK 1
+
+#ifdef USE_RTL_STRING_LOG_HACK
 PCSTR
 RtlUnicodeStringToLog(
     IN PUNICODE_STRING pString
@@ -124,5 +129,6 @@ PCSTR
 RtlWC16StringToLog(
     IN PCWSTR pszString
     );
+#endif
 
-#endif /* __IOSTRING_H__ */
+#endif /* __RTL_STRING_H__ */

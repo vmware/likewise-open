@@ -1,5 +1,10 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
- * Copyright (c) Likewise Software.  All rights Reserved.
+ * Copyright Likewise Software
+ * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,62 +29,48 @@
  */
 
 /*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
  * Module Name:
  *
- *        memory.h
+ *        rtlmemory.h
  *
  * Abstract:
  *
- *        Memory utilities
+ *        Likewise RTL Memory API
  *
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
 
-#ifndef __LW_MEMORY_H__
-#define __LW_MEMORY_H__
+#ifndef __RTL_MEMORY_H__
+#define __RTL_MEMORY_H__
 
-#include <stddef.h>
-#include <lw/types.h>
+VOID
+RtlMemoryZero(
+    IN OUT PVOID pMemory,
+    IN size_t Size
+    );
 
-#define LW_SAFE_FREE_MEMORY(pMemory)            \
-    do                                          \
-    {                                           \
-        if ((pMemory))                          \
-        {                                       \
-            LwRtlFreeMemory((pMemory));         \
-            ((pMemory)) = NULL;                 \
-        }                                       \
+PVOID
+RtlMemoryAllocate(
+    IN size_t Size
+    );
+
+VOID
+RtlMemoryFree(
+    IN OUT PVOID pMemory
+    );
+
+#define RTL_ALLOCATE(ppMemory, Type, Size) \
+    ( (*(ppMemory)) = (Type*) RtlMemoryAllocate(Size), (*(ppMemory)) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES )
+
+#define RTL_FREE(ppMemory) \
+    do { \
+        if (*(ppMemory)) \
+        { \
+            RtlMemoryFree(*(ppMemory)); \
+            (*(ppMemory)) = NULL; \
+        } \
     } while (0)
 
-LW_NTSTATUS
-LwRtlAllocateMemory(
-    size_t size,
-    LW_PVOID* ppMemory
-    );
-
-LW_NTSTATUS
-LwRtlReallocMemory(
-    LW_PVOID  pMemory,
-    LW_PVOID* ppNewMemory,
-    size_t size
-    );
-
-LW_VOID
-LwRtlFreeMemory(
-    LW_PVOID pMemory
-    );
-
-#ifndef LW_STRICT_NAMESPACE
-
-#define RtlAllocateMemory     LwRtlAllocateMemory
-#define RtlReallocMemory      LwRtlReallocMemory
-#define RtlFreeMemory         LwRtlFreeMemory
-
-/* FIXME: ensure this is safe, then uncomment it */
-/*
-#define SAFE_FREE_MEMORY      LW_SAFE_FREE_MEMORY
-*/
-
-#endif /* LW_STRICT_NAMESPACE */
-
-#endif /* __LW_MEMORY_H__ */
-
+#endif /* __RTL_MEMORY_H__ */

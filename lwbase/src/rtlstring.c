@@ -28,7 +28,13 @@
  * license@likewisesoftware.com
  */
 
-#include "iop.h"
+#include "includes.h"
+#include <lw/rtlstring.h>
+#include <lw/rtlmemory.h>
+#include <lw/rtlgoto.h>
+#include <wc16str.h>
+
+#define RTL_LOG_LEAVE_ON_STATUS_EE(status, EE)
 
 static
 PCSTR
@@ -44,7 +50,7 @@ RtlUnicodeStringCreateFromCString(
 {
     NTSTATUS status = 0;
     PWSTR pszNewString = NULL;
-    IO_UNICODE_STRING newString = { 0 };
+    UNICODE_STRING newString = { 0 };
 
     status = RtlWC16StringCreateFromCString(&pszNewString, pszString);
     GOTO_CLEANUP_ON_STATUS(status);
@@ -57,7 +63,7 @@ RtlUnicodeStringCreateFromCString(
 cleanup:
     if (status)
     {
-        IO_FREE(&pszNewString);
+        RTL_FREE(&pszNewString);
         RtlUnicodeStringFree(&newString);
     }
 
@@ -122,7 +128,7 @@ RtlUnicodeStringFree(
     IN OUT PUNICODE_STRING pString
     )
 {
-    IO_FREE(&pString->Buffer);
+    RTL_FREE(&pString->Buffer);
     pString->Length = pString->MaximumLength = 0;
 }
 
@@ -131,7 +137,7 @@ RtlAnsiStringFree(
     IN OUT PANSI_STRING pString
     )
 {
-    IO_FREE(&pString->Buffer);
+    RTL_FREE(&pString->Buffer);
     pString->Length = pString->MaximumLength = 0;
 }
 
@@ -143,7 +149,7 @@ RtlUnicodeStringDuplicate(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_UNICODE_STRING newString = { 0 };
+    UNICODE_STRING newString = { 0 };
 
     if (!pOriginalString || !pNewString)
     {
@@ -155,7 +161,7 @@ RtlUnicodeStringDuplicate(
     {
         // Add a NULL anyhow.
 
-        status = IO_ALLOCATE(&newString.Buffer, wchar16_t, pOriginalString->Length + sizeof(pOriginalString->Buffer[0]));
+        status = RTL_ALLOCATE(&newString.Buffer, wchar16_t, pOriginalString->Length + sizeof(pOriginalString->Buffer[0]));
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
         newString.Length = pOriginalString->Length;
@@ -173,7 +179,7 @@ cleanup:
 
     *pNewString = newString;
 
-    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    RTL_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -185,7 +191,7 @@ RtlAnsiStringDuplicate(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_ANSI_STRING newString = { 0 };
+    ANSI_STRING newString = { 0 };
 
     if (!pOriginalString || !pNewString)
     {
@@ -197,7 +203,7 @@ RtlAnsiStringDuplicate(
     {
         // Add a NULL anyhow.
 
-        status = IO_ALLOCATE(&newString.Buffer, CHAR, pOriginalString->Length + sizeof(pOriginalString->Buffer[0]));
+        status = RTL_ALLOCATE(&newString.Buffer, CHAR, pOriginalString->Length + sizeof(pOriginalString->Buffer[0]));
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
         newString.Length = pOriginalString->Length;
@@ -215,7 +221,7 @@ cleanup:
 
     *pNewString = newString;
 
-    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    RTL_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -238,7 +244,7 @@ RtlWC16StringDuplicate(
 
     size = (wc16slen(pszOriginalString) + 1) * sizeof(pszOriginalString[0]);
 
-    status = IO_ALLOCATE(&pszNewString, wchar16_t, size);
+    status = RTL_ALLOCATE(&pszNewString, wchar16_t, size);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     memcpy(pszNewString, pszOriginalString, size);
@@ -246,12 +252,12 @@ RtlWC16StringDuplicate(
 cleanup:
     if (status)
     {
-        IO_FREE(&pszNewString);
+        RTL_FREE(&pszNewString);
     }
 
     *ppszNewString = pszNewString;
 
-    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    RTL_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -274,7 +280,7 @@ RtlCStringDuplicate(
 
     size = (strlen(pszOriginalString) + 1) * sizeof(pszOriginalString[0]);
 
-    status = IO_ALLOCATE(&pszNewString, CHAR, size);
+    status = RTL_ALLOCATE(&pszNewString, CHAR, size);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     memcpy(pszNewString, pszOriginalString, size);
@@ -282,12 +288,12 @@ RtlCStringDuplicate(
 cleanup:
     if (status)
     {
-        IO_FREE(&pszNewString);
+        RTL_FREE(&pszNewString);
     }
 
     *ppszNewString = pszNewString;
 
-    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    RTL_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -340,15 +346,15 @@ cleanup:
 }
 
 // XXX - HACK!!!
-#define IOP_STRING_LOG_COUNT 1000
+#define RTLP_STRING_LOG_COUNT 1000
 
-typedef struct _IOP_STRING_LOG_DATA {
+typedef struct _RTLP_STRING_LOG_DATA {
     ULONG NextIndex;
-    PSTR ppszString[IOP_STRING_LOG_COUNT];
-} IOP_STRING_LOG_DATA, *PIOP_STRING_LOG_DATA;
+    PSTR ppszString[RTLP_STRING_LOG_COUNT];
+} RTLP_STRING_LOG_DATA, *PRTLP_STRING_LOG_DATA;
 
-IOP_STRING_LOG_DATA gpRtlStringLogData = { 0 };
-#define IOP_STRING_NULL_TEXT "<null>"
+RTLP_STRING_LOG_DATA gpRtlStringLogData = { 0 };
+#define RTLP_STRING_NULL_TEXT "<null>"
 
 static
 BOOLEAN
@@ -401,7 +407,7 @@ RtlUnicodeStringToLog(
     }
     else
     {
-        IO_UNICODE_STRING tempString = { 0 };
+        UNICODE_STRING tempString = { 0 };
         RtlUnicodeStringDuplicate(&tempString, pString);
         pszOutput = RtlWC16StringToLog(tempString.Buffer);
         RtlUnicodeStringFree(&tempString);
@@ -423,7 +429,7 @@ RtlAnsiStringToLog(
     }
     else
     {
-        IO_ANSI_STRING tempString = { 0 };
+        ANSI_STRING tempString = { 0 };
         RtlAnsiStringDuplicate(&tempString, pString);
         pszOutput = RtlpStringLogRotate(tempString.Buffer ? strdup(tempString.Buffer) : NULL);
         RtlAnsiStringFree(&tempString);
@@ -453,10 +459,10 @@ RtlpStringLogRotate(
     }
     gpRtlStringLogData.ppszString[gpRtlStringLogData.NextIndex] = pszString;
     gpRtlStringLogData.NextIndex++;
-    if (gpRtlStringLogData.NextIndex >= IOP_STRING_LOG_COUNT)
+    if (gpRtlStringLogData.NextIndex >= RTLP_STRING_LOG_COUNT)
     {
         gpRtlStringLogData.NextIndex = 0;
     }
-    return pszString ? pszString : IOP_STRING_NULL_TEXT;
+    return pszString ? pszString : RTLP_STRING_NULL_TEXT;
 }
 

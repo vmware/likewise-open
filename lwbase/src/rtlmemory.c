@@ -1,5 +1,10 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
- * Copyright (c) Likewise Software.  All rights Reserved.
+ * Copyright Likewise Software
+ * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,71 +29,55 @@
  */
 
 /*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
  * Module Name:
  *
- *        memory.h
+ *        rtlmemory.c
  *
  * Abstract:
  *
- *        Memory utilities
+ *        Likewise Memory Utilities
  *
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
 
 #include "includes.h"
 
-NTSTATUS
-RtlAllocateMemory(
-    size_t size,
-    PVOID* ppMemory
+VOID
+RtlMemoryZero(
+    IN OUT PVOID pMemory,
+    IN size_t Size
     )
 {
-    NTSTATUS ntStatus = 0;
-    PVOID pMemory = NULL;
-
-    if (!(pMemory = malloc(size)))
-    {
-        ntStatus = STATUS_NO_MEMORY;
-    }
-    else
-    {
-        memset(pMemory, 0, size);
-    }
-
-    *ppMemory = pMemory;
-
-    return ntStatus;
+    memset(pMemory, 0, Size);
 }
 
-NTSTATUS
-RtlReallocMemory(
-    PVOID  pMemory,
-    PVOID* ppNewMemory,
-    size_t size
+PVOID
+RtlMemoryAllocate(
+    IN size_t Size
     )
 {
-    NTSTATUS ntStatus = 0;
-    PVOID pNewMemory = NULL;
+    PVOID pMemory = NULL;
 
-    pNewMemory = (pMemory ? malloc(size) : realloc(pMemory, size));
-    if (!pNewMemory)
+    // TODO-Document behavior for Size == 0.
+    assert(Size > 0);
+
+    // Note -- If this allocator changes, need to change iostring routines.
+    pMemory = malloc(Size);
+    if (pMemory)
     {
-        ntStatus = STATUS_NO_MEMORY;
-    }
-    else if (!pMemory)
-    {
-        memset(pNewMemory, 0, size);
+        memset(pMemory, 0, Size);
     }
 
-    *ppNewMemory = pNewMemory;
-
-    return ntStatus;
+    return pMemory;
 }
 
 VOID
-RtlFreeMemory(
-    PVOID pMemory
+RtlMemoryFree(
+    IN OUT PVOID pMemory
     )
 {
+    assert(pMemory);
     free(pMemory);
 }
-
