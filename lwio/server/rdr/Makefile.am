@@ -1,7 +1,6 @@
 lib_LTLIBRARIES = librdr.sys.la
 
 librdr_sys_la_SOURCES = \
-    callnp.c              \
     client_reaper.c       \
     client_session.c      \
     client_socket.c       \
