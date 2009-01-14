@@ -12,7 +12,6 @@ lwiod_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 lwiod_LDADD = \
-    @top_builddir@/server/iomgr/libiomgr.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/logging_r/liblwiolog_r.la  \
     @NETLOGON_LIBS@ \
