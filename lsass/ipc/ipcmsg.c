@@ -403,7 +403,7 @@ LsaRecvCreds(
     {
         /* Set up area to receive dummy payload */
         payload_vec.iov_base = &payload;
-        payload_vec.iov_len = sizeof(payload);
+        payload_vec.iov_len = 1;
         msg.msg_iov = &payload_vec;
         msg.msg_iovlen = 1;
 
