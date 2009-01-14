@@ -1820,6 +1820,10 @@ AD_FilterNullEntries(
             ppEntries[sOutput++] = ppEntries[sInput];
         }
     }
+    for (sInput = sOutput; sInput < *psCount; sInput++)
+    {
+        ppEntries[sInput] = (PLSA_SECURITY_OBJECT)-1;
+    }
 
     *psCount = sOutput;
 }
@@ -3444,7 +3448,7 @@ cleanup:
     // because there is a goto cleanup above.
     if (dwError)
     {
-        LsaDbSafeFreeObjectList(sCount, &ppResults);
+        LsaDbSafeFreeObjectList(sResultsCount, &ppResults);
         sResultsCount = 0;
     }
     else
