@@ -3,7 +3,6 @@ noinst_LTLIBRARIES = libiomgr.la
 libiomgr_la_SOURCES = \
     globals.c \
     libmain.c \
-    ntvfs.c   \
     vfs_provider.c
 
 libiomgr_la_CPPFLAGS = \

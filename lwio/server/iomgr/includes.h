@@ -70,7 +70,6 @@
 
 #include "defs.h"
 #include "structs.h"
-#include "ntvfs.h"
 #include "vfs_provider.h"
 
 #include "externs.h"
