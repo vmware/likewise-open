@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -177,13 +177,15 @@ error:
 struct group *LsaNssGetGrGid(gid_t gid)
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_GROUP_INFO_1 pInfo = NULL;
     const DWORD dwInfoLevel = 1;
     struct group *pResult = NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaFindGroupById(
                 hLsaConnection,
@@ -209,10 +211,6 @@ cleanup:
 		dwInfoLevel,
                 (PVOID)pInfo);
     }
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
 
     if (dwError != LSA_ERROR_SUCCESS)
     {
@@ -221,6 +219,11 @@ cleanup:
     return pResult;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }
@@ -228,13 +231,15 @@ error:
 struct group *LsaNssGetGrNam(PCSTR pszName)
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_GROUP_INFO_1 pInfo = NULL;
     const DWORD dwInfoLevel = 1;
     struct group *pResult = NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaFindGroupByName(
                 hLsaConnection,
@@ -260,10 +265,6 @@ cleanup:
                 dwInfoLevel,
                 pInfo);
     }
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
 
     if (dwError != LSA_ERROR_SUCCESS)
     {
@@ -272,6 +273,11 @@ cleanup:
     return pResult;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }
@@ -283,13 +289,15 @@ LsaNssGetGrAcct(
         )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_GROUP_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
     struct group *pResult = NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (iType == 0)
     {
@@ -333,10 +341,6 @@ cleanup:
                 dwInfoLevel,
                 pInfo);
     }
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
 
     if (dwError != LSA_ERROR_SUCCESS)
     {
@@ -345,6 +349,11 @@ cleanup:
     return pResult;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }
@@ -355,7 +364,6 @@ LsaNssGetGrSet(
         )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     DWORD dwGroupCount = 0;
     gid_t* pGids = NULL;
     char szGidNumBuf[16];
@@ -365,8 +373,11 @@ LsaNssGetGrSet(
     // Do not free
     PSTR pszPos = NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaGetGidsForUserByName(
             hLsaConnection,
@@ -403,10 +414,6 @@ LsaNssGetGrSet(
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pGids);
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
     if (dwError != LSA_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
@@ -416,6 +423,12 @@ cleanup:
 error:
 
     LSA_SAFE_FREE_MEMORY(pszResult);
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
+
     goto cleanup;
 }
 
@@ -838,6 +851,6 @@ cleanup:
     return dwError;
 
 error:
-    
+
     goto cleanup;
 }

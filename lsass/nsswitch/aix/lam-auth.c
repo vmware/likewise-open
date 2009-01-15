@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -41,7 +41,6 @@ LsaNssNormalizeUsername(
     DWORD dwError = LSA_ERROR_SUCCESS;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     uint64_t qwConvert = 0;
     int iDigit = 0;
     PSTR pszPos = NULL;
@@ -52,8 +51,11 @@ LsaNssNormalizeUsername(
         goto cleanup;
     }
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaFindUserByName(
                 hLsaConnection,
@@ -122,6 +124,13 @@ cleanup:
 error:
 
     *pszOutput = 0;
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
+
     goto cleanup;
 }
 
@@ -135,15 +144,17 @@ LsaNssAuthenticate(
 {
     int iError = 0;
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
 
     LSA_LOG_PAM_DEBUG("Lsass LAM authenticating user [%s]",
             pszUser? pszUser: "(null)");
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaNssFindUserByAixName(
                 hLsaConnection,
@@ -178,10 +189,6 @@ cleanup:
                 dwInfoLevel,
                 pInfo);
     }
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
 
     switch(dwError)
     {
@@ -207,7 +214,12 @@ cleanup:
     return iError;
 
 error:
-    
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
+
     goto cleanup;
 }
 
@@ -219,7 +231,6 @@ LsaNssIsPasswordExpired(
 {
     PLSA_USER_INFO_2 pInfo = NULL;
     const DWORD dwInfoLevel = 2;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     DWORD dwError = LSA_ERROR_SUCCESS;
     int iError = 0;
 
@@ -227,8 +238,11 @@ LsaNssIsPasswordExpired(
             pszUser? pszUser: "(null)");
     *ppszMessage = NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaNssFindUserByAixName(
                 hLsaConnection,
@@ -267,10 +281,6 @@ cleanup:
                 dwInfoLevel,
                 (PVOID)pInfo);
     }
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
     switch(dwError)
     {
         case LSA_ERROR_SUCCESS:
@@ -291,6 +301,11 @@ cleanup:
     return iError;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }
@@ -305,12 +320,14 @@ LsaNssChangePassword(
     DWORD dwError = LSA_ERROR_SUCCESS;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
-    HANDLE hLsaConnection = (HANDLE)NULL;
 
     *ppszError = NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaNssFindUserByAixName(
                 hLsaConnection,
@@ -334,10 +351,6 @@ cleanup:
                 dwInfoLevel,
                 (PVOID)pInfo);
     }
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
     if(dwError != LSA_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
@@ -346,6 +359,11 @@ cleanup:
     return 0;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = NULL;
+    }
 
     goto cleanup;
 }

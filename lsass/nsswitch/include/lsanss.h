@@ -282,12 +282,6 @@ LsaNssCommonNetgroupFindByName(
     );
 
 NSS_STATUS
-LsaNssCommonNetgroupFindByNameAIX(
-    PCSTR pszName,
-    PSTR* ppszValue
-    );
-
-NSS_STATUS
 LsaNssCommonNetgroupParse(
     PSTR* ppszCursor,
     LSA_NSS_NETGROUP_ENTRY_TYPE* pType,

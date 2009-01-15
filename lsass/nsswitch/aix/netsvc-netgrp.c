@@ -45,6 +45,7 @@
  *
  */
 
+#include "includes.h"
 #include "lsanss.h"
 
 typedef struct _LSA_NSS_NETGROUP_LIST
@@ -190,7 +191,8 @@ LsaNssIrsNetgroupExpand(
     {
         LsaNssPopNetgroup(&pPrivate->pExpand, &pszGroup);
 
-        status = LsaNssCommonNetgroupFindByNameAIX(
+        status = LsaNssCommonNetgroupFindByName(
+            &hLsaConnection,
             pszGroup,
             &pszContents);
         if (status == NSS_STATUS_NOTFOUND)
@@ -304,7 +306,8 @@ LsaNssIrsNetgroupSetnetgrent(
     NSS_STATUS status = NSS_STATUS_SUCCESS;
     PSTR pGroupContents = NULL;
 
-    status = LsaNssCommonNetgroupFindByNameAIX(
+    status = LsaNssCommonNetgroupFindByName(
+        &hLsaConnection,
         pszGroup,
         &pGroupContents);
     BAIL_ON_NSS_ERROR(status);
