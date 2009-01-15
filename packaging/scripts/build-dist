@@ -3,6 +3,7 @@
 BASEDIR=`dirname $0`/../..
 RELEASE=""
 DIRS="\
+	lwbase \
 	krb5 \
 	openldap \
 	lwmsg \
@@ -17,7 +18,8 @@ DIRS="\
 	libunistr \
 	lsass \
 	netlogon \
-	lsmb \
+	lwio \
+	srvsvc \
 	build \
 	config \
 	packaging \

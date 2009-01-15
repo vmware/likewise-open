@@ -3,19 +3,21 @@
 COMPONENTS="\
 	krb5 \
 	openldap \
+	libunistr \
+	lwbase \
         lwmsg \
 	centutils \
 	sqlite \
-	libunistr \
 	pstore \
 	netlogon \
-        lsmb \
+        lwio \
 	libkeytab \
 	libgss \
 	dcerpc \
 	librpc \
 	eventlog \
 	lsass \
+	srvsvc \
 	lwdns \
 	domainjoin \
 	"

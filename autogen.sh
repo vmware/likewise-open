@@ -19,6 +19,7 @@
 ##
 
 DIRS="\
+	lwbase \
 	centutils \
 	domainjoin \
 	eventlog \
@@ -29,10 +30,11 @@ DIRS="\
 	lsass \
 	netlogon \
 	lwmsg \
-	lsmb \
+	lwio \
 	pstore \
 	dcerpc \
 	lwdns \
+	srvsvc \
 	"
 for d in ${DIRS}; do
     echo "::: Running autogen in ${d}"
