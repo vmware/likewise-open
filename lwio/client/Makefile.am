@@ -2,31 +2,12 @@ lib_LTLIBRARIES = liblwioclient_nothr.la liblwioclient.la
 
 liblwioclient_nothr_la_SOURCES = \
     access.c               \
-    callnp.c               \
-    closehandle.c          \
     config.c               \
     connect.c              \
-    connectnp.c            \
-    createfile.c           \
-    createnp.c             \
-    disconnectnp.c         \
-    getnpclientcompname.c  \
-    getnpclientprocid.c    \
-    getnpclientsessid.c    \
-    getnpinfo.c            \
-    getnpserverprocid.c    \
     globals.c              \
-    handle.c               \
-    handlestate.c          \
     libmain.c              \
     logging.c              \
-    ntfileapiipc.c         \
-    peeknp.c               \
-    readfile.c             \
-    transactnp.c           \
-    waitnp.c               \
-    writefile.c            \
-    getsesskey.c 
+    ntfileapictx.c
 
 liblwioclient_nothr_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
@@ -42,7 +23,7 @@ liblwioclient_nothr_la_LIBADD = \
     @top_builddir@/ipc/liblwioipc.la
 
 liblwioclient_la_SOURCES = \
-    context.c              \
+    thread.c               \
     ntfileapi.c            \
     win32.c
 

@@ -95,7 +95,7 @@ main(
     dwError = ParseArgs(argc, argv, &logLevel);
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBInitialize();
+    dwError = LwIoInitialize();
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = LwIoOpenContext(&pContext);
@@ -127,7 +127,7 @@ cleanup:
         LwIoCloseContext(pContext);
     }
 
-    SMBShutdown();
+    LwIoShutdown();
 
     return (dwError);
 

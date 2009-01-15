@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -369,7 +369,7 @@ cleanup:
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 LwNtCtxDeviceIoControlFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -510,7 +510,7 @@ cleanup:
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 LwNtCtxQueryInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -556,7 +556,7 @@ cleanup:
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 LwNtCtxSetInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -616,7 +616,7 @@ LwNtCtxQueryFullAttributesFile(
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
-NTSTATUS 
+NTSTATUS
 LwNtCtxQueryDirectoryFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -653,7 +653,7 @@ LwNtCtxSetVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     );
 
-NTSTATUS 
+NTSTATUS
 LwNtCtxLockFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -666,7 +666,7 @@ LwNtCtxLockFile(
     IN BOOLEAN ExclusiveLock
     );
 
-NTSTATUS 
+NTSTATUS
 LwNtCtxUnlockFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -756,7 +756,7 @@ LwNtCtxQuerySecurityFile(
     OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
-    ); 
+    );
 
 NTSTATUS
 LwNtCtxSetSecurityFile(
@@ -766,7 +766,7 @@ LwNtCtxSetSecurityFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    ); 
+    );
 
 // TODO: QueryEaFile and SetEaFile.
 

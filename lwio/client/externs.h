@@ -33,42 +33,19 @@
 
 extern LWMsgProtocol* gpSMBProtocol;
 
-DWORD
-SMBGetClientContext(
-    PSMB_CLIENT_CONTEXT* ppContext
+NTSTATUS
+LwIoGetThreadState(
+    PIO_THREAD_STATE* ppState
     );
 
-DWORD
-SMBAcquireConnection(
+NTSTATUS
+LwIoAcquireContext(
     OUT PIO_CONTEXT pConnection
     );
 
-VOID
-SMBReleaseConnection(
+NTSTATUS
+LwIoReleaseContext(
     IN OUT PIO_CONTEXT pConnection
-    );
-
-DWORD
-SMBAcquireState(
-    OUT PIO_CONTEXT pConnection,
-    OUT PSMB_CLIENT_CONTEXT* ppContext
-    );
-
-VOID
-SMBReleaseState(
-    IN OUT PIO_CONTEXT pConnection,
-    IN OUT PSMB_CLIENT_CONTEXT pContext
-    );
-
-DWORD
-SMBAPIHandleGetSecurityToken(
-    HANDLE hHandle,
-    PIO_ACCESS_TOKEN* ppSecurityToken
-    );
-
-DWORD
-SMBAPIHandleFreeSecurityToken(
-    HANDLE hHandle
     );
 
 #endif /* __EXTERNS_H__ */

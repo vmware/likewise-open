@@ -30,142 +30,256 @@
 
 #include "includes.h"
 
-DWORD
-SMBCreatePlainAccessTokenA(
+NTSTATUS
+LwIoCreatePlainAccessTokenA(
     PCSTR pszUsername,
     PCSTR pszPassword,
-    PHANDLE phAccessToken
+    PIO_ACCESS_TOKEN* ppAccessToken
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS Status = STATUS_SUCCESS;
     PWSTR pwszUsername = NULL;
     PWSTR pwszPassword = NULL;
     
-    dwError = SMBMbsToWc16s(pszUsername, &pwszUsername);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwRtlWC16StringAllocateFromCString(&pwszUsername, pszUsername);
+    BAIL_ON_NT_STATUS(Status);
 
-    dwError = SMBMbsToWc16s(pszPassword, &pwszPassword);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwRtlWC16StringAllocateFromCString(&pwszPassword, pszPassword);
+    BAIL_ON_NT_STATUS(Status);
 
-    dwError = SMBCreatePlainAccessTokenW(pwszUsername, pwszPassword, phAccessToken);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwIoCreatePlainAccessTokenW(pwszUsername, pwszPassword, ppAccessToken);
+    BAIL_ON_NT_STATUS(Status);
 
 error:
     
-    SMB_SAFE_FREE_MEMORY(pwszUsername);
-    SMB_SAFE_FREE_MEMORY(pwszPassword);
+    IO_SAFE_FREE_MEMORY(pwszUsername);
+    IO_SAFE_FREE_MEMORY(pwszPassword);
 
-    return dwError;
+    return Status;
 }
 
-DWORD
-SMBCreatePlainAccessTokenW(
+NTSTATUS
+LwIoCreatePlainAccessTokenW(
     PCWSTR pwszUsername,
     PCWSTR pwszPassword,
-    PHANDLE phAccessToken
+    PIO_ACCESS_TOKEN* ppAccessToken
     )
 {
-    DWORD dwError = 0;
-    PSMB_API_HANDLE pAPIHandle = NULL;
-    PIO_ACCESS_TOKEN pSecurityToken = NULL;
+    NTSTATUS Status = STATUS_SUCCESS;
+    PIO_ACCESS_TOKEN pAccessToken = NULL;
 
-    dwError = SMBAllocateMemory(sizeof(*pAPIHandle), (void**) (void*) &pAPIHandle);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
+    BAIL_ON_NT_STATUS(Status);
 
-    pAPIHandle->type = SMB_API_HANDLE_ACCESS;
-
-    pSecurityToken = &pAPIHandle->variant.securityToken;
+    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_PLAIN;
     
-    pSecurityToken->type = IO_ACCESS_TOKEN_TYPE_PLAIN;
+    Status = RtlWC16StringDuplicate(
+        &pAccessToken->payload.plain.pwszUsername,
+        pwszUsername);
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = RtlWC16StringDuplicate(
+        &pAccessToken->payload.plain.pwszPassword,
+        pwszPassword);
+    BAIL_ON_NT_STATUS(Status);
     
-    dwError = SMBWc16sDup(pwszUsername, &pSecurityToken->payload.plain.pwszUsername);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    dwError = SMBWc16sDup(pwszPassword, &pSecurityToken->payload.plain.pwszPassword);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    *phAccessToken = (HANDLE) pAPIHandle;
+    *ppAccessToken = pAccessToken;
     
 cleanup:
 
-    return dwError;
+    return Status;
 
 error:
 
-    if (pAPIHandle)
+    if (pAccessToken)
     {
-        SMBCloseHandle(NULL, pAPIHandle);
+        LwIoDeleteAccessToken(pAccessToken);
     }
 
     goto cleanup;
 }
 
-DWORD
-SMBCreateKrb5AccessTokenA(
+NTSTATUS
+LwIoCreateKrb5AccessTokenA(
     PCSTR pszPrincipal,
     PCSTR pszCachePath,
-    PHANDLE phAccessToken
+    PIO_ACCESS_TOKEN* ppAccessToken
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS Status = STATUS_SUCCESS;
     PWSTR pwszPrincipal = NULL;
     PWSTR pwszCachePath = NULL;
     
-    dwError = SMBMbsToWc16s(pszPrincipal, &pwszPrincipal);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwRtlWC16StringAllocateFromCString(&pwszPrincipal, pszPrincipal);
+    BAIL_ON_NT_STATUS(Status);
 
-    dwError = SMBMbsToWc16s(pszCachePath, &pwszCachePath);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwRtlWC16StringAllocateFromCString(&pwszCachePath, pszCachePath);
+    BAIL_ON_NT_STATUS(Status);
 
-    dwError = SMBCreateKrb5AccessTokenW(pwszPrincipal, pwszCachePath, phAccessToken);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwIoCreatePlainAccessTokenW(pwszPrincipal, pwszCachePath, ppAccessToken);
+    BAIL_ON_NT_STATUS(Status);
 
 error:
     
-    SMB_SAFE_FREE_MEMORY(pwszPrincipal);
-    SMB_SAFE_FREE_MEMORY(pwszCachePath);
+    IO_SAFE_FREE_MEMORY(pwszPrincipal);
+    IO_SAFE_FREE_MEMORY(pwszCachePath);
 
-    return dwError;
+    return Status;
 }
 
-DWORD
-SMBCreateKrb5AccessTokenW(
+NTSTATUS
+LwIoCreateKrb5AccessTokenW(
     PCWSTR pwszPrincipal,
     PCWSTR pwszCachePath,
-    PHANDLE phAccessToken
+    PIO_ACCESS_TOKEN* ppAccessToken
     )
 {
-    DWORD dwError = 0;
-    PSMB_API_HANDLE pAPIHandle = NULL;
-    PIO_ACCESS_TOKEN pSecurityToken = NULL;
+    NTSTATUS Status = STATUS_SUCCESS;
+    PIO_ACCESS_TOKEN pAccessToken = NULL;
 
-    dwError = SMBAllocateMemory(sizeof(*pAPIHandle), (void**) (void*) &pAPIHandle);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
+    BAIL_ON_NT_STATUS(Status);
 
-    pAPIHandle->type = SMB_API_HANDLE_ACCESS;
+    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_PLAIN;
 
-    pSecurityToken = &pAPIHandle->variant.securityToken;
+    Status = RtlWC16StringDuplicate(
+        &pAccessToken->payload.krb5.pwszPrincipal,
+        pwszPrincipal);
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = RtlWC16StringDuplicate(
+        &pAccessToken->payload.krb5.pwszCachePath,
+        pwszCachePath);
+    BAIL_ON_NT_STATUS(Status);
     
-    pSecurityToken->type = IO_ACCESS_TOKEN_TYPE_KRB5;
-    
-    dwError = SMBWc16sDup(pwszPrincipal, &pSecurityToken->payload.krb5.pwszPrincipal);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    dwError = SMBWc16sDup(pwszCachePath, &pSecurityToken->payload.krb5.pwszCachePath);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    *phAccessToken = (HANDLE) pAPIHandle;
+    *ppAccessToken = pAccessToken;
     
 cleanup:
 
-    return dwError;
+    return Status;
 
 error:
 
-    if (pAPIHandle)
+    if (pAccessToken)
     {
-        SMBCloseHandle(NULL, pAPIHandle);
+        LwIoDeleteAccessToken(pAccessToken);
     }
 
     goto cleanup;
+}
+
+
+NTSTATUS
+LwIoCopyAccessToken(
+    PIO_ACCESS_TOKEN pAccessToken,
+    PIO_ACCESS_TOKEN* ppAccessTokenCopy
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    PIO_ACCESS_TOKEN pAccessTokenCopy = NULL;
+
+    if (pAccessToken)
+    {
+        Status = LwIoAllocateMemory(sizeof(*pAccessTokenCopy), OUT_PPVOID(&pAccessTokenCopy));
+        BAIL_ON_NT_STATUS(Status);
+
+        pAccessTokenCopy->type = pAccessToken->type;
+
+        switch (pAccessToken->type)
+        {
+        case IO_ACCESS_TOKEN_TYPE_PLAIN:
+            Status = RtlWC16StringDuplicate(
+                &pAccessTokenCopy->payload.plain.pwszUsername,
+                pAccessToken->payload.plain.pwszUsername);
+            BAIL_ON_NT_STATUS(Status);
+            Status = RtlWC16StringDuplicate(
+                &pAccessTokenCopy->payload.plain.pwszPassword,
+                pAccessToken->payload.plain.pwszPassword);
+            BAIL_ON_NT_STATUS(Status);
+            break;
+        case IO_ACCESS_TOKEN_TYPE_KRB5:
+            Status = RtlWC16StringDuplicate(
+                &pAccessTokenCopy->payload.krb5.pwszPrincipal,
+                pAccessToken->payload.krb5.pwszPrincipal);
+            BAIL_ON_NT_STATUS(Status);
+            Status = RtlWC16StringDuplicate(
+                &pAccessTokenCopy->payload.krb5.pwszCachePath,
+                pAccessToken->payload.krb5.pwszCachePath);
+            BAIL_ON_NT_STATUS(Status);
+            break;
+        }
+
+        *ppAccessTokenCopy = pAccessTokenCopy;
+    }
+    else
+    {
+        *ppAccessTokenCopy = NULL;
+    }
+    
+cleanup:
+
+    return Status;
+
+error:
+
+    if (pAccessTokenCopy)
+    {
+        LwIoDeleteAccessToken(pAccessTokenCopy);
+    }
+
+    goto cleanup;
+}
+
+VOID
+LwIoDeleteAccessToken(
+    PIO_ACCESS_TOKEN pAccessToken
+    )
+{
+    if (pAccessToken)
+    {
+        switch (pAccessToken->type)
+        {
+        case IO_ACCESS_TOKEN_TYPE_PLAIN:
+            IO_SAFE_FREE_MEMORY(pAccessToken->payload.plain.pwszUsername);
+            IO_SAFE_FREE_MEMORY(pAccessToken->payload.plain.pwszPassword);
+            break;
+        case IO_ACCESS_TOKEN_TYPE_KRB5:
+            IO_SAFE_FREE_MEMORY(pAccessToken->payload.krb5.pwszPrincipal);
+            IO_SAFE_FREE_MEMORY(pAccessToken->payload.krb5.pwszCachePath);
+            break;
+        }
+
+        LwIoFreeMemory(pAccessToken);
+    }
+}
+
+BOOLEAN
+LwIoCompareAccessTokens(
+    PIO_ACCESS_TOKEN pAccessTokenOne,
+    PIO_ACCESS_TOKEN pAccessTokenTwo
+    )
+{
+    if (pAccessTokenOne == NULL && pAccessTokenTwo == NULL)
+    {
+        return TRUE;
+    }
+    else if (pAccessTokenOne != NULL && pAccessTokenTwo != NULL &&
+             pAccessTokenOne->type == pAccessTokenTwo->type)
+    {
+        switch (pAccessTokenOne->type)
+        {
+        case IO_ACCESS_TOKEN_TYPE_PLAIN:
+            return (!SMBWc16sCmp(pAccessTokenOne->payload.plain.pwszUsername,
+                                 pAccessTokenTwo->payload.plain.pwszUsername) &&
+                    !SMBWc16sCmp(pAccessTokenOne->payload.plain.pwszPassword,
+                                 pAccessTokenTwo->payload.plain.pwszPassword));
+        case IO_ACCESS_TOKEN_TYPE_KRB5:
+            return (!SMBWc16sCmp(pAccessTokenOne->payload.krb5.pwszPrincipal,
+                                 pAccessTokenTwo->payload.krb5.pwszPrincipal) &&
+                    !SMBWc16sCmp(pAccessTokenOne->payload.krb5.pwszCachePath,
+                                 pAccessTokenTwo->payload.krb5.pwszCachePath));
+        }
+    }
+
+    return FALSE;
 }

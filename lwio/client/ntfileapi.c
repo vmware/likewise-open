@@ -44,82 +44,6 @@
 
 #include "includes.h"
 
-// TODO-Clean up security token API a little.
-static
-NTSTATUS
-NtpGetSecurityToken(
-    OUT LW_PIO_ACCESS_TOKEN* ppSecurityToken
-    )
-{
-    NTSTATUS status = 0;
-    int EE = 0;
-    DWORD dwError = 0;
-    PSMB_CLIENT_CONTEXT pClientContext = NULL;
-    LW_PIO_ACCESS_TOKEN pSecurityToken = NULL;
-    
-    dwError = SMBGetClientContext(&pClientContext);
-    if (dwError)
-    {
-        SMB_LOG_ERROR("Failed to get client context (dwError = %u)", dwError);
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-    dwError = SMBAPIHandleGetSecurityToken(pClientContext->hAccessToken, &pSecurityToken);
-    if (dwError)
-    {
-        SMB_LOG_ERROR("Failed to get security token (dwError = %u)", dwError);
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-cleanup:
-    *ppSecurityToken = pSecurityToken;
-
-    LOG_LEAVE_IF_STATUS_EE(status, EE);
-    return status;
-}
-
-static
-NTSTATUS
-NtpAcquireConnection(
-    OUT PIO_CONTEXT pConnection
-    )
-{
-    NTSTATUS status = 0;
-    int EE = 0;
-    DWORD dwError = 0;
-    IO_CONTEXT connection = { 0 };
-
-    dwError = SMBAcquireConnection(&connection);
-    if (dwError)
-    {
-        SMB_LOG_ERROR("Failed to acquire connection (dwError = %u)", dwError);
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-cleanup:
-    if (status)
-    {
-        SMBReleaseConnection(&connection);
-    }
-
-    *pConnection = connection;
-
-    LOG_LEAVE_IF_STATUS_EE(status, EE);
-    return status;
-}
-
-static
-VOID
-NtpReleaseConnection(
-    IN OUT PIO_CONTEXT pConnection
-    )
-{
-    SMBReleaseConnection(pConnection);
-}
-
 static
 VOID
 NtpInitializeIoStatusBlock(
@@ -164,22 +88,22 @@ NtCreateFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
     LW_PIO_ACCESS_TOKEN pSecurityToken = NULL;
 
     *FileHandle = NULL;
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtpGetSecurityToken(&pSecurityToken);
+    status = LwIoGetThreadAccessToken(&pSecurityToken);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxCreateFile(
-                    &connection,
+                    &context,
                     pSecurityToken,
                     FileHandle,
                     AsyncControlBlock,
@@ -196,7 +120,7 @@ NtCreateFile(
                     SecurityQualityOfService);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 
@@ -207,17 +131,17 @@ NtCloseFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxCloseFile(
-                    &connection,
+                    &context,
                     FileHandle);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 
@@ -234,16 +158,16 @@ NtReadFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxReadFile(
-                    &connection,
+                    &context,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,
@@ -253,7 +177,7 @@ NtReadFile(
                     Key);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 
@@ -270,16 +194,16 @@ NtWriteFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxWriteFile(
-                    &connection,
+                    &context,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,
@@ -289,7 +213,7 @@ NtWriteFile(
                     Key);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 
@@ -307,16 +231,16 @@ NtDeviceIoControlFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxDeviceIoControlFile(
-                    &connection,
+                    &context,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,
@@ -327,7 +251,7 @@ NtDeviceIoControlFile(
                     OutputBufferLength);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 
@@ -345,16 +269,16 @@ NtFsControlFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxFsControlFile(
-                    &connection,
+                    &context,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,
@@ -365,7 +289,7 @@ NtFsControlFile(
                     OutputBufferLength);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 
@@ -378,22 +302,22 @@ NtFlushBuffersFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxFlushBuffersFile(
-                    &connection,
+                    &context,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 
@@ -409,16 +333,16 @@ NtQueryInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxQueryInformationFile(
-                    &connection,
+                    &context,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,
@@ -427,7 +351,7 @@ NtQueryInformationFile(
                     FileInformationClass);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 
@@ -443,16 +367,16 @@ NtSetInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    IO_CONTEXT connection = { 0 };
+    IO_CONTEXT context = { 0 };
 
     NtpInitializeIoStatusBlock(IoStatusBlock);
 
-    status = NtpAcquireConnection(&connection);
+    status = LwIoAcquireContext(&context);
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = NtCtxSetInformationFile(
-                    &connection,
+                    &context,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,
@@ -461,7 +385,7 @@ NtSetInformationFile(
                     FileInformationClass);
 
 cleanup:
-    NtpReleaseConnection(&connection);
+    LwIoReleaseContext(&context);
     return status;
 }
 

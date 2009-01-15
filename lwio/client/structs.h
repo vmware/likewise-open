@@ -36,37 +36,9 @@ struct __LW_IO_CONTEXT
     LWMsgAssoc* pAssoc;
 };
 
-typedef enum __SMB_API_HANDLE_TYPE
+typedef struct __LW_IO_THREAD_STATE
 {
-    SMB_API_HANDLE_FILE,
-    SMB_API_HANDLE_ACCESS
-} SMB_API_HANDLE_TYPE;
-
-typedef struct __SMB_API_HANDLE
-{
-    SMB_API_HANDLE_TYPE type;
-    union
-    {
-        HANDLE hIPCHandle;
-        IO_ACCESS_TOKEN securityToken;
-    } variant;
-} SMB_API_HANDLE, *PSMB_API_HANDLE;
-
-typedef struct __SMB_CLIENT_CONTEXT
-{
-    HANDLE hAccessToken;
-    DWORD dwLastError;
-    unsigned bSecurityTokenIsPrivate:1;
-} SMB_CLIENT_CONTEXT, *PSMB_CLIENT_CONTEXT;
-
-#define BAIL_IF_NOT_FILE_HANDLE(h)                                      \
-    do                                                                  \
-    {                                                                   \
-        if (((PSMB_API_HANDLE)(h))->type != SMB_API_HANDLE_FILE)        \
-        {                                                               \
-            dwError = SMB_ERROR_INVALID_HANDLE;                         \
-            goto error;                                                 \
-        }                                                               \
-    } while (0)
+    PIO_ACCESS_TOKEN pAccessToken;
+} IO_THREAD_STATE, *PIO_THREAD_STATE;
 
 #endif /* __STRUCTS_H__ */

@@ -268,23 +268,25 @@ typedef struct __SMB_LOG_INFO {
     PSTR         pszPath;
 } SMB_LOG_INFO, *PSMB_LOG_INFO;
 
-DWORD
-SMBInitialize(
+LW_NTSTATUS
+LwIoInitialize(
     VOID
     );
 
+LW_NTSTATUS
+LwIoShutdown(
+    VOID
+    );
 
 LW_NTSTATUS
 LwIoOpenContext(
     LW_PIO_CONTEXT* ppContext
     );
 
-
 DWORD
 SMBRefreshConfiguration(
     HANDLE hConnection
     );
-
 
 DWORD
 SMBBuildLogInfo(
@@ -294,13 +296,11 @@ SMBBuildLogInfo(
     PSMB_LOG_INFO* ppLogInfo
     );
 
-
 DWORD
 SMBSetLogLevel(
     HANDLE      hSMBConnection,
     SMBLogLevel logLevel
     );
-
 
 DWORD
 SMBGetLogInfo(
@@ -308,366 +308,82 @@ SMBGetLogInfo(
     PSMB_LOG_INFO* ppLogInfo
     );
 
-
 DWORD
 SMBSetLogInfo(
     HANDLE        hSMBConnection,
     PSMB_LOG_INFO pLogInfo
     );
 
-
 VOID
 SMBFreeLogInfo(
     PSMB_LOG_INFO pLogInfo
     );
-
 
 LW_NTSTATUS
 LwIoCloseContext(
     LW_PIO_CONTEXT pContext
     );
 
-DWORD
-SMBShutdown(
-    VOID
+LW_NTSTATUS
+LwIoCreatePlainAccessTokenW(
+    LW_PCWSTR pwszUsername,
+    LW_PCWSTR pwszPassword,
+    LW_PIO_ACCESS_TOKEN* ppAccessToken
     );
 
-
-DWORD
-SMBCallNamedPipeA(
-    HANDLE  hConnection,
-    HANDLE  hAccessToken,
-    PCSTR  pszNamedPipeName,
-    PVOID   pInBuffer,
-    DWORD   dwInBufferSize,
-    PVOID   pOutBuffer,
-    DWORD   dwOutBufferSize,
-    PDWORD  pdwBytesRead,
-    DWORD   dwTimeout
-    );
-
-
-DWORD
-SMBCallNamedPipeW(
-    HANDLE  hConnection,
-    HANDLE  hAccessToken,
-    PCWSTR pwszNamedPipeName,
-    PVOID     pInBuffer,
-    DWORD     dwInBufferSize,
-    PVOID     pOutBuffer,
-    DWORD     dwOutBufferSize,
-    PDWORD    pdwBytesRead,
-    DWORD     dwTimeout
-    );
-
-
-DWORD
-SMBCreateNamedPipeA(
-    HANDLE    hConnection,
-    HANDLE    hAccessToken,
-    PCSTR    pwszName,
-    DWORD     dwOpenMode,
-    DWORD     dwPipeMode,
-    DWORD     dwMaxInstances,
-    DWORD     dwOutBufferSize,
-    DWORD     dwInBufferSize,
-    DWORD     dwDefaultTimeOut,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    PHANDLE   phNamedPipe
-    );
-
-
-DWORD
-SMBCreateNamedPipeW(
-    HANDLE    hConnection,
-    HANDLE    hAccessToken,
-    PCWSTR pwszName,
-    DWORD     dwOpenMode,
-    DWORD     dwPipeMode,
-    DWORD     dwMaxInstances,
-    DWORD     dwOutBufferSize,
-    DWORD     dwInBufferSize,
-    DWORD     dwDefaultTimeOut,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    PHANDLE   phNamedPipe
-    );
-
-
-DWORD
-SMBGetNamedPipeInfo(
-    HANDLE hConnection,
-    HANDLE hNamedPipe,
-    PDWORD pdwFlags,
-    PDWORD pdwOutBufferSize,
-    PDWORD pdwInBufferSize,
-    PDWORD pdwMaxInstances
-    );
-
-
-DWORD
-SMBConnectNamedPipe(
-    HANDLE      hConnection,
-    HANDLE      hNamedPipe,
-    POVERLAPPED pOverlapped
-    );
-
-
-DWORD
-SMBTransactNamedPipe(
-    HANDLE      hConnection,
-    HANDLE      hNamedPipe,
-    PVOID       pInBuffer,
-    DWORD       dwInBufferSize,
-    PVOID       pOutBuffer,
-    DWORD       dwOutBufferSize,
-    PDWORD      pdwBytesRead,
-    POVERLAPPED pOverlapped
-    );
-
-
-DWORD
-SMBWaitNamedPipeA(
-    HANDLE hConnection,
-    HANDLE hAccessToken,
-    PCSTR pszNamedPipeName,
-    DWORD  dwTimeOut
-    );
-
-
-DWORD
-SMBWaitNamedPipeW(
-    HANDLE hConnection,
-    HANDLE hAccessToken,
-    PCWSTR pwszNamedPipeName,
-    DWORD     dwTimeOut
-    );
-
-
-DWORD
-SMBGetNamedPipeClientComputerNameA(
-    HANDLE hConnection,
-    HANDLE hNamedPipe,
-    PSTR   pszClientComputerName,
-    DWORD  dwClientComputerNameLength
-    );
-
-
-DWORD
-SMBGetNamedPipeClientComputerNameW(
-    HANDLE   hConnection,
-    HANDLE   hNamedPipe,
-    PWSTR pszClientComputerName,
-    DWORD    dwClientComputerNameLength
-    );
-
-
-DWORD
-SMBGetNamedPipeClientProcessId(
-    HANDLE hConnection,
-    HANDLE hNamedPipe,
-    PDWORD pdwClientProcessId
-    );
-
-
-DWORD
-SMBGetNamedPipeServerProcessId(
-    HANDLE hConnection,
-    HANDLE hNamedPipe,
-    PDWORD pdwServerProcessId
-    );
-
-
-DWORD
-SMBGetNamedPipeClientSessionId(
-    HANDLE hConnection,
-    HANDLE hNamedPipe,
-    PDWORD pdwClientSessionId
-    );
-
-
-DWORD
-SMBPeekNamedPipe(
-    HANDLE hConnection,
-    HANDLE hNamedPipe,
-    PVOID  pInBuffer,
-    DWORD  dwInBufferSize,
-    PDWORD pdwBytesRead,
-    PDWORD pdwTotalBytesAvail,
-    PDWORD pdwBytesLeftThisMessage
-    );
-
-
-DWORD
-SMBDisconnectNamedPipe(
-    HANDLE hConnection,
-    HANDLE hNamedPipe
-    );
-
-
-DWORD
-SMBCreateFileA(
-    HANDLE               hConnection,
-    HANDLE               hAccessToken,
-    PCSTR               pszFileName,
-    DWORD                dwDesiredAccess,
-    DWORD                dwSharedMode,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    DWORD                dwCreationDisposition,
-    DWORD                dwFlagsAndAttributes,
-    HANDLE               hTemplateFile,
-    PHANDLE              phFile
-    );
-
-
-DWORD
-SMBCreateFileW(
-    HANDLE               hConnection,
-    HANDLE               hAccessToken,
-    PCWSTR            pwszFileName,
-    DWORD                dwDesiredAccess,
-    DWORD                dwSharedMode,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    DWORD                dwCreationDisposition,
-    DWORD                dwFlagsAndAttributes,
-    HANDLE               hTemplateFile,
-    PHANDLE              phFile
-    );
-
-
-DWORD
-SMBSetNamedPipeHandleState(
-    HANDLE      hConnection,
-    HANDLE      hPipe,
-    PDWORD      pdwMode,
-    PDWORD      pdwMaxCollectionCount,
-    PDWORD      pdwMaxTimeout
-    );
-
-
-DWORD
-SMBReadFile(
-    HANDLE      hConnection,
-    HANDLE      hFile,
-    PVOID       pBuffer,
-    DWORD       dwNumberOfBytesToRead,
-    PDWORD      pdwBytesRead,
-    POVERLAPPED pOverlapped
-    );
-
-
-DWORD
-SMBWriteFile(
-    HANDLE      hConnection,
-    HANDLE      hFile,
-    PVOID       pBuffer,
-    DWORD       dwNumBytesToWrite,
-    PDWORD      pdwNumBytesWritten,
-    POVERLAPPED pOverlapped
-    );
-
-
-DWORD
-SMBCloseHandle(
-    HANDLE hConnection,
-    HANDLE hFile
-    );
-
-
-DWORD
-SMBGetSessionKey(
-    HANDLE hConnection,
-    HANDLE hFile,
-    PDWORD pdwSessionKeyLength,
-    PBYTE* ppSessionKey
-    );
-
-
-VOID
-SMBFreeSessionKey(
-    PBYTE pSessionKey
-    );
-
-DWORD
-SMBCreatePlainAccessTokenW(
-    PCWSTR pwszUsername,
-    PCWSTR pwszPassword,
-    PHANDLE phAccessToken
-    );
-
-DWORD
-SMBCreatePlainAccessTokenA(
+LW_NTSTATUS
+LwIoCreatePlainAccessTokenA(
     PCSTR pszUsername,
     PCSTR pszPassword,
-    PHANDLE phAccessToken
+    LW_PIO_ACCESS_TOKEN* ppAccessToken
     );
 
-DWORD
-SMBCreateKrb5AccessTokenW(
+LW_NTSTATUS
+LwIoCreateKrb5AccessTokenW(
     PCWSTR pwszPrincipal,
     PCWSTR pwszCachePath,
-    PHANDLE phAccessToken
+    LW_PIO_ACCESS_TOKEN* ppAccessToken
     );
 
-DWORD
-SMBCreateKrb5AccessTokenA(
+LW_NTSTATUS
+LwIoCreateKrb5AccessTokenA(
     PCSTR pszPrincipal,
     PCSTR pszCachePath,
-    PHANDLE phAccessToken
+    LW_PIO_ACCESS_TOKEN* ppAccessToken
     );
 
-DWORD
-SMBCompareHandles(
-    HANDLE hHandleOne,
-    HANDLE hHandleTwo,
-    BOOL* pbEqual
+BOOLEAN
+LwIoCompareAccessTokens(
+    LW_PIO_ACCESS_TOKEN pAccessToken1,
+    LW_PIO_ACCESS_TOKEN pAccessToken2
     );
 
-DWORD
-SMBCopyHandle(
-    HANDLE hHandle,
-    PHANDLE phHandleCopy
+LW_NTSTATUS
+LwIoCopyAccessToken(
+    LW_PIO_ACCESS_TOKEN pAccessToken,
+    LW_PIO_ACCESS_TOKEN * ppCopy
     );
 
-/* Defines for transitional functions */
-#ifdef UNICODE
-#define SMBCallNamedPipe                    SMBCallNamedPipeW
-#define SMBCreateNamedPipe                  SMBCreateNamedPipeW
-#define SMBWaitNamedPipe                    SMBWaitNamedPipeW
-#define SMBGetNamedPipeClientComputerName   SMBGetNamedPipeClientComputerNameW
-#define SMBCreateFile                       SMBCreateFileW
-#define SMBCreatePlainAccessToken           SMBCreatePlainAccessTokenW
-#define SMBCreateKrb5AccessToken            SMBCreateKrb5AccessTokenW
-#else
-#define SMBCallNamedPipe                    SMBCallNamedPipeA
-#define SMBCreateNamedPipe                  SMBCreateNamedPipeA
-#define SMBWaitNamedPipe                    SMBWaitNamedPipeA
-#define SMBGetNamedPipeClientComputerName   SMBGetNamedPipeClientComputerNameA
-#define SMBCreateFile                       SMBCreateFileA
-#define SMBCreatePlainAccessToken           SMBCreatePlainAccessTokenA
-#define SMBCreateKrb5AccessToken            SMBCreateKrb5AccessTokenA
-#endif
+VOID
+LwIoDeleteAccessToken(
+    LW_PIO_ACCESS_TOKEN pAccessToken
+    );
 
-#ifndef SMB_NO_THREADS
+#ifndef LW_NO_THREADS
 
 LW_NTSTATUS
 LwIoOpenContextShared(
     LW_PIO_CONTEXT* ppContext
     );
 
-DWORD
-SMBSetThreadToken(
-    HANDLE hAccessToken
+LW_NTSTATUS
+LwIoSetThreadAccessToken(
+    LW_PIO_ACCESS_TOKEN pToken
     );
 
-DWORD
-SMBGetThreadToken(
-    PHANDLE phAccessToken
-    );
-
-BOOL
-SetThreadToken(
-    PHANDLE phThread,
-    HANDLE hAccessToken
+LW_NTSTATUS
+LwIoGetThreadAccessToken(
+    LW_PIO_ACCESS_TOKEN* ppToken
     );
 
 BOOL
@@ -688,7 +404,6 @@ SetLastError(
     DWORD dwError
     );
 
-
 BOOL
 CallNamedPipeA(
     PCSTR  pszNamedPipeName,
@@ -700,7 +415,6 @@ CallNamedPipeA(
     DWORD   dwTimeout
     );
 
-
 BOOL
 CallNamedPipeW(
     PCWSTR pwszNamedPipeName,
@@ -711,7 +425,6 @@ CallNamedPipeW(
     PDWORD    pdwBytesRead,
     DWORD     dwTimeout
     );
-
 
 HANDLE
 CreateNamedPipeA(
@@ -725,7 +438,6 @@ CreateNamedPipeA(
     PSECURITY_ATTRIBUTES pSecurityAttributes
     );
 
-
 HANDLE
 CreateNamedPipeW(
     PCWSTR pwszName,
@@ -738,7 +450,6 @@ CreateNamedPipeW(
     PSECURITY_ATTRIBUTES pSecurityAttributes
     );
 
-
 BOOL
 GetNamedPipeInfo(
     HANDLE hNamedPipe,
@@ -748,13 +459,11 @@ GetNamedPipeInfo(
     PDWORD pdwMaxInstances
     );
 
-
 BOOL
 ConnectNamedPipe(
     HANDLE      hNamedPipe,
     POVERLAPPED pOverlapped
     );
-
 
 BOOL
 TransactNamedPipe(
@@ -767,20 +476,17 @@ TransactNamedPipe(
     POVERLAPPED pOverlapped
     );
 
-
 BOOL
 WaitNamedPipeA(
     PCSTR pszNamedPipeName,
     DWORD  dwTimeOut
     );
 
-
 BOOL
 WaitNamedPipeW(
     PCWSTR pwszNamedPipeName,
     DWORD     dwTimeOut
     );
-
 
 BOOL
 GetNamedPipeClientComputerNameA(
@@ -797,13 +503,11 @@ GetNamedPipeClientComputerNameW(
     DWORD    dwClientComputerNameLength
     );
 
-
 BOOL
 GetNamedPipeClientProcessId(
     HANDLE hNamedPipe,
     PDWORD pdwClientProcessId
     );
-
 
 BOOL
 GetNamedPipeServerProcessId(
@@ -811,13 +515,11 @@ GetNamedPipeServerProcessId(
     PDWORD pdwServerProcessId
     );
 
-
 BOOL
 GetNamedPipeClientSessionId(
     HANDLE hNamedPipe,
     PDWORD pdwClientSessionId
     );
-
 
 BOOL
 PeekNamedPipe(
@@ -829,12 +531,10 @@ PeekNamedPipe(
     PDWORD pdwBytesLeftThisMessage
     );
 
-
 BOOL
 DisconnectNamedPipe(
     HANDLE hNamedPipe
     );
-
 
 HANDLE
 CreateFileA(
@@ -847,7 +547,6 @@ CreateFileA(
     HANDLE               hTemplateFile
     );
 
-
 HANDLE
 CreateFileW(
     PCWSTR              pwszFileName,
@@ -859,7 +558,6 @@ CreateFileW(
     HANDLE               hTemplateFile
     );
 
-
 BOOL
 SetNamedPipeHandleState(
     HANDLE      hPipe,
@@ -867,7 +565,6 @@ SetNamedPipeHandleState(
     PDWORD      pdwMaxCollectionCount,
     PDWORD      pdwMaxTimeout
     );
-
 
 BOOL
 ReadFile(
@@ -877,7 +574,6 @@ ReadFile(
     PDWORD      pdwBytesRead,
     POVERLAPPED pOverlapped
     );
-
 
 BOOL
 WriteFile(

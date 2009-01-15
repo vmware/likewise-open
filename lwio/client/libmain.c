@@ -31,35 +31,35 @@
 #include "includes.h"
 #include "ntipcmsg.h"
 
-DWORD
-SMBInitialize(
+NTSTATUS
+LwIoInitialize(
     VOID
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS Status = STATUS_SUCCESS;
     LWMsgProtocolSpec* pProtocolSpec = NULL;
     LWMsgProtocol* pProtocol = NULL;
 
-    dwError = SMBIPCGetProtocolSpec(
+    Status = SMBIPCGetProtocolSpec(
                     &pProtocolSpec);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(Status);
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(NULL, &pProtocol));
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_protocol_new(NULL, &pProtocol));
+    BAIL_ON_NT_STATUS(Status);
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_protocol_add_protocol_spec(
+    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_protocol_add_protocol_spec(
                     pProtocol,
                     pProtocolSpec));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(Status);
 
-    dwError = NtIpcAddProtocolSpec(pProtocol);
-    BAIL_ON_SMB_ERROR(dwError);
+    Status = NtIpcAddProtocolSpec(pProtocol);
+    BAIL_ON_NT_STATUS(Status);
 
     gpSMBProtocol = pProtocol;
 
 cleanup:
 
-    return dwError;
+    return Status;
 
 error:
 
@@ -73,8 +73,8 @@ error:
     goto cleanup;
 }
 
-DWORD
-SMBShutdown(
+NTSTATUS
+LwIoShutdown(
     VOID
     )
 {

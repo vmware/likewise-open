@@ -97,7 +97,7 @@
 #endif
 
 #define BAIL_ON_SMB_ERROR(dwError)                \
-    if (dwError) {                                \
+    if ((dwError)) {                              \
        SMB_LOG_DEBUG("Error at %s:%d [code: %d]", \
                      __FILE__,                    \
                      __LINE__,                    \
@@ -106,7 +106,7 @@
     }
 
 #define BAIL_ON_NT_STATUS(ntStatus)                \
-    if (ntStatus) {                                \
+    if ((ntStatus)) {                              \
        SMB_LOG_DEBUG("Error at %s:%d [code: %d]",  \
                      __FILE__,                     \
                      __LINE__,                     \
@@ -525,7 +525,6 @@ strnlen(
 
 #endif /* !defined(HAVE_STRNLEN) */
 
-
 LW_NTSTATUS
 LwIoAllocateMemory(
     size_t Size,
@@ -543,6 +542,16 @@ VOID
 LwIoFreeMemory(
     PVOID pMemory
     );
+
+#define IO_SAFE_FREE_MEMORY(pMem)               \
+    do                                          \
+    {                                           \
+        if ((pMem))                             \
+        {                                       \
+            LwIoFreeMemory((pMem));             \
+            (pMem) = NULL;                      \
+        }                                       \
+    } while (0)
 
 DWORD
 SMBAllocateMemory(
