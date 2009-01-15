@@ -506,7 +506,7 @@ rpc__smb_socket_connect(
     char smbpath[2048];
     PIO_ACCESS_TOKEN acctoken = NULL;
     PBYTE sesskey = NULL;
-    DWORD sesskeylen = 0;
+    USHORT sesskeylen = 0;
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
 
@@ -567,7 +567,16 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    /* FIXME: get session key */
+    serr = NtStatusToUnixErrno(
+        SmbCtxGetSessionKey(
+            smb->context,
+            smb->np,
+            &sesskeylen,
+            &sesskey));
+    if (serr)
+    {
+        goto error;
+    }
 
     serr = rpc__smb_socket_set_session_key(
         assoc,
