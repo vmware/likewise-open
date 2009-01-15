@@ -18,12 +18,6 @@
 #define SMB_SOCKET_LOCK(sock) (rpc__smb_socket_lock((rpc_smb_socket_p_t) (sock)->data.pointer))
 #define SMB_SOCKET_UNLOCK(sock) (rpc__smb_socket_unlock((rpc_smb_socket_p_t) (sock)->data.pointer))
 
-#if 0
-#  define TRANSACT_CUTOFF (60*1024)
-#else
-#  define TRANSACT_CUTOFF 1
-#endif
-
 typedef enum rpc_smb_state_e
 {
     SMB_STATE_SEND,
@@ -510,8 +504,7 @@ rpc__smb_socket_connect(
     unsigned32 dbg_status = 0;
     /* FIXME: don't use a static buffer unless smb paths are guaranteed to have a maxmimum length */
     char smbpath[2048];
-    DWORD smb_status = 0;
-    HANDLE acctoken = INVALID_HANDLE_VALUE;
+    PIO_ACCESS_TOKEN acctoken = NULL;
     PBYTE sesskey = NULL;
     DWORD sesskeylen = 0;
     IO_FILE_NAME filename;
@@ -543,47 +536,32 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    smb_status = SMBGetThreadToken(&acctoken);
-
-    if (smb_status)
+    serr = NtStatusToUnixErrno(
+        LwIoGetThreadAccessToken(&acctoken));
+    if (serr)
     {
-        serr = -1;
         goto error;
     }
 
     /* Behold the full horror of NtCreate */
     serr = NtStatusToUnixErrno(
         NtCtxCreateFile(
-            /* IO context */
-            smb->context,
-            /* Security token */
-            acctoken,
-            /* Created handle */
-            &smb->np,
-            /* Async control block */
-            NULL,
-            /* Status block ??? */
-            &io_status,
-            /* Filename */
-            &filename,
-            /* Access mode */
-            GENERIC_READ | GENERIC_WRITE,
-            /* Allocation size */
-            0,
-            /* File attributes */
-            0,
-            /* Sharing mode */
-            SHARE_WRITE | SHARE_READ,
-            /* Create disposition */
-            OPEN_EXISTING,
-            /* Create options */
-            0,
-            /* EA buffer */
-            NULL,
-            /* Security descriptor */
-            NULL,
-            /* Security QOS */
-            NULL));
+            smb->context,                    /* IO context */
+            acctoken,                        /* Security token */
+            &smb->np,                        /* Created handle */
+            NULL,                            /* Async control block */
+            &io_status,                      /* Status block ??? */
+            &filename,                       /* Filename */
+            GENERIC_READ | GENERIC_WRITE,    /* Access mode */
+            0,                               /* Allocation size */
+            0,                               /* File attributes */
+            SHARE_WRITE | SHARE_READ,        /* Sharing mode */
+            OPEN_EXISTING,                   /* Create disposition */
+            0,                               /* Create options */
+            NULL,                            /* EA buffer */
+            NULL,                            /* Security descriptor */
+            NULL                             /* Security QOS */
+            ));
     if (serr)
     {
         goto error;
@@ -610,12 +588,12 @@ done:
 
     if (acctoken != NULL)
     {
-        SMBCloseHandle(NULL, acctoken);
+        LwIoDeleteAccessToken(acctoken);
     }
 
     if (sesskey)
     {
-        SMBFreeSessionKey(sesskey);
+        RtlMemoryFree(sesskey);
     }
 
     if (filename.FileName)
@@ -663,109 +641,6 @@ rpc__smb_socket_listen(
 
 INTERNAL
 rpc_socket_error_t
-rpc__smb_socket_do_transact(
-    rpc_socket_t sock
-    )
-{
-    rpc_socket_error_t serr = RPC_C_SOCKET_OK;
-    rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
-    DWORD bytes_read = 0;
-    DWORD smb_status = 0;
-    char c = 0;
-
-    /* We have the last fragment in the buffer, so perform a transact */
-    serr = rpc__smb_buffer_ensure_available(&smb->recvbuffer, 8192);
-    if (serr)
-    {
-        goto error;
-    }
-    
-    bytes_read = 0;
-    
-    smb_status = SMBTransactNamedPipe(
-        /* IO context */
-        smb->context,
-        /* Named pipe handle */
-        smb->np,
-        /* Send buffer */
-        smb->sendbuffer.base,
-        /* Amount of data to send */
-        smb->sendbuffer.start_cursor - smb->sendbuffer.base,
-        /* Recv buffer */
-        smb->recvbuffer.end_cursor,
-        /* Amount of room in receive buffer */
-        rpc__smb_buffer_available(&smb->recvbuffer),
-        /* Bytes read */
-        &bytes_read,
-        /* No overlapped IO */
-        NULL);
-
-    smb->recvbuffer.end_cursor += bytes_read;
-    
-    /* If we didn't get the full reply, keep increasing buffer space until
-       we finish the transaction */
-    while (smb_status == SMB_ERROR_INSUFFICIENT_BUFFER)
-    {
-        serr = rpc__smb_buffer_ensure_available(&smb->recvbuffer, 2048);
-        if (serr)
-        {
-            goto error;
-        }
-        
-        bytes_read = 0;
-        
-        smb_status = SMBTransactNamedPipe(
-            /* IO context */
-            smb->context,
-            /* Named pipe handle */
-            smb->np,
-            /* Don't send anything */
-            NULL,
-            0,
-            /* Recv buffer */
-            smb->recvbuffer.end_cursor,
-            /* Amount of room in receive buffer */
-            rpc__smb_buffer_available(&smb->recvbuffer),
-            /* Bytes read */
-            &bytes_read,
-            /* No overlapped IO */
-            NULL);
-        
-        smb->recvbuffer.end_cursor += bytes_read;
-    }
-    
-    if (smb_status)
-    {
-        serr = -1;
-        goto error;
-    }
-    
-    /* Settle the remaining data (which hopefully should be zero if
-       the runtime calls us with complete packets) to the start of
-       the send buffer */
-    rpc__smb_buffer_settle(&smb->sendbuffer);
-    
-    /* Now that a complete message has been sent, we must switch
-       into recv mode so the receiver thread can empty the recv buffer */
-    rpc__smb_socket_change_state(smb, SMB_STATE_RECV);
-    
-    /* Write a byte into the write end of the select pipe to wake up
-       anything in a select */
-    if (write(smb->selectfd[1], &c, sizeof(c)) < (ssize_t) sizeof(c))
-    {
-        serr = errno;
-        goto error;
-    }
-    
-    smb->selectfd_triggered = true;
-
-error:
-    
-    return serr;
-}
-
-INTERNAL
-rpc_socket_error_t
 rpc__smb_socket_do_send_recv(
     rpc_socket_t sock
     )
@@ -775,37 +650,35 @@ rpc__smb_socket_do_send_recv(
     DWORD bytes_requested = 0;
     DWORD bytes_read = 0;
     DWORD bytes_written = 0;
-    DWORD smb_status = 0;
     char c = 0;
     unsigned char* cursor = smb->sendbuffer.base;
+    IO_STATUS_BLOCK io_status;
 
     do
     {
-        smb_status = SMBWriteFile(
-            /* IO context */
-            smb->context,
-            /* Named pipe handle */
-            smb->np,
-            /* Send buffer */
-            smb->sendbuffer.base,
-            /* Amount of data to send */
-            smb->sendbuffer.start_cursor - cursor,
-            /* Bytes written */
-            &bytes_written,
-            /* No overlapped IO */
-            NULL);
-        
-        cursor += bytes_written;
-    
-        if (smb_status)
+        serr = NtStatusToUnixErrno(
+            NtCtxWriteFile(
+                smb->context,                          /* IO context */
+                smb->np,                               /* File handle */
+                NULL,                                  /* Async control block */
+                &io_status,                            /* IO status block */
+                smb->sendbuffer.base,                  /* Buffer */
+                smb->sendbuffer.start_cursor - cursor, /* Length */
+                NULL,                                  /* Byte offset */
+                NULL                                   /* Key */
+                ));
+        if (serr)
         {
-            serr = -1;
             goto error;
         }
+
+        bytes_written = io_status.BytesTransferred;
+        cursor += bytes_written;
     } while (cursor < smb->sendbuffer.start_cursor);
 
     do
     {
+        /* FIXME: magic number */
         serr = rpc__smb_buffer_ensure_available(&smb->recvbuffer, 8192);
         if (serr)
         {
@@ -815,35 +688,26 @@ rpc__smb_socket_do_send_recv(
         bytes_read = 0;
         bytes_requested = rpc__smb_buffer_available(&smb->recvbuffer);
 
-        smb_status = SMBReadFile(
-            /* IO context */
-            smb->context,
-            /* Named pipe handle */
-            smb->np,
-            /* Recv buffer */
-            smb->recvbuffer.end_cursor,
-            /* Amount of room in receive buffer */
-            bytes_requested,
-            /* Bytes read */
-            &bytes_read,
-            /* No overlapped IO */
-            NULL);
-
-        if (smb_status)
+        serr = NtStatusToUnixErrno(
+            NtCtxReadFile(
+                smb->context,                 /* IO context */
+                smb->np,                      /* File handle */
+                NULL,                         /* Async control block */
+                &io_status,                   /* IO status block */
+                smb->recvbuffer.end_cursor,   /* Buffer */
+                bytes_requested,              /* Length */
+                NULL,                         /* Byte offset */
+                NULL                          /* Key */
+                ));
+        if (serr)
         {
-            serr = -1;
             goto error;
         }
-        
+
+        bytes_read = io_status.BytesTransferred;
         smb->recvbuffer.end_cursor += bytes_read;
     } while (bytes_read == bytes_requested);
 
-    if (smb_status)
-    {
-        serr = -1;
-        goto error;
-    }
-    
     /* Settle the remaining data (which hopefully should be zero if
        the runtime calls us with complete packets) to the start of
        the send buffer */
@@ -915,15 +779,7 @@ rpc__smb_socket_sendmsg(
     /* Look for the last fragment and do a transaction if we find it */
     if (rpc__smb_buffer_advance_cursor(&smb->sendbuffer, &pending))
     {
-        if (pending < TRANSACT_CUTOFF)
-        {
-            serr = rpc__smb_socket_do_transact(sock);
-        }
-        else
-        {
-            serr = rpc__smb_socket_do_send_recv(sock);
-        }
-
+        serr = rpc__smb_socket_do_send_recv(sock);
         if (serr)
         {
             goto error;
