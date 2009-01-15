@@ -65,11 +65,11 @@ LwSmbGetSessionKey(
 
 #ifndef LW_STRICT_NAMESPACE
 
-#define IoSmbCtxGetSessionKey LwIoSmbCtxGetSessionKey
+#define SmbCtxGetSessionKey LwSmbCtxGetSessionKey
 
 #ifndef LW_NO_THREADS
 
-#define IoSmbGetSessionKey LwIoSmbGetSessionKey
+#define SmbGetSessionKey LwSmbGetSessionKey
 
 #endif /* !LW_NO_THREADS */
 

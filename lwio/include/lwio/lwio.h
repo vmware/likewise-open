@@ -607,6 +607,7 @@ CloseHandle(
 #endif /* ! SMB_NO_THREADS */
 
 #include <lwio/ntfileapi.h>
+#include <lwio/smbfileapi.h>
 
 #endif /* __LWIO_H__ */
 
