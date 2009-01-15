@@ -57,7 +57,7 @@ _nss_lsass_setgrent(
     void
     )
 {
-    return LsaNssCommonGroupSetgrent(&phLsaConnection,
+    return LsaNssCommonGroupSetgrent(&hLsaConnection,
                                      &gEnumGroupsState);
 }
 
@@ -130,7 +130,6 @@ _nss_lsass_initgroups_dyn(
     )
 {
     int   ret = NSS_STATUS_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     DWORD dwNumGroupsFound = 0;
     gid_t* pGidTotalResult = NULL;
     gid_t* pGidNewResult = NULL;
@@ -146,9 +145,12 @@ _nss_lsass_initgroups_dyn(
         BAIL_ON_NSS_ERROR(ret);
     }
 
-    ret = MAP_LSA_ERROR(pErrorNumber,
-                        LsaOpenServer(&hLsaConnection));
-    BAIL_ON_NSS_ERROR(ret);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        ret = MAP_LSA_ERROR(pErrorNumber,
+                            LsaOpenServer(&hLsaConnection));
+        BAIL_ON_NSS_ERROR(ret);
+    }
 
     ret = MAP_LSA_ERROR(pErrorNumber,
                         LsaGetGidsForUserByName(
@@ -219,13 +221,15 @@ cleanup:
 
     LSA_SAFE_FREE_MEMORY(pGidNewResult);
 
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return ret;
 
 error:
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+       LsaCloseServer(hLsaConnection);
+       hLsaConnection = (HANDLE)NULL;
+    }
 
     LSA_SAFE_FREE_MEMORY(pGidTotalResult);
     LSA_SAFE_FREE_MEMORY(pGidNewResult);

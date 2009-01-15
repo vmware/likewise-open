@@ -213,7 +213,7 @@ LsaNssHpuxPrpasswdGetpwuid(
     struct passwd           resultUser;
     char                    szBuf[2048];
     size_t                  bufLen = sizeof(szBuf);
-    PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = (PLSA_NSS_PASSWD_BACKEND) pBackend;
+    PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = (PLSA_NSS_PRPASSWD_BACKEND) pBackend;
 
     ret = LsaNssCommonPasswdGetpwuid(&pLsaBackend->hLsaConnectionPrUsers,
                                      uid,

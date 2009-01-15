@@ -47,6 +47,7 @@
  */
 
 #include "lsanss.h"
+#include "externs.h"
 
 static LSA_ENUMUSERS_STATE gEnumUsersState = {0};
 
@@ -91,7 +92,7 @@ _nss_lsass_getpwnam_r(
     int *            pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwnam(&pLsaConnection,
+    return LsaNssCommonPasswdGetpwnam(&hLsaConnection,
                                       pszLoginId,
                                       pResultUser,
                                       pszBuf,
@@ -108,7 +109,7 @@ _nss_lsass_getpwuid_r(
     int *           pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwuid(&pLsaConnection,
+    return LsaNssCommonPasswdGetpwuid(&hLsaConnection,
                                       uid,
                                       pResultUser,
                                       pszBuf,
@@ -123,7 +124,6 @@ _nss_lsass_get_principal(
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 1;
     char * pszPrincipalName = NULL;
@@ -134,8 +134,11 @@ _nss_lsass_get_principal(
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaFindUserByName(hLsaConnection,
                                 pszUserName,
@@ -155,10 +158,6 @@ cleanup:
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
 
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return dwError;
 
 error:
@@ -166,6 +165,12 @@ error:
     if (ppszPrincipalName)
     {
         *ppszPrincipalName = NULL;
+    }
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+       LsaCloseServer(hLsaConnection);
+       hLsaConnection = (HANDLE)NULL;
     }
 
     if (pszPrincipalName)
@@ -194,7 +199,6 @@ _nss_lsass_get_user_groups(
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     DWORD dwCountOfGroups = 0;
     gid_t* pGidResults = NULL;
 
@@ -203,8 +207,11 @@ _nss_lsass_get_user_groups(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaGetGidsForUserByName(hLsaConnection,
                                       pszUserName,
@@ -217,13 +224,15 @@ _nss_lsass_get_user_groups(
 
 cleanup:
 
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return dwError;
 
 error:
+
+   if (hLsaConnection != (HANDLE)NULL)
+   {
+      LsaCloseServer(hLsaConnection);
+      hLsaConnection = (HANDLE)NULL;
+   }
 
     if (pNumberOfGroups)
     {

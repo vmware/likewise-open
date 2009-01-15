@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-auth.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS Authentication Information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -47,6 +47,7 @@
  */
 
 #include "lsanss.h"
+#include "externs.h"
 
 DWORD
 _nss_lsass_authenticate(
@@ -58,8 +59,11 @@ _nss_lsass_authenticate(
     DWORD dwError = LSA_ERROR_SUCCESS;
     HANDLE hLsaConnection = (HANDLE)NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaAuthenticateUser(hLsaConnection,
                                   pszUserName,
@@ -80,13 +84,15 @@ _nss_lsass_authenticate(
 
 cleanup:
 
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return dwError;
 
 error:
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+       LsaCloseServer(hLsaConnection);
+       hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }
@@ -101,8 +107,11 @@ _nss_lsass_change_password(
     DWORD dwError = LSA_ERROR_SUCCESS;
     HANDLE hLsaConnection = (HANDLE)NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaChangePassword(hLsaConnection,
                                 pszUserName,
@@ -112,13 +121,15 @@ _nss_lsass_change_password(
 
 cleanup:
 
-    if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
-    }
-
     return dwError;
 
 error:
+
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+       LsaCloseServer(hLsaConnection);
+       hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }

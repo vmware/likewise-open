@@ -153,7 +153,7 @@ LsaNssHpuxPasswdGetpwnam(
     struct passwd *         pResultUser = (struct passwd*) pXbyYArgs->buf.result;
     char *                  pszBuf = (char*) pXbyYArgs->buf.buffer;
     size_t                  bufLen = (size_t) pXbyYArgs->buf.buflen;
-    PLSA_NSS_PASSWD_BACKEND pLsaBackend = (PLSA_NSS_PRPASSWD_BACKEND) pBackend;
+    PLSA_NSS_PASSWD_BACKEND pLsaBackend = (PLSA_NSS_PASSWD_BACKEND) pBackend;
 
     ret = LsaNssCommonPasswdGetpwnam(&pLsaBackend->hLsaConnectionUsers,
                                      pszLoginId,
