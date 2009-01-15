@@ -10,6 +10,13 @@ SrvSocketCreate(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_SOCKET pSocket = NULL;
 
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        // TODO: Map errno
+        ntStatus = errno;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMBAllocateMemory(
                     sizeof(SMB_SRV_SOCKET),
                     (PVOID*)&pSocket);
