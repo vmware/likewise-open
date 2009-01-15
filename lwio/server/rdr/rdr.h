@@ -183,4 +183,19 @@ RdrCreateFileEx(
     PHANDLE phFile
     );
 
+
+DWORD
+RdrGetSessionKey(
+    HANDLE hFile,
+    PDWORD pdwSessionKeyLength,
+    PBYTE* ppSessionKey
+    );
+
+
+NTSTATUS
+RdrCommonFsctl(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
 #endif /* __RDR_H__ */

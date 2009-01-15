@@ -50,15 +50,64 @@
 #include "rdr.h"
 
 NTSTATUS
-RdrFsCtrl(
+RdrFsctl(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
+    PRDR_IRP_CONTEXT pIrpContext = NULL;
+
+    ntStatus = RdrAllocateIrpContext(
+                        pIrp,
+                        &pIrpContext
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrCommonFsctl(pIrpContext, pIrp);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return ntStatus;
 }
 
 
+NTSTATUS
+RdrCommonFsctl(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PVOID Buffer = NULL;
+    ULONG Length = 0;
+    DWORD dwBytesRead = 0;
+    HANDLE hFile = NULL;
+    DWORD dwSessionKeyLength = 0;
+    PBYTE pSessionKey = NULL;
+
+    Buffer = pIrp->Args.ReadWrite.Buffer;
+    Length = pIrp->Args.ReadWrite.Length;
+
+    hFile = IoFileGetContext(pIrp->FileHandle);
+
+    ntStatus = RdrGetSessionKey(
+                    hFile,
+                    &dwSessionKeyLength,
+                    &pSessionKey
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+
+
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
+    return(ntStatus);
+
+error:
+    pIrp->IoStatusBlock.Status = ntStatus;
+    return(ntStatus);
+}
 
