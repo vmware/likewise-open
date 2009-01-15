@@ -79,7 +79,7 @@ LsaNetJoinDomain(
     krb5_context ctx = NULL;
     krb5_ccache cc = NULL;
     PCSTR pszNewCachePath = NULL;
-    HANDLE hAccessToken = NULL;
+    PIO_ACCESS_TOKEN pAccessToken = NULL;
 
     BAIL_ON_INVALID_STRING(pszHostname);
     BAIL_ON_INVALID_STRING(pszDomain);
@@ -123,17 +123,16 @@ LsaNetJoinDomain(
                 NULL);
     BAIL_ON_LSA_ERROR(dwError);
     
-    dwError = SMBCreateKrb5AccessTokenA(
+    dwError = LwIoCreateKrb5AccessTokenA(
         pszUsername,
         pszNewCachePath,
-        &hAccessToken);
+        &pAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
         
-    dwError = SMBSetThreadToken(hAccessToken);
+    dwError = LwIoSetThreadAccessToken(pAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBCloseHandle(NULL, hAccessToken);
-    BAIL_ON_LSA_ERROR(dwError);
+    LwIoDeleteAccessToken(pAccessToken);
     
     dwError = LsaMbsToWc16s(
                     pszHostname,
@@ -195,7 +194,7 @@ LsaNetJoinDomain(
     
 cleanup:
 
-    SMBSetThreadToken(NULL);
+    LwIoSetThreadAccessToken(NULL);
 
     LSA_SAFE_FREE_STRING(pszOU_DN);
     LSA_SAFE_FREE_MEMORY(pwszHostname);
