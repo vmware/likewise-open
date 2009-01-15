@@ -3527,6 +3527,7 @@ AD_OnlineGetNamesBySidList(
     ADAccountType* pTypes = NULL;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     size_t sIndex = 0;
+    size_t sReturnCount = 0;
 
     dwError = LsaAllocateMemory(
                     sizeof(*ppszDomainNames) * sCount,
@@ -3547,11 +3548,11 @@ AD_OnlineGetNamesBySidList(
                     hProvider,
                     sCount,
                     ppszSidList,
-                    NULL,
+                    &sReturnCount,
                     &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    for (sIndex = 0; sIndex < sCount; sIndex++)
+    for (sIndex = 0; sIndex < sReturnCount; sIndex++)
     {
         if (ppObjects[sIndex] == NULL)
         {
@@ -3584,7 +3585,7 @@ AD_OnlineGetNamesBySidList(
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(sCount, &ppObjects);
+    LsaDbSafeFreeObjectList(sReturnCount, &ppObjects);
 
     return dwError;
 
