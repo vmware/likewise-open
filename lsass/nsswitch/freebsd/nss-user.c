@@ -93,7 +93,7 @@ _nss_lsass_getpwnam_r(
     int *            pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwnam(&hLsaConnecton,
+    return LsaNssCommonPasswdGetpwnam(&hLsaConnection,
                                       pszLoginId,
                                       pResultUser,
                                       pszBuf,
