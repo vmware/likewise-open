@@ -38,6 +38,12 @@
 #include <wc16printf.h>
 #include "Params.h"
 
+#define goto_if_ntstatus_not_success(s, lbl) \
+    if ((s) != STATUS_SUCCESS) {             \
+        status = s;                          \
+        goto lbl;                            \
+    }
+
 struct test;
 
 typedef int (*test_fn)(struct test *t, const wchar16_t *hostname,

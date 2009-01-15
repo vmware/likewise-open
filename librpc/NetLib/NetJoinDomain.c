@@ -131,26 +131,13 @@ NetJoinDomainLocalInternal(
         /* Set up access token */
         HANDLE hAccessToken = NULL;
         
-        dwError = SMBCreatePlainAccessTokenW(account, password, &hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto_if_err_not_success(err, done);
-        }
+        status = LwIoCreatePlainAccessTokenW(account, password, &hAccessToken);
+        goto_if_ntstatus_not_success(status, done);
 
-        dwError = SMBSetThreadToken(hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto_if_err_not_success(err, done);
-        }
-        
-        dwError = SMBCloseHandle(NULL, hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto_if_err_not_success(err, done);
-        }
+        status = LwIoSetThreadAccessToken(hAccessToken);
+        goto_if_ntstatus_not_success(status, done);
+
+        LwIoDeleteAccessToken(hAccessToken);
     }
 
     status = NetConnectLsa(&lsa_conn, domain_controller_name, lsa_access);
@@ -363,12 +350,8 @@ close:
     /* release domain controller connection creds */
     if (account && password)
     {
-        dwError = SMBSetThreadToken(NULL);
-        if (dwError)
-        {
-            err = -1;
-            goto_if_err_not_success(err, done);
-        }
+        status = LwIoSetThreadAccessToken(NULL);
+        goto_if_ntstatus_not_success(status, done);
     }
 
 done:
