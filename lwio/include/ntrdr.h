@@ -1,9 +1,0 @@
-
-
-#define SMBRDR_FSCTL_GET_SESSION_KEY        0x01
-
-typedef struct _SMB_RDR_GET_SESSION_KEY {
-    ULONG SessionKeyLength;
-    PVOID Buffer;
-}SMB_RDR_GET_SESSION_KEY, *PSMB_RDR_GET_SESSION_KEY;
-

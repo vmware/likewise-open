@@ -7,7 +7,8 @@ liblwioclient_nothr_la_SOURCES = \
     globals.c              \
     libmain.c              \
     logging.c              \
-    ntfileapictx.c
+    ntfileapictx.c         \
+    smbfileapictx.c
 
 liblwioclient_nothr_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
@@ -25,6 +26,7 @@ liblwioclient_nothr_la_LIBADD = \
 liblwioclient_la_SOURCES = \
     thread.c               \
     ntfileapi.c            \
+    smbfileapi.c           \
     win32.c
 
 liblwioclient_la_CPPFLAGS = \

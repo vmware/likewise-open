@@ -1,3 +1,7 @@
 lwioincludedir = $(includedir)/lwio
 
-lwioinclude_HEADERS = lwio/lwio.h lwio/io-types.h lwio/ntfileapi.h
+lwioinclude_HEADERS = \
+	lwio/lwio.h \
+	lwio/io-types.h \
+	lwio/ntfileapi.h \
+	lwio/smbfileapi.h

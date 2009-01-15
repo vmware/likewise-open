@@ -51,6 +51,9 @@
 
 #include <krb5.h>
 #include <lwio/lwio.h>
+#include <lwio/smbfileapi.h>
+#include <lwio/ntfileapi.h>
+
 
 #include <lwmsg/lwmsg.h>
 #include <lwmsg/protocol.h>
@@ -58,6 +61,7 @@
 #include "lwiodef.h"
 #include "lwioutils.h"
 #include "lwioipc.h"
+#include "lwiofsctl.h"
 #include "ntipcmsg.h"
 #include "goto.h"
 #include "ntlogmacros.h"
