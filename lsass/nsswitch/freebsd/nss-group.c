@@ -58,7 +58,7 @@ _nss_lsass_setgrent(
     void
     )
 {
-    return LsaNssCommonGroupSetgrent(&phLsaConnection,
+    return LsaNssCommonGroupSetgrent(&hLsaConnection,
                                      &gEnumGroupsState);
 }
 

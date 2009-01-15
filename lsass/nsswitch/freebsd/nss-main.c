@@ -49,6 +49,7 @@
 #include "lsanss.h"
 #include "nss-user.h"
 #include "nss-group.h"
+#include "externs.h"
 
 #if defined(__LWI_FREEBSD__)
 
