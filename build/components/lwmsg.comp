@@ -1,6 +1,6 @@
 #!/bin/sh
 
-COMP_SOURCES=${BUILD_ROOT}/libkeytab
+COMP_SOURCES="${BUILD_ROOT}/lwmsg"
 
 function _setup_build_env
 {
@@ -9,9 +9,8 @@ function _setup_build_env
     cd ${COMP_SOURCES}/.
     exit_on_error $?
 
-    # We need no-strict aliasing if we get optimized builds
-    CFLAGS="${_cflags}"
     CPPFLAGS="${_cppflags}"
+    CFLAGS="${_cflags}"
     LDFLAGS="${_ldflags}"
 
     export PATH CPPFLAGS LDFLAGS CFLAGS CC
@@ -21,8 +20,8 @@ function component_configure
 {
     _setup_build_env
 
-    ./configure                                      \
-	--prefix=${PREFIXDIR}                        \
+    ./configure                        \
+	--prefix=${PREFIXDIR}         \
         --libdir=${PREFIXDIR}/${_lib}
 }
 

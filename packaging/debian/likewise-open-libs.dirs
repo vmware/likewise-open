@@ -4,7 +4,6 @@ opt/likewise/lib
 opt/likewise/bin
 opt/likewise/sbin
 opt/likewise/share/likewise
-opt/likewise/data
 var/log/likewise
 var/lib/likewise
 

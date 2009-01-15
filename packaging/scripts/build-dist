@@ -5,6 +5,7 @@ RELEASE=""
 DIRS="\
 	krb5 \
 	openldap \
+	lwmsg \
 	centutils \
 	dcerpc \
 	domainjoin \
@@ -13,18 +14,13 @@ DIRS="\
 	libiconv \
 	libkeytab \
 	librpc \
-	libsmbclient \
 	libunistr \
-	libuuid \
 	lsass \
-	lwidsplugin \
 	netlogon \
-	npcmuxer \
-	openssl \
+	lsmb \
 	build \
 	config \
 	packaging \
-	passwd \
 	pstore \
 	sqlite \
 	lwdns \

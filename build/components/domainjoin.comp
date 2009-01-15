@@ -28,14 +28,14 @@ function component_configure
 {
     _setup_build_env
 
-    ./autogen.sh && ./configure                              \
-        --prefix=${PREFIXDIR}                               \
-        --libexecdir=${PREFIXDIR}/bin                       \
-        --libdir=${PREFIXDIR}/${_lib}                       \
-        --sysconfdir=${SYSCONFDIR}                     \
-        --localstatedir=${LOCALSTATEDIR}               \
-        --disable-static                                     \
-        --enable-shared                                      \
+    ./configure                                 \
+        --prefix=${PREFIXDIR}                   \
+        --libexecdir=${LIBEXECDIR}              \
+        --libdir=${PREFIXDIR}/${_lib}           \
+        --sysconfdir=${SYSCONFDIR}              \
+        --localstatedir=${LOCALSTATEDIR}        \
+        --disable-static                        \
+        --enable-shared                         \
 	--with-gtk=${WANT_GTK} \
 	--with-libxml2-dir=/usr
 
@@ -45,7 +45,13 @@ function component_build
 {
    _setup_build_env
 
-   ${MAKE} ${_mflags} all
+   local _make_build_flags=""
+
+   if [ -n "${BUILD_MAKE_FLAGS}" ]; then
+       _make_build_flags="${BUILD_MAKE_FLAGS}"
+   fi
+
+   ${MAKE} ${_mflags} ${_make_build_flags} all
 }
 
 function component_install

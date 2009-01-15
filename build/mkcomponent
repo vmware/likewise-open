@@ -10,6 +10,9 @@ PRODUCTNAME="likewise"
 SYSCONFDIR="/etc/${PRODUCTNAME}"
 PREFIXDIR="/opt/${PRODUCTNAME}"
 LOCALSTATEDIR="/var/lib/${PRODUCTNAME}"
+SCRIPTDIR=""
+LIBEXECDIR="${PREFIXDIR}/bin"
+
 STAGE_INSTALL_DIR="${BUILD_ROOT}/build-install"
 
 ## Check if we have any overrides
@@ -21,6 +24,12 @@ if [ -n "${BUILD_SYSCONFDIR}" ]; then
 fi
 if [ -n "${BUILD_LOCALSTATEDIR}" ]; then
     LOCALSTATEDIR=${BUILD_LOCALSTATEDIR}
+fi
+if [ -n "${BUILD_LIBEXECDIR}" ]; then
+    LIBEXECDIR=${BUILD_LIBEXECDIR}
+fi
+if [ -n "${BUILD_SCRIPTDIR}" ]; then
+    SCRIPTDIR=${BUILD_SCRIPTDIR}
 fi
 if [ -n "${BUILD_STAGE_INSTALL_DIR}" ]; then
     STAGE_INSTALL_DIR=${BUILD_STAGE_INSTALL_DIR}

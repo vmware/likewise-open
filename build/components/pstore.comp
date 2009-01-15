@@ -23,13 +23,10 @@ function component_configure
 
     _setup_build_env
 
-    ./autogen.sh
-    exit_on_error $?
-
-    ./configure                                       \
-	--prefix=${PREFIXDIR}                        \
-        --libdir=${PREFIXDIR}/${_lib}                \
-	--sysconfdir=${SYSCONFDIR}              \
+    ./configure                                     \
+	--prefix=${PREFIXDIR}                       \
+        --libdir=${PREFIXDIR}/${_lib}      \
+	--sysconfdir=${SYSCONFDIR}                  \
         --localstatedir=${LOCALSTATEDIR}  
 }
 

@@ -4,24 +4,28 @@ function _get_lib_dir
 {
     local dir=
 
-    case `uname -s` in
-	Linux)
-	    case `uname -m` in
-		i*86)
-		    dir=lib
-		    ;;
-		x86_64)
-		    dir=lib64
-		    ;;
-		*)
-		    dir=lib
-		    ;;
-	    esac
-	    ;;
-	*)
-	    dir=lib
-	    ;;
-    esac
+    if [ -n "${BUILD_LIBDIR}" ]; then
+	dir="${BUILD_LIBDIR}"
+    else
+	case `uname -s` in
+	    Linux)
+		case `uname -m` in
+		    i*86)
+			dir=lib
+			;;
+		    x86_64)
+			dir=lib64
+			;;
+		    *)
+			dir=lib
+			;;
+		esac
+		;;
+	    *)
+		dir=lib
+		;;
+	esac
+    fi
 
     echo "$dir"
 }
@@ -37,7 +41,8 @@ function _get_base_cflags
 {
     local flags="${BUILD_CFLAGS}"
 
-    flags="$flags -O2 -g -fmessage-length=0 -D_FORTIFY_SOURCE=2 -Wl,-rpath-link,${STAGE_INSTALL_DIR}/${PREFIXDIR}/${_lib}"
+    flags="$flags -O2 -g -fmessage-length=0 -D_GNU_SOURCE -D_FORTIFY_SOURCE=2"
+    flags="${flags}"
 
     echo "$flags"
 }
@@ -45,6 +50,8 @@ function _get_base_cflags
 function _get_base_ldflags
 {
     local flags="${BUILD_LDFLAGS}"
+
+    flags="${flags} -Wl,-rpath-link -Wl,${STAGE_INSTALL_DIR}/${PREFIXDIR}/${_lib} -Wl,-rpath -Wl,${PREFIXDIR}/${_lib}"
 
     echo "$flags"
 }
