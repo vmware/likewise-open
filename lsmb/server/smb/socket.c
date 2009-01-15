@@ -835,7 +835,7 @@ SMBSocketConnect(
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    pSocket->state = SMB_RESOURCE_STATE_INITIALIZING;
+    pSocket->state = SMB_RESOURCE_STATE_VALID;
     pSocket->fd = fd;
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
