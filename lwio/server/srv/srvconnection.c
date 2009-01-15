@@ -32,6 +32,29 @@ error:
     goto cleanup;
 }
 
+int
+SrvConnectionGetFd(
+    PSMB_SRV_CONNECTION pConnection
+    )
+{
+    int fd = -1;
+
+    pthread_mutex_lock(&pConnection->mutex);
+
+    if (pConnection->pSocket)
+    {
+        pthread_mutex_lock(&pConnection->pSocket->mutex);
+
+        fd = pConnection->pSocket->fd;
+
+        pthread_mutex_unlock(&pConnection->pSocket->mutex);
+    }
+
+    pthread_mutex_unlock(&pConnection->mutex);
+
+    return fd;
+}
+
 BOOLEAN
 SrvConnectionIsInvalid(
     PSMB_SRV_CONNECTION pConnection

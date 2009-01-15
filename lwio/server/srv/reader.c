@@ -43,8 +43,8 @@ SrvSocketReaderReadMessage(
     );
 
 static
-NTSTATUS
-SrvSocketReaderPurgeInvalidConnections(
+VOID
+SrvSocketReaderPurgeConnections(
     PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     );
@@ -187,7 +187,7 @@ SrvSocketReaderMain(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ret = select(
-                fdContext.maxFd,
+                fdContext.maxFd + 1,
                 &workSet.fdset,
                 NULL,
                 &workSet.fdset,
@@ -214,23 +214,18 @@ SrvSocketReaderMain(
                         &workSet);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSocketReaderPurgeInvalidConnections(
-                        pContext,
-                        &workSet);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (workSet.pConnectionList)
-        {
-            SMBDLinkedListFree(workSet.pConnectionList);
-            workSet.pConnectionList = NULL;
-        }
+        SrvSocketReaderPurgeConnections(
+                pContext,
+                &workSet);
     }
 
 cleanup:
 
     if (workSet.pConnectionList)
     {
-        SMBDLinkedListFree(workSet.pConnectionList);
+        SrvSocketReaderPurgeConnections(
+                pContext,
+                &workSet);
     }
 
     return NULL;
@@ -336,18 +331,12 @@ SrvSocketReaderFillFdSetInOrder(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_CONNECTION pSrvConnection = (PSMB_SRV_CONNECTION)pConnection;
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset = (PSMB_SOCKET_READER_WORK_SET)pUserData;
+    int fd = -1;
 
-    pthread_mutex_lock(&pSrvConnection->mutex);
-    pthread_mutex_lock(&pSrvConnection->pSocket->mutex);
+    fd = SrvConnectionGetFd(pSrvConnection);
 
-    if (pSrvConnection->pSocket->fd > 0)
-    {
-        FD_SET(pSrvConnection->pSocket->fd, &pReaderWorkset->fdset);
-        pReaderWorkset->maxFd = pSrvConnection->pSocket->fd;
-    }
-
-    pthread_mutex_unlock(&pSrvConnection->pSocket->mutex);
-    pthread_mutex_unlock(&pSrvConnection->mutex);
+    FD_SET(fd, &pReaderWorkset->fdset);
+    pReaderWorkset->maxFd = fd;
 
     ntStatus = SMBDLinkedListAppend(&pReaderWorkset->pConnectionList, pSrvConnection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -394,10 +383,13 @@ SrvSocketReaderProcessConnections(
     {
         PSMB_SRV_CONNECTION pConnection = (PSMB_SRV_CONNECTION)pIter->pItem;
 
-        ntStatus = SrvSocketReaderReadMessage(
-                        pReaderContext,
-                        pConnection);
-        BAIL_ON_NT_STATUS(ntStatus);
+        if (FD_ISSET(SrvConnectionGetFd(pConnection), &pReaderWorkset->fdset))
+        {
+            ntStatus = SrvSocketReaderReadMessage(
+                            pReaderContext,
+                            pConnection);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
 
 cleanup:
@@ -430,14 +422,12 @@ error:
 }
 
 static
-NTSTATUS
-SrvSocketReaderPurgeInvalidConnections(
+VOID
+SrvSocketReaderPurgeConnections(
     PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     )
 {
-    NTSTATUS ntStatus = 0;
-
     for (pIter = workSet.pConnectionList; pIter; pIter = pIter->pNext)
     {
         PSMB_SRV_CONNECTION pSrvConnection = (PSMB_SRV_CONNECTION)pIter->pItem;
@@ -446,27 +436,21 @@ SrvSocketReaderPurgeInvalidConnections(
         {
             pthread_mutex_lock(&pContext->mutex);
 
-            ntStatus = SMBRBTreeRemove(
-                            pContext->pConnections,
-                            pSrvConnection);
+            SMBRBTreeRemove(
+                    pContext->pConnections,
+                    pSrvConnection);
 
             pthread_mutex_unlock(&pContext->mutex);
-
-            // Note: we get an error if the item could not be located.
-            //       In this case, it should not happen.
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            SrvConnectionRelease(pSrvConnection);
         }
+
+        SrvConnectionRelease(pSrvConnection);
     }
 
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
+    if (workSet.pConnectionList)
+    {
+        SMBDLinkedListFree(workSet.pConnectionList);
+        workSet.pConnectionList = NULL;
+    }
 }
 
 static
@@ -510,14 +494,17 @@ SrvSocketReaderCompareConnections(
     PVOID pConn2
     )
 {
-    PSMB_SRV_CONNECTION pSrvConn1 = (PSMB_SRV_CONNECTION)pConn1;
-    PSMB_SRV_CONNECTION pSrvConn2 = (PSMB_SRV_CONNECTION)pConn2;
+    int fd1 = -1;
+    int fd2 = -1;
 
-    if (pSrvConn1->pSocket->fd > pSrvConn2->pSocket->fd)
+    fd1 = SrvConnectionGetFd((PSMB_SRV_CONNECTION)pConn1);
+    fd2 = SrvConnectionGetFd((PSMB_SRV_CONNECTION)pConn2);
+
+    if (fd1 > fd2)
     {
         return 1;
     }
-    else if (pSrvConn1->pSocket->fd < pSrvConn2->pSocket->fd)
+    else if (fd1 < fd2)
     {
         return -1;
     }

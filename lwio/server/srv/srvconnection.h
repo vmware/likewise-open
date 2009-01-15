@@ -7,6 +7,11 @@ SrvConnectionCreate(
     PSMB_SRV_CONNECTION* ppConnection
     );
 
+int
+SrvConnectionGetFd(
+    PSMB_SRV_CONNECTION pConnection
+    );
+
 BOOLEAN
 SrvConnectionIsInvalid(
     PSMB_SRV_CONNECTION pConnection
