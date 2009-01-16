@@ -59,6 +59,8 @@ AC_CHECK_HEADERS([stdint.h stdlib.h inttypes.h wchar16.h uuid.h uuid/uuid.h])
 AC_CHECK_LIB([uuid], [uuid_generate], [UUID_LIBS="-luuid"])
 AC_SUBST(UUID_LIBS)
 
+AC_CHECK_FUNCS([strndup])
+
 AM_CFLAGS="$AM_CFLAGS -Wall -Werror -fno-strict-aliasing"
 AM_LDFLAGS=""
 
