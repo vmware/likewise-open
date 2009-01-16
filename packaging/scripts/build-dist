@@ -4,6 +4,7 @@ BASEDIR=`dirname $0`/../..
 RELEASE=""
 DIRS="\
 	lwbase \
+	libsecdesc \
 	krb5 \
 	openldap \
 	lwmsg \

@@ -20,6 +20,7 @@
 
 DIRS="\
 	lwbase \
+        libsecdesc \
 	centutils \
 	domainjoin \
 	eventlog \

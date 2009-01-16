@@ -5,6 +5,7 @@ COMPONENTS="\
 	openldap \
 	libunistr \
 	lwbase \
+        libsecdesc \
         lwmsg \
 	centutils \
 	sqlite \
@@ -17,7 +18,6 @@ COMPONENTS="\
 	librpc \
 	eventlog \
 	lsass \
-	srvsvc \
 	lwdns \
 	domainjoin \
 	"
