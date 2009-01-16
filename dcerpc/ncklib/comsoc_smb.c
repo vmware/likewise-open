@@ -500,7 +500,7 @@ rpc__smb_socket_connect(
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
-    unsigned_char_t *netaddr, *endpoint;
+    char *netaddr, *endpoint, *pipename;
     unsigned32 dbg_status = 0;
     PSTR smbpath = NULL;
     PIO_ACCESS_TOKEN acctoken = NULL;
@@ -513,18 +513,29 @@ rpc__smb_socket_connect(
 
     /* Break address into host and endpoint */
     rpc__naf_addr_inq_netaddr (addr,
-                               &netaddr,
+                               (unsigned_char_t**) &netaddr,
                                &dbg_status);
     rpc__naf_addr_inq_endpoint (addr,
-                               &endpoint,
-                               &dbg_status);
+                                (unsigned_char_t**) &endpoint,
+                                &dbg_status);
+
+    if (!strncmp(endpoint, "\\pipe\\", sizeof("\\pipe\\") - 1) ||
+        !strncmp(endpoint, "\\PIPE\\", sizeof("\\PIPE\\") - 1))
+    {
+        pipename = endpoint + sizeof("\\pipe\\") - 1;
+    }
+    else
+    {
+        serr = EINVAL;
+        goto error;
+    }
 
     serr = NtStatusToUnixErrno(
         LwRtlCStringAllocatePrintf(
             &smbpath,
-            "\\\\%s%s",
+            "\\rdr\\%s\\IPC$\\%s",
             (char*) netaddr,
-            (char*) endpoint));
+            (char*) pipename));
     if (serr)
     {
         goto error;
