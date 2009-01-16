@@ -49,6 +49,13 @@
 
 #include "rdr.h"
 
+static
+NTSTATUS
+RdrCommonWrite(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
 NTSTATUS
 RdrWrite(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -64,7 +71,7 @@ RdrWrite(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    //ntStatus = RdrCommonWrite(pIrpContext, pIrp);
+    ntStatus = RdrCommonWrite(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -72,6 +79,7 @@ error:
     return ntStatus;
 }
 
+static
 NTSTATUS
 RdrCommonWrite(
     PRDR_IRP_CONTEXT pIrpContext,
