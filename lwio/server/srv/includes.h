@@ -58,7 +58,7 @@
 #include "lwiolog_r.h"
 
 #include <lw/ntstatus.h>
-#include "smb.h"
+#include "smbwire.h"
 
 #include "iodriver.h"
 

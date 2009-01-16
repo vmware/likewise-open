@@ -1,8 +1,8 @@
 SUBDIRS = \
-         iomgr2 \
-         smb   \
-         npvfs \
-         pvfs  \
-         rdr   \
-         srv   \
-         lwiod
+    iomgr2  \
+    smbwire \
+    npvfs   \
+    pvfs    \
+    rdr     \
+    srv     \
+    lwiod

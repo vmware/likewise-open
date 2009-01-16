@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        rdr.h
  *
  * Abstract:
  *
@@ -66,7 +66,7 @@
 #include "lwiofsctl.h"
 #include "smbkrb5.h"
 
-#include "smb.h"
+#include "smbwire.h"
 #include "smbclient.h"
 #include <lwio/io-types.h>
 #include "iodriver.h"

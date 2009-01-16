@@ -454,7 +454,7 @@ AC_CONFIG_FILES([Makefile
         client/Makefile
         server/Makefile
         server/rdr/Makefile
-        server/smb/Makefile
+        server/smbwire/Makefile
         server/iomgr2/Makefile
         server/srv/Makefile
         server/npvfs/Makefile

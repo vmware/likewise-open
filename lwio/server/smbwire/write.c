@@ -28,23 +28,55 @@
  * license@likewisesoftware.com
  */
 
-#include "config.h"
-#include "lwiosys.h"
+#include "includes.h"
 
-#include <openssl/md5.h>
+uint32_t
+MarshallWriteRequestData(
+    uint8_t         *pBuffer,
+    uint32_t         bufferLen,
+    uint8_t          messageAlignment,
+    uint32_t        *pBufferUsed,
+    uint16_t        *pDataOffset,
+    uint8_t         *pWriteBuffer,
+    uint16_t        wWriteLen
+    )
+{
+    uint32_t error = 0;
 
-#include "lwio/lwio.h"
+    uint32_t bufferUsed = 0;
+    uint32_t alignment = 0;
+    uint32_t dataOffset = 0;
 
-#include "lwiodef.h"
-#include "lwioutils.h"
-#include "smbkrb5.h"
+    alignment = (bufferUsed + messageAlignment) % 2;
+    if (alignment)
+    {
+        *(pBuffer + bufferUsed) = 0;
+        bufferUsed += alignment;
+    }
 
-#include <lw/ntstatus.h>
+    dataOffset = bufferUsed;
 
-#include "smb.h"
+    memcpy(pBuffer + bufferUsed, pWriteBuffer, wWriteLen);
 
-#include "structs.h"
-#include "negotiate.h"
-#include "session_setup.h"
-#include "tree_connect.h"
+    bufferUsed += wWriteLen;
+
+    if (bufferUsed > bufferLen)
+    {
+        error = EMSGSIZE;
+        goto error;
+    }
+
+    *pBufferUsed = bufferUsed;
+    *pDataOffset = (uint16_t)dataOffset;
+
+cleanup:
+
+    return error;
+
+error:
+
+    *pBufferUsed = 0;
+
+    goto cleanup;
+}
 

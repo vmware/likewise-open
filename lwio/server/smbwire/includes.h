@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,15 +28,23 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+#include "config.h"
+#include "lwiosys.h"
 
-uint32_t
-MarshallReadRequestData(
-    uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
-    uint32_t        *pBufferUsed
-    )
-{
-    return 0;
-}
+#include <openssl/md5.h>
+
+#include "lwio/lwio.h"
+
+#include "lwiodef.h"
+#include "lwioutils.h"
+#include "smbkrb5.h"
+
+#include <lw/ntstatus.h>
+
+#include "smbwire.h"
+
+#include "structs.h"
+#include "negotiate.h"
+#include "session_setup.h"
+#include "tree_connect.h"
+
