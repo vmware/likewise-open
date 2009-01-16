@@ -63,7 +63,7 @@
 #include "iodriver.h"
 
 #include "defs.h"
-#include "structs.h"
+#include "srvstructs.h"
 #include "smbv1.h"
 #include "listener.h"
 #include "stubs.h"

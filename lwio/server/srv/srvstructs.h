@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        structs.h
+ *        srvstructs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO)
  *
- *        Listener structures
+ *        Server structures
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
