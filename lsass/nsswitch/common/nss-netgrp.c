@@ -157,11 +157,11 @@ done:
 
 error:
 
-    if (hLsaConnection != (HANDLE)NULL)
+    if (status != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
         LsaCloseServer(hLsaConnection);
+        *phLsaConnection = (HANDLE)NULL;
     }
-    *phLsaConnection = (HANDLE)NULL;
 
     goto done;
 }

@@ -269,11 +269,11 @@ error:
 
     LsaNssClearEnumGroupsState(pEnumGroupsState);
 
-    if (hLsaConnection != (HANDLE)NULL)
+    if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
         LsaCloseServer(hLsaConnection);
+        *phLsaConnection = (HANDLE)NULL;
     }
-    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
@@ -422,7 +422,8 @@ LsaNssCommonGroupGetgrgid(
 
 cleanup:
 
-    if (pGroupInfo) {
+    if (pGroupInfo)
+    {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
     }
 
@@ -430,11 +431,11 @@ cleanup:
 
 error:
 
-    if (hLsaConnection != (HANDLE)NULL)
+    if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
         LsaCloseServer(hLsaConnection);
+        *phLsaConnection = (HANDLE)NULL;
     }
-    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
@@ -456,7 +457,7 @@ LsaNssCommonGroupGetgrnam(
 
     if (hLsaConnection == (HANDLE)NULL)
     {
-        ret = MAP_LSA_ERROR(NULL,
+        ret = MAP_LSA_ERROR(pErrorNumber,
                             LsaOpenServer(&hLsaConnection));
         BAIL_ON_NSS_ERROR(ret);
 
@@ -491,11 +492,12 @@ cleanup:
 
 error:
 
-    if (hLsaConnection != (HANDLE)NULL)
+    if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
         LsaCloseServer(hLsaConnection);
+        *phLsaConnection = (HANDLE)NULL;
     }
-    *phLsaConnection = (HANDLE)NULL;
+
     goto cleanup;
 }
 
@@ -577,10 +579,11 @@ error:
 
     LSA_SAFE_FREE_MEMORY(pGidNewResult);
 
-    if (hLsaConnection != (HANDLE)NULL) {
+    if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
+    {
        LsaCloseServer(hLsaConnection);
+       *phLsaConnection = (HANDLE)NULL;
     }
-    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }

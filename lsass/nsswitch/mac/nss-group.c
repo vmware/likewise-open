@@ -225,7 +225,7 @@ cleanup:
 
 error:
 
-    if (hLsaConnection != (HANDLE)NULL)
+    if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
        LsaCloseServer(hLsaConnection);
        hLsaConnection = (HANDLE)NULL;

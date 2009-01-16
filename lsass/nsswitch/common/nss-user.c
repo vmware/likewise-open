@@ -238,11 +238,11 @@ error:
 
     LsaNssClearEnumUsersState(pEnumUsersState);
 
-    if (hLsaConnection != (HANDLE)NULL)
+    if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
         LsaCloseServer(hLsaConnection);
+        *phLsaConnection = (HANDLE)NULL;
     }
-    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
@@ -396,10 +396,11 @@ cleanup:
     return ret;
 
 error:
-    if (hLsaConnection != (HANDLE)NULL) {
+    if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
+    {
        LsaCloseServer(hLsaConnection);
+       *phLsaConnection = (HANDLE)NULL;
     }
-    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
@@ -456,10 +457,11 @@ cleanup:
     return ret;
 
 error:
-    if (hLsaConnection != (HANDLE)NULL) {
+    if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
+    {
        LsaCloseServer(hLsaConnection);
+       *phLsaConnection = (HANDLE)NULL;
     }
-    *phLsaConnection = (HANDLE)NULL;
 
     goto cleanup;
 }
