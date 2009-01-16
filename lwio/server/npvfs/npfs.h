@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,5 +28,88 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        includes
+ *
+ * Abstract:
+ *
+ *        Likewise Posix File System (SMBSS)
+ *
+ *        Service Entry API
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ */
+#ifndef __PVFS_H__
+#define __PVFS_H__
+
+#include "config.h"
+#include "lwiosys.h"
+
+#include <lw/rtlstring.h>
+#include <lw/rtlgoto.h>
+
+#include "iodriver.h"
+
+#include "lwioutils.h"
+#include "structs.h"
+
+NTSTATUS
+NpfsCreate(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsDeviceIo(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsFsCtrl(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsWrite(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+
+NTSTATUS
+NpfsRead(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsClose(
+    IO_DEVICE_HANDLE DeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsQueryInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsSetInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+#include "create.h"
+
+#endif /* __PVFS_H__ */
+
+
 

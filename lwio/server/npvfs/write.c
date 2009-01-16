@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,5 +28,47 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        write.c
+ *
+ * Abstract:
+ *
+ *        Likewise Posix File System Driver (NPFS)
+ *
+ *       Write Dispatch Routine
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ */
+
+#include "pvfs.h"
+
+NTSTATUS
+NpfsWrite(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_IRP_CONTEXT pIrpContext = NULL;
+
+    ntStatus = NpfsAllocateIrpContext(
+                        pIrp,
+                        &pIrpContext
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    //ntStatus = NpfsCommonWrite(pIrpContext, pIrp);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return ntStatus;
+}
 

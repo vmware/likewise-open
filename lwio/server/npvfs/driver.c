@@ -35,49 +35,133 @@
  *
  * Module Name:
  *
- *        createnp.c
+ *        driver.c
  *
  * Abstract:
  *
- *        Likewise SMB Subsystem (SMB)
+ *        Likewise Posix File System Driver (PVFS)
  *
- *        CreateNamedPipe API
+ *        Driver Entry Function
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "npvfs.h"
+#include "pvfs.h"
+
+VOID
+PvfsDriverShutdown(
+    IN IO_DRIVER_HANDLE DriverHandle
+    )
+{
+    IO_LOG_ENTER_LEAVE("");
+}
+
+NTSTATUS
+PvfsDriverDispatch(
+    IN IO_DEVICE_HANDLE DeviceHandle,
+    IN PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+    int EE = 0;
+
+    switch (pIrp->Type)
+    {
+        case IRP_TYPE_CREATE:
+            ntStatus = PvfsCreate(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+
+        case IRP_TYPE_CLOSE:
+            ntStatus = PvfsClose(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+
+
+        case IRP_TYPE_READ:
+            ntStatus = PvfsRead(
+                            DeviceHandle,
+                            pIrp
+                            );
+             break;
+
+        case IRP_TYPE_WRITE:
+            ntStatus = PvfsWrite(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+
+        case IRP_TYPE_DEVICE_IO_CONTROL:
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+            break;
+
+        case IRP_TYPE_FS_CONTROL:
+            ntStatus = PvfsFsCtrl(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+        case IRP_TYPE_FLUSH_BUFFERS:
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+            break;
+        case IRP_TYPE_QUERY_INFORMATION:
+            ntStatus = PvfsQueryInformation(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+        case IRP_TYPE_SET_INFORMATION:
+            ntStatus = PvfsSetInformation(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+    default:
+        ntStatus = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    }
+
+cleanup:
+    IO_LOG_ENTER_LEAVE_STATUS_EE_EX(ntStatus, EE, "Type = %u", pIrp->Type);
+    return ntStatus;
+}
 
 NTSTATUS
 DriverEntry(
-    PDRIVER_OBJECT pDriverObject,
-    PIRP pIrp
-	)
+    IN IO_DRIVER_HANDLE DriverHandle,
+    IN ULONG InterfaceVersion
+    )
 {
-	NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = 0;
+    int EE = 0;
+    IO_DEVICE_HANDLE deviceHandle = NULL;
 
-    pDriverObject->MajorFunction[IRP_MJ_CREATE] = NpfsCreateFile;
-    pDriverObject->MajorFunction[IRP_MJ_CLOSE] = NpfsCloseFile;
-    pDriverObject->MajorFunction[IRP_MJ_READ] = NpfsReadFile;
-    pDriverObject->MajorFunction[IRP_MJ_WRITE] = NpfsWriteFile;
-    pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = NpfsDeviceControl;
-    pDriverObject->MajorFunction[IRP_MJ_CLEANUP] = NpfsCleanup;
-    
-    ntStatus = IoCreateDevice(
-                    pDriverObject,
-                    0,
-                    DeviceName,
-                    FILE_DEVICE_DISK_FILE_SYSTEM,
-                    0,
-                    &NpfsGlobalData.pDeviceObject,
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-error:    
-    
-                        
-	return ntStatus;
+    if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
+    {
+        ntStatus = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    }
+
+    ntStatus = IoDriverInitialize(DriverHandle,
+                                  NULL,
+                                  PvfsDriverShutdown,
+                                  PvfsDriverDispatch);
+    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+
+    ntStatus = IoDeviceCreate(&deviceHandle,
+                              DriverHandle,
+                              "pvfs",
+                              NULL);
+    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+
+cleanup:
+    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
+    return ntStatus;
 }
-
-
-

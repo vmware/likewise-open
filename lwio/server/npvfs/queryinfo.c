@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,5 +28,37 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        driver.c
+ *
+ * Abstract:
+ *
+ *        Likewise Posix File System Driver (PVFS)
+ *
+ *        Driver Entry Function
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ */
+
+#include "pvfs.h"
+
+NTSTATUS
+NpfsQueryInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+
+
 
