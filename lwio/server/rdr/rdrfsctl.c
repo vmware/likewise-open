@@ -79,34 +79,38 @@ RdrCommonFsctl(
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = 0;
-    PVOID Buffer = NULL;
-    ULONG Length = 0;
-    DWORD dwBytesRead = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID pOutBuffer = pIrp->Args.IoFsControl.OutputBuffer;
+    ULONG OutLength = pIrp->Args.IoFsControl.OutputBufferLength;
     HANDLE hFile = NULL;
     DWORD dwSessionKeyLength = 0;
-    PBYTE pSessionKey = NULL;
+    PBYTE pSessionKeyBytes = NULL;
+    PIO_FSCTL_SMB_SESSION_KEY pSessionKey = (PIO_FSCTL_SMB_SESSION_KEY) pOutBuffer;
 
-    Buffer = pIrp->Args.ReadWrite.Buffer;
-    Length = pIrp->Args.ReadWrite.Length;
 
     hFile = IoFileGetContext(pIrp->FileHandle);
 
     ntStatus = RdrGetSessionKey(
                     hFile,
                     &dwSessionKeyLength,
-                    &pSessionKey
+                    &pSessionKeyBytes
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /* Ensure there is enough space in the output buffer for the
+       session key structure */
+    if (dwSessionKeyLength + sizeof(*pSessionKey) > OutLength)
+    {
+        BAIL_ON_NT_STATUS(ntStatus = STATUS_INSUFFICIENT_RESOURCES);
+    }
 
-
-
-    pIrp->IoStatusBlock.Status = ntStatus;
-    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
-    return(ntStatus);
+    pSessionKey->SessionKeyLength = (USHORT) dwSessionKeyLength;
+    memcpy(pSessionKey->Buffer, pSessionKeyBytes, dwSessionKeyLength);
 
 error:
+
+    IO_SAFE_FREE_MEMORY(pSessionKeyBytes);
+
     pIrp->IoStatusBlock.Status = ntStatus;
     return(ntStatus);
 }

@@ -136,7 +136,7 @@ IopIpcCreateFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IO_FILE_HANDLE fileHandle = NULL;
     IO_FILE_NAME fileName = { 0 };
-    IO_CREATE_SECURITY_CONTEXT securityContext = { 0 };
+    IO_CREATE_SECURITY_CONTEXT securityContext = { {0, 0}, NULL };
 
     assert(messageType == pRequest->tag);
 
@@ -149,25 +149,7 @@ IopIpcCreateFile(
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_CREATE_FILE_RESULT, sizeof(*pReply));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    if (pMessage->pSecurityToken)
-    {
-        switch (pMessage->pSecurityToken->type)
-        {
-            case IO_ACCESS_TOKEN_TYPE_PLAIN:
-                securityContext.ImpersonationType = IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_PASSWORD;
-                securityContext.Impersonation.Password.Username = pMessage->pSecurityToken->payload.plain.pwszUsername;
-                securityContext.Impersonation.Password.Password = pMessage->pSecurityToken->payload.plain.pwszPassword;
-                break;
-            case IO_ACCESS_TOKEN_TYPE_KRB5:
-                securityContext.ImpersonationType = IO_CREATE_SECURITY_CONTEXT_IMPERSONATION_TYPE_KERBEROS;
-                securityContext.Impersonation.Kerberos.Principal = pMessage->pSecurityToken->payload.krb5.pwszPrincipal;
-                securityContext.Impersonation.Kerberos.CachePath = pMessage->pSecurityToken->payload.krb5.pwszCachePath;
-                break;
-            default:
-                pReply->Status = STATUS_INVALID_PARAMETER;
-                GOTO_CLEANUP_EE(EE);
-        }
-    }
+    securityContext.pAccessToken = pMessage->pSecurityToken;
 
 #ifdef _NT_IPC_USE_PSEUDO_TYPES
     NtIpcRealFromPseudoIoFileName(&fileName, &pMessage->FileName);

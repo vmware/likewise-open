@@ -104,7 +104,7 @@ RdrDriverDispatch(
             break;
 
         case IRP_TYPE_FS_CONTROL:
-            ntStatus = RdrFsCtrl(
+            ntStatus = RdrFsctl(
                             DeviceHandle,
                             pIrp
                             );

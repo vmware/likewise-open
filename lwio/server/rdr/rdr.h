@@ -59,6 +59,7 @@
 
 #include "lwiodef.h"
 #include "lwioutils.h"
+#include "lwiofsctl.h"
 #include "smbkrb5.h"
 
 #include <lw/ntstatus.h>
@@ -116,7 +117,7 @@ RdrDeviceIo(
     );
 
 NTSTATUS
-RdrFsCtrl(
+RdrFsctl(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
