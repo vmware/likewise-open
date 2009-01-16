@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -57,11 +57,7 @@ typedef struct
     uint8_t *pSecurityBlob;     /* Security blob from NEGOTIATE */
     uint32_t securityBlobLen;   /* Security blob len from NEGOTIATE */
 
-    PSMB_STACK pFreeBufferStack;
-    uint32_t freeBufferCount;
-    size_t freeBufferLen;       /* Current size of buffer allocator */
-    PSMB_STACK pFreePacketStack;
-    uint32_t freePacketCount;
+    HANDLE   hPacketAllocator;
 
     pthread_rwlock_t hashLock;  /* Locks the session hashes */
     SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
@@ -191,6 +187,27 @@ typedef struct _SMB_CLIENT_FILE_HANDLE
     uint64_t  llOffset;
 
 } SMB_CLIENT_FILE_HANDLE, *PSMB_CLIENT_FILE_HANDLE;
+
+typedef struct _RDR_CONFIG
+{
+    ULONG   ulNumMaxPackets;
+    BOOLEAN bSignMessagesIfSupported;
+} RDR_CONFIG, *PRDR_CONFIG;
+
+typedef struct _RDR_GLOBAL_RUNTIME
+{
+    RDR_CONFIG        config;
+
+    SMB_HASH_TABLE   *pSocketHashByName;    /* Socket hash by name */
+    SMB_HASH_TABLE   *pSocketHashByAddress; /* Socket hash by address */
+    pthread_rwlock_t  socketHashLock;       /* Protects both hashes */
+    pthread_rwlock_t* pSocketHashLock;
+
+    PSMB_STACK        pReaperStack;         /* Stack of reapers */
+
+    HANDLE            hPacketAllocator;
+
+} RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif
 

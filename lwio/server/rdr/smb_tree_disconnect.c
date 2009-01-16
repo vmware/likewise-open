@@ -64,8 +64,8 @@ TreeDisconnect(
     DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
-    dwError = SMBSocketBufferAllocate(
-                    pTree->pSession->pSocket,
+    dwError = SMBPacketBufferAllocate(
+                    pTree->pSession->pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
@@ -124,7 +124,7 @@ TreeDisconnect(
 
     /* @todo: on send packet error, the response must be removed from the
        tree. */
-    dwError = SMBPacketSend(pTree->pSession->pSocket, &packet);
+    dwError = SMBSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBTreeReceiveResponse(
@@ -150,15 +150,15 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBSocketPacketFree(
+        SMBPacketFree(
              pTree->pSession->pSocket,
              pResponsePacket);
     }
 
     if (packet.bufferLen)
     {
-        SMBSocketBufferFree(
-                        pTree->pSession->pSocket,
+        SMBPacketBufferFree(
+                        pTree->pSession->pSocket->hPacketAllocator,
                         packet.pRawBuffer,
                         packet.bufferLen);
     }

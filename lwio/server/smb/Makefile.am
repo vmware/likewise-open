@@ -5,6 +5,7 @@ liblwiosmb_la_SOURCES = \
     echo.c          \
     negotiate.c     \
     open.c          \
+    packet.c        \
     read.c          \
     session_setup.c \
     transaction.c   \

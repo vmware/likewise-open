@@ -410,8 +410,6 @@ SrvSocketReaderReadMessage(
 {
     NTSTATUS ntStatus = 0;
 
-    // TODO: Read the message and enqueue it
-
 cleanup:
 
     return ntStatus;

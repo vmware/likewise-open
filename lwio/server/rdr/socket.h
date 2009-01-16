@@ -32,13 +32,6 @@
 #define __SOCKET_H__
 
 DWORD
-SMBSrvSocketCreate(
-    int fd,
-    struct sockaddr_in clientAddr,
-    PSMB_SOCKET* ppSocket
-    );
-
-DWORD
 SMBSocketCreate(
     struct addrinfo *address,
     uchar8_t        *pszHostname,
@@ -97,6 +90,18 @@ SMBSocketUpdateLastActiveTime(
     );
 
 DWORD
+SMBSocketSend(
+    PSMB_SOCKET pSocket,
+    PSMB_PACKET pPacket
+    );
+
+DWORD
+SMBSocketReceiveAndUnmarshall(
+    PSMB_SOCKET pSocket,
+    PSMB_PACKET pPacket
+    );
+
+DWORD
 SMBSocketRead(
     PSMB_SOCKET pSocket,
     uint8_t    *buffer,
@@ -127,27 +132,6 @@ SMBSocketFindSessionByPrincipal(
     PSMB_SOCKET   pSocket,
     uint8_t      *pszPrincipal,
     PSMB_SESSION* ppSession
-    );
-
-DWORD
-SMBSocketBufferAllocate(
-    PSMB_SOCKET pSocket,
-    size_t      len,
-    uint8_t   **ppBuffer,
-    size_t     *pAllocatedLen
-    );
-
-VOID
-SMBSocketBufferFree(
-    PSMB_SOCKET pSocket,
-    uint8_t    *pBuffer,
-    size_t      bufferLen
-    );
-
-VOID
-SMBSocketPacketFree(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
     );
 
 VOID

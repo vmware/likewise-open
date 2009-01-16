@@ -84,7 +84,6 @@
 #include "smb_tree_disconnect.h"
 #include "smb_logoff.h"
 #include "socket.h"
-#include "packet.h"
 #include "tree.h"
 #include "session.h"
 #include "response.h"

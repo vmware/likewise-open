@@ -179,6 +179,7 @@ typedef struct _SMB_SRV_LISTENER
 typedef struct _SMB_SRV_RUNTIME_GLOBALS
 {
     pthread_mutex_t          mutex;
+    pthread_mutex_t*         pMutex;
 
     SMB_SRV_CONFIG           config;
 

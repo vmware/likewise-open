@@ -72,8 +72,8 @@ RdrSocketInit(
 {
     DWORD dwError = 0;
 
-    assert(!gpSocketHashByName);
-    assert(!gpSocketHashByAddress);
+    assert(!gRdrRuntime.pSocketHashByName);
+    assert(!gRdrRuntime.pSocketHashByAddress);
 
     /* @todo: support case and normalization insensitive string comparisons */
     /* Once we have libidn we'll also need the ability do Unicode case and
@@ -89,7 +89,7 @@ RdrSocketInit(
                     SMBHashCaselessStringCompare,
                     SMBHashCaselessString,
                     NULL,
-                    &gpSocketHashByName);
+                    &gRdrRuntime.pSocketHashByName);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBHashCreate(
@@ -97,7 +97,7 @@ RdrSocketInit(
                     &SMBSrvClientHashSockaddrCompare,
                     &SMBSrvClientHashAddrinfo,
                     NULL,
-                    &gpSocketHashByAddress);
+                    &gRdrRuntime.pSocketHashByAddress);
     BAIL_ON_SMB_ERROR(dwError);
 
 error:
@@ -282,10 +282,10 @@ _FindSocketByName(
        lookup.  Site affinity is handled by the client. */
 
     /* @todo: add expiration to the name hash */
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &gSocketHashLock);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &gRdrRuntime.socketHashLock);
 
     dwError = SMBHashGetValue(
-                    gpSocketHashByName,
+                    gRdrRuntime.pSocketHashByName,
                     pszHostname,
                     (PVOID *) &pSocket);
     BAIL_ON_SMB_ERROR(dwError);
@@ -296,7 +296,7 @@ _FindSocketByName(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
+    SMB_UNLOCK_RWMUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     return dwError;
 
@@ -315,19 +315,19 @@ _AddSocketByName(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSocketHashLock);
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gRdrRuntime.socketHashLock);
 
     /* We replace any existing entry on the grounds that new socket has been
        created from fresher DNS information */
     dwError = SMBHashSetValue(
-                    gpSocketHashByName,
+                    gRdrRuntime.pSocketHashByName,
                     pSocket->pszHostname,
                     pSocket);
     BAIL_ON_SMB_ERROR(dwError);
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
+    SMB_UNLOCK_RWMUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     return dwError;
 
@@ -366,17 +366,17 @@ restart:
 
     if (bFirstPass)
     {
-        SMB_LOCK_RWMUTEX_SHARED(bInLock, &gSocketHashLock);
+        SMB_LOCK_RWMUTEX_SHARED(bInLock, &gRdrRuntime.socketHashLock);
     }
     else
     {
-        SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSocketHashLock);
+        SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gRdrRuntime.socketHashLock);
     }
 
     for (ai = addresses; ai != NULL && !bFoundValid; ai = ai->ai_next)
     {
         dwError = SMBHashGetValue(
-                        gpSocketHashByAddress,
+                        gRdrRuntime.pSocketHashByAddress,
                         (PCVOID *) ai,
                         (PVOID *) &pSocket);
         if (!dwError)
@@ -400,7 +400,7 @@ restart:
 
                     pSocket->refCount++;
 
-                    SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
+                    SMB_UNLOCK_RWMUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
                     pthread_cond_wait(
                             &pSocket->event,
@@ -445,13 +445,13 @@ restart:
 
             /* add to hash */
             dwError = SMBHashSetValue(
-                            gpSocketHashByAddress,
+                            gRdrRuntime.pSocketHashByAddress,
                             &pSocket->address,
                             pSocket);
             BAIL_ON_SMB_ERROR(dwError);
 
             /* Don't hold locks across a network operation */
-            SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
+            SMB_UNLOCK_RWMUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
             /* Attempt to connect */
             /* @todo: most likely a socket error is a resource issue;
@@ -477,7 +477,7 @@ restart:
         }
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
+    SMB_UNLOCK_RWMUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     if (!bFoundValid && bFirstPass)
     {
@@ -623,13 +623,13 @@ RdrSocketShutdown(
     )
 {
     /* @todo: assert empty */
-    assert(gpSocketHashByName);
+    assert(gRdrRuntime.pSocketHashByName);
     /* @todo: assert empty */
-    assert(gpSocketHashByAddress);
+    assert(gRdrRuntime.pSocketHashByAddress);
 
-    SMBHashSafeFree(&gpSocketHashByName);
+    SMBHashSafeFree(&gRdrRuntime.pSocketHashByName);
 
-    SMBHashSafeFree(&gpSocketHashByAddress);
+    SMBHashSafeFree(&gRdrRuntime.pSocketHashByAddress);
 
     return 0;
 }

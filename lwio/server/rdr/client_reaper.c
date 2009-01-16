@@ -83,7 +83,7 @@ RdrReaperStart(
                         NULL);
         BAIL_ON_SMB_ERROR(dwError);
 
-        dwError = SMBStackPush(pReaperThread, &gpReaperStack);
+        dwError = SMBStackPush(pReaperThread, &gRdrRuntime.pReaperStack);
         BAIL_ON_SMB_ERROR(dwError);
     }
 
@@ -125,10 +125,10 @@ SMBSrvClientReaperMain(
 
         sleep(60);
 
-        dwError = pthread_rwlock_rdlock(&gSocketHashLock);
+        dwError = pthread_rwlock_rdlock(&gRdrRuntime.socketHashLock);
         if (dwError) goto error_socket_hash_lock;
 
-        dwError = SMBHashGetIterator(gpSocketHashByAddress, &iterator);
+        dwError = SMBHashGetIterator(gRdrRuntime.pSocketHashByAddress, &iterator);
         if (dwError) goto error_socket_hash_iterator;
 
         while ((pEntry = SMBHashNext(&iterator)))
@@ -141,7 +141,7 @@ SMBSrvClientReaperMain(
             if (dwError) goto error_socket_hash_iterator;
         }
 
-        dwError = pthread_rwlock_unlock(&gSocketHashLock);
+        dwError = pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
         BAIL_ON_SMB_ERROR(dwError); /* @todo: ref. leaks! */
 
         while ((pSocket = (SMB_SOCKET *) SMBStackPop(&pSocketStack)))
@@ -278,7 +278,7 @@ error_session_hash_lock:
         BAIL_ON_SMB_ERROR(dwError);
 
 error_socket_hash_iterator:
-        pthread_rwlock_unlock(&gSocketHashLock);
+        pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
         BAIL_ON_SMB_ERROR(dwError);
 
 error_socket_hash_lock:
@@ -520,11 +520,11 @@ SMBSrvClientReaperManageSocket_inlock(
     BOOLEAN bReaped = false;
 
     /* Lock the parent session for write */
-    dwError = pthread_rwlock_wrlock(&gSocketHashLock);
+    dwError = pthread_rwlock_wrlock(&gRdrRuntime.socketHashLock);
     BAIL_ON_SMB_ERROR(dwError);
     bHashLocked = true;
 
-    dwError = SMBHashGetValue(gpSocketHashByAddress, &pSocket->address,
+    dwError = SMBHashGetValue(gRdrRuntime.pSocketHashByAddress, &pSocket->address,
         (PVOID *) &pFoundSocket);
     BAIL_ON_SMB_ERROR(dwError);
     assert(pSocket == pFoundSocket);
@@ -549,15 +549,15 @@ SMBSrvClientReaperManageSocket_inlock(
     bSocketLocked = false;
 
     /* Remove from the global address and address hashes. */
-    dwError = SMBHashRemoveKey(gpSocketHashByAddress, &pSocket->address);
+    dwError = SMBHashRemoveKey(gRdrRuntime.pSocketHashByAddress, &pSocket->address);
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBHashRemoveKey(gpSocketHashByName, pSocket->pszHostname);
+    dwError = SMBHashRemoveKey(gRdrRuntime.pSocketHashByName, pSocket->pszHostname);
     BAIL_ON_SMB_ERROR(dwError);
 
     /* From this point on, any instance if this socket in the socket
        hash is from a new thread wishing to connect. */
-    dwError = pthread_rwlock_unlock(&gSocketHashLock);
+    dwError = pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
     BAIL_ON_SMB_ERROR(dwError);
     bHashLocked = false;
 
@@ -575,7 +575,7 @@ out:
 error:
     if (bHashLocked)
     {
-        pthread_rwlock_unlock(&gSocketHashLock);
+        pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
     }
 
     if (bSocketLocked)
@@ -594,7 +594,7 @@ RdrReaperStop(
     DWORD dwError = 0;
     pthread_t *pReaperThread = NULL;
 
-    while ((pReaperThread = SMBStackPop(&gpReaperStack)))
+    while ((pReaperThread = SMBStackPop(&gRdrRuntime.pReaperStack)))
     {
         pthread_cancel(*pReaperThread);
 

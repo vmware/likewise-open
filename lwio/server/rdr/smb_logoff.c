@@ -63,8 +63,8 @@ Logoff(
     DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
-    dwError = SMBSocketBufferAllocate(
-                    pSession->pSocket,
+    dwError = SMBPacketBufferAllocate(
+                    pSession->pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
@@ -108,7 +108,7 @@ Logoff(
         dwResponseSequence = dwSequence + 1;
     }
 
-    dwError = SMBPacketSend(pSession->pSocket, &packet);
+    dwError = SMBSocketSend(pSession->pSocket, &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBSocketReceiveLogoffResponse(
@@ -133,13 +133,13 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBSocketPacketFree(pSession->pSocket, pResponsePacket);
+        SMBPacketFree(pSession->pSocket, pResponsePacket);
     }
 
     if (packet.bufferLen)
     {
-        SMBSocketBufferFree(
-                pSession->pSocket,
+        SMBPacketBufferFree(
+                pSession->pSocket->hPacketAllocator,
                 packet.pRawBuffer,
                 packet.bufferLen);
     }

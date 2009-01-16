@@ -297,7 +297,7 @@ SMBSrvClientSessionSignMessages(
     )
 {
     // TODO: Grab the config lock when available
-    return (pSession->bSignedMessagesRequired || (pSession->bSignedMessagesSupported && gSignMessagesIfSupported));
+    return (pSession->bSignedMessagesRequired || (pSession->bSignedMessagesSupported && gRdrRuntime.config.bSignMessagesIfSupported));
 }
 
 DWORD

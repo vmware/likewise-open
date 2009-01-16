@@ -101,8 +101,8 @@ SessionSetup(
     BAIL_ON_SMB_ERROR(dwError);
 
     /* @todo: make initial length configurable */
-    dwError = SMBSocketBufferAllocate(
-                    pSocket,
+    dwError = SMBPacketBufferAllocate(
+                    pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
@@ -194,12 +194,12 @@ SessionSetup(
 
         /* @todo: on send packet error, the response must be removed from the
            tree. */
-        dwError = SMBPacketSend(pSocket, &packet);
+        dwError = SMBSocketSend(pSocket, &packet);
         BAIL_ON_SMB_ERROR(dwError);
 
         if (pResponsePacket)
         {
-            SMBSocketPacketFree(pSocket, pResponsePacket);
+            SMBPacketFree(pSocket, pResponsePacket);
             pResponsePacket = NULL;
         }
 
@@ -261,13 +261,13 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBSocketPacketFree(pSocket, pResponsePacket);
+        SMBPacketFree(pSocket, pResponsePacket);
     }
 
     if (packet.bufferLen)
     {
-        SMBSocketBufferFree(
-                pSocket,
+        SMBPacketBufferFree(
+                pSocket->hPacketAllocator,
                 packet.pRawBuffer,
                 packet.bufferLen);
     }
