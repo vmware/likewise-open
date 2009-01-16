@@ -202,6 +202,8 @@ SMBPacketBufferAllocate(
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
     BOOLEAN bInLock = FALSE;
 
+    pPacketAllocator = (PLWIO_PACKET_ALLOCATOR)hPacketAllocator;
+
     SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
     /* If the len is greater than our current allocator len, adjust */
@@ -251,6 +253,8 @@ SMBPacketBufferFree(
 {
     BOOLEAN bInLock = FALSE;
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
+
+    pPacketAllocator = (PLWIO_PACKET_ALLOCATOR)hPacketAllocator;
 
     SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
