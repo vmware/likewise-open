@@ -18,6 +18,11 @@ SrvConnectionIsInvalid(
     PSMB_SRV_CONNECTION pConnection
     );
 
+VOID
+SrvConnectionSetInvalid(
+    PSMB_SRV_CONNECTION pConnection
+    );
+
 NTSTATUS
 SrvConnectionReadPacket(
     PSMB_SRV_CONNECTION pConnection,

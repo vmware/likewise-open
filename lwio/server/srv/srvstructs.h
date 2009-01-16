@@ -145,6 +145,15 @@ typedef struct _SMB_SRV_CONNECTION
     // Not owned
     HANDLE              hPacketAllocator;
 
+    struct
+    {
+        BOOLEAN         bReadHeader;
+        size_t          sNumBytesToRead;
+        size_t          sOffset;
+        PSMB_PACKET     pRequestPacket;
+
+    } readerState;
+
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
 
 typedef struct _LWIO_SRV_TASK
