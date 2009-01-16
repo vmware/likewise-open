@@ -181,10 +181,10 @@ ParseSharePath(
     pszIndex = pszPath;
 
     // Skip optional initial decoration
-    if (!strncmp(pszIndex, "//", sizeof("//") - 1) ||
-        !strncmp(pszIndex, "\\\\", sizeof("\\\\") - 1))
+    if (!strncmp(pszIndex, "/", sizeof("/") - 1) ||
+        !strncmp(pszIndex, "\\", sizeof("\\") - 1))
     {
-        pszIndex += 2;
+        pszIndex += 1;
     }
 
     if (IsNullOrEmptyString(pszIndex) || !isalpha((int)*pszIndex))
@@ -227,25 +227,13 @@ ParseSharePath(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (!strncasecmp(pszIndex, "pipe", sLen) ||
-        !strncasecmp(pszIndex, "ipc$", sLen))
-    {
-        ntStatus = SMBAllocateStringPrintf(
-                        &pszShare,
-                        "\\\\%s\\IPC$",
-                        pszServer);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        ntStatus = SMBAllocateMemory(
-                        sizeof("\\\\") - 1 + strlen(pszServer) + sizeof("\\") - 1 + sLen + 1,
-                        (PVOID*)&pszShare);
-        BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SMBAllocateMemory(
+        sizeof("\\\\") - 1 + strlen(pszServer) + sizeof("\\") - 1 + sLen + 1,
+        (PVOID*)&pszShare);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        sprintf(pszShare, "\\\\%s\\", pszServer);
-        strncat(pszShare, pszIndex, sLen);
-    }
+    sprintf(pszShare, "\\\\%s\\", pszServer);
+    strncat(pszShare, pszIndex, sLen);
 
     pszIndex += sLen;
 
