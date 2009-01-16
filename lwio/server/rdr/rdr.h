@@ -57,16 +57,19 @@
 
 #include <lwio/lwio.h>
 
+#include <lw/ntstatus.h>
+#include <lw/rtlstring.h>
+#include <lw/rtlgoto.h>
+
 #include "lwiodef.h"
 #include "lwioutils.h"
 #include "lwiofsctl.h"
 #include "smbkrb5.h"
 
-#include <lw/ntstatus.h>
 #include "smb.h"
-
 #include "smbclient.h"
 #include <lwio/io-types.h>
+#include "iodriver.h"
 
 #include "structs.h"
 #include "createfile.h"
@@ -94,14 +97,6 @@
 #include "client_reaper.h"
 
 #include "externs.h"
-
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
-
-#include "iodriver.h"
-
-#include "lwioutils.h"
-#include "rdrstructs.h"
 
 NTSTATUS
 RdrCreate(
