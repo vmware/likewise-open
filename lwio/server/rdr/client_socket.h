@@ -29,48 +29,48 @@
  */
 
 
-DWORD
+NTSTATUS
 RdrSocketInit(
     VOID
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSocketCreate(
     uchar8_t    *pszHostname,
     PSMB_SOCKET* ppSocket
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSocketIsStale_inlock(
     PSMB_SOCKET pSocket,
     PBOOLEAN    pbIsStale
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSocketAddSessionByPrincipal(
     PSMB_SOCKET  pSocket,
     PSMB_SESSION pSession
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSocketRemoveSessionByPrincipal(
     PSMB_SOCKET  pSocket,
     PSMB_SESSION pSession
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSocketAddSessionByUID(
     PSMB_SOCKET  pSocket,
     PSMB_SESSION pSession
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSocketRemoveSessionByUID(
     PSMB_SOCKET  pSocket,
     PSMB_SESSION pSession
     );
 
-DWORD
+NTSTATUS
 RdrSocketShutdown(
     VOID
     );

@@ -71,35 +71,35 @@ SMBTreeFree(
     );
 
 static
-DWORD
+NTSTATUS
 SMBTreeDestroyContents(
     PSMB_TREE pTree
     );
 
-DWORD
+NTSTATUS
 SMBTreeCreate(
     PSMB_TREE* ppTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_TREE pTree = NULL;
     BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
     pthread_mutexattr_t mutexAttr;
     pthread_mutexattr_t* pMutexAttr = NULL;
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                 sizeof(SMB_TREE),
                 (PVOID*)&pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = pthread_mutexattr_init(&mutexAttr);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_mutexattr_init(&mutexAttr);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pMutexAttr = &mutexAttr;
 
-    dwError = pthread_mutexattr_settype(pMutexAttr, PTHREAD_MUTEX_RECURSIVE);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_mutexattr_settype(pMutexAttr, PTHREAD_MUTEX_RECURSIVE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pTree->mutex, pMutexAttr);
     bDestroyMutex = TRUE;
@@ -108,8 +108,8 @@ SMBTreeCreate(
     pTree->error.type = ERROR_SMB;
     pTree->error.smb = SMB_ERROR_SUCCESS;
 
-    dwError = pthread_cond_init(&pTree->event, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_cond_init(&pTree->event, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
 
@@ -119,21 +119,21 @@ SMBTreeCreate(
        changes, such as made by ntpd */
     if (time(&pTree->lastActiveTime) == (time_t)-1)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = errno;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pTree->pSession = NULL;
     pTree->tid = 0;
     pTree->pszPath = NULL;
 
-    dwError = SMBHashCreate(
+    ntStatus = SMBHashCreate(
                 19,
                 &SMBTreeHashResponseCompare,
                 &SMBTreeHashResponse,
                 NULL,
                 &pTree->pResponseHash);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppTree = pTree;
 
@@ -144,7 +144,7 @@ cleanup:
         pthread_mutexattr_destroy(pMutexAttr);
     }
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -214,13 +214,13 @@ SMBTreeAddReference(
     SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 }
 
-DWORD
+NTSTATUS
 SMBTreeAcquireMid(
     PSMB_TREE pTree,
     uint16_t* pwMid
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     WORD wMid = 0;
 
@@ -234,16 +234,16 @@ SMBTreeAcquireMid(
 
     SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
-    return dwError;
+    return ntStatus;
 }
 
-DWORD
+NTSTATUS
 SMBTreeSetState(
     PSMB_TREE pTree,
     SMB_RESOURCE_STATE state
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
@@ -254,17 +254,17 @@ SMBTreeSetState(
 
     SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
-    return dwError;
+    return ntStatus;
 }
 
-DWORD
+NTSTATUS
 SMBTreeInvalidate(
     PSMB_TREE      pTree,
     SMB_ERROR_TYPE errorType,
     uint32_t       errorValue
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
@@ -281,7 +281,7 @@ SMBTreeInvalidate(
 
     SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
-    return dwError;
+    return ntStatus;
 }
 
 /** @todo: keep unused trees around for a little while when daemonized.
@@ -335,7 +335,7 @@ SMBTreeFree(
 }
 
 static
-DWORD
+NTSTATUS
 SMBTreeDestroyContents(
     PSMB_TREE pTree
     )
@@ -348,14 +348,14 @@ SMBTreeDestroyContents(
     return 0;
 }
 
-DWORD
+NTSTATUS
 SMBTreeReceiveResponse(
     PSMB_TREE     pTree,
     PSMB_RESPONSE pResponse,
     PSMB_PACKET*  ppResponsePacket
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bResponseInLock = FALSE;
     BOOLEAN bTreeInLock = FALSE;
     struct timespec ts = {0, 0};
@@ -372,15 +372,15 @@ SMBTreeReceiveResponse(
 retry_wait:
 
         /* @todo: always verify non-error state after acquiring mutex */
-        dwError = pthread_cond_timedwait(
+        ntStatus = pthread_cond_timedwait(
                         &pResponse->event,
                         &pResponse->mutex,
                         &ts);
-        if (dwError == ETIMEDOUT)
+        if (ntStatus == ETIMEDOUT)
         {
             if (time(NULL) < ts.tv_sec)
             {
-                dwError = 0;
+                ntStatus = 0;
                 goto retry_wait;
             }
 
@@ -399,10 +399,10 @@ retry_wait:
             else
             {
                 // continue waiting
-                dwError = SMB_ERROR_SUCCESS;
+                ntStatus = SMB_ERROR_SUCCESS;
             }
         }
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     SMB_UNLOCK_MUTEX(bResponseInLock, &pResponse->mutex);
@@ -411,10 +411,10 @@ retry_wait:
 
     SMB_LOG_DEBUG("Removing response [mid: %d] from Tree [0x%x]", pResponse->mid, pTree);
 
-    dwError = SMBHashRemoveKey(
+    ntStatus = SMBHashRemoveKey(
                     pTree->pResponseHash,
                     &pResponse->mid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* @todo: this need be set only when the hash is empty */
     pTree->lastActiveTime = time(NULL);
@@ -429,7 +429,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bResponseInLock, &pResponse->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -438,14 +438,14 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBTreeFindLockedResponseByMID(
     PSMB_TREE      pTree,
     uint16_t       wMid,
     PSMB_RESPONSE* ppResponse
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     BOOLEAN bResponseInLock = FALSE;
     PSMB_RESPONSE pResponse = NULL;
@@ -454,11 +454,11 @@ SMBTreeFindLockedResponseByMID(
 
     SMB_LOG_DEBUG("Trying to find response [mid: %d] in Tree [0x%x]", wMid, pTree);
 
-    dwError = SMBHashGetValue(
+    ntStatus = SMBHashGetValue(
                     pTree->pResponseHash,
                     &wMid,
                     (PVOID *) &pResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
@@ -474,7 +474,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 

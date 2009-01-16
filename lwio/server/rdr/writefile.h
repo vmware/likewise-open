@@ -31,7 +31,7 @@
 #ifndef __WRITEFILE_H__
 #define __WRITEFILE_H__
 
-DWORD
+NTSTATUS
 RdrWriteFileEx(
     HANDLE hFile,
     DWORD  dwNumBytesToWrite,

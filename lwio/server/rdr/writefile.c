@@ -49,7 +49,7 @@
 #include "rdr.h"
 
 
-DWORD
+NTSTATUS
 RdrWriteFileEx(
     HANDLE hFile,
     DWORD  dwNumBytesToWrite,
@@ -57,7 +57,7 @@ RdrWriteFileEx(
     PDWORD pdwNumBytesWritten
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     DWORD dwNumBytesWritten = 0;
     PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
     BOOLEAN bFileIsLocked = FALSE;
@@ -74,7 +74,7 @@ RdrWriteFileEx(
             wBytesToWrite = (uint16_t)dwNumBytesToWrite;
         }
 
-        dwError = WireWriteFile(
+        ntStatus = WireWriteFile(
                     pFile->pTree,
                     pFile->fid,
                     pFile->llOffset,
@@ -82,7 +82,7 @@ RdrWriteFileEx(
                     wBytesToWrite,
                     &wBytesWritten,
                     NULL);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         pFile->llOffset += wBytesWritten;
         dwNumBytesWritten += wBytesWritten;
@@ -96,5 +96,5 @@ error:
 
     *pdwNumBytesWritten = dwNumBytesWritten;
 
-    return dwError;
+    return ntStatus;
 }

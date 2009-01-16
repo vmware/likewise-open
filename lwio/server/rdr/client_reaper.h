@@ -29,12 +29,12 @@
  */
 
 
-DWORD
+NTSTATUS
 RdrReaperStart(
     VOID
     );
 
-DWORD
+NTSTATUS
 RdrReaperStop(
     VOID
     );

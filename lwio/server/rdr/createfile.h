@@ -31,7 +31,7 @@
 #ifndef __CREATEFILE_H__
 #define __CREATEFILE_H__
 
-DWORD
+NTSTATUS
 RdrCreateFileEx(
     PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszFileName,

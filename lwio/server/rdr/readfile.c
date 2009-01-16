@@ -49,7 +49,7 @@
 #include "rdr.h"
 
 
-DWORD
+NTSTATUS
 RdrReadFileEx(
     HANDLE hFile,
     DWORD  dwBytesToRead,
@@ -57,7 +57,7 @@ RdrReadFileEx(
     PDWORD pdwBytesRead
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PBYTE pBuffer = NULL;
     DWORD dwBytesRead = 0;
     DWORD dwBufferLen = 0;
@@ -84,17 +84,17 @@ RdrReadFileEx(
 
             SMB_LOG_DEBUG("ClientReadFile: Available [%d] Need [%d]", wBytesAvailable, wBytesToRead);
 
-            dwError = SMBReallocMemory(
+            ntStatus = SMBReallocMemory(
                             pBuffer,
                             (PVOID*)&pBuffer,
                             dwBufferLen + wAdditional);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_NT_STATUS(ntStatus);
 
             dwBufferLen += wAdditional;
             wBytesAvailable += wAdditional;
         }
 
-        dwError = WireReadFile(
+        ntStatus = WireReadFile(
                     pFile->pTree,
                     pFile->fid,
                     pFile->llOffset,
@@ -102,7 +102,7 @@ RdrReadFileEx(
                     wBytesToRead,
                     &wBytesRead,
                     NULL);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         pFile->llOffset += wBytesRead;
         dwBytesRead += wBytesRead;
@@ -119,7 +119,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bFileIsLocked, &pFile->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 

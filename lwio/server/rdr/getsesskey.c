@@ -30,14 +30,14 @@
 
 #include "rdr.h"
 
-DWORD
+NTSTATUS
 RdrGetSessionKey(
     HANDLE hFile,
     PDWORD pdwSessionKeyLength,
     PBYTE* ppSessionKey
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
     PSMB_SESSION pSession = NULL;
     PBYTE pSessionKey = NULL;
@@ -48,20 +48,34 @@ RdrGetSessionKey(
        session structure without locking the socket hash mutex to protect
        against reaping. */
 
-    BAIL_ON_INVALID_SMBHANDLE(hFile);
-    BAIL_ON_INVALID_POINTER(pdwSessionKeyLength);
-    BAIL_ON_INVALID_POINTER(ppSessionKey);
+    if (hFile == (HANDLE)NULL)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_1;
+    }
+    if (pdwSessionKeyLength == NULL)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_2;
+    }
+    if (ppSessionKey == NULL)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_3;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pSession = pFile->pTree->pSession;
 
     SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
-    BAIL_ON_INVALID_POINTER(pSession->pSessionKey);
+    if (!pSession->pSessionKey)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                     pSession->dwSessionKeyLength,
                     (PVOID*)&pSessionKey);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pSessionKey, pSession->pSessionKey, pSession->dwSessionKeyLength);
 
@@ -72,7 +86,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 

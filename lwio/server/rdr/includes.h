@@ -64,7 +64,7 @@
 #include <lwio/io-types.h>
 #include "ntvfsprovider.h"
 
-#include "structs.h"
+#include "rdrstructs.h"
 #include "createfile.h"
 #include "readfile.h"
 #include "writefile.h"

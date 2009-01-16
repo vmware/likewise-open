@@ -59,7 +59,7 @@ NPTransact(
     uint16_t readLen
     )
 {
-    uint32_t dwError = 0;
+    uint32_t ntStatus = 0;
     SMB_PACKET packet = {0};
     uint32_t packetByteCount = 0;
     TRANSACTION_REQUEST_HEADER *pHeader = NULL;
@@ -79,19 +79,19 @@ NPTransact(
     DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
-    dwError = SMBPacketBufferAllocate(
+    ntStatus = SMBPacketBufferAllocate(
                     pTree->pSession->pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBTreeAcquireMid(
+    ntStatus = SMBTreeAcquireMid(
                     pTree,
                     &wMid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBPacketMarshallHeader(
+    ntStatus = SMBPacketMarshallHeader(
                 packet.pRawBuffer,
                 packet.bufferLen,
                 COM_TRANSACTION,
@@ -103,7 +103,7 @@ NPTransact(
                 wMid,
                 SMBSrvClientSessionSignMessages(pTree->pSession),
                 &packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     packet.pData = packet.pParams + sizeof(TRANSACTION_REQUEST_HEADER);
     /* @todo: handle size restart */
@@ -144,7 +144,7 @@ NPTransact(
 
     pHeader->dataCount = wIterWriteLen;
 
-    dwError = MarshallTransactionRequestData(
+    ntStatus = MarshallTransactionRequestData(
                 packet.pData,
                 packet.bufferLen - packet.bufferUsed,
                 &packetByteCount,
@@ -157,33 +157,33 @@ NPTransact(
                 pWrite,
                 wIterWriteLen,
                 &pHeader->dataOffset);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pHeader->parameterOffset += packet.pData - (uint8_t *) packet.pSMBHeader;
     pHeader->dataOffset += packet.pData - (uint8_t *) packet.pSMBHeader;
 
     packet.bufferUsed += packetByteCount;
 
-    dwError = SMBPacketMarshallFooter(&packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBPacketMarshallFooter(&packet);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBResponseCreate(wMid, &pResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBResponseCreate(wMid, &pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSrvClientTreeAddResponse(pTree, pResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSocketSend(pTree->pSession->pSocket, &packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBTreeReceiveResponse(
+    ntStatus = SMBTreeReceiveResponse(
                     pTree,
                     pResponse,
                     &pResponsePacket);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = pResponsePacket->pSMBHeader->error;
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     wWriteRemaining -= wIterWriteLen;
     pWrite += wIterWriteLen;
@@ -211,7 +211,7 @@ NPTransact(
     // Send secondary requests
     while (wWriteRemaining)
     {
-        dwError = SMBPacketMarshallHeader(
+        ntStatus = SMBPacketMarshallHeader(
                     packet.pRawBuffer,
                     packet.bufferLen,
                     COM_TRANSACTION_SECONDARY,
@@ -223,7 +223,7 @@ NPTransact(
                     0,
                     SMBSrvClientSessionSignMessages(pTree->pSession),
                     &packet);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         packet.pData = packet.pParams + sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
         /* @todo: handle size restart */
@@ -254,7 +254,7 @@ NPTransact(
         pHeader->dataCount = wIterWriteLen;
 
         packetByteCount = 0;
-        dwError = MarshallTransactionSecondaryRequestData(
+        ntStatus = MarshallTransactionSecondaryRequestData(
                         packet.pData,
                         packet.bufferLen - packet.bufferUsed,
                         &packetByteCount,
@@ -264,33 +264,33 @@ NPTransact(
                         pWrite,
                         wIterWriteLen,
                         &pHeader->dataOffset);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         pHeader->parameterOffset += packet.pData - (uint8_t *) packet.pSMBHeader;
         pHeader->dataOffset += packet.pData - (uint8_t *) packet.pSMBHeader;
 
         packet.bufferUsed += packetByteCount;
 
-        dwError = SMBPacketMarshallFooter(&packet);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMBPacketMarshallFooter(&packet);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         if (SMBSrvClientSessionSignMessages(pTree->pSession))
         {
             DWORD dwSequence = SMBSocketGetNextSequence(pTree->pSession->pSocket);
 
-            dwError = SMBPacketSign(
+            ntStatus = SMBPacketSign(
                             &packet,
                             dwSequence,
                             pTree->pSession->pSessionKey,
                             pTree->pSession->dwSessionKeyLength);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_NT_STATUS(ntStatus);
 
             // resultant is the response sequence from server
             dwResponseSequence = dwSequence + 1;
         }
 
-        dwError = SMBSocketSend(pTree->pSession->pSocket, &packet);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         wWriteRemaining -= wIterWriteLen;
         wWriteOffset += wIterWriteLen;
@@ -299,11 +299,11 @@ NPTransact(
 
     while (wReadRemaining)
     {
-        dwError = SMBTreeReceiveResponse(
+        ntStatus = SMBTreeReceiveResponse(
                     pTree,
                     pResponse,
                     &pResponsePacket);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         pResponseHeader = (TRANSACTION_RESPONSE_HEADER *) packet.pParams;
 
@@ -337,7 +337,7 @@ cleanup:
         SMBResponseFree(pResponse);
     }
 
-    return dwError;
+    return ntStatus;
 
 error:
 

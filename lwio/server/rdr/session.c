@@ -70,22 +70,22 @@ SMBSessionFree(
     PSMB_SESSION pSession
     );
 
-DWORD
+NTSTATUS
 SMBSessionCreate(
     PSMB_SESSION* ppSession
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     SMB_SESSION *pSession = NULL;
     BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroySetupCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
     BOOLEAN bDestroyTreeMutex = FALSE;
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                 sizeof(SMB_SESSION),
                 (PVOID*)&pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pSession->mutex, NULL);
     bDestroyMutex = TRUE;
@@ -94,8 +94,8 @@ SMBSessionCreate(
     pSession->error.type = ERROR_SMB;
     pSession->error.smb = SMB_ERROR_SUCCESS;
 
-    dwError = pthread_cond_init(&pSession->event, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_cond_init(&pSession->event, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
 
@@ -103,36 +103,36 @@ SMBSessionCreate(
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
-    dwError = time(&pSession->lastActiveTime);
-    if (dwError == -1)
+    ntStatus = time(&pSession->lastActiveTime);
+    if (ntStatus == -1)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = errno;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = SMBHashCreate(
+    ntStatus = SMBHashCreate(
                 19,
                 SMBHashCaselessStringCompare,
                 SMBHashCaselessString,
                 NULL,
                 &pSession->pTreeHashByPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBHashCreate(
+    ntStatus = SMBHashCreate(
                 19,
                 &SMBSessionHashTreeCompareByTID,
                 &SMBSessionHashTreeByTID,
                 NULL,
                 &pSession->pTreeHashByTID);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pSession->treeMutex, NULL);
     bDestroyTreeMutex = TRUE;
 
     pSession->pTreePacket = NULL;
 
-    dwError = pthread_cond_init(&pSession->treeEvent, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_cond_init(&pSession->treeEvent, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroySetupCondition = TRUE;
 
@@ -140,7 +140,7 @@ SMBSessionCreate(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -333,24 +333,24 @@ SMBSessionSetState(
     SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
 
-DWORD
+NTSTATUS
 SMBSessionFindTreeByPath(
     PSMB_SESSION pSession,
     uchar8_t    *pszPath,
     PSMB_TREE*   ppTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PSMB_TREE pTree = NULL;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->hashLock);
 
-    dwError = SMBHashGetValue(
+    ntStatus = SMBHashGetValue(
                 pSession->pTreeHashByPath,
                 pszPath,
                 (PVOID *) &pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMBTreeAddReference(pTree);
 
@@ -360,7 +360,7 @@ cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -369,24 +369,24 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSessionFindTreeById(
     PSMB_SESSION pSession,
     uint16_t     tid,
     PSMB_TREE*   ppTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PSMB_TREE pTree = NULL;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->hashLock);
 
-    dwError = SMBHashGetValue(
+    ntStatus = SMBHashGetValue(
                     pSession->pTreeHashByTID,
                     &tid,
                     (PVOID *) &pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMBTreeAddReference(pTree);
 
@@ -396,7 +396,7 @@ cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -405,13 +405,13 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSessionReceiveResponse(
     PSMB_SESSION pSession,
     PSMB_PACKET* ppPacket
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     struct timespec ts = { 0, 0 };
 
@@ -425,15 +425,15 @@ SMBSessionReceiveResponse(
 retry_wait:
 
         /* @todo: always verify non-error state after acquiring mutex */
-        dwError = pthread_cond_timedwait(
+        ntStatus = pthread_cond_timedwait(
                         &pSession->treeEvent,
                         &pSession->mutex,
                         &ts);
-        if (dwError == ETIMEDOUT)
+        if (ntStatus == ETIMEDOUT)
         {
             if (time(NULL) < ts.tv_sec)
             {
-                dwError = 0;
+                ntStatus = 0;
                 goto retry_wait;
             }
 
@@ -443,14 +443,14 @@ retry_wait:
             if (SMBSocketTimedOut(pSession->pSocket))
             {
                 SMBSocketInvalidate(pSession->pSocket, ERROR_SMB, ETIMEDOUT);
-                dwError = ETIMEDOUT;
+                ntStatus = ETIMEDOUT;
             }
             else
             {
-                dwError = SMB_ERROR_SUCCESS;
+                ntStatus = SMB_ERROR_SUCCESS;
             }
         }
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *ppPacket = pSession->pTreePacket;
@@ -460,7 +460,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 

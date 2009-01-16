@@ -31,7 +31,7 @@
 #ifndef __READFILE_H__
 #define __READFILE_H__
 
-DWORD
+NTSTATUS
 RdrReadFileEx(
     HANDLE hFile,
     DWORD  dwBytesToRead,

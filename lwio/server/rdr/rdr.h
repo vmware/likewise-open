@@ -149,7 +149,7 @@ RdrSetInformation(
 
 #include "rdrcreate.h"
 
-DWORD
+NTSTATUS
 RdrReadFileEx(
     HANDLE hFile,
     DWORD  dwBytesToRead,
@@ -157,7 +157,7 @@ RdrReadFileEx(
     PDWORD pdwBytesRead
     );
 
-DWORD
+NTSTATUS
 RdrWriteFileEx(
     HANDLE hFile,
     DWORD  dwNumBytesToWrite,
@@ -166,7 +166,7 @@ RdrWriteFileEx(
     );
 
 
-DWORD
+NTSTATUS
 RdrCreateFileEx(
     PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszFileName,
@@ -179,7 +179,7 @@ RdrCreateFileEx(
     );
 
 
-DWORD
+NTSTATUS
 RdrGetSessionKey(
     HANDLE hFile,
     PDWORD pdwSessionKeyLength,

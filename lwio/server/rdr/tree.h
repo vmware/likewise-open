@@ -9,44 +9,44 @@ SMBTreeRelease(
     PSMB_TREE pTree
     );
 
-DWORD
+NTSTATUS
 SMBTreeCreate(
     PSMB_TREE* ppTree
     );
 
-DWORD
+NTSTATUS
 SMBTreeAcquireMid(
     PSMB_TREE pTree,
     uint16_t* pwMid
     );
 
-DWORD
+NTSTATUS
 SMBTreeSetState(
     PSMB_TREE pTree,
     SMB_RESOURCE_STATE state
     );
 
-DWORD
+NTSTATUS
 SMBTreeInvalidate(
     PSMB_TREE      pTree,
     SMB_ERROR_TYPE errorType,
     uint32_t       error
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientTreeAddResponse(
     PSMB_TREE pTree,
     SMB_RESPONSE *pResponse
     );
 
-DWORD
+NTSTATUS
 SMBTreeReceiveResponse(
     PSMB_TREE     pTree,
     PSMB_RESPONSE pResponse,
     PSMB_PACKET*  ppResponsePacket
     );
 
-DWORD
+NTSTATUS
 SMBTreeFindLockedResponseByMID(
     PSMB_TREE      pTree,
     uint16_t       wMid,

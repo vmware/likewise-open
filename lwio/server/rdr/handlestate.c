@@ -30,7 +30,7 @@
 
 #include "rdr.h"
 
-DWORD
+NTSTATUS
 ClientSetNamedPipeHandleState(
     HANDLE hPipe,
     PDWORD pdwMode,

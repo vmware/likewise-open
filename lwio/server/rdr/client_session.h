@@ -29,38 +29,38 @@
  */
 
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionCreate(
     PSMB_SOCKET   pSocket,
     uchar8_t      *pszPrincipal,
     PSMB_SESSION* ppSession
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionIsStale_inlock(
     PSMB_SESSION pSession,
     PBOOLEAN     pbIsStale
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionAddTreeById(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionRemoveTreeById(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionAddTreeByPath(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionRemoveTreeByPath(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
@@ -71,7 +71,7 @@ SMBSrvClientSessionSignMessages(
     PSMB_SESSION pSession
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionRelease(
     PSMB_SESSION pSession
     );

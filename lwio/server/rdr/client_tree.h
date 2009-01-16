@@ -29,7 +29,7 @@
  */
 
 
-DWORD
+NTSTATUS
 SMBSrvClientTreeOpen(
     PCSTR pszHostname,
     PCSTR pszPrincipal,
@@ -37,19 +37,19 @@ SMBSrvClientTreeOpen(
     PSMB_TREE* ppTree
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientTreeAddResponse(
     PSMB_TREE     pTree,
     PSMB_RESPONSE pResponse
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientTreeIsStale_inlock(
     PSMB_TREE pTree,
     PBOOLEAN  pbIsStale
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientTreeClose(
     PSMB_TREE pTree
     );

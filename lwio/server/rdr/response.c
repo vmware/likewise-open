@@ -51,21 +51,21 @@
 
 #include "rdr.h"
 
-DWORD
+NTSTATUS
 SMBResponseCreate(
     uint16_t       wMid,
     SMB_RESPONSE **ppResponse
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_RESPONSE pResponse = NULL;
     BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                     sizeof(SMB_RESPONSE),
                     (PVOID*)&pResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pResponse->mutex, NULL);
 
@@ -75,8 +75,8 @@ SMBResponseCreate(
     pResponse->error.type = ERROR_SMB;
     pResponse->error.smb = SMB_ERROR_SUCCESS;
 
-    dwError = pthread_cond_init(&pResponse->event, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_cond_init(&pResponse->event, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
 
@@ -88,7 +88,7 @@ SMBResponseCreate(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
