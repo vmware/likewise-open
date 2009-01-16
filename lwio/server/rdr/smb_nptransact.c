@@ -79,8 +79,8 @@ NPTransact(
     DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
-    dwError = SMBSocketBufferAllocate(
-                    pTree->pSession->pSocket,
+    dwError = SMBPacketBufferAllocate(
+                    pTree->pSession->pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
@@ -173,7 +173,7 @@ NPTransact(
     dwError = SMBSrvClientTreeAddResponse(pTree, pResponse);
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBPacketSend(pTree->pSession->pSocket, &packet);
+    dwError = SMBSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBTreeReceiveResponse(
@@ -289,7 +289,7 @@ NPTransact(
             dwResponseSequence = dwSequence + 1;
         }
 
-        dwError = SMBPacketSend(pTree->pSession->pSocket, &packet);
+        dwError = SMBSocketSend(pTree->pSession->pSocket, &packet);
         BAIL_ON_SMB_ERROR(dwError);
 
         wWriteRemaining -= wIterWriteLen;
@@ -320,14 +320,14 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBSocketPacketFree(pTree->pSession->pSocket,
+        SMBPacketFree(pTree->pSession->pSocket,
                 pResponsePacket);
     }
 
     if (packet.bufferLen)
     {
-        SMBSocketBufferFree(
-                pTree->pSession->pSocket,
+        SMBPacketBufferFree(
+                pTree->pSession->pSocket->hPacketAllocator,
                 packet.pRawBuffer,
                 packet.bufferLen);
     }

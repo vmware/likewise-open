@@ -217,6 +217,9 @@ SrvInitialize(
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
+    pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
+    gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
+
     ntStatus = SrvShareDbInit(&gSMBSrvGlobals.shareDBContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -275,51 +278,58 @@ SrvShutdown(
 {
     NTSTATUS ntStatus = 0;
 
-    pthread_mutex_lock(&gSMBSrvGlobals.mutex);
-
-    ntStatus = SrvListenerShutdown(
-                    &gSMBSrvGlobals.listener);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (gSMBSrvGlobals.pReaderArray)
+    if (gSMBSrvGlobals.pMutex)
     {
-        if (gSMBSrvGlobals.ulNumReaders)
-        {
-            INT      iReader = 0;
+        pthread_mutex_lock(gSMBSrvGlobals.pMutex);
 
-            for (; iReader < gSMBSrvGlobals.ulNumReaders; iReader++)
+        ntStatus = SrvListenerShutdown(
+                        &gSMBSrvGlobals.listener);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (gSMBSrvGlobals.pReaderArray)
+        {
+            if (gSMBSrvGlobals.ulNumReaders)
             {
-                ntStatus = SrvSocketReaderFreeContents(
-                                &gSMBSrvGlobals.pReaderArray[iReader]);
-                BAIL_ON_NT_STATUS(ntStatus);
+                INT      iReader = 0;
+
+                for (; iReader < gSMBSrvGlobals.ulNumReaders; iReader++)
+                {
+                    ntStatus = SrvSocketReaderFreeContents(
+                                    &gSMBSrvGlobals.pReaderArray[iReader]);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+            }
+
+            SMBFreeMemory(gSMBSrvGlobals.pReaderArray);
+        }
+
+        if (gSMBSrvGlobals.pWorkerArray)
+        {
+            if (gSMBSrvGlobals.ulNumWorkers)
+            {
+                INT iWorker = 0;
+
+                for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+                {
+                    ntStatus = SrvWorkerFreeContents(
+                                    &gSMBSrvGlobals.pWorkerArray[iWorker]);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
             }
         }
 
-        SMBFreeMemory(gSMBSrvGlobals.pReaderArray);
+        SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
+
+        SrvShareDbShutdown(&gSMBSrvGlobals.shareDBContext);
     }
-
-    if (gSMBSrvGlobals.pWorkerArray)
-    {
-        if (gSMBSrvGlobals.ulNumWorkers)
-        {
-            INT iWorker = 0;
-
-            for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
-            {
-                ntStatus = SrvWorkerFreeContents(
-                                &gSMBSrvGlobals.pWorkerArray[iWorker]);
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-        }
-    }
-
-    SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
-
-    SrvShareDbShutdown(&gSMBSrvGlobals.shareDBContext);
 
 cleanup:
 
-    pthread_mutex_unlock(&gSMBSrvGlobals.mutex);
+    if (gSMBSrvGlobals.pMutex)
+    {
+        pthread_mutex_unlock(gSMBSrvGlobals.pMutex);
+        gSMBSrvGlobals.pMutex = NULL;
+    }
 
     return ntStatus;
 

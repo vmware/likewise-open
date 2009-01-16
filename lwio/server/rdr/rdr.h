@@ -57,17 +57,21 @@
 
 #include <lwio/lwio.h>
 
+#include <lw/ntstatus.h>
+#include <lw/rtlstring.h>
+#include <lw/rtlgoto.h>
+
 #include "lwiodef.h"
 #include "lwioutils.h"
+#include "lwiofsctl.h"
 #include "smbkrb5.h"
 
-#include <lw/ntstatus.h>
 #include "smb.h"
-
 #include "smbclient.h"
 #include <lwio/io-types.h>
+#include "iodriver.h"
 
-#include "structs.h"
+#include "rdrstructs.h"
 #include "createfile.h"
 #include "readfile.h"
 #include "writefile.h"
@@ -83,7 +87,6 @@
 #include "smb_tree_disconnect.h"
 #include "smb_logoff.h"
 #include "socket.h"
-#include "packet.h"
 #include "tree.h"
 #include "session.h"
 #include "response.h"
@@ -94,14 +97,6 @@
 #include "client_reaper.h"
 
 #include "externs.h"
-
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
-
-#include "iodriver.h"
-
-#include "lwioutils.h"
-#include "rdrstructs.h"
 
 NTSTATUS
 RdrCreate(
@@ -116,7 +111,7 @@ RdrDeviceIo(
     );
 
 NTSTATUS
-RdrFsCtrl(
+RdrFsctl(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );

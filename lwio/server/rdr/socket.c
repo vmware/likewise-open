@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -93,155 +93,11 @@ SMBSocketReceiveNegotiateOrSetupResponse(
     );
 
 static
-DWORD
-SMBSocketPacketAllocate(
-    PSMB_SOCKET  pSocket,
-    PSMB_PACKET* ppPacket
-    );
-
-static
 VOID
 SMBSocketFree(
     PSMB_SOCKET pSocket
     );
 
-DWORD
-SMBSrvSocketCreate(
-    int fd,
-    struct sockaddr_in clientAddr,
-    PSMB_SOCKET* ppSocket
-    )
-{
-    DWORD dwError = 0;
-    SMB_SOCKET *pSocket = NULL;
-    BOOLEAN bDestroyCondition = FALSE;
-    BOOLEAN bDestroyHashLock = FALSE;
-    BOOLEAN bDestroyMutex = FALSE;
-    BOOLEAN bDestroyWriteMutex = FALSE;
-    BOOLEAN bDestroySessionMutex = FALSE;
-
-    dwError = SMBAllocateMemory(
-                sizeof(SMB_SOCKET),
-                (PVOID*)&pSocket);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    pthread_mutex_init(&pSocket->mutex, NULL);
-    bDestroyMutex = TRUE;
-
-    pSocket->state = SMB_RESOURCE_STATE_INITIALIZING;
-    pSocket->error.type = ERROR_SMB;
-    pSocket->error.smb = SMB_ERROR_SUCCESS;
-
-    dwError = pthread_cond_init(&pSocket->event, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    bDestroyCondition = TRUE;
-
-    pSocket->refCount = 1;  /* One for reaper */
-
-    /* @todo: find a portable time call which is immune to host date and time
-       changes, such as made by ntpd */
-    pSocket->lastActiveTime = time(NULL);
-
-    pthread_mutex_init(&pSocket->writeMutex, NULL);
-    bDestroyMutex = TRUE;
-
-    pSocket->fd = fd;
-
-    pSocket->address = *((struct sockaddr*)&clientAddr);
-
-    pSocket->maxBufferSize = 0;
-    pSocket->maxRawSize = 0;
-    pSocket->sessionKey = 0;
-    pSocket->capabilities = 0;
-    pSocket->pSecurityBlob = NULL;
-    pSocket->securityBlobLen = 0;
-
-    pSocket->pFreeBufferStack = NULL;
-    pSocket->freeBufferCount = 0;
-    pSocket->freeBufferLen = 0;
-    pSocket->pFreePacketStack = NULL;
-    pSocket->freePacketCount = 0;
-
-    dwError = pthread_rwlock_init(&pSocket->hashLock, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    bDestroyHashLock = TRUE;
-
-    dwError = SMBHashCreate(
-                    19,
-                    SMBHashCaselessStringCompare,
-                    SMBHashCaselessString,
-                    NULL,
-                    &pSocket->pSessionHashByPrincipal);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    dwError = SMBHashCreate(
-                    19,
-                    &SMBSocketHashSessionCompareByUID,
-                    &SMBSocketHashSessionByUID,
-                    NULL,
-                    &pSocket->pSessionHashByUID);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    pthread_mutex_init(&pSocket->sessionMutex, NULL);
-    bDestroySessionMutex = TRUE;
-
-    /* The reader thread will immediately block waiting for initialization */
-    dwError = pthread_create(
-                    &pSocket->readerThread,
-                    NULL,
-                    &SMBSocketReaderMain,
-                    (void *) pSocket);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    pSocket->pSessionPacket = NULL;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    if (pSocket)
-    {
-        SMBHashSafeFree(&pSocket->pSessionHashByUID);
-        SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
-
-        SMB_SAFE_FREE_MEMORY(pSocket->pszHostname);
-
-        if (bDestroyCondition)
-        {
-            pthread_cond_destroy(&pSocket->event);
-        }
-
-        if (bDestroyHashLock)
-        {
-            pthread_rwlock_destroy(&pSocket->hashLock);
-        }
-
-        if (bDestroyWriteMutex)
-        {
-            pthread_mutex_destroy(&pSocket->writeMutex);
-        }
-
-        if (bDestroySessionMutex)
-        {
-            pthread_mutex_destroy(&pSocket->sessionMutex);
-        }
-
-        if (bDestroyMutex)
-        {
-            pthread_mutex_destroy(&pSocket->mutex);
-        }
-
-        SMBFreeMemory(pSocket);
-    }
-
-    *ppSocket = NULL;
-
-    goto cleanup;
-}
 
 DWORD
 SMBSocketCreate(
@@ -302,11 +158,7 @@ SMBSocketCreate(
     pSocket->pSecurityBlob = NULL;
     pSocket->securityBlobLen = 0;
 
-    pSocket->pFreeBufferStack = NULL;
-    pSocket->freeBufferCount = 0;
-    pSocket->freeBufferLen = 0;
-    pSocket->pFreePacketStack = NULL;
-    pSocket->freePacketCount = 0;
+    pSocket->hPacketAllocator = gRdrRuntime.hPacketAllocator;
 
     dwError = pthread_rwlock_init(&pSocket->hashLock, NULL);
     BAIL_ON_SMB_ERROR(dwError);
@@ -499,6 +351,121 @@ SMBSocketUpdateLastActiveTime(
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
+DWORD
+SMBSocketSend(
+    PSMB_SOCKET pSocket,
+    PSMB_PACKET pPacket
+    )
+{
+    /* @todo: signal handling */
+    DWORD dwError = 0;
+    ssize_t  writtenLen = 0;
+    BOOLEAN  bInLock = FALSE;
+    BOOLEAN  bSemaphoreAcquired = FALSE;
+
+    if (pSocket->maxMpxCount)
+    {
+        if (sem_wait(&pSocket->semMpx) < 0)
+        {
+            dwError = errno;
+            BAIL_ON_SMB_ERROR(dwError);
+        }
+
+        bSemaphoreAcquired = TRUE;
+    }
+
+    SMB_LOCK_MUTEX(bInLock, &pSocket->writeMutex);
+
+    writtenLen = write(
+                    pSocket->fd,
+                    pPacket->pRawBuffer,
+                    pPacket->bufferUsed);
+
+    if (writtenLen < 0)
+    {
+        dwError = errno;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+cleanup:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->writeMutex);
+
+    return dwError;
+
+error:
+
+    if (bSemaphoreAcquired)
+    {
+        if (sem_post(&pSocket->semMpx) < 0)
+        {
+            SMB_LOG_ERROR("Failed to post semaphore [code: %d]", errno);
+        }
+    }
+
+    goto cleanup;
+}
+
+DWORD
+SMBSocketReceiveAndUnmarshall(
+    PSMB_SOCKET pSocket,
+    PSMB_PACKET pPacket
+    )
+{
+    DWORD dwError = 0;
+    /* @todo: handle timeouts, signals, buffer overflow */
+    /* This logic would need to be modified for zero copy */
+    uint32_t len = sizeof(NETBIOS_HEADER);
+    uint32_t readLen = 0;
+    uint32_t bufferUsed = 0;
+
+    /* @todo: support read threads in the daemonized case */
+    dwError = SMBSocketRead(pSocket, pPacket->pRawBuffer, len, &readLen);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    if (len != readLen)
+    {
+        dwError = EPIPE;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
+    bufferUsed += len;
+
+    pPacket->pNetBIOSHeader->len = ntohl(pPacket->pNetBIOSHeader->len);
+
+    dwError = SMBSocketRead(
+                    pSocket,
+                    pPacket->pRawBuffer + bufferUsed,
+                    pPacket->pNetBIOSHeader->len,
+                    &readLen);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    if(pPacket->pNetBIOSHeader->len != readLen)
+    {
+        dwError = EPIPE;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    pPacket->pSMBHeader = (SMB_HEADER *) (pPacket->pRawBuffer + bufferUsed);
+    bufferUsed += sizeof(SMB_HEADER);
+
+    if (SMBIsAndXCommand(pPacket->pSMBHeader->command))
+    {
+        pPacket->pAndXHeader = (ANDX_HEADER *)
+            (pPacket->pSMBHeader + bufferUsed);
+        bufferUsed += sizeof(ANDX_HEADER);
+    }
+
+    pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
+    pPacket->pData = NULL;
+    pPacket->bufferUsed = bufferUsed;
+
+error:
+
+    return dwError;
+}
+
 static
 PVOID
 SMBSocketReaderMain(
@@ -547,17 +514,18 @@ SMBSocketReaderMain(
 
         SMBSocketUpdateLastActiveTime(pSocket);
 
-        dwError = SMBSocketPacketAllocate(pSocket, &pPacket);
+        dwError = SMBPacketAllocate(pSocket->hPacketAllocator, &pPacket);
         BAIL_ON_SMB_ERROR(dwError);
 
-        dwError = SMBSocketBufferAllocate(
-                    pSocket, 1024*64,
+        dwError = SMBPacketBufferAllocate(
+                    pSocket->hPacketAllocator,
+                    1024*64,
                     &pPacket->pRawBuffer,
                     &pPacket->bufferLen);
         BAIL_ON_SMB_ERROR(dwError);
 
         /* Read whole messages */
-        dwError = SMBPacketReceiveAndUnmarshall(pSocket, pPacket);
+        dwError = SMBSocketReceiveAndUnmarshall(pSocket, pPacket);
         BAIL_ON_SMB_ERROR(dwError);
 
         if (pSocket->maxMpxCount && (sem_post(&pSocket->semMpx) < 0))
@@ -583,10 +551,13 @@ cleanup:
     {
         if (pPacket->pRawBuffer)
         {
-            SMBSocketBufferFree(pSocket, pPacket->pRawBuffer, pPacket->bufferLen);
+            SMBPacketBufferFree(
+                pSocket->hPacketAllocator,
+                pPacket->pRawBuffer,
+                pPacket->bufferLen);
         }
 
-        SMBSocketPacketFree(pSocket, pPacket);
+        SMBPacketFree(pSocket->hPacketAllocator, pPacket);
     }
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
@@ -1084,166 +1055,6 @@ error:
     goto cleanup;
 }
 
-/* Hanging memory off the socket seems a reasonable tradeoff between
-   concurrency and memory efficiency. */
-DWORD
-SMBSocketBufferAllocate(
-    PSMB_SOCKET pSocket,
-    size_t      len,
-    uint8_t   **ppBuffer,
-    size_t     *pAllocatedLen
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    /* If the len is greater than our current allocator len, adjust */
-    if (len > pSocket->freeBufferLen)
-    {
-        SMBStackFree(pSocket->pFreeBufferStack);
-        pSocket->pFreeBufferStack = NULL;
-
-        pSocket->freeBufferLen = len;
-    }
-
-    if (pSocket->pFreeBufferStack)
-    {
-        *ppBuffer = (uint8_t *) pSocket->pFreeBufferStack;
-        *pAllocatedLen = pSocket->freeBufferLen;
-        SMBStackPopNoFree(&pSocket->pFreeBufferStack);
-        memset(*ppBuffer, 0, *pAllocatedLen);
-        pSocket->freeBufferCount--;
-    }
-    else
-    {
-        dwError = SMBAllocateMemory(
-                        pSocket->freeBufferLen,
-                        (PVOID *) ppBuffer);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        *pAllocatedLen = pSocket->freeBufferLen;
-    }
-
-cleanup:
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-VOID
-SMBSocketBufferFree(
-    PSMB_SOCKET pSocket,
-    uint8_t    *pBuffer,
-    size_t      bufferLen
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    /* If the len is greater than our current allocator len, adjust */
-    /* @todo: make free list configurable */
-    if (bufferLen == pSocket->freeBufferLen && pSocket->freeBufferCount < 10)
-    {
-        assert(bufferLen > sizeof(SMB_STACK));
-
-        SMBStackPushNoAlloc(&pSocket->pFreeBufferStack, (PSMB_STACK) pBuffer);
-
-        pSocket->freeBufferCount++;
-    }
-    else
-    {
-        SMBFreeMemory(pBuffer);
-    }
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-}
-
-
-/* Hanging memory off the socket seems a reasonable tradeoff between
-   concurrency and memory efficiency. */
-static
-DWORD
-SMBSocketPacketAllocate(
-    PSMB_SOCKET  pSocket,
-    PSMB_PACKET* ppPacket
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSMB_PACKET pPacket = NULL;
-
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    if (pSocket->pFreePacketStack)
-    {
-        pPacket = (PSMB_PACKET) pSocket->pFreePacketStack;
-
-        SMBStackPopNoFree(&pSocket->pFreePacketStack);
-
-        pSocket->freePacketCount--;
-    }
-    else
-    {
-        dwError = SMBAllocateMemory(
-                        sizeof(SMB_PACKET),
-                        (PVOID *) &pPacket);
-        BAIL_ON_SMB_ERROR(dwError);
-    }
-
-    *ppPacket = pPacket;
-
-cleanup:
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return dwError;
-
-error:
-
-    *ppPacket = NULL;
-
-    goto cleanup;
-}
-
-VOID
-SMBSocketPacketFree(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    SMBSocketBufferFree(
-                pSocket,
-                pPacket->pRawBuffer,
-                pPacket->bufferLen);
-
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    /* If the len is greater than our current allocator len, adjust */
-    /* @todo: make free list configurable */
-    if (pSocket->freePacketCount < 10)
-    {
-        assert(sizeof(SMB_PACKET) > sizeof(SMB_STACK));
-        SMBStackPushNoAlloc(&pSocket->pFreePacketStack, (PSMB_STACK) pPacket);
-        pSocket->freePacketCount++;
-    }
-    else
-    {
-        SMBFreeMemory(pPacket);
-    }
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-}
-
 /** @todo: keep unused sockets around for a little while when daemonized.
   * To avoid writing frequently to shared cache lines, perhaps set a bit
   * when the hash transitions to non-empty, then periodically sweep for
@@ -1309,16 +1120,6 @@ SMBSocketFree(
 
     SMB_SAFE_FREE_MEMORY(pSocket->pszHostname);
     SMB_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);
-
-    if (pSocket->pFreeBufferStack)
-    {
-        SMBStackFree(pSocket->pFreeBufferStack);
-    }
-
-    if (pSocket->pFreePacketStack)
-    {
-        SMBStackFree(pSocket->pFreePacketStack);
-    }
 
     /* @todo: assert that the session hashes are empty */
     SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);

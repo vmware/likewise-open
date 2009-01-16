@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -31,13 +31,7 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern SMB_HASH_TABLE   *gpSocketHashByName;    /* Socket hash by name */
-extern SMB_HASH_TABLE   *gpSocketHashByAddress; /* Socket hash by address */
-extern pthread_rwlock_t  gSocketHashLock;       /* Protects both hashes */
-
-extern PSMB_STACK        gpReaperStack;         /* Stack of reapers */
-
-extern BOOLEAN           gSignMessagesIfSupported;
+extern RDR_GLOBAL_RUNTIME gRdrRuntime;
 
 #endif
 

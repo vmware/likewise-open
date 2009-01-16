@@ -50,13 +50,36 @@
 
 #include "rdr.h"
 
+static
+NTSTATUS
+RdrInitialize(
+    VOID
+    );
+
+static
+NTSTATUS
+RdrShutdown(
+    VOID
+    );
 
 VOID
 RdrDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
+    NTSTATUS ntStatus = 0;
+    int EE = 0;
+
     IO_LOG_ENTER_LEAVE("");
+
+    RdrShutdown();
+    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+
+cleanup:
+
+    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
+
+    return;
 }
 
 NTSTATUS
@@ -104,7 +127,7 @@ RdrDriverDispatch(
             break;
 
         case IRP_TYPE_FS_CONTROL:
-            ntStatus = RdrFsCtrl(
+            ntStatus = RdrFsctl(
                             DeviceHandle,
                             pIrp
                             );
@@ -162,7 +185,70 @@ DriverEntry(
                               NULL);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
 
+    ntStatus = RdrInitialize();
+    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+
 cleanup:
+
     IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+RdrInitialize(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    memset(&gRdrRuntime, 0, sizeof(gRdrRuntime));
+
+    pthread_rwlock_init(&gRdrRuntime.socketHashLock, NULL);
+    gRdrRuntime.pSocketHashLock = &gRdrRuntime.socketHashLock;
+
+    ntStatus = SMBPacketCreateAllocator(
+                    10,
+                    &gRdrRuntime.hPacketAllocator);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrSocketInit();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrReaperStart();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+RdrShutdown(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    ntStatus = RdrSocketShutdown();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrReaperStop();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (gRdrRuntime.pSocketHashLock)
+    {
+        pthread_rwlock_destroy(gRdrRuntime.pSocketHashLock);
+    }
+
+    if (gRdrRuntime.hPacketAllocator != (HANDLE)NULL)
+    {
+        SMBPacketFreeAllocator(gRdrRuntime.hPacketAllocator);
+    }
+
+error:
+
     return ntStatus;
 }

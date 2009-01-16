@@ -280,7 +280,7 @@ AD_NetLookupObjectSidsByNames(
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
 
-    rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
+    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
     if (rpcStatus != 0)
     {
        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
@@ -588,7 +588,7 @@ AD_NetLookupObjectNamesBySids(
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
 
-    rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
+    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
     if (rpcStatus != 0)
     {
        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;

@@ -10,7 +10,6 @@ librdr_sys_la_SOURCES = \
     getsesskey.c          \
     globals.c             \
     handlestate.c         \
-    packet.c              \
     readfile.c            \
     response.c            \
     session.c             \

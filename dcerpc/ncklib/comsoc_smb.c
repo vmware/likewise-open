@@ -502,8 +502,7 @@ rpc__smb_socket_connect(
     rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
     unsigned_char_t *netaddr, *endpoint;
     unsigned32 dbg_status = 0;
-    /* FIXME: don't use a static buffer unless smb paths are guaranteed to have a maxmimum length */
-    char smbpath[2048];
+    PSTR smbpath = NULL;
     PIO_ACCESS_TOKEN acctoken = NULL;
     PBYTE sesskey = NULL;
     USHORT sesskeylen = 0;
@@ -520,9 +519,16 @@ rpc__smb_socket_connect(
                                &endpoint,
                                &dbg_status);
 
-    snprintf(smbpath, sizeof(smbpath) - 1, "\\\\%s%s", (char*) netaddr, (char*) endpoint);
-
-    smbpath[sizeof(smbpath) - 1] = '\0';
+    serr = NtStatusToUnixErrno(
+        LwRtlCStringAllocatePrintf(
+            &smbpath,
+            "\\\\%s%s",
+            (char*) netaddr,
+            (char*) endpoint));
+    if (serr)
+    {
+        goto error;
+    }
 
     filename.RootFileHandle = NULL;
     filename.IoNameOptions = 0;
@@ -608,6 +614,11 @@ done:
     if (filename.FileName)
     {
         RtlMemoryFree(filename.FileName);
+    }
+
+    if (smbpath)
+    {
+        RtlMemoryFree(smbpath);
     }
 
     SMB_SOCKET_UNLOCK(sock);

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -30,16 +30,4 @@
 
 #include "rdr.h"
 
-/* Socket hash by name */
-PSMB_HASH_TABLE   gpSocketHashByName = NULL;
-
-/* Socket hash by address */
-PSMB_HASH_TABLE   gpSocketHashByAddress = NULL;
-
-/* Protects both hashes */
-pthread_rwlock_t  gSocketHashLock;
-
-/* Stack of reapers */
-PSMB_STACK  gpReaperStack = NULL;
-
-BOOLEAN     gSignMessagesIfSupported = TRUE;
+RDR_GLOBAL_RUNTIME gRdrRuntime;

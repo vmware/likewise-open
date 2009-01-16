@@ -77,8 +77,8 @@ Negotiate(
     PSMB_PACKET pResponsePacket = NULL;
 
     /* @todo: make initial length configurable */
-    dwError = SMBSocketBufferAllocate(
-                    pSocket,
+    dwError = SMBPacketBufferAllocate(
+                    pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
@@ -125,7 +125,7 @@ Negotiate(
     dwError = SMBPacketMarshallFooter(&packet);
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBPacketSend(pSocket, &packet);
+    dwError = SMBSocketSend(pSocket, &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBSocketReceiveNegotiateResponse(
@@ -184,13 +184,13 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBSocketPacketFree(pSocket, pResponsePacket);
+        SMBPacketFree(pSocket, pResponsePacket);
     }
 
     if (packet.bufferLen)
     {
-        SMBSocketBufferFree(
-                pSocket,
+        SMBPacketBufferFree(
+                pSocket->hPacketAllocator,
                 packet.pRawBuffer,
                 packet.bufferLen);
     }

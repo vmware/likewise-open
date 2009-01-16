@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -49,13 +49,12 @@
  * @todo: switch to NT error codes where appropriate
  */
 
-#include "rdr.h"
+#include "includes.h"
 
 static uchar8_t smbMagic[4] = { 0xFF, 'S', 'M', 'B' };
 
-static
 uint32_t
-IsAndXCommand(
+SMBIsAndXCommand(
     uint8_t command
     )
 {
@@ -73,6 +72,231 @@ IsAndXCommand(
     }
 
     return false;
+}
+
+DWORD
+SMBPacketCreateAllocator(
+    DWORD   dwNumMaxPackets,
+    PHANDLE phPacketAllocator
+    )
+{
+    DWORD dwError = 0;
+    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
+
+    if (!dwNumMaxPackets || dwNumMaxPackets < 10)
+    {
+        dwNumMaxPackets = 10;
+    }
+
+    dwError = SMBAllocateMemory(
+                    sizeof(LWIO_PACKET_ALLOCATOR),
+                    (PVOID*)&pPacketAllocator);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    pthread_mutex_init(&pPacketAllocator->mutex, NULL);
+    pPacketAllocator->pMutex = &pPacketAllocator->mutex;
+    pPacketAllocator->dwNumMaxPackets = dwNumMaxPackets;
+
+    *phPacketAllocator = (HANDLE)pPacketAllocator;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *phPacketAllocator = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+SMBPacketAllocate(
+    HANDLE       hPacketAllocator,
+    PSMB_PACKET* ppPacket
+    )
+{
+    DWORD dwError = 0;
+    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
+    BOOLEAN bInLock = FALSE;
+    PSMB_PACKET pPacket = NULL;
+
+    pPacketAllocator = (PLWIO_PACKET_ALLOCATOR) hPacketAllocator;
+
+    SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
+    if (pPacketAllocator->pFreePacketStack)
+    {
+        pPacket = (PSMB_PACKET) pPacketAllocator->pFreePacketStack;
+
+        SMBStackPopNoFree(&pPacketAllocator->pFreePacketStack);
+
+        pPacketAllocator->freePacketCount--;
+    }
+    else
+    {
+        dwError = SMBAllocateMemory(
+                        sizeof(SMB_PACKET),
+                        (PVOID *) &pPacket);
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    *ppPacket = pPacket;
+
+cleanup:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
+    return dwError;
+
+error:
+
+    *ppPacket = NULL;
+
+    goto cleanup;
+}
+
+VOID
+SMBPacketFree(
+    HANDLE      hPacketAllocator,
+    PSMB_PACKET pPacket
+    )
+{
+    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    SMBPacketBufferFree(
+                hPacketAllocator,
+                pPacket->pRawBuffer,
+                pPacket->bufferLen);
+
+    pPacketAllocator = (PLWIO_PACKET_ALLOCATOR)hPacketAllocator;
+
+    SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
+    /* If the len is greater than our current allocator len, adjust */
+    /* @todo: make free list configurable */
+    if (pPacketAllocator->freePacketCount < pPacketAllocator->dwNumMaxPackets)
+    {
+        assert(sizeof(SMB_PACKET) > sizeof(SMB_STACK));
+        SMBStackPushNoAlloc(&pPacketAllocator->pFreePacketStack, (PSMB_STACK) pPacket);
+        pPacketAllocator->freePacketCount++;
+    }
+    else
+    {
+        SMBFreeMemory(pPacket);
+    }
+
+    SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+}
+
+DWORD
+SMBPacketBufferAllocate(
+    HANDLE      hPacketAllocator,
+    size_t      len,
+    uint8_t**   ppBuffer,
+    size_t*     pAllocatedLen
+    )
+{
+    DWORD dwError = 0;
+    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
+    /* If the len is greater than our current allocator len, adjust */
+    if (len > pPacketAllocator->freeBufferLen)
+    {
+        SMBStackFree(pPacketAllocator->pFreeBufferStack);
+        pPacketAllocator->pFreeBufferStack = NULL;
+
+        pPacketAllocator->freeBufferLen = len;
+    }
+
+    if (pPacketAllocator->pFreeBufferStack)
+    {
+        *ppBuffer = (uint8_t *) pPacketAllocator->pFreeBufferStack;
+        *pAllocatedLen = pPacketAllocator->freeBufferLen;
+        SMBStackPopNoFree(&pPacketAllocator->pFreeBufferStack);
+        memset(*ppBuffer, 0, *pAllocatedLen);
+        pPacketAllocator->freeBufferCount--;
+    }
+    else
+    {
+        dwError = SMBAllocateMemory(
+                        pPacketAllocator->freeBufferLen,
+                        (PVOID *) ppBuffer);
+        BAIL_ON_SMB_ERROR(dwError);
+
+        *pAllocatedLen = pPacketAllocator->freeBufferLen;
+    }
+
+cleanup:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+SMBPacketBufferFree(
+    HANDLE      hPacketAllocator,
+    uint8_t*    pBuffer,
+    size_t      bufferLen
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
+
+    SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
+    /* If the len is greater than our current allocator len, adjust */
+    /* @todo: make free list configurable */
+    if (bufferLen == pPacketAllocator->freeBufferLen &&
+        pPacketAllocator->freeBufferCount < pPacketAllocator->dwNumMaxPackets)
+    {
+        assert(bufferLen > sizeof(SMB_STACK));
+
+        SMBStackPushNoAlloc(&pPacketAllocator->pFreeBufferStack, (PSMB_STACK) pBuffer);
+
+        pPacketAllocator->freeBufferCount++;
+    }
+    else
+    {
+        SMBFreeMemory(pBuffer);
+    }
+
+    SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+}
+
+VOID
+SMBPacketFreeAllocator(
+    HANDLE hPacketAllocator
+    )
+{
+    PLWIO_PACKET_ALLOCATOR pAllocator = (PLWIO_PACKET_ALLOCATOR)hPacketAllocator;
+
+    if (pAllocator->pMutex)
+    {
+        pthread_mutex_destroy(&pAllocator->mutex);
+        pAllocator->pMutex = NULL;
+    }
+
+    if (pAllocator->pFreeBufferStack)
+    {
+        SMBStackFree(pAllocator->pFreeBufferStack);
+    }
+
+    if (pAllocator->pFreePacketStack)
+    {
+        SMBStackFree(pAllocator->pFreePacketStack);
+    }
+
+    SMBFreeMemory(pAllocator);
 }
 
 /* @todo: support AndX */
@@ -129,7 +353,7 @@ SMBPacketMarshallHeader(
     }
     bufferUsed += len;
 
-    if(IsAndXCommand(command))
+    if(SMBIsAndXCommand(command))
     {
         len = sizeof(ANDX_HEADER);
         if(bufferUsed + len <= bufferLen)
@@ -258,121 +482,6 @@ SMBPacketSign(
     MD5_Final(digest, &md5Value);
 
     memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &digest[0], sizeof(pPacket->pSMBHeader->extra.securitySignature));
-
-    return dwError;
-}
-
-DWORD
-SMBPacketSend(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
-    )
-{
-    /* @todo: signal handling */
-    DWORD dwError = 0;
-    ssize_t  writtenLen = 0;
-    BOOLEAN  bInLock = FALSE;
-    BOOLEAN  bSemaphoreAcquired = FALSE;
-
-    if (pSocket->maxMpxCount)
-    {
-        if (sem_wait(&pSocket->semMpx) < 0)
-        {
-            dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
-        }
-
-        bSemaphoreAcquired = TRUE;
-    }
-
-    SMB_LOCK_MUTEX(bInLock, &pSocket->writeMutex);
-
-    writtenLen = write(
-                    pSocket->fd,
-                    pPacket->pRawBuffer,
-                    pPacket->bufferUsed);
-
-    if (writtenLen < 0)
-    {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
-    }
-
-cleanup:
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->writeMutex);
-
-    return dwError;
-
-error:
-
-    if (bSemaphoreAcquired)
-    {
-        if (sem_post(&pSocket->semMpx) < 0)
-        {
-            SMB_LOG_ERROR("Failed to post semaphore [code: %d]", errno);
-        }
-    }
-
-    goto cleanup;
-}
-
-DWORD
-SMBPacketReceiveAndUnmarshall(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
-    )
-{
-    DWORD dwError = 0;
-    /* @todo: handle timeouts, signals, buffer overflow */
-    /* This logic would need to be modified for zero copy */
-    uint32_t len = sizeof(NETBIOS_HEADER);
-    uint32_t readLen = 0;
-    uint32_t bufferUsed = 0;
-
-    /* @todo: support read threads in the daemonized case */
-    dwError = SMBSocketRead(pSocket, pPacket->pRawBuffer, len, &readLen);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    if (len != readLen)
-    {
-        dwError = EPIPE;
-        BAIL_ON_SMB_ERROR(dwError);
-    }
-
-    pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
-    bufferUsed += len;
-
-    pPacket->pNetBIOSHeader->len = ntohl(pPacket->pNetBIOSHeader->len);
-
-    dwError = SMBSocketRead(
-                    pSocket,
-                    pPacket->pRawBuffer + bufferUsed,
-                    pPacket->pNetBIOSHeader->len,
-                    &readLen);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    if(pPacket->pNetBIOSHeader->len != readLen)
-    {
-        dwError = EPIPE;
-        BAIL_ON_SMB_ERROR(dwError);
-    }
-
-    pPacket->pSMBHeader = (SMB_HEADER *) (pPacket->pRawBuffer + bufferUsed);
-    bufferUsed += sizeof(SMB_HEADER);
-
-    if (IsAndXCommand(pPacket->pSMBHeader->command))
-    {
-        pPacket->pAndXHeader = (ANDX_HEADER *)
-            (pPacket->pSMBHeader + bufferUsed);
-        bufferUsed += sizeof(ANDX_HEADER);
-    }
-
-    pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
-    pPacket->pData = NULL;
-    pPacket->bufferUsed = bufferUsed;
-
-error:
 
     return dwError;
 }
