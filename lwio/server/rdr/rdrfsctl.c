@@ -107,6 +107,8 @@ RdrCommonFsctl(
     pSessionKey->SessionKeyLength = (USHORT) dwSessionKeyLength;
     memcpy(pSessionKey->Buffer, pSessionKeyBytes, dwSessionKeyLength);
 
+    pIrp->IoStatusBlock.BytesTransferred = dwSessionKeyLength + sizeof(*pSessionKey);
+
 error:
 
     IO_SAFE_FREE_MEMORY(pSessionKeyBytes);
