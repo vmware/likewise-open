@@ -153,7 +153,7 @@ NTSTATUS
 RdrReadFileEx(
     HANDLE hFile,
     DWORD  dwBytesToRead,
-    PVOID* ppOutBuffer,
+    PVOID  pOutBuffer,
     PDWORD pdwBytesRead
     );
 

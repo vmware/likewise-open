@@ -53,15 +53,13 @@ NTSTATUS
 RdrReadFileEx(
     HANDLE hFile,
     DWORD  dwBytesToRead,
-    PVOID* ppOutBuffer,
+    PVOID  pOutBuffer,
     PDWORD pdwBytesRead
     )
 {
     NTSTATUS ntStatus = 0;
-    PBYTE pBuffer = NULL;
+    PBYTE pBuffer = (PBYTE) pOutBuffer;
     DWORD dwBytesRead = 0;
-    DWORD dwBufferLen = 0;
-    WORD  wBytesAvailable = 0;
     WORD  wBytesRead = 0;
     uint16_t wBytesToRead = 0;
     PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
@@ -78,22 +76,6 @@ RdrReadFileEx(
             wBytesToRead = (uint16_t)dwBytesToRead;
         }
 
-        if (wBytesAvailable < wBytesToRead)
-        {
-            WORD wAdditional = wBytesToRead - wBytesAvailable;
-
-            SMB_LOG_DEBUG("ClientReadFile: Available [%d] Need [%d]", wBytesAvailable, wBytesToRead);
-
-            ntStatus = SMBReallocMemory(
-                            pBuffer,
-                            (PVOID*)&pBuffer,
-                            dwBufferLen + wAdditional);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            dwBufferLen += wAdditional;
-            wBytesAvailable += wAdditional;
-        }
-
         ntStatus = WireReadFile(
                     pFile->pTree,
                     pFile->fid,
@@ -107,12 +89,8 @@ RdrReadFileEx(
         pFile->llOffset += wBytesRead;
         dwBytesRead += wBytesRead;
         dwBytesToRead -= wBytesRead;
-
-        wBytesAvailable -= wBytesRead;
-
     } while (dwBytesToRead && (wBytesRead == wBytesToRead));
 
-    *ppOutBuffer = pBuffer;
     *pdwBytesRead = dwBytesRead;
 
 cleanup:
@@ -123,7 +101,6 @@ cleanup:
 
 error:
 
-    *ppOutBuffer = NULL;
     *pdwBytesRead = 0;
 
     SMB_SAFE_FREE_MEMORY(pBuffer);
