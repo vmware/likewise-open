@@ -58,7 +58,7 @@ SMBIsAndXCommand(
     uint8_t command
     )
 {
-    BOOLEAN bResult = TRUE;
+    BOOLEAN bResult = FALSE;
 
     switch(command)
     {
@@ -71,7 +71,7 @@ SMBIsAndXCommand(
         case COM_TREE_CONNECT_ANDX:
         case COM_NT_CREATE_ANDX:
         {
-            bResult = FALSE;
+            bResult = TRUE;
             break;
         }
     }
