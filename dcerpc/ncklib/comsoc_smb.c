@@ -530,8 +530,6 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    smbpath[sizeof(smbpath) - 1] = '\0';
-
     filename.RootFileHandle = NULL;
     filename.IoNameOptions = 0;
 
