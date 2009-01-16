@@ -66,7 +66,7 @@ typedef struct
 
 /* ASCII strings are not supported */
 /* @todo: test alignment restrictions on Win2k */
-uint32_t
+NTSTATUS
 MarshallTreeConnectRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -76,7 +76,7 @@ MarshallTreeConnectRequestData(
     const uchar8_t  *pszService
     )
 {
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
@@ -114,15 +114,15 @@ MarshallTreeConnectRequestData(
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
     *pBufferUsed = bufferUsed;
 
-    return error;
+    return ntStatus;
 }
 
-uint32_t
+NTSTATUS
 UnmarshallTreeConnectRequest(
     const uint8_t *pBuffer,
     uint32_t       bufferLen,
@@ -190,7 +190,7 @@ typedef struct
     wchar16_t nativeFileSystem[0];  /* Native file system for this tree*/
 } TREE_CONNECT_RESPONSE_DATA_non_castable;
 
-uint32_t
+NTSTATUS
 MarshallTreeConnectResponseData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -200,7 +200,7 @@ MarshallTreeConnectResponseData(
     const wchar16_t *pwszNativeFileSystem
     )
 {
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
@@ -237,13 +237,13 @@ MarshallTreeConnectResponseData(
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
-    return error;
+    return ntStatus;
 }
 
-uint32_t
+NTSTATUS
 UnmarshallTreeConnectResponse(
     const uint8_t    *pBuffer,
     uint32_t          bufferLen,

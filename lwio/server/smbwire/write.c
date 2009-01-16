@@ -30,7 +30,7 @@
 
 #include "includes.h"
 
-uint32_t
+NTSTATUS
 MarshallWriteRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -41,7 +41,7 @@ MarshallWriteRequestData(
     uint16_t        wWriteLen
     )
 {
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
@@ -62,7 +62,7 @@ MarshallWriteRequestData(
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
         goto error;
     }
 
@@ -71,7 +71,7 @@ MarshallWriteRequestData(
 
 cleanup:
 
-    return error;
+    return ntStatus;
 
 error:
 

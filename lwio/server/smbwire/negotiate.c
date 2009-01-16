@@ -76,7 +76,7 @@ typedef struct
  *
  * @return Non-zero error code on error
  */
-uint32_t
+NTSTATUS
 MarshallNegotiateRequest(
     uint8_t        *pBuffer,
     uint32_t        bufferLen,
@@ -85,7 +85,7 @@ MarshallNegotiateRequest(
     uint32_t        dialectCount
     )
 {
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
     NEGOTIATE_REQUEST_DIALECT *pDialect = (NEGOTIATE_REQUEST_DIALECT*) pBuffer;
     uint32_t bufferUsed = 0;
@@ -131,15 +131,15 @@ MarshallNegotiateRequest(
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
     *pBufferUsed = bufferUsed;
 
-    return error;
+    return ntStatus;
 }
 
-uint32_t
+NTSTATUS
 UnmarshallNegotiateRequest(
     const uint8_t   *pBuffer,
     uint32_t         bufferLen,        /* From caller's byteCount */
@@ -147,7 +147,7 @@ UnmarshallNegotiateRequest(
     uint32_t        *pDialectCount
     )
 {
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
     /* NOTE: The buffer format cannot be trusted! */
     NEGOTIATE_REQUEST_DIALECT *pDialect = (NEGOTIATE_REQUEST_DIALECT*) pBuffer;
@@ -174,12 +174,12 @@ UnmarshallNegotiateRequest(
 
     if (i > *pDialectCount)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
     *pDialectCount = i;
 
-    return error;
+    return ntStatus;
 }
 
 typedef struct
@@ -200,7 +200,7 @@ typedef struct
                                  * authentication */
 }  __attribute__((__packed__))  NEGOTIATE_RESPONSE_DATA;
 
-uint32_t
+NTSTATUS
 MarshallNegotiateResponseData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
@@ -210,7 +210,7 @@ MarshallNegotiateResponseData(
     uint32_t  blobLen
     )
 {
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
     NEGOTIATE_RESPONSE_DATA *pData = (NEGOTIATE_RESPONSE_DATA*) pBuffer;
     uint32_t bufferUsed = 0;
@@ -220,21 +220,23 @@ MarshallNegotiateResponseData(
     {
         memcpy(&(pData->guid), pGUID, sizeof(pData->guid));
         if (blobLen)
+        {
             memcpy(&(pData->securityBlob), pSecurityBlob, blobLen);
+        }
     }
     bufferUsed += len;
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
     *pBufferUsed = bufferUsed;
 
-    return error;
+    return ntStatus;
 }
 
-uint32_t
+NTSTATUS
 UnmarshallNegotiateResponse(
     const uint8_t  *pBuffer,
     uint32_t        bufferLen,

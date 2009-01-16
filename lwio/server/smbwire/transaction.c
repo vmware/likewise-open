@@ -44,7 +44,7 @@ typedef struct
     uint8_t   data[0];          /* Data bytes (# = DataCount) */
 } TRANSACTION_REQUEST_DATA_non_castable;
 
-static uint32_t
+static NTSTATUS
 _MarshallTransactionParameterData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
@@ -58,7 +58,7 @@ _MarshallTransactionParameterData(
 {
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
 #if 0 /* This code is useless as written (alignment always evals to 0).
          Disabling to work around build failure with newer gcc and -Werror */
@@ -86,15 +86,15 @@ _MarshallTransactionParameterData(
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
     *pBufferUsed = bufferUsed;
 
-    return error;
+    return ntStatus;
 }
 
-static uint32_t
+static NTSTATUS
 _MarshallTransactionSetupData(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
@@ -110,7 +110,7 @@ _MarshallTransactionSetupData(
     uint16_t  *pDataOffset
     )
 {
-    uint32_t  error = 0;
+    NTSTATUS  ntStatus = 0;
     uint32_t  bufferUsed = 0;
     uint32_t  bufferUsedData = 0;
     uint32_t  alignment = 0;
@@ -139,13 +139,13 @@ _MarshallTransactionSetupData(
         bufferUsed += wstrlen * sizeof(*pByteCount);
     }
 
-    error = _MarshallTransactionParameterData(pBuffer + bufferUsed,
+    ntStatus = _MarshallTransactionParameterData(pBuffer + bufferUsed,
         bufferLen > bufferUsed ? bufferLen - bufferUsed : 0, &bufferUsedData,
         pParameters, parameterLen, pParameterOffset, pData, dataLen,
         pDataOffset);
-    if (error && error != EMSGSIZE)
+    if (ntStatus && ntStatus != EMSGSIZE)
     {
-        return error;
+        return ntStatus;
     }
     *pParameterOffset += bufferUsed;
     *pDataOffset += bufferUsed;
@@ -153,7 +153,7 @@ _MarshallTransactionSetupData(
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
     else
     {
@@ -163,10 +163,10 @@ _MarshallTransactionSetupData(
     }
     *pBufferUsed = bufferUsed;
 
-    return error;
+    return ntStatus;
 }
 
-uint32_t
+NTSTATUS
 MarshallTransactionRequestData(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
@@ -187,7 +187,7 @@ MarshallTransactionRequestData(
         pData, dataLen, pDataOffset);
 }
 
-static uint32_t
+static NTSTATUS
 _UnmarshallTransactionParameterData(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
@@ -233,7 +233,7 @@ _UnmarshallTransactionParameterData(
     return 0;
 }
 
-static uint32_t
+static NTSTATUS
 _UnmarshallTransactionSetupData(
     uint8_t    *pBuffer,
     uint32_t    bufferLen,
@@ -289,7 +289,7 @@ _UnmarshallTransactionSetupData(
         ppParameters, parameterLen, ppData, dataLen);
 }
 
-uint32_t
+NTSTATUS
 UnmarshallTransactionRequest(
     uint8_t    *pBuffer,
     uint32_t    bufferLen,
@@ -327,7 +327,7 @@ typedef struct
     uint8_t   data[0];           /* Data bytes (# = DataCount) */
 } TRANSACTION_SECONDARY_REQUEST_DATA_non_castable;
 
-uint32_t
+NTSTATUS
 MarshallTransactionSecondaryRequestData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
@@ -345,7 +345,7 @@ MarshallTransactionSecondaryRequestData(
         pDataOffset);
 }
 
-uint32_t
+NTSTATUS
 UnmarshallTransactionSecondaryRequest(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
@@ -381,7 +381,7 @@ typedef struct
     uint8_t   data[0];          /* Data bytes (# = DataCount) */
 } TRANSACTION_SECONDARY_RESPONSE_DATA_non_castable;
 
-uint32_t
+NTSTATUS
 MarshallTransactionSecondaryResponseData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
@@ -401,7 +401,7 @@ MarshallTransactionSecondaryResponseData(
         pParameterOffset, pData, dataLen, pDataOffset);
 }
 
-uint32_t
+NTSTATUS
 UnmarshallTransactionSecondaryResponse(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,

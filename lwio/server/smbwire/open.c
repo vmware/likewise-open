@@ -62,7 +62,7 @@ typedef struct
 
 /* ASCII is not supported */
 /* @todo: test alignment restrictions on Win2k */
-uint32_t
+NTSTATUS
 MarshallCreateRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -71,7 +71,7 @@ MarshallCreateRequestData(
     const wchar16_t *pwszPath
     )
 {
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
@@ -91,15 +91,15 @@ MarshallCreateRequestData(
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
     *pBufferUsed = bufferUsed;
 
-    return error;
+    return ntStatus;
 }
 
-uint32_t
+NTSTATUS
 UnmarshallSMBResponseCreate(
     const uint8_t  *pBuffer,
     uint32_t        bufferLen,

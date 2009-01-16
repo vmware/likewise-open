@@ -30,7 +30,7 @@
 
 #include "includes.h"
 
-uint32_t
+NTSTATUS
 MarshallReadRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,

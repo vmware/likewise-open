@@ -35,7 +35,7 @@
 #include <moonunit/interface.h>
 #endif /* TEST */
 
-uint32_t
+NTSTATUS
 UnmarshallTreeConnectRequest(
     const uint8_t *pBuffer,
     uint32_t       bufferLen,
@@ -62,7 +62,7 @@ typedef struct
     /* Data immediately follows */
 }  __attribute__((__packed__))  TREE_CONNECT_RESPONSE_HEADER;
 
-uint32_t
+NTSTATUS
 MarshallTreeConnectResponseData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -72,7 +72,7 @@ MarshallTreeConnectResponseData(
     const wchar16_t *pwszNativeFileSystem
     );
 
-uint32_t
+NTSTATUS
 UnmarshallTreeConnectResponse(
     const uint8_t    *pBuffer,
     uint32_t          bufferLen,

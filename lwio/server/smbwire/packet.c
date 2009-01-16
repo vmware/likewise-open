@@ -53,11 +53,13 @@
 
 static uchar8_t smbMagic[4] = { 0xFF, 'S', 'M', 'B' };
 
-uint32_t
+BOOLEAN
 SMBIsAndXCommand(
     uint8_t command
     )
 {
+    BOOLEAN bResult = TRUE;
+
     switch(command)
     {
         case COM_LOCKING_ANDX:
@@ -68,40 +70,43 @@ SMBIsAndXCommand(
         case COM_LOGOFF_ANDX:
         case COM_TREE_CONNECT_ANDX:
         case COM_NT_CREATE_ANDX:
-            return true;
+        {
+            bResult = FALSE;
+            break;
+        }
     }
 
-    return false;
+    return bResult;
 }
 
-DWORD
+NTSTATUS
 SMBPacketCreateAllocator(
-    DWORD   dwNumMaxPackets,
+    ULONG   ulNumMaxPackets,
     PHANDLE phPacketAllocator
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
 
-    if (!dwNumMaxPackets || dwNumMaxPackets < 10)
+    if (!ulNumMaxPackets || ulNumMaxPackets < 10)
     {
-        dwNumMaxPackets = 10;
+        ulNumMaxPackets = 10;
     }
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                     sizeof(LWIO_PACKET_ALLOCATOR),
                     (PVOID*)&pPacketAllocator);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pPacketAllocator->mutex, NULL);
     pPacketAllocator->pMutex = &pPacketAllocator->mutex;
-    pPacketAllocator->dwNumMaxPackets = dwNumMaxPackets;
+    pPacketAllocator->ulNumMaxPackets = ulNumMaxPackets;
 
     *phPacketAllocator = (HANDLE)pPacketAllocator;
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -110,13 +115,13 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBPacketAllocate(
     HANDLE       hPacketAllocator,
     PSMB_PACKET* ppPacket
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pPacket = NULL;
@@ -135,10 +140,10 @@ SMBPacketAllocate(
     }
     else
     {
-        dwError = SMBAllocateMemory(
+        ntStatus = SMBAllocateMemory(
                         sizeof(SMB_PACKET),
                         (PVOID *) &pPacket);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *ppPacket = pPacket;
@@ -147,7 +152,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -176,7 +181,7 @@ SMBPacketFree(
 
     /* If the len is greater than our current allocator len, adjust */
     /* @todo: make free list configurable */
-    if (pPacketAllocator->freePacketCount < pPacketAllocator->dwNumMaxPackets)
+    if (pPacketAllocator->freePacketCount < pPacketAllocator->ulNumMaxPackets)
     {
         assert(sizeof(SMB_PACKET) > sizeof(SMB_STACK));
         SMBStackPushNoAlloc(&pPacketAllocator->pFreePacketStack, (PSMB_STACK) pPacket);
@@ -190,7 +195,7 @@ SMBPacketFree(
     SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 }
 
-DWORD
+NTSTATUS
 SMBPacketBufferAllocate(
     HANDLE      hPacketAllocator,
     size_t      len,
@@ -198,7 +203,7 @@ SMBPacketBufferAllocate(
     size_t*     pAllocatedLen
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
     BOOLEAN bInLock = FALSE;
 
@@ -225,10 +230,10 @@ SMBPacketBufferAllocate(
     }
     else
     {
-        dwError = SMBAllocateMemory(
+        ntStatus = SMBAllocateMemory(
                         pPacketAllocator->freeBufferLen,
                         (PVOID *) ppBuffer);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         *pAllocatedLen = pPacketAllocator->freeBufferLen;
     }
@@ -237,7 +242,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -261,7 +266,7 @@ SMBPacketBufferFree(
     /* If the len is greater than our current allocator len, adjust */
     /* @todo: make free list configurable */
     if (bufferLen == pPacketAllocator->freeBufferLen &&
-        pPacketAllocator->freeBufferCount < pPacketAllocator->dwNumMaxPackets)
+        pPacketAllocator->freeBufferCount < pPacketAllocator->ulNumMaxPackets)
     {
         assert(bufferLen > sizeof(SMB_STACK));
 
@@ -306,7 +311,7 @@ SMBPacketFreeAllocator(
 /* @todo: support AndX */
 /* @todo: support signing */
 /* @todo: support endian swapping */
-DWORD
+NTSTATUS
 SMBPacketMarshallHeader(
     uint8_t    *pBuffer,
     uint32_t    bufferLen,
@@ -321,7 +326,7 @@ SMBPacketMarshallHeader(
     PSMB_PACKET pPacket
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     uint32_t bufferUsed = 0;
     uint32_t len = sizeof(NETBIOS_HEADER);
 
@@ -386,13 +391,13 @@ SMBPacketMarshallHeader(
 
     if (bufferUsed > bufferLen)
     {
-        dwError = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
-    return dwError;
+    return ntStatus;
 }
 
-DWORD
+NTSTATUS
 SMBPacketMarshallFooter(
     PSMB_PACKET pPacket
     )
@@ -410,15 +415,15 @@ SMBPacketIsSigned(
     return (pPacket->pSMBHeader->flags2 & FLAG2_SECURITY_SIG);
 }
 
-DWORD
+NTSTATUS
 SMBPacketVerifySignature(
     PSMB_PACKET pPacket,
-    DWORD       dwExpectedSequence,
+    ULONG       ulExpectedSequence,
     PBYTE       pSessionKey,
-    DWORD       dwSessionKeyLength
+    ULONG       ulSessionKeyLength
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     uint8_t digest[16];
     uint8_t origSignature[8];
     MD5_CTX md5Value;
@@ -427,13 +432,13 @@ SMBPacketVerifySignature(
 
     memcpy(origSignature, pPacket->pSMBHeader->extra.securitySignature, sizeof(pPacket->pSMBHeader->extra.securitySignature));
     memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &dwExpectedSequence, sizeof(dwExpectedSequence));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &ulExpectedSequence, sizeof(ulExpectedSequence));
 
     MD5_Init(&md5Value);
 
     if (pSessionKey)
     {
-        MD5_Update(&md5Value, pSessionKey, dwSessionKeyLength);
+        MD5_Update(&md5Value, pSessionKey, ulSessionKeyLength);
     }
 
     MD5_Update(&md5Value, (PBYTE)pPacket->pSMBHeader, pPacket->pNetBIOSHeader->len);
@@ -441,45 +446,45 @@ SMBPacketVerifySignature(
 
     if (memcmp(&origSignature[0], &digest[0], sizeof(origSignature)))
     {
-        dwError = EACCES;
+        ntStatus = EACCES;
     }
 
     // restore signature
     memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &origSignature[8], sizeof(origSignature));
 
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
-    SMB_LOG_WARNING("SMB Packet verification failed [code:%d]", dwError);
+    SMB_LOG_WARNING("SMB Packet verification failed [code:%d]", ntStatus);
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBPacketSign(
     PSMB_PACKET pPacket,
-    DWORD       dwSequence,
+    ULONG       ulSequence,
     PBYTE       pSessionKey,
-    DWORD       dwSessionKeyLength
+    ULONG       ulSessionKeyLength
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     uint8_t digest[16];
     MD5_CTX md5Value;
 
     memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &dwSequence, sizeof(dwSequence));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &ulSequence, sizeof(ulSequence));
 
     MD5_Init(&md5Value);
 
     if (pSessionKey)
     {
-        MD5_Update(&md5Value, pSessionKey, dwSessionKeyLength);
+        MD5_Update(&md5Value, pSessionKey, ulSessionKeyLength);
     }
 
     MD5_Update(&md5Value, (PBYTE)pPacket->pSMBHeader, ntohl(pPacket->pNetBIOSHeader->len));
@@ -487,7 +492,7 @@ SMBPacketSign(
 
     memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &digest[0], sizeof(pPacket->pSMBHeader->extra.securitySignature));
 
-    return dwError;
+    return ntStatus;
 }
 
 

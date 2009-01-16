@@ -3,7 +3,7 @@
 
 typedef struct _LWIO_PACKET_ALLOCATOR
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
 
     PSMB_STACK pFreeBufferStack;
@@ -14,7 +14,7 @@ typedef struct _LWIO_PACKET_ALLOCATOR
     PSMB_STACK pFreePacketStack;
     uint32_t   freePacketCount;
 
-    uint32_t   dwNumMaxPackets;
+    ULONG      ulNumMaxPackets;
 
 } LWIO_PACKET_ALLOCATOR, *PLWIO_PACKET_ALLOCATOR;
 

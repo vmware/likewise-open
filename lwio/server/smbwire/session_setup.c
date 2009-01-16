@@ -65,7 +65,7 @@ typedef struct
 
 /* ASCII is not supported */
 /* @todo: test alignment restrictions on Win2k */
-uint32_t
+NTSTATUS
 _MarshallSessionSetupData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -78,7 +78,7 @@ _MarshallSessionSetupData(
     const wchar16_t *pwszNativeDomain
     )
 {
-    uint32_t error = 0;
+    NTSTATUS ntStatus = 0;
 
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
@@ -114,15 +114,15 @@ _MarshallSessionSetupData(
 
     if (bufferUsed > bufferLen)
     {
-        error = EMSGSIZE;
+        ntStatus = EMSGSIZE;
     }
 
     *pBufferUsed = bufferUsed;
 
-    return error;
+    return ntStatus;
 }
 
-uint32_t
+NTSTATUS
 MarshallSessionSetupRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -141,7 +141,7 @@ MarshallSessionSetupRequestData(
 }
 
 /* ASCII is not supported */
-static uint32_t
+static NTSTATUS
 _UnmarshallSessionSetupData(
     const uint8_t *pBuffer,
     uint32_t       bufferLen,
@@ -202,7 +202,7 @@ _UnmarshallSessionSetupData(
     return 0;
 }
 
-uint32_t
+NTSTATUS
 UnmarshallSessionSetupRequest(
     const uint8_t *pBuffer,
     uint32_t       bufferLen,
@@ -239,7 +239,7 @@ typedef struct
     wchar16_t nativeDomain[0];  /* Server's primary domain */
 } SESSION_SETUP_RESPONSE_DATA_non_castable;
 
-uint32_t
+NTSTATUS
 MarshallSessionSetupResponseData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -257,7 +257,7 @@ MarshallSessionSetupResponseData(
         pwszNativeDomain);
 }
 
-uint32_t
+NTSTATUS
 UnmarshallSessionSetupResponse(
     const uint8_t    *pBuffer,
     uint32_t          bufferLen,

@@ -29,7 +29,7 @@
  */
 
 
-uint32_t
+NTSTATUS
 UnmarshallSessionSetupRequest(
     const uint8_t   *pBuffer,
     uint32_t         bufferLen,
@@ -41,7 +41,7 @@ UnmarshallSessionSetupRequest(
     wchar16_t      **ppwszNativeDomain
     );
 
-uint32_t
+NTSTATUS
 MarshallSessionSetupResponseData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,

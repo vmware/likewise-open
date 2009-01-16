@@ -29,7 +29,7 @@
  */
 
 
-uint32_t
+NTSTATUS
 MarshallNegotiateResponseData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,

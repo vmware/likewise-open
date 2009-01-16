@@ -763,7 +763,7 @@ typedef enum
     SMB_SECURITY_MODE_USER
 } SMB_SECURITY_MODE;
 
-uint32_t
+NTSTATUS
 MarshallNegotiateRequest(
     uint8_t       *pBuffer,
     uint32_t       bufferLen,
@@ -772,7 +772,7 @@ MarshallNegotiateRequest(
     uint32_t       dialectCount
     );
 
-uint32_t
+NTSTATUS
 UnmarshallNegotiateRequest(
     const uint8_t  *pBuffer,
     uint32_t        bufferLen,        /* ByteCount found by caller */
@@ -780,7 +780,7 @@ UnmarshallNegotiateRequest(
     uint32_t       *pDialectCount
     );
 
-uint32_t
+NTSTATUS
 UnmarshallNegotiateResponse(
     const uint8_t  *pBuffer,
     uint32_t        bufferLen,
@@ -790,7 +790,7 @@ UnmarshallNegotiateResponse(
     uint32_t       *blobLen
     );
 
-uint32_t
+NTSTATUS
 MarshallSessionSetupRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -803,7 +803,7 @@ MarshallSessionSetupRequestData(
     const wchar16_t *pwszWorkgroup
     );
 
-uint32_t
+NTSTATUS
 UnmarshallSessionSetupResponse(
     const uint8_t   *pBuffer,
     uint32_t         bufferLen,
@@ -815,7 +815,7 @@ UnmarshallSessionSetupResponse(
     wchar16_t      **ppwszNativeDomain
     );
 
-uint32_t
+NTSTATUS
 MarshallTreeConnectRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -825,7 +825,7 @@ MarshallTreeConnectRequestData(
     const uchar8_t  *pszService
     );
 
-uint32_t
+NTSTATUS
 MarshallCreateRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -834,14 +834,14 @@ MarshallCreateRequestData(
     const wchar16_t *pwszPath
     );
 
-uint32_t
+NTSTATUS
 UnmarshallSMBResponseCreate(
     const uint8_t  *pBuffer,
     uint32_t        bufferLen,
     CREATE_RESPONSE_HEADER **ppHeader
     );
 
-uint32_t
+NTSTATUS
 MarshallTransactionRequestData(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
@@ -857,7 +857,7 @@ MarshallTransactionRequestData(
     uint16_t  *pDataOffset
     );
 
-uint32_t
+NTSTATUS
 UnmarshallTransactionRequest(
     uint8_t    *pBuffer,
     uint32_t    bufferLen,
@@ -872,7 +872,7 @@ UnmarshallTransactionRequest(
     uint32_t    dataLen
     );
 
-uint32_t
+NTSTATUS
 MarshallTransactionSecondaryRequestData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
@@ -885,7 +885,7 @@ MarshallTransactionSecondaryRequestData(
     uint16_t *pDataOffset
     );
 
-uint32_t
+NTSTATUS
 UnmarshallTransactionSecondaryRequest(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
@@ -896,7 +896,7 @@ UnmarshallTransactionSecondaryRequest(
     uint32_t   dataLen
     );
 
-uint32_t
+NTSTATUS
 MarshallTransactionSecondaryResponseData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
@@ -911,7 +911,7 @@ MarshallTransactionSecondaryResponseData(
     uint16_t *pDataOffset
     );
 
-uint32_t
+NTSTATUS
 UnmarshallTransactionSecondaryResponse(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
@@ -925,7 +925,7 @@ UnmarshallTransactionSecondaryResponse(
     uint32_t   dataLen
     );
 
-uint32_t
+NTSTATUS
 MarshallWriteRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -936,7 +936,7 @@ MarshallWriteRequestData(
     uint16_t        wWriteLen
     );
 
-uint32_t
+NTSTATUS
 MarshallReadRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
@@ -944,18 +944,18 @@ MarshallReadRequestData(
     uint32_t        *pBufferUsed
     );
 
-uint32_t
+BOOLEAN
 SMBIsAndXCommand(
     uint8_t command
     );
 
-DWORD
+NTSTATUS
 SMBPacketCreateAllocator(
-    DWORD   dwNumMaxPackets,
+    ULONG   ulNumMaxPackets,
     PHANDLE phPacketAllocator
     );
 
-DWORD
+NTSTATUS
 SMBPacketAllocate(
     HANDLE       hPacketAllocator,
     PSMB_PACKET* ppPacket
@@ -967,7 +967,7 @@ SMBPacketFree(
     PSMB_PACKET pPacket
     );
 
-DWORD
+NTSTATUS
 SMBPacketBufferAllocate(
     HANDLE      hPacketAllocator,
     size_t      len,
@@ -989,7 +989,7 @@ SMBPacketFreeAllocator(
 
 /* @todo: support AndX */
 /* @todo: support signing */
-DWORD
+NTSTATUS
 SMBPacketMarshallHeader(
     uint8_t    *pBuffer,
     uint32_t    bufferLen,
@@ -1004,7 +1004,7 @@ SMBPacketMarshallHeader(
     PSMB_PACKET pPacket
     );
 
-DWORD
+NTSTATUS
 SMBPacketMarshallFooter(
     PSMB_PACKET pPacket
     );
@@ -1014,20 +1014,20 @@ SMBPacketIsSigned(
     PSMB_PACKET pPacket
     );
 
-DWORD
+NTSTATUS
 SMBPacketVerifySignature(
     PSMB_PACKET pPacket,
-    DWORD       dwExpectedSequence,
+    ULONG       ulExpectedSequence,
     PBYTE       pSessionKey,
-    DWORD       dwSessionKeyLength
+    ULONG       ulSessionKeyLength
     );
 
-DWORD
+NTSTATUS
 SMBPacketSign(
     PSMB_PACKET pPacket,
-    DWORD       dwSequence,
+    ULONG       ulSequence,
     PBYTE       pSessionKey,
-    DWORD       dwSessionKeyLength
+    ULONG       ulSessionKeyLength
     );
 
 #endif /* __SMBWIRE_H__ */
