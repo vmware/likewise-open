@@ -55,9 +55,10 @@
 #define LWIO_SRV_DB_DIR CACHEDIR     "/db"
 #define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR "/lwio-shares.db"
 
-#define LWIO_SRV_DEFAULT_NUM_READERS         4
-#define LWIO_SRV_DEFAULT_NUM_WORKERS         4
+#define LWIO_SRV_DEFAULT_NUM_READERS          4
+#define LWIO_SRV_DEFAULT_NUM_WORKERS          4
 #define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
+#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
 
 typedef enum
 {

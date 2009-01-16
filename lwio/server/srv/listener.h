@@ -51,7 +51,10 @@
 
 NTSTATUS
 SrvListenerInit(
-    PSMB_SRV_LISTENER pListener
+    HANDLE                 hPacketAllocator,
+    PSMB_SRV_SOCKET_READER pReaderArray,
+    ULONG                  ulNumReaders,
+    PSMB_SRV_LISTENER      pListener
     );
 
 NTSTATUS

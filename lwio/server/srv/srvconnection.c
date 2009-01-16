@@ -3,6 +3,7 @@
 NTSTATUS
 SrvConnectionCreate(
     PSMB_SRV_SOCKET pSocket,
+    HANDLE          hPacketAllocator,
     PSMB_SRV_CONNECTION* ppConnection
     )
 {
@@ -16,6 +17,7 @@ SrvConnectionCreate(
 
     pConnection->mutex = PTHREAD_MUTEX_INITIALIZER;
     pConnection->refCount = 1;
+    pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->state = SMB_SRV_CONN_STATE_INITIAL;
     pConnection->pSocket = pSocket;
 
@@ -69,6 +71,17 @@ SrvConnectionIsInvalid(
     pthread_mutex_unlock(&pConnection->mutex);
 
     return bInvalid;
+}
+
+NTSTATUS
+SrvConnectionReadPacket(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET* ppPacket
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
 }
 
 VOID

@@ -409,12 +409,40 @@ SrvSocketReaderReadMessage(
     )
 {
     NTSTATUS ntStatus = 0;
+    PLWIO_SRV_TASK pTask = NULL;
+    PSMB_PACKET pPacket = NULL;
+
+    ntStatus = SrvConnectionReadPacket(
+                    pConnection,
+                    &pPacket);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTaskCreate(
+                    pConnection,
+                    pPacket,
+                    &pTask);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProdConsEnqueue(
+                    pReaderContext->pWorkQueue,
+                    pTask);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     return ntStatus;
 
 error:
+
+    if (pTask)
+    {
+        SrvTaskFree(pTask);
+    }
+
+    if (pPacket)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pPacket);
+    }
 
     goto cleanup;
 }

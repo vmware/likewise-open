@@ -81,12 +81,23 @@ SMBSrvGetLocalIPAddress(
 
 NTSTATUS
 SrvListenerInit(
-    PSMB_SRV_LISTENER pListener
+    HANDLE                 hPacketAllocator,
+    PSMB_SRV_SOCKET_READER pReaderArray,
+    ULONG                  ulNumReaders,
+    PSMB_SRV_LISTENER      pListener
     )
 {
     NTSTATUS ntStatus = 0;
 
     memset(&pListener->context, 0, sizeof(pListener->context));
+
+    pthread_mutex_init(&pListener->context.mutex, NULL);
+    pListener->context.pMutex = &pListener->context.mutex;
+
+    pListener->context.hPacketAllocator = hPacketAllocator;
+    pListener->context.pReaderArray = pReaderArray;
+    pListener->context.ulNumReaders = ulNumReaders;
+    pListener->context.bStop = FALSE;
 
     ntStatus = pthread_create(
                     &pListener->listener,
@@ -111,11 +122,19 @@ SrvListenerStop(
 
     if (pListener->pListener)
     {
-        pthread_mutex_lock(&pListener->context.mutex);
+        if (pListener->context.pMutex)
+        {
+            pthread_mutex_lock(pListener->context.pMutex);
+        }
 
         pListener->context.bStop = TRUE;
 
-        pthread_mutex_unlock(&pListener->context.mutex);
+        if (pListener->context.pMutex)
+        {
+            pthread_mutex_unlock(pListener->context.pMutex);
+            pthread_mutex_destroy(pListener->context.pMutex);
+            pListener->context.pMutex = NULL;
+        }
 
         SrvFakeClientConnection();
 
@@ -216,6 +235,7 @@ SrvListenerMain(
 
         dwError = SrvConnectionCreate(
                         pSocket,
+                        pContext->hPacketAllocator,
                         &pConnection);
         BAIL_ON_SMB_ERROR(dwError);
 

@@ -4,6 +4,7 @@
 NTSTATUS
 SrvConnectionCreate(
     PSMB_SRV_SOCKET pSocket,
+    HANDLE          hPacketAllocator,
     PSMB_SRV_CONNECTION* ppConnection
     );
 
@@ -15,6 +16,12 @@ SrvConnectionGetFd(
 BOOLEAN
 SrvConnectionIsInvalid(
     PSMB_SRV_CONNECTION pConnection
+    );
+
+NTSTATUS
+SrvConnectionReadPacket(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET* ppPacket
     );
 
 VOID

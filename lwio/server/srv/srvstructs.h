@@ -54,6 +54,7 @@ typedef struct _SMB_SRV_CONFIG
     ULONG ulNumReaders;
     ULONG ulNumWorkers;
     ULONG ulMaxNumWorkItemsInQueue;
+    ULONG ulMaxNumPackets;
 
 } SMB_SRV_CONFIG, *PSMB_SRV_CONFIG;
 
@@ -140,7 +141,19 @@ typedef struct _SMB_SRV_CONNECTION
 
     PSMB_SRV_SOCKET     pSocket;
 
+    // Invariant
+    // Not owned
+    HANDLE              hPacketAllocator;
+
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
+
+typedef struct _LWIO_SRV_TASK
+{
+    PSMB_SRV_CONNECTION pConnection;
+
+    PSMB_PACKET         pRequest;
+
+} LWIO_SRV_TASK, *PLWIO_SRV_TASK;
 
 typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
 {
@@ -186,9 +199,14 @@ typedef struct _SMB_SRV_WORKER
 
 typedef struct _SMB_SRV_LISTENER_CONTEXT
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
     BOOLEAN bStop;
+
+    // Invariant
+    // Not owned
+    HANDLE  hPacketAllocator;
 
     // Invariant
     // Not owned
@@ -224,6 +242,8 @@ typedef struct _SMB_SRV_RUNTIME_GLOBALS
     ULONG                    ulNumWorkers;
 
     SMB_SRV_LISTENER         listener;
+
+    HANDLE                   hPacketAllocator;
 
 } SMB_SRV_RUNTIME_GLOBALS, *PSMB_SRV_RUNTIME_GLOBALS;
 
