@@ -191,9 +191,14 @@ typedef struct _SMB_SRV_SOCKET_READER
 
 typedef struct _SMB_SRV_WORKER_CONTEXT
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
     BOOLEAN bStop;
+
+    // Invariant
+    // not owned
+    PSMB_PROD_CONS_QUEUE pWorkQueue;
 
 } SMB_SRV_WORKER_CONTEXT, *PSMB_SRV_WORKER_CONTEXT;
 

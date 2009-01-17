@@ -154,6 +154,80 @@ SrvProdConsDequeue(
     return ntStatus;
 }
 
+NTSTATUS
+SrvProdConsTimedDequeue(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    struct timespec*     pTimespec,
+    PVOID*               ppItem
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+    PVOID    pItem = NULL;
+
+    SMB_LOCK_MUTEX(bInLock, &pQueue->mutex);
+
+    if (!pQueue->ulNumItems)
+    {
+        BOOLEAN bRetryWait = FALSE;
+
+        do
+        {
+            int unixErrorCode = pthread_cond_timedwait(
+                                    &pQueue->pEvent,
+                                    &pQueue->mutex,
+                                    pTimespec);
+            if (unixErrorCode == ETIMEDOUT)
+            {
+                if (time(NULL) < pTimespec->tv_sec)
+                {
+                    bRetryWait = TRUE;
+                    continue;
+                }
+            }
+
+            ntStatus = LwUnixErrnoToNtStatus(unixErrorCode);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+        } while (bRetryWait);
+    }
+
+    if (pQueue->ulNumItems)
+    {
+        BOOLEAN  bSignalEvent = FALSE;
+
+        pItem = SMBDequeue(pQueue);
+
+        if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
+        {
+            bSignalEvent = TRUE;
+        }
+
+        pQueue->ulNumItems--;
+
+        SMB_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+
+        if (bSignalEvent)
+        {
+            pthread_cond_broadcast(pQueue->pEvent);
+        }
+    }
+
+    *ppItem = pItem;
+
+cleanup:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppItem = NULL;
+
+    goto cleanup;
+}
+
 VOID
 SrvProdConsFree(
     PSMB_PROD_CONS_QUEUE pQueue

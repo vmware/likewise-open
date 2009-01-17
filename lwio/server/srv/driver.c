@@ -263,6 +263,7 @@ SrvInitialize(
     for (; iWorker < gSMBSrvGlobals.config.ulNumWorkers; iWorker++)
     {
         ntStatus = SrvWorkerInit(
+                        &gSMBSrvGlobals.workQueue,
                         &gSMBSrvGlobals.pWorkerArray[iWorker]);
         BAIL_ON_NT_STATUS(ntStatus);
     }
