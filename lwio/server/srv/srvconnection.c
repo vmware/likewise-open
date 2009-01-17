@@ -238,6 +238,12 @@ SrvConnectionRelease(
 {
     if (InterlockedDecrement(&pConnection->refCount) == 0)
     {
+        if (pConnection->readerState.pRequestPacket)
+        {
+            SMBPacketFree(
+                pConnection->hPacketAllocator,
+                pConnection->readerState.pRequestPacket);
+        }
         SMBFreeMemory(pConnection);
     }
 }
