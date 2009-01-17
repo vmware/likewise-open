@@ -173,6 +173,8 @@ SrvProdConsTimedDequeue(
 
         do
         {
+            bRetryWait = FALSE;
+
             int unixErrorCode = pthread_cond_timedwait(
                                     &pQueue->pEvent,
                                     &pQueue->mutex,
