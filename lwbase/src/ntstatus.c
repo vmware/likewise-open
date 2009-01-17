@@ -118,6 +118,27 @@ LwNtStatusToUnixErrno(
     }
 }
 
+NTSTATUS
+LwUnixErrnoToNtStatus(
+    int unixErrno
+    )
+{
+    NTSTATUS ntStatus = unixErrno;
+
+    switch(unixErrno)
+    {
+        case EINVAL:
+             ntStatus = STATUS_INVALID_PARAMETER;
+             break;
+
+        case ETIMEDOUT:
+             ntStatus = STATUS_IO_TIMEOUT;
+             break;
+    }
+
+    return ntStatus;
+}
+
 static
 PTABLE_ENTRY
 LwNtLookupCode(
@@ -136,3 +157,4 @@ LwNtLookupCode(
 
     return NULL;
 }
+

@@ -1298,6 +1298,11 @@ LwNtStatusToUnixErrno(
     LW_NTSTATUS code
     );
 
+LW_NTSTATUS
+LwUnixErrnoToNtStatus(
+    int unixErrno
+    );
+
 #ifndef LW_STRICT_NAMESPACE
 #define NtStatusToSymbolicName LwNtStatusToSymbolicName
 #define NtStatusToDescription  LwNtStatusToDescription
