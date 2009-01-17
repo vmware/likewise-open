@@ -231,6 +231,60 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvConnectionWriteMessage(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pPacket
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+    size_t   sNumBytesToWrite = pPacket->bufferUsed;
+    size_t   sTotalNumBytesWritten = 0;
+    int fd = -1;
+
+    fd = SrvConnectionGetFd(pConnection);
+
+    SMB_LOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+
+    // TODO: Use select to find out if the fd is ready to be written to
+
+    while (sNumBytesToWrite)
+    {
+        ssize_t sNumBytesWritten = 0;
+
+        sNumBytesWritten = write(
+                                fd,
+                                pPacket->pRawBuffer + sTotalNumBytesWritten,
+                                sNumBytesToWrite);
+        if (sNumBytesWritten < 0)
+        {
+            if ((errno != EINTR) || (errno != EAGAIN))
+            {
+                ntStatus = LwUnixErrnoToNtStatus(errno);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+        }
+
+        sNumBytesToWrite -= sNumBytesWritten;
+        sTotalNumBytesWritten += sNumBytesWritten;
+    }
+
+cleanup:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+
+    return ntStatus;
+
+error:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+
+    SrvConnectionSetInvalid(pConnection);
+
+    goto cleanup;
+}
+
 VOID
 SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection

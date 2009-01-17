@@ -29,6 +29,12 @@ SrvConnectionReadPacket(
     PSMB_PACKET* ppPacket
     );
 
+NTSTATUS
+SrvConnectionWriteMessage(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pPacket
+    );
+
 VOID
 SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection

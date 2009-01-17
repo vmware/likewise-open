@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -30,32 +30,89 @@
 
 #include "includes.h"
 
+static
 NTSTATUS
-SmbProcessNegotiate(
-    PSMB_SRV_CONNECTION pSmbRequest
+MarshallNegotiateResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET*        ppSmbResponse
+    );
+
+NTSTATUS
+SrvSmbProcessNegotiate(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_PACKET pSmbResponse = NULL;
 
-    ntStatus = MarshallNegotiateResponse(pSmbRequest);
+    ntStatus = MarshallNegotiateResponse(
+                    pConnection,
+                    &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-
-    ntStatus = SmbSendReply(pSmbRequest);
+    ntStatus = SrvConnectionWriteMessage(
+                    pConnection,
+                    pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    return ntStatus;
 
 error:
 
-    return (ntStatus);
+    goto cleanup;
 }
 
+static
 NTSTATUS
 MarshallNegotiateResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET*        ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_PACKET pSmbResponse = NULL;
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // Build the response into the packet
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
 
     return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+                pConnection->hPacketAllocator,
+                pSmbResponse);
+    }
+
+    goto cleanup;
 }
 

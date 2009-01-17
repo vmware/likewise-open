@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -30,24 +30,25 @@
 
 #include "includes.h"
 
-DWORD
+NTSTATUS
 SMBSrvProcessRequest_V1(
-    PSMB_PACKET pSmbRequest,
-    PSMB_PACKET pSmbResponse
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
-#if 0
-    switch (pRequest->pSMBHeader->command)
+    switch (pSmbRequest->pSMBHeader->command)
     {
         case COM_NEGOTIATE:
 
-            dwError = SmbMkDirRequest(
-                            pSmbRequest,
-                            pSmbResponse);
+                ntStatus = SrvSmbProcessNegotiate(
+                                pConnection,
+                                pSmbRequest);
 
-            break;
+                break;
+
+#if 0
 
         case COM_SESSION_SETUP_ANDX:
 
@@ -279,8 +280,9 @@ SMBSrvProcessRequest_V1(
                             pSmbRequest,
                             pSmbResponse);
             break;
-    }
 #endif
 
-    return dwError;
+    }
+
+    return ntStatus;
 }
