@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        Likewise Posix File System Driver (NPFS)
  *
  *        Device I/O Function
  *
@@ -47,7 +47,7 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "rdr.h"
+#include "npfs.h"
 
 NTSTATUS
 NpfsFsctl(
@@ -56,18 +56,7 @@ NpfsFsctl(
     )
 {
     NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = FsctlAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = FsctlCommonFsctl(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
 
     return ntStatus;
 }
@@ -75,40 +64,11 @@ error:
 
 NTSTATUS
 FsctlCommonFsctl(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PVOID pOutBuffer = pIrp->Args.IoFsControl.OutputBuffer;
-    ULONG OutLength = pIrp->Args.IoFsControl.OutputBufferLength;
-    HANDLE hFile = NULL;
-
-    hFile = IoFileGetContext(pIrp->FileHandle);
-
-    switch(ControlCode) {
-
-        case FSCTL_CONNECT_NAMED_PIPE:
-            break;
-
-        case FSCL_DISCONNECT_NAMED_PIPE:
-            break;
-
-        case FSCTL_PEEK_NAMED_PIPE:
-            break;
-
-        case FSCTL_GET_NAMED_PIPE_HANDLE_STATE:
-            break;
-
-        case FSCTL_SET_NAMED_PIPE_HANDLE_STATE:
-            break;
-
-    }
-
-
-error:
-
-    pIrp->IoStatusBlock.Status = ntStatus;
     return(ntStatus);
 }
 

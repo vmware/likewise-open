@@ -47,7 +47,7 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "pvfs.h"
+#include "npfs.h"
 
 NTSTATUS
 NpfsQueryInformation(

@@ -48,10 +48,10 @@
  *          Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "pvfs.h"
+#include "npfs.h"
 
 VOID
-PvfsDriverShutdown(
+NpfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
@@ -59,7 +59,7 @@ PvfsDriverShutdown(
 }
 
 NTSTATUS
-PvfsDriverDispatch(
+NpfsDriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
     IN PIRP pIrp
     )
@@ -70,14 +70,14 @@ PvfsDriverDispatch(
     switch (pIrp->Type)
     {
         case IRP_TYPE_CREATE:
-            ntStatus = PvfsCreate(
+            ntStatus = NpfsCreate(
                             DeviceHandle,
                             pIrp
                             );
             break;
 
         case IRP_TYPE_CLOSE:
-            ntStatus = PvfsClose(
+            ntStatus = NpfsClose(
                             DeviceHandle,
                             pIrp
                             );
@@ -85,14 +85,14 @@ PvfsDriverDispatch(
 
 
         case IRP_TYPE_READ:
-            ntStatus = PvfsRead(
+            ntStatus = NpfsRead(
                             DeviceHandle,
                             pIrp
                             );
              break;
 
         case IRP_TYPE_WRITE:
-            ntStatus = PvfsWrite(
+            ntStatus = NpfsWrite(
                             DeviceHandle,
                             pIrp
                             );
@@ -103,7 +103,7 @@ PvfsDriverDispatch(
             break;
 
         case IRP_TYPE_FS_CONTROL:
-            ntStatus = PvfsFsCtrl(
+            ntStatus = NpfsFsCtrl(
                             DeviceHandle,
                             pIrp
                             );
@@ -112,13 +112,13 @@ PvfsDriverDispatch(
             ntStatus = STATUS_NOT_IMPLEMENTED;
             break;
         case IRP_TYPE_QUERY_INFORMATION:
-            ntStatus = PvfsQueryInformation(
+            ntStatus = NpfsQueryInformation(
                             DeviceHandle,
                             pIrp
                             );
             break;
         case IRP_TYPE_SET_INFORMATION:
-            ntStatus = PvfsSetInformation(
+            ntStatus = NpfsSetInformation(
                             DeviceHandle,
                             pIrp
                             );
@@ -151,8 +151,8 @@ DriverEntry(
 
     ntStatus = IoDriverInitialize(DriverHandle,
                                   NULL,
-                                  PvfsDriverShutdown,
-                                  PvfsDriverDispatch);
+                                  NpfsDriverShutdown,
+                                  NpfsDriverDispatch);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
 
     ntStatus = IoDeviceCreate(&deviceHandle,

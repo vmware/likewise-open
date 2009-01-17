@@ -5,7 +5,7 @@ libnpvfs_sys_la_SOURCES = \
     create.c \
     deviceio.c \
     driver.c \
-    fsctrl.c \
+    fsctl.c \
     globals.c \
     queryinfo.c \
     read.c \
