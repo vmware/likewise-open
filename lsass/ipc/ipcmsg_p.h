@@ -79,4 +79,8 @@ LsaWriteMessage(
     int   fd,
     const PLSAMESSAGE pMessage);
 
+void
+LsaFreeMessageControlFds(
+    struct msghdr *pMsg);
+
 #endif /* __IPCMSG_P_H__ */

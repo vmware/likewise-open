@@ -356,6 +356,51 @@ error:
     return dwError;
 }
 
+void
+LsaFreeMessageControlFds(
+    struct msghdr *pMsg)
+{
+    int *pFds = NULL;
+#ifdef MSGHDR_HAS_MSG_CONTROL
+    struct cmsghdr *cmsg = NULL;
+    DWORD dwIndex = 0;
+
+    if (pMsg != NULL && (ssize_t)pMsg->msg_controllen > 0)
+    {
+        cmsg = CMSG_FIRSTHDR(pMsg);
+        while (cmsg)
+        {
+            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+            {
+                pFds = (int *)CMSG_DATA(cmsg);
+                for (dwIndex = 0;
+                    dwIndex*sizeof(pFds[0]) <
+                            cmsg->cmsg_len - ((char *)pFds - (char *)cmsg);
+                    dwIndex++)
+                {
+                    if (pFds[dwIndex] != -1)
+                    {
+                        close(pFds[dwIndex]);
+                        pFds[dwIndex] = -1;
+                    }
+                }
+            }
+            cmsg = CMSG_NXTHDR(pMsg, cmsg);
+        }
+    }
+#else
+    if (pMsg->msg_accrightslen == sizeof(int))
+    {
+        pFds = (int *)msg.msg_accrights;
+        if (pFds[0] != -1)
+        {
+            close(pFds[0]);
+            pFds[0] = -1;
+        }
+    }
+#endif
+}
+
 DWORD
 LsaRecvCreds(
     int fd,
@@ -364,6 +409,7 @@ LsaRecvCreds(
 {
     DWORD dwError = 0;
     char payload[] = {0, 0};
+    // Do not free. This is copied from the control section of msg
     int credFd = -1;
     struct iovec payload_vec = {0};
     struct msghdr msg = {0};
@@ -382,6 +428,15 @@ LsaRecvCreds(
     SOCKLEN_T credPeerAddrLen = sizeof(credPeerAddr);
     DWORD dwReadPayload = 0;
     BYTE bReply = 0;
+
+#ifdef MSGHDR_HAS_MSG_CONTROL
+    /* Initialize the fd space to all -1 to indicate it does not have any
+     * fds in it.
+     */
+    memset(&buf_un, -1, sizeof(buf_un));
+    msg.msg_control = buf_un.buf;
+    msg.msg_controllen = sizeof(buf_un.buf);
+#endif
 
     /* sendmsg is used on the client side to send a file descriptor.
      * Unfortunately, on RHEL 4, the function can fail without reporting
@@ -432,6 +487,7 @@ LsaRecvCreds(
             case 1:
                 LSA_LOG_WARNING("The client did not send a local socket authentication message. Requesting a retry from the client.");
                 bReply = 0;
+                LsaFreeMessageControlFds(&msg);
                 break;
             default:
                 dwError = EBADF;
@@ -526,8 +582,7 @@ LsaRecvCreds(
 
 cleanup:
 
-    if (credFd != -1)
-        close(credFd);
+    LsaFreeMessageControlFds(&msg);
 
     return dwError;
 
