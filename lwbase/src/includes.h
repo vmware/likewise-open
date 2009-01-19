@@ -22,13 +22,16 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
+
 #include <config.h>
 
 #include <lw/base.h>
 
 #include <pthread.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include <string.h>
 #include <assert.h>
@@ -37,3 +40,9 @@
    #include <strings.h>
 #endif
 
+#include <wc16str.h>
+#include <uuid/uuid.h>
+
+#include <secdesc/polhnd.h>
+#include <secdesc/sid.h>
+#include <secdesc_p.h>

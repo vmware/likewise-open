@@ -11,10 +11,15 @@ liblwbase_nothr_la_SOURCES = \
         rtlstring_cstring.c \
         rtlstring_wc16string.c \
         rtlstring_unicode.c \
-        rtlstring_ansi.c
+        rtlstring_ansi.c \
+        rtlsid.c \
+        sid.c \
+        sidstr.c \
+        rtlpolhnd.c
 
 liblwbase_nothr_la_LIBADD = \
-    @LIBUNISTR_LIBS@
+    @LIBUNISTR_LIBS@ \
+    @LIBUUID_LIBS@
 
 liblwbase_la_SOURCES = \
 	atomic.c
