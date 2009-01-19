@@ -55,9 +55,8 @@ ReadFile(
 
 }
 
-
 NTSTATUS
-WriteFile(
+NpfsServerReadFile(
     PNPFS_CCB pCCB
     ULONG Length,
     PVOID pBuffer
@@ -65,57 +64,105 @@ WriteFile(
 {
     NTSTATUS ntStatus = 0;
 
-    GET_ASSOCIATED_CCB(&pAssociatedCCB);
-    GET_PARENT_PIPE(&pPipe);
-
-    if (pPipe->Status = DISCONNECTED) {
-        ntStatus = STATUS_PIPE_BROKEN;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if ((pPipe->Status == CLIENT_CLOSED) && pCCB->Mode == SERVER){
-        ntStatus = STATUS_CLIENT_DISCONNECTED;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if ((pPipe->Status == SERVER_CLOSED) && pCCB->Mode == CLIENT) {
-        ntStatus = STATUS_SERVER_CLOSED_CONNECTION;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if ((pPipe->Status == SERVER_
-
-    ENTER_CRITICAL_SECTION(&pAssocCCB->Lock);
-
-    WRITE_DATA_INFO_INBOUND_QUEUE;
-
-    ntStatus = NpfsEnqueueMdl(
-                    Length,
-                    pBuffer,
-                    &pMdl
-                    );
-    BAIL_ON_NTSTATUS(ntStatus);
-
-    if (QueueWasEmpty) {
-
-        SignalEvent();
-    }
-
-    LEAVE_CRITICAL_SECTION(&pAssocCB->Lock);
-
     return(ntStatus);
-
-error:
-
-
-    LEAVE_CRITICAL_SECTION
-
-    return(ntStatus);
-
 }
 
 
 NTSTATUS
-DisconnectCCB(
+NpfsServerWriteFile(
+    PNPFS_CCB pCCB
+    ULONG Length,
+    PVOID pBuffer
     )
+{
+    NTSTATUS ntStatus = 0;
+
+    switch(pSCB->State) {
+
+        case SERVER_PIPE_CONNECTED:
+                ntStatus = NpfsServerReadFile_Connected(
+                                pSCB,
+                                Length,
+                                Buffer
+                                );
+                BAIL_ON_NT_STATUS(ntStatus);
+                break;
+
+
+        case SERVER_PIPE_DISCONNECTED:
+                break;
+
+        case SERVER_PIPE_WAITING_FOR_CONNECTION:
+                break;
+
+    }
+
+error:
+
+    return(ntStatus);
+}
+
+NTSTATUS
+NpfsClientReadFile(
+    PNPFS_CCB pCCB
+    ULONG Length,
+    PVOID pBuffer
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+
+    ENTER_CRITICAL_SECTION(&pCCB->Lock);
+
+    switch(pCCB->State) {
+
+        case CLIENT_PIPE_CONNECTED:
+            btStatus = NpfsClientReadFile_Connected(
+                            pCCB,
+                            Length,
+                            pBuffer
+                            );
+            BAIL_ON_NT_STATUS(ntStatus);
+
+        case CLIENT_PIPE_DISCONNECTED:
+            break;
+    }
+
+error:
+
+    LEAVE_CRITICAL_SECTION(&pCCB->Lock);
+
+    return(ntStatus);
+}
+
+
+NTSTATUS
+NpfsClientWriteFile(
+    PNPFS_CCB pCCB
+    ULONG Length,
+    PVOID pBuffer
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+
+    switch(pCCB->State) {
+
+        case CLIENT_PIPE_CONNECTED:
+            ntStatus = NpfsClientWriteFile_Connected(
+                            pCCB,
+                            Length,
+                            pBuffer
+                            );
+            BAIL_ON_NT_STATUS(ntStatus);
+            break;
+
+        case CLIENT_PIPE_DISCONNECTED:
+            break;
+
+    }
+error:
+
+    return(ntStatus);
+}
 

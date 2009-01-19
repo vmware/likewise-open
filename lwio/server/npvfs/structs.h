@@ -23,10 +23,10 @@ typedef struct _NPFS_CCB{
 
 
 typedef struct _NPFS_PIPE {
-    CRITICAL_SECTION  PipeMutex;
-    PCCB pScb;
-    PCCB pCcb;
-}
+    //CRITICAL_SECTION  PipeMutex;
+    PNPFS_CCB pScb;
+    PNPFS_CCB pCcb;
+} NPFS_PIPE, *PNPFS_PIPE;
 
 typedef struct _NPFS_IRP_CONTEXT {
     PIRP pIrp;
