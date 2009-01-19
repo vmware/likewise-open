@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+*/
 
 /*
  * Copyright Likewise Software    2004-2009
@@ -90,8 +90,8 @@ RtlPolHndAllocate(
 
     BAIL_ON_NULL_PTR_PARAM(ppH);
 
-    status = SdAllocateMemory((void**)&ptr, sizeof(PolicyHandle));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ptr = RtlMemoryAllocate(sizeof(PolicyHandle));
+    BAIL_ON_NULL_PTR(ptr);
 
     status = PolHndCreate(ptr, dwHandleType);
     BAIL_ON_NTSTATUS_ERROR(status);
@@ -105,7 +105,7 @@ cleanup:
 
 error:
     if (ptr) {
-        SdFreeMemory((void*)ptr);
+        RtlMemoryFree((void*)ptr);
     }
     ppH = NULL;
 
@@ -121,7 +121,7 @@ RtlPolHndFree(
     if (pH == NULL) return;
 
     ZERO_STRUCT(*pH);
-    SdFreeMemory((void*)pH);
+    RtlMemoryFree((void*)pH);
 }
 
 
