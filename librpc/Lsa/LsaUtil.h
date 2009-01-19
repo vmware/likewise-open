@@ -86,7 +86,7 @@
 
 #define DCERPC_CALL(fn_call)                     \
     do {                                         \
-        dcethread_exc *dceexc;;                  \
+        dcethread_exc *dceexc;                   \
                                                  \
         DCETHREAD_TRY                            \
         {                                        \
