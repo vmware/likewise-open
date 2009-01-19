@@ -181,6 +181,14 @@ SrvSocketReaderMain(
     while (!SrvSocketReaderMustStop(pContext))
     {
         int ret = 0;
+        struct timeval timeout = { .tv_sec = 60, .tv_usec = 0 };
+
+        if (workSet.pConnectionList)
+        {
+            SrvSocketReaderPurgeConnections(
+                    pContext,
+                    &workSet);
+        }
 
         ntStatus = SrvSocketReaderFillFdSet(
                         pContext,
@@ -191,17 +199,20 @@ SrvSocketReaderMain(
                 workSet.maxFd + 1,
                 &workSet.fdset,
                 NULL,
-                &workSet.fdset,
-                NULL);
+                NULL,
+                &timeout);
         if (ret == -1)
         {
-            // TODO - map error number
-            ntStatus = errno;
+            if (errno == EINTR)
+            {
+                continue;
+            }
+
+            ntStatus = LwUnixErrnoToNtStatus(errno);
         }
-        else if (ret != 1)
+        else if (ret == 0)
         {
-            // TODO - map error number
-            ntStatus = EFAULT;
+            continue;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -214,10 +225,6 @@ SrvSocketReaderMain(
                         pContext,
                         &workSet);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvSocketReaderPurgeConnections(
-                pContext,
-                &workSet);
     }
 
 cleanup:
@@ -340,12 +347,16 @@ SrvSocketReaderFillFdSetInOrder(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_CONNECTION pSrvConnection = (PSMB_SRV_CONNECTION)pConnection;
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset = (PSMB_SOCKET_READER_WORK_SET)pUserData;
-    int fd = -1;
 
-    fd = SrvConnectionGetFd(pSrvConnection);
+    if (!SrvConnectionIsInvalid(pSrvConnection))
+    {
+        int fd = -1;
 
-    FD_SET(fd, &pReaderWorkset->fdset);
-    pReaderWorkset->maxFd = fd;
+        fd = SrvConnectionGetFd(pSrvConnection);
+
+        FD_SET(fd, &pReaderWorkset->fdset);
+        pReaderWorkset->maxFd = fd;
+    }
 
     ntStatus = SMBDLinkedListAppend(&pReaderWorkset->pConnectionList, pSrvConnection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -392,12 +403,15 @@ SrvSocketReaderProcessConnections(
     {
         PSMB_SRV_CONNECTION pConnection = (PSMB_SRV_CONNECTION)pIter->pItem;
 
-        if (FD_ISSET(SrvConnectionGetFd(pConnection), &pReaderWorkset->fdset))
+        if (!SrvConnectionIsInvalid(pConnection))
         {
-            ntStatus = SrvSocketReaderReadMessage(
-                            pReaderContext,
-                            pConnection);
-            BAIL_ON_NT_STATUS(ntStatus);
+            if (FD_ISSET(SrvConnectionGetFd(pConnection), &pReaderWorkset->fdset))
+            {
+                ntStatus = SrvSocketReaderReadMessage(
+                                pReaderContext,
+                                pConnection);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
         }
     }
 
