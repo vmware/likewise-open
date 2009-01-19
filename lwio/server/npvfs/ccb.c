@@ -63,19 +63,11 @@ NpfsServerReadFile(
     )
 {
     NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
 
-    return(ntStatus);
-}
-
-
-NTSTATUS
-NpfsServerWriteFile(
-    PNPFS_CCB pCCB
-    ULONG Length,
-    PVOID pBuffer
-    )
-{
-    NTSTATUS ntStatus = 0;
+    ENTER_GLOBAL_READER_LOCK(&gServerLock);
+    pPipe = pSCB->pPipe;
+    ENTER_PIPE_READER_LOCK(&pPipe->Mutex);
 
     switch(pSCB->State) {
 
@@ -99,6 +91,52 @@ NpfsServerWriteFile(
 
 error:
 
+    LEAVE_PIPE_READER_LOCK(&pPipe->Mutex);
+    LEAVE_GLOBAL_READER_LOCK(&gServerLock);
+
+    return(ntStatus);
+}
+
+
+NTSTATUS
+NpfsServerWriteFile(
+    PNPFS_CCB pCCB
+    ULONG Length,
+    PVOID pBuffer
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+
+    ENTER_GLOBAL_READER_LOCK(&gServerLock);
+    pPipe = pSCB->pPipe;
+    ENTER_PIPE_READER_LOCK(&pPipe->Mutex);
+
+    switch(pSCB->State) {
+
+        case SERVER_PIPE_CONNECTED:
+                ntStatus = NpfsServerReadFile_Connected(
+                                pSCB,
+                                Length,
+                                Buffer
+                                );
+                BAIL_ON_NT_STATUS(ntStatus);
+                break;
+
+
+        case SERVER_PIPE_DISCONNECTED:
+                break;
+
+        case SERVER_PIPE_WAITING_FOR_CONNECTION:
+                break;
+
+    }
+
+error:
+
+    LEAVE_PIPE_READER_LOCK(&pPipe->Mutex);
+    LEAVE_GLOBAL_READER_LOCK(&gServerLock);
+
     return(ntStatus);
 }
 
@@ -112,12 +150,14 @@ NpfsClientReadFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    ENTER_CRITICAL_SECTION(&pCCB->Lock);
+    ENTER_GLOBAL_READER_LOCK(&gServerLock);
+    pPipe = pCCB->pPipe;
+    ENTER_PIPE_READER_LOCK(&pPipe->Mutex);
 
-    switch(pCCB->State) {
+    switch(pPipe->State) {
 
         case CLIENT_PIPE_CONNECTED:
-            btStatus = NpfsClientReadFile_Connected(
+            ntStatus = NpfsClientReadFile_Connected(
                             pCCB,
                             Length,
                             pBuffer
@@ -130,7 +170,8 @@ NpfsClientReadFile(
 
 error:
 
-    LEAVE_CRITICAL_SECTION(&pCCB->Lock);
+    LEAVE_PIPE_READER_LOCK(&pPipe->Mutex);
+    LEAVE_GLOBAL_READER_LOCK(&gServerLock);
 
     return(ntStatus);
 }
@@ -146,7 +187,11 @@ NpfsClientWriteFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    switch(pCCB->State) {
+    ENTER_GLOBAL_READER_LOCK(&gServerLock);
+    pPipe = pCCB->pPipe;
+    ENTER_PIPE_READER_LOCK(&pPipe->Mutex);
+
+    switch(pPipe->State) {
 
         case CLIENT_PIPE_CONNECTED:
             ntStatus = NpfsClientWriteFile_Connected(
@@ -162,6 +207,9 @@ NpfsClientWriteFile(
 
     }
 error:
+
+    LEAVE_PIPE_READER_LOCK(&pPipe->Mutex);
+    LEAVE_GLOBAL_READER_LOCK(&gServerLock);
 
     return(ntStatus);
 }
