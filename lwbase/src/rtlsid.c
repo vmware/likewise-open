@@ -45,18 +45,6 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
-#define CT_PTR_ADD(Pointer, Offset) \
-    ((char*)(Pointer) + Offset)
-
-#define CT_FIELD_OFFSET(Type, Field) \
-    ((size_t)(&(((Type*)(0))->Field)))
-
-#define CT_FIELD_SIZE(Type, Field) \
-    (sizeof(((Type*)(0))->Field))
-
-#define CT_FIELD_RECORD(Pointer, Type, Field) \
-    ((Type*)CT_PTR_ADD(Pointer, -((ssize_t)CT_FIELD_OFFSET(Type, Field))))
-
 
 NTSTATUS
 RtlSidInitialize(
@@ -139,8 +127,8 @@ RtlSidCopyAlloc(
     BAIL_ON_NULL_PTR_PARAM(pSrcSid);
 
     dwSrcSize = SidGetSize(pSrcSid);
-    status = SdAllocateMemory((void**)&pDstSid, dwSrcSize);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    pDstSid = RtlMemoryAllocate((size_t)dwSrcSize);
+    BAIL_ON_NULL_PTR(pDstSid);
 
     memcpy(pDstSid, pSrcSid, dwSrcSize);
 
@@ -177,8 +165,8 @@ RtlSidAllocateResizedCopy(
     PSID pSid = NULL;
 
     dwSize = SidGetRequiredSize(SubAuthorityCount);
-    status = SdAllocateMemory((void**)&pSid, dwSize);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    pSid = RtlMemoryAllocate((size_t)dwSize);
+    BAIL_ON_NULL_PTR(pSid);
 
     if (pSourceSid) {
         RtlSidCopyPartial(pSid, dwSize, pSourceSid);

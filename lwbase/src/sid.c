@@ -33,6 +33,21 @@
  *          Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
+#include "includes.h"
+
+
+#define CT_PTR_ADD(Pointer, Offset) \
+    ((char*)(Pointer) + Offset)
+
+#define CT_FIELD_OFFSET(Type, Field) \
+    ((size_t)(&(((Type*)(0))->Field)))
+
+#define CT_FIELD_SIZE(Type, Field) \
+    (sizeof(((Type*)(0))->Field))
+
+#define CT_FIELD_RECORD(Pointer, Type, Field) \
+    ((Type*)CT_PTR_ADD(Pointer, -((ssize_t)CT_FIELD_OFFSET(Type, Field))))
+
 
 DWORD
 GetLengthSid(
@@ -102,7 +117,7 @@ SidFree(
     SID *pSid
     )
 {
-    SdFreeMemory((void*)pSid);
+    RtlMemoryFree((void*)pSid);
 }
 
 
@@ -111,7 +126,7 @@ FreeSid(
     SID *pSid
     )
 {
-    SdFreeMemory((void*)pSid);
+    RtlMemoryFree((void*)pSid);
     return NULL;
 }
 
@@ -288,6 +303,7 @@ done:
         equal = FALSE;    \
         goto done;        \
     }
+
 BOOL
 IsEqualSid(
     SID *pS1,
