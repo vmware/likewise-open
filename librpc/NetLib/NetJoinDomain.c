@@ -218,7 +218,7 @@ NetJoinDomainLocalInternal(
     status = SamrClose(samr_b, &account_handle);
     goto_if_ntstatus_not_success(status, disconn_samr);
 
-    status = RtlSidToStringW(conn->samr.dom_sid, &sid_str);
+    status = SidToStringW(conn->samr.dom_sid, &sid_str);
     if (status != STATUS_SUCCESS) {
         err = NtStatusToWin32Error(status);
 
