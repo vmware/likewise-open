@@ -47,7 +47,7 @@
 
 
 NTSTATUS
-RtlParseSidStringA(
+ParseSidStringA(
     PSID* ppSid,
     PCSTR pszSidStr
     )
@@ -94,8 +94,8 @@ RtlParseSidStringA(
     /* skip revision number */
     FORWARD(start, pszSidStr, sidstr_len, separator);
 
-    status = SdAllocateMemory((void**)&pSid, SidGetRequiredSize(fields));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    pSid = RtlMemoryAllocate(SidGetRequiredSize(fields));
+    BAIL_ON_NULL_PTR(pSid);
 
     pSid->revision = (uint8) atol(start);
     if (pSid->revision != 1) {
@@ -138,7 +138,7 @@ error:
 
 
 NTSTATUS
-RtlParseSidStringW(
+ParseSidStringW(
     PSID *ppSid,
     const wchar16_t *pwszSidStr
     )
@@ -152,7 +152,7 @@ RtlParseSidStringW(
     pszSidStr = awc16stombs(pwszSidStr);
     BAIL_ON_NULL_PTR(pszSidStr);
 
-    status = RtlParseSidStringA(&pSid, pszSidStr);
+    status = ParseSidStringA(&pSid, pszSidStr);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *ppSid = pSid;
@@ -175,7 +175,7 @@ error:
 
 
 NTSTATUS
-RtlSidToStringA(
+SidToStringA(
     PSID pSid,
     PSTR* ppszSidStr
     )
@@ -228,10 +228,9 @@ RtlSidToStringA(
            DWORD dwMemIncrement = 64;
            PSTR pszNewSuffix = NULL;
 
-           status = SdReallocMemory((void**)&pszNewSuffix,
-                                     dwMemAllocated + dwMemIncrement,
-                                     pszSidSuffix);
-           BAIL_ON_NTSTATUS_ERROR(status);
+           pszNewSuffix = RtlMemoryRealloc(pszSidSuffix,
+                                           dwMemAllocated + dwMemIncrement);
+           BAIL_ON_NULL_PTR(pszNewSuffix);
 
            pszSidSuffix    = pszNewSuffix;
            dwMemAllocated += dwMemIncrement;
@@ -246,8 +245,8 @@ RtlSidToStringA(
     }
 
     dwStrSize = strlen(sidPrefix) + (pszSidSuffix ? strlen(pszSidSuffix) : 0) + 1;
-    status = SdAllocateMemory((void*)&pszResult, dwStrSize);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    pszResult = RtlMemoryAllocate((size_t)dwStrSize);
+    BAIL_ON_NULL_PTR(pszResult);
 
     sprintf(pszResult, "%s%s", sidPrefix, (pszSidSuffix ? pszSidSuffix : ""));
 
@@ -284,7 +283,7 @@ SidStrFreeA(
 
 
 NTSTATUS
-RtlSidToStringW(
+SidToStringW(
     PSID pSid,
     PWSTR *ppwszSidStr
     )
@@ -296,7 +295,7 @@ RtlSidToStringW(
     BAIL_ON_NULL_PTR_PARAM(pSid);
     BAIL_ON_NULL_PTR_PARAM(ppwszSidStr);
 
-    status = RtlSidToStringA(pSid, &pszSidStr);
+    status = SidToStringA(pSid, &pszSidStr);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pwszSidStr = ambstowc16s(pszSidStr);
