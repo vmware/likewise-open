@@ -1,6 +1,12 @@
 #include "includes.h"
 
 static
+PVOID
+SrvWorkerMain(
+    PVOID pData
+    );
+
+static
 BOOLEAN
 SrvWorkerMustStop(
     PSMB_SRV_WORKER_CONTEXT pContext
@@ -15,7 +21,7 @@ SrvWorkerStop(
 static
 NTSTATUS
 SrvWorkerExecute(
-    PSMB_SRV_TASK pTask
+    PLWIO_SRV_TASK pTask
     );
 
 NTSTATUS
@@ -28,7 +34,7 @@ SrvWorkerInit(
 
     memset(&pWorker->context, 0, sizeof(pWorker->context));
 
-    pthread_mutex_init(&pWorker->context.mutex);
+    pthread_mutex_init(&pWorker->context.mutex, NULL);
     pWorker->context.pMutex = &pWorker->context.mutex;
 
     pWorker->context.bStop = FALSE;
@@ -73,7 +79,7 @@ SrvWorkerMain(
         ntStatus = SrvProdConsTimedDequeue(
                         pContext->pWorkQueue,
                         &ts,
-                        &pTask);
+                        (PVOID*)&pTask);
         if (ntStatus == STATUS_IO_TIMEOUT)
         {
             ntStatus = 0;
@@ -115,9 +121,9 @@ SrvWorkerFreeContents(
 
     if (pWorker->pWorker)
     {
-        SrvWorkerStop();
+        SrvWorkerStop(&pWorker->context);
 
-        pthread_join(pWorker->pWorker);
+        pthread_join(pWorker->worker, NULL);
     }
 
     if (pWorker->context.pMutex)
@@ -160,17 +166,15 @@ SrvWorkerStop(
     pContext->bStop = TRUE;
 
     pthread_mutex_unlock(&pContext->mutex);
+
+    return 0;
 }
 
 static
 NTSTATUS
 SrvWorkerExecute(
-    PSMB_SRV_TASK pTask
+    PLWIO_SRV_TASK pTask
     )
 {
-    NTSTATUS ntStatus = 0;
-
-
-
-    return ntStatus;
+    return SMBSrvProcessRequest_V1(pTask->pConnection, pTask->pRequest);
 }

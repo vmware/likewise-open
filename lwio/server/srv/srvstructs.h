@@ -107,7 +107,8 @@ typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
 
 typedef struct _SMB_PROD_CONS_QUEUE
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
     SMB_QUEUE       queue;
 
@@ -123,7 +124,8 @@ typedef struct _SMB_PROD_CONS_QUEUE
 
 typedef struct _SMB_SRV_SOCKET
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
     int fd;
 
@@ -134,6 +136,7 @@ typedef struct _SMB_SRV_SOCKET
 typedef struct _SMB_SRV_CONNECTION
 {
     pthread_mutex_t     mutex;
+    pthread_mutex_t*    pMutex;
 
     LONG                refCount;
 
@@ -166,7 +169,8 @@ typedef struct _LWIO_SRV_TASK
 
 typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
     BOOLEAN        bStop;
 

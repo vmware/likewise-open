@@ -12,7 +12,7 @@ SrvProdConsInit(
 
     if (!ulNumMaxItems)
     {
-        ntStatus = STATUS_INVALID_PARAMETER1;
+        ntStatus = STATUS_INVALID_PARAMETER_1;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -42,7 +42,7 @@ error:
         SrvProdConsFree(pQueue);
     }
 
-    return ntStatus;
+    goto cleanup;
 }
 
 NTSTATUS
@@ -56,16 +56,14 @@ SrvProdConsInitContents(
 
     memset(pQueue, 0, sizeof(*pQueue));
 
-    pQueue->mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_init(&pQueue->mutex, NULL);
+    pQueue->pMutex = &pQueue->mutex;
 
     pQueue->ulNumMaxItems = ulNumMaxItems;
     pQueue->pfnFreeItem = pfnFreeItem;
 
-    pthread_cond_init(&pQueue->eventEmpty, NULL);
-    pQueue->pEventEmpty = &pQueue->eventEmpty;
-
-    pthread_cond_init(&pQueue->eventFull, NULL);
-    pQueue->pEventFull = &pQueue->eventFull;
+    pthread_cond_init(&pQueue->event, NULL);
+    pQueue->pEvent = &pQueue->event;
 
     return ntStatus;
 }
@@ -87,7 +85,7 @@ SrvProdConsEnqueue(
         pthread_cond_wait(pQueue->pEvent, &pQueue->mutex);
     }
 
-    ntStatus = SMBEnqueue(pQueue, pItem);
+    ntStatus = SMBEnqueue(&pQueue->queue, pItem);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (!pQueue->ulNumItems)
@@ -130,10 +128,10 @@ SrvProdConsDequeue(
 
     while (!pQueue->ulNumItems)
     {
-        pthread_cond_wait(&pQueue->pEvent, &pQueue->mutex);
+        pthread_cond_wait(pQueue->pEvent, &pQueue->mutex);
     }
 
-    pItem = SMBDequeue(pQueue);
+    pItem = SMBDequeue(&pQueue->queue);
 
     if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
     {
@@ -176,7 +174,7 @@ SrvProdConsTimedDequeue(
             bRetryWait = FALSE;
 
             int unixErrorCode = pthread_cond_timedwait(
-                                    &pQueue->pEvent,
+                                    pQueue->pEvent,
                                     &pQueue->mutex,
                                     pTimespec);
             if (unixErrorCode == ETIMEDOUT)
@@ -198,7 +196,7 @@ SrvProdConsTimedDequeue(
     {
         BOOLEAN  bSignalEvent = FALSE;
 
-        pItem = SMBDequeue(pQueue);
+        pItem = SMBDequeue(&pQueue->queue);
 
         if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
         {
@@ -245,27 +243,31 @@ SrvProdConsFreeContents(
     PSMB_PROD_CONS_QUEUE pQueue
     )
 {
-    NTSTATUS ntStatus = 0;
-
-    pthread_mutex_lock(&pQueue->mutex);
+    if (pQueue->pMutex)
+    {
+        pthread_mutex_lock(pQueue->pMutex);
+    }
 
     if (pQueue->pEvent)
     {
-        pthread_cond_destroy(&pQueue->event);
+        pthread_cond_destroy(pQueue->pEvent);
         pQueue->pEvent = NULL;
     }
 
     if (pQueue->pfnFreeItem)
     {
-        PVOID* pItem = NULL;
+        PVOID pItem = NULL;
 
-        while (pItem = SMBDequeue(&pQueue->queue))
+        while ((pItem = SMBDequeue(&pQueue->queue)) != NULL)
         {
             pQueue->pfnFreeItem(pItem);
         }
     }
 
-    pthread_mutex_unlock(&pQueue->mutex);
-
-    return ntStatus;
+    if (pQueue->pMutex)
+    {
+        pthread_mutex_unlock(&pQueue->mutex);
+        pthread_mutex_destroy(pQueue->pMutex);
+        pQueue->pMutex = NULL;
+    }
 }

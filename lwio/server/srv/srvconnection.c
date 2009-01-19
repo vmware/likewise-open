@@ -12,7 +12,10 @@ static
 NTSTATUS
 SrvConnectionReadMessage(
     PSMB_SRV_SOCKET pSocket,
-    PSMB_PACKET     pPacket
+    size_t          sBytesToRead,
+    size_t          sOffset,
+    PSMB_PACKET     pPacket,
+    size_t*         psNumBytesRead
     );
 
 NTSTATUS
@@ -30,7 +33,9 @@ SrvConnectionCreate(
                     (PVOID*)&pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pConnection->mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_init(&pConnection->mutex, NULL);
+    pConnection->pMutex = &pConnection->mutex;
+
     pConnection->refCount = 1;
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->state = SMB_SRV_CONN_STATE_INITIAL;
@@ -123,8 +128,8 @@ SrvConnectionReadPacket(
         BAIL_ON_NT_STATUS(ntStatus);
 
         pConnection->readerState.bReadHeader = TRUE;
-        pConnection->readerState.ulNumBytesToRead = sizeof(NETBIOS_HEADER);
-        pConnection->readerState.ulOffset = 0;
+        pConnection->readerState.sNumBytesToRead = sizeof(NETBIOS_HEADER);
+        pConnection->readerState.sOffset = 0;
     }
 
     if (pConnection->readerState.bReadHeader)
@@ -146,7 +151,7 @@ SrvConnectionReadPacket(
             goto cleanup;
         }
 
-        pConnection->readerState.sBytesToRead -= sNumBytesRead;
+        pConnection->readerState.sNumBytesToRead -= sNumBytesRead;
         pConnection->readerState.sOffset += sNumBytesRead;
 
         if (!pConnection->readerState.sNumBytesToRead)
@@ -178,7 +183,7 @@ SrvConnectionReadPacket(
                         pConnection->pSocket,
                         pConnection->readerState.sNumBytesToRead,
                         pConnection->readerState.sOffset,
-                        pConnection->readerState.pPacket,
+                        pConnection->readerState.pRequestPacket,
                         &sNumBytesRead);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -298,6 +303,11 @@ SrvConnectionRelease(
                 pConnection->hPacketAllocator,
                 pConnection->readerState.pRequestPacket);
         }
+        if (pConnection->pMutex)
+        {
+            pthread_mutex_destroy(pConnection->pMutex);
+            pConnection->pMutex = NULL;
+        }
         SMBFreeMemory(pConnection);
     }
 }
@@ -320,7 +330,7 @@ SrvConnectionReadMessage(
 
     do
     {
-        sNumBytesRead = read(pSocket->fd, pPacket->pRawBuffer + ulOffset, sBytesToRead);
+        sNumBytesRead = read(pSocket->fd, pPacket->pRawBuffer + sOffset, sBytesToRead);
         if (sNumBytesRead < 0)
         {
             if ((errno != EAGAIN) && (errno != EINTR))

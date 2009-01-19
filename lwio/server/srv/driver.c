@@ -249,6 +249,7 @@ SrvInitialize(
     for (; iReader < gSMBSrvGlobals.config.ulNumReaders; iReader++)
     {
         ntStatus = SrvSocketReaderInit(
+                        &gSMBSrvGlobals.workQueue,
                         &gSMBSrvGlobals.pReaderArray[iReader]);
         BAIL_ON_NT_STATUS(ntStatus);
     }

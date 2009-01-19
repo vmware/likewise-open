@@ -45,6 +45,16 @@ SrvSmbProcessNegotiate(
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
+    PSTR  pszDialectArray[128];
+    ULONG ulNumDialects = 128;
+
+
+    ntStatus = UnmarshallNegotiateRequest(
+                    pSmbRequest->pParams,
+                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
+                    (uint8**)&pszDialectArray,
+                    &ulNumDialects);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = MarshallNegotiateResponse(
                     pConnection,

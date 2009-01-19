@@ -114,7 +114,7 @@ error:
 }
 
 NTSTATUS
-SrvListenerStop(
+SrvListenerShutdown(
     PSMB_SRV_LISTENER pListener
     )
 {
