@@ -559,6 +559,11 @@ typedef struct
 
 typedef struct
 {
+    uint16_t byteCount;
+} __attribute__((__packed__)) NEGOTIATE_REQUEST_HEADER;
+
+typedef struct
+{
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
 

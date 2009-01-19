@@ -148,14 +148,22 @@ UnmarshallNegotiateRequest(
     )
 {
     NTSTATUS ntStatus = 0;
+    NEGOTIATE_REQUEST_HEADER* pHeader = NULL;
+    uint32_t bufferLeft = bufferLen;
+
+    if (bufferLeft < sizeof(NEGOTIATE_REQUEST_HEADER))
+    {
+        return EBADMSG;
+    }
+
+    pHeader = (NEGOTIATE_REQUEST_HEADER*)pBuffer;
 
     /* NOTE: The buffer format cannot be trusted! */
-    NEGOTIATE_REQUEST_DIALECT *pDialect = (NEGOTIATE_REQUEST_DIALECT*) pBuffer;
-    uint32_t bufferLeft = bufferLen;
+    NEGOTIATE_REQUEST_DIALECT *pDialect = (NEGOTIATE_REQUEST_DIALECT*) (pBuffer + sizeof(NEGOTIATE_REQUEST_HEADER));
 
     uint32_t i = 0;
 
-    while ((uint8_t *) pDialect < pBuffer + bufferLen)
+    while ((uint8_t *) pDialect < (pBuffer + sizeof(NEGOTIATE_REQUEST_HEADER) + pHeader->byteCount))
     {
         uint32_t len = strnlen((const char *) pDialect->szDialectName,
             bufferLeft) + sizeof(NEGOTIATE_REQUEST_DIALECT) + sizeof(NUL);
