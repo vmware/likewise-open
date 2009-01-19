@@ -961,7 +961,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
                        &btin_sidstr);
     if (!perr_is_ok(perr)) perr_fail(perr);
 	
-    RtlParseSidStringA(&sid, sidstr);
+    ParseSidStringA(&sid, sidstr);
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
                           &conn_handle);
@@ -2044,7 +2044,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
 
         grp_sids[i]->subauth[grp_sids[i]->subauth_count - 1] = grp_rids[i];
 
-        status = RtlSidToStringW(grp_sids[i], &(grp_sidstrs[i]));
+        status = SidToStringW(grp_sids[i], &(grp_sidstrs[i]));
         if (status != 0) rpc_fail(status);
 
         if (resolvesids) {
@@ -2243,7 +2243,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
     if (status != 0) rpc_fail(status);
 
-    RtlParseSidStringA(&btinsid, btin_sidstr);
+    ParseSidStringA(&btinsid, btin_sidstr);
 
     status = SamrOpenDomain(samr_b, &conn_h, btin_access, btinsid, &btin_h);
     if (status != 0) rpc_fail(status);
@@ -2300,7 +2300,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
         if (status != 0) rpc_fail(status);
 
         alias_sid->subauth[alias_sid->subauth_count - 1] = rid;
-        status = RtlSidToStringW(alias_sid, &(alias_sidstrs[i]));
+        status = SidToStringW(alias_sid, &(alias_sidstrs[i]));
         if (status != 0) rpc_fail(status);
 
         if (resolvesids) {

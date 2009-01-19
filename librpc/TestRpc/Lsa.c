@@ -409,7 +409,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
             usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
 
-            RtlSidToStringW(usr_sid, &sidstr);
+            SidToStringW(usr_sid, &sidstr);
             DUMP_WSTR(" ", sidstr);
 
             SidStrFreeW(sidstr);
@@ -542,7 +542,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     for (i = 0; i < sid_array.num_sids; i++) {
         sid_array.sids[i].sid = input_sids[i];
 
-        RtlSidToStringW(input_sids[i], &sidstr);
+        SidToStringW(input_sids[i], &sidstr);
         test_fail_if_no_memory(sidstr);
 
         DUMP_WSTR(" ", sidstr);
