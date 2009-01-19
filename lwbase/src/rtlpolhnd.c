@@ -93,7 +93,7 @@ RtlPolHndAllocate(
     ptr = RtlMemoryAllocate(sizeof(PolicyHandle));
     BAIL_ON_NULL_PTR(ptr);
 
-    status = PolHndCreate(ptr, dwHandleType);
+    status = RtlPolHndCreate(ptr, dwHandleType);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *ppH = ptr;
