@@ -68,21 +68,6 @@
     } while (0)
 
 
-
-NTSTATUS
-SdAllocateMemory(
-    void** ppOut,
-    DWORD dwSize
-    );
-
-NTSTATUS
-SdReallocMemory(
-    void **ppOut,
-    DWORD dwSize,
-    void *pIn
-    );
-
-
 #endif /* _SECDESC_P_H_ */
 
 
