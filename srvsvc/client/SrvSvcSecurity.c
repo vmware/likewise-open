@@ -28,24 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include "includes.h"
 
-#ifdef __GNUC__
-#include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
-
-#include "srvsvc_h.h"
-
-#include "SrvSvcUtil.h"
 
 #define GET_UINT8(buf, ofs) ((uint8)( \
     ((((const uint8 *)(buf))[(ofs)+0]) <<  0 ) | \
@@ -175,7 +159,7 @@ DecodeSecAce(
 
     /* TODO: parse r->object for AD style ACEs*/
 
-    ret = DecodeDomSid(buf, buflen, ofs, &r->trustee, &size, allocfn, allocpv);
+    ret = DecodeDomSid(buf, buflen, ofs, r->trustee, &size, allocfn, allocpv);
     if (ret != ERROR_SUCCESS) {
         return ret;
     }
@@ -264,7 +248,7 @@ DecodeSecAcl(
 }
 
 NET_API_STATUS SecurityDescriptorFromBuffer(
-    PSECURITY_DESCRIPTOR *security_descriptor,
+    SecDesc **security_descriptor,
     const uint8 *buf,
     uint32 buflen,
     void *(*allocfn)(void *allocfn, size_t len),
@@ -387,7 +371,7 @@ NET_API_STATUS SecurityDescriptorFromBuffer(
         sd->dacl = NULL;
     }
 
-    *security_descriptor = (PSECURITY_DESCRIPTOR)sd;
+    *security_descriptor = (SecDesc*)sd;
     return ERROR_SUCCESS;
 }
 
@@ -537,7 +521,7 @@ static SecAceGetSize(
 
     size += 8;
     size += 0;/*TODO: AD style ACE */
-    size += DomSidGetSize(&ace->trustee);
+    size += DomSidGetSize(ace->trustee);
 
     return size;
 }
@@ -563,7 +547,7 @@ static SecAclGetSize(
 }
 
 uint32 SecurityDescriptorGetSize(
-    const PSECURITY_DESCRIPTOR security_descriptor
+    const SecDesc *security_descriptor
     )
 {
     const SecDesc *sd = (const SecDesc *)security_descriptor;
@@ -678,7 +662,7 @@ static NET_API_STATUS PushSecAce(
 
     /*TODO: AD style ACEs */
 
-    ret = PushDomSid(&ace->trustee, &buf[ofs],
+    ret = PushDomSid(ace->trustee, &buf[ofs],
                      ace_size - ofs, &trustee_size);
     if (ret != ERROR_SUCCESS) {
         return ret;
@@ -763,7 +747,7 @@ NET_API_STATUS SecurityDescriptorToBuffer(
     )
 {
     NET_API_STATUS ret = ERROR_SUCCESS;
-    const SecDesc *sd = (const SecDesc *)security_descriptor;
+    const SecDesc *sd = (const PSECURITY_DESCRIPTOR)security_descriptor;
     uint32 sd_size;
     uint8 *buf = NULL;
     uint32 ofs = 0;
