@@ -289,7 +289,7 @@ LsaSqliteReadSid(
         &pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = RtlParseSidStringA(
+    dwError = ParseSidStringA(
             &pSid,
             pszSid);
     BAIL_ON_LSA_ERROR(dwError);

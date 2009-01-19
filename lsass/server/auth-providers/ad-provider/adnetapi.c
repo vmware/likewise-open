@@ -423,7 +423,7 @@ AD_NetLookupObjectSidsByNames(
             SidStrFreeW(pwcObjectSid);
             pwcObjectSid = NULL;
         }
-        dwError = RtlSidToStringW(pObject_sid,
+        dwError = SidToStringW(pObject_sid,
                               &pwcObjectSid);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -611,7 +611,7 @@ AD_NetLookupObjectNamesBySids(
 
     for (i = 0; i < sid_array.num_sids; i++)
     {
-        status = RtlParseSidStringA(
+        status = ParseSidStringA(
                         &pObjectSID,
                         ppszObjectSids[i]);
         if (status != 0)
@@ -915,7 +915,7 @@ AD_SidToString(
     PSTR  pszSid = NULL;
     wchar16_t* pwszSid = NULL;
 
-    dwError = RtlSidToStringW(pSid, &pwszSid);
+    dwError = SidToStringW(pSid, &pwszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaWc16sToMbs(
