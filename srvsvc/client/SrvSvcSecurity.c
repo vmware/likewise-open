@@ -747,7 +747,7 @@ NET_API_STATUS SecurityDescriptorToBuffer(
     )
 {
     NET_API_STATUS ret = ERROR_SUCCESS;
-    const SecDesc *sd = (const PSECURITY_DESCRIPTOR)security_descriptor;
+    const SecDesc *sd = (const SecDesc *)security_descriptor;
     uint32 sd_size;
     uint8 *buf = NULL;
     uint32 ofs = 0;
