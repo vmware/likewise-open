@@ -255,7 +255,7 @@ SidToStringA(
 cleanup:
 
     if (pszSidSuffix) {
-        SdFreeMemory((void*)pszSidSuffix);
+        RtlMemoryFree((void*)pszSidSuffix);
         pszSidSuffix = NULL;
     }
 
@@ -264,7 +264,7 @@ cleanup:
 error:
 
     if (pszResult) {
-        SdFreeMemory((void*)pszResult);
+        RtlMemoryFree((void*)pszResult);
         pszResult = NULL;
     }
 
@@ -278,7 +278,7 @@ SidStrFreeA(
     PSTR pszSidStr
     )
 {
-    SdFreeMemory((void*)pszSidStr);
+    RtlMemoryFree((void*)pszSidStr);
 }
 
 
@@ -325,7 +325,7 @@ SidStrFreeW(
     PWSTR pwszSidStr
     )
 {
-    SdFreeMemory((void*)pwszSidStr);
+    RtlMemoryFree((void*)pwszSidStr);
 }
 
 
