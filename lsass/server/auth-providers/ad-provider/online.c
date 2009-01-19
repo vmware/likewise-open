@@ -2372,6 +2372,7 @@ AD_OnlineEnumGroups(
 
     for (dwInfoCount = 0; dwInfoCount < dwObjectsCount; dwInfoCount++)
     {
+        LSA_ASSERT(ppObjects[dwInfoCount] != NULL);
         dwError = AD_GroupObjectToGroupInfo(
                         hProvider,
                         ppObjects[dwInfoCount],

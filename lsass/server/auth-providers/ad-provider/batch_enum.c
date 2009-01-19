@@ -584,7 +584,6 @@ LsaAdBatchEnumObjectsInternal(
                             (dwTotalObjectsCount + dwObjectsCount) * sizeof(*ppTotalObjects));
             BAIL_ON_LSA_ERROR(dwError);
             ppTotalObjects = ppNewTotalObjects;
-            dwTotalObjectsCount += dwObjectsCount;
 
             memcpy(&ppTotalObjects[dwTotalObjectsCount],
                    ppObjects,
@@ -592,6 +591,7 @@ LsaAdBatchEnumObjectsInternal(
             memset(&ppObjects[0],
                    0,
                    sizeof(ppObjects[0]) * dwObjectsCount);
+            dwTotalObjectsCount += dwObjectsCount;
 
             LsaFreeMemory(ppObjects);
         }
