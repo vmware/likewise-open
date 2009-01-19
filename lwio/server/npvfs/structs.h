@@ -1,5 +1,14 @@
 
+typedef struct _NPFS_MDL{
+    ULONG Length;
+    PVOID Buffer;
+    struct _NPFS_MDL *pNext;
+} NPFS_MDL, *PNPFS_MDL;
+
 typedef struct _NPFS_CCB{
+
+    ULONG CcbType;
+
     //LIST_ENTRY NextCCB;
     UNICODE_STRING AbsolutePathName;
     ACCESS_MASK DesiredAccess;
@@ -10,11 +19,14 @@ typedef struct _NPFS_CCB{
     FILE_CREATE_OPTIONS CreateOptions;
     PIO_EA_BUFFER pEaBuffer;
 
-    int fd;
-    char *path;
-    int oflags;
-    mode_t mode;
 } NPFS_CCB, *PNPFS_CCB;
+
+
+typedef struct _NPFS_PIPE {
+    CRITICAL_SECTION  PipeMutex;
+    PCCB pScb;
+    PCCB pCcb;
+}
 
 typedef struct _NPFS_IRP_CONTEXT {
     PIRP pIrp;
