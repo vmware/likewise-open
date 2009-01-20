@@ -190,27 +190,6 @@ typedef struct _IO_CREATE_SECURITY_CONTEXT {
     LW_PIO_ACCESS_TOKEN pAccessToken;
 } IO_CREATE_SECURITY_CONTEXT, *PIO_CREATE_SECURITY_CONTEXT;
 
-// TDB:
-#if 1
-typedef struct _IO_EA_BUFFER IO_EA_BUFFER, *PIO_EA_BUFFER;
-#else
-// This structure is to simplify EA buffer processing
-typedef struct _IO_EA_BUFFER {
-    BOOLEAN IsParsed;
-    union {
-        struct {
-            // Really a FILE_FULL_EA_INFORMATION
-            PVOID pBuffer;
-            ULONG Length;
-        } Raw;
-        struct {
-            // TBD
-        } Parsed;
-    };
-} IO_EA_BUFFER, *PIO_EA_BUFFER;
-#endif
-
-#if 0
 typedef struct _FILE_FULL_EA_INFORMATION {
     ULONG NextEntryOffset;
     UCHAR Flags;
@@ -218,7 +197,10 @@ typedef struct _FILE_FULL_EA_INFORMATION {
     USHORT EaValueLength;
     CHAR EaName[1];
 } FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
-#endif
+
+typedef PFILE_FULL_EA_INFORMATION PIO_EA_BUFFER;
+
+typedef struct _IO_ECP_LIST *PIO_ECP_LIST;
 
 typedef PVOID PSECURITY_DESCRIPTOR;
 typedef PVOID PFILE_NETWORK_OPEN_INFORMATION;

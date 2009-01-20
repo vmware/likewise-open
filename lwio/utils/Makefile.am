@@ -3,6 +3,7 @@ noinst_LTLIBRARIES = liblwioutils.la
 liblwioutils_la_SOURCES = \
     bitvector.c   \
     consolelog.c  \
+    ecp.c         \
     dlinkedlist.c \
     filelog.c     \
     fileutils.c   \
