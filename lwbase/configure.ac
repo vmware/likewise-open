@@ -93,6 +93,8 @@ AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
 AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNISTR_LDFLAGS])
 AC_CHECK_LIB([uuid], [uuid_generate_time], [LIBUUID_LIBS="-luuid"], [], [$LIBUUID_LDFLAGS])
 
+AC_CHECK_FUNCS([strndup])
+
 # Checks for header files.
 AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h])
 
@@ -106,6 +108,7 @@ AC_CONFIG_FILES([Makefile
                  include/Makefile
                  include/lw/Makefile
                  include/secdesc/Makefile
-                 src/Makefile])
+                 src/Makefile
+                 testsd/Makefile])
 
 AC_OUTPUT
