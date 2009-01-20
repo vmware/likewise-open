@@ -149,24 +149,9 @@ typedef enum LWMsgAssocState
     LWMSG_ASSOC_STATE_READY_SEND,
     /** Ready to receive a message */
     LWMSG_ASSOC_STATE_READY_RECV,
-    /** Peer closed the association */
-    LWMSG_ASSOC_STATE_PEER_CLOSED,
-    /** Peer aborted the association */
-    LWMSG_ASSOC_STATE_PEER_ABORTED,
-    /** Peer reset the association */
-    LWMSG_ASSOC_STATE_PEER_RESET,
-    /** Assocation closed locally */
-    LWMSG_ASSOC_STATE_LOCAL_CLOSED,
-    /** Association aborted locally */
-    LWMSG_ASSOC_STATE_LOCAL_ABORTED,
+    /** Association is closed */
+    LWMSG_ASSOC_STATE_CLOSED
 } LWMsgAssocState;
-
-typedef enum LWMsgAssocException
-{
-    LWMSG_ASSOC_EXCEPTION_TIMEOUT,
-    LWMSG_ASSOC_EXCEPTION_PEER_RESET,
-    LWMSG_ASSOC_EXCEPTION_COUNT
-} LWMsgAssocException;
 
 /**
  * @ingroup assoc
@@ -942,7 +927,7 @@ lwmsg_assoc_get_state(
 LWMsgStatus
 lwmsg_assoc_set_action(
     LWMsgAssoc* assoc,
-    LWMsgAssocException exception,
+    LWMsgStatus condition,
     LWMsgAssocAction action
     );
 

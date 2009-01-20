@@ -77,16 +77,8 @@ typedef enum ConnectionState
     CONNECTION_STATE_WAIT_SEND_REPLY,
     /* A message was sent, waiting for client to ask for reply */
     CONNECTION_STATE_WAIT_RECV_REPLY,
-    /* We closed the connection */
-    CONNECTION_STATE_LOCAL_CLOSED,
-    /* We aborted the connection */
-    CONNECTION_STATE_LOCAL_ABORTED,
-    /* The peer closed the connection */
-    CONNECTION_STATE_PEER_CLOSED,
-    /* The peer reset the connection */
-    CONNECTION_STATE_PEER_RESET,
-    /* The peer aborted the connection */
-    CONNECTION_STATE_PEER_ABORTED
+    /* Connection is closed */
+    CONNECTION_STATE_CLOSED
 } ConnectionState;
 
 typedef enum ConnectionEvent

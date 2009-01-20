@@ -364,6 +364,7 @@ lwmsg_server_timeout_clients(
                     }
                     else
                     {
+                        /* We don't care if the reset fails */
                         lwmsg_assoc_reset(assoc);
                         lwmsg_assoc_delete(assoc);
                         assoc_queue_remove_at_index(server, &server->listen_assocs, i, NULL);
@@ -644,7 +645,8 @@ lwmsg_server_worker_thread(void* arg)
             break;
         default:
             /* Shut down and free the association */
-            BAIL_ON_ERROR(status = lwmsg_assoc_close(assoc));
+            /* Ignore subsequent errors when attempting close */
+            lwmsg_assoc_close(assoc);
             lwmsg_assoc_delete(assoc);
             SERVER_LOCK(server, locked);
             server->num_clients--;

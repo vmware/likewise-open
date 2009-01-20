@@ -394,22 +394,25 @@ lwmsg_connection_check_timeout(
     BAIL_ON_ERROR(status = lwmsg_time_now(&now));
 
     /* Check for time appearing to move backward */
-    if (lwmsg_time_compare(&priv->last_time, &now) == LWMSG_TIME_GREATER)
+    if (priv->timeout_set && lwmsg_time_compare(&priv->last_time, &now) == LWMSG_TIME_GREATER)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_TIMEOUT);
     }
 
     priv->last_time = now;
 
-    lwmsg_time_difference(&now, &priv->end_time, &diff);
-
-    if (diff.seconds < 0 || diff.microseconds < 0)
+    if (priv->timeout_set)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_TIMEOUT);
-    }
+        lwmsg_time_difference(&now, &priv->end_time, &diff);
 
-    remaining->tv_sec = diff.seconds;
-    remaining->tv_usec = diff.microseconds;
+        if (diff.seconds < 0 || diff.microseconds < 0)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_TIMEOUT);
+        }
+
+        remaining->tv_sec = diff.seconds;
+        remaining->tv_usec = diff.microseconds;
+    }
 
 error:
 
@@ -471,10 +474,7 @@ lwmsg_connection_transceive(
             }
         }
 
-        if (priv->timeout_set)
-        {
-            BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
-        }
+        BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
 
         ret = select(nfds, &readfds, &writefds, NULL, priv->timeout_set ? &timeout : NULL);
         

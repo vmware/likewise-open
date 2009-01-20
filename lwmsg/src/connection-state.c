@@ -77,29 +77,11 @@ lwmsg_connection_handle_urgent(LWMsgAssoc* assoc, ConnectionPacket* packet)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    ConnectionState dest_state = CONNECTION_STATE_NONE;
     
     switch (packet->type)
     {
     case CONNECTION_PACKET_SHUTDOWN:
-        /* Short circuit to the appropriate state
-           FIXME: it would be cleaner but involve more code
-           to do this by pushing an event into the state machine
-        */
-        switch (packet->contents.shutdown.type)
-        {
-        case CONNECTION_SHUTDOWN_NORMAL:
-            dest_state = CONNECTION_STATE_PEER_CLOSED;
-            break;
-        case CONNECTION_SHUTDOWN_RESET:
-            dest_state = CONNECTION_STATE_PEER_RESET;
-            break;
-        case CONNECTION_SHUTDOWN_ABORT:
-            dest_state = CONNECTION_STATE_PEER_ABORTED;
-            break;
-        }
-        
-        priv->state = dest_state;
+        priv->state = CONNECTION_STATE_CLOSED;
 
         if (priv->fd != -1)
         {
@@ -107,8 +89,22 @@ lwmsg_connection_handle_urgent(LWMsgAssoc* assoc, ConnectionPacket* packet)
             priv->fd = -1;
         }
 
-        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
+        switch (packet->contents.shutdown.type)
+        {
+        case CONNECTION_SHUTDOWN_NORMAL:
+            status = LWMSG_STATUS_PEER_CLOSE;
+            break;
+        case CONNECTION_SHUTDOWN_RESET:
+            status = LWMSG_STATUS_PEER_RESET;
+            break;
+        case CONNECTION_SHUTDOWN_ABORT:
+            status = LWMSG_STATUS_PEER_ABORT;
+            break;
+        }
+        
+        BAIL_ON_ERROR(status);
     default:
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
         break;
     }
 
@@ -339,26 +335,43 @@ lwmsg_connection_do_shutdown(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     LWMsgSessionManager* manager = NULL;
+    LWMsgBool session_lost = LWMSG_FALSE;
 
-    /* Remove ourselves from the session if the connection was fully established */
+    /* Remove ourselves from the session, if present */
     if (priv->session)
     {
         BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
+        /* Check if our session will be lost by doing the shutdown */
+        if (lwmsg_session_manager_get_session_assoc_count(manager, priv->session) == 1 &&
+            lwmsg_session_manager_get_session_handle_count(manager, priv->session) > 0)
+        {
+            session_lost = LWMSG_TRUE;
+        }
         BAIL_ON_ERROR(status = lwmsg_session_manager_leave_session(manager, priv->session));
         priv->session = NULL;
     }
 
+
+
     switch (type)
     {
-    case CONNECTION_SHUTDOWN_CLOSE:
-        priv->state = CONNECTION_STATE_LOCAL_CLOSED;
-        break;
     case CONNECTION_SHUTDOWN_RESET:
-        priv->state = CONNECTION_STATE_START;
+        if (session_lost)
+        {
+            /* We can't reset the connection because we lost session state
+               in the process */
+            priv->state = CONNECTION_STATE_CLOSED;
+            BAIL_ON_ERROR(status = LWMSG_STATUS_SESSION_LOST);
+        }
+        else
+        {
+            /* Either our session is still being kept alive by another association,
+               or it did not contain any state, so we can safely reset */
+            priv->state = CONNECTION_STATE_START;
+        }
         break;
-    case CONNECTION_SHUTDOWN_ABORT:
-        priv->state = CONNECTION_STATE_LOCAL_ABORTED;
-        break;
+    default:
+        priv->state = CONNECTION_STATE_CLOSED;
     }
 
     if (priv->fd != -1)
@@ -642,20 +655,16 @@ lwmsg_connection_run(
             }
             event = CONNECTION_EVENT_NONE;
             break;
-        case CONNECTION_STATE_PEER_CLOSED:
-        case CONNECTION_STATE_PEER_RESET:
-        case CONNECTION_STATE_PEER_ABORTED:
-        case CONNECTION_STATE_LOCAL_CLOSED:
-        case CONNECTION_STATE_LOCAL_ABORTED:
+        case CONNECTION_STATE_CLOSED:
             switch (event)
             {
                 /* If we are already closed, these events are no-ops */
-            case CONNECTION_EVENT_RESET:
             case CONNECTION_EVENT_CLOSE:
             case CONNECTION_EVENT_ABORT:
+            case CONNECTION_EVENT_RESET:
                 goto done;
             default:
-                BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+                BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
             }
             break;
         default:
@@ -670,25 +679,10 @@ done:
 
 error:
     
-    /* If an error occured and we are still connected, we may need to perform a shutdown */
-    if (priv->fd != -1)
+    /* Transform generic EOF errors into PEER_CLOSE */
+    if (status == LWMSG_STATUS_EOF)
     {
-        switch (status)
-        {
-            /* Errors that don't require a shutdown */
-        case LWMSG_STATUS_TIMEOUT:
-        case LWMSG_STATUS_INTERRUPT:
-            break;
-        case LWMSG_STATUS_MALFORMED:
-            lwmsg_connection_do_shutdown(assoc, CONNECTION_SHUTDOWN_ABORT, CONNECTION_SHUTDOWN_MALFORMED);
-            break;
-        case LWMSG_STATUS_SECURITY:
-            lwmsg_connection_do_shutdown(assoc, CONNECTION_SHUTDOWN_ABORT, CONNECTION_SHUTDOWN_ACCESS_DENIED);
-            break;
-        default:
-            lwmsg_connection_do_shutdown(assoc, CONNECTION_SHUTDOWN_ABORT, CONNECTION_SHUTDOWN_NORMAL);
-            break;
-        }
+        status = LWMSG_STATUS_PEER_CLOSE;
     }
 
     goto done;
