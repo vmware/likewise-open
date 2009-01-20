@@ -205,7 +205,6 @@ LADSEnumUsers(
     PVOID* ppUserInfos = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     HANDLE hResume = (HANDLE)NULL;
-    PSTR   pszGUID = NULL;
 
     while (!LADSProcessShouldStop())
     {
@@ -215,13 +214,8 @@ LADSEnumUsers(
                                       &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LADSGetGUID(
-                        &pszGUID);
-        BAIL_ON_LSA_ERROR(dwError);
-
         dwError = gpAuthProvider->pFnTable->pfnBeginEnumUsers(
                               hProvider,
-                              pszGUID,
                               dwInfoLevel,
                               &hResume);
         BAIL_ON_LSA_ERROR(dwError);
@@ -250,13 +244,11 @@ LADSEnumUsers(
 
         gpAuthProvider->pFnTable->pfnEndEnumUsers(
                         hProvider,
-                        pszGUID);
+                        hResume);
         hResume = (HANDLE)NULL;
 
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
         hProvider = (HANDLE)NULL;
-
-        LSA_SAFE_FREE_STRING(pszGUID);
 
         if (gLADSStressData[LADS_ENUM_USERS].dwSleepMSecs)
         {
@@ -280,13 +272,11 @@ cleanup:
         {
             gpAuthProvider->pFnTable->pfnEndEnumUsers(
                             hProvider,
-                            pszGUID);
+                            hResume);
         }
 
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
     }
-
-    LSA_SAFE_FREE_STRING(pszGUID);
 
     return pResult;
 
@@ -459,7 +449,6 @@ LADSEnumGroups(
     PVOID* ppGroupInfos = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     HANDLE hResume = (HANDLE)NULL;
-    PSTR   pszGUID = NULL;
 
     while (!LADSProcessShouldStop())
     {
@@ -469,13 +458,8 @@ LADSEnumGroups(
                                       &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LADSGetGUID(
-                        &pszGUID);
-        BAIL_ON_LSA_ERROR(dwError);
-
         dwError = gpAuthProvider->pFnTable->pfnBeginEnumGroups(
                               hProvider,
-                              pszGUID,
                               dwInfoLevel,
                               FALSE,
                               &hResume);
@@ -505,14 +489,12 @@ LADSEnumGroups(
 
         gpAuthProvider->pFnTable->pfnEndEnumGroups(
                         hProvider,
-                        pszGUID);
+                        hResume);
 
         hResume = (HANDLE)NULL;
 
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
         hProvider = (HANDLE)NULL;
-
-        LSA_SAFE_FREE_STRING(pszGUID);
 
         if (gLADSStressData[LADS_ENUM_GROUPS].dwSleepMSecs)
         {
@@ -536,13 +518,11 @@ cleanup:
         {
             gpAuthProvider->pFnTable->pfnEndEnumGroups(
                             hProvider,
-                            pszGUID);
+                            hResume);
         }
 
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
     }
-
-    LSA_SAFE_FREE_STRING(pszGUID);
 
     return pResult;
 

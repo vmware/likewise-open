@@ -115,6 +115,11 @@ LsaSrvStartListenThread(
                                   MAX_CLIENTS));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_connect_callback(
+                                  gpServer,
+                                  LsaSrvIpcOpenServer));
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = MAP_LWMSG_ERROR(lwmsg_server_start(gpServer));
 
 error:

@@ -44,7 +44,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "ipc_state_p.h"
+#include "ipc.h"
 
 static
 DWORD
@@ -89,16 +89,13 @@ error:
 
 LWMsgStatus
 LsaSrvIpcOpenServer(
+    LWMsgServer* server,
     LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
     void* data
     )
 {
     DWORD dwError = 0;
     HANDLE Handle = (HANDLE)NULL;
-    HANDLE HandleEnum = (HANDLE)NULL;
-    PLSA_IPC_ERROR pError = NULL;
     uid_t UID;
     gid_t GID;
 
@@ -112,24 +109,8 @@ LsaSrvIpcOpenServer(
 
         dwError = LsaSrvOpenServer(UID, GID, &Handle);
         BAIL_ON_LSA_ERROR(dwError);
-
-        dwError =  LsaSrvOpenServerEnum(&HandleEnum);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResponse->tag = LSA_R_OPEN_SERVER_SUCCESS;
-        pResponse->object = (PVOID)HandleEnum;
     }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
 
-        pResponse->tag = LSA_R_OPEN_SERVER_FAILURE;
-        pResponse->object = pError;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(assoc, "LsaIpcEnumServerHandle", (PVOID)HandleEnum, LsaSrvCloseServerEnum));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_session_data(assoc, (PVOID)Handle, LsaSrvCloseServer));

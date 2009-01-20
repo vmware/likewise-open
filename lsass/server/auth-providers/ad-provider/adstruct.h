@@ -49,8 +49,6 @@
 #define __AD_STRUCT_H__
 
 typedef struct __AD_ENUM_STATE {
-    PSTR pszGUID;
-
     DWORD dwInfoLevel;
     BOOLEAN bCheckGroupMembersOnline;
     LSA_NIS_MAP_QUERY_FLAGS dwMapFlags;
@@ -60,20 +58,12 @@ typedef struct __AD_ENUM_STATE {
     struct berval *pCookie;
 
     BOOLEAN bMorePages;
-
-    struct __AD_ENUM_STATE* pNext;
-
 } AD_ENUM_STATE, *PAD_ENUM_STATE;
 
 typedef struct __AD_PROVIDER_CONTEXT
 {
     uid_t uid;
     gid_t gid;
-
-    PAD_ENUM_STATE pGroupEnumStateList;
-    PAD_ENUM_STATE pUserEnumStateList;
-    PAD_ENUM_STATE pNSSArtefactEnumStateList;
-
 } AD_PROVIDER_CONTEXT, *PAD_PROVIDER_CONTEXT;
 
 typedef struct _AD_LINKED_CELL_INFO

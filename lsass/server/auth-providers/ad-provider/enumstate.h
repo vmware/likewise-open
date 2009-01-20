@@ -48,72 +48,46 @@
 #ifndef __ENUM_STATE_H__
 #define __ENUM_STATE_H__
 
-VOID
-AD_FreeStateList(
-    PAD_ENUM_STATE pStateList
-    );
-
 DWORD
-AD_AddUserState(
+AD_CreateUserState(
     HANDLE hProvider,
-    PCSTR  pszGUID,
     DWORD  dwInfoLevel,
     PAD_ENUM_STATE* ppEnumState
-    );
-
-PAD_ENUM_STATE
-AD_FindUserState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
     );
 
 VOID
 AD_FreeUserState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PAD_ENUM_STATE pEnumState
     );
 
 DWORD
-AD_AddGroupState(
+AD_CreateGroupState(
     HANDLE hProvider,
-    PCSTR  pszGUID,
     DWORD  dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
     PAD_ENUM_STATE* ppEnumState
     );
 
-PAD_ENUM_STATE
-AD_FindGroupState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
-    );
-
 VOID
 AD_FreeGroupState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PAD_ENUM_STATE pEnumState
     );
 
 DWORD
-AD_AddNSSArtefactState(
+AD_CreateNSSArtefactState(
     HANDLE hProvider,
-    PCSTR  pszGUID,
     DWORD  dwInfoLevel,
     PCSTR  pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppEnumState
     );
 
-PAD_ENUM_STATE
-AD_FindNSSArtefactState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
-    );
-
 VOID
 AD_FreeNSSArtefactState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PAD_ENUM_STATE pEnumState
     );
 
 #endif /* __ENUM_STATE_H__ */

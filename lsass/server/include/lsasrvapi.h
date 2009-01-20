@@ -201,16 +201,15 @@ LsaSrvFindUserById(
 DWORD
 LsaSrvBeginEnumUsers(
     HANDLE hServer,
-    HANDLE hServerEnum,
     DWORD  dwUserInfoLevel,
     DWORD  dwNumMaxUsers,
-    PSTR*  ppszGUID
+    PHANDLE phState
     );
 
 DWORD
 LsaSrvEnumUsers(
     HANDLE  hServer,
-    PCSTR   pszGUID,
+    HANDLE  hState,
     PDWORD  pdwUserInfoLevel,
     PVOID** pppUserInfoList,
     PDWORD  pdwNumUsersFound
@@ -219,23 +218,22 @@ LsaSrvEnumUsers(
 DWORD
 LsaSrvEndEnumUsers(
     HANDLE hServer,
-    PCSTR  pszGUID
+    HANDLE hState
     );
 
 DWORD
 LsaSrvBeginEnumGroups(
     HANDLE hServer,
-    HANDLE hServerEnum,
     DWORD  dwGroupInfoLevel,
     DWORD  dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
-    PSTR*  ppszGUID
+    PHANDLE phState
     );
 
 DWORD
 LsaSrvEnumGroups(
-    HANDLE  hServerEnum,
-    PCSTR   pszGUID,
+    HANDLE  hServer,
+    HANDLE  hState,
     PDWORD  pdwGroupInfoLevel,
     PVOID** pppGroupInfoList,
     PDWORD  pdwNumGroupsFound
@@ -243,8 +241,8 @@ LsaSrvEnumGroups(
 
 DWORD
 LsaSrvEndEnumGroups(
-    HANDLE hServerEnum,
-    PCSTR  pszGUID
+    HANDLE hServer,
+    HANDLE hState
     );
 
 DWORD
@@ -260,18 +258,17 @@ LsaSrvFindNSSArtefactByKey(
 DWORD
 LsaSrvBeginEnumNSSArtefacts(
     HANDLE hServer,
-    HANDLE hServerEnum,
     PCSTR  pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwGroupInfoLevel,
     DWORD  dwNumMaxGroups,
-    PSTR*  ppszGUID
+    PHANDLE phState
     );
 
 DWORD
 LsaSrvEnumNSSArtefacts(
     HANDLE  hServer,
-    PCSTR   pszGUID,
+    HANDLE  hState,
     PDWORD  pdwGroupInfoLevel,
     PVOID** pppGroupInfoList,
     PDWORD  pdwNumGroupsFound
@@ -280,7 +277,7 @@ LsaSrvEnumNSSArtefacts(
 DWORD
 LsaSrvEndEnumNSSArtefacts(
     HANDLE hServer,
-    PCSTR  pszGUID
+    HANDLE hState
     );
 
 DWORD

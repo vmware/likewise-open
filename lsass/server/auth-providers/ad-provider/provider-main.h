@@ -135,7 +135,6 @@ AD_FindUserObjectById(
 DWORD
 AD_BeginEnumUsers(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PHANDLE phResume
     );
@@ -152,7 +151,7 @@ AD_EnumUsers(
 VOID
 AD_EndEnumUsers(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     );
 
 DWORD
@@ -240,7 +239,6 @@ AD_GetUserGroupMembership(
 DWORD
 AD_BeginEnumGroups(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
     PHANDLE phResume
@@ -258,7 +256,7 @@ AD_EnumGroups(
 VOID
 AD_EndEnumGroups(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     );
 
 DWORD
@@ -370,7 +368,6 @@ AD_FindNSSArtefactByKey(
 DWORD
 AD_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PCSTR   pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
@@ -389,7 +386,7 @@ AD_EnumNSSArtefacts(
 VOID
 AD_EndEnumNSSArtefacts(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     );
 
 DWORD

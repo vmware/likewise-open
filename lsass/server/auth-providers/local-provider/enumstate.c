@@ -49,92 +49,53 @@
 #include "localprovider.h"
 
 DWORD
-LsaProviderLocal_AddUserState(
+LsaProviderLocal_CreateUserState(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     )
 {
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    
-    return LsaProviderLocal_AddEnumState(
-                &pContext->pUserEnumStateList,
-                pszGUID,
+    return LsaProviderLocal_CreateEnumState(
                 dwInfoLevel,
                 ppEnumState);
-}
-
-PLOCAL_PROVIDER_ENUM_STATE
-LsaProviderLocal_FindUserState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
-    )
-{
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    
-    return LsaProviderLocal_FindEnumState(
-                    pContext->pUserEnumStateList,
-                    pszGUID);
 }
 
 VOID
 LsaProviderLocal_FreeUserState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PLOCAL_PROVIDER_ENUM_STATE  pEnumState
     )
 {
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    
-    return LsaProviderLocal_FreeEnumState(&pContext->pUserEnumStateList, pszGUID);
+    return LsaProviderLocal_FreeEnumState(pEnumState);
 }
 
 DWORD
-LsaProviderLocal_AddGroupState(
+LsaProviderLocal_CreateGroupState(
     HANDLE hProvider,
-    PCSTR  pszGUID,
     DWORD  dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     )
 {
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    
-    return LsaProviderLocal_AddEnumState(
-                    &pContext->pGroupEnumStateList,
-                    pszGUID,
+    return LsaProviderLocal_CreateEnumState(
                     dwInfoLevel,
                     ppEnumState);
 }
 
 DWORD
-LsaProviderLocal_AddEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE* ppStateList,
-    PCSTR pszGUID,
+LsaProviderLocal_CreateEnumState(
     DWORD dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppNewEnumState
     )
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
-    BOOLEAN bFreeState = FALSE;
     
-    if (!(pEnumState = LsaProviderLocal_FindEnumState(*ppStateList, pszGUID))) {
-        dwError = LsaAllocateMemory(
-                        sizeof(LOCAL_PROVIDER_ENUM_STATE),
-                        (PVOID*)&pEnumState);
-        BAIL_ON_LSA_ERROR(dwError);
-        bFreeState = TRUE;
+    dwError = LsaAllocateMemory(
+        sizeof(LOCAL_PROVIDER_ENUM_STATE),
+        (PVOID*)&pEnumState);
+    BAIL_ON_LSA_ERROR(dwError);
         
-        dwError = LsaAllocateString(pszGUID, &pEnumState->pszGUID);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        pEnumState->dwInfoLevel = dwInfoLevel;
-        
-        pEnumState->pNext = *ppStateList;
-        *ppStateList = pEnumState;
-        
-        bFreeState = FALSE;
-    }
+    pEnumState->dwInfoLevel = dwInfoLevel;
     
     if (ppNewEnumState) {
        *ppNewEnumState = pEnumState;
@@ -150,95 +111,26 @@ error:
         *ppNewEnumState = NULL;
     }
     
-    if (bFreeState && pEnumState) {
-       LsaProviderLocal_FreeStateList(pEnumState);
+    if (pEnumState) {
+       LsaProviderLocal_FreeEnumState(pEnumState);
     }
 
     goto cleanup;
 }
 
-PLOCAL_PROVIDER_ENUM_STATE
-LsaProviderLocal_FindGroupState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
-    )
-{
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    
-    return LsaProviderLocal_FindEnumState(
-                pContext->pGroupEnumStateList,
-                pszGUID);
-}
-
-PLOCAL_PROVIDER_ENUM_STATE
-LsaProviderLocal_FindEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE pStateList,
-    PCSTR pszGUID
-    )
-{
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
-    while (pStateList) {
-        if (!strcasecmp(pStateList->pszGUID, pszGUID)) {
-            pEnumState = pStateList;
-            break;
-        } else {
-            pStateList = pStateList->pNext;
-        }
-    }
-    return pEnumState;
-}
-
 VOID
 LsaProviderLocal_FreeGroupState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PLOCAL_PROVIDER_ENUM_STATE  pEnumState
     )
 {
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    
-    return LsaProviderLocal_FreeEnumState(&pContext->pGroupEnumStateList, pszGUID);
+    return LsaProviderLocal_FreeEnumState(pEnumState);
 }
 
 VOID
 LsaProviderLocal_FreeEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE* ppStateList,
-    PCSTR pszGUID
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState
     )
 {
-    PLOCAL_PROVIDER_ENUM_STATE pPrevState = NULL;
-    PLOCAL_PROVIDER_ENUM_STATE pState = *ppStateList;
-    while (pState) {
-        if (!strcasecmp(pState->pszGUID, pszGUID)) {
-            if (!pPrevState) {
-                *ppStateList = pState->pNext;
-            } else {
-                pPrevState->pNext = pState->pNext;
-            }
-            pState->pNext = NULL;
-            break;
-        } else {
-            pPrevState = pState;
-            pState = pState->pNext;
-        }
-    }
-    if (pState) {
-        LsaProviderLocal_FreeStateList(pState);
-    }
+    LsaFreeMemory(pEnumState);
 }
-
-VOID
-LsaProviderLocal_FreeStateList(
-    PLOCAL_PROVIDER_ENUM_STATE pStateList
-    )
-{
-    PLOCAL_PROVIDER_ENUM_STATE pState = NULL;
-    
-    while (pStateList) {
-        pState = pStateList;
-        pStateList = pStateList->pNext;
-        
-        LSA_SAFE_FREE_STRING(pState->pszGUID);
-        LsaFreeMemory(pState);
-    }
-}
-

@@ -146,14 +146,11 @@ LsaBeginEnumNSSArtefacts(
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
     LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ beginNssArtefactEnumReq;
-    // Do not free pResult and pError
-    PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    beginNssArtefactEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
     beginNssArtefactEnumReq.dwInfoLevel = dwInfoLevel;
     beginNssArtefactEnumReq.dwMaxNumNSSArtefacts = dwMaxNumNSSArtefacts;
     beginNssArtefactEnumReq.pszMapName = pszMapName;
@@ -171,8 +168,7 @@ LsaBeginEnumNSSArtefacts(
     switch (response.tag)
     {
         case LSA_R_BEGIN_ENUM_NSS_ARTEFACTS_SUCCESS:
-            pResult = (PLSA_ENUM_OBJECTS_INFO)response.object;
-            *phResume = (HANDLE)pResult;
+            *phResume = response.object;
             break;
         case LSA_R_BEGIN_ENUM_NSS_ARTEFACTS_FAILURE:
             pError = (PLSA_IPC_ERROR) response.object;
@@ -209,9 +205,6 @@ LsaEnumNSSArtefacts(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
-    PLSA_ENUM_OBJECTS_INFO pInfo = (PLSA_ENUM_OBJECTS_INFO)hResume;
-
-    LSA_IPC_ENUM_RECORDS_REQ nssArtefactEnumReq;
     // Do not free pResultList and pError
     PLSA_NSS_ARTEFACT_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
@@ -219,11 +212,8 @@ LsaEnumNSSArtefacts(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    nssArtefactEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
-    nssArtefactEnumReq.pszToken = pInfo->pszGUID;
-
     request.tag = LSA_Q_ENUM_NSS_ARTEFACTS;
-    request.object = &nssArtefactEnumReq;
+    request.object = hResume;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -283,18 +273,13 @@ LsaEndEnumNSSArtefacts(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
-    PLSA_ENUM_OBJECTS_INFO pInfo = (PLSA_ENUM_OBJECTS_INFO)hResume;
-    LSA_IPC_ENUM_RECORDS_REQ endNssArtefactEnumReq;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    endNssArtefactEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
-    endNssArtefactEnumReq.pszToken = pInfo->pszGUID;
-
     request.tag = LSA_Q_END_ENUM_NSS_ARTEFACTS;
-    request.object = &endNssArtefactEnumReq;
+    request.object = hResume;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -305,7 +290,11 @@ LsaEndEnumNSSArtefacts(
     switch (response.tag)
     {
         case LSA_R_END_ENUM_NSS_ARTEFACTS_SUCCESS:
-            // response.object == NULL
+            dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(
+                                          pContext->pAssoc,
+                                          hResume,
+                                          LWMSG_FALSE));
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_R_END_ENUM_NSS_ARTEFACTS_FAILURE:
             pError = (PLSA_IPC_ERROR) response.object;

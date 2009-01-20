@@ -82,5 +82,12 @@ LsaSrvGetDispatchSpec(
     void
     );
 
+LWMsgStatus
+LsaSrvIpcOpenServer(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    void* data
+    );
+
 #endif /* __LSASERVER_H__ */
 

@@ -431,11 +431,8 @@ AD_CloseHandle(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    if (pContext) {
-
-        AD_FreeStateList(pContext->pGroupEnumStateList);
-        AD_FreeStateList(pContext->pUserEnumStateList);
-
+    if (pContext)
+    {
         LsaFreeMemory(pContext);
     }
 }
@@ -809,7 +806,6 @@ AD_FindUserObjectById(
 DWORD
 AD_BeginEnumUsers(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PHANDLE phResume
     )
@@ -817,9 +813,8 @@ AD_BeginEnumUsers(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
 
-    dwError = AD_AddUserState(
+    dwError = AD_CreateUserState(
                         hProvider,
-                        pszGUID,
                         dwInfoLevel,
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -933,10 +928,10 @@ error:
 VOID
 AD_EndEnumUsers(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
-    AD_FreeUserState(hProvider, pszGUID);
+    AD_FreeUserState(hProvider, (PAD_ENUM_STATE) hResume);
 }
 
 static
@@ -2167,7 +2162,6 @@ error:
 DWORD
 AD_BeginEnumGroups(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
     PHANDLE phResume
@@ -2176,9 +2170,8 @@ AD_BeginEnumGroups(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
 
-    dwError = AD_AddGroupState(
+    dwError = AD_CreateGroupState(
                         hProvider,
-                        pszGUID,
                         dwInfoLevel,
                         bCheckGroupMembersOnline,
                         &pEnumState);
@@ -2293,10 +2286,10 @@ error:
 VOID
 AD_EndEnumGroups(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
-    AD_FreeGroupState(hProvider, pszGUID);
+    AD_FreeGroupState(hProvider, (PAD_ENUM_STATE) hResume);
 }
 
 DWORD
@@ -2556,7 +2549,6 @@ AD_FindNSSArtefactByKey(
 DWORD
 AD_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PCSTR   pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
@@ -2577,9 +2569,8 @@ AD_BeginEnumNSSArtefacts(
         case DEFAULT_MODE:
         case CELL_MODE:
 
-            dwError = AD_AddNSSArtefactState(
+            dwError = AD_CreateNSSArtefactState(
                                 hProvider,
-                                pszGUID,
                                 dwInfoLevel,
                                 pszMapName,
                                 dwFlags,
@@ -2642,10 +2633,10 @@ AD_EnumNSSArtefacts(
 VOID
 AD_EndEnumNSSArtefacts(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
-    AD_FreeNSSArtefactState(hProvider, pszGUID);
+    AD_FreeNSSArtefactState(hProvider, hResume);
 }
 
 DWORD

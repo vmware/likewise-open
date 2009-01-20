@@ -46,14 +46,15 @@
  */
 
 #include "config.h"
+
 #include "lsasystem.h"
+#include <lsa/lsa.h>
 
 #include <uuid/uuid.h>
 
 #include <eventlog.h>
 
 #include "lsadef.h"
-#include "lsa/lsa.h"
 
 #include "lsautils.h"
 #include "lsaunistr.h"
@@ -67,11 +68,8 @@
 #include "auth_p.h"
 #include "auth_provider_p.h"
 #include "externs_p.h"
-#include "groups_p.h"
-#include "artefacts_p.h"
 #include "session_p.h"
 #include "state_p.h"
-#include "users_p.h"
 #include "metrics_p.h"
 #include "status_p.h"
 #include "config_p.h"

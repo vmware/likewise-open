@@ -63,10 +63,6 @@ typedef struct __LOCAL_PROVIDER_CONTEXT
 {
     uid_t uid;
     gid_t gid;
-
-    PLOCAL_PROVIDER_ENUM_STATE pGroupEnumStateList;
-    PLOCAL_PROVIDER_ENUM_STATE pUserEnumStateList;
-
 } LOCAL_PROVIDER_CONTEXT, *PLOCAL_PROVIDER_CONTEXT;
 
 typedef struct __LOCAL_CONFIG

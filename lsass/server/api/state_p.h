@@ -49,33 +49,27 @@
 
 #include "auth_provider_p.h"
 
-typedef struct __LSA_SRV_PROVIDER_STATE {
-
+typedef struct __LSA_SRV_PROVIDER_STATE
+{
     PLSA_AUTH_PROVIDER pProvider;
     HANDLE hProvider;
     HANDLE hResume;
 
-    struct __LSA_SRV_PROVIDER_STATE *pNext;
-
+    struct __LSA_SRV_PROVIDER_STATE* pNext;
 } LSA_SRV_PROVIDER_STATE, *PLSA_SRV_PROVIDER_STATE;
 
-typedef struct __LSA_SRV_RECORD_ENUM_STATE {
-
-    PSTR    pszGUID;
-    DWORD   dwInfoLevel;
-    DWORD   dwNumMaxRecords;
+typedef struct __LSA_SRV_ENUM_STATE
+{
+    DWORD dwNumMaxRecords;
+    DWORD dwInfoLevel;
+    DWORD dwMapFlags;
     BOOLEAN bCheckOnline;
-    DWORD   dwMapFlags;
-    PSTR    pszMapName;
-
-    BOOLEAN bInLock;
-
+    PSTR  pszMapName;
     PLSA_SRV_PROVIDER_STATE pProviderStateList;
     PLSA_SRV_PROVIDER_STATE pCurProviderState;
 
-    struct __LSA_SRV_RECORD_ENUM_STATE * pNext;
-
-} LSA_SRV_RECORD_ENUM_STATE, *PLSA_SRV_RECORD_ENUM_STATE;
+    BOOLEAN bInLock;
+} LSA_SRV_ENUM_STATE, *PLSA_SRV_ENUM_STATE;
 
 typedef struct __LSA_SRV_API_STATE
 {
@@ -83,16 +77,6 @@ typedef struct __LSA_SRV_API_STATE
     gid_t  peerGID;
     HANDLE hEventLog;
 } LSA_SRV_API_STATE, *PLSA_SRV_API_STATE;
-
-typedef struct __LSA_SRV_ENUM_STATE
-{
-    PLSA_SRV_RECORD_ENUM_STATE pUserEnumStateList;
-
-    PLSA_SRV_RECORD_ENUM_STATE pGroupEnumStateList;
-
-    PLSA_SRV_RECORD_ENUM_STATE pNSSArtefactEnumStateList;
-
-} LSA_SRV_ENUM_STATE, *PLSA_SRV_ENUM_STATE;
 
 DWORD
 LsaSrvOpenProvider(
@@ -107,6 +91,33 @@ LsaSrvCloseProvider(
     HANDLE hProvider
     );
 
+DWORD
+LsaSrvCreateUserEnumState(
+    HANDLE  hServer,
+    DWORD   dwUserInfoLevel,
+    DWORD   dwMaxNumUsers,
+    PLSA_SRV_ENUM_STATE* ppEnumState
+    );
+
+DWORD
+LsaSrvCreateGroupEnumState(
+    HANDLE hServer,
+    DWORD   dwGroupInfoLevel,
+    DWORD   dwMaxNumGroups,
+    BOOLEAN bCheckOnline,
+    PLSA_SRV_ENUM_STATE* ppEnumState
+    );
+
+DWORD
+LsaSrvCreateNSSArtefactEnumState(
+    HANDLE  hServer,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    DWORD   dwNSSArtefactInfoLevel,
+    DWORD   dwMaxNumArtefacts,
+    PLSA_SRV_ENUM_STATE* ppEnumState
+    );
+
 VOID
 LsaSrvFreeProviderStateList(
     PLSA_SRV_PROVIDER_STATE pStateList
@@ -117,72 +128,10 @@ LsaSrvReverseProviderStateList(
     PLSA_SRV_PROVIDER_STATE pStateList
     );
 
-DWORD
-LsaSrvAddUserEnumState(
-    HANDLE  hServer,
-    HANDLE  hServerEnum,
-    DWORD   dwUserInfoLevel,
-    DWORD   dwMaxNumUsers,
-    PLSA_SRV_RECORD_ENUM_STATE* ppEnumState
-    );
-
-PLSA_SRV_RECORD_ENUM_STATE
-LsaSrvFindUserEnumState(
-    HANDLE hServer,
-    PCSTR  pszGUID
-    );
-
 VOID
-LsaSrvFreeUserEnumState(
-    HANDLE hServer,
-    PCSTR  pszGUID
+LsaSrvFreeEnumState(
+    PLSA_SRV_ENUM_STATE pState
     );
-
-DWORD
-LsaSrvAddGroupEnumState(
-    HANDLE hServer,
-    HANDLE hEnumServer,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwMaxNumGroups,
-    BOOLEAN bCheckOnline,
-    PLSA_SRV_RECORD_ENUM_STATE* ppEnumState
-    );
-
-PLSA_SRV_RECORD_ENUM_STATE
-LsaSrvFindGroupEnumState(
-    HANDLE hServer,
-    PCSTR  pszGUID
-    );
-
-VOID
-LsaSrvFreeGroupEnumState(
-    HANDLE hServer,
-    PCSTR  pszGUID
-    );
-
-DWORD
-LsaSrvAddNSSArtefactEnumState(
-    HANDLE  hServer,
-    HANDLE  hEnumServer,
-    PCSTR   pszMapName,
-    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
-    DWORD   dwNSSArtefactInfoLevel,
-    DWORD   dwMaxNumArtefacts,
-    PLSA_SRV_RECORD_ENUM_STATE* ppEnumState
-    );
-
-PLSA_SRV_RECORD_ENUM_STATE
-LsaSrvFindNSSArtefactEnumState(
-    HANDLE hServer,
-    PCSTR  pszGUID
-    );
-
-VOID
-LsaSrvFreeNSSArtefactEnumState(
-    HANDLE hServer,
-    PCSTR  pszGUID
-    );
-
 
 #endif /* __STATE_P_H__ */
 

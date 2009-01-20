@@ -148,10 +148,6 @@ LsaProviderLocal_CloseHandle(
 {
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     if (pContext) {
-        LsaProviderLocal_FreeStateList(pContext->pGroupEnumStateList);
-
-        LsaProviderLocal_FreeStateList(pContext->pUserEnumStateList);
-
         LsaFreeMemory(pContext);
     }
 }
@@ -610,7 +606,6 @@ error:
 DWORD
 LsaProviderLocal_BeginEnumUsers(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PHANDLE phResume
     )
@@ -618,9 +613,8 @@ LsaProviderLocal_BeginEnumUsers(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
 
-    dwError = LsaProviderLocal_AddUserState(
+    dwError = LsaProviderLocal_CreateUserState(
                         hProvider,
-                        pszGUID,
                         dwInfoLevel,
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -689,10 +683,10 @@ error:
 VOID
 LsaProviderLocal_EndEnumUsers(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
-    LsaProviderLocal_FreeUserState(hProvider, pszGUID);
+    LsaProviderLocal_FreeUserState(hProvider, hResume);
 }
 
 DWORD
@@ -814,7 +808,6 @@ error:
 DWORD
 LsaProviderLocal_BeginEnumGroups(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckOnline,
     PHANDLE phResume
@@ -823,9 +816,8 @@ LsaProviderLocal_BeginEnumGroups(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
 
-    dwError = LsaProviderLocal_AddGroupState(
+    dwError = LsaProviderLocal_CreateGroupState(
                         hProvider,
-                        pszGUID,
                         dwInfoLevel,
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -892,10 +884,10 @@ error:
 VOID
 LsaProviderLocal_EndEnumGroups(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
-    LsaProviderLocal_FreeGroupState(hProvider, pszGUID);
+    LsaProviderLocal_FreeGroupState(hProvider, hResume);
 }
 
 DWORD
@@ -1505,7 +1497,6 @@ LsaProviderLocal_FindNSSArtefactByKey(
 DWORD
 LsaProviderLocal_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PCSTR   pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
@@ -1543,7 +1534,7 @@ LsaProviderLocal_EnumNSSArtefacts(
 VOID
 LsaProviderLocal_EndEnumNSSArtefacts(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
     return;

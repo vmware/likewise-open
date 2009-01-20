@@ -74,10 +74,29 @@ LsaOpenServer(
                                   CACHEDIR "/" LSA_SERVER_FILENAME));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_establish(pContext->pAssoc));
+    /* Attempt to automatically restore the connection if the server closes it.
+       This allows us to transparently recover from lsassd being restarted
+       as long as:
+
+       1. No operation is attempted during the window that lsassd is down
+       2. The shutdown did not wipe out any state such as enumeration handles
+
+       lwmsg will handle reconnecting for us if these conditions are met.
+    */
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
+                                  pContext->pAssoc,
+                                  LWMSG_STATUS_PEER_RESET,
+                                  LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaTransactOpenServer((HANDLE)pContext);
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
+                                  pContext->pAssoc,
+                                  LWMSG_STATUS_PEER_CLOSE,
+                                  LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_establish(pContext->pAssoc));
     BAIL_ON_LSA_ERROR(dwError);
 
     *phConnection = (HANDLE)pContext;
@@ -316,7 +335,6 @@ LsaTransactBeginEnumGroups(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    beginGroupEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
     beginGroupEnumReq.dwInfoLevel = dwGroupInfoLevel;
     beginGroupEnumReq.dwNumMaxRecords = dwMaxNumGroups;
     beginGroupEnumReq.bCheckGroupMembersOnline = bCheckGroupMembersOnline;
@@ -334,7 +352,6 @@ LsaTransactBeginEnumGroups(
     {
         case LSA_R_BEGIN_ENUM_GROUPS_SUCCESS:
             *phResume = (HANDLE)response.object;
-
             break;
         case LSA_R_BEGIN_ENUM_GROUPS_FAILURE:
             pError = (PLSA_IPC_ERROR) response.object;
@@ -371,9 +388,7 @@ LsaTransactEnumGroups(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    PLSA_ENUM_OBJECTS_INFO pInfo = (PLSA_ENUM_OBJECTS_INFO)hResume;
 
-    LSA_IPC_ENUM_RECORDS_REQ groupEnumReq;
     // Do not free pResultList and pError
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
@@ -381,11 +396,8 @@ LsaTransactEnumGroups(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    groupEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
-    groupEnumReq.pszToken = pInfo->pszGUID;
-
     request.tag = LSA_Q_ENUM_GROUPS;
-    request.object = &groupEnumReq;
+    request.object = hResume;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -449,18 +461,13 @@ LsaTransactEndEnumGroups(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    PLSA_ENUM_OBJECTS_INFO pInfo = (PLSA_ENUM_OBJECTS_INFO)hResume;
-    LSA_IPC_ENUM_RECORDS_REQ endGroupEnumReq;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    endGroupEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
-    endGroupEnumReq.pszToken = pInfo->pszGUID;
-
     request.tag = LSA_Q_END_ENUM_GROUPS;
-    request.object = &endGroupEnumReq;
+    request.object = hResume;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -471,7 +478,11 @@ LsaTransactEndEnumGroups(
     switch (response.tag)
     {
         case LSA_R_END_ENUM_GROUPS_SUCCESS:
-            // response.object == NULL
+            dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(
+                                          pContext->pAssoc,
+                                          hResume,
+                                          LWMSG_FALSE));
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_R_END_ENUM_GROUPS_FAILURE:
             pError = (PLSA_IPC_ERROR) response.object;
@@ -885,13 +896,11 @@ LsaTransactBeginEnumUsers(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_BEGIN_ENUM_USERS_REQ beginUserEnumReq;
     // Do not free pResult and pError
-    PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    beginUserEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
     beginUserEnumReq.dwInfoLevel = dwUserInfoLevel;
     beginUserEnumReq.dwNumMaxRecords = dwMaxNumUsers;
 
@@ -907,8 +916,7 @@ LsaTransactBeginEnumUsers(
     switch (response.tag)
     {
         case LSA_R_BEGIN_ENUM_USERS_SUCCESS:
-            pResult = (PLSA_ENUM_OBJECTS_INFO)response.object;
-            *phResume = (HANDLE)pResult;
+            *phResume = response.object;
             break;
         case LSA_R_BEGIN_ENUM_USERS_FAILURE:
             pError = (PLSA_IPC_ERROR) response.object;
@@ -945,9 +953,7 @@ LsaTransactEnumUsers(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    PLSA_ENUM_OBJECTS_INFO pInfo = (PLSA_ENUM_OBJECTS_INFO)hResume;
 
-    LSA_IPC_ENUM_RECORDS_REQ userEnumReq;
     // Do not free pResultList and pError
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
@@ -955,11 +961,8 @@ LsaTransactEnumUsers(
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    userEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
-    userEnumReq.pszToken = pInfo->pszGUID;
-
     request.tag = LSA_Q_ENUM_USERS;
-    request.object = &userEnumReq;
+    request.object = hResume;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -1028,18 +1031,13 @@ LsaTransactEndEnumUsers(
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    PLSA_ENUM_OBJECTS_INFO pInfo = (PLSA_ENUM_OBJECTS_INFO)hResume;
-    LSA_IPC_ENUM_RECORDS_REQ endUserEnumReq;
     PLSA_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
     LWMsgMessage response = {-1, NULL};
 
-    endUserEnumReq.Handle = (LsaIpcEnumServerHandle*)pContext->hServer;
-    endUserEnumReq.pszToken = pInfo->pszGUID;
-
     request.tag = LSA_Q_END_ENUM_USERS;
-    request.object = &endUserEnumReq;
+    request.object = hResume;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -1050,7 +1048,11 @@ LsaTransactEndEnumUsers(
     switch (response.tag)
     {
         case LSA_R_END_ENUM_USERS_SUCCESS:
-            // response.object == NULL
+            dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(
+                                          pContext->pAssoc,
+                                          hResume,
+                                          LWMSG_FALSE));
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_R_END_ENUM_USERS_FAILURE:
             pError = (PLSA_IPC_ERROR) response.object;
@@ -1609,55 +1611,6 @@ error:
 
     *pdwOutputBufferSize = 0;
     *ppOutputBuffer = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactOpenServer(
-   IN HANDLE hServer
-   )
-{
-    DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
-
-    request.tag = LSA_Q_OPEN_SERVER;
-    request.object = NULL;
-
-    dwError = lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response);
-    BAIL_ON_LWMSG_ERROR(pContext->pAssoc, dwError);
-
-    switch (response.tag)
-    {
-    case LSA_R_OPEN_SERVER_SUCCESS:
-        pContext->hServer = (HANDLE) response.object;
-        break;
-    case LSA_R_OPEN_SERVER_FAILURE:
-        pError = (PLSA_IPC_ERROR) response.object;
-        dwError = pError->dwError;
-        BAIL_ON_LSA_ERROR(dwError);
-        break;
-    default:
-        dwError = EINVAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-    return dwError;
-
-error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }

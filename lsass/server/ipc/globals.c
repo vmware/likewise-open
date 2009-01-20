@@ -49,7 +49,6 @@
 
 static LWMsgDispatchSpec gMessageHandlers[] =
 {
-    LWMSG_DISPATCH(LSA_Q_OPEN_SERVER, LsaSrvIpcOpenServer),
     LWMSG_DISPATCH(LSA_Q_GROUP_BY_NAME, LsaSrvIpcFindGroupByName),
     LWMSG_DISPATCH(LSA_Q_GROUP_BY_ID, LsaSrvIpcFindGroupById),
     LWMSG_DISPATCH(LSA_Q_BEGIN_ENUM_GROUPS, LsaSrvIpcBeginEnumGroups),

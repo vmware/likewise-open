@@ -46,8 +46,8 @@
  */
 #include "config.h"
 #include "lsasystem.h"
-#include "lsadef.h"
 #include "lsa/lsa.h"
+#include "lsadef.h"
 #include "lsautils.h"
 
 #include <lwmsg/lwmsg.h>
@@ -65,7 +65,6 @@
 #include "ipc_artefact_p.h"
 #include "ipc_gss_p.h"
 #include "ipc_session_p.h"
-#include "ipc_state_p.h"
 #include "ipc_user_p.h"
 #include "ipc_log_p.h"
 #include "ipc_tracing_p.h"
