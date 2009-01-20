@@ -41,6 +41,8 @@
  */
 
 
+#define MAXIMUM_SUBAUTHORITY_COUNT 15
+
 typedef struct sid {
     uint8 revision;
 #ifdef _DCE_IDL_
@@ -51,7 +53,7 @@ typedef struct sid {
 #ifdef _DCE_IDL_
 	[size_is(subauth_count)] uint32 subauth[];
 #else
-    uint32 *subauth;
+    uint32 subauth[MAXIMUM_SUBAUTHORITY_COUNT];
 #endif
 } SID, *PSID;
 
