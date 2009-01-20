@@ -390,6 +390,8 @@ AD_BuildHomeDirFromTemplate(
     DWORD dwNetBIOSDomainNameLength = 0;
     DWORD dwSamAccountNameLength = 0;
     DWORD dwHomedirPrefixLength = 0;
+    PSTR pszHostName = NULL;
+    DWORD dwHostNameLength = 0;
 
     BAIL_ON_INVALID_STRING(pszHomedirTemplate);
     BAIL_ON_INVALID_STRING(pszNetBIOSDomainName);
@@ -405,6 +407,16 @@ AD_BuildHomeDirFromTemplate(
         dwHomedirPrefixLength = strlen(pszHomedirPrefix);
     }
 
+    if (strstr(pszHomedirTemplate, "%L"))
+    {
+        dwError = LsaDnsGetHostInfo(&pszHostName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        BAIL_ON_INVALID_STRING(pszHostName);
+
+        dwHostNameLength = strlen(pszHostName);
+    }
+
     dwNetBIOSDomainNameLength = strlen(pszNetBIOSDomainName);
     dwSamAccountNameLength = strlen(pszSamAccountName);
 
@@ -413,6 +425,7 @@ AD_BuildHomeDirFromTemplate(
                         dwNetBIOSDomainNameLength +
                         dwSamAccountNameLength +
                         dwHomedirPrefixLength +
+                        dwHostNameLength +
                         1);
 
     dwError = LsaAllocateMemory(
@@ -448,6 +461,10 @@ AD_BuildHomeDirFromTemplate(
                 case 'H':
                     pszInsert = pszHomedirPrefix;
                     dwInsertLength = dwHomedirPrefixLength;
+                    break;
+                case 'L':
+                    pszInsert = pszHostName;
+                    dwInsertLength = dwHostNameLength;
                     break;
                 default:
                     dwError = LSA_ERROR_INVALID_HOMEDIR_TEMPLATE;
@@ -508,6 +525,7 @@ AD_BuildHomeDirFromTemplate(
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszHomedirPrefix);
+    LSA_SAFE_FREE_STRING(pszHostName);
 
     return dwError;
 
