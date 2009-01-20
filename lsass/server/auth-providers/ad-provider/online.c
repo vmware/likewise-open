@@ -2102,6 +2102,19 @@ AD_OnlineEnumUsers(
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PVOID* ppInfoList = NULL;
     DWORD dwInfoCount = 0;
+    BOOLEAN bIsEnumerationEnabled = TRUE;
+    LSA_FIND_FLAGS FindFlags = pEnumState->FindFlags;
+
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
+    {
+        bIsEnumerationEnabled = AD_GetNssEnumerationEnabled();
+    }
+
+    if (!bIsEnumerationEnabled)
+    {
+        dwError = LSA_ERROR_NO_MORE_USERS;
+        goto cleanup;
+    }
 
     // If BeginEnum was called in offline mode, it can successfully return
     // with hDirectory set to 0. That is the only way this function can
@@ -2337,6 +2350,19 @@ AD_OnlineEnumGroups(
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PVOID* ppInfoList = NULL;
     DWORD dwInfoCount = 0;
+    BOOLEAN bIsEnumerationEnabled = TRUE;
+    LSA_FIND_FLAGS FindFlags = pEnumState->FindFlags;
+
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
+    {
+        bIsEnumerationEnabled = AD_GetNssEnumerationEnabled();
+    }
+
+    if (!bIsEnumerationEnabled)
+    {
+        dwError = LSA_ERROR_NO_MORE_GROUPS;
+        goto cleanup;
+    }
 
     // If BeginEnum was called in offline mode, it can successfully return
     // with hDirectory set to 0. That is the only way this function can

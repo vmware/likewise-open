@@ -64,6 +64,7 @@ typedef struct __LSA_SRV_ENUM_STATE
     DWORD dwInfoLevel;
     DWORD dwMapFlags;
     BOOLEAN bCheckOnline;
+    LSA_FIND_FLAGS FindFlags;
     PSTR  pszMapName;
     PLSA_SRV_PROVIDER_STATE pProviderStateList;
     PLSA_SRV_PROVIDER_STATE pCurProviderState;
@@ -96,15 +97,17 @@ LsaSrvCreateUserEnumState(
     HANDLE  hServer,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PLSA_SRV_ENUM_STATE* ppEnumState
     );
 
 DWORD
 LsaSrvCreateGroupEnumState(
-    HANDLE hServer,
+    HANDLE  hServer,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
     BOOLEAN bCheckOnline,
+    LSA_FIND_FLAGS FindFlags,
     PLSA_SRV_ENUM_STATE* ppEnumState
     );
 

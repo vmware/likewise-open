@@ -124,13 +124,14 @@ typedef DWORD (*PFNGETGROUPSFORUSER)(
 typedef DWORD (*PFNBEGIN_ENUM_USERS)(
                         HANDLE  hProvider,
                         DWORD   dwInfoLevel,
+                        LSA_FIND_FLAGS FindFlags,
                         PHANDLE phResume
                         );
 
 typedef DWORD (*PFNENUMUSERS) (
                         HANDLE  hProvider,
                         HANDLE  hResume,
-                        DWORD   ndwMaxUsers,
+                        DWORD   dwMaxUsers,
                         PDWORD  pdwUsersFound,
                         PVOID** pppUserInfoList
                         );
@@ -144,6 +145,7 @@ typedef DWORD (*PFNBEGIN_ENUM_GROUPS)(
                         HANDLE  hProvider,
                         DWORD   dwInfoLevel,
                         BOOLEAN bCheckGroupMembersOnline,
+                        LSA_FIND_FLAGS FindFlags,
                         PHANDLE phResume
                         );
 

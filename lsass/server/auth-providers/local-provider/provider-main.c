@@ -607,6 +607,7 @@ DWORD
 LsaProviderLocal_BeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
@@ -810,6 +811,7 @@ LsaProviderLocal_BeginEnumGroups(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {

@@ -50,8 +50,9 @@
 
 DWORD
 AD_CreateUserState(
-    HANDLE hProvider,
-    DWORD  dwInfoLevel,
+    HANDLE  hProvider,
+    DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PAD_ENUM_STATE* ppEnumState
     );
 
@@ -66,6 +67,7 @@ AD_CreateGroupState(
     HANDLE hProvider,
     DWORD  dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PAD_ENUM_STATE* ppEnumState
     );
 

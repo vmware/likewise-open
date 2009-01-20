@@ -53,6 +53,7 @@ DWORD
 AD_CreateEnumState(
     DWORD dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PCSTR pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppNewEnumState
@@ -68,12 +69,14 @@ DWORD
 AD_CreateUserState(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PAD_ENUM_STATE* ppEnumState
     )
 {
     return AD_CreateEnumState(
                 dwInfoLevel,
                 FALSE,
+                FindFlags,
                 NULL,
                 0,
                 ppEnumState);
@@ -93,12 +96,14 @@ AD_CreateGroupState(
     HANDLE hProvider,
     DWORD  dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PAD_ENUM_STATE* ppEnumState
     )
 {
     return AD_CreateEnumState(
                     dwInfoLevel,
                     bCheckGroupMembersOnline,
+                    FindFlags,
                     NULL,
                     0,
                     ppEnumState);
@@ -125,6 +130,7 @@ AD_CreateNSSArtefactState(
     return AD_CreateEnumState(
                     dwInfoLevel,
                     FALSE,
+                    0,
                     pszMapName,
                     dwFlags,
                     ppEnumState);
@@ -144,6 +150,7 @@ DWORD
 AD_CreateEnumState(
     DWORD dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PCSTR pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppNewEnumState
@@ -160,6 +167,7 @@ AD_CreateEnumState(
     pEnumState->dwInfoLevel = dwInfoLevel;
     pEnumState->dwMapFlags = dwFlags;
     pEnumState->bCheckGroupMembersOnline = bCheckGroupMembersOnline;
+    pEnumState->FindFlags = FindFlags;
 
     if (pszMapName)
     {

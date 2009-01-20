@@ -395,6 +395,7 @@ LsaSrvIpcBeginEnumGroups(
                         pReq->dwInfoLevel,
                         pReq->dwNumMaxRecords,
                         pReq->bCheckGroupMembersOnline,
+                        pReq->FindFlags,
                         &hResume);
 
     if (!dwError)

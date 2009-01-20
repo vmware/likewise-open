@@ -225,7 +225,7 @@ DWORD
 AD_OnlineEnumGroups(
     HANDLE  hProvider,
     HANDLE  hResume,
-    DWORD   dwMaxGroups,
+    DWORD   dwMaxNumGroups,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     );

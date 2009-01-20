@@ -162,3 +162,9 @@
     # Default: no
     #
     # nss-user-membership-query-cache-only = yes
+
+    # Whether to enumerate users or groups for NSS
+    #
+    # Default: no
+    #
+    # nss-enumeration-enabled = yes

@@ -454,6 +454,7 @@ LsaNssListGroups(
                 hLsaConnection,
                 dwInfoLevel,
                 dwEnumLimit,
+                LSA_FIND_FLAGS_NSS,
                 &hResume);
     BAIL_ON_LSA_ERROR(dwError);
 

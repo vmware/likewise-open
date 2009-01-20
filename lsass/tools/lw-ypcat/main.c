@@ -449,6 +449,7 @@ EnumerateUsers(
                     hLsaConnection,
                     dwUserInfoLevel,
                     dwBatchSize,
+                    0,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -519,6 +520,7 @@ EnumerateGroups(
                     dwGroupInfoLevel,
                     dwBatchSize,
                     bCheckGroupMembersOnline,
+                    0,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
 

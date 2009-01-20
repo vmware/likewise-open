@@ -136,6 +136,7 @@ DWORD
 AD_BeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -241,6 +242,7 @@ AD_BeginEnumGroups(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 

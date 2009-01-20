@@ -367,6 +367,7 @@ LsaSrvIpcBeginEnumUsers(
         Handle,
         pReq->dwInfoLevel,
         pReq->dwNumMaxRecords,
+        pReq->FindFlags,
         &hResume);
 
     if (!dwError)

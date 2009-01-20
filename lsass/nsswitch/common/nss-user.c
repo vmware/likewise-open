@@ -227,6 +227,7 @@ LsaNssCommonPasswdSetpwent(
                                 pEnumUsersState->hLsaConnection,
                                 pEnumUsersState->dwUserInfoLevel,
                                 MAX_NUM_USERS,
+                                LSA_FIND_FLAGS_NSS,
                                 &pEnumUsersState->hResume));
     BAIL_ON_NSS_ERROR(ret);
 

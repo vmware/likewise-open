@@ -63,6 +63,7 @@ LsaBeginEnumGroups(
     HANDLE  hLsaConnection,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -73,6 +74,7 @@ LsaBeginEnumGroupsWithCheckOnlineOption(
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 

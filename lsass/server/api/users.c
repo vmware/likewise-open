@@ -459,6 +459,7 @@ LsaSrvBeginEnumUsers(
     HANDLE hServer,
     DWORD  dwUserInfoLevel,
     DWORD  dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phState
     )
 {
@@ -472,6 +473,7 @@ LsaSrvBeginEnumUsers(
                     hServer,
                     dwUserInfoLevel,
                     dwMaxNumUsers,
+                    FindFlags,
                     &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 

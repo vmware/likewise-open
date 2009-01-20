@@ -270,5 +270,10 @@ AD_GetNssUserMembershipCacheOnlyEnabled(
     VOID
     );
 
+BOOLEAN
+AD_GetNssEnumerationEnabled(
+    VOID
+    );
+
 #endif /* __AD_CFG_H__ */
 

@@ -202,7 +202,8 @@ DWORD
 LsaSrvBeginEnumUsers(
     HANDLE hServer,
     DWORD  dwUserInfoLevel,
-    DWORD  dwNumMaxUsers,
+    DWORD  dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phState
     );
 
@@ -227,6 +228,7 @@ LsaSrvBeginEnumGroups(
     DWORD  dwGroupInfoLevel,
     DWORD  dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phState
     );
 

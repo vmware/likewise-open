@@ -258,6 +258,7 @@ LsaNssCommonGroupSetgrent(
                             pEnumGroupsState->hLsaConnection,
                             pEnumGroupsState->dwGroupInfoLevel,
                             MAX_NUM_GROUPS,
+                            LSA_FIND_FLAGS_NSS,
                             &pEnumGroupsState->hResume));
     BAIL_ON_NSS_ERROR(ret);
 

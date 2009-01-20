@@ -44,6 +44,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
+            Wei Fu (wfu@likewisesoftware.com)
  */
 #include "client.h"
 
@@ -125,6 +126,7 @@ LsaBeginEnumGroups(
     HANDLE  hLsaConnection,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
@@ -136,6 +138,7 @@ LsaBeginEnumGroups(
                 dwMaxNumGroups,
                 //By default, do not checkOnline for group membership when enumerating
                 FALSE,
+                FindFlags,
                 phResume);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -155,6 +158,7 @@ LsaBeginEnumGroupsWithCheckOnlineOption(
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
@@ -165,6 +169,7 @@ LsaBeginEnumGroupsWithCheckOnlineOption(
                 dwGroupInfoLevel,
                 dwMaxNumGroups,
                 bCheckGroupMembersOnline,
+                FindFlags,
                 phResume);
     BAIL_ON_LSA_ERROR(dwError);
 

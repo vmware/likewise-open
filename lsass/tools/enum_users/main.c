@@ -119,6 +119,7 @@ main(
                     hLsaConnection,
                     dwUserInfoLevel,
                     dwBatchSize,
+                    0,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
 

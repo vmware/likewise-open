@@ -269,6 +269,7 @@ typedef struct __LSA_IPC_BEGIN_ENUM_USERS_REQ
 {
     DWORD dwInfoLevel;
     DWORD dwNumMaxRecords;
+    LSA_FIND_FLAGS FindFlags;
 } LSA_IPC_BEGIN_ENUM_USERS_REQ, *PLSA_IPC_BEGIN_ENUM_USERS_REQ;
 
 typedef struct __LSA_IPC_BEGIN_ENUM_GROUPS_REQ
@@ -276,6 +277,7 @@ typedef struct __LSA_IPC_BEGIN_ENUM_GROUPS_REQ
     DWORD dwInfoLevel;
     DWORD dwNumMaxRecords;
     BOOLEAN bCheckGroupMembersOnline;
+    LSA_FIND_FLAGS FindFlags;
 } LSA_IPC_BEGIN_ENUM_GROUPS_REQ, *PLSA_IPC_BEGIN_ENUM_GROUPS_REQ;
 
 typedef struct __LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ

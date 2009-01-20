@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  * Authors: Gerald Carter <gcarter@likewisesoftware.com>
  *
  */
@@ -53,19 +53,19 @@ static DWORD AddGroupsToList(char ***pppGroupList, uint32_t *pGroupSize,
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	char **ppGroups = NULL;
 	uint32_t nGroups = 0;
-	int i;	
+	int i;
 
 	BAIL_ON_NULL_PTR_PARAM(pppGroupList, dwErr);
 	BAIL_ON_NULL_PTR_PARAM(pGroupSize, dwErr);
-	
+
 	/* Check for a no-op */
 
-	if (!ppGroupInfo || (groupInfoSize == 0)) {		
+	if (!ppGroupInfo || (groupInfoSize == 0)) {
 		return LSA_ERROR_SUCCESS;
 	}
 
 	ppGroups = *pppGroupList;
-	nGroups = *pGroupSize;	
+	nGroups = *pGroupSize;
 
 	if (!ppGroups) {
 		ppGroups = _wbc_malloc((groupInfoSize+1) * sizeof(char*),
@@ -74,16 +74,16 @@ static DWORD AddGroupsToList(char ***pppGroupList, uint32_t *pGroupSize,
 	} else {
 		ppGroups = _wbc_realloc(*pppGroupList,
 					(groupInfoSize+1) * sizeof(char*));
-		BAIL_ON_NULL_PTR(ppGroups, dwErr);		
+		BAIL_ON_NULL_PTR(ppGroups, dwErr);
 	}
 
 	for (i=0; i<groupInfoSize; i++) {
 		ppGroups[nGroups] = _wbc_strdup(ppGroupInfo[i]->pszName);
 		BAIL_ON_NULL_PTR(ppGroups[nGroups], dwErr);
-		
-		nGroups++;		
+
+		nGroups++;
 	}
-	
+
 	/* Terminate */
 
 	ppGroups[nGroups] = NULL;
@@ -93,11 +93,11 @@ static DWORD AddGroupsToList(char ***pppGroupList, uint32_t *pGroupSize,
 
 	dwErr = LSA_ERROR_SUCCESS;
 done:
-	if (dwErr != LSA_ERROR_SUCCESS)  { 
+	if (dwErr != LSA_ERROR_SUCCESS)  {
 		_WBC_FREE(ppGroups);
 	}
-	
-	return dwErr;	
+
+	return dwErr;
 }
 
 
@@ -106,15 +106,15 @@ wbcErr wbcListGroups(const char *domain_name,
 		     const char ***groups)
 {
 	LSA_GROUP_INFO_0 **pGroupInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;	
-	HANDLE hResume = (HANDLE)NULL;	
-	DWORD dwNumGroups = 0;	
+	HANDLE hLsa = (HANDLE)NULL;
+	HANDLE hResume = (HANDLE)NULL;
+	DWORD dwNumGroups = 0;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	bool bDone = false;
 	uint32_t groupSize = 0;
 	char **groupList = NULL;
-	
+
 	/* For now ignore the domain name nutil the LsaXXX() API supports it */
 
 	BAIL_ON_NULL_PTR_PARAM(groups, dwErr);
@@ -126,12 +126,12 @@ wbcErr wbcListGroups(const char *domain_name,
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaBeginEnumGroups(hLsa, 0, 250, &hResume);
+	dwErr = LsaBeginEnumGroups(hLsa, 0, 250, 0, &hResume);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	while (!bDone) {	
-		dwErr = LsaEnumGroups(hLsa, hResume, 
-				      &dwNumGroups, 
+	while (!bDone) {
+		dwErr = LsaEnumGroups(hLsa, hResume,
+				      &dwNumGroups,
 				      (PVOID**)&pGroupInfo);
 		BAIL_ON_LSA_ERR(dwErr);
 
@@ -149,20 +149,20 @@ wbcErr wbcListGroups(const char *domain_name,
 		}
 
 		LsaFreeGroupInfoList(0, (PVOID*)pGroupInfo, dwNumGroups);
-		pGroupInfo = NULL;		
-		
+		pGroupInfo = NULL;
+
 	}
 
 	*groups = (const char **)groupList;
-	*num_groups = groupSize;	
-	
+	*num_groups = groupSize;
+
 done:
 	if (dwErr != LSA_ERROR_SUCCESS) {
 		_WBC_FREE(groupList);
-	}	
+	}
 
 	if (hResume) {
-		LsaEndEnumGroups(hLsa, hResume);		
+		LsaEndEnumGroups(hLsa, hResume);
 		hResume = (HANDLE)NULL;
 	}
 
@@ -174,8 +174,8 @@ done:
 	if (pGroupInfo) {
 		LsaFreeGroupInfoList(0, (PVOID*)pGroupInfo, dwNumGroups);
 	}
-	
+
 	wbc_status = map_error_to_wbc_status(dwErr);
 
-	return wbc_status;	
+	return wbc_status;
 }

@@ -255,6 +255,8 @@ LsaAdBatchGetDomainEntryType(
         {
             dwError = 0;
             bSkip = TRUE;
+            LSA_LOG_DEBUG("Mark trusted domain %s [skip] due to incompatible modes from primary domain %s",
+                           pszDomainName, gpADProviderData->szDomain);
         }
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -423,6 +425,7 @@ LsaAdBatchCreateDomainEntry(
     if (bSkip)
     {
         SetFlag(pEntry->Flags, LSA_AD_BATCH_DOMAIN_ENTRY_FLAG_SKIP);
+        LSA_LOG_DEBUG("Trusted domain %s' is marked skip", pEntry->pszDnsDomainName);
     }
     if (bIsOneWayTrust)
     {

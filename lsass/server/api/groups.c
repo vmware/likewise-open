@@ -422,6 +422,7 @@ LsaSrvBeginEnumGroups(
     DWORD  dwGroupInfoLevel,
     DWORD  dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phState
     )
 {
@@ -436,6 +437,7 @@ LsaSrvBeginEnumGroups(
                     dwGroupInfoLevel,
                     dwMaxNumGroups,
                     bCheckGroupMembersOnline,
+                    FindFlags,
                     &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 

@@ -128,14 +128,16 @@ DWORD
 AD_SetUserCanonicalNameToAlias(
     PCSTR pszCurrentNetBIOSDomainName,
     DWORD dwUserInfoLevel,
-    PVOID pUserInfo);
+    PVOID pUserInfo
+    );
 
 static
 DWORD
 AD_SetGroupCanonicalNamesToAliases(
     PCSTR pszCurrentNetBIOSDomainName,
     DWORD dwGroupInfoLevel,
-    PVOID pGroupInfo);
+    PVOID pGroupInfo
+    );
 
 static
 DWORD
@@ -807,6 +809,7 @@ DWORD
 AD_BeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
@@ -816,6 +819,7 @@ AD_BeginEnumUsers(
     dwError = AD_CreateUserState(
                         hProvider,
                         dwInfoLevel,
+                        FindFlags,
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2164,6 +2168,7 @@ AD_BeginEnumGroups(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
@@ -2174,6 +2179,7 @@ AD_BeginEnumGroups(
                         hProvider,
                         dwInfoLevel,
                         bCheckGroupMembersOnline,
+                        FindFlags,
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2372,7 +2378,7 @@ AD_EmptyCache(
     IN gid_t  peerGID
     )
 {
-    DWORD             dwError = 0;
+    DWORD dwError = 0;
 
     // restrict access to root
     if (peerUID)

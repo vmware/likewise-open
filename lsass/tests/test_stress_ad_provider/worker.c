@@ -217,6 +217,7 @@ LADSEnumUsers(
         dwError = gpAuthProvider->pFnTable->pfnBeginEnumUsers(
                               hProvider,
                               dwInfoLevel,
+                              0,
                               &hResume);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -462,6 +463,7 @@ LADSEnumGroups(
                               hProvider,
                               dwInfoLevel,
                               FALSE,
+                              0,
                               &hResume);
         BAIL_ON_LSA_ERROR(dwError);
 

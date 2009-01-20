@@ -1125,6 +1125,7 @@ LsaBeginEnumGroups(
     HANDLE  hLsaConnection,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -1134,6 +1135,7 @@ LsaBeginEnumGroupsWithCheckOnlineOption(
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -1142,7 +1144,7 @@ LsaEnumGroups(
     HANDLE  hLsaConnection,
     HANDLE  hResume,
     PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupsInfoList
+    PVOID** pppGroupInfoList
     );
 
 DWORD
@@ -1270,6 +1272,7 @@ LsaBeginEnumUsers(
     HANDLE  hLsaConnection,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 

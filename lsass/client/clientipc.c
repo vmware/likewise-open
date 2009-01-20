@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        ipc_client.c
+ *        clientipc.c
  *
  * Abstract:
  *
@@ -42,7 +42,7 @@
  *        Inter-process Communication (Client) API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Wei Fu (wfu@likewisesoftware.com)
  */
 #include "client.h"
 
@@ -322,6 +322,7 @@ LsaTransactBeginEnumGroups(
     DWORD dwGroupInfoLevel,
     DWORD dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
@@ -338,6 +339,7 @@ LsaTransactBeginEnumGroups(
     beginGroupEnumReq.dwInfoLevel = dwGroupInfoLevel;
     beginGroupEnumReq.dwNumMaxRecords = dwMaxNumGroups;
     beginGroupEnumReq.bCheckGroupMembersOnline = bCheckGroupMembersOnline;
+    beginGroupEnumReq.FindFlags = FindFlags;
 
     request.tag = LSA_Q_BEGIN_ENUM_GROUPS;
     request.object = &beginGroupEnumReq;
@@ -383,7 +385,8 @@ LsaTransactEnumGroups(
     HANDLE hServer,
     HANDLE hResume,
     PDWORD pdwNumGroupsFound,
-    PVOID** pppGroupInfoList)
+    PVOID** pppGroupInfoList
+    )
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
@@ -728,6 +731,7 @@ LsaTransactFindUserByName(
 
     findObjectByNameReq.dwInfoLevel = dwUserInfoLevel;
     findObjectByNameReq.pszName = pszName;
+    findObjectByNameReq.FindFlags = 0;
 
     request.tag = LSA_Q_USER_BY_NAME;
     request.object = &findObjectByNameReq;
@@ -888,6 +892,7 @@ LsaTransactBeginEnumUsers(
     HANDLE hServer,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
@@ -903,6 +908,7 @@ LsaTransactBeginEnumUsers(
 
     beginUserEnumReq.dwInfoLevel = dwUserInfoLevel;
     beginUserEnumReq.dwNumMaxRecords = dwMaxNumUsers;
+    beginUserEnumReq.FindFlags = FindFlags;
 
     request.tag = LSA_Q_BEGIN_ENUM_USERS;
     request.object = &beginUserEnumReq;
@@ -948,7 +954,8 @@ LsaTransactEnumUsers(
     HANDLE hServer,
     HANDLE hResume,
     PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList)
+    PVOID** pppUserInfoList
+    )
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =

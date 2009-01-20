@@ -51,6 +51,7 @@
 typedef struct __AD_ENUM_STATE {
     DWORD dwInfoLevel;
     BOOLEAN bCheckGroupMembersOnline;
+    LSA_FIND_FLAGS FindFlags;
     LSA_NIS_MAP_QUERY_FLAGS dwMapFlags;
     PSTR  pszMapName;
 
@@ -113,6 +114,7 @@ typedef struct _LSA_AD_CONFIG {
     BOOLEAN             bTrimUserMembershipEnabled;
     BOOLEAN             bNssGroupMembersCacheOnlyEnabled;
     BOOLEAN             bNssUserMembershipCacheOnlyEnabled;
+    BOOLEAN             bNssEnumerationEnabled;
 } LSA_AD_CONFIG, *PLSA_AD_CONFIG;
 
 struct _ADSTATE_CONNECTION;

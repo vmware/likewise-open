@@ -153,6 +153,7 @@ LsaSrvCreateUserEnumState(
     HANDLE  hServer,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PLSA_SRV_ENUM_STATE* ppEnumState
     )
 {
@@ -169,6 +170,7 @@ LsaSrvCreateUserEnumState(
 
     pEnumState->dwInfoLevel = dwUserInfoLevel;
     pEnumState->dwNumMaxRecords = dwMaxNumUsers;
+    pEnumState->FindFlags = FindFlags;
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(pEnumState->bInLock);
 
@@ -190,6 +192,7 @@ LsaSrvCreateUserEnumState(
         dwError = pProvider->pFnTable->pfnBeginEnumUsers(
                                             pProviderState->hProvider,
                                             pEnumState->dwInfoLevel,
+                                            pEnumState->FindFlags,
                                             &pProviderState->hResume);
         if (!dwError) {
 
@@ -251,6 +254,7 @@ LsaSrvCreateGroupEnumState(
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
     BOOLEAN bCheckOnline,
+    LSA_FIND_FLAGS FindFlags,
     PLSA_SRV_ENUM_STATE* ppEnumState
     )
 {
@@ -268,6 +272,7 @@ LsaSrvCreateGroupEnumState(
     pEnumState->dwInfoLevel = dwGroupInfoLevel;
     pEnumState->dwNumMaxRecords = dwMaxNumGroups;
     pEnumState->bCheckOnline = bCheckOnline;
+    pEnumState->FindFlags = FindFlags;
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(pEnumState->bInLock);
 
@@ -290,6 +295,7 @@ LsaSrvCreateGroupEnumState(
                                             pProviderState->hProvider,
                                             pEnumState->dwInfoLevel,
                                             pEnumState->bCheckOnline,
+                                            pEnumState->FindFlags,
                                             &pProviderState->hResume);
         if (!dwError) {
 
