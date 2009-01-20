@@ -55,6 +55,11 @@ struct test {
 
 
 void AddTest(struct test *ft, const char *name, test_fn function);
+struct test* FindTest(struct test *ft, const char *name);
+int StartTest(struct test *t, struct parameter *options, int optcount);
+void display_usage(void);
+
+void SetupSidTests(struct test *t);
 
 
 extern int verbose_mode;

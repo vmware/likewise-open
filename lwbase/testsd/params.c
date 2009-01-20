@@ -42,6 +42,10 @@
 
 #include "params.h"
 
+char** get_string_list(char *list, const char sep);
+char** get_value_list(const char *list);
+unsigned int *create_uint_list(char **strlist);
+
 
 #if !defined(HAVE_STRNDUP)
 char* strndup(const char *s, size_t maxlen)
@@ -65,9 +69,8 @@ char* strndup(const char *s, size_t maxlen)
 
 static char* cleanup_sep(char *s, char sep)
 {
-    char *seppos;
+    char *seppos = NULL;
     char sepstr[3] = {0};
-    int i = 0;
 
     if (s == NULL) return s;
 
@@ -76,7 +79,10 @@ static char* cleanup_sep(char *s, char sep)
 
     seppos = strstr(s, sepstr);
     while (seppos) {
-        while (*seppos) seppos[0] = (seppos++)[1];
+        while (*seppos) {
+            seppos[0] = seppos[1];
+            seppos++;
+        }
         seppos = strstr(s, sepstr);
     }
 
@@ -264,7 +270,7 @@ enum param_err fetch_value(struct parameter *params, int count,
     NTSTATUS status;
     char **valstr, **defstr;
     char *valchar, *defchar;
-    wchar16_t **valw16str, **defw16str;
+    wchar16_t **valw16str;
     int *valint, *defint;
     unsigned int *valuint, *defuint;
     unsigned int **valuint_list;
@@ -340,7 +346,7 @@ enum param_err fetch_value(struct parameter *params, int count,
 
 const char *param_errstr(enum param_err perr)
 {
-    const errcount = sizeof(param_errstr_maps)/sizeof(struct param_errstr_map);
+    const size_t errcount = sizeof(param_errstr_maps)/sizeof(struct param_errstr_map);
     int i = 0;
 
     while (i < errcount && perr != param_errstr_maps[i].perr) i++;

@@ -43,6 +43,21 @@
 
 
 int TestSidInitialize(struct test *t,
+                      struct parameter *options, int optcount);
+int TestSidAllocateAndInit(struct test *t,
+                           struct parameter *options, int optcount);
+int TestSidCopyAlloc(struct test *t,
+                     struct parameter *options, int optcount);
+int TestSidCopy(struct test *t,
+                struct parameter *options, int optcount);
+int TestSidString(struct test *t,
+                  struct parameter *options, int optcount);
+int TestSidAppendRid(struct test *t,
+                     struct parameter *options, int optcount);
+
+
+
+int TestSidInitialize(struct test *t,
                       struct parameter *options, int optcount)
 {
     const int def_subauth_count = 4;
@@ -366,7 +381,6 @@ int TestSidAppendRid(struct test *t,
     SID *pSid = NULL;
     SID *pSidApp = NULL;
     DWORD dwRid = 0;
-    PSTR pszSidStr = NULL;
 
     perr = fetch_value(options, optcount, "sid", pt_sid,
                        &pSid, &def_sidstr);

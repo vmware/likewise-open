@@ -104,7 +104,7 @@ int StartTest(struct test *t, struct parameter *options, int optcount)
 
 
 
-void display_usage()
+void display_usage(void)
 {
     printf("Usage: testrpc -h hostname [-u username] [-p password] [-o options] testname\n"
            "\thostname - host to connect when performing a test\n"
@@ -123,8 +123,6 @@ int main(int argc, char *argv[])
     int i, opt, ret;
     char *testname, *optional_args;
     struct test *tests, *runtest, *freetest;
-    wchar16_t *hostname, *username, *password;
-    size_t hostname_size;
     struct parameter *params;
     int params_len;
 
