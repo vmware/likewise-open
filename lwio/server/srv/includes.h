@@ -52,6 +52,11 @@
 #include <sqlite3.h>
 #include <uuid/uuid.h>
 
+#include <krb5.h>
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_generic.h>
+#include <gssapi/gssapi_krb5.h>
+
 #include "lwio/lwio.h"
 
 #include "lwiodef.h"
@@ -90,6 +95,7 @@
 #include "srvshareutil.h"
 #include "sharedb.h"
 #include "srvtask.h"
+#include "srvgss.h"
 
 #include "externs.h"
 

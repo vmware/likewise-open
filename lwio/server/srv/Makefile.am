@@ -28,6 +28,7 @@ libsrv_sys_la_SOURCES = \
     sharedb.c       \
     smbv1.c         \
     srvconnection.c \
+    srvgss.c        \
     srvshareutil.c  \
     srvsocket.c     \
     srvtask.c       \
@@ -53,6 +54,7 @@ libsrv_sys_la_LIBADD = \
     @top_builddir@/server/smbwire/liblwiosmbwire.la \
     @top_builddir@/utils/liblwioutils.la \
     @SQLITE_LIBS@ \
+    @KRB5_LIBS@ \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
 

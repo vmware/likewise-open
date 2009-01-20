@@ -148,6 +148,19 @@ typedef struct _SMB_SRV_PROPERTIES
 
 } SMB_SRV_PROPERTIES, *PSMB_SRV_PROPERTIES;
 
+typedef enum
+{
+    SRV_GSS_CONTEXT_STATE_INITIAL = 0,
+    SRV_GSS_CONTEXT_STATE_NEGOTIATE,
+    SRV_GSS_CONTEXT_STATE_COMPLETE
+} SRV_GSS_CONTEXT_STATE;
+
+typedef struct _SRV_GSS_CONTEXT
+{
+    SRV_GSS_CONTEXT_STATE state;
+
+} SRV_GSS_CONTEXT, *PSRV_GSS_CONTEXT;
+
 typedef struct _SMB_SRV_CONNECTION
 {
     pthread_mutex_t     mutex;
@@ -175,6 +188,7 @@ typedef struct _SMB_SRV_CONNECTION
     } readerState;
 
     PBYTE               pSessionKey;
+    PSRV_GSS_CONTEXT    pGssContext;
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
 

@@ -309,6 +309,11 @@ SrvConnectionRelease(
 
         SMB_SAFE_FREE_MEMORY(pConnection->pSessionKey);
 
+        if (pConnection->pGssContext)
+        {
+            SrvGssFree(pConnection->pGssContext);
+        }
+
         if (pConnection->pMutex)
         {
             pthread_mutex_destroy(pConnection->pMutex);
