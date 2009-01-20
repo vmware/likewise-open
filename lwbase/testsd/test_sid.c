@@ -35,8 +35,7 @@
 #include <stdio.h>
 
 #include <config.h>
-#include <lw/types.h>
-#include <lw/ntstatus.h>
+#include <lw/base.h>
 #include <secdesc/sid.h>
 
 #include "params.h"
@@ -291,7 +290,7 @@ int TestSidString(struct test *t,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     if (pszSidStr) {
-        status = RtlParseSidStringA(&pSid1, pszSidStr);
+        status = ParseSidStringA(&pSid1, pszSidStr);
         if (status != STATUS_SUCCESS) goto done;
 
         if (!IsValidSid(pSid1)) {
@@ -299,7 +298,7 @@ int TestSidString(struct test *t,
             goto done;
         }
 
-        status = RtlSidToStringA(pSid1, &pszSidStrOut);
+        status = SidToStringA(pSid1, &pszSidStrOut);
         if (status != STATUS_SUCCESS) goto done;
 
         if (strcmp(pszSidStr, pszSidStrOut) != 0) {
@@ -310,7 +309,7 @@ int TestSidString(struct test *t,
     }
 
     if (pwszSidStr) {
-        status = RtlParseSidStringW(&pSid2, pwszSidStr);
+        status = ParseSidStringW(&pSid2, pwszSidStr);
         if (status != STATUS_SUCCESS) goto done;
 
         if (!IsValidSid(pSid2)) {
@@ -318,7 +317,7 @@ int TestSidString(struct test *t,
             goto done;
         }
 
-        status = RtlSidToStringW(pSid2, &pwszSidStrOut);
+        status = SidToStringW(pSid2, &pwszSidStrOut);
         if (status != STATUS_SUCCESS) goto done;
 
         if (wc16scasecmp(pwszSidStr, pwszSidStrOut) != 0) {
@@ -345,11 +344,11 @@ done:
     }
 
     if (pszSidStrOut) {
-        SdFreeMemory((void*)pszSidStrOut);
+        RtlMemoryFree((void*)pszSidStrOut);
     }
 
     if (pwszSidStrOut) {
-        SdFreeMemory((void*)pwszSidStrOut);
+        RtlMemoryFree((void*)pwszSidStrOut);
     }
 
     return (status == STATUS_SUCCESS);

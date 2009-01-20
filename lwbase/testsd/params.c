@@ -36,8 +36,7 @@
 #include <string.h>
 
 #include <config.h>
-#include <lw/types.h>
-#include <lw/ntstatus.h>
+#include <lw/base.h>
 #include <wc16str.h>
 #include <secdesc/secdesc.h>
 
@@ -317,8 +316,8 @@ enum param_err fetch_value(struct parameter *params, int count,
         valsid = (DomSid**)val;
         /* default SID is passed as string here for convenience */
         defstr = (char**)def;
-        status = RtlParseSidStringA(valsid,
-                                    ((value) ? (const char*)value : *defstr));
+        status = ParseSidStringA(valsid,
+                                 ((value) ? (const char*)value : *defstr));
         if (status != STATUS_SUCCESS) return perr_invalid_out_param;
         break;
     default:
