@@ -40,18 +40,17 @@
  * be possible to include it in idl files when generating dcerpc stubs.
  */
 
-
 #define MAXIMUM_SUBAUTHORITY_COUNT 15
 
 typedef struct sid {
     uint8 revision;
 #ifdef _DCE_IDL_
-	[range(0,15)]
+    [range(0,15)]
 #endif
     uint8 subauth_count;
     uint8 authid[6];
 #ifdef _DCE_IDL_
-	[size_is(subauth_count)] uint32 subauth[];
+    [size_is(subauth_count)] uint32 subauth[];
 #else
     uint32 subauth[MAXIMUM_SUBAUTHORITY_COUNT];
 #endif
@@ -63,19 +62,19 @@ typedef struct sid {
 
 
 typedef struct sid_ptr {
-	DomSid *sid;
+    DomSid *sid;
 } SidPtr;
 
 
 typedef struct sid_array {
 #ifdef _DCE_IDL_
-	[range(0,1000)]
+    [range(0,1000)]
 #endif
-	uint32 num_sids;
+    uint32 num_sids;
 #ifdef _DCE_IDL_
-	[size_is(num_sids)]
+    [size_is(num_sids)]
 #endif
-	SidPtr *sids;
+    SidPtr *sids;
 } SidArray;
 
 
