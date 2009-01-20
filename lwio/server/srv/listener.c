@@ -88,6 +88,7 @@ SrvListenerInit(
     )
 {
     NTSTATUS ntStatus = 0;
+    uuid_t   guid;
 
     memset(&pListener->context, 0, sizeof(pListener->context));
 
@@ -98,6 +99,24 @@ SrvListenerInit(
     pListener->context.pReaderArray = pReaderArray;
     pListener->context.ulNumReaders = ulNumReaders;
     pListener->context.bStop = FALSE;
+
+    uuid_generate(guid);
+    uuid_unparse(guid, pListener->context.serverProperties.GUID);
+
+    pListener->context.serverProperties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
+    pListener->context.serverProperties.bEnableSecuritySignatures = TRUE;
+    pListener->context.serverProperties.bRequireSecuritySignatures = TRUE;
+    pListener->context.serverProperties.bEncryptPasswords = TRUE;
+    pListener->context.serverProperties.MaxRawSize = 64 * 1024;
+    pListener->context.serverProperties.MaxMpxCount = 50;
+    pListener->context.serverProperties.MaxNumberVCs = 1;
+    pListener->context.serverProperties.MaxBufferSize = 16644;
+    pListener->context.serverProperties.Capabilities = 0;
+    pListener->context.serverProperties.Capabilities |= CAP_UNICODE;
+    pListener->context.serverProperties.Capabilities |= CAP_NT_SMBS;
+    pListener->context.serverProperties.Capabilities |= CAP_STATUS32;
+    pListener->context.serverProperties.Capabilities |= CAP_EXTENDED_SECURITY;
+
 
     ntStatus = pthread_create(
                     &pListener->listener,
@@ -236,6 +255,7 @@ SrvListenerMain(
         dwError = SrvConnectionCreate(
                         pSocket,
                         pContext->hPacketAllocator,
+                        &pContext->serverProperties,
                         &pConnection);
         BAIL_ON_SMB_ERROR(dwError);
 

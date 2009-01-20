@@ -49,7 +49,8 @@
 #include "config.h"
 #include "lwiosys.h"
 
-#include "sqlite3.h"
+#include <sqlite3.h>
+#include <uuid/uuid.h>
 
 #include "lwio/lwio.h"
 

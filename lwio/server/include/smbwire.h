@@ -559,6 +559,15 @@ typedef struct
 
 typedef struct
 {
+    /* wordCount and byteCount are handled at a higher layer */
+
+    uint16_t dialectIndex;       /* Index of selected dialect */
+    uint16_t byteCount;           /* Count of data bytes */
+
+}  __attribute__((__packed__))  NEGOTIATE_INVALID_RESPONSE_HEADER;
+
+typedef struct
+{
     uint16_t byteCount;
 } __attribute__((__packed__)) NEGOTIATE_REQUEST_HEADER;
 

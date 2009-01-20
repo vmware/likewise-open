@@ -22,6 +22,7 @@ NTSTATUS
 SrvConnectionCreate(
     PSMB_SRV_SOCKET pSocket,
     HANDLE          hPacketAllocator,
+    PSMB_SRV_PROPERTIES pServerProperties,
     PSMB_SRV_CONNECTION* ppConnection
     )
 {
@@ -40,6 +41,8 @@ SrvConnectionCreate(
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->state = SMB_SRV_CONN_STATE_INITIAL;
     pConnection->pSocket = pSocket;
+
+    memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
 
     *ppConnection = pConnection;
 
@@ -303,6 +306,9 @@ SrvConnectionRelease(
                 pConnection->hPacketAllocator,
                 pConnection->readerState.pRequestPacket);
         }
+
+        SMB_SAFE_FREE_MEMORY(pConnection->pSessionKey);
+
         if (pConnection->pMutex)
         {
             pthread_mutex_destroy(pConnection->pMutex);

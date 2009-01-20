@@ -133,6 +133,21 @@ typedef struct _SMB_SRV_SOCKET
 
 } SMB_SRV_SOCKET, *PSMB_SRV_SOCKET;
 
+typedef struct _SMB_SRV_PROPERTIES
+{
+    SMB_SECURITY_MODE preferredSecurityMode;
+    BOOLEAN           bEncryptPasswords;
+    BOOLEAN           bEnableSecuritySignatures;
+    BOOLEAN           bRequireSecuritySignatures;
+    USHORT            MaxMpxCount;
+    USHORT            MaxNumberVCs;
+    ULONG             MaxBufferSize;
+    ULONG             MaxRawSize;
+    ULONG             Capabilities;
+    CHAR              GUID[16];
+
+} SMB_SRV_PROPERTIES, *PSMB_SRV_PROPERTIES;
+
 typedef struct _SMB_SRV_CONNECTION
 {
     pthread_mutex_t     mutex;
@@ -143,6 +158,8 @@ typedef struct _SMB_SRV_CONNECTION
     SMB_SRV_CONN_STATE  state;
 
     PSMB_SRV_SOCKET     pSocket;
+
+    SMB_SRV_PROPERTIES  serverProperties;
 
     // Invariant
     // Not owned
@@ -156,6 +173,8 @@ typedef struct _SMB_SRV_CONNECTION
         PSMB_PACKET     pRequestPacket;
 
     } readerState;
+
+    PBYTE               pSessionKey;
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
 
@@ -221,6 +240,8 @@ typedef struct _SMB_SRV_LISTENER_CONTEXT
     pthread_mutex_t* pMutex;
 
     BOOLEAN bStop;
+
+    SMB_SRV_PROPERTIES serverProperties;
 
     // Invariant
     // Not owned
