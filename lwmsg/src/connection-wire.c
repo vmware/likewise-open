@@ -732,6 +732,7 @@ lwmsg_connection_recv_greeting(
     ConnectionPacket* packet = NULL;
     int fd = -1;
     LWMsgSessionManager* manager = NULL;
+    size_t assoc_count = 0;
 
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
 
@@ -796,7 +797,15 @@ lwmsg_connection_recv_greeting(
     }
 
     /* Register session with local session manager */
-    BAIL_ON_ERROR(status = lwmsg_session_manager_enter_session(manager, (LWMsgSessionID*) packet->contents.greeting.smid, priv->sec_token, &priv->session));
+    BAIL_ON_ERROR(status = lwmsg_session_manager_enter_session(
+                      manager,
+                      (LWMsgSessionID*) packet->contents.greeting.smid,
+                      priv->sec_token,
+                      &priv->session,
+                      &assoc_count));
+
+    /* Record whether we are the session leader (first assoc in a session) */
+    priv->is_session_leader = (assoc_count == 1);
 
     /* Discard packet */
     BAIL_ON_ERROR(status = lwmsg_connection_discard_recv_packet(assoc, packet));

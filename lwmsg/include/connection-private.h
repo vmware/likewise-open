@@ -135,6 +135,7 @@ typedef struct ConnectionPrivate
     LWMsgSecurityToken* sec_token;
     LWMsgSession* session;
     LWMsgConnectionSignal* interrupt;
+    unsigned is_session_leader:1;
 } ConnectionPrivate;
 
 typedef enum ConnectionGreetingFlags

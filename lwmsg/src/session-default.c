@@ -235,7 +235,8 @@ default_enter_session(
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSession** out_session
+    LWMsgSession** out_session,
+    size_t* assoc_count
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -279,6 +280,11 @@ default_enter_session(
 
     *out_session = session;
 
+    if (assoc_count)
+    {
+        *assoc_count = session->refs;
+    }
+
 error:
 
     return status;
@@ -288,13 +294,19 @@ static
 LWMsgStatus 
 default_leave_session(
     LWMsgSessionManager* manager,
-    LWMsgSession* session
+    LWMsgSession* session,
+    size_t* assoc_count
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     DefaultPrivate* priv = lwmsg_session_manager_get_private(manager);
     
     session->refs--;
+
+    if (assoc_count)
+    {
+        *assoc_count = session->refs;
+    }
 
     if (session->refs == 0)
     {

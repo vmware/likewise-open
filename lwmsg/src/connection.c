@@ -104,7 +104,7 @@ lwmsg_connection_destruct(
             abort();
         }
 
-        if (lwmsg_session_manager_leave_session(manager, priv->session))
+        if (lwmsg_session_manager_leave_session(manager, priv->session, NULL))
         {
             /* Neither should this */
             abort();

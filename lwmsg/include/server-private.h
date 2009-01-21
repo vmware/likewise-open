@@ -79,6 +79,7 @@ struct LWMsgServer
     LWMsgTime timeout;
     void* user_data;
     LWMsgServerConnectFunction connect_callback;
+    LWMsgServerConnectFunction session_callback;
 
     /* Worker thread pool */
     pthread_t* worker_threads;

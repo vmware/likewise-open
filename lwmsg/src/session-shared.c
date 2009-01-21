@@ -291,7 +291,8 @@ shared_enter_session(
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSession** out_session
+    LWMsgSession** out_session,
+    size_t* assoc_count
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -344,6 +345,11 @@ shared_enter_session(
 
     *out_session = session;
 
+    if (assoc_count)
+    {
+        *assoc_count = session->refs;
+    }
+
 error:
 
     shared_unlock(priv);
@@ -355,7 +361,8 @@ static
 LWMsgStatus 
 shared_leave_session(
     LWMsgSessionManager* manager,
-    LWMsgSession* session
+    LWMsgSession* session,
+    size_t* assoc_count
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -364,6 +371,11 @@ shared_leave_session(
     shared_lock(priv);
 
     session->refs--;
+
+    if (assoc_count)
+    {
+        *assoc_count = session->refs;
+    }
 
     if (session->refs == 0)
     {

@@ -94,13 +94,15 @@ typedef struct LWMsgSessionManagerClass
         LWMsgSessionManager* manager,
         const LWMsgSessionID* rsmid,
         LWMsgSecurityToken* rtoken,
-        LWMsgSession** session
+        LWMsgSession** session,
+        size_t* assoc_count
         );
 
     LWMsgStatus 
     (*leave_session) (
         LWMsgSessionManager* manager,
-        LWMsgSession* session
+        LWMsgSession* session,
+        size_t* assoc_count
         );
 
     LWMsgStatus

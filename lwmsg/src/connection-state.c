@@ -340,15 +340,20 @@ lwmsg_connection_do_shutdown(
     /* Remove ourselves from the session, if present */
     if (priv->session)
     {
+        size_t num_handles = 0;
+        size_t num_assocs = 0;
+
         BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-        /* Check if our session will be lost by doing the shutdown */
-        if (lwmsg_session_manager_get_session_assoc_count(manager, priv->session) == 1 &&
-            lwmsg_session_manager_get_session_handle_count(manager, priv->session) > 0)
+        num_handles = lwmsg_session_manager_get_session_handle_count(manager, priv->session);
+        BAIL_ON_ERROR(status = lwmsg_session_manager_leave_session(manager, priv->session, &num_assocs));
+        priv->session = NULL;
+
+        if (num_handles > 0 && num_assocs == 0)
         {
+            /* If there were handles in the session, but there are no longer any associations
+               keeping the session alive, we have lost our session and cannot reset the connection */
             session_lost = LWMSG_TRUE;
         }
-        BAIL_ON_ERROR(status = lwmsg_session_manager_leave_session(manager, priv->session));
-        priv->session = NULL;
     }
 
 

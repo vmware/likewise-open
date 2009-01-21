@@ -53,13 +53,15 @@ lwmsg_session_manager_enter_session (
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSession** session
+    LWMsgSession** session,
+    size_t* assoc_count
     );
 
 LWMsgStatus 
 lwmsg_session_manager_leave_session (
     LWMsgSessionManager* manager,
-    LWMsgSession* session
+    LWMsgSession* session,
+    size_t* assoc_count
     );
 
 LWMsgStatus

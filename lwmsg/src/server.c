@@ -239,8 +239,11 @@ lwmsg_server_accept_client(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = NULL;
+    ConnectionPrivate* priv = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_connection_new(server->protocol, &assoc));
+
+    priv = lwmsg_assoc_get_private(assoc);
 
     /* Make assoc's internal context route through us */
     assoc->context.parent = &server->context;
@@ -279,6 +282,15 @@ lwmsg_server_accept_client(
     if (server->connect_callback)
     {
         status = server->connect_callback(
+            server,
+            assoc,
+            server->user_data);
+    }
+
+    if (status == LWMSG_STATUS_SUCCESS &&
+        server->session_callback && priv->is_session_leader)
+    {
+        status = server->session_callback(
             server,
             assoc,
             server->user_data);
@@ -1193,6 +1205,30 @@ lwmsg_server_set_connect_callback(
     }
 
     server->connect_callback = func;
+
+error:
+
+    lwmsg_server_unlock(server);
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_server_set_session_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    lwmsg_server_lock(server);
+
+    if (server->state != LWMSG_SERVER_STOPPED)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+    }
+
+    server->session_callback = func;
 
 error:
 
