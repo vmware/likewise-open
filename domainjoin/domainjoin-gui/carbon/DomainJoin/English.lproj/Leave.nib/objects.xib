@@ -4,14 +4,14 @@
   <object name="rootObject" class="NSCustomObject" id="1">
     <null name="customClass"/>
   </object>
-  <array count="14" name="allObjects">
+  <array count="17" name="allObjects">
     <object class="IBCarbonWindow" id="166">
-      <string name="windowRect">406 563 707 940 </string>
+      <string name="windowRect">528 96 906 473 </string>
       <string name="title">Likewise Domain Join</string>
       <object name="rootControl" class="IBCarbonRootControl" id="167">
-        <string name="bounds">0 0 301 377 </string>
-        <string name="viewFrame">0 0 377 301 </string>
-        <array count="10" name="subviews">
+        <string name="bounds">0 0 378 377 </string>
+        <string name="viewFrame">0 0 377 378 </string>
+        <array count="11" name="subviews">
           <object class="IBCarbonStaticText" id="181">
             <string name="bounds">26 88 62 357 </string>
             <string name="viewFrame">88 26 269 36 </string>
@@ -56,8 +56,8 @@
             <int name="controlSize">1</int>
           </object>
           <object class="IBCarbonButton" id="188">
-            <string name="bounds">261 276 281 346 </string>
-            <string name="viewFrame">276 261 70 20 </string>
+            <string name="bounds">338 276 358 346 </string>
+            <string name="viewFrame">276 338 70 20 </string>
             <ostype name="controlSignature">CnTs</ostype>
             <int name="controlID">309</int>
             <string name="title">Close</string>
@@ -72,7 +72,7 @@
                 <string name="bounds">207 40 220 266 </string>
                 <string name="viewFrame">20 24 226 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
-                <int name="controlID">307</int>
+                <int name="controlID">313</int>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">To leave the current domain, click Leave.</string>
@@ -98,7 +98,7 @@
             <string name="bounds">121 20 134 122 </string>
             <string name="viewFrame">20 121 102 13 </string>
             <ostype name="controlSignature">CnTs</ostype>
-            <int name="controlID">305</int>
+            <int name="controlID">307</int>
             <boolean name="small">TRUE</boolean>
             <int name="controlSize">1</int>
             <string name="title">Location:</string>
@@ -111,6 +111,29 @@
             <boolean name="small">TRUE</boolean>
             <int name="controlSize">1</int>
           </object>
+          <object class="IBCarbonGroupBox" id="196">
+            <string name="bounds">260 20 322 357 </string>
+            <string name="viewFrame">20 260 337 62 </string>
+            <array count="2" name="subviews">
+              <object class="IBCarbonStaticText" id="198">
+                <string name="bounds">284 40 297 266 </string>
+                <string name="viewFrame">20 24 226 13 </string>
+                <ostype name="controlSignature">CnTs</ostype>
+                <int name="controlID">311</int>
+                <boolean name="small">TRUE</boolean>
+                <int name="controlSize">1</int>
+                <string name="title">Migrate local account profile to AD profile.</string>
+              </object>
+              <object class="IBCarbonButton" id="197">
+                <string name="bounds">281 274 301 350 </string>
+                <string name="viewFrame">254 21 76 20 </string>
+                <ostype name="controlSignature">CnTs</ostype>
+                <int name="controlID">312</int>
+                <string name="title">Migrate</string>
+                <ostype name="command">migr</ostype>
+              </object>
+            </array>
+          </object>
         </array>
       </object>
       <boolean name="receiveUpdates">FALSE</boolean>
@@ -118,7 +141,6 @@
       <boolean name="liveResize">TRUE</boolean>
       <boolean name="compositing">TRUE</boolean>
       <int name="carbonWindowClass">4</int>
-      <int name="themeBrush">-2</int>
       <int name="windowPosition">1</int>
       <boolean name="isConstrained">FALSE</boolean>
       <boolean name="hideOnFullScreen">TRUE</boolean>
@@ -140,8 +162,11 @@
     <reference idRef="193"/>
     <reference idRef="194"/>
     <reference idRef="195"/>
+    <reference idRef="196"/>
+    <reference idRef="197"/>
+    <reference idRef="198"/>
   </array>
-  <array count="14" name="allParents">
+  <array count="17" name="allParents">
     <reference idRef="1"/>
     <reference idRef="166"/>
     <reference idRef="167"/>
@@ -156,6 +181,9 @@
     <reference idRef="189"/>
     <reference idRef="167"/>
     <reference idRef="167"/>
+    <reference idRef="167"/>
+    <reference idRef="196"/>
+    <reference idRef="196"/>
   </array>
   <dictionary count="2" name="nameTable">
     <string>File&apos;s Owner</string>
@@ -163,5 +191,5 @@
     <string>Window</string>
     <reference idRef="166"/>
   </dictionary>
-  <unsigned_int name="nextObjectID">196</unsigned_int>
+  <unsigned_int name="nextObjectID">199</unsigned_int>
 </object>

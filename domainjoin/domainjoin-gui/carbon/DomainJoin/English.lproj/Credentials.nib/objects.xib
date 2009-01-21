@@ -100,7 +100,6 @@
       <boolean name="liveResize">TRUE</boolean>
       <boolean name="compositing">TRUE</boolean>
       <int name="carbonWindowClass">11</int>
-      <int name="themeBrush">-2</int>
       <int name="windowPosition">1</int>
       <boolean name="isConstrained">FALSE</boolean>
       <boolean name="hideOnFullScreen">TRUE</boolean>

@@ -30,6 +30,9 @@
 		8D0C4E8E0486CD37000505A6 /* main.nib in Resources */ = {isa = PBXBuildFile; fileRef = 02345980000FD03B11CA0E72 /* main.nib */; };
 		8D0C4E900486CD37000505A6 /* main.cp in Sources */ = {isa = PBXBuildFile; fileRef = 20286C2BFDCF999611CA2CEA /* main.cp */; settings = {ATTRIBUTES = (); }; };
 		8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20286C33FDCF999611CA2CEA /* Carbon.framework */; };
+		F22FEAF30F200BD100D859C2 /* DirectoryService.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F22FEAF20F200BD100D859C2 /* DirectoryService.framework */; };
+		F27E68560F1DC51800DA4135 /* Migrate.nib in Resources */ = {isa = PBXBuildFile; fileRef = F27E68540F1DC51800DA4135 /* Migrate.nib */; };
+		F2971E2B0F1DDF24000C3A41 /* DomainMigrateWindow.cp in Sources */ = {isa = PBXBuildFile; fileRef = F2971E2A0F1DDF24000C3A41 /* DomainMigrateWindow.cp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -79,6 +82,10 @@
 		61E547340C73A8A1006C3011 /* keys.rsrc */ = {isa = PBXFileReference; lastKnownFileType = archive.rsrc; path = keys.rsrc; sourceTree = "<group>"; };
 		61EA2ABE0C718B2C0054FE40 /* DomainJoin.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = DomainJoin.icns; sourceTree = "<group>"; };
 		8D0C4E960486CD37000505A6 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Info.plist; sourceTree = "<group>"; };
+		F22FEAF20F200BD100D859C2 /* DirectoryService.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DirectoryService.framework; path = /Developer/SDKs/MacOSX10.4u.sdk/System/Library/Frameworks/DirectoryService.framework; sourceTree = "<absolute>"; };
+		F27E68550F1DC51800DA4135 /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/Migrate.nib; sourceTree = "<group>"; };
+		F2971E2A0F1DDF24000C3A41 /* DomainMigrateWindow.cp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = DomainMigrateWindow.cp; sourceTree = "<group>"; };
+		F2971E350F1DE6FB000C3A41 /* DomainMigrateWindow.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = DomainMigrateWindow.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +95,7 @@
 			files = (
 				8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */,
 				47C25E370C750800008F66A3 /* Security.framework in Frameworks */,
+				F22FEAF30F200BD100D859C2 /* DirectoryService.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -120,6 +128,8 @@
 		20286C2AFDCF999611CA2CEA /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				F2971E350F1DE6FB000C3A41 /* DomainMigrateWindow.h */,
+				F2971E2A0F1DDF24000C3A41 /* DomainMigrateWindow.cp */,
 				47BFBD9E0C69356C00AAC31B /* DomainJoinStatus.h */,
 				47C276F80C6A4E6400C03CF2 /* DomainJoinException.h */,
 				61D053A30C6BB85200A44DF7 /* DomainJoinException.cp */,
@@ -145,6 +155,7 @@
 		20286C2CFDCF999611CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				F27E68540F1DC51800DA4135 /* Migrate.nib */,
 				47BFBC7D0C6920EE00AAC31B /* Join.nib */,
 				47BFBC780C69206900AAC31B /* Leave.nib */,
 				47BFBC750C69205A00AAC31B /* Credentials.nib */,
@@ -158,6 +169,7 @@
 		20286C32FDCF999611CA2CEA /* External Frameworks and Libraries */ = {
 			isa = PBXGroup;
 			children = (
+				F22FEAF20F200BD100D859C2 /* DirectoryService.framework */,
 				47C25E360C750800008F66A3 /* Security.framework */,
 				20286C33FDCF999611CA2CEA /* Carbon.framework */,
 				4A9504CAFFE6A41611CA0CBA /* CoreServices.framework */,
@@ -223,7 +235,6 @@
 		20286C28FDCF999611CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = C0E91AC908A95435008D54AB /* Build configuration list for PBXProject "DomainJoin" */;
-			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 1;
 			mainGroup = 20286C29FDCF999611CA2CEA /* DomainJoin */;
 			projectDirPath = "";
@@ -245,6 +256,7 @@
 				47BFBC7A0C69206900AAC31B /* Leave.nib in Resources */,
 				47BFBC7F0C6920EE00AAC31B /* Join.nib in Resources */,
 				61EA2ABF0C718B2C0054FE40 /* DomainJoin.icns in Resources */,
+				F27E68560F1DC51800DA4135 /* Migrate.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -280,6 +292,7 @@
 				61D053AA0C6BB85200A44DF7 /* DomainLeaveWindow.cp in Sources */,
 				61D056C10C710D1400A44DF7 /* CredentialsDialog.cp in Sources */,
 				61D059F90C716B9A00A44DF7 /* TSheet.cp in Sources */,
+				F2971E2B0F1DDF24000C3A41 /* DomainMigrateWindow.cp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -326,6 +339,14 @@
 			name = Join.nib;
 			sourceTree = "<group>";
 		};
+		F27E68540F1DC51800DA4135 /* Migrate.nib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				F27E68550F1DC51800DA4135 /* English */,
+			);
+			name = Migrate.nib;
+			sourceTree = "<group>";
+		};
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
@@ -334,6 +355,11 @@
 			baseConfigurationReference = 5048396E09E3307300765E4B /* DomainJoinTarget.xcconfig */;
 			buildSettings = {
 				COPY_PHASE_STRIP = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/MacOSX10.4u.sdk/System/Library/Frameworks\"";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(LIBRARY_SEARCH_PATHS_QUOTED_1)",
@@ -348,6 +374,11 @@
 			baseConfigurationReference = 5048396E09E3307300765E4B /* DomainJoinTarget.xcconfig */;
 			buildSettings = {
 				DEAD_CODE_STRIPPING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/MacOSX10.4u.sdk/System/Library/Frameworks\"";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
