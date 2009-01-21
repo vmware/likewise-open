@@ -277,6 +277,8 @@ lwmsg_marshal_struct(LWMsgContext* context, LWMsgTypeIter* iter, unsigned char* 
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTypeIter member;
 
+    iter->dom_object = object;
+
     for (lwmsg_type_enter(iter, &member);
          lwmsg_type_valid(&member);
          lwmsg_type_next(&member))
@@ -330,7 +332,7 @@ lwmsg_marshal_pointer(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     unsigned char ptr_flag;
 
-    /* Write an indicator byte showing whether the pointer is set */
+    /* Indicator byte showing whether the pointer is set */
     ptr_flag = *(void**) object ? 0xFF : 0x00;
 
     /* Enforce nullability */
@@ -339,7 +341,11 @@ lwmsg_marshal_pointer(
         BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
     }
 
-    BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, &ptr_flag, 1));
+    /* Only write pointer flag for nullable pointers */
+    if (!iter->attrs.nonnull)
+    {
+        BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, &ptr_flag, 1));
+    }
 
     if (ptr_flag)
     {

@@ -335,15 +335,14 @@ lwmsg_type_iterate_promoted(
     {
     case LWMSG_CMD_INTEGER:
     case LWMSG_CMD_STRUCT:
+        memset(iter, 0, sizeof(*iter));
         iter->kind = LWMSG_KIND_POINTER;
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
         iter->info.kind_indirect.term_info.static_length = 1;
         iter->inner = spec;
-        iter->next = NULL;
         iter->verify = lwmsg_type_verify_not_null;
-        iter->verify_data = NULL;
         iter->size = sizeof(void*);
-        iter->offset = 0;
+        iter->attrs.nonnull = LWMSG_TRUE;
         break;
     default:
         lwmsg_type_iterate(spec, iter);

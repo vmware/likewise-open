@@ -112,14 +112,10 @@ MU_TEST(marshal, basic)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* -42 */
         0xFF, 0xD6,
         /* 2 */
         0x00, 0x00, 0x00, 0x02,
-        /* pointer */
-        0xFF,
         /* 1234 */
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xD2,
         /* 4321 */
@@ -183,8 +179,6 @@ MU_TEST(marshal, basic_verify_unmarshal_failure)
         0x00, 0x0C,
         /* 2 */
         0x00, 0x00, 0x00, 0x02,
-        /* pointer */
-        0xFF,
         /* 1234 */
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xD2,
         /* 4321 */
@@ -208,8 +202,6 @@ MU_TEST(marshal, basic_verify_range_failure)
 {
     static const unsigned char bytes[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* -42 */
         0xFF, 0xD6,
         /* 9 */
@@ -239,14 +231,10 @@ MU_TEST(marshal, basic_verify_null_failure)
 {
     static const unsigned char bytes[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* -42 */
         0xFF, 0xD6,
         /* 2 */
         0x00, 0x00, 0x00, 0x02,
-        /* pointer is NULL */
-        0x00
     };
 
     LWMsgTypeSpec* type = basic_spec;
@@ -281,8 +269,6 @@ MU_TEST(marshal, string)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* foo set */
         0xFF,
         /* foo length */
@@ -348,8 +334,6 @@ MU_TEST(marshal, struct_array)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* len = 2 */
         0x00, 0x00, 0x00, 0x02,
         /* foo set */
@@ -406,8 +390,6 @@ MU_TEST(marshal, string_array)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* strings = (set) */
         0xFF,
         /* (implicit) length of "strings" = 3 */
@@ -457,8 +439,6 @@ MU_TEST(marshal, string_array_empty)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* strings = (set) */
         0xFF,
         /* (implicit) length of "strings" = 1 */
@@ -494,8 +474,6 @@ MU_TEST(marshal, string_array_null)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* strings = (not set) */
         0x00
     };
@@ -572,8 +550,6 @@ MU_TEST(marshal, two_union)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* tag1 = 1 */
         0x01,
         /* u1 = set */
@@ -649,8 +625,6 @@ MU_TEST(marshal, nested_struct)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* foo = 42 */
         0x00, 0x00, 0x00, 0x2A,
         /* inner.foo = 24 */
@@ -716,8 +690,6 @@ MU_TEST(marshal, nested_union)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* tag1 = 2 */
         0x02,
         /* u1.string = (set) */
@@ -782,8 +754,6 @@ MU_TEST(marshal, inline_array)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* foo = 1 */
         0x00, 0x01,
         /* array[0] = 2 */
@@ -842,8 +812,6 @@ MU_TEST(marshal, flexible_string)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* foo = 42 */
         0x00, 0x2A,
         /* string length = 4 (implicit) */
@@ -899,8 +867,6 @@ MU_TEST(marshal, flexible_array)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* len = 2 */
         0x00, 0x02,
         /* array[0] = 1 */
@@ -985,8 +951,6 @@ MU_TEST(marshal, info_level_1)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set */
-        0xFF,
         /* length */
         0x00, 0x00, 0x00, 0x02,
         /* level */
@@ -1038,8 +1002,6 @@ MU_TEST(marshal, info_level_2)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set */
-        0xFF,
         /* length */
         0x00, 0x00, 0x00, 0x02,
         /* level */

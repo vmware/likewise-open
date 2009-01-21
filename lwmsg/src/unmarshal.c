@@ -362,8 +362,16 @@ lwmsg_unmarshal_pointer(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     unsigned char ptr_flag;
     
-    /* A single byte indicates whether the pointer is NULL or not. */
-    BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &ptr_flag, sizeof(ptr_flag)));
+    if (iter->attrs.nonnull)
+    {
+        /* If pointer is never null, there is no flag in the stream */
+        ptr_flag = 0xFF;
+    }
+    else
+    {
+        /* A flag in the stream indicates whether the pointer is NULL or not. */
+        BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &ptr_flag, sizeof(ptr_flag)));
+    }
     
     if (ptr_flag)
     {
@@ -374,15 +382,6 @@ lwmsg_unmarshal_pointer(
                           iter,
                           buffer,
                           (unsigned char**) out));
-    }
-    else
-    {
-        if (iter->attrs.nonnull)
-        {
-            /* The pointer was supposed to be non-null */
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
-        }
-        *out = NULL;
     }
 
 error:
@@ -444,6 +443,8 @@ lwmsg_unmarshal_struct(
     {
         *flexible_member = NULL;
     }
+
+    iter->dom_object = object;
 
     for (lwmsg_type_enter(iter, &member);
          lwmsg_type_valid(&member);
