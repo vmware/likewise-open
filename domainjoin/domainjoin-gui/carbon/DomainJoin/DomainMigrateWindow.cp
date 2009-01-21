@@ -425,11 +425,13 @@ exit:
 }
 
 void
-DomainMigrateWindow::ShowMigrateCompleteDialog()
+DomainMigrateWindow::ShowMigrateCompleteDialog(const std::string& value)
 {
     SInt16 outItemHit;
     char msgStr[256];
-    sprintf(msgStr, "Account migration complete!");
+    sprintf(msgStr,
+            "Account migration complete!\n\nMigration processing logs can be found at:\n\t/tmp/lw-migrate.%s.log",
+            value.c_str());
     CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
     CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
     StandardAlert(kAlertNoteAlert,
@@ -571,7 +573,7 @@ DomainMigrateWindow::HandleMigration()
             }
 
             HideMigrateProgressBar();
-            ShowMigrateCompleteDialog();
+            ShowMigrateCompleteDialog(localUserName);
 
             // Okay to switch back to Leave dialog since the migration is completed
             PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);

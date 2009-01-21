@@ -128,7 +128,7 @@ class DomainMigrateWindow : public TWindow
                               const std::string& adUserUID,
                               const std::string& adUserGID,
                               bool  bMoveProfile);
-		void ShowMigrateCompleteDialog();
+		void ShowMigrateCompleteDialog(const std::string& value);
         void HideMigrateProgressBar();
         void ShowMigrateProgressBar();
 
