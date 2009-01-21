@@ -582,9 +582,20 @@ LsaLdapBindDirectory(
 #endif
 
         display_status("gss_init_context", dwMajorStatus, dwMinorStatus);
-        if (dwMajorStatus == GSS_S_FAILURE &&
+        if (
+            (dwMajorStatus == GSS_S_FAILURE &&
                 (dwMinorStatus == (DWORD)KRB5KRB_AP_ERR_TKT_EXPIRED ||
-                 dwMinorStatus == (DWORD)KRB5KDC_ERR_NEVER_VALID))
+                 dwMinorStatus == (DWORD)KRB5KDC_ERR_NEVER_VALID)) ||
+            (dwMajorStatus == GSS_S_CRED_UNAVAIL &&
+                dwMinorStatus == 0x25ea10c /* This is KG_EMPTY_CCACHE
+                                            * inside of gssapi, but that symbol
+                                            * is not exposed externally. This
+                                            * code means that the credentials
+                                            * cache does not have a TGT inside
+                                            * of it.
+                                            */
+                )
+            )
         {
             /* The kerberos ticket expired or is about to expire (The
              * machine password sync thread didn't do its job).
