@@ -505,5 +505,7 @@ LsaSrvFreeEnumState(
         }
 
         LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(pState->bInLock);
+
+        LsaFreeMemory(pState);
     }
 }
