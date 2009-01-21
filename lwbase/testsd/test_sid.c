@@ -130,7 +130,6 @@ int TestSidAllocateAndInit(struct test *t,
     SID *pSid = NULL;
     unsigned int *subauth = NULL;
     DWORD dwSubAuthCount = 0;
-    wchar16_t *pwszSidStr = NULL;
 
     TESTINFO(t);
 
@@ -192,10 +191,6 @@ int TestSidAllocateAndInit(struct test *t,
 done:
     if (pSid) {
         SidFree(pSid);
-    }
-
-    if (pwszSidStr) {
-        SdFreeMemory((void*)pwszSidStr);
     }
 
     if (subauth) {
