@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -94,17 +94,12 @@ DecodeDomSid(
 
     r->subauth_count = GET_UINT8(buf, ofs);
     ofs += 1;
-    if (r->subauth_count > 15) {
+    if (r->subauth_count > MAXIMUM_SUBAUTHORITY_COUNT) {
         return ERROR_INVALID_SID;
     }
 
     memcpy(r->authid, &buf[ofs], 6);
     ofs += 6;
-
-    r->subauth = (uint32 *)allocfn(allocpv, sizeof(uint32) * r->subauth_count);
-    if (!r->subauth) {
-        return ERROR_NOT_ENOUGH_MEMORY;
-    }
 
     for (i = 0; i < r->subauth_count; i++) {
             if ((ofs + 4) > buflen) {
@@ -863,6 +858,7 @@ NET_API_STATUS SecurityDescriptorToBuffer(
     *buflen = ofs;
     return ERROR_SUCCESS;
 }
+
 
 /*
 local variables:
