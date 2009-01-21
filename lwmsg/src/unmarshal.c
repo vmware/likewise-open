@@ -656,6 +656,9 @@ lwmsg_unmarshal_internal(
 
     switch (iter->kind)
     {
+    case LWMSG_KIND_VOID:
+        /* Nothing to unmarshal */
+        break;
     case LWMSG_KIND_INTEGER:
         BAIL_ON_ERROR(status = lwmsg_unmarshal_integer_immediate(
                           state,

@@ -380,6 +380,9 @@ lwmsg_marshal_internal(
 
     switch (iter->kind)
     {
+    case LWMSG_KIND_VOID:
+        /* Nothing to marshal */
+        break;
     case LWMSG_KIND_INTEGER:
         BAIL_ON_ERROR(status = lwmsg_marshal_integer(context, state, iter, object, buffer));
         break;

@@ -72,6 +72,9 @@ lwmsg_type_find_end(
                 goto done;
             }
             break;
+        case LWMSG_CMD_VOID:
+            spec += is_member ? 1 : 0;
+            break;
         case LWMSG_CMD_INTEGER:
             spec += is_member ? 4 : 3;
             break;
@@ -245,6 +248,14 @@ lwmsg_type_iterate(
         iter->kind = LWMSG_KIND_CUSTOM;
         iter->info.kind_custom.typeclass = (LWMsgCustomTypeClass*) *(spec++);
         iter->info.kind_custom.typedata = (void*) *(spec++);
+        break;
+    case LWMSG_CMD_VOID:
+        if (cmd & LWMSG_FLAG_MEMBER)
+        {
+            iter->size = *(spec++);
+            iter->offset = *(spec++);
+        }
+        iter->kind = LWMSG_KIND_VOID;
         break;
     case LWMSG_CMD_TERMINATION:
     case LWMSG_CMD_TAG:

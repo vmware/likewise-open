@@ -503,6 +503,7 @@ MU_TEST(marshal, string_array_null)
 
 #define TAG_NUMBER 1
 #define TAG_STRING 2
+#define TAG_EMPTY  3
 
 typedef union
 {
@@ -517,6 +518,8 @@ static LWMsgTypeSpec number_string_spec[] =
     LWMSG_ATTR_TAG(TAG_NUMBER),
     LWMSG_MEMBER_PSTR(number_string_union, string),
     LWMSG_ATTR_TAG(TAG_STRING),
+    LWMSG_VOID,
+    LWMSG_ATTR_TAG(TAG_EMPTY),
     LWMSG_UNION_END,
     LWMSG_TYPE_END
 };
@@ -727,6 +730,42 @@ MU_TEST(marshal, nested_union)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag1, out->tag1);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag2, out->tag2);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, unions.u1.string, out->u1.string);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.u2.number, out->u2.number);
+}
+
+MU_TEST(marshal, nested_union_empty)
+{
+    static const unsigned char expected[] =
+    {
+        /* tag1 = 3 (empty) */
+        0x03,
+        /* tag2 = 1 */
+        0x01,
+        /* u2.number = 42 */
+        0x00, 0x00, 0x00, 0x2A
+    };
+
+    LWMsgTypeSpec* type = nested_union_spec;
+    LWMsgBuffer buffer;
+    nested_union_struct unions;
+    nested_union_struct* out;
+
+    unions.tag1 = TAG_EMPTY;
+    unions.tag2 = TAG_NUMBER;
+    unions.u2.number = 42;
+
+    allocate_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &unions, &buffer));
+
+    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+
+    rewind_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
+
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag1, out->tag1);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag2, out->tag2);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.u2.number, out->u2.number);
 }
 

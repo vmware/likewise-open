@@ -129,7 +129,8 @@ typedef enum LWMsgKind
     LWMSG_KIND_UNION,
     LWMSG_KIND_ARRAY,
     LWMSG_KIND_POINTER,
-    LWMSG_KIND_CUSTOM
+    LWMSG_KIND_CUSTOM,
+    LWMSG_KIND_VOID
 } LWMsgKind;
 
 typedef enum LWMsgArrayTermination
@@ -294,6 +295,7 @@ typedef enum LWMsgTypeDirective
         LWMSG_CMD_RANGE,
         LWMSG_CMD_NOT_NULL,
         LWMSG_CMD_CUSTOM_ATTR,
+        LWMSG_CMD_VOID,
         LWMSG_FLAG_MEMBER = 0x10000,
         LWMSG_FLAG_META = 0x20000,
         LWMSG_FLAG_DEBUG = 0x40000
@@ -324,6 +326,15 @@ typedef enum LWMsgTypeDirective
 #endif
 
 #endif /* DOXYGEN */
+
+/**
+ * @brief Specify an empty type
+ *
+ * Specifies an empty (zero-length) type.  This is primarily useful
+ * for indicating empty arms of a union.
+ */
+#define LWMSG_VOID \
+    _TYPECMD(LWMSG_CMD_VOID)
 
 /**
  * @brief Reference another type specification
