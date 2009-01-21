@@ -53,7 +53,8 @@ LwNtLookupCode(
     );
 
 #define NTSTATUS_CODE(code, err, desc) { code, err, #code, desc },
-TABLE_ENTRY codeTable[] =
+static
+TABLE_ENTRY LwNtStatusCodeTable[] =
 {
 #include "ntstatus-table.h"
     {-1, -1, NULL, NULL}
@@ -147,11 +148,11 @@ LwNtLookupCode(
 {
     ULONG index;
 
-    for (index = 0; index < sizeof(codeTable) / sizeof(*codeTable); index++)
+    for (index = 0; index < sizeof(LwNtStatusCodeTable) / sizeof(*LwNtStatusCodeTable); index++)
     {
-        if (codeTable[index].code == code)
+        if (LwNtStatusCodeTable[index].code == code)
         {
-            return &codeTable[index];
+            return &LwNtStatusCodeTable[index];
         }
     }
 
