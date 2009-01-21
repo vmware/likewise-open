@@ -355,8 +355,14 @@ close:
     }
 
 done:
-    if (lsa_policy_info) LsaRpcFreeMemory((void*)lsa_policy_info);
-    SidStrFreeW(sid_str);
+    if (lsa_policy_info) {
+        LsaRpcFreeMemory((void*)lsa_policy_info);
+    }
+
+    if (sid_str) {
+        SidStrFreeW(sid_str);
+    }
+
     SAFE_FREE(nr.RemoteName);
     SAFE_FREE(account_name);
     SAFE_FREE(dns_domain_name);
