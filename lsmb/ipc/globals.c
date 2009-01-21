@@ -28,13 +28,21 @@
  * license@likewisesoftware.com
  */
 
-#define LWMSG_SPEC_DEBUG
-
 #include "includes.h"
 
-LWMsgTypeSpec gFileHandleSpec[] =
+LWMsgTypeSpec gFileHandleExistingSpec[] =
 {
     LWMSG_HANDLE(SMB_FILE_HANDLE),
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_TYPE_END
+};
+
+LWMsgTypeSpec gFileHandleNewSpec[] =
+{
+    LWMSG_HANDLE(SMB_FILE_HANDLE),
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
+    LWMSG_ATTR_NOT_NULL,
     LWMSG_TYPE_END
 };
 
@@ -168,7 +176,7 @@ LWMsgTypeSpec gNamedPipeInfoSpec[] =
 LWMsgTypeSpec gTransactNPRequestSpec[] =
 {
     LWMSG_STRUCT_BEGIN(SMB_TRANSACT_NP_REQUEST),
-    LWMSG_MEMBER_TYPESPEC(SMB_TRANSACT_NP_REQUEST, hNamedPipe, gFileHandleSpec),
+    LWMSG_MEMBER_TYPESPEC(SMB_TRANSACT_NP_REQUEST, hNamedPipe, gFileHandleExistingSpec),
     LWMSG_MEMBER_UINT32(SMB_TRANSACT_NP_REQUEST, dwInBufferSize),
     LWMSG_MEMBER_POINTER_BEGIN(SMB_TRANSACT_NP_REQUEST, pInBuffer),
     LWMSG_UINT8(char),
@@ -192,7 +200,7 @@ LWMsgTypeSpec gWaitNPRequestSpec[] =
 LWMsgTypeSpec gClientComputerNameRequestSpec[] =
 {
     LWMSG_STRUCT_BEGIN(SMB_GET_CLIENT_COMPUTER_NAME_REQUEST),
-    LWMSG_MEMBER_TYPESPEC(SMB_GET_CLIENT_COMPUTER_NAME_REQUEST, hNamedPipe, gFileHandleSpec),
+    LWMSG_MEMBER_TYPESPEC(SMB_GET_CLIENT_COMPUTER_NAME_REQUEST, hNamedPipe, gFileHandleExistingSpec),
     LWMSG_MEMBER_UINT32(SMB_GET_CLIENT_COMPUTER_NAME_REQUEST, dwComputerNameMaxSize),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -218,7 +226,7 @@ LWMsgTypeSpec gIdReplySpec[] =
 LWMsgTypeSpec gPeekRequestSpec[] =
 {
     LWMSG_STRUCT_BEGIN(SMB_PEEK_NP_REQUEST),
-    LWMSG_MEMBER_TYPESPEC(SMB_PEEK_NP_REQUEST, hNamedPipe, gFileHandleSpec),
+    LWMSG_MEMBER_TYPESPEC(SMB_PEEK_NP_REQUEST, hNamedPipe, gFileHandleExistingSpec),
     LWMSG_MEMBER_UINT32(SMB_PEEK_NP_REQUEST, dwInBufferSize),
     LWMSG_MEMBER_POINTER_BEGIN(SMB_PEEK_NP_REQUEST, pInBuffer),
     LWMSG_UINT8(char),
@@ -255,7 +263,7 @@ LWMsgTypeSpec gCreateFileRequestSpec[] =
 LWMsgTypeSpec gSetNamedPipeHandleSpec[] =
 {
     LWMSG_STRUCT_BEGIN(SMB_SETNAMEDPIPEHANDLESTATE_REQUEST),
-    LWMSG_MEMBER_TYPESPEC(SMB_SETNAMEDPIPEHANDLESTATE_REQUEST, hPipe, gFileHandleSpec),
+    LWMSG_MEMBER_TYPESPEC(SMB_SETNAMEDPIPEHANDLESTATE_REQUEST, hPipe, gFileHandleExistingSpec),
     LWMSG_MEMBER_POINTER_BEGIN(SMB_SETNAMEDPIPEHANDLESTATE_REQUEST,    pdwMode),
     LWMSG_UINT8(uint32_t),
     LWMSG_POINTER_END,
@@ -271,7 +279,7 @@ LWMsgTypeSpec gSetNamedPipeHandleSpec[] =
 LWMsgTypeSpec gReadFileRequestSpec[] =
 {
     LWMSG_STRUCT_BEGIN(SMB_READ_FILE_REQUEST),
-    LWMSG_MEMBER_TYPESPEC(SMB_READ_FILE_REQUEST, hFile, gFileHandleSpec),
+    LWMSG_MEMBER_TYPESPEC(SMB_READ_FILE_REQUEST, hFile, gFileHandleExistingSpec),
     LWMSG_MEMBER_UINT32(SMB_READ_FILE_REQUEST, dwBytesToRead),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -292,7 +300,7 @@ LWMsgTypeSpec gReadFileResponseSpec[] =
 LWMsgTypeSpec gWriteFileRequestSpec[] =
 {
     LWMSG_STRUCT_BEGIN(SMB_WRITE_FILE_REQUEST),
-    LWMSG_MEMBER_TYPESPEC(SMB_WRITE_FILE_REQUEST, hFile, gFileHandleSpec),
+    LWMSG_MEMBER_TYPESPEC(SMB_WRITE_FILE_REQUEST, hFile, gFileHandleExistingSpec),
     LWMSG_MEMBER_UINT32(SMB_WRITE_FILE_REQUEST, dwBytesToWrite),
     LWMSG_MEMBER_POINTER_BEGIN(SMB_WRITE_FILE_REQUEST, pBuffer),
     LWMSG_UINT8(BYTE),
@@ -337,12 +345,12 @@ LWMsgProtocolSpec gLSMBProtocolSpec[] =
     LWMSG_MESSAGE(SMB_CALL_NAMED_PIPE_SUCCESS,     gCallNPResponseSpec),
     LWMSG_MESSAGE(SMB_CALL_NAMED_PIPE_FAILED,      gStatusReplySpec),
     LWMSG_MESSAGE(SMB_CREATE_NAMED_PIPE,           gCreateNPRequestSpec),
-    LWMSG_MESSAGE(SMB_CREATE_NAMED_PIPE_SUCCESS,   gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_CREATE_NAMED_PIPE_SUCCESS,   gFileHandleNewSpec),
     LWMSG_MESSAGE(SMB_CREATE_NAMED_PIPE_FAILED,    gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_GET_NAMED_PIPE_INFO,         gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_GET_NAMED_PIPE_INFO,         gFileHandleExistingSpec),
     LWMSG_MESSAGE(SMB_GET_NAMED_PIPE_INFO_SUCCESS, gNamedPipeInfoSpec),
     LWMSG_MESSAGE(SMB_GET_NAMED_PIPE_INFO_FAILED,  gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_CONNECT_NAMED_PIPE,          gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_CONNECT_NAMED_PIPE,          gFileHandleExistingSpec),
     LWMSG_MESSAGE(SMB_CONNECT_NAMED_PIPE_SUCCESS,  gStatusReplySpec),
     LWMSG_MESSAGE(SMB_CONNECT_NAMED_PIPE_FAILED,   gStatusReplySpec),
     LWMSG_MESSAGE(SMB_TRANSACT_NAMED_PIPE,         gTransactNPRequestSpec),
@@ -354,23 +362,23 @@ LWMsgProtocolSpec gLSMBProtocolSpec[] =
     LWMSG_MESSAGE(SMB_GET_CLIENT_COMPUTER_NAME,    gClientComputerNameRequestSpec),
     LWMSG_MESSAGE(SMB_GET_CLIENT_COMPUTER_NAME_SUCCESS, gClientComputerNameResponseSpec),
     LWMSG_MESSAGE(SMB_GET_CLIENT_COMPUTER_NAME_FAILED,  gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_GET_CLIENT_PROCESS_ID,         gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_GET_CLIENT_PROCESS_ID,         gFileHandleExistingSpec),
     LWMSG_MESSAGE(SMB_GET_CLIENT_PROCESS_ID_SUCCESS, gIdReplySpec),
     LWMSG_MESSAGE(SMB_GET_CLIENT_PROCESS_ID_FAILED,  gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_GET_SERVER_PROCESS_ID,         gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_GET_SERVER_PROCESS_ID,         gFileHandleExistingSpec),
     LWMSG_MESSAGE(SMB_GET_SERVER_PROCESS_ID_SUCCESS, gIdReplySpec),
     LWMSG_MESSAGE(SMB_GET_SERVER_PROCESS_ID_FAILED,  gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_GET_CLIENT_SESSION_ID,         gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_GET_CLIENT_SESSION_ID,         gFileHandleExistingSpec),
     LWMSG_MESSAGE(SMB_GET_CLIENT_SESSION_ID_SUCCESS, gIdReplySpec),
     LWMSG_MESSAGE(SMB_GET_CLIENT_SESSION_ID_FAILED,  gStatusReplySpec),
     LWMSG_MESSAGE(SMB_PEEK_NAMED_PIPE,               gPeekRequestSpec),
     LWMSG_MESSAGE(SMB_PEEK_NAMED_PIPE_SUCCESS,       gPeekResponseSpec),
     LWMSG_MESSAGE(SMB_PEEK_NAMED_PIPE_FAILED,        gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_DISCONNECT_NAMED_PIPE,         gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_DISCONNECT_NAMED_PIPE,         gFileHandleExistingSpec),
     LWMSG_MESSAGE(SMB_DISCONNECT_NAMED_PIPE_SUCCESS, gStatusReplySpec),
     LWMSG_MESSAGE(SMB_DISCONNECT_NAMED_PIPE_FAILED,  gStatusReplySpec),
     LWMSG_MESSAGE(SMB_CREATE_FILE,                   gCreateFileRequestSpec),
-    LWMSG_MESSAGE(SMB_CREATE_FILE_SUCCESS,           gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_CREATE_FILE_SUCCESS,           gFileHandleNewSpec),
     LWMSG_MESSAGE(SMB_CREATE_FILE_FAILED,            gStatusReplySpec),
     LWMSG_MESSAGE(SMB_SET_NAMED_PIPE_HANDLE_STATE,   gSetNamedPipeHandleSpec),
     LWMSG_MESSAGE(SMB_SET_NAMED_PIPE_HANDLE_STATE_SUCCESS, gStatusReplySpec),
@@ -381,10 +389,10 @@ LWMsgProtocolSpec gLSMBProtocolSpec[] =
     LWMSG_MESSAGE(SMB_WRITE_FILE,                    gWriteFileRequestSpec),
     LWMSG_MESSAGE(SMB_WRITE_FILE_SUCCESS,            gWriteFileResponseSpec),
     LWMSG_MESSAGE(SMB_WRITE_FILE_FAILED,             gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_CLOSE_FILE,                    gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_CLOSE_FILE,                    gFileHandleExistingSpec),
     LWMSG_MESSAGE(SMB_CLOSE_FILE_SUCCESS,            gStatusReplySpec),
     LWMSG_MESSAGE(SMB_CLOSE_FILE_FAILED,             gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_GET_SESSION_KEY,               gFileHandleSpec),
+    LWMSG_MESSAGE(SMB_GET_SESSION_KEY,               gFileHandleExistingSpec),
     LWMSG_MESSAGE(SMB_GET_SESSION_KEY_SUCCESS,       gGetSessionKeyResponseSpec),
     LWMSG_MESSAGE(SMB_GET_SESSION_KEY_FAILED,        gStatusReplySpec),
     LWMSG_PROTOCOL_END
