@@ -193,9 +193,9 @@ ALIASES += lwmsg_code{2}="\retval #LWMSG_STATUS_\1 \2"
 ALIASES += lwmsg_etc{1}="\retval ... \1"
 ALIASES += lwmsg_success="\lwmsg_code{SUCCESS, success}"
 ALIASES += lwmsg_memory="\lwmsg_code{MEMORY, out of memory}"
-ALIASES += lwmsg_rep{1}="<center><table border="1"><caption>\1</caption><tr><td><b>Offset</b></td><td><b>Size</b></td><td><b>Value</b></td></tr>"
-ALIASES += lwmsg_field{3}="<tr><td><tt>\1</tt></td><td><tt>\2</tt></td><td>\3</td></tr>"
-ALIASES += lwmsg_discon="<tr><td align="center" colspan="3"><b>...</b></td></tr>"
+ALIASES += lwmsg_rep{1}="<center><table border="1"><caption>\1</caption><tr><td><b>Width</b></td><td><b>Value</b></td></tr>"
+ALIASES += lwmsg_field{2}="<tr><td><tt>\1</tt></td><td>\2</td></tr>"
+ALIASES += lwmsg_discon="<tr><td align="center" colspan="2"><b>...</b></td></tr>"
 ALIASES += lwmsg_endrep="</table></center>"
 
 # Set the OPTIMIZE_OUTPUT_FOR_C tag to YES if your project consists of C 
