@@ -65,13 +65,13 @@ DomainMigrateWindow::GetLocalUserName()
 {
     std::string result;
     OSStatus err = GetTextControlString(LOCAL_USER_COMBO_ID, result);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to get local user name from control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to get local user name from control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 
-	return result;
+    return result;
 }
 
 std::string
@@ -79,13 +79,13 @@ DomainMigrateWindow::GetLocalUserHomeDir()
 {
     std::string result;
     OSStatus err = GetTextControlString(LOCAL_USER_PATH_ID, result);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to get local user homedir from control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to get local user homedir from control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 
-	return result;
+    return result;
 }
 
 std::string
@@ -93,13 +93,13 @@ DomainMigrateWindow::GetADUserName()
 {
     std::string result;
     OSStatus err = GetTextControlString(AD_USER_EDIT_ID, result);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to get AD user name from control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to get AD user name from control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 
-	return result;
+    return result;
 }
 
 std::string
@@ -107,13 +107,13 @@ DomainMigrateWindow::GetADUserHomeDir()
 {
     std::string result;
     OSStatus err = GetTextControlString(AD_USER_PATH_ID, result);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to get AD user homedir from control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to get AD user homedir from control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 
-	return result;
+    return result;
 }
 
 std::string
@@ -121,13 +121,13 @@ DomainMigrateWindow::GetADUserUID()
 {
     std::string result;
     OSStatus err = GetTextControlString(AD_USER_UID_ID, result);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to get AD user homedir from control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to get AD user homedir from control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 
-	return result;
+    return result;
 }
 
 std::string
@@ -135,13 +135,13 @@ DomainMigrateWindow::GetADUserGID()
 {
     std::string result;
     OSStatus err = GetTextControlString(AD_USER_GID_ID, result);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to get AD user homedir from control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to get AD user homedir from control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 
-	return result;
+    return result;
 }
 
 bool
@@ -155,11 +155,11 @@ DomainMigrateWindow::SetLocalUserRealName(const std::string& value)
 {
     _localUserRealName = value;
     OSStatus err = SetTextControlString(LOCAL_USER_REAL_NAME_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set local user real name in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set local user real name in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
@@ -167,11 +167,11 @@ DomainMigrateWindow::SetLocalUserHomeDirectory(const std::string& value)
 {
     _localUserHomeDir = value;
     OSStatus err = SetTextControlString(LOCAL_USER_PATH_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set local user home directory in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set local user home directory in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
@@ -179,11 +179,11 @@ DomainMigrateWindow::SetLocalUserUID(const std::string& value)
 {
     _localUserUID = value;
     OSStatus err = SetTextControlString(LOCAL_USER_UID_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set local user uid in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set local user uid in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
@@ -191,11 +191,11 @@ DomainMigrateWindow::SetLocalUserGID(const std::string& value)
 {
     _localUserGID = value;
     OSStatus err = SetTextControlString(LOCAL_USER_GID_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set local user gid in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set local user gid in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
@@ -203,11 +203,11 @@ DomainMigrateWindow::SetADUserRealName(const std::string& value)
 {
     _adUserRealName = value;
     OSStatus err = SetTextControlString(AD_USER_REAL_NAME_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set AD user real name in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set AD user real name in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
@@ -215,11 +215,11 @@ DomainMigrateWindow::SetADUserHomeDirectory(const std::string& value)
 {
     _adUserHomeDir = value;
     OSStatus err = SetTextControlString(AD_USER_PATH_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set AD user home directory in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set AD user home directory in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
@@ -227,11 +227,11 @@ DomainMigrateWindow::SetADUserUID(const std::string& value)
 {
     _adUserUID = value;
     OSStatus err = SetTextControlString(AD_USER_UID_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set AD user uid in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set AD user uid in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
@@ -239,22 +239,22 @@ DomainMigrateWindow::SetADUserGID(const std::string& value)
 {
     _adUserGID = value;
     OSStatus err = SetTextControlString(AD_USER_GID_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set AD user gid in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set AD user gid in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
 DomainMigrateWindow::SetADUserEdit(const std::string& value)
 {
     OSStatus err = SetTextControlString(AD_USER_EDIT_ID, value);
-	if (err != noErr)
-	{
-	   std::string errMsg("Failed to set AD user gid in control");
-	   throw DomainJoinException(-1, "Migrate User Error", errMsg);
-	}
+    if (err != noErr)
+    {
+        std::string errMsg("Failed to set AD user gid in control");
+        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+    }
 }
 
 void
@@ -268,8 +268,8 @@ DomainMigrateWindow::MigrateOff()
     ControlRef migrateRef = nil;
 
     err = GetControlByID(this->GetWindowRef(), &migrateCtrl, &migrateRef);
-	if (err == noErr)
-	{
+    if (err == noErr)
+    {
         DeactivateControl(migrateRef);
     }
 }
@@ -285,8 +285,8 @@ DomainMigrateWindow::MigrateOn()
     ControlRef migrateRef = nil;
 
     err = GetControlByID(this->GetWindowRef(), &migrateCtrl, &migrateRef);
-	if (err == noErr)
-	{
+    if (err == noErr)
+    {
         ActivateControl(migrateRef);
     }
 }
@@ -328,11 +328,11 @@ DomainMigrateWindow::ClearLocalUsersCombo()
     _localUsersFirstItem = "";
 
     err = GetControlByID(this->GetWindowRef(), &luComboCtrl, &luComboRef);
-	if (err == noErr)
-	{
+    if (err == noErr)
+    {
         numItems = HIComboBoxGetItemCount(luComboRef);
 
-	    for (i = 0; i < numItems; i++)
+        for (i = 0; i < numItems; i++)
         {
             HIComboBoxRemoveItemAtIndex(luComboRef, 0); // Remove topmost item each iteration
         }
@@ -360,15 +360,15 @@ DomainMigrateWindow::AddUserToLocalUsersCombo(const std::string& value)
     CFStringRef valueStrRef = CFStringCreateWithCString(NULL, value.c_str(), kCFStringEncodingASCII);
 
     err = GetControlByID(this->GetWindowRef(), &luComboCtrl, &luComboRef);
-	if (err == noErr)
-	{
+    if (err == noErr)
+    {
         err = HIComboBoxAppendTextItem(luComboRef, valueStrRef, NULL);
-	    if (err != noErr)
+        if (err != noErr)
         {
-	        std::string errMsg("Failed to add local user to combo list in control");
-	        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+            std::string errMsg("Failed to add local user to combo list in control");
+            throw DomainJoinException(-1, "Migrate User Error", errMsg);
         }
-	}
+    }
 
     CFRelease(valueStrRef);
 }
@@ -427,17 +427,17 @@ exit:
 void
 DomainMigrateWindow::ShowMigrateCompleteDialog()
 {
-		 SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "Account migration complete!");
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertNoteAlert,
-					   "\pLikewise - Active Directory",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
-         CFRelease(msgStrRef);
+    SInt16 outItemHit;
+    char msgStr[256];
+    sprintf(msgStr, "Account migration complete!");
+    CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+    CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+    StandardAlert(kAlertNoteAlert,
+    "\pLikewise - Active Directory",
+    (StringPtr)msgStr,
+    NULL,
+    &outItemHit);
+    CFRelease(msgStrRef);
 }
 
 bool
@@ -450,21 +450,21 @@ DomainMigrateWindow::ConfirmMigration(const std::string& localUserName,
                bool bMoveProfile)
 {
     AlertStdCFStringAlertParamRec params;
-	DialogRef dialog;
-	OSStatus err = noErr;
-	DialogItemIndex itemHit;
-	CFStringRef msgStrRef = NULL;
+    DialogRef dialog;
+    OSStatus err = noErr;
+    DialogItemIndex itemHit;
+    CFStringRef msgStrRef = NULL;
 
-	GetStandardAlertDefaultParams(&params, kStdCFStringAlertVersionOne);
+    GetStandardAlertDefaultParams(&params, kStdCFStringAlertVersionOne);
 
-	params.movable = true;
-	params.defaultText = CFSTR("Yes");
-	params.cancelText = CFSTR("No");
-	params.otherText = NULL;
-	params.defaultButton = kAlertStdAlertCancelButton;
-	params.position = kWindowCenterOnParentWindow;
+    params.movable = true;
+    params.defaultText = CFSTR("Yes");
+    params.cancelText = CFSTR("No");
+    params.otherText = NULL;
+    params.defaultButton = kAlertStdAlertCancelButton;
+    params.position = kWindowCenterOnParentWindow;
 
-	msgStrRef = CFStringCreateWithFormat(NULL,
+    msgStrRef = CFStringCreateWithFormat(NULL,
                                          NULL,
                                          CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nContents from '%s' will be %s to '%s'.\nOwnership will be asssigned to (UID: %s, GID: %s)"),
                                          localUserName.c_str(),
@@ -475,30 +475,30 @@ DomainMigrateWindow::ConfirmMigration(const std::string& localUserName,
                                          adUserUID.c_str(),
                                          adUserGID.c_str());
 
-	err = CreateStandardAlert(kAlertStopAlert,
-	                          CFSTR("Likewise Migrate User Profile"),
-							  msgStrRef,
-							  &params,
-							  &dialog);
-	if (err == noErr)
-	{
-	   err = RunStandardAlert(dialog, NULL, &itemHit);
-	   if (err != noErr)
-	   {
-	      throw DomainJoinException(err, "Domain Join Error", "Failed to display an alert");
-	   }
-	}
-	else
-	{
-	   throw DomainJoinException(err, "Domain Join Error", "Failed to create dialog");
-	}
+    err = CreateStandardAlert(kAlertStopAlert,
+                              CFSTR("Likewise Migrate User Profile"),
+                              msgStrRef,
+                              &params,
+                              &dialog);
+    if (err == noErr)
+    {
+        err = RunStandardAlert(dialog, NULL, &itemHit);
+        if (err != noErr)
+        {
+            throw DomainJoinException(err, "Domain Join Error", "Failed to display an alert");
+        }
+    }
+    else
+    {
+        throw DomainJoinException(err, "Domain Join Error", "Failed to create dialog");
+    }
 
-	if (msgStrRef)
-	{
-	   CFRelease(msgStrRef);
-	}
+    if (msgStrRef)
+    {
+        CFRelease(msgStrRef);
+    }
 
-	return itemHit != 2;
+    return itemHit != 2;
 }
 
 void
@@ -512,8 +512,8 @@ DomainMigrateWindow::HideMigrateProgressBar()
     ControlRef progressBarRef = nil;
 
     err = GetControlByID(this->GetWindowRef(), &progressBarCtrl, &progressBarRef);
-	if (err == noErr)
-	{
+    if (err == noErr)
+    {
         HideControl(progressBarRef);
     }
 }
@@ -529,8 +529,8 @@ DomainMigrateWindow::ShowMigrateProgressBar()
     ControlRef progressBarRef = nil;
 
     err = GetControlByID(this->GetWindowRef(), &progressBarCtrl, &progressBarRef);
-	if (err == noErr)
-	{
+    if (err == noErr)
+    {
         ShowControl(progressBarRef);
     }
 }
@@ -540,8 +540,8 @@ DomainMigrateWindow::HandleMigration()
 {
     char * pszCommand = NULL;
 
-	try
-	{
+    try
+    {
         std::string localUserName = GetLocalUserName();
         std::string localUserHomeDir = GetLocalUserHomeDir();
         std::string adUserName = GetADUserName();
@@ -558,81 +558,82 @@ DomainMigrateWindow::HandleMigration()
             pszCommand = (char*) malloc(strlen(localUserHomeDir.c_str()) + strlen(adUserHomeDir.c_str()) + 256);
             if (pszCommand)
             {
-                sprintf(pszCommand, "/opt/likewise/bin/lw-local-user-migrate.sh %s %s %s %s %s",
+                sprintf(pszCommand, "/opt/likewise/bin/lw-local-user-migrate.sh %s %s %s %s %s --log /tmp/lw-migrate.%s.log",
                         localUserHomeDir.c_str(),
                         adUserHomeDir.c_str(),
                         adUserUID.c_str(),
                         adUserGID.c_str(),
-                        bMoveProfile ? "--move" : "");
+                        bMoveProfile ? "--move" : "",
+                        localUserName.c_str());
                 system(pszCommand);
                 free(pszCommand);
                 pszCommand = NULL;
             }
 
             HideMigrateProgressBar();
-		    ShowMigrateCompleteDialog();
+            ShowMigrateCompleteDialog();
 
             // Okay to switch back to Leave dialog since the migration is completed
             PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
         }
 
         HideMigrateProgressBar();
-	}
-	catch(InvalidDomainnameException& ide)
-	{
-	     SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "Please specify a valid domain name");
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertStopAlert,
-					   "\pMigrate User Error",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
-        CFRelease(msgStrRef);
-	}
-	catch(InvalidHostnameException& ihe)
-	{
-	     SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "Please specify a valid hostname");
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertStopAlert,
-					   "\pMigrate User Error",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
-         CFRelease(msgStrRef);
-	}
-	catch(InvalidUsernameException& iue)
-	{
-	     SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "Please specify a valid user id");
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertStopAlert,
-					   "\pMigrate User Error",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
-
-         CFRelease(msgStrRef);
-	}
-	catch(DomainJoinException& dje)
+    }
+    catch(InvalidDomainnameException& ide)
     {
-		SInt16 outItemHit;
-		const char* err = dje.what();
-		const char* message = dje.GetLongErrorMessage();
-		DialogRef dialog;
-		CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
-		CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
-		CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
-		CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
-		CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
-		RunStandardAlert(dialog, NULL, &outItemHit);
+        SInt16 outItemHit;
+        char msgStr[256];
+        sprintf(msgStr, "Please specify a valid domain name");
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+        StandardAlert(kAlertStopAlert,
+        "\pMigrate User Error",
+        (StringPtr)msgStr,
+        NULL,
+        &outItemHit);
+        CFRelease(msgStrRef);
+    }
+    catch(InvalidHostnameException& ihe)
+    {
+        SInt16 outItemHit;
+        char msgStr[256];
+        sprintf(msgStr, "Please specify a valid hostname");
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+        StandardAlert(kAlertStopAlert,
+        "\pMigrate User Error",
+        (StringPtr)msgStr,
+        NULL,
+        &outItemHit);
+        CFRelease(msgStrRef);
+    }
+    catch(InvalidUsernameException& iue)
+    {
+        SInt16 outItemHit;
+        char msgStr[256];
+        sprintf(msgStr, "Please specify a valid user id");
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+        StandardAlert(kAlertStopAlert,
+        "\pMigrate User Error",
+        (StringPtr)msgStr,
+        NULL,
+        &outItemHit);
+
+        CFRelease(msgStrRef);
+    }
+    catch(DomainJoinException& dje)
+    {
+        SInt16 outItemHit;
+        const char* err = dje.what();
+        const char* message = dje.GetLongErrorMessage();
+        DialogRef dialog;
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
+        CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
+        CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
+        CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
+        RunStandardAlert(dialog, NULL, &outItemHit);
         CFRelease(msgStrRef);
     }
     catch(...)
@@ -662,8 +663,8 @@ DomainMigrateWindow::HandleValidateUser()
     char * pszUID = NULL;
     char * pszGID = NULL;
 
-	try
-	{
+    try
+    {
         std::string adUserName = GetADUserName();
 
         // Clear previous data fields
@@ -672,7 +673,7 @@ DomainMigrateWindow::HandleValidateUser()
         SetADUserUID("");
         SetADUserGID("");
 
-	    macError = GetADUserInfo(adUserName.c_str(),
+        macError = GetADUserInfo(adUserName.c_str(),
                                  &pszRealName,
                                  &pszHomeDir,
                                  &pszUID,
@@ -680,8 +681,8 @@ DomainMigrateWindow::HandleValidateUser()
         //if (macError) goto exit;
         if (macError)
         {
-	        std::string errMsg("User name not found!");
-	        throw DomainJoinException(-1, "Migrate User Error", errMsg);
+            std::string errMsg("User name not found!");
+            throw DomainJoinException(-1, "Migrate User Error", errMsg);
         }
 
         SetADUserRealName(pszRealName);
@@ -689,30 +690,29 @@ DomainMigrateWindow::HandleValidateUser()
         SetADUserUID(pszUID);
         SetADUserGID(pszGID);
     }
-	catch(InvalidUsernameException& iue)
-	{
-	     SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "Please specify a valid user id");
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertStopAlert,
-					   "\pMigrate User Error",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
-
-         CFRelease(msgStrRef);
-	}
-	catch(DomainJoinException& dje)
+    catch(InvalidUsernameException& iue)
     {
-		SInt16 outItemHit;
-		const char* err = dje.what();
-		const char* message = dje.GetLongErrorMessage();
-		DialogRef dialog;
-		CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
-		CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
-		CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
+        SInt16 outItemHit;
+        char msgStr[256];
+        sprintf(msgStr, "Please specify a valid user id");
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+        StandardAlert(kAlertStopAlert,
+        "\pMigrate User Error",
+        (StringPtr)msgStr,
+        NULL,
+        &outItemHit);
+        CFRelease(msgStrRef);
+    }
+    catch(DomainJoinException& dje)
+    {
+        SInt16 outItemHit;
+        const char* err = dje.what();
+        const char* message = dje.GetLongErrorMessage();
+        DialogRef dialog;
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
+        CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
         CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
         CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
         RunStandardAlert(dialog, NULL, &outItemHit);
@@ -781,29 +781,29 @@ DomainMigrateWindow::HandleCommand( const HICommandExtended& inCommand )
     switch ( inCommand.commandID )
     {
         case CANCEL_CMD_ID:
-			PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
-			return true;
+            PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
+            return true;
 
-		case MOVE_RADIO_CMD_ID:
-		    UnsetRadioButton(COPY_RADIO_ID);
-		    return true;
+        case MOVE_RADIO_CMD_ID:
+            UnsetRadioButton(COPY_RADIO_ID);
+            return true;
 
-		case COPY_RADIO_CMD_ID:
+        case COPY_RADIO_CMD_ID:
             UnsetRadioButton(MOVE_RADIO_ID);
-		    return true;
+            return true;
 
         case LOCAL_USER_NAME_CMD_ID:
             return true;
 
-	    case MIGRATE_CMD_ID:
+        case MIGRATE_CMD_ID:
             if (HandleValidateUser())
             {
                 HandleMigration();
             }
-		    return true;
+            return true;
 
-		case VALIDATE_CMD_ID:
-		    if (HandleValidateUser())
+        case VALIDATE_CMD_ID:
+            if (HandleValidateUser())
             {
                 MigrateOn();
             }
@@ -811,7 +811,7 @@ DomainMigrateWindow::HandleCommand( const HICommandExtended& inCommand )
             {
                 MigrateOff();
             }
-		    return true;
+            return true;
 
         default:
             return false;
@@ -857,13 +857,15 @@ DoubleTheBufferSizeIfItsTooSmall(
     {
         // If the buffer size is already bigger than 16 MB, don't try to
         // double it again; something has gone horribly wrong.
-        if ( (*ppBuffer)->fBufferSize >= (16 * 1024 * 1024) ) {
+        if ( (*ppBuffer)->fBufferSize >= (16 * 1024 * 1024) )
+        {
             macError = eDSAllocationFailed;
             if (macError) goto cleanup;
         }
 
         pBuffer = dsDataBufferAllocate(hDirRef, (*ppBuffer)->fBufferSize * 2);
-        if (!pBuffer) {
+        if (!pBuffer)
+        {
             macError = eDSAllocationFailed;
             if (macError) goto cleanup;
         }
@@ -879,7 +881,8 @@ cleanup:
     // is any other value, the expansion failed and we set
     // *errPtr to that error.
 
-    if (macError != eDSNoErr) {
+    if (macError != eDSNoErr)
+    {
         *pMacError = macError;
     }
 }
@@ -955,7 +958,8 @@ GetLocalNodePathList(
     // this buffer if it proves to be to small.
 
     pDataBuffer = dsDataBufferAllocate(hDirRef, kDefaultDSBufferSize);
-    if (!pDataBuffer) {
+    if (!pDataBuffer)
+    {
         macError = eDSAllocationFailed;
         goto cleanup;
     }
@@ -977,7 +981,8 @@ GetLocalNodePathList(
 
     // If we didn't find any nodes, that's bad.
 
-    if (ulNodeCount < 1) {
+    if (ulNodeCount < 1)
+    {
         macError = eDSNodeNotFound;
         goto cleanup;
     }
@@ -1031,14 +1036,15 @@ GetLikewiseNodePathList(
     tDataListPtr        pLikewiseNodePath = NULL;
 
     // Create Likewise node name string list
-	macError = dsBuildListFromStringsAlloc(hDirRef, &likewiseNodeName, "Likewise", NULL);
+    macError = dsBuildListFromStringsAlloc(hDirRef, &likewiseNodeName, "Likewise", NULL);
     if (macError) goto cleanup;
 
     // Allocate a buffer for the node find results.  We'll grow
     // this buffer if it proves to be to small.
 
     pDataBuffer = dsDataBufferAllocate(hDirRef, kDefaultDSBufferSize);
-    if (!pDataBuffer) {
+    if (!pDataBuffer)
+    {
         macError = eDSAllocationFailed;
         goto cleanup;
     }
@@ -1496,7 +1502,7 @@ GetADUserInfo(
     macError = dsOpenDirNode(hDirRef, pLikewiseNodePath, &hNodeRef);
     if (macError) goto exit;
 
-	macError = GetUserInfo(hDirRef,
+    macError = GetUserInfo(hDirRef,
                            hNodeRef,
                            pszUsername,
                            &pszRealName,
@@ -1588,7 +1594,7 @@ GetLocalUserList(
     tDataBufferPtr      pDataBuffer = NULL;
     tContextData        pContinuationData = NULL;
 
-	macError = dsBuildListFromStringsAlloc(hDirRef, &attrTypeAll, kDSAttributesAll, NULL);
+    macError = dsBuildListFromStringsAlloc(hDirRef, &attrTypeAll, kDSAttributesAll, NULL);
     if (macError) goto error;
 
     macError = dsBuildListFromStringsAlloc(hDirRef, &recordTypeUsers, kDSStdRecordTypeUsers, NULL);
