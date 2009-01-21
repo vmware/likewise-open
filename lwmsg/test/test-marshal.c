@@ -122,12 +122,11 @@ MU_TEST(marshal, basic)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xE1
     };
     LWMsgTypeSpec* type = basic_spec;
-    LWMsgBuffer buffer;
+    void* buffer;
+    size_t length;
     basic_struct basic;
     basic_struct *out;
     long longs[2];
-
-    allocate_buffer(&buffer);
 
     basic.foo = (short) -42;
     basic.len = 2;
@@ -135,13 +134,12 @@ MU_TEST(marshal, basic)
     longs[0] = 1234;
     longs[1] = 4321;
 
-    MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &basic, &buffer));
+    MU_TRY_CONTEXT(context, lwmsg_marshal_alloc(context, type, &basic, &buffer, &length));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, sizeof(expected), length);
+    MU_ASSERT(!memcmp(buffer, expected, sizeof(expected)));
 
-    rewind_buffer(&buffer);
-
-    MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
+    MU_TRY_CONTEXT(context, lwmsg_unmarshal_simple(context, type, buffer, length, (void**) (void*) &out));
 
     MU_ASSERT(basic.foo == out->foo);
     MU_ASSERT(basic.len == out->len);

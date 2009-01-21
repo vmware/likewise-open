@@ -45,6 +45,8 @@ lwmsg_context_set_data_function
 lwmsg_context_get_error_message
 lwmsg_context_free_graph
 lwmsg_marshal
+lwmsg_marshal_simple
+lwmsg_marshal_alloc
 lwmsg_protocol_get_message_type
 lwmsg_protocol_new
 lwmsg_protocol_add_protocol_spec
@@ -59,6 +61,7 @@ lwmsg_time_sum
 lwmsg_time_compare
 lwmsg_time_normalize
 lwmsg_unmarshal
+lwmsg_unmarshal_simple
 lwmsg_context_setup
 lwmsg_context_cleanup
 lwmsg_error_raise

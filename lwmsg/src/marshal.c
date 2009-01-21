@@ -436,3 +436,105 @@ error:
 
     return status;
 }
+
+LWMsgStatus
+lwmsg_marshal_simple(
+    LWMsgContext* context,
+    LWMsgTypeSpec* type,
+    void* object,
+    void* buffer,
+    size_t length
+    )
+{
+    LWMsgBuffer mbuf;
+
+    mbuf.length = length;
+    mbuf.memory = buffer;
+    mbuf.cursor = mbuf.memory;
+    mbuf.full = NULL;
+
+    return lwmsg_marshal(context, type, object, &mbuf);
+}
+
+typedef struct
+{
+    LWMsgAllocFunction alloc;
+    LWMsgFreeFunction free;
+    void* data;
+} AllocInfo;
+
+static
+LWMsgStatus
+lwmsg_marshal_alloc_full(
+    LWMsgBuffer* buffer,
+    size_t needed
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    AllocInfo* info = buffer->data;
+    size_t newlen = buffer->length == 0 ? 256 : buffer->length * 2;
+    void* newmem = NULL;
+    size_t offset = 0;
+
+    BAIL_ON_ERROR(status = info->alloc(newlen, &newmem, info->data));
+
+    memcpy(newmem, buffer->memory, buffer->length);
+
+    if (buffer->memory)
+    {
+        BAIL_ON_ERROR(status = info->free(buffer->memory, info->data));
+    }
+
+    offset = buffer->cursor - buffer->memory;
+    buffer->memory = newmem;
+    buffer->cursor = newmem + offset;
+    buffer->length = newlen;
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_marshal_alloc(
+    LWMsgContext* context,
+    LWMsgTypeSpec* type,
+    void* object,
+    void** buffer,
+    size_t* length
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    AllocInfo info;
+    LWMsgBuffer mbuf;
+
+    info.alloc = lwmsg_context_get_alloc(context);
+    info.free = lwmsg_context_get_free(context);
+    info.data = lwmsg_context_get_memdata(context);
+
+    mbuf.memory = mbuf.cursor = NULL;
+    mbuf.length = 0;
+    mbuf.full = lwmsg_marshal_alloc_full;
+    mbuf.data = &info;
+
+    BAIL_ON_ERROR(status = lwmsg_marshal(context, type, object, &mbuf));
+
+    *buffer = mbuf.memory;
+    *length = (mbuf.cursor - mbuf.memory);
+
+done:
+
+    return status;
+
+error:
+
+    if (mbuf.memory)
+    {
+        info.free(mbuf.memory, info.data);
+    }
+
+    *buffer = NULL;
+    *length = 0;
+
+    goto done;
+}

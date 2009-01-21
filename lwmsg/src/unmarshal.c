@@ -741,3 +741,16 @@ error:
 
     return status;
 }
+
+LWMsgStatus
+lwmsg_unmarshal_simple(LWMsgContext* context, LWMsgTypeSpec* type, void* buffer, size_t length, void** out)
+{
+    LWMsgBuffer mbuf;
+
+    mbuf.memory = buffer;
+    mbuf.cursor = mbuf.memory;
+    mbuf.length = length;
+    mbuf.full = NULL;
+
+    return lwmsg_unmarshal(context, type, &mbuf, out);
+}

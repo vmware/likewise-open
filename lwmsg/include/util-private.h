@@ -143,7 +143,14 @@ lwmsg_buffer_write(LWMsgBuffer* buffer, unsigned char* in_bytes, size_t count)
 
         if (count)
         {
-            BAIL_ON_ERROR(buffer->full(buffer, count));
+            if (buffer->full)
+            {
+                BAIL_ON_ERROR(buffer->full(buffer, count));
+            }
+            else
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+            }
         }
     }
 

@@ -72,4 +72,28 @@
 LWMsgStatus
 lwmsg_unmarshal(LWMsgContext* context, LWMsgTypeSpec* type, LWMsgBuffer* buffer, void** out);
 
+/**
+ * @ingroup marshal
+ * @brief Unmarshal a data structure from a simple buffer
+ *
+ * Converts a serialized data structure to its unmarshalled form, allocating memory as necessary
+ * to form the object graph.  The serialized form is read from a simple buffer rather than a
+ * full #LWMsgBuffer.
+ *
+ * @param context the marshalling context
+ * @param type the type specification which describes the type of the data
+ * @param buffer the simple buffer from which data will be read
+ * @param length the length of the buffer in bytes
+ * @param out the resulting unmarshalled object
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{MALFORMED, the provided data did not conform in some way to the provided type information}
+ * @lwmsg_code{OVERFLOW, an arithmetic overflow occured while converting an integer to its unmarshalled form}
+ * @lwmsg_code{UNDERFLOW, an arithmetic underflow occured while converting an integer to its unmarshalled form}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_unmarshal_simple(LWMsgContext* context, LWMsgTypeSpec* type, void* buffer, size_t length, void** out);
+
 #endif
