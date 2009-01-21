@@ -295,7 +295,7 @@ typedef struct __LSA_IPC_PROVIDER_IO_CONTROL_REQ {
     PBYTE pData;
 } LSA_IPC_PROVIDER_IO_CONTROL_REQ, *PLSA_IPC_PROVIDER_IO_CONTROL_REQ;
 
-#define MAP_LWMSG_ERROR(_e_) ((_e_) ? -1 : 0)
+#define MAP_LWMSG_ERROR(_e_) (LsaMapLwmsgStatus(_e_))
 #define MAP_LSA_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 LWMsgProtocolSpec*
@@ -325,5 +325,10 @@ LsaReadData(
     PSTR   pszBuf,
     DWORD  dwBytesToRead,
     PDWORD pdwBytesRead);
+
+DWORD
+LsaMapLwmsgStatus(
+    LWMsgStatus status
+    );
 
 #endif /*__LSAIPC_H__*/
