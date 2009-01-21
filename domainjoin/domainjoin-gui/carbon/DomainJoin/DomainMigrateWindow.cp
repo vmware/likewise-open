@@ -538,6 +538,8 @@ DomainMigrateWindow::ShowMigrateProgressBar()
 void
 DomainMigrateWindow::HandleMigration()
 {
+    char * pszCommand = NULL;
+
 	try
 	{
         std::string localUserName = GetLocalUserName();
@@ -553,7 +555,19 @@ DomainMigrateWindow::HandleMigration()
         if (ConfirmMigration(localUserName, localUserHomeDir, adUserName, adUserHomeDir, adUserUID, adUserGID, bMoveProfile))
         {
             // Migrate user with the parameters we have determined...
-
+            pszCommand = (char*) malloc(strlen(localUserHomeDir.c_str()) + strlen(adUserHomeDir.c_str()) + 256);
+            if (pszCommand)
+            {
+                sprintf(pszCommand, "/opt/likewise/bin/lw-local-user-migrate.sh %s %s %s %s %s",
+                        localUserHomeDir.c_str(),
+                        adUserHomeDir.c_str(),
+                        adUserUID.c_str(),
+                        adUserGID.c_str(),
+                        bMoveProfile ? "--move" : "");
+                system(pszCommand);
+                free(pszCommand);
+                pszCommand = NULL;
+            }
 
             HideMigrateProgressBar();
 		    ShowMigrateCompleteDialog();
@@ -629,6 +643,13 @@ DomainMigrateWindow::HandleMigration()
                       "\pAn unexpected error occurred when attempting to migrate local user profile to AD profile. Please report this to Likewise Technical Support at support@likewisesoftware.com",
                       NULL,
                       &outItemHit);
+    }
+
+// Clean up
+
+    if (pszCommand)
+    {
+        free(pszCommand);
     }
 }
 
