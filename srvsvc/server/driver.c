@@ -145,6 +145,8 @@ SrvSvcNetShareAdd(
                         NULL,
                         &IoStatusBlock,
                         FileName,
+			NULL,
+			NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -152,7 +154,7 @@ SrvSvcNetShareAdd(
                         CreateDisposition,
                         CreateOptions,
                         NULL,
-                        NULL,
+                        0,
                         NULL
                         );
     BAIL_ON_NT_STATUS(ntStatus);
@@ -255,6 +257,8 @@ SrvSvcNetShareEnum(
                         NULL,
                         &IoStatusBlock,
                         FileName,
+			NULL,
+			NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -262,7 +266,7 @@ SrvSvcNetShareEnum(
                         CreateDisposition,
                         CreateOptions,
                         NULL,
-                        NULL,
+                        0,
                         NULL
                         );
     BAIL_ON_NT_STATUS(ntStatus);
@@ -357,6 +361,8 @@ SrvSvcNetShareGetInfo(
                         NULL,
                         &IoStatusBlock,
                         FileName,
+			NULL,
+			NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -364,7 +370,7 @@ SrvSvcNetShareGetInfo(
                         CreateDisposition,
                         CreateOptions,
                         NULL,
-                        NULL,
+                        0,
                         NULL
                         );
     BAIL_ON_NT_STATUS(ntStatus);
@@ -459,6 +465,8 @@ SrvSvcNetShareSetInfo(
                         NULL,
                         &IoStatusBlock,
                         FileName,
+			NULL,
+			NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -466,7 +474,7 @@ SrvSvcNetShareSetInfo(
                         CreateDisposition,
                         CreateOptions,
                         NULL,
-                        NULL,
+                        0,
                         NULL
                         );
     BAIL_ON_NT_STATUS(ntStatus);
@@ -549,6 +557,8 @@ SrvSvcNetShareDel(
                         NULL,
                         &IoStatusBlock,
                         FileName,
+			NULL,
+			NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -556,7 +566,7 @@ SrvSvcNetShareDel(
                         CreateDisposition,
                         CreateOptions,
                         NULL,
-                        NULL,
+                        0,
                         NULL
                         );
     BAIL_ON_NT_STATUS(ntStatus);
