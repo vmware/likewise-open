@@ -251,15 +251,11 @@ IopConfigFreeConfig(
     PIOP_CONFIG pConfig = *ppConfig;
     if (pConfig)
     {
-        PLW_LIST_LINKS pLinks = NULL;
-
-        for (pLinks = pConfig->DriverConfigList.Next;
-             pLinks != &pConfig->DriverConfigList;
-             pLinks = pLinks->Next)
+        while (!LwListIsEmpty(&pConfig->DriverConfigList))
         {
+            PLW_LIST_LINKS pLinks = LwListRemoveHead(&pConfig->DriverConfigList);
             PIOP_DRIVER_CONFIG pDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
 
-            LwListRemove(pLinks);
             IopConfigFreeDriverConfig(&pDriverConfig);
         }
         IoMemoryFree(pConfig);

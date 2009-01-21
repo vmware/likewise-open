@@ -33,75 +33,78 @@
  *
  * Module Name:
  *
- *        create.c
+ *        iortl.h
  *
  * Abstract:
  *
- *        IO Test Driver
+ *        Likewise I/O Manager RTL - usable by UM and KM.
+ *        This contains RTL code that is specific to I/O
+ *        Manager.
  *
  * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "includes.h"
+#ifndef __IO_RTL_H__
+#define __IO_RTL_H__
+
+#include <lwio/io-types.h>
+
+typedef VOID (*PIO_ECP_FREE_CONTEXT_CALLBACK)(IN PVOID pContext);
 
 NTSTATUS
-ItDispatchCreate(
-    IN PIRP pIrp
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    int EE = 0;
-    UNICODE_STRING path = { 0 };
-    UNICODE_STRING allowPath = { 0 };
-    PIT_CCB pCcb = NULL;
+IoRtlEcpListAllocate(
+    OUT PIO_ECP_LIST* ppEcpList
+    );
 
-    RtlUnicodeStringInit(&path, pIrp->Args.Create.FileName.FileName);
+// Will automatically clean up ECPs in the list.
+VOID
+IoRtlEcpListFree(
+    IN OUT PIO_ECP_LIST* ppEcpList
+    );
 
-    status = RtlUnicodeStringAllocateFromCString(&allowPath, IOTEST_INTERNAL_PATH_ALLOW);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    // Only succeed for a certain path.
-    if (!RtlUnicodeStringIsEqual(&path, &allowPath, FALSE))
-    {
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-    status = ItpCreateCcb(&pCcb, &path);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    status = IoFileSetContext(pIrp->FileHandle, pCcb);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    pCcb = NULL;
-
-cleanup:
-    ItpDestroyCcb(&pCcb);
-    RtlUnicodeStringFree(&allowPath);
-
-    pIrp->IoStatusBlock.Status = status;
-
-    LOG_LEAVE_IF_STATUS_EE(status, EE);
-    return status;
-}
+ULONG
+IoRtlEcpListGetCount(
+    IN OPTIONAL PIO_ECP_LIST pEcpList
+    );
 
 NTSTATUS
-ItDispatchClose(
-    IN PIRP pIrp
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int EE = 0;
-    PIT_CCB pCcb = NULL;
+IoRtlEcpListGetNext(
+    IN PIO_ECP_LIST pEcpList,
+    IN OPTIONAL PCSTR pszCurrentType,
+    OUT PCSTR* ppszNextType,
+    OUT OPTIONAL PVOID* ppNextContext,
+    OUT OPTIONAL PULONG pNextContextSize
+    );
 
-    status = ItpGetCcb(&pCcb, pIrp);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+NTSTATUS
+IoRtlEcpListFind(
+    IN PIO_ECP_LIST pEcpList,
+    IN PCSTR pszType,
+    OUT OPTIONAL PVOID* ppContext,
+    OUT OPTIONAL PULONG pContextSize
+    );
 
-    ItpDestroyCcb(&pCcb);
+NTSTATUS
+IoRtlEcpListInsert(
+    IN PIO_ECP_LIST pEcpList,
+    IN PCSTR pszType,
+    IN PVOID pContext,
+    IN ULONG ContextSize,
+    IN OPTIONAL PIO_ECP_FREE_CONTEXT_CALLBACK pfnFreeContextCallback
+    );
 
-cleanup:
-    pIrp->IoStatusBlock.Status = status;
+NTSTATUS
+IoRtlEcpListRemove(
+    IN PIO_ECP_LIST pEcpList,
+    IN PCSTR pszType,
+    OUT PVOID* ppContext,
+    OUT OPTIONAL PULONG pContextSize,
+    OUT PIO_ECP_FREE_CONTEXT_CALLBACK* ppfnFreeContextCallback
+    );
 
-    LOG_LEAVE_IF_STATUS_EE(status, EE);
-    return status;
-}
+BOOLEAN
+IoRtlPathIsSeparator(
+    IN WCHAR Character
+    );
+
+#endif /* __IO_RTL_H__ */

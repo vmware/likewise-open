@@ -62,17 +62,19 @@ DoTestFileApiCreateFile(
     NTSTATUS status = 0;
     int EE = 0;
     IO_FILE_HANDLE fileHandle = NULL;
-    IO_FILE_NAME fileName = { 0 };
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IO_FILE_NAME fileName = { 0 };
+    PVOID pSecurityDescriptor = NULL;
+    PVOID pSecurityQualityOfService = NULL;
     ACCESS_MASK desiredAccess = FILE_GENERIC_READ;
     LONG64 allocationSize = 0;
     FILE_ATTRIBUTES fileAttributes = 0;
     FILE_SHARE_FLAGS shareAccess = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
     FILE_CREATE_DISPOSITION createDisposition = FILE_OPEN;
     FILE_CREATE_OPTIONS createOptions = 0;
-    PIO_EA_BUFFER pEaBuffer = NULL;
-    PVOID pSecurityDescriptor = NULL;
-    PVOID pSecurityQualityOfService = NULL;
+    PFILE_FULL_EA_INFORMATION pEaBuffer = NULL;
+    ULONG EaLength = 0;
+    PIO_ECP_LIST pEcpList = NULL;
 
     if (IsNullOrEmptyString(pszPath))
     {
@@ -88,6 +90,8 @@ DoTestFileApiCreateFile(
                     NULL,
                     &ioStatusBlock,
                     &fileName,
+                    pSecurityDescriptor,
+                    pSecurityQualityOfService,
                     desiredAccess,
                     allocationSize,
                     fileAttributes,
@@ -95,11 +99,79 @@ DoTestFileApiCreateFile(
                     createDisposition,
                     createOptions,
                     pEaBuffer,
-                    pSecurityDescriptor,
-                    pSecurityQualityOfService);
+                    EaLength,
+                    pEcpList);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     SMB_LOG_ALWAYS("Opened file '%s'", pszPath);
+
+cleanup:
+    RtlWC16StringFree(&fileName.FileName);
+
+    if (fileHandle)
+    {
+        NtCloseFile(fileHandle);
+    }
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
+
+static
+NTSTATUS
+DoTestFileApiCreateNamedPipeFile(
+    IN PCSTR pszPath
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_FILE_HANDLE fileHandle = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IO_FILE_NAME fileName = { 0 };
+    PVOID pSecurityDescriptor = NULL;
+    PVOID pSecurityQualityOfService = NULL;
+    ACCESS_MASK desiredAccess = FILE_GENERIC_READ | FILE_GENERIC_WRITE;
+    FILE_SHARE_FLAGS shareAccess = FILE_SHARE_READ | FILE_SHARE_WRITE;
+    FILE_CREATE_DISPOSITION createDisposition = FILE_OPEN_IF;
+    FILE_CREATE_OPTIONS createOptions = 0;
+    FILE_PIPE_TYPE_MASK namedPipeType = FILE_PIPE_BYTE_STREAM_TYPE | FILE_PIPE_ACCEPT_REMOTE_CLIENTS;
+    FILE_PIPE_READ_MODE_MASK readMode = FILE_PIPE_BYTE_STREAM_MODE;
+    FILE_PIPE_COMPLETION_MODE_MASK completionMode = FILE_PIPE_COMPLETE_OPERATION;
+    ULONG maximumInstances = (ULONG) -1;
+    ULONG inboundQuota = 0;
+    ULONG outboundQuota = 0;
+    PLONG64 defaultTimeout = NULL;
+
+    if (IsNullOrEmptyString(pszPath))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    status = RtlWC16StringAllocateFromCString(&fileName.FileName, pszPath);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCreateNamedPipeFile(
+                    &fileHandle,
+                    NULL,
+                    &ioStatusBlock,
+                    &fileName,
+                    pSecurityDescriptor,
+                    pSecurityQualityOfService,
+                    desiredAccess,
+                    shareAccess,
+                    createDisposition,
+                    createOptions,
+                    namedPipeType,
+                    readMode,
+                    completionMode,
+                    maximumInstances,
+                    inboundQuota,
+                    outboundQuota,
+                    defaultTimeout);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    SMB_LOG_ALWAYS("Opened named pipe '%s'", pszPath);
 
 cleanup:
     RtlWC16StringFree(&fileName.FileName);
@@ -154,6 +226,26 @@ DoTestFileApi(
         status = DoTestFileApiCreateFile(pszPath);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
+    else if (!strcmp(pszCommand, "createnp"))
+    {
+        pszPath = LwParseArgsNext(pParseArgs);
+        if (!pszPath)
+        {
+            status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Missing path argument.\n");
+            assert(!status && pszUsageError);
+            GOTO_CLEANUP_EE(EE);
+        }
+
+        if (LwParseArgsGetRemaining(pParseArgs) > 1)
+        {
+            status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Too many arguments.\n");
+            assert(!status && pszUsageError);
+            GOTO_CLEANUP_EE(EE);
+        }
+
+        status = DoTestFileApiCreateNamedPipeFile(pszPath);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
     else
     {
         status = RtlCStringAllocateAppendPrintf(&pszUsageError, "Invalid command '%s'\n", pszCommand);
@@ -184,6 +276,7 @@ Usage(
            "  commands:\n"
            "\n"
            "    testfileapi create <path>\n"
+           "    testfileapi createnp <path>\n"
            "\n",
            pszProgramName);
     // TODO--We really want something like:

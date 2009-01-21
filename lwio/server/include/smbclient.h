@@ -57,7 +57,7 @@ ClientGetNamedPipeInfo(
     PDWORD pdwMaxInstances
     );
 
-DWORD
+NTSTATUS
 ClientTransactNamedPipe(
     HANDLE hNamedPipe,
     PVOID  pInBuffer,

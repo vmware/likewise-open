@@ -79,14 +79,16 @@ int main(int argc, char *argv[])
                            NULL,
                            &StatusBlock,
                            &Filename,
-                           0x0,
+                           NULL,
+                           NULL,
                            FILE_ALL_ACCESS,
+                           0,
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                            FILE_CREATE | FILE_OPEN,
                            FILE_NON_DIRECTORY_FILE,
                            NULL,
-                           NULL,
+                           0,
                            NULL);
     if (ntError != STATUS_SUCCESS)
     {

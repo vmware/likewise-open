@@ -67,15 +67,17 @@ IoCreateFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext,
     IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
     IN ACCESS_MASK DesiredAccess,
     IN OPTIONAL LONG64 AllocationSize,
     IN FILE_ATTRIBUTES FileAttributes,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN FILE_CREATE_DISPOSITION CreateDisposition,
     IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
-    IN OPTIONAL PVOID SecurityDescriptor, // TBD
-    IN OPTIONAL PVOID SecurityQualityOfService // TBD
+    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION
+    IN ULONG EaLength,
+    IN OPTIONAL PIO_ECP_LIST EcpList
     )
 {
     NTSTATUS status = 0;
@@ -86,9 +88,10 @@ IoCreateFile(
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     PIO_FILE_OBJECT pFileObject = NULL;
+    IRP_TYPE irpType = IRP_TYPE_CREATE;
 
     if (AsyncControlBlock ||
-        pEaBuffer ||
+        EaBuffer ||
         SecurityDescriptor ||
         SecurityQualityOfService)
     {
@@ -112,7 +115,29 @@ IoCreateFile(
     status = IopFileObjectAllocate(&pFileObject, pDevice);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = IopIrpCreate(&pIrp, IRP_TYPE_CREATE, pFileObject);
+    if (EcpList)
+    {
+        status = IoRtlEcpListFind(
+                        EcpList,
+                        IO_ECP_TYPE_NAMED_PIPE,
+                        NULL,
+                        NULL);
+        if (STATUS_SUCCESS == status)
+        {
+            irpType = IRP_TYPE_CREATE_NAMED_PIPE;
+        }
+        else if (STATUS_NOT_FOUND == status)
+        {
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            assert(!NT_SUCCESS(status));
+            GOTO_CLEANUP_EE(EE);
+        }
+    }
+
+    status = IopIrpCreate(&pIrp, irpType, pFileObject);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     pIrp->Args.Create.SecurityContext = SecurityContext;
@@ -127,9 +152,11 @@ IoCreateFile(
     pIrp->Args.Create.ShareAccess = ShareAccess;
     pIrp->Args.Create.CreateDisposition = CreateDisposition;
     pIrp->Args.Create.CreateOptions = CreateOptions;
-    pIrp->Args.Create.pEaBuffer = pEaBuffer;
+    pIrp->Args.Create.EaBuffer = EaBuffer;
+    pIrp->Args.Create.EaLength = EaLength;
     pIrp->Args.Create.SecurityDescriptor = SecurityDescriptor;
     pIrp->Args.Create.SecurityQualityOfService = SecurityQualityOfService;
+    pIrp->Args.Create.EcpList = EcpList;
 
     status = IopDeviceCallDriver(pDevice, pIrp);
     ioStatusBlock = pIrp->IoStatusBlock;
@@ -157,6 +184,7 @@ cleanup:
     *IoStatusBlock = ioStatusBlock;
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    assert(NT_SUCCESS_OR_NOT(status));
     return status;
 }
 

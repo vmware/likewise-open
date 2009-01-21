@@ -46,54 +46,7 @@
 #include "lwlist.h"
 #include "lw/rtlgoto.h"
 #include "ntlogmacros.h"
-
-typedef VOID (*PIO_ECP_FREE_CONTEXT_CALLBACK)(IN PVOID pContext);
-
-NTSTATUS
-IoRtlEcpListAllocate(
-    OUT PIO_ECP_LIST* ppEcpList
-    );
-
-// Will automatically clean up ECPs in the list.
-VOID
-IoRtlEcpListFree(
-    IN OUT PIO_ECP_LIST* ppEcpList
-    );
-
-NTSTATUS
-IoRtlEcpListGetNext(
-    IN PIO_ECP_LIST pEcpList,
-    IN OPTIONAL PCSTR pszCurrentType,
-    OUT PCSTR* ppszNextType,
-    OUT OPTIONAL PVOID* ppNextContext,
-    OUT OPTIONAL PULONG pNextContextSize
-    );
-
-NTSTATUS
-IoRtlEcpListFind(
-    IN PIO_ECP_LIST pEcpList,
-    IN PCSTR pszType,
-    OUT OPTIONAL PVOID* ppContext,
-    OUT OPTIONAL PULONG pContextSize
-    );
-
-NTSTATUS
-IoRtlEcpListInsert(
-    IN PIO_ECP_LIST pEcpList,
-    IN PCSTR pszType,
-    IN PVOID pContext,
-    IN ULONG ContextSize,
-    IN OPTIONAL PIO_ECP_FREE_CONTEXT_CALLBACK pfnFreeContextCallback
-    );
-
-NTSTATUS
-IoRtlEcpListRemove(
-    IN PIO_ECP_LIST pEcpList,
-    IN PCSTR pszType,
-    OUT PVOID* ppContext,
-    OUT OPTIONAL PULONG pContextSize,
-    OUT PIO_ECP_FREE_CONTEXT_CALLBACK* ppfnFreeContextCallback
-    );
+#include "lwio/iortl.h"
 
 typedef struct _IO_ECP_LIST {
     LW_LIST_LINKS Head;
@@ -157,6 +110,8 @@ cleanup:
         IopRtlEcpNodeFree(&pEcpNode);
     }
 
+    *ppEcpNode = pEcpNode;
+
     LOG_LEAVE_IF_STATUS_EE(status, EE);
     return status;
 }
@@ -170,12 +125,17 @@ IoRtlEcpListAllocate(
     int EE = 0;
     PIO_ECP_LIST pEcpList = NULL;
 
-    status = RTL_ALLOCATE(&pEcpList, IO_ECP_LIST, sizeof(&pEcpList));
+    status = RTL_ALLOCATE(&pEcpList, IO_ECP_LIST, sizeof(*pEcpList));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     LwListInit(&pEcpList->Head);
 
 cleanup:
+    if (status)
+    {
+        IoRtlEcpListFree(&pEcpList);
+    }
+
     *ppEcpList = pEcpList;
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);
@@ -203,6 +163,7 @@ IoRtlEcpListFree(
     }
 }
 
+static
 NTSTATUS
 IopRtlEcpListFindNode(
     IN PIO_ECP_LIST pEcpList,
@@ -239,6 +200,27 @@ IopRtlEcpListFindNode(
     *ppEcpNode = pNode;
 
     return status;
+}
+
+ULONG
+IoRtlEcpListGetCount(
+    IN OPTIONAL PIO_ECP_LIST pEcpList
+    )
+{
+    ULONG count = 0;
+    PLW_LIST_LINKS pLinks = NULL;
+
+    if (pEcpList)
+    {
+        for (pLinks = pEcpList->Head.Next;
+             pLinks != &pEcpList->Head;
+             pLinks = pLinks->Next)
+        {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 NTSTATUS

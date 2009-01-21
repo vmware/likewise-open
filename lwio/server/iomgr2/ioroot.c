@@ -39,20 +39,18 @@ IopRootFree(
 
     if (pRoot)
     {
-        PLW_LIST_LINKS pLinks = NULL;
-
         // Unload drivers in reverse load order
-        for (pLinks = pRoot->DriverObjectList.Prev;
-             pLinks != &pRoot->DriverObjectList;
-             pLinks = pLinks->Prev)
+        while (!LwListIsEmpty(&pRoot->DriverObjectList))
         {
+            PLW_LIST_LINKS pLinks = LwListRemoveTail(&pRoot->DriverObjectList);
             PIO_DRIVER_OBJECT pDriverObject = LW_STRUCT_FROM_FIELD(pLinks, IO_DRIVER_OBJECT, RootLinks);
 
-            LwListRemove(pLinks);
             IopDriverUnload(&pDriverObject);
         }
 
         IopConfigFreeConfig(&pRoot->Config);
+        IoMemoryFree(pRoot);
+        *ppRoot = NULL;
     }
 }
 
@@ -180,14 +178,6 @@ IopRootRemoveDevice(
     pRoot->DeviceCount--;
 }
 
-BOOLEAN
-IopIsSeparator(
-    IN wchar16_t Character
-    )
-{
-    return (('/' == Character) || ('\\' == Character)) ? TRUE : FALSE;
-}
-
 NTSTATUS
 IopRootParse(
     IN PIOP_ROOT_STATE pRoot,
@@ -216,14 +206,14 @@ IopRootParse(
         GOTO_CLEANUP_EE(EE);
     }
 
-    if (!IopIsSeparator(pFileName->FileName[0]))
+    if (!IoRtlPathIsSeparator(pFileName->FileName[0]))
     {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_EE(EE);
     }
 
     pszCurrent = pFileName->FileName + 1;
-    while (pszCurrent[0] && !IopIsSeparator(pszCurrent[0]))
+    while (pszCurrent[0] && !IoRtlPathIsSeparator(pszCurrent[0]))
     {
         pszCurrent++;
     }

@@ -61,11 +61,13 @@
 #define IOTEST_DEVICE_NAME "iotest"
 #define IOTEST_DEVICE_PATH "/" IOTEST_DEVICE_NAME
 
+#define IOTEST_INTERNAL_PATH_NAMED_PIPE "/pipe"
 #define IOTEST_INTERNAL_PATH_ALLOW "/allow"
 #define IOTEST_PATH_ALLOW IOTEST_DEVICE_PATH IOTEST_INTERNAL_PATH_ALLOW
 
 typedef struct _IT_CCB {
     UNICODE_STRING Path;
+    BOOLEAN IsNamedPipe;
 } IT_CCB, *PIT_CCB;
 
 NTSTATUS
@@ -77,6 +79,12 @@ ItpCreateCcb(
 VOID
 ItpDestroyCcb(
     IN OUT PIT_CCB* ppCcb
+    );
+
+NTSTATUS
+ItpGetCcb(
+    OUT PIT_CCB* ppCcb,
+    IN PIRP pIrp
     );
 
 NTSTATUS
@@ -121,6 +129,11 @@ ItDispatchQueryInformation(
 
 NTSTATUS
 ItDispatchSetInformation(
+    IN PIRP pIrp
+    );
+
+NTSTATUS
+ItDispatchCreateNamedPipe(
     IN PIRP pIrp
     );
 

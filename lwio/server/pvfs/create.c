@@ -141,9 +141,6 @@ PvfsCommonCreate(
     FILE_SHARE_FLAGS ShareAccess;
     FILE_CREATE_DISPOSITION CreateDisposition;
     FILE_CREATE_OPTIONS CreateOptions;
-    PIO_EA_BUFFER pEaBuffer;
-    PVOID SecurityDescriptor;
-    //PVOID SecurityQualityOfService;
 
     FileHandle = pIrp->FileHandle;
     DesiredAccess = pIrp->Args.Create.DesiredAccess;
@@ -151,8 +148,6 @@ PvfsCommonCreate(
     ShareAccess = pIrp->Args.Create.ShareAccess;
     CreateDisposition = pIrp->Args.Create.CreateDisposition;
     CreateOptions = pIrp->Args.Create.CreateOptions;
-    pEaBuffer = pIrp->Args.Create.pEaBuffer;
-    SecurityDescriptor = pIrp->Args.Create.SecurityDescriptor;
 
     if (CreateOptions & FILE_DIRECTORY_FILE) {
 

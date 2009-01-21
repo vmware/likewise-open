@@ -17,7 +17,6 @@ typedef struct _NPFS_CCB{
     FILE_SHARE_FLAGS ShareAccess;
     FILE_CREATE_DISPOSITION CreateDisposition;
     FILE_CREATE_OPTIONS CreateOptions;
-    PIO_EA_BUFFER pEaBuffer;
 
 } NPFS_CCB, *PNPFS_CCB;
 

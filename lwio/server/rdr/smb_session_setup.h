@@ -29,7 +29,7 @@
  */
 
 
-uint32_t
+NTSTATUS
 SessionSetup(
     PSMB_SOCKET pSocket,
     BOOLEAN     bSignMessages,

@@ -33,42 +33,83 @@
  *
  * Module Name:
  *
- *        create.c
+ *        namedpipe.c
  *
  * Abstract:
  *
  *        IO Test Driver
  *
- * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
 
 #include "includes.h"
 
 NTSTATUS
-ItDispatchCreate(
+ItDispatchCreateNamedPipe(
     IN PIRP pIrp
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     int EE = 0;
     UNICODE_STRING path = { 0 };
-    UNICODE_STRING allowPath = { 0 };
+    UNICODE_STRING prefixPath = { 0 };
+    UNICODE_STRING allowPrefix = { 0 };
     PIT_CCB pCcb = NULL;
+    PIO_ECP_NAMED_PIPE pipeParams = NULL;
+    ULONG ecpSize = 0;
+
+    if (!pIrp->Args.Create.EcpList)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    status = IoRtlEcpListFind(
+                    pIrp->Args.Create.EcpList,
+                    IO_ECP_TYPE_NAMED_PIPE,
+                    (PVOID*)&pipeParams,
+                    &ecpSize);
+    if (STATUS_NOT_FOUND == status)
+    {
+        status = STATUS_INVALID_PARAMETER;
+    }
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    if (ecpSize != sizeof(*pipeParams))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     RtlUnicodeStringInit(&path, pIrp->Args.Create.FileName.FileName);
 
-    status = RtlUnicodeStringAllocateFromCString(&allowPath, IOTEST_INTERNAL_PATH_ALLOW);
+    status = RtlUnicodeStringAllocateFromCString(&allowPrefix, IOTEST_INTERNAL_PATH_NAMED_PIPE);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    // Only succeed for a certain path.
-    if (!RtlUnicodeStringIsEqual(&path, &allowPath, FALSE))
+    // TODO -- Add some IoRtlPath prefix functions...
+    if (path.Length <= allowPrefix.Length || !IoRtlPathIsSeparator((path.Buffer[allowPrefix.Length/sizeof(allowPrefix.Buffer[0])])))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    prefixPath.Buffer = path.Buffer;
+    prefixPath.Length = allowPrefix.Length;
+    prefixPath.MaximumLength = prefixPath.Length;
+
+    // Only succeed for the given prefix.
+    if (!RtlUnicodeStringIsEqual(&prefixPath, &allowPrefix, FALSE))
     {
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_EE(EE);
     }
 
+    // Would have to check whether pipe already exists, etc.
+
     status = ItpCreateCcb(&pCcb, &path);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pCcb->IsNamedPipe = TRUE;
 
     status = IoFileSetContext(pIrp->FileHandle, pCcb);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -77,29 +118,8 @@ ItDispatchCreate(
 
 cleanup:
     ItpDestroyCcb(&pCcb);
-    RtlUnicodeStringFree(&allowPath);
+    RtlUnicodeStringFree(&allowPrefix);
 
-    pIrp->IoStatusBlock.Status = status;
-
-    LOG_LEAVE_IF_STATUS_EE(status, EE);
-    return status;
-}
-
-NTSTATUS
-ItDispatchClose(
-    IN PIRP pIrp
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int EE = 0;
-    PIT_CCB pCcb = NULL;
-
-    status = ItpGetCcb(&pCcb, pIrp);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    ItpDestroyCcb(&pCcb);
-
-cleanup:
     pIrp->IoStatusBlock.Status = status;
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);

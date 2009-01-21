@@ -9,6 +9,7 @@ libiotest_sys_la_SOURCES = \
     iocontrol.c \
     fscontrol.c \
     qsinfo.c \
+    namedpipe.c \
     ccb.c
 
 libiotest_sys_la_CPPFLAGS = \

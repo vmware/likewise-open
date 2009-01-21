@@ -8,7 +8,6 @@ typedef struct _PVFS_CCB{
     FILE_SHARE_FLAGS ShareAccess;
     FILE_CREATE_DISPOSITION CreateDisposition;
     FILE_CREATE_OPTIONS CreateOptions;
-    PIO_EA_BUFFER pEaBuffer;
     
     int fd;
     char *path;

@@ -29,7 +29,7 @@
  */
 
 
-uint32_t
+NTSTATUS
 TreeConnect(
     PSMB_SESSION pSession,
     wchar16_t   *pwszPath,
