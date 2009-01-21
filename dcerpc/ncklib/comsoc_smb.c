@@ -560,7 +560,6 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    /* Behold the full horror of NtCreate */
     serr = NtStatusToUnixErrno(
         NtCtxCreateFile(
             smb->context,                    /* IO context */
@@ -569,6 +568,8 @@ rpc__smb_socket_connect(
             NULL,                            /* Async control block */
             &io_status,                      /* Status block ??? */
             &filename,                       /* Filename */
+            NULL,                            /* Security descriptor */
+            NULL,                            /* Security QOS */
             GENERIC_READ | GENERIC_WRITE,    /* Access mode */
             0,                               /* Allocation size */
             0,                               /* File attributes */
@@ -576,8 +577,8 @@ rpc__smb_socket_connect(
             OPEN_EXISTING,                   /* Create disposition */
             0,                               /* Create options */
             NULL,                            /* EA buffer */
-            NULL,                            /* Security descriptor */
-            NULL                             /* Security QOS */
+            0,                               /* EA buffer length */
+            NULL                             /* ECP List */
             ));
     if (serr)
     {
