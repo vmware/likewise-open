@@ -1,0 +1,54 @@
+#ifndef _SECURITY_IDL_
+#define _SECURITY_IDL_
+
+cpp_quote("#ifndef _GEN_SECURITY_H_")
+cpp_quote("#define _GEN_SECURITY_H_")
+
+#include <secdesc/phdef.h>
+#include <secdesc/siddef.h>
+#include <secdesc/sdflags.h>
+
+
+typedef [switch_type(uint32)] union sec_ace_object_type {
+    [case(SEC_ACE_OBJECT_TYPE_PRESENT)] Guid type;
+} SecAceObjectType;
+
+typedef [switch_type(uint32)] union sec_ace_object_inherited_type {
+    [case(SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT)] Guid inherited_type;
+} SecAceObjectInheritedType;
+
+typedef struct sec_ace_object {
+    uint32 flags; /* security ace object flags */
+
+    /* flags & SEC_ACE_OBJECT_TYPE_PRESENT  */
+    [switch_is(flags)] SecAceObjectType type;
+    /* flags & SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT */
+    [switch_is(flags)] SecAceObjectInheritedType inherited_type;
+} SecAceObject;
+
+typedef [switch_type(uint8)] union sec_ace_object_ctr {
+    [case(SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT)] SecAceObject object_allowed;
+    [case(SEC_ACE_TYPE_ACCESS_DENIED_OBJECT)] SecAceObject object_denied;
+    [case(SEC_ACE_TYPE_SYSTEM_AUDIT_OBJECT)] SecAceObject object_audit;
+    [case(SEC_ACE_TYPE_SYSTEM_ALARM_OBJECT)] SecAceObject object_alarm;
+} SecAceObjectCtr;
+
+
+/* Include the rest of public security descriptor definitions
+   depending on SecAceObjectCtr */
+#include <secdesc/sddef.h>
+
+cpp_quote("#endif /* _GEN_SECURITY_H_ */")
+
+
+#endif /* _SECURITY_IDL_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
