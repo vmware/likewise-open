@@ -144,7 +144,7 @@ typedef struct _SMB_SRV_PROPERTIES
     ULONG             MaxBufferSize;
     ULONG             MaxRawSize;
     ULONG             Capabilities;
-    CHAR              GUID[16];
+    uuid_t            GUID;
 
 } SMB_SRV_PROPERTIES, *PSMB_SRV_PROPERTIES;
 
@@ -158,6 +158,8 @@ typedef enum
 typedef struct _SRV_GSS_CONTEXT
 {
     SRV_GSS_CONTEXT_STATE state;
+
+    gss_ctx_id_t* pGssContext;
 
 } SRV_GSS_CONTEXT, *PSRV_GSS_CONTEXT;
 
@@ -188,6 +190,7 @@ typedef struct _SMB_SRV_CONNECTION
     } readerState;
 
     PBYTE               pSessionKey;
+    ULONG               ulSessionKeyLength;
     PSRV_GSS_CONTEXT    pGssContext;
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;

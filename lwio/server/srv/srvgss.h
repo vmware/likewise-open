@@ -2,20 +2,34 @@
 #define __SRV_GSS_H__
 
 NTSTATUS
+SrvGssInit(
+    VOID
+    );
+
+NTSTATUS
 SrvGssCreate(
-    PSRV_GSS_CONTEXT* ppGssContext
+    PSRV_GSS_CONTEXT* ppGssContext,
+    PBYTE*            ppSessionKey,
+    PULONG            pulSessionKeyLength
     );
 
 NTSTATUS
 SrvGssNegotiate(
     PSRV_GSS_CONTEXT pGssContext,
-    PBYTE            pSessionKey,
-    ULONG            ulSessionKeyLength
+    PBYTE            pSecurityInputBlob,
+    ULONG            ulSecurityInputBlobLen,
+    PBYTE*           ppSecurityOutputBlob,
+    ULONG*           pulSecurityOutputBloblen
     );
 
 VOID
 SrvGssFree(
     PSRV_GSS_CONTEXT pGssContext
+    );
+
+NTSTATUS
+SrvGssShutdown(
+    VOID
     );
 
 #endif /* __SRV_GSS_H__ */

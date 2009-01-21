@@ -91,7 +91,7 @@ SrvWorkerMain(
             break;
         }
 
-        if (pTask)
+        if (pTask && pTask->pRequest)
         {
             ntStatus = SrvWorkerExecute(pTask);
             BAIL_ON_NT_STATUS(ntStatus);

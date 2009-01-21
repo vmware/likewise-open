@@ -43,6 +43,7 @@ SrvConnectionCreate(
     pConnection->pSocket = pSocket;
 
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
+    uuid_copy(pConnection->serverProperties.GUID, pServerProperties->GUID);
 
     *ppConnection = pConnection;
 

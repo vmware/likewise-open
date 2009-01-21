@@ -88,7 +88,6 @@ SrvListenerInit(
     )
 {
     NTSTATUS ntStatus = 0;
-    uuid_t   guid;
 
     memset(&pListener->context, 0, sizeof(pListener->context));
 
@@ -100,8 +99,7 @@ SrvListenerInit(
     pListener->context.ulNumReaders = ulNumReaders;
     pListener->context.bStop = FALSE;
 
-    uuid_generate(guid);
-    uuid_unparse(guid, pListener->context.serverProperties.GUID);
+    uuid_generate(pListener->context.serverProperties.GUID);
 
     pListener->context.serverProperties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
     pListener->context.serverProperties.bEnableSecuritySignatures = TRUE;

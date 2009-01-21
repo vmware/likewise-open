@@ -31,7 +31,7 @@
 #include "includes.h"
 
 typedef NTSTATUS (*PFN_SRV_BUILD_NEGOTIATE_RESPONSE)(
-                        PSMB_SRV_PROPERTIES pServerProperties,
+                        PSMB_SRV_CONNECTION pConnection,
                         uint16_t            idxDialect,
                         PSMB_PACKET         pPacket
                         );
@@ -45,7 +45,7 @@ typedef struct _SRV_NEGOTIATE_RESPONSE_HANDLER
 static
 NTSTATUS
 SrvBuildNegotiateResponseByDialect_NTLM_0_12(
-    PSMB_SRV_PROPERTIES pServerProperties,
+    PSMB_SRV_CONNECTION pConnection,
     uint16_t            idxDialect,
     PSMB_PACKET         pPacket
     );
@@ -53,7 +53,7 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
 static
 NTSTATUS
 SrvBuildNegotiateResponseByDialect_Invalid(
-    PSMB_SRV_PROPERTIES pServerProperties,
+    PSMB_SRV_CONNECTION pConnection,
     uint16_t            idxDialect,
     PSMB_PACKET         pPacket
     );
@@ -84,9 +84,10 @@ SrvChooseDialect(
 static
 NTSTATUS
 SrvBuildNegotiateResponseForDialect(
-    PSMB_SRV_PROPERTIES pServerProperties,
-    PCSTR       pszDialect,
-    PSMB_PACKET pPacket
+    PSMB_SRV_CONNECTION pConnection,
+    uint16_t            idxDialect,
+    PCSTR               pszDialect,
+    PSMB_PACKET         pPacket
     );
 
 NTSTATUS
@@ -166,7 +167,8 @@ MarshallNegotiateResponse(
                             ulNumDialects);
 
     ntStatus = SrvBuildNegotiateResponseForDialect(
-                    &pConnection->serverProperties,
+                    pConnection,
+                    idxDialect,
                     ((idxDialect < 0) ? "" : ppDialectArray[idxDialect]),
                     pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -216,18 +218,18 @@ SrvChooseDialect(
 static
 NTSTATUS
 SrvBuildNegotiateResponseForDialect(
-    PSMB_SRV_PROPERTIES pServerProperties,
-    PCSTR       pszDialect,
-    PSMB_PACKET pPacket
+    PSMB_SRV_CONNECTION pConnection,
+    uint16_t            idxDialect,
+    PCSTR               pszDialect,
+    PSMB_PACKET         pPacket
     )
 {
     NTSTATUS ntStatus = 0;
-    uint16_t idxDialect = -1;
     PFN_SRV_BUILD_NEGOTIATE_RESPONSE pfnNegotiateResponseBuilder = &SrvBuildNegotiateResponseByDialect_Invalid;
 
     if (!IsNullOrEmptyString(pszDialect))
     {
-        uint16_t iDialect = -1;
+        uint16_t iDialect = 0;
         uint16_t nDialects = 0;
 
         nDialects = sizeof(gNegotiateResponseHandlers)/sizeof(SRV_NEGOTIATE_RESPONSE_HANDLER);
@@ -247,7 +249,7 @@ SrvBuildNegotiateResponseForDialect(
     assert (pfnNegotiateResponseBuilder != NULL);
 
     ntStatus = pfnNegotiateResponseBuilder(
-                        pServerProperties,
+                        pConnection,
                         idxDialect,
                         pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -260,7 +262,7 @@ error:
 static
 NTSTATUS
 SrvBuildNegotiateResponseByDialect_NTLM_0_12(
-    PSMB_SRV_PROPERTIES pServerProperties,
+    PSMB_SRV_CONNECTION pConnection,
     uint16_t    idxDialect,
     PSMB_PACKET pPacket
     )
@@ -271,13 +273,14 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
     ULONG64   llUTCTime;
     uint16_t  byteCount = 0;
     uint8_t*  pDataCursor = NULL;
+    PSMB_SRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
 
     ntStatus = SMBPacketMarshallHeader(
                 pPacket->pRawBuffer,
                 pPacket->bufferLen,
                 COM_NEGOTIATE,
                 0,
-                0,
+                TRUE,
                 0,
                 0,
                 0,
@@ -305,11 +308,11 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
     }
     if (pServerProperties->bEnableSecuritySignatures)
     {
-        pResponseHeader->securityMode |= 0x3;
+        pResponseHeader->securityMode |= 0x4;
     }
     if (pServerProperties->bRequireSecuritySignatures)
     {
-        pResponseHeader->securityMode |= 0x4;
+        pResponseHeader->securityMode |= 0x8;
     }
 
     pResponseHeader->maxMpxCount = pServerProperties->MaxMpxCount;
@@ -320,12 +323,14 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
     pResponseHeader->capabilities = pServerProperties->Capabilities;
 
     curTime = time(NULL);
-    llUTCTime = curTime;
+
+    pResponseHeader->serverTimeZone = (mktime(gmtime(&curTime)) - curTime)/60;
+
+    llUTCTime = (curTime + 11644473600LL) * 10000000LL;
 
     pResponseHeader->systemTimeLow = llUTCTime & 0xFFFFFFFFLL;
     pResponseHeader->systemTimeHigh = (llUTCTime & 0xFFFFFFFF00000000LL) >> 32;
 
-    pResponseHeader->serverTimeZone = (mktime(gmtime(&curTime)) - curTime)/60;
 
     pResponseHeader->encryptionKeyLength = 0;
 
@@ -336,9 +341,24 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
         pDataCursor += sizeof(pServerProperties->GUID);
 
         byteCount += sizeof(pServerProperties->GUID);
+
+        ntStatus = SrvGssCreate(
+                        &pConnection->pGssContext,
+                        &pConnection->pSessionKey,
+                        &pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (pConnection->ulSessionKeyLength)
+        {
+            memcpy(pDataCursor, pConnection->pSessionKey, pConnection->ulSessionKeyLength);
+            pDataCursor += pConnection->ulSessionKeyLength;
+            byteCount += pConnection->ulSessionKeyLength;
+        }
     }
 
+    pPacket->pByteCount = &pResponseHeader->byteCount;
     pResponseHeader->byteCount = byteCount;
+    pPacket->bufferUsed += byteCount;
 
     ntStatus = SMBPacketMarshallFooter(pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -351,7 +371,7 @@ error:
 static
 NTSTATUS
 SrvBuildNegotiateResponseByDialect_Invalid(
-    PSMB_SRV_PROPERTIES pServerProperties,
+    PSMB_SRV_CONNECTION pConnection,
     uint16_t    idxDialect,
     PSMB_PACKET pPacket
     )
@@ -364,7 +384,7 @@ SrvBuildNegotiateResponseByDialect_Invalid(
                 pPacket->bufferLen,
                 COM_NEGOTIATE,
                 0,
-                0,
+                TRUE,
                 0,
                 0,
                 0,
@@ -378,8 +398,9 @@ SrvBuildNegotiateResponseByDialect_Invalid(
     pPacket->pData = pPacket->pParams + sizeof(NEGOTIATE_INVALID_RESPONSE_HEADER);
     pPacket->bufferUsed += sizeof(NEGOTIATE_INVALID_RESPONSE_HEADER);
 
-    pResponseHeader->dialectIndex = idxDialect;
+    pResponseHeader->dialectIndex = 0xFF;
     pResponseHeader->byteCount = 0;
+    pPacket->pByteCount = &pResponseHeader->byteCount;
 
     ntStatus = SMBPacketMarshallFooter(pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
