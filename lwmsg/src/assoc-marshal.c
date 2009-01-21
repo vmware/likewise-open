@@ -37,6 +37,7 @@
  *
  */
 #include <lwmsg/type.h>
+#include <lwmsg/assoc.h>
 #include "convert.h"
 #include "util-private.h"
 #include "assoc-private.h"
@@ -49,18 +50,20 @@ lwmsg_assoc_marshal_handle(
     LWMsgContext* context, 
     size_t object_size,
     void* object,
+    LWMsgTypeAttrs* attrs,
     LWMsgBuffer* buffer,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     void* pointer = NULL;
-    LWMsgHandleLocation location;
+    LWMsgHandleType location;
     unsigned long handle;
     LWMsgAssoc* assoc = NULL;
     LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
     unsigned char blob[5];
+    const char* type;
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
@@ -69,35 +72,80 @@ lwmsg_assoc_marshal_handle(
 
     pointer = *(void**) object;
 
-    status = lwmsg_session_manager_handle_pointer_to_id(
-                      manager,
-                      session,
-                      (const char*) data,
-                      pointer,
-                      LWMSG_TRUE,
-                      &location,
-                      &handle);
-
-    switch (status)
+    if (pointer != NULL)
     {
-    case LWMSG_STATUS_NOT_FOUND:
-        status = LWMSG_STATUS_MALFORMED;
-    default:
-        BAIL_ON_ERROR(status);
+        status = lwmsg_session_manager_handle_pointer_to_id(
+            manager,
+            session,
+            pointer,
+            &type,
+            &location,
+            &handle);
+
+        switch (status)
+        {
+        case LWMSG_STATUS_NOT_FOUND:
+            /* Implicitly register handle */
+            if (attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER)
+            {
+                /* Automatic registration doesn't make sense if the receiver is
+                   exepcting a handle it created */
+                BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+            }
+
+            location = LWMSG_HANDLE_LOCAL;
+            type = (const char*) data;
+
+            BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle_local(
+                              manager,
+                              session,
+                              (const char*) data,
+                              pointer,
+                              NULL,
+                              &handle));
+            break;
+        default:
+            BAIL_ON_ERROR(status);
+        }
+
+        /* Confirm that the handle is of the expected type */
+        if (strcmp((const char*) data, type))
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
+
+        /* Confirm that handle origin is correct according to type attributes */
+        if ((attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER && location != LWMSG_HANDLE_REMOTE) ||
+            (attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER && location != LWMSG_HANDLE_LOCAL))
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
+
+        blob[0] = (unsigned char) location;
+
+        BAIL_ON_ERROR(status = lwmsg_convert_integer(
+                          &handle,
+                          sizeof(handle),
+                          LWMSG_NATIVE_ENDIAN,
+                          &blob[1],
+                          4,
+                          LWMSG_BIG_ENDIAN,
+                          LWMSG_UNSIGNED));
+
+        BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, blob, sizeof(blob)));
     }
+    else
+    {
+        /* If the handle was not supposed to be NULL, raise an error */
+        if (attrs->nonnull)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
 
-    blob[0] = (unsigned char) location;
-    
-    BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                      &handle,
-                      sizeof(handle),
-                      LWMSG_NATIVE_ENDIAN,
-                      &blob[1],
-                      4,
-                      LWMSG_BIG_ENDIAN,
-                      LWMSG_UNSIGNED));
+        blob[0] = (unsigned char) LWMSG_HANDLE_NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, blob, sizeof(blob)));
+        BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, blob, sizeof(blob[0])));
+    }
 
 error:
 
@@ -109,6 +157,7 @@ lwmsg_assoc_unmarshal_handle(
     LWMsgContext* context,
     LWMsgBuffer* buffer,
     size_t object_size,
+    LWMsgTypeAttrs* attrs,
     void* object,
     void* data
     )
@@ -116,7 +165,7 @@ lwmsg_assoc_unmarshal_handle(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = NULL;
     void* pointer = NULL;
-    LWMsgHandleLocation location;
+    LWMsgHandleType location;
     unsigned long handle;
     char temp[5];
     LWMsgSessionManager* manager = NULL;
@@ -126,132 +175,77 @@ lwmsg_assoc_unmarshal_handle(
     
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
-    
-    /* Read handle type and number */
-    BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &temp, sizeof(temp)));
-    
-    location = !(LWMsgHandleLocation) temp[0];
 
-    BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                      temp + 1,
-                      4,
-                      LWMSG_BIG_ENDIAN,
-                      &handle,
-                      sizeof(handle),
-                      LWMSG_NATIVE_ENDIAN,
-                      LWMSG_UNSIGNED));
+    /* Read handle type */
+    BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &temp[0], sizeof(temp[0])));
 
-    /* Convert handle to pointer */
-    status = lwmsg_session_manager_handle_id_to_pointer(
-        manager,
-        session,
-        (const char*) data,
-        location,
-        handle,
-        location == LWMSG_HANDLE_REMOTE,
-        &pointer);
+    location = (LWMsgHandleType) temp[0];
 
-    switch (status)
+    if (location != LWMSG_HANDLE_NULL)
     {
-    case LWMSG_STATUS_NOT_FOUND:
-        status = LWMSG_STATUS_MALFORMED;
-    default:
-        BAIL_ON_ERROR(status);
-    }
-    
-    /* Set pointer on unmarshalled object */
-    *(void**) object = pointer;
+         /* Read handle ID */
+        BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &temp[1], sizeof(temp) - sizeof(temp[0])));
 
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_assoc_verify_handle_local(
-    LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
-    void* object,
-    void* data)
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    void* handle = *(void**) object;
-    LWMsgHandleLocation location;
-    LWMsgAssoc* assoc = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
-
-    if (handle)
-    {
-        status = lwmsg_assoc_get_handle_location(assoc, handle, &location);
-
-        if (!status && unmarshalling && location != LWMSG_HANDLE_LOCAL)
+        /* Invert sense of handle location */
+        if (location == LWMSG_HANDLE_LOCAL)
         {
-            RAISE_ERROR(context, status = LWMSG_STATUS_MALFORMED,
-                        "Handle was remote when it was expected to be local");
-        }
-        else if (!status && !unmarshalling && location != LWMSG_HANDLE_REMOTE)
-        {
-            RAISE_ERROR(context, status = LWMSG_STATUS_MALFORMED,
-                        "Handle was local when it was expected to be remote");
-        }
-        else if (!unmarshalling && status == LWMSG_STATUS_NOT_FOUND)
-        {
-            /* If we are marshalling and the handle is not yet known, it simply
-               may not be registered yet */
-            status = LWMSG_STATUS_SUCCESS;
+            location = LWMSG_HANDLE_REMOTE;
         }
         else
         {
+            location = LWMSG_HANDLE_LOCAL;
+        }
+
+        if ((attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER && location != LWMSG_HANDLE_LOCAL) ||
+            (attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER && location != LWMSG_HANDLE_REMOTE))
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
+
+        BAIL_ON_ERROR(status = lwmsg_convert_integer(
+                          temp + 1,
+                          4,
+                          LWMSG_BIG_ENDIAN,
+                          &handle,
+                          sizeof(handle),
+                          LWMSG_NATIVE_ENDIAN,
+                          LWMSG_UNSIGNED));
+
+        /* Convert handle to pointer */
+        status = lwmsg_session_manager_handle_id_to_pointer(
+            manager,
+            session,
+            (const char*) data,
+            location,
+            handle,
+            &pointer);
+
+        switch (status)
+        {
+        case LWMSG_STATUS_NOT_FOUND:
+            /* Implicitly register handle seen from the peer for the first time */
+            BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle_remote(
+                              manager,
+                              session,
+                              (const char*) data,
+                              handle,
+                              NULL,
+                              &pointer));
+            break;
+        default:
             BAIL_ON_ERROR(status);
         }
+
+        /* Set pointer on unmarshalled object */
+        *(void**) object = pointer;
     }
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_assoc_verify_handle_remote(
-    LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
-    void* object,
-    void* data)
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    void* handle = *(void**) object;
-    LWMsgHandleLocation location;
-    LWMsgAssoc* assoc = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
-
-    if (handle)
+    else
     {
-        status = lwmsg_assoc_get_handle_location(assoc, handle, &location);
-
-        if (!status && unmarshalling && location != LWMSG_HANDLE_REMOTE)
+        if (attrs->nonnull)
         {
-            RAISE_ERROR(context, status = LWMSG_STATUS_MALFORMED,
-                        "Handle was local when it was expected to be remote");
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
         }
-        else if (!status && !unmarshalling && location != LWMSG_HANDLE_LOCAL)
-        {
-            RAISE_ERROR(context, status = LWMSG_STATUS_MALFORMED,
-                        "Handle was remote when it was expected to be local");
-        }
-        else if (!unmarshalling && status == LWMSG_STATUS_NOT_FOUND)
-        {
-            /* If we are marshalling and the handle is not yet known, it
-               may not be registered yet */
-            status = LWMSG_STATUS_SUCCESS;
-        }
-        else
-        {
-            BAIL_ON_ERROR(status);
-        }
+        *(void**) object = NULL;
     }
 
 error:

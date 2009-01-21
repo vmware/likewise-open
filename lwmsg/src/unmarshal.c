@@ -150,6 +150,7 @@ lwmsg_unmarshal_custom_immediate(
                       context,
                       buffer,
                       iter->size,
+                      &iter->attrs,
                       object,
                       iter->info.kind_custom.typedata));
 
@@ -376,6 +377,11 @@ lwmsg_unmarshal_pointer(
     }
     else
     {
+        if (iter->attrs.nonnull)
+        {
+            /* The pointer was supposed to be non-null */
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
         *out = NULL;
     }
 

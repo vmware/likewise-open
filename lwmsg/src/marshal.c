@@ -241,6 +241,7 @@ lwmsg_marshal_custom(
                       context,
                       iter->size,
                       object,
+                      &iter->attrs,
                       buffer,
                       iter->info.kind_custom.typedata));
 
@@ -331,6 +332,12 @@ lwmsg_marshal_pointer(
 
     /* Write an indicator byte showing whether the pointer is set */
     ptr_flag = *(void**) object ? 0xFF : 0x00;
+
+    /* Enforce nullability */
+    if (iter->attrs.nonnull && !ptr_flag)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+    }
 
     BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, &ptr_flag, 1));
 

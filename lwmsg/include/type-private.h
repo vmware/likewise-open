@@ -55,6 +55,8 @@ typedef struct LWMsgTypeIter
     LWMsgVerifyFunction verify;
     void* verify_data;
 
+    LWMsgTypeAttrs attrs;
+
     union
     {
         struct
@@ -83,8 +85,6 @@ typedef struct LWMsgTypeIter
                 } member;
                 size_t static_length;
             } term_info;
-            unsigned nonnull:1;
-            unsigned aliasable:1;
         } kind_indirect;
         struct
         {

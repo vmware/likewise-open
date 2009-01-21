@@ -720,7 +720,7 @@ LWMsgStatus
 lwmsg_assoc_get_handle_location(
     LWMsgAssoc* assoc,
     void* handle,
-    LWMsgHandleLocation* location
+    LWMsgHandleType* location
     );
 
 /**
@@ -979,21 +979,8 @@ lwmsg_assoc_get_session_data(
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_handle_type_class;
 
-LWMsgStatus
-lwmsg_assoc_verify_handle_local(
-    LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
-    void* object,
-    void* data);
-
-LWMsgStatus
-lwmsg_assoc_verify_handle_remote(
-    LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
-    void* object,
-    void* data);
+#define LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER 0x1
+#define LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER 0x2
 
 #endif
 
@@ -1025,22 +1012,22 @@ lwmsg_assoc_verify_handle_remote(
 
 /**
  * @ingroup types
- * @brief Specify that handle is local
+ * @brief Ensure that handle is local to receiving peer
  *
  * Specifies that the previous type or member, which must be a handle,
  * must be a local handle from the perspective of the receiver.
  * @hideinitializer
  */
-#define LWMSG_ATTR_HANDLE_LOCAL LWMSG_ATTR_VERIFY(lwmsg_assoc_verify_handle_local, NULL)
+#define LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER LWMSG_ATTR_CUSTOM(LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER)
 
 /**
  * @ingroup types
- * @brief Specify that handle is remote
+ * @brief Ensure that handle is local to sending peer
  *
  * Specifies that the previous type or member, which must be a handle,
- * must be a remote handle from the perspective of the receiver.
+ * must be a local handle from the perspective of the sender.
  * @hideinitializer
  */
-#define LWMSG_ATTR_HANDLE_REMOTE LWMSG_ATTR_VERIFY(lwmsg_assoc_verify_handle_remote, NULL)
+#define LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER LWMSG_ATTR_CUSTOM(LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER)
 
 #endif

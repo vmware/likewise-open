@@ -95,12 +95,13 @@ lwmsg_assoc_register_handle(
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
-    BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle(
+    BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle_local(
                       manager,
                       session,
                       typename,
                       handle,
-                      free));
+                      free,
+                      NULL));
 
 error:
 
@@ -137,7 +138,7 @@ LWMsgStatus
 lwmsg_assoc_get_handle_location(
     LWMsgAssoc* assoc,
     void* handle,
-    LWMsgHandleLocation* location
+    LWMsgHandleType* location
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -150,9 +151,8 @@ lwmsg_assoc_get_handle_location(
     BAIL_ON_ERROR(status = lwmsg_session_manager_handle_pointer_to_id(
                       manager,
                       session,
-                      NULL,
                       handle,
-                      LWMSG_FALSE,
+                      NULL,
                       location,
                       NULL));
 

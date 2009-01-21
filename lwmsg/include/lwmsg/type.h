@@ -162,6 +162,15 @@ typedef enum LWMsgSignage
     LWMSG_UNSIGNED
 } LWMsgSignage;
 
+typedef struct LWMsgTypeAttrs
+{
+    size_t custom;
+    size_t range_low;
+    size_t range_high;
+    unsigned nonnull:1;
+    unsigned aliasable:1;
+} LWMsgTypeAttrs;
+
 /**
  * @brief Custom marshal function
  *
@@ -171,6 +180,7 @@ typedef enum LWMsgSignage
  * @param context the marshalling context
  * @param object_size the in-memory size of the object to marshal, or 0 if unknown
  * @param object the in-memory object to marshal
+ * @param attrs attributes of the type to marshal
  * @param buffer the marshalling buffer with the cursor set to where the 
  * serialized representation should be written
  * @param data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
@@ -184,6 +194,7 @@ typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
     struct LWMsgContext* context,
     size_t object_size,
     void* object,
+    LWMsgTypeAttrs* attrs,
     LWMsgBuffer* buffer,
     void* data
     );
@@ -197,8 +208,9 @@ typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
  * @param context the marshalling context
  * @param buffer the marshalling buffer with the cursor set to the start of 
  * the serialized representation
- * @param object_size the in-memory size of the object to marshal, or 0 if known
- * @param object the in-memory object to marshal
+ * @param object_size the in-memory size of the object to unmarshal, or 0 if known
+ * @param attrs attributes of the type to unmarshal
+ * @param object the location to unmarshal to
  * @param data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
  * in the type specification
  * @lwmsg_status
@@ -210,6 +222,7 @@ typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
     struct LWMsgContext* context,
     LWMsgBuffer* buffer,
     size_t object_size,
+    LWMsgTypeAttrs* attrs,
     void* object,
     void* data
     );
@@ -280,6 +293,7 @@ typedef enum LWMsgTypeDirective
         LWMSG_CMD_VERIFY,
         LWMSG_CMD_RANGE,
         LWMSG_CMD_NOT_NULL,
+        LWMSG_CMD_CUSTOM_ATTR,
         LWMSG_FLAG_MEMBER = 0x10000,
         LWMSG_FLAG_META = 0x20000,
         LWMSG_FLAG_DEBUG = 0x40000
@@ -618,10 +632,6 @@ typedef enum LWMsgTypeDirective
  * affected type or member is NULL will result in an immediate
  * error.
  *
- * This attribute is considered a data verification attribute.
- * Only one data verification attribute may be applied to a given
- * type or member.
- *
  * @hideinitializer
  */
 #define LWMSG_ATTR_NOT_NULL                     \
@@ -713,6 +723,22 @@ typedef enum LWMsgTypeDirective
         _TYPEARG(offsetof(type, field)),                       \
         _TYPEARG(tclass),                                      \
         _TYPEARG(tdata)
+
+/**
+ * @brief Apply custom type attribute
+ *
+ * Applies a custom attribute to the previous type or member,
+ * which must be a custom type.  The bitwise or of all custom
+ * attribute value will be made available to the marshal and
+ * unmarshal functions for the custom type.
+ *
+ * @param value the value of the attribute to apply
+ * @param data a constant user data pointer to pass to the function
+ * @hideinitializer
+ */
+#define LWMSG_ATTR_CUSTOM(value)                \
+    _TYPECMD(LWMSG_CMD_CUSTOM_ATTR),            \
+        _TYPEARG(value)                         \
 
 /* Handy aliases for more complicated commands */
 

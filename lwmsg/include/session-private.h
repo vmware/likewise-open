@@ -63,12 +63,32 @@ lwmsg_session_manager_leave_session (
     );
 
 LWMsgStatus
-lwmsg_session_manager_register_handle (
+lwmsg_session_manager_register_handle_local (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
     void* ptr,
-    void (*cleanup)(void* ptr)
+    void (*cleanup)(void* ptr),
+    LWMsgHandleID* hid
+    );
+
+LWMsgStatus
+lwmsg_session_manager_register_handle_remote (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    const char* type,
+    LWMsgHandleID hid,
+    void (*cleanup)(void* ptr),
+    void** ptr
+    );
+
+LWMsgStatus
+lwmsg_session_manager_remap_handle (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr,
+    void* newptr,
+    void (*cleanup) (void* ptr)
     );
 
 LWMsgStatus
@@ -83,11 +103,10 @@ LWMsgStatus
 lwmsg_session_manager_handle_pointer_to_id (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
-    const char* type,
     void* ptr,
-    LWMsgBool autoreg,
-    LWMsgHandleLocation* out_location,
-    unsigned long* out_hid
+    const char** type,
+    LWMsgHandleType* htype,
+    LWMsgHandleID* hid
     );
 
 LWMsgStatus
@@ -95,10 +114,9 @@ lwmsg_session_manager_handle_id_to_pointer (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
-    LWMsgHandleLocation location,
-    unsigned long hid,
-    LWMsgBool autoreg,
-    void** out_ptr
+    LWMsgHandleType htype,
+    LWMsgHandleID hid,
+    void** ptr
     );
 
 LWMsgStatus
