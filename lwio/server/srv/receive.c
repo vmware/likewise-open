@@ -48,15 +48,15 @@ SMBSrvProcessRequest_V1(
 
                 break;
 
-#if 0
-
         case COM_SESSION_SETUP_ANDX:
 
-            dwError = SmbProcessSessionSetup(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SmbProcessSessionSetup(
+                            pConnection,
+                            pSmbRequest);
 
             break;
+
+#if 0
 
         case COM_LOGOFF_ANDX:
 

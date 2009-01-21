@@ -5,6 +5,7 @@ NTSTATUS
 SrvConnectionCreate(
     PSMB_SRV_SOCKET      pSocket,
     HANDLE               hPacketAllocator,
+    HANDLE               hGssContext,
     PSMB_SRV_PROPERTIES  pServerProperties,
     PSMB_SRV_CONNECTION* ppConnection
     );

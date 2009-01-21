@@ -94,6 +94,11 @@ SrvListenerInit(
     pthread_mutex_init(&pListener->context.mutex, NULL);
     pListener->context.pMutex = &pListener->context.mutex;
 
+    ntStatus = SrvGssAcquireContext(
+                    NULL,
+                    &pListener->context.hGssContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pListener->context.hPacketAllocator = hPacketAllocator;
     pListener->context.pReaderArray = pReaderArray;
     pListener->context.ulNumReaders = ulNumReaders;
@@ -137,27 +142,32 @@ SrvListenerShutdown(
 {
     NTSTATUS ntStatus = 0;
 
+    if (pListener->context.pMutex)
+    {
+        pthread_mutex_lock(pListener->context.pMutex);
+    }
+
     if (pListener->pListener)
     {
-        if (pListener->context.pMutex)
-        {
-            pthread_mutex_lock(pListener->context.pMutex);
-        }
-
         pListener->context.bStop = TRUE;
-
-        if (pListener->context.pMutex)
-        {
-            pthread_mutex_unlock(pListener->context.pMutex);
-            pthread_mutex_destroy(pListener->context.pMutex);
-            pListener->context.pMutex = NULL;
-        }
 
         SrvFakeClientConnection();
 
         pthread_join(pListener->listener, NULL);
 
         pListener->pListener = NULL;
+    }
+
+    if (pListener->context.hGssContext)
+    {
+        SrvGssReleaseContext(pListener->context.hGssContext);
+    }
+
+    if (pListener->context.pMutex)
+    {
+        pthread_mutex_unlock(pListener->context.pMutex);
+        pthread_mutex_destroy(pListener->context.pMutex);
+        pListener->context.pMutex = NULL;
     }
 
     return ntStatus;
@@ -242,6 +252,24 @@ SrvListenerMain(
         SMB_LOG_INFO("Handling client from [%s]",
                      SMB_SAFE_LOG_STRING(inet_ntoa(cliaddr.sin_addr)));
 
+        if (!pContext->hGssContext)
+        {
+            NTSTATUS ntStatus1 = 0;
+
+            ntStatus1 = SrvGssAcquireContext(
+                            NULL,
+                            &pContext->hGssContext);
+            if (ntStatus1)
+            {
+                SMB_LOG_ERROR("Failed to initialize GSS Handle [code:%d]", ntStatus1);
+            }
+
+            close(connFd);
+            connFd = -1;
+
+            continue;
+        }
+
         dwError = SrvSocketCreate(
                         connFd,
                         &cliaddr,
@@ -253,6 +281,7 @@ SrvListenerMain(
         dwError = SrvConnectionCreate(
                         pSocket,
                         pContext->hPacketAllocator,
+                        pContext->hGssContext,
                         &pContext->serverProperties,
                         &pConnection);
         BAIL_ON_SMB_ERROR(dwError);

@@ -549,7 +549,7 @@ typedef struct
     uint32_t capabilities;        /* Server capabilities */
     uint32_t systemTimeLow;       /* System (UTC) time of the server (low) */
     uint32_t systemTimeHigh;      /* System (UTC) time of the server (high) */
-    uint16_t serverTimeZone;      /* Time zone of server (minutes from UTC) */
+     int16_t serverTimeZone;      /* Time zone of server (minutes from UTC) */
     uint8_t  encryptionKeyLength; /* Length of encryption key (unused) */
 
     uint16_t byteCount;           /* Count of data bytes */

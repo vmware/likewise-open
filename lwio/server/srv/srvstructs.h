@@ -147,21 +147,6 @@ typedef struct _SMB_SRV_PROPERTIES
 
 } SMB_SRV_PROPERTIES, *PSMB_SRV_PROPERTIES;
 
-typedef enum
-{
-    SRV_GSS_CONTEXT_STATE_INITIAL = 0,
-    SRV_GSS_CONTEXT_STATE_NEGOTIATE,
-    SRV_GSS_CONTEXT_STATE_COMPLETE
-} SRV_GSS_CONTEXT_STATE;
-
-typedef struct _SRV_GSS_CONTEXT
-{
-    SRV_GSS_CONTEXT_STATE state;
-
-    gss_ctx_id_t* pGssContext;
-
-} SRV_GSS_CONTEXT, *PSRV_GSS_CONTEXT;
-
 typedef struct _SMB_SRV_CONNECTION
 {
     pthread_mutex_t     mutex;
@@ -190,7 +175,9 @@ typedef struct _SMB_SRV_CONNECTION
 
     PBYTE               pSessionKey;
     ULONG               ulSessionKeyLength;
-    PSRV_GSS_CONTEXT    pGssContext;
+
+    HANDLE              hGssContext;
+    HANDLE              hGssNegotiate;
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
 
@@ -261,10 +248,8 @@ typedef struct _SMB_SRV_LISTENER_CONTEXT
 
     // Invariant
     // Not owned
-    HANDLE  hPacketAllocator;
-
-    // Invariant
-    // Not owned
+    HANDLE                 hPacketAllocator;
+    HANDLE                 hGssContext;
     PSMB_SRV_SOCKET_READER pReaderArray;
     ULONG                  ulNumReaders;
 

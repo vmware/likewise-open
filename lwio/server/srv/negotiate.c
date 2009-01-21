@@ -342,8 +342,16 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
 
         byteCount += sizeof(pServerProperties->GUID);
 
-        ntStatus = SrvGssCreate(
-                        &pConnection->pGssContext,
+        ntStatus = SrvGssBeginNegotiate(
+                        pConnection->hGssContext,
+                        &pConnection->hGssNegotiate);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvGssNegotiate(
+                        pConnection->hGssContext,
+                        pConnection->hGssNegotiate,
+                        NULL,
+                        0,
                         &pConnection->pSessionKey,
                         &pConnection->ulSessionKeyLength);
         BAIL_ON_NT_STATUS(ntStatus);

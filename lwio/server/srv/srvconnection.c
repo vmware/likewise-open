@@ -22,6 +22,7 @@ NTSTATUS
 SrvConnectionCreate(
     PSMB_SRV_SOCKET pSocket,
     HANDLE          hPacketAllocator,
+    HANDLE          hGssContext,
     PSMB_SRV_PROPERTIES pServerProperties,
     PSMB_SRV_CONNECTION* ppConnection
     )
@@ -36,6 +37,11 @@ SrvConnectionCreate(
 
     pthread_mutex_init(&pConnection->mutex, NULL);
     pConnection->pMutex = &pConnection->mutex;
+
+    ntStatus = SrvGssAcquireContext(
+                    hGssContext,
+                    &pConnection->hGssContext);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->refCount = 1;
     pConnection->hPacketAllocator = hPacketAllocator;
@@ -310,9 +316,16 @@ SrvConnectionRelease(
 
         SMB_SAFE_FREE_MEMORY(pConnection->pSessionKey);
 
-        if (pConnection->pGssContext)
+        if (pConnection->hGssNegotiate)
         {
-            SrvGssFree(pConnection->pGssContext);
+            SrvGssEndNegotiate(
+                pConnection->hGssContext,
+                pConnection->hGssNegotiate);
+        }
+
+        if (pConnection->hGssContext)
+        {
+            SrvGssReleaseContext(pConnection->hGssContext);
         }
 
         if (pConnection->pMutex)

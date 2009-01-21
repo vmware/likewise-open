@@ -63,12 +63,12 @@ SrvWorkerMain(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_WORKER_CONTEXT pContext = (PSMB_SRV_WORKER_CONTEXT)pData;
     PLWIO_SRV_TASK pTask = NULL;
+    struct timespec ts = {0, 0};
 
     while (!SrvWorkerMustStop(pContext))
     {
-        struct timespec ts = {0, 0};
-
         ts.tv_sec = time(NULL) + 30;
+        ts.tv_nsec = 0;
 
         if (pTask)
         {

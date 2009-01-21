@@ -227,9 +227,6 @@ SrvInitialize(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvGssInit();
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = SrvShareDbInit(&gSMBSrvGlobals.shareDBContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -349,8 +346,6 @@ SrvShutdown(
             gSMBSrvGlobals.hPacketAllocator = NULL;
         }
     }
-
-    SrvGssShutdown();
 
 cleanup:
 

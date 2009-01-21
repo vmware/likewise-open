@@ -82,7 +82,7 @@ SrvProdConsEnqueue(
 
     while (pQueue->ulNumItems == pQueue->ulNumMaxItems)
     {
-        pthread_cond_wait(pQueue->pEvent, &pQueue->mutex);
+        pthread_cond_wait(&pQueue->event, &pQueue->mutex);
     }
 
     ntStatus = SMBEnqueue(&pQueue->queue, pItem);
@@ -99,7 +99,7 @@ SrvProdConsEnqueue(
 
     if (bSignalEvent)
     {
-        pthread_cond_broadcast(pQueue->pEvent);
+        pthread_cond_broadcast(&pQueue->event);
     }
 
 cleanup:
@@ -128,7 +128,7 @@ SrvProdConsDequeue(
 
     while (!pQueue->ulNumItems)
     {
-        pthread_cond_wait(pQueue->pEvent, &pQueue->mutex);
+        pthread_cond_wait(&pQueue->event, &pQueue->mutex);
     }
 
     pItem = SMBDequeue(&pQueue->queue);
@@ -144,7 +144,7 @@ SrvProdConsDequeue(
 
     if (bSignalEvent)
     {
-        pthread_cond_broadcast(pQueue->pEvent);
+        pthread_cond_broadcast(&pQueue->event);
     }
 
     *ppItem = pItem;
@@ -174,7 +174,7 @@ SrvProdConsTimedDequeue(
             bRetryWait = FALSE;
 
             int unixErrorCode = pthread_cond_timedwait(
-                                    pQueue->pEvent,
+                                    &pQueue->event,
                                     &pQueue->mutex,
                                     pTimespec);
             if (unixErrorCode == ETIMEDOUT)
@@ -209,7 +209,7 @@ SrvProdConsTimedDequeue(
 
         if (bSignalEvent)
         {
-            pthread_cond_broadcast(pQueue->pEvent);
+            pthread_cond_broadcast(&pQueue->event);
         }
     }
 
@@ -250,7 +250,7 @@ SrvProdConsFreeContents(
 
     if (pQueue->pEvent)
     {
-        pthread_cond_destroy(pQueue->pEvent);
+        pthread_cond_destroy(&pQueue->event);
         pQueue->pEvent = NULL;
     }
 

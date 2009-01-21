@@ -2,34 +2,36 @@
 #define __SRV_GSS_H__
 
 NTSTATUS
-SrvGssInit(
-    VOID
+SrvGssAcquireContext(
+    HANDLE  hGssOrig,
+    PHANDLE phGssNew
     );
 
 NTSTATUS
-SrvGssCreate(
-    PSRV_GSS_CONTEXT* ppGssContext,
-    PBYTE*            ppSessionKey,
-    PULONG            pulSessionKeyLength
+SrvGssBeginNegotiate(
+    HANDLE  hGss,
+    PHANDLE phGssNegotiate
     );
 
 NTSTATUS
 SrvGssNegotiate(
-    PSRV_GSS_CONTEXT pGssContext,
-    PBYTE            pSecurityInputBlob,
-    ULONG            ulSecurityInputBlobLen,
-    PBYTE*           ppSecurityOutputBlob,
-    ULONG*           pulSecurityOutputBloblen
+    HANDLE  hGss,
+    HANDLE  hGssResume,
+    PBYTE   pSecurityInputBlob,
+    ULONG   ulSecurityInputBlobLen,
+    PBYTE*  ppSecurityOutputBlob,
+    ULONG*  pulSecurityOutputBloblen
     );
 
 VOID
-SrvGssFree(
-    PSRV_GSS_CONTEXT pGssContext
+SrvGssEndNegotiate(
+    HANDLE hGss,
+    HANDLE hGssNegotiate
     );
 
-NTSTATUS
-SrvGssShutdown(
-    VOID
+VOID
+SrvGssReleaseContext(
+    HANDLE hGss
     );
 
 #endif /* __SRV_GSS_H__ */
