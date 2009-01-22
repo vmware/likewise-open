@@ -70,6 +70,13 @@ typedef uint32_t        uint32;
 
 #endif
 
+#ifndef INT32_DEFINED
+#define INT32_DEFINED 1
+
+typedef int32_t         int32;
+
+#endif
+
 #ifndef UINT16_DEFINED
 #define UINT16_DEFINED 1
 
