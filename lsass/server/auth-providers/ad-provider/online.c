@@ -2078,8 +2078,11 @@ error:
     *psCount = 0;
     *pppResults = NULL;
 
-    LSA_LOG_ERROR("Failed to find memberships for uid %d (error = %d)",
-                  uid, dwError);
+    if ( dwError != LSA_ERROR_DOMAIN_IS_OFFLINE )
+    {
+        LSA_LOG_ERROR("Failed to find memberships for uid %d (error = %d)",
+                      uid, dwError);
+    }
 
     LsaDbSafeFreeObjectList(sFilteredResultsCount, &ppFilteredResults);
     sFilteredResultsCount = 0;
