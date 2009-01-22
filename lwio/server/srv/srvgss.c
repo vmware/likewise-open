@@ -33,6 +33,16 @@ error:
     goto cleanup;
 }
 
+BOOLEAN
+SrvGssNegotiateIsComplete(
+    HANDLE hGss,
+    HANDLE hGssNegotiate
+    )
+{
+    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate;
+    return pGssNegotiate->state == SRV_GSS_CONTEXT_STATE_COMPLETE;
+}
+
 NTSTATUS
 SrvGssBeginNegotiate(
     HANDLE  hGss,

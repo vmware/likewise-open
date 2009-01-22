@@ -258,6 +258,11 @@ MarshallSessionSetupResponse(
     ntStatus = SMBPacketMarshallFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (!SrvGssNegotiateIsComplete(pConnection->hGssContext, pConnection->hGssNegotiate))
+    {
+        pSmbResponse->pSMBHeader->error = STATUS_MORE_PROCESSING_REQUIRED;
+    }
+
     *ppSmbResponse = pSmbResponse;
 
 cleanup:

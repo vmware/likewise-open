@@ -7,6 +7,12 @@ SrvGssAcquireContext(
     PHANDLE phGssNew
     );
 
+BOOLEAN
+SrvGssNegotiateIsComplete(
+    HANDLE hGss,
+    HANDLE hGssNegotiate
+    );
+
 NTSTATUS
 SrvGssBeginNegotiate(
     HANDLE  hGss,
