@@ -334,5 +334,7 @@ extern NTSTATUS _LsaLookupNames2(
 #endif
 );
 
+extern rpc_if_handle_t lsa_v0_0_c_ifspec;
+extern rpc_if_handle_t lsa_v0_0_s_ifspec;
 
 #endif /* _LSA_STUB_H_ */
