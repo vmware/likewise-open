@@ -38,20 +38,6 @@
     #       allowed to login
     # user-not-allowed-error = Access denied
 
-[auth provider:lsa-local-provider]
-
-    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
-
-    # Default: 30d
-    # Minimum: 1d
-    # Maximum: 180d
-    password-lifespan = 30d
-
-    # Default: 14d
-    # Minimum: 1h
-    # Maximum: 30d (must be less than lifespan)
-    password-change-warning-time = 14d
-
 [auth provider:lsa-activedirectory-provider]
 
     path = @providerdir@/liblsass_auth_provider_ad@MOD_EXT@
@@ -168,3 +154,17 @@
     # Default: no
     #
     # nss-enumeration-enabled = yes
+
+[auth provider:lsa-local-provider]
+
+    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
+
+    # Default: 30d
+    # Minimum: 1d
+    # Maximum: 180d
+    password-lifespan = 30d
+
+    # Default: 14d
+    # Minimum: 1h
+    # Maximum: 30d (must be less than lifespan)
+    password-change-warning-time = 14d
