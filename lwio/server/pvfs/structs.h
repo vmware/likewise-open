@@ -17,8 +17,4 @@ typedef struct _PVFS_CCB{
 
 typedef struct _PVFS_IRP_CONTEXT {
     PIRP pIrp;
-    IO_DEVICE_HANDLE TargetDeviceHandle;
-    UNICODE_STRING RootPathName;
-    UNICODE_STRING RelativePathName;
-    UNICODE_STRING AbsolutePathName;
 } PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;

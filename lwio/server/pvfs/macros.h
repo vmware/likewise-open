@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -35,29 +35,58 @@
  *
  * Module Name:
  *
- *        driver.c
+ *        macro.h
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Driver Entry Function
+ *       Common macros for error checking, etc....
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#include "pvfs.h"
+#ifndef _PVFS_MACROS_H
+#define _PVFS_MACROS_H
 
-NTSTATUS
-PvfsQueryInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
+/* Error checking macros */
 
+#define PVFS_BAIL_ON_NULL_PTR(x, err)   \
+    do {                                \
+        if ((x) == NULL) {              \
+            err = STATUS_NO_MEMORY;     \
+            goto error;                 \
+        }                               \
+    } while(0);                         \
+
+#define PVFS_BAIL_ON_NTSTATUS_ERROR(err)                 \
+    do {                                               \
+        if ((err) != STATUS_SUCCESS) {                 \
+            goto error;                                \
+        }                                              \
+    } while (0);
+
+#define PVFS_BAIL_ON_NULL_PTR_PARAM(ptr, err)          \
+    do {                                               \
+        if ((ptr) == NULL) {                           \
+            erro = STATUS_INVALID_PARAMETER;           \
+            goto error;                                \
+        }                                              \
+    } while (0);
+
+
+/* Memory Macros */
+
+#define PVFS_SAFE_FREE_MEMORY(p) \
+    do {                         \
+    if ((p) != NULL) {           \
+            RtlMemoryFree(p);    \
+            p = NULL;            \
+        }                        \
+    } while(0);
+
+
+#endif    /* _PVFS_MACROS_H */
 
 
 /*
@@ -68,4 +97,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-

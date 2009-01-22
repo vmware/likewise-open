@@ -43,8 +43,7 @@
  *
  *       Write Dispatch Routine
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
@@ -52,23 +51,18 @@
 NTSTATUS
 PvfsWrite(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
-
-    ntStatus = PvfsAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    //ntStatus = PvfsCommonWrite(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

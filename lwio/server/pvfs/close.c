@@ -29,7 +29,6 @@
  */
 
 
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -43,8 +42,7 @@
  *
  *        Close Dispatch Function
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
@@ -52,13 +50,19 @@
 NTSTATUS
 PvfsClose(
     IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    
-    return ntStatus;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

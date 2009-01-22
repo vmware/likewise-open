@@ -10,7 +10,10 @@ libpvfs_sys_la_SOURCES = \
     fsctrl.c \
     queryinfo.c \
     setinfo.c \
-    close.c
+    close.c \
+    create_file.c \
+    create_dir.c \
+    alloc.c
 
 libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \
