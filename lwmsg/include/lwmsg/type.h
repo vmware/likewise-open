@@ -600,8 +600,7 @@ typedef enum LWMsgTypeDirective
  * of the data immediately before it is marshalled or immediately
  * after it is unmarshalled.
  *
- * This attribute is considered a data verification attribute.
- * Only one data verification attribute may be applied to a given
+ * Only one custom data verifier may be applied to a given
  * type or member.
  *
  * @param func the verifier function
@@ -620,10 +619,6 @@ typedef enum LWMsgTypeDirective
  * Constrains the range of an integer type to the specified bounds.
  * Attempts to marshal or unmarshal data where the type exceeds these
  * bounds will result in an immediate error.
- *
- * This attribute is considered a data verification attribute.
- * Only one data verification attribute may be applied to a given
- * type or member.
  *
  * @param low the lower bound of the range (inclusive)
  * @param high the upper bound of the range (inclusive)

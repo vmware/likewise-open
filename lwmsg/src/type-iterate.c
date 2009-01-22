@@ -149,6 +149,10 @@ lwmsg_type_iterate(
 
     memset(&iter->attrs, 0, sizeof(iter->attrs));
 
+    /* Set invalid range to indicate it is not set */
+    iter->attrs.range_high = 0;
+    iter->attrs.range_low = 1;
+
     cmd = *(spec++);
 
     if (cmd & LWMSG_FLAG_META)
@@ -311,10 +315,8 @@ lwmsg_type_iterate(
             iter->verify_data = (void*) *(spec++);
             break;
         case LWMSG_CMD_RANGE:
-            iter->verify = lwmsg_type_verify_range;
-            iter->verify_data = iter;
-            iter->info.kind_integer.range = (size_t*) spec;
-            spec += 2;
+            iter->attrs.range_low = (size_t) *(spec++);
+            iter->attrs.range_high = (size_t) *(spec++);
             break;
         case LWMSG_CMD_NOT_NULL:
             iter->attrs.nonnull = LWMSG_TRUE;
@@ -351,7 +353,6 @@ lwmsg_type_iterate_promoted(
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
         iter->info.kind_indirect.term_info.static_length = 1;
         iter->inner = spec;
-        iter->verify = lwmsg_type_verify_not_null;
         iter->size = sizeof(void*);
         iter->attrs.nonnull = LWMSG_TRUE;
         break;

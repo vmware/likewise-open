@@ -211,6 +211,16 @@ lwmsg_marshal_integer(
     out_size = iter->info.kind_integer.width;
     in_size = iter->size;
 
+    /* If a valid range is defined, check value against it */
+    if (iter->attrs.range_low < iter->attrs.range_high)
+    {
+        BAIL_ON_ERROR(status = lwmsg_type_verify_range(
+                          context,
+                          iter,
+                          object,
+                          in_size));
+    }
+
     BAIL_ON_ERROR(status = lwmsg_convert_integer(in,
                                                  in_size,
                                                  LWMSG_NATIVE_ENDIAN,

@@ -105,6 +105,7 @@ error:
 
 static LWMsgStatus
 lwmsg_unmarshal_integer_immediate(
+    LWMsgContext* context,
     LWMsgUnmarshalState* state,
     LWMsgTypeIter* iter,
     LWMsgBuffer* buffer,
@@ -129,6 +130,16 @@ lwmsg_unmarshal_integer_immediate(
                       out_size,
                       LWMSG_NATIVE_ENDIAN,
                       iter->info.kind_integer.sign));
+
+    /* If a valid range is defined, check value against it */
+    if (iter->attrs.range_low < iter->attrs.range_high)
+    {
+        BAIL_ON_ERROR(status = lwmsg_type_verify_range(
+                          context,
+                          iter,
+                          object,
+                          out_size));
+    }
 
 error:
 
@@ -661,6 +672,7 @@ lwmsg_unmarshal_internal(
         break;
     case LWMSG_KIND_INTEGER:
         BAIL_ON_ERROR(status = lwmsg_unmarshal_integer_immediate(
+                          context,
                           state,
                           iter,
                           buffer,
