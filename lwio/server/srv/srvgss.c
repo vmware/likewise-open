@@ -448,9 +448,6 @@ SrvGssContinueNegotiate(
 
     SMB_LOCK_MUTEX(bInLock, pGssContext->pMutex);
 
-    ntStatus = SrvGssRenew(pGssContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     input_desc.length = ulSecurityInputBlobLen;
     input_desc.value = pSecurityInputBlob;
 
