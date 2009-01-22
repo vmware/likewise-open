@@ -283,6 +283,17 @@ SMBPacketBufferFree(
 }
 
 VOID
+SMBPacketResetBuffer(
+    PSMB_PACKET pPacket
+    )
+{
+    if (pPacket->pRawBuffer && pPacket->bufferLen)
+    {
+        memset(pPacket->pRawBuffer, 0, pPacket->bufferLen);
+    }
+}
+
+VOID
 SMBPacketFreeAllocator(
     HANDLE hPacketAllocator
     )

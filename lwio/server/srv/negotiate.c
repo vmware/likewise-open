@@ -67,7 +67,7 @@ static SRV_NEGOTIATE_RESPONSE_HANDLER gNegotiateResponseHandlers[] =
 
 static
 NTSTATUS
-MarshallNegotiateResponse(
+SrvMarshallNegotiateResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSTR*               ppDialectArray,
     ULONG               ulNumDialects,
@@ -109,7 +109,7 @@ SrvSmbProcessNegotiate(
                     &ulNumDialects);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = MarshallNegotiateResponse(
+    ntStatus = SrvMarshallNegotiateResponse(
                     pConnection,
                     pszDialectArray,
                     ulNumDialects,
@@ -139,7 +139,7 @@ error:
 
 static
 NTSTATUS
-MarshallNegotiateResponse(
+SrvMarshallNegotiateResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSTR*               ppDialectArray,
     ULONG               ulNumDialects,

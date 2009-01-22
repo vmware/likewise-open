@@ -28,3 +28,147 @@
  * license@likewisesoftware.com
  */
 
+#include "includes.h"
+
+static
+NTSTATUS
+WireUnmarshallEchoData(
+    const PBYTE pBuffer,
+    ULONG       ulBufferLen,
+    PBYTE*      ppEchoBlob,
+    USHORT      usEchoBlobLength
+    );
+
+NTSTATUS
+WireUnmarshallEchoRequest(
+    const PBYTE           pBuffer,
+    ULONG                 ulBufferLen,
+    PECHO_REQUEST_HEADER* ppHeader,
+    PBYTE*                ppEchoBlob
+    )
+{
+    NTSTATUS ntStatus = 0;
+    ULONG    ulBufferUsed = 0;
+    PECHO_REQUEST_HEADER pEchoHeader = NULL;
+    PBYTE    pEchoBlob = NULL;
+
+    /* NOTE: The buffer format cannot be trusted! */
+    ulBufferUsed = sizeof(ECHO_REQUEST_HEADER);
+
+    if (ulBufferLen < ulBufferUsed)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* @todo: endian swap as appropriate */
+    pEchoHeader = (PECHO_REQUEST_HEADER) pBuffer;
+
+    if (pEchoHeader->byteCount < 1)
+    {
+        ntStatus = STATUS_INVALID_USER_BUFFER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pEchoHeader->byteCount)
+    {
+        ntStatus = WireUnmarshallEchoData(
+                        pBuffer + ulBufferUsed,
+                        ulBufferLen - ulBufferUsed,
+                        &pEchoBlob,
+                        pEchoHeader->byteCount);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppEchoBlob = pEchoBlob;
+    *ppHeader = pEchoHeader;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppEchoBlob = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireMarshallEchoResponseData(
+    const PBYTE pBuffer,
+    ULONG       ulBufferLen,
+    PBYTE       pEchoBlob,
+    USHORT      usEchoBlobLength,
+    PUSHORT     pusPackageByteCount
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    if (!pEchoBlob)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_4;
+    }
+    if (usEchoBlobLength < 4)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_5;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (ulBufferLen < usEchoBlobLength)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    memcpy(pBuffer, pEchoBlob, usEchoBlobLength);
+
+    *pusPackageByteCount = usEchoBlobLength;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pusPackageByteCount = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+WireUnmarshallEchoData(
+    const PBYTE pBuffer,
+    ULONG       ulBufferLen,
+    PBYTE*      ppEchoBlob,
+    USHORT      usEchoBlobLength
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE    pEchoBlob = NULL;
+
+    if (usEchoBlobLength > ulBufferLen)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (usEchoBlobLength)
+    {
+        pEchoBlob = (PBYTE) pBuffer;
+    }
+
+    *ppEchoBlob = pEchoBlob;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppEchoBlob = NULL;
+
+    goto cleanup;
+}

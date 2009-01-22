@@ -89,15 +89,17 @@ SMBSrvProcessRequest_V1(
                             pSmbResponse);
 
             break;
+#endif
 
-        case SMB_ECHO:
+        case COM_ECHO:
 
-            dwError = SmbProcessEcho(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessEchoAndX(
+                            pConnection,
+                            pSmbRequest);
 
             break;
 
+#if 0
         case SMB_NT_CANCEL:
 
             dwError = SmbNTCancel(

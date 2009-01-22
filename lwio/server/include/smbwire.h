@@ -730,6 +730,28 @@ typedef struct
     uint16_t byteCount;         /* Count of data bytes = 0 */
 }  __attribute__((__packed__))  WRITE_RESPONSE_HEADER;
 
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    uint16_t echoCount;
+    uint16_t byteCount; /* Count of data bytes */
+
+     /* Data immediately follows */
+}  __attribute__((__packed__)) ECHO_REQUEST_HEADER, *PECHO_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    uint16_t sequenceNumber;
+    uint16_t byteCount; /* Count of data bytes */
+
+     /* Data immediately follows */
+}  __attribute__((__packed__)) ECHO_RESPONSE_HEADER, *PECHO_RESPONSE_HEADER;
+
 typedef enum
 {
     ERROR_SMB,
@@ -983,6 +1005,23 @@ MarshallReadRequestData(
     uint32_t        *pBufferUsed
     );
 
+NTSTATUS
+WireUnmarshallEchoRequest(
+    const PBYTE           pBuffer,
+    ULONG                 ulBufferLen,
+    PECHO_REQUEST_HEADER* ppHeader,
+    PBYTE*                ppEchoBlob
+    );
+
+NTSTATUS
+WireMarshallEchoResponseData(
+    const PBYTE pBuffer,
+    ULONG       ulBufferLen,
+    PBYTE       pEchoBlob,
+    USHORT      usEchoBlobLength,
+    PUSHORT     pusPackageByteCount
+    );
+
 BOOLEAN
 SMBIsAndXCommand(
     uint8_t command
@@ -1019,6 +1058,11 @@ SMBPacketBufferFree(
     HANDLE      hPacketAllocator,
     uint8_t*    pBuffer,
     size_t      bufferLen
+    );
+
+VOID
+SMBPacketResetBuffer(
+    PSMB_PACKET pPacket
     );
 
 VOID

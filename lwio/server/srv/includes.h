@@ -85,6 +85,7 @@
 #include "logoffX.h"
 #include "negotiate.h"
 #include "sessionsetup.h"
+#include "srvecho.h"
 #include "ntrename.h"
 #include "rename.h"
 #include "seek.h"

@@ -41,7 +41,7 @@ SrvUnmarshallSessionSetupRequest(
 
 static
 NTSTATUS
-MarshallSessionSetupResponse(
+SrvMarshallSessionSetupResponse(
     PSMB_SRV_CONNECTION pConnection,
     PBYTE               pSecurityBlob,
     ULONG               ulSecurityBlobLength,
@@ -57,7 +57,7 @@ SrvProcessSessionSetup(
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PBYTE       pSecurityBlob = NULL; // Do Not Free
-    ULONG       ulSecurityBlobLength = 0; // Do Not Free
+    ULONG       ulSecurityBlobLength = 0;
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
@@ -66,7 +66,7 @@ SrvProcessSessionSetup(
                     &ulSecurityBlobLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = MarshallSessionSetupResponse(
+    ntStatus = SrvMarshallSessionSetupResponse(
                     pConnection,
                     pSecurityBlob,
                     ulSecurityBlobLength,
@@ -173,7 +173,7 @@ error:
 
 static
 NTSTATUS
-MarshallSessionSetupResponse(
+SrvMarshallSessionSetupResponse(
     PSMB_SRV_CONNECTION pConnection,
     PBYTE               pSecurityBlob,
     ULONG               ulSecurityBlobLength,
