@@ -3,7 +3,10 @@ idl_srcdir = $(rpc_srcdir)/idl
 
 lib_LTLIBRARIES = liblsa_ss.la liblsa_srv.la
 
-liblsa_srv_la_SOURCES = globals.c
+liblsa_srv_la_SOURCES = \
+    globals.c \
+    lsa.c \
+    lsa_srv.c
 
 liblsa_srv_la_CFLAGS = \
     @DCERPC_INCLUDES@ \

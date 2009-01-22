@@ -1,7 +1,0 @@
-AC_INIT(idl/lsa.idl)
-AM_INIT_AUTOMAKE(librpc_srv,0.1)
-AC_CONFIG_HEADER([config.h])
-
-AC_PROG_CC
-AC_PROG_LIBTOOL
-
