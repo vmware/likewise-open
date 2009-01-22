@@ -67,6 +67,10 @@ cleanup:
     return dwError;
 
 error:
+    if (status && !dwError)
+    {
+        dwError = -1;
+    }
 
     if (pConnection)
     {
