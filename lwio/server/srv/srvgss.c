@@ -385,6 +385,17 @@ cleanup:
 
     gss_release_name(&ulMinorStatus, &target_name);
 
+    if (pGssNegotiate->pGssContext &&
+        (*pGssNegotiate->pGssContext != GSS_C_NO_CONTEXT))
+    {
+        gss_delete_sec_context(
+                        &ulMinorStatus,
+                        pGssNegotiate->pGssContext,
+                        GSS_C_NO_BUFFER);
+
+        *pGssNegotiate->pGssContext = GSS_C_NO_CONTEXT;
+    }
+
     if (pszCurrentCachePath)
     {
         SrvSetDefaultKrb5CachePath(
