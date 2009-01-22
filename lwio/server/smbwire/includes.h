@@ -43,8 +43,8 @@
 
 #include "smbwire.h"
 
-#include "structs.h"
-#include "negotiate.h"
-#include "session_setup.h"
-#include "tree_connect.h"
+#include "wire_structs.h"
+#include "wire_negotiate.h"
+#include "wire_session_setup.h"
+#include "wire_tree_connect.h"
 

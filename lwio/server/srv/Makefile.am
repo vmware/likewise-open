@@ -9,7 +9,6 @@ libsrv_sys_la_SOURCES = \
     deldir.c        \
     device.c        \
     driver.c        \
-    echo.c          \
     findfirst2.c    \
     flush.c         \
     globals.c       \
@@ -28,6 +27,7 @@ libsrv_sys_la_SOURCES = \
     sharedb.c       \
     smbv1.c         \
     srvconnection.c \
+    srvecho.c       \
     srvgss.c        \
     srvshareutil.c  \
     srvsocket.c     \

@@ -1,16 +1,16 @@
 lib_LTLIBRARIES = liblwiosmbwire.la
 
 liblwiosmbwire_la_SOURCES = \
-    close.c         \
-    echo.c          \
-    negotiate.c     \
-    open.c          \
-    packet.c        \
-    read.c          \
-    session_setup.c \
-    transaction.c   \
-    tree_connect.c  \
-    write.c
+    wire_close.c         \
+    wire_echo.c          \
+    wire_negotiate.c     \
+    wire_open.c          \
+    packet.c             \
+    wire_read.c          \
+    wire_session_setup.c \
+    wire_transaction.c   \
+    wire_tree_connect.c  \
+    wire_write.c
 
 liblwiosmbwire_la_CPPFLAGS =     \
     -DAPI                         \
