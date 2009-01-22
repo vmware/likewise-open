@@ -112,9 +112,44 @@ typedef struct security_descriptor {
 	SID    *group;
 	SecAcl *sacl;
 	SecAcl *dacl;
-} SecDesc;
+} SecDesc, SECURITY_DESCRIPTOR, *PSECURITY_DESCRIPTOR;
 
 
+/* Generic Mapping */
+typedef struct generic_mapping {
+    uint32 GenericRead;
+    uint32 GenericWrite;
+    uint32 GenericExecute;
+    uint32 GenericAll;
+} GenMapping, GENERIC_MAPPING, *PGENERIC_MAPPING;
+
+
+/* Privilege Set structures */
+typedef struct luid {
+    uint32 low;
+    int32 high;
+} LUID, *PLUID;
+
+
+typedef struct luid_and_attributes {
+    LUID Luid;
+    uint32 Attributes;
+} LuidAndAttr, LUID_AND_ATTRIBUTES, *PLUID_AND_ATTRIBUTES;
+
+
+#ifdef MAX_ARRAY_SIZE
+#undefine MAX_ARRAY_SIZE
+#endif
+#define MAX_ARRAY_SIZE    32
+
+typedef struct privilege_set {
+    uint32 PrivilegeCount;
+    uint32 Control;
+    LuidAndAttr Privilege[MAX_ARRAY_SIZE];
+} PrivilegeSet, PRIVILEGE_SET, *PPRIVILEGE_SET;
+
+
+/* Quality of Service Info */
 typedef struct qos_info {
 	uint32 len;
 	uint16 impersonation_level;
@@ -123,6 +158,7 @@ typedef struct qos_info {
 } QosInfo;
 
 
+/* Object Attribute */
 typedef struct object_attribute {
 	uint32 len;
 	uint8 *root_dir;
