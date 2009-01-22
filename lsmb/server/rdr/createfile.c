@@ -88,6 +88,11 @@ RdrCreateFileEx(
                     (PVOID*)&pFile);
     BAIL_ON_SMB_ERROR(dwError);
 
+    dwError = pthread_mutex_init(&pFile->mutex, NULL);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    pFile->pMutex = &pFile->mutex;
+
     dwError = ParseSharePath(
                     pwszFileName,
                     &pszServer,
@@ -148,6 +153,10 @@ cleanup:
     return dwError;
 
 error:
+    if (pFile)
+    {
+        RdrCloseFileEx(pFile);
+    }
 
     *phFile = NULL;
 
