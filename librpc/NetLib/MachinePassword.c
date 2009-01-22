@@ -105,6 +105,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
     wchar16_t *host_machine_uc = NULL;
     wchar16_t *host_machine_lc = NULL;
     wchar16_t *host_machine_fqdn_lc = NULL;
+    wchar16_t *cifs_machine_fqdn_lc = NULL;
     wchar16_t *principal = NULL;
 
     /* create account$ name */
@@ -235,6 +236,19 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
                            dc_name, kvno);
     goto_if_err_not_success(err, done);
 
+    /* cifs/machine.domain.net@DOMAIN.NET */
+    cifs_machine_fqdn_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
+                                               (wc16slen(hostname) +
+                                                wc16slen(dns_domain_name) + 8));
+    goto_if_no_memory_winerr(cifs_machine_fqdn_lc, done);
+
+    sw16printf(cifs_machine_fqdn_lc, "cifs/%S.%S", hostname, dns_domain_name);
+    wc16slower(cifs_machine_fqdn_lc);
+
+    err = SavePrincipalKey(cifs_machine_fqdn_lc, pass, pass_len, NULL, salt,
+                           dc_name, kvno);
+    goto_if_err_not_success(err, done);
+
 done:
     if (base_dn) KtFreeMemory(base_dn);
     if (salt) KtFreeMemory(salt);
@@ -248,6 +262,7 @@ done:
     SAFE_FREE(host_machine_uc);
     SAFE_FREE(host_machine_lc);
     SAFE_FREE(host_machine_fqdn_lc);
+    SAFE_FREE(cifs_machine_fqdn_lc);
     SAFE_FREE(principal);
 
     return err;
