@@ -38,7 +38,16 @@
 
 #include "sddef.h"
 
-/* Function declarations will follow from here */
+NTSTATUS
+RtlAccessCheck(
+   IN PSECURITY_DESCRIPTOR pSecurityDescriptor,
+   IN HANDLE hClientToken,
+   IN DWORD dwDesiredAccess,
+   PGENERIC_MAPPING pGenericMapping,
+   PPRIVILEGE_SET pPrivilegeSet,
+   PDWORD pdwPrivilegeSetLength,
+   PDWORD pdwGrantedAccess
+   );
 
 
 #endif /* _SD_H_ */
