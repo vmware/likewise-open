@@ -135,6 +135,10 @@ LwUnixErrnoToNtStatus(
         case ETIMEDOUT:
              ntStatus = STATUS_IO_TIMEOUT;
              break;
+
+        case EPERM:
+             ntStatus = STATUS_ACCESS_DENIED;
+             break;
     }
 
     return ntStatus;
