@@ -818,6 +818,19 @@ MarshallSessionSetupRequestData(
     );
 
 NTSTATUS
+MarshallSessionSetupResponseData(
+    uint8_t         *pBuffer,
+    uint32_t         bufferLen,
+    uint8_t          messageAlignment,
+    uint32_t        *pBufferUsed,
+    const uint8_t   *pSecurityBlob,
+    uint16_t         blobLen,
+    const wchar16_t *pwszNativeOS,
+    const wchar16_t *pwszNativeLanMan,
+    const wchar16_t *pwszNativeDomain
+    );
+
+NTSTATUS
 UnmarshallSessionSetupResponse(
     const uint8_t   *pBuffer,
     uint32_t         bufferLen,
@@ -827,6 +840,18 @@ UnmarshallSessionSetupResponse(
     wchar16_t      **ppwszNativeOS,
     wchar16_t      **ppwszNativeLanMan,
     wchar16_t      **ppwszNativeDomain
+    );
+
+NTSTATUS
+UnmarshallSessionSetupRequest(
+    const uint8_t *pBuffer,
+    uint32_t       bufferLen,
+    uint8_t        messageAlignment,
+    SESSION_SETUP_REQUEST_HEADER **ppHeader,
+    uint8_t      **ppSecurityBlob,
+    wchar16_t    **ppwszNativeOS,
+    wchar16_t    **ppwszNativeLanMan,
+    wchar16_t    **ppwszNativeDomain
     );
 
 NTSTATUS

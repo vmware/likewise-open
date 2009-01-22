@@ -132,7 +132,7 @@ typedef struct _SMB_SRV_SOCKET
 
 } SMB_SRV_SOCKET, *PSMB_SRV_SOCKET;
 
-typedef struct _SMB_SRV_PROPERTIES
+typedef struct _SRV_PROPERTIES
 {
     SMB_SECURITY_MODE preferredSecurityMode;
     BOOLEAN           bEncryptPasswords;
@@ -145,7 +145,21 @@ typedef struct _SMB_SRV_PROPERTIES
     ULONG             Capabilities;
     uuid_t            GUID;
 
-} SMB_SRV_PROPERTIES, *PSMB_SRV_PROPERTIES;
+} SRV_PROPERTIES, *PSRV_PROPERTIES;
+
+typedef struct _SRV_CLIENT_PROPERITES
+{
+
+    USHORT MaxBufferSize;
+    USHORT MaxMpxCount;
+    USHORT VcNumber;
+    ULONG  SessionKey;
+    ULONG  Capabilities;
+    PWSTR  pwszNativeOS;
+    PWSTR  pwszNativeLanMan;
+    PWSTR  pwszNativeDomain;
+
+} SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
 
 typedef struct _SMB_SRV_CONNECTION
 {
@@ -158,7 +172,10 @@ typedef struct _SMB_SRV_CONNECTION
 
     PSMB_SRV_SOCKET     pSocket;
 
-    SMB_SRV_PROPERTIES  serverProperties;
+    SRV_PROPERTIES  serverProperties;
+    SRV_CLIENT_PROPERTIES clientProperties;
+
+    ULONG               ulSequence;
 
     // Invariant
     // Not owned
@@ -244,7 +261,7 @@ typedef struct _SMB_SRV_LISTENER_CONTEXT
 
     BOOLEAN bStop;
 
-    SMB_SRV_PROPERTIES serverProperties;
+    SRV_PROPERTIES serverProperties;
 
     // Invariant
     // Not owned

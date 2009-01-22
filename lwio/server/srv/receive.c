@@ -50,7 +50,7 @@ SMBSrvProcessRequest_V1(
 
         case COM_SESSION_SETUP_ANDX:
 
-            ntStatus = SmbProcessSessionSetup(
+            ntStatus = SrvProcessSessionSetup(
                             pConnection,
                             pSmbRequest);
 

@@ -273,7 +273,7 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
     ULONG64   llUTCTime;
     uint16_t  byteCount = 0;
     uint8_t*  pDataCursor = NULL;
-    PSMB_SRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
+    PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
 
     ntStatus = SMBPacketMarshallHeader(
                 pPacket->pRawBuffer,

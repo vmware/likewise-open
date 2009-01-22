@@ -9,6 +9,12 @@
 // The file descriptor is closed only when the connection object is freed.
 
 static
+VOID
+SrvConnectionFreeContentsClientProperties(
+    PSRV_CLIENT_PROPERTIES pProperties
+    );
+
+static
 NTSTATUS
 SrvConnectionReadMessage(
     PSMB_SRV_SOCKET pSocket,
@@ -23,7 +29,7 @@ SrvConnectionCreate(
     PSMB_SRV_SOCKET pSocket,
     HANDLE          hPacketAllocator,
     HANDLE          hGssContext,
-    PSMB_SRV_PROPERTIES pServerProperties,
+    PSRV_PROPERTIES pServerProperties,
     PSMB_SRV_CONNECTION* ppConnection
     )
 {
@@ -333,8 +339,22 @@ SrvConnectionRelease(
             pthread_mutex_destroy(pConnection->pMutex);
             pConnection->pMutex = NULL;
         }
+
+        SrvConnectionFreeContentsClientProperties(&pConnection->clientProperties);
+
         SMBFreeMemory(pConnection);
     }
+}
+
+static
+VOID
+SrvConnectionFreeContentsClientProperties(
+    PSRV_CLIENT_PROPERTIES pProperties
+    )
+{
+    SMB_SAFE_FREE_MEMORY(pProperties->pwszNativeLanMan);
+    SMB_SAFE_FREE_MEMORY(pProperties->pwszNativeOS);
+    SMB_SAFE_FREE_MEMORY(pProperties->pwszNativeDomain);
 }
 
 static

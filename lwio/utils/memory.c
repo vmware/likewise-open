@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -160,21 +160,21 @@ SMBAllocateString(
     DWORD dwError = 0;
     DWORD dwLen = 0;
     PSTR  pszOutputString = NULL;
-    
+
     if (!pszInputString) {
         dwError = SMB_ERROR_INVALID_PARAMETER;
         BAIL_ON_SMB_ERROR(dwError);
     }
 
     dwLen = strlen(pszInputString);
-       
+
     dwError = SMBAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
     BAIL_ON_SMB_ERROR(dwError);
 
     if (dwLen) {
        memcpy(pszOutputString, pszInputString, dwLen);
     }
-    
+
     *ppszOutputString = pszOutputString;
 
 cleanup:
@@ -182,7 +182,7 @@ cleanup:
     return dwError;
 
 error:
-    
+
     SMB_SAFE_FREE_STRING(pszOutputString);
 
     *ppszOutputString = NULL;
@@ -226,11 +226,11 @@ SMBFreeNullTerminatedStringArray(
     )
 {
     PSTR* ppTmp = ppStringArray;
-    
+
     while (ppTmp && *ppTmp) {
-          
+
           SMBFreeString(*ppTmp);
-          
+
           ppTmp++;
     }
 

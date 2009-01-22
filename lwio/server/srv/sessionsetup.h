@@ -2,7 +2,7 @@
 #define _SRV_SESSION_SETUP_H__
 
 NTSTATUS
-SmbProcessSessionSetup(
+SrvProcessSessionSetup(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest
     );

@@ -685,6 +685,12 @@ SMBFreeNullTerminatedStringArray(
 #if defined(UNICODE)
 
 DWORD
+SMBAllocateStringW(
+    PWSTR  pwszInputString,
+    PWSTR* ppwszOutputString
+    );
+
+DWORD
 SMBMbsToWc16s(
     PCSTR     pszInput,
     PWSTR* ppwszOutput
