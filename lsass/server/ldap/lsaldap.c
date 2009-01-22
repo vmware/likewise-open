@@ -326,6 +326,8 @@ LsaLdapOpenDirectoryServer(
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     int rc = LDAP_VERSION3;
     DWORD dwPort = 389;
+    DWORD dwAttempt = 0;
+    struct timespec sleepTime;
 
     if (IsNullOrEmptyString(pszServerName) || IsNullOrEmptyString(pszServerAddress)) {
         dwError = LSA_ERROR_INVALID_PARAMETER;
@@ -335,8 +337,29 @@ LsaLdapOpenDirectoryServer(
     if (dwFlags & LSA_LDAP_OPT_GLOBAL_CATALOG)
        dwPort = 3268;
 
-    ld = (LDAP *)ldap_open(pszServerAddress, dwPort);
+    for (dwAttempt = 1; dwAttempt <= 5; dwAttempt++)
+    {
+        ld = (LDAP *)ldap_open(pszServerAddress, dwPort);
+        if (!ld && errno == ENOTCONN)
+        {
+            LSA_LOG_ERROR("The ldap connection to %s was disconnected. This was attempt #%d\n",
+                    pszServerAddress,
+                    dwAttempt);
+            sleepTime.tv_sec = 0;
+            sleepTime.tv_nsec = dwAttempt * 100000000;
+            while (nanosleep(&sleepTime, &sleepTime) == -1)
+            {
+                if (errno != EINTR)
+                {
+                    dwError = errno;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+            }
 
+            continue;
+        }
+        break;
+    }
     if (!ld) {
         LSA_LOG_ERROR("Failed to open LDAP connection to domain controller");
         dwError = errno;
