@@ -29,7 +29,7 @@ SrvTreeCreate(
     PSMB_SRV_TREE pTree = NULL;
     USHORT tid  = 0;
 
-    pthread_mutex_init(&pTree->mutex, NULL);
+    pthread_rwlock_init(&pTree->mutex, NULL);
     pTree->pMutex = &pTree->mutex;
 
     ntStatus = SMBAllocateMemory(
@@ -86,10 +86,11 @@ SrvTreeFindFile(
 {
     PSMB_SRV_FILE pFile = NULL;
     BOOLEAN bInLock = FALSE;
-    SMB_SRV_FILE finder = { PTHREAD_MUTEX_INITIALIZER };
+    SMB_SRV_FILE finder;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
+    memset(&finder, 0, sizeof(finder));
     finder.fid = fid;
 
     pFile = (PSMB_SRV_FILE)SMBRBTreeFind(
@@ -101,7 +102,7 @@ SrvTreeFindFile(
         InterlockedIncrement(&pFile->refcount);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 
     return pFile;
 }
@@ -121,7 +122,7 @@ SrvTreeCreateFile(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
     ntStatus = SMBRBTreeAdd(
                     pTree->pFileCollection,
@@ -134,7 +135,7 @@ SrvTreeCreateFile(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 
 error:
 
@@ -202,7 +203,7 @@ SrvTreeFree(
 {
     if (pTree->pMutex)
     {
-        pthread_mutex_destroy(&pTree->mutex);
+        pthread_rwlock_destroy(&pTree->mutex);
         pTree->pMutex = NULL;
     }
 

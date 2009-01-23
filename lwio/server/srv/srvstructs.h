@@ -174,8 +174,8 @@ typedef struct _SRV_ID_ALLOCATOR
 
 typedef struct _SMB_SRV_FILE
 {
-    pthread_mutex_t   mutex;
-    pthread_mutex_t*  pMutex;
+    pthread_rwlock_t   mutex;
+    pthread_rwlock_t*  pMutex;
 
     LONG              refcount;
 
@@ -187,8 +187,8 @@ typedef struct _SMB_SRV_FILE
 
 typedef struct _SMB_SRV_TREE
 {
-    pthread_mutex_t   mutex;
-    pthread_mutex_t*  pMutex;
+    pthread_rwlock_t   mutex;
+    pthread_rwlock_t*  pMutex;
 
     LONG              refcount;
 
@@ -203,8 +203,8 @@ typedef struct _SMB_SRV_TREE
 
 typedef struct _SMB_SRV_SESSION
 {
-    pthread_mutex_t   mutex;
-    pthread_mutex_t*  pMutex;
+    pthread_rwlock_t   mutex;
+    pthread_rwlock_t*  pMutex;
 
     LONG              refcount;
 
@@ -219,8 +219,8 @@ typedef struct _SMB_SRV_SESSION
 
 typedef struct _SMB_SRV_CONNECTION
 {
-    pthread_mutex_t     mutex;
-    pthread_mutex_t*    pMutex;
+    pthread_rwlock_t     mutex;
+    pthread_rwlock_t*    pMutex;
 
     LONG                refCount;
 

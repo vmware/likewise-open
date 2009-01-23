@@ -56,7 +56,7 @@ SrvConnectionCreate(
 
     pConnection->refCount = 1;
 
-    pthread_mutex_init(&pConnection->mutex, NULL);
+    pthread_rwlock_init(&pConnection->mutex, NULL);
     pConnection->pMutex = &pConnection->mutex;
 
     ntStatus = SMBRBTreeCreate(
@@ -102,8 +102,9 @@ SrvConnectionGetFd(
     )
 {
     int fd = -1;
+    BOOLEAN bInLock = FALSE;
 
-    pthread_mutex_lock(&pConnection->mutex);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
     if (pConnection->pSocket)
     {
@@ -114,7 +115,7 @@ SrvConnectionGetFd(
         pthread_mutex_unlock(&pConnection->pSocket->mutex);
     }
 
-    pthread_mutex_unlock(&pConnection->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return fd;
 }
@@ -132,7 +133,7 @@ SrvConnectionGetNextSequence(
     ULONG ulResponseSequence = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pConnection->mutex);
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     switch (pSmbRequest->pSMBHeader->command)
     {
@@ -167,7 +168,7 @@ SrvConnectionGetNextSequence(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pConnection->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
 
@@ -185,12 +186,13 @@ SrvConnectionIsInvalid(
     )
 {
     BOOLEAN bInvalid = FALSE;
+    BOOLEAN bInLock = FALSE;
 
-    pthread_mutex_lock(&pConnection->mutex);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
     bInvalid = pConnection->state == SMB_SRV_CONN_STATE_INVALID;
 
-    pthread_mutex_unlock(&pConnection->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return bInvalid;
 }
@@ -200,11 +202,13 @@ SrvConnectionSetInvalid(
     PSMB_SRV_CONNECTION pConnection
     )
 {
-    pthread_mutex_lock(&pConnection->mutex);
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     pConnection->state = SMB_SRV_CONN_STATE_INVALID;
 
-    pthread_mutex_unlock(&pConnection->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 }
 
 NTSTATUS
@@ -400,10 +404,11 @@ SrvConnectionFindSession(
 {
     PSMB_SRV_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
-    SMB_SRV_SESSION finder = { PTHREAD_MUTEX_INITIALIZER };
+    SMB_SRV_SESSION finder;
 
-    SMB_LOCK_MUTEX(bInLock, &pConnection->mutex);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
+    memset(&finder, 0, sizeof(finder));
     finder.uid = uid;
 
     pSession = SMBRBTreeFind(
@@ -415,7 +420,7 @@ SrvConnectionFindSession(
         InterlockedIncrement(&pSession->refcount);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pConnection->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return pSession;
 }
@@ -435,7 +440,7 @@ SrvConnectionCreateSession(
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_MUTEX(bInLock, &pConnection->mutex);
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     ntStatus = SMBRBTreeAdd(
                     pConnection->pSessionCollection,
@@ -448,7 +453,7 @@ SrvConnectionCreateSession(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pConnection->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
 
@@ -504,7 +509,7 @@ SrvConnectionRelease(
 
         if (pConnection->pMutex)
         {
-            pthread_mutex_destroy(pConnection->pMutex);
+            pthread_rwlock_destroy(&pConnection->mutex);
             pConnection->pMutex = NULL;
         }
 

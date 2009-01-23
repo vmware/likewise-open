@@ -16,7 +16,7 @@ SrvFileCreate(
     USHORT fid = 0;
     PSMB_SRV_FILE pFile = NULL;
 
-    pthread_mutex_init(&pFile->mutex, NULL);
+    pthread_rwlock_init(&pFile->mutex, NULL);
     pFile->pMutex = &pFile->mutex;
 
     ntStatus = SMBAllocateMemory(
@@ -73,7 +73,7 @@ SrvFileFree(
 {
     if (pFile->pMutex)
     {
-        pthread_mutex_destroy(&pFile->mutex);
+        pthread_rwlock_destroy(&pFile->mutex);
         pFile->pMutex = NULL;
     }
 

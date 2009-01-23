@@ -29,7 +29,7 @@ SrvSessionCreate(
     PSMB_SRV_SESSION pSession = NULL;
     USHORT uid = 0;
 
-    pthread_mutex_init(&pSession->mutex, NULL);
+    pthread_rwlock_init(&pSession->mutex, NULL);
     pSession->pMutex = &pSession->mutex;
 
     ntStatus = SMBAllocateMemory(
@@ -86,10 +86,11 @@ SrvSessionFindTree(
 {
     BOOLEAN bInLock = FALSE;
     PSMB_SRV_TREE pTree = NULL;
-    SMB_SRV_TREE finder = { PTHREAD_MUTEX_INITIALIZER };
+    SMB_SRV_TREE finder;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
+    memset(&finder, 0, sizeof(finder));
     finder.tid = tid;
 
     pTree = (PSMB_SRV_TREE)SMBRBTreeFind(
@@ -100,7 +101,7 @@ SrvSessionFindTree(
         InterlockedIncrement(&pTree->refcount);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 
     return pTree;
 }
@@ -120,7 +121,7 @@ SrvSessionCreateTree(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
     ntStatus = SMBRBTreeAdd(
                     pSession->pTreeCollection,
@@ -129,7 +130,7 @@ SrvSessionCreateTree(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -192,7 +193,7 @@ SrvSessionFree(
 {
     if (pSession->pMutex)
     {
-        pthread_mutex_destroy(&pSession->mutex);
+        pthread_rwlock_destroy(&pSession->mutex);
         pSession->pMutex = NULL;
     }
 
