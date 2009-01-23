@@ -589,6 +589,11 @@ typedef struct
 
 typedef struct
 {
+    uint16_t byteCount;
+} __attribute__((__packed__)) TREE_DISCONNECT_RESPONSE_HEADER, *PTREE_DISCONNECT_RESPONSE_HEADER;
+
+typedef struct
+{
     /* wordCount and command are handled at a higher layer */
     uint16_t totalParameterCount;  /* Total parameter bytes being sent */
     uint16_t totalDataCount;       /* Total data bytes being sent */
