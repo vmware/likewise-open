@@ -42,7 +42,7 @@ SMBSrvProcessRequest_V1(
     {
         case COM_NEGOTIATE:
 
-                ntStatus = SrvSmbProcessNegotiate(
+                ntStatus = SrvProcessNegotiate(
                                 pConnection,
                                 pSmbRequest);
 

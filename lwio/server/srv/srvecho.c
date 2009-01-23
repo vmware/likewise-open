@@ -35,6 +35,8 @@ NTSTATUS
 SrvMarshallEchoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbResponse,
+    USHORT              usUid,
+    USHORT              usMid,
     USHORT              usSequenceNumber,
     PBYTE               pEchoBlob,
     USHORT              ulEchoBlobLength
@@ -84,6 +86,8 @@ SrvProcessEchoAndX(
         ntStatus = SrvMarshallEchoResponse(
                         pConnection,
                         pSmbResponse,
+                        pSmbRequest->pSMBHeader->uid,
+                        pSmbRequest->pSMBHeader->mid,
                         iEchoCount,
                         pEchoBlob,
                         pEchoHeader->byteCount);
@@ -116,6 +120,8 @@ NTSTATUS
 SrvMarshallEchoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbResponse,
+    USHORT              usUid,
+    USHORT              usMid,
     USHORT              usSequenceNumber,
     PBYTE               pEchoBlob,
     USHORT              usEchoBlobLength
@@ -133,9 +139,9 @@ SrvMarshallEchoResponse(
                 0,
                 TRUE,
                 0,
-                0,
-                0,
-                0,
+                getpid(),
+                usUid,
+                usMid,
                 FALSE,
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

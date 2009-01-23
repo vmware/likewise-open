@@ -316,7 +316,7 @@ SMBSocketTimedOut_InLock(
     return bTimedOut;
 }
 
-NTSTATUS
+ULONG
 SMBSocketGetNextSequence(
     PSMB_SOCKET pSocket
     )

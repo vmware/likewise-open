@@ -91,7 +91,7 @@ SrvBuildNegotiateResponseForDialect(
     );
 
 NTSTATUS
-SrvSmbProcessNegotiate(
+SrvProcessNegotiate(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest
     )
@@ -274,6 +274,8 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
     uint16_t  byteCount = 0;
     uint8_t*  pDataCursor = NULL;
     PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
+    PBYTE     pSessionKey = 0;
+    ULONG     ulSessionKeyLength = 0;
 
     ntStatus = SMBPacketMarshallHeader(
                 pPacket->pRawBuffer,
@@ -352,15 +354,15 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
                         pConnection->hGssNegotiate,
                         NULL,
                         0,
-                        &pConnection->pSessionKey,
-                        &pConnection->ulSessionKeyLength);
+                        &pSessionKey,
+                        &ulSessionKeyLength);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pConnection->ulSessionKeyLength)
+        if (ulSessionKeyLength)
         {
-            memcpy(pDataCursor, pConnection->pSessionKey, pConnection->ulSessionKeyLength);
-            pDataCursor += pConnection->ulSessionKeyLength;
-            byteCount += pConnection->ulSessionKeyLength;
+            memcpy(pDataCursor, pSessionKey, ulSessionKeyLength);
+            pDataCursor += ulSessionKeyLength;
+            byteCount += ulSessionKeyLength;
         }
     }
 
@@ -371,9 +373,15 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
     ntStatus = SMBPacketMarshallFooter(pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-error:
+cleanup:
+
+    SMB_SAFE_FREE_MEMORY(pSessionKey);
 
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static

@@ -15,6 +15,11 @@ SrvConnectionGetFd(
     PSMB_SRV_CONNECTION pConnection
     );
 
+ULONG
+SrvConnectionGetNextSequence(
+    PSMB_SRV_CONNECTION pConnection
+    );
+
 BOOLEAN
 SrvConnectionIsInvalid(
     PSMB_SRV_CONNECTION pConnection

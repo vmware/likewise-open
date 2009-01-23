@@ -44,6 +44,77 @@ SrvGssNegotiateIsComplete(
 }
 
 NTSTATUS
+SrvGssGetSessionKey(
+    HANDLE hGss,
+    HANDLE hGssNegotiate,
+    PBYTE* ppSessionKey,
+    PULONG pulSessionKeyLength
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate;
+    ULONG ulMinorStatus = 0;
+    gss_name_t initiatorName = {0};
+    gss_name_t acceptorName = {0};
+    gss_buffer_desc sessionKey = GSS_C_EMPTY_BUFFER;
+    PBYTE pSessionKey = NULL;
+
+    if (!SrvGssNegotiateIsComplete(hGss, hGssNegotiate))
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = gss_inquire_context2(
+                    &ulMinorStatus,
+                    *pGssNegotiate->pGssContext,
+                    &initiatorName,
+                    &acceptorName,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &sessionKey);
+
+    srv_display_status("gss_inquire_context2", ntStatus, ulMinorStatus);
+    BAIL_ON_SEC_ERROR(ntStatus);
+
+    assert(sessionKey.length > 0);
+
+    ntStatus = SMBAllocateMemory(
+                    sessionKey.length * sizeof(BYTE),
+                    (PVOID*)&pSessionKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pSessionKey, sessionKey.value, sessionKey.length);
+
+    *ppSessionKey = pSessionKey;
+    *pulSessionKeyLength = sessionKey.length;
+
+cleanup:
+
+    gss_release_name(&ulMinorStatus, &initiatorName);
+    gss_release_name(&ulMinorStatus, &acceptorName);
+    gss_release_buffer(&ulMinorStatus, &sessionKey);
+
+    return ntStatus;
+
+sec_error:
+
+    ntStatus = SMB_ERROR_GSS;
+
+error:
+
+    *ppSessionKey = NULL;
+    *pulSessionKeyLength = 0;
+
+    SMB_SAFE_FREE_MEMORY(pSessionKey);
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvGssBeginNegotiate(
     HANDLE  hGss,
     PHANDLE phGssResume

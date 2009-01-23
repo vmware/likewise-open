@@ -14,6 +14,14 @@ SrvGssNegotiateIsComplete(
     );
 
 NTSTATUS
+SrvGssGetSessionKey(
+    HANDLE hGss,
+    HANDLE hGssNegotiate,
+    PBYTE* ppSessionKey,
+    PULONG pulSessionKeyLength
+    );
+
+NTSTATUS
 SrvGssBeginNegotiate(
     HANDLE  hGss,
     PHANDLE phGssNegotiate

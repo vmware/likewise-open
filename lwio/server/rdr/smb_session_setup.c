@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -177,13 +177,13 @@ SessionSetup(
         dwSequence = SMBSocketGetNextSequence(pSocket);
         dwResponseSequence = dwSequence + 1;
 
-        if (bSignMessages && (pSessionKey || pPrimerSessionKey))
+        if (bSignMessages && pPrimerSessionKey)
         {
             ntStatus = SMBPacketSign(
                             &packet,
                             dwSequence,
-                            (pSessionKey ? pSessionKey : pPrimerSessionKey),
-                            (pSessionKey ? dwSessionKeyLength : dwPrimerSessionKeyLen));
+                            pPrimerSessionKey,
+                            dwPrimerSessionKeyLen);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -210,17 +210,21 @@ SessionSetup(
 
         SMB_UNLOCK_MUTEX(bInLock, &pSocket->sessionMutex);
 
-        if (bSignMessages && (pSessionKey || pPrimerSessionKey))
+        if (bSignMessages && pPrimerSessionKey)
         {
             ntStatus = SMBPacketVerifySignature(
                             pResponsePacket,
                             dwResponseSequence,
-                            (pSessionKey ? pSessionKey : pPrimerSessionKey),
-                            (pSessionKey ? dwSessionKeyLength : dwPrimerSessionKeyLen));
+                            pPrimerSessionKey,
+                            dwPrimerSessionKeyLen);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
         ntStatus = pResponsePacket->pSMBHeader->error;
+        if (ntStatus == STATUS_MORE_PROCESSING_REQUIRED)
+        {
+            ntStatus = 0;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = UnmarshallSessionSetupResponse(

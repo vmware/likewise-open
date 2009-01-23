@@ -50,6 +50,7 @@ SrvConnectionCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->refCount = 1;
+    pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->state = SMB_SRV_CONN_STATE_INITIAL;
     pConnection->pSocket = pSocket;
@@ -91,6 +92,27 @@ SrvConnectionGetFd(
     pthread_mutex_unlock(&pConnection->mutex);
 
     return fd;
+}
+
+ULONG
+SrvConnectionGetNextSequence(
+    PSMB_SRV_CONNECTION pConnection
+    )
+{
+    ULONG ulSequence = 0;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_MUTEX(bInLock, &pConnection->mutex);
+
+    ulSequence = pConnection->ulSequence;
+
+    // Next for response
+    // Next for next message
+    pConnection->ulSequence += 2;
+
+    SMB_UNLOCK_MUTEX(bInLock, &pConnection->mutex);
+
+    return ulSequence;
 }
 
 BOOLEAN

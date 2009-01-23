@@ -79,7 +79,7 @@ SMBSocketTimedOut_InLock(
     PSMB_SOCKET pSocket
     );
 
-NTSTATUS
+ULONG
 SMBSocketGetNextSequence(
     PSMB_SOCKET pSocket
     );

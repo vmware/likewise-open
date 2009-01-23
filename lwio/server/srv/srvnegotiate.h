@@ -30,7 +30,7 @@
 
 
 NTSTATUS
-SrvSmbProcessNegotiate(
+SrvProcessNegotiate(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest
     );

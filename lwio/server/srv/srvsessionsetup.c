@@ -43,6 +43,7 @@ static
 NTSTATUS
 SrvMarshallSessionSetupResponse(
     PSMB_SRV_CONNECTION pConnection,
+    USHORT              usMid,
     PBYTE               pSecurityBlob,
     ULONG               ulSecurityBlobLength,
     PSMB_PACKET*        ppSmbResponse
@@ -58,6 +59,20 @@ SrvProcessSessionSetup(
     PSMB_PACKET pSmbResponse = NULL;
     PBYTE       pSecurityBlob = NULL; // Do Not Free
     ULONG       ulSecurityBlobLength = 0;
+    ULONG       ulSequence = 0;
+
+    ulSequence = SrvConnectionGetNextSequence(pConnection);
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketVerifySignature(
+                        pSmbRequest,
+                        ulSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
@@ -68,10 +83,33 @@ SrvProcessSessionSetup(
 
     ntStatus = SrvMarshallSessionSetupResponse(
                     pConnection,
+                    pSmbRequest->pSMBHeader->mid,
                     pSecurityBlob,
                     ulSecurityBlobLength,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketSign(
+                        pSmbResponse,
+                        ulSequence + 1,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (!pConnection->pSessionKey &&
+        SrvGssNegotiateIsComplete(pConnection->hGssContext, pConnection->hGssNegotiate))
+    {
+        ntStatus = SrvGssGetSessionKey(
+                        pConnection->hGssContext,
+                        pConnection->hGssNegotiate,
+                        &pConnection->pSessionKey,
+                        &pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvConnectionWriteMessage(
                     pConnection,
@@ -175,6 +213,7 @@ static
 NTSTATUS
 SrvMarshallSessionSetupResponse(
     PSMB_SRV_CONNECTION pConnection,
+    USHORT              usMid,
     PBYTE               pSecurityBlob,
     ULONG               ulSecurityBlobLength,
     PSMB_PACKET*        ppSmbResponse
@@ -218,10 +257,10 @@ SrvMarshallSessionSetupResponse(
                 0,
                 TRUE,
                 0,
+                getpid(),
                 0,
-                0,
-                0,
-                FALSE,
+                usMid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
