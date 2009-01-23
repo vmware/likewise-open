@@ -45,10 +45,11 @@ SrvConnectionWriteMessage(
     PSMB_PACKET         pPacket
     );
 
-PSMB_SRV_SESSION
+NTSTATUS
 SrvConnectionFindSession(
     PSMB_SRV_CONNECTION pConnection,
-    USHORT uid
+    USHORT uid,
+    PSMB_SRV_SESSION* ppSession
     );
 
 NTSTATUS

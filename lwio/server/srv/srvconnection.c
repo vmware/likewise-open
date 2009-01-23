@@ -396,12 +396,14 @@ error:
     goto cleanup;
 }
 
-PSMB_SRV_SESSION
+NTSTATUS
 SrvConnectionFindSession(
     PSMB_SRV_CONNECTION pConnection,
-    USHORT uid
+    USHORT uid,
+    PSMB_SRV_SESSION* ppSession
     )
 {
+    NTSTATUS ntStatus = 0;
     PSMB_SRV_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
     SMB_SRV_SESSION finder;
@@ -411,18 +413,27 @@ SrvConnectionFindSession(
     memset(&finder, 0, sizeof(finder));
     finder.uid = uid;
 
-    pSession = SMBRBTreeFind(
+    ntStatus = SMBRBTreeFind(
                     pConnection->pSessionCollection,
-                    &finder);
+                    &finder,
+                    (PVOID*)&pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pSession)
-    {
-        InterlockedIncrement(&pSession->refcount);
-    }
+    InterlockedIncrement(&pSession->refcount);
+
+    *ppSession = pSession;
+
+cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
-    return pSession;
+    return ntStatus;
+
+error:
+
+    *ppSession = NULL;
+
+    goto cleanup;
 }
 
 NTSTATUS

@@ -57,7 +57,7 @@ SMBRBTreeInsert(
     );
 
 static
-DWORD
+NTSTATUS
 SMBRBTreeTraversePreOrder(
     PSMB_RB_TREE_NODE     pNode,
     PFN_SMB_RB_TREE_VISIT pfnVisit,
@@ -66,7 +66,7 @@ SMBRBTreeTraversePreOrder(
     );
 
 static
-DWORD
+NTSTATUS
 SMBRBTreeTraverseInOrder(
     PSMB_RB_TREE_NODE     pNode,
     PFN_SMB_RB_TREE_VISIT pfnVisit,
@@ -75,7 +75,7 @@ SMBRBTreeTraverseInOrder(
     );
 
 static
-DWORD
+NTSTATUS
 SMBRBTreeTraversePostOrder(
     PSMB_RB_TREE_NODE     pNode,
     PFN_SMB_RB_TREE_VISIT pfnVisit,
@@ -151,22 +151,26 @@ SMBRBTreeFreeNode(
 // (b) Both children of a read node must be black
 // (c) all leaf nodes must be black
 
-DWORD
+NTSTATUS
 SMBRBTreeCreate(
     PFN_SMB_RB_TREE_COMPARE pfnRBTreeCompare,
     PFN_SMB_RB_TREE_FREE    pfnRBTreeFree,
     PSMB_RB_TREE*           ppRBTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_RB_TREE pRBTree = NULL;
 
-    BAIL_ON_INVALID_POINTER(pfnRBTreeCompare);
+    if (!pfnRBTreeCompare)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_1;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                     sizeof(SMB_RB_TREE),
                     (PVOID*)&pRBTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pRBTree->pfnCompare = pfnRBTreeCompare;
     pRBTree->pfnFree    = pfnRBTreeFree;
@@ -175,7 +179,7 @@ SMBRBTreeCreate(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -188,15 +192,34 @@ error:
     goto cleanup;
 }
 
-PVOID
+NTSTATUS
 SMBRBTreeFind(
     PSMB_RB_TREE pRBTree,
-    PVOID        pData
+    PVOID        pKey,
+    PVOID*       ppItem
     )
 {
-    PSMB_RB_TREE_NODE pResult = SMBRBTreeFindNode(pRBTree, pData);
+    NTSTATUS ntStatus = 0;
+    PSMB_RB_TREE_NODE pResult = NULL;
 
-    return (pResult ? pResult->pData : NULL);
+    pResult = SMBRBTreeFindNode(pRBTree, pKey);
+    if (!pResult)
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppItem = pResult->pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppItem = NULL;
+
+    goto cleanup;
 }
 
 static
@@ -231,22 +254,26 @@ SMBRBTreeFindNode(
     return pResult;
 }
 
-DWORD
+NTSTATUS
 SMBRBTreeAdd(
     PSMB_RB_TREE pRBTree,
     PVOID   pData
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_RB_TREE_NODE pTreeNode = NULL;
     BOOLEAN bFree = FALSE;
 
-    BAIL_ON_INVALID_POINTER(pData);
+    if (!pData)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_2;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                     sizeof(SMB_RB_TREE_NODE),
                     (PVOID*)&pTreeNode);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pTreeNode->pData = pData;
     pTreeNode->pRight = gpRBTreeSentinel;
@@ -329,7 +356,7 @@ SMBRBTreeAdd(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -450,7 +477,7 @@ SMBRBTreeRotateRight(
     pTreeNode->pParent = pNode;
 }
 
-DWORD
+NTSTATUS
 SMBRBTreeTraverse(
     PSMB_RB_TREE pRBTree,
     SMB_TREE_TRAVERSAL_TYPE traversalType,
@@ -458,7 +485,7 @@ SMBRBTreeTraverse(
     PVOID pUserData
     )
 {
-    DWORD   dwError = 0;
+    NTSTATUS   ntStatus = 0;
     BOOLEAN bContinue = TRUE;
     PSMB_RB_TREE_NODE pRootNode = (PSMB_RB_TREE_NODE)pRBTree->hRoot;
 
@@ -471,7 +498,7 @@ SMBRBTreeTraverse(
     {
         case SMB_TREE_TRAVERSAL_TYPE_PRE_ORDER:
 
-            dwError = SMBRBTreeTraversePreOrder(
+            ntStatus = SMBRBTreeTraversePreOrder(
                             pRootNode,
                             pfnVisit,
                             pUserData,
@@ -481,7 +508,7 @@ SMBRBTreeTraverse(
 
         case SMB_TREE_TRAVERSAL_TYPE_IN_ORDER:
 
-            dwError = SMBRBTreeTraverseInOrder(
+            ntStatus = SMBRBTreeTraverseInOrder(
                             pRootNode,
                             pfnVisit,
                             pUserData,
@@ -491,7 +518,7 @@ SMBRBTreeTraverse(
 
         case SMB_TREE_TRAVERSAL_TYPE_POST_ORDER:
 
-            dwError = SMBRBTreeTraversePostOrder(
+            ntStatus = SMBRBTreeTraversePostOrder(
                             pRootNode,
                             pfnVisit,
                             pUserData,
@@ -502,11 +529,11 @@ SMBRBTreeTraverse(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 }
 
 static
-DWORD
+NTSTATUS
 SMBRBTreeTraversePreOrder(
     PSMB_RB_TREE_NODE     pNode,
     PFN_SMB_RB_TREE_VISIT pfnVisit,
@@ -514,41 +541,41 @@ SMBRBTreeTraversePreOrder(
     PBOOLEAN              pbContinue
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
     if (pNode && !SMB_RBTREE_IS_NIL_NODE(pNode))
     {
-        dwError = pfnVisit(pNode->pData, pUserData, pbContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = pfnVisit(pNode->pData, pUserData, pbContinue);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         if (*pbContinue && pNode->pLeft)
         {
-            dwError = SMBRBTreeTraversePreOrder(
+            ntStatus = SMBRBTreeTraversePreOrder(
                             pNode->pLeft,
                             pfnVisit,
                             pUserData,
                             pbContinue);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         if (*pbContinue && pNode->pRight)
         {
-            dwError = SMBRBTreeTraversePreOrder(
+            ntStatus = SMBRBTreeTraversePreOrder(
                             pNode->pRight,
                             pfnVisit,
                             pUserData,
                             pbContinue);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
 error:
 
-    return dwError;
+    return ntStatus;
 }
 
 static
-DWORD
+NTSTATUS
 SMBRBTreeTraverseInOrder(
     PSMB_RB_TREE_NODE     pNode,
     PFN_SMB_RB_TREE_VISIT pfnVisit,
@@ -556,41 +583,41 @@ SMBRBTreeTraverseInOrder(
     PBOOLEAN              pbContinue
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
     if (pNode && !SMB_RBTREE_IS_NIL_NODE(pNode))
     {
         if (*pbContinue && pNode->pLeft)
         {
-            dwError = SMBRBTreeTraverseInOrder(
+            ntStatus = SMBRBTreeTraverseInOrder(
                             pNode->pLeft,
                             pfnVisit,
                             pUserData,
                             pbContinue);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        dwError = pfnVisit(pNode->pData, pUserData, pbContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = pfnVisit(pNode->pData, pUserData, pbContinue);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         if (*pbContinue && pNode->pRight)
         {
-            dwError = SMBRBTreeTraverseInOrder(
+            ntStatus = SMBRBTreeTraverseInOrder(
                             pNode->pRight,
                             pfnVisit,
                             pUserData,
                             pbContinue);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
 error:
 
-    return dwError;
+    return ntStatus;
 }
 
 static
-DWORD
+NTSTATUS
 SMBRBTreeTraversePostOrder(
     PSMB_RB_TREE_NODE     pNode,
     PFN_SMB_RB_TREE_VISIT pfnVisit,
@@ -598,53 +625,53 @@ SMBRBTreeTraversePostOrder(
     PBOOLEAN              pbContinue
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
     if (pNode && !SMB_RBTREE_IS_NIL_NODE(pNode))
     {
         if (*pbContinue && pNode->pLeft)
         {
-            dwError = SMBRBTreeTraversePostOrder(
+            ntStatus = SMBRBTreeTraversePostOrder(
                             pNode->pLeft,
                             pfnVisit,
                             pUserData,
                             pbContinue);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         if (*pbContinue && pNode->pRight)
         {
-            dwError = SMBRBTreeTraversePostOrder(
+            ntStatus = SMBRBTreeTraversePostOrder(
                             pNode->pRight,
                             pfnVisit,
                             pUserData,
                             pbContinue);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        dwError = pfnVisit(pNode->pData, pUserData, pbContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = pfnVisit(pNode->pData, pUserData, pbContinue);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 error:
 
-    return dwError;
+    return ntStatus;
 }
 
-DWORD
+NTSTATUS
 SMBRBTreeRemove(
     PSMB_RB_TREE pRBTree,
     PVOID   pData)
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_RB_TREE_NODE pNode = NULL;
 
     pNode = SMBRBTreeFindNode(pRBTree, pData);
 
     if (!pNode)
     {
-        dwError = ESRCH;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pNode = SMBRBTreeRemoveNode(pRBTree, pNode);
@@ -653,7 +680,7 @@ SMBRBTreeRemove(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 

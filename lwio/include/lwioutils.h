@@ -842,26 +842,27 @@ SMBQueueFree(
     PSMB_QUEUE pQueue
     );
 
-DWORD
+NTSTATUS
 SMBRBTreeCreate(
     PFN_SMB_RB_TREE_COMPARE pfnRBTreeCompare,
     PFN_SMB_RB_TREE_FREE    pfnRBTreeFree,
     PSMB_RB_TREE* ppRBTree
     );
 
-PVOID
+NTSTATUS
 SMBRBTreeFind(
     PSMB_RB_TREE pRBTree,
-    PVOID   pData
+    PVOID        pKey,
+    PVOID*       ppItem
     );
 
-DWORD
+NTSTATUS
 SMBRBTreeAdd(
     PSMB_RB_TREE pRBTree,
     PVOID       pData
     );
 
-DWORD
+NTSTATUS
 SMBRBTreeTraverse(
     PSMB_RB_TREE pRBTree,
     SMB_TREE_TRAVERSAL_TYPE traversalType,
@@ -869,7 +870,7 @@ SMBRBTreeTraverse(
     PVOID                 pUserData
     );
 
-DWORD
+NTSTATUS
 SMBRBTreeRemove(
     PSMB_RB_TREE pRBTree,
     PVOID   pData);

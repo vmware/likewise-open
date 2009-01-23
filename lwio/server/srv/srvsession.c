@@ -78,12 +78,14 @@ error:
     goto cleanup;
 }
 
-PSMB_SRV_TREE
+NTSTATUS
 SrvSessionFindTree(
     PSMB_SRV_SESSION pSession,
-    USHORT           tid
+    USHORT           tid,
+    PSMB_SRV_TREE*   ppTree
     )
 {
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PSMB_SRV_TREE pTree = NULL;
     SMB_SRV_TREE finder;
@@ -93,17 +95,27 @@ SrvSessionFindTree(
     memset(&finder, 0, sizeof(finder));
     finder.tid = tid;
 
-    pTree = (PSMB_SRV_TREE)SMBRBTreeFind(
-                                pSession->pTreeCollection,
-                                &finder);
-    if (pTree)
-    {
-        InterlockedIncrement(&pTree->refcount);
-    }
+    ntStatus = SMBRBTreeFind(
+                    pSession->pTreeCollection,
+                    &finder,
+                    (PVOID*)&pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    InterlockedIncrement(&pTree->refcount);
+
+    *ppTree = pTree;
+
+cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 
-    return pTree;
+    return ntStatus;
+
+error:
+
+    *ppTree = NULL;
+
+    goto cleanup;
 }
 
 NTSTATUS

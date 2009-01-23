@@ -7,10 +7,11 @@ SrvSessionCreate(
     PSMB_SRV_SESSION* ppSession
     );
 
-PSMB_SRV_TREE
+NTSTATUS
 SrvSessionFindTree(
     PSMB_SRV_SESSION pSession,
-    USHORT           tid
+    USHORT           tid,
+    PSMB_SRV_TREE*   ppTree
     );
 
 NTSTATUS

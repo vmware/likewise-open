@@ -7,10 +7,11 @@ SrvTreeCreate(
     PSMB_SRV_TREE*    ppTree
     );
 
-PSMB_SRV_FILE
+NTSTATUS
 SrvTreeFindFile(
-    PSMB_SRV_TREE pTree,
-    USHORT        fid
+    PSMB_SRV_TREE  pTree,
+    USHORT         fid,
+    PSMB_SRV_FILE* ppFile
     );
 
 NTSTATUS
