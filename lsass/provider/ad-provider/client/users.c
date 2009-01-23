@@ -127,16 +127,14 @@ LsaAdEnumUsersFromCache(
     DWORD dwError = 0;
     DWORD dwOutputBufferSize = 0;
     PVOID pOutputBuffer = NULL;
+    PVOID pBlob = NULL;
+    size_t BlobSize = 0;
     LWMsgContext* context = NULL;
-    LWMsgBuffer   buffer;
-    LWMsgBuffer   bufferOut;
     LSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ request;
     PLSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP response = NULL;
     PLSA_USER_INFO_LIST pResultList = NULL;
 
     memset(&request, 0, sizeof(request));
-    memset(&buffer, 0, sizeof(buffer));
-    memset(&bufferOut, 0, sizeof(bufferOut));
 
     if (geteuid() != 0)
     {
@@ -149,46 +147,32 @@ LsaAdEnumUsersFromCache(
     request.dwInfoLevel = dwInfoLevel;
     request.dwMaxNumUsers = dwMaxNumUsers;
 
-    buffer.length = 1024;
-    dwError = LsaAllocateMemory(buffer.length,
-                                (PVOID)&buffer.memory);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    buffer.full = NULL;
-    buffer.data = NULL;
-    buffer.cursor = buffer.memory;
-
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_marshal(
+    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
                               context,
                               LsaAdIPCGetEnumUsersFromCacheReqSpec(),
                               &request,
-                              &buffer));
+                              &pBlob,
+                              &BlobSize));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProviderIoControl(
                   hLsaConnection,
                   LSA_AD_TAG_PROVIDER,
                   LSA_AD_IO_ENUMUSERSCACHE,
-                  buffer.cursor - buffer.memory,
-                  buffer.memory,
+                  BlobSize,
+                  pBlob,
                   &dwOutputBufferSize,
                   &pOutputBuffer);
     BAIL_ON_LSA_ERROR(dwError);
 
-    // unmarshal response
-    bufferOut.length = dwOutputBufferSize;
-    bufferOut.memory = pOutputBuffer;
-    bufferOut.cursor = pOutputBuffer;
-    bufferOut.full   = NULL;
-    bufferOut.data   = NULL;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal(
+    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
                               context,
                               LsaAdIPCGetEnumUsersFromCacheRespSpec(),
-                              &bufferOut,
+                              pOutputBuffer,
+                              dwOutputBufferSize,
                               (PVOID*)&response));
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -239,9 +223,9 @@ cleanup:
         lwmsg_context_delete(context);
     }
 
-    if ( buffer.memory )
+    if ( pBlob )
     {
-        LsaFreeMemory(buffer.memory);
+        LsaFreeMemory(pBlob);
     }
 
     if ( pOutputBuffer )

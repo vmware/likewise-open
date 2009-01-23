@@ -937,37 +937,6 @@ AD_EndEnumUsers(
     AD_FreeUserState(hProvider, (PAD_ENUM_STATE) hResume);
 }
 
-static
-LWMsgStatus
-AD_ReallocLwmsgBuffer(
-    LWMsgBuffer* pBuffer,
-    size_t       needed
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    DWORD       dwError = 0;
-    DWORD       dwOffset;
-
-    dwOffset = pBuffer->cursor - pBuffer->memory;
-
-    pBuffer->length *= 2;
-    dwError = LsaReallocMemory(
-                  pBuffer->memory,
-                  (PVOID*)&pBuffer->memory,
-                  pBuffer->length);
-    if (dwError)
-    {
-        status = LWMSG_STATUS_MEMORY;
-        pBuffer->length = 0;
-    }
-    else
-    {
-        pBuffer->cursor = pBuffer->memory + dwOffset;
-    }
-
-    return status;
-}
-
 DWORD
 AD_EnumUsersFromCache(
     IN HANDLE  hProvider,
@@ -984,16 +953,15 @@ AD_EnumUsersFromCache(
     DWORD                 dwInfoCount = 0;
     PLSA_SECURITY_OBJECT* ppUserObjectList = NULL;
     PVOID*                ppUserInfoList = NULL;
+    PVOID                 pBlob = NULL;
+    size_t                BlobSize = 0;
     LWMsgContext*         context = NULL;
-    LWMsgBuffer           buffer;
-    LWMsgBuffer           bufferOut;
     PLSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ request = NULL;
     LSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP response;
     LSA_USER_INFO_LIST    result;
 
     memset(&response, 0, sizeof(response));
     memset(&result, 0, sizeof(result));
-    memset(&bufferOut, 0, sizeof(bufferOut));
 
     // restrict access to root
     if (peerUID)
@@ -1002,20 +970,14 @@ AD_EnumUsersFromCache(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    // unmarshal the request
-    buffer.length = dwInputBufferSize;
-    buffer.memory = pInputBuffer;
-    buffer.cursor = pInputBuffer;
-    buffer.full   = NULL;
-    buffer.data   = NULL;
-
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal(
+    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
                               context,
                               LsaAdIPCGetEnumUsersFromCacheReqSpec(),
-                              &buffer,
+                              pInputBuffer,
+                              dwInputBufferSize,
                               (PVOID*)&request));
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1102,24 +1064,16 @@ AD_EnumUsersFromCache(
     }
     response.pUserInfoList = &result;
 
-    bufferOut.length = 2048;
-    dwError = LsaAllocateMemory(bufferOut.length,
-                                (PVOID)&bufferOut.memory);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    bufferOut.full = AD_ReallocLwmsgBuffer;
-    bufferOut.data = NULL;
-    bufferOut.cursor = bufferOut.memory;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_marshal(
+    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
                               context,
                               LsaAdIPCGetEnumUsersFromCacheRespSpec(),
                               &response,
-                              &bufferOut));
+                              &pBlob,
+                              &BlobSize));
     BAIL_ON_LSA_ERROR(dwError);
 
-    *pdwOutputBufferSize = bufferOut.cursor - bufferOut.memory;
-    *ppOutputBuffer = bufferOut.memory;
+    *pdwOutputBufferSize = BlobSize;
+    *ppOutputBuffer = pBlob;
 
 cleanup:
 
@@ -1156,9 +1110,9 @@ error:
     *pdwOutputBufferSize = 0;
     *ppOutputBuffer = NULL;
 
-    if ( bufferOut.memory )
+    if ( pBlob )
     {
-        LsaFreeMemory(bufferOut.memory);
+        LsaFreeMemory(pBlob);
     }
 
     goto cleanup;
@@ -1667,16 +1621,15 @@ AD_EnumGroupsFromCache(
     DWORD                 dwInfoCount = 0;
     PLSA_SECURITY_OBJECT* ppGroupObjectList = NULL;
     PVOID*                ppGroupInfoList = NULL;
+    PVOID                 pBlob;
+    size_t                BlobSize;
     LWMsgContext*         context = NULL;
-    LWMsgBuffer           buffer;
-    LWMsgBuffer           bufferOut;
     PLSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_REQ request = NULL;
     LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP response;
     LSA_GROUP_INFO_LIST   result;
 
     memset(&response, 0, sizeof(response));
     memset(&result, 0, sizeof(result));
-    memset(&bufferOut, 0, sizeof(bufferOut));
 
     // restrict access to root
     if (peerUID)
@@ -1685,20 +1638,14 @@ AD_EnumGroupsFromCache(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    // unmarshal the request
-    buffer.length = dwInputBufferSize;
-    buffer.memory = pInputBuffer;
-    buffer.cursor = pInputBuffer;
-    buffer.full   = NULL;
-    buffer.data   = NULL;
-
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal(
+    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
                               context,
                               LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
-                              &buffer,
+                              pInputBuffer,
+                              dwInputBufferSize,
                               (PVOID*)&request));
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1783,24 +1730,16 @@ AD_EnumGroupsFromCache(
     }
     response.pGroupInfoList = &result;
 
-    bufferOut.length = 2048;
-    dwError = LsaAllocateMemory(bufferOut.length,
-                                (PVOID)&bufferOut.memory);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    bufferOut.full = AD_ReallocLwmsgBuffer;
-    bufferOut.data = NULL;
-    bufferOut.cursor = bufferOut.memory;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_marshal(
+    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
                               context,
                               LsaAdIPCGetEnumGroupsFromCacheRespSpec(),
                               &response,
-                              &bufferOut));
+                              &pBlob,
+                              &BlobSize));
     BAIL_ON_LSA_ERROR(dwError);
 
-    *pdwOutputBufferSize = bufferOut.cursor - bufferOut.memory;
-    *ppOutputBuffer = bufferOut.memory;
+    *pdwOutputBufferSize = BlobSize;
+    *ppOutputBuffer = pBlob;
 
 cleanup:
 
@@ -1837,9 +1776,9 @@ error:
     *pdwOutputBufferSize = 0;
     *ppOutputBuffer = NULL;
 
-    if ( bufferOut.memory )
+    if ( pBlob )
     {
-        LsaFreeMemory(bufferOut.memory);
+        LsaFreeMemory(pBlob);
     }
 
     goto cleanup;
