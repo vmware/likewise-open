@@ -482,6 +482,17 @@ AC_C_BIGENDIAN
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
+AC_PROG_MKDIR_P
+
+AC_CHECK_PROG([DOXYGEN], [doxygen], [doxygen], [false])
+if test x"$DOXYGEN" != x"false"
+then
+	HAVE_DOXYGEN=true
+else
+	HAVE_DOXYGEN=false
+fi
+
+AM_CONDITIONAL([HAVE_DOXYGEN], [$HAVE_DOXYGEN])
 
 AC_CHECK_LIB([nsl], [gethostname], [NSL_LIBS="-lnsl"])
 AC_CHECK_LIB([dl], [dlopen], [DL_LIBS="-ldl"])
@@ -751,6 +762,8 @@ AC_CONFIG_FILES([Makefile
                  tests/test_session/Makefile
                  tests/test_checkuserinlist/Makefile
                  tests/test_openldap/Makefile
-                 scripts/Makefile])
+                 scripts/Makefile
+		 docs/Makefile
+		 docs/Doxyfile])
 
 AC_OUTPUT
