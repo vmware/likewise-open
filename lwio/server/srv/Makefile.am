@@ -27,11 +27,14 @@ libsrv_sys_la_SOURCES = \
     srvconnection.c   \
     srvcontext.c      \
     srvecho.c         \
+    srvfile.c         \
     srvgss.c          \
     srvnegotiate.c    \
     srvsessionsetup.c \
     srvshareutil.c    \
+    srvsession.c      \
     srvsocket.c       \
+    srvtree.c         \
     stubs.c           \
     tconX.c           \
     tdiscon.c         \

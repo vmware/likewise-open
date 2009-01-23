@@ -161,6 +161,43 @@ typedef struct _SRV_CLIENT_PROPERITES
 
 } SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
 
+typedef struct _SMB_SRV_FILE
+{
+    LONG             refcount;
+
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    USHORT           fid;
+
+} SMB_SRV_FILE, *PSMB_SRV_FILE;
+
+typedef struct _SMB_SRV_TREE
+{
+    LONG             refcount;
+
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    USHORT           tid;
+
+    PSMB_RB_TREE     pFileCollection;
+
+} SMB_SRV_TREE, *PSMB_SRV_TREE;
+
+typedef struct _SMB_SRV_SESSION
+{
+    LONG             refcount;
+
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    USHORT           uid;
+
+    PSMB_RB_TREE     pTreeCollection;
+
+} SMB_SRV_SESSION, *PSMB_SRV_SESSION;
+
 typedef struct _SMB_SRV_CONNECTION
 {
     pthread_mutex_t     mutex;
@@ -195,6 +232,8 @@ typedef struct _SMB_SRV_CONNECTION
 
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;
+
+    PSMB_RB_TREE        pSessionCollection;
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
 
