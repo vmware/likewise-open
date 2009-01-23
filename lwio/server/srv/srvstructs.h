@@ -198,13 +198,16 @@ typedef struct _SMB_SRV_CONNECTION
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
 
-typedef struct _LWIO_SRV_TASK
+typedef struct _LWIO_SRV_CONTEXT
 {
     PSMB_SRV_CONNECTION pConnection;
 
     PSMB_PACKET         pRequest;
 
-} LWIO_SRV_TASK, *PLWIO_SRV_TASK;
+    ULONG               ulRequestSequence;
+    ULONG               ulResponseSequence;
+
+} LWIO_SRV_CONTEXT, *PLWIO_SRV_CONTEXT;
 
 typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
 {

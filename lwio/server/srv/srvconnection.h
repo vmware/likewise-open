@@ -15,9 +15,12 @@ SrvConnectionGetFd(
     PSMB_SRV_CONNECTION pConnection
     );
 
-ULONG
+NTSTATUS
 SrvConnectionGetNextSequence(
-    PSMB_SRV_CONNECTION pConnection
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PULONG              pulRequestSequence,
+    PULONG              pulResponseSequence
     );
 
 BOOLEAN

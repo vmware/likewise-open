@@ -434,7 +434,7 @@ SrvSocketReaderReadMessage(
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_TASK pTask = NULL;
+    PLWIO_SRV_CONTEXT pContext = NULL;
     PSMB_PACKET pPacket = NULL;
 
     ntStatus = SrvConnectionReadPacket(
@@ -442,15 +442,15 @@ SrvSocketReaderReadMessage(
                     &pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTaskCreate(
+    ntStatus = SrvContextCreate(
                     pConnection,
                     pPacket,
-                    &pTask);
+                    &pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvProdConsEnqueue(
                     pReaderContext->pWorkQueue,
-                    pTask);
+                    pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -459,9 +459,9 @@ cleanup:
 
 error:
 
-    if (pTask)
+    if (pContext)
     {
-        SrvTaskFree(pTask);
+        SrvContextFree(pContext);
     }
 
     if (pPacket)

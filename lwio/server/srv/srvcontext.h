@@ -2,15 +2,15 @@
 #define __SRV_TASK_H__
 
 NTSTATUS
-SrvTaskCreate(
+SrvContextCreate(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pRequest,
-    PLWIO_SRV_TASK*     ppTask
+    PLWIO_SRV_CONTEXT*  ppContext
     );
 
 VOID
-SrvTaskFree(
-    PVOID pTask
+SrvContextFree(
+    PVOID pContext
     );
 
 #endif /* __SRV_TASK_H__ */

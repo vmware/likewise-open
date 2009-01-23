@@ -21,7 +21,7 @@ SrvWorkerStop(
 static
 NTSTATUS
 SrvWorkerExecute(
-    PLWIO_SRV_TASK pTask
+    PLWIO_SRV_CONTEXT pContext
     );
 
 NTSTATUS
@@ -62,7 +62,7 @@ SrvWorkerMain(
 {
     NTSTATUS ntStatus = 0;
     PSMB_SRV_WORKER_CONTEXT pContext = (PSMB_SRV_WORKER_CONTEXT)pData;
-    PLWIO_SRV_TASK pTask = NULL;
+    PLWIO_SRV_CONTEXT pIOContext = NULL;
     struct timespec ts = {0, 0};
 
     while (!SrvWorkerMustStop(pContext))
@@ -70,16 +70,16 @@ SrvWorkerMain(
         ts.tv_sec = time(NULL) + 30;
         ts.tv_nsec = 0;
 
-        if (pTask)
+        if (pIOContext)
         {
-            SrvTaskFree(pTask);
-            pTask = NULL;
+            SrvContextFree(pIOContext);
+            pIOContext = NULL;
         }
 
         ntStatus = SrvProdConsTimedDequeue(
                         pContext->pWorkQueue,
                         &ts,
-                        (PVOID*)&pTask);
+                        (PVOID*)&pIOContext);
         if (ntStatus == STATUS_IO_TIMEOUT)
         {
             ntStatus = 0;
@@ -91,18 +91,18 @@ SrvWorkerMain(
             break;
         }
 
-        if (pTask && pTask->pRequest)
+        if (pIOContext && pIOContext->pRequest)
         {
-            ntStatus = SrvWorkerExecute(pTask);
+            ntStatus = SrvWorkerExecute(pIOContext);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
 cleanup:
 
-    if (pTask)
+    if (pIOContext)
     {
-        SrvTaskFree(pTask);
+        SrvContextFree(pIOContext);
     }
 
     return NULL;
@@ -173,8 +173,8 @@ SrvWorkerStop(
 static
 NTSTATUS
 SrvWorkerExecute(
-    PLWIO_SRV_TASK pTask
+    PLWIO_SRV_CONTEXT pContext
     )
 {
-    return SMBSrvProcessRequest_V1(pTask->pConnection, pTask->pRequest);
+    return SMBSrvProcessRequest_V1(pContext);
 }

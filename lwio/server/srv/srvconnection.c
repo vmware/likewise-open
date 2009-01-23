@@ -94,25 +94,64 @@ SrvConnectionGetFd(
     return fd;
 }
 
-ULONG
+NTSTATUS
 SrvConnectionGetNextSequence(
-    PSMB_SRV_CONNECTION pConnection
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PULONG pulRequestSequence,
+    PULONG pulResponseSequence
     )
 {
-    ULONG ulSequence = 0;
+    NTSTATUS ntStatus = 0;
+    ULONG ulRequestSequence = 0;
+    ULONG ulResponseSequence = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pConnection->mutex);
 
-    ulSequence = pConnection->ulSequence;
+    switch (pSmbRequest->pSMBHeader->command)
+    {
+        case COM_NEGOTIATE:
+        case COM_ECHO:
 
-    // Next for response
-    // Next for next message
-    pConnection->ulSequence += 2;
+            break;
+
+        case COM_SESSION_SETUP_ANDX:
+
+            ulRequestSequence = pConnection->ulSequence++;
+            ulResponseSequence = pConnection->ulSequence++;
+
+            break;
+
+        case COM_NT_CANCEL:
+
+            ulRequestSequence = pConnection->ulSequence++;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
+    *pulRequestSequence = ulRequestSequence;
+    *pulResponseSequence = ulResponseSequence;
+
+cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pConnection->mutex);
 
-    return ulSequence;
+    return ntStatus;
+
+error:
+
+    *pulRequestSequence = 0;
+    *pulResponseSequence = 0;
+
+    goto cleanup;
 }
 
 BOOLEAN

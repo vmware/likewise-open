@@ -38,8 +38,7 @@ SMBSrvInitialize_V1(
 
 NTSTATUS
 SMBSrvProcessRequest_V1(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pRequest
+    PLWIO_SRV_CONTEXT pContext
     );
 
 DWORD

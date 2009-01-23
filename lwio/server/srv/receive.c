@@ -32,27 +32,22 @@
 
 NTSTATUS
 SMBSrvProcessRequest_V1(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
 
-    switch (pSmbRequest->pSMBHeader->command)
+    switch (pContext->pRequest->pSMBHeader->command)
     {
         case COM_NEGOTIATE:
 
-                ntStatus = SrvProcessNegotiate(
-                                pConnection,
-                                pSmbRequest);
+                ntStatus = SrvProcessNegotiate(pContext);
 
                 break;
 
         case COM_SESSION_SETUP_ANDX:
 
-            ntStatus = SrvProcessSessionSetup(
-                            pConnection,
-                            pSmbRequest);
+            ntStatus = SrvProcessSessionSetup(pContext);
 
             break;
 
@@ -93,9 +88,7 @@ SMBSrvProcessRequest_V1(
 
         case COM_ECHO:
 
-            ntStatus = SrvProcessEchoAndX(
-                            pConnection,
-                            pSmbRequest);
+            ntStatus = SrvProcessEchoAndX(pContext);
 
             break;
 

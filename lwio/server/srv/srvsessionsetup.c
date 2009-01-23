@@ -51,24 +51,22 @@ SrvMarshallSessionSetupResponse(
 
 NTSTATUS
 SrvProcessSessionSetup(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest
+    PLWIO_SRV_CONTEXT   pContext
     )
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PBYTE       pSecurityBlob = NULL; // Do Not Free
     ULONG       ulSecurityBlobLength = 0;
-    ULONG       ulSequence = 0;
-
-    ulSequence = SrvConnectionGetNextSequence(pConnection);
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET         pSmbRequest = pContext->pRequest;
 
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
     {
         ntStatus = SMBPacketVerifySignature(
                         pSmbRequest,
-                        ulSequence,
+                        pContext->ulRequestSequence,
                         pConnection->pSessionKey,
                         pConnection->ulSessionKeyLength);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -94,7 +92,7 @@ SrvProcessSessionSetup(
     {
         ntStatus = SMBPacketSign(
                         pSmbResponse,
-                        ulSequence + 1,
+                        pContext->ulResponseSequence,
                         pConnection->pSessionKey,
                         pConnection->ulSessionKeyLength);
         BAIL_ON_NT_STATUS(ntStatus);

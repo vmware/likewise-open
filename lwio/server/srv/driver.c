@@ -243,7 +243,7 @@ SrvInitialize(
     ntStatus = SrvProdConsInitContents(
                     &gSMBSrvGlobals.workQueue,
                     gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue,
-                    &SrvTaskFree);
+                    &SrvContextFree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBAllocateMemory(

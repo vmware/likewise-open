@@ -92,15 +92,15 @@ SrvBuildNegotiateResponseForDialect(
 
 NTSTATUS
 SrvProcessNegotiate(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PSTR  pszDialectArray[128];
     ULONG ulNumDialects = 128;
-
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET         pSmbRequest = pContext->pRequest;
 
     ntStatus = UnmarshallNegotiateRequest(
                     pSmbRequest->pParams,

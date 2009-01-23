@@ -31,8 +31,7 @@
 
 NTSTATUS
 SrvProcessNegotiate(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest
+    PLWIO_SRV_CONTEXT pContext
     );
 
 

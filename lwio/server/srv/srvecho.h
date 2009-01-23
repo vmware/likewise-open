@@ -3,8 +3,7 @@
 
 NTSTATUS
 SrvProcessEchoAndX(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest
+    PLWIO_SRV_CONTEXT pContext
     );
 
 #endif /* __SRVECHO_H__ */

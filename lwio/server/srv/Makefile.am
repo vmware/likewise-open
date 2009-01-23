@@ -25,13 +25,13 @@ libsrv_sys_la_SOURCES = \
     sharedb.c         \
     smbv1.c           \
     srvconnection.c   \
+    srvcontext.c      \
     srvecho.c         \
     srvgss.c          \
     srvnegotiate.c    \
     srvsessionsetup.c \
     srvshareutil.c    \
     srvsocket.c       \
-    srvtask.c         \
     stubs.c           \
     tconX.c           \
     tdiscon.c         \

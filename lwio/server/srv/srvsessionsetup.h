@@ -3,8 +3,7 @@
 
 NTSTATUS
 SrvProcessSessionSetup(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest
+    PLWIO_SRV_CONTEXT pContext
     );
 
 #endif /* _SRV_SESSION_SETUP_H__ */

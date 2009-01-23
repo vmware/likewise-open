@@ -44,8 +44,7 @@ SrvMarshallEchoResponse(
 
 NTSTATUS
 SrvProcessEchoAndX(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -53,6 +52,8 @@ SrvProcessEchoAndX(
     PSMB_PACKET pSmbResponse = NULL;
     PECHO_REQUEST_HEADER pEchoHeader = NULL; // Do not Free
     PBYTE       pEchoBlob = NULL; // Do Not Free
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET         pSmbRequest = pContext->pRequest;
 
     ntStatus = WireUnmarshallEchoRequest(
                     pSmbRequest->pParams,
