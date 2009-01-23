@@ -437,6 +437,37 @@ error:
 }
 
 NTSTATUS
+SrvConnectionRemoveSession(
+    PSMB_SRV_CONNECTION pConnection,
+    USHORT              uid
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+    SMB_SRV_SESSION finder;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    memset(&finder, 0, sizeof(finder));
+    finder.uid = uid;
+
+    ntStatus = SMBRBTreeRemove(
+                    pConnection->pSessionCollection,
+                    &finder);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvConnectionCreateSession(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_SRV_SESSION* ppSession

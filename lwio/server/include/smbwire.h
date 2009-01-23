@@ -752,6 +752,16 @@ typedef struct
      /* Data immediately follows */
 }  __attribute__((__packed__)) ECHO_RESPONSE_HEADER, *PECHO_RESPONSE_HEADER;
 
+typedef struct
+{
+    uint16_t byteCount;
+} __attribute__((__packed__)) LOGOFF_REQUEST_HEADER, *PLOGOFF_REQUEST_HEADER;
+
+typedef struct
+{
+    uint16_t byteCount;
+} __attribute__((__packed__)) LOGOFF_RESPONSE_HEADER, *PLOGOFF_RESPONSE_HEADER;
+
 typedef enum
 {
     ERROR_SMB,

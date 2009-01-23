@@ -51,29 +51,22 @@ SMBSrvProcessRequest_V1(
 
             break;
 
-#if 0
-
         case COM_LOGOFF_ANDX:
 
-            dwError = SmbProcessLogoffAndX(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessLogoffAndX(pContext);
 
             break;
 
+#if 0
         case COM_TREE_CONNECT_ANDX:
 
-            dwError = SmbProcessTreeConnectAndX(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessTreeConnectAndX(pContext);
 
             break;
 
         case COM_TREE_DISCONNECT:
 
-            dwError = SmbTreeDisconnect(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvTreeDisconnect(pContext);
 
             break;
 

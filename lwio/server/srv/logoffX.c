@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -30,32 +30,143 @@
 
 #include "includes.h"
 
+static
 NTSTATUS
-SmbProcessLogoffAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvBuildLogoffResponse(
+    PLWIO_SRV_CONTEXT pContext,
+    PSMB_PACKET* ppSmbResponse
+    );
+
+NTSTATUS
+SrvProcessLogoffAndX(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET pSmbRequest = pContext->pRequest;
+    PSMB_PACKET pSmbResponse = NULL;
 
-    ntStatus = MarshallLogoffAndXResponse(pSmbRequest);
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketVerifySignature(
+                        pSmbRequest,
+                        pContext->ulRequestSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnectionRemoveSession(
+                    pConnection,
+                    pSmbRequest->pSMBHeader->uid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SmbSendReply(pSmbRequest);
+    ntStatus = SrvBuildLogoffResponse(
+                    pContext,
+                    &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketSign(
+                        pSmbResponse,
+                        pContext->ulResponseSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnectionWriteMessage(
+                    pConnection,
+                    pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    return (ntStatus);
 
 error:
 
-    return (ntStatus);
+    goto cleanup;
 }
 
-
+static
 NTSTATUS
-MarshallLogoffAndXResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvBuildLogoffResponse(
+    PLWIO_SRV_CONTEXT pContext,
+    PSMB_PACKET* ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET pSmbRequest = pContext->pRequest;
+    PSMB_PACKET pSmbResponse = NULL;
+    PLOGOFF_RESPONSE_HEADER pResponseHeader = NULL;
 
-    return (ntStatus);
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_LOGOFF_ANDX,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                getpid(),
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 2;
+
+    pResponseHeader = (PLOGOFF_RESPONSE_HEADER)pSmbResponse->pParams;
+    pSmbResponse->pData = pSmbResponse->pParams + sizeof(LOGOFF_RESPONSE_HEADER);
+    pSmbResponse->bufferUsed += sizeof(LOGOFF_RESPONSE_HEADER);
+
+    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
+    *pSmbResponse->pByteCount = 0;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    goto cleanup;
 }
+
 
