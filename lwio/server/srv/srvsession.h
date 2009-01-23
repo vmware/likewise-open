@@ -3,14 +3,19 @@
 
 NTSTATUS
 SrvSessionCreate(
-    USHORT            uid,
+    PSRV_ID_ALLOCATOR pIdAllocator,
     PSMB_SRV_SESSION* ppSession
+    );
+
+PSMB_SRV_TREE
+SrvSessionFindTree(
+    PSMB_SRV_SESSION pSession,
+    USHORT           tid
     );
 
 NTSTATUS
 SrvSessionCreateTree(
     PSMB_SRV_SESSION pSession,
-    USHORT           tid,
     PSMB_SRV_TREE*   ppTree
     );
 

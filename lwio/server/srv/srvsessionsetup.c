@@ -60,6 +60,7 @@ SrvProcessSessionSetup(
     ULONG       ulSecurityBlobLength = 0;
     PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET         pSmbRequest = pContext->pRequest;
+    PSMB_SRV_SESSION pSession = NULL;
 
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
@@ -86,6 +87,16 @@ SrvProcessSessionSetup(
                     ulSecurityBlobLength,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (SrvGssNegotiateIsComplete(pConnection->hGssContext, pConnection->hGssNegotiate))
+    {
+        ntStatus = SrvConnectionCreateSession(
+                        pConnection,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSmbResponse->pSMBHeader->uid = pSession->uid;
+    }
 
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
@@ -121,6 +132,11 @@ cleanup:
         SMBPacketFree(
             pConnection->hPacketAllocator,
             pSmbResponse);
+    }
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
     }
 
     return (ntStatus);

@@ -161,40 +161,59 @@ typedef struct _SRV_CLIENT_PROPERITES
 
 } SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
 
-typedef struct _SMB_SRV_FILE
+typedef struct _SRV_ID_ALLOCATOR
 {
     LONG             refcount;
 
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
 
-    USHORT           fid;
+    PSMB_BIT_VECTOR  map;
+
+} SRV_ID_ALLOCATOR, *PSRV_ID_ALLOCATOR;
+
+typedef struct _SMB_SRV_FILE
+{
+    pthread_mutex_t   mutex;
+    pthread_mutex_t*  pMutex;
+
+    LONG              refcount;
+
+    USHORT            fid;
+
+    PSRV_ID_ALLOCATOR pFileIdAllocator;
 
 } SMB_SRV_FILE, *PSMB_SRV_FILE;
 
 typedef struct _SMB_SRV_TREE
 {
-    LONG             refcount;
+    pthread_mutex_t   mutex;
+    pthread_mutex_t*  pMutex;
 
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
+    LONG              refcount;
 
-    USHORT           tid;
+    USHORT            tid;
 
-    PSMB_RB_TREE     pFileCollection;
+    PSRV_ID_ALLOCATOR pFileIdAllocator;
+    PSMB_RB_TREE      pFileCollection;
+
+    PSRV_ID_ALLOCATOR pTreeIdAllocator;
 
 } SMB_SRV_TREE, *PSMB_SRV_TREE;
 
 typedef struct _SMB_SRV_SESSION
 {
-    LONG             refcount;
+    pthread_mutex_t   mutex;
+    pthread_mutex_t*  pMutex;
 
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
+    LONG              refcount;
 
-    USHORT           uid;
+    USHORT            uid;
 
-    PSMB_RB_TREE     pTreeCollection;
+    PSRV_ID_ALLOCATOR pTreeIdAllocator;
+    PSMB_RB_TREE      pTreeCollection;
+
+    PSRV_ID_ALLOCATOR pSessionIdAllocator;
 
 } SMB_SRV_SESSION, *PSMB_SRV_SESSION;
 
@@ -233,6 +252,7 @@ typedef struct _SMB_SRV_CONNECTION
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;
 
+    PSRV_ID_ALLOCATOR   pSessionIdAllocator;
     PSMB_RB_TREE        pSessionCollection;
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;

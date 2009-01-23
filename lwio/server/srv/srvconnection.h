@@ -45,6 +45,18 @@ SrvConnectionWriteMessage(
     PSMB_PACKET         pPacket
     );
 
+PSMB_SRV_SESSION
+SrvConnectionFindSession(
+    PSMB_SRV_CONNECTION pConnection,
+    USHORT uid
+    );
+
+NTSTATUS
+SrvConnectionCreateSession(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_SRV_SESSION* ppSession
+    );
+
 VOID
 SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection

@@ -8,11 +8,12 @@ SrvFileFree(
 
 NTSTATUS
 SrvFileCreate(
-    USHORT         fid,
-    PSMB_SRV_FILE* ppFile
+    PSRV_ID_ALLOCATOR pIdAllocator,
+    PSMB_SRV_FILE*    ppFile
     )
 {
     NTSTATUS ntStatus = 0;
+    USHORT fid = 0;
     PSMB_SRV_FILE pFile = NULL;
 
     pthread_mutex_init(&pFile->mutex, NULL);
@@ -23,8 +24,17 @@ SrvFileCreate(
                     (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pFile->fid = fid;
     pFile->refcount = 1;
+
+    ntStatus = SrvIdAllocatorAcquireId(
+                    pIdAllocator,
+                    &fid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pFile->fid = fid;
+
+    pFile->pFileIdAllocator = pIdAllocator;
+    InterlockedIncrement(&pIdAllocator->refcount);
 
     *ppFile = pFile;
 
@@ -65,6 +75,15 @@ SrvFileFree(
     {
         pthread_mutex_destroy(&pFile->mutex);
         pFile->pMutex = NULL;
+    }
+
+    if (pFile->pFileIdAllocator)
+    {
+        SrvIdAllocatorReleaseId(
+                pFile->pFileIdAllocator,
+                pFile->fid);
+
+        SrvIdAllocatorRelease(pFile->pFileIdAllocator);
     }
 
     SMBFreeMemory(pFile);

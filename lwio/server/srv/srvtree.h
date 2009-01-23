@@ -3,14 +3,19 @@
 
 NTSTATUS
 SrvTreeCreate(
-    USHORT         usTreeId,
-    PSMB_SRV_TREE* ppTree
+    PSRV_ID_ALLOCATOR pIdAllocator,
+    PSMB_SRV_TREE*    ppTree
+    );
+
+PSMB_SRV_FILE
+SrvTreeFindFile(
+    PSMB_SRV_TREE pTree,
+    USHORT        fid
     );
 
 NTSTATUS
 SrvTreeCreateFile(
     PSMB_SRV_TREE  pTree,
-    USHORT         fid,
     PSMB_SRV_FILE* ppFile
     );
 

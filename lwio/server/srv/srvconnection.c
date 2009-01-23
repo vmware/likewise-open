@@ -24,6 +24,19 @@ SrvConnectionReadMessage(
     size_t*         psNumBytesRead
     );
 
+static
+int
+SrvConnectionSessionCompare(
+    PVOID pSession1,
+    PVOID pSession2
+    );
+
+static
+VOID
+SrvConnectionSessionRelease(
+    PVOID pSession
+    );
+
 NTSTATUS
 SrvConnectionCreate(
     PSMB_SRV_SOCKET pSocket,
@@ -41,15 +54,27 @@ SrvConnectionCreate(
                     (PVOID*)&pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pConnection->refCount = 1;
+
     pthread_mutex_init(&pConnection->mutex, NULL);
     pConnection->pMutex = &pConnection->mutex;
+
+    ntStatus = SMBRBTreeCreate(
+                    &SrvConnectionSessionCompare,
+                    &SrvConnectionSessionRelease,
+                    &pConnection->pSessionCollection);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvIdAllocatorCreate(
+                    UINT16_MAX,
+                    &pConnection->pSessionIdAllocator);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvGssAcquireContext(
                     hGssContext,
                     &pConnection->hGssContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pConnection->refCount = 1;
     pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->state = SMB_SRV_CONN_STATE_INITIAL;
@@ -367,6 +392,78 @@ error:
     goto cleanup;
 }
 
+PSMB_SRV_SESSION
+SrvConnectionFindSession(
+    PSMB_SRV_CONNECTION pConnection,
+    USHORT uid
+    )
+{
+    PSMB_SRV_SESSION pSession = NULL;
+    BOOLEAN bInLock = FALSE;
+    SMB_SRV_SESSION finder = { PTHREAD_MUTEX_INITIALIZER };
+
+    SMB_LOCK_MUTEX(bInLock, &pConnection->mutex);
+
+    finder.uid = uid;
+
+    pSession = SMBRBTreeFind(
+                    pConnection->pSessionCollection,
+                    &finder);
+
+    if (pSession)
+    {
+        InterlockedIncrement(&pSession->refcount);
+    }
+
+    SMB_UNLOCK_MUTEX(bInLock, &pConnection->mutex);
+
+    return pSession;
+}
+
+NTSTATUS
+SrvConnectionCreateSession(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_SRV_SESSION* ppSession
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_SRV_SESSION pSession = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    ntStatus = SrvSessionCreate(
+                    pConnection->pSessionIdAllocator,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_LOCK_MUTEX(bInLock, &pConnection->mutex);
+
+    ntStatus = SMBRBTreeAdd(
+                    pConnection->pSessionCollection,
+                    pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    InterlockedIncrement(&pSession->refcount);
+
+    *ppSession = pSession;
+
+cleanup:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppSession = NULL;
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
+    goto cleanup;
+}
+
 VOID
 SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection
@@ -393,6 +490,16 @@ SrvConnectionRelease(
         if (pConnection->hGssContext)
         {
             SrvGssReleaseContext(pConnection->hGssContext);
+        }
+
+        if (pConnection->pSessionCollection)
+        {
+            SMBRBTreeFree(pConnection->pSessionCollection);
+        }
+
+        if (pConnection->pSessionIdAllocator)
+        {
+            SrvIdAllocatorRelease(pConnection->pSessionIdAllocator);
         }
 
         if (pConnection->pMutex)
@@ -463,3 +570,36 @@ error:
     goto cleanup;
 }
 
+static
+int
+SrvConnectionSessionCompare(
+    PVOID pSession1,
+    PVOID pSession2
+    )
+{
+    PSMB_SRV_SESSION pSession1_casted = (PSMB_SRV_SESSION)pSession1;
+    PSMB_SRV_SESSION pSession2_casted = (PSMB_SRV_SESSION)pSession2;
+
+    // safe to access uid here without locking the session object
+    if (pSession1_casted->uid > pSession2_casted->uid)
+    {
+        return 1;
+    }
+    else if (pSession1_casted->uid < pSession2_casted->uid)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+static
+VOID
+SrvConnectionSessionRelease(
+    PVOID pSession
+    )
+{
+    SrvSessionRelease((PSMB_SRV_SESSION)pSession);
+}

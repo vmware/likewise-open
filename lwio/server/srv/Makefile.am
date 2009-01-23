@@ -29,6 +29,7 @@ libsrv_sys_la_SOURCES = \
     srvecho.c         \
     srvfile.c         \
     srvgss.c          \
+    srvidallocator.c  \
     srvnegotiate.c    \
     srvsessionsetup.c \
     srvshareutil.c    \

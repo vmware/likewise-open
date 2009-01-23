@@ -21,12 +21,13 @@ SrvTreeFree(
 
 NTSTATUS
 SrvTreeCreate(
-    USHORT         tid,
-    PSMB_SRV_TREE* ppTree
+    PSRV_ID_ALLOCATOR pIdAllocator,
+    PSMB_SRV_TREE*    ppTree
     )
 {
     NTSTATUS ntStatus = 0;
     PSMB_SRV_TREE pTree = NULL;
+    USHORT tid  = 0;
 
     pthread_mutex_init(&pTree->mutex, NULL);
     pTree->pMutex = &pTree->mutex;
@@ -36,8 +37,22 @@ SrvTreeCreate(
                     (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pTree->tid = tid;
     pTree->refcount = 1;
+
+    ntStatus = SrvIdAllocatorAcquireId(
+                    pIdAllocator,
+                    &tid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pTree->tid = tid;
+
+    pTree->pTreeIdAllocator = pIdAllocator;
+    InterlockedIncrement(&pIdAllocator->refcount);
+
+    ntStatus = SrvIdAllocatorCreate(
+                    UINT16_MAX,
+                    &pTree->pFileIdAllocator);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBRBTreeCreate(
                     &SrvTreeFileCompare,
@@ -63,10 +78,37 @@ error:
     goto cleanup;
 }
 
+PSMB_SRV_FILE
+SrvTreeFindFile(
+    PSMB_SRV_TREE pTree,
+    USHORT        fid
+    )
+{
+    PSMB_SRV_FILE pFile = NULL;
+    BOOLEAN bInLock = FALSE;
+    SMB_SRV_FILE finder = { PTHREAD_MUTEX_INITIALIZER };
+
+    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+
+    finder.fid = fid;
+
+    pFile = (PSMB_SRV_FILE)SMBRBTreeFind(
+                                pTree->pFileCollection,
+                                &finder);
+
+    if (pFile)
+    {
+        InterlockedIncrement(&pFile->refcount);
+    }
+
+    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+
+    return pFile;
+}
+
 NTSTATUS
 SrvTreeCreateFile(
     PSMB_SRV_TREE  pTree,
-    USHORT         fid,
     PSMB_SRV_FILE* ppFile
     )
 {
@@ -74,23 +116,17 @@ SrvTreeCreateFile(
     BOOLEAN bInLock = FALSE;
     PSMB_SRV_FILE pFile = NULL;
 
+    ntStatus = SrvFileCreate(
+                    pTree->pFileIdAllocator,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
 
-    pFile = SMBRBTreeFind(
+    ntStatus = SMBRBTreeAdd(
                     pTree->pFileCollection,
-                    &fid);
-    if (!pFile)
-    {
-        ntStatus = SrvFileCreate(
-                        fid,
-                        &pFile);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SMBRBTreeAdd(
-                        pTree->pFileCollection,
-                        pFile);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+                    pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     InterlockedIncrement(&pFile->refcount);
 
@@ -170,9 +206,25 @@ SrvTreeFree(
         pTree->pMutex = NULL;
     }
 
+    if (pTree->pTreeIdAllocator)
+    {
+        SrvIdAllocatorReleaseId(
+                pTree->pTreeIdAllocator,
+                pTree->tid);
+
+        SrvIdAllocatorRelease(
+                pTree->pTreeIdAllocator);
+    }
+
     if (pTree->pFileCollection)
     {
         SMBRBTreeFree(pTree->pFileCollection);
+    }
+
+    if (pTree->pFileIdAllocator)
+    {
+        SrvIdAllocatorRelease(
+                pTree->pFileIdAllocator);
     }
 
     SMBFreeMemory(pTree);

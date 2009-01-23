@@ -97,6 +97,7 @@
 #include "prodcons.h"
 #include "srvshareutil.h"
 #include "sharedb.h"
+#include "srvidallocator.h"
 #include "srvfile.h"
 #include "srvtree.h"
 #include "srvsession.h"

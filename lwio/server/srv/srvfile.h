@@ -3,8 +3,8 @@
 
 NTSTATUS
 SrvFileCreate(
-    USHORT         fid,
-    PSMB_SRV_FILE* ppFile
+    PSRV_ID_ALLOCATOR pIdAllocator,
+    PSMB_SRV_FILE*    ppFile
     );
 
 VOID
