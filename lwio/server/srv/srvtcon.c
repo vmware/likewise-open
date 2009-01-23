@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -31,23 +31,12 @@
 #include "includes.h"
 
 NTSTATUS
-SmbProcessTreeDisconnectAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvProcessTreeConnectAndX(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
 
-#if 0
-    ntStatus = MarshallTconAndXResponse(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-
-    ntStatus = SmbSendReply(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-#endif
-
-    return (ntStatus);
+    return ntStatus;
 }
 

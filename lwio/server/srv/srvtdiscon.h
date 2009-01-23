@@ -1,7 +1,3 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
  * Copyright Likewise Software
  * All rights reserved.
@@ -15,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,43 +24,13 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+#ifndef __SRV_TDISCON_H__
+#define __SRV_TDISCON_H__
 
 NTSTATUS
-SmbProcessTreeConnectAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
+SrvProcessTreeDisconnectAndX(
+    PLWIO_SRV_CONTEXT pContext
+    );
 
-#if 0
-    pSession = GetSessionObject(pSmbRequest);
-
-    ntStatus = MarshallTconAndXResponse(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = NtVfsOpenTree(
-                    pszShareName,
-                    &hTreeObject
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-                    
-    ntStatus = TreeConnCreateObject(
-                        pszShareName,
-                        hTreeObject,
-                        &pTreeConnection
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pTreeConnection->pSessionObject = pSessionObject;
-
-
-    ntStatus = SmbSendReply(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-#endif
-
-    return (ntStatus);
-}
+#endif /* __SRV_TDISCON_H__ */
 

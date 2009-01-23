@@ -14,7 +14,6 @@ libsrv_sys_la_SOURCES = \
     globals.c         \
     listener.c        \
     lockX.c           \
-    logoffX.c         \
     ntrename.c        \
     prodcons.c        \
     readX.c           \
@@ -30,15 +29,16 @@ libsrv_sys_la_SOURCES = \
     srvfile.c         \
     srvgss.c          \
     srvidallocator.c  \
+    srvlogoff.c       \
     srvnegotiate.c    \
     srvsessionsetup.c \
     srvshareutil.c    \
     srvsession.c      \
     srvsocket.c       \
+    srvtcon.c         \
+    srvtdiscon.c      \
     srvtree.c         \
     stubs.c           \
-    tconX.c           \
-    tdiscon.c         \
     trans2qfi.c       \
     trans2qpi.c       \
     trans2sfi.c       \

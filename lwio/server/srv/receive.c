@@ -57,7 +57,6 @@ SMBSrvProcessRequest_V1(
 
             break;
 
-#if 0
         case COM_TREE_CONNECT_ANDX:
 
             ntStatus = SrvProcessTreeConnectAndX(pContext);
@@ -66,10 +65,11 @@ SMBSrvProcessRequest_V1(
 
         case COM_TREE_DISCONNECT:
 
-            ntStatus = SrvTreeDisconnect(pContext);
+            ntStatus = SrvProcessTreeDisconnectAndX(pContext);
 
             break;
 
+#if 0
         case COM_TRANS2_QUERY_FS_INFORMATION:
 
             dwError = SmbProcessTrans2QueryFSInformation(
