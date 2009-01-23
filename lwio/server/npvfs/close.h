@@ -53,145 +53,32 @@ NTSTATUS
 NpfsClose(
     IO_DEVICE_HANDLE DeviceHandle,
     PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
+    );
 
 NTSTATUS
 NpfsCloseHandle(
     PNPFS_CCB pCCB
-    )
-{
-
-    NTSTATUS ntStatus = 0;
-    ENTER_WRITER_RW_LOCK(&gServerLock);
-
-    switch (pCCB->CcbType) {
-
-        case SERVER_CCB:
-            ntStatus = NpfsServerCloseHandle(
-                    pCCB
-                    );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
-
-        case CLIENT_CCB:
-            ntStatus = NpfsClientCloseHandle(
-                            pCCB
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
-    }
-
-error:
-
-    LEAVE_WRITER_RW_LOCK(&gServerLock);
-
-    return(ntStatus);
-}
+    );
 
 NTSTATUS
 NpfsServerCloseHandle(
     PNPFS_CCB pSCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PNPFS_PIPE pPipe = NULL;
-
-    pPipe = pSCB->pPipe;
-    pPipe->PipeServerState = PIPE_SERVER_CLOSED;
-
-    ntStatus = NpfsServerFreeCCB(
-                    pSCB
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pPipe->PipeClientState == PIPE_CLIENT_CLOSED) {
-
-        ntStatus = NpfsFreePipeContext(
-                        pPipe
-                        );
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-error:
-
-    return(ntStatus);
-}
-
-
+    );
 
 NTSTATUS
 NpfsClientCloseHandle(
     PNPFS_CCB pCCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PNPFS_PIPE pPipe = NULL;
-
-    pPipe = pCCB->pPipe;
-    pPipe->PipeClientState = PIPE_CLIENT_CLOSED;
-
-    ntStatus = NpfsClientFreeCCB(
-                    pCCB
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pPipe->PipeClientState == PIPE_CLIENT_CLOSED) {
-
-        ntStatus = NpfsFreePipeContext(
-                        pPipe
-                        );
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-error:
-
-    return(ntStatus);
-}
+    );
 
 NTSTATUS
 NpfsServerFreeCCB(
     PNPFS_CCB pSCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    ntStatus = NpfsFreeMdlList(
-                    pSCB->MdlList
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    NpfsFreeMemory(pSCB);
-
-error:
-
-    return(ntStatus);
-}
-
-
+    );
 
 NTSTATUS
 NpfsClientFreeCCB(
     PNPFS_CCB pCCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    ntStatus = NpfsFreeMdlList(
-                    pCCB->MdlList
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    NpfsFreeMemory(pCCB);
-
-error:
-
-    return(ntStatus);
-}
+    );
 
 
 

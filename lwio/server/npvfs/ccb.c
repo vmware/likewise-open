@@ -71,9 +71,9 @@ NpfsServerReadFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    ENTER_GLOBAL_READER_LOCK(&gServerLock);
+    ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pSCB->pPipe;
-    ENTER_PIPE_READER_LOCK(&pPipe->Mutex);
+    ENTER_READER_RW_LOCK(&pPipe->Mutex);
 
     switch(pSCB->State) {
 
@@ -96,8 +96,8 @@ NpfsServerReadFile(
 
 error:
 
-    LEAVE_PIPE_READER_LOCK(&pPipe->Mutex);
-    LEAVE_GLOBAL_READER_LOCK(&gServerLock);
+    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
 }
@@ -112,9 +112,9 @@ NpfsServerWriteFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    ENTER_GLOBAL_READER_LOCK(&gServerLock);
+    ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pSCB->pPipe;
-    ENTER_PIPE_READER_LOCK(&pPipe->Mutex);
+    ENTER_READER_RW_LOCK(&pPipe->Mutex);
 
     switch(pPipe->State) {
 
@@ -138,8 +138,8 @@ NpfsServerWriteFile(
 
 error:
 
-    LEAVE_PIPE_READER_LOCK(&pPipe->Mutex);
-    LEAVE_GLOBAL_READER_LOCK(&gServerLock);
+    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
 }
@@ -153,9 +153,9 @@ NpfsClientReadFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    ENTER_GLOBAL_READER_LOCK(&gServerLock);
+    ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pCCB->pPipe;
-    ENTER_PIPE_READER_LOCK(&pPipe->Mutex);
+    ENTER_READER_RW_LOCK(&pPipe->Mutex);
 
     switch(pPipe->State) {
 
@@ -173,8 +173,8 @@ NpfsClientReadFile(
 
 error:
 
-    LEAVE_PIPE_READER_LOCK(&pPipe->Mutex);
-    LEAVE_GLOBAL_READER_LOCK(&gServerLock);
+    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
 }
@@ -189,9 +189,9 @@ NpfsClientWriteFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    ENTER_GLOBAL_READER_LOCK(&gServerLock);
+    ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pCCB->pPipe;
-    ENTER_PIPE_READER_LOCK(&pPipe->Mutex);
+    ENTER_READER_RW_LOCK(&pPipe->Mutex);
 
     switch(pPipe->State) {
 
@@ -209,8 +209,8 @@ NpfsClientWriteFile(
     }
 error:
 
-    LEAVE_PIPE_READER_LOCK(&pPipe->Mutex);
-    LEAVE_GLOBAL_READER_LOCK(&gServerLock);
+    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
 }
@@ -227,7 +227,7 @@ NpfsServerReadFile_Connected(
     PVOID pBuffer = NULL;
     ULONG Length = 0;
 
-    ENTER_CRITICAL_SECTION(&pSCB->InBoundMutex);
+    ENTER_WRITER_RW_LOCK(&pSCB->InBoundMutex);
 
     ntStatus = NpfsDequeueBuffer(
                         pSCB->pMdlList,
@@ -238,7 +238,7 @@ NpfsServerReadFile_Connected(
 
 error:
 
-    LEAVE_CRITICAL_SECTION(&pSCB->InBoundMutex);
+    LEAVE_WRITER_RW_LOCK(&pSCB->InBoundMutex);
 
     return(ntStatus);
 }
@@ -257,7 +257,7 @@ NpfsServerWriteFile_Connected(
     pPipe = pSCB->pPipe;
     pCCB = pPipe->pCCB;
 
-    ENTER_CRITICAL_SECTION(&pCCB->InBoundMutex);
+    ENTER_WRITER_RW_LOCK(&pCCB->InBoundMutex);
 
     ntStatus = NpfsEnqueueBuffer(
                         pCCB->pMdlList,
@@ -268,7 +268,7 @@ NpfsServerWriteFile_Connected(
 
 error:
 
-    LEAVE_CRITICAL_SECTION(&pCCB->InBoundMutex);
+    LEAVE_WRITER_RW_LOCK(&pCCB->InBoundMutex);
     return(ntStatus);
 }
 
@@ -283,7 +283,7 @@ NpfsClientReadFile_Connected(
     PVOID pBuffer = NULL;
     ULONG Length = 0;
 
-    ENTER_CRITICAL_SECTION(&pCCB->InBoundMutex);
+    ENTER_WRITER_RW_LOCK(&pCCB->InBoundMutex);
 
     ntStatus = NpfsDequeueBuffer(
                         pCCB->pMdlList,
@@ -294,7 +294,7 @@ NpfsClientReadFile_Connected(
 
 error:
 
-    LEAVE_CRITICAL_SECTION(&pCCB->InBoundMutex);
+    LEAVE_WRITER_RW_LOCK(&pCCB->InBoundMutex);
 
     return(ntStatus);
 }
@@ -314,7 +314,7 @@ NpfsClientWriteFile_Connected(
     pPipe = pCCB->pPipe;
     pSCB = pPipe->pSCB;
 
-    ENTER_CRITICAL_SECTION(&pSCB->InBoundMutex);
+    ENTER_WRITER_RW_LOCK(&pSCB->InBoundMutex);
 
     ntStatus = NpfsEnqueueBuffer(
                         pSCB->pMdlList,
@@ -325,7 +325,7 @@ NpfsClientWriteFile_Connected(
 
 error:
 
-    LEAVE_CRITICAL_SECTION(&pSCB->InBoundMutex);
+    LEAVE_WRITER_RW_LOCK(&pSCB->InBoundMutex);
 
     return(ntStatus);
 }

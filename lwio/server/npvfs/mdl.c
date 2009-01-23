@@ -4,11 +4,13 @@ NTSTATUS
 NpfsEnqueueBuffer(
     PNPFS_MDL pMdlList,
     PVOID pBuffer,
-    ULONG Length
+    ULONG Length,
+    PNPFS_MDL * ppMdlList
     )
 {
     NTSTATUS ntStatus = 0;
-
+    PNPFS_MDL pMdl = NULL;
+    PNPFS_MDL pNewMdlList = NULL;
 
     ntStatus = NpfsCreateMdl(
                     Length,
@@ -37,25 +39,27 @@ error:
 NTSTATUS
 NpfsCreateMdl(
     ULONG Length,
-    PVOID pBuffer
+    PVOID pBuffer,
     PNPFS_MDL * ppMdl
     )
 {
     NTSTATUS ntStatus = 0;
+    PVOID pTargBuffer = NULL;
 
-    ntStatus = RtlAllocateMemory(
+    ntStatus = NpfsAllocateMemory(
                     Length,
                     &pTargBuffer
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RtlCopyMemory(
+ /*   ntStatus = RtlCopyMemory(
                     pTargBuffer,
                     pBuffer,
                     Length
                     );
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(ntStatus); */
 
+error:
     return(ntStatus);
 }
 
@@ -108,6 +112,14 @@ NpfsDeleteMdl(
     return(ntStatus);
 }
 
+VOID
+NpfsFreeMdl(
+    PNPFS_MDL pMdl
+    )
+{
+    return;
+}
+
 
 
 NTSTATUS
@@ -116,11 +128,18 @@ NpfsAddMdltoInboundQueue(
     PNPFS_MDL pMdl
     )
 {
-    Lock the CCB
+    NTSTATUS ntStatus = 0;
 
+    return(ntStatus);
+}
 
-    if
+NTSTATUS
+NpfsFreeMdlList(
+    PNPFS_MDL pNpfsMdlList
+    )
+{
+    NTSTATUS ntStatus = 0;
 
-
+    return(ntStatus);
 }
 

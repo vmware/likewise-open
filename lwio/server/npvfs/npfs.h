@@ -108,6 +108,23 @@ NpfsSetInformation(
     );
 
 #include "create.h"
+#include "close.h"
+
+#define ENTER_READER_RW_LOCK(pMutex)
+
+#define LEAVE_READER_RW_LOCK(pMutex)
+
+#define ENTER_WRITER_RW_LOCK(pMutex)
+
+#define LEAVE_WRITER_RW_LOCK(pMutex)
+
+#define SERVER_CCB          1
+#define CLIENT_CCB          2
+
+#define PIPE_SERVER_CLOSED      1
+#define PIPE_CLIENT_CLOSED      2
+
+#include "prototypes.h"
 
 #endif /* __PVFS_H__ */
 

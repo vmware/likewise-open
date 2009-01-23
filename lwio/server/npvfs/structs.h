@@ -1,4 +1,6 @@
 
+struct _NPFS_PIPE;
+
 typedef struct _NPFS_MDL{
     ULONG Length;
     PVOID Buffer;
@@ -8,6 +10,12 @@ typedef struct _NPFS_MDL{
 typedef struct _NPFS_CCB{
 
     ULONG CcbType;
+    //CRITICAL_SECTION CcbMutex;
+    //EVENT  ReadEvent;
+    //PNPFS_PIPE pPipe;
+    struct _NPFS_PIPE * pPipe;
+    //CRITICAL_SECTION InBoundMutex;
+    PNPFS_MDL MdlList;
 
     //LIST_ENTRY NextCCB;
     UNICODE_STRING AbsolutePathName;
@@ -22,10 +30,19 @@ typedef struct _NPFS_CCB{
 
 
 typedef struct _NPFS_PIPE {
-    //CRITICAL_SECTION  PipeMutex;
+   // CRITICAL_SECTION  PipeMutex;
+    ULONG PipeClientState;
+    ULONG PipeServerState;
     PNPFS_CCB pScb;
     PNPFS_CCB pCcb;
 } NPFS_PIPE, *PNPFS_PIPE;
+
+typedef struct _NPFS_FILE {
+    PNPFS_PIPE pPipeList;
+    PSECURITY_DESCRIPTOR pSecurityDescriptor;
+    UNICODE_STRING PipeName;
+    struct _NPFS_FILE *pNext;
+}NPFS_FILE, *PNPFS_FILE;
 
 typedef struct _NPFS_IRP_CONTEXT {
     PIRP pIrp;

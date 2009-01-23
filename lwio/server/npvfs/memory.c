@@ -49,14 +49,23 @@
 
 #include "npfs.h"
 
+
 NTSTATUS
-NpfsFreePipeContext(
-    PNPFS_PIPE pPipe
+NpfsAllocateMemory(
+    ULONG ulSize,
+    PVOID * ppMemory
     )
 {
     NTSTATUS ntStatus = 0;
 
+    *ppMemory = NULL;
+
     return (ntStatus);
 }
 
-
+VOID
+NpfsFreeMemory(
+    )
+{
+    return;
+}

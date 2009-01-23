@@ -10,6 +10,9 @@ libnpvfs_sys_la_SOURCES = \
     queryinfo.c \
     read.c \
     setinfo.c \
+    memory.c \
+    pipe.c \
+    mdl.c \
     write.c
 
 libnpvfs_sys_la_CPPFLAGS = \
