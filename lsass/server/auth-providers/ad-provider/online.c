@@ -2138,9 +2138,7 @@ AD_OnlineEnumUsers(
 
     dwError = LsaAdBatchEnumObjects(
                     pEnumState->hDirectory,
-                    pEnumState->bMorePages,
-                    &pEnumState->pCookie,
-                    &pEnumState->bMorePages,
+                    &pEnumState->Cookie,
                     AccountType_User,
                     dwMaxNumUsers,
                     &dwObjectsCount,
@@ -2386,9 +2384,7 @@ AD_OnlineEnumGroups(
 
     dwError = LsaAdBatchEnumObjects(
                     pEnumState->hDirectory,
-                    pEnumState->bMorePages,
-                    &pEnumState->pCookie,
-                    &pEnumState->bMorePages,
+                    &pEnumState->Cookie,
                     AccountType_Group,
                     dwMaxNumGroups,
                     &dwObjectsCount,

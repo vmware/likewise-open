@@ -379,6 +379,17 @@ LsaHashCaselessString(
     return result;
 }
 
+VOID
+LsaHashFreeStringKey(
+    IN OUT const LSA_HASH_ENTRY *pEntry
+    )
+{
+    if (pEntry->pKey)
+    {
+        LsaFreeString(pEntry->pKey);
+    }
+}
+
 /*
 local variables:
 mode: c

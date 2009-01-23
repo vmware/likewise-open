@@ -823,8 +823,7 @@ AD_BeginEnumUsers(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pEnumState->pCookie = NULL;
-    pEnumState->bMorePages = TRUE;
+    LsaInitCookie(&pEnumState->Cookie);
 
     if (!AD_IsOffline())
     {
@@ -2183,8 +2182,7 @@ AD_BeginEnumGroups(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pEnumState->pCookie = NULL;
-    pEnumState->bMorePages = TRUE;
+    LsaInitCookie(&pEnumState->Cookie);
 
     if (!AD_IsOffline())
     {
@@ -2583,8 +2581,7 @@ AD_BeginEnumNSSArtefacts(
                                 &pEnumState);
             BAIL_ON_LSA_ERROR(dwError);
 
-            pEnumState->pCookie = NULL;
-            pEnumState->bMorePages = TRUE;
+            LsaInitCookie(&pEnumState->Cookie);
 
             break;
 

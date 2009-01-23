@@ -592,6 +592,14 @@ LsaReallocMemory(
     DWORD dwSize
     );
 
+DWORD
+LsaAppendAndFreePtrs(
+    IN OUT PDWORD pdwDestCount,
+    IN OUT PVOID** pppDestPtrArray,
+    IN OUT PDWORD pdwAppendCount,
+    IN OUT PVOID** pppAppendPtrArray
+    );
+
 void
 LsaFreeMemory(
     PVOID pMemory
@@ -886,6 +894,11 @@ LsaHashCaselessStringCompare(
 size_t
 LsaHashCaselessString(
     PCVOID str
+    );
+
+VOID
+LsaHashFreeStringKey(
+    IN OUT const LSA_HASH_ENTRY *pEntry
     );
 
 DWORD

@@ -91,6 +91,66 @@ LsaReallocMemory(
     return dwError;
 }
 
+DWORD
+LsaAppendAndFreePtrs(
+    IN OUT PDWORD pdwDestCount,
+    IN OUT PVOID** pppDestPtrArray,
+    IN OUT PDWORD pdwAppendCount,
+    IN OUT PVOID** pppAppendPtrArray
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwCurrentCount = *pdwDestCount;
+    DWORD dwAppendSize = *pdwAppendCount * sizeof(PVOID);
+    DWORD dwNewSize = dwCurrentCount * sizeof(PVOID) + dwAppendSize;
+    DWORD dwNewCount = dwNewSize / sizeof(PVOID);
+    PVOID *ppDestPtrArray = *pppDestPtrArray;
+
+    if (dwNewCount < dwCurrentCount)
+    {
+        dwError = ERANGE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (ppDestPtrArray == NULL)
+    {
+        LSA_ASSERT(dwCurrentCount == 0);
+        *pppDestPtrArray = *pppAppendPtrArray;
+        *pppAppendPtrArray = NULL;
+        *pdwDestCount = *pdwAppendCount;
+        *pdwAppendCount = 0;
+    }
+    else
+    {
+        dwError = LsaReallocMemory(
+            ppDestPtrArray,
+            (PVOID*)&ppDestPtrArray,
+            dwNewSize);
+        BAIL_ON_LSA_ERROR(dwError);
+        /* The old pointer was freed and now invalid, so the output parameter
+         * needs to be assigned here, even if the rest of the function fails. */
+        *pppDestPtrArray = ppDestPtrArray;
+
+        // Append the new data and zero it out from the src array
+        memcpy(ppDestPtrArray + dwCurrentCount,
+                *pppAppendPtrArray,
+                dwAppendSize);
+        *pdwDestCount = dwNewCount;
+        LSA_SAFE_FREE_MEMORY(*pppAppendPtrArray);
+        *pdwAppendCount = 0;
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+    // Leave pppDestPtrArray, pdwDestCount, pdwAppendCount, and
+    // pppAppendPtrArray as is, so that the passed in data is not lost.
+
+    goto cleanup;
+}
+
 void
 LsaFreeMemory(
     PVOID pMemory
