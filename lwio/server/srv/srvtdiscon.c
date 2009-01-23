@@ -30,13 +30,149 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvBuildTreeDisconnectResponse(
+    PLWIO_SRV_CONTEXT pContext,
+    PSMB_PACKET* ppSmbResponse
+    );
+
 NTSTATUS
 SrvProcessTreeDisconnectAndX(
     PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET pSmbRequest = pContext->pRequest;
+    PSMB_PACKET pSmbResponse = NULL;
+    PSMB_SRV_SESSION pSession = NULL;
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketVerifySignature(
+                        pSmbRequest,
+                        pContext->ulRequestSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnectionFindSession(
+                    pConnection,
+                    pSmbRequest->pSMBHeader->uid,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSessionRemoveTree(
+                    pSession,
+                    pSmbRequest->pSMBHeader->tid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvBuildTreeDisconnectResponse(
+                    pContext,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketSign(
+                        pSmbResponse,
+                        pContext->ulResponseSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnectionWriteMessage(
+                    pConnection,
+                    pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    return (ntStatus);
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvBuildTreeDisconnectResponse(
+    PLWIO_SRV_CONTEXT pContext,
+    PSMB_PACKET* ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET pSmbRequest = pContext->pRequest;
+    PSMB_PACKET pSmbResponse = NULL;
+    PTREE_DISCONNECT_RESPONSE_HEADER pResponseHeader = NULL;
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_TREE_DISCONNECT,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                getpid(),
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 0;
+
+    pResponseHeader = (PTREE_DISCONNECT_RESPONSE_HEADER)pSmbResponse->pParams;
+    pSmbResponse->pData = pSmbResponse->pParams + sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
+    pSmbResponse->bufferUsed += sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
+
+    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
+    *pSmbResponse->pByteCount = 0;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
 
     return ntStatus;
+
+error:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    goto cleanup;
 }
 

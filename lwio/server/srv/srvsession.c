@@ -119,6 +119,35 @@ error:
 }
 
 NTSTATUS
+SrvSessionRemoveTree(
+    PSMB_SRV_SESSION pSession,
+    USHORT           tid
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+    SMB_SRV_TREE finder;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    memset(&finder, 0, sizeof(finder));
+    finder.tid = tid;
+
+    ntStatus = SMBRBTreeRemove(
+                    pSession->pTreeCollection,
+                    &finder);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvSessionCreateTree(
     PSMB_SRV_SESSION pSession,
     PSMB_SRV_TREE*   ppTree

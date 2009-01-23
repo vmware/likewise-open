@@ -15,6 +15,12 @@ SrvSessionFindTree(
     );
 
 NTSTATUS
+SrvSessionRemoveTree(
+    PSMB_SRV_SESSION pSession,
+    USHORT           tid
+    );
+
+NTSTATUS
 SrvSessionCreateTree(
     PSMB_SRV_SESSION pSession,
     PSMB_SRV_TREE*   ppTree
