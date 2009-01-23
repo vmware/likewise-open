@@ -87,10 +87,7 @@ AD_FreeStateList(
 
         LSA_SAFE_FREE_STRING(pState->pszGUID);
 
-        if (pState->pCookie)
-        {
-            LsaLdapFreeCookie(pState->pCookie);
-        }
+        LsaFreeCookieContents(&pState->Cookie);
         if (pState->hDirectory)
         {
             LsaLdapCloseDirectory(pState->hDirectory);

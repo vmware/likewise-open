@@ -1076,10 +1076,9 @@ LsaLdapDirectoryOnePagedSearch(
     PCSTR          pszQuery,
     PSTR*          ppszAttributeList,
     DWORD          dwPageSize,
-    struct berval **ppCookie,
+    PLSA_SEARCH_COOKIE pCookie,
     int            scope,
-    LDAPMessage**  ppMessage,
-    PBOOLEAN       pbMorePages
+    LDAPMessage**  ppMessage
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -1091,9 +1090,10 @@ LsaLdapDirectoryOnePagedSearch(
     LDAPControl **ppReturnedControls = NULL;
     int errorcodep = 0;
     LDAPMessage* pMessage = NULL;
-    BOOLEAN bMorePages = FALSE;
-    struct berval * pCookie = *ppCookie;
+    BOOLEAN bSearchFinished = FALSE;
+    struct berval * pBerCookie = (struct berval *)pCookie->pvData;
 
+    LSA_ASSERT(pCookie->pfnFree == NULL || pCookie->pfnFree == LsaLdapFreeCookie);
     pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
 
    // dwError = ADEnablePageControlOption(hDirectory);
@@ -1101,7 +1101,7 @@ LsaLdapDirectoryOnePagedSearch(
 
     dwError = ldap_create_page_control(pDirectory->ld,
                                        dwPageSize,
-                                       pCookie,
+                                       pBerCookie,
                                        pagingCriticality,
                                        &pPageControl);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1129,25 +1129,21 @@ LsaLdapDirectoryOnePagedSearch(
                                 0);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pCookie != NULL)
+    if (pBerCookie != NULL)
     {
-        ber_bvfree(pCookie);
-        pCookie = NULL;
+        ber_bvfree(pBerCookie);
+        pBerCookie = NULL;
     }
 
     dwError = ldap_parse_page_control(pDirectory->ld,
                                       ppReturnedControls,
                                       &pageCount,
-                                      &pCookie);
+                                      &pBerCookie);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pCookie && pCookie->bv_len > 0)
+    if (pBerCookie == NULL || pBerCookie->bv_len < 1)
     {
-        bMorePages = TRUE;
-    }
-    else
-    {
-        bMorePages = FALSE;
+        bSearchFinished = TRUE;
     }
 
     if (ppReturnedControls)
@@ -1160,9 +1156,10 @@ LsaLdapDirectoryOnePagedSearch(
     ldap_control_free(pPageControl);
     pPageControl = NULL;
 
-    *pbMorePages = bMorePages;
+    pCookie->bSearchFinished = bSearchFinished;
     *ppMessage = pMessage;
-    *ppCookie = pCookie;
+    pCookie->pvData = pBerCookie;
+    pCookie->pfnFree = LsaLdapFreeCookie;
 
 cleanup:
   /*  dwError_disable = ADDisablePageControlOption(hDirectory);
@@ -1183,14 +1180,15 @@ cleanup:
 
 error:
 
-    *pbMorePages = FALSE;
     *ppMessage = NULL;
-    *ppCookie = NULL;
+    pCookie->pvData = NULL;
+    pCookie->pfnFree = NULL;
+    pCookie->bSearchFinished = TRUE;
 
-    if (pCookie != NULL)
+    if (pBerCookie != NULL)
     {
-        ber_bvfree(pCookie);
-        pCookie = NULL;
+        ber_bvfree(pBerCookie);
+        pBerCookie = NULL;
     }
 
     goto cleanup;
@@ -1900,7 +1898,32 @@ LsaLdapFreeCookie(
     PVOID pCookie
     )
 {
-    ber_bvfree((struct berval*)pCookie);
+    if (pCookie != NULL)
+    {
+        ber_bvfree((struct berval*)pCookie);
+    }
+}
+
+VOID
+LsaFreeCookieContents(
+    IN OUT PLSA_SEARCH_COOKIE pCookie
+    )
+{
+    if (pCookie->pfnFree)
+    {
+        pCookie->pfnFree(pCookie->pvData);
+        pCookie->pfnFree = NULL;
+    }
+    pCookie->pvData = NULL;
+    pCookie->bSearchFinished = FALSE;
+}
+
+VOID
+LsaInitCookie(
+    OUT PLSA_SEARCH_COOKIE pCookie
+    )
+{
+    memset(pCookie, 0, sizeof(*pCookie));
 }
 
 DWORD

@@ -421,7 +421,7 @@ CellModeSchemaEnumNSSArtefacts(
                    pszDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pEnumState->bMorePages){
+    if (pEnumState->Cookie.bSearchFinished){
         dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -434,10 +434,9 @@ CellModeSchemaEnumNSSArtefacts(
                        pszQuery,
                        szAttributeList,
                        dwNumNSSArtefactsWanted,
-                       &pEnumState->pCookie,
+                       &pEnumState->Cookie,
                        LDAP_SCOPE_SUBTREE,
-                       &pMessagePseudo,
-                       &pEnumState->bMorePages);
+                       &pMessagePseudo);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwCount = ldap_count_entries(
@@ -473,7 +472,7 @@ CellModeSchemaEnumNSSArtefacts(
             ldap_msgfree(pMessagePseudo);
             pMessagePseudo = NULL;
         }
-    } while (pEnumState->bMorePages && dwNumNSSArtefactsWanted);
+    } while (!pEnumState->Cookie.bSearchFinished && dwNumNSSArtefactsWanted);
 
     *pppNSSArtefactInfoList = ppNSSArtefactInfoList_accumulate;
     *pdwNumNSSArtefactsFound = dwTotalNumNSSArtefactsFound;
