@@ -437,9 +437,9 @@ lwmsg_marshal(LWMsgContext* context, LWMsgTypeSpec* type, void* object, LWMsgBuf
 
     BAIL_ON_ERROR(status = lwmsg_marshal_internal(context, &state, &iter, (unsigned char*) &object, buffer));
 
-    if (buffer->full)
+    if (buffer->wrap)
     {
-        BAIL_ON_ERROR(status = buffer->full(buffer, 0));
+        BAIL_ON_ERROR(status = buffer->wrap(buffer, 0));
     }
 
 error:
@@ -458,10 +458,10 @@ lwmsg_marshal_simple(
 {
     LWMsgBuffer mbuf;
 
-    mbuf.length = length;
-    mbuf.memory = buffer;
-    mbuf.cursor = mbuf.memory;
-    mbuf.full = NULL;
+    mbuf.base = buffer;
+    mbuf.end = buffer + length;
+    mbuf.cursor = buffer;
+    mbuf.wrap = NULL;
 
     return lwmsg_marshal(context, type, object, &mbuf);
 }
@@ -475,30 +475,31 @@ typedef struct
 
 static
 LWMsgStatus
-lwmsg_marshal_alloc_full(
+lwmsg_marshal_alloc_wrap(
     LWMsgBuffer* buffer,
     size_t needed
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     AllocInfo* info = buffer->data;
-    size_t newlen = buffer->length == 0 ? 256 : buffer->length * 2;
+    size_t oldlen = buffer->end - buffer->base;
+    size_t newlen = oldlen == 0 ? 256 : oldlen * 2;
     void* newmem = NULL;
     size_t offset = 0;
 
     BAIL_ON_ERROR(status = info->alloc(newlen, &newmem, info->data));
 
-    memcpy(newmem, buffer->memory, buffer->length);
+    memcpy(newmem, buffer->base, oldlen);
 
-    if (buffer->memory)
+    if (buffer->base)
     {
-        BAIL_ON_ERROR(status = info->free(buffer->memory, info->data));
+        BAIL_ON_ERROR(status = info->free(buffer->base, info->data));
     }
 
-    offset = buffer->cursor - buffer->memory;
-    buffer->memory = newmem;
+    offset = buffer->cursor - buffer->base;
+    buffer->base = newmem;
     buffer->cursor = newmem + offset;
-    buffer->length = newlen;
+    buffer->end = newmem + newlen;
 
 error:
 
@@ -522,15 +523,16 @@ lwmsg_marshal_alloc(
     info.free = lwmsg_context_get_free(context);
     info.data = lwmsg_context_get_memdata(context);
 
-    mbuf.memory = mbuf.cursor = NULL;
-    mbuf.length = 0;
-    mbuf.full = lwmsg_marshal_alloc_full;
+    mbuf.base = NULL;
+    mbuf.cursor = NULL;
+    mbuf.end = NULL;
+    mbuf.wrap = lwmsg_marshal_alloc_wrap;
     mbuf.data = &info;
 
     BAIL_ON_ERROR(status = lwmsg_marshal(context, type, object, &mbuf));
 
-    *buffer = mbuf.memory;
-    *length = (mbuf.cursor - mbuf.memory);
+    *buffer = mbuf.base;
+    *length = (mbuf.cursor - mbuf.base);
 
 done:
 
@@ -538,9 +540,9 @@ done:
 
 error:
 
-    if (mbuf.memory)
+    if (mbuf.base)
     {
-        info.free(mbuf.memory, info.data);
+        info.free(mbuf.base, info.data);
     }
 
     *buffer = NULL;

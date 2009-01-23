@@ -67,9 +67,9 @@ lwmsg_connection_packet_payload(ConnectionPacket* packet)
 static void
 lwmsg_connection_load_packet(LWMsgBuffer* buffer, ConnectionPacket* packet)
 {
-    buffer->memory = (unsigned char*) packet;
+    buffer->base = (unsigned char*) packet;
     buffer->cursor = lwmsg_connection_packet_payload(packet);
-    buffer->length = packet->length;
+    buffer->end = buffer->base + packet->length;
 }
 
 static LWMsgStatus
@@ -120,7 +120,7 @@ lwmsg_connection_recvfull(LWMsgBuffer* buffer, size_t needed)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = (LWMsgAssoc*) buffer->data;
-    ConnectionPacket* packet = (ConnectionPacket*) buffer->memory;
+    ConnectionPacket* packet = (ConnectionPacket*) buffer->base;
     
     /* Discard packet */
     lwmsg_connection_discard_recv_packet(assoc, packet);
@@ -162,11 +162,11 @@ lwmsg_connection_sendfull(LWMsgBuffer* buffer, size_t needed)
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = (LWMsgAssoc*) buffer->data;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    ConnectionPacket* packet = (ConnectionPacket*) buffer->memory;
+    ConnectionPacket* packet = (ConnectionPacket*) buffer->base;
     ConnectionPacket* urgent = NULL;
 
     /* Update size of packet based on amount of buffer that was used */
-    packet->length = buffer->cursor - buffer->memory;
+    packet->length = buffer->cursor - buffer->base;
 
 retry:
     /* Now that the packet is complete, send it */
@@ -248,7 +248,7 @@ retry:
         
         lwmsg_connection_load_packet(&buffer, packet);
         
-        buffer.full = lwmsg_connection_recvfull;
+        buffer.wrap = lwmsg_connection_recvfull;
         buffer.data = assoc;
         
         BAIL_ON_ERROR(status = lwmsg_unmarshal(
@@ -310,7 +310,7 @@ lwmsg_connection_do_send(LWMsgAssoc* assoc, ConnectionPacketType ptype)
     {
         lwmsg_connection_load_packet(&buffer, packet);
 
-        buffer.full = lwmsg_connection_sendfull;
+        buffer.wrap = lwmsg_connection_sendfull;
         buffer.data = assoc;
         
         BAIL_ON_ERROR(status = lwmsg_marshal(

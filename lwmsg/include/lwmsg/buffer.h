@@ -44,15 +44,15 @@
 
 typedef struct LWMsgBuffer
 {
-    /** Usable length of buffer */
-    size_t length;
     /** Pointer to buffer memory */
-    unsigned char* memory;
+    unsigned char* base;
+    /** Point past end of buffer */
+    unsigned char* end;
     /** Pointer to current position (first unused or unread byte) in buffer */
     unsigned char* cursor;
     /** Callback invoked when end of the buffer is reached and more memory/data is needed.
         All fields of the buffer are subject to change */
-    LWMsgStatus (*full) (struct LWMsgBuffer* buffer, size_t needed);
+    LWMsgStatus (*wrap) (struct LWMsgBuffer* buffer, size_t needed);
     /** User data pointer */
     void* data;
 } LWMsgBuffer;

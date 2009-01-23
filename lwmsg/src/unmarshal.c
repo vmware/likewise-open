@@ -744,9 +744,9 @@ lwmsg_unmarshal(LWMsgContext* context, LWMsgTypeSpec* type, LWMsgBuffer* buffer,
 
     BAIL_ON_ERROR(status = lwmsg_unmarshal_internal(context, &my_state, &iter, buffer, (unsigned char*) out));
 
-    if (buffer->full)
+    if (buffer->wrap)
     {
-        BAIL_ON_ERROR(status = buffer->full(buffer, 0));
+        BAIL_ON_ERROR(status = buffer->wrap(buffer, 0));
     }
 
 error:
@@ -759,10 +759,10 @@ lwmsg_unmarshal_simple(LWMsgContext* context, LWMsgTypeSpec* type, void* buffer,
 {
     LWMsgBuffer mbuf;
 
-    mbuf.memory = buffer;
-    mbuf.cursor = mbuf.memory;
-    mbuf.length = length;
-    mbuf.full = NULL;
+    mbuf.base = buffer;
+    mbuf.cursor = buffer;
+    mbuf.end = buffer + length;
+    mbuf.wrap = NULL;
 
     return lwmsg_unmarshal(context, type, &mbuf, out);
 }

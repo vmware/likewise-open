@@ -47,17 +47,19 @@ static LWMsgContext* context;
 static void
 allocate_buffer(LWMsgBuffer* buffer)
 {
-    buffer->length = 2048;
-    buffer->memory = malloc(buffer->length);
-    buffer->cursor = buffer->memory;
-    buffer->full = NULL;
+    size_t length = 2047;
+
+    buffer->base = malloc(length);
+    buffer->cursor = buffer->base;
+    buffer->end = buffer->base + length;
+    buffer->wrap = NULL;
     buffer->data = NULL;
 }
 
 static void
 rewind_buffer(LWMsgBuffer* buffer)
 {
-    buffer->cursor = buffer->memory;
+    buffer->cursor = buffer->base;
 }
 
 MU_FIXTURE_SETUP(marshal)
@@ -189,8 +191,8 @@ MU_TEST(marshal, basic_verify_unmarshal_failure)
 
     MU_EXPECT(MU_STATUS_EXCEPTION);
 
-    buffer.memory = buffer.cursor = (void*) bytes;
-    buffer.length = sizeof(bytes);
+    buffer.base = buffer.cursor = (void*) bytes;
+    buffer.end = buffer.base + sizeof(bytes);
     
 
     MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
@@ -218,8 +220,8 @@ MU_TEST(marshal, basic_verify_range_failure)
 
     MU_EXPECT(MU_STATUS_EXCEPTION);
 
-    buffer.memory = buffer.cursor = (void*) bytes;
-    buffer.length = sizeof(bytes);
+    buffer.base = buffer.cursor = (void*) bytes;
+    buffer.end = buffer.base + sizeof(bytes);
     
 
     MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
@@ -241,8 +243,8 @@ MU_TEST(marshal, basic_verify_null_failure)
 
     MU_EXPECT(MU_STATUS_EXCEPTION);
 
-    buffer.memory = buffer.cursor = (void*) bytes;
-    buffer.length = sizeof(bytes);
+    buffer.base = buffer.cursor = (void*) bytes;
+    buffer.end = buffer.base + sizeof(bytes);
     
 
     MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
@@ -293,7 +295,7 @@ MU_TEST(marshal, string)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -355,7 +357,7 @@ MU_TEST(marshal, struct_array)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &structs, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -420,7 +422,7 @@ MU_TEST(marshal, string_array)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -457,7 +459,7 @@ MU_TEST(marshal, string_array_empty)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -487,7 +489,7 @@ MU_TEST(marshal, string_array_null)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -587,7 +589,7 @@ MU_TEST(marshal, two_union)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &unions, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -654,7 +656,7 @@ MU_TEST(marshal, nested_struct)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &nested, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -719,7 +721,7 @@ MU_TEST(marshal, nested_union)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &unions, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -756,7 +758,7 @@ MU_TEST(marshal, nested_union_empty)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &unions, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -815,7 +817,7 @@ MU_TEST(marshal, inline_array)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -870,7 +872,7 @@ MU_TEST(marshal, flexible_string)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -926,7 +928,7 @@ MU_TEST(marshal, flexible_array)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -1020,7 +1022,7 @@ MU_TEST(marshal, info_level_1)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -1033,6 +1035,8 @@ MU_TEST(marshal, info_level_1)
     {
         MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array.level_1[0].number1, out->array.level_1[0].number1);
     }
+
+    lwmsg_context_free_graph(context, type, out);
 }
 
 MU_TEST(marshal, info_level_2)
@@ -1075,7 +1079,7 @@ MU_TEST(marshal, info_level_2)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 

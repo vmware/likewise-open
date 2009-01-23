@@ -88,18 +88,18 @@ lwmsg_buffer_read(
 
     while (count)
     {
-        if (buffer->cursor + count > buffer->memory + buffer->length)
+        if (buffer->cursor + count > buffer->end)
         {
             /* Not enough bytes remain in buffer, so copy what we have and ask for more */
-            size_t remaining = (buffer->memory + buffer->length) - buffer->cursor;
+            size_t remaining = buffer->end - buffer->cursor;
             memcpy(out_bytes, buffer->cursor, remaining);
             count -= remaining;
             buffer->cursor += remaining;
             out_bytes += remaining;
 
-            if (buffer->full)
+            if (buffer->wrap)
             {
-                BAIL_ON_ERROR(status = buffer->full(buffer, count));
+                BAIL_ON_ERROR(status = buffer->wrap(buffer, count));
             }
             else
             {
@@ -128,7 +128,7 @@ lwmsg_buffer_write(LWMsgBuffer* buffer, unsigned char* in_bytes, size_t count)
 
     while (count)
     {
-        remaining = (buffer->memory + buffer->length) - buffer->cursor;
+        remaining = buffer->end - buffer->cursor;
 
         if (count > remaining)
             writable = remaining;
@@ -143,9 +143,9 @@ lwmsg_buffer_write(LWMsgBuffer* buffer, unsigned char* in_bytes, size_t count)
 
         if (count)
         {
-            if (buffer->full)
+            if (buffer->wrap)
             {
-                BAIL_ON_ERROR(buffer->full(buffer, count));
+                BAIL_ON_ERROR(buffer->wrap(buffer, count));
             }
             else
             {
