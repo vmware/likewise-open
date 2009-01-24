@@ -87,6 +87,29 @@ error:
 }
 
 static LWMsgStatus
+lwmsg_object_realloc(
+    LWMsgContext* context,
+    unsigned char* object,
+    size_t old_size,
+    size_t new_size,
+    unsigned char** out
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    void* my_out = NULL;
+    LWMsgReallocFunction realloc = lwmsg_context_get_realloc(context);
+    void* data = lwmsg_context_get_memdata(context);
+
+    BAIL_ON_ERROR(status = realloc(object, old_size, new_size, &my_out, data));
+
+    *out = my_out;
+
+error:
+
+    return status;
+}
+
+static LWMsgStatus
 lwmsg_object_free(
     LWMsgContext* context,
     unsigned char* object
@@ -297,6 +320,7 @@ lwmsg_unmarshal_pointees(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     size_t count = 0;
+    size_t referent_size = 0;
     unsigned char* object = NULL;
     LWMsgTypeIter inner;
 
@@ -325,9 +349,19 @@ lwmsg_unmarshal_pointees(
     }
     else
     {
-        /* Allocate the object */
-        BAIL_ON_ERROR(status = lwmsg_object_alloc(context, count * inner.size, &object));
-        
+       /* If the referent is zero-terminated, we need to allocate an extra element */
+        if (iter->info.kind_indirect.term == LWMSG_TERM_ZERO)
+        {
+            referent_size = (count + 1) * inner.size;
+        }
+        else
+        {
+            referent_size = count * inner.size;
+        }
+
+        /* Allocate the referent */
+        BAIL_ON_ERROR(status = lwmsg_object_alloc(context, referent_size, &object));
+
         /* Unmarshal elements */
         BAIL_ON_ERROR(status = lwmsg_unmarshal_indirect(
                           context,
@@ -529,6 +563,7 @@ lwmsg_unmarshal_struct_pointee(
     unsigned char* base_object = NULL;
     unsigned char* full_object = NULL;
     LWMsgTypeSpec* flexible_member = NULL;
+    size_t full_size = 0;
 
     /* Allocate enough memory to hold the base of the object */
     BAIL_ON_ERROR(status = lwmsg_object_alloc(
@@ -567,14 +602,23 @@ lwmsg_unmarshal_struct_pointee(
                           buffer,
                           &count));
 
-        BAIL_ON_ERROR(status = lwmsg_object_alloc(
-                      context,
-                      struct_iter->size + inner_iter.size * count,
-                      &full_object));
+        if (flex_iter.info.kind_indirect.term == LWMSG_TERM_ZERO)
+        {
+            /* If the flexible array is zero-terminated, we need to allocate an extra element */
+            full_size = struct_iter->size + inner_iter.size * (count + 1);
+        }
+        else
+        {
+            full_size = struct_iter->size + inner_iter.size * count;
+        }
 
-        memcpy(full_object, base_object, struct_iter->size);
-
-        BAIL_ON_ERROR(status = lwmsg_object_free(context, base_object));
+        /* Allocate the full object */
+        BAIL_ON_ERROR(status = lwmsg_object_realloc(
+                          context,
+                          base_object,
+                          struct_iter->size,
+                          full_size,
+                          &full_object));
 
         base_object = NULL;
 

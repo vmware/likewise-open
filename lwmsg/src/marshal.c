@@ -106,13 +106,18 @@ lwmsg_marshal_indirect_prologue(
         is_zero = 0;
 
         /* We have to calculate the count by searching for the zero element */
-        for (*count = 0; !is_zero; *count += 1)
+        for (*count = 0;;*count += 1)
         {
             BAIL_ON_ERROR(status = lwmsg_object_is_zero(
                               state,
                               inner_iter,
                               element,
                               &is_zero));
+
+            if (is_zero)
+            {
+                break;
+            }
 
             element += inner_iter->size;
         }

@@ -110,8 +110,8 @@ specifies the number of elements, not the size in bytes.
 
 Finally, each element of the referent is encoded in order according
 to the rules of that type.  In the case of a zero-terminated referent,
-the zero element is encoded in the stream and is reflected in the
-transmitted length.
+the zero element is not encoded in the stream and is not counted in the
+transmitted length.  The decoder implicitly adds it back.
 
 @lwmsg_rep{Pointer}
 @lwmsg_field{8, Indicator flag (omitted for non-nullable pointers)}

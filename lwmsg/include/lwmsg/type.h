@@ -576,11 +576,9 @@ typedef enum LWMsgTypeDirective
 /**
  * @brief Indicate correlated union discriminator
  *
- * Indicates that the immediately previous member  has an
- * active arm which is determined by the tag stored in the
- * specified discriminator member.  The previous member
- * may either be a union itself or a pointer or array type
- * which a transitive inner type which is a union.
+ * Indicates that the immediately previous member, which
+ * must be a union type, has an active arm which is determined
+ * by the tag stored in the specified discriminator member.
  * All uses of unions must be marked with this attribute.
  *
  * @param type the name of the containing structure
@@ -664,7 +662,7 @@ typedef enum LWMsgTypeDirective
  *
  * Defines a pointer. This must be followed by the definition of
  * the pointer's contents.  The end of the pointer definition
- * must be marked by LWMSG_POINTER_END.
+ * must be marked by #LWMSG_POINTER_END.
  *
  * @hideinitializer
  */
@@ -1109,7 +1107,7 @@ typedef enum LWMsgTypeDirective
  * 
  * @param type the containing C type
  * @param field the member name
- * @param ... the contents of the structure specification
+ * @param ... the contents of the union specification
  * @hideinitializer
  */
 #define LWMSG_MEMBER_UNION(type, field, ...)   \

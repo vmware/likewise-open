@@ -272,15 +272,15 @@ MU_TEST(marshal, string)
         /* foo set */
         0xFF,
         /* foo length */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* foo contents */
-        'f', 'o', 'o', '\0',
+        'f', 'o', 'o',
         /* bar set */
         0xFF,
         /* bar length */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* bar contents */
-        'b', 'a', 'r', '\0'
+        'b', 'a', 'r'
     };
 
     LWMsgTypeSpec* type = string_spec;
@@ -392,22 +392,20 @@ MU_TEST(marshal, string_array)
     {
         /* strings = (set) */
         0xFF,
-        /* (implicit) length of "strings" = 3 */
-        0x00, 0x00, 0x00, 0x03,
+        /* (implicit) length of "strings" = 2 */
+        0x00, 0x00, 0x00, 0x02,
         /* strings[0] = set */
         0xFF,
         /* strings[0] len */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* strings[0] value */
-        'f', 'o', 'o', '\0',
+        'f', 'o', 'o',
         /* strings[1] = set */
         0xFF,
         /* strings[1] len */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* strings[1] value */
-        'b', 'a', 'r', '\0',
-        /* strings[2] = unset */
-        0x00
+        'b', 'a', 'r'
     };
 
     LWMsgTypeSpec* type = string_array_spec;
@@ -441,10 +439,8 @@ MU_TEST(marshal, string_array_empty)
     {
         /* strings = (set) */
         0xFF,
-        /* (implicit) length of "strings" = 1 */
-        0x00, 0x00, 0x00, 0x01,
-        /* strings[0] = unset */
-        0x00
+        /* (implicit) length of "strings" = 0 */
+        0x00, 0x00, 0x00, 0x00
     };
 
     LWMsgTypeSpec* type = string_array_spec;
@@ -565,10 +561,10 @@ MU_TEST(marshal, two_union)
         0xFF,
         /* u2->string = set */
         0xFF,
-        /* u2->string length is 4 (implicit) */
-        0x00, 0x00, 0x00, 0x04,
+        /* u2->string length is 3 (implicit) */
+        0x00, 0x00, 0x00, 0x03,
         /* u2->string pointee */
-        'f', 'o', 'o', '\0'
+        'f', 'o', 'o'
     };
 
     LWMsgTypeSpec* type = two_union_spec;
@@ -635,9 +631,9 @@ MU_TEST(marshal, nested_struct)
         /* inner.bar = (set) */
         0xFF,
         /* inner.bar length (implicit) */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* inner.bar value */
-        'b', 'a', 'r', '\0',
+        'b', 'a', 'r',
         /* bar = -12 */
         0xFF, 0xFF, 0xFF, 0xF4,
     };
@@ -697,10 +693,10 @@ MU_TEST(marshal, nested_union)
         0x02,
         /* u1.string = (set) */
         0xFF,
-        /* u1.string length is 4 (implicit) */
-        0x00, 0x00, 0x00, 0x04,
+        /* u1.string length is 3 (implicit) */
+        0x00, 0x00, 0x00, 0x03,
         /* u1.string value */
-        'f', 'o', 'o', '\0',
+        'f', 'o', 'o',
         /* tag2 = 1 */
         0x01,
         /* u2.number = 42 */
@@ -853,10 +849,10 @@ MU_TEST(marshal, flexible_string)
     {
         /* foo = 42 */
         0x00, 0x2A,
-        /* string length = 4 (implicit) */
-        0x00, 0x00, 0x00, 0x04,
+        /* string length = 3 (implicit) */
+        0x00, 0x00, 0x00, 0x03,
         /* string value */
-        'f', 'o', 'o', '\0'
+        'f', 'o', 'o'
     };
 
     LWMsgTypeSpec* type = flexible_string_spec;
