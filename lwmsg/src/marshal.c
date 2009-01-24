@@ -468,7 +468,7 @@ lwmsg_marshal_simple(
 
 typedef struct
 {
-    LWMsgAllocFunction alloc;
+    LWMsgReallocFunction realloc;
     LWMsgFreeFunction free;
     void* data;
 } AllocInfo;
@@ -487,14 +487,7 @@ lwmsg_marshal_alloc_wrap(
     void* newmem = NULL;
     size_t offset = 0;
 
-    BAIL_ON_ERROR(status = info->alloc(newlen, &newmem, info->data));
-
-    memcpy(newmem, buffer->base, oldlen);
-
-    if (buffer->base)
-    {
-        BAIL_ON_ERROR(status = info->free(buffer->base, info->data));
-    }
+    BAIL_ON_ERROR(status = info->realloc(buffer->base, oldlen, newlen, &newmem, info->data));
 
     offset = buffer->cursor - buffer->base;
     buffer->base = newmem;
@@ -519,7 +512,7 @@ lwmsg_marshal_alloc(
     AllocInfo info;
     LWMsgBuffer mbuf;
 
-    info.alloc = lwmsg_context_get_alloc(context);
+    info.realloc = lwmsg_context_get_realloc(context);
     info.free = lwmsg_context_get_free(context);
     info.data = lwmsg_context_get_memdata(context);
 

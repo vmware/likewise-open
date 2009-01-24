@@ -162,10 +162,15 @@ typedef enum LWMsgAssocState
  */
 typedef enum LWMsgAssocAction
 {
+    /** @brief Do not take any action */
     LWMSG_ASSOC_ACTION_NONE,
+    /** @brief Retry the operation immediately */
     LWMSG_ASSOC_ACTION_RETRY,
+    /** @brief Attempt to reset the connection and then retry the operation */
     LWMSG_ASSOC_ACTION_RESET_AND_RETRY,
+#ifndef DOXYGEN
     LWMSG_ASSOC_ACTION_COUNT
+#endif
 } LWMsgAssocAction;
 
 /**
@@ -322,7 +327,7 @@ typedef struct LWMsgAssocClass
  * a receive transaction.
  *
  * @param[in] assoc the association
- * @param[in] in the received messa
+ * @param[in] in the received message
  * @param[out] out the reply
  * @param[in] user data pointer
  * @lwmsg_status
@@ -904,17 +909,12 @@ lwmsg_assoc_get_session_manager(
  * @ingroup assoc
  * @brief Get association state
  *
- * Gets the current state of the specified association.  This function may be used after
- * another association operation has returned a non-success status code to determine
- * additional information about the cause or recoverability of the problem.  For example,
- * if a send operation results in LWMSG_STATUS_EOF, the association might be in one of the
- * following states:
+ * Gets the current state of the specified association.  This may
+ * reveal details such as:
  *
- * - <tt>LWMSG_ASSOC_STATE_PEER_CLOSED</tt>: the peer closed the association -- no further communication possible
- * - <tt>LWMSG_ASSOC_STATE_PEER_RESET</tt>: the peer reset the association -- communication can resume
- * after resetting the association locally with lwmsg_assoc_reset()
- * - <tt>LWMSG_ASSOC_STATE_PEER_ABORT</tt>: the peer aborted the association -- no further communication possible due
- * to an authentication failure, malformed message, or other fatal error
+ * - Whether the association has been closed
+ * - Whether the association is part of an established session
+ * - If the association is ready to send a message or receive a message
  *
  * @param[in] assoc the association
  * @return the current state of the association
@@ -924,6 +924,26 @@ lwmsg_assoc_get_state(
     LWMsgAssoc* assoc
     );
 
+/**
+ * @ingroup assoc
+ * @brief Configure automatic error handling
+ *
+ * This function allows the user to configure an association to
+ * respond automatically to certain non-success status codes that
+ * occur during use.  For example, setting up the action
+ * #LWMSG_ASSOC_ACTION_RESET_AND_RETRY for the status code
+ * #LWMSG_STATUS_PEER_CLOSE will cause the association to transparently
+ * attempt to restablish its session with the peer and resume the current
+ * operation should the peer close its end.
+ *
+ * @param[in] assoc the association
+ * @param[in] condition the status code for which the action will be set
+ * @param[in] action that action to take when the specified status code occurs
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_PARAMETER, the specified status code\, action\, or combination thereof was invalid}
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_assoc_set_action(
     LWMsgAssoc* assoc,

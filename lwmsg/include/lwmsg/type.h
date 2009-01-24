@@ -735,16 +735,15 @@ typedef enum LWMsgTypeDirective
  *
  * Applies a custom attribute to the previous type or member,
  * which must be a custom type.  The bitwise or of all custom
- * attribute value will be made available to the marshal and
+ * attribute values will be made available to the marshal and
  * unmarshal functions for the custom type.
  *
  * @param value the value of the attribute to apply
- * @param data a constant user data pointer to pass to the function
  * @hideinitializer
  */
 #define LWMSG_ATTR_CUSTOM(value)                \
     _TYPECMD(LWMSG_CMD_CUSTOM_ATTR),            \
-        _TYPEARG(value)                         \
+        _TYPEARG(value)
 
 /* Handy aliases for more complicated commands */
 

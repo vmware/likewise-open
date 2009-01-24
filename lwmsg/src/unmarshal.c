@@ -96,9 +96,7 @@ lwmsg_object_free(
     LWMsgFreeFunction free = lwmsg_context_get_free(context);
     void* data = lwmsg_context_get_memdata(context);
     
-    BAIL_ON_ERROR(status = free(object, data));
-
-error:
+    free(object, data);
 
     return status;
 }
