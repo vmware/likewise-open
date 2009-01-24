@@ -70,17 +70,19 @@ wstr(const char* str)
 static void
 BufferInit(void)
 {
-    buffer.length = 8192;
-    buffer.memory = malloc(buffer.length);
-    buffer.cursor = buffer.memory;
-    buffer.full = NULL;
+    size_t length = 8192;
+
+    buffer.base = malloc(length);
+    buffer.cursor = buffer.base;
+    buffer.end = buffer.base + length;
+    buffer.wrap = NULL;
     buffer.data = NULL;
 }
 
 static void
 BufferRewind(void)
 {
-    buffer.cursor = buffer.memory;
+    buffer.cursor = buffer.base;
 }
 
 MU_FIXTURE_SETUP(marshal)
