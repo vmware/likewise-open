@@ -49,86 +49,54 @@
 #include "includes.h"
 #include "sharedbquery.h"
 
-static PSMB_SRV_SHARE_DB_CONTEXT gpShareDBContext = NULL;
-
-#define SMB_SRV_LOCK_SHARE_DB_READ(bInLock) \
-    if (!bInLock) { \
-       assert(gpShareDBContext != NULL); \
-       int thr_err = pthread_rwlock_rdlock(gpShareDBContext->pDbLock); \
-       if (thr_err) { \
-           SMB_LOG_ERROR("Failed to lock rw-mutex for read. Aborting program"); \
-           abort(); \
-       } \
-       bInLock = TRUE; \
-    }
-
-#define SMB_SRV_LOCK_SHARE_DB_WRITE(bInLock) \
-    if (!bInLock) { \
-       assert(gpShareDBContext != NULL); \
-       int thr_err = pthread_rwlock_wrlock(gpShareDBContext->pDbLock); \
-       if (thr_err) { \
-           SMB_LOG_ERROR("Failed to lock rw-mutex for write. Aborting program"); \
-           abort(); \
-       } \
-       bInLock = TRUE; \
-    }
-
-#define SMB_SRV_UNLOCK_SHARE_DB(bInLock) \
-    if (bInLock) { \
-       assert(gpShareDBContext != NULL); \
-       int thr_err = pthread_rwlock_unlock(gpShareDBContext->pDbLock); \
-       if (thr_err) { \
-           SMB_LOG_ERROR("Failed to unlock rw-mutex. Aborting program"); \
-           abort(); \
-       } \
-       bInLock = FALSE; \
-    }
-
 static
-DWORD
+NTSTATUS
 SrvShareDbCreate(
-    VOID
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
     );
 
 static
-DWORD
-SrvShareDbWriteToShareInfo(
-    PSTR*         ppszResult,
-    int           nRows,
-    int           nCols,
-    DWORD         nHeaderColsToSkip,
-    DWORD         dwShareInfoLevel,
-    PSHARE_INFO** pppShareInfoList,
-    PDWORD        pdwNumSharesFound
+VOID
+SrvShareDbFreeInfo(
+    PSHARE_DB_INFO pShareInfo
     );
 
-DWORD
+static
+NTSTATUS
+SrvShareDbWriteToShareInfo(
+    PSTR*          ppszResult,
+    int            nRows,
+    int            nCols,
+    ULONG          nHeaderColsToSkip,
+    PSHARE_DB_INFO** pppShareInfoList,
+    PULONG         pulNumSharesFound
+    );
+
+NTSTATUS
 SrvShareDbInit(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
     )
 {
-    pthread_rwlock_init(&pShareDBContext->dbLock, NULL);
-    pShareDBContext->pDbLock = &pShareDBContext->dbLock;
+    pthread_rwlock_init(&pShareDBContext->mutex, NULL);
+    pShareDBContext->pMutex = &pShareDBContext->mutex;
 
-    gpShareDBContext = pShareDBContext;
-
-    return SrvShareDbCreate();
+    return SrvShareDbCreate(pShareDBContext);
 }
 
 static
-DWORD
+NTSTATUS
 SrvShareDbCreate(
-    VOID
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     HANDLE hDb = (HANDLE)NULL;
     sqlite3* pDbHandle = NULL;
     PSTR pszError = NULL;
     BOOLEAN bExists = FALSE;
 
-    dwError = SMBCheckFileExists(LWIO_SRV_SHARE_DB, &bExists);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBCheckFileExists(LWIO_SRV_SHARE_DB, &bExists);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     // TODO: Implement an upgrade scenario
     if (bExists)
@@ -136,46 +104,48 @@ SrvShareDbCreate(
        goto cleanup;
     }
 
-    dwError = SMBCheckDirectoryExists(LWIO_SRV_DB_DIR, &bExists);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBCheckDirectoryExists(LWIO_SRV_DB_DIR, &bExists);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!bExists)
     {
         mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
 
         /* Allow go+rx to the base folder */
-        dwError = SMBCreateDirectory(LWIO_SRV_DB_DIR, cacheDirMode);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMBCreateDirectory(LWIO_SRV_DB_DIR, cacheDirMode);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     /* restrict access to u+rwx to the db folder */
-    dwError = SMBChangeOwnerAndPermissions(LWIO_SRV_DB_DIR, 0, 0, S_IRWXU);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBChangeOwnerAndPermissions(LWIO_SRV_DB_DIR, 0, 0, S_IRWXU);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SrvShareDbOpen(&hDb);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SrvShareDbOpen(
+                    pShareDBContext,
+                    &hDb);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pDbHandle = (sqlite3*)hDb;
 
-    dwError = sqlite3_exec(pDbHandle,
+    ntStatus = sqlite3_exec(pDbHandle,
                            DB_QUERY_CREATE_SHARES_TABLE,
                            NULL,
                            NULL,
                            &pszError);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBChangeOwnerAndPermissions(
+    ntStatus = SMBChangeOwnerAndPermissions(
                     LWIO_SRV_SHARE_DB,
                     0,
                     0,
                     S_IRWXU);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     if (hDb != (HANDLE)NULL)
     {
-       SrvShareDbClose(hDb);
+       SrvShareDbClose(pShareDBContext, hDb);
     }
 
     if (pszError)
@@ -183,7 +153,7 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -198,22 +168,25 @@ error:
 //
 // TODO: Implement a DB Handle Pool
 //
-DWORD
+NTSTATUS
 SrvShareDbOpen(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     PHANDLE phDb
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     sqlite3* pDbHandle = NULL;
 
-    dwError = sqlite3_open(LWIO_SRV_SHARE_DB, &pDbHandle);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = sqlite3_open(
+                    LWIO_SRV_SHARE_DB,
+                    &pDbHandle);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *phDb = (HANDLE)pDbHandle;
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -227,36 +200,44 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SrvShareDbAdd(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
     PCSTR  pszComment
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR pszError = NULL;
     PSTR pszQuery = NULL;
     BOOLEAN bInLock = FALSE;
 
-    BAIL_ON_INVALID_STRING(pszShareName);
-    BAIL_ON_INVALID_STRING(pszPath);
+    if (IsNullOrEmptyString(pszShareName))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_3;
+    }
+    if (IsNullOrEmptyString(pszPath))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_4;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_SRV_LOCK_SHARE_DB_WRITE(bInLock);
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(DB_QUERY_INSERT_SHARE,
                                pszShareName,
                                pszPath,
                                pszComment);
 
-    dwError = sqlite3_exec(pDbHandle,
+    ntStatus = sqlite3_exec(pDbHandle,
                            pszQuery,
                            NULL,
                            NULL,
                            &pszError);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
@@ -270,9 +251,9 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    SMB_SRV_UNLOCK_SHARE_DB(bInLock);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -284,67 +265,67 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SrvShareDbEnum(
-    HANDLE        hDb,
-    DWORD         dwOffset,
-    DWORD         dwLimit,
-    DWORD         dwShareInfoLevel,
-    PSHARE_INFO** pppShareInfoList,
-    PDWORD        pdwNumSharesFound
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE           hDb,
+    ULONG            ulOffset,
+    ULONG            ulLimit,
+    PSHARE_DB_INFO** pppShareInfoList,
+    PULONG           pulNumSharesFound
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSTR     pszQuery = NULL;
     PSTR     pszError = NULL;
     PSTR*    ppszResult = NULL;
-    PSHARE_INFO* ppShareInfoList = NULL;
+    PSHARE_DB_INFO* ppShareInfoList = NULL;
     BOOLEAN  bInLock = FALSE;
     int      nRows = 0;
     int      nCols = 0;
     int      nExpectedCols = 4;
-    DWORD    dwNumSharesFound = 0;
+    ULONG    ulNumSharesFound = 0;
     sqlite3* pDbHandle = (sqlite3*)hDb;
 
-    SMB_SRV_LOCK_SHARE_DB_READ(bInLock);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_FIND_SHARES_LIMIT,
-                    dwOffset,
-                    dwLimit);
+                    ulOffset,
+                    ulLimit);
 
-    dwError = sqlite3_get_table(pDbHandle,
-                                pszQuery,
-                                &ppszResult,
-                                &nRows,
-                                &nCols,
-                                &pszError);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = sqlite3_get_table(
+                    pDbHandle,
+                    pszQuery,
+                    &ppszResult,
+                    &nRows,
+                    &nCols,
+                    &pszError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!nRows)
     {
-       dwError = SMB_ERROR_NO_MORE_SHARES;
-       BAIL_ON_SMB_ERROR(dwError);
+       ntStatus = STATUS_NO_MORE_ENTRIES;
+       BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if ((nCols != nExpectedCols) || (nRows > dwLimit))
+    if ((nCols != nExpectedCols) || (nRows > ulLimit))
     {
-       dwError = SMB_ERROR_DATA_ERROR;
-       BAIL_ON_SMB_ERROR(dwError);
+       ntStatus = STATUS_DATA_ERROR;
+       BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = SrvShareDbWriteToShareInfo(
+    ntStatus = SrvShareDbWriteToShareInfo(
                     ppszResult,
                     nRows,
                     nCols,
                     nExpectedCols,
-                    dwShareInfoLevel,
                     &ppShareInfoList,
-                    &dwNumSharesFound);
-    BAIL_ON_SMB_ERROR(dwError);
+                    &ulNumSharesFound);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *pppShareInfoList =  ppShareInfoList;
-    *pdwNumSharesFound = dwNumSharesFound;
+    *pulNumSharesFound = ulNumSharesFound;
 
 cleanup:
 
@@ -362,9 +343,9 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    SMB_SRV_UNLOCK_SHARE_DB(bInLock);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -373,64 +354,72 @@ error:
         SMB_LOG_ERROR("%s", pszError);
     }
 
+    if (ppShareInfoList)
+    {
+        SrvShareDbFreeInfoList(ppShareInfoList, ulNumSharesFound);
+    }
+
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SrvShareDbFindByName(
-    HANDLE       hDb,
-    PCSTR        pszShareName,
-    DWORD        dwShareInfoLevel,
-    PSHARE_INFO* ppShareInfo
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE          hDb,
+    PCSTR           pszShareName,
+    PSHARE_DB_INFO* ppShareInfo
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSTR     pszQuery = NULL;
     PSTR     pszError = NULL;
     PSTR*    ppszResult = NULL;
-    PSHARE_INFO* ppShareInfoList = NULL;
+    PSHARE_DB_INFO* ppShareInfoList = NULL;
     BOOLEAN  bInLock = FALSE;
     int      nRows = 0;
     int      nCols = 0;
     int      nExpectedCols = 4;
-    DWORD    dwNumSharesFound = 0;
+    ULONG    ulNumSharesFound = 0;
     sqlite3* pDbHandle = (sqlite3*)hDb;
 
-    BAIL_ON_INVALID_STRING(pszShareName);
+    if (IsNullOrEmptyString(pszShareName))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_1;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_SRV_LOCK_SHARE_DB_READ(bInLock);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(DB_QUERY_LOOKUP_SHARE_BY_NAME, pszShareName);
 
-    dwError = sqlite3_get_table(pDbHandle,
+    ntStatus = sqlite3_get_table(pDbHandle,
                                 pszQuery,
                                 &ppszResult,
                                 &nRows,
                                 &nCols,
                                 &pszError);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!nRows)
     {
-       dwError = SMB_ERROR_NO_SUCH_SHARE;
-       BAIL_ON_SMB_ERROR(dwError);
+       ntStatus = STATUS_NOT_FOUND;
+       BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if ((nCols != nExpectedCols) || (nRows > 1))
     {
-       dwError = SMB_ERROR_DATA_ERROR;
-       BAIL_ON_SMB_ERROR(dwError);
+       ntStatus = STATUS_DATA_ERROR;
+       BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = SrvShareDbWriteToShareInfo(
+    ntStatus = SrvShareDbWriteToShareInfo(
                     ppszResult,
                     nRows,
                     nCols,
                     nExpectedCols,
-                    dwShareInfoLevel,
                     &ppShareInfoList,
-                    &dwNumSharesFound);
-    BAIL_ON_SMB_ERROR(dwError);
+                    &ulNumSharesFound);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppShareInfo = *ppShareInfoList;
     *ppShareInfoList = NULL;
@@ -451,17 +440,14 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    SMB_SRV_UNLOCK_SHARE_DB(bInLock);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     if (ppShareInfoList)
     {
-        SrvFreeShareInfoList(
-                dwShareInfoLevel,
-                ppShareInfoList,
-                dwNumSharesFound);
+        SrvShareDbFreeInfoList(ppShareInfoList, ulNumSharesFound);
     }
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -474,35 +460,36 @@ error:
 }
 
 static
-DWORD
+NTSTATUS
 SrvShareDbWriteToShareInfo(
-    PSTR*         ppszResult,
-    int           nRows,
-    int           nCols,
-    DWORD         nHeaderColsToSkip,
-    DWORD         dwShareInfoLevel,
-    PSHARE_INFO** pppShareInfoList,
-    PDWORD        pdwNumSharesFound
+    PSTR*            ppszResult,
+    int              nRows,
+    int              nCols,
+    ULONG            nHeaderColsToSkip,
+    PSHARE_DB_INFO** pppShareInfoList,
+    PULONG           pulNumSharesFound
     )
 {
-    DWORD dwError = 0;
-    DWORD iCol = 0, iRow = 0;
-    DWORD iVal = nHeaderColsToSkip;
-    PSHARE_INFO* ppShareInfoList = NULL;
-    PSHARE_INFO pShareInfo = NULL;
-    DWORD dwNumSharesFound = nRows;
+    NTSTATUS ntStatus = 0;
+    ULONG iCol = 0, iRow = 0;
+    ULONG iVal = nHeaderColsToSkip;
+    PSHARE_DB_INFO* ppShareInfoList = NULL;
+    PSHARE_DB_INFO pShareInfo = NULL;
+    ULONG ulNumSharesFound = nRows;
 
-    dwError = SMBAllocateMemory(
-                    sizeof(PSHARE_INFO) * dwNumSharesFound,
+    ntStatus = SMBAllocateMemory(
+                    sizeof(PSHARE_DB_INFO) * nRows,
                     (PVOID*)&ppShareInfoList);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     for (iRow = 0; iRow < nRows; iRow++)
     {
-        dwError = SMBAllocateMemory(
-                        sizeof(SHARE_INFO),
+        ntStatus = SMBAllocateMemory(
+                        sizeof(SHARE_DB_INFO),
                         (PVOID*)&pShareInfo);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pShareInfo->refcount = 1;
 
         for (iCol = 0; iCol < nCols; iCol++)
         {
@@ -512,10 +499,10 @@ SrvShareDbWriteToShareInfo(
                 {
                     if (!IsNullOrEmptyString(ppszResult[iVal]))
                     {
-                       dwError = SMBAllocateString(
+                       ntStatus = SMBMbsToWc16s(
                                        ppszResult[iVal],
-                                       &pShareInfo->pszName);
-                       BAIL_ON_SMB_ERROR(dwError);
+                                       &pShareInfo->pwszName);
+                       BAIL_ON_NT_STATUS(ntStatus);
                     }
                     break;
                 }
@@ -523,10 +510,10 @@ SrvShareDbWriteToShareInfo(
                 {
                     if (!IsNullOrEmptyString(ppszResult[iVal]))
                     {
-                       dwError = SMBAllocateString(
+                       ntStatus = SMBMbsToWc16s(
                                        ppszResult[iVal],
-                                       &pShareInfo->pszPath);
-                       BAIL_ON_SMB_ERROR(dwError);
+                                       &pShareInfo->pwszPath);
+                       BAIL_ON_NT_STATUS(ntStatus);
                     }
                     break;
                 }
@@ -534,10 +521,10 @@ SrvShareDbWriteToShareInfo(
                 {
                     if (!IsNullOrEmptyString(ppszResult[iVal]))
                     {
-                       dwError = SMBAllocateString(
+                       ntStatus = SMBMbsToWc16s(
                                        ppszResult[iVal],
-                                       &pShareInfo->pszComment);
-                       BAIL_ON_SMB_ERROR(dwError);
+                                       &pShareInfo->pwszComment);
+                       BAIL_ON_NT_STATUS(ntStatus);
                     }
                     break;
                 }
@@ -545,10 +532,10 @@ SrvShareDbWriteToShareInfo(
                 {
                     if (!IsNullOrEmptyString(ppszResult[iVal]))
                     {
-                       dwError = SMBAllocateString(
+                       ntStatus = SMBMbsToWc16s(
                                        ppszResult[iVal],
-                                       &pShareInfo->pszSID);
-                       BAIL_ON_SMB_ERROR(dwError);
+                                       &pShareInfo->pwszSID);
+                       BAIL_ON_NT_STATUS(ntStatus);
                     }
                     break;
                 }
@@ -561,59 +548,61 @@ SrvShareDbWriteToShareInfo(
     }
 
     *pppShareInfoList = ppShareInfoList;
-    *pdwNumSharesFound = dwNumSharesFound;
+    *pulNumSharesFound = ulNumSharesFound;
 
 cleanup:
 
-    return dwError;
+    if (pShareInfo)
+    {
+        SrvShareDbReleaseInfo(pShareInfo);
+    }
+
+    return ntStatus;
 
 error:
 
+    *pppShareInfoList = NULL;
+    *pulNumSharesFound = 0;
+
     if (ppShareInfoList)
     {
-        SrvFreeShareInfoList(
-                dwShareInfoLevel,
-                ppShareInfoList,
-                dwNumSharesFound);
+        SrvShareDbFreeInfoList(ppShareInfoList, ulNumSharesFound);
     }
-
-    if (pShareInfo)
-    {
-        SrvFreeShareInfo(dwShareInfoLevel, pShareInfo);
-    }
-
-    *pppShareInfoList = NULL;
-    *pdwNumSharesFound = 0;
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SrvShareDbDelete(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR  pszQuery = NULL;
     PSTR  pszError = NULL;
     BOOLEAN bInLock = FALSE;
 
-    BAIL_ON_INVALID_STRING(pszShareName);
+    if (IsNullOrEmptyString(pszShareName))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_3;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    SMB_SRV_LOCK_SHARE_DB_READ(bInLock);
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_DELETE_SHARE,
                     pszShareName);
 
-    dwError = sqlite3_exec(pDbHandle,
+    ntStatus = sqlite3_exec(pDbHandle,
                            pszQuery,
                            NULL,
                            NULL,
                            &pszError);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
@@ -627,9 +616,9 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    SMB_SRV_UNLOCK_SHARE_DB(bInLock);;
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -641,13 +630,14 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SrvShareDbGetCount(
-    HANDLE hDb,
-    PINT   pShareCount
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE  hDb,
+    PULONG  pulNumShares
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     INT   nShareCount = 0;
     int   nCols = 0;
     PSTR* ppszResult = NULL;
@@ -655,22 +645,23 @@ SrvShareDbGetCount(
     sqlite3* pDbHandle = (sqlite3*)hDb;
     BOOLEAN bInLock = FALSE;
 
-    SMB_SRV_LOCK_SHARE_DB_READ(bInLock);
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
 
-    dwError = sqlite3_get_table(pDbHandle,
+    ntStatus = sqlite3_get_table(pDbHandle,
                                 DB_QUERY_COUNT_EXISTING_SHARES,
                                 &ppszResult,
                                 &nShareCount,
                                 &nCols,
                                 &pszError);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (nCols != 1) {
-        dwError = SMB_ERROR_DATA_ERROR;
-        BAIL_ON_SMB_ERROR(dwError);
+    if (nCols != 1)
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *pShareCount = nShareCount;
+    *pulNumShares = nShareCount;
 
 cleanup:
 
@@ -683,13 +674,13 @@ cleanup:
        sqlite3_free(pszError);
     }
 
-    SMB_SRV_UNLOCK_SHARE_DB(bInLock);
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
-    *pShareCount = 0;
+    *pulNumShares = 0;
 
     if (pszError)
     {
@@ -700,7 +691,54 @@ error:
 }
 
 VOID
+SrvShareDbFreeInfoList(
+    PSHARE_DB_INFO* ppShareInfoList,
+    ULONG           ulNumShares
+    )
+{
+    ULONG iShare = 0;
+
+    for (; iShare < ulNumShares; iShare++)
+    {
+        PSHARE_DB_INFO pShareInfo = *(ppShareInfoList + iShare);
+
+        if (pShareInfo)
+        {
+            SrvShareDbReleaseInfo(pShareInfo);
+        }
+    }
+
+    SMBFreeMemory(ppShareInfoList);
+}
+
+VOID
+SrvShareDbReleaseInfo(
+    PSHARE_DB_INFO pShareInfo
+    )
+{
+    if (InterlockedDecrement(&pShareInfo->refcount) == 0)
+    {
+        SrvShareDbFreeInfo(pShareInfo);
+    }
+}
+
+static
+VOID
+SrvShareDbFreeInfo(
+    PSHARE_DB_INFO pShareInfo
+    )
+{
+    SMB_SAFE_FREE_MEMORY(pShareInfo->pwszName);
+    SMB_SAFE_FREE_MEMORY(pShareInfo->pwszPath);
+    SMB_SAFE_FREE_MEMORY(pShareInfo->pwszSID);
+    SMB_SAFE_FREE_MEMORY(pShareInfo->pwszComment);
+
+    SMBFreeMemory(pShareInfo);
+}
+
+VOID
 SrvShareDbClose(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb
     )
 {
@@ -712,9 +750,9 @@ SrvShareDbShutdown(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
     )
 {
-    if (pShareDBContext->pDbLock)
+    if (pShareDBContext->pMutex)
     {
-        pthread_rwlock_destroy(&pShareDBContext->dbLock);
-        pShareDBContext->pDbLock = NULL;
+        pthread_rwlock_destroy(&pShareDBContext->mutex);
+        pShareDBContext->pMutex = NULL;
     }
 }

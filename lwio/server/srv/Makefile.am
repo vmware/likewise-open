@@ -32,7 +32,7 @@ libsrv_sys_la_SOURCES = \
     srvlogoff.c       \
     srvnegotiate.c    \
     srvsessionsetup.c \
-    srvshareutil.c    \
+    srvsharelst.c     \
     srvsession.c      \
     srvsocket.c       \
     srvtcon.c         \

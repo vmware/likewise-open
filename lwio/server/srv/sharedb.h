@@ -33,15 +33,15 @@
  *
  * Module Name:
  *
- *        db.h
+ *        sharedb.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise IO (Srv) (LWIO-SRV)
  *
  *        Local Authentication Provider
  *
- *        User/Group Database Interface
+ *        Share Database Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -49,56 +49,72 @@
 #ifndef __SRVDB_H__
 #define __SRVDB_H__
 
-DWORD
+NTSTATUS
 SrvShareDbInit(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
     );
 
-DWORD
+NTSTATUS
 SrvShareDbOpen(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     PHANDLE phDb
     );
 
-DWORD
+NTSTATUS
 SrvShareDbFindByName(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName,
-    DWORD  dwShareInfoLevel,
-    PSHARE_INFO* ppShareInfo
+    PSHARE_DB_INFO* ppShareInfo
     );
 
-DWORD
+NTSTATUS
 SrvShareDbAdd(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
     PCSTR  pszComment
     );
 
-DWORD
+NTSTATUS
 SrvShareDbEnum(
-    HANDLE        hDb,
-    DWORD         dwOffset,
-    DWORD         dwLimit,
-    DWORD         dwShareInfoLevel,
-    PSHARE_INFO** pppShareInfoList,
-    PDWORD        pdwNumSharesFound
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE           hDb,
+    ULONG            ulOffset,
+    ULONG            ulLimit,
+    PSHARE_DB_INFO** pppShareInfoArray,
+    PULONG           pulNumSharesFound
     );
 
-DWORD
+NTSTATUS
 SrvShareDbDelete(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName
     );
 
-DWORD
+NTSTATUS
 SrvShareDbGetCount(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
-    PINT   pShareCount
+    PULONG pulNumShares
+    );
+
+VOID
+SrvShareDbFreeInfoList(
+    PSHARE_DB_INFO* ppShareInfoList,
+    ULONG           ulNumShares
+    );
+
+VOID
+SrvShareDbReleaseInfo(
+    PSHARE_DB_INFO pShareInfo
     );
 
 VOID
 SrvShareDbClose(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb
     );
 

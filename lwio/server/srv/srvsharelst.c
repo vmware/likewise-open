@@ -28,7 +28,178 @@
  * license@likewisesoftware.com
  */
 
-#include "iop.h"
+#include "includes.h"
+
+static
+int
+SrvShareCompare(
+    PVOID pShareInfo_1,
+    PVOID pShareInfo_2
+    );
+
+static
+VOID
+SrvShareRelease(
+    PVOID pShareInfo
+    );
+
+NTSTATUS
+SrvShareInitContextContents(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+    PSMB_RB_TREE pShareCollection = NULL;
+    PSHARE_DB_INFO* ppShareInfoList = NULL;
+    ULONG          ulOffset = 0;
+    ULONG          ulLimit  = 256;
+    ULONG          ulNumSharesFound = 0;
+    HANDLE         hDb = (HANDLE)NULL;
+
+    ntStatus = SrvShareDbInit(pDbContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+
+    ntStatus = SMBRBTreeCreate(
+                    &SrvShareCompare,
+                    &SrvShareRelease,
+                    &pShareCollection);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareDbOpen(
+                    pDbContext,
+                    &hDb);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    do
+    {
+        ULONG iShare = 0;
+
+        if (ppShareInfoList)
+        {
+            SrvShareDbFreeInfoList(ppShareInfoList, ulNumSharesFound);
+            ppShareInfoList = NULL;
+            ulNumSharesFound = 0;
+        }
+
+        ntStatus = SrvShareDbEnum(
+                        pDbContext,
+                        hDb,
+                        ulOffset,
+                        ulLimit,
+                        &ppShareInfoList,
+                        &ulNumSharesFound);
+        if (ntStatus == STATUS_NO_MORE_ENTRIES)
+        {
+            ntStatus = 0;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        for (; iShare < ulNumSharesFound; iShare++)
+        {
+            PSHARE_DB_INFO pShareInfo = *(ppShareInfoList + iShare);
+
+            ntStatus = SMBRBTreeAdd(
+                            pShareCollection,
+                            pShareInfo);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            InterlockedIncrement(&pShareInfo->refcount);
+        }
+
+        ulOffset += ulNumSharesFound;
+
+    } while (ulNumSharesFound);
+
+    pDbContext->pShareCollection = pShareCollection;
+
+cleanup:
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+
+    if (ppShareInfoList)
+    {
+        SrvShareDbFreeInfoList(ppShareInfoList, ulNumSharesFound);
+    }
+
+    if (hDb != (HANDLE)NULL)
+    {
+        SrvShareDbClose(pDbContext, hDb);
+    }
+
+    return ntStatus;
+
+error:
+
+    pDbContext->pShareCollection = NULL;
+
+    if (pShareCollection)
+    {
+        SMBRBTreeFree(pShareCollection);
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvShareFindShareByName(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PWSTR           pwszShareName,
+    PSHARE_DB_INFO* ppShareInfo
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+    PSHARE_DB_INFO pShareInfo = NULL;
+    SHARE_DB_INFO finder = {0};
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+
+    finder.pwszName = pwszShareName;
+
+    ntStatus = SMBRBTreeFind(
+                    pDbContext->pShareCollection,
+                    &finder,
+                    (PVOID*)&pShareInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    InterlockedIncrement(&pShareInfo->refcount);
+
+    *ppShareInfo = pShareInfo;
+
+cleanup:
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppShareInfo = NULL;
+
+    goto cleanup;
+}
+
+VOID
+SrvShareFreeContextContents(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
+
+    if (pDbContext->pShareCollection)
+    {
+        SMBRBTreeFree(pDbContext->pShareCollection);
+    }
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+
+    SrvShareDbShutdown(pDbContext);
+}
 
 NTSTATUS
 SrvDevCtlAddShare(
@@ -40,6 +211,7 @@ SrvDevCtlAddShare(
 {
     NTSTATUS ntStatus = 0;
 
+#if 0
 
     ntStatus = SrvUnmarshallInBuffer_AddShare(
                     lpInBuffer,
@@ -66,6 +238,8 @@ SrvDevCtlAddShare(
 
 error:
 
+#endif
+
     return(ntStatus);
 }
 
@@ -78,6 +252,8 @@ SrvDevCtlDeleteShare(
     )
 {
     NTSTATUS ntStatus = 0;
+
+#if 0
 
     ntStatus = SrvUnmarshallInBuffer_DeleteShare(
                     lpInBuffer,
@@ -103,6 +279,8 @@ SrvDevCtlDeleteShare(
 
 error:
 
+#endif
+
     return(ntStatus);
 }
 
@@ -115,6 +293,8 @@ SrvDevCtlEnumShares(
     )
 {
     NTSTATUS ntStatus = 0;
+
+#if 0
 
     ntStatus = SrvUnmarshallInBuffer_EnumShares(
                     lpInBuffer,
@@ -143,6 +323,8 @@ SrvDevCtlEnumShares(
 
 error:
 
+#endif
+
     return(ntStatus);
 }
 
@@ -155,6 +337,8 @@ SrvDevCtlSetShareInfo(
     )
 {
     NTSTATUS ntStatus = 0;
+
+#if 0
 
     ntStatus = SrvMarshallInBuffer_SetShareInfo(
                     lpInBuffer,
@@ -181,6 +365,8 @@ SrvDevCtlSetShareInfo(
 
 error:
 
+#endif
+
     return(ntStatus);
 }
 
@@ -193,6 +379,8 @@ SrvDevCtlGetShareInfo(
     )
 {
     NTSTATUS ntStatus = 0;
+
+#if 0
 
     ntStatus = SrvMarshallInBuffer_GetShareInfo(
                     lpInBuffer,
@@ -219,19 +407,12 @@ SrvDevCtlGetShareInfo(
 
 error:
 
-    return(ntStatus);
-}
-
-NTSTATUS
-SrvInitializeShareList(
-    )
-{
-    NTSTATUS status = 0;
+#endif
 
     return(ntStatus);
 }
 
-
+#if 0
 NTSTATUS
 SrvFindShareinList(
     PWSTR pszShareName
@@ -251,15 +432,18 @@ SrvFindShareinList(
     *ppShareEntry = NULL;
     return (ntStatus);
 }
-
+#endif
 
 NTSTATUS
 SrvShareAddShare(
-    LPWSTR pszShareName,
-    DWORD dwLevel,
-    LPVOID pBuffer
+    PWSTR  pwszShareName,
+    DWORD  dwInfoLevel,
+    PVOID  pBuffer
     )
 {
+    NTSTATUS ntStatus = 0;
+
+#if 0
 
     ENTER_WRITER_LOCK();
 
@@ -286,15 +470,20 @@ error:
 
     LEAVE_WRITER_LOCK();
 
+#endif
+
     return(ntStatus);
 }
 
 
 NTSTATUS
 SrvShareDeleteShare(
-    LPWSTR pszShareName
+    PWSTR pszShareName
     )
 {
+    NTSTATUS ntStatus = 0;
+
+#if 0
 
     ENTER_WRITER_LOCK();
 
@@ -316,18 +505,21 @@ error:
 
     LEAvE_WRITER_LOCK();
 
-    return(ntStatus);
+#endif
 
+    return(ntStatus);
 }
 
 NTSTATUS
 SrvShareSetInfo(
-    LPWSTR pszShareName,
+    PWSTR pszShareName,
     DWORD dwLevel,
-    LPVOID pBuffer
+    PVOID pBuffer
     )
 {
     NTSTATUS ntStatus = 0;
+
+#if 0
 
     ntStatus = ValidateShareInfo(
                     dwLevel,
@@ -380,8 +572,9 @@ error:
 
     LEAVE_WRITER_LOCK();
 
-    return(ntStatus);
+#endif
 
+    return(ntStatus);
 }
 
 
@@ -389,11 +582,13 @@ NTSTATUS
 SrvShareGetInfo(
     PWSTR pszShareName,
     DWORD dwLevel,
-    PBUFFER pOutBuffer,
+    PBYTE pOutBuffer,
     DWORD dwOutBufferSize
     )
 {
     NTSTATUS ntStatus = 0;
+
+#if 0
 
     ENTER_READER_LOCK();
 
@@ -428,8 +623,9 @@ SrvShareGetInfo(
 error:
     LEAVE_READER_LOCK();
 
-    return(ntStatus);
+#endif
 
+    return(ntStatus);
 }
 
 
@@ -442,6 +638,7 @@ SrvShareEnumShares(
 {
     NTSTATUS ntStatus = 0;
 
+#if 0
 
     ntStatus = ValidateServerSecurity(
                         hAccessToken,
@@ -596,10 +793,12 @@ error:
 
     LEAVE_READER_LOCK();
 
+#endif
 
     return(ntStatus);
 }
 
+#if 0
 
 NTSTATUS
 SrvCreateShareEntry(
@@ -608,7 +807,7 @@ SrvCreateShareEntry(
     PWSTR pszComment,
     PBYTE pSecurityDescriptor,
     DWORD dwSDSize,
-    DWORD dwFlags
+    DWORD dwFlags,
     PSRV_SHARE_ENTRY * ppShareEntry
     )
 {
@@ -663,16 +862,31 @@ error:
 
     return(ntStatus);
 }
+#endif
 
-
-NTSTATUS
-SrvLoadSharesFromDatabase(
+static
+int
+SrvShareCompare(
+    PVOID pShareInfo_1,
+    PVOID pShareInfo_2
     )
 {
-    NTSTATUS ntStatus = 0;
-
-
-
-    return(ntStatus);
-
+    return wc16scmp(
+                ((PSHARE_DB_INFO)pShareInfo_1)->pwszName,
+                ((PSHARE_DB_INFO)pShareInfo_2)->pwszName);
 }
+
+static
+VOID
+SrvShareRelease(
+    PVOID pShareInfo
+    )
+{
+    PSHARE_DB_INFO pInfo = (PSHARE_DB_INFO)pShareInfo;
+
+    if (InterlockedDecrement(&pInfo->refcount) == 0)
+    {
+        SrvShareDbReleaseInfo(pInfo);
+    }
+}
+

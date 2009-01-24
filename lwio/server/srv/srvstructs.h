@@ -58,18 +58,25 @@ typedef struct _SMB_SRV_CONFIG
 
 } SMB_SRV_CONFIG, *PSMB_SRV_CONFIG;
 
-typedef struct _SHARE_INFO
+typedef struct _SHARE_DB_INFO
 {
-    PSTR pszName;
-    PSTR pszPath;
-    PSTR pszComment;
-    PSTR pszSID;
-} SHARE_INFO, *PSHARE_INFO;
+    LONG refcount;
+
+    PWSTR pwszName;
+    PWSTR pwszPath;
+    PWSTR pwszComment;
+    PWSTR pwszSID;
+
+    BOOLEAN bMarkedForDeletion;
+
+} SHARE_DB_INFO, *PSHARE_DB_INFO;
 
 typedef struct _SMB_SRV_SHARE_DB_CONTEXT
 {
-    pthread_rwlock_t  dbLock;
-    pthread_rwlock_t* pDbLock;
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PSMB_RB_TREE pShareCollection;
 
 } SMB_SRV_SHARE_DB_CONTEXT, *PSMB_SRV_SHARE_DB_CONTEXT;
 

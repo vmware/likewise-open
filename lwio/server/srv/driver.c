@@ -227,7 +227,7 @@ SrvInitialize(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvShareDbInit(&gSMBSrvGlobals.shareDBContext);
+    ntStatus = SrvShareInitContextContents(&gSMBSrvGlobals.shareDBContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
@@ -338,7 +338,7 @@ SrvShutdown(
 
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
 
-        SrvShareDbShutdown(&gSMBSrvGlobals.shareDBContext);
+        SrvShareFreeContextContents(&gSMBSrvGlobals.shareDBContext);
 
         if (gSMBSrvGlobals.hPacketAllocator)
         {
