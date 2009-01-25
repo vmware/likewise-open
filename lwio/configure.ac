@@ -474,6 +474,8 @@ AC_CONFIG_FILES([Makefile
         tests/test_npclient_transactnp/Makefile
         tests/test_pvfs/Makefile
         tests/tcon/Makefile
-        tests/transactnp/Makefile])
+        tests/transactnp/Makefile
+        scripts/Makefile
+        scripts/lwnet])
 
 AC_OUTPUT

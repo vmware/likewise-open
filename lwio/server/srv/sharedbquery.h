@@ -54,7 +54,7 @@
                           path    text,                 \
                           comment text  collate nocase, \
                           sid     text nocase,          \
-                          unique (name, path),          \
+                          unique (name, path)           \
                           )"
 
 #define DB_QUERY_LOOKUP_SHARE_BY_NAME  \
