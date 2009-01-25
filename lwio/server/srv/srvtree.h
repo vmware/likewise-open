@@ -4,6 +4,7 @@
 NTSTATUS
 SrvTreeCreate(
     PSRV_ID_ALLOCATOR pIdAllocator,
+    PSHARE_DB_INFO    pShareInfo,
     PSMB_SRV_TREE*    ppTree
     );
 

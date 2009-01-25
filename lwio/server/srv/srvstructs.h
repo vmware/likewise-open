@@ -201,6 +201,8 @@ typedef struct _SMB_SRV_TREE
 
     USHORT            tid;
 
+    PSHARE_DB_INFO    pShareInfo;
+
     PSRV_ID_ALLOCATOR pFileIdAllocator;
     PSMB_RB_TREE      pFileCollection;
 

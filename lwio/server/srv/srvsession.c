@@ -150,6 +150,7 @@ error:
 NTSTATUS
 SrvSessionCreateTree(
     PSMB_SRV_SESSION pSession,
+    PSHARE_DB_INFO   pShareInfo,
     PSMB_SRV_TREE*   ppTree
     )
 {
@@ -159,6 +160,7 @@ SrvSessionCreateTree(
 
     ntStatus = SrvTreeCreate(
                     pSession->pTreeIdAllocator,
+                    pShareInfo,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 

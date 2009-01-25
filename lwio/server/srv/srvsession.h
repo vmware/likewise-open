@@ -23,6 +23,7 @@ SrvSessionRemoveTree(
 NTSTATUS
 SrvSessionCreateTree(
     PSMB_SRV_SESSION pSession,
+    PSHARE_DB_INFO   pShareInfo,
     PSMB_SRV_TREE*   ppTree
     );
 

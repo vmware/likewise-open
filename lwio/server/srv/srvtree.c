@@ -22,6 +22,7 @@ SrvTreeFree(
 NTSTATUS
 SrvTreeCreate(
     PSRV_ID_ALLOCATOR pIdAllocator,
+    PSHARE_DB_INFO    pShareInfo,
     PSMB_SRV_TREE*    ppTree
     )
 {
@@ -48,6 +49,9 @@ SrvTreeCreate(
 
     pTree->pTreeIdAllocator = pIdAllocator;
     InterlockedIncrement(&pIdAllocator->refcount);
+
+    pTree->pShareInfo = pShareInfo;
+    InterlockedIncrement(&pShareInfo->refcount);
 
     ntStatus = SrvIdAllocatorCreate(
                     UINT16_MAX,
@@ -237,6 +241,11 @@ SrvTreeFree(
     {
         SrvIdAllocatorRelease(
                 pTree->pFileIdAllocator);
+    }
+
+    if (pTree->pShareInfo)
+    {
+        SrvShareDbReleaseInfo(pTree->pShareInfo);
     }
 
     SMBFreeMemory(pTree);
