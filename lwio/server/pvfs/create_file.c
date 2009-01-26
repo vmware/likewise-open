@@ -127,7 +127,7 @@ PvfsCreateFile(
         ntError = STATUS_INVALID_PARAMETER;
         break;
     }
-    PVFS_BAIL_ON_NTSTATUS_ERROR(ntError);
+    BAIL_ON_NT_STATUS(ntError);
 
 
 cleanup:
@@ -161,7 +161,38 @@ PvfsCreateFileCreate(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    IO_FILE_NAME fileName = pIrp->Args.Create.FileName;
+    PSTR pszFilename = NULL;
+    int fd = -1;
+    PPVFS_CCB pCcb = NULL;
+
+    ntError = RtlCStringAllocateFromWC16String(&pszFilename,
+                                               fileName.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCcb = RtlMemoryAllocate(sizeof(*pCcb));
+    PVFS_BAIL_ON_NULL_PTR(pCcb, ntError);
+
+
+    /* Map the create options */
+
+
+cleanup:
+    return ntError;
+
+error:
+    if (fd != -1)
+    {
+        // Need to remove the file as well
+        close(fd);
+    }
+
+    PVFS_SAFE_FREE_MEMORY(pCcb);
+    PVFS_SAFE_FREE_MEMORY(pszFilename);
+
+    goto cleanup;
 }
 
 /**
