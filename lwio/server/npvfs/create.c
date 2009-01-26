@@ -133,499 +133,66 @@ NpfsCommonCreate(
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE FileHandle;
-    //PIO_FILE_NAME FileName;
-    ACCESS_MASK DesiredAccess;
-    LONG64 AllocationSize;
-    //FILE_ATTRIBUTES FileAttributes;
-    FILE_SHARE_FLAGS ShareAccess;
-    FILE_CREATE_DISPOSITION CreateDisposition;
-    FILE_CREATE_OPTIONS CreateOptions;
-
-    FileHandle = pIrp->FileHandle;
-    DesiredAccess = pIrp->Args.Create.DesiredAccess;
-    AllocationSize = pIrp->Args.Create.AllocationSize;
-    ShareAccess = pIrp->Args.Create.ShareAccess;
-    CreateDisposition = pIrp->Args.Create.CreateDisposition;
-    CreateOptions = pIrp->Args.Create.CreateOptions;
-
-    if (CreateOptions & FILE_DIRECTORY_FILE) {
-
-            ntStatus = NpfsCommonCreateDirectory(
-                            pIrpContext,
-                            pIrp
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-    }else {
-
-        ntStatus = NpfsCommonCreateFile(
-                            pIrpContext,
-                            pIrp
-                            );
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateFile(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    UNICODE_STRING RootPathName;
-    UNICODE_STRING RelativePathName;
-    UNICODE_STRING AbsolutePathName;
-    //IO_FILE_HANDLE hFileHandle = NULL;
-    FILE_CREATE_DISPOSITION CreateDisposition = 0;
-
-    ntStatus = NpfsBuildAbsolutePathName(
-                        RootPathName,
-                        RelativePathName,
-                        AbsolutePathName
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pIrpContext->RootPathName = RootPathName;
-    pIrpContext->RelativePathName = RelativePathName;
-    pIrpContext->AbsolutePathName = AbsolutePathName;
-
-    switch (CreateDisposition){
-
-        case FILE_SUPERSEDE:
-                ntStatus = NpfsCommonCreateFileSupersede(
-                                pIrpContext,
-                                pIrp
-                                );
-                break;
-
-        case FILE_CREATE:
-                ntStatus = NpfsCommonCreateFileCreate(
-                                    pIrpContext,
-                                    pIrp
-                                    );
-                break;
-
-        case FILE_OPEN:
-                ntStatus = NpfsCommonCreateFileOpen(
-                                    pIrpContext,
-                                    pIrp
-                                    );
-                break;
-
-        case FILE_OPEN_IF:
-                ntStatus = NpfsCommonCreateFileOpenIf(
-                                pIrpContext,
-                                pIrp
-                                );
-                break;
-
-        case FILE_OVERWRITE:
-                ntStatus = NpfsCommonCreateFileOverwrite(
-                                pIrpContext,
-                                pIrp
-                                );
-                break;
-
-        case FILE_OVERWRITE_IF:
-                ntStatus = NpfsCommonCreateFileOverwriteIf(
-                                    pIrpContext,
-                                    pIrp
-                                    );
-                break;
-    }
-
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsBuildAbsolutePathName(
-    UNICODE_STRING RootPathName,
-    UNICODE_STRING RelativePathName,
-    UNICODE_STRING AbsolutePathName
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsGetFilePathName(
-    IO_FILE_HANDLE hFileHandle,
-    UNICODE_STRING PathName
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateFileSupersede(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-	IO_FILE_HANDLE hFileHandle = NULL;
+    //IO_FILE_HANDLE FileHandle;
+    PWSTR pszPipeName = NULL;
+    PNPFS_FCB pFCB = NULL;
+    PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pCCB = NULL;
 
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-	ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateFileCreate(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateFileOpen(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-	ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateFileOpenIf(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-	IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-	ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateFileOverwrite(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-	IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
-
-    return(ntStatus);
-
-}
-
-NTSTATUS
-NpfsCommonCreateFileOverwriteIf(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-	IO_FILE_HANDLE hFileHandle = NULL;
-	PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
-
-    return(ntStatus);
-}
-
-
-NTSTATUS
-NpfsCommonCreateDirectory(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    UNICODE_STRING RootPathName;
-    UNICODE_STRING RelativePathName;
-    UNICODE_STRING AbsolutePathName;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    FILE_CREATE_DISPOSITION CreateDisposition = 0;
-
-    ntStatus = NpfsGetFilePathName(
-                    hFileHandle,
-                    RootPathName
+    ntStatus = NpfsValidateCreateOptions(
+                    pIrpContext,
+                    &pszPipeName
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsBuildAbsolutePathName(
-                        RootPathName,
-                        RelativePathName,
-                        AbsolutePathName
-                        );
+
+    ENTER_WRITER_RW_LOCK(&gServerLock);
+
+    ntStatus = NpfsFindFCB(
+                    pszPipeName,
+                    &pFCB
+                    );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (CreateDisposition){
+    ntStatus = NpfsFindAvailablePipe(
+                    pFCB,
+                    &pPipe
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        case FILE_SUPERSEDE:
-                ntStatus = NpfsCommonCreateDirectoryFileSupersede(
-                                pIrpContext,
-                                pIrp
-                                );
-                break;
+    ntStatus = NpfsClientCreateCCB(
+                    pIrpContext,
+                    &pCCB
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        case FILE_CREATE:
-                ntStatus = NpfsCommonCreateDirectoryFileCreate(
-                                    pIrpContext,
-                                    pIrp
-                                    );
-                break;
+    pPipe->pCCB = pCCB;
+    pPipe->PipeClientState =  PIPE_CLIENT_CONNECTED;
+    pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
+    pCCB->pPipe = pPipe;
 
-        case FILE_OPEN:
-                ntStatus = NpfsCommonCreateDirectoryFileOpen(
-                                    pIrpContext,
-                                    pIrp
-                                    );
-                break;
+    //
+    // Now set the condition queue to trigger the
+    // waiting ConnectNamedPipe on the SCB
+    //
+    //IoFileSetContext(FileHandle, pCCB);
 
-        case FILE_OPEN_IF:
-                ntStatus = NpfsCommonCreateDirectoryFileOpenIf(
-                                pIrpContext,
-                                pIrp
-                                );
-                break;
-
-        case FILE_OVERWRITE:
-                ntStatus = NpfsCommonCreateDirectoryFileOverwrite(
-                                pIrpContext,
-                                pIrp
-                                );
-                break;
-
-        case FILE_OVERWRITE_IF:
-                ntStatus = NpfsCommonCreateDirectoryFileOverwriteIf(
-                                    pIrpContext,
-                                    pIrp
-                                    );
-                break;
-    }
 
 error:
 
-    return(ntStatus);
-}
-
-
-NTSTATUS
-NpfsCommonCreateDirectoryFileSupersede(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
+    LEAVE_WRITER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
 }
 
 NTSTATUS
-NpfsCommonCreateDirectoryFileCreate(
+NpfsValidateCreateOptions(
     PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
+    PWSTR * ppszPipeName
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
 
     return(ntStatus);
 }
-
-NTSTATUS
-NpfsCommonCreateDirectoryFileOpen(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateDirectoryFileOpenIf(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateDirectoryFileOverwrite(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-	//
-	//
-	//
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-
-    return(ntStatus);
-error:
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsCommonCreateDirectoryFileOverwriteIf(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE hFileHandle = NULL;
-    PNPFS_CCB pCCB = NULL;
-
-    hFileHandle = pIrpContext->pIrp->FileHandle;
-    ntStatus = NpfsAllocateCCB(&pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoFileSetContext(hFileHandle, pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    return(ntStatus);
-error:
-
-    return(ntStatus);
-}
-
 

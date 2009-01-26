@@ -80,5 +80,180 @@ NpfsCommonRead(
     )
 {
     NTSTATUS ntStatus = 0;
+    PNPFS_CCB pCCB = NULL;
+
+    ntStatus = NpfsReadFile(
+                    pCCB,
+                    pIrpContext
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+
+error:
+
+    return(ntStatus);
+}
+
+
+
+NTSTATUS
+NpfsReadFile(
+    PNPFS_CCB pCCB,
+    PNPFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    switch(pCCB->CcbType) {
+
+        case NPFS_CCB_SERVER:
+            ntStatus = NpfsServerReadFile(
+                            pCCB,
+                            pIrpContext
+                            );
+            BAIL_ON_NT_STATUS(ntStatus);
+            break;
+
+        case NPFS_CCB_CLIENT:
+            ntStatus = NpfsClientReadFile(
+                            pCCB,
+                            pIrpContext
+                            );
+            BAIL_ON_NT_STATUS(ntStatus);
+            break;
+    }
+
+error:
+    return(ntStatus);
+}
+
+
+NTSTATUS
+NpfsServerReadFile(
+    PNPFS_CCB pSCB,
+    PNPFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+    PNPFS_CCB pCCB = NULL;
+
+    ENTER_READER_RW_LOCK(&gServerLock);
+    pPipe = pCCB->pPipe;
+    ENTER_READER_RW_LOCK(&pPipe->Mutex);
+
+    switch(pPipe->PipeServerState) {
+
+        case PIPE_SERVER_CONNECTED:
+                ntStatus = NpfsServerReadFile_Connected(
+                                pSCB,
+                                pIrpContext
+                                );
+                BAIL_ON_NT_STATUS(ntStatus);
+                break;
+
+
+        case PIPE_SERVER_DISCONNECTED:
+                break;
+
+        case PIPE_SERVER_CREATED:
+        case PIPE_SERVER_WAITING_FOR_CONNECTION:
+                break;
+
+    }
+
+error:
+
+    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_READER_RW_LOCK(&gServerLock);
+
+    return(ntStatus);
+}
+
+NTSTATUS
+NpfsServerReadFile_Connected(
+    PNPFS_CCB pSCB,
+    PNPFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PVOID pBuffer = NULL;
+    ULONG Length = 0;
+
+    ENTER_WRITER_RW_LOCK(&pSCB->InBoundMutex);
+
+    ntStatus = NpfsDequeueBuffer(
+                        pSCB->pMdlList,
+                        pBuffer,
+                        Length,
+                        &pSCB->pMdlList
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return(ntStatus);
+}
+
+NTSTATUS
+NpfsClientReadFile(
+    PNPFS_CCB pCCB,
+    PNPFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+
+    ENTER_READER_RW_LOCK(&gServerLock);
+    pPipe = pCCB->pPipe;
+    ENTER_READER_RW_LOCK(&pPipe->Mutex);
+
+    switch(pPipe->PipeClientState) {
+
+        case PIPE_CLIENT_CONNECTED:
+            ntStatus = NpfsClientReadFile_Connected(
+                            pCCB,
+                            pIrpContext
+                            );
+            BAIL_ON_NT_STATUS(ntStatus);
+
+        case PIPE_SERVER_DISCONNECTED:
+            //ntStatus = STATUS_PIPE_BROKEN;
+            break;
+    }
+
+error:
+
+    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_READER_RW_LOCK(&gServerLock);
+
+    return(ntStatus);
+}
+
+
+NTSTATUS
+NpfsClientReadFile_Connected(
+    PNPFS_CCB pCCB,
+    PNPFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PVOID pBuffer = NULL;
+    ULONG Length = 0;
+
+    ENTER_WRITER_RW_LOCK(&pCCB->InBoundMutex);
+
+    ntStatus = NpfsDequeueBuffer(
+                        pCCB->pMdlList,
+                        pBuffer,
+                        Length,
+                        &pCCB->pMdlList
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    LEAVE_WRITER_RW_LOCK(&pCCB->InBoundMutex);
+
     return(ntStatus);
 }

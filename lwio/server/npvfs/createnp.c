@@ -28,44 +28,179 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        namedpipe.c
+ *        create.c
  *
  * Abstract:
  *
+ *        Likewise Posix File System Driver (NPFS)
  *
+ *       CreateNamedPipe Dispatch Routine
  *
- * Authors: Krishna Ganugapati (dalmeida@likewise.com)
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *
  */
 
-#include "includes.h"
+#include "npfs.h"
 
 NTSTATUS
 NpfsCreateNamedPipe(
-    IN PIRP pIrp
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
     )
 {
-    NTntStatus ntStatus = STATUS_NOT_IMPLEMENTED;
-    int EE = 0;
-    UNICODE_STRING path = { 0 };
+    NTSTATUS ntStatus = 0;
+    PNPFS_IRP_CONTEXT pIrpContext = NULL;
+
+    ntStatus = NpfsAllocateIrpContext(
+                        pIrp,
+                        &pIrpContext
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsCommonCreateNamedPipe(pIrpContext, pIrp);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return ntStatus;
+}
+
+
+
+NTSTATUS
+NpfsAllocateIrpContext(
+    PIRP pIrp,
+    PNPFS_IRP_CONTEXT * ppIrpContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_IRP_CONTEXT pIrpContext = NULL;
+
+    ntStatus = IO_ALLOCATE(&pIrpContext, NPFS_IRP_CONTEXT, sizeof(*pIrpContext));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pIrpContext->pIrp = pIrp;
+
+    *ppIrpContext = pIrpContext;
+
+    return(ntStatus);
+
+error:
+
+    *ppIrpContext = NULL;
+    return(ntStatus);
+}
+
+
+NTSTATUS
+NpfsAllocateCCB(
+    PNPFS_CCB *ppCCB
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_CCB pCCB = NULL;
+
+   /* ntStatus = IoMemoryAllocate(
+                    sizeof(NPFS_CCB),
+                    &pCCB
+                    );*/
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppCCB = pCCB;
+
+    return(ntStatus);
+
+error:
+
+    *ppCCB = NULL;
+
+    return(ntStatus);
+}
+
+
+
+NTSTATUS
+NpfsCommonCreateNamedPipe(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE FileHandle;
+    UNICODE_STRING  PathName = {0};
+
+    ntStatus = ValidCreateNamedPipeOptions(
+                    pIrpContext,
+                    &PathName
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ENTER_WRITER_RW_LOCK(&gServerLock);
+
+    ntStatus = NpfsFindFCB(
+                    &PathName,
+                    &pFCB
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsFindAvailablePipe(
+                    pFCB,
+                    &pPipe
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsClientCreateCCB(
+                    pIrpContext,
+                    &pCCB
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pPipe->pCCB = pCCB;
+    pPipe->PipeClientState =  PIPE_CLIENT_CONNECTED;
+    pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
+    pCCB->pPipe = pPipe;
+
+    //
+    // Now set the condition queue to trigger the
+    // waiting ConnectNamedPipe on the SCB
+    //
+
+error:
+
+    LEAVE_WRITER_RW_LOCK(&gServerLock);
+
+    return(ntStatus);
+}
+
+
+NTSTATUS
+NpfsValidateCreateNamedPipe(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PUNICODE_STRING  pPath
+    )
+{
+    NTSTATUS ntStatus = 0;
     UNICODE_STRING prefixPath = { 0 };
     UNICODE_STRING allowPrefix = { 0 };
     PIT_CCB pCcb = NULL;
     PIO_ECP_NAMED_PIPE pipeParams = NULL;
     ULONG ecpSize = 0;
 
-    if (!pIrp->Args.Create.EcpList)
+    if (!pIrpContext->pIrp->Args.Create.EcpList)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntntStatus);
     }
 
     ntStatus = IoRtlEcpListFind(
-                    pIrp->Args.Create.EcpList,
+                    pIrpContext->pIrp->Args.Create.EcpList,
                     IO_ECP_TYPE_NAMED_PIPE,
                     (PVOID*)&pipeParams,
                     &ecpSize);
@@ -81,47 +216,9 @@ NpfsCreateNamedPipe(
         BAIL_ON_NT_STATUS(ntntStatus);
     }
 
-    RtlUnicodeStringInit(&path, pIrp->Args.Create.FileName.FileName);
+    RtlUnicodeStringInit(&pPath, pIrp->Args.Create.FileName.FileName);
 
-    ntStatus = RtlUnicodeStringAllocateFromCString(&allowPrefix, IOTEST_INTERNAL_PATH_NAMED_PIPE);
-    BAIL_ON_NT_STATUS(ntStatus);
+error:
 
-    // TODO -- Add some IoRtlPath prefix functions...
-    if (path.Length <= allowPrefix.Length || !IoRtlPathIsSeparator((path.Buffer[allowPrefix.Length/sizeof(allowPrefix.Buffer[0])])))
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntntStatus);
-    }
-
-    prefixPath.Buffer = path.Buffer;
-    prefixPath.Length = allowPrefix.Length;
-    prefixPath.MaximumLength = prefixPath.Length;
-
-    // Only succeed for the given prefix.
-    if (!RtlUnicodeStringIsEqual(&prefixPath, &allowPrefix, FALSE))
-    {
-        ntStatus = STATUS_UNSUCCESSFUL;
-        BAIL_ON_NT_STATUS(ntntStatus);
-    }
-
-    // Would have to check whether pipe already exists, etc.
-
-    ntStatus = NpfsCreateCcb(&pCcb, &path);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pCcb->IsNamedPipe = TRUE;
-
-    ntStatus = IoFileSetContext(pIrp->FileHandle, pCcb);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pCcb = NULL;
-
-cleanup:
-    NpfsDestroyCcb(&pCcb);
-    RtlUnicodeStringFree(&allowPrefix);
-
-    pIrp->IontStatusBlock.ntStatus = ntStatus;
-
-    LOG_LEAVE_IF_STATUS_EE(ntStatus);
     return ntStatus;
 }

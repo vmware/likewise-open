@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,113 +28,78 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes
+ *        create.c
  *
  * Abstract:
  *
- *        Likewise Posix File System (SMBSS)
+ *        Likewise Posix File System Driver (NPFS)
  *
- *        Service Entry API
+ *       Create Dispatch Routine
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-#ifndef __PVFS_H__
-#define __PVFS_H__
 
-#include "config.h"
-#include "lwiosys.h"
-
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
-
-#include "iodriver.h"
-
-#include "lwioutils.h"
-#include "structs.h"
+#include "npfs.h"
 
 NTSTATUS
-NpfsCreate(
+NpfsConnectNamedPipe(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
-    );
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_IRP_CONTEXT pIrpContext = NULL;
+
+    ntStatus = NpfsAllocateIrpContext(
+                        pIrp,
+                        &pIrpContext
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsCommonConnectNamedPipe(pIrpContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return ntStatus;
+}
 
 NTSTATUS
-NpfsDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
+NpfsCommonConnectNamedPipe(
+    PNPFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    IO_FILE_HANDLE FileHandle;
+    PNPFS_PIPE pPipe = NULL;
 
-NTSTATUS
-NpfsFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
+    ntStatus = ValidConnectNPOptions(
+                    pIrpContext
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-NTSTATUS
-NpfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
+    ENTER_WRITER_RW_LOCK(&gServerLock);
 
+    pPipe = pSCB->pPipe;
+    pPipe->PipeServerState = PIPE_SERVER_WAITING;
 
-NTSTATUS
-NpfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
+    LEAVE_WRITER_RW_LOCK(&gServerLock);
 
-NTSTATUS
-NpfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
-    );
+    //
+    // Now block on  the condition queue
+    // waiting for a CreateFile from a client
+    //
 
-NTSTATUS
-NpfsQueryInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
+error:
 
-NTSTATUS
-NpfsSetInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-#include "create.h"
-#include "close.h"
-
-#define ENTER_READER_RW_LOCK(pMutex)
-
-#define LEAVE_READER_RW_LOCK(pMutex)
-
-#define ENTER_WRITER_RW_LOCK(pMutex)
-
-#define LEAVE_WRITER_RW_LOCK(pMutex)
-
-#define SERVER_CCB          1
-#define CLIENT_CCB          2
-
-#define NPFS_CCB_SERVER     1
-#define NPFS_CCB_CLIENT     2
-
-#define PIPE_SERVER_CLOSED      1
-#define PIPE_CLIENT_CLOSED      2
-#define PIPE_CLIENT_CONNECTED   3
-#define PIPE_SERVER_CONNECTED   4
-#define PIPE_SERVER_DISCONNECTED 5
-#define PIPE_SERVER_CREATED     6
-#define PIPE_SERVER_WAITING_FOR_CONNECTION  7
-
-#include "prototypes.h"
-
-#endif /* __PVFS_H__ */
-
-
+    return(ntStatus);
+}
 

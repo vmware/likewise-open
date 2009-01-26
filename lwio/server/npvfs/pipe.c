@@ -50,6 +50,18 @@
 #include "npfs.h"
 
 NTSTATUS
+NpfsFindAvailablePipe(
+    PNPFS_FCB pFCB,
+    PNPFS_PIPE * ppPipe
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+
+NTSTATUS
 NpfsFreePipeContext(
     PNPFS_PIPE pPipe
     )

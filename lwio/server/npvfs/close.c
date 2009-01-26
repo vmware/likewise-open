@@ -161,7 +161,7 @@ NpfsServerFreeCCB(
     NTSTATUS ntStatus = 0;
 
     ntStatus = NpfsFreeMdlList(
-                    pSCB->MdlList
+                    pSCB->pMdlList
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -182,7 +182,7 @@ NpfsClientFreeCCB(
     NTSTATUS ntStatus = 0;
 
     ntStatus = NpfsFreeMdlList(
-                    pCCB->MdlList
+                    pCCB->pMdlList
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 

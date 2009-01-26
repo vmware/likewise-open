@@ -37,6 +37,23 @@ error:
 }
 
 NTSTATUS
+NpfsDequeueBuffer(
+    PNPFS_MDL pMdlList,
+    PVOID pBuffer,
+    ULONG Length,
+    PNPFS_MDL * ppMdlList
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+
+
+
+
+NTSTATUS
 NpfsCreateMdl(
     ULONG Length,
     PVOID pBuffer,
