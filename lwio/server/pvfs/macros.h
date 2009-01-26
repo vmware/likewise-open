@@ -51,29 +51,6 @@
 
 /* Error checking macros */
 
-#define PVFS_BAIL_ON_NULL_PTR(x, err)   \
-    do {                                \
-        if ((x) == NULL) {              \
-            err = STATUS_NO_MEMORY;     \
-            goto error;                 \
-        }                               \
-    } while(0);                         \
-
-#define PVFS_BAIL_ON_NTSTATUS_ERROR(err)                 \
-    do {                                               \
-        if ((err) != STATUS_SUCCESS) {                 \
-            goto error;                                \
-        }                                              \
-    } while (0);
-
-#define PVFS_BAIL_ON_NULL_PTR_PARAM(ptr, err)          \
-    do {                                               \
-        if ((ptr) == NULL) {                           \
-            erro = STATUS_INVALID_PARAMETER;           \
-            goto error;                                \
-        }                                              \
-    } while (0);
-
 
 /* Memory Macros */
 

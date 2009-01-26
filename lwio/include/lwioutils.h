@@ -114,6 +114,22 @@
        goto error;                                 \
     }
 
+#define BAIL_ON_NULL_PTR(x, err)   \
+    do {                                \
+        if ((x) == NULL) {              \
+            err = STATUS_NO_MEMORY;     \
+            goto error;                 \
+        }                               \
+    } while(0);                         \
+
+#define BAIL_ON_INVALID_PTR(ptr, err)		       \
+    do {                                               \
+        if ((ptr) == NULL) {                           \
+            erro = STATUS_INVALID_PARAMETER;           \
+            goto error;                                \
+        }                                              \
+    } while (0);
+
 #define GOTO_CLEANUP_ON_SMB_ERROR(error) \
     _GOTO_CLEANUP_ON_NONZERO(error)
 
