@@ -50,6 +50,7 @@ LsaHashCreate(
         LSA_HASH_KEY_COMPARE fnComparator,
         LSA_HASH_KEY fnHash,
         LSA_HASH_FREE_ENTRY fnFree, //optional
+        LSA_HASH_COPY_ENTRY fnCopy, //optional
         LSA_HASH_TABLE** ppResult)
 {
     LSA_HASH_TABLE *pResult = NULL;
@@ -65,6 +66,7 @@ LsaHashCreate(
     pResult->fnComparator = fnComparator;
     pResult->fnHash = fnHash;
     pResult->fnFree = fnFree;
+    pResult->fnCopy = fnCopy;
 
     dwError = LsaAllocateMemory(
                     sizeof(*pResult->ppEntries) * sTableSize,
@@ -220,6 +222,72 @@ LsaHashExists(
 {
     DWORD dwError = LsaHashGetValue(pTable, pKey, NULL);
     return (LSA_ERROR_SUCCESS == dwError) ? TRUE : FALSE;
+}
+
+DWORD
+LsaHashCopy(
+    IN  LSA_HASH_TABLE *pTable,
+    OUT LSA_HASH_TABLE **ppResult
+    )
+{
+    DWORD             dwError = LSA_ERROR_SUCCESS;
+    LSA_HASH_ITERATOR iterator;
+    LSA_HASH_ENTRY    EntryCopy;
+    LSA_HASH_ENTRY    *pEntry = NULL;
+    LSA_HASH_TABLE    *pResult = NULL;
+
+    memset(&EntryCopy, 0, sizeof(EntryCopy));
+
+    dwError = LsaHashCreate(
+                  pTable->sTableSize,
+                  pTable->fnComparator,
+                  pTable->fnHash,
+                  pTable->fnCopy ? pTable->fnFree : NULL,
+                  pTable->fnCopy,
+                  &pResult);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaHashGetIterator(pTable, &iterator);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while ((pEntry = LsaHashNext(&iterator)) != NULL)
+    {
+        if ( pTable->fnCopy )
+        {
+            dwError = pTable->fnCopy(pEntry, &EntryCopy);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            EntryCopy.pKey = pEntry->pKey;
+            EntryCopy.pValue = pEntry->pValue;
+        }
+
+        dwError = LsaHashSetValue(
+                      pResult,
+                      EntryCopy.pKey,
+                      EntryCopy.pValue);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        memset(&EntryCopy, 0, sizeof(EntryCopy));
+    }
+
+    *ppResult = pResult;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if ( pTable->fnCopy && pTable->fnFree )
+    {
+        pTable->fnFree(&EntryCopy);
+    }
+
+    LsaHashSafeFree(&pResult);
+
+    goto cleanup;
 }
 
 //Invalidates all iterators

@@ -767,6 +767,7 @@ LsaAdBatchEnumObjects(
                             LsaHashCaselessStringCompare,
                             LsaHashCaselessString,
                             LsaHashFreeStringKey,
+                            NULL,
                             &pCookieData->pEnumeratedSids);
             BAIL_ON_LSA_ERROR(dwError);
         }

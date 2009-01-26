@@ -473,14 +473,6 @@ error:
     goto cleanup;
 }
 
-void
-AD_FreeHashStringKey(
-    const LSA_HASH_ENTRY *pEntry)
-{
-    PSTR pszKeyCopy = (PSTR)pEntry->pKey;
-    LSA_SAFE_FREE_STRING(pszKeyCopy);
-}
-
 DWORD
 AD_DetermineTrustModeandDomainName(
     IN PCSTR pszDomain,
@@ -819,6 +811,7 @@ AD_PacMembershipFilterWithLdap(
                     dwMembershipCount,
                     LsaHashCaselessStringCompare,
                     LsaHashCaselessString,
+                    NULL,
                     NULL,
                     &pMembershipHashTable);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1718,6 +1711,7 @@ AD_CombineCacheObjectsRemoveDuplicates(
                 20,
                 AD_CompareObjectSids,
                 AD_HashObjectSid,
+                NULL,
                 NULL,
                 &pHashTable);
     BAIL_ON_LSA_ERROR(dwError);

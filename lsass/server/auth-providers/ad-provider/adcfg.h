@@ -187,7 +187,9 @@ AD_GetMachineTGTGraceSeconds(
 
 DWORD
 AD_AddAllowedMember(
-    PCSTR pszSID
+    IN PCSTR pszSID,
+    IN PSTR pszMember,
+    IN OUT PLSA_HASH_TABLE *pAllowedMemberList
     );
 
 VOID
@@ -196,9 +198,10 @@ AD_DeleteFromMembersList(
     );
 
 DWORD
-AD_GetAllowedMembersList(
+AD_GetMemberLists(
     PSTR** pppszMembers,
-    PDWORD pdwNumMembers
+    PDWORD pdwNumMembers,
+    PLSA_HASH_TABLE* ppAllowedMemberList
     );
 
 BOOLEAN
@@ -208,7 +211,8 @@ AD_ShouldFilterUserLoginsByGroup(
 
 BOOLEAN
 AD_IsMemberAllowed(
-    PCSTR pszSID
+    PCSTR           pszSID,
+    PLSA_HASH_TABLE pAllowedMemberList
     );
 
 VOID

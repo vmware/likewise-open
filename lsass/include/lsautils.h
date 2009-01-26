@@ -382,6 +382,7 @@ typedef struct __LSA_HASH_ENTRY LSA_HASH_ENTRY;
 typedef int (*LSA_HASH_KEY_COMPARE)(PCVOID, PCVOID);
 typedef size_t (*LSA_HASH_KEY)(PCVOID);
 typedef void (*LSA_HASH_FREE_ENTRY)(const LSA_HASH_ENTRY *);
+typedef DWORD (*LSA_HASH_COPY_ENTRY)(const LSA_HASH_ENTRY *, LSA_HASH_ENTRY *);
 
 struct __LSA_HASH_ENTRY
 {
@@ -399,6 +400,7 @@ typedef struct __LSA_HASH_TABLE
     LSA_HASH_KEY_COMPARE fnComparator;
     LSA_HASH_KEY fnHash;
     LSA_HASH_FREE_ENTRY fnFree;
+    LSA_HASH_COPY_ENTRY fnCopy;
 } LSA_HASH_TABLE, *PLSA_HASH_TABLE;
 
 typedef struct __LSA_HASH_ITERATOR
@@ -824,11 +826,13 @@ LsaStackFree(
 
 DWORD
 LsaHashCreate(
-        size_t sTableSize,
-        LSA_HASH_KEY_COMPARE fnComparator,
-        LSA_HASH_KEY fnHash,
-        LSA_HASH_FREE_ENTRY fnFree, //optional
-        LSA_HASH_TABLE** ppResult);
+    size_t sTableSize,
+    LSA_HASH_KEY_COMPARE fnComparator,
+    LSA_HASH_KEY fnHash,
+    LSA_HASH_FREE_ENTRY fnFree, //optional
+    LSA_HASH_COPY_ENTRY fnCopy, //optional
+    LSA_HASH_TABLE** ppResult
+    );
 
 void
 LsaHashSafeFree(
@@ -851,6 +855,12 @@ BOOLEAN
 LsaHashExists(
     IN PLSA_HASH_TABLE pTable,
     IN PCVOID pKey
+    );
+
+DWORD
+LsaHashCopy(
+    IN  LSA_HASH_TABLE *pTable,
+    OUT LSA_HASH_TABLE **ppResult
     );
 
 //Invalidates all iterators
