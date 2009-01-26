@@ -64,6 +64,8 @@ PvfsAllocateIrpContext(
 
     *ppIrpContext = pIrpContext;
 
+    ntError = STATUS_SUCCESS;
+
 cleanup:
     return ntError;
 
@@ -86,6 +88,8 @@ PvfsAllocateCCB(
     BAIL_ON_NULL_PTR(pCCB, ntError);
 
     *ppCCB = pCCB;
+
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
