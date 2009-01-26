@@ -49,23 +49,42 @@
 
 #include "lsautils.h"
 
+
+typedef DWORD (*PFNSTARTRPCSRV)(void);
+
+typedef DWORD (*PFNSTOPRPCSRV)(void);
+
+
 typedef struct rpcsrv_function_table {
+    PFNSTARTRPCSRV          pfnStart;
+    PFNSTOPRPCSRV           pfnStop;
 } LSA_RPCSRV_FUNCTION_TABLE, *PLSA_RPCSRV_FUNCTION_TABLE;
+
 
 #define LSA_SYMBOL_NAME_INITIALIZE_RPCSRV    "LsaInitializeRpcSrv"
 
 typedef DWORD (*PFNINITIALIZERPCSRV)(
-                   PCSTR pszConfigFilePath,
-		   PSTR* ppszRpcSrvName,
-		   PLSA_RPCSRV_FUNCTION_TABLE* ppFnTable
-		   );
+    PCSTR pszConfigFilePath,
+    PSTR* ppszRpcSrvName,
+    PLSA_RPCSRV_FUNCTION_TABLE* ppFnTable
+    );
 
 #define LSA_SYMBOL_NAME_SHUTDOWN_RPCSRV      "LsaShutdownRpcSrv"
 
 typedef DWORD (*PFNSHUTDOWNRPCSRV)(
-                   PCSTR pszProviderName,
-		   PLSA_RPCSRV_FUNCTION_TABLE pFnTable
-	           );
+    PCSTR pszProviderName,
+    PLSA_RPCSRV_FUNCTION_TABLE pFnTable
+    );
+
+
+#define BAIL_ON_DCERPC_ERROR(st)                            \
+    if ((st) != rpc_s_ok) {                                 \
+        LSA_LOG_DEBUG("DCE/RPC error at %s:%d [0x%08x]\n",  \
+                      __FILE__, __LINE__, (st));            \
+        dwError = LSA_ERROR_DCERPC_ERROR;                   \
+        goto error;
+    }
+
 
 #endif /* __LSARPCSRV_H__ */
 
