@@ -173,7 +173,7 @@ PvfsCreateFileCreate(
     BAIL_ON_NT_STATUS(ntError);
 
     pCcb = RtlMemoryAllocate(sizeof(*pCcb));
-    PVFS_BAIL_ON_NULL_PTR(pCcb, ntError);
+    BAIL_ON_NULL_PTR(pCcb, ntError);
 
 
     /* Map the create options */

@@ -58,7 +58,7 @@ PvfsAllocateIrpContext(
     *ppIrpContext = NULL;
 
     pIrpContext = RtlMemoryAllocate(sizeof(*pIrpContext));
-    PVFS_BAIL_ON_NULL_PTR(pIrpContext, ntError);
+    BAIL_ON_NULL_PTR(pIrpContext, ntError);
 
     pIrpContext->pIrp = pIrp;
 
@@ -83,7 +83,7 @@ PvfsAllocateCCB(
     *ppCCB = NULL;
 
     pCCB = RtlMemoryAllocate(sizeof(*pCCB));
-    PVFS_BAIL_ON_NULL_PTR(pCCB, ntError);
+    BAIL_ON_NULL_PTR(pCCB, ntError);
 
     *ppCCB = pCCB;
 
