@@ -29,10 +29,119 @@
  */
 
 /*
- * Abstract: Lsa rpc server management functions(rpc server library)
+ * Abstract: Lsa rpc server management functions (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
+
+#include "includes.h"
+
+
+DWORD
+LsaRpcRegisterRpcInterface(
+    rpc_binding_vector_p_t pSrvBinding
+    )
+{
+    const PSTR pszProtSeq[] = { "ncacn_ip_tcp", NULL };
+
+    DWORD dwError = 0;
+    RPCSTATUS rpcstatus = rpc_s_ok;
+    int i = 0;
+
+    rpc_server_register_if(lsa_v0_0_s_ifspec,
+                           NULL,
+                           NULL,
+                           &rpcstatus);
+    BAIL_ON_DCERPC_ERROR(rpcstatus);
+
+    while (pszProtSeq[i] != NULL) {
+        rpc_server_use_protseq_if((unsigned char)pszProtSeq[i++],
+                                  rpc_c_protseq_max_calls_default,
+                                  lsa_v0_0_s_ifspec,
+                                  &rpcstatus);
+        BAIL_ON_DCERPC_ERROR(rpcstatus);
+    }
+
+    rpc_server_inq_bindings(&pSrvBinding, &rpcstatus);
+    BAIL_ON_DCERPC_ERROR(rpcstatus);
+
+    rpc_ep_register_no_replace(lsa_v0_0_s_ifspec,
+                               pSrvBinding,
+                               NULL,
+                               "",
+                               &rpcstatus);
+    BAIL_ON_DCERPC_ERROR(rpcstatus);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+LsaRpcUnregisteRpcInterface(
+    rpc_binding_vector_p_t pSrvBinding
+    )
+{
+    DWORD dwError = 0;
+    RPCSTATUS rpcstatus = rpc_s_ok;
+
+    if (pSrvBinding) {
+        rpc_ep_unregister(lsa_v0_0_s_ifspec,
+                          pSrvBinding,
+                          NULL,
+                          &rpcstatus);
+        BAIL_ON_DCERPC_ERROR(rpcstatus);
+
+        rpc_binding_vector_free(&pSrvBinding, &rpcstatus);
+        pSrvBinding = NULL;
+
+        BAIL_ON_DCERPC_ERROR(rpcstatus);
+    }
+
+    rpc_server_unregister_if(lsa_v0_0_s_ifspec,
+                             NULL,
+                             &rpcstatus);
+    BAIL_ON_DCERPC_ERROR(rpcstatus);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD LsaRpcStartServer(void)
+{
+    DWORD dwError = 0;
+
+    dwError = LsaRpcRegisterRpcInterface(&gpLsaSrvBinding);
+    BAIL_ON_LSA_ERRROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD LsaRpcStopServer(void)
+{
+    DWORD dwError = 0;
+
+    dwError = LsaRpcUnregisterRpcInterface(&gpLsaSrvBinding);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
 
 
 DWORD LsaInitializeRpcSrv(
