@@ -29,15 +29,15 @@ SrvSessionCreate(
     PSMB_SRV_SESSION pSession = NULL;
     USHORT uid = 0;
 
-    pthread_rwlock_init(&pSession->mutex, NULL);
-    pSession->pMutex = &pSession->mutex;
-
     ntStatus = SMBAllocateMemory(
                     sizeof(PSMB_SRV_SESSION),
                     (PVOID*)&pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSession->refcount = 1;
+
+    pthread_rwlock_init(&pSession->mutex, NULL);
+    pSession->pMutex = &pSession->mutex;
 
     ntStatus = SrvIdAllocatorAcquireId(
                     pIdAllocator,

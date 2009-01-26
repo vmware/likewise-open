@@ -258,12 +258,11 @@ SrvListenerMain(
             if (ntStatus1)
             {
                 SMB_LOG_ERROR("Failed to acquire current host information [code:%d]", ntStatus1);
+                close(connFd);
+                connFd = -1;
+
+                continue;
             }
-
-            close(connFd);
-            connFd = -1;
-
-            continue;
         }
 
         if (!pContext->hGssContext)
@@ -277,12 +276,13 @@ SrvListenerMain(
             if (ntStatus2)
             {
                 SMB_LOG_ERROR("Failed to initialize GSS Handle [code:%d]", ntStatus2);
+
+
+                close(connFd);
+                connFd = -1;
+
+                continue;
             }
-
-            close(connFd);
-            connFd = -1;
-
-            continue;
         }
 
         dwError = SrvSocketCreate(

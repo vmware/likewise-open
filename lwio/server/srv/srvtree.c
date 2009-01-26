@@ -30,15 +30,15 @@ SrvTreeCreate(
     PSMB_SRV_TREE pTree = NULL;
     USHORT tid  = 0;
 
-    pthread_rwlock_init(&pTree->mutex, NULL);
-    pTree->pMutex = &pTree->mutex;
-
     ntStatus = SMBAllocateMemory(
                     sizeof(PSMB_SRV_TREE),
                     (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTree->refcount = 1;
+
+    pthread_rwlock_init(&pTree->mutex, NULL);
+    pTree->pMutex = &pTree->mutex;
 
     ntStatus = SrvIdAllocatorAcquireId(
                     pIdAllocator,

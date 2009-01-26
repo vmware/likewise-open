@@ -16,15 +16,15 @@ SrvFileCreate(
     USHORT fid = 0;
     PSMB_SRV_FILE pFile = NULL;
 
-    pthread_rwlock_init(&pFile->mutex, NULL);
-    pFile->pMutex = &pFile->mutex;
-
     ntStatus = SMBAllocateMemory(
                     sizeof(PSMB_SRV_FILE),
                     (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFile->refcount = 1;
+
+    pthread_rwlock_init(&pFile->mutex, NULL);
+    pFile->pMutex = &pFile->mutex;
 
     ntStatus = SrvIdAllocatorAcquireId(
                     pIdAllocator,

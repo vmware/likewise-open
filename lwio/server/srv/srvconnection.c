@@ -152,6 +152,9 @@ SrvConnectionGetNextSequence(
             break;
 
         case COM_SESSION_SETUP_ANDX:
+        case COM_TREE_CONNECT:
+        case COM_TREE_DISCONNECT:
+        case COM_TREE_CONNECT_ANDX:
 
             ulRequestSequence = pConnection->ulSequence++;
             ulResponseSequence = pConnection->ulSequence++;

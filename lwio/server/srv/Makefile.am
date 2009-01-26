@@ -12,6 +12,7 @@ libsrv_sys_la_SOURCES = \
     findfirst2.c      \
     flush.c           \
     globals.c         \
+    hostinfo.c        \
     listener.c        \
     lockX.c           \
     ntrename.c        \

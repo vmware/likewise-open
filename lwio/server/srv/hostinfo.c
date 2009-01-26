@@ -57,7 +57,7 @@ SrvAcquireHostInfo(
         InterlockedIncrement(&pNewHostInfo->refcount);
     }
 
-    *ppNewHostInfo = pNewHostinfo;
+    *ppNewHostInfo = pNewHostInfo;
 
 cleanup:
 
