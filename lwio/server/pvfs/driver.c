@@ -77,20 +77,20 @@ DriverEntry(
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
     {
         ntError = STATUS_DEVICE_CONFIGURATION_ERROR;
-        PVFS_BAIL_ON_NTSTATUS_ERROR(ntError);
+        BAIL_ON_NT_STATUS(ntError);
     }
 
     ntError = IoDriverInitialize(DriverHandle,
                                  NULL,
                                  PvfsDriverShutdown,
                                  PvfsDriverDispatch);
-    PVFS_BAIL_ON_NTSTATUS_ERROR(ntError);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = IoDeviceCreate(&deviceHandle,
                              DriverHandle,
                              "pvfs",
                              NULL);
-    PVFS_BAIL_ON_NTSTATUS_ERROR(ntError);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     return ntError;
@@ -122,7 +122,7 @@ PvfsDriverDispatch(
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     ntError = PvfsAllocateIrpContext(&pIrpCtx, pIrp);
-    PVFS_BAIL_ON_NTSTATUS_ERROR(ntError);
+    BAIL_ON_NT_STATUS(ntError);
 
     switch (pIrpCtx->pIrp->Type)
     {
@@ -166,7 +166,7 @@ PvfsDriverDispatch(
         ntError = STATUS_INVALID_PARAMETER;
         break;
     }
-    PVFS_BAIL_ON_NTSTATUS_ERROR(ntError);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     return ntError;

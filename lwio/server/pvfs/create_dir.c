@@ -124,7 +124,7 @@ PvfsCreateDirectory(
         ntError = STATUS_INVALID_PARAMETER;
         break;
     }
-    PVFS_BAIL_ON_NTSTATUS_ERROR(ntError);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     return ntError;
