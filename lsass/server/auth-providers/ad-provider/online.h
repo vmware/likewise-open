@@ -350,10 +350,6 @@ AD_GetLinkedCellInfo(
     OUT PDLINKEDLIST* ppCellList
     );
 
-void
-AD_FreeHashStringKey(
-    const LSA_HASH_ENTRY *pEntry);
-
 DWORD
 AD_CacheGroupMembershipFromPac(
     IN HANDLE hProvider,

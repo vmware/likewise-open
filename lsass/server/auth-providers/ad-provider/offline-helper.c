@@ -279,6 +279,7 @@ AD_GroupExpansionDataCreate(
                 AD_CompareObjectSids,
                 AD_HashObjectSid,
                 NULL,
+                NULL,
                 &pExpansionData->pGroupsToExpand);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -287,6 +288,7 @@ AD_GroupExpansionDataCreate(
                 AD_CompareObjectSids,
                 AD_HashObjectSid,
                 NULL,
+                NULL,
                 &pExpansionData->pExpandedGroups);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -294,6 +296,7 @@ AD_GroupExpansionDataCreate(
                 sNumberOfBuckets,
                 AD_CompareObjectSids,
                 AD_HashObjectSid,
+                NULL,
                 NULL,
                 &pExpansionData->pUsers);
     BAIL_ON_LSA_ERROR(dwError);

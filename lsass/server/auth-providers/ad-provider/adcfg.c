@@ -1579,78 +1579,37 @@ AD_GetMachineTGTGraceSeconds()
     return dGraceSeconds;
 }
 
-DWORD
-AD_AddAllowedMember(
-    PCSTR pszSID
+static
+BOOLEAN
+AD_IsInMembersList_InLock(
+    PCSTR pszMember
     )
 {
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSTR  pszValue = NULL;
-    PSTR  pszSIDCopy = NULL;
-    BOOLEAN bFreeValue = FALSE;
+    PDLINKEDLIST pIter = NULL;
+    BOOLEAN      bInList = FALSE;
 
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    if (!gpAllowedSIDs)
+    for (pIter = gpLsaAdProviderState->config.pUnresolvedMemberList;
+         pIter;
+         pIter = pIter->pNext)
     {
-        dwError = LsaHashCreate(
-                        11,
-                        LsaHashCaselessStringCompare,
-                        LsaHashCaselessString,
-                        AD_FreeHashStringKey,
-                        &gpAllowedSIDs);
-        BAIL_ON_LSA_ERROR(dwError);
+        if (!strcmp(pszMember, (PSTR)pIter->pItem))
+        {
+            bInList = TRUE;
+            break;
+        }
     }
 
-    dwError = LsaHashGetValue(
-                    gpAllowedSIDs,
-                    pszSID,
-                    (PVOID*)&pszValue);
-    if (dwError == ENOENT)
-    {
-        dwError = LsaAllocateString(
-                        pszSID,
-                        &pszSIDCopy);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        bFreeValue = TRUE;
-
-        dwError = LsaHashSetValue(
-                        gpAllowedSIDs,
-                        pszSIDCopy,
-                        pszSIDCopy);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        bFreeValue = FALSE;
-    }
-
-cleanup:
-
-    if (bFreeValue)
-    {
-        LsaFreeString(pszSIDCopy);
-    }
-
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
+    return bInList;
 }
 
+static
 VOID
-AD_DeleteFromMembersList(
+AD_DeleteFromMembersList_InLock(
     PCSTR pszMember
     )
 {
     PDLINKEDLIST pIter = NULL;
     PVOID        pItem = NULL;
-    BOOLEAN      bInLock = FALSE;
-
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
     for (pIter = gpLsaAdProviderState->config.pUnresolvedMemberList;
          pIter;
@@ -1670,14 +1629,162 @@ AD_DeleteFromMembersList(
 
         LsaFreeMemory(pItem);
     }
+}
+
+VOID
+AD_DeleteFromMembersList(
+    PCSTR pszMember
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    AD_DeleteFromMembersList_InLock(pszMember);
 
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 }
 
+static
+void
+AD_FreeHashStringKey(
+    const LSA_HASH_ENTRY *pEntry)
+{
+    PSTR pszKeyCopy = (PSTR)pEntry->pKey;
+    LSA_SAFE_FREE_STRING(pszKeyCopy);
+}
+
+static
 DWORD
-AD_GetAllowedMembersList(
+AD_CopyHashStringKey(
+    const LSA_HASH_ENTRY *pEntry,
+    LSA_HASH_ENTRY       *pEntryCopy
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszKeyCopy = NULL;
+
+    dwError = LsaAllocateString(
+                    (PSTR)pEntry->pKey,
+                    &pszKeyCopy);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntryCopy->pKey = pszKeyCopy;
+    pEntryCopy->pValue = pszKeyCopy;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszKeyCopy);
+
+    goto cleanup;
+}
+
+DWORD
+AD_AddAllowedMember(
+    IN PCSTR               pszSID,
+    IN PSTR                pszMember,
+    IN OUT PLSA_HASH_TABLE *ppAllowedMemberList
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PSTR  pszValue = NULL;
+    PSTR  pszSIDCopy = NULL;
+    PLSA_HASH_TABLE pAllowedMemberList = *ppAllowedMemberList;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    if (!gpAllowedSIDs)
+    {
+        dwError = LsaHashCreate(
+                        11,
+                        LsaHashCaselessStringCompare,
+                        LsaHashCaselessString,
+                        AD_FreeHashStringKey,
+                        AD_CopyHashStringKey,
+                        &gpAllowedSIDs);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!pAllowedMemberList)
+    {
+        dwError = LsaHashCreate(
+                        11,
+                        LsaHashCaselessStringCompare,
+                        LsaHashCaselessString,
+                        AD_FreeHashStringKey,
+                        AD_CopyHashStringKey,
+                        &pAllowedMemberList);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateString(
+                    pszSID,
+                    &pszSIDCopy);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaHashSetValue(
+                    pAllowedMemberList,
+                    pszSIDCopy,
+                    pszSIDCopy);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pszSIDCopy = NULL;
+
+    if ( AD_IsInMembersList_InLock(pszMember) )
+    {
+        dwError = LsaHashGetValue(
+                      gpAllowedSIDs,
+                      pszSID,
+                      (PVOID*)&pszValue);
+        if (dwError == ENOENT)
+        {
+            dwError = LsaAllocateString(
+                          pszSID,
+                          &pszSIDCopy);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaHashSetValue(
+                          gpAllowedSIDs,
+                          pszSIDCopy,
+                          pszSIDCopy);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pszSIDCopy = NULL;
+        }
+
+        AD_DeleteFromMembersList_InLock( pszMember);
+    }
+
+    *ppAllowedMemberList = pAllowedMemberList;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszSIDCopy);
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return dwError;
+
+error:
+
+    if ( ! *ppAllowedMemberList )
+    {
+        LsaHashSafeFree(&pAllowedMemberList);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+AD_GetMemberLists(
     PSTR** pppszMembers,
-    PDWORD pdwNumMembers
+    PDWORD pdwNumMembers,
+    PLSA_HASH_TABLE* ppAllowedMemberList
     )
 {
     DWORD dwError = 0;
@@ -1685,6 +1792,7 @@ AD_GetAllowedMembersList(
     DWORD dwNumMembers = 0;
     PDLINKEDLIST pIter = NULL;
     PSTR* ppszMembers = NULL;
+    PLSA_HASH_TABLE pAllowedMemberList = NULL;
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
@@ -1713,8 +1821,17 @@ AD_GetAllowedMembersList(
         }
     }
 
+    if ( gpAllowedSIDs )
+    {
+        dwError = LsaHashCopy(
+                      gpAllowedSIDs,
+                      &pAllowedMemberList);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     *pppszMembers = ppszMembers;
     *pdwNumMembers = dwNumMembers;
+    *ppAllowedMemberList = pAllowedMemberList;
 
 cleanup:
 
@@ -1731,6 +1848,9 @@ error:
 
     *pppszMembers = NULL;
     *pdwNumMembers = 0;
+    *ppAllowedMemberList = NULL;
+
+    LsaHashSafeFree(&pAllowedMemberList);
 
     goto cleanup;
 }
@@ -1770,26 +1890,22 @@ AD_ShouldFilterUserLoginsByGroup(
 
 BOOLEAN
 AD_IsMemberAllowed(
-    PCSTR pszSID
+    PCSTR           pszSID,
+    PLSA_HASH_TABLE pAllowedMemberList
     )
 {
     BOOLEAN bAllowed = FALSE;
-    BOOLEAN bInLock = FALSE;
     PSTR    pszValue = NULL;
 
-    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    if (!AD_ShouldFilterUserLoginsByGroup_InLock() ||
-        (gpAllowedSIDs &&
+    if (!AD_ShouldFilterUserLoginsByGroup() ||
+        (pAllowedMemberList &&
          !LsaHashGetValue(
-                        gpAllowedSIDs,
+                        pAllowedMemberList,
                         pszSID,
                         (PVOID*)&pszValue)))
     {
         bAllowed = TRUE;
     }
-
-    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     return bAllowed;
 }
