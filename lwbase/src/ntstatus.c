@@ -119,6 +119,40 @@ LwNtStatusToUnixErrno(
     }
 }
 
+struct _UnixErrnoNtStatusMapping
+{
+    int unixErrno;
+    NTSTATUS ntError;
+} UnixErrnoToNtStatusTable[] = {
+    { EINVAL,                              STATUS_INVALID_PARAMETER },
+    { ETIMEDOUT,                           STATUS_IO_TIMEOUT },
+    { EPERM,                               STATUS_ACCESS_DENIED },
+    { EACCES,                              STATUS_ACCESS_DENIED }
+};
+
+
+NTSTATUS
+LwUnixErrnoToNtStatus(
+    int unixErrno
+    )
+{
+    NTSTATUS ntStatus = unixErrno;
+    int i = 0;
+    int numEntries = sizeof(UnixErrnoToNtStatusTable) /
+                     sizeof(struct _UnixErrnoNtStatusMapping);
+
+    for (i=0; i<numEntries; i++)
+    {
+        if (unixErrno == UnixErrnoToNtStatusTable[i].unixErrno)
+        {
+            ntStatus = UnixErrnoToNtStatusTable[i].ntError;
+            break;
+        }
+    }
+
+    return ntStatus;
+}
+
 static
 PTABLE_ENTRY
 LwNtLookupCode(
@@ -138,3 +172,12 @@ LwNtLookupCode(
     return NULL;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
