@@ -42,8 +42,13 @@ pthread_mutex_t gLsaDataMutex = PTHREAD_MUTEX_INITIALISED;
 int bLsaInitialised = 0;
 
 
-PCSTR gpszRpcSrvName = "lsarpc"
-LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable;
+PCSTR gpszRpcSrvName = "lsarpc";
+LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable = {
+    &LsaRpcStartServer,
+    &LsaRpcStopServer
+};
+
+rpc_binding_vector_p_t gpLsaSrvBinding = NULL;
 
 
 /*
