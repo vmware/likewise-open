@@ -263,7 +263,8 @@ SrvGetShareName(
                     (PVOID*)&pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(pwszSharename, pwszPath_copy + (len_prefix + 1) * sizeof(wchar16_t), len_sharename);
+    // copy from original path
+    memcpy(pwszSharename, pwszPath + (len_prefix + 1) * sizeof(wchar16_t), len_sharename);
 
     *ppwszSharename = pwszSharename;
 
