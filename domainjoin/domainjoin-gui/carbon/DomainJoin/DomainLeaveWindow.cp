@@ -186,8 +186,7 @@ DomainLeaveWindow::HandleLeaveDomain()
 
         ShowLeftDomainDialog(domainName);
 
-        /* Bail out of the application now */
-        this->Close();
+        PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
     }
     catch(DomainJoinException& dje)
     {
