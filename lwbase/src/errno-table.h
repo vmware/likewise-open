@@ -1,0 +1,122 @@
+/*
+ * Copyright (c) Likewise Software.  All rights Reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewise.com
+ */
+
+/*
+ * Module Name:
+ *
+ *        errno.c
+ *
+ * Abstract:
+ *
+ *        UNIX errno code table
+ *
+ * Authors: Brian Koropoff (bkoropoff@likewise.com)
+ *
+ */
+
+#define S ERRNO_CODE
+
+S ( 0, STATUS_SUCCESS)
+S ( E2BIG, -1 )
+S ( EACCES, -1 )
+S ( EADDRINUSE, -1 )
+S ( EADDRNOTAVAIL, -1 )
+S ( EAFNOSUPPORT, -1 )
+S ( EAGAIN, -1 )
+S ( EALREADY, -1 )
+S ( EBADF, -1 )
+S ( EBADMSG, -1 )
+S ( EBUSY, -1 )
+S ( ECANCELED, -1 )
+S ( ECHILD, -1 )
+S ( ECONNABORTED, -1 )
+S ( ECONNREFUSED, -1 )
+S ( ECONNRESET, -1 )
+S ( EDEADLK, -1 )
+S ( EDESTADDRREQ, -1 )
+S ( EDOM, -1 )
+S ( EDQUOT, -1 )
+S ( EEXIST, -1 )
+S ( EFAULT, -1 )
+S ( EFBIG, -1 )
+S ( EHOSTUNREACH, -1 )
+S ( EIDRM, -1 )
+S ( EILSEQ, -1 )
+S ( EINPROGRESS, -1 )
+S ( EINTR, -1 )
+S ( EINVAL, STATUS_INVALID_PARAMETER )
+S ( EIO, -1 )
+S ( EISCONN, -1 )
+S ( EISDIR, -1 )
+S ( ELOOP, -1 )
+S ( EMFILE, -1 )
+S ( EMLINK, -1 )
+S ( EMSGSIZE, -1 )
+S ( EMULTIHOP, -1 )
+S ( ENAMETOOLONG, -1 )
+S ( ENETDOWN, -1 )
+S ( ENETRESET, -1 )
+S ( ENETUNREACH, -1 )
+S ( ENFILE, -1 )
+S ( ENOBUFS, -1 )
+S ( ENODATA, -1 )
+S ( ENODEV, -1 )
+S ( ENOENT, -1 )
+S ( ENOEXEC, -1 )
+S ( ENOLCK, -1 )
+S ( ENOLINK, -1 )
+S ( ENOMEM, -1 )
+S ( ENOMSG, -1 )
+S ( ENOPROTOOPT, -1 )
+S ( ENOSPC, -1 )
+S ( ENOSR, -1 )
+S ( ENOSTR, -1 )
+S ( ENOSYS, -1 )
+S ( ENOTCONN, -1 )
+S ( ENOTDIR, -1 )
+S ( ENOTEMPTY, -1 )
+S ( ENOTSOCK, -1 )
+S ( ENOTSUP, -1 )
+S ( ENOTTY, -1 )
+S ( ENXIO, -1 )
+S ( EOPNOTSUPP, -1 )
+S ( EOVERFLOW, -1 )
+S ( EPERM, STATUS_ACCESS_DENIED )
+S ( EPIPE, -1 )
+S ( EPROTO, -1 )
+S ( EPROTONOSUPPORT, -1 )
+S ( EPROTOTYPE, -1 )
+S ( ERANGE, -1 )
+S ( EROFS, -1 )
+S ( ESPIPE, -1 )
+S ( ESRCH, -1 )
+S ( ESTALE, -1 )
+S ( ETIME, -1 )
+S ( ETIMEDOUT, STATUS_IO_TIMEOUT )
+S ( ETXTBSY, -1 )
+S ( EWOULDBLOCK, -1 )
+S ( EXDEV, -1 )
+
+#undef S
