@@ -156,8 +156,6 @@ UnmarshallTreeConnectRequest(
         *ppPassword = (uint8_t*) pBuffer;
     }
 
-    /* Align strings */
-    bufferUsed += (bufferUsed + messageAlignment) % 2;
     if (bufferUsed > bufferLen)
     {
         return EBADMSG;

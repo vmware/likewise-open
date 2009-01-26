@@ -225,7 +225,7 @@ SrvGetShareName(
 
     ntStatus = SMBAllocateStringPrintf(
                     &pszHostPrefix,
-                    "\\\\%s\\",
+                    "\\\\%s.%s\\",
                     pszHostname,
                     pszDomain);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -244,14 +244,13 @@ SrvGetShareName(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *(pwszPath_copy + len_prefix * sizeof(wchar16_t)) = WNUL;
-    if (wc16scmp(pwszPath_copy, pwszHostPrefix) != 0)
+    if (memcmp((PBYTE)pwszPath_copy, (PBYTE)pwszHostPrefix, len_prefix * sizeof(wchar16_t)) != 0)
     {
         ntStatus = STATUS_OBJECT_PATH_INVALID;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    len_sharename = wc16slen(pwszPath_copy + (len_prefix  + 1) * sizeof(wchar16_t));
+    len_sharename = wc16slen(pwszPath_copy + len_prefix);
     if (!len_sharename)
     {
         ntStatus = STATUS_OBJECT_PATH_INVALID;
@@ -264,7 +263,7 @@ SrvGetShareName(
     BAIL_ON_NT_STATUS(ntStatus);
 
     // copy from original path
-    memcpy(pwszSharename, pwszPath + (len_prefix + 1) * sizeof(wchar16_t), len_sharename);
+    memcpy((PBYTE)pwszSharename, (PBYTE)pwszPath + len_prefix * sizeof(wchar16_t), len_sharename * sizeof(wchar16_t));
 
     *ppwszSharename = pwszSharename;
 
