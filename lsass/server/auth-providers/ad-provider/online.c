@@ -1048,9 +1048,10 @@ AD_GetCachedPasswordHash(
     PBYTE pbHash = NULL;
     DWORD dwError = LSA_ERROR_SUCCESS;
     size_t sConvertedChars = 0;
+    size_t sSamAccountCch = mbstrlen(pszSamAccount);
 
     // Allocate space to store the NT hash with the username appended
-    sPrehashedVerifierLen = 16 + strlen(pszSamAccount) * sizeof(wchar16_t);
+    sPrehashedVerifierLen = 16 + sSamAccountCch * sizeof(wchar16_t);
     dwError = LsaAllocateMemory(
                     sPrehashedVerifierLen + sizeof(wchar16_t),
                     (PVOID*)&pbPrehashedVerifier);
@@ -1073,8 +1074,8 @@ AD_GetCachedPasswordHash(
     sConvertedChars = mbstowc16s(
             (wchar16_t *)(pbPrehashedVerifier + 16),
             pszSamAccount,
-            strlen(pszSamAccount));
-    if (sConvertedChars != strlen(pszSamAccount))
+            sSamAccountCch + 1);
+    if (sConvertedChars != sSamAccountCch)
     {
         dwError = LSA_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
