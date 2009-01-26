@@ -494,12 +494,15 @@ lwmsg_server_listen_thread(
 
                     pthread_cond_signal(&server->listen_assocs.event);
                 }
-
-                FD_SET(priv->fd, &readfds);
-                if (nfds < priv->fd + 1)
+                else
                 {
-                    nfds = priv->fd + 1;
+                    FD_SET(priv->fd, &readfds);
+                    if (nfds < priv->fd + 1)
+                    {
+                        nfds = priv->fd + 1;
+                    }
                 }
+
                 count--;
             }
         }
