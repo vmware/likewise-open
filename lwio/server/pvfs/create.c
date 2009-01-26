@@ -73,7 +73,7 @@ PvfsCreate(
             BAIL_ON_NT_STATUS(ntError);
     }
     /* File branch */
-    else if (CreateOptions & FILE_DIRECTORY_FILE)
+    else if (CreateOptions & FILE_NON_DIRECTORY_FILE)
     {
         ntError = PvfsCreateFile(pIrpContext);
         BAIL_ON_NT_STATUS(ntError);
