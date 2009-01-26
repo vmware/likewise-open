@@ -3,8 +3,9 @@
 
 NTSTATUS
 SrvGssAcquireContext(
-    HANDLE  hGssOrig,
-    PHANDLE phGssNew
+    PSRV_HOST_INFO pHostinfo,
+    HANDLE         hGssOrig,
+    PHANDLE        phGssNew
     )
 {
     NTSTATUS ntStatus = 0;
@@ -12,7 +13,7 @@ SrvGssAcquireContext(
 
     if (!pContext)
     {
-        ntStatus = SrvGssNewContext(&pContext);
+        ntStatus = SrvGssNewContext(pHostinfo, &pContext);
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else
@@ -266,23 +267,14 @@ SrvGssReleaseContext(
 static
 NTSTATUS
 SrvGssNewContext(
+    PSRV_HOST_INFO     pHostinfo,
     PSRV_KRB5_CONTEXT* ppContext
     )
 {
     NTSTATUS ntStatus = 0;
-    CHAR     szHostname[256];
-    PSTR     pszDomain = NULL;
     PSTR     pszCachePath = NULL;
     PSRV_KRB5_CONTEXT pContext = NULL;
-
-    ntStatus = LWNetGetCurrentDomain(&pszDomain);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (gethostname(szHostname, sizeof(szHostname)) != 0)
-    {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    BOOLEAN  bInLock = FALSE;
 
     ntStatus = SMBAllocateMemory(
                     sizeof(SRV_KRB5_CONTEXT),
@@ -294,12 +286,16 @@ SrvGssNewContext(
     pthread_mutex_init(&pContext->mutex, NULL);
     pContext->pMutex = &pContext->mutex;
 
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pHostinfo->mutex);
+
     ntStatus = SMBAllocateStringPrintf(
                     &pContext->pszMachinePrincipal,
                     "%s$@%s",
-                    szHostname,
-                    pszDomain);
+                    pHostinfo->pszHostname,
+                    pHostinfo->pszDomain);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
 
     SMBStrToUpper(pContext->pszMachinePrincipal);
 
@@ -321,10 +317,7 @@ SrvGssNewContext(
 
 cleanup:
 
-    if (pszDomain)
-    {
-        LWNetFreeString(pszDomain);
-    }
+    SMB_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
 
     return ntStatus;
 

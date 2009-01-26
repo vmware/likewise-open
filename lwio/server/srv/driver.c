@@ -278,6 +278,7 @@ SrvInitialize(
 
     ntStatus = SrvListenerInit(
                     gSMBSrvGlobals.hPacketAllocator,
+                    &gSMBSrvGlobals.shareDBContext,
                     gSMBSrvGlobals.pReaderArray,
                     gSMBSrvGlobals.ulNumReaders,
                     &gSMBSrvGlobals.listener);

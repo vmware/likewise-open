@@ -39,11 +39,13 @@ SrvConnectionSessionRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    PSMB_SRV_SOCKET pSocket,
-    HANDLE          hPacketAllocator,
-    HANDLE          hGssContext,
-    PSRV_PROPERTIES pServerProperties,
-    PSMB_SRV_CONNECTION* ppConnection
+    PSMB_SRV_SOCKET           pSocket,
+    HANDLE                    hPacketAllocator,
+    HANDLE                    hGssContext,
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PSRV_PROPERTIES           pServerProperties,
+    PSRV_HOST_INFO            pHostinfo,
+    PSMB_SRV_CONNECTION*      ppConnection
     )
 {
     NTSTATUS ntStatus = 0;
@@ -70,13 +72,20 @@ SrvConnectionCreate(
                     &pConnection->pSessionIdAllocator);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvAcquireHostInfo(
+                    pHostinfo,
+                    &pConnection->pHostinfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvGssAcquireContext(
+                    pConnection->pHostinfo,
                     hGssContext,
                     &pConnection->hGssContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;
+    pConnection->pShareDbContext = pShareDbContext;
     pConnection->state = SMB_SRV_CONN_STATE_INITIAL;
     pConnection->pSocket = pSocket;
 
@@ -547,6 +556,11 @@ SrvConnectionRelease(
         if (pConnection->pSessionIdAllocator)
         {
             SrvIdAllocatorRelease(pConnection->pSessionIdAllocator);
+        }
+
+        if (pConnection->pHostinfo)
+        {
+            SrvReleaseHostInfo(pConnection->pHostinfo);
         }
 
         if (pConnection->pMutex)

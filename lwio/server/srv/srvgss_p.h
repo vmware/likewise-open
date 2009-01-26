@@ -72,6 +72,7 @@ typedef struct _SRV_GSS_NEGOTIATE_CONTEXT
 static
 NTSTATUS
 SrvGssNewContext(
+    PSRV_HOST_INFO     pHostinfo,
     PSRV_KRB5_CONTEXT* ppContext
     );
 

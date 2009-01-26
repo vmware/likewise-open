@@ -105,6 +105,7 @@
 #include "srvsession.h"
 #include "srvcontext.h"
 #include "srvgss.h"
+#include "hostinfo.h"
 
 #include "externs.h"
 

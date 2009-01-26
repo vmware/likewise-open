@@ -58,6 +58,18 @@ typedef struct _SMB_SRV_CONFIG
 
 } SMB_SRV_CONFIG, *PSMB_SRV_CONFIG;
 
+typedef struct _SRV_HOST_INFO
+{
+    LONG  refcount;
+
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PSTR  pszHostname;
+    PSTR  pszDomain;
+
+} SRV_HOST_INFO, *PSRV_HOST_INFO;
+
 typedef struct _SHARE_DB_INFO
 {
     LONG refcount;
@@ -258,6 +270,9 @@ typedef struct _SMB_SRV_CONNECTION
     PBYTE               pSessionKey;
     ULONG               ulSessionKeyLength;
 
+    PSRV_HOST_INFO      pHostinfo;
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext;
+
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;
 
@@ -336,10 +351,11 @@ typedef struct _SMB_SRV_LISTENER_CONTEXT
 
     // Invariant
     // Not owned
-    HANDLE                 hPacketAllocator;
-    HANDLE                 hGssContext;
-    PSMB_SRV_SOCKET_READER pReaderArray;
-    ULONG                  ulNumReaders;
+    HANDLE                    hPacketAllocator;
+    HANDLE                    hGssContext;
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext;
+    PSMB_SRV_SOCKET_READER    pReaderArray;
+    ULONG                     ulNumReaders;
 
 } SMB_SRV_LISTENER_CONTEXT, *PSMB_SRV_LISTENER_CONTEXT;
 

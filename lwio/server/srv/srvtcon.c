@@ -32,6 +32,15 @@
 
 static
 NTSTATUS
+SrvGetShareName(
+    PCSTR  pszHostname,
+    PCSTR  pszDomain,
+    PWSTR  pwszPath,
+    PWSTR* ppwszSharename
+    );
+
+static
+NTSTATUS
 SrvBuildTreeConnectResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
@@ -55,6 +64,8 @@ SrvProcessTreeConnectAndX(
     uint8_t* pszPassword = NULL; // Do not free
     uint8_t* pszService = NULL; // Do not free
     PWSTR    pwszPath = NULL; // Do not free
+    PWSTR    pwszSharename = NULL;
+    BOOLEAN  bInLock = FALSE;
 
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
@@ -99,7 +110,22 @@ SrvProcessTreeConnectAndX(
         }
     }
 
-    // TODO: Query for share
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->pHostinfo->mutex);
+
+    ntStatus = SrvGetShareName(
+                    pConnection->pHostinfo->pszHostname,
+                    pConnection->pHostinfo->pszDomain,
+                    pwszPath,
+                    &pwszSharename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
+
+    ntStatus = SrvShareFindShareByName(
+                    pConnection->pShareDbContext,
+                    pwszSharename,
+                    &pShareInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSessionCreateTree(
                     pSession,
@@ -132,6 +158,8 @@ SrvProcessTreeConnectAndX(
 
 cleanup:
 
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
+
     if (pSmbResponse)
     {
         SMBPacketFree(
@@ -154,9 +182,104 @@ cleanup:
         SrvShareDbReleaseInfo(pShareInfo);
     }
 
+    SMB_SAFE_FREE_MEMORY(pwszSharename);
+
     return (ntStatus);
 
 error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvGetShareName(
+    PCSTR  pszHostname,
+    PCSTR  pszDomain,
+    PWSTR  pwszPath,
+    PWSTR* ppwszSharename
+    )
+{
+    NTSTATUS  ntStatus = 0;
+    PSTR      pszHostPrefix = NULL;
+    PWSTR     pwszHostPrefix = NULL;
+    PWSTR     pwszPath_copy = NULL;
+    PWSTR     pwszSharename = NULL;
+    size_t    len = 0, len_prefix = 0, len_sharename = 0;
+
+    len = wc16slen(pwszPath);
+    if (!len)
+    {
+        ntStatus = STATUS_OBJECT_PATH_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SMBAllocateMemory(
+                    (len + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszPath_copy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
+
+    wc16supper(pwszPath_copy);
+
+    ntStatus = SMBAllocateStringPrintf(
+                    &pszHostPrefix,
+                    "\\\\%s\\",
+                    pszHostname,
+                    pszDomain);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMBStrToUpper(pszHostPrefix);
+
+    ntStatus = SMBMbsToWc16s(
+                    pszHostPrefix,
+                    &pwszHostPrefix);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    len_prefix = wc16slen(pwszHostPrefix);
+    if (len <= len_prefix)
+    {
+        ntStatus = STATUS_OBJECT_PATH_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *(pwszPath_copy + len_prefix * sizeof(wchar16_t)) = WNUL;
+    if (wc16scmp(pwszPath_copy, pwszHostPrefix) != 0)
+    {
+        ntStatus = STATUS_OBJECT_PATH_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    len_sharename = wc16slen(pwszPath_copy + (len_prefix  + 1) * sizeof(wchar16_t));
+    if (!len_sharename)
+    {
+        ntStatus = STATUS_OBJECT_PATH_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SMBAllocateMemory(
+                    (len_sharename + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszSharename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pwszSharename, pwszPath_copy + (len_prefix + 1) * sizeof(wchar16_t), len_sharename);
+
+    *ppwszSharename = pwszSharename;
+
+cleanup:
+
+    SMB_SAFE_FREE_STRING(pszHostPrefix);
+    SMB_SAFE_FREE_MEMORY(pwszHostPrefix);
+    SMB_SAFE_FREE_MEMORY(pwszPath_copy);
+
+    return ntStatus;
+
+error:
+
+    *ppwszSharename = NULL;
+
+    SMB_SAFE_FREE_MEMORY(pwszSharename);
 
     goto cleanup;
 }

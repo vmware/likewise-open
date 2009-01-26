@@ -3,8 +3,9 @@
 
 NTSTATUS
 SrvGssAcquireContext(
-    HANDLE  hGssOrig,
-    PHANDLE phGssNew
+    PSRV_HOST_INFO pHostinfo,
+    HANDLE         hGssOrig,
+    PHANDLE        phGssNew
     );
 
 BOOLEAN

@@ -3,11 +3,13 @@
 
 NTSTATUS
 SrvConnectionCreate(
-    PSMB_SRV_SOCKET      pSocket,
-    HANDLE               hPacketAllocator,
-    HANDLE               hGssContext,
-    PSRV_PROPERTIES      pServerProperties,
-    PSMB_SRV_CONNECTION* ppConnection
+    PSMB_SRV_SOCKET           pSocket,
+    HANDLE                    hPacketAllocator,
+    HANDLE                    hGssContext,
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PSRV_PROPERTIES           pServerProperties,
+    PSRV_HOST_INFO            pHostinfo,
+    PSMB_SRV_CONNECTION*      ppConnection
     );
 
 int
