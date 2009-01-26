@@ -130,7 +130,7 @@ main(
     BAIL_ON_SMB_ERROR(dwError);
 
     dwValueToFind = 7;
-    dwError = SMBRBTreeFind(pTree, &dwValueToFind, (PVOID*)dwValueFound);
+    dwError = SMBRBTreeFind(pTree, &dwValueToFind, (PVOID*)&dwValueFound);
     if (dwError == STATUS_NOT_FOUND)
     {
        fprintf(stderr, "Failed to find value [%d] in tree\n", dwValueToFind);
