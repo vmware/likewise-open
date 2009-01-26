@@ -341,6 +341,8 @@ LsaSrvSetDefaults(
     strcpy(gpServerInfo->szCachePath, CACHEDIR);
     strcpy(gpServerInfo->szPrefixPath, PREFIXDIR);
 
+    setlocale(LC_ALL, "");
+
     return (dwError);
 }
 
