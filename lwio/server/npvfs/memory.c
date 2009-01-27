@@ -58,6 +58,8 @@ NpfsAllocateMemory(
 {
     NTSTATUS ntStatus = 0;
 
+
+
     *ppMemory = NULL;
 
     return (ntStatus);

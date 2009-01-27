@@ -60,6 +60,34 @@ NpfsFindAvailablePipe(
     return(ntStatus);
 }
 
+NTSTATUS
+NpfsCreatePipe(
+    PNPFS_FCB pFCB,
+    PNPFS_PIPE * ppPipe
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+
+    ntStatus = NpfsAllocateMemory(
+                    sizeof(NPFS_PIPE),
+                    &pPipe
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pPipe->pNext = pFCB->pPipes;
+    pFCB->pPipes = pPipe;
+
+    *ppPipe = pPipe;
+
+    return(ntStatus);
+
+error:
+
+    *ppPipe = NULL;
+    return(ntStatus);
+}
+
 
 NTSTATUS
 NpfsFreePipeContext(

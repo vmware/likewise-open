@@ -99,9 +99,16 @@ NpfsCommonCreateNamedPipe(
                     &PathName,
                     &pFCB
                     );
+    if (ntStatus == STATUS_OBJECT_NAME_NOT_FOUND) {
+
+        ntStatus =  NpfsCreateFCB(
+                        &PathName,
+                        &pFCB
+                        );
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsFindAvailablePipe(
+    ntStatus = NpfsCreatePipe(
                     pFCB,
                     &pPipe
                     );

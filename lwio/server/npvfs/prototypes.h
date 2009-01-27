@@ -9,6 +9,12 @@ NpfsFreeMemory(
 /* pipe.c */
 
 NTSTATUS
+NpfsCreatePipe(
+    PNPFS_FCB pFCB,
+    PNPFS_PIPE * ppPipe
+    );
+
+NTSTATUS
 NpfsFindAvailablePipe(
     PNPFS_FCB pFCB,
     PNPFS_PIPE * ppPipe

@@ -35,13 +35,17 @@ typedef struct _NPFS_PIPE {
     ULONG PipeServerState;
     PNPFS_CCB pSCB;
     PNPFS_CCB pCCB;
+
+    struct _NPFS_PIPE *pNext;
 } NPFS_PIPE, *PNPFS_PIPE;
 
-typedef struct _NPFS_FILE {
+typedef struct _NPFS_FCB {
     PNPFS_PIPE pPipeList;
     PSECURITY_DESCRIPTOR pSecurityDescriptor;
     UNICODE_STRING PipeName;
-    struct _NPFS_FILE *pNext;
+    PNPFS_PIPE pPipes;
+
+    struct _NPFS_FCB *pNext;
 }NPFS_FCB, *PNPFS_FCB;
 
 typedef struct _NPFS_IRP_CONTEXT {
