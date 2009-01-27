@@ -57,8 +57,23 @@ NpfsAllocateMemory(
     )
 {
     NTSTATUS ntStatus = 0;
+    PVOID pMemory = NULL;
 
+    pMemory = RtlMemoryAllocate(
+                    ulSize
+                    );
+    if (!pMemory) {
+        ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
+    RtlMemoryZero(pMemory, ulSize);
+
+    *ppMemory = pMemory;
+
+    return(ntStatus);
+
+error:
 
     *ppMemory = NULL;
 

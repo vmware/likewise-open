@@ -136,9 +136,9 @@ NpfsCommonCreateNamedPipe(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
-
 error:
+
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
     LEAVE_WRITER_RW_LOCK(&gServerLock);
 
