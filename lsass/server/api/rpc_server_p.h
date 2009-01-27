@@ -71,6 +71,25 @@ LsaRpcFreeServer(
     );
 
 
+void
+LsaRpcFreeServerList(
+    PLSA_RPC_SERVER pRpcServerList
+    );
+
+
+DWORD
+LsaCfgFreeRpcServerInStack(
+    PVOID pItem,
+    PVOID pUserData
+    );
+
+
+DWORD
+LsaRpcValidateServer(
+    PLSA_RPC_SERVER pRpc
+    );
+
+
 DWORD
 LsaRpcServerConfigStartSection(
     PCSTR    pszSectionName,
@@ -86,6 +105,13 @@ LsaRpcServerConfigNameValuePair(
     PCSTR    pszValue,
     PVOID    pData,
     PBOOLEAN pbContinue
+    );
+
+
+DWORD
+LsaCheckInvalidRpcServer(
+    PVOID pSymbol,
+    PCSTR pszLibPath
     );
 
 

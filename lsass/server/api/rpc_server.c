@@ -44,6 +44,109 @@
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
+#include "api.h"
+
+
+DWORD
+LsaCheckInvalidRpcServer(
+    PVOID pSymbol,
+    PCSTR pszLibPath
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszError = NULL;
+
+    if (pSymbol == NULL) {
+        LSA_LOG_ERROR("Ignoring invalid rpc server at path [%s]",
+                      (pszLibPath ? pszLibPath : "(unknown)"));
+
+        pszError = dlerror();
+        if (!IsNullOrEmptyString(pszError)) {
+            LSA_LOG_ERROR("%s", pszError);
+        }
+
+        dwError = LSA_ERROR_INVALID_RPC_SERVER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+LsaInitRpcServer(
+    PCSTR pszConfigFilePath,
+    PLSA_RPC_SERVER pRpc
+    )
+{
+    DWORD dwError = 0;
+    PFNINITIALIZERPCSRV pfnInitRpc = NULL;
+    PCSTR pszError = NULL;
+    PCSTR pszSrvLibPath = NULL;
+
+    if (!IsNullOrEmptyString(pRpc->pszSrvLibPath)) {
+        dwError = ENOENT;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pszSrvLibPath = pRpc->pszSrvLibPath;
+
+    dlerror();
+    pRpc->phLib = dlopen(pszSrvLibPath, RTLD_NOW | RTLD_GLOBAL);
+    if (pRpc->phLib == NULL) {
+        LSA_LOG_ERROR("Failed to open rpc server at path [%s]", pszSrvLibPath);
+
+        pszError = dlerror();
+        if (!IsNullOrEmptyString(pszError)) {
+            LSA_LOG_ERROR("%s", pszError);
+        }
+
+        dwError = LSA_ERROR_INVALID_RPC_SERVER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dlerror();
+    pfnInitRpc = (PFNINITIALIZERPCSRV)dlsym(
+                                          pRpc->phLib,
+                                          LSA_SYMBOL_NAME_INITIALIZE_RPCSRV);
+
+    dwError = LsaCheckInvalidRpcServer(
+                   pfnInitRpc,
+                   pszSrvLibPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dlerror();
+    pRpc->pfnShutdownSrv = (PFNSHUTDOWNRPCSRV)dlsym(
+                                               pRpc->phLib,
+                                               LSA_SYMBOL_NAME_SHUTDOWN_RPCSRV);
+
+    dwError = LsaCheckInvalidRpcServer(
+                   pRpc->pfnShutdownSrv,
+                   pszSrvLibPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = pfnInitRpc(
+                  pszConfigFilePath,
+                  &pRpc->pszName,
+                  &pRpc->pfnTable);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaRpcValidateServer(pRpc);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
 
 DWORD
 LsaInitRpcServers(
@@ -52,7 +155,9 @@ LsaInitRpcServers(
 {
     DWORD dwError = 0;
     PLSA_RPC_SERVER pRpc = NULL;
+    PLSA_RPC_SERVER pRpcList = NULL;
     PLSA_STACK pRpcSrvStack = NULL;
+    BOOLEAN bLocked = TRUE;
 
     dwError = LsaParseConfigFile(
                    pszConfigFilePath,
@@ -73,7 +178,7 @@ LsaInitRpcServers(
         {
             LSA_LOG_ERROR("Failed to load rpc server [%s] at [%s] [error code:%d]",
                 (pRpc->pszName ? pRpc->pszName : "<null>"),
-                (pRpc->pszSrvLibpath ? pRpc->pszSrvLibpath : "<null>"),
+                (pRpc->pszSrvLibPath ? pRpc->pszSrvLibPath : "<null>"),
                 dwError);
 
             LsaRpcFreeServer(pRpc);
@@ -86,10 +191,53 @@ LsaInitRpcServers(
             pRpcList = pRpc;
         }
         pRpc = (PLSA_RPC_SERVER) LsaStackPop(&pRpcSrvStack);
-
     }
 
+    ENTER_RPC_SERVER_LIST_WRITER_LOCK(bLocked);
+
+    LsaRpcFreeServerList(gpRpcServerList);
+
+    gpRpcServerList = pRpcList;
+    pRpcList        = NULL;
+
+    LEAVE_RPC_SERVER_LIST_WRITER_LOCK(bLocked);
+
 cleanup:
+    if (pRpcSrvStack) {
+        LsaStackForeach(
+            pRpcSrvStack,
+            &LsaCfgFreeRpcServerInStack,
+            NULL);
+
+        LsaStackFree(pRpcSrvStack);
+    }
+
+    return dwError;
+
+error:
+    if (pRpcList) {
+        LsaRpcFreeServerList(pRpcList);
+    }
+
+    goto cleanup;
+}
+
+
+DWORD
+LsaRpcValidateServer(
+    PLSA_RPC_SERVER pRpc
+    )
+{
+    DWORD dwError = 0;
+
+    if (pRpc == NULL ||
+        pRpc->pfnTable == NULL ||
+        !pRpc->pfnTable->pfnStart ||
+        !pRpc->pfnTable->pfnStop) {
+
+        dwError = LSA_ERROR_INVALID_RPC_SERVER;
+    }
+
     return dwError;
 }
 
@@ -104,7 +252,7 @@ LsaRpcServerConfigStartSection(
 {
     DWORD dwError = 0;
     PLSA_STACK *ppRpcSrvStack = (PLSA_STACK*)pData;
-    PLSA_RPC_SERVER pRpc = NULL;
+    PLSA_RPC_SERVER pRpcSrv = NULL;
     PCSTR pszLibName = NULL;
     BOOLEAN bSkipSection = FALSE;
     BOOLEAN bContinue = TRUE;
@@ -167,9 +315,9 @@ LsaRpcServerConfigNameValuePair(
     DWORD dwError = 0;
     PLSA_STACK *ppRpcSrvStack = (PLSA_STACK*)pData;
     PLSA_RPC_SERVER pRpc = NULL;
-    PCSTR pszLibPath = NULL;
+    PSTR pszLibPath = NULL;
 
-    BAIL_ON_INVALID_POINTER(ppProviderStack);
+    BAIL_ON_INVALID_POINTER(ppRpcSrvStack);
 
     pRpc = (PLSA_RPC_SERVER) LsaStackPeek(*ppRpcSrvStack);
 
@@ -215,10 +363,10 @@ LsaRpcFreeServer(
 {
     if (pSrv == NULL) return;
 
-    LSA_SAFE_FREE_STRING(pSrv->pszSrvLibPath);
+    LSA_SAFE_FREE_STRING(pSrv->pszName);
 
     if (pSrv->pfnShutdownSrv) {
-        pSrv->pfnShutdown(
+        pSrv->pfnShutdownSrv(
                     pSrv->pszName,
                     pSrv->pfnTable);
     }
@@ -227,9 +375,41 @@ LsaRpcFreeServer(
         dlclose(pSrv->phLib);
     }
 
-    LSA_SAFE_FREE_STRING(pszSrvLibPath);
+    LSA_SAFE_FREE_STRING(pSrv->pszSrvLibPath);
 
     LsaFreeMemory(pSrv);
+}
+
+
+void
+LsaRpcFreeServerList(
+    PLSA_RPC_SERVER pRpcServerList
+    )
+{
+    PLSA_RPC_SERVER pRpc = NULL;
+
+    while (pRpcServerList) {
+        pRpc = pRpcServerList;
+        pRpcServerList = pRpcServerList->pNext;
+        LsaRpcFreeServer(pRpc);
+        pRpc = NULL;
+    }
+}
+
+
+DWORD
+LsaCfgFreeRpcServerInStack(
+    PVOID pItem,
+    PVOID pUserData
+    )
+{
+    DWORD dwError = 0;
+
+    if (pItem) {
+        LsaRpcFreeServer((PLSA_RPC_SERVER)pItem);
+    }
+
+    return dwError;
 }
 
 
