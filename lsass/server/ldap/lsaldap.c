@@ -652,7 +652,7 @@ LsaLdapBindDirectory(
                                            NULL,
                                            &pServerCreds
                     );
-                if (dwError != LDAP_SASL_BIND_IN_PROGRESS) {
+                if (dwError != LDAP_SASL_BIND_IN_PROGRESS && dwError != 0) {
                     LSA_LOG_ERROR("ldap_sasl_bind_s failed with error code %d\n", dwError);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
