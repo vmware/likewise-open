@@ -125,7 +125,7 @@
 #define BAIL_ON_INVALID_PTR(ptr, err)		       \
     do {                                               \
         if ((ptr) == NULL) {                           \
-            erro = STATUS_INVALID_PARAMETER;           \
+            err = STATUS_INVALID_PARAMETER;           \
             goto error;                                \
         }                                              \
     } while (0);
