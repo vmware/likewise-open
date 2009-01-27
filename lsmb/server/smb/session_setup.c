@@ -78,11 +78,9 @@ _MarshallSessionSetupData(
     const wchar16_t *pwszNativeDomain
     )
 {
-    uint32_t error = 0;
-
+    DWORD dwError = 0;
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
-    uint32_t wstrlen = 0;
 
     if (blobLen && bufferUsed + blobLen <= bufferLen)
         memcpy(pBuffer, pSecurityBlob, blobLen);
@@ -96,30 +94,21 @@ _MarshallSessionSetupData(
         bufferUsed += alignment;
     }
 
-    wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed), pwszNativeOS,
-        bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    bufferUsed += wstrlen * sizeof(wchar16_t);
+    dwError = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszNativeOS);
+    BAIL_ON_SMB_ERROR(dwError);
 
-    wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed),
-        pwszNativeLanMan, bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    bufferUsed += wstrlen * sizeof(wchar16_t);
+    dwError = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszNativeLanMan);
+    BAIL_ON_SMB_ERROR(dwError);
 
     if (pwszNativeDomain)   /* NULL when extended security is not used */
     {
-        wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed),
-            pwszNativeDomain,
-            bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-        bufferUsed += wstrlen * sizeof(wchar16_t);
+        dwError = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszNativeDomain);
+        BAIL_ON_SMB_ERROR(dwError);
     }
 
-    if (bufferUsed > bufferLen)
-    {
-        error = EMSGSIZE;
-    }
-
+error:
     *pBufferUsed = bufferUsed;
-
-    return error;
+    return dwError;
 }
 
 uint32_t
@@ -269,17 +258,23 @@ UnmarshallSessionSetupResponse(
     wchar16_t       **ppwszNativeDomain
     )
 {
-    /* NOTE: The buffer format cannot be trusted! */
+    PSESSION_SETUP_RESPONSE_HEADER pHeader = (PSESSION_SETUP_RESPONSE_HEADER) pBuffer;
     uint32_t bufferUsed = sizeof(SESSION_SETUP_RESPONSE_HEADER);
+
+    /* NOTE: The buffer format cannot be trusted! */
     if (bufferLen < bufferUsed)
         return EBADMSG;
 
-    /* @todo: endian swap as appropriate */
-    *ppHeader = (SESSION_SETUP_RESPONSE_HEADER*) pBuffer;
+    // byte order conversions
+    SMB_LTOH16_INPLACE(pHeader->action);
+    SMB_LTOH16_INPLACE(pHeader->securityBlobLength);
+    SMB_LTOH16_INPLACE(pHeader->byteCount);
+
+    *ppHeader = pHeader;
 
     return _UnmarshallSessionSetupData(pBuffer + bufferUsed,
         bufferLen - bufferUsed, messageAlignment, ppSecurityBlob,
-        (*ppHeader)->securityBlobLength, ppwszNativeOS, ppwszNativeLanMan,
+        pHeader->securityBlobLength, ppwszNativeOS, ppwszNativeLanMan,
         ppwszNativeDomain);
 }
 

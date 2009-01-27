@@ -75,9 +75,61 @@ IsAndXCommand(
     return false;
 }
 
+static
+DWORD
+ConsumeBuffer(
+    IN PVOID pBuffer,
+    IN uint32_t BufferLength,
+    IN OUT uint32_t* BufferLengthUsed,
+    IN uint32_t BytesNeeded
+    )
+{
+    DWORD dwError = 0;
+
+    if (*BufferLengthUsed + BytesNeeded > BufferLength)
+    {
+        dwError = EMSGSIZE;
+    }
+    else
+    {
+        *BufferLengthUsed += BytesNeeded;
+    }
+
+    return dwError;
+}
+
+static
+VOID
+SMBPacketHTOLSmbHeader(
+    IN OUT SMB_HEADER* pHeader
+    )
+{
+    SMB_HTOL32_INPLACE(pHeader->error);
+    SMB_HTOL16_INPLACE(pHeader->flags2);
+    SMB_HTOL16_INPLACE(pHeader->extra.pidHigh);
+    SMB_HTOL16_INPLACE(pHeader->tid);
+    SMB_HTOL16_INPLACE(pHeader->pid);
+    SMB_HTOL16_INPLACE(pHeader->uid);
+    SMB_HTOL16_INPLACE(pHeader->mid);
+}
+
+static
+VOID
+SMBPacketLTOHSmbHeader(
+    IN OUT SMB_HEADER* pHeader
+    )
+{
+    SMB_LTOH32_INPLACE(pHeader->error);
+    SMB_LTOH16_INPLACE(pHeader->flags2);
+    SMB_LTOH16_INPLACE(pHeader->extra.pidHigh);
+    SMB_LTOH16_INPLACE(pHeader->tid);
+    SMB_LTOH16_INPLACE(pHeader->pid);
+    SMB_LTOH16_INPLACE(pHeader->uid);
+    SMB_LTOH16_INPLACE(pHeader->mid);
+}
+
 /* @todo: support AndX */
 /* @todo: support signing */
-/* @todo: support endian swapping */
 DWORD
 SMBPacketMarshallHeader(
     uint8_t    *pBuffer,
@@ -89,79 +141,81 @@ SMBPacketMarshallHeader(
     uint32_t    pid,
     uint16_t    uid,
     uint16_t    mid,
-    BOOLEAN     bSignMessages,
+    BOOLEAN     bCommandAllowsSignature,
     PSMB_PACKET pPacket
     )
 {
     DWORD dwError = 0;
     uint32_t bufferUsed = 0;
-    uint32_t len = sizeof(NETBIOS_HEADER);
+    SMB_HEADER* pHeader = NULL;
 
-    if(bufferUsed + len <= bufferLen)
-    {
-       pPacket->pNetBIOSHeader = (NETBIOS_HEADER*) pBuffer;
-    }
-    bufferUsed += len;
+    pPacket->allowSignature = bCommandAllowsSignature;
 
-    len = sizeof(SMB_HEADER);
-    if(bufferUsed + len <= bufferLen)
-    {
-        SMB_HEADER* pHeader = pPacket->pSMBHeader =
-            (SMB_HEADER *) (pBuffer + bufferUsed);
-        memcpy(&pPacket->pSMBHeader->smb, smbMagic, sizeof(smbMagic));
-        pHeader->command = command;
-        pHeader->error = error;
-        pHeader->flags = isResponse ? FLAG_RESPONSE : 0;
-        pHeader->flags |= FLAG_CASELESS_PATHS | FLAG_OBSOLETE_2;
-        pHeader->flags2 = (isResponse ? 0 : FLAG2_KNOWS_LONG_NAMES) |
-            (isResponse ? 0 : FLAG2_IS_LONG_NAME) |
-            (bSignMessages ? FLAG2_SECURITY_SIG : 0) |
-            FLAG2_KNOWS_EAS |
-            FLAG2_EXT_SEC | FLAG2_ERR_STATUS | FLAG2_UNICODE;
-        pHeader->extra.pidHigh = pid >> 16;
-        memset(pHeader->extra.securitySignature, 0,
-            sizeof(pHeader->extra.securitySignature));
-        pHeader->pad[5] = 0;
-        pHeader->tid = tid;
-        pHeader->pid = pid;
-        pHeader->uid = uid;
-        pHeader->mid = mid;
-    }
-    bufferUsed += len;
+    pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer + bufferUsed);
 
-    if(IsAndXCommand(command))
+    dwError = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(NETBIOS_HEADER));
+    BAIL_ON_SMB_ERROR(dwError);
+
+    pPacket->pSMBHeader = (SMB_HEADER *) (pBuffer + bufferUsed);
+
+    dwError = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(SMB_HEADER));
+    BAIL_ON_SMB_ERROR(dwError);
+
+    pHeader = pPacket->pSMBHeader;
+    memcpy(&pHeader->smb, smbMagic, sizeof(smbMagic));
+    pHeader->command = command;
+    pHeader->error = error;
+    pHeader->flags = isResponse ? FLAG_RESPONSE : 0;
+    pHeader->flags |= FLAG_CASELESS_PATHS | FLAG_OBSOLETE_2;
+    pHeader->flags2 = ((isResponse ? 0 : FLAG2_KNOWS_LONG_NAMES) |
+                       (isResponse ? 0 : FLAG2_IS_LONG_NAME) |
+                       FLAG2_KNOWS_EAS | FLAG2_EXT_SEC |
+                       FLAG2_ERR_STATUS | FLAG2_UNICODE);
+    memset(pHeader->pad, 0, sizeof(pHeader->pad));
+    pHeader->extra.pidHigh = pid >> 16;
+    pHeader->tid = tid;
+    pHeader->pid = pid;
+    pHeader->uid = uid;
+    pHeader->mid = mid;
+
+    if (IsAndXCommand(command))
     {
-        len = sizeof(ANDX_HEADER);
-        if(bufferUsed + len <= bufferLen)
-        {
-            pPacket->pAndXHeader = (ANDX_HEADER *) (pBuffer + bufferUsed);
-            pPacket->pAndXHeader->andXCommand = 0xFF;
-            pPacket->pAndXHeader->andXOffset = 0;
-            pPacket->pAndXHeader->andXReserved = 0;
-        }
-        bufferUsed += len;
+        pPacket->pAndXHeader = (ANDX_HEADER *) (pBuffer + bufferUsed);
+
+        dwError = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(ANDX_HEADER));
+        BAIL_ON_SMB_ERROR(dwError);
+
+        pPacket->pAndXHeader->andXCommand = 0xFF;
+        pPacket->pAndXHeader->andXOffset = 0;
+        pPacket->pAndXHeader->andXReserved = 0;
     }
     else
     {
         pPacket->pAndXHeader = NULL;
     }
 
-    if(bufferUsed <= bufferLen)
-    {
-        pPacket->pParams = pBuffer + bufferUsed;
-    }
-
+    pPacket->pParams = pBuffer + bufferUsed;
     pPacket->pData = NULL;
     pPacket->pByteCount = NULL;
     pPacket->bufferLen = bufferLen;
     pPacket->bufferUsed = bufferUsed;
 
-    if (bufferUsed > bufferLen)
-    {
-        dwError = EMSGSIZE;
-    }
+    assert(bufferUsed <= bufferLen);
 
+cleanup:
     return dwError;
+
+error:
+    pPacket->pNetBIOSHeader = NULL;
+    pPacket->pSMBHeader = NULL;
+    pPacket->pAndXHeader = NULL;
+    pPacket->pParams = NULL;
+    pPacket->pData = NULL;
+    pPacket->pByteCount = NULL;
+    pPacket->bufferLen = bufferLen;
+    pPacket->bufferUsed = 0;
+
+    goto cleanup;
 }
 
 DWORD
@@ -194,12 +248,13 @@ SMBPacketVerifySignature(
     uint8_t digest[16];
     uint8_t origSignature[8];
     MD5_CTX md5Value;
+    uint32_t littleEndianSequence = SMB_HTOL32(dwExpectedSequence);
 
     assert (sizeof(origSignature) == sizeof(pPacket->pSMBHeader->extra.securitySignature));
 
     memcpy(origSignature, pPacket->pSMBHeader->extra.securitySignature, sizeof(pPacket->pSMBHeader->extra.securitySignature));
     memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &dwExpectedSequence, sizeof(dwExpectedSequence));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &littleEndianSequence, sizeof(littleEndianSequence));
 
     MD5_Init(&md5Value);
 
@@ -233,6 +288,33 @@ error:
 }
 
 DWORD
+SMBPacketDecodeHeader(
+    IN OUT PSMB_PACKET pPacket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN OPTIONAL PBYTE pSessionKey,
+    IN DWORD dwSessionKeyLength
+    )
+{
+    DWORD dwError = 0;
+
+    if (bVerifySignature)
+    {
+        dwError = SMBPacketVerifySignature(
+                        pPacket,
+                        dwExpectedSequence,
+                        pSessionKey,
+                        dwSessionKeyLength);
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    SMBPacketLTOHSmbHeader(pPacket->pSMBHeader);
+
+error:
+    return dwError;
+}
+
+DWORD
 SMBPacketSign(
     PSMB_PACKET pPacket,
     DWORD       dwSequence,
@@ -243,9 +325,10 @@ SMBPacketSign(
     DWORD dwError = 0;
     uint8_t digest[16];
     MD5_CTX md5Value;
+    uint32_t littleEndianSequence = SMB_HTOL32(dwSequence);
 
     memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &dwSequence, sizeof(dwSequence));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &littleEndianSequence, sizeof(littleEndianSequence));
 
     MD5_Init(&md5Value);
 
@@ -264,8 +347,8 @@ SMBPacketSign(
 
 DWORD
 SMBPacketSend(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
+    IN PSMB_SOCKET pSocket,
+    IN OUT PSMB_PACKET pPacket
     )
 {
     /* @todo: signal handling */
@@ -273,6 +356,7 @@ SMBPacketSend(
     ssize_t  writtenLen = 0;
     BOOLEAN  bInLock = FALSE;
     BOOLEAN  bSemaphoreAcquired = FALSE;
+    BOOLEAN bIsSignatureRequired = FALSE;
 
     if (pSocket->maxMpxCount)
     {
@@ -286,6 +370,35 @@ SMBPacketSend(
     }
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->writeMutex);
+
+    if (pPacket->pSMBHeader->command != COM_NEGOTIATE)
+    {
+        pPacket->sequence = SMBSocketGetNextSequence(pSocket);
+    }
+
+    if (pPacket->allowSignature)
+    {
+        bIsSignatureRequired = SMBSocketIsSignatureRequired(pSocket);
+    }
+
+    if (bIsSignatureRequired)
+    {
+        pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
+    }
+
+    SMBPacketHTOLSmbHeader(pPacket->pSMBHeader);
+
+    if (bIsSignatureRequired)
+    {
+        dwError = SMBPacketSign(
+                        pPacket,
+                        pPacket->sequence,
+                        pSocket->pSessionKey,
+                        pSocket->dwSessionKeyLength);
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    pPacket->haveSignature = bIsSignatureRequired;
 
     writtenLen = write(
                     pSocket->fd,
@@ -319,8 +432,8 @@ error:
 
 DWORD
 SMBPacketReceiveAndUnmarshall(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
+    IN PSMB_SOCKET pSocket,
+    OUT PSMB_PACKET pPacket
     )
 {
     DWORD dwError = 0;
@@ -361,7 +474,7 @@ SMBPacketReceiveAndUnmarshall(
     pPacket->pSMBHeader = (SMB_HEADER *) (pPacket->pRawBuffer + bufferUsed);
     bufferUsed += sizeof(SMB_HEADER);
 
-    if (IsAndXCommand(pPacket->pSMBHeader->command))
+    if (IsAndXCommand(SMB_LTOH8(pPacket->pSMBHeader->command)))
     {
         pPacket->pAndXHeader = (ANDX_HEADER *)
             (pPacket->pSMBHeader + bufferUsed);
@@ -377,4 +490,85 @@ error:
     return dwError;
 }
 
+DWORD
+SMBPacketAppendUnicodeString(
+    OUT uint8_t* pBuffer,
+    IN ULONG BufferLength,
+    IN OUT PULONG BufferUsed,
+    IN const wchar16_t* pwszString
+    )
+{
+    DWORD dwError = 0;
+    ULONG bytesNeeded = 0;
+    ULONG bufferUsed = *BufferUsed;
+    wchar16_t* pOutputBuffer = NULL;
+    size_t writeLength = 0;
+
+    bytesNeeded = sizeof(pwszString[0]) * (wc16slen(pwszString) + 1);
+    if (bufferUsed + bytesNeeded > BufferLength)
+    {
+        dwError = EMSGSIZE;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    pOutputBuffer = (wchar16_t *) (pBuffer + bufferUsed);
+    writeLength = wc16stowc16les(pOutputBuffer, pwszString, bytesNeeded / sizeof(pwszString[0]));
+    // Verify that expected write length was returned.  Note that the
+    // returned length does not include the NULL though the NULL gets
+    // written out.
+    if (writeLength == (size_t) -1)
+    {
+        dwError = EMSGSIZE;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+    else if (((writeLength + 1) * sizeof(wchar16_t)) != bytesNeeded)
+    {
+        dwError = EMSGSIZE;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    bufferUsed += bytesNeeded;
+
+error:
+    *BufferUsed = bufferUsed;
+    return dwError;
+}
+
+DWORD
+SMBPacketAppendString(
+    OUT uint8_t* pBuffer,
+    IN ULONG BufferLength,
+    IN OUT PULONG BufferUsed,
+    IN const char* pszString
+    )
+{
+    DWORD dwError = 0;
+    ULONG bytesNeeded = 0;
+    ULONG bufferUsed = *BufferUsed;
+    char* pOutputBuffer = NULL;
+    char* pszCursor = NULL;
+
+    bytesNeeded = sizeof(pszString[0]) * (strlen(pszString) + 1);
+    if (bufferUsed + bytesNeeded > BufferLength)
+    {
+        dwError = EMSGSIZE;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    pOutputBuffer = (char *) (pBuffer + bufferUsed);
+
+    pszCursor = stpncpy(pOutputBuffer, pszString, bytesNeeded / sizeof(pszString[0]));
+    *pszCursor = 0;
+    if ((pszCursor - pOutputBuffer) != (bytesNeeded - 1))
+    {
+        dwError = EMSGSIZE;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    bufferUsed += bytesNeeded;
+
+error:
+    *BufferUsed = bufferUsed;
+    return dwError;
+}
 

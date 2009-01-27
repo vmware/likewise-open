@@ -70,18 +70,11 @@ SMBSrvClientSessionCreate(
 
     bAddedByPrincipal = TRUE;
 
-    pSession->bSignedMessagesSupported = pSocket->bSignedMessagesSupported;
-    pSession->bSignedMessagesRequired = pSocket->bSignedMessagesRequired;
-
     dwError = SessionSetup(
                     pSocket,
-                    SMBSrvClientSessionSignMessages(pSession),
-                    pSocket->pSessionKey,
-                    pSocket->dwSessionKeyLength,
                     &pSession->uid,
                     &pSession->pSessionKey,
-                    &pSession->dwSessionKeyLength,
-                    &pSession->hSMBGSSContext);
+                    &pSession->dwSessionKeyLength);
     BAIL_ON_SMB_ERROR(dwError);
 
     if (!pSocket->pSessionKey && pSession->pSessionKey)
@@ -289,15 +282,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-BOOLEAN
-SMBSrvClientSessionSignMessages(
-    PSMB_SESSION pSession
-    )
-{
-    // TODO: Grab the config lock when available
-    return (pSession->bSignedMessagesRequired || (pSession->bSignedMessagesSupported && gSignMessagesIfSupported));
 }
 
 DWORD

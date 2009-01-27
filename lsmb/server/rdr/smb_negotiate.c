@@ -59,18 +59,12 @@ Negotiate(
 {
     uint32_t dwError = 0;
     SMB_PACKET packet = {0};
-
-    NEGOTIATE_RESPONSE_HEADER *pHeader;
-    uint8_t *pSecurityBlob;
-    uint8_t *pGUID;
+    NEGOTIATE_RESPONSE_HEADER* pHeader = NULL;
+    uint8_t* pSecurityBlob = NULL;
+    uint8_t* pGUID = NULL;
     uint32_t securityBlobLen = 0;
-
     uint32_t packetByteCount = 0;
-
-    wchar16_t nativeOS[1024];
-    wchar16_t nativeLanMan[1024];
-    wchar16_t nativeDomain[1024];
-    BOOLEAN   bSocketLocked = FALSE;
+    BOOLEAN bSocketLocked = FALSE;
 
     const uchar8_t *pszDialects[1] = { (uchar8_t *) "NT LM 0.12" };
 
@@ -105,10 +99,6 @@ Negotiate(
     packet.bufferUsed += 2;
     packet.pSMBHeader->wordCount = 0;   /* No parameter words */
 
-    wcstowc16s(nativeOS, L"Unix", sizeof(nativeOS));
-    wcstowc16s(nativeLanMan, L"Likewise SMB", sizeof(nativeLanMan));
-    wcstowc16s(nativeDomain, L"WORKGROUP", sizeof(nativeDomain));
-
     /* @todo: handle buffer size restart with ERESTART */
     dwError = MarshallNegotiateRequest(
                     packet.pData,
@@ -122,14 +112,19 @@ Negotiate(
     *packet.pByteCount = (uint16_t) packetByteCount;
     packet.bufferUsed += *packet.pByteCount;
 
+    // byte order conversions
+    SMB_HTOL16_INPLACE(*packet.pByteCount);
+
     dwError = SMBPacketMarshallFooter(&packet);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBPacketSend(pSocket, &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBSocketReceiveNegotiateResponse(
+    dwError = SMBSocketReceiveResponse(
                     pSocket,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     &pResponsePacket);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -144,6 +139,20 @@ Negotiate(
                     &pSecurityBlob,
                     &securityBlobLen);
     BAIL_ON_SMB_ERROR(dwError);
+
+    SMB_LTOH16_INPLACE(pHeader->dialectIndex);
+    SMB_LTOH8_INPLACE(pHeader->securityMode);
+    SMB_LTOH16_INPLACE(pHeader->maxMpxCount);
+    SMB_LTOH16_INPLACE(pHeader->maxNumberVcs);
+    SMB_LTOH32_INPLACE(pHeader->maxBufferSize);
+    SMB_LTOH32_INPLACE(pHeader->maxRawSize);
+    SMB_LTOH32_INPLACE(pHeader->sessionKey);
+    SMB_LTOH32_INPLACE(pHeader->capabilities);
+    SMB_LTOH32_INPLACE(pHeader->systemTimeLow);
+    SMB_LTOH32_INPLACE(pHeader->systemTimeHigh);
+    SMB_LTOH16_INPLACE(pHeader->serverTimeZone);
+    SMB_LTOH8_INPLACE(pHeader->encryptionKeyLength);
+    SMB_LTOH16_INPLACE(pHeader->byteCount);
 
     /* This backlock is safe because the session hash is unlocked. */
     SMB_LOCK_MUTEX(bSocketLocked, &pSocket->mutex);

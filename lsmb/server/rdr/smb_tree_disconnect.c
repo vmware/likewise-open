@@ -61,7 +61,6 @@ TreeDisconnect(
     SMB_RESPONSE *pResponse = NULL;
     SMB_PACKET *pResponsePacket = NULL;
     uint16_t wMid = 0;
-    DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
     dwError = SMBSocketBufferAllocate(
@@ -86,7 +85,7 @@ TreeDisconnect(
                 0,
                 pTree->pSession->uid,
                 wMid,
-                SMBSrvClientSessionSignMessages(pTree->pSession),
+                TRUE,
                 &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -98,6 +97,8 @@ TreeDisconnect(
     packet.bufferUsed += sizeof(uint16_t);
     *((uint16_t *) packet.pData) = 0;
 
+    // no byte order conversions necessary (due to zeros)
+
     dwError = SMBPacketMarshallFooter(&packet);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -107,21 +108,6 @@ TreeDisconnect(
     dwError = SMBSrvClientTreeAddResponse(pTree, pResponse);
     BAIL_ON_SMB_ERROR(dwError);
 
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        DWORD dwSequence = SMBSocketGetNextSequence(pTree->pSession->pSocket);
-
-        dwError = SMBPacketSign(
-                        &packet,
-                        dwSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        // resultant is the response sequence from server
-        dwResponseSequence = dwSequence + 1;
-    }
-
     /* @todo: on send packet error, the response must be removed from the
        tree. */
     dwError = SMBPacketSend(pTree->pSession->pSocket, &packet);
@@ -129,19 +115,11 @@ TreeDisconnect(
 
     dwError = SMBTreeReceiveResponse(
                     pTree,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     pResponse,
                     &pResponsePacket);
     BAIL_ON_SMB_ERROR(dwError);
-
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        dwError = SMBPacketVerifySignature(
-                        pResponsePacket,
-                        dwResponseSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
-    }
 
     dwError = pResponsePacket->pSMBHeader->error;
     BAIL_ON_SMB_ERROR(dwError);

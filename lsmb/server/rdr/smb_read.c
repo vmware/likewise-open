@@ -50,7 +50,6 @@ WireReadFile(
     PSMB_PACKET pResponsePacket = NULL;
     uint16_t wMid = 0;
     uint16_t wBytesRead = 0;
-    DWORD dwResponseSequence = 0;
 
     SMB_LOG_DEBUG("Begin: WireReadFile: fid [%d] Read Length [%d]", fid, wReadLen);
 
@@ -77,7 +76,7 @@ WireReadFile(
                 0,
                 pTree->pSession->uid,
                 wMid,
-                SMBSrvClientSessionSignMessages(pTree->pSession),
+                TRUE,
                 &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -102,6 +101,16 @@ WireReadFile(
 
     packet.bufferUsed += packetByteCount;
 
+    // byte order conversions
+    SMB_HTOL16_INPLACE(pRequestHeader->fid);
+    SMB_HTOL32_INPLACE(pRequestHeader->offset);
+    SMB_HTOL16_INPLACE(pRequestHeader->maxCount);
+    SMB_HTOL16_INPLACE(pRequestHeader->minCount);
+    SMB_HTOL32_INPLACE(pRequestHeader->maxCountHigh);
+    SMB_HTOL16_INPLACE(pRequestHeader->remaining);
+    SMB_HTOL32_INPLACE(pRequestHeader->offsetHigh);
+    SMB_HTOL16_INPLACE(pRequestHeader->byteCount);
+
     dwError = SMBPacketMarshallFooter(&packet);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -111,21 +120,6 @@ WireReadFile(
     dwError = SMBSrvClientTreeAddResponse(pTree, pResponse);
     BAIL_ON_SMB_ERROR(dwError);
 
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        DWORD dwSequence = SMBSocketGetNextSequence(pTree->pSession->pSocket);
-
-        dwError = SMBPacketSign(
-                        &packet,
-                        dwSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        // resultant is the response sequence from server
-        dwResponseSequence = dwSequence + 1;
-    }
-
     /* @todo: on send packet error, the response must be removed from the
        tree. */
     dwError = SMBPacketSend(pTree->pSession->pSocket, &packet);
@@ -133,19 +127,11 @@ WireReadFile(
 
     dwError = SMBTreeReceiveResponse(
                     pTree,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     pResponse,
                     &pResponsePacket);
     BAIL_ON_SMB_ERROR(dwError);
-
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        dwError = SMBPacketVerifySignature(
-                        pResponsePacket,
-                        dwResponseSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
-    }
 
     if (pResponsePacket->pSMBHeader->error)
     {
@@ -161,9 +147,37 @@ WireReadFile(
     {
         pResponseHeader = (READ_RESPONSE_HEADER *) pResponsePacket->pParams;
 
+        // byte order conversions
+        //SMB_LTOH16_INPLACE(pResponseHeader->remaining);
+        //SMB_LTOH16_INPLACE(pResponseHeader->dataCompactionMode);
+        //SMB_LTOH16_INPLACE(pResponseHeader->reserved);
+        SMB_LTOH16_INPLACE(pResponseHeader->dataLength);
+        SMB_LTOH16_INPLACE(pResponseHeader->dataOffset);
+        SMB_LTOH16_INPLACE(pResponseHeader->dataLengthHigh);
+        //SMB_LTOH16_INPLACE(pResponseHeader->reserved2[0]);
+        //SMB_LTOH16_INPLACE(pResponseHeader->reserved2[1]);
+        //SMB_LTOH16_INPLACE(pResponseHeader->reserved2[2]);
+        //SMB_LTOH16_INPLACE(pResponseHeader->reserved2[3]);
+        //SMB_LTOH16_INPLACE(pResponseHeader->ByteCount);
+
         if (pResponseHeader->dataLength)
         {
             wBytesRead = pResponseHeader->dataLength;
+
+            if (wBytesRead > wReadLen)
+            {
+                dwError = EBADMSG;
+                BAIL_ON_SMB_ERROR(dwError);
+            }
+
+            // TODO -- VERIFY PACKET LENGTH!!!!
+#if 0
+            if (pResponseHeader->dataOffset + wBytesRead > pResponsePacket->pNetBIOSHeader->len)
+            {
+                dwError = EBADMSG;
+                BAIL_ON_SMB_ERROR(dwError);
+            }
+#endif
 
             memcpy(pReadBuffer,
                    (uint8_t*)pResponsePacket->pSMBHeader + pResponseHeader->dataOffset,

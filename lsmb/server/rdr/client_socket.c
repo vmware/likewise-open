@@ -440,7 +440,7 @@ restart:
         /* Not found; create in second pass */
         if (!bFirstPass)
         {
-            dwError = SMBSocketCreate(ai, pszHostname, &pSocket);
+            dwError = SMBSocketCreate(ai, pszHostname, &pSocket, gSignMessagesIfSupported);
             BAIL_ON_SMB_ERROR(dwError);
 
             /* add to hash */

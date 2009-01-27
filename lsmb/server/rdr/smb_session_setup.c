@@ -56,14 +56,10 @@
 thereafter */
 DWORD
 SessionSetup(
-    PSMB_SOCKET pSocket,
-    BOOLEAN     bSignMessages,
-    PBYTE       pPrimerSessionKey,
-    DWORD       dwPrimerSessionKeyLen,
-    uint16_t   *pUID,
-    PBYTE*      ppSessionKey,
-    PDWORD      pdwSessionKeyLength,
-    PHANDLE     phGssContext
+    IN OUT PSMB_SOCKET pSocket,
+    OUT uint16_t* pUID,
+    OUT PBYTE* ppSessionKey,
+    OUT PDWORD pdwSessionKeyLength
     )
 {
     DWORD dwError = 0;
@@ -84,8 +80,6 @@ SessionSetup(
 
     SMB_PACKET *pResponsePacket = NULL;
     PSESSION_SETUP_RESPONSE_HEADER pResponseHeader = NULL;
-    DWORD     dwSequence = 0;
-    DWORD     dwResponseSequence = 0;
 
     dwError = SMBGSSContextBuild(
                     (char *) pSocket->pszHostname,
@@ -125,7 +119,7 @@ SessionSetup(
                         0,
                         0,
                         0,
-                        FALSE, /* sign messages */
+                        TRUE,
                         &packet);
         BAIL_ON_SMB_ERROR(dwError);
 
@@ -171,21 +165,18 @@ SessionSetup(
         *packet.pByteCount = (uint16_t) packetByteCount;
         packet.bufferUsed += *packet.pByteCount;
 
+        // byte order conversions
+        SMB_HTOL16_INPLACE(pHeader->maxBufferSize);
+        SMB_HTOL16_INPLACE(pHeader->maxMpxCount);
+        SMB_HTOL16_INPLACE(pHeader->vcNumber);
+        SMB_HTOL32_INPLACE(pHeader->sessionKey);
+        SMB_HTOL16_INPLACE(pHeader->securityBlobLength);
+        //SMB_HTOL32_INPLACE(pHeader->reserved);
+        SMB_HTOL32_INPLACE(pHeader->capabilities);
+        SMB_HTOL16_INPLACE(pHeader->byteCount);
+
         dwError = SMBPacketMarshallFooter(&packet);
         BAIL_ON_SMB_ERROR(dwError);
-
-        dwSequence = SMBSocketGetNextSequence(pSocket);
-        dwResponseSequence = dwSequence + 1;
-
-        if (bSignMessages && (pSessionKey || pPrimerSessionKey))
-        {
-            dwError = SMBPacketSign(
-                            &packet,
-                            dwSequence,
-                            (pSessionKey ? pSessionKey : pPrimerSessionKey),
-                            (pSessionKey ? dwSessionKeyLength : dwPrimerSessionKeyLen));
-            BAIL_ON_SMB_ERROR(dwError);
-        }
 
         /* Because there's no MID, only one SESSION_SETUP_ANDX packet can be
            outstanding. */
@@ -203,22 +194,14 @@ SessionSetup(
             pResponsePacket = NULL;
         }
 
-        dwError = SMBSocketReceiveSessionSetupResponse(
+        dwError = SMBSocketReceiveResponse(
                         pSocket,
+                        packet.haveSignature,
+                        packet.sequence + 1,
                         &pResponsePacket);
         BAIL_ON_SMB_ERROR(dwError);
 
         SMB_UNLOCK_MUTEX(bInLock, &pSocket->sessionMutex);
-
-        if (bSignMessages && (pSessionKey || pPrimerSessionKey))
-        {
-            dwError = SMBPacketVerifySignature(
-                            pResponsePacket,
-                            dwResponseSequence,
-                            (pSessionKey ? pSessionKey : pPrimerSessionKey),
-                            (pSessionKey ? dwSessionKeyLength : dwPrimerSessionKeyLen));
-            BAIL_ON_SMB_ERROR(dwError);
-        }
 
         dwError = pResponsePacket->pSMBHeader->error;
         BAIL_ON_SMB_ERROR(dwError);
@@ -252,12 +235,27 @@ SessionSetup(
                     &dwSessionKeyLength);
     BAIL_ON_SMB_ERROR(dwError);
 
+    if (!pSocket->pSessionKey && pSessionKey)
+    {
+        dwError = SMBAllocateMemory(
+                        dwSessionKeyLength,
+                        (PVOID*)&pSocket->pSessionKey);
+        BAIL_ON_SMB_ERROR(dwError);
+
+        memcpy(pSocket->pSessionKey, pSessionKey, dwSessionKeyLength);
+
+        pSocket->dwSessionKeyLength = dwSessionKeyLength;
+    }
+
     *pUID = pResponsePacket->pSMBHeader->uid;
-    *phGssContext = hSMBGSSContext;
     *ppSessionKey = pSessionKey;
     *pdwSessionKeyLength = dwSessionKeyLength;
 
 cleanup:
+    if (hSMBGSSContext)
+    {
+        SMBGSSContextFree(hSMBGSSContext);
+    }
 
     if (pResponsePacket)
     {
@@ -283,11 +281,6 @@ error:
     *pUID = 0;
     *ppSessionKey = NULL;
     *pdwSessionKeyLength = 0;
-
-    if (hSMBGSSContext)
-    {
-        SMBGSSContextFree(hSMBGSSContext);
-    }
 
     SMB_SAFE_FREE_MEMORY(pSessionKey);
 

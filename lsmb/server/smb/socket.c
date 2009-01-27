@@ -87,13 +87,6 @@ SMBSocketFindSessionByUID(
 
 static
 DWORD
-SMBSocketReceiveNegotiateOrSetupResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
-    );
-
-static
-DWORD
 SMBSocketPacketAllocate(
     PSMB_SOCKET  pSocket,
     PSMB_PACKET* ppPacket
@@ -256,9 +249,10 @@ error:
 
 DWORD
 SMBSocketCreate(
-    struct addrinfo *address,
-    uchar8_t        *pszHostname,
-    PSMB_SOCKET*     ppSocket
+    IN struct addrinfo* address,
+    IN uchar8_t* pszHostname,
+    OUT PSMB_SOCKET* ppSocket,
+    IN BOOLEAN bUseSignedMessagesIfSupported
     )
 {
     DWORD dwError = 0;
@@ -274,6 +268,8 @@ SMBSocketCreate(
                 sizeof(SMB_SOCKET),
                 (PVOID*)&pSocket);
     BAIL_ON_SMB_ERROR(dwError);
+
+    pSocket->bUseSignedMessagesIfSupported = bUseSignedMessagesIfSupported;
 
     pthread_mutex_init(&pSocket->mutex, NULL);
     bDestroyMutex = TRUE;
@@ -486,6 +482,28 @@ SMBSocketTimedOut_InLock(
     return bTimedOut;
 }
 
+BOOLEAN
+SMBSocketIsSignatureRequired(
+    IN PSMB_SOCKET pSocket
+    )
+{
+    BOOLEAN bIsRequired = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    if (pSocket->pSessionKey &&
+        (pSocket->bSignedMessagesRequired ||
+         (pSocket->bSignedMessagesSupported && pSocket->bUseSignedMessagesIfSupported)))
+    {
+        bIsRequired = TRUE;
+    }
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return bIsRequired;
+}
+
 DWORD
 SMBSocketGetNextSequence(
     PSMB_SOCKET pSocket
@@ -637,14 +655,18 @@ SMBSocketFindAndSignalResponse(
     PSMB_TREE     pTree     = NULL;
     PSMB_RESPONSE pResponse = NULL;
     BOOLEAN bSocketInLock = FALSE;
+    uint8_t command = SMB_LTOH8(pPacket->pSMBHeader->command);
+    uint16_t uid = SMB_LTOH16(pPacket->pSMBHeader->uid);
+    uint16_t tid = SMB_LTOH16(pPacket->pSMBHeader->tid);
+    uint16_t mid = SMB_LTOH16(pPacket->pSMBHeader->mid);
 
     /* If any intermediate object has an error status, then the
        waiting thread has (or will soon) be awoken with an error
        condition by the thread which set the original error. */
 
-    if (pPacket->pSMBHeader->command == COM_NEGOTIATE ||
-        pPacket->pSMBHeader->command == COM_SESSION_SETUP_ANDX ||
-        pPacket->pSMBHeader->command == COM_LOGOFF_ANDX)
+    if (command == COM_NEGOTIATE ||
+        command == COM_SESSION_SETUP_ANDX ||
+        command == COM_LOGOFF_ANDX)
     {
         SMB_LOCK_MUTEX(bSocketInLock, &pSocket->mutex);
 
@@ -661,12 +683,12 @@ SMBSocketFindAndSignalResponse(
 
     dwError = SMBSocketFindSessionByUID(
                     pSocket,
-                    pPacket->pSMBHeader->uid,
+                    uid,
                     &pSession);
     BAIL_ON_SMB_ERROR(dwError);
 
     /* COM_TREE_DISCONNECT has a MID and is handled by the normal MID path. */
-    if (pPacket->pSMBHeader->command == COM_TREE_CONNECT_ANDX)
+    if (command == COM_TREE_CONNECT_ANDX)
     {
         BOOLEAN bSessionInLock = FALSE;
 
@@ -684,17 +706,17 @@ SMBSocketFindAndSignalResponse(
 
     dwError = SMBSessionFindTreeById(
                     pSession,
-                    pPacket->pSMBHeader->tid,
+                    tid,
                     &pTree);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBTreeFindLockedResponseByMID(
                     pTree,
-                    pPacket->pSMBHeader->mid,
+                    mid,
                     &pResponse);
     BAIL_ON_SMB_ERROR(dwError);
 
-    SMB_LOG_DEBUG("Found response [mid: %d] in Tree [0x%x] Socket [0x%x]", pPacket->pSMBHeader->mid, pTree, pSocket);
+    SMB_LOG_DEBUG("Found response [mid: %d] in Tree [0x%x] Socket [0x%x]", mid, pTree, pSocket);
 
     pResponse->pPacket = pPacket;
     pResponse->state = SMB_RESOURCE_STATE_VALID;
@@ -979,42 +1001,20 @@ SMBSocketSetState(
 }
 
 DWORD
-SMBSocketReceiveNegotiateResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
-    )
-{
-    return SMBSocketReceiveNegotiateOrSetupResponse(pSocket, ppPacket);
-}
-
-DWORD
-SMBSocketReceiveSessionSetupResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
-    )
-{
-    return SMBSocketReceiveNegotiateOrSetupResponse(pSocket, ppPacket);
-}
-
-DWORD
-SMBSocketReceiveLogoffResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
-    )
-{
-    return SMBSocketReceiveNegotiateOrSetupResponse(pSocket, ppPacket);
-}
-
-static
-DWORD
-SMBSocketReceiveNegotiateOrSetupResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
+SMBSocketReceiveResponse(
+    IN PSMB_SOCKET pSocket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    OUT PSMB_PACKET* ppPacket
     )
 {
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
     struct timespec ts = { 0, 0 };
+    PSMB_PACKET pPacket = NULL;
+
+    // TODO-The pSocket->pSessionPacket stuff needs to go away
+    // so that this function can go away.
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
@@ -1056,18 +1056,30 @@ retry_wait:
         BAIL_ON_SMB_ERROR(dwError);
     }
 
-    *ppPacket = pSocket->pSessionPacket;
+    pPacket = pSocket->pSessionPacket;
     pSocket->pSessionPacket = NULL;
 
-cleanup:
+    dwError = SMBPacketDecodeHeader(
+                    pPacket,
+                    bVerifySignature,
+                    dwExpectedSequence,
+                    pSocket->pSessionKey,
+                    pSocket->dwSessionKeyLength);
+    BAIL_ON_SMB_ERROR(dwError);
 
+cleanup:
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    *ppPacket = pPacket;
 
     return dwError;
 
 error:
-
-    *ppPacket = NULL;
+    if (pPacket)
+    {
+        SMBSocketPacketFree(pSocket, pPacket);
+        pPacket = NULL;
+    }
 
     goto cleanup;
 }

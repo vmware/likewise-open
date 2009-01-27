@@ -50,49 +50,63 @@
 #ifndef __SMBUTILS_H__
 #define __SMBUTILS_H__
 
-#ifndef SMB_ENDIAN_SWAP16
+#ifndef _SMB_ENDIAN_SWAP16
 
-#define SMB_ENDIAN_SWAP16(wX)                     \
-        ((((UINT16)(wX) & 0xFF00) >> 8) |        \
-         (((UINT16)(wX) & 0x00FF) << 8))
-
-#endif
-
-#ifndef SMB_ENDIAN_SWAP32
-
-#define SMB_ENDIAN_SWAP32(dwX)                    \
-        ((((UINT32)(dwX) & 0xFF000000L) >> 24) | \
-         (((UINT32)(dwX) & 0x00FF0000L) >>  8) | \
-         (((UINT32)(dwX) & 0x0000FF00L) <<  8) | \
-         (((UINT32)(dwX) & 0x000000FFL) << 24))
+#define _SMB_ENDIAN_SWAP16(wX)                     \
+        ((((uint16_t)(wX) & 0xFF00) >> 8) |        \
+         (((uint16_t)(wX) & 0x00FF) << 8))
 
 #endif
 
-#ifndef SMB_ENDIAN_SWAP64
+#ifndef _SMB_ENDIAN_SWAP32
 
-#define SMB_ENDIAN_SWAP64(llX)         \
-   (((UINT64)(SMB_ENDIAN_SWAP32(((UINT64)(llX) & 0xFFFFFFFF00000000LL) >> 32))) | \
-   (((UINT64)SMB_ENDIAN_SWAP32(((UINT64)(llX) & 0x00000000FFFFFFFFLL))) << 32))
+#define _SMB_ENDIAN_SWAP32(dwX)                    \
+        ((((uint32_t)(dwX) & 0xFF000000L) >> 24) | \
+         (((uint32_t)(dwX) & 0x00FF0000L) >>  8) | \
+         (((uint32_t)(dwX) & 0x0000FF00L) <<  8) | \
+         (((uint32_t)(dwX) & 0x000000FFL) << 24))
+
+#endif
+
+#ifndef _SMB_ENDIAN_SWAP64
+
+#define _SMB_ENDIAN_SWAP64(llX)         \
+   (((uint64_t)(_SMB_ENDIAN_SWAP32(((uint64_t)(llX) & 0xFFFFFFFF00000000LL) >> 32))) | \
+   (((uint64_t)_SMB_ENDIAN_SWAP32(((uint64_t)(llX) & 0x00000000FFFFFFFFLL))) << 32))
 
 #endif
 
 #if defined(WORDS_BIGENDIAN)
+#define SMB_HTOL16(x) _SMB_ENDIAN_SWAP16(x)
+#define SMB_HTOL32(x) _SMB_ENDIAN_SWAP32(x)
+#define SMB_HTOL64(x) _SMB_ENDIAN_SWAP64(x)
 
-/* Changes to little endian on big endian systems */
-
-#define SMB_ENDIAN_SWAP16_BIG_ENDIAN(wX)  SMB_ENDIAN_SWAP16(wX)
-#define SMB_ENDIAN_SWAP32_BIG_ENDIAN(dwX) SMB_ENDIAN_SWAP32(dwX)
-#define SMB_ENDIAN_SWAP64_BIG_ENDIAN(llX) SMB_ENDIAN_SWAP64(llX)
-
+#define SMB_LTOH16(x) _SMB_ENDIAN_SWAP16(x)
+#define SMB_LTOH32(x) _SMB_ENDIAN_SWAP32(x)
+#define SMB_LTOH64(x) _SMB_ENDIAN_SWAP64(x)
 #else
+#define SMB_HTOL16(x) (x)
+#define SMB_HTOL32(x) (x)
+#define SMB_HTOL64(x) (x)
 
-/* lets little endian be as it is */
-
-#define SMB_ENDIAN_SWAP16_BIG_ENDIAN(wX)  (wX)
-#define SMB_ENDIAN_SWAP32_BIG_ENDIAN(dwX) (dwX)
-#define SMB_ENDIAN_SWAP64_BIG_ENDIAN(llX) (llX)
-
+#define SMB_LTOH16(x) (x)
+#define SMB_LTOH32(x) (x)
+#define SMB_LTOH64(x) (x)
 #endif
+
+// No-ops, but for readability.
+#define SMB_HTOL8(x) (x)
+#define SMB_LTOH8(x) (x)
+
+#define SMB_HTOL8_INPLACE(x) ((x) = SMB_HTOL8(x))
+#define SMB_HTOL16_INPLACE(x) ((x) = SMB_HTOL16(x))
+#define SMB_HTOL32_INPLACE(x) ((x) = SMB_HTOL32(x))
+#define SMB_HTOL64_INPLACE(x) ((x) = SMB_HTOL64(x))
+
+#define SMB_LTOH8_INPLACE(x) ((x) = SMB_LTOH8(x))
+#define SMB_LTOH16_INPLACE(x) ((x) = SMB_LTOH16(x))
+#define SMB_LTOH32_INPLACE(x) ((x) = SMB_LTOH32(x))
+#define SMB_LTOH64_INPLACE(x) ((x) = SMB_LTOH64(x))
 
 #define BAIL_ON_SMB_ERROR(dwError)                \
     if (dwError) {                                \

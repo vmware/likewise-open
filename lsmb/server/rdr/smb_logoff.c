@@ -59,8 +59,6 @@ Logoff(
     uint32_t dwError = 0;
     SMB_PACKET packet = {0};
     PSMB_PACKET pResponsePacket = NULL;
-    DWORD dwSequence = 0;
-    DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
     dwError = SMBSocketBufferAllocate(
@@ -80,7 +78,7 @@ Logoff(
                 0,
                 pSession->uid,
                 0,
-                SMBSrvClientSessionSignMessages(pSession),
+                TRUE,
                 &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -90,41 +88,20 @@ Logoff(
     packet.bufferUsed += sizeof(uint16_t); /* ByteCount */
     *((uint16_t *) packet.pData) = 0;
 
+    // no byte order conversions necessary (due to zeros)
+
     dwError = SMBPacketMarshallFooter(&packet);
     BAIL_ON_SMB_ERROR(dwError);
-
-    if (SMBSrvClientSessionSignMessages(pSession))
-    {
-        dwSequence = SMBSocketGetNextSequence(pSession->pSocket);
-
-        dwError = SMBPacketSign(
-                        &packet,
-                        dwSequence,
-                        pSession->pSocket->pSessionKey,
-                        pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        // resultant is the response sequence from server
-        dwResponseSequence = dwSequence + 1;
-    }
 
     dwError = SMBPacketSend(pSession->pSocket, &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBSocketReceiveLogoffResponse(
+    dwError = SMBSocketReceiveResponse(
                     pSession->pSocket,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     &pResponsePacket);
     BAIL_ON_SMB_ERROR(dwError);
-
-    if (SMBSrvClientSessionSignMessages(pSession))
-    {
-        dwError = SMBPacketVerifySignature(
-                        pResponsePacket,
-                        dwResponseSequence,
-                        pSession->pSocket->pSessionKey,
-                        pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
-    }
 
     dwError = pResponsePacket->pSMBHeader->error;
     BAIL_ON_SMB_ERROR(dwError);

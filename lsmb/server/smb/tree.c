@@ -350,15 +350,21 @@ SMBTreeDestroyContents(
 
 DWORD
 SMBTreeReceiveResponse(
-    PSMB_TREE     pTree,
-    PSMB_RESPONSE pResponse,
-    PSMB_PACKET*  ppResponsePacket
+    IN PSMB_TREE pTree,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN PSMB_RESPONSE pResponse,
+    OUT PSMB_PACKET* ppResponsePacket
     )
 {
     DWORD dwError = 0;
     BOOLEAN bResponseInLock = FALSE;
     BOOLEAN bTreeInLock = FALSE;
     struct timespec ts = {0, 0};
+
+    // TODO-This function should really just get use pSocket instead ofpTree and
+    // use MID allocation from the socket...  so it should become
+    // SMBSocketReceiveResponse.
 
     SMB_LOCK_MUTEX(bResponseInLock, &pResponse->mutex);
 
@@ -418,6 +424,14 @@ retry_wait:
 
     /* @todo: this need be set only when the hash is empty */
     pTree->lastActiveTime = time(NULL);
+
+    dwError = SMBPacketDecodeHeader(
+                    pResponse->pPacket,
+                    bVerifySignature,
+                    dwExpectedSequence,
+                    pTree->pSession->pSocket->pSessionKey,
+                    pTree->pSession->pSocket->dwSessionKeyLength);
+    BAIL_ON_SMB_ERROR(dwError);
 
     /* Could be NULL on error */
     *ppResponsePacket = pResponse->pPacket;

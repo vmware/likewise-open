@@ -66,11 +66,6 @@ SMBSrvClientSessionRemoveTreeByPath(
     PSMB_TREE    pTree
     );
 
-BOOLEAN
-SMBSrvClientSessionSignMessages(
-    PSMB_SESSION pSession
-    );
-
 DWORD
 SMBSrvClientSessionRelease(
     PSMB_SESSION pSession

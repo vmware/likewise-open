@@ -291,11 +291,6 @@ SMBSessionFree(
     pthread_mutex_destroy(&pSession->mutex);
     pthread_rwlock_destroy(&pSession->hashLock);
 
-    if (pSession->hSMBGSSContext)
-    {
-        SMBGSSContextFree(pSession->hSMBGSSContext);
-    }
-
     SMB_SAFE_FREE_MEMORY(pSession->pSessionKey);
 
     /* @todo: use allocator */
@@ -419,13 +414,19 @@ error:
 
 DWORD
 SMBSessionReceiveResponse(
-    PSMB_SESSION pSession,
-    PSMB_PACKET* ppPacket
+    IN PSMB_SESSION pSession,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    OUT PSMB_PACKET* ppPacket
     )
 {
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
     struct timespec ts = { 0, 0 };
+    PSMB_PACKET pPacket = NULL;
+
+    // TODO-The pSocket->pTreePacket stuff needs to go away
+    // so that this function can go away.
 
     SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
@@ -465,18 +466,30 @@ retry_wait:
         BAIL_ON_SMB_ERROR(dwError);
     }
 
-    *ppPacket = pSession->pTreePacket;
+    pPacket = pSession->pTreePacket;
     pSession->pTreePacket = NULL;
 
-cleanup:
+    dwError = SMBPacketDecodeHeader(
+                    pPacket,
+                    bVerifySignature,
+                    dwExpectedSequence,
+                    pSession->pSocket->pSessionKey,
+                    pSession->pSocket->dwSessionKeyLength);
+    BAIL_ON_SMB_ERROR(dwError);
 
+cleanup:
     SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+
+    *ppPacket = pPacket;
 
     return dwError;
 
 error:
-
-    *ppPacket = NULL;
+    if (pPacket)
+    {
+        SMBSocketPacketFree(pSession->pSocket, pPacket);
+        pPacket = NULL;
+    }
 
     goto cleanup;
 }

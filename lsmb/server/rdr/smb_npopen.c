@@ -70,7 +70,29 @@ NPOpen(
     SMB_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     uint16_t wMid = 0;
-    DWORD dwResponseSequence = 0;
+    uint32_t smbCreateDisposition = 0;
+
+    switch (dwCreationDisposition)
+    {
+    case CREATE_NEW:
+        smbCreateDisposition = 2;
+        break;
+    case CREATE_ALWAYS:
+        smbCreateDisposition = 5;
+        break;
+    case OPEN_EXISTING:
+        smbCreateDisposition = 1;
+        break;
+    case OPEN_ALWAYS:
+        smbCreateDisposition = 3;
+        break;
+    case TRUNCATE_EXISTING:
+        smbCreateDisposition = 4;
+        break;
+    default:
+        dwError = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
 
     /* @todo: make initial length configurable */
     dwError = SMBSocketBufferAllocate(
@@ -95,7 +117,7 @@ NPOpen(
                 0,
                 pTree->pSession->uid,
                 wMid,
-                SMBSrvClientSessionSignMessages(pTree->pSession),
+                TRUE,
                 &packet);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -113,38 +135,16 @@ NPOpen(
 
     pHeader->reserved = 0;
     /* @todo: does the length include alignment padding? */
-    pHeader->nameLength = wc16slen(pwszPath) * sizeof(wchar16_t) +
-        sizeof(WNUL);
+    pHeader->nameLength = (wc16slen(pwszPath) + 1) * sizeof(wchar16_t);
     pHeader->flags = 0;
     pHeader->rootDirectoryFid = 0;
     pHeader->desiredAccess = dwDesiredAccess;
     pHeader->allocationSize = 0;
     pHeader->extFileAttributes = dwFlagsAndAttributes;
     pHeader->shareAccess = dwSharedMode;
+    pHeader->createDisposition = smbCreateDisposition;
     pHeader->createOptions = 0x80; /* FIXME */
     pHeader->impersonationLevel = 0x2; /* FIXME */
-
-    switch (dwCreationDisposition)
-    {
-    case CREATE_NEW:
-        pHeader->createDisposition = 0x2;
-        break;
-    case CREATE_ALWAYS:
-        pHeader->createDisposition = 0x5;
-        break;
-    case OPEN_EXISTING:
-        pHeader->createDisposition = 0x1;
-        break;
-    case OPEN_ALWAYS:
-        pHeader->createDisposition = 0x3;
-        break;
-    case TRUNCATE_EXISTING:
-        pHeader->createDisposition = 0x4;
-        break;
-    default:
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
-    }
 
     /* @todo: handle buffer size restart with ERESTART */
     dwError = MarshallCreateRequestData(
@@ -161,6 +161,21 @@ NPOpen(
 
     packet.bufferUsed += *packet.pByteCount;
 
+    // byte order conversions
+    SMB_HTOL8_INPLACE(pHeader->reserved);
+    SMB_HTOL16_INPLACE(pHeader->nameLength);
+    SMB_HTOL32_INPLACE(pHeader->flags);
+    SMB_HTOL32_INPLACE(pHeader->rootDirectoryFid);
+    SMB_HTOL32_INPLACE(pHeader->desiredAccess);
+    SMB_HTOL64_INPLACE(pHeader->allocationSize);
+    SMB_HTOL32_INPLACE(pHeader->extFileAttributes);
+    SMB_HTOL32_INPLACE(pHeader->shareAccess);
+    SMB_HTOL32_INPLACE(pHeader->createDisposition);
+    SMB_HTOL32_INPLACE(pHeader->createOptions);
+    SMB_HTOL32_INPLACE(pHeader->impersonationLevel);
+    SMB_HTOL8_INPLACE(pHeader->securityFlags);
+    SMB_HTOL16_INPLACE(pHeader->byteCount);
+
     dwError = SMBPacketMarshallFooter(&packet);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -170,21 +185,6 @@ NPOpen(
     dwError = SMBSrvClientTreeAddResponse(pTree, pResponse);
     BAIL_ON_SMB_ERROR(dwError);
 
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        DWORD dwSequence = SMBSocketGetNextSequence(pTree->pSession->pSocket);
-
-        dwError = SMBPacketSign(
-                        &packet,
-                        dwSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        // resultant is the response sequence from server
-        dwResponseSequence = dwSequence + 1;
-    }
-
     /* @todo: on send packet error, the response must be removed from the
        tree.*/
     dwError = SMBPacketSend(pTree->pSession->pSocket, &packet);
@@ -192,19 +192,11 @@ NPOpen(
 
     dwError = SMBTreeReceiveResponse(
                     pTree,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     pResponse,
                     &pResponsePacket);
     BAIL_ON_SMB_ERROR(dwError);
-
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        dwError = SMBPacketVerifySignature(
-                        pResponsePacket,
-                        dwResponseSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
-    }
 
     dwError = pResponsePacket->pSMBHeader->error;
     BAIL_ON_SMB_ERROR(dwError);

@@ -71,11 +71,9 @@ MarshallCreateRequestData(
     const wchar16_t *pwszPath
     )
 {
-    uint32_t error = 0;
-
+    DWORD dwError = 0;
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
-    uint32_t wstrlen = 0;
 
     /* Align strings */
     alignment = (bufferUsed + messageAlignment) % 2;
@@ -85,18 +83,12 @@ MarshallCreateRequestData(
         bufferUsed += alignment;
     }
 
-    wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed), pwszPath,
-        bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    bufferUsed += wstrlen * sizeof(wchar16_t);
+    dwError = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszPath);
+    BAIL_ON_SMB_ERROR(dwError);
 
-    if (bufferUsed > bufferLen)
-    {
-        error = EMSGSIZE;
-    }
-
+error:
     *pBufferUsed = bufferUsed;
-
-    return error;
+    return dwError;
 }
 
 uint32_t
@@ -106,13 +98,30 @@ UnmarshallSMBResponseCreate(
     CREATE_RESPONSE_HEADER **ppHeader
     )
 {
-    /* NOTE: The buffer format cannot be trusted! */
+    CREATE_RESPONSE_HEADER* pHeader = (CREATE_RESPONSE_HEADER*) pBuffer;
     uint32_t bufferUsed = sizeof(CREATE_RESPONSE_HEADER);
+
+    /* NOTE: The buffer format cannot be trusted! */
     if (bufferLen < bufferUsed)
         return EBADMSG;
 
-    /* @todo: endian swap as appropriate */
-    *ppHeader = (CREATE_RESPONSE_HEADER*) pBuffer;
+    // byte order conversions
+    SMB_LTOH8_INPLACE(pHeader->oplockLevel);
+    SMB_LTOH16_INPLACE(pHeader->fid);
+    SMB_LTOH32_INPLACE(pHeader->createAction);
+    SMB_LTOH64_INPLACE(pHeader->creationTime);
+    SMB_LTOH64_INPLACE(pHeader->lastAccessTime);
+    SMB_LTOH64_INPLACE(pHeader->lastWriteTime);
+    SMB_LTOH64_INPLACE(pHeader->changeTime);
+    SMB_LTOH32_INPLACE(pHeader->extFileAttributes);
+    SMB_LTOH64_INPLACE(pHeader->allocationSize);
+    SMB_LTOH64_INPLACE(pHeader->endOfFile);
+    SMB_LTOH16_INPLACE(pHeader->fileType);
+    SMB_LTOH16_INPLACE(pHeader->deviceState);
+    SMB_LTOH8_INPLACE(pHeader->isDirectory);
+    SMB_LTOH16_INPLACE(pHeader->byteCount);
+
+    *ppHeader = pHeader;
 
     return 0;
 }

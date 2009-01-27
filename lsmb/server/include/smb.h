@@ -277,6 +277,9 @@ typedef struct
     size_t          bufferLen;   /* Number of bytes allocated from buffer */
     uint32_t        bufferUsed;  /* Number of bytes available/needed from
                                     buffer */
+    uint32_t        sequence;    /* Sequence number */
+    uint8_t         allowSignature; /* Whether to allow signing for this packet */
+    uint8_t         haveSignature; /* Whether packet has signature */
 } SMB_PACKET, *PSMB_PACKET;
 
 typedef enum
@@ -813,6 +816,7 @@ typedef struct
     BOOLEAN  bPasswordsMustBeEncrypted;
     BOOLEAN  bSignedMessagesSupported;
     BOOLEAN  bSignedMessagesRequired;
+    BOOLEAN  bUseSignedMessagesIfSupported;
 
     PBYTE    pSessionKey;
     DWORD    dwSessionKeyLength;
@@ -854,13 +858,8 @@ typedef struct
                                        TID (Tree Connect) or disconnects */
     pthread_cond_t treeEvent;   /* Signals waiting thread on tree packet */
 
-    HANDLE hSMBGSSContext;      /* Authorization handle */
-
     PBYTE  pSessionKey;
     DWORD  dwSessionKeyLength;
-
-    BOOLEAN bSignedMessagesSupported;
-    BOOLEAN bSignedMessagesRequired;
 
     /* @todo: store max mux, enforce.  Per session, per tree, or global? */
 } SMB_SESSION, *PSMB_SESSION;
@@ -960,12 +959,12 @@ UnmarshallSessionSetupResponse(
 
 uint32_t
 MarshallTreeConnectRequestData(
-    uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
-    uint32_t        *pBufferUsed,
-    const wchar16_t *pwszPath,
-    const uchar8_t  *pszService
+    OUT uint8_t* pBuffer,
+    IN uint32_t bufferLen,
+    IN uint8_t messageAlignment,
+    OUT uint32_t* pBufferUsed,
+    IN const wchar16_t* pwszPath,
+    IN const char* pszService
     );
 
 uint32_t
@@ -1096,9 +1095,10 @@ SMBSrvSocketCreate(
 
 DWORD
 SMBSocketCreate(
-    struct addrinfo *address,
-    uchar8_t        *pszHostname,
-    PSMB_SOCKET*    ppSocket
+    IN struct addrinfo* address,
+    IN uchar8_t* pszHostname,
+    OUT PSMB_SOCKET* ppSocket,
+    IN BOOLEAN bUseSignedMessagesIfSupported
     );
 
 DWORD
@@ -1142,6 +1142,11 @@ SMBSocketTimedOut_InLock(
     PSMB_SOCKET pSocket
     );
 
+BOOLEAN
+SMBSocketIsSignatureRequired(
+    IN PSMB_SOCKET pSocket
+    );
+
 DWORD
 SMBSocketGetNextSequence(
     PSMB_SOCKET pSocket
@@ -1161,21 +1166,11 @@ SMBSocketRead(
     );
 
 DWORD
-SMBSocketReceiveNegotiateResponse(
-    PSMB_SOCKET  pSocket,
-    PSMB_PACKET* ppPacket
-    );
-
-DWORD
-SMBSocketReceiveSessionSetupResponse(
-    PSMB_SOCKET  pSocket,
-    PSMB_PACKET* ppPacket
-    );
-
-DWORD
-SMBSocketReceiveLogoffResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
+SMBSocketReceiveResponse(
+    IN PSMB_SOCKET pSocket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    OUT PSMB_PACKET* ppPacket
     );
 
 DWORD
@@ -1255,8 +1250,10 @@ SMBSessionFindTreeById(
 
 DWORD
 SMBSessionReceiveResponse(
-    PSMB_SESSION pSession,
-    PSMB_PACKET* ppPacket
+    IN PSMB_SESSION pSession,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    OUT PSMB_PACKET* ppPacket
     );
 
 VOID
@@ -1306,9 +1303,11 @@ SMBSrvClientTreeAddResponse(
 
 DWORD
 SMBTreeReceiveResponse(
-    PSMB_TREE     pTree,
-    PSMB_RESPONSE pResponse,
-    PSMB_PACKET*  ppResponsePacket
+    IN PSMB_TREE pTree,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN PSMB_RESPONSE pResponse,
+    OUT PSMB_PACKET* ppResponsePacket
     );
 
 DWORD
@@ -1354,7 +1353,7 @@ SMBPacketMarshallHeader(
     uint32_t    pid,
     uint16_t    uid,
     uint16_t    mid,
-    BOOLEAN     bSignMessages,
+    BOOLEAN     bCommandAllowsSignature,
     PSMB_PACKET pPacket
     );
 
@@ -1377,6 +1376,15 @@ SMBPacketVerifySignature(
     );
 
 DWORD
+SMBPacketDecodeHeader(
+    IN OUT PSMB_PACKET pPacket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN OPTIONAL PBYTE pSessionKey,
+    IN DWORD dwSessionKeyLength
+    );
+
+DWORD
 SMBPacketSign(
     PSMB_PACKET pPacket,
     DWORD       dwSequence,
@@ -1386,14 +1394,30 @@ SMBPacketSign(
 
 DWORD
 SMBPacketSend(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
+    IN PSMB_SOCKET pSocket,
+    IN OUT PSMB_PACKET pPacket
     );
 
 DWORD
 SMBPacketReceiveAndUnmarshall(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
+    IN PSMB_SOCKET pSocket,
+    OUT PSMB_PACKET pPacket
+    );
+
+DWORD
+SMBPacketAppendUnicodeString(
+    OUT uint8_t* pBuffer,
+    IN ULONG BufferLength,
+    IN OUT PULONG BufferUsed,
+    IN const wchar16_t* pwszString
+    );
+
+DWORD
+SMBPacketAppendString(
+    OUT uint8_t* pBuffer,
+    IN ULONG BufferLength,
+    IN OUT PULONG BufferUsed,
+    IN const char* pszString
     );
 
 #endif /* __SMBWIRE_H__ */

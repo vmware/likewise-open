@@ -31,13 +31,9 @@
 
 uint32_t
 SessionSetup(
-    PSMB_SOCKET pSocket,
-    BOOLEAN     bSignMessages,
-    PBYTE       pPrimerSessionKey,
-    DWORD       dwPrimerSessionKeyLen,
-    uint16_t   *pUID,
-    PBYTE*      ppSessionKey,
-    PDWORD      pdwSessionKeyLength,
-    PHANDLE     phGSSContext
+    IN OUT PSMB_SOCKET pSocket,
+    OUT uint16_t* pUID,
+    OUT PBYTE* ppSessionKey,
+    OUT PDWORD pdwSessionKeyLength
     );
 
