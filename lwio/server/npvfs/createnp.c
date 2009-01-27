@@ -123,6 +123,14 @@ NpfsCommonCreateNamedPipe(
     // waiting ConnectNamedPipe on the SCB
     //
 
+    ntStatus = IoFileSetContext(
+                        pIrpContext->pIrp->FileHandle,
+                        pSCB
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+
 error:
 
     LEAVE_WRITER_RW_LOCK(&gServerLock);
