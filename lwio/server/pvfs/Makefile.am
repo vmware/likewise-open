@@ -13,7 +13,8 @@ libpvfs_sys_la_SOURCES = \
     close.c \
     create_file.c \
     create_dir.c \
-    alloc.c
+    alloc.c \
+    errno.c
 
 libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

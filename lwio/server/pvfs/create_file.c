@@ -143,6 +143,37 @@ error:
  */
 
 static NTSTATUS
+MapPosixOpenFlags(
+    int *unixFlags,
+    ACCESS_MASK desiredAccess,
+    FILE_CREATE_OPTIONS createOptions
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* This should derive the unixFlags based on the
+       access_mask and the request create_options.
+       Fake it for the moment. */
+
+    *unixFlags = O_RDWR;
+    ntError = STATUS_SUCCESS;
+
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/**
+ *
+ *
+ */
+
+static NTSTATUS
 PvfsCreateFileSupersede(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -166,18 +197,51 @@ PvfsCreateFileCreate(
     IO_FILE_NAME fileName = pIrp->Args.Create.FileName;
     PSTR pszFilename = NULL;
     int fd = -1;
+    int unixFlags = 0;
     PPVFS_CCB pCcb = NULL;
 
     ntError = RtlCStringAllocateFromWC16String(&pszFilename,
                                                fileName.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCcb = RtlMemoryAllocate(sizeof(*pCcb));
-    BAIL_ON_NULL_PTR(pCcb, ntError);
+    ntError = PvfsAllocateCCB(&pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
+#if 0
+    /* Check whether the user can create a new file */
 
-    /* Map the create options */
+    ntError = PvfsCheckParentSecurity(pIrp->Args.Create.SecurityContext,
+                                      pszFilename,
+                                      FILE_WRITE_DATA);
+    BAIL_ON_NT_STATUS(ntError);
+#endif
 
+    ntError = MapPosixOpenFlags(&unixFlags,
+                                pIrp->Args.Create.DesiredAccess,
+                                pIrp->Args.Create.CreateOptions);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Make sure we are dealing with file creation */
+
+    unixFlags |= O_CREAT | O_EXCL;
+
+    if ((fd = open(pszFilename, unixFlags, 0600)) == -1)
+    {
+        int err = errno;
+
+        ntError = PvfsMapUnixErrnoToNtStatus(err);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Save our state */
+
+    pCcb->fd = fd;
+    pCcb->AccessGranted = MAXIMUM_ALLOWED;
+    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+    pCcb->pszFilename = pszFilename;
+
+    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     return ntError;

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,60 +28,36 @@
  * license@likewisesoftware.com
  */
 
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        close.c
+ *        create_file.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Close Dispatch Function
+ *       Create Dispatch Routine
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
 
+/* Forward declarations */
+
+
+/* Code */
+
 NTSTATUS
-PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
+PvfsMapUnixErrnoToNtStatus(
+    int err
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
-
-    /* make sure we have a proper CCB */
-
-
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    BAIL_ON_INVALID_PTR(pCcb, ntError);
-
-    if (close(pCcb->fd) == -1)
-    {
-        int err = errno;
-
-        ntError = PvfsMapUnixErrnoToNtStatus(err);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    PVFS_SAFE_FREE_MEMORY(pCcb->pszFilename);
-    PVFS_SAFE_FREE_MEMORY(pCcb);
-
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    return ntError;
-error:
-    goto cleanup;
+    return LwUnixErrnoToNtStatus(err);
 }
-
 
 
 /*

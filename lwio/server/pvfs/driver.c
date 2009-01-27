@@ -169,6 +169,8 @@ PvfsDriverDispatch(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    pIrp->IoStatusBlock.Status = ntError;
+
     return ntError;
 
 error:

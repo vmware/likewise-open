@@ -61,6 +61,12 @@
 
 #include "macros.h"
 
+/* Unix (POSIX) APIs */
+
+#include <errno.h>
+
+/* Top level APi functions */
+
 NTSTATUS
 PvfsCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -111,6 +117,12 @@ PvfsSetInformation(
 
 #include "create_p.h"
 #include "alloc_p.h"
+
+NTSTATUS
+PvfsMapUnixErrnoToNtStatus(
+    int err
+    );
+
 
 #endif /* __PVFS_H__ */
 
