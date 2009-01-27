@@ -653,6 +653,7 @@ LsaLdapBindDirectory(
                                            &pServerCreds
                     );
                 if (dwError != LDAP_SASL_BIND_IN_PROGRESS) {
+                    LSA_LOG_ERROR("ldap_sasl_bind_s failed with error code %d\n", dwError);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
 
@@ -917,6 +918,8 @@ LsaLdapDirectorySearch(
           dwError = LSA_ERROR_LDAP_SERVER_UNAVAILABLE;
           goto error;
        }
+       LSA_LOG_ERROR("Caught ldap error %d on search [%s]",
+            LSA_SAFE_LOG_STRING(pszQuery));
        BAIL_ON_LSA_ERROR(dwError);
     }
 
