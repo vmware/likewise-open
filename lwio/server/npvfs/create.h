@@ -6,9 +6,9 @@ NpfsCommonCreate(
     );
 
 NTSTATUS
-NpfsValidateCreateOptions(
+NpfsValidateCreate(
     PNPFS_IRP_CONTEXT pIrpContext,
-    PWSTR * ppszPipeName
+    PUNICODE_STRING pPipeName
     );
 
 NTSTATUS

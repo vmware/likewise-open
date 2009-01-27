@@ -65,6 +65,13 @@ NpfsCreate(
     );
 
 NTSTATUS
+NpfsCreateNamedPipe(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+
+NTSTATUS
 NpfsDeviceIo(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp

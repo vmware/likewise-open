@@ -3,7 +3,7 @@
 
 NTSTATUS
 NpfsCreateFCB(
-    PWSTR pUnicodeString,
+    PUNICODE_STRING pUnicodeString,
     PNPFS_FCB * ppFcb
     )
 {
@@ -14,7 +14,7 @@ NpfsCreateFCB(
 
 NTSTATUS
 NpfsFindFCB(
-    PWSTR pUnicodeString,
+    PUNICODE_STRING pUnicodeString,
     PNPFS_FCB * ppFcb
     )
 {

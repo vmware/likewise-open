@@ -73,59 +73,6 @@ error:
 }
 
 
-
-NTSTATUS
-NpfsAllocateIrpContext(
-    PIRP pIrp,
-    PNPFS_IRP_CONTEXT * ppIrpContext
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PNPFS_IRP_CONTEXT pIrpContext = NULL;
-
-    ntStatus = IO_ALLOCATE(&pIrpContext, NPFS_IRP_CONTEXT, sizeof(*pIrpContext));
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pIrpContext->pIrp = pIrp;
-
-    *ppIrpContext = pIrpContext;
-
-    return(ntStatus);
-
-error:
-
-    *ppIrpContext = NULL;
-    return(ntStatus);
-}
-
-
-NTSTATUS
-NpfsAllocateCCB(
-    PNPFS_CCB *ppCCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PNPFS_CCB pCCB = NULL;
-
-   /* ntStatus = IoMemoryAllocate(
-                    sizeof(NPFS_CCB),
-                    &pCCB
-                    );*/
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppCCB = pCCB;
-
-    return(ntStatus);
-
-error:
-
-    *ppCCB = NULL;
-
-    return(ntStatus);
-}
-
-
-
 NTSTATUS
 NpfsCommonCreateNamedPipe(
     PNPFS_IRP_CONTEXT pIrpContext,
@@ -133,10 +80,12 @@ NpfsCommonCreateNamedPipe(
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE FileHandle;
     UNICODE_STRING  PathName = {0};
+    PNPFS_FCB pFCB = NULL;
+    PNPFS_PIPE pPipe = NULL;
+    PNPFS_CCB pSCB = NULL;
 
-    ntStatus = ValidCreateNamedPipeOptions(
+    ntStatus = NpfsValidateCreateNamedPipe(
                     pIrpContext,
                     &PathName
                     );
@@ -156,16 +105,16 @@ NpfsCommonCreateNamedPipe(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsClientCreateCCB(
+    ntStatus = NpfsCreateSCB(
                     pIrpContext,
-                    &pCCB
+                    &pSCB
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pPipe->pCCB = pCCB;
+    pPipe->pSCB = pSCB;
     pPipe->PipeClientState =  PIPE_CLIENT_CONNECTED;
-    pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
-    pCCB->pPipe = pPipe;
+    pPipe->PipeServerState = PIPE_SERVER_CREATED;
+    pSCB->pPipe = pPipe;
 
     //
     // Now set the condition queue to trigger the
@@ -187,16 +136,13 @@ NpfsValidateCreateNamedPipe(
     )
 {
     NTSTATUS ntStatus = 0;
-    UNICODE_STRING prefixPath = { 0 };
-    UNICODE_STRING allowPrefix = { 0 };
-    PIT_CCB pCcb = NULL;
     PIO_ECP_NAMED_PIPE pipeParams = NULL;
     ULONG ecpSize = 0;
 
     if (!pIrpContext->pIrp->Args.Create.EcpList)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     ntStatus = IoRtlEcpListFind(
@@ -213,10 +159,10 @@ NpfsValidateCreateNamedPipe(
     if (ecpSize != sizeof(*pipeParams))
     {
         ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    RtlUnicodeStringInit(&pPath, pIrp->Args.Create.FileName.FileName);
+    RtlUnicodeStringInit(pPath, pIrpContext->pIrp->Args.Create.FileName.FileName);
 
 error:
 

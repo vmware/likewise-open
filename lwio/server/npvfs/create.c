@@ -98,34 +98,6 @@ error:
     return(ntStatus);
 }
 
-
-NTSTATUS
-NpfsAllocateCCB(
-    PNPFS_CCB *ppCCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PNPFS_CCB pCCB = NULL;
-
-   /* ntStatus = IoMemoryAllocate(
-                    sizeof(NPFS_CCB),
-                    &pCCB
-                    );*/
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppCCB = pCCB;
-
-    return(ntStatus);
-
-error:
-
-    *ppCCB = NULL;
-
-    return(ntStatus);
-}
-
-
-
 NTSTATUS
 NpfsCommonCreate(
     PNPFS_IRP_CONTEXT pIrpContext,
@@ -134,14 +106,14 @@ NpfsCommonCreate(
 {
     NTSTATUS ntStatus = 0;
     //IO_FILE_HANDLE FileHandle;
-    PWSTR pszPipeName = NULL;
+    UNICODE_STRING PipeName = {0};
     PNPFS_FCB pFCB = NULL;
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pCCB = NULL;
 
-    ntStatus = NpfsValidateCreateOptions(
+    ntStatus = NpfsValidateCreate(
                     pIrpContext,
-                    &pszPipeName
+                    &PipeName
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -149,7 +121,7 @@ NpfsCommonCreate(
     ENTER_WRITER_RW_LOCK(&gServerLock);
 
     ntStatus = NpfsFindFCB(
-                    pszPipeName,
+                    &PipeName,
                     &pFCB
                     );
     BAIL_ON_NT_STATUS(ntStatus);
@@ -160,7 +132,7 @@ NpfsCommonCreate(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsClientCreateCCB(
+    ntStatus = NpfsCreateCCB(
                     pIrpContext,
                     &pCCB
                     );
@@ -186,9 +158,9 @@ error:
 }
 
 NTSTATUS
-NpfsValidateCreateOptions(
+NpfsValidateCreate(
     PNPFS_IRP_CONTEXT pIrpContext,
-    PWSTR * ppszPipeName
+    PUNICODE_STRING pPipeName
     )
 {
     NTSTATUS ntStatus = 0;

@@ -69,8 +69,16 @@ NpfsDriverDispatch(
 
     switch (pIrp->Type)
     {
+
         case IRP_TYPE_CREATE:
             ntStatus = NpfsCreate(
+                            DeviceHandle,
+                            pIrp
+                            );
+            break;
+
+        case IRP_TYPE_CREATE_NAMED_PIPE:
+            ntStatus = NpfsCreateNamedPipe(
                             DeviceHandle,
                             pIrp
                             );

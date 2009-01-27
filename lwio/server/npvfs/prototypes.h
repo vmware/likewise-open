@@ -19,29 +19,58 @@ NpfsFreePipeContext(
     PNPFS_PIPE pPipe
     );
 
-/* ccb.c */
+/* createnp.c */
+
+NTSTATUS
+NpfsCreateNamedPipe(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsAllocateCCB(
+    PNPFS_CCB *ppCCB
+    );
 
 
 NTSTATUS
-NpfsClientCreateCCB(
+NpfsCommonCreateNamedPipe(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+
+NTSTATUS
+NpfsValidateCreateNamedPipe(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PUNICODE_STRING  pPath
+    );
+/* ccb.c */
+
+NTSTATUS
+NpfsCreateSCB(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PNPFS_CCB * ppSCB
+    );
+
+NTSTATUS
+NpfsCreateCCB(
     PNPFS_IRP_CONTEXT pIrpContext,
     PNPFS_CCB * ppCCB
     );
 
-
 /* fcb.c */
-
 
 
 NTSTATUS
 NpfsCreateFCB(
-    PWSTR pUnicodeString,
+    PUNICODE_STRING pUnicodeString,
     PNPFS_FCB * ppFcb
     );
 
 NTSTATUS
 NpfsFindFCB(
-    PWSTR pUnicodeString,
+    PUNICODE_STRING pUnicodeString,
     PNPFS_FCB * ppFcb
     );
 
