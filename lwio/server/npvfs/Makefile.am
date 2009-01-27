@@ -3,6 +3,7 @@ lib_LTLIBRARIES = libnpvfs.sys.la
 libnpvfs_sys_la_SOURCES = \
     close.c  \
     create.c \
+    ccb.c    \
     fcb.c    \
     deviceio.c \
     driver.c \

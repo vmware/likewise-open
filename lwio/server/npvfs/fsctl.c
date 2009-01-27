@@ -50,7 +50,7 @@
 #include "npfs.h"
 
 NTSTATUS
-NpfsFsctl(
+NpfsFsCtl(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )

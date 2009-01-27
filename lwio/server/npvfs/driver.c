@@ -103,7 +103,7 @@ NpfsDriverDispatch(
             break;
 
         case IRP_TYPE_FS_CONTROL:
-            ntStatus = NpfsFsCtrl(
+            ntStatus = NpfsFsCtl(
                             DeviceHandle,
                             pIrp
                             );
@@ -157,7 +157,7 @@ DriverEntry(
 
     ntStatus = IoDeviceCreate(&deviceHandle,
                               DriverHandle,
-                              "pvfs",
+                              "npvfs",
                               NULL);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
 

@@ -71,7 +71,7 @@ NpfsDeviceIo(
     );
 
 NTSTATUS
-NpfsFsCtrl(
+NpfsFsCtl(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
