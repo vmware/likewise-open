@@ -82,7 +82,7 @@ typedef DWORD (*PFNSHUTDOWNRPCSRV)(
         LSA_LOG_DEBUG("DCE/RPC error at %s:%d [0x%08x]\n",  \
                       __FILE__, __LINE__, (st));            \
         dwError = LSA_ERROR_DCERPC_ERROR;                   \
-        goto error;
+        goto error;                                         \
     }
 
 
