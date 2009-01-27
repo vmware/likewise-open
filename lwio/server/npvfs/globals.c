@@ -30,3 +30,5 @@
 
 #include "npfs.h"
 
+PNPFS_FCB  gpFCB = NULL;
+

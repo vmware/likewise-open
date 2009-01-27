@@ -116,6 +116,7 @@ NpfsSetInformation(
 
 #include "create.h"
 #include "close.h"
+#include "externs.h"
 
 #define ENTER_READER_RW_LOCK(pMutex)
 

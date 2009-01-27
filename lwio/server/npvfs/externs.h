@@ -31,7 +31,6 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern PSTR           gpszPVFSProviderName;
-extern NTVFS_DRIVER   gPVFSProviderTable;
+extern PNPFS_FCB gpFCB;
 
 #endif /* __EXTERNS_H__ */

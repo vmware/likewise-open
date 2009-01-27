@@ -64,7 +64,9 @@ NpfsCreateNamedPipe(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsCommonCreateNamedPipe(pIrpContext, pIrp);
+    ntStatus = NpfsCommonCreateNamedPipe(
+                        pIrpContext,
+                        pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
