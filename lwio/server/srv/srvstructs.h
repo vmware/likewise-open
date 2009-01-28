@@ -70,14 +70,29 @@ typedef struct _SRV_HOST_INFO
 
 } SRV_HOST_INFO, *PSRV_HOST_INFO;
 
+typedef enum
+{
+    SHARE_SERVICE_UNKNOWN = 0,
+    SHARE_SERVICE_ANY,
+    SHARE_SERVICE_DISK_SHARE,
+    SHARE_SERVICE_NAMED_PIPE,
+    SHARE_SERVICE_COMM_DEVICE,
+    SHARE_SERVICE_PRINTER
+} SHARE_SERVICE;
+
 typedef struct _SHARE_DB_INFO
 {
     LONG refcount;
+
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
 
     PWSTR pwszName;
     PWSTR pwszPath;
     PWSTR pwszComment;
     PWSTR pwszSID;
+
+    SHARE_SERVICE service;
 
     BOOLEAN bMarkedForDeletion;
 

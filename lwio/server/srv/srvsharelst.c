@@ -111,7 +111,7 @@ SrvShareInitContextContents(
 
         ulOffset += ulNumSharesFound;
 
-    } while (ulNumSharesFound);
+    } while (ulNumSharesFound == ulLimit);
 
     pDbContext->pShareCollection = pShareCollection;
 
@@ -178,6 +178,126 @@ cleanup:
 error:
 
     *ppShareInfo = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvShareGetServiceStringId(
+    SHARE_SERVICE  service,
+    PSTR*          ppszService
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PCSTR    pszId = NULL;
+    PSTR     pszService = NULL;
+
+    switch (service)
+    {
+        case SHARE_SERVICE_DISK_SHARE:
+
+            pszId = LWIO_SRV_SHARE_STRING_ID_DISK;
+
+            break;
+
+        case SHARE_SERVICE_PRINTER:
+
+            pszId = LWIO_SRV_SHARE_STRING_ID_PRINTER;
+
+            break;
+
+        case SHARE_SERVICE_COMM_DEVICE:
+
+            pszId = LWIO_SRV_SHARE_STRING_ID_COMM;
+
+            break;
+
+        case SHARE_SERVICE_NAMED_PIPE:
+
+            pszId = LWIO_SRV_SHARE_STRING_ID_IPC;
+
+            break;
+
+        case SHARE_SERVICE_ANY:
+
+            pszId = LWIO_SRV_SHARE_STRING_ID_ANY;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_NOT_FOUND;
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBAllocateString(
+                    pszId,
+                    &pszService);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppszService = pszService;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppszService = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvShareGetServiceId(
+    PCSTR          pszService,
+    SHARE_SERVICE* pService
+    )
+{
+    NTSTATUS ntStatus = 0;
+    SHARE_SERVICE service = SHARE_SERVICE_UNKNOWN;
+
+    if (IsNullOrEmptyString(pszService))
+    {
+        ntStatus = STATUS_NOT_FOUND;
+    }
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_IPC))
+    {
+        service = SHARE_SERVICE_NAMED_PIPE;
+    }
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_DISK))
+    {
+        service = SHARE_SERVICE_DISK_SHARE;
+    }
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_COMM))
+    {
+        service = SHARE_SERVICE_COMM_DEVICE;
+    }
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_PRINTER))
+    {
+        service = SHARE_SERVICE_PRINTER;
+    }
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_ANY))
+    {
+        service = SHARE_SERVICE_ANY;
+    }
+    else
+    {
+        ntStatus = STATUS_NOT_FOUND;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pService = service;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pService = SHARE_SERVICE_UNKNOWN;
 
     goto cleanup;
 }

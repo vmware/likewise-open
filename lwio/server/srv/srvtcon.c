@@ -48,6 +48,34 @@ SrvBuildTreeConnectResponse(
     PSMB_PACKET*        ppSmbResponse
     );
 
+static
+NTSTATUS
+SrvGetMaximalShareAccessMask(
+    PSHARE_DB_INFO pShareInfo,
+    ACCESS_MASK*   pMask
+    );
+
+static
+NTSTATUS
+SrvGetGuestShareAccessMask(
+    PSHARE_DB_INFO pShareInfo,
+    ACCESS_MASK*   pMask
+    );
+
+static
+NTSTATUS
+SrvGetServiceName(
+    PSHARE_DB_INFO pShareInfo,
+    PSTR* ppszService
+    );
+
+static
+NTSTATUS
+SrvGetNativeFilesystem(
+    PSHARE_DB_INFO pShareInfo,
+    PWSTR* ppwszNativeFilesystem
+    );
+
 NTSTATUS
 SrvProcessTreeConnectAndX(
     PLWIO_SRV_CONTEXT pContext
@@ -87,7 +115,7 @@ SrvProcessTreeConnectAndX(
     ntStatus = UnmarshallTreeConnectRequest(
                     pSmbRequest->pParams,
                     pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    0, // TODO: figure out alignment
+                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
                     &pRequestHeader,
                     &pszPassword,
                     &pwszPath,
@@ -296,7 +324,9 @@ SrvBuildTreeConnectResponse(
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PTREE_CONNECT_RESPONSE_HEADER pResponseHeader = NULL;
-    USHORT packetByteCount = 0;
+    ULONG  packetByteCount = 0;
+    PSTR   pszService = NULL;
+    PWSTR  pwszNativeFileSystem = NULL;
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -313,7 +343,7 @@ SrvBuildTreeConnectResponse(
     ntStatus = SMBPacketMarshallHeader(
                 pSmbResponse->pRawBuffer,
                 pSmbResponse->bufferLen,
-                COM_TREE_CONNECT,
+                COM_TREE_CONNECT_ANDX,
                 0,
                 TRUE,
                 pTree->tid,
@@ -324,16 +354,45 @@ SrvBuildTreeConnectResponse(
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->pSMBHeader->wordCount = 3;
+    pSmbResponse->pSMBHeader->wordCount = 7;
 
     pResponseHeader = (PTREE_CONNECT_RESPONSE_HEADER)pSmbResponse->pParams;
     pSmbResponse->pData = pSmbResponse->pParams + sizeof(TREE_CONNECT_RESPONSE_HEADER);
     pSmbResponse->bufferUsed += sizeof(TREE_CONNECT_RESPONSE_HEADER);
 
-    // TODO: Marshall tree connect response
+    ntStatus = SrvGetMaximalShareAccessMask(
+                    pTree->pShareInfo,
+                    &pResponseHeader->maximalShareAccessMask);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvGetGuestShareAccessMask(
+                    pTree->pShareInfo,
+                    &pResponseHeader->guestMaximalShareAccessMask);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvGetServiceName(
+                    pTree->pShareInfo,
+                    &pszService);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvGetNativeFilesystem(
+                    pTree->pShareInfo,
+                    &pwszNativeFileSystem);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = MarshallTreeConnectResponseData(
+                    pSmbResponse->pData,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    pSmbResponse->bufferUsed,
+                    &packetByteCount,
+                    (const uint8_t*)pszService,
+                    pwszNativeFileSystem);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = packetByteCount;
+    *pSmbResponse->pByteCount = (USHORT)packetByteCount;
+
+    pSmbResponse->bufferUsed += packetByteCount;
 
     ntStatus = SMBPacketMarshallFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -341,6 +400,9 @@ SrvBuildTreeConnectResponse(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    SMB_SAFE_FREE_STRING(pszService);
+    SMB_SAFE_FREE_MEMORY(pwszNativeFileSystem);
 
     return ntStatus;
 
@@ -355,4 +417,204 @@ error:
 
     goto cleanup;
 }
+
+static
+NTSTATUS
+SrvGetMaximalShareAccessMask(
+    PSHARE_DB_INFO pShareInfo,
+    ACCESS_MASK*   pMask
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+    ACCESS_MASK mask = 0;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+
+    switch (pShareInfo->service)
+    {
+        case SHARE_SERVICE_NAMED_PIPE:
+
+            mask = (FILE_READ_DATA |
+                    FILE_WRITE_DATA |
+                    FILE_APPEND_DATA |
+                    FILE_READ_EA |
+                    FILE_WRITE_EA |
+                    FILE_EXECUTE |
+                    FILE_DELETE_CHILD |
+                    FILE_READ_ATTRIBUTES |
+                    FILE_WRITE_ATTRIBUTES);
+
+            break;
+
+        case SHARE_SERVICE_DISK_SHARE:
+
+            mask = (FILE_LIST_DIRECTORY |
+                    FILE_READ_EA |
+                    FILE_TRAVERSE |
+                    FILE_READ_ATTRIBUTES |
+                    READ_CONTROL |
+                    SYNCHRONIZE);
+
+            break;
+
+        case SHARE_SERVICE_PRINTER:
+        case SHARE_SERVICE_COMM_DEVICE:
+        case SHARE_SERVICE_ANY:
+
+            mask = GENERIC_READ;
+
+            break;
+
+        default:
+
+            mask = 0;
+
+            break;
+    }
+
+    *pMask = mask;
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvGetGuestShareAccessMask(
+    PSHARE_DB_INFO pShareInfo,
+    ACCESS_MASK*   pMask
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+    ACCESS_MASK mask = 0;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+
+    switch (pShareInfo->service)
+    {
+        case SHARE_SERVICE_NAMED_PIPE:
+
+            mask = (FILE_READ_DATA |
+                    FILE_WRITE_DATA |
+                    FILE_APPEND_DATA |
+                    FILE_READ_EA |
+                    FILE_WRITE_EA |
+                    FILE_EXECUTE |
+                    FILE_DELETE_CHILD |
+                    FILE_READ_ATTRIBUTES |
+                    FILE_WRITE_ATTRIBUTES);
+
+            break;
+
+        case SHARE_SERVICE_DISK_SHARE:
+
+            mask = 0;
+
+            break;
+
+        case SHARE_SERVICE_PRINTER:
+        case SHARE_SERVICE_COMM_DEVICE:
+        case SHARE_SERVICE_ANY:
+
+            mask = 0;
+
+            break;
+
+        default:
+
+            mask = 0;
+
+            break;
+    }
+
+    *pMask = mask;
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvGetServiceName(
+    PSHARE_DB_INFO pShareInfo,
+    PSTR* ppszService
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+    PSTR pszService = NULL;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+
+    ntStatus = SrvShareGetServiceStringId(
+                    pShareInfo->service,
+                    &pszService);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppszService = pszService;
+
+cleanup:
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppszService = NULL;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvGetNativeFilesystem(
+    PSHARE_DB_INFO pShareInfo,
+    PWSTR* ppwszNativeFilesystem
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+    PWSTR    pwszNativeFilesystem = NULL;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+
+    //
+    // TODO: Fill in the correct file system type
+    //
+    switch (pShareInfo->service)
+    {
+        case SHARE_SERVICE_DISK_SHARE:
+
+            ntStatus = SMBMbsToWc16s(
+                            "ext3",
+                            &pwszNativeFilesystem);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    *ppwszNativeFilesystem = pwszNativeFilesystem;
+
+cleanup:
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppwszNativeFilesystem = NULL;
+
+    goto cleanup;
+}
+
 

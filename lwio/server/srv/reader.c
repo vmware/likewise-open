@@ -407,11 +407,20 @@ SrvSocketReaderProcessConnections(
 
         if (!SrvConnectionIsInvalid(pConnection))
         {
-            if (FD_ISSET(SrvConnectionGetFd(pConnection), &pReaderWorkset->fdset))
+            int fd = SrvConnectionGetFd(pConnection);
+
+            if (FD_ISSET(fd, &pReaderWorkset->fdset))
             {
                 ntStatus = SrvSocketReaderReadMessage(
                                 pReaderContext,
                                 pConnection);
+                if (ntStatus == STATUS_CONNECTION_RESET)
+                {
+                    SMB_LOG_DEBUG("Connection reset by peer [fd:%d][%s]",
+                                    fd,
+                                    SMB_SAFE_LOG_STRING(inet_ntoa(pConnection->pSocket->cliaddr.sin_addr)));
+                    ntStatus = 0;
+                }
                 BAIL_ON_NT_STATUS(ntStatus);
             }
         }
@@ -442,16 +451,19 @@ SrvSocketReaderReadMessage(
                     &pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvContextCreate(
-                    pConnection,
-                    pPacket,
-                    &pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pPacket)
+    {
+        ntStatus = SrvContextCreate(
+                        pConnection,
+                        pPacket,
+                        &pContext);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsEnqueue(
-                    pReaderContext->pWorkQueue,
-                    pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvProdConsEnqueue(
+                        pReaderContext->pWorkQueue,
+                        pContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 

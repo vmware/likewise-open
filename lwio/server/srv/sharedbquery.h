@@ -54,14 +54,17 @@
                           path    text,                 \
                           comment text  collate nocase, \
                           sid     text nocase,          \
-                          unique (name, path)           \
+                          service text,                 \
+                          unique (name, path),          \
+                          check(service == \"A:\" or service == \"LPT1:\" or service == \"IPC\" or service == \"COMM\" ) \
                           )"
 
 #define DB_QUERY_LOOKUP_SHARE_BY_NAME  \
     "select name,      \
             path,      \
             comment,   \
-            sid        \
+            sid,       \
+            service    \
       from  shares     \
       where name = %Q"
 
@@ -72,7 +75,8 @@
     "select     name,       \
                 path,       \
                 comment,    \
-                sid         \
+                sid,        \
+                service     \
        from     shares      \
        order by name       \
        limit %d offset %d"
@@ -82,9 +86,11 @@
      (name,      \
       path,      \
       comment,   \
-      sid        \
+      sid,       \
+      service    \
      )           \
      values( %Q, \
+             %Q, \
              %Q, \
              %Q, \
              %Q  \

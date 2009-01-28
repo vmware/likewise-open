@@ -266,7 +266,8 @@ SrvConnectionReadPacket(
         {
             // peer reset connection
             SrvConnectionSetInvalid(pConnection);
-            goto cleanup;
+            ntStatus = STATUS_CONNECTION_RESET;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         pConnection->readerState.sNumBytesToRead -= sNumBytesRead;
@@ -309,7 +310,8 @@ SrvConnectionReadPacket(
         {
             // peer reset connection
             SrvConnectionSetInvalid(pConnection);
-            goto cleanup;
+            ntStatus = STATUS_CONNECTION_RESET;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         pConnection->readerState.sNumBytesToRead -= sNumBytesRead;

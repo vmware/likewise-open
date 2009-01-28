@@ -17,7 +17,7 @@ SrvFileCreate(
     PSMB_SRV_FILE pFile = NULL;
 
     ntStatus = SMBAllocateMemory(
-                    sizeof(PSMB_SRV_FILE),
+                    sizeof(SMB_SRV_FILE),
                     (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 

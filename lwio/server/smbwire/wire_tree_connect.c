@@ -126,15 +126,20 @@ NTSTATUS
 UnmarshallTreeConnectRequest(
     const uint8_t *pBuffer,
     uint32_t       bufferLen,
-    uint8_t        messageAlignment,
+    uint32_t       bufferUsed,
     TREE_CONNECT_REQUEST_HEADER **ppHeader,
     uint8_t      **ppPassword,
     wchar16_t    **ppwszPath,
     uchar8_t     **ppszService
     )
 {
+    const uint8_t* pData = pBuffer;
+    uint32_t len = 0;
+
+    pData += sizeof(TREE_CONNECT_REQUEST_HEADER);
+    bufferUsed += sizeof(TREE_CONNECT_REQUEST_HEADER);
+
     /* NOTE: The buffer format cannot be trusted! */
-    uint32_t bufferUsed = sizeof(TREE_CONNECT_REQUEST_HEADER);
     if (bufferLen < bufferUsed)
         return EBADMSG;
 
@@ -142,6 +147,8 @@ UnmarshallTreeConnectRequest(
     *ppHeader = (TREE_CONNECT_REQUEST_HEADER*) pBuffer;
 
     uint32_t passwordLen = (*ppHeader)->passwordLength;
+
+    pData += passwordLen;
     bufferUsed += passwordLen;
 
     if (bufferUsed > bufferLen)
@@ -156,22 +163,31 @@ UnmarshallTreeConnectRequest(
         *ppPassword = (uint8_t*) pBuffer;
     }
 
+    /* Align strings */
+    pData += (bufferUsed)%2;
+    bufferUsed += (bufferUsed) %2;
     if (bufferUsed > bufferLen)
     {
         return EBADMSG;
     }
 
-    *ppwszPath = (wchar16_t *) (pBuffer + bufferUsed);
-    bufferUsed += sizeof(wchar16_t) * wc16snlen(*ppwszPath,
-        (bufferLen - bufferUsed) / sizeof(wchar16_t)) + sizeof(WNUL);
+    *ppwszPath = (wchar16_t *) pData;
+    len = sizeof(wchar16_t) * wc16snlen(
+                                *ppwszPath,
+                                (bufferLen - bufferUsed) / sizeof(wchar16_t)) + sizeof(WNUL);
+    bufferUsed += len;
+    pData += len;
     if (bufferUsed > bufferLen)
     {
         return EBADMSG;
     }
 
-    *ppszService = (uchar8_t *) (pBuffer + bufferUsed);
-    bufferUsed += sizeof(wchar16_t) * strnlen((char*) *ppszService,
-        bufferLen - bufferUsed) + sizeof(NUL);
+    *ppszService = (uchar8_t *) pData;
+    len = strnlen((char*) *ppszService,
+                    bufferLen - bufferUsed) + sizeof(NUL);
+    pData += len;
+    bufferUsed += len;
+
     if (bufferUsed > bufferLen)
     {
         return EBADMSG;
@@ -191,52 +207,77 @@ typedef struct
 NTSTATUS
 MarshallTreeConnectResponseData(
     uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
+    uint32_t         bufferAvailable,
+    uint32_t         bufferUsed,
     uint32_t        *pBufferUsed,
     const uchar8_t  *pszService,
     const wchar16_t *pwszNativeFileSystem
     )
 {
     NTSTATUS ntStatus = 0;
-
-    uint32_t bufferUsed = 0;
+    uint8_t* pData = pBuffer;
+    uint32_t dataBufferUsed = 0;
     uint32_t alignment = 0;
     uint32_t wstrlen = 0;
+    int iCh = 0;
+    wchar16_t wszEmpty = WNUL;
 
-    /* Input strings are trusted */
-    uint8_t *pCursor =
-        (uint8_t*) stpncpy((char*) pBuffer, (char*) pszService,
-            bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    if (!*pCursor && bufferLen > bufferUsed)
+    while (pszService && *pszService)
     {
-        /* string fits */
-        pCursor += sizeof(NUL);
-        bufferUsed += pCursor - pBuffer - bufferUsed;
+        if (!bufferAvailable)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        *pData++ = *pszService++;
+        dataBufferUsed++;
+        bufferAvailable--;
     }
-    else
-        /* expensive length check */
-        bufferUsed += strlen((char *) pszService) + sizeof(NUL);
+
+    if (!bufferAvailable)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pData++ = NUL;
+    dataBufferUsed++;
+    bufferAvailable--;
 
     /* Align string */
-    alignment = (bufferUsed + messageAlignment) % 2;
-    if (alignment)
+    alignment = (bufferUsed + dataBufferUsed) % 2;
+    for (; iCh < alignment; iCh++)
     {
-        *(pBuffer + bufferUsed) = 0;
-        bufferUsed += alignment;
+        if (!bufferAvailable)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        *pData++ = 0;
+        dataBufferUsed++;
+        bufferAvailable--;
     }
 
-    wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed),
-        pwszNativeFileSystem,
-        bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    bufferUsed += wstrlen * sizeof(wchar16_t);
-
-    *pBufferUsed = bufferUsed;
-
-    if (bufferUsed > bufferLen)
+    wstrlen = (pwszNativeFileSystem ? wc16slen(pwszNativeFileSystem) : 1);
+    if (bufferAvailable < (wstrlen * sizeof(wchar16_t)))
     {
-        ntStatus = EMSGSIZE;
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    wstrlen = wc16oncpy(
+                    (wchar16_t *)pData,
+                    (pwszNativeFileSystem ? pwszNativeFileSystem : &wszEmpty),
+                    wstrlen);
+
+    dataBufferUsed += wstrlen * sizeof(wchar16_t);
+    // bufferAvailable -= wstrlen * sizeof(wchar16_t);
+
+    *pBufferUsed = dataBufferUsed;
+
+error:
 
     return ntStatus;
 }

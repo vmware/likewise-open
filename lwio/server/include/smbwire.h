@@ -597,7 +597,8 @@ typedef struct
                                 /* Exclusive search bits */
                                 /*      ("MUST HAVE BITS") supported */
                                 /*      SMB_SHARE_IS_IN_DFS = 0x0002 */
-    uint16_t  passwordLength;   /* Length of password */
+    uint32_t  maximalShareAccessMask;
+    uint32_t  guestMaximalShareAccessMask;
     uint16_t  byteCount;        /* Count of data bytes; min = 3 */
 
     /* Data immediately follows */
@@ -921,11 +922,21 @@ NTSTATUS
 UnmarshallTreeConnectRequest(
     const uint8_t *pBuffer,
     uint32_t       bufferLen,
-    uint8_t        messageAlignment,
+    uint32_t       bufferUsed,
     TREE_CONNECT_REQUEST_HEADER **ppHeader,
     uint8_t      **ppPassword,
     wchar16_t    **ppwszPath,
     uchar8_t     **ppszService
+    );
+
+NTSTATUS
+MarshallTreeConnectResponseData(
+    uint8_t         *pBuffer,
+    uint32_t         bufferAvailable,
+    uint32_t         bufferUsed,
+    uint32_t        *pBufferUsed,
+    const uchar8_t  *pszService,
+    const wchar16_t *pwszNativeFileSystem
     );
 
 NTSTATUS

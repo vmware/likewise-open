@@ -30,7 +30,7 @@ SrvSessionCreate(
     USHORT uid = 0;
 
     ntStatus = SMBAllocateMemory(
-                    sizeof(PSMB_SRV_SESSION),
+                    sizeof(SMB_SRV_SESSION),
                     (PVOID*)&pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -171,6 +171,10 @@ SrvSessionCreateTree(
                     pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    InterlockedIncrement(&pTree->refcount);
+
+    *ppTree = pTree;
+
 cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
@@ -178,6 +182,13 @@ cleanup:
     return ntStatus;
 
 error:
+
+    *ppTree = NULL;
+
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
 
     goto cleanup;
 }

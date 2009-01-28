@@ -74,7 +74,8 @@ SrvShareDbAdd(
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
-    PCSTR  pszComment
+    PCSTR  pszComment,
+    PCSTR  pszService
     );
 
 NTSTATUS

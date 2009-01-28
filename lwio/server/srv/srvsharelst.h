@@ -43,6 +43,18 @@ SrvShareFindShareByName(
     PSHARE_DB_INFO* ppShareInfo
     );
 
+NTSTATUS
+SrvShareGetServiceStringId(
+    SHARE_SERVICE  service,
+    PSTR*          ppszService
+    );
+
+NTSTATUS
+SrvShareGetServiceId(
+    PCSTR          pszService,
+    SHARE_SERVICE* pService
+    );
+
 VOID
 SrvShareFreeContextContents(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext

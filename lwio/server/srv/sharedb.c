@@ -206,7 +206,8 @@ SrvShareDbAdd(
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
-    PCSTR  pszComment
+    PCSTR  pszComment,
+    PCSTR  pszService
     )
 {
     NTSTATUS ntStatus = 0;
@@ -214,6 +215,7 @@ SrvShareDbAdd(
     PSTR pszError = NULL;
     PSTR pszQuery = NULL;
     BOOLEAN bInLock = FALSE;
+    SHARE_SERVICE service = SHARE_SERVICE_UNKNOWN;
 
     if (IsNullOrEmptyString(pszShareName))
     {
@@ -223,6 +225,12 @@ SrvShareDbAdd(
     {
         ntStatus = STATUS_INVALID_PARAMETER_4;
     }
+
+    ntStatus = SrvShareGetServiceId(pszService, &service);
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_6;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
@@ -230,7 +238,8 @@ SrvShareDbAdd(
     pszQuery = sqlite3_mprintf(DB_QUERY_INSERT_SHARE,
                                pszShareName,
                                pszPath,
-                               pszComment);
+                               pszComment,
+                               pszService);
 
     ntStatus = sqlite3_exec(pDbHandle,
                            pszQuery,
@@ -283,7 +292,7 @@ SrvShareDbEnum(
     BOOLEAN  bInLock = FALSE;
     int      nRows = 0;
     int      nCols = 0;
-    int      nExpectedCols = 4;
+    int      nExpectedCols = 5;
     ULONG    ulNumSharesFound = 0;
     sqlite3* pDbHandle = (sqlite3*)hDb;
 
@@ -291,8 +300,8 @@ SrvShareDbEnum(
 
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_FIND_SHARES_LIMIT,
-                    ulOffset,
-                    ulLimit);
+                    ulLimit,
+                    ulOffset);
 
     ntStatus = sqlite3_get_table(
                     pDbHandle,
@@ -378,7 +387,7 @@ SrvShareDbFindByName(
     BOOLEAN  bInLock = FALSE;
     int      nRows = 0;
     int      nCols = 0;
-    int      nExpectedCols = 4;
+    int      nExpectedCols = 5;
     ULONG    ulNumSharesFound = 0;
     sqlite3* pDbHandle = (sqlite3*)hDb;
 
@@ -491,6 +500,9 @@ SrvShareDbWriteToShareInfo(
 
         pShareInfo->refcount = 1;
 
+        pthread_rwlock_init(&pShareInfo->mutex, NULL);
+        pShareInfo->pMutex = &pShareInfo->mutex;
+
         for (iCol = 0; iCol < nCols; iCol++)
         {
             switch(iCol)
@@ -537,6 +549,15 @@ SrvShareDbWriteToShareInfo(
                                        &pShareInfo->pwszSID);
                        BAIL_ON_NT_STATUS(ntStatus);
                     }
+                    break;
+                }
+                case 4: /* service */
+                {
+                    ntStatus = SrvShareGetServiceId(
+                                    ppszResult[iVal],
+                                    &pShareInfo->service);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
                     break;
                 }
             }
@@ -728,6 +749,11 @@ SrvShareDbFreeInfo(
     PSHARE_DB_INFO pShareInfo
     )
 {
+    if (pShareInfo->pMutex)
+    {
+        pthread_rwlock_destroy(&pShareInfo->mutex);
+    }
+
     SMB_SAFE_FREE_MEMORY(pShareInfo->pwszName);
     SMB_SAFE_FREE_MEMORY(pShareInfo->pwszPath);
     SMB_SAFE_FREE_MEMORY(pShareInfo->pwszSID);

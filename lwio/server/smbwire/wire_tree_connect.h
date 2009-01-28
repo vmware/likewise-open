@@ -35,25 +35,5 @@
 #include <moonunit/interface.h>
 #endif /* TEST */
 
-NTSTATUS
-MarshallTreeConnectResponseData(
-    uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
-    uint32_t        *pBufferUsed,
-    const uchar8_t  *pszService,
-    const wchar16_t *pwszNativeFileSystem
-    );
-
-NTSTATUS
-UnmarshallTreeConnectResponse(
-    const uint8_t    *pBuffer,
-    uint32_t          bufferLen,
-    uint8_t           messageAlignment,
-    TREE_CONNECT_RESPONSE_HEADER **ppHeader,
-    uchar8_t        **ppszService,
-    wchar16_t       **ppwszNativeFileSystem
-    );
-
 #endif
 

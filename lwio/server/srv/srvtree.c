@@ -31,7 +31,7 @@ SrvTreeCreate(
     USHORT tid  = 0;
 
     ntStatus = SMBAllocateMemory(
-                    sizeof(PSMB_SRV_TREE),
+                    sizeof(SMB_SRV_TREE),
                     (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
