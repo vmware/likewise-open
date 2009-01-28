@@ -1067,6 +1067,7 @@ LsaDbUnpackObjectInfo(
     PLSA_SECURITY_OBJECT pResult)
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwType = 0;
 
     dwError = LsaSqliteReadString(
         pstQuery,
@@ -1107,8 +1108,16 @@ LsaDbUnpackObjectInfo(
         pstQuery,
         piColumnPos,
         "Type",
-        (DWORD*)&pResult->type);
+        &dwType);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwType > (UINT8)-1)
+    {
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pResult->type = (UINT8) dwType;
 
 error:
     return dwError;
