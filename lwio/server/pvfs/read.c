@@ -66,10 +66,12 @@ PvfsRead(
     pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
 
-    if (bufLen > SSIZE_MAX) {
+#if 0xFFFFFFFF > SSIZE_MAX
+    if ((size_t) bufLen > (size_t) SSIZE_MAX) {
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
+#endif
 
     while (totalBytesRead < bufLen)
     {
