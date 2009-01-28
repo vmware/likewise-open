@@ -395,7 +395,11 @@ lwmsg_server_timeout_clients(
         }
     }
 
-    if (server->num_clients == server->max_clients)
+    /* Schedule ourselves to wake up and do timeout processing again if:
+       - We are out of free client slots
+       - There are currently idle clients
+    */
+    if (server->num_clients == server->max_clients && server->listen_assocs.count)
     {
         *next = soonest_timeout;
     }
