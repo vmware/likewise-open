@@ -90,14 +90,14 @@ int main(int argc, char *argv[])
                            0,
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                           FILE_CREATE,
+                           FILE_OPEN,
                            FILE_NON_DIRECTORY_FILE,
                            NULL,
                            0,
                            NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    if ((fd = open(argv[2], O_WRONLY, 0)) == -1) {
+    if ((fd = open(argv[2], O_WRONLY | O_CREAT | O_EXCL, 0666)) == -1) {
         fprintf(stderr, "Failed to open local file \"%s\" for copy.\n",
                 argv[2]);
         ntError = STATUS_UNSUCCESSFUL;
@@ -106,12 +106,16 @@ int main(int argc, char *argv[])
 
     do {
         ntError = NtReadFile(hFile,
-                              NULL,
-                              &statusBlock,
-                              pBuffer,
-                              bytes,
-                              0, 0);
+                             NULL,
+                             &statusBlock,
+                             pBuffer,
+                             sizeof(pBuffer),
+                             0, 0);
         BAIL_ON_NT_STATUS(ntError);
+
+        if (statusBlock.BytesTransferred == 0) {
+            break;
+        }
 
         if ((bytes = write(fd, pBuffer, statusBlock.BytesTransferred)) == -1) {
             fprintf(stderr, "Write failed!\n");

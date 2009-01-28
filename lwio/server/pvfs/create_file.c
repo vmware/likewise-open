@@ -199,6 +199,7 @@ PvfsCreateFileCreate(
     int fd = -1;
     int unixFlags = 0;
     PPVFS_CCB pCcb = NULL;
+    FILE_CREATE_RESULT CreateResult = 0;
 
     ntError = RtlCStringAllocateFromWC16String(&pszFilename,
                                                fileName.FileName);
@@ -230,6 +231,14 @@ PvfsCreateFileCreate(
         int err = errno;
 
         ntError = PvfsMapUnixErrnoToNtStatus(err);
+
+        /* Try to get a reasonable coe to store in
+           the status block */
+
+        if (ntError == STATUS_OBJECT_NAME_COLLISION) {
+            CreateResult = FILE_EXISTS;
+        }
+
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -243,7 +252,11 @@ PvfsCreateFileCreate(
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    CreateResult = FILE_CREATED;
+
 cleanup:
+    pIrp->IoStatusBlock.CreateResult = CreateResult;
+
     return ntError;
 
 error:
@@ -268,8 +281,81 @@ PvfsCreateFileOpen(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    IO_FILE_NAME fileName = pIrp->Args.Create.FileName;
+    PSTR pszFilename = NULL;
+    int fd = -1;
+    int unixFlags = 0;
+    PPVFS_CCB pCcb = NULL;
+    FILE_CREATE_RESULT CreateResult = 0;
+
+    ntError = RtlCStringAllocateFromWC16String(&pszFilename,
+                                               fileName.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateCCB(&pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+#if 0
+    /* Check whether the user can create a new file */
+
+    ntError = PvfsCheckParentSecurity(pIrp->Args.Create.SecurityContext,
+                                      pszFilename,
+                                      FILE_WRITE_DATA);
+    BAIL_ON_NT_STATUS(ntError);
+#endif
+
+    ntError = MapPosixOpenFlags(&unixFlags,
+                                pIrp->Args.Create.DesiredAccess,
+                                pIrp->Args.Create.CreateOptions);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if ((fd = open(pszFilename, unixFlags, 0)) == -1)
+    {
+        int err = errno;
+
+        ntError = PvfsMapUnixErrnoToNtStatus(err);
+
+        /* Try to get a reasonable coe to store in
+           the status block */
+
+        if (ntError == STATUS_OBJECT_PATH_NOT_FOUND) {
+            CreateResult = FILE_DOES_NOT_EXIST;
+        }
+
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Save our state */
+
+    pCcb->fd = fd;
+    pCcb->AccessGranted = MAXIMUM_ALLOWED;
+    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+    pCcb->pszFilename = pszFilename;
+
+    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    CreateResult = FILE_OPENED;
+
+cleanup:
+    pIrp->IoStatusBlock.CreateResult = CreateResult;
+
+    return ntError;
+
+error:
+    if (fd != -1)
+    {
+        close(fd);
+    }
+
+    PVFS_SAFE_FREE_MEMORY(pCcb);
+    PVFS_SAFE_FREE_MEMORY(pszFilename);
+
+    goto cleanup;
 }
+
 
 /**
  *
