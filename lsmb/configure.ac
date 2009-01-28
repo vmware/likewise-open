@@ -297,6 +297,29 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 #endif
 ])
 
+AC_CHECK_HEADERS([sys/param.h sys/pstat.h procfs.h sys/procfs.h sys/sysctl.h])
+
+AC_CHECK_DECLS([KERN_PROC_PATHNAME KERN_PROCARGS], [], [], [
+#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#if HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
+#endif
+#if HAVE_SYS_PSTAT_H
+#include <sys/pstat.h>
+#endif])
+
+AC_CHECK_TYPES([struct psinfo], , , [
+#if HAVE_PROCFS_H
+#include <procfs.h>
+#elif HAVE_SYS_PROCFS_H
+#include <sys/procfs.h>
+#endif
+])
+
+AC_CHECK_FUNCS([pstat_getproc])
+
 # Checks for library functions
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC

@@ -4,7 +4,8 @@ lsmbd_SOURCES = \
     globals.c   \
     ipc.c       \
     main.c      \
-    smbcfg.c
+    smbcfg.c    \
+    proc.c
 
 lsmbd_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

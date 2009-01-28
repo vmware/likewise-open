@@ -656,17 +656,64 @@ SMBSrvCreatePIDFile(
     VOID
     )
 {
+    DWORD dwError = 0;
     int result = -1;
     pid_t pid;
     char contents[PID_FILE_CONTENTS_SIZE];
     size_t len;
     int fd = -1;
+    struct stat myStat = {0};
+    struct stat runningStat = {0};
 
     pid = SMBSrvGetPidFromPidFile();
-    if (pid > 0) {
-        fprintf(stderr, "Daemon already running as %d\n", (int) pid);
-        result = -1;
-        goto error;
+    if (pid > 0)
+    {
+        dwError = SMBSrvGetExecutableStatByPid(
+                    getpid(),
+                    &myStat);
+        if (dwError != 0)
+        {
+            fprintf(stderr, "Unable to stat the executable of this program. Make sure this program was invoked with an absolute path.\n");
+            result = -1;
+            goto error;
+        }
+
+        dwError = SMBSrvGetExecutableStatByPid(
+                    pid,
+                    &runningStat);
+        if (dwError == ENOENT || dwError == ESRCH)
+        {
+            runningStat.st_dev = -1;
+            runningStat.st_ino = -1;
+            dwError = 0;
+        }
+        else if(dwError != 0)
+        {
+            fprintf(stderr, "Unable to stat the executable of pid %ld\n", (long)pid);
+            result = -1;
+            goto error;
+        }
+
+        if (runningStat.st_dev == myStat.st_dev &&
+                runningStat.st_ino == myStat.st_ino)
+        {
+            fprintf(stderr, "Daemon already running as %d\n", (int) pid);
+            result = -1;
+            goto error;
+        }
+        else
+        {
+            fprintf(
+                    stderr,
+                    "Warning: the pid file already exists and contains pid %d, but this pid is not owned by this program. Most likely, this daemon shutdown uncleanly on its last run.\n",
+                    (int) pid);
+            if (remove(PID_FILE) < 0)
+            {
+                fprintf(stderr, "Unable to clear existing pid file\n");
+                result = -1;
+                goto error;
+            }
+        }
     }
 
     fd = open(PID_FILE, O_CREAT | O_WRONLY | O_EXCL, 0644);

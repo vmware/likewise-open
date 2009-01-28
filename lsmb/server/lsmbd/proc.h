@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,63 +28,14 @@
  * license@likewisesoftware.com
  */
 
+#ifndef __PROC_H__
+#define __PROC_H__
 
+DWORD
+SMBSrvGetExecutableStatByPid(
+    IN  pid_t     pid,
+    OUT struct stat*     pStat
+    );
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        lsassd.h
- *
- * Abstract:
- *
- *        Likewise SMB Subsystem
- *
- *        Service (Private Header)
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- */
-#include "config.h"
-#include "lsmbsys.h"
-
-#include "lsmb/lsmb.h"
-
-#include <lwmsg/lwmsg.h>
-#include <lwmsg/protocol.h>
-#include <lwmsg/server.h>
-
-#include <lwnet.h>
-
-#include "smbdef.h"
-#include "smbutils.h"
-#include "smblog_r.h"
-#include "smbipc.h"
-
-#include "iomgr.h"
-
-#include "defs.h"
-#include "structs.h"
-#include "smbcfg.h"
-#include "servermain.h"
-#include "ipc.h"
-#include "proc.h"
-
-#include "externs.h"
-
-#if HAVE_SYS_PARAM_H
-#include <sys/param.h>
 #endif
-#if HAVE_SYS_PSTAT_H
-#include <sys/pstat.h>
-#endif
-#if HAVE_PROCFS_H
-#include <procfs.h>
-#endif
-#if HAVE_SYS_PROCFS_H
-#include <sys/procfs.h>
-#endif
-#if HAVE_SYS_SYSCTL_H
-#include <sys/sysctl.h>
-#endif
+
