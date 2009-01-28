@@ -60,6 +60,7 @@ SrvTreeCreate(
 
     ntStatus = SMBRBTreeCreate(
                     &SrvTreeFileCompare,
+                    NULL,
                     &SrvTreeFileRelease,
                     &pTree->pFileCollection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -92,16 +93,12 @@ SrvTreeFindFile(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_FILE pFile = NULL;
     BOOLEAN bInLock = FALSE;
-    SMB_SRV_FILE finder;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
-    memset(&finder, 0, sizeof(finder));
-    finder.fid = fid;
-
     ntStatus = SMBRBTreeFind(
                     pTree->pFileCollection,
-                    &finder,
+                    &fid,
                     (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -141,6 +138,7 @@ SrvTreeCreateFile(
 
     ntStatus = SMBRBTreeAdd(
                     pTree->pFileCollection,
+                    &pFile->fid,
                     pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 

@@ -40,6 +40,95 @@
 
 typedef ULONG ACCESS_MASK;
 
+/* Work around problem with /usr/include/arpa/nameser_compat.h */
+#ifdef DELETE
+# undef DELETE
+#endif
+
+#define DELETE                    0x00010000 /* right to delete object */
+#define READ_CONTROL              0x00020000 /* read the object's SID not including SACL */
+#define WRITE_DAC                 0x00040000 /* modify the DACL in the object's SID      */
+#define WRITE_OWNER               0x00080000 /* change the owner in the object's SID     */
+#define SYNCHRONIZE               0x00100000 /* use the object for synchronization       */
+#define ACCESS_SYSTEM_SECURITY    0x01000000 /* get or set the SACL in an object's SID   */
+#define MAXIMUM_ALLOWED           0x02000000 /* all access rights valid for the caller   */
+#define GENERIC_ALL               0x10000000
+#define GENERIC_EXECUTE           0x20000000
+#define GENERIC_WRITE             0x40000000
+#define GENERIC_READ              0x80000000
+
+#define FILE_READ_DATA            0x00000001 /* File/NP     */
+#define FILE_LIST_DIRECTORY       0x00000001 /* Dir         */
+#define FILE_WRITE_DATA           0x00000002 /* File/NP     */
+#define FILE_ADD_FILE             0x00000002 /* Dir         */
+#define FILE_APPEND_DATA          0x00000004 /* File        */
+#define FILE_ADD_SUBDIRECTORY     0x00000004 /* Dir         */
+#define FILE_CREATE_PIPE_INSTANCE 0x00000004 /* NP          */
+#define FILE_READ_EA              0x00000008 /* File/Dir    */
+#define FILE_WRITE_EA             0x00000010 /* File/Dir    */
+#define FILE_EXECUTE              0x00000020 /* File        */
+#define FILE_TRAVERSE             0x00000020 /* Dir         */
+#define FILE_DELETE_CHILD         0x00000020 /* Dir         */
+#define FILE_READ_ATTRIBUTES      0x00000080 /* File/NP/Dir */
+#define FILE_WRITE_ATTRIBUTES     0x00000100 /* File/NP/Dir */
+
+#define STANDARD_RIGHTS_REQUIRED  0x0F0000
+
+#define STANDARD_RIGHTS_READ      READ_CONTROL
+#define STANDARD_RIGHTS_WRITE     READ_CONTROL
+#define STANDARD_RIGHTS_EXECUTE   READ_CONTROL
+
+#define STANDARD_RIGHTS_ALL       0x1F0000
+
+#define SPECIFIC_RIGHTS_ALL       0x000FFFF
+
+#define SHARE_READ                0x00000001
+#define SHARE_WRITE               0x00000002
+
+#define PIPE_READMODE_BYTE        0x00000000
+#define PIPE_READMODE_MESSAGE     0x00000002
+#define PIPE_WAIT                 0x00000000
+#define PIPE_NOWAIT               0x00000001
+
+#define FILE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1FF)
+
+#define FILE_GENERIC_READ         (STANDARD_RIGHTS_READ     |\
+                                   FILE_READ_DATA           |\
+                                   FILE_READ_ATTRIBUTES     |\
+                                   FILE_READ_EA             |\
+                                   SYNCHRONIZE)
+
+#define FILE_GENERIC_WRITE        (STANDARD_RIGHTS_WRITE    |\
+                                   FILE_WRITE_DATA          |\
+                                   FILE_WRITE_ATTRIBUTES    |\
+                                   FILE_WRITE_EA            |\
+                                   FILE_APPEND_DATA         |\
+                                   SYNCHRONIZE)
+
+#define FILE_GENERIC_EXECUTE      (STANDARD_RIGHTS_EXECUTE  |\
+                                   FILE_READ_ATTRIBUTES     |\
+                                   FILE_EXECUTE             |\
+                                   SYNCHRONIZE)
+
+#define FILE_FLAG_WRITE_THROUGH         0x80000000
+#define FILE_FLAG_OVERLAPPED            0x40000000
+#define FILE_FLAG_NO_BUFFERING          0x20000000
+#define FILE_FLAG_RANDOM_ACCESS         0x10000000
+#define FILE_FLAG_SEQUENTIAL_SCAN       0x08000000
+#define FILE_FLAG_DELETE_ON_CLOSE       0x04000000
+#define FILE_FLAG_BACKUP_SEMANTICS      0x02000000
+#define FILE_FLAG_POSIX_SEMANTICS       0x01000000
+#define FILE_FLAG_OPEN_REPARSE_POINT    0x00200000
+#define FILE_FLAG_OPEN_NO_RECALL        0x00100000
+#define FILE_FLAG_FIRST_PIPE_INSTANCE   0x00080000
+
+#define CREATE_NEW                      1
+#define CREATE_ALWAYS                   2
+#define OPEN_EXISTING                   3
+#define OPEN_ALWAYS                     4
+#define TRUNCATE_EXISTING               5
+
+
 typedef ULONG FILE_SHARE_FLAGS;
 
 // Allow file sharing for read access.

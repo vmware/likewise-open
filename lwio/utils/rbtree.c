@@ -38,6 +38,7 @@ typedef struct __SMB_RB_TREE_NODE
     struct __SMB_RB_TREE_NODE* pRight;
     struct __SMB_RB_TREE_NODE* pParent;
 
+    PVOID           pKey;
     PVOID           pData;
 
 } SMB_RB_TREE_NODE, *PSMB_RB_TREE_NODE;
@@ -153,9 +154,10 @@ SMBRBTreeFreeNode(
 
 NTSTATUS
 SMBRBTreeCreate(
-    PFN_SMB_RB_TREE_COMPARE pfnRBTreeCompare,
-    PFN_SMB_RB_TREE_FREE    pfnRBTreeFree,
-    PSMB_RB_TREE*           ppRBTree
+    PFN_SMB_RB_TREE_COMPARE   pfnRBTreeCompare,
+    PFN_SMB_RB_TREE_FREE_KEY  pfnRBTreeFreeKey,
+    PFN_SMB_RB_TREE_FREE_DATA pfnRBTreeFreeData,
+    PSMB_RB_TREE* ppRBTree
     )
 {
     NTSTATUS ntStatus = 0;
@@ -173,7 +175,8 @@ SMBRBTreeCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pRBTree->pfnCompare = pfnRBTreeCompare;
-    pRBTree->pfnFree    = pfnRBTreeFree;
+    pRBTree->pfnFreeKey    = pfnRBTreeFreeKey;
+    pRBTree->pfnFreeData = pfnRBTreeFreeData;
 
     *ppRBTree = pRBTree;
 
@@ -226,7 +229,7 @@ static
 PSMB_RB_TREE_NODE
 SMBRBTreeFindNode(
     PSMB_RB_TREE pRBTree,
-    PVOID   pData
+    PVOID   pKey
     )
 {
     PVOID pResult = NULL;
@@ -234,7 +237,7 @@ SMBRBTreeFindNode(
 
     while (pIter && !SMB_RBTREE_IS_NIL_NODE(pIter))
     {
-        int compResult = pRBTree->pfnCompare(pData, pIter->pData);
+        int compResult = pRBTree->pfnCompare(pKey, pIter->pKey);
 
         if (!compResult)
         {
@@ -257,6 +260,7 @@ SMBRBTreeFindNode(
 NTSTATUS
 SMBRBTreeAdd(
     PSMB_RB_TREE pRBTree,
+    PVOID   pKey,
     PVOID   pData
     )
 {
@@ -264,7 +268,7 @@ SMBRBTreeAdd(
     PSMB_RB_TREE_NODE pTreeNode = NULL;
     BOOLEAN bFree = FALSE;
 
-    if (!pData)
+    if (!pKey)
     {
         ntStatus = STATUS_INVALID_PARAMETER_2;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -275,6 +279,7 @@ SMBRBTreeAdd(
                     (PVOID*)&pTreeNode);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pTreeNode->pKey = pKey;
     pTreeNode->pData = pData;
     pTreeNode->pRight = gpRBTreeSentinel;
     pTreeNode->pLeft = gpRBTreeSentinel;
@@ -381,7 +386,7 @@ SMBRBTreeInsert(
     {
         pParent = pCurrent;
 
-        if (pRBTree->pfnCompare(pTreeNode->pData, pCurrent->pData) < 0)
+        if (pRBTree->pfnCompare(pTreeNode->pKey, pCurrent->pKey) < 0)
         {
             pCurrent = pCurrent->pLeft;
         }
@@ -397,7 +402,7 @@ SMBRBTreeInsert(
     {
         pRBTree->hRoot = (HANDLE)pTreeNode;
     }
-    else if (pRBTree->pfnCompare(pTreeNode->pData, pParent->pData) < 0)
+    else if (pRBTree->pfnCompare(pTreeNode->pKey, pParent->pKey) < 0)
     {
         pParent->pLeft = pTreeNode;
     }
@@ -545,7 +550,7 @@ SMBRBTreeTraversePreOrder(
 
     if (pNode && !SMB_RBTREE_IS_NIL_NODE(pNode))
     {
-        ntStatus = pfnVisit(pNode->pData, pUserData, pbContinue);
+        ntStatus = pfnVisit(pNode->pKey, pNode->pData, pUserData, pbContinue);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (*pbContinue && pNode->pLeft)
@@ -597,7 +602,7 @@ SMBRBTreeTraverseInOrder(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = pfnVisit(pNode->pData, pUserData, pbContinue);
+        ntStatus = pfnVisit(pNode->pKey, pNode->pData, pUserData, pbContinue);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (*pbContinue && pNode->pRight)
@@ -649,7 +654,7 @@ SMBRBTreeTraversePostOrder(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = pfnVisit(pNode->pData, pUserData, pbContinue);
+        ntStatus = pfnVisit(pNode->pKey, pNode->pData, pUserData, pbContinue);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -661,12 +666,12 @@ error:
 NTSTATUS
 SMBRBTreeRemove(
     PSMB_RB_TREE pRBTree,
-    PVOID   pData)
+    PVOID   pKey)
 {
     NTSTATUS ntStatus = 0;
     PSMB_RB_TREE_NODE pNode = NULL;
 
-    pNode = SMBRBTreeFindNode(pRBTree, pData);
+    pNode = SMBRBTreeFindNode(pRBTree, pKey);
 
     if (!pNode)
     {
@@ -749,6 +754,7 @@ SMBRBTreeRemoveNode(
     if (pSuccessor != pTreeNode)
     {
         pTreeNode->pData = pSuccessor->pData;
+        pTreeNode->pKey = pSuccessor->pKey;
     }
 
     if (SMB_RBTREE_IS_BLACK(pSuccessor))
@@ -921,9 +927,14 @@ SMBRBTreeFreeNode(
     PSMB_RB_TREE_NODE pTreeNode
     )
 {
-    if (pTreeNode->pData && pRBTree->pfnFree)
+    if (pTreeNode->pKey && pRBTree->pfnFreeKey)
     {
-        pRBTree->pfnFree(pTreeNode->pData);
+        pRBTree->pfnFreeKey(pTreeNode->pKey);
+    }
+
+    if (pTreeNode->pData && pRBTree->pfnFreeData)
+    {
+        pRBTree->pfnFreeData(pTreeNode->pData);
     }
 
     SMBFreeMemory(pTreeNode);

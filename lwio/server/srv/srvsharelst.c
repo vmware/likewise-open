@@ -64,6 +64,7 @@ SrvShareInitContextContents(
 
     ntStatus = SMBRBTreeCreate(
                     &SrvShareCompare,
+                    NULL,
                     &SrvShareRelease,
                     &pShareCollection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -103,6 +104,7 @@ SrvShareInitContextContents(
 
             ntStatus = SMBRBTreeAdd(
                             pShareCollection,
+                            &pShareInfo->pwszName,
                             pShareInfo);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -153,15 +155,12 @@ SrvShareFindShareByName(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PSHARE_DB_INFO pShareInfo = NULL;
-    SHARE_DB_INFO finder = {0};
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
 
-    finder.pwszName = pwszShareName;
-
     ntStatus = SMBRBTreeFind(
                     pDbContext->pShareCollection,
-                    &finder,
+                    pwszShareName,
                     (PVOID*)&pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 

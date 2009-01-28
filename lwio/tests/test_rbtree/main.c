@@ -63,6 +63,7 @@ ShowUsage();
 static
 DWORD
 PrintTree(
+    PVOID    pKey,
     PVOID    pData,
     PVOID    pUserData,
     PBOOLEAN pbContinue
@@ -87,6 +88,7 @@ main(
     dwError = SMBRBTreeCreate(
                  &CompareValues,
                  NULL,
+                 NULL,
                  &pTree);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -94,7 +96,7 @@ main(
     {
         valArray[iValue] = iValue;
 
-        dwError = SMBRBTreeAdd(pTree, &valArray[iValue]);
+        dwError = SMBRBTreeAdd(pTree, &valArray[iValue], &valArray[iValue]);
         BAIL_ON_SMB_ERROR(dwError);
     }
 
@@ -253,6 +255,7 @@ ShowUsage()
 static
 DWORD
 PrintTree(
+    PVOID    pKey,
     PVOID    pData,
     PVOID    pUserData,
     PBOOLEAN pbContinue

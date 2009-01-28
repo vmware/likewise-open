@@ -458,13 +458,15 @@ typedef enum
 } SMB_TREE_TRAVERSAL_TYPE;
 
 typedef int   (*PFN_SMB_RB_TREE_COMPARE)(
-                    PVOID pData1,
-                    PVOID pData2
+                    PVOID pKey1,
+                    PVOID pKey2
                     );
 
-typedef VOID  (*PFN_SMB_RB_TREE_FREE)(PVOID pData);
+typedef VOID  (*PFN_SMB_RB_TREE_FREE_DATA)(PVOID pData);
+typedef VOID  (*PFN_SMB_RB_TREE_FREE_KEY)(PVOID pKey);
 
 typedef DWORD (*PFN_SMB_RB_TREE_VISIT)(
+                    PVOID pKey,
                     PVOID pData,
                     PVOID pUserData,
                     PBOOLEAN pbContinue
@@ -474,7 +476,8 @@ typedef struct __SMB_RB_TREE
 {
 
     PFN_SMB_RB_TREE_COMPARE pfnCompare;
-    PFN_SMB_RB_TREE_FREE    pfnFree;
+    PFN_SMB_RB_TREE_FREE_KEY  pfnFreeKey;
+    PFN_SMB_RB_TREE_FREE_DATA pfnFreeData;
 
     HANDLE hRoot;
 
@@ -860,8 +863,9 @@ SMBQueueFree(
 
 NTSTATUS
 SMBRBTreeCreate(
-    PFN_SMB_RB_TREE_COMPARE pfnRBTreeCompare,
-    PFN_SMB_RB_TREE_FREE    pfnRBTreeFree,
+    PFN_SMB_RB_TREE_COMPARE   pfnRBTreeCompare,
+    PFN_SMB_RB_TREE_FREE_KEY  pfnRBTreeFreeKey,
+    PFN_SMB_RB_TREE_FREE_DATA pfnRBTreeFreeData,
     PSMB_RB_TREE* ppRBTree
     );
 
@@ -875,6 +879,7 @@ SMBRBTreeFind(
 NTSTATUS
 SMBRBTreeAdd(
     PSMB_RB_TREE pRBTree,
+    PVOID       pKey,
     PVOID       pData
     );
 

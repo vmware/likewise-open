@@ -56,6 +56,7 @@ SrvSessionCreate(
 
     ntStatus = SMBRBTreeCreate(
                     &SrvSessionTreeCompare,
+                    NULL,
                     &SrvSessionTreeRelease,
                     &pSession->pTreeCollection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -88,16 +89,12 @@ SrvSessionFindTree(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PSMB_SRV_TREE pTree = NULL;
-    SMB_SRV_TREE finder;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
-    memset(&finder, 0, sizeof(finder));
-    finder.tid = tid;
-
     ntStatus = SMBRBTreeFind(
                     pSession->pTreeCollection,
-                    &finder,
+                    &tid,
                     (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -168,6 +165,7 @@ SrvSessionCreateTree(
 
     ntStatus = SMBRBTreeAdd(
                     pSession->pTreeCollection,
+                    &pTree->tid,
                     pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 

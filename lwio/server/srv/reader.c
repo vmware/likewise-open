@@ -24,6 +24,7 @@ SrvSocketReaderFillFdSet(
 static
 DWORD
 SrvSocketReaderFillFdSetInOrder(
+    PVOID pKey,
     PVOID pConnection,
     PVOID pUserData,
     PBOOLEAN pbContinue
@@ -95,6 +96,7 @@ SrvSocketReaderInit(
 
     ntStatus = SMBRBTreeCreate(
                     &SrvSocketReaderCompareConnections,
+                    NULL,
                     &SrvSocketReaderReleaseConnection,
                     &pReader->context.pConnections);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -149,6 +151,7 @@ SrvSocketReaderEnqueueConnection(
 
     ntStatus = SMBRBTreeAdd(
                     pReader->context.pConnections,
+                    &pConnection->pSocket->fd,
                     pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -341,6 +344,7 @@ error:
 static
 DWORD
 SrvSocketReaderFillFdSetInOrder(
+    PVOID pKey,
     PVOID pConnection,
     PVOID pUserData,
     PBOOLEAN pbContinue
