@@ -188,7 +188,7 @@ MarshallTreeConnectResponseData(
 
     /* Input strings are trusted */
     uint8_t *pCursor =
-        (uint8_t*) stpncpy((char*) pBuffer, (char*) pszService,
+        (uint8_t*) lsmb_stpncpy((char*) pBuffer, (char*) pszService,
             bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
     if (!*pCursor && bufferLen > bufferUsed)
     {

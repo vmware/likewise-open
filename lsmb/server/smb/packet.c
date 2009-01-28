@@ -557,7 +557,7 @@ SMBPacketAppendString(
 
     pOutputBuffer = (char *) (pBuffer + bufferUsed);
 
-    pszCursor = stpncpy(pOutputBuffer, pszString, bytesNeeded / sizeof(pszString[0]));
+    pszCursor = lsmb_stpncpy(pOutputBuffer, pszString, bytesNeeded / sizeof(pszString[0]));
     *pszCursor = 0;
     if ((pszCursor - pOutputBuffer) != (bytesNeeded - 1))
     {

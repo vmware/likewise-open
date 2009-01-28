@@ -105,7 +105,7 @@ MarshallNegotiateRequest(
         if (bufferUsed + sizeof(NUL) <= bufferLen)
         {
             uint8_t *pCursor =
-                (uint8_t*) stpncpy((char*) pDialect->szDialectName,
+                (uint8_t*) lsmb_stpncpy((char*) pDialect->szDialectName,
                     (const char *) pszDialects[i], bufferLen - bufferUsed);
             if (!*pCursor)
             {
