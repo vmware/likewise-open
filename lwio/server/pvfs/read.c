@@ -51,10 +51,66 @@
 NTSTATUS
 PvfsRead(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
+    PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
+    ULONG bufLen = pIrp->Args.ReadWrite.Length;
+    PPVFS_CCB pCcb = NULL;
+    size_t totalBytesRead = 0;
+
+    BAIL_ON_INVALID_PTR(pBuffer, ntError);
+
+    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+
+    if (bufLen > SSIZE_MAX) {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    while (totalBytesRead < bufLen)
+    {
+        size_t bytesRead = 0;
+
+        bytesRead = read(pCcb->fd,
+                         pBuffer + totalBytesRead,
+                         bufLen - totalBytesRead);
+        if (bytesRead == -1) {
+            int err = errno;
+
+            /* try again? */
+            if (err == EAGAIN) {
+                continue;
+            }
+
+            ntError = PvfsMapUnixErrnoToNtStatus(err);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        /* Check for EOF */
+        if (bytesRead == 0) {
+            break;
+        }
+
+        totalBytesRead += bytesRead;
+    }
+
+    /* Can only get here is the loop was completed
+       successfully */
+
+    pIrp->IoStatusBlock.BytesTransferred = totalBytesRead;
+
+    ntError = STATUS_SUCCESS;
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 

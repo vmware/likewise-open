@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
                            NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    if ((fd = open(argv[2], O_RDONLY, 0)) == -1) {
+    if ((fd = open(argv[2], O_WRONLY, 0)) == -1) {
         fprintf(stderr, "Failed to open local file \"%s\" for copy.\n",
                 argv[2]);
         ntError = STATUS_UNSUCCESSFUL;
@@ -105,19 +105,21 @@ int main(int argc, char *argv[])
     }
 
     do {
-        if ((bytes = read(fd, pBuffer, sizeof(pBuffer))) == -1) {
-            fprintf(stderr, "Read failed!\n");
-            ntError = STATUS_UNSUCCESSFUL;
-            BAIL_ON_NT_STATUS(ntError);
-        }
-
-        ntError = NtWriteFile(hFile,
+        ntError = NtReadFile(hFile,
                               NULL,
                               &statusBlock,
                               pBuffer,
                               bytes,
                               0, 0);
         BAIL_ON_NT_STATUS(ntError);
+
+        if ((bytes = write(fd, pBuffer, statusBlock.BytesTransferred)) == -1) {
+            fprintf(stderr, "Write failed!\n");
+            ntError = STATUS_UNSUCCESSFUL;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+
     } while (bytes != 0);
 
     ntError = NtCloseFile(hFile);
