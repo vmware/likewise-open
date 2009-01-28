@@ -146,6 +146,11 @@ main(int argc,
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = NtConnectNamedPipe(
+                    FileHandle
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
 error:
 
     return(ntStatus);

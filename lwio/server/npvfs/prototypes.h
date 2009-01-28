@@ -64,6 +64,19 @@ NpfsCreateCCB(
     PNPFS_IRP_CONTEXT pIrpContext,
     PNPFS_CCB * ppCCB
     );
+/* connectnp.c */
+
+NTSTATUS
+NpfsConnectNamedPipe(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsCommonConnectNamedPipe(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
 
 /* fcb.c */
 
@@ -80,7 +93,13 @@ NpfsFindFCB(
     PNPFS_FCB * ppFcb
     );
 
+/* fsctl.c */
 
+NTSTATUS
+NpfsCommonFsCtl(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
 
 /* mdl.c */
 

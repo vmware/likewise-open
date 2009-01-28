@@ -140,7 +140,7 @@ NpfsServerReadFile(
 
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pCCB->pPipe;
-    ENTER_MUTEX(&pPipe->Mutex);
+    ENTER_MUTEX(&pPipe->PipeMutex);
 
     switch(pPipe->PipeServerState) {
 
@@ -167,7 +167,7 @@ NpfsServerReadFile(
 
 error:
 
-    LEAVE_MUTEX(&pPipe->Mutex);
+    LEAVE_MUTEX(&pPipe->PipeMutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
@@ -207,7 +207,7 @@ NpfsClientReadFile(
 
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pCCB->pPipe;
-    ENTER_MUTEX(&pPipe->Mutex);
+    ENTER_MUTEX(&pPipe->PipeMutex);
 
     switch(pPipe->PipeClientState) {
 
@@ -228,7 +228,7 @@ NpfsClientReadFile(
 
 error:
 
-    LEAVE_MUTEX(&pPipe->Mutex);
+    LEAVE_MUTEX(&pPipe->PipeMutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);

@@ -82,20 +82,18 @@ NpfsCommonConnectNamedPipe(
     )
 {
     NTSTATUS ntStatus = 0;
-    UNICODE_STRING  PathName = {0};
-    PNPFS_FCB pFCB = NULL;
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pSCB = NULL;
 
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pSCB->pPipe;
 
-    ENTER_MUTEX(&pPipe->Mutex);
+    ENTER_MUTEX(&pPipe->PipeMutex);
 
     if (pPipe->PipeServerState !=  PIPE_SERVER_CREATED) {
 
-        ntStatus = STATUS_INVALID_OPERATION;
-        LEAVE_WRITE_RW_LOCK(&pPipe->Mutex);
+        ntStatus = STATUS_INVALID_SERVER_STATE;
+        LEAVE_MUTEX(&pPipe->PipeMutex);
 
         return(ntStatus);
     }
@@ -104,56 +102,15 @@ NpfsCommonConnectNamedPipe(
 
     while(pPipe->PipeServerState != PIPE_CLIENT_CONNECTED){
 
-        pthread_cond_wait(&pPipe->Mutex);
+        pthread_cond_wait(&pPipe->PipeCondition, &pPipe->PipeMutex);
 
     }
 
-    pPiper->PipeServerState = PIPE_SERVER_CONNECTED;
+    pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
 
-    LEAVE_MUTEX(&pPipe->Mutex);
+    LEAVE_MUTEX(&pPipe->PipeMutex);
 
 
     LEAVE_READER_RW_LOCK(&gServerLock);
     return(ntStatus);
-}
-
-
-NTSTATUS
-NpfsValidateConnectNamedPipe(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PUNICODE_STRING  pPath
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PIO_ECP_NAMED_PIPE pipeParams = NULL;
-    ULONG ecpSize = 0;
-
-    if (!pIrpContext->pIrp->Args.Connect.EcpList)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = IoRtlEcpListFind(
-                    pIrpContext->pIrp->Args.Connect.EcpList,
-                    IO_ECP_TYPE_NAMED_PIPE,
-                    (PVOID*)&pipeParams,
-                    &ecpSize);
-    if (STATUS_NOT_FOUND == ntStatus)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (ecpSize != sizeof(*pipeParams))
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    RtlUnicodeStringInit(pPath, pIrpContext->pIrp->Args.Connect.FileName.FileName);
-
-error:
-
-    return ntStatus;
 }

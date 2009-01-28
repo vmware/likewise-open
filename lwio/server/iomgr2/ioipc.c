@@ -420,8 +420,10 @@ IopIpcFsControlFile(
     pResponse->object = pReply;
 
     // TODO--make sure allocate handles 0...
-    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->OutputBufferLength);
-    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    if (pMessage->OutputBufferLength){
+        pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->OutputBufferLength);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    }
 
     pReply->Status = IoFsControlFile(
                             pMessage->FileHandle,

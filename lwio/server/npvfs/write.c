@@ -158,7 +158,7 @@ NpfsClientWriteFile(
 
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pCCB->pPipe;
-    ENTER_MUTEX(&pPipe->Mutex);
+    ENTER_MUTEX(&pPipe->PipeMutex);
 
     switch(pPipe->PipeClientState) {
 
@@ -174,7 +174,7 @@ NpfsClientWriteFile(
     }
 error:
 
-    LEAVE_MUTEX(&pPipe->Mutex);
+    LEAVE_MUTEX(&pPipe->PipeMutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);

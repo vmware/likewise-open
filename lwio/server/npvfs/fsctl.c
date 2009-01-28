@@ -56,19 +56,45 @@ NpfsFsCtl(
     )
 {
     NTSTATUS ntStatus = 0;
+    PNPFS_IRP_CONTEXT pIrpContext = NULL;
 
+    ntStatus = NpfsAllocateIrpContext(
+                        pIrp,
+                        &pIrpContext
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsCommonFsCtl(pIrpContext, pIrp);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return ntStatus;
 }
 
 
 NTSTATUS
-FsctlCommonFsctl(
+NpfsCommonFsCtl(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntStatus = 0;
+
+    switch (pIrpContext->pIrp->Args.IoFsControl.ControlCode)
+    {
+
+     case 0x2:
+          ntStatus = NpfsCommonConnectNamedPipe(
+                            pIrpContext,
+                            pIrp
+                            );
+          BAIL_ON_NT_STATUS(ntStatus);
+          break;
+
+    }
+
+error:
+
     return(ntStatus);
 }
-

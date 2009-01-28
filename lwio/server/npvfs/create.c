@@ -136,7 +136,7 @@ NpfsCommonCreate(
 
     if (pPipe->PipeServerState != PIPE_SERVER_WAITING_FOR_CONNECTION) {
 
-        LEAVE_MUTEX(&pPipe->Mutex);
+        LEAVE_MUTEX(&pPipe->PipeMutex);
         ntStatus = STATUS_INVALID_SERVER_STATE;
         LEAVE_READER_RW_LOCK(&gServerLock);
         return ntStatus;

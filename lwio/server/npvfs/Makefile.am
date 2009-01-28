@@ -4,6 +4,7 @@ libnpvfs_sys_la_SOURCES = \
     close.c  \
     create.c \
     createnp.c \
+    connectnp.c \
     ccb.c    \
     fcb.c    \
     deviceio.c \
