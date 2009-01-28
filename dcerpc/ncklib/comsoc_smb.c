@@ -15,13 +15,14 @@
 #include <lwio/lwio.h>
 #include <lw/base.h>
 
-#define SMB_SOCKET_LOCK(sock) (rpc__smb_socket_lock((rpc_smb_socket_p_t) (sock)->data.pointer))
-#define SMB_SOCKET_UNLOCK(sock) (rpc__smb_socket_unlock((rpc_smb_socket_p_t) (sock)->data.pointer))
+#define SMB_SOCKET_LOCK(sock) (rpc__smb_socket_lock(sock))
+#define SMB_SOCKET_UNLOCK(sock) (rpc__smb_socket_unlock(sock))
 
 typedef enum rpc_smb_state_e
 {
     SMB_STATE_SEND,
     SMB_STATE_RECV,
+    SMB_STATE_LISTEN,
     SMB_STATE_ERROR
 } rpc_smb_state_t;
 
@@ -40,10 +41,16 @@ typedef struct rpc_smb_socket_s
     rpc_np_addr_t localaddr;
     PIO_CONTEXT context;
     IO_FILE_HANDLE np;
-    int selectfd[2];
-    volatile boolean selectfd_triggered;
     rpc_smb_buffer_t sendbuffer;
     rpc_smb_buffer_t recvbuffer;
+    struct
+    {
+        IO_FILE_HANDLE* queue;
+        size_t capacity;
+        size_t length;
+        int selectfd[2];
+    } accept_backlog;
+    dcethread* listen_thread;
     dcethread_mutex lock;
     dcethread_cond event;
 } rpc_smb_socket_t, *rpc_smb_socket_p_t;
@@ -249,6 +256,16 @@ rpc__smb_socket_create(
 
     sock = calloc(1, sizeof(*sock));
 
+    if (!sock)
+    {
+        err = ENOMEM;
+        goto done;
+    }
+
+
+    sock->accept_backlog.selectfd[0] = -1;
+    sock->accept_backlog.selectfd[1] = -1;
+
     /* Set up reasonable default local endpoint */
     sock->localaddr.rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_NP;
     sock->localaddr.len = offsetof(rpc_np_addr_t, remote_host) + sizeof(sock->localaddr.remote_host);
@@ -256,23 +273,8 @@ rpc__smb_socket_create(
     sock->localaddr.sa.sun_path[0] = '\0';
     sock->localaddr.remote_host[0] = '\0';
 
-    if (!sock)
-    {
-        err = ENOMEM;
-        goto done;
-    }
-
-    sock->selectfd[0] = -1;
-    sock->selectfd[1] = -1;
-
     dcethread_mutex_init_throw(&sock->lock, NULL);
     dcethread_cond_init_throw(&sock->event, NULL);
-
-    if (pipe(sock->selectfd) != 0)
-    {
-        err = errno;
-        goto error;
-    }
 
     err = LwNtStatusToUnixErrno(LwIoOpenContextShared(&sock->context));
     if (err)
@@ -295,12 +297,6 @@ error:
             LwIoCloseContext(sock->context);
         }
 
-        if (sock->selectfd[0] != -1)
-        {
-            close(sock->selectfd[0]);
-            close(sock->selectfd[1]);
-        }
-
         dcethread_mutex_destroy_throw(&sock->lock);
         dcethread_cond_destroy_throw(&sock->event);
     }
@@ -314,8 +310,26 @@ rpc__smb_socket_destroy(
     rpc_smb_socket_p_t sock
     )
 {
+    size_t i;
+
     if (sock)
     {
+        if (sock->accept_backlog.queue)
+        {
+            for (i = 0; i < sock->accept_backlog.capacity; i++)
+            {
+                if (sock->accept_backlog.queue[i])
+                {
+                    NtCtxCloseFile(sock->context, sock->accept_backlog.queue[i]);
+                }
+            }
+
+            close(sock->accept_backlog.selectfd[0]);
+            close(sock->accept_backlog.selectfd[1]);
+
+            free(sock->accept_backlog.queue);
+        }
+
         if (sock->np && sock->context)
         {
             NtCtxCloseFile(sock->context, sock->np);
@@ -324,12 +338,6 @@ rpc__smb_socket_destroy(
         if (sock->context)
         {
             LwIoCloseContext(sock->context);
-        }
-        
-        if (sock->selectfd[0] != -1)
-        {
-            close(sock->selectfd[0]);
-            close(sock->selectfd[1]);
         }
         
         dcethread_mutex_destroy_throw(&sock->lock);
@@ -521,7 +529,7 @@ rpc__smb_socket_connect(
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
 
-    SMB_SOCKET_LOCK(sock);
+    SMB_SOCKET_LOCK(smb);
 
     /* Break address into host and endpoint */
     rpc__naf_addr_inq_netaddr (addr,
@@ -645,7 +653,7 @@ done:
         RtlMemoryFree(smbpath);
     }
 
-    SMB_SOCKET_UNLOCK(sock);
+    SMB_SOCKET_UNLOCK(smb);
 
     return serr;
 
@@ -657,28 +665,255 @@ error:
 INTERNAL
 rpc_socket_error_t
 rpc__smb_socket_accept(
-    rpc_socket_t sock ATTRIBUTE_UNUSED,
+    rpc_socket_t sock,
     rpc_addr_p_t addr ATTRIBUTE_UNUSED,
-    rpc_socket_t *newsock ATTRIBUTE_UNUSED
-)
+    rpc_socket_t *newsock
+    )
 {
-    rpc_socket_error_t serr = ENOTSUP;
+    rpc_socket_error_t serr = RPC_C_SOCKET_OK;
+    rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
+    rpc_socket_t npsock = NULL;
+    rpc_smb_socket_p_t npsmb = NULL;
+    IO_FILE_HANDLE np = NULL;
+    size_t i;
+    char c = 0;
 
-    fprintf(stderr, "WARNING: unsupported smb socket function %s\n", __FUNCTION__);
+    SMB_SOCKET_LOCK(smb);
+
+    while (smb->accept_backlog.length == 0)
+    {
+        if (smb->state == SMB_STATE_ERROR)
+        {
+            serr = -1;
+            goto error;
+        }
+
+        rpc__smb_socket_wait(smb);
+    }
+
+    for (i = 0; i < smb->accept_backlog.capacity; i++)
+    {
+        if (smb->accept_backlog.queue[i] != NULL)
+        {
+            np = smb->accept_backlog.queue[i];
+            smb->accept_backlog.queue[i] = NULL;
+            smb->accept_backlog.length--;
+            if (read(smb->accept_backlog.selectfd[0], &c, sizeof(c)) != c)
+            {
+                serr = errno;
+                goto error;
+            }
+            dcethread_cond_broadcast_throw(&smb->event);
+        }
+    }
+
+    serr = rpc__socket_open(sock->pseq_id, &npsock);
+    if (serr)
+    {
+        goto error;
+    }
+
+    npsmb = (rpc_smb_socket_p_t) npsock->data.pointer;
+
+    npsmb->np = np;
+    np = NULL;
+
+    npsmb->state = SMB_STATE_RECV;
+
+    /* FIXME: set up peer address and session key */
+
+    *newsock = npsock;
+
+error:
+
+    if (np)
+    {
+        NtCtxCloseFile(smb->context, np);
+    }
+
+    SMB_SOCKET_UNLOCK(smb);
 
     return serr;
 }
 
 INTERNAL
+void*
+rpc__smb_socket_listen_thread(void* data)
+{
+    int serr = RPC_C_SOCKET_OK;
+    rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) data;
+    IO_STATUS_BLOCK status_block;
+    char *endpoint, *pipename;
+    unsigned32 dbg_status = 0;
+    PSTR smbpath = NULL;
+    IO_FILE_NAME filename;
+    size_t i;
+    char c = 0;
+
+    SMB_SOCKET_LOCK(smb);
+
+    while (smb->state != SMB_STATE_LISTEN)
+    {
+        if (smb->state == SMB_STATE_ERROR)
+        {
+            goto error;
+        }
+
+        rpc__smb_socket_wait(smb);
+    }
+
+    /* Extract endpoint */
+    rpc__naf_addr_inq_endpoint ((rpc_addr_p_t) &smb->localaddr,
+                                (unsigned_char_t**) &endpoint,
+                                &dbg_status);
+
+    if (!strncmp(endpoint, "\\pipe\\", sizeof("\\pipe\\") - 1) ||
+        !strncmp(endpoint, "\\PIPE\\", sizeof("\\PIPE\\") - 1))
+    {
+        pipename = endpoint + sizeof("\\pipe\\") - 1;
+    }
+    else
+    {
+        serr = EINVAL;
+        goto error;
+    }
+
+    serr = NtStatusToUnixErrno(
+        LwRtlCStringAllocatePrintf(
+            &smbpath,
+            "\\npvfs\\%s",
+            (char*) pipename));
+    if (serr)
+    {
+        goto error;
+    }
+
+    filename.RootFileHandle = NULL;
+    filename.IoNameOptions = 0;
+
+    serr = NtStatusToUnixErrno(
+        LwRtlWC16StringAllocateFromCString(
+            &filename.FileName,
+            smbpath));
+    if (serr)
+    {
+        goto error;
+    }
+
+    while (smb->state == SMB_STATE_LISTEN)
+    {
+        SMB_SOCKET_UNLOCK(smb);
+
+        serr = NtStatusToUnixErrno(
+            LwNtCtxCreateNamedPipeFile(
+                smb->context, /* IO context */
+                NULL, /* Security token */
+                &smb->np, /* NP handle */
+                NULL, /* Async control */
+                &status_block, /* IO status block */
+                &filename, /* Filename */
+                NULL, /* Security descriptor */
+                NULL, /* Security QOS */
+                GENERIC_READ | GENERIC_WRITE, /* Desired access mode */
+                SHARE_READ | SHARE_WRITE, /* Share access mode */
+                CREATE_NEW, /* ??? Create disposition */
+                0, /* ??? Create options */
+                0, /* ??? Named pipe type */
+                0, /* ??? Read mode */
+                0, /* ??? Completion mode */
+                smb->accept_backlog.capacity, /* Maximum instances */
+                1, /* ??? Inbound quota */
+                1, /* ??? Outbound quota */
+                NULL /* ??? Default timeout */
+                ));
+        if (serr)
+        {
+            SMB_SOCKET_LOCK(smb);
+            goto error;
+        }
+
+        /* FIXME: Do connect named pipe here */
+
+        SMB_SOCKET_LOCK(smb);
+
+        /* Wait for a slot to open in the accept queue */
+        while (smb->accept_backlog.length == smb->accept_backlog.capacity)
+        {
+            if (smb->state == SMB_STATE_ERROR)
+            {
+                goto error;
+            }
+
+            rpc__smb_socket_wait(smb);
+        }
+
+        /* Put the handle into the accept queue */
+        for (i = 0; i < smb->accept_backlog.capacity; i++)
+        {
+            if (smb->accept_backlog.queue[i] == NULL)
+            {
+                smb->accept_backlog.queue[i] = smb->np;
+                smb->np = NULL;
+                smb->accept_backlog.length++;
+                if (write(smb->accept_backlog.selectfd[1], &c, sizeof(c)) != sizeof(c))
+                {
+                    serr = errno;
+                    goto error;
+                }
+                dcethread_cond_broadcast_throw(&smb->event);
+                break;
+            }
+        }
+    }
+
+error:
+
+    if (serr)
+    {
+        rpc__smb_socket_change_state(smb, SMB_STATE_ERROR);
+    }
+
+    SMB_SOCKET_UNLOCK(smb);
+
+    return NULL;
+}
+
+
+INTERNAL
 rpc_socket_error_t
 rpc__smb_socket_listen(
-    rpc_socket_t sock ATTRIBUTE_UNUSED,
-    int backlog ATTRIBUTE_UNUSED
+    rpc_socket_t sock,
+    int backlog
     )
 {
-    rpc_socket_error_t serr = ENOTSUP;
-    
-    fprintf(stderr, "WARNING: unsupported smb socket function %s\n", __FUNCTION__);
+    rpc_socket_error_t serr = RPC_C_SOCKET_OK;
+    rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
+
+    SMB_SOCKET_LOCK(smb);
+
+    smb->accept_backlog.capacity = backlog;
+    smb->accept_backlog.length = 0;
+    smb->accept_backlog.queue = calloc(backlog, sizeof(*smb->accept_backlog.queue));
+
+    if (!smb->accept_backlog.queue)
+    {
+        serr = ENOMEM;
+        goto error;
+    }
+
+    if (pipe(smb->accept_backlog.selectfd) != 0)
+    {
+        serr = errno;
+        goto error;
+    }
+
+    smb->state = SMB_STATE_LISTEN;
+
+    dcethread_create_throw(&smb->listen_thread, NULL, rpc__smb_socket_listen_thread, smb);
+
+error:
+
+    SMB_SOCKET_UNLOCK(smb);
 
     return serr;
 }
@@ -791,7 +1026,7 @@ rpc__smb_socket_sendmsg(
     int i;
     size_t pending = 0;
 
-    SMB_SOCKET_LOCK(sock);
+    SMB_SOCKET_LOCK(smb);
 
     /* Wait until we are in a state where we can send */
     while (smb->state != SMB_STATE_SEND)
@@ -834,7 +1069,7 @@ rpc__smb_socket_sendmsg(
 
 cleanup:
 
-    SMB_SOCKET_UNLOCK(sock);
+    SMB_SOCKET_UNLOCK(smb);
 
     return serr;
 
@@ -877,7 +1112,7 @@ rpc__smb_socket_recvmsg(
     int i;
     size_t pending;
 
-    SMB_SOCKET_LOCK(sock);
+    SMB_SOCKET_LOCK(smb);
 
     while (smb->state != SMB_STATE_RECV)
     {
@@ -931,7 +1166,7 @@ rpc__smb_socket_recvmsg(
 
 cleanup:
 
-    SMB_SOCKET_UNLOCK(sock);
+    SMB_SOCKET_UNLOCK(smb);
 
     return serr;
 
@@ -1018,7 +1253,7 @@ rpc__smb_socket_getpeername(
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
 
-    SMB_SOCKET_LOCK(sock);
+    SMB_SOCKET_LOCK(smb);
     
     if (!smb->np)
     {
@@ -1106,7 +1341,7 @@ rpc__smb_socket_get_select_desc(
     )
 {
     rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
-    return smb->selectfd[0];
+    return smb->accept_backlog.selectfd[0];
 }
 
 INTERNAL
