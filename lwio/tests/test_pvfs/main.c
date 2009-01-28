@@ -61,10 +61,15 @@ int main(int argc, char *argv[])
     IO_STATUS_BLOCK StatusBlock;
     IO_FILE_NAME Filename;
     PSTR pszPath;
+    size_t bytes = 0;
+    int fd = -1;
+    BYTE pBuffer[1024];
+    IO_STATUS_BLOCK statusBlock = {0};
 
-    if (argc != 2)
+
+    if (argc != 3)
     {
-        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <filename> <src file>\n", argv[0]);
         return -1;
     }
 
@@ -85,22 +90,49 @@ int main(int argc, char *argv[])
                            0,
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                           FILE_CREATE | FILE_OPEN,
+                           FILE_CREATE,
                            FILE_NON_DIRECTORY_FILE,
                            NULL,
                            0,
                            NULL);
-    if (ntError != STATUS_SUCCESS)
-    {
-        printf("Error was 0x%x\n", ntError);
-    }
-    else
-    {
-        printf("Success!\n");
+    BAIL_ON_NT_STATUS(ntError);
 
+    if ((fd = open(argv[2], O_RDONLY, 0)) == -1) {
+        fprintf(stderr, "Failed to open local file \"%s\" for copy.\n",
+                argv[2]);
+        ntError = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(ntError);
     }
 
-    return 0;
+    do {
+        if ((bytes = read(fd, pBuffer, sizeof(pBuffer))) == -1) {
+            fprintf(stderr, "Read failed!\n");
+            ntError = STATUS_UNSUCCESSFUL;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        ntError = NtWriteFile(hFile,
+                              NULL,
+                              &statusBlock,
+                              pBuffer,
+                              bytes,
+                              0, 0);
+        BAIL_ON_NT_STATUS(ntError);
+    } while (bytes != 0);
+
+    ntError = NtCloseFile(hFile);
+    BAIL_ON_NT_STATUS(ntError);
+
+
+cleanup:
+    printf("Final NTSTATUS was %s (%s)\n",
+           NtStatusToDescription(ntError),
+           NtStatusToSymbolicName(ntError));
+
+    return ntError == STATUS_SUCCESS;
+
+error:
+    goto cleanup;
 }
 
 

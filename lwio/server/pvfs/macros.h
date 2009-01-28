@@ -51,12 +51,25 @@
 
 /* Error checking macros */
 
+#define PVFS_BAIL_ON_INVALID_CCB(p, err)            \
+    do {                                            \
+        if ((p) == NULL) {                          \
+            err = STATUS_INVALID_PARAMETER;         \
+            goto error;                             \
+        }                                           \
+        if ((p)->fd == -1) {                        \
+            err = STATUS_INVALID_HANDLE;            \
+            goto error;                             \
+        }                                           \
+    } while(0);
+
+
 
 /* Memory Macros */
 
 #define PVFS_SAFE_FREE_MEMORY(p) \
     do {                         \
-    if ((p) != NULL) {           \
+        if ((p) != NULL) {       \
             RtlMemoryFree(p);    \
             p = NULL;            \
         }                        \

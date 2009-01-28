@@ -54,7 +54,51 @@ PvfsWrite(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
+    ULONG bufLen = pIrp->Args.ReadWrite.Length;
+    PPVFS_CCB pCcb = NULL;
+    size_t totalBytesWritten = 0;
+
+    BAIL_ON_INVALID_PTR(pBuffer, ntError);
+
+    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+
+    while (totalBytesWritten < bufLen)
+    {
+        size_t bytesWritten = 0;
+
+        bytesWritten = write(pCcb->fd,
+                             pBuffer + totalBytesWritten,
+                             bufLen - totalBytesWritten);
+        if (bytesWritten == -1) {
+            int err = errno;
+
+            /* try again? */
+            if (err == EAGAIN) {
+                continue;
+            }
+
+            ntError = PvfsMapUnixErrnoToNtStatus(err);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        totalBytesWritten += bytesWritten;
+    }
+
+    /* Can only get here is the loop was completed
+       successfully */
+
+    ntError = STATUS_SUCCESS;
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 
