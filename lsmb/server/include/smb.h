@@ -265,8 +265,6 @@ typedef struct
     SMB_HEADER     *pSMBHeader;
     ANDX_HEADER    *pAndXHeader; /* If NULL, no AndX */
 
-    uint16_t       *pByteCount;  /* Pointer to byteCount within message */
-
     uint8_t        *pParams;     /* Pointer to start of message specific
                                     parameters */
     uint8_t        *pData;       /* Pointer to start of message data portion;
@@ -528,6 +526,17 @@ typedef struct
 
      /* Data immediately follows */
 }  __attribute__((__packed__)) SESSION_SETUP_RESPONSE_HEADER, *PSESSION_SETUP_RESPONSE_HEADER;
+
+typedef struct
+{
+    uint16_t byteCount;
+#if 0
+    struct {
+        UCHAR BufferFormat;
+        UCHAR DialectName[];
+    } Dialects[];
+#endif
+} __attribute__((__packed__)) NEGOTIATE_REQUEST_HEADER, *PNEGOTIATE_REQUEST_HEADER;
 
 typedef struct
 {

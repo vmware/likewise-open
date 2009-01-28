@@ -131,7 +131,6 @@ NPOpen(
     packet.pSMBHeader->wordCount = 24;
 
     pHeader = (CREATE_REQUEST_HEADER *) packet.pParams;
-    packet.pByteCount = &pHeader->byteCount;
 
     pHeader->reserved = 0;
     /* @todo: does the length include alignment padding? */
@@ -156,10 +155,8 @@ NPOpen(
     BAIL_ON_SMB_ERROR(dwError);
 
     assert(packetByteCount <= UINT16_MAX);
-
-    *packet.pByteCount = (uint16_t) packetByteCount;
-
-    packet.bufferUsed += *packet.pByteCount;
+    pHeader->byteCount = (uint16_t) packetByteCount;
+    packet.bufferUsed += packetByteCount;
 
     // byte order conversions
     SMB_HTOL8_INPLACE(pHeader->reserved);

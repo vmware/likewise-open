@@ -164,6 +164,12 @@ _UnmarshallSessionSetupData(
         return EBADMSG;
     }
 
+    // TODO -- change function to copy strings so we handle alignment.
+#if 1
+    *ppwszNativeOS = NULL;
+    *ppwszNativeLanMan = NULL;
+    *ppwszNativeDomain = NULL;
+#else
     *ppwszNativeOS = (wchar16_t *) (pBuffer + bufferUsed);
     bufferUsed += sizeof(wchar16_t) * wc16snlen(*ppwszNativeOS,
         (bufferLen - bufferUsed) / sizeof(wchar16_t)) + sizeof(WNUL);
@@ -187,6 +193,7 @@ _UnmarshallSessionSetupData(
     {
         return EBADMSG;
     }
+#endif
 
     return 0;
 }

@@ -141,7 +141,6 @@ SessionSetup(
             CAP_EXTENDED_SECURITY;
 
         pHeader->securityBlobLength = dwSecurityBlobLen2;
-        packet.pByteCount = &pHeader->byteCount;
 
         wcstowc16s(nativeOS, L"Unix", sizeof(nativeOS));
         wcstowc16s(nativeLanMan, L"Likewise SMB", sizeof(nativeLanMan));
@@ -162,8 +161,8 @@ SessionSetup(
         BAIL_ON_SMB_ERROR(dwError);
 
         assert(packetByteCount <= UINT16_MAX);
-        *packet.pByteCount = (uint16_t) packetByteCount;
-        packet.bufferUsed += *packet.pByteCount;
+        pHeader->byteCount = (uint16_t) packetByteCount;
+        packet.bufferUsed += packetByteCount;
 
         // byte order conversions
         SMB_HTOL16_INPLACE(pHeader->maxBufferSize);

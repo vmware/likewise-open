@@ -59,6 +59,7 @@ Negotiate(
 {
     uint32_t dwError = 0;
     SMB_PACKET packet = {0};
+    PNEGOTIATE_REQUEST_HEADER pRequestHeader = NULL;
     NEGOTIATE_RESPONSE_HEADER* pHeader = NULL;
     uint8_t* pSecurityBlob = NULL;
     uint8_t* pGUID = NULL;
@@ -92,12 +93,11 @@ Negotiate(
                 &packet);
    BAIL_ON_SMB_ERROR(dwError);
 
-    /* @todo: messages with a header consisting only of ByteCount don't get
-       their own HEADER structs (yet), which is confusing */
-    packet.pByteCount = (uint16_t*) packet.pParams;
-    packet.pData = packet.pParams + 2;
-    packet.bufferUsed += 2;
+    packet.pData = packet.pParams + sizeof(NEGOTIATE_REQUEST_HEADER);
+    packet.bufferUsed += sizeof(NEGOTIATE_REQUEST_HEADER);
     packet.pSMBHeader->wordCount = 0;   /* No parameter words */
+
+    pRequestHeader = (PNEGOTIATE_REQUEST_HEADER)packet.pParams;
 
     /* @todo: handle buffer size restart with ERESTART */
     dwError = MarshallNegotiateRequest(
@@ -109,11 +109,11 @@ Negotiate(
     BAIL_ON_SMB_ERROR(dwError);
 
     assert(packetByteCount <= UINT16_MAX);
-    *packet.pByteCount = (uint16_t) packetByteCount;
-    packet.bufferUsed += *packet.pByteCount;
+    pRequestHeader->byteCount = (uint16_t) packetByteCount;
+    packet.bufferUsed += packetByteCount;
 
     // byte order conversions
-    SMB_HTOL16_INPLACE(*packet.pByteCount);
+    SMB_HTOL16_INPLACE(pRequestHeader->byteCount);
 
     dwError = SMBPacketMarshallFooter(&packet);
     BAIL_ON_SMB_ERROR(dwError);
