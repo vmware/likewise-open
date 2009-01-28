@@ -72,6 +72,8 @@ DoStartupTest(
                           &ioStatusBlock,
                           NULL,
                           &fileName,
+                          NULL,
+                          NULL,
                           0,
                           0,
                           0,
@@ -79,7 +81,7 @@ DoStartupTest(
                           0,
                           0,
                           NULL,
-                          NULL,
+                          0,
                           NULL);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
@@ -148,6 +150,10 @@ ItDriverDispatch(
 
         case IRP_TYPE_SET_INFORMATION:
             status = ItDispatchSetInformation(pIrp);
+            break;
+
+        case IRP_TYPE_CREATE_NAMED_PIPE:
+            status = ItDispatchCreateNamedPipe(pIrp);
             break;
 
         default:

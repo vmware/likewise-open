@@ -3,6 +3,7 @@ noinst_LTLIBRARIES = liblwioutils.la
 liblwioutils_la_SOURCES = \
     bitvector.c   \
     consolelog.c  \
+    ecp.c         \
     dlinkedlist.c \
     filelog.c     \
     fileutils.c   \
@@ -17,6 +18,7 @@ liblwioutils_la_SOURCES = \
     lwioconfig.c  \
     lwiologinfo.c \
     lwioxnet.c    \
+    path.c        \
     rbtree.c      \
     stack.c       \
     strerror.c    \

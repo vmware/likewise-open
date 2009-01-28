@@ -17,12 +17,14 @@ static
 NTSTATUS
 SrvSocketReaderFillFdSet(
     PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
-    PSMB_SOCKET_READER_FD_CONTEXT pReaderFdContext
+    PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     );
 
+// TODO-Fix to NTSTATUS
 static
-NTSTATUS
+DWORD
 SrvSocketReaderFillFdSetInOrder(
+    PVOID pKey,
     PVOID pConnection,
     PVOID pUserData,
     PBOOLEAN pbContinue
@@ -76,6 +78,7 @@ SrvSocketReaderReleaseConnection(
 
 NTSTATUS
 SrvSocketReaderInit(
+    PSMB_PROD_CONS_QUEUE   pWorkQueue,
     PSMB_SRV_SOCKET_READER pReader
     )
 {
@@ -83,20 +86,22 @@ SrvSocketReaderInit(
 
     memset(&pReader->context, 0, sizeof(pReader->context));
 
-    pReader->context.mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_init(&pReader->context.mutex, NULL);
+    pReader->context.pMutex = &pReader->context.mutex;
+
     pReader->context.bStop = FALSE;
-    pReader->context.pSocketList  = NULL;
+    pReader->context.pConnections  = NULL;
     pReader->context.ulNumSockets = 0;
     pReader->context.fd[0] = pReader->context.fd[1] = -1;
 
     ntStatus = SMBRBTreeCreate(
                     &SrvSocketReaderCompareConnections,
+                    NULL,
                     &SrvSocketReaderReleaseConnection,
                     &pReader->context.pConnections);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsInit(&pReader->context.pWorkQueue);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pReader->context.pWorkQueue = pWorkQueue;
 
     if (pipe(pReader->context.fd) < 0)
     {
@@ -105,11 +110,11 @@ SrvSocketReaderInit(
     }
 
     ntStatus = pthread_create(
-                    pReader->reader,
+                    &pReader->reader,
                     NULL,
                     &SrvSocketReaderMain,
                     &pReader->context);
-    BAIL_ON_NT_STATUS;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pReader->pReader = &pReader->reader;
 
@@ -125,7 +130,7 @@ SrvSocketReaderGetCount(
 {
     ULONG ulSockets = 0;
 
-    pthread_mutex_lock(&pReader->pContext.mutex);
+    pthread_mutex_lock(&pReader->context.mutex);
 
     ulSockets = pReader->context.ulNumSockets;
 
@@ -144,8 +149,9 @@ SrvSocketReaderEnqueueConnection(
 
     pthread_mutex_lock(&pReader->context.mutex);
 
-    ntStatus = SMBDLinkedListAppend(
-                    &pReader->context.pSocketList,
+    ntStatus = SMBRBTreeAdd(
+                    pReader->context.pConnections,
+                    &pConnection->pSocket->fd,
                     pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -179,7 +185,14 @@ SrvSocketReaderMain(
     while (!SrvSocketReaderMustStop(pContext))
     {
         int ret = 0;
-        PSMBDLINKEDLIST pIter = NULL;
+        struct timeval timeout = { .tv_sec = 60, .tv_usec = 0 };
+
+        if (workSet.pConnectionList)
+        {
+            SrvSocketReaderPurgeConnections(
+                    pContext,
+                    &workSet);
+        }
 
         ntStatus = SrvSocketReaderFillFdSet(
                         pContext,
@@ -187,20 +200,23 @@ SrvSocketReaderMain(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ret = select(
-                fdContext.maxFd + 1,
+                workSet.maxFd + 1,
                 &workSet.fdset,
                 NULL,
-                &workSet.fdset,
-                NULL);
+                NULL,
+                &timeout);
         if (ret == -1)
         {
-            // TODO - map error number
-            ntStatus = errno;
+            if (errno == EINTR)
+            {
+                continue;
+            }
+
+            ntStatus = LwUnixErrnoToNtStatus(errno);
         }
-        else if (ret != 1)
+        else if (ret == 0)
         {
-            // TODO - map error number
-            ntStatus = EFAULT;
+            continue;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -213,10 +229,6 @@ SrvSocketReaderMain(
                         pContext,
                         &workSet);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvSocketReaderPurgeConnections(
-                pContext,
-                &workSet);
     }
 
 cleanup:
@@ -245,18 +257,24 @@ SrvSocketReaderFreeContents(
 
     if (pReader->pReader)
     {
-        pthread_mutex_lock(&pReader->context.mutex);
+        if (pReader->context.pMutex)
+        {
+            pthread_mutex_lock(pReader->context.pMutex);
 
-        pReader->context.bStop = TRUE;
+            pReader->context.bStop = TRUE;
 
-        pthread_mutex_unlock(&pReader->context.mutex);
+            pthread_mutex_unlock(pReader->context.pMutex);
 
-        ntStatus = SrvSocketReaderInterrupt(pReader);
-        BAIL_ON_NT_STATUS(ntStatus);
+            ntStatus = SrvSocketReaderInterrupt(pReader);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        pthread_join(pReader->reader);
+            pthread_join(pReader->reader, NULL);
 
-        pReader->pReader = NULL;
+            pthread_mutex_destroy(pReader->context.pMutex);
+            pReader->context.pMutex = NULL;
+
+            pReader->pReader = NULL;
+        }
     }
 
     if (pReader->context.pConnections)
@@ -277,6 +295,8 @@ SrvSocketReaderFreeContents(
         }
     }
 
+error:
+
     return ntStatus;
 }
 
@@ -290,12 +310,12 @@ SrvSocketReaderFillFdSet(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    FD_ZERO(pReaderWorkset->fdset);
-    pReaderWorkset.maxFd = -1;
+    FD_ZERO(&pReaderWorkset->fdset);
+    pReaderWorkset->maxFd = -1;
 
     FD_SET(pReaderContext->fd[0], &pReaderWorkset->fdset);
 
-    SMB_LOCK_MUTEX(bInLock, &pContext->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pReaderContext->mutex);
 
     ntStatus = SMBRBTreeTraverse(
                     pReaderContext->pConnections,
@@ -304,14 +324,14 @@ SrvSocketReaderFillFdSet(
                     pReaderWorkset);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pReaderContext->fd[0] > pReaderWorkset.maxFd)
+    if (pReaderContext->fd[0] > pReaderWorkset->maxFd)
     {
-        pReaderWorkset.maxFd = pReaderContext->fd[0];
+        pReaderWorkset->maxFd = pReaderContext->fd[0];
     }
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pContext->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pReaderContext->mutex);
 
     return ntStatus;
 
@@ -320,9 +340,11 @@ error:
     goto cleanup;
 }
 
+// TODO -- Fix to NTSTATUS
 static
-NTSTATUS
+DWORD
 SrvSocketReaderFillFdSetInOrder(
+    PVOID pKey,
     PVOID pConnection,
     PVOID pUserData,
     PBOOLEAN pbContinue
@@ -331,12 +353,16 @@ SrvSocketReaderFillFdSetInOrder(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_CONNECTION pSrvConnection = (PSMB_SRV_CONNECTION)pConnection;
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset = (PSMB_SOCKET_READER_WORK_SET)pUserData;
-    int fd = -1;
 
-    fd = SrvConnectionGetFd(pSrvConnection);
+    if (!SrvConnectionIsInvalid(pSrvConnection))
+    {
+        int fd = -1;
 
-    FD_SET(fd, &pReaderWorkset->fdset);
-    pReaderWorkset->maxFd = fd;
+        fd = SrvConnectionGetFd(pSrvConnection);
+
+        FD_SET(fd, &pReaderWorkset->fdset);
+        pReaderWorkset->maxFd = fd;
+    }
 
     ntStatus = SMBDLinkedListAppend(&pReaderWorkset->pConnectionList, pSrvConnection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -383,12 +409,24 @@ SrvSocketReaderProcessConnections(
     {
         PSMB_SRV_CONNECTION pConnection = (PSMB_SRV_CONNECTION)pIter->pItem;
 
-        if (FD_ISSET(SrvConnectionGetFd(pConnection), &pReaderWorkset->fdset))
+        if (!SrvConnectionIsInvalid(pConnection))
         {
-            ntStatus = SrvSocketReaderReadMessage(
-                            pReaderContext,
-                            pConnection);
-            BAIL_ON_NT_STATUS(ntStatus);
+            int fd = SrvConnectionGetFd(pConnection);
+
+            if (FD_ISSET(fd, &pReaderWorkset->fdset))
+            {
+                ntStatus = SrvSocketReaderReadMessage(
+                                pReaderContext,
+                                pConnection);
+                if (ntStatus == STATUS_CONNECTION_RESET)
+                {
+                    SMB_LOG_DEBUG("Connection reset by peer [fd:%d][%s]",
+                                    fd,
+                                    SMB_SAFE_LOG_STRING(inet_ntoa(pConnection->pSocket->cliaddr.sin_addr)));
+                    ntStatus = 0;
+                }
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
         }
     }
 
@@ -409,12 +447,43 @@ SrvSocketReaderReadMessage(
     )
 {
     NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONTEXT pContext = NULL;
+    PSMB_PACKET pPacket = NULL;
+
+    ntStatus = SrvConnectionReadPacket(
+                    pConnection,
+                    &pPacket);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pPacket)
+    {
+        ntStatus = SrvContextCreate(
+                        pConnection,
+                        pPacket,
+                        &pContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvProdConsEnqueue(
+                        pReaderContext->pWorkQueue,
+                        pContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
     return ntStatus;
 
 error:
+
+    if (pContext)
+    {
+        SrvContextFree(pContext);
+    }
+
+    if (pPacket)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pPacket);
+    }
 
     goto cleanup;
 }
@@ -426,28 +495,30 @@ SrvSocketReaderPurgeConnections(
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     )
 {
-    for (pIter = workSet.pConnectionList; pIter; pIter = pIter->pNext)
+    PSMBDLINKEDLIST pIter = pReaderWorkset->pConnectionList;
+
+    for (; pIter; pIter = pIter->pNext)
     {
         PSMB_SRV_CONNECTION pSrvConnection = (PSMB_SRV_CONNECTION)pIter->pItem;
 
         if (SrvConnectionIsInvalid(pSrvConnection))
         {
-            pthread_mutex_lock(&pContext->mutex);
+            pthread_mutex_lock(pReaderContext->pMutex);
 
             SMBRBTreeRemove(
-                    pContext->pConnections,
+                    pReaderContext->pConnections,
                     pSrvConnection);
 
-            pthread_mutex_unlock(&pContext->mutex);
+            pthread_mutex_unlock(pReaderContext->pMutex);
         }
 
         SrvConnectionRelease(pSrvConnection);
     }
 
-    if (workSet.pConnectionList)
+    if (pReaderWorkset->pConnectionList)
     {
-        SMBDLinkedListFree(workSet.pConnectionList);
-        workSet.pConnectionList = NULL;
+        SMBDLinkedListFree(pReaderWorkset->pConnectionList);
+        pReaderWorkset->pConnectionList = NULL;
     }
 }
 
@@ -459,7 +530,7 @@ SrvSocketReaderInterrupt(
 {
     NTSTATUS ntStatus = 0;
 
-    if (write(pReader->context.fd[1], 'I', 1) != 1)
+    if (write(pReader->context.fd[1], "I", 1) != 1)
     {
         // TODO: Map error number
         ntStatus = errno;

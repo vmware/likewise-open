@@ -81,12 +81,42 @@ SMBSrvGetLocalIPAddress(
 
 NTSTATUS
 SrvListenerInit(
-    PSMB_SRV_LISTENER pListener
+    HANDLE                    hPacketAllocator,
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PSMB_SRV_SOCKET_READER    pReaderArray,
+    ULONG                     ulNumReaders,
+    PSMB_SRV_LISTENER         pListener
     )
 {
     NTSTATUS ntStatus = 0;
 
     memset(&pListener->context, 0, sizeof(pListener->context));
+
+    pthread_mutex_init(&pListener->context.mutex, NULL);
+    pListener->context.pMutex = &pListener->context.mutex;
+
+    pListener->context.hPacketAllocator = hPacketAllocator;
+    pListener->context.pReaderArray = pReaderArray;
+    pListener->context.ulNumReaders = ulNumReaders;
+    pListener->context.bStop = FALSE;
+
+    uuid_generate(pListener->context.serverProperties.GUID);
+
+    pListener->context.serverProperties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
+    pListener->context.serverProperties.bEnableSecuritySignatures = TRUE;
+    pListener->context.serverProperties.bRequireSecuritySignatures = TRUE;
+    pListener->context.serverProperties.bEncryptPasswords = TRUE;
+    pListener->context.serverProperties.MaxRawSize = 64 * 1024;
+    pListener->context.serverProperties.MaxMpxCount = 50;
+    pListener->context.serverProperties.MaxNumberVCs = 1;
+    pListener->context.serverProperties.MaxBufferSize = 16644;
+    pListener->context.serverProperties.Capabilities = 0;
+    pListener->context.serverProperties.Capabilities |= CAP_UNICODE;
+    pListener->context.serverProperties.Capabilities |= CAP_NT_SMBS;
+    pListener->context.serverProperties.Capabilities |= CAP_STATUS32;
+    pListener->context.serverProperties.Capabilities |= CAP_EXTENDED_SECURITY;
+
+    pListener->context.pShareDbContext = pShareDbContext;
 
     ntStatus = pthread_create(
                     &pListener->listener,
@@ -103,25 +133,38 @@ error:
 }
 
 NTSTATUS
-SrvListenerStop(
+SrvListenerShutdown(
     PSMB_SRV_LISTENER pListener
     )
 {
     NTSTATUS ntStatus = 0;
 
+    if (pListener->context.pMutex)
+    {
+        pthread_mutex_lock(pListener->context.pMutex);
+    }
+
     if (pListener->pListener)
     {
-        pthread_mutex_lock(&pListener->context.mutex);
-
         pListener->context.bStop = TRUE;
-
-        pthread_mutex_unlock(&pListener->context.mutex);
 
         SrvFakeClientConnection();
 
         pthread_join(pListener->listener, NULL);
 
         pListener->pListener = NULL;
+    }
+
+    if (pListener->context.hGssContext)
+    {
+        SrvGssReleaseContext(pListener->context.hGssContext);
+    }
+
+    if (pListener->context.pMutex)
+    {
+        pthread_mutex_unlock(pListener->context.pMutex);
+        pthread_mutex_destroy(pListener->context.pMutex);
+        pListener->context.pMutex = NULL;
     }
 
     return ntStatus;
@@ -141,6 +184,7 @@ SrvListenerMain(
     PSMB_SRV_LISTENER_CONTEXT pContext = (PSMB_SRV_LISTENER_CONTEXT)pData;
     PSMB_SRV_SOCKET_READER pReader = NULL;
     PSMB_SRV_CONNECTION pConnection = NULL;
+    PSRV_HOST_INFO pHostinfo = NULL;
 
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
@@ -206,6 +250,41 @@ SrvListenerMain(
         SMB_LOG_INFO("Handling client from [%s]",
                      SMB_SAFE_LOG_STRING(inet_ntoa(cliaddr.sin_addr)));
 
+        if (!pHostinfo)
+        {
+            NTSTATUS ntStatus1 = SrvAcquireHostInfo(
+                                    NULL,
+                                    &pHostinfo);
+            if (ntStatus1)
+            {
+                SMB_LOG_ERROR("Failed to acquire current host information [code:%d]", ntStatus1);
+                close(connFd);
+                connFd = -1;
+
+                continue;
+            }
+        }
+
+        if (!pContext->hGssContext)
+        {
+            NTSTATUS ntStatus2 = 0;
+
+            ntStatus2 = SrvGssAcquireContext(
+                            pHostinfo,
+                            NULL,
+                            &pContext->hGssContext);
+            if (ntStatus2)
+            {
+                SMB_LOG_ERROR("Failed to initialize GSS Handle [code:%d]", ntStatus2);
+
+
+                close(connFd);
+                connFd = -1;
+
+                continue;
+            }
+        }
+
         dwError = SrvSocketCreate(
                         connFd,
                         &cliaddr,
@@ -216,6 +295,11 @@ SrvListenerMain(
 
         dwError = SrvConnectionCreate(
                         pSocket,
+                        pContext->hPacketAllocator,
+                        pContext->hGssContext,
+                        pContext->pShareDbContext,
+                        &pContext->serverProperties,
+                        pHostinfo,
                         &pConnection);
         BAIL_ON_SMB_ERROR(dwError);
 

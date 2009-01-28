@@ -37,32 +37,32 @@ SMBSrvClientReaperMain(
     );
 
 static
-DWORD
+NTSTATUS
 SMBSrvClientReaperManageTree_inlock(
     PSMB_TREE pTree,
     PBOOLEAN  pbReaped
     );
 
 static
-DWORD
+NTSTATUS
 SMBSrvClientReaperManageSession_inlock(
     PSMB_SESSION pSession,
     PBOOLEAN     pbReaped
     );
 
 static
-DWORD
+NTSTATUS
 SMBSrvClientReaperManageSocket_inlock(
     PSMB_SOCKET pSocket,
     PBOOLEAN    pbReaped
     );
 
-DWORD
+NTSTATUS
 RdrReaperStart(
     VOID
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     int iReaper = 0;
 
     /* The reaper threads will immediately block waiting for a non-empty
@@ -71,25 +71,25 @@ RdrReaperStart(
     {
         pthread_t *pReaperThread = NULL;
 
-        dwError = SMBAllocateMemory(
+        ntStatus = SMBAllocateMemory(
                         sizeof(pthread_t),
                         (PVOID *) &pReaperThread);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        dwError = pthread_create(
+        ntStatus = pthread_create(
                         pReaperThread,
                         NULL,
                         &SMBSrvClientReaperMain,
                         NULL);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        dwError = SMBStackPush(pReaperThread, &gRdrRuntime.pReaperStack);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMBStackPush(pReaperThread, &gRdrRuntime.pReaperStack);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 error:
 
-    return dwError;
+    return ntStatus;
 }
 
 static
@@ -98,7 +98,7 @@ SMBSrvClientReaperMain(
     PVOID pData
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
     /* Execute an in-order traversal of the state tree.
      * Through careful refcounting, it is possible to backtrack and not deadlock.
@@ -125,11 +125,11 @@ SMBSrvClientReaperMain(
 
         sleep(60);
 
-        dwError = pthread_rwlock_rdlock(&gRdrRuntime.socketHashLock);
-        if (dwError) goto error_socket_hash_lock;
+        ntStatus = pthread_rwlock_rdlock(&gRdrRuntime.socketHashLock);
+        if (ntStatus) goto error_socket_hash_lock;
 
-        dwError = SMBHashGetIterator(gRdrRuntime.pSocketHashByAddress, &iterator);
-        if (dwError) goto error_socket_hash_iterator;
+        ntStatus = SMBHashGetIterator(gRdrRuntime.pSocketHashByAddress, &iterator);
+        if (ntStatus) goto error_socket_hash_iterator;
 
         while ((pEntry = SMBHashNext(&iterator)))
         {
@@ -137,24 +137,24 @@ SMBSrvClientReaperMain(
 
             SMBSocketAddReference(pSocket);
 
-            dwError = SMBStackPush(pSocket, &pSocketStack);
-            if (dwError) goto error_socket_hash_iterator;
+            ntStatus = SMBStackPush(pSocket, &pSocketStack);
+            if (ntStatus) goto error_socket_hash_iterator;
         }
 
-        dwError = pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
-        BAIL_ON_SMB_ERROR(dwError); /* @todo: ref. leaks! */
+        ntStatus = pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
+        BAIL_ON_NT_STATUS(ntStatus); /* @todo: ref. leaks! */
 
         while ((pSocket = (SMB_SOCKET *) SMBStackPop(&pSocketStack)))
         {
             BOOLEAN bSocketIsStale = false;
             BOOLEAN bReapedSocket = false;
 
-            dwError = pthread_rwlock_rdlock(&pSocket->hashLock);
-            if (dwError) goto error_session_hash_lock;
+            ntStatus = pthread_rwlock_rdlock(&pSocket->hashLock);
+            if (ntStatus) goto error_session_hash_lock;
 
-            dwError = SMBHashGetIterator(pSocket->pSessionHashByPrincipal,
+            ntStatus = SMBHashGetIterator(pSocket->pSessionHashByPrincipal,
                 &iterator);
-            if (dwError) goto error_session_hash_iterator;
+            if (ntStatus) goto error_session_hash_iterator;
 
             while ((pEntry = SMBHashNext(&iterator)))
             {
@@ -162,24 +162,24 @@ SMBSrvClientReaperMain(
 
                 SMBSessionAddReference(pSession);
 
-                dwError = SMBStackPush(pSession, &pSessionStack);
-                if (dwError) goto error_session_hash_iterator;
+                ntStatus = SMBStackPush(pSession, &pSessionStack);
+                if (ntStatus) goto error_session_hash_iterator;
             }
 
-            dwError = pthread_rwlock_unlock(&pSocket->hashLock);
-            BAIL_ON_SMB_ERROR(dwError); /* @todo: ref. leaks! */
+            ntStatus = pthread_rwlock_unlock(&pSocket->hashLock);
+            BAIL_ON_NT_STATUS(ntStatus); /* @todo: ref. leaks! */
 
             while ((pSession = SMBStackPop(&pSessionStack)))
             {
                 BOOLEAN bSessionIsStale = false;
                 BOOLEAN bReapedSession = false;
 
-                dwError = pthread_rwlock_rdlock(&pSession->hashLock);
-                if (dwError) goto error_tree_hash_lock;
+                ntStatus = pthread_rwlock_rdlock(&pSession->hashLock);
+                if (ntStatus) goto error_tree_hash_lock;
 
-                dwError = SMBHashGetIterator(pSession->pTreeHashByPath,
+                ntStatus = SMBHashGetIterator(pSession->pTreeHashByPath,
                     &iterator);
-                if (dwError) goto error_tree_hash_iterator;
+                if (ntStatus) goto error_tree_hash_iterator;
 
                 while ((pEntry = SMBHashNext(&iterator)))
                 {
@@ -187,20 +187,20 @@ SMBSrvClientReaperMain(
 
                     SMBTreeAddReference(pTree);
 
-                    dwError = SMBStackPush(pTree, &pTreeStack);
-                    if (dwError) goto error_tree_hash_iterator;
+                    ntStatus = SMBStackPush(pTree, &pTreeStack);
+                    if (ntStatus) goto error_tree_hash_iterator;
                 }
 
-                dwError = pthread_rwlock_unlock(&pSession->hashLock);
-                BAIL_ON_SMB_ERROR(dwError); /* @todo: ref. leaks! */
+                ntStatus = pthread_rwlock_unlock(&pSession->hashLock);
+                BAIL_ON_NT_STATUS(ntStatus); /* @todo: ref. leaks! */
 
                 while ((pTree = SMBStackPop(&pTreeStack)))
                 {
                     BOOLEAN bTreeIsStale = false;
                     BOOLEAN bReapedTree = false;
 
-                    dwError = SMBSrvClientTreeIsStale_inlock(pTree, &bTreeIsStale);
-                    BAIL_ON_SMB_ERROR(dwError);
+                    ntStatus = SMBSrvClientTreeIsStale_inlock(pTree, &bTreeIsStale);
+                    BAIL_ON_NT_STATUS(ntStatus);
 
                     if (!bTreeIsStale)
                     {
@@ -209,8 +209,8 @@ SMBSrvClientReaperMain(
                         continue;
                     }
 
-                    dwError = SMBSrvClientReaperManageTree_inlock(pTree, &bReapedTree);
-                    BAIL_ON_SMB_ERROR(dwError); /* @todo: ref. leaks! */
+                    ntStatus = SMBSrvClientReaperManageTree_inlock(pTree, &bReapedTree);
+                    BAIL_ON_NT_STATUS(ntStatus); /* @todo: ref. leaks! */
 
                     if (!bReapedTree)
                     {
@@ -219,8 +219,8 @@ SMBSrvClientReaperMain(
                     }
                 }
 
-                dwError = SMBSrvClientSessionIsStale_inlock(pSession, &bSessionIsStale);
-                BAIL_ON_SMB_ERROR(dwError);
+                ntStatus = SMBSrvClientSessionIsStale_inlock(pSession, &bSessionIsStale);
+                BAIL_ON_NT_STATUS(ntStatus);
 
                 if (!bSessionIsStale)
                 {
@@ -230,8 +230,8 @@ SMBSrvClientReaperMain(
                     continue;
                 }
 
-                dwError = SMBSrvClientReaperManageSession_inlock(pSession, &bReapedSession);
-                BAIL_ON_SMB_ERROR(dwError); /* @todo: ref. leaks! */
+                ntStatus = SMBSrvClientReaperManageSession_inlock(pSession, &bReapedSession);
+                BAIL_ON_NT_STATUS(ntStatus); /* @todo: ref. leaks! */
 
                 if (!bReapedSession)
                 {
@@ -240,8 +240,8 @@ SMBSrvClientReaperMain(
                 }
             }
 
-            dwError = SMBSrvClientSocketIsStale_inlock(pSocket, &bSocketIsStale);
-            BAIL_ON_SMB_ERROR(dwError);
+            ntStatus = SMBSrvClientSocketIsStale_inlock(pSocket, &bSocketIsStale);
+            BAIL_ON_NT_STATUS(ntStatus);
 
             if (!bSocketIsStale)
             {
@@ -251,8 +251,8 @@ SMBSrvClientReaperMain(
                 continue;
             }
 
-            dwError = SMBSrvClientReaperManageSocket_inlock(pSocket, &bReapedSocket);
-            BAIL_ON_SMB_ERROR(dwError); /* @todo: ref. leaks! */
+            ntStatus = SMBSrvClientReaperManageSocket_inlock(pSocket, &bReapedSocket);
+            BAIL_ON_NT_STATUS(ntStatus); /* @todo: ref. leaks! */
 
             if (!bReapedSocket)
             {
@@ -265,24 +265,24 @@ SMBSrvClientReaperMain(
 
 error_tree_hash_iterator:
         pthread_rwlock_unlock(&pSession->hashLock);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
 error_tree_hash_lock:
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
 error_session_hash_iterator:
         pthread_rwlock_unlock(&pSocket->hashLock);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
 error_session_hash_lock:
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
 error_socket_hash_iterator:
         pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
 error_socket_hash_lock:
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 error:
@@ -294,13 +294,13 @@ error:
 
 /* Must be called holding the tree mutex */
 static
-DWORD
+NTSTATUS
 SMBSrvClientReaperManageTree_inlock(
     PSMB_TREE pTree,
     PBOOLEAN  pbReaped
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     SMB_TREE *pFoundTree = NULL;
     SMB_SESSION *pSession = pTree->pSession;
     BOOLEAN bTreeIsStale = false;
@@ -310,23 +310,23 @@ SMBSrvClientReaperManageTree_inlock(
     BOOLEAN bReaped = false;
 
     /* Lock the parent session for write */
-    dwError = pthread_rwlock_wrlock(&pSession->hashLock);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_rwlock_wrlock(&pSession->hashLock);
+    BAIL_ON_NT_STATUS(ntStatus);
     bHashLocked = true;
 
-    dwError = SMBHashGetValue(
+    ntStatus = SMBHashGetValue(
                     pSession->pTreeHashByTID,
                     &pTree->tid,
                     (PVOID *) &pFoundTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     assert(pTree == pFoundTree);
 
     SMB_LOCK_MUTEX(bTreeInLock, &pTree->mutex);
 
     /* Check for race */
-    dwError = SMBSrvClientTreeIsStale_inlock(pTree, &bTreeIsStale);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientTreeIsStale_inlock(pTree, &bTreeIsStale);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!bTreeIsStale)
     {
@@ -344,21 +344,21 @@ SMBSrvClientReaperManageTree_inlock(
     SMB_LOCK_MUTEX(bTreeSetupInLock, &pSession->treeMutex);
 
     /* Remove from the parent's forward (path) hash */
-    dwError = SMBHashRemoveKey(
+    ntStatus = SMBHashRemoveKey(
                     pSession->pTreeHashByPath,
                     pTree->pszPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBHashRemoveKey(
+    ntStatus = SMBHashRemoveKey(
                     pSession->pTreeHashByTID,
                     &pTree->tid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* From this point on, any instance if this path in the tree hash is
        from a new thread wishing to connect.  They won't be able to add to
        the TID hash until the tree connect mutex is released. */
-    dwError = pthread_rwlock_unlock(&pSession->hashLock);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_rwlock_unlock(&pSession->hashLock);
+    BAIL_ON_NT_STATUS(ntStatus);
     bHashLocked = false;
 
     /* Don't die if the tree disconnect fails; if the socket dies, the error
@@ -370,8 +370,8 @@ SMBSrvClientReaperManageTree_inlock(
 
     /* Now that we've reveived some kind of response (or error) remove from
        the parent back (TID) hash */
-    dwError = SMBSrvClientSessionRemoveTreeById(pSession, pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientSessionRemoveTreeById(pSession, pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMBTreeRelease(pTree);
     /* The second release will call DestroyTree() */
@@ -392,18 +392,18 @@ error:
 
     SMB_UNLOCK_MUTEX(bTreeSetupInLock, &pSession->treeMutex);
 
-    return dwError;
+    return ntStatus;
 }
 
 /* Must be called holding the session mutex */
 static
-DWORD
+NTSTATUS
 SMBSrvClientReaperManageSession_inlock(
     PSMB_SESSION pSession,
     PBOOLEAN     pbReaped
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     SMB_SESSION *pFoundSession = NULL;
     SMB_SOCKET *pSocket = pSession->pSocket;
     BOOLEAN bSessionIsStale = false;
@@ -413,22 +413,22 @@ SMBSrvClientReaperManageSession_inlock(
     BOOLEAN bReaped = false;
 
     /* Lock the parent session for write */
-    dwError = pthread_rwlock_wrlock(&pSocket->hashLock);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_rwlock_wrlock(&pSocket->hashLock);
+    BAIL_ON_NT_STATUS(ntStatus);
     bHashLocked = true;
 
-    dwError = SMBHashGetValue(pSocket->pSessionHashByPrincipal,
+    ntStatus = SMBHashGetValue(pSocket->pSessionHashByPrincipal,
         pSession->pszPrincipal, (PVOID *) &pFoundSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
     assert(pSession == pFoundSession);
 
-    dwError = pthread_mutex_lock(&pSession->mutex);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_mutex_lock(&pSession->mutex);
+    BAIL_ON_NT_STATUS(ntStatus);
     bSessionLocked = true;
 
     /* Check for race */
-    dwError = SMBSrvClientSessionIsStale_inlock(pSession, &bSessionIsStale);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientSessionIsStale_inlock(pSession, &bSessionIsStale);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!bSessionIsStale)
     {
@@ -437,34 +437,34 @@ SMBSrvClientReaperManageSession_inlock(
 
     pSession->state = SMB_RESOURCE_STATE_TEARDOWN;
 
-    dwError = pthread_mutex_unlock(&pSession->mutex);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_mutex_unlock(&pSession->mutex);
+    BAIL_ON_NT_STATUS(ntStatus);
     bSessionLocked = false;
 
     /* Lock the session setup mutex to prevent any new UIDs from being issued
        until this disconnect completes.  This reduces confusion should the
        server issue the same UID to a new request and the responses get handled
        out of order due to thread scheduling. */
-    dwError = pthread_mutex_lock(&pSocket->sessionMutex);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_mutex_lock(&pSocket->sessionMutex);
+    BAIL_ON_NT_STATUS(ntStatus);
     bSessionSetupLocked = true;
 
     /* Remove from the parent's forward (principal) hash and UID hash.  Since
        the reponses won't have a tree relative MID, they'll be special cased
        like setup and don't need to be in the MID hash for correct routing of
        responses. */
-    dwError = SMBHashRemoveKey(pSocket->pSessionHashByPrincipal,
+    ntStatus = SMBHashRemoveKey(pSocket->pSessionHashByPrincipal,
         pSession->pszPrincipal);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBHashRemoveKey(pSocket->pSessionHashByUID, &pSession->uid);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBHashRemoveKey(pSocket->pSessionHashByUID, &pSession->uid);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* From this point on, any instance if this principal in the session
        hash is from a new thread wishing to connect.  They won't be able
        to add to the hashes until the session setup mutex is released. */
-    dwError = pthread_rwlock_unlock(&pSocket->hashLock);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_rwlock_unlock(&pSocket->hashLock);
+    BAIL_ON_NT_STATUS(ntStatus);
     bHashLocked = false;
 
     /* Don't die if the logoff; if the socket dies, the error will be
@@ -472,8 +472,8 @@ SMBSrvClientReaperManageSession_inlock(
     /* @todo: send logoff */
 
     /* Unlock disconnect mutex */
-    dwError = pthread_mutex_unlock(&pSocket->sessionMutex);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_mutex_unlock(&pSocket->sessionMutex);
+    BAIL_ON_NT_STATUS(ntStatus);
     bSessionSetupLocked = false;
 
     SMBSessionRelease(pSession);
@@ -501,12 +501,12 @@ error:
         pthread_mutex_unlock(&pSocket->sessionMutex);
     }
 
-    return dwError;
+    return ntStatus;
 }
 
 /* Must be called holding the tree mutex */
 static
-DWORD
+NTSTATUS
 SMBSrvClientReaperManageSocket_inlock(
     PSMB_SOCKET pSocket,
     PBOOLEAN    pbReaped
@@ -516,26 +516,26 @@ SMBSrvClientReaperManageSocket_inlock(
     BOOLEAN bSocketIsStale = false;
     BOOLEAN bHashLocked = false;
     BOOLEAN bSocketLocked = false;
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bReaped = false;
 
     /* Lock the parent session for write */
-    dwError = pthread_rwlock_wrlock(&gRdrRuntime.socketHashLock);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_rwlock_wrlock(&gRdrRuntime.socketHashLock);
+    BAIL_ON_NT_STATUS(ntStatus);
     bHashLocked = true;
 
-    dwError = SMBHashGetValue(gRdrRuntime.pSocketHashByAddress, &pSocket->address,
+    ntStatus = SMBHashGetValue(gRdrRuntime.pSocketHashByAddress, &pSocket->address,
         (PVOID *) &pFoundSocket);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
     assert(pSocket == pFoundSocket);
 
-    dwError = pthread_mutex_lock(&pSocket->mutex);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_mutex_lock(&pSocket->mutex);
+    BAIL_ON_NT_STATUS(ntStatus);
     bSocketLocked = true;
 
     /* Check for race */
-    dwError = SMBSrvClientSocketIsStale_inlock(pSocket, &bSocketIsStale);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientSocketIsStale_inlock(pSocket, &bSocketIsStale);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!bSocketIsStale)
     {
@@ -544,21 +544,21 @@ SMBSrvClientReaperManageSocket_inlock(
 
     pSocket->state = SMB_RESOURCE_STATE_TEARDOWN;
 
-    dwError = pthread_mutex_unlock(&pSocket->mutex);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_mutex_unlock(&pSocket->mutex);
+    BAIL_ON_NT_STATUS(ntStatus);
     bSocketLocked = false;
 
     /* Remove from the global address and address hashes. */
-    dwError = SMBHashRemoveKey(gRdrRuntime.pSocketHashByAddress, &pSocket->address);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBHashRemoveKey(gRdrRuntime.pSocketHashByAddress, &pSocket->address);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBHashRemoveKey(gRdrRuntime.pSocketHashByName, pSocket->pszHostname);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBHashRemoveKey(gRdrRuntime.pSocketHashByName, pSocket->pszHostname);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* From this point on, any instance if this socket in the socket
        hash is from a new thread wishing to connect. */
-    dwError = pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_rwlock_unlock(&gRdrRuntime.socketHashLock);
+    BAIL_ON_NT_STATUS(ntStatus);
     bHashLocked = false;
 
     /* No need to call close() here; it's handled in _DestroySocket() */
@@ -583,15 +583,15 @@ error:
         pthread_mutex_unlock(&pSocket->mutex);
     }
 
-    return dwError;
+    return ntStatus;
 }
 
-DWORD
+NTSTATUS
 RdrReaperStop(
     VOID
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     pthread_t *pReaperThread = NULL;
 
     while ((pReaperThread = SMBStackPop(&gRdrRuntime.pReaperStack)))
@@ -603,5 +603,5 @@ RdrReaperStop(
         SMBFreeMemory(pReaperThread);
     }
 
-    return dwError;
+    return ntStatus;
 }

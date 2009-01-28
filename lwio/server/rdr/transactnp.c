@@ -49,7 +49,7 @@
 #include "rdr.h"
 
 /* @todo: return real NT system error codes? */
-DWORD
+NTSTATUS
 ClientTransactNamedPipe(
     HANDLE hNamedPipe,
     PVOID  pInBuffer,
@@ -59,7 +59,7 @@ ClientTransactNamedPipe(
     PDWORD pdwOutBufferSize
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 /*
     PBYTE pBuffer = NULL;
     DWORD dwBytesRead = 0;
@@ -72,13 +72,13 @@ ClientTransactNamedPipe(
 
     if (dwOutBufferSize)
     {
-        dwError = SMBAllocateMemory(
+        ntStatus = SMBAllocateMemory(
                         dwOutBufferSize * sizeof(BYTE),
                         (PVOID*)&pOutBuffer);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = NPTransact(
+    ntStatus = NPTransact(
                     pFile->pTree,
                     pFile->fid,
                     pInBuffer,
@@ -86,14 +86,14 @@ ClientTransactNamedPipe(
                     pOutBuffer,
                     dwOutBufferSize,
                     &dwBytesRead);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppOutBuffer = pOutBuffer;
     *pdwOutBufferSize = dwBytesRead;
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -105,5 +105,5 @@ error:
     goto cleanup;
 */
 
-    return dwError;
+    return ntStatus;
 }

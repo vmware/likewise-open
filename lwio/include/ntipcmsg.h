@@ -122,6 +122,16 @@ typedef struct _NT_IPC_PSEUDO_IO_FILE_NAME {
 #endif
 
 //
+// Protocol Helper Types
+//
+
+typedef struct _NT_IPC_HELPER_ECP {
+    IN PCSTR pszType;
+    IN PVOID pData;
+    IN ULONG Size;
+} NT_IPC_HELPER_ECP, *PNT_IPC_HELPER_ECP;
+
+//
 // Protocol Messages
 //
 
@@ -178,12 +188,15 @@ typedef struct _NT_IPC_MESSAGE_CREATE_FILE {
     IN FILE_SHARE_FLAGS ShareAccess;
     IN FILE_CREATE_DISPOSITION CreateDisposition;
     IN FILE_CREATE_OPTIONS CreateOptions;
-    // TODO -- Add stuff for EAs, SDs, etc.
+    IN OPTIONAL PVOID EaBuffer; // FILE_FULL_EA_INFORMATION
+    IN ULONG EaLength;
+    // TODO -- Add stuff for SDs, etc.
 #if 0
-    IN OPTIONAL PIO_EA_BUFFER pEaBuffer;
     IN OPTIONAL PVOID SecurityDescriptor; // TBD
     IN OPTIONAL PVOID SecurityQualityOfService; // TBD
 #endif
+    IN OPTIONAL PNT_IPC_HELPER_ECP EcpList;
+    IN ULONG EcpCount;
 } NT_IPC_MESSAGE_CREATE_FILE, *PNT_IPC_MESSAGE_CREATE_FILE;
 
 typedef struct _NT_IPC_MESSAGE_CREATE_FILE_RESULT {

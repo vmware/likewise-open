@@ -59,9 +59,41 @@ AC_SUBST(LIBUNISTR_INCLUDES)
 AC_SUBST(LIBUNISTR_LDFLAGS)
 AC_SUBST(LIBUNISTR_LIBS)
 
+
+# libuuid
+
+AC_ARG_WITH([libuuid],
+        [AC_HELP_STRING([--with-libuuid=<dir>], [use libuuid located in prefix <dir>])],
+        [
+                LIBUUID_INCLUDES="-I$withval/include"
+                LIBUUID_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([libuuid-includes],
+        [AC_HELP_STRING([--with-libuuid-includes=<dir>], [use libuuid includes located in <dir>])],
+        [
+                LIBUUID_INCLUDES="-I$withval/include"
+        ])
+
+AC_ARG_WITH([libuuid-libs],
+        [AC_HELP_STRING([--with-libuuid-libs=<dir>], [use libuuid libs located in <dir>])],
+        [
+                LIBUUID_LDFLAGS="-L$withval/lib"
+        ])
+
+LIBUUID_LIBS="-luuid"
+
+AC_SUBST(LIBUUID_INCLUDES)
+AC_SUBST(LIBUUID_LDFLAGS)
+AC_SUBST(LIBUUID_LIBS)
+
+
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
 AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNISTR_LDFLAGS])
+AC_CHECK_LIB([uuid], [uuid_generate_time], [LIBUUID_LIBS="-luuid"], [], [$LIBUUID_LDFLAGS])
+
+AC_CHECK_FUNCS([strndup])
 
 # Checks for header files.
 AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h])
@@ -72,6 +104,11 @@ AC_C_BIGENDIAN
 # Checks for library functions.
 AC_HEADER_STDC
 
-AC_CONFIG_FILES([Makefile include/Makefile include/lw/Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile
+                 include/Makefile
+                 include/lw/Makefile
+                 include/secdesc/Makefile
+                 src/Makefile
+                 testsd/Makefile])
 
 AC_OUTPUT

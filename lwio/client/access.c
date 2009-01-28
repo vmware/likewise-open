@@ -116,7 +116,7 @@ LwIoCreateKrb5AccessTokenA(
     Status = LwRtlWC16StringAllocateFromCString(&pwszCachePath, pszCachePath);
     BAIL_ON_NT_STATUS(Status);
 
-    Status = LwIoCreatePlainAccessTokenW(pwszPrincipal, pwszCachePath, ppAccessToken);
+    Status = LwIoCreateKrb5AccessTokenW(pwszPrincipal, pwszCachePath, ppAccessToken);
     BAIL_ON_NT_STATUS(Status);
 
 error:
@@ -140,7 +140,7 @@ LwIoCreateKrb5AccessTokenW(
     Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
     BAIL_ON_NT_STATUS(Status);
 
-    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_PLAIN;
+    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_KRB5;
 
     Status = RtlWC16StringDuplicate(
         &pAccessToken->payload.krb5.pwszPrincipal,

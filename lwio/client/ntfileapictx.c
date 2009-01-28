@@ -146,6 +146,88 @@ NtpCtxGetBufferResult(
 //
 
 NTSTATUS
+LwNtCtxCreateNamedPipeFile(
+    IN PIO_CONTEXT pConnection,
+    IN LW_PIO_ACCESS_TOKEN pSecurityToken,
+    OUT PIO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
+    IN ACCESS_MASK DesiredAccess,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN FILE_CREATE_DISPOSITION CreateDisposition,
+    IN FILE_CREATE_OPTIONS CreateOptions,
+    IN FILE_PIPE_TYPE_MASK NamedPipeType,
+    IN FILE_PIPE_READ_MODE_MASK ReadMode,
+    IN FILE_PIPE_COMPLETION_MODE_MASK CompletionMode,
+    IN ULONG MaximumInstances,
+    IN ULONG InboundQuota,
+    IN ULONG OutboundQuota,
+    IN OPTIONAL PLONG64 DefaultTimeout
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_FILE_HANDLE fileHandle = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    PIO_ECP_LIST ecpList = NULL;
+    IO_ECP_NAMED_PIPE pipeParams = { 0 };
+
+    status = IoRtlEcpListAllocate(&ecpList);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pipeParams.NamedPipeType = NamedPipeType;
+    pipeParams.ReadMode = ReadMode;
+    pipeParams.CompletionMode = CompletionMode;
+    pipeParams.MaximumInstances = MaximumInstances;
+    pipeParams.InboundQuota = InboundQuota;
+    pipeParams.OutboundQuota = OutboundQuota;
+    if (DefaultTimeout)
+    {
+        pipeParams.DefaultTimeout = *DefaultTimeout;
+        pipeParams.HaveDefaultTimeout = TRUE;
+    }
+
+    status = IoRtlEcpListInsert(ecpList,
+                                IO_ECP_TYPE_NAMED_PIPE,
+                                &pipeParams,
+                                sizeof(pipeParams),
+                                NULL);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxCreateFile(
+                    pConnection,
+                    pSecurityToken,
+                    FileHandle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    FileName,
+                    SecurityDescriptor,
+                    SecurityQualityOfService,
+                    DesiredAccess,
+                    0,
+                    0,
+                    ShareAccess,
+                    CreateDisposition,
+                    CreateOptions,
+                    NULL,
+                    0,
+                    ecpList);
+cleanup:
+    IoRtlEcpListFree(&ecpList);
+
+    *FileHandle = fileHandle;
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
+
+NTSTATUS
 LwNtCtxCreateFile(
     IN PIO_CONTEXT pConnection,
     IN LW_PIO_ACCESS_TOKEN pSecurityToken,
@@ -153,15 +235,17 @@ LwNtCtxCreateFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
     IN ACCESS_MASK DesiredAccess,
     IN OPTIONAL LONG64 AllocationSize,
     IN FILE_ATTRIBUTES FileAttributes,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN FILE_CREATE_DISPOSITION CreateDisposition,
     IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
-    IN OPTIONAL PVOID SecurityDescriptor, // TBD
-    IN PVOID SecurityQualityOfService // TBD
+    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION
+    IN ULONG EaLength,
+    IN OPTIONAL PIO_ECP_LIST EcpList
     )
 {
     NTSTATUS status = 0;
@@ -186,8 +270,37 @@ LwNtCtxCreateFile(
     request.ShareAccess = ShareAccess;
     request.CreateDisposition = CreateDisposition;
     request.CreateOptions = CreateOptions;
+    request.EaBuffer = EaBuffer;
+    request.EaLength = EaLength;
+    // TODO -- SDs, etc.
+    request.EcpCount = IoRtlEcpListGetCount(EcpList);
+    if (request.EcpCount)
+    {
+        PCSTR pszType = NULL;
+        ULONG ecpIndex = 0;
 
-    // TODO -- EAs, SDs, etc.
+        status = RTL_ALLOCATE(&request.EcpList, NT_IPC_HELPER_ECP, sizeof(*request.EcpList) * request.EcpCount);
+        ioStatusBlock.Status = status;
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+        while (ecpIndex < request.EcpCount)
+        {
+            status = IoRtlEcpListGetNext(
+                            EcpList,
+                            pszType,
+                            &request.EcpList[ecpIndex].pszType,
+                            &request.EcpList[ecpIndex].pData,
+                            &request.EcpList[ecpIndex].Size);
+            ioStatusBlock.Status = status;
+            GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+            pszType = request.EcpList[ecpIndex].pszType;
+            ecpIndex++;
+        }
+
+        assert(ecpIndex == request.EcpCount);
+        status = STATUS_SUCCESS;
+    }
 
     status = NtpCtxCall(pConnection,
                         requestType,
@@ -221,6 +334,7 @@ cleanup:
 #endif
     }
 
+    RTL_FREE(&request.EcpList);
     NtpCtxFreeResponse(pConnection, responseType, pResponse);
 
     *FileHandle = fileHandle;
@@ -717,6 +831,10 @@ LwNtCtxRenameFile(
     IN PIO_FILE_NAME ToName
     );
 
+//
+// Advanced Operations
+//
+
 NTSTATUS
 LwNtCtxQueryQuotaInformationFile(
     IN PIO_CONTEXT pConnection,
@@ -731,10 +849,6 @@ LwNtCtxQueryQuotaInformationFile(
     IN OPTIONAL PSID StartSid,
     IN BOOLEAN RestartScan
     );
-
-//
-// Advanced Operations
-//
 
 NTSTATUS
 LwNtCtxSetQuotaInformationFile(

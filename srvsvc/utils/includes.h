@@ -3,6 +3,7 @@
 #include "srvsvcsys.h"
 
 #include <lw/ntstatus.h>
+#include <wc16str.h>
 
 #include "srvsvc.h"
 #include "srvsvcdefs.h"

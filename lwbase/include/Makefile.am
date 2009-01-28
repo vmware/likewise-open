@@ -1,1 +1,1 @@
-SUBDIRS = lw
+SUBDIRS = lw secdesc

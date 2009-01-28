@@ -157,14 +157,14 @@ LwRtlAnsiStringDuplicate(
     {
         // Add a NULL anyhow.
 
-        status = RTL_ALLOCATE(&newString.Buffer, CHAR, pOriginalString->Length + sizeof(pOriginalString->Buffer[0]));
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
         newString.Length = pOriginalString->Length;
         newString.MaximumLength = pOriginalString->Length + sizeof(pOriginalString->Buffer[0]);
 
+        status = RTL_ALLOCATE(&newString.Buffer, CHAR, newString.MaximumLength);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
         memcpy(newString.Buffer, pOriginalString->Buffer, pOriginalString->Length);
-        newString.Buffer[newString.Length] = 0;
+        newString.Buffer[newString.Length/sizeof(newString.Buffer[0])] = 0;
     }
 
 cleanup:

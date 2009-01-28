@@ -32,7 +32,8 @@
 #define _SRVSVCDEFS_H_
 
 #include <types.h>
-#include <security.h>
+#include <secdesc/sddef.h>
+
 
 /* ERRORS */
 #define SRVSVC_ERROR_SUCCESS                   0x0000
@@ -570,7 +571,7 @@ typedef struct _SHARE_INFO_502 {
     wchar16_t *shi502_path;
     wchar16_t *shi502_password;
     uint32 shi502_reserved;
-    PSECURITY_DESCRIPTOR shi502_security_descriptor;
+    SecDesc *shi502_security_descriptor;
 } SHARE_INFO_502, *PSHARE_INFO_502, *LPSHARE_INFO_502;
 
 #ifdef _DCE_IDL_
@@ -646,7 +647,7 @@ cpp_quote("#define SHARE_INFO_1501_DEFINED 1")
 
 typedef struct _SHARE_INFO_1501 {
     uint32 shi1501_reserved;
-    PSECURITY_DESCRIPTOR shi1501_security_descriptor;
+    SecDesc *shi1501_security_descriptor;
 } SHARE_INFO_1501, *PSHARE_INFO_1501, *LPSHARE_INFO_1501;
 
 #ifdef _DCE_IDL_

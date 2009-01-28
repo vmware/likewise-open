@@ -46,6 +46,7 @@
 #define __NT_FILE_API_H__
 
 #include <lwio/io-types.h>
+#include <lwio/iortl.h>
 
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
@@ -64,6 +65,29 @@
 //
 
 NTSTATUS
+LwNtCtxCreateNamedPipeFile(
+    IN PIO_CONTEXT pConnection,
+    IN LW_PIO_ACCESS_TOKEN pSecurityToken,
+    OUT PIO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
+    IN ACCESS_MASK DesiredAccess,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN FILE_CREATE_DISPOSITION CreateDisposition,
+    IN FILE_CREATE_OPTIONS CreateOptions,
+    IN FILE_PIPE_TYPE_MASK NamedPipeType,
+    IN FILE_PIPE_READ_MODE_MASK ReadMode,
+    IN FILE_PIPE_COMPLETION_MODE_MASK CompletionMode,
+    IN ULONG MaximumInstances,
+    IN ULONG InboundQuota,
+    IN ULONG OutboundQuota,
+    IN OPTIONAL PLONG64 DefaultTimeout
+    );
+
+NTSTATUS
 LwNtCtxCreateFile(
     IN PIO_CONTEXT pConnection,
     IN LW_PIO_ACCESS_TOKEN pSecurityToken,
@@ -71,15 +95,17 @@ LwNtCtxCreateFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
     IN ACCESS_MASK DesiredAccess,
     IN OPTIONAL LONG64 AllocationSize,
     IN FILE_ATTRIBUTES FileAttributes,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN FILE_CREATE_DISPOSITION CreateDisposition,
     IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
-    IN OPTIONAL PVOID SecurityDescriptor, // TBD
-    IN OPTIONAL PVOID SecurityQualityOfService // TBD
+    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION
+    IN ULONG EaLength,
+    IN OPTIONAL PIO_ECP_LIST EcpList
     );
 
 NTSTATUS
@@ -282,6 +308,10 @@ LwNtCtxRenameFile(
     IN PIO_FILE_NAME ToName
     );
 
+//
+// Advanced Operations
+//
+
 NTSTATUS
 LwNtCtxQueryQuotaInformationFile(
     IN PIO_CONTEXT pConnection,
@@ -296,10 +326,6 @@ LwNtCtxQueryQuotaInformationFile(
     IN OPTIONAL PSID StartSid,
     IN BOOLEAN RestartScan
     );
-
-//
-// Advanced Operations
-//
 
 NTSTATUS
 LwNtCtxSetQuotaInformationFile(
@@ -335,21 +361,44 @@ LwNtCtxSetSecurityFile(
 
 #ifndef LW_NO_THREADS
 
+NTSTATUS
+LwNtCreateNamedPipeFile(
+    OUT PIO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
+    IN ACCESS_MASK DesiredAccess,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN FILE_CREATE_DISPOSITION CreateDisposition,
+    IN FILE_CREATE_OPTIONS CreateOptions,
+    IN FILE_PIPE_TYPE_MASK NamedPipeType,
+    IN FILE_PIPE_READ_MODE_MASK ReadMode,
+    IN FILE_PIPE_COMPLETION_MODE_MASK CompletionMode,
+    IN ULONG MaximumInstances,
+    IN ULONG InboundQuota,
+    IN ULONG OutboundQuota,
+    IN OPTIONAL PLONG64 DefaultTimeout
+    );
+
 LW_NTSTATUS
 LwNtCreateFile(
     LW_OUT PIO_FILE_HANDLE FileHandle,
     LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
     LW_IN PIO_FILE_NAME FileName,
+    LW_IN LW_OPTIONAL LW_PVOID SecurityDescriptor, // TBD
+    LW_IN LW_OPTIONAL LW_PVOID SecurityQualityOfService, // TBD
     LW_IN ACCESS_MASK DesiredAccess,
     LW_IN LW_OPTIONAL LONG64 AllocationSize,
     LW_IN FILE_ATTRIBUTES FileAttributes,
     LW_IN FILE_SHARE_FLAGS ShareAccess,
     LW_IN FILE_CREATE_DISPOSITION CreateDisposition,
     LW_IN FILE_CREATE_OPTIONS CreateOptions,
-    LW_IN LW_OPTIONAL PIO_EA_BUFFER pEaBuffer,
-    LW_IN LW_OPTIONAL LW_PVOID SecurityDescriptor, // TBD
-    LW_IN LW_PVOID SecurityQualityOfService // TBD
+    LW_IN LW_OPTIONAL LW_PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION
+    LW_IN LW_ULONG EaLength,
+    LW_IN LW_OPTIONAL PIO_ECP_LIST EcpList
     );
 
 LW_NTSTATUS
@@ -534,6 +583,10 @@ LwNtRenameFile(
     LW_IN PIO_FILE_NAME ToName
     );
 
+//
+// Advanced Operations
+//
+
 LW_NTSTATUS
 LwNtQueryQuotaInformationFile(
     LW_IN IO_FILE_HANDLE FileHandle,
@@ -547,10 +600,6 @@ LwNtQueryQuotaInformationFile(
     LW_IN LW_OPTIONAL PSID StartSid,
     LW_IN LW_BOOLEAN RestartScan
     );
-
-//
-// Advanced Operations
-//
 
 LW_NTSTATUS
 LwNtSetQuotaInformationFile(
@@ -587,6 +636,7 @@ LwNtSetSecurityFile(
 
 #ifndef LW_STRICT_NAMESPACE
 
+#define NtCtxCreateNamedPipeFile           LwNtCtxCreateNamedPipeFile
 #define NtCtxCreateFile                    LwNtCtxCreateFile
 #define NtCtxCloseFile                     LwNtCtxCloseFile
 #define NtCtxReadFile                      LwNtCtxReadFile
@@ -613,6 +663,7 @@ LwNtSetSecurityFile(
 
 #ifndef LW_NO_THREADS
 
+#define NtCreateNamedPipeFile           LwNtCreateNamedPipeFile
 #define NtCreateFile                    LwNtCreateFile
 #define NtCloseFile                     LwNtCloseFile
 #define NtReadFile                      LwNtReadFile

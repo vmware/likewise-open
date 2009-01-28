@@ -27,6 +27,13 @@ SrvProdConsDequeue(
     PVOID*               ppItem
     );
 
+NTSTATUS
+SrvProdConsTimedDequeue(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    struct timespec*     pTimespec,
+    PVOID*               ppItem
+    );
+
 VOID
 SrvProdConsFree(
     PSMB_PROD_CONS_QUEUE pQueue

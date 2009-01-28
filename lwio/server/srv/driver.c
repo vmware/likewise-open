@@ -214,23 +214,36 @@ SrvInitialize(
     NTSTATUS ntStatus = 0;
     INT      iReader = 0;
     INT      iWorker = 0;
+    CHAR     szHostname[256];
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
     pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
     gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
 
-    ntStatus = SrvShareDbInit(&gSMBSrvGlobals.shareDBContext);
+    if (gethostname(szHostname, sizeof(szHostname)) != 0)
+    {
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvShareInitContextContents(&gSMBSrvGlobals.shareDBContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
     gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
     gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
+    gSMBSrvGlobals.config.ulMaxNumPackets = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
+
+    ntStatus = SMBPacketCreateAllocator(
+                    gSMBSrvGlobals.config.ulMaxNumPackets,
+                    &gSMBSrvGlobals.hPacketAllocator);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvProdConsInitContents(
                     &gSMBSrvGlobals.workQueue,
                     gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue,
-                    &SrvFreeTask);
+                    &SrvContextFree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBAllocateMemory(
@@ -243,6 +256,7 @@ SrvInitialize(
     for (; iReader < gSMBSrvGlobals.config.ulNumReaders; iReader++)
     {
         ntStatus = SrvSocketReaderInit(
+                        &gSMBSrvGlobals.workQueue,
                         &gSMBSrvGlobals.pReaderArray[iReader]);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -257,11 +271,16 @@ SrvInitialize(
     for (; iWorker < gSMBSrvGlobals.config.ulNumWorkers; iWorker++)
     {
         ntStatus = SrvWorkerInit(
+                        &gSMBSrvGlobals.workQueue,
                         &gSMBSrvGlobals.pWorkerArray[iWorker]);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     ntStatus = SrvListenerInit(
+                    gSMBSrvGlobals.hPacketAllocator,
+                    &gSMBSrvGlobals.shareDBContext,
+                    gSMBSrvGlobals.pReaderArray,
+                    gSMBSrvGlobals.ulNumReaders,
                     &gSMBSrvGlobals.listener);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -320,7 +339,13 @@ SrvShutdown(
 
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
 
-        SrvShareDbShutdown(&gSMBSrvGlobals.shareDBContext);
+        SrvShareFreeContextContents(&gSMBSrvGlobals.shareDBContext);
+
+        if (gSMBSrvGlobals.hPacketAllocator)
+        {
+            SMBPacketFreeAllocator(gSMBSrvGlobals.hPacketAllocator);
+            gSMBSrvGlobals.hPacketAllocator = NULL;
+        }
     }
 
 cleanup:

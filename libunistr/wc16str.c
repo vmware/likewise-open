@@ -60,6 +60,7 @@
 #define WINDOWS_ENCODING "UCS-2LE"
 #endif
 
+typedef int (*caseconv)(int c);
 
 size_t _wc16slen(const wchar16_t *str)
 {
@@ -504,23 +505,6 @@ size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
 }
 
 
-typedef int (*caseconv)(int c);
-
-static void wc16scaseconv(caseconv fconv, wchar16_t *s)
-{
-    size_t len;
-    int i;
-
-    if (fconv == NULL || s == NULL) return;
-    len = wc16slen(s);
-
-    for (i = 0; i < len; i++) {
-        unsigned char c = (unsigned char)s[i];
-        s[i] = (wchar16_t)fconv(c);
-    }
-}
-
-
 /*
   These case conversions aren't exactly right, because toupper
   and tolower functions depend on locale settingsand not on
@@ -528,15 +512,37 @@ static void wc16scaseconv(caseconv fconv, wchar16_t *s)
   TODO: Find better case conversion function for unicode
 */
 
-void wc16supper(wchar16_t *s)
+void
+wc16supper(
+    wchar16_t * pwszStr
+    )
 {
-    wc16scaseconv(toupper, s);
+    while (pwszStr && *pwszStr)
+    {
+        // TODO: Add new mappings
+        if (*pwszStr >= 0x61 && *pwszStr <= 0x7A)
+        {
+            *pwszStr -= 0x20;
+        }
+        pwszStr++;
+    }
 }
 
 
-void wc16slower(wchar16_t *s)
+void
+wc16slower(
+    wchar16_t * pwszStr
+    )
 {
-    wc16scaseconv(tolower, s);
+    while (pwszStr && *pwszStr)
+    {
+        // TODO: Add new mappings
+        if (*pwszStr >= 0x41 && *pwszStr <= 0x5A)
+        {
+            *pwszStr += 0x20;
+        }
+        pwszStr++;
+    }
 }
 
 

@@ -31,14 +31,14 @@
 #include "rdr.h"
 
 static
-DWORD
+NTSTATUS
 SMBSrvClientTreeCreate(
     PSMB_SESSION pSession,
     uchar8_t    *pszPath,
     PSMB_TREE*  ppTree
     );
 
-DWORD
+NTSTATUS
 SMBSrvClientTreeOpen(
     PCSTR pszHostname,
     PCSTR pszPrincipal,
@@ -46,27 +46,27 @@ SMBSrvClientTreeOpen(
     PSMB_TREE* ppTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_SOCKET pSocket = NULL;
     PSMB_SESSION pSession = NULL;
     PSMB_TREE pTree = NULL;
 
-    dwError = SMBSrvClientSocketCreate(
+    ntStatus = SMBSrvClientSocketCreate(
                     (uchar8_t *) pszHostname,
                     &pSocket);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSrvClientSessionCreate(
+    ntStatus = SMBSrvClientSessionCreate(
                     pSocket,
                     (uchar8_t *) pszPrincipal,
                     &pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSrvClientTreeCreate(
+    ntStatus = SMBSrvClientTreeCreate(
                     pSession,
                     (uchar8_t *) pszSharename,
                     &pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMBTreeAddReference(pTree);
 
@@ -74,7 +74,7 @@ SMBSrvClientTreeOpen(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -97,60 +97,60 @@ error:
 }
 
 static
-DWORD
+NTSTATUS
 SMBSrvClientTreeCreate(
     PSMB_SESSION pSession,
     uchar8_t    *pszPath,
     PSMB_TREE*  ppTree
     )
 {
-    DWORD     dwError = 0;
+    DWORD     ntStatus = 0;
     PSMB_TREE pTree = NULL;
     PWSTR     pwszPath = NULL;
     BOOLEAN   bAddedTreeByPath = FALSE;
 
-    dwError = SMBSessionFindTreeByPath(
+    ntStatus = SMBSessionFindTreeByPath(
                     pSession,
                     pszPath,
                     &pTree);
-    if (!dwError)
+    if (!ntStatus)
     {
         goto done;
     }
 
-    dwError = SMBTreeCreate(&pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBTreeCreate(&pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pTree->pSession = pSession;
 
     SMB_SAFE_FREE_MEMORY(pTree->pszPath);
 
     /* Path is trusted */
-    dwError = SMBStrndup(
+    ntStatus = SMBStrndup(
                     (char *) pszPath,
                     strlen((char *) pszPath) + sizeof(NUL),
                     (char **) &pTree->pszPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSrvClientSessionAddTreeByPath(pSession, pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientSessionAddTreeByPath(pSession, pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bAddedTreeByPath = TRUE;
 
     /* @todo: once we can hash Unicode case-insensitively, we can remove this
        hack and go fully Unicode-native */
-    dwError = SMBMbsToWc16s((char *) pszPath, &pwszPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBMbsToWc16s((char *) pszPath, &pwszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = TreeConnect(pSession, pwszPath, &pTree->tid);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = TreeConnect(pSession, pwszPath, &pTree->tid);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* Set state and awake any waiting threads */
     /* @todo: move into TreeConenct */
     SMBTreeSetState(pTree, SMB_RESOURCE_STATE_VALID);
 
-    dwError = SMBSrvClientSessionAddTreeById(pSession, pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientSessionAddTreeById(pSession, pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 done:
 
@@ -160,7 +160,7 @@ cleanup:
 
     SMB_SAFE_FREE_MEMORY(pwszPath);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -173,7 +173,7 @@ error:
             SMBSrvClientSessionRemoveTreeByPath(pSession, pTree);
         }
 
-        SMBTreeInvalidate(pTree, ERROR_SMB, dwError);
+        SMBTreeInvalidate(pTree, ERROR_SMB, ntStatus);
 
         SMBTreeRelease(pTree);
     }
@@ -181,24 +181,24 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSrvClientTreeAddResponse(
     PSMB_TREE     pTree,
     PSMB_RESPONSE pResponse
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
 
     /* @todo: if we allocate the MID outside of this function, we need to
        check for a conflict here */
-    dwError = SMBHashSetValue(
+    ntStatus = SMBHashSetValue(
                     pTree->pResponseHash,
                     &pResponse->mid,
                     pResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (pResponse->pTree)
     {
@@ -212,7 +212,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -220,13 +220,13 @@ error:
 }
 
 /* Must be called with the tree mutex held */
-DWORD
+NTSTATUS
 SMBSrvClientTreeIsStale_inlock(
     PSMB_TREE pTree,
     PBOOLEAN  pbIsStale
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bIsStale = FALSE;
     SMB_HASH_ITERATOR iterator;
 
@@ -235,10 +235,10 @@ SMBSrvClientTreeIsStale_inlock(
         goto done;
     }
 
-    dwError = SMBHashGetIterator(
+    ntStatus = SMBHashGetIterator(
                     pTree->pResponseHash,
                     &iterator);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (SMBHashNext(&iterator))
     {
@@ -260,14 +260,14 @@ done:
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSrvClientTreeClose(
     PSMB_TREE pTree
     )

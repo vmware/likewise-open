@@ -87,6 +87,7 @@ LwRtlMemoryFree(
 
 #define RtlMemoryZero     LwRtlMemoryZero
 #define RtlMemoryAllocate LwRtlMemoryAllocate
+#define RtlMemoryRealloc  LwRtlMemoryRealloc
 #define RtlMemoryFree     LwRtlMemoryFree
 
 #define RTL_ALLOCATE(ppMemory, Type, Size) \

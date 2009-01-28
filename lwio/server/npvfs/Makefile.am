@@ -1,7 +1,22 @@
 lib_LTLIBRARIES = libnpvfs.sys.la
 
 libnpvfs_sys_la_SOURCES = \
-    globals.c             
+    close.c  \
+    create.c \
+    createnp.c \
+    ccb.c    \
+    fcb.c    \
+    deviceio.c \
+    driver.c \
+    fsctl.c \
+    globals.c \
+    queryinfo.c \
+    read.c \
+    setinfo.c \
+    memory.c \
+    pipe.c \
+    mdl.c \
+    write.c
 
 libnpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

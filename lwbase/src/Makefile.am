@@ -2,9 +2,10 @@ AM_CFLAGS = $(LWBASE_CFLAGS)
 AM_CPPFLAGS = $(LWBASE_CPPFLAGS)
 AM_LDFLAGS = $(LWBASE_LDFLAGS)
 
-lib_LTLIBRARIES = liblwbase_nothr.la liblwbase.la
+lib_LTLIBRARIES = liblwbase_nothr.la liblwbase.la libsecdesc.la
 
 liblwbase_nothr_la_SOURCES = \
+	errno.c \
 	ntstatus.c \
         rtlmemory.c \
         rtlstring.c \
@@ -14,10 +15,20 @@ liblwbase_nothr_la_SOURCES = \
         rtlstring_ansi.c
 
 liblwbase_nothr_la_LIBADD = \
-    @LIBUNISTR_LIBS@
+        @LIBUNISTR_LIBS@
 
 liblwbase_la_SOURCES = \
 	atomic.c
 
 liblwbase_la_LIBADD = liblwbase_nothr.la
 
+libsecdesc_la_SOURCES = \
+        rtlsid.c \
+        sid.c \
+        sidstr.c \
+        rtlpolhnd.c \
+        rtlsecdesc.c
+
+libsecdesc_la_LIBADD = \
+        @LIBUUID_LIBS@ \
+        liblwbase_nothr.la

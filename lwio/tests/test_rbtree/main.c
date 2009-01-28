@@ -63,6 +63,7 @@ ShowUsage();
 static
 DWORD
 PrintTree(
+    PVOID    pKey,
     PVOID    pData,
     PVOID    pUserData,
     PBOOLEAN pbContinue
@@ -78,6 +79,7 @@ main(
     PSMB_RB_TREE pTree = NULL;
     DWORD valArray[10];
     DWORD dwValueToFind = 0;
+    DWORD dwValueFound = 0;
     DWORD iValue = 0;
 
     dwError = ParseArgs(argc, argv);
@@ -86,6 +88,7 @@ main(
     dwError = SMBRBTreeCreate(
                  &CompareValues,
                  NULL,
+                 NULL,
                  &pTree);
     BAIL_ON_SMB_ERROR(dwError);
 
@@ -93,7 +96,7 @@ main(
     {
         valArray[iValue] = iValue;
 
-        dwError = SMBRBTreeAdd(pTree, &valArray[iValue]);
+        dwError = SMBRBTreeAdd(pTree, &valArray[iValue], &valArray[iValue]);
         BAIL_ON_SMB_ERROR(dwError);
     }
 
@@ -129,7 +132,8 @@ main(
     BAIL_ON_SMB_ERROR(dwError);
 
     dwValueToFind = 7;
-    if (!SMBRBTreeFind(pTree, &dwValueToFind))
+    dwError = SMBRBTreeFind(pTree, &dwValueToFind, (PVOID*)&dwValueFound);
+    if (dwError == STATUS_NOT_FOUND)
     {
        fprintf(stderr, "Failed to find value [%d] in tree\n", dwValueToFind);
     }
@@ -155,7 +159,8 @@ main(
 
     printf("Finding key [%d] in tree\n", dwValueToFind);
 
-    if (!SMBRBTreeFind(pTree, &dwValueToFind))
+    dwError = SMBRBTreeFind(pTree, &dwValueToFind, (PVOID*)&dwValueFound);
+    if (dwError == STATUS_NOT_FOUND)
     {
        fprintf(stderr, "Failed to find value [%d] in tree\n", dwValueToFind);
     }
@@ -250,6 +255,7 @@ ShowUsage()
 static
 DWORD
 PrintTree(
+    PVOID    pKey,
     PVOID    pData,
     PVOID    pUserData,
     PBOOLEAN pbContinue

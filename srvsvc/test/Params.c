@@ -31,7 +31,7 @@
 #include <config.h>
 #include <types.h>
 #include <wc16str.h>
-#include <security.h>
+#include <secdesc/secdesc.h>
 #include <stdlib.h>
 #include <string.h>
 

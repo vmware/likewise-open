@@ -115,6 +115,8 @@ struct _IO_FILE_OBJECT {
     PIO_DEVICE_OBJECT pDevice;
     PVOID pContext;
 
+    // TODO -- Track file vs named pipe
+
     // IRPs for this file object.
     LW_LIST_LINKS IrpList;
 
@@ -189,11 +191,6 @@ VOID
 IopRootRemoveDevice(
     IN PIOP_ROOT_STATE pRoot,
     IN PLW_LIST_LINKS pDeviceRootLinks
-    );
-
-BOOLEAN
-IopIsSeparator(
-    IN wchar16_t Character
     );
 
 NTSTATUS

@@ -49,7 +49,7 @@
 #include "rdr.h"
 
 static
-DWORD
+NTSTATUS
 ParseSharePath(
     PCWSTR pwszPath,
     PSTR*   ppszServer,
@@ -57,7 +57,7 @@ ParseSharePath(
     PSTR*   ppszFilename
     );
 
-DWORD
+NTSTATUS
 RdrCreateFileEx(
     PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszFileName,
@@ -69,7 +69,7 @@ RdrCreateFileEx(
     PHANDLE phFile
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSTR   pszServer = NULL;
     PSTR   pszShare = NULL;
     PSTR   pszFilename = NULL;
@@ -79,54 +79,54 @@ RdrCreateFileEx(
     if (!pSecurityToken ||
         pSecurityToken->type != IO_ACCESS_TOKEN_TYPE_KRB5)
     {
-        dwError = EACCES;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = EACCES;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                     sizeof(SMB_CLIENT_FILE_HANDLE),
                     (PVOID*)&pFile);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = ParseSharePath(
+    ntStatus = ParseSharePath(
                     pwszFileName,
                     &pszServer,
                     &pszShare,
                     &pszFilename);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBWc16sToMbs(
+    ntStatus = SMBWc16sToMbs(
                     pSecurityToken->payload.krb5.pwszPrincipal,
                     &pFile->pszPrincipal);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBWc16sToMbs(
+    ntStatus = SMBWc16sToMbs(
                     pSecurityToken->payload.krb5.pwszCachePath,
                     &pFile->pszCachePath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMB_LOG_DEBUG("Principal [%s] Cache Path [%s]",
                   SMB_SAFE_LOG_STRING(pFile->pszPrincipal),
                   SMB_SAFE_LOG_STRING(pFile->pszCachePath));
 
-    dwError = SMBKrb5SetDefaultCachePath(
+    ntStatus = SMBKrb5SetDefaultCachePath(
                     pFile->pszCachePath,
                     NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSrvClientTreeOpen(
+    ntStatus = SMBSrvClientTreeOpen(
                     pszServer,
                     pFile->pszPrincipal,
                     pszShare,
                     &pFile->pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBMbsToWc16s(
+    ntStatus = SMBMbsToWc16s(
                     pszFilename,
                     &pwszFilename);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = NPOpen(
+    ntStatus = NPOpen(
                     pFile->pTree,
                     pwszFilename,
                     dwDesiredAccess,
@@ -134,7 +134,7 @@ RdrCreateFileEx(
                     dwCreationDisposition,
                     dwFlagsAndAttributes,
                     &pFile->fid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *phFile = (HANDLE)pFile;
 
@@ -145,7 +145,7 @@ cleanup:
     SMB_SAFE_FREE_STRING(pszFilename);
     SMB_SAFE_FREE_MEMORY(pwszFilename);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -155,7 +155,7 @@ error:
 }
 
 static
-DWORD
+NTSTATUS
 ParseSharePath(
     PCWSTR pwszPath,
     PSTR*   ppszServer,
@@ -163,7 +163,7 @@ ParseSharePath(
     PSTR*   ppszFilename
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSTR  pszPath = NULL;
     PSTR  pszIndex = NULL;
     PSTR  pszServer = NULL;
@@ -171,41 +171,41 @@ ParseSharePath(
     PSTR  pszFilename = NULL;
     size_t sLen = 0;
 
-    dwError = SMBWc16sToMbs(
+    ntStatus = SMBWc16sToMbs(
                     pwszPath,
                     &pszPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMBStripWhitespace(pszPath, TRUE, TRUE);
 
     pszIndex = pszPath;
 
     // Skip optional initial decoration
-    if (!strncmp(pszIndex, "//", sizeof("//") - 1) ||
-        !strncmp(pszIndex, "\\\\", sizeof("\\\\") - 1))
+    if (!strncmp(pszIndex, "/", sizeof("/") - 1) ||
+        !strncmp(pszIndex, "\\", sizeof("\\") - 1))
     {
-        pszIndex += 2;
+        pszIndex += 1;
     }
 
     if (IsNullOrEmptyString(pszIndex) || !isalpha((int)*pszIndex))
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     // Seek server name
     sLen = strcspn(pszIndex, "\\/");
     if (!sLen)
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = SMBStrndup(
+    ntStatus = SMBStrndup(
                     pszIndex,
                     sLen,
                     &pszServer);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pszIndex += sLen;
 
@@ -213,8 +213,8 @@ ParseSharePath(
     sLen = strspn(pszIndex, "\\/");
     if (!sLen)
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pszIndex += sLen;
@@ -223,29 +223,17 @@ ParseSharePath(
     sLen = strcspn(pszIndex, "\\/");
     if (!sLen)
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (!strncasecmp(pszIndex, "pipe", sLen) ||
-        !strncasecmp(pszIndex, "ipc$", sLen))
-    {
-        dwError = SMBAllocateStringPrintf(
-                        &pszShare,
-                        "\\\\%s\\IPC$",
-                        pszServer);
-        BAIL_ON_SMB_ERROR(dwError);
-    }
-    else
-    {
-        dwError = SMBAllocateMemory(
-                        sizeof("\\\\") - 1 + strlen(pszServer) + sizeof("\\") - 1 + sLen + 1,
-                        (PVOID*)&pszShare);
-        BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBAllocateMemory(
+        sizeof("\\\\") - 1 + strlen(pszServer) + sizeof("\\") - 1 + sLen + 1,
+        (PVOID*)&pszShare);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        sprintf(pszShare, "\\\\%s\\", pszServer);
-        strncat(pszShare, pszIndex, sLen);
-    }
+    sprintf(pszShare, "\\\\%s\\", pszServer);
+    strncat(pszShare, pszIndex, sLen);
 
     pszIndex += sLen;
 
@@ -253,8 +241,8 @@ ParseSharePath(
     sLen = strspn(pszIndex, "\\/");
     if (!sLen)
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pszIndex += sLen;
@@ -263,14 +251,14 @@ ParseSharePath(
     sLen = strcspn(pszIndex, "\\/");
     if (!sLen)
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                     sLen + 2,
                     (PVOID*)&pszFilename);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     snprintf(pszFilename, sLen + 2, "\\%s", pszIndex);
 
@@ -278,8 +266,8 @@ ParseSharePath(
 
     if (!IsNullOrEmptyString(pszIndex))
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *ppszServer = pszServer;
@@ -290,7 +278,7 @@ cleanup:
 
     SMB_SAFE_FREE_STRING(pszPath);
 
-    return dwError;
+    return ntStatus;
 
 error:
 

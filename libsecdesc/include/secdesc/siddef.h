@@ -49,9 +49,11 @@ typedef struct sid {
     uint8 subauth_count;
     uint8 authid[6];
 #ifdef _DCE_IDL_
-	[size_is(subauth_count)]
+	[size_is(subauth_count)] uint32 subauth[];
+#else
+    uint32 *subauth;
 #endif
-    uint32 subauth[];
+
 } SID, *PSID;
 
 

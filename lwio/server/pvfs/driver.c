@@ -44,94 +44,26 @@
  *        Driver Entry Function
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Danilo Almeida (dalmeida@likewisesoftware.com)
+ *          Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
 
-VOID
+/* Forward declarations */
+
+static VOID
 PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
-    )
-{
-    IO_LOG_ENTER_LEAVE("");
-}
+    );
 
-NTSTATUS
+static NTSTATUS
 PvfsDriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
     IN PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    int EE = 0;
-
-    switch (pIrp->Type)
-    {
-        case IRP_TYPE_CREATE:
-            ntStatus = PvfsCreate(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
-
-        case IRP_TYPE_CLOSE:
-            ntStatus = PvfsClose(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    );
 
 
-        case IRP_TYPE_READ:
-            ntStatus = PvfsRead(
-                            DeviceHandle,
-                            pIrp
-                            );
-             break;
-
-        case IRP_TYPE_WRITE:
-            ntStatus = PvfsWrite(
-                            DeviceHandle,
-                            pIrp
-                            );      
-            break;
-
-        case IRP_TYPE_DEVICE_IO_CONTROL:
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-            break;
-
-        case IRP_TYPE_FS_CONTROL:
-            ntStatus = PvfsFsCtrl(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
-        case IRP_TYPE_FLUSH_BUFFERS:
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-            break;
-        case IRP_TYPE_QUERY_INFORMATION:
-            ntStatus = PvfsQueryInformation(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
-        case IRP_TYPE_SET_INFORMATION:
-            ntStatus = PvfsSetInformation(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
-    default:
-        ntStatus = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
-    }
-
-cleanup:
-    IO_LOG_ENTER_LEAVE_STATUS_EE_EX(ntStatus, EE, "Type = %u", pIrp->Type);
-    return ntStatus;
-}
+/* Code */
 
 NTSTATUS
 DriverEntry(
@@ -139,29 +71,120 @@ DriverEntry(
     IN ULONG InterfaceVersion
     )
 {
-    NTSTATUS ntStatus = 0;
-    int EE = 0;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     IO_DEVICE_HANDLE deviceHandle = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
     {
-        ntStatus = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+        ntError = STATUS_DEVICE_CONFIGURATION_ERROR;
+        BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntStatus = IoDriverInitialize(DriverHandle,
-                                  NULL,
-                                  PvfsDriverShutdown,
-                                  PvfsDriverDispatch);
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    ntError = IoDriverInitialize(DriverHandle,
+                                 NULL,
+                                 PvfsDriverShutdown,
+                                 PvfsDriverDispatch);
+    BAIL_ON_NT_STATUS(ntError);
 
-    ntStatus = IoDeviceCreate(&deviceHandle,
-                              DriverHandle,
-                              "pvfs",
-                              NULL);
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    ntError = IoDeviceCreate(&deviceHandle,
+                             DriverHandle,
+                             "pvfs",
+                             NULL);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
-    return ntStatus;
+    return ntError;
+
+error:
+    goto cleanup;
 }
+
+
+/* Driver Exit Function */
+
+static VOID
+PvfsDriverShutdown(
+    IN IO_DRIVER_HANDLE DriverHandle
+    )
+{
+    IO_LOG_ENTER_LEAVE("");
+}
+
+/* Driver Dispatch Routine */
+
+static NTSTATUS
+PvfsDriverDispatch(
+    IN IO_DEVICE_HANDLE DeviceHandle,
+    IN PIRP pIrp
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+
+    ntError = PvfsAllocateIrpContext(&pIrpCtx, pIrp);
+    BAIL_ON_NT_STATUS(ntError);
+
+    switch (pIrpCtx->pIrp->Type)
+    {
+    case IRP_TYPE_CREATE:
+        ntError = PvfsCreate(DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_CLOSE:
+        ntError = PvfsClose(DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_READ:
+        ntError = PvfsRead(DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_WRITE:
+        ntError = PvfsWrite(DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_DEVICE_IO_CONTROL:
+        ntError = STATUS_NOT_IMPLEMENTED;
+        break;
+
+    case IRP_TYPE_FS_CONTROL:
+        ntError = PvfsFsCtrl(DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_FLUSH_BUFFERS:
+        ntError = STATUS_NOT_IMPLEMENTED;
+        break;
+
+    case IRP_TYPE_QUERY_INFORMATION:
+        ntError = PvfsQueryInformation(DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_SET_INFORMATION:
+        ntError = PvfsSetInformation(DeviceHandle, pIrpCtx);
+        break;
+
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    pIrp->IoStatusBlock.Status = ntError;
+
+    return ntError;
+
+error:
+    PVFS_SAFE_FREE_MEMORY(pIrpCtx);
+
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

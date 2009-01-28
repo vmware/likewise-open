@@ -11,4 +11,5 @@ SUBDIRS = \
     server    \
     drivers   \
     tools     \
-    tests
+    tests     \
+    scripts

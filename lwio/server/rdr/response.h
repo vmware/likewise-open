@@ -1,5 +1,5 @@
 
-DWORD
+NTSTATUS
 SMBResponseCreate(
     uint16_t       wMid,
     SMB_RESPONSE **ppResponse

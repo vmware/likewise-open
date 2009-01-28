@@ -86,10 +86,11 @@
 
 #define DCERPC_CALL(fn_call)                     \
     do {                                         \
-        dcethread_exc *dceexc = NULL;            \
+        dcethread_exc *dceexc;                   \
                                                  \
         DCETHREAD_TRY                            \
         {                                        \
+            dceexc = NULL;                       \
             status = fn_call;                    \
         }                                        \
         DCETHREAD_CATCH_ALL(dceexc)              \

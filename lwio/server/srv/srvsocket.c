@@ -22,7 +22,9 @@ SrvSocketCreate(
                     (PVOID*)&pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSocket->mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_init(&pSocket->mutex, NULL);
+    pSocket->pMutex = &pSocket->mutex;
+
     pSocket->fd = fd;
     memcpy(&pSocket->cliaddr, pClientAddr, sizeof(pSocket->cliaddr));
 
@@ -47,6 +49,11 @@ SrvSocketFree(
     if (pSocket->fd >= 0)
     {
         close(pSocket->fd);
+    }
+    if (pSocket->pMutex)
+    {
+        pthread_mutex_destroy(pSocket->pMutex);
+        pSocket->pMutex = NULL;
     }
     SMBFreeMemory(pSocket);
 }

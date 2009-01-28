@@ -57,7 +57,7 @@ Negotiate(
     SMB_SOCKET *pSocket
     )
 {
-    uint32_t dwError = 0;
+    uint32_t ntStatus = 0;
     SMB_PACKET packet = {0};
 
     NEGOTIATE_RESPONSE_HEADER *pHeader;
@@ -77,14 +77,14 @@ Negotiate(
     PSMB_PACKET pResponsePacket = NULL;
 
     /* @todo: make initial length configurable */
-    dwError = SMBPacketBufferAllocate(
+    ntStatus = SMBPacketBufferAllocate(
                     pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBPacketMarshallHeader(
+    ntStatus = SMBPacketMarshallHeader(
                 packet.pRawBuffer,
                 packet.bufferLen,
                 COM_NEGOTIATE,
@@ -96,7 +96,7 @@ Negotiate(
                 0, /* mid */
                 FALSE, /* sign messages */
                 &packet);
-   BAIL_ON_SMB_ERROR(dwError);
+   BAIL_ON_NT_STATUS(ntStatus);
 
     /* @todo: messages with a header consisting only of ByteCount don't get
        their own HEADER structs (yet), which is confusing */
@@ -110,40 +110,40 @@ Negotiate(
     wcstowc16s(nativeDomain, L"WORKGROUP", sizeof(nativeDomain));
 
     /* @todo: handle buffer size restart with ERESTART */
-    dwError = MarshallNegotiateRequest(
+    ntStatus = MarshallNegotiateRequest(
                     packet.pData,
                     packet.bufferLen - packet.bufferUsed,
                     &packetByteCount,
                     pszDialects,
                     1);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     assert(packetByteCount <= UINT16_MAX);
     *packet.pByteCount = (uint16_t) packetByteCount;
     packet.bufferUsed += *packet.pByteCount;
 
-    dwError = SMBPacketMarshallFooter(&packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBPacketMarshallFooter(&packet);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSocketSend(pSocket, &packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSocketSend(pSocket, &packet);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSocketReceiveNegotiateResponse(
+    ntStatus = SMBSocketReceiveNegotiateResponse(
                     pSocket,
                     &pResponsePacket);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = pResponsePacket->pSMBHeader->error;
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = UnmarshallNegotiateResponse(
+    ntStatus = UnmarshallNegotiateResponse(
                     pResponsePacket->pParams,
                     pResponsePacket->bufferLen - pResponsePacket->bufferUsed,
                     &pHeader,
                     &pGUID,
                     &pSecurityBlob,
                     &securityBlobLen);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* This backlock is safe because the session hash is unlocked. */
     SMB_LOCK_MUTEX(bSocketLocked, &pSocket->mutex);
@@ -161,18 +161,18 @@ Negotiate(
     {
         if (sem_init(&pSocket->semMpx, FALSE, pHeader->maxMpxCount) < 0)
         {
-            dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            ntStatus = errno;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
         pSocket->maxMpxCount = pHeader->maxMpxCount;
     }
 
     pSocket->securityBlobLen = securityBlobLen;
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                     pSocket->securityBlobLen,
                     (PVOID *) &pSocket->pSecurityBlob);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pSocket->pSecurityBlob,
            pSecurityBlob,
@@ -195,7 +195,7 @@ cleanup:
                 packet.bufferLen);
     }
 
-    return dwError;
+    return ntStatus;
 
 error:
 

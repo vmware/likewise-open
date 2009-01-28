@@ -37,7 +37,8 @@
 #include "includes.h"
 
 
-NTSTATUS LsaRpcInitMemory()
+NTSTATUS
+LsaRpcInitMemory()
 {
     NTSTATUS status = STATUS_SUCCESS;
     int locked = 0;
@@ -57,7 +58,8 @@ done:
 }
 
 
-NTSTATUS LsaRpcDestroyMemory()
+NTSTATUS
+LsaRpcDestroyMemory()
 {
     NTSTATUS status = STATUS_SUCCESS;
     int locked = 0;
@@ -78,26 +80,41 @@ done:
 }
 
 
-NTSTATUS LsaRpcAllocateMemory(void **out, size_t size, void *dep)
+NTSTATUS
+LsaRpcAllocateMemory(
+    void **out,
+    size_t size,
+    void *dep
+    )
 {
     return MemPtrAllocate((PtrList*)lsa_ptr_list, out, size, dep);
 }
 
 
-NTSTATUS LsaRpcFreeMemory(void *ptr)
+NTSTATUS
+LsaRpcFreeMemory(
+    void *ptr
+    )
 {
     return MemPtrFree((PtrList*)lsa_ptr_list, ptr);
 }
 
 
-NTSTATUS LsaRpcAddDepMemory(void *ptr, void *dep)
+NTSTATUS
+LsaRpcAddDepMemory(
+    void *ptr,
+    void *dep
+    )
 {
     return MemPtrAddDependant((PtrList*)lsa_ptr_list, ptr, dep);
 }
 
 
-NTSTATUS LsaAllocateTranslatedSids(TranslatedSid **out,
-                                   TranslatedSidArray *in)
+NTSTATUS
+LsaAllocateTranslatedSids(
+    TranslatedSid **out,
+    TranslatedSidArray *in
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     TranslatedSid *ptr = NULL;
@@ -136,8 +153,11 @@ error:
 }
 
 
-NTSTATUS LsaAllocateTranslatedSids2(TranslatedSid2 **out,
-                                    TranslatedSidArray2 *in)
+NTSTATUS
+LsaAllocateTranslatedSids2(
+    TranslatedSid2 **out,
+    TranslatedSidArray2 *in
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     TranslatedSid2 *ptr = NULL;
@@ -177,8 +197,11 @@ error:
 }
 
 
-NTSTATUS LsaAllocateRefDomainList(RefDomainList **out,
-                                  RefDomainList *in)
+NTSTATUS
+LsaAllocateRefDomainList(
+    RefDomainList **out,
+    RefDomainList *in
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     RefDomainList *ptr = NULL;
@@ -236,8 +259,11 @@ error:
 }
 
 
-NTSTATUS LsaAllocateTranslatedNames(TranslatedName **out,
-                                    TranslatedNameArray *in)
+NTSTATUS
+LsaAllocateTranslatedNames(
+    TranslatedName **out,
+    TranslatedNameArray *in
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     TranslatedName *ptr = NULL;
@@ -288,7 +314,12 @@ error:
 }
 
 
-static NTSTATUS LsaCopyPolInfoField(void *out, void *in, size_t size)
+static
+NTSTATUS
+LsaCopyPolInfoField(
+    void *out,
+    void *in,
+    size_t size)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -302,9 +333,13 @@ cleanup:
 }
 
 
-static NTSTATUS LsaCopyPolInfoAuditEvents(AuditEventsInfo *out,
-                                          AuditEventsInfo *in,
-                                          void *dep)
+static
+NTSTATUS
+LsaCopyPolInfoAuditEvents(
+    AuditEventsInfo *out,
+    AuditEventsInfo *in,
+    void *dep
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -327,9 +362,13 @@ cleanup:
 }
 
 
-static NTSTATUS LsaCopyPolInfoLsaDomain(LsaDomainInfo *out,
-                                        LsaDomainInfo *in,
-                                        void *dep)
+static
+NTSTATUS
+LsaCopyPolInfoLsaDomain(
+    LsaDomainInfo *out,
+    LsaDomainInfo *in,
+    void *dep
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -357,9 +396,13 @@ cleanup:
 }
 
 
-static NTSTATUS LsaCopyPolInfoPDAccount(PDAccountInfo *out,
-                                        PDAccountInfo *in,
-                                        void *dep)
+static
+NTSTATUS
+LsaCopyPolInfoPDAccount(
+    PDAccountInfo *out,
+    PDAccountInfo *in,
+    void *dep
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -379,9 +422,13 @@ cleanup:
 }
 
 
-static NTSTATUS LsaCopyPolInfoReplicaSource(ReplicaSourceInfo *in,
-                                            ReplicaSourceInfo *out,
-                                            void *dep)
+static
+NTSTATUS
+LsaCopyPolInfoReplicaSource(
+    ReplicaSourceInfo *in,
+    ReplicaSourceInfo *out,
+    void *dep
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -409,9 +456,13 @@ cleanup:
 }
 
 
-static NTSTATUS LsaCopyPolInfoDnsDomain(DnsDomainInfo *out,
-                                        DnsDomainInfo *in,
-                                        void *dep)
+static
+NTSTATUS
+LsaCopyPolInfoDnsDomain(
+    DnsDomainInfo *out,
+    DnsDomainInfo *in,
+    void *dep
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -458,9 +509,12 @@ cleanup:
 }
 
 
-NTSTATUS LsaAllocatePolicyInformation(LsaPolicyInformation **out,
-                                      LsaPolicyInformation *in,
-                                      uint32 level)
+NTSTATUS
+LsaAllocatePolicyInformation(
+   LsaPolicyInformation **out,
+   LsaPolicyInformation *in,
+   uint32 level
+   )
 {
     NTSTATUS status = STATUS_SUCCESS;
     LsaPolicyInformation *ptr = NULL;

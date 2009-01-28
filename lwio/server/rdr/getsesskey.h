@@ -31,7 +31,7 @@
 #ifndef __GETSESSKEY_H__
 #define __GETSESSKEY_H__
 
-DWORD
+NTSTATUS
 RdrGetSessionKey(
     HANDLE hFile,
     PDWORD pdwSessionKeyLength,

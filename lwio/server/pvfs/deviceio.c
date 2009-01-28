@@ -52,13 +52,20 @@
 NTSTATUS
 PvfsDeviceIo(
     IO_DEVICE_HANDLE DriverHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    
-    return ntStatus;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

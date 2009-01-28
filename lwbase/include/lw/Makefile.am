@@ -1,6 +1,7 @@
 lwincludedir = $(includedir)/lw
 
 lwinclude_HEADERS = \
+	errno.h \
 	ntstatus.h \
 	types.h \
 	attrs.h \

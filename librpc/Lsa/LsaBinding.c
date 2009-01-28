@@ -40,10 +40,10 @@
 RPCSTATUS InitLsaBindingDefault(handle_t *binding, const char *hostname)
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
-    unsigned char *prot_seq = (unsigned char*)LSA_DEFAULT_PROT_SEQ;
-    unsigned char *endpoint = (unsigned char*)LSA_DEFAULT_ENDPOINT;
-    unsigned char *uuid = NULL;
-    unsigned char *options = NULL;
+    char *prot_seq = (char*)LSA_DEFAULT_PROT_SEQ;
+    char *endpoint = (char*)LSA_DEFAULT_ENDPOINT;
+    char *uuid = NULL;
+    char *options = NULL;
     handle_t b = NULL;
 
     rpcstatus = InitLsaBindingFull(&b, prot_seq, hostname, endpoint,

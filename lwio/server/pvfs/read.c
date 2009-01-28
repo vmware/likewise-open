@@ -43,8 +43,7 @@
  *
  *       Read Dispatch Routine
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
@@ -52,33 +51,74 @@
 NTSTATUS
 PvfsRead(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
+    ULONG bufLen = pIrp->Args.ReadWrite.Length;
+    PPVFS_CCB pCcb = NULL;
+    size_t totalBytesRead = 0;
 
-    ntStatus = PvfsAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_INVALID_PTR(pBuffer, ntError);
 
-    //ntStatus = PvfsCommonRead(pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+
+    if (bufLen > SSIZE_MAX) {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    while (totalBytesRead < bufLen)
+    {
+        size_t bytesRead = 0;
+
+        bytesRead = read(pCcb->fd,
+                         pBuffer + totalBytesRead,
+                         bufLen - totalBytesRead);
+        if (bytesRead == -1) {
+            int err = errno;
+
+            /* try again? */
+            if (err == EAGAIN) {
+                continue;
+            }
+
+            ntError = PvfsMapUnixErrnoToNtStatus(err);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        /* Check for EOF */
+        if (bytesRead == 0) {
+            break;
+        }
+
+        totalBytesRead += bytesRead;
+    }
+
+    /* Can only get here is the loop was completed
+       successfully */
+
+    pIrp->IoStatusBlock.BytesTransferred = totalBytesRead;
+
+    ntError = STATUS_SUCCESS;
+
+
+cleanup:
+    return ntError;
 
 error:
-
-    return ntStatus;
+    goto cleanup;
 }
 
 
-NTSTATUS
-PvfsCommonRead(
-    PPVFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    return(ntStatus);
-}
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

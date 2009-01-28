@@ -56,7 +56,7 @@ TreeDisconnect(
     PSMB_TREE pTree
     )
 {
-    uint32_t dwError = 0;
+    uint32_t ntStatus = 0;
     SMB_PACKET packet = {0};
     SMB_RESPONSE *pResponse = NULL;
     SMB_PACKET *pResponsePacket = NULL;
@@ -64,19 +64,19 @@ TreeDisconnect(
     DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
-    dwError = SMBPacketBufferAllocate(
+    ntStatus = SMBPacketBufferAllocate(
                     pTree->pSession->pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBTreeAcquireMid(
+    ntStatus = SMBTreeAcquireMid(
                     pTree,
                     &wMid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBPacketMarshallHeader(
+    ntStatus = SMBPacketMarshallHeader(
                 packet.pRawBuffer,
                 packet.bufferLen,
                 COM_TREE_DISCONNECT,
@@ -88,7 +88,7 @@ TreeDisconnect(
                 wMid,
                 SMBSrvClientSessionSignMessages(pTree->pSession),
                 &packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     packet.pSMBHeader->wordCount = 0;
 
@@ -98,25 +98,25 @@ TreeDisconnect(
     packet.bufferUsed += sizeof(uint16_t);
     *((uint16_t *) packet.pData) = 0;
 
-    dwError = SMBPacketMarshallFooter(&packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBPacketMarshallFooter(&packet);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBResponseCreate(wMid, &pResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBResponseCreate(wMid, &pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSrvClientTreeAddResponse(pTree, pResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (SMBSrvClientSessionSignMessages(pTree->pSession))
     {
         DWORD dwSequence = SMBSocketGetNextSequence(pTree->pSession->pSocket);
 
-        dwError = SMBPacketSign(
+        ntStatus = SMBPacketSign(
                         &packet,
                         dwSequence,
                         pTree->pSession->pSocket->pSessionKey,
                         pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         // resultant is the response sequence from server
         dwResponseSequence = dwSequence + 1;
@@ -124,27 +124,27 @@ TreeDisconnect(
 
     /* @todo: on send packet error, the response must be removed from the
        tree. */
-    dwError = SMBSocketSend(pTree->pSession->pSocket, &packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBTreeReceiveResponse(
+    ntStatus = SMBTreeReceiveResponse(
                     pTree,
                     pResponse,
                     &pResponsePacket);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (SMBSrvClientSessionSignMessages(pTree->pSession))
     {
-        dwError = SMBPacketVerifySignature(
+        ntStatus = SMBPacketVerifySignature(
                         pResponsePacket,
                         dwResponseSequence,
                         pTree->pSession->pSocket->pSessionKey,
                         pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = pResponsePacket->pSMBHeader->error;
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
@@ -168,7 +168,7 @@ cleanup:
         SMBResponseFree(pResponse);
     }
 
-    return dwError;
+    return ntStatus;
 
 error:
 

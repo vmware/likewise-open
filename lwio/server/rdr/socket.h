@@ -31,14 +31,14 @@
 #ifndef __SOCKET_H__
 #define __SOCKET_H__
 
-DWORD
+NTSTATUS
 SMBSocketCreate(
     struct addrinfo *address,
     uchar8_t        *pszHostname,
     PSMB_SOCKET*    ppSocket
     );
 
-DWORD
+NTSTATUS
 SMBSocketConnect(
     PSMB_SOCKET      pSocket,
     struct addrinfo *ai
@@ -79,7 +79,7 @@ SMBSocketTimedOut_InLock(
     PSMB_SOCKET pSocket
     );
 
-DWORD
+ULONG
 SMBSocketGetNextSequence(
     PSMB_SOCKET pSocket
     );
@@ -89,19 +89,19 @@ SMBSocketUpdateLastActiveTime(
     PSMB_SOCKET pSocket
     );
 
-DWORD
+NTSTATUS
 SMBSocketSend(
     PSMB_SOCKET pSocket,
     PSMB_PACKET pPacket
     );
 
-DWORD
+NTSTATUS
 SMBSocketReceiveAndUnmarshall(
     PSMB_SOCKET pSocket,
     PSMB_PACKET pPacket
     );
 
-DWORD
+NTSTATUS
 SMBSocketRead(
     PSMB_SOCKET pSocket,
     uint8_t    *buffer,
@@ -109,25 +109,25 @@ SMBSocketRead(
     uint32_t   *actualLen
     );
 
-DWORD
+NTSTATUS
 SMBSocketReceiveNegotiateResponse(
     PSMB_SOCKET  pSocket,
     PSMB_PACKET* ppPacket
     );
 
-DWORD
+NTSTATUS
 SMBSocketReceiveSessionSetupResponse(
     PSMB_SOCKET  pSocket,
     PSMB_PACKET* ppPacket
     );
 
-DWORD
+NTSTATUS
 SMBSocketReceiveLogoffResponse(
     PSMB_SOCKET   pSocket,
     PSMB_PACKET* ppPacket
     );
 
-DWORD
+NTSTATUS
 SMBSocketFindSessionByPrincipal(
     PSMB_SOCKET   pSocket,
     uint8_t      *pszPrincipal,

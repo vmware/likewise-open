@@ -49,19 +49,17 @@
 #include "rdr.h"
 
 
-DWORD
+NTSTATUS
 RdrReadFileEx(
     HANDLE hFile,
     DWORD  dwBytesToRead,
-    PVOID* ppOutBuffer,
+    PVOID  pOutBuffer,
     PDWORD pdwBytesRead
     )
 {
-    DWORD dwError = 0;
-    PBYTE pBuffer = NULL;
+    NTSTATUS ntStatus = 0;
+    PBYTE pBuffer = (PBYTE) pOutBuffer;
     DWORD dwBytesRead = 0;
-    DWORD dwBufferLen = 0;
-    WORD  wBytesAvailable = 0;
     WORD  wBytesRead = 0;
     uint16_t wBytesToRead = 0;
     PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
@@ -78,23 +76,7 @@ RdrReadFileEx(
             wBytesToRead = (uint16_t)dwBytesToRead;
         }
 
-        if (wBytesAvailable < wBytesToRead)
-        {
-            WORD wAdditional = wBytesToRead - wBytesAvailable;
-
-            SMB_LOG_DEBUG("ClientReadFile: Available [%d] Need [%d]", wBytesAvailable, wBytesToRead);
-
-            dwError = SMBReallocMemory(
-                            pBuffer,
-                            (PVOID*)&pBuffer,
-                            dwBufferLen + wAdditional);
-            BAIL_ON_SMB_ERROR(dwError);
-
-            dwBufferLen += wAdditional;
-            wBytesAvailable += wAdditional;
-        }
-
-        dwError = WireReadFile(
+        ntStatus = WireReadFile(
                     pFile->pTree,
                     pFile->fid,
                     pFile->llOffset,
@@ -102,28 +84,23 @@ RdrReadFileEx(
                     wBytesToRead,
                     &wBytesRead,
                     NULL);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         pFile->llOffset += wBytesRead;
         dwBytesRead += wBytesRead;
         dwBytesToRead -= wBytesRead;
-
-        wBytesAvailable -= wBytesRead;
-
     } while (dwBytesToRead && (wBytesRead == wBytesToRead));
 
-    *ppOutBuffer = pBuffer;
     *pdwBytesRead = dwBytesRead;
 
 cleanup:
 
     SMB_UNLOCK_MUTEX(bFileIsLocked, &pFile->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
-    *ppOutBuffer = NULL;
     *pdwBytesRead = 0;
 
     SMB_SAFE_FREE_MEMORY(pBuffer);

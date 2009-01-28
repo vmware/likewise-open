@@ -31,7 +31,7 @@
 #ifndef __CLOSEHANDLE_H__
 #define __CLOSEHANDLE_H__
 
-DWORD
+NTSTATUS
 RdrCloseFileEx(
     HANDLE hFile
     );

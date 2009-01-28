@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -30,57 +30,46 @@
 
 #include "includes.h"
 
-DWORD
+NTSTATUS
 SMBSrvProcessRequest_V1(
-    PSMB_PACKET pSmbRequest,
-    PSMB_PACKET pSmbResponse
+    PLWIO_SRV_CONTEXT pContext
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
-#if 0
-    switch (pRequest->pSMBHeader->command)
+    switch (pContext->pRequest->pSMBHeader->command)
     {
         case COM_NEGOTIATE:
 
-            dwError = SmbMkDirRequest(
-                            pSmbRequest,
-                            pSmbResponse);
+                ntStatus = SrvProcessNegotiate(pContext);
 
-            break;
+                break;
 
         case COM_SESSION_SETUP_ANDX:
 
-            dwError = SmbProcessSessionSetup(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessSessionSetup(pContext);
 
             break;
 
         case COM_LOGOFF_ANDX:
 
-            dwError = SmbProcessLogoffAndX(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessLogoffAndX(pContext);
 
             break;
 
         case COM_TREE_CONNECT_ANDX:
 
-            dwError = SmbProcessTreeConnectAndX(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessTreeConnectAndX(pContext);
 
             break;
 
         case COM_TREE_DISCONNECT:
 
-            dwError = SmbTreeDisconnect(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessTreeDisconnectAndX(pContext);
 
             break;
 
+#if 0
         case COM_TRANS2_QUERY_FS_INFORMATION:
 
             dwError = SmbProcessTrans2QueryFSInformation(
@@ -88,15 +77,15 @@ SMBSrvProcessRequest_V1(
                             pSmbResponse);
 
             break;
+#endif
 
-        case SMB_ECHO:
+        case COM_ECHO:
 
-            dwError = SmbProcessEcho(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessEchoAndX(pContext);
 
             break;
 
+#if 0
         case SMB_NT_CANCEL:
 
             dwError = SmbNTCancel(
@@ -279,8 +268,9 @@ SMBSrvProcessRequest_V1(
                             pSmbRequest,
                             pSmbResponse);
             break;
-    }
 #endif
 
-    return dwError;
+    }
+
+    return ntStatus;
 }

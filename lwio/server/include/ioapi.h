@@ -70,15 +70,17 @@ IoCreateFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext,
     IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
     IN ACCESS_MASK DesiredAccess,
     IN OPTIONAL LONG64 AllocationSize,
     IN FILE_ATTRIBUTES FileAttributes,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN FILE_CREATE_DISPOSITION CreateDisposition,
     IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
-    IN OPTIONAL PVOID SecurityDescriptor, // TBD
-    IN PVOID SecurityQualityOfService // TBD
+    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION
+    IN ULONG EaLength,
+    IN OPTIONAL PIO_ECP_LIST EcpList
     );
 
 NTSTATUS
@@ -263,6 +265,10 @@ IoRenameFile(
     IN PIO_FILE_NAME ToName
     );
 
+//
+// Advanced Operations
+//
+
 NTSTATUS
 IoQueryQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
@@ -276,10 +282,6 @@ IoQueryQuotaInformationFile(
     IN OPTIONAL PSID StartSid,
     IN BOOLEAN RestartScan
     );
-
-//
-// Advanced Operations
-//
 
 NTSTATUS
 IoSetQuotaInformationFile(

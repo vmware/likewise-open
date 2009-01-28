@@ -33,6 +33,48 @@
 #if defined(UNICODE)
 
 DWORD
+SMBAllocateStringW(
+    PWSTR  pwszInputString,
+    PWSTR* ppwszOutputString
+    )
+{
+    DWORD dwError = 0;
+    size_t sLen = 0;
+    PWSTR  pwszOutputString = NULL;
+
+    if (!pwszInputString) {
+        dwError = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    sLen = wc16slen(pwszInputString);
+
+    dwError = SMBAllocateMemory(
+                    (sLen + 1 ) * sizeof(wchar16_t),
+                    (PVOID *)&pwszOutputString);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    if (sLen)
+    {
+       memcpy(pwszOutputString, pwszInputString, sLen);
+    }
+
+    *ppwszOutputString = pwszOutputString;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    SMB_SAFE_FREE_MEMORY(pwszOutputString);
+
+    *ppwszOutputString = NULL;
+
+    goto cleanup;
+}
+
+DWORD
 SMBMbsToWc16s(
     PCSTR     pszInput,
     PWSTR* ppwszOutput

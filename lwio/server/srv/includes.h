@@ -49,21 +49,28 @@
 #include "config.h"
 #include "lwiosys.h"
 
-#include "sqlite3.h"
+#include <sqlite3.h>
+#include <uuid/uuid.h>
+
+#include <krb5.h>
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_generic.h>
+#include <gssapi/gssapi_krb5.h>
 
 #include "lwio/lwio.h"
 
 #include "lwiodef.h"
 #include "lwioutils.h"
 #include "lwiolog_r.h"
+#include "lwnet.h"
 
 #include <lw/ntstatus.h>
-#include "smb.h"
+#include "smbwire.h"
 
 #include "iodriver.h"
 
 #include "defs.h"
-#include "structs.h"
+#include "srvstructs.h"
 #include "smbv1.h"
 #include "listener.h"
 #include "stubs.h"
@@ -75,8 +82,12 @@
 #include "deldir.h"
 #include "findfirst2.h"
 #include "lockX.h"
-#include "logoffX.h"
-#include "negotiate.h"
+#include "srvlogoff.h"
+#include "srvnegotiate.h"
+#include "srvsessionsetup.h"
+#include "srvecho.h"
+#include "srvtcon.h"
+#include "srvtdiscon.h"
 #include "ntrename.h"
 #include "rename.h"
 #include "seek.h"
@@ -86,9 +97,15 @@
 #include "reader.h"
 #include "worker.h"
 #include "prodcons.h"
-#include "srvshareutil.h"
+#include "srvsharelst.h"
 #include "sharedb.h"
-#include "srvtask.h"
+#include "srvidallocator.h"
+#include "srvfile.h"
+#include "srvtree.h"
+#include "srvsession.h"
+#include "srvcontext.h"
+#include "srvgss.h"
+#include "hostinfo.h"
 
 #include "externs.h"
 

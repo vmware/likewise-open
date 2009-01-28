@@ -306,7 +306,7 @@ DomSid **create_sid_list(char **strlist)
 
     /* copy mbs strings to wchar16_t strings */
     for (i = 0; strlist[i] && i < list_len; i++) {
-        RtlParseSidStringA(&(sid_list[i]), strlist[i]);
+        ParseSidStringA(&(sid_list[i]), strlist[i]);
         if (sid_list[i] == NULL) {
             i--;
             while (i >= 0) {
@@ -388,7 +388,7 @@ enum param_err fetch_value(struct parameter *params, int count,
     case pt_sid:
         valsid = (DomSid**)val;
         defstr = (char**)def;
-        status = RtlParseSidStringA(valsid,
+        status = ParseSidStringA(valsid,
                                     ((value) ? (const char*)value : *defstr));
         if (status != STATUS_SUCCESS) ret = perr_invalid_out_param;
         break;

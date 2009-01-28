@@ -114,6 +114,22 @@
        goto error;                                 \
     }
 
+#define BAIL_ON_NULL_PTR(x, err)   \
+    do {                                \
+        if ((x) == NULL) {              \
+            err = STATUS_NO_MEMORY;     \
+            goto error;                 \
+        }                               \
+    } while(0);                         \
+
+#define BAIL_ON_INVALID_PTR(ptr, err)		       \
+    do {                                               \
+        if ((ptr) == NULL) {                           \
+            err = STATUS_INVALID_PARAMETER;           \
+            goto error;                                \
+        }                                              \
+    } while (0);
+
 #define GOTO_CLEANUP_ON_SMB_ERROR(error) \
     _GOTO_CLEANUP_ON_NONZERO(error)
 
@@ -442,13 +458,15 @@ typedef enum
 } SMB_TREE_TRAVERSAL_TYPE;
 
 typedef int   (*PFN_SMB_RB_TREE_COMPARE)(
-                    PVOID pData1,
-                    PVOID pData2
+                    PVOID pKey1,
+                    PVOID pKey2
                     );
 
-typedef VOID  (*PFN_SMB_RB_TREE_FREE)(PVOID pData);
+typedef VOID  (*PFN_SMB_RB_TREE_FREE_DATA)(PVOID pData);
+typedef VOID  (*PFN_SMB_RB_TREE_FREE_KEY)(PVOID pKey);
 
 typedef DWORD (*PFN_SMB_RB_TREE_VISIT)(
+                    PVOID pKey,
                     PVOID pData,
                     PVOID pUserData,
                     PBOOLEAN pbContinue
@@ -458,7 +476,8 @@ typedef struct __SMB_RB_TREE
 {
 
     PFN_SMB_RB_TREE_COMPARE pfnCompare;
-    PFN_SMB_RB_TREE_FREE    pfnFree;
+    PFN_SMB_RB_TREE_FREE_KEY  pfnFreeKey;
+    PFN_SMB_RB_TREE_FREE_DATA pfnFreeData;
 
     HANDLE hRoot;
 
@@ -685,6 +704,12 @@ SMBFreeNullTerminatedStringArray(
 #if defined(UNICODE)
 
 DWORD
+SMBAllocateStringW(
+    PWSTR  pwszInputString,
+    PWSTR* ppwszOutputString
+    );
+
+DWORD
 SMBMbsToWc16s(
     PCSTR     pszInput,
     PWSTR* ppwszOutput
@@ -836,26 +861,29 @@ SMBQueueFree(
     PSMB_QUEUE pQueue
     );
 
-DWORD
+NTSTATUS
 SMBRBTreeCreate(
-    PFN_SMB_RB_TREE_COMPARE pfnRBTreeCompare,
-    PFN_SMB_RB_TREE_FREE    pfnRBTreeFree,
+    PFN_SMB_RB_TREE_COMPARE   pfnRBTreeCompare,
+    PFN_SMB_RB_TREE_FREE_KEY  pfnRBTreeFreeKey,
+    PFN_SMB_RB_TREE_FREE_DATA pfnRBTreeFreeData,
     PSMB_RB_TREE* ppRBTree
     );
 
-PVOID
+NTSTATUS
 SMBRBTreeFind(
     PSMB_RB_TREE pRBTree,
-    PVOID   pData
+    PVOID        pKey,
+    PVOID*       ppItem
     );
 
-DWORD
+NTSTATUS
 SMBRBTreeAdd(
     PSMB_RB_TREE pRBTree,
+    PVOID       pKey,
     PVOID       pData
     );
 
-DWORD
+NTSTATUS
 SMBRBTreeTraverse(
     PSMB_RB_TREE pRBTree,
     SMB_TREE_TRAVERSAL_TYPE traversalType,
@@ -863,7 +891,7 @@ SMBRBTreeTraverse(
     PVOID                 pUserData
     );
 
-DWORD
+NTSTATUS
 SMBRBTreeRemove(
     PSMB_RB_TREE pRBTree,
     PVOID   pData);

@@ -61,14 +61,33 @@ typedef ULONG IRP_TYPE;
 #define IRP_TYPE_FLUSH_BUFFERS             7
 #define IRP_TYPE_QUERY_INFORMATION         8
 #define IRP_TYPE_SET_INFORMATION           9
+#define IRP_TYPE_CREATE_NAMED_PIPE        10
+#define IRP_TYPE_CREATE_MAILSLOT          11
 
 #if 0
-#define IRP_TYPE_QUERY_FULL_ATTRIBUTES    10
-#define IRP_TYPE_QUERY_DIRECTORY          11
-#define IRP_TYPE_QUERY_VOLUME_INFORMATION 12
-#define IRP_TYPE_SET_VOLUME_INFORMATION   13
-#define IRP_TYPE_LOCK                     14
-#define IRP_TYPE_UNLOCK                   15
+#define IRP_TYPE_DIRECTORY_CONTROL        12
+#define IRP_TYPE_LOCK_CONTROL             13
+#define IPP_TYPE_QUERY_EA                 14
+#define IPP_TYPE_SET_EA                   15
+#define IRP_TYPE_QUERY_VOLUME_INFORMATION 16
+#define IRP_TYPE_SET_VOLUME_INFORMATION   17
+#define IRP_TYPE_QUERY_QUOTA              18
+#define IRP_TYPE_SET_QUOTA                19
+#define IRP_TYPE_QUERY_SECURITY           20
+#define IRP_TYPE_SET_SECURITY             21
+
+#define IRP_TYPE_QUERY_FULL_ATTRIBUTES    22
+#define IRP_TYPE_RENAME                   23
+#define IRP_TYPE_LINK                     24
+#define IRP_TYPE_UNLINK                   25
+
+#define IO_DIRECTORY_CONTROL_QUERY  1
+#define IO_DIRECTORY_CONTROL_NOTIFY 2
+
+#define IO_LOCK_CONTROL_LOCK 1
+#define IO_LOCK_CONTROL_UNLOCK 2
+#define IO_LOCK_CONTROL_UNLOCK_ALL 4
+#define IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY 3
 #endif
 
 typedef struct _IRP_ARGS_CREATE {
@@ -80,9 +99,11 @@ typedef struct _IRP_ARGS_CREATE {
     IN FILE_SHARE_FLAGS ShareAccess;
     IN FILE_CREATE_DISPOSITION CreateDisposition;
     IN FILE_CREATE_OPTIONS CreateOptions;
-    IN OPTIONAL PIO_EA_BUFFER pEaBuffer;
+    IN OPTIONAL PFILE_FULL_EA_INFORMATION EaBuffer;
+    IN ULONG EaLength;
     IN OPTIONAL PVOID SecurityDescriptor; // TBD
     IN OPTIONAL PVOID SecurityQualityOfService; // TBD
+    IN OPTIONAL PIO_ECP_LIST EcpList;
 } IRP_ARGS_CREATE, *PIRP_ARGS_CREATE;
 
 typedef struct _IRP_ARGS_READ_WRITE {

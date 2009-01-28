@@ -3,6 +3,7 @@
 
 NTSTATUS
 SrvSocketReaderInit(
+    PSMB_PROD_CONS_QUEUE   pWorkQueue,
     PSMB_SRV_SOCKET_READER pReader
     );
 

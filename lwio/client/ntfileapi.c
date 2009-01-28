@@ -70,20 +70,85 @@ NtpInitializeIoStatusBlock(
 //
 
 NTSTATUS
+NtCreateNamedPipeFile(
+    OUT PIO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
+    IN ACCESS_MASK DesiredAccess,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN FILE_CREATE_DISPOSITION CreateDisposition,
+    IN FILE_CREATE_OPTIONS CreateOptions,
+    IN FILE_PIPE_TYPE_MASK NamedPipeType,
+    IN FILE_PIPE_READ_MODE_MASK ReadMode,
+    IN FILE_PIPE_COMPLETION_MODE_MASK CompletionMode,
+    IN ULONG MaximumInstances,
+    IN ULONG InboundQuota,
+    IN ULONG OutboundQuota,
+    IN OPTIONAL PLONG64 DefaultTimeout
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_CONTEXT context = { 0 };
+    LW_PIO_ACCESS_TOKEN pSecurityToken = NULL;
+
+    *FileHandle = NULL;
+    NtpInitializeIoStatusBlock(IoStatusBlock);
+
+    status = LwIoAcquireContext(&context);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = LwIoGetThreadAccessToken(&pSecurityToken);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxCreateNamedPipeFile(
+                    &context,
+                    pSecurityToken,
+                    FileHandle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    FileName,
+                    SecurityDescriptor,
+                    SecurityQualityOfService,
+                    DesiredAccess,
+                    ShareAccess,
+                    CreateDisposition,
+                    CreateOptions,
+                    NamedPipeType,
+                    ReadMode,
+                    CompletionMode,
+                    MaximumInstances,
+                    InboundQuota,
+                    OutboundQuota,
+                    DefaultTimeout);
+
+cleanup:
+    LwIoReleaseContext(&context);
+    return status;
+}
+
+NTSTATUS
 NtCreateFile(
     OUT PIO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
+    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PVOID SecurityQualityOfService, // TBD
     IN ACCESS_MASK DesiredAccess,
     IN OPTIONAL LONG64 AllocationSize,
     IN FILE_ATTRIBUTES FileAttributes,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN FILE_CREATE_DISPOSITION CreateDisposition,
     IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PIO_EA_BUFFER pEaBuffer,
-    IN OPTIONAL PVOID SecurityDescriptor, // TBD
-    IN OPTIONAL PVOID SecurityQualityOfService // TBD
+    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION
+    IN ULONG EaLength,
+    IN OPTIONAL PIO_ECP_LIST EcpList
     )
 {
     NTSTATUS status = 0;
@@ -109,15 +174,17 @@ NtCreateFile(
                     AsyncControlBlock,
                     IoStatusBlock,
                     FileName,
+                    SecurityDescriptor,
+                    SecurityQualityOfService,
                     DesiredAccess,
                     AllocationSize,
                     FileAttributes,
                     ShareAccess,
                     CreateDisposition,
                     CreateOptions,
-                    pEaBuffer,
-                    SecurityDescriptor,
-                    SecurityQualityOfService);
+                    EaBuffer,
+                    EaLength,
+                    EcpList);
 
 cleanup:
     LwIoReleaseContext(&context);
@@ -493,6 +560,10 @@ NtRenameFile(
     IN PIO_FILE_NAME ToName
     );
 
+//
+// Advanced Operations
+//
+
 NTSTATUS
 NtQueryQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
@@ -506,10 +577,6 @@ NtQueryQuotaInformationFile(
     IN OPTIONAL PSID StartSid,
     IN BOOLEAN RestartScan
     );
-
-//
-// Advanced Operations
-//
 
 NTSTATUS
 NtSetQuotaInformationFile(
@@ -541,4 +608,3 @@ NtSetSecurityFile(
     ); 
 
 // TODO: QueryEaFile and SetEaFile.
-

@@ -55,6 +55,11 @@
     LWMSG_POINTER_END, \
     LWMSG_ATTR_LENGTH_MEMBER(Type, LengthField)
 
+
+#define _LWMSG_MEMBER_OPTIONAL_ARRAY(Type, PointerField, CountField, ElementSpec) \
+    LWMSG_MEMBER_POINTER(Type, PointerField, LWMSG_TYPESPEC(ElementSpec)), \
+    LWMSG_ATTR_LENGTH_MEMBER(Type, CountField)
+
 #ifdef _NT_IPC_USE_PSEUDO_TYPES
 
 #if 0
@@ -126,6 +131,17 @@ LWMsgTypeSpec gNtIpcTypeSpecIoFileName[] =
 #endif // !_NT_IPC_USE_PSEUDO_TYPES
 
 static
+LWMsgTypeSpec gNtIpcTypeSpecHelperEcp[] =
+{
+    LWMSG_STRUCT_BEGIN(NT_IPC_HELPER_ECP),
+    LWMSG_MEMBER_PSTR(NT_IPC_HELPER_ECP, pszType),
+    LWMSG_MEMBER_UINT32(NT_IPC_HELPER_ECP, Size),
+    _LWMSG_MEMBER_BUFFER(NT_IPC_HELPER_ECP, pData, Size),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static
 LWMsgTypeSpec gNtIpcTypeSpecMessageGenericFile[] =
 {
     LWMSG_STRUCT_BEGIN(NT_IPC_MESSAGE_GENERIC_FILE),
@@ -180,7 +196,11 @@ LWMsgTypeSpec gNtIpcTypeSpecMessageCreateFile[] =
     LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE, ShareAccess),
     LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE, CreateDisposition),
     LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE, CreateOptions),
-    // TODO -- Add stuff for EAs, SDs, etc.
+    LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE, EaLength),
+    _LWMSG_MEMBER_BUFFER(NT_IPC_MESSAGE_CREATE_FILE, EaBuffer, EaLength),
+    // TODO -- Add stuff for SDs, etc.
+    LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_CREATE_FILE, EcpCount),
+    _LWMSG_MEMBER_OPTIONAL_ARRAY(NT_IPC_MESSAGE_CREATE_FILE, EcpList, EcpCount, gNtIpcTypeSpecHelperEcp),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };

@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        rdr.h
  *
  * Abstract:
  *
@@ -66,7 +66,7 @@
 #include "lwiofsctl.h"
 #include "smbkrb5.h"
 
-#include "smb.h"
+#include "smbwire.h"
 #include "smbclient.h"
 #include <lwio/io-types.h>
 #include "iodriver.h"
@@ -149,15 +149,15 @@ RdrSetInformation(
 
 #include "rdrcreate.h"
 
-DWORD
+NTSTATUS
 RdrReadFileEx(
     HANDLE hFile,
     DWORD  dwBytesToRead,
-    PVOID* ppOutBuffer,
+    PVOID  pOutBuffer,
     PDWORD pdwBytesRead
     );
 
-DWORD
+NTSTATUS
 RdrWriteFileEx(
     HANDLE hFile,
     DWORD  dwNumBytesToWrite,
@@ -166,7 +166,7 @@ RdrWriteFileEx(
     );
 
 
-DWORD
+NTSTATUS
 RdrCreateFileEx(
     PIO_ACCESS_TOKEN pSecurityToken,
     PCWSTR pwszFileName,
@@ -179,7 +179,7 @@ RdrCreateFileEx(
     );
 
 
-DWORD
+NTSTATUS
 RdrGetSessionKey(
     HANDLE hFile,
     PDWORD pdwSessionKeyLength,

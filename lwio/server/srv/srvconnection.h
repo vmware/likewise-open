@@ -3,8 +3,13 @@
 
 NTSTATUS
 SrvConnectionCreate(
-    PSMB_SRV_SOCKET pSocket,
-    PSMB_SRV_CONNECTION* ppConnection
+    PSMB_SRV_SOCKET           pSocket,
+    HANDLE                    hPacketAllocator,
+    HANDLE                    hGssContext,
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PSRV_PROPERTIES           pServerProperties,
+    PSRV_HOST_INFO            pHostinfo,
+    PSMB_SRV_CONNECTION*      ppConnection
     );
 
 int
@@ -12,9 +17,53 @@ SrvConnectionGetFd(
     PSMB_SRV_CONNECTION pConnection
     );
 
+NTSTATUS
+SrvConnectionGetNextSequence(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PULONG              pulRequestSequence,
+    PULONG              pulResponseSequence
+    );
+
 BOOLEAN
 SrvConnectionIsInvalid(
     PSMB_SRV_CONNECTION pConnection
+    );
+
+VOID
+SrvConnectionSetInvalid(
+    PSMB_SRV_CONNECTION pConnection
+    );
+
+NTSTATUS
+SrvConnectionReadPacket(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET* ppPacket
+    );
+
+NTSTATUS
+SrvConnectionWriteMessage(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pPacket
+    );
+
+NTSTATUS
+SrvConnectionFindSession(
+    PSMB_SRV_CONNECTION pConnection,
+    USHORT uid,
+    PSMB_SRV_SESSION* ppSession
+    );
+
+NTSTATUS
+SrvConnectionRemoveSession(
+    PSMB_SRV_CONNECTION pConnection,
+    USHORT              uid
+    );
+
+NTSTATUS
+SrvConnectionCreateSession(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_SRV_SESSION* ppSession
     );
 
 VOID

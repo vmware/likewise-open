@@ -31,49 +31,49 @@
 #include "rdr.h"
 
 /* @todo: support internationalized principals */
-DWORD
+NTSTATUS
 SMBSrvClientSessionCreate(
     PSMB_SOCKET   pSocket,
     uchar8_t      *pszPrincipal,
     PSMB_SESSION* ppSession
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_SESSION pSession = NULL;
     BOOLEAN bAddedByPrincipal = FALSE;
 
-    dwError = SMBSocketFindSessionByPrincipal(
+    ntStatus = SMBSocketFindSessionByPrincipal(
                     pSocket,
                     pszPrincipal,
                     &pSession);
-    if (!dwError)
+    if (!ntStatus)
     {
         goto done;
     }
 
-    dwError = SMBSessionCreate(&pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSessionCreate(&pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pSession->pSocket = pSocket;
 
     SMB_SAFE_FREE_MEMORY(pSession->pszPrincipal);
 
     /* Principal is trusted */
-    dwError = SMBStrndup(
+    ntStatus = SMBStrndup(
                     (char *) pszPrincipal,
                     strlen((char *) pszPrincipal) + sizeof(NUL),
                     (char **) &pSession->pszPrincipal);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSrvClientSocketAddSessionByPrincipal(pSocket, pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientSocketAddSessionByPrincipal(pSocket, pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bAddedByPrincipal = TRUE;
 
     pSession->bSignedMessagesSupported = pSocket->bSignedMessagesSupported;
     pSession->bSignedMessagesRequired = pSocket->bSignedMessagesRequired;
 
-    dwError = SessionSetup(
+    ntStatus = SessionSetup(
                     pSocket,
                     SMBSrvClientSessionSignMessages(pSession),
                     pSocket->pSessionKey,
@@ -82,14 +82,14 @@ SMBSrvClientSessionCreate(
                     &pSession->pSessionKey,
                     &pSession->dwSessionKeyLength,
                     &pSession->hSMBGSSContext);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!pSocket->pSessionKey && pSession->pSessionKey)
     {
-        dwError = SMBAllocateMemory(
+        ntStatus = SMBAllocateMemory(
                         pSession->dwSessionKeyLength,
                         (PVOID*)&pSocket->pSessionKey);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pSocket->pSessionKey, pSession->pSessionKey, pSession->dwSessionKeyLength);
 
@@ -99,8 +99,8 @@ SMBSrvClientSessionCreate(
     /* Set state and awake any waiting threads */
     SMBSessionSetState(pSession, SMB_RESOURCE_STATE_VALID);
 
-    dwError = SMBSrvClientSocketAddSessionByUID(pSocket, pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvClientSocketAddSessionByUID(pSocket, pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 done:
 
@@ -108,7 +108,7 @@ done:
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -121,7 +121,7 @@ error:
             SMBSrvClientSocketRemoveSessionByPrincipal(pSocket, pSession);
         }
 
-        SMBSessionInvalidate(pSession, ERROR_SMB, dwError);
+        SMBSessionInvalidate(pSession, ERROR_SMB, ntStatus);
 
         SMBSessionRelease(pSession);
     }
@@ -131,13 +131,13 @@ error:
 
 
 /* Must be called with the session mutex held */
-DWORD
+NTSTATUS
 SMBSrvClientSessionIsStale_inlock(
     PSMB_SESSION pSession,
     PBOOLEAN     pbIsStale
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     SMB_HASH_ITERATOR iterator;
     BOOLEAN bIsStale = FALSE;
 
@@ -146,10 +146,10 @@ SMBSrvClientSessionIsStale_inlock(
         goto done;
     }
 
-    dwError = SMBHashGetIterator(
+    ntStatus = SMBHashGetIterator(
                     pSession->pTreeHashByPath,
                     &iterator);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (SMBHashNext(&iterator))
     {
@@ -171,58 +171,58 @@ done:
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionAddTreeById(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
 
     /* No need to check for a race here; the path hash is always checked
        first */
-    dwError = SMBHashSetValue(
+    ntStatus = SMBHashSetValue(
                     pSession->pTreeHashByTID,
                     &pTree->tid,
                     pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionRemoveTreeById(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
 
-    dwError = SMBHashRemoveKey(
+    ntStatus = SMBHashRemoveKey(
                     pSession->pTreeHashByTID,
                     &pTree->tid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMBSessionUpdateLastActiveTime(pSession);
 
@@ -230,61 +230,61 @@ cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionAddTreeByPath(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
 
     /* @todo: check for race */
-    dwError = SMBHashSetValue(
+    ntStatus = SMBHashSetValue(
                     pSession->pTreeHashByPath,
                     pTree->pszPath,
                     pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionRemoveTreeByPath(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
 
-    dwError = SMBHashRemoveKey(pSession->pTreeHashByPath, pTree->pszPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBHashRemoveKey(pSession->pTreeHashByPath, pTree->pszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -300,12 +300,12 @@ SMBSrvClientSessionSignMessages(
     return (pSession->bSignedMessagesRequired || (pSession->bSignedMessagesSupported && gRdrRuntime.config.bSignMessagesIfSupported));
 }
 
-DWORD
+NTSTATUS
 SMBSrvClientSessionRelease(
     PSMB_SESSION pSession
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
 
     /** @todo: keep unused sockets around for a little while when daemonized.
      * To avoid writing frequently to shared cache lines, perhaps set a bit
@@ -315,14 +315,14 @@ SMBSrvClientSessionRelease(
      */
 
     /* @todo: verify that the tree hash is empty */
-    dwError = Logoff(pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = Logoff(pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     SMBSessionRelease(pSession);
 
-    return dwError;
+    return ntStatus;
 
 error:
 

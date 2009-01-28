@@ -115,6 +115,47 @@ LwRtlCStringFree(
     RTL_FREE(ppszString);
 }
 
+LW_LONG
+LwRtlCStringCompare(
+    LW_IN LW_PCSTR pString1,
+    LW_IN LW_PCSTR pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    )
+{
+    LW_LONG result = 0;
+    int innerResult = 0;
+
+    if (bIsCaseSensitive)
+    {
+        innerResult = strcmp(pString1, pString2);
+    }
+    else
+    {
+        innerResult = strcasecmp(pString1, pString2);
+    }
+
+    if (innerResult > 0)
+    {
+        result = 1;
+    }
+    else if (innerResult < 0)
+    {
+        result = -1;
+    }
+
+    return result;
+}
+
+LW_BOOLEAN
+LwRtlCStringIsEqual(
+    LW_IN LW_PCSTR pString1,
+    LW_IN LW_PCSTR pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    )
+{
+    return LwRtlCStringCompare(pString1, pString2, bIsCaseSensitive) == 0;
+}
+
 static
 NTSTATUS
 LwRtlCStringAllocatePrintfV(

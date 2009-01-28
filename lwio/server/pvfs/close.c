@@ -29,7 +29,6 @@
  */
 
 
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -43,8 +42,7 @@
  *
  *        Close Dispatch Function
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
@@ -52,13 +50,45 @@
 NTSTATUS
 PvfsClose(
     IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    
-    return ntStatus;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
+
+    /* make sure we have a proper CCB */
+
+
+    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    BAIL_ON_INVALID_PTR(pCcb, ntError);
+
+    if (close(pCcb->fd) == -1)
+    {
+        int err = errno;
+
+        ntError = PvfsMapUnixErrnoToNtStatus(err);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    PVFS_SAFE_FREE_MEMORY(pCcb->pszFilename);
+    PVFS_SAFE_FREE_MEMORY(pCcb);
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+error:
+    goto cleanup;
 }
 
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

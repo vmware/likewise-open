@@ -71,14 +71,14 @@ SMBSocketReaderMain(
     );
 
 static
-DWORD
+NTSTATUS
 SMBSocketFindAndSignalResponse(
     PSMB_SOCKET pSocket,
     PSMB_PACKET pPacket
     );
 
 static
-DWORD
+NTSTATUS
 SMBSocketFindSessionByUID(
     PSMB_SOCKET   pSocket,
     uint16_t      uid,
@@ -86,7 +86,7 @@ SMBSocketFindSessionByUID(
     );
 
 static
-DWORD
+NTSTATUS
 SMBSocketReceiveNegotiateOrSetupResponse(
     PSMB_SOCKET   pSocket,
     PSMB_PACKET* ppPacket
@@ -99,14 +99,14 @@ SMBSocketFree(
     );
 
 
-DWORD
+NTSTATUS
 SMBSocketCreate(
     struct addrinfo *address,
     uchar8_t        *pszHostname,
     PSMB_SOCKET*     ppSocket
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     SMB_SOCKET *pSocket = NULL;
     BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroyHashLock = FALSE;
@@ -114,10 +114,10 @@ SMBSocketCreate(
     BOOLEAN bDestroyWriteMutex = FALSE;
     BOOLEAN bDestroySessionMutex = FALSE;
 
-    dwError = SMBAllocateMemory(
+    ntStatus = SMBAllocateMemory(
                 sizeof(SMB_SOCKET),
                 (PVOID*)&pSocket);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pSocket->mutex, NULL);
     bDestroyMutex = TRUE;
@@ -126,8 +126,8 @@ SMBSocketCreate(
     pSocket->error.type = ERROR_SMB;
     pSocket->error.smb = SMB_ERROR_SUCCESS;
 
-    dwError = pthread_cond_init(&pSocket->event, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_cond_init(&pSocket->event, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
 
@@ -143,11 +143,11 @@ SMBSocketCreate(
     pSocket->fd = 0;
 
     /* Hostname is trusted */
-    dwError = SMBStrndup(
+    ntStatus = SMBStrndup(
                     (char *) pszHostname,
                     strlen((char *) pszHostname) + sizeof(NUL),
                     (char **) &pSocket->pszHostname);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->address = *address->ai_addr;
 
@@ -160,37 +160,37 @@ SMBSocketCreate(
 
     pSocket->hPacketAllocator = gRdrRuntime.hPacketAllocator;
 
-    dwError = pthread_rwlock_init(&pSocket->hashLock, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pthread_rwlock_init(&pSocket->hashLock, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyHashLock = TRUE;
 
-    dwError = SMBHashCreate(
+    ntStatus = SMBHashCreate(
                     19,
                     SMBHashCaselessStringCompare,
                     SMBHashCaselessString,
                     NULL,
                     &pSocket->pSessionHashByPrincipal);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBHashCreate(
+    ntStatus = SMBHashCreate(
                     19,
                     &SMBSocketHashSessionCompareByUID,
                     &SMBSocketHashSessionByUID,
                     NULL,
                     &pSocket->pSessionHashByUID);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pSocket->sessionMutex, NULL);
     bDestroySessionMutex = TRUE;
 
     /* The reader thread will immediately block waiting for initialization */
-    dwError = pthread_create(
+    ntStatus = pthread_create(
                     &pSocket->readerThread,
                     NULL,
                     &SMBSocketReaderMain,
                     (void *) pSocket);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->pSessionPacket = NULL;
 
@@ -198,7 +198,7 @@ SMBSocketCreate(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -316,7 +316,7 @@ SMBSocketTimedOut_InLock(
     return bTimedOut;
 }
 
-DWORD
+ULONG
 SMBSocketGetNextSequence(
     PSMB_SOCKET pSocket
     )
@@ -351,14 +351,14 @@ SMBSocketUpdateLastActiveTime(
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
-DWORD
+NTSTATUS
 SMBSocketSend(
     PSMB_SOCKET pSocket,
     PSMB_PACKET pPacket
     )
 {
     /* @todo: signal handling */
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     ssize_t  writtenLen = 0;
     BOOLEAN  bInLock = FALSE;
     BOOLEAN  bSemaphoreAcquired = FALSE;
@@ -367,8 +367,8 @@ SMBSocketSend(
     {
         if (sem_wait(&pSocket->semMpx) < 0)
         {
-            dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            ntStatus = errno;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         bSemaphoreAcquired = TRUE;
@@ -383,15 +383,15 @@ SMBSocketSend(
 
     if (writtenLen < 0)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = errno;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->writeMutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -406,13 +406,13 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSocketReceiveAndUnmarshall(
     PSMB_SOCKET pSocket,
     PSMB_PACKET pPacket
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     /* @todo: handle timeouts, signals, buffer overflow */
     /* This logic would need to be modified for zero copy */
     uint32_t len = sizeof(NETBIOS_HEADER);
@@ -420,13 +420,13 @@ SMBSocketReceiveAndUnmarshall(
     uint32_t bufferUsed = 0;
 
     /* @todo: support read threads in the daemonized case */
-    dwError = SMBSocketRead(pSocket, pPacket->pRawBuffer, len, &readLen);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSocketRead(pSocket, pPacket->pRawBuffer, len, &readLen);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (len != readLen)
     {
-        dwError = EPIPE;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = EPIPE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
@@ -434,17 +434,17 @@ SMBSocketReceiveAndUnmarshall(
 
     pPacket->pNetBIOSHeader->len = ntohl(pPacket->pNetBIOSHeader->len);
 
-    dwError = SMBSocketRead(
+    ntStatus = SMBSocketRead(
                     pSocket,
                     pPacket->pRawBuffer + bufferUsed,
                     pPacket->pNetBIOSHeader->len,
                     &readLen);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if(pPacket->pNetBIOSHeader->len != readLen)
     {
-        dwError = EPIPE;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = EPIPE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pPacket->pSMBHeader = (SMB_HEADER *) (pPacket->pRawBuffer + bufferUsed);
@@ -463,7 +463,7 @@ SMBSocketReceiveAndUnmarshall(
 
 error:
 
-    return dwError;
+    return ntStatus;
 }
 
 static
@@ -472,7 +472,7 @@ SMBSocketReaderMain(
     PVOID pData
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_SOCKET pSocket = (PSMB_SOCKET) pData;
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pPacket = NULL;
@@ -504,43 +504,43 @@ SMBSocketReaderMain(
         ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, NULL);
         if (ret == -1)
         {
-            dwError = errno;
+            ntStatus = errno;
         }
         else if (ret != 1)
         {
-            dwError = EFAULT;
+            ntStatus = EFAULT;
         }
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         SMBSocketUpdateLastActiveTime(pSocket);
 
-        dwError = SMBPacketAllocate(pSocket->hPacketAllocator, &pPacket);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMBPacketAllocate(pSocket->hPacketAllocator, &pPacket);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        dwError = SMBPacketBufferAllocate(
+        ntStatus = SMBPacketBufferAllocate(
                     pSocket->hPacketAllocator,
                     1024*64,
                     &pPacket->pRawBuffer,
                     &pPacket->bufferLen);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         /* Read whole messages */
-        dwError = SMBSocketReceiveAndUnmarshall(pSocket, pPacket);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMBSocketReceiveAndUnmarshall(pSocket, pPacket);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         if (pSocket->maxMpxCount && (sem_post(&pSocket->semMpx) < 0))
         {
             SMB_LOG_ERROR("Error when posting socket semaphore");
-            dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            ntStatus = errno;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         /* @todo: the client thread is responsible for calling FreePacket(),
            which will lock the socket and add the memory back to the free
            list, if appropriate. */
         /* This function should free packet and socket memory on error */
-        dwError = SMBSocketFindAndSignalResponse(pSocket, pPacket);
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = SMBSocketFindAndSignalResponse(pSocket, pPacket);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         pPacket = NULL;
     }
@@ -566,7 +566,7 @@ cleanup:
 
 error:
 
-    SMB_LOG_ERROR("Error when handling SMB socket[code:%d]", dwError);
+    SMB_LOG_ERROR("Error when handling SMB socket[code:%d]", ntStatus);
 
     goto cleanup;
 }
@@ -575,13 +575,13 @@ error:
    there are currently no blocking operations in the response path; one could
    simply lock hashes all the way up the path */
 static
-DWORD
+NTSTATUS
 SMBSocketFindAndSignalResponse(
     PSMB_SOCKET pSocket,
     PSMB_PACKET pPacket
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_SESSION  pSession  = NULL;
     PSMB_TREE     pTree     = NULL;
     PSMB_RESPONSE pResponse = NULL;
@@ -608,11 +608,11 @@ SMBSocketFindAndSignalResponse(
         goto cleanup;
     }
 
-    dwError = SMBSocketFindSessionByUID(
+    ntStatus = SMBSocketFindSessionByUID(
                     pSocket,
                     pPacket->pSMBHeader->uid,
                     &pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* COM_TREE_DISCONNECT has a MID and is handled by the normal MID path. */
     if (pPacket->pSMBHeader->command == COM_TREE_CONNECT_ANDX)
@@ -631,17 +631,17 @@ SMBSocketFindAndSignalResponse(
         goto cleanup;
     }
 
-    dwError = SMBSessionFindTreeById(
+    ntStatus = SMBSessionFindTreeById(
                     pSession,
                     pPacket->pSMBHeader->tid,
                     &pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBTreeFindLockedResponseByMID(
+    ntStatus = SMBTreeFindLockedResponseByMID(
                     pTree,
                     pPacket->pSMBHeader->mid,
                     &pResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMB_LOG_DEBUG("Found response [mid: %d] in Tree [0x%x] Socket [0x%x]", pPacket->pSMBHeader->mid, pTree, pSocket);
 
@@ -669,7 +669,7 @@ cleanup:
         SMBSessionRelease(pSession);
     }
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -677,7 +677,7 @@ error:
 }
 
 static
-DWORD
+NTSTATUS
 SMBSocketFindSessionByUID(
     PSMB_SOCKET   pSocket,
     uint16_t      uid,
@@ -686,17 +686,17 @@ SMBSocketFindSessionByUID(
 {
     /* It is not necessary to ref. the socket here because we're guaranteed
        that the reader thread dies before the socket is destroyed */
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PSMB_SESSION pSession = NULL;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSocket->hashLock);
 
-    dwError = SMBHashGetValue(
+    ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByUID,
                     &uid,
                     (PVOID *) &pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMBSessionAddReference(pSession);
 
@@ -706,7 +706,7 @@ cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -733,13 +733,13 @@ SMBSocketAddReference(
 
 /* @todo: catch signals? */
 /* @todo: set socket option NODELAY for better performance */
-DWORD
+NTSTATUS
 SMBSocketConnect(
     PSMB_SOCKET pSocket,
     struct addrinfo *ai
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     int fd;
     fd_set fdset;
     struct timeval tv = { .tv_sec = 10, .tv_usec = 0 };
@@ -748,43 +748,43 @@ SMBSocketConnect(
 
     if ((fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0)
     {
-        dwError = errno;
+        ntStatus = errno;
     }
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
     {
-        dwError = errno;
+        ntStatus = errno;
     }
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     FD_ZERO(&fdset);
     FD_SET(fd, &fdset);
 
     if (connect(fd, ai->ai_addr, ai->ai_addrlen) && errno != EINPROGRESS)
     {
-        dwError = errno;
+        ntStatus = errno;
     }
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ret = select(fd + 1, NULL, &fdset, &fdset, &tv);
     if (ret == 0)
     {
-        dwError = ETIMEDOUT;
+        ntStatus = ETIMEDOUT;
     }
     else if (ret == -1)
     {
-        dwError = errno;
+        ntStatus = errno;
     }
     else if (ret != 1)
     {
-        dwError = EFAULT;
+        ntStatus = EFAULT;
     }
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    pSocket->state = SMB_RESOURCE_STATE_INITIALIZING;
+    pSocket->state = SMB_RESOURCE_STATE_VALID;
     pSocket->fd = fd;
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
@@ -793,7 +793,7 @@ SMBSocketConnect(
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -802,12 +802,12 @@ error:
         close(fd);
     }
 
-    SMBSocketInvalidate(pSocket, ERROR_SMB, dwError);
+    SMBSocketInvalidate(pSocket, ERROR_SMB, ntStatus);
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSocketRead(
     PSMB_SOCKET pSocket,
     uint8_t *buffer,
@@ -815,7 +815,7 @@ SMBSocketRead(
     uint32_t *actualLen
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     ssize_t totalRead = 0;
     ssize_t nRead = 0;
     fd_set fdset;
@@ -833,22 +833,22 @@ SMBSocketRead(
         ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, &tv);
         if (ret == 0)
         {
-            dwError = ETIMEDOUT;
+            ntStatus = ETIMEDOUT;
         }
         else if (ret == -1)
         {
-            dwError = errno;
+            ntStatus = errno;
         }
         else if (ret != 1)
         {
-            dwError = EFAULT;
+            ntStatus = EFAULT;
         }
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         nRead = read(pSocket->fd, buffer + totalRead, len - totalRead);
         if(nRead < 0)
         {
-            dwError = errno;
+            ntStatus = errno;
         }
         else if (nRead == 0)
         {
@@ -863,11 +863,11 @@ cleanup:
 
     *actualLen = totalRead;
 
-    return dwError;
+    return ntStatus;
 
 error:
 
-    SMBSocketInvalidate(pSocket, ERROR_SMB, dwError);
+    SMBSocketInvalidate(pSocket, ERROR_SMB, ntStatus);
 
     goto cleanup;
 }
@@ -927,7 +927,7 @@ SMBSocketSetState(
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
-DWORD
+NTSTATUS
 SMBSocketReceiveNegotiateResponse(
     PSMB_SOCKET   pSocket,
     PSMB_PACKET* ppPacket
@@ -936,7 +936,7 @@ SMBSocketReceiveNegotiateResponse(
     return SMBSocketReceiveNegotiateOrSetupResponse(pSocket, ppPacket);
 }
 
-DWORD
+NTSTATUS
 SMBSocketReceiveSessionSetupResponse(
     PSMB_SOCKET   pSocket,
     PSMB_PACKET* ppPacket
@@ -945,7 +945,7 @@ SMBSocketReceiveSessionSetupResponse(
     return SMBSocketReceiveNegotiateOrSetupResponse(pSocket, ppPacket);
 }
 
-DWORD
+NTSTATUS
 SMBSocketReceiveLogoffResponse(
     PSMB_SOCKET   pSocket,
     PSMB_PACKET* ppPacket
@@ -955,13 +955,13 @@ SMBSocketReceiveLogoffResponse(
 }
 
 static
-DWORD
+NTSTATUS
 SMBSocketReceiveNegotiateOrSetupResponse(
     PSMB_SOCKET   pSocket,
     PSMB_PACKET* ppPacket
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     struct timespec ts = { 0, 0 };
 
@@ -978,15 +978,15 @@ SMBSocketReceiveNegotiateOrSetupResponse(
 retry_wait:
 
         /* @todo: always verify non-error state after acquiring mutex */
-        dwError = pthread_cond_timedwait(
+        ntStatus = pthread_cond_timedwait(
                         &pSocket->sessionEvent,
                         &pSocket->mutex,
                         &ts);
-        if (dwError == ETIMEDOUT)
+        if (ntStatus == ETIMEDOUT)
         {
             if (time(NULL) < ts.tv_sec)
             {
-                dwError = 0;
+                ntStatus = 0;
                 goto retry_wait;
             }
 
@@ -999,10 +999,10 @@ retry_wait:
             }
             else
             {
-                dwError = SMB_ERROR_SUCCESS;
+                ntStatus = SMB_ERROR_SUCCESS;
             }
         }
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *ppPacket = pSocket->pSessionPacket;
@@ -1012,7 +1012,7 @@ cleanup:
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -1021,24 +1021,24 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 SMBSocketFindSessionByPrincipal(
     PSMB_SOCKET   pSocket,
     uint8_t      *pszPrincipal,
     PSMB_SESSION* ppSession
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PSMB_SESSION pSession = NULL;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSocket->hashLock);
 
-    dwError = SMBHashGetValue(
+    ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByPrincipal,
                     pszPrincipal,
                     (PVOID *) &pSession);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SMBSessionAddReference(pSession);
 
@@ -1048,7 +1048,7 @@ cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
 
-    return dwError;
+    return ntStatus;
 
 error:
 

@@ -1,5 +1,5 @@
 
-DWORD
+NTSTATUS
 SMBSessionCreate(
     PSMB_SESSION* ppSession
     );
@@ -27,21 +27,21 @@ SMBSessionUpdateLastActiveTime(
     PSMB_SESSION pSession
     );
 
-DWORD
+NTSTATUS
 SMBSessionFindTreeByPath(
     PSMB_SESSION pSession,
     uchar8_t    *pszPath,
     PSMB_TREE*  ppTree
     );
 
-DWORD
+NTSTATUS
 SMBSessionFindTreeById(
     PSMB_SESSION pSession,
     uint16_t     tid,
     PSMB_TREE*   ppTree
     );
 
-DWORD
+NTSTATUS
 SMBSessionReceiveResponse(
     PSMB_SESSION pSession,
     PSMB_PACKET* ppPacket

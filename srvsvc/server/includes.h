@@ -48,8 +48,6 @@
 #include <compat/dcerpc.h>
 #include <compat/rpcstatus.h>
 
-#include "srvsvc_h.h"
-
 #include <wc16str.h>
 
 #include <lw/ntstatus.h>
@@ -57,8 +55,9 @@
 #include <lwio/lwio.h>
 #include <lwio/ntfileapi.h>
 
-#include "srvsvcdefs.h"
-#include "srvsvcutils.h"
+#include <srvsvcdefs.h>
+#include <srvsvcutils.h>
+#include <srvsvc_stub.h>
 
 #include "defs.h"
 #include "structs.h"

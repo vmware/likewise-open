@@ -454,7 +454,7 @@ AC_CONFIG_FILES([Makefile
         client/Makefile
         server/Makefile
         server/rdr/Makefile
-        server/smb/Makefile
+        server/smbwire/Makefile
         server/iomgr2/Makefile
         server/srv/Makefile
         server/npvfs/Makefile
@@ -471,8 +471,12 @@ AC_CONFIG_FILES([Makefile
         tests/test_bitvector/Makefile
         tests/test_rbtree/Makefile
         tests/test_npclient/Makefile
+        tests/test_npserver/Makefile
         tests/test_npclient_transactnp/Makefile
+        tests/test_pvfs/Makefile
         tests/tcon/Makefile
-        tests/transactnp/Makefile])
+        tests/transactnp/Makefile
+        scripts/Makefile
+        scripts/lwnet])
 
 AC_OUTPUT

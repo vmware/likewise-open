@@ -173,7 +173,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         btin_dom_access = btin_dom_flags | req_btin_dom_flags;
         conn_handle = cn->samr.conn_handle;
 
-        status = RtlParseSidStringA(&btin_dom_sid, SID_BUILTIN_DOMAIN);
+        status = ParseSidStringA(&btin_dom_sid, SID_BUILTIN_DOMAIN);
         if (status != 0) return status;
 
         status = SamrOpenDomain(samr_b, &conn_handle, btin_dom_access,

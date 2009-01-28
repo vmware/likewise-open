@@ -81,6 +81,20 @@ LwRtlCStringFree(
     LW_IN LW_OUT LW_PSTR* ppszString
     );
 
+LW_LONG
+LwRtlCStringCompare(
+    LW_IN LW_PCSTR pString1,
+    LW_IN LW_PCSTR pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    );
+
+LW_BOOLEAN
+LwRtlCStringIsEqual(
+    LW_IN LW_PCSTR pString1,
+    LW_IN LW_PCSTR pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    );
+
 LW_NTSTATUS
 LwRtlCStringAllocatePrintf(
     LW_OUT PSTR* ppszString,
@@ -192,6 +206,8 @@ LwRtlAnsiStringFree(
 #define RtlCStringAllocateFromWC16String LwRtlCStringAllocateFromWC16String
 #define RtlCStringDuplicate LwRtlCStringDuplicate
 #define RtlCStringFree LwRtlCStringFree
+#define RtlCStringCompare LwRtlCStringCompare
+#define RtlCStringIsEqual LwRtlCStringIsEqual
 #define RtlCStringAllocatePrintf LwRtlCStringAllocatePrintf
 #define RtlCStringAllocateAppendPrintf LwRtlCStringAllocateAppendPrintf
 

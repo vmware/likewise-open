@@ -56,21 +56,21 @@ Logoff(
     PSMB_SESSION pSession
     )
 {
-    uint32_t dwError = 0;
+    uint32_t ntStatus = 0;
     SMB_PACKET packet = {0};
     PSMB_PACKET pResponsePacket = NULL;
     DWORD dwSequence = 0;
     DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
-    dwError = SMBPacketBufferAllocate(
+    ntStatus = SMBPacketBufferAllocate(
                     pSession->pSocket->hPacketAllocator,
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBPacketMarshallHeader(
+    ntStatus = SMBPacketMarshallHeader(
                 packet.pRawBuffer,
                 packet.bufferLen,
                 COM_LOGOFF_ANDX,
@@ -82,7 +82,7 @@ Logoff(
                 0,
                 SMBSrvClientSessionSignMessages(pSession),
                 &packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     packet.pSMBHeader->wordCount = 2;
 
@@ -90,44 +90,44 @@ Logoff(
     packet.bufferUsed += sizeof(uint16_t); /* ByteCount */
     *((uint16_t *) packet.pData) = 0;
 
-    dwError = SMBPacketMarshallFooter(&packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBPacketMarshallFooter(&packet);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (SMBSrvClientSessionSignMessages(pSession))
     {
         dwSequence = SMBSocketGetNextSequence(pSession->pSocket);
 
-        dwError = SMBPacketSign(
+        ntStatus = SMBPacketSign(
                         &packet,
                         dwSequence,
                         pSession->pSocket->pSessionKey,
                         pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         // resultant is the response sequence from server
         dwResponseSequence = dwSequence + 1;
     }
 
-    dwError = SMBSocketSend(pSession->pSocket, &packet);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSocketSend(pSession->pSocket, &packet);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBSocketReceiveLogoffResponse(
+    ntStatus = SMBSocketReceiveLogoffResponse(
                     pSession->pSocket,
                     &pResponsePacket);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (SMBSrvClientSessionSignMessages(pSession))
     {
-        dwError = SMBPacketVerifySignature(
+        ntStatus = SMBPacketVerifySignature(
                         pResponsePacket,
                         dwResponseSequence,
                         pSession->pSocket->pSessionKey,
                         pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = pResponsePacket->pSMBHeader->error;
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
@@ -144,7 +144,7 @@ cleanup:
                 packet.bufferLen);
     }
 
-    return dwError;
+    return ntStatus;
 
 error:
 

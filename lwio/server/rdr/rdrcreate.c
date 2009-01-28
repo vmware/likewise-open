@@ -142,9 +142,6 @@ RdrCommonCreate(
     FILE_SHARE_FLAGS ShareAccess;
     FILE_CREATE_DISPOSITION CreateDisposition;
     FILE_CREATE_OPTIONS CreateOptions;
-    PIO_EA_BUFFER pEaBuffer;
-    PVOID SecurityDescriptor;
-    //PVOID SecurityQualityOfService;
     HANDLE hFile = NULL;
 
     PIO_ACCESS_TOKEN pSecurityToken = pIrp->Args.Create.SecurityContext->pAccessToken;
@@ -155,8 +152,6 @@ RdrCommonCreate(
     ShareAccess = pIrp->Args.Create.ShareAccess;
     CreateDisposition = pIrp->Args.Create.CreateDisposition;
     CreateOptions = pIrp->Args.Create.CreateOptions;
-    pEaBuffer = pIrp->Args.Create.pEaBuffer;
-    SecurityDescriptor = pIrp->Args.Create.SecurityDescriptor;
     pFileName = &pIrp->Args.Create.FileName;
 
     ntStatus = RdrCreateFileEx(

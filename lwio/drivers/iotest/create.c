@@ -55,27 +55,25 @@ ItDispatchCreate(
     UNICODE_STRING allowPath = { 0 };
     PIT_CCB pCcb = NULL;
 
-    RtlUnicodeStringInit(&path, (PWSTR)pIrp->Args.Create.FileName.FileName);
+    RtlUnicodeStringInit(&path, pIrp->Args.Create.FileName.FileName);
 
     status = RtlUnicodeStringAllocateFromCString(&allowPath, IOTEST_INTERNAL_PATH_ALLOW);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     // Only succeed for a certain path.
-    if (RtlUnicodeStringIsEqual(&path, &allowPath, FALSE))
-    {
-        status = ItpCreateCcb(&pCcb, &path);
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-        status = IoFileSetContext(pIrp->FileHandle, pCcb);
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-        pCcb = NULL;
-    }
-    else
+    if (!RtlUnicodeStringIsEqual(&path, &allowPath, FALSE))
     {
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_EE(EE);
     }
+
+    status = ItpCreateCcb(&pCcb, &path);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = IoFileSetContext(pIrp->FileHandle, pCcb);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pCcb = NULL;
 
 cleanup:
     ItpDestroyCcb(&pCcb);
@@ -93,7 +91,17 @@ ItDispatchClose(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    int EE = 0;
+    PIT_CCB pCcb = NULL;
 
+    status = ItpGetCcb(&pCcb, pIrp);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    ItpDestroyCcb(&pCcb);
+
+cleanup:
     pIrp->IoStatusBlock.Status = status;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
     return status;
 }

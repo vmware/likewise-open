@@ -49,12 +49,12 @@
 #include "rdr.h"
 
 
-DWORD
+NTSTATUS
 RdrCloseFileEx(
     HANDLE hFile
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
 
     if (pFile->pTree)
@@ -67,5 +67,5 @@ RdrCloseFileEx(
 
     SMBFreeMemory(pFile);
 
-    return dwError;
+    return ntStatus;
 }

@@ -137,6 +137,7 @@ IopIpcCreateFile(
     IO_FILE_HANDLE fileHandle = NULL;
     IO_FILE_NAME fileName = { 0 };
     IO_CREATE_SECURITY_CONTEXT securityContext = { {0, 0}, NULL };
+    PIO_ECP_LIST pEcpList = NULL;
 
     assert(messageType == pRequest->tag);
 
@@ -149,6 +150,9 @@ IopIpcCreateFile(
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_CREATE_FILE_RESULT, sizeof(*pReply));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
     securityContext.pAccessToken = pMessage->pSecurityToken;
 
 #ifdef _NT_IPC_USE_PSEUDO_TYPES
@@ -157,22 +161,43 @@ IopIpcCreateFile(
     fileName = pMessage->FileName;
 #endif
 
-    // TODO -- EAs, SDs, etc.
+    if (pMessage->EcpCount)
+    {
+        ULONG ecpIndex = 0;
+
+        pReply->Status = IoRtlEcpListAllocate(&pEcpList);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+
+        for (ecpIndex = 0; ecpIndex < pMessage->EcpCount; ecpIndex++)
+        {
+            pReply->Status = IoRtlEcpListInsert(
+                                    pEcpList,
+                                    pMessage->EcpList[ecpIndex].pszType,
+                                    pMessage->EcpList[ecpIndex].pData,
+                                    pMessage->EcpList[ecpIndex].Size,
+                                    NULL);
+            GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+        }
+    }
+
+    // TODO -- SDs, etc.
     pReply->Status = IoCreateFile(
                             &fileHandle,
                             NULL,
                             &ioStatusBlock,
                             &securityContext,
                             &fileName,
+                            NULL,
+                            NULL,
                             pMessage->DesiredAccess,
                             pMessage->AllocationSize,
                             pMessage->FileAttributes,
                             pMessage->ShareAccess,
                             pMessage->CreateDisposition,
                             pMessage->CreateOptions,
-                            NULL,
-                            NULL,
-                            NULL);
+                            pMessage->EaBuffer,
+                            pMessage->EaLength,
+                            pEcpList);
 #ifdef _NT_IPC_USE_PSEUDO_TYPES
     NtIpcRealToPseudoIoFileHandle(fileHandle, &pReply->FileHandle);
 #else
@@ -188,9 +213,6 @@ IopIpcCreateFile(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    pResponse->tag = replyType;
-    pResponse->object = pReply;
-
 cleanup:
     if (status)
     {
@@ -201,6 +223,8 @@ cleanup:
         }
         IO_FREE(&pReply);
     }
+
+    IoRtlEcpListFree(&pEcpList);
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);
     return NtIpcNtStatusToLWMsgStatus(status);

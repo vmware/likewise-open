@@ -42,8 +42,9 @@
  *        Service Entry API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Gerald Carter <gcarter@likewise.com>
  */
+
 #ifndef __PVFS_H__
 #define __PVFS_H__
 
@@ -58,58 +59,79 @@
 #include "lwioutils.h"
 #include "structs.h"
 
+#include "macros.h"
+
+/* Unix (POSIX) APIs */
+
+#include <errno.h>
+
+/* Top level APi functions */
+
 NTSTATUS
 PvfsCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsDeviceIo(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsFsCtrl(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsWrite(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     );
-
 
 NTSTATUS
 PvfsRead(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsClose(
     IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsQueryInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     );
 
-#include "create.h"
+#include "create_p.h"
+#include "alloc_p.h"
+
+NTSTATUS
+PvfsMapUnixErrnoToNtStatus(
+    int err
+    );
+
 
 #endif /* __PVFS_H__ */
 
 
-
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -52,12 +52,10 @@
 NTSTATUS
 PvfsFsCtrl(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    
-    return ntStatus;
+	return STATUS_NOT_IMPLEMENTED;
 }
 
 

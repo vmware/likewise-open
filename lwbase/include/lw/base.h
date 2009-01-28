@@ -43,6 +43,7 @@
 #include <lw/attrs.h>
 #include <lw/atomic.h>
 #include <lw/ntstatus.h>
+#include <lw/errno.h>
 #include <lw/rtlmemory.h>
 #include <lw/rtlstring.h>
 

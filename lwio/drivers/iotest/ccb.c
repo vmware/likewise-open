@@ -86,3 +86,15 @@ ItpDestroyCcb(
         *ppCcb = NULL;
     }
 }
+
+NTSTATUS
+ItpGetCcb(
+    OUT PIT_CCB* ppCcb,
+    IN PIRP pIrp
+    )
+{
+    PIT_CCB pCcb = (PIT_CCB) IoFileGetContext(pIrp->FileHandle);
+    assert(pCcb);
+    *ppCcb = pCcb;
+    return pCcb ? STATUS_SUCCESS : STATUS_INTERNAL_ERROR;
+}
