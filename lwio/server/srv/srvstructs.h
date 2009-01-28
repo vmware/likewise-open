@@ -215,8 +215,6 @@ typedef struct _SMB_SRV_FILE
 
     USHORT            fid;
 
-    PSRV_ID_ALLOCATOR pFileIdAllocator;
-
 } SMB_SRV_FILE, *PSMB_SRV_FILE;
 
 typedef struct _SMB_SRV_TREE
@@ -230,10 +228,9 @@ typedef struct _SMB_SRV_TREE
 
     PSHARE_DB_INFO    pShareInfo;
 
-    PSRV_ID_ALLOCATOR pFileIdAllocator;
     PSMB_RB_TREE      pFileCollection;
 
-    PSRV_ID_ALLOCATOR pTreeIdAllocator;
+    USHORT            nextAvailableFid;
 
 } SMB_SRV_TREE, *PSMB_SRV_TREE;
 
@@ -246,10 +243,9 @@ typedef struct _SMB_SRV_SESSION
 
     USHORT            uid;
 
-    PSRV_ID_ALLOCATOR pTreeIdAllocator;
     PSMB_RB_TREE      pTreeCollection;
 
-    PSRV_ID_ALLOCATOR pSessionIdAllocator;
+    USHORT            nextAvailableTid;
 
 } SMB_SRV_SESSION, *PSMB_SRV_SESSION;
 
@@ -291,8 +287,9 @@ typedef struct _SMB_SRV_CONNECTION
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;
 
-    PSRV_ID_ALLOCATOR   pSessionIdAllocator;
     PSMB_RB_TREE        pSessionCollection;
+
+    USHORT              nextAvailableUid;
 
 } SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
 

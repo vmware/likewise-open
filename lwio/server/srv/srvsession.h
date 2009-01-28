@@ -3,7 +3,7 @@
 
 NTSTATUS
 SrvSessionCreate(
-    PSRV_ID_ALLOCATOR pIdAllocator,
+    USHORT            uid,
     PSMB_SRV_SESSION* ppSession
     );
 

@@ -1,10 +1,17 @@
 #include "includes.h"
 
 static
+NTSTATUS
+SrvSessionAcquireTreeId_inlock(
+   PSMB_SRV_SESSION pSession,
+   PUSHORT          pTid
+   );
+
+static
 int
 SrvSessionTreeCompare(
-    PVOID pTree1,
-    PVOID pTree2
+    PVOID pKey1,
+    PVOID pKey2
     );
 
 static
@@ -21,13 +28,14 @@ SrvSessionFree(
 
 NTSTATUS
 SrvSessionCreate(
-    PSRV_ID_ALLOCATOR pIdAllocator,
+    USHORT            uid,
     PSMB_SRV_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
     PSMB_SRV_SESSION pSession = NULL;
-    USHORT uid = 0;
+
+    SMB_LOG_DEBUG("Creating session [uid:%u]", uid);
 
     ntStatus = SMBAllocateMemory(
                     sizeof(SMB_SRV_SESSION),
@@ -39,20 +47,9 @@ SrvSessionCreate(
     pthread_rwlock_init(&pSession->mutex, NULL);
     pSession->pMutex = &pSession->mutex;
 
-    ntStatus = SrvIdAllocatorAcquireId(
-                    pIdAllocator,
-                    &uid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     pSession->uid = uid;
 
-    pSession->pSessionIdAllocator = pIdAllocator;
-    InterlockedIncrement(&pIdAllocator->refcount);
-
-    ntStatus = SrvIdAllocatorCreate(
-                    UINT16_MAX,
-                    &pSession->pTreeIdAllocator);
-    BAIL_ON_NT_STATUS(ntStatus);
+    SMB_LOG_DEBUG("Associating session [object:0x%x][uid:%u]", pSession, uid);
 
     ntStatus = SMBRBTreeCreate(
                     &SrvSessionTreeCompare,
@@ -123,16 +120,12 @@ SrvSessionRemoveTree(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    SMB_SRV_TREE finder;
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
-    memset(&finder, 0, sizeof(finder));
-    finder.tid = tid;
-
     ntStatus = SMBRBTreeRemove(
                     pSession->pTreeCollection,
-                    &finder);
+                    &tid);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -154,14 +147,20 @@ SrvSessionCreateTree(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_TREE pTree = NULL;
     BOOLEAN bInLock = FALSE;
+    USHORT  tid = 0;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    ntStatus = SrvSessionAcquireTreeId_inlock(
+                    pSession,
+                    &tid);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvTreeCreate(
-                    pSession->pTreeIdAllocator,
+                    tid,
                     pShareInfo,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
     ntStatus = SMBRBTreeAdd(
                     pSession->pTreeCollection,
@@ -196,6 +195,8 @@ SrvSessionRelease(
     PSMB_SRV_SESSION pSession
     )
 {
+    SMB_LOG_DEBUG("Releasing session [uid:%u]", pSession->uid);
+
     if (InterlockedDecrement(&pSession->refcount) == 0)
     {
         SrvSessionFree(pSession);
@@ -203,22 +204,76 @@ SrvSessionRelease(
 }
 
 static
+NTSTATUS
+SrvSessionAcquireTreeId_inlock(
+   PSMB_SRV_SESSION pSession,
+   PUSHORT          pTid
+   )
+{
+    NTSTATUS ntStatus = 0;
+    USHORT   candidateTid = pSession->nextAvailableTid;
+    BOOLEAN  bFound = FALSE;
+
+    do
+    {
+        PSMB_SRV_TREE pTree = NULL;
+
+        if (!candidateTid || (candidateTid == UINT16_MAX))
+        {
+            candidateTid++;
+        }
+
+        ntStatus = SMBRBTreeFind(
+                        pSession->pTreeCollection,
+                        &candidateTid,
+                        (PVOID*)&pTree);
+        if (ntStatus == STATUS_NOT_FOUND)
+        {
+            ntStatus = 0;
+            bFound = TRUE;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+    } while ((candidateTid != pSession->nextAvailableTid) && !bFound);
+
+    if (!bFound)
+    {
+        ntStatus = STATUS_TOO_MANY_LINKS;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pSession->nextAvailableTid = candidateTid + 1;
+    *pTid = candidateTid;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pTid = 0;
+
+    goto cleanup;
+}
+
+static
 int
 SrvSessionTreeCompare(
-    PVOID pTree1,
-    PVOID pTree2
+    PVOID pKey1,
+    PVOID pKey2
     )
 {
-    PSMB_SRV_TREE pTree1_casted = (PSMB_SRV_TREE)pTree1;
-    PSMB_SRV_TREE pTree2_casted = (PSMB_SRV_TREE)pTree2;
+    PUSHORT pTid1 = (PUSHORT)pKey1;
+    PUSHORT pTid2 = (PUSHORT)pKey2;
 
-    // tids will not change after the tree is created
-    // so, no need to lock the tree objects when fetching tids
-    if (pTree1_casted->tid > pTree2_casted->tid)
+    assert (pTid1 != NULL);
+    assert (pTid2 != NULL);
+
+    if (*pTid1 > *pTid2)
     {
         return 1;
     }
-    else if (pTree1_casted->tid < pTree2_casted->tid)
+    else if (*pTid1 < *pTid2)
     {
         return -1;
     }
@@ -243,19 +298,14 @@ SrvSessionFree(
     PSMB_SRV_SESSION pSession
     )
 {
+    SMB_LOG_DEBUG("Freeing session [object:0x%x][uid:%u]",
+                    pSession,
+                    pSession->uid);
+
     if (pSession->pMutex)
     {
         pthread_rwlock_destroy(&pSession->mutex);
         pSession->pMutex = NULL;
-    }
-
-    if (pSession->pSessionIdAllocator)
-    {
-        SrvIdAllocatorReleaseId(
-                pSession->pSessionIdAllocator,
-                pSession->uid);
-
-        SrvIdAllocatorRelease(pSession->pSessionIdAllocator);
     }
 
     if (pSession->pTreeCollection)
@@ -263,10 +313,6 @@ SrvSessionFree(
         SMBRBTreeFree(pSession->pTreeCollection);
     }
 
-    if (pSession->pTreeIdAllocator)
-    {
-        SrvIdAllocatorRelease(pSession->pTreeIdAllocator);
-    }
-
     SMBFreeMemory(pSession);
 }
+

@@ -99,7 +99,6 @@
 #include "prodcons.h"
 #include "srvsharelst.h"
 #include "sharedb.h"
-#include "srvidallocator.h"
 #include "srvfile.h"
 #include "srvtree.h"
 #include "srvsession.h"

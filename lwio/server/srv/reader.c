@@ -66,8 +66,8 @@ SrvSocketReaderMustStop(
 static
 int
 SrvSocketReaderCompareConnections(
-    PVOID pConn1,
-    PVOID pConn2
+    PVOID pKey1,
+    PVOID pKey2
     );
 
 static
@@ -507,7 +507,7 @@ SrvSocketReaderPurgeConnections(
 
             SMBRBTreeRemove(
                     pReaderContext->pConnections,
-                    pSrvConnection);
+                    &pSrvConnection->pSocket->fd);
 
             pthread_mutex_unlock(pReaderContext->pMutex);
         }
@@ -559,21 +559,21 @@ SrvSocketReaderMustStop(
 static
 int
 SrvSocketReaderCompareConnections(
-    PVOID pConn1,
-    PVOID pConn2
+    PVOID pKey1,
+    PVOID pKey2
     )
 {
-    int fd1 = -1;
-    int fd2 = -1;
+    PINT pFd1 = (PINT)pKey1;
+    PINT pFd2 = (PINT)pKey2;
 
-    fd1 = SrvConnectionGetFd((PSMB_SRV_CONNECTION)pConn1);
-    fd2 = SrvConnectionGetFd((PSMB_SRV_CONNECTION)pConn2);
+    assert(pFd1 != NULL);
+    assert(pFd2 != NULL);
 
-    if (fd1 > fd2)
+    if (*pFd1 > *pFd2)
     {
         return 1;
     }
-    else if (fd1 < fd2)
+    else if (*pFd1 < *pFd2)
     {
         return -1;
     }

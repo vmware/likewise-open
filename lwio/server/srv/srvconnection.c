@@ -9,6 +9,13 @@
 // The file descriptor is closed only when the connection object is freed.
 
 static
+NTSTATUS
+SrvConnectionAcquireSessionId_inlock(
+   PSMB_SRV_CONNECTION pConnection,
+   PUSHORT             pUid
+   );
+
+static
 VOID
 SrvConnectionFreeContentsClientProperties(
     PSRV_CLIENT_PROPERTIES pProperties
@@ -27,8 +34,8 @@ SrvConnectionReadMessage(
 static
 int
 SrvConnectionSessionCompare(
-    PVOID pSession1,
-    PVOID pSession2
+    PVOID pKey1,
+    PVOID pKey2
     );
 
 static
@@ -51,12 +58,18 @@ SrvConnectionCreate(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_CONNECTION pConnection = NULL;
 
+    SMB_LOG_DEBUG("Creating server connection [fd:%d]", pSocket->fd);
+
     ntStatus = SMBAllocateMemory(
                     sizeof(SMB_SRV_CONNECTION),
                     (PVOID*)&pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->refCount = 1;
+
+    SMB_LOG_DEBUG("Associating connection [object:0x%x][fd:%d]",
+                    pConnection,
+                    pSocket->fd);
 
     pthread_rwlock_init(&pConnection->mutex, NULL);
     pConnection->pMutex = &pConnection->mutex;
@@ -66,11 +79,6 @@ SrvConnectionCreate(
                     NULL,
                     &SrvConnectionSessionRelease,
                     &pConnection->pSessionCollection);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvIdAllocatorCreate(
-                    UINT16_MAX,
-                    &pConnection->pSessionIdAllocator);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvAcquireHostInfo(
@@ -102,6 +110,11 @@ cleanup:
 error:
 
     *ppConnection = NULL;
+
+    if (pConnection)
+    {
+        SrvConnectionRelease(pConnection);
+    }
 
     goto cleanup;
 }
@@ -218,6 +231,8 @@ SrvConnectionSetInvalid(
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    SMB_LOG_DEBUG("Setting connection [fd:%d] to invalid", pConnection->pSocket->fd);
 
     pConnection->state = SMB_SRV_CONN_STATE_INVALID;
 
@@ -455,16 +470,12 @@ SrvConnectionRemoveSession(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    SMB_SRV_SESSION finder;
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    memset(&finder, 0, sizeof(finder));
-    finder.uid = uid;
-
     ntStatus = SMBRBTreeRemove(
                     pConnection->pSessionCollection,
-                    &finder);
+                    &uid);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -487,13 +498,19 @@ SrvConnectionCreateSession(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
-
-    ntStatus = SrvSessionCreate(
-                    pConnection->pSessionIdAllocator,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    USHORT  uid = 0;
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    ntStatus = SrvConnectionAcquireSessionId_inlock(
+                    pConnection,
+                    &uid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSessionCreate(
+                    uid,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBRBTreeAdd(
                     pConnection->pSessionCollection,
@@ -528,8 +545,14 @@ SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection
     )
 {
+    SMB_LOG_DEBUG("Releasing connection [fd:%d]", pConnection->pSocket->fd);
+
     if (InterlockedDecrement(&pConnection->refCount) == 0)
     {
+        SMB_LOG_DEBUG("Freeing connection [object:0x%x][fd:%d]",
+                        pConnection,
+                        pConnection->pSocket->fd);
+
         if (pConnection->readerState.pRequestPacket)
         {
             SMBPacketFree(
@@ -556,11 +579,6 @@ SrvConnectionRelease(
             SMBRBTreeFree(pConnection->pSessionCollection);
         }
 
-        if (pConnection->pSessionIdAllocator)
-        {
-            SrvIdAllocatorRelease(pConnection->pSessionIdAllocator);
-        }
-
         if (pConnection->pHostinfo)
         {
             SrvReleaseHostInfo(pConnection->pHostinfo);
@@ -576,6 +594,59 @@ SrvConnectionRelease(
 
         SMBFreeMemory(pConnection);
     }
+}
+
+static
+NTSTATUS
+SrvConnectionAcquireSessionId_inlock(
+   PSMB_SRV_CONNECTION pConnection,
+   PUSHORT             pUid
+   )
+{
+    NTSTATUS ntStatus = 0;
+    USHORT   candidateUid = pConnection->nextAvailableUid;
+    BOOLEAN  bFound = FALSE;
+
+    do
+    {
+        PSMB_SRV_SESSION pSession = NULL;
+
+        if (!candidateUid || (candidateUid == UINT16_MAX))
+        {
+            candidateUid++;
+        }
+
+        ntStatus = SMBRBTreeFind(
+                        pConnection->pSessionCollection,
+                        &candidateUid,
+                        (PVOID*)&pSession);
+        if (ntStatus == STATUS_NOT_FOUND)
+        {
+            ntStatus = 0;
+            bFound = TRUE;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+    } while ((candidateUid != pConnection->nextAvailableUid) && !bFound);
+
+    if (!bFound)
+    {
+        ntStatus = STATUS_TOO_MANY_SESSIONS;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pConnection->nextAvailableUid = candidateUid + 1;
+    *pUid = candidateUid;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pUid = 0;
+
+    goto cleanup;
 }
 
 static
@@ -637,19 +708,21 @@ error:
 static
 int
 SrvConnectionSessionCompare(
-    PVOID pSession1,
-    PVOID pSession2
+    PVOID pKey1,
+    PVOID pKey2
     )
 {
-    PSMB_SRV_SESSION pSession1_casted = (PSMB_SRV_SESSION)pSession1;
-    PSMB_SRV_SESSION pSession2_casted = (PSMB_SRV_SESSION)pSession2;
+    PUSHORT pUid1 = (PUSHORT)pKey1;
+    PUSHORT pUid2 = (PUSHORT)pKey2;
 
-    // safe to access uid here without locking the session object
-    if (pSession1_casted->uid > pSession2_casted->uid)
+    assert (pUid1 != NULL);
+    assert (pUid2 != NULL);
+
+    if (*pUid1 > *pUid2)
     {
         return 1;
     }
-    else if (pSession1_casted->uid < pSession2_casted->uid)
+    else if (*pUid1 < *pUid2)
     {
         return -1;
     }

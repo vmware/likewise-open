@@ -33,8 +33,8 @@
 static
 int
 SrvShareCompare(
-    PVOID pShareInfo_1,
-    PVOID pShareInfo_2
+    PVOID pShareName1,
+    PVOID pShareName2
     );
 
 static
@@ -104,7 +104,7 @@ SrvShareInitContextContents(
 
             ntStatus = SMBRBTreeAdd(
                             pShareCollection,
-                            &pShareInfo->pwszName,
+                            pShareInfo->pwszName,
                             pShareInfo);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -986,13 +986,14 @@ error:
 static
 int
 SrvShareCompare(
-    PVOID pShareInfo_1,
-    PVOID pShareInfo_2
+    PVOID pShareName1,
+    PVOID pShareName2
     )
 {
-    return wc16scmp(
-                ((PSHARE_DB_INFO)pShareInfo_1)->pwszName,
-                ((PSHARE_DB_INFO)pShareInfo_2)->pwszName);
+    assert(pShareName1 != NULL);
+    assert(pShareName2 != NULL);
+
+    return wc16scmp((PWSTR)pShareName1, (PWSTR)pShareName2);
 }
 
 static
