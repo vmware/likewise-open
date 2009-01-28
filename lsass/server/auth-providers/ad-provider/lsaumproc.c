@@ -409,8 +409,10 @@ LsaUmpIsUserActive(
 
         while( (result = stat(filePath, &compareStat)) < 0 )
         {
-            if ( errno == EINTR )
-                continue;
+            if ( errno != EINTR )
+            {
+                break;
+            }
         }
         if ( result == 0 )
         {
