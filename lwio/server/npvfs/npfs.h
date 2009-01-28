@@ -126,6 +126,11 @@ NpfsSetInformation(
 
 #define LEAVE_WRITER_RW_LOCK(pMutex)
 
+
+#define ENTER_MUTEX(pMutex)
+
+#define LEAVE_MUTEX(pMutex)
+
 #define SERVER_CCB          1
 #define CLIENT_CCB          2
 

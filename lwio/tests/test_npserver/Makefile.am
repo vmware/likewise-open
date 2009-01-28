@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test_npserver
+bin_PROGRAMS = test_npserver
 
 test_npserver_SOURCES = main.c
 

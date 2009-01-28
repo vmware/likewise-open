@@ -118,7 +118,7 @@ NpfsCommonCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
 
-    ENTER_WRITER_RW_LOCK(&gServerLock);
+    ENTER_READER_RW_LOCK(&gServerLock);
 
     ntStatus = NpfsFindFCB(
                     &PipeName,
@@ -132,6 +132,16 @@ NpfsCommonCreate(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ENTER_MUTEX(&pPipe->PipeMutex);
+
+    if (pPipe->PipeServerState != PIPE_SERVER_WAITING_FOR_CONNECTION) {
+
+        LEAVE_MUTEX(&pPipe->Mutex);
+        ntStatus = STATUS_INVALID_SERVER_STATE;
+        LEAVE_READER_RW_LOCK(&gServerLock);
+        return ntStatus;
+    }
+
     ntStatus = NpfsCreateCCB(
                     pIrpContext,
                     &pCCB
@@ -140,19 +150,15 @@ NpfsCommonCreate(
 
     pPipe->pCCB = pCCB;
     pPipe->PipeClientState =  PIPE_CLIENT_CONNECTED;
-    pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
     pCCB->pPipe = pPipe;
 
-    //
-    // Now set the condition queue to trigger the
-    // waiting ConnectNamedPipe on the SCB
-    //
-    //IoFileSetContext(FileHandle, pCCB);
+    pthread_cond_signal(&pPipe->PipeCondition);
 
+    LEAVE_MUTEX(&pPipe->PipeMutex);
 
 error:
 
-    LEAVE_WRITER_RW_LOCK(&gServerLock);
+    LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
 }

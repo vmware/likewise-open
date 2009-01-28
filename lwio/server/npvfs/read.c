@@ -140,11 +140,14 @@ NpfsServerReadFile(
 
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pCCB->pPipe;
-    ENTER_READER_RW_LOCK(&pPipe->Mutex);
+    ENTER_MUTEX(&pPipe->Mutex);
 
     switch(pPipe->PipeServerState) {
 
         case PIPE_SERVER_CONNECTED:
+                while (NpfsMdlListIsEmpty(pCCB->pMdlList)) {
+                     pthread_cond_wait(&pPipe->PipeCondition,&pPipe->PipeMutex);
+                }
                 ntStatus = NpfsServerReadFile_Connected(
                                 pSCB,
                                 pIrpContext
@@ -164,7 +167,7 @@ NpfsServerReadFile(
 
 error:
 
-    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_MUTEX(&pPipe->Mutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
@@ -179,8 +182,6 @@ NpfsServerReadFile_Connected(
     NTSTATUS ntStatus = 0;
     PVOID pBuffer = NULL;
     ULONG Length = 0;
-
-    ENTER_WRITER_RW_LOCK(&pSCB->InBoundMutex);
 
     ntStatus = NpfsDequeueBuffer(
                         pSCB->pMdlList,
@@ -206,11 +207,14 @@ NpfsClientReadFile(
 
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pCCB->pPipe;
-    ENTER_READER_RW_LOCK(&pPipe->Mutex);
+    ENTER_MUTEX(&pPipe->Mutex);
 
     switch(pPipe->PipeClientState) {
 
         case PIPE_CLIENT_CONNECTED:
+            while (NpfsMdlListIsEmpty(pCCB->pMdlList)) {
+                pthread_cond_wait(&pPipe->PipeCondition, &pPipe->PipeMutex);
+            }
             ntStatus = NpfsClientReadFile_Connected(
                             pCCB,
                             pIrpContext
@@ -224,7 +228,7 @@ NpfsClientReadFile(
 
 error:
 
-    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_MUTEX(&pPipe->Mutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
@@ -241,8 +245,6 @@ NpfsClientReadFile_Connected(
     PVOID pBuffer = NULL;
     ULONG Length = 0;
 
-    ENTER_WRITER_RW_LOCK(&pCCB->InBoundMutex);
-
     ntStatus = NpfsDequeueBuffer(
                         pCCB->pMdlList,
                         pBuffer,
@@ -252,8 +254,6 @@ NpfsClientReadFile_Connected(
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
-
-    LEAVE_WRITER_RW_LOCK(&pCCB->InBoundMutex);
 
     return(ntStatus);
 }

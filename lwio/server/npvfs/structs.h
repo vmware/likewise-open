@@ -30,7 +30,8 @@ typedef struct _NPFS_CCB{
 
 
 typedef struct _NPFS_PIPE {
-   // CRITICAL_SECTION  PipeMutex;
+    pthread_mutex_t PipeMutex;
+    pthread_cond_t PipeCondition;
     ULONG PipeClientState;
     ULONG PipeServerState;
     PNPFS_CCB pSCB;

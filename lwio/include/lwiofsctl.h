@@ -50,5 +50,6 @@ typedef struct __IO_FSCTL_SMB_SESSION_KEY
     BYTE Buffer[];
 } __attribute__((packed)) IO_FSCTL_SMB_SESSION_KEY, *PIO_FSCTL_SMB_SESSION_KEY;
 
+#define IO_NPFS_FSCTL_CONNECT_NAMED_PIPE      0x02
 
 #endif

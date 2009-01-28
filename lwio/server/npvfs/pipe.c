@@ -75,6 +75,9 @@ NpfsCreatePipe(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pthread_cond_init(&pPipe->PipeCondition,NULL);
+    pthread_mutex_init(&pPipe->PipeMutex, NULL);
+
     pPipe->pNext = pFCB->pPipes;
     pFCB->pPipes = pPipe;
 

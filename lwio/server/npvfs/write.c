@@ -119,15 +119,16 @@ NpfsServerWriteFile(
 
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pSCB->pPipe;
-    ENTER_READER_RW_LOCK(&pPipe->Mutex);
+    ENTER_MUTEX(&pPipe->PipeMutex);
 
     switch(pPipe->PipeServerState) {
 
         case PIPE_SERVER_CONNECTED:
-                ntStatus = NpfsServerReadFile_Connected(
+                ntStatus = NpfsServerWriteFile_Connected(
                                 pSCB,
                                 pIrpContext
                                 );
+                pthread_cond_signal(&pPipe->PipeCondition);
                 BAIL_ON_NT_STATUS(ntStatus);
                 break;
 
@@ -139,7 +140,7 @@ NpfsServerWriteFile(
 
 error:
 
-    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_MUTEX(&pPipe->PipeMutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);
@@ -157,7 +158,7 @@ NpfsClientWriteFile(
 
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pCCB->pPipe;
-    ENTER_READER_RW_LOCK(&pPipe->Mutex);
+    ENTER_MUTEX(&pPipe->Mutex);
 
     switch(pPipe->PipeClientState) {
 
@@ -166,13 +167,14 @@ NpfsClientWriteFile(
                             pCCB,
                             pIrpContext
                             );
+            pthread_cond_signal(&pPipe->PipeCondition);
             BAIL_ON_NT_STATUS(ntStatus);
             break;
 
     }
 error:
 
-    LEAVE_READER_RW_LOCK(&pPipe->Mutex);
+    LEAVE_MUTEX(&pPipe->Mutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
     return(ntStatus);

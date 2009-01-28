@@ -41,7 +41,7 @@
  *
  *        Likewise Posix File System Driver (NPFS)
  *
- *       Create Dispatch Routine
+ *       ConnectNamedPipe Dispatch Routine
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
@@ -64,7 +64,9 @@ NpfsConnectNamedPipe(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsCommonConnectNamedPipe(pIrpContext);
+    ntStatus = NpfsCommonConnectNamedPipe(
+                        pIrpContext,
+                        pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -72,34 +74,86 @@ error:
     return ntStatus;
 }
 
+
 NTSTATUS
 NpfsCommonConnectNamedPipe(
-    PNPFS_IRP_CONTEXT pIrpContext
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE FileHandle;
+    UNICODE_STRING  PathName = {0};
+    PNPFS_FCB pFCB = NULL;
     PNPFS_PIPE pPipe = NULL;
+    PNPFS_CCB pSCB = NULL;
 
-    ntStatus = ValidConnectNPOptions(
-                    pIrpContext
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ENTER_WRITER_RW_LOCK(&gServerLock);
-
+    ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pSCB->pPipe;
-    pPipe->PipeServerState = PIPE_SERVER_WAITING;
 
-    LEAVE_WRITER_RW_LOCK(&gServerLock);
+    ENTER_MUTEX(&pPipe->Mutex);
 
-    //
-    // Now block on  the condition queue
-    // waiting for a CreateFile from a client
-    //
+    if (pPipe->PipeServerState !=  PIPE_SERVER_CREATED) {
 
-error:
+        ntStatus = STATUS_INVALID_OPERATION;
+        LEAVE_WRITE_RW_LOCK(&pPipe->Mutex);
 
+        return(ntStatus);
+    }
+
+    pPipe->PipeServerState = PIPE_SERVER_WAITING_FOR_CONNECTION;
+
+    while(pPipe->PipeServerState != PIPE_CLIENT_CONNECTED){
+
+        pthread_cond_wait(&pPipe->Mutex);
+
+    }
+
+    pPiper->PipeServerState = PIPE_SERVER_CONNECTED;
+
+    LEAVE_MUTEX(&pPipe->Mutex);
+
+
+    LEAVE_READER_RW_LOCK(&gServerLock);
     return(ntStatus);
 }
 
+
+NTSTATUS
+NpfsValidateConnectNamedPipe(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PUNICODE_STRING  pPath
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PIO_ECP_NAMED_PIPE pipeParams = NULL;
+    ULONG ecpSize = 0;
+
+    if (!pIrpContext->pIrp->Args.Connect.EcpList)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = IoRtlEcpListFind(
+                    pIrpContext->pIrp->Args.Connect.EcpList,
+                    IO_ECP_TYPE_NAMED_PIPE,
+                    (PVOID*)&pipeParams,
+                    &ecpSize);
+    if (STATUS_NOT_FOUND == ntStatus)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (ecpSize != sizeof(*pipeParams))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    RtlUnicodeStringInit(pPath, pIrpContext->pIrp->Args.Connect.FileName.FileName);
+
+error:
+
+    return ntStatus;
+}

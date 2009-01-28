@@ -160,3 +160,15 @@ NpfsFreeMdlList(
     return(ntStatus);
 }
 
+BOOLEAN
+NpfsMdlListIsEmpty(
+    PNPFS_MDL pNpfsMdlList
+    )
+{
+    if (!pNpfsMdlList) {
+        return FALSE;
+    }else {
+        return TRUE;
+    }
+}
+

@@ -151,6 +151,10 @@ NpfsFreeMdl(
     PNPFS_MDL pMdl
     );
 
+BOOLEAN
+NpfsMdlListIsEmpty(
+    PNPFS_MDL pNpfsMdlList
+    );
 /* read.c */
 
 NTSTATUS

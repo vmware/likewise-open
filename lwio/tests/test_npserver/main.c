@@ -54,6 +54,10 @@
 #include "lwioutils.h"
 
 
+NTSTATUS
+NtConnectNamedPipe(
+    IO_FILE_HANDLE FileHandle
+    );
 
 int
 main(int argc,
@@ -108,7 +112,7 @@ main(int argc,
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,
-                    "\\npfs\\%s",
+                    "\\npvfs\\%s",
                     (char*) pipename);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -146,3 +150,29 @@ error:
 
     return(ntStatus);
 }
+
+
+
+NTSTATUS
+NtConnectNamedPipe(
+    IO_FILE_HANDLE FileHandle
+    )
+{
+
+    NTSTATUS ntStatus = 0;
+    IO_STATUS_BLOCK IoStatusBlock;
+
+    ntStatus = NtFsControlFile(
+                    FileHandle,
+                    NULL,
+                    &IoStatusBlock,
+                    0x2,
+                    NULL,
+                    0,
+                    NULL,
+                    0
+                    );
+    return(ntStatus);
+}
+
+

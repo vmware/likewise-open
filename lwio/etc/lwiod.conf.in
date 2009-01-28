@@ -17,6 +17,9 @@
 	path = @providerdir@/libpvfs.sys@MOD_EXT@
 
 
+[driver:npvfs]
+	path = @providerdir@/libnpvfs.sys@MOD_EXT@
+
 [driver:rdr]
 	path = @providerdir@/librdr.sys@MOD_EXT@
 
