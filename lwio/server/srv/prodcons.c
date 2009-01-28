@@ -187,7 +187,10 @@ SrvProdConsTimedDequeue(
             }
 
             ntStatus = LwUnixErrnoToNtStatus(unixErrorCode);
-            BAIL_ON_NT_STATUS(ntStatus);
+            if (ntStatus)
+            {
+                goto error;
+            }
 
         } while (bRetryWait);
     }

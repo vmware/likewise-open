@@ -309,7 +309,10 @@ typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
 
+    ULONG          readerId;
+
     BOOLEAN        bStop;
+    BOOLEAN        bActive;
 
     PSMB_RB_TREE   pConnections;
     ULONG          ulNumSockets;
@@ -326,6 +329,8 @@ typedef struct _SMB_SRV_SOCKET_READER
     pthread_t  reader;
     pthread_t* pReader;
 
+    ULONG      readerId;
+
     SMB_SRV_SOCKET_READER_CONTEXT context;
 
 } SMB_SRV_SOCKET_READER, *PSMB_SRV_SOCKET_READER;
@@ -337,6 +342,8 @@ typedef struct _SMB_SRV_WORKER_CONTEXT
 
     BOOLEAN bStop;
 
+    ULONG   workerId;
+
     // Invariant
     // not owned
     PSMB_PROD_CONS_QUEUE pWorkQueue;
@@ -347,6 +354,8 @@ typedef struct _SMB_SRV_WORKER
 {
     pthread_t  worker;
     pthread_t* pWorker;
+
+    ULONG      workerId;
 
     SMB_SRV_WORKER_CONTEXT context;
 

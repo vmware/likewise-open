@@ -186,6 +186,8 @@ SrvListenerMain(
     PSMB_SRV_CONNECTION pConnection = NULL;
     PSRV_HOST_INFO pHostinfo = NULL;
 
+    SMB_LOG_DEBUG("Srv listener starting");
+
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
     {
@@ -212,6 +214,7 @@ SrvListenerMain(
 
     while (!SrvListenerMustStop(pContext))
     {
+        CHAR   remoteIpAddr[256];
         struct sockaddr_in cliaddr;
         SOCKLEN_T clilen;
 
@@ -247,8 +250,17 @@ SrvListenerMain(
             }
         }
 
+        if (getpeername(connFd, (struct sockaddr*)&cliaddr, &clilen) < 0)
+        {
+            SMB_LOG_WARNING("Failed to find the remote socket address for [fd:%d][code:%d]", connFd, errno);
+        }
+
         SMB_LOG_INFO("Handling client from [%s]",
-                     SMB_SAFE_LOG_STRING(inet_ntoa(cliaddr.sin_addr)));
+                     SMB_SAFE_LOG_STRING(inet_ntop(
+                                             AF_INET,
+                                             &cliaddr.sin_addr,
+                                             remoteIpAddr,
+                                             sizeof(remoteIpAddr))));
 
         if (!pHostinfo)
         {
@@ -336,6 +348,8 @@ cleanup:
         SrvConnectionRelease(pConnection);
     }
 
+    SMB_LOG_DEBUG("Srv listener stopping");
+
     return NULL;
 
 error:
@@ -375,7 +389,14 @@ SrvFindLeastBusyReader(
     {
         PSMB_SRV_SOCKET_READER pReader = &pReaderArray[iReader];
 
-        if (!iReader)
+        if (!SrvSocketReaderIsActive(pReader))
+        {
+            SMB_LOG_DEBUG("Reader [id:%u] is in-active", pReader->readerId);
+
+            continue;
+        }
+
+        if (!pReaderMin)
         {
             pReaderMin = pReader;
             ulNumSocketsMin = SrvSocketReaderGetCount(pReader);
@@ -454,6 +475,7 @@ SMBSrvGetLocalIPAddress(
     )
 {
     DWORD dwError = 0;
+    CHAR  szHostIpAddress[256];
     struct hostent* pHost = NULL;
     PSTR pszIpAddress = NULL;
 
@@ -465,7 +487,7 @@ SMBSrvGetLocalIPAddress(
     }
 
     dwError = SMBAllocateString(
-                inet_ntoa(*(struct in_addr*)(pHost->h_addr_list[0])),
+                inet_ntop(AF_INET, pHost->h_addr_list[0], szHostIpAddress, sizeof(szHostIpAddress)),
                 &pszIpAddress);
     BAIL_ON_SMB_ERROR(dwError);
 

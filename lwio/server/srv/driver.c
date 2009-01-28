@@ -255,9 +255,15 @@ SrvInitialize(
 
     for (; iReader < gSMBSrvGlobals.config.ulNumReaders; iReader++)
     {
+        PSMB_SRV_SOCKET_READER pReader = NULL;
+
+        pReader = &gSMBSrvGlobals.pReaderArray[iReader];
+
+        pReader->readerId = iReader + 1;
+
         ntStatus = SrvSocketReaderInit(
                         &gSMBSrvGlobals.workQueue,
-                        &gSMBSrvGlobals.pReaderArray[iReader]);
+                        pReader);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -270,9 +276,13 @@ SrvInitialize(
 
     for (; iWorker < gSMBSrvGlobals.config.ulNumWorkers; iWorker++)
     {
+        PSMB_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+
+        pWorker->workerId = iWorker + 1;
+
         ntStatus = SrvWorkerInit(
                         &gSMBSrvGlobals.workQueue,
-                        &gSMBSrvGlobals.pWorkerArray[iWorker]);
+                        pWorker);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

@@ -39,6 +39,7 @@ SrvWorkerInit(
 
     pWorker->context.bStop = FALSE;
     pWorker->context.pWorkQueue = pWorkQueue;
+    pWorker->context.workerId = pWorker->workerId;
 
     ntStatus = pthread_create(
                     &pWorker->worker,
@@ -64,6 +65,8 @@ SrvWorkerMain(
     PSMB_SRV_WORKER_CONTEXT pContext = (PSMB_SRV_WORKER_CONTEXT)pData;
     PLWIO_SRV_CONTEXT pIOContext = NULL;
     struct timespec ts = {0, 0};
+
+    SMB_LOG_DEBUG("Srv worker [id:%u] starting", pContext->workerId);
 
     while (!SrvWorkerMustStop(pContext))
     {
@@ -93,8 +96,11 @@ SrvWorkerMain(
 
         if (pIOContext && pIOContext->pRequest)
         {
-            ntStatus = SrvWorkerExecute(pIOContext);
-            BAIL_ON_NT_STATUS(ntStatus);
+            NTSTATUS ntStatus2 = SrvWorkerExecute(pIOContext);
+            if (ntStatus2)
+            {
+                SMB_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
+            }
         }
     }
 
@@ -104,6 +110,8 @@ cleanup:
     {
         SrvContextFree(pIOContext);
     }
+
+    SMB_LOG_DEBUG("Srv worker [id:%u] stopping", pContext->workerId);
 
     return NULL;
 

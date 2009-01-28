@@ -12,6 +12,11 @@ SrvSocketReaderGetCount(
     PSMB_SRV_SOCKET_READER pReader
     );
 
+BOOLEAN
+SrvSocketReaderIsActive(
+    PSMB_SRV_SOCKET_READER pReader
+    );
+
 NTSTATUS
 SrvSocketReaderEnqueueConnection(
     PSMB_SRV_SOCKET_READER pReader,

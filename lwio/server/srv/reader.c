@@ -8,6 +8,13 @@ typedef struct _SMB_SOCKET_READER_WORK_SET
 } SMB_SOCKET_READER_WORK_SET, *PSMB_SOCKET_READER_WORK_SET;
 
 static
+VOID
+SrvSocketReaderSetActiveState(
+    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    BOOLEAN bState
+    );
+
+static
 PVOID
 SrvSocketReaderMain(
     PVOID pData
@@ -90,9 +97,11 @@ SrvSocketReaderInit(
     pReader->context.pMutex = &pReader->context.mutex;
 
     pReader->context.bStop = FALSE;
+    pReader->context.bActive = FALSE;
     pReader->context.pConnections  = NULL;
     pReader->context.ulNumSockets = 0;
     pReader->context.fd[0] = pReader->context.fd[1] = -1;
+    pReader->context.readerId = pReader->readerId;
 
     ntStatus = SMBRBTreeCreate(
                     &SrvSocketReaderCompareConnections,
@@ -139,6 +148,36 @@ SrvSocketReaderGetCount(
     return ulSockets;
 }
 
+BOOLEAN
+SrvSocketReaderIsActive(
+    PSMB_SRV_SOCKET_READER pReader
+    )
+{
+    BOOLEAN bActive = FALSE;
+
+    pthread_mutex_lock(&pReader->context.mutex);
+
+    bActive = pReader->context.bActive;
+
+    pthread_mutex_unlock(&pReader->context.mutex);
+
+    return bActive;
+}
+
+static
+VOID
+SrvSocketReaderSetActiveState(
+    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    BOOLEAN bState
+    )
+{
+    pthread_mutex_lock(&pReaderContext->mutex);
+
+    pReaderContext->bActive = bState;
+
+    pthread_mutex_unlock(&pReaderContext->mutex);
+}
+
 NTSTATUS
 SrvSocketReaderEnqueueConnection(
     PSMB_SRV_SOCKET_READER pReader,
@@ -148,6 +187,10 @@ SrvSocketReaderEnqueueConnection(
     NTSTATUS ntStatus = 0;
 
     pthread_mutex_lock(&pReader->context.mutex);
+
+    SMB_LOG_DEBUG("Enqueueing connection [fd:%d] at reader [id:%u]",
+                    pConnection->pSocket->fd,
+                    pReader->readerId);
 
     ntStatus = SMBRBTreeAdd(
                     pReader->context.pConnections,
@@ -179,6 +222,10 @@ SrvSocketReaderMain(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_SOCKET_READER_CONTEXT pContext = (PSMB_SRV_SOCKET_READER_CONTEXT)pData;
     SMB_SOCKET_READER_WORK_SET workSet;
+
+    SMB_LOG_DEBUG("Srv reader [id:%u] running", pContext->readerId);
+
+    SrvSocketReaderSetActiveState(pContext, TRUE);
 
     memset(&workSet, 0, sizeof(workSet));
 
@@ -239,6 +286,10 @@ cleanup:
                 pContext,
                 &workSet);
     }
+
+    SrvSocketReaderSetActiveState(pContext, FALSE);
+
+    SMB_LOG_DEBUG("Srv reader [id:%u] stopping", pContext->readerId);
 
     return NULL;
 
@@ -415,17 +466,37 @@ SrvSocketReaderProcessConnections(
 
             if (FD_ISSET(fd, &pReaderWorkset->fdset))
             {
-                ntStatus = SrvSocketReaderReadMessage(
+                NTSTATUS ntStatus2 = 0;
+
+                ntStatus2 = SrvSocketReaderReadMessage(
                                 pReaderContext,
                                 pConnection);
-                if (ntStatus == STATUS_CONNECTION_RESET)
+
+                switch (ntStatus2)
                 {
-                    SMB_LOG_DEBUG("Connection reset by peer [fd:%d][%s]",
-                                    fd,
-                                    SMB_SAFE_LOG_STRING(inet_ntoa(pConnection->pSocket->cliaddr.sin_addr)));
-                    ntStatus = 0;
+                    case STATUS_SUCCESS:
+
+                        break;
+
+                    case STATUS_CONNECTION_RESET:
+                    {
+                        CHAR szIpAddr[256];
+
+                        SMB_LOG_DEBUG("Connection reset by peer [fd:%d][%s]",
+                                        fd,
+                                        SMB_SAFE_LOG_STRING(inet_ntop(
+                                                                AF_INET,
+                                                                &pConnection->pSocket->cliaddr.sin_addr,
+                                                                szIpAddr,
+                                                                sizeof(szIpAddr))));
+                    }
+
+                    default:
+
+                        SrvConnectionSetInvalid(pConnection);
+
+                        break;
                 }
-                BAIL_ON_NT_STATUS(ntStatus);
             }
         }
     }

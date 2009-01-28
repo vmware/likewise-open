@@ -683,7 +683,7 @@ SrvConnectionReadMessage(
         {
             if ((errno != EAGAIN) && (errno != EINTR))
             {
-                ntStatus = errno;
+                ntStatus = LwUnixErrnoToNtStatus(errno);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
         }
