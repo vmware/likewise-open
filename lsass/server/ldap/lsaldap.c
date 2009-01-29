@@ -342,7 +342,7 @@ LsaLdapOpenDirectoryServer(
         ld = (LDAP *)ldap_open(pszServerAddress, dwPort);
         if (!ld && errno == ENOTCONN)
         {
-            LSA_LOG_ERROR("The ldap connection to %s was disconnected. This was attempt #%d\n",
+            LSA_LOG_ERROR("The ldap connection to %s was disconnected. This was attempt #%d",
                     pszServerAddress,
                     dwAttempt);
             sleepTime.tv_sec = 0;
@@ -653,7 +653,7 @@ LsaLdapBindDirectory(
                                            &pServerCreds
                     );
                 if (dwError != LDAP_SASL_BIND_IN_PROGRESS && dwError != 0) {
-                    LSA_LOG_ERROR("ldap_sasl_bind_s failed with error code %d\n", dwError);
+                    LSA_LOG_ERROR("ldap_sasl_bind_s failed with error code %d", dwError);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
 
@@ -667,7 +667,7 @@ LsaLdapBindDirectory(
             break;
 
         default:
-            LSA_LOG_VERBOSE("Unexpected result calling gss_init_sec_context()\n" );
+            LSA_LOG_VERBOSE("Unexpected result calling gss_init_sec_context()" );
             dwError = LSA_ERROR_GSS_CALL_FAILED;
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -734,10 +734,10 @@ void display_status_1(char *m, OM_uint32 code, int type)
         case GSS_S_COMPLETE:
         case GSS_S_CONTINUE_NEEDED:
 #endif
-            LSA_LOG_VERBOSE("GSS-API error calling %s: %d (%s)\n", m, code, (char *)msg.value);
+            LSA_LOG_VERBOSE("GSS-API error calling %s: %d (%s)", m, code, (char *)msg.value);
 	    break;
 	default:
-            LSA_LOG_ERROR("GSS-API error calling %s: %d (%s)\n", m, code, (char *)msg.value);
+            LSA_LOG_ERROR("GSS-API error calling %s: %d (%s)", m, code, (char *)msg.value);
 	}
 
         (void) gss_release_buffer(&min_stat, &msg);

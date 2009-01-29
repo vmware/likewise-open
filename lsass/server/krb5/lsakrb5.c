@@ -1409,7 +1409,7 @@ LsaSetupUserLoginSession(
              * 3. Someone created a ccache in the small window after we delete
              *    the old one and before we move in the new one.
              */
-            LSA_LOG_WARNING("Unable to set up credentials cache with tgt for uid %ld\n", (long)uid);
+            LSA_LOG_WARNING("Unable to set up credentials cache with tgt for uid %ld", (long)uid);
             dwError = LsaRemoveFile(pszTempCachePath);
             BAIL_ON_LSA_ERROR(dwError);
         }
