@@ -299,7 +299,7 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 
 AC_CHECK_HEADERS([sys/param.h sys/pstat.h procfs.h sys/procfs.h sys/sysctl.h])
 
-AC_CHECK_DECLS([KERN_PROC_PATHNAME KERN_PROCARGS], [], [], [
+AC_CHECK_DECLS([KERN_PROC_PATHNAME, KERN_PROCARGS], [], [], [
 #if HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif

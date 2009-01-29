@@ -226,7 +226,7 @@ cleanup:
     int iMib[] = {
         CTL_KERN,
         KERN_PROC,
-        KERN_PROC_ARGS,
+        KERN_PROCARGS,
         pid
     };
     size_t sBufferLen = sizeof(szArgumentBuffer);
