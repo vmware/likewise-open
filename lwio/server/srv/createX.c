@@ -199,8 +199,23 @@ SrvBuildFilePath(
     NTSTATUS ntStatus = 0;
     size_t              len_prefix = 0;
     size_t              len_suffix = 0;
-    PBYTE               pDataCursor = NULL;
+    size_t              len_separator = 0;
+    PWSTR               pDataCursor = NULL;
     PIO_FILE_NAME       pFilename = NULL;
+    wchar16_t           wszFwdSlash;
+    wchar16_t           wszBackSlash;
+
+    wcstowc16s(&wszFwdSlash, L"/", 1);
+    wcstowc16s(&wszBackSlash, L"\\", 1);
+
+    if (*pwszSuffix && (*pwszSuffix != wszFwdSlash) && (*pwszSuffix != wszBackSlash))
+    {
+#ifdef _WIN32
+        len_separator = sizeof(wszBackSlash);
+#else
+        len_separator = sizeof(wszFwdSlash);
+#endif
+    }
 
     ntStatus = SMBAllocateMemory(
                     sizeof(IO_FILE_NAME),
@@ -211,16 +226,46 @@ SrvBuildFilePath(
     len_suffix = wc16slen(pwszSuffix);
 
     ntStatus = SMBAllocateMemory(
-                    (len_prefix + len_suffix + 2 ) * sizeof(wchar16_t),
+                    (len_prefix + len_suffix + len_separator + 1 ) * sizeof(wchar16_t),
                     (PVOID*)&pFilename->FileName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pDataCursor = (PBYTE)pFilename->FileName;
-    memcpy(pDataCursor, pwszPrefix, len_prefix * sizeof(wchar16_t));
-    pDataCursor += len_prefix * sizeof(wchar16_t);
-    wcstowc16s((PWSTR)pDataCursor, L"\\", sizeof(wchar16_t));
-    pDataCursor += sizeof(wchar16_t);
-    memcpy(pDataCursor, pwszSuffix, len_suffix * sizeof(wchar16_t));
+    pDataCursor = pFilename->FileName;
+    while (pwszPrefix && *pwszPrefix)
+    {
+        *pDataCursor++ = *pwszPrefix++;
+    }
+
+    if (len_separator)
+    {
+#ifdef _WIN32
+        *pDataCursor++ = wszBackSlash;
+#else
+        *pDataCursor++ = wszFwdSlash;
+#endif
+    }
+
+    while (pwszSuffix && *pwszSuffix)
+    {
+        *pDataCursor++ = *pwszSuffix++;
+    }
+
+    pDataCursor = pFilename->FileName;
+    while (pDataCursor && *pDataCursor)
+    {
+#ifdef _WIN32
+        if (*pDataCursor == wszFwdSlash)
+        {
+            *pDataCursor = wszBackSlash;
+        }
+#else
+        if (*pDataCursor == wszBackSlash)
+        {
+            *pDataCursor = wszFwdSlash;
+        }
+#endif
+        pDataCursor++;
+    }
 
     *ppFilename = pFilename;
 
@@ -283,13 +328,13 @@ SrvBuildNTCreateResponse(
 
     pSmbResponse->pSMBHeader->wordCount = 26;
 
-    pResponseHeader->fid = pFile->fid;
-    pResponseHeader->createAction = pIoStatusBlock->CreateResult;
-    // TODO: Fill in other file attributes
-
     pResponseHeader = (PCREATE_RESPONSE_HEADER)pSmbResponse->pParams;
     pSmbResponse->pData = pSmbResponse->pParams + sizeof(CREATE_RESPONSE_HEADER);
     pSmbResponse->bufferUsed += sizeof(CREATE_RESPONSE_HEADER);
+
+    pResponseHeader->fid = pFile->fid;
+    pResponseHeader->createAction = pIoStatusBlock->CreateResult;
+    // TODO: Fill in other file attributes
 
     pSmbResponse->pByteCount = &pResponseHeader->byteCount;
     *pSmbResponse->pByteCount = 0;

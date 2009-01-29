@@ -64,12 +64,6 @@
 #define SMB_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#ifndef WIN32
-#define PATH_SEPARATOR_STR "/"
-#else
-#define PATH_SEPARATOR_STR "\\"
-#endif
-
 #define SMB_DEFAULT_HANDLE_MAX 100000
 
 typedef int             SOCKET;

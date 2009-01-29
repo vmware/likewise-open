@@ -171,6 +171,8 @@ cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 
+    return ntStatus;
+
 error:
 
     *ppFile = NULL;
