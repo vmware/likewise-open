@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libsmbutils.la
+lib_LTLIBRARIES = libsmbutils.la
 
 libsmbutils_la_SOURCES = \
     bitvector.c   \
