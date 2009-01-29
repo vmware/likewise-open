@@ -8,8 +8,17 @@ SrvFileFree(
 
 NTSTATUS
 SrvFileCreate(
-    USHORT         fid,
-    PSMB_SRV_FILE* ppFile
+    USHORT                  fid,
+    PIO_FILE_HANDLE*        pphFile,
+    PIO_STATUS_BLOCK*       ppIoStatusBlock,
+    PIO_FILE_NAME*          ppFilename,
+    ACCESS_MASK             desiredAccess,
+    LONG64                  allocationSize,
+    FILE_ATTRIBUTES         fileAttributes,
+    FILE_SHARE_FLAGS        shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS     createOptions,
+    PSMB_SRV_FILE*          ppFile
     )
 {
     NTSTATUS ntStatus = 0;
@@ -28,6 +37,18 @@ SrvFileCreate(
     pFile->pMutex = &pFile->mutex;
 
     pFile->fid = fid;
+    pFile->phFile = *pphFile;
+    *pphFile = NULL;
+    pFile->pIoStatusBlock = *ppIoStatusBlock;
+    *ppIoStatusBlock = NULL;
+    pFile->pFilename = *ppFilename;
+    *ppFilename = NULL;
+    pFile->desiredAccess = desiredAccess;
+    pFile->allocationSize = allocationSize;
+    pFile->fileAttributes = fileAttributes;
+    pFile->shareAccess = shareAccess;
+    pFile->createDisposition = createDisposition;
+    pFile->createOptions = createOptions;
 
     SMB_LOG_DEBUG("Associating file [object:0x%x][fid:%u]",
                     pFile,
@@ -78,6 +99,19 @@ SrvFileFree(
     {
         pthread_rwlock_destroy(&pFile->mutex);
         pFile->pMutex = NULL;
+    }
+
+    SMB_SAFE_FREE_MEMORY(pFile->pIoStatusBlock);
+    if (pFile->pFilename)
+    {
+        SMB_SAFE_FREE_MEMORY(pFile->pFilename->FileName);
+        SMBFreeMemory(pFile->pFilename);
+    }
+
+    if (pFile->phFile)
+    {
+        IoCloseFile(*pFile->phFile);
+        SMBFreeMemory(pFile->phFile);
     }
 
     SMBFreeMemory(pFile);

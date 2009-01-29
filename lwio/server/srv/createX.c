@@ -32,8 +32,19 @@
 
 static
 NTSTATUS
+SrvBuildFilePath(
+    PWSTR          pwszPrefix,
+    PWSTR          pwszSuffix,
+    PIO_FILE_NAME* ppFilename
+    );
+
+static
+NTSTATUS
 SrvBuildNTCreateResponse(
-    PSMB_PACKET* ppSmbResponse
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_SRV_FILE       pFile,
+    PSMB_PACKET*        ppSmbResponse
     );
 
 NTSTATUS
@@ -47,8 +58,16 @@ SrvProcessNTCreateAndX(
     PSMB_PACKET         pSmbResponse = NULL;
     PSMB_SRV_SESSION    pSession = NULL;
     PSMB_SRV_TREE       pTree = NULL;
+    PSMB_SRV_FILE       pFile = NULL;
     PCREATE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PWSTR               pwszFilename = NULL; // Do not free
+    PIO_FILE_HANDLE     phFile = NULL;
+    PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
+    PIO_STATUS_BLOCK    pIoStatusBlock = NULL;
+    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
+    PVOID               pSecurityDescriptor = NULL;
+    PVOID               pSecurityQOS = NULL;
+    PIO_FILE_NAME       pFilename = NULL;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -70,7 +89,61 @@ SrvProcessNTCreateAndX(
                     &pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    // TODO: Handle root fids
+    ntStatus = SrvBuildFilePath(
+                    pTree->pShareInfo->pwszPath,
+                    pwszFilename,
+                    &pFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBAllocateMemory(
+                    sizeof(IO_STATUS_BLOCK),
+                    (PVOID*)&pIoStatusBlock);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBAllocateMemory(
+                    sizeof(IO_FILE_HANDLE),
+                    (PVOID*)&phFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoCreateFile(
+                    phFile,
+                    pAsyncControlBlock,
+                    pIoStatusBlock,
+                    pSecurityContext,
+                    pFilename,
+                    pSecurityDescriptor,
+                    pSecurityQOS,
+                    pRequestHeader->desiredAccess,
+                    pRequestHeader->allocationSize,
+                    pRequestHeader->extFileAttributes,
+                    pRequestHeader->shareAccess,
+                    pRequestHeader->createDisposition,
+                    pRequestHeader->createOptions,
+                    NULL, /* EA Buffer */
+                    0,    /* EA Length */
+                    NULL  /* ECP List  */
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTreeCreateFile(
+                    pTree,
+                    &phFile,
+                    &pIoStatusBlock,
+                    &pFilename,
+                    pRequestHeader->desiredAccess,
+                    pRequestHeader->allocationSize,
+                    pRequestHeader->extFileAttributes,
+                    pRequestHeader->shareAccess,
+                    pRequestHeader->createDisposition,
+                    pRequestHeader->createOptions,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvBuildNTCreateResponse(
+                    pConnection,
+                    pSmbRequest,
+                    pFile,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -80,6 +153,21 @@ SrvProcessNTCreateAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
+
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
+    }
+
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
 
     if (pSmbResponse)
     {
@@ -92,16 +180,126 @@ cleanup:
 
 error:
 
+    if (pFilename)
+    {
+        SMB_SAFE_FREE_MEMORY(pFilename->FileName);
+        SMBFreeMemory(pFilename);
+    }
+
+    SMB_SAFE_FREE_MEMORY(pIoStatusBlock);
+    SMB_SAFE_FREE_MEMORY(phFile);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvBuildFilePath(
+    PWSTR          pwszPrefix,
+    PWSTR          pwszSuffix,
+    PIO_FILE_NAME* ppFilename
+    )
+{
+    NTSTATUS ntStatus = 0;
+    size_t              len_prefix = 0;
+    size_t              len_suffix = 0;
+    PBYTE               pDataCursor = NULL;
+    PIO_FILE_NAME       pFilename = NULL;
+
+    ntStatus = SMBAllocateMemory(
+                    sizeof(IO_FILE_NAME),
+                    (PVOID*)&pFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    len_prefix = wc16slen(pwszPrefix);
+    len_suffix = wc16slen(pwszSuffix);
+
+    ntStatus = SMBAllocateMemory(
+                    (len_prefix + len_suffix + 2 ) * sizeof(wchar16_t),
+                    (PVOID*)&pFilename->FileName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pDataCursor = (PBYTE)pFilename->FileName;
+    memcpy(pDataCursor, pwszPrefix, len_prefix * sizeof(wchar16_t));
+    pDataCursor += len_prefix * sizeof(wchar16_t);
+    wcstowc16s((PWSTR)pDataCursor, L"\\", sizeof(wchar16_t));
+    pDataCursor += sizeof(wchar16_t);
+    memcpy(pDataCursor, pwszSuffix, len_suffix * sizeof(wchar16_t));
+
+    *ppFilename = pFilename;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppFilename = NULL;
+
+    if (pFilename)
+    {
+        SMB_SAFE_FREE_MEMORY(pFilename->FileName);
+        SMBFreeMemory(pFilename);
+    }
+
     goto cleanup;
 }
 
 static
 NTSTATUS
 SrvBuildNTCreateResponse(
-    PSMB_PACKET* ppSmbResponse
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_SRV_FILE       pFile,
+    PSMB_PACKET*        ppSmbResponse
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS    ntStatus = 0;
+    PSMB_PACKET pSmbResponse = NULL;
+    PCREATE_RESPONSE_HEADER pResponseHeader = NULL;
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_NT_CREATE_ANDX,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                getpid(),
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 26;
+
+    pResponseHeader->fid = pFile->fid;
+    // TODO: Fill in other file attributes
+
+    pResponseHeader = (PCREATE_RESPONSE_HEADER)pSmbResponse->pParams;
+    pSmbResponse->pData = pSmbResponse->pParams + sizeof(CREATE_RESPONSE_HEADER);
+    pSmbResponse->bufferUsed += sizeof(CREATE_RESPONSE_HEADER);
+
+    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
+    *pSmbResponse->pByteCount = 0;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return ntStatus;
 }

@@ -154,7 +154,7 @@ SrvShareDbCreate(
     ntStatus = SrvShareDbAdd(
                     pShareDBContext,
                     hDb,
-                    "c$",
+                    "C$",
                     "\\\\pvfs\\root",
                     "Root of Posix Virtual File System",
                     NULL,

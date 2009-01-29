@@ -68,6 +68,7 @@
 #include "smbwire.h"
 
 #include "iodriver.h"
+#include "ioapi.h"
 
 #include "defs.h"
 #include "srvstructs.h"

@@ -208,12 +208,22 @@ typedef struct _SRV_ID_ALLOCATOR
 
 typedef struct _SMB_SRV_FILE
 {
-    pthread_rwlock_t   mutex;
-    pthread_rwlock_t*  pMutex;
+    pthread_rwlock_t        mutex;
+    pthread_rwlock_t*       pMutex;
 
-    LONG              refcount;
+    LONG                    refcount;
 
-    USHORT            fid;
+    USHORT                  fid;
+
+    PIO_FILE_HANDLE         phFile;
+    PIO_STATUS_BLOCK        pIoStatusBlock;
+    PIO_FILE_NAME           pFilename;
+    ACCESS_MASK             desiredAccess;
+    LONG64                  allocationSize;
+    FILE_ATTRIBUTES         fileAttributes;
+    FILE_SHARE_FLAGS        shareAccess;
+    FILE_CREATE_DISPOSITION createDisposition;
+    FILE_CREATE_OPTIONS     createOptions;
 
 } SMB_SRV_FILE, *PSMB_SRV_FILE;
 

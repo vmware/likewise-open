@@ -494,7 +494,7 @@ typedef struct
     uint8_t  isDirectory;       /* TRUE if this is a directory */
     uint16_t byteCount;         /* = 0 */
 
-}  __attribute__((__packed__))  CREATE_RESPONSE_HEADER;
+}  __attribute__((__packed__))  CREATE_RESPONSE_HEADER, *PCREATE_RESPONSE_HEADER;
 
 typedef struct
 {
