@@ -43,6 +43,7 @@
  */
 
 #include "includes.h"
+#include <lw/rtlgoto.h>
 
 VOID
 LwRtlMemoryZero(
@@ -60,8 +61,12 @@ LwRtlMemoryAllocate(
 {
     PVOID pMemory = NULL;
 
-    // TODO-Document behavior for Size == 0.
-    assert(Size > 0);
+    // Currently, we fail zero-sized allocations.
+    // If we want to relax that in the future, we can do so.
+    if (Size <= 0)
+    {
+        GOTO_CLEANUP();
+    }
 
     // Note -- If this allocator changes, need to change iostring routines.
     pMemory = malloc(Size);
@@ -70,6 +75,7 @@ LwRtlMemoryAllocate(
         memset(pMemory, 0, Size);
     }
 
+cleanup:
     return pMemory;
 }
 
