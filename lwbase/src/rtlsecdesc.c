@@ -33,6 +33,7 @@
  *           handling functions (security descriptor library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ *          Gerald carter <gcarter@likewise.com>
  */
 
 #include "includes.h"
@@ -40,18 +41,65 @@
 
 NTSTATUS
 RtlAccessCheck(
-   IN PSECURITY_DESCRIPTOR pSecurityDescriptor,
-   IN HANDLE hClientToken,
-   IN DWORD dwDesiredAccess,
-   PGENERIC_MAPPING pGenericMapping,
-   PPRIVILEGE_SET pPrivilegeSet,
-   PDWORD pdwPrivilegeSetLength,
-   PDWORD pdwGrantedAccess
-   )
+    IN PSECURITY_DESCRIPTOR pSecurityDescriptor,
+    IN HANDLE hClientToken,
+    IN DWORD dwDesiredAccess,
+    PGENERIC_MAPPING pGenericMapping,
+    PPRIVILEGE_SET pPrivilegeSet,
+    PDWORD pdwPrivilegeSetLength,
+    PDWORD pdwGrantedAccess
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
     return status;
 }
+
+
+/**
+ * Map generic bits to the object specific bits
+ */
+
+NTSTATUS
+RtlMapGeneric(
+    OUT DWORD *pdwMappedMask,
+    IN  DWORD dwGenericMask,
+    PGENERIC_MAPPING pMapping
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    BAIL_ON_NTSTATUS_ERROR(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**
+ * Map standard bits to the object specific bits
+ */
+
+NTSTATUS
+RtlMapStandard(
+    OUT DWORD *pdwMappedMask,
+    IN  DWORD dwStandardMask,
+    PSTANDARD_MAPPING pStandard
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    BAIL_ON_NTSTATUS_ERROR(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 

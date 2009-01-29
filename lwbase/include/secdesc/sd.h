@@ -40,14 +40,30 @@
 
 NTSTATUS
 RtlAccessCheck(
-   IN PSECURITY_DESCRIPTOR pSecurityDescriptor,
-   IN HANDLE hClientToken,
-   IN DWORD dwDesiredAccess,
-   PGENERIC_MAPPING pGenericMapping,
-   PPRIVILEGE_SET pPrivilegeSet,
-   PDWORD pdwPrivilegeSetLength,
-   PDWORD pdwGrantedAccess
-   );
+    IN PSECURITY_DESCRIPTOR pSecurityDescriptor,
+    IN HANDLE hClientToken,
+    IN DWORD dwDesiredAccess,
+    PGENERIC_MAPPING pGenericMapping,
+    PPRIVILEGE_SET pPrivilegeSet,
+    PDWORD pdwPrivilegeSetLength,
+    PDWORD pdwGrantedAccess
+    );
+
+NTSTATUS
+RtlMapGeneric(
+    OUT DWORD *pdwMappedMask,
+    IN  DWORD dwGenericMask,
+    PGENERIC_MAPPING pMapping
+    );
+
+
+NTSTATUS
+RtlMapStandard(
+    OUT DWORD *pdwMappedMask,
+    IN  DWORD dwStandardMask,
+    PSTANDARD_MAPPING pStandard
+    );
+
 
 
 #endif /* _SD_H_ */

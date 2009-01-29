@@ -123,6 +123,14 @@ typedef struct generic_mapping {
     uint32 GenericAll;
 } GenMapping, GENERIC_MAPPING, *PGENERIC_MAPPING;
 
+/* Standard Mapping */
+typedef struct standard_mapping {
+    uint32 StandardRead;
+    uint32 StandardWrite;
+    uint32 StandardExecute;
+    uint32 StandardAll;
+} StdMapping, STANDARD_MAPPING, *PSTANDARD_MAPPING;
+
 
 /* Privilege Set structures */
 typedef struct luid {
