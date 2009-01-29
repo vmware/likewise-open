@@ -96,7 +96,7 @@ TreeConnect(
     pHeader = (TREE_CONNECT_REQUEST_HEADER *) packet.pParams;
 
     pHeader->flags = 0;
-    pHeader->passwordLength = 0;    /* Authentication handled via uid */
+    pHeader->passwordLength = 1;    /* strlen("") + terminating NULL */
 
     /* @todo: handle buffer size0xFF restart with ERESTART */
     dwError = MarshallTreeConnectRequestData(
