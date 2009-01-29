@@ -114,18 +114,18 @@
        goto error;                                 \
     }
 
-#define BAIL_ON_NULL_PTR(x, err)   \
-    do {                                \
-        if ((x) == NULL) {              \
-            err = STATUS_NO_MEMORY;     \
-            goto error;                 \
-        }                               \
-    } while(0);                         \
+#define BAIL_ON_NULL_PTR(x, err)                    \
+    do {                                            \
+        if ((x) == NULL) {                          \
+            err = STATUS_INSUFFICIENT_RESOURCES;	\
+            goto error;                             \
+        }                                           \
+    } while(0);                                     \
 
-#define BAIL_ON_INVALID_PTR(ptr, err)		       \
+#define BAIL_ON_INVALID_PTR(ptr, err)                  \
     do {                                               \
         if ((ptr) == NULL) {                           \
-            err = STATUS_INVALID_PARAMETER;           \
+            err = STATUS_INVALID_PARAMETER;            \
             goto error;                                \
         }                                              \
     } while (0);
@@ -1244,3 +1244,14 @@ SMBStrError(
 #endif /* __SMBUTILS_H__ */
 
 
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
