@@ -27,38 +27,13 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-
-
-
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        close.c
- *
- * Abstract:
- *
- *        Likewise SMB Server Driver (SRV)
- *
- *        Close Dispatch Function
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- */
-
-#include "pvfs.h"
+#ifndef __SRV_WRITEX_H__
+#define __SRV_WRITEX_H__
 
 NTSTATUS
-SrvClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
+SrvProcessWriteAndX(
+    PLWIO_SRV_CONTEXT pContext
+    );
 
-    return ntStatus;
-}
-
-
+#endif /* __SRV_WRITEX_H__ */
 

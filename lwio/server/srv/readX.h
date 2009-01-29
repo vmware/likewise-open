@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,30 +28,14 @@
  * license@likewisesoftware.com
  */
 
+#ifndef __SRV_READX_H__
+#define __SRV_READX_H__
 
 NTSTATUS
-SmbProcessReadAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvProcessReadAndX(
+    PLWIO_SRV_CONTEXT pContext
     );
 
-NTSTATUS
-UnmarshallReadAndXRequest(
-    PSMB_SRV_CONNECTION pSmbRequest,
-    PBYTE* ppBuffer,
-    PDWORD pdwBytesRead
-    );
+#endif /* __SRV_READX_H__ */
 
-NTSTATUS
-SrvReadFile(
-    HANDLE hTreeObject,
-    USHORT usFid,
-    ULONG ulOffset,
-    UCHAR  *pBuffer,
-    USHORT MaxCount
-    );
-
-NTSTATUS
-MarshallReadAndXResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
 

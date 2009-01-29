@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -31,55 +31,12 @@
 #include "includes.h"
 
 NTSTATUS
-SmbProcessWriteAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvProcessWriteAndX(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
 
-#if 0
-    ntStatus = UnmarshallWriteAndXRequest(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvWriteFile(
-                        hTreeObject
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-    
-    
-    ntStatus = MarshallWriteAndXResponse(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-
-    ntStatus = SmbSendReply(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-#endif
-
-    return (ntStatus);
+    return ntStatus;
 }
 
-
-NTSTATUS
-UnmarshallWriteAndXRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-}
-
-
-NTSTATUS
-MarshallWriteAndXResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-
-}

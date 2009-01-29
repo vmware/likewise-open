@@ -117,23 +117,21 @@ SMBSrvProcessRequest_V1(
                             pSmbResponse);
 
             break;
+#endif
 
-        case SMB_READ_ANDX:
+        case COM_READ_ANDX:
 
-            ntStatus = SmbProcessReadAndX(
-                            pSmbRequest,
-                            pSmbResponse);
-
-            break;
-
-        case SMB_WRITE_ANDX:
-
-            ntStatus = SmbProcessWriteAndX(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessReadAndX(pContext);
 
             break;
 
+        case COM_WRITE_ANDX:
+
+            ntStatus = SrvProcessWriteAndX(pContext);
+
+            break;
+
+#if 0
         case SMB_LOCKING_ANDX:
 
             ntStatus = SmbProcessLockingAndX(
@@ -158,14 +156,15 @@ SMBSrvProcessRequest_V1(
 
             break;
 
-        case SMB_CLOSE:
+#endif
 
-            ntStatus = SmbClose(
-                            pSmbRequest,
-                            pSmbResponse);
+        case COM_CLOSE:
+
+            ntStatus = SrvProcessCloseAndX(pContext);
 
             break;
 
+#if 0
         case SMB_CLOSE_AND_TREE_DISCONNECT:
 
             ntStatus = SmbProcessCloseAndTreeDisconnect(

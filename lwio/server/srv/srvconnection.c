@@ -172,6 +172,8 @@ SrvConnectionGetNextSequence(
         case COM_NT_CREATE_ANDX:
         case COM_READ_ANDX:
         case COM_WRITE_ANDX:
+        case COM_LOGOFF_ANDX:
+        case COM_CLOSE:
 
             ulRequestSequence = pConnection->ulSequence++;
             ulResponseSequence = pConnection->ulSequence++;
