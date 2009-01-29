@@ -62,14 +62,39 @@ RtlAccessCheck(
 
 NTSTATUS
 RtlMapGeneric(
-    OUT DWORD *pdwMappedMask,
+    OUT DWORD *pdwSpecificMask,
     IN  DWORD dwGenericMask,
     PGENERIC_MAPPING pMapping
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    DWORD dwNewMask = dwGenericMask;
 
-    BAIL_ON_NTSTATUS_ERROR(ntError);
+    BAIL_ON_INVALID_PTR(pdwSpecificMask, ntError);
+
+    if (dwNewMask & GENERIC_READ) {
+        dwNewMask &= ~GENERIC_READ;
+        dwNewMask |= pMapping->GenericRead;
+    }
+
+    if (dwNewMask & GENERIC_WRITE) {
+        dwNewMask &= ~GENERIC_WRITE;
+        dwNewMask |= pMapping->GenericWrite;
+    }
+
+    if (dwNewMask & GENERIC_EXECUTE) {
+        dwNewMask &= ~GENERIC_EXECUTE;
+        dwNewMask |= pMapping->GenericExecute;
+    }
+
+    if (dwNewMask & GENERIC_ALL) {
+        dwNewMask &= ~GENERIC_ALL;
+        dwNewMask |= pMapping->GenericAll;
+    }
+
+    *pdwSpecificMask = dwNewMask;
+
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -84,14 +109,39 @@ error:
 
 NTSTATUS
 RtlMapStandard(
-    OUT DWORD *pdwMappedMask,
+    OUT DWORD *pdwSpecificMask,
     IN  DWORD dwStandardMask,
-    PSTANDARD_MAPPING pStandard
+    PSTANDARD_MAPPING pMapping
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    DWORD dwNewMask = dwStandardMask;
 
-    BAIL_ON_NTSTATUS_ERROR(ntError);
+    BAIL_ON_INVALID_PTR(pdwSpecificMask, ntError);
+
+    if ((dwNewMask & STANDARD_RIGHTS_READ) == STANDARD_RIGHTS_READ) {
+        dwNewMask &= ~STANDARD_RIGHTS_READ;
+        dwNewMask |= pMapping->StandardRead;
+    }
+
+    if ((dwNewMask & STANDARD_RIGHTS_WRITE) == STANDARD_RIGHTS_WRITE) {
+        dwNewMask &= ~STANDARD_RIGHTS_WRITE;
+        dwNewMask |= pMapping->StandardWrite;
+    }
+
+    if ((dwNewMask & STANDARD_RIGHTS_EXECUTE) == STANDARD_RIGHTS_EXECUTE) {
+        dwNewMask &= ~ STANDARD_RIGHTS_EXECUTE;
+        dwNewMask |= pMapping->StandardExecute;
+    }
+
+    if ((dwNewMask & STANDARD_RIGHTS_ALL) == STANDARD_RIGHTS_ALL) {
+        dwNewMask &= ~STANDARD_RIGHTS_ALL;
+        dwNewMask |= pMapping->StandardAll;
+    }
+
+    *pdwSpecificMask = dwNewMask;
+
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
