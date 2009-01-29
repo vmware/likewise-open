@@ -18,8 +18,7 @@ SrvTreeFindFile(
 NTSTATUS
 SrvTreeCreateFile(
     PSMB_SRV_TREE           pTree,
-    PIO_FILE_HANDLE*        pphFile,
-    PIO_STATUS_BLOCK*       ppIoStatusBlock,
+    PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
     ACCESS_MASK             desiredAccess,
     LONG64                  allocationSize,

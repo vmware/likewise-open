@@ -9,8 +9,7 @@ SrvFileFree(
 NTSTATUS
 SrvFileCreate(
     USHORT                  fid,
-    PIO_FILE_HANDLE*        pphFile,
-    PIO_STATUS_BLOCK*       ppIoStatusBlock,
+    PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
     ACCESS_MASK             desiredAccess,
     LONG64                  allocationSize,
@@ -37,10 +36,8 @@ SrvFileCreate(
     pFile->pMutex = &pFile->mutex;
 
     pFile->fid = fid;
-    pFile->phFile = *pphFile;
-    *pphFile = NULL;
-    pFile->pIoStatusBlock = *ppIoStatusBlock;
-    *ppIoStatusBlock = NULL;
+    pFile->hFile = *phFile;
+    *phFile = NULL;
     pFile->pFilename = *ppFilename;
     *ppFilename = NULL;
     pFile->desiredAccess = desiredAccess;
@@ -101,17 +98,15 @@ SrvFileFree(
         pFile->pMutex = NULL;
     }
 
-    SMB_SAFE_FREE_MEMORY(pFile->pIoStatusBlock);
     if (pFile->pFilename)
     {
         SMB_SAFE_FREE_MEMORY(pFile->pFilename->FileName);
         SMBFreeMemory(pFile->pFilename);
     }
 
-    if (pFile->phFile)
+    if (pFile->hFile)
     {
-        IoCloseFile(*pFile->phFile);
-        SMBFreeMemory(pFile->phFile);
+        IoCloseFile(pFile->hFile);
     }
 
     SMBFreeMemory(pFile);

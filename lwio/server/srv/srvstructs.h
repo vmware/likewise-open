@@ -215,8 +215,7 @@ typedef struct _SMB_SRV_FILE
 
     USHORT                  fid;
 
-    PIO_FILE_HANDLE         phFile;
-    PIO_STATUS_BLOCK        pIoStatusBlock;
+    IO_FILE_HANDLE          hFile;
     PIO_FILE_NAME           pFilename;
     ACCESS_MASK             desiredAccess;
     LONG64                  allocationSize;
