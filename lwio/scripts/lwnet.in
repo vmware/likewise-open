@@ -167,7 +167,8 @@ $PREFIX_DIR/bin/sqlite3 $SHARES_DB << EOF
 select name,
        path,
        sid,
-       comment
+       comment,
+       service
 from shares;
 
 EOF

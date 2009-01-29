@@ -75,6 +75,7 @@ SrvShareDbAdd(
     PCSTR  pszShareName,
     PCSTR  pszPath,
     PCSTR  pszComment,
+    PCSTR  pszSid,
     PCSTR  pszService
     );
 

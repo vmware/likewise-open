@@ -141,6 +141,26 @@ SrvShareDbCreate(
                     S_IRWXU);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvShareDbAdd(
+                    pShareDBContext,
+                    hDb,
+                    "IPC$",
+                    "\\\\npvfs\\ipc",
+                    "Root of Named Pipe Virtual File System",
+                    NULL,
+                    "IPC");
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareDbAdd(
+                    pShareDBContext,
+                    hDb,
+                    "c$",
+                    "\\\\pvfs\\root",
+                    "Root of Posix Virtual File System",
+                    NULL,
+                    "A:");
+    BAIL_ON_NT_STATUS(ntStatus);
+
 cleanup:
 
     if (hDb != (HANDLE)NULL)
@@ -207,6 +227,7 @@ SrvShareDbAdd(
     PCSTR  pszShareName,
     PCSTR  pszPath,
     PCSTR  pszComment,
+    PCSTR  pszSid,
     PCSTR  pszService
     )
 {
@@ -239,6 +260,7 @@ SrvShareDbAdd(
                                pszShareName,
                                pszPath,
                                pszComment,
+                               pszSid,
                                pszService);
 
     ntStatus = sqlite3_exec(pDbHandle,
