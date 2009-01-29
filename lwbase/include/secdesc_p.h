@@ -61,6 +61,16 @@
         }                                         \
     } while (0);
 
+/* Variation of the above that drops to the error label */
+
+#define BAIL_ON_INVALID_PTR(ptr, err)                  \
+    do {                                               \
+        if ((ptr) == NULL) {                           \
+            err = STATUS_INVALID_PARAMETER;            \
+            goto error;                                \
+        }                                              \
+    } while (0);
+
 
 #define ZERO_STRUCT(s)                            \
     do {                                          \
