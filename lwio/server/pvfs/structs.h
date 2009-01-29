@@ -41,6 +41,12 @@
  *
  */
 
+typedef enum _PVFS_INFO_TYPE {
+    PVFS_QUERY = 1,
+    PVFS_SET
+} PVFS_INFO_TYPE, *PPVFS_INFO_TYPE;
+
+
 typedef struct _PVFS_CCB
 {
     int fd;

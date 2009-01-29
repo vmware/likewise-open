@@ -155,11 +155,11 @@ PvfsDriverDispatch(
         break;
 
     case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsQueryInformation(DeviceHandle, pIrpCtx);
+        ntError = PvfsQuerySetInformation(PVFS_QUERY, DeviceHandle, pIrpCtx);
         break;
 
     case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsSetInformation(DeviceHandle, pIrpCtx);
+        ntError = PvfsQuerySetInformation(PVFS_SET, DeviceHandle, pIrpCtx);
         break;
 
     default:

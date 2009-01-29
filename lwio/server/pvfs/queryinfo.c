@@ -29,7 +29,6 @@
  */
 
 
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -43,21 +42,112 @@
  *
  *        Driver Entry Function
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
 
+struct _InfoLevelDispatchEntry {
+    FILE_INFORMATION_CLASS Level;
+    NTSTATUS (*fn)(PVFS_INFO_TYPE RequestType,
+                   PPVFS_IRP_CONTEXT pIrpContext);
+};
+
+static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
+    { FileDirectoryInformation,         NULL },
+    { FileFullDirectoryInformation,     NULL },
+    { FileBothDirectoryInformation,     NULL },
+    { FileBasicInformation,             NULL },
+    { FileStandardInformation,          NULL },
+    { FileInternalInformation,          NULL },
+    { FileEaInformation,                NULL },
+    { FileAccessInformation,            NULL },
+    { FileNameInformation,              NULL },
+    { FileRenameInformation,            NULL },
+    { FileLinkInformation,              NULL },
+    { FileNamesInformation,             NULL },
+    { FileDispositionInformation,       NULL },
+    { FilePositionInformation,          NULL },
+    { FileFullEaInformation,            NULL },
+    { FileModeInformation,              NULL },
+    { FileAlignmentInformation,         NULL },
+    { FileAllInformation,               NULL },
+    { FileAllocationInformation,        NULL },
+    { FileEndOfFileInformation,         NULL },
+    { FileAlternateNameInformation,     NULL },
+    { FileStreamInformation,            NULL },
+    { FilePipeInformation,              NULL },
+    { FilePipeLocalInformation,         NULL },
+    { FilePipeRemoteInformation,        NULL },
+    { FileMailslotQueryInformation,     NULL },
+    { FileMailslotSetInformation,       NULL },
+    { FileCompressionInformation,       NULL },
+    { FileObjectIdInformation,          NULL },
+    { FileCompletionInformation,        NULL },
+    { FileMoveClusterInformation,       NULL },
+    { FileQuotaInformation,             NULL },
+    { FileReparsePointInformation,      NULL },
+    { FileNetworkOpenInformation,       NULL },
+    { FileAttributeTagInformation,      NULL },
+    { FileTrackingInformation,          NULL },
+    { FileIdBothDirectoryInformation,   NULL },
+    { FileIdFullDirectoryInformation,   NULL },
+    { FileValidDataLengthInformation,   NULL },
+    { FileShortNameInformation,         NULL }
+};
+
+
 NTSTATUS
-PvfsQueryInformation(
+PvfsQuerySetInformation(
+    PVFS_INFO_TYPE RequestType,
     IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
-}
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    FILE_INFORMATION_CLASS InfoLevel = 0;
+    InfoLevel = pIrp->Args.QuerySetInformation.FileInformationClass;
+    int i = 0;
+    size_t sizeTable = sizeof(InfoLevelDispatchTable) /
+                       sizeof(struct _InfoLevelDispatchEntry);
 
+
+    if (InfoLevel >= FileMaximumInformation)
+    {
+        ntError = STATUS_INVALID_INFO_CLASS;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Loop through the dispatch table.  Levels included in the table
+       but having a NULL handler get NOT_SUPPORTED while those not in
+       the table at all get NOT_IMPLEMENTED. */
+
+    for (i=0; i<sizeTable; i++)
+    {
+        if (InfoLevelDispatchTable[i].Level == InfoLevel)
+        {
+            if (InfoLevelDispatchTable[InfoLevel].fn == NULL)
+            {
+                ntError = STATUS_NOT_SUPPORTED;
+                break;
+            }
+
+            ntError = InfoLevelDispatchTable[i].fn(RequestType, pIrpContext);
+            break;
+        }
+    }
+    if (i == sizeTable) {
+        ntError = STATUS_NOT_IMPLEMENTED;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 /*

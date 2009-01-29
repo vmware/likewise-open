@@ -9,7 +9,6 @@ libpvfs_sys_la_SOURCES = \
     deviceio.c \
     fsctrl.c \
     queryinfo.c \
-    setinfo.c \
     close.c \
     create_file.c \
     create_dir.c \

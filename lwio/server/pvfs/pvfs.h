@@ -104,13 +104,8 @@ PvfsClose(
     );
 
 NTSTATUS
-PvfsQueryInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsSetInformation(
+PvfsQuerySetInformation(
+    PVFS_INFO_TYPE RequestType,
     IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
