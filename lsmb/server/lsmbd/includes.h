@@ -88,6 +88,6 @@
 #if HAVE_SYS_SYSCTL_H
 #include <sys/sysctl.h>
 #endif
-#if HAVE_KVM_H
-#include <kvm.h>
+#if HAVE_SYS_USER_H
+#include <sys/user.h>
 #endif

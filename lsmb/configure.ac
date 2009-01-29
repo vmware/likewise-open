@@ -297,7 +297,7 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 #endif
 ])
 
-AC_CHECK_HEADERS([sys/param.h sys/pstat.h procfs.h sys/procfs.h sys/sysctl.h kvm.h])
+AC_CHECK_HEADERS([sys/param.h sys/pstat.h procfs.h sys/procfs.h sys/sysctl.h sys/user.h])
 
 AC_CHECK_DECLS([KERN_PROC_PATHNAME, KERN_PROCARGS], [], [], [
 #if HAVE_SYS_PARAM_H
