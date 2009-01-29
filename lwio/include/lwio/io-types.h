@@ -40,23 +40,6 @@
 
 typedef ULONG ACCESS_MASK;
 
-/* Work around problem with /usr/include/arpa/nameser_compat.h */
-#ifdef DELETE
-# undef DELETE
-#endif
-
-#define DELETE                    0x00010000 /* right to delete object */
-#define READ_CONTROL              0x00020000 /* read the object's SID not including SACL */
-#define WRITE_DAC                 0x00040000 /* modify the DACL in the object's SID      */
-#define WRITE_OWNER               0x00080000 /* change the owner in the object's SID     */
-#define SYNCHRONIZE               0x00100000 /* use the object for synchronization       */
-#define ACCESS_SYSTEM_SECURITY    0x01000000 /* get or set the SACL in an object's SID   */
-#define MAXIMUM_ALLOWED           0x02000000 /* all access rights valid for the caller   */
-#define GENERIC_ALL               0x10000000
-#define GENERIC_EXECUTE           0x20000000
-#define GENERIC_WRITE             0x40000000
-#define GENERIC_READ              0x80000000
-
 #define FILE_READ_DATA            0x00000001 /* File/NP     */
 #define FILE_LIST_DIRECTORY       0x00000001 /* Dir         */
 #define FILE_WRITE_DATA           0x00000002 /* File/NP     */
@@ -71,14 +54,6 @@ typedef ULONG ACCESS_MASK;
 #define FILE_DELETE_CHILD         0x00000020 /* Dir         */
 #define FILE_READ_ATTRIBUTES      0x00000080 /* File/NP/Dir */
 #define FILE_WRITE_ATTRIBUTES     0x00000100 /* File/NP/Dir */
-
-#define STANDARD_RIGHTS_REQUIRED  0x0F0000
-
-#define STANDARD_RIGHTS_READ      READ_CONTROL
-#define STANDARD_RIGHTS_WRITE     READ_CONTROL
-#define STANDARD_RIGHTS_EXECUTE   READ_CONTROL
-
-#define STANDARD_RIGHTS_ALL       0x1F0000
 
 #define SPECIFIC_RIGHTS_ALL       0x000FFFF
 
