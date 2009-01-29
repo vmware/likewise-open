@@ -358,11 +358,8 @@ SMBPacketSend(
 
     if (pSocket->maxMpxCount)
     {
-        if (sem_wait(&pSocket->semMpx) < 0)
-        {
-            dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
-        }
+        dwError = SMBSemaphoreWait(&pSocket->semMpx);
+        BAIL_ON_SMB_ERROR(dwError);
 
         bSemaphoreAcquired = TRUE;
     }
@@ -419,9 +416,10 @@ error:
 
     if (bSemaphoreAcquired)
     {
-        if (sem_post(&pSocket->semMpx) < 0)
+        DWORD dwLocalError = SMBSemaphorePost(&pSocket->semMpx);
+        if (dwLocalError)
         {
-            SMB_LOG_ERROR("Failed to post semaphore [code: %d]", errno);
+            SMB_LOG_ERROR("Failed to post semaphore [code: %u]", dwLocalError);
         }
     }
 

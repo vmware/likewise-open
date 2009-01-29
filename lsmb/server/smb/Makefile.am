@@ -8,6 +8,7 @@ libsmb_la_SOURCES = \
     packet.c        \
     read.c          \
     response.c      \
+    semaphore.c     \
     session.c       \
     session_setup.c \
     socket.c        \

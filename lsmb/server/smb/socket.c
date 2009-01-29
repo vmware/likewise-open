@@ -600,10 +600,9 @@ SMBSocketReaderMain(
         dwError = SMBPacketReceiveAndUnmarshall(pSocket, pPacket);
         BAIL_ON_SMB_ERROR(dwError);
 
-        if (pSocket->maxMpxCount && (sem_post(&pSocket->semMpx) < 0))
+        if (pSocket->maxMpxCount)
         {
-            SMB_LOG_ERROR("Error when posting socket semaphore");
-            dwError = errno;
+            dwError = SMBSemaphorePost(&pSocket->semMpx);
             BAIL_ON_SMB_ERROR(dwError);
         }
 
@@ -1331,10 +1330,7 @@ SMBSocketFree(
 
     if (pSocket && pSocket->maxMpxCount)
     {
-        if (sem_destroy(&pSocket->semMpx) < 0)
-        {
-            SMB_LOG_ERROR("Failed to destroy semaphore [code: %d]", errno);
-        }
+        SMBSemaphoreDestroy(&pSocket->semMpx);
     }
 
     pthread_cond_destroy(&pSocket->event);

@@ -168,11 +168,8 @@ Negotiate(
 
     if (pHeader->maxMpxCount)
     {
-        if (sem_init(&pSocket->semMpx, FALSE, pHeader->maxMpxCount) < 0)
-        {
-            dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
-        }
+        dwError = SMBSemaphoreInit(&pSocket->semMpx, pHeader->maxMpxCount);
+        BAIL_ON_SMB_ERROR(dwError);
         pSocket->maxMpxCount = pHeader->maxMpxCount;
     }
 
@@ -210,10 +207,7 @@ error:
 
     if (pSocket && pSocket->maxMpxCount)
     {
-        if (sem_destroy(&pSocket->semMpx) < 0)
-        {
-            SMB_LOG_ERROR("Failed to destroy semaphore [code: %d]", errno);
-        }
+        SMBSemaphoreDestroy(&pSocket->semMpx);
     }
 
     goto cleanup;
