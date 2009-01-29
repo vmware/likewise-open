@@ -82,7 +82,7 @@ cleanup:
     // HPUX has no /proc pseudo filesystem but does
     // have pstat_getproc().
 
-    struct pst_status proccessStatus;
+    struct pst_status processStatus;
     struct pst_filedetails fileDetails;
 
     if (pstat_getproc(&processStatus,
@@ -96,7 +96,7 @@ cleanup:
 
     if (pstat_getfiledetails(&fileDetails,
                     sizeof(fileDetails),
-                    &processStatus.pst_text) < 0)
+                    &processStatus.pst_fid_text) < 0)
     {
         dwError = errno;
         BAIL_ON_SMB_ERROR(dwError);
@@ -116,7 +116,7 @@ cleanup:
     pStat->st_blksize = fileDetails.psfd_blksize;
     pStat->st_blocks = fileDetails.psfd_blocks;
     pStat->st_fstype = processStatus.pst_text.psf_fsid.psfs_type;
-    pStat->st_realdev = fileDetails.pst_text.psf_fsid.psfs_id;
+    pStat->st_realdev = processStatus.pst_text.psf_fsid.psfs_id;
     pStat->st_uid = fileDetails.psfd_uid;
     pStat->st_gid = fileDetails.psfd_gid;
 
