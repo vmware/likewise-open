@@ -6,8 +6,7 @@
  *  Copyright 2007 Likewise Software. All rights reserved.
  *
  *  This class is a wrapper which will call into one of the two authentication mechanisms we support.
- *  If we are running as LSASS mode, then the LWISAuthAdapter class methods will be used, otherwise
- *  for Winbind base authentication, we will call into LWIAuthAdapter class.
+ *  If we are running as LSASS mode, then the LWISAuthAdapter class methods will be used.
  *
  */
 
@@ -28,19 +27,6 @@ typedef enum
   NSS_STATUS_SUCCESS,
   NSS_STATUS_RETURN
 } NSS_STATUS;
-
-#if 0
-//
-// From Winbind NSS
-//
-typedef enum
-{
-    NSS_STATUS_SUCCESS  = 0,
-    NSS_STATUS_NOTFOUND = 1,
-    NSS_STATUS_UNAVAIL  = 2,
-    NSS_STATUS_TRYAGAIN = 3
-} NSS_STATUS;
-#endif
 
 class LWAuthAdapter
 {

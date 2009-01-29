@@ -6,8 +6,7 @@
  *  Copyright 2007 Likewise Software. All rights reserved.
  *
  *  This class is a wrapper which will call into one of the two authentication mechanisms we support.
- *  If we are running as LSASS mode, then the LWISAuthAdapter class methods will be used, otherwise
- *  for Winbind base authentication, we will call into LWIAuthAdapter class.
+ *  If we are running as LSASS mode, then the LWISAuthAdapter class methods will be used.
  *
  */
 

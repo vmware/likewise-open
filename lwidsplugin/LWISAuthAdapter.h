@@ -100,6 +100,10 @@ public:
 private:
 
     static MACERROR LoadFunction(void* libHandle, const char* functionName, void** functionPointer);
+    void EnterNSSLock();
+    void LeaveNSSLock();
+
+    pthread_mutex_t _nssLock;
 };
 
 #endif /* __LWISAUTHADAPTER_H__ */

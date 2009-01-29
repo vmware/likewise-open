@@ -128,6 +128,18 @@ MACERROR LWISAuthAdapter::LoadFunction(void* LibHandle, const char* FunctionName
     return macError;
 }
 
+void
+LWISAuthAdapter::EnterNSSLock()
+{
+    pthread_mutex_lock(&_nssLock);
+}
+
+void
+LWISAuthAdapter::LeaveNSSLock()
+{
+    pthread_mutex_unlock(&_nssLock);
+}
+
 LWISAuthAdapter::LWISAuthAdapter()
 {
 }
@@ -209,7 +221,10 @@ MACERROR LWISAuthAdapter::Initialize()
     macError = LOAD_LSASS_NSS_FUNCTION("_nss_lsass_free_user_groups", pfnfree_user_groups);
     GOTO_CLEANUP_ON_MACERROR(macError);
 
+    pthread_mutex_init(&_nssLock, NULL);
+
 cleanup:
+
     if (macError)
     {
         Cleanup();
@@ -225,19 +240,29 @@ void LWISAuthAdapter::Cleanup()
         memset(&LsassModuleState.Functions, 0, sizeof(LsassModuleState.Functions));
         dlclose(LsassModuleState.LibHandle);
         LsassModuleState.LibHandle = NULL;
+
+        pthread_mutex_destroy(&_nssLock);
     }
 }
 
 void
 LWISAuthAdapter::setpwent(void)
 {
+    EnterNSSLock();
+
     NSS_LSASS_MODULE_FUNC(pfnsetpwent)();
+
+    LeaveNSSLock();
 }
 
 void
 LWISAuthAdapter::endpwent(void)
 {
+    EnterNSSLock();
+
     NSS_LSASS_MODULE_FUNC(pfnendpwent)();
+
+    LeaveNSSLock();
 }
 
 long
@@ -246,7 +271,15 @@ LWISAuthAdapter::getpwent(struct passwd *result,
                          size_t buflen,
                          int *errnop)
 {
-    return NSS_LSASS_MODULE_FUNC(pfngetpwent_r)(result, buffer, buflen, errnop);
+    long macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfngetpwent_r)(result, buffer, buflen, errnop);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 long
@@ -258,7 +291,15 @@ LWISAuthAdapter::getpwuid(
     int *errnop
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfngetpwuid_r)(uid, result, buffer, buflen, errnop);
+    long macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfngetpwuid_r)(uid, result, buffer, buflen, errnop);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 long
@@ -270,19 +311,35 @@ LWISAuthAdapter::getpwnam(
     int *errnop
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfngetpwnam_r)(name, result, buffer, buflen, errnop);
+    long macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfngetpwnam_r)(name, result, buffer, buflen, errnop);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 void
 LWISAuthAdapter::setgrent(void)
 {
+    EnterNSSLock();
+
     NSS_LSASS_MODULE_FUNC(pfnsetgrent)();
+
+    LeaveNSSLock();
 }
 
 void
 LWISAuthAdapter::endgrent(void)
 {
+    EnterNSSLock();
+
     NSS_LSASS_MODULE_FUNC(pfnendgrent)();
+
+    LeaveNSSLock();
 }
 
 long
@@ -293,7 +350,15 @@ LWISAuthAdapter::getgrent(
     int *errnop
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfngetgrent_r)(result, buffer, buflen, errnop);
+    long macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfngetgrent_r)(result, buffer, buflen, errnop);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 long
@@ -305,7 +370,15 @@ LWISAuthAdapter::getgrgid(
     int *errnop
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfngetgrgid_r)(gid, result, buffer, buflen, errnop);
+    long macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfngetgrgid_r)(gid, result, buffer, buflen, errnop);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 long
@@ -317,7 +390,15 @@ LWISAuthAdapter::getgrnam(
     int *errnop
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfngetgrnam_r)(name, result, buffer, buflen, errnop);
+    long macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfngetgrnam_r)(name, result, buffer, buflen, errnop);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 uint32_t
@@ -327,7 +408,15 @@ LWISAuthAdapter::authenticate(
     bool is_auth_only
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfnauthenticate)(username, password, is_auth_only);
+    uint32_t macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfnauthenticate)(username, password, is_auth_only);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 uint32_t
@@ -337,7 +426,15 @@ LWISAuthAdapter::change_password(
     const char *password
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfnchange_password)(username, old_password, password);
+    uint32_t macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfnchange_password)(username, old_password, password);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 uint32_t
@@ -346,7 +443,15 @@ LWISAuthAdapter::get_principal(
     char** principal_name
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfnget_principal)(username, principal_name);
+    uint32_t macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfnget_principal)(username, principal_name);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 void
@@ -354,7 +459,11 @@ LWISAuthAdapter::free_principal(
     char* principal_name
     )
 {
+    EnterNSSLock();
+
     NSS_LSASS_MODULE_FUNC(pfnfree_principal)(principal_name);
+
+    LeaveNSSLock();
 }
 
 uint32_t
@@ -364,7 +473,15 @@ LWISAuthAdapter::get_user_groups(
     int *num_groups
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfnget_user_groups)(user, groups, num_groups);
+    uint32_t macError = eDSNoErr;
+
+    EnterNSSLock();
+
+    macError = NSS_LSASS_MODULE_FUNC(pfnget_user_groups)(user, groups, num_groups);
+
+    LeaveNSSLock();
+
+    return macError;
 }
 
 void
@@ -372,6 +489,10 @@ LWISAuthAdapter::free_user_groups(
     gid_t *groups
     )
 {
-    return NSS_LSASS_MODULE_FUNC(pfnfree_user_groups)(groups);
+    EnterNSSLock();
+
+    NSS_LSASS_MODULE_FUNC(pfnfree_user_groups)(groups);
+
+    LeaveNSSLock();
 }
 
