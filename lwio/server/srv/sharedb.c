@@ -145,7 +145,7 @@ SrvShareDbCreate(
                     pShareDBContext,
                     hDb,
                     "IPC$",
-                    "\\\\npvfs\\ipc",
+                    "\\npvfs\\ipc",
                     "Root of Named Pipe Virtual File System",
                     NULL,
                     "IPC");
@@ -155,7 +155,7 @@ SrvShareDbCreate(
                     pShareDBContext,
                     hDb,
                     "C$",
-                    "\\\\pvfs\\root",
+                    "\\pvfs\\root",
                     "Root of Posix Virtual File System",
                     NULL,
                     "A:");
