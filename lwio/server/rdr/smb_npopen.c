@@ -147,7 +147,7 @@ NPOpen(
     }
 
     /* @todo: handle buffer size restart with ERESTART */
-    ntStatus = MarshallCreateRequestData(
+    ntStatus = WireMarshallCreateRequestData(
                 packet.pData,
                 packet.bufferLen - packet.bufferUsed,
                 (packet.pData - (uint8_t *) packet.pSMBHeader) % 2,
@@ -209,7 +209,7 @@ NPOpen(
     ntStatus = pResponsePacket->pSMBHeader->error;
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = UnmarshallSMBResponseCreate(
+    ntStatus = WireUnmarshallSMBResponseCreate(
                 pResponsePacket->pParams,
                 pResponsePacket->bufferLen - pResponsePacket->bufferUsed,
                 &pResponseHeader);

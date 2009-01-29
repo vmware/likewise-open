@@ -2,9 +2,9 @@ lib_LTLIBRARIES = liblwiosmbwire.la
 
 liblwiosmbwire_la_SOURCES = \
     wire_close.c         \
+    wire_create_file.c   \
     wire_echo.c          \
     wire_negotiate.c     \
-    wire_open.c          \
     packet.c             \
     wire_read.c          \
     wire_session_setup.c \

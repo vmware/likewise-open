@@ -468,7 +468,7 @@ typedef struct {
     wchar16_t Name[];            /* File to open or create */
 
     /* Name immediately follows */
-}  __attribute__((__packed__))  CREATE_REQUEST_HEADER;
+}  __attribute__((__packed__))  CREATE_REQUEST_HEADER, *PCREATE_REQUEST_HEADER;
 
 typedef struct
 {
@@ -940,7 +940,16 @@ MarshallTreeConnectResponseData(
     );
 
 NTSTATUS
-MarshallCreateRequestData(
+WireUnmarshallCreateFileRequest(
+    PBYTE  pParams,
+    ULONG  ulBytesAvailable,
+    ULONG  ulBytesUsed,
+    PCREATE_REQUEST_HEADER* ppHeader,
+    PWSTR* ppwszFilename
+    );
+
+NTSTATUS
+WireMarshallCreateRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
     uint8_t          messageAlignment,
@@ -949,7 +958,7 @@ MarshallCreateRequestData(
     );
 
 NTSTATUS
-UnmarshallSMBResponseCreate(
+WireUnmarshallSMBResponseCreate(
     const uint8_t  *pBuffer,
     uint32_t        bufferLen,
     CREATE_RESPONSE_HEADER **ppHeader

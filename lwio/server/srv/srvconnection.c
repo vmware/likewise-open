@@ -169,6 +169,9 @@ SrvConnectionGetNextSequence(
         case COM_TREE_CONNECT:
         case COM_TREE_DISCONNECT:
         case COM_TREE_CONNECT_ANDX:
+        case COM_NT_CREATE_ANDX:
+        case COM_READ_ANDX:
+        case COM_WRITE_ANDX:
 
             ulRequestSequence = pConnection->ulSequence++;
             ulResponseSequence = pConnection->ulSequence++;
@@ -182,6 +185,8 @@ SrvConnectionGetNextSequence(
             break;
 
         default:
+
+            SMB_LOG_ERROR("Srv encountered unrecognized message type [%u]", pSmbRequest->pSMBHeader->command);
 
             ntStatus = STATUS_DATA_ERROR;
             BAIL_ON_NT_STATUS(ntStatus);

@@ -60,10 +60,71 @@ typedef struct
     wchar16_t name[0];          /* File to open or create */
 } CREATE_REQUEST_DATA_non_castable;
 
+NTSTATUS
+WireUnmarshallCreateFileRequest(
+    PBYTE  pParams,
+    ULONG  ulBytesAvailable,
+    ULONG  ulBytesUsed,
+    PCREATE_REQUEST_HEADER* ppHeader,
+    PWSTR* ppwszFilename
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE pDataCursor = pParams;
+    PCREATE_REQUEST_HEADER pHeader = NULL;
+    PWSTR pwszFilename = NULL;
+    USHORT alignment = 0;
+
+    if (ulBytesAvailable < sizeof(CREATE_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PCREATE_REQUEST_HEADER)pParams;
+    pDataCursor += sizeof(CREATE_REQUEST_HEADER);
+    ulBytesUsed += sizeof(CREATE_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(CREATE_REQUEST_HEADER);
+
+    if (ulBytesAvailable < pHeader->byteCount)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    alignment = (ulBytesUsed % 2);
+
+    if (ulBytesAvailable < alignment)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ulBytesUsed += alignment;
+    pDataCursor += alignment;
+    ulBytesAvailable -= alignment;
+
+    pwszFilename = (PWSTR)pDataCursor;
+
+    *ppHeader = pHeader;
+    *ppwszFilename = pwszFilename;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppwszFilename = NULL;
+
+    goto cleanup;
+}
+
 /* ASCII is not supported */
 /* @todo: test alignment restrictions on Win2k */
 NTSTATUS
-MarshallCreateRequestData(
+WireMarshallCreateRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
     uint8_t          messageAlignment,
@@ -100,7 +161,7 @@ MarshallCreateRequestData(
 }
 
 NTSTATUS
-UnmarshallSMBResponseCreate(
+WireUnmarshallSMBResponseCreate(
     const uint8_t  *pBuffer,
     uint32_t        bufferLen,
     CREATE_RESPONSE_HEADER **ppHeader

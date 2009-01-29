@@ -68,13 +68,13 @@ SrvFindLeastBusyReader(
     );
 
 static
-DWORD
+NTSTATUS
 SrvFakeClientConnection(
     VOID
     );
 
 static
-DWORD
+NTSTATUS
 SMBSrvGetLocalIPAddress(
     PSTR* ppszIpAddress
     );
@@ -176,7 +176,7 @@ SrvListenerMain(
     PVOID pData
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     int sockFd = -1;
     int connFd = -1;
     struct sockaddr_in servaddr;
@@ -191,8 +191,8 @@ SrvListenerMain(
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     memset(&servaddr, 0, sizeof(servaddr));
@@ -202,14 +202,14 @@ SrvListenerMain(
 
     if (bind(sockFd, (const struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (listen(sockFd, SMB_LISTEN_Q) < 0)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     while (!SrvListenerMustStop(pContext))
@@ -245,8 +245,8 @@ SrvListenerMain(
             }
             else
             {
-                dwError = errno;
-                BAIL_ON_SMB_ERROR(dwError);
+                ntStatus = LwUnixErrnoToNtStatus(errno);
+                BAIL_ON_NT_STATUS(ntStatus);
             }
         }
 
@@ -297,15 +297,15 @@ SrvListenerMain(
             }
         }
 
-        dwError = SrvSocketCreate(
+        ntStatus = SrvSocketCreate(
                         connFd,
                         &cliaddr,
                         &pSocket);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         connFd = -1;
 
-        dwError = SrvConnectionCreate(
+        ntStatus = SrvConnectionCreate(
                         pSocket,
                         pContext->hPacketAllocator,
                         pContext->hGssContext,
@@ -313,7 +313,7 @@ SrvListenerMain(
                         &pContext->serverProperties,
                         pHostinfo,
                         &pConnection);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         pSocket = NULL;
 
@@ -323,10 +323,10 @@ SrvListenerMain(
 
         assert(pReader != NULL);
 
-        dwError = SrvSocketReaderEnqueueConnection(
+        ntStatus = SrvSocketReaderEnqueueConnection(
                         pReader,
                         pConnection);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         pConnection = NULL;
     }
@@ -417,24 +417,24 @@ SrvFindLeastBusyReader(
 }
 
 static
-DWORD
+NTSTATUS
 SrvFakeClientConnection(
     VOID
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     int sockFd = -1;
     struct sockaddr_in servaddr;
     PSTR pszLocalIPAddress = NULL;
 
-    dwError = SMBSrvGetLocalIPAddress(&pszLocalIPAddress);
-    BAIL_ON_SMB_ERROR(dwError);
+    ntStatus = SMBSrvGetLocalIPAddress(&pszLocalIPAddress);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     memset(&servaddr, 0, sizeof(servaddr));
@@ -442,14 +442,14 @@ SrvFakeClientConnection(
     servaddr.sin_port = htons(SMB_SERVER_PORT);
     if (inet_pton(AF_INET, pszLocalIPAddress, &servaddr.sin_addr) < 0)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (connect(sockFd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
     {
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
@@ -461,7 +461,7 @@ cleanup:
 
     SMB_SAFE_FREE_STRING(pszLocalIPAddress);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -469,12 +469,12 @@ error:
 }
 
 static
-DWORD
+NTSTATUS
 SMBSrvGetLocalIPAddress(
     PSTR* ppszIpAddress
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
     CHAR  szHostIpAddress[256];
     struct hostent* pHost = NULL;
     PSTR pszIpAddress = NULL;
@@ -482,20 +482,24 @@ SMBSrvGetLocalIPAddress(
     pHost = gethostbyname("localhost");
     if (!pHost)
     {
-        dwError = h_errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        ntStatus = LwUnixErrnoToNtStatus(h_errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = SMBAllocateString(
-                inet_ntop(AF_INET, pHost->h_addr_list[0], szHostIpAddress, sizeof(szHostIpAddress)),
+    ntStatus = SMBAllocateString(
+                inet_ntop(
+                    AF_INET,
+                    pHost->h_addr_list[0],
+                    szHostIpAddress,
+                    sizeof(szHostIpAddress)),
                 &pszIpAddress);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppszIpAddress = pszIpAddress;
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 

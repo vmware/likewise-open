@@ -114,8 +114,7 @@ SrvSocketReaderInit(
 
     if (pipe(pReader->context.fd) < 0)
     {
-        // TODO: Map error number
-        ntStatus = errno;
+        ntStatus = LwUnixErrnoToNtStatus(errno);
     }
 
     ntStatus = pthread_create(
@@ -603,8 +602,7 @@ SrvSocketReaderInterrupt(
 
     if (write(pReader->context.fd[1], "I", 1) != 1)
     {
-        // TODO: Map error number
-        ntStatus = errno;
+        ntStatus = LwUnixErrnoToNtStatus(errno);
     }
 
     return ntStatus;

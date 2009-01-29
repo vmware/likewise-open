@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -30,64 +30,78 @@
 
 #include "includes.h"
 
+static
 NTSTATUS
-SmbProcessCreateAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvBuildNTCreateResponse(
+    PSMB_PACKET* ppSmbResponse
+    );
+
+NTSTATUS
+SrvProcessNTCreateAndX(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
-    HANDLE hTreeObject = (HANDLE)NULL;
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET         pSmbRequest = pContext->pRequest;
+    PSMB_PACKET         pSmbResponse = NULL;
+    PSMB_SRV_SESSION    pSession = NULL;
+    PSMB_SRV_TREE       pTree = NULL;
+    PCREATE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PWSTR               pwszFilename = NULL; // Do not free
 
-    ntStatus = UnmarshallCreateAndXRequest(pSmbRequest);
+    ntStatus = SrvConnectionFindSession(
+                    pConnection,
+                    pSmbRequest->pSMBHeader->uid,
+                    &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvCreateFile(
-                        hTreeObject
-                        );
+    ntStatus = SrvSessionFindTree(
+                    pSession,
+                    pSmbRequest->pSMBHeader->tid,
+                    &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-
-    ntStatus = MarshallCreateAndXResponse(pSmbRequest);
+    ntStatus = WireUnmarshallCreateFileRequest(
+                    pSmbRequest->pParams,
+                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
+                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    &pRequestHeader,
+                    &pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-
-    ntStatus = SmbSendReply(pSmbRequest);
+    ntStatus = SrvBuildNTCreateResponse(
+                    &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvConnectionWriteMessage(
+                    pConnection,
+                    pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    return (ntStatus);
 
 error:
 
-    return (ntStatus);
+    goto cleanup;
 }
 
+static
 NTSTATUS
-SrvCreateFile(
-    HANDLE hTreeObject
+SrvBuildNTCreateResponse(
+    PSMB_PACKET* ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
 
     return ntStatus;
-}
-
-
-NTSTATUS
-UnmarshallCreateAndXRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-}
-
-
-NTSTATUS
-MarshallCreateAndXResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-
 }

@@ -72,7 +72,7 @@ SMBSrvProcessRequest_V1(
 #if 0
         case COM_TRANS2_QUERY_FS_INFORMATION:
 
-            dwError = SmbProcessTrans2QueryFSInformation(
+            ntStatus = SmbProcessTrans2QueryFSInformation(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -88,23 +88,23 @@ SMBSrvProcessRequest_V1(
 #if 0
         case SMB_NT_CANCEL:
 
-            dwError = SmbNTCancel(
+            ntStatus = SmbNTCancel(
                             pSmbRequest,
                             pSmbResponse);
 
             break;
+#endif
 
-        case SMB_NT_CREATE_ANDX:
+        case COM_NT_CREATE_ANDX:
 
-            dwError = SmbNTCreateAndX(
-                            pSmbRequest,
-                            pSmbResponse);
+            ntStatus = SrvProcessNTCreateAndX(pContext);
 
             break;
 
+#if 0
         case SMB_NT_TRANSACT_CREATE:
 
-            dwError = SmbNTTransactCreate(
+            ntStatus = SmbNTTransactCreate(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -112,7 +112,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_CREATE_TEMPORARY:
 
-            dwError = SmbCreateTemporary(
+            ntStatus = SmbCreateTemporary(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -120,7 +120,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_READ_ANDX:
 
-            dwError = SmbProcessReadAndX(
+            ntStatus = SmbProcessReadAndX(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -128,7 +128,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_WRITE_ANDX:
 
-            dwError = SmbProcessWriteAndX(
+            ntStatus = SmbProcessWriteAndX(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -136,7 +136,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_LOCKING_ANDX:
 
-            dwError = SmbProcessLockingAndX(
+            ntStatus = SmbProcessLockingAndX(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -144,7 +144,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_SEEK:
 
-            dwError = SmbProcessSeek(
+            ntStatus = SmbProcessSeek(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -152,7 +152,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_FLUSH:
 
-            dwError = SmbProcessFlush(
+            ntStatus = SmbProcessFlush(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -160,7 +160,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_CLOSE:
 
-            dwError = SmbClose(
+            ntStatus = SmbClose(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -168,7 +168,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_CLOSE_AND_TREE_DISCONNECT:
 
-            dwError = SmbProcessCloseAndTreeDisconnect(
+            ntStatus = SmbProcessCloseAndTreeDisconnect(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -176,7 +176,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_DELETE:
 
-            dwError = SmbProcessDelete(
+            ntStatus = SmbProcessDelete(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -184,7 +184,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_RENAME:
 
-            dwError = SmbProcessRename(
+            ntStatus = SmbProcessRename(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -192,7 +192,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_NT_RENAME:
 
-            dwError = SmbProcessNTRename(
+            ntStatus = SmbProcessNTRename(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -200,7 +200,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_MOVE:
 
-            dwError = SmbProcessCopy(
+            ntStatus = SmbProcessCopy(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -208,7 +208,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_COPY:
 
-            dwError = SmbProcessCopy(
+            ntStatus = SmbProcessCopy(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -216,7 +216,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_TRANS2_QUERY_PATH_INFORMATION:
 
-            dwError = SmbProcessTrans2QueryPathInformation(
+            ntStatus = SmbProcessTrans2QueryPathInformation(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -224,7 +224,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_TRANS2_QUERY_SET_PATH_INFORMATION:
 
-            dwError = SmbProcessTrans2QuerySetPathInformation(
+            ntStatus = SmbProcessTrans2QuerySetPathInformation(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -232,7 +232,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_TRANS2_SET_FILE_INFORMATION:
 
-            dwError = SmbProcessTrans2SetFileInformation(
+            ntStatus = SmbProcessTrans2SetFileInformation(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -240,7 +240,7 @@ SMBSrvProcessRequest_V1(
 
         case  SMB_TRANS2_CREATE_DIRECTORY:
 
-            dwError = SmbProcessTrans2CreateDirectory(
+            ntStatus = SmbProcessTrans2CreateDirectory(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -248,7 +248,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_DELETE_DIRECTORY:
 
-            dwError = SmbProcessDeleteDirectory(
+            ntStatus = SmbProcessDeleteDirectory(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -256,7 +256,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_CHECK_DIRECTORY:
 
-            dwError = SmbProcessCheckDirectory(
+            ntStatus = SmbProcessCheckDirectory(
                             pSmbRequest,
                             pSmbResponse);
 
@@ -264,7 +264,7 @@ SMBSrvProcessRequest_V1(
 
         case SMB_TRANS2_FIND_FIRST2:
 
-            dwError = SmbProcessTrans2FindFirst2(
+            ntStatus = SmbProcessTrans2FindFirst2(
                             pSmbRequest,
                             pSmbResponse);
             break;
