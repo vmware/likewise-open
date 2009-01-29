@@ -47,7 +47,7 @@
 #define BAIL_ON_NULL_PTR(ptr)                     \
     do {                                          \
         if ((ptr) == NULL) {                      \
-            status = STATUS_NO_MEMORY;            \
+            status = STATUS_INSUFFICIENT_RESOURCES; \
             goto error;                           \
         }                                         \
     } while (0);
