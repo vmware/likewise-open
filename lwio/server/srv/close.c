@@ -30,13 +30,227 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvSetLastWriteTime(
+    PSMB_SRV_FILE pFile,
+    ULONG         ulLastWriteTime
+    );
+
+static
+NTSTATUS
+SrvBuildCloseResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_SRV_TREE       pTree,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_PACKET*        ppSmbResponse
+    );
+
 NTSTATUS
 SrvProcessCloseAndX(
     PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET pSmbRequest = pContext->pRequest;
+    PSMB_PACKET pSmbResponse = NULL;
+    PSMB_SRV_SESSION pSession = NULL;
+    PSMB_SRV_TREE pTree = NULL;
+    PSMB_SRV_FILE pFile = NULL;
+    PCLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketVerifySignature(
+                        pSmbRequest,
+                        pContext->ulRequestSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnectionFindSession(
+                    pConnection,
+                    pSmbRequest->pSMBHeader->uid,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSessionFindTree(
+                    pSession,
+                    pSmbRequest->pSMBHeader->tid,
+                    &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = WireUnmarshallCloseRequest(
+                    pSmbRequest->pParams,
+                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
+                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    &pRequestHeader);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTreeFindFile(
+                    pTree,
+                    pRequestHeader->fid,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pRequestHeader->lastWriteTime != 0)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        ntStatus2 = SrvSetLastWriteTime(
+                                pFile,
+                                pRequestHeader->lastWriteTime);
+        if (ntStatus2)
+        {
+            SMB_LOG_ERROR("Failed to set the last write time for file [fid:%u][code:%d]",
+                            pFile->fid,
+                            ntStatus2);
+        }
+    }
+
+    ntStatus = SrvTreeRemoveFile(
+                    pTree,
+                    pFile->fid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvBuildCloseResponse(
+                    pConnection,
+                    pTree,
+                    pSmbRequest,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketSign(
+                        pSmbResponse,
+                        pContext->ulResponseSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnectionWriteMessage(
+                    pConnection,
+                    pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
+    }
+
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+             pConnection->hPacketAllocator,
+             pSmbResponse);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSetLastWriteTime(
+    PSMB_SRV_FILE pFile,
+    ULONG         ulLastWriteTime
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    // TODO
 
     return ntStatus;
 }
+
+static
+NTSTATUS
+SrvBuildCloseResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_SRV_TREE       pTree,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_PACKET*        ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_PACKET pSmbResponse = NULL;
+    PCLOSE_RESPONSE_HEADER pResponseHeader = NULL;
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_CLOSE,
+                0,
+                TRUE,
+                pTree->tid,
+                getpid(),
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 0;
+
+    pResponseHeader = (PCLOSE_RESPONSE_HEADER)pSmbResponse->pParams;
+    pSmbResponse->pData = pSmbResponse->pParams + sizeof(CLOSE_RESPONSE_HEADER);
+    pSmbResponse->bufferUsed += sizeof(CLOSE_RESPONSE_HEADER);
+
+    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
+    *pSmbResponse->pByteCount = 0;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    goto cleanup;
+}
+
 

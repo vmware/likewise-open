@@ -185,6 +185,31 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvTreeRemoveFile(
+    PSMB_SRV_TREE pTree,
+    USHORT        fid
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+
+    ntStatus = SMBRBTreeRemove(
+                    pTree->pFileCollection,
+                    &fid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
+error:
+
+    goto cleanup;
+}
+
 VOID
 SrvTreeRelease(
     PSMB_SRV_TREE pTree

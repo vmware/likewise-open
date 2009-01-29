@@ -28,3 +28,33 @@
  * license@likewisesoftware.com
  */
 
+#include "includes.h"
+
+NTSTATUS
+WireUnmarshallCloseRequest(
+    const PBYTE            pBuffer,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulBytesUsed,
+    PCLOSE_REQUEST_HEADER* ppHeader
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    if (ulBytesAvailable < sizeof(CLOSE_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppHeader = (PCLOSE_REQUEST_HEADER)pBuffer;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+
+    goto cleanup;
+}

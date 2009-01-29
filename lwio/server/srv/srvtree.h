@@ -29,6 +29,12 @@ SrvTreeCreateFile(
     PSMB_SRV_FILE*          ppFile
     );
 
+NTSTATUS
+SrvTreeRemoveFile(
+    PSMB_SRV_TREE pTree,
+    USHORT        fid
+    );
+
 VOID
 SrvTreeRelease(
     PSMB_SRV_TREE pTree

@@ -784,6 +784,19 @@ typedef struct
     uint16_t byteCount;
 } __attribute__((__packed__)) LOGOFF_RESPONSE_HEADER, *PLOGOFF_RESPONSE_HEADER;
 
+typedef struct
+{
+    uint16_t fid;
+    uint32_t lastWriteTime;
+    uint16_t byteCount;
+
+} __attribute__((__packed__)) CLOSE_REQUEST_HEADER, *PCLOSE_REQUEST_HEADER;
+
+typedef struct
+{
+    uint16_t byteCount;
+} __attribute__((__packed__)) CLOSE_RESPONSE_HEADER, *PCLOSE_RESPONSE_HEADER;
+
 typedef enum
 {
     ERROR_SMB,
@@ -1082,6 +1095,14 @@ WireMarshallEchoResponseData(
     PBYTE       pEchoBlob,
     USHORT      usEchoBlobLength,
     PUSHORT     pusPackageByteCount
+    );
+
+NTSTATUS
+WireUnmarshallCloseRequest(
+    const PBYTE            pBuffer,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulBytesUsed,
+    PCLOSE_REQUEST_HEADER* ppHeader
     );
 
 BOOLEAN
