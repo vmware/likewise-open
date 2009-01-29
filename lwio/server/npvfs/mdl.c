@@ -1,5 +1,7 @@
 #include "npfs.h"
 
+#define min(a,b) (a <= b)? a:b
+
 NTSTATUS
 NpfsEnqueueBuffer(
     PNPFS_MDL pMdlList,
@@ -45,7 +47,35 @@ NpfsDequeueBuffer(
     )
 {
     NTSTATUS ntStatus = 0;
+    ULONG LengthRemaining = 0;
+    ULONG BytesAvail = 0;
+    ULONG BytesToCopy = 0;
+    PNPFS_MDL pMdl = NULL;
 
+    if (!pMdlList) {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    LengthRemaining = Length;
+    while ((LengthRemaining) || (!pMdlList)){
+        BytesAvail = pMdlList->Length - pMdlList->Offset;
+        BytesToCopy = min(BytesAvail, LengthRemaining);
+        memcpy(pBuffer, pMdlList->Buffer + pMdlList->Offset, BytesToCopy);
+        pMdlList->Offset += BytesToCopy;
+        LengthRemaining -= BytesToCopy;
+        if (pMdlList->Length - pMdlList->Offset == 0){
+            NpfsDequeueMdl(pMdlList, &pMdl, &pMdlList);
+            NpfsFreeMdl(pMdl);
+
+        }
+    }
+    *ppMdlList = pMdlList;
+    return(ntStatus);
+
+error:
+
+    *ppMdlList = NULL;
     return(ntStatus);
 }
 
@@ -62,6 +92,7 @@ NpfsCreateMdl(
 {
     NTSTATUS ntStatus = 0;
     PVOID pTargBuffer = NULL;
+    PNPFS_MDL pMdl = NULL;
 
     ntStatus = NpfsAllocateMemory(
                     Length,
@@ -69,14 +100,29 @@ NpfsCreateMdl(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
- /*   ntStatus = RtlCopyMemory(
-                    pTargBuffer,
-                    pBuffer,
-                    Length
+    memcpy(pTargBuffer, pBuffer, Length);
+
+    ntStatus = NpfsAllocateMemory(
+                    sizeof(NPFS_MDL),
+                    &pMdl
                     );
-    BAIL_ON_NT_STATUS(ntStatus); */
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppMdl = pMdl;
+
+    return(ntStatus);
 
 error:
+
+    if(pTargBuffer) {
+        NpfsFreeMemory(pTargBuffer);
+    }
+
+    if (pMdl) {
+        NpfsFreeMemory(pMdl);
+    }
+
+    *ppMdl = NULL;
     return(ntStatus);
 }
 
@@ -89,18 +135,39 @@ NpfsEnqueueMdl(
 {
     NTSTATUS ntStatus = 0;
 
-    return(ntStatus);
+    if ((!pMdlList) || (!pMdl)) {
+        *ppMdlList  = NULL;
+        return (STATUS_INVALID_PARAMETER);
+    }
+
+    pMdl->pNext = pMdlList;
+    *ppMdlList = pMdl;
+
+    return (ntStatus);
 }
 
 NTSTATUS
 NpfsDequeueMdl(
     PNPFS_MDL pMdlList,
-    PNPFS_MDL pMdl,
+    PNPFS_MDL * ppMdl,
     PNPFS_MDL *ppMdlList
     )
 {
     NTSTATUS ntStatus = 0;
+    PNPFS_MDL pMdl = NULL;
 
+    if (!pMdlList) {
+        *ppMdlList = NULL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pMdl = pMdlList;
+    pMdlList = pMdl->pNext;
+
+    *ppMdl = pMdl;
+    *ppMdlList = pMdlList;
+
+error:
     return(ntStatus);
 
 }
@@ -117,16 +184,6 @@ NpfsCopyMdl(
 
     return ntStatus;
 
-}
-
-NTSTATUS
-NpfsDeleteMdl(
-    PNPFS_MDL pMdl
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return(ntStatus);
 }
 
 VOID

@@ -3,6 +3,7 @@ struct _NPFS_PIPE;
 
 typedef struct _NPFS_MDL{
     ULONG Length;
+    ULONG Offset;
     PVOID Buffer;
     struct _NPFS_MDL *pNext;
 } NPFS_MDL, *PNPFS_MDL;

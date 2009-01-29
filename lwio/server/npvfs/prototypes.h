@@ -137,7 +137,7 @@ NpfsEnqueueMdl(
 NTSTATUS
 NpfsDequeueMdl(
     PNPFS_MDL pMdlList,
-    PNPFS_MDL pMdl,
+    PNPFS_MDL * ppMdl,
     PNPFS_MDL *ppMdlList
     );
 
