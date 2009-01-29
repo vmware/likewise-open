@@ -299,6 +299,33 @@ SrvBuildNTCreateResponse(
     NTSTATUS    ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PCREATE_RESPONSE_HEADER pResponseHeader = NULL;
+    FILE_BASIC_INFORMATION fileBasicInfo = {0};
+    FILE_STANDARD_INFORMATION fileStdInfo = {0};
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+
+    ntStatus = IoQueryInformationFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    &fileBasicInfo,
+                    sizeof(fileBasicInfo),
+                    FileBasicInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoQueryInformationFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    &fileStdInfo,
+                    sizeof(fileStdInfo),
+                    FileStandardInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -334,7 +361,17 @@ SrvBuildNTCreateResponse(
 
     pResponseHeader->fid = pFile->fid;
     pResponseHeader->createAction = pIoStatusBlock->CreateResult;
-    // TODO: Fill in other file attributes
+    pResponseHeader->creationTime = fileBasicInfo.CreationTime;
+    pResponseHeader->lastAccessTime = fileBasicInfo.LastAccessTime;
+    pResponseHeader->lastWriteTime = fileBasicInfo.LastWriteTime;
+    pResponseHeader->changeTime = fileBasicInfo.ChangeTime;
+    pResponseHeader->extFileAttributes = fileBasicInfo.FileAttributes;
+    pResponseHeader->allocationSize = fileStdInfo.AllocationSize;
+    pResponseHeader->endOfFile = fileStdInfo.EndOfFile;
+    // TODO:
+    // pResponseHeader->fileType;
+    // pResponseHeader->deviceState;
+    pResponseHeader->isDirectory = fileStdInfo.Directory;
 
     pSmbResponse->pByteCount = &pResponseHeader->byteCount;
     *pSmbResponse->pByteCount = 0;
