@@ -98,7 +98,7 @@ TreeConnect(
     packet.pByteCount = &pHeader->byteCount;
 
     pHeader->flags = 0;
-    pHeader->passwordLength = 0;    /* Authentication handled via uid */
+    pHeader->passwordLength = 1;    /* strlen("") + terminating NULL */
 
     /* @todo: handle buffer size0xFF restart with ERESTART */
     ntStatus = MarshallTreeConnectRequestData(
