@@ -70,6 +70,17 @@ SrvProcessNTCreateAndX(
     PVOID               pSecurityQOS = NULL;
     PIO_FILE_NAME       pFilename = NULL;
 
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketVerifySignature(
+                        pSmbRequest,
+                        pContext->ulRequestSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvConnectionFindSession(
                     pConnection,
                     pSmbRequest->pSMBHeader->uid,
@@ -140,6 +151,17 @@ SrvProcessNTCreateAndX(
                     pFile,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketSign(
+                        pSmbResponse,
+                        pContext->ulResponseSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvConnectionWriteMessage(
                     pConnection,
