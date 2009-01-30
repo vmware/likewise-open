@@ -102,19 +102,61 @@ PvfsQueryFileBasicInfo(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    FILE_BASIC_INFORMATION FileInfo = {0};
+    PFILE_BASIC_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    struct stat sBuf = {0};
+
+    /* Sanity checks */
 
     pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
 
+    ntError = PvfsFileHandleAccessCheck(pCcb, FILE_READ_ATTRIBUTES);
+    BAIL_ON_NT_STATUS(ntError);
+
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    if (Args.Length < sizeof(FileInfo))
+    if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    pFileInfo = (PFILE_BASIC_INFORMATION)Args.FileInformation;
+
+    /* Real work starts here */
+
+    if (fstat(pCcb->fd, &sBuf) == -1)
+    {
+        int err = errno;
+
+        ntError = PvfsMapUnixErrnoToNtStatus(err);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime,
+                                sBuf.st_atime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime,
+                                sBuf.st_mtime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime,
+                                    sBuf.st_ctime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Most Unix file systems don't support creation time
+       so assume it to be the mtime for now */
+
+    pFileInfo->CreationTime = pFileInfo->LastWriteTime;
+
+    /* Make this up for now */
+
+    pFileInfo->FileAttributes = FILE_ATTRIBUTE_ARCHIVE;
+
+
+    ntError = STATUS_SUCCESS;
 
 
 cleanup:

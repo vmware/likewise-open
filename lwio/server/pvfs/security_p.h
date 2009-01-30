@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,105 +28,39 @@
  * license@likewisesoftware.com
  */
 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes
+ *        security.c
  *
  * Abstract:
  *
- *        Likewise Posix File System (SMBSS)
+ *        Likewise Posix File System Driver (PVFS)
  *
- *        Service Entry API
+ *        Security related routines such as ACLs, acces, checks, etc...
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef __PVFS_H__
-#define __PVFS_H__
+#ifndef _PVFS_SECURITY_P_H
+#define _PVFS_SECURITY_P_H
 
-#include "config.h"
-#include "lwiosys.h"
+#include "pvfs.h"
 
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
-
-#include "iodriver.h"
-#include "lwioutils.h"
-
-#include "structs.h"
-#include "macros.h"
-#include "fileinfo_p.h"
-#include "security_p.h"
-#include "create_p.h"
-#include "alloc_p.h"
-#include "time_p.h"
-
-
-/* Unix (POSIX) APIs */
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
-
-/* Top level APi functions */
 
 NTSTATUS
-PvfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsQuerySetInformation(
-    PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsMapUnixErrnoToNtStatus(
-    int err
+PvfsFileHandleAccessCheck(
+    PPVFS_CCB pCcb,
+    ACCESS_MASK AccessRequired
     );
 
 
-#endif /* __PVFS_H__ */
 
 
+#endif    /* _PVFS_SECURITY_P_H */
 /*
 local variables:
 mode: c
@@ -135,3 +69,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

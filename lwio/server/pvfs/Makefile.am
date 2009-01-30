@@ -14,6 +14,8 @@ libpvfs_sys_la_SOURCES = \
     create_dir.c \
     alloc.c \
     errno.c \
+    util_security.c \
+    util_time.c \
     file_basic_info.c \
     file_std_info.c
 

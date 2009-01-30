@@ -41,6 +41,10 @@
  *
  */
 
+#ifndef _PVFS_STRUCTS_H
+#define _PVFS_STRUCTS_H
+
+
 typedef enum _PVFS_INFO_TYPE {
     PVFS_QUERY = 1,
     PVFS_SET
@@ -62,6 +66,10 @@ typedef struct _PVFS_IRP_CONTEXT
     PIRP pIrp;
 
 } PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
+
+
+
+#endif    /* _PVFS_STRUCTS_H */
 
 
 /*

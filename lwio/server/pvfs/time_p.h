@@ -28,46 +28,32 @@
  * license@likewisesoftware.com
  */
 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        create.c
+ *        file_basic_info.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *       Create Dispatch Routine
+ *        FileBasicInformation Handler
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef _PVFS_CREATE_P_H
-#define _PVFS_CREATE_P_H
 
-
-NTSTATUS
-PvfsCreateFile(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
+#ifndef _PVFS_TIME_P_H
+#define _PVFS_TIME_P_H
 
 NTSTATUS
-PvfsCreateDirectory(
-    PPVFS_IRP_CONTEXT pIrpContext
+PvfsUnixToWinTime(
+    PLONG64 pWinTime,
+    time_t UnixTime
     );
 
 
-
-#endif       /* _PVFS_CREATE_P_H */
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
-
+#endif    /* _PVFS_TIME_P_H */

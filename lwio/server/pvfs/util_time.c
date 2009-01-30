@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,103 +28,58 @@
  * license@likewisesoftware.com
  */
 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes
+ *        file_basic_info.c
  *
  * Abstract:
  *
- *        Likewise Posix File System (SMBSS)
+ *        Likewise Posix File System Driver (PVFS)
  *
- *        Service Entry API
+ *        FileBasicInformation Handler
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef __PVFS_H__
-#define __PVFS_H__
+#include "pvfs.h"
 
-#include "config.h"
-#include "lwiosys.h"
+#define TIME_SEC_CONVERSION_CONSTANT     11644473600L
 
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
-
-#include "iodriver.h"
-#include "lwioutils.h"
-
-#include "structs.h"
-#include "macros.h"
-#include "fileinfo_p.h"
-#include "security_p.h"
-#include "create_p.h"
-#include "alloc_p.h"
-#include "time_p.h"
-
-
-/* Unix (POSIX) APIs */
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
-
-/* Top level APi functions */
+/**
+ * Converts a time_t value (seconds since Jan1, 1970)
+ * to a Windows time value (100's of nanoseconds since
+ * Jan 1, 1601).
+ *     NTTime = A * (UnixTime + B)
+ *     A = 10^7 (100 nanosecond ticks)
+ *     B = 11644473600 (sec between 1/1/1601 and 1/1/1970)
+ */
 
 NTSTATUS
-PvfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
+PvfsUnixToWinTime(
+    PLONG64 pWinTime,
+    time_t UnixTime
+	)
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-NTSTATUS
-PvfsDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
+    BAIL_ON_INVALID_PTR(pWinTime, ntError);
 
-NTSTATUS
-PvfsFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
+    *pWinTime = (UnixTime + TIME_SEC_CONVERSION_CONSTANT) * 10000000;
 
-NTSTATUS
-PvfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
+    ntError = STATUS_SUCCESS;
 
-NTSTATUS
-PvfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
+cleanup:
+    return ntError;
 
-NTSTATUS
-PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
+error:
+    goto cleanup;
 
-NTSTATUS
-PvfsQuerySetInformation(
-    PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
+}
 
-NTSTATUS
-PvfsMapUnixErrnoToNtStatus(
-    int err
-    );
-
-
-#endif /* __PVFS_H__ */
 
 
 /*
@@ -135,3 +90,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+
