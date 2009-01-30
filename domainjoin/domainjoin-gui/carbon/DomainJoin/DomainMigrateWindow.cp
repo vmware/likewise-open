@@ -442,14 +442,40 @@ DomainMigrateWindow::ShowMigrateCompleteDialog(const std::string& value)
     CFRelease(msgStrRef);
 }
 
+void
+DomainMigrateWindow::ShowMigrateCompleteErrorDialog(
+    const std::string& value,
+    int code,
+    const std::string& resultMessage
+    )
+{
+    SInt16 outItemHit;
+    char msgStr[512] = { 0 };
+    sprintf(msgStr,
+            "Account migration script finished with exitcode: %d\n%sMigration processing logs can be found at:\n\t/tmp/lw-migrate.%s.log",
+            code,
+            resultMessage.c_str() ? resultMessage.c_str() : "",
+            value.c_str());
+    CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+    CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 511, kCFStringEncodingASCII);
+    StandardAlert(kAlertNoteAlert,
+                  "\pLikewise - Active Directory",
+                  (StringPtr)msgStr,
+                  NULL,
+                  &outItemHit);
+                  CFRelease(msgStrRef);
+}
+
 bool
-DomainMigrateWindow::ConfirmMigration(const std::string& localUserName,
-               const std::string& localUserHomeDir,
-               const std::string& adUserName,
-               const std::string& adUserHomeDir,
-               const std::string& adUserUID,
-               const std::string& adUserGID,
-               bool bMoveProfile)
+DomainMigrateWindow::ConfirmMigration(
+    const std::string& localUserName,
+    const std::string& localUserHomeDir,
+    const std::string& adUserName,
+    const std::string& adUserHomeDir,
+    const std::string& adUserUID,
+    const std::string& adUserGID,
+    bool bMoveProfile
+    )
 {
     AlertStdCFStringAlertParamRec params;
     DialogRef dialog;
@@ -466,16 +492,30 @@ DomainMigrateWindow::ConfirmMigration(const std::string& localUserName,
     params.defaultButton = kAlertStdAlertCancelButton;
     params.position = kWindowCenterOnParentWindow;
 
-    msgStrRef = CFStringCreateWithFormat(NULL,
-                                         NULL,
-                                         CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nContents from '%s' will be %s to '%s'.\nOwnership will be asssigned to (UID: %s, GID: %s)"),
-                                         localUserName.c_str(),
-                                         adUserName.c_str(),
-                                         localUserHomeDir.c_str(),
-                                         bMoveProfile ? "moved" : "copied",
-                                         adUserHomeDir.c_str(),
-                                         adUserUID.c_str(),
-                                         adUserGID.c_str());
+    if (!strcmp(localUserHomeDir.c_str(), adUserHomeDir.c_str()))
+    {
+        msgStrRef = CFStringCreateWithFormat(NULL,
+                                             NULL,
+                                             CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nSince the two profiles share the same home directory path, the contents of '%s' will be reassigned to the new owner (UID: %s, GID: %s)"),
+                                             localUserName.c_str(),
+                                             adUserName.c_str(),
+                                             localUserHomeDir.c_str(),
+                                             adUserUID.c_str(),
+                                             adUserGID.c_str());
+    }
+    else
+    {
+        msgStrRef = CFStringCreateWithFormat(NULL,
+                                             NULL,
+                                             CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nContents from '%s' will be %s to '%s'.\nOwnership will be asssigned to (UID: %s, GID: %s)"),
+                                             localUserName.c_str(),
+                                             adUserName.c_str(),
+                                             localUserHomeDir.c_str(),
+                                             bMoveProfile ? "moved" : "copied",
+                                             adUserHomeDir.c_str(),
+                                             adUserUID.c_str(),
+                                             adUserGID.c_str());
+    }
 
     err = CreateStandardAlert(kAlertStopAlert,
                               CFSTR("Likewise Migrate User Profile"),
@@ -501,6 +541,58 @@ DomainMigrateWindow::ConfirmMigration(const std::string& localUserName,
     }
 
     return itemHit != 2;
+}
+
+int
+DomainMigrateWindow::CallMigrateCommand(
+    const std::string& localUserHomeDir,
+    const std::string& adUserName,
+    const std::string& logFileName,
+    bool bMoveProfile,
+    char ** ppszOutput
+    )
+{
+    long macError = eDSNoErr;
+    char * pszOutput = NULL;
+    int exitCode = 0;
+    const char* argsCopy[] = { "/opt/likewise/bin/lw-local-user-migrate.sh",
+                               localUserHomeDir.c_str(),
+                               adUserName.c_str(),
+                               "--log",
+                               logFileName.c_str(),
+                               (char *) NULL };
+    const char* argsMove[] = { "/opt/likewise/bin/lw-local-user-migrate.sh",
+                               localUserHomeDir.c_str(),
+                               adUserName.c_str(),
+                               "--move",
+                               "--log",
+                               logFileName.c_str(),
+                               (char *) NULL };
+
+    macError = CallCommandWithOutputAndErr(bMoveProfile ? argsMove[0] : argsCopy[0],
+                                           bMoveProfile ? argsMove : argsCopy,
+                                           true,
+                                           &pszOutput,
+                                           &exitCode);
+    if (macError)
+    {
+        exitCode = -1;
+    }
+
+    if (ppszOutput && pszOutput)
+    {
+        *ppszOutput = pszOutput;
+        pszOutput = NULL;
+    }
+
+exit:
+
+    if (pszOutput)
+    {
+        free(pszOutput);
+    }
+
+    return exitCode;
 }
 
 void
@@ -540,8 +632,6 @@ DomainMigrateWindow::ShowMigrateProgressBar()
 void
 DomainMigrateWindow::HandleMigration()
 {
-    char * pszCommand = NULL;
-
     try
     {
         std::string localUserName = GetLocalUserName();
@@ -556,73 +646,36 @@ DomainMigrateWindow::HandleMigration()
 
         if (ConfirmMigration(localUserName, localUserHomeDir, adUserName, adUserHomeDir, adUserUID, adUserGID, bMoveProfile))
         {
+            int ret = 0;
+            char szLogFileName[256] = { 0 };
+            char * pszErrorMessage = NULL;
+
+            sprintf(szLogFileName, "/tmp/lw-migrate.%s.log", localUserName.c_str());
+
             // Migrate user with the parameters we have determined...
-            pszCommand = (char*) malloc(strlen(localUserHomeDir.c_str()) + strlen(adUserHomeDir.c_str()) + 256);
-            if (pszCommand)
-            {
-                sprintf(pszCommand, "/opt/likewise/bin/lw-local-user-migrate.sh %s %s %s %s %s --log /tmp/lw-migrate.%s.log",
-                        localUserHomeDir.c_str(),
-                        adUserHomeDir.c_str(),
-                        adUserUID.c_str(),
-                        adUserGID.c_str(),
-                        bMoveProfile ? "--move" : "",
-                        localUserName.c_str());
-                system(pszCommand);
-                free(pszCommand);
-                pszCommand = NULL;
-            }
+            ret = CallMigrateCommand(localUserHomeDir, adUserName, szLogFileName, bMoveProfile, &pszErrorMessage);
 
             HideMigrateProgressBar();
-            ShowMigrateCompleteDialog(localUserName);
+
+            if (ret)
+            {
+                ShowMigrateCompleteErrorDialog(localUserName, ret, pszErrorMessage);
+
+                if (pszErrorMessage)
+                {
+                    free(pszErrorMessage);
+                }
+            }
+            else
+            {
+                ShowMigrateCompleteDialog(localUserName);
+            }
 
             // Okay to switch back to Leave dialog since the migration is completed
             PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
         }
 
         HideMigrateProgressBar();
-    }
-    catch(InvalidDomainnameException& ide)
-    {
-        SInt16 outItemHit;
-        char msgStr[256];
-        sprintf(msgStr, "Please specify a valid domain name");
-        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-        StandardAlert(kAlertStopAlert,
-        "\pMigrate User Error",
-        (StringPtr)msgStr,
-        NULL,
-        &outItemHit);
-        CFRelease(msgStrRef);
-    }
-    catch(InvalidHostnameException& ihe)
-    {
-        SInt16 outItemHit;
-        char msgStr[256];
-        sprintf(msgStr, "Please specify a valid hostname");
-        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-        StandardAlert(kAlertStopAlert,
-        "\pMigrate User Error",
-        (StringPtr)msgStr,
-        NULL,
-        &outItemHit);
-        CFRelease(msgStrRef);
-    }
-    catch(InvalidUsernameException& iue)
-    {
-        SInt16 outItemHit;
-        char msgStr[256];
-        sprintf(msgStr, "Please specify a valid user id");
-        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-        StandardAlert(kAlertStopAlert,
-        "\pMigrate User Error",
-        (StringPtr)msgStr,
-        NULL,
-        &outItemHit);
-
-        CFRelease(msgStrRef);
     }
     catch(DomainJoinException& dje)
     {
@@ -646,13 +699,6 @@ DomainMigrateWindow::HandleMigration()
                       "\pAn unexpected error occurred when attempting to migrate local user profile to AD profile. Please report this to Likewise Technical Support at support@likewisesoftware.com",
                       NULL,
                       &outItemHit);
-    }
-
-// Clean up
-
-    if (pszCommand)
-    {
-        free(pszCommand);
     }
 }
 
@@ -691,20 +737,6 @@ DomainMigrateWindow::HandleValidateUser()
         SetADUserHomeDirectory(pszHomeDir);
         SetADUserUID(pszUID);
         SetADUserGID(pszGID);
-    }
-    catch(InvalidUsernameException& iue)
-    {
-        SInt16 outItemHit;
-        char msgStr[256];
-        sprintf(msgStr, "Please specify a valid user id");
-        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-        StandardAlert(kAlertStopAlert,
-        "\pMigrate User Error",
-        (StringPtr)msgStr,
-        NULL,
-        &outItemHit);
-        CFRelease(msgStrRef);
     }
     catch(DomainJoinException& dje)
     {
@@ -1220,6 +1252,7 @@ GetUserInfo(
             macError = eDSAllocationFailed;
             goto exit;
         }
+        memset(pszRealName, 0, pValueEntry->fAttributeValueData.fBufferLength + 1);
 
         strcpy(pszRealName, pValueEntry->fAttributeValueData.fBufferData);
         dsDeallocAttributeValueEntry(hDirRef, pValueEntry);
@@ -1250,6 +1283,7 @@ GetUserInfo(
             macError = eDSAllocationFailed;
             goto exit;
         }
+        memset(pszUserUID, 0, pValueEntry->fAttributeValueData.fBufferLength + 1);
 
         strcpy(pszUserUID, pValueEntry->fAttributeValueData.fBufferData);
         dsDeallocAttributeValueEntry(hDirRef, pValueEntry);
@@ -1273,6 +1307,7 @@ GetUserInfo(
             macError = eDSAllocationFailed;
             goto exit;
         }
+        memset(pszUserGID, 0, pValueEntry->fAttributeValueData.fBufferLength + 1);
 
         strcpy(pszUserGID, pValueEntry->fAttributeValueData.fBufferData);
         dsDeallocAttributeValueEntry(hDirRef, pValueEntry);
@@ -1296,6 +1331,7 @@ GetUserInfo(
             macError = eDSAllocationFailed;
             goto exit;
         }
+        memset(pszHomeDir, 0, pValueEntry->fAttributeValueData.fBufferLength + 1);
 
         strcpy(pszHomeDir, pValueEntry->fAttributeValueData.fBufferData);
         dsDeallocAttributeValueEntry(hDirRef, pValueEntry);
@@ -1768,3 +1804,125 @@ FreeLocalUserList(
         free(pTemp);
     }
 }
+
+long
+CallCommandWithOutputAndErr(
+    const char *  pszCommand,
+    const char ** ppszArgs,
+    bool          bCaptureStderr,
+    char **       ppszOutput,
+    int *         pExitCode
+    )
+{
+    long         macError = eDSNoErr;
+    unsigned int buffer_size = 1024;
+    unsigned int read_size, write_size;
+    int out[2];
+    int pid, status;
+    char * pszTempOutput = NULL;
+
+    if(ppszOutput != NULL)
+        *ppszOutput = NULL;
+
+    if (pipe(out))
+    {
+        macError = errno;
+        if (macError) goto exit;
+    }
+
+    pid = fork();
+
+    if (pid < 0)
+    {
+        macError = errno;
+        if (macError) goto exit;
+    }
+    else if (pid == 0)
+    {
+        // Child process
+        if (dup2(out[1], STDOUT_FILENO) < 0)
+            abort();
+        if (bCaptureStderr && dup2(out[1], STDERR_FILENO) < 0)
+            abort();
+        if (close(out[0]))
+            abort();
+        if (close(out[1]))
+            abort();
+        execvp(pszCommand, (char **)ppszArgs);
+    }
+
+    if (close(out[1]))
+    {
+        macError = errno;
+        if (macError) goto exit;
+    }
+
+    pszTempOutput = (char *) malloc(buffer_size);
+    if (!pszTempOutput)
+    {
+        macError = eDSAllocationFailed;
+        goto exit;
+    }
+    memset(pszTempOutput, 0, buffer_size);
+
+    write_size = 0;
+
+    while ((read_size = read(out[0], pszTempOutput + write_size, buffer_size - write_size)) > 0)
+    {
+        write_size += read_size;
+        if (write_size == buffer_size)
+        {
+            buffer_size *= 2;
+            free(pszTempOutput);
+            pszTempOutput = (char *) malloc(buffer_size);
+            if (!pszTempOutput)
+            {
+                macError = eDSAllocationFailed;
+                goto exit;
+            }
+            memset(pszTempOutput, 0, buffer_size);
+        }
+    }
+
+    if (read_size < 0)
+    {
+        macError = errno;
+        if (macError) goto exit;
+    }
+
+    if (close(out[0]))
+    {
+        macError = errno;
+        if (macError) goto exit;
+    }
+
+    if (waitpid(pid, &status, 0) != pid)
+    {
+        macError = errno;
+        if (macError) goto exit;
+    }
+
+    if(ppszOutput != NULL)
+    {
+        *ppszOutput = pszTempOutput;
+        pszTempOutput = NULL;
+    }
+
+    if (pExitCode != NULL)
+        *pExitCode = WEXITSTATUS(status);
+    else if (status)
+    {
+        macError = eDSOperationFailed;
+        goto exit;
+    }
+
+exit:
+
+    if (pszTempOutput)
+    {
+        free(pszTempOutput);
+    }
+
+    return macError;
+}
+
