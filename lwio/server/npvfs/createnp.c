@@ -121,10 +121,7 @@ NpfsCommonCreateNamedPipe(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pPipe->pSCB = pSCB;
-    pPipe->PipeClientState =  PIPE_CLIENT_CONNECTED;
-    pPipe->PipeServerState = PIPE_SERVER_CREATED;
     pSCB->pPipe = pPipe;
-
 
     ntStatus = IoFileSetContext(
                         pIrpContext->pIrp->FileHandle,

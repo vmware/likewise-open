@@ -90,6 +90,8 @@ NpfsCreatePipe(
     pthread_cond_init(&pPipe->PipeCondition,NULL);
     pthread_mutex_init(&pPipe->PipeMutex, NULL);
 
+    pPipe->PipeServerState = PIPE_SERVER_INIT_STATE;
+    pPipe->PipeClientState = PIPE_CLIENT_INIT_STATE;
     pPipe->pNext = pFCB->pPipes;
     pFCB->pPipes = pPipe;
 

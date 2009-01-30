@@ -102,7 +102,7 @@ NpfsCommonConnectNamedPipe(
 
     pPipe->PipeServerState = PIPE_SERVER_WAITING_FOR_CONNECTION;
 
-    while(pPipe->PipeServerState != PIPE_CLIENT_CONNECTED){
+    while(pPipe->PipeClientState != PIPE_CLIENT_CONNECTED){
 
         pthread_cond_wait(&pPipe->PipeCondition, &pPipe->PipeMutex);
 

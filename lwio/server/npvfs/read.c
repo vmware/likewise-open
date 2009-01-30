@@ -159,7 +159,7 @@ NpfsServerReadFile(
         case PIPE_SERVER_DISCONNECTED:
                 break;
 
-        case PIPE_SERVER_CREATED:
+        case PIPE_SERVER_INIT_STATE:
         case PIPE_SERVER_WAITING_FOR_CONNECTION:
                 break;
 
