@@ -47,6 +47,23 @@
 
 #include "pvfs.h"
 
+/* Forward declarations */
+
+static NTSTATUS
+PvfsFileBasicInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+static NTSTATUS
+PvfsFileStandardInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+
+/* File Globals */
+
 struct _InfoLevelDispatchEntry {
     FILE_INFORMATION_CLASS Level;
     NTSTATUS (*fn)(PVFS_INFO_TYPE RequestType,
@@ -57,8 +74,8 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileDirectoryInformation,         NULL },
     { FileFullDirectoryInformation,     NULL },
     { FileBothDirectoryInformation,     NULL },
-    { FileBasicInformation,             NULL },
-    { FileStandardInformation,          NULL },
+    { FileBasicInformation,             &PvfsFileBasicInfo },
+    { FileStandardInformation,          &PvfsFileStandardInfo },
     { FileInternalInformation,          NULL },
     { FileEaInformation,                NULL },
     { FileAccessInformation,            NULL },
@@ -96,6 +113,8 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileShortNameInformation,         NULL }
 };
 
+
+/* Code */
 
 NTSTATUS
 PvfsQuerySetInformation(
@@ -148,6 +167,69 @@ cleanup:
 error:
     goto cleanup;
 }
+
+static NTSTATUS
+PvfsFileBasicInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    switch(Type)
+    {
+    case PVFS_SET:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+
+    case PVFS_QUERY:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+static NTSTATUS
+PvfsFileStandardInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    switch(Type)
+    {
+    case PVFS_SET:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+
+    case PVFS_QUERY:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 /*
