@@ -44,6 +44,33 @@ typedef struct
     uint8_t   data[0];          /* Data bytes (# = DataCount) */
 } TRANSACTION_REQUEST_DATA_non_castable;
 
+static
+NTSTATUS
+WireUnmarshallTransactionSetupData(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PUSHORT*    ppSetup,
+    BYTE        setupLen,
+    PUSHORT*    ppByteCount,
+    PBYTE*      ppParameters,
+    USHORT      parameterLen,
+    PBYTE*      ppData,
+    USHORT      dataLen
+    );
+
+static
+NTSTATUS
+WireUnmarshallTransactionParameterData(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PBYTE*      ppParameters,
+    ULONG       parameterLen,
+    PBYTE*      ppData,
+    ULONG       dataLen
+    );
+
 static NTSTATUS
 _MarshallTransactionParameterData(
     uint8_t  *pBuffer,
@@ -187,134 +214,226 @@ MarshallTransactionRequestData(
         pData, dataLen, pDataOffset);
 }
 
-static NTSTATUS
-_UnmarshallTransactionParameterData(
-    uint8_t   *pBuffer,
-    uint32_t   bufferLen,
-    uint8_t  **ppParameters,
-    uint32_t   parameterLen,
-    uint8_t  **ppData,
-    uint32_t   dataLen)
-{
-    uint32_t bufferUsed = 0;
-
-    bufferUsed += (4 - (bufferUsed % 4)) % 4;
-    if (bufferUsed + parameterLen > bufferLen)
-    {
-        return EBADMSG;
-    }
-
-    if (parameterLen == 0)
-    {
-        *ppParameters = NULL;   /* Zero length parameters */
-    }
-    else
-    {
-        *ppParameters = (uint8_t*) pBuffer + bufferUsed;
-    }
-    bufferUsed += parameterLen;
-
-    /* Align data to a four byte boundary */
-    bufferUsed += (4 - (bufferUsed % 4)) % 4;
-    if (bufferUsed + dataLen > bufferLen)
-    {
-        return EBADMSG;
-    }
-
-    if (dataLen == 0)
-    {
-        *ppData = NULL;         /* Zero length parameters */
-    }
-    else
-    {
-        *ppData = (uint8_t*) pBuffer + bufferUsed;
-    }
-
-    return 0;
-}
-
-static NTSTATUS
-_UnmarshallTransactionSetupData(
-    uint8_t    *pBuffer,
-    uint32_t    bufferLen,
-    uint16_t  **ppSetup,
-    uint8_t     setupLen,
-    uint16_t  **ppByteCount,
-    wchar16_t **ppwszName,
-    uint8_t   **ppParameters,
-    uint32_t    parameterLen,
-    uint8_t   **ppData,
-    uint32_t    dataLen
-    )
-{
-    uint32_t bufferUsed = 0;
-
-    if (setupLen > bufferLen)
-        return EBADMSG;
-
-    if (setupLen == 0)
-    {
-        *ppSetup = NULL;        /* Zero length setup */
-    }
-    else
-    {
-        *ppSetup = (uint16_t*) pBuffer;
-    }
-    bufferUsed += setupLen;
-
-    if (bufferUsed + sizeof(**ppByteCount) > bufferLen)
-        return EBADMSG;
-    *ppByteCount = (uint16_t*) (pBuffer + bufferUsed);
-    bufferUsed += sizeof(**ppByteCount);
-
-    if (ppwszName)
-    {
-        /* Align string */
-        bufferUsed += bufferUsed % 2;
-        if (bufferUsed > bufferLen)
-        {
-            return EBADMSG;
-        }
-
-        *ppwszName = (wchar16_t *) (pBuffer + bufferUsed);
-        bufferUsed += sizeof(wchar16_t) * wc16snlen(*ppwszName,
-            (bufferLen - bufferUsed) / sizeof(wchar16_t)) + sizeof(WNUL);
-        if (bufferUsed > bufferLen)
-        {
-            return EBADMSG;
-        }
-    }
-
-    return _UnmarshallTransactionParameterData(pBuffer, bufferLen,
-        ppParameters, parameterLen, ppData, dataLen);
-}
-
 NTSTATUS
-UnmarshallTransactionRequest(
-    uint8_t    *pBuffer,
-    uint32_t    bufferLen,
-    TRANSACTION_REQUEST_HEADER **ppHeader,
-    uint16_t  **ppSetup,
-    uint8_t     setupLen,
-    uint16_t  **ppByteCount,
-    wchar16_t **ppwszName,
-    uint8_t   **ppParameters,
-    uint32_t    parameterLen,
-    uint8_t   **ppData,
-    uint32_t    dataLen
+WireUnmarshallTransactionRequest(
+    const PBYTE                  pBuffer,
+    ULONG                        ulNumBytesAvailable,
+    ULONG                        ulOffset,
+    PTRANSACTION_REQUEST_HEADER* ppHeader,
+    PUSHORT*                     ppSetup,
+    PUSHORT*                     ppByteCount,
+    PBYTE*                       ppParameters,
+    PBYTE*                       ppData
     )
 {
-    /* NOTE: The buffer format cannot be trusted! */
-    uint32_t bufferUsed = sizeof(TRANSACTION_REQUEST_HEADER);
-    if (bufferLen < bufferUsed)
-        return EBADMSG;
+    NTSTATUS ntStatus = 0;
+    PBYTE pDataCursor = pBuffer;
+    PTRANSACTION_REQUEST_HEADER pHeader = NULL;
+    PUSHORT pSetup = NULL;
+    PUSHORT pByteCount = NULL;
+    PBYTE   pParameters = NULL;
+    PBYTE   pData = NULL;
 
-    /* @todo: endian swap as appropriate */
-    *ppHeader = (TRANSACTION_REQUEST_HEADER *) pBuffer;
+    if (ulNumBytesAvailable < sizeof(TRANSACTION_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    return _UnmarshallTransactionSetupData(pBuffer + bufferUsed,
-        bufferLen - bufferUsed, ppSetup, setupLen, ppByteCount, ppwszName,
-        ppParameters, parameterLen, ppData, dataLen);
+    pHeader = (PTRANSACTION_REQUEST_HEADER) pDataCursor;
+
+    pDataCursor += sizeof(TRANSACTION_REQUEST_HEADER);
+    ulNumBytesAvailable -= sizeof(TRANSACTION_REQUEST_HEADER);
+    ulOffset += sizeof(TRANSACTION_REQUEST_HEADER);
+
+    ntStatus = WireUnmarshallTransactionSetupData(
+                    pDataCursor,
+                    ulNumBytesAvailable,
+                    ulOffset,
+                    &pSetup,
+                    pHeader->setupCount,
+                    &pByteCount,
+                    &pParameters,
+                    pHeader->parameterCount,
+                    &pData,
+                    pHeader->dataCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppHeader = pHeader;
+    *ppSetup = pSetup;
+    *ppByteCount = pByteCount;
+    *ppParameters = pParameters;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppSetup = NULL;
+    *ppByteCount = NULL;
+    *ppParameters = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+WireUnmarshallTransactionSetupData(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PUSHORT*    ppSetup,
+    BYTE        setupLen,
+    PUSHORT*    ppByteCount,
+    PBYTE*      ppParameters,
+    USHORT      parameterLen,
+    PBYTE*      ppData,
+    USHORT      dataLen
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE pDataCursor = pBuffer;
+    USHORT  usSetupLen = 0;
+    PUSHORT pSetup = NULL;
+    PUSHORT pByteCount = NULL;
+    PBYTE   pParameters = NULL;
+    PBYTE   pData = NULL;
+
+    usSetupLen = (setupLen * sizeof(USHORT));
+
+    if (ulNumBytesAvailable < usSetupLen)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (usSetupLen)
+    {
+        pSetup = (PUSHORT) pBuffer;
+        pDataCursor += usSetupLen;
+        ulNumBytesAvailable -= usSetupLen;
+        ulOffset += usSetupLen;
+    }
+
+    if (ulNumBytesAvailable < sizeof(USHORT))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pByteCount = (PUSHORT)pDataCursor;
+    pDataCursor += sizeof(USHORT);
+    ulNumBytesAvailable -= sizeof(USHORT);
+    ulOffset += sizeof(USHORT);
+
+    ntStatus = WireUnmarshallTransactionParameterData(
+                    pBuffer,
+                    ulNumBytesAvailable,
+                    ulOffset,
+                    &pParameters,
+                    parameterLen,
+                    &pData,
+                    dataLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSetup = pSetup;
+    *ppByteCount = pByteCount;
+    *ppParameters = pParameters;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppSetup = NULL;
+    *ppByteCount = NULL;
+    *ppParameters = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+WireUnmarshallTransactionParameterData(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PBYTE*      ppParameters,
+    ULONG       parameterLen,
+    PBYTE*      ppData,
+    ULONG       dataLen
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE    pDataCursor = pBuffer;
+    ULONG    alignment = 0;
+    PBYTE    pParameters = NULL;
+    PBYTE    pData = NULL;
+
+    alignment = (4 - (ulOffset % 4));
+
+    if (ulNumBytesAvailable < alignment)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pDataCursor += alignment;
+    ulNumBytesAvailable -= alignment;
+    ulOffset += alignment;
+
+    if (ulNumBytesAvailable < parameterLen)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (parameterLen)
+    {
+        pParameters = pDataCursor;
+
+        pDataCursor += parameterLen;
+        ulNumBytesAvailable -= parameterLen;
+        ulOffset += parameterLen;
+    }
+
+    alignment = (4 - (ulOffset % 4));
+
+    if (ulNumBytesAvailable < alignment)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pDataCursor += alignment;
+    ulNumBytesAvailable -= alignment;
+    ulOffset += alignment;
+
+    if (dataLen)
+    {
+        pData = pDataCursor;
+    }
+
+    *ppParameters = pParameters;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppParameters = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
 }
 
 typedef struct
@@ -346,26 +465,59 @@ MarshallTransactionSecondaryRequestData(
 }
 
 NTSTATUS
-UnmarshallTransactionSecondaryRequest(
-    uint8_t   *pBuffer,
-    uint32_t   bufferLen,
-    TRANSACTION_SECONDARY_REQUEST_HEADER **ppHeader,
-    uint8_t  **ppParameters,
-    uint32_t   parameterLen,
-    uint8_t  **ppData,
-    uint32_t   dataLen
+WireUnmarshallTransactionSecondaryRequest(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PTRANSACTION_SECONDARY_REQUEST_HEADER* ppHeader,
+    PBYTE*      ppParameters,
+    PBYTE*      ppData,
+    USHORT      dataLen
     )
 {
-    /* NOTE: The buffer format cannot be trusted! */
-    uint32_t bufferUsed = sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
-    if (bufferLen < bufferUsed)
-        return EBADMSG;
+    NTSTATUS ntStatus = 0;
+    PBYTE pDataCursor = pBuffer;
+    PTRANSACTION_SECONDARY_REQUEST_HEADER pHeader = NULL;
+    PBYTE pParameters = NULL;
+    PBYTE pData = NULL;
 
-    /* @todo: endian swap as appropriate */
-    *ppHeader = (TRANSACTION_SECONDARY_REQUEST_HEADER *) pBuffer;
+    if (ulNumBytesAvailable < sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    return _UnmarshallTransactionParameterData(pBuffer + bufferUsed,
-        bufferLen - bufferUsed, ppParameters, parameterLen, ppData, dataLen);
+    pHeader = (PTRANSACTION_SECONDARY_REQUEST_HEADER)pDataCursor;
+
+    pDataCursor += sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
+    ulNumBytesAvailable -= sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
+    ulOffset += sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
+
+    ntStatus = WireUnmarshallTransactionParameterData(
+                    pDataCursor,
+                    ulNumBytesAvailable,
+                    ulOffset,
+                    &pParameters,
+                    pHeader->parameterCount,
+                    &pData,
+                    pHeader->dataCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppHeader = pHeader;
+    *ppParameters = pParameters;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppParameters = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
 }
 
 /* This is identical to TRANSACTION_SECONDARY_REQUEST_DATA */
@@ -402,28 +554,68 @@ MarshallTransactionSecondaryResponseData(
 }
 
 NTSTATUS
-UnmarshallTransactionSecondaryResponse(
-    uint8_t   *pBuffer,
-    uint32_t   bufferLen,
-    TRANSACTION_SECONDARY_RESPONSE_HEADER **ppHeader,
-    uint16_t **ppSetup,
-    uint8_t    setupLen,
-    uint16_t **ppByteCount,
-    uint8_t  **ppParameters,
-    uint32_t   parameterLen,
-    uint8_t  **ppData,
-    uint32_t   dataLen
+WireUnmarshallTransactionSecondaryResponse(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PTRANSACTION_SECONDARY_RESPONSE_HEADER* ppHeader,
+    PUSHORT*    ppSetup,
+    PUSHORT*    ppByteCount,
+    PBYTE*      ppParameters,
+    PBYTE*      ppData,
+    USHORT      dataLen
     )
 {
-    /* NOTE: The buffer format cannot be trusted! */
-    uint32_t bufferUsed = sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
-    if (bufferLen < bufferUsed)
-        return EBADMSG;
+    NTSTATUS ntStatus = 0;
+    PBYTE pDataCursor = pBuffer;
+    PTRANSACTION_SECONDARY_RESPONSE_HEADER pHeader = NULL;
+    PUSHORT pSetup = NULL;
+    PBYTE   pParameters = NULL;
+    PBYTE   pData = NULL;
+    PUSHORT pByteCount = NULL;
 
-    /* @todo: endian swap as appropriate */
-    *ppHeader = (TRANSACTION_SECONDARY_RESPONSE_HEADER *) pBuffer;
+    if (ulNumBytesAvailable < sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    return _UnmarshallTransactionSetupData(pBuffer + bufferUsed,
-        bufferLen - bufferUsed, ppSetup, setupLen, ppByteCount, NULL,
-        ppParameters, parameterLen, ppData, dataLen);
+    pHeader = (PTRANSACTION_SECONDARY_RESPONSE_HEADER)pDataCursor;
+
+    pDataCursor += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+    ulNumBytesAvailable -= sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+    ulOffset += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+
+    ntStatus = WireUnmarshallTransactionSetupData(
+                    pDataCursor,
+                    ulNumBytesAvailable,
+                    ulOffset,
+                    &pSetup,
+                    pHeader->setupCount,
+                    &pByteCount,
+                    &pParameters,
+                    pHeader->parameterCount,
+                    &pData,
+                    pHeader->dataCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppHeader = pHeader;
+    *ppSetup = pSetup;
+    *ppByteCount = pByteCount;
+    *ppParameters = pParameters;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppSetup = NULL;
+    *ppByteCount = NULL;
+    *ppParameters = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
 }

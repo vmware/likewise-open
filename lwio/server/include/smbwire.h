@@ -631,7 +631,7 @@ typedef struct
     uint8_t  reserved3;            /* Reserved (pad above to word boundary) */
 
     /* Setup words immediately follow */
-}  __attribute__((__packed__))  TRANSACTION_REQUEST_HEADER;
+}  __attribute__((__packed__))  TRANSACTION_REQUEST_HEADER, *PTRANSACTION_REQUEST_HEADER;
 
 /* @todo: is this ever sent? */
 typedef struct
@@ -658,7 +658,7 @@ typedef struct
     uint16_t byteCount;               /* Count of data bytes */
 
     /* Parameters and data follow */
-}  __attribute__((__packed__))  TRANSACTION_SECONDARY_REQUEST_HEADER;
+}  __attribute__((__packed__))  TRANSACTION_SECONDARY_REQUEST_HEADER, *PTRANSACTION_SECONDARY_REQUEST_HEADER;
 
 typedef struct
 {
@@ -676,7 +676,7 @@ typedef struct
     uint8_t  reserved2;             /* Reserved (pad above to word boundary) */
 
     /* Parameters and data follow */
-}  __attribute__((__packed__))  TRANSACTION_SECONDARY_RESPONSE_HEADER;
+}  __attribute__((__packed__))  TRANSACTION_SECONDARY_RESPONSE_HEADER, *PTRANSACTION_SECONDARY_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -994,18 +994,15 @@ MarshallTransactionRequestData(
     );
 
 NTSTATUS
-UnmarshallTransactionRequest(
-    uint8_t    *pBuffer,
-    uint32_t    bufferLen,
-    TRANSACTION_REQUEST_HEADER **ppHeader,
-    uint16_t  **ppSetup,
-    uint8_t     setupLen,
-    uint16_t  **ppByteCount,
-    wchar16_t **ppwszName,
-    uint8_t   **ppParameters,
-    uint32_t    parameterLen,
-    uint8_t   **ppData,
-    uint32_t    dataLen
+WireUnmarshallTransactionRequest(
+    const PBYTE                  pBuffer,
+    ULONG                        ulNumBytesAvailable,
+    ULONG                        ulOffset,
+    PTRANSACTION_REQUEST_HEADER* ppHeader,
+    PUSHORT*                     ppSetup,
+    PUSHORT*                     ppByteCount,
+    PBYTE*                       ppParameters,
+    PBYTE*                       ppData
     );
 
 NTSTATUS
@@ -1022,14 +1019,14 @@ MarshallTransactionSecondaryRequestData(
     );
 
 NTSTATUS
-UnmarshallTransactionSecondaryRequest(
-    uint8_t   *pBuffer,
-    uint32_t   bufferLen,
-    TRANSACTION_SECONDARY_REQUEST_HEADER **ppHeader,
-    uint8_t  **ppParameters,
-    uint32_t   parameterLen,
-    uint8_t  **ppData,
-    uint32_t   dataLen
+WireUnmarshallTransactionSecondaryRequest(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PTRANSACTION_SECONDARY_REQUEST_HEADER* ppHeader,
+    PBYTE*      ppParameters,
+    PBYTE*      ppData,
+    USHORT      dataLen
     );
 
 NTSTATUS
@@ -1048,17 +1045,16 @@ MarshallTransactionSecondaryResponseData(
     );
 
 NTSTATUS
-UnmarshallTransactionSecondaryResponse(
-    uint8_t   *pBuffer,
-    uint32_t   bufferLen,
-    TRANSACTION_SECONDARY_RESPONSE_HEADER **ppHeader,
-    uint16_t **ppSetup,
-    uint8_t    setupLen,
-    uint16_t **ppByteCount,
-    uint8_t  **ppParameters,
-    uint32_t   parameterLen,
-    uint8_t  **ppData,
-    uint32_t   dataLen
+WireUnmarshallTransactionSecondaryResponse(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PTRANSACTION_SECONDARY_RESPONSE_HEADER* ppHeader,
+    PUSHORT*    ppSetup,
+    PUSHORT*    ppByteCount,
+    PBYTE*      ppParameters,
+    PBYTE*      ppData,
+    USHORT      dataLen
     );
 
 NTSTATUS
