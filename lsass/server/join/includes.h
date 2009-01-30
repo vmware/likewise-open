@@ -55,7 +55,7 @@
 #include <lwrpc/sidhelper.h>
 #include <lwrpc/errconv.h>
 
-#include <lsmb/lsmb.h>
+#include <lwrdr/lwrdr.h>
 
 #include "join_p.h"
 #include "externs.h"
