@@ -156,6 +156,8 @@ PvfsQueryFileBasicInfo(
     pFileInfo->FileAttributes = FILE_ATTRIBUTE_ARCHIVE;
 
 
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+
     ntError = STATUS_SUCCESS;
 
 

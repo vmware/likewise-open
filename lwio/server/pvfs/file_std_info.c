@@ -49,6 +49,10 @@
 
 /* Forward declarations */
 
+static NTSTATUS
+PvfsQueryFileStandardInfo(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
 
 
 /* File Globals */
@@ -65,21 +69,6 @@ PvfsFileStandardInfo(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrp->Args.QuerySetInformation;
-    FILE_STANDARD_INFORMATION FileInfo = {0};
-    PPVFS_CCB pCcb = NULL;
-
-    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
-
-    if (Args.Length < sizeof(FileInfo))
-    {
-        ntError = STATUS_BUFFER_TOO_SMALL;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
 
     switch(Type)
     {
@@ -88,7 +77,7 @@ PvfsFileStandardInfo(
         break;
 
     case PVFS_QUERY:
-        ntError = STATUS_NOT_SUPPORTED;
+        ntError = PvfsQueryFileStandardInfo(pIrpContext);
         break;
 
     default:
@@ -104,6 +93,62 @@ error:
     goto cleanup;
 }
 
+static NTSTATUS
+PvfsQueryFileStandardInfo(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
+    PFILE_STANDARD_INFORMATION pFileInfo = NULL;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    struct stat sBuf = {0};
+
+    /* Sanity checks */
+
+    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+
+    /* No access checked needed for this call */
+
+    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
+
+    if (Args.Length < sizeof(*pFileInfo))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pFileInfo = (PFILE_STANDARD_INFORMATION)Args.FileInformation;
+
+    /* Real work starts here */
+
+    if (fstat(pCcb->fd, &sBuf) == -1)
+    {
+        int err = errno;
+
+        ntError = PvfsMapUnixErrnoToNtStatus(err);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pFileInfo->AllocationSize = sBuf.st_blksize;
+    pFileInfo->EndOfFile      = sBuf.st_size;
+    pFileInfo->NumberOfLinks  = sBuf.st_nlink;
+    pFileInfo->DeletePending  = FALSE;          /* Ignore Delete-on-Close */
+    pFileInfo->Directory      = S_ISDIR(sBuf.st_mode) ? TRUE : FALSE;
+
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+
+    ntError = STATUS_SUCCESS;
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 /*
 local variables:

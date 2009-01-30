@@ -135,7 +135,7 @@ PvfsQuerySetInformation(
     {
         if (InfoLevelDispatchTable[i].Level == InfoLevel)
         {
-            if (InfoLevelDispatchTable[InfoLevel].fn == NULL)
+            if (InfoLevelDispatchTable[i].fn == NULL)
             {
                 ntError = STATUS_NOT_SUPPORTED;
                 break;

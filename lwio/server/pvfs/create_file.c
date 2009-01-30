@@ -223,7 +223,7 @@ PvfsCreateFileSupersede(
     /* Save our state */
 
     pCcb->fd = fd;
-    pCcb->AccessGranted = MAXIMUM_ALLOWED;
+    pCcb->AccessGranted = FILE_ALL_ACCESS;
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
@@ -313,7 +313,7 @@ PvfsCreateFileCreate(
     /* Save our state */
 
     pCcb->fd = fd;
-    pCcb->AccessGranted = MAXIMUM_ALLOWED;
+    pCcb->AccessGranted = FILE_ALL_ACCESS;
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
@@ -398,7 +398,7 @@ PvfsCreateFileOpen(
     /* Save our state */
 
     pCcb->fd = fd;
-    pCcb->AccessGranted = MAXIMUM_ALLOWED;
+    pCcb->AccessGranted = FILE_ALL_ACCESS;
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
@@ -488,7 +488,7 @@ PvfsCreateFileOpenIf(
     /* Save our state */
 
     pCcb->fd = fd;
-    pCcb->AccessGranted = MAXIMUM_ALLOWED;
+    pCcb->AccessGranted = FILE_ALL_ACCESS;
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
@@ -578,7 +578,7 @@ PvfsCreateFileOverwrite(
     /* Save our state */
 
     pCcb->fd = fd;
-    pCcb->AccessGranted = MAXIMUM_ALLOWED;
+    pCcb->AccessGranted = FILE_ALL_ACCESS;
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
@@ -668,7 +668,7 @@ PvfsCreateFileOverwriteIf(
     /* Save our state */
 
     pCcb->fd = fd;
-    pCcb->AccessGranted = MAXIMUM_ALLOWED;
+    pCcb->AccessGranted = FILE_ALL_ACCESS;
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 

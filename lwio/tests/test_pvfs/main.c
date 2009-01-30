@@ -69,6 +69,7 @@ PrintUsage(
     fprintf(stderr, "(All pvfs files should be given in the format \"/pvfs/path/...\")\n");
     fprintf(stderr, "    -c <src> <dst>    Copy src to the Pvfs dst file\n");
     fprintf(stderr, "    -C <src> <dst>    Copy the pvfs src file to the local dst file\n");
+    fprintf(stderr, "    -S <file>         Stat a Pvfs file\n");
     fprintf(stderr, "\n");
 
     return;
@@ -287,6 +288,86 @@ error:
     goto cleanup;
 }
 
+
+/******************************************************
+ *****************************************************/
+
+static NTSTATUS
+StatRemoteFile(
+    char *pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    FILE_BASIC_INFORMATION FileBasicInfo = {0};
+    FILE_STANDARD_INFORMATION FileStdInfo = {0};
+    IO_FILE_NAME Filename = {0};
+    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_STATUS_BLOCK StatusBlock = {0};
+
+    Filename.RootFileHandle = (IO_FILE_HANDLE)NULL;
+    Filename.IoNameOptions = 0;
+    ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
+                                               pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtCreateFile(&hFile,
+                           NULL,
+                           &StatusBlock,
+                           &Filename,
+                           NULL,
+                           NULL,
+                           FILE_ALL_ACCESS,
+                           0,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_NON_DIRECTORY_FILE,
+                           NULL,
+                           0,
+                           NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtQueryInformationFile(hFile,
+                                     NULL,
+                                     &StatusBlock,
+                                     &FileBasicInfo,
+                                     sizeof(FileBasicInfo),
+                                     FileBasicInformation);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtQueryInformationFile(hFile,
+                                     NULL,
+                                     &StatusBlock,
+                                     &FileStdInfo,
+                                     sizeof(FileStdInfo),
+                                     FileStandardInformation);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtCloseFile(hFile);
+    BAIL_ON_NT_STATUS(ntError);
+
+    printf("Filename:             %s\n", pszFilename);
+    printf("Allocation Size:      %ld\n", FileStdInfo.AllocationSize);
+    printf("File Size:            %ld\n", FileStdInfo.EndOfFile);
+    printf("Number of Links:      %d\n", FileStdInfo.NumberOfLinks);
+    printf("Is Directory:         %s\n", FileStdInfo.Directory ? "yes" : "no");
+    printf("Pending Delete:       %s\n", FileStdInfo.DeletePending ? "yes" : "no");
+    printf("Attributes:           0x%x\n", FileBasicInfo.FileAttributes);
+    printf("CreationTime:         %ld\n", FileBasicInfo.CreationTime);
+    printf("Last Access Time:     %ld\n", FileBasicInfo.LastAccessTime);
+    printf("Last Modification:    %ld\n", FileBasicInfo.LastWriteTime);
+    printf("Change Time:          %ld\n", FileBasicInfo.ChangeTime);
+    printf("\n");
+
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 /******************************************************
  *****************************************************/
 
@@ -298,7 +379,7 @@ main(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    /* CHeck Arg count */
+    /* Check Arg count */
 
     if (argc <= 2) {
         PrintUsage(argv[0]);
@@ -315,6 +396,10 @@ main(
     else if (strcmp(argv[1], "-C") == 0)
     {
         ntError = CopyFileFromPvfs(argc-2, argv+2);
+    }
+    else if (strcmp(argv[1], "-S") == 0)
+    {
+        ntError = StatRemoteFile(argv[2]);
     }
     else
     {
