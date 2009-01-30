@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,98 +28,101 @@
  * license@likewisesoftware.com
  */
 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes
+ *        file_basic_info.c
  *
  * Abstract:
  *
- *        Likewise Posix File System (SMBSS)
+ *        Likewise Posix File System Driver (PVFS)
  *
- *        Service Entry API
+ *        FileBasicInformation Handler
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef __PVFS_H__
-#define __PVFS_H__
+#include "pvfs.h"
 
-#include "config.h"
-#include "lwiosys.h"
+/* Forward declarations */
 
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
-
-#include "iodriver.h"
-#include "lwioutils.h"
-
-#include "structs.h"
-#include "macros.h"
-#include "fileinfo_p.h"
-
-/* Unix (POSIX) APIs */
-
-#include <errno.h>
-
-/* Top level APi functions */
-
-NTSTATUS
-PvfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsQuerySetInformation(
-    PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-#include "create_p.h"
-#include "alloc_p.h"
-
-NTSTATUS
-PvfsMapUnixErrnoToNtStatus(
-    int err
+static NTSTATUS
+PvfsQueryFileBasicInfo(
+    PPVFS_IRP_CONTEXT pIrpContext
     );
 
 
-#endif /* __PVFS_H__ */
+/* File Globals */
+
+
+
+/* Code */
+
+
+NTSTATUS
+PvfsFileBasicInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    switch(Type)
+    {
+    case PVFS_SET:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+
+    case PVFS_QUERY:
+        ntError = PvfsQueryFileBasicInfo(pIrpContext);
+        break;
+
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+static NTSTATUS
+PvfsQueryFileBasicInfo(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
+    FILE_BASIC_INFORMATION FileInfo = {0};
+    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+
+    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+
+    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
+
+    if (Args.Length < sizeof(FileInfo))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 /*
@@ -130,3 +133,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

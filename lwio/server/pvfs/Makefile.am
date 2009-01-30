@@ -13,7 +13,9 @@ libpvfs_sys_la_SOURCES = \
     create_file.c \
     create_dir.c \
     alloc.c \
-    errno.c
+    errno.c \
+    file_basic_info.c \
+    file_std_info.c
 
 libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

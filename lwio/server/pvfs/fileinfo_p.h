@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,105 +28,32 @@
  * license@likewisesoftware.com
  */
 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes
+ *        fileinfo_p.h
  *
  * Abstract:
  *
- *        Likewise Posix File System (SMBSS)
+ *        Likewise Posix File System Driver (PVFS)
  *
- *        Service Entry API
+ *        FileInformation Handlers
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef __PVFS_H__
-#define __PVFS_H__
-
-#include "config.h"
-#include "lwiosys.h"
-
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
-
-#include "iodriver.h"
-#include "lwioutils.h"
-
-#include "structs.h"
-#include "macros.h"
-#include "fileinfo_p.h"
-
-/* Unix (POSIX) APIs */
-
-#include <errno.h>
-
-/* Top level APi functions */
 
 NTSTATUS
-PvfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
+PvfsFileBasicInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
     );
 
 NTSTATUS
-PvfsDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
+PvfsFileStandardInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
     );
-
-NTSTATUS
-PvfsFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsQuerySetInformation(
-    PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-#include "create_p.h"
-#include "alloc_p.h"
-
-NTSTATUS
-PvfsMapUnixErrnoToNtStatus(
-    int err
-    );
-
-
-#endif /* __PVFS_H__ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

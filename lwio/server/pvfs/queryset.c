@@ -49,17 +49,6 @@
 
 /* Forward declarations */
 
-static NTSTATUS
-PvfsFileBasicInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-static NTSTATUS
-PvfsFileStandardInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
 
 
 /* File Globals */
@@ -126,11 +115,11 @@ PvfsQuerySetInformation(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     FILE_INFORMATION_CLASS InfoLevel = 0;
-    InfoLevel = pIrp->Args.QuerySetInformation.FileInformationClass;
     int i = 0;
     size_t sizeTable = sizeof(InfoLevelDispatchTable) /
                        sizeof(struct _InfoLevelDispatchEntry);
 
+    InfoLevel = pIrp->Args.QuerySetInformation.FileInformationClass;
 
     if (InfoLevel >= FileMaximumInformation)
     {
@@ -167,69 +156,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-static NTSTATUS
-PvfsFileBasicInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    switch(Type)
-    {
-    case PVFS_SET:
-        ntError = STATUS_NOT_SUPPORTED;
-        break;
-
-    case PVFS_QUERY:
-        ntError = STATUS_NOT_SUPPORTED;
-        break;
-
-    default:
-        ntError = STATUS_INVALID_PARAMETER;
-        break;
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-static NTSTATUS
-PvfsFileStandardInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    switch(Type)
-    {
-    case PVFS_SET:
-        ntError = STATUS_NOT_SUPPORTED;
-        break;
-
-    case PVFS_QUERY:
-        ntError = STATUS_NOT_SUPPORTED;
-        break;
-
-    default:
-        ntError = STATUS_INVALID_PARAMETER;
-        break;
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
 
 
 /*
