@@ -56,8 +56,20 @@ NpfsFindAvailablePipe(
     )
 {
     NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
 
-    return(ntStatus);
+    pPipe = pFCB->pPipes;
+
+    while(pPipe) {
+
+        if (pPipe->PipeServerState == PIPE_SERVER_WAITING_FOR_CONNECTION){
+            *ppPipe = pPipe;
+            return(ntStatus);
+        }
+        pPipe = pPipe->pNext;
+    }
+    *ppPipe = NULL;
+    return(STATUS_PIPE_NOT_AVAILABLE);
 }
 
 NTSTATUS

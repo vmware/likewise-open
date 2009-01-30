@@ -156,7 +156,15 @@ NpfsCommonCreate(
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
+    ntStatus = IoFileSetContext(
+                        pIrpContext->pIrp->FileHandle,
+                        pCCB
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
 error:
+
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
     LEAVE_READER_RW_LOCK(&gServerLock);
 

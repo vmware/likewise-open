@@ -125,10 +125,6 @@ NpfsCommonCreateNamedPipe(
     pPipe->PipeServerState = PIPE_SERVER_CREATED;
     pSCB->pPipe = pPipe;
 
-    //
-    // Now set the condition queue to trigger the
-    // waiting ConnectNamedPipe on the SCB
-    //
 
     ntStatus = IoFileSetContext(
                         pIrpContext->pIrp->FileHandle,

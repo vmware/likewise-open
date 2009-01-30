@@ -85,6 +85,8 @@ NpfsCommonConnectNamedPipe(
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pSCB = NULL;
 
+    pSCB = (PNPFS_CCB)IoFileGetContext(pIrpContext->pIrp->FileHandle);
+
     ENTER_READER_RW_LOCK(&gServerLock);
     pPipe = pSCB->pPipe;
 

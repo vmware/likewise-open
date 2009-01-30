@@ -21,6 +21,9 @@ NpfsCreateFCB(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pFCB->pNext = gpFCB;
+    gpFCB = pFCB;
+
     *ppFCB = pFCB;
 
     return(ntStatus);
