@@ -500,7 +500,7 @@ static LWMsgTypeSpec gLsaIPCBeginObjectEnumReqSpec[] =
     LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_RECORDS_REQ),
     /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
     LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, dwInfoLevel),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_RECORDS_REQ, dwNumMaxRecords),
     LWMSG_STRUCT_END,
@@ -512,7 +512,7 @@ static LWMsgTypeSpec gLsaIPCBeginNssArtefactEnumReqSpec[] =
     LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ),
     /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
     LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, Handle, gLsaIpcEnumServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, dwInfoLevel),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, dwMaxNumNSSArtefacts),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, dwFlags),
@@ -527,7 +527,7 @@ static LWMsgTypeSpec gLsaIPCEnumObjectReqSpec[] =
     LWMSG_STRUCT_BEGIN(LSA_IPC_ENUM_RECORDS_REQ),
     /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
     LWMSG_MEMBER_TYPESPEC(LSA_IPC_ENUM_RECORDS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
     LWMSG_MEMBER_PSTR(LSA_IPC_ENUM_RECORDS_REQ, pszToken),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
