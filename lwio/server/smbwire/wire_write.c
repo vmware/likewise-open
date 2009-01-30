@@ -31,6 +31,47 @@
 #include "includes.h"
 
 NTSTATUS
+WireUnmarshallWriteRequest(
+    const PBYTE            pParams,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulBytesUsed,
+    PWRITE_REQUEST_HEADER* ppHeader,
+    PBYTE*                 ppData
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PWRITE_REQUEST_HEADER pHeader = NULL;
+    PBYTE pDataCursor = NULL;
+
+    if (ulBytesAvailable < sizeof(WRITE_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PWRITE_REQUEST_HEADER)pParams;
+
+    ulBytesAvailable -= sizeof(WRITE_REQUEST_HEADER);
+    pDataCursor += sizeof(WRITE_REQUEST_HEADER);
+
+    // TODO: Validate that we have enough data
+
+    *ppHeader = pHeader;
+    *ppData = pParams + pHeader->dataOffset;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 MarshallWriteRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,

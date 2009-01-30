@@ -1062,6 +1062,15 @@ UnmarshallTransactionSecondaryResponse(
     );
 
 NTSTATUS
+WireUnmarshallWriteRequest(
+    const PBYTE            pParams,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulBytesUsed,
+    PWRITE_REQUEST_HEADER* ppHeader,
+    PBYTE*                 ppData
+    );
+
+NTSTATUS
 MarshallWriteRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
