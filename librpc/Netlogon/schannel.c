@@ -56,7 +56,7 @@
 #include <lwrpc/netlogon.h>
 #include <lwrpc/netlogonbinding.h>
 #include <dce/schannel.h>
-#include <lsmb/lsmb.h>
+#include <lwrdr/lwrdr.h>
 
 static handle_t
 CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)

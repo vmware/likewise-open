@@ -36,7 +36,7 @@
 #include <lwrpc/mpr.h>
 #include <lwps/lwps.h>
 #include <keytab.h>
-#include <lsmb/lsmb.h>
+#include <lwrdr/lwrdr.h>
 
 #include "NetUtil.h"
 #include "NetGetDcName.h"

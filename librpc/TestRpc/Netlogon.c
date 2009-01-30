@@ -52,7 +52,7 @@
 #include <lwrpc/netlogon.h>
 #include <lwrpc/netlogonbinding.h>
 #include <lwrpc/mpr.h>
-#include <lsmb/lsmb.h>
+#include <lwrdr/lwrdr.h>
 
 #include "TestRpc.h"
 #include "Params.h"
