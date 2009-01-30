@@ -31,7 +31,7 @@
 #include "includes.h"
 
 static LWMsgProtocol* pProtocol = NULL;
-static LWMsgBuffer buffer;
+static LWMsgContext* pContext = NULL;
 
 #define TRY(_e_) ((_e_) && (MU_FAILURE("%s", #_e_), 0))
 
@@ -67,22 +67,6 @@ wstr(const char* str)
     return wstr;
 }
 
-static void
-BufferInit(void)
-{
-    buffer.length = 8192;
-    buffer.memory = malloc(buffer.length);
-    buffer.cursor = buffer.memory;
-    buffer.full = NULL;
-    buffer.data = NULL;
-}
-
-static void
-BufferRewind(void)
-{
-    buffer.cursor = buffer.memory;
-}
-
 MU_FIXTURE_SETUP(marshal)
 {
     LWMsgProtocolSpec* pSpec = NULL;
@@ -97,18 +81,22 @@ MU_FIXTURE_SETUP(marshal)
         MU_FAILURE("Failed to compile protocol: %s", lwmsg_protocol_get_error_message(pProtocol, status));
     }
 
-    BufferInit();
+    TRY( lwmsg_context_new(&pContext) );
 }
 
 MU_FIXTURE_TEARDOWN(marshal)
 {
     lwmsg_protocol_delete(pProtocol);
+    lwmsg_context_delete(pContext);
 }
 
 MU_TEST(marshal, SMB_CREATE_FILE)
 {
     IO_ACCESS_TOKEN token;
     SMB_CREATE_FILE_REQUEST request, *pCopy;
+    void* buffer;
+    size_t length;
+    LWMsgTypeSpec* type = NULL;
 
     token.type = IO_ACCESS_TOKEN_TYPE_PLAIN;
     token.payload.plain.pwszUsername = wstr("FOODOMAIN\\foouser");
@@ -122,11 +110,11 @@ MU_TEST(marshal, SMB_CREATE_FILE)
     request.dwFlagsAndAttributes = 0;
     request.pSecurityAttributes = NULL;
 
-    TRY ( lwmsg_protocol_marshal(pProtocol, SMB_CREATE_FILE, &request, &buffer) );
+    TRY ( lwmsg_protocol_get_message_type(pProtocol, SMB_CREATE_FILE, &type) );
 
-    BufferRewind();
+    TRY ( lwmsg_marshal_alloc(pContext, type, &request, &buffer, &length) );
 
-    TRY ( lwmsg_protocol_unmarshal(pProtocol, SMB_CREATE_FILE, &buffer, (void*) &pCopy) );
+    TRY ( lwmsg_unmarshal_simple(pContext, type, buffer, length, (void*) &pCopy) );
 
     MU_ASSERT_EQUAL_DWORD(request.pSecurityToken->type, pCopy->pSecurityToken->type);
     MU_ASSERT_EQUAL_PWSTR(request.pSecurityToken->payload.plain.pwszUsername, 
