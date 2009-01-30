@@ -47,17 +47,19 @@ static LWMsgContext* context;
 static void
 allocate_buffer(LWMsgBuffer* buffer)
 {
-    buffer->length = 2048;
-    buffer->memory = malloc(buffer->length);
-    buffer->cursor = buffer->memory;
-    buffer->full = NULL;
+    size_t length = 2047;
+
+    buffer->base = malloc(length);
+    buffer->cursor = buffer->base;
+    buffer->end = buffer->base + length;
+    buffer->wrap = NULL;
     buffer->data = NULL;
 }
 
 static void
 rewind_buffer(LWMsgBuffer* buffer)
 {
-    buffer->cursor = buffer->memory;
+    buffer->cursor = buffer->base;
 }
 
 MU_FIXTURE_SETUP(marshal)
@@ -112,26 +114,21 @@ MU_TEST(marshal, basic)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* -42 */
         0xFF, 0xD6,
         /* 2 */
         0x00, 0x00, 0x00, 0x02,
-        /* pointer */
-        0xFF,
         /* 1234 */
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xD2,
         /* 4321 */
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xE1
     };
     LWMsgTypeSpec* type = basic_spec;
-    LWMsgBuffer buffer;
+    void* buffer;
+    size_t length;
     basic_struct basic;
     basic_struct *out;
     long longs[2];
-
-    allocate_buffer(&buffer);
 
     basic.foo = (short) -42;
     basic.len = 2;
@@ -139,13 +136,12 @@ MU_TEST(marshal, basic)
     longs[0] = 1234;
     longs[1] = 4321;
 
-    MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &basic, &buffer));
+    MU_TRY_CONTEXT(context, lwmsg_marshal_alloc(context, type, &basic, &buffer, &length));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, sizeof(expected), length);
+    MU_ASSERT(!memcmp(buffer, expected, sizeof(expected)));
 
-    rewind_buffer(&buffer);
-
-    MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
+    MU_TRY_CONTEXT(context, lwmsg_unmarshal_simple(context, type, buffer, length, (void**) (void*) &out));
 
     MU_ASSERT(basic.foo == out->foo);
     MU_ASSERT(basic.len == out->len);
@@ -183,8 +179,6 @@ MU_TEST(marshal, basic_verify_unmarshal_failure)
         0x00, 0x0C,
         /* 2 */
         0x00, 0x00, 0x00, 0x02,
-        /* pointer */
-        0xFF,
         /* 1234 */
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xD2,
         /* 4321 */
@@ -197,8 +191,8 @@ MU_TEST(marshal, basic_verify_unmarshal_failure)
 
     MU_EXPECT(MU_STATUS_EXCEPTION);
 
-    buffer.memory = buffer.cursor = (void*) bytes;
-    buffer.length = sizeof(bytes);
+    buffer.base = buffer.cursor = (void*) bytes;
+    buffer.end = buffer.base + sizeof(bytes);
     
 
     MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
@@ -208,8 +202,6 @@ MU_TEST(marshal, basic_verify_range_failure)
 {
     static const unsigned char bytes[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* -42 */
         0xFF, 0xD6,
         /* 9 */
@@ -228,8 +220,8 @@ MU_TEST(marshal, basic_verify_range_failure)
 
     MU_EXPECT(MU_STATUS_EXCEPTION);
 
-    buffer.memory = buffer.cursor = (void*) bytes;
-    buffer.length = sizeof(bytes);
+    buffer.base = buffer.cursor = (void*) bytes;
+    buffer.end = buffer.base + sizeof(bytes);
     
 
     MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
@@ -239,14 +231,10 @@ MU_TEST(marshal, basic_verify_null_failure)
 {
     static const unsigned char bytes[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* -42 */
         0xFF, 0xD6,
         /* 2 */
         0x00, 0x00, 0x00, 0x02,
-        /* pointer is NULL */
-        0x00
     };
 
     LWMsgTypeSpec* type = basic_spec;
@@ -255,8 +243,8 @@ MU_TEST(marshal, basic_verify_null_failure)
 
     MU_EXPECT(MU_STATUS_EXCEPTION);
 
-    buffer.memory = buffer.cursor = (void*) bytes;
-    buffer.length = sizeof(bytes);
+    buffer.base = buffer.cursor = (void*) bytes;
+    buffer.end = buffer.base + sizeof(bytes);
     
 
     MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
@@ -281,20 +269,18 @@ MU_TEST(marshal, string)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* foo set */
         0xFF,
         /* foo length */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* foo contents */
-        'f', 'o', 'o', '\0',
+        'f', 'o', 'o',
         /* bar set */
         0xFF,
         /* bar length */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* bar contents */
-        'b', 'a', 'r', '\0'
+        'b', 'a', 'r'
     };
 
     LWMsgTypeSpec* type = string_spec;
@@ -309,7 +295,7 @@ MU_TEST(marshal, string)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -348,8 +334,6 @@ MU_TEST(marshal, struct_array)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* len = 2 */
         0x00, 0x00, 0x00, 0x02,
         /* foo set */
@@ -373,7 +357,7 @@ MU_TEST(marshal, struct_array)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &structs, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -406,26 +390,22 @@ MU_TEST(marshal, string_array)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* strings = (set) */
         0xFF,
-        /* (implicit) length of "strings" = 3 */
-        0x00, 0x00, 0x00, 0x03,
+        /* (implicit) length of "strings" = 2 */
+        0x00, 0x00, 0x00, 0x02,
         /* strings[0] = set */
         0xFF,
         /* strings[0] len */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* strings[0] value */
-        'f', 'o', 'o', '\0',
+        'f', 'o', 'o',
         /* strings[1] = set */
         0xFF,
         /* strings[1] len */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* strings[1] value */
-        'b', 'a', 'r', '\0',
-        /* strings[2] = unset */
-        0x00
+        'b', 'a', 'r'
     };
 
     LWMsgTypeSpec* type = string_array_spec;
@@ -440,7 +420,7 @@ MU_TEST(marshal, string_array)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -457,14 +437,10 @@ MU_TEST(marshal, string_array_empty)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* strings = (set) */
         0xFF,
-        /* (implicit) length of "strings" = 1 */
-        0x00, 0x00, 0x00, 0x01,
-        /* strings[0] = unset */
-        0x00
+        /* (implicit) length of "strings" = 0 */
+        0x00, 0x00, 0x00, 0x00
     };
 
     LWMsgTypeSpec* type = string_array_spec;
@@ -479,7 +455,7 @@ MU_TEST(marshal, string_array_empty)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -494,8 +470,6 @@ MU_TEST(marshal, string_array_null)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* strings = (not set) */
         0x00
     };
@@ -511,7 +485,7 @@ MU_TEST(marshal, string_array_null)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &strings, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -525,6 +499,7 @@ MU_TEST(marshal, string_array_null)
 
 #define TAG_NUMBER 1
 #define TAG_STRING 2
+#define TAG_EMPTY  3
 
 typedef union
 {
@@ -539,6 +514,8 @@ static LWMsgTypeSpec number_string_spec[] =
     LWMSG_ATTR_TAG(TAG_NUMBER),
     LWMSG_MEMBER_PSTR(number_string_union, string),
     LWMSG_ATTR_TAG(TAG_STRING),
+    LWMSG_VOID,
+    LWMSG_ATTR_TAG(TAG_EMPTY),
     LWMSG_UNION_END,
     LWMSG_TYPE_END
 };
@@ -572,8 +549,6 @@ MU_TEST(marshal, two_union)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* tag1 = 1 */
         0x01,
         /* u1 = set */
@@ -586,10 +561,10 @@ MU_TEST(marshal, two_union)
         0xFF,
         /* u2->string = set */
         0xFF,
-        /* u2->string length is 4 (implicit) */
-        0x00, 0x00, 0x00, 0x04,
+        /* u2->string length is 3 (implicit) */
+        0x00, 0x00, 0x00, 0x03,
         /* u2->string pointee */
-        'f', 'o', 'o', '\0'
+        'f', 'o', 'o'
     };
 
     LWMsgTypeSpec* type = two_union_spec;
@@ -610,7 +585,7 @@ MU_TEST(marshal, two_union)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &unions, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -649,8 +624,6 @@ MU_TEST(marshal, nested_struct)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* foo = 42 */
         0x00, 0x00, 0x00, 0x2A,
         /* inner.foo = 24 */
@@ -658,9 +631,9 @@ MU_TEST(marshal, nested_struct)
         /* inner.bar = (set) */
         0xFF,
         /* inner.bar length (implicit) */
-        0x00, 0x00, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x03,
         /* inner.bar value */
-        'b', 'a', 'r', '\0',
+        'b', 'a', 'r',
         /* bar = -12 */
         0xFF, 0xFF, 0xFF, 0xF4,
     };
@@ -679,7 +652,7 @@ MU_TEST(marshal, nested_struct)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &nested, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -716,16 +689,14 @@ MU_TEST(marshal, nested_union)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* tag1 = 2 */
         0x02,
         /* u1.string = (set) */
         0xFF,
-        /* u1.string length is 4 (implicit) */
-        0x00, 0x00, 0x00, 0x04,
+        /* u1.string length is 3 (implicit) */
+        0x00, 0x00, 0x00, 0x03,
         /* u1.string value */
-        'f', 'o', 'o', '\0',
+        'f', 'o', 'o',
         /* tag2 = 1 */
         0x01,
         /* u2.number = 42 */
@@ -746,7 +717,7 @@ MU_TEST(marshal, nested_union)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &unions, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -755,6 +726,42 @@ MU_TEST(marshal, nested_union)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag1, out->tag1);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag2, out->tag2);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, unions.u1.string, out->u1.string);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.u2.number, out->u2.number);
+}
+
+MU_TEST(marshal, nested_union_empty)
+{
+    static const unsigned char expected[] =
+    {
+        /* tag1 = 3 (empty) */
+        0x03,
+        /* tag2 = 1 */
+        0x01,
+        /* u2.number = 42 */
+        0x00, 0x00, 0x00, 0x2A
+    };
+
+    LWMsgTypeSpec* type = nested_union_spec;
+    LWMsgBuffer buffer;
+    nested_union_struct unions;
+    nested_union_struct* out;
+
+    unions.tag1 = TAG_EMPTY;
+    unions.tag2 = TAG_NUMBER;
+    unions.u2.number = 42;
+
+    allocate_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &unions, &buffer));
+
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
+
+    rewind_buffer(&buffer);
+
+    MU_TRY_CONTEXT(context, lwmsg_unmarshal(context, type, &buffer, (void**) (void*) &out));
+
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag1, out->tag1);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag2, out->tag2);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.u2.number, out->u2.number);
 }
 
@@ -782,8 +789,6 @@ MU_TEST(marshal, inline_array)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* foo = 1 */
         0x00, 0x01,
         /* array[0] = 2 */
@@ -808,7 +813,7 @@ MU_TEST(marshal, inline_array)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -842,14 +847,12 @@ MU_TEST(marshal, flexible_string)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* foo = 42 */
         0x00, 0x2A,
-        /* string length = 4 (implicit) */
-        0x00, 0x00, 0x00, 0x04,
+        /* string length = 3 (implicit) */
+        0x00, 0x00, 0x00, 0x03,
         /* string value */
-        'f', 'o', 'o', '\0'
+        'f', 'o', 'o'
     };
 
     LWMsgTypeSpec* type = flexible_string_spec;
@@ -865,7 +868,7 @@ MU_TEST(marshal, flexible_string)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -899,8 +902,6 @@ MU_TEST(marshal, flexible_array)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set value */
-        0xFF,
         /* len = 2 */
         0x00, 0x02,
         /* array[0] = 1 */
@@ -923,7 +924,7 @@ MU_TEST(marshal, flexible_array)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -985,8 +986,6 @@ MU_TEST(marshal, info_level_1)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set */
-        0xFF,
         /* length */
         0x00, 0x00, 0x00, 0x02,
         /* level */
@@ -1019,7 +1018,7 @@ MU_TEST(marshal, info_level_1)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
@@ -1032,14 +1031,14 @@ MU_TEST(marshal, info_level_1)
     {
         MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array.level_1[0].number1, out->array.level_1[0].number1);
     }
+
+    lwmsg_context_free_graph(context, type, out);
 }
 
 MU_TEST(marshal, info_level_2)
 {
     static const unsigned char expected[] =
     {
-        /* Implicit pointer set */
-        0xFF,
         /* length */
         0x00, 0x00, 0x00, 0x02,
         /* level */
@@ -1076,7 +1075,7 @@ MU_TEST(marshal, info_level_2)
 
     MU_TRY_CONTEXT(context, lwmsg_marshal(context, type, &in, &buffer));
 
-    MU_ASSERT(!memcmp(buffer.memory, expected, sizeof(expected)));
+    MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 

@@ -63,15 +63,39 @@ lwmsg_context_default_alloc (
     }
 }
 
-static LWMsgStatus
+static
+void
 lwmsg_context_default_free (
     void* object,
     void* data
     )
 {
     free(object);
+}
 
-    return LWMSG_STATUS_SUCCESS;
+static LWMsgStatus
+lwmsg_context_default_realloc (
+    void* object,
+    size_t old_size,
+    size_t new_size,
+    void** new_object,
+    void* data)
+{
+    void* nobj = realloc(object, new_size);
+
+    if (!nobj)
+    {
+        return LWMSG_STATUS_MEMORY;
+    }
+    else
+    {
+        if (new_size > old_size)
+        {
+            memset(nobj + old_size, 0, new_size - old_size);
+        }
+        *new_object = nobj;
+        return LWMSG_STATUS_SUCCESS;
+    }
 }
 
 void
@@ -85,6 +109,7 @@ lwmsg_context_setup(LWMsgContext* context, LWMsgContext* parent)
             context,
             lwmsg_context_default_alloc,
             lwmsg_context_default_free,
+            lwmsg_context_default_realloc,
             NULL);
     }
 }
@@ -129,11 +154,13 @@ lwmsg_context_set_memory_functions(
     LWMsgContext* context,
     LWMsgAllocFunction alloc,
     LWMsgFreeFunction free,
+    LWMsgReallocFunction realloc,
     void* data
     )
 {
     context->alloc = alloc;
     context->free = free;
+    context->realloc = realloc;
     context->memdata = data;
 }
 
@@ -170,6 +197,23 @@ lwmsg_context_get_free(LWMsgContext* context)
     else if (context->parent)
     {
         return lwmsg_context_get_free(context->parent);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+LWMsgReallocFunction
+lwmsg_context_get_realloc(LWMsgContext* context)
+{
+    if (context->realloc)
+    {
+        return context->realloc;
+    }
+    else if (context->parent)
+    {
+        return lwmsg_context_get_realloc(context->parent);
     }
     else
     {

@@ -43,6 +43,8 @@
 #include "protocol-private.h"
 #include "session-private.h"
 
+#define MAX_RETRIES 1
+
 #define ACTION_ON_ERROR(_a_, _e_) do                                    \
     {                                                                   \
         LWMsgStatus __s__ = (_e_);                                      \
@@ -52,12 +54,28 @@
             switch (lwmsg_assoc_lookup_action(__a__, status))           \
             {                                                           \
             case LWMSG_ASSOC_ACTION_RETRY:                              \
-                goto retry;                                             \
+                if (retries > MAX_RETRIES)                              \
+                {                                                       \
+                    BAIL_ON_ERROR(status = __s__);                      \
+                }                                                       \
+                else                                                    \
+                {                                                       \
+                    retries++;                                          \
+                    goto retry;                                         \
+                }                                                       \
             case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                    \
                 BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));       \
-                goto retry;                                             \
+                if (retries > MAX_RETRIES)                              \
+                {                                                       \
+                    BAIL_ON_ERROR(status = __s__);                      \
+                }                                                       \
+                else                                                    \
+                {                                                       \
+                    retries++;                                          \
+                    goto retry;                                         \
+                }                                                       \
             default:                                                    \
-                BAIL_ON_ERROR(__s__);                                   \
+                BAIL_ON_ERROR(status = __s__);                          \
             }                                                           \
         }                                                               \
     } while (0)
@@ -77,12 +95,13 @@ lwmsg_assoc_register_handle(
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
-    BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle(
+    BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle_local(
                       manager,
                       session,
                       typename,
                       handle,
-                      free));
+                      free,
+                      NULL));
 
 error:
 
@@ -119,7 +138,7 @@ LWMsgStatus
 lwmsg_assoc_get_handle_location(
     LWMsgAssoc* assoc,
     void* handle,
-    LWMsgHandleLocation* location
+    LWMsgHandleType* location
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -132,9 +151,8 @@ lwmsg_assoc_get_handle_location(
     BAIL_ON_ERROR(status = lwmsg_session_manager_handle_pointer_to_id(
                       manager,
                       session,
-                      NULL,
                       handle,
-                      LWMSG_FALSE,
+                      NULL,
                       location,
                       NULL));
 
@@ -190,7 +208,7 @@ lwmsg_assoc_new(
     }
 
     /* Default action vector */
-    assoc->action_vector[LWMSG_ASSOC_EXCEPTION_PEER_RESET] = LWMSG_ASSOC_ACTION_RESET_AND_RETRY;
+    assoc->action_vector[LWMSG_STATUS_PEER_RESET] = LWMSG_ASSOC_ACTION_RESET_AND_RETRY;
 
     *out_assoc = assoc;
 
@@ -241,19 +259,12 @@ lwmsg_assoc_lookup_action(
     LWMsgStatus status
     )
 {
-    switch (status)
+    if (status < (sizeof(assoc->action_vector) / sizeof(assoc->action_vector[0])))
     {
-    case LWMSG_STATUS_TIMEOUT:
-        return assoc->action_vector[LWMSG_ASSOC_EXCEPTION_TIMEOUT];
-    case LWMSG_STATUS_EOF:
-        switch (lwmsg_assoc_get_state(assoc))
-        {
-        case LWMSG_ASSOC_STATE_PEER_RESET:
-            return assoc->action_vector[LWMSG_ASSOC_EXCEPTION_PEER_RESET];
-        default:
-            return LWMSG_ASSOC_ACTION_NONE;
-        }
-    default:
+        return assoc->action_vector[status];
+    }
+    else
+    {
         return LWMSG_ASSOC_ACTION_NONE;
     }
 }
@@ -265,7 +276,8 @@ lwmsg_assoc_send_message(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    
+    int retries = 0;
+
 retry:
 
     ACTION_ON_ERROR(assoc, status = assoc->aclass->send_msg(assoc, message, assoc->timeout_set ? &assoc->timeout : NULL));
@@ -282,7 +294,8 @@ lwmsg_assoc_recv_message(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    
+    int retries = 0;
+
 retry:
     
     ACTION_ON_ERROR(assoc, status = assoc->aclass->recv_msg(assoc, message, assoc->timeout_set ? &assoc->timeout : NULL));
@@ -300,6 +313,7 @@ lwmsg_assoc_send_message_transact(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    int retries = 0;
 
 retry:
 
@@ -322,6 +336,7 @@ lwmsg_assoc_recv_message_transact(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgMessage recv_message = {-1, NULL};
     LWMsgMessage send_message = {-1, NULL};
+    int retries = 0;
 
 retry:
 
@@ -414,9 +429,7 @@ lwmsg_assoc_get_peer_security_token(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-retry:
-
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->get_peer_security_token(assoc, out_token));
+    BAIL_ON_ERROR(status = assoc->aclass->get_peer_security_token(assoc, out_token));
 
 error:
 
@@ -433,9 +446,7 @@ lwmsg_assoc_get_peer_session_id(
     LWMsgSession* session = NULL;
     const LWMsgSessionID* my_id = NULL;
 
-retry:
-
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->get_session(assoc, &session));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     my_id = lwmsg_session_manager_get_session_id(assoc->manager, session);
     
@@ -610,20 +621,20 @@ lwmsg_assoc_get_state(
 LWMsgStatus
 lwmsg_assoc_set_action(
     LWMsgAssoc* assoc,
-    LWMsgAssocException exception,
+    LWMsgStatus condition,
     LWMsgAssocAction action
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
     
-    if (exception >= LWMSG_ASSOC_EXCEPTION_COUNT ||
-        action >= LWMSG_ASSOC_ACTION_COUNT)
+    if (condition >= LWMSG_STATUS_COUNT || action >= LWMSG_ASSOC_ACTION_COUNT)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Invalid exception or action");
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER,
+                          "Invalid status or action");
     }
 
-    assoc->action_vector[exception] = action;
+    assoc->action_vector[condition] = action;
 
 error:
 

@@ -39,6 +39,7 @@
 #include "util-private.h"
 #include "session-private.h"
 #include "mt19937ar.h"
+#include <lwmsg/time.h>
 
 #include <stddef.h>
 #include <sys/types.h>
@@ -71,48 +72,28 @@ lwmsg_session_manager_generate_smid(
     LWMsgSessionID* smid
     )
 {
-    int random;
     mt m;
-    uint32_t seed[2];
-    ssize_t seed_size = 0;
+    uint32_t seed[3];
     uint32_t s;
     int i;
+    LWMsgTime now;
 
-    random = open("/dev/random", O_RDONLY | O_NONBLOCK);
+    lwmsg_time_now(&now);
 
-    if (random >= 0)
+    /* Add in 32 bits of data from the address of the smid */
+    seed[0] = (uint32_t) (size_t) smid;
+    /* Add in 32 bits of data from the current pid */
+    seed[1] = (uint32_t) getpid();
+    /* Add in 32 bits of data from the current time */
+    seed[2] = (uint32_t) now.microseconds;
+        
+    mt_init_by_array(&m, seed, sizeof(seed) / sizeof(*seed));
+        
+    for (i = 0; i < sizeof(smid->bytes); i += sizeof(s))
     {
-        seed_size = read(random, seed, sizeof(seed));
-        close(random);
-    }
-
-    if (seed_size == 8)
-    {
-        /* We read enough seed data to just use it as the id */
-        memcpy(smid->bytes, seed, sizeof(smid->bytes));
-    }
-    else 
-    {
-        /* Use the seed data to seed the rng and use that for the id */
+        s = mt_genrand_int32(&m);
         
-        /* Supplement seed data with other sources */
-        if (seed_size < 4)
-        {
-            /* We have less than 32 bits of seed data, so use 32 bits of the system time */
-            seed[0] = (uint32_t) time(NULL);
-        }
-        
-        /* Add in 32 bits of data from the address of the smid */
-        seed[1] = (uint32_t) (size_t) smid;
-        
-        mt_init_by_array(&m, seed, 2);
-        
-        for (i = 0; i < sizeof(smid->bytes); i += sizeof(s))
-        {
-            s = mt_genrand_int32(&m);
-            
-            memcpy(smid->bytes + i, &s, sizeof(s));
-        }
+        memcpy(smid->bytes + i, &s, sizeof(s));
     }
 }
 
@@ -176,31 +157,59 @@ lwmsg_session_manager_enter_session (
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSession** session
+    LWMsgSession** session,
+    size_t* assoc_count
     )
 {
-    return manager->mclass->enter_session(manager, rsmid, rtoken, session);
+    return manager->mclass->enter_session(manager, rsmid, rtoken, session, assoc_count);
 }
 
 LWMsgStatus 
 lwmsg_session_manager_leave_session (
     LWMsgSessionManager* manager,
-    LWMsgSession* session
+    LWMsgSession* session,
+    size_t* assoc_count
     )
 {
-    return manager->mclass->leave_session(manager, session);
+    return manager->mclass->leave_session(manager, session, assoc_count);
 }
 
 LWMsgStatus
-lwmsg_session_manager_register_handle (
+lwmsg_session_manager_register_handle_local (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
     void* ptr,
+    void (*cleanup)(void* ptr),
+    LWMsgHandleID* hid
+    )
+{
+    return manager->mclass->register_handle_local(manager, session, type, ptr, cleanup, hid);
+}
+
+LWMsgStatus
+lwmsg_session_manager_register_handle_remote (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    const char* type,
+    LWMsgHandleID hid,
+    void (*cleanup)(void* ptr),
+    void** ptr
+    )
+{
+    return manager->mclass->register_handle_remote(manager, session, type, hid, cleanup, ptr);
+}
+
+LWMsgStatus
+lwmsg_session_manager_remap_handle (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr,
+    void* newptr,
     void (*cleanup)(void* ptr)
     )
 {
-    return manager->mclass->register_handle(manager, session, type, ptr, cleanup);
+    return manager->mclass->remap_handle(manager, session, ptr, newptr, cleanup);
 }
 
 LWMsgStatus
@@ -218,14 +227,13 @@ LWMsgStatus
 lwmsg_session_manager_handle_pointer_to_id (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
-    const char* type,
     void* ptr,
-    LWMsgBool autoreg,
-    LWMsgHandleLocation* out_location,
-    unsigned long* out_hid
+    const char** type,
+    LWMsgHandleType* htype,
+    LWMsgHandleID* hid
     )
 {
-    return manager->mclass->handle_pointer_to_id(manager, session, type, ptr, autoreg, out_location, out_hid);
+    return manager->mclass->handle_pointer_to_id(manager, session, ptr, type, htype, hid);
 }
 
 LWMsgStatus
@@ -233,13 +241,12 @@ lwmsg_session_manager_handle_id_to_pointer (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
-    LWMsgHandleLocation location,
-    unsigned long hid,
-    LWMsgBool autoreg,
-    void** out_ptr
+    LWMsgHandleType htype,
+    LWMsgHandleID hid,
+    void** ptr
     )
 {
-    return manager->mclass->handle_id_to_pointer(manager, session, type, location, hid, autoreg, out_ptr);
+    return manager->mclass->handle_id_to_pointer(manager, session, type, htype, hid, ptr);
 }
 
 LWMsgStatus

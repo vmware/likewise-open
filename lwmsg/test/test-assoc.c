@@ -602,14 +602,14 @@ typedef struct Handle
 static LWMsgTypeSpec Handle_local_spec[] =
 {
     LWMSG_HANDLE(Handle),
-    LWMSG_ATTR_HANDLE_LOCAL,
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
     LWMSG_TYPE_END,
 };
 
 static LWMsgTypeSpec Handle_remote_spec[] =
 {
     LWMSG_HANDLE(Handle),
-    LWMSG_ATTR_HANDLE_REMOTE,
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
     LWMSG_TYPE_END,
 };
 

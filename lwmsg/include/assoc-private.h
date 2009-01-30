@@ -53,7 +53,7 @@ struct LWMsgAssoc
     int timeout_set;
     LWMsgSessionManager* manager;
     unsigned manager_is_private:1;
-    LWMsgAssocAction action_vector[LWMSG_ASSOC_EXCEPTION_COUNT];
+    LWMsgAssocAction action_vector[LWMSG_STATUS_COUNT];
 
     unsigned char* private_data[] __attribute__((aligned));
 };

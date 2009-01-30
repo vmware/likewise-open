@@ -42,18 +42,62 @@
 
 #include <lwmsg/status.h>
 
+/**
+ * @file buffer.h
+ * @brief Marshalling buffer definition
+ */
+
+/**
+ * @ingroup marshal
+ * @brief Marshalling buffer
+ *
+ * This structure comprises a generic buffer used by the marshaller
+ * as a source or destination of serialized data when performing
+ * marshalling operations.  It consists of base, end, and cursor
+ * pointers which delimit the start, end, and current position
+ * respectively within a contiguous block of memory.  It also
+ * contains an optional wrap callback which is invoked when
+ * the cursor reaches the end of the buffer.  This function may
+ * reset, refill, or resize the buffer so that the operation
+ * can continue.
+ */
 typedef struct LWMsgBuffer
 {
-    /** Usable length of buffer */
-    size_t length;
-    /** Pointer to buffer memory */
-    unsigned char* memory;
-    /** Pointer to current position (first unused or unread byte) in buffer */
+    /** @brief Pointer to base of memory block */
+    unsigned char* base;
+    /** @brief Pointer one byte past the end of the memory block */
+    unsigned char* end;
+    /** @brief Pointer to current position in the buffer */
     unsigned char* cursor;
-    /** Callback invoked when end of the buffer is reached and more memory/data is needed.
-        All fields of the buffer are subject to change */
-    LWMsgStatus (*full) (struct LWMsgBuffer* buffer, size_t needed);
-    /** User data pointer */
+    /**
+     * @brief Buffer wrap callback
+     *
+     * This optional callback is invoked when the end of the buffer is
+     * reached.  It may arbitrarily modify the base, end, and cursor
+     * pointers, so long as the condition (end - cursor) >= 1 holds --
+     * that is, there must be at least one unused or unread byte in the
+     * buffer.
+     *
+     * The needed parameter specifies the number of bytes the marshaller
+     * is immediately attempting to read or write, but it is merely a
+     * suggestion.  In the interest of amortizing calls to this function,
+     * it is better to make the usable portion of the buffer (end - cursor)
+     * a large as possible on each call.  It is safe to return with
+     * (end - cursor) < needed, but this is not recommended.
+     *
+     * A needed value of 0 indicates that the marshaller operation has
+     * completed and is an opportunity to perform any last cleanup.
+     *
+     * @param[in,out] buffer the buffer structure
+     * @param[in] needed the number of bytes immediately needed, or 0 if finished
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_memory
+     * @lwmsg_etc{implementation-specific error}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus (*wrap) (struct LWMsgBuffer* buffer, size_t needed);
+    /** @brief User data pointer */
     void* data;
 } LWMsgBuffer;
 

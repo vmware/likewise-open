@@ -82,7 +82,6 @@ lwmsg_connection_destruct(
     {
         close(priv->fd);
         priv->fd = -1;
-        priv->open_read = priv->open_write = 0;
     }
 
     if (priv->endpoint)
@@ -105,7 +104,7 @@ lwmsg_connection_destruct(
             abort();
         }
 
-        if (lwmsg_session_manager_leave_session(manager, priv->session))
+        if (lwmsg_session_manager_leave_session(manager, priv->session, NULL))
         {
             /* Neither should this */
             abort();
@@ -287,16 +286,8 @@ lwmsg_connection_get_state(
         return LWMSG_ASSOC_STATE_READY_SEND;
     case CONNECTION_STATE_WAIT_RECV_REPLY:
         return LWMSG_ASSOC_STATE_READY_RECV;
-    case CONNECTION_STATE_LOCAL_CLOSED:
-        return LWMSG_ASSOC_STATE_LOCAL_CLOSED;
-    case CONNECTION_STATE_LOCAL_ABORTED:
-        return LWMSG_ASSOC_STATE_LOCAL_ABORTED;
-    case CONNECTION_STATE_PEER_CLOSED:
-        return LWMSG_ASSOC_STATE_PEER_CLOSED;
-    case CONNECTION_STATE_PEER_ABORTED:
-        return LWMSG_ASSOC_STATE_PEER_ABORTED;
-    case CONNECTION_STATE_PEER_RESET:
-        return LWMSG_ASSOC_STATE_PEER_RESET;
+    case CONNECTION_STATE_CLOSED:
+        return LWMSG_ASSOC_STATE_CLOSED;
     default:
         return LWMSG_ASSOC_STATE_IN_PROGRESS;
     }
@@ -385,8 +376,6 @@ lwmsg_connection_set_fd(
 
     priv->fd = fd;
     priv->mode = mode;
-    priv->open_read = 1;
-    priv->open_write = 1;
 
 error:
 

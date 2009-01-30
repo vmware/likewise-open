@@ -239,8 +239,11 @@ lwmsg_server_accept_client(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = NULL;
+    ConnectionPrivate* priv = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_connection_new(server->protocol, &assoc));
+
+    priv = lwmsg_assoc_get_private(assoc);
 
     /* Make assoc's internal context route through us */
     assoc->context.parent = &server->context;
@@ -281,6 +284,15 @@ lwmsg_server_accept_client(
         status = server->connect_callback(
             server,
             assoc, 
+            server->user_data);
+    }
+
+    if (status == LWMSG_STATUS_SUCCESS &&
+        server->session_callback && priv->is_session_leader)
+    {
+        status = server->session_callback(
+            server,
+            assoc,
             server->user_data);
     }
 
@@ -364,6 +376,7 @@ lwmsg_server_timeout_clients(
                     }
                     else
                     {
+                        /* We don't care if the reset fails */
                         lwmsg_assoc_reset(assoc);
                         lwmsg_assoc_delete(assoc);
                         assoc_queue_remove_at_index(server, &server->listen_assocs, i, NULL);
@@ -382,7 +395,11 @@ lwmsg_server_timeout_clients(
         }
     }
 
-    if (server->num_clients == server->max_clients)
+    /* Schedule ourselves to wake up and do timeout processing again if:
+       - We are out of free client slots
+       - There are currently idle clients
+    */
+    if (server->num_clients == server->max_clients && server->listen_assocs.count)
     {
         *next = soonest_timeout;
     }
@@ -467,11 +484,29 @@ lwmsg_server_listen_thread(
             if (server->listen_assocs.queue[i])
             {
                 priv = lwmsg_assoc_get_private(server->listen_assocs.queue[i]);
-                FD_SET(priv->fd, &readfds);
-                if (nfds < priv->fd + 1)
+
+                /* If there is already residual data, don't bother waiting for more */
+                if (priv->recvbuffer.base_length > 0)
                 {
-                    nfds = priv->fd + 1;
+                    assoc_queue_remove_at_index(server, &server->listen_assocs, i, &assoc);
+                    assoc_queue_add(server, &server->service_assocs, assoc);
+
+                    if (server->state == LWMSG_SERVER_SHUTDOWN)
+                    {
+                        goto done;
+                    }
+
+                    pthread_cond_signal(&server->listen_assocs.event);
                 }
+                else
+                {
+                    FD_SET(priv->fd, &readfds);
+                    if (nfds < priv->fd + 1)
+                    {
+                        nfds = priv->fd + 1;
+                    }
+                }
+
                 count--;
             }
         }
@@ -581,13 +616,23 @@ lwmsg_server_dispatch_message(
     void* data
     )
 {
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgServer* server = (LWMsgServer*) data;
 
-    return server->dispatch_vector[recv_message->tag](
-        assoc,
-        recv_message,
-        send_message,
-        server->user_data);
+    if (server->dispatch_vector[recv_message->tag] == NULL)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
+    }
+
+    BAIL_ON_ERROR(status = server->dispatch_vector[recv_message->tag](
+                      assoc,
+                      recv_message,
+                      send_message,
+                      server->user_data));
+
+error:
+
+    return status;
 }
 
 static void*
@@ -629,7 +674,8 @@ lwmsg_server_worker_thread(void* arg)
             break;
         default:
             /* Shut down and free the association */
-            BAIL_ON_ERROR(status = lwmsg_assoc_close(assoc));
+            /* Ignore subsequent errors when attempting close */
+            lwmsg_assoc_close(assoc);
             lwmsg_assoc_delete(assoc);
             SERVER_LOCK(server, locked);
             server->num_clients--;
@@ -1176,6 +1222,30 @@ lwmsg_server_set_connect_callback(
     }
 
     server->connect_callback = func;
+
+error:
+
+    lwmsg_server_unlock(server);
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_server_set_session_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    lwmsg_server_lock(server);
+
+    if (server->state != LWMSG_SERVER_STOPPED)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+    }
+
+    server->session_callback = func;
 
 error:
 

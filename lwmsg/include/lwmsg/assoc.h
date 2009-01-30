@@ -149,24 +149,9 @@ typedef enum LWMsgAssocState
     LWMSG_ASSOC_STATE_READY_SEND,
     /** Ready to receive a message */
     LWMSG_ASSOC_STATE_READY_RECV,
-    /** Peer closed the association */
-    LWMSG_ASSOC_STATE_PEER_CLOSED,
-    /** Peer aborted the association */
-    LWMSG_ASSOC_STATE_PEER_ABORTED,
-    /** Peer reset the association */
-    LWMSG_ASSOC_STATE_PEER_RESET,
-    /** Assocation closed locally */
-    LWMSG_ASSOC_STATE_LOCAL_CLOSED,
-    /** Association aborted locally */
-    LWMSG_ASSOC_STATE_LOCAL_ABORTED,
+    /** Association is closed */
+    LWMSG_ASSOC_STATE_CLOSED
 } LWMsgAssocState;
-
-typedef enum LWMsgAssocException
-{
-    LWMSG_ASSOC_EXCEPTION_TIMEOUT,
-    LWMSG_ASSOC_EXCEPTION_PEER_RESET,
-    LWMSG_ASSOC_EXCEPTION_COUNT
-} LWMsgAssocException;
 
 /**
  * @ingroup assoc
@@ -177,10 +162,15 @@ typedef enum LWMsgAssocException
  */
 typedef enum LWMsgAssocAction
 {
+    /** @brief Do not take any action */
     LWMSG_ASSOC_ACTION_NONE,
+    /** @brief Retry the operation immediately */
     LWMSG_ASSOC_ACTION_RETRY,
+    /** @brief Attempt to reset the connection and then retry the operation */
     LWMSG_ASSOC_ACTION_RESET_AND_RETRY,
+#ifndef DOXYGEN
     LWMSG_ASSOC_ACTION_COUNT
+#endif
 } LWMsgAssocAction;
 
 /**
@@ -337,7 +327,7 @@ typedef struct LWMsgAssocClass
  * a receive transaction.
  *
  * @param[in] assoc the association
- * @param[in] in the received messa
+ * @param[in] in the received message
  * @param[out] out the reply
  * @param[in] user data pointer
  * @lwmsg_status
@@ -735,7 +725,7 @@ LWMsgStatus
 lwmsg_assoc_get_handle_location(
     LWMsgAssoc* assoc,
     void* handle,
-    LWMsgHandleLocation* location
+    LWMsgHandleType* location
     );
 
 /**
@@ -919,17 +909,12 @@ lwmsg_assoc_get_session_manager(
  * @ingroup assoc
  * @brief Get association state
  *
- * Gets the current state of the specified association.  This function may be used after
- * another association operation has returned a non-success status code to determine
- * additional information about the cause or recoverability of the problem.  For example,
- * if a send operation results in LWMSG_STATUS_EOF, the association might be in one of the
- * following states:
+ * Gets the current state of the specified association.  This may
+ * reveal details such as:
  *
- * - <tt>LWMSG_ASSOC_STATE_PEER_CLOSED</tt>: the peer closed the association -- no further communication possible
- * - <tt>LWMSG_ASSOC_STATE_PEER_RESET</tt>: the peer reset the association -- communication can resume
- * after resetting the association locally with lwmsg_assoc_reset()
- * - <tt>LWMSG_ASSOC_STATE_PEER_ABORT</tt>: the peer aborted the association -- no further communication possible due
- * to an authentication failure, malformed message, or other fatal error
+ * - Whether the association has been closed
+ * - Whether the association is part of an established session
+ * - If the association is ready to send a message or receive a message
  *
  * @param[in] assoc the association
  * @return the current state of the association
@@ -939,10 +924,30 @@ lwmsg_assoc_get_state(
     LWMsgAssoc* assoc
     );
 
+/**
+ * @ingroup assoc
+ * @brief Configure automatic error handling
+ *
+ * This function allows the user to configure an association to
+ * respond automatically to certain non-success status codes that
+ * occur during use.  For example, setting up the action
+ * #LWMSG_ASSOC_ACTION_RESET_AND_RETRY for the status code
+ * #LWMSG_STATUS_PEER_CLOSE will cause the association to transparently
+ * attempt to restablish its session with the peer and resume the current
+ * operation should the peer close its end.
+ *
+ * @param[in] assoc the association
+ * @param[in] condition the status code for which the action will be set
+ * @param[in] action that action to take when the specified status code occurs
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_PARAMETER, the specified status code\, action\, or combination thereof was invalid}
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_assoc_set_action(
     LWMsgAssoc* assoc,
-    LWMsgAssocException exception,
+    LWMsgStatus condition,
     LWMsgAssocAction action
     );
 
@@ -994,21 +999,8 @@ lwmsg_assoc_get_session_data(
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_handle_type_class;
 
-LWMsgStatus
-lwmsg_assoc_verify_handle_local(
-    LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
-    void* object,
-    void* data);
-
-LWMsgStatus
-lwmsg_assoc_verify_handle_remote(
-    LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
-    void* object,
-    void* data);
+#define LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER 0x1
+#define LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER 0x2
 
 #endif
 
@@ -1040,22 +1032,22 @@ lwmsg_assoc_verify_handle_remote(
 
 /**
  * @ingroup types
- * @brief Specify that handle is local
+ * @brief Ensure that handle is local to receiving peer
  *
  * Specifies that the previous type or member, which must be a handle,
  * must be a local handle from the perspective of the receiver.
  * @hideinitializer
  */
-#define LWMSG_ATTR_HANDLE_LOCAL LWMSG_ATTR_VERIFY(lwmsg_assoc_verify_handle_local, NULL)
+#define LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER LWMSG_ATTR_CUSTOM(LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER)
 
 /**
  * @ingroup types
- * @brief Specify that handle is remote
+ * @brief Ensure that handle is local to sending peer
  *
  * Specifies that the previous type or member, which must be a handle,
- * must be a remote handle from the perspective of the receiver.
+ * must be a local handle from the perspective of the sender.
  * @hideinitializer
  */
-#define LWMSG_ATTR_HANDLE_REMOTE LWMSG_ATTR_VERIFY(lwmsg_assoc_verify_handle_remote, NULL)
+#define LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER LWMSG_ATTR_CUSTOM(LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER)
 
 #endif

@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = liblwmsg_nothr.la liblwmsg.la
 
-AM_CFLAGS = -Wall -Werror
+AM_CFLAGS = @LWMSG_CFLAGS@
 AM_CPPFLAGS = @LWMSG_CPPFLAGS@
 
 liblwmsg_nothr_la_SOURCES = \

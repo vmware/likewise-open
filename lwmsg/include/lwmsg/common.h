@@ -62,7 +62,7 @@
  * @ingroup public
  * @brief Definitions of common types
  *
- * Defines sundry common types which are used through <tt>LWMsg</tt>.
+ * Defines various common types which are used through <tt>LWMsg</tt>.
  */
 
 /* @{ */

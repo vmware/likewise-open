@@ -77,16 +77,8 @@ typedef enum ConnectionState
     CONNECTION_STATE_WAIT_SEND_REPLY,
     /* A message was sent, waiting for client to ask for reply */
     CONNECTION_STATE_WAIT_RECV_REPLY,
-    /* We closed the connection */
-    CONNECTION_STATE_LOCAL_CLOSED,
-    /* We aborted the connection */
-    CONNECTION_STATE_LOCAL_ABORTED,
-    /* The peer closed the connection */
-    CONNECTION_STATE_PEER_CLOSED,
-    /* The peer reset the connection */
-    CONNECTION_STATE_PEER_RESET,
-    /* The peer aborted the connection */
-    CONNECTION_STATE_PEER_ABORTED
+    /* Connection is closed */
+    CONNECTION_STATE_CLOSED
 } ConnectionState;
 
 typedef enum ConnectionEvent
@@ -131,8 +123,6 @@ typedef struct ConnectionPrivate
 {
     LWMsgConnectionMode mode;
     int fd;
-    unsigned open_read:1;
-    unsigned open_write:1;
     char* endpoint;
     ConnectionBuffer sendbuffer;
     ConnectionBuffer recvbuffer;
@@ -145,6 +135,7 @@ typedef struct ConnectionPrivate
     LWMsgSecurityToken* sec_token;
     LWMsgSession* session;
     LWMsgConnectionSignal* interrupt;
+    unsigned is_session_leader:1;
 } ConnectionPrivate;
 
 typedef enum ConnectionGreetingFlags
@@ -253,11 +244,6 @@ LWMsgStatus
 lwmsg_connection_dequeue_fd(
     LWMsgAssoc* assoc,
     int* out_fd
-    );
-
-LWMsgStatus
-lwmsg_connection_transceive(
-    LWMsgAssoc* assoc
     );
 
 LWMsgStatus

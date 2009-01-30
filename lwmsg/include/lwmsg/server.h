@@ -418,6 +418,29 @@ lwmsg_server_set_connect_callback(
 
 /**
  * @ingroup server
+ * @brief Set session callback
+ *
+ * Sets a function which will be invoked whenever a new connection
+ * is created which begins a new session.  This is in addition
+ * to any function registered by #lwmsg_server_set_connect_callback()
+ *
+ * This function may only be used while the server is stopped.
+ *
+ * @param server the server object
+ * @param func the callback function
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already running}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_server_set_session_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
+    );
+
+/**
+ * @ingroup server
  * @brief Start accepting connections
  *
  * Starts listening for and servicing connections in a separate thread.
