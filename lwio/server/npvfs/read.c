@@ -64,7 +64,7 @@ NpfsRead(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    //ntStatus = NpfsCommonRead(pIrpContext, pIrp);
+    ntStatus = NpfsCommonRead(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -81,6 +81,8 @@ NpfsCommonRead(
 {
     NTSTATUS ntStatus = 0;
     PNPFS_CCB pCCB = NULL;
+
+    pCCB = (PNPFS_CCB)IoFileGetContext(pIrpContext->pIrp->FileHandle);
 
     ntStatus = NpfsReadFile(
                     pCCB,

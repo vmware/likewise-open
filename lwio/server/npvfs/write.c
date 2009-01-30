@@ -64,7 +64,8 @@ NpfsWrite(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    //ntStatus = NpfsCommonWrite(pIrpContext, pIrp);
+
+    ntStatus = NpfsCommonWrite(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -72,6 +73,30 @@ error:
     return ntStatus;
 }
 
+
+
+NTSTATUS
+NpfsCommonWrite(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_CCB pCCB = NULL;
+
+    pCCB = (PNPFS_CCB)IoFileGetContext(pIrpContext->pIrp->FileHandle);
+
+    ntStatus = NpfsWriteFile(
+                    pCCB,
+                    pIrpContext
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+
+error:
+
+    return(ntStatus);
+}
 
 
 

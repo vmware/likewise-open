@@ -232,6 +232,12 @@ NpfsWrite(
 
 
 NTSTATUS
+NpfsCommonWrite(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+NTSTATUS
 NpfsWriteFile(
     PNPFS_CCB pCCB,
     PNPFS_IRP_CONTEXT pIrpContext
