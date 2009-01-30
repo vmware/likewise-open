@@ -31,55 +31,12 @@
 #include "includes.h"
 
 NTSTATUS
-SmbProcessSetPathInformation(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvProcessSetPathInformation(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
 
-#if 0
-    ntStatus = UnmarshallSetPathInformationRequest(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvSetPathInformation(
-                        hTreeObject
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-    
-    
-    ntStatus = MarshallSetPathInformationResponse(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-
-    ntStatus = SmbSendReply(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-#endif
-
-    return (ntStatus);
+    return ntStatus;
 }
 
-
-NTSTATUS
-UnmarshallSetPathInformationAndXRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-}
-
-
-NTSTATUS
-MarshallSetPathInformationAndXResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-
-}

@@ -31,55 +31,12 @@
 #include "includes.h"
 
 NTSTATUS
-SmbProcessTransCreateAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvProcessTransCreateAndX(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
 
-#if 0
-    ntStatus = UnmarshallWriteAndXRequest(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvWriteFile(
-                        hTreeObject
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-    
-    
-    ntStatus = MarshallWriteAndXResponse(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-
-    ntStatus = SmbSendReply(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-#endif
-
-    return (ntStatus);
+    return ntStatus;
 }
 
-
-NTSTATUS
-UnmarshallTransWriteAndXRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-}
-
-
-NTSTATUS
-MarshallTransWriteAndXResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-
-}

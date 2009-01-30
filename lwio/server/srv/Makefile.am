@@ -18,12 +18,10 @@ libsrv_sys_la_SOURCES = \
     ntrename.c        \
     prodcons.c        \
     readX.c           \
-    receive.c         \
     reader.c          \
     rename.c          \
     seek.c            \
     sharedb.c         \
-    smbv1.c           \
     srvconnection.c   \
     srvcontext.c      \
     srvecho.c         \
@@ -38,7 +36,7 @@ libsrv_sys_la_SOURCES = \
     srvtcon.c         \
     srvtdiscon.c      \
     srvtree.c         \
-    stubs.c           \
+    trans2.c          \
     trans2qfi.c       \
     trans2qpi.c       \
     trans2sfi.c       \

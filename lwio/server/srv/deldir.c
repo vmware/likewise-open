@@ -30,42 +30,86 @@
 
 #include "includes.h"
 
+static
 NTSTATUS
-SmbProcessDeleteDirectory(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvUnmarshallDeleteDirectoryRequest(
+    PSMB_PACKET pSmbRequest
+    );
+
+static
+NTSTATUS
+SrvDeleteFile(
+    PSMB_SRV_FILE pFile
+    );
+
+static
+NTSTATUS
+SrvBuildDeleteDirectoryResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_PACKET*        ppSmbResponse
+    );
+
+NTSTATUS
+SrvProcessDeleteDirectory(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
-    HANDLE hTreeObject = (HANDLE)NULL;
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET pSmbRequest = pContext->pRequest;
+    PSMB_PACKET pSmbResponse = NULL;
+    PSMB_SRV_FILE pFile = NULL;
 
-    ntStatus = UnmarshallDeleteDirectoryRequest(pSmbRequest);
+    ntStatus = SrvUnmarshallDeleteDirectoryRequest(
+                    pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvDeleteFile(
-                        hTreeObject,
-                        0,
-                        NULL
-                        );
+    ntStatus = SrvDeleteFile(pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-
-    ntStatus = MarshallDeleteDirectoryResponse(pSmbRequest);
+    ntStatus = SrvBuildDeleteDirectoryResponse(
+                        pConnection,
+                        pSmbRequest,
+                        &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-
-    ntStatus = SmbSendReply(pSmbRequest);
+    ntStatus = SrvConnectionWriteMessage(
+                        pConnection,
+                        pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    return ntStatus;
 
 error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvUnmarshallDeleteDirectoryRequest(
+    PSMB_PACKET pSmbRequest
+    )
+{
+    NTSTATUS ntStatus = 0;
 
     return (ntStatus);
 }
 
+static
 NTSTATUS
 SrvDeleteFile(
-    HANDLE hTreeObject,
-    USHORT usSearchAttributes,
-    PWSTR pszFileName
+    PSMB_SRV_FILE pFile
     )
 {
     NTSTATUS ntStatus = 0;
@@ -73,25 +117,16 @@ SrvDeleteFile(
     return ntStatus;
 }
 
-
+static
 NTSTATUS
-UnmarshallDeleteDirectoryRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
+SrvBuildDeleteDirectoryResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_PACKET*        ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
 
-    return (ntStatus);
+    return ntStatus;
 }
 
-
-NTSTATUS
-MarshallDeleteDirectoryResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-
-}

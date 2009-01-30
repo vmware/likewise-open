@@ -27,27 +27,13 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-
-
-NTSTATUS
-SmbProcessDeleteDirectory(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
+#ifndef __SRV_DELDIR_H__
+#define __SRV_DELDIR_H__
 
 NTSTATUS
-SrvDeleteFile(
-    HANDLE hTreeObject,
-    USHORT usSearchAttributes,
-    PWSTR pszFileName
+SrvProcessDeleteDirectory(
+    PLWIO_SRV_CONTEXT pContext
     );
 
-NTSTATUS
-UnmarshallDeleteDirectoryRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
-
-NTSTATUS
-MarshallDeleteDirectoryResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
+#endif /* __SRV_DELDIR_H__ */
 

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -27,35 +27,14 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-
-
-NTSTATUS
-SmbProcessFindFirst2(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
+#ifndef __SRV_FIND_FIRST2_H__
+#define __SRV_FIND_FIRST2_H__
 
 NTSTATUS
-SrvTrans2FindFirst2(
-    HANDLE hTreeObject,
-    USHORT SearchAttributes,
-    USHORT Flags,
-    USHORT InformationLevel,
-    ULONG SearchStorageType,
-    PWSTR FileName,
-    USHORT * pusSid,
-    USHORT * puSearchCount,
-    USHORT * pusEndofSearch,
-    USHORT * pusLastNameOffset,
-    PVOID * lppBuffer
+SrvProcessFindFirst2(
+    PLWIO_SRV_CONTEXT pContext
     );
 
-NTSTATUS
-UnmarshallFindFirst2Request(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
+#endif /* __SRV_FIND_FIRST2_H__ */
 
-NTSTATUS
-MarshallFindFirst2Response(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
 
