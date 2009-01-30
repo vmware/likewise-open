@@ -202,7 +202,7 @@ LwNtCtxCreateNamedPipeFile(
     status = NtCtxCreateFile(
                     pConnection,
                     pSecurityToken,
-                    FileHandle,
+                    &fileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,
                     FileName,

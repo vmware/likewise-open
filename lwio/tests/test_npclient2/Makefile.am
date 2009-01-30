@@ -1,10 +1,10 @@
-bin_PROGRAMS = test_npcreatefile
+bin_PROGRAMS = test_npclient2
 
-test_npcreatefile_SOURCES = main.c
+test_npclient2_SOURCES = main.c
 
-test_npcreatefile_CPPFLAGS = \
+test_npclient2_CPPFLAGS = \
 	-DUNICODE
 
-test_npcreatefile_LDFLAGS = -static
+test_npclient2_LDFLAGS = -static
 
-test_npcreatefile_LDADD = @top_builddir@/client/liblwioclient.la
+test_npclient2_LDADD = @top_builddir@/client/liblwioclient.la
