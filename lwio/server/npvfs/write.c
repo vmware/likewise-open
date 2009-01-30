@@ -86,7 +86,7 @@ NpfsWriteFile(
     switch(pCCB->CcbType) {
 
         case NPFS_CCB_SERVER:
-            ntStatus = NpfsServerReadFile(
+            ntStatus = NpfsServerWriteFile(
                             pCCB,
                             pIrpContext
                             );
@@ -94,7 +94,7 @@ NpfsWriteFile(
             break;
 
         case NPFS_CCB_CLIENT:
-            ntStatus = NpfsClientReadFile(
+            ntStatus = NpfsClientWriteFile(
                             pCCB,
                             pIrpContext
                             );
@@ -139,7 +139,7 @@ NpfsServerWriteFile(
     }
 
 error:
-
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     LEAVE_MUTEX(&pPipe->PipeMutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
@@ -174,6 +174,7 @@ NpfsClientWriteFile(
     }
 error:
 
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     LEAVE_MUTEX(&pPipe->PipeMutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
