@@ -616,13 +616,23 @@ lwmsg_server_dispatch_message(
     void* data
     )
 {
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgServer* server = (LWMsgServer*) data;
 
-    return server->dispatch_vector[recv_message->tag](
-        assoc,
-        recv_message,
-        send_message,
-        server->user_data);
+    if (server->dispatch_vector[recv_message->tag] == NULL)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
+    }
+
+    BAIL_ON_ERROR(status = server->dispatch_vector[recv_message->tag](
+                      assoc,
+                      recv_message,
+                      send_message,
+                      server->user_data));
+
+error:
+
+    return status;
 }
 
 static void*

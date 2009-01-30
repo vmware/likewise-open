@@ -230,7 +230,19 @@ retry:
     }
     
     priv->message->tag = packet->contents.msg.type;
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, priv->message->tag, &type));
+
+    status = lwmsg_protocol_get_message_type(prot, priv->message->tag, &type);
+
+    switch (status)
+    {
+    case LWMSG_STATUS_NOT_FOUND:
+        status = LWMSG_STATUS_MALFORMED;
+        break;
+    default:
+        break;
+    }
+
+    BAIL_ON_ERROR(status);
 
     if (type == NULL)
     {
@@ -275,7 +287,18 @@ lwmsg_connection_do_send(LWMsgAssoc* assoc, ConnectionPacketType ptype)
     LWMsgMessage* message = priv->message;
     LWMsgBuffer buffer;
     
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, message->tag, &type));
+    status = lwmsg_protocol_get_message_type(prot, message->tag, &type);
+
+    switch (status)
+    {
+    case LWMSG_STATUS_MALFORMED:
+        status = LWMSG_STATUS_MALFORMED;
+        break;
+    default:
+        break;
+    }
+
+    BAIL_ON_ERROR(status);
 
     BAIL_ON_ERROR(status = lwmsg_connection_queue_packet(assoc,
                                                          ptype,
