@@ -471,8 +471,10 @@ AC_CONFIG_FILES([Makefile
         tests/test_bitvector/Makefile
         tests/test_rbtree/Makefile
         tests/test_npclient/Makefile
+        tests/test_npclient2/Makefile
         tests/test_npcreatefile/Makefile
         tests/test_npserver/Makefile
+        tests/test_npserver2/Makefile
         tests/test_npclient_transactnp/Makefile
         tests/test_pvfs/Makefile
         tests/tcon/Makefile
