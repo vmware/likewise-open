@@ -4,7 +4,7 @@
   <object name="rootObject" class="NSCustomObject" id="1">
     <null name="customClass"/>
   </object>
-  <array count="8" name="allObjects">
+  <array count="7" name="allObjects">
     <object class="IBCarbonMenu" id="29">
       <string name="title">main</string>
       <array count="1" name="items">
@@ -12,7 +12,7 @@
           <string name="title">Likewise Domain Join</string>
           <object name="submenu" class="IBCarbonMenu" id="184">
             <string name="title">Likewise Domain Join</string>
-            <array count="3" name="items">
+            <array count="2" name="items">
               <object class="IBCarbonMenuItem" id="200">
                 <boolean name="updateSingleItem">TRUE</boolean>
                 <string name="title">Join or Leave Domain</string>
@@ -24,11 +24,6 @@
                 <string name="title">Migrate User Profile</string>
                 <string name="keyEquivalent">m</string>
                 <ostype name="command">migu</ostype>
-              </object>
-              <object class="IBCarbonMenuItem" id="187">
-                <string name="title">About Likewise Domain Join</string>
-                <int name="keyEquivalentModifier">0</int>
-                <ostype name="command">abou</ostype>
               </object>
             </array>
             <string name="name">_NSAppleMenu</string>
@@ -55,17 +50,15 @@
     <reference idRef="167"/>
     <reference idRef="184"/>
     <reference idRef="185"/>
-    <reference idRef="187"/>
     <reference idRef="200"/>
     <reference idRef="201"/>
   </array>
-  <array count="8" name="allParents">
+  <array count="7" name="allParents">
     <reference idRef="1"/>
     <reference idRef="1"/>
     <reference idRef="166"/>
     <reference idRef="185"/>
     <reference idRef="29"/>
-    <reference idRef="184"/>
     <reference idRef="184"/>
     <reference idRef="184"/>
   </array>

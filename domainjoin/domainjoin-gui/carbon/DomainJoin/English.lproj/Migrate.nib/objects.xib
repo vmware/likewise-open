@@ -4,7 +4,7 @@
   <object name="rootObject" class="NSCustomObject" id="1">
     <string name="customClass">NSApplication</string>
   </object>
-  <array count="30" name="allObjects">
+  <array count="31" name="allObjects">
     <object class="IBCarbonWindow" id="166">
       <string name="windowRect">447 99 721 644 </string>
       <string name="title">Migrate User Profile</string>
@@ -40,12 +40,12 @@
             <int name="buttonType">2</int>
           </object>
           <object class="IBCarbonGroupBox" id="188">
-            <string name="bounds">6 20 175 259 </string>
-            <string name="viewFrame">20 6 239 169 </string>
+            <string name="bounds">5 20 175 259 </string>
+            <string name="viewFrame">20 5 239 170 </string>
             <array count="9" name="subviews">
               <object class="IBCarbonStaticText" id="192">
                 <string name="bounds">104 102 117 243 </string>
-                <string name="viewFrame">82 98 141 13 </string>
+                <string name="viewFrame">82 99 141 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">500</int>
                 <boolean name="small">TRUE</boolean>
@@ -54,28 +54,28 @@
               </object>
               <object class="IBCarbonStaticText" id="189">
                 <string name="bounds">104 36 117 94 </string>
-                <string name="viewFrame">16 98 58 13 </string>
+                <string name="viewFrame">16 99 58 13 </string>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">Home:</string>
               </object>
               <object class="IBCarbonStaticText" id="190">
                 <string name="bounds">125 36 138 94 </string>
-                <string name="viewFrame">16 119 58 13 </string>
+                <string name="viewFrame">16 120 58 13 </string>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">User ID:</string>
               </object>
               <object class="IBCarbonStaticText" id="191">
                 <string name="bounds">146 36 159 94 </string>
-                <string name="viewFrame">16 140 58 13 </string>
+                <string name="viewFrame">16 141 58 13 </string>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">Group ID:</string>
               </object>
               <object class="IBCarbonStaticText" id="193">
                 <string name="bounds">125 102 138 243 </string>
-                <string name="viewFrame">82 119 141 13 </string>
+                <string name="viewFrame">82 120 141 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">501</int>
                 <boolean name="small">TRUE</boolean>
@@ -84,7 +84,7 @@
               </object>
               <object class="IBCarbonStaticText" id="194">
                 <string name="bounds">146 102 159 243 </string>
-                <string name="viewFrame">82 140 141 13 </string>
+                <string name="viewFrame">82 141 141 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">502</int>
                 <boolean name="small">TRUE</boolean>
@@ -93,7 +93,7 @@
               </object>
               <object class="IBCarbonComboBox" id="195">
                 <string name="bounds">36 36 56 243 </string>
-                <string name="viewFrame">16 30 207 20 </string>
+                <string name="viewFrame">16 31 207 20 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">515</int>
                 <string name="title">Glenn Curtis</string>
@@ -106,7 +106,7 @@
               </object>
               <object class="IBCarbonStaticText" id="218">
                 <string name="bounds">83 102 96 223 </string>
-                <string name="viewFrame">82 77 121 13 </string>
+                <string name="viewFrame">82 78 121 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">517</int>
                 <boolean name="small">TRUE</boolean>
@@ -115,7 +115,7 @@
               </object>
               <object class="IBCarbonStaticText" id="219">
                 <string name="bounds">83 36 96 94 </string>
-                <string name="viewFrame">16 77 58 13 </string>
+                <string name="viewFrame">16 78 58 13 </string>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">Name:</string>
@@ -124,12 +124,12 @@
             <string name="title">Source - Local Account</string>
           </object>
           <object class="IBCarbonGroupBox" id="196">
-            <string name="bounds">4 286 175 525 </string>
-            <string name="viewFrame">286 4 239 171 </string>
-            <array count="10" name="subviews">
+            <string name="bounds">5 286 175 525 </string>
+            <string name="viewFrame">286 5 239 170 </string>
+            <array count="11" name="subviews">
               <object class="IBCarbonStaticText" id="202">
                 <string name="bounds">104 367 117 509 </string>
-                <string name="viewFrame">81 100 142 13 </string>
+                <string name="viewFrame">81 99 142 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">503</int>
                 <boolean name="small">TRUE</boolean>
@@ -138,28 +138,28 @@
               </object>
               <object class="IBCarbonStaticText" id="198">
                 <string name="bounds">104 302 117 359 </string>
-                <string name="viewFrame">16 100 57 13 </string>
+                <string name="viewFrame">16 99 57 13 </string>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">Home:</string>
               </object>
               <object class="IBCarbonStaticText" id="203">
                 <string name="bounds">125 302 138 359 </string>
-                <string name="viewFrame">16 121 57 13 </string>
+                <string name="viewFrame">16 120 57 13 </string>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">User ID:</string>
               </object>
               <object class="IBCarbonStaticText" id="199">
                 <string name="bounds">146 302 159 359 </string>
-                <string name="viewFrame">16 142 57 13 </string>
+                <string name="viewFrame">16 141 57 13 </string>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">Group ID:</string>
               </object>
               <object class="IBCarbonStaticText" id="201">
                 <string name="bounds">125 367 138 509 </string>
-                <string name="viewFrame">81 121 142 13 </string>
+                <string name="viewFrame">81 120 142 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">504</int>
                 <boolean name="small">TRUE</boolean>
@@ -168,7 +168,7 @@
               </object>
               <object class="IBCarbonStaticText" id="197">
                 <string name="bounds">146 367 159 509 </string>
-                <string name="viewFrame">81 142 142 13 </string>
+                <string name="viewFrame">81 141 142 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">505</int>
                 <boolean name="small">TRUE</boolean>
@@ -176,8 +176,8 @@
                 <string name="title">10324567</string>
               </object>
               <object class="IBCarbonEditText" id="204">
-                <string name="bounds">37 305 53 485 </string>
-                <string name="viewFrame">19 33 180 16 </string>
+                <string name="bounds">37 305 53 470 </string>
+                <string name="viewFrame">19 32 165 16 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">514</int>
                 <ostype name="command">adnm</ostype>
@@ -185,7 +185,7 @@
               </object>
               <object class="IBCarbonStaticText" id="220">
                 <string name="bounds">83 367 96 509 </string>
-                <string name="viewFrame">81 79 142 13 </string>
+                <string name="viewFrame">81 78 142 13 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">518</int>
                 <boolean name="small">TRUE</boolean>
@@ -193,18 +193,28 @@
                 <string name="title">Glenn Curtis</string>
               </object>
               <object class="IBCarbonRoundButton" id="221">
-                <string name="bounds">35 496 55 516 </string>
-                <string name="viewFrame">210 31 20 20 </string>
+                <string name="bounds">-73 609 -53 629 </string>
+                <string name="viewFrame">323 -78 20 20 </string>
                 <ostype name="controlSignature">CnTs</ostype>
                 <int name="controlID">513</int>
                 <ostype name="command">vald</ostype>
               </object>
               <object class="IBCarbonStaticText" id="222">
                 <string name="bounds">83 302 96 359 </string>
-                <string name="viewFrame">16 79 57 13 </string>
+                <string name="viewFrame">16 78 57 13 </string>
                 <boolean name="small">TRUE</boolean>
                 <int name="controlSize">1</int>
                 <string name="title">Name:</string>
+              </object>
+              <object class="IBCarbonButton" id="223">
+                <string name="bounds">36 481 53 508 </string>
+                <string name="viewFrame">195 31 27 17 </string>
+                <ostype name="controlSignature">CnTs</ostype>
+                <int name="controlID">513</int>
+                <boolean name="small">TRUE</boolean>
+                <int name="controlSize">1</int>
+                <string name="title">√</string>
+                <ostype name="command">vald</ostype>
               </object>
             </array>
             <string name="title">Destination - Likewise AD Account</string>
@@ -281,8 +291,9 @@
     <reference idRef="220"/>
     <reference idRef="221"/>
     <reference idRef="222"/>
+    <reference idRef="223"/>
   </array>
-  <array count="30" name="allParents">
+  <array count="31" name="allParents">
     <reference idRef="1"/>
     <reference idRef="166"/>
     <reference idRef="167"/>
@@ -310,6 +321,7 @@
     <reference idRef="167"/>
     <reference idRef="188"/>
     <reference idRef="188"/>
+    <reference idRef="196"/>
     <reference idRef="196"/>
     <reference idRef="196"/>
     <reference idRef="196"/>
@@ -326,5 +338,5 @@
     <string>Window</string>
     <reference idRef="166"/>
   </dictionary>
-  <unsigned_int name="nextObjectID">223</unsigned_int>
+  <unsigned_int name="nextObjectID">224</unsigned_int>
 </object>

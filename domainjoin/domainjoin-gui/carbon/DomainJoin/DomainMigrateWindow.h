@@ -77,78 +77,90 @@ FreeLocalUserList(
     PUSER_LIST pLocalUsers
     );
 
+long
+CallCommandWithOutputAndErr(
+    const char *  pszCommand,
+    const char ** ppszArgs,
+    bool          bCaptureStderr,
+    char **       ppszOutput,
+    int *         pExitCode
+    );
+
 class DomainMigrateWindow : public TWindow
 {
     public:
-		DomainMigrateWindow(int inAppSignature);
+        DomainMigrateWindow(int inAppSignature);
         virtual ~DomainMigrateWindow();
 
-	protected:
-	    DomainMigrateWindow(const DomainMigrateWindow& other);
-		DomainMigrateWindow& operator=(const DomainMigrateWindow& other);
+    protected:
+        DomainMigrateWindow(const DomainMigrateWindow& other);
+        DomainMigrateWindow& operator=(const DomainMigrateWindow& other);
 
-	public:
+    public:
 
         void SetLocalUserRealName(const std::string& value);
-		void SetLocalUserHomeDirectory(const std::string& value);
-		void SetLocalUserUID(const std::string& value);
+        void SetLocalUserHomeDirectory(const std::string& value);
+        void SetLocalUserUID(const std::string& value);
         void SetLocalUserGID(const std::string& value);
         void SetADUserRealName(const std::string& value);
-		void SetADUserHomeDirectory(const std::string& value);
-		void SetADUserUID(const std::string& value);
+        void SetADUserHomeDirectory(const std::string& value);
+        void SetADUserUID(const std::string& value);
         void SetADUserGID(const std::string& value);
         void SetADUserEdit(const std::string& value);
         void MigrateOff();
         void MigrateOn();
         void SetLocalUsers();
-
-		virtual void Close();
+        virtual void Close();
 
     protected:
 
-        virtual Boolean     HandleCommand( const HICommandExtended& inCommand );
-
+        virtual Boolean HandleCommand( const HICommandExtended& inCommand );
         void ClearLocalUsersCombo();
         void AddUserToLocalUsersCombo(const std::string& value);
         void SetTitleToLocalUsersCombo();
-		std::string GetLocalUserName();
+        std::string GetLocalUserName();
         std::string GetLocalUserHomeDir();
-		std::string GetADUserName();
+        std::string GetADUserName();
         std::string GetADUserHomeDir();
         std::string GetADUserUID();
         std::string GetADUserGID();
         bool IsMoveOptionSelected();
-
-		void HandleMigration();
+        void HandleMigration();
         bool HandleValidateUser();
-		bool ConfirmMigration(const std::string& localUserName,
+        bool ConfirmMigration(const std::string& localUserName,
                               const std::string& localUserHomeDir,
                               const std::string& adUserName,
                               const std::string& adUserHomeDir,
                               const std::string& adUserUID,
                               const std::string& adUserGID,
                               bool  bMoveProfile);
-		void ShowMigrateCompleteDialog(const std::string& value);
+        int CallMigrateCommand(const std::string& localUserHomeDir,
+                               const std::string& adUserName,
+                               const std::string& logFileName,
+                               bool bMoveProfile,
+                               char ** ppszOutput);
+        void ShowMigrateCompleteDialog(const std::string& value);
+        void ShowMigrateCompleteErrorDialog(const std::string& value, int code, const std::string& resultMessage);
         void HideMigrateProgressBar();
         void ShowMigrateProgressBar();
 
-	protected:
+    protected:
 
-	    static const int LOCAL_USER_COMBO_ID;
-		static const int LOCAL_USER_PATH_ID;
+        static const int LOCAL_USER_COMBO_ID;
+        static const int LOCAL_USER_PATH_ID;
         static const int LOCAL_USER_REAL_NAME_ID;
-		static const int LOCAL_USER_UID_ID;
-		static const int LOCAL_USER_GID_ID;
-	    static const int AD_USER_EDIT_ID;
-		static const int AD_USER_PATH_ID;
+        static const int LOCAL_USER_UID_ID;
+        static const int LOCAL_USER_GID_ID;
+        static const int AD_USER_EDIT_ID;
+        static const int AD_USER_PATH_ID;
         static const int AD_USER_REAL_NAME_ID;
-		static const int AD_USER_UID_ID;
-		static const int AD_USER_GID_ID;
-		static const int COPY_RADIO_ID;
+        static const int AD_USER_UID_ID;
+        static const int AD_USER_GID_ID;
+        static const int COPY_RADIO_ID;
         static const int MOVE_RADIO_ID;
         static const int VALIDATE_ID;
-		static const int CANCEL_ID;
-		static const int MIGRATE_ID;
+        static const int CANCEL_ID;
+        static const int MIGRATE_ID;
         static const int MIGRATE_PROGRESS_ID;
 
         static const int LOCAL_USER_NAME_CMD_ID;
@@ -159,17 +171,17 @@ class DomainMigrateWindow : public TWindow
         static const int CANCEL_CMD_ID;
         static const int MIGRATE_CMD_ID;
 
-	private:
+    private:
 
         std::string _localUsersFirstItem;
         std::string _localUserRealName;
-	    std::string _localUserHomeDir;
-	    std::string _localUserUID;
-	    std::string _localUserGID;
+        std::string _localUserHomeDir;
+        std::string _localUserUID;
+        std::string _localUserGID;
         std::string _adUserRealName;
-	    std::string _adUserHomeDir;
-	    std::string _adUserUID;
-	    std::string _adUserGID;
+        std::string _adUserHomeDir;
+        std::string _adUserUID;
+        std::string _adUserGID;
         PUSER_LIST  _pLocalUsers;
 };
 
