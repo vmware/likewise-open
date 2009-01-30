@@ -71,15 +71,17 @@ main(int argc,
 {
     char *pipename = NULL;
     ULONG i = 0;
+    ULONG ulNumConnections = 0;
     pthread_t thread;
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        printf("Usage: test_npserver <pipename>\n");
+        printf("Usage: test_npserver <pipename> <num_connections>\n");
         exit(1);
     }
 
     pipename = argv[1];
+    ulNumConnections = atoi(argv[2]);
 
     for (i = 0; i < 100; i++) {
         pthread_create(&thread, NULL, (void *)CreateServerPipe, pipename);
@@ -106,8 +108,8 @@ CreateServerPipe(
     ULONG OutboundQuota = 0;
     LONG64 DefaultTimeOut = 0;
     IO_FILE_HANDLE FileHandle = 0;
-    BYTE Buffer[4096];
-    ULONG Length = 0;
+    //BYTE Buffer[4096];
+    //ULONG Length = 0;
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,
@@ -149,7 +151,7 @@ CreateServerPipe(
                     FileHandle
                     );
     BAIL_ON_NT_STATUS(ntStatus);
-
+/*
     while (1) {
 
 
@@ -179,6 +181,8 @@ CreateServerPipe(
     }
 
     NtCloseFile(FileHandle);
+
+    */
 
 error:
 

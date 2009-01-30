@@ -166,7 +166,7 @@ NpfsServerReadFile(
     }
 
 error:
-
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     LEAVE_MUTEX(&pPipe->PipeMutex);
     LEAVE_READER_RW_LOCK(&gServerLock);
 
@@ -227,6 +227,7 @@ NpfsClientReadFile(
     }
 
 error:
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
     LEAVE_READER_RW_LOCK(&gServerLock);

@@ -101,6 +101,10 @@ main(int argc,
     ULONG OutboundQuota = 0;
     LONG64 DefaultTimeOut = 0;
     IO_FILE_HANDLE FileHandle = 0;
+    BYTE InBuffer[2048];
+    ULONG InLength = 0;
+    ULONG InBytesRead = 0;
+    ULONG OutBytesWritten = 0;
 
     if (argc < 2)
     {
@@ -151,6 +155,44 @@ main(int argc,
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+
+    while (1) {
+
+
+        memset(InBuffer, 0, sizeof(InBuffer));
+        InLength = sizeof(InBuffer);
+        ntStatus = NtReadFile(
+                        FileHandle,
+                        NULL,
+                        &io_status,
+                        InBuffer,
+                        InLength,
+                        NULL,
+                        NULL
+                        );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        InBytesRead = io_status.BytesTransferred;
+
+
+        ntStatus = NtWriteFile(
+                        FileHandle,
+                        NULL,
+                        &io_status,
+                        InBuffer,
+                        InBytesRead,
+                        NULL,
+                        NULL
+                        );
+        BAIL_ON_NT_STATUS(ntStatus);
+        OutBytesWritten = io_status.BytesTransferred;
+
+    }
+
+    NtCloseFile(FileHandle);
+
+
+
 error:
 
     return(ntStatus);
@@ -165,7 +207,7 @@ NtConnectNamedPipe(
 {
 
     NTSTATUS ntStatus = 0;
-    IO_STATUS_BLOCK IoStatusBlock;
+    IO_STATUS_BLOCK IoStatusBlock = {0};
 
     ntStatus = NtFsControlFile(
                     FileHandle,

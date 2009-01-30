@@ -53,39 +53,58 @@
 #include "lwiodef.h"
 #include "lwioutils.h"
 
-
+NTSTATUS
+CreatePipeClientThread(
+    const char *pipename
+    );
 
 int
-main(int argc,
-    char **argv
+main(
+    int    argc,
+    char** argv
     )
 {
-    char *pipename = NULL;
+    NTSTATUS ntStatus = 0;
+    const char* pipename = NULL;
+    ULONG ulNumConnections = 0;
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        printf("Usage: test_npserver <pipename>\n");
+        printf("Usage: test_npserver <pipename> <numconnections>\n");
         exit(1);
     }
 
     pipename = argv[1];
+    ulNumConnections = atoi(argv[2]);
 
-    return(0);
+    ntStatus = CreatePipeClientThread(pipename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return ntStatus;
 }
-NTSTATUS
-CreatePipeThread()
-{
 
+NTSTATUS
+CreatePipeClientThread(
+    const char *pipename
+    )
+{
     NTSTATUS ntStatus = 0;
     PSTR smbpath = NULL;
     //PIO_ACCESS_TOKEN acctoken = NULL;
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
     IO_FILE_HANDLE FileHandle = 0;
-    BYTE Buffer[4096];
-    ULONG Length = 4096;
-    char *pipename = NULL;
+    BYTE InBuffer[2048];
+    BYTE OutBuffer[2048];
+    ULONG InLength = sizeof(InBuffer);
+    // ULONG OutLength = sizeof(OutBuffer);
+    ULONG ulStringLength = 0;
 
+    strcpy((PSTR)OutBuffer,"This is an extremely long sentence sent from the client");
+    ulStringLength = strlen((PSTR)OutBuffer);
+    ulStringLength++;
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,
@@ -123,12 +142,13 @@ CreatePipeThread()
 
     while (1) {
 
+        printf("Client Write to Server: %s\n", (PSTR)OutBuffer);
         ntStatus = NtWriteFile(
                         FileHandle,
                         NULL,
                         &io_status,
-                        Buffer,
-                        Length,
+                        OutBuffer,
+                        ulStringLength,
                         NULL,
                         NULL
                         );
@@ -138,16 +158,22 @@ CreatePipeThread()
                         FileHandle,
                         NULL,
                         &io_status,
-                        Buffer,
-                        Length,
+                        InBuffer,
+                        InLength,
                         NULL,
                         NULL
                         );
         BAIL_ON_NT_STATUS(ntStatus);
-    }
+        if (io_status.BytesTransferred) {
+            printf("Client Read from Server: %s\n", (PSTR)InBuffer);
 
+        }
+
+
+    }
 
 error:
 
-    return(ntStatus);
+    return ntStatus;
 }
+
