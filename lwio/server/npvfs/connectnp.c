@@ -92,10 +92,14 @@ NpfsCommonConnectNamedPipe(
 
     ENTER_MUTEX(&pPipe->PipeMutex);
 
-    if (pPipe->PipeServerState !=  PIPE_SERVER_CREATED) {
+    if (pPipe->PipeServerState !=  PIPE_SERVER_INIT_STATE) {
 
         ntStatus = STATUS_INVALID_SERVER_STATE;
+
+        pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+
         LEAVE_MUTEX(&pPipe->PipeMutex);
+        LEAVE_READER_RW_LOCK(&gServerLock);
 
         return(ntStatus);
     }
@@ -110,8 +114,9 @@ NpfsCommonConnectNamedPipe(
 
     pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
 
-    LEAVE_MUTEX(&pPipe->PipeMutex);
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
+    LEAVE_MUTEX(&pPipe->PipeMutex);
 
     LEAVE_READER_RW_LOCK(&gServerLock);
     return(ntStatus);
