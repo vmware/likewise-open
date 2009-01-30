@@ -693,7 +693,7 @@ typedef struct
     uint32_t offsetHigh;    /* Upper 32 bits of offset
                                (only if wordCount is 12) */
     uint16_t byteCount;     /* Count of data bytes = 0 */
-}  __attribute__((__packed__))  READ_REQUEST_HEADER;
+}  __attribute__((__packed__))  READ_REQUEST_HEADER, *PREAD_REQUEST_HEADER;
 
 typedef struct
 {
@@ -708,12 +708,12 @@ typedef struct
     uint16_t dataLengthHigh;    /* High 16 bits of number of data bytes if
                                    CAP_LARGE_READX; else MUST BE ZERO */
     uint16_t reserved2[4];      /* Reserved (must be 0) */
-    uint16_t ByteCount;         /* Count of data bytes; ignored if
+    uint16_t byteCount;         /* Count of data bytes; ignored if
                                    CAP_LARGE_READX */
     uint8_t pad[];
 
     /* Data immediately follows */
-}  __attribute__((__packed__))  READ_RESPONSE_HEADER;
+}  __attribute__((__packed__))  READ_RESPONSE_HEADER, *PREAD_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -737,7 +737,7 @@ typedef struct
     uint8_t pad[];              /* Pad to SHORT or LONG */
 
     /* Data immediately follows */
-}  __attribute__((__packed__))  WRITE_REQUEST_HEADER;
+}  __attribute__((__packed__))  WRITE_REQUEST_HEADER, *PWRITE_REQUEST_HEADER;
 
 typedef struct
 {
@@ -750,7 +750,7 @@ typedef struct
                                    CAP_LARGE_WRITEX */
     uint16_t reserved;
     uint16_t byteCount;         /* Count of data bytes = 0 */
-}  __attribute__((__packed__))  WRITE_RESPONSE_HEADER;
+}  __attribute__((__packed__))  WRITE_RESPONSE_HEADER, *PWRITE_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -1070,6 +1070,24 @@ MarshallWriteRequestData(
     uint16_t        *pDataOffset,
     uint8_t         *pWriteBuffer,
     uint16_t        wWriteLen
+    );
+
+NTSTATUS
+WireUnmarshallReadRequest(
+    const PBYTE pParams,
+    ULONG       ulBytesAvailable,
+    ULONG       ulBytesUsed,
+    PREAD_REQUEST_HEADER* ppHeader
+    );
+
+NTSTATUS
+WireMarshallReadResponseData(
+    PBYTE  pDataBuffer,
+    ULONG  ulBytesAvailable,
+    ULONG  alignment,
+    PVOID  pBuffer,
+    ULONG  ulBytesToWrite,
+    PULONG pulPackageByteCount
     );
 
 NTSTATUS

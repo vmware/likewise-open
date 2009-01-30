@@ -31,6 +31,83 @@
 #include "includes.h"
 
 NTSTATUS
+WireUnmarshallReadRequest(
+    const PBYTE pParams,
+    ULONG       ulBytesAvailable,
+    ULONG       ulBytesUsed,
+    PREAD_REQUEST_HEADER* ppHeader
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    if (ulBytesAvailable < sizeof(READ_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppHeader = (PREAD_REQUEST_HEADER)pParams;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireMarshallReadResponseData(
+    PBYTE  pDataBuffer,
+    ULONG  ulBytesAvailable,
+    ULONG  alignment,
+    PVOID  pBuffer,
+    ULONG  ulBytesToWrite,
+    PULONG pulPackageByteCount
+    )
+{
+    NTSTATUS ntStatus = 0;
+    ULONG    ulBytesUsed = 0;
+    PBYTE    pDataCursor = pDataBuffer;
+
+    if (ulBytesAvailable < alignment)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ulBytesAvailable -= alignment;
+    ulBytesUsed += alignment;
+    pDataCursor += alignment;
+
+    if (ulBytesAvailable < ulBytesToWrite)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    memcpy(pDataCursor, pBuffer, ulBytesToWrite);
+
+    // ulBytesAvailable -= ulBytesToWrite;
+    ulBytesUsed += ulBytesToWrite;
+
+    *pulPackageByteCount = ulBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulPackageByteCount = 0;
+
+    goto cleanup;
+}
+
+NTSTATUS
 MarshallReadRequestData(
     uint8_t         *pBuffer,
     uint32_t         bufferLen,
