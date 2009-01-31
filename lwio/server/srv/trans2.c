@@ -1,7 +1,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvProcessTrans2(
+SrvProcessTransaction2(
     PLWIO_SRV_CONTEXT pContext
     )
 {

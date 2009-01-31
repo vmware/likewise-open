@@ -382,14 +382,6 @@ SrvWorkerExecute(
 
             break;
 
-        case  SMB_TRANS2_CREATE_DIRECTORY:
-
-            ntStatus = SmbProcessTrans2CreateDirectory(
-                            pSmbRequest,
-                            pSmbResponse);
-
-            break;
-
         case SMB_DELETE_DIRECTORY:
 
             ntStatus = SmbProcessDeleteDirectory(

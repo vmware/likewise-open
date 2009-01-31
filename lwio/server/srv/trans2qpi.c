@@ -44,6 +44,9 @@ SrvProcessTrans2QueryPathInformation(
 {
     NTSTATUS ntStatus = 0;
 
+    assert (pSetup != NULL);
+    assert (*pSetup == SMB_SUB_COMMAND_TRANS2_QUERY_PATH_INFORMATION);
+
     return ntStatus;
 }
 
