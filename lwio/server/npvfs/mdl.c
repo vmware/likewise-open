@@ -7,6 +7,7 @@ NpfsEnqueueBuffer(
     PNPFS_MDL pMdlList,
     PVOID pBuffer,
     ULONG Length,
+    PULONG pulBytesTransferred,
     PNPFS_MDL * ppMdlList
     )
 {
@@ -28,12 +29,17 @@ NpfsEnqueueBuffer(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    *ppMdlList = pNewMdlList;
+    *pulBytesTransferred = Length;
+    return(ntStatus);
+
 error:
 
     if (pMdl) {
         NpfsFreeMdl(pMdl);
     }
-    *ppMdlList = pNewMdlList;
+    *pulBytesTransferred = 0;
+    *ppMdlList = NULL;
     return(ntStatus);
 
 }
@@ -43,6 +49,7 @@ NpfsDequeueBuffer(
     PNPFS_MDL pMdlList,
     PVOID pBuffer,
     ULONG Length,
+    PULONG pulBytesTransferred,
     PNPFS_MDL * ppMdlList
     )
 {
@@ -50,6 +57,7 @@ NpfsDequeueBuffer(
     ULONG LengthRemaining = 0;
     ULONG BytesAvail = 0;
     ULONG BytesToCopy = 0;
+    ULONG BytesCopied = 0;
     PNPFS_MDL pMdl = NULL;
 
     if (!pMdlList) {
@@ -58,10 +66,12 @@ NpfsDequeueBuffer(
     }
 
     LengthRemaining = Length;
-    while ((LengthRemaining) || (!pMdlList)){
+    while (LengthRemaining && pMdlList){
+
         BytesAvail = pMdlList->Length - pMdlList->Offset;
         BytesToCopy = min(BytesAvail, LengthRemaining);
         memcpy(pBuffer, pMdlList->Buffer + pMdlList->Offset, BytesToCopy);
+        BytesCopied += BytesToCopy;
         pMdlList->Offset += BytesToCopy;
         LengthRemaining -= BytesToCopy;
         if (pMdlList->Length - pMdlList->Offset == 0){
@@ -70,11 +80,12 @@ NpfsDequeueBuffer(
 
         }
     }
+    *pulBytesTransferred = BytesCopied;
     *ppMdlList = pMdlList;
     return(ntStatus);
 
 error:
-
+    *pulBytesTransferred = 0;
     *ppMdlList = NULL;
     return(ntStatus);
 }
@@ -108,6 +119,9 @@ NpfsCreateMdl(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pMdl->Buffer = pTargBuffer;
+    pMdl->Length = Length;
+
     *ppMdl = pMdl;
 
     return(ntStatus);
@@ -135,8 +149,7 @@ NpfsEnqueueMdl(
 {
     NTSTATUS ntStatus = 0;
 
-    if ((!pMdlList) || (!pMdl)) {
-        *ppMdlList  = NULL;
+    if (!pMdl) {
         return (STATUS_INVALID_PARAMETER);
     }
 
@@ -158,6 +171,7 @@ NpfsDequeueMdl(
 
     if (!pMdlList) {
         *ppMdlList = NULL;
+        ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -169,7 +183,6 @@ NpfsDequeueMdl(
 
 error:
     return(ntStatus);
-
 }
 
 NTSTATUS
@@ -223,9 +236,8 @@ NpfsMdlListIsEmpty(
     )
 {
     if (!pNpfsMdlList) {
-        return FALSE;
-    }else {
         return TRUE;
+    }else {
+        return FALSE;
     }
 }
-

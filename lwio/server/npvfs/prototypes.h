@@ -102,13 +102,12 @@ NpfsCommonFsCtl(
     );
 
 /* mdl.c */
-
-
 NTSTATUS
 NpfsEnqueueBuffer(
     PNPFS_MDL pMdlList,
     PVOID pBuffer,
     ULONG Length,
+    PULONG pulBytesTransferred,
     PNPFS_MDL * ppMdlList
     );
 
@@ -117,6 +116,7 @@ NpfsDequeueBuffer(
     PNPFS_MDL pMdlList,
     PVOID pBuffer,
     ULONG Length,
+    PULONG pulBytesTransferred,
     PNPFS_MDL * ppMdlList
     );
 

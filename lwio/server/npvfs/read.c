@@ -138,16 +138,15 @@ NpfsServerReadFile(
 {
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
-    PNPFS_CCB pCCB = NULL;
 
     ENTER_READER_RW_LOCK(&gServerLock);
-    pPipe = pCCB->pPipe;
+    pPipe = pSCB->pPipe;
     ENTER_MUTEX(&pPipe->PipeMutex);
 
     switch(pPipe->PipeServerState) {
 
         case PIPE_SERVER_CONNECTED:
-                while (NpfsMdlListIsEmpty(pCCB->pMdlList)) {
+                while (NpfsMdlListIsEmpty(pSCB->pMdlList)) {
                      pthread_cond_wait(&pPipe->PipeCondition,&pPipe->PipeMutex);
                 }
                 ntStatus = NpfsServerReadFile_Connected(
@@ -184,17 +183,24 @@ NpfsServerReadFile_Connected(
     NTSTATUS ntStatus = 0;
     PVOID pBuffer = NULL;
     ULONG Length = 0;
+    ULONG ulBytesTransferred = 0;
+
+    pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
+    Length = pIrpContext->pIrp->Args.ReadWrite.Length;
 
     ntStatus = NpfsDequeueBuffer(
                         pSCB->pMdlList,
                         pBuffer,
                         Length,
+                        &ulBytesTransferred,
                         &pSCB->pMdlList
                         );
     BAIL_ON_NT_STATUS(ntStatus);
+    pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
 
 error:
 
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     return(ntStatus);
 }
 
@@ -247,16 +253,23 @@ NpfsClientReadFile_Connected(
     NTSTATUS ntStatus = 0;
     PVOID pBuffer = NULL;
     ULONG Length = 0;
+    ULONG ulBytesTransferred = 0;
+
+    pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
+    Length = pIrpContext->pIrp->Args.ReadWrite.Length;
 
     ntStatus = NpfsDequeueBuffer(
                         pCCB->pMdlList,
                         pBuffer,
                         Length,
+                        &ulBytesTransferred,
                         &pCCB->pMdlList
                         );
     BAIL_ON_NT_STATUS(ntStatus);
+    pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
 
 error:
 
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     return(ntStatus);
 }

@@ -219,6 +219,10 @@ NpfsServerWriteFile_Connected(
     PNPFS_CCB pCCB = NULL;
     PVOID pBuffer = NULL;
     ULONG Length = 0;
+    ULONG ulBytesTransferred = 0;
+
+    pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
+    Length = pIrpContext->pIrp->Args.ReadWrite.Length;
 
     pPipe = pSCB->pPipe;
     pCCB = pPipe->pCCB;
@@ -229,11 +233,15 @@ NpfsServerWriteFile_Connected(
                         pCCB->pMdlList,
                         pBuffer,
                         Length,
+                        &ulBytesTransferred,
                         &pCCB->pMdlList
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
 error:
+
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
     LEAVE_WRITER_RW_LOCK(&pCCB->InBoundMutex);
     return(ntStatus);
@@ -250,7 +258,10 @@ NpfsClientWriteFile_Connected(
     PNPFS_CCB pSCB = NULL;
     PVOID pBuffer = NULL;
     ULONG Length = 0;
+    ULONG ulBytesTransferred = 0;
 
+    pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
+    Length = pIrpContext->pIrp->Args.ReadWrite.Length;
     pPipe = pCCB->pPipe;
     pSCB = pPipe->pSCB;
 
@@ -260,11 +271,16 @@ NpfsClientWriteFile_Connected(
                         pSCB->pMdlList,
                         pBuffer,
                         Length,
+                        &ulBytesTransferred,
                         &pSCB->pMdlList
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
+
 error:
+
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
     LEAVE_WRITER_RW_LOCK(&pSCB->InBoundMutex);
 
