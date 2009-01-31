@@ -41,6 +41,24 @@ SrvGetShareName(
 
 static
 NTSTATUS
+SrvGetShareNameCheckHostname(
+    PCSTR  pszHostname,
+    PCSTR  pszDomain,
+    PWSTR  pwszPath,
+    PWSTR* ppwszSharename
+    );
+
+static
+NTSTATUS
+SrvGetShareNameCheckFQDN(
+    PCSTR  pszHostname,
+    PCSTR  pszDomain,
+    PWSTR  pwszPath,
+    PWSTR* ppwszSharename
+    );
+
+static
+NTSTATUS
 SrvBuildTreeConnectResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
@@ -222,6 +240,139 @@ error:
 static
 NTSTATUS
 SrvGetShareName(
+    PCSTR pszHostname,
+    PCSTR pszDomain,
+    PWSTR pwszPath,
+    PWSTR* ppwszSharename
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PWSTR    pwszSharename = NULL;
+
+    ntStatus = SrvGetShareNameCheckHostname(
+                    pszHostname,
+                    pszDomain,
+                    pwszPath,
+                    &pwszSharename);
+    if (ntStatus)
+    {
+        ntStatus = SrvGetShareNameCheckFQDN(
+                        pszHostname,
+                        pszDomain,
+                        pwszPath,
+                        &pwszSharename);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppwszSharename = pwszSharename;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszSharename = NULL;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvGetShareNameCheckHostname(
+    PCSTR  pszHostname,
+    PCSTR  pszDomain,
+    PWSTR  pwszPath,
+    PWSTR* ppwszSharename
+    )
+{
+    NTSTATUS  ntStatus = 0;
+    PSTR      pszHostPrefix = NULL;
+    PWSTR     pwszHostPrefix = NULL;
+    PWSTR     pwszPath_copy = NULL;
+    PWSTR     pwszSharename = NULL;
+    size_t    len = 0, len_prefix = 0, len_sharename = 0;
+
+    len = wc16slen(pwszPath);
+    if (!len)
+    {
+        ntStatus = STATUS_OBJECT_PATH_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SMBAllocateMemory(
+                    (len + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszPath_copy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
+
+    wc16supper(pwszPath_copy);
+
+    ntStatus = SMBAllocateStringPrintf(
+                    &pszHostPrefix,
+                    "\\\\%s\\",
+                    pszHostname,
+                    pszDomain);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMBStrToUpper(pszHostPrefix);
+
+    ntStatus = SMBMbsToWc16s(
+                    pszHostPrefix,
+                    &pwszHostPrefix);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    len_prefix = wc16slen(pwszHostPrefix);
+    if (len <= len_prefix)
+    {
+        ntStatus = STATUS_OBJECT_PATH_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (memcmp((PBYTE)pwszPath_copy, (PBYTE)pwszHostPrefix, len_prefix * sizeof(wchar16_t)) != 0)
+    {
+        ntStatus = STATUS_OBJECT_PATH_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    len_sharename = wc16slen(pwszPath_copy + len_prefix);
+    if (!len_sharename)
+    {
+        ntStatus = STATUS_OBJECT_PATH_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SMBAllocateMemory(
+                    (len_sharename + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszSharename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // copy from original path
+    memcpy((PBYTE)pwszSharename, (PBYTE)pwszPath + len_prefix * sizeof(wchar16_t), len_sharename * sizeof(wchar16_t));
+
+    *ppwszSharename = pwszSharename;
+
+cleanup:
+
+    SMB_SAFE_FREE_STRING(pszHostPrefix);
+    SMB_SAFE_FREE_MEMORY(pwszHostPrefix);
+    SMB_SAFE_FREE_MEMORY(pwszPath_copy);
+
+    return ntStatus;
+
+error:
+
+    *ppwszSharename = NULL;
+
+    SMB_SAFE_FREE_MEMORY(pwszSharename);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvGetShareNameCheckFQDN(
     PCSTR  pszHostname,
     PCSTR  pszDomain,
     PWSTR  pwszPath,
