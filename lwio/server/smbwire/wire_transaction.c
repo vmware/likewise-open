@@ -71,8 +71,26 @@ WireUnmarshallTransactionParameterData(
     ULONG       dataLen
     );
 
-static NTSTATUS
-_MarshallTransactionParameterData(
+static
+NTSTATUS
+WireMarshallTransactionSetupData(
+    PBYTE      pBuffer,
+    uint32_t   bufferLen,
+    uint32_t  *pBufferUsed,
+    uint16_t  *pSetup,
+    uint8_t    setupLen,
+    wchar16_t *pwszName,
+    uint8_t   *pParameters,
+    uint32_t   parameterLen,
+    uint16_t  *pParameterOffset,
+    uint8_t   *pData,
+    uint32_t   dataLen,
+    uint16_t  *pDataOffset
+    );
+
+static
+NTSTATUS
+WireMarshallTransactionParameterData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
     uint32_t *pBufferUsed,
@@ -81,138 +99,8 @@ _MarshallTransactionParameterData(
     uint16_t *pParameterOffset,
     uint8_t  *pData,
     uint32_t  dataLen,
-    uint16_t *pDataOffset)
-{
-    uint32_t bufferUsed = 0;
-    uint32_t alignment = 0;
-    NTSTATUS ntStatus = 0;
-
-#if 0 /* This code is useless as written (alignment always evals to 0).
-         Disabling to work around build failure with newer gcc and -Werror */
-
-    /* Align data to a four byte boundary */
-    alignment = (4 - (bufferUsed % 4)) % 4;
-    memset(pBuffer + bufferUsed, 0, alignment);
-    bufferUsed += alignment;
-#endif
-
-    if (parameterLen && bufferUsed + parameterLen <= bufferLen)
-        memcpy(pBuffer + bufferUsed, pParameters, parameterLen);
-    *pParameterOffset = bufferUsed;
-    bufferUsed += parameterLen;
-
-    /* Align data to a four byte boundary */
-    alignment = (4 - (bufferUsed % 4)) % 4;
-    memset(pBuffer + bufferUsed, 0, alignment);
-    bufferUsed += alignment;
-
-    if (dataLen && bufferUsed + dataLen <= bufferLen)
-        memcpy(pBuffer + bufferUsed, pData, dataLen);
-    *pDataOffset = bufferUsed;
-    bufferUsed += dataLen;
-
-    if (bufferUsed > bufferLen)
-    {
-        ntStatus = EMSGSIZE;
-    }
-
-    *pBufferUsed = bufferUsed;
-
-    return ntStatus;
-}
-
-static NTSTATUS
-_MarshallTransactionSetupData(
-    uint8_t   *pBuffer,
-    uint32_t   bufferLen,
-    uint32_t  *pBufferUsed,
-    uint16_t  *pSetup,
-    uint8_t    setupLen,
-    wchar16_t *pwszName,
-    uint8_t   *pParameters,
-    uint32_t   parameterLen,
-    uint16_t  *pParameterOffset,
-    uint8_t   *pData,
-    uint32_t   dataLen,
-    uint16_t  *pDataOffset
-    )
-{
-    NTSTATUS  ntStatus = 0;
-    uint32_t  bufferUsed = 0;
-    uint32_t  bufferUsedData = 0;
-    uint32_t  alignment = 0;
-    uint32_t  wstrlen = 0;
-    uint16_t *pByteCount = NULL;
-
-    if (setupLen && bufferUsed + setupLen <= bufferLen)
-        memcpy(pBuffer, pSetup, setupLen);
-    bufferUsed += setupLen;
-
-    /* byteCount */
-    pByteCount = (uint16_t *) (pBuffer + bufferUsed);
-    bufferUsed += sizeof(uint16_t);
-
-    if (pwszName)
-    {
-        /* Align string */
-        alignment = (bufferUsed + 1) % 2;
-        if (alignment)
-        {
-            *(pBuffer + bufferUsed) = 0;
-            bufferUsed += alignment;
-        }
-        wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed), pwszName,
-            bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-        bufferUsed += wstrlen * sizeof(*pByteCount);
-    }
-
-    ntStatus = _MarshallTransactionParameterData(pBuffer + bufferUsed,
-        bufferLen > bufferUsed ? bufferLen - bufferUsed : 0, &bufferUsedData,
-        pParameters, parameterLen, pParameterOffset, pData, dataLen,
-        pDataOffset);
-    if (ntStatus && ntStatus != EMSGSIZE)
-    {
-        return ntStatus;
-    }
-    *pParameterOffset += bufferUsed;
-    *pDataOffset += bufferUsed;
-    bufferUsed += bufferUsedData;
-
-    if (bufferUsed > bufferLen)
-    {
-        ntStatus = EMSGSIZE;
-    }
-    else
-    {
-        /* Fill in the byte count */
-        *pByteCount = (uint16_t) (pBuffer + bufferUsed -
-            ((uint8_t *) pByteCount) - sizeof(*pByteCount));
-    }
-    *pBufferUsed = bufferUsed;
-
-    return ntStatus;
-}
-
-NTSTATUS
-MarshallTransactionRequestData(
-    uint8_t   *pBuffer,
-    uint32_t   bufferLen,
-    uint32_t  *pBufferUsed,
-    uint16_t  *pSetup,
-    uint8_t    setupLen,
-    wchar16_t *pwszName,
-    uint8_t   *pParameters,
-    uint32_t   parameterLen,
-    uint16_t  *pParameterOffset,
-    uint8_t   *pData,
-    uint32_t   dataLen,
-    uint16_t  *pDataOffset
-    )
-{
-    return _MarshallTransactionSetupData(pBuffer, bufferLen, pBufferUsed,
-        pSetup, setupLen, pwszName, pParameters, parameterLen, pParameterOffset,
-        pData, dataLen, pDataOffset);
-}
+    uint16_t *pDataOffset
+    );
 
 NTSTATUS
 WireUnmarshallTransactionRequest(
@@ -245,6 +133,129 @@ WireUnmarshallTransactionRequest(
     pDataCursor += sizeof(TRANSACTION_REQUEST_HEADER);
     ulNumBytesAvailable -= sizeof(TRANSACTION_REQUEST_HEADER);
     ulOffset += sizeof(TRANSACTION_REQUEST_HEADER);
+
+    ntStatus = WireUnmarshallTransactionSetupData(
+                    pDataCursor,
+                    ulNumBytesAvailable,
+                    ulOffset,
+                    &pSetup,
+                    pHeader->setupCount,
+                    &pByteCount,
+                    &pParameters,
+                    pHeader->parameterCount,
+                    &pData,
+                    pHeader->dataCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppHeader = pHeader;
+    *ppSetup = pSetup;
+    *ppByteCount = pByteCount;
+    *ppParameters = pParameters;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppSetup = NULL;
+    *ppByteCount = NULL;
+    *ppParameters = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireUnmarshallTransactionSecondaryRequest(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PTRANSACTION_SECONDARY_REQUEST_HEADER* ppHeader,
+    PBYTE*      ppParameters,
+    PBYTE*      ppData,
+    USHORT      dataLen
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE pDataCursor = pBuffer;
+    PTRANSACTION_SECONDARY_REQUEST_HEADER pHeader = NULL;
+    PBYTE pParameters = NULL;
+    PBYTE pData = NULL;
+
+    if (ulNumBytesAvailable < sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PTRANSACTION_SECONDARY_REQUEST_HEADER)pDataCursor;
+
+    pDataCursor += sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
+    ulNumBytesAvailable -= sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
+    ulOffset += sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
+
+    ntStatus = WireUnmarshallTransactionParameterData(
+                    pDataCursor,
+                    ulNumBytesAvailable,
+                    ulOffset,
+                    &pParameters,
+                    pHeader->parameterCount,
+                    &pData,
+                    pHeader->dataCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppHeader = pHeader;
+    *ppParameters = pParameters;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppParameters = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireUnmarshallTransactionSecondaryResponse(
+    const PBYTE pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PTRANSACTION_SECONDARY_RESPONSE_HEADER* ppHeader,
+    PUSHORT*    ppSetup,
+    PUSHORT*    ppByteCount,
+    PBYTE*      ppParameters,
+    PBYTE*      ppData,
+    USHORT      dataLen
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE pDataCursor = pBuffer;
+    PTRANSACTION_SECONDARY_RESPONSE_HEADER pHeader = NULL;
+    PUSHORT pSetup = NULL;
+    PBYTE   pParameters = NULL;
+    PBYTE   pData = NULL;
+    PUSHORT pByteCount = NULL;
+
+    if (ulNumBytesAvailable < sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PTRANSACTION_SECONDARY_RESPONSE_HEADER)pDataCursor;
+
+    pDataCursor += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+    ulNumBytesAvailable -= sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+    ulOffset += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
 
     ntStatus = WireUnmarshallTransactionSetupData(
                     pDataCursor,
@@ -447,7 +458,38 @@ typedef struct
 } TRANSACTION_SECONDARY_REQUEST_DATA_non_castable;
 
 NTSTATUS
-MarshallTransactionSecondaryRequestData(
+WireMarshallTransactionRequestData(
+    uint8_t   *pBuffer,
+    uint32_t   bufferLen,
+    uint32_t  *pBufferUsed,
+    uint16_t  *pSetup,
+    uint8_t    setupLen,
+    wchar16_t *pwszName,
+    uint8_t   *pParameters,
+    uint32_t   parameterLen,
+    uint16_t  *pParameterOffset,
+    uint8_t   *pData,
+    uint32_t   dataLen,
+    uint16_t  *pDataOffset
+    )
+{
+    return WireMarshallTransactionSetupData(
+                    pBuffer,
+                    bufferLen,
+                    pBufferUsed,
+                    pSetup,
+                    setupLen,
+                    pwszName,
+                    pParameters,
+                    parameterLen,
+                    pParameterOffset,
+                    pData,
+                    dataLen,
+                    pDataOffset);
+}
+
+NTSTATUS
+WireMarshallTransactionSecondaryRequestData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
     uint32_t *pBufferUsed,
@@ -459,65 +501,16 @@ MarshallTransactionSecondaryRequestData(
     uint16_t *pDataOffset
     )
 {
-    return _MarshallTransactionParameterData(pBuffer, bufferLen, pBufferUsed,
-        pParameters, parameterLen, pParameterOffset, pData, dataLen,
-        pDataOffset);
-}
-
-NTSTATUS
-WireUnmarshallTransactionSecondaryRequest(
-    const PBYTE pBuffer,
-    ULONG       ulNumBytesAvailable,
-    ULONG       ulOffset,
-    PTRANSACTION_SECONDARY_REQUEST_HEADER* ppHeader,
-    PBYTE*      ppParameters,
-    PBYTE*      ppData,
-    USHORT      dataLen
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PBYTE pDataCursor = pBuffer;
-    PTRANSACTION_SECONDARY_REQUEST_HEADER pHeader = NULL;
-    PBYTE pParameters = NULL;
-    PBYTE pData = NULL;
-
-    if (ulNumBytesAvailable < sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER))
-    {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pHeader = (PTRANSACTION_SECONDARY_REQUEST_HEADER)pDataCursor;
-
-    pDataCursor += sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
-    ulNumBytesAvailable -= sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
-    ulOffset += sizeof(TRANSACTION_SECONDARY_REQUEST_HEADER);
-
-    ntStatus = WireUnmarshallTransactionParameterData(
-                    pDataCursor,
-                    ulNumBytesAvailable,
-                    ulOffset,
-                    &pParameters,
-                    pHeader->parameterCount,
-                    &pData,
-                    pHeader->dataCount);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppHeader = pHeader;
-    *ppParameters = pParameters;
-    *ppData = pData;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *ppHeader = NULL;
-    *ppParameters = NULL;
-    *ppData = NULL;
-
-    goto cleanup;
+    return WireMarshallTransactionParameterData(
+                    pBuffer,
+                    bufferLen,
+                    pBufferUsed,
+                    pParameters,
+                    parameterLen,
+                    pParameterOffset,
+                    pData,
+                    dataLen,
+                    pDataOffset);
 }
 
 /* This is identical to TRANSACTION_SECONDARY_REQUEST_DATA */
@@ -534,7 +527,7 @@ typedef struct
 } TRANSACTION_SECONDARY_RESPONSE_DATA_non_castable;
 
 NTSTATUS
-MarshallTransactionSecondaryResponseData(
+WireMarshallTransactionSecondaryResponseData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
     uint32_t *pBufferUsed,
@@ -548,74 +541,149 @@ MarshallTransactionSecondaryResponseData(
     uint16_t *pDataOffset
     )
 {
-    return _MarshallTransactionSetupData(pBuffer, bufferLen, pBufferUsed,
-        pSetup, setupLen, NULL, pParameters, parameterLen,
-        pParameterOffset, pData, dataLen, pDataOffset);
+    return WireMarshallTransactionSetupData(
+                    pBuffer,
+                    bufferLen,
+                    pBufferUsed,
+                    pSetup,
+                    setupLen,
+                    NULL,
+                    pParameters,
+                    parameterLen,
+                    pParameterOffset,
+                    pData,
+                    dataLen,
+                    pDataOffset);
 }
 
+static
 NTSTATUS
-WireUnmarshallTransactionSecondaryResponse(
-    const PBYTE pBuffer,
-    ULONG       ulNumBytesAvailable,
-    ULONG       ulOffset,
-    PTRANSACTION_SECONDARY_RESPONSE_HEADER* ppHeader,
-    PUSHORT*    ppSetup,
-    PUSHORT*    ppByteCount,
-    PBYTE*      ppParameters,
-    PBYTE*      ppData,
-    USHORT      dataLen
+WireMarshallTransactionSetupData(
+    PBYTE      pBuffer,
+    uint32_t   bufferLen,
+    uint32_t  *pBufferUsed,
+    uint16_t  *pSetup,
+    uint8_t    setupLen,
+    wchar16_t *pwszName,
+    uint8_t   *pParameters,
+    uint32_t   parameterLen,
+    uint16_t  *pParameterOffset,
+    uint8_t   *pData,
+    uint32_t   dataLen,
+    uint16_t  *pDataOffset
     )
 {
-    NTSTATUS ntStatus = 0;
-    PBYTE pDataCursor = pBuffer;
-    PTRANSACTION_SECONDARY_RESPONSE_HEADER pHeader = NULL;
-    PUSHORT pSetup = NULL;
-    PBYTE   pParameters = NULL;
-    PBYTE   pData = NULL;
-    PUSHORT pByteCount = NULL;
+    NTSTATUS  ntStatus = 0;
+    uint32_t  bufferUsed = 0;
+    uint32_t  bufferUsedData = 0;
+    uint32_t  alignment = 0;
+    uint32_t  wstrlen = 0;
+    uint16_t *pByteCount = NULL;
 
-    if (ulNumBytesAvailable < sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER))
+    if (setupLen && bufferUsed + setupLen <= bufferLen)
+        memcpy(pBuffer, pSetup, setupLen);
+    bufferUsed += setupLen;
+
+    /* byteCount */
+    pByteCount = (uint16_t *) (pBuffer + bufferUsed);
+    bufferUsed += sizeof(uint16_t);
+
+    if (pwszName)
     {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
+        /* Align string */
+        alignment = (bufferUsed + 1) % 2;
+        if (alignment)
+        {
+            *(pBuffer + bufferUsed) = 0;
+            bufferUsed += alignment;
+        }
+        wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed), pwszName,
+            bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
+        bufferUsed += wstrlen * sizeof(*pByteCount);
     }
 
-    pHeader = (PTRANSACTION_SECONDARY_RESPONSE_HEADER)pDataCursor;
+    ntStatus = WireMarshallTransactionParameterData(
+                    pBuffer + bufferUsed,
+                    bufferLen > bufferUsed ? bufferLen - bufferUsed : 0,
+                    &bufferUsedData,
+                    pParameters,
+                    parameterLen,
+                    pParameterOffset,
+                    pData,
+                    dataLen,
+                    pDataOffset);
+    if (ntStatus && ntStatus != EMSGSIZE)
+    {
+        return ntStatus;
+    }
+    *pParameterOffset += bufferUsed;
+    *pDataOffset += bufferUsed;
+    bufferUsed += bufferUsedData;
 
-    pDataCursor += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
-    ulNumBytesAvailable -= sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
-    ulOffset += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
-
-    ntStatus = WireUnmarshallTransactionSetupData(
-                    pDataCursor,
-                    ulNumBytesAvailable,
-                    ulOffset,
-                    &pSetup,
-                    pHeader->setupCount,
-                    &pByteCount,
-                    &pParameters,
-                    pHeader->parameterCount,
-                    &pData,
-                    pHeader->dataCount);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppHeader = pHeader;
-    *ppSetup = pSetup;
-    *ppByteCount = pByteCount;
-    *ppParameters = pParameters;
-    *ppData = pData;
-
-cleanup:
+    if (bufferUsed > bufferLen)
+    {
+        ntStatus = EMSGSIZE;
+    }
+    else
+    {
+        /* Fill in the byte count */
+        *pByteCount = (uint16_t) (pBuffer + bufferUsed -
+            ((uint8_t *) pByteCount) - sizeof(*pByteCount));
+    }
+    *pBufferUsed = bufferUsed;
 
     return ntStatus;
-
-error:
-
-    *ppHeader = NULL;
-    *ppSetup = NULL;
-    *ppByteCount = NULL;
-    *ppParameters = NULL;
-    *ppData = NULL;
-
-    goto cleanup;
 }
+
+static
+NTSTATUS
+WireMarshallTransactionParameterData(
+    uint8_t  *pBuffer,
+    uint32_t  bufferLen,
+    uint32_t *pBufferUsed,
+    uint8_t  *pParameters,
+    uint32_t  parameterLen,
+    uint16_t *pParameterOffset,
+    uint8_t  *pData,
+    uint32_t  dataLen,
+    uint16_t *pDataOffset
+    )
+{
+    uint32_t bufferUsed = 0;
+    uint32_t alignment = 0;
+    NTSTATUS ntStatus = 0;
+
+#if 0 /* This code is useless as written (alignment always evals to 0).
+         Disabling to work around build failure with newer gcc and -Werror */
+
+    /* Align data to a four byte boundary */
+    alignment = (4 - (bufferUsed % 4)) % 4;
+    memset(pBuffer + bufferUsed, 0, alignment);
+    bufferUsed += alignment;
+#endif
+
+    if (parameterLen && bufferUsed + parameterLen <= bufferLen)
+        memcpy(pBuffer + bufferUsed, pParameters, parameterLen);
+    *pParameterOffset = bufferUsed;
+    bufferUsed += parameterLen;
+
+    /* Align data to a four byte boundary */
+    alignment = (4 - (bufferUsed % 4)) % 4;
+    memset(pBuffer + bufferUsed, 0, alignment);
+    bufferUsed += alignment;
+
+    if (dataLen && bufferUsed + dataLen <= bufferLen)
+        memcpy(pBuffer + bufferUsed, pData, dataLen);
+    *pDataOffset = bufferUsed;
+    bufferUsed += dataLen;
+
+    if (bufferUsed > bufferLen)
+    {
+        ntStatus = EMSGSIZE;
+    }
+
+    *pBufferUsed = bufferUsed;
+
+    return ntStatus;
+}
+

@@ -115,7 +115,7 @@ typedef enum
     COM_WRITE_BULK_DATA         = 0xDA
 } COMMAND;
 
-typedef USHORT SMB_SUB_COMMAND;
+typedef USHORT SMB_SUB_COMMAND, *PSMB_SUB_COMMAND;
 
 #define SMB_SUB_COMMAND_TRANS_SET_NAMED_PIPE_HANDLE_STATE   0x01
 #define SMB_SUB_COMMAND_TRANS_RAW_READ_NAMED_PIPE           0x11
@@ -150,6 +150,25 @@ typedef USHORT SMB_SUB_COMMAND;
 #define SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE       4
 #define SMB_SUB_COMMAND_NT_TRANSACT_RENAME              5
 #define SMB_SUB_COMMAND_NT_TRANSACT_QUERY_SECURITY_DESC 6
+
+typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
+
+#define SMB_INFO_STANDARD                   1
+#define SMB_INFO_QUERY_EA_SIZE              2
+#define SMB_INFO_QUERY_EAS_FROM_LIST        3
+#define SMB_INFO_QUERY_ALL_EAS              4
+#define SMB_INFO_IS_NAME_VALID              5
+#define SMB_QUERY_FILE_BASIC_INFO       0x101
+#define SMB_QUERY_FILE_STANDARD_INFO    0x102
+#define SMB_QUERY_FILE_EA_INFO          0x103
+#define SMB_QUERY_FILE_NAME_INFO        0x104
+#define SMB_QUERY_FILE_ALL_INFO         0x107
+#define SMB_QUERY_FILE_ALT_NAME_INFO    0x108
+#define SMB_QUERY_FILE_STREAM_INFO      0x109
+#define SMB_QUERY_FILE_COMPRESSION_INFO 0x10B
+#define SMB_QUERY_FILE_UNIX_BASIC       0x200
+#define SMB_QUERY_FILE_UNIX_LINK        0x201
+
 
 typedef enum
 {
@@ -1014,7 +1033,7 @@ WireUnmarshallSMBResponseCreate(
     );
 
 NTSTATUS
-MarshallTransactionRequestData(
+WireMarshallTransactionRequestData(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
     uint32_t  *pBufferUsed,
@@ -1042,7 +1061,7 @@ WireUnmarshallTransactionRequest(
     );
 
 NTSTATUS
-MarshallTransactionSecondaryRequestData(
+WireMarshallTransactionSecondaryRequestData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
     uint32_t *pBufferUsed,
@@ -1066,7 +1085,7 @@ WireUnmarshallTransactionSecondaryRequest(
     );
 
 NTSTATUS
-MarshallTransactionSecondaryResponseData(
+WireMarshallTransactionSecondaryResponseData(
     uint8_t  *pBuffer,
     uint32_t  bufferLen,
     uint32_t *pBufferUsed,

@@ -32,14 +32,6 @@
 
 static
 NTSTATUS
-SrvBuildFilePath(
-    PWSTR          pwszPrefix,
-    PWSTR          pwszSuffix,
-    PIO_FILE_NAME* ppFilename
-    );
-
-static
-NTSTATUS
 SrvBuildNTCreateResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
@@ -102,10 +94,15 @@ SrvProcessNTCreateAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
     // TODO: Handle root fids
+    ntStatus = SMBAllocateMemory(
+                    sizeof(IO_FILE_NAME),
+                    (PVOID*)&pFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvBuildFilePath(
                     pTree->pShareInfo->pwszPath,
                     pwszFilename,
-                    &pFilename);
+                    &pFilename->FileName);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoCreateFile(
@@ -205,104 +202,6 @@ error:
     if (hFile)
     {
         IoCloseFile(hFile);
-    }
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvBuildFilePath(
-    PWSTR          pwszPrefix,
-    PWSTR          pwszSuffix,
-    PIO_FILE_NAME* ppFilename
-    )
-{
-    NTSTATUS ntStatus = 0;
-    size_t              len_prefix = 0;
-    size_t              len_suffix = 0;
-    size_t              len_separator = 0;
-    PWSTR               pDataCursor = NULL;
-    PIO_FILE_NAME       pFilename = NULL;
-    wchar16_t           wszFwdSlash;
-    wchar16_t           wszBackSlash;
-
-    wcstowc16s(&wszFwdSlash, L"/", 1);
-    wcstowc16s(&wszBackSlash, L"\\", 1);
-
-    if (*pwszSuffix && (*pwszSuffix != wszFwdSlash) && (*pwszSuffix != wszBackSlash))
-    {
-#ifdef _WIN32
-        len_separator = sizeof(wszBackSlash);
-#else
-        len_separator = sizeof(wszFwdSlash);
-#endif
-    }
-
-    ntStatus = SMBAllocateMemory(
-                    sizeof(IO_FILE_NAME),
-                    (PVOID*)&pFilename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    len_prefix = wc16slen(pwszPrefix);
-    len_suffix = wc16slen(pwszSuffix);
-
-    ntStatus = SMBAllocateMemory(
-                    (len_prefix + len_suffix + len_separator + 1 ) * sizeof(wchar16_t),
-                    (PVOID*)&pFilename->FileName);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pDataCursor = pFilename->FileName;
-    while (pwszPrefix && *pwszPrefix)
-    {
-        *pDataCursor++ = *pwszPrefix++;
-    }
-
-    if (len_separator)
-    {
-#ifdef _WIN32
-        *pDataCursor++ = wszBackSlash;
-#else
-        *pDataCursor++ = wszFwdSlash;
-#endif
-    }
-
-    while (pwszSuffix && *pwszSuffix)
-    {
-        *pDataCursor++ = *pwszSuffix++;
-    }
-
-    pDataCursor = pFilename->FileName;
-    while (pDataCursor && *pDataCursor)
-    {
-#ifdef _WIN32
-        if (*pDataCursor == wszFwdSlash)
-        {
-            *pDataCursor = wszBackSlash;
-        }
-#else
-        if (*pDataCursor == wszBackSlash)
-        {
-            *pDataCursor = wszFwdSlash;
-        }
-#endif
-        pDataCursor++;
-    }
-
-    *ppFilename = pFilename;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *ppFilename = NULL;
-
-    if (pFilename)
-    {
-        SMB_SAFE_FREE_MEMORY(pFilename->FileName);
-        SMBFreeMemory(pFilename);
     }
 
     goto cleanup;

@@ -73,6 +73,7 @@
 #include "defs.h"
 #include "srvstructs.h"
 #include "hostinfo.h"
+#include "srvpath.h"
 #include "srvgss.h"
 #include "sharedb.h"
 #include "srvsharelst.h"
