@@ -92,6 +92,7 @@
 #include "readX.h"
 #include "writeX.h"
 #include "trans2.h"
+#include "trans2qpi.h"
 #include "close.h"
 #include "srvtdiscon.h"
 #include "srvlogoff.h"

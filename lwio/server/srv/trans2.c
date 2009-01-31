@@ -15,6 +15,17 @@ SrvProcessTrans2(
     PBYTE   pData = NULL; // Do not free
     PSMB_PACKET pSmbResponse = NULL;
 
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketVerifySignature(
+                        pSmbRequest,
+                        pContext->ulRequestSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = WireUnmarshallTransactionRequest(
                     pSmbRequest->pParams,
                     pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
@@ -24,6 +35,142 @@ SrvProcessTrans2(
                     &pBytecount,
                     &pParameters,
                     &pData);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pSetup == NULL)
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    switch (*pSetup)
+    {
+        case SMB_SUB_COMMAND_TRANS2_OPEN2 :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_FIND_FIRST2 :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_FIND_NEXT2 :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_QUERY_FS_INFORMATION :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_QUERY_PATH_INFORMATION :
+
+            ntStatus = SrvProcessTrans2QueryPathInformation(
+                          pConnection,
+                          pSmbRequest,
+                          pRequestHeader,
+                          pSetup,
+                          pBytecount,
+                          pParameters,
+                          pData,
+                          &pSmbResponse);
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_SET_PATH_INFORMATION :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_QUERY_FILE_INFORMATION :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_SET_FILE_INFORMATION :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_FSCTL :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_IOCTL2 :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_FIND_NOTIFY_FIRST :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_FIND_NOTIFY_NEXT :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_CREATE_DIRECTORY :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_SESSION_SETUP :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_GET_DFS_REFERRAL :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SUB_COMMAND_TRANS2_REPORT_DFS_INCONSISTENCY :
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_DATA_ERROR;
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        ntStatus = SMBPacketSign(
+                        pSmbResponse,
+                        pContext->ulResponseSequence,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnectionWriteMessage(
+                    pConnection,
+                    pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

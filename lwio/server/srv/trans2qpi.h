@@ -27,8 +27,8 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-
-#include "includes.h"
+#ifndef __SRV_TRANS2QPI_H__
+#define __SRV_TRANS2QPI_H__
 
 NTSTATUS
 SrvProcessTrans2QueryPathInformation(
@@ -40,10 +40,7 @@ SrvProcessTrans2QueryPathInformation(
     PBYTE                       pParameters,
     PBYTE                       pData,
     PSMB_PACKET*                ppSmbResponse
-    )
-{
-    NTSTATUS ntStatus = 0;
+    );
 
-    return ntStatus;
-}
+#endif /* __SRV_TRANS2QPI_H__ */
 
