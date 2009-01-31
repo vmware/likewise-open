@@ -16,6 +16,8 @@ NpfsCreateSCB(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pSCB->CcbType = NPFS_CCB_SERVER;
+
     *ppSCB = pSCB;
 
     return(ntStatus);
@@ -43,6 +45,8 @@ NpfsCreateCCB(
                     &pCCB
                     );
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pCCB->CcbType = NPFS_CCB_CLIENT;
 
     *ppCCB = pCCB;
 
