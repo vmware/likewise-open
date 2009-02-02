@@ -316,14 +316,14 @@ WireUnmarshallTransactionSetupData(
 
     usSetupLen = (setupLen * sizeof(USHORT));
 
-    if (ulNumBytesAvailable < usSetupLen)
-    {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     if (usSetupLen)
     {
+        if (ulNumBytesAvailable < usSetupLen)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         pSetup = (PUSHORT) pBuffer;
         pDataCursor += usSetupLen;
         ulNumBytesAvailable -= usSetupLen;
@@ -342,7 +342,7 @@ WireUnmarshallTransactionSetupData(
     ulOffset += sizeof(USHORT);
 
     ntStatus = WireUnmarshallTransactionParameterData(
-                    pBuffer,
+                    pDataCursor,
                     ulNumBytesAvailable,
                     ulOffset,
                     &pParameters,
@@ -384,21 +384,23 @@ WireUnmarshallTransactionParameterData(
 {
     NTSTATUS ntStatus = 0;
     PBYTE    pDataCursor = pBuffer;
-    ULONG    alignment = 0;
     PBYTE    pParameters = NULL;
     PBYTE    pData = NULL;
 
-    alignment = (4 - (ulOffset % 4));
-
-    if (ulNumBytesAvailable < alignment)
+    if (ulOffset % 4)
     {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+        USHORT usAlignment = (4 - (ulOffset % 4));
 
-    pDataCursor += alignment;
-    ulNumBytesAvailable -= alignment;
-    ulOffset += alignment;
+        if (ulNumBytesAvailable < usAlignment)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor += usAlignment;
+        ulNumBytesAvailable -= usAlignment;
+        ulOffset += usAlignment;
+    }
 
     if (ulNumBytesAvailable < parameterLen)
     {
@@ -415,17 +417,20 @@ WireUnmarshallTransactionParameterData(
         ulOffset += parameterLen;
     }
 
-    alignment = (4 - (ulOffset % 4));
-
-    if (ulNumBytesAvailable < alignment)
+    if (ulOffset % 4)
     {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+        USHORT usAlignment = (4 - (ulOffset % 4));
 
-    pDataCursor += alignment;
-    ulNumBytesAvailable -= alignment;
-    ulOffset += alignment;
+        if (ulNumBytesAvailable < usAlignment)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor += usAlignment;
+        ulNumBytesAvailable -= usAlignment;
+        ulOffset += usAlignment;
+    }
 
     if (dataLen)
     {
@@ -685,5 +690,177 @@ WireMarshallTransactionParameterData(
     *pBufferUsed = bufferUsed;
 
     return ntStatus;
+}
+
+NTSTATUS
+WireMarshallTransaction2Response(
+    PBYTE       pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PUSHORT     pSetup,
+    BYTE        setupCount,
+    PBYTE       pParams,
+    USHORT      usParamLength,
+    PBYTE       pData,
+    USHORT      usDataLen,
+    PUSHORT     pusNumPackageBytesUsed
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PTRANSACTION_SECONDARY_RESPONSE_HEADER pResponseHeader = NULL;
+    PUSHORT  pByteCount = NULL;
+    USHORT   usNumPackageBytesUsed = 0;
+    USHORT   usNumBytesUsed = 0;
+    PBYTE    pDataCursor = pBuffer;
+
+    if (ulNumBytesAvailable < sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pResponseHeader = (PTRANSACTION_SECONDARY_RESPONSE_HEADER)pDataCursor;
+
+    pDataCursor += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+    ulOffset += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+    ulNumBytesAvailable -= sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+    usNumPackageBytesUsed += sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER);
+
+    pResponseHeader->setupCount = setupCount;
+
+    if (setupCount)
+    {
+        USHORT usSetupLen = setupCount * sizeof(USHORT);
+
+        if (ulNumBytesAvailable < usSetupLen)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pDataCursor, pSetup, usSetupLen);
+
+        pDataCursor += usSetupLen;
+        ulOffset += usSetupLen;
+        ulNumBytesAvailable -= usSetupLen;
+        usNumPackageBytesUsed += usSetupLen;
+    }
+
+    if (ulNumBytesAvailable < sizeof(USHORT))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pByteCount = (PUSHORT)pDataCursor;
+
+    pDataCursor += sizeof(USHORT);
+    ulNumBytesAvailable -= sizeof(USHORT);
+    ulOffset += sizeof(USHORT);
+    usNumPackageBytesUsed += sizeof(USHORT);
+
+    if (ulOffset % 4)
+    {
+        USHORT usAlignment = 4 - (ulOffset % 4);
+        if (ulNumBytesAvailable < usAlignment)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor += usAlignment;
+        ulNumBytesAvailable -= usAlignment;
+        ulOffset += usAlignment;
+        usNumBytesUsed += usAlignment;
+        usNumPackageBytesUsed += usAlignment;
+    }
+
+    pResponseHeader->parameterCount = usParamLength;
+    pResponseHeader->parameterOffset = (USHORT)ulOffset;
+
+    if (pParams)
+    {
+        if (ulNumBytesAvailable < usParamLength)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pDataCursor, pParams, usParamLength);
+
+        pDataCursor += usParamLength;
+
+        ulNumBytesAvailable -= usParamLength;
+        ulOffset += usParamLength;
+        usNumBytesUsed += usParamLength;
+        usNumPackageBytesUsed += usParamLength;
+    }
+
+    if (ulOffset % 4)
+    {
+        USHORT usAlignment = 4 - (ulOffset % 4);
+        if (ulNumBytesAvailable < usAlignment)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor += usAlignment;
+        ulNumBytesAvailable -= usAlignment;
+        ulOffset += usAlignment;
+        usNumBytesUsed += usAlignment;
+        usNumPackageBytesUsed += usAlignment;
+    }
+
+    pResponseHeader->dataCount = usDataLen;
+    pResponseHeader->dataOffset = (USHORT)ulOffset;
+
+    if (pData)
+    {
+        if (ulNumBytesAvailable < usDataLen)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pDataCursor, pData, usDataLen);
+
+        pDataCursor += usDataLen;
+        ulNumBytesAvailable -= usDataLen;
+        ulOffset += usDataLen;
+        usNumBytesUsed += usDataLen;
+        usNumPackageBytesUsed += usDataLen;
+    }
+
+    if (ulOffset % 8)
+    {
+        USHORT usAlignment = (8 - (ulOffset % 8));
+
+        if (ulNumBytesAvailable < usAlignment)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor += usAlignment;
+        ulNumBytesAvailable -= usAlignment;
+        ulOffset += usAlignment;
+        usNumBytesUsed += usAlignment;
+        usNumPackageBytesUsed += usAlignment;
+    }
+
+    *pByteCount = usNumBytesUsed;
+
+    *pusNumPackageBytesUsed = usNumPackageBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pusNumPackageBytesUsed = 0;
+
+    goto cleanup;
 }
 

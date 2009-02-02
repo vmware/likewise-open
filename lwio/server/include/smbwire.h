@@ -852,6 +852,14 @@ typedef struct
     uint16_t byteCount;
 } __attribute__((__packed__)) CLOSE_RESPONSE_HEADER, *PCLOSE_RESPONSE_HEADER;
 
+typedef struct _TRANS2_FILE_BASIC_INFORMATION {
+    LONG64 CreationTime;
+    LONG64 LastAccessTime;
+    LONG64 LastWriteTime;
+    LONG64 ChangeTime;
+    FILE_ATTRIBUTES FileAttributes;
+} __attribute__((__packed__)) TRANS2_FILE_BASIC_INFORMATION, *PTRANS2_FILE_BASIC_INFORMATION;
+
 typedef enum
 {
     ERROR_SMB,
@@ -1110,6 +1118,20 @@ WireUnmarshallTransactionSecondaryResponse(
     PBYTE*      ppParameters,
     PBYTE*      ppData,
     USHORT      dataLen
+    );
+
+NTSTATUS
+WireMarshallTransaction2Response(
+    PBYTE       pBuffer,
+    ULONG       ulNumBytesAvailable,
+    ULONG       ulOffset,
+    PUSHORT     pSetup,
+    BYTE        setupCount,
+    PBYTE       pParams,
+    USHORT      usParamLength,
+    PBYTE       pData,
+    USHORT      usDataLen,
+    PUSHORT     pusNumPackageBytesUsed
     );
 
 NTSTATUS

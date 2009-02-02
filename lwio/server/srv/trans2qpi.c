@@ -369,6 +369,11 @@ SrvBuildQueryFileBasicInfoResponse(
     PVOID               pSecurityQOS = NULL;
     IO_FILE_NAME        filename = {0};
     FILE_BASIC_INFORMATION fileBasicInfo = {0};
+    TRANS2_FILE_BASIC_INFORMATION fileBasicInfoPacked = {0};
+    USHORT              usParam = 0;
+    PUSHORT             pSetup = NULL;
+    BYTE                setupCount = 0;
+    USHORT              usNumPackageBytesUsed = 0;
 
     filename.FileName = pwszFilepath;
 
@@ -427,7 +432,28 @@ SrvBuildQueryFileBasicInfoResponse(
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO: Marshall the response data
+    pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
+
+    fileBasicInfoPacked.ChangeTime = fileBasicInfo.ChangeTime;
+    fileBasicInfoPacked.CreationTime = fileBasicInfo.CreationTime;
+    fileBasicInfoPacked.FileAttributes = fileBasicInfo.FileAttributes;
+    fileBasicInfoPacked.LastAccessTime = fileBasicInfo.LastAccessTime;
+    fileBasicInfoPacked.LastWriteTime = fileBasicInfo.LastWriteTime;
+
+    ntStatus = WireMarshallTransaction2Response(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    setupCount,
+                    (PBYTE)&usParam,
+                    sizeof(usParam),
+                    (PBYTE)&fileBasicInfoPacked,
+                    sizeof(fileBasicInfoPacked),
+                    &usNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
 
     ntStatus = SMBPacketMarshallFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
