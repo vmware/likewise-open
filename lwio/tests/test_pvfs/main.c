@@ -347,16 +347,16 @@ StatRemoteFile(
     BAIL_ON_NT_STATUS(ntError);
 
     printf("Filename:             %s\n", pszFilename);
-    printf("Allocation Size:      %ld\n", FileStdInfo.AllocationSize);
-    printf("File Size:            %ld\n", FileStdInfo.EndOfFile);
+    printf("Allocation Size:      %lld\n", FileStdInfo.AllocationSize);
+    printf("File Size:            %lld\n", FileStdInfo.EndOfFile);
     printf("Number of Links:      %d\n", FileStdInfo.NumberOfLinks);
     printf("Is Directory:         %s\n", FileStdInfo.Directory ? "yes" : "no");
     printf("Pending Delete:       %s\n", FileStdInfo.DeletePending ? "yes" : "no");
     printf("Attributes:           0x%x\n", FileBasicInfo.FileAttributes);
-    printf("CreationTime:         %ld\n", FileBasicInfo.CreationTime);
-    printf("Last Access Time:     %ld\n", FileBasicInfo.LastAccessTime);
-    printf("Last Modification:    %ld\n", FileBasicInfo.LastWriteTime);
-    printf("Change Time:          %ld\n", FileBasicInfo.ChangeTime);
+    printf("CreationTime:         %lld\n", FileBasicInfo.CreationTime);
+    printf("Last Access Time:     %lld\n", FileBasicInfo.LastAccessTime);
+    printf("Last Modification:    %lld\n", FileBasicInfo.LastWriteTime);
+    printf("Change Time:          %lld\n", FileBasicInfo.ChangeTime);
     printf("\n");
 
 
