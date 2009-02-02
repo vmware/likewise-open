@@ -53,9 +53,20 @@
 #include "lwiodef.h"
 #include "lwioutils.h"
 
+NTSTATUS
+CreateServerConnection(
+    char * pipename,
+    IO_FILE_HANDLE * pFileHandle
+    );
+
 
 NTSTATUS
 NtConnectNamedPipe(
+    IO_FILE_HANDLE FileHandle
+    );
+
+VOID
+ServerPipeThread(
     IO_FILE_HANDLE FileHandle
     );
 
@@ -64,35 +75,50 @@ main(int argc,
     char **argv
     )
 {
-/*    NTSTATUS
-    NtCreateNamedPipeFile(
-        OUT PIO_FILE_HANDLE FileHandle,
-        IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-        OUT PIO_STATUS_BLOCK IoStatusBlock,
-        IN PIO_FILE_NAME FileName,
-        IN OPTIONAL PVOID SecurityDescriptor, // TBD
-        IN OPTIONAL PVOID SecurityQualityOfService, // TBD
-        IN ACCESS_MASK DesiredAccess,
-        IN FILE_SHARE_FLAGS ShareAccess,
-        IN FILE_CREATE_DISPOSITION CreateDisposition,
-        IN FILE_CREATE_OPTIONS CreateOptions,
-        IN FILE_PIPE_TYPE_MASK NamedPipeType,
-        IN FILE_PIPE_READ_MODE_MASK ReadMode,
-        IN FILE_PIPE_COMPLETION_MODE_MASK CompletionMode,
-        IN ULONG MaximumInstances,
-        IN ULONG InboundQuota,
-        IN ULONG OutboundQuota,
-        IN OPTIONAL PLONG64 DefaultTimeout
-        )
-*/
+    ULONG i = 0;
+    ULONG ulNumConnections = 0;
+    NTSTATUS ntStatus = 0;
+    char *pipename = NULL;
+    IO_FILE_HANDLE  FileHandles[100];
+    pthread_t thread;
 
+    memset(FileHandles, 0, sizeof(FileHandles));
+
+    if (argc < 2)
+    {
+        printf("Usage: test_npserver <pipename>\n");
+        exit(1);
+    }
+
+    for (i = 0; i < ulNumConnections; i++){
+
+        ntStatus = CreateServerConnection(
+                            pipename,
+                            &FileHandles[i]
+                            );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pthread_create(&thread, NULL, (void *)&ServerPipeThread, &FileHandles[i]);
+
+    }
+
+error:
+
+    return(0);
+}
+
+NTSTATUS
+CreateServerConnection(
+    char * pipename,
+    IO_FILE_HANDLE * pFileHandle
+    )
+{
 
     NTSTATUS ntStatus = 0;
     PSTR smbpath = NULL;
     //PIO_ACCESS_TOKEN acctoken = NULL;
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
-    PCSTR pipename = NULL;
     ULONG NamedPipeType = 0;
     ULONG ReadMode = 0;
     ULONG CompletionMode = 0;
@@ -101,18 +127,6 @@ main(int argc,
     ULONG OutboundQuota = 0;
     LONG64 DefaultTimeOut = 0;
     IO_FILE_HANDLE FileHandle = 0;
-    BYTE InBuffer[2048];
-    ULONG InLength = 0;
-    ULONG InBytesRead = 0;
-    ULONG OutBytesWritten = 0;
-
-    if (argc < 2)
-    {
-        printf("Usage: test_npserver <pipename>\n");
-        exit(1);
-    }
-
-    pipename = argv[1];
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,
@@ -155,6 +169,31 @@ main(int argc,
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    *pFileHandle = FileHandle;
+
+    return(ntStatus);
+
+error:
+
+    *pFileHandle = NULL;
+
+    return(ntStatus);
+}
+
+
+
+VOID
+ServerPipeThread(
+    IO_FILE_HANDLE FileHandle
+    )
+{
+
+    NTSTATUS ntStatus = 0;
+    BYTE InBuffer[2048];
+    ULONG InLength = 0;
+    ULONG InBytesRead = 0;
+    ULONG OutBytesWritten = 0;
+    IO_STATUS_BLOCK io_status = {0};
 
     while (1) {
 
@@ -195,7 +234,7 @@ main(int argc,
 
 error:
 
-    return(ntStatus);
+    return;
 }
 
 
