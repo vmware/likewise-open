@@ -47,7 +47,7 @@
 
 #include "pvfs.h"
 
-#define TIME_SEC_CONVERSION_CONSTANT     11644473600L
+#define TIME_SEC_CONVERSION_CONSTANT     11644473600LL
 
 /**
  * Converts a time_t value (seconds since Jan1, 1970)
@@ -68,7 +68,7 @@ PvfsUnixToWinTime(
 
     BAIL_ON_INVALID_PTR(pWinTime, ntError);
 
-    *pWinTime = (UnixTime + TIME_SEC_CONVERSION_CONSTANT) * 10000000;
+    *pWinTime = (UnixTime + TIME_SEC_CONVERSION_CONSTANT) * 10000000LL;
 
     ntError = STATUS_SUCCESS;
 

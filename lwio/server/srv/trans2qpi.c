@@ -390,7 +390,7 @@ SrvBuildQueryFileBasicInfoResponse(
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ,
                     FILE_OPEN,
-                    FILE_CREATE_TREE_CONNECTION,
+                    FILE_DIRECTORY_FILE,
                     NULL, /* EA Buffer */
                     0,    /* EA Length */
                     NULL  /* ECP List  */
