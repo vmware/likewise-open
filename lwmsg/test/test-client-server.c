@@ -306,7 +306,7 @@ MU_TEST(client_server, parallel)
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_set_max_clients(server, MAX_CLIENTS));
     MU_TRY(lwmsg_server_set_max_dispatch(server, MAX_DISPATCH));
-    MU_TRY(lwmsg_server_set_timeout(server, &timeout));
+    MU_TRY(lwmsg_server_set_timeout(server, LWMSG_TIMEOUT_IDLE, &timeout));
     MU_TRY(lwmsg_server_set_connect_callback(server, counter_srv_connect));
     MU_TRY(lwmsg_server_start(server));
 

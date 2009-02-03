@@ -25,6 +25,7 @@ lwmsg_assoc_get_state
 lwmsg_assoc_get_session_data
 lwmsg_assoc_set_session_data
 lwmsg_assoc_set_action
+lwmsg_assoc_establish
 lwmsg_connection_new
 lwmsg_connection_establish
 lwmsg_connection_set_packet_size

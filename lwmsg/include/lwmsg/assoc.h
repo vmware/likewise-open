@@ -174,6 +174,23 @@ typedef enum LWMsgAssocAction
 } LWMsgAssocAction;
 
 /**
+ * @ingroup assoc
+ * @brief Timeout classification
+ *
+ * Represents a class of timeout which may be set
+ * on an association with lwmsg_assoc_set_timeout()
+ */
+typedef enum LWMsgTimeout
+{
+    /** @brief Timeout for a message send or receive */
+    LWMSG_TIMEOUT_MESSAGE,
+    /** @brief Timeout for session establishment */
+    LWMSG_TIMEOUT_ESTABLISH,
+    /** @brief Idle timeout */
+    LWMSG_TIMEOUT_IDLE
+} LWMsgTimeout;
+
+/**
  * @ingroup assoc_impl
  * @brief Assocation implementation structure
  *
@@ -220,14 +237,13 @@ typedef struct LWMsgAssocClass
      *
      * @param[in] assoc the association
      * @param[in] message the message to send
-     * @param[in] timeout the maximum time to allow before the operation times out, or NULL for no timeout
      * @lwmsg_status
      * @lwmsg_success
      * @lwmsg_code{TIMEOUT, operation timed out}
      * @lwmsg_etc{implementation-specific failure}
      * @lwmsg_endstatus
      */
-    LWMsgStatus (*send_msg)(LWMsgAssoc* assoc, LWMsgMessage* message, LWMsgTime* timeout);
+    LWMsgStatus (*send_msg)(LWMsgAssoc* assoc, LWMsgMessage* message);
     /**
      * @ingroup assoc_impl
      * @brief Message receive method
@@ -236,14 +252,13 @@ typedef struct LWMsgAssocClass
      *
      * @param[in] assoc the association
      * @param[out] message the received message
-     * @param[in] timeout the maximum time to allow before the operation times out, or NULL for no timeout
      * @lwmsg_status
      * @lwmsg_success
      * @lwmsg_code{TIMEOUT, operation timed out}
      * @lwmsg_etc{implementation-specific failure}
      * @lwmsg_endstatus
      */
-    LWMsgStatus (*recv_msg)(LWMsgAssoc* assoc, LWMsgMessage* message, LWMsgTime* timeout);
+    LWMsgStatus (*recv_msg)(LWMsgAssoc* assoc, LWMsgMessage* message);
     /**
      * @ingroup assoc_impl
      * @brief Association close method
@@ -253,14 +268,13 @@ typedef struct LWMsgAssocClass
      * fail or time out without successfully completing.
      *
      * @param[in] assoc the association
-     * @param[in] timeout the maximum time to allow before the operation times out
      * @lwmsg_status
      * @lwmsg_success
      * @lwmsg_code{TIMEOUT, operation timed out}
      * @lwmsg_etc{implementation-specific failure}
      * @lwmsg_endstatus
      */
-    LWMsgStatus (*close)(LWMsgAssoc* assoc, LWMsgTime* timeout);
+    LWMsgStatus (*close)(LWMsgAssoc* assoc);
     /**
      * @ingroup assoc_impl
      * @brief Association reset method
@@ -269,14 +283,13 @@ typedef struct LWMsgAssocClass
      * notifying the remote peer and resetting internal state.
      *
      * @param[in] assoc the association
-     * @param[in] timeout the maximum time to allow before the operation times out
      * @lwmsg_status
      * @lwmsg_success
      * @lwmsg_code{TIMEOUT, operation timed out}
      * @lwmsg_etc{implementation-specific failure}
      * @lwmsg_endstatus
      */
-    LWMsgStatus (*reset)(LWMsgAssoc* assoc, LWMsgTime* timeout);
+    LWMsgStatus (*reset)(LWMsgAssoc* assoc);
     /**
      * @ingroup assoc_impl
      * @brief Peer security token access method
@@ -317,6 +330,48 @@ typedef struct LWMsgAssocClass
      * @return the current state
      */
     LWMsgAssocState (*get_state)(LWMsgAssoc* assoc);
+
+    /**
+     * @ingroup assoc_impl
+     * @brief Set timeout
+     *
+     * This method sets a timeout that should be used for subsequent operations
+     *
+     * @param[in] assoc the association
+     * @param[in] type the type of timeout
+     * @param[in] value the value of the timeout, or NULL for no timeout
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{NOT_SUPPORTED, the association does not support the specified timeout type}
+     * @lwmsg_etc{implementation-specific error}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus
+    (*set_timeout)(
+        LWMsgAssoc* assoc,
+        LWMsgTimeout type,
+        LWMsgTime* value
+        );
+
+    /**
+     * @ingroup assoc_impl
+     * @brief Establish session with peer
+     *
+     * This method causes the association to establish a session with
+     * its peer if it has not already.
+     *
+     * @param[in] assoc the association
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{TIMEOUT, the operation timed out}
+     * @lwmsg_code{INVALID_STATE, the association cannot establish a session from its current state}
+     * @lwmsg_etc{implementation-specific error}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus
+    (*establish)(
+        LWMsgAssoc* assoc
+        );
 } LWMsgAssocClass;
 
 /**
@@ -773,42 +828,6 @@ lwmsg_assoc_free_graph(
 
 /**
  * @ingroup assoc
- * @brief Set operation timeout
- *
- * Sets the maximum time that a single operation (send, receive, close, etc.) may
- * take before the attempt fails with LWMSG_STATUS_TIMEOUT.
- *
- * @param[in] assoc the assocation
- * @param[in] timeout the time value, or NULL to disable timeouts
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_PARAMETER, the specified time was invalid}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_set_timeout(
-    LWMsgAssoc* assoc,
-    LWMsgTime* timeout
-    );
-
-/**
- * @ingroup assoc
- * @brief Set operation timeout in milliseconds
- *
- * Sets the timeout on the specified assocation without the need
- * to use a LWMsgTime structure.
- *
- * @param[in] assoc the assocation
- * @param[in] ms the time value in milliseconds
- */
-void
-lwmsg_assoc_set_timeout_ms(
-    LWMsgAssoc* assoc,
-    unsigned long ms
-    );
-
-/**
- * @ingroup assoc
  * @brief Retrieve peer security token
  *
  * Retrieves credentials of the peer from an association.
@@ -993,6 +1012,47 @@ LWMsgStatus
 lwmsg_assoc_get_session_data(
     LWMsgAssoc* assoc,
     void** data
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Set timeout
+ *
+ * Sets a timeout that should be used for subsequent operations.
+ *
+ * @param[in] assoc the association
+ * @param[in] type the type of timeout
+ * @param[in] value the value of the timeout, or NULL for no timeout
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{NOT_SUPPORTED, the association does not support the specified timeout type}
+ * @lwmsg_etc{implementation-specific error}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_set_timeout(
+    LWMsgAssoc* assoc,
+    LWMsgTimeout type,
+    LWMsgTime* value
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Establish session with peer
+ *
+ * Causes the specified association to establish a session with
+ * its peer if it has not already.
+ *
+ * @param[in] assoc the association
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the association cannot establish a session from its current state}
+ * @lwmsg_etc{implementation-specific error}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_establish(
+    LWMsgAssoc* assoc
     );
 
 

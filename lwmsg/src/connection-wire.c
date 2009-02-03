@@ -45,10 +45,12 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <config.h>
 
 #ifndef CMSG_ALIGN
@@ -131,6 +133,9 @@ lwmsg_connection_recvmsg(int fd, struct msghdr* msghdr, int flags, size_t* out_r
         {
         case EAGAIN:
         case EINTR:
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+        case EWOULDBLOCK:
+#endif
             status = LWMSG_STATUS_AGAIN;
             break;
         case EPIPE:
@@ -260,6 +265,9 @@ lwmsg_connection_sendmsg(int fd, struct msghdr* msghdr, int flags, size_t* out_s
         {
         case EAGAIN:
         case EINTR:
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+        case EWOULDBLOCK:
+#endif
             status = LWMSG_STATUS_AGAIN;
             break;
         case EPIPE:
@@ -393,16 +401,17 @@ lwmsg_connection_check_timeout(
 
     BAIL_ON_ERROR(status = lwmsg_time_now(&now));
 
-    /* Check for time appearing to move backward */
-    if (priv->timeout_set && lwmsg_time_compare(&priv->last_time, &now) == LWMSG_TIME_GREATER)
+    if (priv->end_time.seconds > 0)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_TIMEOUT);
-    }
+        /* Depending on our available source of time information, we may
+           see time move backward if the system clock changes.  Check for this
+           situation and restart the timeout */
+        if (lwmsg_time_compare(&priv->last_time, &now) == LWMSG_TIME_GREATER)
+        {
+            /* Recalculate deadline */
+            lwmsg_time_sum(&now, &priv->timeout.current, &priv->end_time);
+        }
 
-    priv->last_time = now;
-
-    if (priv->timeout_set)
-    {
         lwmsg_time_difference(&now, &priv->end_time, &diff);
 
         if (diff.seconds < 0 || diff.microseconds < 0)
@@ -413,6 +422,8 @@ lwmsg_connection_check_timeout(
         remaining->tv_sec = diff.seconds;
         remaining->tv_usec = diff.microseconds;
     }
+
+    priv->last_time = now;
 
 error:
 
@@ -476,18 +487,11 @@ lwmsg_connection_transceive(
 
         BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
 
-        ret = select(nfds, &readfds, &writefds, NULL, priv->timeout_set ? &timeout : NULL);
+        ret = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
         
         if (ret == -1)
         {
-            switch (errno)
-            {
-            case EAGAIN:
-            case EINTR:
-                BAIL_ON_ERROR(status = LWMSG_STATUS_AGAIN);
-            default:
-                BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-            }
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
         }
         else if (ret > 0)
         {
@@ -498,7 +502,14 @@ lwmsg_connection_transceive(
 
             if (FD_ISSET(fd, &readfds))
             {
-                BAIL_ON_ERROR(status = lwmsg_connection_recvbuffer(assoc));
+                status = lwmsg_connection_recvbuffer(assoc);
+                if (status == LWMSG_STATUS_AGAIN)
+                {
+                    /* Swallow STATUS_AGAIN errors since this function is
+                       not guaranteed to make progress on each call */
+                    status = LWMSG_STATUS_SUCCESS;
+                }
+                BAIL_ON_ERROR(status);
             }
 
             if (lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
@@ -508,7 +519,14 @@ lwmsg_connection_transceive(
 
             if (FD_ISSET(fd, &writefds))
             {
-                BAIL_ON_ERROR(status = lwmsg_connection_sendbuffer(assoc));
+                status = lwmsg_connection_sendbuffer(assoc);
+                if (status == LWMSG_STATUS_AGAIN)
+                {
+                    /* Swallow STATUS_AGAIN errors since this function is
+                       not guaranteed to make progress on each call */
+                    status = LWMSG_STATUS_SUCCESS;
+                }
+                BAIL_ON_ERROR(status);
             }
         }
         else
@@ -847,6 +865,143 @@ lwmsg_connection_send_shutdown(
     BAIL_ON_ERROR(status = lwmsg_connection_discard_send_packet(assoc, packet));
 
 error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_connect_local(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    struct sockaddr_un sockaddr;
+    int sock = -1;
+    long opts = 0;
+    long err = 0;
+    socklen_t len;
+    fd_set readfds;
+    fd_set writefds;
+    struct timeval timeout = {0, 0};
+    int nfds = 0;
+
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    if (sock == -1)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+    }
+
+    /* Get socket flags */
+    if ((opts = fcntl(sock, F_GETFL, 0)) < 0)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
+                          "Could not get socket flags: %s", strerror(errno));
+    }
+
+    /* Set non-blocking flag */
+    opts |= O_NONBLOCK;
+
+    /* Set socket flags */
+    if (fcntl(sock, F_SETFL, opts) < 0)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
+                          "Could not set socket flags: %s", strerror(errno));
+    }
+
+    sockaddr.sun_family = AF_UNIX;
+
+    if (strlen(priv->endpoint) + 1 > sizeof(sockaddr.sun_path))
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Endpoint is too long for underlying protocol");
+    }
+
+    strcpy(sockaddr.sun_path, priv->endpoint);
+
+    if (connect(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) < 0)
+    {
+        if (errno == EINPROGRESS)
+        {
+            /* The connect hasn't completed.  We need to go into a select
+               until the socket becomes writable or we time out */
+
+            do
+            {
+                /* Check for a timeout and get the value to pass to select */
+                BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
+                FD_ZERO(&writefds);
+                FD_ZERO(&readfds);
+                FD_SET(sock, &writefds);
+
+                nfds = sock + 1;
+
+                /* If there is an interrupt channel set, wait on it as well */
+                if (priv->interrupt)
+                {
+                    FD_SET(priv->interrupt->fd[0], &readfds);
+                    if (nfds < priv->interrupt->fd[0] + 1)
+                    {
+                        nfds = priv->interrupt->fd[0] + 1;
+                    }
+                }
+
+                err = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
+            } while (err == 0);
+
+            if (err < 0)
+            {
+                /* Select failed for some reason */
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+            }
+
+            if (priv->interrupt && FD_ISSET(priv->interrupt->fd[0], &readfds))
+            {
+                /* We have been interrupted */
+                BAIL_ON_ERROR(status = LWMSG_STATUS_INTERRUPT);
+            }
+
+            /* If we make it here, our connect operation completed */
+            len = sizeof(err);
+            /* Use getsockopt to extract the result of the connect call */
+            if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
+            {
+                /* Getsockopt failed for some reason */
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+            }
+        }
+        else
+        {
+            err = errno;
+        }
+    }
+
+    if (err)
+    {
+        switch (err)
+        {
+        case ENOENT:
+            status = LWMSG_STATUS_FILE_NOT_FOUND;
+            break;
+        case ECONNREFUSED:
+            status = LWMSG_STATUS_CONNECTION_REFUSED;
+            break;
+        default:
+            status = LWMSG_STATUS_SYSTEM;
+            break;
+        }
+        ASSOC_RAISE_ERROR(assoc, status, "%s", strerror(errno));
+    }
+
+    priv->fd = sock;
+    sock = -1;
+
+error:
+
+    if (sock != -1)
+    {
+        close(sock);
+    }
 
     return status;
 }

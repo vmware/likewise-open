@@ -64,7 +64,8 @@ static const char* default_message[] =
     [LWMSG_STATUS_PEER_CLOSE] = "Connection closed by peer",
     [LWMSG_STATUS_PEER_RESET] = "Connection reset by peer",
     [LWMSG_STATUS_PEER_ABORT] = "Connection aborted by peer",
-    [LWMSG_STATUS_SESSION_LOST] = "Session lost"
+    [LWMSG_STATUS_SESSION_LOST] = "Session lost",
+    [LWMSG_STATUS_UNSUPPORTED] = "Unsupported operation"
 };
 
 void

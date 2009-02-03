@@ -388,7 +388,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
 }
 
 
-MU_TEST(assoc, foo_send_timeout)
+MU_TEST(assoc, foo_send_timeout_connect)
 {
     int sockets[2];
     LWMsgAssoc* send_assoc = NULL;
@@ -397,6 +397,7 @@ MU_TEST(assoc, foo_send_timeout)
     LWMsgMessage request_msg;
     LWMsgMessage reply_msg;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTime time = {0, 200000};
     
     MU_TRY(lwmsg_protocol_new(NULL, &foo_protocol));
     MU_TRY_PROTOCOL(foo_protocol, lwmsg_protocol_add_protocol_spec(foo_protocol, FooProtocol_spec));
@@ -419,7 +420,7 @@ MU_TEST(assoc, foo_send_timeout)
     request_msg.tag = FOO_REQUEST;
     request_msg.object = &request;
 
-    lwmsg_assoc_set_timeout_ms(send_assoc, 500);
+    lwmsg_assoc_set_timeout(send_assoc, LWMSG_TIMEOUT_ESTABLISH, &time);
 
     status = lwmsg_assoc_send_message_transact(send_assoc, &request_msg, &reply_msg);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_TIMEOUT);

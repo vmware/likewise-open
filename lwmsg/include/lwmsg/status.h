@@ -152,7 +152,12 @@ typedef enum
      * Session with peer was lost
      * @hideinitializer
      */
-    LWMSG_STATUS_SESSION_LOST = 21
+    LWMSG_STATUS_SESSION_LOST = 21,
+    /**
+     * Unsupported operation
+     * @hideinitializer
+     */
+    LWMSG_STATUS_UNSUPPORTED = 22
 } LWMsgStatus;
 
 #define LWMSG_STATUS_COUNT (22)

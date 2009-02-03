@@ -199,22 +199,25 @@ lwmsg_server_delete(
 
 /**
  * @ingroup server
- * @brief Set operation timeout
+ * @brief Set timeout
  *
- * Sets the timeout that will be used for client associations.
- * See lwmsg_assoc_set_timeout() for more information.
+ * Sets the specified timeout to the specified value.
+ * See #lwmsg_assoc_set_timeout() for more information.
  *
  * @param server the server object
- * @param timeout the timeout to set, or NULL for no timeout
+ * @param type the type of timeout to set
+ * @param value the value, or NULL for no timeout
  * @lwmsg_status
  * @lwmsg_success
+ * @lwmsg_code{UNSUPPORTED, the specified timeout type is not supported}
  * @lwmsg_code{INVALID_PARAMETER, the timeout was invalid}
  * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_set_timeout(
     LWMsgServer* server,
-    LWMsgTime* timeout
+    LWMsgTimeout type,
+    LWMsgTime* value
     );
 
 /**

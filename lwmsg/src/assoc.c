@@ -280,7 +280,7 @@ lwmsg_assoc_send_message(
 
 retry:
 
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->send_msg(assoc, message, assoc->timeout_set ? &assoc->timeout : NULL));
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->send_msg(assoc, message));
     
 error:
     
@@ -298,7 +298,7 @@ lwmsg_assoc_recv_message(
 
 retry:
     
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->recv_msg(assoc, message, assoc->timeout_set ? &assoc->timeout : NULL));
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->recv_msg(assoc, message));
 
 error:
 
@@ -317,8 +317,8 @@ lwmsg_assoc_send_message_transact(
 
 retry:
 
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->send_msg(assoc, send_message, assoc->timeout_set ? &assoc->timeout : NULL));
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->recv_msg(assoc, recv_message, assoc->timeout_set ? &assoc->timeout : NULL));
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->send_msg(assoc, send_message));
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->recv_msg(assoc, recv_message));
 
 error:
 
@@ -340,9 +340,9 @@ lwmsg_assoc_recv_message_transact(
 
 retry:
 
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->recv_msg(assoc, &recv_message, assoc->timeout_set ? &assoc->timeout : NULL));
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->recv_msg(assoc, &recv_message));
     ACTION_ON_ERROR(assoc, status = dispatch(assoc, &recv_message, &send_message, data));
-    ACTION_ON_ERROR(assoc, status = assoc->aclass->send_msg(assoc, &send_message, assoc->timeout_set ? &assoc->timeout : NULL));
+    ACTION_ON_ERROR(assoc, status = assoc->aclass->send_msg(assoc, &send_message));
 error:
     
     if (recv_message.object)
@@ -464,7 +464,7 @@ lwmsg_assoc_close(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    BAIL_ON_ERROR(status = assoc->aclass->close(assoc, assoc->timeout_set ? &assoc->timeout : NULL));
+    BAIL_ON_ERROR(status = assoc->aclass->close(assoc));
 
 error:
 
@@ -478,7 +478,7 @@ lwmsg_assoc_reset(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    BAIL_ON_ERROR(status = assoc->aclass->reset(assoc, assoc->timeout_set ? &assoc->timeout : NULL));
+    BAIL_ON_ERROR(status = assoc->aclass->reset(assoc));
 
 error:
 
@@ -519,48 +519,6 @@ lwmsg_assoc_free_graph(
 error:
 
     return status;
-}
-
-LWMsgStatus
-lwmsg_assoc_set_timeout(
-    LWMsgAssoc* assoc,
-    LWMsgTime* timeout
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    if (timeout)
-    {
-        if (timeout->seconds < 0 || timeout->microseconds < 0)
-        {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
-        }
-
-        assoc->timeout_set = 1;
-        assoc->timeout = *timeout;
-    }
-    else
-    {
-        assoc->timeout_set = 0;
-    }
-
-error:
-
-    return status;
-}
-
-void
-lwmsg_assoc_set_timeout_ms(
-    LWMsgAssoc* assoc,
-    unsigned long ms
-    )
-{
-    LWMsgTime timeout;
-
-    timeout.seconds = ms / 1000;
-    timeout.microseconds = (ms % 1000) * 1000;
-
-    lwmsg_assoc_set_timeout(assoc, &timeout);
 }
 
 const char*
@@ -692,3 +650,22 @@ error:
 
     return status;
 }
+
+LWMsgStatus
+lwmsg_assoc_set_timeout(
+    LWMsgAssoc* assoc,
+    LWMsgTimeout type,
+    LWMsgTime* value
+    )
+{
+    return assoc->aclass->set_timeout(assoc, type, value);
+}
+
+LWMsgStatus
+lwmsg_assoc_establish(
+    LWMsgAssoc* assoc
+    )
+{
+    return assoc->aclass->establish(assoc);
+}
+

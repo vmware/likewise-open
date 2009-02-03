@@ -45,9 +45,40 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <errno.h>
 #include <string.h>
+
+static
+LWMsgStatus
+lwmsg_connection_begin_timeout(
+    LWMsgAssoc* assoc,
+    LWMsgTime* value
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+
+
+    /* Record current timeout value */
+    priv->timeout.current = *value;
+    /* Get current time */
+    BAIL_ON_ERROR(status = lwmsg_time_now(&priv->last_time));
+
+    if (value->seconds >= 0)
+    {
+        /* Calculate absolute deadline */
+        lwmsg_time_sum(&priv->last_time, value, &priv->end_time);
+    }
+    else
+    {
+        /* Mark deadline as unset */
+        memset(&priv->end_time, 0xFF, sizeof(priv->last_time));
+    }
+
+error:
+
+    return status;
+}
 
 static unsigned char*
 lwmsg_connection_packet_payload(ConnectionPacket* packet)
@@ -215,7 +246,13 @@ lwmsg_connection_do_recv(LWMsgAssoc* assoc, ConnectionPacketType expect)
     ConnectionPacket* packet = NULL;
     LWMsgBuffer buffer;
 
+    /* Set up timeout */
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.message));
+
 retry:
+
     BAIL_ON_ERROR(status = lwmsg_connection_recv_packet(assoc, &packet));
 
     if (lwmsg_connection_packet_is_urgent(packet))
@@ -306,6 +343,11 @@ lwmsg_connection_do_send(LWMsgAssoc* assoc, ConnectionPacketType ptype)
                                                          &packet));
 
     packet->contents.msg.type = message->tag;
+
+    /* Set up timeout */
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.message));
 
     /* If the message has no payload, send a zero-length message */
     if (type == NULL)
@@ -404,6 +446,11 @@ lwmsg_connection_do_shutdown(
 
     if (priv->fd != -1)
     {
+        /* Set up timeout */
+        BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                          assoc,
+                          &priv->timeout.establish));
+
         BAIL_ON_ERROR(status = lwmsg_connection_send_shutdown(assoc, type, reason));
     }
 
@@ -435,57 +482,6 @@ error:
 
 static
 LWMsgStatus
-lwmsg_connection_connect_local(
-    LWMsgAssoc* assoc
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    struct sockaddr_un sockaddr;
-    int sock = -1;
-
-    sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    
-    if (sock == -1)
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
-    }
-
-    sockaddr.sun_family = AF_UNIX;
-
-    if (strlen(priv->endpoint) + 1 > sizeof(sockaddr.sun_path))
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Endpoint is too long for underlying protocol");
-    }
-
-    strcpy(sockaddr.sun_path, priv->endpoint);
-
-    if (connect(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == -1)
-    {
-        switch (errno)
-        {
-            case ENOENT:
-                status = LWMSG_STATUS_FILE_NOT_FOUND;
-                break;
-            case ECONNREFUSED:
-                status = LWMSG_STATUS_CONNECTION_REFUSED;
-                break;
-            default:
-                status = LWMSG_STATUS_SYSTEM;
-                break;
-        }
-        ASSOC_RAISE_ERROR(assoc, status, "%s", strerror(errno));
-    }
-
-    priv->fd = sock;
-
-error:
-
-    return status;
-}
-
-static
-LWMsgStatus
 lwmsg_connection_do_connect(
     LWMsgAssoc* assoc
     )
@@ -493,6 +489,10 @@ lwmsg_connection_do_connect(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.establish));
+
     switch (priv->mode)
     {
     case LWMSG_CONNECTION_MODE_LOCAL:
@@ -547,6 +547,10 @@ lwmsg_connection_run(
             /* If we were given a pre-connected fd, go straight to the connected state */
             if (priv->fd != -1)
             {
+                /* Set up the establish timeout now since we don't need to connect() */
+                BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                                  assoc,
+                                  &priv->timeout.establish));
                 priv->state = CONNECTION_STATE_CONNECTED;
             }
             /* If we were given an endpoint, we need to establish a connection */

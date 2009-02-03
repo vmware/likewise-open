@@ -62,6 +62,9 @@ lwmsg_connection_construct(
     priv->fd = -1;
     priv->mode = LWMSG_CONNECTION_MODE_NONE;
 
+    memset(&priv->timeout, 0xFF, sizeof(priv->timeout));
+    memset(&priv->end_time, 0xFF, sizeof(priv->end_time));
+
 error:
 
     return status;
@@ -116,40 +119,12 @@ lwmsg_connection_destruct(
 
 
 static LWMsgStatus
-lwmsg_connection_set_end_time(
-    ConnectionPrivate* priv,
-    LWMsgTime* timeout
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgTime now;
-
-    if (timeout)
-    {
-        priv->timeout_set = 1;
-        BAIL_ON_ERROR(status = lwmsg_time_now(&now));
-        lwmsg_time_sum(&now, timeout, &priv->end_time);
-    }
-    else
-    {
-        priv->timeout_set = 0;
-    }
-
-error:
-
-    return status;
-}
-
-static LWMsgStatus
 lwmsg_connection_close(
-    LWMsgAssoc* assoc,
-    LWMsgTime* timeout
+    LWMsgAssoc* assoc
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
 
-    lwmsg_connection_set_end_time(priv, timeout);
     BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_CLOSE));
 
 error:
@@ -159,14 +134,11 @@ error:
 
 static LWMsgStatus
 lwmsg_connection_reset(
-    LWMsgAssoc* assoc,
-    LWMsgTime* timeout
+    LWMsgAssoc* assoc
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
 
-    lwmsg_connection_set_end_time(priv, timeout);
     BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_RESET));
 
 error:
@@ -177,8 +149,7 @@ error:
 static LWMsgStatus
 lwmsg_connection_send_msg(
     LWMsgAssoc* assoc,
-    LWMsgMessage* message,
-    LWMsgTime* timeout
+    LWMsgMessage* message
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -186,8 +157,6 @@ lwmsg_connection_send_msg(
     
     priv->message = message;
     
-    lwmsg_connection_set_end_time(priv, timeout);
-
     BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_SEND));
 
 error:
@@ -200,16 +169,13 @@ error:
 static LWMsgStatus
 lwmsg_connection_recv_msg(
     LWMsgAssoc* assoc,
-    LWMsgMessage* message,
-    LWMsgTime* timeout
+    LWMsgMessage* message
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     
     priv->message = message;
-
-    lwmsg_connection_set_end_time(priv, timeout);
 
     BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_RECV));
 
@@ -293,6 +259,71 @@ lwmsg_connection_get_state(
     }
 }
 
+static
+LWMsgStatus
+lwmsg_connection_set_timeout(
+    LWMsgAssoc* assoc,
+    LWMsgTimeout type,
+    LWMsgTime* value
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    LWMsgTime* target = NULL;
+
+    if (value != NULL &&
+        (value->seconds < 0 || value->microseconds < 0))
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER,
+                          "Invalid (negative) timeout value");
+    }
+
+    switch (type)
+    {
+    case LWMSG_TIMEOUT_MESSAGE:
+        target = &priv->timeout.message;
+        break;
+    case LWMSG_TIMEOUT_ESTABLISH:
+        target = &priv->timeout.establish;
+        break;
+    default:
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_UNSUPPORTED,
+                          "Unsupported timeout type");
+    }
+
+    if (value)
+    {
+        *target = *value;
+    }
+    else
+    {
+        memset(target, 0xFF, sizeof(*target));
+    }
+
+error:
+
+    return status;
+}
+
+static
+LWMsgStatus
+lwmsg_connection_establish(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+
+    if (!priv->session)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
+    }
+
+error:
+
+     return status;
+}
+
 static LWMsgAssocClass connection_class =
 {
     .private_size = sizeof(ConnectionPrivate),
@@ -304,7 +335,9 @@ static LWMsgAssocClass connection_class =
     .reset = lwmsg_connection_reset,
     .get_peer_security_token = lwmsg_connection_get_peer_security_token,
     .get_session = lwmsg_connection_get_session,
-    .get_state = lwmsg_connection_get_state
+    .get_state = lwmsg_connection_get_state,
+    .set_timeout = lwmsg_connection_set_timeout,
+    .establish = lwmsg_connection_establish
 };
 
 LWMsgStatus
@@ -503,22 +536,4 @@ lwmsg_connection_signal_delete(
     close(signal->fd[1]);
 
     free(signal);
-}
-
-LWMsgStatus
-lwmsg_connection_establish(
-    LWMsgAssoc* assoc
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-
-    if (!priv->session)
-    {
-        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
-    }
-
-error:
-
-     return status;
 }
