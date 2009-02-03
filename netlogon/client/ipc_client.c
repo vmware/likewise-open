@@ -54,7 +54,8 @@ LWNetOpenServer(
 {
     DWORD dwError = 0;
     PLWNET_CLIENT_CONNECTION_CONTEXT pContext = NULL;
-    
+    static LWMsgTime connectTimeout = {2, 0};
+
     BAIL_ON_INVALID_POINTER(phConnection);
 
     dwError = LWNetAllocateMemory(sizeof(LWNET_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
@@ -75,7 +76,12 @@ LWNetOpenServer(
                                   LWNET_CACHE_DIR "/" LWNET_SERVER_FILENAME));
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_establish(pContext->pAssoc));
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
+                                  pContext->pAssoc,
+                                  LWMSG_TIMEOUT_ESTABLISH,
+                                  &connectTimeout));
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
     BAIL_ON_LWNET_ERROR(dwError);
 
     *phConnection = (HANDLE)pContext;
