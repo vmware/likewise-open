@@ -53,6 +53,7 @@ LsaOpenServer(
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext = NULL;
+    static LWMsgTime connectTimeout = {2, 0};
 
     BAIL_ON_INVALID_POINTER(phConnection);
 
@@ -96,7 +97,15 @@ LsaOpenServer(
                                   LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_establish(pContext->pAssoc));
+    /* Give up connecting within 2 seconds in case lsassd
+       is unresponsive (e.g. it's being traced in a debugger) */
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
+                                  pContext->pAssoc,
+                                  LWMSG_TIMEOUT_ESTABLISH,
+                                  &connectTimeout));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
     BAIL_ON_LSA_ERROR(dwError);
 
     *phConnection = (HANDLE)pContext;
