@@ -37,22 +37,23 @@
 #include <string.h>
 
 #include <compat/rpcstatus.h>
+#include <dce/rpc.h>
 #include <dce/dce_error.h>
 #include <dce/schannel.h>
 
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
 #include <wc16str.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
+
 #include <md5.h>
 #include <hmac_md5.h>
+#include <lwrpc/types.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/lsabinding.h>
 #include <lwrpc/netlogon.h>
 #include <lwrpc/netlogonbinding.h>
 #include <lwrpc/mpr.h>
-#include <lwrdr/lwrdr.h>
+#include <lwio/lwio.h>
 
 #include "TestRpc.h"
 #include "Params.h"
@@ -102,8 +103,7 @@ handle_t TestOpenSchannel(handle_t netr_b,
     rpc_schannel_auth_info_t schnauth_info = {0};
     handle_t schn_b = NULL;
     size_t hostname_len = 0;
-    DWORD dwError = 0;
-    HANDLE auth = NULL;
+    PIO_ACCESS_TOKEN auth = NULL;
 
     md4hash(pass_hash, machpass);
 
@@ -137,26 +137,13 @@ handle_t TestOpenSchannel(handle_t netr_b,
     schnauth_info.machine_name = awc16stombs(computer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
 
-    dwError = SMBCreatePlainAccessTokenW(user, pass, &auth);
-    if (dwError)
-    {
-        err = -1;
-        goto error;
-    }
+    status = LwIoCreatePlainAccessTokenW(user, pass, &auth);
+    goto_if_ntstatus_not_success(status, error);
 
-    dwError = SMBSetThreadToken(auth);
-    if (dwError)
-    {
-        err = -1;
-        goto error;
-    }
+    status = LwIoSetThreadAccessToken(auth);
+    goto_if_ntstatus_not_success(status, error);
 
-    dwError = SMBCloseHandle(NULL, auth);
-    if (dwError)
-    {
-        err = -1;
-        goto error;
-    }
+    LwIoDeleteAccessToken(auth);
 
     hostname_len = wc16slen(hostname);
     schnr->RemoteName = (wchar16_t*) malloc((hostname_len + 8) * sizeof(wchar16_t));
@@ -211,7 +198,7 @@ void TestCloseSchannel(handle_t schn_b, NETRESOURCE *schnr)
 
     FreeNetlogonBinding(&schn_b);
 
-    SMBSetThreadToken(NULL);
+    LwIoSetThreadAccessToken(NULL);
 
 close:
     SAFE_FREE(schnr->RemoteName);
@@ -376,29 +363,15 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     if (username && password)
     {
         /* Set up access token */
-        HANDLE hAccessToken = INVALID_HANDLE_VALUE;
-        DWORD dwError = 0;
+        PIO_ACCESS_TOKEN hAccessToken = NULL;
 
-        dwError = SMBCreatePlainAccessTokenW(user, pass, &hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto cleanup;
-        }
+        status = LwIoCreatePlainAccessTokenW(user, pass, &hAccessToken);
+        goto_if_ntstatus_not_success(status, done);
 
-        dwError = SMBSetThreadToken(hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto cleanup;
-        }
+        status = LwIoSetThreadAccessToken(hAccessToken);
+        goto_if_ntstatus_not_success(status, done);
 
-        dwError = SMBCloseHandle(NULL, hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto cleanup;
-        }
+        LwIoDeleteAccessToken(hAccessToken);
     }
 
     hostname_len = wc16slen(hostname);
@@ -466,14 +439,8 @@ close:
 
     if (username && password)
     {
-        DWORD dwError = 0;
-
-        dwError = SMBSetThreadToken(INVALID_HANDLE_VALUE);
-        if (dwError)
-        {
-            err = -1;
-            goto cleanup;
-        }
+        status = LwIoSetThreadAccessToken(NULL);
+        goto_if_ntstatus_not_success(status, cleanup);
     }
 
 done:

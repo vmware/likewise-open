@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,11 +28,21 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Lsa interface definitions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _LSADEFS_H_
 #define _LSADEFS_H_
 
 #include <lwrpc/types.h>
-#include <lwrpc/security.h>
+#include <lwrpc/unistrdef.h>
+#include <secdesc/siddef.h>
+#include <secdesc/phdef.h>
+#include <secdesc/sdflags.h>
+#include <secdesc/sddef.h>
 
 
 typedef struct audit_log_info {
@@ -201,6 +211,21 @@ typedef struct translated_name_array {
 #endif
 	TranslatedName *names;
 } TranslatedNameArray;
+
+
+typedef uint16 LsaSidType;
+
+#define SID_TYPE_USE_NONE   0
+#define SID_TYPE_USER       1
+#define SID_TYPE_DOM_GRP    2
+#define SID_TYPE_DOMAIN     3
+#define SID_TYPE_ALIAS      4
+#define SID_TYPE_WKN_GRP    5
+#define SID_TYPE_DELETED    6
+#define SID_TYPE_INVALID    7
+#define SID_TYPE_UNKNOWN    8
+#define SID_TYPE_COMPUTER   9
+#define SID_TYPE_LABEL      10
 
 
 #define LSA_LOOKUP_NAMES_ALL                   1

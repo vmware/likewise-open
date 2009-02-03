@@ -70,8 +70,8 @@ NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
     status = NetOpenUser(conn, username, user_access, &user_handle, &user_rid);
     if (status != 0) return NtStatusToWin32Error(status);
 
-    status = SidAllocateResizedCopy(&user_sid, domain_sid->subauth_count + 1,
-				    domain_sid);
+    status = RtlSidAllocateResizedCopy(&user_sid, domain_sid->subauth_count + 1,
+                                       domain_sid);
     if (status != 0) return NtStatusToWin32Error(status);
 
     user_sid->subauth[user_sid->subauth_count - 1] = user_rid;

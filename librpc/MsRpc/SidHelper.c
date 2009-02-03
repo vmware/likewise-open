@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/sidhelper.h>
 

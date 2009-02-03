@@ -38,7 +38,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <wc16str.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/lsabinding.h>
@@ -64,7 +64,7 @@ handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
     status = InitLsaBindingDefault(binding, hostname);
     if (status != RPC_S_OK) {
         int result;
-        CHAR_T errmsg[dce_c_error_string_len];
+        char errmsg[dce_c_error_string_len];
 	
         dce_error_inq_text(status, errmsg, &result);
         if (result == 0) {
@@ -221,9 +221,9 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
 		
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
-            SidAllocateResizedCopy(&usr_sid,
-                                   dom_sid->subauth_count + 1,
-                                   dom_sid);
+            RtlSidAllocateResizedCopy(&usr_sid,
+                                      dom_sid->subauth_count + 1,
+                                      dom_sid);
             usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
         }
@@ -403,16 +403,16 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
 		
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
-            SidAllocateResizedCopy(&usr_sid,
-                                   dom_sid->subauth_count + 1,
-                                   dom_sid);
+            RtlSidAllocateResizedCopy(&usr_sid,
+                                      dom_sid->subauth_count + 1,
+                                      dom_sid);
             usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
 
-            SidToString(usr_sid, &sidstr);
+            SidToStringW(usr_sid, &sidstr);
             DUMP_WSTR(" ", sidstr);
 
-            SidFreeString(sidstr);
+            SidStrFreeW(sidstr);
         }
     }
 
@@ -542,12 +542,12 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     for (i = 0; i < sid_array.num_sids; i++) {
         sid_array.sids[i].sid = input_sids[i];
 
-        SidToString(input_sids[i], &sidstr);
+        SidToStringW(input_sids[i], &sidstr);
         test_fail_if_no_memory(sidstr);
 
         DUMP_WSTR(" ", sidstr);
 
-        SidFreeString(sidstr);
+        SidStrFreeW(sidstr);
     }
 
     level = 1;

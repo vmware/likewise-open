@@ -27,16 +27,21 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
+#include <config.h>
 
 #include <sys/utsname.h>
 
 #include "includes.h"
 
+#if HAVE_SYS_VARARGS_H
+#include <sys/varargs.h>
+#endif
+
 #include <random.h>
 #include <lwrpc/mpr.h>
 #include <lwps/lwps.h>
 #include <keytab.h>
-#include <lwrdr/lwrdr.h>
+#include <lwio/lwio.h>
 
 #include "NetUtil.h"
 #include "NetGetDcName.h"
@@ -126,26 +131,13 @@ NetJoinDomainLocalInternal(
         /* Set up access token */
         HANDLE hAccessToken = NULL;
 
-        dwError = SMBCreatePlainAccessTokenW(account, password, &hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto_if_err_not_success(err, done);
-        }
+        status = LwIoCreatePlainAccessTokenW(account, password, &hAccessToken);
+        goto_if_ntstatus_not_success(status, done);
 
-        dwError = SMBSetThreadToken(hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto_if_err_not_success(err, done);
-        }
+        status = LwIoSetThreadAccessToken(hAccessToken);
+        goto_if_ntstatus_not_success(status, done);
 
-        dwError = SMBCloseHandle(NULL, hAccessToken);
-        if (dwError)
-        {
-            err = -1;
-            goto_if_err_not_success(err, done);
-        }
+        LwIoDeleteAccessToken(hAccessToken);
     }
 
     status = NetConnectLsa(&lsa_conn, domain_controller_name, lsa_access);
@@ -226,7 +218,7 @@ NetJoinDomainLocalInternal(
     status = SamrClose(samr_b, &account_handle);
     goto_if_ntstatus_not_success(status, disconn_samr);
 
-    status = SidToString(conn->samr.dom_sid, &sid_str);
+    status = SidToStringW(conn->samr.dom_sid, &sid_str);
     if (status != STATUS_SUCCESS) {
         err = NtStatusToWin32Error(status);
 
@@ -358,17 +350,19 @@ close:
     /* release domain controller connection creds */
     if (account && password)
     {
-        dwError = SMBSetThreadToken(NULL);
-        if (dwError)
-        {
-            err = -1;
-            goto_if_err_not_success(err, done);
-        }
+        status = LwIoSetThreadAccessToken(NULL);
+        goto_if_ntstatus_not_success(status, done);
     }
 
 done:
-    if (lsa_policy_info) LsaRpcFreeMemory((void*)lsa_policy_info);
-    SidFreeString(sid_str);
+    if (lsa_policy_info) {
+        LsaRpcFreeMemory((void*)lsa_policy_info);
+    }
+
+    if (sid_str) {
+        SidStrFreeW(sid_str);
+    }
+
     SAFE_FREE(nr.RemoteName);
     SAFE_FREE(account_name);
     SAFE_FREE(dns_domain_name);

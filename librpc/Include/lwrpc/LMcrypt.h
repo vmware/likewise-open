@@ -32,7 +32,7 @@
 #define _LM_CRYPT_H_
 
 #include <lwrpc/types.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 
 NTSTATUS
 NTLMv1EncryptChallenge(

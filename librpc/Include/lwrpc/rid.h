@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,11 +28,66 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __NTSTATUS_H__
-#define __NTSTATUS_H__
+/*
+ * Abstract: RID related type definitions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#define __ERROR_NTSTATUS__
-#include <lwrpc/error.inc>
-#undef __ERROR_NTSTATUS__
 
+#ifndef _RID_H_
+#define _RID_H_
+
+typedef struct ids {
+#ifdef _DCE_IDL_
+	[range(0,1024)]
 #endif
+    uint32 count;
+#ifdef _DCE_IDL_
+	[size_is(count)]
+#endif
+    uint32 *ids;
+} Ids;
+
+
+typedef struct rid_with_attribute {
+    uint32 rid;
+    uint32 attributes;
+} RidWithAttribute;
+
+
+typedef struct rid_with_attribute_array {
+    uint32     count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    RidWithAttribute *rids;
+} RidWithAttributeArray;
+
+
+typedef struct rid_name {
+    uint32 rid;
+    UnicodeString name;
+} RidName;
+
+
+typedef struct rid_name_array {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    RidName *entries;
+} RidNameArray;
+
+
+#endif /* _RID_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

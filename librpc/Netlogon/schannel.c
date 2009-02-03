@@ -42,7 +42,7 @@
 #endif
 
 #include <compat/rpcstatus.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <compat/dcerpc.h>
 #include <wc16str.h>
@@ -56,7 +56,7 @@
 #include <lwrpc/netlogon.h>
 #include <lwrpc/netlogonbinding.h>
 #include <dce/schannel.h>
-#include <lwrdr/lwrdr.h>
+#include <lwio/lwio.h>
 
 static handle_t
 CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)

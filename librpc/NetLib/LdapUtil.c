@@ -37,7 +37,7 @@
 #include <config.h>
 #include <lwrpc/types.h>
 #include <wc16str.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/LM.h>

@@ -31,12 +31,18 @@
 #ifndef _TESTRPC_H_
 #define _TESTRPC_H_
 
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/errconv.h>
 #include <wc16str.h>
 #include <wc16printf.h>
 #include "Params.h"
+
+#define goto_if_ntstatus_not_success(s, lbl) \
+    if ((s) != STATUS_SUCCESS) {             \
+        status = s;                          \
+        goto lbl;                            \
+    }
 
 struct test;
 

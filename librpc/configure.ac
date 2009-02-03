@@ -22,7 +22,7 @@ AC_SUBST(LTLDFLAGS)
 # Handle options
 AC_ARG_WITH(
 	dcerpc-dir, 
-	[  --with-dcerpc-dir=<prefix>       look for dcerpc headers/libraries in <prefix>],
+	[  --with-dcerpc-dir=<prefix>      look for dcerpc headers/libraries in <prefix>],
 	[
 	    DCERPC_INCLUDES=-I$withval/include
 	    DCERPC_LDFLAGS=-L$withval/lib
@@ -32,7 +32,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	dcerpc-libdir, 
-	[  --with-dcerpc-libdir=<libdir>    look for dcerpc libraries in <libdir>],
+	[  --with-dcerpc-libdir=<libdir>   look for dcerpc libraries in <libdir>],
 	[
 	    DCERPC_LDFLAGS="-L$withval"
 	]
@@ -40,7 +40,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	unistr-dir, 
-	[  --with-unistr-dir=<prefix>       look for dcerpc headers/libraries in <prefix>],
+	[  --with-unistr-dir=<prefix>      look for dcerpc headers/libraries in <prefix>],
 	[
 	    UNISTR_INCLUDES=-I$withval/include
 	    UNISTR_LDFLAGS=-L$withval/lib
@@ -49,7 +49,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	unistr-libdir, 
-	[  --with-unistr-libdir=<libdir>    look for dcerpc libraries in <libdir>],
+	[  --with-unistr-libdir=<libdir>   look for dcerpc libraries in <libdir>],
 	[
 	    UNISTR_LDFLAGS="-L$withval"
 	]
@@ -57,7 +57,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	ldap-dir, 
-	[  --with-ldap-dir=<prefix>         look for ldap headers/libraries in <prefix>],
+	[  --with-ldap-dir=<prefix>        look for ldap headers/libraries in <prefix>],
 	[
 	    LDAP_INCLUDES=-I$withval/include
 	    LDAP_LDFLAGS=-L$withval/lib
@@ -66,7 +66,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	ldap-libdir, 
-	[  --with-ldap-libdir=<libdir>      look for ldap libraries in <libdir>],
+	[  --with-ldap-libdir=<libdir>     look for ldap libraries in <libdir>],
 	[
 	    LDAP_LDFLAGS="-L$withval"
 	]
@@ -74,7 +74,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	pstore-dir, 
-	[  --with-pstore-dir=<prefix>       look for pstore headers/libraries in <prefix>],
+	[  --with-pstore-dir=<prefix>      look for pstore headers/libraries in <prefix>],
 	[
 	    PSTORE_INCLUDES=-I$withval/include
 	    PSTORE_LDFLAGS="-L$withval/lib"
@@ -83,7 +83,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	pstore-libdir,
-	[  --with-pstore-libdir=<prefix>    look for pstore libraries in <libdir>],
+	[  --with-pstore-libdir=<prefix>   look for pstore libraries in <libdir>],
 	[
 	    PSTORE_LDFLAGS="-L$withval"
 	]
@@ -91,7 +91,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	lwnet-dir, 
-	[  --with-lwnet-dir=<prefix>     look for pstore headers/libraries in <prefix>],
+	[  --with-lwnet-dir=<prefix>       look for pstore headers/libraries in <prefix>],
 	[
 	    LWNET_INCLUDES=-I$withval/include
 	    LWNET_LDFLAGS="-L$withval/lib"
@@ -100,7 +100,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	lwnet-libdir,
-	[  --with-lwnet-libdir=<prefix>  look for pstore libraries in <libdir>],
+	[  --with-lwnet-libdir=<prefix>    look for pstore libraries in <libdir>],
 	[
 	    LWNET_LDFLAGS="-L$withval"
 	]
@@ -108,7 +108,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	keytab-dir, 
-	[  --with-keytab-dir=<prefix>    look for keytab headers/libraries in <prefix>],
+	[  --with-keytab-dir=<prefix>      look for keytab headers/libraries in <prefix>],
 	[
 	    KEYTAB_INCLUDES="-I$withval/include"
 	    KEYTAB_LDFLAGS="-L$withval/lib"
@@ -117,11 +117,29 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	keytab-libdir,
-	[  --with-keytab-libdir=<prefix> look for keytab libraries in <libdir>],
+	[  --with-keytab-libdir=<prefix>   look for keytab libraries in <libdir>],
 	[
 	    KEYTAB_LDFLAGS="-L$withval"
 	]
 )
+
+AC_ARG_WITH(
+	keytab-dir,
+	[  --with-secdesc-dir=<prefix>     look for secdesc headers/libraries in <prefix>],
+	[
+	    SECDESC_INCLUDES="-I$withval/include"
+	    SECDESC_LDFLAGS="-L$withval/lib"
+	]
+)
+
+AC_ARG_WITH(
+	secdesc-libdir,
+	[  --with-secdesc-libdir=<prefix>  look for keytab libraries in <libdir>],
+	[
+	    SECDESC_LDFLAGS="-L$withval"
+	]
+)
+
 
 
 AC_SUBST(DCERPC_INCLUDES)
@@ -137,6 +155,8 @@ AC_SUBST(LWNET_INCLUDES)
 AC_SUBST(LWNET_LDFLAGS)
 AC_SUBST(KEYTAB_INCLUDES)
 AC_SUBST(KEYTAB_LDFLAGS)
+AC_SUBST(SECDESC_INCLUDES)
+AC_SUBST(SECDESC_LDFLAGS)
 
 for i in $CPPFLAGS ${DCERPC_INCLUDES} ${UNISTR_INCLUDES}; do
     j=`echo $i | grep '^-I'`
@@ -178,12 +198,12 @@ AC_CHECK_LIB(tdb, tdb_fetch, [
 		[have_libtdb=false])
 AM_CONDITIONAL([HAVE_LIBTDB], [test x$have_libtdb = xtrue])
 
-AC_CHECK_LIB(lwrdrclient, SMBSetThreadToken, [], AC_MSG_ERROR([liblwrdrclient not found]))
+AC_CHECK_LIB(lwioclient, LwIoInitialize, [], AC_MSG_ERROR([liblwioclient not found]))
 
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_STDBOOL
-AC_CHECK_HEADERS([stdlib.h string.h inttypes.h])
+AC_CHECK_HEADERS([stdlib.h string.h inttypes.h sys/varargs.h])
 
 # Check for programs
 AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])

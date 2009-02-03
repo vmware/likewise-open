@@ -38,7 +38,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <wc16str.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
@@ -191,7 +191,7 @@ NTSTATUS GetSamDomainSid(DomSid **sid, const wchar16_t *hostname)
     if (status != 0) rpc_fail(status);
 
     /* Allocate a copy of sid so it can be freed clean by the caller */
-    SidCopyAlloc(sid, out_sid);
+    RtlSidCopyAlloc(sid, out_sid);
 
 done:
     FreeSamrBinding(&samr_b);
@@ -851,7 +851,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     status = SamrSetAliasInfo(samr_binding, &alias_handle, 3, &setaliasinfo);
     if (status != 0) rpc_fail(status);
 
-    status = SidAllocateResizedCopy(&user_sid, sid->subauth_count+1, sid);
+    status = RtlSidAllocateResizedCopy(&user_sid, sid->subauth_count+1, sid);
     if (status != 0) rpc_fail(status);
 
     user_sid->subauth[user_sid->subauth_count - 1] = user_rid;
@@ -961,7 +961,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
                        &btin_sidstr);
     if (!perr_is_ok(perr)) perr_fail(perr);
 	
-    ParseSidString(&sid, sidstr);
+    ParseSidStringA(&sid, sidstr);
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
                           &conn_handle);
@@ -987,9 +987,9 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
                 uint32 *member_rids = NULL;
                 uint32 count = 0;
 
-                status = SidAllocateResizedCopy(&alias_sid,
-                                                sid->subauth_count + 1,
-                                                sid);
+                status = RtlSidAllocateResizedCopy(&alias_sid,
+                                                   sid->subauth_count + 1,
+                                                   sid);
                 alias_sid->subauth[alias_sid->subauth_count - 1] = rids[i];
 					
                 /* there's actually no need to check status code here */
@@ -2037,14 +2037,14 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     }
 
     for (i = 0; i < grp_count; i++) {
-        status = SidAllocateResizedCopy(&(grp_sids[i]),
-                                        domsid->subauth_count + 1,
-                                        domsid);
+        status = RtlSidAllocateResizedCopy(&(grp_sids[i]),
+                                           domsid->subauth_count + 1,
+                                           domsid);
         if (status != 0) rpc_fail(status);
 
         grp_sids[i]->subauth[grp_sids[i]->subauth_count - 1] = grp_rids[i];
 
-        status = SidToString(grp_sids[i], &(grp_sidstrs[i]));
+        status = SidToStringW(grp_sids[i], &(grp_sidstrs[i]));
         if (status != 0) rpc_fail(status);
 
         if (resolvesids) {
@@ -2229,11 +2229,11 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     if (sids_count == 0) rpc_fail(STATUS_UNSUCCESSFUL);
 
     /* Create user account sid */
-    SidCopyAlloc(&domsid, usr_domains->domains[trans_sids[0].index].sid);
+    RtlSidCopyAlloc(&domsid, usr_domains->domains[trans_sids[0].index].sid);
     if (domsid == NULL) rpc_fail(STATUS_NO_MEMORY);
 
-    status = SidAllocateResizedCopy(&usr_sid, domsid->subauth_count + 1,
-                                    domsid);
+    status = RtlSidAllocateResizedCopy(&usr_sid, domsid->subauth_count + 1,
+                                       domsid);
     if (status != 0) rpc_fail(status);
     usr_sid->subauth[usr_sid->subauth_count - 1] = trans_sids[0].rid;
 
@@ -2243,7 +2243,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
     if (status != 0) rpc_fail(status);
 
-    ParseSidString(&btinsid, btin_sidstr);
+    ParseSidStringA(&btinsid, btin_sidstr);
 
     status = SamrOpenDomain(samr_b, &conn_h, btin_access, btinsid, &btin_h);
     if (status != 0) rpc_fail(status);
@@ -2295,12 +2295,12 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
             rid = dom_rids[i - btin_rids_count];
         }
 
-        status = SidAllocateResizedCopy(&alias_sid, dom_sid->subauth_count + 1,
-                                        dom_sid);
+        status = RtlSidAllocateResizedCopy(&alias_sid, dom_sid->subauth_count + 1,
+                                           dom_sid);
         if (status != 0) rpc_fail(status);
 
         alias_sid->subauth[alias_sid->subauth_count - 1] = rid;
-        status = SidToString(alias_sid, &(alias_sidstrs[i]));
+        status = SidToStringW(alias_sid, &(alias_sidstrs[i]));
         if (status != 0) rpc_fail(status);
 
         if (resolvesids) {

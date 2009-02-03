@@ -32,10 +32,12 @@
 #include <string.h>
 
 #include <config.h>
-#include <lwrpc/types.h>
+
 #include <wc16str.h>
-#include <lwrpc/security.h>
-#include <lwrpc/ntstatus.h>
+#include <secdesc/secdesc.h>
+#include <lw/ntstatus.h>
+
+#include <lwrpc/types.h>
 
 #include "Params.h"
 
@@ -304,7 +306,7 @@ DomSid **create_sid_list(char **strlist)
 
     /* copy mbs strings to wchar16_t strings */
     for (i = 0; strlist[i] && i < list_len; i++) {
-        ParseSidString(&(sid_list[i]), strlist[i]);
+        ParseSidStringA(&(sid_list[i]), strlist[i]);
         if (sid_list[i] == NULL) {
             i--;
             while (i >= 0) {
@@ -386,8 +388,8 @@ enum param_err fetch_value(struct parameter *params, int count,
     case pt_sid:
         valsid = (DomSid**)val;
         defstr = (char**)def;
-        status = ParseSidString(valsid,
-                                ((value) ? (const char*)value : *defstr));
+        status = ParseSidStringA(valsid,
+                                    ((value) ? (const char*)value : *defstr));
         if (status != STATUS_SUCCESS) ret = perr_invalid_out_param;
         break;
 

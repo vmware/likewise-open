@@ -36,7 +36,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/allocate.h>
 #include <wc16str.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/unicodestring.h>
 
 

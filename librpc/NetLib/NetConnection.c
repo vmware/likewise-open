@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,8 +28,13 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: NetAPI connection management functions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
-#include <lwrpc/sidhelper.h>
 
 extern NetConn *first;
 
@@ -168,7 +173,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         btin_dom_access = btin_dom_flags | req_btin_dom_flags;
         conn_handle = cn->samr.conn_handle;
 
-        status = ParseSidString(&btin_dom_sid, SID_BUILTIN_DOMAIN);
+        status = ParseSidStringA(&btin_dom_sid, SID_BUILTIN_DOMAIN);
         if (status != 0) return status;
 
         status = SamrOpenDomain(samr_b, &conn_handle, btin_dom_access,
@@ -241,7 +246,7 @@ domain_name_found:
         cn->samr.dom_name   = dom_name;
 
         if (dom_sid) {
-            SidCopyAlloc(&cn->samr.dom_sid, dom_sid);
+            RtlSidCopyAlloc(&cn->samr.dom_sid, dom_sid);
             SamrFreeMemory((void*)dom_sid);
         }
     }

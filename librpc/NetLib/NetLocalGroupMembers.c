@@ -129,9 +129,9 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
 
 	    if (sid_index < domains->count) {
 		dom_sid = domains->domains[sid_index].sid;
-		lookup_status = SidAllocateResizedCopy(&usr_sid,
-						       dom_sid->subauth_count+1,
-						       dom_sid);
+		lookup_status = RtlSidAllocateResizedCopy(&usr_sid,
+                                                  dom_sid->subauth_count+1,
+                                                  dom_sid);
 		if (lookup_status != 0) continue;
 
 		usr_sid->subauth[usr_sid->subauth_count-1] = sids[0].rid;

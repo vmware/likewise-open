@@ -16,9 +16,10 @@ libnetapi_la_SOURCES = \
 	NetGetDomainName.c NetMachineChangePassword.c NetNotImplemented.c \
 	LdapUtil.c NetDebug.c MachinePassword.c NetGetDcName.c
 
-libnetapi_la_LIBADD = -lunistr -lldap_r -lktkrb5 -llwrdrclient \
+libnetapi_la_LIBADD = -lunistr -lldap_r -lktkrb5 -llwioclient \
 	$(top_builddir)/Samr/libsamr.la \
-	$(top_builddir)/Lsa/liblsa.la $(top_builddir)/MsRpc/libmsrpc.la \
+	$(top_builddir)/Lsa/liblsa.la \
+	$(top_builddir)/MsRpc/libmsrpc.la \
 	$(top_builddir)/Mpr/libmpr.la
 
 if HAVE_LIBTDB
@@ -32,5 +33,5 @@ LIBTDB_INCDIR=$(libtdb_srcdir)/include
 INCLUDES=-I$(DCERPC_INCLUDES) -I$(LIBRPC_INCLUDES) -I$(UNISTR_INCDIR) \
 	-I$(LIBTDB_INCDIR) -I$(error_srcdir) -I$(librpc_srcdir) \
         -I$(PSTORE_INCLUDES) -I$(KEYTAB_INCLUDES)
-AM_CFLAGS=-g -D_GNU_SOURCE
+AM_CFLAGS=-g -D_GNU_SOURCE -DLIBRPC_BUILD
 AM_LDFLAGS=$(DCERPC_LDFLAGS) $(PSTORE_LDFLAGS) $(KEYTAB_LDFLAGS)

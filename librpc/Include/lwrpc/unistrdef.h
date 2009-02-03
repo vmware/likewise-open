@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,18 +28,60 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _KRB5PAC_H_
-#define _KRB5PAC_H_
+/*
+ * Abstract: UnicodeString definitions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#include <lwrpc/netrdefs.h>
 
-typedef struct {
-        NetrSamInfo3 info3;
-        DomSid *res_group_dom_sid;
-        RidWithAttributeArray res_groups;
-} PAC_LOGON_INFO;
+#ifndef _UNISTRDEF_H_
+#define _UNISTRDEF_H_
 
-#endif /* _KRB5PAC_H_ */
+
+typedef struct unicode_string {
+    uint16 len;
+    uint16 size;
+#ifdef _DCE_IDL_
+    [size_is(size/2),length_is(len/2)]
+#endif
+    wchar16_t *string;
+} UnicodeString;
+
+
+typedef struct unicode_string_ex {
+    uint16 len;
+    uint16 size;   /* size = len + 1 (for terminating char) */
+#ifdef _DCE_IDL_
+    [size_is(size/2),length_is(len/2)]
+#endif
+    wchar16_t *string;
+} UnicodeStringEx;
+
+
+typedef struct entry {
+    uint32 idx;
+    UnicodeString name;
+} Entry;
+
+typedef struct entry_array {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    Entry *entries;
+} EntryArray;
+
+
+typedef struct unicode_string_array {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    UnicodeString *names;
+} UnicodeStringArray;
+
+#endif /* _UNISTRDEF_H_ */
 
 
 /*
