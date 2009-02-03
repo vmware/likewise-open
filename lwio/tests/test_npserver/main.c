@@ -67,9 +67,45 @@ NtConnectNamedPipe(
     );
 
 static
-VOID
+PVOID
 ServerPipeThread(
     IO_FILE_HANDLE FileHandle
+    );
+
+static
+NTSTATUS
+HandleSignals(
+    VOID
+    );
+
+static
+VOID
+InterruptHandler(
+    int sig
+    );
+
+static
+NTSTATUS
+BlockSignals(
+    VOID
+    );
+
+static
+int
+GetNextSignal(
+    VOID
+    );
+
+static
+VOID
+GetBlockedSignals(
+    sigset_t* pBlockedSignals
+    );
+
+static
+VOID
+GetBlockedSignalsSansInterrupt(
+    sigset_t* pBlockedSignals
     );
 
 int
@@ -79,10 +115,11 @@ main(int argc,
 {
     ULONG i = 0;
     int nConnections = 0;
+    int nActiveConnections = 0;
     NTSTATUS ntStatus = 0;
     char *pipename = NULL;
     IO_FILE_HANDLE  FileHandles[100];
-    pthread_t thread;
+    pthread_t* pThreadArray = NULL;
 
     memset(FileHandles, 0, sizeof(FileHandles));
 
@@ -101,7 +138,17 @@ main(int argc,
         exit(1);
     }
 
-    for (i = 0; i < nConnections; i++){
+    ntStatus = BlockSignals();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBAllocateMemory(
+                    sizeof(pthread_t) * nConnections,
+                    (PVOID*)&pThreadArray);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (i = 0; i < nConnections; i++)
+    {
+        pthread_t* pThread = &pThreadArray[i];
 
         ntStatus = CreateServerConnection(
                             pipename,
@@ -109,13 +156,37 @@ main(int argc,
                             );
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pthread_create(&thread, NULL, (void *)&ServerPipeThread, &FileHandles[i]);
+        ntStatus = LwUnixErrnoToNtStatus(pthread_create(pThread, NULL, (void *)&ServerPipeThread, &FileHandles[i]));
+        BAIL_ON_NT_STATUS(ntStatus);
 
+        nActiveConnections++;
     }
+
+    ntStatus = HandleSignals();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (nActiveConnections)
+    {
+        int iConnection = 0;
+
+        for(; iConnection < nActiveConnections; iConnection++)
+        {
+            pthread_t* pThread = &pThreadArray[iConnection];
+
+            // TODO: Need these threads to be interruptible
+            pthread_join(*pThread, NULL);
+        }
+
+        SMBFreeMemory(pThreadArray);
+    }
+
+    return ntStatus;
 
 error:
 
-    return(0);
+    goto cleanup;
 }
 
 static
@@ -188,17 +259,19 @@ CreateServerConnection(
 
     *pFileHandle = FileHandle;
 
+cleanup:
+
     return(ntStatus);
 
 error:
 
     *pFileHandle = NULL;
 
-    return(ntStatus);
+    goto cleanup;
 }
 
 static
-VOID
+PVOID
 ServerPipeThread(
     IO_FILE_HANDLE FileHandle
     )
@@ -213,9 +286,9 @@ ServerPipeThread(
 
     while (1) {
 
-
         memset(InBuffer, 0, sizeof(InBuffer));
         InLength = sizeof(InBuffer);
+
         ntStatus = NtReadFile(
                         FileHandle,
                         NULL,
@@ -229,7 +302,6 @@ ServerPipeThread(
 
         InBytesRead = io_status.BytesTransferred;
 
-
         ntStatus = NtWriteFile(
                         FileHandle,
                         NULL,
@@ -240,17 +312,22 @@ ServerPipeThread(
                         NULL
                         );
         BAIL_ON_NT_STATUS(ntStatus);
-        OutBytesWritten = io_status.BytesTransferred;
 
+        OutBytesWritten = io_status.BytesTransferred;
     }
 
-    NtCloseFile(FileHandle);
+cleanup:
 
+    if (FileHandle)
+    {
+        NtCloseFile(FileHandle);
+    }
 
+    return NULL;
 
 error:
 
-    return;
+    goto cleanup;
 }
 
 static
@@ -275,4 +352,125 @@ NtConnectNamedPipe(
                     );
     return(ntStatus);
 }
+
+static
+NTSTATUS
+HandleSignals(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bDone = FALSE;
+    struct sigaction action;
+    sigset_t catch_signal_mask;
+
+    // After starting up threads, we now want to handle SIGINT async
+    // instead of using sigwait() on it.  The reason for this is so
+    // that a debugger (such as gdb) can break in properly.
+    // See http://sourceware.org/ml/gdb/2007-03/msg00145.html and
+    // http://bugzilla.kernel.org/show_bug.cgi?id=9039.
+
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = InterruptHandler;
+
+    if (sigaction(SIGINT, &action, NULL) != 0)
+    {
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // Unblock SIGINT
+    sigemptyset(&catch_signal_mask);
+    sigaddset(&catch_signal_mask, SIGINT);
+
+    ntStatus = LwUnixErrnoToNtStatus(pthread_sigmask(SIG_UNBLOCK, &catch_signal_mask, NULL));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    while (!bDone)
+    {
+        switch (GetNextSignal())
+        {
+            case SIGINT:
+            case SIGTERM:
+
+                bDone = TRUE;
+                break;
+
+            default:
+
+                break;
+        }
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+VOID
+InterruptHandler(
+    int sig
+    )
+{
+    if (sig == SIGINT)
+    {
+        raise(SIGTERM);
+    }
+}
+
+static
+NTSTATUS
+BlockSignals(
+    VOID
+    )
+{
+    sigset_t blockedSignals;
+
+    GetBlockedSignals(&blockedSignals);
+
+    return LwUnixErrnoToNtStatus(pthread_sigmask(SIG_BLOCK, &blockedSignals, NULL));
+}
+
+static
+int
+GetNextSignal(
+    VOID
+    )
+{
+    sigset_t blockedSignals;
+    int sig = 0;
+
+    GetBlockedSignalsSansInterrupt(&blockedSignals);
+
+    sigwait(&blockedSignals, &sig);
+
+    return sig;
+}
+
+static
+VOID
+GetBlockedSignals(
+    sigset_t* pBlockedSignals
+    )
+{
+    sigemptyset(pBlockedSignals);
+    sigaddset(pBlockedSignals, SIGTERM);
+    sigaddset(pBlockedSignals, SIGINT);
+    sigaddset(pBlockedSignals, SIGPIPE);
+    sigaddset(pBlockedSignals, SIGHUP);
+}
+
+static
+VOID
+GetBlockedSignalsSansInterrupt(
+    sigset_t* pBlockedSignals
+    )
+{
+    sigemptyset(pBlockedSignals);
+    sigaddset(pBlockedSignals, SIGTERM);
+    sigaddset(pBlockedSignals, SIGPIPE);
+    sigaddset(pBlockedSignals, SIGHUP);
+}
+
 
