@@ -28,6 +28,7 @@
  * license@likewisesoftware.com
  */
 
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -43,6 +44,7 @@
 #include <compat/rpcstatus.h>
 
 #include <wc16str.h>
+#include <lw/ntstatus.h>
 #include <srvsvcbinding.h>
 //#include <lwrpc/unicodestring.h>
 //#include <lwrpc/allocate.h>

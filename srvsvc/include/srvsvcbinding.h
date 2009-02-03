@@ -46,7 +46,6 @@
 # define CHAR_T  unsigned char
 #endif
 
-
 RPCSTATUS InitSrvSvcBindingDefault(handle_t *binding, const CHAR_T *hostname);
 RPCSTATUS InitSrvSvcBindingFull();
 RPCSTATUS FreeSrvSvcBinding();

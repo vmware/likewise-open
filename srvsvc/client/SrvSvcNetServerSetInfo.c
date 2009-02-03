@@ -28,25 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-
-#ifdef __GNUC__
-#include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
-
-#include "srvsvc_h.h"
-
-#include <wc16str.h>
-
-#include "SrvSvcUtil.h"
+#include "includes.h"
 
 NET_API_STATUS NetServerSetInfo(
     handle_t b,

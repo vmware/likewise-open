@@ -39,8 +39,6 @@
 
 #include "includes.h"
 
-#define ERROR_NOT_SUPPORTED 50
-
 void _srvsvc_Function0(
     /* [in] */ handle_t IDL_handle
     )
@@ -100,7 +98,21 @@ NET_API_STATUS _NetrConnectionEnum(
     /* [in, out] */ uint32 *resume_handle
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+#if 0
+    dwError = SrvSvcNetConnectionEnum(
+                    server_name,
+                    qualifier,
+                    level,
+                    ctr,
+                    prefered_maximum_length,
+                    total_entries,
+                    resume_handle
+                    );
+#endif
+
+    return dwError;
 }
 
 NET_API_STATUS _NetrFileEnum(
@@ -115,7 +127,19 @@ NET_API_STATUS _NetrFileEnum(
     /* [in, out] */ uint32 *resume_handle
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetFileEnum(
+                    server_name,
+                    basepath,
+                    username,
+                    level,
+                    ctr,
+                    prefered_maximum_length,
+                    total_entries,
+                    resume_handle
+                    );
+    return(dwError);
 }
 
 NET_API_STATUS _NetrFileGetInfo(
@@ -126,7 +150,15 @@ NET_API_STATUS _NetrFileGetInfo(
     /* [out] */ srvsvc_NetFileInfo *info
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetFileGetInfo(
+                    server_name,
+                    fileid,
+                    level,
+                    info
+                    );
+    return dwError;
 }
 
 NET_API_STATUS _NetrFileClose(
@@ -135,7 +167,13 @@ NET_API_STATUS _NetrFileClose(
     /* [in] */ uint32 fileid
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetFileClose(
+                    server_name,
+                    fileid
+                    );
+    return(dwError);
 }
 
 NET_API_STATUS _NetrSessionEnum(
@@ -150,7 +188,19 @@ NET_API_STATUS _NetrSessionEnum(
     /* [in, out] */ uint32 *resume_handle
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetSessionEnum(
+                    server_name,
+                    unc_client_name,
+                    username,
+                    level,
+                    ctr,
+                    prefered_maximum_length,
+                    total_entries,
+                    resume_handle
+                    );
+    return dwError;
 }
 
 void _srvsvc_FunctionD(
@@ -167,7 +217,15 @@ NET_API_STATUS _NetrShareAdd(
     /* [in, out] */ uint32 *parm_error
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetShareAdd(
+                    server_name,
+                    level,
+                    info,
+                    parm_error
+                    );
+    return dwError;
 }
 
 NET_API_STATUS _NetrShareEnum(
@@ -180,7 +238,17 @@ NET_API_STATUS _NetrShareEnum(
     /* [in, out] */ uint32 *resume_handle
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetShareEnum(
+                    server_name,
+                    level,
+                    ctr,
+                    prefered_maximum_length,
+                    total_entries,
+                    resume_handle
+                    );
+    return dwError;
 }
 
 NET_API_STATUS _NetrShareGetInfo(
@@ -235,6 +303,13 @@ NET_API_STATUS _NetrServerGetInfo(
     /* [out] */ srvsvc_NetSrvInfo *info
     )
 {
+    DWORD dwError = 0;
+
+    dwError= SrvSvcNetServerGetInfo(
+                        server_name,
+                        level,
+                        info
+                    );
     return ERROR_NOT_SUPPORTED;
 }
 
@@ -246,7 +321,16 @@ NET_API_STATUS _NetrServerSetInfo(
     /* [in, out] */ uint32 *parm_error
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetServerSetInfo(
+                    server_name,
+                    level,
+                    info,
+                    parm_error
+                    );
+    return dwError;
+
 }
 
 void _srvsvc_Function17(
@@ -285,6 +369,12 @@ NET_API_STATUS _NetrRemoteTOD(
     /* [out] */ TIME_OF_DAY_INFO **info
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetRemoteTOD(
+                    server_name,
+                    info
+                    );
+    return dwError;
 }
 

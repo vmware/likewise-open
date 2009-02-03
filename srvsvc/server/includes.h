@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -36,10 +36,8 @@
  * SrvSvc Server
  *
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include <config.h>
+#include <srvsvcsys.h>
 
 #ifdef __GNUC__
 #include <dce/rpc.h>
@@ -50,7 +48,21 @@
 #include <compat/dcerpc.h>
 #include <compat/rpcstatus.h>
 
-#include "srvsvc_h.h"
-
 #include <wc16str.h>
+
+#include <lw/ntstatus.h>
+
+#include <lwio/lwio.h>
+#include <lwio/ntfileapi.h>
+
+#include <srvsvcdefs.h>
+#include <srvsvcutils.h>
+#include <srvsvc_stub.h>
+
+#include "defs.h"
+#include "structs.h"
+#include "marshall.h"
+#include "memutil.h"
+
+#include "externs.h"
 

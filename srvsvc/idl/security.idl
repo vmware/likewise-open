@@ -4,95 +4,51 @@
 cpp_quote("#ifndef _GEN_SECURITY_H_")
 cpp_quote("#define _GEN_SECURITY_H_")
 
-#include <security.h>
-
-/* Including header file in idl processing leads to providing
-   enclosed definitions but losing preprocessor #defines at
-   the same time. We're supplying them again here because defined
-   macros are needed later when including public headers along
-   with dceidl-generated files */
-
-cpp_quote("#define WCHAR16_H")
-cpp_quote("#define DEFINED_UINT32")
-cpp_quote("#define NTSTATUS_DEFINED")
-cpp_quote("#define WINERR_DEFINED")
-cpp_quote("#define NTTIME_DEFINED")
-cpp_quote("#define UNISTR_DEFINED")
-
-
-typedef struct ids {
-	[range(0,1024)] uint32 count;
-	[size_is(count)] uint32 *ids;
-} Ids;
+#include <secdesc/phdef.h>
+#include <secdesc/siddef.h>
+#include <secdesc/sdflags.h>
 
 
 typedef [switch_type(uint32)] union sec_ace_object_type {
-	[case(SEC_ACE_OBJECT_TYPE_PRESENT)] Guid type;
+    [case(SEC_ACE_OBJECT_TYPE_PRESENT)] Guid type;
 } SecAceObjectType;
 
 typedef [switch_type(uint32)] union sec_ace_object_inherited_type {
-	[case(SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT)] Guid inherited_type;
+    [case(SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT)] Guid inherited_type;
 } SecAceObjectInheritedType;
 
 typedef struct sec_ace_object {
-	uint32 flags; /* security ace object flags */
+    uint32 flags; /* security ace object flags */
 
-	/* flags & SEC_ACE_OBJECT_TYPE_PRESENT  */
-	[switch_is(flags)] SecAceObjectType type;                   
-	/* flags & SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT */
-	[switch_is(flags)] SecAceObjectInheritedType inherited_type;
+    /* flags & SEC_ACE_OBJECT_TYPE_PRESENT  */
+    [switch_is(flags)] SecAceObjectType type;
+    /* flags & SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT */
+    [switch_is(flags)] SecAceObjectInheritedType inherited_type;
 } SecAceObject;
 
 typedef [switch_type(uint8)] union sec_ace_object_ctr {
-	[case(SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT)] SecAceObject object_allowed;
-	[case(SEC_ACE_TYPE_ACCESS_DENIED_OBJECT)] SecAceObject object_denied;
-	[case(SEC_ACE_TYPE_SYSTEM_AUDIT_OBJECT)] SecAceObject object_audit;
-	[case(SEC_ACE_TYPE_SYSTEM_ALARM_OBJECT)] SecAceObject object_alarm;
+    [case(SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT)] SecAceObject object_allowed;
+    [case(SEC_ACE_TYPE_ACCESS_DENIED_OBJECT)] SecAceObject object_denied;
+    [case(SEC_ACE_TYPE_SYSTEM_AUDIT_OBJECT)] SecAceObject object_audit;
+    [case(SEC_ACE_TYPE_SYSTEM_ALARM_OBJECT)] SecAceObject object_alarm;
 } SecAceObjectCtr;
 
-typedef struct sec_ace {
-	uint8 sec_ace_type;      /* security ace types */
-	uint8 sec_ace_flags;     /* security ace flags */
-	uint16 size;
-	uint32 access_mask;
-	[switch_is(sec_ace_type)] SecAceObjectCtr object;
-	DomSid trustee;
-} SecAce;
 
-typedef struct sec_acl {
-	uint16 revision;
-	uint16 size;
-	[range(0,1000)] uint32 num_aces;
-	SecAce *aces;  /* we need aces[num_aces] here */
-} SecAcl;
-
-typedef struct security_descriptor {
-	uint8 revision;
-	uint16 type;
-	DomSid *owner;
-	DomSid *group;
-	SecAcl *sacl;
-	SecAcl *dacl;
-} SecDesc;
-
-typedef struct qos_info {
-	uint32 len;
-	uint16 impersonation_level;
-	uint8 context_mode;
-	uint8 effective_only;
-} QosInfo;
-
-typedef struct object_attribute {
-	uint32 len;
-	uint8 *root_dir;
-	[string] wchar16_t *object_name;
-	uint32 attributes;
-	SecDesc *sec_desc;
-	QosInfo *sec_qos;
-} ObjectAttribute;
-
+/* Include the rest of public security descriptor definitions
+   depending on SecAceObjectCtr */
+#include <secdesc/sddef.h>
 
 cpp_quote("#endif /* _GEN_SECURITY_H_ */")
 
 
 #endif /* _SECURITY_IDL_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

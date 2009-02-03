@@ -34,16 +34,12 @@
 //#include <lwrpc/ntstatus.h>
 //#include <lwrpc/winerror.h>
 #include <compat/rpcstatus.h>
+#include <lw/ntstatus.h>
 #include <types.h>
 
 #define SAFE_FREE(ptr)  do { if (ptr) free(ptr); (ptr) = NULL; } while (0)
 
 #define NTSTATUS_CODE(status) ((NTSTATUS)(0xc0000000 | (status)))
-
-#define STATUS_SUCCESS               ((NTSTATUS)(0x00000000))
-#define STATUS_INVALID_PARAMETER     (NTSTATUS_CODE(0x000d))
-#define STATUS_NO_MEMORY             (NTSTATUS_CODE(0x0017))
-#define STATUS_UNSUCCESSFUL          (NTSTATUS_CODE(0x0001))
 
 #define ERROR_SUCCESS 0
 #define ERROR_FILE_NOT_FOUND 2
