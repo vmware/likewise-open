@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,60 +28,36 @@
  * license@likewisesoftware.com
  */
 
-
- 
 /*
- * Copyright (C) Likewise Software. All rights reserved.
+ * Abstract: Lsa interface (rpc server library)
  *
- * Module Name:
- *
- *        lsadef.h
- *
- * Abstract:
- *
- *        Likewise Security and Authentication Subsystem (LSASS) Client/Server common definitions
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
-#ifndef __LSADEF_H__
-#define __LSADEF_H__
 
-#include <lw/types.h>
-#include <lw/attrs.h>
+#ifndef _EXTERNS_H_
+#define _EXTERNS_H_
 
-#define LSASS_API
+extern pthread_mutex_t gLsaDataMutex;
 
-#define LSA_SECONDS_IN_MINUTE (60)
-#define LSA_SECONDS_IN_HOUR   (60 * LSA_SECONDS_IN_MINUTE)
-#define LSA_SECONDS_IN_DAY    (24 * LSA_SECONDS_IN_HOUR)
+extern int bLsaInitialised;
 
-#define LSA_MAX_USER_NAME_LENGTH  256
-#define LSA_MAX_GROUP_NAME_LENGTH 256
 
-#ifndef LSA_MAX
-#define LSA_MAX(a, b) (((a) > (b)) ? (a) : (b))
-#endif
+extern PCSTR gpszRpcSrvName;
 
-#ifndef LSA_MIN
-#define LSA_MIN(a, b) (((a) < (b)) ? (a) : (b))
-#endif
+extern LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable;
 
-#ifndef WIN32
-#define PATH_SEPARATOR_STR "/"
-#else
-#define PATH_SEPARATOR_STR "\\"
-#endif
+extern rpc_binding_vector_p_t gpLsaSrvBinding;
 
-#if defined(HAVE_SOCKLEN_T) && defined(GETSOCKNAME_TAKES_SOCKLEN_T)
-#    define SOCKLEN_T socklen_t
-#else
-#    define SOCKLEN_T int
-#endif
 
-typedef int             SOCKET;
+#endif /* _EXTERNS_H_ */
 
-#define LW_ASSERT(x)   assert( (x) )
 
-#endif /* __LSADEF_H__ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

@@ -49,6 +49,7 @@
 #ifndef __LSAKRB5_H__
 #define __LSAKRB5_H__
 
+#include <uuid/uuid.h>
 #include <lwrpc/krb5pac.h>
 
 typedef enum

@@ -57,7 +57,7 @@
 #include <eventlog.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>
-#include <lwrdr/lwrdr.h>
+#include <lwio/lwio.h>
 
 #include "lsautils.h"
 #include "lsaunistr.h"

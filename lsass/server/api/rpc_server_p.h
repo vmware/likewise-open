@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,70 +33,96 @@
  *
  * Module Name:
  *
- *        tests.h
+ *        rpc_server_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Test helper function declarations
+ *        Remote Procedure Call (RPC) Server Interface
  *
- * Authors: Kyle Stemen <kstemen@likewisesoftware.com>
- *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef LSASS_TESTS_H
-#define LSASS_TESTS_H
+#ifndef _RPC_SERVER_P_H_
+#define _RPC_SERVER_P_H_
 
-#include "config.h"
-#include <stdarg.h>
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#include <lsa/lsa.h>
-#include <lsautils.h>
+#define LSA_CFG_TAG_RPC_SERVER   "rpc server:"
 
-BOOL
-RunConnectDisconnect(
-    IN PVOID unused
+typedef struct lsa_rpc_server {
+    PSTR                        pszSrvLibPath;
+    PSTR                        pszName;
+    PVOID                       phLib;
+    PFNSHUTDOWNRPCSRV           pfnShutdownSrv;
+    PLSA_RPCSRV_FUNCTION_TABLE  pfnTable;
+    struct lsa_rpc_server       *pNext;
+} LSA_RPC_SERVER, *PLSA_RPC_SERVER;
+
+
+DWORD
+LsaInitRpcServers(
+    PCSTR pszConfigFilePath
     );
 
-typedef struct _FIND_STATE
-{
-    uid_t Uid;
-    HANDLE Connection;
-} FIND_STATE;
-
-BOOL
-SetupFindUserById(
-    IN PVOID username,
-    OUT PVOID *ppvFindState
-    );
-
-BOOL
-RunFindUserById(
-    IN PVOID pvState
-    );
 
 void
-CleanupFindUserById(
-    IN PVOID pvState
+LsaRpcFreeServer(
+    PLSA_RPC_SERVER pSrv
     );
 
-BOOL
-SetupConnectLsass(
-    IN PVOID username,
-    OUT PVOID *pHandle
-    );
-
-BOOL
-RunGetLogLevel(
-    IN PVOID handle
-    );
 
 void
-CleanupConnectLsass(
-    IN PVOID handle
+LsaRpcFreeServerList(
+    PLSA_RPC_SERVER pRpcServerList
     );
 
-#endif
+
+DWORD
+LsaCfgFreeRpcServerInStack(
+    PVOID pItem,
+    PVOID pUserData
+    );
+
+
+DWORD
+LsaRpcValidateServer(
+    PLSA_RPC_SERVER pRpc
+    );
+
+
+DWORD
+LsaRpcServerConfigStartSection(
+    PCSTR    pszSectionName,
+    PVOID    pData,
+    PBOOLEAN pbSkipSection,
+    PBOOLEAN pbContinue
+    );
+
+
+DWORD
+LsaRpcServerConfigNameValuePair(
+    PCSTR    pszName,
+    PCSTR    pszValue,
+    PVOID    pData,
+    PBOOLEAN pbContinue
+    );
+
+
+DWORD
+LsaCheckInvalidRpcServer(
+    PVOID pSymbol,
+    PCSTR pszLibPath
+    );
+
+
+#endif /* _RPC_SERVER_P_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

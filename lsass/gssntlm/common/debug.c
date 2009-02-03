@@ -317,7 +317,7 @@ NTLMDumpNegotiateFlags(
     if (msg)
         DBG(lvl,("%s\n", msg));
 
-    DBG(lvl, ("negflags = 0x%lx\n", flags));
+    DBG(lvl, ("negflags = 0x%lx\n", (unsigned long) flags));
     if (flags & NEGOTIATE_UNICODE)
         DBG(lvl,(" unicode | "));
     if (flags & NEGOTIATE_OEM)
@@ -361,7 +361,7 @@ NTLMDumpNegotiateFlags(
     if (flags & CHALLENGE_ACCEPT_RESPONSE)             
         DBG(lvl,("challenge accept response | "));
     if (flags & ~NEGOTIATE_KNOWN) /*@todo - switch this back to lvl */
-        DBG(D_ERROR, ("unknown bits - 0x%lx\n", (flags & ~NEGOTIATE_KNOWN))); 
+        DBG(D_ERROR, ("unknown bits - 0x%lx\n", (unsigned long) (flags & ~NEGOTIATE_KNOWN)));
 
     DBG(lvl, ("\n\n"));
 

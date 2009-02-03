@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,70 +33,67 @@
  *
  * Module Name:
  *
- *        tests.h
+ *        lsarpcsrv.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Test helper function declarations
+ *        Remote Procedure Call (RPC) Server Interface
  *
- * Authors: Kyle Stemen <kstemen@likewisesoftware.com>
- *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef LSASS_TESTS_H
-#define LSASS_TESTS_H
+#ifndef __LSARPCSRV_H__
+#define __LSARPCSRV_H__
 
-#include "config.h"
-#include <stdarg.h>
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#include <lsa/lsa.h>
-#include <lsautils.h>
+#include "lsautils.h"
 
-BOOL
-RunConnectDisconnect(
-    IN PVOID unused
+
+typedef DWORD (*PFNSTARTRPCSRV)(void);
+
+typedef DWORD (*PFNSTOPRPCSRV)(void);
+
+
+typedef struct rpcsrv_function_table {
+    PFNSTARTRPCSRV          pfnStart;
+    PFNSTOPRPCSRV           pfnStop;
+} LSA_RPCSRV_FUNCTION_TABLE, *PLSA_RPCSRV_FUNCTION_TABLE;
+
+
+#define LSA_SYMBOL_NAME_INITIALIZE_RPCSRV    "LsaInitializeRpcSrv"
+
+typedef DWORD (*PFNINITIALIZERPCSRV)(
+    PCSTR pszConfigFilePath,
+    PSTR* ppszRpcSrvName,
+    PLSA_RPCSRV_FUNCTION_TABLE* ppFnTable
     );
 
-typedef struct _FIND_STATE
-{
-    uid_t Uid;
-    HANDLE Connection;
-} FIND_STATE;
+#define LSA_SYMBOL_NAME_SHUTDOWN_RPCSRV      "LsaShutdownRpcSrv"
 
-BOOL
-SetupFindUserById(
-    IN PVOID username,
-    OUT PVOID *ppvFindState
+typedef DWORD (*PFNSHUTDOWNRPCSRV)(
+    PCSTR pszProviderName,
+    PLSA_RPCSRV_FUNCTION_TABLE pFnTable
     );
 
-BOOL
-RunFindUserById(
-    IN PVOID pvState
-    );
 
-void
-CleanupFindUserById(
-    IN PVOID pvState
-    );
+#define BAIL_ON_DCERPC_ERROR(st)                            \
+    if ((st) != rpc_s_ok) {                                 \
+        LSA_LOG_DEBUG("DCE/RPC error at %s:%d [0x%08x]\n",  \
+                      __FILE__, __LINE__, (st));            \
+        dwError = LSA_ERROR_DCERPC_ERROR;                   \
+        goto error;                                         \
+    }
 
-BOOL
-SetupConnectLsass(
-    IN PVOID username,
-    OUT PVOID *pHandle
-    );
 
-BOOL
-RunGetLogLevel(
-    IN PVOID handle
-    );
+#endif /* __LSARPCSRV_H__ */
 
-void
-CleanupConnectLsass(
-    IN PVOID handle
-    );
 
-#endif
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

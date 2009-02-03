@@ -48,7 +48,7 @@
 #include "adprovider.h"
 #include "adnetapi.h"
 
-static HANDLE ghSchannelAuthToken = NULL;
+static PIO_ACCESS_TOKEN ghSchannelAuthToken = NULL;
 static NetrCredentials gSchannelCreds = { 0 };
 static NetrCredentials* gpSchannelCreds = NULL;
 static NETRESOURCE gSchannelRes = { 0 };
@@ -299,7 +299,7 @@ AD_NetLookupObjectSidsByNames(
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
 
-    rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
+    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
     if (rpcStatus != 0)
     {
        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
@@ -432,17 +432,17 @@ AD_NetLookupObjectSidsByNames(
               SidFree(pObject_sid);
               pObject_sid = NULL;
         }
-        SidAllocateResizedCopy(&pObject_sid,
+        RtlSidAllocateResizedCopy(&pObject_sid,
                                pDom_sid->subauth_count + 1,
                                pDom_sid);
         pObject_sid->subauth[pObject_sid->subauth_count - 1] = pSids[i].rid;
 
         if (pwcObjectSid)
         {
-            SidFreeString(pwcObjectSid);
+            SidStrFreeW(pwcObjectSid);
             pwcObjectSid = NULL;
         }
-        dwError = SidToString(pObject_sid,
+        dwError = SidToStringW(pObject_sid,
                               &pwcObjectSid);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -486,7 +486,7 @@ cleanup:
     }
     if (pwcObjectSid)
     {
-        SidFreeString(pwcObjectSid);
+        SidStrFreeW(pwcObjectSid);
     }
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0)
@@ -609,7 +609,7 @@ AD_NetLookupObjectNamesBySids(
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
 
-    rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
+    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
     if (rpcStatus != 0)
     {
        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
@@ -632,7 +632,7 @@ AD_NetLookupObjectNamesBySids(
 
     for (i = 0; i < sid_array.num_sids; i++)
     {
-        status = ParseSidString(
+        status = ParseSidStringA(
                         &pObjectSID,
                         ppszObjectSids[i]);
         if (status != 0)
@@ -936,7 +936,7 @@ AD_SidToString(
     PSTR  pszSid = NULL;
     wchar16_t* pwszSid = NULL;
 
-    dwError = SidToString(pSid, &pwszSid);
+    dwError = SidToStringW(pSid, &pwszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaWc16sToMbs(
@@ -950,7 +950,7 @@ cleanup:
 
     if (pwszSid)
     {
-        SidFreeString(pwszSid);
+        SidStrFreeW(pwszSid);
     }
 
     return dwError;
@@ -1287,17 +1287,16 @@ AD_NetlogonAuthenticationUserEx(
 
         if (ghSchannelAuthToken)
         {
-            SMBCloseHandle(NULL, ghSchannelAuthToken);
+            LwIoDeleteAccessToken(ghSchannelAuthToken);
             ghSchannelAuthToken = NULL;
         }
 
-        dwError = SMBCreateKrb5AccessTokenW(pMachAcctInfo->pwszMachineAccount,
+        dwError = LwIoCreateKrb5AccessTokenW(pMachAcctInfo->pwszMachineAccount,
                                             pwszCcachePath,
                                             &ghSchannelAuthToken);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = SMBAccessTokenSetSchannel(ghSchannelAuthToken);
-        BAIL_ON_LSA_ERROR(dwError);
+        /* FIXME: Re-implement mechanism to set token as schannel-specific */
 
         ghSchannelBinding = OpenSchannel(netr_b,
                                          pMachAcctInfo->pwszMachineAccount,
@@ -1335,7 +1334,7 @@ AD_NetlogonAuthenticationUserEx(
     if (pUserParams->pass.chap.pNT_resp)
         pNTResp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
 
-    dwError = SMBSetThreadToken(ghSchannelAuthToken);
+    dwError = LwIoSetThreadAccessToken(ghSchannelAuthToken);
     BAIL_ON_LSA_ERROR(dwError);
 
     nt_status = NetrSamLogonNetwork(ghSchannelBinding,
@@ -1352,7 +1351,7 @@ AD_NetlogonAuthenticationUserEx(
                                     &pValidationInfo,
                                     &dwAuthoritative);
 
-    dwError = SMBSetThreadToken(NULL);
+    dwError = LwIoSetThreadAccessToken(NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (nt_status != STATUS_SUCCESS)
@@ -1429,7 +1428,7 @@ AD_ClearSchannelState(
 
     if (ghSchannelAuthToken)
     {
-        SMBCloseHandle(NULL, ghSchannelAuthToken);
+        LwIoDeleteAccessToken(ghSchannelAuthToken);
         ghSchannelAuthToken = NULL;
     }
 

@@ -52,7 +52,7 @@
 #include <sqlite3.h>
 #include "lsautils.h"
 #include <uuid/uuid.h>
-#include <lwrpc/sidhelper.h>
+#include <secdesc/secdesc.h>
 #include <eventlog.h>
 #include "lsasrvutils.h"
 

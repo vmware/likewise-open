@@ -603,7 +603,7 @@ AD_PacRidsToSidStringList(
                                 (PVOID*)&ppszSidList);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SidAllocateResizedCopy(
+    dwError = RtlSidAllocateResizedCopy(
                     &pDomainBasedSid,
                     pDomainSid->subauth_count + 1,
                     pDomainSid);
