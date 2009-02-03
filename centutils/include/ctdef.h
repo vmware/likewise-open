@@ -58,85 +58,8 @@
 #define __CTDEF_H__
 
 #ifndef WIN32
-
-#ifndef DWORD_DEFINED
-typedef uint32_t DWORD, *PDWORD;
-#define DWORD_DEFINED 1
-#endif
-
-#ifndef LONG_DEFINED
-/* BUGBUG - LONG is always 32-bits on Windows */
-typedef long     LONG, *PLONG;
-#define LONG_DEFINED 1
-#endif
-
-#ifndef WORD_DEFINED
-typedef short WORD, *PWORD;
-#define WORD_DEFINED 1
-#endif
-
-#ifndef BYTE_DEFINED
-typedef unsigned char BYTE, *PBYTE;
-#define BYTE_DEFINED 1
-#endif
-
-#ifndef HANDLE_DEFINED
-/* BUGBUG - HANDLE should be an opaque struct poniter type */
-typedef unsigned long HANDLE, *PHANDLE;
-#define HANDLE_DEFINED 1
-#endif
-
-#ifndef CHAR_DEFINED
-typedef char CHAR;
-#define CHAR_DEFINED 1
-#endif
-
-#ifndef PSTR_DEFINED
-typedef char * PSTR;
-#define PSTR_DEFINED 1
-#endif
-
-#ifndef PCSTR_DEFINED
-typedef const char * PCSTR;
-#define PCSTR_DEFINED 1
-#endif
-
-#ifndef SOCKET_DEFINED
-typedef int SOCKET;
-#define SOCKET_DEFINED 1
-#endif
-
-#ifndef SOCKADDR_IN_DEFINED
-typedef struct sockaddr_in SOCKADDR_IN;
-#define SOCKADDR_IN_DEFINED 1
-#endif
-
-#ifndef SOCKADDR_DEFINED
-typedef struct sockaddr SOCKADDR, *PSOCKADDR;
-#define SOCKADDR_DEFINED 1
-#endif
-
-#ifndef VOID_DEFINED
-typedef void VOID, *PVOID;
-#define VOID_DEFINED 1
-#endif
-
-#ifndef HKEY_DEFINED
-/* BUGBUG - HKEY should be an opaque struct pointer */
-typedef PVOID HKEY, *PHKEY;
-#define HKEY_DEFINED 1
-#endif
-
-#ifndef BOOLEAN_DEFINED
-typedef int32_t BOOLEAN, *PBOOLEAN;
-#define BOOLEAN_DEFINED 1
-#endif
-
-#ifndef ULONG_DEFINED
-typedef uint32_t ULONG, *PULONG;
-#define ULONG_DEFINED 1
-#endif
-
+#include <lw/types.h>
+#include <lw/attrs.h>
 #endif
 
 /*
