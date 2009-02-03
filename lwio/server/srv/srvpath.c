@@ -38,11 +38,7 @@ SrvBuildFilePath(
 
     if (len_suffix && *pwszSuffix && (*pwszSuffix != wszFwdSlash) && (*pwszSuffix != wszBackSlash))
     {
-#ifdef _WIN32
         len_separator = sizeof(wszBackSlash);
-#else
-        len_separator = sizeof(wszFwdSlash);
-#endif
     }
 
     ntStatus = SMBAllocateMemory(
@@ -58,11 +54,7 @@ SrvBuildFilePath(
 
     if (len_separator)
     {
-#ifdef _WIN32
         *pDataCursor++ = wszBackSlash;
-#else
-        *pDataCursor++ = wszFwdSlash;
-#endif
     }
 
     while (pwszSuffix && *pwszSuffix)
@@ -73,17 +65,10 @@ SrvBuildFilePath(
     pDataCursor = pwszFilename;
     while (pDataCursor && *pDataCursor)
     {
-#ifdef _WIN32
         if (*pDataCursor == wszFwdSlash)
         {
             *pDataCursor = wszBackSlash;
         }
-#else
-        if (*pDataCursor == wszBackSlash)
-        {
-            *pDataCursor = wszFwdSlash;
-        }
-#endif
         pDataCursor++;
     }
 

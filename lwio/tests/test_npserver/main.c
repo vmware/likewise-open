@@ -53,18 +53,20 @@
 #include "lwiodef.h"
 #include "lwioutils.h"
 
+static
 NTSTATUS
 CreateServerConnection(
-    char * pipename,
+    const char * pipename,
     IO_FILE_HANDLE * pFileHandle
     );
 
-
+static
 NTSTATUS
 NtConnectNamedPipe(
     IO_FILE_HANDLE FileHandle
     );
 
+static
 VOID
 ServerPipeThread(
     IO_FILE_HANDLE FileHandle
@@ -76,7 +78,7 @@ main(int argc,
     )
 {
     ULONG i = 0;
-    ULONG ulNumConnections = 0;
+    int nConnections = 0;
     NTSTATUS ntStatus = 0;
     char *pipename = NULL;
     IO_FILE_HANDLE  FileHandles[100];
@@ -84,13 +86,22 @@ main(int argc,
 
     memset(FileHandles, 0, sizeof(FileHandles));
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        printf("Usage: test_npserver <pipename>\n");
+        printf("Usage: test_npserver <pipename> <number of connections>\n");
         exit(1);
     }
 
-    for (i = 0; i < ulNumConnections; i++){
+    pipename = argv[1];
+    nConnections = atoi(argv[2]);
+
+    if (nConnections < 0)
+    {
+        printf("Usage: test_npserver <pipename> <number of connections>\n");
+        exit(1);
+    }
+
+    for (i = 0; i < nConnections; i++){
 
         ntStatus = CreateServerConnection(
                             pipename,
@@ -107,13 +118,13 @@ error:
     return(0);
 }
 
+static
 NTSTATUS
 CreateServerConnection(
-    char * pipename,
+    const char * pipename,
     IO_FILE_HANDLE * pFileHandle
     )
 {
-
     NTSTATUS ntStatus = 0;
     PSTR smbpath = NULL;
     //PIO_ACCESS_TOKEN acctoken = NULL;
@@ -127,6 +138,12 @@ CreateServerConnection(
     ULONG OutboundQuota = 0;
     LONG64 DefaultTimeOut = 0;
     IO_FILE_HANDLE FileHandle = 0;
+
+    if (!pipename || !*pipename)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_1;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,
@@ -180,8 +197,7 @@ error:
     return(ntStatus);
 }
 
-
-
+static
 VOID
 ServerPipeThread(
     IO_FILE_HANDLE FileHandle
@@ -237,8 +253,7 @@ error:
     return;
 }
 
-
-
+static
 NTSTATUS
 NtConnectNamedPipe(
     IO_FILE_HANDLE FileHandle
@@ -260,5 +275,4 @@ NtConnectNamedPipe(
                     );
     return(ntStatus);
 }
-
 
