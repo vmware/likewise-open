@@ -1721,8 +1721,11 @@ error:
     *psNumGroupsFound = 0;
     *piPrimaryGroupIndex = -1;
 
-     LSA_LOG_ERROR("Failed to find user's group memberships of UID=%d. [error code:%d]",
-                       pUserInfo->userInfo.uid, dwError);
+    if ( dwError != LSA_ERROR_DOMAIN_IS_OFFLINE )
+    {
+        LSA_LOG_ERROR("Failed to find user's group memberships of UID=%d. [error code:%d]",
+                      pUserInfo->userInfo.uid, dwError);
+    }
 
     LsaDbSafeFreeObjectList((DWORD)sNumGroupsFound, &ppGroupInfoList);
 

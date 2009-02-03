@@ -288,10 +288,13 @@ LWNetSendCreds(
     )
 {
     DWORD dwError = 0;
-    char payload = 0xff;
+    unsigned char payload[] = {0};
     int credFd = fd;
     struct iovec payload_vec = {0};
     struct msghdr msg = {0};
+    BYTE bFdTerminator = 1;
+    BYTE bServerReply = 0;
+    DWORD dwServerReplyLen = 0;
 
 #ifdef MSGHDR_HAS_MSG_CONTROL
     union
@@ -303,7 +306,7 @@ LWNetSendCreds(
 #endif
 
     /* Set up dummy payload */
-    payload_vec.iov_base = &payload;
+    payload_vec.iov_base = payload;
     payload_vec.iov_len = sizeof(payload);
     msg.msg_iov = &payload_vec;
     msg.msg_iovlen = 1;
@@ -324,13 +327,86 @@ LWNetSendCreds(
     msg.msg_accrightslen = sizeof(credFd);
 #endif
 
-    /* Send message */
-    dwError = LWNetSendMsg(fd, &msg);
-    BAIL_ON_LWNET_ERROR(dwError);
+    // Look at LWNetRecvCreds for a description of why the fd is sent in a loop
+    while (bServerReply == 0)
+    {
+        /* Send message */
+        dwError = LWNetSendMsg(fd, &msg);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetWriteData(
+                        fd,
+                        (PSTR)&bFdTerminator,
+                        sizeof(bFdTerminator));
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetReadData(
+                        fd,
+                        (PSTR)&bServerReply,
+                        sizeof(bServerReply),
+                        &dwServerReplyLen);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        if (dwServerReplyLen != 1 || bServerReply > 1)
+        {
+            dwError = EBADF;
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+
+        if (bServerReply == 0)
+        {
+            LWNET_LOG_WARNING("The local socket authentication message was not received by the server. Resending.");
+        }
+    }
 
 error:
 
     return dwError;
+}
+
+void
+LWNetFreeMessageControlFds(
+    struct msghdr *pMsg)
+{
+    int *pFds = NULL;
+#ifdef MSGHDR_HAS_MSG_CONTROL
+    struct cmsghdr *cmsg = NULL;
+    DWORD dwIndex = 0;
+
+    if (pMsg != NULL && (ssize_t)pMsg->msg_controllen > 0)
+    {
+        cmsg = CMSG_FIRSTHDR(pMsg);
+        while (cmsg)
+        {
+            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+            {
+                pFds = (int *)CMSG_DATA(cmsg);
+                for (dwIndex = 0;
+                    dwIndex*sizeof(pFds[0]) <
+                            cmsg->cmsg_len - ((char *)pFds - (char *)cmsg);
+                    dwIndex++)
+                {
+                    if (pFds[dwIndex] != -1)
+                    {
+                        close(pFds[dwIndex]);
+                        pFds[dwIndex] = -1;
+                    }
+                }
+            }
+            cmsg = CMSG_NXTHDR(pMsg, cmsg);
+        }
+    }
+#else
+    if (pMsg->msg_accrightslen == sizeof(int))
+    {
+        pFds = (int *)msg.msg_accrights;
+        if (pFds[0] != -1)
+        {
+            close(pFds[0]);
+            pFds[0] = -1;
+        }
+    }
+#endif
 }
 
 DWORD
@@ -340,7 +416,8 @@ LWNetRecvCreds(
     gid_t* pGid)
 {
     DWORD dwError = 0;
-    char payload = 0;
+    char payload[] = {0, 0};
+    // Do not free. This is copied from the control section of msg
     int credFd = -1;
     struct iovec payload_vec = {0};
     struct msghdr msg = {0};
@@ -357,24 +434,95 @@ LWNetRecvCreds(
     SOCKLEN_T localAddrLen = sizeof(localAddr);
     struct sockaddr_un credPeerAddr;
     SOCKLEN_T credPeerAddrLen = sizeof(credPeerAddr);
-
-    /* Set up area to receive dummy payload */
-    payload_vec.iov_base = &payload;
-    payload_vec.iov_len = sizeof(payload);
-    msg.msg_iov = &payload_vec;
-    msg.msg_iovlen = 1;
+    DWORD dwReadPayload = 0;
+    BYTE bReply = 0;
 
 #ifdef MSGHDR_HAS_MSG_CONTROL
-    /* Set up area to receive ancillary data */
+    /* Initialize the fd space to all -1 to indicate it does not have any
+     * fds in it.
+     */
+    memset(&buf_un, -1, sizeof(buf_un));
     msg.msg_control = buf_un.buf;
     msg.msg_controllen = sizeof(buf_un.buf);
-#else
-    msg.msg_accrights = (char*) &credFd;
-    msg.msg_accrightslen = sizeof(credFd);
 #endif
 
-    dwError = LWNetRecvMsg(fd, &msg);
+    /* sendmsg is used on the client side to send a file descriptor.
+     * Unfortunately, on RHEL 4, the function can fail without reporting
+     * any error on the client side. If sendmsg fails, then neither the
+     * iov data nor the control data is sent.
+     *
+     * To compensate for sendmsg, the lsass client follows this behavior:
+     * 1. Send fd and 0 (using sendmsg)
+     * 2. Send 1 (using send)
+     * 3. Read byte. If it is 0, go back to step 1
+     *
+     * The lsass server follows this behavior:
+     * 1. Read fd and byte
+     *      If byte is 0 -> reply with 1 and go to step 2
+     *      If byte is 1 -> reply with 0 and repeat step 1.
+     * 2. Read a 1 back from the client
+     */
+    while (bReply == 0)
+    {
+        /* Set up area to receive dummy payload */
+        payload_vec.iov_base = &payload;
+        payload_vec.iov_len = 1;
+        msg.msg_iov = &payload_vec;
+        msg.msg_iovlen = 1;
+
+#ifdef MSGHDR_HAS_MSG_CONTROL
+        /* Set up area to receive ancillary data */
+        msg.msg_control = buf_un.buf;
+        msg.msg_controllen = sizeof(buf_un.buf);
+#else
+        msg.msg_accrights = (char*) &credFd;
+        msg.msg_accrightslen = sizeof(credFd);
+#endif
+
+        dwError = LWNetRecvMsg(fd, &msg);
+        BAIL_ON_LWNET_ERROR(dwError);
+        if (msg.msg_iovlen < 1 || msg.msg_iov[0].iov_len < 1)
+        {
+            dwError = EBADF;
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+
+        switch (((char *)msg.msg_iov[0].iov_base)[0])
+        {
+            case 0:
+                bReply = 1;
+                break;
+            case 1:
+                LWNET_LOG_WARNING("The client did not send a local socket authentication message. Requesting a retry from the client.");
+                bReply = 0;
+                LWNetFreeMessageControlFds(&msg);
+                break;
+            default:
+                dwError = EBADF;
+                LWNET_LOG_ERROR("Received an invalid fd terminator of %X",
+                        ((char *)msg.msg_iov[0].iov_base)[0]);
+                BAIL_ON_LWNET_ERROR(dwError);
+        }
+
+        dwError = LWNetWriteData(
+            fd,
+            (PSTR)&bReply,
+            sizeof(bReply));
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    dwError = LWNetReadData(
+        fd,
+        payload,
+        1,
+        &dwReadPayload);
     BAIL_ON_LWNET_ERROR(dwError);
+
+    if (dwReadPayload != 1 || payload[0] != 1)
+    {
+        dwError = EBADF;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
 
     /* Extract credential fd */
     
@@ -429,15 +577,14 @@ LWNetRecvCreds(
 
 cleanup:
 
-    if (credFd != -1)
-        close(credFd);
+    LWNetFreeMessageControlFds(&msg);
 
     return dwError;
 
 error:
 	
-	*pUid = 0;
-	*pGid = 0;
+    *pUid = 0;
+    *pGid = 0;
 
-	goto cleanup;
+    goto cleanup;
 }

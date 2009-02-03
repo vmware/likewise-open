@@ -47,6 +47,7 @@
 #include <regex.h>
 #include <sys/wait.h>
 #include <sys/utsname.h>
+#include <locale.h>
 
 #if defined(__LWI_MACOSX__)
 #include <crt_externs.h>

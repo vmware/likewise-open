@@ -38,20 +38,6 @@
     #       allowed to login
     # user-not-allowed-error = Access denied
 
-[auth provider:lsa-local-provider]
-
-    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
-
-    # Default: 30d
-    # Minimum: 1d
-    # Maximum: 180d
-    password-lifespan = 30d
-
-    # Default: 14d
-    # Minimum: 1h
-    # Maximum: 30d (must be less than lifespan)
-    password-change-warning-time = 14d
-
 [auth provider:lsa-activedirectory-provider]
 
     path = @providerdir@/liblsass_auth_provider_ad@MOD_EXT@
@@ -141,7 +127,7 @@
     # Values: full unprovisioned
     # Default: full
     #
-    # cell-support = full
+    # cell-support = unprovisioned
 
     # Whether to remove a cached group membership entry derived from PAC
     # with information from LDAP showing the user disappearing from
@@ -162,3 +148,17 @@
     # Default: no
     #
     # nss-user-membership-query-cache-only = yes
+
+[auth provider:lsa-local-provider]
+
+    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
+
+    # Default: 30d
+    # Minimum: 1d
+    # Maximum: 180d
+    password-lifespan = 30d
+
+    # Default: 14d
+    # Minimum: 1h
+    # Maximum: 30d (must be less than lifespan)
+    password-change-warning-time = 14d

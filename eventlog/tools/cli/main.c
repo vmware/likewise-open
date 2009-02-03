@@ -52,8 +52,7 @@
 #define ACTION_IMPORT 4
 #define ACTION_EXPORT 5
 #define ACTION_DELETE 6
-#define ACTION_CAT_LIST 7
-#define ACTION_LAST 7
+#define ACTION_LAST 6
 
 #define TRY DCETHREAD_TRY
 #define CATCH_ALL DCETHREAD_CATCH_ALL(THIS_CATCH)
@@ -63,13 +62,12 @@ static
 void
 ShowUsage()
 {
-    printf("Usage: lw-eventlog-cli [-h] | { [-s [<sql_filter>|-]] | [-c [<sql_filter>|-]] | [-t [<sql_filter> | -l |-]]\n");
+    printf("Usage: lw-eventlog-cli [-h] | { [-s [<sql_filter>|-]] | [-c [<sql_filter>|-]] | [-t [<sql_filter> | -]]\n");
     printf(" | [-i <csv_path> [<table_category_id>]] | [-e [<csv_path>|-]] | [-d [<sql_filter>|-]] }  <ip_address>\n\n");
     printf("\t-h\tShow help\n");
     printf("\t-s\tShows a detailed, human-readable listing of the records matching sql_filter, or - for all records.\n");
     printf("\t-t\tShows a summary table of the records matching sql_filter, or - for all records.\n");
     printf("\t-c\tShows a count of the number of records matching sql_filter, or - for all records.\n");
-    printf("\t-l\tShows a list of categories present in the database\n");
     printf("\t-i\tImports CSV data to the database from the given path\n");
     printf("\t-e\tExports CSV data from the database to the given path, or - to print to the command line\n");
     printf("\t-d\tDeletes the records matching sql_filter, or - to delete all records, re-initializing the database\n");
@@ -159,9 +157,6 @@ ParseArgs(
     else if (strcmp(pszArg, "-d") == 0) {
         actionLocal = ACTION_DELETE;
     }
-    else if (strcmp(pszArg, "-l") == 0) {
-        actionLocal = ACTION_CAT_LIST;
-    }
     else {
         ShowUsage();
         exit(0);
@@ -244,11 +239,9 @@ main(
     DWORD dwError = 0;
     PEVENT_LOG_HANDLE pEventLogHandle = NULL;
     EVENT_LOG_RECORD* eventRecords = NULL;
-    PEVENT_LOG_CATEGORY pCategory = NULL;
     DWORD nRecords = 0;
     DWORD currentRecord = 0;
     DWORD nRecordsPerPage = 500;
-    DWORD dwCategoryCount = 0;
     PSTR  pszEventTableCategoryId = NULL;
     BOOLEAN bEventTableCategoryIdInCSV = FALSE;
 
@@ -319,6 +312,7 @@ main(
             }
             BAIL_ON_EVT_ERROR(dwError);
         }
+
         else {
             if (argCopy == NULL || *argCopy == '\0' || strcmp(argCopy, "-") == 0) {
                 sqlFilterChar = sqlFilterCharDefault;
@@ -359,10 +353,9 @@ main(
                                 sqlFilter,
                                 &nRecords);
 
+
                 BAIL_ON_EVT_ERROR(dwError);
-
                 printf("%d records found in database\n", nRecords);
-
             }
             else if (action == ACTION_SHOW)
             {
@@ -416,21 +409,6 @@ main(
                 }
                 BAIL_ON_EVT_ERROR(dwError);
             }
-            else if (action == ACTION_CAT_LIST)
-            {
-                dwError = LWIGetCategoryCount((HANDLE)pEventLogHandle,
-                                              &dwCategoryCount);
-                BAIL_ON_EVT_ERROR(dwError);
-
-                printf("Category count = %d \n", dwCategoryCount);
-
-                dwError = LWIGetDistinctCategories((HANDLE)pEventLogHandle,
-                                                    dwCategoryCount,
-                                                    &pCategory);
-                BAIL_ON_EVT_ERROR(dwError);
-
-                PrintCategories(pCategory,dwCategoryCount);
-            }
             else
             {
                 EVT_LOG_VERBOSE("Invalid action: %d\n", action);
@@ -466,11 +444,6 @@ main(
     if (eventRecords) {
         RPCFreeMemory(eventRecords);
         EVTFreeMemory(eventRecords);
-    }
-
-    if (pCategory) {
-        RPCFreeMemory(pCategory);
-        EVTFreeMemory(pCategory);
     }
 
     return dwError;

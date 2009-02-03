@@ -78,9 +78,7 @@ LsaAdBatchFindSingleObject(
 DWORD
 LsaAdBatchEnumObjects(
     IN HANDLE hDirectory,
-    IN BOOLEAN bMorePages,
-    IN struct berval** ppCookie,
-    OUT PBOOLEAN pbMorePages,
+    IN OUT PLSA_SEARCH_COOKIE pCookie,
     IN ADAccountType AccountType,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,

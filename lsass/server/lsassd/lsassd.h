@@ -65,4 +65,5 @@
 
 #include "lsaunistr.h"
 #include "ntlmgsssrv.h"
+#include <locale.h>
 

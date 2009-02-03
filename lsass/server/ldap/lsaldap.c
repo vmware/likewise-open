@@ -326,6 +326,8 @@ LsaLdapOpenDirectoryServer(
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     int rc = LDAP_VERSION3;
     DWORD dwPort = 389;
+    DWORD dwAttempt = 0;
+    struct timespec sleepTime;
 
     if (IsNullOrEmptyString(pszServerName) || IsNullOrEmptyString(pszServerAddress)) {
         dwError = LSA_ERROR_INVALID_PARAMETER;
@@ -335,8 +337,29 @@ LsaLdapOpenDirectoryServer(
     if (dwFlags & LSA_LDAP_OPT_GLOBAL_CATALOG)
        dwPort = 3268;
 
-    ld = (LDAP *)ldap_open(pszServerAddress, dwPort);
+    for (dwAttempt = 1; dwAttempt <= 5; dwAttempt++)
+    {
+        ld = (LDAP *)ldap_open(pszServerAddress, dwPort);
+        if (!ld && errno == ENOTCONN)
+        {
+            LSA_LOG_ERROR("The ldap connection to %s was disconnected. This was attempt #%d\n",
+                    pszServerAddress,
+                    dwAttempt);
+            sleepTime.tv_sec = 0;
+            sleepTime.tv_nsec = dwAttempt * 100000000;
+            while (nanosleep(&sleepTime, &sleepTime) == -1)
+            {
+                if (errno != EINTR)
+                {
+                    dwError = errno;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+            }
 
+            continue;
+        }
+        break;
+    }
     if (!ld) {
         LSA_LOG_ERROR("Failed to open LDAP connection to domain controller");
         dwError = errno;
@@ -582,9 +605,20 @@ LsaLdapBindDirectory(
 #endif
 
         display_status("gss_init_context", dwMajorStatus, dwMinorStatus);
-        if (dwMajorStatus == GSS_S_FAILURE &&
+        if (
+            (dwMajorStatus == GSS_S_FAILURE &&
                 (dwMinorStatus == (DWORD)KRB5KRB_AP_ERR_TKT_EXPIRED ||
-                 dwMinorStatus == (DWORD)KRB5KDC_ERR_NEVER_VALID))
+                 dwMinorStatus == (DWORD)KRB5KDC_ERR_NEVER_VALID)) ||
+            (dwMajorStatus == GSS_S_CRED_UNAVAIL &&
+                dwMinorStatus == 0x25ea10c /* This is KG_EMPTY_CCACHE
+                                            * inside of gssapi, but that symbol
+                                            * is not exposed externally. This
+                                            * code means that the credentials
+                                            * cache does not have a TGT inside
+                                            * of it.
+                                            */
+                )
+            )
         {
             /* The kerberos ticket expired or is about to expire (The
              * machine password sync thread didn't do its job).
@@ -618,7 +652,8 @@ LsaLdapBindDirectory(
                                            NULL,
                                            &pServerCreds
                     );
-                if (dwError != LDAP_SASL_BIND_IN_PROGRESS) {
+                if (dwError != LDAP_SASL_BIND_IN_PROGRESS && dwError != 0) {
+                    LSA_LOG_ERROR("ldap_sasl_bind_s failed with error code %d\n", dwError);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
 
@@ -883,6 +918,8 @@ LsaLdapDirectorySearch(
           dwError = LSA_ERROR_LDAP_SERVER_UNAVAILABLE;
           goto error;
        }
+       LSA_LOG_ERROR("Caught ldap error %d on search [%s]",
+            LSA_SAFE_LOG_STRING(pszQuery));
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1042,10 +1079,9 @@ LsaLdapDirectoryOnePagedSearch(
     PCSTR          pszQuery,
     PSTR*          ppszAttributeList,
     DWORD          dwPageSize,
-    struct berval **ppCookie,
+    PLSA_SEARCH_COOKIE pCookie,
     int            scope,
-    LDAPMessage**  ppMessage,
-    PBOOLEAN       pbMorePages
+    LDAPMessage**  ppMessage
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -1057,9 +1093,10 @@ LsaLdapDirectoryOnePagedSearch(
     LDAPControl **ppReturnedControls = NULL;
     int errorcodep = 0;
     LDAPMessage* pMessage = NULL;
-    BOOLEAN bMorePages = FALSE;
-    struct berval * pCookie = *ppCookie;
+    BOOLEAN bSearchFinished = FALSE;
+    struct berval * pBerCookie = (struct berval *)pCookie->pvData;
 
+    LSA_ASSERT(pCookie->pfnFree == NULL || pCookie->pfnFree == LsaLdapFreeCookie);
     pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
 
    // dwError = ADEnablePageControlOption(hDirectory);
@@ -1067,7 +1104,7 @@ LsaLdapDirectoryOnePagedSearch(
 
     dwError = ldap_create_page_control(pDirectory->ld,
                                        dwPageSize,
-                                       pCookie,
+                                       pBerCookie,
                                        pagingCriticality,
                                        &pPageControl);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1095,25 +1132,21 @@ LsaLdapDirectoryOnePagedSearch(
                                 0);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pCookie != NULL)
+    if (pBerCookie != NULL)
     {
-        ber_bvfree(pCookie);
-        pCookie = NULL;
+        ber_bvfree(pBerCookie);
+        pBerCookie = NULL;
     }
 
     dwError = ldap_parse_page_control(pDirectory->ld,
                                       ppReturnedControls,
                                       &pageCount,
-                                      &pCookie);
+                                      &pBerCookie);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pCookie && pCookie->bv_len > 0)
+    if (pBerCookie == NULL || pBerCookie->bv_len < 1)
     {
-        bMorePages = TRUE;
-    }
-    else
-    {
-        bMorePages = FALSE;
+        bSearchFinished = TRUE;
     }
 
     if (ppReturnedControls)
@@ -1126,9 +1159,10 @@ LsaLdapDirectoryOnePagedSearch(
     ldap_control_free(pPageControl);
     pPageControl = NULL;
 
-    *pbMorePages = bMorePages;
+    pCookie->bSearchFinished = bSearchFinished;
     *ppMessage = pMessage;
-    *ppCookie = pCookie;
+    pCookie->pvData = pBerCookie;
+    pCookie->pfnFree = LsaLdapFreeCookie;
 
 cleanup:
   /*  dwError_disable = ADDisablePageControlOption(hDirectory);
@@ -1149,14 +1183,15 @@ cleanup:
 
 error:
 
-    *pbMorePages = FALSE;
     *ppMessage = NULL;
-    *ppCookie = NULL;
+    pCookie->pvData = NULL;
+    pCookie->pfnFree = NULL;
+    pCookie->bSearchFinished = TRUE;
 
-    if (pCookie != NULL)
+    if (pBerCookie != NULL)
     {
-        ber_bvfree(pCookie);
-        pCookie = NULL;
+        ber_bvfree(pBerCookie);
+        pBerCookie = NULL;
     }
 
     goto cleanup;
@@ -1866,7 +1901,32 @@ LsaLdapFreeCookie(
     PVOID pCookie
     )
 {
-    ber_bvfree((struct berval*)pCookie);
+    if (pCookie != NULL)
+    {
+        ber_bvfree((struct berval*)pCookie);
+    }
+}
+
+VOID
+LsaFreeCookieContents(
+    IN OUT PLSA_SEARCH_COOKIE pCookie
+    )
+{
+    if (pCookie->pfnFree)
+    {
+        pCookie->pfnFree(pCookie->pvData);
+        pCookie->pfnFree = NULL;
+    }
+    pCookie->pvData = NULL;
+    pCookie->bSearchFinished = FALSE;
+}
+
+VOID
+LsaInitCookie(
+    OUT PLSA_SEARCH_COOKIE pCookie
+    )
+{
+    memset(pCookie, 0, sizeof(*pCookie));
 }
 
 DWORD

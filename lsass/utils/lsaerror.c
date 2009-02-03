@@ -95,7 +95,7 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_INVALID_SID                                     : 32788
     "The security descriptor (SID) is invalid",
     // LSA_ERROR_PASSWORD_MISMATCH                               : 32789
-    "Invalid password",
+    "The password is incorrect for the given username",
     // LSA_ERROR_UNEXPECTED_DB_RESULT                            : 32790
     "Unexpected cached data found",
     // LSA_ERROR_PASSWORD_EXPIRED                                : 32791

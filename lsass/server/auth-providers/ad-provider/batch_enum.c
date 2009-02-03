@@ -50,6 +50,36 @@
 #include "batch_gather.h"
 #include "batch_marshal.h"
 
+typedef struct __AD_CELL_COOKIE_DATA
+{
+    // Initially, this is set to NULL to indicate that the primary cell
+    // should be searched.
+    const DLINKEDLIST* pCurrentCell;
+    LSA_SEARCH_COOKIE LdapCookie;
+
+    // This hash table is used to ensure that the same user/group is not
+    // returned twice through linked cells. It is only allocated if linked
+    // cells are used in the computer's cell.
+    PLSA_HASH_TABLE pEnumeratedSids;
+} AD_CELL_COOKIE_DATA, *PAD_CELL_COOKIE_DATA;
+
+static
+VOID
+LsaAdBatchFreeCellCookie(
+    IN OUT PVOID pvCookie
+    )
+{
+    PAD_CELL_COOKIE_DATA pData = (PAD_CELL_COOKIE_DATA)pvCookie;
+
+    if (pData != NULL)
+    {
+        LsaFreeCookieContents(&pData->LdapCookie);
+        LsaHashSafeFree(&pData->pEnumeratedSids);
+
+        LSA_SAFE_FREE_MEMORY(pData);
+    }
+}
+
 static
 DWORD
 LsaAdBatchEnumGetNoMoreError(
@@ -459,13 +489,15 @@ error:
     goto cleanup;
 }
 
+// If this function returns with an error, the position stored in pCookie will
+// be advanced, even though no results are returned. pCookie will still need
+// to be freed outside of this function, even if this function returns with an
+// error.
 static
 DWORD
-LsaAdBatchEnumObjectsInternal(
+LsaAdBatchEnumObjectsInCell(
     IN HANDLE hDirectory,
-    IN BOOLEAN bMorePages,
-    IN struct berval** ppCookie,
-    OUT PBOOLEAN pbMorePages,
+    IN OUT PLSA_SEARCH_COOKIE pCookie,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     IN BOOLEAN bIsByRealObject,
     IN BOOLEAN bIsSchemaMode,
@@ -477,7 +509,6 @@ LsaAdBatchEnumObjectsInternal(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bStillHaveMorePages = bMorePages;
     DWORD dwRemainingObjectsWanted = dwMaxObjectsCount;
     PSTR szBacklinkAttributeList[] =
     {
@@ -520,9 +551,8 @@ LsaAdBatchEnumObjectsInternal(
     DWORD dwObjectsCount = 0;
     PLSA_SECURITY_OBJECT* ppTotalObjects = NULL;
     DWORD dwTotalObjectsCount = 0;
-    PLSA_SECURITY_OBJECT* ppNewTotalObjects = NULL;
 
-    LSA_ASSERT(bMorePages);
+    LSA_ASSERT(!pCookie->bSearchFinished);
 
     dwError = LsaAdBatchEnumGetScopeRoot(
                     ObjectType,
@@ -539,7 +569,7 @@ LsaAdBatchEnumObjectsInternal(
                                      &pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    while (bStillHaveMorePages && dwRemainingObjectsWanted)
+    while (!pCookie->bSearchFinished && dwRemainingObjectsWanted)
     {
         dwError = LsaLdapDirectoryOnePagedSearch(
                         hDirectory,
@@ -547,10 +577,9 @@ LsaAdBatchEnumObjectsInternal(
                         pszQuery,
                         pszAttributeList,
                         dwRemainingObjectsWanted,
-                        ppCookie,
+                        pCookie,
                         bIsByRealObject ? LDAP_SCOPE_SUBTREE : LDAP_SCOPE_ONELEVEL,
-                        &pMessage,
-                        &bStillHaveMorePages);
+                        &pMessage);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LsaAdBatchEnumProcessMessages(
@@ -570,34 +599,12 @@ LsaAdBatchEnumObjectsInternal(
 
         dwRemainingObjectsWanted -= dwObjectsCount;
 
-        if (!ppTotalObjects)
-        {
-            ppTotalObjects = ppObjects;
-            dwTotalObjectsCount = dwObjectsCount;
-        }
-        else
-        {
-            // Append to total
-            dwError = LsaReallocMemory(
-                            ppTotalObjects,
-                            (PVOID*)&ppNewTotalObjects,
-                            (dwTotalObjectsCount + dwObjectsCount) * sizeof(*ppTotalObjects));
-            BAIL_ON_LSA_ERROR(dwError);
-            ppTotalObjects = ppNewTotalObjects;
-            dwTotalObjectsCount += dwObjectsCount;
-
-            memcpy(&ppTotalObjects[dwTotalObjectsCount],
-                   ppObjects,
-                   sizeof(ppObjects[0]) * dwObjectsCount);
-            memset(&ppObjects[0],
-                   0,
-                   sizeof(ppObjects[0]) * dwObjectsCount);
-
-            LsaFreeMemory(ppObjects);
-        }
-
-        ppObjects = NULL;
-        dwObjectsCount = 0;
+        dwError = LsaAppendAndFreePtrs(
+                        &dwTotalObjectsCount,
+                        (PVOID**)&ppTotalObjects,
+                        &dwObjectsCount,
+                        (PVOID**)&ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -611,7 +618,6 @@ cleanup:
 
     *pdwObjectsCount = dwTotalObjectsCount;
     *pppObjects = ppTotalObjects;
-    *pbMorePages = bStillHaveMorePages;
 
     return dwError;
 
@@ -623,12 +629,94 @@ error:
     goto cleanup;
 }
 
+// If this function returns with an error, the position stored in pCookie will
+// be advanced, even though no results are returned. pCookie will still need
+// to be freed outside of this function, even if this function returns with an
+// error.
+static
+DWORD
+LsaAdBatchEnumObjectsInLinkedCells(
+    IN HANDLE hDirectory,
+    IN OUT PLSA_SEARCH_COOKIE pCookie,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    IN BOOLEAN bIsByRealObject,
+    IN BOOLEAN bIsSchemaMode,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppObjectsInOneCell = NULL;
+    DWORD dwObjectsCountInOneCell = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = *pppObjects;
+    DWORD dwObjectsCount = *pdwObjectsCount;
+    PAD_CELL_COOKIE_DATA pCookieData = NULL;
+
+    LSA_ASSERT(pCookie->pfnFree == LsaAdBatchFreeCellCookie);
+    pCookieData = (PAD_CELL_COOKIE_DATA)pCookie->pvData;
+
+    while (dwObjectsCount < dwMaxObjectsCount && pCookieData->pCurrentCell)
+    {
+        PAD_LINKED_CELL_INFO pCellInfo = (PAD_LINKED_CELL_INFO)
+            pCookieData->pCurrentCell->pItem;
+
+        dwError = LsaAdBatchEnumObjectsInCell(
+                        hDirectory,
+                        &pCookieData->LdapCookie,
+                        ObjectType,
+                        bIsByRealObject,
+                        bIsSchemaMode,
+                        pCellInfo->pszDomain,
+                        pCellInfo->pszCellDN,
+                        dwMaxObjectsCount - dwObjectsCount,
+                        &dwObjectsCountInOneCell,
+                        &ppObjectsInOneCell);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaAppendAndFreePtrs(
+                        &dwObjectsCount,
+                        (PVOID**)&ppObjects,
+                        &dwObjectsCountInOneCell,
+                        (PVOID**)&ppObjectsInOneCell);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pCookieData->LdapCookie.bSearchFinished)
+        {
+            pCookieData->pCurrentCell = pCookieData->pCurrentCell->pNext;
+            LsaFreeCookieContents(&pCookieData->LdapCookie);
+        }
+    }
+
+    if (!pCookieData->pCurrentCell)
+    {
+        pCookie->bSearchFinished = TRUE;
+    }
+
+cleanup:
+    *pdwObjectsCount = dwObjectsCount;
+    *pppObjects = ppObjects;
+
+    LsaDbSafeFreeObjectList(dwObjectsCountInOneCell, &ppObjectsInOneCell);
+
+    return dwError;
+
+error:
+   // set OUT params in cleanup...
+   LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+   dwObjectsCount = 0;
+
+   goto cleanup;
+}
+
+// If this function returns with an error, the position stored in pCookie will
+// be advanced, even though no results are returned. pCookie will still need
+// to be freed outside of this function, even if this function returns with an
+// error.
 DWORD
 LsaAdBatchEnumObjects(
     IN HANDLE hDirectory,
-    IN BOOLEAN bMorePages,
-    IN struct berval** ppCookie,
-    OUT PBOOLEAN pbMorePages,
+    IN OUT PLSA_SEARCH_COOKIE pCookie,
     IN ADAccountType AccountType,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,
@@ -640,6 +728,13 @@ LsaAdBatchEnumObjects(
     LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
     DWORD dwObjectsCount = 0;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    BOOLEAN bIsSchemaMode = (gpADProviderData->adConfigurationMode == SchemaMode) ? TRUE : FALSE;
+    PAD_CELL_COOKIE_DATA pCookieData = NULL;
+    DWORD dwTotalObjectsCount = 0;
+    PLSA_SECURITY_OBJECT* ppTotalObjects = NULL;
+    DWORD dwInput = 0;
+    DWORD dwOutput = 0;
+    PSTR pszCopiedSid = NULL;
 
     if (LsaAdBatchIsDefaultSchemaMode() || LsaAdBatchIsUnprovisionedMode())
     {
@@ -649,30 +744,158 @@ LsaAdBatchEnumObjects(
     dwError = LsaAdBatchAccountTypeToObjectType(AccountType, &objectType);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!bMorePages)
+    if (pCookie->bSearchFinished)
     {
         dwError = LsaAdBatchEnumGetNoMoreError(objectType);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAdBatchEnumObjectsInternal(
-                    hDirectory,
-                    bMorePages,
-                    ppCookie,
-                    pbMorePages,
-                    objectType,
-                    bIsByRealObject,
-                    (gpADProviderData->adConfigurationMode == SchemaMode) ? TRUE : FALSE,
-                    gpADProviderData->szDomain,
-                    gpADProviderData->cell.szCellDN,
-                    dwMaxObjectsCount,
-                    &dwObjectsCount,
-                    &ppObjects);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pCookie->pfnFree == NULL)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(AD_CELL_COOKIE_DATA),
+                        &pCookie->pvData);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pCookieData = (PAD_CELL_COOKIE_DATA)pCookie->pvData;
+        if (gpADProviderData->pCellList != NULL)
+        {
+            // There are linked cells, so we need to keep track of which
+            // sids have been enumerated.
+            dwError = LsaHashCreate(
+                            10 * 1024,
+                            LsaHashCaselessStringCompare,
+                            LsaHashCaselessString,
+                            LsaHashFreeStringKey,
+                            NULL,
+                            &pCookieData->pEnumeratedSids);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pCookie->pfnFree = LsaAdBatchFreeCellCookie;
+    }
+    else
+    {
+        LSA_ASSERT(pCookie->pfnFree == LsaAdBatchFreeCellCookie);
+        pCookieData = (PAD_CELL_COOKIE_DATA)pCookie->pvData;
+    }
+
+    while (dwTotalObjectsCount < dwMaxObjectsCount &&
+            !pCookie->bSearchFinished)
+    {
+        if (pCookieData->pCurrentCell == NULL)
+        {
+            // First get the objects from the primary cell
+            dwError = LsaAdBatchEnumObjectsInCell(
+                            hDirectory,
+                            &pCookieData->LdapCookie,
+                            objectType,
+                            bIsByRealObject,
+                            bIsSchemaMode,
+                            gpADProviderData->szDomain,
+                            gpADProviderData->cell.szCellDN,
+                            dwMaxObjectsCount - dwTotalObjectsCount,
+                            &dwObjectsCount,
+                            &ppObjects);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaAppendAndFreePtrs(
+                            &dwTotalObjectsCount,
+                            (PVOID**)&ppTotalObjects,
+                            &dwObjectsCount,
+                            (PVOID**)&ppObjects);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (pCookieData->LdapCookie.bSearchFinished)
+            {
+                LsaFreeCookieContents(&pCookieData->LdapCookie);
+                pCookieData->pCurrentCell = gpADProviderData->pCellList;
+                if (pCookieData->pCurrentCell == NULL)
+                {
+                    pCookie->bSearchFinished = TRUE;
+                }
+            }
+        }
+        else
+        {
+            dwError = LsaAdBatchEnumObjectsInLinkedCells(
+                         hDirectory,
+                         pCookie,
+                         objectType,
+                         bIsByRealObject,
+                         bIsSchemaMode,
+                         dwMaxObjectsCount - dwTotalObjectsCount,
+                         &dwObjectsCount,
+                         &ppObjects);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaAppendAndFreePtrs(
+                            &dwTotalObjectsCount,
+                            (PVOID**)&ppTotalObjects,
+                            &dwObjectsCount,
+                            (PVOID**)&ppObjects);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        // Remove any sids that have already been enumerated
+        if (pCookieData->pEnumeratedSids != NULL)
+        {
+            for (; dwInput < dwTotalObjectsCount; dwInput++)
+            {
+                dwError = LsaHashGetValue(
+                            pCookieData->pEnumeratedSids,
+                            ppTotalObjects[dwInput]->pszObjectSid,
+                            NULL);
+                if (dwError == LSA_ERROR_SUCCESS)
+                {
+                    // The object is already in the hash
+                    LsaDbSafeFreeObject(&ppTotalObjects[dwInput]);
+                }
+                else if (dwError == ENOENT)
+                {
+                    // This is a new entry; let's track it in the hash
+
+                    if (pCookieData->pEnumeratedSids->sCount * 2 >
+                        pCookieData->pEnumeratedSids->sTableSize)
+                    {
+                        // Enlarge the hash table to avoid collisions
+                        dwError = LsaHashResize(
+                                    pCookieData->pEnumeratedSids,
+                                    pCookieData->pEnumeratedSids->sCount * 4);
+                        BAIL_ON_LSA_ERROR(dwError);
+                    }
+
+                    dwError = LsaAllocateString(
+                                    ppTotalObjects[dwInput]->pszObjectSid,
+                                    &pszCopiedSid);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    dwError = LsaHashSetValue(
+                                pCookieData->pEnumeratedSids,
+                                pszCopiedSid,
+                                NULL);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    // This is now owned by the hash table
+                    pszCopiedSid = NULL;
+
+                    ppTotalObjects[dwOutput++] = ppTotalObjects[dwInput];
+                }
+                else
+                {
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+            }
+            // The array is now smaller since duplicates have been removed
+            dwTotalObjectsCount = dwOutput;
+            dwInput = dwOutput;
+        }
+    }
 
 cleanup:
-    *pdwObjectsCount = dwObjectsCount;
-    *pppObjects = ppObjects;
+    *pdwObjectsCount = dwTotalObjectsCount;
+    *pppObjects = ppTotalObjects;
+    LSA_SAFE_FREE_STRING(pszCopiedSid);
 
     return dwError;
 
@@ -680,6 +903,7 @@ error:
     // set OUT params in cleanup...
     LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
+    LsaDbSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
+    dwTotalObjectsCount = 0;
     goto cleanup;
 }
-

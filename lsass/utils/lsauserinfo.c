@@ -591,6 +591,12 @@ LsaValidateUserName(
                 &pParsedName);
     BAIL_ON_LSA_ERROR(dwError);
     
+    if (pParsedName->pszName == NULL)
+    {
+        dwError = LSA_ERROR_INVALID_USER_NAME;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     sNameLen = strlen(pParsedName->pszName);
     if (sNameLen > LSA_MAX_USER_NAME_LENGTH || sNameLen == 0)
     {

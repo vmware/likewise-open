@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,36 +28,50 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __INCLUDES_H__
-#define __INCLUDES_H__
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsakrb5_error.h
+ *
+ * Abstract:
+ *
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
+ *        Kerberos 5 API
+ *
+ * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ *
+ */
+#ifndef __LSAKRB5_ERROR_H__
+#define __LSAKRB5_ERROR_H__
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
-#include "eventlog.h"
-#include "lsautils.h"
-#include "lsaunistr.h"
+#define BAIL_ON_KRB_ERROR(ctx, ret) \
+    do { \
+        if (ret) \
+        { \
+           (dwError) = LsaTranslateKrb5Error(ctx, ret, __FILE__, __LINE__); \
+           goto error; \
+        } \
+    } while (0)
 
-#include "lsajoin.h"
-#include "lsasrvutils.h"
-#include "lsakrb5.h"
-#include "lsaldap.h"
+DWORD
+LsaTranslateKrb5Error(
+    krb5_context ctx,
+    krb5_error_code krbError,
+    PCSTR pszFile,
+    DWORD dwLine
+    );
 
-#include <lwps/lwps.h>
-#include <lwnet.h>
-#include "lsakrb5_error.h"
+#endif /* __LSAKRB5_ERROR_H__ */
 
-#include <lwrpc/LM.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/netlogon.h>
-#include <lwrpc/samr.h>
-#include <lwrpc/sidhelper.h>
-#include <lwrpc/errconv.h>
 
-#include "join_p.h"
-#include "externs.h"
-
-#include <npc.h>
-
-#endif /* __INCLUDES_H__ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

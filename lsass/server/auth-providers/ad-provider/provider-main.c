@@ -96,7 +96,8 @@ LsaAdProviderMediaSenseTransitionCallback(
 static
 DWORD
 AD_ResolveConfiguredLists(
-    HANDLE hProvider
+    HANDLE          hProvider,
+    PLSA_HASH_TABLE *ppAllowedMemberList
     );
 
 static
@@ -538,8 +539,11 @@ AD_CheckUserInList(
     DWORD  dwUserInfoLevel  = 0;
     PLSA_USER_INFO_0 pUserInfo = NULL;
     size_t  iGroup = 0;
+    PLSA_HASH_TABLE pAllowedMemberList = NULL;
 
-    dwError = AD_ResolveConfiguredLists(hProvider);
+    dwError = AD_ResolveConfiguredLists(
+                  hProvider,
+                  &pAllowedMemberList);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!AD_ShouldFilterUserLoginsByGroup())
@@ -554,7 +558,8 @@ AD_CheckUserInList(
                     (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (AD_IsMemberAllowed(pUserInfo->pszSid))
+    if (AD_IsMemberAllowed(pUserInfo->pszSid,
+                           pAllowedMemberList))
     {
         goto cleanup;
     }
@@ -569,7 +574,8 @@ AD_CheckUserInList(
 
     for (; iGroup < sNumGroupsFound; iGroup++)
     {
-        if (AD_IsMemberAllowed(ppGroupList[iGroup]->pszObjectSid))
+        if (AD_IsMemberAllowed(ppGroupList[iGroup]->pszObjectSid,
+                               pAllowedMemberList))
         {
             goto cleanup;
         }
@@ -585,6 +591,8 @@ cleanup:
     {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
+
+    LsaHashSafeFree(&pAllowedMemberList);
 
     return dwError;
 
@@ -768,8 +776,7 @@ AD_BeginEnumUsers(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pEnumState->pCookie = NULL;
-    pEnumState->bMorePages = TRUE;
+    LsaInitCookie(&pEnumState->Cookie);
 
     if (!AD_IsOffline())
     {
@@ -1477,8 +1484,7 @@ AD_BeginEnumGroups(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pEnumState->pCookie = NULL;
-    pEnumState->bMorePages = TRUE;
+    LsaInitCookie(&pEnumState->Cookie);
 
     if (!AD_IsOffline())
     {
@@ -1850,8 +1856,7 @@ AD_BeginEnumNSSArtefacts(
                                 &pEnumState);
             BAIL_ON_LSA_ERROR(dwError);
 
-            pEnumState->pCookie = NULL;
-            pEnumState->bMorePages = TRUE;
+            LsaInitCookie(&pEnumState->Cookie);
 
             break;
 
@@ -3024,21 +3029,24 @@ error:
 static
 DWORD
 AD_ResolveConfiguredLists(
-    HANDLE hProvider
+    HANDLE          hProvider,
+    PLSA_HASH_TABLE *ppAllowedMemberList
     )
 {
     DWORD dwError = 0;
     DWORD iMember = 0;
     PSTR* ppszMembers = 0;
     DWORD dwNumMembers = 0;
+    PLSA_HASH_TABLE pAllowedMemberList = NULL;
     PLSA_USER_INFO_0 pUserInfo = NULL;
     PLSA_SECURITY_OBJECT pGroupInfo = NULL;
     PLSA_SECURITY_IDENTIFIER pSID = NULL;
     DWORD dwInfoLevel = 0;
 
-    dwError = AD_GetAllowedMembersList(
+    dwError = AD_GetMemberLists(
                     &ppszMembers,
-                    &dwNumMembers);
+                    &dwNumMembers,
+                    &pAllowedMemberList);
     BAIL_ON_LSA_ERROR(dwError);
 
     for (iMember = 0; iMember < dwNumMembers; iMember++)
@@ -3062,10 +3070,11 @@ AD_ResolveConfiguredLists(
             {
                 LSA_LOG_VERBOSE("Adding entry to allow login for SID [%s]", pszMember);
 
-                dwError = AD_AddAllowedMember(pszMember);
+                dwError = AD_AddAllowedMember(
+                              pszMember,
+                              pszMember,
+                              &pAllowedMemberList);
                 BAIL_ON_LSA_ERROR(dwError);
-
-                AD_DeleteFromMembersList(pszMember);
 
                 if (pSID)
                 {
@@ -3085,10 +3094,11 @@ AD_ResolveConfiguredLists(
             {
                 LSA_LOG_VERBOSE("Adding entry to allow login for user [%s]", pszMember);
 
-                dwError = AD_AddAllowedMember(pUserInfo->pszSid);
+                dwError = AD_AddAllowedMember(
+                              pUserInfo->pszSid,
+                              pszMember,
+                              &pAllowedMemberList);
                 BAIL_ON_LSA_ERROR(dwError);
-
-                AD_DeleteFromMembersList(pszMember);
 
                 LsaFreeUserInfo(dwInfoLevel, pUserInfo);
                 pUserInfo = NULL;
@@ -3106,15 +3116,21 @@ AD_ResolveConfiguredLists(
             {
                 LSA_LOG_VERBOSE("Adding entry to allow login for group [%s]", pszMember);
 
-                dwError = AD_AddAllowedMember(pGroupInfo->pszObjectSid);
+                dwError = AD_AddAllowedMember(
+                              pGroupInfo->pszObjectSid,
+                              pszMember,
+                              &pAllowedMemberList);
                 BAIL_ON_LSA_ERROR(dwError);
 
-                AD_DeleteFromMembersList(pszMember);
                 continue;
             }
+            LSA_LOG_WARNING("Restricted login list - couldn't resolve %s [%u]",
+                            pszMember, dwError);
             dwError = LSA_ERROR_SUCCESS;
         }
     }
+
+    *ppAllowedMemberList = (PVOID)pAllowedMemberList;
 
 cleanup:
 
@@ -3138,6 +3154,10 @@ cleanup:
     return dwError;
 
 error:
+
+    *ppAllowedMemberList = NULL;
+
+    LsaHashSafeFree(&pAllowedMemberList);
 
     goto cleanup;
 }

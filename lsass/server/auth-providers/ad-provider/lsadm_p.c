@@ -927,12 +927,12 @@ LsaDmpIsValidDnsDomainName(
     IN PCSTR pszDomainName
     )
 {
-    BOOLEAN bIsValid = FALSE;
+    BOOLEAN bIsValid = TRUE;
     char* dot = strrchr(pszDomainName, '.');
-    if (dot && dot[1])
+    if (dot && !dot[1])
     {
-        // Must have dot and it must not be last character.
-        bIsValid = TRUE;
+        // If there is a dot, it cannot be the last character.
+        bIsValid = FALSE;
     }
     return bIsValid;
 }

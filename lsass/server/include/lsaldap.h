@@ -74,6 +74,15 @@ typedef struct _AD_DIRECTORY_CONTEXT {
     LDAP *ld;
 } AD_DIRECTORY_CONTEXT, *PAD_DIRECTORY_CONTEXT;
 
+typedef void (*PFNLSA_COOKIE_FREE)(PVOID);
+
+typedef struct __LSA_SEARCH_COOKIE
+{
+    BOOLEAN bSearchFinished;
+    PVOID pvData;
+    PFNLSA_COOKIE_FREE pfnFree;
+} LSA_SEARCH_COOKIE, *PLSA_SEARCH_COOKIE;
+
 DWORD
 LsaLdapPingTcp(
     PCSTR pszHostAddress,
@@ -172,10 +181,9 @@ LsaLdapDirectoryOnePagedSearch(
     PCSTR          pszQuery,
     PSTR*          ppszAttributeList,
     DWORD          dwPageSize,
-    struct berval **ppCookie,
+    PLSA_SEARCH_COOKIE pCookie,
     int            scope,
-    LDAPMessage**  ppMessage,
-    PBOOLEAN       pIsMorePages
+    LDAPMessage**  ppMessage
     );
 
 LDAPMessage*
@@ -270,6 +278,16 @@ LsaLdapEscapeString(
 VOID
 LsaLdapFreeCookie(
     PVOID pCookie
+    );
+
+VOID
+LsaFreeCookieContents(
+    IN OUT PLSA_SEARCH_COOKIE pCookie
+    );
+
+VOID
+LsaInitCookie(
+    OUT PLSA_SEARCH_COOKIE pCookie
     );
 
 DWORD

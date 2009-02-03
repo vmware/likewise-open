@@ -56,9 +56,7 @@ typedef struct __AD_ENUM_STATE {
     PSTR  pszMapName;
 
     HANDLE hDirectory;
-    struct berval *pCookie;
-
-    BOOLEAN bMorePages;
+    LSA_SEARCH_COOKIE Cookie;
 
     struct __AD_ENUM_STATE* pNext;
 

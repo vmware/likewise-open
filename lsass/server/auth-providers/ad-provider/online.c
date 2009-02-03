@@ -473,14 +473,6 @@ error:
     goto cleanup;
 }
 
-void
-AD_FreeHashStringKey(
-    const LSA_HASH_ENTRY *pEntry)
-{
-    PSTR pszKeyCopy = (PSTR)pEntry->pKey;
-    LSA_SAFE_FREE_STRING(pszKeyCopy);
-}
-
 DWORD
 AD_DetermineTrustModeandDomainName(
     IN PCSTR pszDomain,
@@ -820,6 +812,7 @@ AD_PacMembershipFilterWithLdap(
                     LsaHashCaselessStringCompare,
                     LsaHashCaselessString,
                     NULL,
+                    NULL,
                     &pMembershipHashTable);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1055,9 +1048,10 @@ AD_GetCachedPasswordHash(
     PBYTE pbHash = NULL;
     DWORD dwError = LSA_ERROR_SUCCESS;
     size_t sConvertedChars = 0;
+    size_t sSamAccountCch = mbstrlen(pszSamAccount);
 
     // Allocate space to store the NT hash with the username appended
-    sPrehashedVerifierLen = 16 + strlen(pszSamAccount) * sizeof(wchar16_t);
+    sPrehashedVerifierLen = 16 + sSamAccountCch * sizeof(wchar16_t);
     dwError = LsaAllocateMemory(
                     sPrehashedVerifierLen + sizeof(wchar16_t),
                     (PVOID*)&pbPrehashedVerifier);
@@ -1080,8 +1074,8 @@ AD_GetCachedPasswordHash(
     sConvertedChars = mbstowc16s(
             (wchar16_t *)(pbPrehashedVerifier + 16),
             pszSamAccount,
-            strlen(pszSamAccount));
-    if (sConvertedChars != strlen(pszSamAccount))
+            sSamAccountCch + 1);
+    if (sConvertedChars != sSamAccountCch)
     {
         dwError = LSA_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
@@ -1719,6 +1713,7 @@ AD_CombineCacheObjectsRemoveDuplicates(
                 AD_CompareObjectSids,
                 AD_HashObjectSid,
                 NULL,
+                NULL,
                 &pHashTable);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1819,6 +1814,10 @@ AD_FilterNullEntries(
         {
             ppEntries[sOutput++] = ppEntries[sInput];
         }
+    }
+    for (sInput = sOutput; sInput < *psCount; sInput++)
+    {
+        ppEntries[sInput] = (PLSA_SECURITY_OBJECT)-1;
     }
 
     *psCount = sOutput;
@@ -2074,8 +2073,11 @@ error:
     *psCount = 0;
     *pppResults = NULL;
 
-    LSA_LOG_ERROR("Failed to find memberships for uid %d (error = %d)",
-                  uid, dwError);
+    if ( dwError != LSA_ERROR_DOMAIN_IS_OFFLINE )
+    {
+        LSA_LOG_ERROR("Failed to find memberships for uid %d (error = %d)",
+                      uid, dwError);
+    }
 
     LsaDbSafeFreeObjectList(sFilteredResultsCount, &ppFilteredResults);
     sFilteredResultsCount = 0;
@@ -2118,9 +2120,7 @@ AD_OnlineEnumUsers(
 
     dwError = LsaAdBatchEnumObjects(
                     pEnumState->hDirectory,
-                    pEnumState->bMorePages,
-                    &pEnumState->pCookie,
-                    &pEnumState->bMorePages,
+                    &pEnumState->Cookie,
                     AccountType_User,
                     dwMaxNumUsers,
                     &dwObjectsCount,
@@ -2353,9 +2353,7 @@ AD_OnlineEnumGroups(
 
     dwError = LsaAdBatchEnumObjects(
                     pEnumState->hDirectory,
-                    pEnumState->bMorePages,
-                    &pEnumState->pCookie,
-                    &pEnumState->bMorePages,
+                    &pEnumState->Cookie,
                     AccountType_Group,
                     dwMaxNumGroups,
                     &dwObjectsCount,
@@ -2368,6 +2366,7 @@ AD_OnlineEnumGroups(
 
     for (dwInfoCount = 0; dwInfoCount < dwObjectsCount; dwInfoCount++)
     {
+        LSA_ASSERT(ppObjects[dwInfoCount] != NULL);
         dwError = AD_GroupObjectToGroupInfo(
                         hProvider,
                         ppObjects[dwInfoCount],
@@ -3444,7 +3443,7 @@ cleanup:
     // because there is a goto cleanup above.
     if (dwError)
     {
-        LsaDbSafeFreeObjectList(sCount, &ppResults);
+        LsaDbSafeFreeObjectList(sResultsCount, &ppResults);
         sResultsCount = 0;
     }
     else
@@ -3522,6 +3521,7 @@ AD_OnlineGetNamesBySidList(
     ADAccountType* pTypes = NULL;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     size_t sIndex = 0;
+    size_t sReturnCount = 0;
 
     dwError = LsaAllocateMemory(
                     sizeof(*ppszDomainNames) * sCount,
@@ -3542,11 +3542,11 @@ AD_OnlineGetNamesBySidList(
                     hProvider,
                     sCount,
                     ppszSidList,
-                    NULL,
+                    &sReturnCount,
                     &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    for (sIndex = 0; sIndex < sCount; sIndex++)
+    for (sIndex = 0; sIndex < sReturnCount; sIndex++)
     {
         if (ppObjects[sIndex] == NULL)
         {
@@ -3579,7 +3579,7 @@ AD_OnlineGetNamesBySidList(
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(sCount, &ppObjects);
+    LsaDbSafeFreeObjectList(sReturnCount, &ppObjects);
 
     return dwError;
 

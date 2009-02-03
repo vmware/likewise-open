@@ -21,6 +21,7 @@ const int DomainJoinApp::ApplicationSignature = 'CnTs';
 DomainJoinApp::DomainJoinApp()
 : _joinWindow(0),
   _leaveWindow(0),
+  _migrateWindow(0),
   _mainWindow(0),
   _envPath(NULL)
 {
@@ -73,6 +74,17 @@ DomainJoinApp::GetLeaveWindow()
 	return *_leaveWindow;
 }
 
+DomainMigrateWindow&
+DomainJoinApp::GetMigrateWindow()
+{
+    if (!_migrateWindow)
+	{
+	   _migrateWindow = new DomainMigrateWindow(ApplicationSignature);
+	}
+
+	return *_migrateWindow;
+}
+
 void
 DomainJoinApp::JoinOrLeaveDomain()
 {
@@ -84,17 +96,21 @@ DomainJoinApp::JoinOrLeaveDomain()
 		
 		DomainJoinWindow& joinWindow = GetJoinWindow();
 		DomainLeaveWindow& leaveWindow = GetLeaveWindow();
+        DomainMigrateWindow& migrateWindow = GetMigrateWindow();
 		
 		if (joinStatus.DomainName.length() > 0)
 		{
+           migrateWindow.Hide();
 		   joinWindow.Hide();
 		   leaveWindow.SetComputerName(joinStatus.Name);
 		   leaveWindow.SetDomainName(joinStatus.DomainName);
                    leaveWindow.SetOU(joinStatus.OUPath);
+
 		   leaveWindow.Show();
 		}
 		else
 		{
+           migrateWindow.Hide();
 		   leaveWindow.Hide();
 		   joinWindow.SetComputerName(joinStatus.Name);
 		   joinWindow.SetDomainName(joinStatus.DomainName);
@@ -126,6 +142,70 @@ DomainJoinApp::JoinOrLeaveDomain()
     }
 }
 
+void
+DomainJoinApp::MigrateUser()
+{
+    try
+    {
+	    DomainJoinStatus joinStatus;
+
+        DomainJoinInterface::GetDomainJoinStatus(joinStatus);
+
+		DomainMigrateWindow& migrateWindow = GetMigrateWindow();
+        DomainJoinWindow& joinWindow = GetJoinWindow();
+		DomainLeaveWindow& leaveWindow = GetLeaveWindow();
+
+		if (joinStatus.DomainName.length() > 0)
+		{
+		   joinWindow.Hide();
+		   leaveWindow.Hide();
+
+           // Clear the AD username edit control
+           migrateWindow.SetADUserEdit("");
+
+           // Turn off Migrate button
+           migrateWindow.MigrateOff();
+
+           // Clear display fields
+           migrateWindow.SetLocalUserRealName("");
+           migrateWindow.SetLocalUserHomeDirectory("");
+           migrateWindow.SetLocalUserUID("");
+           migrateWindow.SetLocalUserGID("");
+           migrateWindow.SetADUserRealName("");
+           migrateWindow.SetADUserHomeDirectory("");
+           migrateWindow.SetADUserUID("");
+           migrateWindow.SetADUserGID("");
+
+           // Determine current list of local user accounts and populate the list box control
+           migrateWindow.SetLocalUsers();
+
+           migrateWindow.Show();
+		}
+    }
+    catch(DomainJoinException& dje)
+    {
+		SInt16 outItemHit;
+		const char* err = dje.what();
+		const char* message = dje.GetLongErrorMessage();
+		DialogRef dialog;
+		CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
+		CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
+		CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
+		CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
+		CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
+		RunStandardAlert(dialog, NULL, &outItemHit);
+    }
+    catch(...)
+    {
+        SInt16 outItemHit;
+        StandardAlert(kAlertStopAlert,
+                      "\pUnexpected error",
+                      "\pAn unexpected error occurred when joining the Active Directory domain. Please report this to Likewise Technical Support at support@likewisesoftware.com",
+                      NULL,
+                      &outItemHit);
+    }
+}
+
 //--------------------------------------------------------------------------------------------
 Boolean
 DomainJoinApp::HandleCommand( const HICommandExtended& inCommand )
@@ -135,6 +215,10 @@ DomainJoinApp::HandleCommand( const HICommandExtended& inCommand )
 	
 		case MAIN_MENU_JOIN_OR_LEAVE_ID:
 		    JoinOrLeaveDomain();
+			return true;
+
+		case MAIN_MENU_MIGRATE_ID:
+		    MigrateUser();
 			return true;
             
         // Add your own command-handling cases here

@@ -6,7 +6,7 @@
   </object>
   <array count="16" name="allObjects">
     <object class="IBCarbonWindow" id="229">
-      <string name="windowRect">339 129 689 579 </string>
+      <string name="windowRect">285 72 635 522 </string>
       <string name="title">Join Active Directory Domain</string>
       <object name="rootControl" class="IBCarbonRootControl" id="230">
         <string name="bounds">0 0 350 450 </string>
@@ -184,7 +184,6 @@
       <boolean name="liveResize">TRUE</boolean>
       <boolean name="compositing">TRUE</boolean>
       <int name="carbonWindowClass">4</int>
-      <int name="themeBrush">-2</int>
       <int name="windowPosition">1</int>
       <boolean name="isConstrained">FALSE</boolean>
       <int name="WindowMinWidth">450</int>
