@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,27 +31,28 @@
 #include "includes.h"
 
 
-NTSTATUS SamrGetUserPwInfo(handle_t b, PolicyHandle *user_handle,
-                           PwInfo *info)
+NTSTATUS
+SamrGetUserPwInfo(
+    handle_t b,
+    PolicyHandle *user_h,
+    PwInfo *info
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(user_handle, cleanup);
+    goto_if_invalid_param_ntstatus(user_h, cleanup);
     goto_if_invalid_param_ntstatus(info, cleanup);
 
-    TRY
-    {
-        status = _SamrGetUserPwInfo(b, user_handle, info);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrGetUserPwInfo(b, user_h, info));
+
+    goto_if_ntstatus_not_success(status, error);
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

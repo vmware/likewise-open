@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,37 +31,40 @@
 #include "includes.h"
 
 
-NTSTATUS SamrCreateUser(handle_t b, PolicyHandle *domain_handle,
-                        wchar16_t *account_name, uint32 access_mask,
-                        PolicyHandle *user_handle, uint32 *rid)
+NTSTATUS
+SamrCreateUser(
+    handle_t b,
+    PolicyHandle *domain_h,
+    wchar16_t *account_name,
+    uint32 access_mask,
+    PolicyHandle *user_h,
+    uint32 *rid
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     UnicodeString acct_name = {0};
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_handle, cleanup);
+    goto_if_invalid_param_ntstatus(domain_h, cleanup);
     goto_if_invalid_param_ntstatus(account_name, cleanup);
-    goto_if_invalid_param_ntstatus(user_handle, cleanup);
+    goto_if_invalid_param_ntstatus(user_h, cleanup);
     goto_if_invalid_param_ntstatus(rid, cleanup);
 
     status = InitUnicodeString(&acct_name, account_name);
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 
-    TRY
-    {
-        status = _SamrCreateUser(b, domain_handle, &acct_name,
-                                 access_mask, user_handle, rid);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrCreateUser(b, domain_h, &acct_name,
+                                access_mask, user_h, rid));
+
+    goto_if_ntstatus_not_success(status, error);
 
 cleanup:
     FreeUnicodeString(&acct_name);
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 

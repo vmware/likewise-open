@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,42 +31,43 @@
 #include "includes.h"
 
 
-NTSTATUS SamrCreateDomAlias(handle_t b, PolicyHandle *domain_handle,
-                            wchar16_t *alias, uint32 access_mask,
-                            PolicyHandle *alias_handle, uint32 *rid)
+NTSTATUS
+SamrCreateDomAlias(
+    handle_t b,
+    PolicyHandle *domain_h,
+    wchar16_t *alias,
+    uint32 access_mask,
+    PolicyHandle *alias_h,
+    uint32 *rid
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     UnicodeString alias_name = {0};
     PolicyHandle handle = {0};
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_handle, cleanup);
+    goto_if_invalid_param_ntstatus(domain_h, cleanup);
     goto_if_invalid_param_ntstatus(alias, cleanup);
-    goto_if_invalid_param_ntstatus(alias_handle, cleanup);
+    goto_if_invalid_param_ntstatus(alias_h, cleanup);
     goto_if_invalid_param_ntstatus(rid, cleanup);
 
     status = InitUnicodeString(&alias_name, alias);
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 
-    TRY
-    {
-        status = _SamrCreateDomAlias(b, domain_handle, &alias_name,
-                                     access_mask, &handle, rid);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrCreateDomAlias(b, domain_h, &alias_name,
+                                    access_mask, &handle, rid));
 
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 
-    *alias_handle = handle;
+    *alias_h = handle;
 
 cleanup:
     FreeUnicodeString(&alias_name);
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 

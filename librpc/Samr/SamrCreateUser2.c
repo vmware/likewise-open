@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,41 +28,62 @@
  * license@likewisesoftware.com
  */
 
-/* -*- mode: c; c-basic-offset: 4 -*- */
 #include "includes.h"
 
 
-NTSTATUS SamrCreateUser2(handle_t bind, PolicyHandle *domain_handle,
-			 wchar16_t *account_name, uint32 account_flags,
-			 uint32 account_mask, PolicyHandle *account_handle,
-			 uint32 *access_granted, uint32 *rid)
+NTSTATUS
+SamrCreateUser2(
+    handle_t b,
+    PolicyHandle *domain_h,
+    wchar16_t *account_name,
+    uint32 account_flags,
+    uint32 account_mask,
+    PolicyHandle *account_h,
+    uint32 *out_access_granted,
+    uint32 *out_rid
+    )
 {
-    NTSTATUS status;
-    UnicodeStringEx acct_name;
+    NTSTATUS status = STATUS_SUCCESS;
+    UnicodeStringEx acct_name = {0};
+    uint32 access = 0;
+    uint32 rid = 0;
 
-    if (bind == NULL || domain_handle == NULL || account_name == NULL ||
-	account_handle == NULL || access_granted == NULL || rid == NULL) {
-	return STATUS_INVALID_PARAMETER;
-    }
+    goto_if_invalid_param_ntstatus(b, cleanup);
+    goto_if_invalid_param_ntstatus(domain_h, cleanup);
+    goto_if_invalid_param_ntstatus(account_name, cleanup);
+    goto_if_invalid_param_ntstatus(account_h, cleanup);
+    goto_if_invalid_param_ntstatus(out_access_granted, cleanup);
+    goto_if_invalid_param_ntstatus(out_rid, cleanup);
 
-    *access_granted = 0;
-    *rid            = 0;
+    status = InitUnicodeStringEx(&acct_name, account_name);
+    goto_if_ntstatus_not_success(status, error);
 
-    InitUnicodeStringEx(&acct_name, account_name);
+    DCERPC_CALL(_SamrCreateUser2(b, domain_h, &acct_name,
+                                 account_flags, account_mask,
+                                 account_h, &access, &rid));
 
-    TRY
-    {
-	status = _SamrCreateUser2(bind, domain_handle, &acct_name,
-				  account_flags, account_mask, account_handle,
-				  access_granted, rid);
-    }
-    CATCH_ALL
-    {
-	return STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    goto_if_ntstatus_not_success(status, error);
 
+    *out_access_granted = access;
+    *out_rid            = rid;
+
+cleanup:
     FreeUnicodeStringEx(&acct_name);
 
     return status;
+
+error:
+    *out_access_granted = 0;
+    *out_rid            = 0;
+    goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,35 +31,35 @@
 #include "includes.h"
 
 
-NTSTATUS SamrEnumDomains(handle_t b, PolicyHandle *handle,
-                         uint32 *resume, uint32 size,
-                         wchar16_t ***names, uint32 *count)
+NTSTATUS
+SamrEnumDomains(
+    handle_t b,
+    PolicyHandle *conn_h,
+    uint32 *resume,
+    uint32 size,
+    wchar16_t ***names,
+    uint32 *count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS ret_status = STATUS_SUCCESS;
     EntryArray *domains = NULL;
     uint32 res = 0;
-    uint32 i = 0;
     uint32 num = 0;
     wchar16_t **out_names = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(handle, cleanup);
+    goto_if_invalid_param_ntstatus(conn_h, cleanup);
     goto_if_invalid_param_ntstatus(resume, cleanup);
     goto_if_invalid_param_ntstatus(names, cleanup);
     goto_if_invalid_param_ntstatus(count, cleanup);
 
     res = *resume;
 	
-    TRY
-    {
-        ret_status = _SamrEnumDomains(b, handle, &res, size, &domains, &num);
-    }
-    CATCH_ALL
-    {
-        ret_status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrEnumDomains(b, conn_h, &res, size, &domains, &num));
+
+    /* Preserve returned status code */
+    ret_status = status;
 
     /* Status other than success doesn't have to mean failure here */
     if (ret_status != STATUS_SUCCESS &&
@@ -92,7 +92,9 @@ error:
         SamrFreeMemory((void*)out_names);
     }
 
-    *names = NULL;
+    *resume = 0;
+    *count  = 0;
+    *names  = NULL;
     goto cleanup;
 }
 

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,28 +28,39 @@
  * license@likewisesoftware.com
  */
 
-/* -*- mode: c; c-basic-offset: 4 -*- */
 #include "includes.h"
 
 
-NTSTATUS SamrAddAliasMember(handle_t bind, PolicyHandle *alias_handle,
-			    DomSid *sid)
+NTSTATUS
+SamrAddAliasMember(
+    handle_t b,
+    PolicyHandle *alias_h,
+    DomSid *sid
+    )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     
-    if (bind == NULL || alias_handle == NULL || sid == NULL) {
-	return STATUS_INVALID_PARAMETER;
-    }
+    goto_if_invalid_param_ntstatus(b, cleanup);
+    goto_if_invalid_param_ntstatus(alias_h, cleanup);
+    goto_if_invalid_param_ntstatus(sid, cleanup);
 
-    TRY
-    {
-	status = _SamrAddAliasMember(bind, alias_handle, sid);
-    }
-    CATCH_ALL
-    {
-	return STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrAddAliasMember(b, alias_h, sid));
 
+    goto_if_ntstatus_not_success(status, error);
+
+cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
