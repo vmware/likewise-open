@@ -268,8 +268,8 @@ PrintStatus(
         printf("\n[Authentication provider: %s]\n\n", 
                         IsNullOrEmptyString(pProviderStatus->pszId) ? "" : pProviderStatus->pszId);
         
-        printf("\tStatus:                %s\n", GetStatusString(pProviderStatus->status));
-        printf("\tMode:                  %s\n", GetModeString(pProviderStatus->mode));
+        printf("\tStatus:        %s\n", GetStatusString(pProviderStatus->status));
+        printf("\tMode:          %s\n", GetModeString(pProviderStatus->mode));
 
         switch (pProviderStatus->mode)
         {
@@ -333,9 +333,35 @@ PrintStatus(
                 printf("\t\tClient site name: %s\n", IsNullOrEmptyString(pDomainInfo->pszClientSiteName) ? "" : pDomainInfo->pszClientSiteName);
                 printf("\t\tDomain SID:       %s\n", IsNullOrEmptyString(pDomainInfo->pszDomainSID) ? "" : pDomainInfo->pszDomainSID);
                 printf("\t\tDomain GUID:      %s\n", IsNullOrEmptyString(pDomainInfo->pszDomainGUID) ? "" : pDomainInfo->pszDomainGUID);
-                printf("\t\tTrust Flags:      0x%x\n", pDomainInfo->dwTrustFlags);
+                printf("\t\tTrust Flags:      [0x%.04x]\n", pDomainInfo->dwTrustFlags);
+                if (pDomainInfo->dwTrustFlags & LSA_TRUST_FLAG_IN_FOREST)
+                    printf("\t\t                  [0x%.04x - In forest]\n", LSA_TRUST_FLAG_IN_FOREST);
+                if (pDomainInfo->dwTrustFlags & LSA_TRUST_FLAG_OUTBOUND)
+                    printf("\t\t                  [0x%.04x - Outbound]\n", LSA_TRUST_FLAG_OUTBOUND);
+                if (pDomainInfo->dwTrustFlags & LSA_TRUST_FLAG_TREEROOT)
+                    printf("\t\t                  [0x%.04x - Tree root]\n", LSA_TRUST_FLAG_TREEROOT);
+                if (pDomainInfo->dwTrustFlags & LSA_TRUST_FLAG_PRIMARY)
+                    printf("\t\t                  [0x%.04x - Primary]\n", LSA_TRUST_FLAG_PRIMARY);
+                if (pDomainInfo->dwTrustFlags & LSA_TRUST_FLAG_NATIVE)
+                    printf("\t\t                  [0x%.04x - Native]\n", LSA_TRUST_FLAG_NATIVE);
+                if (pDomainInfo->dwTrustFlags & LSA_TRUST_FLAG_INBOUND)
+                    printf("\t\t                  [0x%.04x - Inbound]\n", LSA_TRUST_FLAG_INBOUND);
+
                 printf("\t\tTrust type:       %s\n", GetTrustTypeString(pDomainInfo->dwTrustType));
-                printf("\t\tTrust Attributes: 0x%x\n", pDomainInfo->dwTrustAttributes);
+                printf("\t\tTrust Attributes: [0x%.04x]\n", pDomainInfo->dwTrustAttributes);
+                if (pDomainInfo->dwTrustAttributes & LSA_TRUST_ATTRIBUTE_NON_TRANSITIVE)
+                    printf("\t\t                  [0x%.04x - Non-transitive]\n", LSA_TRUST_ATTRIBUTE_NON_TRANSITIVE);
+                if (pDomainInfo->dwTrustAttributes & LSA_TRUST_ATTRIBUTE_UPLEVEL_ONLY)
+                    printf("\t\t                  [0x%.04x - Uplevel only]\n", LSA_TRUST_ATTRIBUTE_UPLEVEL_ONLY);
+                if (pDomainInfo->dwTrustAttributes & LSA_TRUST_ATTRIBUTE_FILTER_SIDS)
+                    printf("\t\t                  [0x%.04x - Filter SIDs]\n", LSA_TRUST_ATTRIBUTE_FILTER_SIDS);
+                if (pDomainInfo->dwTrustAttributes & LSA_TRUST_ATTRIBUTE_FOREST_TRANSITIVE)
+                    printf("\t\t                  [0x%.04x - Forest transitive]\n", LSA_TRUST_ATTRIBUTE_FOREST_TRANSITIVE);
+                if (pDomainInfo->dwTrustAttributes & LSA_TRUST_ATTRIBUTE_CROSS_ORGANIZATION)
+                    printf("\t\t                  [0x%.04x - Cross organization]\n", LSA_TRUST_ATTRIBUTE_CROSS_ORGANIZATION);
+                if (pDomainInfo->dwTrustAttributes & LSA_TRUST_ATTRIBUTE_WITHIN_FOREST)
+                    printf("\t\t                  [0x%.04x - Within forest]\n", LSA_TRUST_ATTRIBUTE_WITHIN_FOREST);
+
                 printf("\t\tTrust Direction:  ");
                 switch (pDomainInfo->dwTrustDirection)
                 {
@@ -371,7 +397,17 @@ PrintStatus(
                         printf("Unknown trust mode\n");                
                 }
                 
-                printf("\t\tDomain flags:     0x%x\n", pDomainInfo->dwDomainFlags);
+                printf("\t\tDomain flags:     [0x%.04xa]\n", pDomainInfo->dwDomainFlags);
+                if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_PRIMARY)
+                    printf("\t\t                  [0x%.04x - Primary]\n", LSA_DM_DOMAIN_FLAG_PRIMARY);
+                if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_OFFLINE)
+                    printf("\t\t                  [0x%.04x - Offline]\n", LSA_DM_DOMAIN_FLAG_OFFLINE);
+                if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE)
+                    printf("\t\t                  [0x%.04x - Force offline]\n", LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE);
+                if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD)
+                    printf("\t\t                  [0x%.04x - Transitive 1 way child]\n", LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD);
+                if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_FOREST_ROOT)
+                    printf("\t\t                  [0x%.04x - Forest root]\n", LSA_DM_DOMAIN_FLAG_FOREST_ROOT);
                 
                 if (pDomainInfo->pDCInfo)
                 {
@@ -379,7 +415,7 @@ PrintStatus(
                     printf("\t\t\tDC Name:              %s\n", IsNullOrEmptyString(pDomainInfo->pDCInfo->pszName) ? "" : pDomainInfo->pDCInfo->pszName);
                     printf("\t\t\tDC Address:           %s\n", IsNullOrEmptyString(pDomainInfo->pDCInfo->pszAddress) ? "" : pDomainInfo->pDCInfo->pszAddress);
                     printf("\t\t\tDC Site:              %s\n", IsNullOrEmptyString(pDomainInfo->pDCInfo->pszSiteName) ? "" : pDomainInfo->pDCInfo->pszSiteName);
-                    printf("\t\t\tDC Flags:             0x%x\n", pDomainInfo->pDCInfo->dwFlags);
+                    printf("\t\t\tDC Flags:             [0x%.08x]\n", pDomainInfo->pDCInfo->dwFlags);
                     printf("\t\t\tDC Is PDC:            %s\n",
                                     (pDomainInfo->pDCInfo->dwFlags & LSA_DS_PDC_FLAG) ? "yes" : "no");
                     printf("\t\t\tDC is time server:    %s\n",
@@ -398,7 +434,7 @@ PrintStatus(
                     printf("\t\t\tGC Name:              %s\n", IsNullOrEmptyString(pDomainInfo->pGCInfo->pszName) ? "" : pDomainInfo->pGCInfo->pszName);
                     printf("\t\t\tGC Address:           %s\n", IsNullOrEmptyString(pDomainInfo->pGCInfo->pszAddress) ? "" : pDomainInfo->pGCInfo->pszAddress);
                     printf("\t\t\tGC Site:              %s\n", IsNullOrEmptyString(pDomainInfo->pGCInfo->pszSiteName) ? "" : pDomainInfo->pGCInfo->pszSiteName);
-                    printf("\t\t\tGC Flags:             0x%x\n", pDomainInfo->pGCInfo->dwFlags);
+                    printf("\t\t\tGC Flags:             [0x%.08x]\n", pDomainInfo->pGCInfo->dwFlags);
                     printf("\t\t\tGC Is PDC:            %s\n",
                                     (pDomainInfo->pGCInfo->dwFlags & LSA_DS_PDC_FLAG) ? "yes" : "no");
                     printf("\t\t\tGC is time server:    %s\n",
