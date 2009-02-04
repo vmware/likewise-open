@@ -420,6 +420,10 @@ PrintUserInfo_2(
             pUserInfo->bPasswordExpired ? "TRUE" : "FALSE");
     fprintf(stdout, "Prompt for password change: %s\n",
             pUserInfo->bPromptPasswordChange ? "YES" : "NO");
+    fprintf(stdout, "User can change password:   %s\n",
+            pUserInfo->bUserCanChangePassword ? "YES" : "NO");
+    fprintf(stdout, "Days till password expires: %d\n",
+            pUserInfo->dwDaysToPasswordExpiry);
     fprintf(stdout, "\n\n");
 }
 
