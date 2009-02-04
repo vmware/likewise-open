@@ -1123,12 +1123,13 @@ LWNetDnsQueryWithBuffer(
     PDNS_RESPONSE_HEADER pHeader = (PDNS_RESPONSE_HEADER)pBuffer;
     int responseSize =  0;
 
-    // TODO: Add locking for res_init()?  See TODO wrt _res.options below.
-    if (res_init() != 0)
+    if (!(_res.options & RES_INIT))
     {
-        // TODO: Fix error code
-        dwError = LWNET_ERROR_DNS_RESOLUTION_FAILED;
-        BAIL_ON_LWNET_ERROR(dwError);
+        if (res_init() != 0)
+        {
+            dwError = LWNET_ERROR_DNS_RESOLUTION_FAILED;
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
     }
 
     if (dwBufferSize < CT_MIN(sizeof(DNS_RESPONSE_HEADER), MAX_DNS_UDP_BUFFER))
