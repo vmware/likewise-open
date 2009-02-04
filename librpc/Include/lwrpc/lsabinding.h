@@ -43,13 +43,14 @@
 #define LSA_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
 
 
-RPCSTATUS InitLsaBindingDefault(
+RPCSTATUS
+InitLsaBindingDefault(
     handle_t *binding,
     const char *hostname
     );
 
-
-RPCSTATUS InitLsaBindingFull(
+RPCSTATUS
+InitLsaBindingFull(
     handle_t *binding,
     const char *prot_seq,
     const char *hostname,
@@ -58,11 +59,10 @@ RPCSTATUS InitLsaBindingFull(
     const char *options
     );
 
-
-RPCSTATUS FreeLsaBinding(
+RPCSTATUS
+FreeLsaBinding(
     handle_t *binding
     );
-
 
 #endif /* _LSA_BINDING_H_ */
 
