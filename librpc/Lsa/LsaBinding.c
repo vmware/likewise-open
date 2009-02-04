@@ -37,7 +37,11 @@
 #include "includes.h"
 
 
-RPCSTATUS InitLsaBindingDefault(handle_t *binding, const char *hostname)
+RPCSTATUS
+InitLsaBindingDefault(
+    handle_t *binding,
+    const char *hostname
+    )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
     char *prot_seq = (char*)LSA_DEFAULT_PROT_SEQ;
@@ -60,12 +64,17 @@ error:
 }
 
 
-RPCSTATUS InitLsaBindingFull(handle_t *binding,
-                             const char *prot_seq, const char *hostname,
-                             const char *endpoint, const char *uuid,
-                             const char *options)
+RPCSTATUS
+InitLsaBindingFull(
+    handle_t *binding,
+    const char *prot_seq,
+    const char *hostname,
+    const char *endpoint,
+    const char *uuid,
+    const char *options)
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
+    RPCSTATUS st = RPC_S_OK;
     unsigned char *binding_string = NULL;
     unsigned char *ps   = NULL;
     unsigned char *ep   = NULL;
@@ -119,18 +128,29 @@ cleanup:
     SAFE_FREE(addr);
 
     if (binding_string) {
-        rpc_string_free(&binding_string, &rpcstatus);
+        rpc_string_free(&binding_string, &st);
+    }
+
+    if (rpcstatus == RPC_S_OK &&
+        st != RPC_S_OK) {
+        rpcstatus = st;
     }
 
     return rpcstatus;
 
 error:
-    *binding = NULL;
+    if (b) {
+        rpc_binding_free(&b, &st);
+    }
+
     goto cleanup;
 }
 
 
-RPCSTATUS FreeLsaBinding(handle_t *binding)
+RPCSTATUS
+FreeLsaBinding(
+    handle_t *binding
+    )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
 
@@ -139,9 +159,6 @@ RPCSTATUS FreeLsaBinding(handle_t *binding)
 	    rpc_binding_free(binding, &rpcstatus);
         goto_if_rpcstatus_not_success(rpcstatus, done);
     }
-
-    /* Clear the handle pointer */
-    *binding = NULL;
 
 done:
     return rpcstatus;
