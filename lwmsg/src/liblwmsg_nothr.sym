@@ -17,7 +17,6 @@ lwmsg_assoc_get_handle_location
 lwmsg_assoc_free_message
 lwmsg_assoc_free_graph
 lwmsg_assoc_set_timeout
-lwmsg_assoc_set_timeout_ms
 lwmsg_assoc_get_error_message
 lwmsg_assoc_get_peer_security_token
 lwmsg_assoc_get_peer_session_id
@@ -27,7 +26,6 @@ lwmsg_assoc_set_session_data
 lwmsg_assoc_set_action
 lwmsg_assoc_establish
 lwmsg_connection_new
-lwmsg_connection_establish
 lwmsg_connection_set_packet_size
 lwmsg_connection_set_fd
 lwmsg_connection_set_endpoint
