@@ -639,8 +639,16 @@ LsaSrvIpcGetNamesBySidList(
     }
 
 cleanup:
-    LsaFreeStringArray(ppszDomainNames, pResult->sCount);
-    LsaFreeStringArray(ppszSamAccounts, pResult->sCount);
+
+    if (ppszDomainNames)
+    {
+        LsaFreeStringArray(ppszDomainNames, pReq->sCount);
+    }
+
+    if (ppszSamAccounts)
+    {
+        LsaFreeStringArray(ppszSamAccounts, pReq->sCount);
+    }
     LSA_SAFE_FREE_MEMORY(pTypes);
 
     return MAP_LSA_ERROR_IPC(dwError);

@@ -688,6 +688,11 @@ LsaSrvGetNamesBySidList(
                 }
             }
         }
+        else
+        {
+            /* Absorb the error */
+            dwError = LSA_ERROR_SUCCESS;
+        }
 
         LsaSrvCloseProvider(pProvider, hProvider);
         hProvider = (HANDLE)NULL;
