@@ -34,28 +34,94 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-
-#ifdef __GNUC__
-#include <stdlib.h>
-#endif
+#ifndef _UNICODESTRING_H_
+#define _UNICODESTRING_H_
 
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
 
 
-NTSTATUS InitUnicodeString(UnicodeString *u, const wchar16_t *s);
-wchar16_t *GetFromUnicodeString(UnicodeString *u);
-NTSTATUS CopyUnicodeString(UnicodeString *out, UnicodeString *in);
-UnicodeString* InitUnicodeStringArray(wchar16_t *sa[], size_t count);
-void FreeUnicodeString(UnicodeString *u);
-void FreeUnicodeStringArray(UnicodeString *ua, size_t count);
+NTSTATUS
+InitUnicodeString(
+    UnicodeString *u,
+    const wchar16_t *s
+    );
 
-NTSTATUS InitUnicodeStringEx(UnicodeStringEx *u, const wchar16_t *s);
-wchar16_t *GetFromUnicodeStringEx(UnicodeStringEx *u);
-NTSTATUS CopyUnicodeStringEx(UnicodeStringEx *out, UnicodeStringEx *in);
-UnicodeStringEx* InitUnicodeStringExArray(wchar16_t *sa[], size_t count);
-void FreeUnicodeStringEx(UnicodeStringEx *u);
-void FreeUnicodeStringExArray(UnicodeStringEx *ua, size_t count);
+
+wchar16_t*
+GetFromUnicodeString(
+    UnicodeString *u
+    );
+
+
+NTSTATUS
+CopyUnicodeString(
+    UnicodeString *out,
+    UnicodeString *in
+    );
+
+
+UnicodeString*
+InitUnicodeStringArray(
+    wchar16_t *sa[],
+    size_t count
+    );
+
+
+void
+FreeUnicodeString(
+    UnicodeString *u
+    );
+
+
+void
+FreeUnicodeStringArray(
+    UnicodeString *ua,
+    size_t count
+    );
+
+
+NTSTATUS
+InitUnicodeStringEx(
+    UnicodeStringEx *u,
+    const wchar16_t *s
+    );
+
+
+wchar16_t*
+GetFromUnicodeStringEx(
+    UnicodeStringEx *u
+    );
+
+
+NTSTATUS
+CopyUnicodeStringEx(
+    UnicodeStringEx *out,
+    UnicodeStringEx *in
+    );
+
+
+UnicodeStringEx*
+InitUnicodeStringExArray(
+    wchar16_t *sa[],
+    size_t count
+    );
+
+
+void
+FreeUnicodeStringEx(
+    UnicodeStringEx *u
+    );
+
+
+void
+FreeUnicodeStringExArray(
+    UnicodeStringEx *ua,
+    size_t count
+    );
+
+
+#endif /* _UNICODESTRING_H_ */
 
 
 /*
