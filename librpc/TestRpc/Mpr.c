@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -34,16 +34,14 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
-
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
+#include <secdesc/secdesc.h>
+
+#include <lwrpc/types.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
-#include <lwrpc/samrbinding.h>
-#include <lwrpc/lsabinding.h>
 #include <lwrpc/mpr.h>
 #include <md5.h>
 
@@ -84,8 +82,9 @@ int TestMprIncorrectAuthSession(struct test *t, const wchar16_t *hostname,
     username = ambstowc16s(incuser);
     password = ambstowc16s(incpass);
 
-    printf("Adding connection with incorrect credentials user:[%s], pass:[%s]\n",
-	   user, pass);
+    printfw16("Adding connection with incorrect credentials"
+              "user:[%S], pass:[%S]\n", user, pass);
+
     ret = WNetAddConnection2(&nr, password, username);
     printf("WNetAddConnection2: ret = %d\n", ret);
 

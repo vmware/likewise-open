@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -34,19 +34,21 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
+#include <wc16str.h>
+#include <secdesc/secdesc.h>
+#include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
-#include <lwrpc/samrbinding.h>
-#include <lwrpc/lsabinding.h>
 #include <lwrpc/mpr.h>
 #include <md5.h>
+#include <rc4.h>
+#include <des.h>
+#include <crypto.h>
 
 #include "TestRpc.h"
 #include "Params.h"
@@ -58,12 +60,12 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
 {
     RPCSTATUS status = RPC_S_OK;
     size_t hostname_size = 0;
-    unsigned char *hostname = NULL;
+    char *hostname = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
 
     hostname_size = wc16slen(host) + 1;
-    hostname = (unsigned char*) malloc(hostname_size * sizeof(char));
+    hostname = (char*) malloc(hostname_size * sizeof(char));
     if (hostname == NULL) return NULL;
 
     wc16stombs(hostname, host, hostname_size);
@@ -97,7 +99,7 @@ NTSTATUS GetSamDomainName(wchar16_t **domname, const wchar16_t *hostname)
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
     const uint32 enum_size = 32;
-    const wchar_t *builtin = L"Builtin";
+    const char *builtin = "Builtin";
 
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS ret = STATUS_SUCCESS;
@@ -127,10 +129,10 @@ NTSTATUS GetSamDomainName(wchar16_t **domname, const wchar16_t *hostname)
             status != STATUS_MORE_ENTRIES) rpc_fail(status);
 
         for (i = 0; i < count; i++) {
-            wchar_t n[32] = {0};
+            char n[32] = {0};
 
-            wc16stowcs(n, dom_names[i], sizeof(n));
-            if (wcscasecmp(n, builtin)) {
+            wc16stombs(n, dom_names[i], sizeof(n));
+            if (strcasecmp(n, builtin)) {
                 *domname = (wchar16_t*) wc16sdup(dom_names[i]);
                 ret = STATUS_SUCCESS;
 
@@ -336,7 +338,6 @@ NTSTATUS EnsureAlias(const wchar16_t *hostname, wchar16_t *aliasname,
                      int *created)
 {
     
-    const uint32 account_flags = ACB_NORMAL;
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
     const uint32 domain_access = DOMAIN_ACCESS_OPEN_ACCOUNT |
@@ -471,7 +472,6 @@ void DumpUserInfo(const char *prefix, UserInfo *i, int level)
     uint32 primary_gid = 0;
     uint16 country_code = 0;
     uint16 code_page = 0;
-    uint16 units_per_week = 0;
     uint32 rid = 0;
     UnicodeString *home_directory = NULL;
     UnicodeString *home_drive = NULL;
@@ -700,8 +700,6 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
                                      ALIAS_ACCESS_GET_MEMBERS |
                                      SEC_STD_DELETE;
 
-    const uint32 account_flags = ACB_NORMAL;
-
     const char *testalias = "TestAlias";
     const char *testuser = "TestUser";
     const char *testalias_desc = "TestAlias Comment";
@@ -710,20 +708,16 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     enum param_err perr;
     handle_t samr_binding = NULL;
     NETRESOURCE nr = {0};
-    uint32 alias_rid = 0;
     uint32 user_rid = 0;
     uint32 *rids = NULL;
     uint32 *types = NULL;
     uint32 num_rids = 0;
-    size_t testalias_size = 0;
-    size_t testalias_desc_size = 0;
-    size_t username_size = 0;
     wchar16_t *aliasname = NULL;
     wchar16_t *aliasdesc = NULL;
     wchar16_t *username = NULL;
     wchar16_t *domname = NULL;
     int i = 0;
-    int rids_count = 0;
+    uint32 rids_count = 0;
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
     PolicyHandle alias_handle = {0};
@@ -732,7 +726,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     DomSid *sid = NULL;
     DomSid *user_sid = NULL;
     AliasInfo *aliasinfo = NULL;
-    AliasInfo setaliasinfo = {0};
+    AliasInfo setaliasinfo;
     DomSid **member_sids = NULL;
     uint32 members_num = 0;
     int alias_created = 0;
@@ -784,8 +778,8 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
 
     names[0] = aliasname;
 
-    status = SamrLookupNames(samr_binding, &dom_handle, 1, names, &rids, &types,
-                             &rids_count);
+    status = SamrLookupNames(samr_binding, &dom_handle, 1, names,
+                             &rids, &types, &rids_count);
     if (status != 0) rpc_fail(status);
 
     if (rids_count == 0 || rids_count != 1) {
@@ -944,7 +938,6 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     char *sidstr = NULL;
     DomSid *sid = NULL;
     DomainInfo *dominfo = NULL;
-    SidArray sids = {0};
 
     TESTINFO(t, hostname, user, pass);
 
@@ -1058,10 +1051,6 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
 
-    /*
-     * Querying domain info (level 2 only, at the moment)
-     */
-
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
                           &conn_handle);
     if (status != 0) rpc_fail(status);
@@ -1089,7 +1078,9 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
 
         OUTPUT_ARG_PTR(dominfo);
 
-        if (dominfo) SamrFreeMemory((void*)dominfo);
+        if (dominfo) {
+            SamrFreeMemory((void*)dominfo);
+        }
     }
 	
     status = SamrClose(samr_binding, &dom_handle);
@@ -1144,7 +1135,6 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     uint32 resume = 0;
     uint32 num_entries = 0;
     uint32 max_size = 0;
-    uint32 i = 0;
     uint32 account_flags = 0;
     wchar16_t **enum_names = NULL;
     wchar16_t *domname = NULL;
@@ -1264,8 +1254,12 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS(nr);
 
 done:
-    if (sid) SamrFreeMemory((void*)sid);
-    if (domname) SamrFreeMemory((void*)domname);
+    if (sid) {
+        SamrFreeMemory((void*)sid);
+    }
+
+    SAFE_FREE(domname);
+    SAFE_FREE(domainname);
 
     return (status == STATUS_SUCCESS);
 }
@@ -1358,7 +1352,6 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
     enum param_err perr;
     handle_t samr_binding = NULL;
     NETRESOURCE nr = {0};
-    size_t newusername_size = 0;
     wchar16_t *newusername = NULL;
     wchar16_t *domname = NULL;
     uint32 rid = 0;
@@ -1458,7 +1451,6 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
     enum param_err perr;
     handle_t samr_binding = NULL;
     NETRESOURCE nr = {0};
-    size_t newliasname_size;
     wchar16_t *newaliasname = NULL;
     wchar16_t *domname = NULL;
     uint32 rid = 0;
@@ -1548,7 +1540,6 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
                                    USER_ACCESS_SET_ATTRIBUTES |
 	                           SEC_STD_DELETE;
 
-    const uint32 account_flags = ACB_NORMAL;
     const char *newuser = "Testuser";
     const char *testpass = "JustTesting30$";
 
@@ -1558,7 +1549,6 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     handle_t samr_binding;
     NETRESOURCE nr = {0};
     int newacct;
-    size_t newusername_size;
     wchar16_t *newusername, *domname;
     uint32 rid;
     PolicyHandle conn_handle = {0};
@@ -1567,7 +1557,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     DomSid *sid = NULL;
     uint32 *rids, *types, rids_count;
     wchar16_t *names[1];
-    UserInfo userinfo = {0};
+    UserInfo userinfo;
     UserInfo26 *info26 = NULL;
     unsigned char initval[16] = {0};
     wchar16_t *password;
@@ -1575,6 +1565,8 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     size_t sess_key_len;
     unsigned char digested_sess_key[16] = {0};
     struct md5context ctx;
+
+    memset((void*)&userinfo, 0, sizeof(userinfo));
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &newusername, &newuser);
@@ -1741,26 +1733,17 @@ int TestSamrChangeUserPassword(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr;
-    DomSid *sid = NULL;
     handle_t samr_b = NULL;
     NETRESOURCE nr = {0};
-    PolicyHandle conn_h = {0};
-    PolicyHandle domain_h = {0};
     wchar16_t *username = NULL;
     wchar16_t *oldpassword = NULL;
     wchar16_t *newpassword = NULL;
     uint8 old_nthash[16] = {0};
     uint8 new_nthash[16] = {0};
     uint8 old_lmhash[16] = {0};
-    uint8 new_lmhash[16] = {0};
     size_t oldlen, newlen;
     uint8 ntpassbuf[516] = {0};
-    uint8 lmpassbuf[516] = {0};
     uint8 ntverhash[16] = {0};
-    uint8 lmverhash[16] = {0};
-    char *newpass = NULL;
-    char *oldpass = NULL;
-    int i = 0;
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &defusername);
@@ -1810,7 +1793,7 @@ done:
     SAFE_FREE(oldpassword);
     SAFE_FREE(newpassword);
 
-    return true;
+    return (status == STATUS_SUCCESS);
 }
 
 
@@ -1835,7 +1818,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
     handle_t samr_binding;
     NETRESOURCE nr = {0};
     enum param_err perr;
-    uint32 resume, num_entries, max_size, i;
+    uint32 resume, num_entries, max_size;
     uint32 account_flags;
     wchar16_t **enum_names, *domname, *domainname;
     uint32 *enum_rids;
@@ -1970,7 +1953,6 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     RefDomainList *domains = NULL;
     TranslatedName *trans_names = NULL;
     uint32 names_count = 0;
-    uint32 level = 0;
     wchar16_t *grp_name = NULL;
     wchar16_t *dom_name = NULL;
 
@@ -2087,7 +2069,6 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
         printf("\n");
     }
 
-close:
     status = SamrClose(samr_b, &user_h);
     if (status != 0) rpc_fail(status);
 
@@ -2343,7 +2324,6 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
         printf("\n");
     }
 
-close:
     status = LsaClose(lsa_b, &lsa_h);
     if (status != 0) rpc_fail(status);
 
