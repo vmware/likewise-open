@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -34,9 +34,9 @@
 #include <lwrpc/netrdefs.h>
 
 typedef struct {
-        NetrSamInfo3 info3;
-        DomSid *res_group_dom_sid;
-        RidWithAttributeArray res_groups;
+    NetrSamInfo3 info3;
+    DomSid *res_group_dom_sid;
+    RidWithAttributeArray res_groups;
 } PAC_LOGON_INFO;
 
 #endif /* _KRB5PAC_H_ */
