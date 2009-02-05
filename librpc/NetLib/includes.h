@@ -72,7 +72,6 @@
 #include "NetConnection.h"
 #include "NetUser.h"
 #include "NetUtil.h"
-#include "NetMemory.h"
 #include "NetLibUserInfo.h"
 #include "GroupInfo.h"
 #include "NetGetDcName.h"
