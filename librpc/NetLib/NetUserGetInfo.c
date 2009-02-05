@@ -46,7 +46,6 @@ NET_API_STATUS NetUserGetInfo(const wchar16_t *hostname, const wchar16_t *userna
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle user_handle;
-    DomSid *sid;
     uint32 user_rid;
     UserInfo *info = NULL;
     USER_INFO_20 *ninfo20;

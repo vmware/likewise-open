@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,42 +28,28 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+#ifndef _NET_USER_H_
+#define _NET_USER_H_
 
 
-NET_API_STATUS NetGetDomainName(const wchar16_t *hostname, wchar16_t **domname)
-{
-    const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
-                               SAMR_ACCESS_ENUM_DOMAINS;
-
-    NetConn *cn;
-    NTSTATUS status;
-    wchar16_t *domain_name;
-
-    if (domname == NULL || hostname == NULL) {
-        return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-    }
-
-    status = NetConnectSamr(&cn, hostname, conn_access, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
-
-    domain_name = wc16sdup(cn->samr.dom_name);
-    if (domain_name == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
-
-    status = NetDisconnectSamr(cn);
-    if (status != 0) return NtStatusToWin32Error(status);
- 
-    (*domname) = domain_name;
-    
-    return ERROR_SUCCESS;
-}
+NTSTATUS
+NetOpenUser(
+    NetConn *conn,
+    const wchar16_t *username,
+    uint32 access_mask,
+    PolicyHandle *user_h,
+    uint32 *rid
+    );
 
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+NTSTATUS
+NetOpenAlias(
+    NetConn *conn,
+    const wchar16_t *aliasname,
+    uint32 access_mask,
+    PolicyHandle *out_alias_h,
+    uint32 *out_rid
+    );
+
+
+#endif /* _NET_USER_H_ */

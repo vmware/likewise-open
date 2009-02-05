@@ -33,13 +33,11 @@
 
 NET_API_STATUS NetUserDel(const wchar16_t *hostname, const wchar16_t *username)
 {
-    const uint32 num_users = 1;
     const uint32 user_access = SEC_STD_DELETE;
 	
     NTSTATUS status;
     NetConn *conn;
     handle_t samr_bind;
-    wchar16_t *usernames[1];
     PolicyHandle user_handle;
     uint32 user_rid;
 

@@ -38,14 +38,13 @@ NET_API_STATUS NetLocalGroupAdd(const wchar16_t *hostname, uint32 level,
     const uint32 alias_access = ALIAS_ACCESS_LOOKUP_INFO |
                                 ALIAS_ACCESS_SET_INFO;
 
-    NTSTATUS status;
-    NetConn *conn;
+    NTSTATUS status = STATUS_SUCCESS;
+    NetConn *conn = NULL;
     handle_t samr_bind;
     PolicyHandle domain_handle, alias_handle;
-    DomSid *sid;
     wchar16_t *alias_name, *comment;
-    LOCALGROUP_INFO_0 *info0;
-    LOCALGROUP_INFO_1 *info1;
+    LOCALGROUP_INFO_0 *info0 = NULL;
+    LOCALGROUP_INFO_1 *info1 = NULL;
     uint32 rid;
     AliasInfo info;
 

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,42 +28,76 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+#ifndef _JOIN_LOCAL_H_
+#define _JOIN_LOCAL_H_
 
 
-NET_API_STATUS NetGetDomainName(const wchar16_t *hostname, wchar16_t **domname)
-{
-    const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
-                               SAMR_ACCESS_ENUM_DOMAINS;
-
-    NetConn *cn;
-    NTSTATUS status;
-    wchar16_t *domain_name;
-
-    if (domname == NULL || hostname == NULL) {
-        return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-    }
-
-    status = NetConnectSamr(&cn, hostname, conn_access, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
-
-    domain_name = wc16sdup(cn->samr.dom_name);
-    if (domain_name == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
-
-    status = NetDisconnectSamr(cn);
-    if (status != 0) return NtStatusToWin32Error(status);
- 
-    (*domname) = domain_name;
-    
-    return ERROR_SUCCESS;
-}
+NTSTATUS
+ResetAccountPasswordTimer(
+    handle_t samr_b,
+    PolicyHandle *account_h
+    );
 
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+NTSTATUS
+ResetWksAccount(
+    NetConn *conn,
+    wchar16_t *name,
+    PolicyHandle *account_h
+    );
+
+NTSTATUS
+CreateWksAccount(
+    NetConn *conn,
+    wchar16_t *name,
+    PolicyHandle *account_h
+    );
+
+NTSTATUS
+SetMachinePassword(
+    NetConn *conn,
+    PolicyHandle *account_h,
+    uint32 new,
+    wchar16_t *name,
+    wchar16_t *password
+    );
+
+NET_API_STATUS
+DirectoryConnect(
+    const wchar16_t *domain,
+    LDAP **ldconn,
+    wchar16_t **dn_context
+    );
+
+NET_API_STATUS
+DirectoryDisconnect(
+    LDAP *ldconn
+    );
+
+NET_API_STATUS
+MachAcctSearch(
+    LDAP *ldconn,
+    const wchar16_t *name,
+    const wchar16_t *dn_context,
+    wchar16_t **dn
+    );
+
+NET_API_STATUS
+MachAcctCreate(
+    LDAP *ld,
+    const wchar16_t *machine,
+    const wchar16_t *ou,
+    int rejoin
+    );
+
+NET_API_STATUS
+MachAcctSetAttribute(
+    LDAP *ldconn,
+    const wchar16_t *dn,
+    const wchar16_t *attr_name,
+    const wchar16_t **attr_val,
+    int new
+    );
+
+
+#endif /* _JOIN_LOCAL_H_ */
