@@ -182,5 +182,10 @@ KtGetSaltingPrincipalW(
     PCWSTR pwszBaseDn,
     PWSTR *pwszSalt);
 
+void
+KtFreeMemory(
+    PVOID pMemory
+    );
+
 
 #endif /* _KEYTAB_H_ */
