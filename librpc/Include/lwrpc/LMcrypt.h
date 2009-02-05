@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,11 +28,18 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: LanMan cryptography functions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
+
 #ifndef _LM_CRYPT_H_
 #define _LM_CRYPT_H_
 
-#include <lwrpc/types.h>
 #include <lw/ntstatus.h>
+#include <lwrpc/types.h>
 
 NTSTATUS
 NTLMv1EncryptChallenge(
@@ -44,6 +51,7 @@ NTLMv1EncryptChallenge(
     );
 
 #endif   /* _LM_CRYPT_H_ */
+
 
 /*
 local variables:

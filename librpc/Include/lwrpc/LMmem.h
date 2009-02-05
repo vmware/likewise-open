@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -29,22 +29,25 @@
  */
 
 /*
- * Abstract: NetAPI main header (rpc client library)
+ * Abstract: NetAPI memory (de)initialisation functions (rpc client library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#ifndef _LM_H_
-#define _LM_H_
+#ifndef _LM_MEM_H_
+#define _LM_MEM_H_
 
-#ifdef _GNU_SOURCE
-#include <lwrpc/LMErr.h>
-#endif
-#include <lwrpc/LMaccess.h>
-#include <lwrpc/LMjoin.h>
-#include <lwrpc/LMldap.h>
-#include <lwrpc/LMdebug.h>
-#include <lwrpc/LMcrypt.h>
-#include <lwrpc/LMmem.h>
 
-#endif /* _LM_H_ */
+NTSTATUS
+NetInitMemory(
+    void
+    );
+
+
+NTSTATUS
+NetDestroyMemory(
+    void
+    );
+
+
+#endif /* _LM_MEM_H_ */
