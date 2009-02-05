@@ -70,7 +70,6 @@ static char* cleanup_sep(char *s, char sep)
 {
     char *seppos;
     char sepstr[3] = {0};
-    int i = 0;
 
     if (s == NULL) return s;
 
@@ -79,7 +78,9 @@ static char* cleanup_sep(char *s, char sep)
 
     seppos = strstr(s, sepstr);
     while (seppos) {
-        while (*seppos) seppos[0] = (seppos++)[1];
+        while (*seppos) seppos[0] = (seppos)[1];
+        seppos++;
+
         seppos = strstr(s, sepstr);
     }
 
@@ -330,8 +331,8 @@ enum param_err fetch_value(struct parameter *params, int count,
     NTSTATUS status;
     char **valstr, **defstr;
     char *valchar, *defchar;
-    wchar16_t **valw16str, **defw16str;
-    wchar16_t ***valw16str_list, **defw16str_list;
+    wchar16_t **valw16str;
+    wchar16_t ***valw16str_list;
     int *valint, *defint;
     unsigned int *valuint, *defuint;
     DomSid **valsid = NULL;
@@ -421,7 +422,7 @@ enum param_err fetch_value(struct parameter *params, int count,
 
 const char *param_errstr(enum param_err perr)
 {
-    const errcount = sizeof(param_errstr_maps)/sizeof(struct param_errstr_map);
+    const int errcount = sizeof(param_errstr_maps)/sizeof(struct param_errstr_map);
     int i = 0;
 
     while (i < errcount && perr != param_errstr_maps[i].perr) i++;

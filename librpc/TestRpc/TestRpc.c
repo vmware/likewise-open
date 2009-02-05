@@ -35,10 +35,11 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
+#include <wc16str.h>
+#include <lwio/lwio.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
-#include <wc16str.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/allocate.h>
 
@@ -124,13 +125,8 @@ void display_usage()
 extern char *optarg;
 int verbose_mode;
 
-/* a little trick to allow use "unicoded" version of main in windows */
 
-#ifdef _WIN32
-int wmain(int argc, wchar_t *argv[])
-#elif __GNUC__
 int main(int argc, char *argv[])
-#endif
 {
     int i, opt, ret;
     char *testname, *host, *optional_args, *user, *pass;
@@ -214,6 +210,31 @@ int main(int argc, char *argv[])
         (params == NULL && params_len != 0)) {
         printf("Error while parsing optional parameters [%s]\n", optional_args);
         goto done;
+    }
+
+    if (username && password)
+    {
+        /* Set up access token */
+        DWORD dwError = 0;
+	LW_PIO_ACCESS_TOKEN hAccessToken = NULL;
+
+        dwError = LwIoCreateKrb5AccessTokenA("admin@THEBENET.NET",
+                                            "/tmp/krb5cc_0",
+                                            &hAccessToken);
+        if (dwError)
+        {
+            printf("Failed to create access token\n");
+            goto done;
+        }
+
+        dwError = LwIoSetThreadAccessToken(hAccessToken);
+        if (dwError)
+        {
+            printf("Failed to set access token on thread\n");
+            goto done;
+        }
+
+        LwIoDeleteAccessToken(hAccessToken);
     }
 
     SetupSamrTests(tests);
