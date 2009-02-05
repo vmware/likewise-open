@@ -42,13 +42,14 @@ NTLMv1EncryptChallenge(
     uint8  NTResp[24]
     )
 {
-	NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS status = STATUS_SUCCESS;
 
     /* Cannot continue if both hashes are NULL */
 
     if (!pLMHash && !pNTHash)
     {
-        return STATUS_INVALID_PARAMETER;
+        status = STATUS_INVALID_PARAMETER;
+        goto done;
     }
 
     if (pLMHash)
@@ -61,7 +62,8 @@ NTLMv1EncryptChallenge(
         encrypt_challenge(NTResp, Challenge, pNTHash);
     }
 
-    return STATUS_SUCCESS;
+done:
+    return status;
 }
 
 /*
