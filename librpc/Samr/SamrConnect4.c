@@ -36,7 +36,7 @@ SamrConnect4(
     handle_t b,
     const wchar16_t *sysname,
     uint32 access_mask,
-    PolicyHandle *conn_h
+    PolicyHandle *conn_handle
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

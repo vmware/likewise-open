@@ -103,7 +103,8 @@ SamrAllocateAliasInfo(
 NTSTATUS
 SamrAllocateDomainInfo(
     DomainInfo **out,
-    DomainInfo *uint16 level
+    DomainInfo *in,
+    uint16 level
     );
 
 
