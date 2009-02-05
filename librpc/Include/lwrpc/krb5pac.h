@@ -28,6 +28,12 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Kerberos 5 PAC decoding functions (rpc client library)
+ *
+ * Authors: Kyle Stemen (kstemen@likewise.com)
+ */
+
 #ifndef _KRB5PAC_H_H
 #define _KRB5PAC_H_H
 
@@ -35,24 +41,48 @@
 
 error_status_t
 DecodePacLogonInfo(
-        const char *pchBuffer,
-        size_t sBufferLen,
-        PAC_LOGON_INFO **ppLogonInfo);
+    const char *pchBuffer,
+    size_t sBufferLen,
+    PAC_LOGON_INFO **ppLogonInfo
+    );
+
 
 void
 FreePacLogonInfo(
-        PAC_LOGON_INFO *pInfo);
+    PAC_LOGON_INFO *pInfo
+    );
+
 
 void
-FreeUnicodeStringContents(UnicodeStringEx *pStr);
+FreeUnicodeStringContents(
+    UnicodeStringEx *pStr
+    );
+
+
 void
-FreeRidWithAttributeArrayContents(RidWithAttributeArray *pArr);
+FreeRidWithAttributeArrayContents(
+    RidWithAttributeArray *pArr
+    );
+
+
 void
-FreeNetrSamBaseInfoContents(NetrSamBaseInfo *pBase);
+FreeNetrSamBaseInfoContents(
+    NetrSamBaseInfo *pBase
+    );
+
+
 void
-FreeSidAttrArray(NetrSidAttr *pSids, size_t sCount);
+FreeSidAttrArray(
+    NetrSidAttr *pSids,
+    size_t sCount
+    );
+
+
 void
-FreeNetrSamInfo3Contents(NetrSamInfo3 *pInfo);
+FreeNetrSamInfo3Contents(
+    NetrSamInfo3 *pInfo
+    );
+
 
 #endif /* _KRB5PAC_H_H */
 
