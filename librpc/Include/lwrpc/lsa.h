@@ -37,6 +37,7 @@
 #ifndef _LSA_H_
 #define _LSA_H_
 
+#include <lwrpc/lsabinding.h>
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/lsabinding.h>
 
@@ -114,11 +115,15 @@ LsaQueryInfoPolicy2(
 
 
 NTSTATUS
-LsaRpcInitMemory();
+LsaRpcInitMemory(
+    void
+    );
 
 
 NTSTATUS
-LsaRpcDestroyMemory();
+LsaRpcDestroyMemory(
+    void
+    );
 
 
 NTSTATUS
