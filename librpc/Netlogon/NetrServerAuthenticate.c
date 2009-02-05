@@ -35,16 +35,24 @@
 #include "includes.h"
 
 
-NTSTATUS NetrServerAuthenticate(handle_t b, const wchar16_t *server,
-                                const wchar16_t *account, uint16 sec_chan_type,
-                                const wchar16_t *computer, uint8 cli_creds[8],
-                                uint8 srv_creds[8])
+NTSTATUS
+NetrServerAuthenticate(
+    handle_t b,
+    const wchar16_t *server,
+    const wchar16_t *account,
+    uint16 sec_chan_type,
+    const wchar16_t *computer,
+    uint8 cli_creds[8],
+    uint8 srv_creds[8]
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    NetrCred creds = {0};
+    NetrCred creds;
     wchar16_t *srv = NULL;
     wchar16_t *acc = NULL;
     wchar16_t *comp = NULL;
+
+    memset((void*)&creds, 0, sizeof(creds));
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(server, cleanup);

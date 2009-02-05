@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,15 +31,22 @@
 #include "includes.h"
 
 
-WINERR DsrEnumerateDomainTrusts(handle_t b, const wchar16_t *server,
-                                uint32 flags, NetrDomainTrust **trusts,
-                                uint32 *count)
+WINERR
+DsrEnumerateDomainTrusts(
+    handle_t b,
+    const wchar16_t *server,
+    uint32 flags,
+    NetrDomainTrust **trusts,
+    uint32 *count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     wchar16_t *srv = NULL;
-    NetrDomainTrustList tlist = {0};
+    NetrDomainTrustList tlist;
     NetrDomainTrust *t = NULL;
+
+    memset((void*)&tlist, 0, sizeof(tlist));
 
     goto_if_invalid_param_winerr(b, cleanup);
     goto_if_invalid_param_winerr(server, cleanup);
@@ -52,14 +59,13 @@ WINERR DsrEnumerateDomainTrusts(handle_t b, const wchar16_t *server,
     DCERPC_CALL(err, _DsrEnumerateDomainTrusts(b, srv, flags, &tlist));
     goto_if_winerr_not_success(err, cleanup);
 
-    *count  = tlist.count;
-
     status = NetrAllocateDomainTrusts(&t, &tlist);
     if (status != STATUS_SUCCESS) {
         err = NtStatusToWin32Error(status);
         goto error;
     }
 
+    *count  = tlist.count;
     *trusts = t;
 
 cleanup:
@@ -69,7 +75,11 @@ cleanup:
     return err;
 
 error:
-    NetrFreeMemory((void*)t);
+    if (t) {
+        NetrFreeMemory((void*)t);
+    }
+
+    *count  = 0;
     *trusts = NULL;
     goto cleanup;
 }

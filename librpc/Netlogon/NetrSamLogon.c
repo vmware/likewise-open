@@ -94,7 +94,7 @@ NTSTATUS NetrSamLogonInteractive(
     goto_if_ntstatus_not_success(status, error);
 
     status = NetrAllocateLogonInfoHash(&logon_info, logon_level, domain, computer,
-                                   username, password);
+                                       username, password);
     goto_if_ntstatus_not_success(status, error);
 
     DCERPC_CALL(status, _NetrLogonSamLogon(b, srv, comp, auth, ret_auth,
@@ -137,10 +137,11 @@ error:
     }
 
     *out_info          = NULL;
-    *out_authoritative = NULL;
+    *out_authoritative = 0;
 
     goto cleanup;
 }
+
 
 NTSTATUS NetrSamLogonNetwork(
     handle_t b,
@@ -149,9 +150,9 @@ NTSTATUS NetrSamLogonNetwork(
     const wchar16_t *domain,
     const wchar16_t *computer,
     const wchar16_t *username,
-    uint8 * challenge,
+    uint8 *challenge,
     uint8 *lm_resp,
-    uint8 * nt_resp,
+    uint8 *nt_resp,
     uint16 logon_level,
     uint16 validation_level,
     NetrValidationInfo **out_info,
@@ -251,7 +252,7 @@ error:
     }
 
     *out_info          = NULL;
-    *out_authoritative = NULL;
+    *out_authoritative = 0;
 
     goto cleanup;
 }
