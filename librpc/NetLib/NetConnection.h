@@ -108,6 +108,43 @@ NetConn* FirstConn(NetConn* conn, int set);
 
 #endif /* _NET_CONNECTION_H_ */
 
+NTSTATUS
+NetConnListInit(
+    void
+    );
+
+NTSTATUS
+NetConnListDestroy(
+    void
+    );
+
+
+NTSTATUS
+NetConnectSamr(
+    NetConn **conn,
+    const wchar16_t *hostname,
+    uint32 req_dom_flags,
+    uint32 req_btin_dom_flags
+    );
+
+NTSTATUS
+NetConnectLsa(
+    NetConn **conn,
+    const wchar16_t *hostname,
+    uint32 req_lsa_flags
+    );
+
+
+NTSTATUS
+NetDisconnectSamr(
+    NetConn *cn
+    );
+
+
+NTSTATUS
+NetDisconnectLsa(
+    NetConn *cn
+    );
 
 /*
 local variables:

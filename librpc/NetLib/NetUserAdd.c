@@ -52,13 +52,11 @@ NET_API_STATUS NetUserAdd(const wchar16_t *hostname, uint32 level, void *buffer,
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle domain_handle, user_handle;
-    DomSid *sid;
     wchar16_t *user_name;
-    uint32 rid, flags, privileges;
+    uint32 rid;
     uint32 samr_infolevel;
     USER_INFO_X *ninfo;
     UserInfo info, *qinfo;
-    wchar16_t *host = NULL;
 
     memset(&info, 0, sizeof(info));
     qinfo = NULL;
@@ -80,8 +78,11 @@ NET_API_STATUS NetUserAdd(const wchar16_t *hostname, uint32 level, void *buffer,
     if (status != 0) return NtStatusToWin32Error(status);
 
     if (ninfo->password) {
-        UserInfo pwinfo = {0};
-        UserInfo26 *info26 = &pwinfo.info26;
+        UserInfo pwinfo;
+        UserInfo26 *info26 = NULL;
+
+	memset((void*)&pwinfo, 0, sizeof(pwinfo));
+	info26 = &pwinfo.info26;
 
         info26->password_len = wc16slen(ninfo->password);
         status = EncPasswordEx(info26->password.data, ninfo->password,

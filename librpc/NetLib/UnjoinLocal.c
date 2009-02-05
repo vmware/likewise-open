@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,8 +31,12 @@
 #include "includes.h"
 
 
-NTSTATUS DisableWksAccount(NetConn *conn, wchar16_t *machine,
-                           PolicyHandle *account_h)
+NTSTATUS
+DisableWksAccount(
+    NetConn *conn,
+    wchar16_t *machine,
+    PolicyHandle *account_h
+    )
 {
 	const uint32 user_access = USER_ACCESS_GET_ATTRIBUTES | 
                                    USER_ACCESS_SET_ATTRIBUTES;
@@ -44,7 +48,10 @@ NTSTATUS DisableWksAccount(NetConn *conn, wchar16_t *machine,
 	wchar16_t *account_name, *names[1];
 	UserInfo16 *info16;
 	uint32 *rids, *types;
-	UserInfo sinfo = {0}, *qinfo = NULL;
+	UserInfo sinfo;
+    UserInfo *qinfo = NULL;
+
+    memset((void*)&sinfo, 0, sizeof(sinfo));
 
 	samr_b   = conn->samr.bind;
 	domain_h = &conn->samr.dom_handle;

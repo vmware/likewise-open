@@ -72,7 +72,9 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
     DomSid *dom_sid = NULL;
     uint32 conn_access, dom_access, btin_dom_access;
     uint32 resume, entries, i;
-    wchar16_t **dom_names, *dom_name, localhost_addr[10];
+    wchar16_t **dom_names = NULL;
+    wchar16_t *dom_name = NULL;
+    wchar16_t localhost_addr[10];
     uint8 *sess_key;
     size_t sess_key_len;
     NTSTATUS status = STATUS_SUCCESS;
@@ -254,7 +256,6 @@ domain_name_found:
     /* set the host name if it's completely new connection */
     if (cn->hostname == NULL) {
         cn->hostname = wc16sdup(hostname);
-        size_t size = wc16slen(cn->hostname) + 1;
     }
 
     /* add newly created connection */
@@ -276,8 +277,6 @@ NTSTATUS NetConnectLsa(NetConn **conn, const wchar16_t *hostname,
     NetConn *cn, *lookup;
     PolicyHandle policy_handle;
     uint32 lsa_access;
-    uint8 *sess_key;
-    size_t sess_key_len;
     wchar16_t localhost_addr[10];
     NTSTATUS status = STATUS_SUCCESS;
     RPCSTATUS rpcstatus = 0;
@@ -350,7 +349,6 @@ NTSTATUS NetConnectLsa(NetConn **conn, const wchar16_t *hostname,
     /* set the host name if it's completely new connection */
     if (cn->hostname == NULL) {
         cn->hostname = wc16sdup(hostname);
-        size_t size = wc16slen(cn->hostname) + 1;
     }
 
     /* add newly created connection (if it is in fact new) */
