@@ -9,6 +9,7 @@ interface lsa
 #include <lwrpc/types.h>
 #include <security.idl>
 #include <lwrpc/unistrdef.h>
+#include <lwrpc/unistrdef.h>
 #include <lwrpc/lsadefs.h>
 
     /* LsaPolicyInformation union returned from LsaQueryInfoPolicy */

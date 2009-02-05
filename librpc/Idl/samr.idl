@@ -11,6 +11,8 @@ interface samr
 #include <lwrpc/rid.h>
 #include <security.idl>
 
+#include <lwrpc/unistrdef.h>
+#include <lwrpc/rid.h>
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/userinfo.h>
