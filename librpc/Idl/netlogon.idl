@@ -7,6 +7,7 @@ pointer_default(unique)
 interface netlogon
 {
 #include <lwrpc/types.h>
+#include <security.idl>
 #include <lwrpc/unistrdef.h>
 #include <rid.h>
 #include <lwrpc/unistrdef.h>
