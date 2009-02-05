@@ -32,9 +32,10 @@
 #define _SECURITY_H_
 
 #include <lwrpc/types.h>
-#include <lwrpc/phdef.h>
-#include <lwrpc/siddef.h>
-#include <lwrpc/secflags.h>
+#include <secdesc/phdef.h>
+#include <secdesc/siddef.h>
+#include <secdesc/sdflags.h>
+#include <secdesc/sddef.h>
 
 
 #endif /* _SECURITY_H_ */
