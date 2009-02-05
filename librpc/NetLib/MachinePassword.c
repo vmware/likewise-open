@@ -197,7 +197,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     /* MACHINE$@DOMAIN.NET */
     err = SavePrincipalKey(account, pass, pass_len, NULL, salt, dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
 
     /* host/MACHINE@DOMAIN.NET */
     host_machine_uc = (wchar16_t*) malloc(sizeof(wchar16_t) *
@@ -209,7 +209,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     err = SavePrincipalKey(host_machine_uc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
 
     /* host/machine.domain.net@DOMAIN.NET */
     host_machine_fqdn_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
@@ -222,7 +222,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     err = SavePrincipalKey(host_machine_fqdn_lc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
 
     /* host/machine@DOMAIN.NET */
     host_machine_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
@@ -234,7 +234,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     err = SavePrincipalKey(host_machine_lc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
 
     /* cifs/machine.domain.net@DOMAIN.NET */
     cifs_machine_fqdn_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
@@ -247,7 +247,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     err = SavePrincipalKey(cifs_machine_fqdn_lc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
 
 done:
     if (base_dn) KtFreeMemory(base_dn);
