@@ -42,6 +42,8 @@
 #include <lwrpc/rid.h>
 #include <secdesc/siddef.h>
 #include <lwrpc/security.h>
+#include <lwrpc/unistrdef.h>
+#include <lwrpc/rid.h>
 #include <lwrpc/userinfo.h>
 
 /*
