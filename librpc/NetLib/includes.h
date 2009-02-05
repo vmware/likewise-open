@@ -34,15 +34,24 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <strings.h>
+#include <unistd.h>
+#include <wchar.h>
 #include <time.h>
 #include <pthread.h>
+#include <errno.h>
+#include <sys/utsname.h>
 
-#include <lw/ntstatus.h>
 #include <wc16str.h>
+#include <wc16printf.h>
+#include <gssapi/gssapi.h>
+#include <keytab.h>
 #include <secdesc/secdesc.h>
+#include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/winerror.h>
@@ -54,9 +63,24 @@
 #include <lwrpc/memptr.h>
 #include <lwrpc/LM.h>
 
-#include "externs.h"
+#include <random.h>
+#include <crypto.h>
+#include <md5.h>
+#include <rc4.h>
+#include <des.h>
+
 #include "NetConnection.h"
+#include "NetUser.h"
 #include "NetUtil.h"
+#include "NetMemory.h"
+#include "NetLibUserInfo.h"
+#include "GroupInfo.h"
+#include "NetGetDcName.h"
+#include "LdapUtil.h"
+#include "JoinLocal.h"
+#include "UnjoinLocal.h"
+#include "MachinePassword.h"
+#include "externs.h"
 
 
 /*
