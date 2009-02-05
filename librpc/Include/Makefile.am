@@ -9,6 +9,6 @@ include_HEADERS=lwrpc/types.h lwrpc/security.h\
 	lwrpc/netlogon.h lwrpc/netlogonbinding.h lwrpc/netrdefs.h \
 	lwrpc/LM.h lwrpc/LMaccess.h lwrpc/LMjoin.h lwrpc/LMErr.h lwrpc/LMldap.h \
 	lwrpc/LMdebug.h lwrpc/krb5pac.h lwrpc/krb5pacdefs.h lwrpc/errconv.h \
-	lwrpc/LMcrypt.h
+	lwrpc/LMcrypt.h lwrpc/LMmem.h
 
 includedir=$(prefix)/include/lwrpc
