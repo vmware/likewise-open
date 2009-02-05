@@ -861,7 +861,7 @@ AD_DsEnumerateDomainTrusts(
     BAIL_ON_LSA_ERROR(dwError);
 
     status = InitNetlogonBindingDefault(&netr_b,
-                                        (PUCHAR)pszDomainControllerName);
+                                        (const char*)pszDomainControllerName);
     if (status != 0)
     {
         LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
@@ -1273,7 +1273,7 @@ AD_NetlogonAuthenticationUserEx(
     {
         /* Establish the initial bind to \NETLOGON */
 
-        status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
+        status = InitNetlogonBindingDefault(&netr_b,(const char*)pszDomainController);
         if (status != 0)
         {
             LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
