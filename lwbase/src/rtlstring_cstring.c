@@ -156,6 +156,76 @@ LwRtlCStringIsEqual(
     return LwRtlCStringCompare(pString1, pString2, bIsCaseSensitive) == 0;
 }
 
+/* Replacement for vasprintf */
+static
+char*
+my_vasprintf(
+    const char* fmt,
+    va_list ap
+    )
+{
+    int len;
+    va_list my_ap;
+    char* str, *str_new;
+
+    /* Some versions of vsnprintf won't accept
+       a null or zero-length buffer */
+    str = malloc(1);
+
+    if (!str)
+    {
+        return NULL;
+    }
+
+    va_copy(my_ap, ap);
+
+    len = vsnprintf(str, 1, fmt, my_ap);
+
+    /* Some versions of vsnprintf return -1 when
+       the buffer was too small rather than the
+       number of characters that would be written,
+       so we have loop in search of a large enough
+       buffer */
+    if (len == -1)
+    {
+        int capacity = 16;
+        do
+        {
+            capacity *= 2;
+            va_copy(my_ap, ap);
+            str_new = realloc(str, capacity);
+            if (!str_new)
+            {
+                free(str);
+                return NULL;
+            }
+            str = str_new;
+        } while ((len = vsnprintf(str, capacity-1, fmt, my_ap)) == -1 || capacity <= len);
+        str[len] = '\0';
+
+        return str;
+    }
+    else
+    {
+        va_copy(my_ap, ap);
+
+        str_new = realloc(str, len+1);
+
+        if (!str_new)
+        {
+            free(str);
+            return NULL;
+        }
+
+        str = str_new;
+
+        if (vsnprintf(str, len+1, fmt, my_ap) < len)
+            return NULL;
+        else
+            return str;
+    }
+}
+
 static
 NTSTATUS
 LwRtlCStringAllocatePrintfV(
@@ -166,14 +236,13 @@ LwRtlCStringAllocatePrintfV(
 {
     NTSTATUS status = 0;
     PSTR pszNewString = NULL;
-    int count = 0;
 
     // TODO -- Memory model? (currenlty using free)
     // TODO -- Enhance with %Z, %wZ, etc.
-    count = vasprintf(&pszNewString, pszFormat, Args);
-    if (count < 0)
+    pszNewString = my_vasprintf(pszFormat, Args);
+
+    if (pszNewString == NULL)
     {
-        pszNewString = NULL;
         status = STATUS_INSUFFICIENT_RESOURCES;
     }
 
