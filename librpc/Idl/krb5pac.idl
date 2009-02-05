@@ -5,9 +5,9 @@
 interface krb5pac
 {
 #include <lwrpc/types.h>
+#include <security.idl>
 #include <lwrpc/security.h>
 #include <lwrpc/krb5pacdefs.h>
-
 
     void PAC_LOGON_INFO_Encode(
             [in] handle_t h,
