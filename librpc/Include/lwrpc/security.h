@@ -32,11 +32,10 @@
 #define _SECURITY_H_
 
 #include <lwrpc/types.h>
+#include <lwrpc/phdef.h>
+#include <lwrpc/siddef.h>
+#include <lwrpc/secflags.h>
 
-/* This should probably go to netrdefs.h */
-
-
-/* This should go lsadefs.h */
 
 #endif /* _SECURITY_H_ */
 
