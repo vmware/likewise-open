@@ -43,6 +43,7 @@
 #include <secdesc/phdef.h>
 #include <secdesc/sdflags.h>
 #include <secdesc/sddef.h>
+#include <lwrpc/unistrdef.h>
 
 
 typedef struct audit_log_info {
@@ -234,7 +235,6 @@ typedef uint16 LsaSidType;
 #define LSA_LOOKUP_NAMES_UPLEVEL_TRUSTS_ONLY   4
 #define LSA_LOOKUP_NAMES_FOREST_TRUSTS         5
 #define LSA_LOOKUP_NAMES_UPLEVEL_TRUSTS_ONLY2  6
-
 
 #define LSA_ACCESS_LOOKUP_NAMES_SIDS           0x00000800
 #define LSA_ACCESS_ENABLE_LSA                  0x00000400
