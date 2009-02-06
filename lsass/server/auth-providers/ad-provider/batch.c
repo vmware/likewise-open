@@ -101,7 +101,7 @@ LsaAdBatchCheckDomainModeCompatibility(
     )
 {
     DWORD dwError = 0;
-    HANDLE hDirectory = (HANDLE)NULL;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
     PSTR pszCellDN = NULL;
     ADConfigurationMode adMode = UnknownMode;
     PSTR pszLocalDomainDn = NULL;
@@ -132,9 +132,7 @@ LsaAdBatchCheckDomainModeCompatibility(
         pszDomainDnToUse = pszLocalDomainDn;
     }
 
-    dwError = LsaDmWrapLdapOpenDirectoryDomain(
-                  pszDnsDomainName,
-                  &hDirectory);
+    dwError = LsaDmLdapOpenDc(pszDnsDomainName, &pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateStringPrintf(&pszCellDN,
@@ -143,7 +141,7 @@ LsaAdBatchCheckDomainModeCompatibility(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADGetConfigurationMode(
-                         hDirectory,
+                         pConn,
                          pszCellDN,
                          &adMode);
     BAIL_ON_LSA_ERROR(dwError);
@@ -155,7 +153,7 @@ LsaAdBatchCheckDomainModeCompatibility(
     }
 
 cleanup:
-    LsaLdapCloseDirectory(hDirectory);
+    LsaDmLdapClose(pConn);
     LSA_SAFE_FREE_STRING(pszCellDN);
     LSA_SAFE_FREE_STRING(pszLocalDomainDn);
 
@@ -749,16 +747,14 @@ LsaAdBatchQueryCellConfigurationMode(
     )
 {
     DWORD dwError = 0;
-    HANDLE hDirectory = (HANDLE)NULL;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
     ADConfigurationMode adMode = UnknownMode;
 
-    dwError = LsaDmWrapLdapOpenDirectoryDomain(
-                  pszDnsDomainName,
-                  &hDirectory);
+    dwError = LsaDmLdapOpenDc(pszDnsDomainName, &pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADGetConfigurationMode(
-                         hDirectory,
+                         pConn,
                          pszCellDN,
                          &adMode);
     BAIL_ON_LSA_ERROR(dwError);
@@ -766,7 +762,7 @@ LsaAdBatchQueryCellConfigurationMode(
     *pAdMode = adMode;
 
 cleanup:
-    LsaLdapCloseDirectory(hDirectory);
+    LsaDmLdapClose(pConn);
 
     return dwError;
 
@@ -1780,6 +1776,7 @@ LsaAdBatchResolveRealObjects(
 {
     DWORD dwError = 0;
     HANDLE hDirectory = 0;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
     LDAP* pLd = NULL;
     PSTR pszScopeDn = NULL;
     PSTR pszQuery = 0;
@@ -1821,11 +1818,8 @@ LsaAdBatchResolveRealObjects(
                        &pszScopeDn);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDmWrapLdapOpenDirectoryDomain(pszDnsDomainName,
-                                               &hDirectory);
+    dwError = LsaDmLdapOpenDc(pszDnsDomainName, &pConn);
     BAIL_ON_LSA_ERROR(dwError);
-
-    pLd = LsaLdapGetSession(hDirectory);
 
     for (pLinks = pBatchItemList->Next;
          pLinks != pBatchItemList;
@@ -1855,14 +1849,17 @@ LsaAdBatchResolveRealObjects(
                         &pszQuery);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaLdapDirectorySearch(
-                        hDirectory,
+        dwError = LsaDmLdapDirectorySearch(
+                        pConn,
                         pszScopeDn,
                         LDAP_SCOPE_SUBTREE,
                         pszQuery,
                         szAttributeList,
+                        &hDirectory,
                         &pMessage);
         BAIL_ON_LSA_ERROR(dwError);
+
+        pLd = LsaLdapGetSession(hDirectory);
 
         dwCount = ldap_count_entries(pLd, pMessage);
         if (dwCount > dwQueryCount)
@@ -1893,7 +1890,7 @@ LsaAdBatchResolveRealObjects(
     }
 
 cleanup:
-    LsaLdapCloseDirectory(hDirectory);
+    LsaDmLdapClose(pConn);
     LSA_SAFE_FREE_STRING(pszScopeDn);
     LSA_SAFE_FREE_STRING(pszQuery);
     if (pMessage)
@@ -1985,8 +1982,7 @@ LsaAdBatchResolvePseudoObjectSidsViaGcDefaultMode(
                     TRUE,
                     gpADProviderData->adConfigurationMode,
                     pBatchItemList,
-                    &dwFoundInDomainCount,
-                    NULL);
+                    &dwFoundInDomainCount);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwTotalFoundCount += dwFoundInDomainCount;
@@ -2056,8 +2052,7 @@ LsaAdBatchResolvePseudoObjectSidsViaGcDefaultMode(
                     TRUE,
                     gpADProviderData->adConfigurationMode,
                     pBatchItemList,
-                    &dwFoundInDomainCount,
-                    NULL);
+                    &dwFoundInDomainCount);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwTotalFoundCount += dwFoundInDomainCount;
@@ -2202,7 +2197,6 @@ LsaAdBatchResolvePseudoObjectsDefaultMode(
                      FALSE,
                      gpADProviderData->adConfigurationMode,
                      pBatchItemList,
-                     NULL,
                      NULL);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -2307,7 +2301,6 @@ LsaAdBatchResolvePseudoObjectsWithLinkedCells(
     PDLINKEDLIST pCellNode = NULL;
     DWORD dwTotalFoundCount = 0;
     DWORD dwFoundInCellCount = 0;
-    HANDLE hDirectory = 0;
 
     dwError = LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
                     QueryType,
@@ -2316,8 +2309,7 @@ LsaAdBatchResolvePseudoObjectsWithLinkedCells(
                     FALSE,
                     gpADProviderData->adConfigurationMode,
                     pBatchItemList,
-                    &dwFoundInCellCount,
-                    &hDirectory);
+                    &dwFoundInCellCount);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwTotalFoundCount += dwFoundInCellCount;
@@ -2354,15 +2346,13 @@ LsaAdBatchResolvePseudoObjectsWithLinkedCells(
                     FALSE,
                     adMode,
                     pBatchItemList,
-                    &dwFoundInCellCount,
-                    &hDirectory);
+                    &dwFoundInCellCount);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwTotalFoundCount += dwFoundInCellCount;
     }
 
 cleanup:
-    LsaLdapCloseDirectory(hDirectory);
     return dwError;
 
 error:
@@ -2379,12 +2369,11 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
     IN ADConfigurationMode adMode,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pBatchItemList,
-    OUT OPTIONAL PDWORD pdwTotalItemFoundCount,
-    IN OUT OPTIONAL PHANDLE phDirectory
+    OUT OPTIONAL PDWORD pdwTotalItemFoundCount
     )
 {
     DWORD dwError = 0;
-    HANDLE hDirectory = phDirectory ? *phDirectory : 0;
+    HANDLE hDirectory = NULL;
     LDAP* pLd = NULL;
     PSTR pszScopeDn = NULL;
     PSTR pszQuery = 0;
@@ -2433,6 +2422,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
     PSTR pszDomainName = NULL;
     DWORD dwTotalItemFoundCount = 0;
     PSTR pUserPseudoDN = NULL;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
 
     if (bDoGCSearch && IsNullOrEmptyString(pszDnsDomainName))
     {
@@ -2445,12 +2435,8 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
         dwError = LsaAllocateString("", &pszScopeDn);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!hDirectory)
-        {
-            dwError = LsaDmWrapLdapOpenDirectoryGc(pszDnsDomainName,
-                                                   &hDirectory);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        dwError = LsaDmLdapOpenGc(pszDnsDomainName, &pConn);
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
@@ -2462,23 +2448,17 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
                             &pszScopeDn);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!hDirectory)
-        {
-            // Need to do this because the pseudo-object domain
-            // could be different from the real object's domain
-            // (e.g., non-default cell).
-            dwError = LsaLdapConvertDNToDomain(
-                               pszScopeDn,
-                               &pszDomainName);
-            BAIL_ON_LSA_ERROR(dwError);
+        // Need to do this because the pseudo-object domain
+        // could be different from the real object's domain
+        // (e.g., non-default cell).
+        dwError = LsaLdapConvertDNToDomain(
+                           pszScopeDn,
+                           &pszDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaDmWrapLdapOpenDirectoryDomain(pszDomainName,
-                                                       &hDirectory);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        dwError = LsaDmLdapOpenDc(pszDomainName, &pConn);
+        BAIL_ON_LSA_ERROR(dwError);
     }
-
-    pLd = LsaLdapGetSession(hDirectory);
 
     for (pLinks = pBatchItemList->Next;
          pLinks != pBatchItemList;
@@ -2514,14 +2494,17 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
             break;
         }
 
-        dwError = LsaLdapDirectorySearch(
-                        hDirectory,
+        dwError = LsaDmLdapDirectorySearch(
+                        pConn,
                         pszScopeDn,
                         LDAP_SCOPE_SUBTREE,
                         pszQuery,
                         szAttributeList,
+                        &hDirectory,
                         &pMessage);
         BAIL_ON_LSA_ERROR(dwError);
+
+        pLd = LsaLdapGetSession(hDirectory);
 
         dwCount = ldap_count_entries(pLd, pMessage);
         // In Default Non-schema mode, we might get entries in non-default cells due to the GC search
@@ -2588,14 +2571,8 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
        *pdwTotalItemFoundCount = dwTotalItemFoundCount;
     }
 
-    if (phDirectory)
-    {
-        *phDirectory = hDirectory;
-        hDirectory = 0;
-    }
-
 cleanup:
-    LsaLdapCloseDirectory(hDirectory);
+    LsaDmLdapClose(pConn);
     LSA_SAFE_FREE_STRING(pszDomainName);
     LSA_SAFE_FREE_STRING(pszScopeDn);
     LSA_SAFE_FREE_STRING(pszQuery);
@@ -2610,10 +2587,6 @@ error:
     if (pdwTotalItemFoundCount)
     {
        *pdwTotalItemFoundCount = 0;
-    }
-    if (phDirectory)
-    {
-        *phDirectory = 0;
     }
 
     goto cleanup;

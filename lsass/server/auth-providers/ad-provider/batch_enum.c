@@ -55,6 +55,7 @@ typedef struct __AD_CELL_COOKIE_DATA
     // Initially, this is set to NULL to indicate that the primary cell
     // should be searched.
     const DLINKEDLIST* pCurrentCell;
+    PLSA_DM_LDAP_CONNECTION pLdapConn;
     LSA_SEARCH_COOKIE LdapCookie;
 
     // This hash table is used to ensure that the same user/group is not
@@ -74,6 +75,7 @@ LsaAdBatchFreeCellCookie(
     if (pData != NULL)
     {
         LsaFreeCookieContents(&pData->LdapCookie);
+        LsaDmLdapClose(pData->pLdapConn);
         LsaHashSafeFree(&pData->pEnumeratedSids);
 
         LSA_SAFE_FREE_MEMORY(pData);
@@ -496,7 +498,7 @@ error:
 static
 DWORD
 LsaAdBatchEnumObjectsInCell(
-    IN HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     IN OUT PLSA_SEARCH_COOKIE pCookie,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     IN BOOLEAN bIsByRealObject,
@@ -551,6 +553,7 @@ LsaAdBatchEnumObjectsInCell(
     DWORD dwObjectsCount = 0;
     PLSA_SECURITY_OBJECT* ppTotalObjects = NULL;
     DWORD dwTotalObjectsCount = 0;
+    HANDLE hDirectory = NULL;
 
     LSA_ASSERT(!pCookie->bSearchFinished);
 
@@ -571,14 +574,15 @@ LsaAdBatchEnumObjectsInCell(
 
     while (!pCookie->bSearchFinished && dwRemainingObjectsWanted)
     {
-        dwError = LsaLdapDirectoryOnePagedSearch(
-                        hDirectory,
+        dwError = LsaDmLdapDirectoryOnePagedSearch(
+                        pConn,
                         pszScopeRoot,
                         pszQuery,
                         pszAttributeList,
                         dwRemainingObjectsWanted,
                         pCookie,
                         bIsByRealObject ? LDAP_SCOPE_SUBTREE : LDAP_SCOPE_ONELEVEL,
+                        &hDirectory,
                         &pMessage);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -636,7 +640,6 @@ error:
 static
 DWORD
 LsaAdBatchEnumObjectsInLinkedCells(
-    IN HANDLE hDirectory,
     IN OUT PLSA_SEARCH_COOKIE pCookie,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     IN BOOLEAN bIsByRealObject,
@@ -661,8 +664,16 @@ LsaAdBatchEnumObjectsInLinkedCells(
         PAD_LINKED_CELL_INFO pCellInfo = (PAD_LINKED_CELL_INFO)
             pCookieData->pCurrentCell->pItem;
 
+        if (pCookieData->pLdapConn == NULL)
+        {
+            dwError = LsaDmLdapOpenDc(
+                            pCellInfo->pszDomain,
+                            &pCookieData->pLdapConn);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
         dwError = LsaAdBatchEnumObjectsInCell(
-                        hDirectory,
+                        pCookieData->pLdapConn,
                         &pCookieData->LdapCookie,
                         ObjectType,
                         bIsByRealObject,
@@ -685,6 +696,8 @@ LsaAdBatchEnumObjectsInLinkedCells(
         {
             pCookieData->pCurrentCell = pCookieData->pCurrentCell->pNext;
             LsaFreeCookieContents(&pCookieData->LdapCookie);
+            LsaDmLdapClose(pCookieData->pLdapConn);
+            pCookieData->pLdapConn = NULL;
         }
     }
 
@@ -715,7 +728,6 @@ error:
 // error.
 DWORD
 LsaAdBatchEnumObjects(
-    IN HANDLE hDirectory,
     IN OUT PLSA_SEARCH_COOKIE pCookie,
     IN ADAccountType AccountType,
     IN DWORD dwMaxObjectsCount,
@@ -785,9 +797,17 @@ LsaAdBatchEnumObjects(
     {
         if (pCookieData->pCurrentCell == NULL)
         {
+            if (pCookieData->pLdapConn == NULL)
+            {
+                dwError = LsaDmLdapOpenDc(
+                                gpADProviderData->szDomain,
+                                &pCookieData->pLdapConn);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
             // First get the objects from the primary cell
             dwError = LsaAdBatchEnumObjectsInCell(
-                            hDirectory,
+                            pCookieData->pLdapConn,
                             &pCookieData->LdapCookie,
                             objectType,
                             bIsByRealObject,
@@ -809,6 +829,8 @@ LsaAdBatchEnumObjects(
             if (pCookieData->LdapCookie.bSearchFinished)
             {
                 LsaFreeCookieContents(&pCookieData->LdapCookie);
+                LsaDmLdapClose(pCookieData->pLdapConn);
+                pCookieData->pLdapConn = NULL;
                 pCookieData->pCurrentCell = gpADProviderData->pCellList;
                 if (pCookieData->pCurrentCell == NULL)
                 {
@@ -819,7 +841,6 @@ LsaAdBatchEnumObjects(
         else
         {
             dwError = LsaAdBatchEnumObjectsInLinkedCells(
-                         hDirectory,
                          pCookie,
                          objectType,
                          bIsByRealObject,

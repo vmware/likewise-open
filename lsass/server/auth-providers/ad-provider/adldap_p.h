@@ -67,7 +67,7 @@ UnprovisionedModeMakeLocalSID(
 
 DWORD
 ADLdap_GetAttributeValuesList(
-    IN HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     IN PCSTR pszDN,
     IN PCSTR pszAttributeName,
     IN BOOLEAN bDoExtDnSearch,

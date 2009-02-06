@@ -70,12 +70,6 @@ LsaDmWrapEnumInMyForestTrustDomains(
     );
 
 DWORD
-LsaDmWrapGetForestName(
-    IN PCSTR pszDomainName,
-    OUT PSTR* ppszDnsForestName
-    );
-
-DWORD
 LsaDmWrapGetDomainName(
     IN PCSTR pszDomainName,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
@@ -97,18 +91,6 @@ LsaDmWrapGetDomainNameAndSidByObjectSid(
 DWORD
 LsaDmWrapLdapPingTcp(
     IN PCSTR pszDnsDomainName
-    );
-
-DWORD
-LsaDmWrapLdapOpenDirectoryDomain(
-    IN PCSTR pszDnsDomainName,
-    OUT PHANDLE phDirectory
-    );
-
-DWORD
-LsaDmWrapLdapOpenDirectoryGc(
-    IN PCSTR pszDnsDomainName,
-    OUT PHANDLE phDirectory
     );
 
 DWORD

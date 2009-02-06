@@ -833,23 +833,6 @@ AD_BeginEnumUsers(
 
     LsaInitCookie(&pEnumState->Cookie);
 
-    if (!AD_IsOffline())
-    {
-        dwError = LsaDmWrapLdapOpenDirectoryDomain(
-                    gpADProviderData->szDomain,
-                    &pEnumState->hDirectory);
-        if (dwError == LSA_ERROR_DOMAIN_IS_OFFLINE)
-        {
-            pEnumState->hDirectory = 0;
-            dwError = LSA_ERROR_SUCCESS;
-        }
-        else
-        {
-            BAIL_ON_LSA_ERROR(dwError);
-            LSA_ASSERT(pEnumState->hDirectory);
-        }
-    }
-
     *phResume = (HANDLE)pEnumState;
 
 cleanup:
@@ -2131,23 +2114,6 @@ AD_BeginEnumGroups(
 
     LsaInitCookie(&pEnumState->Cookie);
 
-    if (!AD_IsOffline())
-    {
-        dwError = LsaDmWrapLdapOpenDirectoryDomain(
-                    gpADProviderData->szDomain,
-                    &pEnumState->hDirectory);
-        if (dwError == LSA_ERROR_DOMAIN_IS_OFFLINE)
-        {
-            pEnumState->hDirectory = 0;
-            dwError = LSA_ERROR_SUCCESS;
-        }
-        else
-        {
-            BAIL_ON_LSA_ERROR(dwError);
-            LSA_ASSERT(pEnumState->hDirectory);
-        }
-    }
-
     *phResume = (HANDLE)pEnumState;
 
 cleanup:
@@ -2586,7 +2552,7 @@ AD_EndEnumNSSArtefacts(
     HANDLE hResume
     )
 {
-    AD_FreeNSSArtefactState(hProvider, hResume);
+    AD_FreeNSSArtefactState(hProvider, (PAD_ENUM_STATE)hResume);
 }
 
 DWORD

@@ -313,12 +313,14 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
-LsaLdapOpenDirectoryServer(
+LsaLdapOpenDirectoryServerSingleAttempt(
     IN PCSTR pszServerAddress,
     IN PCSTR pszServerName,
+    IN DWORD dwTimeoutSec,
     IN DWORD dwFlags,
-    OUT PHANDLE phDirectory
+    OUT PAD_DIRECTORY_CONTEXT* ppDirectory
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
@@ -326,40 +328,25 @@ LsaLdapOpenDirectoryServer(
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     int rc = LDAP_VERSION3;
     DWORD dwPort = 389;
-    DWORD dwAttempt = 0;
-    struct timespec sleepTime;
+    struct timeval timeout = {0};
 
-    if (IsNullOrEmptyString(pszServerName) || IsNullOrEmptyString(pszServerAddress)) {
+    timeout.tv_sec = dwTimeoutSec;
+
+    if (IsNullOrEmptyString(pszServerName) ||
+        IsNullOrEmptyString(pszServerAddress))
+    {
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (dwFlags & LSA_LDAP_OPT_GLOBAL_CATALOG)
-       dwPort = 3268;
-
-    for (dwAttempt = 1; dwAttempt <= 5; dwAttempt++)
     {
-        ld = (LDAP *)ldap_open(pszServerAddress, dwPort);
-        if (!ld && errno == ENOTCONN)
-        {
-            LSA_LOG_ERROR("The ldap connection to %s was disconnected. This was attempt #%d",
-                    pszServerAddress,
-                    dwAttempt);
-            sleepTime.tv_sec = 0;
-            sleepTime.tv_nsec = dwAttempt * 100000000;
-            while (nanosleep(&sleepTime, &sleepTime) == -1)
-            {
-                if (errno != EINTR)
-                {
-                    dwError = errno;
-                    BAIL_ON_LSA_ERROR(dwError);
-                }
-            }
-
-            continue;
-        }
-        break;
+       dwPort = 3268;
     }
+
+    // This creates the ld without immediately connecting to the server.
+    // That way a connection timeout can be set first.
+    ld = (LDAP *)ldap_init(pszServerAddress, dwPort);
     if (!ld) {
         LSA_LOG_ERROR("Failed to open LDAP connection to domain controller");
         dwError = errno;
@@ -368,6 +355,9 @@ LsaLdapOpenDirectoryServer(
         dwError = LSA_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    dwError = ldap_set_option(ld, LDAP_OPT_NETWORK_TIMEOUT, &timeout);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &rc);
     if (dwError) {
@@ -437,16 +427,100 @@ LsaLdapOpenDirectoryServer(
     BAIL_ON_LSA_ERROR(dwError);
 
     pDirectory->ld = ld;
+    ld = NULL;
 
     if (dwFlags & LSA_LDAP_OPT_ANNONYMOUS)
     {
         dwError = LsaLdapBindDirectoryAnonymous((HANDLE)pDirectory);
-        BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
         dwError = LsaLdapBindDirectory((HANDLE)pDirectory, pszServerName);
+    }
+    // The above functions return -1 when a connection times out.
+    if (dwError == (DWORD)-1)
+    {
+        dwError = ETIMEDOUT;
+    }
+
+    *ppDirectory = pDirectory;
+
+cleanup:
+
+    return(dwError);
+
+error:
+
+    if (pDirectory)
+    {
+        LsaLdapCloseDirectory(pDirectory);
+    }
+    if (ld)
+    {
+        ldap_unbind_s(ld);
+    }
+
+    *ppDirectory = (HANDLE)NULL;
+
+    goto cleanup;
+}
+
+DWORD
+LsaLdapOpenDirectoryServer(
+    IN PCSTR pszServerAddress,
+    IN PCSTR pszServerName,
+    IN DWORD dwFlags,
+    OUT PHANDLE phDirectory
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PAD_DIRECTORY_CONTEXT pDirectory = NULL;
+    DWORD dwAttempt = 0;
+    struct timespec sleepTime;
+    DWORD dwTimeoutSec = 15;
+
+    if (IsNullOrEmptyString(pszServerName) || IsNullOrEmptyString(pszServerAddress)) {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (dwAttempt = 1; dwAttempt <= 3; dwAttempt++)
+    {
+        // dwTimeoutSec controls how long openldap will wait for the connection
+        // to be established. For the first attempt, this is set to 15 seconds
+        // (which is the same amount of time netlogon will wait to get the dc
+        // name). The second attempt halves the value to 7 seconds. The third
+        // attempt halves it again to 3 seconds.
+        dwError = LsaLdapOpenDirectoryServerSingleAttempt(
+                        pszServerAddress,
+                        pszServerName,
+                        dwTimeoutSec,
+                        dwFlags,
+                        &pDirectory);
+        if (dwError == ETIMEDOUT)
+        {
+            LSA_ASSERT(pDirectory == NULL);
+            LSA_LOG_ERROR("The ldap connection to %s was disconnected. This was attempt #%d",
+                    pszServerAddress,
+                    dwAttempt);
+            dwTimeoutSec /= 2;
+
+            // This is the amount of time to sleep before trying to reconnect
+            // again. It is: .1 seconds * dwAttempt
+            sleepTime.tv_sec = 0;
+            sleepTime.tv_nsec = dwAttempt * 100000000;
+            while (nanosleep(&sleepTime, &sleepTime) == -1)
+            {
+                if (errno != EINTR)
+                {
+                    dwError = errno;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+            }
+            continue;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
     }
 
     *phDirectory = (HANDLE)pDirectory;
@@ -459,7 +533,7 @@ error:
 
     if (pDirectory)
     {
-        LsaLdapCloseDirectory((HANDLE)pDirectory);
+        LsaLdapCloseDirectory(pDirectory);
     }
 
     *phDirectory = (HANDLE)NULL;

@@ -116,6 +116,11 @@ LsaSrvStartListenThread(
                                   MAX_CLIENTS));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_max_backlog(
+                                  gpServer,
+                                  MAX(5, MAX_CLIENTS / 4)));
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = MAP_LWMSG_ERROR(lwmsg_server_set_timeout(
                                   gpServer,
                                   LWMSG_TIMEOUT_IDLE,

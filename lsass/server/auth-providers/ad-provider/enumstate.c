@@ -208,10 +208,6 @@ AD_FreeEnumState(
     if (pState)
     {
         LsaFreeCookieContents(&pState->Cookie);
-        if (pState->hDirectory)
-        {
-            LsaLdapCloseDirectory(pState->hDirectory);
-        }
 
         LSA_SAFE_FREE_STRING(pState->pszMapName);
 

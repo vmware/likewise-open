@@ -67,7 +67,7 @@ ADGetLDAPUPNString(
 
 DWORD
 ADGetUserPrimaryGroupSid(
-    IN HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     IN PCSTR pszDomainDnsName,
     IN PCSTR pszUserDN,
     IN PCSTR pszUserObjectsid,
@@ -76,7 +76,7 @@ ADGetUserPrimaryGroupSid(
 
 DWORD
 ADFindComputerDN(
-    HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR pszHostName,
     PCSTR pszDomainName,
     PSTR* ppszComputerDN
@@ -84,20 +84,20 @@ ADFindComputerDN(
 
 DWORD
 ADGetCellInformation(
-    HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR  pszDN,
     PSTR*  ppszCellContainer
     );
 
 DWORD
 ADGetDomainMaxPwdAge(
-    HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR  pszDomainName,
     PUINT64 pMaxPwdAge);
 
 DWORD
 ADGetConfigurationMode(
-    HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR  pszDN,
     ADConfigurationMode* pADConfMode
     );
@@ -165,17 +165,8 @@ ADLdap_GetUserGroupMembership(
     );
 
 DWORD
-ADLdap_GetGCObjectInfoBySid(
-    IN PCSTR pszGCHostName,
-    IN PCSTR pszObjectSid,
-    OUT OPTIONAL PSTR* ppszObjectDN,
-    OUT OPTIONAL PSTR* ppszObjectDomainName,
-    OUT OPTIONAL PSTR* ppszObjectSamaccountName
-    );
-
-DWORD
 ADLdap_IsValidDN(
-    HANDLE   hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR    pszDN,
     PBOOLEAN pbValidDN
     );

@@ -687,7 +687,9 @@ LsaProviderLocal_EndEnumUsers(
     HANDLE hResume
     )
 {
-    LsaProviderLocal_FreeUserState(hProvider, hResume);
+    LsaProviderLocal_FreeUserState(
+            hProvider,
+            (PLOCAL_PROVIDER_ENUM_STATE)hResume);
 }
 
 DWORD
@@ -889,7 +891,9 @@ LsaProviderLocal_EndEnumGroups(
     HANDLE hResume
     )
 {
-    LsaProviderLocal_FreeGroupState(hProvider, hResume);
+    LsaProviderLocal_FreeGroupState(
+            hProvider,
+            (PLOCAL_PROVIDER_ENUM_STATE)hResume);
 }
 
 DWORD
