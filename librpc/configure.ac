@@ -198,7 +198,7 @@ AC_CHECK_LIB(tdb, tdb_fetch, [
 		[have_libtdb=false])
 AM_CONDITIONAL([HAVE_LIBTDB], [test x$have_libtdb = xtrue])
 
-AC_CHECK_LIB(lwioclient, LwIoInitialize, [], AC_MSG_ERROR([liblwioclient not found]))
+AC_CHECK_LIB(lwioclient_nothr, LwIoInitialize, [], AC_MSG_ERROR([liblwioclient_nothr not found]))
 
 # Checks for header files.
 AC_HEADER_STDC
