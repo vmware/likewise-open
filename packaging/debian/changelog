@@ -1,8 +1,8 @@
-likewise-open (5.0.3988-1) jaunty; urgency=low
+likewise-open (5.0.3991-1) jaunty; urgency=low
 
   * New upstream release
 
- -- Gerald Carter <gcarter@likewise.com>  Tue, 03 Feb 2009 15:50:09 -0800
+ -- Gerald Carter <gcarter@likewise.com>  Fri, 06 Feb 2009 15:50:09 -0800
 
 likewise-open (5.0.3944-1) intrepid; urgency=low
 
