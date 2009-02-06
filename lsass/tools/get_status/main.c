@@ -397,7 +397,7 @@ PrintStatus(
                         printf("Unknown trust mode\n");                
                 }
                 
-                printf("\t\tDomain flags:     [0x%.04xa]\n", pDomainInfo->dwDomainFlags);
+                printf("\t\tDomain flags:     [0x%.04x]\n", pDomainInfo->dwDomainFlags);
                 if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_PRIMARY)
                     printf("\t\t                  [0x%.04x - Primary]\n", LSA_DM_DOMAIN_FLAG_PRIMARY);
                 if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_OFFLINE)

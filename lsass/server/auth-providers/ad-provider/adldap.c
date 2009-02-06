@@ -418,8 +418,8 @@ error:
 
 DWORD
 ADGetDomainMaxPwdAge(
-    HANDLE hDirectory,
-    PCSTR  pszDomainName,
+    HANDLE  hDirectory,
+    PCSTR   pszDomainName,
     PUINT64 pMaxPwdAge)
 {
     DWORD dwError = 0;
@@ -429,9 +429,8 @@ ADGetDomainMaxPwdAge(
             NULL};
     LDAPMessage *pMessage = NULL;
     DWORD dwCount = 0;
-    PSTR pszMaxPwdAge = NULL;
     PSTR pszDirectoryRoot = NULL;
-    UINT64 MaxPwdAge = 0;
+    int64_t int64MaxPwdAge = 0;
 
     pLd = LsaLdapGetSession(hDirectory);
 
@@ -463,27 +462,24 @@ ADGetDomainMaxPwdAge(
     BAIL_ON_LSA_ERROR(dwError);
 
     //process "maxPwdAge"
-    dwError = LsaLdapGetString(
+    dwError = LsaLdapGetInt64(
                 hDirectory,
                 pMessage,
                 AD_LDAP_MAX_PWDAGE_TAG,
-                &pszMaxPwdAge);
+                &int64MaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pszMaxPwdAge){
-        if (pszMaxPwdAge[0] != '-'){
-            dwError = ADStr2UINT64(
-                        pszMaxPwdAge,
-                        &MaxPwdAge);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+    if (int64MaxPwdAge >= 0)
+    {
+        *pMaxPwdAge = (UINT64) int64MaxPwdAge;
     }
-
-    *pMaxPwdAge = MaxPwdAge;
+    else
+    {
+        *pMaxPwdAge = (UINT64) (0 - int64MaxPwdAge); // Store the abs value of this
+    }
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszMaxPwdAge);
     LSA_SAFE_FREE_STRING(pszDirectoryRoot);
 
     if (pMessage) {
