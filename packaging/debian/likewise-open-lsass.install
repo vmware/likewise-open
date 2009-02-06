@@ -21,7 +21,6 @@ usr/bin/lw-get-log-info
 usr/bin/lw-get-metrics
 usr/bin/lw-get-status
 usr/bin/lw-list-groups
-usr/bin/lw-migrator
 usr/bin/lw-mod-user
 usr/bin/lw-refresh-configuration
 usr/bin/lw-set-log-level
