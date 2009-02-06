@@ -1,4 +1,4 @@
-bin_PROGRAMS = lw-migrator
+noinst_PROGRAMS = lw-migrator
 
 lw_migrator_SOURCES = main.c
 lw_migrator_LDFLAGS = 
