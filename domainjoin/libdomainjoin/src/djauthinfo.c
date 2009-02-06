@@ -196,6 +196,7 @@ DJRemoveCacheFiles()
         "/var/lib/lwidentity/winbindd_cache.tdb",
         /* Likewise 5.0 cache location files... */
         LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db",
+        LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db",
         NULL
     };
     int i;
