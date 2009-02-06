@@ -281,10 +281,10 @@ lwmsg_server_accept_client(
         break;
     }
 
-    BAIL_ON_ERROR(status = lwmsg_assoc_establish(assoc));
+    status = lwmsg_assoc_establish(assoc);
 
     /* Invoke connection callback */
-    if (server->connect_callback)
+    if (status == LWMSG_STATUS_SUCCESS && server->connect_callback)
     {
         status = server->connect_callback(
             server,
@@ -301,25 +301,36 @@ lwmsg_server_accept_client(
             server->user_data);
     }
 
-    /* Handle error from callback */
     switch(status)
     {
     case LWMSG_STATUS_SUCCESS:
-        /* Queue assocation for listening */
+        /* Association successfully accepted */
         assoc_queue_add(server, &server->listen_assocs, assoc);
         server->num_clients++;
         break;
     default:
-        /* Throw out association */
+        /* Handle an error from the establish call or
+           either of the callbacks by dropping the client
+           and continuing without bailing out of the
+           listener thread */
         lwmsg_assoc_close(assoc);
         lwmsg_assoc_delete(assoc);
         status = LWMSG_STATUS_SUCCESS;
         break;
     }
 
-error:
+cleanup:
 
     return status;
+
+error:
+
+    if (assoc)
+    {
+        lwmsg_assoc_delete(assoc);
+    }
+
+    goto cleanup;
 }
 
 static
