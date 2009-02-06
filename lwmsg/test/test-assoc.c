@@ -1201,8 +1201,10 @@ recv_remote_send_back_failure(LWMsgAssoc* assoc)
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, tag, TRIVIAL_REMOTE);
     /* Send back a local handle instead of what it expects */
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy2, NULL));
     status = lwmsg_assoc_send(assoc, TRIVIAL_LOCAL, &dummy2);
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_MALFORMED);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_INVALID_HANDLE);
+    MU_VERBOSE("%s", lwmsg_assoc_get_error_message(assoc, status));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
 }
 

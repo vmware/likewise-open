@@ -157,7 +157,12 @@ typedef enum
      * Unsupported operation
      * @hideinitializer
      */
-    LWMSG_STATUS_UNSUPPORTED = 22
+    LWMSG_STATUS_UNSUPPORTED = 22,
+    /**
+     * Invalid handle
+     * @hideinitializer
+     */
+    LWMSG_STATUS_INVALID_HANDLE = 23
 } LWMsgStatus;
 
 #define LWMSG_STATUS_COUNT (22)

@@ -90,7 +90,10 @@ lwmsg_assoc_marshal_handle(
             {
                 /* Automatic registration doesn't make sense if the receiver is
                    exepcting a handle it created */
-                BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+                RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
+                            "Cannot implicitly register handle 0x%lx: expected "
+                            "handle which is local for the receiver",
+                            (unsigned long) pointer);
             }
 
             location = LWMSG_HANDLE_LOCAL;
@@ -111,14 +114,35 @@ lwmsg_assoc_marshal_handle(
         /* Confirm that the handle is of the expected type */
         if (strcmp((const char*) data, type))
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+            RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
+                        "Invalid handle 0x%lx(%lu): expected handle of type '%s', "
+                        "got '%s'",
+                        (unsigned long) pointer,
+                        (unsigned long) handle,
+                        (const char*) data,
+                        type);
         }
 
         /* Confirm that handle origin is correct according to type attributes */
         if ((attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER && location != LWMSG_HANDLE_REMOTE) ||
             (attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER && location != LWMSG_HANDLE_LOCAL))
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+            if (location == LWMSG_HANDLE_LOCAL)
+            {
+                RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
+                            "Invalid handle 0x%lx(%lu): expected handle which is "
+                            "local for the receiver",
+                            (unsigned long) pointer,
+                            (unsigned long) handle);
+            }
+            else
+            {
+                RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
+                            "Invalid handle 0x%lx(%lu): expected handle which is "
+                            "local for the sender",
+                            (unsigned long) pointer,
+                            (unsigned long) handle);
+            }
         }
 
         blob[0] = (unsigned char) location;
@@ -139,7 +163,8 @@ lwmsg_assoc_marshal_handle(
         /* If the handle was not supposed to be NULL, raise an error */
         if (attrs->nonnull)
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+            RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
+                        "Invalid handle: expected non-null handle");
         }
 
         blob[0] = (unsigned char) LWMSG_HANDLE_NULL;
@@ -199,7 +224,22 @@ lwmsg_assoc_unmarshal_handle(
         if ((attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER && location != LWMSG_HANDLE_LOCAL) ||
             (attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER && location != LWMSG_HANDLE_REMOTE))
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+            if (location == LWMSG_HANDLE_LOCAL)
+            {
+                RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
+                            "Invalid handle (%lu): expected handle which is "
+                            "local for the receiver",
+                            (unsigned long) pointer,
+                            (unsigned long) handle);
+            }
+            else
+            {
+                RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
+                            "Invalid handle (%lu): expected handle which is "
+                            "local for the sender",
+                            (unsigned long) pointer,
+                            (unsigned long) handle);
+            }
         }
 
         BAIL_ON_ERROR(status = lwmsg_convert_integer(
@@ -243,7 +283,8 @@ lwmsg_assoc_unmarshal_handle(
     {
         if (attrs->nonnull)
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+            RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
+                        "Invalid handle: expected non-null handle");
         }
         *(void**) object = NULL;
     }
