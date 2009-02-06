@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -34,70 +34,20 @@
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#include "includes.h"
+#ifndef _NET_MEMORY_H_
+#define _NET_MEMORY_H_
 
 
 NTSTATUS
 NetInitMemory(
     void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    /* Init allocation of dependant rpc libraries first */
-    status = LsaRpcInitMemory();
-    goto_if_ntstatus_not_success(status, cleanup);
-
-    status = SamrInitMemory();
-    goto_if_ntstatus_not_success(status, cleanup);
-
-    if (!bNetApiInitialised) {
-        status = MemPtrListInit((PtrList**)&netapi_ptr_list);
-        goto_if_ntstatus_not_success(status, cleanup);
-
-        bNetApiInitialised = 1;
-    }
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-}
+    );
 
 
 NTSTATUS
 NetDestroyMemory(
     void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (bNetApiInitialised && netapi_ptr_list) {
-        status = MemPtrListDestroy((PtrList**)&netapi_ptr_list);
-        goto_if_ntstatus_not_success(status, cleanup);
-
-        bNetApiInitialised = 0;
-    }
-
-    /* Destroy allocation of dependant rpc libraries */
-    status = LsaRpcDestroyMemory();
-    goto_if_ntstatus_not_success(status, cleanup);
-
-    status = SamrDestroyMemory();
-    goto_if_ntstatus_not_success(status, cleanup);
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-}
+    );
 
 
 NTSTATUS
@@ -105,29 +55,23 @@ NetAllocateMemory(
     void **out,
     size_t size,
     void *dep
-    )
-{
-    return MemPtrAllocate((PtrList*)netapi_ptr_list, out, size, dep);
-}
+    );
 
 
 NTSTATUS
 NetFreeMemory(
     void *ptr
-    )
-{
-    return MemPtrFree((PtrList*)netapi_ptr_list, ptr);
-}
+    );
 
 
 NTSTATUS
 NetAddDepMemory(
     void *ptr,
     void *dep
-    )
-{
-    return MemPtrAddDependant((PtrList*)netapi_ptr_list, ptr, dep);
-}
+    );
+
+
+#endif /* _NET_MEMORY_H_ */
 
 
 /*
