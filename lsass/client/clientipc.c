@@ -97,13 +97,16 @@ LsaOpenServer(
                                   LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
     BAIL_ON_LSA_ERROR(dwError);
 
-    /* Give up connecting within 2 seconds in case lsassd
-       is unresponsive (e.g. it's being traced in a debugger) */
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
-                                  pContext->pAssoc,
-                                  LWMSG_TIMEOUT_ESTABLISH,
-                                  &connectTimeout));
-    BAIL_ON_LSA_ERROR(dwError);
+    if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
+    {
+        /* Give up connecting within 2 seconds in case lsassd
+           is unresponsive (e.g. it's being traced in a debugger) */
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
+                                      pContext->pAssoc,
+                                      LWMSG_TIMEOUT_ESTABLISH,
+                                      &connectTimeout));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
     BAIL_ON_LSA_ERROR(dwError);
