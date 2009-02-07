@@ -76,10 +76,13 @@ LWNetOpenServer(
                                   LWNET_CACHE_DIR "/" LWNET_SERVER_FILENAME));
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
-                                  pContext->pAssoc,
-                                  LWMSG_TIMEOUT_ESTABLISH,
-                                  &connectTimeout));
+    if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
+    {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
+                                      pContext->pAssoc,
+                                      LWMSG_TIMEOUT_ESTABLISH,
+                                      &connectTimeout));
+    }
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
     BAIL_ON_LWNET_ERROR(dwError);
