@@ -487,8 +487,11 @@ lwmsg_connection_transceive(
 
         BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
 
-        ret = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
-        
+        do
+        {
+            ret = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
+        } while (ret == -1 && errno == EINTR);
+
         if (ret == -1)
         {
             ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
@@ -947,7 +950,7 @@ lwmsg_connection_connect_local(
                 }
 
                 err = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
-            } while (err == 0);
+            } while (err == 0 || (err == -1 && errno == EINTR));
 
             if (err < 0)
             {
@@ -990,7 +993,7 @@ lwmsg_connection_connect_local(
             status = LWMSG_STATUS_SYSTEM;
             break;
         }
-        ASSOC_RAISE_ERROR(assoc, status, "%s", strerror(errno));
+        ASSOC_RAISE_ERROR(assoc, status, "%s", strerror(err));
     }
 
     priv->fd = sock;
