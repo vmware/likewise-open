@@ -151,9 +151,9 @@
 
     # Whether to enumerate users or groups for NSS
     #
-    # Default: no
+    # Default: no (yes - Mac systems)
     #
-    # nss-enumeration-enabled = yes
+    nss-enumeration-enabled = @ENABLE_NSS_ENUM_DEFAULT@
 
 [auth provider:lsa-local-provider]
 
