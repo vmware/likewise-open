@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -432,6 +432,31 @@ size_t mbstowc16s(wchar16_t *dest, const char *src, size_t cchcopy)
     else
         return cchcopy - cbout/sizeof(dest[0]);
 #endif
+}
+
+size_t mbstowc16les(wchar16_t *dest, const char *src, size_t cchcopy)
+{
+    iconv_t handle = iconv_open("UCS-2LE", "");
+    char *inbuf;
+    char *outbuf;
+    size_t cbin;
+    size_t cbout;
+    size_t converted;
+    if(handle == (iconv_t)-1)
+        return (size_t)-1;
+    inbuf = (char *)src;
+    outbuf = (char *)dest;
+    cbin = strlen(src) * sizeof(src[0]);
+    cbout = cchcopy * sizeof(dest[0]);
+    converted = iconv(handle, (ICONV_IN_TYPE) &inbuf, &cbin, &outbuf, &cbout);
+
+    if(cbout >= sizeof(dest[0]))
+        *(wchar16_t *)outbuf = 0;
+    iconv_close(handle);
+    if(converted == (size_t)-1 && cbout != 0)
+        return (size_t)-1;
+    else
+        return cchcopy - cbout/sizeof(dest[0]);
 }
 
 char *awc16stombs(const wchar16_t *input)
