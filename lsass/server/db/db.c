@@ -1366,6 +1366,21 @@ LsaDbUnpackGroupMembershipInfo(
         &pResult->bIsDomainPrimaryGroup);
     BAIL_ON_LSA_ERROR(dwError);
 
+    // Except for NULL entries, memberships must come from the PAC or LDAP.
+    if (pResult->pszParentSid != NULL &&
+        pResult->pszChildSid != NULL &&
+        !pResult->bIsInPac && !pResult->bIsInLdap)
+    {
+        dwError = LSA_ERROR_UNEXPECTED_DB_RESULT;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    // See the definition of LSA_GROUP_MEMBERSHIP
+    if (pResult->bIsInPacOnly && (!pResult->bIsInPac || pResult->bIsInLdap))
+    {
+        dwError = LSA_ERROR_UNEXPECTED_DB_RESULT;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
 error:
     return dwError;
 }
