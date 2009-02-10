@@ -210,15 +210,6 @@ AD_FindGroupById(
     );
 
 DWORD
-AD_FindGroupByIdWithCacheMode(
-    IN HANDLE hProvider,
-    IN DWORD dwId,
-    IN BOOLEAN bIsCacheOnlyMode,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
 AD_GetUserGroupObjectMembership(
     IN HANDLE hProvider,
     IN uid_t uid,
