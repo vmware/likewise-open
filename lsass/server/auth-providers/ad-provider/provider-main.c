@@ -972,60 +972,6 @@ error:
     goto cleanup;
 }
 
-DWORD
-AD_FindGroupByIdWithCacheMode(
-    IN HANDLE hProvider,
-    IN DWORD dwId,
-    IN BOOLEAN bIsCacheOnlyMode,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    )
-{
-    DWORD   dwError = 0;
-    PVOID   pGroupInfo = NULL;
-    PLSA_SECURITY_OBJECT pInObjectForm = NULL;
-
-    dwError = AD_FindObjectByIdTypeNoCache(
-                hProvider,
-                dwId,
-                AccountType_Group,
-                &pInObjectForm);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = AD_GroupObjectToGroupInfo(
-                hProvider,
-                pInObjectForm,
-                bIsCacheOnlyMode,
-                dwGroupInfoLevel,
-                &pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (AD_ShouldAssumeDefaultDomain())
-    {
-        dwError = AD_SetGroupCanonicalNamesToAliases(
-                        gpADProviderData->szShortDomain,
-                        dwGroupInfoLevel,
-                        pGroupInfo);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    *ppGroupInfo = pGroupInfo;
-
-cleanup:
-    LsaDbSafeFreeObject(&pInObjectForm);
-
-    return dwError;
-
-error:
-    *ppGroupInfo = NULL;
-    if (pGroupInfo)
-    {
-        LsaFreeUserInfo(dwGroupInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
 static
 DWORD
 AD_GetExpandedGroupUsersEx(
