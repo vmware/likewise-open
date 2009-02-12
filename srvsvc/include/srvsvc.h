@@ -31,6 +31,7 @@
 #ifndef _SRVSVC_H_
 #define _SRVSVC_H_
 
+#include <srvsvcbinding.h>
 #include <srvsvcdefs.h>
 
 NET_API_STATUS NetConnectionEnum(

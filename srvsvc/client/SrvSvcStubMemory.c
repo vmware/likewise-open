@@ -115,8 +115,6 @@ void SrvSvcClearNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr)
 
 void SrvSvcClearNetFileInfo(uint32 level, srvsvc_NetFileInfo *info)
 {
-    int i;
-
     if (!info) {
         return;
     }

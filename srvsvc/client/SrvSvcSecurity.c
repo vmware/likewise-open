@@ -252,7 +252,6 @@ NET_API_STATUS SecurityDescriptorFromBuffer(
 {
     NET_API_STATUS ret = ERROR_SUCCESS;
     SecDesc *sd;
-    uint32 sd_size;
     uint32 ofs = 0;
     uint32 owner_ofs;
     uint32 group_ofs;
@@ -508,7 +507,7 @@ static uint32 DomSidGetSize(
     return size;
 }
 
-static SecAceGetSize(
+static int SecAceGetSize(
     const SecAce *ace
     )
 {
@@ -521,7 +520,7 @@ static SecAceGetSize(
     return size;
 }
 
-static SecAclGetSize(
+static int SecAclGetSize(
     const SecAcl *acl
     )
 {

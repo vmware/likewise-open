@@ -39,14 +39,32 @@ NET_API_STATUS NetShareDel(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
+    wchar16_t *srv_name = NULL;
+    wchar16_t *net_name = NULL;
 
     goto_if_invalid_param_err(b, done);
     goto_if_invalid_param_err(netname, done);
 
-    DCERPC_CALL(_NetrShareDel(b, (wchar16_t *)servername,
-                              netname, reserved));
+    if (servername) {
+        srv_name = wc16sdup(servername);
+        if (srv_name == NULL) {
+            status = SRVSVC_ERROR_OUT_OF_MEMORY;
+            goto done;
+        }
+    }
+
+    net_name = wc16sdup(netname);
+    if (net_name) {
+        status = SRVSVC_ERROR_OUT_OF_MEMORY;
+	goto done;
+    }
+
+    DCERPC_CALL(_NetrShareDel(b, srv_name, net_name, reserved));
 
 done:
+    SAFE_FREE(srv_name);
+    SAFE_FREE(net_name);
+
     return status;
 }
 

@@ -93,10 +93,10 @@ NET_API_STATUS NetShareSetInfo(
         info.info1004 = (PSHARE_INFO_1004)bufptr;
         break;
     case 1005:
-        info.info1004 = (PSHARE_INFO_1005)bufptr;
+        info.info1005 = (PSHARE_INFO_1005)bufptr;
         break;
     case 1006:
-        info.info1004 = (PSHARE_INFO_1006)bufptr;
+        info.info1006 = (PSHARE_INFO_1006)bufptr;
         break;
     case 1501:
         buf1501 = (PSHARE_INFO_1501)bufptr;

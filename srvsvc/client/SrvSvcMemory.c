@@ -259,7 +259,6 @@ NET_API_STATUS SrvSvcCopyNetFileInfo(uint32 level, srvsvc_NetFileInfo *info,
                                      uint8 **bufptr)
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    int i;
     void *ptr = NULL;
 
     goto_if_invalid_param_err(bufptr, cleanup);

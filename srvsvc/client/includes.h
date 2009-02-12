@@ -44,18 +44,13 @@
 #include <ctype.h>
 #include <string.h>
 
-#ifdef __GNUC__
 #include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
 #include <compat/dcerpc.h>
 #include <compat/rpcstatus.h>
 #include <wc16str.h>
 #include <lwio/io-types.h>
 
-#include <srvsvcdefs.h>
+#include <srvsvc.h>
 #include <srvsvc_stub.h>
 
 #include "SrvSvcUtil.h"

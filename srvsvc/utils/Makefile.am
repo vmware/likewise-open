@@ -16,7 +16,7 @@ libsrvsvcutils_la_LIBADD = \
     @DCERPC_LIBS@    \
     @LIBUNISTR_LIBS@
 
-libsrvsvcutils_la_CFLAGS = $(INCLUDES) -DSRVSVC_BUILD
+libsrvsvcutils_la_CFLAGS = $(INCLUDES) -DSRVSVC_BUILD $(AM_CFLAGS)
 libsrvsvcutils_la_CPPFLAGS = \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@

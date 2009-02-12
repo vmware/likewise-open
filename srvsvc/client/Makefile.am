@@ -30,7 +30,7 @@ libsrvsvc_ss_la_SOURCES = srvsvc_sstub.c
 libsrvsvc_cs_la_CPPFLAGS = @DCERPC_INCLUDES@
 libsrvsvc_ss_la_CPPFLAGS = @DCERPC_INCLUDES@
 
-libsrvsvc_la_CFLAGS=-g $(INCLUDES) -DSRVSVC_BUILD
+libsrvsvc_la_CFLAGS=-g $(INCLUDES) -DSRVSVC_BUILD $(AM_CFLAGS)
 libsrvsvc_la_CPPFLAGS = \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@
