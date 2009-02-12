@@ -65,7 +65,7 @@ handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
     status = InitLsaBindingDefault(binding, hostname);
     if (status != RPC_S_OK) {
         int result;
-        char errmsg[dce_c_error_string_len];
+        unsigned char errmsg[dce_c_error_string_len];
 	
         dce_error_inq_text(status, errmsg, &result);
         if (result == 0) {

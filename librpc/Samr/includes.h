@@ -46,7 +46,6 @@
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/samrbinding.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/userinfo.h>
@@ -54,6 +53,7 @@
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/rid.h>
+#include <lwrpc/samr.h>
 
 #include "samr_stub.h"
 

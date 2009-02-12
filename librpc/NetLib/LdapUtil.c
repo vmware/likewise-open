@@ -159,7 +159,6 @@ int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
 {
     const char *url_prefix = "ldap://";
 
-    NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAP *ld = NULL;
@@ -274,7 +273,6 @@ error:
 wchar16_t **LdapAttributeGet(LDAP *ld, LDAPMessage *info, const wchar16_t *name,
                              int *count)
 {
-    NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     int i = 0;

@@ -232,7 +232,6 @@ done:
 NTSTATUS MemPtrAllocate(PtrList *list, void **out, size_t size, void *dep)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    void *ptr = NULL;
     PtrNode *node = NULL;
 
     goto_if_invalid_param_ntstatus(out, done);

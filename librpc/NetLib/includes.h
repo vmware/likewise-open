@@ -55,6 +55,7 @@
 
 #include <lwrpc/types.h>
 #include <lwrpc/winerror.h>
+#include <lwrpc/errconv.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
@@ -72,6 +73,7 @@
 #include "NetConnection.h"
 #include "NetUser.h"
 #include "NetUtil.h"
+#include "NetMemory.h"
 #include "NetLibUserInfo.h"
 #include "GroupInfo.h"
 #include "NetGetDcName.h"

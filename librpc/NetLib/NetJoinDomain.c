@@ -72,14 +72,10 @@ NetJoinDomainLocalInternal(
     const uint32 user_access = USER_ACCESS_GET_ATTRIBUTES |
                                USER_ACCESS_SET_ATTRIBUTES |
                                USER_ACCESS_SET_PASSWORD;
-    const int newattr = 1;
 
-    RPCSTATUS rpcstatus;
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS close_status = STATUS_SUCCESS;
     int err = ERROR_SUCCESS;
-    int close_err = ERROR_SUCCESS;
-    uint32 ktstatus = KT_STATUS_SUCCESS;
     NETRESOURCE nr = {0};
     size_t domain_controller_len;
     handle_t lsa_b, samr_b;
@@ -108,9 +104,6 @@ NetJoinDomainLocalInternal(
     wchar16_t *ospack_attr_name = NULL;
     wchar16_t *ospack_attr_val[2] = {0};
     wchar16_t *sid_str = NULL;
-    DWORD lwnet_err = 0;
-    DWORD dwError = 0;
-    char *domname = NULL;
 
     machname = wc16sdup(machine);
     goto_if_no_memory_winerr(machname, done);
@@ -428,7 +421,9 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
     NET_API_STATUS status;
     char localname[MAXHOSTNAMELEN];
     wchar16_t host[MAXHOSTNAMELEN];
-    wchar16_t *osName, *osVersion, *osSvcPack;
+    wchar16_t *osName = NULL;
+    wchar16_t *osVersion = NULL;
+    wchar16_t *osSvcPack = NULL;
     struct utsname osname;
 
     /* at the moment we support only locally triggered join */
