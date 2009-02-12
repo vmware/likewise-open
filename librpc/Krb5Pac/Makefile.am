@@ -11,7 +11,7 @@ LIBRPC_INCDIR=$(librpc_srcdir)/Include
 LIBRPC_INCLUDES=-I$(LIBRPC_INCDIR)
 INCLUDES=$(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
-libkrb5pac_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD
+libkrb5pac_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(AM_CFLAGS)
 libkrb5pac_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libkrb5pac_la_LIBADD=-ldcerpc -lunistr $(top_builddir)/MsRpc/libmsrpc.la
 
