@@ -133,7 +133,7 @@ NpfsCommonCreateNamedPipe(
     //
     NpfsAddRefPipe(pPipe);
 
-    ntStatus = IoFileSetContext(
+    ntStatus = NpfsSetCCB(
                         pIrpContext->pIrp->FileHandle, 
                         pSCB
                         );

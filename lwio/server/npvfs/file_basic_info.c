@@ -92,7 +92,11 @@ NpfsQueryFileBasicInfo(
 
     /* Sanity checks */
 
-    pCcb = (PNPFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    ntStatus = NpfsGetCCB(
+                    pIrp->FileHandle,
+                    &pCcb
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntStatus);
 
@@ -114,6 +118,9 @@ NpfsQueryFileBasicInfo(
     ntStatus = STATUS_SUCCESS;
 
 cleanup:
+    if (pCcb) {
+        NpfsReleaseCCB(pCcb);
+    }
     return ntStatus;
     
 error: 

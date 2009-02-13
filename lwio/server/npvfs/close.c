@@ -84,11 +84,22 @@ NpfsCommonClose(
     NTSTATUS ntStatus = 0;
     PNPFS_CCB pCCB = NULL;
 
-    pCCB = (PNPFS_CCB)IoFileGetContext(pIrpContext->pIrp->FileHandle);
+    ntStatus = NpfsGetCCB(
+                    pIrpContext->pIrp->FileHandle,
+                    &pCCB
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NpfsCloseHandle(
                         pCCB
                         );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+    if (pCCB) {
+        NpfsReleaseCCB(pCCB);
+    }
+
     return(ntStatus);
 }
 

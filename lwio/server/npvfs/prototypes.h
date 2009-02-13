@@ -118,6 +118,11 @@ NpfsSetCCB(
     );
 
 NTSTATUS
+NpfsAddCCB(
+    PNPFS_CCB pCCB
+    );
+
+NTSTATUS
 NpfsFindCCB(
     PNPFS_CCB pCCB
     );

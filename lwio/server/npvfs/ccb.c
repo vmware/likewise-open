@@ -125,25 +125,50 @@ NpfsGetCCB(
         BAIL_ON_NT_STATUS(ntStatus);
     }
     ENTER_READER_RW_LOCK(&gCCBLock);
-    
+
     ntStatus = NpfsFindCCB(pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
     NpfsAddRefCCB(pCCB);
 
     *ppCCB = pCCB;
 
-error:
-    
-    *ppCCB = NULL;
+cleanup:
 
     LEAVE_READER_RW_LOCK(&gCCBLock);
 
     return(ntStatus);
+
+error:
+    *ppCCB = NULL;
+
+    goto cleanup;
+
 }
 
 NTSTATUS
 NpfsSetCCB(
     IO_FILE_HANDLE FileHandle,
+    PNPFS_CCB pCCB
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    ntStatus = NpfsAddCCB(pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFileSetContext(
+                        FileHandle,
+                        pCCB
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return (ntStatus);
+}
+
+NTSTATUS
+NpfsAddCCB(
     PNPFS_CCB pCCB
     )
 {
@@ -156,7 +181,9 @@ NpfsSetCCB(
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-    
+
+    ntStatus = STATUS_SUCCESS;
+
     pCCB->pNext = gpCCBList;
     gpCCBList = pCCB;
 

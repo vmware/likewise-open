@@ -85,8 +85,11 @@ NpfsCommonConnectNamedPipe(
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pSCB = NULL;
 
-    pSCB = (PNPFS_CCB)IoFileGetContext(pIrpContext->pIrp->FileHandle);
-    NpfsAddRefCCB(pSCB);
+    ntStatus = NpfsGetCCB(
+                    pIrpContext->pIrp->FileHandle,
+                    &pSCB
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pPipe = pSCB->pPipe;
 
@@ -99,7 +102,10 @@ NpfsCommonConnectNamedPipe(
         pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
         
         LEAVE_MUTEX(&pPipe->PipeMutex);
-        NpfsReleaseCCB(pSCB);
+
+        if (pSCB){
+            NpfsReleaseCCB(pSCB);
+        }
         return(ntStatus);
     }
 
@@ -116,6 +122,11 @@ NpfsCommonConnectNamedPipe(
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
-    NpfsReleaseCCB(pSCB);
+
+    if (pSCB) {
+        NpfsReleaseCCB(pSCB);
+    }
+
+error:
     return(ntStatus);
 }

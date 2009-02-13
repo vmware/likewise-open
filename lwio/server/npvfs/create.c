@@ -159,7 +159,7 @@ NpfsCommonCreate(
     LEAVE_MUTEX(&pPipe->PipeMutex);
     bReleaseLock = FALSE;
 
-    ntStatus = IoFileSetContext(
+    ntStatus = NpfsSetCCB(
                         pIrpContext->pIrp->FileHandle,
                         pCCB
                         );

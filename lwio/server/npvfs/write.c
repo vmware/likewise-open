@@ -84,8 +84,11 @@ NpfsCommonWrite(
     NTSTATUS ntStatus = 0;
     PNPFS_CCB pCCB = NULL;
 
-    pCCB = (PNPFS_CCB)IoFileGetContext(pIrpContext->pIrp->FileHandle);
-    NpfsAddRefCCB(pCCB);
+    ntStatus = NpfsGetCCB(
+                    pIrpContext->pIrp->FileHandle,
+                    &pCCB
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NpfsWriteFile(
                     pCCB,
@@ -96,7 +99,9 @@ NpfsCommonWrite(
 
 error:
 
-    NpfsReleaseCCB(pCCB);
+    if (pCCB) {
+        NpfsReleaseCCB(pCCB);
+    }
     return(ntStatus);
 }
 

@@ -91,8 +91,11 @@ NpfsQueryFilePipeLocalInfo(
 
     /* Sanity checks */
 
-    pCcb = (PNPFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    NpfsAddRefCCB(pCcb);
+    ntStatus = NpfsGetCCB(
+                    pIrp->FileHandle,
+                    &pCcb
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
     
     pPipe = pCcb->pPipe;
     NpfsAddRefPipe(pPipe);
@@ -131,6 +134,10 @@ NpfsQueryFilePipeLocalInfo(
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pPipeInfo);
 
 cleanup:
+
+    if (pCcb) {
+        NpfsReleaseCCB(pCcb);
+    }
 
     return ntStatus;
 
