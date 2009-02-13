@@ -17,7 +17,6 @@ liblwioutils_la_SOURCES = \
     queue.c       \
     lwioconfig.c  \
     lwiologinfo.c \
-    lwioxnet.c    \
     path.c        \
     rbtree.c      \
     stack.c       \
