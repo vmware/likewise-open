@@ -109,6 +109,7 @@ SMBSocketCreate(
     NTSTATUS ntStatus = 0;
     SMB_SOCKET *pSocket = NULL;
     BOOLEAN bDestroyCondition = FALSE;
+    BOOLEAN bDestroySessionCondition = FALSE;
     BOOLEAN bDestroyHashLock = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
     BOOLEAN bDestroyWriteMutex = FALSE;
@@ -130,6 +131,11 @@ SMBSocketCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
+
+    ntStatus = pthread_cond_init(&pSocket->sessionEvent, NULL);
+    BAIL_ON_SMB_ERROR(ntStatus);
+
+    bDestroySessionCondition = TRUE;
 
     pSocket->refCount = 2;  /* One for reaper */
 
@@ -212,6 +218,11 @@ error:
         if (bDestroyCondition)
         {
             pthread_cond_destroy(&pSocket->event);
+        }
+
+        if (bDestroySessionCondition)
+        {
+            pthread_cond_destroy(&pSocket->sessionEvent);
         }
 
         if (bDestroyHashLock)

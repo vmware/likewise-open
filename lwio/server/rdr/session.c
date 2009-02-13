@@ -78,6 +78,7 @@ SMBSessionCreate(
     NTSTATUS ntStatus = 0;
     SMB_SESSION *pSession = NULL;
     BOOLEAN bDestroyCondition = FALSE;
+    BOOLEAN bDestroyHashLock = FALSE;
     BOOLEAN bDestroySetupCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
     BOOLEAN bDestroyTreeMutex = FALSE;
@@ -98,6 +99,11 @@ SMBSessionCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
+
+    ntStatus = pthread_rwlock_init(&pSession->hashLock, NULL);
+    BAIL_ON_SMB_ERROR(ntStatus);
+
+    bDestroyHashLock = TRUE;
 
     pSession->refCount = 2; /* One for reaper */
 
@@ -153,6 +159,11 @@ error:
         if (bDestroyCondition)
         {
             pthread_cond_destroy(&pSession->event);
+        }
+
+        if (bDestroyHashLock)
+        {
+            pthread_rwlock_destroy(&pSession->hashLock);
         }
 
         if (bDestroyMutex)
@@ -278,6 +289,7 @@ SMBSessionFree(
 
     pthread_mutex_destroy(&pSession->treeMutex);
     pthread_mutex_destroy(&pSession->mutex);
+    pthread_rwlock_destroy(&pSession->hashLock);
 
     if (pSession->hSMBGSSContext)
     {
