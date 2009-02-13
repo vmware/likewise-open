@@ -390,17 +390,7 @@ NtIpcAddProtocolSpec(
     IN OUT LWMsgProtocol* pProtocol
     )
 {
-    NTSTATUS status = 0;
-    int EE = 0;
-
-    status = NtIpcLWMsgStatusToNtStatus(lwmsg_protocol_add_protocol_spec(
-                    pProtocol,
-                    gNtIpcProtocolSpec));
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-cleanup:
-    LOG_LEAVE_IF_STATUS_EE(status, EE);
-    return status;
+    return NtIpcAddProtocolSpecEx(pProtocol, NULL);
 }
 
 NTSTATUS
