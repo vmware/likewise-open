@@ -350,6 +350,33 @@ AC_SUBST(NETLOGON_INCLUDES)
 AC_SUBST(NETLOGON_LDFLAGS)
 AC_SUBST(NETLOGON_LIBS)
 
+# lwio
+
+AC_ARG_WITH([lwio],
+        [AC_HELP_STRING([--with-lwio=<dir>], [use lwio located in prefix <dir>])],
+        [
+                LWIO_INCLUDES="-I$withval/include"
+        LWIO_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwio-includes],
+        [AC_HELP_STRING([--with-lwio-includes=<dir>], [use lwio includes located in <dir>])],
+        [
+                LWIO_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwio-libs],
+        [AC_HELP_STRING([--with-lwio-libs=<dir>], [use lwio libs located in <dir>])],
+        [
+                LWIO_LDFLAGS="-L$withval"
+        ])
+
+LWIO_LIBS="-llwioclient"
+
+AC_SUBST(LWIO_INCLUDES)
+AC_SUBST(LWIO_LDFLAGS)
+AC_SUBST(LWIO_LIBS)
+
 # pstore
 
 AC_ARG_WITH([pstore],
