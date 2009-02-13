@@ -442,6 +442,7 @@ LsaLdapOpenDirectoryServerSingleAttempt(
     {
         dwError = ETIMEDOUT;
     }
+    BAIL_ON_LSA_ERROR(dwError);
 
     *ppDirectory = pDirectory;
 

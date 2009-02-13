@@ -705,6 +705,11 @@ LsaDmpModifyStateFlags(
         {
             LSA_LOG_ALWAYS("Media sense is now %s",
                            bIsOffline ? "offline" : "online");
+            if (!bIsOffline)
+            {
+                // Have to ignore dwError because this function returns void
+                LsaSrvFlushSystemCache();
+            }
         }
 
         bWasOffline = IsSetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_FORCE_OFFLINE);
@@ -714,6 +719,11 @@ LsaDmpModifyStateFlags(
         {
             LSA_LOG_ALWAYS("Global force offline is now %s",
                            bIsOffline ? "enabled" : "disabled");
+            if (!bIsOffline)
+            {
+                // Have to ignore dwError because this function returns void
+                LsaSrvFlushSystemCache();
+            }
         }
 
         Handle->StateFlags = stateFlags;
@@ -2104,6 +2114,8 @@ LsaDmpModifyDomainFlagsByRef(
 
     if (bWasOffline != bIsOffline)
     {
+        LSA_LOG_ALWAYS("Domain '%s' is now %sline",
+                       pDomain->pszDnsName, bIsOffline ? "off" : "on");
         if (bIsOffline)
         {
             // We went from !offline -> offline.
@@ -2118,9 +2130,10 @@ LsaDmpModifyDomainFlagsByRef(
         {
             // We went from offline -> !offline.
             Handle->dwOfflineCount--;
+
+            // Have to ignore dwError because this function returns void
+            LsaSrvFlushSystemCache();
         }
-        LSA_LOG_ALWAYS("Domain '%s' is now %sline",
-                       pDomain->pszDnsName, bIsOffline ? "off" : "on");
     }
 }
 

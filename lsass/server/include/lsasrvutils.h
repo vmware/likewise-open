@@ -188,4 +188,9 @@ LsaSrvCloseEventLog(
     HANDLE hEventLog
     );
 
+DWORD
+LsaSrvFlushSystemCache(
+    VOID
+    );
+
 #endif /* __LSASRVUTILS_H__ */

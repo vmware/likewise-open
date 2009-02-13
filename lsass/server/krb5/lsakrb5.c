@@ -1533,7 +1533,12 @@ LsaKrb5GetMachineCreds(
                     hPasswordStore,
                     pszHostname,
                     &pMachineAcctInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwError)
+    {
+        LSA_LOG_ERROR("Unable to read machine password for hostname '%s'",
+            LSA_SAFE_LOG_STRING(pszHostname));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaWc16sToMbs(
                     pMachineAcctInfo->pwszMachineAccount,

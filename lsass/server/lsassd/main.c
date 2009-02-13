@@ -221,7 +221,7 @@ LsaSrvStartupPreCheck(
     }
 
     // Now that we are running, we need to flush the DirectoryService process of any negative cache entries
-    dwError = LsaSrvFlushDirectoryServiceCache();
+    dwError = LsaSrvFlushSystemCache();
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -239,60 +239,6 @@ error:
     return dwError;
 #endif
 }
-
-#if defined (__LWI_DARWIN__)
-DWORD
-LsaSrvFlushDirectoryServiceCache(
-    VOID
-    )
-{
-    DWORD dwError = 0;
-    int i;
-    const char* cacheUtils[] = {
-        "/usr/sbin/lookupd", /* Before Mac OS X 10.5 */
-        "/usr/bin/dscacheutil" /* On Mac OS X 10.5 */
-    };
-    const char* cacheUtilCmd[] = {
-        "/usr/sbin/lookupd -flushcache", /* Before Mac OS X 10.5 */
-        "/usr/bin/dscacheutil -flushcache" /* On Mac OS X 10.5 */
-    };
-
-    LSA_LOG_VERBOSE("Going to flush the Mac DirectoryService cache ...");
-
-    for (i = 0; i < (sizeof(cacheUtils) / sizeof(cacheUtils[0])); i++)
-    {
-        const char* util = cacheUtils[i];
-        const char* command = cacheUtilCmd[i];
-        BOOLEAN exists;
-
-        /* Sanity check */
-        if (!util)
-        {
-            continue;
-        }
-
-        dwError = LsaCheckFileExists(util, &exists);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (!exists)
-        {
-            continue;
-        }
-
-        system(command);
-
-        /* Bail regardless */
-        goto error;
-    }
-
-    LSA_LOG_ERROR("Could not locate cache flush utility");
-    dwError = LSA_ERROR_MAC_FLUSH_DS_CACHE_FAILED;
-
-error:
-
-    return dwError;
-}
-#endif
 
 #if defined (__LWI_DARWIN__)
 DWORD
