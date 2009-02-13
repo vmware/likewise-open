@@ -125,6 +125,7 @@ SrvCCBAdd(
         ntStatus = STATUS_OBJECTID_EXISTS;
         BAIL_ON_NT_STATUS(ntStatus);
     }
+    ntStatus = STATUS_SUCCESS;
 
     pCCB->pNext = gSMBSrvGlobals.pCCBList;
     gSMBSrvGlobals.pCCBList = pCCB;

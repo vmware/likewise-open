@@ -105,6 +105,8 @@ SrvAllocateIrpContext(
     ntStatus = IO_ALLOCATE(&pIrpContext, SRV_IRP_CONTEXT, sizeof(*pIrpContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pIrpContext->pIrp = pIrp;
+
     *ppIrpContext = pIrpContext;
 
 cleanup:

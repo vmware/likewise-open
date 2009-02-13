@@ -49,14 +49,16 @@
 
 #include "includes.h"
 
+static
 NTSTATUS
-DriverDispatch(
+SrvDriverDispatch(
     IN IO_DEVICE_HANDLE hDevice,
     IN PIRP pIrp
     );
 
+static
 VOID
-DriverShutdown(
+SrvDriverShutdown(
     IN IO_DRIVER_HANDLE hDriver
     );
 
@@ -79,6 +81,7 @@ DriverEntry(
     )
 {
     NTSTATUS ntStatus = 0;
+    IO_DEVICE_HANDLE hDevice = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != ulInterfaceVersion)
     {
@@ -89,9 +92,18 @@ DriverEntry(
     ntStatus = IoDriverInitialize(
                     hDriver,
                     NULL,
-                    DriverShutdown,
-                    DriverDispatch);
+                    SrvDriverShutdown,
+                    SrvDriverDispatch);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoDeviceCreate(
+                    &hDevice,
+                    hDriver,
+                    "srv",
+                    NULL
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
 
     ntStatus = SrvInitialize();
 
@@ -100,8 +112,9 @@ error:
     return ntStatus;
 }
 
+static
 NTSTATUS
-DriverDispatch(
+SrvDriverDispatch(
     IN IO_DEVICE_HANDLE hDevice,
     IN PIRP pIrp
     )
@@ -143,7 +156,7 @@ DriverDispatch(
 
         case IRP_TYPE_DEVICE_IO_CONTROL:
 
-            ntStatus = SrvDeviceControlIO(
+            ntStatus = SrvDeviceControlIo(
                             hDevice,
                             pIrp);
 
@@ -192,8 +205,9 @@ error:
     return ntStatus;
 }
 
+static
 VOID
-DriverShutdown(
+SrvDriverShutdown(
     IN IO_DRIVER_HANDLE hDriver
     )
 {

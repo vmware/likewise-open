@@ -57,7 +57,7 @@ SrvDeviceIoCommon(
     );
 
 NTSTATUS
-SrvDeviceIo(
+SrvDeviceControlIo(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP             pIrp
     )

@@ -79,6 +79,7 @@
 #include "srvsharelst.h"
 #include "srvccb.h"
 #include "srvdevicecreate.h"
+#include "srvdeviceio.h"
 
 #include "srvsocket.h"
 #include "srvconnection.h"

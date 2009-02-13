@@ -53,16 +53,6 @@ SrvDeviceWrite(
     return ntStatus;
 }
 
-NTSTATUS
-SrvDeviceControlIO(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
 
 NTSTATUS
 SrvDeviceControlFS(
