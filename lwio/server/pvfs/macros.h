@@ -63,17 +63,33 @@
         }                                           \
     } while(0);
 
-        
+#define PVFS_BAIL_ON_UNIX_ERROR(unixerr, nterr)             \
+    do {                                                    \
+        unixerr = errno;                                    \
+        if (unixerr != 0) {                                 \
+            nterr = PvfsMapUnixErrnoToNtStatus(unixerr);    \
+            BAIL_ON_NT_STATUS(nterr);                       \
+        }                                                   \
+    } while(0);
+
 
 /* Memory Macros */
 
 #define PVFS_SAFE_FREE_MEMORY(p) \
     do {                         \
         if ((p) != NULL) {       \
-            RtlMemoryFree(p);    \
+            PvfsFreeMemory(p);   \
             p = NULL;            \
         }                        \
     } while(0);
+
+
+#define PVFS_ZERO_MEMORY(p)                     \
+    do {                                        \
+        if ((p) != NULL) {                      \
+            memset(p, 0x0, sizeof(*p));          \
+        }                                       \
+    } while (0);
 
 
 #define PVFS_IS_DIR(pCcb)       \
