@@ -38,11 +38,13 @@ SrvProcessFindClose2(
 {
     NTSTATUS ntStatus = 0;
     PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
-    PSMB_PACKET pSmbResponse = NULL;
-    USHORT      usSearchId;
+    PSMB_PACKET      pSmbRequest = pContext->pRequest;
+    PSMB_SRV_SESSION pSession = NULL;
+    PSMB_SRV_TREE    pTree = NULL;
+    PSMB_PACKET      pSmbResponse = NULL;
+    USHORT           usSearchId;
+    USHORT           usResponseBytesUsed = 0;
     PFIND_CLOSE2_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    USHORT      usResponseBytesUsed = 0;
 
     ntStatus = WireUnmarshallFindClose2Request(
                     pSmbRequest->pParams,
@@ -51,7 +53,22 @@ SrvProcessFindClose2(
                     &usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO: Close the referenced search
+    ntStatus = SrvConnectionFindSession(
+                    pConnection,
+                    pSmbRequest->pSMBHeader->uid,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSessionFindTree(
+                    pSession,
+                    pSmbRequest->pSMBHeader->tid,
+                    &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvFinderCloseSearchSpace(
+                    pTree->hFinderRepository,
+                    usSearchId);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
                     pConnection->hPacketAllocator,
