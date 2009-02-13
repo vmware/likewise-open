@@ -181,6 +181,138 @@ error:
     goto cleanup;    
 }
 
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysFdOpenDir(
+    int fd,
+    DIR **ppDir
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+    DIR *pDir = NULL;
+
+    if ((pDir = fdopendir(fd)) == NULL) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *ppDir = pDir;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysOpenDir(
+    PSTR pszDirname,
+    DIR **ppDir
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+    DIR *pDir = NULL;
+
+    if ((pDir = opendir(pszDirname)) == NULL) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *ppDir = pDir;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysReadDir(
+    DIR *pDir,
+    struct dirent **ppDirEntry
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+    struct dirent *pDirEntry = NULL;
+
+    if ((pDirEntry = readdir(pDir)) == NULL)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *ppDirEntry = pDirEntry;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysCloseDir(
+    DIR *pDir
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+
+    if (closedir(pDir) == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysClose(
+    int fd
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    if (close(fd) == -1)
+    {
+        int err = errno;
+
+        ntError = PvfsMapUnixErrnoToNtStatus(err);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 
 
 /*

@@ -103,6 +103,34 @@ PvfsSysOpen(
     mode_t Mode
     );
 
+NTSTATUS
+PvfsSysClose(
+    int fd
+    );
+
+NTSTATUS
+PvfsSysOpenDir(
+    PSTR pszDirname,
+    DIR **ppDir
+    );
+
+NTSTATUS
+PvfsSysFdOpenDir(
+    int fd,
+    DIR **ppDir
+    );
+
+NTSTATUS
+PvfsSysReadDir(
+    DIR *pDir,
+    struct dirent **ppDirEntry
+    );
+
+NTSTATUS
+PvfsSysCloseDir(
+    DIR *pDir
+    );
+
 
 #endif     /* _PVFS_SYSWRAP_P_H */
 
