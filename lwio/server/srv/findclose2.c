@@ -116,6 +116,16 @@ SrvProcessFindClose2(
 
 cleanup:
 
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
     return ntStatus;
 
 error:
