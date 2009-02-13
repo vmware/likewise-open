@@ -133,7 +133,7 @@ SMBSocketCreate(
     bDestroyCondition = TRUE;
 
     ntStatus = pthread_cond_init(&pSocket->sessionEvent, NULL);
-    BAIL_ON_SMB_ERROR(ntStatus);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroySessionCondition = TRUE;
 

@@ -101,7 +101,7 @@ SMBSessionCreate(
     bDestroyCondition = TRUE;
 
     ntStatus = pthread_rwlock_init(&pSession->hashLock, NULL);
-    BAIL_ON_SMB_ERROR(ntStatus);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyHashLock = TRUE;
 
