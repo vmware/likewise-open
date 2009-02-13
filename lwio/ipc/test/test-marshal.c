@@ -89,7 +89,7 @@ MU_FIXTURE_TEARDOWN(marshal)
     lwmsg_context_delete(pContext);
 }
 
-MU_TEST(marshal, SMB_CREATE_FILE)
+MU_TEST(marshal, NT_IPC_MESSAGE_TYPE_CREATE_FILE)
 {
     IO_ACCESS_TOKEN token;
     NT_IPC_MESSAGE_CREATE_FILE request = { 0 };
