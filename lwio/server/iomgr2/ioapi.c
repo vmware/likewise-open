@@ -566,8 +566,8 @@ IoQueryDirectoryFile(
     pIrp->Args.QueryDirectory.FileInformation = FileInformation;
     pIrp->Args.QueryDirectory.Length = Length;
     pIrp->Args.QueryDirectory.FileInformationClass = FileInformationClass;
-    pIrp->Args.QueryDirectory.RestartScan = FileInformationClass;
-    pIrp->Args.QueryDirectory.ReturnSingleEntry = FileInformationClass;
+    pIrp->Args.QueryDirectory.RestartScan = RestartScan;
+    pIrp->Args.QueryDirectory.ReturnSingleEntry = ReturnSingleEntry;
     pIrp->Args.QueryDirectory.FileSpec = fileSpec;
     fileSpec = NULL;
 
