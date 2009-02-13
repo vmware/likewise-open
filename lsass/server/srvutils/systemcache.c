@@ -102,12 +102,14 @@ LsaSrvFlushSystemCache(
         dwError = LSA_ERROR_MAC_FLUSH_DS_CACHE_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
-#endif
 
 cleanup:
+#endif
     return dwError;
 
+#if defined (__LWI_DARWIN__)
 error:
 
     goto cleanup;
+#endif
 }
