@@ -87,6 +87,11 @@ RdrCreateFileEx(
                     (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = pthread_mutex_init(&pFile->mutex, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pFile->pMutex = &pFile->mutex;
+
     ntStatus = ParseSharePath(
                     pwszFileName,
                     &pszServer,
@@ -147,6 +152,10 @@ cleanup:
     return ntStatus;
 
 error:
+    if (pFile)
+    {
+        RdrCloseFileEx(pFile);
+    }
 
     *phFile = NULL;
 

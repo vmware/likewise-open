@@ -204,6 +204,7 @@ typedef struct
 typedef struct _SMB_CLIENT_FILE_HANDLE
 {
     pthread_mutex_t     mutex;
+    pthread_mutex_t*    pMutex;
 
     PSTR      pszPrincipal;
     PSTR      pszCachePath;

@@ -65,6 +65,11 @@ RdrCloseFileEx(
     SMB_SAFE_FREE_STRING(pFile->pszCachePath);
     SMB_SAFE_FREE_STRING(pFile->pszPrincipal);
 
+    if (pFile->pMutex)
+    {
+        pthread_mutex_destroy(pFile->pMutex);
+    }
+
     SMBFreeMemory(pFile);
 
     return ntStatus;
