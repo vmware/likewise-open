@@ -175,6 +175,9 @@ extern LOGINFO gLwnetLogInfo;
         } \
     } while (0)
 
+#define LWNET_SAFE_LOG_STRING(x) \
+    ( (x) ? (x) : "<null>" )
+
 #define LWNET_LOG_ALWAYS(szFmt, ...) \
     _LWNET_LOG_ALWAYS(LOG_LEVEL_ALWAYS, szFmt, ## __VA_ARGS__)
 
