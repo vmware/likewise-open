@@ -53,26 +53,23 @@ static const DWORD MAX_NUM_ARTEFACTS = 500;
 
 VOID
 LsaNssClearEnumArtefactsState(
+    HANDLE hLsaConnection,
     PLSA_ENUMARTEFACTS_STATE pState
     )
 {
-    if (pState->hLsaConnection != (HANDLE)NULL) {
+    if (pState->ppArtefactInfoList) {
+        LsaFreeNSSArtefactInfoList(
+            pState->dwArtefactInfoLevel,
+            pState->ppArtefactInfoList,
+            pState->dwNumArtefacts
+            );
+        pState->ppArtefactInfoList = (HANDLE)NULL;
+    }
 
-        if (pState->ppArtefactInfoList) {
-            LsaFreeNSSArtefactInfoList(
-                pState->dwArtefactInfoLevel,
-                pState->ppArtefactInfoList,
-                pState->dwNumArtefacts
-                );
-            pState->ppArtefactInfoList = (HANDLE)NULL;
-        }
-
-        if (pState->hResume != (HANDLE)NULL) {
-            LsaEndEnumNSSArtefacts(pState->hLsaConnection, pState->hResume);
-            pState->hResume = (HANDLE)NULL;
-        }
-
-        pState->hLsaConnection = (HANDLE)NULL;
+    if (hLsaConnection && pState->hResume != (HANDLE)NULL)
+    {
+        LsaEndEnumNSSArtefacts(hLsaConnection, pState->hResume);
+        pState->hResume = (HANDLE)NULL;
     }
 
     memset(pState, 0, sizeof(*pState));
@@ -95,7 +92,7 @@ LsaNssCommonNetgroupFindByName(
     int iGroup;
     BOOLEAN bFound = FALSE;
 
-    LsaNssClearEnumArtefactsState(&state);
+    LsaNssClearEnumArtefactsState(hLsaConnection, &state);
 
     if (hLsaConnection == (HANDLE)NULL)
     {
@@ -106,11 +103,9 @@ LsaNssCommonNetgroupFindByName(
         *phLsaConnection = hLsaConnection;
     }
 
-    state.hLsaConnection = hLsaConnection;
-
     status = MAP_LSA_ERROR(NULL,
                            LsaBeginEnumNSSArtefacts(
-                               state.hLsaConnection,
+                               hLsaConnection,
                                state.dwArtefactInfoLevel,
                                LSA_NIS_MAP_NAME_NETGROUPS,
                                LSA_NIS_MAP_QUERY_ALL,
@@ -120,7 +115,7 @@ LsaNssCommonNetgroupFindByName(
 
     status = MAP_LSA_ERROR(NULL,
                            LsaEnumNSSArtefacts(
-                               state.hLsaConnection,
+                               hLsaConnection,
                                state.hResume,
                                &dwNumFound,
                                &ppInfoList));
@@ -151,7 +146,7 @@ LsaNssCommonNetgroupFindByName(
 
 done:
 
-    LsaNssClearEnumArtefactsState(&state);
+    LsaNssClearEnumArtefactsState(hLsaConnection, &state);
 
     return status;
 
@@ -160,7 +155,7 @@ error:
     if (status != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
         LsaCloseServer(hLsaConnection);
-        *phLsaConnection = (HANDLE)NULL;
+        *phLsaConnection = hLsaConnection = (HANDLE)NULL;
     }
 
     goto done;

@@ -69,11 +69,13 @@ _nss_lsass_getpwent_r(
     int *           pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwent(&gEnumUsersState,
-                                      pResultUser,
-                                      pszBuf,
-                                      bufLen,
-                                      pErrorNumber);
+    return LsaNssCommonPasswdGetpwent(
+        &hLsaConnection,
+        &gEnumUsersState,
+        pResultUser,
+        pszBuf,
+        bufLen,
+        pErrorNumber);
 }
 
 NSS_STATUS
@@ -81,7 +83,9 @@ _nss_lsass_endpwent(
     void
     )
 {
-    return LsaNssCommonPasswdEndpwent(&gEnumUsersState);
+    return LsaNssCommonPasswdEndpwent(
+        &hLsaConnection,
+        &gEnumUsersState);
 }
 
 NSS_STATUS

@@ -53,26 +53,22 @@ static const DWORD MAX_NUM_GROUPS = 500;
 
 VOID
 LsaNssClearEnumGroupsState(
+    HANDLE                hLsaConnection,
     PLSA_ENUMGROUPS_STATE pState
     )
 {
-    if (pState->hLsaConnection != (HANDLE)NULL) {
+    if (pState->ppGroupInfoList) {
+        LsaFreeGroupInfoList(
+            pState->dwGroupInfoLevel,
+            pState->ppGroupInfoList,
+            pState->dwNumGroups
+            );
+        pState->ppGroupInfoList = (HANDLE)NULL;
+    }
 
-        if (pState->ppGroupInfoList) {
-            LsaFreeGroupInfoList(
-                pState->dwGroupInfoLevel,
-                pState->ppGroupInfoList,
-                pState->dwNumGroups
-                );
-            pState->ppGroupInfoList = (HANDLE)NULL;
-        }
-
-        if (pState->hResume != (HANDLE)NULL) {
-            LsaEndEnumGroups(pState->hLsaConnection, pState->hResume);
-            pState->hResume = (HANDLE)NULL;
-        }
-
-        pState->hLsaConnection = (HANDLE)NULL;
+    if (hLsaConnection && pState->hResume != (HANDLE)NULL) {
+        LsaEndEnumGroups(hLsaConnection, pState->hResume);
+        pState->hResume = (HANDLE)NULL;
     }
 
     memset(pState, 0, sizeof(LSA_ENUMGROUPS_STATE));
@@ -122,13 +118,12 @@ LsaNssComputeGroupStringLength(
         ppszMember && !IsNullOrEmptyString(*ppszMember);
         ppszMember++)
     {
-        dwLength += sizeof(ULONG);
+        dwLength += sizeof(PSTR);
         dwLength += strlen(*ppszMember) + 1;
         dwNumMembers++;
     }
     // Account for terminating NULL always
-    dwLength += sizeof(ULONG);
-    dwLength += 1;
+    dwLength += sizeof(PSTR);
 
     return dwLength;
 }
@@ -179,7 +174,7 @@ LsaNssWriteGroupInfo(
     //
     if (!dwNumMembers) {
        *(pResultGroup->gr_mem) = NULL;
-       pszMarker += sizeof(ULONG) + 1;
+       pszMarker += sizeof(PSTR);
 
     } else {
         PSTR pszMemberMarker = NULL;
@@ -240,7 +235,7 @@ LsaNssCommonGroupSetgrent(
     int ret = NSS_STATUS_SUCCESS;
     HANDLE hLsaConnection = *phLsaConnection;
 
-    LsaNssClearEnumGroupsState(pEnumGroupsState);
+    LsaNssClearEnumGroupsState(hLsaConnection, pEnumGroupsState);
 
     if (hLsaConnection == (HANDLE)NULL)
     {
@@ -251,11 +246,9 @@ LsaNssCommonGroupSetgrent(
         *phLsaConnection = hLsaConnection;
     }
 
-    pEnumGroupsState->hLsaConnection = hLsaConnection;
-
     ret = MAP_LSA_ERROR(NULL,
                         LsaBeginEnumGroups(
-                            pEnumGroupsState->hLsaConnection,
+                            hLsaConnection,
                             pEnumGroupsState->dwGroupInfoLevel,
                             MAX_NUM_GROUPS,
                             LSA_FIND_FLAGS_NSS,
@@ -268,7 +261,7 @@ cleanup:
 
 error:
 
-    LsaNssClearEnumGroupsState(pEnumGroupsState);
+    LsaNssClearEnumGroupsState(hLsaConnection, pEnumGroupsState);
 
     if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
@@ -281,6 +274,7 @@ error:
 
 NSS_STATUS
 LsaNssCommonGroupGetgrent(
+    PHANDLE                   phLsaConnection,
     PLSA_ENUMGROUPS_STATE     pEnumGroupsState,
     struct group*             pResultGroup,
     char *                    pszBuf,
@@ -289,10 +283,12 @@ LsaNssCommonGroupGetgrent(
     )
 {
     int                       ret = NSS_STATUS_NOTFOUND;
+    HANDLE hLsaConnection = *phLsaConnection;
 
-    if (pEnumGroupsState->hLsaConnection == (HANDLE)NULL)
+    if (hLsaConnection == (HANDLE)NULL)
     {
-        ret = MAP_LSA_ERROR(pErrorNumber, LSA_ERROR_INVALID_LSA_CONNECTION);
+        ret = MAP_LSA_ERROR(pErrorNumber,
+                            LSA_ERROR_INVALID_LSA_CONNECTION);
         BAIL_ON_NSS_ERROR(ret);
     }
 
@@ -313,7 +309,7 @@ LsaNssCommonGroupGetgrent(
 
             ret = MAP_LSA_ERROR(pErrorNumber,
                            LsaEnumGroups(
-                               pEnumGroupsState->hLsaConnection,
+                               hLsaConnection,
                                pEnumGroupsState->hResume,
                                &pEnumGroupsState->dwNumGroups,
                                &pEnumGroupsState->ppGroupInfoList));
@@ -358,7 +354,12 @@ error:
     }
     else
     {
-       LsaNssClearEnumGroupsState(pEnumGroupsState);
+        LsaNssClearEnumGroupsState(hLsaConnection, pEnumGroupsState);
+        if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
+        {
+            LsaCloseServer(hLsaConnection);
+            *phLsaConnection = (HANDLE)NULL;
+        }
     }
 
     if (bufLen && pszBuf) {
@@ -370,10 +371,12 @@ error:
 
 NSS_STATUS
 LsaNssCommonGroupEndgrent(
+    PHANDLE                   phLsaConnection,
     PLSA_ENUMGROUPS_STATE     pEnumGroupsState
     )
 {
-    LsaNssClearEnumGroupsState(pEnumGroupsState);
+    HANDLE hLsaConnection = *phLsaConnection;
+    LsaNssClearEnumGroupsState(hLsaConnection, pEnumGroupsState);
 
     return NSS_STATUS_SUCCESS;
 }

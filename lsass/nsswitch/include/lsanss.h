@@ -102,7 +102,6 @@ typedef enum
 
 typedef struct __LSA_ENUMGROUPS_STATE
 {
-    HANDLE  hLsaConnection;
     HANDLE  hResume;
     PVOID*  ppGroupInfoList;
     DWORD   dwNumGroups;
@@ -113,7 +112,6 @@ typedef struct __LSA_ENUMGROUPS_STATE
 
 typedef struct __LSA_ENUMUSERS_STATE
 {
-    HANDLE  hLsaConnection;
     HANDLE  hResume;
     PVOID*  ppUserInfoList;
     DWORD   dwNumUsers;
@@ -124,7 +122,6 @@ typedef struct __LSA_ENUMUSERS_STATE
 
 typedef struct __LSA_ENUMARTEFACTS_STATE
 {
-    HANDLE  hLsaConnection;
     HANDLE  hResume;
     PVOID*  ppArtefactInfoList;
     DWORD   dwNumArtefacts;
@@ -135,6 +132,7 @@ typedef struct __LSA_ENUMARTEFACTS_STATE
 
 VOID
 LsaNssClearEnumUsersState(
+    HANDLE hLsaConnection,
     PLSA_ENUMUSERS_STATE pState
     );
 
@@ -154,6 +152,7 @@ LsaNssWriteUserInfo(
 
 VOID
 LsaNssClearEnumGroupsState(
+    HANDLE hLsaConnection,
     PLSA_ENUMGROUPS_STATE pState
     );
 
@@ -180,6 +179,7 @@ LsaNssWriteGroupInfo(
 
 VOID
 LsaNssClearEnumArtefactsState(
+    HANDLE hLsaConnection,
     PLSA_ENUMARTEFACTS_STATE pState
     );
 
@@ -191,6 +191,7 @@ LsaNssCommonPasswdSetpwent(
 
 NSS_STATUS
 LsaNssCommonPasswdGetpwent(
+    PHANDLE phLsaConnection,
     PLSA_ENUMUSERS_STATE    pEnumUsersState,
     struct passwd *         pResultUser,
     char*                   pszBuf,
@@ -200,6 +201,7 @@ LsaNssCommonPasswdGetpwent(
 
 NSS_STATUS
 LsaNssCommonPasswdEndpwent(
+    PHANDLE phLsaConnection,
     PLSA_ENUMUSERS_STATE    pEnumUsersState
     );
 
@@ -231,6 +233,7 @@ LsaNssCommonGroupSetgrent(
 
 NSS_STATUS
 LsaNssCommonGroupGetgrent(
+    PHANDLE phLsaConnection,
     PLSA_ENUMGROUPS_STATE     pEnumGroupsState,
     struct group*             pResultGroup,
     char *                    pszBuf,
@@ -240,6 +243,7 @@ LsaNssCommonGroupGetgrent(
 
 NSS_STATUS
 LsaNssCommonGroupEndgrent(
+    PHANDLE phLsaConnection,
     PLSA_ENUMGROUPS_STATE     pEnumGroupsState
     );
 

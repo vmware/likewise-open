@@ -134,7 +134,8 @@ LsaNssHpuxPrpasswdGetpwent(
     int                     ret;
     int*                    pErrorNumber = &err;
 
-    ret = LsaNssCommonPasswdGetpwent(pEnumUsersState,
+    ret = LsaNssCommonPasswdGetpwent(&pLsaBackend->hLsaConnectionPrUsers,
+                                     pEnumUsersState,
                                      &resultUser,
                                      szBuf,
                                      bufLen,
@@ -162,7 +163,7 @@ LsaNssHpuxPrpasswdEndpwent(
     PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = (PLSA_NSS_PRPASSWD_BACKEND) pBackend;
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
 
-    return LsaNssCommonPasswdEndpwent(pEnumUsersState);
+    return LsaNssCommonPasswdEndpwent(&pLsaBackend->hLsaConnectionPrUsers, pEnumUsersState);
 }
 
 static

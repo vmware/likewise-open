@@ -105,7 +105,8 @@ LsaNssSolarisPasswdGetpwent(
     int                     ret;
     int*                    pErrorNumber = &err;
 
-    ret = LsaNssCommonPasswdGetpwent(pEnumUsersState,
+    ret = LsaNssCommonPasswdGetpwent(&pLsaBackend->hLsaConnectionUsers,
+                                     pEnumUsersState,
                                      pResultUser,
                                      pszBuf,
                                      bufLen,
@@ -140,7 +141,7 @@ LsaNssSolarisPasswdEndpwent(
     PLSA_NSS_PASSWD_BACKEND pLsaBackend = (PLSA_NSS_PASSWD_BACKEND) pBackend;
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
 
-    return LsaNssCommonPasswdEndpwent(pEnumUsersState);
+    return LsaNssCommonPasswdEndpwent(&pLsaBackend->hLsaConnectionUsers, pEnumUsersState);
 }
 
 static

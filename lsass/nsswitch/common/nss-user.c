@@ -52,26 +52,24 @@ static const int MAX_NUM_USERS = 500;
 
 VOID
 LsaNssClearEnumUsersState(
+    HANDLE hLsaConnection,
     PLSA_ENUMUSERS_STATE pState
     )
 {
-    if (pState->hLsaConnection != (HANDLE)NULL) {
+    if (pState->ppUserInfoList)
+    {
+        LsaFreeUserInfoList(
+            pState->dwUserInfoLevel,
+            pState->ppUserInfoList,
+            pState->dwNumUsers
+            );
+        pState->ppUserInfoList = (HANDLE)NULL;
+    }
 
-        if (pState->ppUserInfoList) {
-            LsaFreeUserInfoList(
-                pState->dwUserInfoLevel,
-                pState->ppUserInfoList,
-                pState->dwNumUsers
-                );
-            pState->ppUserInfoList = (HANDLE)NULL;
-        }
-
-        if (pState->hResume != (HANDLE)NULL) {
-            LsaEndEnumUsers(pState->hLsaConnection, pState->hResume);
-            pState->hResume = (HANDLE)NULL;
-        }
-
-        pState->hLsaConnection = (HANDLE)NULL;
+    if (hLsaConnection && pState->hResume != (HANDLE)NULL)
+    {
+        LsaEndEnumUsers(hLsaConnection, pState->hResume);
+        pState->hResume = (HANDLE)NULL;
     }
 
     memset(pState, 0, sizeof(LSA_ENUMUSERS_STATE));
@@ -209,8 +207,6 @@ LsaNssCommonPasswdSetpwent(
     int ret = NSS_STATUS_SUCCESS;
     HANDLE hLsaConnection = *phLsaConnection;
 
-    LsaNssClearEnumUsersState(pEnumUsersState);
-
     if (hLsaConnection == (HANDLE)NULL)
     {
         ret = MAP_LSA_ERROR(NULL,
@@ -220,15 +216,15 @@ LsaNssCommonPasswdSetpwent(
         *phLsaConnection = hLsaConnection;
     }
 
-    pEnumUsersState->hLsaConnection = hLsaConnection;
+    LsaNssClearEnumUsersState(hLsaConnection, pEnumUsersState);
 
     ret = MAP_LSA_ERROR(NULL,
                         LsaBeginEnumUsers(
-                                pEnumUsersState->hLsaConnection,
-                                pEnumUsersState->dwUserInfoLevel,
-                                MAX_NUM_USERS,
-                                LSA_FIND_FLAGS_NSS,
-                                &pEnumUsersState->hResume));
+                            hLsaConnection,
+                            pEnumUsersState->dwUserInfoLevel,
+                            MAX_NUM_USERS,
+                            LSA_FIND_FLAGS_NSS,
+                            &pEnumUsersState->hResume));
     BAIL_ON_NSS_ERROR(ret);
 
 cleanup:
@@ -237,7 +233,7 @@ cleanup:
 
 error:
 
-    LsaNssClearEnumUsersState(pEnumUsersState);
+    LsaNssClearEnumUsersState(hLsaConnection, pEnumUsersState);
 
     if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {
@@ -250,6 +246,7 @@ error:
 
 NSS_STATUS
 LsaNssCommonPasswdGetpwent(
+    PHANDLE                 phLsaConnection,
     PLSA_ENUMUSERS_STATE    pEnumUsersState,
     struct passwd *         pResultUser,
     char*                   pszBuf,
@@ -258,8 +255,9 @@ LsaNssCommonPasswdGetpwent(
     )
 {
     int  ret = NSS_STATUS_NOTFOUND;
+    HANDLE hLsaConnection = *phLsaConnection;
 
-    if (pEnumUsersState->hLsaConnection == (HANDLE)NULL)
+    if (hLsaConnection == (HANDLE)NULL)
     {
         ret = MAP_LSA_ERROR(pErrorNumber,
                             LSA_ERROR_INVALID_LSA_CONNECTION);
@@ -282,7 +280,7 @@ LsaNssCommonPasswdGetpwent(
             }
             ret = MAP_LSA_ERROR(pErrorNumber,
                            LsaEnumUsers(
-                               pEnumUsersState->hLsaConnection,
+                               hLsaConnection,
                                pEnumUsersState->hResume,
                                &pEnumUsersState->dwNumUsers,
                                &pEnumUsersState->ppUserInfoList));
@@ -326,7 +324,13 @@ error:
     }
     else
     {
-        LsaNssClearEnumUsersState(pEnumUsersState);
+        LsaNssClearEnumUsersState(hLsaConnection, pEnumUsersState);
+
+        if ( hLsaConnection != (HANDLE)NULL)
+        {
+            LsaCloseServer(hLsaConnection);
+            *phLsaConnection = (HANDLE)NULL;
+        }
     }
 
     if (bufLen && pszBuf)
@@ -339,10 +343,13 @@ error:
 
 NSS_STATUS
 LsaNssCommonPasswdEndpwent(
+    PHANDLE                 phLsaConnection,
     PLSA_ENUMUSERS_STATE    pEnumUsersState
     )
 {
-    LsaNssClearEnumUsersState(pEnumUsersState);
+    HANDLE hLsaConnection = *phLsaConnection;
+
+    LsaNssClearEnumUsersState(hLsaConnection, pEnumUsersState);
 
     return NSS_STATUS_SUCCESS;
 }

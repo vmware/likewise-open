@@ -69,7 +69,8 @@ _nss_lsass_getgrent_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrent(&gEnumGroupsState,
+    return LsaNssCommonGroupGetgrent(&hLsaConnection,
+                                     &gEnumGroupsState,
                                      pResultGroup,
                                      pszBuf,
                                      bufLen,
@@ -81,7 +82,7 @@ _nss_lsass_endgrent(
     void
     )
 {
-    return LsaNssCommonGroupEndgrent(&gEnumGroupsState);
+    return LsaNssCommonGroupEndgrent(&hLsaConnection, &gEnumGroupsState);
 }
 
 NSS_STATUS

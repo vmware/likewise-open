@@ -106,7 +106,8 @@ LsaNssSolarisGroupGetgrent(
     int*                      pErrorNumber = &err;
     int                       ret = NSS_STATUS_NOTFOUND;
 
-    ret = LsaNssCommonGroupGetgrent(pEnumGroupsState,
+    ret = LsaNssCommonGroupGetgrent(&pLsaBackend->hLsaConnectionGroup,
+                                    pEnumGroupsState,
                                     pResultGroup,
                                     pszBuf,
                                     bufLen,
@@ -142,7 +143,7 @@ LsaNssSolarisGroupEndgrent(
     PLSA_NSS_GROUP_BACKEND    pLsaBackend = (PLSA_NSS_GROUP_BACKEND) pBackend;
     PLSA_ENUMGROUPS_STATE     pEnumGroupsState = &pLsaBackend->enumGroupsState;
 
-    return LsaNssCommonGroupEndgrent(pEnumGroupsState);
+    return LsaNssCommonGroupEndgrent(&pLsaBackend->hLsaConnectionGroup, pEnumGroupsState);
 }
 
 static

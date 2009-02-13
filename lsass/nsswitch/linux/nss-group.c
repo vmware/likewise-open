@@ -70,11 +70,13 @@ _nss_lsass_getgrent_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrent(&gEnumGroupsState,
-                                     pResultGroup,
-                                     pszBuf,
-                                     bufLen,
-                                     pErrorNumber);
+    return LsaNssCommonGroupGetgrent(
+        &hLsaConnection,
+        &gEnumGroupsState,
+        pResultGroup,
+        pszBuf,
+        bufLen,
+        pErrorNumber);
 }
 
 NSS_STATUS
@@ -82,7 +84,7 @@ _nss_lsass_endgrent(
     void
     )
 {
-    return LsaNssCommonGroupEndgrent(&gEnumGroupsState);
+    return LsaNssCommonGroupEndgrent(&hLsaConnection, &gEnumGroupsState);
 }
 
 NSS_STATUS
