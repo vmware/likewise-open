@@ -414,6 +414,11 @@ error:
         }
     }
 
+    if (pSocket != NULL)
+    {
+        SMBSocketInvalidate(pSocket, ERROR_SMB, ntStatus);
+    }
+
     goto cleanup;
 }
 
