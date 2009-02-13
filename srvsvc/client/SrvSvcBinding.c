@@ -115,6 +115,9 @@ InitSrvSvcBindingFull(
     rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, error);
     
+    rpc_ep_resolve_binding(b, srvsvc_v3_0_c_ifspec, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
     *binding = b;
 
 cleanup:
