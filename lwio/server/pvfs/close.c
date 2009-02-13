@@ -63,12 +63,14 @@ PvfsClose(
     pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);    
     BAIL_ON_INVALID_PTR(pCcb, ntError);
 
-    if (close(pCcb->fd) == -1)
-    {
-        int err = errno;
+    /* Not much we can do if this fails */
 
-        ntError = PvfsMapUnixErrnoToNtStatus(err);
-        BAIL_ON_NT_STATUS(ntError);        
+    ntError = PvfsSysClose(pCcb->fd);
+
+    /* Memory cleanup */
+
+    if (pCcb->pDirContext) {
+        PvfsFreeDirectoryContext(pCcb->pDirContext);
     }
 
     PVFS_SAFE_FREE_MEMORY(pCcb->pszFilename);
