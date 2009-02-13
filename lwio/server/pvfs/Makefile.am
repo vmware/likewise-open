@@ -23,6 +23,7 @@ libpvfs_sys_la_SOURCES = \
     util_time.c \
     fileBasicInfo.c \
     fileStandardInfo.c \
+    fileInternalInfo.c \
     fileBothDirInfo.c
 
 libpvfs_sys_la_CPPFLAGS = \

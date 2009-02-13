@@ -301,6 +301,7 @@ StatRemoteFile(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     FILE_BASIC_INFORMATION FileBasicInfo = {0};
     FILE_STANDARD_INFORMATION FileStdInfo = {0};
+    FILE_INTERNAL_INFORMATION FileInternalInfo = {0};
     IO_FILE_NAME Filename = {0};    
     IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
@@ -341,23 +342,35 @@ StatRemoteFile(
                                      &StatusBlock,
                                      &FileStdInfo,
                                      sizeof(FileStdInfo),
-                                     FileStandardInformation);    
+                                     FileStandardInformation);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtQueryInformationFile(hFile,
+                                     NULL,
+                                     &StatusBlock,
+                                     &FileInternalInfo,
+                                     sizeof(FileInternalInfo),
+                                     FileInternalInformation);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = NtCloseFile(hFile);
     BAIL_ON_NT_STATUS(ntError);
 
     printf("Filename:             %s\n", pszFilename);
+
+    printf("CreationTime:         %lld\n", (long long) FileBasicInfo.CreationTime);
+    printf("Last Access Time:     %lld\n", (long long) FileBasicInfo.LastAccessTime);
+    printf("Last Modification:    %lld\n", (long long) FileBasicInfo.LastWriteTime);
+    printf("Change Time:          %lld\n", (long long) FileBasicInfo.ChangeTime);
+
     printf("Allocation Size:      %lld\n", (long long) FileStdInfo.AllocationSize);
     printf("File Size:            %lld\n", (long long) FileStdInfo.EndOfFile);
     printf("Number of Links:      %d\n", FileStdInfo.NumberOfLinks);
     printf("Is Directory:         %s\n", FileStdInfo.Directory ? "yes" : "no");
     printf("Pending Delete:       %s\n", FileStdInfo.DeletePending ? "yes" : "no");
     printf("Attributes:           0x%x\n", FileBasicInfo.FileAttributes);
-    printf("CreationTime:         %lld\n", (long long) FileBasicInfo.CreationTime);
-    printf("Last Access Time:     %lld\n", (long long) FileBasicInfo.LastAccessTime);
-    printf("Last Modification:    %lld\n", (long long) FileBasicInfo.LastWriteTime);
-    printf("Change Time:          %lld\n", (long long) FileBasicInfo.ChangeTime);
+    printf("Index Number:         %lld\n", FileInternalInfo.IndexNumber);
+
     printf("\n");    
     
 

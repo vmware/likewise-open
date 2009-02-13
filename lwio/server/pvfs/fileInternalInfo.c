@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -34,62 +34,109 @@
  *
  * Module Name:
  *
- *        fileinfo_p.h
+ *        file_basic_info.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        FileInformation Handlers
+ *        FileBasicInformation Handler
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
+#include "pvfs.h"
 
-/* QueryFileInformation */
+/* Forward declarations */
 
-NTSTATUS
-PvfsFileBasicInfo(
-    PVFS_INFO_TYPE Type,
+static NTSTATUS
+PvfsQueryFileInternalInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-NTSTATUS
-PvfsFileStandardInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
+
+/* File Globals */
+
+
+
+/* Code */
+
 
 NTSTATUS
 PvfsFileInternalInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
-    );
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    switch(Type)
+    {
+    case PVFS_SET:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+
+    case PVFS_QUERY:
+        ntError = PvfsQueryFileInternalInfo(pIrpContext);
+        break;
+
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
-/* QueryDirectoryInformation */
-
-NTSTATUS
-PvfsFileBothDirInfo(
-    PVFS_INFO_TYPE Type,
+static NTSTATUS
+PvfsQueryFileInternalInfo(
     PPVFS_IRP_CONTEXT pIrpContext
-    );
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PFILE_INTERNAL_INFORMATION pFileInfo = NULL;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    PVFS_STAT Stat = {0};
 
+    /* Sanity checks */
 
-/* utility functions */
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-/* From util_dir.c */
+    if (Args.Length < sizeof(*pFileInfo))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
-NTSTATUS
-PvfsEnumerateDirectory(
-    PPVFS_CCB pCcb,
-    PIRP_ARGS_QUERY_DIRECTORY pQueryDirArgs
-    );
+    pFileInfo = (PFILE_INTERNAL_INFORMATION)Args.FileInformation;
 
-VOID
-PvfsFreeDirectoryContext(
-    PPVFS_DIRECTORY_CONTEXT pDirCtx
-    );
+    /* Real work starts here */
+
+    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Just let this be the inode number */
+
+    pFileInfo->IndexNumber = Stat.s_ino;
+
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 /*
