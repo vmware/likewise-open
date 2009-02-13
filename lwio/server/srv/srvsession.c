@@ -58,6 +58,10 @@ SrvSessionCreate(
                     &pSession->pTreeCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvFinderCreateRepository(
+                    &pSession->hFinderRepository);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     *ppSession = pSession;
 
 cleanup:
@@ -313,6 +317,11 @@ SrvSessionFree(
     if (pSession->pTreeCollection)
     {
         SMBRBTreeFree(pSession->pTreeCollection);
+    }
+
+    if (pSession->hFinderRepository)
+    {
+        SrvFinderCloseRepository(pSession->hFinderRepository);
     }
 
     SMBFreeMemory(pSession);

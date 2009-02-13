@@ -689,32 +689,7 @@ SrvBuildFindFirst2FullDirInfoResponse(
     PSMB_PACKET         pSmbResponse
     )
 {
-    NTSTATUS ntStatus = 0;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-    IO_FILE_SPEC ioFileSpec;
-    FILE_BOTH_DIR_INFORMATION fileInfo = {0};
-    BOOLEAN bReturnSingleEntry = FALSE;
-    BOOLEAN bRestartScan = FALSE;
-
-    ntStatus = IoQueryDirectoryFile(
-                    hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    &fileInfo,
-                    sizeof(fileInfo),
-                    FileBothDirectoryInformation,
-                    bReturnSingleEntry,
-                    &ioFileSpec,
-                    bRestartScan);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
+    return STATUS_NOT_SUPPORTED;
 }
 
 static
@@ -748,7 +723,32 @@ SrvBuildFindFirst2BothDirInfoResponse(
     PSMB_PACKET         pSmbResponse
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS ntStatus = 0;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    IO_FILE_SPEC ioFileSpec;
+    FILE_BOTH_DIR_INFORMATION fileInfo = {0};
+    BOOLEAN bReturnSingleEntry = FALSE;
+    BOOLEAN bRestartScan = FALSE;
+
+    ntStatus = IoQueryDirectoryFile(
+                    hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    &fileInfo,
+                    sizeof(fileInfo),
+                    FileBothDirectoryInformation,
+                    bReturnSingleEntry,
+                    &ioFileSpec,
+                    bRestartScan);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static

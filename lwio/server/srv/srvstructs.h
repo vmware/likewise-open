@@ -243,8 +243,6 @@ typedef struct _SMB_SRV_TREE
 
     PSMB_RB_TREE      pFileCollection;
 
-    HANDLE            hFinderRepository;
-
     USHORT            nextAvailableFid;
 
 } SMB_SRV_TREE, *PSMB_SRV_TREE;
@@ -259,6 +257,8 @@ typedef struct _SMB_SRV_SESSION
     USHORT            uid;
 
     PSMB_RB_TREE      pTreeCollection;
+
+    HANDLE            hFinderRepository;
 
     USHORT            nextAvailableTid;
 

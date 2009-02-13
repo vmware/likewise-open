@@ -40,7 +40,6 @@ SrvProcessFindClose2(
     PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET      pSmbRequest = pContext->pRequest;
     PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
     PSMB_PACKET      pSmbResponse = NULL;
     USHORT           usSearchId;
     USHORT           usResponseBytesUsed = 0;
@@ -59,14 +58,8 @@ SrvProcessFindClose2(
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSessionFindTree(
-                    pSession,
-                    pSmbRequest->pSMBHeader->tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = SrvFinderCloseSearchSpace(
-                    pTree->hFinderRepository,
+                    pSession->hFinderRepository,
                     usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -115,11 +108,6 @@ SrvProcessFindClose2(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
-
-    if (pTree)
-    {
-        SrvTreeRelease(pTree);
-    }
 
     if (pSession)
     {
