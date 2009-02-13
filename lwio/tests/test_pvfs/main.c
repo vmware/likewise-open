@@ -69,7 +69,8 @@ PrintUsage(
     fprintf(stderr, "(All pvfs files should be given in the format \"/pvfs/path/...\")\n");    
     fprintf(stderr, "    -c <src> <dst>    Copy src to the Pvfs dst file\n");  
     fprintf(stderr, "    -C <src> <dst>    Copy the pvfs src file to the local dst file\n");
-    fprintf(stderr, "    -S <file>         Stat a Pvfs file\n");    
+    fprintf(stderr, "    -S <path>         Stat a Pvfs path (directory or file)\n");
+    fprintf(stderr, "    -l <dir>          List the files in a directory\n");
     fprintf(stderr, "\n");
     
     return;    
@@ -371,6 +372,149 @@ error:
 /******************************************************
  *****************************************************/
 
+static VOID
+PrintFileBothDirInformation(
+    PFILE_BOTH_DIR_INFORMATION pFileInfo
+    )
+{
+    NTSTATUS ntError;
+    PSTR pszFilename = NULL;
+    PSTR pszShortFilename = NULL;
+
+    ntError = RtlCStringAllocateFromWC16String(&pszFilename,
+                                               pFileInfo->FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCStringAllocateFromWC16String(&pszShortFilename,
+                                               pFileInfo->ShortName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    printf("Filename:             %s\n", pszFilename);
+    printf("8.3 Filename:         %s\n", pszShortFilename);
+
+    printf("CreationTime:         %lld\n", (long long) pFileInfo->CreationTime);
+    printf("Last Access Time:     %lld\n", (long long) pFileInfo->LastAccessTime);
+    printf("Last Modification:    %lld\n", (long long) pFileInfo->LastWriteTime);
+    printf("Change Time:          %lld\n", (long long) pFileInfo->ChangeTime);
+
+    printf("Allocation Size:      %lld\n", (long long) pFileInfo->AllocationSize);
+    printf("File Size:            %lld\n", (long long) pFileInfo->EndOfFile);
+    printf("Attributes:           0x%x\n", pFileInfo->FileAttributes);
+    printf("EA Size:              %d\n", pFileInfo->EaSize);
+
+    printf("\n");
+
+cleanup:
+    return;
+
+error:
+    goto cleanup;
+}
+
+/******************************************************
+ *****************************************************/
+
+static NTSTATUS
+ListDirectory(
+    char *pszDirectory,
+    char *pszPattern
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    IO_FILE_NAME Dirname = {0};
+    IO_FILE_HANDLE hDir = (IO_FILE_HANDLE)NULL;
+    IO_STATUS_BLOCK StatusBlock = {0};
+    PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;
+    PVOID pBuffer =  NULL;
+    DWORD dwBufLen = 0;
+    IO_FILE_SPEC FileSpec;
+
+    Dirname.RootFileHandle = (IO_FILE_HANDLE)NULL;
+    Dirname.IoNameOptions = 0;
+    ntError = RtlWC16StringAllocateFromCString(&Dirname.FileName,
+                                               pszDirectory);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtCreateFile(&hDir,
+                           NULL,
+                           &StatusBlock,
+                           &Dirname,
+                           NULL,
+                           NULL,
+                           FILE_ALL_ACCESS,
+                           0,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_DIRECTORY_FILE,
+                           NULL,
+                           0,
+                           NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Allocate the buffer.  Include space for four files including
+       256 WCHAR length filename */
+
+    dwBufLen = (sizeof(FILE_BOTH_DIR_INFORMATION) + (sizeof(WCHAR)*256)) * 4;
+    pBuffer = (PVOID)RtlMemoryAllocate(dwBufLen);
+    if (!pBuffer) {
+        ntError = STATUS_INSUFFICIENT_RESOURCES;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (pszPattern) {
+        ntError = LwRtlUnicodeStringAllocateFromCString(&FileSpec.FileName, pszPattern);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    do
+    {
+        memset(pBuffer, 0x0, dwBufLen);
+        ntError = NtQueryDirectoryFile(hDir,
+                                       NULL,
+                                       &StatusBlock,
+                                       pBuffer,
+                                       dwBufLen,
+                                       FileBothDirectoryInformation,
+                                       FALSE,     /* ignored */
+                                       pszPattern ? &FileSpec : NULL,
+                                       FALSE);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pFileInfo = (PFILE_BOTH_DIR_INFORMATION)pBuffer;
+
+        while (pFileInfo != NULL)
+        {
+            PrintFileBothDirInformation(pFileInfo);
+            pFileInfo = (pFileInfo->NextEntryOffset != 0) ?
+                        (PVOID)pFileInfo + pFileInfo->NextEntryOffset :
+                        NULL;
+        }
+    } while (NT_SUCCESS(ntError));
+
+
+
+    ntError = NtCloseFile(hDir);
+    hDir = (IO_FILE_HANDLE)NULL;
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    if (Dirname.FileName) {
+        RtlMemoryFree(Dirname.FileName);
+    }
+
+    return ntError;
+
+error:
+    if (hDir) {
+        NtCloseFile(hDir);
+    }
+    goto cleanup;
+}
+
+/******************************************************
+ *****************************************************/
+
 int 
 main(
     int argc,
@@ -401,6 +545,17 @@ main(
     {
         ntError = StatRemoteFile(argv[2]);
     } 
+    else if (strcmp(argv[1], "-l") == 0)
+    {
+        char *filter = NULL;
+
+        if ((argc-2) > 1) {
+            filter = argv[3];
+        }
+
+        ntError = ListDirectory(argv[2], filter);
+    }
+
     else 
     {
         PrintUsage(argv[0]);
