@@ -39,8 +39,8 @@
 
 #include "types.h"
 
-#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SRVSVC_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
+#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_ip_tcp"
+#define SRVSVC_DEFAULT_ENDPOINT   ""
 
 
 RPCSTATUS
