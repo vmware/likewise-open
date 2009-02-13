@@ -88,6 +88,7 @@
 #include "srvsession.h"
 #include "srvcontext.h"
 #include "srvpipeinfo.h"
+#include "srvfinder.h"
 
 #include "srvnegotiate.h"
 #include "srvsessionsetup.h"

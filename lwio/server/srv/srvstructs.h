@@ -232,10 +232,10 @@ typedef struct _SMB_SRV_FILE
 
 typedef struct _SMB_SRV_TREE
 {
-    pthread_rwlock_t   mutex;
-    pthread_rwlock_t*  pMutex;
+    LONG                   refcount;
 
-    LONG              refcount;
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
 
     USHORT            tid;
 
@@ -243,16 +243,18 @@ typedef struct _SMB_SRV_TREE
 
     PSMB_RB_TREE      pFileCollection;
 
+    HANDLE            hFinderRepository;
+
     USHORT            nextAvailableFid;
 
 } SMB_SRV_TREE, *PSMB_SRV_TREE;
 
 typedef struct _SMB_SRV_SESSION
 {
+    LONG              refcount;
+
     pthread_rwlock_t   mutex;
     pthread_rwlock_t*  pMutex;
-
-    LONG              refcount;
 
     USHORT            uid;
 
@@ -264,16 +266,16 @@ typedef struct _SMB_SRV_SESSION
 
 typedef struct _SMB_SRV_CONNECTION
 {
+    LONG                refCount;
+
     pthread_rwlock_t     mutex;
     pthread_rwlock_t*    pMutex;
-
-    LONG                refCount;
 
     SMB_SRV_CONN_STATE  state;
 
     PSMB_SRV_SOCKET     pSocket;
 
-    SRV_PROPERTIES  serverProperties;
+    SRV_PROPERTIES        serverProperties;
     SRV_CLIENT_PROPERTIES clientProperties;
 
     ULONG               ulSequence;

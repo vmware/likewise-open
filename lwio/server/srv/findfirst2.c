@@ -63,6 +63,7 @@ NTSTATUS
 SrvBuildFindFirst2StdInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -76,6 +77,7 @@ NTSTATUS
 SrvBuildFindFirst2QueryEASizeResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -89,6 +91,7 @@ NTSTATUS
 SrvBuildFindFirst2QueryEASFromListResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -102,6 +105,7 @@ NTSTATUS
 SrvBuildFindFirst2DirInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -115,6 +119,7 @@ NTSTATUS
 SrvBuildFindFirst2FullDirInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -128,6 +133,7 @@ NTSTATUS
 SrvBuildFindFirst2NamesInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -141,6 +147,7 @@ NTSTATUS
 SrvBuildFindFirst2BothDirInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -154,6 +161,7 @@ NTSTATUS
 SrvBuildFindFirst2FileUnixResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -366,6 +374,12 @@ SrvBuildFindFirst2Response(
     PSMB_SRV_SESSION pSession = NULL;
     PSMB_SRV_TREE pTree = NULL;
     PSMB_PACKET pSmbResponse = NULL;
+    IO_FILE_HANDLE hFile = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    IO_FILE_NAME fileName = {0};
+    PVOID        pSecurityDescriptor = NULL;
+    PVOID        pSecurityQOS = NULL;
+    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -377,6 +391,28 @@ SrvBuildFindFirst2Response(
                     pSession,
                     pSmbRequest->pSMBHeader->tid,
                     &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    fileName.FileName = pTree->pShareInfo->pwszPath;
+
+    ntStatus = IoCreateFile(
+                    &hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    pSecurityContext,
+                    &fileName,
+                    pSecurityDescriptor,
+                    pSecurityQOS,
+                    GENERIC_READ,
+                    0,
+                    FILE_ATTRIBUTE_NORMAL,
+                    FILE_SHARE_READ,
+                    FILE_OPEN,
+                    0,
+                    NULL, /* EA Buffer */
+                    0,    /* EA Length */
+                    NULL  /* ECP List  */
+                    );
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
@@ -412,6 +448,7 @@ SrvBuildFindFirst2Response(
             ntStatus = SrvBuildFindFirst2StdInfoResponse(
                             pConnection,
                             pSmbRequest,
+                            hFile,
                             usSearchAttrs,
                             usSearchCount,
                             usFlags,
@@ -426,6 +463,7 @@ SrvBuildFindFirst2Response(
             ntStatus = SrvBuildFindFirst2QueryEASizeResponse(
                             pConnection,
                             pSmbRequest,
+                            hFile,
                             usSearchAttrs,
                             usSearchCount,
                             usFlags,
@@ -440,6 +478,7 @@ SrvBuildFindFirst2Response(
             ntStatus = SrvBuildFindFirst2QueryEASFromListResponse(
                             pConnection,
                             pSmbRequest,
+                            hFile,
                             usSearchAttrs,
                             usSearchCount,
                             usFlags,
@@ -454,6 +493,7 @@ SrvBuildFindFirst2Response(
             ntStatus = SrvBuildFindFirst2DirInfoResponse(
                             pConnection,
                             pSmbRequest,
+                            hFile,
                             usSearchAttrs,
                             usSearchCount,
                             usFlags,
@@ -468,6 +508,7 @@ SrvBuildFindFirst2Response(
             ntStatus = SrvBuildFindFirst2FullDirInfoResponse(
                             pConnection,
                             pSmbRequest,
+                            hFile,
                             usSearchAttrs,
                             usSearchCount,
                             usFlags,
@@ -482,6 +523,7 @@ SrvBuildFindFirst2Response(
             ntStatus = SrvBuildFindFirst2NamesInfoResponse(
                             pConnection,
                             pSmbRequest,
+                            hFile,
                             usSearchAttrs,
                             usSearchCount,
                             usFlags,
@@ -496,6 +538,7 @@ SrvBuildFindFirst2Response(
             ntStatus = SrvBuildFindFirst2BothDirInfoResponse(
                             pConnection,
                             pSmbRequest,
+                            hFile,
                             usSearchAttrs,
                             usSearchCount,
                             usFlags,
@@ -510,6 +553,7 @@ SrvBuildFindFirst2Response(
             ntStatus = SrvBuildFindFirst2FileUnixResponse(
                             pConnection,
                             pSmbRequest,
+                            hFile,
                             usSearchAttrs,
                             usSearchCount,
                             usFlags,
@@ -568,6 +612,7 @@ NTSTATUS
 SrvBuildFindFirst2StdInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -584,6 +629,7 @@ NTSTATUS
 SrvBuildFindFirst2QueryEASizeResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -600,6 +646,7 @@ NTSTATUS
 SrvBuildFindFirst2QueryEASFromListResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -616,6 +663,7 @@ NTSTATUS
 SrvBuildFindFirst2DirInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -632,6 +680,7 @@ NTSTATUS
 SrvBuildFindFirst2FullDirInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -640,7 +689,32 @@ SrvBuildFindFirst2FullDirInfoResponse(
     PSMB_PACKET         pSmbResponse
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS ntStatus = 0;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    IO_FILE_SPEC ioFileSpec;
+    FILE_BOTH_DIR_INFORMATION fileInfo = {0};
+    BOOLEAN bReturnSingleEntry = FALSE;
+    BOOLEAN bRestartScan = FALSE;
+
+    ntStatus = IoQueryDirectoryFile(
+                    hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    &fileInfo,
+                    sizeof(fileInfo),
+                    FileBothDirectoryInformation,
+                    bReturnSingleEntry,
+                    &ioFileSpec,
+                    bRestartScan);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static
@@ -648,6 +722,7 @@ NTSTATUS
 SrvBuildFindFirst2NamesInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -664,6 +739,7 @@ NTSTATUS
 SrvBuildFindFirst2BothDirInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
@@ -680,6 +756,7 @@ NTSTATUS
 SrvBuildFindFirst2FileUnixResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,

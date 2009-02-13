@@ -30,6 +30,7 @@ libsrv_sys_la_SOURCES = \
     srvdeviceio.c     \
     srvecho.c         \
     srvfile.c         \
+    srvfinder.c       \
     srvgss.c          \
     srvlogoff.c       \
     srvnegotiate.c    \

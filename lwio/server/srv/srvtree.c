@@ -64,6 +64,10 @@ SrvTreeCreate(
                     &pTree->pFileCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvFinderCreateRepository(
+                    &pTree->hFinderRepository);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     *ppTree = pTree;
 
 cleanup:
@@ -332,6 +336,11 @@ SrvTreeFree(
     if (pTree->pFileCollection)
     {
         SMBRBTreeFree(pTree->pFileCollection);
+    }
+
+    if (pTree->hFinderRepository)
+    {
+        SrvFinderCloseRepository(pTree->hFinderRepository);
     }
 
     if (pTree->pShareInfo)
