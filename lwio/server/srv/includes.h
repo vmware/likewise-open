@@ -77,6 +77,8 @@
 #include "srvgss.h"
 #include "sharedb.h"
 #include "srvsharelst.h"
+#include "srvccb.h"
+#include "srvdevicecreate.h"
 
 #include "srvsocket.h"
 #include "srvconnection.h"

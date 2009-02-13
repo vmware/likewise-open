@@ -47,12 +47,19 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "Srv.h"
+#include "includes.h"
+
+static
+NTSTATUS
+SrvDeviceIoCommon(
+    PSRV_IRP_CONTEXT pIrpContext,
+    PIRP             pIrp
+    );
 
 NTSTATUS
 SrvDeviceIo(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PIRP             pIrp
     )
 {
     NTSTATUS ntStatus = 0;
@@ -64,7 +71,7 @@ SrvDeviceIo(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvCommonDeviceIo(pIrpContext, pIrp);
+    ntStatus = SrvDeviceIoCommon(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -72,59 +79,77 @@ error:
     return ntStatus;
 }
 
-
+static
 NTSTATUS
-SrvCommonDeviceIo(
+SrvDeviceIoCommon(
     PSRV_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
+    PIRP             pIrp
     )
 {
     NTSTATUS ntStatus = 0;
+    PBYTE lpInBuffer = NULL;
+    ULONG ulInBufferSize = 0;
+    PBYTE lpOutBuffer = NULL;
+    ULONG ulOutBufferSize = 0;
+    ULONG ControlCode = 0;
 
     switch (ControlCode)
     {
 
       case SRV_DEVCTL_ADD_SHARE:
+
           ntStatus = SrvDevCtlAddShare(
                         lpInBuffer,
-                        dwInBuffeSize,
+                        ulInBufferSize,
                         lpOutBuffer,
-                        dwOutBufferSize
+                        ulOutBufferSize
                         );
           break;
 
       case SRV_DEVCTL_DELETE_SHARE:
+
           ntStatus = SrvDevCtlDeleteShare(
                         lpInBuffer,
-                        dwInBufferSize,
+                        ulInBufferSize,
                         lpOutBuffer,
-                        dwOutBufferSize
+                        ulOutBufferSize
                         );
           break;
 
       case SRV_DEVCTL_ENUM_SHARE:
+
           ntStatus = SrvDevCtlEnumShares(
                         lpInBuffer,
-                        dwInBufferSize,
+                        ulInBufferSize,
                         lpOutBuffer,
-                        dwOutBufferSize
+                        ulOutBufferSize
                         );
           break;
+
       case SRV_DEVCTL_SET_SHARE_INFO:
+
           ntStatus = SrvDevCtlSetShareInfo(
                         lpInBuffer,
-                        dwInBufferSize,
-                        lpOutBufferSize,
-                        dwOutBufferSize
+                        ulInBufferSize,
+                        lpOutBuffer,
+                        ulOutBufferSize
                         );
           break;
+
       case SRV_DEVCTL_GET_SHARE_INFO:
+
           ntStatus = SrvDevCtlGetShareInfo(
                         lpInBuffer,
-                        dwInBufferSize,
-                        lpOutBufferSize,
-                        dwOutBufferSize
+                        ulInBufferSize,
+                        lpOutBuffer,
+                        ulOutBufferSize
                         );
+          break;
+
+      default:
+
+          ntStatus = STATUS_INVALID_PARAMETER;
+
           break;
     }
 

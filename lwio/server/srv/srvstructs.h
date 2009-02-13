@@ -107,21 +107,24 @@ typedef struct _SMB_SRV_SHARE_DB_CONTEXT
 
 } SMB_SRV_SHARE_DB_CONTEXT, *PSMB_SRV_SHARE_DB_CONTEXT;
 
+typedef ULONG CCB_TYPE;
+
+#define SRV_CCB_DEVICE 1
+
 typedef struct _SRV_CCB
 {
-    //LIST_ENTRY NextCCB;
-    UNICODE_STRING AbsolutePathName;
-    ACCESS_MASK DesiredAccess;
-    LONG64 AllocationSize;
-    FILE_ATTRIBUTES FileAttributes;
-    FILE_SHARE_FLAGS ShareAccess;
-    FILE_CREATE_DISPOSITION CreateDisposition;
-    FILE_CREATE_OPTIONS CreateOptions;
+    LONG                    refCount;
 
-    int fd;
-    char *path;
-    int oflags;
-    mode_t mode;
+    CCB_TYPE                CcbType;
+    UNICODE_STRING          AbsolutePathName;
+    ACCESS_MASK             DesiredAccess;
+    LONG64                  AllocationSize;
+    FILE_ATTRIBUTES         FileAttributes;
+    FILE_SHARE_FLAGS        ShareAccess;
+    FILE_CREATE_DISPOSITION CreateDisposition;
+    FILE_CREATE_OPTIONS     CreateOptions;
+
+    struct _SRV_CCB *       pNext;
 
 } SRV_CCB, *PSRV_CCB;
 
@@ -418,6 +421,8 @@ typedef struct _SMB_SRV_RUNTIME_GLOBALS
     SMB_SRV_LISTENER         listener;
 
     HANDLE                   hPacketAllocator;
+
+    PSRV_CCB                 pCCBList;
 
 } SMB_SRV_RUNTIME_GLOBALS, *PSMB_SRV_RUNTIME_GLOBALS;
 

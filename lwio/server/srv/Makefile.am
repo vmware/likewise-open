@@ -7,7 +7,6 @@ libsrv_sys_la_SOURCES = \
     createtemp.c      \
     createX.c         \
     deldir.c          \
-    device.c          \
     driver.c          \
     findclose2.c      \
     findfirst2.c      \
@@ -22,8 +21,13 @@ libsrv_sys_la_SOURCES = \
     rename.c          \
     seek.c            \
     sharedb.c         \
+    srvccb.c          \
     srvconnection.c   \
     srvcontext.c      \
+    srvdevice.c       \
+    srvdeviceclose.c  \
+    srvdevicecreate.c \
+    srvdeviceio.c     \
     srvecho.c         \
     srvfile.c         \
     srvgss.c          \

@@ -379,6 +379,15 @@ SrvShutdown(
             SMBPacketFreeAllocator(gSMBSrvGlobals.hPacketAllocator);
             gSMBSrvGlobals.hPacketAllocator = NULL;
         }
+
+        while (gSMBSrvGlobals.pCCBList)
+        {
+            PSRV_CCB pCCB = gSMBSrvGlobals.pCCBList;
+
+            gSMBSrvGlobals.pCCBList = pCCB->pNext;
+
+            SrvCCBRelease(pCCB);
+        }
     }
 
 cleanup:

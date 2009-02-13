@@ -49,5 +49,3 @@
 #include "includes.h"
 
 SMB_SRV_RUNTIME_GLOBALS gSMBSrvGlobals = { PTHREAD_MUTEX_INITIALIZER };
-
-

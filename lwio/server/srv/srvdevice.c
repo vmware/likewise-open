@@ -28,56 +28,82 @@
  * license@likewisesoftware.com
  */
 
+#include "includes.h"
 
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        defs.h
- *
- * Abstract:
- *
- *        Likewise IO (LWIO)
- *
- *        Listener Definitions
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- */
-#ifndef __DEFS_H__
-#define __DEFS_H__
-
-#define SMB_SERVER_PORT      445
-#define SMB_LISTEN_Q         5
-
-#define LWIO_SRV_DB_DIR CACHEDIR     "/db"
-#define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR "/lwio-shares.db"
-
-#define LWIO_SRV_DEFAULT_NUM_READERS          1
-#define LWIO_SRV_DEFAULT_NUM_WORKERS          1
-#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
-#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
-
-#define LWIO_SRV_SHARE_STRING_ID_ANY     "????"
-#define LWIO_SRV_SHARE_STRING_ID_IPC     "IPC"
-#define LWIO_SRV_SHARE_STRING_ID_COMM    "COMM"
-#define LWIO_SRV_SHARE_STRING_ID_PRINTER "LPT1:"
-#define LWIO_SRV_SHARE_STRING_ID_DISK    "A:"
-
-typedef enum
+NTSTATUS
+SrvDeviceRead(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    )
 {
-    SMB_SRV_CONN_STATE_INITIAL = 0,
-    SMB_SRV_CONN_STATE_READY,
-    SMB_SRV_CONN_STATE_CLOSED,
-    SMB_SRV_CONN_STATE_INVALID
-} SMB_SRV_CONN_STATE;
+    NTSTATUS ntStatus = 0;
 
-#define SRV_DEVCTL_ADD_SHARE      1
-#define SRV_DEVCTL_DELETE_SHARE   2
-#define SRV_DEVCTL_ENUM_SHARE     3
-#define SRV_DEVCTL_SET_SHARE_INFO 4
-#define SRV_DEVCTL_GET_SHARE_INFO 5
+    return ntStatus;
+}
 
-#endif /* __DEFS_H__ */
+NTSTATUS
+SrvDeviceWrite(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvDeviceControlIO(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvDeviceControlFS(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvDeviceFlush(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvDeviceQueryInfo(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvDeviceSetInfo(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}

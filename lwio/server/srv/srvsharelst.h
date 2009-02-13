@@ -60,4 +60,45 @@ SrvShareFreeContextContents(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext
     );
 
+
+NTSTATUS
+SrvDevCtlAddShare(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
+
+NTSTATUS
+SrvDevCtlDeleteShare(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
+
+NTSTATUS
+SrvDevCtlEnumShares(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
+
+NTSTATUS
+SrvDevCtlGetShareInfo(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
+
+NTSTATUS
+SrvDevCtlSetShareInfo(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
+
 #endif /* __SRV_SHARELST_H__ */

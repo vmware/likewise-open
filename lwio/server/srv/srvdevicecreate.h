@@ -35,49 +35,31 @@
  *
  * Module Name:
  *
- *        defs.h
+ *        srvdevicecreate.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO)
+ *        Likewise File System Driver (SRV)
  *
- *        Listener Definitions
+ *       Create Dispatch Routine
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __DEFS_H__
-#define __DEFS_H__
+#ifndef __SRV_DEVICE_CREATE_H__
+#define __SRV_DEVICE_CREATE_H__
 
-#define SMB_SERVER_PORT      445
-#define SMB_LISTEN_Q         5
+NTSTATUS
+SrvDeviceCreate(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
 
-#define LWIO_SRV_DB_DIR CACHEDIR     "/db"
-#define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR "/lwio-shares.db"
+NTSTATUS
+SrvAllocateIrpContext(
+    PIRP pIrp,
+    PSRV_IRP_CONTEXT * ppIrpContext
+    );
 
-#define LWIO_SRV_DEFAULT_NUM_READERS          1
-#define LWIO_SRV_DEFAULT_NUM_WORKERS          1
-#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
-#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
+#endif /* __SRV_DEVICE_CREATE_H__ */
 
-#define LWIO_SRV_SHARE_STRING_ID_ANY     "????"
-#define LWIO_SRV_SHARE_STRING_ID_IPC     "IPC"
-#define LWIO_SRV_SHARE_STRING_ID_COMM    "COMM"
-#define LWIO_SRV_SHARE_STRING_ID_PRINTER "LPT1:"
-#define LWIO_SRV_SHARE_STRING_ID_DISK    "A:"
-
-typedef enum
-{
-    SMB_SRV_CONN_STATE_INITIAL = 0,
-    SMB_SRV_CONN_STATE_READY,
-    SMB_SRV_CONN_STATE_CLOSED,
-    SMB_SRV_CONN_STATE_INVALID
-} SMB_SRV_CONN_STATE;
-
-#define SRV_DEVCTL_ADD_SHARE      1
-#define SRV_DEVCTL_DELETE_SHARE   2
-#define SRV_DEVCTL_ENUM_SHARE     3
-#define SRV_DEVCTL_SET_SHARE_INFO 4
-#define SRV_DEVCTL_GET_SHARE_INFO 5
-
-#endif /* __DEFS_H__ */

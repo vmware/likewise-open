@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (Srv)
+ *        Likewise File System Driver (Srv)
  *
  *       DeviceIo Dispatch Routine
  *
@@ -47,14 +47,20 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "Srv.h"
+#include "includes.h"
 
 NTSTATUS
-SrvDevCtlAddShare()
+SrvDevCtlAddShare(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    )
 {
     NTSTATUS ntStatus = 0;
+    ULONG Level = 0;
 
-    switch(Level)
+    switch (Level)
     {
         case 2:
             break;
@@ -65,22 +71,39 @@ SrvDevCtlAddShare()
         case 503:
             break;
 
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+
+            break;
+
     }
-    return(ntStatus);
 
+    return ntStatus;
 }
 NTSTATUS
-SrvDevCtlDeleteShare()
+SrvDevCtlDeleteShare(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    )
 {
     NTSTATUS ntStatus = 0;
 
-    return(ntStatus);
-
+    return ntStatus;
 }
+
 NTSTATUS
-SrvDevCtlEnumShares()
+SrvDevCtlEnumShares(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    )
 {
     NTSTATUS ntStatus = 0;
+    ULONG Level = 0;
 
     switch(Level)
     {
@@ -99,14 +122,62 @@ SrvDevCtlEnumShares()
         case 501:
             break;
 
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+
+            break;
+
     }
-    return(ntStatus);
+    return ntStatus;
 
 }
 NTSTATUS
-SrvDevCtlGetShareInfo()
+SrvDevCtlGetShareInfo(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    )
 {
     NTSTATUS ntStatus = 0;
+    ULONG Level = 0;
+
+    switch (Level)
+    {
+        case 1:
+            break;
+
+        case 2:
+            break;
+
+        case 502:
+            break;
+
+        case 503:
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+
+            break;
+
+    }
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvDevCtlSetShareInfo(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    )
+{
+    NTSTATUS ntStatus = 0;
+    ULONG Level = 0;
 
     switch(Level)
     {
@@ -122,31 +193,13 @@ SrvDevCtlGetShareInfo()
         case 503:
             break;
 
-    }
-    return(ntStatus);
+        default:
 
-}
+            ntStatus = STATUS_INVALID_PARAMETER;
 
-NTSTATUS
-SrvDevCtlSetShareInfo()
-{
-    NTSTATUS ntStatus = 0;
-
-    switch(Level)
-    {
-        case 1:
-            break;
-
-        case 2:
-            break;
-
-        case 502:
-            break;
-
-        case 503:
             break;
 
     }
-    return(ntStatus);
 
+    return ntStatus;
 }

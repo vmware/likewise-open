@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,82 +28,67 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
 
 
-NTSTATUS
-SrvDeviceRead(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        srvshares.h
+ *
+ * Abstract:
+ *
+ *       Likewise File System Driver (Srv)
+ *
+ *       DeviceIo Dispatch Routine
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ */
 
-    return ntStatus;
-}
-
-NTSTATUS
-SrvDeviceWrite(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
+#ifndef __SRV_SHARES_H__
+#define __SRV_SHARES_H__
 
 NTSTATUS
-SrvDeviceControlIO(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
+SrvDevCtlAddShare(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
 
 NTSTATUS
-SrvDeviceControlFS(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
+SrvDevCtlDeleteShare(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
 
 NTSTATUS
-SrvDeviceFlush(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
+SrvDevCtlEnumShares(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
 
 NTSTATUS
-SrvDeviceQueryInfo(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
+SrvDevCtlGetShareInfo(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
 
 NTSTATUS
-SrvDeviceSetInfo(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
+SrvDevCtlSetShareInfo(
+    PBYTE lpInBuffer,
+    ULONG ulInBufferSize,
+    PBYTE lpOutBuffer,
+    ULONG ulOutBufferSize
+    );
 
-    return ntStatus;
-}
+#endif /* __SRV_SHARES_H__ */
+

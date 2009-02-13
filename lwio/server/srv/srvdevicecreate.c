@@ -49,10 +49,24 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvCommonCreate(
+    PSRV_IRP_CONTEXT pIrpContext,
+    PIRP             pIrp
+    );
+
+static
+NTSTATUS
+SrvValidateCreate(
+    PSRV_IRP_CONTEXT pIrpContext,
+    PUNICODE_STRING  pDeviceName
+    );
+
 NTSTATUS
 SrvDeviceCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+    PIRP             pIrp
     )
 {
     NTSTATUS ntStatus = 0;
@@ -60,114 +74,105 @@ SrvDeviceCreate(
 
     ntStatus = SrvAllocateIrpContext(
                         pIrp,
-                        &pIrpContext
-                        );
+                        &pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvCommonCreate(pIrpContext, pIrp);
+    ntStatus = SrvCommonCreate(
+                    pIrpContext,
+                    pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    // TODO: Should we cleanup pIrpContext?
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
+    goto cleanup;
 }
-
-
 
 NTSTATUS
 SrvAllocateIrpContext(
-    PIRP pIrp,
-    PSRV_IRP_CONTEXT * ppIrpContext
+    PIRP              pIrp,
+    PSRV_IRP_CONTEXT* ppIrpContext
     )
 {
     NTSTATUS ntStatus = 0;
     PSRV_IRP_CONTEXT pIrpContext = NULL;
 
-    /*ntStatus = IoMemoryAllocate(
-                    sizeof(SRV_IRP_CONTEXT),
-                    &pIrpContext
-                    );*/
+    ntStatus = IO_ALLOCATE(&pIrpContext, SRV_IRP_CONTEXT, sizeof(*pIrpContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppIrpContext = pIrpContext;
 
-    return(ntStatus);
+cleanup:
+
+    return ntStatus;
 
 error:
 
     *ppIrpContext = NULL;
-    return(ntStatus);
+
+    goto cleanup;
 }
 
-
-NTSTATUS
-SrvAllocateCCB(
-    PSRV_CCB *ppCCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PSRV_CCB pCCB = NULL;
-
-   /* ntStatus = IoMemoryAllocate(
-                    sizeof(SRV_CCB),
-                    &pCCB
-                    );*/
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppCCB = pCCB;
-
-    return(ntStatus);
-
-error:
-
-    *ppCCB = NULL;
-
-    return(ntStatus);
-}
-
-
-
+static
 NTSTATUS
 SrvCommonCreate(
     PSRV_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
+    PIRP             pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_FILE_HANDLE FileHandle;
-    //PIO_FILE_NAME FileName;
-    ACCESS_MASK DesiredAccess;
-    LONG64 AllocationSize;
-    //FILE_ATTRIBUTES FileAttributes;
-    FILE_SHARE_FLAGS ShareAccess;
-    FILE_CREATE_DISPOSITION CreateDisposition;
-    FILE_CREATE_OPTIONS CreateOptions;
+    UNICODE_STRING DeviceName = {0};
+    PSRV_CCB pCCB = NULL;
 
-    FileHandle = pIrp->FileHandle;
-    DesiredAccess = pIrp->Args.Create.DesiredAccess;
-    AllocationSize = pIrp->Args.Create.AllocationSize;
-    ShareAccess = pIrp->Args.Create.ShareAccess;
-    CreateDisposition = pIrp->Args.Create.CreateDisposition;
-    CreateOptions = pIrp->Args.Create.CreateOptions;
+    ntStatus = SrvValidateCreate(
+                    pIrpContext,
+                    &DeviceName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (CreateOptions & FILE_DIRECTORY_FILE) {
+    ntStatus = SrvCCBCreate(
+                    pIrpContext,
+                    &pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvCommonCreateDirectory(
-                            pIrpContext,
-                            pIrp
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-    }else {
+    ntStatus = SrvCCBSet(
+                    pIrpContext->pIrp->FileHandle,
+                    pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvCommonCreateFile(
-                            pIrpContext,
-                            pIrp
-                            );
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    pIrpContext->pIrp->IoStatusBlock.CreateResult = FILE_OPENED;
+
+cleanup:
+
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
 
 error:
 
-    return(ntStatus);
+    pIrpContext->pIrp->IoStatusBlock.CreateResult = FILE_DOES_NOT_EXIST;
+
+    goto cleanup;
 }
+
+static
+NTSTATUS
+SrvValidateCreate(
+    PSRV_IRP_CONTEXT pIrpContext,
+    PUNICODE_STRING  pDeviceName
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    RtlUnicodeStringInit(
+            pDeviceName,
+            pIrpContext->pIrp->Args.Create.FileName.FileName);
+
+    return ntStatus;
+}
+
 
