@@ -30,27 +30,6 @@
 
 #include "includes.h"
 
-NTSTATUS
-SrvDeviceCreate(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP      pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
-
-NTSTATUS
-SrvDeviceClose(
-    IO_DEVICE_HANDLE hDevice,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
 
 NTSTATUS
 SrvDeviceRead(

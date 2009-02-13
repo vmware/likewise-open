@@ -47,10 +47,10 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "pvfs.h"
+#include "includes.h"
 
 NTSTATUS
-SrvClose(
+SrvDeviceClose(
     IO_DEVICE_HANDLE DeviceHandle,
     PIRP pIrp
     )
