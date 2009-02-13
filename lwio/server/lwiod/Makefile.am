@@ -4,7 +4,8 @@ lwiod_SOURCES = \
     globals.c   \
     main.c      \
     lwiocfg.c   \
-    ipc.c
+    ipc.c       \
+    proc.c
 
 lwiod_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
