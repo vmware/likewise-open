@@ -17,6 +17,7 @@ libpvfs_sys_la_SOURCES = \
     errno.c \
     syswrap.c \
     util_open.c \
+    util_dir.c \
     unixpath.c \
     util_security.c \
     util_time.c \

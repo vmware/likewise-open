@@ -63,6 +63,9 @@ PvfsQueryFileBothDirInfo(
 /* Code */
 
 
+/********************************************************
+ *******************************************************/
+
 NTSTATUS
 PvfsFileBothDirInfo(
     PVFS_INFO_TYPE Type,
@@ -94,6 +97,148 @@ error:
     goto cleanup;    
 }
 
+/********************************************************
+ *******************************************************/
+
+static NTSTATUS
+FillFileBothDirInfoStatic(
+    PFILE_BOTH_DIR_INFORMATION pFileInfo,
+    PWSTR pwszShortFilename,
+    PPVFS_STAT pStat
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    size_t FilenameLen;
+
+    /* Check if this is a valid 8.3 filename */
+    FilenameLen = RtlWC16StringNumChars(pwszShortFilename);
+
+    if (FilenameLen > 12 ) {
+        ntError = STATUS_FILE_INVALID;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    memcpy(pFileInfo->ShortName, pwszShortFilename, sizeof(pFileInfo->ShortName));
+    pFileInfo->ShortNameLength = FilenameLen;
+
+    /* Fill in Timestamps */
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, pStat->s_atime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, pStat->s_mtime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, pStat->s_ctime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, pStat->s_crtime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Make this up for now */
+
+    pFileInfo->FileAttributes = FILE_ATTRIBUTE_ARCHIVE;
+    if (S_ISDIR(pStat->s_mode)) {
+        pFileInfo->FileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
+    }
+
+    /* File details */
+
+    pFileInfo->EaSize         = 0;
+    pFileInfo->EndOfFile      = pStat->s_size;
+    pFileInfo->AllocationSize = pStat->s_blksize;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/********************************************************
+ Returns: STATUS_BUFFER_TOO_SMALL (not enough space)
+          STATUS_OBJECT_PATH_NOT_FOUND (stat() failed)
+ *******************************************************/
+
+static NTSTATUS
+FillFileBothDirInfoBuffer(
+    PVOID pBuffer,
+    DWORD dwBufLen,
+    PSTR pszParent,
+    PPVFS_DIRECTORY_ENTRY pEntry,
+    PDWORD pdwConsumed
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PFILE_BOTH_DIR_INFORMATION pFileInfo = (PFILE_BOTH_DIR_INFORMATION)pBuffer;
+    PWSTR pwszFilename = NULL;
+    PSTR pszFullPath = NULL;
+    DWORD dwNeeded = 0;
+    size_t W16FilenameLen;
+
+    /* Check for enough space for static members */
+
+    if (dwBufLen < sizeof(*pFileInfo)) {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Build the absolute path and stat() it */
+
+    ntError = RtlCStringAllocatePrintf(&pszFullPath,
+                                       "%s/%s",
+                                       pszParent,
+                                       pEntry->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysStat(pszFullPath, &pEntry->Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlWC16StringAllocateFromCString(&pwszFilename,
+                                               pEntry->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = FillFileBothDirInfoStatic(pFileInfo,
+                                        pwszFilename,     /* Assuming only 8.3 */
+                                        &pEntry->Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Save what we have used so far */
+
+    *pdwConsumed = sizeof(*pFileInfo);
+
+    /* Calculate space */
+
+    W16FilenameLen = RtlWC16StringNumChars(pwszFilename);
+    dwNeeded = sizeof(*pFileInfo) + (W16FilenameLen*sizeof(WCHAR));
+
+    if (dwNeeded > dwBufLen) {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pFileInfo->FileNameLength = W16FilenameLen;
+    memcpy(pFileInfo->FileName, pwszFilename, W16FilenameLen*sizeof(WCHAR));
+
+    *pdwConsumed = dwNeeded;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    PVFS_SAFE_FREE_MEMORY(pszFullPath);
+    PVFS_SAFE_FREE_MEMORY(pwszFilename);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/********************************************************
+ *******************************************************/
 
 static NTSTATUS
 PvfsQueryFileBothDirInfo(
@@ -102,16 +247,24 @@ PvfsQueryFileBothDirInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;    
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
+    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;    
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    IRP_ARGS_QUERY_DIRECTORY Args = pIrpContext->pIrp->Args.QueryDirectory;
+    PVOID pBuffer = NULL;
+    DWORD dwBufLen = 0;
+    DWORD dwOffset;
+    DWORD dwConsumed;
 
     /* Sanity checks */
 
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
+    if (!PVFS_IS_DIR(pCcb)) {
+        ntError = STATUS_NOT_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsAccessCheckFileHandle(pCcb,  FILE_LIST_DIRECTORY);
     BAIL_ON_NT_STATUS(ntError);    
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
@@ -122,13 +275,95 @@ PvfsQueryFileBothDirInfo(
         BAIL_ON_NT_STATUS(ntError);        
     }
 
-    pFileInfo = (PFILE_BOTH_DIR_INFORMATION)Args.FileInformation;    
+    pFileInfo = (PFILE_BOTH_DIR_INFORMATION)Args.FileInformation;
 
     /* Real work starts here */
 
-    /* TODO */
+    if (pCcb->pDirContext == NULL)
+    {
+        ntError = PvfsEnumerateDirectory(pCcb, &pIrp->Args.QueryDirectory);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Check for ending condition */
+
+    if (pCcb->pDirContext->dwIndex == pCcb->pDirContext->dwNumEntries)
+    {
+        ntError = STATUS_NO_MORE_MATCHES;
+        BAIL_ON_NT_STATUS(ntError);
+    }
     
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);    
+
+    /* Fill in the buffer */
+
+    pBuffer = Args.FileInformation;
+    dwBufLen = Args.Length;
+    dwOffset = 0;
+    pFileInfo = NULL;
+
+    do
+    {
+        PPVFS_DIRECTORY_ENTRY pEntry = NULL;
+        DWORD dwIndex;
+
+        /* Set the off set in the previous record */
+
+        if (pFileInfo) {
+            pFileInfo->NextEntryOffset = (pBuffer+dwOffset) - (PVOID)pFileInfo;
+        }
+
+        dwIndex = pCcb->pDirContext->dwIndex;
+        pEntry  = &pCcb->pDirContext->pDirEntries[dwIndex];
+        ntError = FillFileBothDirInfoBuffer(pBuffer + dwOffset,
+                                            dwBufLen - dwOffset,
+                                            pCcb->pszFilename,
+                                            pEntry,
+                                            &dwConsumed);
+
+        /* Break from loop if we ran out of buffer space.
+           Fail on all other errors */
+
+        if (ntError == STATUS_BUFFER_TOO_SMALL) {
+            break;
+        }
+
+        /* This deals with a possible race where the directory
+           contents was read but the file was removed before we could
+           stat() it.  Just skip the file and move on. */
+
+        if (ntError == STATUS_OBJECT_PATH_NOT_FOUND) {
+            pCcb->pDirContext->dwIndex++;
+            continue;
+        }
+
+        /* Catch any other errors and bail */
+
+        BAIL_ON_NT_STATUS(ntError);
+
+        /* Save current record in order to update the offset
+           next time around */
+
+        pFileInfo = (PFILE_BOTH_DIR_INFORMATION)(pBuffer + dwOffset);
+
+        dwOffset += dwConsumed;
+        pCcb->pDirContext->dwIndex++;
+
+        if (Args.ReturnSingleEntry) {
+            break;
+        }
+    }
+    /* Exit loop when we are out of buffer or out of entries.  The
+       filling function can also break us out of the loop. */
+    while (((dwBufLen - dwOffset) > sizeof(FILE_BOTH_DIR_INFORMATION)) &&
+             (pCcb->pDirContext->dwIndex < pCcb->pDirContext->dwNumEntries));
+
+    /* Update final offset */
+
+    if (pFileInfo) {
+        pFileInfo->NextEntryOffset = 0;
+    }
+
+    pIrp->IoStatusBlock.BytesTransferred = dwOffset;
     ntError = STATUS_SUCCESS;
 
 cleanup:

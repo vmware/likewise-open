@@ -140,6 +140,13 @@ PvfsCanonicalPathName(
     IO_FILE_NAME IoPath
     );
 
+BOOLEAN
+PvfsWildcardMatch(
+    IN PSTR pszPathname,
+    IN PSTR pszPattern,
+    IN BOOLEAN bCaseSensitive
+    );
+
 
 /* From util_open.c */
 

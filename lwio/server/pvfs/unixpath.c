@@ -92,6 +92,33 @@ error:
 }
 
 
+/********************************************************
+ *******************************************************/
+
+BOOLEAN
+PvfsWildcardMatch(
+    IN PSTR pszPathname,
+    IN PSTR pszPattern,
+    IN BOOLEAN bCaseSensitive
+    )
+{
+    /* Everything matches '*' */
+    if (RtlCStringIsEqual(pszPattern, "*", FALSE)) {
+        return TRUE;
+    }
+
+    /* Quick check for an exact match */
+    if (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))
+    {
+        return RtlCStringIsEqual(pszPathname, pszPattern, bCaseSensitive);
+    }
+
+    /* Let everything else match for now */
+
+    return TRUE;
+}
+
+
 
 /*
 local variables:

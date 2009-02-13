@@ -70,6 +70,22 @@ PvfsFileBothDirInfo(
     );
 
 
+/* utility functions */
+
+/* From util_dir.c */
+
+NTSTATUS
+PvfsEnumerateDirectory(
+    PPVFS_CCB pCcb,
+    PIRP_ARGS_QUERY_DIRECTORY pQueryDirArgs
+    );
+
+VOID
+PvfsFreeDirectoryContext(
+    PPVFS_DIRECTORY_CONTEXT pDirCtx
+    );
+
+
 /*
 local variables:
 mode: c

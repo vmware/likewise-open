@@ -44,20 +44,41 @@
 #ifndef _PVFS_STRUCTS_H
 #define _PVFS_STRUCTS_H
 
+#include "syswrap_p.h"
 
 typedef enum _PVFS_INFO_TYPE {
     PVFS_QUERY = 1,
     PVFS_SET
 } PVFS_INFO_TYPE, *PPVFS_INFO_TYPE;
 
+typedef struct _PVFS_DIRECTORY_ENTRY
+{
+    PSTR pszFilename;
+    BOOLEAN bValidStat;
+    PVFS_STAT Stat;
+
+} PVFS_DIRECTORY_ENTRY, *PPVFS_DIRECTORY_ENTRY;
+
+typedef struct _PVFS_DIRECTORY_CONTEXT
+{
+    DWORD dwIndex;
+    DWORD dwNumEntries;
+    PPVFS_DIRECTORY_ENTRY pDirEntries;
+
+} PVFS_DIRECTORY_CONTEXT, *PPVFS_DIRECTORY_CONTEXT;
 
 typedef struct _PVFS_CCB
 {
+    /* Open fd to the File or Directory */
     int fd;
 
+    /* Save parameters from the CreateFile() */
     PSTR pszFilename;    
     FILE_CREATE_OPTIONS CreateOptions;
     ACCESS_MASK AccessGranted;
+
+    /* Handle for Directory enumeraqtion */
+    PPVFS_DIRECTORY_CONTEXT pDirContext;
 
 } PVFS_CCB, *PPVFS_CCB;
 
