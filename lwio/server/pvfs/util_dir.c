@@ -170,29 +170,13 @@ PvfsEnumerateDirectory(
     PSTR pszPattern = NULL;
     BOOLEAN bCaseSensitive = FALSE;
 
-    /* Clear out any old enumeration handles */
-
-    if (pCcb->pDirContext)
-    {
-        PvfsFreeDirectoryContext(pCcb->pDirContext);
-        pCcb->pDirContext = NULL;
-    }
-
     ntError = AllocateCStringFileSpec(&pszPattern, pQueryDirArgs->FileSpec);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateMemory((PVOID*)&pCcb->pDirContext,
-                                 sizeof(*pCcb->pDirContext));
-    BAIL_ON_NT_STATUS(ntError);
-
-    PVFS_ZERO_MEMORY(pCcb->pDirContext);
-
-    /* Open the enumeration handle */
-
-    ntError = PvfsSysFdOpenDir(pCcb->fd, &pDir);
-    BAIL_ON_NT_STATUS(ntError);
-
     /* Loop to read entries */
+
+    pCcb->pDirContext->bScanned = TRUE;
+    pDir = pCcb->pDirContext->pDir;
 
     for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
         pDirEntry;
@@ -219,10 +203,6 @@ PvfsEnumerateDirectory(
 
 cleanup:
     PVFS_SAFE_FREE_MEMORY(pszPattern);
-
-    if (pDir) {
-        ntError = PvfsSysCloseDir(pDir);
-    }
 
     return ntError;
 

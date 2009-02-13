@@ -277,9 +277,9 @@ PvfsQueryFileBothDirInfo(
 
     pFileInfo = (PFILE_BOTH_DIR_INFORMATION)Args.FileInformation;
 
-    /* Real work starts here */
+    /* Scen the first time through */
 
-    if (pCcb->pDirContext == NULL)
+    if (!pCcb->pDirContext->bScanned)
     {
         ntError = PvfsEnumerateDirectory(pCcb, &pIrp->Args.QueryDirectory);
         BAIL_ON_NT_STATUS(ntError);

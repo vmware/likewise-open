@@ -61,6 +61,8 @@ typedef struct _PVFS_DIRECTORY_ENTRY
 
 typedef struct _PVFS_DIRECTORY_CONTEXT
 {
+    DIR *pDir;
+    BOOLEAN bScanned;
     DWORD dwIndex;
     DWORD dwNumEntries;
     PPVFS_DIRECTORY_ENTRY pDirEntries;

@@ -175,6 +175,11 @@ PvfsCreateDirOpen(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAllocateMemory((PVOID)&pCcb->pDirContext,
+                                 sizeof(PVFS_DIRECTORY_CONTEXT));
+    BAIL_ON_NT_STATUS(ntError);
+
+
     ntError = PvfsAccessCheckDir(pIrp->Args.Create.SecurityContext,
                                  pszPathname,
                                  pIrp->Args.Create.DesiredAccess,
@@ -186,11 +191,14 @@ PvfsCreateDirOpen(
                                 pIrp->Args.Create);    
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Let the open() call fail if the object does not exists.  No
-       need for a prior stat() */
+    /* Open the DIR* and then open a fd based on that */
 
-    ntError = PvfsSysOpen(&fd, pszPathname, unixFlags, 0);
+    ntError = PvfsSysOpenDir(pszPathname, &pCcb->pDirContext->pDir);
     BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysDirFd(pCcb->pDirContext->pDir, &fd);
+    BAIL_ON_NT_STATUS(ntError);
+
 
     /* Save our state */
 

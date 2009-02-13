@@ -115,9 +115,9 @@ PvfsSysOpenDir(
     );
 
 NTSTATUS
-PvfsSysFdOpenDir(
-    int fd,
-    DIR **ppDir
+PvfsSysDirFd(
+    DIR *pDir,
+    int *pFd
     );
 
 NTSTATUS

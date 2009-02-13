@@ -63,9 +63,15 @@ PvfsClose(
     pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);    
     BAIL_ON_INVALID_PTR(pCcb, ntError);
 
-    /* Not much we can do if this fails */
+    /* Call closedir() for directions and close() for files */
 
-    ntError = PvfsSysClose(pCcb->fd);
+    if (PVFS_IS_DIR(pCcb)) {
+        ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
+        /* pCcb->fd is invalid now */
+    } else {
+        ntError = PvfsSysClose(pCcb->fd);
+    }
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Memory cleanup */
 

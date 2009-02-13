@@ -185,33 +185,6 @@ error:
  *********************************************************/
 
 NTSTATUS
-PvfsSysFdOpenDir(
-    int fd,
-    DIR **ppDir
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    int unixerr = 0;
-    DIR *pDir = NULL;
-
-    if ((pDir = fdopendir(fd)) == NULL) {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-    }
-
-    *ppDir = pDir;
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/**********************************************************
- *********************************************************/
-
-NTSTATUS
 PvfsSysOpenDir(
     PSTR pszDirname,
     DIR **ppDir
@@ -234,6 +207,35 @@ cleanup:
 error:
     goto cleanup;
 }
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysDirFd(
+    DIR *pDir,
+    int *pFd
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+    int fd = -1;
+
+    if ((fd = dirfd(pDir)) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *pFd = fd;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 
 /**********************************************************
  *********************************************************/
