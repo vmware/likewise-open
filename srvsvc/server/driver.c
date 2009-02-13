@@ -116,14 +116,12 @@ SrvSvcNetShareAdd(
     DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 0;
-    DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
     DWORD dwReturnCode = 0;
     DWORD dwParmError = 0;
-    IO_FILE_HANDLE FileHandle;
+    IO_FILE_HANDLE FileHandle = NULL;
     IO_STATUS_BLOCK IoStatusBlock;
-    PIO_FILE_NAME FileName = NULL;
     ACCESS_MASK DesiredAccess = 0;
     LONG64 AllocationSize = 0;
     FILE_ATTRIBUTES FileAttributes = 0;
@@ -131,22 +129,34 @@ SrvSvcNetShareAdd(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = 0;
+    PSTR smbpath = NULL;
+    //PIO_ACCESS_TOKEN acctoken = NULL;
+    IO_FILE_NAME filename;
+    IO_STATUS_BLOCK io_status;
 
-    dwError = MarshallShareInfotoFlatBuffer(
-                    level,
-                    &info,
-                    &pInBuffer,
-                    &dwInLength
+    ntStatus = LwRtlCStringAllocatePrintf(
+                    &smbpath,
+                    "\\srv"
                     );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    filename.RootFileHandle = NULL;
+    filename.IoNameOptions = 0;
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(
+                        &filename.FileName,
+                        smbpath
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
 
     ntStatus = NtCreateFile(
                         &FileHandle,
                         NULL,
                         &IoStatusBlock,
-                        FileName,
-			NULL,
-			NULL,
+                        &filename,
+                        NULL,
+                         NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -172,15 +182,6 @@ SrvSvcNetShareAdd(
     BAIL_ON_NT_STATUS(ntStatus);
 
 
-
-    dwError = UnmarshallAddSetResponse(
-                    pOutBuffer,
-                    &dwReturnCode,
-                    &dwParmError);
-
-    *parm_error = dwParmError;
-
-    dwError = dwReturnCode;
 
 cleanup:
 
