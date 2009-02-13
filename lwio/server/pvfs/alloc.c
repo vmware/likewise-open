@@ -46,6 +46,89 @@
 
 #include "pvfs.h"
 
+/***********************************************************
+ **********************************************************/
+
+NTSTATUS
+PvfsAllocateMemory(
+    IN OUT PVOID *ppBuffer,
+    IN DWORD dwSize
+    )
+{
+    NTSTATUS ntError = STATUS_INSUFFICIENT_RESOURCES;
+    PVOID pBuffer = NULL;
+
+    *ppBuffer = NULL;
+
+    /* No op */
+
+    if (dwSize == 0)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    /* Real work */
+
+    if ((pBuffer = RtlMemoryAllocate(dwSize)) != NULL)
+    {
+        *ppBuffer = pBuffer;
+        ntError = STATUS_SUCCESS;
+    }
+
+    return ntError;
+}
+
+
+/***********************************************************
+ **********************************************************/
+
+NTSTATUS
+PvfsReallocateMemory(
+    IN OUT PVOID *ppBuffer,
+    IN DWORD dwNewSize
+    )
+{
+    NTSTATUS ntError = STATUS_INSUFFICIENT_RESOURCES;
+    PVOID pBuffer = *ppBuffer;
+    PVOID pNewBuffer;
+
+    if (dwNewSize <= 0) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    /* Check for a simple malloc() */
+
+    if (pBuffer == NULL)
+    {
+        return PvfsAllocateMemory(ppBuffer, dwNewSize);
+    }
+
+
+    if ((pNewBuffer = RtlMemoryRealloc(pBuffer, dwNewSize)) != NULL)
+    {
+        *ppBuffer = pNewBuffer;
+        ntError = STATUS_SUCCESS;
+    }
+
+    return ntError;
+}
+
+/***********************************************************
+ **********************************************************/
+VOID
+PvfsFreeMemory(
+    IN OUT PVOID pBuffer
+    )
+{
+    if (pBuffer) {
+        RtlMemoryFree(pBuffer);
+    }
+
+}
+
+/***********************************************************
+ **********************************************************/
+
 NTSTATUS
 PvfsAllocateIrpContext(
 	PPVFS_IRP_CONTEXT *ppIrpContext,
@@ -57,16 +140,13 @@ PvfsAllocateIrpContext(
 
     *ppIrpContext = NULL;
 
-    ntError = IO_ALLOCATE(&pIrpContext, 
-                          PVFS_IRP_CONTEXT,
-                          sizeof(PVFS_IRP_CONTEXT));
-    BAIL_ON_NT_STATUS(ntError);    
+    ntError = PvfsAllocateMemory((PVOID*)&pIrpContext,
+                                 sizeof(PVFS_IRP_CONTEXT));
+    BAIL_ON_NT_STATUS(ntError);
     
     pIrpContext->pIrp = pIrp;
 
     *ppIrpContext = pIrpContext;
-
-    ntError = STATUS_SUCCESS;    
 
 cleanup:
     return ntError;
@@ -75,6 +155,9 @@ error:
     goto cleanup;
 }
 
+
+/***********************************************************
+ **********************************************************/
 
 NTSTATUS
 PvfsAllocateCCB(
@@ -86,7 +169,7 @@ PvfsAllocateCCB(
 
     *ppCCB = NULL;
 
-    ntError = IO_ALLOCATE(&pCCB, PVFS_CCB, sizeof(PVFS_CCB));
+    ntError = PvfsAllocateMemory((PVOID*)&pCCB, sizeof(PVFS_CCB));
     BAIL_ON_NT_STATUS(ntError);
 
     *ppCCB = pCCB;

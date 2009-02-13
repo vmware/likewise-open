@@ -39,10 +39,28 @@
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *       Create Dispatch Routine
+ *        Memory allocation routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
+
+
+NTSTATUS
+PvfsAllocateMemory(
+    IN OUT PVOID *ppBuffer,
+    IN DWORD dwSize
+    );
+
+NTSTATUS
+PvfsReallocateMemory(
+    IN OUT PVOID *ppBuffer,
+    IN DWORD dwNewSize
+    );
+
+VOID
+PvfsFreeMemory(
+    IN OUT PVOID pBuffer
+    );
 
 NTSTATUS
 PvfsAllocateIrpContext(
