@@ -49,24 +49,6 @@ SrvBuildQueryPathInfoResponse(
     PSMB_PACKET*        ppSmbResponse
     );
 
-static
-NTSTATUS
-SrvBuildQueryFileBasicInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PWSTR               pwszFilepath,
-    PSMB_PACKET*        ppSmbResponse
-    );
-
-static
-NTSTATUS
-SrvBuildQueryFileStandardInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PWSTR               pwszFilepath,
-    PSMB_PACKET*        ppSmbResponse
-    );
-
 NTSTATUS
 SrvProcessTrans2QueryPathInformation(
     PSMB_SRV_CONNECTION         pConnection,
@@ -191,8 +173,15 @@ SrvBuildQueryPathInfoResponse(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_SESSION pSession = NULL;
     PSMB_SRV_TREE    pTree = NULL;
-    PSMB_PACKET pSmbResponse = NULL;
-    PWSTR       pwszFilepath = NULL;
+    PSMB_PACKET      pSmbResponse = NULL;
+    PWSTR            pwszFilepath = NULL;
+    IO_FILE_HANDLE   hFile = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
+    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
+    PVOID               pSecurityDescriptor = NULL;
+    PVOID               pSecurityQOS = NULL;
+    IO_FILE_NAME        filename = {0};
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -210,6 +199,28 @@ SrvBuildQueryPathInfoResponse(
                     pTree->pShareInfo->pwszPath,
                     pwszFilename,
                     &pwszFilepath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    filename.FileName = pwszFilepath;
+
+    ntStatus = IoCreateFile(
+                    &hFile,
+                    pAsyncControlBlock,
+                    &ioStatusBlock,
+                    pSecurityContext,
+                    &filename,
+                    pSecurityDescriptor,
+                    pSecurityQOS,
+                    GENERIC_READ,
+                    0,
+                    FILE_ATTRIBUTE_NORMAL,
+                    FILE_SHARE_READ,
+                    FILE_OPEN,
+                    0,
+                    NULL, /* EA Buffer */
+                    0,    /* EA Length */
+                    NULL  /* ECP List  */
+                    );
     BAIL_ON_NT_STATUS(ntStatus);
 
     switch (smbInfoLevel)
@@ -249,7 +260,7 @@ SrvBuildQueryPathInfoResponse(
             ntStatus = SrvBuildQueryFileBasicInfoResponse(
                             pConnection,
                             pSmbRequest,
-                            pwszFilepath,
+                            hFile,
                             &pSmbResponse);
 
             break;
@@ -259,7 +270,7 @@ SrvBuildQueryPathInfoResponse(
             ntStatus = SrvBuildQueryFileStandardInfoResponse(
                             pConnection,
                             pSmbRequest,
-                            pwszFilepath,
+                            hFile,
                             &pSmbResponse);
 
             break;
@@ -325,6 +336,11 @@ SrvBuildQueryPathInfoResponse(
 
 cleanup:
 
+    if (hFile)
+    {
+        IoCloseFile(hFile);
+    }
+
     if (pTree)
     {
         SrvTreeRelease(pTree);
@@ -353,277 +369,5 @@ error:
     goto cleanup;
 }
 
-static
-NTSTATUS
-SrvBuildQueryFileBasicInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PWSTR               pwszFilepath,
-    PSMB_PACKET*        ppSmbResponse
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-    IO_FILE_HANDLE hFile = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-    PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
-    PVOID               pSecurityDescriptor = NULL;
-    PVOID               pSecurityQOS = NULL;
-    IO_FILE_NAME        filename = {0};
-    FILE_BASIC_INFORMATION fileBasicInfo = {0};
-    TRANS2_FILE_BASIC_INFORMATION fileBasicInfoPacked = {0};
-    USHORT              usParam = 0;
-    PUSHORT             pSetup = NULL;
-    BYTE                setupCount = 0;
-    USHORT              usDataOffset = 0;
-    USHORT              usParameterOffset = 0;
-    USHORT              usNumPackageBytesUsed = 0;
 
-    filename.FileName = pwszFilepath;
-
-    ntStatus = IoCreateFile(
-                    &hFile,
-                    pAsyncControlBlock,
-                    &ioStatusBlock,
-                    pSecurityContext,
-                    &filename,
-                    pSecurityDescriptor,
-                    pSecurityQOS,
-                    GENERIC_READ,
-                    0,
-                    FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_READ,
-                    FILE_OPEN,
-                    0,
-                    NULL, /* EA Buffer */
-                    0,    /* EA Length */
-                    NULL  /* ECP List  */
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoQueryInformationFile(
-                    hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    &fileBasicInfo,
-                    sizeof(fileBasicInfo),
-                    FileBasicInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_TRANSACTION2,
-                0,
-                TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
-
-    fileBasicInfoPacked.ChangeTime = fileBasicInfo.ChangeTime;
-    fileBasicInfoPacked.CreationTime = fileBasicInfo.CreationTime;
-    fileBasicInfoPacked.FileAttributes = fileBasicInfo.FileAttributes;
-    fileBasicInfoPacked.LastAccessTime = fileBasicInfo.LastAccessTime;
-    fileBasicInfoPacked.LastWriteTime = fileBasicInfo.LastWriteTime;
-
-    ntStatus = WireMarshallTransaction2Response(
-                    pSmbResponse->pParams,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
-                    pSetup,
-                    setupCount,
-                    (PBYTE)&usParam,
-                    sizeof(usParam),
-                    (PBYTE)&fileBasicInfoPacked,
-                    sizeof(fileBasicInfoPacked),
-                    &usDataOffset,
-                    &usParameterOffset,
-                    &usNumPackageBytesUsed);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
-
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
-
-cleanup:
-
-    if (hFile)
-    {
-        IoCloseFile(hFile);
-    }
-
-    return ntStatus;
-
-error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvBuildQueryFileStandardInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PWSTR               pwszFilepath,
-    PSMB_PACKET*        ppSmbResponse
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-    IO_FILE_HANDLE hFile = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-    PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
-    PVOID               pSecurityDescriptor = NULL;
-    PVOID               pSecurityQOS = NULL;
-    IO_FILE_NAME        filename = {0};
-    FILE_STANDARD_INFORMATION fileStandardInfo = {0};
-    TRANS2_FILE_STANDARD_INFORMATION fileStandardInfoPacked = {0};
-    USHORT              usParam = 0;
-    PUSHORT             pSetup = NULL;
-    BYTE                setupCount = 0;
-    USHORT              usDataOffset = 0;
-    USHORT              usParameterOffset = 0;
-    USHORT              usNumPackageBytesUsed = 0;
-
-    filename.FileName = pwszFilepath;
-
-    ntStatus = IoCreateFile(
-                    &hFile,
-                    pAsyncControlBlock,
-                    &ioStatusBlock,
-                    pSecurityContext,
-                    &filename,
-                    pSecurityDescriptor,
-                    pSecurityQOS,
-                    GENERIC_READ,
-                    0,
-                    FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_READ,
-                    FILE_OPEN,
-                    0,
-                    NULL, /* EA Buffer */
-                    0,    /* EA Length */
-                    NULL  /* ECP List  */
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoQueryInformationFile(
-                    hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    &fileStandardInfo,
-                    sizeof(fileStandardInfo),
-                    FileStandardInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_TRANSACTION2,
-                0,
-                TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
-
-    fileStandardInfoPacked.AllocationSize = fileStandardInfo.AllocationSize;
-    fileStandardInfoPacked.EndOfFile = fileStandardInfo.EndOfFile;
-    fileStandardInfoPacked.NumberOfLinks = fileStandardInfo.NumberOfLinks;
-    fileStandardInfoPacked.bDeletePending = fileStandardInfo.DeletePending;
-    fileStandardInfoPacked.bDirectory = fileStandardInfo.Directory;
-
-    ntStatus = WireMarshallTransaction2Response(
-                    pSmbResponse->pParams,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
-                    pSetup,
-                    setupCount,
-                    (PBYTE)&usParam,
-                    sizeof(usParam),
-                    (PBYTE)&fileStandardInfoPacked,
-                    sizeof(fileStandardInfoPacked),
-                    &usDataOffset,
-                    &usParameterOffset,
-                    &usNumPackageBytesUsed);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
-
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
-
-cleanup:
-
-    if (hFile)
-    {
-        IoCloseFile(hFile);
-    }
-
-    return ntStatus;
-
-error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
-
-    goto cleanup;
-}
 

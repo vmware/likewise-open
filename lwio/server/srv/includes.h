@@ -101,6 +101,7 @@
 #include "srvwritex.h"
 #include "trans.h"
 #include "trans2.h"
+#include "trans2qfi.h"
 #include "trans2qpi.h"
 #include "lockX.h"
 #include "close.h"
