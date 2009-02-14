@@ -278,6 +278,12 @@ typedef enum
                                           exchanges */
 } CAPABILITIES;
 
+typedef USHORT SMB_DEVICE_STATE;
+
+#define SMB_DEVICE_STATE_NO_EAS         0x1
+#define SMB_DEVICE_STATE_NO_SUBSTREAMS  0x2
+#define SMB_DEVICE_STATE_NO_REPARSE_TAG 0x4
+
 typedef struct
 {
     uchar8_t        smb[4];     /* Contains 0xFF, 'SMB' */

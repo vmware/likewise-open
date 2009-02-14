@@ -301,9 +301,9 @@ SrvBuildNTCreateResponse(
     }
     else
     {
-        // TODO:
-        // pResponseHeader->fileType;
-        // pResponseHeader->deviceState
+        pResponseHeader->fileType = 0;
+        // TODO: Get these values from the driver
+        pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS | SMB_DEVICE_STATE_NO_SUBSTREAMS | SMB_DEVICE_STATE_NO_REPARSE_TAG;
     }
     pResponseHeader->isDirectory = fileStdInfo.Directory;
 
