@@ -20,10 +20,7 @@ MOD_EXT=".so"
 AC_USE_SYSTEM_EXTENSIONS
 
 case "$host_os:$host_cpu" in
-	linux*:i?86)
-		AC_DEFINE([__LWI_LINUX__], [], [Define if OS is Linux])
-		;;
-	linux*:x86_64)
+	linux*:i?86|linux*:x86_64|linux*:s390*)
 		AC_DEFINE([__LWI_LINUX__], [], [Define if OS is Linux])
 		;;
 	solaris*:i?86|solaris*:sparc*)
