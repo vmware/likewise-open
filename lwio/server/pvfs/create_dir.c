@@ -196,7 +196,7 @@ PvfsCreateDirOpen(
     ntError = PvfsSysOpenDir(pszPathname, &pCcb->pDirContext->pDir);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysDirFd(pCcb->pDirContext->pDir, &fd);
+    ntError = PvfsSysDirFd(pCcb, &fd);
     BAIL_ON_NT_STATUS(ntError);
 
 

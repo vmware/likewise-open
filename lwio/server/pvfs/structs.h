@@ -44,7 +44,31 @@
 #ifndef _PVFS_STRUCTS_H
 #define _PVFS_STRUCTS_H
 
-#include "syswrap_p.h"
+/* HP-UX does not use blksize_t type for st_blksize
+   (see stat(5))
+ */
+#if !defined(HAVE_BLKSIZE_T)
+typedef long blksize_t;
+#endif
+
+typedef struct _PVFS_STAT_STRUCT
+{
+    mode_t       s_mode;
+    ino_t        s_ino;
+    dev_t        s_dev;
+    dev_t        s_rdev;
+    nlink_t      s_nlink;
+    uid_t        s_uid;
+    gid_t        s_gid;
+    off_t        s_size;
+    time_t       s_atime;
+    time_t       s_ctime;
+    time_t       s_mtime;
+    time_t       s_crtime;     /* creation time */
+    blksize_t    s_blksize;
+    blkcnt_t     s_blocks;
+
+} PVFS_STAT, *PPVFS_STAT;
 
 typedef enum _PVFS_INFO_TYPE {
     PVFS_QUERY = 1,
@@ -84,7 +108,8 @@ typedef struct _PVFS_CCB
 
 } PVFS_CCB, *PPVFS_CCB;
 
-typedef struct _PVFS_IRP_CONTEXT 
+
+typedef struct _PVFS_IRP_CONTEXT
 {
     PIRP pIrp;
 

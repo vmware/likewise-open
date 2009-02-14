@@ -213,7 +213,7 @@ error:
 
 NTSTATUS
 PvfsSysDirFd(
-    DIR *pDir,
+    PPVFS_CCB pCcb,
     int *pFd
     )
 {
@@ -221,9 +221,15 @@ PvfsSysDirFd(
     int unixerr = 0;
     int fd = -1;
 
+#ifdef HAVE_OPENFD
     if ((fd = dirfd(pDir)) == -1) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
+#else
+    if ((fd = open(pCcb->pszFilename, 0, 0)) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+#endif
 
     *pFd = fd;
     ntError = STATUS_SUCCESS;
