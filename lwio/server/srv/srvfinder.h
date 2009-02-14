@@ -56,9 +56,14 @@ SrvFinderCreateRepository(
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
-    HANDLE  hFinderRepository,
-    PHANDLE phFinder,
-    PUSHORT pusSearchId
+    HANDLE                 hFinderRepository,
+    IO_FILE_HANDLE         hFile,
+    PBYTE                  pFileInfo,
+    USHORT                 usFileInfoLen,
+    FILE_INFORMATION_CLASS fileInfoClass,
+    USHORT                 usSearchCount,
+    PHANDLE                phFinder,
+    PUSHORT                pusSearchId
     );
 
 NTSTATUS

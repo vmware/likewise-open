@@ -98,20 +98,34 @@ SrvFinderCreateRepository(
                     &pFinderRepository->pSearchSpaceCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    *phFinderRepository = pFinderRepository;
+
 cleanup:
 
     return ntStatus;
 
 error:
 
+    *phFinderRepository = NULL;
+
+    if (pFinderRepository)
+    {
+        SrvFinderFreeRepository(pFinderRepository);
+    }
+
     goto cleanup;
 }
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
-    HANDLE  hFinderRepository,
-    PHANDLE phFinder,
-    PUSHORT pusSearchId
+    HANDLE                 hFinderRepository,
+    IO_FILE_HANDLE         hFile,
+    PBYTE                  pFileInfo,
+    USHORT                 usFileInfoLen,
+    FILE_INFORMATION_CLASS fileInfoClass,
+    USHORT                 usSearchCount,
+    PHANDLE                phFinder,
+    PUSHORT                pusSearchId
     )
 {
     NTSTATUS ntStatus = 0;
@@ -172,6 +186,12 @@ SrvFinderCreateSearchSpace(
                     &pSearchSpace->usSearchId,
                     pSearchSpace);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pSearchSpace->hFile = hFile;
+    pSearchSpace->usSearchCount = usSearchCount;
+    pSearchSpace->pFileInfo = pFileInfo;
+    pSearchSpace->usFileInfoLen = usFileInfoLen;
+    pSearchSpace->fileInfoClass = fileInfoClass;
 
     InterlockedIncrement(&pSearchSpace->refCount);
 
@@ -363,6 +383,13 @@ SrvFinderFreeSearchSpace(
     {
         pthread_mutex_destroy(&pSearchSpace->mutex);
     }
+
+    if (pSearchSpace->hFile)
+    {
+        IoCloseFile(pSearchSpace->hFile);
+    }
+
+    SMB_SAFE_FREE_MEMORY(pSearchSpace->pFileInfo);
 
     SMBFreeMemory(pSearchSpace);
 }

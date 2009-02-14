@@ -790,6 +790,7 @@ WireMarshallTransaction2Response(
     PBYTE       pData,
     USHORT      usDataLen,
     PUSHORT     pusDataOffset,
+    PUSHORT     pusParameterOffset,
     PUSHORT     pusNumPackageBytesUsed
     )
 {
@@ -924,6 +925,7 @@ WireMarshallTransaction2Response(
     *pByteCount = usNumBytesUsed;
 
     *pusDataOffset = pResponseHeader->dataOffset;
+    *pusParameterOffset = pResponseHeader->parameterOffset;
     *pusNumPackageBytesUsed = usNumPackageBytesUsed;
 
 cleanup:
@@ -933,6 +935,7 @@ cleanup:
 error:
 
     *pusDataOffset = 0;
+    *pusParameterOffset = 0;
     *pusNumPackageBytesUsed = 0;
 
     goto cleanup;

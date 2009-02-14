@@ -1238,6 +1238,7 @@ WireMarshallTransaction2Response(
     PBYTE       pData,
     USHORT      usDataLen,
     PUSHORT     pusDataOffset,
+    PUSHORT     pusParameterOffset,
     PUSHORT     pusNumPackageBytesUsed
     );
 

@@ -377,6 +377,7 @@ SrvBuildQueryFileBasicInfoResponse(
     PUSHORT             pSetup = NULL;
     BYTE                setupCount = 0;
     USHORT              usDataOffset = 0;
+    USHORT              usParameterOffset = 0;
     USHORT              usNumPackageBytesUsed = 0;
 
     filename.FileName = pwszFilepath;
@@ -455,6 +456,7 @@ SrvBuildQueryFileBasicInfoResponse(
                     (PBYTE)&fileBasicInfoPacked,
                     sizeof(fileBasicInfoPacked),
                     &usDataOffset,
+                    &usParameterOffset,
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -512,6 +514,7 @@ SrvBuildQueryFileStandardInfoResponse(
     PUSHORT             pSetup = NULL;
     BYTE                setupCount = 0;
     USHORT              usDataOffset = 0;
+    USHORT              usParameterOffset = 0;
     USHORT              usNumPackageBytesUsed = 0;
 
     filename.FileName = pwszFilepath;
@@ -590,6 +593,7 @@ SrvBuildQueryFileStandardInfoResponse(
                     (PBYTE)&fileStandardInfoPacked,
                     sizeof(fileStandardInfoPacked),
                     &usDataOffset,
+                    &usParameterOffset,
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 

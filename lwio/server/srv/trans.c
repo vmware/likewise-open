@@ -288,6 +288,7 @@ SrvProcessSetNamedPipeHandleState(
     FILE_PIPE_INFORMATION pipeInfo = {0};
     IO_STATUS_BLOCK ioStatusBlock = {0};
     USHORT usDataOffset = 0;
+    USHORT usParameterOffset = 0;
     USHORT usNumPackageBytesUsed = 0;
 
     if ((pRequestHeader->setupCount != 2) ||
@@ -366,6 +367,7 @@ SrvProcessSetNamedPipeHandleState(
                     NULL,
                     0,
                     &usDataOffset,
+                    &usParameterOffset,
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -433,6 +435,7 @@ SrvProcessGetNamedPipeHandleState(
     IO_STATUS_BLOCK ioStatusBlock = {0};
     USHORT usNumPackageBytesUsed = 0;
     USHORT usDataOffset = 0;
+    USHORT usParameterOffset = 0;
     USHORT usDeviceState = 0;
 
     if ((pRequestHeader->setupCount != 2) ||
@@ -524,6 +527,7 @@ SrvProcessGetNamedPipeHandleState(
                     NULL,
                     0,
                     &usDataOffset,
+                    &usParameterOffset,
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -593,6 +597,7 @@ SrvProcessGetNamedPipeInfo(
     USHORT usNumPackageBytesUsed = 0;
     PBYTE  pResponseData = NULL;
     USHORT usDataOffset = 0;
+    USHORT usParameterOffset = 0;
     USHORT usResponseDataLen = 0;
 
     if ((pRequestHeader->setupCount != 2) ||
@@ -686,6 +691,7 @@ SrvProcessGetNamedPipeInfo(
                     pResponseData,
                     usResponseDataLen,
                     &usDataOffset,
+                    &usParameterOffset,
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -713,6 +719,7 @@ SrvProcessGetNamedPipeInfo(
                     pResponseData,
                     usResponseDataLen,
                     &usDataOffset,
+                    &usParameterOffset,
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -782,6 +789,7 @@ SrvProcessTransactNamedPipe(
     USHORT usNumPackageBytesUsed = 0;
     PBYTE  pResponseData = NULL;
     USHORT usDataOffset = 0;
+    USHORT usParameterOffset = 0;
     USHORT usResponseDataLen = 0;
     LONG64 ullOffset = 0;
 
@@ -882,6 +890,7 @@ SrvProcessTransactNamedPipe(
                     pResponseData,
                     ioStatusBlock.BytesTransferred,
                     &usDataOffset,
+                    &usParameterOffset,
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
