@@ -369,7 +369,7 @@ StatRemoteFile(
     printf("Is Directory:         %s\n", FileStdInfo.Directory ? "yes" : "no");
     printf("Pending Delete:       %s\n", FileStdInfo.DeletePending ? "yes" : "no");
     printf("Attributes:           0x%x\n", FileBasicInfo.FileAttributes);
-    printf("Index Number:         %lld\n", FileInternalInfo.IndexNumber);
+    printf("Index Number:         %lld\n", (long long) FileInternalInfo.IndexNumber);
 
     printf("\n");    
     
