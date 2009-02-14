@@ -252,8 +252,8 @@ PvfsQueryFileBothDirInfo(
     IRP_ARGS_QUERY_DIRECTORY Args = pIrpContext->pIrp->Args.QueryDirectory;
     PVOID pBuffer = NULL;
     DWORD dwBufLen = 0;
-    DWORD dwOffset;
-    DWORD dwConsumed;
+    DWORD dwOffset = 0;
+    DWORD dwConsumed = 0;
 
     /* Sanity checks */
 
