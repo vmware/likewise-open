@@ -12,4 +12,5 @@ SUBDIRS = \
     drivers   \
     tools     \
     tests     \
-    scripts
+    scripts   \
+    libshareinfo
