@@ -183,6 +183,7 @@ SrvMarshallBothDirInfoResponse(
     USHORT  usBytesAvailable,
     PBYTE   pFileInfo,
     ULONG   ulBytesAllocated,
+    BOOLEAN bUseLongFilenames,
     PUSHORT pusSearchCount,
     PUSHORT pusSearchResultLen,
     PBYTE*  ppData
@@ -822,6 +823,7 @@ SrvBuildFindFirst2BothDirInfoResponse(
                     usBytesAvailable,
                     (PBYTE)pFileInfo,
                     usBytesAllocated,
+                    pSmbRequest->pSMBHeader->flags2 & FLAG2_KNOWS_LONG_NAMES,
                     &responseParams.usSearchCount,
                     &usSearchResultLen,
                     &pData);
@@ -913,6 +915,7 @@ SrvMarshallBothDirInfoResponse(
     USHORT  usBytesAvailable,
     PBYTE   pFileInfo,
     ULONG   ulBytesAllocated,
+    BOOLEAN bUseLongFilenames,
     PUSHORT pusSearchCount,
     PUSHORT pusSearchResultLen,
     PBYTE*  ppData
@@ -932,8 +935,12 @@ SrvMarshallBothDirInfoResponse(
     {
         USHORT usInfoBytesRequired = 0;
 
-        usInfoBytesRequired = sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER) +
-                              (wc16slen(pFileInfoCursor->FileName) + 1) * sizeof(wchar16_t);
+        usInfoBytesRequired = sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
+        if (bUseLongFilenames)
+        {
+            usInfoBytesRequired += wc16slen(pFileInfoCursor->FileName) * sizeof(wchar16_t);
+        }
+        usInfoBytesRequired += sizeof(wchar16_t);
 
         if (usBytesAvailable < usInfoBytesRequired)
         {
@@ -964,7 +971,6 @@ SrvMarshallBothDirInfoResponse(
     for (; iSearchCount < usSearchCount; iSearchCount++)
     {
         PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pInfoHeader = NULL;
-        USHORT usFileNameLen = 0;
 
         pInfoHeader = (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pDataCursor;
 
@@ -977,22 +983,32 @@ SrvMarshallBothDirInfoResponse(
         pInfoHeader->EndOfFile = pFileInfoCursor->EndOfFile;
         pInfoHeader->AllocationSize = pFileInfoCursor->AllocationSize;
         pInfoHeader->FileAttributes = pFileInfoCursor->FileAttributes;
-        pInfoHeader->FileNameLength = pFileInfoCursor->FileNameLength;
-        pInfoHeader->ShortNameLength = pFileInfoCursor->ShortNameLength;
-        memcpy(pInfoHeader->ShortName, pFileInfoCursor->ShortName, sizeof(pInfoHeader->ShortName));
+        pInfoHeader->FileNameLength = pFileInfoCursor->FileNameLength * sizeof(wchar16_t);
+
+        if (!bUseLongFilenames)
+        {
+            memcpy((PBYTE)pInfoHeader->ShortName, (PBYTE)pFileInfoCursor->ShortName, sizeof(pInfoHeader->ShortName));
+
+            pInfoHeader->ShortNameLength = pFileInfoCursor->ShortNameLength * sizeof(wchar16_t);
+        }
 
         pDataCursor += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
         usOffset += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
 
-        usFileNameLen = wc16slen(pFileInfoCursor->FileName);
-
-        if (usFileNameLen)
+        if (bUseLongFilenames)
         {
-            memcpy(pDataCursor, pFileInfoCursor->FileName, usFileNameLen * sizeof(wchar16_t));
-        }
+            USHORT usFileNameLen = wc16slen(pFileInfoCursor->FileName);
 
-        pDataCursor += (usFileNameLen + 1) * sizeof(wchar16_t);
-        usOffset += (usFileNameLen + 1) * sizeof(wchar16_t);
+            if (usFileNameLen)
+            {
+                memcpy(pDataCursor, (PBYTE)pFileInfoCursor->FileName, usFileNameLen * sizeof(wchar16_t));
+            }
+
+            pDataCursor += usFileNameLen * sizeof(wchar16_t);
+            usOffset += usFileNameLen * sizeof(wchar16_t);
+        }
+        pDataCursor += sizeof(wchar16_t);
+        usOffset += sizeof(wchar16_t);
 
         pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)(((PBYTE)pFileInfo) + pFileInfoCursor->NextEntryOffset);
     }
