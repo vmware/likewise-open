@@ -216,35 +216,6 @@ cpp_quote("#endif")
 
 #endif
 
-#ifndef CONNECTION_INFO_1_DEFINED
-#define CONNECTION_INFO_1_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef CONNECTION_INFO_1_DEFINED")
-cpp_quote("#define CONNECTION_INFO_1_DEFINED 1")
-#endif
-
-typedef struct _CONNECTION_INFO_1 {
-    uint32 coni1_id;
-    uint32 coni1_type;
-    uint32 coni1_num_open;
-    uint32 coni1_num_users;
-    uint32 coni1_time;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *coni1_username;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *coni1_netname;
-} CONNECTION_INFO_1, *PCONNECTION_INFO_1, *LPCONNECTION_INFO_1;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
 
 #ifndef FILE_INFO_2_DEFINED
 #define FILE_INFO_2_DEFINED 1
@@ -432,220 +403,6 @@ typedef struct _SESSION_INFO_502 {
 #endif
     wchar16_t *sesi502_transport;
 } SESSION_INFO_502, *PSESSION_INFO_502, *LPSESSION_INFO_502;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_0_DEFINED
-#define SHARE_INFO_0_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_0_DEFINED")
-cpp_quote("#define SHARE_INFO_0_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_0 {
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi0_netname;
-} SHARE_INFO_0, *PSHARE_INFO_0, *LPSHARE_INFO_0;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_1_DEFINED
-#define SHARE_INFO_1_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_1_DEFINED")
-cpp_quote("#define SHARE_INFO_1_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_1 {
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi1_netname;
-    uint32 shi1_type;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi1_remark;
-} SHARE_INFO_1, *PSHARE_INFO_1, *LPSHARE_INFO_1;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_2_DEFINED
-#define SHARE_INFO_2_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_2_DEFINED")
-cpp_quote("#define SHARE_INFO_2_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_2 {
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi2_netname;
-    uint32 shi2_type;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi2_remark;
-    uint32 shi2_permissions;
-    uint32 shi2_max_uses;
-    uint32 shi2_current_uses;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi2_path;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi2_password;
-} SHARE_INFO_2, *PSHARE_INFO_2, *LPSHARE_INFO_2;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_501_DEFINED
-#define SHARE_INFO_501_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_501_DEFINED")
-cpp_quote("#define SHARE_INFO_501_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_501 {
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi501_netname;
-    uint32 shi501_type;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi501_remark;
-    uint32 shi502_flags;
-} SHARE_INFO_501, *PSHARE_INFO_501, *LPSHARE_INFO_501;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_502_DEFINED
-#define SHARE_INFO_502_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_502_DEFINED")
-cpp_quote("#define SHARE_INFO_502_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_502 {
-    wchar16_t *shi502_netname;
-    uint32 shi502_type;
-    wchar16_t *shi502_remark;
-    uint32 shi502_permissions;
-    uint32 shi502_max_uses;
-    uint32 shi502_current_uses;
-    wchar16_t *shi502_path;
-    wchar16_t *shi502_password;
-    uint32 shi502_reserved;
-    SecDesc *shi502_security_descriptor;
-} SHARE_INFO_502, *PSHARE_INFO_502, *LPSHARE_INFO_502;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_1004_DEFINED
-#define SHARE_INFO_1004_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_1004_DEFINED")
-cpp_quote("#define SHARE_INFO_1004_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_1004 {
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    wchar16_t *shi1004_remark;
-} SHARE_INFO_1004, *PSHARE_INFO_1004, *LPSHARE_INFO_1004;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_1005_DEFINED
-#define SHARE_INFO_1005_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_1005_DEFINED")
-cpp_quote("#define SHARE_INFO_1005_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_1005 {
-    uint32 shi1005_flags;
-} SHARE_INFO_1005, *PSHARE_INFO_1005, *LPSHARE_INFO_1005;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_1006_DEFINED
-#define SHARE_INFO_1006_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_1006_DEFINED")
-cpp_quote("#define SHARE_INFO_1006_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_1006 {
-    uint32 shi1006_max_uses;
-} SHARE_INFO_1006, *PSHARE_INFO_1006, *LPSHARE_INFO_1006;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-#ifndef SHARE_INFO_1501_DEFINED
-#define SHARE_INFO_1501_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef SHARE_INFO_1501_DEFINED")
-cpp_quote("#define SHARE_INFO_1501_DEFINED 1")
-#endif
-
-typedef struct _SHARE_INFO_1501 {
-    uint32 shi1501_reserved;
-    SecDesc *shi1501_security_descriptor;
-} SHARE_INFO_1501, *PSHARE_INFO_1501, *LPSHARE_INFO_1501;
 
 #ifdef _DCE_IDL_
 cpp_quote("#endif")
@@ -1984,6 +1741,12 @@ typedef struct _TIME_OF_DAY_INFO {
 cpp_quote("#endif")
 #endif
 
+/*
+ * Include the rest of structure typedefs from lwio
+ */
 #endif /* TIME_OF_DAY_INFO_DEFINED */
+
+#include <lwio/lmshare.h>
+
 
 #endif /* _SRVSVCDEFS_H_ */
