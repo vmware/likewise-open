@@ -503,6 +503,7 @@ AC_CONFIG_FILES([Makefile
         tests/tcon/Makefile
         tests/transactnp/Makefile
         scripts/Makefile
-        scripts/lwnet])
+        scripts/lwnet
+        libshareinfo/Makefile])
 
 AC_OUTPUT
