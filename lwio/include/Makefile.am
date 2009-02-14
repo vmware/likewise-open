@@ -5,4 +5,5 @@ lwioinclude_HEADERS = \
 	lwio/io-types.h \
 	lwio/iortl.h \
 	lwio/ntfileapi.h \
-	lwio/smbfileapi.h
+	lwio/smbfileapi.h \
+	lwio/lmshare.h
