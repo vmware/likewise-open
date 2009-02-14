@@ -399,4 +399,10 @@ SRVSVCCloseLog(
     VOID
     );
 
+
+#define IsNullOrEmptyString(pszStr)     \
+    (pszStr == NULL || *pszStr == '\0')
+
+
+
 #endif /* __SRVSVCUTILS_H__ */

@@ -112,9 +112,6 @@
            }                      \
         } while(0);
 
-#define IsNullOrEmptyString(pszStr)     \
-    (pszStr == NULL || *pszStr == '\0')
-
 #define SRVSVC_SAFE_FREE_STRING(str) \
     do {                          \
         if (str) {                \
