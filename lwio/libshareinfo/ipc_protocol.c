@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -47,7 +47,8 @@
  *
  */
 
-#include "shareinfo.h"
+#include "includes.h"
+
 
 typedef union _SHARE_INFO_UNION
 {
@@ -57,11 +58,13 @@ typedef union _SHARE_INFO_UNION
     PSHARE_INFO_502 p502;
 } SHARE_INFO_UNION, *PSHARE_INFO_UNION;
 
+
 typedef struct _SHARE_INFO_ADD_PARAMS
 {
     DWORD dwInfoLevel;
     SHARE_INFO_UNION info;
 } SHARE_INFO_ADD_PARAMS, *PSHARE_INFO_ADD_PARAMS;
+
 
 static LWMsgTypeSpec gShareInfo0Spec[] =
 {
@@ -73,13 +76,13 @@ static LWMsgTypeSpec gShareInfo0Spec[] =
     LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_max_uses),
     LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_current_uses),
     LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_path),
-    LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_passwd),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_password),
     LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_reserved),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
-}
+
 static LWMsgTypeSpec gShareInfo502Spec[] =
 {
     LWMSG_STRUCT_BEGIN(SHARE_INFO_502),
@@ -90,11 +93,12 @@ static LWMsgTypeSpec gShareInfo502Spec[] =
     LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_max_uses),
     LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_current_uses),
     LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_path),
-    LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_passwd),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_password),
     LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_reserved),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
+
 
 static LWMsgTypeSpec gShareInfoUnionSpec[] =
 {
@@ -103,29 +107,32 @@ static LWMsgTypeSpec gShareInfoUnionSpec[] =
     LWMSG_ATTR_TAG(502),
     LWMSG_UNION_END,
     LWMSG_TYPE_END
-}
+};
+
 
 static LWMsgTypeSpec gShareInfoAddParamsSpec[] =
 {
     LWMSG_STRUCT_BEGIN(SHARE_INFO_ADD_PARAMS),
     LWMSG_MEMBER_UINT32(SHARE_INFO_ADD_PARAMS, dwInfoLevel),
-    LWMSG_MEMBER_TYPESPEC(SHARE_INFO_ADD_PARAMS, gShareInfoUnionSpec),
+    //    LWMSG_MEMBER_TYPESPEC(SHARE_INFO_ADD_PARAMS, gShareInfoUnionSpec),
     LWMSG_ATTR_DISCRIM(SHARE_INFO_ADD_PARAMS, dwInfoLevel),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
-}
+};
+
 
 LW_NTSTATUS
 LwShareInfoMarshalAddParameters(
-    PSHARE_INFO_ADD_PARAMETERS pParams,
+    PSHARE_INFO_ADD_PARAMS pParams,
     PBYTE* ppBuffer,
     ULONG* pulBufferSize
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PBYTE* pBuffer = NULL;
+    VOID* pBuffer = NULL;
     size_t szBufferSize = 0;
     LWMsgContext* pContext = NULL;
+    NT_IPC_MESSAGE_CREATE_FILE *pInfo = NULL;
 
     Status = MAP_LWMSG_STATUS(
         lwmsg_context_new(&pContext));
@@ -169,11 +176,11 @@ LW_NTSTATUS
 LwShareInfoUnmarshalAddParameters(
     PBYTE pBuffer,
     ULONG ulBufferSize,
-    PSHARE_INFO_ADD_PARAMETERS* ppParams
+    PSHARE_INFO_ADD_PARAMS* ppParams
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PSHARE_INFO_ADD_PARAMETERS pParams = NULL;
+    PSHARE_INFO_ADD_PARAMS pParams = NULL;
     LWMsgContext* pContext = NULL;
 
     Status = MAP_LWMSG_STATUS(
@@ -213,3 +220,11 @@ error:
 }
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
