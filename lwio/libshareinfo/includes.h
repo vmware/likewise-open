@@ -32,10 +32,10 @@
 #include <pthread.h>
 
 #include <lw/base.h>
-#include <srvsvcdefs.h>
 #include <lwmsg/lwmsg.h>
 
 #include <lwio/lwio.h>
+#include <lwio/lmshare.h>
 #include <lwioipc.h>
 #include <lwioutils.h>
 #include <ntipcmsg.h>
