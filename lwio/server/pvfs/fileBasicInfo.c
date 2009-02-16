@@ -34,7 +34,7 @@
  *
  * Module Name:
  *
- *        file_basic_info.c
+ *        fileBasicInfo.c
  *
  * Abstract:
  *
@@ -101,20 +101,18 @@ PvfsQueryFileBasicInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;    
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
+    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PFILE_BASIC_INFORMATION pFileInfo = NULL;    
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PVFS_STAT Stat = {0};
 
     /* Sanity checks */
 
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);    
-
-    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
     {
