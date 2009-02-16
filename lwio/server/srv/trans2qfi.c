@@ -30,6 +30,14 @@
 
 #include "includes.h"
 
+typedef struct _SMB_FILE_STREAM_INFO_RESPONSE_HEADER
+{
+    ULONG  ulNextEntryOffset;
+    ULONG  ulStreamNameLength;
+    LONG64 llStreamSize;
+    LONG64 llStreamAllocationSize;
+} __attribute__((__packed__)) SMB_FILE_STREAM_INFO_RESPONSE_HEADER, *PSMB_FILE_STREAM_INFO_RESPONSE_HEADER;
+
 static
 NTSTATUS
 SrvUnmarshallQueryFileInfoParams(
@@ -47,6 +55,15 @@ SrvBuildQueryFileInfoResponse(
     USHORT              usFid,
     SMB_INFO_LEVEL      smbInfoLevel,
     PSMB_PACKET*        ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvMarshallFileStreamInfo(
+    PBYTE   pFileStreamInfo,
+    USHORT  usBytesAvailable,
+    PBYTE*  ppData,
+    PUSHORT pusDataLen
     );
 
 NTSTATUS
@@ -652,22 +669,56 @@ SrvBuildQueryFileStreamInfoResponse(
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     IO_STATUS_BLOCK ioStatusBlock = {0};
-    FILE_STREAM_INFORMATION fileStreamInfo = {0};
-    USHORT              usParam = 0;
-    PUSHORT             pSetup = NULL;
-    BYTE                setupCount = 0;
-    USHORT              usDataOffset = 0;
-    USHORT              usParameterOffset = 0;
-    USHORT              usNumPackageBytesUsed = 0;
+    PBYTE   pFileStreamInfo = NULL;
+    USHORT  usBytesAllocated = 0;
+    USHORT  usParam = 0;
+    PUSHORT pSetup = NULL;
+    BYTE    setupCount = 0;
+    USHORT  usDataOffset = 0;
+    USHORT  usParameterOffset = 0;
+    USHORT  usNumPackageBytesUsed = 0;
+    PBYTE   pData = NULL;
+    USHORT  usDataLen = 0;
 
-    ntStatus = IoQueryInformationFile(
-                    hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    &fileStreamInfo,
-                    sizeof(fileStreamInfo),
-                    FileStreamInformation);
+    usBytesAllocated = sizeof(FILE_STREAM_INFORMATION) + 256 * sizeof(wchar16_t);
+
+    ntStatus = SMBAllocateMemory(
+                    usBytesAllocated,
+                    (PVOID*)&pFileStreamInfo);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    do
+    {
+        ntStatus = IoQueryInformationFile(
+                        hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        pFileStreamInfo,
+                        usBytesAllocated,
+                        FileStreamInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            break;
+        }
+        else if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+        {
+            USHORT usNewSize = usBytesAllocated + 256 * sizeof(wchar16_t);
+
+            ntStatus = SMBReallocMemory(
+                            pFileStreamInfo,
+                            (PVOID*)&pFileStreamInfo,
+                            usNewSize);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            usBytesAllocated = usNewSize;
+
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+    } while (TRUE);
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -697,7 +748,12 @@ SrvBuildQueryFileStreamInfoResponse(
 
     pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
 
-    // TODO: Marshall into response data format
+    ntStatus = SrvMarshallFileStreamInfo(
+                    pFileStreamInfo,
+                    usBytesAllocated,
+                    &pData,
+                    &usDataLen);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = WireMarshallTransaction2Response(
                     pSmbResponse->pParams,
@@ -707,8 +763,8 @@ SrvBuildQueryFileStreamInfoResponse(
                     setupCount,
                     (PBYTE)&usParam,
                     sizeof(usParam),
-                    (PBYTE)&fileStreamInfo,
-                    sizeof(fileStreamInfo),
+                    pData,
+                    usDataLen,
                     &usDataOffset,
                     &usParameterOffset,
                     &usNumPackageBytesUsed);
@@ -722,6 +778,9 @@ SrvBuildQueryFileStreamInfoResponse(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    SMB_SAFE_FREE_MEMORY(pFileStreamInfo);
+    SMB_SAFE_FREE_MEMORY(pData);
 
     return ntStatus;
 
@@ -739,3 +798,101 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+SrvMarshallFileStreamInfo(
+    PBYTE   pFileStreamInfo,
+    USHORT  usBytesAvailable,
+    PBYTE*  ppData,
+    PUSHORT pusDataLen
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE    pData = NULL;
+    PBYTE    pDataCursor = NULL;
+    USHORT   usDataLen = 0;
+    USHORT   usBytesRequired = 0;
+    USHORT   iInfoCount = 0;
+    USHORT   usInfoCount = 0;
+    USHORT   usOffset = 0;
+    PFILE_STREAM_INFORMATION pFileStreamInfoCursor = NULL;
+
+    pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)pFileStreamInfo;
+    while (pFileStreamInfoCursor && (usBytesAvailable > 0))
+    {
+        USHORT usInfoBytesRequired = 0;
+
+        usInfoBytesRequired = sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
+        usInfoBytesRequired += wc16slen(pFileStreamInfoCursor->StreamName) * sizeof(wchar16_t);
+        usInfoBytesRequired += sizeof(wchar16_t);
+
+        if (usBytesAvailable < usInfoBytesRequired)
+        {
+            break;
+        }
+
+        usInfoCount++;
+
+        usBytesAvailable -= usInfoBytesRequired;
+        usBytesRequired += usInfoBytesRequired;
+
+        if (pFileStreamInfoCursor->NextEntryOffset)
+        {
+            pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) + pFileStreamInfoCursor->NextEntryOffset);
+        }
+        else
+        {
+            pFileStreamInfoCursor = NULL;
+        }
+    }
+
+    ntStatus = SMBAllocateMemory(
+                    usBytesRequired,
+                    (PVOID*)&pData);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pDataCursor = pData;
+    pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)pFileStreamInfo;
+    for (; iInfoCount < usInfoCount; iInfoCount++)
+    {
+        PSMB_FILE_STREAM_INFO_RESPONSE_HEADER pInfoHeader = NULL;
+
+        pInfoHeader = (PSMB_FILE_STREAM_INFO_RESPONSE_HEADER)pDataCursor;
+
+        pInfoHeader->ulNextEntryOffset = usOffset;
+        pInfoHeader->llStreamAllocationSize = pFileStreamInfoCursor->StreamAllocationSize;
+        pInfoHeader->llStreamSize = pFileStreamInfoCursor->StreamSize;
+        pInfoHeader->ulStreamNameLength = pFileStreamInfoCursor->StreamNameLength * sizeof(wchar16_t);
+
+        pDataCursor += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
+        usOffset += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
+
+        if (pFileStreamInfoCursor->StreamNameLength)
+        {
+            memcpy(pDataCursor, (PBYTE)pFileStreamInfoCursor->StreamName, pFileStreamInfoCursor->StreamNameLength * sizeof(wchar16_t));
+            pDataCursor += pFileStreamInfoCursor->StreamNameLength * sizeof(wchar16_t);
+            usOffset += pFileStreamInfoCursor->StreamNameLength * sizeof(wchar16_t);
+        }
+
+        pDataCursor += sizeof(wchar16_t);
+        usOffset += sizeof(wchar16_t);
+
+        pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) + pFileStreamInfoCursor->NextEntryOffset);
+    }
+
+    *ppData = pData;
+    *pusDataLen = usDataLen;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppData = NULL;
+    *pusDataLen = 0;
+
+    SMB_SAFE_FREE_MEMORY(pData);
+
+    goto cleanup;
+}
