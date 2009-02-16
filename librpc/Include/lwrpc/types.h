@@ -99,9 +99,15 @@ typedef int64_t int64;
 
 #endif /* _DCE_IDL_ */
 
-typedef uint32 RPCSTATUS;
 typedef uint32 WINERR;
 typedef uint64 NtTime;
+
+#if SIZEOF_LONG_INT == 8
+typedef unsigned int      RPCSTATUS;
+#else /* SIZEOF_LONG_INT == 4 */
+typedef unsigned long int RPCSTATUS;
+#endif
+
 
 /* Don't require DCE/RPC environment when simply building
    a client using rpc library */
