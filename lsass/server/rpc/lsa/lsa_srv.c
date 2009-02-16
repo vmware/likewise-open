@@ -55,21 +55,20 @@ LsaRpcRegisterRpcInterface(
     BAIL_ON_DCERPC_ERROR(rpcstatus);
 
     while (pszProtSeq[i] != NULL) {
-        rpc_server_use_protseq_if((unsigned char)pszProtSeq[i++],
-                                  rpc_c_protseq_max_calls_default,
-                                  lsa_v0_0_s_ifspec,
-                                  &rpcstatus);
+        rpc_server_use_protseq((unsigned char*)pszProtSeq[i++],
+                               rpc_c_protseq_max_calls_default,
+                               &rpcstatus);
         BAIL_ON_DCERPC_ERROR(rpcstatus);
     }
 
     rpc_server_inq_bindings(&pSrvBinding, &rpcstatus);
     BAIL_ON_DCERPC_ERROR(rpcstatus);
 
-    rpc_ep_register_no_replace(lsa_v0_0_s_ifspec,
-                               pSrvBinding,
-                               NULL,
-                               "",
-                               &rpcstatus);
+    rpc_ep_register(lsa_v0_0_s_ifspec,
+                    pSrvBinding,
+                    NULL,
+                    "",
+                    &rpcstatus);
     BAIL_ON_DCERPC_ERROR(rpcstatus);
 
 cleanup:
@@ -81,7 +80,7 @@ error:
 
 
 DWORD
-LsaRpcUnregisteRpcInterface(
+LsaRpcUnregisterRpcInterface(
     rpc_binding_vector_p_t pSrvBinding
     )
 {
@@ -114,12 +113,58 @@ error:
 }
 
 
+static
+void*
+LsaRpcWorkerMain(
+    void* pCtx
+    )
+{
+    RPCSTATUS rpcstatus = rpc_s_ok;
+
+    DCETHREAD_TRY
+    {
+        rpc_server_listen(rpc_c_listen_max_calls_default, &rpcstatus);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+    }
+    DCETHREAD_ENDTRY;
+}
+
+
+DWORD LsaRpcStartWorker(void)
+{
+    DWORD dwError = 0;
+    int ret = 0;
+
+    ret = pthread_create(&gWorker.worker,
+                         NULL,
+                         LsaRpcWorkerMain,
+                         (void*)&gWorker.context);
+    if (ret) {
+        dwError = LSA_ERROR_INVALID_RPC_SERVER;
+        goto error;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
 DWORD LsaRpcStartServer(void)
 {
     DWORD dwError = 0;
+    RPCSTATUS rpcstatus = rpc_s_ok;
+    int ret = 0;
 
-    dwError = LsaRpcRegisterRpcInterface(&gpLsaSrvBinding);
-    BAIL_ON_LSA_ERRROR(dwError);
+    dwError = LsaRpcRegisterRpcInterface(gpLsaSrvBinding);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaRpcStartWorker();
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     return dwError;
@@ -133,7 +178,7 @@ DWORD LsaRpcStopServer(void)
 {
     DWORD dwError = 0;
 
-    dwError = LsaRpcUnregisterRpcInterface(&gpLsaSrvBinding);
+    dwError = LsaRpcUnregisterRpcInterface(gpLsaSrvBinding);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -151,7 +196,20 @@ DWORD LsaInitializeRpcSrv(
     )
 {
     DWORD dwError = 0;
+
+    pthread_rwlock_init(&gLsaDataMutex, NULL);
+
+    dwError = LsaRpcStartServer();
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszRpcSrvName = (PSTR)gpszRpcSrvName;
+    *ppFnTable      = &gLsaRpcFuncTable;
+
+cleanup:
     return dwError;
+
+error:
+    goto cleanup;
 }
 
 

@@ -34,6 +34,8 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
+#include "includes.h"
+
 
 NTSTATUS _LsaClose(
     /* [in] */ handle_t IDL_handle,
@@ -41,6 +43,10 @@ NTSTATUS _LsaClose(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaClose(IDL_handle,
+                      handle);
+
     return status;
 }
 
@@ -107,6 +113,11 @@ NTSTATUS _LsaQueryInfoPolicy(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaQueryInfoPolicy(IDL_handle,
+                                handle,
+                                level,
+                                info);
     return status;
 }
 
@@ -177,6 +188,15 @@ NTSTATUS _LsaLookupNames(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaLookupNames(IDL_handle,
+                            handle,
+                            num_names,
+                            names,
+                            domains,
+                            sids,
+                            level,
+                            count);
     return status;
 }
 
@@ -192,6 +212,14 @@ NTSTATUS _LsaLookupSids(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaLookupSids(IDL_handle,
+                           handle,
+                           sids,
+                           domains,
+                           names,
+                           level,
+                           count);
     return status;
 }
 
@@ -457,6 +485,12 @@ NTSTATUS _LsaOpenPolicy2(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaOpenPolicy2(IDL_handle,
+                            system_name,
+                            attrib,
+                            access_mask,
+                            handle);
     return status;
 }
 
@@ -478,6 +512,11 @@ NTSTATUS _LsaQueryInfoPolicy2(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaQueryInfoPolicy2(IDL_handle,
+                                 handle,
+                                 level,
+                                 info);
     return status;
 }
 
@@ -595,6 +634,17 @@ NTSTATUS _LsaLookupNames2(
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaLookupNames2(IDL_handle,
+                             handle,
+                             num_names,
+                             names,
+                             domains,
+                             sids,
+                             level,
+                             count,
+                             unknown1,
+                             unknown2);
     return status;
 }
 

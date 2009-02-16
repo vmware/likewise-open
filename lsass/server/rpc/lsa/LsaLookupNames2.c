@@ -29,31 +29,30 @@
  */
 
 /*
- * Abstract: Lsa interface (rpc server library)
+ * Abstract: LsaLookupNames2 function (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <pthread.h>
+#include "includes.h"
 
-#include <dce/rpc.h>
-#include <dce/dcethread.h>
-#include <wc16str.h>
-#include <secdesc/secdesc.h>
-#include <lw/ntstatus.h>
-#include <lwrpc/lsadefs.h>
-#include <lwrpc/unicodestring.h>
 
-#include "lsa/lsa.h"
-#include "lsarpcsrv.h"
-
-#include "lsa_srv.h"
-#include "lsa_stub.h"
-#include "lsa.h"
-
-#include "externs.h"
+NTSTATUS LsaLookupNames2(
+    handle_t b,
+    PolicyHandle *h,
+    uint32 num_names,
+    UnicodeStringEx *names,
+    RefDomainList **domains,
+    TranslatedSidArray2 *sids,
+    uint16 level,
+    uint32 *count,
+    uint32 unknown1,
+    uint32 unknown2
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    return status;
+}
 
 
 /*

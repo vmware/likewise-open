@@ -37,7 +37,7 @@
 #ifndef _EXTERNS_H_
 #define _EXTERNS_H_
 
-extern pthread_mutex_t gLsaDataMutex;
+extern pthread_rwlock_t gLsaDataMutex;
 
 extern int bLsaInitialised;
 
@@ -48,6 +48,7 @@ extern LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable;
 
 extern rpc_binding_vector_p_t gpLsaSrvBinding;
 
+extern LSA_RPC_WORKER gWorker;
 
 #endif /* _EXTERNS_H_ */
 

@@ -37,7 +37,7 @@
 #include "includes.h"
 
 /* Library initialisation guard */
-pthread_mutex_t gLsaDataMutex = PTHREAD_MUTEX_INITIALISED;
+pthread_rwlock_t gLsaDataMutex;
 
 int bLsaInitialised = 0;
 
@@ -49,6 +49,8 @@ LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable = {
 };
 
 rpc_binding_vector_p_t gpLsaSrvBinding = NULL;
+
+LSA_RPC_WORKER gWorker;
 
 
 /*

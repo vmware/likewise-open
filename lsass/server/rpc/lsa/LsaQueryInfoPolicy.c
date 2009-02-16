@@ -29,31 +29,24 @@
  */
 
 /*
- * Abstract: Lsa interface (rpc server library)
+ * Abstract: LsaQueryInfoPolicy function (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <pthread.h>
+#include "includes.h"
 
-#include <dce/rpc.h>
-#include <dce/dcethread.h>
-#include <wc16str.h>
-#include <secdesc/secdesc.h>
-#include <lw/ntstatus.h>
-#include <lwrpc/lsadefs.h>
-#include <lwrpc/unicodestring.h>
 
-#include "lsa/lsa.h"
-#include "lsarpcsrv.h"
-
-#include "lsa_srv.h"
-#include "lsa_stub.h"
-#include "lsa.h"
-
-#include "externs.h"
+NTSTATUS LsaQueryInfoPolicy(
+    handle_t b,
+    PolicyHandle *h,
+    uint16 level,
+    LsaPolicyInformation **info
+)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    return status;
+}
 
 
 /*

@@ -29,31 +29,30 @@
  */
 
 /*
- * Abstract: Lsa interface (rpc server library)
+ * Abstract: Lsa rpc server management functions (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <pthread.h>
+#ifndef _LSA_SRV_H_
+#define _LSA_SRV_H_
 
-#include <dce/rpc.h>
-#include <dce/dcethread.h>
-#include <wc16str.h>
-#include <secdesc/secdesc.h>
-#include <lw/ntstatus.h>
-#include <lwrpc/lsadefs.h>
-#include <lwrpc/unicodestring.h>
+typedef struct lsa_rpc_context {
+} LsaRpcContext, LSA_RPC_CONTEXT;
 
-#include "lsa/lsa.h"
-#include "lsarpcsrv.h"
 
-#include "lsa_srv.h"
-#include "lsa_stub.h"
-#include "lsa.h"
+typedef struct lsa_rpc_worker {
+    pthread_t         worker;
+    LSA_RPC_CONTEXT   context;
+} LsaRpcWorker, LSA_RPC_WORKER, *PLSA_RPC_WORKER;
 
-#include "externs.h"
+
+DWORD LsaRpcStartServer(void);
+
+DWORD LsaRpcStopServer(void);
+
+
+#endif /* _LSA_SRV_H_ */
 
 
 /*

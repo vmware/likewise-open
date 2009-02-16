@@ -29,31 +29,38 @@
  */
 
 /*
- * Abstract: Lsa interface (rpc server library)
+ * Abstract: LsaOpenPolicy2 function (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <pthread.h>
+#include "includes.h"
 
-#include <dce/rpc.h>
-#include <dce/dcethread.h>
-#include <wc16str.h>
-#include <secdesc/secdesc.h>
-#include <lw/ntstatus.h>
-#include <lwrpc/lsadefs.h>
-#include <lwrpc/unicodestring.h>
 
-#include "lsa/lsa.h"
-#include "lsarpcsrv.h"
+NTSTATUS LsaOpenPolicy2(
+    handle_t b,
+    wchar16_t *system_name,
+    ObjectAttribute *attrib,
+    uint32 access_mask,
+    PolicyHandle *phLsa
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PolicyHandle h;
 
-#include "lsa_srv.h"
-#include "lsa_stub.h"
-#include "lsa.h"
+    status = RtlPolHndCreate(&h, 1);
+    if (status != STATUS_SUCCESS) {
+        goto error;
+    }
 
-#include "externs.h"
+    *phLsa = h;
+
+cleanup:
+    return status;
+
+error:
+    goto cleanup;
+}
 
 
 /*
