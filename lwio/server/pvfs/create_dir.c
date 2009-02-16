@@ -148,7 +148,86 @@ PvfsCreateDirCreate(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PSTR pszPathname = NULL;
+    int fd = -1;
+    int unixFlags = 0;
+    PPVFS_CCB pCcb = NULL;
+    FILE_CREATE_RESULT CreateResult = 0;
+    ACCESS_MASK GrantedAccess = 0;
+
+    ntError = PvfsCanonicalPathName(&pszPathname,
+                                    pIrp->Args.Create.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateCCB(&pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateMemory((PVOID)&pCcb->pDirContext,
+                                 sizeof(PVFS_DIRECTORY_CONTEXT));
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Should check parent here */
+
+    ntError = PvfsAccessCheckDir(pIrp->Args.Create.SecurityContext,
+                                 pszPathname,
+                                 pIrp->Args.Create.DesiredAccess,
+                                 &GrantedAccess);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = MapPosixOpenFlags(&unixFlags,
+                                GrantedAccess,
+                                pIrp->Args.Create);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Open the DIR* and then open a fd based on that */
+
+    ntError = PvfsSysMkDir(pszPathname, 0700);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysOpenDir(pszPathname, &pCcb->pDirContext->pDir);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCcb->pszFilename = pszPathname;
+    pszPathname = NULL;
+
+    ntError = PvfsSysDirFd(pCcb, &fd);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Save our state */
+
+    pCcb->fd = fd;
+    pCcb->AccessGranted = GrantedAccess;
+    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+
+    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    CreateResult = FILE_CREATED;
+
+cleanup:
+    pIrp->IoStatusBlock.CreateResult = CreateResult;
+
+    return ntError;
+
+error:
+    CreateResult = (ntError == STATUS_OBJECT_PATH_NOT_FOUND) ?
+                   FILE_DOES_NOT_EXIST : FILE_EXISTS;
+
+    if (fd != -1)
+    {
+        close(fd);
+    }
+
+    if (pCcb)
+    {
+        PVFS_SAFE_FREE_MEMORY(pCcb->pszFilename);
+    }
+    PVFS_SAFE_FREE_MEMORY(pCcb);
+    PVFS_SAFE_FREE_MEMORY(pszPathname);
+
+    goto cleanup;
 }
 
 /******************************************************
