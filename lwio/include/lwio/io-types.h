@@ -855,7 +855,7 @@ typedef ULONG FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
 typedef struct _FILE_FS_ATTRIBUTE_INFORMATION {
     ULONG  FileSystemAttributes;
     LONG   MaximumComponentNameLength;
-    ULONG  FileSyetemNameLength;
+    ULONG  FileSystemNameLength;
     WCHAR  FileSystemName[1];
 } FILE_FS_ATTRIBUTE_INFORMATION, *PFILE_FS_ATTRIBUTE_INFORMATION;
 
