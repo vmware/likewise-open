@@ -28,6 +28,7 @@
  * license@likewisesoftware.com
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -427,6 +428,108 @@ const char *param_errstr(enum param_err perr)
 
     while (i < errcount && perr != param_errstr_maps[i].perr) i++;
     return param_errstr_maps[i].desc;
+}
+
+
+#define CHECK_PARAM_INFO_PTR(v)                             \
+    if ((v) == NULL) {                                      \
+        printf("warning: Parameter value ptr is NULL!\n");  \
+        return;                                             \
+    }
+
+
+static void ParamInfoStr(void *value)
+{
+    char *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = strdup((char*)value);
+    if (!v) goto done;
+
+    printf("(char*)\"%s\"\n", v);
+
+done:
+    free(v);
+}
+
+
+static void ParamInfoWc16Str(void *value)
+{
+    char *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = awc16stombs((wchar16_t*)value);
+    if (!v) goto done;
+
+    printf("(wchar16_t*)\"%s\"\n", v);
+
+done:
+    free(v);
+}
+
+
+static void ParamInfoChar(void *value)
+{
+    char *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = (char*)value;
+    printf("(char)\'%c\'\n", (*v));
+}
+
+
+static void ParamInfoInt32(void *value)
+{
+    int32 *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = (int32*)value;
+    printf("(int32) %d (0x%08x)\n", (*v), (unsigned int)(*v));
+}
+
+
+static void ParamInfoUInt32(void *value)
+{
+    uint32 *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = (uint32*)value;
+    printf("(uint32) %u (0x%08x)\n", (*v), (*v));
+}
+
+
+void ParamInfo(const char* name, enum param_type type, void *value)
+{
+    printf("# %s = ", name);
+
+    switch (type) {
+    case pt_string:
+        ParamInfoStr(value);
+        break;
+
+    case pt_w16string:
+        ParamInfoWc16Str(value);
+        break;
+
+    case pt_char:
+        ParamInfoChar(value);
+        break;
+
+    case pt_int32:
+        ParamInfoInt32(value);
+
+    case pt_uint32:
+        ParamInfoUInt32(value);
+        break;
+
+    default:
+        printf("(unknown type)\n");
+    }
 }
 
 
