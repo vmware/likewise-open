@@ -116,6 +116,14 @@ typedef struct _PVFS_IRP_CONTEXT
 } PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
 
 
+/* Used for Query/Set level handlers */
+
+struct _InfoLevelDispatchEntry {
+    FILE_INFORMATION_CLASS Level;
+    NTSTATUS (*fn)(PVFS_INFO_TYPE RequestType,
+                   PPVFS_IRP_CONTEXT pIrpContext);
+};
+
 
 #endif    /* _PVFS_STRUCTS_H */
 

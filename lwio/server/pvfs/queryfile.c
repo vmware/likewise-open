@@ -53,12 +53,6 @@
 
 /* File Globals */
 
-struct _InfoLevelDispatchEntry {
-    FILE_INFORMATION_CLASS Level;
-    NTSTATUS (*fn)(PVFS_INFO_TYPE RequestType,
-                   PPVFS_IRP_CONTEXT pIrpContext);
-};
-
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     /* Query Levels */
     { FileAccessInformation,            NULL },
