@@ -24,7 +24,10 @@ libpvfs_sys_la_SOURCES = \
     fileBasicInfo.c \
     fileStandardInfo.c \
     fileInternalInfo.c \
-    fileBothDirInfo.c
+    fileBothDirInfo.c \
+    fileEaInfo.c \
+    fileStreamInfo.c
+
 
 libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

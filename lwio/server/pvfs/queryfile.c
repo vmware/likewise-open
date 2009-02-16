@@ -65,7 +65,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileAlignmentInformation,         NULL }, 
     { FileAlternateNameInformation,     NULL },
     { FileAttributeTagInformation,      NULL },
-    { FileEaInformation,                NULL },
+    { FileEaInformation,                &PvfsFileEaInfo },
     { FileFullEaInformation,            NULL },
     { FileInternalInformation,          &PvfsFileInternalInfo },
     { FileModeInformation,              NULL },
@@ -74,7 +74,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FilePipeInformation,              NULL },
     { FilePipeLocalInformation,         NULL },
     { FilePipeRemoteInformation,        NULL },
-    { FileStreamInformation,            NULL },
+    { FileStreamInformation,            &PvfsFileStreamInfo },
     { FileStandardInformation,          &PvfsFileStandardInfo },
 
     /* Set Levels */
