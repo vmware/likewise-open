@@ -50,6 +50,7 @@ libsrv_sys_la_SOURCES = \
     trans.c           \
     trans2.c          \
     trans2qfi.c       \
+    trans2qfsi.c      \
     trans2qpi.c       \
     trans2sfi.c       \
     trans2spi.c       \

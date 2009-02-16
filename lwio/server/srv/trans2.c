@@ -72,7 +72,15 @@ SrvProcessTransaction2(
 
         case SMB_SUB_COMMAND_TRANS2_QUERY_FS_INFORMATION :
 
-            ntStatus = STATUS_NOT_IMPLEMENTED;
+            ntStatus = SrvProcessTrans2QueryFilesystemInformation(
+                          pConnection,
+                          pSmbRequest,
+                          pRequestHeader,
+                          pSetup,
+                          pBytecount,
+                          pParameters,
+                          pData,
+                          &pSmbResponse);
 
             break;
 
