@@ -60,8 +60,8 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
                                   DOMAIN_ACCESS_OPEN_ACCOUNT |
                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
     const uint32 size = 128;
-    const wchar_t *builtin = L"BUILTIN";
-    const wchar_t *localhost = L"127.0.0.1";
+    const char *builtin = "BUILTIN";
+    const char *localhost = "127.0.0.1";
 
     handle_t samr_b;
     NetConn *cn, *lookup;
@@ -76,7 +76,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
     wchar16_t *dom_name = NULL;
     wchar16_t localhost_addr[10];
     uint8 *sess_key;
-    size_t sess_key_len;
+    unsigned32 sess_key_len;
     NTSTATUS status = STATUS_SUCCESS;
     RPCSTATUS rpcstatus = 0;
 
@@ -91,7 +91,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
     if (hostname == NULL) {
         size_t addr_size = sizeof(localhost_addr)/sizeof(wchar16_t);
         memset(localhost_addr, 0, addr_size);
-        wcstowc16s(localhost_addr, localhost, addr_size);
+        mbstowc16s(localhost_addr, localhost, addr_size);
         hostname = (wchar16_t*)localhost_addr;
     }
 
@@ -147,7 +147,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
 
         if (rpcstatus == 0) {
             memcpy((void*)cn->sess_key, sess_key, sizeof(cn->sess_key));
-            cn->sess_key_len = sess_key_len;
+            cn->sess_key_len = (uint32)sess_key_len;
 
             rpc_string_free(&sess_key, &rpcstatus);
         }
@@ -216,12 +216,12 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
                 status != STATUS_MORE_ENTRIES) return status;
 
             for (i = 0; i < entries; i++) {
-                wchar_t n[32]; /* any netbios name can fit here */
+                char n[32]; /* any netbios name can fit here */
 
-                wc16stowcs(n, dom_names[i], sizeof(n));
+                wc16stombs(n, dom_names[i], sizeof(n));
 
                 /* pick up first domain name that is not a builtin domain */
-                if (wcscasecmp(n, builtin)) {
+                if (strcasecmp(n, builtin)) {
                     dom_name = wc16sdup(dom_names[i]);
 
                     SamrFreeMemory((void*)dom_names);
