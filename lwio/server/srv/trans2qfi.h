@@ -58,4 +58,20 @@ SrvBuildQueryFileStandardInfoResponse(
     PSMB_PACKET*        ppSmbResponse
     );
 
+NTSTATUS
+SrvBuildQueryFileEAInfoResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
+    PSMB_PACKET*        ppSmbResponse
+    );
+
+NTSTATUS
+SrvBuildQueryFileStreamInfoResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    IO_FILE_HANDLE      hFile,
+    PSMB_PACKET*        ppSmbResponse
+    );
+
 #endif /* __SRV_TRANS2QFI_H__ */
