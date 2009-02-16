@@ -841,6 +841,24 @@ typedef struct _FILE_QUOTA_INFORMATION {
 
 typedef ULONG FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
 
+// From SNIA CIFS Tech Ref - 4.1.6.6
+
+#define FILE_CASE_SENSITIVE_SEARCH               0x00000001
+#define FILE_CASE_PRESERVED_NAMES                0x00000002
+#define FILE_PERSISTENT_ACLS                     0x00000004
+#define FILE_FILE_COMPRESSION                    0x00000008
+#define FILE_VOLUME_QUOTAS                       0x00000010
+#define FILE_DEVICE_IS_MOUNTED                   0x00000020
+#define FILE_VOLUME_IS_COMPRESSED                0x00000040
+
+// VOL: FileFsAttributeInformation
+typedef struct _FILE_FS_ATTRIBUTE_INFORMATION {
+    ULONG  FileSystemAttributes;
+    LONG   MaximumComponentNameLength;
+    ULONG  FileSyetemNameLength;
+    WCHAR  FileSystemName[1];
+} FILE_FS_ATTRIBUTE_INFORMATION, *PFILE_FS_ATTRIBUTE_INFORMATION;
+
 typedef struct _IO_ECP_LIST *PIO_ECP_LIST;
 
 // TODO-Move named pipe ECP stuff to internal header.
