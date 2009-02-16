@@ -164,7 +164,13 @@ PvfsDriverDispatch(
 
     case IRP_TYPE_QUERY_DIRECTORY:
         ntError = PvfsQueryDirInformation(DeviceHandle, pIrpCtx);
+        break;
+
+#if 0
+    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
+        ntError = PvfsQueryVolumeInformation(DeviceHandle, pIrpCtx);
         break;        
+#endif
 
     default:
         ntError = STATUS_INVALID_PARAMETER;
