@@ -36,7 +36,6 @@
 #include <dce/dce_error.h>
 
 #include <types.h>
-#include <security.h>
 #include <wc16str.h>
 #include <srvsvc.h>
 #include <srvsvcbinding.h>
