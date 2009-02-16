@@ -154,7 +154,9 @@ typedef USHORT SMB_SUB_COMMAND, *PSMB_SUB_COMMAND;
 typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 
 #define SMB_INFO_STANDARD                   1
+#define SMB_INFO_ALLOCATION                 1
 #define SMB_INFO_QUERY_EA_SIZE              2
+#define SMB_INFO_VOLUME                     2
 #define SMB_INFO_QUERY_EAS_FROM_LIST        3
 #define SMB_INFO_QUERY_ALL_EAS              4
 #define SMB_INFO_IS_NAME_VALID              5
@@ -178,7 +180,7 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_QUERY_CIFS_UNIX_INFO          0x200
 #define SMB_QUERY_FILE_UNIX_LINK          0x201
 #define SMB_FIND_FILE_UNIX                0x202
-#define SMB_QUERY_MAX_FS_INFO             0x301
+#define SMB_QUERY_MAC_FS_INFO             0x301
 
 
 typedef enum
