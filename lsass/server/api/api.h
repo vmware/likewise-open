@@ -63,10 +63,12 @@
 #include "lsasrvutils.h"
 #include "lsaserver.h"
 #include "lsaprovider.h"
+#include "lsarpcsrv.h"
 
 #include "structs_p.h"
 #include "auth_p.h"
 #include "auth_provider_p.h"
+#include "rpc_server_p.h"
 #include "externs_p.h"
 #include "session_p.h"
 #include "state_p.h"

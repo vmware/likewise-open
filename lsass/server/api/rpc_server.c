@@ -89,7 +89,7 @@ LsaInitRpcServer(
     PCSTR pszError = NULL;
     PCSTR pszSrvLibPath = NULL;
 
-    if (!IsNullOrEmptyString(pRpc->pszSrvLibPath)) {
+    if (IsNullOrEmptyString(pRpc->pszSrvLibPath)) {
         dwError = ENOENT;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -136,7 +136,7 @@ LsaInitRpcServer(
                   &pRpc->pfnTable);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaRpcValidateServer(pRpc);
+    dwError = LsaValidateRpcServer(pRpc);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -181,7 +181,7 @@ LsaInitRpcServers(
                 (pRpc->pszSrvLibPath ? pRpc->pszSrvLibPath : "<null>"),
                 dwError);
 
-            LsaRpcFreeServer(pRpc);
+            LsaFreeRpcServer(pRpc);
             pRpc = NULL;
             dwError = 0;
         }
@@ -195,7 +195,7 @@ LsaInitRpcServers(
 
     ENTER_RPC_SERVER_LIST_WRITER_LOCK(bLocked);
 
-    LsaRpcFreeServerList(gpRpcServerList);
+    LsaFreeRpcServerList(gpRpcServerList);
 
     gpRpcServerList = pRpcList;
     pRpcList        = NULL;
@@ -216,7 +216,7 @@ cleanup:
 
 error:
     if (pRpcList) {
-        LsaRpcFreeServerList(pRpcList);
+        LsaFreeRpcServerList(pRpcList);
     }
 
     goto cleanup;
@@ -224,7 +224,7 @@ error:
 
 
 DWORD
-LsaRpcValidateServer(
+LsaValidateRpcServer(
     PLSA_RPC_SERVER pRpc
     )
 {
@@ -262,13 +262,15 @@ LsaRpcServerConfigStartSection(
     if (IsNullOrEmptyString(pszSectionName) ||
         strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
-        goto error;
+        bSkipSection = TRUE;
+        goto cleanup;
     }
 
     pszLibName = pszSectionName + (sizeof(LSA_CFG_TAG_RPC_SERVER) - 1);
     if (IsNullOrEmptyString(pszLibName)) {
         LSA_LOG_WARNING("No RPC server name was specified");
-        goto error;
+        bSkipSection = TRUE;
+        goto cleanup;
     }
 
     dwError = LsaAllocateMemory(
@@ -286,10 +288,10 @@ LsaRpcServerConfigStartSection(
                     ppRpcSrvStack);
     BAIL_ON_LSA_ERROR(dwError);
 
+cleanup:
     *pbSkipSection = bSkipSection;
     *pbContinue = bContinue;
 
-cleanup:
     return dwError;
 
 error:
@@ -297,7 +299,7 @@ error:
     *pbSkipSection = TRUE;
 
     if (pRpcSrv) {
-        LsaRpcFreeServer(pRpcSrv);
+        LsaFreeRpcServer(pRpcSrv);
     }
 
     goto cleanup;
@@ -357,7 +359,7 @@ error:
 
 
 void
-LsaRpcFreeServer(
+LsaFreeRpcServer(
     PLSA_RPC_SERVER pSrv
     )
 {
@@ -382,7 +384,7 @@ LsaRpcFreeServer(
 
 
 void
-LsaRpcFreeServerList(
+LsaFreeRpcServerList(
     PLSA_RPC_SERVER pRpcServerList
     )
 {
@@ -391,7 +393,7 @@ LsaRpcFreeServerList(
     while (pRpcServerList) {
         pRpc = pRpcServerList;
         pRpcServerList = pRpcServerList->pNext;
-        LsaRpcFreeServer(pRpc);
+        LsaFreeRpcServer(pRpc);
         pRpc = NULL;
     }
 }
@@ -406,7 +408,7 @@ LsaCfgFreeRpcServerInStack(
     DWORD dwError = 0;
 
     if (pItem) {
-        LsaRpcFreeServer((PLSA_RPC_SERVER)pItem);
+        LsaFreeRpcServer((PLSA_RPC_SERVER)pItem);
     }
 
     return dwError;

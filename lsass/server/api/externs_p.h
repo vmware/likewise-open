@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -49,6 +49,10 @@
 
 extern time_t gServerStartTime;
 
+/*
+ * Auth Provider List
+ */
+
 extern pthread_rwlock_t gpAuthProviderList_rwlock;
 
 #define ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock)         \
@@ -77,6 +81,40 @@ extern pthread_rwlock_t gpAuthProviderList_rwlock;
 
 extern PLSA_AUTH_PROVIDER gpAuthProviderList;
 
+
+/*
+ * RPC Server List
+ */
+
+extern pthread_rwlock_t gpRpcServerList_rwlock;
+
+#define ENTER_RPC_SERVER_LIST_READER_LOCK(bInLock)            \
+    if (!(bInLock)) {                                         \
+        pthread_rwlock_rdlock(&gpRpcServerList_rwlock);       \
+        (bInLock) = TRUE;                                     \
+    }
+
+#define LEAVE_RPC_SERVER_LIST_READER_LOCK(bInLock)            \
+    if (!(bInLock)) {                                         \
+        pthread_rwlock_unlock(&gpRpcServerList_rwlock);       \
+        bInLock = FALSE;                                      \
+    }
+
+#define ENTER_RPC_SERVER_LIST_WRITER_LOCK(bInLock)            \
+    if (!(bInLock)) {                                         \
+        pthread_rwlock_wrlock(&gpRpcServerList_rwlock);       \
+        (bInLock) = TRUE;                                     \
+    }
+
+#define LEAVE_RPC_SERVER_LIST_WRITER_LOCK(bInLock)            \
+    if (!(bInLock)) {                                         \
+        pthread_rwlock_unlock(&gpRpcServerList_rwlock);       \
+        bInLock = FALSE;                                      \
+    }
+
+extern PLSA_RPC_SERVER gpRpcServerList;
+
+
 extern pthread_rwlock_t gPerfCounters_rwlock;
 extern UINT64 gPerfCounters[LsaMetricSentinel];
 
@@ -87,3 +125,12 @@ extern LSA_SRV_API_CONFIG gAPIConfig;
 
 #endif /* __EXTERNS_P_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

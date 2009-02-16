@@ -51,6 +51,9 @@ time_t gServerStartTime = 0;
 PLSA_AUTH_PROVIDER gpAuthProviderList = NULL;
 pthread_rwlock_t gpAuthProviderList_rwlock;
 
+PLSA_RPC_SERVER gpRpcServerList = NULL;
+pthread_rwlock_t gpRpcServerList_rwlock;
+
 pthread_rwlock_t gPerfCounters_rwlock;
 UINT64 gPerfCounters[LsaMetricSentinel];
 
@@ -88,6 +91,9 @@ LsaSrvApiInit(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvInitAuthProviders(pszConfigFilePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaInitRpcServers(pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateString(

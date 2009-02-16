@@ -15,7 +15,8 @@ liblsaserverapi_la_SOURCES = \
        state.c         \
        status.c        \
        traceinfo.c     \
-       users.c
+       users.c         \
+       rpc_server.c
 
 liblsaserverapi_la_CPPFLAGS =         \
 	-DLW_ENABLE_THREADS=1         \

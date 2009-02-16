@@ -66,13 +66,13 @@ LsaInitRpcServers(
 
 
 void
-LsaRpcFreeServer(
+LsaFreeRpcServer(
     PLSA_RPC_SERVER pSrv
     );
 
 
 void
-LsaRpcFreeServerList(
+LsaFreeRpcServerList(
     PLSA_RPC_SERVER pRpcServerList
     );
 
@@ -85,7 +85,7 @@ LsaCfgFreeRpcServerInStack(
 
 
 DWORD
-LsaRpcValidateServer(
+LsaValidateRpcServer(
     PLSA_RPC_SERVER pRpc
     );
 
