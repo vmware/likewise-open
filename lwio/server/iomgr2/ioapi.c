@@ -605,7 +605,31 @@ IoQueryVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = IRP_TYPE_QUERY_DIRECTORY;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.QueryVolume.FsInformation = FsInformation;
+    pIrp->Args.QueryVolume.Length = Length;
+    pIrp->Args.QueryVolume.FsInformationClass = FsInformationClass;
+
+    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
+    ioStatusBlock = pIrp->IoStatusBlock;
+    // TODO -- handle asyc behavior.
+    assert(ioStatusBlock.Status == status);
+
+cleanup:
+    IopIrpFree(&pIrp);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 

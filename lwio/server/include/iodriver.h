@@ -68,12 +68,12 @@ typedef ULONG IRP_TYPE;
 // - QUERY_DIRECTORY
 // Here, however, two separate IRPs are used.
 #define IRP_TYPE_QUERY_DIRECTORY          12
+#define IRP_TYPE_QUERY_VOLUME_INFORMATION 17
 #if 0
 #define IRP_TYPE_NOTIFY_CHANGE_DIRECTORY  13
 #define IRP_TYPE_LOCK_CONTROL             14
 #define IPP_TYPE_QUERY_EA                 15
 #define IPP_TYPE_SET_EA                   16
-#define IRP_TYPE_QUERY_VOLUME_INFORMATION 17
 #define IRP_TYPE_SET_VOLUME_INFORMATION   18
 #define IRP_TYPE_QUERY_QUOTA              19
 #define IRP_TYPE_SET_QUOTA                20
@@ -140,6 +140,12 @@ typedef struct _IRP_ARGS_QUERY_DIRECTORY {
     IN BOOLEAN RestartScan;
 } IRP_ARGS_QUERY_DIRECTORY, *PIRP_ARGS_QUERY_DIRECTORY;
 
+typedef struct _IRP_ARGS_QUERY_VOLUME {
+    OUT PVOID FsInformation;
+    IN ULONG Length;
+    IN FS_INFORMATION_CLASS FsInformationClass;
+} IRP_ARGS_QUERY_VOLUME, *PIRP_ARGS_QUERY_VOLUME;
+
 typedef struct _IRP {
     IN IRP_TYPE Type;
     OUT IO_STATUS_BLOCK IoStatusBlock;
@@ -157,6 +163,8 @@ typedef struct _IRP {
         IRP_ARGS_QUERY_SET_INFORMATION QuerySetInformation;
         // IRP_TYPE_QUERY_DIRECTORY
         IRP_ARGS_QUERY_DIRECTORY QueryDirectory;
+        // IRP_TYPE_QUERY_VOLUME
+        IRP_ARGS_QUERY_VOLUME QueryVolume;
         // No args for IRP_TYPE_CLOSE, IRP_TYPE_FLUSH
     } Args;
     // Internal data at the end...

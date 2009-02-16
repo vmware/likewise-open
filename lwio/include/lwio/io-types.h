@@ -496,7 +496,8 @@ typedef ULONG FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 #define FileIdFullDirectoryInformation    38 // DIR: FILE_ID_FULL_DIR_INFORMATION
 #define FileValidDataLengthInformation    39 // unused
 #define FileShortNameInformation          40 // SET: FILE_NAME_INFORMATION (set 8.3 name)
-#define FileMaximumInformation            41 // SENTINEL
+#define FileFsAttributeInformation        41 // VOL: FILE_FS_ATTRIBUTE_INFORMATION
+#define FileMaximumInformation            42 // SENTINEL
 
 //
 // Notes:
