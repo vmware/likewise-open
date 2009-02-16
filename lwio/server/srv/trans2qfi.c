@@ -810,7 +810,6 @@ SrvMarshallFileStreamInfo(
     NTSTATUS ntStatus = 0;
     PBYTE    pData = NULL;
     PBYTE    pDataCursor = NULL;
-    USHORT   usDataLen = 0;
     USHORT   usBytesRequired = 0;
     USHORT   iInfoCount = 0;
     USHORT   usInfoCount = 0;
@@ -881,7 +880,7 @@ SrvMarshallFileStreamInfo(
     }
 
     *ppData = pData;
-    *pusDataLen = usDataLen;
+    *pusDataLen = usBytesRequired;
 
 cleanup:
 
