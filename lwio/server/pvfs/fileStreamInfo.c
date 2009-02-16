@@ -137,7 +137,7 @@ PvfsQueryFileStreamInfo(
 
     pFileInfo->NextEntryOffset = 0;
     pFileInfo->StreamSize = Stat.s_size;
-    pFileInfo->StreamAllocationSize = Stat.s_blksize;
+    pFileInfo->StreamAllocationSize = Stat.s_alloc;
     pFileInfo->StreamNameLength = RtlWC16StringNumChars(pwszStreamName);
     memcpy(pFileInfo->StreamName, pwszStreamName,
            pFileInfo->StreamNameLength*sizeof(WCHAR));

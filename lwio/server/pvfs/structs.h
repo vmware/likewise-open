@@ -61,6 +61,7 @@ typedef struct _PVFS_STAT_STRUCT
     uid_t        s_uid;
     gid_t        s_gid;
     off_t        s_size;
+    off_t        s_alloc;
     time_t       s_atime;
     time_t       s_ctime;
     time_t       s_mtime;

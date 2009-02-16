@@ -127,7 +127,7 @@ PvfsQueryFileStandardInfo(
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);    
 
-    pFileInfo->AllocationSize = Stat.s_blksize;
+    pFileInfo->AllocationSize = Stat.s_alloc;
     pFileInfo->EndOfFile      = Stat.s_size;
     pFileInfo->NumberOfLinks  = Stat.s_nlink;
     pFileInfo->DeletePending  = FALSE;          /* Ignore Delete-on-Close */

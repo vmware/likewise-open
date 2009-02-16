@@ -66,6 +66,7 @@ CopyUnixStatToPvfsStat(
     pPvfsStat->s_uid     = pSbuf->st_uid;
     pPvfsStat->s_gid     = pSbuf->st_gid;
     pPvfsStat->s_size    = pSbuf->st_size;
+    pPvfsStat->s_alloc   = pSbuf->st_blocks * pSbuf->st_blksize;
     pPvfsStat->s_atime   = pSbuf->st_atime;
     pPvfsStat->s_ctime   = pSbuf->st_ctime;
     pPvfsStat->s_mtime   = pSbuf->st_mtime;
@@ -89,13 +90,10 @@ PvfsSysStat(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     struct stat sBuf = {0};
+    int unixerr = 0;
 
-    if (stat(pszFilename, &sBuf) == -1)
-    {
-        int err = errno;
-
-        ntError = PvfsMapUnixErrnoToNtStatus(err);
-        BAIL_ON_NT_STATUS(ntError);        
+    if (stat(pszFilename, &sBuf) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
     if (pStat) {        
@@ -123,13 +121,10 @@ PvfsSysFstat(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     struct stat sBuf = {0};
+    int unixerr = 0;
 
-    if (fstat(fd, &sBuf) == -1)
-    {
-        int err = errno;
-
-        ntError = PvfsMapUnixErrnoToNtStatus(err);
-        BAIL_ON_NT_STATUS(ntError);        
+    if (fstat(fd, &sBuf) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
     if (pStat) {        
@@ -160,15 +155,12 @@ PvfsSysOpen(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     int fd = -1;
+    int unixerr = 0;
 
     BAIL_ON_INVALID_PTR(pszFilename, ntError);
     
-    if ((fd = open(pszFilename, iFlags, Mode)) == -1)
-    {
-        int err = errno;
-        
-        ntError = PvfsMapUnixErrnoToNtStatus(err);
-        BAIL_ON_NT_STATUS(ntError);
+    if ((fd = open(pszFilename, iFlags, Mode)) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
     *pFd = fd;    
@@ -284,7 +276,15 @@ PvfsSysReadDir(
 
     if ((pDirEntry = readdir(pDir)) == NULL)
     {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+        /* Handle errno a little differently here.  Assume
+           we can only get EBADF in the case on an error.
+           Otherwise, assume NULL means end-of-file. */
+
+        unixerr = errno;
+        if (unixerr == EBADF) {
+            ntError = PvfsMapUnixErrnoToNtStatus(unixerr);
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
 
     *ppDirEntry = pDirEntry;
@@ -330,13 +330,10 @@ PvfsSysClose(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
 
-    if (close(fd) == -1)
-    {
-        int err = errno;
-
-        ntError = PvfsMapUnixErrnoToNtStatus(err);
-        BAIL_ON_NT_STATUS(ntError);
+    if (close(fd) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
 cleanup:

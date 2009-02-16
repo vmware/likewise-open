@@ -149,7 +149,7 @@ FillFileBothDirInfoStatic(
 
     pFileInfo->EaSize         = 0;
     pFileInfo->EndOfFile      = pStat->s_size;
-    pFileInfo->AllocationSize = pStat->s_blksize;
+    pFileInfo->AllocationSize = pStat->s_alloc;
 
     ntError = STATUS_SUCCESS;
 
