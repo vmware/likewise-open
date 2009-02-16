@@ -232,7 +232,9 @@
 #define LSA_ERROR_CANNOT_DETECT_USER_PROCESSES              0x8088 // 32904
 #define LSA_ERROR_TRACE_NOT_INITIALIZED                     0x8089 // 32905
 #define LSA_ERROR_NO_SUCH_TRACE_FLAG                        0x808A // 32906
-#define LSA_ERROR_SENTINEL                                  0x808B // 32907
+#define LSA_ERROR_DCERPC_ERROR                              0x808B // 32907
+#define LSA_ERROR_INVALID_RPC_SERVER                        0x808C // 32908
+#define LSA_ERROR_SENTINEL                                  0x808D // 32909
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 
