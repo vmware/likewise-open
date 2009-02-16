@@ -10,7 +10,6 @@ libpvfs_sys_la_SOURCES = \
     fsctrl.c \
     queryfile.c \
     querydir.c \
-    queryvol.c \
     close.c \
     create_file.c \
     create_dir.c \
@@ -27,8 +26,7 @@ libpvfs_sys_la_SOURCES = \
     fileInternalInfo.c \
     fileBothDirInfo.c \
     fileEaInfo.c \
-    fileStreamInfo.c \
-    fileFsAttribInfo.c
+    fileStreamInfo.c
 
 
 libpvfs_sys_la_CPPFLAGS = \
