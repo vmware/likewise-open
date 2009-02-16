@@ -855,6 +855,7 @@ SrvMarshallFileStreamInfo(
     for (; iInfoCount < usInfoCount; iInfoCount++)
     {
         PSMB_FILE_STREAM_INFO_RESPONSE_HEADER pInfoHeader = NULL;
+        USHORT usStreamNameLen = 0;
 
         pInfoHeader = (PSMB_FILE_STREAM_INFO_RESPONSE_HEADER)pDataCursor;
 
@@ -866,11 +867,12 @@ SrvMarshallFileStreamInfo(
         pDataCursor += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
         usOffset += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
 
-        if (pFileStreamInfoCursor->StreamNameLength)
+        usStreamNameLen = wc16slen(pFileStreamInfoCursor->StreamName);
+        if (usStreamNameLen)
         {
-            memcpy(pDataCursor, (PBYTE)pFileStreamInfoCursor->StreamName, pFileStreamInfoCursor->StreamNameLength * sizeof(wchar16_t));
-            pDataCursor += pFileStreamInfoCursor->StreamNameLength * sizeof(wchar16_t);
-            usOffset += pFileStreamInfoCursor->StreamNameLength * sizeof(wchar16_t);
+            memcpy(pDataCursor, (PBYTE)pFileStreamInfoCursor->StreamName, usStreamNameLen * sizeof(wchar16_t));
+            pDataCursor += usStreamNameLen * sizeof(wchar16_t);
+            usOffset += usStreamNameLen * sizeof(wchar16_t);
         }
 
         pDataCursor += sizeof(wchar16_t);
