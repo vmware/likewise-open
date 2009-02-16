@@ -221,8 +221,8 @@ PvfsSysDirFd(
     int unixerr = 0;
     int fd = -1;
 
-#ifdef HAVE_OPENFD
-    if ((fd = dirfd(pDir)) == -1) {
+#ifdef HAVE_DIRFD
+    if ((fd = dirfd(pCcb->pDirContext->pDir)) == -1) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 #else
