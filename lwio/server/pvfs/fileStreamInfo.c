@@ -139,7 +139,8 @@ PvfsQueryFileStreamInfo(
     pFileInfo->StreamSize = Stat.s_size;
     pFileInfo->StreamAllocationSize = Stat.s_blksize;
     pFileInfo->StreamNameLength = RtlWC16StringNumChars(pwszStreamName);
-    memcpy(pFileInfo->StreamName, pwszStreamName, pFileInfo->StreamNameLength);
+    memcpy(pFileInfo->StreamName, pwszStreamName,
+           pFileInfo->StreamNameLength*sizeof(WCHAR));
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
