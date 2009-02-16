@@ -118,8 +118,11 @@ FillFileBothDirInfoStatic(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    memcpy(pFileInfo->ShortName, pwszShortFilename, sizeof(pFileInfo->ShortName));
     pFileInfo->ShortNameLength = FilenameLen;
+    if (pFileInfo->ShortNameLength > 0) {
+        memcpy(pFileInfo->ShortName, pwszShortFilename,
+               pFileInfo->ShortNameLength*sizeof(WCHAR));
+    }
 
     /* Fill in Timestamps */
 
