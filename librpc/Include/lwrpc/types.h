@@ -102,21 +102,25 @@ typedef int64_t int64;
 typedef uint32 WINERR;
 typedef uint64 NtTime;
 
-#if SIZEOF_LONG_INT == 8
-typedef unsigned int      RPCSTATUS;
-#else /* SIZEOF_LONG_INT == 4 */
-typedef unsigned long int RPCSTATUS;
-#endif
-
 
 /* Don't require DCE/RPC environment when simply building
    a client using rpc library */
 #if !defined(_DCE_IDL_)
 #if defined(LIBRPC_BUILD)
 #include <dce/rpc.h>
+
+typedef unsigned32 RPCSTATUS;
+
 #else
 typedef void* handle_t;
 typedef unsigned long error_status_t;
+
+#if SIZEOF_LONG_INT == 8
+typedef unsigned int      RPCSTATUS;
+#else /* SIZEOF_LONG_INT == 4 */
+typedef unsigned long int RPCSTATUS;
+#endif
+
 #endif /* defined(LIBRPC_BUILD) */
 #endif /* !defined(_DCE_IDL_) */
 

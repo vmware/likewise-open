@@ -83,7 +83,7 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
         if (result == 0) {
             printf("Error: %s\n", errmsg);
         } else {
-            printf("Unknown error: %08lx\n", status);
+            printf("Unknown error: %08lx\n", (unsigned long int)status);
         }
 
         SAFE_FREE(hostname);
