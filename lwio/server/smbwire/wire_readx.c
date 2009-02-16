@@ -123,31 +123,34 @@ WireMarshallReadResponseDataEx(
     ULONG    ulBytesUsed = 0;
     ULONG    ulAlignment = 0;
 
-    ulAlignment = (ulOffset % 2);
-    if (ulAlignment)
+    if (ulBytesToWrite)
     {
-        if (ulBytesAvailable < ulAlignment)
+        ulAlignment = (ulOffset % 2);
+        if (ulAlignment)
+        {
+            if (ulBytesAvailable < ulAlignment)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulBytesAvailable -= ulAlignment;
+            ulBytesUsed += ulAlignment;
+            ulOffset += ulAlignment;
+            pDataCursor += ulAlignment;
+        }
+
+        if (ulBytesAvailable < ulBytesToWrite)
         {
             ntStatus = STATUS_INVALID_BUFFER_SIZE;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ulBytesAvailable -= ulAlignment;
-        ulBytesUsed += ulAlignment;
-        ulOffset += ulAlignment;
-        pDataCursor += ulAlignment;
+        memcpy(pDataCursor, pBuffer, ulBytesToWrite);
+
+        // ulBytesAvailable -= ulBytesToWrite;
+        ulBytesUsed += ulBytesToWrite;
     }
-
-    if (ulBytesAvailable < ulBytesToWrite)
-    {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    memcpy(pDataCursor, pBuffer, ulBytesToWrite);
-
-    // ulBytesAvailable -= ulBytesToWrite;
-    ulBytesUsed += ulBytesToWrite;
 
     *pulDataOffset = ulOffset;
     *pulPackageByteCount = ulBytesUsed;

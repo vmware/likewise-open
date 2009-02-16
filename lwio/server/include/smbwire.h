@@ -199,7 +199,7 @@ typedef enum
                                         extended attributes (EAs). */
     FLAG2_SECURITY_SIG     = 0x4,    /* If set, SMB is integrity checked. */
     FLAG2_RESERVED_1       = 0x8,    /* Reserved for future use */
-    FLAG2_UNDEFINED_1      = 0x10,   /* Undefined, must be zero */
+    FLAG2_REQUIRE_SIG      = 0x10,   /* Undefined, must be zero */
     FLAG2_UNDEFINED_2      = 0x20,   /* Undefined, must be zero */
     FLAG2_IS_LONG_NAME     = 0x40,   /* If set, any path name in the request
                                         is a long name. */
@@ -945,7 +945,7 @@ typedef struct _TRANS2_FILE_STANDARD_INFORMATION {
     ULONG  NumberOfLinks;
     BOOLEAN bDeletePending;
     BOOLEAN bDirectory;
-    ULONG   unknown;
+    USHORT  pad;
 } __attribute__((__packed__)) TRANS2_FILE_STANDARD_INFORMATION, *PTRANS2_FILE_STANDARD_INFORMATION;
 
 typedef struct _FIND_CLOSE2_REQUEST_HEADER {
@@ -1417,7 +1417,7 @@ SMBPacketMarshallHeader(
     uint32_t    pid,
     uint16_t    uid,
     uint16_t    mid,
-    BOOLEAN     bSignMessages,
+    BOOLEAN     bSignaturesRequired,
     PSMB_PACKET pPacket
     );
 

@@ -333,7 +333,7 @@ SMBPacketMarshallHeader(
     uint32_t    pid,
     uint16_t    uid,
     uint16_t    mid,
-    BOOLEAN     bSignMessages,
+    BOOLEAN     bSignaturesRequired,
     PSMB_PACKET pPacket
     )
 {
@@ -357,11 +357,11 @@ SMBPacketMarshallHeader(
         pHeader->error = error;
         pHeader->flags = isResponse ? FLAG_RESPONSE : 0;
         pHeader->flags |= FLAG_CASELESS_PATHS | FLAG_OBSOLETE_2;
-        pHeader->flags2 = (isResponse ? 0 : FLAG2_KNOWS_LONG_NAMES) |
-            (isResponse ? 0 : FLAG2_IS_LONG_NAME) |
-            (bSignMessages ? FLAG2_SECURITY_SIG : 0) |
-            FLAG2_KNOWS_EAS |
-            FLAG2_EXT_SEC | FLAG2_ERR_STATUS | FLAG2_UNICODE;
+        pHeader->flags2 =   FLAG2_KNOWS_LONG_NAMES |
+                            FLAG2_IS_LONG_NAME |
+                            (bSignaturesRequired ? FLAG2_REQUIRE_SIG : 0) |
+                            FLAG2_KNOWS_EAS |
+                            FLAG2_EXT_SEC | FLAG2_ERR_STATUS | FLAG2_UNICODE;
         pHeader->extra.pidHigh = pid >> 16;
         memset(pHeader->extra.securitySignature, 0,
             sizeof(pHeader->extra.securitySignature));
@@ -488,6 +488,8 @@ SMBPacketSign(
     uint8_t digest[16];
     MD5_CTX md5Value;
 
+    pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
+
     memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
     memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &ulSequence, sizeof(ulSequence));
 
@@ -513,15 +515,15 @@ SMBPacketUpdateAndXOffset(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    
+
     if (!SMBIsAndXCommand(pPacket->pSMBHeader->command)) {
         /* No op */
-        return STATUS_SUCCESS;        
+        return STATUS_SUCCESS;
     }
 
     pPacket->pAndXHeader->andXOffset = pPacket->bufferUsed - sizeof(NETBIOS_HEADER);
 
-    return ntStatus;    
+    return ntStatus;
 }
 
 

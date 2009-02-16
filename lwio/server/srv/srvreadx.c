@@ -106,6 +106,10 @@ SrvProcessReadAndX(
                     &pBuffer,
                     &ulBytesRead,
                     NULL);
+    if (ntStatus == STATUS_END_OF_FILE)
+    {
+        ntStatus = 0;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildReadAndXResponse(
