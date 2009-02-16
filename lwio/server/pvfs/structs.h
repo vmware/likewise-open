@@ -44,6 +44,9 @@
 #ifndef _PVFS_STRUCTS_H
 #define _PVFS_STRUCTS_H
 
+#define PVFS_FS_NAME     "NTFS"
+
+
 /* HP-UX does not use blksize_t type for st_blksize
    (see stat(5))
  */

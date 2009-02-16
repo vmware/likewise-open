@@ -99,25 +99,27 @@ PvfsQueryFileFsAttribInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-#if 0
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PFS_ATTRIBUTE_INFORMATION pFileInfo = NULL;
+    PFILE_FS_ATTRIBUTE_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    PVFS_STAT Stat = {0};
+    PWSTR pwszFsName = NULL;
+    size_t FsNameLen = RtlCStringNumChars(PVFS_FS_NAME) * sizeof(WCHAR);
 
     /* Sanity checks */
 
     pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
 
+    /* not sure exact access rights to check for here */
+
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    if (Args.Length < sizeof(*pFileInfo))
+    if (Args.Length < sizeof(*pFileInfo) + FsNameLen)
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
@@ -127,18 +129,26 @@ PvfsQueryFileFsAttribInfo(
 
     /* Real work starts here */
 
+    ntError = RtlWC16StringAllocateFromCString(&pwszFsName, PVFS_FS_NAME);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pFileInfo->FileSystemAttributes = FILE_CASE_SENSITIVE_SEARCH |\
+                                      FILE_CASE_PRESERVED_NAMES;
+    pFileInfo->MaximumComponentNameLength = 255;
+    pFileInfo->FileSystemNameLength = RtlWC16StringNumChars(pwszFsName);
+    memcpy(pFileInfo->FileSystemName, pwszFsName,
+           pFileInfo->FileSystemNameLength*sizeof(WCHAR));
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    PVFS_SAFE_FREE_MEMORY(pwszFsName);
+
     return ntError;
 
 error:
     goto cleanup;
-#else
-    return STATUS_NOT_IMPLEMENTED;
-#endif
 }
 
 
