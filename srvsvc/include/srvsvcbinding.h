@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: SrvSvc interface binding (srvsvc component)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        srvsvcbinding.h
+ *
+ * Abstract:
+ *
+ *        Likewise Server Service (srvsvc) RPC client and server
+ *
+ *        DCE/RPC binding functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #ifndef _SRVSVC_BINDING_H_
 #define _SRVSVC_BINDING_H_
@@ -49,6 +60,7 @@ InitSrvSvcBindingDefault(
     const char *hostname
     );
 
+
 RPCSTATUS
 InitSrvSvcBindingFull(
     handle_t *binding,
@@ -59,10 +71,12 @@ InitSrvSvcBindingFull(
     const char *options
     );
 
+
 RPCSTATUS
 FreeSrvSvcBinding(
     handle_t *binding
     );
+
 
 #endif /* _SRVSVC_BINDING_H_ */
 

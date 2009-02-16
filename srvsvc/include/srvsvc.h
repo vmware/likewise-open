@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,14 +28,33 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        srvsvc.h
+ *
+ * Abstract:
+ *
+ *        Likewise Server Service (srvsvc) RPC client and server
+ *
+ *        Client API
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #ifndef _SRVSVC_H_
 #define _SRVSVC_H_
+
 
 #include <srvsvcbinding.h>
 #include <srvsvcdefs.h>
 
-NET_API_STATUS NetConnectionEnum(
-    handle_t IDL_handle,
+
+NET_API_STATUS
+NetConnectionEnum(
+    handle_t b,
     const wchar16_t *servername,
     const wchar16_t *qualifier,
     uint32 level,
@@ -46,8 +65,10 @@ NET_API_STATUS NetConnectionEnum(
     uint32 *resume_handle
     );
 
-NET_API_STATUS NetFileEnum(
-    handle_t IDL_handle,
+
+NET_API_STATUS
+NetFileEnum(
+    handle_t b,
     const wchar16_t *servername,
     const wchar16_t *basepath,
     const wchar16_t *username,
@@ -59,7 +80,9 @@ NET_API_STATUS NetFileEnum(
     uint32 *resume_handle
     );
 
-NET_API_STATUS NetFileGetInfo(
+
+NET_API_STATUS
+NetFileGetInfo(
     handle_t b,
     const wchar16_t *servername,
     uint32 fileid,
@@ -67,13 +90,17 @@ NET_API_STATUS NetFileGetInfo(
     uint8 **bufptr
     );
 
-NET_API_STATUS NetFileClose(
+
+NET_API_STATUS
+NetFileClose(
     handle_t b,
     const wchar16_t *servername,
     uint32 fileid
     );
 
-NET_API_STATUS NetSessionEnum(
+
+NET_API_STATUS
+NetSessionEnum(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *unc_client_name,
@@ -86,7 +113,9 @@ NET_API_STATUS NetSessionEnum(
     uint32 *resume_handle
     );
 
-NET_API_STATUS NetShareAdd(
+
+NET_API_STATUS
+NetShareAdd(
     handle_t b,
     const wchar16_t *servername,
     uint32 level,
@@ -94,7 +123,9 @@ NET_API_STATUS NetShareAdd(
     uint32 *parm_err
     );
 
-NET_API_STATUS NetShareEnum(
+
+NET_API_STATUS
+NetShareEnum(
     handle_t b,
     const wchar16_t *servername,
     uint32 level,
@@ -105,7 +136,9 @@ NET_API_STATUS NetShareEnum(
     uint32 *resume_handle
     );
 
-NET_API_STATUS NetShareGetInfo(
+
+NET_API_STATUS
+NetShareGetInfo(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *netname,
@@ -113,7 +146,9 @@ NET_API_STATUS NetShareGetInfo(
     uint8 **bufptr
     );
 
-NET_API_STATUS NetShareSetInfo(
+
+NET_API_STATUS
+NetShareSetInfo(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *netname,
@@ -122,21 +157,27 @@ NET_API_STATUS NetShareSetInfo(
     uint32 *parm_err
     );
 
-NET_API_STATUS NetShareDel(
+
+NET_API_STATUS
+NetShareDel(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *netname,
     uint32 reserved
     );
 
-NET_API_STATUS NetServerGetInfo(
+
+NET_API_STATUS
+NetServerGetInfo(
     handle_t b,
     const wchar16_t *servername,
     uint32 level,
     uint8 **bufptr
     );
 
-NET_API_STATUS NetServerSetInfo(
+
+NET_API_STATUS
+NetServerSetInfo(
     handle_t b,
     const wchar16_t *servername,
     uint32 level,
@@ -144,18 +185,32 @@ NET_API_STATUS NetServerSetInfo(
     uint32 *parm_err
     );
 
-NET_API_STATUS NetRemoteTOD(
+
+NET_API_STATUS
+NetRemoteTOD(
     handle_t b,
     const wchar16_t *servername,
     uint8 **bufptr
     );
 
 
-NET_API_STATUS SrvSvcInitMemory(void);
+NET_API_STATUS
+SrvSvcInitMemory(
+    void
+    );
 
-NET_API_STATUS SrvSvcDestroyMemory(void);
 
-NET_API_STATUS SrvSvcFreeMemory(void *ptr);
+NET_API_STATUS
+SrvSvcDestroyMemory(
+    void
+    );
+
+
+NET_API_STATUS
+SrvSvcFreeMemory(
+    void *ptr
+    );
+
 
 #endif /* _SRVSVC_H_ */
 

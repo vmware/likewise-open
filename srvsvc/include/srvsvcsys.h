@@ -1,20 +1,27 @@
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007
- * All rights reserved.
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        srvsvc.h
+ *
+ * Abstract:
+ *
+ *        Likewise Server Service (srvsvc) RPC client and server
+ *
+ *        System headers
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *
- * Server Service module - system headers
+ *          Rafal Szczesniak (rafal@likewise.com)
  *
  */
 
-   #include <stdio.h>
-   #include <stdlib.h>
-   #include <fcntl.h>
-   #include <time.h>
-   #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <time.h>
+#include <string.h>
 
 #ifdef _WIN32
 
@@ -42,19 +49,19 @@
   #include <sys/syslimits.h>
 #endif
 
-  #include <sys/types.h>
-  #include <pthread.h>
-  #include <syslog.h>
-  #include <signal.h>
-  #include <unistd.h>
-  #include <sys/stat.h>
-  #include <dirent.h>
-  #include <pwd.h>
-  #include <compat/dcerpc.h>
-  #include <dce/dcethread.h>
-  #include <compat/rpcstatus.h>
-  #include <dlfcn.h>
-  #include <dce/rpcexc.h>
+#include <sys/types.h>
+#include <pthread.h>
+#include <syslog.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <pwd.h>
+#include <compat/dcerpc.h>
+#include <dce/dcethread.h>
+#include <compat/rpcstatus.h>
+#include <dlfcn.h>
+#include <dce/rpcexc.h>
 
 #if HAVE_WC16STR_H
   #include <wc16str.h>
