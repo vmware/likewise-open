@@ -8,5 +8,4 @@ SUBDIRS = \
          db             \
          auth-providers \
          ipc            \
-         rpc            \
          lsassd
