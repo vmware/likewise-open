@@ -438,6 +438,63 @@ AC_SUBST(EVENTLOG_INCLUDES)
 AC_SUBST(EVENTLOG_LDFLAGS)
 AC_SUBST(EVENTLOG_LIBS)
 
+# dcerpc
+
+AC_ARG_WITH([dcerpc],
+        [AC_HELP_STRING([--with-dcerpc=<dir>], [use dcerpc located in prefix <dir>])],
+        [
+		DCERPC_INCLUDES="-I$withval/include"
+                DCERPC_LDFLAGS="-L$withval/lib"
+                DCERPC_PATH="$withval/bin"
+        ])
+
+AC_ARG_WITH([dcerpc-includes],
+        [AC_HELP_STRING([--with-dcerpc-includes=<dir>], [use dcerpc includes located in <dir>])],
+        [
+		DCERPC_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([dcerpc-libs],
+        [AC_HELP_STRING([--with-dcerpc-libs=<dir>], [use dcerpc libs located in <dir>])],
+        [
+		DCERPC_LDFLAGS="-L$withval"
+        ])
+
+DCERPC_LIBS="-ldcerpc"
+
+AC_SUBST(DCERPC_INCLUDES)
+AC_SUBST(DCERPC_LDFLAGS)
+AC_SUBST(DCERPC_LIBS)
+
+# secdesc
+
+AC_ARG_WITH([libsecdesc],
+        [AC_HELP_STRING([--with-libsecdesc=<dir>], [use libsecdesc located in prefix <dir>])],
+        [
+		LIBSECDESC_INCLUDES="-I$withval/include"
+                LIBSECDESC_LDFLAGS="-L$withval/lib"
+                LIBSECDESC_PATH="$withval/bin"
+        ])
+
+AC_ARG_WITH([libsecdesc-includes],
+        [AC_HELP_STRING([--with-libsecdesc-includes=<dir>], [use libsecdesc includes located in <dir>])],
+        [
+		LIBSECDESC_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([libsecdesc-libs],
+        [AC_HELP_STRING([--with-libsecdesc-libs=<dir>], [use libsecdesc libs located in <dir>])],
+        [
+		LIBSECDESC_LDFLAGS="-L$withval"
+        ])
+
+LIBSECDESC_LIBS="-lsecdesc"
+
+AC_SUBST(LIBSECDESC_INCLUDES)
+AC_SUBST(LIBSECDESC_LDFLAGS)
+AC_SUBST(LIBSECDESC_LIBS)
+
+
 # compat
 
 ENABLE_COMPAT=false
@@ -571,6 +628,12 @@ AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h s
 AC_CHECK_HEADERS([security/pam_appl.h], ,
     [AC_CHECK_HEADERS([pam/pam_appl.h], ,
         [AC_MSG_ERROR([No PAM header files found])])])
+
+AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])
+
+if test x"$IDL" = x"no"; then
+    AC_MSG_ERROR([DCERPC IDL compiler not found])
+fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -750,6 +813,8 @@ AC_CONFIG_FILES([Makefile
                  server/lsassd/Makefile
                  server/db/Makefile
                  server/sqlite/Makefile
+		 server/rpc/Makefile
+		 server/rpc/lsa/Makefile
                  access/Makefile
                  auth/Makefile
                  auth/common/Makefile
