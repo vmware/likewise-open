@@ -185,6 +185,32 @@ error:
  *********************************************************/
 
 NTSTATUS
+PvfsSysMkDir(
+    PSTR pszDirname,
+    mode_t mode
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+
+    if ((mkdir(pszDirname, mode)) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
 PvfsSysOpenDir(
     PSTR pszDirname,
     DIR **ppDir

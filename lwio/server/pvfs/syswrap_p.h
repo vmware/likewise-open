@@ -84,6 +84,13 @@ PvfsSysClose(
     int fd
     );
 
+
+NTSTATUS
+PvfsSysMkDir(
+    PSTR pszDirname,
+    mode_t mode
+    );
+
 NTSTATUS
 PvfsSysOpenDir(
     PSTR pszDirname,
