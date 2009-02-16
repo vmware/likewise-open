@@ -78,6 +78,12 @@ PvfsFileStreamInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsFileFsAttribInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 /* QueryDirectoryInformation */
 
@@ -87,6 +93,14 @@ PvfsFileBothDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+
+/* QueryVolumeInformation */
+
+NTSTATUS
+PvfsQueryVolumeInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
 
 /* utility functions */
 

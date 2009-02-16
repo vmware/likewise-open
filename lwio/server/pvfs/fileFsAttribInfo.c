@@ -99,10 +99,11 @@ PvfsQueryFileFsAttribInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
+#if 0
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PFILE_FS_ATTRIBUTE_INFORMATION pFileInfo = NULL;
+    PFS_ATTRIBUTE_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PVFS_STAT Stat = {0};
 
@@ -135,6 +136,9 @@ cleanup:
 
 error:
     goto cleanup;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
