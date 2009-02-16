@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -75,22 +75,22 @@ PvfsFileStandardInfo(
     case PVFS_SET:
         ntError = STATUS_NOT_SUPPORTED;
         break;
-        
+
     case PVFS_QUERY:
         ntError = PvfsQueryFileStandardInfo(pIrpContext);
         break;
 
     default:
         ntError = STATUS_INVALID_PARAMETER;
-        break;        
+        break;
     }
     BAIL_ON_NT_STATUS(ntError);
-    
+
 cleanup:
     return ntError;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 static NTSTATUS
@@ -98,12 +98,12 @@ PvfsQueryFileStandardInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;    
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PFILE_STANDARD_INFORMATION pFileInfo = NULL;    
+    PFILE_STANDARD_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    PVFS_STAT Stat = {0};    
+    PVFS_STAT Stat = {0};
 
     /* Sanity checks */
 
@@ -117,15 +117,15 @@ PvfsQueryFileStandardInfo(
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
-        BAIL_ON_NT_STATUS(ntError);        
+        BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_STANDARD_INFORMATION)Args.FileInformation;    
+    pFileInfo = (PFILE_STANDARD_INFORMATION)Args.FileInformation;
 
     /* Real work starts here */
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
-    BAIL_ON_NT_STATUS(ntError);    
+    BAIL_ON_NT_STATUS(ntError);
 
     pFileInfo->AllocationSize = Stat.s_alloc;
     pFileInfo->EndOfFile      = Stat.s_size;
@@ -138,9 +138,9 @@ PvfsQueryFileStandardInfo(
 
 cleanup:
     return ntError;
-    
-error: 
-    goto cleanup;    
+
+error:
+    goto cleanup;
 }
 
 /*

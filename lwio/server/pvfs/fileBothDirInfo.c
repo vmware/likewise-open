@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -79,22 +79,22 @@ PvfsFileBothDirInfo(
     case PVFS_SET:
         ntError = STATUS_NOT_SUPPORTED;
         break;
-        
+
     case PVFS_QUERY:
         ntError = PvfsQueryFileBothDirInfo(pIrpContext);
         break;
 
     default:
         ntError = STATUS_INVALID_PARAMETER;
-        break;        
+        break;
     }
     BAIL_ON_NT_STATUS(ntError);
-    
+
 cleanup:
     return ntError;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 /********************************************************
@@ -248,10 +248,10 @@ PvfsQueryFileBothDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;    
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;    
+    PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_DIRECTORY Args = pIrpContext->pIrp->Args.QueryDirectory;
     PVOID pBuffer = NULL;
     DWORD dwBufLen = 0;
@@ -268,14 +268,14 @@ PvfsQueryFileBothDirInfo(
     }
 
     ntError = PvfsAccessCheckFileHandle(pCcb,  FILE_LIST_DIRECTORY);
-    BAIL_ON_NT_STATUS(ntError);    
+    BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
-        BAIL_ON_NT_STATUS(ntError);        
+        BAIL_ON_NT_STATUS(ntError);
     }
 
     pFileInfo = (PFILE_BOTH_DIR_INFORMATION)Args.FileInformation;
@@ -295,7 +295,7 @@ PvfsQueryFileBothDirInfo(
         ntError = STATUS_NO_MORE_MATCHES;
         BAIL_ON_NT_STATUS(ntError);
     }
-    
+
 
     /* Fill in the buffer */
 
@@ -371,9 +371,9 @@ PvfsQueryFileBothDirInfo(
 
 cleanup:
     return ntError;
-    
-error: 
-    goto cleanup;    
+
+error:
+    goto cleanup;
 }
 
 

@@ -143,7 +143,7 @@ PvfsAllocateIrpContext(
     ntError = PvfsAllocateMemory((PVOID*)&pIrpContext,
                                  sizeof(PVFS_IRP_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
-    
+
     pIrpContext->pIrp = pIrp;
 
     *ppIrpContext = pIrpContext;
@@ -164,7 +164,7 @@ PvfsAllocateCCB(
     PPVFS_CCB *ppCCB
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;    
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_CCB pCCB = NULL;
 
     *ppCCB = NULL;
@@ -174,13 +174,13 @@ PvfsAllocateCCB(
 
     *ppCCB = pCCB;
 
-    ntError = STATUS_SUCCESS;    
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
 
 error:
-    goto cleanup;   
+    goto cleanup;
 }
 
 

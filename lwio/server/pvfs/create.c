@@ -63,16 +63,16 @@ PvfsCreate(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     FILE_CREATE_OPTIONS CreateOptions = 0;
-    BOOLEAN bIsDirectory = FALSE;  
-    PIRP pIrp = pIrpContext->pIrp;    
+    BOOLEAN bIsDirectory = FALSE;
+    PIRP pIrp = pIrpContext->pIrp;
     PSTR pszFilename = NULL;
     PVFS_STAT Stat = {0};
-    
+
     CreateOptions = pIrp->Args.Create.CreateOptions;
 
     if (CreateOptions & FILE_DIRECTORY_FILE)
     {
-        bIsDirectory = TRUE;        
+        bIsDirectory = TRUE;
     }
     else if (CreateOptions & FILE_NON_DIRECTORY_FILE)
     {
@@ -83,7 +83,7 @@ PvfsCreate(
         /* stat() the path and find out if this is a file or directory */
 
         ntError = PvfsCanonicalPathName(&pszFilename,
-                                        pIrp->Args.Create.FileName);        
+                                        pIrp->Args.Create.FileName);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsSysStat(pszFilename, &Stat);
@@ -91,16 +91,16 @@ PvfsCreate(
 
         bIsDirectory = S_ISDIR(Stat.s_mode);
     }
-    
+
 
     if (bIsDirectory)
     {
-        pIrp->Args.Create.CreateOptions |= FILE_DIRECTORY_FILE;        
+        pIrp->Args.Create.CreateOptions |= FILE_DIRECTORY_FILE;
         ntError = PvfsCreateDirectory(pIrpContext);
     }
     /* File branch */
-    else 
-    {    
+    else
+    {
         pIrp->Args.Create.CreateOptions |= FILE_NON_DIRECTORY_FILE;
         ntError = PvfsCreateFile(pIrpContext);
     }
@@ -108,11 +108,11 @@ PvfsCreate(
 
 cleanup:
     PVFS_SAFE_FREE_MEMORY(pszFilename);
-    
+
     return ntError;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 

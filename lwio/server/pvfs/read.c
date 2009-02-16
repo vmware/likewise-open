@@ -63,7 +63,7 @@ PvfsRead(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;    
+    PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
     PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);;
@@ -76,7 +76,7 @@ PvfsRead(
 
     if (PVFS_IS_DIR(pCcb)) {
         ntError = STATUS_FILE_IS_A_DIRECTORY;
-        BAIL_ON_NT_STATUS(ntError);        
+        BAIL_ON_NT_STATUS(ntError);
     }
 
 #if 0xFFFFFFFF > SSIZE_MAX
@@ -98,12 +98,12 @@ PvfsRead(
                          bufLen - totalBytesRead);
         if (bytesRead == -1) {
             int err = errno;
-         
+
             /* try again? */
-            if (err == EAGAIN) {                
+            if (err == EAGAIN) {
                 continue;
-            }            
-            
+            }
+
             ntError = PvfsMapUnixErrnoToNtStatus(err);
             BAIL_ON_NT_STATUS(ntError);
         }
@@ -112,26 +112,26 @@ PvfsRead(
         if (bytesRead == 0) {
             break;
         }
-        
-        totalBytesRead += bytesRead;        
+
+        totalBytesRead += bytesRead;
     }
-    
-    /* Can only get here is the loop was completed 
+
+    /* Can only get here is the loop was completed
        successfully */
 
     pIrp->IoStatusBlock.BytesTransferred = totalBytesRead;
-    
-    ntError = (totalBytesRead > 0) ? 
-        STATUS_SUCCESS : 
+
+    ntError = (totalBytesRead > 0) ?
+        STATUS_SUCCESS :
         STATUS_END_OF_FILE;
 
-    
-    
+
+
 cleanup:
     return ntError;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 

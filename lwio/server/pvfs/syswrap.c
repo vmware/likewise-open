@@ -73,8 +73,8 @@ CopyUnixStatToPvfsStat(
     pPvfsStat->s_crtime  = pSbuf->st_mtime;
     pPvfsStat->s_blksize = pSbuf->st_blksize;
     pPvfsStat->s_blocks  = pSbuf->st_blocks;
-    
-    ntError = STATUS_SUCCESS;    
+
+    ntError = STATUS_SUCCESS;
 
     return ntError;
 }
@@ -96,16 +96,16 @@ PvfsSysStat(
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
-    if (pStat) {        
+    if (pStat) {
         ntError = CopyUnixStatToPvfsStat(pStat, &sBuf);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = STATUS_SUCCESS;    
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
-    
+
 error:
     goto cleanup;
 }
@@ -127,16 +127,16 @@ PvfsSysFstat(
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
-    if (pStat) {        
+    if (pStat) {
         ntError = CopyUnixStatToPvfsStat(pStat, &sBuf);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = STATUS_SUCCESS;    
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
-    
+
 error:
     goto cleanup;
 }
@@ -158,19 +158,19 @@ PvfsSysOpen(
     int unixerr = 0;
 
     BAIL_ON_INVALID_PTR(pszFilename, ntError);
-    
+
     if ((fd = open(pszFilename, iFlags, Mode)) == -1) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
-    *pFd = fd;    
-    ntError = STATUS_SUCCESS;    
+    *pFd = fd;
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 /**********************************************************

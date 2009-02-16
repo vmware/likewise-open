@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -76,8 +76,8 @@ PvfsQueryDirInformation(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     FILE_INFORMATION_CLASS InfoLevel = 0;
-    int i = 0;    
-    size_t sizeTable = sizeof(InfoLevelDispatchTable) / 
+    int i = 0;
+    size_t sizeTable = sizeof(InfoLevelDispatchTable) /
                        sizeof(struct _InfoLevelDispatchEntry);
 
     InfoLevel = pIrp->Args.QueryDirectory.FileInformationClass;
@@ -93,23 +93,23 @@ PvfsQueryDirInformation(
             if (InfoLevelDispatchTable[i].fn == NULL)
             {
                 ntError = STATUS_NOT_IMPLEMENTED;
-                break;                
+                break;
             }
-    
+
             ntError = InfoLevelDispatchTable[i].fn(PVFS_QUERY, pIrpContext);
-            break;            
-        }        
+            break;
+        }
     }
     if (i == sizeTable) {
         ntError = STATUS_INVALID_INFO_CLASS;
-    }    
+    }
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     return ntError;
-    
+
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 

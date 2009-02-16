@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -54,13 +54,13 @@ PvfsClose(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;    
-    PPVFS_CCB pCcb = NULL;    
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
 
     /* make sure we have a proper CCB */
 
 
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);    
+    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     BAIL_ON_INVALID_PTR(pCcb, ntError);
 
     /* Call closedir() for directions and close() for files */

@@ -87,29 +87,29 @@ MapPosixOpenFlags(
     BOOLEAN bIsDir = FALSE;
 
     bIsDir = (CreateArgs.CreateOptions & FILE_DIRECTORY_FILE) ?
-             TRUE : FALSE;    
-    
-    ntError = MapPosixOpenDisposition(&iUnixMode, 
+             TRUE : FALSE;
+
+    ntError = MapPosixOpenDisposition(&iUnixMode,
                                       CreateArgs.CreateDisposition,
                                       bIsDir);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = MapPosixOpenAccess(&iUnixMode, Access, bIsDir);
     BAIL_ON_NT_STATUS(ntError);
-    
-    ntError = MapPosixOpenOptions(&iUnixMode, 
+
+    ntError = MapPosixOpenOptions(&iUnixMode,
                                   CreateArgs.CreateOptions,
                                   bIsDir);
     BAIL_ON_NT_STATUS(ntError);
-    
-    *unixFlags = iUnixMode;    
+
+    *unixFlags = iUnixMode;
     ntError = STATUS_SUCCESS;
- 
+
 cleanup:
     return ntError;
-    
+
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 /********************************************************
@@ -123,7 +123,7 @@ MapPosixOpenDisposition(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    int iUnixMode = 0;    
+    int iUnixMode = 0;
 
     switch (Disposition)
     {
@@ -150,17 +150,17 @@ MapPosixOpenDisposition(
 
     default:
         ntError = STATUS_INVALID_PARAMETER;
-        break;        
+        break;
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    *unixFlags |= iUnixMode;    
- 
+    *unixFlags |= iUnixMode;
+
 cleanup:
     return ntError;
-    
+
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 /********************************************************
@@ -180,7 +180,7 @@ MapPosixOpenAccess(
 
     /* These really only apply when opening a file */
     if (!bIsDir)
-    {        
+    {
         if (bRead && bWrite) {
             iUnixMode = O_RDWR;
         } else if (bRead) {
@@ -191,21 +191,21 @@ MapPosixOpenAccess(
             ntError = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntError);
         }
-        
+
         if (Access & FILE_APPEND_DATA) {
             iUnixMode |= O_APPEND;
-        }    
+        }
     }
-    
-    *unixFlags |= iUnixMode;    
-    
+
+    *unixFlags |= iUnixMode;
+
     ntError = STATUS_SUCCESS;
- 
+
 cleanup:
     return ntError;
-    
+
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 /********************************************************
@@ -224,22 +224,22 @@ MapPosixOpenOptions(
     /* Ignore most options here at the moment */
 
     if (!bIsDir)
-    {        
+    {
         if (Options & FILE_WRITE_THROUGH) {
             iUnixMode |= O_SYNC;
         }
-    }    
-    
-    *unixFlags |= iUnixMode;    
+    }
+
+    *unixFlags |= iUnixMode;
     ntError = STATUS_SUCCESS;
 
     BAIL_ON_NT_STATUS(ntError);
- 
+
 cleanup:
     return ntError;
-    
+
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 

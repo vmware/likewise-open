@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -75,22 +75,22 @@ PvfsFileBasicInfo(
     case PVFS_SET:
         ntError = STATUS_NOT_SUPPORTED;
         break;
-        
+
     case PVFS_QUERY:
         ntError = PvfsQueryFileBasicInfo(pIrpContext);
         break;
 
     default:
         ntError = STATUS_INVALID_PARAMETER;
-        break;        
+        break;
     }
     BAIL_ON_NT_STATUS(ntError);
-    
+
 cleanup:
     return ntError;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 
@@ -99,10 +99,10 @@ PvfsQueryFileBasicInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;    
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    PFILE_BASIC_INFORMATION pFileInfo = NULL;    
+    PFILE_BASIC_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PVFS_STAT Stat = {0};
 
@@ -112,20 +112,20 @@ PvfsQueryFileBasicInfo(
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
-    BAIL_ON_NT_STATUS(ntError);    
+    BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
-        BAIL_ON_NT_STATUS(ntError);        
+        BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_BASIC_INFORMATION)Args.FileInformation;    
+    pFileInfo = (PFILE_BASIC_INFORMATION)Args.FileInformation;
 
     /* Real work starts here */
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
-    BAIL_ON_NT_STATUS(ntError);    
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Timestamps */
 
@@ -140,7 +140,7 @@ PvfsQueryFileBasicInfo(
 
     ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
     BAIL_ON_NT_STATUS(ntError);
-    
+
     /* Make this up for now */
 
     pFileInfo->FileAttributes = FILE_ATTRIBUTE_ARCHIVE;
@@ -148,14 +148,14 @@ PvfsQueryFileBasicInfo(
         pFileInfo->FileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
     }
 
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);    
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
-    
-error: 
-    goto cleanup;    
+
+error:
+    goto cleanup;
 }
 
 

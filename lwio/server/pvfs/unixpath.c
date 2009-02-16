@@ -62,9 +62,9 @@ PvfsCanonicalPathName(
     IO_FILE_NAME IoPath
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;    
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszPath = NULL;
-    PSTR pszCursor = NULL;    
+    PSTR pszCursor = NULL;
 
     ntError = RtlCStringAllocateFromWC16String(&pszPath,
                                                IoPath.FileName);
@@ -76,17 +76,17 @@ PvfsCanonicalPathName(
         if (*pszCursor == '\\') {
             *pszCursor = '/';
         }
-        pszCursor++;        
+        pszCursor++;
     }
-    
+
 
     *ppszPath = pszPath;
 
-    ntError = STATUS_SUCCESS;    
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
-    
+
 error:
     goto cleanup;
 }

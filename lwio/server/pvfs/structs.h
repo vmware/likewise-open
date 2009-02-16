@@ -100,7 +100,7 @@ typedef struct _PVFS_CCB
     int fd;
 
     /* Save parameters from the CreateFile() */
-    PSTR pszFilename;    
+    PSTR pszFilename;
     FILE_CREATE_OPTIONS CreateOptions;
     ACCESS_MASK AccessGranted;
 

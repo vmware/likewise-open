@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -84,7 +84,7 @@ DriverEntry(
                                  NULL,
                                  PvfsDriverShutdown,
                                  PvfsDriverDispatch);
-    BAIL_ON_NT_STATUS(ntError);    
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = IoDeviceCreate(&deviceHandle,
                              DriverHandle,
@@ -96,7 +96,7 @@ cleanup:
     return ntError;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 
@@ -118,7 +118,7 @@ PvfsDriverDispatch(
     IN PIRP pIrp
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;    
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     ntError = PvfsAllocateIrpContext(&pIrpCtx, pIrp);
@@ -149,7 +149,7 @@ PvfsDriverDispatch(
     case IRP_TYPE_FS_CONTROL:
         ntError = PvfsFsCtrl(DeviceHandle, pIrpCtx);
         break;
-        
+
     case IRP_TYPE_FLUSH_BUFFERS:
         ntError = STATUS_NOT_IMPLEMENTED;
         break;
@@ -169,24 +169,24 @@ PvfsDriverDispatch(
 #if 0
     case IRP_TYPE_QUERY_VOLUME_INFORMATION:
         ntError = PvfsQueryVolumeInformation(DeviceHandle, pIrpCtx);
-        break;        
+        break;
 #endif
 
     default:
         ntError = STATUS_INVALID_PARAMETER;
-        break;        
+        break;
     }
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     pIrp->IoStatusBlock.Status = ntError;
-    
+
     return ntError;
 
 error:
     PVFS_SAFE_FREE_MEMORY(pIrpCtx);
-    
-    goto cleanup;    
+
+    goto cleanup;
 }
 
 

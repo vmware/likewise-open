@@ -11,7 +11,7 @@ PvfsAllocateIrpContext(
     PPVFS_IRP_CONTEXT * ppIrpContext
     );
 
-NTSTATUS 
+NTSTATUS
 PvfsCommonCreateFile(
     PPVFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
@@ -54,7 +54,7 @@ PvfsCommonCreateFileOpen(
     PIRP pIrp
     );
 
-NTSTATUS 
+NTSTATUS
 PvfsCommonCreateFileOpenIf(
     PPVFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
@@ -73,7 +73,7 @@ PvfsCommonCreateFileOverwriteIf(
     );
 
 
-NTSTATUS 
+NTSTATUS
 PvfsCommonCreateDirectory(
     PPVFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
@@ -98,7 +98,7 @@ PvfsCommonCreateDirectoryFileOpen(
     PIRP pIrp
     );
 
-NTSTATUS 
+NTSTATUS
 PvfsCommonCreateDirectoryFileOpenIf(
     PPVFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp

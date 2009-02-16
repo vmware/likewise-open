@@ -55,12 +55,12 @@ PvfsWrite(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;    
+    PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
     PPVFS_CCB pCcb = NULL;
     size_t totalBytesWritten = 0;
-    
+
     BAIL_ON_INVALID_PTR(pBuffer, ntError);
 
     pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
@@ -75,30 +75,30 @@ PvfsWrite(
                              bufLen - totalBytesWritten);
         if (bytesWritten == -1) {
             int err = errno;
-         
+
             /* try again? */
-            if (err == EAGAIN) {                
+            if (err == EAGAIN) {
                 continue;
-            }            
-            
+            }
+
             ntError = PvfsMapUnixErrnoToNtStatus(err);
             BAIL_ON_NT_STATUS(ntError);
         }
-        
+
         totalBytesWritten += bytesWritten;
     }
-    
-    /* Can only get here is the loop was completed 
+
+    /* Can only get here is the loop was completed
        successfully */
 
     ntError = STATUS_SUCCESS;
 
-    
+
 cleanup:
     return ntError;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 
