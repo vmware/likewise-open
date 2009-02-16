@@ -53,14 +53,14 @@
 /* File Globals */
 
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
-    { FileFsAttributeInformation,     &PvfsQueryFsAttribInfo },
+    { FileFsAttributeInformation,     &PvfsQueryFileFsAttribInfo },
 };
 
 
 /* Code */
 
 NTSTATUS
-PvfsQueryVolInformation(
+PvfsQueryVolumeInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
