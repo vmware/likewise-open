@@ -98,7 +98,9 @@ LsaNssHpuxPrpasswdDestructor(
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
     int                     ret = NSS_STATUS_SUCCESS;
 
-    LsaNssClearEnumUsersState(pEnumUsersState);
+    LsaNssClearEnumUsersState(
+        &pLsaBackend->hLsaConnectionPrUsers,
+        pEnumUsersState);
     LsaFreeMemory(pBackend);
 
     return ret;

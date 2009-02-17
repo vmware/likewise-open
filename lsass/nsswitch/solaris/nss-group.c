@@ -69,7 +69,9 @@ LsaNssSolarisGroupDestructor(
     PLSA_ENUMGROUPS_STATE   pEnumGroupsState = &pLsaBackend->enumGroupsState;
     int                     ret = NSS_STATUS_SUCCESS;
 
-    LsaNssClearEnumGroupsState(pEnumGroupsState);
+    LsaNssClearEnumGroupsState(
+        &pLsaBackend->hLsaConnectionGroup,
+        pEnumGroupsState);
     LsaFreeMemory(pBackend);
 
     return ret;
