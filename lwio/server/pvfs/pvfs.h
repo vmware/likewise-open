@@ -124,6 +124,12 @@ PvfsQueryDirInformation(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
+NTSTATUS
+PvfsQueryVolumeInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
 /* From errno.c */
 
 NTSTATUS

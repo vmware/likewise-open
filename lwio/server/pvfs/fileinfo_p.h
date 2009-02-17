@@ -46,7 +46,7 @@
  */
 
 
-/* QueryFileInformation */
+/* Query/Set FileInformation */
 
 NTSTATUS
 PvfsFileBasicInfo(
@@ -79,13 +79,13 @@ PvfsFileStreamInfo(
     );
 
 NTSTATUS
-PvfsFileFsAttribInfo(
+PvfsFileEndOfFileInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
 NTSTATUS
-PvfsFileFsVolInfo(
+PvfsFileDispositionInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -103,10 +103,18 @@ PvfsFileBothDirInfo(
 /* QueryVolumeInformation */
 
 NTSTATUS
-PvfsQueryVolumeInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
+PvfsFileFsAttribInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
     );
+
+NTSTATUS
+PvfsFileFsVolInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+
 
 /* utility functions */
 
