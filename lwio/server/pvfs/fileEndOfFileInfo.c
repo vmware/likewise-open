@@ -34,13 +34,13 @@
  *
  * Module Name:
  *
- *        fileBasicInfo.c
+ *        fileEndOfFileInfo.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        FileBasicInformation Handler
+ *        FileEndOfFileInformation Handler
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
@@ -50,14 +50,10 @@
 /* Forward declarations */
 
 static NTSTATUS
-PvfsQueryFileBasicInfo(
+PvfsSetFileEndOfFileInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-static NTSTATUS
-PvfsSetFileBasicInfo(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
 
 /* File Globals */
 
@@ -66,11 +62,8 @@ PvfsSetFileBasicInfo(
 /* Code */
 
 
-/****************************************************************
- ***************************************************************/
-
 NTSTATUS
-PvfsFileBasicInfo(
+PvfsFileEndOfFileInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -80,11 +73,11 @@ PvfsFileBasicInfo(
     switch(Type)
     {
     case PVFS_SET:
-        ntError = PvfsSetFileBasicInfo(pIrpContext);
+        ntError = PvfsSetFileEndOfFileInfo(pIrpContext);
         break;
 
     case PVFS_QUERY:
-        ntError = PvfsQueryFileBasicInfo(pIrpContext);
+        ntError = STATUS_NOT_SUPPORTED;
         break;
 
     default:
@@ -101,84 +94,15 @@ error:
 }
 
 
-/****************************************************************
- ***************************************************************/
-
 static NTSTATUS
-PvfsQueryFileBasicInfo(
+PvfsSetFileEndOfFileInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    PFILE_BASIC_INFORMATION pFileInfo = NULL;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    PVFS_STAT Stat = {0};
-
-    /* Sanity checks */
-
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
-    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
-
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if (Args.Length < sizeof(*pFileInfo))
-    {        ntError = STATUS_BUFFER_TOO_SMALL;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    pFileInfo = (PFILE_BASIC_INFORMATION)Args.FileInformation;
-
-    /* Real work starts here */
-
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Timestamps */
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, Stat.s_atime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, Stat.s_mtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, Stat.s_ctime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Make this up for now */
-
-    pFileInfo->FileAttributes = FILE_ATTRIBUTE_ARCHIVE;
-    if (S_ISDIR(Stat.s_mode)) {
-        pFileInfo->FileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
-    }
-
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/****************************************************************
- ***************************************************************/
-
-static NTSTATUS
-PvfsSetFileBasicInfo(
-    PPVFS_IRP_CONTEXT pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    PFILE_BASIC_INFORMATION pFileInfo = NULL;
+    PFILE_END_OF_FILE_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
 
     /* Sanity checks */
@@ -190,11 +114,12 @@ PvfsSetFileBasicInfo(
     BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
-    {        ntError = STATUS_BUFFER_TOO_SMALL;
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_BASIC_INFORMATION)Args.FileInformation;
+    pFileInfo = (PFILE_END_OF_FILE_INFORMATION)Args.FileInformation;
 
     /* Real work starts here */
 
