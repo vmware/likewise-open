@@ -151,6 +151,7 @@ SrvProcessTrans2QueryFilesystemInformation(
     PVOID               pSecurityDescriptor = NULL;
     PVOID               pSecurityQOS = NULL;
     IO_STATUS_BLOCK     ioStatusBlock = {0};
+    BOOLEAN             bInLock = FALSE;
 
     if ((pRequestHeader->parameterCount != 2) &&
         (pRequestHeader->parameterCount != 4))
@@ -170,6 +171,8 @@ SrvProcessTrans2QueryFilesystemInformation(
                     pSmbRequest->pSMBHeader->tid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
     fileName.FileName = pTree->pShareInfo->pwszPath;
 
@@ -192,6 +195,8 @@ SrvProcessTrans2QueryFilesystemInformation(
                     NULL  /* ECP List  */
                     );
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     usInfoLevel = *((PUSHORT)pParameters);
 
@@ -305,6 +310,8 @@ cleanup:
 
     if (pTree)
     {
+        SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+
         SrvTreeRelease(pTree);
     }
 
