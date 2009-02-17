@@ -548,7 +548,6 @@ SrvMarshallFSAttributeInfo(
     NTSTATUS ntStatus = 0;
     PBYTE    pData = NULL;
     PBYTE    pDataCursor = NULL;
-    USHORT   usDataLen = 0;
     USHORT   usBytesRequired = 0;
     PFILE_FS_ATTRIBUTE_INFORMATION pFSAttrInfo = NULL;
     PSMB_FS_ATTRIBUTE_INFO_HEADER pFSAttrInfoHeader = NULL;
@@ -590,7 +589,7 @@ SrvMarshallFSAttributeInfo(
     }
 
     *ppData = pData;
-    *pusDataLen = usDataLen;
+    *pusDataLen = usBytesRequired;
 
 cleanup:
 
