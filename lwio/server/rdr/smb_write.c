@@ -50,6 +50,7 @@ WireWriteFile(
     SMB_PACKET *pResponsePacket = NULL;
     uint16_t wMid = 0;
     uint16_t wNumBytesWriteable = 0;
+    uint16_t dataOffset = 0;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -114,12 +115,14 @@ WireWriteFile(
                 packet.bufferLen - packet.bufferUsed,
                 (packet.pData - (uint8_t *) pRequestHeader) % 2,
                 &packetByteCount,
-                &pRequestHeader->dataOffset,
+                &dataOffset,
                 pWriteBuffer,
                 wWriteLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     packet.bufferUsed += packetByteCount;
+
+    pRequestHeader->dataOffset = dataOffset;
     pRequestHeader->dataOffset += packet.pData - (uint8_t *) packet.pSMBHeader;
 
     // byte order conversions

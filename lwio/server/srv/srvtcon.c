@@ -518,8 +518,8 @@ SrvBuildTreeConnectResponse(
                     pwszNativeFileSystem);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = (USHORT)packetByteCount;
+    assert(packetByteCount <= UINT16_MAX);
+    pResponseHeader->byteCount = (USHORT)packetByteCount;
 
     pSmbResponse->bufferUsed += packetByteCount;
 

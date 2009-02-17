@@ -191,8 +191,7 @@ NPTransact(
     wWriteOffset += wIterWriteLen;
 
     // verify interim response
-    if (!pResponsePacket->pByteCount &&
-        !pResponsePacket->pSMBHeader->wordCount)
+    if (!pResponsePacket->pSMBHeader->wordCount)
     {
         SMB_LOG_VERBOSE("Received interim response");
     }

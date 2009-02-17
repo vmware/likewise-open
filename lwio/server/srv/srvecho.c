@@ -181,8 +181,8 @@ SrvMarshallEchoResponse(
                     &usPackageByteCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = usPackageByteCount;
+    pResponseHeader->byteCount = usPackageByteCount;
+
     pSmbResponse->bufferUsed += usPackageByteCount;
 
     ntStatus = SMBPacketMarshallFooter(pSmbResponse);

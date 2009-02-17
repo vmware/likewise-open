@@ -123,8 +123,7 @@ SrvBuildLogoffResponse(
     pSmbResponse->pData = pSmbResponse->pParams + sizeof(LOGOFF_RESPONSE_HEADER);
     pSmbResponse->bufferUsed += sizeof(LOGOFF_RESPONSE_HEADER);
 
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = 0;
+    pResponseHeader->byteCount = 0;
 
     ntStatus = SMBPacketMarshallFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

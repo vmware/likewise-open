@@ -260,8 +260,7 @@ SrvBuildWriteAndXResponse(
     pResponseHeader->count = (ullBytesWritten & 0x00000000FFFFFFFFLL);
     pResponseHeader->countHigh = (ullBytesWritten & 0xFFFFFFFF00000000LL) >> 32;
 
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = 0;
+    pResponseHeader->byteCount = 0;
 
     ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

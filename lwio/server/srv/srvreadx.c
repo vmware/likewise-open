@@ -276,10 +276,11 @@ SrvBuildReadAndXResponse(
     BAIL_ON_NT_STATUS(ntStatus);
 
     // The data offset will fit in 16 bits
+    assert(ulDataOffset <= UINT16_MAX);
     pResponseHeader->dataOffset = (USHORT)ulDataOffset;
 
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = (USHORT)ulPackageByteCount;
+    assert(ulPackageByteCount <= UINT16_MAX);
+    pResponseHeader->byteCount = (USHORT)ulPackageByteCount;
 
     pSmbResponse->bufferUsed += ulPackageByteCount;
 

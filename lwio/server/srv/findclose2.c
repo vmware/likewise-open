@@ -95,9 +95,7 @@ SrvProcessFindClose2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSmbResponse->bufferUsed += usResponseBytesUsed;
-
-    pSmbResponse->pByteCount = &pResponseHeader->usByteCount;
-    *pSmbResponse->pByteCount = 0;
+    pResponseHeader->usByteCount = 0;
 
     ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

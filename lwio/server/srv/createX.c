@@ -306,9 +306,7 @@ SrvBuildNTCreateResponse(
         pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS | SMB_DEVICE_STATE_NO_SUBSTREAMS | SMB_DEVICE_STATE_NO_REPARSE_TAG;
     }
     pResponseHeader->isDirectory = fileStdInfo.Directory;
-
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = 0;
+    pResponseHeader->byteCount = 0;
 
     ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

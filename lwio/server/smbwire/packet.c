@@ -438,7 +438,6 @@ SMBPacketMarshallHeader(
 
     pPacket->pParams = pBuffer + bufferUsed;
     pPacket->pData = NULL;
-    pPacket->pByteCount = NULL;
     pPacket->bufferLen = bufferLen;
     pPacket->bufferUsed = bufferUsed;
 
@@ -453,7 +452,6 @@ error:
     pPacket->pAndXHeader = NULL;
     pPacket->pParams = NULL;
     pPacket->pData = NULL;
-    pPacket->pByteCount = NULL;
     pPacket->bufferLen = bufferLen;
     pPacket->bufferUsed = 0;
 

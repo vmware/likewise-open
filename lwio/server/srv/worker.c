@@ -555,8 +555,7 @@ SrvWorkerBuildErrorResponse(
 
     pSmbResponse->bufferUsed += (USHORT)ulParamBytesUsed;
 
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = 0;
+    pResponseHeader->byteCount = 0;
 
     ntStatus = SMBPacketMarshallFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

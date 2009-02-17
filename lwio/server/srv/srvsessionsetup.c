@@ -286,9 +286,8 @@ SrvMarshallSessionSetupResponse(
     BAIL_ON_NT_STATUS(ntStatus);
 
     assert(ulPackageByteCount <= UINT16_MAX);
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = (uint16_t) ulPackageByteCount;
-    pSmbResponse->bufferUsed += *pSmbResponse->pByteCount;
+    pResponseHeader->byteCount = (uint16_t) ulPackageByteCount;
+    pSmbResponse->bufferUsed += ulPackageByteCount;
 
     ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

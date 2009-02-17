@@ -377,7 +377,6 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
         }
     }
 
-    pPacket->pByteCount = &pResponseHeader->byteCount;
     pResponseHeader->byteCount = byteCount;
     pPacket->bufferUsed += byteCount;
 
@@ -428,7 +427,6 @@ SrvBuildNegotiateResponseByDialect_Invalid(
 
     pResponseHeader->dialectIndex = 0xFF;
     pResponseHeader->byteCount = 0;
-    pPacket->pByteCount = &pResponseHeader->byteCount;
 
     ntStatus = SMBPacketMarshallFooter(pPacket);
     BAIL_ON_NT_STATUS(ntStatus);

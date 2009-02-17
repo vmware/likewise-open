@@ -130,8 +130,7 @@ SrvBuildTreeDisconnectResponse(
     pSmbResponse->pData = pSmbResponse->pParams + sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
     pSmbResponse->bufferUsed += sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
 
-    pSmbResponse->pByteCount = &pResponseHeader->byteCount;
-    *pSmbResponse->pByteCount = 0;
+    pResponseHeader->byteCount = 0;
 
     ntStatus = SMBPacketMarshallFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

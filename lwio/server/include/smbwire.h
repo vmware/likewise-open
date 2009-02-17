@@ -339,8 +339,6 @@ typedef struct
     SMB_HEADER     *pSMBHeader;
     ANDX_HEADER    *pAndXHeader; /* If NULL, no AndX */
 
-    uint16_t       *pByteCount;  /* Pointer to byteCount within message */
-
     uint8_t        *pParams;     /* Pointer to start of message specific
                                     parameters */
     uint8_t        *pData;       /* Pointer to start of message data portion;
@@ -608,6 +606,17 @@ typedef struct
 
 typedef struct
 {
+    uint16_t byteCount;
+#if 0
+    struct {
+        UCHAR BufferFormat;
+        UCHAR DialectName[];
+    } Dialects[];
+#endif
+} __attribute__((__packed__)) NEGOTIATE_REQUEST_HEADER, *PNEGOTIATE_REQUEST_HEADER;
+
+typedef struct
+{
     /* wordCount and byteCount are handled at a higher layer */
 
     uint16_t dialectIndex;       /* Index of selected dialect */
@@ -642,11 +651,6 @@ typedef struct
     uint16_t byteCount;           /* Count of data bytes */
 
 }  __attribute__((__packed__))  NEGOTIATE_INVALID_RESPONSE_HEADER;
-
-typedef struct
-{
-    uint16_t byteCount;
-} __attribute__((__packed__)) NEGOTIATE_REQUEST_HEADER;
 
 typedef struct
 {

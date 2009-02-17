@@ -254,7 +254,10 @@ SMBSrvClientHashAddrinfo(
 
     for (i = 0; i < addressLen / chunkSize; i++)
     {
-        result ^= *((size_t*) (&pData[i*chunkSize]));
+        // Make sure to not do unaligned memory access.
+        size_t chunk = 0;
+        memcpy(&chunk, &pData[i*chunkSize], chunkSize);
+        result ^= chunk;
     }
 
     for (j = 0; j < rem; j++)

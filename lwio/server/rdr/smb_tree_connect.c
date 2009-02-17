@@ -94,7 +94,6 @@ TreeConnect(
     packet.pSMBHeader->wordCount = 4;
 
     pHeader = (TREE_CONNECT_REQUEST_HEADER *) packet.pParams;
-    packet.pByteCount = &pHeader->byteCount;
 
     pHeader->flags = 0;
     pHeader->passwordLength = 1;    /* strlen("") + terminating NULL */
@@ -110,8 +109,8 @@ TreeConnect(
     BAIL_ON_NT_STATUS(ntStatus);
 
     assert(packetByteCount <= UINT16_MAX);
-    *packet.pByteCount = (uint16_t) packetByteCount;
-    packet.bufferUsed += *packet.pByteCount;
+    pHeader->byteCount = (uint16_t) packetByteCount;
+    packet.bufferUsed += packetByteCount;
 
     // byte order conversions
     SMB_HTOL16_INPLACE(pHeader->flags);
