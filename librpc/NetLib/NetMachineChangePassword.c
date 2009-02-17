@@ -113,6 +113,7 @@ NetMachineChangePassword(
 
     err = SaveMachinePassword(
               pass_info->pwszHostname,
+              pass_info->pwszMachineAccount,
               pass_info->pwszDomainName,
               pass_info->pwszDnsDomainName,
               domain_controller_name,
