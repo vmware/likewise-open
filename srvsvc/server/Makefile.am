@@ -8,7 +8,6 @@ include_srcdir=$(top_srcdir)/include
 srvsvcd_SOURCES =              \
     srvsvc.c                   \
     srvsvc_srv.c               \
-    driver.c                   \
     globals.c                  \
     marshall.c                 \
     memutil.c                  \
