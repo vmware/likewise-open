@@ -57,6 +57,111 @@ static handle_t ghSchannelBinding = NULL;
 static pthread_mutex_t gSchannelLock = PTHREAD_MUTEX_INITIALIZER;
 
 static
+DWORD
+AD_GetSystemAccessToken(
+    PHANDLE phAccessToken
+    )
+{
+    HANDLE hAccessToken = NULL;
+    DWORD dwError = 0;
+    PSTR pszUsername = NULL;
+    PSTR pszPassword = NULL;
+    PSTR pszDomainDnsName = NULL;
+    PSTR pszHostname = NULL;
+    PSTR pszMachPrincipal = NULL;
+    PSTR pszKrb5CcPath = NULL;
+
+    dwError = LsaDnsGetHostInfo(&pszHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaStrToUpper(pszHostname);
+
+    dwError = LsaKrb5GetMachineCreds(
+                    pszHostname,
+                    &pszUsername,
+                    &pszPassword,
+                    &pszDomainDnsName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszMachPrincipal,
+                    "%s@%s",
+                    pszUsername,
+                    pszDomainDnsName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaKrb5GetSystemCachePath(
+                    KRB5_File_Cache,
+                    &pszKrb5CcPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SMBCreateKrb5AccessTokenA(
+                    pszMachPrincipal,
+                    pszKrb5CcPath,
+                    &hAccessToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *phAccessToken = hAccessToken;
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszUsername);
+    LSA_SAFE_FREE_STRING(pszPassword);
+    LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostname);
+    LSA_SAFE_FREE_STRING(pszMachPrincipal);
+    LSA_SAFE_FREE_STRING(pszKrb5CcPath);
+
+    return dwError;
+
+error:
+    *phAccessToken = NULL;
+    if (hAccessToken != NULL)
+    {
+        SMBCloseHandle(NULL, hAccessToken);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+AD_SetSystemAccess(
+    PHANDLE phOldToken
+    )
+{
+    HANDLE hOldToken = NULL;
+    HANDLE hSystemToken = NULL;
+    DWORD dwError = 0;
+
+    dwError = AD_GetSystemAccessToken(&hSystemToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SMBGetThreadToken(&hOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SMBSetThreadToken(hSystemToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *phOldToken = hOldToken;
+
+cleanup:
+    if (hSystemToken != NULL)
+    {
+        SMBCloseHandle(NULL, hSystemToken);
+    }
+    return dwError;
+
+error:
+    if (hOldToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldToken);
+    }
+    *phOldToken = NULL;
+
+    goto cleanup;
+}
+
+static
 VOID
 AD_ClearSchannelState(
     VOID
@@ -298,12 +403,18 @@ AD_NetLookupObjectSidsByNames(
     PWSTR pwcObjectSid = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
+    HANDLE hOldToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     BAIL_ON_INVALID_STRING(pszHostname);
     dwError = LsaMbsToWc16s(
                   pszHostname,
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_SetSystemAccess(&hOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+    bChangedToken = TRUE;
 
     rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
     if (rpcStatus != 0)
@@ -503,6 +614,14 @@ cleanup:
     {
         FreeLsaBinding(&lsa_binding);
     }
+    if (bChangedToken)
+    {
+        SMBSetThreadToken(hOldToken);
+    }
+    if (hOldToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldToken);
+    }
 
     return dwError;
 
@@ -607,6 +726,8 @@ AD_NetLookupObjectNamesBySids(
     PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedNames = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
+    HANDLE hOldToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     BAIL_ON_INVALID_STRING(pszHostname);
 
@@ -614,6 +735,10 @@ AD_NetLookupObjectNamesBySids(
                   pszHostname,
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_SetSystemAccess(&hOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+    bChangedToken = TRUE;
 
     rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
     if (rpcStatus != 0)
@@ -830,6 +955,14 @@ cleanup:
     {
         FreeLsaBinding(&lsa_binding);
     }
+    if (bChangedToken)
+    {
+        SMBSetThreadToken(hOldToken);
+    }
+    if (hOldToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldToken);
+    }
 
     return dwError;
 
@@ -862,9 +995,15 @@ AD_DsEnumerateDomainTrusts(
     NetrDomainTrust* pTrusts = NULL;
     DWORD dwCount = 0;
     BOOLEAN bIsNetworkError = FALSE;
+    HANDLE hOldToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     dwError = LsaMbsToWc16s(pszDomainControllerName, &pwcDomainControllerName);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_SetSystemAccess(&hOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+    bChangedToken = TRUE;
 
     status = InitNetlogonBindingDefault(&netr_b,
                                         (const char*)pszDomainControllerName);
@@ -902,6 +1041,14 @@ cleanup:
         netr_b = NULL;
     }
     LSA_SAFE_FREE_MEMORY(pwcDomainControllerName);
+    if (bChangedToken)
+    {
+        SMBSetThreadToken(hOldToken);
+    }
+    if (hOldToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldToken);
+    }
     *ppTrusts = pTrusts;
     *pdwCount = dwCount;
     if (pbIsNetworkError)

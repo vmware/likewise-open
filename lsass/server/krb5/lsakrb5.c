@@ -350,40 +350,6 @@ error:
     return dwError;
 }
 
-
-DWORD
-LsaSetupMachineLoginSession(
-    PCSTR pszMachineAccount,
-    PCSTR pszPassword
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszCachePath = NULL;
-    
-    dwError = LsaKrb5GetSystemCachePath(
-                    KRB5_File_Cache,
-                    &pszCachePath);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaKrb5GetTgt(
-                    pszMachineAccount,
-                    pszPassword,
-                    pszCachePath,
-                    NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-cleanup:
-
-    LSA_SAFE_FREE_STRING(pszCachePath);
-
-    return dwError;
-    
-error:
-
-    goto cleanup;
-}
-
-
 DWORD
 LsaSetupMachineSession(
     PCSTR  pszMachname,
