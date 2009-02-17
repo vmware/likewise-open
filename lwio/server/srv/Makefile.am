@@ -40,6 +40,7 @@ libsrv_sys_la_SOURCES = \
     srvreadx.c        \
     srvsessionsetup.c \
     srvsharelst.c     \
+    srvshares.c       \
     srvsession.c      \
     srvsocket.c       \
     srvtcon.c         \

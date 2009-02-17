@@ -58,35 +58,59 @@ SrvDevCtlAddShare(
     )
 {
     NTSTATUS ntStatus = 0;
-    ULONG Level = 0;
+    PSHARE_INFO_ADD_PARAMS pAddShareInfoParams = NULL;
+    PSHARE_INFO_0 pShareInfo0 = NULL;
+    PSHARE_INFO_1 pShareInfo1 = NULL;
+    PSHARE_INFO_501 pShareInfo501 = NULL;
+    PSHARE_INFO_502 pShareInfo502 = NULL;
+    PWSTR pwszShareName = NULL;
+    PWSTR pwszPath = NULL;
 
-    ntStatus = LwUnmarshallAddShareInfo(
+    ntStatus = LwShareInfoUnmarshalAddParameters(
                         lpInBuffer,
-                        ulInBufferSize
+                        ulInBufferSize,
                         &pAddShareInfoParams
                         );
     BAIL_ON_NT_STATUS(ntStatus);
-    switch (pAddShareInfoParams->Level)
+
+    switch (pAddShareInfoParams->dwInfoLevel)
     {
-        case 2:
-            pShareInfo2 = pAddShareInfoParams->u.pShareInfo2;
+        case 0:
+	    pShareInfo0 = pAddShareInfoParams->info.p0;
+	    pwszShareName = pShareInfo0->shi0_netname;
+	    pwszPath = NULL;
+            break;
+
+        case 1:
+	    pShareInfo1 = pAddShareInfoParams->info.p1;
+	    pwszShareName = pShareInfo1->shi1_netname;
+	    pwszPath = NULL;
+            break;
+
+        case 501:
+            pShareInfo501 = pAddShareInfoParams->info.p501;
+	    pwszShareName = pShareInfo501->shi501_netname;
+	    pwszPath = NULL;
             break;
 
         case 502:
-            pShareInfo502 = pAddShareInfoParams->u.pShareInfo502;
-            break;
-
-        case 503:
-            pShareInfo
-            break;
+            pShareInfo502 = pAddShareInfoParams->info.p502;
+	    pwszShareName = pShareInfo502->shi502_netname;
+	    pwszPath = pShareInfo502->shi502_path;
 
         default:
-
             ntStatus = STATUS_INVALID_PARAMETER;
-
+            BAIL_ON_NT_STATUS(ntStatus);
             break;
 
     }
+
+    ntStatus = SrvShareAddShare(
+                        pwszShareName,
+                        pwszPath
+                        );
+
+
 error:
 
     return ntStatus;

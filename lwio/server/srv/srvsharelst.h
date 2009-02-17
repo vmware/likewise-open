@@ -101,4 +101,11 @@ SrvDevCtlSetShareInfo(
     ULONG ulOutBufferSize
     );
 
+
+NTSTATUS
+SrvShareAddShare(
+    PWSTR  pwszShareName,
+    PWSTR  pwszPath
+    );
+
 #endif /* __SRV_SHARELST_H__ */
