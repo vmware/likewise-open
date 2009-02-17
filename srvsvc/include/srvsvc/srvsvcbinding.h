@@ -48,7 +48,7 @@
 #ifndef _SRVSVC_BINDING_H_
 #define _SRVSVC_BINDING_H_
 
-#include "types.h"
+#include <srvsvc/types.h>
 
 #define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_ip_tcp"
 #define SRVSVC_DEFAULT_ENDPOINT   ""

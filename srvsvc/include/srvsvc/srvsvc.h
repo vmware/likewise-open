@@ -47,9 +47,9 @@
 #ifndef _SRVSVC_H_
 #define _SRVSVC_H_
 
-
-#include <srvsvcbinding.h>
-#include <srvsvcdefs.h>
+#include <srvsvc/types.h>
+#include <srvsvc/srvsvcbinding.h>
+#include <srvsvc/srvsvcdefs.h>
 
 
 NET_API_STATUS
