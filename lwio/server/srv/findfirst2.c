@@ -924,6 +924,7 @@ SrvMarshallBothDirInfoResponse(
     NTSTATUS ntStatus = 0;
     USHORT   usBytesRequired = 0;
     PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
+    PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pInfoHeader = NULL;
     PBYTE    pData = NULL;
     PBYTE    pDataCursor = NULL;
     USHORT   usSearchCount = 0;
@@ -953,7 +954,7 @@ SrvMarshallBothDirInfoResponse(
 
         if (pFileInfoCursor->NextEntryOffset)
         {
-            pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)(((PBYTE)pFileInfo) + pFileInfoCursor->NextEntryOffset);
+            pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)(((PBYTE)pFileInfoCursor) + pFileInfoCursor->NextEntryOffset);
         }
         else
         {
@@ -970,11 +971,15 @@ SrvMarshallBothDirInfoResponse(
     pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pFileInfo;
     for (; iSearchCount < usSearchCount; iSearchCount++)
     {
-        PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pInfoHeader = NULL;
+        if (pInfoHeader)
+        {
+            pInfoHeader->NextEntryOffset = usOffset;
+        }
 
         pInfoHeader = (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pDataCursor;
 
-        pInfoHeader->NextEntryOffset = usOffset;
+        usOffset = 0;
+
         pInfoHeader->FileIndex = pFileInfoCursor->FileIndex;
         pInfoHeader->CreationTime = pFileInfoCursor->CreationTime;
         pInfoHeader->LastAccessTime = pFileInfoCursor->LastAccessTime;
@@ -1010,7 +1015,13 @@ SrvMarshallBothDirInfoResponse(
         pDataCursor += sizeof(wchar16_t);
         usOffset += sizeof(wchar16_t);
 
-        pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)(((PBYTE)pFileInfo) + pFileInfoCursor->NextEntryOffset);
+        pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)(((PBYTE)pFileInfoCursor) + pFileInfoCursor->NextEntryOffset);
+
+    }
+
+    if (pInfoHeader)
+    {
+        pInfoHeader->NextEntryOffset = 0;
     }
 
     *pusSearchCount = usSearchCount;
