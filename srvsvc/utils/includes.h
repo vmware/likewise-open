@@ -5,8 +5,8 @@
 #include <lw/ntstatus.h>
 #include <wc16str.h>
 
-#include "srvsvc.h"
-#include "srvsvcdefs.h"
+#include <srvsvc/srvsvc.h>
+#include <srvsvc/srvsvcdefs.h>
 
 #include "srvsvcutils.h"
 
