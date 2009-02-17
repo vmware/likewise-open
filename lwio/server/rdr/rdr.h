@@ -70,6 +70,7 @@
 #include <lwio/io-types.h>
 #include "iodriver.h"
 
+#include "lwio-semaphore.h"
 #include "rdrstructs.h"
 #include "readfile.h"
 #include "writefile.h"

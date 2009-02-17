@@ -395,11 +395,8 @@ SMBSocketSend(
 
     if (pSocket->maxMpxCount)
     {
-        if (sem_wait(&pSocket->semMpx) < 0)
-        {
-            ntStatus = LwUnixErrnoToNtStatus(errno);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
+        ntStatus = SMBSemaphoreWait(&pSocket->semMpx);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         bSemaphoreAcquired = TRUE;
     }
@@ -456,9 +453,10 @@ error:
 
     if (bSemaphoreAcquired)
     {
-        if (sem_post(&pSocket->semMpx) < 0)
+        NTSTATUS localStatus = SMBSemaphorePost(&pSocket->semMpx);
+        if (localStatus)
         {
-            SMB_LOG_ERROR("Failed to post semaphore [code: %d]", errno);
+            SMB_LOG_ERROR("Failed to post semaphore (status = 0x%08X)", localStatus);
         }
     }
 
@@ -592,10 +590,9 @@ SMBSocketReaderMain(
         ntStatus = SMBSocketReceiveAndUnmarshall(pSocket, pPacket);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pSocket->maxMpxCount && (sem_post(&pSocket->semMpx) < 0))
+        if (pSocket->maxMpxCount)
         {
-            SMB_LOG_ERROR("Error when posting socket semaphore");
-            ntStatus = errno;
+            ntStatus = SMBSemaphorePost(&pSocket->semMpx);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -1166,10 +1163,7 @@ SMBSocketFree(
 
     if (pSocket && pSocket->maxMpxCount)
     {
-        if (sem_destroy(&pSocket->semMpx) < 0)
-        {
-            SMB_LOG_ERROR("Failed to destroy semaphore [code: %d]", errno);
-        }
+        SMBSemaphoreDestroy(&pSocket->semMpx);
     }
 
     pthread_cond_destroy(&pSocket->event);

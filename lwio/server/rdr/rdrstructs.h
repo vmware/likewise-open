@@ -101,8 +101,7 @@ typedef struct
     pthread_cond_t sessionEvent;  /* Signals waiting thread on setup packet */
 
     uint16_t maxMpxCount;       /* MaxMpxCount from NEGOTIATE */
-    sem_t    semMpx;
-
+    LSMB_SEMAPHORE semMpx;
 
     SMB_SECURITY_MODE securityMode; /* Share or User security */
     BOOLEAN  bPasswordsMustBeEncrypted;
