@@ -55,9 +55,11 @@
 #include <lwio/lwio.h>
 #include <lwio/ntfileapi.h>
 
-#include <srvsvcdefs.h>
+#include <srvsvc/srvsvc.h>
+#include <srvsvc/srvsvcdefs.h>
 #include <srvsvcutils.h>
-#include <srvsvc_stub.h>
+
+#include "srvsvc_stub.h"
 
 #include "defs.h"
 #include "structs.h"

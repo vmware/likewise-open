@@ -50,11 +50,12 @@
 #include <wc16str.h>
 #include <lwio/io-types.h>
 
-#include <srvsvc.h>
-#include <srvsvc_stub.h>
+#include <srvsvc/srvsvc.h>
+#include <memptr.h>
+
+#include "srvsvc_stub.h"
 
 #include "SrvSvcUtil.h"
-#include <memptr.h>
 #include "externs.h"
 #include "SrvSvcMemory.h"
 #include "SrvSvcStubMemory.h"
