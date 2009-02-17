@@ -134,6 +134,15 @@ static LWMsgTypeSpec gShareInfoAddParamsSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gShareInfoDeleteParamsSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(SHARE_INFO_DELETE_PARAMS),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_DELETE_PARAMS, servername),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_DELETE_PARAMS, netname),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_DELETE_PARAMS, reserved),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
 
 LW_NTSTATUS
 LwShareInfoMarshalAddParameters(
@@ -228,6 +237,104 @@ error:
     if (pParams)
     {
         lwmsg_context_free_graph(pContext, gShareInfoAddParamsSpec, pParams);
+    }
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwShareInfoMarshalDeleteParameters(
+    PSHARE_INFO_ADD_PARAMS pParams,
+    PBYTE* ppBuffer,
+    ULONG* pulBufferSize
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    VOID* pBuffer = NULL;
+    size_t szBufferSize = 0;
+    LWMsgContext* pContext = NULL;
+    NT_IPC_MESSAGE_CREATE_FILE *pInfo = NULL;
+
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_marshal_alloc(
+            pContext,
+            gShareInfoDeleteParamsSpec,
+	    pInfo,
+	    &pBuffer,
+	    &szBufferSize));
+    BAIL_ON_NT_STATUS(Status);
+
+    *ppBuffer = pBuffer;
+    *pulBufferSize = (ULONG) szBufferSize;
+
+cleanup:
+
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    return Status;
+
+error:
+
+    *ppBuffer = NULL;
+    *pulBufferSize = 0;
+
+    if (pBuffer)
+    {
+        RtlMemoryFree(pBuffer);
+    }
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwShareInfoUnmarshalDeleteParameters(
+    PBYTE pBuffer,
+    ULONG ulBufferSize,
+    PSHARE_INFO_DELETE_PARAMS* ppParams
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    PSHARE_INFO_DELETE_PARAMS pParams = NULL;
+    LWMsgContext* pContext = NULL;
+
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_unmarshal_simple(
+            pContext,
+            gShareInfoDeleteParamsSpec,
+	    pBuffer,
+            ulBufferSize,
+            OUT_PPVOID(&pParams)));
+    BAIL_ON_NT_STATUS(Status);
+
+    *ppParams = pParams;
+
+cleanup:
+
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    return Status;
+
+error:
+
+    *ppParams = NULL;
+
+    if (pParams)
+    {
+        lwmsg_context_free_graph(pContext, gShareInfoDeleteParamsSpec, pParams);
     }
 
     goto cleanup;
