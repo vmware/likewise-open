@@ -175,7 +175,7 @@ NET_API_STATUS _NetrShareAdd(
     /* [in, out] */ uint32 *parm_error
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwError = 0;
 
     dwError = SrvSvcNetShareAdd(
                     server_name,
@@ -196,7 +196,7 @@ NET_API_STATUS _NetrShareEnum(
     /* [in, out] */ uint32 *resume_handle
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwError = 0;
 
     dwError = SrvSvcNetShareEnum(
                     server_name,
