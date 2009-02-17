@@ -181,7 +181,7 @@ AC_ARG_WITH([lwio-libs],
 		LWIO_LDFLAGS="-L$withval"
         ])
 
-LWIO_LIBS="-llwioclient"
+LWIO_LIBS="-llwioclient -llwshareinfo"
 
 AC_SUBST(LWIO_INCLUDES)
 AC_SUBST(LWIO_LDFLAGS)
