@@ -497,7 +497,8 @@ typedef ULONG FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 #define FileValidDataLengthInformation    39 // unused
 #define FileShortNameInformation          40 // SET: FILE_NAME_INFORMATION (set 8.3 name)
 #define FileFsAttributeInformation        41 // VOL: FILE_FS_ATTRIBUTE_INFORMATION
-#define FileMaximumInformation            42 // SENTINEL
+#define FileFsVolumeInformation           42 // VOL: FILE_FS_VOLUME_INFORMATION
+#define FileMaximumInformation            43 // SENTINEL
 
 //
 // Notes:
@@ -865,6 +866,16 @@ typedef struct _FILE_FS_ATTRIBUTE_INFORMATION {
     ULONG  FileSystemNameLength;
     WCHAR  FileSystemName[1];
 } FILE_FS_ATTRIBUTE_INFORMATION, *PFILE_FS_ATTRIBUTE_INFORMATION;
+
+// VOL: FileFsVolumeInformation
+typedef struct _FILE_FS_VOLUME_INFORMATION {
+    LONG64  VolumeCreationTime;
+    ULONG   VolumeSerialNumber;
+    ULONG   VolumeLabelLength;
+    BOOLEAN SupportsObjects;
+    WCHAR   VolumeLabel[1];
+} FILE_FS_VOLUME_INFORMATION, *PFILE_FS_VOLUME_INFORMATION;
+
 
 typedef struct _IO_ECP_LIST *PIO_ECP_LIST;
 
