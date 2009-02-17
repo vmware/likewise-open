@@ -152,10 +152,26 @@ rpl_realloc(void* buf, size_t n)
 
 #endif /* defined(__LWI_AIX__) || defined(__LWI_HP_UX__) */
 
-#if !defined(HAVE_STPNCPY)
+//
+// WARNING about AIX stpncpy:
+//
+// Normal stpncpy(dest, src, n) effectively does this:
+//
+//   count = min(strlen(src), n)
+//   memcpy(dest, src, count)
+//   return dest + count
+//
+// However, AIX (at least 5.3) returns this: dest + max(0, n-1).
+//
+// So, on AIX, we should replace stpncpy.  However, if we use
+// n = strlen(src) + 1, we would get the same answer back from
+// normal and AIX.
+//
+
+// TODO: Change the way we check whether to replace stpncpy.  See GNU gettext.
 
 char*
-stpncpy(
+lsmb_stpncpy(
     char *dest,
     const char* src,
     size_t n
@@ -178,8 +194,6 @@ stpncpy(
 
     return end;
 }
-
-#endif /* !defined(HAVE_STPNCPY) */
 
 #if !defined(HAVE_STRNLEN)
 

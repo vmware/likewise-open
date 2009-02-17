@@ -529,16 +529,12 @@ strtoull(
 
 #endif /* defined(HAVE_STRTOULL) */
 
-#if !defined(HAVE_STPNCPY)
-
 char*
-stpncpy(
+lsmb_stpncpy(
     char *dest,
     const char* src,
     size_t n
     );
-
-#endif /* !defined(HAVE_STPNCPY) */
 
 #if !defined(HAVE_STRNLEN)
 
