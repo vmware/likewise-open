@@ -114,6 +114,19 @@ PvfsSysCloseDir(
     DIR *pDir
     );
 
+NTSTATUS
+PvfsSysLseek(
+    int fd,
+    off_t offset,
+    int whence,
+    off_t *pNewOffset
+    );
+
+NTSTATUS
+PvfsSysFtruncate(
+    int fd,
+    off_t offset
+    );
 
 #endif     /* _PVFS_SYSWRAP_P_H */
 

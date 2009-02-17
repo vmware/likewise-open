@@ -344,6 +344,58 @@ error:
 }
 
 
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysLseek(
+    int fd,
+    off_t offset,
+    int whence,
+    off_t *pNewOffset
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+    off_t newOffset = 0;
+
+    if ((newOffset = lseek(fd, offset, whence)) == (off_t)-1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *pNewOffset = newOffset;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysFtruncate(
+    int fd,
+    off_t offset
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+
+    if (ftruncate(fd, offset) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 
 
 /*
