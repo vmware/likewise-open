@@ -558,11 +558,13 @@ SrvMarshallFSAttributeInfo(
     usBytesRequired = sizeof(SMB_FS_ATTRIBUTE_INFO_HEADER);
 
     usVolumeNameLen = wc16slen(pFSAttrInfo->FileSystemName);
-    if (usVolumeNameLen)
+    if (!usVolumeNameLen)
     {
-        usBytesRequired += usVolumeNameLen * sizeof(wchar16_t);
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
-    usBytesRequired += sizeof(wchar16_t);
+
+    usBytesRequired += usVolumeNameLen * sizeof(wchar16_t);
 
     if (usBytesRequired > usMaxDataCount)
     {
