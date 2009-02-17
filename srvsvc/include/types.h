@@ -99,7 +99,6 @@ typedef int64_t int64;
 
 #endif /* _DCE_IDL_ */
 
-typedef uint32 RPCSTATUS;
 typedef uint32 WINERR;
 typedef uint64 NtTime;
 
