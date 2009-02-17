@@ -106,7 +106,7 @@ PvfsQueryFileStreamInfo(
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PVFS_STAT Stat = {0};
     PWSTR pwszStreamName = NULL;
-    size_t StreamNameLen = RtlCStringNumChars("::$DATA") * sizeof(WCHAR);
+    size_t StreamNameLenBytes = RtlCStringNumChars("::$DATA") * sizeof(WCHAR);
 
     /* Sanity checks */
 
@@ -119,7 +119,7 @@ PvfsQueryFileStreamInfo(
     /* Make sure buffer is large enough for the static structure
        fields and the magic WCHAR("::$DATA") string */
 
-    if (Args.Length < (sizeof(*pFileInfo) + StreamNameLen))
+    if (Args.Length < (sizeof(*pFileInfo) + StreamNameLenBytes))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
@@ -138,9 +138,8 @@ PvfsQueryFileStreamInfo(
     pFileInfo->NextEntryOffset = 0;
     pFileInfo->StreamSize = Stat.s_size;
     pFileInfo->StreamAllocationSize = Stat.s_alloc;
-    pFileInfo->StreamNameLength = RtlWC16StringNumChars(pwszStreamName);
-    memcpy(pFileInfo->StreamName, pwszStreamName,
-           pFileInfo->StreamNameLength*sizeof(WCHAR));
+    pFileInfo->StreamNameLength = StreamNameLenBytes;
+    memcpy(pFileInfo->StreamName, pwszStreamName, StreamNameLenBytes);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;

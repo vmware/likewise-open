@@ -108,20 +108,21 @@ FillFileBothDirInfoStatic(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    size_t FilenameLen;
+    size_t FilenameLen = 0;
+    size_t FilenameLenBytes = 0;
 
     /* Check if this is a valid 8.3 filename */
     FilenameLen = RtlWC16StringNumChars(pwszShortFilename);
+    FilenameLenBytes = FilenameLen * sizeof(WCHAR);
 
     if (FilenameLen > 12 ) {
         ntError = STATUS_FILE_INVALID;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo->ShortNameLength = FilenameLen;
+    pFileInfo->ShortNameLength = FilenameLenBytes;
     if (pFileInfo->ShortNameLength > 0) {
-        memcpy(pFileInfo->ShortName, pwszShortFilename,
-               pFileInfo->ShortNameLength*sizeof(WCHAR));
+        memcpy(pFileInfo->ShortName, pwszShortFilename, FilenameLenBytes);
     }
 
     /* Fill in Timestamps */
@@ -180,7 +181,8 @@ FillFileBothDirInfoBuffer(
     PWSTR pwszFilename = NULL;
     PSTR pszFullPath = NULL;
     DWORD dwNeeded = 0;
-    size_t W16FilenameLen;
+    size_t W16FilenameLen = 0;
+    size_t W16FilenameLenBytes = 0;
 
     /* Check for enough space for static members */
 
@@ -216,15 +218,16 @@ FillFileBothDirInfoBuffer(
     /* Calculate space */
 
     W16FilenameLen = RtlWC16StringNumChars(pwszFilename);
-    dwNeeded = sizeof(*pFileInfo) + (W16FilenameLen*sizeof(WCHAR));
+    W16FilenameLenBytes = W16FilenameLen * sizeof(WCHAR);
+    dwNeeded = sizeof(*pFileInfo) + W16FilenameLenBytes;
 
     if (dwNeeded > dwBufLen) {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo->FileNameLength = W16FilenameLen;
-    memcpy(pFileInfo->FileName, pwszFilename, W16FilenameLen*sizeof(WCHAR));
+    pFileInfo->FileNameLength = W16FilenameLenBytes;
+    memcpy(pFileInfo->FileName, pwszFilename, W16FilenameLenBytes);
 
     *pdwConsumed = dwNeeded;
     ntError = STATUS_SUCCESS;

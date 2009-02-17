@@ -105,7 +105,7 @@ PvfsQueryFileFsVolInfo(
     PFILE_FS_VOLUME_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PWSTR pwszFsName = NULL;
-    size_t FsNameLen = RtlCStringNumChars(PVFS_FS_NAME) * sizeof(WCHAR);
+    size_t FsNameLenBytes = RtlCStringNumChars(PVFS_FS_NAME) * sizeof(WCHAR);
 
     /* Sanity checks */
 
@@ -119,7 +119,7 @@ PvfsQueryFileFsVolInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    if (Args.Length < sizeof(*pFileInfo) + FsNameLen)
+    if (Args.Length < sizeof(*pFileInfo) + FsNameLenBytes)
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
