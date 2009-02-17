@@ -841,15 +841,22 @@ typedef struct _FILE_QUOTA_INFORMATION {
 
 typedef ULONG FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
 
-// From SNIA CIFS Tech Ref - 4.1.6.6
-
 #define FILE_CASE_SENSITIVE_SEARCH               0x00000001
 #define FILE_CASE_PRESERVED_NAMES                0x00000002
-#define FILE_PERSISTENT_ACLS                     0x00000004
-#define FILE_FILE_COMPRESSION                    0x00000008
-#define FILE_VOLUME_QUOTAS                       0x00000010
-#define FILE_DEVICE_IS_MOUNTED                   0x00000020
-#define FILE_VOLUME_IS_COMPRESSED                0x00000040
+#define FILE_UNICODE_ON_DISK                     0x00000004
+#define FILE_PERSISTENT_ACLS                     0x00000008
+#define FILE_FILE_COMPRESSION                    0x00000010
+#define FILE_VOLUME_QUOTAS                       0x00000020
+#define FILE_SUPPORTS_SPARSE_FILES               0x00000040
+#define FILE_SUPPORTS_REPARSE_POINTS             0x00000080
+#define FILE_SUPPORTS_REMOTE_STORAGE             0x00000100
+#define FILE_SUPPORTS_LFM_APIS                   0x00000200
+#define FILE_VOLUME_IS_COMPRESSED                0x00008000
+#define FILE_SUPPORTS_OBJECTS_IDS                0x00010000
+#define FILE_SUPPORTS_ENCRYPTION                 0x00020000
+#define FILE_NAMED_STREAMS                       0x00040000
+#define FILE_READ_ONLY_VOLUME                    0x00080000
+
 
 // VOL: FileFsAttributeInformation
 typedef struct _FILE_FS_ATTRIBUTE_INFORMATION {
