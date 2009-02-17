@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -75,7 +75,7 @@ IoCreateFile(
     IN FILE_SHARE_FLAGS ShareAccess,
     IN FILE_CREATE_DISPOSITION CreateDisposition,
     IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION 
+    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION
     IN ULONG EaLength,
     IN OPTIONAL PIO_ECP_LIST EcpList
     )
@@ -350,7 +350,7 @@ cleanup:
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -468,7 +468,7 @@ cleanup:
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -488,7 +488,7 @@ IoQueryInformationFile(
                 FileInformationClass);
 }
 
-NTSTATUS 
+NTSTATUS
 IoSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -525,7 +525,7 @@ IoQueryFullAttributesFile(
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -609,7 +609,7 @@ IoQueryVolumeInformationFile(
     int EE = 0;
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IRP_TYPE irpType = IRP_TYPE_QUERY_DIRECTORY;
+    IRP_TYPE irpType = IRP_TYPE_QUERY_VOLUME_INFORMATION;
 
     status = IopIrpCreate(&pIrp, irpType, FileHandle);
     ioStatusBlock.Status = status;
@@ -647,7 +647,7 @@ IoSetVolumeInformationFile(
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoLockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -663,7 +663,7 @@ IoLockFile(
     return status;
 }
 
-NTSTATUS 
+NTSTATUS
 IoUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
