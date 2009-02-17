@@ -200,6 +200,12 @@ PvfsEnumerateDirectory(
         }
     }
 
+    /* Bail if there were no matches */
+
+    if (pCcb->pDirContext->dwNumEntries == 0) {
+        ntError = STATUS_NO_SUCH_FILE;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
 cleanup:
     PVFS_SAFE_FREE_MEMORY(pszPattern);
