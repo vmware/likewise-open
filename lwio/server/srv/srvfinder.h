@@ -56,14 +56,15 @@ SrvFinderCreateRepository(
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
-    HANDLE                 hFinderRepository,
-    IO_FILE_HANDLE         hFile,
-    PBYTE                  pFileInfo,
-    USHORT                 usFileInfoLen,
-    FILE_INFORMATION_CLASS fileInfoClass,
-    USHORT                 usSearchCount,
-    PHANDLE                phFinder,
-    PUSHORT                pusSearchId
+    HANDLE         hFinderRepository,
+    PWSTR          pwszFilesystemPath,
+    PWSTR          pwszSearchPattern,
+    USHORT         usSearchAttrs,
+    ULONG          ulSearchStorageType,
+    SMB_INFO_LEVEL infoLevel,
+    BOOLEAN        bUseLongFilenames,
+    PHANDLE        phFinder,
+    PUSHORT        pusSearchId
     );
 
 NTSTATUS
@@ -71,6 +72,19 @@ SrvFinderGetSearchSpace(
     HANDLE  hFinderRepository,
     USHORT  usSearchId,
     PHANDLE phFinder
+    );
+
+NTSTATUS
+SrvFinderGetSearchResults(
+    HANDLE   hSearchSpace,
+    BOOLEAN  bReturnSingleEntry,
+    BOOLEAN  bRestartScan,
+    USHORT   usDesiredSearchCount,
+    USHORT   usMaxDataCount,
+    PBYTE*   ppData,
+    PUSHORT  pusDataLen,
+    PUSHORT  pusSearchResultCount,
+    PBOOLEAN pbEndOfSearch
     );
 
 VOID

@@ -64,18 +64,20 @@ typedef struct _SRV_FINDER_REPOSITORY
 
 typedef struct _SRV_SEARCH_SPACE
 {
-    LONG                   refCount;
+    LONG             refCount;
 
-    pthread_mutex_t        mutex;
-    pthread_mutex_t*       pMutex;
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
-    USHORT                 usSearchId;
+    USHORT           usSearchId;
 
-    IO_FILE_HANDLE         hFile;
-    USHORT                 usSearchCount;
-    PBYTE                  pFileInfo;
-    USHORT                 usFileInfoLen;
-    FILE_INFORMATION_CLASS fileInfoClass;
+    IO_FILE_HANDLE   hFile;
+    PWSTR            pwszSearchPattern;
+    USHORT           usSearchAttrs;
+    ULONG            ulSearchStorageType;
+    PBYTE            pFileInfo;
+    USHORT           usFileInfoLen;
+    SMB_INFO_LEVEL   infoLevel;
 
 } SRV_SEARCH_SPACE, *PSRV_SEARCH_SPACE;
 
