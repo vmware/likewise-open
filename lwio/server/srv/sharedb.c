@@ -155,7 +155,7 @@ SrvShareDbCreate(
                     pShareDBContext,
                     hDb,
                     "C$",
-                    "\\pvfs\\tmp",
+                    "\\pvfs\\lwtest",
                     "Root of Posix Virtual File System",
                     NULL,
                     "A:");
