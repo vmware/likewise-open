@@ -47,6 +47,8 @@
  *          Rafal Szczesniak (rafal@likewise.com)
  */
 
+#include "includes.h"
+
 
 NET_API_STATUS
 SrvSvcNetShareEnum(
