@@ -54,6 +54,7 @@ NET_API_STATUS NetLocalGroupGetMembers(const wchar16_t *hostname,
     SidArray sid_array;
     RefDomainList *domains = NULL;
     TranslatedName *names = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (hostname == NULL || aliasname == NULL || bufptr == NULL) {
 	return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
@@ -63,8 +64,11 @@ NET_API_STATUS NetLocalGroupGetMembers(const wchar16_t *hostname,
     *resume  = 0;
     num_sids = 0;
 
-    status = NetConnectSamr(&conn, hostname, 0, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind          = conn->samr.bind;
     domain_handle      = conn->samr.dom_handle;
@@ -77,14 +81,14 @@ NET_API_STATUS NetLocalGroupGetMembers(const wchar16_t *hostname,
 	   Try to look in builtin domain. */
 	status = NetOpenAlias(conn, aliasname, alias_access,
 			      &alias_handle, &alias_rid);
-	if (status != 0) return NtStatusToWin32Error(status);
+	BAIL_ON_NT_STATUS(status);
 
     } else if (status != 0) {
 	return NtStatusToWin32Error(status);
     }
 
     status = SamrGetMembersInAlias(samr_bind, &alias_handle, &sids, &num_sids);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     *total += num_sids;
     *entries = *total;
@@ -93,8 +97,8 @@ NET_API_STATUS NetLocalGroupGetMembers(const wchar16_t *hostname,
     info = (LOCALGROUP_MEMBERS_INFO_3*) malloc(sizeof(LOCALGROUP_MEMBERS_INFO_3) *
 					       (*entries));
 
-    status = NetConnectLsa(&conn, hostname, lsa_access);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = NetConnectLsa(&conn, hostname, lsa_access, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     lsa_bind   = conn->lsa.bind;
     lsa_policy = conn->lsa.policy_handle;
@@ -173,9 +177,16 @@ NET_API_STATUS NetLocalGroupGetMembers(const wchar16_t *hostname,
     *bufptr = (void*)info;
 
     status = SamrClose(samr_bind, &alias_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
-    return STATUS_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

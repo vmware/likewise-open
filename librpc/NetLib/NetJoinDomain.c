@@ -278,6 +278,7 @@ NetJoinDomainLocalInternal(
     wchar16_t *ospack_attr_name = NULL;
     wchar16_t *ospack_attr_val[2] = {0};
     wchar16_t *sid_str = NULL;
+    LW_PIO_ACCESS_TOKEN access_token = NULL;
 
     machname = wc16sdup(machine);
     goto_if_no_memory_winerr(machname, done);
@@ -295,19 +296,16 @@ NetJoinDomainLocalInternal(
 
     if (account && password)
     {
-        /* Set up access token */
-        LW_PIO_ACCESS_TOKEN hAccessToken = NULL;
-
-        status = LwIoCreatePlainAccessTokenW(account, password, &hAccessToken);
+        status = LwIoCreatePlainAccessTokenW(account, password, &access_token);
         goto_if_ntstatus_not_success(status, done);
-
-        status = LwIoSetThreadAccessToken(hAccessToken);
+    }
+    else
+    {
+        status = LwIoGetThreadAccessToken(&access_token);
         goto_if_ntstatus_not_success(status, done);
-
-        LwIoDeleteAccessToken(hAccessToken);
     }
 
-    status = NetConnectLsa(&lsa_conn, domain_controller_name, lsa_access);
+    status = NetConnectLsa(&lsa_conn, domain_controller_name, lsa_access, access_token);
     goto_if_ntstatus_not_success(status, close);
 
     lsa_b = lsa_conn->lsa.bind;
@@ -341,7 +339,7 @@ NetJoinDomainLocalInternal(
         goto_if_winerr_not_success(err, disconn_lsa);
     }
 
-    status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0);
+    status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, access_token);
     goto_if_ntstatus_not_success(status, disconn_lsa);
 
     samr_b = conn->samr.bind;
@@ -546,13 +544,6 @@ disconn_lsa:
 
 close:
 
-    /* release domain controller connection creds */
-    if (account && password)
-    {
-        status = LwIoSetThreadAccessToken(NULL);
-        goto_if_ntstatus_not_success(status, done);
-    }
-
 done:
     if (lsa_policy_info) {
         LsaRpcFreeMemory((void*)lsa_policy_info);
@@ -582,6 +573,11 @@ done:
     SAFE_FREE(ospack_attr_name);
     SAFE_FREE(ospack_attr_val[0]);
     SAFE_FREE(domain_controller_name);
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
 
     if (err && !is_retry)
     {

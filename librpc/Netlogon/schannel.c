@@ -42,8 +42,11 @@ CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
     RPCSTATUS status = RPC_S_OK;
     size_t hostname_size = 0;
     char *hostname = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
+
+    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS) return NULL;
 
     hostname_size = wc16slen(host) + 1;
     hostname = (char*) malloc(hostname_size * sizeof(char));
@@ -51,10 +54,16 @@ CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 
     wc16stombs(hostname, host, hostname_size);
 
-    status = InitNetlogonBindingDefault(binding, hostname);
+    status = InitNetlogonBindingDefault(binding, hostname, access_token, TRUE);
     if (status != RPC_S_OK) return NULL;
 
     SAFE_FREE(hostname);
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
     return *binding;
 }
 
@@ -79,7 +88,6 @@ OpenSchannel(
     uint8 srv_chal[8] = {0};
     uint8 srv_cred[8] = {0};
     rpc_schannel_auth_info_t schnauth_info = {0};
-    char *pszHostname = NULL;
     handle_t schn_b = NULL;
 
     md4hash(pass_hash, pwszMachinePassword);
@@ -127,15 +135,6 @@ OpenSchannel(
         goto error;
     }
 
-    pszHostname = awc16stombs(pwszHostname);
-    goto_if_no_memory_ntstatus(pszHostname, error);
-
-    rpcstatus = InitNetlogonBindingDefault(&schn_b, pszHostname);
-    if (rpcstatus != RPC_S_OK) {
-        status = STATUS_UNSUCCESSFUL;
-        goto error;
-    }
-
     rpc_binding_set_auth_info(schn_b,
                               NULL,
 #if 0
@@ -157,7 +156,6 @@ OpenSchannel(
 cleanup:
     SAFE_FREE(schnauth_info.domain_name);
     SAFE_FREE(schnauth_info.machine_name);
-    SAFE_FREE(pszHostname);
 
     return (rpcstatus == rpc_s_ok &&
             status == STATUS_SUCCESS) ? schn_b : NULL;

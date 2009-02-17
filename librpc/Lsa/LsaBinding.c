@@ -36,11 +36,11 @@
 
 #include "includes.h"
 
-
 RPCSTATUS
 InitLsaBindingDefault(
     handle_t *binding,
-    const char *hostname
+    const char *hostname,
+    PIO_ACCESS_TOKEN access_token
     )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
@@ -51,7 +51,7 @@ InitLsaBindingDefault(
     handle_t b = NULL;
 
     rpcstatus = InitLsaBindingFull(&b, prot_seq, hostname, endpoint,
-                                   uuid, options);
+                                   uuid, options, access_token);
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
     *binding = b;
@@ -71,7 +71,9 @@ InitLsaBindingFull(
     const char *hostname,
     const char *endpoint,
     const char *uuid,
-    const char *options)
+    const char *options,
+    PIO_ACCESS_TOKEN access_token
+    )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
     RPCSTATUS st = RPC_S_OK;
@@ -82,6 +84,7 @@ InitLsaBindingFull(
     unsigned char *opts = NULL;
     unsigned char *addr = NULL;
     handle_t b = NULL;
+    rpc_transport_info_handle_t info = NULL;
 
     goto_if_invalid_param_rpcstatus(binding, cleanup);
     goto_if_invalid_param_rpcstatus(hostname, cleanup);
@@ -115,6 +118,14 @@ InitLsaBindingFull(
     rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
+    rpc_smb_transport_info_from_lwio_token(access_token, FALSE, &info, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+    rpc_binding_set_transport_info(b, info, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+    info = NULL;
+
     rpc_mgmt_set_com_timeout(b, 6, &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, error);
     
@@ -134,6 +145,11 @@ cleanup:
     if (rpcstatus == RPC_S_OK &&
         st != RPC_S_OK) {
         rpcstatus = st;
+    }
+
+    if (info)
+    {
+        rpc_smb_transport_info_free(info);
     }
 
     return rpcstatus;

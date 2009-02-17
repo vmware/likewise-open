@@ -65,8 +65,11 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
     RPCSTATUS status = RPC_S_OK;
     size_t hostname_size = 0;
     char *hostname = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
+
+    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS) return NULL;
 
     hostname_size = wc16slen(host) + 1;
     hostname = (char*) malloc(hostname_size * sizeof(char));
@@ -74,7 +77,7 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 
     wc16stombs(hostname, host, hostname_size);
 
-    status = InitNetlogonBindingDefault(binding, hostname);
+    status = InitNetlogonBindingDefault(binding, hostname, access_token, FALSE);
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];
@@ -91,6 +94,12 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
     }
 
     SAFE_FREE(hostname);
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
     return *binding;
 }
 

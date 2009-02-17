@@ -50,7 +50,7 @@ NET_API_STATUS NetUserSetInfo(const wchar16_t *hostname, const wchar16_t *userna
                                  USER_ACCESS_CHANGE_PASSWORD |
                                  USER_ACCESS_SET_PASSWORD;
 
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle user_handle;
@@ -62,18 +62,23 @@ NET_API_STATUS NetUserSetInfo(const wchar16_t *hostname, const wchar16_t *userna
     USER_INFO_1008 *ninfo1008;
     USER_INFO_1011 *ninfo1011;
     uint32 samr_level;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-    if (username == NULL || buffer == NULL) {
-	return NtStatusToWin32Error(STATUS_NO_MEMORY);
+    if (username == NULL || buffer == NULL)
+    {
+        return NtStatusToWin32Error(STATUS_NO_MEMORY);
     }
 
-    status = NetConnectSamr(&conn, hostname, domain_access, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, domain_access, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
     
     samr_bind = conn->samr.bind;
 
     status = NetOpenUser(conn, username, access_rights, &user_handle, &user_rid);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     memset(&info, 0, sizeof(info));
 
@@ -116,18 +121,25 @@ NET_API_STATUS NetUserSetInfo(const wchar16_t *hostname, const wchar16_t *userna
     case 1051:
     case 1052:
     case 1053:
-	return NtStatusToWin32Error(STATUS_NOT_IMPLEMENTED);
+        BAIL_ON_NT_STATUS(status = STATUS_NOT_IMPLEMENTED);
     default:
-	return NtStatusToWin32Error(ERROR_INVALID_LEVEL);
+        BAIL_ON_NT_STATUS(status = STATUS_INVALID_LEVEL);
     }
 	
     status = SamrSetUserInfo(samr_bind, &user_handle, samr_level, &info);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 	
     status = SamrClose(samr_bind, &user_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
-    return ERROR_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

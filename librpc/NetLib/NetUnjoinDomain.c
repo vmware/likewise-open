@@ -61,6 +61,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     size_t domain_controller_name_len;
     BOOLEAN wnet_connected = FALSE;
     wchar16_t *machine_name = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (gethostname((char*)localname, sizeof(localname)) < 0) {
        /* TODO: figure out better error code */
@@ -102,7 +103,18 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
 
     /* disable the account only if requested */
     if (options & NETSETUP_ACCT_DELETE) {
-        status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0);
+        if (account && password)
+        {
+            status = LwIoCreatePlainAccessTokenW(account, password, &access_token);
+            goto_if_ntstatus_not_success(status, done);
+        }
+        else
+        {
+            status = LwIoGetThreadAccessToken(&access_token);
+            goto_if_ntstatus_not_success(status, done);
+        }
+
+        status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, access_token);
         if (status != STATUS_SUCCESS) goto done;
 
         status = DisableWksAccount(conn, machine_name, &account_h);
@@ -133,6 +145,11 @@ done:
         {
             status = Win32ErrorToNtStatus(err);
         }
+    }
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
     }
 
     SAFE_FREE(nr.RemoteName);

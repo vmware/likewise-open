@@ -40,7 +40,7 @@ NET_API_STATUS NetUserEnum(const wchar16_t *hostname, uint32 level, uint32 filte
                              DOMAIN_ACCESS_OPEN_ACCOUNT;
     const uint16 dominfo_level = 2;
 
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle dom_handle, user_handle;
@@ -53,6 +53,7 @@ NET_API_STATUS NetUserEnum(const wchar16_t *hostname, uint32 level, uint32 filte
     void *infobuffer = NULL;
     size_t sizebuffer = 0;
     int error = 0;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     switch (filter) {
     case FILTER_NORMAL_ACCOUNT:
@@ -75,15 +76,18 @@ NET_API_STATUS NetUserEnum(const wchar16_t *hostname, uint32 level, uint32 filte
         return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
     }
 
-    status = NetConnectSamr(&conn, hostname, dom_flags, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, dom_flags, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind  = conn->samr.bind;
     dom_handle = conn->samr.dom_handle;
 
     status = SamrQueryDomainInfo(samr_bind, &dom_handle, dominfo_level,
                                  &dominfo);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     *total = dominfo->info2.num_users;
 
@@ -182,6 +186,15 @@ NET_API_STATUS NetUserEnum(const wchar16_t *hostname, uint32 level, uint32 filte
     *resume = res;
     *buffer = infobuffer;
     *entries = num_entries;
+
+
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
     error = NtStatusToWin32Error(status);
 
 done:

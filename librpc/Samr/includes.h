@@ -39,6 +39,9 @@
 #include <iconv.h>
 #include <string.h>
 
+#include <lwio/lwio.h>
+#include <dce/rpc.h>
+#include <dce/smb.h>
 #include <DceSupport.h>
 #include <compat/rpcstatus.h>
 #include <wc16str.h>

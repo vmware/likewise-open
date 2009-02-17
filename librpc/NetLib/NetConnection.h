@@ -124,14 +124,16 @@ NetConnectSamr(
     NetConn **conn,
     const wchar16_t *hostname,
     uint32 req_dom_flags,
-    uint32 req_btin_dom_flags
+    uint32 req_btin_dom_flags,
+    PIO_ACCESS_TOKEN access_token
     );
 
 NTSTATUS
 NetConnectLsa(
     NetConn **conn,
     const wchar16_t *hostname,
-    uint32 req_lsa_flags
+    uint32 req_lsa_flags,
+    PIO_ACCESS_TOKEN access_token
     );
 
 

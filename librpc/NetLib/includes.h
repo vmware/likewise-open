@@ -83,6 +83,13 @@
 #include "MachinePassword.h"
 #include "externs.h"
 
+#define BAIL_ON_NT_STATUS(s) \
+    do                       \
+    {                        \
+        if ((s)) goto error; \
+    } while (0)
+
+
 
 /*
 local variables:

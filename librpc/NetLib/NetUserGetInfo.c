@@ -42,40 +42,53 @@ NET_API_STATUS NetUserGetInfo(const wchar16_t *hostname, const wchar16_t *userna
                                  USER_ACCESS_GET_GROUPS |
                                  USER_ACCESS_GET_GROUP_MEMBERSHIP;
     const uint32 samr_lvl = 21;
-    NTSTATUS status;
-    NetConn *conn;
-    handle_t samr_bind;
+    NTSTATUS status = STATUS_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_bind = NULL;
     PolicyHandle user_handle;
     uint32 user_rid;
     UserInfo *info = NULL;
-    USER_INFO_20 *ninfo20;
+    USER_INFO_20 *ninfo20 = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
+
 
     if (hostname == NULL || username == NULL ||
-	buffer == NULL) {
-	return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
+        buffer == NULL)
+    {
+        return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
     }
 
-    status = NetConnectSamr(&conn, hostname, 0, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind = conn->samr.bind;
 
     status = NetOpenUser(conn, username, access_rights, &user_handle,
 			 &user_rid);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrQueryUserInfo(samr_bind, &user_handle, samr_lvl, &info);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     ninfo20 = (USER_INFO_20*) malloc(sizeof(USER_INFO_20));
-    if (ninfo20 == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
+    if (ninfo20 == NULL) BAIL_ON_NT_STATUS(status = STATUS_INSUFFICIENT_RESOURCES);
 
     *buffer = PullUserInfo20((void*)ninfo20, &info->info21, 0);
 	
     status = SamrClose(samr_bind, &user_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
-    return ERROR_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

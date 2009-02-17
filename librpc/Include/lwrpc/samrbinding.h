@@ -37,6 +37,7 @@
 #ifndef _SAMR_BINDING_H_
 #define _SAMR_BINDING_H_
 
+#include <lwio/lwio.h>
 #include <lwrpc/types.h>
 
 #define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
@@ -46,7 +47,8 @@
 RPCSTATUS
 InitSamrBindingDefault(
     handle_t *binding,
-    const char *hostname
+    const char *hostname,
+    PIO_ACCESS_TOKEN access_token
     );
 
 
@@ -57,7 +59,8 @@ InitSamrBindingFull(
     const char *hostname,
     const char *endpoint,
     const char *uuid,
-    const char *options
+    const char *options,
+    PIO_ACCESS_TOKEN access_token
     );
 
 

@@ -39,7 +39,8 @@ NET_API_STATUS NetLocalGroupEnum(const wchar16_t *hostname, uint32 level,
     const uint32 alias_access = ALIAS_ACCESS_LOOKUP_INFO;
     const uint16 dominfo_level = 2;
 	
-    NTSTATUS status, ret;
+    NTSTATUS status = STATUS_SUCCESS;
+	DWORD ret = 0;
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle domain_handle, btin_domain_handle;
@@ -50,17 +51,21 @@ NET_API_STATUS NetLocalGroupEnum(const wchar16_t *hostname, uint32 level,
     uint32 res, *rids, num_entries, num_btin_aliases, num_dom_aliases;
     uint32 i, info_idx, res_idx;
     LOCALGROUP_INFO_1 *info;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (hostname == NULL || bufptr == NULL || entries == NULL ||
         total == NULL || resume == NULL) {
-        return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
+        BAIL_ON_NT_STATUS(status = STATUS_INVALID_PARAMETER);
     }
+
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
 
     *entries = 0;
     *total   = 0;
 
-    status = NetConnectSamr(&conn, hostname, 0, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind          = conn->samr.bind;
     domain_handle      = conn->samr.dom_handle;
@@ -72,13 +77,13 @@ NET_API_STATUS NetLocalGroupEnum(const wchar16_t *hostname, uint32 level,
     if (prefmaxlen == MAX_PREFERRED_LENGTH) {
         status = SamrQueryDomainInfo(samr_bind, &domain_handle, dominfo_level,
                                      &dominfo);
-        if (status != 0) return NtStatusToWin32Error(status);
+        BAIL_ON_NT_STATUS(status);
 
         (*entries) += dominfo->info2.num_aliases;
 
         status = SamrQueryDomainInfo(samr_bind, &btin_domain_handle,
                                      dominfo_level, &dominfo);
-        if (status != 0) return NtStatusToWin32Error(status);
+        BAIL_ON_NT_STATUS(status);
 
         (*entries) += dominfo->info2.num_aliases;
 
@@ -194,6 +199,18 @@ NET_API_STATUS NetLocalGroupEnum(const wchar16_t *hostname, uint32 level,
     *bufptr = (void*)info;
     *entries = info_idx;
     *resume = res_idx;
+
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    if (ret == 0 && status)
+    {
+        ret = NtStatusToWin32Error(status);
+    }
 
     return ret;
 }

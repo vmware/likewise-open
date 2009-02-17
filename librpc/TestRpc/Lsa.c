@@ -54,6 +54,7 @@ handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
     RPCSTATUS status = RPC_S_OK;
     size_t hostname_size = 0;
     char *hostname = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
 
@@ -62,7 +63,12 @@ handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
     if (hostname == NULL) return NULL;
     wc16stombs(hostname, host, hostname_size);
 
-    status = InitLsaBindingDefault(binding, hostname);
+    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS)
+    {
+        return NULL;
+    }
+
+    status = InitLsaBindingDefault(binding, hostname, access_token);
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];

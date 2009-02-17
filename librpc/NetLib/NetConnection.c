@@ -47,7 +47,8 @@ NetConn *FirstConn(NetConn *cn, int set)
 
 
 NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
-                        uint32 req_dom_flags, uint32 req_btin_dom_flags)
+                        uint32 req_dom_flags, uint32 req_btin_dom_flags,
+                        PIO_ACCESS_TOKEN access_token)
 {
     const uint32 conn_flags = SAMR_ACCESS_OPEN_DOMAIN |
                               SAMR_ACCESS_ENUM_DOMAINS;
@@ -127,7 +128,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         host = awc16stombs(hostname);
         if (host == NULL) return STATUS_NO_MEMORY;
 
-        rpcstatus = InitSamrBindingDefault(&samr_b, host);
+        rpcstatus = InitSamrBindingDefault(&samr_b, host, access_token);
         if (rpcstatus != 0) return STATUS_UNSUCCESSFUL;
 
         SAFE_FREE(host);
@@ -268,7 +269,7 @@ domain_name_found:
 
 
 NTSTATUS NetConnectLsa(NetConn **conn, const wchar16_t *hostname,
-                       uint32 req_lsa_flags)
+                       uint32 req_lsa_flags, PIO_ACCESS_TOKEN access_token)
 {
     const uint32 lsa_flags = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     const wchar_t *localhost = L"127.0.0.1";
@@ -332,7 +333,7 @@ NTSTATUS NetConnectLsa(NetConn **conn, const wchar16_t *hostname,
         host = awc16stombs(hostname);
         if (host == NULL) return STATUS_NO_MEMORY;
 
-        rpcstatus = InitLsaBindingDefault(&lsa_b, host);
+        rpcstatus = InitLsaBindingDefault(&lsa_b, host, access_token);
         if (rpcstatus != 0) return STATUS_UNSUCCESSFUL;
 
         SAFE_FREE(host);

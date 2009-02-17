@@ -41,6 +41,8 @@
 #include <iconv.h>
 #include <pthread.h>
 
+#include <dce/rpc.h>
+#include <dce/smb.h>
 #include <DceSupport.h>
 #include <compat/rpcstatus.h>
 #include <dce/schannel.h>

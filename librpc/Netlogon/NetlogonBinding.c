@@ -40,7 +40,9 @@
 RPCSTATUS
 InitNetlogonBindingDefault(
     handle_t *binding,
-    const char *hostname
+    const char *hostname,
+    LW_PIO_ACCESS_TOKEN access_token,
+    BOOL is_schannel
     )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
@@ -51,7 +53,7 @@ InitNetlogonBindingDefault(
     handle_t b = NULL;
 
     rpcstatus = InitNetlogonBindingFull(&b, prot_seq, hostname, endpoint,
-                                        uuid, options);
+                                        uuid, options, access_token, is_schannel);
     goto_if_rpcstatus_not_success(rpcstatus, error)
 
     *binding = b;
@@ -72,7 +74,9 @@ InitNetlogonBindingFull(
     const char *hostname,
     const char *endpoint,
     const char *uuid,
-    const char *options
+    const char *options,
+    LW_PIO_ACCESS_TOKEN access_token,
+    BOOL is_schannel
     )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
@@ -84,6 +88,7 @@ InitNetlogonBindingFull(
     unsigned char *opts = NULL;
     unsigned char *addr = NULL;
     handle_t b = NULL;
+    rpc_transport_info_handle_t info;
 
     goto_if_invalid_param_rpcstatus(binding, cleanup);
     goto_if_invalid_param_rpcstatus(hostname, cleanup);
@@ -117,6 +122,14 @@ InitNetlogonBindingFull(
     rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
+    rpc_smb_transport_info_from_lwio_token(access_token, is_schannel, &info, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+    rpc_binding_set_transport_info(b, info, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+	info = NULL;
+
     rpc_mgmt_set_com_timeout(b, 6, &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, error);
     
@@ -136,6 +149,11 @@ cleanup:
     if (rpcstatus == RPC_S_OK &&
         st != RPC_S_OK) {
         rpcstatus = st;
+    }
+
+    if (info)
+    {
+        rpc_smb_transport_info_free(info);
     }
 
     return rpcstatus;

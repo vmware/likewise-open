@@ -35,24 +35,35 @@ NET_API_STATUS NetUserDel(const wchar16_t *hostname, const wchar16_t *username)
 {
     const uint32 user_access = SEC_STD_DELETE;
 	
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle user_handle;
     uint32 user_rid;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-    status = NetConnectSamr(&conn, hostname, 0, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind = conn->samr.bind;
 
     status = NetOpenUser(conn, username, user_access, &user_handle, &user_rid);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrDeleteUser(samr_bind, &user_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 	
-    return ERROR_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

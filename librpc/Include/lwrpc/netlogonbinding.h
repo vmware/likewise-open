@@ -31,6 +31,7 @@
 #ifndef _NETLOGON_BINDING_H_
 #define _NETLOGON_BINDING_H_
 
+#include <lwio/lwio.h>
 #include <lwrpc/types.h>
 
 #define NETLOGON_DEFAULT_PROT_SEQ   "ncacn_np"
@@ -40,7 +41,9 @@
 RPCSTATUS
 InitNetlogonBindingDefault(
     handle_t *binding,
-    const char *hostname
+    const char *hostname,
+    LW_PIO_ACCESS_TOKEN access_token,
+    BOOL is_schannel
     );
 
 
@@ -50,7 +53,9 @@ RPCSTATUS InitNetlogonBindingFull(
     const char *hostname,
     const char *endpoint,
     const char *uuid,
-    const char *options
+    const char *options,
+    LW_PIO_ACCESS_TOKEN access_token,
+    BOOL is_schannel
     );
 
 

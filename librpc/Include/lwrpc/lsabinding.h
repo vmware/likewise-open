@@ -38,6 +38,7 @@
 #define _LSA_BINDING_H_
 
 #include <lwrpc/types.h>
+#include <lwio/lwio.h>
 
 #define LSA_DEFAULT_PROT_SEQ   "ncacn_np"
 #define LSA_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
@@ -46,7 +47,8 @@
 RPCSTATUS
 InitLsaBindingDefault(
     handle_t *binding,
-    const char *hostname
+    const char *hostname,
+    PIO_ACCESS_TOKEN access_token
     );
 
 RPCSTATUS
@@ -56,7 +58,8 @@ InitLsaBindingFull(
     const char *hostname,
     const char *endpoint,
     const char *uuid,
-    const char *options
+    const char *options,
+    PIO_ACCESS_TOKEN access_token
     );
 
 RPCSTATUS
