@@ -469,6 +469,11 @@ SrvWorkerExecute(
             break;
 #endif
 
+        default:
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
     }
 
     if (ntStatus)

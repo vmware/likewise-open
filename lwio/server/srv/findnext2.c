@@ -42,8 +42,6 @@ SrvProcessTrans2FindNext2(
     PSMB_PACKET*                ppSmbResponse
     )
 {
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
