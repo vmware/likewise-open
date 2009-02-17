@@ -167,6 +167,7 @@ KtLdapGetSaltingPrincipal(
 DWORD
 KtGetSaltingPrincipal(
     PCSTR pszMachineName,
+    PCSTR pszMachAcctName,
     PCSTR pszDnsDomainName,
     PCSTR pszRealmName,
     PCSTR pszDcName,
@@ -176,6 +177,7 @@ KtGetSaltingPrincipal(
 DWORD
 KtGetSaltingPrincipalW(
     PCWSTR pwszMachineName,
+    PCWSTR pwszMachAcctName,
     PCWSTR pwszDnsDomainName,
     PCWSTR pwszRealmName,
     PCWSTR pwszDcName,
