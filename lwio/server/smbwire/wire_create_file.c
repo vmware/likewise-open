@@ -125,18 +125,16 @@ error:
 /* @todo: test alignment restrictions on Win2k */
 NTSTATUS
 WireMarshallCreateRequestData(
-    uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
-    uint32_t        *pBufferUsed,
-    const wchar16_t *pwszPath
+    OUT PBYTE pBuffer,
+    IN ULONG bufferLen,
+    IN uint8_t messageAlignment,
+    OUT PULONG pBufferUsed,
+    IN PCWSTR pwszPath
     )
 {
     NTSTATUS ntStatus = 0;
-
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
-    uint32_t wstrlen = 0;
 
     /* Align strings */
     alignment = (bufferUsed + messageAlignment) % 2;
@@ -146,15 +144,10 @@ WireMarshallCreateRequestData(
         bufferUsed += alignment;
     }
 
-    wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed), pwszPath,
-        bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    bufferUsed += wstrlen * sizeof(wchar16_t);
+    ntStatus = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (bufferUsed > bufferLen)
-    {
-        ntStatus = EMSGSIZE;
-    }
-
+error:
     *pBufferUsed = bufferUsed;
 
     return ntStatus;
@@ -162,18 +155,45 @@ WireMarshallCreateRequestData(
 
 NTSTATUS
 WireUnmarshallSMBResponseCreate(
-    const uint8_t  *pBuffer,
-    uint32_t        bufferLen,
-    CREATE_RESPONSE_HEADER **ppHeader
+    IN PBYTE pBuffer,
+    IN ULONG bufferLen,
+    OUT PCREATE_RESPONSE_HEADER* ppHeader
     )
 {
+    NTSTATUS ntStatus = 0;
+    CREATE_RESPONSE_HEADER* pHeader = (CREATE_RESPONSE_HEADER*) pBuffer;
+    ULONG bufferUsed = sizeof(CREATE_RESPONSE_HEADER);
+
     /* NOTE: The buffer format cannot be trusted! */
-    uint32_t bufferUsed = sizeof(CREATE_RESPONSE_HEADER);
     if (bufferLen < bufferUsed)
-        return EBADMSG;
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    /* @todo: endian swap as appropriate */
-    *ppHeader = (CREATE_RESPONSE_HEADER*) pBuffer;
+    // byte order conversions
+    SMB_LTOH8_INPLACE(pHeader->oplockLevel);
+    SMB_LTOH16_INPLACE(pHeader->fid);
+    SMB_LTOH32_INPLACE(pHeader->createAction);
+    SMB_LTOH64_INPLACE(pHeader->creationTime);
+    SMB_LTOH64_INPLACE(pHeader->lastAccessTime);
+    SMB_LTOH64_INPLACE(pHeader->lastWriteTime);
+    SMB_LTOH64_INPLACE(pHeader->changeTime);
+    SMB_LTOH32_INPLACE(pHeader->extFileAttributes);
+    SMB_LTOH64_INPLACE(pHeader->allocationSize);
+    SMB_LTOH64_INPLACE(pHeader->endOfFile);
+    SMB_LTOH16_INPLACE(pHeader->fileType);
+    SMB_LTOH16_INPLACE(pHeader->deviceState);
+    SMB_LTOH8_INPLACE(pHeader->isDirectory);
+    SMB_LTOH16_INPLACE(pHeader->byteCount);
 
-    return 0;
+error:
+    if (ntStatus)
+    {
+        pHeader = NULL;
+    }
+
+    *ppHeader = pHeader;
+
+    return ntStatus;
 }

@@ -64,7 +64,6 @@ TreeConnect(
     TREE_CONNECT_REQUEST_HEADER *pHeader = NULL;
     SMB_PACKET *pResponsePacket = NULL;
     BOOLEAN bInLock = FALSE;
-    DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -84,7 +83,7 @@ TreeConnect(
                     0,
                     pSession->uid,
                     0,
-                    SMBSrvClientSessionSignMessages(pSession),
+                    TRUE,
                     &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -107,30 +106,20 @@ TreeConnect(
                     (packet.pData - (uint8_t *) packet.pSMBHeader) % 2,
                     &packetByteCount,
                     pwszPath,
-                    (uchar8_t *) "?????");
+                    "?????");
     BAIL_ON_NT_STATUS(ntStatus);
 
     assert(packetByteCount <= UINT16_MAX);
     *packet.pByteCount = (uint16_t) packetByteCount;
     packet.bufferUsed += *packet.pByteCount;
 
+    // byte order conversions
+    SMB_HTOL16_INPLACE(pHeader->flags);
+    SMB_HTOL16_INPLACE(pHeader->passwordLength);
+    SMB_HTOL16_INPLACE(pHeader->byteCount);
+
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SMBSrvClientSessionSignMessages(pSession))
-    {
-        DWORD dwSequence = SMBSocketGetNextSequence(pSession->pSocket);
-
-        ntStatus = SMBPacketSign(
-                        &packet,
-                        dwSequence,
-                        pSession->pSocket->pSessionKey,
-                        pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        // resultant is the response sequence from server
-        dwResponseSequence = dwSequence + 1;
-    }
 
     /* Because there's no MID, only one TREE_CONNECT_ANDX packet can be
        outstanding. */
@@ -142,18 +131,10 @@ TreeConnect(
 
     ntStatus = SMBSessionReceiveResponse(
                     pSession,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     &pResponsePacket);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SMBSrvClientSessionSignMessages(pSession))
-    {
-        ntStatus = SMBPacketVerifySignature(
-                        pResponsePacket,
-                        dwResponseSequence,
-                        pSession->pSocket->pSessionKey,
-                        pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     ntStatus = pResponsePacket->pSMBHeader->error;
     BAIL_ON_NT_STATUS(ntStatus);
@@ -164,7 +145,7 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBPacketFree(pSession->pSocket, pResponsePacket);
+        SMBPacketFree(pSession->pSocket->hPacketAllocator, pResponsePacket);
     }
 
     if (packet.bufferLen)

@@ -75,7 +75,7 @@ typedef struct
     pthread_mutex_t writeMutex; /* Serializes messages of concurrent writers */
 
     int fd;
-    uchar8_t *pszHostname;      /* For hashing and for GSS */
+    PSTR pszHostname;           /* For hashing and for GSS */
     struct sockaddr address;    /* For hashing */
 
     uint32_t maxBufferSize;     /* Max transmit buffer size */
@@ -85,7 +85,7 @@ typedef struct
     uint8_t *pSecurityBlob;     /* Security blob from NEGOTIATE */
     uint32_t securityBlobLen;   /* Security blob len from NEGOTIATE */
 
-    HANDLE   hPacketAllocator;
+    PLWIO_PACKET_ALLOCATOR hPacketAllocator;
 
     pthread_rwlock_t hashLock;  /* Locks the session hashes */
     SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
@@ -108,6 +108,7 @@ typedef struct
     BOOLEAN  bPasswordsMustBeEncrypted;
     BOOLEAN  bSignedMessagesSupported;
     BOOLEAN  bSignedMessagesRequired;
+    BOOLEAN  bUseSignedMessagesIfSupported;
 
     PBYTE    pSessionKey;
     DWORD    dwSessionKeyLength;
@@ -130,7 +131,7 @@ typedef struct
 
     SMB_SOCKET *pSocket;        /* Back pointer to parent socket */
     uint16_t uid;
-    uchar8_t *pszPrincipal;     /* Client principal name, for hashing */
+    PSTR pszPrincipal;          /* Client principal name, for hashing */
 
     pthread_rwlock_t hashLock;  /* Locks the hashes */
     SMB_HASH_TABLE *pTreeHashByPath;    /* Storage for dependent trees */
@@ -149,13 +150,8 @@ typedef struct
                                        TID (Tree Connect) or disconnects */
     pthread_cond_t treeEvent;   /* Signals waiting thread on tree packet */
 
-    HANDLE hSMBGSSContext;      /* Authorization handle */
-
     PBYTE  pSessionKey;
     DWORD  dwSessionKeyLength;
-
-    BOOLEAN bSignedMessagesSupported;
-    BOOLEAN bSignedMessagesRequired;
 
     /* @todo: store max mux, enforce.  Per session, per tree, or global? */
 } SMB_SESSION, *PSMB_SESSION;
@@ -175,7 +171,7 @@ typedef struct
                                    hash goes empty */
     SMB_SESSION *pSession;      /* Back pointer to parent session */
     uint16_t tid;
-    uchar8_t *pszPath;          /* For hashing */
+    PSTR pszPath;               /* For hashing */
     uint16_t mid;
 
     SMB_HASH_TABLE *pResponseHash; /* Storage for dependent responses */
@@ -234,7 +230,7 @@ typedef struct _RDR_GLOBAL_RUNTIME
 
     PSMB_STACK        pReaperStack;         /* Stack of reapers */
 
-    HANDLE            hPacketAllocator;
+    PLWIO_PACKET_ALLOCATOR hPacketAllocator;
 
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 

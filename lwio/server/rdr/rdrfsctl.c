@@ -101,7 +101,8 @@ RdrCommonFsctl(
        session key structure */
     if (dwSessionKeyLength + sizeof(*pSessionKey) > OutLength)
     {
-        BAIL_ON_NT_STATUS(ntStatus = STATUS_INSUFFICIENT_RESOURCES);
+        ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pSessionKey->SessionKeyLength = (USHORT) dwSessionKeyLength;

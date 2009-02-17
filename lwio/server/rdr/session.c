@@ -291,11 +291,6 @@ SMBSessionFree(
     pthread_mutex_destroy(&pSession->mutex);
     pthread_rwlock_destroy(&pSession->hashLock);
 
-    if (pSession->hSMBGSSContext)
-    {
-        SMBGSSContextFree(pSession->hSMBGSSContext);
-    }
-
     SMB_SAFE_FREE_MEMORY(pSession->pSessionKey);
 
     /* @todo: use allocator */
@@ -347,9 +342,9 @@ SMBSessionSetState(
 
 NTSTATUS
 SMBSessionFindTreeByPath(
-    PSMB_SESSION pSession,
-    uchar8_t    *pszPath,
-    PSMB_TREE*   ppTree
+    IN PSMB_SESSION pSession,
+    IN PCSTR pszPath,
+    OUT PSMB_TREE* ppTree
     )
 {
     NTSTATUS ntStatus = 0;
@@ -419,13 +414,19 @@ error:
 
 NTSTATUS
 SMBSessionReceiveResponse(
-    PSMB_SESSION pSession,
-    PSMB_PACKET* ppPacket
+    IN PSMB_SESSION pSession,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    OUT PSMB_PACKET* ppPacket
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     struct timespec ts = { 0, 0 };
+    PSMB_PACKET pPacket = NULL;
+
+    // TODO-The pSocket->pTreePacket stuff needs to go away
+    // so that this function can go away.
 
     SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
@@ -465,18 +466,30 @@ retry_wait:
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppPacket = pSession->pTreePacket;
+    pPacket = pSession->pTreePacket;
     pSession->pTreePacket = NULL;
 
-cleanup:
+    ntStatus = SMBPacketDecodeHeader(
+                    pPacket,
+                    bVerifySignature,
+                    dwExpectedSequence,
+                    pSession->pSocket->pSessionKey,
+                    pSession->pSocket->dwSessionKeyLength);
+    BAIL_ON_NT_STATUS(ntStatus);
 
+cleanup:
     SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+
+    *ppPacket = pPacket;
 
     return ntStatus;
 
 error:
-
-    *ppPacket = NULL;
+    if (pPacket)
+    {
+        SMBPacketFree(pSession->pSocket->hPacketAllocator, pPacket);
+        pPacket = NULL;
+    }
 
     goto cleanup;
 }

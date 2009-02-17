@@ -81,8 +81,8 @@ SMBIsAndXCommand(
 
 NTSTATUS
 SMBPacketCreateAllocator(
-    ULONG   ulNumMaxPackets,
-    PHANDLE phPacketAllocator
+    IN ULONG ulNumMaxPackets,
+    OUT PLWIO_PACKET_ALLOCATOR* phPacketAllocator
     )
 {
     NTSTATUS ntStatus = 0;
@@ -117,8 +117,8 @@ error:
 
 NTSTATUS
 SMBPacketAllocate(
-    HANDLE       hPacketAllocator,
-    PSMB_PACKET* ppPacket
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    OUT PSMB_PACKET* ppPacket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -126,7 +126,7 @@ SMBPacketAllocate(
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pPacket = NULL;
 
-    pPacketAllocator = (PLWIO_PACKET_ALLOCATOR) hPacketAllocator;
+    pPacketAllocator = hPacketAllocator;
 
     SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
@@ -163,8 +163,8 @@ error:
 
 VOID
 SMBPacketFree(
-    HANDLE      hPacketAllocator,
-    PSMB_PACKET pPacket
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN OUT PSMB_PACKET pPacket
     )
 {
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
@@ -175,7 +175,7 @@ SMBPacketFree(
                 pPacket->pRawBuffer,
                 pPacket->bufferLen);
 
-    pPacketAllocator = (PLWIO_PACKET_ALLOCATOR)hPacketAllocator;
+    pPacketAllocator = hPacketAllocator;
 
     SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
@@ -197,17 +197,17 @@ SMBPacketFree(
 
 NTSTATUS
 SMBPacketBufferAllocate(
-    HANDLE      hPacketAllocator,
-    size_t      len,
-    uint8_t**   ppBuffer,
-    size_t*     pAllocatedLen
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN size_t len,
+    OUT uint8_t** ppBuffer,
+    OUT size_t* pAllocatedLen
     )
 {
     NTSTATUS ntStatus = 0;
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
     BOOLEAN bInLock = FALSE;
 
-    pPacketAllocator = (PLWIO_PACKET_ALLOCATOR)hPacketAllocator;
+    pPacketAllocator = hPacketAllocator;
 
     SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
@@ -251,15 +251,15 @@ error:
 
 VOID
 SMBPacketBufferFree(
-    HANDLE      hPacketAllocator,
-    uint8_t*    pBuffer,
-    size_t      bufferLen
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    OUT uint8_t* pBuffer,
+    IN size_t bufferLen
     )
 {
     BOOLEAN bInLock = FALSE;
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
 
-    pPacketAllocator = (PLWIO_PACKET_ALLOCATOR)hPacketAllocator;
+    pPacketAllocator = hPacketAllocator;
 
     SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
@@ -295,10 +295,10 @@ SMBPacketResetBuffer(
 
 VOID
 SMBPacketFreeAllocator(
-    HANDLE hPacketAllocator
+    IN OUT PLWIO_PACKET_ALLOCATOR hPacketAllocator
     )
 {
-    PLWIO_PACKET_ALLOCATOR pAllocator = (PLWIO_PACKET_ALLOCATOR)hPacketAllocator;
+    PLWIO_PACKET_ALLOCATOR pAllocator = hPacketAllocator;
 
     if (pAllocator->pMutex)
     {
@@ -319,9 +319,59 @@ SMBPacketFreeAllocator(
     SMBFreeMemory(pAllocator);
 }
 
+static
+NTSTATUS
+ConsumeBuffer(
+    IN PVOID pBuffer,
+    IN uint32_t BufferLength,
+    IN OUT uint32_t* BufferLengthUsed,
+    IN uint32_t BytesNeeded
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    if (*BufferLengthUsed + BytesNeeded > BufferLength)
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+    }
+    else
+    {
+        *BufferLengthUsed += BytesNeeded;
+    }
+
+    return ntStatus;
+}
+
+VOID
+SMBPacketHTOLSmbHeader(
+    IN OUT SMB_HEADER* pHeader
+    )
+{
+    SMB_HTOL32_INPLACE(pHeader->error);
+    SMB_HTOL16_INPLACE(pHeader->flags2);
+    SMB_HTOL16_INPLACE(pHeader->extra.pidHigh);
+    SMB_HTOL16_INPLACE(pHeader->tid);
+    SMB_HTOL16_INPLACE(pHeader->pid);
+    SMB_HTOL16_INPLACE(pHeader->uid);
+    SMB_HTOL16_INPLACE(pHeader->mid);
+}
+
+static
+VOID
+SMBPacketLTOHSmbHeader(
+    IN OUT SMB_HEADER* pHeader
+    )
+{
+    SMB_LTOH32_INPLACE(pHeader->error);
+    SMB_LTOH16_INPLACE(pHeader->flags2);
+    SMB_LTOH16_INPLACE(pHeader->extra.pidHigh);
+    SMB_LTOH16_INPLACE(pHeader->tid);
+    SMB_LTOH16_INPLACE(pHeader->pid);
+    SMB_LTOH16_INPLACE(pHeader->uid);
+    SMB_LTOH16_INPLACE(pHeader->mid);
+}
+
 /* @todo: support AndX */
-/* @todo: support signing */
-/* @todo: support endian swapping */
 NTSTATUS
 SMBPacketMarshallHeader(
     uint8_t    *pBuffer,
@@ -333,79 +383,81 @@ SMBPacketMarshallHeader(
     uint32_t    pid,
     uint16_t    uid,
     uint16_t    mid,
-    BOOLEAN     bSignaturesRequired,
+    BOOLEAN     bCommandAllowsSignature,
     PSMB_PACKET pPacket
     )
 {
     NTSTATUS ntStatus = 0;
     uint32_t bufferUsed = 0;
-    uint32_t len = sizeof(NETBIOS_HEADER);
+    SMB_HEADER* pHeader = NULL;
 
-    if(bufferUsed + len <= bufferLen)
-    {
-       pPacket->pNetBIOSHeader = (NETBIOS_HEADER*) pBuffer;
-    }
-    bufferUsed += len;
+    pPacket->allowSignature = bCommandAllowsSignature;
 
-    len = sizeof(SMB_HEADER);
-    if(bufferUsed + len <= bufferLen)
-    {
-        SMB_HEADER* pHeader = pPacket->pSMBHeader =
-            (SMB_HEADER *) (pBuffer + bufferUsed);
-        memcpy(&pPacket->pSMBHeader->smb, smbMagic, sizeof(smbMagic));
-        pHeader->command = command;
-        pHeader->error = error;
-        pHeader->flags = isResponse ? FLAG_RESPONSE : 0;
-        pHeader->flags |= FLAG_CASELESS_PATHS | FLAG_OBSOLETE_2;
-        pHeader->flags2 =   FLAG2_KNOWS_LONG_NAMES |
-                            FLAG2_IS_LONG_NAME |
-                            (bSignaturesRequired ? FLAG2_REQUIRE_SIG : 0) |
-                            FLAG2_KNOWS_EAS |
-                            FLAG2_EXT_SEC | FLAG2_ERR_STATUS | FLAG2_UNICODE;
-        pHeader->extra.pidHigh = pid >> 16;
-        memset(pHeader->extra.securitySignature, 0,
-            sizeof(pHeader->extra.securitySignature));
-        pHeader->pad[5] = 0;
-        pHeader->tid = tid;
-        pHeader->pid = pid;
-        pHeader->uid = uid;
-        pHeader->mid = mid;
-    }
-    bufferUsed += len;
+    pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer + bufferUsed);
 
-    if(SMBIsAndXCommand(command))
+    ntStatus = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(NETBIOS_HEADER));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pPacket->pSMBHeader = (SMB_HEADER *) (pBuffer + bufferUsed);
+
+    ntStatus = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(SMB_HEADER));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pHeader = pPacket->pSMBHeader;
+    memcpy(&pHeader->smb, smbMagic, sizeof(smbMagic));
+    pHeader->command = command;
+    pHeader->error = error;
+    pHeader->flags = isResponse ? FLAG_RESPONSE : 0;
+    pHeader->flags |= FLAG_CASELESS_PATHS | FLAG_OBSOLETE_2;
+    pHeader->flags2 = ((isResponse ? 0 : FLAG2_KNOWS_LONG_NAMES) |
+                       (isResponse ? 0 : FLAG2_IS_LONG_NAME) |
+                       FLAG2_KNOWS_EAS | FLAG2_EXT_SEC |
+                       FLAG2_ERR_STATUS | FLAG2_UNICODE);
+    memset(pHeader->pad, 0, sizeof(pHeader->pad));
+    pHeader->extra.pidHigh = pid >> 16;
+    pHeader->tid = tid;
+    pHeader->pid = pid;
+    pHeader->uid = uid;
+    pHeader->mid = mid;
+
+    if (SMBIsAndXCommand(command))
     {
-        len = sizeof(ANDX_HEADER);
-        if(bufferUsed + len <= bufferLen)
-        {
-            pPacket->pAndXHeader = (ANDX_HEADER *) (pBuffer + bufferUsed);
-            pPacket->pAndXHeader->andXCommand = 0xFF;
-            pPacket->pAndXHeader->andXOffset = 0;
-            pPacket->pAndXHeader->andXReserved = 0;
-        }
-        bufferUsed += len;
+        pPacket->pAndXHeader = (ANDX_HEADER *) (pBuffer + bufferUsed);
+
+        ntStatus = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(ANDX_HEADER));
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pPacket->pAndXHeader->andXCommand = 0xFF;
+        pPacket->pAndXHeader->andXOffset = 0;
+        pPacket->pAndXHeader->andXReserved = 0;
     }
     else
     {
         pPacket->pAndXHeader = NULL;
     }
 
-    if(bufferUsed <= bufferLen)
-    {
-        pPacket->pParams = pBuffer + bufferUsed;
-    }
-
+    pPacket->pParams = pBuffer + bufferUsed;
     pPacket->pData = NULL;
     pPacket->pByteCount = NULL;
     pPacket->bufferLen = bufferLen;
     pPacket->bufferUsed = bufferUsed;
 
-    if (bufferUsed > bufferLen)
-    {
-        ntStatus = EMSGSIZE;
-    }
+    assert(bufferUsed <= bufferLen);
 
+cleanup:
     return ntStatus;
+
+error:
+    pPacket->pNetBIOSHeader = NULL;
+    pPacket->pSMBHeader = NULL;
+    pPacket->pAndXHeader = NULL;
+    pPacket->pParams = NULL;
+    pPacket->pData = NULL;
+    pPacket->pByteCount = NULL;
+    pPacket->bufferLen = bufferLen;
+    pPacket->bufferUsed = 0;
+
+    goto cleanup;
 }
 
 NTSTATUS
@@ -438,12 +490,13 @@ SMBPacketVerifySignature(
     uint8_t digest[16];
     uint8_t origSignature[8];
     MD5_CTX md5Value;
+    uint32_t littleEndianSequence = SMB_HTOL32(ulExpectedSequence);
 
     assert (sizeof(origSignature) == sizeof(pPacket->pSMBHeader->extra.securitySignature));
 
     memcpy(origSignature, pPacket->pSMBHeader->extra.securitySignature, sizeof(pPacket->pSMBHeader->extra.securitySignature));
     memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &ulExpectedSequence, sizeof(ulExpectedSequence));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &littleEndianSequence, sizeof(littleEndianSequence));
 
     MD5_Init(&md5Value);
 
@@ -457,7 +510,7 @@ SMBPacketVerifySignature(
 
     if (memcmp(&origSignature[0], &digest[0], sizeof(origSignature)))
     {
-        ntStatus = LwUnixErrnoToNtStatus(EACCES);
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
     }
 
     // restore signature
@@ -471,9 +524,36 @@ cleanup:
 
 error:
 
-    SMB_LOG_WARNING("SMB Packet verification failed [code:%d]", ntStatus);
+    SMB_LOG_WARNING("SMB Packet verification failed (status = 0x%08X)", ntStatus);
 
     goto cleanup;
+}
+
+NTSTATUS
+SMBPacketDecodeHeader(
+    IN OUT PSMB_PACKET pPacket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN OPTIONAL PBYTE pSessionKey,
+    IN DWORD dwSessionKeyLength
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    if (bVerifySignature)
+    {
+        ntStatus = SMBPacketVerifySignature(
+                        pPacket,
+                        dwExpectedSequence,
+                        pSessionKey,
+                        dwSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SMBPacketLTOHSmbHeader(pPacket->pSMBHeader);
+
+error:
+    return ntStatus;
 }
 
 NTSTATUS
@@ -487,11 +567,10 @@ SMBPacketSign(
     NTSTATUS ntStatus = 0;
     uint8_t digest[16];
     MD5_CTX md5Value;
-
-    pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
+    uint32_t littleEndianSequence = SMB_HTOL32(ulSequence);
 
     memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &ulSequence, sizeof(ulSequence));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &littleEndianSequence, sizeof(littleEndianSequence));
 
     MD5_Init(&md5Value);
 
@@ -507,7 +586,6 @@ SMBPacketSign(
 
     return ntStatus;
 }
-
 
 NTSTATUS
 SMBPacketUpdateAndXOffset(
@@ -526,6 +604,87 @@ SMBPacketUpdateAndXOffset(
     return ntStatus;
 }
 
+NTSTATUS
+SMBPacketAppendUnicodeString(
+    OUT PBYTE pBuffer,
+    IN ULONG BufferLength,
+    IN OUT PULONG BufferUsed,
+    IN PCWSTR pwszString
+    )
+{
+    NTSTATUS ntStatus = 0;
+    ULONG bytesNeeded = 0;
+    ULONG bufferUsed = *BufferUsed;
+    wchar16_t* pOutputBuffer = NULL;
+    size_t writeLength = 0;
+
+    bytesNeeded = sizeof(pwszString[0]) * (wc16slen(pwszString) + 1);
+    if (bufferUsed + bytesNeeded > BufferLength)
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pOutputBuffer = (wchar16_t *) (pBuffer + bufferUsed);
+    writeLength = wc16stowc16les(pOutputBuffer, pwszString, bytesNeeded / sizeof(pwszString[0]));
+    // Verify that expected write length was returned.  Note that the
+    // returned length does not include the NULL though the NULL gets
+    // written out.
+    if (writeLength == (size_t) -1)
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else if (((writeLength + 1) * sizeof(wchar16_t)) != bytesNeeded)
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    bufferUsed += bytesNeeded;
+
+error:
+    *BufferUsed = bufferUsed;
+    return ntStatus;
+}
+
+NTSTATUS
+SMBPacketAppendString(
+    OUT PBYTE pBuffer,
+    IN ULONG BufferLength,
+    IN OUT PULONG BufferUsed,
+    IN PCSTR pszString
+    )
+{
+    NTSTATUS ntStatus = 0;
+    ULONG bytesNeeded = 0;
+    ULONG bufferUsed = *BufferUsed;
+    char* pOutputBuffer = NULL;
+    char* pszCursor = NULL;
+
+    bytesNeeded = sizeof(pszString[0]) * (strlen(pszString) + 1);
+    if (bufferUsed + bytesNeeded > BufferLength)
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pOutputBuffer = (char *) (pBuffer + bufferUsed);
+
+    pszCursor = stpncpy(pOutputBuffer, pszString, bytesNeeded / sizeof(pszString[0]));
+    *pszCursor = 0;
+    if ((pszCursor - pOutputBuffer) != (bytesNeeded - 1))
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    bufferUsed += bytesNeeded;
+
+error:
+    *BufferUsed = bufferUsed;
+    return ntStatus;
+}
 
 /*
 local variables:

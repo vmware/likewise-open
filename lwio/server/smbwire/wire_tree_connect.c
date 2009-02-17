@@ -68,20 +68,17 @@ typedef struct
 /* @todo: test alignment restrictions on Win2k */
 NTSTATUS
 MarshallTreeConnectRequestData(
-    uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
-    uint32_t        *pBufferUsed,
-    const wchar16_t *pwszPath,
-    const uchar8_t  *pszService
+    OUT PBYTE pBuffer,
+    IN ULONG bufferLen,
+    IN uint8_t messageAlignment,
+    OUT PULONG pBufferUsed,
+    IN PCWSTR pwszPath,
+    IN PCSTR pszService
     )
 {
     NTSTATUS ntStatus = 0;
-
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
-    uint32_t wstrlen = 0;
-    uint8_t *pCursor = NULL;
 
     /* The password field is obsolete in modern dialects */
 
@@ -93,30 +90,13 @@ MarshallTreeConnectRequestData(
         bufferUsed += alignment;
     }
 
-    wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed), pwszPath,
-        bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    bufferUsed += wstrlen * sizeof(wchar16_t);
+    ntStatus = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    pCursor = (uint8_t*) stpncpy((char*) (pBuffer + bufferUsed),
-        (const char *) pszService,
-        bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    if (!*pCursor && bufferLen > bufferUsed)
-    {
-        /* string fits */
-        pCursor += sizeof(NUL);
-        bufferUsed += pCursor - pBuffer - bufferUsed;
-    }
-    else
-    {
-        /* expensive length check */
-        bufferUsed += strlen((const char*) pszService) + sizeof(NUL);
-    }
+    ntStatus = SMBPacketAppendString(pBuffer, bufferLen, &bufferUsed, pszService);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (bufferUsed > bufferLen)
-    {
-        ntStatus = EMSGSIZE;
-    }
-
+error:
     *pBufferUsed = bufferUsed;
 
     return ntStatus;

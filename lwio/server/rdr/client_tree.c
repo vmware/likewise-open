@@ -33,9 +33,9 @@
 static
 NTSTATUS
 SMBSrvClientTreeCreate(
-    PSMB_SESSION pSession,
-    uchar8_t    *pszPath,
-    PSMB_TREE*  ppTree
+    IN PSMB_SESSION pSession,
+    IN PCSTR pszPath,
+    OUT PSMB_TREE* ppTree
     );
 
 NTSTATUS
@@ -52,19 +52,19 @@ SMBSrvClientTreeOpen(
     PSMB_TREE pTree = NULL;
 
     ntStatus = SMBSrvClientSocketCreate(
-                    (uchar8_t *) pszHostname,
+                    pszHostname,
                     &pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSrvClientSessionCreate(
                     pSocket,
-                    (uchar8_t *) pszPrincipal,
+                    pszPrincipal,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSrvClientTreeCreate(
                     pSession,
-                    (uchar8_t *) pszSharename,
+                    pszSharename,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -99,9 +99,9 @@ error:
 static
 NTSTATUS
 SMBSrvClientTreeCreate(
-    PSMB_SESSION pSession,
-    uchar8_t    *pszPath,
-    PSMB_TREE*  ppTree
+    IN PSMB_SESSION pSession,
+    IN PCSTR pszPath,
+    OUT PSMB_TREE* ppTree
     )
 {
     DWORD     ntStatus = 0;
@@ -127,9 +127,9 @@ SMBSrvClientTreeCreate(
 
     /* Path is trusted */
     ntStatus = SMBStrndup(
-                    (char *) pszPath,
-                    strlen((char *) pszPath) + sizeof(NUL),
-                    (char **) &pTree->pszPath);
+                    pszPath,
+                    strlen(pszPath) + 1,
+                    &pTree->pszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSrvClientSessionAddTreeByPath(pSession, pTree);

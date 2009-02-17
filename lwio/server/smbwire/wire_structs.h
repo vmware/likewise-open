@@ -16,6 +16,6 @@ typedef struct _LWIO_PACKET_ALLOCATOR
 
     ULONG      ulNumMaxPackets;
 
-} LWIO_PACKET_ALLOCATOR, *PLWIO_PACKET_ALLOCATOR;
+} LWIO_PACKET_ALLOCATOR;
 
 #endif /* __STRUCTS_H__ */

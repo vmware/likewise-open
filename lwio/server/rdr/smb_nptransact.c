@@ -76,7 +76,6 @@ NPTransact(
     uint16_t wWriteOffset = 0;
     uint16_t wWriteRemaining = writeLen;
     uint16_t wReadRemaining = readLen;
-    DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -101,7 +100,7 @@ NPTransact(
                 0,
                 pTree->pSession->uid,
                 wMid,
-                SMBSrvClientSessionSignMessages(pTree->pSession),
+                TRUE,
                 &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -178,6 +177,8 @@ NPTransact(
 
     ntStatus = SMBTreeReceiveResponse(
                     pTree,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     pResponse,
                     &pResponsePacket);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -221,7 +222,7 @@ NPTransact(
                     wMid,
                     pTree->pSession->uid,
                     0,
-                    SMBSrvClientSessionSignMessages(pTree->pSession),
+                    TRUE,
                     &packet);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -274,21 +275,6 @@ NPTransact(
         ntStatus = SMBPacketMarshallFooter(&packet);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (SMBSrvClientSessionSignMessages(pTree->pSession))
-        {
-            DWORD dwSequence = SMBSocketGetNextSequence(pTree->pSession->pSocket);
-
-            ntStatus = SMBPacketSign(
-                            &packet,
-                            dwSequence,
-                            pTree->pSession->pSessionKey,
-                            pTree->pSession->dwSessionKeyLength);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            // resultant is the response sequence from server
-            dwResponseSequence = dwSequence + 1;
-        }
-
         ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -300,9 +286,11 @@ NPTransact(
     while (wReadRemaining)
     {
         ntStatus = SMBTreeReceiveResponse(
-                    pTree,
-                    pResponse,
-                    &pResponsePacket);
+                        pTree,
+                        FALSE,
+                        0,
+                        pResponse,
+                        &pResponsePacket);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pResponseHeader = (TRANSACTION_RESPONSE_HEADER *) packet.pParams;
@@ -320,7 +308,7 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBPacketFree(pTree->pSession->pSocket,
+        SMBPacketFree(pTree->pSession->pSocket->hPacketAllocator,
                 pResponsePacket);
     }
 

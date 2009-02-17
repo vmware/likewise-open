@@ -46,23 +46,23 @@ SMBSrvClientHashAddrinfo(
 static
 NTSTATUS
 _FindSocketByName(
-    uchar8_t    *pszHostname,
-    PSMB_SOCKET* ppSocket
+    IN PCSTR pszHostname,
+    OUT PSMB_SOCKET* ppSocket
     );
 
 static
 NTSTATUS
 _AddSocketByName(
-    PSMB_SOCKET pSocket,
-    uchar8_t   *pszHostname
+    IN PSMB_SOCKET pSocket,
+    IN PCSTR pszHostname
     );
 
 static
 NTSTATUS
 _FindOrCreateSocket(
-    struct addrinfo *addresses,
-    uchar8_t        *pszHostname,
-    PSMB_SOCKET*    ppSocket
+    IN struct addrinfo* addresses,
+    IN PCSTR pszHostname,
+    OUT PSMB_SOCKET* ppSocket
     );
 
 NTSTATUS
@@ -110,8 +110,8 @@ error:
 /* The socket is returned with a reference */
 NTSTATUS
 SMBSrvClientSocketCreate(
-    uchar8_t    *pszHostname,
-    PSMB_SOCKET* ppSocket
+    IN PCSTR pszHostname,
+    OUT PSMB_SOCKET* ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -136,7 +136,7 @@ SMBSrvClientSocketCreate(
         hints.ai_socktype = SOCK_STREAM;
 
         /* @todo: make port configurable */
-        s = getaddrinfo((char *) pszHostname, "445", &hints, &addresses);
+        s = getaddrinfo(pszHostname, "445", &hints, &addresses);
         if (s != 0) {
             ntStatus = s;
         }
@@ -269,8 +269,8 @@ SMBSrvClientHashAddrinfo(
 static
 NTSTATUS
 _FindSocketByName(
-    uchar8_t    *pszHostname,
-    PSMB_SOCKET* ppSocket
+    IN PCSTR pszHostname,
+    OUT PSMB_SOCKET* ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -308,8 +308,8 @@ error:
 static
 NTSTATUS
 _AddSocketByName(
-    PSMB_SOCKET pSocket,
-    uchar8_t   *pszHostname
+    IN PSMB_SOCKET pSocket,
+    IN PCSTR pszHostname
     )
 {
     NTSTATUS ntStatus = 0;
@@ -339,9 +339,9 @@ error:
 static
 NTSTATUS
 _FindOrCreateSocket(
-    struct addrinfo *addresses,
-    uchar8_t        *pszHostname,
-    PSMB_SOCKET*    ppSocket
+    IN struct addrinfo* addresses,
+    IN PCSTR pszHostname,
+    OUT PSMB_SOCKET* ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -440,7 +440,7 @@ restart:
         /* Not found; create in second pass */
         if (!bFirstPass)
         {
-            ntStatus = SMBSocketCreate(ai, pszHostname, &pSocket);
+            ntStatus = SMBSocketCreate(ai, pszHostname, gRdrRuntime.config.bSignMessagesIfSupported, &pSocket);
             BAIL_ON_NT_STATUS(ntStatus);
 
             /* add to hash */

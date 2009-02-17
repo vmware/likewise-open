@@ -86,13 +86,6 @@ SMBSocketFindSessionByUID(
     );
 
 static
-NTSTATUS
-SMBSocketReceiveNegotiateOrSetupResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
-    );
-
-static
 VOID
 SMBSocketFree(
     PSMB_SOCKET pSocket
@@ -101,9 +94,10 @@ SMBSocketFree(
 
 NTSTATUS
 SMBSocketCreate(
-    struct addrinfo *address,
-    uchar8_t        *pszHostname,
-    PSMB_SOCKET*     ppSocket
+    IN struct addrinfo* address,
+    IN PCSTR pszHostname,
+    IN BOOLEAN bUseSignedMessagesIfSupported,
+    OUT PSMB_SOCKET* ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -119,6 +113,8 @@ SMBSocketCreate(
                 sizeof(SMB_SOCKET),
                 (PVOID*)&pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pSocket->bUseSignedMessagesIfSupported = bUseSignedMessagesIfSupported;
 
     pthread_mutex_init(&pSocket->mutex, NULL);
     bDestroyMutex = TRUE;
@@ -327,6 +323,28 @@ SMBSocketTimedOut_InLock(
     return bTimedOut;
 }
 
+BOOLEAN
+SMBSocketIsSignatureRequired(
+    IN PSMB_SOCKET pSocket
+    )
+{
+    BOOLEAN bIsRequired = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    if (pSocket->pSessionKey &&
+        (pSocket->bSignedMessagesRequired ||
+         (pSocket->bSignedMessagesSupported && pSocket->bUseSignedMessagesIfSupported)))
+    {
+        bIsRequired = TRUE;
+    }
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return bIsRequired;
+}
+
 ULONG
 SMBSocketGetNextSequence(
     PSMB_SOCKET pSocket
@@ -364,8 +382,8 @@ SMBSocketUpdateLastActiveTime(
 
 NTSTATUS
 SMBSocketSend(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
+    IN PSMB_SOCKET pSocket,
+    IN PSMB_PACKET pPacket
     )
 {
     /* @todo: signal handling */
@@ -373,12 +391,13 @@ SMBSocketSend(
     ssize_t  writtenLen = 0;
     BOOLEAN  bInLock = FALSE;
     BOOLEAN  bSemaphoreAcquired = FALSE;
+    BOOLEAN bIsSignatureRequired = FALSE;
 
     if (pSocket->maxMpxCount)
     {
         if (sem_wait(&pSocket->semMpx) < 0)
         {
-            ntStatus = errno;
+            ntStatus = LwUnixErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -387,6 +406,35 @@ SMBSocketSend(
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->writeMutex);
 
+    if (pPacket->pSMBHeader->command != COM_NEGOTIATE)
+    {
+        pPacket->sequence = SMBSocketGetNextSequence(pSocket);
+    }
+
+    if (pPacket->allowSignature)
+    {
+        bIsSignatureRequired = SMBSocketIsSignatureRequired(pSocket);
+    }
+
+    if (bIsSignatureRequired)
+    {
+        pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
+    }
+
+    SMBPacketHTOLSmbHeader(pPacket->pSMBHeader);
+
+    if (bIsSignatureRequired)
+    {
+        ntStatus = SMBPacketSign(
+                        pPacket,
+                        pPacket->sequence,
+                        pSocket->pSessionKey,
+                        pSocket->dwSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pPacket->haveSignature = bIsSignatureRequired;
+
     writtenLen = write(
                     pSocket->fd,
                     pPacket->pRawBuffer,
@@ -394,7 +442,7 @@ SMBSocketSend(
 
     if (writtenLen < 0)
     {
-        ntStatus = errno;
+        ntStatus = LwUnixErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -424,8 +472,8 @@ error:
 
 NTSTATUS
 SMBSocketReceiveAndUnmarshall(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
+    IN PSMB_SOCKET pSocket,
+    OUT PSMB_PACKET pPacket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -466,7 +514,7 @@ SMBSocketReceiveAndUnmarshall(
     pPacket->pSMBHeader = (SMB_HEADER *) (pPacket->pRawBuffer + bufferUsed);
     bufferUsed += sizeof(SMB_HEADER);
 
-    if (SMBIsAndXCommand(pPacket->pSMBHeader->command))
+    if (SMBIsAndXCommand(SMB_LTOH8(pPacket->pSMBHeader->command)))
     {
         pPacket->pAndXHeader = (ANDX_HEADER *)
             (pPacket->pSMBHeader + bufferUsed);
@@ -602,14 +650,18 @@ SMBSocketFindAndSignalResponse(
     PSMB_TREE     pTree     = NULL;
     PSMB_RESPONSE pResponse = NULL;
     BOOLEAN bSocketInLock = FALSE;
+    uint8_t command = SMB_LTOH8(pPacket->pSMBHeader->command);
+    uint16_t uid = SMB_LTOH16(pPacket->pSMBHeader->uid);
+    uint16_t tid = SMB_LTOH16(pPacket->pSMBHeader->tid);
+    uint16_t mid = SMB_LTOH16(pPacket->pSMBHeader->mid);
 
     /* If any intermediate object has an error status, then the
        waiting thread has (or will soon) be awoken with an error
        condition by the thread which set the original error. */
 
-    if (pPacket->pSMBHeader->command == COM_NEGOTIATE ||
-        pPacket->pSMBHeader->command == COM_SESSION_SETUP_ANDX ||
-        pPacket->pSMBHeader->command == COM_LOGOFF_ANDX)
+    if (command == COM_NEGOTIATE ||
+        command == COM_SESSION_SETUP_ANDX ||
+        command == COM_LOGOFF_ANDX)
     {
         SMB_LOCK_MUTEX(bSocketInLock, &pSocket->mutex);
 
@@ -626,12 +678,12 @@ SMBSocketFindAndSignalResponse(
 
     ntStatus = SMBSocketFindSessionByUID(
                     pSocket,
-                    pPacket->pSMBHeader->uid,
+                    uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* COM_TREE_DISCONNECT has a MID and is handled by the normal MID path. */
-    if (pPacket->pSMBHeader->command == COM_TREE_CONNECT_ANDX)
+    if (command == COM_TREE_CONNECT_ANDX)
     {
         BOOLEAN bSessionInLock = FALSE;
 
@@ -649,17 +701,17 @@ SMBSocketFindAndSignalResponse(
 
     ntStatus = SMBSessionFindTreeById(
                     pSession,
-                    pPacket->pSMBHeader->tid,
+                    tid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBTreeFindLockedResponseByMID(
                     pTree,
-                    pPacket->pSMBHeader->mid,
+                    mid,
                     &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOG_DEBUG("Found response [mid: %d] in Tree [0x%x] Socket [0x%x]", pPacket->pSMBHeader->mid, pTree, pSocket);
+    SMB_LOG_DEBUG("Found response [mid: %d] in Tree [0x%x] Socket [0x%x]", mid, pTree, pSocket);
 
     pResponse->pPacket = pPacket;
     pResponse->state = SMB_RESOURCE_STATE_VALID;
@@ -944,42 +996,20 @@ SMBSocketSetState(
 }
 
 NTSTATUS
-SMBSocketReceiveNegotiateResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
-    )
-{
-    return SMBSocketReceiveNegotiateOrSetupResponse(pSocket, ppPacket);
-}
-
-NTSTATUS
-SMBSocketReceiveSessionSetupResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
-    )
-{
-    return SMBSocketReceiveNegotiateOrSetupResponse(pSocket, ppPacket);
-}
-
-NTSTATUS
-SMBSocketReceiveLogoffResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
-    )
-{
-    return SMBSocketReceiveNegotiateOrSetupResponse(pSocket, ppPacket);
-}
-
-static
-NTSTATUS
-SMBSocketReceiveNegotiateOrSetupResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
+SMBSocketReceiveResponse(
+    IN PSMB_SOCKET pSocket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    OUT PSMB_PACKET* ppPacket
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     struct timespec ts = { 0, 0 };
+    PSMB_PACKET pPacket = NULL;
+
+    // TODO-The pSocket->pSessionPacket stuff needs to go away
+    // so that this function can go away.
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
@@ -1021,27 +1051,39 @@ retry_wait:
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppPacket = pSocket->pSessionPacket;
+    pPacket = pSocket->pSessionPacket;
     pSocket->pSessionPacket = NULL;
 
-cleanup:
+    ntStatus = SMBPacketDecodeHeader(
+                    pPacket,
+                    bVerifySignature,
+                    dwExpectedSequence,
+                    pSocket->pSessionKey,
+                    pSocket->dwSessionKeyLength);
+    BAIL_ON_NT_STATUS(ntStatus);
 
+cleanup:
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    *ppPacket = pPacket;
 
     return ntStatus;
 
 error:
-
-    *ppPacket = NULL;
+    if (pPacket)
+    {
+        SMBPacketFree(pSocket->hPacketAllocator, pPacket);
+        pPacket = NULL;
+    }
 
     goto cleanup;
 }
 
 NTSTATUS
 SMBSocketFindSessionByPrincipal(
-    PSMB_SOCKET   pSocket,
-    uint8_t      *pszPrincipal,
-    PSMB_SESSION* ppSession
+    IN PSMB_SOCKET pSocket,
+    IN PCSTR pszPrincipal,
+    OUT PSMB_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;

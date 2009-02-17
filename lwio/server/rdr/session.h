@@ -29,9 +29,9 @@ SMBSessionUpdateLastActiveTime(
 
 NTSTATUS
 SMBSessionFindTreeByPath(
-    PSMB_SESSION pSession,
-    uchar8_t    *pszPath,
-    PSMB_TREE*  ppTree
+    IN PSMB_SESSION pSession,
+    IN PCSTR pszPath,
+    OUT PSMB_TREE* ppTree
     );
 
 NTSTATUS
@@ -43,8 +43,10 @@ SMBSessionFindTreeById(
 
 NTSTATUS
 SMBSessionReceiveResponse(
-    PSMB_SESSION pSession,
-    PSMB_PACKET* ppPacket
+    IN PSMB_SESSION pSession,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    OUT PSMB_PACKET* ppPacket
     );
 
 VOID

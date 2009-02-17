@@ -41,9 +41,11 @@ SMBSrvClientTreeAddResponse(
 
 NTSTATUS
 SMBTreeReceiveResponse(
-    PSMB_TREE     pTree,
-    PSMB_RESPONSE pResponse,
-    PSMB_PACKET*  ppResponsePacket
+    IN PSMB_TREE pTree,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN PSMB_RESPONSE pResponse,
+    OUT PSMB_PACKET* ppResponsePacket
     );
 
 NTSTATUS

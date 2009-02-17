@@ -50,7 +50,6 @@ WireWriteFile(
     SMB_PACKET *pResponsePacket = NULL;
     uint16_t wMid = 0;
     uint16_t wNumBytesWriteable = 0;
-    DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -75,7 +74,7 @@ WireWriteFile(
                 0,
                 pTree->pSession->uid,
                 wMid,
-                SMBSrvClientSessionSignMessages(pTree->pSession),
+                TRUE,
                 &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -123,6 +122,17 @@ WireWriteFile(
     packet.bufferUsed += packetByteCount;
     pRequestHeader->dataOffset += packet.pData - (uint8_t *) packet.pSMBHeader;
 
+    // byte order conversions
+    SMB_HTOL16_INPLACE(pRequestHeader->fid);
+    SMB_HTOL32_INPLACE(pRequestHeader->offset);
+    SMB_HTOL16_INPLACE(pRequestHeader->writeMode);
+    SMB_HTOL16_INPLACE(pRequestHeader->remaining);
+    SMB_HTOL16_INPLACE(pRequestHeader->dataLengthHigh);
+    SMB_HTOL16_INPLACE(pRequestHeader->dataLength);
+    SMB_HTOL16_INPLACE(pRequestHeader->dataOffset);
+    SMB_HTOL32_INPLACE(pRequestHeader->offsetHigh);
+    SMB_HTOL16_INPLACE(pRequestHeader->byteCount);
+
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -132,21 +142,6 @@ WireWriteFile(
     ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        DWORD dwSequence = SMBSocketGetNextSequence(pTree->pSession->pSocket);
-
-        ntStatus = SMBPacketSign(
-                        &packet,
-                        dwSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        // resultant is the response sequence from server
-        dwResponseSequence = dwSequence + 1;
-    }
-
     /* @todo: on send packet error, the response must be removed from the
        tree. */
     ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
@@ -154,24 +149,23 @@ WireWriteFile(
 
     ntStatus = SMBTreeReceiveResponse(
                     pTree,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     pResponse,
                     &pResponsePacket);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        ntStatus = SMBPacketVerifySignature(
-                        pResponsePacket,
-                        dwResponseSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     ntStatus = pResponsePacket->pSMBHeader->error;
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseHeader = (WRITE_ANDX_RESPONSE_HEADER*) pResponsePacket->pParams;
+
+    // byte order conversions
+    SMB_LTOH16_INPLACE(pResponseHeader->count);
+    //SMB_LTOH16_INPLACE(pResponseHeader->remaining);
+    SMB_LTOH16_INPLACE(pResponseHeader->countHigh);
+    //SMB_LTOH16_INPLACE(pResponseHeader->reserved);
+    //SMB_LTOH16_INPLACE(pResponseHeader->byteCount);
 
     *pwWritten = pResponseHeader->count;
 
@@ -179,7 +173,7 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBPacketFree(pTree->pSession->pSocket,
+        SMBPacketFree(pTree->pSession->pSocket->hPacketAllocator,
              pResponsePacket);
     }
 

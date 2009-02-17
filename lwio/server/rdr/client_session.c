@@ -33,9 +33,9 @@
 /* @todo: support internationalized principals */
 NTSTATUS
 SMBSrvClientSessionCreate(
-    PSMB_SOCKET   pSocket,
-    uchar8_t      *pszPrincipal,
-    PSMB_SESSION* ppSession
+    IN PSMB_SOCKET pSocket,
+    IN PCSTR pszPrincipal,
+    OUT PSMB_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
@@ -60,9 +60,9 @@ SMBSrvClientSessionCreate(
 
     /* Principal is trusted */
     ntStatus = SMBStrndup(
-                    (char *) pszPrincipal,
-                    strlen((char *) pszPrincipal) + sizeof(NUL),
-                    (char **) &pSession->pszPrincipal);
+                    pszPrincipal,
+                    strlen(pszPrincipal) + 1,
+                    &pSession->pszPrincipal);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSrvClientSocketAddSessionByPrincipal(pSocket, pSession);
@@ -70,18 +70,11 @@ SMBSrvClientSessionCreate(
 
     bAddedByPrincipal = TRUE;
 
-    pSession->bSignedMessagesSupported = pSocket->bSignedMessagesSupported;
-    pSession->bSignedMessagesRequired = pSocket->bSignedMessagesRequired;
-
     ntStatus = SessionSetup(
                     pSocket,
-                    SMBSrvClientSessionSignMessages(pSession),
-                    pSocket->pSessionKey,
-                    pSocket->dwSessionKeyLength,
                     &pSession->uid,
                     &pSession->pSessionKey,
-                    &pSession->dwSessionKeyLength,
-                    &pSession->hSMBGSSContext);
+                    &pSession->dwSessionKeyLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (!pSocket->pSessionKey && pSession->pSessionKey)
@@ -289,15 +282,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-BOOLEAN
-SMBSrvClientSessionSignMessages(
-    PSMB_SESSION pSession
-    )
-{
-    // TODO: Grab the config lock when available
-    return (pSession->bSignedMessagesRequired || (pSession->bSignedMessagesSupported && gRdrRuntime.config.bSignMessagesIfSupported));
 }
 
 NTSTATUS

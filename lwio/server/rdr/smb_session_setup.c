@@ -56,14 +56,10 @@
 thereafter */
 NTSTATUS
 SessionSetup(
-    PSMB_SOCKET pSocket,
-    BOOLEAN     bSignMessages,
-    PBYTE       pPrimerSessionKey,
-    DWORD       dwPrimerSessionKeyLen,
-    uint16_t   *pUID,
-    PBYTE*      ppSessionKey,
-    PDWORD      pdwSessionKeyLength,
-    PHANDLE     phGssContext
+    IN OUT PSMB_SOCKET pSocket,
+    OUT uint16_t* pUID,
+    OUT PBYTE* ppSessionKey,
+    OUT PDWORD pdwSessionKeyLength
     )
 {
     NTSTATUS ntStatus = 0;
@@ -84,8 +80,6 @@ SessionSetup(
 
     SMB_PACKET *pResponsePacket = NULL;
     PSESSION_SETUP_RESPONSE_HEADER pResponseHeader = NULL;
-    DWORD     dwSequence = 0;
-    DWORD     dwResponseSequence = 0;
 
     ntStatus = SMBGSSContextBuild(
                     (char *) pSocket->pszHostname,
@@ -125,7 +119,7 @@ SessionSetup(
                         0,
                         0,
                         0,
-                        FALSE, /* sign messages */
+                        TRUE,
                         &packet);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -171,21 +165,18 @@ SessionSetup(
         *packet.pByteCount = (uint16_t) packetByteCount;
         packet.bufferUsed += *packet.pByteCount;
 
+        // byte order conversions
+        SMB_HTOL16_INPLACE(pHeader->maxBufferSize);
+        SMB_HTOL16_INPLACE(pHeader->maxMpxCount);
+        SMB_HTOL16_INPLACE(pHeader->vcNumber);
+        SMB_HTOL32_INPLACE(pHeader->sessionKey);
+        SMB_HTOL16_INPLACE(pHeader->securityBlobLength);
+        //SMB_HTOL32_INPLACE(pHeader->reserved);
+        SMB_HTOL32_INPLACE(pHeader->capabilities);
+        SMB_HTOL16_INPLACE(pHeader->byteCount);
+
         ntStatus = SMBPacketMarshallFooter(&packet);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        dwSequence = SMBSocketGetNextSequence(pSocket);
-        dwResponseSequence = dwSequence + 1;
-
-        if (bSignMessages && pPrimerSessionKey)
-        {
-            ntStatus = SMBPacketSign(
-                            &packet,
-                            dwSequence,
-                            pPrimerSessionKey,
-                            dwPrimerSessionKeyLen);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
 
         /* Because there's no MID, only one SESSION_SETUP_ANDX packet can be
            outstanding. */
@@ -199,26 +190,18 @@ SessionSetup(
 
         if (pResponsePacket)
         {
-            SMBPacketFree(pSocket, pResponsePacket);
+            SMBPacketFree(pSocket->hPacketAllocator, pResponsePacket);
             pResponsePacket = NULL;
         }
 
-        ntStatus = SMBSocketReceiveSessionSetupResponse(
+        ntStatus = SMBSocketReceiveResponse(
                         pSocket,
+                        packet.haveSignature,
+                        packet.sequence + 1,
                         &pResponsePacket);
         BAIL_ON_NT_STATUS(ntStatus);
 
         SMB_UNLOCK_MUTEX(bInLock, &pSocket->sessionMutex);
-
-        if (bSignMessages && pPrimerSessionKey)
-        {
-            ntStatus = SMBPacketVerifySignature(
-                            pResponsePacket,
-                            dwResponseSequence,
-                            pPrimerSessionKey,
-                            dwPrimerSessionKeyLen);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
 
         ntStatus = pResponsePacket->pSMBHeader->error;
         if (ntStatus == STATUS_MORE_PROCESSING_REQUIRED)
@@ -256,16 +239,31 @@ SessionSetup(
                     &dwSessionKeyLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (!pSocket->pSessionKey && pSessionKey)
+    {
+        ntStatus = SMBAllocateMemory(
+                        dwSessionKeyLength,
+                        OUT_PPVOID(&pSocket->pSessionKey));
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        memcpy(pSocket->pSessionKey, pSessionKey, dwSessionKeyLength);
+
+        pSocket->dwSessionKeyLength = dwSessionKeyLength;
+    }
+
     *pUID = pResponsePacket->pSMBHeader->uid;
-    *phGssContext = hSMBGSSContext;
     *ppSessionKey = pSessionKey;
     *pdwSessionKeyLength = dwSessionKeyLength;
 
 cleanup:
+    if (hSMBGSSContext)
+    {
+        SMBGSSContextFree(hSMBGSSContext);
+    }
 
     if (pResponsePacket)
     {
-        SMBPacketFree(pSocket, pResponsePacket);
+        SMBPacketFree(pSocket->hPacketAllocator, pResponsePacket);
     }
 
     if (packet.bufferLen)
@@ -283,18 +281,11 @@ cleanup:
     return ntStatus;
 
 error:
-
     *pUID = 0;
     *ppSessionKey = NULL;
     *pdwSessionKeyLength = 0;
-
-    if (hSMBGSSContext)
-    {
-        SMBGSSContextFree(hSMBGSSContext);
-    }
 
     SMB_SAFE_FREE_MEMORY(pSessionKey);
 
     goto cleanup;
 }
-

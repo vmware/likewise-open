@@ -31,9 +31,9 @@
 
 NTSTATUS
 SMBSrvClientSessionCreate(
-    PSMB_SOCKET   pSocket,
-    uchar8_t      *pszPrincipal,
-    PSMB_SESSION* ppSession
+    IN PSMB_SOCKET pSocket,
+    IN PCSTR pszPrincipal,
+    OUT PSMB_SESSION* ppSession
     );
 
 NTSTATUS
@@ -64,11 +64,6 @@ NTSTATUS
 SMBSrvClientSessionRemoveTreeByPath(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
-    );
-
-BOOLEAN
-SMBSrvClientSessionSignMessages(
-    PSMB_SESSION pSession
     );
 
 NTSTATUS

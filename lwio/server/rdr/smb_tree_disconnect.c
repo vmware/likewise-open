@@ -61,7 +61,6 @@ TreeDisconnect(
     SMB_RESPONSE *pResponse = NULL;
     SMB_PACKET *pResponsePacket = NULL;
     uint16_t wMid = 0;
-    DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -86,7 +85,7 @@ TreeDisconnect(
                 0,
                 pTree->pSession->uid,
                 wMid,
-                SMBSrvClientSessionSignMessages(pTree->pSession),
+                TRUE,
                 &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -98,6 +97,8 @@ TreeDisconnect(
     packet.bufferUsed += sizeof(uint16_t);
     *((uint16_t *) packet.pData) = 0;
 
+    // no byte order conversions necessary (due to zeros)
+
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -107,21 +108,6 @@ TreeDisconnect(
     ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        DWORD dwSequence = SMBSocketGetNextSequence(pTree->pSession->pSocket);
-
-        ntStatus = SMBPacketSign(
-                        &packet,
-                        dwSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        // resultant is the response sequence from server
-        dwResponseSequence = dwSequence + 1;
-    }
-
     /* @todo: on send packet error, the response must be removed from the
        tree. */
     ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
@@ -129,19 +115,11 @@ TreeDisconnect(
 
     ntStatus = SMBTreeReceiveResponse(
                     pTree,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     pResponse,
                     &pResponsePacket);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SMBSrvClientSessionSignMessages(pTree->pSession))
-    {
-        ntStatus = SMBPacketVerifySignature(
-                        pResponsePacket,
-                        dwResponseSequence,
-                        pTree->pSession->pSocket->pSessionKey,
-                        pTree->pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     ntStatus = pResponsePacket->pSMBHeader->error;
     BAIL_ON_NT_STATUS(ntStatus);
@@ -151,7 +129,7 @@ cleanup:
     if (pResponsePacket)
     {
         SMBPacketFree(
-             pTree->pSession->pSocket,
+             pTree->pSession->pSocket->hPacketAllocator,
              pResponsePacket);
     }
 

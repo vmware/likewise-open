@@ -33,9 +33,10 @@
 
 NTSTATUS
 SMBSocketCreate(
-    struct addrinfo *address,
-    uchar8_t        *pszHostname,
-    PSMB_SOCKET*    ppSocket
+    IN struct addrinfo* address,
+    IN PCSTR pszHostname,
+    IN BOOLEAN bUseSignedMessagesIfSupported,
+    OUT PSMB_SOCKET* ppSocket
     );
 
 NTSTATUS
@@ -91,14 +92,14 @@ SMBSocketUpdateLastActiveTime(
 
 NTSTATUS
 SMBSocketSend(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
+    IN PSMB_SOCKET pSocket,
+    IN PSMB_PACKET pPacket
     );
 
 NTSTATUS
 SMBSocketReceiveAndUnmarshall(
-    PSMB_SOCKET pSocket,
-    PSMB_PACKET pPacket
+    IN PSMB_SOCKET pSocket,
+    OUT PSMB_PACKET pPacket
     );
 
 NTSTATUS
@@ -110,28 +111,18 @@ SMBSocketRead(
     );
 
 NTSTATUS
-SMBSocketReceiveNegotiateResponse(
-    PSMB_SOCKET  pSocket,
-    PSMB_PACKET* ppPacket
-    );
-
-NTSTATUS
-SMBSocketReceiveSessionSetupResponse(
-    PSMB_SOCKET  pSocket,
-    PSMB_PACKET* ppPacket
-    );
-
-NTSTATUS
-SMBSocketReceiveLogoffResponse(
-    PSMB_SOCKET   pSocket,
-    PSMB_PACKET* ppPacket
+SMBSocketReceiveResponse(
+    IN PSMB_SOCKET pSocket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    OUT PSMB_PACKET* ppPacket
     );
 
 NTSTATUS
 SMBSocketFindSessionByPrincipal(
-    PSMB_SOCKET   pSocket,
-    uint8_t      *pszPrincipal,
-    PSMB_SESSION* ppSession
+    IN PSMB_SOCKET pSocket,
+    IN PCSTR pszPrincipal,
+    OUT PSMB_SESSION* ppSession
     );
 
 VOID

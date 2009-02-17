@@ -396,6 +396,8 @@ SrvConnectionWriteMessage(
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
     {
+        pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
+
         ntStatus = SMBPacketSign(
                         pPacket,
                         ulSequence,

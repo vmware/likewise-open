@@ -76,7 +76,8 @@ LwIoCreateDefaultKrb5AccessToken(
     krb5Error = krb5_init_context(&pKrb5Context);
     if (krb5Error)
     {
-        BAIL_ON_NT_STATUS(Status = STATUS_INSUFFICIENT_RESOURCES);
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+        BAIL_ON_NT_STATUS(Status);
     }
 
     pszCredCachePath = krb5_cc_default_name(pKrb5Context);
@@ -103,7 +104,8 @@ LwIoCreateDefaultKrb5AccessToken(
     krb5Error = krb5_unparse_name(pKrb5Context, pKrb5Principal, &pszPrincipalName);
     if (krb5Error)
     {
-        BAIL_ON_NT_STATUS(Status = STATUS_UNSUCCESSFUL);
+        Status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(Status);
     }
     
     Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
@@ -198,7 +200,8 @@ __LwIoThreadInit(
 
     if (pthread_key_create(&gStateKey, LwIoThreadStateDestruct))
     {
-        BAIL_ON_NT_STATUS(Status = STATUS_INSUFFICIENT_RESOURCES);
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+        BAIL_ON_NT_STATUS(Status);
     }
 
     Status = LwIoInitProcessAccessToken();
@@ -242,7 +245,8 @@ LwIoGetThreadState(
 
         if (pthread_setspecific(gStateKey, pState))
         {
-            BAIL_ON_NT_STATUS(Status = STATUS_INSUFFICIENT_RESOURCES);
+            Status = STATUS_INSUFFICIENT_RESOURCES;
+            BAIL_ON_NT_STATUS(Status);
         }
     }
 

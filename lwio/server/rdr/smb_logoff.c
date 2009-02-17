@@ -59,8 +59,6 @@ Logoff(
     uint32_t ntStatus = 0;
     SMB_PACKET packet = {0};
     PSMB_PACKET pResponsePacket = NULL;
-    DWORD dwSequence = 0;
-    DWORD dwResponseSequence = 0;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -80,7 +78,7 @@ Logoff(
                 0,
                 pSession->uid,
                 0,
-                SMBSrvClientSessionSignMessages(pSession),
+                TRUE,
                 &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -90,50 +88,28 @@ Logoff(
     packet.bufferUsed += sizeof(uint16_t); /* ByteCount */
     *((uint16_t *) packet.pData) = 0;
 
+    // no byte order conversions necessary (due to zeros)
+
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SMBSrvClientSessionSignMessages(pSession))
-    {
-        dwSequence = SMBSocketGetNextSequence(pSession->pSocket);
-
-        ntStatus = SMBPacketSign(
-                        &packet,
-                        dwSequence,
-                        pSession->pSocket->pSessionKey,
-                        pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        // resultant is the response sequence from server
-        dwResponseSequence = dwSequence + 1;
-    }
 
     ntStatus = SMBSocketSend(pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketReceiveLogoffResponse(
+    ntStatus = SMBSocketReceiveResponse(
                     pSession->pSocket,
+                    packet.haveSignature,
+                    packet.sequence + 1,
                     &pResponsePacket);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SMBSrvClientSessionSignMessages(pSession))
-    {
-        ntStatus = SMBPacketVerifySignature(
-                        pResponsePacket,
-                        dwResponseSequence,
-                        pSession->pSocket->pSessionKey,
-                        pSession->pSocket->dwSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     ntStatus = pResponsePacket->pSMBHeader->error;
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-
     if (pResponsePacket)
     {
-        SMBPacketFree(pSession->pSocket, pResponsePacket);
+        SMBPacketFree(pSession->pSocket->hPacketAllocator, pResponsePacket);
     }
 
     if (packet.bufferLen)
@@ -147,7 +123,5 @@ cleanup:
     return ntStatus;
 
 error:
-
     goto cleanup;
 }
-

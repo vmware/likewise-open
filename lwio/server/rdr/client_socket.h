@@ -36,8 +36,8 @@ RdrSocketInit(
 
 NTSTATUS
 SMBSrvClientSocketCreate(
-    uchar8_t    *pszHostname,
-    PSMB_SOCKET* ppSocket
+    IN PCSTR pszHostname,
+    OUT PSMB_SOCKET* ppSocket
     );
 
 NTSTATUS

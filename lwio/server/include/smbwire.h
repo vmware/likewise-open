@@ -351,6 +351,9 @@ typedef struct
     size_t          bufferLen;   /* Number of bytes allocated from buffer */
     uint32_t        bufferUsed;  /* Number of bytes available/needed from
                                     buffer */
+    uint32_t        sequence;    /* Sequence number */
+    uint8_t         allowSignature; /* Whether to allow signing for this packet */
+    uint8_t         haveSignature; /* Whether packet has signature */
 } SMB_PACKET, *PSMB_PACKET;
 
 typedef enum
@@ -1024,6 +1027,8 @@ typedef enum
     SMB_SECURITY_MODE_USER
 } SMB_SECURITY_MODE;
 
+typedef struct _LWIO_PACKET_ALLOCATOR *PLWIO_PACKET_ALLOCATOR;
+
 NTSTATUS
 MarshallNegotiateRequest(
     uint8_t       *pBuffer,
@@ -1103,12 +1108,12 @@ UnmarshallSessionSetupRequest(
 
 NTSTATUS
 MarshallTreeConnectRequestData(
-    uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
-    uint32_t        *pBufferUsed,
-    const wchar16_t *pwszPath,
-    const uchar8_t  *pszService
+    OUT PBYTE pBuffer,
+    IN ULONG bufferLen,
+    IN uint8_t messageAlignment,
+    OUT PULONG pBufferUsed,
+    IN PCWSTR pwszPath,
+    IN PCSTR pszService
     );
 
 NTSTATUS
@@ -1143,18 +1148,18 @@ WireUnmarshallCreateFileRequest(
 
 NTSTATUS
 WireMarshallCreateRequestData(
-    uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
-    uint32_t        *pBufferUsed,
-    const wchar16_t *pwszPath
+    OUT PBYTE pBuffer,
+    IN ULONG bufferLen,
+    IN uint8_t messageAlignment,
+    OUT PULONG pBufferUsed,
+    IN PCWSTR pwszPath
     );
 
 NTSTATUS
 WireUnmarshallSMBResponseCreate(
-    const uint8_t  *pBuffer,
-    uint32_t        bufferLen,
-    CREATE_RESPONSE_HEADER **ppHeader
+    IN PBYTE pBuffer,
+    IN ULONG bufferLen,
+    OUT PCREATE_RESPONSE_HEADER* ppHeader
     );
 
 NTSTATUS
@@ -1371,35 +1376,35 @@ SMBIsAndXCommand(
 
 NTSTATUS
 SMBPacketCreateAllocator(
-    ULONG   ulNumMaxPackets,
-    PHANDLE phPacketAllocator
+    IN ULONG ulNumMaxPackets,
+    OUT PLWIO_PACKET_ALLOCATOR* phPacketAllocator
     );
 
 NTSTATUS
 SMBPacketAllocate(
-    HANDLE       hPacketAllocator,
-    PSMB_PACKET* ppPacket
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    OUT PSMB_PACKET* ppPacket
     );
 
 VOID
 SMBPacketFree(
-    HANDLE      hPacketAllocator,
-    PSMB_PACKET pPacket
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN OUT PSMB_PACKET pPacket
     );
 
 NTSTATUS
 SMBPacketBufferAllocate(
-    HANDLE      hPacketAllocator,
-    size_t      len,
-    uint8_t**   ppBuffer,
-    size_t*     pAllocatedLen
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN size_t len,
+    OUT uint8_t** ppBuffer,
+    OUT size_t* pAllocatedLen
     );
 
 VOID
 SMBPacketBufferFree(
-    HANDLE      hPacketAllocator,
-    uint8_t*    pBuffer,
-    size_t      bufferLen
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    OUT uint8_t* pBuffer,
+    IN size_t bufferLen
     );
 
 VOID
@@ -1409,7 +1414,12 @@ SMBPacketResetBuffer(
 
 VOID
 SMBPacketFreeAllocator(
-    HANDLE hPacketAllocator
+    IN OUT PLWIO_PACKET_ALLOCATOR hPacketAllocator
+    );
+
+VOID
+SMBPacketHTOLSmbHeader(
+    IN OUT SMB_HEADER* pHeader
     );
 
 /* @todo: support AndX */
@@ -1425,7 +1435,7 @@ SMBPacketMarshallHeader(
     uint32_t    pid,
     uint16_t    uid,
     uint16_t    mid,
-    BOOLEAN     bSignaturesRequired,
+    BOOLEAN     bCommandAllowsSignature,
     PSMB_PACKET pPacket
     );
 
@@ -1448,6 +1458,15 @@ SMBPacketVerifySignature(
     );
 
 NTSTATUS
+SMBPacketDecodeHeader(
+    IN OUT PSMB_PACKET pPacket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN OPTIONAL PBYTE pSessionKey,
+    IN DWORD dwSessionKeyLength
+    );
+
+NTSTATUS
 SMBPacketSign(
     PSMB_PACKET pPacket,
     ULONG       ulSequence,
@@ -1460,5 +1479,20 @@ SMBPacketUpdateAndXOffset(
     PSMB_PACKET pPacket
     );
 
+NTSTATUS
+SMBPacketAppendUnicodeString(
+    OUT PBYTE pBuffer,
+    IN ULONG BufferLength,
+    IN OUT PULONG BufferUsed,
+    IN PCWSTR pwszString
+    );
+
+NTSTATUS
+SMBPacketAppendString(
+    OUT PBYTE pBuffer,
+    IN ULONG BufferLength,
+    IN OUT PULONG BufferUsed,
+    IN PCSTR pszString
+    );
 
 #endif /* __SMBWIRE_H__ */

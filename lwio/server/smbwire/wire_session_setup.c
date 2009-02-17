@@ -65,24 +65,23 @@ typedef struct
 
 /* ASCII is not supported */
 /* @todo: test alignment restrictions on Win2k */
+static
 NTSTATUS
 _MarshallSessionSetupData(
-    uint8_t         *pBuffer,
-    uint32_t         bufferLen,
-    uint8_t          messageAlignment,
-    uint32_t        *pBufferUsed,
-    const uint8_t   *pSecurityBlob,
-    uint16_t         blobLen,
-    const wchar16_t *pwszNativeOS,
-    const wchar16_t *pwszNativeLanMan,
-    const wchar16_t *pwszNativeDomain
+    OUT PBYTE pBuffer,
+    IN ULONG bufferLen,
+    IN uint8_t messageAlignment,
+    OUT PULONG pBufferUsed,
+    IN const BYTE* pSecurityBlob,
+    IN USHORT blobLen,
+    IN PCWSTR pwszNativeOS,
+    IN PCWSTR pwszNativeLanMan,
+    IN PCWSTR pwszNativeDomain
     )
 {
     NTSTATUS ntStatus = 0;
-
     uint32_t bufferUsed = 0;
     uint32_t alignment = 0;
-    uint32_t wstrlen = 0;
 
     if (blobLen && bufferUsed + blobLen <= bufferLen)
         memcpy(pBuffer, pSecurityBlob, blobLen);
@@ -96,27 +95,19 @@ _MarshallSessionSetupData(
         bufferUsed += alignment;
     }
 
-    wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed), pwszNativeOS,
-        bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    bufferUsed += wstrlen * sizeof(wchar16_t);
+    ntStatus = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszNativeOS);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed),
-        pwszNativeLanMan, bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-    bufferUsed += wstrlen * sizeof(wchar16_t);
+    ntStatus = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszNativeLanMan);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (pwszNativeDomain)   /* NULL when extended security is not used */
     {
-        wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed),
-            pwszNativeDomain,
-            bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-        bufferUsed += wstrlen * sizeof(wchar16_t);
+        ntStatus = SMBPacketAppendUnicodeString(pBuffer, bufferLen, &bufferUsed, pwszNativeDomain);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (bufferUsed > bufferLen)
-    {
-        ntStatus = EMSGSIZE;
-    }
-
+error:
     *pBufferUsed = bufferUsed;
 
     return ntStatus;
@@ -269,17 +260,34 @@ UnmarshallSessionSetupResponse(
     wchar16_t       **ppwszNativeDomain
     )
 {
+    NTSTATUS ntStatus = 0;
+    PSESSION_SETUP_RESPONSE_HEADER pHeader = (PSESSION_SETUP_RESPONSE_HEADER) pBuffer;
+    ULONG bufferUsed = sizeof(SESSION_SETUP_RESPONSE_HEADER);
+
     /* NOTE: The buffer format cannot be trusted! */
-    uint32_t bufferUsed = sizeof(SESSION_SETUP_RESPONSE_HEADER);
     if (bufferLen < bufferUsed)
-        return EBADMSG;
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    /* @todo: endian swap as appropriate */
-    *ppHeader = (SESSION_SETUP_RESPONSE_HEADER*) pBuffer;
+    // byte order conversions
+    SMB_LTOH16_INPLACE(pHeader->action);
+    SMB_LTOH16_INPLACE(pHeader->securityBlobLength);
+    SMB_LTOH16_INPLACE(pHeader->byteCount);
 
-    return _UnmarshallSessionSetupData(pBuffer + bufferUsed,
+    ntStatus = _UnmarshallSessionSetupData(pBuffer + bufferUsed,
         bufferLen - bufferUsed, messageAlignment, ppSecurityBlob,
-        (*ppHeader)->securityBlobLength, ppwszNativeOS, ppwszNativeLanMan,
+        pHeader->securityBlobLength, ppwszNativeOS, ppwszNativeLanMan,
         ppwszNativeDomain);
-}
 
+error:
+    if (ntStatus)
+    {
+        pHeader = NULL;
+    }
+
+    *ppHeader = pHeader;
+
+    return ntStatus;
+}

@@ -422,7 +422,7 @@ typedef struct _SMB_SRV_RUNTIME_GLOBALS
 
     SMB_SRV_LISTENER         listener;
 
-    HANDLE                   hPacketAllocator;
+    PLWIO_PACKET_ALLOCATOR   hPacketAllocator;
 
     PSRV_CCB                 pCCBList;
 
