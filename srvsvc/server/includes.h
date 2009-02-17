@@ -64,7 +64,6 @@
 #include "defs.h"
 #include "structs.h"
 #include "marshall.h"
-#include "memutil.h"
 
 #include "externs.h"
 
