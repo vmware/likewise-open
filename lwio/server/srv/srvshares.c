@@ -60,15 +60,24 @@ SrvDevCtlAddShare(
     NTSTATUS ntStatus = 0;
     ULONG Level = 0;
 
-    switch (Level)
+    ntStatus = LwUnmarshallAddShareInfo(
+                        lpInBuffer,
+                        ulInBufferSize
+                        &pAddShareInfoParams
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+    switch (pAddShareInfoParams->Level)
     {
         case 2:
+            pShareInfo2 = pAddShareInfoParams->u.pShareInfo2;
             break;
 
         case 502:
+            pShareInfo502 = pAddShareInfoParams->u.pShareInfo502;
             break;
 
         case 503:
+            pShareInfo
             break;
 
         default:
@@ -78,6 +87,7 @@ SrvDevCtlAddShare(
             break;
 
     }
+error:
 
     return ntStatus;
 }

@@ -58,6 +58,8 @@
 #include <gssapi/gssapi_krb5.h>
 
 #include "lwio/lwio.h"
+#include "lwio/lmshare.h"
+#include "lwio/lwshareinfo.h"
 
 #include "lwiodef.h"
 #include "lwioutils.h"
