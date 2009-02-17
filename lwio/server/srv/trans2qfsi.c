@@ -407,7 +407,6 @@ SrvBuildFSAttributeInfoResponse(
     NTSTATUS ntStatus = 0;
     PBYTE    pData = NULL;
     USHORT   usDataLen = 0;
-    USHORT   usParam = 0;
     PUSHORT  pSetup = NULL;
     BYTE     setupCount = 0;
     USHORT   usDataOffset = 0;
@@ -498,8 +497,8 @@ SrvBuildFSAttributeInfoResponse(
                     (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
                     pSetup,
                     setupCount,
-                    (PBYTE)&usParam,
-                    sizeof(usParam),
+                    NULL,
+                    0,
                     pData,
                     usDataLen,
                     &usDataOffset,
