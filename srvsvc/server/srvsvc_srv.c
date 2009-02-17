@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,348 +33,453 @@
  * Copyright (C) Likewise Software 2007
  * All rights reserved.
  *
- * SrvSvc Server
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak (rafal@likewisesoftware.com)
+ *
+ * Likewise Server Service
  *
  */
-
 #include "includes.h"
 
-void _srvsvc_Function0(
-    /* [in] */ handle_t IDL_handle
-    )
+typedef const struct
 {
-}
+    PCSTR protocol;
+    PCSTR endpoint;
+} ENDPOINT, *PENDPOINT;
 
-void _srvsvc_Function1(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
 
-void _srvsvc_Function2(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
-
-void _srvsvc_Function3(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
-
-void _srvsvc_Function4(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
-
-void _srvsvc_Function5(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
-
-void _srvsvc_Function6(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
-
-void _srvsvc_Function7(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
-
-NET_API_STATUS _NetrConnectionEnum(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *qualifier,
-    /* [in, out] */ uint32 *level,
-    /* [in, out] */ srvsvc_NetConnCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
-    )
+static
+DWORD
+mkdir_recursive(PSTR pszPath, mode_t mode)
 {
     DWORD dwError = 0;
+    struct stat statbuf;
+    PSTR pszSlash = NULL;
 
-#if 0
-    dwError = SrvSvcNetConnectionEnum(
-                    server_name,
-                    qualifier,
-                    level,
-                    ctr,
-                    prefered_maximum_length,
-                    total_entries,
-                    resume_handle
-                    );
-#endif
+    for(pszSlash = strchr(pszPath, '/'); pszSlash; pszSlash = strchr(pszSlash + 1, '/'))
+    {
+        if (pszSlash == pszPath)
+        {
+            continue;
+        }
+
+        *pszSlash = '\0';
+
+        if (stat(pszPath, &statbuf) == 0)
+        {
+            /* Make sure its a directory */
+            if (!S_ISDIR(statbuf.st_mode))
+            {
+                dwError = ENOENT;
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+        }
+        else
+        {
+            /* Create it */
+            if (mkdir(pszPath, mode))
+            {
+                dwError = errno;
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+        }
+
+        *pszSlash = '/';
+    }
+
+    if (stat(pszPath, &statbuf) == 0)
+    {
+        /* Make sure its a directory */
+        if (!S_ISDIR(statbuf.st_mode))
+        {
+            dwError = ENOENT;
+            BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+    }
+    else
+    {
+        /* Create it */
+        if (mkdir(pszPath, mode))
+        {
+                dwError = errno;
+                BAIL_ON_SRVSVC_ERROR(dwError);
+        }
+    }
+
+error:
+    if (pszSlash)
+        *pszSlash = '/';
 
     return dwError;
 }
 
-NET_API_STATUS _NetrFileEnum(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *basepath,
-    /* [in] */ wchar16_t *username,
-    /* [in, out] */ uint32 *level,
-    /* [in, out] */ srvsvc_NetFileCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
-    )
+static
+DWORD
+prepare_domain_socket(PCSTR pszPath)
 {
     DWORD dwError = 0;
+    PSTR pszPathCopy = NULL;
+    PSTR pszDirname = NULL;
+    PSTR pszBasename = NULL;
 
-    dwError = SrvSvcNetFileEnum(
-                    server_name,
-                    basepath,
-                    username,
-                    level,
-                    ctr,
-                    prefered_maximum_length,
-                    total_entries,
-                    resume_handle
-                    );
-    return(dwError);
-}
+    pszPathCopy = strdup(pszPath);
+    if (!pszPathCopy)
+    {
+        dwError = ENOMEM;
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
 
-NET_API_STATUS _NetrFileGetInfo(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 fileid,
-    /* [in] */ uint32 level,
-    /* [out] */ srvsvc_NetFileInfo *info
-    )
-{
-    DWORD dwError = 0;
+    pszBasename = strrchr(pszPathCopy, '/');
 
-    dwError = SrvSvcNetFileGetInfo(
-                    server_name,
-                    fileid,
-                    level,
-                    info
-                    );
+    if (!pszBasename)
+    {
+        dwError = EINVAL;
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
+    *(pszBasename++) = '\0';
+
+    pszDirname = pszPathCopy;
+
+    dwError = mkdir_recursive(pszDirname, 0655);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    /* Ensure directory is only accessible by root */
+    if (chmod(pszDirname, 0600))
+    {
+        dwError = errno;
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
+error:
+
+    if (pszPathCopy)
+        free(pszPathCopy);
+
     return dwError;
 }
 
-NET_API_STATUS _NetrFileClose(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 fileid
+static
+DWORD
+bind_server(
+    rpc_binding_vector_p_t * server_binding,
+    rpc_if_handle_t interface_spec,
+    PENDPOINT pEndPoints
     )
 {
     DWORD dwError = 0;
+    DWORD dwRpcStatus = 0;
+    DWORD i;
 
-    dwError = SrvSvcNetFileClose(
-                    server_name,
-                    fileid
-                    );
-    return(dwError);
-}
+    /*
+     * Prepare the server binding handle
+     * use all avail protocols (UDP and TCP). This basically allocates
+     * new sockets for us and associates the interface UUID and
+     * object UUID of with those communications endpoints.
+     */
+    for (i = 0; pEndPoints[i].protocol != NULL; i++)
+    {
+        if (!pEndPoints[i].endpoint)
+        {
+            rpc_server_use_protseq((unsigned char*) pEndPoints[i].protocol,
+                                   rpc_c_protseq_max_calls_default,
+                                   (unsigned32*)&dwRpcStatus);
+            BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+        }
+        else
+        {
+            if (!strcmp(pEndPoints[i].protocol, "ncalrpc") &&
+                pEndPoints[i].endpoint[0] == '/')
+            {
+                dwError = prepare_domain_socket(pEndPoints[i].endpoint);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
 
-NET_API_STATUS _NetrSessionEnum(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *unc_client_name,
-    /* [in] */ wchar16_t *username,
-    /* [in, out] */ uint32 *level,
-    /* [in, out] */ srvsvc_NetSessCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
-    )
-{
-    DWORD dwError = 0;
+            rpc_server_use_protseq_ep((unsigned char*) pEndPoints[i].protocol,
+                                      rpc_c_protseq_max_calls_default,
+                                      (unsigned char*) pEndPoints[i].endpoint,
+                                      (unsigned32*)&dwRpcStatus);
+            BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+        }
+    }
 
-    dwError = SrvSvcNetSessionEnum(
-                    server_name,
-                    unc_client_name,
-                    username,
-                    level,
-                    ctr,
-                    prefered_maximum_length,
-                    total_entries,
-                    resume_handle
-                    );
+    rpc_server_inq_bindings(server_binding, (unsigned32*)&dwRpcStatus);
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+
+error:
+
     return dwError;
 }
 
-void _srvsvc_FunctionD(
-    /* [in] */ handle_t IDL_handle
+DWORD
+SRVSVCRegisterForRPC(
+    PSTR pszServiceName,
+    rpc_binding_vector_p_t* ppServerBinding
     )
 {
-}
+    volatile DWORD dwError = 0;
+    volatile DWORD dwRpcStatus = 0;
+    rpc_binding_vector_p_t pServerBinding = NULL;
+    BOOLEAN bRegistered = FALSE;
+    BOOLEAN bBound = FALSE;
+    BOOLEAN bEPRegistered = FALSE;
+    static ENDPOINT endpoints[] =
+    {
+        {"ncacn_ip_tcp", NULL},
+        {NULL, NULL}
+    };
 
-NET_API_STATUS _NetrShareAdd(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 level,
-    /* [in] */ srvsvc_NetShareInfo info,
-    /* [in, out] */ uint32 *parm_error
-    )
-{
-    DWORD dwError = 0;
+    DCETHREAD_TRY
+    {
+        rpc_server_register_if (srvsvc_v3_0_s_ifspec,
+                                NULL,
+                                NULL,
+                                (unsigned32*)&dwRpcStatus);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER;
+            }
+        }
+    }
+    DCETHREAD_ENDTRY;
 
-    dwError = SrvSvcNetShareAdd(
-                    server_name,
-                    level,
-                    info,
-                    parm_error
-                    );
-    return dwError;
-}
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-NET_API_STATUS _NetrShareEnum(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in, out] */ uint32 *level,
-    /* [in, out] */ srvsvc_NetShareCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
-    )
-{
-    DWORD dwError = 0;
+    bRegistered = TRUE;
+    SRVSVC_LOG_INFO("RPC Service registered successfully.");
 
-    dwError = SrvSvcNetShareEnum(
-                    server_name,
-                    level,
-                    ctr,
-                    prefered_maximum_length,
-                    total_entries,
-                    resume_handle
-                    );
-    return dwError;
-}
+    DCETHREAD_TRY
+    {
+        dwError = bind_server(&pServerBinding,
+                              srvsvc_v3_0_s_ifspec,
+                              endpoints);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if(!dwError)
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+        }
+        if(!dwError)
+        {
+            dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER;
+        }
+    }
+    DCETHREAD_ENDTRY;
 
-NET_API_STATUS _NetrShareGetInfo(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *netname,
-    /* [in] */ uint32 level,
-    /* [out] */ srvsvc_NetShareInfo *info
-    )
-{
-    return ERROR_NOT_SUPPORTED;
-}
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-NET_API_STATUS _NetrShareSetInfo(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *netname,
-    /* [in] */ uint32 level,
-    /* [in] */ srvsvc_NetShareInfo info,
-    /* [in, out] */ uint32 *parm_error
-    )
-{
-    return ERROR_NOT_SUPPORTED;
-}
+    bBound = TRUE;
 
-NET_API_STATUS _NetrShareDel(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *netname,
-    /* [in] */ uint32 reserved
-    )
-{
-    return ERROR_NOT_SUPPORTED;
-}
+    DCETHREAD_TRY
+    {
+        rpc_ep_register(srvsvc_v3_0_s_ifspec,
+                        pServerBinding,
+                        NULL,
+                        (idl_char*)pszServiceName,
+                        (unsigned32*)&dwRpcStatus);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER;
+            }
+        }
+    }
+    DCETHREAD_ENDTRY;
 
-void _srvsvc_Function13(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-void _srvsvc_Function14(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
+    bEPRegistered = TRUE;
+    SRVSVC_LOG_INFO("RPC Endpoint registered successfully.");
 
-NET_API_STATUS _NetrServerGetInfo(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 level,
-    /* [out] */ srvsvc_NetSrvInfo *info
-    )
-{
-    DWORD dwError = 0;
+    *ppServerBinding = pServerBinding;
 
-    dwError= SrvSvcNetServerGetInfo(
-                        server_name,
-                        level,
-                        info
-                    );
-    return ERROR_NOT_SUPPORTED;
-}
+cleanup:
 
-NET_API_STATUS _NetrServerSetInfo(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 level,
-    /* [in] */ srvsvc_NetSrvInfo info,
-    /* [in, out] */ uint32 *parm_error
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = SrvSvcNetServerSetInfo(
-                    server_name,
-                    level,
-                    info,
-                    parm_error
-                    );
     return dwError;
 
+error:
+
+    SRVSVC_LOG_ERROR("Failed to register RPC endpoint.  Error Code: [%u]\n", dwError);
+
+    if (bEPRegistered)
+    {
+        DCETHREAD_TRY
+        {
+            DWORD tmpStatus = 0;
+            rpc_ep_unregister(srvsvc_v3_0_s_ifspec,
+                              pServerBinding,
+                              NULL,
+                              (unsigned32*)&tmpStatus);
+        }
+        DCETHREAD_CATCH_ALL(THIS_CATCH)
+        DCETHREAD_ENDTRY;
+    }
+
+    if (bBound) {
+        DCETHREAD_TRY
+        {
+            DWORD tmpStatus = 0;
+            rpc_binding_vector_free(&pServerBinding,
+                                    (unsigned32*)&tmpStatus);
+        }
+        DCETHREAD_CATCH_ALL(THIS_CATCH)
+        DCETHREAD_ENDTRY;
+    }
+
+    if (bRegistered)
+    {
+        DCETHREAD_TRY
+        {
+            DWORD tmpStatus = 0;
+            rpc_server_unregister_if (srvsvc_v3_0_s_ifspec,
+                                      NULL,
+                                      (unsigned32*)&tmpStatus);
+        }
+        DCETHREAD_CATCH_ALL(THIS_CATCH)
+        DCETHREAD_ENDTRY;
+    }
+
+    *ppServerBinding = NULL;
+
+    goto cleanup;
 }
 
-void _srvsvc_Function17(
-    /* [in] */ handle_t IDL_handle
-    )
+DWORD
+SRVSVCListenForRPC()
 {
-}
+    volatile DWORD dwError = 0;
 
-void _srvsvc_Function18(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
+    DCETHREAD_TRY
+    {
+        rpc_server_listen(rpc_c_listen_max_calls_default, (unsigned32*)&dwError);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if (!dwError)
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+        }
+        if(!dwError)
+        {
+            dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_LISTEN;
+        }
+    }
+    DCETHREAD_ENDTRY
 
-void _srvsvc_Function19(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-void _srvsvc_Function1a(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
-
-void _srvsvc_Function1b(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-}
-
-NET_API_STATUS _NetrRemoteTOD(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [out] */ TIME_OF_DAY_INFO **info
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = SrvSvcNetRemoteTOD(
-                    server_name,
-                    info
-                    );
+cleanup:
     return dwError;
+
+error:
+    SRVSVC_LOG_ERROR("Failed to begin RPC listening.  Error code [%d]\n", dwError);
+    goto cleanup;
 }
 
+DWORD
+SRVSVCUnregisterForRPC(
+    rpc_binding_vector_p_t pServerBinding
+    )
+{
+    volatile DWORD dwError = 0;
+    volatile DWORD dwRpcStatus = 0;
+
+    DCETHREAD_TRY
+    {
+        SRVSVC_LOG_INFO("Unregistering server from the endpoint mapper...");
+        rpc_ep_unregister(srvsvc_v3_0_s_ifspec,
+                            pServerBinding,
+                            NULL,
+                            (unsigned32*)&dwRpcStatus);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
+            }
+        }
+    }
+    DCETHREAD_ENDTRY
+
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    DCETHREAD_TRY
+    {
+        rpc_binding_vector_free(&pServerBinding, (unsigned32*)&dwRpcStatus);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
+            }
+        }
+    }
+    DCETHREAD_ENDTRY
+
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    DCETHREAD_TRY
+    {
+        SRVSVC_LOG_INFO("Cleaning up the communications endpoints...");
+        rpc_server_unregister_if (srvsvc_v3_0_s_ifspec,
+                                 NULL,
+                                 (unsigned32*)&dwRpcStatus);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
+            }
+        }
+    }
+    DCETHREAD_ENDTRY
+
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    SRVSVC_LOG_ERROR("Failed to unregister RPC endpoint.  Error code [%d]\n", dwError);
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

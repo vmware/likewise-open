@@ -5,14 +5,20 @@ lib_LTLIBRARIES = libsrvsvc_cs.la libsrvsvc_ss.la
 idl_srcdir=$(top_srcdir)/idl
 include_srcdir=$(top_srcdir)/include
 
-srvsvcd_SOURCES =  \
-    driver.c       \
-    globals.c      \
-    main.c         \
-    marshall.c     \
-    memutil.c      \
-    server.c       \
-    srvsvc_server.c
+srvsvcd_SOURCES =              \
+    srvsvc.c                   \
+    srvsvc_srv.c               \
+    driver.c                   \
+    globals.c                  \
+    marshall.c                 \
+    memutil.c                  \
+    srvsvc_netshareadd.c       \
+    srvsvc_netsharedel.c       \
+    srvsvc_netsharegetinfo.c   \
+    srvsvc_netsharesetinfo.c   \
+    srvsvc_netshareenum.c      \
+    main.c
+
 
 libsrvsvc_cs_la_SOURCES = srvsvc_cstub.c
 libsrvsvc_ss_la_SOURCES = srvsvc_sstub.c
