@@ -216,7 +216,8 @@ SRVSVCValidateLogLevel(
 {
     DWORD dwError = 0;
 
-    if (dwLogLevel < 1) {
+    if (dwLogLevel < LOG_LEVEL_ALWAYS ||
+	dwLogLevel > LOG_LEVEL_DEBUG) {
         dwError = EINVAL;
     }
 
