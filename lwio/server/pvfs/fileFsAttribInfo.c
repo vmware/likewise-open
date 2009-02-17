@@ -134,7 +134,9 @@ PvfsQueryFileFsAttribInfo(
 
     pFileInfo->FileSystemAttributes = FILE_CASE_SENSITIVE_SEARCH |\
                                       FILE_CASE_PRESERVED_NAMES |\
-                                      FILE_UNICODE_ON_DISK;
+                                      FILE_UNICODE_ON_DISK |\
+                                      FILE_PERSISTENT_ACLS |\
+                                      FILE_SUPPORTS_SPARSE_FILES;
     pFileInfo->MaximumComponentNameLength = 255;
     pFileInfo->FileSystemNameLength = FsNameLenBytes;
     memcpy(pFileInfo->FileSystemName, pwszFsName, FsNameLenBytes);
