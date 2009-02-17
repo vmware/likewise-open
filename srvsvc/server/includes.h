@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -39,24 +39,15 @@
 #include <config.h>
 #include <srvsvcsys.h>
 
-#ifdef __GNUC__
 #include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
 #include <compat/dcerpc.h>
 #include <compat/rpcstatus.h>
-
 #include <wc16str.h>
-
 #include <lw/ntstatus.h>
-
 #include <lwio/lwio.h>
 #include <lwio/ntfileapi.h>
 
 #include <srvsvc/srvsvc.h>
-#include <srvsvc/srvsvcdefs.h>
 #include <srvsvcutils.h>
 
 #include "srvsvc_stub.h"
@@ -67,3 +58,12 @@
 
 #include "externs.h"
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
