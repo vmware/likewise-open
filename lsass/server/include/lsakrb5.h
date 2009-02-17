@@ -121,6 +121,7 @@ LsaKrb5SetProcessDefaultCachePath(
 DWORD
 LsaSetupMachineSession(
     PCSTR  pszMachname,
+    PCSTR  pszSamAccountName,
     PCSTR  pszPassword,
     PCSTR  pszRealm,
     PCSTR  pszDomain,
