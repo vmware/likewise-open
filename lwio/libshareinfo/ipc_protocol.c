@@ -65,6 +65,20 @@ typedef struct _SHARE_INFO_ADD_PARAMS
     SHARE_INFO_UNION info;
 } SHARE_INFO_ADD_PARAMS, *PSHARE_INFO_ADD_PARAMS;
 
+typedef struct _SHARE_INFO_DELETE_PARAMS
+{
+    PWSTR servername;
+    PWSTR netname;
+    DWORD reserved;
+}SHARE_INFO_DELETE_PARAMS, *PSHARE_INFO_DELETE_PARAMS;
+
+typedef struct _SHARE_INFO_SETINFO_PARAMS
+{
+    PWSTR servername;
+    PWSTR netname;
+    DWORD level;
+    SHARE_INFO_UNION info;
+}SHARE_INFO_SETINFO_PARAMS, *PSHARE_INFO_SETINFO_PARAMS;
 
 static LWMsgTypeSpec gShareInfo0Spec[] =
 {
