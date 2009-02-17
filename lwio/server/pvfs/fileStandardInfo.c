@@ -130,7 +130,7 @@ PvfsQueryFileStandardInfo(
     pFileInfo->AllocationSize = Stat.s_alloc;
     pFileInfo->EndOfFile      = Stat.s_size;
     pFileInfo->NumberOfLinks  = Stat.s_nlink;
-    pFileInfo->DeletePending  = FALSE;          /* Ignore Delete-on-Close */
+    pFileInfo->DeletePending  = (pCcb->CreateOptions & FILE_DELETE_ON_CLOSE) ? TRUE : FALSE;
     pFileInfo->Directory      = S_ISDIR(Stat.s_mode) ? TRUE : FALSE;
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);

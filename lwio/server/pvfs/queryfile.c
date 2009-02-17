@@ -73,7 +73,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
 
     /* Set Levels */
     { FileAllocationInformation,        NULL },
-    { FileDispositionInformation,       &PvvsFileDispositionInfo },
+    { FileDispositionInformation,       &PvfsFileDispositionInfo },
     { FileEndOfFileInformation,         &PvfsFileEndOfFileInfo },
     { FileLinkInformation,              NULL },
     { FileRenameInformation,            NULL },

@@ -123,6 +123,14 @@ PvfsSetFileDispositionInfo(
 
     /* Real work starts here */
 
+    if (pFileInfo->DeleteFile == TRUE)
+    {
+        pCcb->CreateOptions &= FILE_DELETE_ON_CLOSE;
+    }
+    else
+    {
+        pCcb->CreateOptions &= ~FILE_DELETE_ON_CLOSE;
+    }
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
