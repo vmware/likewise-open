@@ -48,7 +48,6 @@
 #include "adprovider.h"
 #include "adnetapi.h"
 
-static PIO_ACCESS_TOKEN ghSchannelAuthToken = NULL;
 static NetrCredentials gSchannelCreds = { 0 };
 static NetrCredentials* gpSchannelCreds = NULL;
 static NETRESOURCE gSchannelRes = { 0 };
@@ -403,6 +402,7 @@ AD_NetLookupObjectSidsByNames(
     PWSTR pwcObjectSid = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
+    LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
     LW_PIO_ACCESS_TOKEN pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
 
@@ -416,7 +416,11 @@ AD_NetLookupObjectSidsByNames(
     BAIL_ON_LSA_ERROR(dwError);
     bChangedToken = TRUE;
 
-    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
+	status = LwIoGetThreadAccessToken(&pAccessToken);
+	dwError = LwNtStatusToUnixErrno(status);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname, pAccessToken);
     if (rpcStatus != 0)
     {
        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
@@ -623,6 +627,11 @@ cleanup:
         LwIoDeleteAccessToken(pOldToken);
     }
 
+    if (pAccessToken)
+    {
+        LwIoDeleteAccessToken(pAccessToken);
+    }
+
     return dwError;
 
 error:
@@ -726,6 +735,7 @@ AD_NetLookupObjectNamesBySids(
     PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedNames = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
+    PIO_ACCESS_TOKEN pAccessToken = NULL;
     LW_PIO_ACCESS_TOKEN pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
 
@@ -740,7 +750,12 @@ AD_NetLookupObjectNamesBySids(
     BAIL_ON_LSA_ERROR(dwError);
     bChangedToken = TRUE;
 
-    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
+    status = LwIoGetThreadAccessToken(&pAccessToken);
+    dwError = LwNtStatusToUnixErrno(status);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname, pAccessToken);
+
     if (rpcStatus != 0)
     {
        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
@@ -964,6 +979,11 @@ cleanup:
         LwIoDeleteAccessToken(pOldToken);
     }
 
+    if (pAccessToken)
+    {
+        LwIoDeleteAccessToken(pAccessToken);
+    }
+
     return dwError;
 
 error:
@@ -995,6 +1015,7 @@ AD_DsEnumerateDomainTrusts(
     NetrDomainTrust* pTrusts = NULL;
     DWORD dwCount = 0;
     BOOLEAN bIsNetworkError = FALSE;
+    LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
     LW_PIO_ACCESS_TOKEN pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
 
@@ -1005,8 +1026,14 @@ AD_DsEnumerateDomainTrusts(
     BAIL_ON_LSA_ERROR(dwError);
     bChangedToken = TRUE;
 
+    status = LwIoGetThreadAccessToken(&pAccessToken);
+    dwError = LwNtStatusToUnixErrno(status);
+    BAIL_ON_LSA_ERROR(dwError);
+
     status = InitNetlogonBindingDefault(&netr_b,
-                                        (const char*)pszDomainControllerName);
+                                        pszDomainControllerName,
+                                        pAccessToken,
+                                        FALSE);
     if (status != 0)
     {
         LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
@@ -1048,6 +1075,10 @@ cleanup:
     if (pOldToken != NULL)
     {
         LwIoDeleteAccessToken(pOldToken);
+    }
+    if (pAccessToken != NULL)
+    {
+        LwIoDeleteAccessToken(pAccessToken);
     }
     *ppTrusts = pTrusts;
     *pdwCount = dwCount;
@@ -1380,6 +1411,9 @@ AD_NetlogonAuthenticationUserEx(
     PBYTE pChal = NULL;
     PBYTE pLMResp = NULL;
     PBYTE pNTResp = NULL;
+    LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
+    LW_PIO_ACCESS_TOKEN pOldToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     pthread_mutex_lock(&gSchannelLock);
 
@@ -1426,7 +1460,15 @@ AD_NetlogonAuthenticationUserEx(
     {
         /* Establish the initial bind to \NETLOGON */
 
-        status = InitNetlogonBindingDefault(&netr_b,(const char*)pszDomainController);
+        dwError = AD_SetSystemAccess(&pOldToken);
+        BAIL_ON_LSA_ERROR(dwError);
+        bChangedToken = TRUE;
+
+        status = LwIoGetThreadAccessToken(&pAccessToken);
+        dwError = LwNtStatusToUnixErrno(status);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        status = InitNetlogonBindingDefault(&netr_b,(const char*)pszDomainController, pAccessToken, FALSE);
         if (status != 0)
         {
             LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
@@ -1437,19 +1479,6 @@ AD_NetlogonAuthenticationUserEx(
         }
 
         /* Now setup the Schannel session */
-
-        if (ghSchannelAuthToken)
-        {
-            LwIoDeleteAccessToken(ghSchannelAuthToken);
-            ghSchannelAuthToken = NULL;
-        }
-
-        dwError = LwIoCreateKrb5AccessTokenW(pMachAcctInfo->pwszMachineAccount,
-                                            pwszCcachePath,
-                                            &ghSchannelAuthToken);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        /* FIXME: Re-implement mechanism to set token as schannel-specific */
 
         ghSchannelBinding = OpenSchannel(netr_b,
                                          pMachAcctInfo->pwszMachineAccount,
@@ -1487,9 +1516,6 @@ AD_NetlogonAuthenticationUserEx(
     if (pUserParams->pass.chap.pNT_resp)
         pNTResp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
 
-    dwError = LwIoSetThreadAccessToken(ghSchannelAuthToken);
-    BAIL_ON_LSA_ERROR(dwError);
-
     nt_status = NetrSamLogonNetwork(ghSchannelBinding,
                                     &gSchannelCreds,
                                     pwszServerName,
@@ -1503,9 +1529,6 @@ AD_NetlogonAuthenticationUserEx(
                                     3,                /* Return NetSamInfo3 */
                                     &pValidationInfo,
                                     &dwAuthoritative);
-
-    dwError = LwIoSetThreadAccessToken(NULL);
-    BAIL_ON_LSA_ERROR(dwError);
 
     if (nt_status != STATUS_SUCCESS)
     {
@@ -1539,6 +1562,19 @@ cleanup:
     {
         FreeNetlogonBinding(&netr_b);
         netr_b = NULL;
+    }
+
+    if (bChangedToken)
+    {
+        LwIoSetThreadAccessToken(pOldToken);
+    }
+    if (pOldToken != NULL)
+    {
+        LwIoDeleteAccessToken(pOldToken);
+    }
+    if (pAccessToken != NULL)
+    {
+        LwIoDeleteAccessToken(pAccessToken);
     }
 
     LSA_SAFE_FREE_MEMORY(pwszDomainController);
@@ -1577,12 +1613,6 @@ AD_ClearSchannelState(
 
         memset(&gSchannelRes, 0, sizeof(gSchannelRes));
         gpSchannelRes = NULL;
-    }
-
-    if (ghSchannelAuthToken)
-    {
-        LwIoDeleteAccessToken(ghSchannelAuthToken);
-        ghSchannelAuthToken = NULL;
     }
 
     pthread_mutex_unlock(&gSchannelLock);
