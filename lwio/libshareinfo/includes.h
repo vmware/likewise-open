@@ -36,6 +36,8 @@
 
 #include <lwio/lwio.h>
 #include <lwio/lmshare.h>
+#include <lwio/lwshareinfo.h>
 #include <lwioipc.h>
 #include <lwioutils.h>
 #include <ntipcmsg.h>
+
