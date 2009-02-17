@@ -66,14 +66,14 @@ PrintUsage(
     )
 {
     fprintf(stderr, "Usage: %s <command> [command options]\n", pszProgName);
-    fprintf(stderr, "(All pvfs files should be given in the format \"/pvfs/path/...\")\n");    
-    fprintf(stderr, "    -c <src> <dst>    Copy src to the Pvfs dst file\n");  
+    fprintf(stderr, "(All pvfs files should be given in the format \"/pvfs/path/...\")\n");
+    fprintf(stderr, "    -c <src> <dst>    Copy src to the Pvfs dst file\n");
     fprintf(stderr, "    -C <src> <dst>    Copy the pvfs src file to the local dst file\n");
     fprintf(stderr, "    -S <path>         Stat a Pvfs path (directory or file)\n");
     fprintf(stderr, "    -l <dir>          List the files in a directory\n");
     fprintf(stderr, "\n");
-    
-    return;    
+
+    return;
 }
 
 /******************************************************
@@ -93,18 +93,18 @@ CopyFileToPvfs(
     PSTR pszDstPath = NULL;
     size_t bytes = 0;
     int fd = -1;
-    BYTE pBuffer[1024];    
+    BYTE pBuffer[1024];
 
     if (argc != 2)
     {
         fprintf(stderr, "Missing parameters. Requires <src> and <dst>\n");
         ntError = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntError);        
+        BAIL_ON_NT_STATUS(ntError);
     }
 
     pszSrcPath = argv[0];
     pszDstPath = argv[1];
-    
+
     DstFilename.RootFileHandle = (IO_FILE_HANDLE)NULL;
     DstFilename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&DstFilename.FileName, pszDstPath);
@@ -135,7 +135,7 @@ CopyFileToPvfs(
     {
         fprintf(stderr, "Failed to open local file \"%s\" for copy (%s).\n",
                 pszDstPath, strerror(errno));
-        ntError = STATUS_UNSUCCESSFUL;        
+        ntError = STATUS_UNSUCCESSFUL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -146,10 +146,10 @@ CopyFileToPvfs(
         {
             fprintf(stderr, "Read failed! (%s)\n", strerror(errno));
             ntError = STATUS_UNSUCCESSFUL;
-            BAIL_ON_NT_STATUS(ntError);            
+            BAIL_ON_NT_STATUS(ntError);
         }
 
-        if (bytes == 0) {            
+        if (bytes == 0) {
             break;
         }
 
@@ -162,25 +162,25 @@ CopyFileToPvfs(
         BAIL_ON_NT_STATUS(ntError);
 
     } while (bytes != 0);
-    
+
     close(fd);
-    
+
     ntError = NtCloseFile(hFile);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     return ntError;
-    
+
 error:
     if (hFile) {
         NtCloseFile(hFile);
     }
-    
+
     if (fd != -1) {
         close(fd);
-    }    
-    goto cleanup;    
-}    
+    }
+    goto cleanup;
+}
 
 /******************************************************
  *****************************************************/
@@ -199,18 +199,18 @@ CopyFileFromPvfs(
     PSTR pszDstPath = NULL;
     size_t bytes = 0;
     int fd = -1;
-    BYTE pBuffer[1024];    
+    BYTE pBuffer[1024];
 
     if (argc != 2)
     {
         fprintf(stderr, "Missing parameters. Requires <src> and <dst>\n");
         ntError = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntError);        
+        BAIL_ON_NT_STATUS(ntError);
     }
 
     pszSrcPath = argv[0];
     pszDstPath = argv[1];
-    
+
     SrcFilename.RootFileHandle = (IO_FILE_HANDLE)NULL;
     SrcFilename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&SrcFilename.FileName, pszSrcPath);
@@ -241,7 +241,7 @@ CopyFileFromPvfs(
     {
         fprintf(stderr, "Failed to open local file \"%s\" for copy (%s).\n",
                 pszDstPath, strerror(errno));
-        ntError = STATUS_UNSUCCESSFUL;        
+        ntError = STATUS_UNSUCCESSFUL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -256,7 +256,7 @@ CopyFileFromPvfs(
                              0, 0);
         BAIL_ON_NT_STATUS(ntError);
 
-        if (StatusBlock.BytesTransferred == 0) {            
+        if (StatusBlock.BytesTransferred == 0) {
             break;
         }
 
@@ -264,29 +264,29 @@ CopyFileFromPvfs(
         {
             fprintf(stderr, "Write failed! (%s)\n", strerror(errno));
             ntError = STATUS_UNSUCCESSFUL;
-            BAIL_ON_NT_STATUS(ntError);            
+            BAIL_ON_NT_STATUS(ntError);
         }
 
 
     } while (bytes != 0);
-    
+
     close(fd);
-    
+
     ntError = NtCloseFile(hFile);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     return ntError;
-    
+
 error:
     if (hFile) {
         NtCloseFile(hFile);
     }
-    
+
     if (fd != -1) {
         close(fd);
-    }    
-    goto cleanup;    
+    }
+    goto cleanup;
 }
 
 
@@ -302,13 +302,13 @@ StatRemoteFile(
     FILE_BASIC_INFORMATION FileBasicInfo = {0};
     FILE_STANDARD_INFORMATION FileStdInfo = {0};
     FILE_INTERNAL_INFORMATION FileInternalInfo = {0};
-    IO_FILE_NAME Filename = {0};    
+    IO_FILE_NAME Filename = {0};
     IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
 
     Filename.RootFileHandle = (IO_FILE_HANDLE)NULL;
     Filename.IoNameOptions = 0;
-    ntError = RtlWC16StringAllocateFromCString(&Filename.FileName, 
+    ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
                                                pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -334,7 +334,7 @@ StatRemoteFile(
                                      &StatusBlock,
                                      &FileBasicInfo,
                                      sizeof(FileBasicInfo),
-                                     FileBasicInformation);    
+                                     FileBasicInformation);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = NtQueryInformationFile(hFile,
@@ -371,15 +371,15 @@ StatRemoteFile(
     printf("Attributes:           0x%x\n", FileBasicInfo.FileAttributes);
     printf("Index Number:         %lld\n", (long long) FileInternalInfo.IndexNumber);
 
-    printf("\n");    
-    
+    printf("\n");
+
 
 
 cleanup:
     return ntError;
-    
+
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 /******************************************************
@@ -528,7 +528,7 @@ error:
 /******************************************************
  *****************************************************/
 
-int 
+int
 main(
     int argc,
     char *argv[]
@@ -541,23 +541,23 @@ main(
     if (argc <= 2) {
         PrintUsage(argv[0]);
         ntError = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntError);    
+        BAIL_ON_NT_STATUS(ntError);
     }
 
     /* Process Args */
-        
-    if (strcmp(argv[1], "-c") == 0) 
+
+    if (strcmp(argv[1], "-c") == 0)
     {
         ntError = CopyFileToPvfs(argc-2, argv+2);
-    } 
-    else if (strcmp(argv[1], "-C") == 0) 
+    }
+    else if (strcmp(argv[1], "-C") == 0)
     {
         ntError = CopyFileFromPvfs(argc-2, argv+2);
-    } 
-    else if (strcmp(argv[1], "-S") == 0) 
+    }
+    else if (strcmp(argv[1], "-S") == 0)
     {
         ntError = StatRemoteFile(argv[2]);
-    } 
+    }
     else if (strcmp(argv[1], "-l") == 0)
     {
         char *filter = NULL;
@@ -569,23 +569,23 @@ main(
         ntError = ListDirectory(argv[2], filter);
     }
 
-    else 
+    else
     {
         PrintUsage(argv[0]);
         ntError = STATUS_INVALID_PARAMETER;
     }
     BAIL_ON_NT_STATUS(ntError);
-    
+
 
 cleanup:
-    printf("Final NTSTATUS was %s (%s)\n", 
+    printf("Final NTSTATUS was %s (%s)\n",
            NtStatusToDescription(ntError),
            NtStatusToSymbolicName(ntError));
 
     return ntError == STATUS_SUCCESS;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 
