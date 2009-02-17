@@ -366,7 +366,7 @@ SrvSvcDestroyMemory(
     );
 
 
-void
+NET_API_STATUS
 SrvSvcFreeMemory(
     void *ptr
     );

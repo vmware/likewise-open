@@ -1,8 +1,8 @@
 #include "includes.h"
 
-VOID
+NET_API_STATUS
 SrvSvcFreeMemory(
-    PVOID pMemory
+    void *pMemory
     )
 {
     free(pMemory);

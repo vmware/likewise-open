@@ -31,13 +31,7 @@
 #ifndef _SRVSVC_MEMORY_H_
 #define _SRVSVC_MEMORY_H_
 
-NET_API_STATUS SrvSvcInitMemory(void);
-
-NET_API_STATUS SrvSvcDestroyMemory(void);
-
 NET_API_STATUS SrvSvcAllocateMemory(void **ptr, size_t len, void *dep);
-
-NET_API_STATUS SrvSvcFreeMemory(void *ptr);
 
 NET_API_STATUS SrvSvcAddDepMemory(void *ptr, void *dep);
 
