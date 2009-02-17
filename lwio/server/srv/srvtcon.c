@@ -504,10 +504,13 @@ SrvBuildTreeConnectResponse(
                     &pszService);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvGetNativeFilesystem(
-                    pTree->pShareInfo,
-                    &pwszNativeFileSystem);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pTree->pShareInfo->service == SHARE_SERVICE_DISK_SHARE)
+    {
+        ntStatus = SrvGetNativeFilesystem(
+                        pTree->pShareInfo,
+                        &pwszNativeFileSystem);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = MarshallTreeConnectResponseData(
                     pSmbResponse->pData,
@@ -706,31 +709,107 @@ SrvGetNativeFilesystem(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
+    IO_FILE_HANDLE hFile = NULL;
+    IO_FILE_NAME   fileName = {0};
+    PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
+    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
+    PVOID               pSecurityDescriptor = NULL;
+    PVOID               pSecurityQOS = NULL;
+    IO_STATUS_BLOCK     ioStatusBlock = {0};
     PWSTR    pwszNativeFilesystem = NULL;
+    PBYTE    pVolumeInfo = NULL;
+    USHORT   usBytesAllocated = 0;
+    PFILE_FS_ATTRIBUTE_INFORMATION pFsAttrInfo = NULL;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
-    switch (pShareInfo->service)
-    {
-        case SHARE_SERVICE_DISK_SHARE:
+    fileName.FileName = pShareInfo->pwszPath;
 
-            ntStatus = SMBMbsToWc16s(
-                            "NTFS",
-                            &pwszNativeFilesystem);
+    ntStatus = IoCreateFile(
+                    &hFile,
+                    pAsyncControlBlock,
+                    &ioStatusBlock,
+                    pSecurityContext,
+                    &fileName,
+                    pSecurityDescriptor,
+                    pSecurityQOS,
+                    GENERIC_READ,
+                    0,
+                    FILE_ATTRIBUTE_NORMAL,
+                    FILE_SHARE_READ,
+                    FILE_OPEN,
+                    0,
+                    NULL, /* EA Buffer */
+                    0,    /* EA Length */
+                    NULL  /* ECP List  */
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    usBytesAllocated = sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 256 * sizeof(wchar16_t);
+
+    ntStatus = SMBAllocateMemory(
+                    usBytesAllocated,
+                    (PVOID*)&pVolumeInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    do
+    {
+        ntStatus = IoQueryVolumeInformationFile(
+                        hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        pVolumeInfo,
+                        usBytesAllocated,
+                        FileFsAttributeInformation);
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            break;
+        }
+        else if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+        {
+            USHORT usNewSize = usBytesAllocated + 256 * sizeof(wchar16_t);
+
+            ntStatus = SMBReallocMemory(
+                            pVolumeInfo,
+                            (PVOID*)&pVolumeInfo,
+                            usNewSize);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            break;
+            usBytesAllocated = usNewSize;
 
-        default:
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            break;
+    } while (TRUE);
+
+    pFsAttrInfo = (PFILE_FS_ATTRIBUTE_INFORMATION)pVolumeInfo;
+
+    if (!pFsAttrInfo->FileSystemNameLength)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    ntStatus = SMBAllocateStringW(
+                    pFsAttrInfo->FileSystemName,
+                    &pwszNativeFilesystem);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppwszNativeFilesystem = pwszNativeFilesystem;
 
 cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    SMB_SAFE_FREE_MEMORY(pVolumeInfo);
+
+    if (hFile)
+    {
+        IoCloseFile(hFile);
+    }
 
     return ntStatus;
 
