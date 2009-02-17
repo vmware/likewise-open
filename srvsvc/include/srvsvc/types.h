@@ -113,6 +113,24 @@ typedef int64_t int64;
 typedef uint32 WINERR;
 typedef uint64 NtTime;
 
+
+#ifndef NET_API_STATUS_DEFINED
+#define NET_API_STATUS_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef NET_API_STATUS_DEFINED")
+cpp_quote("#define NET_API_STATUS_DEFINED 1")
+#endif
+
+typedef uint32 NET_API_STATUS;
+
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
+
 /* Don't require DCE/RPC environment when simply building
    a client using rpc library */
 #if !defined(_DCE_IDL_)
