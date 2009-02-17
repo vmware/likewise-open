@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = liblwioshareinfo.la
 
 liblwioshareinfo_la_SOURCES = \
-    ipc_protocol.c
+    lwshareinfo.c
 
 liblwioshareinfo_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
