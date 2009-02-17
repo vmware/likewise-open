@@ -104,8 +104,9 @@ PvfsQueryFileFsVolInfo(
     PPVFS_CCB pCcb = NULL;
     PFILE_FS_VOLUME_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    PWSTR pwszFsName = NULL;
-    size_t FsNameLenBytes = RtlCStringNumChars(PVFS_FS_NAME) * sizeof(WCHAR);
+    PWSTR pwszVolumeName = NULL;
+    PCSTR pszVolName = "LIKEWISE";
+    size_t VolNameLenBytes = RtlCStringNumChars(pszVolName) * sizeof(WCHAR);
 
     /* Sanity checks */
 
@@ -119,7 +120,7 @@ PvfsQueryFileFsVolInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    if (Args.Length < sizeof(*pFileInfo) + FsNameLenBytes)
+    if (Args.Length < sizeof(*pFileInfo) + VolNameLenBytes)
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
@@ -129,12 +130,23 @@ PvfsQueryFileFsVolInfo(
 
     /* Real work starts here */
 
+    ntError = PvfsUnixToWinTime(&pFileInfo->VolumeCreationTime, time(NULL));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pFileInfo->VolumeSerialNumber = 0xDEADBEEF;
+    pFileInfo->SupportsObjects = FALSE;
+
+    ntError = RtlWC16StringAllocateFromCString(&pwszVolumeName, pszVolName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pFileInfo->VolumeLabelLength = VolNameLenBytes;
+    memcpy(pFileInfo->VolumeLabel, pwszVolumeName, VolNameLenBytes);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pwszFsName);
+    PVFS_SAFE_FREE_MEMORY(pwszVolumeName);
 
     return ntError;
 
