@@ -31,7 +31,7 @@
 /*
  * Abstract: RPC client library
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #ifndef _TYPES_H_
@@ -55,7 +55,7 @@ typedef uint16 wchar16_t;
 
 /* Types needed for librpc build pass */
 #include <inttypes.h>
-#include <lw/ntstatus.h>
+#include <lw/base.h>
 
 #ifndef UINT8_DEFINED
 typedef uint8_t uint8;
@@ -108,9 +108,19 @@ typedef uint64 NtTime;
 #if !defined(_DCE_IDL_)
 #if defined(SRVSVC_BUILD)
 #include <dce/rpc.h>
+
+typedef unsigned32 RPCSTATUS;
+
 #else
 typedef void* handle_t;
 typedef unsigned long error_status_t;
+
+#if SIZEOF_LONG_INT == 8
+typedef unsigned int      RPCSTATUS;
+#else /* SIZEOF_LONG_INT == 4 */
+typedef unsigned long int RPCSTATUS;
+#endif
+
 #endif /* defined(SRVSVC_BUILD) */
 #endif /* !defined(_DCE_IDL_) */
 
