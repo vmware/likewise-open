@@ -989,7 +989,7 @@ SrvMarshallBothDirInfoResponse(
         {
             memcpy((PBYTE)pInfoHeader->ShortName, (PBYTE)pFileInfoCursor->ShortName, sizeof(pInfoHeader->ShortName));
 
-            pInfoHeader->ShortNameLength = pFileInfoCursor->ShortNameLength * sizeof(wchar16_t);
+            pInfoHeader->ShortNameLength = pFileInfoCursor->ShortNameLength;
         }
 
         pDataCursor += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
