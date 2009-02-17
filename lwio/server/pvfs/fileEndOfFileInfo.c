@@ -110,7 +110,7 @@ PvfsSetFileEndOfFileInfo(
     PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
     BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
@@ -123,6 +123,8 @@ PvfsSetFileEndOfFileInfo(
 
     /* Real work starts here */
 
+    ntError = PvfsSysFtruncate(pCcb->fd, (off_t)pFileInfo->EndOfFile);
+    BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
