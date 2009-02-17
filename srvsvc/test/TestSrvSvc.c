@@ -28,6 +28,7 @@
  * license@likewisesoftware.com
  */
 
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,9 +36,9 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
-
-#include <types.h>
 #include <wc16str.h>
+
+#include <srvsvc/types.h>
 
 #include "Params.h"
 #include "TestSrvSvc.h"

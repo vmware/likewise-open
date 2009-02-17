@@ -28,9 +28,9 @@
 
 interface srvsvc {
 
-#include <types.h>
+#include <srvsvc/types.h>
 #include <security.idl>
-#include <srvsvcdefs.h>
+#include <srvsvc/srvsvcdefs.h>
 
     cpp_quote("#ifndef __SRVSVC_IDL__")
     cpp_quote("#define __SRVSVC_IDL__")

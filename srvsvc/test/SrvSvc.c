@@ -34,11 +34,9 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
-
-#include <types.h>
 #include <wc16str.h>
-#include <srvsvc.h>
-#include <srvsvcbinding.h>
+
+#include <srvsvc/srvsvc.h>
 
 #include "../client/SrvSvcUtil.h"
 #include "TestSrvSvc.h"

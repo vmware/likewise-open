@@ -31,11 +31,10 @@
 #ifndef _SRVSVC_UTIL_H_
 #define _SRVSVC_UTIL_H_
 
-//#include <lwrpc/ntstatus.h>
-//#include <lwrpc/winerror.h>
 #include <compat/rpcstatus.h>
 #include <lw/ntstatus.h>
-#include <types.h>
+
+#include <srvsvc/types.h>
 
 #define SAFE_FREE(ptr)  do { if (ptr) free(ptr); (ptr) = NULL; } while (0)
 
