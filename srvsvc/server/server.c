@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -47,6 +47,7 @@ typedef const struct
     PCSTR protocol;
     PCSTR endpoint;
 } ENDPOINT, *PENDPOINT;
+
 
 static
 DWORD
@@ -229,14 +230,14 @@ SRVSVCRegisterForRPC(
         {NULL, NULL}
     };
 
-    TRY
+    DCETHREAD_TRY
     {
         rpc_server_register_if (srvsvc_v3_0_s_ifspec,
                                 NULL,
                                 NULL,
                                 (unsigned32*)&dwRpcStatus);
     }
-    CATCH_ALL
+    DCETHREAD_CATCH_ALL
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -247,7 +248,7 @@ SRVSVCRegisterForRPC(
             }
         }
     }
-    ENDTRY;
+    DCETHREAD_ENDTRY;
 
     BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -255,13 +256,13 @@ SRVSVCRegisterForRPC(
     bRegistered = TRUE;
     SRVSVC_LOG_INFO("RPC Service registered successfully.");
 
-    TRY
+    DCETHREAD_TRY
     {
         dwError = bind_server(&pServerBinding,
                               srvsvc_v3_0_s_ifspec,
                               endpoints);
     }
-    CATCH_ALL
+    DCETHREAD_CATCH_ALL
     {
         if(!dwError)
         {
@@ -272,13 +273,13 @@ SRVSVCRegisterForRPC(
             dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER;
         }
     }
-    ENDTRY;
+    DCETHREAD_ENDTRY;
 
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     bBound = TRUE;
 
-    TRY
+    DCETHREAD_TRY
     {
         rpc_ep_register(srvsvc_v3_0_s_ifspec,
                         pServerBinding,
@@ -286,7 +287,7 @@ SRVSVCRegisterForRPC(
                         (idl_char*)pszServiceName,
                         (unsigned32*)&dwRpcStatus);
     }
-    CATCH_ALL
+    DCETHREAD_CATCH_ALL
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -297,7 +298,7 @@ SRVSVCRegisterForRPC(
             }
         }
     }
-    ENDTRY;
+    DCETHREAD_ENDTRY;
 
     BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -317,7 +318,7 @@ error:
 
     if (bEPRegistered)
     {
-        TRY
+        DCETHREAD_TRY
         {
             DWORD tmpStatus = 0;
             rpc_ep_unregister(srvsvc_v3_0_s_ifspec,
@@ -325,32 +326,32 @@ error:
                               NULL,
                               (unsigned32*)&tmpStatus);
         }
-        CATCH_ALL
-        ENDTRY;
+        DCETHREAD_CATCH_ALL
+        DCETHREAD_ENDTRY;
     }
 
     if (bBound) {
-        TRY
+        DCETHREAD_TRY
         {
             DWORD tmpStatus = 0;
             rpc_binding_vector_free(&pServerBinding,
                                     (unsigned32*)&tmpStatus);
         }
-        CATCH_ALL
-        ENDTRY;
+        DCETHREAD_CATCH_ALL
+        DCETHREAD_ENDTRY;
     }
 
     if (bRegistered)
     {
-        TRY
+        DCETHREAD_TRY
         {
             DWORD tmpStatus = 0;
             rpc_server_unregister_if (srvsvc_v3_0_s_ifspec,
                                       NULL,
                                       (unsigned32*)&tmpStatus);
         }
-        CATCH_ALL
-        ENDTRY;
+        DCETHREAD_CATCH_ALL
+        DCETHREAD_ENDTRY;
     }
 
     *ppServerBinding = NULL;
@@ -363,11 +364,11 @@ SRVSVCListenForRPC()
 {
     volatile DWORD dwError = 0;
 
-    TRY
+    DCETHREAD_TRY
     {
         rpc_server_listen(rpc_c_listen_max_calls_default, (unsigned32*)&dwError);
     }
-    CATCH_ALL
+    DCETHREAD_CATCH_ALL
     {
         if (!dwError)
         {
@@ -378,7 +379,7 @@ SRVSVCListenForRPC()
             dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_LISTEN;
         }
     }
-    ENDTRY
+    DCETHREAD_ENDTRY
 
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -398,7 +399,7 @@ SRVSVCUnregisterForRPC(
     volatile DWORD dwError = 0;
     volatile DWORD dwRpcStatus = 0;
 
-    TRY
+    DCETHREAD_TRY
     {
         SRVSVC_LOG_INFO("Unregistering server from the endpoint mapper...");
         rpc_ep_unregister(srvsvc_v3_0_s_ifspec,
@@ -406,7 +407,7 @@ SRVSVCUnregisterForRPC(
                             NULL,
                             (unsigned32*)&dwRpcStatus);
     }
-    CATCH_ALL
+    DCETHREAD_CATCH_ALL
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -417,16 +418,16 @@ SRVSVCUnregisterForRPC(
             }
         }
     }
-    ENDTRY
+    DCETHREAD_ENDTRY
 
     BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    TRY
+    DCETHREAD_TRY
     {
         rpc_binding_vector_free(&pServerBinding, (unsigned32*)&dwRpcStatus);
     }
-    CATCH_ALL
+    DCETHREAD_CATCH_ALL
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -437,19 +438,19 @@ SRVSVCUnregisterForRPC(
             }
         }
     }
-    ENDTRY
+    DCETHREAD_ENDTRY
 
     BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    TRY
+    DCETHREAD_TRY
     {
         SRVSVC_LOG_INFO("Cleaning up the communications endpoints...");
         rpc_server_unregister_if (srvsvc_v3_0_s_ifspec,
                                  NULL,
                                  (unsigned32*)&dwRpcStatus);
     }
-    CATCH_ALL
+    DCETHREAD_CATCH_ALL
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -460,7 +461,7 @@ SRVSVCUnregisterForRPC(
             }
         }
     }
-    ENDTRY
+    DCETHREAD_ENDTRY
 
     BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     BAIL_ON_SRVSVC_ERROR(dwError);
