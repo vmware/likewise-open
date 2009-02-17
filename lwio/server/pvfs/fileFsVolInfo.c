@@ -34,94 +34,113 @@
  *
  * Module Name:
  *
- *        fileinfo_p.h
+ *        fileFsVolInfo
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        FileInformation Handlers
+ *        FileFsVolumeInformation Handler
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
+#include "pvfs.h"
 
-/* QueryFileInformation */
+/* Forward declarations */
 
-NTSTATUS
-PvfsFileBasicInfo(
-    PVFS_INFO_TYPE Type,
+static NTSTATUS
+PvfsQueryFileFsVolInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-NTSTATUS
-PvfsFileStandardInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
 
-NTSTATUS
-PvfsFileInternalInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
+/* File Globals */
 
-NTSTATUS
-PvfsFileEaInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
 
-NTSTATUS
-PvfsFileStreamInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
 
-NTSTATUS
-PvfsFileFsAttribInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
+/* Code */
+
 
 NTSTATUS
 PvfsFileFsVolInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
-    );
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    switch(Type)
+    {
+    case PVFS_SET:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+
+    case PVFS_QUERY:
+        ntError = PvfsQueryFileFsVolInfo(pIrpContext);
+        break;
+
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
-/* QueryDirectoryInformation */
-
-NTSTATUS
-PvfsFileBothDirInfo(
-    PVFS_INFO_TYPE Type,
+static NTSTATUS
+PvfsQueryFileFsVolInfo(
     PPVFS_IRP_CONTEXT pIrpContext
-    );
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
+    PFILE_FS_VOLUME_INFORMATION pFileInfo = NULL;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    PWSTR pwszFsName = NULL;
+    size_t FsNameLen = RtlCStringNumChars(PVFS_FS_NAME) * sizeof(WCHAR);
+
+    /* Sanity checks */
+
+    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+
+    /* not sure exact access rights to check for here */
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
+    BAIL_ON_NT_STATUS(ntError);
+
+    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
+
+    if (Args.Length < sizeof(*pFileInfo) + FsNameLen)
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pFileInfo = (PFILE_FS_VOLUME_INFORMATION)Args.FileInformation;
+
+    /* Real work starts here */
 
 
-/* QueryVolumeInformation */
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+    ntError = STATUS_SUCCESS;
 
-NTSTATUS
-PvfsQueryVolumeInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
+cleanup:
+    PVFS_SAFE_FREE_MEMORY(pwszFsName);
 
-/* utility functions */
+    return ntError;
 
-/* From util_dir.c */
-
-NTSTATUS
-PvfsEnumerateDirectory(
-    PPVFS_CCB pCcb,
-    PIRP_ARGS_QUERY_DIRECTORY pQueryDirArgs
-    );
-
-VOID
-PvfsFreeDirectoryContext(
-    PPVFS_DIRECTORY_CONTEXT pDirCtx
-    );
+error:
+    goto cleanup;
+}
 
 
 /*
