@@ -237,7 +237,7 @@ SRVSVCRegisterForRPC(
                                 NULL,
                                 (unsigned32*)&dwRpcStatus);
     }
-    DCETHREAD_CATCH_ALL
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -262,7 +262,7 @@ SRVSVCRegisterForRPC(
                               srvsvc_v3_0_s_ifspec,
                               endpoints);
     }
-    DCETHREAD_CATCH_ALL
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
         if(!dwError)
         {
@@ -287,7 +287,7 @@ SRVSVCRegisterForRPC(
                         (idl_char*)pszServiceName,
                         (unsigned32*)&dwRpcStatus);
     }
-    DCETHREAD_CATCH_ALL
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -326,7 +326,7 @@ error:
                               NULL,
                               (unsigned32*)&tmpStatus);
         }
-        DCETHREAD_CATCH_ALL
+        DCETHREAD_CATCH_ALL(THIS_CATCH)
         DCETHREAD_ENDTRY;
     }
 
@@ -337,7 +337,7 @@ error:
             rpc_binding_vector_free(&pServerBinding,
                                     (unsigned32*)&tmpStatus);
         }
-        DCETHREAD_CATCH_ALL
+        DCETHREAD_CATCH_ALL(THIS_CATCH)
         DCETHREAD_ENDTRY;
     }
 
@@ -350,7 +350,7 @@ error:
                                       NULL,
                                       (unsigned32*)&tmpStatus);
         }
-        DCETHREAD_CATCH_ALL
+        DCETHREAD_CATCH_ALL(THIS_CATCH)
         DCETHREAD_ENDTRY;
     }
 
@@ -368,7 +368,7 @@ SRVSVCListenForRPC()
     {
         rpc_server_listen(rpc_c_listen_max_calls_default, (unsigned32*)&dwError);
     }
-    DCETHREAD_CATCH_ALL
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
         if (!dwError)
         {
@@ -407,7 +407,7 @@ SRVSVCUnregisterForRPC(
                             NULL,
                             (unsigned32*)&dwRpcStatus);
     }
-    DCETHREAD_CATCH_ALL
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -427,7 +427,7 @@ SRVSVCUnregisterForRPC(
     {
         rpc_binding_vector_free(&pServerBinding, (unsigned32*)&dwRpcStatus);
     }
-    DCETHREAD_CATCH_ALL
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
@@ -450,7 +450,7 @@ SRVSVCUnregisterForRPC(
                                  NULL,
                                  (unsigned32*)&dwRpcStatus);
     }
-    DCETHREAD_CATCH_ALL
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
         if ( dwRpcStatus == RPC_S_OK )
         {
