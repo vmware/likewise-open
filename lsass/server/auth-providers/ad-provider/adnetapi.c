@@ -59,10 +59,10 @@ static pthread_mutex_t gSchannelLock = PTHREAD_MUTEX_INITIALIZER;
 static
 DWORD
 AD_GetSystemAccessToken(
-    PHANDLE phAccessToken
+    LW_PIO_ACCESS_TOKEN* ppAccessToken
     )
 {
-    HANDLE hAccessToken = NULL;
+    LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
     DWORD dwError = 0;
     PSTR pszUsername = NULL;
     PSTR pszPassword = NULL;
@@ -95,13 +95,13 @@ AD_GetSystemAccessToken(
                     &pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBCreateKrb5AccessTokenA(
+    dwError = LwIoCreateKrb5AccessTokenA(
                     pszMachPrincipal,
                     pszKrb5CcPath,
-                    &hAccessToken);
+                    &pAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *phAccessToken = hAccessToken;
+    *ppAccessToken = pAccessToken;
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszUsername);
@@ -114,10 +114,10 @@ cleanup:
     return dwError;
 
 error:
-    *phAccessToken = NULL;
-    if (hAccessToken != NULL)
+    *ppAccessToken = NULL;
+    if (pAccessToken != NULL)
     {
-        SMBCloseHandle(NULL, hAccessToken);
+        LwIoDeleteAccessToken(pAccessToken);
     }
 
     goto cleanup;
@@ -126,37 +126,37 @@ error:
 static
 DWORD
 AD_SetSystemAccess(
-    PHANDLE phOldToken
+    LW_PIO_ACCESS_TOKEN* ppOldToken
     )
 {
-    HANDLE hOldToken = NULL;
-    HANDLE hSystemToken = NULL;
+    LW_PIO_ACCESS_TOKEN pOldToken = NULL;
+    LW_PIO_ACCESS_TOKEN pSystemToken = NULL;
     DWORD dwError = 0;
 
-    dwError = AD_GetSystemAccessToken(&hSystemToken);
+    dwError = AD_GetSystemAccessToken(&pSystemToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBGetThreadToken(&hOldToken);
+    dwError = LwIoGetThreadAccessToken(&pOldToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBSetThreadToken(hSystemToken);
+    dwError = LwIoSetThreadAccessToken(pSystemToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *phOldToken = hOldToken;
+    *ppOldToken = pOldToken;
 
 cleanup:
-    if (hSystemToken != NULL)
+    if (pSystemToken != NULL)
     {
-        SMBCloseHandle(NULL, hSystemToken);
+        LwIoDeleteAccessToken(pSystemToken);
     }
     return dwError;
 
 error:
-    if (hOldToken != NULL)
+    if (pOldToken != NULL)
     {
-        SMBCloseHandle(NULL, hOldToken);
+        LwIoDeleteAccessToken(pOldToken);
     }
-    *phOldToken = NULL;
+    *ppOldToken = NULL;
 
     goto cleanup;
 }
@@ -403,7 +403,7 @@ AD_NetLookupObjectSidsByNames(
     PWSTR pwcObjectSid = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
-    HANDLE hOldToken = NULL;
+    LW_PIO_ACCESS_TOKEN pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
 
     BAIL_ON_INVALID_STRING(pszHostname);
@@ -412,7 +412,7 @@ AD_NetLookupObjectSidsByNames(
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_SetSystemAccess(&hOldToken);
+    dwError = AD_SetSystemAccess(&pOldToken);
     BAIL_ON_LSA_ERROR(dwError);
     bChangedToken = TRUE;
 
@@ -616,11 +616,11 @@ cleanup:
     }
     if (bChangedToken)
     {
-        SMBSetThreadToken(hOldToken);
+        LwIoSetThreadAccessToken(pOldToken);
     }
-    if (hOldToken != NULL)
+    if (pOldToken != NULL)
     {
-        SMBCloseHandle(NULL, hOldToken);
+        LwIoDeleteAccessToken(pOldToken);
     }
 
     return dwError;
@@ -726,7 +726,7 @@ AD_NetLookupObjectNamesBySids(
     PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedNames = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
-    HANDLE hOldToken = NULL;
+    LW_PIO_ACCESS_TOKEN pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
 
     BAIL_ON_INVALID_STRING(pszHostname);
@@ -736,7 +736,7 @@ AD_NetLookupObjectNamesBySids(
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_SetSystemAccess(&hOldToken);
+    dwError = AD_SetSystemAccess(&pOldToken);
     BAIL_ON_LSA_ERROR(dwError);
     bChangedToken = TRUE;
 
@@ -957,11 +957,11 @@ cleanup:
     }
     if (bChangedToken)
     {
-        SMBSetThreadToken(hOldToken);
+        LwIoSetThreadAccessToken(pOldToken);
     }
-    if (hOldToken != NULL)
+    if (pOldToken != NULL)
     {
-        SMBCloseHandle(NULL, hOldToken);
+        LwIoDeleteAccessToken(pOldToken);
     }
 
     return dwError;
@@ -995,13 +995,13 @@ AD_DsEnumerateDomainTrusts(
     NetrDomainTrust* pTrusts = NULL;
     DWORD dwCount = 0;
     BOOLEAN bIsNetworkError = FALSE;
-    HANDLE hOldToken = NULL;
+    LW_PIO_ACCESS_TOKEN pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
 
     dwError = LsaMbsToWc16s(pszDomainControllerName, &pwcDomainControllerName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_SetSystemAccess(&hOldToken);
+    dwError = AD_SetSystemAccess(&pOldToken);
     BAIL_ON_LSA_ERROR(dwError);
     bChangedToken = TRUE;
 
@@ -1043,11 +1043,11 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwcDomainControllerName);
     if (bChangedToken)
     {
-        SMBSetThreadToken(hOldToken);
+        LwIoSetThreadAccessToken(pOldToken);
     }
-    if (hOldToken != NULL)
+    if (pOldToken != NULL)
     {
-        SMBCloseHandle(NULL, hOldToken);
+        LwIoDeleteAccessToken(pOldToken);
     }
     *ppTrusts = pTrusts;
     *pdwCount = dwCount;
