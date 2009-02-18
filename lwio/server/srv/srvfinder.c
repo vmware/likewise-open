@@ -938,6 +938,16 @@ SrvFinderMarshallBothDirInfoResults(
         BAIL_ON_NT_STATUS(ntStatus);
 
         usDataLen = usNewDataLen;
+
+        // Got to fill the last offset from previous data
+        usOffset = usOrigDataLen;
+        pDataCursor = pData;
+        pInfoHeader = (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pDataCursor;
+        while (pInfoHeader->NextEntryOffset)
+        {
+            usOffset -= pInfoHeader->NextEntryOffset;
+            pInfoHeader = (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)((PBYTE)pInfoHeader + pInfoHeader->NextEntryOffset);
+        }
     }
 
     pDataCursor = pData + usOrigDataLen;
@@ -999,7 +1009,6 @@ SrvFinderMarshallBothDirInfoResults(
         }
     }
 
-    // TODO: Fix this offset
     if (pInfoHeader)
     {
         pInfoHeader->NextEntryOffset = 0;
