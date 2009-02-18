@@ -31,7 +31,8 @@ libpvfs_sys_la_SOURCES = \
     fileEndOfFileInfo.c \
     fileDispositionInfo.c \
     fileFsAttribInfo.c \
-    fileFsVolInfo.c
+    fileFsVolInfo.c \
+    fileFsSizeInfo.c
 
 
 libpvfs_sys_la_CPPFLAGS = \

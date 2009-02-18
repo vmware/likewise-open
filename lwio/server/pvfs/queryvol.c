@@ -54,6 +54,7 @@
 
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileFsAttributeInformation,     &PvfsFileFsAttribInfo },
+    { FileFsSizeInformation,          &PvfsFileFsSizeInfo },
     { FileFsVolumeInformation,        &PvfsFileFsVolInfo }
 };
 

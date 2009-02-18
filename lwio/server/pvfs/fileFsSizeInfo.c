@@ -34,107 +34,105 @@
  *
  * Module Name:
  *
- *        fileinfo_p.h
+ *        fileFsSizeInfo
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        FileInformation Handlers
+ *        FileFsSizeuteInformation Handler
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
+#include "pvfs.h"
 
-/* Query/Set FileInformation */
+/* Forward declarations */
 
-NTSTATUS
-PvfsFileBasicInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-NTSTATUS
-PvfsFileStandardInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-NTSTATUS
-PvfsFileInternalInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-NTSTATUS
-PvfsFileEaInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-NTSTATUS
-PvfsFileStreamInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-NTSTATUS
-PvfsFileEndOfFileInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-NTSTATUS
-PvfsFileDispositionInfo(
-    PVFS_INFO_TYPE Type,
+static NTSTATUS
+PvfsQueryFileFsSizeInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
 
-/* QueryDirectoryInformation */
-
-NTSTATUS
-PvfsFileBothDirInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
+/* File Globals */
 
 
-/* QueryVolumeInformation */
 
-NTSTATUS
-PvfsFileFsAttribInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
+/* Code */
 
-NTSTATUS
-PvfsFileFsVolInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
 
 NTSTATUS
 PvfsFileFsSizeInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
-    );
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    switch(Type)
+    {
+    case PVFS_SET:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+
+    case PVFS_QUERY:
+        ntError = PvfsQueryFileFsSizeInfo(pIrpContext);
+        break;
+
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
-/* utility functions */
+static NTSTATUS
+PvfsQueryFileFsSizeInfo(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PFILE_FS_SIZE_INFORMATION pFileInfo = NULL;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
 
-/* From util_dir.c */
+    /* Sanity checks */
 
-NTSTATUS
-PvfsEnumerateDirectory(
-    PPVFS_CCB pCcb,
-    PIRP_ARGS_QUERY_DIRECTORY pQueryDirArgs
-    );
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-VOID
-PvfsFreeDirectoryContext(
-    PPVFS_DIRECTORY_CONTEXT pDirCtx
-    );
+    /* No access check necessary */
+
+    if (Args.Length < sizeof(*pFileInfo))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pFileInfo = (PFILE_FS_SIZE_INFORMATION)Args.FileInformation;
+
+    /* Real work starts here */
+
+
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 /*
