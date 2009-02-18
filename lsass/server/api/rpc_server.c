@@ -54,7 +54,7 @@ LsaCheckInvalidRpcServer(
     )
 {
     DWORD dwError = 0;
-    PSTR pszError = NULL;
+    PCSTR pszError = NULL;
 
     if (pSymbol == NULL) {
         LSA_LOG_ERROR("Ignoring invalid rpc server at path [%s]",
