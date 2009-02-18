@@ -211,8 +211,20 @@ PvfsSetFileBasicInfo(
                  pFileInfo->ChangeTime;
     AccessTime = pFileInfo->LastAccessTime;
 
-    ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
-    BAIL_ON_NT_STATUS(ntError);
+    /* Ignore 0xffffffff */
+
+    if (WriteTime == (LONG64)-1) {
+        WriteTime = 0;
+    }
+
+    if (AccessTime == (LONG64)-1) {
+        AccessTime = 0;
+    }
+
+    if (WriteTime != 0 || AccessTime != 0) {
+        ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* Need to implement the sticky write semantics on file close.
        Also need to decide what to do with DOS attributes here. */
