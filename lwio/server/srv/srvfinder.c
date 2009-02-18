@@ -191,6 +191,17 @@ SrvFinderGetBothDirInfoSearchResults(
 
 static
 NTSTATUS
+SrvFinderMarshallBothDirInfoResults(
+    PSRV_SEARCH_SPACE pSearchSpace,
+    USHORT            usBytesAvailable,
+    USHORT            usDesiredSearchCount,
+    PBYTE*            ppData,
+    PUSHORT           pusDataLen,
+    PUSHORT           pusSearchCount
+    );
+
+static
+NTSTATUS
 SrvFinderGetUnixSearchResults(
     PSRV_SEARCH_SPACE   pSearchSpace,
     BOOLEAN             bReturnSingleEntry,
@@ -274,6 +285,8 @@ SrvFinderCreateSearchSpace(
 
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
+    fileName.FileName = pwszFilesystemPath;
+
     ntStatus = IoCreateFile(
                     &hFile,
                     NULL,
@@ -349,6 +362,7 @@ SrvFinderCreateSearchSpace(
     pSearchSpace->infoLevel = infoLevel;
     pSearchSpace->usSearchAttrs = usSearchAttrs;
     pSearchSpace->ulSearchStorageType = ulSearchStorageType;
+    pSearchSpace->bUseLongFilenames = bUseLongFilenames;
 
     ntStatus = SMBAllocateStringW(
                     pwszSearchPattern,
@@ -706,114 +720,169 @@ SrvFinderGetNamesInfoSearchResults(
 static
 NTSTATUS
 SrvFinderGetBothDirInfoSearchResults(
-    PSRV_SEARCH_SPACE   pSearchSpace,
-    BOOLEAN             bReturnSingleEntry,
-    BOOLEAN             bRestartScan,
-    USHORT              usDesiredSearchCount,
-    USHORT              usMaxDataCount,
-    PBYTE*              ppData,
-    PUSHORT             pusDataLen,
-    PUSHORT             pusSearchResultCount,
-    PBOOLEAN            pbEndOfSearch
+    PSRV_SEARCH_SPACE pSearchSpace,
+    BOOLEAN           bReturnSingleEntry,
+    BOOLEAN           bRestartScan,
+    USHORT            usDesiredSearchCount,
+    USHORT            usMaxDataCount,
+    PBYTE*            ppData,
+    PUSHORT           pusDataLen,
+    PUSHORT           pusSearchResultCount,
+    PBOOLEAN          pbEndOfSearch
     )
 {
     NTSTATUS ntStatus = 0;
-#if 0
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-    IO_FILE_SPEC ioFileSpec;
-    PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;
+    PBYTE    pData = NULL;
+    USHORT   usDataLen = 0;
+    USHORT   usSearchResultCount = 0;
+    USHORT   usBytesAvailable = usMaxDataCount;
+    BOOLEAN  bEndOfSearch = FALSE;
+    PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
 
-    ioFileSpec.Type = IO_FILE_SPEC_TYPE_UNKNOWN;
-    // ioFileSpec.Options = IO_NAME_OPTION_CASE_SENSITIVE;
-    RtlUnicodeStringInit(
-        &ioFileSpec.FileName,
-        pwszSearchPattern);
-
-    usBytesAllocated = sizeof(FILE_BOTH_DIR_INFORMATION) + 256 * sizeof(wchar16_t);
-
-    ntStatus = SMBAllocateMemory(
-                    usBytesAllocated,
-                    (PVOID*)&pFileInfo);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    do
+    if (!pSearchSpace->pFileInfo)
     {
-        ntStatus = IoQueryDirectoryFile(
-                        hFile,
-                        NULL,
-                        &ioStatusBlock,
-                        pFileInfo,
+        // Keep space for 10 items
+        USHORT usBytesAllocated = (sizeof(FILE_BOTH_DIR_INFORMATION) + 256 * sizeof(wchar16_t)) * 10;
+
+        ntStatus = SMBAllocateMemory(
                         usBytesAllocated,
-                        FileBothDirectoryInformation,
-                        bReturnSingleEntry,
-                        &ioFileSpec,
-                        bRestartScan);
-        if (ntStatus == STATUS_SUCCESS)
+                        (PVOID*)&pSearchSpace->pFileInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSearchSpace->usFileInfoLen = usBytesAllocated;
+    }
+
+    while (!bEndOfSearch && (usSearchResultCount < usDesiredSearchCount))
+    {
+        USHORT usIterSearchCount = 0;
+
+        pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
+        if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
+        {
+            IO_FILE_SPEC ioFileSpec;
+            IO_STATUS_BLOCK ioStatusBlock = {0};
+
+            ioFileSpec.Type = IO_FILE_SPEC_TYPE_UNKNOWN;
+            // ioFileSpec.Options = IO_NAME_OPTION_CASE_SENSITIVE;
+            RtlUnicodeStringInit(
+                &ioFileSpec.FileName,
+                pSearchSpace->pwszSearchPattern);
+
+            pSearchSpace->pFileInfoCursor = NULL;
+
+            do
+            {
+                ntStatus = IoQueryDirectoryFile(
+                                pSearchSpace->hFile,
+                                NULL,
+                                &ioStatusBlock,
+                                pSearchSpace->pFileInfo,
+                                pSearchSpace->usFileInfoLen,
+                                FileBothDirectoryInformation,
+                                bReturnSingleEntry,
+                                &ioFileSpec,
+                                bRestartScan);
+                if (ntStatus == STATUS_SUCCESS)
+                {
+                    pSearchSpace->pFileInfoCursor = pSearchSpace->pFileInfo;
+
+                    break;
+                }
+                else if (ntStatus == STATUS_NO_MORE_MATCHES)
+                {
+                    bEndOfSearch = TRUE;
+                    break;
+                }
+                else if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+                {
+                    USHORT usNewSize = pSearchSpace->usFileInfoLen + 256 * sizeof(wchar16_t);
+
+                    ntStatus = SMBReallocMemory(
+                                    pSearchSpace->pFileInfo,
+                                    (PVOID*)&pSearchSpace->pFileInfo,
+                                    usNewSize);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    pSearchSpace->usFileInfoLen = usNewSize;
+
+                    continue;
+                }
+                BAIL_ON_NT_STATUS(ntStatus);
+
+            } while (TRUE);
+        }
+
+        ntStatus = SrvFinderMarshallBothDirInfoResults(
+                        pSearchSpace,
+                        usBytesAvailable - usDataLen,
+                        usDesiredSearchCount - usSearchResultCount,
+                        &pData,
+                        &usDataLen,
+                        &usIterSearchCount);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!usIterSearchCount)
         {
             break;
         }
-        else if (ntStatus == STATUS_BUFFER_TOO_SMALL)
-        {
-            USHORT usNewSize = usBytesAllocated + 256 * sizeof(wchar16_t);
 
-            ntStatus = SMBReallocMemory(
-                            pFileInfo,
-                            (PVOID*)&pFileInfo,
-                            usNewSize);
-            BAIL_ON_NT_STATUS(ntStatus);
+        usSearchResultCount += usIterSearchCount;
+    }
 
-            usBytesAllocated = usNewSize;
-
-            continue;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-    } while (TRUE);
+    *ppData = pData;
+    *pusDataLen = usDataLen;
+    *pusSearchResultCount = usSearchResultCount;
+    *pbEndOfSearch = bEndOfSearch;
 
 cleanup:
 
-#endif
     return ntStatus;
 
-#if 0
 error:
 
+    *ppData = NULL;
+    *pusDataLen = 0;
+    *pusSearchResultCount = 0;
+    *pbEndOfSearch = FALSE;
+
+    SMB_SAFE_FREE_MEMORY(pData);
+
     goto cleanup;
-#endif
 }
 
-#if 0
 static
 NTSTATUS
-SrvMarshallBothDirInfoResponse(
-    HANDLE   hSearchSpace,
-    USHORT   usBytesAvailable,
-    USHORT   usDesiredSearchCount,
-    PBYTE*   ppData,
-    PUSHORT  pusSearchResultLen,
-    PUSHORT  pusSearchCount,
-    PBOOLEAN pbEndOfSearch
+SrvFinderMarshallBothDirInfoResults(
+    PSRV_SEARCH_SPACE pSearchSpace,
+    USHORT            usBytesAvailable,
+    USHORT            usDesiredSearchCount,
+    PBYTE*            ppData,
+    PUSHORT           pusDataLen,
+    PUSHORT           pusSearchCount
     )
 {
     NTSTATUS ntStatus = 0;
     USHORT   usBytesRequired = 0;
-    PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pInfoHeader = NULL;
-    PBYTE    pData = NULL;
+    PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
+    PBYTE    pData = *ppData;
+    USHORT   usDataLen = 0;
+    USHORT   usOrigDataLen = *pusDataLen;
     PBYTE    pDataCursor = NULL;
     USHORT   usSearchCount = 0;
     USHORT   iSearchCount = 0;
     USHORT   usOffset = 0;
 
+    pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
 
-
-    pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pFileInfo;
-    while (pFileInfoCursor && (usBytesAvailable > 0))
+    while (pFileInfoCursor &&
+           (usSearchCount < usDesiredSearchCount) &&
+           (usBytesAvailable > 0))
     {
         USHORT usInfoBytesRequired = 0;
 
         usInfoBytesRequired = sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
-        if (bUseLongFilenames)
+        if (pSearchSpace->bUseLongFilenames)
         {
             usInfoBytesRequired += wc16slen(pFileInfoCursor->FileName) * sizeof(wchar16_t);
         }
@@ -838,15 +907,40 @@ SrvMarshallBothDirInfoResponse(
         }
     }
 
-    ntStatus = SMBAllocateMemory(
-                    usBytesRequired,
-                    (PVOID*)&pData);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (!pData)
+    {
+        ntStatus = SMBAllocateMemory(
+                        usBytesRequired,
+                        (PVOID*)&pData);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    pDataCursor = pData;
-    pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pFileInfo;
+        usDataLen = usBytesRequired;
+    }
+    else
+    {
+        PBYTE  pNewData = NULL;
+        USHORT usNewDataLen = 0;
+
+        usNewDataLen = usOrigDataLen + usBytesRequired;
+
+        ntStatus = SMBAllocateMemory(
+                        usNewDataLen,
+                        (PVOID*)&pNewData);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        memcpy(pNewData, pData, usOrigDataLen);
+
+        SMBFreeMemory(pData);
+
+        pData = pNewData;
+        usDataLen = usNewDataLen;
+    }
+
+    pDataCursor = pData + usOrigDataLen;
     for (; iSearchCount < usSearchCount; iSearchCount++)
     {
+        pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfo;
+
         if (pInfoHeader)
         {
             pInfoHeader->NextEntryOffset = usOffset;
@@ -866,7 +960,7 @@ SrvMarshallBothDirInfoResponse(
         pInfoHeader->FileAttributes = pFileInfoCursor->FileAttributes;
         pInfoHeader->FileNameLength = pFileInfoCursor->FileNameLength * sizeof(wchar16_t);
 
-        if (!bUseLongFilenames)
+        if (!pSearchSpace->bUseLongFilenames)
         {
             memcpy((PBYTE)pInfoHeader->ShortName, (PBYTE)pFileInfoCursor->ShortName, sizeof(pInfoHeader->ShortName));
 
@@ -876,7 +970,7 @@ SrvMarshallBothDirInfoResponse(
         pDataCursor += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
         usOffset += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
 
-        if (bUseLongFilenames)
+        if (pSearchSpace->bUseLongFilenames)
         {
             USHORT usFileNameLen = wc16slen(pFileInfoCursor->FileName);
 
@@ -891,8 +985,14 @@ SrvMarshallBothDirInfoResponse(
         pDataCursor += sizeof(wchar16_t);
         usOffset += sizeof(wchar16_t);
 
-        pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)(((PBYTE)pFileInfoCursor) + pFileInfoCursor->NextEntryOffset);
-
+        if (pFileInfoCursor->NextEntryOffset)
+        {
+            pSearchSpace->pFileInfoCursor = (((PBYTE)pFileInfoCursor) + pFileInfoCursor->NextEntryOffset);
+        }
+        else
+        {
+            pSearchSpace->pFileInfoCursor = NULL;
+        }
     }
 
     if (pInfoHeader)
@@ -901,7 +1001,7 @@ SrvMarshallBothDirInfoResponse(
     }
 
     *pusSearchCount = usSearchCount;
-    *pusSearchResultLen = usBytesRequired;
+    *pusDataLen = usDataLen;
     *ppData = pData;
 
 cleanup:
@@ -911,14 +1011,13 @@ cleanup:
 error:
 
     *pusSearchCount = 0;
-    *pusSearchResultLen = 0;
+    *pusDataLen = 0;
     *ppData = NULL;
 
     SMB_SAFE_FREE_MEMORY(pData);
 
     goto cleanup;
 }
-#endif
 
 static
 NTSTATUS

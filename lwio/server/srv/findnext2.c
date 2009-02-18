@@ -30,6 +30,16 @@
 
 #include "includes.h"
 
+typedef struct _SMB_FIND_NEXT2_RESPONSE_PARAMETERS
+{
+    USHORT usSearchId;
+    USHORT usSearchCount;
+    USHORT usEndOfSearch;
+    USHORT usEaErrorOffset;
+    USHORT usLastNameOffset;
+
+} __attribute__((__packed__)) SMB_FIND_NEXT2_RESPONSE_PARAMETERS, *PSMB_FIND_NEXT2_RESPONSE_PARAMETERS;
+
 static
 NTSTATUS
 SrvUnmarshallFindNext2Params(
@@ -56,118 +66,6 @@ SrvBuildFindNext2Response(
     ULONG               ulResumeHandle,
     PWSTR               pwszResumeFilename,
     PSMB_PACKET*        ppSmbResponse
-    );
-
-static
-NTSTATUS
-SrvBuildFindNext2StdInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    );
-
-static
-NTSTATUS
-SrvBuildFindNext2QueryEASizeResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    );
-
-static
-NTSTATUS
-SrvBuildFindNext2QueryEASFromListResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    );
-
-static
-NTSTATUS
-SrvBuildFindNext2DirInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    );
-
-static
-NTSTATUS
-SrvBuildFindNext2FullDirInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    );
-
-static
-NTSTATUS
-SrvBuildFindNext2NamesInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    );
-
-static
-NTSTATUS
-SrvBuildFindNext2BothDirInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    );
-
-static
-NTSTATUS
-SrvBuildFindNext2FileUnixResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
     );
 
 NTSTATUS
@@ -366,7 +264,18 @@ SrvBuildFindNext2Response(
     PSMB_SRV_SESSION pSession = NULL;
     HANDLE           hSearchSpace = NULL;
     BOOLEAN          bEndOfSearch = FALSE;
-    PSMB_PACKET pSmbResponse = NULL;
+    BOOLEAN          bReturnSingleEntry = FALSE;
+    BOOLEAN          bRestartScan = FALSE;
+    PBYTE            pData = 0;
+    USHORT           usSearchResultLen = 0;
+    USHORT           usDataOffset = 0;
+    USHORT           usParameterOffset = 0;
+    USHORT           usNumPackageBytesUsed = 0;
+    ULONG            usBytesAvailable = 0;
+    PUSHORT          pSetup = NULL;
+    BYTE             setupCount = 0;
+    SMB_FIND_NEXT2_RESPONSE_PARAMETERS responseParams = {0};
+    PSMB_PACKET      pSmbResponse = NULL;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -406,135 +315,60 @@ SrvBuildFindNext2Response(
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (infoLevel)
-    {
-        case SMB_INFO_STANDARD:
+    pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
 
-            ntStatus = SrvBuildFindNext2StdInfoResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hSearchSpace,
-                            usSearchCount,
-                            usFlags,
-                            ulResumeHandle,
-                            pwszResumeFilename,
-                            pSmbResponse,
-                            &bEndOfSearch);
+        ntStatus = WireMarshallTransaction2Response(
+                        pSmbResponse->pParams,
+                        pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                        (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                        pSetup,
+                        setupCount,
+                        (PBYTE)&responseParams,
+                        sizeof(responseParams),
+                        NULL,
+                        0,
+                        &usDataOffset,
+                        &usParameterOffset,
+                        &usNumPackageBytesUsed);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            break;
+        usBytesAvailable = pSmbResponse->bufferLen - usNumPackageBytesUsed;
 
-        case SMB_INFO_QUERY_EA_SIZE:
+        ntStatus = SrvFinderGetSearchResults(
+                        hSearchSpace,
+                        bReturnSingleEntry,
+                        bRestartScan,
+                        usSearchCount,
+                        usBytesAvailable,
+                        &pData,
+                        &usSearchResultLen,
+                        &responseParams.usSearchCount,
+                        &bEndOfSearch);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvBuildFindNext2QueryEASizeResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hSearchSpace,
-                            usSearchCount,
-                            usFlags,
-                            ulResumeHandle,
-                            pwszResumeFilename,
-                            pSmbResponse,
-                            &bEndOfSearch);
+        responseParams.usSearchId = usSearchId;
 
-            break;
+        if (bEndOfSearch || (usFlags & SMB_FIND_CLOSE_AFTER_REQUEST))
+        {
+            responseParams.usEndOfSearch = 1;
+        }
 
-        case SMB_INFO_QUERY_EAS_FROM_LIST:
+        ntStatus = WireMarshallTransaction2Response(
+                        pSmbResponse->pParams,
+                        pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                        (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                        pSetup,
+                        setupCount,
+                        (PBYTE)&responseParams,
+                        sizeof(responseParams),
+                        pData,
+                        usSearchResultLen,
+                        &usDataOffset,
+                        &usParameterOffset,
+                        &usNumPackageBytesUsed);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvBuildFindNext2QueryEASFromListResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hSearchSpace,
-                            usSearchCount,
-                            usFlags,
-                            ulResumeHandle,
-                            pwszResumeFilename,
-                            pSmbResponse,
-                            &bEndOfSearch);
-
-            break;
-
-        case SMB_FIND_FILE_DIRECTORY_INFO:
-
-            ntStatus = SrvBuildFindNext2DirInfoResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hSearchSpace,
-                            usSearchCount,
-                            usFlags,
-                            ulResumeHandle,
-                            pwszResumeFilename,
-                            pSmbResponse,
-                            &bEndOfSearch);
-
-            break;
-
-        case SMB_FIND_FILE_FULL_DIRECTORY_INFO:
-
-            ntStatus = SrvBuildFindNext2FullDirInfoResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hSearchSpace,
-                            usSearchCount,
-                            usFlags,
-                            ulResumeHandle,
-                            pwszResumeFilename,
-                            pSmbResponse,
-                            &bEndOfSearch);
-
-            break;
-
-        case SMB_FIND_FILE_NAMES_INFO:
-
-            ntStatus = SrvBuildFindNext2NamesInfoResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hSearchSpace,
-                            usSearchCount,
-                            usFlags,
-                            ulResumeHandle,
-                            pwszResumeFilename,
-                            pSmbResponse,
-                            &bEndOfSearch);
-
-            break;
-
-        case SMB_FIND_FILE_BOTH_DIRECTORY_INFO:
-
-            ntStatus = SrvBuildFindNext2BothDirInfoResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hSearchSpace,
-                            usSearchCount,
-                            usFlags,
-                            ulResumeHandle,
-                            pwszResumeFilename,
-                            pSmbResponse,
-                            &bEndOfSearch);
-
-            break;
-
-        case SMB_FIND_FILE_UNIX:
-
-            ntStatus = SrvBuildFindNext2FileUnixResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hSearchSpace,
-                            usSearchCount,
-                            usFlags,
-                            ulResumeHandle,
-                            pwszResumeFilename,
-                            pSmbResponse,
-                            &bEndOfSearch);
-
-            break;
-
-        default:
-
-            ntStatus = STATUS_NOT_SUPPORTED;
-
-            break;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
+        pSmbResponse->bufferUsed += usNumPackageBytesUsed;
 
     ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -559,6 +393,8 @@ cleanup:
         SrvFinderReleaseSearchSpace(hSearchSpace);
     }
 
+    SMB_SAFE_FREE_MEMORY(pData);
+
     return ntStatus;
 
 error:
@@ -575,139 +411,4 @@ error:
     goto cleanup;
 }
 
-static
-NTSTATUS
-SrvBuildFindNext2StdInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-static
-NTSTATUS
-SrvBuildFindNext2QueryEASizeResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-static
-NTSTATUS
-SrvBuildFindNext2QueryEASFromListResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-static
-NTSTATUS
-SrvBuildFindNext2DirInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-static
-NTSTATUS
-SrvBuildFindNext2FullDirInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-static
-NTSTATUS
-SrvBuildFindNext2NamesInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-static
-NTSTATUS
-SrvBuildFindNext2BothDirInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-static
-NTSTATUS
-SrvBuildFindNext2FileUnixResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    HANDLE              hSearchSpace,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    PSMB_PACKET         pSmbResponse,
-    PBOOLEAN            pbEndOfSearch
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
 

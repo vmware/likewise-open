@@ -76,8 +76,10 @@ typedef struct _SRV_SEARCH_SPACE
     USHORT           usSearchAttrs;
     ULONG            ulSearchStorageType;
     PBYTE            pFileInfo;
+    PBYTE            pFileInfoCursor;
     USHORT           usFileInfoLen;
     SMB_INFO_LEVEL   infoLevel;
+    BOOLEAN          bUseLongFilenames;
 
 } SRV_SEARCH_SPACE, *PSRV_SEARCH_SPACE;
 
