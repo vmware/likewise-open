@@ -120,7 +120,15 @@ SrvProcessTransaction2(
 
         case SMB_SUB_COMMAND_TRANS2_SET_FILE_INFORMATION :
 
-            ntStatus = STATUS_NOT_IMPLEMENTED;
+            ntStatus = SrvProcessTrans2SetFileInformation(
+                            pConnection,
+                            pSmbRequest,
+                            pRequestHeader,
+                            pSetup,
+                            pBytecount,
+                            pParameters,
+                            pData,
+                            &pSmbResponse);
 
             break;
 
