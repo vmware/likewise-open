@@ -55,5 +55,20 @@ PvfsUnixToWinTime(
     time_t UnixTime
     );
 
+NTSTATUS
+PvfsWinToUnixTime(
+    time_t *pUnixTime,
+    LONG64 WinTime
+    );
 
 #endif    /* _PVFS_TIME_P_H */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -78,6 +78,10 @@ PvfsCreateFileOverwriteIf(
     PPVFS_IRP_CONTEXT pIrpContext
 	);
 
+static NTSTATUS
+PvfsSaveFileDeviceInfo(
+    PPVFS_CCB pCcb
+    );
 
 /* Code */
 
@@ -206,6 +210,9 @@ PvfsCreateFileSupersede(
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
+    ntError = PvfsSaveFileDeviceInfo(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -284,6 +291,9 @@ PvfsCreateFileCreate(
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
+    ntError = PvfsSaveFileDeviceInfo(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -356,6 +366,9 @@ PvfsCreateFileOpen(
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
+
+    ntError = PvfsSaveFileDeviceInfo(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -450,6 +463,9 @@ PvfsCreateFileOpenIf(
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
+    ntError = PvfsSaveFileDeviceInfo(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -522,6 +538,9 @@ PvfsCreateFileOverwrite(
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
+
+    ntError = PvfsSaveFileDeviceInfo(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -615,6 +634,9 @@ PvfsCreateFileOverwriteIf(
     pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
+    ntError = PvfsSaveFileDeviceInfo(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -637,6 +659,30 @@ error:
     PVFS_SAFE_FREE_MEMORY(pCcb);
     PVFS_SAFE_FREE_MEMORY(pszFilename);
 
+    goto cleanup;
+}
+
+/********************************************************
+ *******************************************************/
+
+static NTSTATUS
+PvfsSaveFileDeviceInfo(
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PVFS_STAT Stat = {0};
+
+    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCcb->device = Stat.s_dev;
+    pCcb->inode  = Stat.s_ino;
+
+cleanup:
+    return ntError;
+
+error:
     goto cleanup;
 }
 

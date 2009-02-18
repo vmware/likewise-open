@@ -101,6 +101,8 @@ typedef struct _PVFS_CCB
 {
     /* Open fd to the File or Directory */
     int fd;
+    dev_t device;
+    ino_t inode;
 
     /* Save parameters from the CreateFile() */
     PSTR pszFilename;

@@ -72,6 +72,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+#include <utime.h>
+
 
 /* Top level APi functions */
 
@@ -151,6 +153,11 @@ PvfsWildcardMatch(
     IN PSTR pszPathname,
     IN PSTR pszPattern,
     IN BOOLEAN bCaseSensitive
+    );
+
+NTSTATUS
+PvfsValidatePath(
+    PPVFS_CCB pCcb
     );
 
 

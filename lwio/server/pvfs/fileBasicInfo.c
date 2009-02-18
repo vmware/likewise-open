@@ -59,6 +59,7 @@ PvfsSetFileBasicInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+
 /* File Globals */
 
 
@@ -180,6 +181,8 @@ PvfsSetFileBasicInfo(
     PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PFILE_BASIC_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    LONG64 WriteTime = 0;
+    LONG64 AccessTime = 0;
 
     /* Sanity checks */
 
@@ -198,6 +201,21 @@ PvfsSetFileBasicInfo(
 
     /* Real work starts here */
 
+    ntError = PvfsValidatePath(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Take the max of Change and Write time.  Drop Creation time. */
+
+    WriteTime = (pFileInfo->LastWriteTime > pFileInfo->ChangeTime) ?
+                 pFileInfo->LastWriteTime :
+                 pFileInfo->ChangeTime;
+    AccessTime = pFileInfo->LastAccessTime;
+
+    ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Need to implement the sticky write semantics on file close.
+       Also need to decide what to do with DOS attributes here. */
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
@@ -208,7 +226,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
 
 /*
 local variables:

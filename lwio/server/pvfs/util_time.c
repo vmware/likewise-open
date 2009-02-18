@@ -81,6 +81,32 @@ error:
 }
 
 
+/**
+ * Converts a Windows time value to a Unix time_t
+ * Refer to PvfsUnixToWinTime() for details
+ */
+
+NTSTATUS
+PvfsWinToUnixTime(
+    time_t *pUnixTime,
+    LONG64 WinTime
+	)
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    BAIL_ON_INVALID_PTR(pUnixTime, ntError);
+
+    *pUnixTime = (WinTime /  10000000LL) - TIME_SEC_CONVERSION_CONSTANT;
+
+    ntError=  STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 /*
 local variables:

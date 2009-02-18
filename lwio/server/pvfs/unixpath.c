@@ -120,6 +120,37 @@ PvfsWildcardMatch(
 
 
 
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsValidatePath(
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError= STATUS_UNSUCCESSFUL;
+    PVFS_STAT Stat = {0};
+
+    /* Verify that the dev/inode pair is the same on the pathname
+       and the fd */
+
+    ntError = PvfsSysStat(pCcb->pszFilename, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if ((pCcb->device != Stat.s_dev) || (pCcb->inode != Stat.s_ino))
+    {
+        ntError = STATUS_FILE_RENAMED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c

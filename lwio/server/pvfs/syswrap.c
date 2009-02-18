@@ -395,7 +395,47 @@ error:
     goto cleanup;
 }
 
+/**********************************************************
+ *********************************************************/
 
+NTSTATUS
+PvfsSysUtime(
+    PSTR pszPathname,
+    LONG64 LastWriteTime,
+    LONG64 LastAccessTime
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr;
+    time_t tWrite = 0;
+    time_t tAccess = 0;
+    struct utimbuf TimeBuf = {0};
+
+    PVFS_ZERO_MEMORY(&TimeBuf);
+
+    if (LastWriteTime != 0) {
+        ntError = PvfsWinToUnixTime(&tWrite, LastWriteTime);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (LastAccessTime != 0) {
+        ntError = PvfsWinToUnixTime(&tAccess, LastAccessTime);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    TimeBuf.actime = tAccess;
+    TimeBuf.modtime = tWrite;
+
+    if (utime(pszPathname, &TimeBuf) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 /*

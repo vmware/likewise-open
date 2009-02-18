@@ -128,6 +128,14 @@ PvfsSysFtruncate(
     off_t offset
     );
 
+
+NTSTATUS
+PvfsSysUtime(
+    PSTR pszPathname,
+    LONG64 LastWriteTime,
+    LONG64 LastAccessTime
+    );
+
 #endif     /* _PVFS_SYSWRAP_P_H */
 
 
