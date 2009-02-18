@@ -192,9 +192,11 @@ MapPosixOpenAccess(
             BAIL_ON_NT_STATUS(ntError);
         }
 
+#if 0 /* disabled */
         if (Access & FILE_APPEND_DATA) {
             iUnixMode |= O_APPEND;
         }
+#endif
     }
 
     *unixFlags |= iUnixMode;
