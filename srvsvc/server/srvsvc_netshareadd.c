@@ -69,7 +69,7 @@ SrvSvcNetShareAdd(
     DWORD dwCreationDisposition = 0;
     DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
-    DWORD dwOutLength = 0;
+    DWORD dwOutLength = 4096;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
     DWORD dwReturnCode = 0;
@@ -87,6 +87,20 @@ SrvSvcNetShareAdd(
     //PIO_ACCESS_TOKEN acctoken = NULL;
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
+    PSHARE_INFO_ADD_PARAMS pAddParams = NULL;
+
+    ntStatus = LwShareInfoMarshalAddParameters(
+                        pAddParams,
+                        &pInBuffer,
+                        &dwInLength
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = SRVSVCAllocateMemory(
+                        dwOutLength,
+                        &pOutBuffer
+                        );
+    BAIL_ON_ERROR(dwError);
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,
