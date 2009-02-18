@@ -881,7 +881,7 @@ typedef struct _FILE_FS_VOLUME_INFORMATION {
 typedef struct _FILE_FS_SIZE_INFORMATION {
     LONG64  TotalAllocationUnits;
     LONG64  AvailableAllocationUnits;
-    ULONG   SectorsPerALlocationUnit;
+    ULONG   SectorsPerAllocationUnit;
     ULONG   BytesPerSector;
 } FILE_FS_SIZE_INFORMATION, *PFILE_FS_SIZE_INFORMATION;
 
