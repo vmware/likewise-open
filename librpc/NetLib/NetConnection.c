@@ -45,6 +45,25 @@ NetConn *FirstConn(NetConn *cn, int set)
     return first;
 }
 
+static
+void
+GetSessionKey(handle_t binding, unsigned char** sess_key, unsigned32* sess_key_len, unsigned32* st)
+{
+    rpc_transport_info_handle_t info = NULL;
+
+    rpc_binding_inq_transport_info(binding, &info, st);
+
+    if (*st)
+    {
+        goto error;
+    }
+
+    rpc_smb_transport_info_inq_session_key(info, sess_key, sess_key_len);
+
+error:
+
+    return;
+}
 
 NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
                         uint32 req_dom_flags, uint32 req_btin_dom_flags,
@@ -143,14 +162,12 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         sess_key     = NULL;
         sess_key_len = 0;
 
-        rpc_binding_inq_auth_session_key(samr_b, &sess_key, &sess_key_len,
-                                         &rpcstatus);
+        GetSessionKey(samr_b, &sess_key, &sess_key_len, &rpcstatus);
 
-        if (rpcstatus == 0) {
+        if (rpcstatus == 0)
+        {
             memcpy((void*)cn->sess_key, sess_key, sizeof(cn->sess_key));
             cn->sess_key_len = (uint32)sess_key_len;
-
-            rpc_string_free(&sess_key, &rpcstatus);
         }
 
     } else {

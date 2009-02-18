@@ -35,6 +35,7 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
+#include <dce/smb.h>
 #include <wc16str.h>
 #include <secdesc/secdesc.h>
 #include <lw/ntstatus.h>
@@ -98,6 +99,25 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
     return *binding;
 }
 
+static
+void
+GetSessionKey(handle_t binding, unsigned char** sess_key, unsigned32* sess_key_len, unsigned32* st)
+{
+    rpc_transport_info_handle_t info = NULL;
+
+    rpc_binding_inq_transport_info(binding, &info, st);
+
+    if (*st)
+    {
+        goto error;
+    }
+
+    rpc_smb_transport_info_inq_session_key(info, sess_key, sess_key_len);
+
+error:
+
+    return;
+}
 
 /*
   Utility function for getting SAM domain name given a hostname
@@ -1516,8 +1536,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
                           &conn_handle);
     if (status != 0) rpc_fail(status);
 
-    rpc_binding_inq_auth_session_key(samr_binding, &sess_key,
-                                     &sess_key_len, &rpcstatus);
+    GetSessionKey(samr_binding, &sess_key, &sess_key_len, &rpcstatus);
     if (rpcstatus != 0) return false;
 
     status = GetSamDomainName(&domname, hostname);
@@ -1616,7 +1635,7 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     status = SamrConnect2(samr_binding1, hostname, conn_access, &conn_handle1);
     if (status != 0) rpc_fail(status);
 
-    rpc_binding_inq_auth_session_key(samr_binding1, &key1, &key_len1, &st);
+    GetSessionKey(samr_binding1, &key1, &key_len1, &st);
     if (st != 0) return false;
 
     samr_binding2 = CreateSamrBinding(&samr_binding2, hostname);
@@ -1625,7 +1644,7 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     status = SamrConnect2(samr_binding2, hostname, conn_access, &conn_handle2);
     if (status != 0) rpc_fail(status);
 
-    rpc_binding_inq_auth_session_key(samr_binding2, &key2, &key_len2, &st);
+    GetSessionKey(samr_binding2, &key2, &key_len2, &st);
     if (st != 0) return false;
 
     status = SamrClose(samr_binding1, &conn_handle1);
