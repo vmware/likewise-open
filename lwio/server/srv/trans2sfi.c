@@ -310,6 +310,7 @@ SrvBuildSetFileAllocationInfoResponse(
     NTSTATUS ntStatus = 0;
     PUSHORT  pSetup = NULL;
     BYTE     setupCount = 0;
+    USHORT   usParams = 0;
     USHORT   usDataOffset = 0;
     USHORT   usParameterOffset = 0;
     USHORT   usNumPackageBytesUsed = 0;
@@ -368,8 +369,8 @@ SrvBuildSetFileAllocationInfoResponse(
                     (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
                     pSetup,
                     setupCount,
-                    NULL,
-                    0,
+                    (PBYTE)&usParams,
+                    sizeof(usParams),
                     NULL,
                     0,
                     &usDataOffset,
@@ -416,6 +417,7 @@ SrvBuildSetEndOfFileResponse(
     NTSTATUS ntStatus = 0;
     PUSHORT  pSetup = NULL;
     BYTE     setupCount = 0;
+    USHORT   usParams = 0;
     USHORT   usDataOffset = 0;
     USHORT   usParameterOffset = 0;
     USHORT   usNumPackageBytesUsed = 0;
@@ -474,8 +476,8 @@ SrvBuildSetEndOfFileResponse(
                     (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
                     pSetup,
                     setupCount,
-                    NULL,
-                    0,
+                    (PBYTE)&usParams,
+                    sizeof(usParams),
                     NULL,
                     0,
                     &usDataOffset,
