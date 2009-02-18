@@ -43,7 +43,8 @@ typedef struct _SMB_FS_VOLUME_INFO_HEADER
     ULONG   ulVolumeSerialNumber;
     ULONG   ulVolumeLabelLength;
     BOOLEAN bSupportsObjects;
-} SMB_FS_VOLUME_INFO_HEADER, *PSMB_FS_VOLUME_INFO_HEADER;
+    UCHAR   pad;
+} __attribute__((__packed__)) SMB_FS_VOLUME_INFO_HEADER, *PSMB_FS_VOLUME_INFO_HEADER;
 
 static
 NTSTATUS
