@@ -46,6 +46,8 @@
 #include <lw/ntstatus.h>
 #include <lwio/lwio.h>
 #include <lwio/ntfileapi.h>
+#include <lwio/lmshare.h>
+#include <lwio/lwshareinfo.h>
 
 #include <srvsvc/srvsvc.h>
 #include <srvsvcutils.h>
