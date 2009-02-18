@@ -189,9 +189,6 @@ SrvExecuteWriteAndX(
                         NULL);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = ioStatusBlock.Status;
-        BAIL_ON_NT_STATUS(ntStatus);
-
         ullDataLength -= ioStatusBlock.BytesTransferred;
         ullBytesWritten += ioStatusBlock.BytesTransferred;
         pDataCursor += ioStatusBlock.BytesTransferred;

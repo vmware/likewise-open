@@ -188,9 +188,6 @@ SrvExecuteReadFileAndX(
                     pKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
-
     *pulBytesRead = ioStatusBlock.BytesTransferred;
     *ppBuffer = pBuffer;
 
