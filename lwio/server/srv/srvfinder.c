@@ -791,6 +791,8 @@ SrvFinderGetBothDirInfoSearchResults(
                 else if (ntStatus == STATUS_NO_MORE_MATCHES)
                 {
                     bEndOfSearch = TRUE;
+                    ntStatus = 0;
+
                     break;
                 }
                 else if (ntStatus == STATUS_BUFFER_TOO_SMALL)
@@ -812,21 +814,30 @@ SrvFinderGetBothDirInfoSearchResults(
             } while (TRUE);
         }
 
-        ntStatus = SrvFinderMarshallBothDirInfoResults(
-                        pSearchSpace,
-                        usBytesAvailable - usDataLen,
-                        usDesiredSearchCount - usSearchResultCount,
-                        &pData,
-                        &usDataLen,
-                        &usIterSearchCount);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (!usIterSearchCount)
+        if (!bEndOfSearch)
         {
-            break;
-        }
+            ntStatus = SrvFinderMarshallBothDirInfoResults(
+                            pSearchSpace,
+                            usBytesAvailable - usDataLen,
+                            usDesiredSearchCount - usSearchResultCount,
+                            &pData,
+                            &usDataLen,
+                            &usIterSearchCount);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        usSearchResultCount += usIterSearchCount;
+            if (!usIterSearchCount)
+            {
+                break;
+            }
+
+            usSearchResultCount += usIterSearchCount;
+        }
+    }
+
+    if (!usSearchResultCount)
+    {
+        ntStatus = STATUS_NO_SUCH_FILE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *ppData = pData;
@@ -918,28 +929,21 @@ SrvFinderMarshallBothDirInfoResults(
     }
     else
     {
-        PBYTE  pNewData = NULL;
-        USHORT usNewDataLen = 0;
+        USHORT usNewDataLen = usOrigDataLen + usBytesRequired;
 
-        usNewDataLen = usOrigDataLen + usBytesRequired;
-
-        ntStatus = SMBAllocateMemory(
-                        usNewDataLen,
-                        (PVOID*)&pNewData);
+        ntStatus = SMBReallocMemory(
+                        pData,
+                        (PVOID*)&pData,
+                        usNewDataLen);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        memcpy(pNewData, pData, usOrigDataLen);
-
-        SMBFreeMemory(pData);
-
-        pData = pNewData;
         usDataLen = usNewDataLen;
     }
 
     pDataCursor = pData + usOrigDataLen;
     for (; iSearchCount < usSearchCount; iSearchCount++)
     {
-        pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfo;
+        pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
 
         if (pInfoHeader)
         {
@@ -995,6 +999,7 @@ SrvFinderMarshallBothDirInfoResults(
         }
     }
 
+    // TODO: Fix this offset
     if (pInfoHeader)
     {
         pInfoHeader->NextEntryOffset = 0;
