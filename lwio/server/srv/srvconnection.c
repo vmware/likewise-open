@@ -174,6 +174,9 @@ SrvConnectionGetNextSequence(
         case COM_WRITE_ANDX:
         case COM_TRANSACTION:
         case COM_TRANSACTION2:
+        case COM_NT_TRANSACT:
+        case COM_NT_TRANSACT_SECONDARY:
+        case COM_NT_RENAME:
         case COM_LOGOFF_ANDX:
         case COM_CLOSE:
 
