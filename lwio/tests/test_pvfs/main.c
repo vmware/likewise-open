@@ -71,6 +71,9 @@ PrintUsage(
     fprintf(stderr, "    -C <src> <dst>    Copy the pvfs src file to the local dst file\n");
     fprintf(stderr, "    -S <path>         Stat a Pvfs path (directory or file)\n");
     fprintf(stderr, "    -l <dir>          List the files in a directory\n");
+    fprintf(stderr, "    -F <file> <size>   Set the end-of-file\n");
+    fprintf(stderr, "    -D <path>         Delete a file or directory using delete-on-close\n");
+
     fprintf(stderr, "\n");
 
     return;
@@ -528,6 +531,142 @@ error:
 /******************************************************
  *****************************************************/
 
+static NTSTATUS
+DeletePath(
+    char *pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/******************************************************
+ *****************************************************/
+
+static NTSTATUS
+SetEndOfFile(
+    int argc,
+    char *argv[]
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    FILE_BASIC_INFORMATION FileBasicInfo = {0};
+    FILE_STANDARD_INFORMATION FileStdInfo = {0};
+    FILE_INTERNAL_INFORMATION FileInternalInfo = {0};
+    FILE_END_OF_FILE_INFORMATION FileEndOfFileInfo = {0};
+    IO_FILE_NAME Filename = {0};
+    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_STATUS_BLOCK StatusBlock = {0};
+    LONG64 EndOfFile = 0;
+    PSTR pszFilename = NULL;
+    char *p = NULL;
+
+    if (argc != 2)
+    {
+        fprintf(stderr, "Missing parameters. Requires <file> and <size>\n");
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pszFilename = argv[0];
+    EndOfFile   = strtol(argv[1], &p, 10);
+
+    Filename.RootFileHandle = (IO_FILE_HANDLE)NULL;
+    Filename.IoNameOptions = 0;
+    ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
+                                               pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtCreateFile(&hFile,
+                           NULL,
+                           &StatusBlock,
+                           &Filename,
+                           NULL,
+                           NULL,
+                           FILE_ALL_ACCESS,
+                           0,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN_IF,
+                           FILE_NON_DIRECTORY_FILE,
+                           NULL,
+                           0,
+                           NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    FileEndOfFileInfo.EndOfFile = EndOfFile;
+    ntError = NtSetInformationFile(hFile,
+                                   NULL,
+                                   &StatusBlock,
+                                   &FileEndOfFileInfo,
+                                   sizeof(FileEndOfFileInfo),
+                                   FileEndOfFileInformation);
+    BAIL_ON_NT_STATUS(ntError);
+
+
+    ntError = NtQueryInformationFile(hFile,
+                                     NULL,
+                                     &StatusBlock,
+                                     &FileBasicInfo,
+                                     sizeof(FileBasicInfo),
+                                     FileBasicInformation);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtQueryInformationFile(hFile,
+                                     NULL,
+                                     &StatusBlock,
+                                     &FileStdInfo,
+                                     sizeof(FileStdInfo),
+                                     FileStandardInformation);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtQueryInformationFile(hFile,
+                                     NULL,
+                                     &StatusBlock,
+                                     &FileInternalInfo,
+                                     sizeof(FileInternalInfo),
+                                     FileInternalInformation);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtCloseFile(hFile);
+    BAIL_ON_NT_STATUS(ntError);
+
+    printf("Filename:             %s\n", pszFilename);
+
+    printf("CreationTime:         %lld\n", (long long) FileBasicInfo.CreationTime);
+    printf("Last Access Time:     %lld\n", (long long) FileBasicInfo.LastAccessTime);
+    printf("Last Modification:    %lld\n", (long long) FileBasicInfo.LastWriteTime);
+    printf("Change Time:          %lld\n", (long long) FileBasicInfo.ChangeTime);
+
+    printf("Allocation Size:      %lld\n", (long long) FileStdInfo.AllocationSize);
+    printf("File Size:            %lld\n", (long long) FileStdInfo.EndOfFile);
+    printf("Number of Links:      %d\n", FileStdInfo.NumberOfLinks);
+    printf("Is Directory:         %s\n", FileStdInfo.Directory ? "yes" : "no");
+    printf("Pending Delete:       %s\n", FileStdInfo.DeletePending ? "yes" : "no");
+    printf("Attributes:           0x%x\n", FileBasicInfo.FileAttributes);
+    printf("Index Number:         %lld\n", (long long) FileInternalInfo.IndexNumber);
+
+    printf("\n");
+
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/******************************************************
+ *****************************************************/
+
 int
 main(
     int argc,
@@ -557,6 +696,14 @@ main(
     else if (strcmp(argv[1], "-S") == 0)
     {
         ntError = StatRemoteFile(argv[2]);
+    }
+    else if (strcmp(argv[1], "-F") == 0)
+    {
+        ntError = SetEndOfFile(argc-2, argv+2);
+    }
+    else if (strcmp(argv[1], "-D") == 0)
+    {
+        ntError = DeletePath(argv[2]);
     }
     else if (strcmp(argv[1], "-l") == 0)
     {
