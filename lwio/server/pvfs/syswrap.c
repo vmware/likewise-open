@@ -437,6 +437,52 @@ error:
     goto cleanup;
 }
 
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysFstatFs(
+    PPVFS_CCB pCcb,
+    PPVFS_STATFS pStatFs
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+#if defined(HAVE_FSTATFS) && defined(_LWI_LINUX)
+    {
+        struct statfs sFsBuf;
+
+        if (fstatfs(pCcb->fd, &sFsBuf) == -1)
+        {
+            PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+        }
+
+        pStatFs->BlockSize         = sFsBuf.f_bsize;
+        pStatFs->TotalBlocks       = sFsBuf.f_blocks;
+        pStatFs->TotalFreeBlocks   = sFsBuf.f_bavail;
+        pStatFs->MaximumNameLength = sFsBuf.f_namelen;
+
+        ntError = STATUS_SUCCESS;
+    }
+#else
+    /* Make up some numbers */
+    pStatFs->BlockSize         = 4096;
+    pStatFs->TotalBlocks       = 1024*128;
+    pStatFs->TotalFreeBlocks   = 1024*64;
+    pStatFs->MaximumNameLength = 255;
+
+    ntError = STATUS_SUCCESS;
+    BAIL_ON_NT_STATUS(ntError);
+#endif
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 
 /*
 local variables:

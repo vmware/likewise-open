@@ -136,6 +136,12 @@ PvfsSysUtime(
     LONG64 LastAccessTime
     );
 
+NTSTATUS
+PvfsSysFstatFs(
+    PPVFS_CCB pCcb,
+    PPVFS_STATFS pStatFs
+    );
+
 #endif     /* _PVFS_SYSWRAP_P_H */
 
 

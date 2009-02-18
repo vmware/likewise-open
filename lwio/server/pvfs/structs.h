@@ -74,6 +74,15 @@ typedef struct _PVFS_STAT_STRUCT
 
 } PVFS_STAT, *PPVFS_STAT;
 
+typedef struct _PVFS_STATFS_STRUCT
+{
+    LONG   BlockSize;
+    LONG   TotalBlocks;
+    LONG   TotalFreeBlocks;
+    LONG   MaximumNameLength;
+
+} PVFS_STATFS, *PPVFS_STATFS;
+
 typedef enum _PVFS_INFO_TYPE {
     PVFS_QUERY = 1,
     PVFS_SET
