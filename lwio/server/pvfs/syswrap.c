@@ -349,10 +349,10 @@ error:
 
 NTSTATUS
 PvfsSysLseek(
-    int fd,
-    off_t offset,
-    int whence,
-    off_t *pNewOffset
+    IN int fd,
+    IN off_t offset,
+    IN int whence,
+    OUT OPTIONAL off_t *pNewOffset
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -363,7 +363,9 @@ PvfsSysLseek(
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
-    *pNewOffset = newOffset;
+    if (pNewOffset) {
+        *pNewOffset = newOffset;
+    }
 
 cleanup:
     return ntError;
