@@ -88,9 +88,12 @@ PvfsWrite(
         totalBytesWritten += bytesWritten;
     }
 
+
+
     /* Can only get here is the loop was completed
        successfully */
 
+    pIrp->IoStatusBlock.BytesTransferred = totalBytesWritten;
     ntError = STATUS_SUCCESS;
 
 
