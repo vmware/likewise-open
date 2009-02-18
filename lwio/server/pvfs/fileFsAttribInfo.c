@@ -106,6 +106,7 @@ PvfsQueryFileFsAttribInfo(
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PWSTR pwszFsName = NULL;
     size_t FsNameLenBytes = RtlCStringNumChars(PVFS_FS_NAME) * sizeof(WCHAR);
+    PVFS_STATFS StatFs = {0};
 
     /* Sanity checks */
 
@@ -129,6 +130,9 @@ PvfsQueryFileFsAttribInfo(
 
     /* Real work starts here */
 
+    ntError = PvfsSysFstatFs(pCcb, &StatFs);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = RtlWC16StringAllocateFromCString(&pwszFsName, PVFS_FS_NAME);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -137,7 +141,7 @@ PvfsQueryFileFsAttribInfo(
                                       FILE_UNICODE_ON_DISK |\
                                       FILE_PERSISTENT_ACLS |\
                                       FILE_SUPPORTS_SPARSE_FILES;
-    pFileInfo->MaximumComponentNameLength = 255;
+    pFileInfo->MaximumComponentNameLength = StatFs.MaximumNameLength;
     pFileInfo->FileSystemNameLength = FsNameLenBytes;
     memcpy(pFileInfo->FileSystemName, pwszFsName, FsNameLenBytes);
 

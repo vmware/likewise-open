@@ -104,6 +104,7 @@ PvfsQueryFileFsSizeInfo(
     PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     PFILE_FS_SIZE_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    PVFS_STATFS StatFs = {0};
 
     /* Sanity checks */
 
@@ -122,6 +123,13 @@ PvfsQueryFileFsSizeInfo(
 
     /* Real work starts here */
 
+    ntError = PvfsSysFstatFs(pCcb, &StatFs);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pFileInfo->TotalAllocationUnits     = StatFs.TotalBlocks;
+    pFileInfo->BytesPerSector           = StatFs.BlockSize;
+    pFileInfo->SectorsPerAllocationUnit = 1;
+    pFileInfo->AvailableAllocationUnits = StatFs.TotalFreeBlocks;
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
