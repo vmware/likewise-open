@@ -68,6 +68,7 @@ libsrv_sys_la_LIBADD = \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/server/smbwire/liblwiosmbwire.la \
     @top_builddir@/utils/liblwioutils.la \
+    @top_builddir@/libshareinfo/liblwioshareinfo.la \
     @SQLITE_LIBS@ \
     @KRB5_LIBS@ \
     @UUID_LIBS@ \
