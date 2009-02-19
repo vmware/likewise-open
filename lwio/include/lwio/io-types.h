@@ -891,6 +891,7 @@ typedef struct _IO_ECP_LIST *PIO_ECP_LIST;
 // TODO-Move named pipe ECP stuff to internal header.
 
 #define IO_ECP_TYPE_NAMED_PIPE "Likewise.IO.NamedPipe"
+#define IO_ECP_TYPE_SESSION_KEY "Likewise.IO.SessionKey"
 
 typedef struct _IO_ECP_NAMED_PIPE {
     FILE_PIPE_TYPE_MASK NamedPipeType;
@@ -902,6 +903,12 @@ typedef struct _IO_ECP_NAMED_PIPE {
     LONG64 DefaultTimeout;
     BOOLEAN HaveDefaultTimeout;
 } IO_ECP_NAMED_PIPE, *PIO_ECP_NAMED_PIPE;
+
+typedef struct _IO_ECP_SESSION_KEY
+{
+    USHORT SessionKeyLength;
+    BYTE Buffer[];
+} __attribute__((packed)) IO_ECP_SESSION_KEY, *PIO_ECP_SESSION_KEY;
 
 #ifndef LW_STRICT_NAMESPACE
 

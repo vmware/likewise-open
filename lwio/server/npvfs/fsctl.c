@@ -49,6 +49,13 @@
 
 #include "npfs.h"
 
+static
+NTSTATUS
+NpfsCommonGetSessionKey(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
 NTSTATUS
 NpfsFsCtl(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -83,18 +90,90 @@ NpfsCommonFsCtl(
 
     switch (pIrpContext->pIrp->Args.IoFsControl.ControlCode)
     {
-
-     case 0x2:
-          ntStatus = NpfsCommonConnectNamedPipe(
-                            pIrpContext,
-                            pIrp
-                            );
-          BAIL_ON_NT_STATUS(ntStatus);
-          break;
-
+    case IO_NPFS_FSCTL_CONNECT_NAMED_PIPE:
+        ntStatus = NpfsCommonConnectNamedPipe(pIrpContext, pIrp);
+        break;
+    case IO_FSCTL_SMB_GET_SESSION_KEY:
+        ntStatus = NpfsCommonGetSessionKey(pIrpContext, pIrp);
+        break;
+    default:
+        ntStatus = STATUS_NOT_SUPPORTED;
+        break;
     }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+NpfsCommonGetSessionKey(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID pOutBuffer = pIrp->Args.IoFsControl.OutputBuffer;
+    ULONG OutLength = pIrp->Args.IoFsControl.OutputBufferLength;
+    PIO_FSCTL_SMB_SESSION_KEY pSessionKey = (PIO_FSCTL_SMB_SESSION_KEY) pOutBuffer;
+    PNPFS_CCB pCCB = NULL;
+    PNPFS_PIPE pPipe = NULL;
+    BOOL bReleasePipeLock = FALSE;
+    ULONG ulSessionKeyLength = 0;
+
+    ntStatus = NpfsGetCCB(
+        pIrpContext->pIrp->FileHandle,
+        &pCCB
+        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    NpfsAddRefCCB(pCCB);
+
+    pPipe = pCCB->pPipe;
+
+    ENTER_MUTEX(&pPipe->PipeMutex);
+    bReleasePipeLock = TRUE;
+
+    /* Ensure we actually have a session key */
+    if (pPipe->pSessionKey != NULL)
+    {
+        ulSessionKeyLength = pPipe->pSessionKey->SessionKeyLength + sizeof(*pSessionKey);
+
+        /* Ensure there is enough space in the output buffer for the
+           session key structure */
+        if (ulSessionKeyLength > OutLength)
+        {
+            ntStatus = STATUS_BUFFER_TOO_SMALL;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pSessionKey, pPipe->pSessionKey, ulSessionKeyLength);
+
+        pIrp->IoStatusBlock.BytesTransferred = ulSessionKeyLength;
+    }
+    else
+    {
+        /* Return 0 byte result to indicate no session key */
+        pIrp->IoStatusBlock.BytesTransferred = 0;
+    }
+
+cleanup:
+
+    if (bReleasePipeLock)
+    {
+        LEAVE_MUTEX(&pPipe->PipeMutex);
+    }
+
+    if (pCCB)
+    {
+        NpfsReleaseCCB(pCCB);
+    }
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
 
 error:
 
-    return(ntStatus);
+    goto cleanup;
 }
+

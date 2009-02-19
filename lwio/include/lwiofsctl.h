@@ -42,14 +42,11 @@
 #ifndef __LW_IO_FSCTL_H__
 #define __LW_IO_FSCTL_H__
 
+#include <lwio/lwio.h>
+
 #define IO_FSCTL_SMB_GET_SESSION_KEY        0x01
+#define IO_NPFS_FSCTL_CONNECT_NAMED_PIPE    0x02
 
-typedef struct __IO_FSCTL_SMB_SESSION_KEY
-{
-    USHORT SessionKeyLength;
-    BYTE Buffer[];
-} __attribute__((packed)) IO_FSCTL_SMB_SESSION_KEY, *PIO_FSCTL_SMB_SESSION_KEY;
-
-#define IO_NPFS_FSCTL_CONNECT_NAMED_PIPE      0x02
+typedef IO_ECP_SESSION_KEY IO_FSCTL_SMB_SESSION_KEY, *PIO_FSCTL_SMB_SESSION_KEY;
 
 #endif

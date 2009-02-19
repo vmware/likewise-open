@@ -179,8 +179,9 @@ NpfsFreePipe(
 
     NpfsReleaseFCB(pFCB);
 
-    if (pPipe){
-
+    if (pPipe)
+    {
+        RTL_FREE(&pPipe->pSessionKey);
         NpfsFreeMemory(pPipe);
     }
 

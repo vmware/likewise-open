@@ -47,6 +47,13 @@ SrvIsNamedPipe(
     PSMB_SRV_TREE pTree
     );
 
+static
+NTSTATUS
+SrvSetNamedPipeSessionKey(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST* ppEcpList
+    );
+
 NTSTATUS
 SrvProcessNTCreateAndX(
     PLWIO_SRV_CONTEXT pContext,
@@ -69,6 +76,7 @@ SrvProcessNTCreateAndX(
     PVOID               pSecurityDescriptor = NULL;
     PVOID               pSecurityQOS = NULL;
     PIO_FILE_NAME       pFilename = NULL;
+    PIO_ECP_LIST        pEcpList = NULL;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -102,6 +110,18 @@ SrvProcessNTCreateAndX(
                     &pFilename->FileName);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /* For named pipes, we need to pipe some extra data into the npfs driver:
+     *  - Session key
+     *  - Client user principal name/NT4 name
+     */
+    if (SrvIsNamedPipe(pTree))
+    {
+        ntStatus = SrvSetNamedPipeSessionKey(
+            pConnection,
+            &pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = IoCreateFile(
                     &hFile,
                     pAsyncControlBlock,
@@ -118,8 +138,7 @@ SrvProcessNTCreateAndX(
                     pRequestHeader->createOptions,
                     NULL, /* EA Buffer */
                     0,    /* EA Length */
-                    NULL  /* ECP List  */
-                    );
+                    pEcpList);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvTreeCreateFile(
@@ -350,4 +369,52 @@ SrvIsNamedPipe(
     SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     return bResult;
+}
+
+static
+NTSTATUS
+SrvSetNamedPipeSessionKey(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST* ppEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PIO_ECP_SESSION_KEY pEcp = NULL;
+    ULONG ulEcpLength = sizeof(*pEcp) + pConnection->ulSessionKeyLength;
+
+    if (pConnection->pSessionKey != NULL)
+    {
+        pEcp = RtlMemoryAllocate(ulEcpLength);
+        if (pEcp == NULL)
+        {
+            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pEcp->SessionKeyLength = (USHORT) pConnection->ulSessionKeyLength;
+        memcpy(pEcp->Buffer, pConnection->pSessionKey, pConnection->ulSessionKeyLength);
+
+        if (!*ppEcpList)
+        {
+            ntStatus = IoRtlEcpListAllocate(ppEcpList);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = IoRtlEcpListInsert(*ppEcpList,
+                                      IO_ECP_TYPE_SESSION_KEY,
+                                      pEcp,
+                                      ulEcpLength,
+                                      RtlMemoryFree);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    RTL_FREE(&pEcp);
+
+    goto cleanup;
 }

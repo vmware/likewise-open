@@ -49,6 +49,7 @@
 
 #include "config.h"
 #include "lwiosys.h"
+#include "lwiofsctl.h"
 
 #include <lw/rtlstring.h>
 #include <lw/rtlgoto.h>

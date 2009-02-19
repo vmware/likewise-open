@@ -49,6 +49,14 @@
 
 #include "npfs.h"
 
+static
+NTSTATUS
+NpfsCommonProcessCreateEcp(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp,
+    PNPFS_CCB pCCB
+    );
+
 NTSTATUS
 NpfsCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -154,6 +162,12 @@ NpfsCommonCreate(
     //
     NpfsAddRefPipe(pPipe);
 
+    ntStatus = NpfsCommonProcessCreateEcp(
+        pIrpContext,
+        pIrp,
+        pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pthread_cond_signal(&pPipe->PipeCondition);
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
@@ -212,5 +226,55 @@ NpfsValidateCreate(
 error:
 
     return(ntStatus);
+}
+
+static
+NTSTATUS
+NpfsCommonProcessCreateEcp(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp,
+    PNPFS_CCB pCCB
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PNPFS_PIPE pPipe = pCCB->pPipe;
+    PIO_ECP_SESSION_KEY pSessionKey = NULL;
+    ULONG ulSessionKeyLength = 0;
+    PIO_ECP_FREE_CONTEXT_CALLBACK pFreeCallback;
+
+    ntStatus = IoRtlEcpListRemove(
+        pIrp->Args.Create.EcpList,
+        IO_ECP_TYPE_SESSION_KEY,
+        OUT_PPVOID(&pSessionKey),
+        &ulSessionKeyLength,
+        &pFreeCallback);
+
+    if (ntStatus != STATUS_NOT_FOUND)
+    {
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (ulSessionKeyLength < sizeof(*pSessionKey) ||
+            ulSessionKeyLength != sizeof(*pSessionKey) + pSessionKey->SessionKeyLength ||
+            (pFreeCallback && pFreeCallback != RtlMemoryFree))
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pPipe->pSessionKey = pSessionKey;
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pSessionKey)
+    {
+        RtlMemoryFree(pSessionKey);
+    }
+
+    goto cleanup;
 }
 

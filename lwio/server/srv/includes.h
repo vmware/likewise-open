@@ -61,6 +61,7 @@
 #include "lwio/lmshare.h"
 #include "lwio/lwshareinfo.h"
 
+#include "lwiofsctl.h"
 #include "lwiodef.h"
 #include "lwioutils.h"
 #include "lwiolog_r.h"
