@@ -3,7 +3,6 @@ bin_PROGRAMS=testsrvsvc
 
 testsrvsvc_SOURCES=TestSrvSvc.c Params.c SrvSvc.c
 
-SRVSVC_INCDIR=$(top_srcdir)/Include
 SRVSVC_INCLUDES= \
     -I$(SRVSVC_INCDIR) -I$(top_srcdir) \
     @DCERPC_INCLUDES@ \

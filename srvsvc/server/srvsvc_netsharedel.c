@@ -68,7 +68,7 @@ SrvSvcNetShareDel(
     DWORD dwCreationDisposition = 0;
     DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
-    DWORD dwOutLength = 0;
+    DWORD dwOutLength = 4096;
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
@@ -83,15 +83,54 @@ SrvSvcNetShareDel(
     FILE_SHARE_FLAGS ShareAccess = 0;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
-    ULONG IoControlCode = 0;
+    ULONG IoControlCode = 2;    /* SRV_DEVCTL_DELETE_SHARE - TODO: make it public */
+    PSTR smbpath = NULL;
+    //PIO_ACCESS_TOKEN access_token = NULL;
+    IO_FILE_NAME filename;
+    IO_STATUS_BLOCK io_status;
+    SHARE_INFO_DELETE_PARAMS DeleteParams;
+
+    memset((void*)&DeleteParams, 0, sizeof(DeleteParams));
+
+    DeleteParams.servername = server_name;
+    DeleteParams.netname    = netname;
+
+    ntStatus = LwShareInfoMarshalDeleteParameters(
+                        &DeleteParams,
+                        &pInBuffer,
+                        &dwInLength
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = SRVSVCAllocateMemory(
+                        dwOutLength,
+                        &pOutBuffer
+                        );
+    BAIL_ON_ERROR(dwError);
+
+    ntStatus = LwRtlCStringAllocatePrintf(
+                    &smbpath,
+                    "\\srv"
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    filename.RootFileHandle = NULL;
+    filename.IoNameOptions = 0;
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(
+                        &filename.FileName,
+                        smbpath
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
 
     ntStatus = NtCreateFile(
                         &FileHandle,
                         NULL,
                         &IoStatusBlock,
-                        FileName,
-			NULL,
-			NULL,
+                        &filename,
+                        NULL,
+                        NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -116,27 +155,18 @@ SrvSvcNetShareDel(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = UnmarshallAddSetResponse(
-                    pOutBuffer,
-                    &dwReturnCode,
-                    &dwParmError);
-
-#if 0
-    *parm_error = dwParmError;
-    dwError = dwReturnCode;
-#endif
-
 cleanup:
-
     if(pInBuffer) {
         SrvSvcFreeMemory(pInBuffer);
     }
 
-    return(dwError);
+    if (FileHandle) {
+        NtCloseFile(FileHandle);
+    }
+
+    return dwError;
 
 error:
-
-
     if (pOutBuffer) {
         SrvSvcFreeMemory(pOutBuffer);
     }

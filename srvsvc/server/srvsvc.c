@@ -120,6 +120,7 @@ NET_API_STATUS _NetrFileEnum(
     return dwError;
 }
 
+
 NET_API_STATUS _NetrFileGetInfo(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
@@ -178,6 +179,7 @@ NET_API_STATUS _NetrShareAdd(
     DWORD dwError = 0;
 
     dwError = SrvSvcNetShareAdd(
+                    IDL_handle,
                     server_name,
                     level,
                     info,
@@ -239,7 +241,15 @@ NET_API_STATUS _NetrShareDel(
     /* [in] */ uint32 reserved
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetShareDel(
+                    IDL_handle,
+                    server_name,
+		    netname,
+                    reserved
+                    );
+    return dwError;
 }
 
 void _srvsvc_Function13(

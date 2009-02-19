@@ -773,15 +773,26 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(srvsvc_binding);
     INPUT_ARG_WSTR(hostname);
 
-    bufptr = NULL;
+    memset((void*)&info502, 0, sizeof(info502));
+
+    info502.shi502_netname = ambstowc16s("TEST");
+    info502.shi502_path    = ambstowc16s("/tmp");
+
+    bufptr = (uint8*)&info502;
     parm_err = 0;
     CALL_NETAPI(err = NetShareAdd(srvsvc_binding,
                                   hostname,/*servername*/
-                                  0,/*level*/
+                                  502,/*level*/
                                   bufptr,/*bufptr*/
                                   NULL/*parm_err*/
                                   ));
-    if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
+    //    if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
+
+    CALL_NETAPI(err = NetShareDel(srvsvc_binding,
+                                  hostname,/*servername*/
+                                  info502.shi502_netname,
+                                  0/*reserved*/
+                                  ));
 
     bufptr = NULL;
     parm_err = 0;
@@ -1357,7 +1368,7 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
 
     CALL_NETAPI(err = NetShareDel(srvsvc_binding,
                                   hostname,/*servername*/
-                                  ambstowc16s("C$D$"),/*netname*/
+                                  ambstowc16s("TEST"),/*netname*/
                                   0/*reserved*/
                                   ));
     if (err != NERR_NetNameNotFound) netapi_fail(err);

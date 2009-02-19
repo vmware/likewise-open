@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -60,6 +60,7 @@ NET_API_STATUS SrvSvcCopyTIME_OF_DAY_INFO(PTIME_OF_DAY_INFO info,
                                           uint8 **bufptr);
 
 #endif /* _SRVSVC_MEMORY_H_ */
+
 
 /*
 local variables:

@@ -113,6 +113,7 @@ AC_ARG_WITH([dcerpc],
         [
 		DCERPC_INCLUDES="-I$withval/include"
                 DCERPC_LDFLAGS="-L$withval/lib"
+		DCERPC_PATH="$withval/bin"
         ])
 
 AC_ARG_WITH([dcerpc-includes],

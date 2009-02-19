@@ -54,9 +54,9 @@ NET_API_STATUS NetShareDel(
     }
 
     net_name = wc16sdup(netname);
-    if (net_name) {
+    if (net_name == NULL) {
         status = SRVSVC_ERROR_OUT_OF_MEMORY;
-	goto done;
+        goto done;
     }
 
     DCERPC_CALL(_NetrShareDel(b, srv_name, net_name, reserved));

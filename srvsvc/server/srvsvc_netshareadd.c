@@ -63,7 +63,7 @@ SrvSvcNetShareAdd(
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
-    PWSTR lpFileName = NULL;
+    PWSTR pFileName = NULL;
     DWORD dwDesiredAccess = 0;
     DWORD dwShareMode = 0;
     DWORD dwCreationDisposition = 0;
@@ -82,15 +82,24 @@ SrvSvcNetShareAdd(
     FILE_SHARE_FLAGS ShareAccess = 0;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
-    ULONG IoControlCode = 0;
+    ULONG IoControlCode = 1;    /* SRV_DEVCTL_ADD_SHARE - TODO: make it public */
     PSTR smbpath = NULL;
-    //PIO_ACCESS_TOKEN acctoken = NULL;
+    //PIO_ACCESS_TOKEN access_token = NULL;
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
-    PSHARE_INFO_ADD_PARAMS pAddParams = NULL;
+    SHARE_INFO_ADD_PARAMS AddParams;
+
+    memset((void*)&AddParams, 0, sizeof(AddParams));
+
+    AddParams.dwInfoLevel = level;
+    switch (AddParams.dwInfoLevel) {
+    case 502:
+        AddParams.info.p502 = (PSHARE_INFO_502)info.info502;
+        break;
+    }
 
     ntStatus = LwShareInfoMarshalAddParameters(
-                        pAddParams,
+                        &AddParams,
                         &pInBuffer,
                         &dwInLength
                         );
@@ -117,14 +126,13 @@ SrvSvcNetShareAdd(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-
     ntStatus = NtCreateFile(
                         &FileHandle,
                         NULL,
                         &IoStatusBlock,
                         &filename,
                         NULL,
-                         NULL,
+                        NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -149,25 +157,18 @@ SrvSvcNetShareAdd(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-
-
 cleanup:
-
     if(pInBuffer) {
         SrvSvcFreeMemory(pInBuffer);
     }
 
     if (FileHandle) {
-
         NtCloseFile(FileHandle);
-
     }
 
-    return(dwError);
+    return dwError;
 
 error:
-
-
     if (pOutBuffer) {
         SrvSvcFreeMemory(pOutBuffer);
     }
