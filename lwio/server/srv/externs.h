@@ -53,8 +53,6 @@
 
 extern SMB_SRV_RUNTIME_GLOBALS gSMBSrvGlobals;
 
-extern PSRV_SHARE_ENTRY gpShareEntry;
-
 
 #endif /* __EXTERNS_H__ */
 

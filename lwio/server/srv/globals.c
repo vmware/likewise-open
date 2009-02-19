@@ -51,8 +51,6 @@
 
 SMB_SRV_RUNTIME_GLOBALS gSMBSrvGlobals = { PTHREAD_MUTEX_INITIALIZER };
 
-PSRV_SHARE_ENTRY gpShareEntry = NULL;
-
 
 /*
 local variables:
