@@ -484,6 +484,28 @@ error:
     goto cleanup;
 }
 
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysRemove(
+    PSTR pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+
+    if (remove(pszPath) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 /*

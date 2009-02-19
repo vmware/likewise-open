@@ -47,6 +47,40 @@
 
 #include "pvfs.h"
 
+/* Forward declarations */
+
+static NTSTATUS
+PvfsPerformDeleteOnClose(
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    /* Check for no-op */
+
+    if (!(pCcb->CreateOptions & FILE_DELETE_ON_CLOSE)) {
+        return STATUS_SUCCESS;
+    }
+
+    /* Check for renames */
+
+    ntError = PvfsValidatePath(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysRemove(pCcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    /* Never fail this */
+    return STATUS_SUCCESS;
+
+error:
+    goto cleanup;
+}
+
+
+/* Code */
+
 NTSTATUS
 PvfsClose(
     IO_DEVICE_HANDLE DeviceHandle,
@@ -55,13 +89,16 @@ PvfsClose(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
+    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
 
     /* make sure we have a proper CCB */
 
-
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     BAIL_ON_INVALID_PTR(pCcb, ntError);
+
+    /* Deal with delete-on-close */
+
+    ntError = PvfsPerformDeleteOnClose(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Call closedir() for directions and close() for files */
 

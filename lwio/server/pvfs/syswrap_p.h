@@ -142,6 +142,11 @@ PvfsSysFstatFs(
     PPVFS_STATFS pStatFs
     );
 
+NTSTATUS
+PvfsSysRemove(
+    PSTR pszPath
+    );
+
 #endif     /* _PVFS_SYSWRAP_P_H */
 
 

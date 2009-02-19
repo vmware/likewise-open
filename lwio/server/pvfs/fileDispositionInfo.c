@@ -110,7 +110,10 @@ PvfsSetFileDispositionInfo(
     PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
+    /* Should really be a check on the parent, but I'm not
+       entirely positive */
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
     BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
@@ -125,10 +128,12 @@ PvfsSetFileDispositionInfo(
 
     if (pFileInfo->DeleteFile == TRUE)
     {
-        pCcb->CreateOptions &= FILE_DELETE_ON_CLOSE;
+        /* Set */
+        pCcb->CreateOptions |= FILE_DELETE_ON_CLOSE;
     }
     else
     {
+        /* Clear */
         pCcb->CreateOptions &= ~FILE_DELETE_ON_CLOSE;
     }
 
