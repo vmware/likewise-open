@@ -56,6 +56,20 @@ NpfsCommonGetSessionKey(
     PIRP pIrp
     );
 
+static
+NTSTATUS
+NpfsCommonGetPeerPrincipal(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+static
+NTSTATUS
+NpfsCommonGetPeerAddress(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
 NTSTATUS
 NpfsFsCtl(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -96,6 +110,12 @@ NpfsCommonFsCtl(
     case IO_FSCTL_SMB_GET_SESSION_KEY:
         ntStatus = NpfsCommonGetSessionKey(pIrpContext, pIrp);
         break;
+    case IO_FSCTL_SMB_GET_PEER_PRINCIPAL:
+        ntStatus = NpfsCommonGetPeerPrincipal(pIrpContext, pIrp);
+        break;
+    case IO_FSCTL_SMB_GET_PEER_ADDRESS:
+        ntStatus = NpfsCommonGetPeerAddress(pIrpContext, pIrp);
+        break;
     default:
         ntStatus = STATUS_NOT_SUPPORTED;
         break;
@@ -114,7 +134,6 @@ NpfsCommonGetSessionKey(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PVOID pOutBuffer = pIrp->Args.IoFsControl.OutputBuffer;
     ULONG OutLength = pIrp->Args.IoFsControl.OutputBufferLength;
-    PIO_FSCTL_SMB_SESSION_KEY pSessionKey = (PIO_FSCTL_SMB_SESSION_KEY) pOutBuffer;
     PNPFS_CCB pCCB = NULL;
     PNPFS_PIPE pPipe = NULL;
     BOOL bReleasePipeLock = FALSE;
@@ -136,7 +155,7 @@ NpfsCommonGetSessionKey(
     /* Ensure we actually have a session key */
     if (pPipe->pSessionKey != NULL)
     {
-        ulSessionKeyLength = pPipe->pSessionKey->SessionKeyLength + sizeof(*pSessionKey);
+        ulSessionKeyLength = pPipe->ulSessionKeyLength;
 
         /* Ensure there is enough space in the output buffer for the
            session key structure */
@@ -146,7 +165,7 @@ NpfsCommonGetSessionKey(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        memcpy(pSessionKey, pPipe->pSessionKey, ulSessionKeyLength);
+        memcpy(pOutBuffer, pPipe->pSessionKey, ulSessionKeyLength);
 
         pIrp->IoStatusBlock.BytesTransferred = ulSessionKeyLength;
     }
@@ -177,3 +196,144 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+NpfsCommonGetPeerPrincipal(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID pOutBuffer = pIrp->Args.IoFsControl.OutputBuffer;
+    ULONG OutLength = pIrp->Args.IoFsControl.OutputBufferLength;
+    PNPFS_CCB pCCB = NULL;
+    PNPFS_PIPE pPipe = NULL;
+    BOOL bReleasePipeLock = FALSE;
+    ULONG ulPrincipalLength = 0;
+
+    ntStatus = NpfsGetCCB(
+        pIrpContext->pIrp->FileHandle,
+        &pCCB
+        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    NpfsAddRefCCB(pCCB);
+
+    pPipe = pCCB->pPipe;
+
+    ENTER_MUTEX(&pPipe->PipeMutex);
+    bReleasePipeLock = TRUE;
+
+    /* Ensure we actually have a client principal */
+    if (pPipe->pszClientPrincipalName != NULL)
+    {
+        ulPrincipalLength = strlen(pPipe->pszClientPrincipalName) + 1;
+
+        /* Ensure there is enough space in the output buffer */
+        if (ulPrincipalLength > OutLength)
+        {
+            ntStatus = STATUS_BUFFER_TOO_SMALL;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+           memcpy(pOutBuffer, pPipe->pszClientPrincipalName, ulPrincipalLength);
+
+        pIrp->IoStatusBlock.BytesTransferred = ulPrincipalLength;
+    }
+    else
+    {
+        /* Return 0 byte result to indicate no principal name */
+        pIrp->IoStatusBlock.BytesTransferred = 0;
+    }
+
+cleanup:
+
+    if (bReleasePipeLock)
+    {
+        LEAVE_MUTEX(&pPipe->PipeMutex);
+    }
+
+    if (pCCB)
+    {
+        NpfsReleaseCCB(pCCB);
+    }
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+NpfsCommonGetPeerAddress(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID pOutBuffer = pIrp->Args.IoFsControl.OutputBuffer;
+    ULONG OutLength = pIrp->Args.IoFsControl.OutputBufferLength;
+    PNPFS_CCB pCCB = NULL;
+    PNPFS_PIPE pPipe = NULL;
+    BOOL bReleasePipeLock = FALSE;
+    ULONG ulAddrLength = 0;
+
+    ntStatus = NpfsGetCCB(
+        pIrpContext->pIrp->FileHandle,
+        &pCCB
+        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    NpfsAddRefCCB(pCCB);
+
+    pPipe = pCCB->pPipe;
+
+    ENTER_MUTEX(&pPipe->PipeMutex);
+    bReleasePipeLock = TRUE;
+
+    /* Ensure we actually have an address */
+    if (pPipe->ulClientAddress != 0)
+    {
+        ulAddrLength = sizeof(pPipe->ulClientAddress);
+
+        /* Ensure there is enough space in the output buffer */
+        if (ulAddrLength > OutLength)
+        {
+            ntStatus = STATUS_BUFFER_TOO_SMALL;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pOutBuffer, &pPipe->ulClientAddress, ulAddrLength);
+
+        pIrp->IoStatusBlock.BytesTransferred = ulAddrLength;
+    }
+    else
+    {
+        /* Return 0 byte result to indicate no address */
+        pIrp->IoStatusBlock.BytesTransferred = 0;
+    }
+
+cleanup:
+
+    if (bReleasePipeLock)
+    {
+        LEAVE_MUTEX(&pPipe->PipeMutex);
+    }
+
+    if (pCCB)
+    {
+        NpfsReleaseCCB(pCCB);
+    }
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}

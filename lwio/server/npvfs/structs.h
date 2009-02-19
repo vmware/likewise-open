@@ -49,7 +49,10 @@ typedef struct _NPFS_PIPE
     ULONG PipeServerState;
     PNPFS_CCB pSCB;
     PNPFS_CCB pCCB;
-    PIO_FSCTL_SMB_SESSION_KEY pSessionKey;
+    PBYTE pSessionKey;
+    ULONG ulSessionKeyLength;
+    PSTR pszClientPrincipalName;
+    ULONG ulClientAddress;
 
     struct _NPFS_PIPE *pNext;
 

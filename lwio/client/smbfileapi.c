@@ -69,6 +69,61 @@ error:
 }
 
 LW_NTSTATUS
+LwIoGetPeerPrincipalName(
+    IO_FILE_HANDLE File,
+    LW_PSTR* ppszPrincipalName
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    IO_CONTEXT Context = {0};
+
+    Status = LwIoAcquireContext(&Context);
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = LwIoCtxGetPeerPrincipalName(
+        &Context,
+        File,
+        ppszPrincipalName
+        );
+    BAIL_ON_NT_STATUS(Status);
+
+error:
+
+    LwIoReleaseContext(&Context);
+
+    return Status;
+}
+
+
+LW_NTSTATUS
+LwIoGetPeerAddress(
+    IO_FILE_HANDLE File,
+    LW_PBYTE pAddress,
+    LW_PUSHORT pusAddressLength
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    IO_CONTEXT Context = {0};
+
+    Status = LwIoAcquireContext(&Context);
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = LwIoCtxGetPeerAddress(
+        &Context,
+        File,
+        pAddress,
+        pusAddressLength
+        );
+    BAIL_ON_NT_STATUS(Status);
+
+error:
+
+    LwIoReleaseContext(&Context);
+
+    return Status;
+}
+
+LW_NTSTATUS
 LwIoConnectNamedPipe(
     IO_FILE_HANDLE File
     )

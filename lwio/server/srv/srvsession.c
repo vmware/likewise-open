@@ -324,6 +324,8 @@ SrvSessionFree(
         SrvFinderCloseRepository(pSession->hFinderRepository);
     }
 
+    IO_SAFE_FREE_MEMORY(pSession->pszClientPrincipalName);
+
     SMBFreeMemory(pSession);
 }
 

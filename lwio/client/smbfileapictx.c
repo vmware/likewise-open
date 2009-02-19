@@ -41,6 +41,7 @@
 #include "includes.h"
 
 #define MAX_KEY_LENGTH (1024*10)
+#define MAX_PRINCIPAL_NAME_LENGTH (2048)
 
 LW_NTSTATUS
 LwIoCtxGetSessionKey(
@@ -52,11 +53,7 @@ LwIoCtxGetSessionKey(
 {
     NTSTATUS Status = STATUS_SUCCESS;
     IO_STATUS_BLOCK IoStatus;
-    union
-    {
-        BYTE Buffer[sizeof(IO_FSCTL_SMB_SESSION_KEY) + MAX_KEY_LENGTH];
-        IO_FSCTL_SMB_SESSION_KEY Key;
-    } u;
+    BYTE Buffer[MAX_KEY_LENGTH];
     PBYTE pKeyBuffer = NULL;
 
     Status = 
@@ -68,22 +65,123 @@ LwIoCtxGetSessionKey(
             IO_FSCTL_SMB_GET_SESSION_KEY,
             NULL,
             0,
-            u.Buffer,
-            sizeof(u.Buffer));
+            Buffer,
+            sizeof(Buffer));
     BAIL_ON_NT_STATUS(Status);
 
-    Status = LwIoAllocateMemory(u.Key.SessionKeyLength, OUT_PPVOID(&pKeyBuffer));
-    BAIL_ON_NT_STATUS(Status);
+    if (IoStatus.BytesTransferred > 0)
+    {
+        Status = LwIoAllocateMemory(IoStatus.BytesTransferred, OUT_PPVOID(&pKeyBuffer));
+        BAIL_ON_NT_STATUS(Status);
 
-    memcpy(pKeyBuffer, u.Key.Buffer, (size_t) u.Key.SessionKeyLength);
-    
-    *pKeyLength = u.Key.SessionKeyLength;
-    *ppKeyBuffer = pKeyBuffer;
+        memcpy(pKeyBuffer, Buffer, IoStatus.BytesTransferred);
+
+        *pKeyLength = IoStatus.BytesTransferred;
+        *ppKeyBuffer = pKeyBuffer;
+    }
+    else
+    {
+        *pKeyLength = 0;
+        *ppKeyBuffer = NULL;
+    }
+
+cleanup:
+
+    return Status;
 
 error:
 
-    return Status;
+    *pKeyLength = 0;
+    *ppKeyBuffer = NULL;
+
+    goto cleanup;
 }
+
+LW_NTSTATUS
+LwIoCtxGetPeerPrincipalName(
+    LW_PIO_CONTEXT pContext,
+    IO_FILE_HANDLE File,
+    LW_PSTR* ppszPrincipalName
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    IO_STATUS_BLOCK IoStatus;
+    CHAR Buffer[MAX_PRINCIPAL_NAME_LENGTH];
+    PSTR pszPrincipalName = NULL;
+
+    Status =
+        LwNtCtxFsControlFile(
+            pContext,
+            File,
+            NULL,
+            &IoStatus,
+            IO_FSCTL_SMB_GET_PEER_PRINCIPAL,
+            NULL,
+            0,
+            Buffer,
+            sizeof(Buffer));
+    BAIL_ON_NT_STATUS(Status);
+    
+    if (IoStatus.BytesTransferred > 0)
+    {
+        Status = LwIoAllocateMemory(IoStatus.BytesTransferred, OUT_PPVOID(&pszPrincipalName));
+        BAIL_ON_NT_STATUS(Status);
+        memcpy(pszPrincipalName, Buffer, IoStatus.BytesTransferred);
+        pszPrincipalName[IoStatus.BytesTransferred-1] = '\0';
+    }
+
+    *ppszPrincipalName = pszPrincipalName;
+
+cleanup:
+
+    return Status;
+
+error:
+
+    *ppszPrincipalName = NULL;
+
+    IO_SAFE_FREE_MEMORY(pszPrincipalName);
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwIoCtxGetPeerAddress(
+    LW_PIO_CONTEXT pContext,
+    IO_FILE_HANDLE File,
+    LW_PBYTE pAddress,
+    LW_PUSHORT pusAddressLength
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    IO_STATUS_BLOCK IoStatus;
+
+    Status =
+        LwNtCtxFsControlFile(
+            pContext,
+            File,
+            NULL,
+            &IoStatus,
+            IO_FSCTL_SMB_GET_PEER_ADDRESS,
+            NULL,
+            0,
+            pAddress,
+            *pusAddressLength);
+    BAIL_ON_NT_STATUS(Status);
+
+    *pusAddressLength = (USHORT) IoStatus.BytesTransferred;
+
+cleanup:
+
+    return Status;
+
+error:
+
+    *pusAddressLength = 0;
+
+    goto cleanup;
+}
+
 
 LW_NTSTATUS
 LwIoCtxConnectNamedPipe(

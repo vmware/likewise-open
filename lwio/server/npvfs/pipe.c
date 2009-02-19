@@ -182,6 +182,7 @@ NpfsFreePipe(
     if (pPipe)
     {
         RTL_FREE(&pPipe->pSessionKey);
+        RTL_FREE(&pPipe->pszClientPrincipalName);
         NpfsFreeMemory(pPipe);
     }
 

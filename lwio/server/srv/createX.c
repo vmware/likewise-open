@@ -42,6 +42,20 @@ SrvBuildNTCreateResponse(
     );
 
 static
+NTSTATUS
+SrvSetNamedPipeClientPrincipal(
+    PSMB_SRV_SESSION pSession,
+    PIO_ECP_LIST* ppEcpList
+    );
+
+static
+NTSTATUS
+SrvSetNamedPipeClientAddress(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST* ppEcpList
+    );
+
+static
 BOOLEAN
 SrvIsNamedPipe(
     PSMB_SRV_TREE pTree
@@ -112,11 +126,22 @@ SrvProcessNTCreateAndX(
 
     /* For named pipes, we need to pipe some extra data into the npfs driver:
      *  - Session key
-     *  - Client user principal name/NT4 name
+     *  - Client principal name
+     *  - Client address
      */
     if (SrvIsNamedPipe(pTree))
     {
         ntStatus = SrvSetNamedPipeSessionKey(
+            pConnection,
+            &pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSetNamedPipeClientPrincipal(
+            pSession,
+            &pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSetNamedPipeClientAddress(
             pConnection,
             &pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -181,6 +206,11 @@ cleanup:
     if (pSession)
     {
         SrvSessionRelease(pSession);
+    }
+
+    if (pEcpList)
+    {
+        IoRtlEcpListFree(&pEcpList);
     }
 
     return (ntStatus);
@@ -379,21 +409,11 @@ SrvSetNamedPipeSessionKey(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PIO_ECP_SESSION_KEY pEcp = NULL;
-    ULONG ulEcpLength = sizeof(*pEcp) + pConnection->ulSessionKeyLength;
+    PBYTE pSessionKey = pConnection->pSessionKey;
+    ULONG ulSessionKeyLength = pConnection->ulSessionKeyLength;
 
-    if (pConnection->pSessionKey != NULL)
+    if (pSessionKey != NULL)
     {
-        pEcp = RtlMemoryAllocate(ulEcpLength);
-        if (pEcp == NULL)
-        {
-            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pEcp->SessionKeyLength = (USHORT) pConnection->ulSessionKeyLength;
-        memcpy(pEcp->Buffer, pConnection->pSessionKey, pConnection->ulSessionKeyLength);
-
         if (!*ppEcpList)
         {
             ntStatus = IoRtlEcpListAllocate(ppEcpList);
@@ -402,9 +422,9 @@ SrvSetNamedPipeSessionKey(
 
         ntStatus = IoRtlEcpListInsert(*ppEcpList,
                                       IO_ECP_TYPE_SESSION_KEY,
-                                      pEcp,
-                                      ulEcpLength,
-                                      RtlMemoryFree);
+                                      pSessionKey,
+                                      ulSessionKeyLength,
+                                      NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -414,7 +434,71 @@ cleanup:
 
 error:
 
-    RTL_FREE(&pEcp);
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSetNamedPipeClientPrincipal(
+    PSMB_SRV_SESSION pSession,
+    PIO_ECP_LIST* ppEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSTR pszClientPrincipalName = pSession->pszClientPrincipalName;
+    ULONG ulEcpLength = strlen(pszClientPrincipalName) + 1;
+
+    if (!*ppEcpList)
+    {
+        ntStatus = IoRtlEcpListAllocate(ppEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = IoRtlEcpListInsert(*ppEcpList,
+                                  IO_ECP_TYPE_PEER_PRINCIPAL,
+                                  pszClientPrincipalName,
+                                  ulEcpLength,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSetNamedPipeClientAddress(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST* ppEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PULONG pAddr = &pConnection->pSocket->cliaddr.sin_addr.s_addr;
+    ULONG ulAddrLength = sizeof(pConnection->pSocket->cliaddr.sin_addr.s_addr);
+
+    if (!*ppEcpList)
+    {
+        ntStatus = IoRtlEcpListAllocate(ppEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = IoRtlEcpListInsert(*ppEcpList,
+                                  IO_ECP_TYPE_PEER_ADDRESS,
+                                  pAddr,
+                                  ulAddrLength,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }

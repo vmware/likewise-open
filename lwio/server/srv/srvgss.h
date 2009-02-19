@@ -15,11 +15,12 @@ SrvGssNegotiateIsComplete(
     );
 
 NTSTATUS
-SrvGssGetSessionKey(
+SrvGssGetSessionDetails(
     HANDLE hGss,
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
-    PULONG pulSessionKeyLength
+    PULONG pulSessionKeyLength,
+    PSTR* ppszClientPrincipalName
     );
 
 NTSTATUS

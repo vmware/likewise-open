@@ -892,6 +892,8 @@ typedef struct _IO_ECP_LIST *PIO_ECP_LIST;
 
 #define IO_ECP_TYPE_NAMED_PIPE "Likewise.IO.NamedPipe"
 #define IO_ECP_TYPE_SESSION_KEY "Likewise.IO.SessionKey"
+#define IO_ECP_TYPE_PEER_PRINCIPAL "Likewise.IO.PeerPrincipal"
+#define IO_ECP_TYPE_PEER_ADDRESS "Likewise.IO.PeerAddress"
 
 typedef struct _IO_ECP_NAMED_PIPE {
     FILE_PIPE_TYPE_MASK NamedPipeType;
@@ -902,13 +904,7 @@ typedef struct _IO_ECP_NAMED_PIPE {
     ULONG OutboundQuota;
     LONG64 DefaultTimeout;
     BOOLEAN HaveDefaultTimeout;
-} IO_ECP_NAMED_PIPE, *PIO_ECP_NAMED_PIPE;
-
-typedef struct _IO_ECP_SESSION_KEY
-{
-    USHORT SessionKeyLength;
-    BYTE Buffer[];
-} __attribute__((packed)) IO_ECP_SESSION_KEY, *PIO_ECP_SESSION_KEY;
+} __attribute__((packed)) IO_ECP_NAMED_PIPE, *PIO_ECP_NAMED_PIPE;
 
 #ifndef LW_STRICT_NAMESPACE
 

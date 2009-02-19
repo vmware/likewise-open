@@ -53,6 +53,21 @@ LwIoCtxGetSessionKey(
     );
 
 LW_NTSTATUS
+LwIoCtxGetPeerPrincipalName(
+    LW_PIO_CONTEXT pContext,
+    IO_FILE_HANDLE File,
+    LW_PSTR* ppszPrincipalName
+    );
+
+LW_NTSTATUS
+LwIoCtxGetPeerAddress(
+    LW_PIO_CONTEXT pContext,
+    IO_FILE_HANDLE File,
+    LW_PBYTE pAddress,
+    LW_PUSHORT pusAddressLength
+    );
+
+LW_NTSTATUS
 LwIoCtxConnectNamedPipe(
     LW_PIO_CONTEXT pContext,
     IO_FILE_HANDLE File
@@ -68,6 +83,19 @@ LwIoGetSessionKey(
     );
 
 LW_NTSTATUS
+LwIoGetPeerPrincipalName(
+    IO_FILE_HANDLE File,
+    LW_PSTR* ppszPrincipalName
+    );
+
+LW_NTSTATUS
+LwIoGetPeerAddress(
+    IO_FILE_HANDLE File,
+    LW_PBYTE pAddress,
+    LW_PUSHORT pusAddressLength
+    );
+
+LW_NTSTATUS
 LwIoConnectNamedPipe(
     IO_FILE_HANDLE File
     );
@@ -77,11 +105,15 @@ LwIoConnectNamedPipe(
 #ifndef LW_STRICT_NAMESPACE
 
 #define IoCtxGetSessionKey LwIoCtxGetSessionKey
+#define IoCtxGetPeerPrincipalName LwIoCtxGetPeerPrincipalName
+#define IoCtxGetPeerAddress LwIoCtxGetPeerAddress
 #define IoCtxCreateNamedPipe LwIoCtxCreateNamedPipe
 
 #ifndef LW_NO_THREADS
 
 #define IoGetSessionKey LwIoGetSessionKey
+#define IoGetPeerPrincipalName LwIoGetPeerPrincipalName
+#define IoGetPeerAddress LwIoGetPeerAddress
 #define IoCreateNamedPipe LwIoCreateNamedPipe
 
 #endif /* !LW_NO_THREADS */

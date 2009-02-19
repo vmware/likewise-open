@@ -238,30 +238,67 @@ NpfsCommonProcessCreateEcp(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PNPFS_PIPE pPipe = pCCB->pPipe;
-    PIO_ECP_SESSION_KEY pSessionKey = NULL;
+    PBYTE pSessionKey = NULL;
     ULONG ulSessionKeyLength = 0;
-    PIO_ECP_FREE_CONTEXT_CALLBACK pFreeCallback;
+    PSTR pszClientPrincipalName = NULL;
+    ULONG ulPrincipalLength = 0;
+    PULONG pulAddr = NULL;
+    ULONG ulAddrLen = 0;
 
-    ntStatus = IoRtlEcpListRemove(
+    ntStatus = IoRtlEcpListFind(
         pIrp->Args.Create.EcpList,
         IO_ECP_TYPE_SESSION_KEY,
         OUT_PPVOID(&pSessionKey),
-        &ulSessionKeyLength,
-        &pFreeCallback);
+        &ulSessionKeyLength);
 
     if (ntStatus != STATUS_NOT_FOUND)
     {
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (ulSessionKeyLength < sizeof(*pSessionKey) ||
-            ulSessionKeyLength != sizeof(*pSessionKey) + pSessionKey->SessionKeyLength ||
-            (pFreeCallback && pFreeCallback != RtlMemoryFree))
+        pPipe->pSessionKey = RtlMemoryAllocate(ulSessionKeyLength);
+        if (!pPipe->pSessionKey)
         {
-            ntStatus = STATUS_INVALID_PARAMETER;
+            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        pPipe->pSessionKey = pSessionKey;
+        memcpy(pPipe->pSessionKey, pSessionKey, ulSessionKeyLength);
+        pPipe->ulSessionKeyLength = ulSessionKeyLength;
+    }
+
+    ntStatus = IoRtlEcpListFind(
+        pIrp->Args.Create.EcpList,
+        IO_ECP_TYPE_PEER_PRINCIPAL,
+        OUT_PPVOID(&pszClientPrincipalName),
+        &ulPrincipalLength);
+
+    if (ntStatus != STATUS_NOT_FOUND)
+    {
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = LwRtlCStringDuplicate(
+            &pPipe->pszClientPrincipalName,
+            pszClientPrincipalName);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = IoRtlEcpListFind(
+        pIrp->Args.Create.EcpList,
+        IO_ECP_TYPE_PEER_ADDRESS,
+        OUT_PPVOID(&pulAddr),
+        &ulAddrLen);
+
+    if (ntStatus != STATUS_NOT_FOUND)
+    {
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (ulAddrLen > sizeof(pPipe->ulClientAddress))
+        {
+            /* Only 4-byte (IPv4) address supported */
+            ntStatus = STATUS_NOT_SUPPORTED;
+        }
+
+        pPipe->ulClientAddress = *pulAddr;
     }
 
 cleanup:
@@ -269,11 +306,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    if (pSessionKey)
-    {
-        RtlMemoryFree(pSessionKey);
-    }
 
     goto cleanup;
 }

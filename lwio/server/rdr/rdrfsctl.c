@@ -85,8 +85,6 @@ RdrCommonFsctl(
     HANDLE hFile = NULL;
     DWORD dwSessionKeyLength = 0;
     PBYTE pSessionKeyBytes = NULL;
-    PIO_FSCTL_SMB_SESSION_KEY pSessionKey = (PIO_FSCTL_SMB_SESSION_KEY) pOutBuffer;
-
 
     hFile = IoFileGetContext(pIrp->FileHandle);
 
@@ -99,16 +97,15 @@ RdrCommonFsctl(
 
     /* Ensure there is enough space in the output buffer for the
        session key structure */
-    if (dwSessionKeyLength + sizeof(*pSessionKey) > OutLength)
+    if (dwSessionKeyLength > OutLength)
     {
-        ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pSessionKey->SessionKeyLength = (USHORT) dwSessionKeyLength;
-    memcpy(pSessionKey->Buffer, pSessionKeyBytes, dwSessionKeyLength);
+    memcpy(pOutBuffer, pSessionKeyBytes, dwSessionKeyLength);
     
-    pIrp->IoStatusBlock.BytesTransferred = dwSessionKeyLength + sizeof(*pSessionKey);
+    pIrp->IoStatusBlock.BytesTransferred = dwSessionKeyLength;
 
 error:
 

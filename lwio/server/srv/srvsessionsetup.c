@@ -87,18 +87,28 @@ SrvProcessSessionSetup(
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pSmbResponse->pSMBHeader->uid = pSession->uid;
-    }
-
-    if (!pConnection->pSessionKey &&
-        SrvGssNegotiateIsComplete(pConnection->hGssContext, pConnection->hGssNegotiate))
-    {
-        ntStatus = SrvGssGetSessionKey(
+        if (!pConnection->pSessionKey)
+        {
+             ntStatus = SrvGssGetSessionDetails(
                         pConnection->hGssContext,
                         pConnection->hGssNegotiate,
                         &pConnection->pSessionKey,
-                        &pConnection->ulSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
+                        &pConnection->ulSessionKeyLength,
+                        &pSession->pszClientPrincipalName);
+             BAIL_ON_NT_STATUS(ntStatus);
+        }
+        else
+        {
+             ntStatus = SrvGssGetSessionDetails(
+                        pConnection->hGssContext,
+                        pConnection->hGssNegotiate,
+                        NULL,
+                        NULL,
+                        &pSession->pszClientPrincipalName);
+             BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pSmbResponse->pSMBHeader->uid = pSession->uid;
     }
 
     *ppSmbResponse = pSmbResponse;

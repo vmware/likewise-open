@@ -45,11 +45,12 @@ SrvGssNegotiateIsComplete(
 }
 
 NTSTATUS
-SrvGssGetSessionKey(
+SrvGssGetSessionDetails(
     HANDLE hGss,
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
-    PULONG pulSessionKeyLength
+    PULONG pulSessionKeyLength,
+    PSTR* ppszClientPrincipalName
     )
 {
     NTSTATUS ntStatus = 0;
@@ -59,6 +60,9 @@ SrvGssGetSessionKey(
     gss_name_t acceptorName = {0};
     gss_buffer_desc sessionKey = GSS_C_EMPTY_BUFFER;
     PBYTE pSessionKey = NULL;
+    PSTR pszClientPrincipalName = NULL;
+    gss_buffer_desc nameBuffer = {0};
+    gss_OID nameOid = {0};
 
     if (!SrvGssNegotiateIsComplete(hGss, hGssNegotiate))
     {
@@ -81,23 +85,53 @@ SrvGssGetSessionKey(
     srv_display_status("gss_inquire_context2", ntStatus, ulMinorStatus);
     BAIL_ON_SEC_ERROR(ntStatus);
 
-    assert(sessionKey.length > 0);
+    if (ppszClientPrincipalName)
+    {
+        ntStatus = gss_display_name(
+            &ulMinorStatus,
+            initiatorName,
+            &nameBuffer,
+            &nameOid);
+        BAIL_ON_SEC_ERROR(ntStatus);
 
-    ntStatus = SMBAllocateMemory(
-                    sessionKey.length * sizeof(BYTE),
-                    (PVOID*)&pSessionKey);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SMBAllocateMemory(
+            nameBuffer.length + 1,
+            OUT_PPVOID(&pszClientPrincipalName));
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(pSessionKey, sessionKey.value, sessionKey.length);
+        memcpy(pszClientPrincipalName, nameBuffer.value, nameBuffer.length);
+        pszClientPrincipalName[nameBuffer.length] = '\0';
+    }
 
-    *ppSessionKey = pSessionKey;
-    *pulSessionKeyLength = sessionKey.length;
+    if (ppSessionKey)
+    {
+        assert(sessionKey.length > 0);
+
+        ntStatus = SMBAllocateMemory(
+            sessionKey.length * sizeof(BYTE),
+            (PVOID*)&pSessionKey);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        memcpy(pSessionKey, sessionKey.value, sessionKey.length);
+    }
+
+    if (ppszClientPrincipalName)
+    {
+        *ppszClientPrincipalName = pszClientPrincipalName;
+    }
+
+    if (ppSessionKey)
+    {
+        *ppSessionKey = pSessionKey;
+        *pulSessionKeyLength = sessionKey.length;
+    }
 
 cleanup:
 
     gss_release_name(&ulMinorStatus, &initiatorName);
     gss_release_name(&ulMinorStatus, &acceptorName);
     gss_release_buffer(&ulMinorStatus, &sessionKey);
+    gss_release_buffer(&ulMinorStatus, &nameBuffer);
 
     return ntStatus;
 
@@ -111,6 +145,7 @@ error:
     *pulSessionKeyLength = 0;
 
     SMB_SAFE_FREE_MEMORY(pSessionKey);
+    SMB_SAFE_FREE_MEMORY(pszClientPrincipalName);
 
     goto cleanup;
 }
