@@ -163,29 +163,6 @@ SrvConnectionGetNextSequence(
 
             break;
 
-        case COM_SESSION_SETUP_ANDX:
-        case COM_TREE_CONNECT:
-        case COM_TREE_DISCONNECT:
-        case COM_TREE_CONNECT_ANDX:
-        case COM_NT_CREATE_ANDX:
-        case COM_READ:
-        case COM_READ_ANDX:
-        case COM_WRITE:
-        case COM_WRITE_ANDX:
-        case COM_TRANSACTION:
-        case COM_TRANSACTION2:
-        case COM_NT_TRANSACT:
-        case COM_NT_TRANSACT_SECONDARY:
-        case COM_NT_RENAME:
-        case COM_LOGOFF_ANDX:
-        case COM_CLOSE:
-
-            ulRequestSequence = pConnection->ulSequence++;
-
-            pConnection->ulSequence++; // Response
-
-            break;
-
         case COM_NT_CANCEL:
 
             ulRequestSequence = pConnection->ulSequence++;
@@ -194,27 +171,18 @@ SrvConnectionGetNextSequence(
 
         default:
 
-            SMB_LOG_ERROR("Srv encountered unrecognized message type [%u]", pSmbRequest->pSMBHeader->command);
+            ulRequestSequence = pConnection->ulSequence++;
 
-            ntStatus = STATUS_DATA_ERROR;
-            BAIL_ON_NT_STATUS(ntStatus);
+            pConnection->ulSequence++; // Response
 
             break;
     }
 
     *pulRequestSequence = ulRequestSequence;
 
-cleanup:
-
     SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
-
-error:
-
-    *pulRequestSequence = 0;
-
-    goto cleanup;
 }
 
 BOOLEAN
