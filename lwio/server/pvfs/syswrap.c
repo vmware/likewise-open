@@ -450,9 +450,10 @@ PvfsSysFstatFs(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-#if defined(HAVE_FSTATFS) && defined(_LWI_LINUX)
+#if defined(HAVE_FSTATFS) && defined(__LWI_LINUX__)
     {
         struct statfs sFsBuf;
+        int unixerr = 0;
 
         if (fstatfs(pCcb->fd, &sFsBuf) == -1)
         {
