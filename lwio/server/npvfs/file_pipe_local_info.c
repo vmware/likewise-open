@@ -127,14 +127,15 @@ NpfsQueryFilePipeLocalInfo(
     pPipeInfo->ReadDataAvailable = 0;
     pPipeInfo->WriteQuotaAvailable = 0;
 
-    NpfsReleaseFCB(pFCB);
-    NpfsReleasePipe(pPipe);
-    NpfsReleaseCCB(pCcb);
-
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pPipeInfo);
 
 cleanup:
-
+    if (pFCB) {
+        NpfsReleaseFCB(pFCB);
+    }
+    if (pPipe) {
+        NpfsReleasePipe(pPipe);
+    }
     if (pCcb) {
         NpfsReleaseCCB(pCcb);
     }
