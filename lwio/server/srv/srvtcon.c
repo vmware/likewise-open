@@ -157,7 +157,7 @@ SrvProcessTreeConnectAndX(
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
 
-    ntStatus = SrvShareFindShareByName(
+    ntStatus = SrvFindShareByName(
                     pConnection->pShareDbContext,
                     pwszSharename,
                     &pShareInfo);
