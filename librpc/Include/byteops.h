@@ -36,11 +36,11 @@
 
 #define GETUINT16(buf, off)                     \
     (((uint16)GETUINT8(buf, 0+off)) |           \
-     ((uint16)GETUINT8(buf, 1+off)))
+     ((uint16)GETUINT8(buf, 1+off) << 8))
 
 #define GETUINT32(buf, off)                     \
     (((uint32)GETUINT16(buf, 0+off)) |          \
-     ((uint32)GETUINT16(buf, 2+off)))
+     ((uint32)GETUINT16(buf, 2+off) << 16))
 
 #define SETUINT8(buf, off, v)   (buf[off] = (uint8)(v & 0xff))
 

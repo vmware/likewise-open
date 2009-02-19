@@ -46,157 +46,18 @@
  */
 #include "includes.h"
 
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-
-#define LISTEN_Q (5)
-#define MAX_SOCKET_STALETIME 30
-
-static
-void*
-LWNetSrvHandleConnectionThreadRoutine(
-    PVOID pData
-    )
-{
-    if (pData != NULL) {
-        pthread_detach(pthread_self());
-
-        // This routine is responsible for closing the descriptor
-        LWNetSrvHandleConnection((HANDLE)pData);
-    }
-
-    return 0;
-}
-
-static
-PVOID
-LWNetSrvListenerThreadRoutine(
-    PVOID pData
-    )
-{
-    DWORD dwError = 0;
-    int sockfd = *(int*)pData;
-    uid_t peerUID = 0;
-    gid_t peerGID = 0;
-    HANDLE hConnection = (HANDLE)NULL;
-    pthread_t threadId;
-    struct sockaddr_un cliaddr;
-    SOCKLEN_T len = 0;
-    int connfd = -1;
-    BOOLEAN bInvalidConnection = FALSE;
-
-    for(;;) {
-        bInvalidConnection = FALSE;
-        memset(&cliaddr, 0, sizeof(cliaddr));
-        len = sizeof(cliaddr);
-        connfd = accept(sockfd, (struct sockaddr*)&cliaddr, &len);
-
-        if (LWNetSrvShouldProcessExit())
-           goto cleanup;
-
-        if (connfd < 0) {
-            if (errno == EPROTO || errno == ECONNABORTED) {
-
-               continue;
-
-            } else if (errno == EINTR) {
-
-               if (LWNetSrvShouldProcessExit()) {
-
-                   goto cleanup;
-
-               } else {
-
-                 continue;
-
-               }
-
-            } else {
-
-               dwError = errno;
-               BAIL_ON_LWNET_ERROR(dwError);
-
-            }
-        }
-
-        if (!bInvalidConnection) {
-
-           dwError = LWNetSrvOpenConnection(
-                           connfd,
-                           peerUID,
-                           peerGID,
-                           &hConnection);
-           BAIL_ON_LWNET_ERROR(dwError);
-
-           connfd = -1;
-
-           do
-           {
-               dwError = pthread_create(&threadId, NULL,
-                                        LWNetSrvHandleConnectionThreadRoutine,
-                                        (PVOID)hConnection);
-               if ( dwError == ENOMEM || dwError == EAGAIN )
-               {
-                   LWNET_LOG_DEBUG(
-                       "LWNET listener out of resources at %s:%d, pthread_create returned %d",
-                       __FILE__,
-                       __LINE__,
-                       dwError);
-               }
-           } while ( dwError == ENOMEM || dwError == EAGAIN );
-           BAIL_ON_LWNET_ERROR(dwError);
-           hConnection = (HANDLE)NULL;
-           
-        }
-    }
-
-cleanup:
-
-    if (connfd >= 0) {
-        close(connfd);
-    }
-
-    if (hConnection != (HANDLE)NULL) {
-        LWNetSrvCloseConnection(hConnection);
-    }
-
-    if (sockfd != -1)
-    {
-        shutdown(sockfd, SHUT_RDWR);
-        close(sockfd);
-    }
-
-    LWNetFreeMemory(pData);
-
-    return NULL;
-
-error:
-
-    LWNET_LOG_INFO("LWNET listener stopped due to error [Code:%d]", dwError);
-
-    // Make sure to indicate to any signal handling that
-    // we are supposed to terminate since the listener
-    // is bailing out.
-
-    kill(getpid(),SIGTERM);
-
-    goto cleanup;
-}
+static LWMsgProtocol* gpProtocol = NULL;
+static LWMsgServer* gpServer = NULL;
 
 DWORD
 LWNetSrvStartListenThread(
-    pthread_t* pThreadId,
-    pthread_t** ppThreadId
+    void
     )
 {
-    DWORD dwError = 0;
-    PSTR pszCommPath = NULL;
-    int sockfd = -1;
-    pthread_t threadId;
-    BOOLEAN bDirExists = FALSE;
     PSTR pszCachePath = NULL;
-    int* pContext = NULL;
+    PSTR pszCommPath = NULL;
+    BOOLEAN bDirExists = FALSE;
+    DWORD dwError = 0;
 
     dwError = LWNetSrvGetCachePath(&pszCachePath);
     BAIL_ON_LWNET_ERROR(dwError);
@@ -204,7 +65,8 @@ LWNetSrvStartListenThread(
     dwError = LWNetCheckDirectoryExists(pszCachePath, &bDirExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    if (!bDirExists) {
+    if (!bDirExists)
+    {
         // Directory should be RWX for root and accessible to all
         // (so they can see the socket.
         mode_t mode = S_IRWXU | S_IRGRP| S_IXGRP | S_IROTH | S_IXOTH;
@@ -216,75 +78,77 @@ LWNetSrvStartListenThread(
                                         pszCachePath, LWNET_SERVER_FILENAME);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    unlink(pszCommPath);
+    /* Set up IPC protocol object */
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &gpProtocol));
+    BAIL_ON_LWNET_ERROR(dwError);
 
-    sockfd = socket(PF_UNIX, SOCK_STREAM, 0);
-    if (sockfd < 0)    {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(
+                                  gpProtocol,
+                                  LWNetIPCGetProtocolSpec()));
+    BAIL_ON_LWNET_ERROR(dwError);
 
-    struct sockaddr_un servaddr;
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sun_family = AF_UNIX;
-    strncpy(servaddr.sun_path, pszCommPath, sizeof(servaddr.sun_path) - 1);
-    
-    if (bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
+    /* Set up IPC server object */
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_new(gpProtocol, &gpServer));
+    BAIL_ON_LWNET_ERROR(dwError);
 
-    /*
-     * Allow anyone to write to the socket.
-     * We check the uids against the messages.
-     */
-    dwError = LWNetChangeOwnerAndPermissions(
-                           pszCommPath,
-                           0,
-                           0,
-                           S_IRWXU|S_IRWXG|S_IRWXO
-                           );
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_add_dispatch_spec(
+                                  gpServer,
+                                  LWNetSrvGetDispatchSpec()));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_endpoint(
+                                  gpServer,
+                                  LWMSG_CONNECTION_MODE_LOCAL,
+                                  pszCommPath,
+                                  0666));
     BAIL_ON_LWNET_ERROR(dwError);
     
-    if (listen(sockfd, LISTEN_Q) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    // Spin up acceptor thread, passing in socket
-    dwError = LWNetAllocateMemory(sizeof(*pContext), (PVOID*)&pContext);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    *pContext = sockfd;
-
-    dwError = pthread_create(&threadId, NULL,
-                             LWNetSrvListenerThreadRoutine,
-                             pContext);
-    BAIL_ON_LWNET_ERROR(dwError);
-    pContext = NULL;
-    sockfd = -1;
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_start(gpServer));
 
 error:
+
     LWNET_SAFE_FREE_STRING(pszCachePath);
     LWNET_SAFE_FREE_STRING(pszCommPath);
-    LWNET_SAFE_FREE_MEMORY(pContext);
-
-    if (sockfd != -1)
-    {
-        shutdown(sockfd, SHUT_RDWR);
-        close(sockfd);
-    }
 
     if (dwError)
     {
-        *ppThreadId = NULL;
-    }
-    else
-    {
-        *pThreadId = threadId;
-        *ppThreadId = pThreadId;
+        if (gpServer)
+        {
+            lwmsg_server_stop(gpServer);
+            lwmsg_server_delete(gpServer);
+            gpServer = NULL;
+        }
     }
 
     return dwError;
 }
 
+DWORD
+LWNetSrvStopListenThread(
+    void
+    )
+{
+    DWORD dwError = 0;
+
+    if (gpServer)
+    {
+        dwError = MAP_LWMSG_ERROR(lwmsg_server_stop(gpServer));
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+error:
+
+    if (gpServer)
+    {
+        lwmsg_server_delete(gpServer);
+        gpServer = NULL;
+    }
+
+    if (gpProtocol)
+    {
+        lwmsg_protocol_delete(gpProtocol);
+        gpProtocol = NULL;
+    }
+
+    return dwError;
+}

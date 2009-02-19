@@ -309,7 +309,7 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_OBJECT_NOT_ENABLED                              : 32895
     "The user/group is not enabled in the cell",
     // LSA_ERROR_NO_MORE_NSS_ARTEFACTS                           : 32896
-    "No more NSS Artefacts"
+    "No more NSS Artefacts",
     // LSA_ERROR_INVALID_NSS_MAP_NAME                            : 32897
     "An invalid name was specified for the NIS map",
     // LSA_ERROR_INVALID_NSS_KEY_NAME                            : 32898
@@ -549,4 +549,34 @@ error:
     *ppszErrorMsg = NULL;
 
     goto cleanup;
+}
+
+DWORD
+LsaTranslateLwMsgError(
+        LWMsgAssoc *pAssoc,
+        DWORD dwMsgError,
+        const char *file,
+        int line
+        )
+{
+    DWORD dwLsaError = (DWORD)-1;
+
+    switch (dwMsgError)
+    {
+        case LWMSG_STATUS_SUCCESS:
+            return LSA_ERROR_SUCCESS;
+        case LWMSG_STATUS_FILE_NOT_FOUND:
+        case LWMSG_STATUS_CONNECTION_REFUSED:
+            dwLsaError = ECONNREFUSED;
+            break;
+    }
+
+    LSA_LOG_DEBUG("Lwmsg error at %s:%d [lwmsg code: %d] [lwmsg string: %s] [lsass code: %d]",
+            file,
+            line,
+            LSA_SAFE_LOG_STRING(
+                lwmsg_assoc_get_error_message(pAssoc, dwMsgError)),
+            dwLsaError);
+    
+    return dwLsaError;
 }

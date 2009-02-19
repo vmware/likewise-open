@@ -107,6 +107,9 @@
 		}						\
 	} while(0);
 
+#define LSA_ERROR_IS_OK(x)         ((x) == LSA_ERROR_SUCCESS)
+
+		
 /* local private functions */
 
 DWORD  map_wbc_to_lsa_error(wbcErr);

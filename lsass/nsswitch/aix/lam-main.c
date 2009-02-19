@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -102,7 +102,7 @@ cleanup:
     }
 
 error:
-    
+
     goto cleanup;
 }
 
@@ -116,7 +116,6 @@ LsaNssGetEntry(
         )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     int iIndex = 0;
 
     LSA_LOG_PAM_DEBUG(
@@ -132,8 +131,11 @@ LsaNssGetEntry(
                 ppszAttributes[iIndex]);
     }
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (!strcmp(pszKey, "ALL"))
     {
@@ -210,11 +212,6 @@ LsaNssGetEntry(
 
 cleanup:
 
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
-
     LSA_LOG_PAM_DEBUG("Getentry finishing with code %d", dwError);
     if (dwError != LSA_ERROR_SUCCESS)
     {
@@ -225,6 +222,11 @@ cleanup:
         return 0;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }

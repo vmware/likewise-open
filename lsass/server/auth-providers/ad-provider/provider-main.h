@@ -89,6 +89,13 @@ AD_AuthenticateUser(
     );
 
 DWORD
+AD_AuthenticateUserEx(
+    HANDLE hProvider,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUSerInfo
+    );
+
+DWORD
 AD_ValidateUser(
     HANDLE hProvider,
     PCSTR  pszUserName,
@@ -128,8 +135,8 @@ AD_FindUserObjectById(
 DWORD
 AD_BeginEnumUsers(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -145,7 +152,34 @@ AD_EnumUsers(
 VOID
 AD_EndEnumUsers(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
+    );
+
+DWORD
+AD_EnumUsersFromCache(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    );
+
+DWORD
+AD_RemoveUserByNameFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN PCSTR  pszLoginId
+    );
+
+DWORD
+AD_RemoveUserByIdFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN uid_t  uid
     );
 
 DWORD
@@ -197,8 +231,9 @@ AD_GetUserGroupMembership(
 DWORD
 AD_BeginEnumGroups(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -214,7 +249,34 @@ AD_EnumGroups(
 VOID
 AD_EndEnumGroups(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
+    );
+
+DWORD
+AD_EnumGroupsFromCache(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    );
+
+DWORD
+AD_RemoveGroupByNameFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN PCSTR  pszGroupName
+    );
+
+DWORD
+AD_RemoveGroupByIdFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN gid_t  gid
     );
 
 DWORD
@@ -258,6 +320,13 @@ AD_DeleteGroup(
     );
 
 DWORD
+AD_EmptyCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID
+    );
+
+DWORD
 AD_OpenSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
@@ -292,7 +361,6 @@ AD_FindNSSArtefactByKey(
 DWORD
 AD_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PCSTR   pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
@@ -311,7 +379,7 @@ AD_EnumNSSArtefacts(
 VOID
 AD_EndEnumNSSArtefacts(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     );
 
 DWORD
@@ -352,6 +420,18 @@ AD_FreeStatus(
 DWORD
 AD_RefreshConfiguration(
     HANDLE hProvider
+    );
+
+DWORD
+AD_ProviderIoControl(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
     );
 
 DWORD

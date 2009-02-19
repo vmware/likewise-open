@@ -18,5 +18,5 @@ libwbclient_la_SOURCES = \
 libwbclient_la_CPPFLAGS = -I@srcdir@
 libwbclient_la_LIBADD = @top_builddir@/client/liblsaclient.la \
 	@NETLOGON_LIBS@
-libwbclient_la_LDFLAGS = -module -version-info 2:0:0 -export-dynamic \
+libwbclient_la_LDFLAGS = -module -version-info 0:0:0 -export-dynamic \
 	@NETLOGON_LDFLAGS@

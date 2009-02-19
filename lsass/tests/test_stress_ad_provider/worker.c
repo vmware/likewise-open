@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Test Program for stress testing AD Provider
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -60,56 +60,56 @@ LADSFindUserByName(
     HANDLE hProvider = (HANDLE)NULL;
 
     while (!LADSProcessShouldStop())
-    {  
+    {
         DWORD iName = 0;
-        
+
         for (iName = 0;
              (!LADSProcessShouldStop() &&
               (iName < gLADSStressData[LADS_FIND_USER_BY_NAME].dwNumItems));
              iName++)
         {
             pszName = gLADSStressData[LADS_FIND_USER_BY_NAME].data.ppszNames[iName];
-            
+
             dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                           geteuid(),
                                           getegid(),
                                           &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
-        
+
             dwError = gpAuthProvider->pFnTable->pfnLookupUserByName(
                                           hProvider,
                                           pszName,
                                           dwInfoLevel,
                                           &pUserInfo);
-            BAIL_ON_LSA_ERROR(dwError); 
-        
+            BAIL_ON_LSA_ERROR(dwError);
+
             gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
             hProvider = (HANDLE)NULL;
-        
+
             LsaFreeUserInfo(dwInfoLevel, pUserInfo);
             pUserInfo = NULL;
-        
+
             if (gLADSStressData[LADS_FIND_USER_BY_NAME].dwSleepMSecs)
             {
                 sleep(gLADSStressData[LADS_FIND_USER_BY_NAME].dwSleepMSecs);
             }
         }
     }
-    
+
 cleanup:
 
     if (pUserInfo)
     {
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
-    
+
     if (hProvider != (HANDLE)NULL)
     {
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
     }
-    
+
     return pResult;
-    
+
 error:
 
     LSA_LOG_ERROR("Failed to find user by name [%s] [error code: %d]",
@@ -131,58 +131,58 @@ LADSFindUserById(
     DWORD dwInfoLevel = gLADSStressData[LADS_FIND_USER_BY_ID].dwInfoLevel;
     PVOID pUserInfo = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
     while (!LADSProcessShouldStop())
     {
         DWORD iUid = 0;
-        
+
         for (iUid = 0;
              (!LADSProcessShouldStop() &&
               (iUid < gLADSStressData[LADS_FIND_USER_BY_ID].dwNumItems));
              iUid++)
         {
             userId = gLADSStressData[LADS_FIND_USER_BY_ID].data.pUidArray[iUid];
-            
+
             dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                           geteuid(),
                                           getegid(),
                                           &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
-        
+
             dwError = gpAuthProvider->pFnTable->pfnLookupUserById(
                                           hProvider,
                                           userId,
                                           dwInfoLevel,
                                           &pUserInfo);
-            BAIL_ON_LSA_ERROR(dwError); 
-        
+            BAIL_ON_LSA_ERROR(dwError);
+
             gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
             hProvider = (HANDLE)NULL;
-        
+
             LsaFreeUserInfo(dwInfoLevel, pUserInfo);
             pUserInfo = NULL;
-        
+
             if (gLADSStressData[LADS_FIND_USER_BY_ID].dwSleepMSecs)
             {
                 sleep(gLADSStressData[LADS_FIND_USER_BY_ID].dwSleepMSecs);
             }
         }
     }
-    
+
 cleanup:
 
     if (pUserInfo)
     {
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
-    
+
     if (hProvider != (HANDLE)NULL)
     {
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
     }
-    
+
     return pResult;
-    
+
 error:
 
     LSA_LOG_ERROR("Failed to find user by id [%ld] [error code: %d]", (long)userId, dwError);
@@ -205,8 +205,7 @@ LADSEnumUsers(
     PVOID* ppUserInfos = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     HANDLE hResume = (HANDLE)NULL;
-    PSTR   pszGUID = NULL;
-    
+
     while (!LADSProcessShouldStop())
     {
         dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
@@ -214,18 +213,14 @@ LADSEnumUsers(
                                       getegid(),
                                       &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
-        dwError = LADSGetGUID(
-                        &pszGUID);
-        BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = gpAuthProvider->pFnTable->pfnBeginEnumUsers(
                               hProvider,
-                              pszGUID,
                               dwInfoLevel,
+                              0,
                               &hResume);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         do
         {
             if (dwNumUsersFound)
@@ -237,7 +232,7 @@ LADSEnumUsers(
                 ppUserInfos = NULL;
                 dwNumUsersFound = 0;
             }
-            
+
             dwError = gpAuthProvider->pFnTable->pfnEnumUsers(
                             hProvider,
                             hResume,
@@ -245,25 +240,23 @@ LADSEnumUsers(
                             &dwNumUsersFound,
                             &ppUserInfos);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
         } while (dwNumUsersFound && !LADSProcessShouldStop());
-        
+
         gpAuthProvider->pFnTable->pfnEndEnumUsers(
                         hProvider,
-                        pszGUID);
+                        hResume);
         hResume = (HANDLE)NULL;
-        
+
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
         hProvider = (HANDLE)NULL;
-        
-        LSA_SAFE_FREE_STRING(pszGUID);
-        
+
         if (gLADSStressData[LADS_ENUM_USERS].dwSleepMSecs)
         {
             sleep(gLADSStressData[LADS_ENUM_USERS].dwSleepMSecs);
         }
     }
-    
+
 cleanup:
 
     if (dwNumUsersFound)
@@ -280,22 +273,20 @@ cleanup:
         {
             gpAuthProvider->pFnTable->pfnEndEnumUsers(
                             hProvider,
-                            pszGUID);
+                            hResume);
         }
-        
+
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
     }
-    
-    LSA_SAFE_FREE_STRING(pszGUID);
-    
+
     return pResult;
-    
+
 error:
 
     LSA_LOG_ERROR("Failed to enumerate users [error code: %d]", dwError);
 
     LADSStopProcess();
-    
+
     goto cleanup;
 }
 
@@ -310,59 +301,59 @@ LADSFindGroupByName(
     DWORD dwInfoLevel = gLADSStressData[LADS_FIND_GROUP_BY_NAME].dwInfoLevel;
     PVOID pGroupInfo = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
     while (!LADSProcessShouldStop())
     {
         DWORD iName = 0;
-        
+
         for (iName = 0;
              (!LADSProcessShouldStop() &&
               (iName < gLADSStressData[LADS_FIND_GROUP_BY_NAME].dwNumItems));
              iName++)
         {
             pszName = gLADSStressData[LADS_FIND_GROUP_BY_NAME].data.ppszNames[iName];
-            
+
             dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                           geteuid(),
                                           getegid(),
                                           &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
-        
+
             dwError = gpAuthProvider->pFnTable->pfnLookupGroupByName(
                                           hProvider,
                                           pszName,
                                           0,
                                           dwInfoLevel,
                                           &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError); 
-        
+            BAIL_ON_LSA_ERROR(dwError);
+
             gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
             hProvider = (HANDLE)NULL;
-        
+
             LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
             pGroupInfo = NULL;
-        
+
             if (gLADSStressData[LADS_FIND_GROUP_BY_NAME].dwSleepMSecs)
             {
                 sleep(gLADSStressData[LADS_FIND_GROUP_BY_NAME].dwSleepMSecs);
             }
         }
     }
-    
+
 cleanup:
 
     if (pGroupInfo)
     {
         LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
     }
-    
+
     if (hProvider != (HANDLE)NULL)
     {
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
     }
-    
+
     return pResult;
-    
+
 error:
 
     LSA_LOG_ERROR("Failed to find group by name [%s] [error code: %d]",
@@ -384,59 +375,59 @@ LADSFindGroupById(
     DWORD dwInfoLevel = gLADSStressData[LADS_FIND_GROUP_BY_ID].dwInfoLevel;
     PVOID pGroupInfo = NULL;
     HANDLE hProvider = (HANDLE)NULL;
-    
+
     while (!LADSProcessShouldStop())
     {
         DWORD iGid = 0;
-        
+
         for (iGid = 0;
              (!LADSProcessShouldStop() &&
               (iGid < gLADSStressData[LADS_FIND_GROUP_BY_ID].dwNumItems));
              iGid++)
         {
             groupId = gLADSStressData[LADS_FIND_GROUP_BY_ID].data.pGidArray[iGid];
-            
+
             dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                           geteuid(),
                                           getegid(),
                                           &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
-        
+
             dwError = gpAuthProvider->pFnTable->pfnLookupGroupById(
                                           hProvider,
                                           groupId,
                                           0,
                                           dwInfoLevel,
                                           &pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError); 
-        
+            BAIL_ON_LSA_ERROR(dwError);
+
             gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
             hProvider = (HANDLE)NULL;
-        
+
             LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
             pGroupInfo = NULL;
-        
+
             if (gLADSStressData[LADS_FIND_GROUP_BY_ID].dwSleepMSecs)
             {
                 sleep(gLADSStressData[LADS_FIND_GROUP_BY_ID].dwSleepMSecs);
             }
         }
     }
-    
+
 cleanup:
 
     if (pGroupInfo)
     {
         LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
     }
-    
+
     if (hProvider != (HANDLE)NULL)
     {
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
     }
-    
+
     return pResult;
-    
+
 error:
 
     LSA_LOG_ERROR("Failed to find group by id [%ld] [error code: %d]", (long)groupId, dwError);
@@ -459,8 +450,7 @@ LADSEnumGroups(
     PVOID* ppGroupInfos = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     HANDLE hResume = (HANDLE)NULL;
-    PSTR   pszGUID = NULL;
-    
+
     while (!LADSProcessShouldStop())
     {
         dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
@@ -468,18 +458,15 @@ LADSEnumGroups(
                                       getegid(),
                                       &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
-        
-        dwError = LADSGetGUID(
-                        &pszGUID);
-        BAIL_ON_LSA_ERROR(dwError);
-        
+
         dwError = gpAuthProvider->pFnTable->pfnBeginEnumGroups(
                               hProvider,
-                              pszGUID,
                               dwInfoLevel,
+                              FALSE,
+                              0,
                               &hResume);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         do
         {
             if (dwNumGroupsFound)
@@ -491,7 +478,7 @@ LADSEnumGroups(
                 ppGroupInfos = NULL;
                 dwNumGroupsFound = 0;
             }
-            
+
             dwError = gpAuthProvider->pFnTable->pfnEnumGroups(
                             hProvider,
                             hResume,
@@ -499,26 +486,24 @@ LADSEnumGroups(
                             &dwNumGroupsFound,
                             &ppGroupInfos);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
         } while (dwNumGroupsFound && !LADSProcessShouldStop());
-        
+
         gpAuthProvider->pFnTable->pfnEndEnumGroups(
                         hProvider,
-                        pszGUID);
-        
+                        hResume);
+
         hResume = (HANDLE)NULL;
-        
+
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
         hProvider = (HANDLE)NULL;
-        
-        LSA_SAFE_FREE_STRING(pszGUID);
-        
+
         if (gLADSStressData[LADS_ENUM_GROUPS].dwSleepMSecs)
         {
             sleep(gLADSStressData[LADS_ENUM_GROUPS].dwSleepMSecs);
         }
     }
-    
+
 cleanup:
 
     if (dwNumGroupsFound)
@@ -528,23 +513,21 @@ cleanup:
                         ppGroupInfos,
                         dwNumGroupsFound);
     }
-    
+
     if (hProvider != (HANDLE)NULL)
     {
         if (hResume != (HANDLE)NULL)
         {
             gpAuthProvider->pFnTable->pfnEndEnumGroups(
                             hProvider,
-                            pszGUID);
+                            hResume);
         }
-        
+
         gpAuthProvider->pFnTable->pfnCloseHandle(hProvider);
     }
-    
-    LSA_SAFE_FREE_STRING(pszGUID);
-    
+
     return pResult;
-    
+
 error:
 
     LSA_LOG_ERROR("Failed to enumerate groups [error code: %d]", dwError);
@@ -563,26 +546,26 @@ LADSGetGUID(
     PSTR  pszGUID = NULL;
     uuid_t uuid = {0};
     CHAR  szUUID[37] = "";
-    
+
     uuid_generate(uuid);
-    
+
     uuid_unparse(uuid, szUUID);
-    
+
     dwError = LsaAllocateString(
                        szUUID,
                        &pszGUID);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppszGUID = pszGUID;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppszGUID = NULL;
-    
+
     LSA_SAFE_FREE_STRING(pszGUID);
 
     goto cleanup;

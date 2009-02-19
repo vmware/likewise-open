@@ -132,7 +132,7 @@ LsaAppendAndFreePtrs(
         *pppDestPtrArray = ppDestPtrArray;
 
         // Append the new data and zero it out from the src array
-        memcpy(ppDestPtrArray + dwCurrentCount,
+        memcpy(ppDestPtrArray + dwCurrentCount, 
                 *pppAppendPtrArray,
                 dwAppendSize);
         *pdwDestCount = dwNewCount;
@@ -147,7 +147,7 @@ cleanup:
 error:
     // Leave pppDestPtrArray, pdwDestCount, pdwAppendCount, and
     // pppAppendPtrArray as is, so that the passed in data is not lost.
-
+    
     goto cleanup;
 }
 

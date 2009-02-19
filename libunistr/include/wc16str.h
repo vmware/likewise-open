@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -43,6 +43,13 @@ size_t _wc16slen(const wchar16_t *str);
 #define wc16slen(str)  wcslen(str)
 #endif
 
+size_t _wc16snlen(const wchar16_t *str, size_t n);
+#ifdef WCHAR16_IS_WCHAR
+#define wc16snlen(str, n)  wcsnlen(str, n)
+#else
+#define wc16snlen(str, n)  _wc16snlen(str, n)
+#endif
+
 wchar16_t* _wc16scpy(wchar16_t *dst, const wchar16_t *src);
 #ifdef __GNUC__
 #define wc16scpy(dst, src)  _wc16scpy(dst, src);
@@ -68,11 +75,27 @@ wchar16_t* _wc16sncpy(wchar16_t *dest, const wchar16_t *src, size_t n);
 #define wc16sncpy(dest, src, n)  _wc16sncpy(dest, src, n)
 #endif
 
+wchar16_t* _wc16pncpy(wchar16_t *dest, const wchar16_t *src, size_t n);
+#ifdef WCHAR16_IS_WCHAR
+#define wc16pncpy(dest, src, n)  wcpncpy(dest, src, n)
+#else
+#define wc16pncpy(dest, src, n)  _wc16pncpy(dest, src, n)
+#endif
+
 int wc16scasecmp(const wchar16_t *s1, const wchar16_t *s2);
+int wc16scmp(const wchar16_t *s1, const wchar16_t *s2);
 
 #ifndef HAVE_MBSTRLEN
 #define mbstrlen(x) mbstowcs(NULL, (x), 0)
 #endif
+
+/*Optimistically try to wc16sncpy()
+ *
+ * Returns the length of dest needed for a successful copy including
+ * the NUL character.  If the copy was complete, the value will be
+ * <= wc16slen(src) + 1
+ */
+size_t wc16oncpy(wchar16_t *dest, const wchar16_t *src, size_t n);
 
 /*Convert a wchar_t string to a wchar16_t string and return the result.
  *

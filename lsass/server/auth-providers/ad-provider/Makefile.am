@@ -31,7 +31,8 @@ liblsass_auth_provider_ad_la_SOURCES = \
        batch_build.c             \
        batch_gather.c            \
        batch_marshal.c           \
-       batch_enum.c
+       batch_enum.c              \
+       unprov.c
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
@@ -50,6 +51,7 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/server/db/liblsadb.la \
 	@top_builddir@/server/sqlite/liblsasqlite.la \
 	@top_builddir@/ipc/liblsaipc.la \
+	@top_builddir@/provider/ad-provider/ipc/liblsaadipc.la \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@NETLOGON_LIBS@ \

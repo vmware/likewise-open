@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Metrics (Server)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -58,38 +58,38 @@ LsaSrvGetMetrics(
     PVOID pMetricPack = NULL;
 
     BAIL_ON_INVALID_POINTER(ppMetricPack);
-    
+
     switch(dwInfoLevel)
     {
         case 0:
-            
+
             dwError = LsaSrvGetMetrics_0(
                             &pMetricPack);
             break;
-            
+
         case 1:
-            
+
             dwError = LsaSrvGetMetrics_1(
                             &pMetricPack);
             break;
-            
+
         default:
-            
+
             dwError = LSA_ERROR_INVALID_METRIC_INFO_LEVEL;
             break;
     }
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppMetricPack = pMetricPack;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppMetricPack = NULL;
-    
+
     LSA_SAFE_FREE_MEMORY(pMetricPack);
 
     goto cleanup;
@@ -110,7 +110,7 @@ LsaSrvGetMetrics_0(
                   (PVOID*)&pMetricPack);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pMetricPack->failedAuthentications = 
+    pMetricPack->failedAuthentications =
                  gPerfCounters[LsaMetricFailedAuthentications] ;
     pMetricPack->failedUserLookupsByName =
                  gPerfCounters[LsaMetricFailedUserLookupsByName];
@@ -128,21 +128,21 @@ LsaSrvGetMetrics_0(
                  gPerfCounters[LsaMetricFailedChangePassword];
     pMetricPack->unauthorizedAccesses =
                  gPerfCounters[LsaMetricUnauthorizedAccesses];
-    
+
     *ppMetricPack = pMetricPack;
-    
+
 cleanup:
 
     pthread_rwlock_unlock(&gPerfCounters_rwlock);
 
     return dwError;
-    
+
 error:
 
     *ppMetricPack = NULL;
-    
+
     LSA_SAFE_FREE_MEMORY(pMetricPack);
-    
+
     goto cleanup;
 }
 
@@ -197,19 +197,19 @@ LsaSrvGetMetrics_1(
                  gPerfCounters[LsaMetricFailedChangePassword];
     pMetricPack->unauthorizedAccesses =
                  gPerfCounters[LsaMetricUnauthorizedAccesses];
-    
+
     *ppMetricPack = pMetricPack;
-    
+
 cleanup:
 
     pthread_rwlock_unlock(&gPerfCounters_rwlock);
 
     return dwError;
-    
+
 error:
 
     *ppMetricPack = NULL;
-    
+
     LSA_SAFE_FREE_MEMORY(pMetricPack);
 
     goto cleanup;
@@ -221,9 +221,32 @@ LsaSrvIncrementMetricValue(
     )
 {
     pthread_rwlock_wrlock(&gPerfCounters_rwlock);
-    
+
     gPerfCounters[metricType]++;
-    
+
     pthread_rwlock_unlock(&gPerfCounters_rwlock);
 }
 
+VOID
+LsaSrvFreeIpcMetriPack(
+    PLSA_METRIC_PACK pMetricPack
+    )
+{
+    if (pMetricPack)
+    {
+        switch (pMetricPack->dwInfoLevel)
+        {
+            case 0:
+                LSA_SAFE_FREE_MEMORY(pMetricPack->pMetricPack.pMetricPack0);
+                break;
+            case 1:
+                LSA_SAFE_FREE_MEMORY(pMetricPack->pMetricPack.pMetricPack1);
+                break;
+            default:
+                {
+                    LSA_LOG_ERROR("Unsupported Metric Pack Info Level [%d]", pMetricPack->dwInfoLevel);
+                }
+        }
+        LsaFreeMemory(pMetricPack);
+    }
+}

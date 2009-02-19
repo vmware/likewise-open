@@ -57,11 +57,13 @@
 #include <eventlog.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>
+#include <lwrdr/lwrdr.h>
 
 #include "lsautils.h"
 #include "lsaunistr.h"
 #include "lsaipc.h"
 #include "lsaprovider.h"
+#include "lsaadprovider.h"
 
 #include "lsasrvutils.h"
 #include "lsakrb5.h"
@@ -83,6 +85,7 @@
 #include "adldap.h"
 #include "adldap_p.h"
 #include "batch.h"
+#include "unprov.h"
 #include "ad_marshal_group.h"
 #include "ad_marshal_nss_artefact.h"
 #include "ad_marshal_nss_artefact_p.h"

@@ -55,6 +55,8 @@
 #include "adprovider.h"
 #include "lsadm_p.h"
 
+#define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
+
 ///
 /// LSASS offline state.
 ///
@@ -534,5 +536,375 @@ LsaDmFreeEnumDomainInfoArray(
         }
         LsaFreeMemory(ppDomainInfo);
     }
+}
+
+DWORD
+LsaDmLdapOpenDc(
+    IN PCSTR pszDnsDomainName,
+    OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    )
+{
+    return LsaDmpLdapOpen(
+            gLsaDmState,
+            pszDnsDomainName,
+            FALSE,
+            ppConn);
+}
+
+DWORD
+LsaDmLdapOpenGc(
+    IN PCSTR pszDnsDomainName,
+    OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    )
+{
+    return LsaDmpLdapOpen(
+            gLsaDmState,
+            pszDnsDomainName,
+            TRUE,
+            ppConn);
+}
+
+DWORD
+LsaDmLdapDirectorySearch(
+    IN PLSA_DM_LDAP_CONNECTION pConn,
+    IN PCSTR pszObjectDN,
+    IN int scope,
+    IN PCSTR pszQuery,
+    IN PSTR* ppszAttributeList,
+    OUT HANDLE* phDirectory,
+    OUT LDAPMessage** ppMessage
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hDirectory = NULL;
+    DWORD dwTry = 0;
+
+    while (TRUE)
+    {
+        hDirectory = LsaDmpGetLdapHandle(pConn);
+        dwError = LsaLdapDirectorySearch(
+                    hDirectory,
+                    pszObjectDN,
+                    scope,
+                    pszQuery,
+                    ppszAttributeList,
+                    ppMessage);
+        if (LsaDmpLdapIsRetryError(dwError) && dwTry < 3)
+        {
+            LSA_LOG_ERROR("Error code %d occurred during attempt %d of a ldap search. Retrying.", dwError, dwTry);
+            dwError = LsaDmpLdapReconnect(
+                    gLsaDmState,
+                    pConn);
+            BAIL_ON_LSA_ERROR(dwError);
+            dwTry++;
+        }
+        else if(dwError)
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    *phDirectory = hDirectory;
+
+cleanup:
+
+    return dwError;
+
+error:
+    
+    *phDirectory = NULL;
+    goto cleanup;
+}
+
+DWORD
+LsaDmLdapDirectoryExtendedDNSearch(
+    IN PLSA_DM_LDAP_CONNECTION pConn,
+    IN PCSTR pszObjectDN,
+    IN PCSTR pszQuery,
+    IN PSTR* ppszAttributeList,
+    IN int scope,
+    OUT HANDLE* phDirectory,
+    OUT LDAPMessage** ppMessage
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hDirectory = NULL;
+    DWORD dwTry = 0;
+
+    while (TRUE)
+    {
+        hDirectory = LsaDmpGetLdapHandle(pConn);
+        dwError = LsaLdapDirectoryExtendedDNSearch(
+                        hDirectory,
+                        pszObjectDN,
+                        pszQuery,
+                        ppszAttributeList,
+                        scope,
+                        ppMessage);
+        if (LsaDmpLdapIsRetryError(dwError) && dwTry < 3)
+        {
+            LSA_LOG_ERROR("Error code %d occurred during attempt %d of a ldap search. Retrying.", dwError, dwTry);
+            dwError = LsaDmpLdapReconnect(
+                            gLsaDmState,
+                            pConn);
+            BAIL_ON_LSA_ERROR(dwError);
+            dwTry++;
+        }
+        else if(dwError)
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    *phDirectory = hDirectory;
+
+cleanup:
+
+    return dwError;
+
+error:
+    
+    *phDirectory = NULL;
+    goto cleanup;
+}
+
+DWORD
+LsaDmLdapDirectoryOnePagedSearch(
+    IN PLSA_DM_LDAP_CONNECTION pConn,
+    IN PCSTR pszObjectDN,
+    IN PCSTR pszQuery,
+    IN PSTR* ppszAttributeList,
+    IN DWORD dwPageSize,
+    IN OUT PLSA_SEARCH_COOKIE pCookie,
+    IN int scope,
+    OUT HANDLE* phDirectory,
+    OUT LDAPMessage** ppMessage
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hDirectory = NULL;
+    DWORD dwTry = 0;
+
+    while (TRUE)
+    {
+        hDirectory = LsaDmpGetLdapHandle(pConn);
+        dwError = LsaLdapDirectoryOnePagedSearch(
+                        hDirectory,
+                        pszObjectDN,
+                        pszQuery,
+                        ppszAttributeList,
+                        dwPageSize,
+                        pCookie,
+                        scope,
+                        ppMessage);
+        if (LsaDmpLdapIsRetryError(dwError) && dwTry < 3)
+        {
+            // When pCookie->pfnFree is null, the cookie has not been used yet,
+            // which means the cookie points to the first item in the search.
+            // If it is non-null, the cookie points somewhere in the middle of
+            // a ldap search, and the cookie value most likely will not be
+            // valid in a new ldap connection. It is better to fail in that
+            // case.
+            if (pCookie->pfnFree != NULL)
+            {
+                LSA_LOG_ERROR("Error code %d occurred during attempt %d of a ldap search. The search cannot be retried, because a cookie was already received from the connection.", dwError, dwTry);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            else
+            {
+                LSA_LOG_ERROR("Error code %d occurred during attempt %d of a ldap search. Retrying.", dwError, dwTry);
+                dwError = LsaDmpLdapReconnect(
+                            gLsaDmState,
+                            pConn);
+                BAIL_ON_LSA_ERROR(dwError);
+                dwTry++;
+            }
+        }
+        else if(dwError)
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    *phDirectory = hDirectory;
+
+cleanup:
+
+    return dwError;
+
+error:
+    
+    *phDirectory = NULL;
+    goto cleanup;
+}
+
+VOID
+LsaDmLdapClose(
+    IN PLSA_DM_LDAP_CONNECTION pConn
+    )
+{
+    return LsaDmpLdapClose(
+                gLsaDmState,
+                pConn);
+}
+
+DWORD
+LsaDmConnectDomain(
+    IN PCSTR pszDnsDomainName,
+    IN LSA_DM_CONNECT_DOMAIN_FLAGS dwConnectFlags,
+    IN PLWNET_DC_INFO pDcInfo,
+    IN PFLSA_DM_CONNECT_CALLBACK pfConnectCallback,
+    IN OPTIONAL PVOID pContext
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDnsForestName = NULL;
+    PCSTR pszDnsDomainOrForestName = pszDnsDomainName;
+    PLWNET_DC_INFO pLocalDcInfo = NULL;
+    PLWNET_DC_INFO pActualDcInfo = pDcInfo;
+    DWORD dwGetDcNameFlags = 0;
+    BOOLEAN bIsNetworkError = FALSE;
+    BOOLEAN bUseGc = IsSetFlag(dwConnectFlags, LSA_DM_CONNECT_DOMAIN_FLAG_GC);
+    BOOLEAN bUseDcInfo = IsSetFlag(dwConnectFlags, LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO);
+
+    if (bUseGc)
+    {
+        dwError = LsaDmGetForestName(pszDnsDomainName,
+                                         &pszDnsForestName);
+        BAIL_ON_LSA_ERROR(dwError);
+        if (!pszDnsForestName)
+        {
+            // This is the case where there is an external trust such
+            // that we do not have forest root information.
+            // So let's do what we can.
+
+            // ISSUE-2008/09/22-dalmeida -- It is likely never correct to
+            // access the GC for an external trust.  We should check the
+            // trust attributes here and ASSERT some invariants.
+            // For now, however, we will log and try our best to comply
+            // with the caller.  This should help identify whether
+            // there are any mis-uses.
+            LSA_LOG_WARNING("Trying to access forest root for probable external trust (%s).",
+                            pszDnsDomainName);
+            dwError = LsaDmpQueryForestNameFromNetlogon(
+                        pszDnsDomainName,
+                        &pszDnsForestName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        pszDnsDomainOrForestName = pszDnsForestName;
+        dwGetDcNameFlags |= DS_GC_SERVER_REQUIRED;
+    }
+
+    if (LsaDmIsDomainOffline(pszDnsDomainOrForestName))
+    {
+        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (IsSetFlag(dwConnectFlags, LSA_DM_CONNECT_DOMAIN_FLAG_AUTH))
+    {
+        dwError = AD_MachineCredentialsCacheInitialize();
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (bUseDcInfo && !pActualDcInfo)
+    {
+        dwError = LWNetGetDCName(NULL,
+                                 pszDnsDomainOrForestName,
+                                 NULL,
+                                 dwGetDcNameFlags,
+                                 &pLocalDcInfo);
+        bIsNetworkError = LsaDmpIsNetworkError(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
+        pActualDcInfo = pLocalDcInfo;
+    }
+
+    dwError = pfConnectCallback(pszDnsDomainOrForestName,
+                                pActualDcInfo,
+                                pContext,
+                                &bIsNetworkError);
+    if (!dwError)
+    {
+        goto cleanup;
+    }
+    if (!bIsNetworkError)
+    {
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (!bUseDcInfo)
+    {
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    LWNET_SAFE_FREE_DC_INFO(pLocalDcInfo);
+    pActualDcInfo = NULL;
+    dwError = LWNetGetDCName(NULL,
+                             pszDnsDomainOrForestName,
+                             NULL,
+                             dwGetDcNameFlags | DS_FORCE_REDISCOVERY,
+                             &pLocalDcInfo);
+    bIsNetworkError = LsaDmpIsNetworkError(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
+    pActualDcInfo = pLocalDcInfo;
+
+    dwError = pfConnectCallback(pszDnsDomainOrForestName,
+                                pActualDcInfo,
+                                pContext,
+                                &bIsNetworkError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LWNET_SAFE_FREE_DC_INFO(pLocalDcInfo);
+    LSA_SAFE_FREE_STRING(pszDnsForestName);
+    return dwError;
+
+error:
+    if (bIsNetworkError)
+    {
+        DWORD dwLocalError = LsaDmTransitionOffline(pszDnsDomainOrForestName);
+        if (dwLocalError)
+        {
+            LSA_LOG_DEBUG("Error %d transitioning %s offline",
+                          dwLocalError, pszDnsDomainOrForestName);
+        }
+        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+    }
+    goto cleanup;
+}
+
+DWORD
+LsaDmGetForestName(
+    IN PCSTR pszDomainName,
+    OUT PSTR* ppszDnsForestName
+    )
+{
+    return LsaDmQueryDomainInfo(pszDomainName,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                ppszDnsForestName,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL);
 }
 

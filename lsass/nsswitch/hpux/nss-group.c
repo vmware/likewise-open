@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-group.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS Group Information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -54,6 +54,7 @@ typedef struct
 {
     nss_backend_t base;
     LSA_ENUMGROUPS_STATE enumGroupsState;
+    HANDLE hLsaConnectionGroup;
 } LSA_NSS_GROUP_BACKEND, *PLSA_NSS_GROUP_BACKEND;
 
 typedef NSS_STATUS (*NSS_ENTRYPOINT)(nss_backend_t*, void*);
@@ -66,9 +67,11 @@ LsaNssHpuxGroupDestructor(
 {
     PLSA_NSS_GROUP_BACKEND  pLsaBackend = (PLSA_NSS_GROUP_BACKEND) pBackend;
     PLSA_ENUMGROUPS_STATE   pEnumGroupsState = &pLsaBackend->enumGroupsState;
-    int                     ret = NSS_STATUS_SUCCESS;   
+    int                     ret = NSS_STATUS_SUCCESS;
 
-    LsaNssClearEnumGroupsState(pEnumGroupsState);
+    LsaNssClearEnumGroupsState(
+        &pLsaBackend->hLsaConnectionGroup,
+        pEnumGroupsState);
     LsaFreeMemory(pBackend);
 
     return ret;
@@ -84,7 +87,8 @@ LsaNssHpuxGroupSetgrent(
     PLSA_NSS_GROUP_BACKEND    pLsaBackend = (PLSA_NSS_GROUP_BACKEND) pBackend;
     PLSA_ENUMGROUPS_STATE     pEnumGroupsState = &pLsaBackend->enumGroupsState;
 
-    return LsaNssCommonGroupSetgrent(pEnumGroupsState);
+    return LsaNssCommonGroupSetgrent(&pLsaBackend->hLsaConnectionGroup,
+                                     pEnumGroupsState);
 }
 
 static
@@ -104,7 +108,8 @@ LsaNssHpuxGroupGetgrent(
     int*                      pErrorNumber = &err;
     int                       ret = NSS_STATUS_NOTFOUND;
 
-    ret = LsaNssCommonGroupGetgrent(pEnumGroupsState,
+    ret = LsaNssCommonGroupGetgrent(&pLsaBackend->hLsaConnectionGroup,
+                                    pEnumGroupsState,
                                     pResultGroup,
                                     pszBuf,
                                     bufLen,
@@ -136,7 +141,7 @@ LsaNssHpuxGroupEndgrent(
     PLSA_NSS_GROUP_BACKEND    pLsaBackend = (PLSA_NSS_GROUP_BACKEND) pBackend;
     PLSA_ENUMGROUPS_STATE     pEnumGroupsState = &pLsaBackend->enumGroupsState;
 
-    return LsaNssCommonGroupEndgrent(pEnumGroupsState);
+    return LsaNssCommonGroupEndgrent(&pLsaBackend->hLsaConnectionGroup, pEnumGroupsState);
 }
 
 static
@@ -154,8 +159,11 @@ LsaNssHpuxGroupGetgrgid(
     int                       err = 0;
     int*                      pErrorNumber = &err;
     int                       ret = NSS_STATUS_SUCCESS;
+    PLSA_NSS_GROUP_BACKEND    pLsaBackend = (PLSA_NSS_GROUP_BACKEND) pBackend;
 
-    ret = LsaNssCommonGroupGetgrgid(gid,
+
+    ret = LsaNssCommonGroupGetgrgid(&pLsaBackend->hLsaConnectionGroup,
+                                    gid,
                                     pResultGroup,
                                     pszBuf,
                                     bufLen,
@@ -191,8 +199,10 @@ LsaNssHpuxGroupGetgrnam(
     int                       err = 0;
     int*                      pErrorNumber = &err;
     int                       ret = NSS_STATUS_SUCCESS;
+    PLSA_NSS_GROUP_BACKEND    pLsaBackend = (PLSA_NSS_GROUP_BACKEND) pBackend;
 
-    ret = LsaNssCommonGroupGetgrnam(pszGroupName,
+    ret = LsaNssCommonGroupGetgrnam(&pLsaBackend->hLsaConnectionGroup,
+                                    pszGroupName,
                                     pResultGroup,
                                     pszBuf,
                                     bufLen,
@@ -228,18 +238,20 @@ LsaNssHpuxGroupGetgroupsbymember(
     int                     err = 0;
     int*                    pErrorNumber = &err;
     int                     ret = NSS_STATUS_SUCCESS;
-    
+    PLSA_NSS_GROUP_BACKEND    pLsaBackend = (PLSA_NSS_GROUP_BACKEND) pBackend;
+
     size_t myResultsSize = *pResultsSize;
     size_t myResultsCapacity = *pResultsCapacity;
-    
+
 
     ret = LsaNssCommonGroupGetGroupsByUserName(
-        pszUserName,
-	myResultsSize,
-        myResultsCapacity,
-        &myResultsSize,
-        pGidResults,
-        pErrorNumber);
+                    &pLsaBackend->hLsaConnectionGroup,
+                    pszUserName,
+                    myResultsSize,
+                    myResultsCapacity,
+                    &myResultsSize,
+                    pGidResults,
+                    pErrorNumber);
 
     if (ret == NSS_STATUS_SUCCESS)
     {
@@ -248,7 +260,7 @@ LsaNssHpuxGroupGetgroupsbymember(
 
         *pResultsSize = (int) myResultsSize;
     }
-  
+
     return ret;
 }
 
@@ -275,7 +287,7 @@ LsaNssHpuxGroupBackend =
 
 nss_backend_t*
 LsaNssHpuxGroupCreateBackend(
-    void			       
+    void
     )
 {
     PLSA_NSS_GROUP_BACKEND pLsaBackend = NULL;

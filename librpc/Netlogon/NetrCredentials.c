@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,6 +28,10 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <lwrpc/types.h>
@@ -49,12 +53,12 @@ void NetrCredentialsInit(NetrCredentials *creds,
 
     creds->negotiate_flags = neg_flags;
     creds->channel_type    = SCHANNEL_WKSTA;  /* default schannel type */
+    creds->sequence        = time(NULL);
+
+    memset(&md5ctx, 0, sizeof(md5ctx));
+    memset(&hmacmd5ctx, 0, sizeof(hmacmd5ctx));
 
     memcpy(creds->pass_hash, pass_hash, sizeof(creds->pass_hash));
-
-    memcpy(creds->cli_chal.data, cli_chal, sizeof(creds->cli_chal.data));
-    memcpy(creds->srv_chal.data, srv_chal, sizeof(creds->srv_chal.data));
-
     memset(creds->session_key, 0, sizeof(creds->session_key));
 
     if (creds->negotiate_flags & NETLOGON_NEG_128BIT) {
@@ -64,32 +68,34 @@ void NetrCredentialsInit(NetrCredentials *creds,
         hmac_md5_init(&hmacmd5ctx, creds->pass_hash, sizeof(creds->pass_hash));
         md5init(&md5ctx);
         md5update(&md5ctx, zero, sizeof(zero));
-        md5update(&md5ctx, creds->cli_chal.data, 8);
-        md5update(&md5ctx, creds->srv_chal.data, 8);
+        md5update(&md5ctx, cli_chal, 8);
+        md5update(&md5ctx, srv_chal, 8);
         md5final(&md5ctx, dig);
 
         hmac_md5_update(&hmacmd5ctx, dig, sizeof(dig));
         hmac_md5_final(&hmacmd5ctx, creds->session_key);
 
-        des112(creds->cli_cred.data, creds->cli_chal.data, creds->session_key);
-        des112(creds->srv_cred.data, creds->srv_chal.data, creds->session_key);
+        des112(creds->cli_chal.data, cli_chal, creds->session_key);
+        des112(creds->srv_chal.data, srv_chal, creds->session_key);
+
         memcpy(creds->seed.data, creds->cli_chal.data, sizeof(creds->seed.data));
     
     } else {
         uint32 sum1[2];
         uint8 sum2[8];
 
-        sum1[0] = GETUINT32(creds->cli_chal.data, 0) +
-                  GETUINT32(creds->srv_chal.data, 0);
-        sum1[1] = GETUINT32(creds->cli_chal.data, 4) +
-                  GETUINT32(creds->srv_chal.data, 4);
+        sum1[0] = GETUINT32(cli_chal, 0) +
+                  GETUINT32(srv_chal, 0);
+        sum1[1] = GETUINT32(cli_chal, 4) +
+                  GETUINT32(srv_chal, 4);
+
         SETUINT32(sum2, 0, sum1[0]);
         SETUINT32(sum2, 4, sum1[1]);
 
         memset(creds->session_key, 0, sizeof(creds->session_key));
         des128(creds->session_key, sum2, creds->pass_hash);
-        des112(creds->cli_cred.data, creds->cli_chal.data, creds->session_key);
-        des112(creds->srv_cred.data, creds->srv_chal.data, creds->session_key);
+        des112(creds->cli_chal.data, cli_chal, creds->session_key);
+        des112(creds->srv_chal.data, srv_chal, creds->session_key);
 
         memcpy(creds->seed.data, creds->cli_chal.data, sizeof(creds->seed.data));
     }
@@ -102,8 +108,33 @@ int NetrCredentialsCorrect(NetrCredentials *creds, uint8 srv_creds[8])
 
     if (creds == NULL) return 0;
 
-    ret = memcmp(creds->srv_cred.data, srv_creds, sizeof(creds->srv_cred.data));
+    ret = memcmp(creds->srv_chal.data, srv_creds, sizeof(creds->srv_chal.data));
     return (ret == 0) ? 1 : 0;
+}
+
+
+void NetrCredentialsCliStep(NetrCredentials *creds)
+{
+    NetrCred chal = {0};
+
+    memcpy(chal.data, creds->seed.data, sizeof(chal.data));
+    SETUINT32(chal.data, 0, GETUINT32(creds->seed.data, 0) + creds->sequence);
+    des112(creds->cli_chal.data, chal.data, creds->session_key);
+
+    memcpy(chal.data, creds->seed.data, sizeof(chal.data));
+    SETUINT32(chal.data, 0, GETUINT32(creds->seed.data, 0) + creds->sequence + 1);
+    des112(creds->srv_chal.data, chal.data, creds->session_key);
+
+    /* reseed */
+    memcpy(chal.data, creds->seed.data, sizeof(chal.data));
+    SETUINT32(chal.data, 0, GETUINT32(creds->seed.data, 0) + creds->sequence + 1);
+
+    creds->seed = chal;
+}
+
+
+void NetrCredentialsSrvStep(NetrCredentials *creds)
+{
 }
 
 

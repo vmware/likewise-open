@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -57,7 +57,7 @@ LsaMacOpenServer(
 DWORD
 LsaMacGetGroupsForUserName(
     HANDLE  hLsaConnection,
-    PCSTR   pszUserName,    
+    PCSTR   pszUserName,
     PDWORD  pdwGroupFound,
     gid_t** ppGidResults
     )
@@ -113,6 +113,7 @@ LsaMacBeginEnumGroups(
                     hLsaConnection,
                     dwGroupInfoLevel,
                     dwMaxNumGroups,
+                    0,
                     phResume);
 }
 
@@ -124,7 +125,7 @@ LsaMacEnumGroups(
     PVOID** pppGroupsInfoList
     )
 {
-    return LsaMacEnumGroups(
+    return LsaEnumGroups(
                     hLsaConnection,
                     hResume,
                     pdwNumGroupsFound,
@@ -199,6 +200,7 @@ LsaMacBeginEnumUsers(
                     hLsaConnection,
                     dwUserInfoLevel,
                     dwMaxNumUsers,
+                    0,
                     phResume);
 }
 
@@ -290,7 +292,7 @@ LsaMacCloseSession(
                     hLsaConnection,
                     pszLoginId);
 }
-    
+
 VOID
 LsaMacFreeGroupInfoList(
     DWORD  dwLevel,

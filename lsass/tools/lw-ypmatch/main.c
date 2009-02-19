@@ -118,7 +118,7 @@ static
 VOID
 PrintMapInfo_0(
     PLSA_NSS_ARTEFACT_INFO_0 pMapInfo,
-    BOOLEAN bPrintKeysOnly
+    BOOLEAN bPrintKeys
     );
 
 static
@@ -638,7 +638,7 @@ PrintMapInfo_0(
     {
         printf("%s ", YPMATCH_SAFE_LOG_STRING(pMapInfo->pszName));
     }
-
+    
     printf("%s\n", YPMATCH_SAFE_LOG_STRING(pMapInfo->pszValue));
 }
 

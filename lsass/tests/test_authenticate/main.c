@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -34,8 +34,9 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
-#include "lsautils.h"
+
 #include "lsaclient.h"
+#include "lsaipc.h"
 
 static
 void
@@ -48,12 +49,12 @@ static
 int
 ParseArgs(
     int argc,
-    char* argv[],
-    PSTR* ppszUserId,
-    PSTR* ppszPasswd
+    const char* argv[],
+    PCSTR* ppszUserId,
+    PCSTR* ppszPasswd
     )
 {
-    PSTR pszArg = NULL;
+    PCSTR pszArg = NULL;
     int  ret    = 0;
 
     if( argc != 3 ) {
@@ -68,71 +69,44 @@ ParseArgs(
         ShowUsage();
         exit(0);
     }
-    
-    *ppszUserId = argv[1];
 
+    *ppszUserId = argv[1];
     *ppszPasswd = argv[2];
 
-cleanup:
-
     return ret;
-
-error:
-
-    ret = 1;
-
-    goto cleanup;
 }
 
 int
 main(
     int argc,
-    char* argv[]
+    const char* argv[]
     )
 {
-    PSTR  pszUserId   = NULL;
-    PSTR  pszPasswd   = NULL;
     DWORD dwError     = 0;
+    HANDLE hLsaConnection = (HANDLE)NULL;
+    PCSTR pszUserId   = NULL;
+    PCSTR pszPassword   = NULL;
 
-    PSTR  pszMessage  = NULL;
-    PSTR  pszResponse = NULL;
-    int   reenter     = 1;
-    int   ret;
-    char  arrResponse[50];
-    
-    dwError = ParseArgs ( argc, argv, &pszUserId, &pszResponse );
+    dwError = ParseArgs(argc,
+                        argv,
+                        &pszUserId,
+                        &pszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    printf("UserName: %s\n", pszUserId);
-    printf("Response: %s\n", pszResponse);
+    dwError = LsaOpenServer(&hLsaConnection);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    ret = authenticate ( pszUserId, pszResponse, &reenter, &pszMessage) ;
+    dwError = LsaAuthenticateUser(
+               hLsaConnection,
+               pszUserId,
+               pszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    printf("ret:      %i\n", ret);
-    printf("Reenter:  %i\n", reenter);
-    printf("Message:  %s\n", IsNullOrEmptyString(pszMessage) ? "<null>" : pszMessage);
+    fprintf(stdout, "Successfully authenticated user %s\n", pszUserId);
 
+cleanup:
+    return dwError;
 
-    while( reenter!=0 ) {
-        printf("\nResponse: ");
-        scanf("%s", arrResponse);
-
-        printf("\nUserName: %s\n", pszUserId);
-        printf("Response: %s\n", pszResponse);
-
-        printf("Authenticating...\n");
-        ret = authenticate ( pszUserId, arrResponse, &reenter, &pszMessage);
-
-        printf("ret:      %i\n", ret);
-        printf("Reenter:  %s\n", reenter);
-        printf("Message:  %s\n", IsNullOrEmptyString(pszMessage) ? "<null>" : pszMessage);
-    }
-
-    if( ret==0 ) {
-        printf("User Authenticated\n");
-    } else {
-        if(errno==ENOENT)
-            printf("User Unknown\n");
-        else if(errno==EPERM)
-            printf("Authentication denied\n");
-    }
+error:
+    goto cleanup;
 }

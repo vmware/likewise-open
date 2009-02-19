@@ -35,7 +35,7 @@ DomainLeaveWindow::HandleCommand( const HICommandExtended& inCommand )
 		case LEAVE_CMD_ID:
 		    HandleLeaveDomain();
 			break;
-
+        
         case MIGRATE_CMD_ID:
 		    HandleMigrateUser();
 			break;
@@ -186,8 +186,7 @@ DomainLeaveWindow::HandleLeaveDomain()
 
         ShowLeftDomainDialog(domainName);
 
-        /* Bail out of the application now */
-        this->Close();
+        PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
     }
     catch(DomainJoinException& dje)
     {

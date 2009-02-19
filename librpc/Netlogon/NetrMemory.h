@@ -35,6 +35,35 @@ NTSTATUS NetrAllocateMemory(void **ptr, size_t len, void *dep);
 
 NTSTATUS NetrAddDepMemory(void *ptr, void *dep);
 
+NTSTATUS NetrAllocateLogonInfoNet(
+    NetrLogonInfo **out,
+    uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const uint8_t *challenge,
+    const uint8_t *lm_resp,
+    const uint8_t *nt_resp
+    );
+
+NTSTATUS NetrAllocateLogonInfoHash(
+    NetrLogonInfo **out, 
+    uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const wchar16_t *password
+    );
+
+NTSTATUS NetrAllocateLogonInfo(
+    NetrLogonInfo **out, 
+    uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const wchar16_t *password
+    );
+
 
 #endif /* _NETR_MEMORY_H_ */
 

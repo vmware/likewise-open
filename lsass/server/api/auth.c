@@ -132,6 +132,147 @@ error:
 }
 
 DWORD
+LsaSrvAuthenticateUserEx(
+    HANDLE hServer,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
+    BOOLEAN bInLock = FALSE;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+
+    BAIL_ON_INVALID_POINTER(pUserParams);
+    BAIL_ON_INVALID_POINTER(ppUserInfo);
+    
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    /* Validate the AuthType */
+
+    switch (pUserParams->AuthType)
+    {
+    case LSA_AUTH_PLAINTEXT:
+    {
+	    PSTR pszAccountName = NULL;
+	    DWORD dwLen = 0;
+	    
+	    /* calculate length includeing '\' and terminating NULL */
+
+	    dwLen = strlen(pUserParams->pszDomain) + strlen(pUserParams->pszAccountName) + 2;    
+	    dwError = LsaAllocateMemory(dwLen, (PVOID*)&pszAccountName);
+	    BAIL_ON_LSA_ERROR(dwError);
+    
+	    snprintf(pszAccountName, dwLen,
+		     "%s%s%s", 
+		     pUserParams->pszDomain,
+		     pUserParams->pszDomain ? "\\" : "", 
+		     pUserParams->pszAccountName);
+
+	    /* Pass off plain text auth to AuthenticateUser() */
+	    dwError = LsaSrvAuthenticateUser(hServer, 
+					     "",
+					     pUserParams->pass.clear.pszPassword);
+	    LSA_SAFE_FREE_MEMORY(pszAccountName);	    
+	    goto cleanup;
+	    break;
+    }
+    
+    case LSA_AUTH_CHAP:
+	    /* NTLM is what we'll do for the rest of the routine */
+	    break;
+    default:
+	    /* Bad AuthType */
+	    dwError = LSA_ERROR_INVALID_PARAMETER;
+	    goto cleanup;
+	    break;	    
+    }
+    
+    /* Do the NTLM authentication */
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable->pfnAuthenticateUserEx(
+                                            hProvider,
+                                            pUserParams,
+                                            ppUserInfo);
+        if (!dwError) 
+	{
+            break;
+        }
+        else if ((dwError == LSA_ERROR_NOT_HANDLED) |
+                 (dwError == LSA_ERROR_NO_SUCH_USER)) 
+	{
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = (HANDLE)NULL;
+            continue;
+        } else {
+	    BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (pProvider == NULL) {
+        dwError = LSA_ERROR_NOT_HANDLED;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL) 
+    {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    if (!dwError) 
+    {
+        LsaSrvIncrementMetricValue(LsaMetricSuccessfulAuthentications);
+    }
+    else
+    {
+        LsaSrvIncrementMetricValue(LsaMetricFailedAuthentications);
+    }
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return dwError;
+
+error:
+
+    if (LsaSrvEventlogEnabled()) 
+    {
+        LsaSrvWriteLoginFailedEvent(
+            hServer,
+            pUserParams && pUserParams->pszAccountName ? 
+	        pUserParams->pszAccountName : "(no name)",
+            dwError);
+    }
+
+    if (dwError == LSA_ERROR_NOT_HANDLED ||
+                   dwError == LSA_ERROR_NO_SUCH_USER) 
+    {
+        LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]",
+			pUserParams && pUserParams->pszAccountName ? 
+			    pUserParams->pszAccountName : "");	
+    }
+    else 
+    {
+        LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]",
+		      pUserParams && pUserParams->pszAccountName ? 
+		          pUserParams->pszAccountName : "");	
+    }
+
+    goto cleanup;	
+}
+
+DWORD
 LsaSrvValidateUser(
     HANDLE hServer,
     PCSTR  pszLoginId,
@@ -330,3 +471,12 @@ error:
     LSA_LOG_VERBOSE("Failed to change password of user [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
     goto cleanup;
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

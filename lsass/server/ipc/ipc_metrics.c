@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for Metrics
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -46,82 +46,79 @@
  */
 #include "ipc.h"
 
-DWORD
+LWMsgStatus
 LsaSrvIpcGetMetrics(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
-    DWORD        dwError = 0;
-    PLSAMESSAGE  pResponse = NULL;
-    DWORD        dwMsgLen = 0;
-    HANDLE       hServer = (HANDLE)NULL;
-    DWORD        dwInfoLevel = 0;
-    PVOID        pMetricPack = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-       (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    
-    if (pMessage->header.messageLength < sizeof(dwInfoLevel))
-    {
-        dwError = LSA_ERROR_INVALID_MESSAGE;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    memcpy(&dwInfoLevel, pMessage->pData, sizeof(dwInfoLevel));
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
+    DWORD dwError = 0;
+    PVOID pMetricPack = NULL;
+    PLSA_METRIC_PACK pResult = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    DWORD dwInfoLevel = *(PDWORD)pRequest->object;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvGetMetrics(
-                    hServer,
-                    dwInfoLevel,
-                    &pMetricPack);
-    if (dwError) {
-        
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse);
+                        (HANDLE)Handle,
+                        dwInfoLevel,
+                        &pMetricPack);
+
+    if (!dwError)
+    {
+        dwError = LsaAllocateMemory(sizeof(*pResult),
+                                    (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
-        
-    } else {
 
-       dwError = LsaMarshalMetricsInfo(
-                       dwInfoLevel,
-                       pMetricPack,
-                       NULL,
-                       &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaBuildMessage(
-                        LSA_R_GET_METRICS,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse
-                        );
-       BAIL_ON_LSA_ERROR(dwError);
-       
-       dwError = LsaMarshalMetricsInfo(
-                       dwInfoLevel,
-                       pMetricPack,
-                       pResponse->pData,
-                       &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+        pResult->dwInfoLevel = dwInfoLevel;
 
+        switch (pResult->dwInfoLevel)
+        {
+            case 0:
+                pResult->pMetricPack.pMetricPack0 = (PLSA_METRIC_PACK_0)pMetricPack;
+                pMetricPack = NULL;
+                break;
+
+            case 1:
+                pResult->pMetricPack.pMetricPack1 = (PLSA_METRIC_PACK_1)pMetricPack;
+                pMetricPack = NULL;
+                break;
+
+            default:
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pResponse->tag = LSA_R_GET_METRICS_SUCCESS;
+        pResponse->object = pResult;
     }
-    
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-cleanup:
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_SAFE_FREE_MEMORY(pMetricPack);
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    return dwError;
-    
+        pResponse->tag = LSA_R_GET_METRICS_FAILURE;
+        pResponse->object = pError;
+    }
+
+cleanup:
+    if(pMetricPack)
+    {
+        LSA_SAFE_FREE_MEMORY(pMetricPack);
+    }
+
+    return MAP_LSA_ERROR_IPC(dwError);
+
 error:
+    if(pResult)
+    {
+        LsaSrvFreeIpcMetriPack(pResult);
+    }
 
     goto cleanup;
 }

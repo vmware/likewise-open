@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,20 +28,99 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _NETLOGON_H_
 #define _NETLOGON_H_
 
 #include <lwrpc/netrdefs.h>
+#include <lwrpc/mpr.h>
+
+handle_t 
+OpenSchannel(
+    handle_t netr_b,
+    const wchar16_t * pwszMachineAccount,
+    const wchar16_t * pwszHostname,
+    const wchar16_t * pwszServer,
+    const wchar16_t * pwszDomain,
+    const wchar16_t * pwszComputer,
+    const wchar16_t * pwszMachinePassword,
+    NetrCredentials *Creds,
+    NETRESOURCE *SchanRes
+    );
+
+void
+CloseSchannel(
+    handle_t schn_b,
+    NETRESOURCE *schnr
+    );
+
+
 
 NTSTATUS NetrServerReqChallenge(handle_t b, const wchar16_t *server,
                                 const wchar16_t *computer,
                                 uint8 cli_challenge[8], uint8 srv_challenge[8]);
+
+NTSTATUS NetrServerAuthenticate(handle_t b, const wchar16_t *server,
+                                const wchar16_t *account, uint16 sec_chan_type,
+                                const wchar16_t *computer, uint8 cli_creds[8],
+                                uint8 srv_creds[8]);
 
 NTSTATUS NetrServerAuthenticate2(handle_t b, const wchar16_t *server,
                                  const wchar16_t *account, uint16 sec_chan_type,
                                  const wchar16_t *computer,
                                  uint8 cli_credentials[8],
                                  uint8 srv_credentials[8], uint32 *neg_flags);
+
+NTSTATUS NetrServerAuthenticate3(handle_t b, const wchar16_t *server,
+                                 const wchar16_t *account, uint16 sec_chan_type,
+                                 const wchar16_t *computer, uint8 cli_creds[8],
+                                 uint8 srv_creds[8], uint32 *neg_flags,
+                                 uint32 *rid);
+
+NTSTATUS NetrSamLogonInteractive(
+    handle_t b,
+    NetrCredentials *creds,
+    const wchar16_t *server, 
+    const wchar16_t *domain,
+    const wchar16_t *computer,
+    const wchar16_t *username, 
+    const wchar16_t *password,
+    uint16 logon_level, uint16 validation_level,
+    NetrValidationInfo **out_info, 
+    uint8 *out_authoritative
+    );
+
+NTSTATUS NetrSamLogonNetwork(
+    handle_t b, 
+    NetrCredentials *creds,
+    const wchar16_t *server,
+    const wchar16_t *domain,
+    const wchar16_t *computer,
+    const wchar16_t *username,
+    uint8 * challenge,
+    uint8 * lm_resp,
+    uint8 * nt_resp,
+    uint16 logon_level,
+    uint16 validation_level,
+    NetrValidationInfo **out_info,
+    uint8 *out_authoritative
+    );
+
+NTSTATUS NetrSamLogoff(handle_t b, NetrCredentials *creds,
+                       const wchar16_t *server, const wchar16_t *domain,
+                       const wchar16_t *computer,
+                       const wchar16_t *username, const wchar16_t *password,
+                       uint32 logon_level);
+
+NTSTATUS NetrSamLogonEx(handle_t b,
+                        const wchar16_t *server, const wchar16_t *domain,
+                        const wchar16_t *computer,
+                        const wchar16_t *username, const wchar16_t *password,
+                        uint16 logon_level, uint16 validation_level,
+                        NetrValidationInfo **info, uint8 *authoritative);
 
 NTSTATUS NetrEnumerateTrustedDomainsEx(handle_t b, const wchar16_t *server,
                                        NetrDomainTrust **trusts, uint32 *count);

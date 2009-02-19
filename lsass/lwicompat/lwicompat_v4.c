@@ -111,7 +111,7 @@ static NTSTATUS lwi_get_sid_from_id(struct idmap_domain *dom,
 				    struct id_map **ids)
 {
 	int i;
-	NTSTATUS nt_status = NT_STATUS_NONE_MAPPED;
+	NTSTATUS nt_status = NT_STATUS_NONE_MAPPED;	
 
 	/* loop over the array and issue requests one at a time */
 
@@ -123,7 +123,7 @@ static NTSTATUS lwi_get_sid_from_id(struct idmap_domain *dom,
 
 		switch (ids[i]->xid.type) {
 		case ID_TYPE_UID:
-			wbc_status = wbcUidToSid(ids[i]->xid.id, &wbc_sid);
+			wbc_status = wbcUidToSid(ids[i]->xid.id, &wbc_sid);			
 			break;
 		case ID_TYPE_GID:
 			wbc_status = wbcGidToSid(ids[i]->xid.id, &wbc_sid);
@@ -135,7 +135,7 @@ static NTSTATUS lwi_get_sid_from_id(struct idmap_domain *dom,
 		if (WBC_ERROR_IS_OK(wbc_status)) {
 			memcpy(ids[i]->sid, &wbc_sid, sizeof(*ids[i]->sid));
 			ids[i]->status = ID_MAPPED;
-			nt_status = NT_STATUS_OK;
+			nt_status = NT_STATUS_OK;			
 		}
 	}
 
@@ -148,7 +148,7 @@ static NTSTATUS lwi_get_sid_from_id(struct idmap_domain *dom,
 static NTSTATUS lwi_get_id_from_sid(struct idmap_domain *dom,
 				    struct id_map **ids)
 {
-	NTSTATUS nt_status = NT_STATUS_NONE_MAPPED;
+	NTSTATUS nt_status = NT_STATUS_NONE_MAPPED;	
 	int i;
 
 	for (i = 0; ids[i]; i++) {
@@ -175,7 +175,7 @@ static NTSTATUS lwi_get_id_from_sid(struct idmap_domain *dom,
 			nt_status = NT_STATUS_OK;
 		}
 	}
-
+	
 	return nt_status;
 }
 

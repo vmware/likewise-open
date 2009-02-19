@@ -118,12 +118,6 @@ LsaKrb5SetProcessDefaultCachePath(
     );
 
 DWORD
-LsaSetupMachineLoginSession(
-    PCSTR pszUsername,
-    PCSTR pszPassword
-    );
-
-DWORD
 LsaSetupMachineSession(
     PCSTR  pszMachname,
     PCSTR  pszPassword,

@@ -8,6 +8,7 @@ liblsautils_la_SOURCES =       \
        filelog.c               \
        fileutils.c             \
        globals.c               \
+       lsacache.c              \
        lsacfg.c                \
        lsadns.c                \
        lsaerror.c              \
@@ -30,7 +31,9 @@ liblsautils_la_SOURCES =       \
        sidinfo.c               \
        sysfuncs.c              \
        syslog.c                \
+       datablob.c              \
        lsaxnet.c               \
+       lsaauthex.c             \
        lsalist.c
 
 liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@

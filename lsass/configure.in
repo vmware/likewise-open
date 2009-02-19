@@ -30,27 +30,31 @@ case "$host_os:$host_cpu" in
 		nss_libdir="/lib"
 		pam_libdir="/lib/security"
 		NSS_SUBDIR="linux"
+                ENABLE_NSS_ENUM_DEFAULT="no"
 		AC_DEFINE([__LWI_LINUX__], [], [Define if OS is Linux])
 		;;
 	linux*:x86_64)
 		nss_libdir="/lib64"
 		pam_libdir="/lib64/security"
 		NSS_SUBDIR="linux"
+                ENABLE_NSS_ENUM_DEFAULT="no"
 		AC_DEFINE([__LWI_LINUX__], [], [Define if OS is Linux])
 		;;
 	solaris*:i?86|solaris*:sparc*)
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="solaris"
+                ENABLE_NSS_ENUM_DEFAULT="no"
 		AC_DEFINE([__LWI_SOLARIS__], [], [Define if OS is Solaris])
 	    AC_DEFINE([_XOPEN_SOURCE], [500], [Define to desired XOPEN compliance level])
 		;;
 	darwin*:*)
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/pam"
-        NSS_SUBDIR="mac"
-        CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
-        SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
+                NSS_SUBDIR="mac"
+                ENABLE_NSS_ENUM_DEFAULT="yes"
+                CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
+                SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
 		# MACCLIENT_DIR="macclient"
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
 		;;
@@ -58,12 +62,14 @@ case "$host_os:$host_cpu" in
 		nss_libdir="/usr/local/lib"
 		pam_libdir="/usr/local/lib"
 		NSS_SUBDIR="freebsd"
+                ENABLE_NSS_ENUM_DEFAULT="no"
 		AC_DEFINE([__LWI_FREEBSD__], [], [Define if OS is FreeBSD])
 		;;
 	hpux*:hppa*)
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="hpux"
+                ENABLE_NSS_ENUM_DEFAULT="no"
 		NSS_SHR_EXT=""
 		MOD_EXT=".sl"
 		AC_SUBST(NSS_SHR_EXT)
@@ -74,6 +80,7 @@ case "$host_os:$host_cpu" in
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="hpux"
+                ENABLE_NSS_ENUM_DEFAULT="no"
 		NSS_SHR_EXT=".so"
 		AC_SUBST(NSS_SHR_EXT)
 		AC_DEFINE([__LWI_HP_UX__], [], [Define if OS is HP-UX])
@@ -83,6 +90,7 @@ case "$host_os:$host_cpu" in
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="aix"
+                ENABLE_NSS_ENUM_DEFAULT="no"
 		NSS_SHR_EXT=""
 		AC_SUBST(NSS_SHR_EXT)
 		AC_DEFINE([__LWI_AIX__], [], [Define if OS is AIX])
@@ -95,8 +103,10 @@ AC_SUBST(MACCLIENT_DIR)
 AC_SUBST(MOD_EXT)
 AC_SUBST(CF_FRAMEWORK_LDFLAGS)
 AC_SUBST(SC_FRAMEWORK_LDFLAGS)
+AC_SUBST(ENABLE_NSS_ENUM_DEFAULT)
 
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of shared modules])
+AC_DEFINE_UNQUOTED([ENABLE_NSS_ENUM_DEFAULT], ["$ENABLE_NSS_ENUM_DEFAULT"], [Default value for nss enumeration option])
 
 # Package version
 
@@ -238,6 +248,27 @@ AC_SUBST(LIBUNISTR_INCLUDES)
 AC_SUBST(LIBUNISTR_LDFLAGS)
 AC_SUBST(LIBUNISTR_LIBS)
 
+# lwmsg
+
+AC_ARG_WITH([lwmsg],
+        [AC_HELP_STRING([--with-lwmsg=<dir>], [use lwmsg located in prefix <dir>])],
+        [
+                LWMSG_INCLUDES="-I$withval/include"
+                LWMSG_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwmsg-includes],
+        [AC_HELP_STRING([--with-lwmsg-includes=<dir>], [use lwmsg includes located in <dir>])],
+        [
+                LWMSG_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwmsg-libs],
+        [AC_HELP_STRING([--with-lwmsg-libs=<dir>], [use lwmsg libs located in <dir>])],
+        [
+                LWMSG_LDFLAGS="-L$withval"
+        ])
+
 # crypto
 
 AC_ARG_WITH([crypto],
@@ -318,6 +349,33 @@ NETLOGON_LIBS="-llwnetclientapi"
 AC_SUBST(NETLOGON_INCLUDES)
 AC_SUBST(NETLOGON_LDFLAGS)
 AC_SUBST(NETLOGON_LIBS)
+
+# lwrdr
+
+AC_ARG_WITH([lwrdr],
+        [AC_HELP_STRING([--with-lwrdr=<dir>], [use lwrdr located in prefix <dir>])],
+        [
+                LWRDR_INCLUDES="-I$withval/include"
+        LWRDR_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwrdr-includes],
+        [AC_HELP_STRING([--with-lwrdr-includes=<dir>], [use lwrdr includes located in <dir>])],
+        [
+                LWRDR_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwrdr-libs],
+        [AC_HELP_STRING([--with-lwrdr-libs=<dir>], [use lwrdr libs located in <dir>])],
+        [
+                LWRDR_LDFLAGS="-L$withval"
+        ])
+
+LWRDR_LIBS="-llwrdrclient"
+
+AC_SUBST(LWRDR_INCLUDES)
+AC_SUBST(LWRDR_LDFLAGS)
+AC_SUBST(LWRDR_LIBS)
 
 # pstore
 
@@ -438,6 +496,12 @@ AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
 
 AS_AC_EXPAND(providerdir, $libdir)
 
+testbindir='$(exec_prefix)/test'
+AC_SUBST(testbindir)
+
+testlibdir='$(exec_prefix)/test'
+AC_SUBST(testlibdir)
+
 AS_AC_EXPAND(PREFIXDIR, $prefix)
 AC_DEFINE_UNQUOTED(PREFIXDIR, "$PREFIXDIR", [Prefix directory])
 
@@ -455,6 +519,17 @@ AC_C_BIGENDIAN
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
+AC_PROG_MKDIR_P
+
+AC_CHECK_PROG([DOXYGEN], [doxygen], [doxygen], [false])
+if test x"$DOXYGEN" != x"false"
+then
+	HAVE_DOXYGEN=true
+else
+	HAVE_DOXYGEN=false
+fi
+
+AM_CONDITIONAL([HAVE_DOXYGEN], [$HAVE_DOXYGEN])
 
 AC_CHECK_LIB([nsl], [gethostname], [NSL_LIBS="-lnsl"])
 AC_CHECK_LIB([dl], [dlopen], [DL_LIBS="-ldl"])
@@ -484,7 +559,7 @@ AC_SUBST(PROC_LIBS)
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h iconv.h sys/stat.h sys/pstat.h proc/readproc.h procfs.h sys/procfs.h kvm.h time.h sys/time.h sys/varargs.h nss.h nss_common.h nsswitch.h synch.h pthread.h wc16str.h wc16printf.h sys/param.h sys/sysctl.h sys/user.h])
+AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h iconv.h sys/stat.h sys/pstat.h proc/readproc.h procfs.h sys/procfs.h kvm.h time.h sys/time.h sys/varargs.h nss.h nss_common.h nsswitch.h synch.h pthread.h wc16str.h wc16printf.h sys/param.h sys/sysctl.h sys/user.h pwd.h stdio.h grp.h sys/wait.h])
 
 AC_CHECK_HEADERS([security/pam_appl.h], ,
     [AC_CHECK_HEADERS([pam/pam_appl.h], ,
@@ -503,6 +578,9 @@ AC_CHECK_TYPES([int8, int16, int32, int64], [], [],
  #include <model.h>
  #endif])
 AC_CHECK_TYPES([uint8, uint16, uint32, uint64])
+
+AC_CHECK_TYPE(suseconds_t, [USEC_T="suseconds_t"], [USEC_T="long int"], [#include <sys/time.h>])
+AC_DEFINE_UNQUOTED([USEC_T], [$USEC_T], [Type of tv_usec field of struct timeval])
 
 AC_CHECK_SIZEOF([long long int])
 AC_CHECK_SIZEOF([long int])
@@ -526,6 +604,16 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 # include <wc16str.h>
 #endif
 ])
+
+AC_CHECK_HEADER([lwmsg/lwmsg.h],,[AC_MSG_ERROR([Could not find lwmsg headers])])
+AC_CHECK_LIB([lwmsg_nothr], [lwmsg_assoc_send], [LWMSG_NOTHR_LIBS="-llwmsg_nothr"], [AC_MSG_ERROR([Could not find liblwmsg_nothr])], [$LWMSG_LDFLAGS])
+AC_CHECK_LIB([lwmsg], [lwmsg_server_start], [LWMSG_LIBS="-llwmsg"], [AC_MSG_ERROR([Could not find liblwmsg])], [$LWMSG_LDFLAGS])
+
+AC_SUBST(LWMSG_INCLUDES)
+AC_SUBST(LWMSG_LDFLAGS)
+AC_SUBST(LWMSG_NOTHR_LIBS)
+AC_SUBST(LWMSG_LIBS)
+
 
 AC_CHECK_TYPES([socklen_t], [], [], [AC_INCLUDES_DEFAULT
 #include <sys/types.h>
@@ -621,6 +709,10 @@ AC_CONFIG_FILES([Makefile
                  lsaunistr/Makefile
                  ipc/Makefile
                  client/Makefile
+                 provider/Makefile
+                 provider/ad-provider/Makefile
+                 provider/ad-provider/ipc/Makefile
+                 provider/ad-provider/client/Makefile
                  macclient/Makefile
 		 nsswitch/Makefile
 		 nsswitch/common/Makefile
@@ -680,6 +772,7 @@ AC_CONFIG_FILES([Makefile
                  tools/get_status/Makefile
                  tools/refresh_configuration/Makefile
                  tools/trace_info/Makefile
+                 tools/ad_cache/Makefile
 		 etc/Makefile
 		 etc/lsassd.conf
                  include/Makefile
@@ -696,8 +789,18 @@ AC_CONFIG_FILES([Makefile
 		 tests/test_getpwent/Makefile
 		 tests/test_getpwnam/Makefile
                  tests/test_stress_ad_provider/Makefile
-                 tests/test_authstress/Makefile
                  tests/test_bitvector/Makefile
-                 scripts/Makefile])
+                 tests/test_memcache/Makefile
+                 tests/test_perf/Makefile
+                 tests/test_perf/lsassonly/Makefile
+                 tests/test_authenticate/Makefile
+                 tests/test_validate/Makefile
+                 tests/test_changepasswd/Makefile
+                 tests/test_session/Makefile
+                 tests/test_checkuserinlist/Makefile
+                 tests/test_openldap/Makefile
+                 scripts/Makefile
+		 docs/Makefile
+		 docs/Doxyfile])
 
 AC_OUTPUT

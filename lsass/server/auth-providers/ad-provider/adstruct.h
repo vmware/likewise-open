@@ -49,28 +49,19 @@
 #define __AD_STRUCT_H__
 
 typedef struct __AD_ENUM_STATE {
-    PSTR pszGUID;
-
     DWORD dwInfoLevel;
+    BOOLEAN bCheckGroupMembersOnline;
+    LSA_FIND_FLAGS FindFlags;
     LSA_NIS_MAP_QUERY_FLAGS dwMapFlags;
     PSTR  pszMapName;
 
-    HANDLE hDirectory;
     LSA_SEARCH_COOKIE Cookie;
-
-    struct __AD_ENUM_STATE* pNext;
-
 } AD_ENUM_STATE, *PAD_ENUM_STATE;
 
 typedef struct __AD_PROVIDER_CONTEXT
 {
     uid_t uid;
     gid_t gid;
-
-    PAD_ENUM_STATE pGroupEnumStateList;
-    PAD_ENUM_STATE pUserEnumStateList;
-    PAD_ENUM_STATE pNSSArtefactEnumStateList;
-
 } AD_PROVIDER_CONTEXT, *PAD_PROVIDER_CONTEXT;
 
 typedef struct _AD_LINKED_CELL_INFO
@@ -120,6 +111,7 @@ typedef struct _LSA_AD_CONFIG {
     BOOLEAN             bTrimUserMembershipEnabled;
     BOOLEAN             bNssGroupMembersCacheOnlyEnabled;
     BOOLEAN             bNssUserMembershipCacheOnlyEnabled;
+    BOOLEAN             bNssEnumerationEnabled;
 } LSA_AD_CONFIG, *PLSA_AD_CONFIG;
 
 struct _ADSTATE_CONNECTION;

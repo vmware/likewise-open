@@ -53,7 +53,7 @@
 
 DWORD
 DefaultModeFindNSSArtefactByKey(
-    HANDLE         hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PCSTR          pszKeyName,
@@ -65,7 +65,7 @@ DefaultModeFindNSSArtefactByKey(
 
 DWORD
 DefaultModeSchemaFindNSSArtefactByKey(
-    HANDLE         hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PCSTR          pszKeyName,
@@ -77,7 +77,7 @@ DefaultModeSchemaFindNSSArtefactByKey(
 
 DWORD
 DefaultModeNonSchemaFindNSSArtefactByKey(
-    HANDLE         hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PCSTR          pszKeyName,
@@ -89,7 +89,7 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
 
 DWORD
 DefaultModeEnumNSSArtefacts(
-    HANDLE         hDirectory,
+    PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PAD_ENUM_STATE pEnumState,
@@ -100,7 +100,7 @@ DefaultModeEnumNSSArtefacts(
 
 DWORD
 DefaultModeSchemaEnumNSSArtefacts(
-    HANDLE         hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PAD_ENUM_STATE pEnumState,
@@ -111,7 +111,7 @@ DefaultModeSchemaEnumNSSArtefacts(
 
 DWORD
 DefaultModeNonSchemaEnumNSSArtefacts(
-    HANDLE         hDirectory,
+    PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PAD_ENUM_STATE pEnumState,

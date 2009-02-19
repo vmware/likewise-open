@@ -89,6 +89,7 @@ LsaPamMapErrorCode(
             ret = PAM_SERVICE_ERR;
             break;
         case ECONNREFUSED:
+        case ENOENT:
             if (pPamContext && pPamContext->pamOptions.bUnknownOK)
                 ret = PAM_IGNORE;
             else

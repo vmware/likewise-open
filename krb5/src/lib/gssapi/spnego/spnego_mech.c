@@ -189,6 +189,7 @@ static struct gss_config spnego_mechanism =
 	spnego_gss_wrap_size_limit,	/* gss_wrap_size_limit */
 	NULL,				/* gss_export_name */
 	NULL,				/* gss_store_cred */
+        spnego_gss_inquire_context2,    /* gss_inquire_context2 */
 };
 
 static gss_mechanism spnego_mech_configs[] = {
@@ -2872,6 +2873,37 @@ g_verify_token_header(gss_OID_const mech,
 		*buf_in = buf;
 		*body_size = toksize;
 	}
+
+	return (ret);
+}
+
+
+
+OM_uint32
+spnego_gss_inquire_context2(void *context,
+			OM_uint32	*minor_status,
+			const gss_ctx_id_t context_handle,
+			gss_name_t	*src_name,
+			gss_name_t	*targ_name,
+			OM_uint32	*lifetime_rec,
+			gss_OID		*mech_type,
+			OM_uint32	*ctx_flags,
+			int		*locally_initiated,
+			int		*open,
+			gss_buffer_t	session_key)
+{
+	OM_uint32 ret = GSS_S_COMPLETE;
+
+	ret = gss_inquire_context2(minor_status,
+				context_handle,
+				src_name,
+				targ_name,
+				lifetime_rec,
+				mech_type,
+				ctx_flags,
+				locally_initiated,
+				open,
+				session_key);
 
 	return (ret);
 }

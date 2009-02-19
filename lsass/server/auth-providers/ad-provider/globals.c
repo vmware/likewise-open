@@ -87,6 +87,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_CloseHandle,
             &AD_ServicesDomain,
             &AD_AuthenticateUser,
+            &AD_AuthenticateUserEx,
             &AD_ValidateUser,
             &AD_CheckUserInList,
             &AD_FindUserByName,
@@ -115,7 +116,8 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_EndEnumNSSArtefacts,
             &AD_GetStatus,
             &AD_FreeStatus,
-            &AD_RefreshConfiguration
+            &AD_RefreshConfiguration,
+            &AD_ProviderIoControl
     };
 
 PLSA_HASH_TABLE gpAllowedSIDs   = NULL;

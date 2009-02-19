@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -196,12 +196,20 @@ typedef int             BOOLEAN, *PBOOLEAN;
 
 #endif
 
+#if 0
 typedef enum
 {
     AccountType_NotFound = 0,
     AccountType_Group = 1,
     AccountType_User = 2,
 } ADAccountType;
+#endif
+
+typedef UINT8 ADAccountType;
+
+#define AccountType_NotFound 0
+#define AccountType_Group 1
+#define AccountType_User 2
 
 typedef struct __LSA_USER_INFO_0
 {
@@ -311,7 +319,7 @@ typedef DWORD (*PFN_LSA_OPEN_SERVER)(
 
 typedef DWORD (*PFN_LSA_GET_GROUPS_FOR_USERNAME)(
                 HANDLE  hLsaConnection,
-                PCSTR   pszUserName,    
+                PCSTR   pszUserName,
                 PDWORD  pdwGroupFound,
                 gid_t** ppGidResults
                 );
@@ -456,7 +464,7 @@ typedef DWORD (*PFN_LSA_CLOSE_SERVER)(
 typedef struct __LSAMACCLIENT_FUNC_TABLE
 {
     PFN_LSA_OPEN_SERVER              pfnLsaOpenServer;
-    
+
     /* Groups */
     PFN_LSA_GET_GROUPS_FOR_USERNAME  pfnLsaGetGroupsForUsername;
     PFN_LSA_FIND_GROUP_BY_NAME       pfnLsaFindGroupByName;
@@ -479,7 +487,7 @@ typedef struct __LSAMACCLIENT_FUNC_TABLE
     PFN_LSA_CHANGE_PASSWORD          pfnLsaChangePassword;
     PFN_LSA_OPEN_SESSION             pfnLsaOpenSession;
     PFN_LSA_CLOSE_USER_LOGON_SESSION pfnLsaCloseUserLogonSession;
-    
+
     /* Memory management */
     PFN_LSA_FREE_GROUP_INFO_LIST     pfnLsaFreeGroupInfoList;
     PFN_LSA_FREE_GROUP_INFO          pfnLsaFreeGroupInfo;
@@ -489,7 +497,7 @@ typedef struct __LSAMACCLIENT_FUNC_TABLE
     PFN_LSA_FREE_SID_INFO            pfnLsaFreeSIDInfo;
 
     PFN_LSA_CLOSE_SERVER             pfnLsaCloseServer;
-    
+
 } LSAMACCLIENT_FUNC_TABLE, *PLSAMACCLIENT_FUNC_TABLE;
 
 typedef DWORD (*PFN_LSACLIENTMACINITIALIZE)(

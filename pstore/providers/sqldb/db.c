@@ -237,14 +237,23 @@ SqlDBSetPwdEntry(
     BAIL_ON_LWPS_ERROR(dwError);
     
     ENTER_MACHINEPWD_DB_RW_WRITER_LOCK(bInLock);
+     
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_DELETE_MACHINEPWD_ENTRY_BY_HOST_NAME,
+                    pAcct->pszHostName);
+    if (!pszQuery) {
+        dwError = LWPS_ERROR_QUERY_CREATION_FAILED;
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
     
     dwError = sqlite3_exec(pDbHandle,
-                           DB_QUERY_DELETE_ALL_MACHINEPWD_ENTRIES,
+                           pszQuery,
                            NULL,
                            NULL,
                            &pszError);
     BAIL_ON_LWPS_ERROR(dwError);
-    
+
+    sqlite3_free(pszQuery);    
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_INSERT_MACHINEPWD_ENTRY,
                     pAcct->pszDomainSID,

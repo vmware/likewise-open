@@ -54,78 +54,49 @@ LsaSetTraceFlags(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    LSA_IPC_SET_TRACE_INFO_REQ setTraceinfoReq;
+    PLSA_IPC_ERROR pError = NULL;
 
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(pTraceFlagArray);
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
 
-    dwError = LsaMarshalTraceFlags(
-                    pTraceFlagArray,
-                    dwNumFlags,
-                    NULL,
-                    &dwMsgLen);
+    setTraceinfoReq.dwNumFlags = dwNumFlags;
+    setTraceinfoReq.pTraceFlagArray = pTraceFlagArray;
+
+    request.tag = LSA_Q_SET_TRACE_INFO;
+    request.object = &setTraceinfoReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaBuildMessage(
-                LSA_Q_SET_TRACE_INFO,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMarshalTraceFlags(
-                    pTraceFlagArray,
-                    dwNumFlags,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (pMessage->header.messageType) {
-        case LSA_R_SET_TRACE_INFO:
-        {
+    switch (response.tag)
+    {
+        case LSA_R_SET_TRACE_INFO_SUCCESS:
+            // response.object == NULL
             break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
+        case LSA_R_SET_TRACE_INFO_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        }
         default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            dwError = EINVAL;
             BAIL_ON_LSA_ERROR(dwError);
-        }
     }
 
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
 
 error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
 
     goto cleanup;
 }
@@ -138,89 +109,54 @@ LsaEnumTraceFlags(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PLSA_TRACE_INFO pTraceFlagArray = NULL;
-    DWORD dwNumFlags = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    // Do not free pResultList and pError
+    PLSA_TRACE_INFO_LIST pResultList = NULL;
+    PLSA_IPC_ERROR pError = NULL;
 
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(ppTraceFlagArray);
-    BAIL_ON_INVALID_POINTER(pdwNumFlags);
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
 
-    dwError = LsaBuildMessage(
-                LSA_Q_ENUM_TRACE_INFO,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
+    request.tag = LSA_Q_ENUM_TRACE_INFO;
+    request.object = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (pMessage->header.messageType) {
-        case LSA_R_ENUM_TRACE_INFO:
-        {
-            dwError = LsaUnmarshalTraceFlags(
-                            pMessage->pData,
-                            pMessage->header.messageLength,
-                            &pTraceFlagArray,
-                            &dwNumFlags);
-            BAIL_ON_LSA_ERROR(dwError);
-
+    switch (response.tag)
+    {
+        case LSA_R_ENUM_TRACE_INFO_SUCCESS:
+            pResultList = (PLSA_TRACE_INFO_LIST)response.object;
+            *ppTraceFlagArray = pResultList->pTraceInfoArray;
+            pResultList->pTraceInfoArray = NULL;
+            *pdwNumFlags = pResultList->dwNumFlags;
+            pResultList->dwNumFlags = 0;
             break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
+        case LSA_R_ENUM_TRACE_INFO_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
-        }
         default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
+            dwError = EINVAL;
             BAIL_ON_LSA_ERROR(dwError);
-        }
     }
 
-    *ppTraceFlagArray = pTraceFlagArray;
-    *pdwNumFlags = dwNumFlags;
-
 cleanup:
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
 
     return dwError;
 
 error:
-
-    LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
-
-    if (ppTraceFlagArray)
-    {
-        *ppTraceFlagArray = NULL;
-    }
-
-    if (pdwNumFlags)
-    {
-        *pdwNumFlags = 0;
-    }
+    *pdwNumFlags = 0;
+    *ppTraceFlagArray = NULL;
 
     goto cleanup;
 }
@@ -233,113 +169,54 @@ LsaGetTraceFlag(
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    DWORD   dwMsgLen = 0;
-    PSTR    pszError = NULL;
-    PLSA_TRACE_INFO pTraceFlag = NULL;
-    PLSA_TRACE_INFO pTraceFlagArray = NULL;
-    PLSA_TRACE_INFO pTraceInfo = NULL;
-    DWORD dwNumFlags = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    PLSA_TRACE_INFO_LIST pResult = NULL;
+    PLSA_IPC_ERROR pError = NULL;
 
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(ppTraceFlag);
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
 
-    dwError = LsaMarshalQueryTraceFlag(
-                    dwTraceFlag,
-                    NULL,
-                    &dwMsgLen);
+    request.tag = LSA_Q_GET_TRACE_INFO;
+    request.object = &dwTraceFlag;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaBuildMessage(
-                LSA_Q_GET_TRACE_INFO,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMarshalQueryTraceFlag(
-                    dwTraceFlag,
-                    pMessage->pData,
-                    &dwMsgLen);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (pMessage->header.messageType) {
-        case LSA_R_GET_TRACE_INFO:
-        {
-            dwError = LsaUnmarshalTraceFlags(
-                            pMessage->pData,
-                            pMessage->header.messageLength,
-                            &pTraceFlagArray,
-                            &dwNumFlags);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            break;
-        }
-        case LSA_ERROR:
-        {
-            DWORD dwSrvError = 0;
-
-            dwError = LsaUnmarshalError(
-                                pMessage->pData,
-                                pMessage->header.messageLength,
-                                &dwSrvError,
-                                &pszError
-                                );
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = dwSrvError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        }
-        default:
-        {
-            dwError = LSA_ERROR_UNEXPECTED_MESSAGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-
-    if (dwNumFlags != 1)
+    switch (response.tag)
     {
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
+        case LSA_R_GET_TRACE_INFO_SUCCESS:
+            pResult = (PLSA_TRACE_INFO_LIST) response.object;
+            if (pResult->dwNumFlags != 1)
+            {
+                dwError = LSA_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            *ppTraceFlag = pResult->pTraceInfoArray;
+            pResult->pTraceInfoArray = NULL;
+            pResult->dwNumFlags = 0;
+            break;
+        case LSA_R_GET_TRACE_INFO_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
     }
-
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_TRACE_INFO),
-                    (PVOID*)&pTraceFlag);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pTraceInfo = &pTraceFlagArray[0];
-    pTraceFlag->bStatus = pTraceInfo->bStatus;
-    pTraceFlag->dwTraceFlag = pTraceInfo->dwTraceFlag;
-
-    *ppTraceFlag = pTraceFlag;
 
 cleanup:
-
-    LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    LSA_SAFE_FREE_STRING(pszError);
-
     return dwError;
 
 error:
-
-    if (ppTraceFlag)
+    if (response.object)
     {
-        *ppTraceFlag = NULL;
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-
-    LSA_SAFE_FREE_MEMORY(pTraceFlag);
 
     goto cleanup;
 }

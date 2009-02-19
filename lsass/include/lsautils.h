@@ -3,6 +3,34 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+
+
+/*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
@@ -20,6 +48,7 @@
 #ifndef __LSA_UTILS_H__
 #define __LSA_UTILS_H__
 
+#include "lsaipc.h"
 #include "lsalist.h"
 
 #ifndef LW_ENDIAN_SWAP16
@@ -50,11 +79,30 @@
 
 #ifndef WIN32
 
+/* Special check for parsing error codes */
+
+#define BAIL_ON_LSA_PARSE_ERROR(dwError) \
+	if ((dwError != LSA_ERROR_SUCCESS) &&				\
+	    (dwError != LSA_ERROR_INSUFFICIENT_BUFFER)) {		\
+		LSA_LOG_DEBUG("Error at %s:%d [code: %d]",		\
+			      __FILE__, __LINE__, dwError);		\
+		goto error;						\
+	}
+
 #define BAIL_ON_LSA_ERROR(dwError) \
     if (dwError) {\
        LSA_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
        goto error;                 \
     }
+
+#define BAIL_ON_LWMSG_ERROR(pAssoc, dwError) \
+    do { \
+        if (dwError) \
+        { \
+           (dwError) = LsaTranslateLwMsgError(pAssoc, dwError, __FILE__, __LINE__); \
+           goto error; \
+        } \
+    } while (0)
 
 #define BAIL_WITH_LSA_ERROR(_newerror_) \
     do {dwError = (_newerror_); BAIL_ON_LSA_ERROR(dwError);} while (0)
@@ -254,44 +302,6 @@ extern pthread_mutex_t gTraceLock;
         LSA_UNLOCK_TRACER;                                   \
     } while (0)
 
-#if defined(LW_ENABLE_THREADS)
-
-extern pthread_mutex_t gTraceLock;
-
-#define LSA_LOCK_TRACER   pthread_mutex_lock(&gTraceLock)
-#define LSA_UNLOCK_TRACER pthread_mutex_unlock(&gTraceLock)
-
-#else
-
-#define LSA_LOCK_TRACER
-#define LSA_UNLOCK_TRACER
-
-#endif
-
-#define LSA_TRACE_BEGIN_FUNCTION(traceFlagArray, dwNumFlags)  \
-    do {                                                      \
-        LSA_LOCK_TRACER;                                      \
-        if (LsaTraceIsAllowed(traceFlagArray, dwNumFlags)) {  \
-            LSA_LOG_ALWAYS("Begin %s() %s:%d",                \
-                           __FUNCTION__,                      \
-                           __FILE__,                          \
-                           __LINE__);                         \
-        }                                                     \
-        LSA_UNLOCK_TRACER;                                    \
-    } while (0)
-
-#define LSA_TRACE_END_FUNCTION(traceFlagArray, dwNumFlags)   \
-    do {                                                     \
-        LSA_LOCK_TRACER;                                     \
-        if (LsaTraceIsAllowed(traceFlagArray, dwNumFlags)) { \
-            LSA_LOG_ALWAYS("End %s() %s:%d",                 \
-                           __FUNCTION__,                     \
-                           __FILE__,                         \
-                           __LINE__);                        \
-        }                                                    \
-        LSA_UNLOCK_TRACER;                                   \
-    } while (0)
-
 #define SERVICE_LDAP        1
 #define SERVICE_KERBEROS    2
 
@@ -439,21 +449,6 @@ typedef struct _SEC_BUFFER_RELATIVE {
     ULONG  offset;
 } SEC_BUFFER_RELATIVE, *PSEC_BUFFER_RELATIVE;
 
-typedef struct _SEC_BUFFER {
-    USHORT length;
-    USHORT maxLength;
-    PBYTE  buffer;
-} SEC_BUFFER, *PSEC_BUFFER;
-
-/* static buffer secbufer */
-#define S_BUFLEN 24
-
-typedef struct _SEC_BUFFER_S {
-    USHORT length;
-    USHORT maxLength;
-    BYTE buffer[S_BUFLEN];
-} SEC_BUFFER_S, *PSEC_BUFFER_S;
-
 typedef struct _OID {
     DWORD length;
     PVOID *elements;
@@ -492,26 +487,6 @@ typedef struct __LSA_LOGIN_NAME_INFO
     PSTR  pszObjectSid;
 } LSA_LOGIN_NAME_INFO, *PLSA_LOGIN_NAME_INFO;
 
-typedef struct __LSADATACOORDINATES {
-    DWORD offset;
-    DWORD length;
-} LSADATACOORDINATES, *PLSADATACOORDINATES;
-
-typedef struct __LSACREDENTIALHEADER {
-    LSADATACOORDINATES login;
-    LSADATACOORDINATES passwd;
-    LSADATACOORDINATES old_passwd;
-} LSACREDENTIALHEADER, *PLSACREDENTIALHEADER;
-
-typedef struct __LSAERRORRECORDHEADER {
-    DWORD              errorCode;
-    LSADATACOORDINATES message;
-} LSAERRORRECORDHEADER, *PLSAERRORRECORDHEADER;
-
-typedef struct __LSASESSIONHEADER {
-    LSADATACOORDINATES login;
-} LSASESSIONHEADER, *PLSASESSIONHEADER;
-
 typedef enum
 {
     LsaMetricSuccessfulAuthentications    =  0,
@@ -540,6 +515,35 @@ typedef struct __LSA_NIS_NICKNAME
     PSTR pszMapAlias;
     PSTR pszMapName;
 } LSA_NIS_NICKNAME, *PLSA_NIS_NICKNAME;
+
+typedef DWORD (*PFLSA_CACHE_HASH) (PVOID pKey, DWORD dwIndex, PVOID pData);
+typedef BOOLEAN (*PFLSA_CACHE_EQUAL) (PVOID pKey1, PVOID pKey2, DWORD dwIndex, PVOID pData);
+typedef PVOID (*PFLSA_CACHE_GETKEY) (PVOID pEntry, DWORD dwIndex, PVOID pData);
+typedef DWORD (*PFLSA_CACHE_MISS) (PVOID pKey, DWORD dwIndex, PVOID pData, PVOID* ppEntry);
+typedef DWORD (*PFLSA_CACHE_KICK) (PVOID pEntry, PVOID pData);
+
+typedef struct __LSA_CACHE_ENTRY
+{
+    DWORD dwRefCount;
+} LSA_CACHE_ENTRY, *PLSA_CACHE_ENTRY;
+
+typedef struct __LSA_CACHE
+{
+    DWORD dwNumKeys;
+    DWORD dwNumBuckets;
+    PVOID* ppEntries;
+    PFLSA_CACHE_HASH pfHash;
+    PFLSA_CACHE_EQUAL pfEqual;
+    PFLSA_CACHE_GETKEY pfGetKey;
+    PFLSA_CACHE_MISS pfMiss;
+    PFLSA_CACHE_KICK pfKick;
+    PVOID pData;
+    DWORD dwNumHashMisses;
+    DWORD dwNumFullMisses;
+    DWORD dwNumKicks;
+    DWORD dwNumUsedBuckets;
+    DWORD dwNumCollisions;
+} LSA_CACHE, *PLSA_CACHE;
 
 #if !defined(HAVE_STRTOLL)
 
@@ -608,7 +612,6 @@ LsaAllocateString(
     PCSTR pszInputString,
     PSTR *ppszOutputString
     );
-
 
 void
 LsaFreeString(
@@ -836,20 +839,23 @@ LsaHashCreate(
 
 void
 LsaHashSafeFree(
-        LSA_HASH_TABLE** ppResult);
+    LSA_HASH_TABLE** ppResult
+    );
 
 DWORD
 LsaHashSetValue(
-        LSA_HASH_TABLE *pTable,
-        PVOID  pKey,
-        PVOID  pValue);
+    LSA_HASH_TABLE *pTable,
+    PVOID  pKey,
+    PVOID  pValue
+    );
 
 //Returns ENOENT if pKey is not in the table
 DWORD
 LsaHashGetValue(
-        LSA_HASH_TABLE *pTable,
-        PCVOID  pKey,
-        PVOID* ppValue);
+    LSA_HASH_TABLE *pTable,
+    PCVOID  pKey,
+    PVOID* ppValue
+    );
 
 BOOLEAN
 LsaHashExists(
@@ -866,33 +872,38 @@ LsaHashCopy(
 //Invalidates all iterators
 DWORD
 LsaHashResize(
-        LSA_HASH_TABLE *pTable,
-        size_t sTableSize);
+    LSA_HASH_TABLE *pTable,
+    size_t sTableSize
+    );
 
 DWORD
 LsaHashGetIterator(
-        LSA_HASH_TABLE *pTable,
-        LSA_HASH_ITERATOR *pIterator);
+    LSA_HASH_TABLE *pTable,
+    LSA_HASH_ITERATOR *pIterator
+    );
 
 // returns NULL after passing the last entry
 LSA_HASH_ENTRY *
 LsaHashNext(
-        LSA_HASH_ITERATOR *pIterator
-        );
+    LSA_HASH_ITERATOR *pIterator
+    );
 
 DWORD
 LsaHashRemoveKey(
-        LSA_HASH_TABLE *pTable,
-        PVOID  pKey);
+    LSA_HASH_TABLE *pTable,
+    PVOID  pKey
+    );
 
 int
 LsaHashCaselessStringCompare(
-        PCVOID str1,
-        PCVOID str2);
+    PCVOID str1,
+    PCVOID str2
+    );
 
 size_t
 LsaHashCaselessString(
-        PCVOID str);
+    PCVOID str
+    );
 
 VOID
 LsaHashFreeStringKey(
@@ -1323,6 +1334,13 @@ LsaSetSecurityIdentifierRid(
     );
 
 DWORD
+LsaReplaceSidRid(
+    IN PCSTR pszSid,
+    IN DWORD dwNewRid,
+    OUT PSTR* ppszNewSid
+    );
+
+DWORD
 LsaGetSecurityIdentifierHashedRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PDWORD dwHashedRid
@@ -1403,136 +1421,6 @@ LsaStrError(
     size_t buflen
     );
 
-DWORD
-LsaMarshalCredentials(
-    PCSTR  pszLoginName,
-    PCSTR  pszPassword,
-    PCSTR  pszOldPassword,
-    PSTR   pszBuffer,
-    PDWORD pdwBufLen
-    );
-
-DWORD
-LsaUnmarshalCredentials(
-    PCSTR pszMsgBuf,
-    DWORD dwMsgLen,
-    PSTR* ppszLoginName,
-    PSTR* ppszPassword,
-    PSTR* ppszOldPassword
-    );
-
-DWORD
-LsaMarshalError(
-    DWORD errorCode,
-    PCSTR pszErrorMessage,
-    PSTR  pszBuf,
-    PDWORD pdwBufLen
-    );
-
-DWORD
-LsaUnmarshalError(
-    PCSTR  pszMsgBuf,
-    DWORD  dwMsgLen,
-    PDWORD pdwError,
-    PSTR*  ppszError
-    );
-
-DWORD
-LsaMarshalGSSMakeAuthMsgQ(
-    PSEC_BUFFER     credentials,
-    PSEC_BUFFER_S   serverChallenge,
-    PSEC_BUFFER     targetInfo,
-    ULONG           negotiateFlags,
-    PSTR            pszMsg,
-    DWORD *         pdwMsgLen
-    );
-
-DWORD
-LsaUnMarshalGSSMakeAuthMsgQ(
-    PCSTR           pszMsg,
-    DWORD           dwMsgLen,
-    PSEC_BUFFER     credentials,
-    PSEC_BUFFER_S   serverChallenge,
-    PSEC_BUFFER     targetInfo,
-    ULONG  *        negotiateFlags
-    );
-
-DWORD
-LsaMarshalGSSMakeAuthMsgR(
-    DWORD           msgError,
-    PSEC_BUFFER     authenticateMessage,
-    PSEC_BUFFER_S   sessionKey,
-    PSTR            pszMsg,
-    DWORD *         pdwMsgLen
-    );
-
-DWORD
-LsaUnMarshalGSSMakeAuthMsgR(
-    PCSTR       pszMsg,
-    DWORD       dwMsgLen,
-    DWORD *     dwMsgError,
-    PSEC_BUFFER authenticateMessage,
-    PSEC_BUFFER_S baseSessionKey
-    );
-
-DWORD
-LsaMarshalGSSCheckAuthMsgQ(
-    ULONG           negotiateFlags,
-    PSEC_BUFFER_S   serverChallenge,
-    PSEC_BUFFER     targetInfo,
-    PSEC_BUFFER     authenticateMessage,
-    PSTR            pszMsg,
-    DWORD *         pdwMsgLen
-    );
-
-DWORD
-LsaUnMarshalGSSCheckAuthMsgQ(
-    PCSTR           pszMsg,
-    DWORD           dwMsgLen,
-    ULONG  *        negotiateFlags,
-    PSEC_BUFFER_S   serverChallenge,
-    PSEC_BUFFER     targetInfo,
-    PSEC_BUFFER     authenticateMessage
-    );
-
-
-DWORD
-LsaMarshalGSSCheckAuthMsgR(
-    DWORD           msgError,
-    PSEC_BUFFER_S   baseSessionKey,
-    PSTR            pszMsg,
-    DWORD *         pdwMsgLen
-    );
-
-
-DWORD
-LsaUnMarshalGSSCheckAuthMsgR(
-    PCSTR           pszMsg,
-    DWORD           dwMsgLen,
-    DWORD          *msgError,
-    PSEC_BUFFER_S   baseSessionKey
-    );
-
-DWORD
-LsaMarshalSession(
-    PCSTR  pszLoginId,
-    PSTR   pszBuffer,
-    PDWORD pdwBufLen
-    );
-
-DWORD
-LsaUnmarshalSession(
-    PCSTR pszMsgBuf,
-    DWORD dwMsgLen,
-    PSTR* ppszLoginId
-    );
-
-DWORD
-LsaMarshalConfigurationRefreshRequest(
-    PSTR   pszBuffer,
-    PDWORD pdwBufLen
-    );
-
 VOID
 LsaFreeDCInfo(
     PLSA_DC_INFO pDCInfo
@@ -1570,6 +1458,57 @@ VOID
 LsaNISFreeNicknameList(
     PDLINKEDLIST pNicknameList
     );
+
+DWORD
+LsaCacheNew(
+    DWORD dwNumKeys,
+    DWORD dwNumBuckets,
+    PFLSA_CACHE_HASH pfHash,
+    PFLSA_CACHE_EQUAL pfEqual,
+    PFLSA_CACHE_GETKEY pfGetKey,
+    PFLSA_CACHE_MISS pfMiss,
+    PFLSA_CACHE_KICK pfKick,
+    PVOID pData,
+    PLSA_CACHE* ppCache
+    );
+
+DWORD
+LsaCacheInsert(
+    PLSA_CACHE pCache,
+    PVOID pEntry
+    );
+
+DWORD
+LsaCacheRemove(
+    PLSA_CACHE pCache,
+    PVOID pEntry
+    );
+
+DWORD
+LsaCacheLookup(
+    PLSA_CACHE pCache,
+    PVOID pkey,
+    DWORD dwIndex,
+    PVOID* ppEntry
+    );
+
+DWORD
+LsaCacheFlush(
+    PLSA_CACHE pCache
+    );
+
+VOID
+LsaCacheDelete(
+    PLSA_CACHE pCache
+    );
+
+DWORD
+LsaTranslateLwMsgError(
+        LWMsgAssoc *pAssoc,
+        DWORD dwMsgError,
+        const char *file,
+        int line
+        );
 
 #endif /* __LSA_UTILS_H__ */
 

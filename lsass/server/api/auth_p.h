@@ -57,6 +57,14 @@ LsaSrvAuthenticateUser(
     );
 
 DWORD
+LsaSrvAuthenticateUserEx(
+    HANDLE hServer,
+    PLSA_AUTH_USER_PARAMS pUserParms,
+    PLSA_AUTH_USER_INFO *ppUserInfo
+    );
+
+
+DWORD
 LsaSrvValidateUser(
     HANDLE hServer,
     PCSTR  pszLoginId,

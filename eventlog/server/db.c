@@ -450,10 +450,10 @@ SrvMaintainDB(
     EVT_LOG_VERBOSE("Actual Log size = %d ",dwActualSize);
     if(dwActualSize >= dwMaxLogSize) {
         EVT_LOG_VERBOSE("Log Size is exceeds the maximum limit set");
-
+        
         goto error;
     }
-
+	
     //Safe to insert record,set bSafeInsert to TRUE
     *pbSafeInsert = TRUE;
 

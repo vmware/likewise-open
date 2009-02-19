@@ -55,8 +55,5 @@
 #include "lwnet-utils.h"
 #include "lwnet-ipc.h"
 
-#include "ipcio_p.h"
-#include "ipcmsg_p.h"
-#include "marshal_error_p.h"
-#include "marshal_lwnetdata_p.h"
+#include <lwmsg/lwmsg.h>
 

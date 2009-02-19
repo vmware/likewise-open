@@ -677,6 +677,20 @@ gss_krb5int_export_lucid_sec_context(OM_uint32 *minor_status,
 				     void **kctx);
 
 
+OM_uint32 krb5_gss_inquire_context2
+(OM_uint32*,       /* minor_status */
+	    gss_ctx_id_t,     /* context_handle */
+	    gss_name_t*,      /* initiator_name */
+	    gss_name_t*,      /* acceptor_name */
+	    OM_uint32*,       /* lifetime_rec */
+	    gss_OID*,         /* mech_type */
+	    OM_uint32*,       /* ret_flags */
+	    int*,             /* locally_initiated */
+	    int*,             /* open */
+	    gss_buffer_t      /* session_key */
+	   );
+
+
 extern k5_mutex_t kg_kdc_flag_mutex;
 krb5_error_code krb5_gss_init_context (krb5_context *ctxp);
 

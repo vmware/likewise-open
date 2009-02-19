@@ -38,5 +38,6 @@
 #include <lwrpc/LMjoin.h>
 #include <lwrpc/LMldap.h>
 #include <lwrpc/LMdebug.h>
+#include <lwrpc/LMcrypt.h>
 
 #endif /* _LM_H_ */

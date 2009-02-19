@@ -5,6 +5,7 @@ compat_subdirs = \
 	    logging_r  \
         ipc            \
         client         \
+        provider       \
         auth @MACCLIENT_DIR@ \
         nsswitch
 
@@ -20,7 +21,8 @@ full_subdirs= \
         etc               \
         include           \
         scripts           \
-        tests          
+        tests             \
+        docs
 
 if ENABLE_COMPAT
 SUBDIRS = $(compat_subdirs)

@@ -157,30 +157,6 @@ LsaDmWrapEnumInMyForestTrustDomains(
 }
 
 DWORD
-LsaDmWrapGetForestName(
-    IN PCSTR pszDomainName,
-    OUT PSTR* ppszDnsForestName
-    )
-{
-    return LsaDmQueryDomainInfo(pszDomainName,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                ppszDnsForestName,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL);
-}
-
-DWORD
 LsaDmWrapGetDomainName(
     IN PCSTR pszDomainName,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
@@ -278,211 +254,6 @@ error:
     goto cleanup;
 }
 
-static
-DWORD
-LsaDmWrappQueryForestNameFromNetlogon(
-    IN PCSTR pszDnsDomainName,
-    OUT PSTR* ppszDnsForestName
-    )
-{
-    DWORD dwError = 0;
-    PLWNET_DC_INFO pDcInfo = NULL;
-    PSTR pszDnsForestName = NULL;
-
-    // Try background first, then not.
-    dwError = LWNetGetDCName(NULL,
-                             pszDnsDomainName,
-                             NULL,
-                             DS_BACKGROUND_ONLY,
-                             &pDcInfo);
-    if (dwError)
-    {
-        dwError = LWNetGetDCName(NULL,
-                                 pszDnsDomainName,
-                                 NULL,
-                                 0,
-                                 &pDcInfo);
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaAllocateString(pDcInfo->pszDnsForestName, &pszDnsForestName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppszDnsForestName = pszDnsForestName;
-
-cleanup:
-    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
-    return dwError;
-
-error:
-    *ppszDnsForestName = NULL;
-    LSA_SAFE_FREE_STRING(pszDnsForestName);
-    goto cleanup;
-}
-
-
-#define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
-
-typedef DWORD LSA_DM_WRAP_CONNECT_DOMAIN_FLAGS;
-
-#define LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_GC           0x00000001
-#define LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO      0x00000002
-#define LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH         0x00000004
-
-typedef DWORD (*PFLSA_DM_WRAP_CONNECT_CALLBACK)(
-    IN PCSTR pszDnsDomainOrForestName,
-    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
-    IN OPTIONAL PVOID pContext,
-    OUT PBOOLEAN pbIsNetworkError
-    );
-
-BOOLEAN
-LsaDmWrappIsNetworkError(
-    IN DWORD dwError
-    )
-{
-    BOOLEAN bIsNetworkError = FALSE;
-
-    switch (dwError)
-    {
-        case LSA_ERROR_DOMAIN_IS_OFFLINE:
-        case LWNET_ERROR_INVALID_DNS_RESPONSE:
-        case LWNET_ERROR_FAILED_FIND_DC:
-            bIsNetworkError = TRUE;
-            break;
-        default:
-            bIsNetworkError = FALSE;
-            break;
-    }
-
-    return bIsNetworkError;
-}
-
-static
-DWORD
-LsaDmWrappConnectDomain(
-    IN PCSTR pszDnsDomainName,
-    IN LSA_DM_WRAP_CONNECT_DOMAIN_FLAGS dwConnectFlags,
-    IN PLWNET_DC_INFO pDcInfo,
-    IN PFLSA_DM_WRAP_CONNECT_CALLBACK pfConnectCallback,
-    IN OPTIONAL PVOID pContext
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszDnsForestName = NULL;
-    PCSTR pszDnsDomainOrForestName = pszDnsDomainName;
-    PLWNET_DC_INFO pLocalDcInfo = NULL;
-    PLWNET_DC_INFO pActualDcInfo = pDcInfo;
-    DWORD dwGetDcNameFlags = 0;
-    BOOLEAN bIsNetworkError = FALSE;
-    BOOLEAN bUseGc = IsSetFlag(dwConnectFlags, LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_GC);
-    BOOLEAN bUseDcInfo = IsSetFlag(dwConnectFlags, LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO);
-
-    if (bUseGc)
-    {
-        dwError = LsaDmWrapGetForestName(pszDnsDomainName,
-                                         &pszDnsForestName);
-        BAIL_ON_LSA_ERROR(dwError);
-        if (!pszDnsForestName)
-        {
-            // This is the case where there is an external trust such
-            // that we do not have forest root information.
-            // So let's do what we can.
-
-            // ISSUE-2008/09/22-dalmeida -- It is likely never correct to
-            // access the GC for an external trust.  We should check the
-            // trust attributes here and ASSERT some invariants.
-            // For now, however, we will log and try our best to comply
-            // with the caller.  This should help identify whether
-            // there are any mis-uses.
-            LSA_LOG_WARNING("Trying to access forest root for probable external trust (%s).",
-                            pszDnsDomainName);
-            dwError = LsaDmWrappQueryForestNameFromNetlogon(
-                        pszDnsDomainName,
-                        &pszDnsForestName);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        pszDnsDomainOrForestName = pszDnsForestName;
-        dwGetDcNameFlags |= DS_GC_SERVER_REQUIRED;
-    }
-
-    if (LsaDmIsDomainOffline(pszDnsDomainOrForestName))
-    {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (IsSetFlag(dwConnectFlags, LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH))
-    {
-        dwError = AD_MachineCredentialsCacheInitialize();
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (bUseDcInfo && !pActualDcInfo)
-    {
-        dwError = LWNetGetDCName(NULL,
-                                 pszDnsDomainOrForestName,
-                                 NULL,
-                                 dwGetDcNameFlags,
-                                 &pLocalDcInfo);
-        bIsNetworkError = LsaDmWrappIsNetworkError(dwError);
-        BAIL_ON_LSA_ERROR(dwError);
-        pActualDcInfo = pLocalDcInfo;
-    }
-
-    dwError = pfConnectCallback(pszDnsDomainOrForestName,
-                                pActualDcInfo,
-                                pContext,
-                                &bIsNetworkError);
-    if (!dwError)
-    {
-        goto cleanup;
-    }
-    if (!bIsNetworkError)
-    {
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    if (!bUseDcInfo)
-    {
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    LWNET_SAFE_FREE_DC_INFO(pLocalDcInfo);
-    pActualDcInfo = NULL;
-    dwError = LWNetGetDCName(NULL,
-                             pszDnsDomainOrForestName,
-                             NULL,
-                             dwGetDcNameFlags | DS_FORCE_REDISCOVERY,
-                             &pLocalDcInfo);
-    bIsNetworkError = LsaDmWrappIsNetworkError(dwError);
-    BAIL_ON_LSA_ERROR(dwError);
-    pActualDcInfo = pLocalDcInfo;
-
-    dwError = pfConnectCallback(pszDnsDomainOrForestName,
-                                pActualDcInfo,
-                                pContext,
-                                &bIsNetworkError);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    LWNET_SAFE_FREE_DC_INFO(pLocalDcInfo);
-    LSA_SAFE_FREE_STRING(pszDnsForestName);
-    return dwError;
-
-error:
-    if (bIsNetworkError)
-    {
-        DWORD dwLocalError = LsaDmTransitionOffline(pszDnsDomainOrForestName);
-        if (dwLocalError)
-        {
-            LSA_LOG_DEBUG("Error %d transitioning %s offline",
-                          dwLocalError, pszDnsDomainOrForestName);
-        }
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
-    }
-    goto cleanup;
-}
-
 ///
 /// Callback contexts
 ///
@@ -495,11 +266,13 @@ typedef struct _LSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT {
 typedef struct _LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT {
     IN PCSTR pszName;
     OUT PSTR pszSid;
+    OUT ADAccountType ObjectType;
 } LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT;
 
 typedef struct _LSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT {
     IN PCSTR pszSid;
     OUT PSTR pszNT4Name;
+    OUT ADAccountType ObjectType;
 } LSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT;
 
 typedef struct _LSA_DM_WRAP_LOOKUP_NAMES_BY_SIDS_CALLBACK_CONTEXT {
@@ -521,6 +294,11 @@ typedef struct _LSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT {
     OUT NetrDomainTrust* pTrusts;
     OUT DWORD dwCount;
 } LSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT, *PLSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT;
+
+typedef struct _LSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT {
+    IN PLSA_AUTH_USER_PARAMS pUserParams;
+    OUT PLSA_AUTH_USER_INFO  *ppUserInfo;
+} LSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT, *PLSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT;
 
 ///
 /// Callback functions
@@ -544,44 +322,6 @@ LsaDmWrappLdapPingTcpCallback(
 
 static
 DWORD
-LsaDmWrappLdapOpenDirectoryDomainCallback(
-    IN PCSTR pszDnsDomainOrForestName,
-    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
-    IN OPTIONAL PVOID pContext,
-    OUT PBOOLEAN pbIsNetworkError
-    )
-{
-    DWORD dwError = 0;
-    PLSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT) pContext;
-
-    dwError = LsaLdapOpenDirectoryDomain(pszDnsDomainOrForestName,
-                                         pCtx->dwFlags,
-                                         &pCtx->hDirectory);
-    *pbIsNetworkError = dwError ? TRUE : FALSE;
-    return dwError;
-}
-
-static
-DWORD
-LsaDmWrappLdapOpenDirectoryGcCallback(
-    IN PCSTR pszDnsDomainOrForestName,
-    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
-    IN OPTIONAL PVOID pContext,
-    OUT PBOOLEAN pbIsNetworkError
-    )
-{
-    DWORD dwError = 0;
-    PLSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT) pContext;
-
-    dwError = LsaLdapOpenDirectoryGc(pszDnsDomainOrForestName,
-                                     pCtx->dwFlags,
-                                     &pCtx->hDirectory);
-    *pbIsNetworkError = dwError ? TRUE : FALSE;
-    return dwError;
-}
-
-static
-DWORD
 LsaDmWrappLookupSidByNameCallback(
     IN PCSTR pszDnsDomainOrForestName,
     IN OPTIONAL PLWNET_DC_INFO pDcInfo,
@@ -595,6 +335,7 @@ LsaDmWrappLookupSidByNameCallback(
     dwError = AD_NetLookupObjectSidByName(pDcInfo->pszDomainControllerName,
                                           pCtx->pszName,
                                           &pCtx->pszSid,
+                                          &pCtx->ObjectType,
                                           pbIsNetworkError);
     return dwError;
 }
@@ -614,6 +355,7 @@ LsaDmWrappLookupNameBySidCallback(
                     pDcInfo->pszDomainControllerName,
                     pCtx->pszSid,
                     &pCtx->pszNT4Name,
+                    &pCtx->ObjectType,
                     pbIsNetworkError);
 }
 
@@ -688,8 +430,8 @@ LsaDmWrapLdapPingTcp(
 {
     DWORD dwError = 0;
 
-    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
                                       NULL,
                                       LsaDmWrappLdapPingTcpCallback,
                                       NULL);
@@ -697,61 +439,11 @@ LsaDmWrapLdapPingTcp(
 }
 
 DWORD
-LsaDmWrapLdapOpenDirectoryDomain(
-    IN PCSTR pszDnsDomainName,
-    OUT PHANDLE phDirectory
-    )
-{
-    DWORD dwError = 0;
-    LSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT context = { 0 };
-
-    if (AD_GetLDAPSignAndSeal())
-    {
-        context.dwFlags |= LSA_LDAP_OPT_SIGN_AND_SEAL;
-    }
-
-    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH,
-                                      NULL,
-                                      LsaDmWrappLdapOpenDirectoryDomainCallback,
-                                      &context);
-
-    *phDirectory = context.hDirectory;
-
-    return dwError;
-}
-
-DWORD
-LsaDmWrapLdapOpenDirectoryGc(
-    IN PCSTR pszDnsDomainName,
-    OUT PHANDLE phDirectory
-    )
-{
-    DWORD dwError = 0;
-    LSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT context = { 0 };
-
-    if (AD_GetLDAPSignAndSeal())
-    {
-        context.dwFlags |= LSA_LDAP_OPT_SIGN_AND_SEAL;
-    }
-
-    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_GC,
-                                      NULL,
-                                      LsaDmWrappLdapOpenDirectoryGcCallback,
-                                      &context);
-
-    *phDirectory = context.hDirectory;
-
-    return dwError;
-}
-
-DWORD
 LsaDmWrapNetLookupObjectSidByName(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszName,
-    OUT PSTR* ppszSid
+    OUT PSTR* ppszSid,
+    OUT OPTIONAL PBOOLEAN pbIsUser
     )
 {
     DWORD dwError = 0;
@@ -759,14 +451,19 @@ LsaDmWrapNetLookupObjectSidByName(
 
     context.pszName = pszName;
 
-    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
                                       NULL,
                                       LsaDmWrappLookupSidByNameCallback,
                                       &context);
 
     *ppszSid = context.pszSid;
+
+    if (pbIsUser)
+    {
+        *pbIsUser = (context.ObjectType == AccountType_User);
+    }
 
     return dwError;
 }
@@ -775,7 +472,8 @@ DWORD
 LsaDmWrapNetLookupNameByObjectSid(
     IN  PCSTR pszDnsDomainName,
     IN  PCSTR pszSid,
-    OUT PSTR* ppszName
+    OUT PSTR* ppszName,
+    OUT OPTIONAL PBOOLEAN pbIsUser
     )
 {
     DWORD dwError = 0;
@@ -783,14 +481,19 @@ LsaDmWrapNetLookupNameByObjectSid(
 
     context.pszSid = pszSid;
 
-    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
                                       NULL,
                                       LsaDmWrappLookupNameBySidCallback,
                                       &context);
 
     *ppszName = context.pszNT4Name;
+
+    if (pbIsUser)
+    {
+        *pbIsUser = (context.ObjectType == AccountType_User);
+    }
 
     return dwError;
 }
@@ -810,9 +513,9 @@ LsaDmWrapNetLookupNamesByObjectSids(
     context.ppszSids = ppszSids;
     context.dwSidCounts = dwSidCounts;
 
-    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
                                       NULL,
                                       LsaDmWrappLookupNamesBySidsCallback,
                                       &context);
@@ -838,9 +541,9 @@ LsaDmWrapNetLookupObjectSidsByNames(
     context.ppszNames = ppszNames;
     context.dwNameCounts = dwNameCounts;
 
-    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
                                       NULL,
                                       LsaDmWrappLookupSidsByNamesCallback,
                                       &context);
@@ -864,9 +567,9 @@ LsaDmWrapDsEnumerateDomainTrusts(
 
     context.dwFlags = dwFlags;
 
-    dwError = LsaDmWrappConnectDomain(pszDnsDomainName,
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_AUTH |
-                                      LSA_DM_WRAP_CONNECT_DOMAIN_FLAG_DC_INFO,
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
                                       NULL,
                                       LsaDmWrappDsEnumerateDomainTrustsCallback,
                                       &context);
@@ -877,3 +580,45 @@ LsaDmWrapDsEnumerateDomainTrusts(
     return dwError;
 }
 
+static
+DWORD
+LsaDmWrappAuthenticateUserExCallback(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    PLSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT) pContext;
+
+    return AD_NetlogonAuthenticationUserEx(
+                    pDcInfo->pszDomainControllerName,
+                    pCtx->pUserParams,
+                    pCtx->ppUserInfo,
+                    pbIsNetworkError);
+}
+
+DWORD
+LsaDmWrapAuthenticateUserEx(
+    IN PCSTR pszDnsDomainName,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    LSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT context = { 0 };
+
+    context.pUserParams = pUserParams;
+    context.ppUserInfo = ppUserInfo;
+
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
+                                      NULL,
+                                      LsaDmWrappAuthenticateUserExCallback,
+                                      &context);
+
+    *ppUserInfo = *(context.ppUserInfo);
+
+    return dwError;
+}

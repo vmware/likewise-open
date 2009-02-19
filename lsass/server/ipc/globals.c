@@ -46,81 +46,55 @@
  */
 #include "ipc.h"
 
-LSAMESSAGEHANDLER gMessageHandlers[] =
+
+static LWMsgDispatchSpec gMessageHandlers[] =
 {
- { LSA_ERROR,                      LsaServer, NULL                      },//0
- { LSA_Q_GROUP_BY_ID,              LsaClient, &LsaSrvIpcFindGroupById   },//1
- { LSA_R_GROUP_BY_ID,              LsaServer, NULL                      },//2
- { LSA_Q_GROUP_BY_NAME,            LsaClient, &LsaSrvIpcFindGroupByName },//3
- { LSA_R_GROUP_BY_NAME,            LsaServer, NULL                      },//4
- { LSA_Q_BEGIN_ENUM_GROUPS,        LsaClient, &LsaSrvIpcBeginEnumGroups },//5
- { LSA_R_BEGIN_ENUM_GROUPS,        LsaServer, NULL                      },//6
- { LSA_Q_ENUM_GROUPS,              LsaClient, &LsaSrvIpcEnumGroups      },//7
- { LSA_R_ENUM_GROUPS,              LsaServer, NULL                      },//8
- { LSA_Q_END_ENUM_GROUPS,          LsaClient, &LsaSrvIpcEndEnumGroups   },//9
- { LSA_R_END_ENUM_GROUPS,          LsaServer, NULL                      },//10
- { LSA_Q_USER_BY_ID,               LsaClient, &LsaSrvIpcFindUserById    },//11
- { LSA_R_USER_BY_ID,               LsaServer, NULL                      },//12
- { LSA_Q_USER_BY_NAME,             LsaClient, &LsaSrvIpcFindUserByName  },//13
- { LSA_R_USER_BY_NAME,             LsaServer, NULL                      },//14
- { LSA_Q_BEGIN_ENUM_USERS,         LsaClient, &LsaSrvIpcBeginEnumUsers  },//15
- { LSA_R_BEGIN_ENUM_USERS,         LsaServer, NULL                      },//16
- { LSA_Q_ENUM_USERS,               LsaClient, &LsaSrvIpcEnumUsers       },//17
- { LSA_R_ENUM_USERS,               LsaServer, NULL                      },//18
- { LSA_Q_END_ENUM_USERS,           LsaClient, &LsaSrvIpcEndEnumUsers    },//19
- { LSA_R_END_ENUM_USERS,           LsaServer, NULL                      },//20
- { LSA_Q_AUTH_USER,                LsaClient, &LsaSrvIpcAuthenticateUser},//21
- { LSA_R_AUTH_USER,                LsaServer, NULL                      },//22
- { LSA_Q_VALIDATE_USER,            LsaClient, &LsaSrvIpcValidateUser    },//23
- { LSA_R_VALIDATE_USER,            LsaServer, NULL                      },//24
- { LSA_Q_ADD_USER,                 LsaClient, &LsaSrvIpcAddUser         },//25
- { LSA_R_ADD_USER,                 LsaServer, NULL                      },//26
- { LSA_Q_DELETE_USER,              LsaClient, &LsaSrvIpcDeleteUser      },//27
- { LSA_R_DELETE_USER,              LsaServer, NULL                      },//28
- { LSA_Q_ADD_GROUP,                LsaClient, &LsaSrvIpcAddGroup        },//29
- { LSA_R_ADD_GROUP,                LsaServer, NULL                      },//30
- { LSA_Q_DELETE_GROUP,             LsaClient, &LsaSrvIpcDeleteGroup     },//31
- { LSA_R_DELETE_GROUP,             LsaServer, NULL                      },//32
- { LSA_Q_CHANGE_PASSWORD,          LsaClient, &LsaSrvIpcChangePassword  },//33
- { LSA_R_CHANGE_PASSWORD,          LsaServer, NULL                      },//34
- { LSA_Q_OPEN_SESSION,             LsaClient, &LsaSrvIpcOpenSession     },//35
- { LSA_R_OPEN_SESSION,             LsaServer, NULL                      },//36
- { LSA_Q_CLOSE_SESSION,            LsaClient, &LsaSrvIpcCloseSession    },//37
- { LSA_R_CLOSE_SESSION,            LsaServer, NULL                      },//38
- { LSA_Q_MODIFY_USER,              LsaClient, &LsaSrvIpcModifyUser      },//39
- { LSA_R_MODIFY_USER,              LsaServer, NULL                      },//40
- { LSA_Q_GROUPS_FOR_USER,          LsaClient, &LsaSrvIpcGetGroupsForUser},//41
- { LSA_R_GROUPS_FOR_USER,          LsaServer, NULL                      },//42
- { LSA_Q_NAMES_BY_SID_LIST,        LsaClient, &LsaSrvIpcGetNamesBySidList},//43
- { LSA_R_NAMES_BY_SID_LIST,        LsaServer, NULL                      },//44
- { LSA_Q_GSS_MAKE_AUTH_MSG,        LsaClient, &LsaSrvIpcBuildAuthMessage},//45
- { LSA_R_GSS_MAKE_AUTH_MSG,        LsaServer, NULL                      },//46
- { LSA_Q_GSS_CHECK_AUTH_MSG,       LsaClient, &LsaSrvIpcCheckAuthMessage},//47
- { LSA_R_GSS_CHECK_AUTH_MSG,       LsaServer, NULL                      },//48
- { LSA_Q_BEGIN_ENUM_NSS_ARTEFACTS, LsaClient, &LsaSrvIpcBeginEnumNSSArtefacts },//49
- { LSA_R_BEGIN_ENUM_NSS_ARTEFACTS, LsaServer, NULL                            },//50
- { LSA_Q_ENUM_NSS_ARTEFACTS,       LsaClient, &LsaSrvIpcEnumNSSArtefacts      },//51
- { LSA_R_ENUM_NSS_ARTEFACTS,       LsaServer, NULL                            },//52
- { LSA_Q_END_ENUM_NSS_ARTEFACTS,   LsaClient, &LsaSrvIpcEndEnumNSSArtefacts   },//53
- { LSA_R_END_ENUM_NSS_ARTEFACTS,   LsaServer, NULL                            },//54
- { LSA_Q_SET_LOGINFO,              LsaClient, &LsaSrvIpcSetLogInfo            },//55
- { LSA_R_SET_LOGINFO,              LsaServer, NULL                            },//56
- { LSA_Q_GET_LOGINFO,              LsaClient, &LsaSrvIpcGetLogInfo            },//57
- { LSA_R_GET_LOGINFO,              LsaServer, NULL                            },//58
- { LSA_Q_GET_METRICS,              LsaClient, &LsaSrvIpcGetMetrics            },//59
- { LSA_R_GET_METRICS,              LsaServer, NULL                            },//60
- { LSA_Q_GET_STATUS,               LsaClient, &LsaSrvIpcGetStatus             },//61
- { LSA_R_GET_STATUS,               LsaServer, NULL                            },//62
- { LSA_Q_REFRESH_CONFIGURATION,    LsaClient, &LsaSrvIpcRefreshConfiguration  },//63
- { LSA_R_REFRESH_CONFIGURATION,    LsaServer, NULL                            },//64
- { LSA_Q_CHECK_USER_IN_LIST,       LsaClient, &LsaSrvIpcCheckUserInList       },//65
- { LSA_R_CHECK_USER_IN_LIST,       LsaServer, NULL                            },//66
- { LSA_Q_FIND_NSS_ARTEFACT_BY_KEY, LsaClient, &LsaSrvIpcFindNSSArtefactByKey  },//67
- { LSA_R_FIND_NSS_ARTEFACT_BY_KEY, LsaServer, NULL                            },//68
- { LSA_Q_SET_TRACE_INFO,           LsaClient, &LsaSrvIpcSetTraceInfo          },//71
- { LSA_R_SET_TRACE_INFO,           LsaServer, NULL                            },//72
- { LSA_Q_GET_TRACE_INFO,           LsaClient, &LsaSrvIpcGetTraceInfo          },//73
- { LSA_R_GET_TRACE_INFO,           LsaServer, NULL                            },//74
- { LSA_Q_ENUM_TRACE_INFO,          LsaClient, &LsaSrvIpcEnumTraceInfo         },//75
- { LSA_R_ENUM_TRACE_INFO,          LsaServer, NULL                            },//76
+    LWMSG_DISPATCH(LSA_Q_GROUP_BY_NAME, LsaSrvIpcFindGroupByName),
+    LWMSG_DISPATCH(LSA_Q_GROUP_BY_ID, LsaSrvIpcFindGroupById),
+    LWMSG_DISPATCH(LSA_Q_BEGIN_ENUM_GROUPS, LsaSrvIpcBeginEnumGroups),
+    LWMSG_DISPATCH(LSA_Q_ENUM_GROUPS, LsaSrvIpcEnumGroups),
+    LWMSG_DISPATCH(LSA_Q_END_ENUM_GROUPS, LsaSrvIpcEndEnumGroups),
+    LWMSG_DISPATCH(LSA_Q_USER_BY_NAME, LsaSrvIpcFindUserByName),
+    LWMSG_DISPATCH(LSA_Q_USER_BY_ID, LsaSrvIpcFindUserById),
+    LWMSG_DISPATCH(LSA_Q_BEGIN_ENUM_USERS, LsaSrvIpcBeginEnumUsers),
+    LWMSG_DISPATCH(LSA_Q_ENUM_USERS, LsaSrvIpcEnumUsers),
+    LWMSG_DISPATCH(LSA_Q_END_ENUM_USERS, LsaSrvIpcEndEnumUsers),
+    LWMSG_DISPATCH(LSA_Q_AUTH_USER, LsaSrvIpcAuthenticateUser),
+    LWMSG_DISPATCH(LSA_Q_AUTH_USER_EX, LsaSrvIpcAuthenticateUserEx),
+    LWMSG_DISPATCH(LSA_Q_VALIDATE_USER, LsaSrvIpcValidateUser),
+    LWMSG_DISPATCH(LSA_Q_CHANGE_PASSWORD, LsaSrvIpcChangePassword),
+    LWMSG_DISPATCH(LSA_Q_OPEN_SESSION, LsaSrvIpcOpenSession),
+    LWMSG_DISPATCH(LSA_Q_CLOSE_SESSION, LsaSrvIpcCloseSession),
+    LWMSG_DISPATCH(LSA_Q_MODIFY_USER, LsaSrvIpcModifyUser),
+    LWMSG_DISPATCH(LSA_Q_NAMES_BY_SID_LIST, LsaSrvIpcGetNamesBySidList),
+    LWMSG_DISPATCH(LSA_Q_GSS_MAKE_AUTH_MSG, LsaSrvIpcBuildAuthMessage),
+    LWMSG_DISPATCH(LSA_Q_GSS_CHECK_AUTH_MSG, LsaSrvIpcCheckAuthMessage),
+    LWMSG_DISPATCH(LSA_Q_ADD_GROUP, LsaSrvIpcAddGroup),
+    LWMSG_DISPATCH(LSA_Q_DELETE_GROUP, LsaSrvIpcDeleteGroup),
+    LWMSG_DISPATCH(LSA_Q_ADD_USER, LsaSrvIpcAddUser),
+    LWMSG_DISPATCH(LSA_Q_DELETE_USER, LsaSrvIpcDeleteUser),
+    LWMSG_DISPATCH(LSA_Q_GROUPS_FOR_USER, LsaSrvIpcGetGroupsForUser),
+    LWMSG_DISPATCH(LSA_Q_GET_METRICS, LsaSrvIpcGetMetrics),
+    LWMSG_DISPATCH(LSA_Q_SET_LOGINFO, LsaSrvIpcSetLogInfo),
+    LWMSG_DISPATCH(LSA_Q_GET_LOGINFO, LsaSrvIpcGetLogInfo),
+    LWMSG_DISPATCH(LSA_Q_GET_STATUS, LsaSrvIpcGetStatus),
+    LWMSG_DISPATCH(LSA_Q_REFRESH_CONFIGURATION, LsaSrvIpcRefreshConfiguration),
+    LWMSG_DISPATCH(LSA_Q_CHECK_USER_IN_LIST, LsaSrvIpcCheckUserInList),
+    LWMSG_DISPATCH(LSA_Q_BEGIN_ENUM_NSS_ARTEFACTS, LsaSrvIpcBeginEnumNSSArtefacts),
+    LWMSG_DISPATCH(LSA_Q_ENUM_NSS_ARTEFACTS, LsaSrvIpcEnumNSSArtefacts),
+    LWMSG_DISPATCH(LSA_Q_END_ENUM_NSS_ARTEFACTS, LsaSrvIpcEndEnumNSSArtefacts),
+    LWMSG_DISPATCH(LSA_Q_FIND_NSS_ARTEFACT_BY_KEY, LsaSrvIpcFindNSSArtefactByKey),
+    LWMSG_DISPATCH(LSA_Q_SET_TRACE_INFO, LsaSrvIpcSetTraceInfo),
+    LWMSG_DISPATCH(LSA_Q_GET_TRACE_INFO, LsaSrvIpcGetTraceInfo),
+    LWMSG_DISPATCH(LSA_Q_ENUM_TRACE_INFO, LsaSrvIpcEnumTraceInfo),
+    LWMSG_DISPATCH(LSA_Q_PROVIDER_IO_CONTROL, LsaSrvIpcProviderIoControl),
+    LWMSG_DISPATCH_END
 };
+
+LWMsgDispatchSpec*
+LsaSrvGetDispatchSpec(
+    void
+    )
+{
+    return gMessageHandlers;
+}

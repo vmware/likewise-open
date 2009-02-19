@@ -1,0 +1,5 @@
+noinst_PROGRAMS = test_changepasswd
+
+test_changepasswd_SOURCES = main.c
+test_changepasswd_LDFLAGS = -static
+test_changepasswd_LDADD = @top_builddir@/client/liblsaclient.la

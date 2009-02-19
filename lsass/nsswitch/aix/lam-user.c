@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -218,15 +218,17 @@ error:
 struct passwd *LsaNssGetPwUid(uid_t uid)
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
     struct passwd *pResult = NULL;
 
     LSA_LOG_PAM_DEBUG("Lsass queried by getpwuid for [%ld]", (long)uid);
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaFindUserById(
                 hLsaConnection,
@@ -251,10 +253,6 @@ cleanup:
                 dwInfoLevel,
                 (PVOID)pInfo);
     }
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
 
     if (dwError != LSA_ERROR_SUCCESS)
     {
@@ -263,6 +261,11 @@ cleanup:
     return pResult;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }
@@ -270,15 +273,17 @@ error:
 struct passwd *LsaNssGetPwNam(PCSTR pszName)
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
     struct passwd *pResult = NULL;
 
     LSA_LOG_PAM_DEBUG("Lsass queried by getpwnam for [%s]", pszName);
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (hLsaConnection == (HANDLE)NULL)
+    {
+        dwError = LsaOpenServer(&hLsaConnection);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaNssFindUserByAixName(
                 hLsaConnection,
@@ -303,10 +308,6 @@ cleanup:
                 dwInfoLevel,
                 pInfo);
     }
-    if (hLsaConnection != (HANDLE)NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
 
     if (dwError != LSA_ERROR_SUCCESS)
     {
@@ -315,6 +316,11 @@ cleanup:
     return pResult;
 
 error:
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = (HANDLE)NULL;
+    }
 
     goto cleanup;
 }
@@ -343,6 +349,7 @@ LsaNssListUsers(
                 hLsaConnection,
                 dwInfoLevel,
                 dwEnumLimit,
+                LSA_FIND_FLAGS_NSS,
                 &hResume);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -583,6 +590,6 @@ cleanup:
     return dwError;
 
 error:
-    
+
     goto cleanup;
 }

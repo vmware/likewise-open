@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,9 +28,11 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#include <lwrpc/memptr.h>
+#include "includes.h"
 
 extern void *netr_ptr_list;
 
@@ -92,6 +94,43 @@ NTSTATUS NetrFreeMemory(void *ptr)
 NTSTATUS NetrAddDepMemory(void *ptr, void *dep)
 {
     return MemPtrAddDependant((PtrList*)netr_ptr_list, ptr, dep);
+}
+
+
+/*
+ * Type specific functions
+ */
+
+NTSTATUS NetrAllocateUniString(wchar16_t **out, wchar16_t *in, void *dep)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    size_t len = 0;
+    wchar16_t *ptr = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    len = wc16slen(in);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(wchar16_t) * (len + 1),
+                                dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    wc16sncpy(ptr, in, len);
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    *out = NULL;
+
+    goto cleanup;
 }
 
 
@@ -157,6 +196,555 @@ error:
     ptr = NULL;
     goto cleanup;
 }
+
+
+NTSTATUS NetrInitIdentityInfo(NetrIdentityInfo *ptr, void *dep,
+                              const wchar16_t *domain,
+                              const wchar16_t *workstation,
+                              const wchar16_t *account, uint32 param_control,
+                              uint32 logon_id_low, uint32 logon_id_high)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    wchar16_t *nbt_workstation = NULL;
+    size_t nbt_workstation_len = 0;
+
+    goto_if_invalid_param_ntstatus(ptr, cleanup);
+    goto_if_invalid_param_ntstatus(domain, cleanup);
+    goto_if_invalid_param_ntstatus(account, cleanup);
+    goto_if_invalid_param_ntstatus(workstation, cleanup);
+
+    nbt_workstation_len = wc16slen(workstation);
+    status = NetrAllocateMemory((void**)&nbt_workstation,
+                                (nbt_workstation_len + 3) * sizeof(wchar16_t),
+                                dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    sw16printf(nbt_workstation, "\\\\%S", workstation);
+
+    status = InitUnicodeString(&ptr->domain_name, domain);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->domain_name.string) {
+        status = NetrAddDepMemory((void*)ptr->domain_name.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+    
+    status = InitUnicodeString(&ptr->account_name, account);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->account_name.string) {
+        status = NetrAddDepMemory((void*)ptr->account_name.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = InitUnicodeString(&ptr->workstation, nbt_workstation);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->workstation.string) {
+        status = NetrAddDepMemory((void*)ptr->workstation.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    ptr->param_control = param_control;
+    ptr->logon_id_low  = logon_id_low;
+    ptr->logon_id_high = logon_id_high;
+
+    if (nbt_workstation) {
+        NetrFreeMemory((void*)nbt_workstation);
+    }
+
+cleanup:
+    return status;
+
+error:
+    FreeUnicodeString(&ptr->domain_name);
+    FreeUnicodeString(&ptr->account_name);
+    FreeUnicodeString(&ptr->workstation);
+
+    goto cleanup;
+}
+
+/*
+ * Compatibility wrapper 
+ */
+NTSTATUS NetrAllocateLogonInfo(
+    NetrLogonInfo **out, uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const wchar16_t *password
+    )
+{
+    return NetrAllocateLogonInfoHash(out, level, domain, workstation, account, password);
+}
+
+
+NTSTATUS NetrAllocateLogonInfoHash(
+    NetrLogonInfo **out, uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const wchar16_t *password
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrLogonInfo *ptr = NULL;
+    NetrPasswordInfo *pass = NULL;
+    uint8 lm_hash[16] = {0};
+    uint8 nt_hash[16] = {0};
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(domain, cleanup);
+    goto_if_invalid_param_ntstatus(account, cleanup);
+    goto_if_invalid_param_ntstatus(workstation, cleanup);
+    goto_if_invalid_param_ntstatus(password, cleanup);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrLogonInfo), NULL);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+
+    switch (level)
+    {
+    case 1:
+    case 3:
+    case 5:
+        /* Create password hashes (NT and LM) */
+        deshash(lm_hash, password);
+        md4hash(nt_hash, password);
+
+        status = NetrAllocateMemory((void**)&pass, sizeof(NetrPasswordInfo),
+                                    (void*)ptr);
+        goto_if_ntstatus_not_success(status, error);
+
+        status = NetrInitIdentityInfo(&pass->identity, (void*)pass,
+                                      domain, workstation, account, 0, 0, 0);
+        goto_if_ntstatus_not_success(status, error);
+
+        /* Copy the password hashes */
+        memcpy((void*)pass->lmpassword.data, (void*)lm_hash,
+               sizeof(pass->lmpassword.data));
+        memcpy((void*)pass->ntpassword.data, (void*)nt_hash,
+               sizeof(pass->ntpassword.data));
+        break;
+        
+    default:
+        status = STATUS_INVALID_LEVEL;
+        goto error;
+    }
+
+    switch (level) {
+    case 1:
+        ptr->password1 = pass;
+        break;
+    case 3:
+        ptr->password3 = pass;
+        break;
+    case 5:
+        ptr->password5 = pass;
+        break;
+    }
+
+cleanup:
+    *out = ptr;
+
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    ptr = NULL;
+    goto cleanup;
+}
+
+NTSTATUS NetrAllocateLogonInfoNet(
+    NetrLogonInfo **out,
+    uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const uint8_t *challenge,
+    const uint8_t *lm_resp,
+    const uint8_t *nt_resp
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrLogonInfo *ptr = NULL;
+    NetrNetworkInfo *net = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(domain, cleanup);
+    goto_if_invalid_param_ntstatus(account, cleanup);
+    goto_if_invalid_param_ntstatus(workstation, cleanup);
+    goto_if_invalid_param_ntstatus(challenge, cleanup);
+    /* LanMan Response can be NULL */
+    goto_if_invalid_param_ntstatus(nt_resp, cleanup);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrLogonInfo), NULL);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    switch (level)
+    {
+    case 2:
+    case 6:
+        status = NetrAllocateMemory((void**)&net, sizeof(NetrNetworkInfo),
+                                    (void*)ptr);
+        goto_if_ntstatus_not_success(status, error);
+
+        status = NetrInitIdentityInfo(&net->identity, (void*)net,
+                                      domain, workstation, account, 0, 0, 0);
+        goto_if_ntstatus_not_success(status, error);
+
+        memcpy(net->challenge, challenge, sizeof(net->challenge));
+
+        /* Allocate challenge structures */
+        if (lm_resp)
+        {            
+            status = NetrAllocateMemory((void**)&net->lm.data, 24, (void*)net);
+            goto_if_ntstatus_not_success(status, error);
+
+            net->lm.length = 24;
+            net->lm.size   = 24;
+            memcpy(net->lm.data, lm_resp, net->lm.size);    
+        }
+        
+        /* Always have NT Response */
+
+        status = NetrAllocateMemory((void**)&net->nt.data, 24, (void*)net);
+        goto_if_ntstatus_not_success(status, error);
+
+        net->nt.length = 24;
+        net->nt.size   = 24;
+        memcpy(net->nt.data, nt_resp, net->nt.size);    
+
+        break;        
+
+    default:
+        status = STATUS_INVALID_LEVEL;
+        goto error;
+    }
+
+    switch (level) {
+    case 2:
+        ptr->network2  = net;
+        break;
+    case 6:
+        ptr->network6  = net;
+        break;
+    }
+
+cleanup:
+    *out = ptr;
+
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    ptr = NULL;
+    goto cleanup;
+}
+
+
+static NTSTATUS NetrInitSamBaseInfo(NetrSamBaseInfo *ptr,
+                                    NetrSamBaseInfo *in, void *dep)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    int i = 0;
+
+    goto_if_invalid_param_ntstatus(ptr, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    ptr->last_logon            = in->last_logon;
+    ptr->last_logoff           = in->last_logoff;
+    ptr->acct_expiry           = in->acct_expiry;
+    ptr->last_password_change  = in->last_password_change;
+    ptr->allow_password_change = in->allow_password_change;
+    ptr->force_password_change = in->force_password_change;
+
+    status = CopyUnicodeStringEx(&ptr->account_name, &in->account_name);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->account_name.string) {
+        status = NetrAddDepMemory((void*)ptr->account_name.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeStringEx(&ptr->full_name, &in->full_name);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->full_name.string) {
+        status = NetrAddDepMemory((void*)ptr->full_name.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeStringEx(&ptr->logon_script, &in->logon_script);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->logon_script.string) {
+        status = NetrAddDepMemory((void*)ptr->logon_script.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeStringEx(&ptr->profile_path, &in->profile_path);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->profile_path.string) {
+        status = NetrAddDepMemory((void*)ptr->profile_path.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeStringEx(&ptr->home_directory, &in->home_directory);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->home_directory.string) {
+        status = NetrAddDepMemory((void*)ptr->home_directory.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeStringEx(&ptr->home_drive, &in->home_drive);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->home_drive.string) {
+        status = NetrAddDepMemory((void*)ptr->home_drive.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    ptr->logon_count = in->logon_count;
+    ptr->bad_password_count = in->bad_password_count;
+    ptr->rid = in->rid;
+    ptr->primary_gid = in->primary_gid;
+
+    ptr->groups.count = in->groups.count;
+    status = NetrAllocateMemory((void*)&ptr->groups.rids,
+                                sizeof(RidWithAttribute) * ptr->groups.count,
+                                (void*)dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    for (i = 0; i < ptr->groups.count; i++) {
+        RidWithAttribute *ptr_ra = &(ptr->groups.rids[i]);
+        RidWithAttribute *in_ra = &(in->groups.rids[i]);
+
+        ptr_ra->rid        = in_ra->rid;
+        ptr_ra->attributes = in_ra->attributes;
+    }
+
+    ptr->user_flags = in->user_flags;
+
+    memcpy((void*)ptr->key.key, (void*)in->key.key, sizeof(ptr->key.key));
+
+    status = CopyUnicodeStringEx(&ptr->logon_server, &in->logon_server);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->logon_server.string) {
+        status = NetrAddDepMemory((void*)ptr->logon_server.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeStringEx(&ptr->domain, &in->domain);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (ptr->domain.string) {
+        status = NetrAddDepMemory((void*)ptr->domain.string, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->domain_sid) {
+        SidCopyAlloc(&ptr->domain_sid, in->domain_sid);
+        goto_if_no_memory_ntstatus(ptr->domain_sid, error); 
+
+        status = NetrAddDepMemory((void*)ptr->domain_sid, (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+       
+    } else {
+        ptr->domain_sid = NULL;
+    }
+
+    memcpy((void*)ptr->lmkey.key, (void*)in->lmkey.key,
+           sizeof(ptr->lmkey.key));
+
+    ptr->acct_flags = in->acct_flags;
+
+cleanup:
+    return status;
+
+error:
+    FreeUnicodeString(&ptr->account_name);
+    FreeUnicodeString(&ptr->full_name);
+    FreeUnicodeString(&ptr->logon_script);
+    FreeUnicodeString(&ptr->profile_path);
+    FreeUnicodeString(&ptr->home_directory);
+    FreeUnicodeString(&ptr->home_drive);
+    FreeUnicodeString(&ptr->logon_server);
+    FreeUnicodeString(&ptr->domain);
+
+    if (ptr->groups.rids) {
+        NetrFreeMemory((void*)ptr->groups.rids);
+    }
+
+    if (ptr->domain_sid) {
+        SidFree(ptr->domain_sid);
+    }
+
+    goto cleanup;
+}
+
+
+static NTSTATUS NetrAllocateSamInfo2(NetrSamInfo2 **out, NetrSamInfo2 *in,
+                                     void *dep)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrSamInfo2 *ptr = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    status = NetrAllocateMemory((void*)&ptr, sizeof(NetrSamInfo2), dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in) {
+        status = NetrInitSamBaseInfo(&ptr->base, &in->base, (void*)ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    *out = NULL;
+
+    goto cleanup;
+}
+
+
+static NTSTATUS NetrAllocateSamInfo3(NetrSamInfo3 **out, NetrSamInfo3 *in,
+                                      void *dep)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrSamInfo3 *ptr = NULL;
+    int i = 0;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    status = NetrAllocateMemory((void*)&ptr, sizeof(NetrSamInfo3), dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in) {
+        status = NetrInitSamBaseInfo(&ptr->base, &in->base, (void*)ptr);
+        goto_if_ntstatus_not_success(status, error);
+
+        ptr->sidcount = in->sidcount;
+
+        status = NetrAllocateMemory((void*)&ptr->sids,
+                                    sizeof(NetrSidAttr) * ptr->sidcount,
+                                    (void*)ptr);
+        goto_if_ntstatus_not_success(status, error);
+
+        for (i = 0; ptr->sidcount; i++) {
+            NetrSidAttr *ptr_sa = &(ptr->sids[i]);
+            NetrSidAttr *in_sa = &(in->sids[i]);
+
+            if (in_sa->sid) {
+                SidCopyAlloc(&ptr_sa->sid, in_sa->sid);
+                goto_if_no_memory_ntstatus(ptr_sa->sid, error);
+
+                status = NetrAddDepMemory((void*)ptr_sa->sid, (void*)ptr);
+                goto_if_ntstatus_not_success(status, error);
+
+            } else {
+                ptr_sa->sid = NULL;
+            }
+
+            ptr_sa->attribute = in_sa->attribute;
+        }
+    }
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    *out = NULL;
+
+    goto cleanup;
+}
+
+
+static NTSTATUS NetrAllocatePacInfo(NetrPacInfo **out, NetrPacInfo *in,
+                                    void *dep)
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+
+static NTSTATUS NetrAllocateSamInfo6(NetrSamInfo6 **out, NetrSamInfo6 *in,
+                                    void *dep)
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+
+NTSTATUS NetrAllocateValidationInfo(NetrValidationInfo **out,
+                                    NetrValidationInfo *in, uint16 level)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrValidationInfo *ptr = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrValidationInfo), NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    switch (level) {
+    case 2:
+        status = NetrAllocateSamInfo2(&ptr->sam2, in->sam2, (void*)ptr);
+        break;
+    case 3:
+        status = NetrAllocateSamInfo3(&ptr->sam3, in->sam3, (void*)ptr);
+        break;
+    case 4:
+        status = NetrAllocatePacInfo(&ptr->pac4, in->pac4, (void*)ptr);
+        break;
+    case 5:
+        status = NetrAllocatePacInfo(&ptr->pac5, in->pac5, (void*)ptr);
+        break;
+    case 6:
+        status = NetrAllocateSamInfo6(&ptr->sam6, in->sam6, (void*)ptr);
+        break;
+
+    default:
+        status = STATUS_INVALID_LEVEL;
+    }
+    goto_if_ntstatus_not_success(status, error);
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    *out = NULL;
+
+    goto cleanup;
+}
+
 
 
 /*

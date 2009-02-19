@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for Users
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -46,59 +46,78 @@
  */
 #ifndef __IPC_USER_H__
 #define __IPC_USER_H__
-                   
-DWORD
+
+LWMsgStatus
 LsaSrvIpcAddUser(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 DWORD
 LsaSrvIpcModifyUser(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcFindUserByName(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
-);
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-DWORD
-LsaSrvIpcFindUserById (
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
-);
+LWMsgStatus
+LsaSrvIpcFindUserById(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcBeginEnumUsers(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEnumUsers(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEndEnumUsers(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
-DWORD
+LWMsgStatus
 LsaSrvIpcDeleteUser(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 DWORD
 LsaSrvIpcGetNamesBySidList(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage);
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
 #endif /* __IPC_USER_H__ */
 

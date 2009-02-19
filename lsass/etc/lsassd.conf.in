@@ -149,6 +149,12 @@
     #
     # nss-user-membership-query-cache-only = yes
 
+    # Whether to enumerate users or groups for NSS
+    #
+    # Default: no (yes - Mac systems)
+    #
+    nss-enumeration-enabled = @ENABLE_NSS_ENUM_DEFAULT@
+
 [auth provider:lsa-local-provider]
 
     path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@

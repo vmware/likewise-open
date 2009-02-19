@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Password Storage (LWPS)
- *
+ *        Likewise Password Storage (LWPS) 
+ *        
  *        Test Program for exercising SqlDBGetPwdEntry
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -81,7 +81,7 @@ ParseArgs(
             PARSE_MODE_OPEN = 0,
             PARSE_MODE_DONE
         } ParseMode;
-
+        
     DWORD dwError = 0;
     int iArg = 1;
     PSTR  pszDomainDnsName = NULL;
@@ -95,11 +95,11 @@ ParseArgs(
         {
             break;
         }
-
+        
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-
+        
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -117,7 +117,7 @@ ParseArgs(
                 dwError = LWPS_ERROR_INTERNAL;
                 BAIL_ON_LWPS_ERROR(dwError);
         }
-
+        
     } while ((parseMode != PARSE_MODE_DONE) && (iArg < argc));
 
     if (IsNullOrEmptyString(pszDomainDnsName))
@@ -129,7 +129,7 @@ ParseArgs(
     *ppszDomainDnsName = pszDomainDnsName;
 
 cleanup:
-
+    
     return dwError;
 
 error:
@@ -153,28 +153,28 @@ main(
     )
 {
     DWORD dwError = 0;
-
+    
     PSTR  pszDomainDnsName;
     HANDLE hDB = 0;
     PMACHINE_ACCT_INFO pAcct = NULL;
-
+    
     lwps_init_logging_to_file(LOG_LEVEL_VERBOSE, TRUE, "");
 
     dwError = ParseArgs(argc, argv, &pszDomainDnsName);
     BAIL_ON_LWPS_ERROR(dwError);
-
+ 
     dwError = SqlDBDbInitGlobals();
     BAIL_ON_LWPS_ERROR(dwError);
 
     dwError = SqlDBOpen(&hDB);
     BAIL_ON_LWPS_ERROR(dwError);
-
+    
     dwError = SqlDBGetPwdEntryByDomainDnsName(
                  hDB,
                  pszDomainDnsName,
                  &pAcct);
     BAIL_ON_LWPS_ERROR(dwError);
-
+    
     printf("\n");
     printf("DomainSID                = %s\n", pAcct->pszDomainSID);
     printf("DomainName               = %s\n", pAcct->pszDomainName);
@@ -182,23 +182,23 @@ main(
     printf("HostName                 = %s\n", pAcct->pszHostName);
     printf("Machine Account Name     = %s\n", pAcct->pszMachineAccountName);
     printf("Machine Account Password = %s\n", pAcct->pszMachineAccountPassword);
-    printf("\n");
-
+    printf("\n");    
+    
 cleanup:
-
+  
     if (hDB != (HANDLE)NULL) {
-       SqlDBClose(hDB);
+       SqlDBClose(hDB);    
     }
 
     LWPS_SAFE_FREE_STRING(pszDomainDnsName);
-
+    
     if (pAcct)
     {
         SqlDBFreeMachineAcctInfo(pAcct);
     }
 
     lwps_close_log();
-
+ 
     return (dwError);
 
 error:

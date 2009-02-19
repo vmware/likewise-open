@@ -57,7 +57,7 @@ typedef struct dom_sid {
 	uint8_t  num_auths;               /**< Number of sub-authorities */
 	uint8_t  id_auth[6];              /**< Identifier Authority */
 
-	uint32_t sub_auths[MAXSUBAUTHS];
+	uint32_t sub_auths[MAXSUBAUTHS];  
 } DOM_SID;
 
 typedef union unid_t {

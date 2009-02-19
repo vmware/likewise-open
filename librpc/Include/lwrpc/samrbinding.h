@@ -34,7 +34,7 @@
 #include <lwrpc/types.h>
 
 #define SAMR_PROT_SEQ   "ncacn_np"
-#define SAMR_ENDPOINT   "\\pipe\\samr"
+#define SAMR_ENDPOINT   "\\PIPE\\lsass"
 
 #ifdef CHAR_T
 #undef CHAR_T

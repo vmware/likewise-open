@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -54,7 +54,7 @@ typedef struct _USER_LIST
     char * pszUserGID;
     char * pszUserHomeDir;
     struct _USER_LIST * pNext;
-
+    
 } USER_LIST, * PUSER_LIST;
 
 // Helper routines for this class
@@ -71,7 +71,7 @@ long
 GetLocalUserList(
     PUSER_LIST * ppLocalUsers
     );
-
+    
 void
 FreeLocalUserList(
     PUSER_LIST pLocalUsers
@@ -113,7 +113,7 @@ class DomainMigrateWindow : public TWindow
         virtual void Close();
 
     protected:
-
+    
         virtual Boolean HandleCommand( const HICommandExtended& inCommand );
         void ClearLocalUsersCombo();
         void AddUserToLocalUsersCombo(const std::string& value);
@@ -145,7 +145,7 @@ class DomainMigrateWindow : public TWindow
         void ShowMigrateProgressBar();
 
     protected:
-
+	
         static const int LOCAL_USER_COMBO_ID;
         static const int LOCAL_USER_PATH_ID;
         static const int LOCAL_USER_REAL_NAME_ID;
@@ -170,7 +170,7 @@ class DomainMigrateWindow : public TWindow
         static const int VALIDATE_CMD_ID;
         static const int CANCEL_CMD_ID;
         static const int MIGRATE_CMD_ID;
-
+		
     private:
 
         std::string _localUsersFirstItem;

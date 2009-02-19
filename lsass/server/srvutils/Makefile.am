@@ -2,6 +2,7 @@ lib_LTLIBRARIES = liblsasrvutils.la
 
 liblsasrvutils_la_SOURCES = \
        event.c         \
+       systemcache.c         \
        lsatime.c
 
 liblsasrvutils_la_CPPFLAGS =      \

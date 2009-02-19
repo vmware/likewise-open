@@ -55,9 +55,6 @@ main(
     )
 {
     DWORD dwError = 0;
-    pthread_t listenerThreadId;
-    pthread_t* pListenerThreadId = NULL;
-    void* threadResult = NULL;
 
     dwError = LWNetSrvSetDefaults();
     BAIL_ON_LWNET_ERROR(dwError);
@@ -95,7 +92,7 @@ main(
     dwError = LWNetSrvInitialize();
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetSrvStartListenThread(&listenerThreadId, &pListenerThreadId);
+    dwError = LWNetSrvStartListenThread();
     BAIL_ON_LWNET_ERROR(dwError);
 
     // Handle signals, blocking until we are supposed to exit.
@@ -108,10 +105,7 @@ main(
 
     LWNetSrvStopProcess();
 
-    if (pListenerThreadId)
-    {
-        pthread_join(listenerThreadId, &threadResult);
-    }
+    LWNetSrvStopListenThread();
 
     LWNetSrvApiShutdown();
 
@@ -166,10 +160,6 @@ LWNetStartupPreCheck(
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    // Now that we are running, we need to flush the DirectoryService process of any negative cache entries
-    dwError = FlushDirectoryServiceCache();
-    BAIL_ON_LWNET_ERROR(dwError);
-
 cleanup:
 
     LWNET_SAFE_FREE_STRING(pszHostname);
@@ -185,60 +175,6 @@ error:
     return dwError;
 #endif
 }
-
-#if defined (__LWI_DARWIN__)
-DWORD
-FlushDirectoryServiceCache(
-    VOID
-    )
-{
-    DWORD dwError = 0;
-    int i;
-    const char* cacheUtils[] = {
-        "/usr/sbin/lookupd", /* Before Mac OS X 10.5 */
-        "/usr/bin/dscacheutil" /* On Mac OS X 10.5 */
-    };
-    const char* cacheUtilCmd[] = {
-        "/usr/sbin/lookupd -flushcache", /* Before Mac OS X 10.5 */
-        "/usr/bin/dscacheutil -flushcache" /* On Mac OS X 10.5 */
-    };
-
-    LWNET_LOG_VERBOSE("Going to flush the Mac DirectoryService cache ...");
-
-    for (i = 0; i < (sizeof(cacheUtils) / sizeof(cacheUtils[0])); i++)
-    {
-        const char* util = cacheUtils[i];
-        const char* command = cacheUtilCmd[i];
-        BOOLEAN exists;
-
-        /* Sanity check */
-        if (!util)
-        {
-            continue;
-        }
-
-        dwError = LWNetCheckFileExists(util, &exists);
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        if (!exists)
-        {
-            continue;
-        }
-
-        system(command);
-
-        /* Bail regardless */
-        goto error;
-    }
-
-    LWNET_LOG_ERROR("Could not locate cache flush utility");
-    dwError = LWNET_ERROR_MAC_FLUSH_DS_CACHE_FAILED;
-
-error:
-
-    return dwError;
-}
-#endif
 
 DWORD
 LWNetSrvSetDefaults(

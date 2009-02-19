@@ -196,6 +196,7 @@ DJRemoveCacheFiles()
         "/var/lib/lwidentity/winbindd_cache.tdb",
         /* Likewise 5.0 cache location files... */
         LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db",
+        LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db",
         NULL
     };
     int i;
@@ -1061,7 +1062,7 @@ void DJNetInitialize(LWException **exc)
             LW_CLEANUP_DLERROR(exc);
 
         if (geteuid() == 0) {
-            LW_TRY(exc, DJManageDaemon("npcmuxd", TRUE,
+            LW_TRY(exc, DJManageDaemon("lwrdrd", TRUE,
                         92, 8, &LW_EXC));
             LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
                         92, 10, &LW_EXC));

@@ -49,7 +49,7 @@
 
 #define MAX_SID_STRING_LEN 1024
 
-DWORD SidCopy(struct wbcDomainSid *dst, struct wbcDomainSid *src)
+static DWORD _sidCopy(struct wbcDomainSid *dst, struct wbcDomainSid *src)
 {
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 
@@ -64,7 +64,7 @@ done:
 	return dwErr;	
 }
 
-DWORD SidAppendRid(struct wbcDomainSid *sid, DWORD rid)
+static DWORD _sidAppendRid(struct wbcDomainSid *sid, DWORD rid)
 {
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 
@@ -212,12 +212,12 @@ done:
 
 wbcErr wbcLookupName(const char *dom_name,
 		     const char *name,
-		     struct wbcDomainSid *sid,
+ 		     struct wbcDomainSid *sid,
 		     enum wbcSidType *name_type)
 {
 	LSA_USER_INFO_0 *pUserInfo = NULL;
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	CHAR pszQualifiedName[512] = "";
@@ -225,13 +225,10 @@ wbcErr wbcLookupName(const char *dom_name,
 	BAIL_ON_NULL_PTR_PARAM(name, dwErr);
 
 	if (dom_name) {
-		snprintf(pszQualifiedName, 
-			sizeof(pszQualifiedName), 
+		snprintf(pszQualifiedName, sizeof(pszQualifiedName), 
 			"%s\\", dom_name);
 	}
-	strncat(pszQualifiedName, 
-		name,
-		sizeof(dom_name) - strlen(pszQualifiedName));
+	strncat(pszQualifiedName, name, sizeof(pszQualifiedName) - (strlen(pszQualifiedName)+1));
 
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
@@ -273,6 +270,7 @@ wbcErr wbcLookupName(const char *dom_name,
 done:
 	if ( hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;	
 	}	
 
 	if (pUserInfo) {
@@ -305,7 +303,7 @@ wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
 		    enum wbcSidType *name_type)
 {
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	PSTR pszSidString = NULL;
 	PSTR ppszSidList[2];
@@ -374,6 +372,7 @@ done:
 	
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (dwErr != LSA_ERROR_SUCCESS) {
@@ -417,10 +416,10 @@ wbcErr wbcLookupRids(struct wbcDomainSid *dom_sid,
 	}
 
 	for (i=0; i<num_rids; i++) {
-		dwErr = SidCopy(&sid, dom_sid);
+		dwErr = _sidCopy(&sid, dom_sid);
 		BAIL_ON_LSA_ERR(dwErr);
 
-		dwErr = SidAppendRid(&sid, rids[i]);
+		dwErr = _sidAppendRid(&sid, rids[i]);
 		BAIL_ON_LSA_ERR(dwErr);
 
 		wbc_status = wbcLookupSid(&sid,

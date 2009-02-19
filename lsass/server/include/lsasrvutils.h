@@ -139,7 +139,7 @@ LsaSrvLogServiceFailureEvent(
 
 DWORD
 LsaSrvOpenEventLog(
-    PSTR pszCategoryType,
+    PSTR pszCategoryType,   
     PHANDLE phEventLog
     );
 
@@ -186,6 +186,11 @@ LsaSrvLogFailureAuditEvent(
 DWORD
 LsaSrvCloseEventLog(
     HANDLE hEventLog
+    );
+
+DWORD
+LsaSrvFlushSystemCache(
+    VOID
     );
 
 #endif /* __LSASRVUTILS_H__ */

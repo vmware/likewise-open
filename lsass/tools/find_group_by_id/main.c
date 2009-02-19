@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Test Program for exercising LsaFindGroupById
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,17 +55,14 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
-VOID
+DWORD
 ParseArgs(
     int    argc,
     char*  argv[],
-    gid_t* pGID,
-    PDWORD pdwInfoLevel
-    );
-
-BOOLEAN
-IsUnsignedInteger(
-    PCSTR pszIntegerCandidate
+    PDWORD pdwGroupId,
+    PLSA_FIND_FLAGS pFindFlags,
+    PDWORD pdwInfoLevel,
+    PBOOLEAN pbCountOnly
     );
 
 VOID
@@ -78,12 +75,18 @@ PrintGroupInfo_0(
 
 VOID
 PrintGroupInfo_1(
-    PLSA_GROUP_INFO_1 pGroupInfo
+    PLSA_GROUP_INFO_1 pGroupInfo,
+    BOOLEAN bCountOnly
     );
 
 DWORD
 MapErrorCode(
     DWORD dwError
+    );
+
+BOOLEAN
+IsUnsignedInteger(
+    PCSTR pszIntegerCandidate
     );
 
 int
@@ -93,36 +96,39 @@ main(
     )
 {
     DWORD dwError = 0;
-    gid_t gid = 0;
+    DWORD gid = 0;
     DWORD dwInfoLevel = 0;
     HANDLE hLsaConnection = (HANDLE)NULL;
     PVOID pGroupInfo = NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
-    
-    ParseArgs(argc, argv, &gid, &dwInfoLevel);
-    
+    BOOLEAN bCountOnly = FALSE;
+    LSA_FIND_FLAGS FindFlags = 0;
+
+    dwError = ParseArgs(argc, argv, &gid, &FindFlags, &dwInfoLevel, &bCountOnly);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaFindGroupById(
                     hLsaConnection,
                     gid,
-                    0,
+                    FindFlags,
                     dwInfoLevel,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch(dwInfoLevel)
     {
         case 0:
             PrintGroupInfo_0((PLSA_GROUP_INFO_0)pGroupInfo);
             break;
         case 1:
-            PrintGroupInfo_1((PLSA_GROUP_INFO_1)pGroupInfo);
+            PrintGroupInfo_1((PLSA_GROUP_INFO_1)pGroupInfo, bCountOnly);
             break;
         default:
-            
+
             fprintf(stderr, "Error: Invalid group info level [%d]\n", dwInfoLevel);
             break;
     }
@@ -132,7 +138,7 @@ cleanup:
     if (pGroupInfo) {
        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
     }
-    
+
     if (hLsaConnection != (HANDLE)NULL) {
         LsaCloseServer(hLsaConnection);
     }
@@ -142,32 +148,32 @@ cleanup:
 error:
 
     dwError = MapErrorCode(dwError);
-    
+
     dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
-    
+
     if (dwErrorBufferSize > 0)
     {
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
-        
+
         dwError2 = LsaAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
-        
+
         if (!dwError2)
         {
             DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
-            
+
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to locate group.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
-        
+
         LSA_SAFE_FREE_STRING(pszErrorBuffer);
     }
-    
+
     if (bPrintOrigError)
     {
         fprintf(stderr, "Failed to locate group. Error code [%d]\n", dwError);
@@ -176,109 +182,154 @@ error:
     goto cleanup;
 }
 
-VOID
+DWORD
 ParseArgs(
     int    argc,
     char*  argv[],
-    gid_t* pGID,
-    PDWORD pdwInfoLevel
+    PDWORD pdwGroupId,
+    PLSA_FIND_FLAGS pFindFlags,
+    PDWORD pdwInfoLevel,
+    PBOOLEAN pbCountOnly
     )
 {
-    typedef enum {
-            PARSE_MODE_OPEN = 0,
-            PARSE_MODE_LEVEL,
-            PARSE_MODE_DONE
-        } ParseMode;
-        
+    DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
-    gid_t gid = 0;
-    ParseMode parseMode = PARSE_MODE_OPEN;
+    PCSTR pszGid = NULL;
+    DWORD gid = 0;
+    LSA_FIND_FLAGS FindFlags = 0;
     DWORD dwInfoLevel = 0;
-    BOOLEAN bGIDSpecified = FALSE;
+    BOOLEAN bCountOnly = FALSE;
+    int nRead = 0;
 
-    do {
-        pszArg = argv[iArg++];
-        if (pszArg == NULL || *pszArg == '\0')
+    for (iArg = 1; iArg < argc; iArg++)
+    {
+        pszArg = argv[iArg];
+        if (!strcmp(pszArg, "--help") ||
+            !strcmp(pszArg, "-h"))
         {
-            break;
+            ShowUsage();
+            exit(0);
         }
-        
-        switch (parseMode)
+        else if (!strcmp(pszArg, "--count"))
         {
-            case PARSE_MODE_OPEN:
-        
-                if ((strcmp(pszArg, "--help") == 0) ||
-                    (strcmp(pszArg, "-h") == 0))
-                {
-                    ShowUsage();
-                    exit(0);
-                }
-                else if (!strcmp(pszArg, "--level")) {
-                    parseMode = PARSE_MODE_LEVEL;
-                }
-                
-                else
-                {
-                    if (!IsUnsignedInteger(pszArg))
-                    {
-                        fprintf(stderr, "Please specifiy a gid that is a positive integer\n");
-                        ShowUsage();
-                        exit(1);
-                    }
-                    int nRead = sscanf(pszArg, "%u", (unsigned int*)&gid);
-                    if ((EOF == nRead) || (nRead == 0)) {
-                       fprintf(stderr, "Please specify a valid gid\n");
-                       ShowUsage();
-                       exit(1);
-                    }
-                    bGIDSpecified = TRUE;
-                    parseMode = PARSE_MODE_DONE;
-                }
-                break;
-                
-            case PARSE_MODE_LEVEL:
+            bCountOnly = TRUE;
+        }
+        else if (!strcmp(pszArg, "--level"))
+        {
+            PCSTR pszValue;
+            if (iArg + 1 >= argc)
             {
-                if (!IsUnsignedInteger(pszArg))
-                {
-                    fprintf(stderr, "Please specifiy an info level that is a positive integer\n");
-                    ShowUsage();
-                    exit(1);
-                }
-                dwInfoLevel = atoi(pszArg);
-                parseMode = PARSE_MODE_OPEN;
-                break;
-            }
-            case PARSE_MODE_DONE:
-            {
+                fprintf(stderr, "Missing argument for %s option.\n", pszArg);
                 ShowUsage();
                 exit(1);
             }
+            pszValue = argv[++iArg];
+            if (!IsUnsignedInteger(pszValue))
+            {
+                fprintf(stderr, "Please enter an info level which is an unsigned integer.\n");
+                ShowUsage();
+                exit(1);
+            }
+            dwInfoLevel = atoi(pszValue);
         }
-        
-    } while (iArg < argc);
-
-    if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
-    {
-        ShowUsage();
-        exit(1);  
+        else if (!strcmp(pszArg, "--flags"))
+        {
+            PCSTR pszValue;
+            if (iArg + 1 >= argc)
+            {
+                fprintf(stderr, "Missing argument for %s option.\n", pszArg);
+                ShowUsage();
+                exit(1);
+            }
+            pszValue = argv[++iArg];
+            if (!IsUnsignedInteger(pszValue))
+            {
+                fprintf(stderr, "Please enter a flags value which is an unsigned integer.\n");
+                ShowUsage();
+                exit(1);
+            }
+            FindFlags = atoi(pszValue);
+        }
+        else if (pszArg[0] == '-')
+        {
+            fprintf(stderr, "Invalid option '%s'.\n", pszArg);
+            ShowUsage();
+            exit(1);
+        }
+        else
+        {
+            break;
+        }
     }
-    
-    if (!bGIDSpecified) {
-       fprintf(stderr, "Please specify a gid to query for.\n");
+
+    if ((argc - iArg) < 1)
+    {
+        fprintf(stderr, "Missing required group id argument.\n");
+        ShowUsage();
+        exit(1);
+    }
+
+    // Grab gid information
+    pszGid = argv[iArg++];
+
+    if ((argc - iArg) > 0)
+    {
+        fprintf(stderr, "Too many arguments.\n");
+        ShowUsage();
+        exit(1);
+    }
+
+    if (IsNullOrEmptyString(pszGid) || !IsUnsignedInteger(pszGid))
+    {
+        fprintf(stderr, "Please specify a valid gid to query for.\n");
+        ShowUsage();
+        exit(1);
+    }
+
+    nRead = sscanf(pszGid, "%u", (unsigned int*)&gid);
+    if ((EOF == nRead) || (nRead == 0))
+    {
+       fprintf(stderr, "Please specify a valid gid to query for.\n");
        ShowUsage();
        exit(1);
     }
 
-    *pGID = gid;
+    *pdwGroupId = gid;
+    *pFindFlags = FindFlags;
     *pdwInfoLevel = dwInfoLevel;
+    *pbCountOnly = bCountOnly;
 
+    return dwError;
 }
 
 void
 ShowUsage()
 {
-    printf("Usage: lw-find-group-by-id { --level [0, 1] } <gid>\n");
+    PCSTR pszProgramName = "lw-find-group-by-id";
+    printf("Usage: %s [OPTIONS] <GROUP_GID>\n"
+           "\n"
+           "    Lookup a group by id.\n"
+           "\n"
+           "  Options:\n"
+           "\n"
+           "    --level LEVEL   - Output level can be 0 or 1.\n"
+           "                      0 does not include membership info.\n"
+           "                      1 include group membership info.\n"
+           "\n"
+           "    --count         - If used with level 1, shows membership count only\n"
+           "                      instead of listing group members.\n"
+           "\n"
+           "    --flags FLAGS   - Find flags can be 0 or 1.\n"
+           "\n"
+           "  Examples:\n"
+           "\n"
+           "    %s 239625286\n"
+           "    %s --level 1 239625286\n"
+           "\n",
+           pszProgramName,
+           pszProgramName,
+           pszProgramName);
 }
 
 VOID
@@ -286,46 +337,53 @@ PrintGroupInfo_0(
     PLSA_GROUP_INFO_0 pGroupInfo
     )
 {
-    fprintf(stdout, "Group info (Level-0):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-                IsNullOrEmptyString(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
-    fprintf(stdout, "SID:     %s\n",
-                    IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
+    printf("Group info (Level 0):\n"
+           "====================\n"
+           "Name: %s\n"
+           "Gid:  %u\n"
+           "SID:  %s\n",
+           LSA_SAFE_LOG_STRING(pGroupInfo->pszName),
+           (unsigned int)pGroupInfo->gid,
+           LSA_SAFE_LOG_STRING(pGroupInfo->pszSid));
 }
 
 VOID
 PrintGroupInfo_1(
-    PLSA_GROUP_INFO_1 pGroupInfo
+    PLSA_GROUP_INFO_1 pGroupInfo,
+    BOOLEAN bCountOnly
     )
 {
     PSTR* ppszMembers = NULL;
     DWORD iMember = 0;
 
-    fprintf(stdout, "Group info (Level-1):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-            IsNullOrEmptyString(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
-    fprintf(stdout, "SID:     %s\n",
-                        IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
-    
-    fprintf(stdout, "Members:\n");
+    printf("Group info (Level 1):\n"
+           "====================\n"
+           "Name: %s\n"
+           "Gid:  %u\n"
+           "SID:  %s\n",
+           LSA_SAFE_LOG_STRING(pGroupInfo->pszName),
+           (unsigned int)pGroupInfo->gid,
+           LSA_SAFE_LOG_STRING(pGroupInfo->pszSid));
+
+    if (!bCountOnly)
+    {
+        printf("Members:\n");
+    }
 
     ppszMembers = pGroupInfo->ppszMembers;
-    if (ppszMembers){
-        while (!IsNullOrEmptyString(*ppszMembers)) {
-              if (iMember) {
-                 fprintf(stdout, "\n%s", *ppszMembers);
-              } else {
-                 fprintf(stdout, "%s", *ppszMembers);
-              }
-              iMember++;
-              ppszMembers++;
+    if (ppszMembers)
+    {
+        while (!IsNullOrEmptyString(ppszMembers[iMember]))
+        {
+            if (!bCountOnly)
+            {
+                printf("%s\n", ppszMembers[iMember]);
+            }
+            iMember++;
         }
-        fprintf(stdout, "\n");
     }
+
+    printf("Members Count: %d\n", iMember);
 }
 
 DWORD
@@ -334,22 +392,22 @@ MapErrorCode(
     )
 {
     DWORD dwError2 = dwError;
-    
+
     switch (dwError)
     {
         case ECONNREFUSED:
         case ENETUNREACH:
         case ETIMEDOUT:
-            
+
             dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
-            
+
             break;
-            
+
         default:
-            
+
             break;
     }
-    
+
     return dwError2;
 }
 
@@ -369,19 +427,19 @@ IsUnsignedInteger(
     INT iLength = 0;
     INT iCharIdx = 0;
     CHAR cNext = '\0';
-    
+
     if (IsNullOrEmptyString(pszIntegerCandidate))
     {
         bIsUnsignedInteger = FALSE;
         goto error;
     }
-    
+
     iLength = strlen(pszIntegerCandidate);
-    
+
     do {
 
       cNext = pszIntegerCandidate[iCharIdx++];
-      
+
       switch(parseMode) {
 
           case PARSE_MODE_LEADING_SPACE:
@@ -396,7 +454,7 @@ IsUnsignedInteger(
               }
               break;
           }
-          
+
           case PARSE_MODE_INTEGER:
           {
               if (isspace((int)cNext))
@@ -409,7 +467,7 @@ IsUnsignedInteger(
               }
               break;
           }
-          
+
           case PARSE_MODE_TRAILING_SPACE:
           {
               if (!isspace((int)cNext))
@@ -417,13 +475,14 @@ IsUnsignedInteger(
                   bIsUnsignedInteger = FALSE;
               }
               break;
-          }    
+          }
       }
 
     } while (iCharIdx < iLength && bIsUnsignedInteger == TRUE);
 
-    
+
 error:
 
-    return bIsUnsignedInteger;   
+    return bIsUnsignedInteger;
 }
+

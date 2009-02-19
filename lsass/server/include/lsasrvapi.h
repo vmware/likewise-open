@@ -64,6 +64,22 @@ LsaSrvOpenServer(
     PHANDLE phServer
     );
 
+DWORD
+LsaSrvOpenServerEnum(
+    PHANDLE phServer
+    );
+
+VOID
+LsaSrvGetUid(
+    HANDLE hServer,
+    uid_t* pUid
+    );
+
+void
+LsaSrvCloseServerEnum(
+    HANDLE hServer
+    );
+
 void
 LsaSrvCloseServer(
     HANDLE hServer
@@ -75,6 +91,14 @@ LsaSrvAuthenticateUser(
     PCSTR  pszLoginId,
     PCSTR  pszPassword
     );
+
+DWORD
+LsaSrvAuthenticateUserEx(
+    HANDLE hServer,
+    PLSA_AUTH_USER_PARAMS pUserParms,
+    PLSA_AUTH_USER_INFO *ppUserInfo
+    );
+
 
 DWORD
 LsaSrvValidateUser(
@@ -178,14 +202,15 @@ DWORD
 LsaSrvBeginEnumUsers(
     HANDLE hServer,
     DWORD  dwUserInfoLevel,
-    DWORD  dwNumMaxUsers,
-    PSTR*  ppszGUID
+    DWORD  dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
+    PHANDLE phState
     );
 
 DWORD
 LsaSrvEnumUsers(
     HANDLE  hServer,
-    PCSTR   pszGUID,
+    HANDLE  hState,
     PDWORD  pdwUserInfoLevel,
     PVOID** pppUserInfoList,
     PDWORD  pdwNumUsersFound
@@ -194,21 +219,23 @@ LsaSrvEnumUsers(
 DWORD
 LsaSrvEndEnumUsers(
     HANDLE hServer,
-    PCSTR  pszGUID
+    HANDLE hState
     );
 
 DWORD
 LsaSrvBeginEnumGroups(
     HANDLE hServer,
     DWORD  dwGroupInfoLevel,
-    DWORD  dwNumMaxGroups,
-    PSTR*  ppszGUID
+    DWORD  dwMaxNumGroups,
+    BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
+    PHANDLE phState
     );
 
 DWORD
 LsaSrvEnumGroups(
     HANDLE  hServer,
-    PCSTR   pszGUID,
+    HANDLE  hState,
     PDWORD  pdwGroupInfoLevel,
     PVOID** pppGroupInfoList,
     PDWORD  pdwNumGroupsFound
@@ -217,7 +244,7 @@ LsaSrvEnumGroups(
 DWORD
 LsaSrvEndEnumGroups(
     HANDLE hServer,
-    PCSTR  pszGUID
+    HANDLE hState
     );
 
 DWORD
@@ -237,13 +264,13 @@ LsaSrvBeginEnumNSSArtefacts(
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwGroupInfoLevel,
     DWORD  dwNumMaxGroups,
-    PSTR*  ppszGUID
+    PHANDLE phState
     );
 
 DWORD
 LsaSrvEnumNSSArtefacts(
     HANDLE  hServer,
-    PCSTR   pszGUID,
+    HANDLE  hState,
     PDWORD  pdwGroupInfoLevel,
     PVOID** pppGroupInfoList,
     PDWORD  pdwNumGroupsFound
@@ -252,7 +279,7 @@ LsaSrvEnumNSSArtefacts(
 DWORD
 LsaSrvEndEnumNSSArtefacts(
     HANDLE hServer,
-    PCSTR  pszGUID
+    HANDLE hState
     );
 
 DWORD
@@ -342,6 +369,18 @@ DWORD
 LsaSrvRefreshConfiguration(
     HANDLE hServer
     );
+
+DWORD
+LsaSrvProviderIoControl(
+    IN HANDLE  hServer,
+    IN PCSTR   pszProvider,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    );
+
 
 #endif /* __LSASRVAPI_H__ */
 

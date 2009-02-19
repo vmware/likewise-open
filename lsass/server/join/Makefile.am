@@ -6,6 +6,7 @@ liblsajoin_la_SOURCES = \
        join.c     \
        leave.c    \
        libmain.c  \
+       common.c   \
        query.c
 
 

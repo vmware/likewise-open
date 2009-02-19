@@ -1,4 +1,3 @@
 
-SUBDIRS = netlogonclient \
-          get_domain_controller
+SUBDIRS = get_domain_controller
 

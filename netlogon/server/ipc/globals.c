@@ -48,16 +48,19 @@
  */
 #include "includes.h"
 
-LWNETMESSAGEHANDLER gMessageHandlers[] =
+static LWMsgDispatchSpec gMessageHandlers[] =
 {
- { LWNET_ERROR,    LWNetServer, NULL                     },//0
- { LWNET_Q_DCTIME, LWNetClient, &LWNetSrvIpcGetDCTime    },//1
- { LWNET_R_DCTIME, LWNetServer, NULL                     },//2
- { LWNET_Q_DCINFO, LWNetClient, &LWNetSrvIpcGetDCName    },//3
- { LWNET_R_DCINFO, LWNetServer, NULL                     }, //4
- { LWNET_Q_DC, LWNetClient, &LWNetSrvIpcGetDomainController  },//5
- { LWNET_R_DC, LWNetServer, NULL                         }, //6
- { LWNET_Q_DC, LWNetClient, &LWNetSrvIpcGetCurrentDomain },//7
- { LWNET_R_DC, LWNetServer, NULL                         } //8
+    LWMSG_DISPATCH(LWNET_Q_DCTIME, LWNetSrvIpcGetDCTime),
+    LWMSG_DISPATCH(LWNET_Q_DCINFO, LWNetSrvIpcGetDCName),
+    LWMSG_DISPATCH(LWNET_Q_DC, LWNetSrvIpcGetDomainController),
+    LWMSG_DISPATCH(LWNET_Q_CURRENT_DOMAIN, &LWNetSrvIpcGetCurrentDomain),
+    LWMSG_DISPATCH_END
 };
 
+LWMsgDispatchSpec*
+LWNetSrvGetDispatchSpec(
+    void
+    )
+{
+    return gMessageHandlers;
+}

@@ -152,7 +152,7 @@ AD_AddAllowedGroup(
 
 DWORD
 AD_OnlineFindCellDN(
-    IN HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     IN PCSTR pszComputerDN,
     IN PCSTR pszRootDN,
     OUT PSTR* ppszCellDN
@@ -225,7 +225,7 @@ DWORD
 AD_OnlineEnumGroups(
     HANDLE  hProvider,
     HANDLE  hResume,
-    DWORD   dwMaxGroups,
+    DWORD   dwMaxNumGroups,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     );
@@ -344,7 +344,7 @@ AD_OnlineGetNamesBySidList(
 
 DWORD
 AD_GetLinkedCellInfo(
-    IN HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     IN PCSTR pszCellDN,
     IN PCSTR pszDomain,
     OUT PDLINKEDLIST* ppCellList

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Tool to manage LSASS trace flags at runtime
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -107,7 +107,7 @@ main(
     DWORD dwNumFlags = 0;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
-    
+
     if (argc > 1)
     {
         dwError = ParseArgs(
@@ -127,7 +127,7 @@ main(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -141,7 +141,7 @@ main(
 
         printf("The trace levels were set successfully\n\n");
     }
-    
+
     if (dwTraceFlag)
     {
         dwError = LsaGetTraceFlag(
@@ -149,12 +149,12 @@ main(
                     dwTraceFlag,
                     &pTraceFlag);
         BAIL_ON_LSA_ERROR(dwError);
-    
+
         dwError = PrintTraceInfo(pTraceFlag);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (!dwTraceFlag && !pTraceFlagArray)
+    if (dwTraceFlag && pTraceFlagArray)
     {
        DWORD iFlag = 0;
 
@@ -187,32 +187,32 @@ cleanup:
 error:
 
     dwError = MapErrorCode(dwError);
-    
+
     dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
-    
+
     if (dwErrorBufferSize > 0)
     {
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
-        
+
         dwError2 = LsaAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
-        
+
         if (!dwError2)
         {
             DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
-            
+
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to manage trace flags.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
-        
+
         LSA_SAFE_FREE_STRING(pszErrorBuffer);
     }
-    
+
     if (bPrintOrigError)
     {
         fprintf(stderr, "Failed to manage trace flags. Error code [%d]\n", dwError);
@@ -235,7 +235,7 @@ ParseArgs(
         PARSE_MODE_SET,
         PARSE_MODE_GET
     } ParseMode;
-        
+
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
@@ -250,11 +250,11 @@ ParseArgs(
         {
             break;
         }
-        
+
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-        
+
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -306,7 +306,7 @@ ParseArgs(
 
                 break;
         }
-        
+
     } while (iArg < argc);
 
     *ppTraceFlagArrayToSet = pTraceFlagArray;
@@ -314,7 +314,7 @@ ParseArgs(
     *pdwTraceFlag = dwTraceFlag;
 
 cleanup:
-    
+
     return dwError;
 
 error:
@@ -437,7 +437,7 @@ ParseTraceFlagArray(
 
     *ppTraceFlagArray = pTraceFlagArray;
     *pdwNumFlags = dwNumFlags;
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszFlag);
@@ -498,7 +498,7 @@ error:
 void
 ShowUsage()
 {
-    printf("Usage: lw-trace-flags {--set (flag-name:(0|1))(,flag-name:(0|1))*}\n"
+    printf("Usage: lw-trace-info {--set (flag-name:(0|1))(,flag-name:(0|1))*}\n"
            "                      {--get flag-name}\n");
     printf("\nValid flag names: {user-group-queries, authentication, user-group-administration}\n");
     printf("\nExample: lw-trace-info --set user-group-queries:0,authentication:1 --get user-group-administration\n");
@@ -542,7 +542,7 @@ PrintTraceInfo(
 
             break;
     }
-    
+
     return 0;
 }
 
@@ -552,21 +552,21 @@ MapErrorCode(
     )
 {
     DWORD dwError2 = dwError;
-    
+
     switch (dwError)
     {
         case ECONNREFUSED:
         case ENETUNREACH:
         case ETIMEDOUT:
-            
+
             dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
-            
+
             break;
-            
+
         default:
-            
+
             break;
     }
-    
+
     return dwError2;
 }

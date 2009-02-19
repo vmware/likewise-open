@@ -140,7 +140,7 @@ done:
 wbcErr wbcGetgrnam(const char *name, struct group **grp)
 {
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -169,6 +169,7 @@ done:
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pGroupInfo) {
@@ -184,7 +185,7 @@ done:
 wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
 {
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -212,6 +213,7 @@ done:
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pGroupInfo) {

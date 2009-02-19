@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -46,36 +46,79 @@
  */
 #include "ipc.h"
 
+static
 DWORD
-LsaSrvIpcOpenServer(
-    HANDLE  hConnection,
-    PHANDLE phServer
+LsaSrvIpcCheckPermissions(
+    LWMsgAssoc* assoc,
+    uid_t* puid,
+    gid_t* pgid
     )
 {
     DWORD dwError = 0;
-    PLSASERVERCONNECTIONCONTEXT pContext = (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    
-    if (pContext->hServer == (HANDLE)NULL) {
-       dwError = LsaSrvOpenServer(
-                       pContext->peerUID,
-                       pContext->peerGID,
-                       &hServer);
-       BAIL_ON_LSA_ERROR(dwError);
-       
-       pContext->hServer = hServer;
+    LWMsgSecurityToken* token = NULL;
+    uid_t euid;
+    gid_t egid;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_peer_security_token(assoc, &token));
+    if (dwError)
+    {
+        LSA_LOG_ERROR("Failed to get authentication information for association %p", assoc);
     }
-    
-    *phServer = pContext->hServer;
-    
-cleanup:
+    BAIL_ON_LSA_ERROR(dwError);
 
-    return dwError;
-    
+    if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
+    {
+        LSA_LOG_WARNING("Unsupported authentication type on association %p", assoc);
+        dwError = LSA_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &euid, &egid));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_LOG_VERBOSE("Permission granted for (uid = %i, gid = %i) to open LsaIpcServer",
+                    (int) euid,
+                    (int) egid);
+
+    *puid = euid;
+    *pgid = egid;
+
 error:
-
-    *phServer = (HANDLE)NULL;
-    
-    goto cleanup;
+    return dwError;
 }
 
+LWMsgStatus
+LsaSrvIpcOpenServer(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    HANDLE Handle = (HANDLE)NULL;
+    uid_t UID;
+    gid_t GID;
+
+    LSA_LOG_VERBOSE("LsaSrvIpc open hServer of on association %p", assoc);
+
+    dwError = LsaSrvIpcCheckPermissions(assoc, &UID, &GID);
+    if (!dwError)
+    {
+        LSA_LOG_VERBOSE("Successfully opened hServer for association %p",
+                        assoc);
+
+        dwError = LsaSrvOpenServer(UID, GID, &Handle);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_session_data(assoc, (PVOID)Handle, LsaSrvCloseServer));
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}

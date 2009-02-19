@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,11 +28,15 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 
 /*
- * Unwrap the packet prior to sending
+ * Unwrap the packet after receiving
  */
 
 uint32 schn_unwrap(void                 *sec_ctx,
@@ -41,7 +45,7 @@ uint32 schn_unwrap(void                 *sec_ctx,
                    struct schn_blob     *out,
                    struct schn_tail     *tail)
 {
-    uint32 status = 0;
+    uint32 status = schn_s_ok;
     struct schn_auth_ctx *schn_ctx = NULL;
     uint8 seq_number[8], digest[8];
     uint32 sender_flags;
@@ -60,13 +64,17 @@ uint32 schn_unwrap(void                 *sec_ctx,
         break;
 
     default:
-        /* TODO: unsupported authz level ? */
-        status = -1;
-        return;
+        status = schn_s_unsupported_protect_level;
+        goto error;
     }
 
-    out->len = in->len;
-    out->base = (uint8*) malloc(out->len);
+    out->len  = in->len;
+    out->base = malloc(out->len);
+    if (out->base == NULL) {
+        status = schn_s_no_memory;
+        goto error;
+    }
+
     memcpy(out->base, in->base, out->len);
 
     /* if we're an initiator we should expect a packet from acceptor */
@@ -87,8 +95,7 @@ uint32 schn_unwrap(void                 *sec_ctx,
     if (memcmp((void*)tail->seq_number,
                (void*)seq_number,
                sizeof(tail->seq_number))) {
-        /* TODO: access denied ? */
-        status = -1;
+        status = schn_s_invalid_credentials;
         goto error;
     }
 
@@ -96,35 +103,30 @@ uint32 schn_unwrap(void                 *sec_ctx,
     if (memcmp((void*)tail->signature,
                (void*)schannel_sig,
                sizeof(tail->signature))) {
-        /* TODO: access denied ? */
-        status = -1;
+        status = schn_s_invalid_credentials;
         goto error;
     }
 
     if (sec_level == SCHANNEL_SEC_LEVEL_PRIVACY) {
         RC4_KEY key_nonce, key_data;
 
+        memset(&key_nonce, 0, sizeof(key_nonce));
+        memset(&key_data, 0, sizeof(key_data));
+
         /* Prepare sealing key */
         schn_seal_generate_key(schn_ctx->session_key,
                                tail->seq_number, seal_key);
 
-        /* Decrypt the key
-        rc4((unsigned char*)tail->nonce, sizeof(tail->nonce),
-            (unsigned char*)seal_key, sizeof(seal_key));
-        */
-
+        /* Decrypt nonce */
         RC4_set_key(&key_nonce, sizeof(seal_key), (unsigned char*)seal_key);
         RC4(&key_nonce, sizeof(tail->nonce), (unsigned char*)tail->nonce,
             (unsigned char*)tail->nonce);
 
-        /* Decrypt the payload
-        rc4(out->base, out->len,
-            (unsigned char*)seal_key, sizeof(seal_key));
-        */
-
+        /* Decrypt the payload */
         RC4_set_key(&key_data, sizeof(seal_key), (unsigned char*)seal_key);
         RC4(&key_data, out->len, (unsigned char*)out->base,
             (unsigned char*)out->base);
+
     }
 
     /* check the packet payload digest */
@@ -135,8 +137,7 @@ uint32 schn_unwrap(void                 *sec_ctx,
     if (memcmp((void*)tail->digest,
                (void*)digest,
                sizeof(tail->digest))) {
-        /* TODO: access denied ? */
-        status = -1;
+        status = schn_s_invalid_credentials;
         goto error;
     }
 

@@ -42,6 +42,7 @@ SRCS = \
 	$(srcdir)/indicate_mechs.c \
 	$(srcdir)/init_sec_context.c \
 	$(srcdir)/inq_context.c \
+	$(srcdir)/inq_context2.c \
 	$(srcdir)/inq_cred.c \
 	$(srcdir)/inq_names.c \
 	$(srcdir)/k5seal.c \
@@ -92,6 +93,7 @@ OBJS = \
 	$(OUTPRE)indicate_mechs.$(OBJEXT) \
 	$(OUTPRE)init_sec_context.$(OBJEXT) \
 	$(OUTPRE)inq_context.$(OBJEXT) \
+	$(OUTPRE)inq_context2.$(OBJEXT) \
 	$(OUTPRE)inq_cred.$(OBJEXT) \
 	$(OUTPRE)inq_names.$(OBJEXT) \
 	$(OUTPRE)k5seal.$(OBJEXT) \
@@ -142,6 +144,7 @@ STLIBOBJS = \
 	indicate_mechs.o \
 	init_sec_context.o \
 	inq_context.o \
+	inq_context2.o \
 	inq_cred.o \
 	inq_names.o \
 	k5seal.o \
@@ -486,6 +489,18 @@ inq_context.so inq_context.po $(OUTPRE)inq_context.$(OBJEXT): \
   $(srcdir)/../generic/gssapiP_generic.h $(srcdir)/../generic/gssapi_generic.h \
   ../generic/gssapi_err_generic.h gssapiP_krb5.h gssapi_err_krb5.h \
   gssapi_krb5.h inq_context.c
+inq_context2.so inq_context2.po $(OUTPRE)inq_context2.$(OBJEXT): \
+  $(BUILDTOP)/include/autoconf.h $(BUILDTOP)/include/gssapi/gssapi.h \
+  $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
+  $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(SRCTOP)/include/k5-err.h \
+  $(SRCTOP)/include/k5-int-pkinit.h $(SRCTOP)/include/k5-int.h \
+  $(SRCTOP)/include/k5-platform.h $(SRCTOP)/include/k5-plugin.h \
+  $(SRCTOP)/include/k5-thread.h $(SRCTOP)/include/krb5.h \
+  $(SRCTOP)/include/krb5/locate_plugin.h $(SRCTOP)/include/krb5/preauth_plugin.h \
+  $(SRCTOP)/include/port-sockets.h $(SRCTOP)/include/socket-utils.h \
+  $(srcdir)/../generic/gssapiP_generic.h $(srcdir)/../generic/gssapi_generic.h \
+  ../generic/gssapi_err_generic.h gssapiP_krb5.h gssapi_err_krb5.h \
+  gssapi_krb5.h inq_context2.c
 inq_cred.so inq_cred.po $(OUTPRE)inq_cred.$(OBJEXT): \
   $(BUILDTOP)/include/autoconf.h $(BUILDTOP)/include/gssapi/gssapi.h \
   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \

@@ -108,7 +108,6 @@ LsaBitVectorIsSet(
     )
 {
     return (pBitVector->pVector &&
-            (iBit > 0) &&
             (iBit < pBitVector->dwNumBits) &&
             (pBitVector->pVector[iBit/(sizeof(DWORD)*8)] & (1 << (iBit % (sizeof(DWORD)*8)))));
 }
@@ -122,8 +121,7 @@ LsaBitVectorSetBit(
     DWORD dwError = 0;
 
     if (!pBitVector->pVector ||
-        (iBit <= 0) ||
-        (iBit > pBitVector->dwNumBits))
+        (iBit >= pBitVector->dwNumBits))
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -145,8 +143,7 @@ LsaBitVectorUnsetBit(
     DWORD dwError = 0;
 
     if (!pBitVector->pVector ||
-        (iBit <= 0) ||
-        (iBit > pBitVector->dwNumBits))
+        (iBit >= pBitVector->dwNumBits))
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);

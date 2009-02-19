@@ -106,6 +106,17 @@ main(
                   &pBitVector);
     BAIL_ON_LSA_ERROR(dwError);
 
+    // Index starts from 0
+    //
+    dwError = LsaBitVectorSetBit(pBitVector, 0);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaBitVectorSetBit(pBitVector, dwNumBits);
+    if (dwError != LSA_ERROR_INVALID_PARAMETER)
+    {
+       BAIL_ON_LSA_ERROR(dwError);
+    }
+       
     dwError = LsaBitVectorSetBit(pBitVector, dwTestBit);
     BAIL_ON_LSA_ERROR(dwError);
     

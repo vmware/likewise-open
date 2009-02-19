@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for Login Session
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -46,153 +46,82 @@
  */
 #include "ipc.h"
 
-DWORD
+LWMsgStatus
 LsaSrvIpcOpenSession(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PSTR  pszLoginId = NULL;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-        (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
 
-    dwError = LsaUnmarshalSession(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &pszLoginId);
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvOpenSession(
-                    hServer,
-                    pszLoginId);
-    if (!dwError) {
-        
-       dwError = LsaBuildMessage(
-                    LSA_R_OPEN_SESSION,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    } else {
-       
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-       
-       dwOrigErrCode = dwError;
-       
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-        
-       dwError = LsaBuildMessage(
-                    LSA_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-        
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+                    (HANDLE)Handle,
+                    (PSTR)pRequest->object);
+
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_OPEN_SESSION_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_OPEN_SESSION_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
 cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
-
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
-    
 error:
-
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcCloseSession(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PSTR  pszLoginId = NULL;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-        (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
 
-    dwError = LsaUnmarshalSession(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &pszLoginId);
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvCloseSession(
-                    hServer,
-                    pszLoginId);
-    if (!dwError) {
-        
-       dwError = LsaBuildMessage(
-                    LSA_R_CLOSE_SESSION,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    } else {
-       
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-       
-       dwOrigErrCode = dwError;
-       
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-        
-       dwError = LsaBuildMessage(
-                    LSA_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-        
-       dwError = LsaMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+                    (HANDLE)Handle,
+                    (PSTR)pRequest->object);
+
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_CLOSE_SESSION_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_CLOSE_SESSION_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
 cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
-
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
-    
 error:
-
     goto cleanup;
 }
-

@@ -1,0 +1,24 @@
+sbin_PROGRAMS = lwrdrd
+
+lwrdrd_SOURCES = \
+    globals.c   \
+    ipc.c       \
+    main.c      \
+    smbcfg.c    \
+    proc.c
+
+lwrdrd_CPPFLAGS = \
+    -DLW_ENABLE_THREADS=1  \
+    -I@top_srcdir@         \
+    -I@top_srcdir@/include \
+    -I@top_srcdir@/server/include
+
+lwrdrd_LDADD = \
+    @top_builddir@/server/iomgr/libiomgr.la \
+    @top_builddir@/logging_r/libsmblog_r.la  \
+    @NETLOGON_LIBS@ \
+    @LWMSG_LIBS@
+
+install-data-local:
+	$(mkinstalldirs) $(DESTDIR)$(lsmbcachedir)
+

@@ -241,6 +241,14 @@ AD_SetConfig_NssUserMembershipCacheOnlyEnabled(
     PCSTR          pszValue
     );
 
+static
+DWORD
+AD_SetConfig_NssEnumerationEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
 static AD_CONFIG_HANDLER gADConfigHandlers[] =
 {
     {"enable-eventlog",               &AD_SetConfig_EnableEventLog},
@@ -266,6 +274,7 @@ static AD_CONFIG_HANDLER gADConfigHandlers[] =
     {"trim-user-membership",          &AD_SetConfig_TrimUserMembershipEnabled},
     {"nss-group-members-query-cache-only",   &AD_SetConfig_NssGroupMembersCacheOnlyEnabled},
     {"nss-user-membership-query-cache-only", &AD_SetConfig_NssUserMembershipCacheOnlyEnabled},
+    {"nss-enumeration-enabled",              &AD_SetConfig_NssEnumerationEnabled},
 };
 
 DWORD
@@ -295,7 +304,7 @@ AD_InitializeConfig(
     pConfig->bAssumeDefaultDomain = FALSE;
     pConfig->bCreateHomeDir   = TRUE;
     pConfig->bCreateK5Login   = TRUE;
-    pConfig->bLDAPSignAndSeal = FALSE;    
+    pConfig->bLDAPSignAndSeal = FALSE;
     pConfig->bSyncSystemTime  = TRUE;
     /* Leave chSpaceReplacement and chDomainSeparator set as '\0' for now.
      * After the config file is parsed, they will be assigned default values
@@ -309,20 +318,21 @@ AD_InitializeConfig(
     pConfig->dwCacheEntryExpirySecs   = AD_CACHE_ENTRY_EXPIRY_DEFAULT_SECS;
     pConfig->dwMachinePasswordSyncLifetime = AD_MACHINE_PASSWORD_SYNC_DEFAULT_SECS;
     pConfig->dwUmask          = AD_DEFAULT_UMASK;
-    
+
     pConfig->bEnableEventLog = FALSE;
-    pConfig->bShouldLogNetworkConnectionEvents = TRUE;    
+    pConfig->bShouldLogNetworkConnectionEvents = TRUE;
     pConfig->bRefreshUserCreds = TRUE;
     pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
     pConfig->bTrimUserMembershipEnabled = TRUE;
     pConfig->bNssGroupMembersCacheOnlyEnabled = TRUE;
     pConfig->bNssUserMembershipCacheOnlyEnabled = FALSE;
+    pConfig->bNssEnumerationEnabled = FALSE;
 
     dwError = LsaAllocateString(
                     AD_DEFAULT_SHELL,
                     &pConfig->pszShell);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateString(
                     AD_DEFAULT_HOMEDIR_PREFIX,
                     &pConfig->pszHomedirPrefix);
@@ -452,7 +462,7 @@ AD_ConfigStartSection(
         bSkipSection = TRUE;
         goto done;
     }
-    
+
     if (!strncasecmp(pszSectionName, AD_CFG_TAG_AUTH_PROVIDER, sizeof(AD_CFG_TAG_AUTH_PROVIDER)-1))
     {
         pszLibName = pszSectionName + sizeof(AD_CFG_TAG_AUTH_PROVIDER) - 1;
@@ -634,7 +644,7 @@ AD_CheckPunctuationChar(
     }
 
 cleanup:
-    
+
     return dwError;
 
 error:
@@ -1093,31 +1103,31 @@ AD_SetConfig_HomedirPrefix(
 {
     DWORD dwError = 0;
     PSTR pszHomedirPrefix = NULL;
-    
+
     BAIL_ON_INVALID_STRING(pszValue);
-    
+
     dwError = LsaAllocateString(
                 pszValue,
                 &pszHomedirPrefix);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LsaStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
-    
+
     BAIL_ON_INVALID_STRING(pszHomedirPrefix);
-    
+
     if (*pszHomedirPrefix != '/')
     {
         LSA_LOG_ERROR("Invalid home directory prefix [%s]", pszHomedirPrefix);
         goto error;
     }
-    
+
     LSA_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
     pConfig->pszHomedirPrefix = pszHomedirPrefix;
-    
+
 cleanup:
 
     return 0;
-    
+
 error:
 
     LSA_SAFE_FREE_STRING(pszHomedirPrefix);
@@ -1203,6 +1213,19 @@ AD_SetConfig_NssUserMembershipCacheOnlyEnabled(
     return 0;
 }
 
+static
+DWORD
+AD_SetConfig_NssEnumerationEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    pConfig->bNssEnumerationEnabled = AD_GetBooleanConfigValue(pszValue);
+
+    return 0;
+}
+
 BOOLEAN
 AD_GetBooleanConfigValue(
     PCSTR pszValue
@@ -1264,7 +1287,7 @@ AD_GetHomedirPrefixPath(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
     PSTR  pszHomedirPrefixPath = NULL;
-    
+
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     if (!IsNullOrEmptyString(gpLsaAdProviderState->config.pszHomedirPrefix))
@@ -1288,7 +1311,7 @@ error:
 
     *ppszPath = NULL;
 
-    goto cleanup;    
+    goto cleanup;
 }
 
 DWORD
@@ -2084,3 +2107,21 @@ AD_GetNssUserMembershipCacheOnlyEnabled(
 
     return result;
 }
+
+BOOLEAN
+AD_GetNssEnumerationEnabled(
+    VOID
+    )
+{
+    BOOLEAN result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    result = gpLsaAdProviderState->config.bNssEnumerationEnabled;
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
+}
+

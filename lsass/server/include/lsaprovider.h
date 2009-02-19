@@ -65,6 +65,12 @@ typedef DWORD (*PFNAUTHENTICATEUSER)(
                         PCSTR  pszPassword
                         );
 
+typedef DWORD (*PFNAUTHENTICATEUSEREX)(
+                        HANDLE hProvider,
+                        PLSA_AUTH_USER_PARAMS pUserParams,
+                        PLSA_AUTH_USER_INFO *ppUserInfo
+                        );
+
 typedef DWORD (*PFNVALIDATEUSER)(
                         HANDLE hProvider,
                         PCSTR  pszLoginId,
@@ -117,28 +123,29 @@ typedef DWORD (*PFNGETGROUPSFORUSER)(
 
 typedef DWORD (*PFNBEGIN_ENUM_USERS)(
                         HANDLE  hProvider,
-                        PCSTR   pszGUID,
                         DWORD   dwInfoLevel,
+                        LSA_FIND_FLAGS FindFlags,
                         PHANDLE phResume
                         );
 
 typedef DWORD (*PFNENUMUSERS) (
                         HANDLE  hProvider,
                         HANDLE  hResume,
-                        DWORD   ndwMaxUsers,
+                        DWORD   dwMaxUsers,
                         PDWORD  pdwUsersFound,
                         PVOID** pppUserInfoList
                         );
 
 typedef VOID (*PFNEND_ENUM_USERS)(
                         HANDLE hProvider,
-                        PCSTR  pszGUID
+                        HANDLE hResume
                         );
 
 typedef DWORD (*PFNBEGIN_ENUM_GROUPS)(
                         HANDLE  hProvider,
-                        PCSTR   pszGUID,
                         DWORD   dwInfoLevel,
+                        BOOLEAN bCheckGroupMembersOnline,
+                        LSA_FIND_FLAGS FindFlags,
                         PHANDLE phResume
                         );
 
@@ -152,7 +159,7 @@ typedef DWORD (*PFNENUMGROUPS) (
 
 typedef VOID (*PFNEND_ENUM_GROUPS)(
                         HANDLE hProvider,
-                        PCSTR  pszGUID
+                        HANDLE hResume
                         );
 
 typedef DWORD (*PFNCHANGEPASSWORD) (
@@ -219,7 +226,6 @@ typedef DWORD (*PFNLOOKUP_NSS_ARTEFACT_BY_KEY)(
 
 typedef DWORD (*PFNBEGIN_ENUM_NSS_ARTEFACTS)(
                         HANDLE  hProvider,
-                        PCSTR   pszGUID,
                         DWORD   dwInfoLevel,
                         PCSTR   pszMapName,
                         LSA_NIS_MAP_QUERY_FLAGS dwFlags,
@@ -236,7 +242,7 @@ typedef DWORD (*PFNENUMNSS_ARTEFACTS) (
 
 typedef VOID (*PFNEND_ENUM_NSS_ARTEFACTS)(
                         HANDLE hProvider,
-                        PCSTR  pszGUID
+                        HANDLE hResume
                         );
 
 typedef DWORD (*PFNGET_STATUS)(
@@ -250,12 +256,24 @@ typedef VOID (*PFNFREE_STATUS)(
 
 typedef DWORD (*PFNREFRESH_CONFIGURATION)();
 
+typedef DWORD (*PFNPROVIDER_IO_CONTROL) (
+                HANDLE hProvider,
+                uid_t  peerUid,
+                gid_t  peerGID,
+                DWORD  dwIoControlCode,
+                DWORD  dwInputBufferSize,
+                PVOID  pInputBuffer,
+                DWORD* pdwOutputBufferSize,
+                PVOID* ppOutputBuffer
+                );
+
 typedef struct __LSA_PROVIDER_FUNCTION_TABLE
 {
     PFNOPENHANDLE                  pfnOpenHandle;
     PFNCLOSEHANDLE                 pfnCloseHandle;
     PFNSERVICESDOMAIN              pfnServicesDomain;
     PFNAUTHENTICATEUSER            pfnAuthenticateUser;
+    PFNAUTHENTICATEUSEREX          pfnAuthenticateUserEx;
     PFNVALIDATEUSER                pfnValidateUser;
     PFNCHECKUSERINLIST             pfnCheckUserInList;
     PFNLOOKUPUSERBYNAME            pfnLookupUserByName;
@@ -285,6 +303,7 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNGET_STATUS                  pfnGetStatus;
     PFNFREE_STATUS                 pfnFreeStatus;
     PFNREFRESH_CONFIGURATION       pfnRefreshConfiguration;
+    PFNPROVIDER_IO_CONTROL         pfnProviderIoControl;
 } LSA_PROVIDER_FUNCTION_TABLE, *PLSA_PROVIDER_FUNCTION_TABLE;
 
 #define LSA_SYMBOL_NAME_INITIALIZE_PROVIDER "LsaInitializeProvider"

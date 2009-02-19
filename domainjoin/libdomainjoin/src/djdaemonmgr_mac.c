@@ -708,8 +708,8 @@ DJManageDaemon(
         pszDaemonPath = "com.likewisesoftware.lsassd";
     else if(!strcmp(pszName, "netlogond"))
         pszDaemonPath = "com.likewisesoftware.netlogond";
-    else if(!strcmp(pszName, "npcmuxd"))
-        pszDaemonPath = "com.likewisesoftware.npcmuxd";
+    else if(!strcmp(pszName, "lwrdrd"))
+        pszDaemonPath = "com.likewisesoftware.lwrdrd";
     else if(!strcmp(pszName, "eventlogd"))
         pszDaemonPath = "com.likewisesoftware.eventlogd";
     else if(!strcmp(pszName, "dcerpcd"))

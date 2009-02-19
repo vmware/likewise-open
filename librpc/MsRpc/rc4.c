@@ -44,6 +44,8 @@ void rc4init(struct rc4ctx *ctx, unsigned char *key, size_t keylen)
     
     for (i = 0; i < sizeof(ctx->S); i++) {
 	j +=  (ctx->S[i] + key[i % keylen]);
+        // ctx->S[j] does not access S out of bounds because S has size 256,
+        // and j is an unsigned char (can only have values 0-255).
 	SWAP(ctx->S[i], ctx->S[j]);
     }
 }

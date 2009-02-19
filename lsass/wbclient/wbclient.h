@@ -22,22 +22,25 @@
 #ifndef _WBCLIENT_H
 #define _WBCLIENT_H
 
-#include <config.h>
-
-#if HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
-#ifdef HAVE_STDBOOL_H
-#include <stdbool.h>
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#  if HAVE_STDINT_H
+#    include <stdint.h>
+#  endif
+#  ifdef HAVE_STDBOOL_H
+#    include <stdbool.h>
+#  else
+#    define bool int
+#    ifndef false
+#      define false 0
+#    endif
+#    ifndef true
+#      define true 1
+#    endif
+#  endif
 #else
-#  define bool int
-#  ifndef false
-#    define false 0
-#  endif
-#  ifndef true
-#    define true 1
-#  endif
+#  include <stdint.h>
+#  include <stdbool.h>
 #endif
 
 #include <pwd.h>
@@ -75,7 +78,7 @@ const char *wbcErrorString(wbcErr error);
  **/
 #define WBCLIENT_MAJOR_VERSION 0
 #define WBCLIENT_MINOR_VERSION 1
-#define WBCLIENT_VENDOR_VERSION "Samba libwbclient"
+#define WBCLIENT_VENDOR_VERSION "Likewise Security Authority libwbclient"
 struct wbcLibraryDetails {
 	uint16_t major_version;
 	uint16_t minor_version;

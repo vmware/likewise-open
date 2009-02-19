@@ -50,6 +50,4 @@
 #ifndef __EXTERNS_P_H__
 #define __EXTERNS_P_H__
 
-extern LWNETMESSAGEHANDLER gMessageHandlers[];
-
 #endif /* __EXTERNS_P_H__ */

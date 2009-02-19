@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for Users
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -46,682 +46,618 @@
  */
 #include "ipc.h"
 
-DWORD
-LsaSrvIpcAddUser(
-    HANDLE      hConnection,
-    PLSAMESSAGE pMessage
+static void
+LsaSrvCleanupUserEnumHandle(
+    void* pData
     )
 {
-    DWORD  dwError = 0;
-    PVOID* ppUserInfoList = NULL;
-    DWORD  dwUserInfoLevel = 0;
-    DWORD  dwNumUsers = 0;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext  =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    
-    dwError = LsaUnmarshalUserInfoList(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &dwUserInfoLevel,
-                    &ppUserInfoList,
-                    &dwNumUsers);
+    LsaSrvEndEnumUsers(
+        NULL,
+        (HANDLE) pData);
+}
+
+LWMsgStatus
+LsaSrvIpcAddUser(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    // Do not free pUserInfoList
+    PLSA_USER_INFO_LIST pUserInfoList = (PLSA_USER_INFO_LIST)pRequest->object;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvAddUser(
-                    hServer,
-                    dwUserInfoLevel,
-                    *ppUserInfoList
-                    );
-    if (!dwError) {
-        
-       dwError = LsaBuildMessage(
-                    LSA_R_ADD_USER,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    } else {
-       
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-        
+
+    switch (pUserInfoList->dwUserInfoLevel)
+    {
+        case 0:
+            dwError = LsaSrvAddUser(
+                            (HANDLE)Handle,
+                            0,
+                            pUserInfoList->ppUserInfoList.ppInfoList0[0]);
+            break;
+        case 1:
+            dwError = LsaSrvAddUser(
+                            (HANDLE)Handle,
+                            1,
+                            pUserInfoList->ppUserInfoList.ppInfoList1[0]);
+            break;
+        case 2:
+            dwError = LsaSrvAddUser(
+                            (HANDLE)Handle,
+                            2,
+                            pUserInfoList->ppUserInfoList.ppInfoList2[0]);
+            break;
+        default:
+            dwError = LSA_ERROR_INVALID_PARAMETER;
     }
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_ADD_USER_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_ADD_USER_FAILURE;;
+        pResponse->object = pError;
+    }
 
 cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
 
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsers);
-    }
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    return dwError;
-    
 error:
-
     goto cleanup;
 }
 
 DWORD
 LsaSrvIpcModifyUser(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
-    DWORD  dwError = 0;
-    PLSA_USER_MOD_INFO pUserModInfo = NULL;
-    PLSAMESSAGE pResponse = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext  =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    
-    dwError = LsaUnmarshalUserModInfo(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &pUserModInfo);
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvModifyUser(
-                    hServer,
-                    pUserModInfo);
-    if (!dwError) {
-        
-       dwError = LsaBuildMessage(
-                    LSA_R_MODIFY_USER,
-                    0, /* Empty message */
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    } else {
-       
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-        
-    }
+                    (HANDLE)Handle,
+                    (PLSA_USER_MOD_INFO)pRequest->object);
 
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_MODIFY_USER_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_MODIFY_USER_FAILURE;
+        pResponse->object = pError;
+    }
 
 cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
 
-    if (pUserModInfo) {
-        LsaFreeUserModInfo(pUserModInfo);
-    }
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    return dwError;
-    
 error:
-
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcFindUserByName(
-    HANDLE hConnection,
-    PLSAMESSAGE pQuery
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PSTR pszUserName = NULL;
+    // Do not free pUserInfo
     PVOID pUserInfo = NULL;
-    DWORD dwUserInfoLevel = 0;
-    PLSAMESSAGE pResponse = NULL;
-    DWORD dwMsgLen = 0;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-       (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    
-    dwError = LsaUnmarshalFindUserByNameQuery(
-                    pQuery->pData,
-                    pQuery->header.messageLength,
-                    &pszUserName,
-                    &dwUserInfoLevel
-                    );
+    PVOID* ppUserInfoList = NULL;
+    PLSA_USER_INFO_LIST pResult = NULL;
+    PLSA_IPC_FIND_OBJECT_BY_NAME_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvFindUserByName(
-                    hServer,
-                    pszUserName,
-                    dwUserInfoLevel,
-                    &pUserInfo);
-    if (dwError) {
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse
-                        );
+                       (HANDLE)Handle,
+                       pReq->pszName,
+                       pReq->dwInfoLevel,
+                       &pUserInfo);
+
+    if (!dwError)
+    {
+        dwError = LsaAllocateMemory(sizeof(*pResult),
+                                        (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
-        
-    } else {
 
-       dwError = LsaMarshalUserInfoList(
-                       &pUserInfo,
-                       dwUserInfoLevel,
-                       1,
-                       NULL,
-                       &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaBuildMessage(
-                        LSA_R_USER_BY_NAME,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse
-                        );
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaMarshalUserInfoList(
-                       &pUserInfo,
-                       dwUserInfoLevel,
-                       1,
-                       pResponse->pData,
-                       &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+        pResult->dwUserInfoLevel = pReq->dwInfoLevel;
+        pResult->dwNumUsers = 1;
+        dwError = LsaAllocateMemory(
+                        sizeof(*ppUserInfoList) * 1,
+                        (PVOID*)&ppUserInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ppUserInfoList[0] = pUserInfo;
+        pUserInfo = NULL;
+
+        switch (pResult->dwUserInfoLevel)
+        {
+            case 0:
+                pResult->ppUserInfoList.ppInfoList0 = (PLSA_USER_INFO_0*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+            case 1:
+                pResult->ppUserInfoList.ppInfoList1 = (PLSA_USER_INFO_1*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+            case 2:
+                pResult->ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+            default:
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pResponse->tag = LSA_R_USER_BY_NAME_SUCCESS;
+        pResponse->object = pResult;
     }
-    
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_USER_BY_NAME_FAILURE;
+        pResponse->object = pError;
+    }
+
 cleanup:
-
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(pReq->dwInfoLevel, pUserInfo);
     }
-    LSA_SAFE_FREE_STRING(pszUserName);
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    return dwError;
-    
+    if(ppUserInfoList)
+    {
+        LsaFreeUserInfoList(pReq->dwInfoLevel, ppUserInfoList, 1);
+    }
+
+    return MAP_LSA_ERROR_IPC(dwError);
+
 error:
+    if(pResult)
+    {
+        LsaFreeIpcUserInfoList(pResult);
+    }
 
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcFindUserById(
-    HANDLE hConnection,
-    PLSAMESSAGE pQuery
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    uid_t uid = 0;
+    // Do not free pUserInfo
     PVOID pUserInfo = NULL;
-    DWORD dwUserInfoLevel = 0;
-    PLSAMESSAGE pResponse = NULL;
-    DWORD dwMsgLen = 0;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    
-    dwError = LsaUnmarshalFindUserByIdQuery(
-                    pQuery->pData,
-                    pQuery->header.messageLength,
-                    &uid,
-                    &dwUserInfoLevel
-                    );
+    PVOID* ppUserInfoList = NULL;
+    PLSA_USER_INFO_LIST pResult = NULL;
+    PLSA_IPC_FIND_OBJECT_BY_ID_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvFindUserById(
-                    hServer,
-                    uid,
-                    dwUserInfoLevel,
-                    &pUserInfo);
-    if (dwError) {
-    
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-       
-    } else {
+                       (HANDLE)Handle,
+                       pReq->id,
+                       pReq->dwInfoLevel,
+                       &pUserInfo);
 
-        dwError = LsaMarshalUserInfoList(&pUserInfo, dwUserInfoLevel, 1, NULL, &dwMsgLen);
+    if (!dwError)
+    {
+        dwError = LsaAllocateMemory(sizeof(*pResult),
+                                        (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
-     
-        dwError = LsaBuildMessage(
-                         LSA_R_USER_BY_ID,
-                         dwMsgLen,
-                         1,
-                         1,
-                         &pResponse
-                         );
+
+        pResult->dwUserInfoLevel = pReq->dwInfoLevel;
+        pResult->dwNumUsers = 1;
+        dwError = LsaAllocateMemory(
+                        sizeof(*ppUserInfoList) * 1,
+                        (PVOID*)&ppUserInfoList);
         BAIL_ON_LSA_ERROR(dwError);
-     
-        dwError = LsaMarshalUserInfoList(&pUserInfo, dwUserInfoLevel, 1, pResponse->pData, &dwMsgLen);
-        BAIL_ON_LSA_ERROR(dwError);
+
+        ppUserInfoList[0] = pUserInfo;
+        pUserInfo = NULL;
+
+        switch (pResult->dwUserInfoLevel)
+        {
+            case 0:
+                pResult->ppUserInfoList.ppInfoList0 = (PLSA_USER_INFO_0*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+            case 1:
+                pResult->ppUserInfoList.ppInfoList1 = (PLSA_USER_INFO_1*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+            case 2:
+                pResult->ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+            default:
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pResponse->tag = LSA_R_USER_BY_ID_SUCCESS;
+        pResponse->object = pResult;
     }
-    
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_USER_BY_ID_FAILURE;
+        pResponse->object = pError;
+    }
+
 cleanup:
-
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(pReq->dwInfoLevel, pUserInfo);
     }
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    return dwError;
-    
+    if(ppUserInfoList)
+    {
+        LsaFreeUserInfoList(pReq->dwInfoLevel, ppUserInfoList, 1);
+    }
+
+    return MAP_LSA_ERROR_IPC(dwError);
+
 error:
+    if(pResult)
+    {
+        LsaFreeIpcUserInfoList(pResult);
+    }
 
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcBeginEnumUsers(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    DWORD dwUserInfoLevel = 0;
-    DWORD dwNumMaxUsers = 0;
-    PLSAMESSAGE pResponse = NULL;
-    DWORD dwMsgLen = 0;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    PSTR   pszGUID = NULL;
-    
-    dwError = LsaUnmarshalBeginEnumRecordsQuery(
-                        pMessage->pData,
-                        pMessage->header.messageLength,
-                        &dwUserInfoLevel,
-                        &dwNumMaxUsers);
+    PLSA_IPC_BEGIN_ENUM_USERS_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+    HANDLE hResume = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvBeginEnumUsers(
-                        hServer,
-                        dwUserInfoLevel,
-                        dwNumMaxUsers,
-                        &pszGUID);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    if (dwError) {
-        
-       dwError = LsaSrvIpcMarshalError(
-                       dwError,
-                       &pResponse);
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    } else {
-        
-       dwError = LsaMarshalEnumRecordsToken(
-                           pszGUID,
-                           NULL,
-                           &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaBuildMessage(
-                        LSA_R_BEGIN_ENUM_USERS,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse
-                        );
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaMarshalEnumRecordsToken(
-                        pszGUID,
-                        pResponse->pData,
-                        &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-       
+        Handle,
+        pReq->dwInfoLevel,
+        pReq->dwNumMaxRecords,
+        pReq->FindFlags,
+        &hResume);
+
+    if (!dwError)
+    {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(
+                                      assoc,
+                                      "EnumUsers",
+                                      hResume,
+                                      LsaSrvCleanupUserEnumHandle));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_BEGIN_ENUM_USERS_SUCCESS;
+        pResponse->object = hResume;
     }
-    
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_BEGIN_ENUM_USERS_FAILURE;
+        pResponse->object = pError;
+    }
+
 cleanup:
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    LSA_SAFE_FREE_STRING(pszGUID);
-    
-    return dwError;
-    
+
+    return MAP_LSA_ERROR_IPC(dwError);
+
 error:
+
+    if(hResume)
+    {
+        LsaSrvCleanupUserEnumHandle(hResume);
+    }
 
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEnumUsers(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
-)
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    )
 {
     DWORD dwError = 0;
     PVOID* ppUserInfoList = NULL;
     DWORD  dwUserInfoLevel = 0;
     DWORD  dwNumUsersFound = 0;
-    PLSAMESSAGE pResponse = NULL;
-    DWORD dwMsgLen = 0;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    PSTR pszGUID = NULL;
-    
-    dwError = LsaUnmarshalEnumRecordsToken(
-                        pMessage->pData,
-                        pMessage->header.messageLength,
-                        &pszGUID);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvEnumUsers(
-                    hServer,
-                    pszGUID,
-                    &dwUserInfoLevel,
-                    &ppUserInfoList,                    
-                    &dwNumUsersFound);
-    if (dwError) {
-        
-       dwError = LsaSrvIpcMarshalError(
-                       dwError,
-                       &pResponse);
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    } else {
-        
-       dwError = LsaMarshalUserInfoList(
-                           ppUserInfoList,
-                           dwUserInfoLevel,
-                           dwNumUsersFound,
-                           NULL,
-                           &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaBuildMessage(
-                        LSA_R_ENUM_USERS,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse
-                        );
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaMarshalUserInfoList(
-                        ppUserInfoList,
-                        dwUserInfoLevel,
-                        dwNumUsersFound,
-                        pResponse->pData,
-                        &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    }
-    
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-cleanup:
+    PLSA_USER_INFO_LIST pResult = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
 
-    if (ppUserInfoList) {
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvEnumUsers(
+                       Handle,
+                       pRequest->object,
+                       &dwUserInfoLevel,
+                       &ppUserInfoList,
+                       &dwNumUsersFound);
+
+    if (!dwError)
+    {
+        dwError = LsaAllocateMemory(sizeof(*pResult),
+                                   (PVOID)&pResult);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResult->dwUserInfoLevel = dwUserInfoLevel;
+        pResult->dwNumUsers = dwNumUsersFound;
+        switch (pResult->dwUserInfoLevel)
+        {
+            case 0:
+                pResult->ppUserInfoList.ppInfoList0 = (PLSA_USER_INFO_0*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+
+            case 1:
+                pResult->ppUserInfoList.ppInfoList1 = (PLSA_USER_INFO_1*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+
+            case 2:
+                pResult->ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)ppUserInfoList;
+                ppUserInfoList = NULL;
+                break;
+
+            default:
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pResponse->tag = LSA_R_ENUM_USERS_SUCCESS;
+        pResponse->object = pResult;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_ENUM_USERS_FAILURE;;
+        pResponse->object = pError;
+    }
+
+cleanup:
+    if(ppUserInfoList)
+    {
         LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
     }
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    LSA_SAFE_FREE_STRING(pszGUID);
-    
-    return dwError;
-    
+
+    return MAP_LSA_ERROR_IPC(dwError);
+
 error:
+    if(pResult)
+    {
+        LsaFreeIpcUserInfoList(pResult);
+    }
 
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcEndEnumUsers(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PLSAMESSAGE pResponse = NULL;
-    DWORD dwMsgLen = 0;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-         (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
-    PSTR   pszGUID = NULL;
-    
-    dwError = LsaUnmarshalEnumRecordsToken(
-                        pMessage->pData,
-                        pMessage->header.messageLength,
-                        &pszGUID);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvEndEnumUsers(hServer, pszGUID);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    if (dwError) {
-        
-       dwError = LsaSrvIpcMarshalError(
-                       dwError,
-                       &pResponse);
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    } else {
-    
-       dwError = LsaBuildMessage(
-                        LSA_R_END_ENUM_USERS,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse
-                        );
-       BAIL_ON_LSA_ERROR(dwError);
-       
-    }
-    
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-cleanup:
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    LSA_SAFE_FREE_STRING(pszGUID);
-    
-    return dwError;
-    
-error:
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
 
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvEndEnumUsers(
+        Handle,
+        pRequest->object);
+
+    if (!dwError)
+    {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(assoc, pRequest->object, LWMSG_FALSE));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_END_ENUM_USERS_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_END_ENUM_USERS_FAILURE;
+        pResponse->object = pError;
+    }
+
+cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
+
+error:
     goto cleanup;
 }
 
-DWORD
+LWMsgStatus
 LsaSrvIpcDeleteUser(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    uid_t uid = 0;
-    HANDLE hServer = (HANDLE)NULL;
-    PLSAMESSAGE pResponse = NULL;
-    DWORD dwMsgLen = 0;
-    PLSASERVERCONNECTIONCONTEXT pContext  =
-             (PLSASERVERCONNECTIONCONTEXT)hConnection;
-        
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaUnmarshalDeleteUserByIdQuery(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &uid);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvDeleteUser(
-                    hServer,
-                    uid);
-    
-    if (dwError) {
-            
-        dwError = LsaSrvIpcMarshalError(
-                           dwError,
-                           &pResponse);
-        BAIL_ON_LSA_ERROR(dwError);
-           
-    } else {
-        
-        dwError = LsaBuildMessage(
-                           LSA_R_DELETE_USER,
-                           dwMsgLen,
-                           1,
-                           1,
-                           &pResponse);
-        BAIL_ON_LSA_ERROR(dwError);
-           
+                        (HANDLE)Handle,
+                        *((PDWORD)pRequest->object));
+
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_DELETE_USER_SUCCESS;
+        pResponse->object = NULL;
     }
-        
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_DELETE_USER_FAILURE;
+        pResponse->object = pError;
+    }
+
 cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
 
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    return dwError;
-    
 error:
-
     goto cleanup;
 }
 
 DWORD
 LsaSrvIpcGetNamesBySidList(
-    HANDLE hConnection,
-    const PLSAMESSAGE pMessage)
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    )
 {
     DWORD dwError = 0;
-    size_t sCount = 0;
-    PSTR* ppszSidList = NULL;
     PSTR* ppszDomainNames = NULL;
     PSTR* ppszSamAccounts = NULL;
     ADAccountType* pTypes = NULL;
-    PLSAMESSAGE pResponse = NULL;
-    DWORD dwMsgLen = 0;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-       (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    HANDLE hServer = (HANDLE)NULL;
     CHAR chDomainSeparator = 0;
-    
-    dwError = LsaUnmarshalGetNamesBySidListQuery(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &sCount,
-                    &ppszSidList);
+    PLSA_FIND_NAMES_BY_SIDS pResult = NULL;
+    PLSA_IPC_NAMES_BY_SIDS_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
+    DWORD i = 0;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvGetNamesBySidList(
-                    hServer,
-                    sCount,
-                    ppszSidList,
+                    (HANDLE)Handle,
+                    pReq->sCount,
+                    pReq->ppszSidList,
                     &ppszDomainNames,
                     &ppszSamAccounts,
                     &pTypes,
                     &chDomainSeparator);
-    if (dwError) {
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-        
-    } else {
 
-       dwError = LsaMarshalGetNamesBySidListReply(
-               sCount,
-               ppszDomainNames,
-               ppszSamAccounts,
-               pTypes,
-               chDomainSeparator,
-               NULL,
-               &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaBuildMessage(
-                        LSA_R_NAMES_BY_SID_LIST,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse);
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaMarshalGetNamesBySidListReply(
-               sCount,
-               ppszDomainNames,
-               ppszSamAccounts,
-               pTypes,
-               chDomainSeparator,
-               pResponse->pData,
-               &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
+    if (!dwError)
+    {
+        dwError = LsaAllocateMemory(sizeof(*pResult),
+                                    (PVOID)&pResult);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResult->sCount = pReq->sCount;
+        pResult->chDomainSeparator = chDomainSeparator;
+
+        dwError = LsaAllocateMemory(sizeof(*(pResult->pSIDInfoList)) * pResult->sCount,
+                                    (PVOID*)&pResult->pSIDInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i = 0; i < pResult->sCount; i++)
+        {
+            pResult->pSIDInfoList[i].accountType = pTypes[i];
+            pResult->pSIDInfoList[i].pszDomainName = ppszDomainNames[i];
+            ppszDomainNames[i] = NULL;
+            pResult->pSIDInfoList[i].pszSamAccountName = ppszSamAccounts[i];
+            ppszSamAccounts[i] = NULL;
+        }
+
+        pResponse->tag = LSA_R_NAMES_BY_SID_LIST_SUCCESS;
+        pResponse->object = pResult;
     }
-    
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag = LSA_R_NAMES_BY_SID_LIST_FAILURE;
+        pResponse->object = pError;
+    }
+
 cleanup:
 
-    LsaFreeStringArray(ppszSidList, sCount);
-    LsaFreeStringArray(ppszDomainNames, sCount);
-    LsaFreeStringArray(ppszSamAccounts, sCount);
+    if (ppszDomainNames)
+    {
+        LsaFreeStringArray(ppszDomainNames, pReq->sCount);
+    }
+
+    if (ppszSamAccounts)
+    {
+        LsaFreeStringArray(ppszSamAccounts, pReq->sCount);
+    }
     LSA_SAFE_FREE_MEMORY(pTypes);
-    
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    return dwError;
-    
+
+    return MAP_LSA_ERROR_IPC(dwError);
+
 error:
+    if(pResult)
+    {
+        LsaFreeIpcNameSidsList(pResult);
+    }
 
     goto cleanup;
 }

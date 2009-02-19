@@ -299,102 +299,101 @@ DomainJoinWindow::ShowDomainWelcomeDialog(const std::string& domainName)
 void
 DomainJoinWindow::HandleJoinDomain()
 {
-	try
-	{
-	    ValidateUsername(_userName);
-		
-	    std::string computerName = GetComputerName();
-        ValidateHostname(computerName);
-		
-		std::string domainName = GetDomainName();
-		ValidateDomainname(domainName);
-		
-		std::string ouPath = GetOUPath();
-		ValidateOUPath(ouPath);
-		
-        if (computerName != _originalComputerName)
-		{
-			DomainJoinInterface::SetComputerName(computerName, domainName);
-			_originalComputerName = computerName;
-		}
-		
-		// For launchctl to work, RUID and EUID should be 0
-		setuid(0);
-		
-		DomainJoinInterface::JoinDomain(domainName,
-										_userName,
-										_password,
-										ouPath,
-										false);
-										
-		ShowDomainWelcomeDialog(domainName);
-		
-		PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
-	}
-	catch(InvalidDomainnameException& ide)
-	{
-	     SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "Please specify a valid domain name");
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertStopAlert,
-					   "\pDomain Join Error",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
-	}
-	catch(InvalidHostnameException& ihe)
-	{
-	     SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "Please specify a valid hostname");
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertStopAlert,
-					   "\pDomain Join Error",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
-	}
-	catch(InvalidUsernameException& iue)
-	{
-	     SInt16 outItemHit;
-		 char msgStr[256];
-		 sprintf(msgStr, "Please specify a valid user id");
-		 CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
-		 CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
-		 StandardAlert(kAlertStopAlert,
-					   "\pDomain Join Error",
-					   (StringPtr)msgStr,
-					   NULL,
-					   &outItemHit);
-
-	}
-	catch(DomainJoinException& dje)
+    try
     {
-		SInt16 outItemHit;
-		const char* err = dje.what();	
-		const char* message = dje.GetLongErrorMessage();
-		DialogRef dialog;	
-		CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
-		CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
-		CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
-		CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
-		CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
-		RunStandardAlert(dialog, NULL, &outItemHit);
+        ValidateUsername(_userName);
+
+        std::string computerName = GetComputerName();
+        ValidateHostname(computerName);
+
+        std::string domainName = GetDomainName();
+        ValidateDomainname(domainName);
+
+        std::string ouPath = GetOUPath();
+        ValidateOUPath(ouPath);
+
+        if (computerName != _originalComputerName)
+        {
+        DomainJoinInterface::SetComputerName(computerName, domainName);
+        _originalComputerName = computerName;
+        }
+
+        // For launchctl to work, RUID and EUID should be 0
+        setuid(0);
+
+        DomainJoinInterface::JoinDomain(domainName,
+                                        _userName,
+                                        _password,
+                                        ouPath,
+                                        false);
+
+        ShowDomainWelcomeDialog(domainName);
+
+        PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
+    }
+    catch(InvalidDomainnameException& ide)
+    {
+        SInt16 outItemHit;
+        char msgStr[256];
+        sprintf(msgStr, "Please specify a valid domain name");
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+        StandardAlert(kAlertStopAlert,
+                    "\pDomain Join Error",
+                    (StringPtr)msgStr,
+                    NULL,
+                    &outItemHit);
+    }
+    catch(InvalidHostnameException& ihe)
+    {
+        SInt16 outItemHit;
+        char msgStr[256];
+        sprintf(msgStr, "Please specify a valid hostname");
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+        StandardAlert(kAlertStopAlert,
+                    "\pDomain Join Error",
+                    (StringPtr)msgStr,
+                    NULL,
+                    &outItemHit);
+    }
+    catch(InvalidUsernameException& iue)
+    {
+        SInt16 outItemHit;
+        char msgStr[256];
+        sprintf(msgStr, "Please specify a valid user id");
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, msgStr, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)msgStr, 255, kCFStringEncodingASCII);
+        StandardAlert(kAlertStopAlert,
+                    "\pDomain Join Error",
+                    (StringPtr)msgStr,
+                    NULL,
+                    &outItemHit);
+    }
+    catch(DomainJoinException& dje)
+    {
+        SInt16 outItemHit;
+        const char* err = dje.what();	
+        const char* message = dje.GetLongErrorMessage();
+        DialogRef dialog;	
+        CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
+        CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
+        CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);
+        CFStringGetPascalString(errStrRef, (StringPtr)err, strlen(err), kCFStringEncodingASCII);
+        CreateStandardAlert(kAlertStopAlert, errStrRef, msgStrRef, NULL, &dialog);
+        RunStandardAlert(dialog, NULL, &outItemHit);
     }
     catch(...)
     {
         SInt16 outItemHit;
         StandardAlert(kAlertStopAlert,
-                      "\pUnexpected error",
-                      "\pAn unexpected error occurred when joining the Active Directory domain. Please report this to Likewise Technical Support at support@likewisesoftware.com",
-                      NULL,
-                      &outItemHit);
+                    "\pUnexpected error",
+                    "\pAn unexpected error occurred when joining the Active Directory domain. Please report this to Likewise Technical Support at support@likewisesoftware.com",
+                    NULL,
+                    &outItemHit);
     }
 }
-		
+	    	
 //--------------------------------------------------------------------------------------------
 Boolean
 DomainJoinWindow::HandleCommand( const HICommandExtended& inCommand )

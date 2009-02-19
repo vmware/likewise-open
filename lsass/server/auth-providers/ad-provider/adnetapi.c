@@ -48,6 +48,125 @@
 #include "adprovider.h"
 #include "adnetapi.h"
 
+static HANDLE ghSchannelAuthToken = NULL;
+static NetrCredentials gSchannelCreds = { 0 };
+static NetrCredentials* gpSchannelCreds = NULL;
+static NETRESOURCE gSchannelRes = { 0 };
+static NETRESOURCE* gpSchannelRes = NULL;
+static handle_t ghSchannelBinding = NULL;
+static pthread_mutex_t gSchannelLock = PTHREAD_MUTEX_INITIALIZER;
+
+static
+DWORD
+AD_GetSystemAccessToken(
+    PHANDLE phAccessToken
+    )
+{
+    HANDLE hAccessToken = NULL;
+    DWORD dwError = 0;
+    PSTR pszUsername = NULL;
+    PSTR pszPassword = NULL;
+    PSTR pszDomainDnsName = NULL;
+    PSTR pszHostname = NULL;
+    PSTR pszMachPrincipal = NULL;
+    PSTR pszKrb5CcPath = NULL;
+
+    dwError = LsaDnsGetHostInfo(&pszHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaStrToUpper(pszHostname);
+
+    dwError = LsaKrb5GetMachineCreds(
+                    pszHostname,
+                    &pszUsername,
+                    &pszPassword,
+                    &pszDomainDnsName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszMachPrincipal,
+                    "%s@%s",
+                    pszUsername,
+                    pszDomainDnsName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaKrb5GetSystemCachePath(
+                    KRB5_File_Cache,
+                    &pszKrb5CcPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SMBCreateKrb5AccessTokenA(
+                    pszMachPrincipal,
+                    pszKrb5CcPath,
+                    &hAccessToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *phAccessToken = hAccessToken;
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszUsername);
+    LSA_SAFE_FREE_STRING(pszPassword);
+    LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostname);
+    LSA_SAFE_FREE_STRING(pszMachPrincipal);
+    LSA_SAFE_FREE_STRING(pszKrb5CcPath);
+
+    return dwError;
+
+error:
+    *phAccessToken = NULL;
+    if (hAccessToken != NULL)
+    {
+        SMBCloseHandle(NULL, hAccessToken);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+AD_SetSystemAccess(
+    PHANDLE phOldToken
+    )
+{
+    HANDLE hOldToken = NULL;
+    HANDLE hSystemToken = NULL;
+    DWORD dwError = 0;
+
+    dwError = AD_GetSystemAccessToken(&hSystemToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SMBGetThreadToken(&hOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SMBSetThreadToken(hSystemToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *phOldToken = hOldToken;
+
+cleanup:
+    if (hSystemToken != NULL)
+    {
+        SMBCloseHandle(NULL, hSystemToken);
+    }
+    return dwError;
+
+error:
+    if (hOldToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldToken);
+    }
+    *phOldToken = NULL;
+
+    goto cleanup;
+}
+
+static
+VOID
+AD_ClearSchannelState(
+    VOID
+    );
+
 DWORD
 AD_NetInitMemory(
     VOID
@@ -75,6 +194,8 @@ AD_NetShutdownMemory(
     )
 {
     DWORD dwError = 0;
+
+    AD_ClearSchannelState();
 
     dwError = SamrDestroyMemory();
     BAIL_ON_LSA_ERROR(dwError);
@@ -198,6 +319,7 @@ AD_NetLookupObjectSidByName(
     IN PCSTR pszHostname,
     IN PCSTR pszObjectName,
     OUT PSTR* ppszObjectSid,
+    OUT ADAccountType* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     )
 {
@@ -228,6 +350,7 @@ AD_NetLookupObjectSidByName(
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszObjectSid = pszObjectSid;
+    *pObjectType = ppTranslatedSids[0]->ObjectType;
 
 cleanup:
     *pbIsNetworkError = bIsNetworkError;
@@ -240,6 +363,7 @@ cleanup:
 error:
     *ppszObjectSid = NULL;
     LSA_SAFE_FREE_STRING(pszObjectSid);
+    *pObjectType = AccountType_NotFound;
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
     dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
 
@@ -273,12 +397,18 @@ AD_NetLookupObjectSidsByNames(
     PWSTR pwcObjectSid = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
+    HANDLE hOldToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     BAIL_ON_INVALID_STRING(pszHostname);
     dwError = LsaMbsToWc16s(
                   pszHostname,
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_SetSystemAccess(&hOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+    bChangedToken = TRUE;
 
     rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
     if (rpcStatus != 0)
@@ -478,6 +608,14 @@ cleanup:
     {
         FreeLsaBinding(&lsa_binding);
     }
+    if (bChangedToken)
+    {
+        SMBSetThreadToken(hOldToken);
+    }
+    if (hOldToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldToken);
+    }
 
     return dwError;
 
@@ -497,9 +635,10 @@ error:
 
 DWORD
 AD_NetLookupObjectNameBySid(
-    IN PCSTR     pszHostname,
-    IN PCSTR     pszObjectSid,
-    OUT PSTR*    ppszNT4Name,
+    IN PCSTR pszHostname,
+    IN PCSTR pszObjectSid,
+    OUT PSTR* ppszNT4Name,
+    OUT ADAccountType* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     )
 {
@@ -530,6 +669,7 @@ AD_NetLookupObjectNameBySid(
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszNT4Name = pszNT4Name;
+    *pObjectType = ppTranslatedNames[0]->ObjectType;
 
 cleanup:
     *pbIsNetworkError = bIsNetworkError;
@@ -541,9 +681,9 @@ cleanup:
     return dwError;
 
 error:
-
     *ppszNT4Name = NULL;
     LSA_SAFE_FREE_STRING(pszNT4Name);
+    *pObjectType = AccountType_NotFound;
 
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
 
@@ -580,6 +720,8 @@ AD_NetLookupObjectNamesBySids(
     PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedNames = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
+    HANDLE hOldToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     BAIL_ON_INVALID_STRING(pszHostname);
 
@@ -587,6 +729,10 @@ AD_NetLookupObjectNamesBySids(
                   pszHostname,
                   &pwcHost);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_SetSystemAccess(&hOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+    bChangedToken = TRUE;
 
     rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
     if (rpcStatus != 0)
@@ -803,6 +949,14 @@ cleanup:
     {
         FreeLsaBinding(&lsa_binding);
     }
+    if (bChangedToken)
+    {
+        SMBSetThreadToken(hOldToken);
+    }
+    if (hOldToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldToken);
+    }
 
     return dwError;
 
@@ -835,9 +989,15 @@ AD_DsEnumerateDomainTrusts(
     NetrDomainTrust* pTrusts = NULL;
     DWORD dwCount = 0;
     BOOLEAN bIsNetworkError = FALSE;
+    HANDLE hOldToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     dwError = LsaMbsToWc16s(pszDomainControllerName, &pwcDomainControllerName);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_SetSystemAccess(&hOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+    bChangedToken = TRUE;
 
     status = InitNetlogonBindingDefault(&netr_b,
                                         (PUCHAR)pszDomainControllerName);
@@ -875,6 +1035,14 @@ cleanup:
         netr_b = NULL;
     }
     LSA_SAFE_FREE_MEMORY(pwcDomainControllerName);
+    if (bChangedToken)
+    {
+        SMBSetThreadToken(hOldToken);
+    }
+    if (hOldToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldToken);
+    }
     *ppTrusts = pTrusts;
     *pdwCount = dwCount;
     if (pbIsNetworkError)
@@ -991,6 +1159,428 @@ LsaFreeTranslatedNameList(
         }
     }
     LsaFreeMemory(pNameList);
+}
+
+static INT64
+WinTimeToInt64(
+    WinNtTime WinTime
+    )
+{
+    INT64 Int64Time = 0;
+    
+    Int64Time = WinTime.high;
+    Int64Time = Int64Time << 32;    
+    Int64Time |= WinTime.low;
+    
+    return Int64Time;
+}
+
+static DWORD
+LsaCopyDomainSid(
+    PLSA_SID pLsaSid,
+    DomSid *pNetrSid
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+
+    BAIL_ON_INVALID_POINTER(pLsaSid);
+    BAIL_ON_INVALID_POINTER(pNetrSid);
+
+    pLsaSid->Revision     = pNetrSid->revision;
+    pLsaSid->NumSubAuths  = pNetrSid->subauth_count;
+
+    memcpy(pLsaSid->AuthId, pNetrSid->authid, sizeof(pLsaSid->AuthId));
+    memcpy(pLsaSid->SubAuths, pNetrSid->subauth, sizeof(UINT32)*pLsaSid->NumSubAuths);
+    
+    dwError = LSA_ERROR_SUCCESS;    
+
+cleanup:
+    return dwError;
+    
+error:
+    goto cleanup;    
+}
+
+static DWORD
+LsaCopyNetrUserInfo3(
+    OUT PLSA_AUTH_USER_INFO pUserInfo,
+    IN NetrValidationInfo *pNetrUserInfo3
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    NetrSamBaseInfo *pBase = NULL;
+    
+    BAIL_ON_INVALID_POINTER(pUserInfo);
+    BAIL_ON_INVALID_POINTER(pNetrUserInfo3);
+    
+    pBase = &pNetrUserInfo3->sam3->base;
+    
+    pUserInfo->dwUserFlags = pBase->user_flags;
+
+    pUserInfo->LogonTime          = WinTimeToInt64(pBase->last_logon);
+    pUserInfo->LogoffTime         = WinTimeToInt64(pBase->last_logoff);
+    pUserInfo->KickoffTime        = WinTimeToInt64(pBase->acct_expiry);
+    pUserInfo->LastPasswordChange = WinTimeToInt64(pBase->last_password_change);    
+    pUserInfo->CanChangePassword  = WinTimeToInt64(pBase->allow_password_change);
+    pUserInfo->MustChangePassword = WinTimeToInt64(pBase->force_password_change);
+
+    pUserInfo->LogonCount       = pBase->logon_count;
+    pUserInfo->BadPasswordCount = pBase->bad_password_count;
+
+    pUserInfo->dwAcctFlags = pBase->acct_flags;
+
+    dwError = LsaDataBlobStore(&pUserInfo->pSessionKey,
+                               sizeof(pBase->key.key),
+                               pBase->key.key);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDataBlobStore(&pUserInfo->pLmSessionKey,
+                               sizeof(pBase->lmkey.key),
+                               pBase->lmkey.key);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->pszUserPrincipalName = NULL;
+    pUserInfo->pszDnsDomain = NULL;
+
+    if (pBase->account_name.len)
+    {        
+        dwError = LsaWc16sToMbs(pBase->account_name.string, &pUserInfo->pszAccount);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    if (pBase->full_name.len)
+    {        
+        dwError = LsaWc16sToMbs(pBase->full_name.string, &pUserInfo->pszFullName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+     
+    if (pBase->domain.len)
+    {        
+        dwError = LsaWc16sToMbs(pBase->domain.string, &pUserInfo->pszDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    if (pBase->logon_server.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->logon_server.string, &pUserInfo->pszLogonServer);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    if (pBase->logon_script.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->logon_script.string, &pUserInfo->pszLogonScript);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    if (pBase->home_directory.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->home_directory.string, &pUserInfo->pszHomeDirectory);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    if (pBase->home_drive.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->home_drive.string, &pUserInfo->pszHomeDrive);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    
+    if (pBase->profile_path.len)
+    {
+        dwError = LsaWc16sToMbs(pBase->profile_path.string, &pUserInfo->pszProfilePath);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaCopyDomainSid(&pUserInfo->DomainSid, pBase->domain_sid);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    pUserInfo->dwUserRid         = pBase->rid;
+    pUserInfo->dwPrimaryGroupRid = pBase->primary_gid;
+
+    pUserInfo->dwNumRids = pBase->groups.count;
+    if (pUserInfo->dwNumRids != 0)
+    {
+        int i = 0;
+        
+        dwError = LsaAllocateMemory(sizeof(LSA_RID_ATTRIB)*(pUserInfo->dwNumRids), 
+                                    (PVOID*)&pUserInfo->pRidAttribList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i=0; i<pUserInfo->dwNumRids; i++)
+        {
+            pUserInfo->pRidAttribList[i].Rid      = pBase->groups.rids[i].rid;
+            pUserInfo->pRidAttribList[i].dwAttrib = pBase->groups.rids[i].attributes;
+        }        
+
+    }
+
+    pUserInfo->dwNumSids = pNetrUserInfo3->sam3->sidcount;
+    if (pUserInfo->dwNumSids != 0)
+    {
+        int i = 0;
+        
+        dwError = LsaAllocateMemory(sizeof(LSA_SID_ATTRIB)*(pUserInfo->dwNumSids), 
+                                    (PVOID*)&pUserInfo->pSidAttribList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i=0; i<pUserInfo->dwNumSids; i++)
+        {
+            PLSA_SID_ATTRIB pSidAttrib = &(pUserInfo->pSidAttribList[i]);
+
+            pSidAttrib->dwAttrib = pNetrUserInfo3->sam3->sids[i].attribute;
+            
+            dwError = LsaCopyDomainSid(&pSidAttrib->Sid, 
+                                       pNetrUserInfo3->sam3->sids[i].sid);
+            BAIL_ON_LSA_ERROR(dwError);            
+        }        
+    }
+
+    /* All done */
+
+    dwError = LSA_ERROR_SUCCESS;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+AD_NetlogonAuthenticationUserEx(
+    IN PSTR pszDomainController,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PWSTR pwszDomainController = NULL;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszShortDomain = NULL;
+    PWSTR pwszUsername = NULL;
+    PSTR pszHostname = NULL;
+    PWSTR pwszCcachePath = NULL;
+    PSTR pszCcachePath = NULL;
+    HANDLE hPwdDb = (HANDLE)NULL;
+    RPCSTATUS status = 0;
+    handle_t netr_b = NULL;
+    PLWPS_PASSWORD_INFO pMachAcctInfo = NULL;
+    BOOLEAN bIsNetworkError = FALSE;
+    NTSTATUS nt_status = STATUS_UNHANDLED_EXCEPTION;
+    NetrValidationInfo  *pValidationInfo = NULL;
+    UINT8 dwAuthoritative = 0;
+    PSTR pszServerName;
+    DWORD dwDCNameLen = 0;
+    PBYTE pChal = NULL;
+    PBYTE pLMResp = NULL;
+    PBYTE pNTResp = NULL;
+
+    pthread_mutex_lock(&gSchannelLock);
+
+    /* Grab the machine password and account info */
+
+    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_SQLDB,
+                                    &hPwdDb);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDnsGetHostInfo(&pszHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwpsGetPasswordByHostName(hPwdDb,
+                                        pszHostname,
+                                        &pMachAcctInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Gather other Schannel params */
+
+    /* Allocate space for the servername.  Include room for the terminating
+       NULL and \\ */
+
+    dwDCNameLen = strlen(pszDomainController) + 3;
+    dwError = LsaAllocateMemory(dwDCNameLen, (PVOID*)&pszServerName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    snprintf(pszServerName, dwDCNameLen, "\\\\%s", pszDomainController);
+    dwError = LsaMbsToWc16s(pszServerName, &pwszServerName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszCcachePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pszCcachePath, &pwszCcachePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!ghSchannelBinding)
+    {
+        /* Establish the initial bind to \NETLOGON */
+        
+        status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
+        if (status != 0)
+        {
+            LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
+                          pszDomainController, status);
+            dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+            bIsNetworkError = TRUE;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        
+        /* Now setup the Schannel session */
+
+        if (ghSchannelAuthToken)
+        {
+            SMBCloseHandle(NULL, ghSchannelAuthToken);
+            ghSchannelAuthToken = NULL;
+        }
+        
+        dwError = SMBCreateKrb5AccessTokenW(pMachAcctInfo->pwszMachineAccount,
+                                            pwszCcachePath,
+                                            &ghSchannelAuthToken);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = SMBAccessTokenSetSchannel(ghSchannelAuthToken);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ghSchannelBinding = OpenSchannel(netr_b,
+                                         pMachAcctInfo->pwszMachineAccount,
+                                         pwszDomainController,
+                                         pwszServerName,
+                                         pwszShortDomain,
+                                         pMachAcctInfo->pwszHostname,
+                                         pMachAcctInfo->pwszMachinePassword,
+                                         &gSchannelCreds,
+                                         &gSchannelRes);
+
+       if (!ghSchannelBinding)
+       {
+           dwError = LSA_ERROR_RPC_ERROR;
+           BAIL_ON_LSA_ERROR(dwError);
+       }
+
+       gpSchannelCreds = &gSchannelCreds;
+       gpSchannelRes = &gSchannelRes; 
+    }
+    
+    /* Time to do the authentication */
+    
+    dwError = LsaMbsToWc16s(pUserParams->pszAccountName, &pwszUsername);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    /* Get the data blob buffers */
+    
+    if (pUserParams->pass.chap.pChallenge)
+        pChal = LsaDataBlobBuffer(pUserParams->pass.chap.pChallenge);
+
+    if (pUserParams->pass.chap.pLM_resp)
+        pLMResp = LsaDataBlobBuffer(pUserParams->pass.chap.pLM_resp);
+
+    if (pUserParams->pass.chap.pNT_resp)
+        pNTResp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
+
+    dwError = SMBSetThreadToken(ghSchannelAuthToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    nt_status = NetrSamLogonNetwork(ghSchannelBinding,
+                                    &gSchannelCreds,
+                                    pwszServerName,
+                                    pwszShortDomain,
+                                    pMachAcctInfo->pwszHostname,
+                                    pwszUsername,
+                                    pChal,
+                                    pLMResp,
+                                    pNTResp,
+                                    2,                /* Network login */
+                                    3,                /* Return NetSamInfo3 */
+                                    &pValidationInfo,
+                                    &dwAuthoritative);
+    
+    dwError = SMBSetThreadToken(NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (nt_status != STATUS_SUCCESS)
+    {
+        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /* Translate the returned NetrValidationInfo to the
+       LSA_AUTH_USER_INFO out param */
+
+    dwError = LsaAllocateMemory(sizeof(LSA_AUTH_USER_INFO), (PVOID*)ppUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaCopyNetrUserInfo3(*ppUserInfo, pValidationInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+        
+cleanup:
+    if (hPwdDb)
+    {
+        if (pMachAcctInfo) {
+            LwpsFreePasswordInfo(hPwdDb, pMachAcctInfo);
+        }
+        
+        LwpsClosePasswordStore(hPwdDb);
+        hPwdDb = (HANDLE)NULL;
+    }
+
+    LSA_SAFE_FREE_MEMORY(pszHostname);
+
+    if (netr_b)
+    {
+        FreeNetlogonBinding(&netr_b);
+        netr_b = NULL;
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszDomainController);
+    LSA_SAFE_FREE_MEMORY(pwszServerName);
+    LSA_SAFE_FREE_MEMORY(pwszShortDomain);
+    LSA_SAFE_FREE_MEMORY(pszServerName);
+    LSA_SAFE_FREE_MEMORY(pszCcachePath);
+    LSA_SAFE_FREE_MEMORY(pwszCcachePath);
+
+    pthread_mutex_unlock(&gSchannelLock);
+
+    return dwError;
+
+error:
+    LsaFreeAuthUserInfo(ppUserInfo);        
+    
+    goto cleanup;
+}
+
+static
+VOID
+AD_ClearSchannelState(
+    VOID
+    )
+{
+    pthread_mutex_lock(&gSchannelLock);
+
+    if (ghSchannelBinding)
+    {
+        CloseSchannel(ghSchannelBinding, gpSchannelRes);
+
+        ghSchannelBinding = NULL;
+
+        memset(&gSchannelCreds, 0, sizeof(gSchannelCreds));
+        gpSchannelCreds = NULL;
+
+        memset(&gSchannelRes, 0, sizeof(gSchannelRes)); 
+        gpSchannelRes = NULL;
+    }
+
+    if (ghSchannelAuthToken)
+    {
+        SMBCloseHandle(NULL, ghSchannelAuthToken);
+        ghSchannelAuthToken = NULL;
+    }
+
+    pthread_mutex_unlock(&gSchannelLock);
 }
 
 /*

@@ -79,8 +79,4 @@ LWNetWriteMessage(
     int   fd,
     const PLWNETMESSAGE pMessage);
 
-void
-LWNetFreeMessageControlFds(
-    struct msghdr *pMsg);
-
 #endif /* __IPCMSG_P_H__ */

@@ -209,7 +209,7 @@ LWIOpenEventLogEx(
     EVT_LOG_VERBOSE("client::eventlog.c OpenEventLog(server=%s, source=%s, user=%s, computer=%s)\n",
             pszServerName, pszSource, pszUser, pszComputer);
 
-    dwError = LWIOpenEventLog( pszServerName,
+    dwError = LWIOpenEventLog( pszServerName, 
                                &hEventLogLocal);
     BAIL_ON_EVT_ERROR(dwError);
 
@@ -627,7 +627,7 @@ LWIWriteEventLogBase(
         {
             eventRecordLocal.pszDescription = pszDefault;
         }
-
+        
         pszDefault = pEventLogHandle->defaultEventLogRecord.pszData;
         if (IsNullOrEmptyString(eventRecordLocal.pszData) && !IsNullOrEmptyString(pszDefault))
         {
@@ -639,7 +639,7 @@ LWIWriteEventLogBase(
     TRY
     {
         dwError = RpcLWIWriteEventLog( (handle_t)(ULONG) pEventLogHandle->bindingHandle,
-						   eventRecordLocal);
+                    				   eventRecordLocal);
     }
     CATCH_ALL
     {
@@ -687,7 +687,7 @@ LWIWriteEventLog(
     eventRecord.pszData = (PSTR)eventData;
 
     dwError = LWIWriteEventLogBase( hEventLog,
-							    eventRecord );
+    							    eventRecord );
 
     return dwError;
 
@@ -775,7 +775,7 @@ EVTGetRpcError(
         dwError = dwEVTError;
     }
 #endif //!_WIN32
-
+    
     return dwError;
 }
 

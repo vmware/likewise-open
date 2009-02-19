@@ -84,13 +84,6 @@ LWNetStartupPreCheck(
     VOID
     );
 
-#if defined (__LWI_DARWIN__)
-DWORD
-FlushDirectoryServiceCache(
-    VOID
-    );
-#endif
-
 DWORD
 LWNetSrvSetDefaults(
     VOID

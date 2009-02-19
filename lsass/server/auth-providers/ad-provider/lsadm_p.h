@@ -247,4 +247,45 @@ LsaDmpDuplicateSid(
     IN PSID pSid
     );
 
+HANDLE
+LsaDmpGetLdapHandle(
+    IN PLSA_DM_LDAP_CONNECTION pConn
+    );
+
+DWORD
+LsaDmpLdapReconnect(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OUT PLSA_DM_LDAP_CONNECTION pLdap
+    );
+
+DWORD
+LsaDmpLdapOpen(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDnsDomainName,
+    IN BOOLEAN bUseGc,
+    OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    );
+
+VOID
+LsaDmpLdapClose(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PLSA_DM_LDAP_CONNECTION pConn
+    );
+
+BOOLEAN
+LsaDmpLdapIsRetryError(
+    DWORD dwError
+    );
+
+DWORD
+LsaDmpQueryForestNameFromNetlogon(
+    IN PCSTR pszDnsDomainName,
+    OUT PSTR* ppszDnsForestName
+    );
+
+BOOLEAN
+LsaDmpIsNetworkError(
+    IN DWORD dwError
+    );
+
 #endif /* __LSA_DM_P_H__ */

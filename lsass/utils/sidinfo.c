@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Object (User/Group/Other) Info by Security Identifier
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -54,7 +54,8 @@ LsaFreeSIDInfoList(
     )
 {
     size_t iSID = 0;
-    for (; iSID < stNumSID; iSID++) {
+    for (; iSID < stNumSID; iSID++)
+    {
         LSA_SAFE_FREE_STRING(pSIDInfoList[iSID].pszDomainName);
         LSA_SAFE_FREE_STRING(pSIDInfoList[iSID].pszSamAccountName);
     }
@@ -69,4 +70,16 @@ LsaFreeSIDInfo(
     LSA_SAFE_FREE_STRING(pSIDInfo->pszSamAccountName);
     LSA_SAFE_FREE_STRING(pSIDInfo->pszDomainName);
     LsaFreeMemory(pSIDInfo);
+}
+
+void
+LsaFreeIpcNameSidsList(
+    PLSA_FIND_NAMES_BY_SIDS pNameSidsList
+    )
+{
+    if (pNameSidsList)
+    {
+        LsaFreeSIDInfoList(pNameSidsList->pSIDInfoList, pNameSidsList->sCount);
+        LsaFreeMemory(pNameSidsList);
+    }
 }

@@ -10,6 +10,7 @@ liblsaserverapi_la_SOURCES = \
        groups.c        \
        loginfo.c       \
        metrics.c       \
+       provider.c      \
        session.c       \
        state.c         \
        status.c        \

@@ -608,9 +608,9 @@ ParseAndAddEvents(
                     dwError = EVTAllocateMemory(sizeof(EVENT_LOG_RECORD), (PVOID*)&pEventRecord);
                     BAIL_ON_EVT_ERROR(dwError);
 
-			if (!IsNullOrEmptyString(pszEventTableCategoryId)) {
-			dwError = EVTAllocateString(pszEventTableCategoryId, (PSTR*)&pEventRecord->pszEventTableCategoryId);
-			BAIL_ON_EVT_ERROR(dwError);
+                	if (!IsNullOrEmptyString(pszEventTableCategoryId)) {
+                    	dwError = EVTAllocateString(pszEventTableCategoryId, (PSTR*)&pEventRecord->pszEventTableCategoryId);
+                    	BAIL_ON_EVT_ERROR(dwError);
 					}
                     pEventRecord->dwEventDateTime = 0;
                 }

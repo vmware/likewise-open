@@ -49,6 +49,12 @@
 #include "lwps-utils.h"
 #include "lwps-cfg_p.h"
 
+#if !HAVE_DECL_ISBLANK && !defined(isblank)
+static
+int
+isblank(int c);
+#endif
+
 static LWPS_CFG_LEXER_STATE gLwpsLexStateTable[][9] =
 {
   /* LwpsLexBegin    := 0 */
@@ -1555,3 +1561,13 @@ LwpsCfgGetTokenType(
 {
     return (gLwpsLexStateTable[currentState][chId].tokenId);
 }
+
+#if !(HAVE_DECL_ISBLANK - 0)
+static
+int
+isblank(int c)
+{
+    return c == '\t' || c == ' ';
+}
+#endif
+

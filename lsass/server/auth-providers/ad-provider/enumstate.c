@@ -50,184 +50,107 @@
 
 static
 DWORD
-AD_AddEnumState(
-    PAD_ENUM_STATE* ppStateList,
-    PCSTR pszGUID,
+AD_CreateEnumState(
     DWORD dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PCSTR pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppNewEnumState
     );
 
 static
-PAD_ENUM_STATE
-AD_FindEnumState(
-    PAD_ENUM_STATE pStateList,
-    PCSTR pszGUID
-    );
-
-static
 VOID
 AD_FreeEnumState(
-    PAD_ENUM_STATE* ppStateList,
-    PCSTR pszGUID
+    PAD_ENUM_STATE pEnumState
     );
 
-VOID
-AD_FreeStateList(
-    PAD_ENUM_STATE pStateList
-    )
-{
-    PAD_ENUM_STATE pState = NULL;
-
-    while (pStateList)
-    {
-        pState = pStateList;
-        pStateList = pStateList->pNext;
-
-        LSA_SAFE_FREE_STRING(pState->pszGUID);
-
-        LsaFreeCookieContents(&pState->Cookie);
-        if (pState->hDirectory)
-        {
-            LsaLdapCloseDirectory(pState->hDirectory);
-        }
-
-        LsaFreeMemory(pState);
-    }
-}
-
 DWORD
-AD_AddUserState(
+AD_CreateUserState(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PAD_ENUM_STATE* ppEnumState
     )
 {
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_AddEnumState(
-                &pContext->pUserEnumStateList,
-                pszGUID,
+    return AD_CreateEnumState(
                 dwInfoLevel,
+                FALSE,
+                FindFlags,
                 NULL,
                 0,
                 ppEnumState);
 }
 
-PAD_ENUM_STATE
-AD_FindUserState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
-    )
-{
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_FindEnumState(pContext->pUserEnumStateList, pszGUID);
-}
-
 VOID
 AD_FreeUserState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PAD_ENUM_STATE  pEnumState
     )
 {
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_FreeEnumState(&pContext->pUserEnumStateList, pszGUID);
+    return AD_FreeEnumState(pEnumState);
 }
 
 DWORD
-AD_AddGroupState(
+AD_CreateGroupState(
     HANDLE hProvider,
-    PCSTR  pszGUID,
     DWORD  dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PAD_ENUM_STATE* ppEnumState
     )
 {
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_AddEnumState(
-                    &pContext->pGroupEnumStateList,
-                    pszGUID,
+    return AD_CreateEnumState(
                     dwInfoLevel,
+                    bCheckGroupMembersOnline,
+                    FindFlags,
                     NULL,
                     0,
                     ppEnumState);
 }
 
-PAD_ENUM_STATE
-AD_FindGroupState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
-    )
-{
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_FindEnumState(pContext->pGroupEnumStateList, pszGUID);
-}
-
 VOID
 AD_FreeGroupState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PAD_ENUM_STATE  pEnumState
     )
 {
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_FreeEnumState(&pContext->pGroupEnumStateList, pszGUID);
+    return AD_FreeEnumState(pEnumState);
 }
 
 DWORD
-AD_AddNSSArtefactState(
+AD_CreateNSSArtefactState(
     HANDLE hProvider,
-    PCSTR  pszGUID,
     DWORD  dwInfoLevel,
     PCSTR  pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppEnumState
     )
 {
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_AddEnumState(
-                    &pContext->pNSSArtefactEnumStateList,
-                    pszGUID,
+    return AD_CreateEnumState(
                     dwInfoLevel,
+                    FALSE,
+                    0,
                     pszMapName,
                     dwFlags,
                     ppEnumState);
 }
 
-PAD_ENUM_STATE
-AD_FindNSSArtefactState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
-    )
-{
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_FindEnumState(pContext->pNSSArtefactEnumStateList, pszGUID);
-}
-
 VOID
 AD_FreeNSSArtefactState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PAD_ENUM_STATE  pEnumState
     )
 {
-    PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-
-    return AD_FreeEnumState(&pContext->pNSSArtefactEnumStateList, pszGUID);
+    return AD_FreeEnumState(pEnumState);
 }
 
 static
 DWORD
-AD_AddEnumState(
-    PAD_ENUM_STATE* ppStateList,
-    PCSTR pszGUID,
+AD_CreateEnumState(
     DWORD dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PCSTR pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     PAD_ENUM_STATE* ppNewEnumState
@@ -235,34 +158,25 @@ AD_AddEnumState(
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
-    BOOLEAN bFreeState = FALSE;
 
-    if (!(pEnumState = AD_FindEnumState(*ppStateList, pszGUID))) {
-        dwError = LsaAllocateMemory(
-                        sizeof(AD_ENUM_STATE),
-                        (PVOID*)&pEnumState);
+    dwError = LsaAllocateMemory(
+        sizeof(AD_ENUM_STATE),
+        (PVOID*)&pEnumState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEnumState->dwInfoLevel = dwInfoLevel;
+    pEnumState->dwMapFlags = dwFlags;
+    pEnumState->bCheckGroupMembersOnline = bCheckGroupMembersOnline;
+    pEnumState->FindFlags = FindFlags;
+
+    if (pszMapName)
+    {
+        dwError = LsaAllocateString(pszMapName, &pEnumState->pszMapName);
         BAIL_ON_LSA_ERROR(dwError);
-        bFreeState = TRUE;
-
-        dwError = LsaAllocateString(pszGUID, &pEnumState->pszGUID);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pEnumState->dwInfoLevel = dwInfoLevel;
-        pEnumState->dwMapFlags = dwFlags;
-
-        if (pszMapName)
-        {
-            dwError = LsaAllocateString(pszMapName, &pEnumState->pszMapName);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pEnumState->pNext = *ppStateList;
-        *ppStateList = pEnumState;
-
-        bFreeState = FALSE;
     }
 
-    if (ppNewEnumState) {
+    if (ppNewEnumState)
+    {
        *ppNewEnumState = pEnumState;
     }
 
@@ -272,60 +186,31 @@ cleanup:
 
 error:
 
-    if (ppNewEnumState) {
+    if (ppNewEnumState)
+    {
         *ppNewEnumState = NULL;
     }
 
-    if (bFreeState && pEnumState) {
-       AD_FreeStateList(pEnumState);
+    if (pEnumState)
+    {
+       AD_FreeEnumState(pEnumState);
     }
 
     goto cleanup;
 }
 
 static
-PAD_ENUM_STATE
-AD_FindEnumState(
-    PAD_ENUM_STATE pStateList,
-    PCSTR pszGUID
-    )
-{
-    PAD_ENUM_STATE pEnumState = NULL;
-    while (pStateList) {
-        if (!strcasecmp(pStateList->pszGUID, pszGUID)) {
-            pEnumState = pStateList;
-            break;
-        } else {
-            pStateList = pStateList->pNext;
-        }
-    }
-    return pEnumState;
-}
-
-static
 VOID
 AD_FreeEnumState(
-    PAD_ENUM_STATE* ppStateList,
-    PCSTR pszGUID
+    PAD_ENUM_STATE pState
     )
 {
-    PAD_ENUM_STATE pPrevState = NULL;
-    PAD_ENUM_STATE pState = *ppStateList;
-    while (pState) {
-        if (!strcasecmp(pState->pszGUID, pszGUID)) {
-            if (!pPrevState) {
-                *ppStateList = pState->pNext;
-            } else {
-                pPrevState->pNext = pState->pNext;
-            }
-            pState->pNext = NULL;
-            break;
-        } else {
-            pPrevState = pState;
-            pState = pState->pNext;
-        }
-    }
-    if (pState) {
-        AD_FreeStateList(pState);
+    if (pState)
+    {
+        LsaFreeCookieContents(&pState->Cookie);
+
+        LSA_SAFE_FREE_STRING(pState->pszMapName);
+
+        LsaFreeMemory(pState);
     }
 }

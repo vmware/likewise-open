@@ -46,188 +46,125 @@
  */
 #include "includes.h"
 
-DWORD
+static DWORD
+LWNetSrvIpcCreateError(
+    DWORD dwErrorCode,
+    PCSTR pszErrorMessage,
+    PLWNET_IPC_ERROR* ppError
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_IPC_ERROR pError = NULL;
+
+    dwError = LWNetAllocateMemory(sizeof(*pError), (void**) (void*) &pError);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    if (pszErrorMessage)
+    {
+        dwError = LWNetAllocateString(pszErrorMessage, (PSTR*) &pError->pszErrorMessage);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+    
+    pError->dwError = dwErrorCode;
+
+    *ppError = pError;
+
+error:
+
+    return dwError;
+}
+
+LWMsgStatus
 LWNetSrvIpcGetDCName(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
     PLWNET_DC_INFO pDCInfo = NULL;
-    PLWNETMESSAGE pResponse = NULL;
-    DWORD dwBufferLength = 0;
-    PSTR pszSiteName = NULL;
-    PSTR pszDomainFQDN = NULL;
-    PSTR pszServerFQDN = NULL;
-    DWORD dwFlags = 0;
-    
-    PLWNETSERVERCONNECTIONCONTEXT pContext  =
-             (PLWNETSERVERCONNECTIONCONTEXT)hConnection;
-    
-    dwError = LWNetUnmarshalDCNameReq(
-                pMessage->pData,
-                pMessage->header.messageLength,
-                &pszServerFQDN,
-                &pszDomainFQDN,
-                &pszSiteName,
-                &dwFlags
-                );
-    BAIL_ON_LWNET_ERROR(dwError);
+    PLWNET_IPC_DCNAME_REQ pReq = pRequest->object;
+    PLWNET_IPC_ERROR pError = NULL;
 
     dwError = LWNetSrvGetDCName(
-                pszServerFQDN,
-                pszDomainFQDN,
-                pszSiteName,
-                dwFlags,
-                &pDCInfo
-                );
-    if (!dwError) {
-        
-        dwError = LWNetMarshalDCInfo(
-                    pDCInfo,
-                    NULL,
-                    &dwBufferLength);
-        BAIL_ON_LWNET_ERROR(dwError);
-        
-        dwError = LWNetBuildMessage(
-                    LWNET_R_DCINFO,
-                    dwBufferLength,
-                    1,
-                    1,
-                    &pResponse);
-        BAIL_ON_LWNET_ERROR(dwError);
+        pReq->pszServerFQDN,
+        pReq->pszDomainFQDN,
+        pReq->pszSiteName,
+        pReq->dwFlags,
+        &pDCInfo);
 
-        dwError = LWNetMarshalDCInfo(
-                    pDCInfo,
-                    pResponse->pData,
-                    &dwBufferLength);
+    if (!dwError)
+    {
+        pResponse->tag = LWNET_R_DCINFO_SUCCESS;
+        pResponse->object = pDCInfo;
+    }
+    else
+    {
+        dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
-       
-    }
-    else {
-       
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-       
-       dwOrigErrCode = dwError;
-       
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LWNET_ERROR(dwError);
         
-       dwError = LWNetBuildMessage(
-                    LWNET_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LWNET_ERROR(dwError);
-        
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LWNET_ERROR(dwError);
+        pResponse->tag = LWNET_R_DCINFO_FAILURE;;
+        pResponse->object = pError;
     }
-
-    dwError = LWNetWriteMessage(
-                pContext->fd,
-                pResponse);
-    BAIL_ON_LWNET_ERROR(dwError);
     
 cleanup:
 
-    LWNET_SAFE_FREE_STRING(pszServerFQDN);
-    LWNET_SAFE_FREE_STRING(pszDomainFQDN);
-    LWNET_SAFE_FREE_STRING(pszSiteName);
+    return MAP_LWNET_ERROR(dwError);
+    
+error:
+
     if(pDCInfo != NULL)
     {
         LWNetFreeDCInfo(pDCInfo);
     }
 
-    LWNET_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
-    
-error:
-
     goto cleanup;
 }
 
-
-
 DWORD
 LWNetSrvIpcGetDCTime(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PLWNETMESSAGE pResponse = NULL;
-    DWORD dwBufferLength = 0;
-    UNIX_TIME_T dcTime = 0;
-    PSTR pszDomainFQDN = NULL;
-    
-    PLWNETSERVERCONNECTIONCONTEXT pContext  =
-             (PLWNETSERVERCONNECTIONCONTEXT)hConnection;
+    PLWNET_IPC_DCTIME_REQ pReq = pRequest->object;
+    PLWNET_IPC_DCTIME_RES pRes = NULL;
+    PLWNET_IPC_ERROR pError = NULL;
 
-    dwError = LWNetAllocateString(
-                pMessage->pData,
-                &pszDomainFQDN
-                );
+    dwError = LWNetAllocateMemory(sizeof(*pRes), (void**) (void*) &pRes);
     BAIL_ON_LWNET_ERROR(dwError);
-    
+
     dwError = LWNetSrvGetDCTime(
-                pszDomainFQDN,
-                &dcTime);
+        pReq->pszDomainFQDN,
+        &pRes->dcTime);
 
-    if (!dwError) {
-        
-        dwBufferLength = sizeof(dcTime);
-        
-        dwError = LWNetBuildMessage(
-                    LWNET_R_DCTIME,
-                    dwBufferLength,
-                    1,
-                    1,
-                    &pResponse);
+    if (!dwError)
+    {
+        pResponse->tag = LWNET_R_DCTIME_SUCCESS;
+        pResponse->object = pRes;
+    }
+    else
+    {
+        dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
-
-        memcpy(pResponse->pData, &dcTime, dwBufferLength);
-       
-    }
-    else {
-       
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-       
-       dwOrigErrCode = dwError;
-       
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LWNET_ERROR(dwError);
         
-       dwError = LWNetBuildMessage(
-                    LWNET_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LWNET_ERROR(dwError);
-        
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LWNET_ERROR(dwError);
+        pResponse->tag = LWNET_R_DCTIME_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LWNetWriteMessage(
-                pContext->fd,
-                pResponse);
-    BAIL_ON_LWNET_ERROR(dwError);
-    
 cleanup:
 
-    LWNET_SAFE_FREE_STRING(pszDomainFQDN);
+    /* If we are returning an error, free the response structure we allocated */
+    if (pError && pRes)
+    {
+        LWNetFreeMemory(pRes);
+    }
 
-    LWNET_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LWNET_ERROR(dwError);
     
 error:
 
@@ -236,165 +173,102 @@ error:
 
 DWORD
 LWNetSrvIpcGetDomainController(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PLWNETMESSAGE pResponse = NULL;
-    DWORD dwBufferLength = 0;
-    PSTR pszDomainFQDN = NULL;
-    PSTR pszDomainControllerFQDN = NULL;
+    PLWNET_IPC_DC_REQ pReq = pRequest->object;
+    PLWNET_IPC_DC_RES pRes = NULL;
+    PLWNET_IPC_ERROR pError = NULL;
     
-    PLWNETSERVERCONNECTIONCONTEXT pContext  =
-             (PLWNETSERVERCONNECTIONCONTEXT)hConnection;
-    
-    if(!pMessage->pData || *(pMessage->pData) == '\0' || 
-       strlen(pMessage->pData)+1 > pMessage->header.messageLength)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-    
-    dwError = LWNetAllocateString(
-                pMessage->pData,
-                &pszDomainFQDN
-                );
+    dwError = LWNetAllocateMemory(sizeof(*pRes), (void**) (void*) &pRes);
     BAIL_ON_LWNET_ERROR(dwError);
     
     dwError = LWNetSrvGetDomainController(
-                pszDomainFQDN,
-                &pszDomainControllerFQDN
-                );
-    BAIL_ON_LWNET_ERROR(dwError);
+        pReq->pszDomainFQDN,
+        &pRes->pszDCFQDN
+        );
     
-    if (!dwError) {
+    if (!dwError)
+    {
+        pResponse->tag = LWNET_R_DC_SUCCESS;
+        pResponse->object = pRes;
         
-        dwBufferLength = strlen(pszDomainControllerFQDN) + 1;
-        
-        dwError = LWNetBuildMessage(
-                    LWNET_R_DC,
-                    dwBufferLength,
-                    1,
-                    1,
-                    &pResponse);
+    }
+    else
+    {
+        dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
-
-        strncpy(pResponse->pData, pszDomainControllerFQDN, dwBufferLength);
         
-    }
-    else {
-       
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-       
-       dwOrigErrCode = dwError;
-       
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LWNET_ERROR(dwError);
-        
-       dwError = LWNetBuildMessage(
-                    LWNET_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LWNET_ERROR(dwError);
-        
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LWNET_ERROR(dwError);
+        pResponse->tag = LWNET_R_DC_FAILURE;
+        pResponse->object = pError;
     }
 
-    dwError = LWNetWriteMessage(
-                pContext->fd,
-                pResponse);
-    BAIL_ON_LWNET_ERROR(dwError);
-    
 cleanup:
 
-    LWNET_SAFE_FREE_STRING(pszDomainFQDN);
+    /* If we are responding with an error, free the response structure we allocated */
+    if (pError && pRes)
+    {
+        LWNetFreeMemory(pRes);
+    }
 
-    LWNET_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LWNET_ERROR(dwError);
     
 error:
+
+    LWNET_SAFE_FREE_MEMORY(pRes);
 
     goto cleanup;
 }
 
 DWORD
 LWNetSrvIpcGetCurrentDomain(
-    HANDLE hConnection,
-    PLWNETMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
     DWORD dwError = 0;
-    PLWNETMESSAGE pResponse = NULL;
-    DWORD dwBufferLength = 0;
-    PSTR pszDomainFQDN = NULL;
-
-    PLWNETSERVERCONNECTIONCONTEXT pContext  =
-             (PLWNETSERVERCONNECTIONCONTEXT)hConnection;
+    PLWNET_IPC_CURRENT_RES pRes = NULL;
+    PLWNET_IPC_ERROR pError = NULL;
     
-    
-    dwError = LWNetSrvGetCurrentDomain(
-                &pszDomainFQDN
-                );
-    
-    if (!dwError) {
-        
-        dwBufferLength = strlen(pszDomainFQDN) + 1;
-        
-        dwError = LWNetBuildMessage(
-                    LWNET_R_CURRENT_DOMAIN,
-                    dwBufferLength,
-                    1,
-                    1,
-                    &pResponse);
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        strncpy(pResponse->pData, pszDomainFQDN, dwBufferLength);
-        
-    }
-    else {
-       
-       DWORD dwOrigErrCode = 0;
-       DWORD dwMsgLen = 0;
-       
-       dwOrigErrCode = dwError;
-       
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, NULL, &dwMsgLen);
-       BAIL_ON_LWNET_ERROR(dwError);
-        
-       dwError = LWNetBuildMessage(
-                    LWNET_ERROR,
-                    dwMsgLen,
-                    1,
-                    1,
-                    &pResponse
-                    );
-       BAIL_ON_LWNET_ERROR(dwError);
-        
-       dwError = LWNetMarshalError(dwOrigErrCode, NULL, pResponse->pData, &dwMsgLen);
-       BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    dwError = LWNetWriteMessage(
-                pContext->fd,
-                pResponse);
+    dwError = LWNetAllocateMemory(sizeof(*pRes), (void**) (void*) &pRes);
     BAIL_ON_LWNET_ERROR(dwError);
     
+    dwError = LWNetSrvGetCurrentDomain(
+        &pRes->pszDomainFQDN
+        );
+    
+    if (!dwError)
+    {
+        pResponse->tag = LWNET_R_CURRENT_DOMAIN_SUCCESS;
+        pResponse->object = pRes;
+    }
+    else
+    {
+        dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LWNET_ERROR(dwError);
+        
+        pResponse->tag = LWNET_R_CURRENT_DOMAIN_FAILURE;
+        pResponse->object = pError;
+    }
+    
 cleanup:
+    
+    if (pRes && pError)
+    {
+        LWNetFreeMemory(pRes);
+    }
 
-    LWNET_SAFE_FREE_STRING(pszDomainFQDN);
-
-    LWNET_SAFE_FREE_MESSAGE(pResponse);
-
-    return dwError;
+    return MAP_LWNET_ERROR(dwError);
     
 error:
+
+    LWNET_SAFE_FREE_MEMORY(pRes);
 
     goto cleanup;
 }

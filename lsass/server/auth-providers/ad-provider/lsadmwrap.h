@@ -70,12 +70,6 @@ LsaDmWrapEnumInMyForestTrustDomains(
     );
 
 DWORD
-LsaDmWrapGetForestName(
-    IN PCSTR pszDomainName,
-    OUT PSTR* ppszDnsForestName
-    );
-
-DWORD
 LsaDmWrapGetDomainName(
     IN PCSTR pszDomainName,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
@@ -100,22 +94,11 @@ LsaDmWrapLdapPingTcp(
     );
 
 DWORD
-LsaDmWrapLdapOpenDirectoryDomain(
-    IN PCSTR pszDnsDomainName,
-    OUT PHANDLE phDirectory
-    );
-
-DWORD
-LsaDmWrapLdapOpenDirectoryGc(
-    IN PCSTR pszDnsDomainName,
-    OUT PHANDLE phDirectory
-    );
-
-DWORD
 LsaDmWrapNetLookupObjectSidByName(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszName,
-    OUT PSTR* ppszSid
+    OUT PSTR* ppszSid,
+    OUT OPTIONAL PBOOLEAN pbIsUser
     );
 
 DWORD
@@ -140,7 +123,8 @@ DWORD
 LsaDmWrapNetLookupNameByObjectSid(
     IN  PCSTR pszDnsDomainName,
     IN  PCSTR pszSid,
-    OUT PSTR* ppszName
+    OUT PSTR* ppszName,
+    OUT OPTIONAL PBOOLEAN pbIsUser
     );
 
 DWORD
@@ -149,6 +133,13 @@ LsaDmWrapDsEnumerateDomainTrusts(
     IN DWORD dwFlags,
     OUT NetrDomainTrust** ppTrusts,
     OUT PDWORD pdwCount
+    );
+
+DWORD
+LsaDmWrapAuthenticateUserEx(
+    IN PCSTR pszDnsDomainName,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo
     );
 
 #endif /* __LSA_DM_WRAP_H__ */

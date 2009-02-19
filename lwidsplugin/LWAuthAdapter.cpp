@@ -8,7 +8,6 @@
  */
 
 #include "LWAuthAdapter.h"
-#include "LWIAuthAdapter.h"
 #include "LWISAuthAdapter.h"
 #include <sys/stat.h>
 
@@ -94,8 +93,7 @@ MACERROR LWAuthAdapter::Initialize(
 	}
 	else
 	{
-		pImpl = new LWIAuthAdapter();
-		macError = pImpl->Initialize();
+		macError = eDSPlugInConfigFileError;
 		GOTO_CLEANUP_ON_MACERROR(macError);
 	}
 	

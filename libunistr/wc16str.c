@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -71,11 +71,24 @@ size_t _wc16slen(const wchar16_t *str)
     return i;
 }
 
+size_t _wc16snlen(const wchar16_t *str, size_t n)
+{
+    size_t i = 0;
+    while (n > 0)
+    {
+        if (str[i] == 0)
+            break;
+        n--;
+        i++;
+    }
+
+    return i;
+}
 
 wchar16_t* _wc16scpy(wchar16_t *dst, const wchar16_t *src)
 {
     size_t size;
-    
+
     if (dst == NULL || src == NULL) return NULL;
 
     size = (_wc16slen(src) + 1) * sizeof(wchar16_t);
@@ -91,12 +104,12 @@ wchar16_t* _wc16sdup(const wchar16_t *str)
     wchar16_t *out;
 
     if (str == NULL) return NULL;
-    
+
     size = (_wc16slen(str) + 1) * sizeof(wchar16_t);
     out = (wchar16_t*) malloc(size);
     if (out == NULL) return NULL;
     memcpy(out, str, size);
-    
+
     return out;
 }
 
@@ -107,7 +120,7 @@ wchar16_t* _wc16sndup(const wchar16_t *str, size_t max_characters)
     wchar16_t *out;
 
     if (str == NULL) return NULL;
-    
+
     //Find the length of str, up to max_characters
     for(len = 0; len < max_characters && str[len] != 0; len++);
 
@@ -118,10 +131,14 @@ wchar16_t* _wc16sndup(const wchar16_t *str, size_t max_characters)
     memcpy(out, str, len * sizeof(wchar16_t));
     //Add the NULL
     out[len] = 0;
-    
+
     return out;
 }
 
+/**
+ * @fixme: According to the manpage, wcsncpy() returns dest, not the
+ * end of the string pointed to by dest.  Do we want to diverge?
+ */
 wchar16_t* _wc16sncpy(wchar16_t *dest, const wchar16_t *src, size_t n)
 {
     while(n > 0)
@@ -136,6 +153,28 @@ wchar16_t* _wc16sncpy(wchar16_t *dest, const wchar16_t *src, size_t n)
     return dest;
 }
 
+/*
+ * For consistency and performance, we break the wcpncpy() contract and don't
+ * NUL pad dest when src is short.
+ */
+wchar16_t* _wc16pncpy(wchar16_t *dest, const wchar16_t *src, size_t n)
+{
+    /* Return pointer can't point to written memory when n == 0 */
+    /* assert() instead? */
+    if (!n)
+        return dest;
+
+    while(n > 0)
+    {
+        n--;
+        *dest = *src;
+        if(*src == 0 || n == 0)
+            break;
+        src++;
+        dest++;
+    }
+    return dest;
+}
 
 int wc16scmp(const wchar16_t *s1, const wchar16_t *s2)
 {
@@ -159,8 +198,8 @@ int wcscasecmp(const wchar_t *w1, const wchar_t *w2)
     int index;
     wchar_t c1 = 0, c2 = 0;
 
-    for (index = 0, c1 = towlower(w1[0]), c2 = towlower(w2[0]); 
-         c1 && c2 && c1 == c2; 
+    for (index = 0, c1 = towlower(w1[0]), c2 = towlower(w2[0]);
+         c1 && c2 && c1 == c2;
          index++, c1 = towlower(w1[index]), c2 = towlower(w2[index]));
 
     return (c1 == c2) ? 0 : ((c1 < c2) ? -1 : 1);
@@ -184,12 +223,36 @@ int wc16scasecmp(const wchar16_t *s1, const wchar16_t *s2)
     result = wcscasecmp(w1, w2);
 
     if (need_free)
-    {   
+    {
         free(w1);
         free(w2);
     }
 
     return result;
+}
+
+/*Optimistically try to wc16sncpy()
+ *
+ * Returns the length of dest needed for a successful copy including
+ * the NUL character.  If the copy was complete, the value will be
+ * <= wc16slen(src) + 1
+ */
+size_t wc16oncpy(wchar16_t *dest, const wchar16_t *src, size_t n)
+{
+    ptrdiff_t diff = 0;
+
+    if (n != 0)
+    {
+        wchar16_t *cursor = wc16pncpy(dest, src, n);
+        diff = cursor - dest + 1;
+        if (!*cursor)
+        {
+            /* Success */
+            return diff;
+        }
+    }
+
+    return diff + wc16slen(src + diff) + 1;
 }
 
 wchar16_t *awcstowc16s(const wchar_t *input, int *free_required)

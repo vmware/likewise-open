@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-netgrp.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS Net Group Information
  *
  * Authors:  Brian Koropoff (bkoropoff@likewisesoftware.com)
@@ -52,6 +52,7 @@ typedef struct
 {
     nss_backend_t base;
     int inner;
+    HANDLE hLsaConnectionNetgrp;
 } LSA_NSS_NETGROUP_BACKEND, *PLSA_NSS_NETGROUP_BACKEND;
 
 typedef struct _LSA_NSS_NETGROUP_LIST
@@ -123,7 +124,7 @@ LsaNssPopNetgroup(
     *ppList = pLink->pNext;
     *ppszGroup = pLink->pszGroup;
     LsaFreeMemory(pLink);
-    
+
 error:
 
     return ret;
@@ -177,14 +178,14 @@ LsaNssSolarisNetgroupDestructor(
     nss_backend_t* pBackend,
     void* pArgs)
 {
-    int ret = NSS_STATUS_SUCCESS;   
+    int ret = NSS_STATUS_SUCCESS;
     PLSA_NSS_NETGROUP_INNER_BACKEND pLsaBackend = (PLSA_NSS_NETGROUP_INNER_BACKEND) pBackend;
 
     if (pLsaBackend->base.inner)
     {
         LsaNssFreeNetgroupList(&pLsaBackend->pSeen);
         LsaNssFreeNetgroupList(&pLsaBackend->pExpand);
-        
+
         LSA_SAFE_FREE_MEMORY(pLsaBackend->pBuffer);
     }
 
@@ -240,8 +241,9 @@ LsaNssSolarisNetgroupInnerNext(
     while (pBackend->pExpand)
     {
         LsaNssPopNetgroup(&pBackend->pExpand, &pszGroup);
-        
+
         ret = LsaNssCommonNetgroupFindByName(
+            &pBackend->base.hLsaConnectionNetgrp,
             pszGroup,
             &pszContents);
         if (ret == NSS_STATUS_NOTFOUND)
@@ -250,7 +252,7 @@ LsaNssSolarisNetgroupInnerNext(
             continue;
         }
         BAIL_ON_NSS_ERROR(ret);
-        
+
         if (pBackend->pBuffer)
         {
             LsaFreeMemory(pBackend->pBuffer);
@@ -307,7 +309,7 @@ LsaNssSolarisNetgroupInnerParse(
             &pszDomain,
             &pszGroup);
         BAIL_ON_NSS_ERROR(ret);
-        
+
         switch (type)
         {
         case LSA_NSS_NETGROUP_ENTRY_GROUP:
@@ -347,7 +349,7 @@ error:
 
     goto cleanup;
 }
-    
+
 
 static
 NSS_STATUS
@@ -409,8 +411,11 @@ LsaNssSolarisNetgroupSetnetgrent(
     PLSA_NSS_NETGROUP_INNER_BACKEND pInnerBackend = NULL;
     PSTR pGroupContents = NULL;
     struct nss_setnetgrent_args *pNetArgs = (struct nss_setnetgrent_args*) pArgs;
+    PLSA_NSS_NETGROUP_BACKEND    pLsaBackend = (PLSA_NSS_NETGROUP_BACKEND) pBackend;
+
 
     ret = LsaNssCommonNetgroupFindByName(
+        &pLsaBackend->hLsaConnectionNetgrp,
         pNetArgs->netgroup,
         &pGroupContents);
     BAIL_ON_LSA_ERROR(ret);
@@ -425,7 +430,7 @@ LsaNssSolarisNetgroupSetnetgrent(
     pInnerBackend->pCursor = pInnerBackend->pBuffer;
     pGroupContents = NULL;
 
-    
+
     ret = LsaNssPushNetgroup(&pInnerBackend->pSeen, pNetArgs->netgroup);
     BAIL_ON_LSA_ERROR(ret);
 
@@ -434,7 +439,7 @@ LsaNssSolarisNetgroupSetnetgrent(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pGroupContents);
-    
+
     return ret;
 
 error:
@@ -474,7 +479,7 @@ LsaNssSolarisNetgroupInnetgr(
                             (void**) &pInnerBackend));
     pInnerBackend->base.base = LsaNssSolarisNetgroupBackend;
     pInnerBackend->base.inner = 1;
-    
+
     for(iGroup = 0; iGroup < pNetArgs->groups.argc; iGroup++)
     {
         ret = LsaNssPushNetgroup(&pInnerBackend->pExpand, pNetArgs->groups.argv[iGroup]);
@@ -506,7 +511,7 @@ LsaNssSolarisNetgroupInnetgr(
             pszMatchHost = pNetArgs->arg[NSS_NETGR_MACHINE].argc ? pNetArgs->arg[NSS_NETGR_MACHINE].argv[iMatch] : NULL;
             pszMatchUser = pNetArgs->arg[NSS_NETGR_USER].argc ? pNetArgs->arg[NSS_NETGR_USER].argv[iMatch] : NULL;
             pszMatchDomain = pNetArgs->arg[NSS_NETGR_DOMAIN].argc ? pNetArgs->arg[NSS_NETGR_DOMAIN].argv[iMatch] : NULL;
-            
+
             if ((pszMatchHost == NULL || !strcmp(pszHost, pszMatchHost)) &&
                 (pszMatchUser == NULL || !strcmp(pszUser, pszMatchUser)) &&
                 (pszMatchDomain == NULL || !strcmp(pszDomain, pszMatchDomain)))
@@ -558,7 +563,7 @@ LsaNssSolarisNetgroupBackend =
 
 nss_backend_t*
 LsaNssSolarisNetgroupCreateBackend(
-    void			       
+    void
     )
 {
     PLSA_NSS_NETGROUP_BACKEND pLsaBackend = NULL;

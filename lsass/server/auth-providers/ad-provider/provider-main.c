@@ -52,6 +52,21 @@
 
 static
 DWORD
+AD_GetNameWithReplacedSeparators(
+    IN PCSTR pszName,
+    OUT PSTR* ppszFreeName,
+    OUT PCSTR* ppszUseName
+    );
+
+static
+DWORD
+AD_RemoveUserByNameFromCacheInternal(
+    IN HANDLE  hProvider,
+    IN PCSTR   pszLoginId
+    );
+
+static
+DWORD
 LsaAdProviderStateCreate(
     OUT PLSA_AD_PROVIDER_STATE* ppState
     );
@@ -114,14 +129,16 @@ DWORD
 AD_SetUserCanonicalNameToAlias(
     PCSTR pszCurrentNetBIOSDomainName,
     DWORD dwUserInfoLevel,
-    PVOID pUserInfo);
+    PVOID pUserInfo
+    );
 
 static
 DWORD
 AD_SetGroupCanonicalNamesToAliases(
     PCSTR pszCurrentNetBIOSDomainName,
     DWORD dwGroupInfoLevel,
-    PVOID pGroupInfo);
+    PVOID pGroupInfo
+    );
 
 static
 DWORD
@@ -265,6 +282,9 @@ LsaInitializeProvider(
                            dwError);
     }
 
+    dwError = ADUnprovPlugin_Initialize();
+    BAIL_ON_LSA_ERROR(dwError);
+
     *ppFunctionTable = &gADProviderAPITable;
     *ppszProviderName = gpszADProviderName;
 
@@ -326,6 +346,8 @@ LsaShutdownProvider(
     BOOLEAN bInLock = FALSE;
 
     ADProviderSetShutdownFlag(TRUE);
+
+    ADUnprovPlugin_Cleanup();
 
     ADShutdownCacheReaper();
     ADShutdownMachinePasswordSync();
@@ -412,11 +434,8 @@ AD_CloseHandle(
     )
 {
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
-    if (pContext) {
-
-        AD_FreeStateList(pContext->pGroupEnumStateList);
-        AD_FreeStateList(pContext->pUserEnumStateList);
-
+    if (pContext)
+    {
         LsaFreeMemory(pContext);
     }
 }
@@ -477,6 +496,42 @@ AD_AuthenticateUser(
     }
 
     return dwError;
+}
+
+DWORD
+AD_AuthenticateUserEx(
+    HANDLE hProvider,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUSerInfo
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PSTR pszDnsDomain = NULL;
+    PSTR pszNetbiosDomain = NULL;
+
+    /* The NTLM pass-through authentiocation gives us the NT4
+       style name.  We need the DNS domain fpr for the LsaDmConnectDomain() */
+
+    dwError = LsaDmWrapGetDomainName(pUserParams->pszDomain,
+				     &pszDnsDomain,
+				     &pszNetbiosDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Authenticate (passing through the proper server affinity calls) */
+
+    dwError = LsaDmWrapAuthenticateUserEx(pszDnsDomain,
+					  pUserParams,
+					  ppUSerInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LSA_SAFE_FREE_MEMORY(pszDnsDomain);
+    LSA_SAFE_FREE_MEMORY(pszNetbiosDomain);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
@@ -761,39 +816,22 @@ AD_FindUserObjectById(
 DWORD
 AD_BeginEnumUsers(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
 
-    dwError = AD_AddUserState(
+    dwError = AD_CreateUserState(
                         hProvider,
-                        pszGUID,
                         dwInfoLevel,
+                        FindFlags,
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaInitCookie(&pEnumState->Cookie);
-
-    if (!AD_IsOffline())
-    {
-        dwError = LsaDmWrapLdapOpenDirectoryDomain(
-                    gpADProviderData->szDomain,
-                    &pEnumState->hDirectory);
-        if (dwError == LSA_ERROR_DOMAIN_IS_OFFLINE)
-        {
-            pEnumState->hDirectory = 0;
-            dwError = LSA_ERROR_SUCCESS;
-        }
-        else
-        {
-            BAIL_ON_LSA_ERROR(dwError);
-            LSA_ASSERT(pEnumState->hDirectory);
-        }
-    }
 
     *phResume = (HANDLE)pEnumState;
 
@@ -884,10 +922,317 @@ error:
 VOID
 AD_EndEnumUsers(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
-    AD_FreeUserState(hProvider, pszGUID);
+    AD_FreeUserState(hProvider, (PAD_ENUM_STATE) hResume);
+}
+
+DWORD
+AD_EnumUsersFromCache(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    )
+{
+    DWORD                 dwError = 0;
+    DWORD                 dwObjectCount = 0;
+    DWORD                 dwInfoCount = 0;
+    PLSA_SECURITY_OBJECT* ppUserObjectList = NULL;
+    PVOID*                ppUserInfoList = NULL;
+    PVOID                 pBlob = NULL;
+    size_t                BlobSize = 0;
+    LWMsgContext*         context = NULL;
+    PLSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ request = NULL;
+    LSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP response;
+    LSA_USER_INFO_LIST    result;
+
+    memset(&response, 0, sizeof(response));
+    memset(&result, 0, sizeof(result));
+
+    // restrict access to root
+    if (peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
+                              context,
+                              LsaAdIPCGetEnumUsersFromCacheReqSpec(),
+                              pInputBuffer,
+                              dwInputBufferSize,
+                              (PVOID*)&request));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbEnumUsersCache(
+                  gpLsaAdProviderState->hCacheConnection,
+                  request->dwMaxNumUsers,
+                  request->pszResume,
+                  &dwObjectCount,
+                  &ppUserObjectList);
+    if ( dwError == LSA_ERROR_NOT_HANDLED )
+    {
+        // no more results found
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if ( dwObjectCount == request->dwMaxNumUsers )
+    {
+        dwError = LsaAllocateString(
+                      ppUserObjectList[dwObjectCount - 1]->pszSamAccountName,
+                      &response.pszResume);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if ( dwObjectCount )
+    {
+        dwError = LsaAllocateMemory(sizeof(*ppUserInfoList) * dwObjectCount,
+                                    (PVOID*)&ppUserInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        // marshal the UserInfoList data
+        for (dwInfoCount = 0; dwInfoCount < dwObjectCount; dwInfoCount++)
+        {
+            dwError = ADMarshalFromUserCache(
+                          ppUserObjectList[dwInfoCount],
+                          request->dwInfoLevel,
+                          &ppUserInfoList[dwInfoCount]);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LsaDbSafeFreeObject(&ppUserObjectList[dwInfoCount]);
+        }
+
+        if (AD_ShouldAssumeDefaultDomain())
+        {
+            DWORD iUser = 0;
+
+            for (iUser = 0; iUser < dwInfoCount; iUser++)
+            {
+                PVOID pUserInfo = *(ppUserInfoList + iUser);
+
+                dwError = AD_SetUserCanonicalNameToAlias(
+                              gpADProviderData->szShortDomain,
+                              request->dwInfoLevel,
+                              pUserInfo);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    // marshal the response data
+    result.dwUserInfoLevel = request->dwInfoLevel;
+    result.dwNumUsers = dwInfoCount;
+
+    if ( dwInfoCount )
+    {
+        switch (result.dwUserInfoLevel)
+        {
+            case 0:
+                result.ppUserInfoList.ppInfoList0 = (PLSA_USER_INFO_0*)ppUserInfoList;
+                break;
+
+            case 1:
+                result.ppUserInfoList.ppInfoList1 = (PLSA_USER_INFO_1*)ppUserInfoList;
+                break;
+
+            case 2:
+                result.ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)ppUserInfoList;
+                break;
+
+            default:
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+    response.pUserInfoList = &result;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
+                              context,
+                              LsaAdIPCGetEnumUsersFromCacheRespSpec(),
+                              &response,
+                              &pBlob,
+                              &BlobSize));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwOutputBufferSize = BlobSize;
+    *ppOutputBuffer = pBlob;
+
+cleanup:
+
+    LsaDbSafeFreeObjectList(dwObjectCount, &ppUserObjectList);
+
+    if (ppUserInfoList)
+    {
+        LsaFreeUserInfoList(
+            request->dwInfoLevel,
+            (PVOID*)ppUserInfoList,
+            dwInfoCount);
+        ppUserInfoList = NULL;
+        dwInfoCount = 0;
+    }
+
+    if ( request )
+    {
+        lwmsg_context_free_graph(
+            context,
+            LsaAdIPCGetEnumUsersFromCacheReqSpec(),
+            request);
+    }
+    if ( context )
+    {
+        lwmsg_context_delete(context);
+    }
+
+    LSA_SAFE_FREE_STRING(response.pszResume);
+
+    return dwError;
+
+error:
+
+    *pdwOutputBufferSize = 0;
+    *ppOutputBuffer = NULL;
+
+    if ( pBlob )
+    {
+        LsaFreeMemory(pBlob);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+AD_RemoveUserByNameFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN PCSTR  pszLoginId
+    )
+{
+    DWORD                dwError = 0;
+    PSTR                 pszLocalLoginId = NULL;
+    PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
+
+    // restrict access to root
+    if (peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!strcasecmp(pszLoginId, "root"))
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = AD_RemoveUserByNameFromCacheInternal(
+                  hProvider,
+                  pszLoginId);
+    if (dwError == LSA_ERROR_NO_SUCH_USER &&
+        AD_ShouldAssumeDefaultDomain())
+    {
+        dwError = LsaCrackDomainQualifiedName(
+                      pszLoginId,
+                      gpADProviderData->szDomain,
+                      &pUserNameInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pUserNameInfo->nameType == NameType_Alias)
+        {
+            dwError = ADGetDomainQualifiedString(
+                          gpADProviderData->szShortDomain,
+                          pszLoginId,
+                          &pszLocalLoginId);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = AD_RemoveUserByNameFromCacheInternal(
+                          hProvider,
+                          pszLocalLoginId);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LSA_ERROR_NO_SUCH_USER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+    else
+    {
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszLocalLoginId);
+    if (pUserNameInfo)
+    {
+        LsaFreeNameInfo(pUserNameInfo);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+AD_RemoveUserByIdFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN uid_t  uid
+    )
+{
+    DWORD                dwError = 0;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
+
+    // restrict access to root
+    if (peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = AD_OfflineFindUserObjectById(
+                  hProvider,
+                  uid,
+                  &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbRemoveUserBySid(
+                  gpLsaAdProviderState->hCacheConnection,
+                  pUserInfo->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LsaDbSafeFreeObject(&pUserInfo);
+
+    return dwError;
+
+error:
+
+    if ((dwError == LSA_ERROR_DUPLICATE_USERNAME ||
+         dwError == LSA_ERROR_DUPLICATE_USER_OR_GROUP)
+        && AD_EventlogEnabled())
+    {
+        LsaSrvLogUserIDConflictEvent(
+            uid,
+            gpszADProviderName,
+            dwError);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -1198,6 +1543,283 @@ error:
 }
 
 DWORD
+AD_EnumGroupsFromCache(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN gid_t   peerGID,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    )
+{
+    DWORD                 dwError = 0;
+    DWORD                 dwObjectCount = 0;
+    DWORD                 dwInfoCount = 0;
+    PLSA_SECURITY_OBJECT* ppGroupObjectList = NULL;
+    PVOID*                ppGroupInfoList = NULL;
+    PVOID                 pBlob;
+    size_t                BlobSize;
+    LWMsgContext*         context = NULL;
+    PLSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_REQ request = NULL;
+    LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP response;
+    LSA_GROUP_INFO_LIST   result;
+
+    memset(&response, 0, sizeof(response));
+    memset(&result, 0, sizeof(result));
+
+    // restrict access to root
+    if (peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
+                              context,
+                              LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
+                              pInputBuffer,
+                              dwInputBufferSize,
+                              (PVOID*)&request));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbEnumGroupsCache(
+                  gpLsaAdProviderState->hCacheConnection,
+                  request->dwMaxNumGroups,
+                  request->pszResume,
+                  &dwObjectCount,
+                  &ppGroupObjectList);
+    if ( dwError == LSA_ERROR_NOT_HANDLED )
+    {
+        // no more results found
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if ( dwObjectCount == request->dwMaxNumGroups )
+    {
+        dwError = LsaAllocateString(
+                      ppGroupObjectList[dwObjectCount - 1]->pszSamAccountName,
+                      &response.pszResume);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if ( dwObjectCount )
+    {
+        dwError = LsaAllocateMemory(sizeof(*ppGroupInfoList) * dwObjectCount,
+                                    (PVOID*)&ppGroupInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        // marshal the GroupInfoList data
+        for (dwInfoCount = 0; dwInfoCount < dwObjectCount; dwInfoCount++)
+        {
+            dwError = AD_GroupObjectToGroupInfo(
+                          hProvider,
+                          ppGroupObjectList[dwInfoCount],
+                          TRUE,
+                          request->dwInfoLevel,
+                          &ppGroupInfoList[dwInfoCount]);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LsaDbSafeFreeObject(&ppGroupObjectList[dwInfoCount]);
+        }
+
+        if (AD_ShouldAssumeDefaultDomain())
+        {
+            DWORD iGroup = 0;
+
+            for (iGroup = 0; iGroup < dwInfoCount; iGroup++)
+            {
+                PVOID pGroupInfo = *(ppGroupInfoList + iGroup);
+
+                dwError = AD_SetGroupCanonicalNamesToAliases(
+                              gpADProviderData->szShortDomain,
+                              request->dwInfoLevel,
+                              pGroupInfo);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    // marshal the response data
+    result.dwGroupInfoLevel = request->dwInfoLevel;
+    result.dwNumGroups = dwInfoCount;
+
+    if ( dwInfoCount )
+    {
+        switch (result.dwGroupInfoLevel)
+        {
+            case 0:
+                result.ppGroupInfoList.ppInfoList0 = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
+                break;
+
+            case 1:
+                result.ppGroupInfoList.ppInfoList1 = (PLSA_GROUP_INFO_1*)ppGroupInfoList;
+                break;
+
+            default:
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+    response.pGroupInfoList = &result;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
+                              context,
+                              LsaAdIPCGetEnumGroupsFromCacheRespSpec(),
+                              &response,
+                              &pBlob,
+                              &BlobSize));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwOutputBufferSize = BlobSize;
+    *ppOutputBuffer = pBlob;
+
+cleanup:
+
+    LsaDbSafeFreeObjectList(dwObjectCount, &ppGroupObjectList);
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(
+            request->dwInfoLevel,
+            (PVOID*)ppGroupInfoList,
+            dwInfoCount);
+        ppGroupInfoList = NULL;
+        dwInfoCount = 0;
+    }
+
+    if ( request )
+    {
+        lwmsg_context_free_graph(
+            context,
+            LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
+            request);
+    }
+    if ( context )
+    {
+        lwmsg_context_delete(context);
+    }
+
+    LSA_SAFE_FREE_STRING(response.pszResume);
+
+    return dwError;
+
+error:
+
+    *pdwOutputBufferSize = 0;
+    *ppOutputBuffer = NULL;
+
+    if ( pBlob )
+    {
+        LsaFreeMemory(pBlob);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+AD_RemoveGroupByNameFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN PCSTR  pszGroupName
+    )
+{
+    DWORD                dwError = 0;
+    PSTR                 pszFreeGroupName = NULL;
+    PCSTR                pszUseGroupName = NULL;
+    PLSA_SECURITY_OBJECT pGroupInfo = NULL;
+
+    // restrict access to root
+    if (peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = AD_GetNameWithReplacedSeparators(
+                  pszGroupName,
+                  &pszFreeGroupName,
+                  &pszUseGroupName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_OfflineFindGroupObjectByName(
+                  hProvider,
+                  pszUseGroupName,
+                  &pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbRemoveGroupBySid(
+                  gpLsaAdProviderState->hCacheConnection,
+                  pGroupInfo->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFreeGroupName);
+    LsaDbSafeFreeObject(&pGroupInfo);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+AD_RemoveGroupByIdFromCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID,
+    IN gid_t  gid
+    )
+{
+    DWORD             dwError = 0;
+    DWORD             dwGroupInfoLevel = 0;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    BOOLEAN           bIsCacheOnlyMode = TRUE;
+
+    // restrict access to root
+    if (peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = AD_OfflineFindGroupById(
+                  hProvider,
+                  gid,
+                  bIsCacheOnlyMode,
+                  dwGroupInfoLevel,
+                  (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbRemoveGroupBySid(
+                  gpLsaAdProviderState->hCacheConnection,
+                  pGroupInfo->pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(
+            dwGroupInfoLevel,
+            pGroupInfo);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
 AD_GetUserGroupObjectMembership(
     IN HANDLE hProvider,
     IN uid_t uid,
@@ -1270,6 +1892,10 @@ AD_GroupObjectToGroupInfo(
                 NULL,
                 &sMembers,
                 &ppMembers);
+            if (dwError == LSA_ERROR_NO_SUCH_USER_OR_GROUP)
+            {
+                dwError = 0;
+            }
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
@@ -1415,39 +2041,24 @@ error:
 DWORD
 AD_BeginEnumGroups(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
 
-    dwError = AD_AddGroupState(
+    dwError = AD_CreateGroupState(
                         hProvider,
-                        pszGUID,
                         dwInfoLevel,
+                        bCheckGroupMembersOnline,
+                        FindFlags,
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaInitCookie(&pEnumState->Cookie);
-
-    if (!AD_IsOffline())
-    {
-        dwError = LsaDmWrapLdapOpenDirectoryDomain(
-                    gpADProviderData->szDomain,
-                    &pEnumState->hDirectory);
-        if (dwError == LSA_ERROR_DOMAIN_IS_OFFLINE)
-        {
-            pEnumState->hDirectory = 0;
-            dwError = LSA_ERROR_SUCCESS;
-        }
-        else
-        {
-            BAIL_ON_LSA_ERROR(dwError);
-            LSA_ASSERT(pEnumState->hDirectory);
-        }
-    }
 
     *phResume = (HANDLE)pEnumState;
 
@@ -1538,10 +2149,10 @@ error:
 VOID
 AD_EndEnumGroups(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
-    AD_FreeGroupState(hProvider, pszGUID);
+    AD_FreeGroupState(hProvider, (PAD_ENUM_STATE) hResume);
 }
 
 DWORD
@@ -1615,6 +2226,35 @@ AD_DeleteGroup(
     )
 {
     return LSA_ERROR_NOT_HANDLED;
+}
+
+DWORD
+AD_EmptyCache(
+    IN HANDLE hProvider,
+    IN uid_t  peerUID,
+    IN gid_t  peerGID
+    )
+{
+    DWORD dwError = 0;
+
+    // restrict access to root
+    if (peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaDbEmptyCache(
+                  gpLsaAdProviderState->hCacheConnection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
@@ -1772,7 +2412,6 @@ AD_FindNSSArtefactByKey(
 DWORD
 AD_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PCSTR   pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
@@ -1793,9 +2432,8 @@ AD_BeginEnumNSSArtefacts(
         case DEFAULT_MODE:
         case CELL_MODE:
 
-            dwError = AD_AddNSSArtefactState(
+            dwError = AD_CreateNSSArtefactState(
                                 hProvider,
-                                pszGUID,
                                 dwInfoLevel,
                                 pszMapName,
                                 dwFlags,
@@ -1857,10 +2495,10 @@ AD_EnumNSSArtefacts(
 VOID
 AD_EndEnumNSSArtefacts(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     )
 {
-    AD_FreeNSSArtefactState(hProvider, pszGUID);
+    AD_FreeNSSArtefactState(hProvider, (PAD_ENUM_STATE)hResume);
 }
 
 DWORD
@@ -2348,6 +2986,104 @@ error:
 
 }
 
+DWORD
+AD_ProviderIoControl(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN uid_t   peerGID,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
+    )
+{
+    DWORD dwError = 0;
+
+    switch (dwIoControlCode)
+    {
+        case LSA_AD_IO_EMPTYCACHE:
+            dwError = AD_EmptyCache(
+                          hProvider,
+                          peerUID,
+                          peerGID);
+            *pdwOutputBufferSize=0;
+            *ppOutputBuffer = NULL;
+            break;
+        case LSA_AD_IO_REMOVEUSERBYNAMECACHE:
+            dwError = AD_RemoveUserByNameFromCache(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          (PCSTR)pInputBuffer);
+            *pdwOutputBufferSize=0;
+            *ppOutputBuffer = NULL;
+            break;
+        case LSA_AD_IO_REMOVEUSERBYIDCACHE:
+            dwError = AD_RemoveUserByIdFromCache(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          *(uid_t *)pInputBuffer);
+            *pdwOutputBufferSize=0;
+            *ppOutputBuffer = NULL;
+            break;
+        case LSA_AD_IO_REMOVEGROUPBYNAMECACHE:
+            dwError = AD_RemoveGroupByNameFromCache(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          (PCSTR)pInputBuffer);
+            *pdwOutputBufferSize=0;
+            *ppOutputBuffer = NULL;
+            break;
+        case LSA_AD_IO_REMOVEGROUPBYIDCACHE:
+            dwError = AD_RemoveGroupByIdFromCache(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          *(gid_t *)pInputBuffer);
+            *pdwOutputBufferSize=0;
+            *ppOutputBuffer = NULL;
+            break;
+        case LSA_AD_IO_ENUMUSERSCACHE:
+            dwError = AD_EnumUsersFromCache(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          dwInputBufferSize,
+                          pInputBuffer,
+                          pdwOutputBufferSize,
+                          ppOutputBuffer);
+            break;
+        case LSA_AD_IO_ENUMGROUPSCACHE:
+            dwError = AD_EnumGroupsFromCache(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          dwInputBufferSize,
+                          pInputBuffer,
+                          pdwOutputBufferSize,
+                          ppOutputBuffer);
+            break;
+        default:
+            dwError = LSA_ERROR_NOT_HANDLED;
+            break;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *pdwOutputBufferSize=0;
+    *ppOutputBuffer = NULL;
+
+    goto cleanup;
+}
+
 static
 DWORD
 AD_GetNameWithReplacedSeparators(
@@ -2520,6 +3256,47 @@ error:
     *ppResult = NULL;
 
     LsaDbSafeFreeObject(&pResult);
+
+    goto cleanup;
+}
+
+static
+DWORD
+AD_RemoveUserByNameFromCacheInternal(
+    IN HANDLE hProvider,
+    IN PCSTR  pszLoginId
+    )
+{
+    DWORD                dwError = 0;
+    PSTR                 pszFreeLoginId = NULL;
+    PCSTR                pszUseLoginId = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
+
+    dwError = AD_GetNameWithReplacedSeparators(
+                  pszLoginId,
+                  &pszFreeLoginId,
+                  &pszUseLoginId);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_OfflineFindUserObjectByName(
+                  hProvider,
+                  pszUseLoginId,
+                  &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDbRemoveUserBySid(
+                  gpLsaAdProviderState->hCacheConnection,
+                  pUserInfo->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFreeLoginId);
+    LsaDbSafeFreeObject(&pUserInfo);
+
+    return dwError;
+
+error:
 
     goto cleanup;
 }

@@ -67,3 +67,5 @@
 #include "ntlmgsssrv.h"
 #include <locale.h>
 
+#include "lwrdr/lwrdr.h"
+

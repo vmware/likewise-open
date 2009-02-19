@@ -11,6 +11,7 @@ liblsaldap_la_CPPFLAGS = \
 liblsaldap_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
 	@top_builddir@/utils/liblsautils.la \
+	@top_builddir@/server/krb5/liblsakrb5.la \
 	@NETLOGON_LIBS@ \
 	@OPENLDAP_LIBS@
 

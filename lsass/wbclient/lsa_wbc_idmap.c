@@ -52,7 +52,7 @@ wbcErr wbcSidToUid(const struct wbcDomainSid *sid,
 		   uid_t *puid)
 {
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	PSTR pszSidString = NULL;
 	PSTR ppszSidList[2];
@@ -121,6 +121,7 @@ done:
 	
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pUserInfo) {
@@ -137,7 +138,7 @@ wbcErr wbcUidToSid(uid_t uid,
 		   struct wbcDomainSid *sid)
 {
 	LSA_USER_INFO_0 *pUserInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -160,6 +161,7 @@ wbcErr wbcUidToSid(uid_t uid,
 done:
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pUserInfo) {
@@ -176,7 +178,7 @@ wbcErr wbcSidToGid(const struct wbcDomainSid *sid,
 		   gid_t *pgid)
 {
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	PSTR pszSidString = NULL;
 	PSTR ppszSidList[2];
@@ -244,6 +246,7 @@ done:
 	
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pGroupInfo) {
@@ -260,7 +263,7 @@ wbcErr wbcGidToSid(gid_t gid,
 		   struct wbcDomainSid *sid)
 {
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa;
+	HANDLE hLsa = (HANDLE)NULL;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	
@@ -283,6 +286,7 @@ wbcErr wbcGidToSid(gid_t gid,
 done:
 	if (hLsa) {
 		LsaCloseServer(hLsa);
+		hLsa = (HANDLE)NULL;	
 	}
 
 	if (pGroupInfo) {

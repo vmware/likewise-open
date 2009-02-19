@@ -59,8 +59,10 @@ LWPS_PROVIDER_FUNC_TABLE gSqlDBProviderAPITable =
     &SqlDB_OpenProvider,
     &SqlDB_ReadPasswordByHostName,
     &SqlDB_ReadPasswordByDomainName,
+    &SqlDB_ReadHostListByDomainName,
     &SqlDB_WritePassword,
     &SqlDB_DeleteAllEntries,
+    &SqlDB_DeleteHostEntry,
     &SqlDB_FreePassword,
     &SqlDB_CloseProvider
 };

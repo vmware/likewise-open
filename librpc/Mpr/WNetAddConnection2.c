@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -34,10 +34,8 @@
 #include <errno.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/winerror.h>
+#include <lwrpc/ntstatus.h>
 #include <wc16str.h>
-#include <npc.h>
-#include <npctypes.h>
 
 #include <lwrpc/mpr.h>
 
@@ -46,107 +44,10 @@ int WNetAddConnection2(NETRESOURCE* netResource,
                        const wchar16_t* password16,
                        const wchar16_t* username16)
 {
-    const NPC_AUTH_FLAGS authflags = NPC_AUTH_FLAG_KERBEROS |
-                                     NPC_AUTH_FLAG_FALLBACK |
-                                     NPC_AUTH_FLAG_NO_ANONYMOUS;
-    char *password = NULL;
-    char *username = NULL;
-    char* host = NULL;
-    char* slash = NULL;
-    char* resource = NULL;
-    int result = 0;
-    int winerr = ERROR_SUCCESS;
-
-    if (netResource == NULL ||
-        password16 == NULL ||
-        username16 == NULL)
-    {
-        winerr = ERROR_INVALID_PARAMETER;
-        goto cleanup;
-    }
-
-
-    password = awc16stombs(password16);
-    if (password == NULL)
-    {
-        winerr = ERROR_OUTOFMEMORY;
-        goto cleanup;
-    }
-
-    username = awc16stombs(username16);
-    if (username == NULL)
-    {
-        winerr = ERROR_OUTOFMEMORY;
-        goto cleanup;
-    }
-
-    host = awc16stombs(netResource->RemoteName + 2);
-    if (host == NULL)
-    {
-        winerr = ERROR_OUTOFMEMORY;
-        goto cleanup;
-    }
-
-    slash = strchr(host, '\\');
-    if (!slash)
-    {
-        winerr = ERROR_INVALID_PARAMETER;
-        goto cleanup;
-    }
-
-    resource = strdup(slash);
-    if (resource == NULL)
-    {
-        winerr = ERROR_OUTOFMEMORY;
-        goto cleanup;
-    }
-
-    *slash = '\0';
-    
-    if ((result = NpcConnectCheckCreds("np",
-                                       host,
-                                       "\\pipe\\srvsvc",
-                                       NULL,
-                                       authflags,
-                                       username,
-                                       password)))
-    {
-        winerr = ErrnoToWin32Error(result);
-        goto cleanup;
-    }
-
-    if ((result = NpcSetAuthInfo(host,
-                                 authflags,
-                                 username,
-                                 password)))
-    {
-        winerr = ErrnoToWin32Error(result);
-        goto cleanup;
-    }
-
-cleanup:
-
-    if (host)
-    {
-        free(host);
-    }
-
-    if (username)
-    {
-        free(username);
-    }
-
-    if (password)
-    {
-        free (password);
-    }
-
-    if (resource)
-    {
-        free(resource);
-    }
-
-    return winerr;
+    /* ! ! ! FIXME-LSMB ! ! !
+       Set lsmb impersonation context here
+    */
+    return 0;
 }
 
 

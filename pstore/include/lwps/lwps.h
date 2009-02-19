@@ -147,7 +147,7 @@ typedef uint8_t UCHAR, *PUCHAR;
 #ifndef HANDLE_DEFINED
 #define HANDLE_DEFINED 1
 
-typedef unsigned long   HANDLE, *PHANDLE;
+typedef void *HANDLE, **PHANDLE;
 
 #endif
 
@@ -317,6 +317,14 @@ LwpsGetPasswordByDomainName(
     );
 
 DWORD
+LwpsGetHostListByDomainName(
+    HANDLE hStore,
+    PCSTR  pszDomainName,
+    PSTR **pppszHostnames,
+    DWORD *pdwNumEntries
+    );
+
+DWORD
 LwpsWritePasswordToAllStores(
     PLWPS_PASSWORD_INFO pInfo
     );
@@ -324,10 +332,21 @@ LwpsWritePasswordToAllStores(
 DWORD
 LwpsDeleteEntriesInAllStores();
 
+DWORD
+LwpsDeleteHostInAllStores(
+    PCSTR pszDomainName
+    );
+
 VOID
 LwpsFreePasswordInfo(
     HANDLE hStore,
     PLWPS_PASSWORD_INFO pInfo
+    );
+
+VOID
+LwpsFreeHostList(
+    PSTR *ppszHostnames,
+    DWORD dwNumEntries
     );
 
 DWORD

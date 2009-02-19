@@ -46,7 +46,7 @@ interface eventlog {
 
     cpp_quote("#ifndef EVENT_LOG_RECORD_DEFINED")
     cpp_quote("#define EVENT_LOG_RECORD_DEFINED 1")
-    typedef struct _EVENT_LOG_RECORD
+    typedef struct _EVENT_LOG_RECORD 
     {
 	unsigned32              dwEventRecordId;
 	[unique, string] char * pszEventTableCategoryId;
@@ -59,7 +59,7 @@ interface eventlog {
 	[unique, string] char * pszComputer;
 	[unique, string] char * pszDescription;
 	[unique, string] char * pszData;
-
+	
     } EVENT_LOG_RECORD, *PEVENT_LOG_RECORD;
     cpp_quote("#endif /* EVENT_LOG_RECORD_DEFINED */")
 
@@ -89,7 +89,7 @@ interface eventlog {
     RpcLWICloseEventLog(
 	[in] handle_t bindingHandle
 	);
-
+    
     long
     RpcLWIEventLogCount(
 	[in] handle_t bindingHandle,
@@ -110,7 +110,7 @@ interface eventlog {
     long
     RpcLWIWriteEventLog(
         [in] handle_t bindingHandle,
-	[in] EVENT_LOG_RECORD EventRecord
+	[in] EVENT_LOG_RECORD EventRecord 
 	);
 
     long

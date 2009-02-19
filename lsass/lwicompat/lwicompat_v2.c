@@ -87,10 +87,10 @@ static NTSTATUS lwi_get_sid_from_id(DOM_SID * sid, unid_t id, int type)
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
 	memset(&wbc_sid, 0x0, sizeof(wbc_sid));
-
+	
 	switch (type) {
 	case ID_USERID:
-		wbc_status = wbcUidToSid(id.uid, &wbc_sid);
+		wbc_status = wbcUidToSid(id.uid, &wbc_sid);		
 		break;
 	case ID_GROUPID:
 		wbc_status = wbcGidToSid(id.gid, &wbc_sid);
@@ -100,10 +100,10 @@ static NTSTATUS lwi_get_sid_from_id(DOM_SID * sid, unid_t id, int type)
 	}
 
 	if (WBC_ERROR_IS_OK(wbc_status)) {
-		/* structure are identical so we can get away with a
+		/* structure are identical so we can get away with a 
 		   memcpy here instead of a true copy fn(). */
 		memcpy(sid, &wbc_sid, sizeof(*sid));
-	}
+	}	
 
 	return (WBC_ERROR_IS_OK(wbc_status)) ? NT_STATUS_OK : NT_STATUS_UNSUCCESSFUL;
 }
@@ -117,13 +117,13 @@ static NTSTATUS lwi_get_id_from_sid(unid_t * id, int *type, const DOM_SID * sid)
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	int query_type = (*type) & ID_TYPEMASK;
 
-	/* structure are identical so we can get away with a
+	/* structure are identical so we can get away with a 
 	   memcpy here instead of a true copy fn(). */
 	memcpy(&wbc_sid, sid, sizeof(wbc_sid));
-
+	
 	switch (query_type) {
 	case ID_USERID:
-		wbc_status = wbcSidToUid(&wbc_sid, &id->uid);
+		wbc_status = wbcSidToUid(&wbc_sid, &id->uid);		
 		break;
 	case ID_GROUPID:
 		wbc_status = wbcSidToGid(&wbc_sid, &id->gid);

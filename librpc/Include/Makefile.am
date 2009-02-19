@@ -8,6 +8,7 @@ include_HEADERS=lwrpc/types.h lwrpc/security.h \
 	lwrpc/samr.h lwrpc/samrbinding.h lwrpc/userinfo.h lwrpc/aliasinfo.h lwrpc/domaininfo.h lwrpc/samrflags.h \
 	lwrpc/netlogon.h lwrpc/netlogonbinding.h lwrpc/netrdefs.h \
 	lwrpc/LM.h lwrpc/LMaccess.h lwrpc/LMjoin.h lwrpc/LMErr.h lwrpc/LMldap.h \
-	lwrpc/LMdebug.h lwrpc/krb5pac.h lwrpc/krb5pacdefs.h lwrpc/errconv.h
+	lwrpc/LMdebug.h lwrpc/krb5pac.h lwrpc/krb5pacdefs.h lwrpc/errconv.h \
+	lwrpc/LMcrypt.h
 
 includedir=$(prefix)/include/lwrpc

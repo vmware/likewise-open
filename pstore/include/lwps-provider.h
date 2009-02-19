@@ -66,6 +66,13 @@ typedef DWORD (*PFNLWPS_STORE_READ_PASSWORD_BY_DOMAIN_NAME)(
                  PLWPS_PASSWORD_INFO* ppInfo
                  );
 
+typedef DWORD (*PFNLWPS_STORE_READ_HOST_LIST_BY_DOMAIN_NAME)(
+                 HANDLE hProvider,
+                 PCSTR  pszDomainName,
+                 PSTR **pppszHostnames,
+                 DWORD *pdwHostname
+                 );
+
 typedef DWORD (*PFNLWPS_STORE_WRITE_PASSWORD)(
                  HANDLE hProvider,
                  PLWPS_PASSWORD_INFO pInfo
@@ -73,6 +80,11 @@ typedef DWORD (*PFNLWPS_STORE_WRITE_PASSWORD)(
 
 typedef DWORD (*PFNLWPS_STORE_DELETE_ALL_ENTRIES)(
                  HANDLE hProvider
+                 );
+
+typedef DWORD (*PFNLWPS_STORE_DELETE_HOST_ENTRY)(
+                 HANDLE hProvider,
+                 PCSTR pszHostname
                  );
 
 typedef VOID (*PFNLWPS_STORE_FREE_PASSWORD)(
@@ -88,8 +100,10 @@ typedef struct __LWPS_PROVIDER_FUNC_TABLE
     PFNLWPS_STORE_OPEN_PROVIDER  pFnOpenProvider;
     PFNLWPS_STORE_READ_PASSWORD_BY_HOST_NAME pFnReadPasswordByHostName;
     PFNLWPS_STORE_READ_PASSWORD_BY_DOMAIN_NAME pFnReadPasswordByDomainName;
+    PFNLWPS_STORE_READ_HOST_LIST_BY_DOMAIN_NAME pFnReadHostListByDomainName;
     PFNLWPS_STORE_WRITE_PASSWORD pFnWritePassword;
     PFNLWPS_STORE_DELETE_ALL_ENTRIES pFnDeleteAllEntries;
+    PFNLWPS_STORE_DELETE_HOST_ENTRY pFnDeleteHostEntry;
     PFNLWPS_STORE_FREE_PASSWORD  pfnFreePassword;
     PFNLWPS_STORE_CLOSE_PROVIDER pFnCloseProvider;
 } LWPS_PROVIDER_FUNC_TABLE, *PLWPS_PROVIDER_FUNC_TABLE;

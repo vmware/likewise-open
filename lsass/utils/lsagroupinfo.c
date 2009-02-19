@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Group Info
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -98,6 +98,31 @@ LsaFreeGroupInfo(
 }
 
 void
+LsaFreeIpcGroupInfoList(
+    PLSA_GROUP_INFO_LIST pGroupIpcInfoList
+    )
+{
+    if (pGroupIpcInfoList)
+    {
+        switch (pGroupIpcInfoList->dwGroupInfoLevel)
+        {
+            case 0:
+                LsaFreeGroupInfoList(0, (PVOID*)pGroupIpcInfoList->ppGroupInfoList.ppInfoList0, pGroupIpcInfoList->dwNumGroups);
+                break;
+            case 1:
+                LsaFreeGroupInfoList(1, (PVOID*)pGroupIpcInfoList->ppGroupInfoList.ppInfoList1, pGroupIpcInfoList->dwNumGroups);
+                break;
+
+            default:
+            {
+                LSA_LOG_ERROR("Unsupported Group Info Level [%d]", pGroupIpcInfoList->dwGroupInfoLevel);
+            }
+        }
+        LsaFreeMemory(pGroupIpcInfoList);
+    }
+}
+
+void
 LsaFreeGroupInfoList(
     DWORD  dwLevel,
     PVOID* pGroupInfoList,
@@ -138,40 +163,40 @@ LsaCoalesceGroupInfoList(
        *pdwTotalNumGroupsFound = dwNumNewGroupsFound;
        *pppGroupInfoList = NULL;
        *pdwNumGroupsFound = 0;
-       
+
        goto cleanup;
     }
-    
+
     dwNumTotalGroupsFound = dwNumCurGroupsFound;
     dwNumTotalGroupsFound += dwNumNewGroupsFound;
-        
+
     dwError = LsaAllocateMemory(
                         sizeof(PVOID) * dwNumTotalGroupsFound,
                         (PVOID*)&ppGroupInfoList_total);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     for (iGroup = 0; iGroup < dwNumCurGroupsFound; iGroup++) {
         *(ppGroupInfoList_total+iGroup) = *(ppGroupInfoList_current+iGroup);
         *(ppGroupInfoList_current+iGroup) = NULL;
     }
-    
+
     for (iNewGroup = 0; iNewGroup < dwNumNewGroupsFound; iNewGroup++, iGroup++) {
         *(ppGroupInfoList_total+iGroup) = *(ppGroupInfoList_new+iNewGroup);
         *(ppGroupInfoList_new+iNewGroup) = NULL;
     }
-    
+
     LsaFreeMemory(ppGroupInfoList_new);
-    
+
     *pppGroupInfoList_accumulate = ppGroupInfoList_total;
     *pdwTotalNumGroupsFound = dwNumTotalGroupsFound;
-    
+
     *pppGroupInfoList = NULL;
     *pdwNumGroupsFound = 0;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     if (ppGroupInfoList_total) {
@@ -203,7 +228,7 @@ LsaValidateGroupName(
                 "unset",
                 &pParsedName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (pParsedName->pszName == NULL)
     {
         dwError = LSA_ERROR_INVALID_GROUP_NAME;
@@ -216,7 +241,7 @@ LsaValidateGroupName(
         dwError = LSA_ERROR_INVALID_GROUP_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
 cleanup:
 
     if (pParsedName != NULL)
@@ -224,7 +249,7 @@ cleanup:
         LsaFreeNameInfo(pParsedName);
     }
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -237,46 +262,46 @@ LsaValidateGroupInfo(
     )
 {
     DWORD dwError = 0;
-    
+
     BAIL_ON_INVALID_POINTER(pGroupInfo);
-    
+
     dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (dwGroupInfoLevel)
     {
         case 0:
         {
             PLSA_GROUP_INFO_0 pGroupInfo_0 =
                 (PLSA_GROUP_INFO_0)pGroupInfo;
-            
+
             dwError = LsaValidateGroupName(pGroupInfo_0->pszName);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
         }
-        
+
         case 1:
         {
             PLSA_GROUP_INFO_1 pGroupInfo_1 =
                 (PLSA_GROUP_INFO_1)pGroupInfo;
-            
+
             dwError = LsaValidateGroupName(pGroupInfo_1->pszName);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
         }
-        
+
         default:
-            
+
             dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     goto cleanup;

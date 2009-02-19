@@ -421,27 +421,27 @@ LsaSrvBeginEnumGroups(
     HANDLE hServer,
     DWORD  dwGroupInfoLevel,
     DWORD  dwMaxNumGroups,
-    PSTR*  ppszGUID
+    BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
+    PHANDLE phState
     )
 {
     DWORD dwError = 0;
     DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
-    PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
-    PSTR pszGUID = NULL;
+    PLSA_SRV_ENUM_STATE pEnumState = NULL;
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
-    dwError = LsaSrvAddGroupEnumState(
+    dwError = LsaSrvCreateGroupEnumState(
                     hServer,
                     dwGroupInfoLevel,
                     dwMaxNumGroups,
+                    bCheckGroupMembersOnline,
+                    FindFlags,
                     &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pEnumState->pszGUID, &pszGUID);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppszGUID = pszGUID;
+    *phState = (HANDLE) pEnumState;
 
 cleanup:
 
@@ -451,15 +451,13 @@ cleanup:
 
 error:
 
-    *ppszGUID = NULL;
-
     goto cleanup;
 }
 
 DWORD
 LsaSrvEnumGroups(
     HANDLE  hServer,
-    PCSTR   pszGUID,
+    HANDLE  hState,
     PDWORD  pdwGroupInfoLevel,
     PVOID** pppGroupInfoList,
     PDWORD  pdwNumGroupsFound
@@ -467,7 +465,7 @@ LsaSrvEnumGroups(
 {
     DWORD dwError = 0;
     DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
-    PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
+    PLSA_SRV_ENUM_STATE pEnumState = (PLSA_SRV_ENUM_STATE) hState;
     PVOID* ppGroupInfoList_accumulate = NULL;
     DWORD  dwTotalNumGroupsFound = 0;
     PVOID* ppGroupInfoList = NULL;
@@ -476,12 +474,6 @@ LsaSrvEnumGroups(
     DWORD  dwGroupInfoLevel = 0;
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
-
-    pEnumState = LsaSrvFindGroupEnumState(hServer, pszGUID);
-    if (!pEnumState) {
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     dwGroupInfoLevel = pEnumState->dwInfoLevel;
     dwNumGroupsRemaining = pEnumState->dwNumMaxRecords;
@@ -558,22 +550,16 @@ error:
 
 DWORD
 LsaSrvEndEnumGroups(
-    HANDLE hServer,
-    PSTR   pszGUID
+    HANDLE  hServer,
+    HANDLE  hState
     )
 {
     DWORD dwError = 0;
     DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
-    PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
+    PLSA_SRV_ENUM_STATE pEnumState = (PLSA_SRV_ENUM_STATE) hState;
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
-
-    pEnumState = LsaSrvFindGroupEnumState(hServer, pszGUID);
-    if (!pEnumState) {
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     for (pProviderState = pEnumState->pProviderStateList;
          pProviderState;
@@ -584,22 +570,14 @@ LsaSrvEndEnumGroups(
            HANDLE hProvider = pProviderState->hProvider;
            pProvider->pFnTable->pfnEndEnumGroups(
                                        hProvider,
-                                       pszGUID);
+                                       pProviderState->hResume);
         }
     }
 
-    LsaSrvFreeGroupEnumState(
-                        hServer,
-                        pszGUID);
-
-cleanup:
+    LsaSrvFreeEnumState(pEnumState);
 
     LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     return dwError;
-
-error:
-
-    goto cleanup;
 }
 

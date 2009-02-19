@@ -29,6 +29,7 @@ SRCS = \
 	$(srcdir)/g_init_sec_context.c \
 	$(srcdir)/g_initialize.c \
 	$(srcdir)/g_inq_context.c \
+	$(srcdir)/g_inq_context2.c \
 	$(srcdir)/g_inq_cred.c \
 	$(srcdir)/g_inq_names.c \
 	$(srcdir)/g_mechname.c \
@@ -63,6 +64,7 @@ OBJS = \
 	$(OUTPRE)g_init_sec_context.$(OBJEXT) \
 	$(OUTPRE)g_initialize.$(OBJEXT) \
 	$(OUTPRE)g_inq_context.$(OBJEXT) \
+	$(OUTPRE)g_inq_context22.$(OBJEXT) \
 	$(OUTPRE)g_inq_cred.$(OBJEXT) \
 	$(OUTPRE)g_inq_names.$(OBJEXT) \
 	$(OUTPRE)g_mechname.$(OBJEXT) \
@@ -97,6 +99,7 @@ STLIBOBJS = \
 	g_init_sec_context.o \
 	g_initialize.o \
 	g_inq_context.o \
+	g_inq_context2.o \
 	g_inq_cred.o \
 	g_inq_names.o \
 	g_mechname.o \
@@ -237,6 +240,12 @@ g_initialize.so g_initialize.po $(OUTPRE)g_initialize.$(OBJEXT): \
   ../generic/gssapi_err_generic.h g_initialize.c mechglue.h \
   mglueP.h
 g_inq_context.so g_inq_context.po $(OUTPRE)g_inq_context.$(OBJEXT): \
+  $(BUILDTOP)/include/autoconf.h $(BUILDTOP)/include/gssapi/gssapi.h \
+  $(COM_ERR_DEPS) $(SRCTOP)/include/k5-platform.h $(SRCTOP)/include/k5-thread.h \
+  $(srcdir)/../generic/gssapiP_generic.h $(srcdir)/../generic/gssapi_generic.h \
+  ../generic/gssapi_err_generic.h g_inq_context.c mechglue.h \
+  mglueP.h
+g_inq_context2.so g_inq_context2.po $(OUTPRE)g_inq_contexti2.$(OBJEXT): \
   $(BUILDTOP)/include/autoconf.h $(BUILDTOP)/include/gssapi/gssapi.h \
   $(COM_ERR_DEPS) $(SRCTOP)/include/k5-platform.h $(SRCTOP)/include/k5-thread.h \
   $(srcdir)/../generic/gssapiP_generic.h $(srcdir)/../generic/gssapi_generic.h \

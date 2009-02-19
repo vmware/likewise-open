@@ -33,14 +33,13 @@
 #include <time.h>
 #include <lwrpc/types.h>
 #include <lwrpc/LM.h>
-#include <npc.h>
 
 void
 NetEnableDebug(
     void
     )
 {
-    NpcSetDebugLevel(2);
+    return;
 }
 
 void
@@ -48,7 +47,7 @@ NetDisableDebug(
     void
     )
 {
-    NpcSetDebugLevel(0);
+    return;
 }
 
 

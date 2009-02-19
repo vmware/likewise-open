@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -396,9 +396,9 @@ ADState_GetProviderData(
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
     *ppResult = pResult;
-
+    
 cleanup:
-
+    
     return dwError;
 
 error:
@@ -557,9 +557,9 @@ ADState_GetDomainTrustList(
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
     *ppList = pList;
-
+    
 cleanup:
-
+    
     return dwError;
 
 error:
@@ -607,7 +607,7 @@ ADState_StoreDomainTrustList(
     for (dwIndex = 0; dwIndex < dwDomainInfoCount; dwIndex++)
     {
         pDomain = ppDomainInfo[dwIndex];
-
+        
         LSA_SAFE_FREE_MEMORY(pwszSid);
         LSA_SAFE_FREE_STRING(pszSid);
 
@@ -784,9 +784,9 @@ ADState_GetCellListNoLock(
             sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
 
     *ppList = pList;
-
+    
 cleanup:
-
+    
     return dwError;
 
 error:
@@ -1001,14 +1001,14 @@ ADState_UnpackDomainTrust(
         "TrustAttributes",
         &pResult->dwTrustAttributes);
     BAIL_ON_LSA_ERROR(dwError);
-
+    
     dwError = LsaSqliteReadUInt32(
         pstQuery,
         piColumnPos,
         "TrustDirection",
         &pResult->dwTrustDirection);
     BAIL_ON_LSA_ERROR(dwError);
-
+    
     dwError = LsaSqliteReadUInt32(
         pstQuery,
         piColumnPos,

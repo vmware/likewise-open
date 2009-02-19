@@ -62,7 +62,8 @@ ParseArgs(
     int    argc,
     char*  argv[],
     PDWORD pdwInfoLevel,
-    PDWORD pdwBatchSize
+    PDWORD pdwBatchSize,
+    PBOOLEAN pbCheckGroupMembersOnline
     );
 
 BOOLEAN
@@ -104,17 +105,20 @@ main(
     DWORD  dwTotalGroupsFound = 0;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = FALSE;
+    BOOLEAN bCheckGroupMembersOnline = FALSE;
 
-    dwError = ParseArgs(argc, argv, &dwGroupInfoLevel, &dwBatchSize);
+    dwError = ParseArgs(argc, argv, &dwGroupInfoLevel, &dwBatchSize, &bCheckGroupMembersOnline);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaBeginEnumGroups(
+    dwError = LsaBeginEnumGroupsWithCheckOnlineOption(
                     hLsaConnection,
                     dwGroupInfoLevel,
                     dwBatchSize,
+                    bCheckGroupMembersOnline,
+                    0,
                     &hResume);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -225,7 +229,8 @@ ParseArgs(
     int    argc,
     char*  argv[],
     PDWORD pdwInfoLevel,
-    PDWORD pdwBatchSize
+    PDWORD pdwBatchSize,
+    PBOOLEAN pbCheckGroupMembersOnline
     )
 {
     typedef enum {
@@ -240,6 +245,7 @@ ParseArgs(
     ParseMode parseMode = PARSE_MODE_OPEN;
     DWORD dwInfoLevel = 0;
     DWORD dwBatchSize = 10;
+    BOOLEAN bCheckGroupMembersOnline = FALSE;
 
     do {
         pszArg = argv[iArg++];
@@ -264,6 +270,11 @@ ParseArgs(
                 else if (!strcmp(pszArg, "--batchsize")) {
                     parseMode = PARSE_MODE_BATCHSIZE;
                 }
+                else if (!strcmp(pszArg, "--check-group-members-online") ||
+                        !strcmp(pszArg, "-c"))
+               {
+                   bCheckGroupMembersOnline = TRUE;
+               }
                 else
                 {
                     ShowUsage();
@@ -315,6 +326,7 @@ ParseArgs(
 
     *pdwInfoLevel = dwInfoLevel;
     *pdwBatchSize = dwBatchSize;
+    *pbCheckGroupMembersOnline = bCheckGroupMembersOnline;
 
     return dwError;
 }
@@ -322,7 +334,7 @@ ParseArgs(
 void
 ShowUsage()
 {
-    printf("Usage: lw-enum-groups {--level [0, 1]} {--batchsize [1..1000]}\n");
+    printf("Usage: lw-enum-groups {--level [0, 1]} {--batchsize [1..1000]} {--check-group-members-online | -c}\n");
 }
 
 VOID

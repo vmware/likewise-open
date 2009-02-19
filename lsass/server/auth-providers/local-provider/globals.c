@@ -58,6 +58,7 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     &LsaProviderLocal_CloseHandle,
     &LsaProviderLocal_ServicesDomain,
     &LsaProviderLocal_AuthenticateUser,
+    &LsaProviderLocal_AuthenticateUserEx,
     &LsaProviderLocal_ValidateUser,
     &LsaProviderLocal_CheckUserInList,
     &LsaProviderLocal_FindUserByName,
@@ -86,7 +87,8 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     &LsaProviderLocal_EndEnumNSSArtefacts,
     &LsaProviderLocal_GetStatus,
     &LsaProviderLocal_FreeStatus,
-    &LsaProviderLocal_RefreshConfiguration
+    &LsaProviderLocal_RefreshConfiguration,
+    &LsaProviderLocal_ProviderIoControl
 };
 
 pthread_rwlock_t g_dbLock;

@@ -859,7 +859,9 @@ static CENTERROR ReadPamConfiguration(const char *rootPrefix, struct PamConf *co
             if(dirp->d_name[0] == '.' || /*Ignore hidden files*/
                CTStrEndsWith(dirp->d_name, ".bak") ||
                CTStrEndsWith(dirp->d_name, ".new") ||
-               CTStrEndsWith(dirp->d_name, ".orig"))
+               CTStrEndsWith(dirp->d_name, ".orig") ||
+               CTStrEndsWith(dirp->d_name, "~") ||
+               CTStrStartsWith(dirp->d_name, "#"))
             {
               continue;
             }
@@ -1361,6 +1363,8 @@ static BOOLEAN PamModulePrompts( const char * phase, const char * module)
         return TRUE;
     //Found on RHEL 2.1 AS. Fixes bug #5374
     if(!strcmp(buffer, "pam_smb_auth"))
+        return TRUE;
+    if(!strcmp(buffer, "pam_mysql"))
         return TRUE;
 
     /* pam_lwidentity will only prompt for domain users during the password phase. All in all, it doesn't store passwords for subsequent modules in the password phase. */

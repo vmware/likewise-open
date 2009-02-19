@@ -350,40 +350,6 @@ error:
     return dwError;
 }
 
-
-DWORD
-LsaSetupMachineLoginSession(
-    PCSTR pszMachineAccount,
-    PCSTR pszPassword
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszCachePath = NULL;
-    
-    dwError = LsaKrb5GetSystemCachePath(
-                    KRB5_File_Cache,
-                    &pszCachePath);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaKrb5GetTgt(
-                    pszMachineAccount,
-                    pszPassword,
-                    pszCachePath,
-                    NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-cleanup:
-
-    LSA_SAFE_FREE_STRING(pszCachePath);
-
-    return dwError;
-    
-error:
-
-    goto cleanup;
-}
-
-
 DWORD
 LsaSetupMachineSession(
     PCSTR  pszMachname,
@@ -1409,7 +1375,7 @@ LsaSetupUserLoginSession(
              * 3. Someone created a ccache in the small window after we delete
              *    the old one and before we move in the new one.
              */
-            LSA_LOG_WARNING("Unable to set up credentials cache with tgt for uid %ld\n", (long)uid);
+            LSA_LOG_WARNING("Unable to set up credentials cache with tgt for uid %ld", (long)uid);
             dwError = LsaRemoveFile(pszTempCachePath);
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -1533,7 +1499,12 @@ LsaKrb5GetMachineCreds(
                     hPasswordStore,
                     pszHostname,
                     &pMachineAcctInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwError)
+    {
+        LSA_LOG_ERROR("Unable to read machine password for hostname '%s'",
+            LSA_SAFE_LOG_STRING(pszHostname));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaWc16sToMbs(
                     pMachineAcctInfo->pwszMachineAccount,

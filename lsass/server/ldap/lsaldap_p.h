@@ -85,6 +85,16 @@ LsaLdapBindDirectory(
     PCSTR pszServerName
     );
 
+static
+DWORD
+LsaLdapOpenDirectoryServerSingleAttempt(
+    IN PCSTR pszServerAddress,
+    IN PCSTR pszServerName,
+    IN DWORD dwTimeoutSec,
+    IN DWORD dwFlags,
+    OUT PAD_DIRECTORY_CONTEXT* ppDirectory
+    );
+
 void display_status(char *msg, OM_uint32 maj_stat, OM_uint32 min_stat);
 
 void display_status_1(char *m, OM_uint32 code, int type);

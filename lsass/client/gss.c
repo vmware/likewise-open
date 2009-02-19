@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        gss.c
  *
  * Abstract:
- * 
+ *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        GSS client stub
  *
  * Authors: Todd Stecher (v-todds@likewise.com)
@@ -47,99 +47,209 @@
 #include "client.h"
 
 #define ZERO_STRUCT(_s_) memset((char*)&(_s_), 0, sizeof((_s_))
+
+static
+VOID
+LsaNTMLCopyGssSecBuffer(
+    IN PSEC_BUFFER pSecBuffer,
+    OUT SEC_BUFFER SecBuffer
+    )
+{
+    SecBuffer.length = pSecBuffer->length;
+    SecBuffer.maxLength = pSecBuffer->maxLength;
+    SecBuffer.buffer = pSecBuffer->buffer;
+}
+
+static
+VOID
+LsaNTMLCopyGssSecBufferS(
+    IN PSEC_BUFFER_S pSecBufferS,
+    OUT SEC_BUFFER_S SecBufferS
+    )
+{
+    int i = 0;
+
+    SecBufferS.length = pSecBufferS->length;
+    SecBufferS.maxLength = pSecBufferS->maxLength;
+    for (i = 0; i < S_BUFLEN; i++)
+    {
+        SecBufferS.buffer[i] = pSecBufferS->buffer[i];
+    }
+}
 /*
  *  LsaGSSBuildAuthMessage
  *
  *  Builds NTLM authenticate message, which requires access to creds inside of
  *  lsassd.
  */
-LSASS_API
+static
 DWORD
-LsaGSSBuildAuthMessage(
-    HANDLE          hLsaConnection,
-    PSEC_BUFFER     credentials,
-    PSEC_BUFFER_S   serverChallenge,
-    PSEC_BUFFER     targetInfo,
-    ULONG           negotiateFlags,
-    PSEC_BUFFER     authenticateMessage,
-    PSEC_BUFFER_S   baseSessionKey
+LsaTransactGSSBuildAuthMessage(
+    IN HANDLE          hServer,
+    IN PSEC_BUFFER     credentials,
+    IN PSEC_BUFFER_S   serverChallenge,
+    IN PSEC_BUFFER     targetInfo,
+    IN ULONG           negotiateFlags,
+    OUT PSEC_BUFFER     authenticateMessage,
+    OUT PSEC_BUFFER_S   baseSessionKey
     )
 {
     DWORD dwError = 0;
-    DWORD dwMsgLen = 0;
-    DWORD dwMsgError = 0;
-    PLSAMESSAGE pMessage = NULL;
-    
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(credentials);
-    BAIL_ON_INVALID_POINTER(baseSessionKey);
-    BAIL_ON_INVALID_POINTER(serverChallenge);
-    BAIL_ON_INVALID_POINTER(targetInfo);
-    
-    dwError = LsaMarshalGSSMakeAuthMsgQ(
-                    credentials,
-                    serverChallenge,
-                    targetInfo,
-                    negotiateFlags,
-                    NULL,
-                    &dwMsgLen
-                    );
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
+    LSA_IPC_MAKE_AUTH_MSG_REQ makeAuthMsgReq;
+    // Do not free pResult and pError
+    PLSA_GSS_R_MAKE_AUTH_MSG pResult = NULL;
+    PLSA_IPC_ERROR pError = NULL;
 
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    makeAuthMsgReq.negotiateFlags = negotiateFlags;
+
+    LsaNTMLCopyGssSecBuffer(credentials, makeAuthMsgReq.credentials);
+    LsaNTMLCopyGssSecBufferS(serverChallenge, makeAuthMsgReq.serverChallenge);
+    LsaNTMLCopyGssSecBuffer(targetInfo, makeAuthMsgReq.targetInfo);
+
+    request.tag = LSA_Q_GSS_MAKE_AUTH_MSG;
+    request.object = &makeAuthMsgReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaBuildMessage(
-                LSA_Q_GSS_MAKE_AUTH_MSG,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage
-                );
+    switch (response.tag)
+    {
+        case LSA_R_GSS_MAKE_AUTH_MSG_SUCCESS:
+            pResult = (PLSA_GSS_R_MAKE_AUTH_MSG)response.object;
+            authenticateMessage = &(pResult->authenticateMessage);
+            baseSessionKey = &(pResult->baseSessionKey);
 
-    BAIL_ON_LSA_ERROR(dwError);
+            break;
+        case LSA_R_GSS_MAKE_AUTH_MSG_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    dwError = LsaMarshalGSSMakeAuthMsgQ(
-                    credentials,
-                    serverChallenge,
-                    targetInfo,
-                    negotiateFlags,
-                    pMessage->pData,
-                    &dwMsgLen
-                    );
-
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    if (pMessage->header.messageType != LSA_R_GSS_MAKE_AUTH_MSG)
-        BAIL_WITH_LSA_ERROR(LSA_ERROR_UNEXPECTED_MESSAGE);
-
-    dwError = LsaUnMarshalGSSMakeAuthMsgR(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &dwMsgError,
-                    authenticateMessage,
-                    baseSessionKey
-                    );
-
-    BAIL_ON_LSA_ERROR(dwError);
-    BAIL_ON_LSA_ERROR(dwMsgError);
-    
+cleanup:
+    // If dwError == 0, we have no LSA bail out in this function,
+    // return the msgError value we get from NTML server call "LsaSrvIpcBuildAuthMessage"
+    // Otherwise, we return dwError itself
+    return !dwError ? pResult->msgError : dwError;
 error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+    authenticateMessage->buffer = NULL;
+    authenticateMessage->length = authenticateMessage->maxLength = 0;
 
-    if (dwMsgError)
-        dwError = dwMsgError;
+    memset(baseSessionKey->buffer, 0, S_BUFLEN);
+    baseSessionKey->length = baseSessionKey->maxLength = 0;
 
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    return dwError;
-    
+    goto cleanup;
 }
 
+static
+DWORD
+LsaTransactGSSValidateAuthMessage(
+    IN HANDLE          hServer,
+    IN ULONG           negotiateFlags,
+    IN PSEC_BUFFER_S   serverChallenge,
+    IN PSEC_BUFFER     targetInfo,
+    IN PSEC_BUFFER     authenticateMessage,
+    OUT PSEC_BUFFER_S   baseSessionKey
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
+    LSA_IPC_CHECK_AUTH_MSG_REQ checkAuthMsgReq;
+    // Do not free pResult and pError
+    PLSA_GSS_R_CHECK_AUTH_MSG pResult = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    checkAuthMsgReq.negotiateFlags = negotiateFlags;
+
+    LsaNTMLCopyGssSecBufferS(serverChallenge, checkAuthMsgReq.serverChallenge);
+    LsaNTMLCopyGssSecBuffer(targetInfo, checkAuthMsgReq.targetInfo);
+    LsaNTMLCopyGssSecBuffer(authenticateMessage, checkAuthMsgReq.authenticateMessage);
+
+    request.tag = LSA_Q_GSS_CHECK_AUTH_MSG;
+    request.object = &checkAuthMsgReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case LSA_R_GSS_CHECK_AUTH_MSG_SUCCESS:
+            pResult = (PLSA_GSS_R_CHECK_AUTH_MSG)response.object;
+            baseSessionKey = &(pResult->baseSessionKey);
+
+            break;
+        case LSA_R_GSS_CHECK_AUTH_MSG_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    // If dwError == 0, we have no LSA bail out in this function,
+    // return the msgError value we get from NTML server call "LsaSrvIpcBuildAuthMessage"
+    // Otherwise, we return dwError itself
+    return !dwError ? pResult->msgError : dwError;
+error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    memset(baseSessionKey->buffer, 0, S_BUFLEN);
+    baseSessionKey->length = baseSessionKey->maxLength = 0;
+
+    goto cleanup;
+}
+
+
+LSASS_API
+DWORD
+LsaGSSBuildAuthMessage(
+    IN HANDLE          hLsaConnection,
+    IN PSEC_BUFFER     credentials,
+    IN PSEC_BUFFER_S   serverChallenge,
+    IN PSEC_BUFFER     targetInfo,
+    IN ULONG           negotiateFlags,
+    OUT PSEC_BUFFER     authenticateMessage,
+    OUT PSEC_BUFFER_S   baseSessionKey
+    )
+{
+    return LsaTransactGSSBuildAuthMessage(
+                      hLsaConnection,
+                      credentials,
+                      serverChallenge,
+                      targetInfo,
+                      negotiateFlags,
+                      authenticateMessage,
+                      baseSessionKey);
+}
 
 /*
  *  LsaGSSValidateAuthMessage
@@ -151,83 +261,20 @@ error:
 LSASS_API
 DWORD
 LsaGSSValidateAuthMessage(
-    HANDLE          hLsaConnection,
-    ULONG           negFlags,
-    PSEC_BUFFER_S   serverChallenge,
-    PSEC_BUFFER     targetInfo,
-    PSEC_BUFFER     authenticateMessage,
-    PSEC_BUFFER_S   baseSessionKey
+    IN HANDLE          hLsaConnection,
+    IN ULONG           negotiateFlags,
+    IN PSEC_BUFFER_S   serverChallenge,
+    IN PSEC_BUFFER     targetInfo,
+    IN PSEC_BUFFER     authenticateMessage,
+    OUT PSEC_BUFFER_S   baseSessionKey
     )
 {
-    DWORD dwError = 0;
-    DWORD dwMsgLen = 0;
-    DWORD dwMsgError = 0;
-    PLSAMESSAGE pMessage = NULL;
-
-    BAIL_ON_INVALID_HANDLE(hLsaConnection);
-    BAIL_ON_INVALID_POINTER(authenticateMessage);
-    BAIL_ON_INVALID_POINTER(baseSessionKey);
-    
-    dwError = LsaMarshalGSSCheckAuthMsgQ(
-                    negFlags,
-                    serverChallenge,
-                    targetInfo,
-                    authenticateMessage,
-                    NULL,
-                    &dwMsgLen
-                    );
-
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaBuildMessage(
-                LSA_Q_GSS_CHECK_AUTH_MSG,
-                dwMsgLen,
-                1,
-                1,
-                &pMessage
-                );
-
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMarshalGSSCheckAuthMsgQ(
-                    negFlags,
-                    serverChallenge,
-                    targetInfo,
-                    authenticateMessage,
-                    pMessage->pData,
-                    &dwMsgLen
-                    );
-
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaSendMessage(hLsaConnection, pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    
-    dwError = LsaGetNextMessage(hLsaConnection, &pMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    if (pMessage->header.messageType != LSA_R_GSS_CHECK_AUTH_MSG)
-        BAIL_WITH_LSA_ERROR(LSA_ERROR_UNEXPECTED_MESSAGE);
-
-    dwError = LsaUnMarshalGSSCheckAuthMsgR(
-                    pMessage->pData,
-                    pMessage->header.messageLength,
-                    &dwMsgError,
-                    baseSessionKey
-                    );
-
-    BAIL_ON_LSA_ERROR(dwError);
-    BAIL_ON_LSA_ERROR(dwMsgError);
-
-
-error:
-
-    if (dwMsgError)
-        dwError = dwMsgError;
-
-    LSA_SAFE_FREE_MESSAGE(pMessage);
-    return dwError;
+    return LsaTransactGSSValidateAuthMessage(
+                        hLsaConnection,
+                        negotiateFlags,
+                        serverChallenge,
+                        targetInfo,
+                        authenticateMessage,
+                        baseSessionKey);
 }
 

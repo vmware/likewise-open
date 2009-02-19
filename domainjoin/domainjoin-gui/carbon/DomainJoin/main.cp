@@ -81,7 +81,7 @@ DomainJoinApp::GetMigrateWindow()
 	{
 	   _migrateWindow = new DomainMigrateWindow(ApplicationSignature);
 	}
-
+	
 	return *_migrateWindow;
 }
 
@@ -105,7 +105,7 @@ DomainJoinApp::JoinOrLeaveDomain()
 		   leaveWindow.SetComputerName(joinStatus.Name);
 		   leaveWindow.SetDomainName(joinStatus.DomainName);
                    leaveWindow.SetOU(joinStatus.OUPath);
-
+           
 		   leaveWindow.Show();
 		}
 		else
@@ -148,24 +148,24 @@ DomainJoinApp::MigrateUser()
     try
     {
 	    DomainJoinStatus joinStatus;
-
+		
         DomainJoinInterface::GetDomainJoinStatus(joinStatus);
-
+		
 		DomainMigrateWindow& migrateWindow = GetMigrateWindow();
         DomainJoinWindow& joinWindow = GetJoinWindow();
 		DomainLeaveWindow& leaveWindow = GetLeaveWindow();
-
+		
 		if (joinStatus.DomainName.length() > 0)
 		{
 		   joinWindow.Hide();
 		   leaveWindow.Hide();
-
+           
            // Clear the AD username edit control
            migrateWindow.SetADUserEdit("");
-
+           
            // Turn off Migrate button
            migrateWindow.MigrateOff();
-
+           
            // Clear display fields
            migrateWindow.SetLocalUserRealName("");
            migrateWindow.SetLocalUserHomeDirectory("");
@@ -175,19 +175,19 @@ DomainJoinApp::MigrateUser()
            migrateWindow.SetADUserHomeDirectory("");
            migrateWindow.SetADUserUID("");
            migrateWindow.SetADUserGID("");
-
-           // Determine current list of local user accounts and populate the list box control
+           
+           // Determine current list of local user accounts and populate the list box control         
            migrateWindow.SetLocalUsers();
-
+           
            migrateWindow.Show();
 		}
     }
     catch(DomainJoinException& dje)
-    {
+    {					  
 		SInt16 outItemHit;
-		const char* err = dje.what();
+		const char* err = dje.what();	
 		const char* message = dje.GetLongErrorMessage();
-		DialogRef dialog;
+		DialogRef dialog;	
 		CFStringRef msgStrRef = CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII);
 		CFStringGetPascalString(msgStrRef, (StringPtr)message, strlen(message), kCFStringEncodingASCII);
 		CFStringRef errStrRef = CFStringCreateWithCString(NULL, err, kCFStringEncodingASCII);

@@ -49,13 +49,6 @@
 #include "wc16str.h"
 #include "lwps-validate.h"
 
-#if !(HAVE_DECL_ISBLANK - 0)
-int isblank(int c)
-{
-    return c == '\t' || c == ' ';
-}
-#endif
-
 #if !defined(HAVE_STRTOLL)
 
 long long int

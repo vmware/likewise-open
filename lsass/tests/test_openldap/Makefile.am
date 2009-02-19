@@ -1,0 +1,20 @@
+noinst_PROGRAMS = test_openldap
+
+test_openldap_SOURCES = test_openldap.c
+
+test_openldap_CPPFLAGS = \
+	-DLW_ENABLE_THREADS=1         \
+	-I@top_srcdir@/server/include \
+	@OPENLDAP_INCLUDES@ \
+	@KRB5_INCLUDES@
+
+test_openldap_LDADD = \
+	@top_builddir@/server/ldap/liblsaldap.la \
+	@top_builddir@/server/krb5/liblsakrb5.la \
+	@top_builddir@/server/srvutils/liblsasrvutils.la \
+	@top_builddir@/logging_r/liblsalog_r.la \
+	@top_builddir@/utils/liblsautils.la \
+	@OPENLDAP_LIBS@ \
+	@KRB5_LIBS@ \
+	$(RT_LIBS)
+

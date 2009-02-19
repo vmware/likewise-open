@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Inter-process communication (Server) API for Status
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -46,71 +46,48 @@
  */
 #include "ipc.h"
 
-DWORD
+LWMsgStatus
 LsaSrvIpcGetStatus(
-    HANDLE hConnection,
-    PLSAMESSAGE pMessage
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     )
 {
-    DWORD        dwError = 0;
-    PLSAMESSAGE  pResponse = NULL;
-    DWORD        dwMsgLen = 0;
-    HANDLE       hServer = (HANDLE)NULL;
-    PLSASTATUS   pLsaStatus = NULL;
-    PLSASERVERCONNECTIONCONTEXT pContext =
-       (PLSASERVERCONNECTIONCONTEXT)hConnection;
-    
-    dwError = LsaSrvIpcOpenServer(hConnection, &hServer);
+    DWORD dwError = 0;
+    PLSASTATUS pLsaStatus = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvGetStatus(
-                    hServer,
+                    (HANDLE)Handle,
                     &pLsaStatus);
-    if (dwError) {
-        
-        dwError = LsaSrvIpcMarshalError(
-                        dwError,
-                        &pResponse);
+
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_GET_STATUS_SUCCESS;
+        pResponse->object = pLsaStatus;
+        pLsaStatus = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
-        
-    } else {
 
-       dwError = LsaMarshalStatus(
-                       pLsaStatus,
-                       NULL,
-                       &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-    
-       dwError = LsaBuildMessage(
-                        LSA_R_GET_STATUS,
-                        dwMsgLen,
-                        1,
-                        1,
-                        &pResponse);
-       BAIL_ON_LSA_ERROR(dwError);
-       
-       dwError = LsaMarshalStatus(
-                       pLsaStatus,
-                       pResponse->pData,
-                       &dwMsgLen);
-       BAIL_ON_LSA_ERROR(dwError);
-
+        pResponse->tag = LSA_R_GET_STATUS_FAILURE;
+        pResponse->object = pError;
     }
-    
-    dwError = LsaWriteMessage(pContext->fd, pResponse);
-    BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
-
-    if (pLsaStatus) {
-       LsaFreeStatus(pLsaStatus);
+    if(pLsaStatus)
+    {
+        LsaFreeStatus(pLsaStatus);
     }
+    return MAP_LSA_ERROR_IPC(dwError);
 
-    LSA_SAFE_FREE_MESSAGE(pResponse);
-    
-    return dwError;
-    
 error:
-
     goto cleanup;
 }

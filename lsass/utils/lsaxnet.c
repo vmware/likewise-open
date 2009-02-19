@@ -77,7 +77,7 @@ static void* _xnet_open(void)
 {
     void* handle = NULL;
     int i = 0;
-
+ 
     for (i = 0; _xnet_paths[i]; i++)
     {
         handle = dlopen(_xnet_paths[i], RTLD_LOCAL);
@@ -315,7 +315,7 @@ _xnet_socket (int d, int t, int p)
     LsaXnetInit();
     if (_p_xnet_socket != NULL)
     {
-        return _p_xnet_socket(d, t, p);
+        return _p_xnet_socket(d, t, p); 
     }
     else
     {

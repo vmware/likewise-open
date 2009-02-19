@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see
+ * Public License along with this program.  If not, see 
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,12 +38,12 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- *
+ * 
  *        Caching for AD Provider Database Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
- *
+ * 
  */
 #ifndef __LSADB_H__
 #define __LSADB_H__
@@ -250,6 +250,23 @@ LsaDbFindGroupById(
     );
 
 DWORD
+LsaDbRemoveUserBySid(
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszSid
+    );
+
+DWORD
+LsaDbRemoveGroupBySid(
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszSid
+    );
+
+DWORD
+LsaDbEmptyCache(
+    IN LSA_DB_HANDLE hDb
+    );
+
+DWORD
 LsaDbStoreObjectEntry(
     LSA_DB_HANDLE hDb,
     PLSA_SECURITY_OBJECT pObject
@@ -354,6 +371,24 @@ LsaDbFindObjectBySid(
     LSA_DB_HANDLE hDb,
     PCSTR pszSid,
     PLSA_SECURITY_OBJECT *ppObject);
+
+DWORD
+LsaDbEnumUsersCache(
+    IN LSA_DB_HANDLE           hDb,
+    IN DWORD                   dwMaxNumUsers,
+    IN PCSTR                   pszResume,
+    OUT DWORD*                 dwNumUsersFound,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LsaDbEnumGroupsCache(
+    IN LSA_DB_HANDLE           hDb,
+    IN DWORD                   dwMaxNumGroups,
+    IN PCSTR                   pszResume,
+    OUT DWORD *                dwNumGroupsFound,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
 
 // returns LSA_ERROR_NOT_HANDLED if the user is not in the database
 DWORD

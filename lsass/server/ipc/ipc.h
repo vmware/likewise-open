@@ -46,30 +46,31 @@
  */
 #include "config.h"
 #include "lsasystem.h"
-#include "lsadef.h"
 #include "lsa/lsa.h"
+#include "lsadef.h"
 #include "lsautils.h"
+
+#include <lwmsg/lwmsg.h>
+
 #include "lsaunistr.h"
 #include "lsaipc.h"
+#include "ntlmgsssrv.h"
 
 #include "lsaserver.h"
 #include "lsasrvapi.h"
-#include "ntlmgsssrv.h"
 
 #include "ipc_error_p.h"
 #include "ipc_auth_p.h"
-#include "ipc_connect_p.h"
 #include "ipc_group_p.h"
 #include "ipc_artefact_p.h"
 #include "ipc_gss_p.h"
 #include "ipc_session_p.h"
-#include "ipc_state_p.h"
 #include "ipc_user_p.h"
 #include "ipc_log_p.h"
 #include "ipc_tracing_p.h"
 #include "ipc_metrics_p.h"
 #include "ipc_status_p.h"
 #include "ipc_config_p.h"
-#include "msg_dispatch_p.h"
+#include "ipc_provider_p.h"
 #include "externs_p.h"
 

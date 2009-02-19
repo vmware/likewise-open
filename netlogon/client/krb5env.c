@@ -47,7 +47,7 @@
 #include "includes.h"
 
 #define LWNET_KRB5_CONFIG_VARIABLE_NAME "KRB5_CONFIG"
-#define LWNET_KRB5_BASE_CONF_PATH "/etc/likewise/likewise-krb5-ad.conf"
+#define LWNET_KRB5_BASE_CONF_PATH LWNET_CONFIG_DIR "/likewise-krb5-ad.conf"
 
 #define LWNET_KRB5_ENV_PREFIX \
     LWNET_KRB5_CONF_PATH ":" LWNET_KRB5_BASE_CONF_PATH

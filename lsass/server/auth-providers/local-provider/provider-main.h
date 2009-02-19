@@ -97,6 +97,13 @@ LsaProviderLocal_AuthenticateUser(
     );
 
 DWORD
+LsaProviderLocal_AuthenticateUserEx(
+    HANDLE hProvider,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO *ppUserInfo
+    );
+
+DWORD
 LsaProviderLocal_ValidateUser(
     HANDLE hProvider,
     PCSTR  pszLoginId,
@@ -129,8 +136,8 @@ LsaProviderLocal_FindUserById(
 DWORD
 LsaProviderLocal_BeginEnumUsers(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -146,7 +153,7 @@ LsaProviderLocal_EnumUsers(
 VOID
 LsaProviderLocal_EndEnumUsers(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     );
 
 DWORD
@@ -180,8 +187,9 @@ LsaProviderLocal_GetGroupsForUser(
 DWORD
 LsaProviderLocal_BeginEnumGroups(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
+    BOOLEAN bCheckOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -197,7 +205,7 @@ LsaProviderLocal_EnumGroups(
 VOID
 LsaProviderLocal_EndEnumGroups(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     );
 
 DWORD
@@ -292,7 +300,6 @@ LsaProviderLocal_FindNSSArtefactByKey(
 DWORD
 LsaProviderLocal_BeginEnumNSSArtefacts(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PCSTR   pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
@@ -311,7 +318,7 @@ LsaProviderLocal_EnumNSSArtefacts(
 VOID
 LsaProviderLocal_EndEnumNSSArtefacts(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    HANDLE hResume
     );
 
 DWORD
@@ -328,6 +335,18 @@ LsaProviderLocal_FreeStatus(
 DWORD
 LsaProviderLocal_RefreshConfiguration(
     HANDLE hProvider
+    );
+
+DWORD
+LsaProviderLocal_ProviderIoControl(
+    IN HANDLE  hProvider,
+    IN uid_t   peerUID,
+    IN uid_t   peerGID,
+    IN DWORD   dwIoControlCode,
+    IN DWORD   dwInputBufferSize,
+    IN PVOID   pInputBuffer,
+    OUT DWORD* pdwOutputBufferSize,
+    OUT PVOID* ppOutputBuffer
     );
 
 VOID

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -37,64 +37,14 @@
 #include <errno.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/winerror.h>
+#include <lwrpc/ntstatus.h>
 #include <lwrpc/mpr.h>
 #include <wc16str.h>
-#include <npc.h>
-#include <npctypes.h>
-
 
 int WNetCancelConnection2(wchar16_t *name, uint16 flags, bool force)
 {
-    char *hostname = NULL;
-    char *slash = NULL;
-    int result = 0;
-    int winerr = ERROR_SUCCESS;;
-
-    if (name == NULL)
-    {
-        winerr = ERROR_INVALID_PARAMETER;
-        goto done;
-    }
-
-    hostname = awc16stombs(name + 2);
-    if (hostname == NULL)
-    {
-        winerr = ERROR_OUTOFMEMORY;
-        goto done;
-    }
-
-    slash = strchr(hostname, '\\');
-
-    if (!slash)
-    {
-        winerr = ERROR_INVALID_PARAMETER;
-        goto done;
-    }
-
-    *slash = '\0';
-
-    if (result = NpcClearAuthInfo(hostname))
-    {
-        winerr = ErrnoToWin32Error(result);
-        goto done;
-    }
-
-done:
-    if (hostname)
-    {
-        free(hostname);
-    }
-
-    return winerr;
+    /* ! ! ! FIXME-LSMB ! ! !
+       Tear down impersonation/connection here
+    */
+    return 0;
 }
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

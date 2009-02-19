@@ -51,7 +51,7 @@
 
 DWORD
 AD_OnlineFindCellDN(
-    IN HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     IN PCSTR pszComputerDN,
     IN PCSTR pszRootDN,
     OUT PSTR* ppszCellDN
@@ -70,7 +70,7 @@ AD_OnlineFindCellDN(
     //       until we find a cell or hit the top domain DN.
     for (;;)
     {
-        dwError = ADGetCellInformation(hDirectory, pszParentDN, &pszCellDN);
+        dwError = ADGetCellInformation(pConn, pszParentDN, &pszCellDN);
         if (dwError == LSA_ERROR_NO_SUCH_CELL)
         {
             dwError = 0;
@@ -118,12 +118,12 @@ AD_OnlineInitializeOperatingMode(
     PSTR  pszComputerDN = NULL;
     PSTR  pszCellDN = NULL;
     PSTR  pszRootDN = NULL;
-    HANDLE hDirectory = (HANDLE)NULL;
     ADConfigurationMode adConfMode = NonSchemaMode;
     PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
     DWORD dwDomainInfoCount = 0;
     PAD_PROVIDER_DATA pProviderData = NULL;
     PSTR pszNetbiosDomainName = NULL;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
 
     dwError = LsaAllocateMemory(sizeof(*pProviderData), (PVOID*)&pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
@@ -131,13 +131,15 @@ AD_OnlineInitializeOperatingMode(
     dwError = LsaDmEngineDiscoverTrusts(pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDmWrapLdapOpenDirectoryDomain(pszDomain, &hDirectory);
+    dwError = LsaDmLdapOpenDc(
+                    pszDomain,
+                    &pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaLdapConvertDomainToDN(pszDomain, &pszRootDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADFindComputerDN(hDirectory, pszHostName, pszDomain,
+    dwError = ADFindComputerDN(pConn, pszHostName, pszDomain,
                                &pszComputerDN);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -148,7 +150,7 @@ AD_OnlineInitializeOperatingMode(
     else
     {
         dwError = AD_OnlineFindCellDN(
-                        hDirectory,
+                        pConn,
                         pszComputerDN,
                         pszRootDN,
                         &pszCellDN);
@@ -174,7 +176,7 @@ AD_OnlineInitializeOperatingMode(
          }
     }
 
-    dwError = ADGetDomainMaxPwdAge(hDirectory, pszDomain,
+    dwError = ADGetDomainMaxPwdAge(pConn, pszDomain,
                                    &pProviderData->adMaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -182,7 +184,7 @@ AD_OnlineInitializeOperatingMode(
     {
         case DEFAULT_MODE:
         case CELL_MODE:
-            dwError = ADGetConfigurationMode(hDirectory, pszCellDN,
+            dwError = ADGetConfigurationMode(pConn, pszCellDN,
                                              &adConfMode);
             BAIL_ON_LSA_ERROR(dwError);
             break;
@@ -199,7 +201,7 @@ AD_OnlineInitializeOperatingMode(
 
     if (pProviderData->dwDirectoryMode == CELL_MODE)
     {
-        dwError = AD_GetLinkedCellInfo(hDirectory,
+        dwError = AD_GetLinkedCellInfo(pConn,
                     pszCellDN,
                     pszDomain,
                     &pProviderData->pCellList);
@@ -231,7 +233,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszRootDN);
     LSA_SAFE_FREE_STRING(pszComputerDN);
     LSA_SAFE_FREE_STRING(pszCellDN);
-    LsaLdapCloseDirectory(hDirectory);
+    LsaDmLdapClose(pConn);
     LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
 
     return dwError;
@@ -250,7 +252,7 @@ error:
 
 DWORD
 AD_GetLinkedCellInfo(
-    IN HANDLE hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     IN PCSTR pszCellDN,
     IN PCSTR pszDomain,
     OUT PDLINKEDLIST* ppCellList
@@ -280,19 +282,22 @@ AD_GetLinkedCellInfo(
     PSTR pszStrTokSav = NULL;
     PCSTR pszDelim = ";";
     HANDLE hGCDirectory = (HANDLE)NULL;
+    PLSA_DM_LDAP_CONNECTION pGcConn = NULL;
     LDAP* pGCLd = NULL;
     PDLINKEDLIST pCellList = NULL;
+    HANDLE hDirectory = NULL;
 
-    pLd = LsaLdapGetSession(hDirectory);
-
-    dwError = LsaLdapDirectorySearch(
-                      hDirectory,
+    dwError = LsaDmLdapDirectorySearch(
+                      pConn,
                       pszCellDN,
                       LDAP_SCOPE_BASE,
                       "(objectClass=*)",
                       szAttributeList,
+                      &hDirectory,
                       &pCellMessage1);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pLd = LsaLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                       pLd,
@@ -341,11 +346,8 @@ AD_GetLinkedCellInfo(
                         &pszDirectoryRoot);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaDmWrapLdapOpenDirectoryGc(pszDomain,
-                                               &hGCDirectory);
+        dwError = LsaDmLdapOpenGc(pszDomain, &pGcConn);
         BAIL_ON_LSA_ERROR(dwError);
-
-        pGCLd = LsaLdapGetSession(hGCDirectory);
 
         pszLinkedCellGuid = strtok_r (pszLinkedCell, pszDelim, &pszStrTokSav);
         while (pszLinkedCellGuid != NULL)
@@ -370,14 +372,17 @@ AD_GetLinkedCellInfo(
             LSA_SAFE_FREE_STRING(pszHexStr);
 
             //Search in root node's GC for cell DN given cell's GUID
-            dwError = LsaLdapDirectorySearch(
-                              hGCDirectory,
+            dwError = LsaDmLdapDirectorySearch(
+                              pGcConn,
                               pszDirectoryRoot,
                               LDAP_SCOPE_SUBTREE,
                               szQuery,
                               szAttributeListCellName,
+                              &hGCDirectory,
                               &pCellMessage2);
             BAIL_ON_LSA_ERROR(dwError);
+
+            pGCLd = LsaLdapGetSession(hGCDirectory);
 
             dwCount = ldap_count_entries(
                               pGCLd,
@@ -454,9 +459,7 @@ cleanup:
         LsaFreeStringArray(ppszValues, dwNumValues);
     }
 
-    if (hGCDirectory != (HANDLE)NULL) {
-        LsaLdapCloseDirectory(hGCDirectory);
-    }
+    LsaDmLdapClose(pGcConn);
 
     LSA_SAFE_FREE_STRING (pszDirectoryRoot);
 
@@ -2100,26 +2103,21 @@ AD_OnlineEnumUsers(
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PVOID* ppInfoList = NULL;
     DWORD dwInfoCount = 0;
+    BOOLEAN bIsEnumerationEnabled = TRUE;
+    LSA_FIND_FLAGS FindFlags = pEnumState->FindFlags;
 
-    // If BeginEnum was called in offline mode, it can successfully return
-    // with hDirectory set to 0. That is the only way this function can
-    // be called with hDirectory as 0. So we should continue enumerating
-    // in offline mode.
-    if (pEnumState->hDirectory == (HANDLE)NULL)
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
-        dwError = AD_OfflineEnumUsers(
-                        hProvider,
-                        hResume,
-                        dwMaxNumUsers,
-                        &dwInfoCount,
-                        &ppInfoList);
-        BAIL_ON_LSA_ERROR(dwError);
+        bIsEnumerationEnabled = AD_GetNssEnumerationEnabled();
+    }
 
+    if (!bIsEnumerationEnabled)
+    {
+        dwError = LSA_ERROR_NO_MORE_USERS;
         goto cleanup;
     }
 
     dwError = LsaAdBatchEnumObjects(
-                    pEnumState->hDirectory,
                     &pEnumState->Cookie,
                     AccountType_User,
                     dwMaxNumUsers,
@@ -2335,26 +2333,21 @@ AD_OnlineEnumGroups(
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PVOID* ppInfoList = NULL;
     DWORD dwInfoCount = 0;
+    BOOLEAN bIsEnumerationEnabled = TRUE;
+    LSA_FIND_FLAGS FindFlags = pEnumState->FindFlags;
 
-    // If BeginEnum was called in offline mode, it can successfully return
-    // with hDirectory set to 0. That is the only way this function can
-    // be called with hDirectory as 0. So we should continue enumerating
-    // in offline mode.
-    if (pEnumState->hDirectory == (HANDLE)NULL)
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
-        dwError = AD_OfflineEnumGroups(
-                        hProvider,
-                        hResume,
-                        dwMaxNumGroups,
-                        &dwInfoCount,
-                        &ppInfoList);
-        BAIL_ON_LSA_ERROR(dwError);
+        bIsEnumerationEnabled = AD_GetNssEnumerationEnabled();
+    }
 
+    if (!bIsEnumerationEnabled)
+    {
+        dwError = LSA_ERROR_NO_MORE_GROUPS;
         goto cleanup;
     }
 
     dwError = LsaAdBatchEnumObjects(
-                    pEnumState->hDirectory,
                     &pEnumState->Cookie,
                     AccountType_Group,
                     dwMaxNumGroups,
@@ -2372,7 +2365,7 @@ AD_OnlineEnumGroups(
         dwError = AD_GroupObjectToGroupInfo(
                         hProvider,
                         ppObjects[dwInfoCount],
-                        TRUE,
+                        !pEnumState->bCheckGroupMembersOnline, //if Do not bCheckGroupMembersOnline, then bIsCacheOnlyMode == TRUE
                         pEnumState->dwInfoLevel,
                         &ppInfoList[dwInfoCount]);
         BAIL_ON_LSA_ERROR(dwError);
@@ -3094,7 +3087,8 @@ AD_FindObjectByUpnNoCache(
     dwError = LsaDmWrapNetLookupObjectSidByName(
                     gpADProviderData->szDomain,
                     pszUpn,
-                    &pszSid);
+                    &pszSid,
+                    NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_FindObjectBySidNoCache(
@@ -3689,10 +3683,11 @@ AD_OnlineFindNSSArtefactByKey(
     )
 {
     DWORD dwError = 0;
-    HANDLE hDirectory = (HANDLE)NULL;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
 
-    dwError = LsaDmWrapLdapOpenDirectoryDomain(gpADProviderData->szDomain,
-                                               &hDirectory);
+    dwError = LsaDmLdapOpenDc(
+                    gpADProviderData->szDomain,
+                    &pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
     switch (gpADProviderData->dwDirectoryMode)
@@ -3700,7 +3695,7 @@ AD_OnlineFindNSSArtefactByKey(
     case DEFAULT_MODE:
 
         dwError = DefaultModeFindNSSArtefactByKey(
-                        hDirectory,
+                        pConn,
                         gpADProviderData->cell.szCellDN,
                         gpADProviderData->szShortDomain,
                         pszKeyName,
@@ -3713,7 +3708,7 @@ AD_OnlineFindNSSArtefactByKey(
     case CELL_MODE:
 
         dwError = CellModeFindNSSArtefactByKey(
-                        hDirectory,
+                        pConn,
                         gpADProviderData->cell.szCellDN,
                         gpADProviderData->szShortDomain,
                         pszKeyName,
@@ -3731,9 +3726,7 @@ AD_OnlineFindNSSArtefactByKey(
 
 cleanup:
 
-    if (hDirectory) {
-        LsaLdapCloseDirectory(hDirectory);
-    }
+    LsaDmLdapClose(pConn);
 
     return dwError;
 
@@ -3755,17 +3748,18 @@ AD_OnlineEnumNSSArtefacts(
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
-    HANDLE hDirectory = (HANDLE)NULL;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
 
-    dwError = LsaDmWrapLdapOpenDirectoryDomain(gpADProviderData->szDomain,
-                                               &hDirectory);
+    dwError = LsaDmLdapOpenDc(
+                    gpADProviderData->szDomain,
+                    &pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
     switch (gpADProviderData->dwDirectoryMode)
     {
     case DEFAULT_MODE:
         dwError = DefaultModeEnumNSSArtefacts(
-                hDirectory,
+                pConn,
                 gpADProviderData->cell.szCellDN,
                 gpADProviderData->szShortDomain,
                 pEnumState,
@@ -3777,7 +3771,7 @@ AD_OnlineEnumNSSArtefacts(
 
     case CELL_MODE:
         dwError = CellModeEnumNSSArtefacts(
-                hDirectory,
+                pConn,
                 gpADProviderData->cell.szCellDN,
                 gpADProviderData->szShortDomain,
                 pEnumState,
@@ -3795,9 +3789,7 @@ AD_OnlineEnumNSSArtefacts(
 
 cleanup:
 
-    if (hDirectory) {
-        LsaLdapCloseDirectory(hDirectory);
-    }
+    LsaDmLdapClose(pConn);
 
     return dwError;
 

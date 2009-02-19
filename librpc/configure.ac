@@ -56,23 +56,6 @@ AC_ARG_WITH(
 )
 
 AC_ARG_WITH(
-	npc-dir, 
-	[  --with-npc-dir=<prefix>          look for npc headers/libraries in <prefix>],
-	[
-	    NPC_INCLUDES=-I$withval/include
-	    NPC_LDFLAGS=-L$withval/lib
-	]
-)
-
-AC_ARG_WITH(
-	npc-libdir, 
-	[  --with-npc-libdir=<libdir>       look for npc libraries in <libdir>],
-	[
-	    NPC_LDFLAGS="-L$withval"
-	]
-)
-
-AC_ARG_WITH(
 	ldap-dir, 
 	[  --with-ldap-dir=<prefix>         look for ldap headers/libraries in <prefix>],
 	[
@@ -146,8 +129,6 @@ AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_PATH)
 AC_SUBST(UNISTR_INCLUDES)
 AC_SUBST(UNISTR_LDFLAGS)
-AC_SUBST(NPC_INCLUDES)
-AC_SUBST(NPC_LDFLAGS)
 AC_SUBST(LDAP_INCLUDES)
 AC_SUBST(LDAP_LDFLAGS)
 AC_SUBST(PSTORE_INCLUDES)
@@ -196,6 +177,8 @@ AC_CHECK_LIB(tdb, tdb_fetch, [
 		],
 		[have_libtdb=false])
 AM_CONDITIONAL([HAVE_LIBTDB], [test x$have_libtdb = xtrue])
+
+AC_CHECK_LIB(lwrdrclient, SMBSetThreadToken, [], AC_MSG_ERROR([liblwrdrclient not found]))
 
 # Checks for header files.
 AC_HEADER_STDC
