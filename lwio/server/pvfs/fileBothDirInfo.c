@@ -115,13 +115,11 @@ FillFileBothDirInfoStatic(
     FilenameLen = RtlWC16StringNumChars(pwszShortFilename);
     FilenameLenBytes = FilenameLen * sizeof(WCHAR);
 
-    if (FilenameLen > 12 ) {
-        ntError = STATUS_FILE_INVALID;
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    /* Let's ignore short file names for now (unless it just
+       happens to fit */
 
-    pFileInfo->ShortNameLength = FilenameLenBytes;
-    if (pFileInfo->ShortNameLength > 0) {
+    if ((FilenameLen > 0) && (FilenameLen <= 12)) {
+        pFileInfo->ShortNameLength = FilenameLenBytes;
         memcpy(pFileInfo->ShortName, pwszShortFilename, FilenameLenBytes);
     }
 
