@@ -68,6 +68,15 @@ SrvBuildFindFirst2Response(
     PSMB_PACKET*        ppSmbResponse
     );
 
+static
+NTSTATUS
+SrvBuildSearchPath(
+    PWSTR  pwszPath,
+    PWSTR  pwszSearchPattern,
+    PWSTR* ppwszFilesystemPath,
+    PWSTR* ppwszSearchPattern
+    );
+
 NTSTATUS
 SrvProcessTrans2FindFirst2(
     PSMB_SRV_CONNECTION         pConnection,
@@ -274,8 +283,7 @@ SrvBuildFindFirst2Response(
     SMB_FIND_FIRST2_RESPONSE_PARAMETERS responseParams = {0};
     BOOLEAN   bReturnSingleEntry = FALSE;
     BOOLEAN   bRestartScan = FALSE;
-    wchar16_t wszBackSlash[2];
-    wchar16_t wszStar[2];
+    wchar16_t wszBackSlash[2] = {0, 0};
     USHORT    usDataOffset = 0;
     USHORT    usParameterOffset = 0;
     USHORT    usNumPackageBytesUsed = 0;
@@ -288,6 +296,8 @@ SrvBuildFindFirst2Response(
     BYTE      setupCount = 0;
     BOOLEAN   bEndOfSearch = FALSE;
     BOOLEAN   bInLock = FALSE;
+    PWSTR     pwszFilesystemPath = NULL;
+    PWSTR     pwszSearchPattern2 = NULL;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnectionFindSession(
@@ -303,17 +313,25 @@ SrvBuildFindFirst2Response(
     BAIL_ON_NT_STATUS(ntStatus);
 
     wcstowc16s(&wszBackSlash[0], L"\\", 1);
-    wcstowc16s(&wszStar[0], L"*", 1);
 
     if (pwszSearchPattern && *pwszSearchPattern == wszBackSlash[0])
         pwszSearchPattern++;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
+    ntStatus = SrvBuildSearchPath(
+                    pTree->pShareInfo->pwszPath,
+                    pwszSearchPattern,
+                    &pwszFilesystemPath,
+                    &pwszSearchPattern2);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+
     ntStatus = SrvFinderCreateSearchSpace(
                     pSession->hFinderRepository,
-                    pTree->pShareInfo->pwszPath,
-                    (pwszSearchPattern && *pwszSearchPattern ? pwszSearchPattern : &wszStar[0]),
+                    pwszFilesystemPath,
+                    pwszSearchPattern2,
                     usSearchAttrs,
                     ulSearchStorageType,
                     infoLevel,
@@ -321,8 +339,6 @@ SrvBuildFindFirst2Response(
                     &hSearchSpace,
                     &usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -441,6 +457,8 @@ cleanup:
     }
 
     SMB_SAFE_FREE_MEMORY(pData);
+    SMB_SAFE_FREE_MEMORY(pwszFilesystemPath);
+    SMB_SAFE_FREE_MEMORY(pwszSearchPattern2);
 
     return ntStatus;
 
@@ -463,4 +481,118 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+SrvBuildSearchPath(
+    PWSTR  pwszPath,
+    PWSTR  pwszSearchPattern,
+    PWSTR* ppwszFilesystemPath,
+    PWSTR* ppwszSearchPattern
+    )
+{
+    NTSTATUS ntStatus = 0;
+    wchar16_t wszStar[2] = {0, 0};
+    wchar16_t wszBackslash[2] = {0, 0};
+    wchar16_t wszQuestionMark[2] = {0, 0};
+    size_t    sLen = 0;
+    PWSTR     pwszCursor = NULL;
+    PWSTR     pwszLastSlash = NULL;
+    PWSTR     pwszFilesystemPath = NULL;
+    PWSTR     pwszSearchPattern2 = NULL;
 
+    if (!pwszPath || !*pwszPath)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER_1;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    wcstowc16s(&wszStar[0], L"*", 1);
+    wcstowc16s(&wszBackslash[0], L"\\", 1);
+    wcstowc16s(&wszQuestionMark[0], L"?", 1);
+
+    sLen = wc16slen(pwszPath);
+
+    while (pwszSearchPattern && *pwszSearchPattern && (*pwszSearchPattern == wszBackslash[0]))
+    {
+          pwszSearchPattern++;
+    }
+
+    pwszCursor = pwszSearchPattern;
+
+    while (pwszCursor && *pwszCursor)
+    {
+        if (*pwszCursor == wszBackslash[0])
+        {
+            pwszLastSlash = pwszCursor;
+        }
+        else if ((*pwszCursor == wszStar[0]) ||
+                 (*pwszCursor == wszQuestionMark[0]))
+        {
+            break;
+        }
+
+        pwszCursor++;
+    }
+
+    if (pwszLastSlash)
+    {
+        PBYTE pDataCursor = NULL;
+        size_t sSuffixLen = 0;
+
+        sSuffixLen = ((PBYTE)pwszLastSlash - (PBYTE)pwszSearchPattern);
+
+        ntStatus = SMBAllocateMemory(
+                        sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t),
+                        (PVOID*)&pwszFilesystemPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pDataCursor = (PBYTE)pwszFilesystemPath;
+        memcpy(pDataCursor, (PBYTE)pwszPath, sLen * sizeof(wchar16_t));
+        pDataCursor += sLen * sizeof(wchar16_t);
+
+        *((wchar16_t*)pDataCursor) = wszBackslash[0];
+        pDataCursor += sizeof(wszBackslash[0]);
+
+        memcpy(pDataCursor, pwszSearchPattern, sSuffixLen);
+    }
+    else
+    {
+        ntStatus = SMBAllocateStringW(
+                        pwszPath,
+                        &pwszFilesystemPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pwszCursor = (pwszLastSlash ? pwszLastSlash++ : pwszSearchPattern);
+    if (pwszCursor && *pwszCursor)
+    {
+        ntStatus = SMBAllocateStringW(
+                        pwszCursor,
+                        &pwszSearchPattern2);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = SMBAllocateStringW(
+                        wszStar,
+                        &pwszSearchPattern2);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppwszFilesystemPath = pwszFilesystemPath;
+    *ppwszSearchPattern = pwszSearchPattern2;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszFilesystemPath = NULL;
+    *ppwszSearchPattern = NULL;
+
+    SMB_SAFE_FREE_MEMORY(pwszFilesystemPath);
+    SMB_SAFE_FREE_MEMORY(pwszSearchPattern2);
+
+    goto cleanup;
+}
