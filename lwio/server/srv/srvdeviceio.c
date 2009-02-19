@@ -159,7 +159,9 @@ SrvDeviceIoCommon(
           break;
     }
 
-    return(ntStatus);
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
 }
 
 
