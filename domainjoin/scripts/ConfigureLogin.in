@@ -144,7 +144,7 @@ fi
 
 Help()
 {
-    echo "usage: $0 <enable> | <disable>"
+    echo "usage: $0 nsswitch_restart"
 }
 
 GetOsType()
@@ -267,7 +267,7 @@ GracefulDbusRestart()
     distroType=`GetDistroType`
     if [ -x /etc/init.d/dbus ]; then
         # Ubuntu, SuSE
-        if [ "$distroType" = "SuSE" -o "$distroType" = "OpenSuSE" -o "$distroType" = "SLES" ]; then
+        if [ "$distroType" = "SuSE" -o "$distroType" = "OpenSuSE" -o "$distroType" = "SLES" -o "$distroType" = "SLED" ]; then
             if IsUserLoggedInX; then
                 if [ "$1" = "1" ]; then
                     echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please log out of X windows, then run these commands to restart dbus:" >&2
@@ -303,7 +303,7 @@ GracefulDbusRestart()
         return $result
     elif [ -x /etc/init.d/messagebus ]; then
         # Fedora is the only known system that has /etc/init.d/messagebus
-        if [ "$distroType" = "Fedora" -a `GetDistroVersion` -eq 9 ]; then
+        if [ "$distroType" = "Fedora" -a `GetDistroVersion` -ge 9 ]; then
             if IsUserLoggedInX; then
                 if [ "$1" = "1" ]; then
                     echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please log out of X windows, then run these commands to restart dbus:" >&2
