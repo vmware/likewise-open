@@ -235,7 +235,7 @@ SrvShareDbAdd(
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR pszError = NULL;
     PSTR pszQuery = NULL;
-    BOOLEAN bInLock = FALSE;
+    //    BOOLEAN bInLock = FALSE;
     SHARE_SERVICE service = SHARE_SERVICE_UNKNOWN;
 
     if (IsNullOrEmptyString(pszShareName))
@@ -254,7 +254,7 @@ SrvShareDbAdd(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
+    //    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(DB_QUERY_INSERT_SHARE,
                                pszShareName,
@@ -282,7 +282,7 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    //    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     return ntStatus;
 
@@ -626,7 +626,7 @@ SrvShareDbDelete(
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR  pszQuery = NULL;
     PSTR  pszError = NULL;
-    BOOLEAN bInLock = FALSE;
+    //    BOOLEAN bInLock = FALSE;
 
     if (IsNullOrEmptyString(pszShareName))
     {
@@ -634,7 +634,7 @@ SrvShareDbDelete(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
+    //    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_DELETE_SHARE,
@@ -659,7 +659,7 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    //    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     return ntStatus;
 
