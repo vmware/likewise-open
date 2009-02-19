@@ -84,7 +84,16 @@ LWRaiseLsassError(
         LW_CLEANUP_CTERR(dest, CTAllocateMemory(bufferSize, PPCAST(&buffer)));
         if(lsaFunctions->pfnGetErrorString(code, buffer, bufferSize) == bufferSize && bufferSize > 0 && strlen(buffer) > 0)
         {
-            LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Lsass Error", buffer);
+            DWORD err = CENTERROR_DOMAINJOIN_LSASS_ERROR;
+
+            switch (code)
+            {
+                case 0x806B: //LSA_ERROR_FAILED_TO_LOOKUP_DC
+                    err = CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
+                    break;
+            }
+
+            LWRaiseEx(dest, err, file, line, "Lsass Error", buffer);
             goto cleanup;
         }
     }

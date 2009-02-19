@@ -642,6 +642,7 @@ static void FreeDCPortCheckContents(DCPortCheck *check)
 static void CachePortCheck(PCSTR domainName, ModuleState *state, DCPortCheckOptions *options, DCPortCheck *check, LWException **exc)
 {
     memset(check, 0, sizeof(*check));
+    LWException *getDomainDCException = NULL;
 
     if(state != NULL && state->moduleData != NULL)
     {
@@ -652,7 +653,29 @@ static void CachePortCheck(PCSTR domainName, ModuleState *state, DCPortCheckOpti
     }
 
     DJ_LOG_INFO("Getting DC");
-    LW_TRY(exc, DJGetDomainDC(domainName, &check->dc, &LW_EXC));
+    DJGetDomainDC(
+        domainName,
+        &check->dc,
+        &getDomainDCException );
+    if (!LW_IS_OK(getDomainDCException))
+    {
+        switch(getDomainDCException->code)
+        {
+            case CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME:
+                LW_RAISE_EX(
+                    exc,
+                    getDomainDCException->code,
+                    getDomainDCException->shortMsg,
+                    "%s. Check that the domain name is correctly entered. Check that your DNS server is reachable, and that your system is configured to use DNS in nsswitch. Check that port 389 UDP is not blocked by your firewall.",
+                    getDomainDCException->longMsg);
+                break;
+
+            default:
+                LW_CLEANUP(exc, getDomainDCException);
+                break;
+        }
+        goto cleanup;
+    }
 
     DJ_LOG_INFO("Starting port check");
     LW_TRY(exc, CheckDCPorts(check, options, &LW_EXC));
@@ -663,7 +686,7 @@ static void CachePortCheck(PCSTR domainName, ModuleState *state, DCPortCheckOpti
     }
 
 cleanup:
-    ;
+    LWHandle(&getDomainDCException);
 }
 
 static void ReadCachedPortCheck(PCSTR domainName, ModuleState *state, DCPortCheckOptions *options, DCPortCheck *check, LWException **exc)
