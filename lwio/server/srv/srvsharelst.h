@@ -31,14 +31,6 @@
 #ifndef __SRV_SHARELST_H__
 #define __SRV_SHARELST_H__
 
-typedef struct _SRV_SHARE_ENTRY {
-    PSTR pszShareName;
-    PSTR pszPath;
-    PSTR pszComment;
-
-    struct _SRV_SHARE_ENTRY  *pNext;
-} SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
-
 
 NTSTATUS
 SrvShareInitContextContents(
@@ -71,9 +63,39 @@ SrvShareFreeContextContents(
 
 
 NTSTATUS
-SrvFindShareInList(
-    PSTR pszShareName,
+SrvAddShareToList(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PSRV_SHARE_ENTRY pShareEntry
+    );
+
+
+NTSTATUS
+SrvAddShareInfoToList(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PSHARE_DB_INFO    pShareInfo,
     PSRV_SHARE_ENTRY *ppShareEntry
+    );
+
+
+NTSTATUS
+SrvFindShareByName(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PWSTR pszShareName,
+    PSHARE_DB_INFO *ppShareInfo
+    );
+
+
+NTSTATUS
+SrvRemoveShareFromList(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PWSTR pszShareName,
+    PSRV_SHARE_ENTRY *ppShareEntry
+    );
+
+
+NTSTATUS
+SrvShareFreeList(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext
     );
 
 
