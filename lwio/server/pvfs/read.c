@@ -66,13 +66,15 @@ PvfsRead(
     PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
+    BOOLEAN bUseOffset = pIrp->Args.ReadWrite.ByteOffset != NULL ? TRUE : FALSE;
     PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);;
     size_t totalBytesRead = 0;
+    LONG64 Offset = 0;
 
     /* Sanity checks */
 
-    BAIL_ON_INVALID_PTR(pBuffer, ntError);
     PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    BAIL_ON_INVALID_PTR(pBuffer, ntError);
 
     if (PVFS_IS_DIR(pCcb)) {
         ntError = STATUS_FILE_IS_A_DIRECTORY;
@@ -86,27 +88,28 @@ PvfsRead(
     }
 #endif
 
-    /* Simple loop to fill the buffer.  Should be using pread()
-       here to deal with the offsets. */
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_DATA);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Simple loop to fill the buffer */
+
+    if (bUseOffset) {
+        Offset = *pIrp->Args.ReadWrite.ByteOffset;
+    }
 
     while (totalBytesRead < bufLen)
     {
-        size_t bytesRead = 0;
+        ULONG bytesRead = 0;
 
-        bytesRead = read(pCcb->fd,
-                         pBuffer + totalBytesRead,
-                         bufLen - totalBytesRead);
-        if (bytesRead == -1) {
-            int err = errno;
-
-            /* try again? */
-            if (err == EAGAIN) {
-                continue;
-            }
-
-            ntError = PvfsMapUnixErrnoToNtStatus(err);
-            BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsSysRead(pCcb,
+                              pBuffer + totalBytesRead,
+                              bufLen - totalBytesRead,
+                              bUseOffset ? &Offset : NULL,
+                              &bytesRead);
+        if (ntError == STATUS_PENDING) {
+            continue;
         }
+        BAIL_ON_NT_STATUS(ntError);
 
         /* Check for EOF */
         if (bytesRead == 0) {
@@ -114,6 +117,7 @@ PvfsRead(
         }
 
         totalBytesRead += bytesRead;
+        Offset += bytesRead;
     }
 
     /* Can only get here is the loop was completed
@@ -124,8 +128,6 @@ PvfsRead(
     ntError = (totalBytesRead > 0) ?
         STATUS_SUCCESS :
         STATUS_END_OF_FILE;
-
-
 
 cleanup:
     return ntError;

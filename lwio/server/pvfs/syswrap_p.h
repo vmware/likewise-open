@@ -147,6 +147,26 @@ PvfsSysRemove(
     PSTR pszPath
     );
 
+NTSTATUS
+PvfsSysRead(
+    PPVFS_CCB pCcb,
+    PVOID pBuffer,
+    ULONG pBufLen,
+    PLONG64 pOffset,
+    PULONG pBytesRead
+    );
+
+NTSTATUS
+PvfsSysWrite(
+    PPVFS_CCB pCcb,
+    PVOID pBuffer,
+    ULONG pBufLen,
+    PLONG64 pOffset,
+    PULONG pBytesWritten
+    );
+
+
+
 #endif     /* _PVFS_SYSWRAP_P_H */
 
 

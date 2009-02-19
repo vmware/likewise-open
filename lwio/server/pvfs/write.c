@@ -58,37 +58,52 @@ PvfsWrite(
     PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
-    PPVFS_CCB pCcb = NULL;
+    BOOLEAN bUseOffset = pIrp->Args.ReadWrite.ByteOffset != NULL ? TRUE : FALSE;
+    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
     size_t totalBytesWritten = 0;
+    LONG64 Offset = 0;
 
+    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
     BAIL_ON_INVALID_PTR(pBuffer, ntError);
 
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    if (PVFS_IS_DIR(pCcb)) {
+        ntError = STATUS_FILE_IS_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+#if 0xFFFFFFFF > SSIZE_MAX
+    if ((size_t) bufLen > (size_t) SSIZE_MAX) {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+#endif
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Simple loop to fill the buffer */
+
+    if (bUseOffset) {
+        Offset = *pIrp->Args.ReadWrite.ByteOffset;
+    }
 
     while (totalBytesWritten < bufLen)
     {
-        size_t bytesWritten = 0;
+        ULONG bytesWritten = 0;
 
-        bytesWritten = write(pCcb->fd,
-                             pBuffer + totalBytesWritten,
-                             bufLen - totalBytesWritten);
-        if (bytesWritten == -1) {
-            int err = errno;
-
-            /* try again? */
-            if (err == EAGAIN) {
-                continue;
-            }
-
-            ntError = PvfsMapUnixErrnoToNtStatus(err);
-            BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsSysWrite(pCcb,
+                               pBuffer + totalBytesWritten,
+                               bufLen - totalBytesWritten,
+                               bUseOffset ? &Offset : NULL,
+                               &bytesWritten);
+        if (ntError == STATUS_PENDING) {
+            continue;
         }
+        BAIL_ON_NT_STATUS(ntError);
 
         totalBytesWritten += bytesWritten;
+        Offset += bytesWritten;
     }
-
-
 
     /* Can only get here is the loop was completed
        successfully */

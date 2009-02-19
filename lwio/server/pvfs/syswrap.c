@@ -507,6 +507,91 @@ error:
     goto cleanup;
 }
 
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysRead(
+    PPVFS_CCB pCcb,
+    PVOID pBuffer,
+    ULONG pBufLen,
+    PLONG64 pOffset,
+    PULONG pBytesRead
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    ssize_t bytesRead = 0;
+    int unixerr = 0;
+
+    /* Use pread() if we have an offset, otherwise fall back
+       to read() */
+
+    if (pOffset)
+    {
+        bytesRead = pread(pCcb->fd, pBuffer, pBufLen, *pOffset);
+    }
+    else
+    {
+        bytesRead = read(pCcb->fd, pBuffer, pBufLen);
+    }
+
+    if (bytesRead == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *pBytesRead = (ULONG)bytesRead;
+    ntError = STATUS_SUCCESS;
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysWrite(
+    PPVFS_CCB pCcb,
+    PVOID pBuffer,
+    ULONG pBufLen,
+    PLONG64 pOffset,
+    PULONG pBytesWritten
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    ssize_t bytesWritten = 0;
+    int unixerr = 0;
+
+    /* Use pwrite() if we have an offset, otherwise fall back
+       to write() */
+
+    if (pOffset)
+    {
+        bytesWritten = pwrite(pCcb->fd, pBuffer, pBufLen, *pOffset);
+    }
+    else
+    {
+         bytesWritten = write(pCcb->fd, pBuffer, pBufLen);
+    }
+
+    if (bytesWritten == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *pBytesWritten = (ULONG)bytesWritten;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 /*
