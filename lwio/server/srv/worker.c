@@ -338,6 +338,14 @@ SrvWorkerExecute(
 
             break;
 
+        case COM_DELETE_DIRECTORY:
+
+            ntStatus = SrvProcessDeleteDirectory(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
         case COM_TREE_DISCONNECT:
 
             ntStatus = SrvProcessTreeDisconnectAndX(
@@ -447,14 +455,6 @@ SrvWorkerExecute(
         case SMB_COPY:
 
             ntStatus = SmbProcessCopy(
-                            pSmbRequest,
-                            pSmbResponse);
-
-            break;
-
-        case SMB_DELETE_DIRECTORY:
-
-            ntStatus = SmbProcessDeleteDirectory(
                             pSmbRequest,
                             pSmbResponse);
 

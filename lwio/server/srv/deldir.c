@@ -30,57 +30,133 @@
 
 #include "includes.h"
 
-static
-NTSTATUS
-SrvUnmarshallDeleteDirectoryRequest(
-    PSMB_PACKET pSmbRequest
-    );
-
-static
-NTSTATUS
-SrvDeleteFile(
-    PSMB_SRV_FILE pFile
-    );
-
-static
-NTSTATUS
-SrvBuildDeleteDirectoryResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PSMB_PACKET*        ppSmbResponse
-    );
-
 NTSTATUS
 SrvProcessDeleteDirectory(
-    PLWIO_SRV_CONTEXT pContext
+    PLWIO_SRV_CONTEXT pContext,
+    PSMB_PACKET*      ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
     PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB_SRV_FILE pFile = NULL;
+    PDELETE_DIRECTORY_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PDELETE_DIRECTORY_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    PWSTR       pwszPathFragment = NULL; // Do not free
+    PSMB_SRV_SESSION pSession = NULL;
+    PSMB_SRV_TREE    pTree = NULL;
+    PWSTR       pwszDirectoryPath = NULL;
+    BOOLEAN     bInLock = FALSE;
+    IO_FILE_NAME    fileName = {0};
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    USHORT      usPacketByteCount = 0;
 
-    ntStatus = SrvUnmarshallDeleteDirectoryRequest(
-                    pSmbRequest);
+    ntStatus = SrvConnectionFindSession(
+                    pConnection,
+                    pSmbRequest->pSMBHeader->uid,
+                    &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvDeleteFile(pFile);
+    ntStatus = SrvSessionFindTree(
+                    pSession,
+                    pSmbRequest->pSMBHeader->tid,
+                    &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildDeleteDirectoryResponse(
-                        pConnection,
-                        pSmbRequest,
-                        &pSmbResponse);
+    ntStatus = WireUnmarshallDirectoryDeleteRequest(
+                    pSmbRequest->pParams,
+                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
+                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    &pRequestHeader,
+                    &pwszPathFragment);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnectionWriteMessage(
-                        pConnection,
-                        pContext->ulRequestSequence + 1,
-                        pSmbResponse);
+    if (!pwszPathFragment || !*pwszPathFragment)
+    {
+        ntStatus = STATUS_CANNOT_DELETE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+
+    ntStatus = SrvBuildFilePath(
+                    pTree->pShareInfo->pwszPath,
+                    pwszPathFragment,
+                    &pwszDirectoryPath);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+
+    fileName.FileName = pwszDirectoryPath;
+
+    ntStatus = IoDeleteFile(
+                    NULL,
+                    &ioStatusBlock,
+                    &fileName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_DELETE_DIRECTORY,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                pSmbRequest->pSMBHeader->pid,
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = WireMarshallDeleteDirectoryResponse(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    &pResponseHeader,
+                    &usPacketByteCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += usPacketByteCount;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    if (pTree)
+    {
+        SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+
+        SrvTreeRelease(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
+    SMB_SAFE_FREE_MEMORY(pwszDirectoryPath);
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
 
     if (pSmbResponse)
     {
@@ -89,45 +165,7 @@ cleanup:
             pSmbResponse);
     }
 
-    return ntStatus;
-
-error:
-
     goto cleanup;
 }
 
-static
-NTSTATUS
-SrvUnmarshallDeleteDirectoryRequest(
-    PSMB_PACKET pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return (ntStatus);
-}
-
-static
-NTSTATUS
-SrvDeleteFile(
-    PSMB_SRV_FILE pFile
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
-
-static
-NTSTATUS
-SrvBuildDeleteDirectoryResponse(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PSMB_PACKET*        ppSmbResponse
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
-}
 

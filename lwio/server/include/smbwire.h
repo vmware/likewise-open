@@ -983,6 +983,22 @@ typedef struct _FIND_CLOSE2_RESPONSE_HEADER {
 
 } __attribute__((__packed__)) FIND_CLOSE2_RESPONSE_HEADER, *PFIND_CLOSE2_RESPONSE_HEADER;
 
+typedef struct _DELETE_DIRECTORY_REQUEST_HEADER {
+
+    USHORT usByteCount;
+    UCHAR  ucBufferFormat;
+    UCHAR  pad;
+
+    /* PWSTR pwszDirectoryPath */
+
+} __attribute__((__packed__)) DELETE_DIRECTORY_REQUEST_HEADER, *PDELETE_DIRECTORY_REQUEST_HEADER;
+
+typedef struct _DELETE_DIRECTORY_RESPONSE_HEADER {
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) DELETE_DIRECTORY_RESPONSE_HEADER, *PDELETE_DIRECTORY_RESPONSE_HEADER;
+
 typedef struct
 {
     /* wordCount and byteCount are handled at a higher layer */
@@ -1369,6 +1385,24 @@ WireMarshallFindClose2Response(
     ULONG   ulOffset,
     PUSHORT pusBytesUsed,
     PFIND_CLOSE2_RESPONSE_HEADER* ppResponseHeader
+    );
+
+NTSTATUS
+WireUnmarshallDirectoryDeleteRequest(
+    const PBYTE                       pParams,
+    ULONG                             ulBytesAvailable,
+    ULONG                             ulOffset,
+    PDELETE_DIRECTORY_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                            ppwszDirectoryPath
+    );
+
+NTSTATUS
+WireMarshallDeleteDirectoryResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PDELETE_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
     );
 
 NTSTATUS
