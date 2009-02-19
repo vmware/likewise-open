@@ -72,7 +72,7 @@
 // STATUS_PENDING.
 //
 
-typedef LONG LW_NTSTATUS;
+typedef LONG LW_NTSTATUS, *LW_PNTSTATUS;
 
 // Determine whether this is a failure code.  Only warning and
 // error codes are considered failure.
@@ -716,6 +716,7 @@ typedef LONG LW_NTSTATUS;
 #ifndef LW_STRICT_NAMESPACE
 
 typedef LW_NTSTATUS NTSTATUS;
+typedef LW_PNTSTATUS PNTSTATUS;
 
 #define NT_SUCCESS(status) LW_NT_SUCCESS(status)
 #define NT_SUCCESS_OR_NOT(status) LW_NT_SUCCESS_OR_NOT(status)
