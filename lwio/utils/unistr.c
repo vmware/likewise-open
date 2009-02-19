@@ -56,7 +56,7 @@ SMBAllocateStringW(
 
     if (sLen)
     {
-       memcpy(pwszOutputString, pwszInputString, sLen);
+       memcpy((PBYTE)pwszOutputString, (PBYTE)pwszInputString, sLen * sizeof(wchar16_t));
     }
 
     *ppwszOutputString = pwszOutputString;
