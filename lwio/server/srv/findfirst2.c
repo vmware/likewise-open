@@ -494,10 +494,15 @@ SrvBuildSearchPath(
     wchar16_t wszStar[2] = {0, 0};
     wchar16_t wszBackslash[2] = {0, 0};
     wchar16_t wszQuestionMark[2] = {0, 0};
+    wchar16_t wszQuote[2] = {0, 0};
+    wchar16_t wszGT[2] = {0, 0};
+    wchar16_t wszLT[2] = {0, 0};
+    wchar16_t wszDot[2] = {0, 0};
     size_t    sLen = 0;
     PWSTR     pwszCursor = NULL;
     PWSTR     pwszLastSlash = NULL;
     PWSTR     pwszFilesystemPath = NULL;
+    PWSTR     pwszSearchPattern3 = NULL;
     PWSTR     pwszSearchPattern2 = NULL;
 
     if (!pwszPath || !*pwszPath)
@@ -509,6 +514,10 @@ SrvBuildSearchPath(
     wcstowc16s(&wszStar[0], L"*", 1);
     wcstowc16s(&wszBackslash[0], L"\\", 1);
     wcstowc16s(&wszQuestionMark[0], L"?", 1);
+    wcstowc16s(&wszQuote[0], L"\"", 1);
+    wcstowc16s(&wszGT[0], L">", 1);
+    wcstowc16s(&wszLT[0], L"<", 1);
+    wcstowc16s(&wszDot[0], L".", 1);
 
     sLen = wc16slen(pwszPath);
 
@@ -517,7 +526,49 @@ SrvBuildSearchPath(
           pwszSearchPattern++;
     }
 
-    pwszCursor = pwszSearchPattern;
+    if (pwszSearchPattern && *pwszSearchPattern)
+    {
+
+	    ntStatus = SMBAllocateStringW(
+		    pwszSearchPattern,
+		    &pwszSearchPattern3);
+
+	    BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pwszCursor = pwszSearchPattern3;
+    while (pwszCursor && *pwszCursor)
+    {
+	    if (*pwszCursor == wszGT[0])
+	    {
+		    *pwszCursor = wszQuestionMark[0];
+	    }
+	    else if (*pwszCursor == wszQuote[0])
+	    {
+		    PWSTR pwszNext = pwszCursor;
+
+		    if (++pwszNext &&
+                        (*pwszNext == wszQuestionMark[0] ||
+                         *pwszNext == wszStar[0]))
+		    {
+			    *pwszCursor = wszDot[0];
+		    }
+	    }
+	    else if (*pwszCursor == wszLT[0])
+	    {
+		    PWSTR pwszNext = pwszCursor;
+
+		    if (++pwszNext &&
+                        (*pwszNext == wszDot[0]))
+		    {
+			    *pwszCursor = wszStar[0];
+		    }
+	    }
+
+	    pwszCursor++;
+    }
+
+    pwszCursor = pwszSearchPattern3;
 
     while (pwszCursor && *pwszCursor)
     {
@@ -539,7 +590,7 @@ SrvBuildSearchPath(
         PBYTE pDataCursor = NULL;
         size_t sSuffixLen = 0;
 
-        sSuffixLen = ((PBYTE)pwszLastSlash - (PBYTE)pwszSearchPattern);
+        sSuffixLen = ((PBYTE)pwszLastSlash - (PBYTE)pwszSearchPattern3);
 
         ntStatus = SMBAllocateMemory(
                         sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t),
@@ -563,7 +614,7 @@ SrvBuildSearchPath(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pwszCursor = (pwszLastSlash ? pwszLastSlash++ : pwszSearchPattern);
+    pwszCursor = (pwszLastSlash ? ++pwszLastSlash : pwszSearchPattern3);
     if (pwszCursor && *pwszCursor)
     {
         ntStatus = SMBAllocateStringW(
@@ -583,6 +634,8 @@ SrvBuildSearchPath(
     *ppwszSearchPattern = pwszSearchPattern2;
 
 cleanup:
+
+    SMB_SAFE_FREE_MEMORY(pwszSearchPattern3);
 
     return ntStatus;
 
