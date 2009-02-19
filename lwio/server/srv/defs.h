@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -27,8 +27,6 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-
-
 
 /*
  * Copyright (C) Likewise Software. All rights reserved.
@@ -74,12 +72,6 @@ typedef enum
     SMB_SRV_CONN_STATE_INVALID
 } SMB_SRV_CONN_STATE;
 
-#define SRV_DEVCTL_ADD_SHARE      1
-#define SRV_DEVCTL_DELETE_SHARE   2
-#define SRV_DEVCTL_ENUM_SHARE     3
-#define SRV_DEVCTL_SET_SHARE_INFO 4
-#define SRV_DEVCTL_GET_SHARE_INFO 5
-
 typedef USHORT SMB_SEARCH_FLAG;
 
 #define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
@@ -89,3 +81,13 @@ typedef USHORT SMB_SEARCH_FLAG;
 #define SMB_FIND_WITH_BACKUP_INTENT  0x10
 
 #endif /* __DEFS_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
