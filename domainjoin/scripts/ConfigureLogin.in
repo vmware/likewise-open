@@ -270,7 +270,7 @@ GracefulDbusRestart()
         if [ "$distroType" = "SuSE" -o "$distroType" = "OpenSuSE" -o "$distroType" = "SLES" -o "$distroType" = "SLED" ]; then
             if IsUserLoggedInX; then
                 if [ "$1" = "1" ]; then
-                    echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please log out of X windows, then run these commands to restart dbus:" >&2
+                    echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please reboot your computer or log out of X windows, then run these commands to restart dbus:" >&2
                     echo "/etc/init.d/dbus restart; killall gdm; /etc/init.d/xdm restart" >&2
                 fi
                 return 1
@@ -306,7 +306,7 @@ GracefulDbusRestart()
         if [ "$distroType" = "Fedora" -a `GetDistroVersion` -ge 9 ]; then
             if IsUserLoggedInX; then
                 if [ "$1" = "1" ]; then
-                    echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please log out of X windows, then run these commands to restart dbus:" >&2
+                    echo "Warning: unable to restart dbus on this system while a user is logged in graphically via gdm. Until dbus is restarted, graphical logins as domain users will be unpredicatable. Please reboot your computer or log out of X windows, then run these commands to restart dbus:" >&2
                     echo "/etc/init.d/messagebus restart; gdm-restart" >&2
                 fi
                 return 1
