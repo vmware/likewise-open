@@ -43,12 +43,14 @@
  *
  *       DeviceIo Dispatch Routine
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
 
 #ifndef __SRV_SHARES_H__
 #define __SRV_SHARES_H__
+
 
 NTSTATUS
 SrvDevCtlAddShare(

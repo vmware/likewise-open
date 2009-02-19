@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -41,13 +41,15 @@
  *
  *        Likewise File System Driver (Srv)
  *
- *       DeviceIo Dispatch Routine
+ *        DeviceIo Dispatch Routine
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
+
 
 NTSTATUS
 SrvDevCtlAddShare(
@@ -65,6 +67,7 @@ SrvDevCtlAddShare(
     PSHARE_INFO_502 pShareInfo502 = NULL;
     PWSTR pwszShareName = NULL;
     PWSTR pwszPath = NULL;
+    PWSTR pwszComment = NULL;
 
     ntStatus = LwShareInfoUnmarshalAddParameters(
                         lpInBuffer,
@@ -75,46 +78,48 @@ SrvDevCtlAddShare(
 
     switch (pAddShareInfoParams->dwInfoLevel)
     {
-        case 0:
-	    pShareInfo0 = pAddShareInfoParams->info.p0;
+    case 0:
+	    pShareInfo0   = pAddShareInfoParams->info.p0;
 	    pwszShareName = pShareInfo0->shi0_netname;
-	    pwszPath = NULL;
-            break;
+	    pwszPath      = NULL;
+        break;
 
-        case 1:
-	    pShareInfo1 = pAddShareInfoParams->info.p1;
+    case 1:
+	    pShareInfo1   = pAddShareInfoParams->info.p1;
 	    pwszShareName = pShareInfo1->shi1_netname;
-	    pwszPath = NULL;
-            break;
+	    pwszPath      = NULL;
+        break;
 
-        case 501:
-            pShareInfo501 = pAddShareInfoParams->info.p501;
+    case 501:
+        pShareInfo501 = pAddShareInfoParams->info.p501;
 	    pwszShareName = pShareInfo501->shi501_netname;
-	    pwszPath = NULL;
-            break;
+	    pwszPath      = NULL;
+        break;
 
-        case 502:
-            pShareInfo502 = pAddShareInfoParams->info.p502;
+    case 502:
+        pShareInfo502 = pAddShareInfoParams->info.p502;
 	    pwszShareName = pShareInfo502->shi502_netname;
-	    pwszPath = pShareInfo502->shi502_path;
+	    pwszPath      = pShareInfo502->shi502_path;
+	    break;
 
-        default:
-            ntStatus = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
+    default:
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
 
     }
 
     ntStatus = SrvShareAddShare(
                         pwszShareName,
-                        pwszPath
+                        pwszPath,
+                        pwszComment
                         );
 
-
 error:
-
     return ntStatus;
 }
+
+
 NTSTATUS
 SrvDevCtlDeleteShare(
     PBYTE lpInBuffer,
@@ -124,7 +129,20 @@ SrvDevCtlDeleteShare(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSHARE_INFO_DELETE_PARAMS pDeleteShareInfoParams = NULL;
+    PWSTR pwszShareName = NULL;
 
+    ntStatus = LwShareInfoUnmarshalDeleteParameters(
+                        lpInBuffer,
+                        ulInBufferSize,
+                        &pDeleteShareInfoParams
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pwszShareName = pDeleteShareInfoParams->netname;
+    ntStatus = SrvShareDeleteShare(pwszShareName);
+
+error:
     return ntStatus;
 }
 
@@ -237,3 +255,13 @@ SrvDevCtlSetShareInfo(
 
     return ntStatus;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

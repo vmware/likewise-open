@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -45,10 +45,25 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
+
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
 extern SMB_SRV_RUNTIME_GLOBALS gSMBSrvGlobals;
 
+extern PSRV_SHARE_ENTRY gpShareEntry;
+
+
 #endif /* __EXTERNS_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

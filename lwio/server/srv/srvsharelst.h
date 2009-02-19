@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -30,6 +30,15 @@
 
 #ifndef __SRV_SHARELST_H__
 #define __SRV_SHARELST_H__
+
+typedef struct _SRV_SHARE_ENTRY {
+    PSTR pszShareName;
+    PSTR pszPath;
+    PSTR pszComment;
+
+    struct _SRV_SHARE_ENTRY  *pNext;
+} SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
+
 
 NTSTATUS
 SrvShareInitContextContents(
@@ -62,50 +71,34 @@ SrvShareFreeContextContents(
 
 
 NTSTATUS
-SrvDevCtlAddShare(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
-    );
-
-NTSTATUS
-SrvDevCtlDeleteShare(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
-    );
-
-NTSTATUS
-SrvDevCtlEnumShares(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
-    );
-
-NTSTATUS
-SrvDevCtlGetShareInfo(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
-    );
-
-NTSTATUS
-SrvDevCtlSetShareInfo(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
+SrvFindShareInList(
+    PSTR pszShareName,
+    PSRV_SHARE_ENTRY *ppShareEntry
     );
 
 
 NTSTATUS
 SrvShareAddShare(
     PWSTR  pwszShareName,
-    PWSTR  pwszPath
+    PWSTR  pwszPath,
+    PWSTR  pwszComment
     );
 
+
+NTSTATUS
+SrvShareDeleteShare(
+    PWSTR pwszShareName
+    );
+
+
 #endif /* __SRV_SHARELST_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

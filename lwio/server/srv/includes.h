@@ -79,6 +79,7 @@
 #include "srvgss.h"
 #include "sharedb.h"
 #include "srvsharelst.h"
+#include "srvshares.h"
 #include "srvccb.h"
 #include "srvdevicecreate.h"
 #include "srvdeviceio.h"

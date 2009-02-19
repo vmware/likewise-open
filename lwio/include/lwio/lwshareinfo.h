@@ -38,7 +38,7 @@ LwShareInfoUnmarshalAddParameters(
 
 LW_NTSTATUS
 LwShareInfoMarshalDeleteParameters(
-    PSHARE_INFO_ADD_PARAMS pParams,
+    PSHARE_INFO_DELETE_PARAMS pParams,
     PBYTE* ppBuffer,
     ULONG* pulBufferSize
     );

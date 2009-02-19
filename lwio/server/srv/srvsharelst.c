@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -321,101 +321,259 @@ SrvShareFreeContextContents(
 }
 
 
-#if 0
-NTSTATUS
-SrvFindShareinList(
-    PWSTR pszShareName
+static
+BOOLEAN
+IsEqualShareEntry(
+    PSTR pName,
+    PSTR pShareName
     )
 {
+    if (pName == pShareName) {
+        return TRUE;
+    }
+
+    if ((pName && !pShareName) ||
+        (!pName && pShareName)) {
+        return FALSE;
+    }
+
+    if (strcmp(pName, pShareName)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+
+NTSTATUS
+SrvRemoveShareFromList(
+    PSTR pszShareName,
+    PSRV_SHARE_ENTRY *ppShareEntry
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
+    PSRV_SHARE_ENTRY pPrevShareEntry = NULL;
+
+    /* We assume the list has already been locked */
+    pShareEntry = gpShareEntry;
 
     while (pShareEntry) {
+        if (IsEqualShareEntry(pszShareName, pShareEntry->pszShareName)) {
 
-        if (IsEqualShareEntry(pShareName pShareEntry->pName)){
+            if (pPrevShareEntry) {
+                pPrevShareEntry->pNext = pShareEntry->pNext;
+
+            } else {
+                gpShareEntry = pShareEntry->pNext;
+            }
 
             *ppShareEntry = pShareEntry;
-            return(ntStatus);
+            goto cleanup;
         }
-        pShareEntry = pShareEntry->pNext
+
+        pPrevShareEntry = pShareEntry;
+        pShareEntry     = pShareEntry->pNext;
     }
-    *ppShareEntry = NULL;
-    return (ntStatus);
+
+    ntStatus = STATUS_NOT_FOUND;
+
+cleanup:
+    *ppShareEntry = pShareEntry;
+
+    return ntStatus;
 }
-#endif
+
+
+NTSTATUS
+SrvFindShareInList(
+    PSTR pszShareName,
+    PSRV_SHARE_ENTRY *ppShareEntry
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SHARE_ENTRY pShareEntry = NULL;
+
+    /* We assume the list has already been locked */
+    pShareEntry = gpShareEntry;
+
+    while (pShareEntry) {
+        if (IsEqualShareEntry(pszShareName, pShareEntry->pszShareName)) {
+            *ppShareEntry = pShareEntry;
+            goto cleanup;
+        }
+
+        pShareEntry = pShareEntry->pNext;
+    }
+
+    ntStatus = STATUS_NOT_FOUND;
+
+cleanup:
+    *ppShareEntry = pShareEntry;
+
+    return ntStatus;
+}
+
 
 NTSTATUS
 SrvShareAddShare(
     PWSTR  pwszShareName,
-    PWSTR  pwszPath
+    PWSTR  pwszPath,
+    PWSTR  pwszComment
     )
 {
     NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    HANDLE hDb = (HANDLE)NULL;
+    PSRV_SHARE_ENTRY pShareEntry = NULL;
+    PSTR pszShareName = NULL;
+    PSTR pszPath      = NULL;
+    PSTR pszComment   = NULL;
 
-#if 0
+    if (IsNullOrEmptyString(pwszShareName)) {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        goto error;
+    }
 
-    ENTER_WRITER_LOCK();
+    dwError = SMBWc16sToMbs(pwszShareName,
+                            &pszShareName);
+    BAIL_ON_SMB_ERROR(dwError);
 
-    ntStatus = SrvFindShareinList(
-                        pShareName,
+    pszPath = "";
+
+    if (!IsNullOrEmptyString(pwszPath)) {
+        dwError = SMBWc16sToMbs(pwszPath,
+                                &pszPath);
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    pszComment = "";
+
+    if (!IsNullOrEmptyString(pwszComment)) {
+        dwError = SMBWc16sToMbs(pwszComment,
+                                &pszComment);
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    //    ENTER_WRITER_LOCK();
+
+    pDbContext = &gSMBSrvGlobals.shareDBContext;
+
+    ntStatus = SrvFindShareInList(
+                        pszShareName,
                         &pShareEntry
                         );
     if (!ntStatus) {
-        ntStatus = STATUS_OBJECT_EXISTS;
+        ntStatus = STATUS_OBJECT_NAME_INVALID;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    ntStatus = LwIoAllocateMemory(sizeof(SRV_SHARE_ENTRY),
+                                  (void**)&pShareEntry);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pShareEntry->pNext = gpShareEntry;
-    gpShareEntry = pShareEntry;
+    gpShareEntry       = pShareEntry;
+
+    pShareEntry->pszShareName = pszShareName;
+    pShareEntry->pszPath      = pszPath;
+    pShareEntry->pszComment   = pszComment;
+
+    ntStatus = SrvShareDbOpen(
+                    pDbContext,
+                    &hDb);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareDbAdd(
+                        pDbContext,
                         hDb,
                         pShareEntry->pszShareName,
                         pShareEntry->pszPath,
-                        pszComment
+                        pShareEntry->pszComment,
+                        NULL,
+                        LWIO_SRV_SHARE_STRING_ID_DISK
                         );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    if (hDb != (HANDLE)NULL)
+    {
+       SrvShareDbClose(pDbContext, hDb);
+    }
+
+    //    LEAVE_WRITER_LOCK();
+
+    return ntStatus;
 
 error:
+    /* Remove share from the list after we failed to add
+       it to the database */
+    gpShareEntry = gpShareEntry->pNext;
 
-    LEAVE_WRITER_LOCK();
-
-#endif
-
-    return(ntStatus);
+    goto cleanup;
 }
 
 
 NTSTATUS
 SrvShareDeleteShare(
-    PWSTR pszShareName
+    PWSTR pwszShareName
     )
 {
     NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    HANDLE hDb = (HANDLE)NULL;
+    PSRV_SHARE_ENTRY pShareEntry = NULL;
+    PSTR pszShareName = NULL;
 
-#if 0
+    if (IsNullOrEmptyString(pwszShareName)) {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        goto error;
+    }
 
-    ENTER_WRITER_LOCK();
+    dwError = SMBWc16sToMbs(pwszShareName,
+                            &pszShareName);
+    BAIL_ON_SMB_ERROR(dwError);
 
-    ntStatus = SrvFindShareinList(
-                        pszShareName,
-                        &ppShareEntry
-                        );
+    //    ENTER_WRITER_LOCK();
+
+    pDbContext = &gSMBSrvGlobals.shareDBContext;
+
+    ntStatus = SrvShareDbOpen(
+                    pDbContext,
+                    &hDb);
     BAIL_ON_NT_STATUS(ntStatus);
-
 
     ntStatus = SrvShareDbDelete(
+                        pDbContext,
                         hDb,
-                        pShareEntry->pszShareName
+                        pszShareName
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvRemoveShareFromList(
+                        pszShareName,
+                        &pShareEntry
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    if (hDb != (HANDLE)NULL)
+    {
+       SrvShareDbClose(pDbContext, hDb);
+    }
+
+    if (pShareEntry) {
+        LwIoFreeMemory((void*)pShareEntry);
+    }
+
+    //LEAVE_WRITER_LOCK();
+
+    return ntStatus;
 
 error:
-
-    LEAvE_WRITER_LOCK();
-
-#endif
-
-    return(ntStatus);
+    goto cleanup;
 }
 
 NTSTATUS
@@ -799,3 +957,12 @@ SrvShareRelease(
     }
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

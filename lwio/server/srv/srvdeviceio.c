@@ -87,11 +87,17 @@ SrvDeviceIoCommon(
     )
 {
     NTSTATUS ntStatus = 0;
-    PBYTE lpInBuffer = NULL;
+    PBYTE pInBuffer = NULL;
     ULONG ulInBufferSize = 0;
-    PBYTE lpOutBuffer = NULL;
+    PBYTE pOutBuffer = NULL;
     ULONG ulOutBufferSize = 0;
     ULONG ControlCode = 0;
+
+    ControlCode      = pIrp->Args.IoFsControl.ControlCode;
+    pInBuffer        = pIrp->Args.IoFsControl.InputBuffer;
+    ulInBufferSize   = pIrp->Args.IoFsControl.InputBufferLength;
+    pOutBuffer       = pIrp->Args.IoFsControl.OutputBuffer;
+    ulOutBufferSize  = pIrp->Args.IoFsControl.OutputBufferLength;
 
     switch (ControlCode)
     {
@@ -99,9 +105,9 @@ SrvDeviceIoCommon(
       case SRV_DEVCTL_ADD_SHARE:
 
           ntStatus = SrvDevCtlAddShare(
-                        lpInBuffer,
+                        pInBuffer,
                         ulInBufferSize,
-                        lpOutBuffer,
+                        pOutBuffer,
                         ulOutBufferSize
                         );
           break;
@@ -109,9 +115,9 @@ SrvDeviceIoCommon(
       case SRV_DEVCTL_DELETE_SHARE:
 
           ntStatus = SrvDevCtlDeleteShare(
-                        lpInBuffer,
+                        pInBuffer,
                         ulInBufferSize,
-                        lpOutBuffer,
+                        pOutBuffer,
                         ulOutBufferSize
                         );
           break;
@@ -119,9 +125,9 @@ SrvDeviceIoCommon(
       case SRV_DEVCTL_ENUM_SHARE:
 
           ntStatus = SrvDevCtlEnumShares(
-                        lpInBuffer,
+                        pInBuffer,
                         ulInBufferSize,
-                        lpOutBuffer,
+                        pOutBuffer,
                         ulOutBufferSize
                         );
           break;
@@ -129,9 +135,9 @@ SrvDeviceIoCommon(
       case SRV_DEVCTL_SET_SHARE_INFO:
 
           ntStatus = SrvDevCtlSetShareInfo(
-                        lpInBuffer,
+                        pInBuffer,
                         ulInBufferSize,
-                        lpOutBuffer,
+                        pOutBuffer,
                         ulOutBufferSize
                         );
           break;
@@ -139,9 +145,9 @@ SrvDeviceIoCommon(
       case SRV_DEVCTL_GET_SHARE_INFO:
 
           ntStatus = SrvDevCtlGetShareInfo(
-                        lpInBuffer,
+                        pInBuffer,
                         ulInBufferSize,
-                        lpOutBuffer,
+                        pOutBuffer,
                         ulOutBufferSize
                         );
           break;

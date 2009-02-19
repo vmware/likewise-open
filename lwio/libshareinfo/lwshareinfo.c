@@ -136,7 +136,7 @@ LwShareInfoMarshalAddParameters(
     VOID* pBuffer = NULL;
     size_t szBufferSize = 0;
     LWMsgContext* pContext = NULL;
-    NT_IPC_MESSAGE_CREATE_FILE *pInfo = NULL;
+    //    NT_IPC_MESSAGE_CREATE_FILE info = { 0 };
 
     Status = MAP_LWMSG_STATUS(
         lwmsg_context_new(&pContext));
@@ -146,9 +146,9 @@ LwShareInfoMarshalAddParameters(
         lwmsg_marshal_alloc(
             pContext,
             gShareInfoAddParamsSpec,
-	    pInfo,
-	    &pBuffer,
-	    &szBufferSize));
+            pParams,
+            &pBuffer,
+            &szBufferSize));
     BAIL_ON_NT_STATUS(Status);
 
     *ppBuffer = pBuffer;
@@ -164,7 +164,6 @@ cleanup:
     return Status;
 
 error:
-
     *ppBuffer = NULL;
     *pulBufferSize = 0;
 
@@ -225,7 +224,7 @@ error:
 
 LW_NTSTATUS
 LwShareInfoMarshalDeleteParameters(
-    PSHARE_INFO_ADD_PARAMS pParams,
+    PSHARE_INFO_DELETE_PARAMS pParams,
     PBYTE* ppBuffer,
     ULONG* pulBufferSize
     )
@@ -234,7 +233,7 @@ LwShareInfoMarshalDeleteParameters(
     VOID* pBuffer = NULL;
     size_t szBufferSize = 0;
     LWMsgContext* pContext = NULL;
-    NT_IPC_MESSAGE_CREATE_FILE *pInfo = NULL;
+    //    NT_IPC_MESSAGE_CREATE_FILE *pInfo = NULL;
 
     Status = MAP_LWMSG_STATUS(
         lwmsg_context_new(&pContext));
@@ -244,9 +243,9 @@ LwShareInfoMarshalDeleteParameters(
         lwmsg_marshal_alloc(
             pContext,
             gShareInfoDeleteParamsSpec,
-	    pInfo,
-	    &pBuffer,
-	    &szBufferSize));
+            pParams,
+            &pBuffer,
+            &szBufferSize));
     BAIL_ON_NT_STATUS(Status);
 
     *ppBuffer = pBuffer;
@@ -262,7 +261,6 @@ cleanup:
     return Status;
 
 error:
-
     *ppBuffer = NULL;
     *pulBufferSize = 0;
 
