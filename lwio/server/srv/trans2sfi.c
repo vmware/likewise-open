@@ -53,6 +53,17 @@ SrvBuildSetFileInfoResponse(
 
 static
 NTSTATUS
+SrvBuildSetFileBasicInfoResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_SRV_FILE       pFile,
+    PBYTE               pData,
+    USHORT              usDataLen,
+    PSMB_PACKET*        ppSmbResponse
+    );
+
+static
+NTSTATUS
 SrvBuildSetFileDispositionInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
@@ -229,12 +240,23 @@ SrvBuildSetFileInfoResponse(
     {
         case SMB_INFO_STANDARD :
         case SMB_INFO_QUERY_EA_SIZE :
-        case SMB_SET_FILE_BASIC_INFO :
         case SMB_SET_FILE_UNIX_BASIC :
         case SMB_SET_FILE_UNIX_LINK :
         case SMB_SET_FILE_UNIX_HLINK :
 
             ntStatus = STATUS_NOT_IMPLEMENTED;
+
+            break;
+
+        case SMB_SET_FILE_BASIC_INFO :
+
+            ntStatus = SrvBuildSetFileBasicInfoResponse(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pData,
+                            usDataLen,
+                            &pSmbResponse);
 
             break;
 
@@ -319,6 +341,113 @@ error:
 
 static
 NTSTATUS
+SrvBuildSetFileBasicInfoResponse(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_SRV_FILE       pFile,
+    PBYTE               pData,
+    USHORT              usDataLen,
+    PSMB_PACKET*        ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PUSHORT  pSetup = NULL;
+    BYTE     setupCount = 0;
+    USHORT   usParams = 0;
+    USHORT   usDataOffset = 0;
+    USHORT   usParameterOffset = 0;
+    USHORT   usNumPackageBytesUsed = 0;
+    PFILE_BASIC_INFORMATION pFileBasicInfo = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    PSMB_PACKET pSmbResponse = NULL;
+
+    if (usDataLen < sizeof(FILE_BASIC_INFORMATION))
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pFileBasicInfo = (PFILE_BASIC_INFORMATION)pData;
+
+    ntStatus = IoSetInformationFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    pFileBasicInfo,
+                    sizeof(FILE_BASIC_INFORMATION),
+                    FileBasicInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_TRANSACTION2,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                pSmbRequest->pSMBHeader->pid,
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
+
+    ntStatus = WireMarshallTransaction2Response(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    setupCount,
+                    (PBYTE)&usParams,
+                    sizeof(usParams),
+                    NULL,
+                    0,
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
 SrvBuildSetFileDispositionInfoResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
@@ -353,7 +482,7 @@ SrvBuildSetFileDispositionInfoResponse(
                     &ioStatusBlock,
                     pFileDispositionInfo,
                     sizeof(FILE_DISPOSITION_INFORMATION),
-                    FileAllocationInformation);
+                    FileDispositionInformation);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
