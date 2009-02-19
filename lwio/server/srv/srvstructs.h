@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -98,14 +98,25 @@ typedef struct _SHARE_DB_INFO
 
 } SHARE_DB_INFO, *PSHARE_DB_INFO;
 
+
+typedef struct _SRV_SHARE_ENTRY
+{
+    SHARE_DB_INFO info;
+
+    struct _SRV_SHARE_ENTRY  *pNext;
+
+} SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
+
+
 typedef struct _SMB_SRV_SHARE_DB_CONTEXT
 {
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
 
-    PSMB_RB_TREE pShareCollection;
+    PSRV_SHARE_ENTRY  pShareEntry;
 
 } SMB_SRV_SHARE_DB_CONTEXT, *PSMB_SRV_SHARE_DB_CONTEXT;
+
 
 typedef ULONG CCB_TYPE;
 
@@ -404,6 +415,7 @@ typedef struct _SMB_SRV_LISTENER
 
 } SMB_SRV_LISTENER, *PSMB_SRV_LISTENER;
 
+
 typedef struct _SMB_SRV_RUNTIME_GLOBALS
 {
     pthread_mutex_t          mutex;
@@ -429,4 +441,15 @@ typedef struct _SMB_SRV_RUNTIME_GLOBALS
 
 } SMB_SRV_RUNTIME_GLOBALS, *PSMB_SRV_RUNTIME_GLOBALS;
 
+
 #endif /* __STRUCTS_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
