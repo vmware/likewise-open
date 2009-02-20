@@ -393,11 +393,15 @@ SrvConnectionWriteMessage(
                                 sNumBytesToWrite);
         if (sNumBytesWritten < 0)
         {
-            if ((errno != EINTR) || (errno != EAGAIN))
+            int unixErrno = errno;
+
+            if ((unixErrno == EINTR) || (unixErrno == EAGAIN))
             {
-                ntStatus = LwUnixErrnoToNtStatus(errno);
-                BAIL_ON_NT_STATUS(ntStatus);
+                continue;
             }
+
+            ntStatus = LwUnixErrnoToNtStatus(unixErrno);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         sNumBytesToWrite -= sNumBytesWritten;
