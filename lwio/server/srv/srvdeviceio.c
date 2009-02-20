@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -91,6 +91,7 @@ SrvDeviceIoCommon(
     ULONG ulInBufferSize = 0;
     PBYTE pOutBuffer = NULL;
     ULONG ulOutBufferSize = 0;
+    ULONG ulBytesTransferred = 0;
     ULONG ControlCode = 0;
 
     ControlCode      = pIrp->Args.IoFsControl.ControlCode;
@@ -128,7 +129,8 @@ SrvDeviceIoCommon(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
-                        ulOutBufferSize
+                        ulOutBufferSize,
+                        &ulBytesTransferred
                         );
           break;
 
@@ -159,9 +161,18 @@ SrvDeviceIoCommon(
           break;
     }
 
+    pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
     pIrp->IoStatusBlock.Status = ntStatus;
 
     return ntStatus;
 }
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
