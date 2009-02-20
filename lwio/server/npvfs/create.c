@@ -118,6 +118,8 @@ NpfsFreeIrpContext(
 {
     NTSTATUS ntStatus = 0;
 
+    IO_FREE(&pIrpContext);
+
     return(ntStatus);
 }
 
