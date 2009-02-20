@@ -56,7 +56,7 @@ SrvSvcNetShareEnum(
     /* [in] */ wchar16_t *server_name,
     /* [in, out] */ uint32 *level,
     /* [in, out] */ srvsvc_NetShareCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
+    /* [in] */ uint32 preferred_maximum_length,
     /* [out] */ uint32 *total_entries,
     /* [in, out] */ uint32 *resume_handle
     )
@@ -71,7 +71,7 @@ SrvSvcNetShareEnum(
     DWORD dwCreationDisposition = 0;
     DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
-    DWORD dwOutLength = 0;
+    DWORD dwOutLength = 4096;
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
@@ -86,23 +86,54 @@ SrvSvcNetShareEnum(
     FILE_SHARE_FLAGS ShareAccess = 0;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
-    ULONG IoControlCode = 0;
+    ULONG IoControlCode = SRV_DEVCTL_ENUM_SHARE;
+    PSTR smbpath = NULL;
+    IO_FILE_NAME filename;
+    IO_STATUS_BLOCK io_status;
+    SHARE_INFO_ENUM_PARAMS EnumParams;
+    PSHARE_INFO_ENUM_RESULT EnumResult;
 
-    dwError = MarshallShareInfotoFlatBuffer(
-                    *level,
-                    ctr,
-                    &pInBuffer,
-                    &dwInLength
-                    );
+    memset((void*)&EnumParams, 0, sizeof(EnumParams));
+
+    EnumParams.dwInfoLevel     = *level;
+    EnumParams.dwPrefMaxLength = preferred_maximum_length;
+    EnumParams.dwResume        = *resume_handle;
+
+    ntStatus = LwShareInfoMarshalEnumParameters(
+                        &EnumParams,
+                        &pInBuffer,
+                        &dwInLength
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = SRVSVCAllocateMemory(
+                        dwOutLength,
+                        (void**)&pOutBuffer
+                        );
     BAIL_ON_ERROR(dwError);
+
+    ntStatus = LwRtlCStringAllocatePrintf(
+                    &smbpath,
+                    "\\srv"
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    filename.RootFileHandle = NULL;
+    filename.IoNameOptions = 0;
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(
+                        &filename.FileName,
+                        smbpath
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NtCreateFile(
                         &FileHandle,
                         NULL,
                         &IoStatusBlock,
-                        FileName,
-			NULL,
-			NULL,
+                        &filename,
+                        NULL,
+                        NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -127,33 +158,25 @@ SrvSvcNetShareEnum(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = UnmarshallAddSetResponse(
-                    pOutBuffer,
-                    &dwReturnCode,
-                    &dwParmError);
-
-#if 0
-    *parm_error = dwParmError;
-    dwError = dwReturnCode;
-#endif
+    ntStatus = LwShareInfoUnmarshalEnumResult(
+                        pOutBuffer,
+                        dwOutLength,
+                        &EnumResult
+                        );
 
 cleanup:
-
     if(pInBuffer) {
         SrvSvcFreeMemory(pInBuffer);
     }
 
-    return(dwError);
+    return dwError;
 
 error:
-
-
     if (pOutBuffer) {
         SrvSvcFreeMemory(pOutBuffer);
     }
 
     goto cleanup;
-    return ERROR_NOT_SUPPORTED;
 }
 
 
