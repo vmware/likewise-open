@@ -159,6 +159,7 @@ PvfsCreateFileSupersede(
     ACCESS_MASK GrantedAccess = 0;
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = pIrp->Args.Create.SecurityContext;
 
     ntError = PvfsCanonicalPathName(&pszFilename,
                                     pIrp->Args.Create.FileName);
@@ -213,6 +214,14 @@ PvfsCreateFileSupersede(
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (pSecCtx) {
+        ntError = PvfsSysChown(pCcb,
+                               pSecCtx->Process.Uid,
+                               pSecCtx->Process.Gid);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -254,6 +263,7 @@ PvfsCreateFileCreate(
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
     PSTR pszParentDir = NULL;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = pIrp->Args.Create.SecurityContext;
 
     ntError = PvfsCanonicalPathName(&pszFilename,
                                     pIrp->Args.Create.FileName);
@@ -293,6 +303,13 @@ PvfsCreateFileCreate(
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    if (pSecCtx) {
+        ntError = PvfsSysChown(pCcb,
+                               pSecCtx->Process.Uid,
+                               pSecCtx->Process.Gid);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -414,6 +431,7 @@ PvfsCreateFileOpenIf(
     ACCESS_MASK GrantedAccess = 0;
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = pIrp->Args.Create.SecurityContext;
 
     ntError = PvfsCanonicalPathName(&pszFilename,
                                     pIrp->Args.Create.FileName);
@@ -465,6 +483,14 @@ PvfsCreateFileOpenIf(
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    if (!bFileExisted && pSecCtx)
+    {
+        ntError = PvfsSysChown(pCcb,
+                               pSecCtx->Process.Uid,
+                               pSecCtx->Process.Gid);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -585,6 +611,7 @@ PvfsCreateFileOverwriteIf(
     ACCESS_MASK GrantedAccess = 0;
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = pIrp->Args.Create.SecurityContext;
 
     ntError = PvfsCanonicalPathName(&pszFilename,
                                     pIrp->Args.Create.FileName);
@@ -636,6 +663,14 @@ PvfsCreateFileOverwriteIf(
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    if (!bFileExisted && pSecCtx)
+    {
+        ntError = PvfsSysChown(pCcb,
+                               pSecCtx->Process.Uid,
+                               pSecCtx->Process.Gid);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntError);
