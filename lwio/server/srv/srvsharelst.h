@@ -100,6 +100,12 @@ SrvShareFreeList(
 
 
 NTSTATUS
+SrvShareReleaseEntry(
+    PSRV_SHARE_ENTRY pShareEntry
+    );
+
+
+NTSTATUS
 SrvShareAddShare(
     PWSTR  pwszShareName,
     PWSTR  pwszPath,

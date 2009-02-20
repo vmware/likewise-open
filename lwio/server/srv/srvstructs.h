@@ -101,7 +101,7 @@ typedef struct _SHARE_DB_INFO
 
 typedef struct _SRV_SHARE_ENTRY
 {
-    SHARE_DB_INFO info;
+    PSHARE_DB_INFO pInfo;
 
     struct _SRV_SHARE_ENTRY  *pNext;
 
