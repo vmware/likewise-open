@@ -166,6 +166,7 @@ SrvDevCtlEnumShares(
     PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
     PSHARE_DB_INFO pShares = NULL;
+    PSHARE_INFO_1 p1 = NULL;
     PSHARE_INFO_502 p502 = NULL;
 
     ntStatus = LwShareInfoUnmarshalEnumParameters(
@@ -186,6 +187,20 @@ SrvDevCtlEnumShares(
 
     switch (dwLevel)
     {
+    case 1:
+        dwError = SMBAllocateMemory(sizeof(*p1) * dwNumEntries, OUT_PPVOID(&p1));
+        BAIL_ON_SMB_ERROR(dwError);
+
+        for (i = 0; i < dwNumEntries; i++)
+        {
+            p1[i].shi1_netname             = pShares[i].pwszName;
+            p1[i].shi1_type                = pShares[i].service;
+            p1[i].shi1_remark              = pShares[i].pwszComment;
+        }
+
+        EnumShareInfoParamsOut.info.p1 = p1;
+        break;
+
     case 502:
         dwError = SMBAllocateMemory(sizeof(*p502) * dwNumEntries, OUT_PPVOID(&p502));
         BAIL_ON_SMB_ERROR(dwError);
