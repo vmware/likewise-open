@@ -44,6 +44,11 @@
  *        which contains the line nubmer of the GOTO_CLEANUP<XXX>_EE
  *        operation.
  *
+ *        The reason for GOTO_CLEANUP() is so that you can search
+ *        the code for GOTO_CLEANUP and find all instances of going
+ *        to the cleanup label (regardless of which GOTO_CLEANUP<XXX>
+ *        macro was used.
+ *
  * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
