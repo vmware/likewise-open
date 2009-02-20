@@ -83,6 +83,22 @@ typedef struct _SHARE_INFO_DELETE_PARAMS
     DWORD reserved;
 } SHARE_INFO_DELETE_PARAMS, *PSHARE_INFO_DELETE_PARAMS;
 
+typedef struct _SHARE_INFO_ENUM_PARAMS
+{
+    DWORD dwInfoLevel;
+    DWORD dwPrefMaxLength;
+    DWORD dwResume;
+} SHARE_INFO_ENUM_PARAMS, *PSHARE_INFO_ENUM_PARAMS;
+
+
+typedef struct _SHARE_INFO_ENUM_RESULT
+{
+    DWORD dwInfoLevel;
+    DWORD dwNumEntries;
+    PSHARE_INFO_UNION pInfo;
+} SHARE_INFO_ENUM_RESULT, *PSHARE_INFO_ENUM_RESULT;
+
+
 typedef struct _SHARE_INFO_SETINFO_PARAMS
 {
     PWSTR servername;
@@ -121,6 +137,38 @@ LwShareInfoUnmarshalDeleteParameters(
     PBYTE pBuffer,
     ULONG ulBufferSize,
     PSHARE_INFO_DELETE_PARAMS* ppParams
+    );
+
+
+LW_NTSTATUS
+LwShareInfoMarshalEnumParameters(
+    PSHARE_INFO_ENUM_PARAMS pParams,
+    PBYTE* ppBuffer,
+    ULONG* pulBufferSize
+    );
+
+
+LW_NTSTATUS
+LwShareInfoUnmarshalEnumParameters(
+    PBYTE pBuffer,
+    ULONG ulBufferSize,
+    PSHARE_INFO_ENUM_PARAMS* ppParams
+    );
+
+
+LW_NTSTATUS
+LwShareInfoMarshalEnumResult(
+    PSHARE_INFO_ENUM_RESULT pParams,
+    PBYTE* ppBuffer,
+    ULONG* pulBufferSize
+    );
+
+
+LW_NTSTATUS
+LwShareInfoUnmarshalEnumResult(
+    PBYTE pBuffer,
+    ULONG ulBufferSize,
+    PSHARE_INFO_ENUM_RESULT* ppParams
     );
 
 
