@@ -201,6 +201,7 @@ NET_API_STATUS _NetrShareEnum(
     DWORD dwError = 0;
 
     dwError = SrvSvcNetShareEnum(
+                    IDL_handle,
                     server_name,
                     level,
                     ctr,
@@ -246,7 +247,7 @@ NET_API_STATUS _NetrShareDel(
     dwError = SrvSvcNetShareDel(
                     IDL_handle,
                     server_name,
-		    netname,
+                    netname,
                     reserved
                     );
     return dwError;
@@ -271,8 +272,14 @@ NET_API_STATUS _NetrServerGetInfo(
     /* [out] */ srvsvc_NetSrvInfo *info
     )
 {
-    DWORD dwError = ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
 
+    dwError = SrvSvcNetrServerGetInfo(
+                    IDL_handle,
+                    server_name,
+                    level,
+                    info
+                    );
     return dwError;
 }
 
@@ -330,3 +337,13 @@ NET_API_STATUS _NetrRemoteTOD(
 
     return dwError;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
