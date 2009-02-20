@@ -95,7 +95,7 @@ typedef struct _SHARE_INFO_ENUM_RESULT
 {
     DWORD dwInfoLevel;
     DWORD dwNumEntries;
-    PSHARE_INFO_UNION pInfo;
+    SHARE_INFO_UNION info;
 } SHARE_INFO_ENUM_RESULT, *PSHARE_INFO_ENUM_RESULT;
 
 

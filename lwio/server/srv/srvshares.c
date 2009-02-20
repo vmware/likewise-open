@@ -168,7 +168,6 @@ SrvDevCtlEnumShares(
     SHARE_INFO_ENUM_RESULT EnumShareInfoResult;
     PSHARE_DB_INFO pShares = NULL;
     PSHARE_INFO_502 p502 = NULL;
-    PSHARE_INFO_UNION pShareInfo = NULL;
 
     ntStatus = LwShareInfoUnmarshalEnumParameters(
                         pInBuffer,
@@ -188,46 +187,23 @@ SrvDevCtlEnumShares(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBAllocateMemory(sizeof(SHARE_INFO_UNION) * dwNumEntries,
-                                (void**)&pShareInfo);
-    BAIL_ON_SMB_ERROR(dwError);
+    switch (dwLevel)
+    {
+    case 502:
+        dwError = SMBAllocateMemory(sizeof(*p502) * dwNumEntries, OUT_PPVOID(&p502));
+        BAIL_ON_SMB_ERROR(dwError);
 
-    for (i = 0;
-         i < dwNumEntries /* && dwSize < dwMaxPrefLength */;
-         i++) {
-
-        switch (dwLevel)
+        for (i = 0; i < dwNumEntries; i++)
         {
-        case 0:
-            break;
-
-        case 1:
-            break;
-
-        case 2:
-            break;
-
-        case 502:
-            ntStatus = LwIoAllocateMemory(sizeof(SHARE_INFO_502),
-                                          (void**)&p502);
-            BAIL_ON_NT_STATUS(ntStatus);
-            pShareInfo[i].p502 = p502;
-
-            p502->shi502_netname = pShares[i + dwResume].pwszName;
-            break;
-
-        case 501:
-            break;
-
-        default:
-            ntStatus = STATUS_INVALID_PARAMETER;
-            break;
+            p502[i].shi502_netname = pShares[i].pwszName;
         }
+
+        EnumShareInfoResult.info.p502 = p502;
+        break;
     }
 
     EnumShareInfoResult.dwInfoLevel  = dwLevel;
     EnumShareInfoResult.dwNumEntries = dwNumEntries;
-    EnumShareInfoResult.pInfo        = pShareInfo;
 
     ntStatus = LwShareInfoMarshalEnumResult(
                         &EnumShareInfoResult,
@@ -239,7 +215,6 @@ SrvDevCtlEnumShares(
     memcpy((void*)pOutBuffer, (void*)pBuffer, pBufferSize);
 
 cleanup:
-    SMB_SAFE_FREE_MEMORY(pShareInfo);
     SMB_SAFE_FREE_MEMORY(p502);
     SMB_SAFE_FREE_MEMORY(pBuffer)
 
