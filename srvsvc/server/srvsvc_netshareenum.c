@@ -54,8 +54,8 @@ NET_API_STATUS
 SrvSvcNetShareEnum(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in, out] */ uint32 *level,
-    /* [in, out] */ srvsvc_NetShareCtr *ctr,
+    /* [in, out, ref] */ uint32 *level,
+    /* [in, out, ref] */ srvsvc_NetShareCtr *ctr,
     /* [in] */ uint32 preferred_maximum_length,
     /* [out] */ uint32 *total_entries,
     /* [in, out] */ uint32 *resume_handle
@@ -90,27 +90,23 @@ SrvSvcNetShareEnum(
     PSTR smbpath = NULL;
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
-    SHARE_INFO_ENUM_PARAMS EnumParams;
-    PSHARE_INFO_ENUM_RESULT EnumResult;
+    SHARE_INFO_ENUM_PARAMS EnumParamsIn;
+    PSHARE_INFO_ENUM_PARAMS pEnumParamsOut = NULL;
+    srvsvc_NetShareCtr0 *ctr0 = NULL;
+    srvsvc_NetShareCtr1 *ctr1 = NULL;
+    srvsvc_NetShareCtr501 *ctr501 = NULL;
+    srvsvc_NetShareCtr502 *ctr502 = NULL;
 
-    memset((void*)&EnumParams, 0, sizeof(EnumParams));
+    memset((void*)&EnumParamsIn, 0, sizeof(EnumParamsIn));
 
-    EnumParams.dwInfoLevel     = *level;
-    EnumParams.dwPrefMaxLength = preferred_maximum_length;
-    EnumParams.dwResume        = *resume_handle;
+    EnumParamsIn.dwInfoLevel     = *level;
 
     ntStatus = LwShareInfoMarshalEnumParameters(
-                        &EnumParams,
+                        &EnumParamsIn,
                         &pInBuffer,
                         &dwInLength
                         );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    dwError = SRVSVCAllocateMemory(
-                        dwOutLength,
-                        (void**)&pOutBuffer
-                        );
-    BAIL_ON_ERROR(dwError);
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,
@@ -146,6 +142,12 @@ SrvSvcNetShareEnum(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    dwError = SRVSVCAllocateMemory(
+                    dwOutLength,
+                    (void**)&pOutBuffer
+                    );
+    BAIL_ON_ERROR(dwError);
+
     ntStatus = NtDeviceIoControlFile(
                     FileHandle,
                     NULL,
@@ -156,26 +158,117 @@ SrvSvcNetShareEnum(
                     pOutBuffer,
                     dwOutLength
                     );
+
+    while (ntStatus == STATUS_MORE_ENTRIES) {
+        /* We need more space in output buffer to make this call */
+
+        SrvSvcFreeMemory((void*)pOutBuffer);
+        dwOutLength *= 2;
+
+        dwError = SRVSVCAllocateMemory(
+                        dwOutLength,
+                        (void**)&pOutBuffer
+                        );
+        BAIL_ON_ERROR(dwError);
+
+        ntStatus = NtDeviceIoControlFile(
+                        FileHandle,
+                        NULL,
+                        &IoStatusBlock,
+                        IoControlCode,
+                        pInBuffer,
+                        dwInLength,
+                        pOutBuffer,
+                        dwOutLength
+                        );
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwShareInfoUnmarshalEnumResult(
+    ntStatus = LwShareInfoUnmarshalEnumParameters(
                         pOutBuffer,
                         dwOutLength,
-                        &EnumResult
+                        &pEnumParamsOut
                         );
 
+    switch (pEnumParamsOut->dwInfoLevel) {
+
+    case 0:
+        ctr0 = ctr->ctr0;
+        ctr0->count = pEnumParamsOut->dwNumEntries;
+
+        ntStatus = SRVSVCAllocateMemory(
+                            sizeof(*ctr0->array) * ctr0->count,
+                            (void**)&ctr0->array
+                            );
+        BAIL_ON_NT_STATUS(ntStatus);
+        memcpy((void*)ctr0->array, (void*)pEnumParamsOut->info.p0,
+               sizeof(*ctr0->array) * ctr0->count);
+        break;
+
+    case 1:
+        ctr1 = ctr->ctr1;
+        ctr1->count = pEnumParamsOut->dwNumEntries;
+
+        ntStatus = SRVSVCAllocateMemory(
+                            sizeof(*ctr1->array) * ctr1->count,
+                            (void**)&ctr1->array
+                            );
+        BAIL_ON_NT_STATUS(ntStatus);
+        memcpy((void*)ctr1->array, (void*)pEnumParamsOut->info.p1,
+               sizeof(*ctr1->array) * ctr1->count);
+        break;
+
+    case 501:
+        ctr501 = ctr->ctr501;
+        ctr501->count = pEnumParamsOut->dwNumEntries;
+
+        ntStatus = SRVSVCAllocateMemory(
+                            sizeof(*ctr501->array) * ctr501->count,
+                            (void**)&ctr501->array
+                            );
+        BAIL_ON_NT_STATUS(ntStatus);
+        memcpy((void*)ctr501->array, (void*)pEnumParamsOut->info.p501,
+               sizeof(*ctr501->array) * ctr501->count);
+        break;
+
+    case 502:
+        ctr502 = ctr->ctr502;
+        ctr502->count = pEnumParamsOut->dwNumEntries;
+
+        ntStatus = SRVSVCAllocateMemory(
+                            sizeof(*ctr502->array) * ctr502->count,
+                            (void**)&ctr502->array
+                            );
+        BAIL_ON_NT_STATUS(ntStatus);
+        memcpy((void*)ctr502->array, (void*)pEnumParamsOut->info.p502,
+               sizeof(*ctr502->array) * ctr502->count);
+        break;
+    }
+
+    *level         = pEnumParamsOut->dwInfoLevel;
+    *total_entries = pEnumParamsOut->dwNumEntries;
+
 cleanup:
+    if (FileHandle) {
+        NtCloseFile(FileHandle);
+    }
+
     if(pInBuffer) {
         SrvSvcFreeMemory(pInBuffer);
+    }
+
+    if (pOutBuffer) {
+        SrvSvcFreeMemory(pOutBuffer);
+    }
+
+    if (pEnumParamsOut) {
+        SrvSvcFreeMemory(pEnumParamsOut);
     }
 
     return dwError;
 
 error:
-    if (pOutBuffer) {
-        SrvSvcFreeMemory(pOutBuffer);
-    }
-
     goto cleanup;
 }
 
