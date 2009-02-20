@@ -820,11 +820,19 @@ error:
 NTSTATUS
 SrvShareEnumShares(
     DWORD dwLevel,
-    PBYTE pOutBuffer,
-    DWORD dwOutBufferSize
+    PSHARE_DB_INFO *ppShareInfo,
+    PDWORD pdwNumEntries
     )
 {
     NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
+    DWORD dwCount = 0;
+    DWORD i = 0;
+    BOOLEAN bInLock = FALSE;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PSRV_SHARE_ENTRY pShareEntry = NULL;
+    PSHARE_DB_INFO pShareInfo = NULL;
+    PSHARE_DB_INFO pShares = NULL;
 
 #if 0
 
@@ -834,156 +842,47 @@ SrvShareEnumShares(
                         pServerSD
                         );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    ENTER_READER_LOCK();
-
-    ntStatus = SrvFindShareByName();
-
-    ntStatus = SrvShareIndextoEntry(
-                    dwResumeHandle,
-                    &pShareEntry
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    while (pShareEntry) {
-
-
-        switch(dwLevel) {
-
-            case 0:
-                ntStatus = GetBufferSize_L0(
-                                pShareEntry,
-                                &dwBufferSize
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                if (dwBufferRemaining <  dwBufferSize) {
-                    //
-                    // Insufficient Buffer
-                    //
-                }
-
-                ntStatus = MarshallBuffer_L0(
-                                pBuffer,
-                                pCurrentOffset,
-                                pShareEntry,
-                                &pNewOffset,
-                                &dwBufferRemaining
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                break;
-
-            case 1:
-
-               ntStatus = GetBufferSize_L1(
-                                pShareEntry,
-                                &dwBufferSize,
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                if (dwBufferRemaining < dwBufferSize) {
-                    //
-                    // Insufficient Buffer
-                    //
-
-
-                }
-                ntStatus = MarshallBuffer_L1(
-                                pBuffer,
-                                pCurrentOffset,
-                                pShareEntry,
-                                &pNewOffset,
-                                &dwBufferRemaining
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                break;
-
-            case 2:
-
-               ntStatus = GetBufferSize_L1(
-                                pShareEntry,
-                                &dwBufferSize,
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                if (dwBufferRemaining < dwBufferSize) {
-                    //
-                    // Insufficient Buffer
-                    //
-
-
-                }
-                ntStatus = MarshallBuffer_L1(
-                                pBuffer,
-                                pCurrentOffset,
-                                pShareEntry,
-                                &pNewOffset,
-                                &dwBufferRemaining
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                break;
-                ntStatus = GetBufferSize_L2(
-                                pShareEntry,
-
-                 break;
-
-            case 502:
-
-               ntStatus = GetBufferSize_L1(
-                                pShareEntry,
-                                &dwBufferSize,
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                if (dwBufferRemaining < dwBufferSize) {
-                    //
-                    // Insufficient Buffer
-                    //
-
-
-                }
-                ntStatus = MarshallBuffer_L1(
-                                pBuffer,
-                                pCurrentOffset,
-                                pShareEntry,
-                                &pNewOffset,
-                                &dwBufferRemaining
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                break;
-                break;
-
-            case 503:
-               ntStatus = GetBufferSize_L1(
-                                pShareEntry,
-                                &dwBufferSize,
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                if (dwBufferRemaining < dwBufferSize) {
-                    //
-                    // Insufficient Buffer
-                    //
-
-
-                }
-                ntStatus = MarshallBuffer_L1(
-                                pBuffer,
-                                pCurrentOffset,
-                                pShareEntry,
-                                &pNewOffset,
-                                &dwBufferRemaining
-                                );
-                BAIL_ON_NT_STATUS(ntStatus);
-                break;
-        }
-        pShareEntry   pShareEntry->pNext;
-        dwResumeHandle++;
-    }
-
-
-error:
-
-    LEAVE_READER_LOCK();
-
 #endif
 
-    return(ntStatus);
+    pDbContext = &gSMBSrvGlobals.shareDBContext;
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+
+    /* Count the number of share entries */
+    pShareEntry = pDbContext->pShareEntry;
+    while (pShareEntry) {
+        pShareEntry = pShareEntry->pNext;
+        dwCount++;
+    }
+
+    dwError = LwIoAllocateMemory(dwCount * sizeof(SHARE_DB_INFO),
+                                 (void**)&pShares);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    pShareEntry = pDbContext->pShareEntry;
+    for (i = 0; i < dwCount; i++) {
+        pShares[i].pwszName     = pShareEntry->info.pwszName;
+        pShares[i].pwszPath     = pShareEntry->info.pwszPath;
+        pShares[i].pwszComment  = pShareEntry->info.pwszComment;
+        pShares[i].pwszSID      = pShareEntry->info.pwszSID;
+        pShares[i].service      = pShareEntry->info.service;
+    }
+
+    *ppShareInfo   = pShares;
+    *pdwNumEntries = dwCount;
+
+cleanup:
+    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+
+    return ntStatus;
+
+error:
+    if (pShareInfo) {
+        LwIoFreeMemory((void*)pShareInfo);
+    }
+
+    *ppShareInfo   = NULL;
+    *pdwNumEntries = 0;
+    goto cleanup;
 }
 
 #if 0
