@@ -33,7 +33,7 @@ libnpvfs_sys_la_LIBADD = \
     @top_builddir@/utils/liblwioutils.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
-    
+
 libnpvfs_sys_la_LDFLAGS = \
     -module -avoid-version -export-dynamic
 

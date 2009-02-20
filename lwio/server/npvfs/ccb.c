@@ -20,11 +20,6 @@ NpfsCreateSCB(
 
     NpfsAddRefCCB(pSCB);
 
-    ntStatus = NpfsAddCCB(
-                    pSCB
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
     *ppSCB = pSCB;
 
     return(ntStatus);
@@ -46,7 +41,6 @@ NpfsCreateCCB(
     NTSTATUS ntStatus = 0;
     PNPFS_CCB pCCB = NULL;
 
-
     ntStatus = NpfsAllocateMemory(
                     sizeof(NPFS_CCB),
                     &pCCB
@@ -54,11 +48,6 @@ NpfsCreateCCB(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCCB->CcbType = NPFS_CCB_CLIENT;
-
-    ntStatus = NpfsAddCCB(
-                    pCCB
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
 
     NpfsAddRefCCB(pCCB);
 
@@ -81,9 +70,8 @@ NpfsReleaseCCB(
     )
 {
     NpfsInterlockedDecrement(&pCCB->cRef);
-    if (!NpfsInterlockedCounter(&pCCB->cRef)) {
-
-        NpfsRemoveCCB(pCCB);
+    if (!NpfsInterlockedCounter(&pCCB->cRef))
+    {
         NpfsFreeCCB(pCCB);
     }
     return;
@@ -131,23 +119,19 @@ NpfsGetCCB(
     PNPFS_CCB pCCB = NULL;
 
     pCCB = (PNPFS_CCB)IoFileGetContext(FileHandle);
-    if (!pCCB) {
+    if (!pCCB)
+    {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-    ENTER_READER_RW_LOCK(&gCCBLock);
 
-    ntStatus = NpfsFindCCB(pCCB);
-    BAIL_ON_NT_STATUS(ntStatus);
     NpfsAddRefCCB(pCCB);
 
     *ppCCB = pCCB;
 
 cleanup:
 
-    LEAVE_READER_RW_LOCK(&gCCBLock);
-
-    return(ntStatus);
+    return ntStatus;
 
 error:
     *ppCCB = NULL;
@@ -173,78 +157,4 @@ NpfsSetCCB(
 error:
 
     return (ntStatus);
-}
-
-NTSTATUS
-NpfsAddCCB(
-    PNPFS_CCB pCCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    ENTER_WRITER_RW_LOCK(&gCCBLock);
-
-    ntStatus = NpfsFindCCB(pCCB);
-    if (ntStatus == 0) {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = STATUS_SUCCESS;
-
-    pCCB->pNext = gpCCBList;
-    gpCCBList = pCCB;
-
-error:
-
-    LEAVE_WRITER_RW_LOCK(&gCCBLock);
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsRemoveCCB(
-    PNPFS_CCB pCCB
-    )
-{
-    PNPFS_CCB * ppCCB = NULL;
-    ENTER_WRITER_RW_LOCK(&gCCBLock);
-
-    if (pCCB == gpCCBList) {
-        gpCCBList = pCCB->pNext;
-        LEAVE_WRITER_RW_LOCK(&gCCBLock);
-        return STATUS_SUCCESS;
-    }
-    ppCCB = &gpCCBList;
-    while ((*ppCCB)->pNext != NULL) {
-        if ((*ppCCB)->pNext == pCCB) {
-            (*ppCCB)->pNext = pCCB->pNext;
-            LEAVE_WRITER_RW_LOCK(&gCCBLock);
-            return STATUS_SUCCESS;
-        }
-        ppCCB = &(*ppCCB)->pNext;
-    }
-    LEAVE_WRITER_RW_LOCK(&gCCBLock);
-
-    return STATUS_NOT_FOUND;
-}
-
-
-
-NTSTATUS
-NpfsFindCCB(
-    PNPFS_CCB pCCB
-    )
-{
-    PNPFS_CCB pTemp = NULL;
-
-    pTemp = gpCCBList;
-
-    while (pTemp) {
-        if (pTemp == pCCB) {
-            return STATUS_SUCCESS;
-        }
-        pTemp = pTemp->pNext;
-    }
-    return STATUS_NOT_FOUND;
 }

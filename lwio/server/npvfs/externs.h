@@ -32,11 +32,6 @@
 #define __EXTERNS_H__
 
 extern PNPFS_FCB gpFCB;
-
 extern pthread_rwlock_t gServerLock;
-
-extern PNPFS_CCB gpCCBList;
-
-extern pthread_rwlock_t gCCBLock;
 
 #endif /* __EXTERNS_H__ */

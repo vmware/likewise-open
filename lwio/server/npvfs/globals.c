@@ -33,7 +33,3 @@
 PNPFS_FCB  gpFCB = NULL;
 
 pthread_rwlock_t gServerLock;
-
-PNPFS_CCB gpCCBList;
-
-pthread_rwlock_t gCCBLock;

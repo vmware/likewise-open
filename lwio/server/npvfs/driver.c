@@ -158,7 +158,6 @@ DriverEntry(
     }
 
     pthread_rwlock_init(&gServerLock, NULL);
-    pthread_rwlock_init(&gCCBLock, NULL);
 
     ntStatus = IoDriverInitialize(DriverHandle,
                                   NULL,

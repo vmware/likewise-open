@@ -117,21 +117,6 @@ NpfsSetCCB(
     PNPFS_CCB pCCB
     );
 
-NTSTATUS
-NpfsAddCCB(
-    PNPFS_CCB pCCB
-    );
-
-NTSTATUS
-NpfsFindCCB(
-    PNPFS_CCB pCCB
-    );
-
-NTSTATUS
-NpfsRemoveCCB(
-    PNPFS_CCB pCCB
-    );
-
 /* connectnp.c */
 
 NTSTATUS
