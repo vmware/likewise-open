@@ -71,6 +71,10 @@ NpfsConnectNamedPipe(
 
 error:
 
+    if(pIrpContext) {
+        NpfsFreeIrpContext(pIrpContext);
+    }
+
     return ntStatus;
 }
 

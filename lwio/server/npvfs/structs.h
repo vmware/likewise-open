@@ -80,11 +80,6 @@ typedef struct _NPFS_FCB
 typedef struct _NPFS_IRP_CONTEXT
 {
     PIRP pIrp;
-    IO_DEVICE_HANDLE TargetDeviceHandle;
-    UNICODE_STRING RootPathName;
-    UNICODE_STRING RelativePathName;
-    UNICODE_STRING AbsolutePathName;
-
 } NPFS_IRP_CONTEXT, *PNPFS_IRP_CONTEXT;
 
 typedef enum _PVFS_INFO_TYPE

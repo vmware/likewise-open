@@ -77,6 +77,9 @@ NpfsCreate(
 
 error:
 
+    if(pIrpContext) {
+        NpfsFreeIrpContext(pIrpContext);
+    }
     return ntStatus;
 }
 
@@ -105,6 +108,22 @@ error:
     *ppIrpContext = NULL;
     return(ntStatus);
 }
+
+
+
+NTSTATUS
+NpfsFreeIrpContext(
+    PNPFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return(ntStatus);
+}
+
+
+
+
 
 NTSTATUS
 NpfsCommonCreate(

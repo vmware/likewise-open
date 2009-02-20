@@ -16,3 +16,9 @@ NpfsAllocateIrpContext(
     PIRP pIrp,
     PNPFS_IRP_CONTEXT * ppIrpContext
     );
+
+
+NTSTATUS
+NpfsFreeIrpContext(
+    PNPFS_IRP_CONTEXT pIrpContext
+    );

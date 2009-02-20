@@ -122,6 +122,10 @@ NpfsQueryInformation(
 
 error:
 
+    if(pIrpContext) {
+        NpfsFreeIrpContext(pIrpContext);
+    }
+
     return ntStatus;
 }
 NTSTATUS
