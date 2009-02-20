@@ -256,11 +256,11 @@ interface srvsvc {
     /* Function: 0x0f */
     NET_API_STATUS _NetrShareEnum(
         [in,string,unique] wchar16_t *server_name,
-        [in,out,ref] uint32 *level,
-        [in,out,ref,switch_is(level)] srvsvc_NetShareCtr *ctr,
+        [in,out] uint32 *level,
+        [in,out,switch_is(*level)] srvsvc_NetShareCtr *ctr,
         [in] uint32 prefered_maximum_length,
-        [out,ref] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
+        [out] uint32 *total_entries,
+        [in,out,ref] uint32 *resume_handle
     );
 
     /* Function: 0x10 */
