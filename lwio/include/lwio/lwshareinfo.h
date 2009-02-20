@@ -86,17 +86,9 @@ typedef struct _SHARE_INFO_DELETE_PARAMS
 typedef struct _SHARE_INFO_ENUM_PARAMS
 {
     DWORD dwInfoLevel;
-    DWORD dwPrefMaxLength;
-    DWORD dwResume;
-} SHARE_INFO_ENUM_PARAMS, *PSHARE_INFO_ENUM_PARAMS;
-
-
-typedef struct _SHARE_INFO_ENUM_RESULT
-{
-    DWORD dwInfoLevel;
     DWORD dwNumEntries;
     SHARE_INFO_UNION info;
-} SHARE_INFO_ENUM_RESULT, *PSHARE_INFO_ENUM_RESULT;
+} SHARE_INFO_ENUM_PARAMS, *PSHARE_INFO_ENUM_PARAMS;
 
 
 typedef struct _SHARE_INFO_SETINFO_PARAMS
@@ -153,22 +145,6 @@ LwShareInfoUnmarshalEnumParameters(
     PBYTE pBuffer,
     ULONG ulBufferSize,
     PSHARE_INFO_ENUM_PARAMS* ppParams
-    );
-
-
-LW_NTSTATUS
-LwShareInfoMarshalEnumResult(
-    PSHARE_INFO_ENUM_RESULT pParams,
-    PBYTE* ppBuffer,
-    ULONG* pulBufferSize
-    );
-
-
-LW_NTSTATUS
-LwShareInfoUnmarshalEnumResult(
-    PBYTE pBuffer,
-    ULONG ulBufferSize,
-    PSHARE_INFO_ENUM_RESULT* ppParams
     );
 
 
