@@ -113,6 +113,14 @@ SrvShareDeleteShare(
     );
 
 
+NTSTATUS
+SrvShareEnumShares(
+    DWORD dwLevel,
+    PSHARE_DB_INFO *ppShareInfo,
+    PDWORD pdwNumEntries
+    );
+
+
 #endif /* __SRV_SHARELST_H__ */
 
 
