@@ -47,9 +47,13 @@ SrvProcessDeleteDirectory(
     PSMB_SRV_TREE    pTree = NULL;
     PWSTR       pwszDirectoryPath = NULL;
     BOOLEAN     bInLock = FALSE;
+    IO_FILE_HANDLE  hFile = NULL;
     IO_FILE_NAME    fileName = {0};
     IO_STATUS_BLOCK ioStatusBlock = {0};
-    USHORT      usPacketByteCount = 0;
+    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
+    PVOID  pSecurityDescriptor = NULL;
+    PVOID  pSecurityQOS = NULL;
+    USHORT usPacketByteCount = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -89,10 +93,23 @@ SrvProcessDeleteDirectory(
 
     fileName.FileName = pwszDirectoryPath;
 
-    ntStatus = IoDeleteFile(
+    ntStatus = IoCreateFile(
+                    &hFile,
                     NULL,
                     &ioStatusBlock,
-                    &fileName);
+                    pSecurityContext,
+                    &fileName,
+                    pSecurityDescriptor,
+                    pSecurityQOS,
+                    GENERIC_WRITE,
+                    0,
+                    FILE_ATTRIBUTE_NORMAL,
+                    0,
+                    FILE_OPEN,
+                    FILE_DELETE_ON_CLOSE,
+                    NULL,
+                    0,
+                    NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
@@ -137,6 +154,11 @@ SrvProcessDeleteDirectory(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    if (hFile)
+    {
+        IoCloseFile(hFile);
+    }
 
     if (pTree)
     {
