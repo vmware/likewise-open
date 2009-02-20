@@ -914,13 +914,10 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
     uint32 entriesread = 0;
     uint32 totalentries = 0;
     uint32 resume_handle = 0;
-    const uint32 levels[5] = { 0, 1, 2, 501, 502 };
+    const uint32 levels[5] = { 502, 0, 0, 0, 0 };
     uint32 i;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
-
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -941,7 +938,7 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
                                        0,/*prefmaxlen*/
                                        &entriesread,/*entriesread*/
                                        &totalentries,/*totalentries*/
-                                       NULL/*resume_handle*/
+                                       &resume_handle /*resume_handle*/
                                        ));
         if (err != NERR_BufTooSmall) netapi_fail(err);
         printf("bufptr[%p] entriesread[%u] totalentries[%u] resume_handle[%u]\n",
