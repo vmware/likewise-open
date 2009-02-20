@@ -51,16 +51,8 @@
 
 static LWMsgTypeSpec gShareInfo0Spec[] =
 {
-    LWMSG_STRUCT_BEGIN(SHARE_INFO_502),
-    LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_netname),
-    LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_type),
-    LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_remark),
-    LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_permissions),
-    LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_max_uses),
-    LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_current_uses),
-    LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_path),
-    LWMSG_MEMBER_PWSTR(SHARE_INFO_502, shi502_password),
-    LWMSG_MEMBER_UINT32(SHARE_INFO_502, shi502_reserved),
+    LWMSG_STRUCT_BEGIN(SHARE_INFO_0),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_0, shi0_netname),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -113,6 +105,48 @@ static LWMsgTypeSpec gShareInfoDeleteParamsSpec[] =
     LWMSG_TYPE_END
 };
 
+
+static LWMsgTypeSpec gShareInfoEnumParamsSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(SHARE_INFO_ENUM_PARAMS),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_ENUM_PARAMS, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_ENUM_PARAMS, dwPrefMaxLength),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_ENUM_PARAMS, dwResume),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+
+#define SHARE_INFO_LEVEL_0   0
+#define SHARE_INFO_LEVEL_502 502
+
+static LWMsgTypeSpec gShareInfoEnumResultSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(SHARE_INFO_ENUM_RESULT),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_ENUM_RESULT, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_ENUM_RESULT, dwNumEntries),
+    LWMSG_MEMBER_UNION_BEGIN(SHARE_INFO_ENUM_RESULT, pInfo),
+    LWMSG_MEMBER_POINTER_BEGIN(SHARE_INFO_ENUM_RESULT, pInfo),
+    LWMSG_POINTER_BEGIN,
+    LWMSG_TYPESPEC(gShareInfo0Spec),
+    LWMSG_POINTER_END,
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(SHARE_INFO_ENUM_RESULT, dwNumEntries),
+    LWMSG_ATTR_TAG(SHARE_INFO_LEVEL_0),
+    LWMSG_MEMBER_POINTER_BEGIN(SHARE_INFO_ENUM_RESULT, pInfo),
+    LWMSG_POINTER_BEGIN,
+    LWMSG_TYPESPEC(gShareInfo502Spec),
+    LWMSG_POINTER_END,
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(SHARE_INFO_ENUM_RESULT, dwNumEntries),
+    LWMSG_ATTR_TAG(SHARE_INFO_LEVEL_502),
+    LWMSG_UNION_END,
+    LWMSG_ATTR_DISCRIM(SHARE_INFO_ENUM_RESULT, dwInfoLevel),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+
 static LWMsgTypeSpec gShareInfoSetInfoParamsSpec[] =
 {
     LWMSG_STRUCT_BEGIN(SHARE_INFO_SETINFO_PARAMS),
@@ -136,7 +170,6 @@ LwShareInfoMarshalAddParameters(
     VOID* pBuffer = NULL;
     size_t szBufferSize = 0;
     LWMsgContext* pContext = NULL;
-    //    NT_IPC_MESSAGE_CREATE_FILE info = { 0 };
 
     Status = MAP_LWMSG_STATUS(
         lwmsg_context_new(&pContext));
@@ -194,7 +227,7 @@ LwShareInfoUnmarshalAddParameters(
         lwmsg_unmarshal_simple(
             pContext,
             gShareInfoAddParamsSpec,
-	    pBuffer,
+            pBuffer,
             ulBufferSize,
             OUT_PPVOID(&pParams)));
     BAIL_ON_NT_STATUS(Status);
@@ -222,6 +255,7 @@ error:
     goto cleanup;
 }
 
+
 LW_NTSTATUS
 LwShareInfoMarshalDeleteParameters(
     PSHARE_INFO_DELETE_PARAMS pParams,
@@ -231,9 +265,8 @@ LwShareInfoMarshalDeleteParameters(
 {
     NTSTATUS Status = STATUS_SUCCESS;
     VOID* pBuffer = NULL;
-    size_t szBufferSize = 0;
+    size_t ulBufferSize = 0;
     LWMsgContext* pContext = NULL;
-    //    NT_IPC_MESSAGE_CREATE_FILE *pInfo = NULL;
 
     Status = MAP_LWMSG_STATUS(
         lwmsg_context_new(&pContext));
@@ -245,11 +278,11 @@ LwShareInfoMarshalDeleteParameters(
             gShareInfoDeleteParamsSpec,
             pParams,
             &pBuffer,
-            &szBufferSize));
+            &ulBufferSize));
     BAIL_ON_NT_STATUS(Status);
 
     *ppBuffer = pBuffer;
-    *pulBufferSize = (ULONG) szBufferSize;
+    *pulBufferSize = (ULONG) ulBufferSize;
 
 cleanup:
 
@@ -272,6 +305,7 @@ error:
     goto cleanup;
 }
 
+
 LW_NTSTATUS
 LwShareInfoUnmarshalDeleteParameters(
     PBYTE pBuffer,
@@ -291,7 +325,7 @@ LwShareInfoUnmarshalDeleteParameters(
         lwmsg_unmarshal_simple(
             pContext,
             gShareInfoDeleteParamsSpec,
-	    pBuffer,
+            pBuffer,
             ulBufferSize,
             OUT_PPVOID(&pParams)));
     BAIL_ON_NT_STATUS(Status);
@@ -318,6 +352,203 @@ error:
 
     goto cleanup;
 }
+
+
+LW_NTSTATUS
+LwShareInfoMarshalEnumParameters(
+    PSHARE_INFO_ENUM_PARAMS pParams,
+    PBYTE* ppBuffer,
+    ULONG* pulBufferSize
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    VOID* pBuffer = NULL;
+    size_t ulBufferSize = 0;
+    LWMsgContext* pContext = NULL;
+
+    status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+        lwmsg_marshal_alloc(
+            pContext,
+            gShareInfoEnumParamsSpec,
+            pParams,
+            &pBuffer,
+            &ulBufferSize));
+    BAIL_ON_NT_STATUS(status);
+
+    *ppBuffer = pBuffer;
+    *pulBufferSize = (ULONG) ulBufferSize;
+
+cleanup:
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    return status;
+
+error:
+    *ppBuffer = NULL;
+    *pulBufferSize = 0;
+
+    if (pBuffer)
+    {
+        RtlMemoryFree(pBuffer);
+    }
+
+    goto cleanup;
+}
+
+
+LW_NTSTATUS
+LwShareInfoUnmarshalEnumParameters(
+    PBYTE pBuffer,
+    ULONG ulBufferSize,
+    PSHARE_INFO_ENUM_PARAMS* ppParams
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    PSHARE_INFO_ENUM_PARAMS pParams = NULL;
+    LWMsgContext* pContext = NULL;
+
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_unmarshal_simple(
+            pContext,
+            gShareInfoEnumParamsSpec,
+            pBuffer,
+            ulBufferSize,
+            OUT_PPVOID(&pParams)));
+    BAIL_ON_NT_STATUS(Status);
+
+    *ppParams = pParams;
+
+cleanup:
+
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    return Status;
+
+error:
+
+    *ppParams = NULL;
+
+    if (pParams)
+    {
+        lwmsg_context_free_graph(pContext, gShareInfoEnumParamsSpec, pParams);
+    }
+
+    goto cleanup;
+}
+
+
+LW_NTSTATUS
+LwShareInfoMarshalEnumResult(
+    PSHARE_INFO_ENUM_RESULT pParams,
+    PBYTE* ppBuffer,
+    ULONG* pulBufferSize
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    VOID* pBuffer = NULL;
+    size_t ulBufferSize = 0;
+    LWMsgContext* pContext = NULL;
+
+    status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+        lwmsg_marshal_alloc(
+            pContext,
+            gShareInfoEnumResultSpec,
+            pParams,
+            &pBuffer,
+            &ulBufferSize));
+    BAIL_ON_NT_STATUS(status);
+
+    *ppBuffer = pBuffer;
+    *pulBufferSize = (ULONG) ulBufferSize;
+
+cleanup:
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    return status;
+
+error:
+    *ppBuffer = NULL;
+    *pulBufferSize = 0;
+
+    if (pBuffer)
+    {
+        RtlMemoryFree(pBuffer);
+    }
+
+    goto cleanup;
+}
+
+
+LW_NTSTATUS
+LwShareInfoUnmarshalEnumResult(
+    PBYTE pBuffer,
+    ULONG ulBufferSize,
+    PSHARE_INFO_ENUM_RESULT* ppParams
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    PSHARE_INFO_ENUM_RESULT pParams = NULL;
+    LWMsgContext* pContext = NULL;
+
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_unmarshal_simple(
+            pContext,
+            gShareInfoEnumResultSpec,
+            pBuffer,
+            ulBufferSize,
+            OUT_PPVOID(&pParams)));
+    BAIL_ON_NT_STATUS(Status);
+
+    *ppParams = pParams;
+
+cleanup:
+
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    return Status;
+
+error:
+
+    *ppParams = NULL;
+
+    if (pParams)
+    {
+        lwmsg_context_free_graph(pContext, gShareInfoEnumResultSpec, pParams);
+    }
+
+    goto cleanup;
+}
+
+
+
 
 
 /*
