@@ -201,7 +201,7 @@ SrvBuildReadAndXResponse(
     // TODO: For large cap files
     pResponseHeader->dataLengthHigh = 0;
 
-    // Dry run
+    // Estimate how much data can fit in message
     ntStatus = WireMarshallReadResponseDataEx(
                     pSmbResponse->pData,
                     pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
@@ -211,6 +211,9 @@ SrvBuildReadAndXResponse(
                     &ulDataOffset,
                     &ulPackageByteCount);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    // Allow for alignment bytes
+    ulDataOffset += ulDataOffset % 2;
 
     ulBytesToRead = SMB_MIN(ullBytesToRead, pConnection->serverProperties.MaxBufferSize - ulDataOffset);
 
