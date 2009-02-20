@@ -104,8 +104,6 @@ SrvShareInitContextContents(
                                              pShareInfo,
                                              &pShareEntry);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            InterlockedIncrement(&pShareInfo->refcount);
         }
 
         ulOffset += ulNumSharesFound;
@@ -280,20 +278,20 @@ SrvShareFreeContextContents(
 static
 BOOLEAN
 IsEqualShareEntry(
-    PWSTR pName,
-    PWSTR pShareName
+    PWSTR pwszName,
+    PWSTR pwszShareName
     )
 {
-    if (pName == pShareName) {
+    if (pwszName == pwszShareName) {
         return TRUE;
     }
 
-    if ((pName && !pShareName) ||
-        (!pName && pShareName)) {
+    if ((pwszName && !pwszShareName) ||
+        (!pwszName && pwszShareName)) {
         return FALSE;
     }
 
-    if (SMBWc16sCmp(pName, pShareName)) {
+    if (SMBWc16sCmp(pwszName, pwszShareName)) {
         return FALSE;
     }
 
@@ -364,6 +362,8 @@ SrvAddShareInfoToList(
     ntStatus = SrvAddShareToList(pDbContext, pShareEntry);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pShareEntry->info.refcount = 1;
+
     *ppShareEntry = pShareEntry;
 
 cleanup:
@@ -386,17 +386,20 @@ error:
 NTSTATUS
 SrvFindShareByName(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
-    PWSTR pszShareName,
+    PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
 
     pShareEntry = pDbContext->pShareEntry;
 
     while (pShareEntry) {
-        if (IsEqualShareEntry(pszShareName,
+        if (IsEqualShareEntry(pwszShareName,
                               pShareEntry->info.pwszName)) {
 
             *ppShareInfo = &pShareEntry->info;
@@ -409,6 +412,8 @@ SrvFindShareByName(
     ntStatus = STATUS_NOT_FOUND;
 
 cleanup:
+    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+
     return ntStatus;
 }
 
@@ -416,7 +421,7 @@ cleanup:
 NTSTATUS
 SrvRemoveShareFromList(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
-    PWSTR pszShareName,
+    PWSTR pwszShareName,
     PSRV_SHARE_ENTRY *ppShareEntry
     )
 {
@@ -427,7 +432,7 @@ SrvRemoveShareFromList(
     pShareEntry = pDbContext->pShareEntry;
 
     while (pShareEntry) {
-        if (IsEqualShareEntry(pszShareName,
+        if (IsEqualShareEntry(pwszShareName,
                               pShareEntry->info.pwszName)) {
 
             if (pPrevShareEntry) {
@@ -685,7 +690,7 @@ error:
 
 NTSTATUS
 SrvShareSetInfo(
-    PWSTR pszShareName,
+    PWSTR pwszShareName,
     DWORD dwLevel,
     PVOID pBuffer
     )
@@ -753,7 +758,7 @@ error:
 
 NTSTATUS
 SrvShareGetInfo(
-    PWSTR pszShareName,
+    PWSTR pwszShareName,
     DWORD dwLevel,
     PBYTE pOutBuffer,
     DWORD dwOutBufferSize
@@ -975,9 +980,9 @@ error:
 
 NTSTATUS
 SrvCreateShareEntry(
-    PWSTR pszShareName,
-    PWSTR pszPathName,
-    PWSTR pszComment,
+    PWSTR pwszShareName,
+    PWSTR pwszPathName,
+    PWSTR pwszComment,
     PBYTE pSecurityDescriptor,
     DWORD dwSDSize,
     DWORD dwFlags,
