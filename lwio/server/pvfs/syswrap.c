@@ -592,6 +592,31 @@ error:
     goto cleanup;
 }
 
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysChown(
+    PPVFS_CCB pCcb,
+    uid_t uid,
+    gid_t gid
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+
+    if (chown(pCcb->pszFilename, uid, gid) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 /*

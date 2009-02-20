@@ -165,6 +165,12 @@ PvfsSysWrite(
     PULONG pBytesWritten
     );
 
+NTSTATUS
+PvfsSysChown(
+    PPVFS_CCB pCcb,
+    uid_t uid,
+    gid_t gid
+    );
 
 
 #endif     /* _PVFS_SYSWRAP_P_H */
