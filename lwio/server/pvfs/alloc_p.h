@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        create.c
+ *        alloc_p.h
  *
  * Abstract:
  *
@@ -60,6 +60,11 @@ PvfsReallocateMemory(
 VOID
 PvfsFreeMemory(
     IN OUT PVOID pBuffer
+    );
+
+NTSTATUS
+PvfsFreeIrpContext(
+	PPVFS_IRP_CONTEXT pIrpContext
     );
 
 NTSTATUS

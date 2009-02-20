@@ -177,13 +177,13 @@ PvfsDriverDispatch(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    PvfsFreeIrpContext(pIrpCtx);
+
     pIrp->IoStatusBlock.Status = ntError;
 
     return ntError;
 
 error:
-    PVFS_SAFE_FREE_MEMORY(pIrpCtx);
-
     goto cleanup;
 }
 

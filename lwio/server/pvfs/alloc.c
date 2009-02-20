@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        memory.c
+ *        alloc.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *       Create Dispatch Routine
+ *        Pvfs Memory allocation routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
@@ -124,6 +124,24 @@ PvfsFreeMemory(
         RtlMemoryFree(pBuffer);
     }
 
+}
+
+/***********************************************************
+ **********************************************************/
+
+NTSTATUS
+PvfsFreeIrpContext(
+	PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    if (pIrpContext)
+    {
+        PVFS_SAFE_FREE_MEMORY(pIrpContext);
+    }
+
+    return ntError;
 }
 
 /***********************************************************
