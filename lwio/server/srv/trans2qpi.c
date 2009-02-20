@@ -277,7 +277,11 @@ SrvBuildQueryPathInfoResponse(
 
         case SMB_QUERY_FILE_EA_INFO :
 
-            ntStatus = STATUS_NOT_IMPLEMENTED;
+            ntStatus = SrvBuildQueryFileEAInfoResponse(
+                            pConnection,
+                            pSmbRequest,
+                            hFile,
+                            &pSmbResponse);
 
             break;
 
