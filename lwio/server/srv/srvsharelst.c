@@ -851,7 +851,7 @@ SrvShareEnumShares(
     BAIL_ON_SMB_ERROR(dwError);
 
     pShareEntry = pDbContext->pShareEntry;
-    for (i = 0; i < dwCount; i++) {
+    for (i = 0; i < dwCount && pShareEntry != NULL; i++) {
         if (pShareEntry->pInfo->pwszName) {
             dwError = SMBWc16sDup(pShareEntry->pInfo->pwszName,
                                   &pShares[i].pwszName);
@@ -876,7 +876,9 @@ SrvShareEnumShares(
             BAIL_ON_SMB_ERROR(dwError);
         }
 
-        pShareEntry->pInfo->service = pShares[i].service;
+        pShares[i].service = pShareEntry->pInfo->service;
+
+        pShareEntry = pShareEntry->pNext;
     }
 
     *ppShareInfo   = pShares;
