@@ -57,8 +57,38 @@ SrvSvcNetrServerGetInfo(
     )
 {
     DWORD dwError = 0;
+    SERVER_INFO_101 *pInfo101 = NULL;
 
+    dwError = SRVSVCAllocateMemory(sizeof(*pInfo101),
+                                   (void**)&pInfo101);
+    BAIL_ON_ERROR(dwError);
+
+    pInfo101->sv101_platform_id    = 500;
+    pInfo101->sv101_name           = ambstowc16s("DUMMYSRV");
+    pInfo101->sv101_version_major  = 4;
+    pInfo101->sv101_version_minor  = 9;
+    pInfo101->sv101_type           = 0x00809b03;
+    pInfo101->sv101_comment        = ambstowc16s("Likewise RPC");
+
+    info->info101 = pInfo101;
+
+cleanup:
     return dwError;
+
+error:
+    if (pInfo101) {
+        if (pInfo101->sv101_name) {
+            SrvSvcFreeMemory((void*)pInfo101->sv101_name);
+        }
+
+        if (pInfo101->sv101_comment) {
+            SrvSvcFreeMemory((void*)pInfo101->sv101_comment);
+        }
+
+        SrvSvcFreeMemory((void*)pInfo101);
+    }
+
+    goto cleanup;
 }
 
 
