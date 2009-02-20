@@ -146,39 +146,36 @@ error:
     return ntStatus;
 }
 
+
 NTSTATUS
 SrvDevCtlEnumShares(
     PBYTE pInBuffer,
     ULONG ulInBufferSize,
     PBYTE pOutBuffer,
-    ULONG ulOutBufferSize
+    ULONG ulOutBufferSize,
+    PULONG pulBytesTransferred
     )
 {
     NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     DWORD dwLevel = 0;
-    DWORD dwPrefMaxLength = 0;
-    DWORD dwResume = 0;
     DWORD dwNumEntries = 0;
     DWORD i = 0;
-    //    DWORD dwSize = 0;
     PBYTE pBuffer = NULL;
     ULONG pBufferSize = 0;
-    PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParams = NULL;
-    SHARE_INFO_ENUM_RESULT EnumShareInfoResult;
+    PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
+    SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
     PSHARE_DB_INFO pShares = NULL;
     PSHARE_INFO_502 p502 = NULL;
 
     ntStatus = LwShareInfoUnmarshalEnumParameters(
                         pInBuffer,
                         ulInBufferSize,
-                        &pEnumShareInfoParams
+                        &pEnumShareInfoParamsIn
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwLevel         = pEnumShareInfoParams->dwInfoLevel;
-    dwPrefMaxLength = pEnumShareInfoParams->dwPrefMaxLength;
-    dwResume        = pEnumShareInfoParams->dwResume;
+    dwLevel = pEnumShareInfoParamsIn->dwInfoLevel;
 
     ntStatus = SrvShareEnumShares(
                         dwLevel,
@@ -195,32 +192,66 @@ SrvDevCtlEnumShares(
 
         for (i = 0; i < dwNumEntries; i++)
         {
-            p502[i].shi502_netname = pShares[i].pwszName;
+            p502[i].shi502_netname             = pShares[i].pwszName;
+            p502[i].shi502_type                = pShares[i].service;
+            p502[i].shi502_remark              = pShares[i].pwszComment;
+            p502[i].shi502_permissions         = 0;
+            p502[i].shi502_max_uses            = 0;
+            p502[i].shi502_current_uses        = 0;
+            p502[i].shi502_path                = pShares[i].pwszPath;
+            p502[i].shi502_password            = NULL;
+            p502[i].shi502_reserved            = 0;
+            p502[i].shi502_security_descriptor = NULL;
         }
 
-        EnumShareInfoResult.info.p502 = p502;
+        EnumShareInfoParamsOut.info.p502 = p502;
         break;
+
+    default:
+        EnumShareInfoParamsOut.info.p0 = NULL;
     }
 
-    EnumShareInfoResult.dwInfoLevel  = dwLevel;
-    EnumShareInfoResult.dwNumEntries = dwNumEntries;
+    EnumShareInfoParamsOut.dwInfoLevel  = dwLevel;
+    EnumShareInfoParamsOut.dwNumEntries = dwNumEntries;
 
-    ntStatus = LwShareInfoMarshalEnumResult(
-                        &EnumShareInfoResult,
+    ntStatus = LwShareInfoMarshalEnumParameters(
+                        &EnumShareInfoParamsOut,
                         &pBuffer,
                         &pBufferSize
                         );
 
-    /* TODO: check if pBufferSize < ulOutBufferSize */
-    memcpy((void*)pOutBuffer, (void*)pBuffer, pBufferSize);
+    if (pBufferSize <= ulOutBufferSize) {
+        memcpy((void*)pOutBuffer, (void*)pBuffer, pBufferSize);
+
+    } else {
+        ntStatus = STATUS_MORE_ENTRIES;
+        goto error;
+    }
+
+    *pulBytesTransferred = pBufferSize;
 
 cleanup:
+    if (pShares) {
+        for (i = 0; i < dwNumEntries; i++) {
+            SMB_SAFE_FREE_MEMORY(pShares[i].pwszName);
+            SMB_SAFE_FREE_MEMORY(pShares[i].pwszPath);
+            SMB_SAFE_FREE_MEMORY(pShares[i].pwszComment);
+            SMB_SAFE_FREE_MEMORY(pShares[i].pwszSID);
+        }
+
+        LwIoFreeMemory((void*)pShares);
+    }
+
     SMB_SAFE_FREE_MEMORY(p502);
-    SMB_SAFE_FREE_MEMORY(pBuffer)
+    SMB_SAFE_FREE_MEMORY(pBuffer);
+    SMB_SAFE_FREE_MEMORY(pEnumShareInfoParamsIn);
 
     return ntStatus;
 
 error:
+    memset((void*)pOutBuffer, 0, ulOutBufferSize);
+    *pulBytesTransferred = 0;
+
     goto cleanup;
 }
 
