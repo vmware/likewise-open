@@ -227,7 +227,8 @@ SRVSVCRegisterForRPC(
     static ENDPOINT endpoints[] =
     {
         {"ncacn_ip_tcp", NULL},
-        {NULL, NULL}
+        {"ncacn_np"    , "\\pipe\\srvsvc"},
+        {NULL          , NULL}
     };
 
     DCETHREAD_TRY
