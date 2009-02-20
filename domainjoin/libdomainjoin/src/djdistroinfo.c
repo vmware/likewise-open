@@ -122,11 +122,12 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 #   Red Hat Enterprise Linux ES release 4 (Nahant Update 1)
                 #   Red Hat Linux Advanced Server release 2.1AS (Pensacola)
                 #   Red Hat Enterprise Linux Client release 5 (Tikanga)
+                #   Red Hat Enterprise Linux Server release 5.3 (Tikanga)
                 # In addition, Oracle Linux reports itself as:
                 #   Enterprise Linux Enterprise Linux AS release 4 (October Update 5)
                 */
                 //Find a matching distro name
-                "^[[:space:]]*((Red Hat)|(Enterprise Linux)) ((Enterprise Linux)|(Linux (Advanced|Enterprise) Server))[[:space:]]+(AS |ES |Client )?"
+                "^[[:space:]]*((Red Hat)|(Enterprise Linux)) ((Enterprise Linux)|(Linux (Advanced|Enterprise) Server))[[:space:]]+(AS |ES |Client |Server )?"
                 //Get the version number, but strip the minor version if it is
                 //present (RHEL 2 has one). Also remove the AS or ES
                 //suffix if it is present.
