@@ -403,6 +403,8 @@ SrvFindShareByName(
                               pShareEntry->info.pwszName)) {
 
             *ppShareInfo = &pShareEntry->info;
+
+            InterlockedIncrement(&pShareEntry->info.refcount);
             goto cleanup;
         }
 
