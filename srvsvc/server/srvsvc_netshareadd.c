@@ -107,7 +107,7 @@ SrvSvcNetShareAdd(
 
     dwError = SRVSVCAllocateMemory(
                         dwOutLength,
-                        &pOutBuffer
+                        (void**)&pOutBuffer
                         );
     BAIL_ON_ERROR(dwError);
 
