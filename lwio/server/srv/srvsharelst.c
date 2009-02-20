@@ -359,6 +359,14 @@ SrvAddShareInfoToList(
         BAIL_ON_SMB_ERROR(dwError);
     }
 
+    if (pShareInfo->pwszSID) {
+        dwError = SMBAllocateStringW(pShareInfo->pwszSID,
+                                     &pShareEntry->info.pwszSID);
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    pShareEntry->info.service = pShareInfo->service;
+
     ntStatus = SrvAddShareToList(pDbContext, pShareEntry);
     BAIL_ON_NT_STATUS(ntStatus);
 
