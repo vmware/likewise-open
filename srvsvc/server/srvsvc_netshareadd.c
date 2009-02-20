@@ -158,12 +158,12 @@ SrvSvcNetShareAdd(
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    if(pInBuffer) {
-        SrvSvcFreeMemory(pInBuffer);
-    }
-
     if (FileHandle) {
         NtCloseFile(FileHandle);
+    }
+
+    if(pInBuffer) {
+        SrvSvcFreeMemory(pInBuffer);
     }
 
     return dwError;
