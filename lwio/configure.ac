@@ -494,7 +494,6 @@ AC_CONFIG_FILES([Makefile
         tools/lwio-tool/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
-        tests/test_rbtree/Makefile
         tests/test_npclient/Makefile
         tests/test_npclient2/Makefile
         tests/test_npserver/Makefile

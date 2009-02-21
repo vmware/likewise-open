@@ -52,7 +52,7 @@ SrvSessionCreate(
 
     SMB_LOG_DEBUG("Associating session [object:0x%x][uid:%u]", pSession, uid);
 
-    ntStatus = SMBRBTreeCreate(
+    ntStatus = LwRtlRBTreeCreate(
                     &SrvSessionTreeCompare,
                     NULL,
                     &SrvSessionTreeRelease,
@@ -94,7 +94,7 @@ SrvSessionFindTree(
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
-    ntStatus = SMBRBTreeFind(
+    ntStatus = LwRtlRBTreeFind(
                     pSession->pTreeCollection,
                     &tid,
                     (PVOID*)&pTree);
@@ -128,7 +128,7 @@ SrvSessionRemoveTree(
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
-    ntStatus = SMBRBTreeRemove(
+    ntStatus = LwRtlRBTreeRemove(
                     pSession->pTreeCollection,
                     &tid);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -169,7 +169,7 @@ SrvSessionCreateTree(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBRBTreeAdd(
+    ntStatus = LwRtlRBTreeAdd(
                     pSession->pTreeCollection,
                     &pTree->tid,
                     pTree);
@@ -230,7 +230,7 @@ SrvSessionAcquireTreeId_inlock(
             candidateTid++;
         }
 
-        ntStatus = SMBRBTreeFind(
+        ntStatus = LwRtlRBTreeFind(
                         pSession->pTreeCollection,
                         &candidateTid,
                         (PVOID*)&pTree);
@@ -317,7 +317,7 @@ SrvSessionFree(
 
     if (pSession->pTreeCollection)
     {
-        SMBRBTreeFree(pSession->pTreeCollection);
+        LwRtlRBTreeFree(pSession->pTreeCollection);
     }
 
     if (pSession->hFinderRepository)

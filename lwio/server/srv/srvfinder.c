@@ -233,7 +233,7 @@ SrvFinderCreateRepository(
     pthread_mutex_init(&pFinderRepository->mutex, NULL);
     pFinderRepository->pMutex = &pFinderRepository->mutex;
 
-    ntStatus = SMBRBTreeCreate(
+    ntStatus = LwRtlRBTreeCreate(
                     &SrvFinderCompareSearchSpaces,
                     NULL,
                     &SrvFinderFreeData,
@@ -321,7 +321,7 @@ SrvFinderCreateSearchSpace(
             usCandidateSearchId++;
         }
 
-        ntStatus = SMBRBTreeFind(
+        ntStatus = LwRtlRBTreeFind(
                         pFinderRepository->pSearchSpaceCollection,
                         &usCandidateSearchId,
                         (PVOID*)&pSearchSpace);
@@ -353,7 +353,7 @@ SrvFinderCreateSearchSpace(
 
     pSearchSpace->usSearchId = usCandidateSearchId;
 
-    ntStatus = SMBRBTreeAdd(
+    ntStatus = LwRtlRBTreeAdd(
                     pFinderRepository->pSearchSpaceCollection,
                     &pSearchSpace->usSearchId,
                     pSearchSpace);
@@ -418,7 +418,7 @@ SrvFinderGetSearchSpace(
 
     SMB_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
-    ntStatus = SMBRBTreeFind(
+    ntStatus = LwRtlRBTreeFind(
                     pFinderRepository->pSearchSpaceCollection,
                     &usSearchId,
                     (PVOID*)&pSearchSpace);
@@ -1090,7 +1090,7 @@ SrvFinderCloseSearchSpace(
 
     SMB_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
-    ntStatus = SMBRBTreeRemove(
+    ntStatus = LwRtlRBTreeRemove(
                     pFinderRepository->pSearchSpaceCollection,
                     &usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1129,7 +1129,7 @@ SrvFinderFreeRepository(
 {
     if (pFinderRepository->pSearchSpaceCollection)
     {
-        SMBRBTreeFree(pFinderRepository->pSearchSpaceCollection);
+        LwRtlRBTreeFree(pFinderRepository->pSearchSpaceCollection);
     }
 
     if (pFinderRepository->pMutex)

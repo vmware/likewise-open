@@ -55,7 +55,7 @@ SrvTreeCreate(
     pTree->pShareInfo = pShareInfo;
     InterlockedIncrement(&pShareInfo->refcount);
 
-    ntStatus = SMBRBTreeCreate(
+    ntStatus = LwRtlRBTreeCreate(
                     &SrvTreeFileCompare,
                     NULL,
                     &SrvTreeFileRelease,
@@ -93,7 +93,7 @@ SrvTreeFindFile(
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
-    ntStatus = SMBRBTreeFind(
+    ntStatus = LwRtlRBTreeFind(
                     pTree->pFileCollection,
                     &fid,
                     (PVOID*)&pFile);
@@ -157,7 +157,7 @@ SrvTreeCreateFile(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBRBTreeAdd(
+    ntStatus = LwRtlRBTreeAdd(
                     pTree->pFileCollection,
                     &pFile->fid,
                     pFile);
@@ -196,7 +196,7 @@ SrvTreeRemoveFile(
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
-    ntStatus = SMBRBTreeRemove(
+    ntStatus = LwRtlRBTreeRemove(
                     pTree->pFileCollection,
                     &fid);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -245,7 +245,7 @@ SrvTreeAcquireFileId_inlock(
             candidateFid++;
         }
 
-        ntStatus = SMBRBTreeFind(
+        ntStatus = LwRtlRBTreeFind(
                         pTree->pFileCollection,
                         &candidateFid,
                         (PVOID*)&pFile);
@@ -329,7 +329,7 @@ SrvTreeFree(
 
     if (pTree->pFileCollection)
     {
-        SMBRBTreeFree(pTree->pFileCollection);
+        LwRtlRBTreeFree(pTree->pFileCollection);
     }
 
     if (pTree->pShareInfo)

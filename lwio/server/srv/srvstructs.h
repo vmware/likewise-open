@@ -252,7 +252,7 @@ typedef struct _SMB_SRV_TREE
 
     PSHARE_DB_INFO    pShareInfo;
 
-    PSMB_RB_TREE      pFileCollection;
+    PLWRTL_RB_TREE    pFileCollection;
 
     USHORT            nextAvailableFid;
 
@@ -267,7 +267,7 @@ typedef struct _SMB_SRV_SESSION
 
     USHORT            uid;
 
-    PSMB_RB_TREE      pTreeCollection;
+    PLWRTL_RB_TREE    pTreeCollection;
 
     HANDLE            hFinderRepository;
 
@@ -314,7 +314,7 @@ typedef struct _SMB_SRV_CONNECTION
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;
 
-    PSMB_RB_TREE        pSessionCollection;
+    PLWRTL_RB_TREE      pSessionCollection;
 
     USHORT              nextAvailableUid;
 
@@ -340,7 +340,7 @@ typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
     BOOLEAN        bStop;
     BOOLEAN        bActive;
 
-    PSMB_RB_TREE   pConnections;
+    PLWRTL_RB_TREE pConnections;
     ULONG          ulNumSockets;
 
     PSMB_PROD_CONS_QUEUE pWorkQueue;

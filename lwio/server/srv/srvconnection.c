@@ -75,7 +75,7 @@ SrvConnectionCreate(
     pthread_rwlock_init(&pConnection->mutex, NULL);
     pConnection->pMutex = &pConnection->mutex;
 
-    ntStatus = SMBRBTreeCreate(
+    ntStatus = LwRtlRBTreeCreate(
                     &SrvConnectionSessionCompare,
                     NULL,
                     &SrvConnectionSessionRelease,
@@ -437,7 +437,7 @@ SrvConnectionFindSession(
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    ntStatus = SMBRBTreeFind(
+    ntStatus = LwRtlRBTreeFind(
                     pConnection->pSessionCollection,
                     &uid,
                     (PVOID*)&pSession);
@@ -471,7 +471,7 @@ SrvConnectionRemoveSession(
 
     SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    ntStatus = SMBRBTreeRemove(
+    ntStatus = LwRtlRBTreeRemove(
                     pConnection->pSessionCollection,
                     &uid);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -510,7 +510,7 @@ SrvConnectionCreateSession(
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBRBTreeAdd(
+    ntStatus = LwRtlRBTreeAdd(
                     pConnection->pSessionCollection,
                     &pSession->uid,
                     pSession);
@@ -577,7 +577,7 @@ SrvConnectionRelease(
 
         if (pConnection->pSessionCollection)
         {
-            SMBRBTreeFree(pConnection->pSessionCollection);
+            LwRtlRBTreeFree(pConnection->pSessionCollection);
         }
 
         if (pConnection->pHostinfo)
@@ -617,7 +617,7 @@ SrvConnectionAcquireSessionId_inlock(
             candidateUid++;
         }
 
-        ntStatus = SMBRBTreeFind(
+        ntStatus = LwRtlRBTreeFind(
                         pConnection->pSessionCollection,
                         &candidateUid,
                         (PVOID*)&pSession);

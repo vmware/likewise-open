@@ -456,40 +456,6 @@ typedef struct __SMB_QUEUE
 
 } SMB_QUEUE, *PSMB_QUEUE;
 
-typedef enum
-{
-    SMB_TREE_TRAVERSAL_TYPE_PRE_ORDER = 0,
-    SMB_TREE_TRAVERSAL_TYPE_IN_ORDER,
-    SMB_TREE_TRAVERSAL_TYPE_POST_ORDER
-} SMB_TREE_TRAVERSAL_TYPE;
-
-typedef int   (*PFN_SMB_RB_TREE_COMPARE)(
-                    PVOID pKey1,
-                    PVOID pKey2
-                    );
-
-typedef VOID  (*PFN_SMB_RB_TREE_FREE_DATA)(PVOID pData);
-typedef VOID  (*PFN_SMB_RB_TREE_FREE_KEY)(PVOID pKey);
-
-typedef DWORD (*PFN_SMB_RB_TREE_VISIT)(
-                    PVOID pKey,
-                    PVOID pData,
-                    PVOID pUserData,
-                    PBOOLEAN pbContinue
-                    );
-
-typedef struct __SMB_RB_TREE
-{
-
-    PFN_SMB_RB_TREE_COMPARE pfnCompare;
-    PFN_SMB_RB_TREE_FREE_KEY  pfnFreeKey;
-    PFN_SMB_RB_TREE_FREE_DATA pfnFreeData;
-
-    HANDLE hRoot;
-
-} SMB_RB_TREE, *PSMB_RB_TREE;
-
-
 typedef DWORD SMBHANDLE, *PSMBHANDLE;
 
 typedef enum
@@ -861,46 +827,6 @@ SMBQueueForeach(
 VOID
 SMBQueueFree(
     PSMB_QUEUE pQueue
-    );
-
-NTSTATUS
-SMBRBTreeCreate(
-    PFN_SMB_RB_TREE_COMPARE   pfnRBTreeCompare,
-    PFN_SMB_RB_TREE_FREE_KEY  pfnRBTreeFreeKey,
-    PFN_SMB_RB_TREE_FREE_DATA pfnRBTreeFreeData,
-    PSMB_RB_TREE* ppRBTree
-    );
-
-NTSTATUS
-SMBRBTreeFind(
-    PSMB_RB_TREE pRBTree,
-    PVOID        pKey,
-    PVOID*       ppItem
-    );
-
-NTSTATUS
-SMBRBTreeAdd(
-    PSMB_RB_TREE pRBTree,
-    PVOID       pKey,
-    PVOID       pData
-    );
-
-NTSTATUS
-SMBRBTreeTraverse(
-    PSMB_RB_TREE pRBTree,
-    SMB_TREE_TRAVERSAL_TYPE traversalType,
-    PFN_SMB_RB_TREE_VISIT pfnVisit,
-    PVOID                 pUserData
-    );
-
-NTSTATUS
-SMBRBTreeRemove(
-    PSMB_RB_TREE pRBTree,
-    PVOID   pData);
-
-VOID
-SMBRBTreeFree(
-    PSMB_RB_TREE pRBTree
     );
 
 DWORD

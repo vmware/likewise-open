@@ -18,7 +18,6 @@ liblwioutils_la_SOURCES = \
     lwioconfig.c  \
     lwiologinfo.c \
     path.c        \
-    rbtree.c      \
     stack.c       \
     strerror.c    \
     strings.c     \

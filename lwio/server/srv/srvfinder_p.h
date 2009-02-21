@@ -56,7 +56,7 @@ typedef struct _SRV_FINDER_REPOSITORY
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
 
-    PSMB_RB_TREE     pSearchSpaceCollection;
+    PLWRTL_RB_TREE   pSearchSpaceCollection;
 
     USHORT           usNextSearchId;
 

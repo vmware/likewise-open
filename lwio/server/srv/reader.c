@@ -103,7 +103,7 @@ SrvSocketReaderInit(
     pReader->context.fd[0] = pReader->context.fd[1] = -1;
     pReader->context.readerId = pReader->readerId;
 
-    ntStatus = SMBRBTreeCreate(
+    ntStatus = LwRtlRBTreeCreate(
                     &SrvSocketReaderCompareConnections,
                     NULL,
                     &SrvSocketReaderReleaseConnection,
@@ -191,7 +191,7 @@ SrvSocketReaderEnqueueConnection(
                     pConnection->pSocket->fd,
                     pReader->readerId);
 
-    ntStatus = SMBRBTreeAdd(
+    ntStatus = LwRtlRBTreeAdd(
                     pReader->context.pConnections,
                     &pConnection->pSocket->fd,
                     pConnection);
@@ -329,7 +329,7 @@ SrvSocketReaderFreeContents(
 
     if (pReader->context.pConnections)
     {
-        SMBRBTreeFree(pReader->context.pConnections);
+        LwRtlRBTreeFree(pReader->context.pConnections);
     }
 
     if (pReader->context.pWorkQueue)
@@ -367,9 +367,9 @@ SrvSocketReaderFillFdSet(
 
     SMB_LOCK_MUTEX(bInLock, &pReaderContext->mutex);
 
-    ntStatus = SMBRBTreeTraverse(
+    ntStatus = LwRtlRBTreeTraverse(
                     pReaderContext->pConnections,
-                    SMB_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
                     &SrvSocketReaderFillFdSetInOrder,
                     pReaderWorkset);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -575,7 +575,7 @@ SrvSocketReaderPurgeConnections(
         {
             pthread_mutex_lock(pReaderContext->pMutex);
 
-            SMBRBTreeRemove(
+            LwRtlRBTreeRemove(
                     pReaderContext->pConnections,
                     &pSrvConnection->pSocket->fd);
 
