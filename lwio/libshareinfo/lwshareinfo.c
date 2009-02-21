@@ -69,6 +69,22 @@ static LWMsgTypeSpec gShareInfo1Spec[] =
 };
 
 
+static LWMsgTypeSpec gShareInfo2Spec[] =
+{
+    LWMSG_STRUCT_BEGIN(SHARE_INFO_2),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_2, shi2_netname),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_2, shi2_type),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_2, shi2_remark),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_2, shi2_permissions),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_2, shi2_max_uses),
+    LWMSG_MEMBER_UINT32(SHARE_INFO_2, shi2_current_uses),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_2, shi2_path),
+    LWMSG_MEMBER_PWSTR(SHARE_INFO_2, shi2_password),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+
 static LWMsgTypeSpec gShareInfo502Spec[] =
 {
     LWMSG_STRUCT_BEGIN(SHARE_INFO_502),

@@ -167,6 +167,7 @@ SrvDevCtlEnumShares(
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
     PSHARE_DB_INFO pShares = NULL;
     PSHARE_INFO_1 p1 = NULL;
+    PSHARE_INFO_2 p2 = NULL;
     PSHARE_INFO_502 p502 = NULL;
 
     ntStatus = LwShareInfoUnmarshalEnumParameters(
@@ -196,6 +197,25 @@ SrvDevCtlEnumShares(
             p1[i].shi1_netname             = pShares[i].pwszName;
             p1[i].shi1_type                = pShares[i].service;
             p1[i].shi1_remark              = pShares[i].pwszComment;
+        }
+
+        EnumShareInfoParamsOut.info.p1 = p1;
+        break;
+
+    case 2:
+        dwError = SMBAllocateMemory(sizeof(*p2) * dwNumEntries, OUT_PPVOID(&p2));
+        BAIL_ON_SMB_ERROR(dwError);
+
+        for (i = 0; i < dwNumEntries; i++)
+        {
+            p2[i].shi2_netname             = pShares[i].pwszName;
+            p2[i].shi2_type                = pShares[i].service;
+            p2[i].shi2_remark              = pShares[i].pwszComment;
+            p2[i].shi2_permissions         = 0;
+            p2[i].shi2_max_uses            = 0;
+            p2[i].shi2_current_uses        = 0;
+            p2[i].shi2_path                = pShares[i].pwszPath;
+            p2[i].shi2_password            = NULL;
         }
 
         EnumShareInfoParamsOut.info.p1 = p1;
@@ -257,6 +277,8 @@ cleanup:
         LwIoFreeMemory((void*)pShares);
     }
 
+    SMB_SAFE_FREE_MEMORY(p1);
+    SMB_SAFE_FREE_MEMORY(p2);
     SMB_SAFE_FREE_MEMORY(p502);
     SMB_SAFE_FREE_MEMORY(pBuffer);
     SMB_SAFE_FREE_MEMORY(pEnumShareInfoParamsIn);
