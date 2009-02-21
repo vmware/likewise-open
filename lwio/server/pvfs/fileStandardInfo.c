@@ -107,12 +107,12 @@ PvfsQueryFileStandardInfo(
 
     /* Sanity checks */
 
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
-
-    /* No access checked needed for this call */
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
+
+    /* No access checked needed for this call */
 
     if (Args.Length < sizeof(*pFileInfo))
     {
@@ -137,6 +137,10 @@ PvfsQueryFileStandardInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
     return ntError;
 
 error:

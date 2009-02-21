@@ -65,6 +65,8 @@
 #include "alloc_p.h"
 #include "time_p.h"
 #include "syswrap_p.h"
+#include "synchronize_p.h"
+#include "ccb_p.h"
 
 /* Unix (POSIX) APIs */
 

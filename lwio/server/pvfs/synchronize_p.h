@@ -28,105 +28,47 @@
  * license@likewisesoftware.com
  */
 
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        close.c
+ *        synchronize_p.h
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Close Dispatch Function
+ *        Synchronization routines. Interlocking
+ *        ounters, etc...
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#include "pvfs.h"
+#ifndef _PVFS_SYNCHRONIZE_P_H
+#define _PVFS_SYNCHRONIZE_P_H
 
-/* Forward declarations */
+VOID
+PvfsInitializeInterlockedCounter(
+    PPVFS_INTERLOCKED_ULONG pCounter
+    );
 
-static NTSTATUS
-PvfsPerformDeleteOnClose(
-    PPVFS_CCB pCcb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
+VOID
+PvfsInterlockedIncrement(
+    PPVFS_INTERLOCKED_ULONG pCounter
+    );
 
-    /* Check for no-op */
+VOID
+PvfsInterlockedDecrement(
+    PPVFS_INTERLOCKED_ULONG pCounter
+    );
 
-    if (!(pCcb->CreateOptions & FILE_DELETE_ON_CLOSE)) {
-        return STATUS_SUCCESS;
-    }
+ULONG
+PvfsInterlockedCounter(
+    PPVFS_INTERLOCKED_ULONG pCounter
+    );
 
-    /* Check for renames */
-
-    ntError = PvfsValidatePath(pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysRemove(pCcb->pszFilename);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    /* Never fail this */
-    return STATUS_SUCCESS;
-
-error:
-    goto cleanup;
-}
-
-
-/* Code */
-
-NTSTATUS
-PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
-
-    /* make sure we have a proper CCB */
-
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Deal with delete-on-close */
-
-    ntError = PvfsPerformDeleteOnClose(pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Call closedir() for directions and close() for files */
-
-    if (PVFS_IS_DIR(pCcb)) {
-        ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
-        /* pCcb->fd is invalid now */
-    } else {
-        ntError = PvfsSysClose(pCcb->fd);
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Memory cleanup */
-
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
-
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-
+#endif    /* _PVFS_SYNCHRONIZE_P_H */
 
 /*
 local variables:
@@ -136,3 +78,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

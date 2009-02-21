@@ -101,13 +101,15 @@ PvfsSetFileDispositionInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PPVFS_CCB pCcb = NULL;
     PFILE_DISPOSITION_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
 
     /* Sanity checks */
 
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
     /* Should really be a check on the parent, but I'm not
@@ -141,6 +143,10 @@ PvfsSetFileDispositionInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
     return ntError;
 
 error:

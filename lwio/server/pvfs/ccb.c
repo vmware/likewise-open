@@ -33,138 +33,150 @@
  *
  * Module Name:
  *
- *        alloc.c
+ *        ccb.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Pvfs Memory allocation routines
+ *        Context Control Block routineus
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
+ *          Krishna Ganugapati <krishnag@likewise.com>
  */
 
 #include "pvfs.h"
 
-/***********************************************************
- **********************************************************/
+/* Forward declarations */
 
-NTSTATUS
-PvfsAllocateMemory(
-    IN OUT PVOID *ppBuffer,
-    IN DWORD dwSize
+
+/* Code */
+
+/*******************************************************
+ ******************************************************/
+
+static VOID
+PvfsAddRefCCB(
+    PPVFS_CCB pCCB
     )
 {
-    NTSTATUS ntError = STATUS_INSUFFICIENT_RESOURCES;
-    PVOID pBuffer = NULL;
+    PvfsInterlockedIncrement(&pCCB->cRef);
 
-    *ppBuffer = NULL;
-
-    /* No op */
-
-    if (dwSize == 0)
-    {
-        return STATUS_SUCCESS;
-    }
-
-    /* Real work */
-
-    if ((pBuffer = RtlMemoryAllocate(dwSize)) != NULL)
-    {
-        *ppBuffer = pBuffer;
-        ntError = STATUS_SUCCESS;
-    }
-
-    return ntError;
+    return;
 }
-
 
 /***********************************************************
  **********************************************************/
 
 NTSTATUS
-PvfsReallocateMemory(
-    IN OUT PVOID *ppBuffer,
-    IN DWORD dwNewSize
+PvfsAllocateCCB(
+    PPVFS_CCB *ppCCB
     )
 {
-    NTSTATUS ntError = STATUS_INSUFFICIENT_RESOURCES;
-    PVOID pBuffer = *ppBuffer;
-    PVOID pNewBuffer;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_CCB pCCB = NULL;
 
-    if (dwNewSize <= 0) {
-        return STATUS_INVALID_PARAMETER;
-    }
+    *ppCCB = NULL;
 
-    /* Check for a simple malloc() */
-
-    if (pBuffer == NULL)
-    {
-        return PvfsAllocateMemory(ppBuffer, dwNewSize);
-    }
+    ntError = PvfsAllocateMemory((PVOID*)&pCCB, sizeof(PVFS_CCB));
+    BAIL_ON_NT_STATUS(ntError);
 
 
-    if ((pNewBuffer = RtlMemoryRealloc(pBuffer, dwNewSize)) != NULL)
-    {
-        *ppBuffer = pNewBuffer;
-        ntError = STATUS_SUCCESS;
-    }
+    pthread_mutex_init(&pCCB->FileMutex, NULL);
+    pthread_mutex_init(&pCCB->ControlMutex, NULL);
 
+    PvfsInitializeInterlockedCounter(&pCCB->cRef);
+    PvfsAddRefCCB(pCCB);
+
+    *ppCCB = pCCB;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
     return ntError;
+
+error:
+    goto cleanup;
 }
 
-/***********************************************************
- **********************************************************/
+/*******************************************************
+ ******************************************************/
+
+NTSTATUS
+PvfsFreeCCB(
+    PPVFS_CCB pCCB
+    )
+{
+    if (pCCB->pDirContext) {
+        PvfsFreeDirectoryContext(pCCB->pDirContext);
+    }
+
+    PvfsFreeMemory(pCCB->pszFilename);
+    PvfsFreeMemory(pCCB);
+
+    return STATUS_SUCCESS;
+}
+
+
+/*******************************************************
+ ******************************************************/
+
 VOID
-PvfsFreeMemory(
-    IN OUT PVOID pBuffer
+PvfsReleaseCCB(
+    PPVFS_CCB pCCB
     )
 {
-    if (pBuffer) {
-        RtlMemoryFree(pBuffer);
+    PvfsInterlockedDecrement(&pCCB->cRef);
+    if (PvfsInterlockedCounter(&pCCB->cRef) == 0)
+    {
+        PvfsFreeCCB(pCCB);
     }
+
+    return;
+}
+
+
+/*******************************************************
+ ******************************************************/
+
+NTSTATUS
+PvfsAcquireCCB(
+    IO_FILE_HANDLE FileHandle,
+    PPVFS_CCB * ppCCB
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_CCB pCCB = (PPVFS_CCB)IoFileGetContext(FileHandle);
+
+    PVFS_BAIL_ON_INVALID_CCB(pCCB, ntError);
+
+    PvfsAddRefCCB(pCCB);
+
+    *ppCCB = pCCB;
+
+cleanup:
+    return ntError;
+
+error:
+    *ppCCB = NULL;
+
+    goto cleanup;
 
 }
 
-/***********************************************************
- **********************************************************/
+/*******************************************************
+ ******************************************************/
 
 NTSTATUS
-PvfsFreeIrpContext(
-	PPVFS_IRP_CONTEXT pIrpContext
+PvfsStoreCCB(
+    IO_FILE_HANDLE FileHandle,
+    PPVFS_CCB pCCB
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
 
-    if (pIrpContext)
-    {
-        PVFS_SAFE_FREE_MEMORY(pIrpContext);
-    }
-
-    return ntError;
-}
-
-/***********************************************************
- **********************************************************/
-
-NTSTATUS
-PvfsAllocateIrpContext(
-	PPVFS_IRP_CONTEXT *ppIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
-
-    *ppIrpContext = NULL;
-
-    ntError = PvfsAllocateMemory((PVOID*)&pIrpContext,
-                                 sizeof(PVFS_IRP_CONTEXT));
+    ntError = IoFileSetContext(FileHandle, (PVOID)pCCB);
     BAIL_ON_NT_STATUS(ntError);
-
-    pIrpContext->pIrp = pIrp;
-
-    *ppIrpContext = pIrpContext;
 
 cleanup:
     return ntError;

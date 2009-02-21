@@ -96,6 +96,9 @@
     (((pCcb)->CreateOptions & FILE_DIRECTORY_FILE) == FILE_DIRECTORY_FILE)
 
 
+#define ENTER_MUTEX(pMutex)  pthread_mutex_lock(pMutex)
+#define LEAVE_MUTEX(pMutex)  pthread_mutex_unlock(pMutex)
+
 #endif    /* _PVFS_MACROS_H */
 
 

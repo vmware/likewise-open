@@ -67,13 +67,16 @@ PvfsRead(
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
     BOOLEAN bUseOffset = pIrp->Args.ReadWrite.ByteOffset != NULL ? TRUE : FALSE;
-    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);;
+    PPVFS_CCB pCcb = NULL;
     size_t totalBytesRead = 0;
     LONG64 Offset = 0;
+    BOOLEAN bMutexLocked = FALSE;
 
     /* Sanity checks */
 
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     BAIL_ON_INVALID_PTR(pBuffer, ntError);
 
     if (PVFS_IS_DIR(pCcb)) {
@@ -96,6 +99,13 @@ PvfsRead(
     if (bUseOffset) {
         Offset = *pIrp->Args.ReadWrite.ByteOffset;
     }
+
+    /* Enter critical region - ReadFile() needs to fill
+       the buffer atomically while it may take several read()
+       calls */
+
+    ENTER_MUTEX(&pCcb->FileMutex);
+    bMutexLocked = TRUE;
 
     while (totalBytesRead < bufLen)
     {
@@ -130,6 +140,14 @@ PvfsRead(
         STATUS_END_OF_FILE;
 
 cleanup:
+    if (bMutexLocked) {
+        LEAVE_MUTEX(&pCcb->FileMutex);
+    }
+
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
     return ntError;
 
 error:

@@ -110,8 +110,8 @@ PvfsQueryFileFsAttribInfo(
 
     /* Sanity checks */
 
-    pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* not sure exact access rights to check for here */
 
@@ -149,6 +149,10 @@ PvfsQueryFileFsAttribInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
     PVFS_SAFE_FREE_MEMORY(pwszFsName);
 
     return ntError;

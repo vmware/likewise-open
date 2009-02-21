@@ -101,7 +101,7 @@ PvfsQueryFileStreamInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);;
+    PPVFS_CCB pCcb = NULL;
     PFILE_STREAM_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PVFS_STAT Stat = {0};
@@ -110,7 +110,9 @@ PvfsQueryFileStreamInfo(
 
     /* Sanity checks */
 
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
@@ -145,6 +147,10 @@ PvfsQueryFileStreamInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
     PVFS_SAFE_FREE_MEMORY(pwszStreamName);
 
     return ntError;

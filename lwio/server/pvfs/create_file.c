@@ -221,8 +221,7 @@ PvfsCreateFileSupersede(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-
-    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     CreateResult = bFileExisted ? FILE_SUPERSEDED : FILE_CREATED;
@@ -311,7 +310,7 @@ PvfsCreateFileCreate(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     CreateResult = FILE_CREATED;
@@ -387,7 +386,7 @@ PvfsCreateFileOpen(
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     CreateResult = FILE_OPENED;
@@ -492,7 +491,7 @@ PvfsCreateFileOpenIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     CreateResult = bFileExisted ? FILE_OPENED : FILE_CREATED;
@@ -568,7 +567,7 @@ PvfsCreateFileOverwrite(
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     CreateResult = FILE_OVERWRITTEN;
@@ -672,7 +671,7 @@ PvfsCreateFileOverwriteIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = IoFileSetContext(pIrp->FileHandle, (PVOID)pCcb);
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     CreateResult = bFileExisted ? FILE_OVERWRITTEN : FILE_CREATED;

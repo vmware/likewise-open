@@ -44,6 +44,8 @@
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
+#ifndef _PVFS_ALLOC_P_H
+#define _PVFS_ALLOC_P_H
 
 NTSTATUS
 PvfsAllocateMemory(
@@ -73,12 +75,7 @@ PvfsAllocateIrpContext(
     PIRP pIrp
     );
 
-NTSTATUS
-PvfsAllocateCCB(
-    PPVFS_CCB *ppCCB
-    );
-
-
+#endif       /* _PVFS_ALLOC_P_H */
 
 /*
 local variables:

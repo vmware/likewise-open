@@ -101,13 +101,15 @@ PvfsQueryFileEaInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);;
+    PPVFS_CCB pCcb = NULL;
     PFILE_EA_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
 
     /* Sanity checks */
 
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
     /* Not sure exactly which access rights are necessary here */
@@ -131,6 +133,10 @@ PvfsQueryFileEaInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
     return ntError;
 
 error:

@@ -251,7 +251,7 @@ PvfsQueryFileBothDirInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = (PPVFS_CCB)IoFileGetContext(pIrp->FileHandle);
+    PPVFS_CCB pCcb = NULL;
     PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_DIRECTORY Args = pIrpContext->pIrp->Args.QueryDirectory;
     PVOID pBuffer = NULL;
@@ -261,7 +261,8 @@ PvfsQueryFileBothDirInfo(
 
     /* Sanity checks */
 
-    PVFS_BAIL_ON_INVALID_CCB(pCcb, ntError);
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     if (!PVFS_IS_DIR(pCcb)) {
         ntError = STATUS_NOT_A_DIRECTORY;
@@ -283,11 +284,18 @@ PvfsQueryFileBothDirInfo(
 
     /* Scen the first time through */
 
-    if (!pCcb->pDirContext->bScanned)
-    {
+    ntError = STATUS_SUCCESS;
+
+    /* Critical region to prevent inteleaving directory
+       enumeration */
+
+    ENTER_MUTEX(&pCcb->FileMutex);
+    if (!pCcb->pDirContext->bScanned) {
         ntError = PvfsEnumerateDirectory(pCcb, &pIrp->Args.QueryDirectory);
-        BAIL_ON_NT_STATUS(ntError);
     }
+    LEAVE_MUTEX(&pCcb->FileMutex);
+
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Check for ending condition */
 
@@ -371,6 +379,10 @@ PvfsQueryFileBothDirInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
     return ntError;
 
 error:
