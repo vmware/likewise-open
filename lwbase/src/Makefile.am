@@ -12,7 +12,8 @@ liblwbase_nothr_la_SOURCES = \
         rtlstring_cstring.c \
         rtlstring_wc16string.c \
         rtlstring_unicode.c \
-        rtlstring_ansi.c
+        rtlstring_ansi.c \
+        rbtree.c
 
 liblwbase_nothr_la_LIBADD = \
         @LIBUNISTR_LIBS@

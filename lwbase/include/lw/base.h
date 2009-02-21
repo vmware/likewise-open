@@ -46,5 +46,6 @@
 #include <lw/errno.h>
 #include <lw/rtlmemory.h>
 #include <lw/rtlstring.h>
+#include <lw/rbtree.h>
 
 #endif

@@ -9,4 +9,5 @@ lwinclude_HEADERS = \
 	rtlmemory.h \
 	rtlstring.h \
 	base.h \
-	rtlgoto.h
+	rtlgoto.h \
+        rbtree.h
