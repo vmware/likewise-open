@@ -38,9 +38,7 @@ SrvTreeCreate(
 
     SMB_LOG_DEBUG("Creating Tree [tid: %u]", tid);
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SMB_SRV_TREE),
-                    (PVOID*)&pTree);
+    ntStatus = LW_RTL_ALLOCATE(&pTree, SMB_SRV_TREE, sizeof(SMB_SRV_TREE));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTree->refcount = 1;
@@ -339,6 +337,6 @@ SrvTreeFree(
         SrvShareDbReleaseInfo(pTree->pShareInfo);
     }
 
-    SMBFreeMemory(pTree);
+    LwRtlMemoryFree(pTree);
 }
 

@@ -222,9 +222,10 @@ SrvFinderCreateRepository(
     NTSTATUS ntStatus = 0;
     PSRV_FINDER_REPOSITORY pFinderRepository = NULL;
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SRV_FINDER_REPOSITORY),
-                    (PVOID*)&pFinderRepository);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pFinderRepository,
+                    SRV_FINDER_REPOSITORY,
+                    sizeof(SRV_FINDER_REPOSITORY));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFinderRepository->refCount = 1;
@@ -339,9 +340,10 @@ SrvFinderCreateSearchSpace(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SRV_SEARCH_SPACE),
-                    (PVOID*)&pSearchSpace);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pSearchSpace,
+                    SRV_SEARCH_SPACE,
+                    sizeof(SRV_SEARCH_SPACE));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSearchSpace->refCount = 1;
@@ -610,7 +612,10 @@ error:
     *pusSearchResultCount = 0;
     *pbEndOfSearch = FALSE;
 
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     goto cleanup;
 }
@@ -744,9 +749,10 @@ SrvFinderGetBothDirInfoSearchResults(
         // Keep space for 10 items
         USHORT usBytesAllocated = (sizeof(FILE_BOTH_DIR_INFORMATION) + 256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = SMBAllocateMemory(
-                        usBytesAllocated,
-                        (PVOID*)&pSearchSpace->pFileInfo);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pSearchSpace->pFileInfo,
+                        BYTE,
+                        usBytesAllocated);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pSearchSpace->usFileInfoLen = usBytesAllocated;
@@ -856,7 +862,10 @@ error:
     *pusSearchResultCount = 0;
     *pbEndOfSearch = FALSE;
 
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     goto cleanup;
 }
@@ -920,9 +929,10 @@ SrvFinderMarshallBothDirInfoResults(
 
     if (!pData)
     {
-        ntStatus = SMBAllocateMemory(
-                        usBytesRequired,
-                        (PVOID*)&pData);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pData,
+                        BYTE,
+                        usBytesRequired);
         BAIL_ON_NT_STATUS(ntStatus);
 
         usDataLen = usBytesRequired;
@@ -1028,7 +1038,10 @@ error:
     *pusDataLen = 0;
     *ppData = NULL;
 
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     goto cleanup;
 }
@@ -1124,7 +1137,7 @@ SrvFinderFreeRepository(
         pthread_mutex_destroy(&pFinderRepository->mutex);
     }
 
-    SMBFreeMemory(pFinderRepository);
+    LwRtlMemoryFree(pFinderRepository);
 }
 
 static
@@ -1181,7 +1194,10 @@ SrvFinderFreeSearchSpace(
         IoCloseFile(pSearchSpace->hFile);
     }
 
-    SMB_SAFE_FREE_MEMORY(pSearchSpace->pFileInfo);
+    if (pSearchSpace->pFileInfo)
+    {
+        LwRtlMemoryFree(pSearchSpace->pFileInfo);
+    }
 
-    SMBFreeMemory(pSearchSpace);
+    LwRtlMemoryFree(pSearchSpace);
 }

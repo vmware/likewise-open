@@ -355,7 +355,10 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
-    SMB_SAFE_FREE_MEMORY(pwszFilepath);
+    if (pwszFilepath)
+    {
+        LwRtlMemoryFree(pwszFilepath);
+    }
 
     return ntStatus;
 

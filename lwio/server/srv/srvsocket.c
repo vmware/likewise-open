@@ -16,9 +16,10 @@ SrvSocketCreate(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SMB_SRV_SOCKET),
-                    (PVOID*)&pSocket);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pSocket,
+                    SMB_SRV_SOCKET,
+                    sizeof(SMB_SRV_SOCKET));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pSocket->mutex, NULL);
@@ -54,5 +55,5 @@ SrvSocketFree(
         pthread_mutex_destroy(pSocket->pMutex);
         pSocket->pMutex = NULL;
     }
-    SMBFreeMemory(pSocket);
+    LwRtlMemoryFree(pSocket);
 }

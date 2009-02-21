@@ -393,7 +393,10 @@ cleanup:
         SrvFinderReleaseSearchSpace(hSearchSpace);
     }
 
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     return ntStatus;
 

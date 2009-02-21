@@ -172,7 +172,10 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
-    SMB_SAFE_FREE_MEMORY(pwszDirectoryPath);
+    if (pwszDirectoryPath)
+    {
+        LwRtlMemoryFree(pwszDirectoryPath);
+    }
 
     return ntStatus;
 

@@ -19,7 +19,7 @@ SrvFreeShareInfoList(
         }
     }
 
-    SMBFreeMemory(ppShareInfoList);
+    LwRtlMemoryFree(ppShareInfoList);
 }
 
 VOID
@@ -33,7 +33,7 @@ SrvFreeShareInfo(
     SMB_SAFE_FREE_STRING(pShareInfo->pszComment);
     SMB_SAFE_FREE_STRING(pShareInfo->pszSID);
 
-    SMBFreeMemory(pShareInfo);
+    LwRtlMemoryFree(pShareInfo);
 }
 
 

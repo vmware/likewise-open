@@ -20,9 +20,10 @@ SrvAcquireHostInfo(
 
     if (!pOrigHostInfo)
     {
-        ntStatus = SMBAllocateMemory(
-                        sizeof(SRV_HOST_INFO),
-                        (PVOID*)&pHostInfo);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pHostInfo,
+                        SRV_HOST_INFO,
+                        sizeof(SRV_HOST_INFO));
         BAIL_ON_NT_STATUS(ntStatus);
 
         pHostInfo->refcount = 1;
@@ -105,5 +106,5 @@ SrvFreeHostInfo(
     SMB_SAFE_FREE_STRING(pHostinfo->pszHostname);
     SMB_SAFE_FREE_STRING(pHostinfo->pszDomain);
 
-    SMBFreeMemory(pHostinfo);
+    LwRtlMemoryFree(pHostinfo);
 }

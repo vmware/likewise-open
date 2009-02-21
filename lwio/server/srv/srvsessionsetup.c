@@ -165,7 +165,11 @@ SrvUnmarshallSessionSetupRequest(
                     &pwszNativeDomain);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_SAFE_FREE_MEMORY(pConnection->clientProperties.pwszNativeOS);
+    if (pConnection->clientProperties.pwszNativeOS)
+    {
+        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeOS);
+        pConnection->clientProperties.pwszNativeOS = NULL;
+    }
     if (pwszNativeOS)
     {
         ntStatus = SMBAllocateStringW(
@@ -174,7 +178,11 @@ SrvUnmarshallSessionSetupRequest(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_SAFE_FREE_MEMORY(pConnection->clientProperties.pwszNativeLanMan);
+    if (pConnection->clientProperties.pwszNativeLanMan)
+    {
+        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeLanMan);
+        pConnection->clientProperties.pwszNativeLanMan = NULL;
+    }
     if (pwszNativeLanMan)
     {
         ntStatus = SMBAllocateStringW(
@@ -183,7 +191,11 @@ SrvUnmarshallSessionSetupRequest(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_SAFE_FREE_MEMORY(pConnection->clientProperties.pwszNativeDomain);
+    if (pConnection->clientProperties.pwszNativeDomain)
+    {
+        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeDomain);
+        pConnection->clientProperties.pwszNativeDomain = NULL;
+    }
     if (pwszNativeDomain)
     {
         ntStatus = SMBAllocateStringW(
@@ -314,7 +326,10 @@ SrvMarshallSessionSetupResponse(
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pReplySecurityBlob);
+    if (pReplySecurityBlob)
+    {
+        LwRtlMemoryFree(pReplySecurityBlob);
+    }
 
     return ntStatus;
 

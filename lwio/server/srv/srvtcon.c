@@ -197,7 +197,10 @@ cleanup:
         SrvShareDbReleaseInfo(pShareInfo);
     }
 
-    SMB_SAFE_FREE_MEMORY(pwszSharename);
+    if (pwszSharename)
+    {
+        LwRtlMemoryFree(pwszSharename);
+    }
 
     return (ntStatus);
 
@@ -278,9 +281,10 @@ SrvGetShareNameCheckHostname(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    (len + 1) * sizeof(wchar16_t),
-                    (PVOID*)&pwszPath_copy);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pwszPath_copy,
+                    WCHAR,
+                    (len + 1) * sizeof(wchar16_t));
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
@@ -321,9 +325,10 @@ SrvGetShareNameCheckHostname(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    (len_sharename + 1) * sizeof(wchar16_t),
-                    (PVOID*)&pwszSharename);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pwszSharename,
+                    WCHAR,
+                    (len_sharename + 1) * sizeof(wchar16_t));
     BAIL_ON_NT_STATUS(ntStatus);
 
     // copy from original path
@@ -333,9 +338,18 @@ SrvGetShareNameCheckHostname(
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszHostPrefix);
-    SMB_SAFE_FREE_MEMORY(pwszHostPrefix);
-    SMB_SAFE_FREE_MEMORY(pwszPath_copy);
+    if (pszHostPrefix)
+    {
+        LwRtlMemoryFree(pszHostPrefix);
+    }
+    if (pwszHostPrefix)
+    {
+        LwRtlMemoryFree(pwszHostPrefix);
+    }
+    if (pwszPath_copy)
+    {
+        LwRtlMemoryFree(pwszPath_copy);
+    }
 
     return ntStatus;
 
@@ -343,7 +357,10 @@ error:
 
     *ppwszSharename = NULL;
 
-    SMB_SAFE_FREE_MEMORY(pwszSharename);
+    if (pwszSharename)
+    {
+        LwRtlMemoryFree(pwszSharename);
+    }
 
     goto cleanup;
 }
@@ -371,9 +388,10 @@ SrvGetShareNameCheckFQDN(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    (len + 1) * sizeof(wchar16_t),
-                    (PVOID*)&pwszPath_copy);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pwszPath_copy,
+                    WCHAR,
+                    (len + 1) * sizeof(wchar16_t));
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
@@ -414,9 +432,10 @@ SrvGetShareNameCheckFQDN(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    (len_sharename + 1) * sizeof(wchar16_t),
-                    (PVOID*)&pwszSharename);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pwszSharename,
+                    WCHAR,
+                    (len_sharename + 1) * sizeof(wchar16_t));
     BAIL_ON_NT_STATUS(ntStatus);
 
     // copy from original path
@@ -426,9 +445,18 @@ SrvGetShareNameCheckFQDN(
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszHostPrefix);
-    SMB_SAFE_FREE_MEMORY(pwszHostPrefix);
-    SMB_SAFE_FREE_MEMORY(pwszPath_copy);
+    if (pszHostPrefix)
+    {
+        LwRtlMemoryFree(pszHostPrefix);
+    }
+    if (pwszHostPrefix)
+    {
+        LwRtlMemoryFree(pwszHostPrefix);
+    }
+    if (pwszPath_copy)
+    {
+        LwRtlMemoryFree(pwszPath_copy);
+    }
 
     return ntStatus;
 
@@ -436,7 +464,10 @@ error:
 
     *ppwszSharename = NULL;
 
-    SMB_SAFE_FREE_MEMORY(pwszSharename);
+    if (pwszSharename)
+    {
+        LwRtlMemoryFree(pwszSharename);
+    }
 
     goto cleanup;
 }
@@ -536,8 +567,14 @@ SrvBuildTreeConnectResponse(
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszService);
-    SMB_SAFE_FREE_MEMORY(pwszNativeFileSystem);
+    if (pszService)
+    {
+        LwRtlMemoryFree(pszService);
+    }
+    if (pwszNativeFileSystem)
+    {
+        LwRtlMemoryFree(pwszNativeFileSystem);
+    }
 
     return ntStatus;
 
@@ -749,9 +786,7 @@ SrvGetNativeFilesystem(
 
     usBytesAllocated = sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = SMBAllocateMemory(
-                    usBytesAllocated,
-                    (PVOID*)&pVolumeInfo);
+    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -804,7 +839,10 @@ cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
-    SMB_SAFE_FREE_MEMORY(pVolumeInfo);
+    if (pVolumeInfo)
+    {
+        LwRtlMemoryFree(pVolumeInfo);
+    }
 
     if (hFile)
     {

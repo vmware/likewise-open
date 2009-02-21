@@ -41,9 +41,10 @@ SrvBuildFilePath(
         len_separator = sizeof(wszBackSlash);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    (len_prefix + len_suffix + len_separator + 1 ) * sizeof(wchar16_t),
-                    (PVOID*)&pwszFilename);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pwszFilename,
+                    WCHAR,
+                    (len_prefix + len_suffix + len_separator + 1 ) * sizeof(wchar16_t));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pwszFilename;
@@ -82,7 +83,10 @@ error:
 
     *ppwszFilename = NULL;
 
-    SMB_SAFE_FREE_MEMORY(pwszFilename);
+    if (pwszFilename)
+    {
+        LwRtlMemoryFree(pwszFilename);
+    }
 
     goto cleanup;
 }

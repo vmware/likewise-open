@@ -334,8 +334,10 @@ SrvAddShareInfoToList(
     NTSTATUS ntStatus = 0;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
 
-    ntStatus = LwIoAllocateMemory(sizeof(SRV_SHARE_ENTRY),
-                                  (void**)&pShareEntry);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pShareEntry,
+                    SRV_SHARE_ENTRY,
+                    sizeof(SRV_SHARE_ENTRY));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pShareEntry->pInfo = pShareInfo;
@@ -533,12 +535,16 @@ SrvShareAddShare(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LwIoAllocateMemory(sizeof(SRV_SHARE_ENTRY),
-                                  (void**)&pShareEntry);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pShareEntry,
+                    SRV_SHARE_ENTRY,
+                    sizeof(SRV_SHARE_ENTRY));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwIoAllocateMemory(sizeof(SHARE_DB_INFO),
-                                  (void**)&pShareInfo);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pShareInfo,
+                    SHARE_DB_INFO,
+                    sizeof(SHARE_DB_INFO));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pShareInfo->pwszName    = pwszShareName;
@@ -846,8 +852,10 @@ SrvShareEnumShares(
         dwCount++;
     }
 
-    dwError = LwIoAllocateMemory(dwCount * sizeof(SHARE_DB_INFO),
-                                 (void**)&pShares);
+    dwError = LW_RTL_ALLOCATE(
+                    &pShares,
+                    SHARE_DB_INFO,
+                    dwCount * sizeof(SHARE_DB_INFO));
     BAIL_ON_SMB_ERROR(dwError);
 
     pShareEntry = pDbContext->pShareEntry;

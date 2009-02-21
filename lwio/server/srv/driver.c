@@ -260,9 +260,10 @@ SrvInitialize(
                     &SrvContextFree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBAllocateMemory(
-                    gSMBSrvGlobals.config.ulNumReaders * sizeof(SMB_SRV_SOCKET_READER),
-                    (PVOID*)&gSMBSrvGlobals.pReaderArray);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &gSMBSrvGlobals.pReaderArray,
+                    SMB_SRV_SOCKET_READER,
+                    gSMBSrvGlobals.config.ulNumReaders * sizeof(SMB_SRV_SOCKET_READER));
     BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.ulNumReaders = gSMBSrvGlobals.config.ulNumReaders;
@@ -281,9 +282,10 @@ SrvInitialize(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    gSMBSrvGlobals.config.ulNumWorkers * sizeof(SMB_SRV_WORKER),
-                    (PVOID*)&gSMBSrvGlobals.pWorkerArray);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &gSMBSrvGlobals.pWorkerArray,
+                    SMB_SRV_WORKER,
+                    gSMBSrvGlobals.config.ulNumWorkers * sizeof(SMB_SRV_WORKER));
     BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.ulNumWorkers = gSMBSrvGlobals.config.ulNumWorkers;
@@ -344,7 +346,7 @@ SrvShutdown(
                 }
             }
 
-            SMBFreeMemory(gSMBSrvGlobals.pReaderArray);
+            LwRtlMemoryFree(gSMBSrvGlobals.pReaderArray);
         }
 
         if (gSMBSrvGlobals.pWorkerArray)
@@ -364,9 +366,10 @@ SrvShutdown(
                 // Interrupt the workers by inserting dummy items in the work queue
                 for (; iItem < gSMBSrvGlobals.ulNumWorkers * 2; iItem++)
                 {
-                    ntStatus = SMBAllocateMemory(
-                                    sizeof(LWIO_SRV_CONTEXT),
-                                    (PVOID*)&pContext);
+                    ntStatus = LW_RTL_ALLOCATE(
+                                    &pContext,
+                                    LWIO_SRV_CONTEXT,
+                                    sizeof(LWIO_SRV_CONTEXT));
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     ntStatus = SrvProdConsEnqueue(&gSMBSrvGlobals.workQueue, pContext);

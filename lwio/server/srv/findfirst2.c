@@ -456,9 +456,18 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
-    SMB_SAFE_FREE_MEMORY(pData);
-    SMB_SAFE_FREE_MEMORY(pwszFilesystemPath);
-    SMB_SAFE_FREE_MEMORY(pwszSearchPattern2);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
+    if (pwszFilesystemPath)
+    {
+        LwRtlMemoryFree(pwszFilesystemPath);
+    }
+    if (pwszSearchPattern2)
+    {
+        LwRtlMemoryFree(pwszSearchPattern2);
+    }
 
     return ntStatus;
 
@@ -592,9 +601,10 @@ SrvBuildSearchPath(
 
         sSuffixLen = ((PBYTE)pwszLastSlash - (PBYTE)pwszSearchPattern3);
 
-        ntStatus = SMBAllocateMemory(
-                        sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t),
-                        (PVOID*)&pwszFilesystemPath);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pwszFilesystemPath,
+                        WCHAR,
+                        sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t));
         BAIL_ON_NT_STATUS(ntStatus);
 
         pDataCursor = (PBYTE)pwszFilesystemPath;
@@ -635,7 +645,10 @@ SrvBuildSearchPath(
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pwszSearchPattern3);
+    if (pwszSearchPattern3)
+    {
+        LwRtlMemoryFree(pwszSearchPattern3);
+    }
 
     return ntStatus;
 
@@ -644,8 +657,14 @@ error:
     *ppwszFilesystemPath = NULL;
     *ppwszSearchPattern = NULL;
 
-    SMB_SAFE_FREE_MEMORY(pwszFilesystemPath);
-    SMB_SAFE_FREE_MEMORY(pwszSearchPattern2);
+    if (pwszFilesystemPath)
+    {
+        LwRtlMemoryFree(pwszFilesystemPath);
+    }
+    if (pwszSearchPattern2)
+    {
+        LwRtlMemoryFree(pwszSearchPattern2);
+    }
 
     goto cleanup;
 }

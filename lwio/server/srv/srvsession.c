@@ -37,9 +37,10 @@ SrvSessionCreate(
 
     SMB_LOG_DEBUG("Creating session [uid:%u]", uid);
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SMB_SRV_SESSION),
-                    (PVOID*)&pSession);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pSession,
+                    SMB_SRV_SESSION,
+                    sizeof(SMB_SRV_SESSION));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSession->refcount = 1;
@@ -326,6 +327,6 @@ SrvSessionFree(
 
     IO_SAFE_FREE_MEMORY(pSession->pszClientPrincipalName);
 
-    SMBFreeMemory(pSession);
+    LwRtlMemoryFree(pSession);
 }
 

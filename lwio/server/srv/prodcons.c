@@ -16,9 +16,10 @@ SrvProdConsInit(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SMB_PROD_CONS_QUEUE),
-                    (PVOID*)&pQueue);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pQueue,
+                    SMB_PROD_CONS_QUEUE,
+                    sizeof(SMB_PROD_CONS_QUEUE));
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvProdConsInitContents(
@@ -238,7 +239,7 @@ SrvProdConsFree(
 {
     SrvProdConsFreeContents(pQueue);
 
-    SMBFreeMemory(pQueue);
+    LwRtlMemoryFree(pQueue);
 }
 
 VOID

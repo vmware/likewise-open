@@ -60,9 +60,10 @@ SrvConnectionCreate(
 
     SMB_LOG_DEBUG("Creating server connection [fd:%d]", pSocket->fd);
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SMB_SRV_CONNECTION),
-                    (PVOID*)&pConnection);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pConnection,
+                    SMB_SRV_CONNECTION,
+                    sizeof(SMB_SRV_CONNECTION));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->refCount = 1;
@@ -557,7 +558,10 @@ SrvConnectionRelease(
                 pConnection->readerState.pRequestPacket);
         }
 
-        SMB_SAFE_FREE_MEMORY(pConnection->pSessionKey);
+        if (pConnection->pSessionKey)
+        {
+            LwRtlMemoryFree(pConnection->pSessionKey);
+        }
 
         if (pConnection->hGssNegotiate)
         {
@@ -589,7 +593,7 @@ SrvConnectionRelease(
 
         SrvConnectionFreeContentsClientProperties(&pConnection->clientProperties);
 
-        SMBFreeMemory(pConnection);
+        LwRtlMemoryFree(pConnection);
     }
 }
 
@@ -652,9 +656,18 @@ SrvConnectionFreeContentsClientProperties(
     PSRV_CLIENT_PROPERTIES pProperties
     )
 {
-    SMB_SAFE_FREE_MEMORY(pProperties->pwszNativeLanMan);
-    SMB_SAFE_FREE_MEMORY(pProperties->pwszNativeOS);
-    SMB_SAFE_FREE_MEMORY(pProperties->pwszNativeDomain);
+    if (pProperties->pwszNativeLanMan)
+    {
+        LwRtlMemoryFree(pProperties->pwszNativeLanMan);
+    }
+    if (pProperties->pwszNativeOS)
+    {
+        LwRtlMemoryFree(pProperties->pwszNativeOS);
+    }
+    if (pProperties->pwszNativeDomain)
+    {
+        LwRtlMemoryFree(pProperties->pwszNativeDomain);
+    }
 }
 
 static

@@ -94,9 +94,10 @@ SrvGssGetSessionDetails(
             &nameOid);
         BAIL_ON_SEC_ERROR(ntStatus);
 
-        ntStatus = SMBAllocateMemory(
-            nameBuffer.length + 1,
-            OUT_PPVOID(&pszClientPrincipalName));
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pszClientPrincipalName,
+                        CHAR,
+                        nameBuffer.length + 1);
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pszClientPrincipalName, nameBuffer.value, nameBuffer.length);
@@ -107,9 +108,10 @@ SrvGssGetSessionDetails(
     {
         assert(sessionKey.length > 0);
 
-        ntStatus = SMBAllocateMemory(
-            sessionKey.length * sizeof(BYTE),
-            (PVOID*)&pSessionKey);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pSessionKey,
+                        BYTE,
+                        sessionKey.length * sizeof(BYTE));
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pSessionKey, sessionKey.value, sessionKey.length);
@@ -144,8 +146,14 @@ error:
     *ppSessionKey = NULL;
     *pulSessionKeyLength = 0;
 
-    SMB_SAFE_FREE_MEMORY(pSessionKey);
-    SMB_SAFE_FREE_MEMORY(pszClientPrincipalName);
+    if (pSessionKey)
+    {
+        LwRtlMemoryFree(pSessionKey);
+    }
+    if (pszClientPrincipalName)
+    {
+        LwRtlMemoryFree(pszClientPrincipalName);
+    }
 
     goto cleanup;
 }
@@ -159,16 +167,18 @@ SrvGssBeginNegotiate(
     NTSTATUS ntStatus = 0;
     PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = NULL;
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SRV_GSS_NEGOTIATE_CONTEXT),
-                    (PVOID*)&pGssNegotiate);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pGssNegotiate,
+                    SRV_GSS_NEGOTIATE_CONTEXT,
+                    sizeof(SRV_GSS_NEGOTIATE_CONTEXT));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_INITIAL;
 
-    ntStatus = SMBAllocateMemory(
-                        sizeof(gss_ctx_id_t),
-                        (PVOID*)&pGssNegotiate->pGssContext);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pGssNegotiate->pGssContext,
+                    gss_ctx_id_t,
+                    sizeof(gss_ctx_id_t));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *pGssNegotiate->pGssContext = GSS_C_NO_CONTEXT;
@@ -280,10 +290,10 @@ SrvGssEndNegotiate(
                         pGssNegotiateContext->pGssContext,
                         GSS_C_NO_BUFFER);
 
-        SMBFreeMemory(pGssNegotiateContext->pGssContext);
+        LwRtlMemoryFree(pGssNegotiateContext->pGssContext);
     }
 
-    SMBFreeMemory(pGssNegotiateContext);
+    LwRtlMemoryFree(pGssNegotiateContext);
 }
 
 VOID
@@ -311,9 +321,10 @@ SrvGssNewContext(
     PSRV_KRB5_CONTEXT pContext = NULL;
     BOOLEAN  bInLock = FALSE;
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SRV_KRB5_CONTEXT),
-                    (PVOID*)&pContext);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pContext,
+                    SRV_KRB5_CONTEXT,
+                    sizeof(SRV_KRB5_CONTEXT));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pContext->refcount = 1;
@@ -365,7 +376,10 @@ error:
         SrvGssFreeContext(pContext);
     }
 
-    SMB_SAFE_FREE_STRING(pszCachePath);
+    if (pszCachePath)
+    {
+        LwRtlMemoryFree(pszCachePath);
+    }
 
     goto cleanup;
 }
@@ -463,9 +477,10 @@ SrvGssInitNegotiate(
 
     if (output_desc.length)
     {
-        ntStatus = SMBAllocateMemory(
-                        output_desc.length,
-                        (PVOID*)&pSessionKey);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pSessionKey,
+                        BYTE,
+                        output_desc.length);
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pSessionKey, output_desc.value, output_desc.length);
@@ -501,7 +516,7 @@ cleanup:
             pszCurrentCachePath,
             NULL);
 
-        SMBFreeMemory(pszCurrentCachePath);
+        LwRtlMemoryFree(pszCurrentCachePath);
     }
 
     return ntStatus;
@@ -515,7 +530,10 @@ error:
     *ppSecurityOutputBlob = NULL;
     *pulSecurityOutputBloblen = 0;
 
-    SMB_SAFE_FREE_MEMORY(pSessionKey);
+    if (pSessionKey)
+    {
+        LwRtlMemoryFree(pSessionKey);
+    }
 
     goto cleanup;
 }
@@ -591,9 +609,10 @@ SrvGssContinueNegotiate(
 
     if (output_desc.length)
     {
-        ntStatus = SMBAllocateMemory(
-                        output_desc.length,
-                        (PVOID*)&pSecurityBlob);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pSecurityBlob,
+                        BYTE,
+                        output_desc.length);
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pSecurityBlob, output_desc.value, output_desc.length);
@@ -621,7 +640,10 @@ error:
     *ppSecurityOutputBlob = NULL;
     *pulSecurityOutputBloblen = 0;
 
-    SMB_SAFE_FREE_MEMORY(pSecurityBlob);
+    if (pSecurityBlob)
+    {
+        LwRtlMemoryFree(pSecurityBlob);
+    }
 
     goto cleanup;
 }
@@ -645,8 +667,14 @@ SrvGssFreeContext(
         }
     }
 
-    SMB_SAFE_FREE_STRING(pContext->pszCachePath);
-    SMB_SAFE_FREE_STRING(pContext->pszMachinePrincipal);
+    if (pContext->pszCachePath)
+    {
+        LwRtlMemoryFree(pContext->pszCachePath);
+    }
+    if (pContext->pszMachinePrincipal)
+    {
+        LwRtlMemoryFree(pContext->pszMachinePrincipal);
+    }
 
     if (pContext->pMutex)
     {

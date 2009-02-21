@@ -10,9 +10,10 @@ SrvTaskCreate(
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_TASK pTask = NULL;
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(LWIO_SRV_TASK),
-                    (PVOID*)&pTask);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pTask,
+                    LWIO_SRV_TASK,
+                    sizeof(LWIO_SRV_TASK));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTask->pConnection = pConnection;
@@ -46,5 +47,5 @@ SrvTaskFree(
         SrvConnectionRelease(pIOTask->pConnection);
     }
 
-    SMBFreeMemory(pTask);
+    LwRtlMemoryFree(pTask);
 }

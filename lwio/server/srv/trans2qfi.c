@@ -682,9 +682,10 @@ SrvBuildQueryFileStreamInfoResponse(
 
     usBytesAllocated = sizeof(FILE_STREAM_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = SMBAllocateMemory(
-                    usBytesAllocated,
-                    (PVOID*)&pFileStreamInfo);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pFileStreamInfo,
+                    BYTE,
+                    usBytesAllocated);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -779,8 +780,14 @@ SrvBuildQueryFileStreamInfoResponse(
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pFileStreamInfo);
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pFileStreamInfo)
+    {
+        LwRtlMemoryFree(pFileStreamInfo);
+    }
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     return ntStatus;
 
@@ -845,9 +852,10 @@ SrvMarshallFileStreamInfo(
         }
     }
 
-    ntStatus = SMBAllocateMemory(
-                    usBytesRequired,
-                    (PVOID*)&pData);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pData,
+                    BYTE,
+                    usBytesRequired);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
@@ -893,7 +901,10 @@ error:
     *ppData = NULL;
     *pusDataLen = 0;
 
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     goto cleanup;
 }

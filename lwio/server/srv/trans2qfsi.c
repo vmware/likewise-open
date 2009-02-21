@@ -406,9 +406,7 @@ SrvBuildFSVolumeInfoResponse(
 
     usBytesAllocated = sizeof(FILE_FS_VOLUME_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = SMBAllocateMemory(
-                    usBytesAllocated,
-                    (PVOID*)&pVolumeInfo);
+    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -502,8 +500,14 @@ SrvBuildFSVolumeInfoResponse(
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pVolumeInfo);
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pVolumeInfo)
+    {
+        LwRtlMemoryFree(pVolumeInfo);
+    }
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     return ntStatus;
 
@@ -553,9 +557,7 @@ SrvMarshallFSVolumeInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    usBytesRequired,
-                    (PVOID*)&pData);
+    ntStatus = LW_RTL_ALLOCATE(&pData, BYTE, usBytesRequired);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
@@ -584,7 +586,10 @@ error:
     *ppData = NULL;
     *pusDataLen = 0;
 
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     goto cleanup;
 }
@@ -724,9 +729,7 @@ SrvBuildFSAttributeInfoResponse(
 
     usBytesAllocated = sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = SMBAllocateMemory(
-                    usBytesAllocated,
-                    (PVOID*)&pVolumeInfo);
+    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -820,8 +823,14 @@ SrvBuildFSAttributeInfoResponse(
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pVolumeInfo);
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pVolumeInfo)
+    {
+        LwRtlMemoryFree(pVolumeInfo);
+    }
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     return ntStatus;
 
@@ -876,9 +885,7 @@ SrvMarshallFSAttributeInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    usBytesRequired,
-                    (PVOID*)&pData);
+    ntStatus = LW_RTL_ALLOCATE(&pData, BYTE, usBytesRequired);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
@@ -906,7 +913,10 @@ error:
     *ppData = NULL;
     *pusDataLen = 0;
 
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     goto cleanup;
 }

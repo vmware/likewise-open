@@ -189,7 +189,10 @@ SrvDevCtlEnumShares(
     switch (dwLevel)
     {
     case 1:
-        dwError = SMBAllocateMemory(sizeof(*p1) * dwNumEntries, OUT_PPVOID(&p1));
+        dwError = LW_RTL_ALLOCATE(
+                      &p1,
+                      SHARE_INFO_1,
+                      sizeof(*p1) * dwNumEntries);
         BAIL_ON_SMB_ERROR(dwError);
 
         for (i = 0; i < dwNumEntries; i++)
@@ -222,7 +225,10 @@ SrvDevCtlEnumShares(
         break;
 
     case 502:
-        dwError = SMBAllocateMemory(sizeof(*p502) * dwNumEntries, OUT_PPVOID(&p502));
+        dwError = LW_RTL_ALLOCATE(
+                        &p502,
+                        SHARE_INFO_502,
+                        sizeof(*p502) * dwNumEntries);
         BAIL_ON_SMB_ERROR(dwError);
 
         for (i = 0; i < dwNumEntries; i++)
@@ -266,22 +272,52 @@ SrvDevCtlEnumShares(
     *pulBytesTransferred = pBufferSize;
 
 cleanup:
-    if (pShares) {
-        for (i = 0; i < dwNumEntries; i++) {
-            SMB_SAFE_FREE_MEMORY(pShares[i].pwszName);
-            SMB_SAFE_FREE_MEMORY(pShares[i].pwszPath);
-            SMB_SAFE_FREE_MEMORY(pShares[i].pwszComment);
-            SMB_SAFE_FREE_MEMORY(pShares[i].pwszSID);
+
+    if (pShares)
+    {
+        for (i = 0; i < dwNumEntries; i++)
+        {
+            if (pShares[i].pwszName)
+            {
+                LwRtlMemoryFree(pShares[i].pwszName);
+            }
+            if (pShares[i].pwszPath)
+            {
+                LwRtlMemoryFree(pShares[i].pwszPath);
+            }
+            if (pShares[i].pwszComment)
+            {
+                LwRtlMemoryFree(pShares[i].pwszComment);
+            }
+            if (pShares[i].pwszSID)
+            {
+                LwRtlMemoryFree (pShares[i].pwszSID);
+            }
         }
 
         LwIoFreeMemory((void*)pShares);
     }
 
-    SMB_SAFE_FREE_MEMORY(p1);
-    SMB_SAFE_FREE_MEMORY(p2);
-    SMB_SAFE_FREE_MEMORY(p502);
-    SMB_SAFE_FREE_MEMORY(pBuffer);
-    SMB_SAFE_FREE_MEMORY(pEnumShareInfoParamsIn);
+    if (p1)
+    {
+        LwRtlMemoryFree(p1);
+    }
+    if (p2)
+    {
+        LwRtlMemoryFree(p2);
+    }
+    if (p502)
+    {
+        LwRtlMemoryFree(p502);
+    }
+    if (pBuffer)
+    {
+        LwRtlMemoryFree(pBuffer);
+    }
+    if (pEnumShareInfoParamsIn)
+    {
+        LwRtlMemoryFree(pEnumShareInfoParamsIn);
+    }
 
     return ntStatus;
 

@@ -113,9 +113,10 @@ SrvProcessNTCreateAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
     // TODO: Handle root fids
-    ntStatus = SMBAllocateMemory(
-                    sizeof(IO_FILE_NAME),
-                    (PVOID*)&pFilename);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pFilename,
+                    IO_FILE_NAME,
+                    sizeof(IO_FILE_NAME));
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildFilePath(
@@ -221,8 +222,12 @@ error:
 
     if (pFilename)
     {
-        SMB_SAFE_FREE_MEMORY(pFilename->FileName);
-        SMBFreeMemory(pFilename);
+        if (pFilename->FileName)
+        {
+            LwRtlMemoryFree(pFilename->FileName);
+        }
+
+        LwRtlMemoryFree(pFilename);
     }
 
     if (hFile)

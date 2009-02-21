@@ -385,7 +385,10 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pSessionKey);
+    if (pSessionKey)
+    {
+        LwRtlMemoryFree(pSessionKey);
+    }
 
     return ntStatus;
 

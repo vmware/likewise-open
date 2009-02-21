@@ -27,9 +27,10 @@ SrvCCBCreate(
     NTSTATUS ntStatus = 0;
     PSRV_CCB pCCB = NULL;
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SRV_CCB),
-                    (PVOID*)&pCCB);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pCCB,
+                    SRV_CCB,
+                    sizeof(SRV_CCB));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCCB->CcbType = SRV_CCB_DEVICE;
@@ -175,6 +176,6 @@ SrvCCBFree(
     PSRV_CCB pCCB
     )
 {
-    SMBFreeMemory(pCCB);
+    LwRtlMemoryFree(pCCB);
 }
 

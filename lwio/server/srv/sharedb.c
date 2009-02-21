@@ -518,16 +518,18 @@ SrvShareDbWriteToShareInfo(
     PSHARE_DB_INFO pShareInfo = NULL;
     ULONG ulNumSharesFound = nRows;
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(PSHARE_DB_INFO) * nRows,
-                    (PVOID*)&ppShareInfoList);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &ppShareInfoList,
+                    PSHARE_DB_INFO,
+                    sizeof(PSHARE_DB_INFO) * nRows);
     BAIL_ON_NT_STATUS(ntStatus);
 
     for (iRow = 0; iRow < nRows; iRow++)
     {
-        ntStatus = SMBAllocateMemory(
-                        sizeof(SHARE_DB_INFO),
-                        (PVOID*)&pShareInfo);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &pShareInfo,
+                        SHARE_DB_INFO,
+                        sizeof(SHARE_DB_INFO));
         BAIL_ON_NT_STATUS(ntStatus);
 
         pShareInfo->refcount = 1;
@@ -761,7 +763,7 @@ SrvShareDbFreeInfoList(
         }
     }
 
-    SMBFreeMemory(ppShareInfoList);
+    LwRtlMemoryFree(ppShareInfoList);
 }
 
 VOID
@@ -786,12 +788,24 @@ SrvShareDbFreeInfo(
         pthread_rwlock_destroy(&pShareInfo->mutex);
     }
 
-    SMB_SAFE_FREE_MEMORY(pShareInfo->pwszName);
-    SMB_SAFE_FREE_MEMORY(pShareInfo->pwszPath);
-    SMB_SAFE_FREE_MEMORY(pShareInfo->pwszSID);
-    SMB_SAFE_FREE_MEMORY(pShareInfo->pwszComment);
+    if (pShareInfo->pwszName)
+    {
+        LwRtlMemoryFree(pShareInfo->pwszName);
+    }
+    if (pShareInfo->pwszPath)
+    {
+        LwRtlMemoryFree(pShareInfo->pwszPath);
+    }
+    if (pShareInfo->pwszSID)
+    {
+        LwRtlMemoryFree(pShareInfo->pwszSID);
+    }
+    if (pShareInfo->pwszComment)
+    {
+        LwRtlMemoryFree(pShareInfo->pwszComment);
+    }
 
-    SMBFreeMemory(pShareInfo);
+    LwRtlMemoryFree(pShareInfo);
 }
 
 VOID

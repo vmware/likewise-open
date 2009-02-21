@@ -747,8 +747,14 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
-    SMB_SAFE_FREE_MEMORY(pwszPipenamePrefix);
-    SMB_SAFE_FREE_MEMORY(pwszFilePath);
+    if (pwszPipenamePrefix)
+    {
+        LwRtlMemoryFree(pwszPipenamePrefix);
+    }
+    if (pwszFilePath)
+    {
+        LwRtlMemoryFree(pwszFilePath);
+    }
 
     return ntStatus;
 
@@ -836,9 +842,7 @@ SrvProcessTransactNamedPipe(
     // TODO: Make sure we have enough space in the reply buffer for this
     usResponseDataLen = pRequestHeader->maxDataCount;
 
-    ntStatus = SMBAllocateMemory(
-                    usResponseDataLen,
-                    (PVOID*)&pResponseData);
+    ntStatus = LW_RTL_ALLOCATE(&pResponseData, BYTE, usResponseDataLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoReadFile(
@@ -918,7 +922,10 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
-    SMB_SAFE_FREE_MEMORY(pResponseData);
+    if (pResponseData)
+    {
+        LwRtlMemoryFree(pResponseData);
+    }
 
     return ntStatus;
 
@@ -969,9 +976,7 @@ SrvMarshallGetNamedPipeInfoData(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateMemory(
-                    usResponseDataLen,
-                    (PVOID*)&pResponseDataBuffer);
+    ntStatus = LW_RTL_ALLOCATE(&pResponseDataBuffer, BYTE, usResponseDataLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseDataCursor = pResponseDataBuffer;
@@ -1002,7 +1007,10 @@ error:
     *ppResponseData = NULL;
     *pusResponseDataLen = 0;
 
-    SMB_SAFE_FREE_MEMORY(pResponseData);
+    if (pResponseData)
+    {
+        LwRtlMemoryFree(pResponseData);
+    }
 
     goto cleanup;
 }

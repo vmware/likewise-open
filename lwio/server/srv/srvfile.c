@@ -26,9 +26,10 @@ SrvFileCreate(
 
     SMB_LOG_DEBUG("Creating file [fid:%u]", fid);
 
-    ntStatus = SMBAllocateMemory(
-                    sizeof(SMB_SRV_FILE),
-                    (PVOID*)&pFile);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pFile,
+                    SMB_SRV_FILE,
+                    sizeof(SMB_SRV_FILE));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFile->refcount = 1;
@@ -106,8 +107,12 @@ SrvFileFree(
 
     if (pFile->pFilename)
     {
-        SMB_SAFE_FREE_MEMORY(pFile->pFilename->FileName);
-        SMBFreeMemory(pFile->pFilename);
+        if (pFile->pFilename->FileName)
+        {
+            LwRtlMemoryFree (pFile->pFilename->FileName);
+        }
+
+        LwRtlMemoryFree(pFile->pFilename);
     }
 
     if (pFile->hFile)
@@ -115,7 +120,10 @@ SrvFileFree(
         IoCloseFile(pFile->hFile);
     }
 
-    SMB_SAFE_FREE_MEMORY(pFile->pwszFilename);
+    if (pFile->pwszFilename)
+    {
+        LwRtlMemoryFree(pFile->pwszFilename);
+    }
 
-    SMBFreeMemory(pFile);
+    LwRtlMemoryFree(pFile);
 }

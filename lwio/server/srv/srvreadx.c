@@ -263,7 +263,10 @@ SrvBuildReadAndXResponse(
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pData);
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
 
     return ntStatus;
 
@@ -292,11 +295,12 @@ SrvExecuteReadFileAndX(
 {
     NTSTATUS ntStatus = 0;
     IO_STATUS_BLOCK ioStatusBlock = {0};
-    PVOID pBuffer = NULL;
+    PBYTE pBuffer = NULL;
 
-    ntStatus = SMBAllocateMemory(
-                    ulBytesToRead,
-                    (PVOID*)&pBuffer);
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pBuffer,
+                    BYTE,
+                    ulBytesToRead);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoReadFile(
@@ -321,7 +325,10 @@ error:
     *ppBuffer = NULL;
     *pulBytesRead = 0;
 
-    SMB_SAFE_FREE_MEMORY(pBuffer);
+    if (pBuffer)
+    {
+        LwRtlMemoryFree(pBuffer);
+    }
 
     goto cleanup;
 }
