@@ -16,7 +16,6 @@ interface netlogon
     NTSTATUS netr_Function00();
     NTSTATUS netr_Function01();
 
-    /* function 0x02 */
     typedef [switch_type(uint16)] union {
         [case(1)] NetrPasswordInfo *password1;
         [case(2)] NetrNetworkInfo  *network2;
@@ -33,6 +32,17 @@ interface netlogon
         [case(6)] NetrSamInfo6 *sam6;
     } NetrValidationInfo;
 
+    typedef [switch_type(uint32)] union netr_domain_query {
+        [case(1)] NetrDomainQuery1 *query1;
+        [case(2)] NetrDomainQuery1 *query2;
+    } NetrDomainQuery;
+
+    typedef [switch_type(uint32)] union netr_domain_info {
+        [case(1)] NetrDomainInfo1 *info1;
+        [case(2)] NetrDomainInfo1 *info2;
+    } NetrDomainInfo;
+
+    /* function 0x02 */
     NTSTATUS _NetrLogonSamLogon(
         [in,unique,string] wchar16_t *server_name,
         [in,unique,string] wchar16_t *computer_name,
@@ -115,7 +125,19 @@ interface netlogon
 
     NTSTATUS netr_Function1b();
     NTSTATUS netr_Function1c();
-    NTSTATUS netr_Function1d();
+
+    /* function 0x1d */
+    NTSTATUS _NetrLogonDomainInfo(
+        [in,unique,string] wchar16_t *server_name,
+        [in,unique,string] wchar16_t *computer_name,
+        [in,unique] NetrAuth *creds,
+        [in,out,unique] NetrAuth *ret_creds,
+        [in] uint32 level,
+        [in,switch_is(level)] NetrDomainQuery *query,
+        [out,switch_is(level)] NetrDomainInfo **info
+        );
+
+
     NTSTATUS netr_Function1e();
     NTSTATUS netr_Function1f();
     NTSTATUS netr_Function20();
