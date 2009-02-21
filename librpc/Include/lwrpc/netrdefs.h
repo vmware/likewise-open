@@ -372,6 +372,80 @@ typedef union netr_validation_info {
 
 #endif /* _DCE_IDL_ */
 
+typedef struct netr_domain_query_1 {
+    UnicodeString unknown1;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *workstation_domain;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *workstation_site;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *unknown2;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *unknown3;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *unknown4;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *unknown5;
+    UnicodeString unknown6;
+    UnicodeString product;
+    UnicodeString unknown7;
+    UnicodeString unknown8;
+    uint32 unknown9[4];
+} NetrDomainQuery1;
+
+
+#ifndef _DCE_IDL_
+
+typedef union netr_domain_query {
+    NetrDomainQuery1 *query1;
+    NetrDomainQuery1 *query2;
+} NetrDomainQuery;
+
+#endif /* _DCE_IDL_ */
+
+typedef struct netr_domain_trust_info {
+    UnicodeString domain_name;
+    UnicodeString full_domain_name;
+    UnicodeString forest;
+    Guid guid;
+    DomSid *sid;
+    UnicodeString unknown1[4];
+    uint32 unknown2[4];
+} NetrDomainTrustInfo;
+
+
+typedef struct netr_domain_info_1 {
+    NetrDomainTrustInfo domain_info;
+    uint32 num_trusts;
+#ifdef _DCE_IDL_
+    [size_is(num_trusts)]
+#endif
+    NetrDomainTrustInfo *trusts;
+    uint32 unknown1[14];
+} NetrDomainInfo1;
+
+
+#ifndef _DCE_IDL_
+
+typedef union netr_domain_info {
+    NetrDomainInfo1 *info1;
+    NetrDomainInfo1 *info2;
+} NetrDomainInfo;
+
+#endif /* _DCE_IDL_ */
+
 
 #endif /* _NETRDEFS_H_ */
 
