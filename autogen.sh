@@ -29,7 +29,7 @@ DIRS="\
 	lsass \
 	netlogon \
 	lwmsg \
-	lsmb \
+	lwio \
 	pstore \
 	dcerpc \
 	lwdns \

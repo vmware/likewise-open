@@ -9,7 +9,7 @@ COMPONENTS="\
 	libunistr \
 	pstore \
 	netlogon \
-        lsmb \
+        lwio \
 	libkeytab \
 	libgss \
 	dcerpc \
