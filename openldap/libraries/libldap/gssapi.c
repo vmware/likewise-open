@@ -715,7 +715,7 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 	rc = ldap_gssapi_get_rootdse_infos ( ld, &mechlist,
 					     &ldapServiceName, &dnsHostName);
 	if ( rc != LDAP_SUCCESS ) {
-		return rc;
+		goto rc_error;
 	}
 
 	/* check that the server supports GSS-SPNEGO */
