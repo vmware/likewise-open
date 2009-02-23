@@ -558,7 +558,9 @@ SrvBuildSearchPath(
 
 		    if (++pwszNext &&
                         (*pwszNext == wszQuestionMark[0] ||
-                         *pwszNext == wszStar[0]))
+                         *pwszNext == wszStar[0] ||
+                         *pwszNext == wszGT[0] ||
+                         *pwszNext == wszLT[0]))
 		    {
 			    *pwszCursor = wszDot[0];
 		    }
