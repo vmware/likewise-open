@@ -80,6 +80,20 @@ IopIpcRegisterFileHandle(
                     "IO_FILE_HANDLE",
                     FileHandle,
                     IopIpcCleanupFileHandle));
+    return status;
+}
+
+static
+NTSTATUS
+IopIpcRetainFileHandle(
+    IN LWMsgAssoc* pAssoc,
+    IN IO_FILE_HANDLE FileHandle
+    )
+{
+    NTSTATUS status = 0;
+    status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_retain_handle(
+                    pAssoc,
+                    FileHandle));
     assert(!status);
     return status;
 }
@@ -194,27 +208,31 @@ IopIpcCreateFile(
                             pMessage->EaBuffer,
                             pMessage->EaLength,
                             pEcpList);
-    pReply->FileHandle = fileHandle;
-    pReply->Status = ioStatusBlock.Status;
-    pReply->CreateResult = ioStatusBlock.CreateResult;
 
-    // Register handle
+    // Register handle with lwmsg if it was created
     if (fileHandle)
     {
         status = IopIpcRegisterFileHandle(pAssoc, fileHandle);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+        pReply->FileHandle = fileHandle;
+        fileHandle = NULL;
+
+        status = IopIpcRetainFileHandle(pAssoc, pReply->FileHandle);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
+    pReply->Status = ioStatusBlock.Status;
+    pReply->CreateResult = ioStatusBlock.CreateResult;
+
 cleanup:
+
     if (status)
     {
         if (fileHandle)
         {
-            assert(FALSE);
             IoCloseFile(fileHandle);
         }
-        IO_FREE(&pReply);
-        pResponse->object = NULL;
     }
 
     IoRtlEcpListFree(&pEcpList);

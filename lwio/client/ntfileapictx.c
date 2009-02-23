@@ -314,6 +314,9 @@ LwNtCtxCreateFile(
 
     status = ioStatusBlock.Status;
 
+    /* Unlink file handle from response message so it does not get freed */
+    pResponse->FileHandle = NULL;
+
 cleanup:
     if (status)
     {
