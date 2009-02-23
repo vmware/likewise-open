@@ -109,10 +109,9 @@ error:
 }
 
 LWMsgStatus
-lwmsg_assoc_unregister_handle(
+lwmsg_assoc_retain_handle(
     LWMsgAssoc* assoc,
-    void* handle,
-    LWMsgBool do_cleanup
+    void* handle
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -122,11 +121,34 @@ lwmsg_assoc_unregister_handle(
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
-    BAIL_ON_ERROR(status = lwmsg_session_manager_unregister_handle(
+    BAIL_ON_ERROR(status = lwmsg_session_manager_retain_handle(
                       manager,
                       session,
-                      handle,
-                      do_cleanup
+                      handle
+                      ));
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_assoc_release_handle(
+    LWMsgAssoc* assoc,
+    void* handle
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSessionManager* manager = NULL;
+    LWMsgSession* session = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
+
+    BAIL_ON_ERROR(status = lwmsg_session_manager_release_handle(
+                      manager,
+                      session,
+                      handle
                       ));
     
 error:
@@ -343,14 +365,15 @@ retry:
     ACTION_ON_ERROR(assoc, status = assoc->aclass->recv_msg(assoc, &recv_message));
     ACTION_ON_ERROR(assoc, status = dispatch(assoc, &recv_message, &send_message, data));
     ACTION_ON_ERROR(assoc, status = assoc->aclass->send_msg(assoc, &send_message));
+
 error:
     
-    if (recv_message.object)
+    if (recv_message.tag != -1 && recv_message.object)
     {
         lwmsg_assoc_free_message(assoc, &recv_message);
     }
 
-    if (send_message.object)
+    if (send_message.tag != -1 && send_message.object)
     {
         lwmsg_assoc_free_message(assoc, &send_message);
     }

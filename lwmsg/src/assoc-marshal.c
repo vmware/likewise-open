@@ -85,31 +85,12 @@ lwmsg_assoc_marshal_handle(
         switch (status)
         {
         case LWMSG_STATUS_NOT_FOUND:
-            /* Implicitly register handle */
-            if (attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER)
-            {
-                /* Automatic registration doesn't make sense if the receiver is
-                   exepcting a handle it created */
-                RAISE_ERROR(context, status = LWMSG_STATUS_INVALID_HANDLE,
-                            "Cannot implicitly register handle 0x%lx: expected "
-                            "handle which is local for the receiver",
-                            (unsigned long) pointer);
-            }
-
-            location = LWMSG_HANDLE_LOCAL;
-            type = (const char*) data;
-
-            BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle_local(
-                              manager,
-                              session,
-                              (const char*) data,
-                              pointer,
-                              NULL,
-                              &handle));
-            break;
+            status = LWMSG_STATUS_INVALID_HANDLE;
         default:
-            BAIL_ON_ERROR(status);
+            break;
         }
+
+        BAIL_ON_ERROR(status);
 
         /* Confirm that the handle is of the expected type */
         if (strcmp((const char*) data, type))
@@ -294,8 +275,40 @@ error:
     return status;
 }
 
+static
+void
+lwmsg_assoc_free_handle(
+    LWMsgContext* context,
+    size_t object_size,
+    LWMsgTypeAttrs* attr,
+    void* object,
+    void* data
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgAssoc* assoc = NULL;
+    void* pointer = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
+
+    pointer = *(void**) object;
+
+    if (pointer)
+    {
+        BAIL_ON_ERROR(status = lwmsg_assoc_release_handle(assoc, pointer));
+    }
+
+error:
+
+    return;
+}
+
+
 LWMsgCustomTypeClass lwmsg_handle_type_class =
 {
+    .is_pointer = LWMSG_TRUE,
+
     .marshal = lwmsg_assoc_marshal_handle,
-    .unmarshal = lwmsg_assoc_unmarshal_handle
+    .unmarshal = lwmsg_assoc_unmarshal_handle,
+    .free = lwmsg_assoc_free_handle
 };

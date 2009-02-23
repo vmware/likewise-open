@@ -73,6 +73,8 @@ typedef struct HandleEntry
 {
     /* Pointer to associated session */
     SessionEntry* session;
+    /* Reference count */
+    size_t volatile refs;
     /* Handle type */
     const char* type;
     /* Handle pointer */
@@ -131,11 +133,10 @@ session_unlock(
 
 static void
 shared_free_handle(
-    HandleEntry* entry,
-    LWMsgBool do_cleanup
+    HandleEntry* entry
     )
 {
-    if (entry->cleanup && do_cleanup)
+    if (entry->cleanup)
     {
         entry->cleanup(entry->pointer);
     }
@@ -176,6 +177,7 @@ shared_add_handle(
     }
 
     handle->type = type;
+    handle->refs = 1;
     handle->pointer = pointer ? pointer : handle;
     handle->cleanup = cleanup;
     handle->hid = hid;
@@ -230,7 +232,7 @@ shared_free_session(
     for (handle = session->handles; handle; handle = next)
     {
         next = handle->next;
-        shared_free_handle(handle, LWMSG_TRUE);
+        shared_free_handle(handle);
     }
 
     if (session->sec_token)
@@ -477,11 +479,10 @@ error:
 
 static
 LWMsgStatus
-shared_unregister_handle(
+shared_retain_handle(
     LWMsgSessionManager* manager,
     LWMsgSession* session,
-    void* ptr,
-    LWMsgBool do_cleanup
+    void* ptr
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -498,13 +499,56 @@ shared_unregister_handle(
     {
         if (handle->pointer == ptr)
         {
-            if (handle == session->handles)
-            {
-                session->handles = session->handles->next;
-            }
+            handle->refs++;
+            goto done;
+        }
+    }
 
-            shared_free_handle(handle, do_cleanup);
-            session->num_handles--;
+    BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+
+done:
+
+    session_unlock(session);
+
+    return status;
+
+error:
+
+    goto done;
+}
+
+static
+LWMsgStatus
+shared_release_handle(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    HandleEntry* handle = NULL;
+
+    session_lock(session);
+
+    if (!session)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    }
+
+    for (handle = session->handles; handle; handle = handle->next)
+    {
+        if (handle->pointer == ptr)
+        {
+            if (--handle->refs == 0)
+            {
+                if (handle == session->handles)
+                {
+                    session->handles = session->handles->next;
+                }
+
+                shared_free_handle(handle);
+                session->num_handles--;
+            }
             goto done;
         }
     }
@@ -598,6 +642,9 @@ shared_handle_id_to_pointer(
             }
 
             *pointer = handle->pointer;
+            /* Bump reference count since we have created a new reference
+               to the handle pointer */
+            handle->refs++;
             goto done;
         }
     }
@@ -707,7 +754,8 @@ static LWMsgSessionManagerClass shared_class =
     .leave_session = shared_leave_session,
     .register_handle_local = shared_register_handle_local,
     .register_handle_remote = shared_register_handle_remote,
-    .unregister_handle = shared_unregister_handle,
+    .retain_handle = shared_retain_handle,
+    .release_handle = shared_release_handle,
     .handle_pointer_to_id = shared_handle_pointer_to_id,
     .handle_id_to_pointer = shared_handle_id_to_pointer,
     .set_session_data = shared_set_session_data,
