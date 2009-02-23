@@ -467,7 +467,7 @@ NetJoinDomainLocalInternal(
                       ld,
                       dn,
                       desc_attr_name,
-                      desc_attr_val,
+                      (const wchar16_t**)desc_attr_val,
                       0);
             goto_if_winerr_not_success(err, disconn_samr);
         }
