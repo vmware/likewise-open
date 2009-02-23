@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = liblsa_cs.la liblsa_ss.la liblsa.la
+lib_LTLIBRARIES = liblsa_cs.la liblsa.la
 
 liblsa_la_SOURCES = \
 	globals.c \
@@ -21,13 +21,15 @@ liblsa_la_SOURCES = \
 	LsaLookupSids.c LsaQueryInfoPolicy.c LsaQueryInfoPolicy2.c
 
 liblsa_cs_la_SOURCES = lsa_cstub.c
-liblsa_ss_la_SOURCES = lsa_sstub.c
 
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
-liblsa_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(AM_CFLAGS)
+liblsa_cs_la_CPPFLAGS = $(FEATURETEST_FLAGS)
+liblsa_cs_la_CFLAGS = $(FEATURETEST_FLAGS)
+
+liblsa_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 liblsa_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 liblsa_la_LIBADD= \
 	-ldcerpc -lunistr -lsecdesc \

@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libsamr_cs.la libsamr_ss.la libsamr.la
+lib_LTLIBRARIES = libsamr_cs.la libsamr.la
 
 libsamr_la_SOURCES = \
 	globals.c \
@@ -40,14 +40,18 @@ libsamr_la_SOURCES = \
 	SamrGetUserGroups.c
 
 libsamr_cs_la_SOURCES = samr_cstub.c
-libsamr_ss_la_SOURCES = samr_sstub.c
 
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
-libsamr_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(AM_CFLAGS)
-libsamr_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
+FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
+
+libsamr_cs_la_CPPFLAGS = $(FEATURETEST_FLAGS)
+libsamr_cs_la_CFLAGS = $(FEATURETEST_FLAGS)
+
+libsamr_la_CFLAGS = -g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
+libsamr_la_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libsamr_la_LIBADD = \
 	-ldcerpc -lunistr -lsecdesc \
 	$(top_builddir)/MsRpc/libmsrpc.la \
