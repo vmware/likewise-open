@@ -31,7 +31,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if HAVE_STRINGS_H
 #include <strings.h>
+#endif
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
@@ -101,20 +104,31 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
 
 static
 void
-GetSessionKey(handle_t binding, unsigned char** sess_key, unsigned32* sess_key_len, unsigned32* st)
+GetSessionKey(handle_t binding, unsigned char** sess_key,
+              unsigned16* sess_key_len, unsigned32* st)
 {
     rpc_transport_info_handle_t info = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-    rpc_binding_inq_transport_info(binding, &info, st);
+    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS)
+    {
+        goto error;
+    }
+
+    rpc_smb_transport_info_from_lwio_token(access_token, FALSE,
+                                           &info, st);
 
     if (*st)
     {
         goto error;
     }
 
-    rpc_smb_transport_info_inq_session_key(info, sess_key, sess_key_len);
+    rpc_smb_transport_info_inq_session_key(info, sess_key,
+                                           sess_key_len);
 
 error:
+    *sess_key     = NULL;
+    *sess_key_len = 0;
 
     return;
 }
@@ -1506,7 +1520,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     unsigned char initval[16] = {0};
     wchar16_t *password;
     unsigned char *sess_key;
-    unsigned32 sess_key_len;
+    unsigned16 sess_key_len;
     unsigned char digested_sess_key[16] = {0};
     struct md5context ctx;
 
@@ -1621,7 +1635,7 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     PolicyHandle conn_handle2 = {0};
     unsigned char *key1 = NULL;
     unsigned char *key2 = NULL;
-    unsigned32 key_len1, key_len2;
+    unsigned16 key_len1, key_len2;
     RPCSTATUS st = 0;
 
     samr_binding1 = NULL;
