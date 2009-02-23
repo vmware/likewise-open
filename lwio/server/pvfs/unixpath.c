@@ -33,16 +33,15 @@
  *
  * Module Name:
  *
- *        create_file.c
+ *        unixpath.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *       Create Dispatch Routine
+ *        POSIX filename routines
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
@@ -90,35 +89,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
-/********************************************************
- *******************************************************/
-
-BOOLEAN
-PvfsWildcardMatch(
-    IN PSTR pszPathname,
-    IN PSTR pszPattern,
-    IN BOOLEAN bCaseSensitive
-    )
-{
-    /* Everything matches '*' */
-    if (RtlCStringIsEqual(pszPattern, "*", FALSE)) {
-        return TRUE;
-    }
-
-    /* Quick check for an exact match */
-    if (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))
-    {
-        return RtlCStringIsEqual(pszPathname, pszPattern, bCaseSensitive);
-    }
-
-    /* Let everything else match for now */
-
-    return TRUE;
-}
-
-
 
 /****************************************************************
  ***************************************************************/

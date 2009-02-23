@@ -152,16 +152,19 @@ PvfsCanonicalPathName(
     IO_FILE_NAME IoPath
     );
 
+NTSTATUS
+PvfsValidatePath(
+    PPVFS_CCB pCcb
+    );
+
+
+/* From wildcard.c */
+
 BOOLEAN
 PvfsWildcardMatch(
     IN PSTR pszPathname,
     IN PSTR pszPattern,
     IN BOOLEAN bCaseSensitive
-    );
-
-NTSTATUS
-PvfsValidatePath(
-    PPVFS_CCB pCcb
     );
 
 
