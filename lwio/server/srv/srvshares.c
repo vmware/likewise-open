@@ -60,6 +60,7 @@ SrvDevCtlAddShare(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_ADD_PARAMS pAddShareInfoParams = NULL;
     PSHARE_INFO_0 pShareInfo0 = NULL;
     PSHARE_INFO_1 pShareInfo1 = NULL;
@@ -109,7 +110,10 @@ SrvDevCtlAddShare(
 
     }
 
+    pDbContext = &gSMBSrvGlobals.shareDBContext;
+
     ntStatus = SrvShareAddShare(
+                        pDbContext,
                         pwszShareName,
                         pwszPath,
                         pwszComment
@@ -129,6 +133,7 @@ SrvDevCtlDeleteShare(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_DELETE_PARAMS pDeleteShareInfoParams = NULL;
     PWSTR pwszShareName = NULL;
 
@@ -139,8 +144,13 @@ SrvDevCtlDeleteShare(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pDbContext    = &gSMBSrvGlobals.shareDBContext;
     pwszShareName = pDeleteShareInfoParams->netname;
-    ntStatus = SrvShareDeleteShare(pwszShareName);
+
+    ntStatus = SrvShareDeleteShare(
+                        pDbContext,
+                        pwszShareName
+                        );
 
 error:
     return ntStatus;
@@ -163,6 +173,7 @@ SrvDevCtlEnumShares(
     DWORD i = 0;
     PBYTE pBuffer = NULL;
     ULONG pBufferSize = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
     PSHARE_DB_INFO pShares = NULL;
@@ -177,9 +188,11 @@ SrvDevCtlEnumShares(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwLevel = pEnumShareInfoParamsIn->dwInfoLevel;
+    pDbContext = &gSMBSrvGlobals.shareDBContext;
+    dwLevel    = pEnumShareInfoParamsIn->dwInfoLevel;
 
     ntStatus = SrvShareEnumShares(
+                        pDbContext,
                         dwLevel,
                         &pShares,
                         &dwNumEntries

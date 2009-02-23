@@ -37,12 +37,6 @@ SrvShareInitContextContents(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext
     );
 
-NTSTATUS
-SrvShareFindShareByName(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
-    PWSTR           pwszShareName,
-    PSHARE_DB_INFO* ppShareInfo
-    );
 
 NTSTATUS
 SrvShareGetServiceStringId(
@@ -63,21 +57,6 @@ SrvShareFreeContextContents(
 
 
 NTSTATUS
-SrvAddShareToList(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
-    PSRV_SHARE_ENTRY pShareEntry
-    );
-
-
-NTSTATUS
-SrvAddShareInfoToList(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
-    PSHARE_DB_INFO    pShareInfo,
-    PSRV_SHARE_ENTRY *ppShareEntry
-    );
-
-
-NTSTATUS
 SrvFindShareByName(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pszShareName,
@@ -86,27 +65,8 @@ SrvFindShareByName(
 
 
 NTSTATUS
-SrvRemoveShareFromList(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
-    PWSTR pszShareName,
-    PSRV_SHARE_ENTRY *ppShareEntry
-    );
-
-
-NTSTATUS
-SrvShareFreeList(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext
-    );
-
-
-NTSTATUS
-SrvShareReleaseEntry(
-    PSRV_SHARE_ENTRY pShareEntry
-    );
-
-
-NTSTATUS
 SrvShareAddShare(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR  pwszShareName,
     PWSTR  pwszPath,
     PWSTR  pwszComment
@@ -115,12 +75,14 @@ SrvShareAddShare(
 
 NTSTATUS
 SrvShareDeleteShare(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName
     );
 
 
 NTSTATUS
 SrvShareEnumShares(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     DWORD dwLevel,
     PSHARE_DB_INFO *ppShareInfo,
     PDWORD pdwNumEntries
