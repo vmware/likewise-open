@@ -117,7 +117,6 @@ GetSessionKey(handle_t binding, unsigned char** sess_key,
 
     rpc_smb_transport_info_from_lwio_token(access_token, FALSE,
                                            &info, st);
-
     if (*st)
     {
         goto error;
@@ -126,11 +125,17 @@ GetSessionKey(handle_t binding, unsigned char** sess_key,
     rpc_smb_transport_info_inq_session_key(info, sess_key,
                                            sess_key_len);
 
+cleanup:
+    if (access_token) {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return;
+
 error:
     *sess_key     = NULL;
     *sess_key_len = 0;
-
-    return;
+    goto cleanup;
 }
 
 /*

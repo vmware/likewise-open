@@ -69,11 +69,16 @@ GetSessionKey(handle_t binding, unsigned char** sess_key,
                                            sess_key_len);
 
 cleanup:
+    if (access_token) {
+        LwIoDeleteAccessToken(access_token);
+    }
+
     return;
 
 error:
     *sess_key     = NULL;
     *sess_key_len = 0;
+    goto cleanup;
 }
 
 
