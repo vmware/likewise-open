@@ -1,7 +1,7 @@
 librpc_srcdir=$(top_srcdir)
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libnetlogon_cs.la libnetlogon_ss.la libnetlogon.la
+lib_LTLIBRARIES = libnetlogon_cs.la libnetlogon.la
 
 libnetlogon_la_SOURCES = \
 	globals.c \
