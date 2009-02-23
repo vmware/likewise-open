@@ -306,8 +306,39 @@ error:
     goto cleanup;
 }
 
+
 NTSTATUS
 SrvShareDbEnum(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE           hDb,
+    ULONG            ulOffset,
+    ULONG            ulLimit,
+    PSHARE_DB_INFO** pppShareInfoList,
+    PULONG           pulNumSharesFound
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
+
+    ntStatus = SrvShareDbEnum_inlock(
+                      pShareDBContext,
+                      hDb,
+                      ulOffset,
+                      ulLimit,
+                      pppShareInfoList,
+                      pulNumSharesFound
+		      );
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+
+    return ntStatus;
+}
+
+
+NTSTATUS
+SrvShareDbEnum_inlock(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE           hDb,
     ULONG            ulOffset,
@@ -321,14 +352,11 @@ SrvShareDbEnum(
     PSTR     pszError = NULL;
     PSTR*    ppszResult = NULL;
     PSHARE_DB_INFO* ppShareInfoList = NULL;
-    BOOLEAN  bInLock = FALSE;
     int      nRows = 0;
     int      nCols = 0;
     int      nExpectedCols = 5;
     ULONG    ulNumSharesFound = 0;
     sqlite3* pDbHandle = (sqlite3*)hDb;
-
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_FIND_SHARES_LIMIT,
@@ -383,8 +411,6 @@ cleanup:
     {
         sqlite3_free(pszError);
     }
-
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     return ntStatus;
 

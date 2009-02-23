@@ -90,6 +90,16 @@ SrvShareDbEnum(
     );
 
 NTSTATUS
+SrvShareDbEnum_inlock(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE           hDb,
+    ULONG            ulOffset,
+    ULONG            ulLimit,
+    PSHARE_DB_INFO** pppShareInfoArray,
+    PULONG           pulNumSharesFound
+    );
+
+NTSTATUS
 SrvShareDbDelete(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,

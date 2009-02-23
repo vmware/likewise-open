@@ -167,7 +167,6 @@ SrvDevCtlEnumShares(
     )
 {
     NTSTATUS ntStatus = 0;
-    ULONG ulError = 0;
     ULONG ulLevel = 0;
     ULONG ulNumEntries = 0;
     ULONG i = 0;
@@ -202,11 +201,10 @@ SrvDevCtlEnumShares(
     switch (ulLevel)
     {
     case 1:
-        ulError = LW_RTL_ALLOCATE(
+        ntStatus = LW_RTL_ALLOCATE(
                       &p1,
                       SHARE_INFO_1,
                       sizeof(*p1) * ulNumEntries);
-        ntStatus = LwUnixErrnoToNtStatus(ulError);
         BAIL_ON_NT_STATUS(ntStatus);
 
         for (i = 0; i < ulNumEntries; i++)
@@ -220,11 +218,10 @@ SrvDevCtlEnumShares(
         break;
 
     case 2:
-        ulError = LW_RTL_ALLOCATE(
+        ntStatus = LW_RTL_ALLOCATE(
                        &p2,
                        SHARE_INFO_2,
                        sizeof(*p2) * ulNumEntries);
-        ntStatus = LwUnixErrnoToNtStatus(ulError);
         BAIL_ON_NT_STATUS(ntStatus);
 
         for (i = 0; i < ulNumEntries; i++)
@@ -243,11 +240,10 @@ SrvDevCtlEnumShares(
         break;
 
     case 502:
-        ulError = LW_RTL_ALLOCATE(
+        ntStatus = LW_RTL_ALLOCATE(
                         &p502,
                         SHARE_INFO_502,
                         sizeof(*p502) * ulNumEntries);
-        ntStatus = LwUnixErrnoToNtStatus(ulError);
         BAIL_ON_NT_STATUS(ntStatus);
 
         for (i = 0; i < ulNumEntries; i++)
