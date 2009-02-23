@@ -51,6 +51,7 @@
 #include <gssapi/gssapi.h>
 #include <keytab.h>
 #include <secdesc/secdesc.h>
+#include <dce/rpc.h>
 #include <dce/smb.h>
 #include <lw/ntstatus.h>
 

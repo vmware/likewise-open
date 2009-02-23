@@ -51,15 +51,8 @@ GetSessionKey(handle_t binding, unsigned char** sess_key,
               unsigned16* sess_key_len, unsigned32* st)
 {
     rpc_transport_info_handle_t info = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
 
-    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS)
-    {
-        goto error;
-    }
-
-    rpc_smb_transport_info_from_lwio_token(access_token, FALSE,
-                                           &info, st);
+    rpc_binding_inq_transport_info(binding, &info, st);
     if (*st)
     {
         goto error;
@@ -69,10 +62,6 @@ GetSessionKey(handle_t binding, unsigned char** sess_key,
                                            sess_key_len);
 
 cleanup:
-    if (access_token) {
-        LwIoDeleteAccessToken(access_token);
-    }
-
     return;
 
 error:
