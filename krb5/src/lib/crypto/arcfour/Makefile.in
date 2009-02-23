@@ -15,17 +15,14 @@ PROG_RPATH=$(KRB5_LIBDIR)
 RUN_SETUP = @KRB5_RUN_ENV@ KRB5_CONFIG=$(SRCTOP)/config-files/krb5.conf
 
 STLIBOBJS=\
-	wc16str.o	\
 	arcfour.o	\
 	arcfour_s2k.o
 
 OBJS=\
-	$(OUTPRE)wc16str.$(OBJEXT)	\
 	$(OUTPRE)arcfour.$(OBJEXT)	\
 	$(OUTPRE)arcfour_s2k.$(OBJEXT)
 
 SRCS=\
-	$(srcdir)/wc16str.c	\
 	$(srcdir)/arcfour.c	\
 	$(srcdir)/arcfour_s2k.c
 
@@ -46,8 +43,6 @@ clean-unix:: clean-libobjs
 # Makefile dependencies follow.  This must be the last section in
 # the Makefile.in file
 #
-wc16str.so wc16str.po $(OUTPRE)wc16str.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
-  wc16str.h wc16str.c
 arcfour.so arcfour.po $(OUTPRE)arcfour.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
   $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
   $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(SRCTOP)/include/k5-err.h \
@@ -66,4 +61,4 @@ arcfour_s2k.so arcfour_s2k.po $(OUTPRE)arcfour_s2k.$(OBJEXT): \
   $(SRCTOP)/include/krb5.h $(SRCTOP)/include/krb5/locate_plugin.h \
   $(SRCTOP)/include/krb5/preauth_plugin.h $(SRCTOP)/include/port-sockets.h \
   $(SRCTOP)/include/socket-utils.h $(srcdir)/../md4/rsa-md4.h \
-  arcfour-int.h arcfour.h arcfour_s2k.c wc16str.h
+  arcfour-int.h arcfour.h arcfour_s2k.c

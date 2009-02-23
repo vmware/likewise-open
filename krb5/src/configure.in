@@ -89,26 +89,6 @@ if test "$withval" = yes; then
 	AC_DEFINE(KRBCONF_KDC_MODIFIES_KDB,1,[Define if KDC should update database with each request])
 fi
 dnl
-AC_CHECK_LIB(iconv, iconv, [LIB_iconv="-liconv"],
-    AC_CHECK_LIB(iconv, libiconv, [LIB_iconv="-liconv"], [LIB_iconv=""]))
-dnl
-AC_SUBST(LIB_iconv)
-dnl
-saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -Wall -Werror"
-dnl
-AC_MSG_CHECKING([whether iconv() takes const char** as its second parameter])
-dnl
-AC_TRY_COMPILE([#include <iconv.h>],
-                [iconv_t h = iconv_open(NULL, NULL);
-                 char* in;
-                 (void) iconv(h, (const char**) &in, NULL, NULL, NULL);
-                ],
-                [AC_MSG_RESULT([yes]); AC_DEFINE_UNQUOTED(ICONV_IN_TYPE, [const char**], [iconv in type])],
-                [AC_MSG_RESULT([no]); AC_DEFINE_UNQUOTED(ICONV_IN_TYPE, [char**], [iconv in type])])
-dnl
-CFLAGS="$saved_CFLAGS"
-dnl
 dnl Needed for hw-preauth replay detection on KDC.
 dnl
 dnl USE_RCACHE enables the replay cache
