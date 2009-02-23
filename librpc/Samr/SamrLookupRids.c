@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,9 +31,15 @@
 #include "includes.h"
 
 
-NTSTATUS SamrLookupRids(handle_t b, PolicyHandle *domain_handle,
-                        uint32 num_rids, uint32 *rids,
-                        wchar16_t ***names, uint32 **types)
+NTSTATUS
+SamrLookupRids(
+    handle_t b,
+    PolicyHandle *domain_h,
+    uint32 num_rids,
+    uint32 *rids,
+    wchar16_t ***names,
+    uint32 **types
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     uint32 i = 0;
@@ -43,22 +49,13 @@ NTSTATUS SamrLookupRids(handle_t b, PolicyHandle *domain_handle,
     uint32 *out_types = NULL;
 
     goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(domain_handle, cleanup);
+    goto_if_no_memory_ntstatus(domain_h, cleanup);
     goto_if_no_memory_ntstatus(rids, cleanup);
     goto_if_no_memory_ntstatus(names, cleanup);
     goto_if_no_memory_ntstatus(types, cleanup);
     
-    TRY
-    {
-        status = _SamrLookupRids(b, domain_handle, num_rids, rids, &n, &t);
+    DCERPC_CALL(_SamrLookupRids(b, domain_h, num_rids, rids, &n, &t));
 	
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
-
     goto_if_ntstatus_not_success(status, error);
 
     if (n.count > 0) {
@@ -71,8 +68,6 @@ NTSTATUS SamrLookupRids(handle_t b, PolicyHandle *domain_handle,
                                     sizeof(uint32) * n.count,
                                     NULL);
         goto_if_ntstatus_not_success(status, error);
-
-        /* TODO: verify termination correctness (similar code has been fixed) */
 
         for (i = 0; i < n.count; i++) {
             UnicodeString *name = &(n.names[i]);

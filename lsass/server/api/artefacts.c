@@ -140,24 +140,21 @@ error:
 DWORD
 LsaSrvBeginEnumNSSArtefacts(
     HANDLE hServer,
-    HANDLE hServerEnum,
     PCSTR  pszMapName,
     LSA_NIS_MAP_QUERY_FLAGS dwFlags,
     DWORD  dwNSSArtefactInfoLevel,
     DWORD  dwMaxNumNSSArtefacts,
-    PSTR*  ppszGUID
+    PHANDLE phState
     )
 {
     DWORD dwError = 0;
     DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
-    PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
-    PSTR pszGUID = NULL;
+    PLSA_SRV_ENUM_STATE pEnumState = NULL;
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
-    dwError = LsaSrvAddNSSArtefactEnumState(
+    dwError = LsaSrvCreateNSSArtefactEnumState(
                     hServer,
-                    hServerEnum,
                     pszMapName,
                     dwFlags,
                     dwNSSArtefactInfoLevel,
@@ -165,10 +162,7 @@ LsaSrvBeginEnumNSSArtefacts(
                     &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pEnumState->pszGUID, &pszGUID);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppszGUID = pszGUID;
+    *phState = pEnumState;
 
 cleanup:
 
@@ -178,15 +172,13 @@ cleanup:
 
 error:
 
-    *ppszGUID = NULL;
-
     goto cleanup;
 }
 
 DWORD
 LsaSrvEnumNSSArtefacts(
     HANDLE  hServer,
-    PCSTR   pszGUID,
+    HANDLE  hState,
     PDWORD  pdwNSSArtefactInfoLevel,
     PVOID** pppNSSArtefactInfoList,
     PDWORD  pdwNumNSSArtefactsFound
@@ -194,7 +186,7 @@ LsaSrvEnumNSSArtefacts(
 {
     DWORD dwError = 0;
     DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
-    PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
+    PLSA_SRV_ENUM_STATE pEnumState = hState;
     PVOID* ppNSSArtefactInfoList_accumulate = NULL;
     DWORD  dwTotalNumNSSArtefactsFound = 0;
     PVOID* ppNSSArtefactInfoList = NULL;
@@ -203,12 +195,6 @@ LsaSrvEnumNSSArtefacts(
     DWORD  dwNSSArtefactInfoLevel = 0;
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
-
-    pEnumState = LsaSrvFindNSSArtefactEnumState(hServer, pszGUID);
-    if (!pEnumState) {
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     dwNSSArtefactInfoLevel = pEnumState->dwInfoLevel;
     dwNumNSSArtefactsRemaining = pEnumState->dwNumMaxRecords;
@@ -286,21 +272,15 @@ error:
 DWORD
 LsaSrvEndEnumNSSArtefacts(
     HANDLE hServer,
-    PCSTR   pszGUID
+    HANDLE hState
     )
 {
     DWORD dwError = 0;
     DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_QUERIES};
-    PLSA_SRV_RECORD_ENUM_STATE pEnumState = NULL;
+    PLSA_SRV_ENUM_STATE pEnumState = hState;
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
-
-    pEnumState = LsaSrvFindNSSArtefactEnumState(hServer, pszGUID);
-    if (!pEnumState) {
-        dwError = LSA_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     for (pProviderState = pEnumState->pProviderStateList;
          pProviderState;
@@ -311,22 +291,14 @@ LsaSrvEndEnumNSSArtefacts(
            HANDLE hProvider = pProviderState->hProvider;
            pProvider->pFnTable->pfnEndEnumNSSArtefacts(
                                        hProvider,
-                                       pszGUID);
+                                       pProviderState->hResume);
         }
     }
 
-    LsaSrvFreeNSSArtefactEnumState(
-                        hServer,
-                        pszGUID);
-
-cleanup:
+    LsaSrvFreeEnumState(pEnumState);
 
     LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
     return dwError;
-
-error:
-
-    goto cleanup;
 }
 

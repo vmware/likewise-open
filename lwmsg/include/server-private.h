@@ -76,9 +76,15 @@ struct LWMsgServer
     size_t max_clients;
     size_t max_dispatch;
     size_t max_backlog;
-    LWMsgTime timeout;
+    struct
+    {
+        LWMsgTime message;
+        LWMsgTime establish;
+        LWMsgTime idle;
+    } timeout;
     void* user_data;
     LWMsgServerConnectFunction connect_callback;
+    LWMsgServerConnectFunction session_callback;
 
     /* Worker thread pool */
     pthread_t* worker_threads;
@@ -103,8 +109,6 @@ struct LWMsgServer
 
     /* Server state */
     LWMsgServerState volatile state;
-
-    unsigned timeout_set:1;
 };
 
 typedef enum LWMsgServerTimeoutLevel

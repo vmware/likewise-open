@@ -110,6 +110,8 @@ LsaSrvRefreshConfiguration(
 
 cleanup:
 
+    LSA_SAFE_FREE_STRING(pszConfigFilePath);
+
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }

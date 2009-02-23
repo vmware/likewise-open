@@ -123,29 +123,29 @@ typedef DWORD (*PFNGETGROUPSFORUSER)(
 
 typedef DWORD (*PFNBEGIN_ENUM_USERS)(
                         HANDLE  hProvider,
-                        PCSTR   pszGUID,
                         DWORD   dwInfoLevel,
+                        LSA_FIND_FLAGS FindFlags,
                         PHANDLE phResume
                         );
 
 typedef DWORD (*PFNENUMUSERS) (
                         HANDLE  hProvider,
                         HANDLE  hResume,
-                        DWORD   ndwMaxUsers,
+                        DWORD   dwMaxUsers,
                         PDWORD  pdwUsersFound,
                         PVOID** pppUserInfoList
                         );
 
 typedef VOID (*PFNEND_ENUM_USERS)(
                         HANDLE hProvider,
-                        PCSTR  pszGUID
+                        HANDLE hResume
                         );
 
 typedef DWORD (*PFNBEGIN_ENUM_GROUPS)(
                         HANDLE  hProvider,
-                        PCSTR   pszGUID,
                         DWORD   dwInfoLevel,
                         BOOLEAN bCheckGroupMembersOnline,
+                        LSA_FIND_FLAGS FindFlags,
                         PHANDLE phResume
                         );
 
@@ -159,7 +159,7 @@ typedef DWORD (*PFNENUMGROUPS) (
 
 typedef VOID (*PFNEND_ENUM_GROUPS)(
                         HANDLE hProvider,
-                        PCSTR  pszGUID
+                        HANDLE hResume
                         );
 
 typedef DWORD (*PFNCHANGEPASSWORD) (
@@ -226,7 +226,6 @@ typedef DWORD (*PFNLOOKUP_NSS_ARTEFACT_BY_KEY)(
 
 typedef DWORD (*PFNBEGIN_ENUM_NSS_ARTEFACTS)(
                         HANDLE  hProvider,
-                        PCSTR   pszGUID,
                         DWORD   dwInfoLevel,
                         PCSTR   pszMapName,
                         LSA_NIS_MAP_QUERY_FLAGS dwFlags,
@@ -243,7 +242,7 @@ typedef DWORD (*PFNENUMNSS_ARTEFACTS) (
 
 typedef VOID (*PFNEND_ENUM_NSS_ARTEFACTS)(
                         HANDLE hProvider,
-                        PCSTR  pszGUID
+                        HANDLE hResume
                         );
 
 typedef DWORD (*PFNGET_STATUS)(

@@ -66,12 +66,6 @@ ADConvertTimeUnix2Nt(
     );
 
 DWORD
-ADStr2UINT64(
-    PSTR pszStr,
-    PUINT64 pResult
-    );
-
-DWORD
 ADNonSchemaKeywordGetString(
     PSTR *ppszValues,
     DWORD dwNumValues,

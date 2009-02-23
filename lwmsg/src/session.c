@@ -157,31 +157,59 @@ lwmsg_session_manager_enter_session (
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSession** session
+    LWMsgSession** session,
+    size_t* assoc_count
     )
 {
-    return manager->mclass->enter_session(manager, rsmid, rtoken, session);
+    return manager->mclass->enter_session(manager, rsmid, rtoken, session, assoc_count);
 }
 
 LWMsgStatus 
 lwmsg_session_manager_leave_session (
     LWMsgSessionManager* manager,
-    LWMsgSession* session
+    LWMsgSession* session,
+    size_t* assoc_count
     )
 {
-    return manager->mclass->leave_session(manager, session);
+    return manager->mclass->leave_session(manager, session, assoc_count);
 }
 
 LWMsgStatus
-lwmsg_session_manager_register_handle (
+lwmsg_session_manager_register_handle_local (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
     void* ptr,
+    void (*cleanup)(void* ptr),
+    LWMsgHandleID* hid
+    )
+{
+    return manager->mclass->register_handle_local(manager, session, type, ptr, cleanup, hid);
+}
+
+LWMsgStatus
+lwmsg_session_manager_register_handle_remote (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    const char* type,
+    LWMsgHandleID hid,
+    void (*cleanup)(void* ptr),
+    void** ptr
+    )
+{
+    return manager->mclass->register_handle_remote(manager, session, type, hid, cleanup, ptr);
+}
+
+LWMsgStatus
+lwmsg_session_manager_remap_handle (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr,
+    void* newptr,
     void (*cleanup)(void* ptr)
     )
 {
-    return manager->mclass->register_handle(manager, session, type, ptr, cleanup);
+    return manager->mclass->remap_handle(manager, session, ptr, newptr, cleanup);
 }
 
 LWMsgStatus
@@ -199,14 +227,13 @@ LWMsgStatus
 lwmsg_session_manager_handle_pointer_to_id (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
-    const char* type,
     void* ptr,
-    LWMsgBool autoreg,
-    LWMsgHandleLocation* out_location,
-    unsigned long* out_hid
+    const char** type,
+    LWMsgHandleType* htype,
+    LWMsgHandleID* hid
     )
 {
-    return manager->mclass->handle_pointer_to_id(manager, session, type, ptr, autoreg, out_location, out_hid);
+    return manager->mclass->handle_pointer_to_id(manager, session, ptr, type, htype, hid);
 }
 
 LWMsgStatus
@@ -214,13 +241,12 @@ lwmsg_session_manager_handle_id_to_pointer (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
-    LWMsgHandleLocation location,
-    unsigned long hid,
-    LWMsgBool autoreg,
-    void** out_ptr
+    LWMsgHandleType htype,
+    LWMsgHandleID hid,
+    void** ptr
     )
 {
-    return manager->mclass->handle_id_to_pointer(manager, session, type, location, hid, autoreg, out_ptr);
+    return manager->mclass->handle_id_to_pointer(manager, session, type, htype, hid, ptr);
 }
 
 LWMsgStatus

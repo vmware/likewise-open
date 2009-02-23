@@ -48,17 +48,16 @@ NET_API_STATUS NetUserAdd(const wchar16_t *hostname, uint32 level, void *buffer,
     const uint32 dom_access = DOMAIN_ACCESS_CREATE_USER |
                               DOMAIN_ACCESS_LOOKUP_INFO_1;
 
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle domain_handle, user_handle;
-    DomSid *sid;
     wchar16_t *user_name;
-    uint32 rid, flags, privileges;
+    uint32 rid;
     uint32 samr_infolevel;
     USER_INFO_X *ninfo;
     UserInfo info, *qinfo;
-    wchar16_t *host = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     memset(&info, 0, sizeof(info));
     qinfo = NULL;
@@ -66,8 +65,11 @@ NET_API_STATUS NetUserAdd(const wchar16_t *hostname, uint32 level, void *buffer,
     status = PushUserInfoAdd(&info, &samr_infolevel, buffer, level, parm_err);
     if (status != 0) return NtStatusToWin32Error(ERROR_INVALID_PARAMETER);
 
-    status = NetConnectSamr(&conn, hostname, dom_access, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, dom_access, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind     = conn->samr.bind;
     domain_handle = conn->samr.dom_handle;
@@ -77,29 +79,39 @@ NET_API_STATUS NetUserAdd(const wchar16_t *hostname, uint32 level, void *buffer,
 
     status = SamrCreateUser(samr_bind, &domain_handle, user_name,
                             user_access, &user_handle, &rid);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     if (ninfo->password) {
-        UserInfo pwinfo = {0};
-        UserInfo26 *info26 = &pwinfo.info26;
+        UserInfo pwinfo;
+        UserInfo26 *info26 = NULL;
+
+	memset((void*)&pwinfo, 0, sizeof(pwinfo));
+	info26 = &pwinfo.info26;
 
         info26->password_len = wc16slen(ninfo->password);
         status = EncPasswordEx(info26->password.data, ninfo->password,
                                info26->password_len, conn);
-        if (status != 0) return NtStatusToWin32Error(status);
+        BAIL_ON_NT_STATUS(status);
 
         status = SamrSetUserInfo(samr_bind, &user_handle, 26, &pwinfo);
-        if (status != 0) return NtStatusToWin32Error(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
     status = SamrSetUserInfo(samr_bind, &user_handle, samr_infolevel,
                              &info);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 	
     status = SamrClose(samr_bind, &user_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
-    return ERROR_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

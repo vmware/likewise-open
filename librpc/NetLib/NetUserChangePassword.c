@@ -37,18 +37,22 @@ NET_API_STATUS NetUserChangePassword(const wchar16_t *domain,
 				     const wchar16_t *oldpassword,
 				     const wchar16_t *newpassword)
 {
-    NTSTATUS status;
-    handle_t samr_b;
-    unsigned char *hostname;
+    NTSTATUS status = STATUS_SUCCESS;
+    handle_t samr_b = NULL;
+    char *hostname = NULL;
     size_t oldlen, newlen;
     uint8 old_nthash[16], new_nthash[16];
     uint8 ntpassbuf[516], ntverhash[16];
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-    hostname = (unsigned char*)awc16stombs(domain);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    hostname = awc16stombs(domain);
     if (hostname == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
 
-    status = InitSamrBindingDefault(&samr_b, hostname);
-    if (status != 0) goto done;
+    status = InitSamrBindingDefault(&samr_b, hostname, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     oldlen = wc16slen(oldpassword);
     newlen = wc16slen(newpassword);
@@ -67,11 +71,21 @@ NET_API_STATUS NetUserChangePassword(const wchar16_t *domain,
 
     status = SamrChangePasswordUser2(samr_b, domain, username, ntpassbuf,
 				     ntverhash, 0, NULL, NULL);
-    if (status != 0) goto done;
+    BAIL_ON_NT_STATUS(status);
 
-done:
-    FreeSamrBinding(&samr_b);
+error:
+
+    if (samr_b)
+    {
+        FreeSamrBinding(&samr_b);
+    }
+
     SAFE_FREE(hostname);
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
 
     return NtStatusToWin32Error(status);
 }

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-group.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS Group Information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -47,6 +47,7 @@
  */
 
 #include "lsanss.h"
+#include "externs.h"
 #include <assert.h>
 
 static const DWORD MAX_NUM_GROUPS = 500;
@@ -57,7 +58,8 @@ _nss_lsass_setgrent(
     void
     )
 {
-    return LsaNssCommonGroupSetgrent(&gEnumGroupsState);
+    return LsaNssCommonGroupSetgrent(&hLsaConnection,
+                                     &gEnumGroupsState);
 }
 
 NSS_STATUS
@@ -68,11 +70,13 @@ _nss_lsass_getgrent_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrent(&gEnumGroupsState,
-                                     pResultGroup,
-                                     pszBuf,
-                                     bufLen,
-                                     pErrorNumber);
+    return LsaNssCommonGroupGetgrent(
+        &hLsaConnection,
+        &gEnumGroupsState,
+        pResultGroup,
+        pszBuf,
+        bufLen,
+        pErrorNumber);
 }
 
 NSS_STATUS
@@ -80,7 +84,7 @@ _nss_lsass_endgrent(
     void
     )
 {
-    return LsaNssCommonGroupEndgrent(&gEnumGroupsState);
+    return LsaNssCommonGroupEndgrent(&hLsaConnection, &gEnumGroupsState);
 }
 
 NSS_STATUS
@@ -92,7 +96,8 @@ _nss_lsass_getgrgid_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrgid(gid,
+    return LsaNssCommonGroupGetgrgid(&hLsaConnection,
+                                     gid,
                                      pResultGroup,
                                      pszBuf,
                                      bufLen,
@@ -108,7 +113,8 @@ _nss_lsass_getgrnam_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrnam(pszGroupName,
+    return LsaNssCommonGroupGetgrnam(&hLsaConnection,
+                                     pszGroupName,
                                      pResultGroup,
                                      pszBuf,
                                      bufLen,
@@ -117,11 +123,11 @@ _nss_lsass_getgrnam_r(
 
 NSS_STATUS
 _nss_lsass_initgroups_dyn(
-    PCSTR     pszUserName, 
-    gid_t     groupGid, 
-    long int* pResultsSize, 
-    long int* pResultsCapacity, 
-    gid_t**   ppGidResults, 
+    PCSTR     pszUserName,
+    gid_t     groupGid,
+    long int* pResultsSize,
+    long int* pResultsCapacity,
+    gid_t**   ppGidResults,
     long int  maxGroups,
     int*      pErrorNumber
     )
@@ -134,6 +140,7 @@ _nss_lsass_initgroups_dyn(
     gid_t* pGidResultsNew = NULL;
 
     ret = LsaNssCommonGroupGetGroupsByUserName(
+        &hLsaConnection,
         pszUserName,
         resultsExistingSize,
         resultsCapacity,
@@ -167,6 +174,7 @@ _nss_lsass_initgroups_dyn(
         resultsCapacity = resultsSize;
         /* Try again */
         ret = LsaNssCommonGroupGetGroupsByUserName(
+            &hLsaConnection,
             pszUserName,
             resultsExistingSize,
             resultsCapacity,

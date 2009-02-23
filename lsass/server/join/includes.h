@@ -48,14 +48,14 @@
 #include <lwnet.h>
 #include "lsakrb5_error.h"
 
+#include <secdesc/secdesc.h>
 #include <lwrpc/LM.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
 #include <lwrpc/samr.h>
-#include <lwrpc/sidhelper.h>
 #include <lwrpc/errconv.h>
 
-#include <lsmb/lsmb.h>
+#include <lwio/lwio.h>
 
 #include "join_p.h"
 #include "externs.h"

@@ -105,6 +105,52 @@
 LWMsgStatus
 lwmsg_marshal(LWMsgContext* context, LWMsgTypeSpec* type, void* object, LWMsgBuffer* buffer);
 
+/**
+ * @brief Marshal a data structure into a simple buffer
+ *
+ * Converts a data structure of the specified type to a flat, serialized form, storing
+ * the result in the provided simple buffer.
+ *
+ * @param context the marshalling context
+ * @param type the type specification which describes the type of the data
+ * @param object the root of the data to marshal
+ * @param buffer the buffer into which the result will be stored
+ * @param length the size of the buffer in bytes
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{MALFORMED, the provided data did not conform in some way to the provided type information}
+ * @lwmsg_code{OVERFLOW, an arithmetic overflow occured while converting an integer to its marshalled form}
+ * @lwmsg_code{UNDERFLOW, an arithmetic underflow occured while converting an integer to its marshalled form}
+ * @lwmsg_code{EOF, the buffer was not large enough to hold the entire serialized representation}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_marshal_simple(LWMsgContext* context, LWMsgTypeSpec* type, void* object, void* buffer, size_t length);
+
+/**
+ * @brief Marshal a data structure while allocating a buffer
+ *
+ * Converts a data structure of the specified type to a flat, serialized form, automatically
+ * allocating and returning a buffer.  The buffer is allocated using the memory management
+ * functions in the specified context.
+ *
+ * @param context the marshalling context
+ * @param type the type specification which describes the type of the data
+ * @param object the root of the data to marshal
+ * @param buffer the allocated buffer containing the serialized representation
+ * @param length the length of the buffer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{MALFORMED, the provided data did not conform in some way to the provided type information}
+ * @lwmsg_code{OVERFLOW, an arithmetic overflow occured while converting an integer to its marshalled form}
+ * @lwmsg_code{UNDERFLOW, an arithmetic underflow occured while converting an integer to its marshalled form}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_marshal_alloc(LWMsgContext* context, LWMsgTypeSpec* type, void* object, void** buffer, size_t* length);
+
 /*@}*/
 
 #endif

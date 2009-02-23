@@ -241,6 +241,14 @@ AD_SetConfig_NssUserMembershipCacheOnlyEnabled(
     PCSTR          pszValue
     );
 
+static
+DWORD
+AD_SetConfig_NssEnumerationEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
 static AD_CONFIG_HANDLER gADConfigHandlers[] =
 {
     {"enable-eventlog",               &AD_SetConfig_EnableEventLog},
@@ -266,6 +274,7 @@ static AD_CONFIG_HANDLER gADConfigHandlers[] =
     {"trim-user-membership",          &AD_SetConfig_TrimUserMembershipEnabled},
     {"nss-group-members-query-cache-only",   &AD_SetConfig_NssGroupMembersCacheOnlyEnabled},
     {"nss-user-membership-query-cache-only", &AD_SetConfig_NssUserMembershipCacheOnlyEnabled},
+    {"nss-enumeration-enabled",              &AD_SetConfig_NssEnumerationEnabled},
 };
 
 DWORD
@@ -295,7 +304,7 @@ AD_InitializeConfig(
     pConfig->bAssumeDefaultDomain = FALSE;
     pConfig->bCreateHomeDir   = TRUE;
     pConfig->bCreateK5Login   = TRUE;
-    pConfig->bLDAPSignAndSeal = FALSE;    
+    pConfig->bLDAPSignAndSeal = FALSE;
     pConfig->bSyncSystemTime  = TRUE;
     /* Leave chSpaceReplacement and chDomainSeparator set as '\0' for now.
      * After the config file is parsed, they will be assigned default values
@@ -309,20 +318,21 @@ AD_InitializeConfig(
     pConfig->dwCacheEntryExpirySecs   = AD_CACHE_ENTRY_EXPIRY_DEFAULT_SECS;
     pConfig->dwMachinePasswordSyncLifetime = AD_MACHINE_PASSWORD_SYNC_DEFAULT_SECS;
     pConfig->dwUmask          = AD_DEFAULT_UMASK;
-    
+
     pConfig->bEnableEventLog = FALSE;
-    pConfig->bShouldLogNetworkConnectionEvents = TRUE;    
+    pConfig->bShouldLogNetworkConnectionEvents = TRUE;
     pConfig->bRefreshUserCreds = TRUE;
     pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
     pConfig->bTrimUserMembershipEnabled = TRUE;
     pConfig->bNssGroupMembersCacheOnlyEnabled = TRUE;
     pConfig->bNssUserMembershipCacheOnlyEnabled = FALSE;
+    pConfig->bNssEnumerationEnabled = FALSE;
 
     dwError = LsaAllocateString(
                     AD_DEFAULT_SHELL,
                     &pConfig->pszShell);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaAllocateString(
                     AD_DEFAULT_HOMEDIR_PREFIX,
                     &pConfig->pszHomedirPrefix);
@@ -452,7 +462,7 @@ AD_ConfigStartSection(
         bSkipSection = TRUE;
         goto done;
     }
-    
+
     if (!strncasecmp(pszSectionName, AD_CFG_TAG_AUTH_PROVIDER, sizeof(AD_CFG_TAG_AUTH_PROVIDER)-1))
     {
         pszLibName = pszSectionName + sizeof(AD_CFG_TAG_AUTH_PROVIDER) - 1;
@@ -634,7 +644,7 @@ AD_CheckPunctuationChar(
     }
 
 cleanup:
-    
+
     return dwError;
 
 error:
@@ -1093,31 +1103,31 @@ AD_SetConfig_HomedirPrefix(
 {
     DWORD dwError = 0;
     PSTR pszHomedirPrefix = NULL;
-    
+
     BAIL_ON_INVALID_STRING(pszValue);
-    
+
     dwError = LsaAllocateString(
                 pszValue,
                 &pszHomedirPrefix);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     LsaStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
-    
+
     BAIL_ON_INVALID_STRING(pszHomedirPrefix);
-    
+
     if (*pszHomedirPrefix != '/')
     {
         LSA_LOG_ERROR("Invalid home directory prefix [%s]", pszHomedirPrefix);
         goto error;
     }
-    
+
     LSA_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
     pConfig->pszHomedirPrefix = pszHomedirPrefix;
-    
+
 cleanup:
 
     return 0;
-    
+
 error:
 
     LSA_SAFE_FREE_STRING(pszHomedirPrefix);
@@ -1203,6 +1213,19 @@ AD_SetConfig_NssUserMembershipCacheOnlyEnabled(
     return 0;
 }
 
+static
+DWORD
+AD_SetConfig_NssEnumerationEnabled(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    pConfig->bNssEnumerationEnabled = AD_GetBooleanConfigValue(pszValue);
+
+    return 0;
+}
+
 BOOLEAN
 AD_GetBooleanConfigValue(
     PCSTR pszValue
@@ -1264,7 +1287,7 @@ AD_GetHomedirPrefixPath(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
     PSTR  pszHomedirPrefixPath = NULL;
-    
+
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     if (!IsNullOrEmptyString(gpLsaAdProviderState->config.pszHomedirPrefix))
@@ -1288,7 +1311,7 @@ error:
 
     *ppszPath = NULL;
 
-    goto cleanup;    
+    goto cleanup;
 }
 
 DWORD
@@ -1556,78 +1579,37 @@ AD_GetMachineTGTGraceSeconds()
     return dGraceSeconds;
 }
 
-DWORD
-AD_AddAllowedMember(
-    PCSTR pszSID
+static
+BOOLEAN
+AD_IsInMembersList_InLock(
+    PCSTR pszMember
     )
 {
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSTR  pszValue = NULL;
-    PSTR  pszSIDCopy = NULL;
-    BOOLEAN bFreeValue = FALSE;
+    PDLINKEDLIST pIter = NULL;
+    BOOLEAN      bInList = FALSE;
 
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    if (!gpAllowedSIDs)
+    for (pIter = gpLsaAdProviderState->config.pUnresolvedMemberList;
+         pIter;
+         pIter = pIter->pNext)
     {
-        dwError = LsaHashCreate(
-                        11,
-                        LsaHashCaselessStringCompare,
-                        LsaHashCaselessString,
-                        AD_FreeHashStringKey,
-                        &gpAllowedSIDs);
-        BAIL_ON_LSA_ERROR(dwError);
+        if (!strcmp(pszMember, (PSTR)pIter->pItem))
+        {
+            bInList = TRUE;
+            break;
+        }
     }
 
-    dwError = LsaHashGetValue(
-                    gpAllowedSIDs,
-                    pszSID,
-                    (PVOID*)&pszValue);
-    if (dwError == ENOENT)
-    {
-        dwError = LsaAllocateString(
-                        pszSID,
-                        &pszSIDCopy);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        bFreeValue = TRUE;
-
-        dwError = LsaHashSetValue(
-                        gpAllowedSIDs,
-                        pszSIDCopy,
-                        pszSIDCopy);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        bFreeValue = FALSE;
-    }
-
-cleanup:
-
-    if (bFreeValue)
-    {
-        LsaFreeString(pszSIDCopy);
-    }
-
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
+    return bInList;
 }
 
+static
 VOID
-AD_DeleteFromMembersList(
+AD_DeleteFromMembersList_InLock(
     PCSTR pszMember
     )
 {
     PDLINKEDLIST pIter = NULL;
     PVOID        pItem = NULL;
-    BOOLEAN      bInLock = FALSE;
-
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
     for (pIter = gpLsaAdProviderState->config.pUnresolvedMemberList;
          pIter;
@@ -1647,14 +1629,162 @@ AD_DeleteFromMembersList(
 
         LsaFreeMemory(pItem);
     }
+}
+
+VOID
+AD_DeleteFromMembersList(
+    PCSTR pszMember
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    AD_DeleteFromMembersList_InLock(pszMember);
 
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 }
 
+static
+void
+AD_FreeHashStringKey(
+    const LSA_HASH_ENTRY *pEntry)
+{
+    PSTR pszKeyCopy = (PSTR)pEntry->pKey;
+    LSA_SAFE_FREE_STRING(pszKeyCopy);
+}
+
+static
 DWORD
-AD_GetAllowedMembersList(
+AD_CopyHashStringKey(
+    const LSA_HASH_ENTRY *pEntry,
+    LSA_HASH_ENTRY       *pEntryCopy
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszKeyCopy = NULL;
+
+    dwError = LsaAllocateString(
+                    (PSTR)pEntry->pKey,
+                    &pszKeyCopy);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntryCopy->pKey = pszKeyCopy;
+    pEntryCopy->pValue = pszKeyCopy;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszKeyCopy);
+
+    goto cleanup;
+}
+
+DWORD
+AD_AddAllowedMember(
+    IN PCSTR               pszSID,
+    IN PSTR                pszMember,
+    IN OUT PLSA_HASH_TABLE *ppAllowedMemberList
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PSTR  pszValue = NULL;
+    PSTR  pszSIDCopy = NULL;
+    PLSA_HASH_TABLE pAllowedMemberList = *ppAllowedMemberList;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    if (!gpAllowedSIDs)
+    {
+        dwError = LsaHashCreate(
+                        11,
+                        LsaHashCaselessStringCompare,
+                        LsaHashCaselessString,
+                        AD_FreeHashStringKey,
+                        AD_CopyHashStringKey,
+                        &gpAllowedSIDs);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!pAllowedMemberList)
+    {
+        dwError = LsaHashCreate(
+                        11,
+                        LsaHashCaselessStringCompare,
+                        LsaHashCaselessString,
+                        AD_FreeHashStringKey,
+                        AD_CopyHashStringKey,
+                        &pAllowedMemberList);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateString(
+                    pszSID,
+                    &pszSIDCopy);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaHashSetValue(
+                    pAllowedMemberList,
+                    pszSIDCopy,
+                    pszSIDCopy);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pszSIDCopy = NULL;
+
+    if ( AD_IsInMembersList_InLock(pszMember) )
+    {
+        dwError = LsaHashGetValue(
+                      gpAllowedSIDs,
+                      pszSID,
+                      (PVOID*)&pszValue);
+        if (dwError == ENOENT)
+        {
+            dwError = LsaAllocateString(
+                          pszSID,
+                          &pszSIDCopy);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaHashSetValue(
+                          gpAllowedSIDs,
+                          pszSIDCopy,
+                          pszSIDCopy);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pszSIDCopy = NULL;
+        }
+
+        AD_DeleteFromMembersList_InLock( pszMember);
+    }
+
+    *ppAllowedMemberList = pAllowedMemberList;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszSIDCopy);
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return dwError;
+
+error:
+
+    if ( ! *ppAllowedMemberList )
+    {
+        LsaHashSafeFree(&pAllowedMemberList);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+AD_GetMemberLists(
     PSTR** pppszMembers,
-    PDWORD pdwNumMembers
+    PDWORD pdwNumMembers,
+    PLSA_HASH_TABLE* ppAllowedMemberList
     )
 {
     DWORD dwError = 0;
@@ -1662,6 +1792,7 @@ AD_GetAllowedMembersList(
     DWORD dwNumMembers = 0;
     PDLINKEDLIST pIter = NULL;
     PSTR* ppszMembers = NULL;
+    PLSA_HASH_TABLE pAllowedMemberList = NULL;
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
@@ -1690,8 +1821,17 @@ AD_GetAllowedMembersList(
         }
     }
 
+    if ( gpAllowedSIDs )
+    {
+        dwError = LsaHashCopy(
+                      gpAllowedSIDs,
+                      &pAllowedMemberList);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     *pppszMembers = ppszMembers;
     *pdwNumMembers = dwNumMembers;
+    *ppAllowedMemberList = pAllowedMemberList;
 
 cleanup:
 
@@ -1708,6 +1848,9 @@ error:
 
     *pppszMembers = NULL;
     *pdwNumMembers = 0;
+    *ppAllowedMemberList = NULL;
+
+    LsaHashSafeFree(&pAllowedMemberList);
 
     goto cleanup;
 }
@@ -1747,26 +1890,22 @@ AD_ShouldFilterUserLoginsByGroup(
 
 BOOLEAN
 AD_IsMemberAllowed(
-    PCSTR pszSID
+    PCSTR           pszSID,
+    PLSA_HASH_TABLE pAllowedMemberList
     )
 {
     BOOLEAN bAllowed = FALSE;
-    BOOLEAN bInLock = FALSE;
     PSTR    pszValue = NULL;
 
-    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    if (!AD_ShouldFilterUserLoginsByGroup_InLock() ||
-        (gpAllowedSIDs &&
+    if (!AD_ShouldFilterUserLoginsByGroup() ||
+        (pAllowedMemberList &&
          !LsaHashGetValue(
-                        gpAllowedSIDs,
+                        pAllowedMemberList,
                         pszSID,
                         (PVOID*)&pszValue)))
     {
         bAllowed = TRUE;
     }
-
-    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     return bAllowed;
 }
@@ -1968,3 +2107,21 @@ AD_GetNssUserMembershipCacheOnlyEnabled(
 
     return result;
 }
+
+BOOLEAN
+AD_GetNssEnumerationEnabled(
+    VOID
+    )
+{
+    BOOLEAN result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    result = gpLsaAdProviderState->config.bNssEnumerationEnabled;
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
+}
+

@@ -17,7 +17,6 @@ lwmsg_assoc_get_handle_location
 lwmsg_assoc_free_message
 lwmsg_assoc_free_graph
 lwmsg_assoc_set_timeout
-lwmsg_assoc_set_timeout_ms
 lwmsg_assoc_get_error_message
 lwmsg_assoc_get_peer_security_token
 lwmsg_assoc_get_peer_session_id
@@ -25,10 +24,8 @@ lwmsg_assoc_get_state
 lwmsg_assoc_get_session_data
 lwmsg_assoc_set_session_data
 lwmsg_assoc_set_action
-lwmsg_assoc_verify_handle_local
-lwmsg_assoc_verify_handle_remote
+lwmsg_assoc_establish
 lwmsg_connection_new
-lwmsg_connection_establish
 lwmsg_connection_set_packet_size
 lwmsg_connection_set_fd
 lwmsg_connection_set_endpoint
@@ -45,6 +42,8 @@ lwmsg_context_set_data_function
 lwmsg_context_get_error_message
 lwmsg_context_free_graph
 lwmsg_marshal
+lwmsg_marshal_simple
+lwmsg_marshal_alloc
 lwmsg_protocol_get_message_type
 lwmsg_protocol_new
 lwmsg_protocol_add_protocol_spec
@@ -59,6 +58,7 @@ lwmsg_time_sum
 lwmsg_time_compare
 lwmsg_time_normalize
 lwmsg_unmarshal
+lwmsg_unmarshal_simple
 lwmsg_context_setup
 lwmsg_context_cleanup
 lwmsg_error_raise
@@ -80,5 +80,9 @@ lwmsg_session_manager_get_id
 lwmsg_session_id_to_string
 lwmsg_session_manager_get_session_assoc_count
 lwmsg_session_manager_get_session_handle_count
+lwmsg_session_manager_handle_id_to_pointer
+lwmsg_session_manager_handle_pointer_to_id
+lwmsg_session_manager_register_handle_local
+lwmsg_session_manager_register_handle_remote
 lwmsg_fd_type_class
 lwmsg_handle_type_class

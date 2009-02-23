@@ -132,7 +132,39 @@ typedef enum
      * Invalid state detected
      * @hideinitializer
      */
-    LWMSG_STATUS_INVALID_STATE = 17
+    LWMSG_STATUS_INVALID_STATE = 17,
+    /**
+     * Peer reset association
+     * @hideinitializer
+     */
+    LWMSG_STATUS_PEER_RESET = 18,
+    /**
+     * Peer closed association
+     * @hideinitializer
+     */
+    LWMSG_STATUS_PEER_CLOSE = 19,
+    /**
+     * Peer aborted association
+     * @hideinitializer
+     */
+    LWMSG_STATUS_PEER_ABORT = 20,
+    /**
+     * Session with peer was lost
+     * @hideinitializer
+     */
+    LWMSG_STATUS_SESSION_LOST = 21,
+    /**
+     * Unsupported operation
+     * @hideinitializer
+     */
+    LWMSG_STATUS_UNSUPPORTED = 22,
+    /**
+     * Invalid handle
+     * @hideinitializer
+     */
+    LWMSG_STATUS_INVALID_HANDLE = 23
 } LWMsgStatus;
+
+#define LWMSG_STATUS_COUNT (22)
 
 #endif

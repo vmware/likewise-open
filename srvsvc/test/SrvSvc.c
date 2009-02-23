@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -34,12 +34,9 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
-
-#include <types.h>
-#include <security.h>
 #include <wc16str.h>
-#include <srvsvc.h>
-#include <srvsvcbinding.h>
+
+#include <srvsvc/srvsvc.h>
 
 #include "../client/SrvSvcUtil.h"
 #include "TestSrvSvc.h"
@@ -107,7 +104,7 @@ handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
     status = InitSrvSvcBindingDefault(binding, hostname);
     if (status != RPC_S_OK) {
         int result;
-        CHAR_T errmsg[dce_c_error_string_len];
+        unsigned char errmsg[dce_c_error_string_len];
 	
         dce_error_inq_text(status, errmsg, &result);
         if (result == 0) {
@@ -134,11 +131,8 @@ int TestNetConnectionEnum(struct test *t, const wchar16_t *hostname,
     uint32 entriesread = 0;
     uint32 totalentries = 0;
     uint32 resume_handle = 0;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
-
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -770,11 +764,8 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
     uint32 entriesread = 0;
     uint32 totalentries = 0;
     uint32 i;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
-
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -782,15 +773,26 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(srvsvc_binding);
     INPUT_ARG_WSTR(hostname);
 
-    bufptr = NULL;
+    memset((void*)&info502, 0, sizeof(info502));
+
+    info502.shi502_netname = ambstowc16s("TEST");
+    info502.shi502_path    = ambstowc16s("/tmp");
+
+    bufptr = (uint8*)&info502;
     parm_err = 0;
     CALL_NETAPI(err = NetShareAdd(srvsvc_binding,
                                   hostname,/*servername*/
-                                  0,/*level*/
+                                  502,/*level*/
                                   bufptr,/*bufptr*/
                                   NULL/*parm_err*/
                                   ));
-    if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
+    //    if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
+
+    CALL_NETAPI(err = NetShareDel(srvsvc_binding,
+                                  hostname,/*servername*/
+                                  info502.shi502_netname,
+                                  0/*reserved*/
+                                  ));
 
     bufptr = NULL;
     parm_err = 0;
@@ -802,7 +804,7 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
                                   ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info2;
+    bufptr = (uint8*)&info2;
     parm_err = 0;
     info2.shi2_netname      = ambstowc16s("C$");
     info2.shi2_type         = 0;/*STYPE_DISKTREE*/
@@ -820,7 +822,7 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
                                   ));
     if (err != NERR_DuplicateShare) netapi_fail(err);
 
-    bufptr = &info502;
+    bufptr = (uint8*)&info502;
     parm_err = 0;
     info502.shi502_netname             = ambstowc16s("C$");
     info502.shi502_type                = 0;/*STYPE_DISKTREE*/
@@ -870,7 +872,7 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
                awc16stombs(ginfo502->shi502_netname),
                ginfo502->shi502_security_descriptor);
 
-        bufptr = &info502;
+        bufptr = (uint8*)&info502;
         parm_err = 0;
         info502.shi502_netname             = ambstowc16s("C$");
         info502.shi502_type                = 0;/*STYPE_DISKTREE*/
@@ -895,8 +897,6 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
-
     SrvSvcDestroyMemory();
     return true;
 done:
@@ -914,13 +914,10 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
     uint32 entriesread = 0;
     uint32 totalentries = 0;
     uint32 resume_handle = 0;
-    const uint32 levels[5] = { 0, 1, 2, 501, 502 };
+    const uint32 levels[5] = { 502, 0, 0, 0, 0 };
     uint32 i;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
-
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -941,7 +938,7 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
                                        0,/*prefmaxlen*/
                                        &entriesread,/*entriesread*/
                                        &totalentries,/*totalentries*/
-                                       NULL/*resume_handle*/
+                                       &resume_handle /*resume_handle*/
                                        ));
         if (err != NERR_BufTooSmall) netapi_fail(err);
         printf("bufptr[%p] entriesread[%u] totalentries[%u] resume_handle[%u]\n",
@@ -1074,10 +1071,10 @@ int TestNetShareGetInfo(struct test *t, const wchar16_t *hostname,
 
     shi0_enum = (PSHARE_INFO_0)bufptr;
     for (i=0; i< entriesread; i++) {
-        uint32 levels[5] = { 0, 1, 2, 501, 502, 1005 };
+        uint32 levels[] = { 0, 1, 2, 501, 502, 1005 };
         uint32 y;
 
-        for (y=0; y < 5; y++) {
+        for (y=0; y < (sizeof(levels)/sizeof(levels[0])); y++) {
            bufptr = NULL;
            CALL_NETAPI(err = NetShareGetInfo(srvsvc_binding,
                                              hostname,/*servername*/
@@ -1197,7 +1194,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                awc16stombs(ginfo502->shi502_netname),
                ginfo502->shi502_security_descriptor);
 
-        bufptr = ginfo502;
+        bufptr = (uint8*)ginfo502;
         parm_err = 0;
         CALL_NETAPI(err = NetShareSetInfo(srvsvc_binding,
                                           hostname,/*servername*/
@@ -1208,7 +1205,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                                           ));
         if (err != ERROR_SUCCESS) netapi_fail(err);
 
-        bufptr = &info1501;
+        bufptr = (uint8*)&info1501;
         parm_err = 0;
         info1501.shi1501_reserved            = ginfo502->shi502_reserved;
         info1501.shi1501_security_descriptor = ginfo502->shi502_security_descriptor;
@@ -1232,7 +1229,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
         if (err != ERROR_SUCCESS) netapi_fail(err);
     }
 
-    bufptr = &info1;
+    bufptr = (uint8*)&info1;
     parm_err = 0;
     info1.shi1_netname      = ambstowc16s("C$D$");
     info1.shi1_type         = 0;/*STYPE_DISKTREE*/
@@ -1246,7 +1243,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                                       ));
     if (err != NERR_NetNameNotFound) netapi_fail(err);
 
-    bufptr = &info2;
+    bufptr = (uint8*)&info2;
     parm_err = 0;
     info2.shi2_netname      = ambstowc16s("C$D$");
     info2.shi2_type         = 0;/*STYPE_DISKTREE*/
@@ -1265,7 +1262,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                                       ));
     if (err != NERR_NetNameNotFound) netapi_fail(err);
 
-    bufptr = &info502;
+    bufptr = (uint8*)&info502;
     parm_err = 0;
     info502.shi502_netname             = ambstowc16s("C$D$");
     info502.shi502_type                = 0;/*STYPE_DISKTREE*/
@@ -1286,7 +1283,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                                       ));
     if (err != NERR_NetNameNotFound) netapi_fail(err);
 
-    bufptr = &info1004;
+    bufptr = (uint8*)&info1004;
     parm_err = 0;
     info1004.shi1004_remark = ambstowc16s("C-REMARK");
     CALL_NETAPI(err = NetShareSetInfo(srvsvc_binding,
@@ -1298,7 +1295,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                                       ));
     if (err != NERR_NetNameNotFound) netapi_fail(err);
 
-    bufptr = &info1005;
+    bufptr = (uint8*)&info1005;
     parm_err = 0;
     info1005.shi1005_flags = 0;
     CALL_NETAPI(err = NetShareSetInfo(srvsvc_binding,
@@ -1310,7 +1307,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                                       ));
     if (err != NERR_NetNameNotFound) netapi_fail(err);
 
-    bufptr = &info1006;
+    bufptr = (uint8*)&info1006;
     parm_err = 0;
     info1006.shi1006_max_uses = 20;
     CALL_NETAPI(err = NetShareSetInfo(srvsvc_binding,
@@ -1322,7 +1319,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                                       ));
     if (err != NERR_NetNameNotFound) netapi_fail(err);
 
-    bufptr = &info1501;
+    bufptr = (uint8*)&info1501;
     parm_err = 0;
     info1501.shi1501_reserved            = 0;
     info1501.shi1501_security_descriptor = NULL;
@@ -1368,7 +1365,7 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
 
     CALL_NETAPI(err = NetShareDel(srvsvc_binding,
                                   hostname,/*servername*/
-                                  ambstowc16s("C$D$"),/*netname*/
+                                  ambstowc16s("TEST"),/*netname*/
                                   0/*reserved*/
                                   ));
     if (err != NERR_NetNameNotFound) netapi_fail(err);
@@ -1560,7 +1557,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info100;
+    bufptr = (uint8*)&info100;
     parm_err = 0;
     info100.sv100_platform_id = orig102->sv102_platform_id;
     info100.sv100_name        = orig102->sv102_name;
@@ -1572,7 +1569,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_LEVEL) netapi_fail(err);
 
-    bufptr = &info101;
+    bufptr = (uint8*)&info101;
     parm_err = 0;
     info101.sv101_platform_id   = orig102->sv102_platform_id;
     info101.sv101_name          = orig102->sv102_name;
@@ -1588,7 +1585,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info102;
+    bufptr = (uint8*)&info102;
     parm_err = 0;
     info102.sv102_platform_id   = orig102->sv102_platform_id;
     info102.sv102_name          = orig102->sv102_name;
@@ -1611,7 +1608,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info402;
+    bufptr = (uint8*)&info402;
     parm_err = 0;
     memset(&info402, 0, sizeof(info402));
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1622,7 +1619,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_LEVEL) netapi_fail(err);
 
-    bufptr = &info403;
+    bufptr = (uint8*)&info403;
     parm_err = 0;
     memset(&info403, 0, sizeof(info403));
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1633,7 +1630,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_LEVEL) netapi_fail(err);
 
-    bufptr = &info502;
+    bufptr = (uint8*)&info502;
     parm_err = 0;
     info502.sv502_sessopens              = orig503->sv503_sessopens;
     info502.sv502_sessvcs                = orig503->sv503_sessvcs;
@@ -1661,7 +1658,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info503;
+    bufptr = (uint8*)&info503;
     parm_err = 0;
     info503.sv503_sessopens               = orig503->sv503_sessopens;
     info503.sv503_sessvcs                 = orig503->sv503_sessvcs;
@@ -1714,7 +1711,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info599;
+    bufptr = (uint8*)&info599;
     parm_err = 0;
     info599.sv599_sessopens               = orig503->sv503_sessopens;
     info599.sv599_sessvcs                 = orig503->sv503_sessvcs;
@@ -1780,7 +1777,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1005;
+    bufptr = (uint8*)&info1005;
     parm_err = 0;
     info1005.sv1005_comment = orig102->sv102_comment;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1791,7 +1788,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1010;
+    bufptr = (uint8*)&info1010;
     parm_err = 0;
     info1010.sv1010_disc = orig102->sv102_disc;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1802,7 +1799,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1016;
+    bufptr = (uint8*)&info1016;
     parm_err = 0;
     info1016.sv1016_hidden = orig102->sv102_hidden;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1813,7 +1810,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1017;
+    bufptr = (uint8*)&info1017;
     parm_err = 0;
     info1017.sv1017_announce = orig102->sv102_announce;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1824,7 +1821,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1018;
+    bufptr = (uint8*)&info1018;
     parm_err = 0;
     info1018.sv1018_anndelta = orig102->sv102_anndelta;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1835,7 +1832,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1107;
+    bufptr = (uint8*)&info1107;
     parm_err = 0;
     info1107.sv1107_users = orig102->sv102_users;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1846,7 +1843,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1501;
+    bufptr = (uint8*)&info1501;
     parm_err = 0;
     info1501.sv1501_sessopens = orig503->sv503_sessopens;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1857,7 +1854,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1502;
+    bufptr = (uint8*)&info1502;
     parm_err = 0;
     info1502.sv1502_sessvcs = orig503->sv503_sessvcs;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1868,7 +1865,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1503;
+    bufptr = (uint8*)&info1503;
     parm_err = 0;
     info1503.sv1503_opensearch = orig503->sv503_opensearch;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1879,7 +1876,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1506;
+    bufptr = (uint8*)&info1506;
     parm_err = 0;
     info1506.sv1506_maxworkitems = orig503->sv503_maxworkitems;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1890,7 +1887,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1509;
+    bufptr = (uint8*)&info1509;
     parm_err = 0;
     info1509.sv1509_maxrawbuflen = orig503->sv503_maxrawbuflen;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1901,7 +1898,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1510;
+    bufptr = (uint8*)&info1510;
     parm_err = 0;
     info1510.sv1510_sessusers = orig503->sv503_sessusers;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1912,7 +1909,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1511;
+    bufptr = (uint8*)&info1511;
     parm_err = 0;
     info1511.sv1511_sessconns = orig503->sv503_sessconns;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1923,7 +1920,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1512;
+    bufptr = (uint8*)&info1512;
     parm_err = 0;
     info1512.sv1512_maxnonpagedmemoryusage = orig503->sv503_maxnonpagedmemoryusage;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1934,7 +1931,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1513;
+    bufptr = (uint8*)&info1513;
     parm_err = 0;
     info1513.sv1513_maxpagedmemoryusage = orig503->sv503_maxpagedmemoryusage;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1945,7 +1942,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1514;
+    bufptr = (uint8*)&info1514;
     parm_err = 0;
     info1514.sv1514_enablesoftcompat = orig503->sv503_enablesoftcompat;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1956,7 +1953,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1515;
+    bufptr = (uint8*)&info1515;
     parm_err = 0;
     info1515.sv1515_enableforcedlogoff = orig503->sv503_enableforcedlogoff;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1967,7 +1964,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1516;
+    bufptr = (uint8*)&info1516;
     parm_err = 0;
     info1516.sv1516_timesource = orig503->sv503_timesource;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1978,7 +1975,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1518;
+    bufptr = (uint8*)&info1518;
     parm_err = 0;
     info1518.sv1518_lmannounce = orig503->sv503_lmannounce;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -1989,7 +1986,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1520;
+    bufptr = (uint8*)&info1520;
     parm_err = 0;
     info1520.sv1520_maxcopyreadlen = orig503->sv503_maxcopyreadlen;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2000,7 +1997,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1521;
+    bufptr = (uint8*)&info1521;
     parm_err = 0;
     info1521.sv1521_maxcopywritelen = orig503->sv503_maxcopywritelen;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2011,7 +2008,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1522;
+    bufptr = (uint8*)&info1522;
     parm_err = 0;
     info1522.sv1522_minkeepsearch = orig503->sv503_minkeepsearch;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2022,7 +2019,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1523;
+    bufptr = (uint8*)&info1523;
     parm_err = 0;
     info1523.sv1523_maxkeepsearch = orig503->sv503_maxkeepsearch;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2033,7 +2030,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1524;
+    bufptr = (uint8*)&info1524;
     parm_err = 0;
     info1524.sv1524_minkeepcomplsearch = orig503->sv503_minkeepcomplsearch;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2044,7 +2041,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1525;
+    bufptr = (uint8*)&info1525;
     parm_err = 0;
     info1525.sv1525_maxkeepcomplsearch = orig503->sv503_maxkeepcomplsearch;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2055,7 +2052,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1528;
+    bufptr = (uint8*)&info1528;
     parm_err = 0;
     info1528.sv1528_scavtimeout = orig503->sv503_scavtimeout;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2066,7 +2063,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1529;
+    bufptr = (uint8*)&info1529;
     parm_err = 0;
     info1529.sv1529_minrcvqueue = orig503->sv503_minrcvqueue;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2077,7 +2074,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1530;
+    bufptr = (uint8*)&info1530;
     parm_err = 0;
     info1530.sv1530_minfreeworkitems = orig503->sv503_minfreeworkitems;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2088,7 +2085,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1533;
+    bufptr = (uint8*)&info1533;
     parm_err = 0;
     info1533.sv1533_maxmpxct = orig503->sv503_maxmpxct;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2099,7 +2096,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1534;
+    bufptr = (uint8*)&info1534;
     parm_err = 0;
     info1534.sv1534_oplockbreakwait = orig503->sv503_oplockbreakwait;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2110,7 +2107,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1535;
+    bufptr = (uint8*)&info1535;
     parm_err = 0;
     info1535.sv1535_oplockbreakresponsewait = orig503->sv503_oplockbreakresponsewait;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2121,7 +2118,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1536;
+    bufptr = (uint8*)&info1536;
     parm_err = 0;
     info1536.sv1536_enableoplocks = orig503->sv503_enableoplocks;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2132,7 +2129,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1537;
+    bufptr = (uint8*)&info1537;
     parm_err = 0;
     info1537.sv1537_enableoplockforceclose = orig503->sv503_enableoplockforceclose;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2143,7 +2140,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1538;
+    bufptr = (uint8*)&info1538;
     parm_err = 0;
     info1538.sv1538_enablefcbopens = orig503->sv503_enablefcbopens;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2154,7 +2151,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1539;
+    bufptr = (uint8*)&info1539;
     parm_err = 0;
     info1539.sv1539_enableraw = orig503->sv503_enableraw;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2165,7 +2162,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1540;
+    bufptr = (uint8*)&info1540;
     parm_err = 0;
     info1540.sv1540_enablesharednetdrives = orig503->sv503_enablesharednetdrives;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2176,7 +2173,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1541;
+    bufptr = (uint8*)&info1541;
     parm_err = 0;
     info1541.sv1541_minfreeconnections = orig503->sv503_minfreeconnections;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2187,7 +2184,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1542;
+    bufptr = (uint8*)&info1542;
     parm_err = 0;
     info1542.sv1542_maxfreeconnections = orig503->sv503_maxfreeconnections;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2198,7 +2195,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1543;
+    bufptr = (uint8*)&info1543;
     parm_err = 0;
     info1543.sv1543_initsesstable = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2209,7 +2206,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1544;
+    bufptr = (uint8*)&info1544;
     parm_err = 0;
     info1544.sv1544_initconntable = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2220,7 +2217,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1545;
+    bufptr = (uint8*)&info1545;
     parm_err = 0;
     info1545.sv1545_initfiletable = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2231,7 +2228,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1546;
+    bufptr = (uint8*)&info1546;
     parm_err = 0;
     info1546.sv1546_initsearchtable = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2242,7 +2239,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1547;
+    bufptr = (uint8*)&info1547;
     parm_err = 0;
     info1547.sv1547_alertsched = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2253,7 +2250,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1548;
+    bufptr = (uint8*)&info1548;
     parm_err = 0;
     info1548.sv1548_errorthreshold = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2264,7 +2261,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1549;
+    bufptr = (uint8*)&info1549;
     parm_err = 0;
     info1549.sv1549_networkerrorthreshold = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2275,7 +2272,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1550;
+    bufptr = (uint8*)&info1550;
     parm_err = 0;
     info1550.sv1550_diskspacethreshold = 0xFFFFFFFF;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2286,7 +2283,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1552;
+    bufptr = (uint8*)&info1552;
     parm_err = 0;
     info1552.sv1552_maxlinkdelay = 0xFFFFFFFF;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2297,7 +2294,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1553;
+    bufptr = (uint8*)&info1553;
     parm_err = 0;
     info1553.sv1553_minlinkthroughput = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2308,7 +2305,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-    bufptr = &info1554;
+    bufptr = (uint8*)&info1554;
     parm_err = 0;
     info1554.sv1554_linkinfovalidtime = 0xFFFFFFFF;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2319,7 +2316,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1555;
+    bufptr = (uint8*)&info1555;
     parm_err = 0;
     info1555.sv1555_scavqosinfoupdatetime = 0xFFFFFFFF;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,
@@ -2330,7 +2327,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
                                        ));
     if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
 
-    bufptr = &info1556;
+    bufptr = (uint8*)&info1556;
     parm_err = 0;
     info1556.sv1556_maxworkitemidletime = 0;
     CALL_NETAPI(err = NetServerSetInfo(srvsvc_binding,

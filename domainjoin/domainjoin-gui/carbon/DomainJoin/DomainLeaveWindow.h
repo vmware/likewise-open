@@ -47,44 +47,40 @@ class DomainLeaveWindow : public TWindow
 {
     public:
 	DomainLeaveWindow(int inAppSignature) : TWindow( inAppSignature, CFSTR("Window"), CFSTR("Leave") ) {}
-        virtual  ~DomainLeaveWindow() {}
+    virtual  ~DomainLeaveWindow() {}
 	
     protected:
-        DomainLeaveWindow(const DomainLeaveWindow& other);
-        DomainLeaveWindow& operator=(const DomainLeaveWindow& other);
+    DomainLeaveWindow(const DomainLeaveWindow& other);
+    DomainLeaveWindow& operator=(const DomainLeaveWindow& other);
 
     public:
-
-        void SetComputerName(const std::string& name);
-        void SetDomainName(const std::string& name);
-        void SetOU(const std::string& ou);
-
-        virtual void Close();
+    void SetComputerName(const std::string& name);
+    void SetDomainName(const std::string& name);
+    void SetOU(const std::string& ou);
+    virtual void Close();
         
     protected:
-    
-        virtual Boolean     HandleCommand( const HICommandExtended& inCommand );
-		
+    virtual Boolean     HandleCommand( const HICommandExtended& inCommand );
 	std::string GetComputerName();
 	std::string GetDomainName();
-		
 	bool ConfirmLeave(const std::string& domainName);
-		
 	void HandleLeaveDomain();
-        
-        void ShowLeftDomainDialog(const std::string& domainName);
+    void HandleMigrateUser();
+    void ShowLeftDomainDialog(const std::string& domainName);
 		
     protected:
 	
 	static const int COMPUTER_NAME_ID;
 	static const int DOMAIN_NAME_ID;
-        static const int OU_ID;
+    static const int OU_ID;
 	static const int LEAVE_ID;
 	static const int CLOSE_ID;
+    static const int MIGRATE_ID;
 		
 	static const int COMPUTER_NAME_CMD_ID;
 	static const int DOMAIN_NAME_CMD_ID;
 	static const int LEAVE_CMD_ID;
+    static const int MIGRATE_CMD_ID;
 	static const int CLOSE_CMD_ID;
 };
 

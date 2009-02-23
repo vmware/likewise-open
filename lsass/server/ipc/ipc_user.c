@@ -46,6 +46,16 @@
  */
 #include "ipc.h"
 
+static void
+LsaSrvCleanupUserEnumHandle(
+    void* pData
+    )
+{
+    LsaSrvEndEnumUsers(
+        NULL,
+        (HANDLE) pData);
+}
+
 LWMsgStatus
 LsaSrvIpcAddUser(
     LWMsgAssoc* assoc,
@@ -345,35 +355,32 @@ LsaSrvIpcBeginEnumUsers(
     )
 {
     DWORD dwError = 0;
-    PSTR pszGUID = NULL;
-    PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_BEGIN_ENUM_USERS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
+    HANDLE hResume = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvBeginEnumUsers(
-                        (HANDLE)Handle,
-                        (HANDLE)pReq->Handle,
-                        pReq->dwInfoLevel,
-                        pReq->dwNumMaxRecords,
-                        &pszGUID);
+        Handle,
+        pReq->dwInfoLevel,
+        pReq->dwNumMaxRecords,
+        pReq->FindFlags,
+        &hResume);
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
-                                        (PVOID)&pResult);
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(
+                                      assoc,
+                                      "EnumUsers",
+                                      hResume,
+                                      LsaSrvCleanupUserEnumHandle));
         BAIL_ON_LSA_ERROR(dwError);
 
-        pResult->dwObjectInfoLevel = pReq->dwInfoLevel;
-        pResult->dwNumMaxObjects = pReq->dwNumMaxRecords;
-        pResult->pszGUID = pszGUID;
-        pszGUID = NULL;
-
         pResponse->tag = LSA_R_BEGIN_ENUM_USERS_SUCCESS;
-        pResponse->object = pResult;
+        pResponse->object = hResume;
     }
     else
     {
@@ -385,14 +392,14 @@ LsaSrvIpcBeginEnumUsers(
     }
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszGUID);
 
     return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-    if(pResult)
+
+    if(hResume)
     {
-        LsaFreeEnumObjectsInfo(pResult);
+        LsaSrvCleanupUserEnumHandle(hResume);
     }
 
     goto cleanup;
@@ -411,12 +418,15 @@ LsaSrvIpcEnumUsers(
     DWORD  dwUserInfoLevel = 0;
     DWORD  dwNumUsersFound = 0;
     PLSA_USER_INFO_LIST pResult = NULL;
-    PLSA_IPC_ENUM_RECORDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvEnumUsers(
-                       (HANDLE)pReq->Handle,
-                       pReq->pszToken,
+                       Handle,
+                       pRequest->object,
                        &dwUserInfoLevel,
                        &ppUserInfoList,
                        &dwNumUsersFound);
@@ -489,15 +499,21 @@ LsaSrvIpcEndEnumUsers(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_ENUM_RECORDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvEndEnumUsers(
-                        (HANDLE)pReq->Handle,
-                        pReq->pszToken);
+        Handle,
+        pRequest->object);
 
     if (!dwError)
     {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(assoc, pRequest->object, LWMSG_FALSE));
+        BAIL_ON_LSA_ERROR(dwError);
+
         pResponse->tag = LSA_R_END_ENUM_USERS_SUCCESS;
         pResponse->object = NULL;
     }
@@ -623,8 +639,16 @@ LsaSrvIpcGetNamesBySidList(
     }
 
 cleanup:
-    LsaFreeStringArray(ppszDomainNames, pResult->sCount);
-    LsaFreeStringArray(ppszSamAccounts, pResult->sCount);
+
+    if (ppszDomainNames)
+    {
+        LsaFreeStringArray(ppszDomainNames, pReq->sCount);
+    }
+
+    if (ppszSamAccounts)
+    {
+        LsaFreeStringArray(ppszSamAccounts, pReq->sCount);
+    }
     LSA_SAFE_FREE_MEMORY(pTypes);
 
     return MAP_LSA_ERROR_IPC(dwError);

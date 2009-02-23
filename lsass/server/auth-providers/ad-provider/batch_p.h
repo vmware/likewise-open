@@ -224,8 +224,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
     IN ADConfigurationMode adMode,
     // List of PLSA_AD_BATCH_ITEM
     IN OUT PLSA_LIST_LINKS pBatchItemList,
-    OUT OPTIONAL PDWORD pdwTotalItemFoundCount,
-    IN OUT OPTIONAL PHANDLE phDirectory
+    OUT OPTIONAL PDWORD pdwTotalItemFoundCount
     );
 
 #endif /* __BATCH_P_H__ */

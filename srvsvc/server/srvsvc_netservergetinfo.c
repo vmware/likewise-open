@@ -1,0 +1,102 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
+
+/*
+ * Copyright Likewise Software
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        srvsvc_netservergetinfo.c
+ *
+ * Abstract:
+ *
+ *        Likewise Server Service (srvsvc) RPC client and server
+ *
+ *        SrvSvcNetServerGetInfo server API
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+#include "includes.h"
+
+
+NET_API_STATUS
+SrvSvcNetrServerGetInfo(
+    /* [in] */ handle_t b,
+    /* [in] */ wchar16_t *server_name,
+    /* [in] */ uint32 level,
+    /* [out] */ srvsvc_NetSrvInfo *info
+    )
+{
+    DWORD dwError = 0;
+    SERVER_INFO_101 *pInfo101 = NULL;
+
+    dwError = SRVSVCAllocateMemory(sizeof(*pInfo101),
+                                   (void**)&pInfo101);
+    BAIL_ON_ERROR(dwError);
+
+    pInfo101->sv101_platform_id    = 500;
+    pInfo101->sv101_name           = ambstowc16s("DUMMYSRV");
+    pInfo101->sv101_version_major  = 4;
+    pInfo101->sv101_version_minor  = 9;
+    pInfo101->sv101_type           = 0x00809b03;
+    pInfo101->sv101_comment        = ambstowc16s("Likewise RPC");
+
+    info->info101 = pInfo101;
+
+cleanup:
+    return dwError;
+
+error:
+    if (pInfo101) {
+        if (pInfo101->sv101_name) {
+            SrvSvcFreeMemory((void*)pInfo101->sv101_name);
+        }
+
+        if (pInfo101->sv101_comment) {
+            SrvSvcFreeMemory((void*)pInfo101->sv101_comment);
+        }
+
+        SrvSvcFreeMemory((void*)pInfo101);
+    }
+
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

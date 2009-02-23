@@ -177,7 +177,7 @@ ADSyncMachinePasswords(
                         "<null>");
             }            
             
-            bRefreshTGT = FALSE;
+            bRefreshTGT = TRUE;
         }
         else
         {
@@ -344,7 +344,7 @@ ADShouldRefreshMachineTGT()
 	ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 	
 	if (!gdwMachineTGTExpiry ||
-            (difftime(time(NULL), gdwMachineTGTExpiry) >= gdwMachineTGTExpiryGraceSeconds))
+            (difftime(gdwMachineTGTExpiry, time(NULL)) <= gdwMachineTGTExpiryGraceSeconds))
 	{
 		bRefresh = TRUE;
 	}

@@ -28,14 +28,15 @@
  * license@likewisesoftware.com
  */
 
+#include <config.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <config.h>
-#include <types.h>
 #include <wc16str.h>
-#include <security.h>
-//#include <lwrpc/ntstatus.h>
+#include <secdesc/secdesc.h>
+#include <lw/ntstatus.h>
+
+#include <srvsvc/types.h>
 
 #include "Params.h"
 

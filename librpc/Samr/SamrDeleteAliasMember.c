@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,27 +31,28 @@
 #include "includes.h"
 
 
-NTSTATUS SamrDeleteAliasMember(handle_t b, PolicyHandle *alias_handle,
-                               DomSid *sid)
+NTSTATUS
+SamrDeleteAliasMember(
+    handle_t b,
+    PolicyHandle *alias_h,
+    DomSid *sid
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(alias_handle, cleanup);
+    goto_if_invalid_param_ntstatus(alias_h, cleanup);
     goto_if_invalid_param_ntstatus(sid, cleanup);
 
-    TRY
-    {
-        status = _SamrDeleteAliasMember(b, alias_handle, sid);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrDeleteAliasMember(b, alias_h, sid));
+
+    goto_if_ntstatus_not_success(status, error);
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

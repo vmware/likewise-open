@@ -89,4 +89,11 @@
                 "Unexpected error");                                    \
     } while (0)
 
+void
+lwmsg_test_assoc_pair(
+    LWMsgProtocolSpec* pspec,
+    void (*func1) (LWMsgAssoc* assoc),
+    void (*func2) (LWMsgAssoc* assoc)
+    );
+
 #endif

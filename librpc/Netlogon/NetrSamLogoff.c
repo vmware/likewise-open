@@ -35,11 +35,17 @@
 #include "includes.h"
 
 
-NTSTATUS NetrSamLogoff(handle_t b, NetrCredentials *creds,
-                       const wchar16_t *server, const wchar16_t *domain,
-                       const wchar16_t *computer,
-                       const wchar16_t *username, const wchar16_t *password,
-                       uint32 logon_level)
+NTSTATUS
+NetrSamLogoff(
+    handle_t b,
+    NetrCredentials *creds,
+    const wchar16_t *server,
+    const wchar16_t *domain,
+    const wchar16_t *computer,
+    const wchar16_t *username,
+    const wchar16_t *password,
+    uint32 logon_level
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     wchar16_t *srv = NULL;

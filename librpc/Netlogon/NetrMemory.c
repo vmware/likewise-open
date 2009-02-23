@@ -29,6 +29,8 @@
  */
 
 /*
+ * Abstract: Netlogon memory (de)allocation routines (rpc client library)
+ *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
@@ -101,7 +103,12 @@ NTSTATUS NetrAddDepMemory(void *ptr, void *dep)
  * Type specific functions
  */
 
-NTSTATUS NetrAllocateUniString(wchar16_t **out, wchar16_t *in, void *dep)
+NTSTATUS
+NetrAllocateUniString(
+    wchar16_t **out,
+    const wchar16_t *in,
+    void *dep
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     size_t len = 0;
@@ -114,7 +121,7 @@ NTSTATUS NetrAllocateUniString(wchar16_t **out, wchar16_t *in, void *dep)
 
     status = NetrAllocateMemory((void**)&ptr, sizeof(wchar16_t) * (len + 1),
                                 dep);
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 
     wc16sncpy(ptr, in, len);
 
@@ -176,7 +183,7 @@ NTSTATUS NetrAllocateDomainTrusts(NetrDomainTrust **out,
 
         if (tin->sid)
         {
-            SidCopyAlloc(&tout->sid, tin->sid);
+            RtlSidCopyAlloc(&tout->sid, tin->sid);
             goto_if_no_memory_ntstatus(tout->sid, error);
 
             status = NetrAddDepMemory((void*)tout->sid, (void*)ptr);
@@ -553,7 +560,7 @@ static NTSTATUS NetrInitSamBaseInfo(NetrSamBaseInfo *ptr,
     }
 
     if (in->domain_sid) {
-        SidCopyAlloc(&ptr->domain_sid, in->domain_sid);
+        RtlSidCopyAlloc(&ptr->domain_sid, in->domain_sid);
         goto_if_no_memory_ntstatus(ptr->domain_sid, error);
 
         status = NetrAddDepMemory((void*)ptr->domain_sid, (void*)dep);
@@ -572,14 +579,14 @@ cleanup:
     return status;
 
 error:
-    FreeUnicodeString(&ptr->account_name);
-    FreeUnicodeString(&ptr->full_name);
-    FreeUnicodeString(&ptr->logon_script);
-    FreeUnicodeString(&ptr->profile_path);
-    FreeUnicodeString(&ptr->home_directory);
-    FreeUnicodeString(&ptr->home_drive);
-    FreeUnicodeString(&ptr->logon_server);
-    FreeUnicodeString(&ptr->domain);
+    FreeUnicodeStringEx(&ptr->account_name);
+    FreeUnicodeStringEx(&ptr->full_name);
+    FreeUnicodeStringEx(&ptr->logon_script);
+    FreeUnicodeStringEx(&ptr->profile_path);
+    FreeUnicodeStringEx(&ptr->home_directory);
+    FreeUnicodeStringEx(&ptr->home_drive);
+    FreeUnicodeStringEx(&ptr->logon_server);
+    FreeUnicodeStringEx(&ptr->domain);
 
     if (ptr->groups.rids) {
         NetrFreeMemory((void*)ptr->groups.rids);
@@ -653,7 +660,7 @@ static NTSTATUS NetrAllocateSamInfo3(NetrSamInfo3 **out, NetrSamInfo3 *in,
             NetrSidAttr *in_sa = &(in->sids[i]);
 
             if (in_sa->sid) {
-                SidCopyAlloc(&ptr_sa->sid, in_sa->sid);
+                RtlSidCopyAlloc(&ptr_sa->sid, in_sa->sid);
                 goto_if_no_memory_ntstatus(ptr_sa->sid, error);
 
                 status = NetrAddDepMemory((void*)ptr_sa->sid, (void*)ptr);

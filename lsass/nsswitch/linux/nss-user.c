@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-user.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS User Information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -47,6 +47,7 @@
  */
 
 #include "lsanss.h"
+#include "externs.h"
 
 static const int MAX_NUM_USERS = 500;
 static LSA_ENUMUSERS_STATE gEnumUsersState = {0};
@@ -56,7 +57,8 @@ _nss_lsass_setpwent(
     void
     )
 {
-    return LsaNssCommonPasswdSetpwent(&gEnumUsersState);
+    return LsaNssCommonPasswdSetpwent(&hLsaConnection,
+                                      &gEnumUsersState);
 }
 
 NSS_STATUS
@@ -67,11 +69,13 @@ _nss_lsass_getpwent_r(
     int *           pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwent(&gEnumUsersState,
-                                      pResultUser,
-                                      pszBuf,
-                                      bufLen,
-                                      pErrorNumber);
+    return LsaNssCommonPasswdGetpwent(
+        &hLsaConnection,
+        &gEnumUsersState,
+        pResultUser,
+        pszBuf,
+        bufLen,
+        pErrorNumber);
 }
 
 NSS_STATUS
@@ -79,7 +83,9 @@ _nss_lsass_endpwent(
     void
     )
 {
-    return LsaNssCommonPasswdEndpwent(&gEnumUsersState);
+    return LsaNssCommonPasswdEndpwent(
+        &hLsaConnection,
+        &gEnumUsersState);
 }
 
 NSS_STATUS
@@ -91,7 +97,8 @@ _nss_lsass_getpwnam_r(
     int *            pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwnam(pszLoginId,
+    return LsaNssCommonPasswdGetpwnam(&hLsaConnection,
+                                      pszLoginId,
                                       pResultUser,
                                       pszBuf,
                                       bufLen,
@@ -107,7 +114,8 @@ _nss_lsass_getpwuid_r(
     int *           pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwuid(uid,
+    return LsaNssCommonPasswdGetpwuid(&hLsaConnection,
+                                      uid,
                                       pResultUser,
                                       pszBuf,
                                       bufLen,

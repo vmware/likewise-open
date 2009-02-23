@@ -113,13 +113,12 @@ void md4hash(uint8 h[16], const wchar16_t *password)
 
 void deshash(uint8 h[16], const wchar16_t *password)
 {
-    const max_passlen = 14;
+    const size_t max_passlen = 14;
     const uint8 input[] = "KGS!@#$%";
     const size_t input_len = 8;
 
     size_t len;
     unsigned char *mbspass;
-    uint8 deskey[8];
     int i;
 
     /* Clear the hash first */

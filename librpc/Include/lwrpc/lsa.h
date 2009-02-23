@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,43 +28,108 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Lsa interface (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _LSA_H_
 #define _LSA_H_
 
+#include <lwrpc/lsabinding.h>
 #include <lwrpc/lsadefs.h>
+#include <lwrpc/lsabinding.h>
 
 
-NTSTATUS LsaOpenPolicy2(handle_t b, const wchar16_t *sysname,
-                        void *attrib, uint32 access_mask,
-                        PolicyHandle *handle);
+NTSTATUS
+LsaOpenPolicy2(
+    handle_t         b,
+    const wchar16_t *sysname,
+    void            *attrib,
+    uint32          access_mask,
+    PolicyHandle    *handle
+    );
 
-NTSTATUS LsaLookupNames(handle_t b, PolicyHandle *handle,
-                        uint32 num_names, wchar16_t *names[],
-                        RefDomainList **domains, TranslatedSid **sids,
-                        uint16 level, uint32 *count);
 
-NTSTATUS LsaLookupSids(handle_t b, PolicyHandle *handle, SidArray *sids,
-                       RefDomainList **domains, TranslatedName **names,
-                       uint16 level, uint32 *count);
+NTSTATUS
+LsaLookupNames(
+    handle_t        b,
+    PolicyHandle   *handle,
+    uint32          num_names,
+    wchar16_t      *names[],
+    RefDomainList **domains,
+    TranslatedSid **sids,
+    uint16          level,
+    uint32         *count
+    );
 
-NTSTATUS LsaLookupNames2(handle_t binding, PolicyHandle *handle,
-                         uint32 num_names, wchar16_t *names[],
-                         RefDomainList **domains, TranslatedSid2** sids,
-                         uint16 level, uint32 *count);
 
-NTSTATUS LsaClose(handle_t binding, PolicyHandle *handle);
+NTSTATUS
+LsaLookupSids(
+    handle_t         b,
+    PolicyHandle    *handle,
+    SidArray        *sids,
+    RefDomainList  **domains,
+    TranslatedName **names,
+    uint16           level,
+    uint32          *count
+    );
 
-NTSTATUS LsaQueryInfoPolicy(handle_t binding, PolicyHandle *handle,
-                            uint16 level, LsaPolicyInformation **info);
+NTSTATUS
+LsaLookupNames2(
+    handle_t         binding,
+    PolicyHandle    *handle,
+    uint32           num_names,
+    wchar16_t       *names[],
+    RefDomainList  **domains,
+    TranslatedSid2 **sids,
+    uint16           level,
+    uint32          *count
+    );
 
-NTSTATUS LsaQueryInfoPolicy2(handle_t binding, PolicyHandle *handle,
-                             uint16 level, LsaPolicyInformation **info);
 
-NTSTATUS LsaRpcInitMemory();
+NTSTATUS
+LsaClose(
+    handle_t      binding,
+    PolicyHandle *handle
+    );
 
-NTSTATUS LsaRpcDestroyMemory();
 
-NTSTATUS LsaRpcFreeMemory(void *ptr);
+NTSTATUS
+LsaQueryInfoPolicy(
+    handle_t               binding,
+    PolicyHandle          *handle,
+    uint16                 level,
+    LsaPolicyInformation **info
+    );
+
+
+NTSTATUS
+LsaQueryInfoPolicy2(
+    handle_t               binding,
+    PolicyHandle          *handle,
+    uint16                 level,
+    LsaPolicyInformation **info
+    );
+
+
+NTSTATUS
+LsaRpcInitMemory(
+    void
+    );
+
+
+NTSTATUS
+LsaRpcDestroyMemory(
+    void
+    );
+
+
+NTSTATUS
+LsaRpcFreeMemory(
+    void *ptr
+    );
 
 
 #endif /* _LSA_H_ */

@@ -276,27 +276,6 @@ ADConvertTimeUnix2Nt(
 }
 
 DWORD
-ADStr2UINT64(
-    PSTR pszStr,
-    PUINT64 pResult)
-{
-    UINT64 result = 0;
-
-    if (pszStr){
-        while (*pszStr != '\0')
-        {
-            result *= 10 ;
-            result += *pszStr - '0';
-            pszStr ++ ;
-        }
-    }
-
-    *pResult = result;
-
-    return 0;
-}
-
-DWORD
 ADNonSchemaKeywordGetString(
     PSTR *ppszValues,
     DWORD dwNumValues,
@@ -390,6 +369,8 @@ AD_BuildHomeDirFromTemplate(
     DWORD dwNetBIOSDomainNameLength = 0;
     DWORD dwSamAccountNameLength = 0;
     DWORD dwHomedirPrefixLength = 0;
+    PSTR pszHostName = NULL;
+    DWORD dwHostNameLength = 0;
 
     BAIL_ON_INVALID_STRING(pszHomedirTemplate);
     BAIL_ON_INVALID_STRING(pszNetBIOSDomainName);
@@ -405,6 +386,16 @@ AD_BuildHomeDirFromTemplate(
         dwHomedirPrefixLength = strlen(pszHomedirPrefix);
     }
 
+    if (strstr(pszHomedirTemplate, "%L"))
+    {
+        dwError = LsaDnsGetHostInfo(&pszHostName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        BAIL_ON_INVALID_STRING(pszHostName);
+
+        dwHostNameLength = strlen(pszHostName);
+    }
+
     dwNetBIOSDomainNameLength = strlen(pszNetBIOSDomainName);
     dwSamAccountNameLength = strlen(pszSamAccountName);
 
@@ -413,6 +404,7 @@ AD_BuildHomeDirFromTemplate(
                         dwNetBIOSDomainNameLength +
                         dwSamAccountNameLength +
                         dwHomedirPrefixLength +
+                        dwHostNameLength +
                         1);
 
     dwError = LsaAllocateMemory(
@@ -448,6 +440,10 @@ AD_BuildHomeDirFromTemplate(
                 case 'H':
                     pszInsert = pszHomedirPrefix;
                     dwInsertLength = dwHomedirPrefixLength;
+                    break;
+                case 'L':
+                    pszInsert = pszHostName;
+                    dwInsertLength = dwHostNameLength;
                     break;
                 default:
                     dwError = LSA_ERROR_INVALID_HOMEDIR_TEMPLATE;
@@ -508,6 +504,7 @@ AD_BuildHomeDirFromTemplate(
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszHomedirPrefix);
+    LSA_SAFE_FREE_STRING(pszHostName);
 
     return dwError;
 

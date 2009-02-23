@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -60,6 +60,7 @@
 #define WINDOWS_ENCODING "UCS-2LE"
 #endif
 
+typedef int (*caseconv)(int c);
 
 size_t _wc16slen(const wchar16_t *str)
 {
@@ -433,6 +434,31 @@ size_t mbstowc16s(wchar16_t *dest, const char *src, size_t cchcopy)
 #endif
 }
 
+size_t mbstowc16les(wchar16_t *dest, const char *src, size_t cchcopy)
+{
+    iconv_t handle = iconv_open("UCS-2LE", "");
+    char *inbuf;
+    char *outbuf;
+    size_t cbin;
+    size_t cbout;
+    size_t converted;
+    if(handle == (iconv_t)-1)
+        return (size_t)-1;
+    inbuf = (char *)src;
+    outbuf = (char *)dest;
+    cbin = strlen(src) * sizeof(src[0]);
+    cbout = cchcopy * sizeof(dest[0]);
+    converted = iconv(handle, (ICONV_IN_TYPE) &inbuf, &cbin, &outbuf, &cbout);
+
+    if(cbout >= sizeof(dest[0]))
+        *(wchar16_t *)outbuf = 0;
+    iconv_close(handle);
+    if(converted == (size_t)-1 && cbout != 0)
+        return (size_t)-1;
+    else
+        return cchcopy - cbout/sizeof(dest[0]);
+}
+
 char *awc16stombs(const wchar16_t *input)
 {
     size_t cblen;
@@ -504,23 +530,6 @@ size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
 }
 
 
-typedef int (*caseconv)(int c);
-
-static void wc16scaseconv(caseconv fconv, wchar16_t *s)
-{
-    size_t len;
-    int i;
-
-    if (fconv == NULL || s == NULL) return;
-    len = wc16slen(s);
-
-    for (i = 0; i < len; i++) {
-        unsigned char c = (unsigned char)s[i];
-        s[i] = (wchar16_t)fconv(c);
-    }
-}
-
-
 /*
   These case conversions aren't exactly right, because toupper
   and tolower functions depend on locale settingsand not on
@@ -528,15 +537,37 @@ static void wc16scaseconv(caseconv fconv, wchar16_t *s)
   TODO: Find better case conversion function for unicode
 */
 
-void wc16supper(wchar16_t *s)
+void
+wc16supper(
+    wchar16_t * pwszStr
+    )
 {
-    wc16scaseconv(toupper, s);
+    while (pwszStr && *pwszStr)
+    {
+        // TODO: Add new mappings
+        if (*pwszStr >= 0x61 && *pwszStr <= 0x7A)
+        {
+            *pwszStr -= 0x20;
+        }
+        pwszStr++;
+    }
 }
 
 
-void wc16slower(wchar16_t *s)
+void
+wc16slower(
+    wchar16_t * pwszStr
+    )
 {
-    wc16scaseconv(tolower, s);
+    while (pwszStr && *pwszStr)
+    {
+        // TODO: Add new mappings
+        if (*pwszStr >= 0x41 && *pwszStr <= 0x5A)
+        {
+            *pwszStr += 0x20;
+        }
+        pwszStr++;
+    }
 }
 
 

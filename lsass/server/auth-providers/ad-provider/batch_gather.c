@@ -598,15 +598,8 @@ LsaAdBatchGatherRealUser(
                     &pItem->UserInfo.pszUserPrincipalName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    XXX; // Get rid of ADGetLDAPUPNString or refactor it and use refactor...
     if (pItem->UserInfo.pszUserPrincipalName)
     {
-        if (!index(pItem->UserInfo.pszUserPrincipalName, '@'))
-        {
-            dwError = LSA_ERROR_DATA_ERROR;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
         // Do not touch the non-realm part, just the realm part
         // to make sure the realm conforms to spec.
         LsaPrincipalRealmToUpper(pItem->UserInfo.pszUserPrincipalName);

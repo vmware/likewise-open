@@ -184,8 +184,11 @@ NTLMValidateMarshalledSecBuffer(
     if (secBuf->maxLength < secBuf->length)
         goto error;
 
+#if 0
+/* FIXME: what is this supposed to actually check for? */
     if (length < (ULONG) secBuf->buffer + secBuf->maxLength)
         goto error;
+#endif
 
     if (secBuf->buffer == NULL && 
         (secBuf->length || secBuf->maxLength))
@@ -519,10 +522,10 @@ error:
 
 VOID
 NTLMGetNTTime(
-    PUINT64 ntTime
+    PULONG64 ntTime
 )
 {
-    UINT64 t;
+    ULONG64 t;
     /* @todo - this may not have sufficient granularity */
     t = time(NULL);
     t += TIME_TO_NTTIME_CORRECTION;

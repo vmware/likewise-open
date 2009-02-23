@@ -84,7 +84,16 @@ LWRaiseLsassError(
         LW_CLEANUP_CTERR(dest, CTAllocateMemory(bufferSize, PPCAST(&buffer)));
         if(lsaFunctions->pfnGetErrorString(code, buffer, bufferSize) == bufferSize && bufferSize > 0 && strlen(buffer) > 0)
         {
-            LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Lsass Error", buffer);
+            DWORD err = CENTERROR_DOMAINJOIN_LSASS_ERROR;
+
+            switch (code)
+            {
+                case 0x806B: //LSA_ERROR_FAILED_TO_LOOKUP_DC
+                    err = CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
+                    break;
+            }
+
+            LWRaiseEx(dest, err, file, line, "Lsass Error", buffer);
             goto cleanup;
         }
     }
@@ -196,6 +205,7 @@ DJRemoveCacheFiles()
         "/var/lib/lwidentity/winbindd_cache.tdb",
         /* Likewise 5.0 cache location files... */
         LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db",
+        LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db",
         NULL
     };
     int i;
@@ -1061,7 +1071,7 @@ void DJNetInitialize(LWException **exc)
             LW_CLEANUP_DLERROR(exc);
 
         if (geteuid() == 0) {
-            LW_TRY(exc, DJManageDaemon("lsmbd", TRUE,
+            LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
                         92, 8, &LW_EXC));
             LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
                         92, 10, &LW_EXC));

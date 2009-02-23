@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-user.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS User Information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -53,6 +53,7 @@ typedef struct
 {
     nss_backend_t base;
     LSA_ENUMUSERS_STATE enumUsersState;
+    HANDLE hLsaConnectionUsers;
 } LSA_NSS_PASSWD_BACKEND, *PLSA_NSS_PASSWD_BACKEND;
 
 typedef NSS_STATUS (*NSS_ENTRYPOINT)(nss_backend_t*, void*);
@@ -67,9 +68,11 @@ LsaNssHpuxPasswdDestructor(
 {
     PLSA_NSS_PASSWD_BACKEND pLsaBackend = (PLSA_NSS_PASSWD_BACKEND) pBackend;
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
-    int                     ret = NSS_STATUS_SUCCESS;   
+    int                     ret = NSS_STATUS_SUCCESS;
 
-    LsaNssClearEnumUsersState(pEnumUsersState);
+    LsaNssClearEnumUsersState(
+        &pLsaBackend->hLsaConnectionUsers,
+        pEnumUsersState);
     LsaFreeMemory(pBackend);
 
     return ret;
@@ -84,7 +87,8 @@ LsaNssHpuxPasswdSetpwent(
     PLSA_NSS_PASSWD_BACKEND pLsaBackend = (PLSA_NSS_PASSWD_BACKEND) pBackend;
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
 
-    return LsaNssCommonPasswdSetpwent(pEnumUsersState);
+    return LsaNssCommonPasswdSetpwent(&pLsaBackend->hLsaConnectionUsers,
+                                      pEnumUsersState);
 }
 
 static
@@ -103,12 +107,13 @@ LsaNssHpuxPasswdGetpwent(
     int                     ret;
     int*                    pErrorNumber = &err;
 
-    ret = LsaNssCommonPasswdGetpwent(pEnumUsersState,
+    ret = LsaNssCommonPasswdGetpwent(&pLsaBackend->hLsaConnectionUsers,
+                                     pEnumUsersState,
                                      pResultUser,
                                      pszBuf,
                                      bufLen,
                                      pErrorNumber);
-    
+
     if (ret == NSS_STATUS_SUCCESS)
     {
         pXbyYArgs->returnval = pXbyYArgs->buf.result;
@@ -133,8 +138,8 @@ LsaNssHpuxPasswdEndpwent(
 {
     PLSA_NSS_PASSWD_BACKEND pLsaBackend = (PLSA_NSS_PASSWD_BACKEND) pBackend;
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
- 
-    return LsaNssCommonPasswdEndpwent(pEnumUsersState);
+
+    return LsaNssCommonPasswdEndpwent(&pLsaBackend->hLsaConnectionUsers, pEnumUsersState);
 }
 
 static
@@ -151,8 +156,10 @@ LsaNssHpuxPasswdGetpwnam(
     struct passwd *         pResultUser = (struct passwd*) pXbyYArgs->buf.result;
     char *                  pszBuf = (char*) pXbyYArgs->buf.buffer;
     size_t                  bufLen = (size_t) pXbyYArgs->buf.buflen;
+    PLSA_NSS_PASSWD_BACKEND pLsaBackend = (PLSA_NSS_PASSWD_BACKEND) pBackend;
 
-    ret = LsaNssCommonPasswdGetpwnam(pszLoginId,
+    ret = LsaNssCommonPasswdGetpwnam(&pLsaBackend->hLsaConnectionUsers,
+                                     pszLoginId,
                                      pResultUser,
                                      pszBuf,
                                      bufLen,
@@ -188,8 +195,10 @@ LsaNssHpuxPasswdGetpwuid(
     struct passwd *         pResultUser = (struct passwd*) pXbyYArgs->buf.result;
     char *                  pszBuf = (char*) pXbyYArgs->buf.buffer;
     size_t                  bufLen = (size_t) pXbyYArgs->buf.buflen;
+    PLSA_NSS_PASSWD_BACKEND pLsaBackend = (PLSA_NSS_PASSWD_BACKEND) pBackend;
 
-    ret = LsaNssCommonPasswdGetpwuid(uid,
+    ret = LsaNssCommonPasswdGetpwuid(&pLsaBackend->hLsaConnectionUsers,
+                                     uid,
                                      pResultUser,
                                      pszBuf,
                                      bufLen,
@@ -233,7 +242,7 @@ LsaNssHpuxPasswdBackend =
 
 nss_backend_t*
 LsaNssHpuxPasswdCreateBackend(
-    void			       
+    void
     )
 {
     PLSA_NSS_PASSWD_BACKEND pLsaBackend = NULL;

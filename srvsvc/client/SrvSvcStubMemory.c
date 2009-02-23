@@ -28,29 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include "includes.h"
 
-#ifdef __GNUC__
-#include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
-
-#include "srvsvc_h.h"
-
-#include <wc16str.h>
-
-#include "SrvSvcUtil.h"
-#include <memptr.h>
-#include "externs.h"
-#include "SrvSvcMemory.h"
-#include "SrvSvcStubMemory.h"
 
 static void SrvSvcClearCONNECTION_INFO_1(PCONNECTION_INFO_1 info)
 {
@@ -136,8 +115,6 @@ void SrvSvcClearNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr)
 
 void SrvSvcClearNetFileInfo(uint32 level, srvsvc_NetFileInfo *info)
 {
-    int i;
-
     if (!info) {
         return;
     }

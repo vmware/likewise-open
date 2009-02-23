@@ -493,7 +493,7 @@ static CENTERROR CreateValueNode(Krb5Entry *conf, int depth, const char *name, c
         //Couldn't find a template. Got to create it from scratch
         GCE(ceError = CTAllocateMemory(sizeof(*created), (void **)&created));
         //Use one space to indent everything past the stanza level
-        GCE(ceError = CTAllocateMemory(depth, (void **)&created->leadingWhiteSpace));
+        GCE(ceError = CTAllocateMemory(depth + 1, (void **)&created->leadingWhiteSpace));
         memset(created->leadingWhiteSpace, ' ', depth);
         created->leadingWhiteSpace[depth] = 0;
         GCE(ceError = CTStrdup(" ", &created->name.trailingSeparator));
@@ -535,7 +535,7 @@ static CENTERROR CreateGroupNode(Krb5Entry *conf, int depth, const char *name, K
         //Couldn't find a template. Got to create it from scratch
         GCE(ceError = CTAllocateMemory(sizeof(*created), (void **)&created));
         //Use one space to indent everything past the stanza level
-        GCE(ceError = CTAllocateMemory(depth, (void **)&created->leadingWhiteSpace));
+        GCE(ceError = CTAllocateMemory(depth + 1, (void **)&created->leadingWhiteSpace));
         memset(created->leadingWhiteSpace, ' ', depth);
         created->leadingWhiteSpace[depth] = 0;
         GCE(ceError = CTStrdup(" ", &created->name.trailingSeparator));

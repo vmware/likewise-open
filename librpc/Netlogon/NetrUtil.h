@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,10 +28,16 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Netlogon interface utility macros (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _NETR_UTIL_H_
 #define _NETR_UTIL_H_
 
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <compat/rpcstatus.h>
 
@@ -78,14 +84,27 @@
         goto lbl;                            \
     }
 
+#define goto_if_no_memory_rpcstatus(p, lbl)  \
+    if ((p) == NULL) {                       \
+        rpcstatus = RPC_S_OUT_OF_MEMORY;     \
+        goto lbl;                            \
+    }
+
+#define goto_if_invalid_param_rpcstatus(p, lbl) \
+    if ((p) == NULL) {                          \
+        rpcstatus = RPC_S_INVALID_ARG;          \
+        goto lbl;                               \
+    }
+
 
 #define DCERPC_CALL(status, fn_call)             \
     do {                                         \
-        dcethread_exc *dceexc = NULL;            \
+        dcethread_exc *dceexc;                   \
                                                  \
         DCETHREAD_TRY                            \
         {                                        \
-                (status) = fn_call;              \
+            dceexc = NULL;                       \
+            (status) = fn_call;                  \
         }                                        \
         DCETHREAD_CATCH_ALL(dceexc)              \
         {                                        \
@@ -100,6 +119,7 @@
 
 
 #endif /* _NETR_UTIL_H_ */
+
 
 /*
 local variables:

@@ -49,178 +49,49 @@
 #ifndef __LSA_H__
 #define __LSA_H__
 
-#ifndef _WIN32
-
-#if HAVE_INTTYPES_H
-#include <inttypes.h>
-#endif
-
-#ifndef DWORD_DEFINED
-#define DWORD_DEFINED 1
-
-typedef uint32_t        DWORD, *PDWORD;
-
-#endif
-
-#ifndef INT_DEFINED
-#define INT_DEFINED 1
-
-typedef int             INT, *PINT;
-
-#endif
-
-#ifndef UINT64_DEFINED
-#define UINT64_DEFINED 1
-
-typedef uint64_t        UINT64, *PUINT64;
-
-#endif
-
-#ifndef INT64_DEFINED
-#define INT64_DEFINED 1
-
-typedef int64_t        INT64, *PINT64;
-
-#endif
-
-#ifndef UINT32_DEFINED
-#define UINT32_DEFINED 1
-
-typedef uint32_t        UINT32, *PUINT32;
-
-#endif
-
-#ifndef UINT16_DEFINED
-#define UINT16_DEFINED 1
-
-typedef uint16_t        UINT16, *PUINT16;
-
-#endif
-
-#ifndef WORD_DEFINED
-#define WORD_DEFINED 1
-
-typedef uint16_t WORD, *PWORD;
-
-#endif
-
-#ifndef USHORT_DEFINED
-#define USHORT_DEFINED 1
-
-typedef unsigned short  USHORT, *PUSHORT;
-
-#endif
-
-#ifndef ULONG_DEFINED
-#define ULONG_DEFINED 1
-
-typedef unsigned long   ULONG, *PULONG;
-
-#endif
-
-#ifndef ULONGLONG_DEFINED
-#define ULONGLONG_DEFINED 1
-
-typedef unsigned long long ULONGLONG, *PULONGLONG;
-
-#endif
-
-#ifndef UINT8_DEFINED
-#define UINT8_DEFINED 1
-
-typedef uint8_t         UINT8, *PUINT8;
-
-#endif
-
-#ifndef BYTE_DEFINED
-#define BYTE_DEFINED
-
-typedef uint8_t BYTE, *PBYTE;
-
-#endif
-
-#ifndef UCHAR_DEFINED
-#define UCHAR_DEFINED 1
-
-typedef uint8_t UCHAR, *PUCHAR;
-
-#endif
-
-#ifndef HANDLE_DEFINED
-#define HANDLE_DEFINED 1
-
-typedef void *HANDLE, **PHANDLE;
-
-#endif
-
-#ifndef CHAR_DEFINED
-#define CHAR_DEFINED 1
-
-typedef char            CHAR;
-
-#endif
-
-#ifndef PSTR_DEFINED
-#define PSTR_DEFINED 1
-
-typedef char *          PSTR;
-
-#endif
-
-#ifndef PCSTR_DEFINED
-#define PCSTR_DEFINED 1
-
-typedef const char *    PCSTR;
-
-#endif
-
-#ifndef VOID_DEFINED
-#define VOID_DEFINED 1
-
-typedef void            VOID, *PVOID;
-
-#endif
-
-#ifndef PCVOID_DEFINED
-#define PCVOID_DEFINED 1
-
-typedef const void      *PCVOID;
-
-#endif
-
-#ifndef BOOLEAN_DEFINED
-#define BOOLEAN_DEFINED 1
-
-typedef int             BOOLEAN, *PBOOLEAN;
-
-#endif
-
-#ifndef TRUE
-#define TRUE  1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef OPTIONAL
-#define OPTIONAL
-#endif
-
-#ifndef IN
-#define IN
-#endif
-
-#ifndef OUT
-#define OUT
-#endif
-
-#endif
+/**
+ * @file lsa.h
+ * @brief LSASS Public Client API
+ */
+
+/**
+ * @defgroup public Public API
+ *
+ */
+
+/**
+ * @defgroup connection Connections
+ * @ingroup public
+ */
+
+/**
+ * @defgroup user Users
+ * @ingroup public
+ */
+
+/**
+ * @defgroup group Groups
+ * @ingroup public
+ */
+
+/**
+ * @defgroup artifacts Artifacts
+ * @ingroup public
+ */
+
+/**
+ * @defgroup utility Utility
+ * @ingroup public
+ */
+
+#include <lw/types.h>
+#include <lw/attrs.h>
 
 #ifndef LSA_ERRORS_DEFINED
 
 #define LSA_ERRORS_DEFINED 1
 
+/** Success */
 #define LSA_ERROR_SUCCESS                                   0x0000
 #define LSA_ERROR_INVALID_CACHE_PATH                        0x8000 // 32768
 #define LSA_ERROR_INVALID_CONFIG_PATH                       0x8001 // 32769
@@ -361,7 +232,9 @@ typedef int             BOOLEAN, *PBOOLEAN;
 #define LSA_ERROR_CANNOT_DETECT_USER_PROCESSES              0x8088 // 32904
 #define LSA_ERROR_TRACE_NOT_INITIALIZED                     0x8089 // 32905
 #define LSA_ERROR_NO_SUCH_TRACE_FLAG                        0x808A // 32906
-#define LSA_ERROR_SENTINEL                                  0x808B // 32907
+#define LSA_ERROR_DCERPC_ERROR                              0x808B // 32907
+#define LSA_ERROR_INVALID_RPC_SERVER                        0x808C // 32908
+#define LSA_ERROR_SENTINEL                                  0x808D // 32909
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 
@@ -543,24 +416,50 @@ typedef struct __LSA_LOG_INFO {
     PSTR         pszPath;
 } LSA_LOG_INFO, *PLSA_LOG_INFO;
 
+/**
+ * @ingroup user
+ * @brief User info structure -- level 0
+ *
+ * Describes the basic attributes of a user,
+ * particularly those which are present in the
+ * classic UNIX passwd structure.
+ */
 typedef struct __LSA_USER_INFO_0
 {
+    /** @brief User ID */
     uid_t uid;
+    /** @brief Primary group ID */
     gid_t gid;
+    /** @brief Username (alias) */
     PSTR  pszName;
+    /** @brief Password (may be NULL) */
     PSTR  pszPasswd;
+    /** @brief Comment */
     PSTR  pszGecos;
+    /** @brief Login shell path */
     PSTR  pszShell;
+    /** @brief Home directory path */
     PSTR  pszHomedir;
+    /** @brief Windows SID in string form (may be NULL) */
     PSTR  pszSid;
 } LSA_USER_INFO_0, *PLSA_USER_INFO_0;
 
+/**
+ * @ingroup user
+ * @brief User info structure -- level 1
+ *
+ * Describes everything about a user included in #__LSA_USER_INFO_0
+ * in addition to several attributes which tend to be applicable
+ * only in Windows network environments.
+ */
 typedef struct __LSA_USER_INFO_1
 {
+#ifndef DOXYGEN
     union
     {
         struct
         {
+#endif
             uid_t uid;
             gid_t gid;
             PSTR  pszName;
@@ -569,49 +468,78 @@ typedef struct __LSA_USER_INFO_1
             PSTR  pszShell;
             PSTR  pszHomedir;
             PSTR  pszSid;
+#ifndef DOXYGEN
         };
         LSA_USER_INFO_0 info0;
     };
+#endif
+    /** @brief User's Kerberos UPN */
     PSTR  pszUPN;
+    /** @brief Whether the UPN is explicit or implicit */
     DWORD bIsGeneratedUPN;
+    /** @brief Whether the user is from a local account database */
     DWORD bIsLocalUser;
+    /** @brief LM hash of the user's password */
     PBYTE pLMHash;
+    /** @brief Length of the LM hash */
     DWORD dwLMHashLen;
+    /** @brief NT hash of the user's password */
     PBYTE pNTHash;
+    /** @brief Length of the NT hash */
     DWORD dwNTHashLen;
 } LSA_USER_INFO_1, *PLSA_USER_INFO_1;
 
+/**
+ * @ingroup user
+ * @brief User info structure -- level 2
+ *
+ * Describes everything about a user included in #__LSA_USER_INFO_1
+ * in addition to attributes which describe the password expiry
+ * and account status of the user.
+ */
 typedef struct __LSA_USER_INFO_2
 {
+#ifndef DOXYGEN
     union
     {
         struct
         {
-            uid_t   uid;
-            gid_t   gid;
-            PSTR    pszName;
-            PSTR    pszPasswd;
-            PSTR    pszGecos;
-            PSTR    pszShell;
-            PSTR    pszHomedir;
-            PSTR    pszSid;
-            PSTR    pszUPN;
-            DWORD   bIsGeneratedUPN;
-            DWORD   bIsLocalUser;
-            PBYTE   pLMHash;
-            DWORD   dwLMHashLen;
-            PBYTE   pNTHash;
-            DWORD   dwNTHashLen;
+#endif
+            uid_t uid;
+            gid_t gid;
+            PSTR  pszName;
+            PSTR  pszPasswd;
+            PSTR  pszGecos;
+            PSTR  pszShell;
+            PSTR  pszHomedir;
+            PSTR  pszSid;
+            PSTR  pszUPN;
+            DWORD bIsGeneratedUPN;
+            DWORD bIsLocalUser;
+            PBYTE pLMHash;
+            DWORD dwLMHashLen;
+            PBYTE pNTHash;
+            DWORD dwNTHashLen;
+#ifndef DOXYGEN
         };
         LSA_USER_INFO_1 info1;
     };
+#endif
+    /** @brief Number of days until the user's password will expire */
     DWORD   dwDaysToPasswordExpiry;
+    /** @brief Whether the user's password has expired */
     BOOLEAN bPasswordExpired;
+    /** @brief Whether the user's password will never expire */
     BOOLEAN bPasswordNeverExpires;
+    /** @brief Whether the user should be prompted to change password */
     BOOLEAN bPromptPasswordChange;
+    /** @brief Whether the user can change password */
     BOOLEAN bUserCanChangePassword;
+    /** @brief Whether the account is disabled */
     BOOLEAN bAccountDisabled;
+    /** @brief Whether the account is expired */
     BOOLEAN bAccountExpired;
+    /** @brief Whether the account is locked */
     BOOLEAN bAccountLocked;
 } LSA_USER_INFO_2, *PLSA_USER_INFO_2;
 
@@ -1008,6 +936,17 @@ typedef struct __LSA_AUTH_USER_INFO
 
 } LSA_AUTH_USER_INFO, *PLSA_AUTH_USER_INFO;
 
+/**
+ * @ingroup connection
+ * @brief Open connection to local LSASS server
+ *
+ * Creates a connection handle to the local LSASS server.
+ *
+ * @param[out] phConnection the created connection handle
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval ECONNREFUSED the connection was refused
+ * @retval ENOENT the local domain socket was not present
+ */
 DWORD
 LsaOpenServer(
     PHANDLE phConnection
@@ -1065,6 +1004,18 @@ LsaGetTraceFlag(
     PLSA_TRACE_INFO* ppTraceFlag
     );
 
+/**
+ * @ingroup group
+ * @brief Create new group
+ *
+ * Creates a new group in the local account database.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] pGroupInfo a group info structure
+ * @param[in] dwGroupInfoLevel the info level of the provided group info structure
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval EPERM the owner of the current process is not authorized to create groups
+ */
 DWORD
 LsaAddGroup(
     HANDLE hLsaConnection,
@@ -1072,18 +1023,55 @@ LsaAddGroup(
     DWORD  dwGroupInfoLevel
     );
 
+/**
+ * @ingroup group
+ * @brief Delete a group by ID
+ *
+ * Deletes a group from the local account database based on its UNIX group ID
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] gid the group ID of the group to delete
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval EPERM the owner of the current process is not authorized to delete groups
+ * @retval LSA_ERROR_NO_SUCH_GROUP the specified group ID did not match any local group
+ */
 DWORD
 LsaDeleteGroupById(
     HANDLE hLsaConnection,
     gid_t  gid
     );
 
+/**
+ * @ingroup group
+ * @brief Delete a group by name
+ *
+ * Deletes a group from the local account database based on its name
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] pszName the name of the group to delete
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval EPERM the owner of the current process is not authorized to delete groups
+ * @retval LSA_ERROR_NO_SUCH_GROUP the specified group name did not match any local group
+ */
 DWORD
 LsaDeleteGroupByName(
     HANDLE hLsaConnection,
     PCSTR  pszName
     );
 
+/**
+ * @ingroup user
+ * @brief Look up group IDs by username
+ *
+ * Looks up the group IDs for the groups which a user is a member of based on the user's login name.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] pszUserName the login name of the user
+ * @param[out] pdwGroupFound the number of groups find
+ * @param[out] ppGidResults a heap-allocated list of group IDs
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval LSA_ERROR_NO_SUCH_USER the specified user name did not match any known user
+ */
 DWORD
 LsaGetGidsForUserByName(
     HANDLE  hLsaConnection,
@@ -1092,6 +1080,21 @@ LsaGetGidsForUserByName(
     gid_t** ppGidResults
     );
 
+/**
+ * @ingroup user
+ * @brief Look up groups by user ID
+ *
+ * Looks up information on groups which a user is a member of based on user ID.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] uid the user ID of the user
+ * @param[in] FindFlags options for the lookup operation
+ * @param[in] dwGroupInfoLevel the desired info level for the returned group info structures
+ * @param[out] pdwGroupsFound the number of groups find
+ * @param[out] pppGroupInfoList a heap-allocated list of group info structures
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval LSA_ERROR_NO_SUCH_USER the specified user ID did not match any known user
+ */
 DWORD
 LsaGetGroupsForUserById(
     HANDLE  hLsaConnection,
@@ -1102,6 +1105,20 @@ LsaGetGroupsForUserById(
     PVOID** pppGroupInfoList
     );
 
+/**
+ * @ingroup group
+ * @brief Look up group by name
+ *
+ * Looks up information on a group by its name.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] pszGroupName the name of the group
+ * @param[in] FindFlags options for the lookup operation
+ * @param[in] dwGroupInfoLevel the desired info level for the returned group info structure
+ * @param[out] ppGroupInfo a heap-allocated group info structure for the found group
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval LSA_ERROR_NO_SUCH_GROUP the specified name did not match any known group
+ */
 DWORD
 LsaFindGroupByName(
     HANDLE hLsaConnection,
@@ -1111,6 +1128,20 @@ LsaFindGroupByName(
     PVOID* ppGroupInfo
     );
 
+/**
+ * @ingroup group
+ * @brief Look up group by ID
+ *
+ * Looks up information on a group by its group ID.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] gid the group ID of the group
+ * @param[in] FindFlags options for the lookup operation
+ * @param[in] dwGroupInfoLevel the desired info level for the returned group info structure
+ * @param[out] ppGroupInfo a heap-allocated group info structure for the found group
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval LSA_ERROR_NO_SUCH_GROUP the specified group ID did not match any known group
+ */
 DWORD
 LsaFindGroupById(
     HANDLE hLsaConnection,
@@ -1120,37 +1151,119 @@ LsaFindGroupById(
     PVOID* ppGroupInfo
     );
 
+/**
+ * @ingroup group
+ * @brief Begin group enumeration
+ *
+ * Begins an enumeration of all known groups.  This function returns an
+ * enumeration handle which can be used with #LsaEnumGroups() to fetch
+ * lists of groups in increments of up to dwMaxNumGroups.
+ *
+ * You must call #LsaEndEnumGroups() on the enumeration handle when
+ * finished with the enumeration.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] dwGroupInfoLevel the desired info level for the group info structures
+ * returned during the enumeration
+ * @param[in] dwMaxNumGroups the maximum number of group info structures to
+ * return in each subsequent call to #LsaEnumGroups()
+ * @param[in] FindFlags options for the lookup operation
+ * @param[out] phResume the created enumeration handle
+ * @retval #LSA_ERROR_SUCCESS success
+ */
 DWORD
 LsaBeginEnumGroups(
     HANDLE  hLsaConnection,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
+/**
+ * @ingroup group
+ * @brief Begin group enumeration with online check option
+ *
+ * Begins an enumeration of all known groups.  This function returns an
+ * enumeration handle which can be used with #LsaEnumGroups() to fetch
+ * lists of groups in increments of up to dwMaxNumGroups.  Compared to
+ * #LsaBeginEnumGroups(), it supports an extra option that allows the
+ * query to be restricted to groups that are local or cached, avoiding
+ * excess traffic when large numbers of groups are present in a networked
+ * identity database (e.g. AD).
+ *
+ * You must call #LsaEndEnumGroups() on the enumeration handle when
+ * finished with the enumeration.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] dwGroupInfoLevel the desired info level for the group info structures
+ * returned during the enumeration
+ * @param[in] dwMaxNumGroups the maximum number of group info structures to
+ * return in each subsequent call to #LsaEnumGroups()
+ * @param[in] bCheckGroupMembersOnline TRUE if networked databases should be
+ * consulted, FALSE if only local databases or caches should be searched
+ * @param[in] FindFlags options for the lookup operation
+ * @param[out] phResume the created enumeration handle
+ * @retval #LSA_ERROR_SUCCESS success
+ */
 DWORD
 LsaBeginEnumGroupsWithCheckOnlineOption(
     HANDLE  hLsaConnection,
     DWORD   dwGroupInfoLevel,
     DWORD   dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
+/**
+ * @ingroup group
+ * @brief Retrieve next list of groups during enumeration
+ *
+ * Retrieves the next list of groups for an in-progress enumeration.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] hResume the enumeration handle
+ * @param[out] pdsNumGroupsFound the number of groups returned
+ * @param[out] pppGroupInfoList a heap-allocated list of group info structures
+ * of the level specified in the call to #LsaBeginEnumGroups().  It should be
+ * freed with #LsaFreeGroupInfoList().
+ * @retval #LSA_ERROR_SUCCESS success
+ */
 DWORD
 LsaEnumGroups(
     HANDLE  hLsaConnection,
     HANDLE  hResume,
     PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupsInfoList
+    PVOID** pppGroupInfoList
     );
 
+/**
+ * @ingroup group
+ * @brief End group enumeration
+ *
+ * Ends a group enumeration, releasing any associated resources.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in,out] hResume the enumeration handle
+ * @retval #LSA_ERROR_SUCCESS success
+ */
 DWORD
 LsaEndEnumGroups(
     HANDLE  hLsaConnection,
     HANDLE  hResume
     );
 
+/**
+ * @ingroup group
+ * @brief Free a list of group info structures
+ *
+ * Frees a list of group info structures of the specified level.
+ *
+ * @param[in] dwLevel the info level of the structures
+ * @param[in,out] pGroupInfoList the info list
+ * @param[dwNumGroups] dwNumGroups the number of elements in the list
+ */
 VOID
 LsaFreeGroupInfoList(
     DWORD  dwLevel,
@@ -1158,12 +1271,23 @@ LsaFreeGroupInfoList(
     DWORD  dwNumGroups
     );
 
+/**
+ * @ingroup group
+ * @brief Free a group info structure
+ *
+ * Frees a single group info structure of the specified level.
+ *
+ * @param[in] dwLevel the info level of the structures
+ * @param[in,out] pGroupInfo the info structure
+ */
 VOID
 LsaFreeGroupInfo(
     DWORD dwLevel,
     PVOID pGroupInfo
     );
 
+/* FIXME: should these be public? */
+#ifndef DOXYGEN
 void
 LsaFreeIpcGroupInfoList(
     PLSA_GROUP_INFO_LIST pGroupIpcInfoList
@@ -1180,6 +1304,7 @@ LsaFreeNSSArtefactInfoList(
     PVOID* pNSSArtefactInfoList,
     DWORD  dwNumNSSArtefacts
     );
+#endif
 
 void
 LsaFreeIpcNssArtefactInfoList(
@@ -1224,6 +1349,20 @@ LsaDeleteUserByName(
     PCSTR  pszName
     );
 
+/**
+ * @ingroup user
+ * @brief Look up user by name
+ *
+ * Looks up information on a user by its name.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] pszGroupName the name of the user
+ * @param[in] FindFlags options for the lookup operation
+ * @param[in] dwUserInfoLevel the desired info level for the returned user info structure
+ * @param[out] ppGroupInfo a heap-allocated group info structure for the found group
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval LSA_ERROR_NO_SUCH_GROUP the specified name did not match any known group
+ */
 DWORD
 LsaFindUserByName(
     HANDLE hLsaConnection,
@@ -1232,6 +1371,20 @@ LsaFindUserByName(
     PVOID* ppUserInfo
     );
 
+/**
+ * @ingroup user
+ * @brief Look up user by ID
+ *
+ * Looks up information on a user by its user ID.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] uid the user ID of the user
+ * @param[in] FindFlags options for the lookup operation
+ * @param[in] dwUserInfoLevel the desired info level for the returned user info structure
+ * @param[out] ppUserInfo a heap-allocated user info structure for the found user
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval LSA_ERROR_NO_SUCH_USER the specified user ID did not match any known user
+ */
 DWORD
 LsaFindUserById(
     HANDLE hLsaConnection,
@@ -1265,14 +1418,45 @@ LsaFreeSIDInfo(
     PLSA_SID_INFO pSIDInfo
     );
 
+/**
+ * @ingroup user
+ * @brief Begin user enumeration
+ *
+ * Begins an enumeration of all known users.  This function returns an
+ * enumeration handle which can be used with #LsaEnumUsers() to fetch
+ * lists of users in increments of up to dwMaxNumUsers.
+ *
+ * You must call #LsaEndEnumUsers() on the enumeration handle when
+ * finished with the enumeration.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] dwUserInfoLevel the desired info level for the user info structures
+ * returned during the enumeration
+ * @param[in] dwMaxNumUsers the maximum number of user info structures to
+ * return in each subsequent call to #LsaEnumUsers()
+ * @param[in] FindFlags options for the lookup operation
+ * @param[out] phResume the created enumeration handle
+ * @retval #LSA_ERROR_SUCCESS success
+ */
 DWORD
 LsaBeginEnumUsers(
     HANDLE  hLsaConnection,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
+/**
+ * @ingroup user
+ * @brief End user enumeration
+ *
+ * Ends a user enumeration, releasing any associated resources.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in,out] hResume the enumeration handle
+ * @retval #LSA_ERROR_SUCCESS success
+ */
 DWORD
 LsaEnumUsers(
     HANDLE  hLsaConnection,
@@ -1281,12 +1465,32 @@ LsaEnumUsers(
     PVOID** pppUserInfoList
     );
 
+/**
+ * @ingroup user
+ * @brief End user enumeration
+ *
+ * Ends a user enumeration, releasing any associated resources.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in,out] hResume the enumeration handle
+ * @retval #LSA_ERROR_SUCCESS success
+ */
 DWORD
 LsaEndEnumUsers(
     HANDLE hLsaConnection,
     HANDLE hResume
     );
 
+/**
+ * @ingroup user
+ * @brief Free a list of user info structures
+ *
+ * Frees a list of user info structures of the specified level.
+ *
+ * @param[in] dwLevel the info level of the structures
+ * @param[in,out] pUserInfoList the info list
+ * @param[dwNumUsers] dwNumUsers the number of elements in the list
+ */
 VOID
 LsaFreeUserInfoList(
     DWORD  dwLevel,
@@ -1299,6 +1503,15 @@ LsaFreeIpcUserInfoList(
     PLSA_USER_INFO_LIST pUserIpcInfoList
     );
 
+/**
+ * @ingroup user
+ * @brief Free a user info structure
+ *
+ * Frees a single user info structure of the specified level.
+ *
+ * @param[in] dwLevel the info level of the structures
+ * @param[in,out] pUserInfo the info structure
+ */
 VOID
 LsaFreeUserInfo(
     DWORD dwLevel,
@@ -1386,18 +1599,54 @@ LsaFreeStatus(
    PLSASTATUS pLsaStatus
    );
 
+/**
+ * @ingroup connection
+ * @brief Closes connection to LSASS server
+ *
+ * Closes a connection handle opened with #LsaOpenServer().
+ *
+ * @param[in,out] hConnection the connection handle to close
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval EINVAL the handle was invalid
+ */
 DWORD
 LsaCloseServer(
     HANDLE hConnection
     );
 
-size_t
+/**
+ * @ingroup utility
+ * @brief Get error code description
+ *
+ * Retrives a human-readable description of an LSASS
+ * error code.  The description will be copied into
+ * the specified buffer, but will be truncated if it
+ * does not fit.
+ *
+ * @param[in] dwError the error code
+ * @param[out] pszBuffer the buffer into which the description will be copied
+ * @param[in] stBufSize the size of the provided buffer
+ * @return the full size of the error string, which may be larger than the
+ * provided buffer
+ */
+ size_t
 LsaGetErrorString(
     DWORD  dwError,
     PSTR   pszBuffer,
     size_t stBufSize
     );
 
+/**
+ * @ingroup utility
+ * @brief Free a memory block
+ *
+ * Frees a single memory block allocated by an LSASS client API
+ * function.  This may be used to peform fine-grained management
+ * of heap-allocated structures in lieu of functions such as
+ * #LsaFreeGroupInfo().
+ *
+ * @param[in,out] pMemory a pointer to the memory block
+ */
 VOID
 LsaFreeMemory(
     PVOID pMemory

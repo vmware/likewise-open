@@ -124,13 +124,12 @@ LsaNssComputeFooStringLength(
         ppszMember && !IsNullOrEmptyString(*ppszMember);
         ppszMember++)
     {
-        dwLength += sizeof(ULONG);
+        dwLength += sizeof(PSTR);
         dwLength += strlen(*ppszMember) + 1;
         dwNumMembers++;
     }
     // Account for terminating NULL always
-    dwLength += sizeof(ULONG);
-    dwLength += 1;
+    dwLength += sizeof(PSTR);
 
     return dwLength;
 }
@@ -161,7 +160,7 @@ LsaNssWriteFooInfo(
     
     dwNumMembers = LsaNssGetNumberFooMembers(pNSSArtefactInfo_1->ppszMembers);
     
-    dwAlignBytes = (dwNumMembers ? ((((HANDLE)pszMarker) % sizeof(ULONG)) * sizeof(ULONG)) : 0);
+    dwAlignBytes = (dwNumMembers ? ((pszMarker % sizeof(PSTR)) * sizeof(PSTR)) : 0);
 
     if (LsaNssComputeFooStringLength(dwAlignBytes, pNSSArtefactInfo_1) > bufLen) {
        dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
@@ -181,7 +180,7 @@ LsaNssWriteFooInfo(
     //
     if (!dwNumMembers) {        
        *(pResultFoo->gr_mem) = NULL;
-       pszMarker += sizeof(ULONG) + 1;
+       pszMarker += sizeof(PSTR);
        
     } else {
         PSTR pszMemberMarker = NULL;

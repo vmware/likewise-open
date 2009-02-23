@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,103 +28,294 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Samr interface (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
+
 #ifndef _SAMR_H_
 #define _SAMR_H_
 
+#include <secdesc/secdesc.h>
+
+#include <lwrpc/samrbinding.h>
+#include <lwrpc/unicodestring.h>
 #include <lwrpc/samrflags.h>
 #include <lwrpc/userinfo.h>
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/domaininfo.h>
 
 
-NTSTATUS SamrConnect2(handle_t bind, const wchar16_t *sysname,
-                      uint32 access_mask, PolicyHandle *conn_handle);
+NTSTATUS
+SamrConnect2(
+    handle_t bind,
+    const wchar16_t *sysname,
+    uint32 access_mask,
+    PolicyHandle *conn_handle
+    );
 
-NTSTATUS SamrConnect4(handle_t bind, const wchar16_t *sysname,
-                      uint32 access_mask, PolicyHandle *conn_handle);
+NTSTATUS
+SamrConnect4(
+    handle_t bind,
+    const wchar16_t *sysname,
+    uint32 access_mask,
+    PolicyHandle *conn_handle
+    );
 
-NTSTATUS SamrClose(handle_t bind, PolicyHandle *handle);
+NTSTATUS
+SamrClose(
+    handle_t bind,
+    PolicyHandle *handle
+    );
 
-NTSTATUS SamrLookupDomain(handle_t bind, PolicyHandle *handle,
-                          wchar16_t *domain_name, DomSid **sid);
+NTSTATUS
+SamrLookupDomain(
+    handle_t bind,
+    PolicyHandle *handle,
+    const wchar16_t *domain_name,
+    DomSid **sid
+    );
 
-NTSTATUS SamrOpenDomain(handle_t bind, PolicyHandle *conn_handle,
-                        uint32 access_mask, DomSid *sid,
-                        PolicyHandle *dom_handle);
+NTSTATUS
+SamrOpenDomain(
+    handle_t bind,
+    PolicyHandle *conn_handle,
+    uint32 access_mask,
+    DomSid *sid,
+    PolicyHandle *dom_handle
+    );
 
-NTSTATUS SamrLookupNames(handle_t bind, PolicyHandle *dom_handle,
-                         uint32 num_names, wchar16_t *names[],
-                         uint32 **rids, uint32 **types, uint32 *count);
+NTSTATUS
+SamrQueryDomainInfo(
+    handle_t b,
+    PolicyHandle *domain_h,
+    uint16 level,
+    DomainInfo **info
+    );
 
-NTSTATUS SamrOpenUser(handle_t bind, PolicyHandle *dom_handle,
-                      uint32 access_mask, uint32 rid,
-                      PolicyHandle *user_handle);
+NTSTATUS
+SamrLookupNames(
+    handle_t bind,
+    PolicyHandle *dom_handle,
+    uint32 num_names,
+    wchar16_t *names[],
+    uint32 **rids,
+    uint32 **types,
+    uint32 *count
+    );
 
-NTSTATUS SamrQueryUserInfo(handle_t bind, PolicyHandle *user_handle,
-                           uint16 level, UserInfo **info);
+NTSTATUS
+SamrOpenUser(
+    handle_t bind,
+    PolicyHandle *dom_handle,
+    uint32 access_mask,
+    uint32 rid,
+    PolicyHandle *user_handle
+    );
 
-NTSTATUS SamrEnumDomainUsers(handle_t bind, PolicyHandle *domain_handle,
-                             uint32 *resume, uint32 account_flags,
-                             uint32 max_size, wchar16_t ***ret_names,
-                             uint32 **ret_rids, uint32 *num_entries);
+NTSTATUS
+SamrQueryUserInfo(
+    handle_t bind,
+    PolicyHandle *user_handle,
+    uint16 level,
+    UserInfo **info
+    );
 
-NTSTATUS SamrEnumDomains(handle_t bind, PolicyHandle *handle, uint32 *resume,
-                         uint32 size, wchar16_t ***names, uint32 *num_entries);
+NTSTATUS
+SamrEnumDomainUsers(
+    handle_t bind,
+    PolicyHandle *domain_handle,
+    uint32 *resume,
+    uint32 account_flags,
+    uint32 max_size,
+    wchar16_t ***ret_names,
+    uint32 **ret_rids,
+    uint32 *num_entries
+    );
 
-NTSTATUS SamrCreateUser(handle_t bind, PolicyHandle *domain_handle,
-                        wchar16_t *account_name, uint32 access_mask,
-                        PolicyHandle *user_handle, uint32 *rid);
+NTSTATUS
+SamrChangePasswordUser2(
+    handle_t b,
+    const wchar16_t *hostname,
+    const wchar16_t *account,
+    uint8 ntpass[516],
+    uint8 ntverify[16],
+    uint8 lm_change,
+    uint8 lmpass[516],
+    uint8 lmverify[16]
+    );
 
-NTSTATUS SamrDeleteUser(handle_t bind, PolicyHandle *user_handle);
+NTSTATUS
+SamrEnumDomains(
+    handle_t bind,
+    PolicyHandle *handle,
+    uint32 *resume,
+    uint32 size,
+    wchar16_t ***names,
+    uint32 *num_entries
+    );
 
-NTSTATUS SamrSetUserInfo(handle_t bind, PolicyHandle *user_handle,
-                         uint16 level, UserInfo *info);
+NTSTATUS
+SamrCreateUser(
+    handle_t bind,
+    PolicyHandle *domain_handle,
+    wchar16_t *account_name,
+    uint32 access_mask,
+    PolicyHandle *user_handle,
+    uint32 *rid
+    );
 
-NTSTATUS SamrCreateDomAlias(handle_t bind, PolicyHandle *domain_handle,
-                            wchar16_t *alias, uint32 access_mask,
-                            PolicyHandle *alias_handle, uint32 *rid);
+NTSTATUS
+SamrDeleteUser(
+    handle_t bind,
+    PolicyHandle *user_handle
+    );
 
-NTSTATUS SamrDeleteDomAlias(handle_t bind, PolicyHandle *alias_handle);
+NTSTATUS
+SamrSetUserInfo(
+    handle_t bind,
+    PolicyHandle *user_handle,
+    uint16 level,
+    UserInfo *info
+    );
 
-NTSTATUS SamrOpenAlias(handle_t bind, PolicyHandle *domain_handle,
-                       uint32 access_mask, uint32 rid,
-                       PolicyHandle *alias_handle);
+NTSTATUS
+SamrCreateDomAlias(
+    handle_t bind,
+    PolicyHandle *domain_handle,
+    wchar16_t *alias,
+    uint32 access_mask,
+    PolicyHandle *alias_handle,
+    uint32 *rid
+    );
 
-NTSTATUS SamrQueryAliasInfo(handle_t bind, PolicyHandle *alias_handle,
-                            uint16 level, AliasInfo **info);
+NTSTATUS
+SamrDeleteDomAlias(
+    handle_t bind,
+    PolicyHandle *alias_handle
+    );
 
-NTSTATUS SamrSetAliasInfo(handle_t bind, PolicyHandle *alias_handle,
-                          uint16 level, AliasInfo *info);
+NTSTATUS
+SamrOpenAlias(
+    handle_t bind,
+    PolicyHandle *domain_handle,
+    uint32 access_mask,
+    uint32 rid,
+    PolicyHandle *alias_handle
+    );
 
-NTSTATUS SamrGetAliasMembership(handle_t bind, PolicyHandle *domain_handle,
-                                DomSid *sids, uint32 num_sids, uint32 **rids,
-                                uint32 *num_rids);
+NTSTATUS
+SamrQueryAliasInfo(
+    handle_t bind,
+    PolicyHandle *alias_handle,
+    uint16 level,
+    AliasInfo **info
+    );
 
-NTSTATUS SamrGetMembersInAlias(handle_t b, PolicyHandle *alias_handle,
-                               DomSid ***sids, uint32 *count);
+NTSTATUS
+SamrSetAliasInfo(
+    handle_t bind,
+    PolicyHandle *alias_handle,
+    uint16 level,
+    AliasInfo *info
+    );
 
-NTSTATUS SamrCreateUser2(handle_t bind, PolicyHandle *domain_handle,
-                         wchar16_t *account_name, uint32 account_flags,
-                         uint32 account_mask, PolicyHandle *account_handle,
-                         uint32 *access_granted, uint32 *rid);
+NTSTATUS
+SamrEnumDomainAliases(
+    handle_t b,
+    PolicyHandle *domain_h,
+    uint32 *resume,
+    uint32 account_flags,
+    wchar16_t ***names,
+    uint32 **rids,
+    uint32 *count
+    );
 
-NTSTATUS SamrGetUserPwInfo(handle_t bind, PolicyHandle *user_handle,
-                           PwInfo *info);
+NTSTATUS
+SamrGetAliasMembership(
+    handle_t bind,
+    PolicyHandle *domain_handle,
+    DomSid *sids,
+    uint32 num_sids,
+    uint32 **rids,
+    uint32 *num_rids
+    );
 
-NTSTATUS SamrLookupRids(handle_t bind, PolicyHandle *domain_handle,
-                        uint32 num_rids, uint32 *rids, wchar16_t ***names,
-                        uint32 **types);
+NTSTATUS
+SamrGetMembersInAlias(
+    handle_t b,
+    PolicyHandle *alias_handle,
+    DomSid ***sids,
+    uint32 *count
+    );
 
-NTSTATUS SamrGetUserGroups(handle_t bind, PolicyHandle *user_handle,
-                           uint32 **rids, uint32 **attributes,
-                           uint32 *count);
+NTSTATUS
+SamrAddAliasMember(
+    handle_t b,
+    PolicyHandle *alias_h,
+    DomSid *sid
+    );
 
+NTSTATUS
+SamrDeleteAliasMember(
+    handle_t b,
+    PolicyHandle *alias_h,
+    DomSid *sid
+    );
 
-NTSTATUS SamrInitMemory();
+NTSTATUS
+SamrCreateUser2(
+    handle_t bind,
+    PolicyHandle *domain_handle,
+    wchar16_t *account_name,
+    uint32 account_flags,
+    uint32 account_mask,
+    PolicyHandle *account_handle,
+    uint32 *access_granted,
+    uint32 *rid
+    );
 
-NTSTATUS SamrDestroyMemory();
+NTSTATUS
+SamrGetUserPwInfo(
+    handle_t bind,
+    PolicyHandle *user_handle,
+    PwInfo *info
+    );
 
-NTSTATUS SamrFreeMemory(void *ptr);
+NTSTATUS
+SamrLookupRids(
+    handle_t bind,
+    PolicyHandle *domain_handle,
+    uint32 num_rids,
+    uint32 *rids,
+    wchar16_t ***names,
+    uint32 **types
+    );
+
+NTSTATUS
+SamrGetUserGroups(
+    handle_t bind,
+    PolicyHandle *user_handle,
+    uint32 **rids,
+    uint32 **attributes,
+    uint32 *count
+    );
+
+NTSTATUS
+SamrInitMemory(
+    void
+    );
+
+NTSTATUS
+SamrDestroyMemory(
+    void
+    );
+
+NTSTATUS SamrFreeMemory(
+    void *ptr
+    );
 
 
 

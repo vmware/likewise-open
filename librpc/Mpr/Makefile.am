@@ -10,5 +10,7 @@ libmpr_la_LIBADD = -lunistr $(top_builddir)/Error/liberror.la
 
 libmpr_la_LDFLAGS = $(UNISTR_LDFLAGS)
 
+libmpr_la_CFLAGS = $(AM_CFLAGS)
+
 INCLUDES = $(UNISTR_INCLUDES) \
 	   -I$(librpc_srcdir)/Include -I$(liberror_srcdir)

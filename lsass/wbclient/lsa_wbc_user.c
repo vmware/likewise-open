@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  * Authors: Gerald Carter <gcarter@likewisesoftware.com>
  *
  */
@@ -58,24 +58,24 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	DWORD dwNumGids = 0;
 	gid_t *gids = NULL;
-	int i = 0;	
+	int i = 0;
 	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	struct wbcDomainSid *sidList = NULL;	
+	struct wbcDomainSid *sidList = NULL;
 	PSTR pszSidString = NULL;
 	PSTR ppszSidList[2];
-	CHAR pszAccountName[512] = "";	
-	PLSA_SID_INFO pNameList = NULL;	
+	CHAR pszAccountName[512] = "";
+	PLSA_SID_INFO pNameList = NULL;
         CHAR chDomainSeparator = 0;
 
 	BAIL_ON_NULL_PTR_PARAM(user_sid, dwErr);
 	BAIL_ON_NULL_PTR_PARAM(num_sids, dwErr);
 	BAIL_ON_NULL_PTR_PARAM(sids, dwErr);
-	
+
 	/* Conver the SID to a name */
 
 	wbc_status = wbcSidToString(user_sid, &pszSidString);
 	dwErr = map_wbc_to_lsa_error(wbc_status);
-	BAIL_ON_LSA_ERR(dwErr);	
+	BAIL_ON_LSA_ERR(dwErr);
 
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
@@ -83,7 +83,7 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
 	/* map the SID to a name */
 
 	ppszSidList[0] = pszSidString;
-	ppszSidList[1] = NULL;	
+	ppszSidList[1] = NULL;
 
 	dwErr = LsaGetNamesBySidList(
                 hLsa,
@@ -91,7 +91,7 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
                 ppszSidList,
                 &pNameList,
                 &chDomainSeparator);
-	BAIL_ON_LSA_ERR(dwErr);	
+	BAIL_ON_LSA_ERR(dwErr);
 
 	if (pNameList[0].accountType != AccountType_User) {
 		dwErr = LSA_ERROR_NO_SUCH_USER;
@@ -103,22 +103,22 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
 		 "%s%c%s",
 		 pNameList[0].pszDomainName,
                  chDomainSeparator,
-		 pNameList[0].pszSamAccountName);	
+		 pNameList[0].pszSamAccountName);
 
 	/* Now lookup groups for user SID */
 
-	dwErr = LsaGetGidsForUserByName(hLsa, pszAccountName, 
+	dwErr = LsaGetGidsForUserByName(hLsa, pszAccountName,
 					&dwNumGids, &gids);
 	BAIL_ON_LSA_ERR(dwErr);
 
 	/* Allocate array for sids */
 
 	sidList = _wbc_malloc_zero(sizeof(struct wbcDomainSid)*dwNumGids, NULL);
-	BAIL_ON_NULL_PTR(sidList, dwErr);	
+	BAIL_ON_NULL_PTR(sidList, dwErr);
 
 	/* Now convert gids to SIDs */
 
-	for (i=0; i<dwNumGids; i++) {		
+	for (i=0; i<dwNumGids; i++) {
 		dwErr = LsaFindGroupById(hLsa, gids[i], LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
 		BAIL_ON_LSA_ERR(dwErr);
 
@@ -127,26 +127,26 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
 		BAIL_ON_LSA_ERR(dwErr);
 
 		LsaFreeGroupInfo(1, pGroupInfo);
-		pGroupInfo = NULL;		
+		pGroupInfo = NULL;
 	}
 
 	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
+	hLsa = (HANDLE)NULL;
 	BAIL_ON_LSA_ERR(dwErr);
 
 	*sids = sidList;
 	*num_sids = dwNumGids;
 
-	dwErr = LSA_ERROR_SUCCESS;	
-	
+	dwErr = LSA_ERROR_SUCCESS;
+
 done:
 	if (pNameList) {
 		LsaFreeSIDInfoList(pNameList, 1);
 	}
-	
+
 	if (dwErr != LSA_ERROR_SUCCESS) {
 		_WBC_FREE(sidList);
-	}	
+	}
 
 	if (hLsa) {
 		LsaCloseServer(hLsa);
@@ -154,13 +154,13 @@ done:
 	}
 
 	if (gids) {
-		LsaFreeMemory(gids);		
+		LsaFreeMemory(gids);
 	}
 
 	if (pGroupInfo) {
 		LsaFreeGroupInfo(1, pGroupInfo);
 	}
-	
+
 	wbc_status = map_error_to_wbc_status(dwErr);
 
 	return wbc_status;
@@ -172,19 +172,19 @@ static DWORD AddUsersToList(char ***pppUserList, uint32_t *pUserSize,
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	char **ppUsers = NULL;
 	uint32_t nUsers = 0;
-	int i;	
+	int i;
 
 	BAIL_ON_NULL_PTR_PARAM(pppUserList, dwErr);
 	BAIL_ON_NULL_PTR_PARAM(pUserSize, dwErr);
-	
+
 	/* Check for a no-op */
 
-	if (!ppUserInfo || (userInfoSize == 0)) {		
+	if (!ppUserInfo || (userInfoSize == 0)) {
 		return LSA_ERROR_SUCCESS;
 	}
 
 	ppUsers = *pppUserList;
-	nUsers = *pUserSize;	
+	nUsers = *pUserSize;
 
 	if (!ppUsers) {
 		ppUsers = _wbc_malloc((userInfoSize+1) * sizeof(char*),
@@ -193,16 +193,16 @@ static DWORD AddUsersToList(char ***pppUserList, uint32_t *pUserSize,
 	} else {
 		ppUsers = _wbc_realloc(*pppUserList,
 					(userInfoSize+1) * sizeof(char*));
-		BAIL_ON_NULL_PTR(ppUsers, dwErr);		
+		BAIL_ON_NULL_PTR(ppUsers, dwErr);
 	}
 
 	for (i=0; i<userInfoSize; i++) {
 		ppUsers[nUsers] = _wbc_strdup(ppUserInfo[i]->pszName);
 		BAIL_ON_NULL_PTR(ppUsers[nUsers], dwErr);
-		
-		nUsers++;		
+
+		nUsers++;
 	}
-	
+
 	/* Terminate */
 
 	ppUsers[nUsers] = NULL;
@@ -212,11 +212,11 @@ static DWORD AddUsersToList(char ***pppUserList, uint32_t *pUserSize,
 
 	dwErr = LSA_ERROR_SUCCESS;
 done:
-	if (dwErr != LSA_ERROR_SUCCESS)  { 
+	if (dwErr != LSA_ERROR_SUCCESS)  {
 		_WBC_FREE(ppUsers);
 	}
-	
-	return dwErr;	
+
+	return dwErr;
 }
 
 wbcErr wbcListUsers(const char *domain_name,
@@ -224,15 +224,15 @@ wbcErr wbcListUsers(const char *domain_name,
 		    const char ***users)
 {
 	LSA_USER_INFO_0 **pUserInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;	
-	HANDLE hResume = (HANDLE)NULL;	
-	DWORD dwNumUsers = 0;	
+	HANDLE hLsa = (HANDLE)NULL;
+	HANDLE hResume = (HANDLE)NULL;
+	DWORD dwNumUsers = 0;
 	DWORD dwErr = LSA_ERROR_INTERNAL;
 	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 	bool bDone = false;
 	uint32_t userSize = 0;
 	char **userList = NULL;
-	
+
 	/* For now ignore the domain name nutil the LsaXXX() API supports it */
 
 	BAIL_ON_NULL_PTR_PARAM(users, dwErr);
@@ -244,12 +244,12 @@ wbcErr wbcListUsers(const char *domain_name,
 	dwErr = LsaOpenServer(&hLsa);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaBeginEnumUsers(hLsa, 0, 250, &hResume);
+	dwErr = LsaBeginEnumUsers(hLsa, 0, 250, 0, &hResume);
 	BAIL_ON_LSA_ERR(dwErr);
 
-	while (!bDone) {	
-		dwErr = LsaEnumUsers(hLsa, hResume, 
-				     &dwNumUsers, 
+	while (!bDone) {
+		dwErr = LsaEnumUsers(hLsa, hResume,
+				     &dwNumUsers,
 				     (PVOID**)&pUserInfo);
 		BAIL_ON_LSA_ERR(dwErr);
 
@@ -267,20 +267,20 @@ wbcErr wbcListUsers(const char *domain_name,
 		}
 
 		LsaFreeUserInfoList(0, (PVOID*)pUserInfo, dwNumUsers);
-		pUserInfo = NULL;		
-		
+		pUserInfo = NULL;
+
 	}
-	
+
 	*users = (const char **)userList;
-	*num_users = userSize;	
-	
+	*num_users = userSize;
+
 done:
 	if (dwErr != LSA_ERROR_SUCCESS) {
 		_WBC_FREE(userList);
-	}	
+	}
 
 	if (hResume) {
-		LsaEndEnumUsers(hLsa, hResume);		
+		LsaEndEnumUsers(hLsa, hResume);
 		hResume = (HANDLE)NULL;
 	}
 
@@ -292,10 +292,10 @@ done:
 	if (pUserInfo) {
 		LsaFreeUserInfoList(0, (PVOID*)&pUserInfo, dwNumUsers);
 	}
-	
+
 	wbc_status = map_error_to_wbc_status(dwErr);
 
-	return wbc_status;	
+	return wbc_status;
 }
 
 

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,8 +28,13 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: NetAPI connection management functions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
-#include <lwrpc/sidhelper.h>
 
 extern NetConn *first;
 
@@ -40,9 +45,35 @@ NetConn *FirstConn(NetConn *cn, int set)
     return first;
 }
 
+static
+void
+GetSessionKey(handle_t binding, unsigned char** sess_key,
+              unsigned16* sess_key_len, unsigned32* st)
+{
+    rpc_transport_info_handle_t info = NULL;
+
+    rpc_binding_inq_transport_info(binding, &info, st);
+    if (*st)
+    {
+        goto error;
+    }
+
+    rpc_smb_transport_info_inq_session_key(info, sess_key,
+                                           sess_key_len);
+
+cleanup:
+    return;
+
+error:
+    *sess_key     = NULL;
+    *sess_key_len = 0;
+    goto cleanup;
+}
+
 
 NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
-                        uint32 req_dom_flags, uint32 req_btin_dom_flags)
+                        uint32 req_dom_flags, uint32 req_btin_dom_flags,
+                        PIO_ACCESS_TOKEN access_token)
 {
     const uint32 conn_flags = SAMR_ACCESS_OPEN_DOMAIN |
                               SAMR_ACCESS_ENUM_DOMAINS;
@@ -55,8 +86,8 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
                                   DOMAIN_ACCESS_OPEN_ACCOUNT |
                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
     const uint32 size = 128;
-    const wchar_t *builtin = L"BUILTIN";
-    const wchar_t *localhost = L"127.0.0.1";
+    const char *builtin = "BUILTIN";
+    const char *localhost = "127.0.0.1";
 
     handle_t samr_b;
     NetConn *cn, *lookup;
@@ -67,9 +98,11 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
     DomSid *dom_sid = NULL;
     uint32 conn_access, dom_access, btin_dom_access;
     uint32 resume, entries, i;
-    wchar16_t **dom_names, *dom_name, localhost_addr[10];
+    wchar16_t **dom_names = NULL;
+    wchar16_t *dom_name = NULL;
+    wchar16_t localhost_addr[10];
     uint8 *sess_key;
-    size_t sess_key_len;
+    unsigned16 sess_key_len;
     NTSTATUS status = STATUS_SUCCESS;
     RPCSTATUS rpcstatus = 0;
 
@@ -84,7 +117,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
     if (hostname == NULL) {
         size_t addr_size = sizeof(localhost_addr)/sizeof(wchar16_t);
         memset(localhost_addr, 0, addr_size);
-        wcstowc16s(localhost_addr, localhost, addr_size);
+        mbstowc16s(localhost_addr, localhost, addr_size);
         hostname = (wchar16_t*)localhost_addr;
     }
 
@@ -120,7 +153,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         host = awc16stombs(hostname);
         if (host == NULL) return STATUS_NO_MEMORY;
 
-        rpcstatus = InitSamrBindingDefault(&samr_b, host);
+        rpcstatus = InitSamrBindingDefault(&samr_b, host, access_token);
         if (rpcstatus != 0) return STATUS_UNSUCCESSFUL;
 
         SAFE_FREE(host);
@@ -135,14 +168,12 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         sess_key     = NULL;
         sess_key_len = 0;
 
-        rpc_binding_inq_auth_session_key(samr_b, &sess_key, &sess_key_len,
-                                         &rpcstatus);
+        GetSessionKey(samr_b, &sess_key, &sess_key_len, &rpcstatus);
 
-        if (rpcstatus == 0) {
+        if (rpcstatus == 0)
+        {
             memcpy((void*)cn->sess_key, sess_key, sizeof(cn->sess_key));
-            cn->sess_key_len = sess_key_len;
-
-            rpc_string_free(&sess_key, &rpcstatus);
+            cn->sess_key_len = (uint32)sess_key_len;
         }
 
     } else {
@@ -168,7 +199,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         btin_dom_access = btin_dom_flags | req_btin_dom_flags;
         conn_handle = cn->samr.conn_handle;
 
-        status = ParseSidString(&btin_dom_sid, SID_BUILTIN_DOMAIN);
+        status = ParseSidStringA(&btin_dom_sid, SID_BUILTIN_DOMAIN);
         if (status != 0) return status;
 
         status = SamrOpenDomain(samr_b, &conn_handle, btin_dom_access,
@@ -209,12 +240,12 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
                 status != STATUS_MORE_ENTRIES) return status;
 
             for (i = 0; i < entries; i++) {
-                wchar_t n[32]; /* any netbios name can fit here */
+                char n[32]; /* any netbios name can fit here */
 
-                wc16stowcs(n, dom_names[i], sizeof(n));
+                wc16stombs(n, dom_names[i], sizeof(n));
 
                 /* pick up first domain name that is not a builtin domain */
-                if (wcscasecmp(n, builtin)) {
+                if (strcasecmp(n, builtin)) {
                     dom_name = wc16sdup(dom_names[i]);
 
                     SamrFreeMemory((void*)dom_names);
@@ -241,7 +272,7 @@ domain_name_found:
         cn->samr.dom_name   = dom_name;
 
         if (dom_sid) {
-            SidCopyAlloc(&cn->samr.dom_sid, dom_sid);
+            RtlSidCopyAlloc(&cn->samr.dom_sid, dom_sid);
             SamrFreeMemory((void*)dom_sid);
         }
     }
@@ -249,7 +280,6 @@ domain_name_found:
     /* set the host name if it's completely new connection */
     if (cn->hostname == NULL) {
         cn->hostname = wc16sdup(hostname);
-        size_t size = wc16slen(cn->hostname) + 1;
     }
 
     /* add newly created connection */
@@ -262,7 +292,7 @@ domain_name_found:
 
 
 NTSTATUS NetConnectLsa(NetConn **conn, const wchar16_t *hostname,
-                       uint32 req_lsa_flags)
+                       uint32 req_lsa_flags, PIO_ACCESS_TOKEN access_token)
 {
     const uint32 lsa_flags = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     const wchar_t *localhost = L"127.0.0.1";
@@ -271,8 +301,6 @@ NTSTATUS NetConnectLsa(NetConn **conn, const wchar16_t *hostname,
     NetConn *cn, *lookup;
     PolicyHandle policy_handle;
     uint32 lsa_access;
-    uint8 *sess_key;
-    size_t sess_key_len;
     wchar16_t localhost_addr[10];
     NTSTATUS status = STATUS_SUCCESS;
     RPCSTATUS rpcstatus = 0;
@@ -328,7 +356,7 @@ NTSTATUS NetConnectLsa(NetConn **conn, const wchar16_t *hostname,
         host = awc16stombs(hostname);
         if (host == NULL) return STATUS_NO_MEMORY;
 
-        rpcstatus = InitLsaBindingDefault(&lsa_b, host);
+        rpcstatus = InitLsaBindingDefault(&lsa_b, host, access_token);
         if (rpcstatus != 0) return STATUS_UNSUCCESSFUL;
 
         SAFE_FREE(host);
@@ -345,7 +373,6 @@ NTSTATUS NetConnectLsa(NetConn **conn, const wchar16_t *hostname,
     /* set the host name if it's completely new connection */
     if (cn->hostname == NULL) {
         cn->hostname = wc16sdup(hostname);
-        size_t size = wc16slen(cn->hostname) + 1;
     }
 
     /* add newly created connection (if it is in fact new) */

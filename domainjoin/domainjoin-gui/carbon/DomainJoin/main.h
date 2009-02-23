@@ -42,6 +42,7 @@
 #include <Carbon/Carbon.h>
 #include <Security/Security.h>
 
+#include "DomainMigrateWindow.h"
 #include "DomainJoinWindow.h"
 #include "DomainLeaveWindow.h"
 #include "MainWindow.h"
@@ -67,9 +68,11 @@ class DomainJoinApp : public TApplication
         virtual Boolean     HandleCommand( const HICommandExtended& inCommand );
 		
 		void JoinOrLeaveDomain();
+        void MigrateUser();
 		
 		DomainJoinWindow& GetJoinWindow();
 		DomainLeaveWindow& GetLeaveWindow();
+        DomainMigrateWindow& GetMigrateWindow();
         
         void EnsureAuthorization();
 		
@@ -81,9 +84,10 @@ class DomainJoinApp : public TApplication
 		
 	private:
 	
-	    MainWindow*        _mainWindow;
-	    DomainJoinWindow*  _joinWindow;
-		DomainLeaveWindow* _leaveWindow;
+	    MainWindow*          _mainWindow;
+	    DomainJoinWindow*    _joinWindow;
+		DomainLeaveWindow*   _leaveWindow;
+        DomainMigrateWindow* _migrateWindow;
 		
 		char* _envPath;
 };

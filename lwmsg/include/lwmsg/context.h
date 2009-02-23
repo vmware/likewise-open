@@ -62,12 +62,16 @@ typedef struct LWMsgContext LWMsgContext;
  * @ingroup marshal
  * @brief Callback to allocate a memory object
  * 
- * A callback used by the marshaller to allocate space for unmarshalled data.
+ * A callback used by the marshaller to allocate memory.
+ * The allocated space must initialized to zero.
  * 
  * @param size the number of bytes to allocate
  * @param out the allocated object
  * @param data the user data pointer registered by lwmsg_context_set_memory_functions()
- * @return LWMSG_STATUS_SUCCESS on success or any other status code (e.g. LWMSG_STATUS_MEMORY) on failure
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
  */
 typedef LWMsgStatus
 (*LWMsgAllocFunction) (
@@ -80,16 +84,42 @@ typedef LWMsgStatus
  * @ingroup marshal
  * @brief Callback to free a memory object
  *
- * A callback used by the marshaller to free space previously allocated for unmarshalled data.
+ * A callback used by the marshaller to free allocated memory.
  *
  * @param object the memory object to free
  * @param data the user data pointer registered by lwmsg_context_set_memory_functions()
- * @return LWMSG_STATUS_SUCCESS on success or any other status code on failure.
- * It is highly recommended that memory free functions never fail or memory leaks may result.
  */ 
-typedef LWMsgStatus
+typedef void
 (*LWMsgFreeFunction) (
     void* object,
+    void* data
+    );
+
+/**
+ * @ingroup marshal
+ * @brief Callback to reallocate a memory object
+ *
+ * A callback used by the marshaller to reallocate a block of memory.
+ * If the reallocation grows the block, the additional space must be
+ * initialized to zero.  If object is NULL, it should behave
+ * as a simple allocation with the same semantics as #LWMsgAllocFunction.
+ *
+ * @param[in,out] object the original memory object
+ * @param[in] old_size the size of the original memory object
+ * @param[in] new_size the desired size
+ * @param[out] new_object the reallocated object
+ * @param[in] data the user data pointer registered by lwmsg_context_set_memory_functions()
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
+ */
+typedef LWMsgStatus
+(*LWMsgReallocFunction) (
+    void* object,
+    size_t old_size,
+    size_t new_size,
+    void** new_object,
     void* data
     );
 
@@ -141,6 +171,7 @@ lwmsg_context_delete(
  * @param context the context
  * @param alloc a callback to allocate memory
  * @param free a callback to free memory
+ * @param realloc a callback to reallocate a memory block
  * @param data a user data pointer which will be passed to the callbacks when they are invoked
  */
 void
@@ -148,6 +179,7 @@ lwmsg_context_set_memory_functions(
     LWMsgContext* context,
     LWMsgAllocFunction alloc,
     LWMsgFreeFunction free,
+    LWMsgReallocFunction realloc,
     void* data
     );
 

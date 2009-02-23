@@ -45,6 +45,12 @@ wchar16_t **LdapAttributeGet(LDAP *ld, LDAPMessage *info, const wchar16_t *name,
 wchar16_t* LdapAttrValDnsHostName(const wchar16_t *name, const wchar16_t *dnsdomain);
 wchar16_t *LdapAttrValSvcPrincipalName(const wchar16_t *name);
 int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou);
+int LdapMachDnsNameSearch(
+        LDAPMessage **out,
+        LDAP *ld,
+        const wchar16_t *name,
+        const wchar16_t *dns_domain_name,
+        const wchar16_t *base);
 int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
                        const wchar16_t *base);
 int LdapMachAcctMove(LDAP *ld, const wchar16_t *dn, const wchar16_t *name,

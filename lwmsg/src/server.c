@@ -239,15 +239,23 @@ lwmsg_server_accept_client(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = NULL;
+    ConnectionPrivate* priv = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_connection_new(server->protocol, &assoc));
+
+    priv = lwmsg_assoc_get_private(assoc);
 
     /* Make assoc's internal context route through us */
     assoc->context.parent = &server->context;
 
-    if (server->timeout_set)
+    if (server->timeout.message.seconds >= 0)
     {
-        lwmsg_assoc_set_timeout(assoc, &server->timeout);
+        lwmsg_assoc_set_timeout(assoc, LWMSG_TIMEOUT_MESSAGE, &server->timeout.message);
+    }
+
+    if (server->timeout.establish.seconds >= 0)
+    {
+        lwmsg_assoc_set_timeout(assoc, LWMSG_TIMEOUT_ESTABLISH, &server->timeout.establish);
     }
 
     if (server->interrupt)
@@ -273,10 +281,10 @@ lwmsg_server_accept_client(
         break;
     }
 
-    BAIL_ON_ERROR(status = lwmsg_connection_establish(assoc));
+    status = lwmsg_assoc_establish(assoc);
 
     /* Invoke connection callback */
-    if (server->connect_callback)
+    if (status == LWMSG_STATUS_SUCCESS && server->connect_callback)
     {
         status = server->connect_callback(
             server,
@@ -284,25 +292,45 @@ lwmsg_server_accept_client(
             server->user_data);
     }
 
-    /* Handle error from callback */
+    if (status == LWMSG_STATUS_SUCCESS &&
+        server->session_callback && priv->is_session_leader)
+    {
+        status = server->session_callback(
+            server,
+            assoc,
+            server->user_data);
+    }
+
     switch(status)
     {
     case LWMSG_STATUS_SUCCESS:
-        /* Queue assocation for listening */
+        /* Association successfully accepted */
         assoc_queue_add(server, &server->listen_assocs, assoc);
         server->num_clients++;
         break;
     default:
-        /* Throw out association */
+        /* Handle an error from the establish call or
+           either of the callbacks by dropping the client
+           and continuing without bailing out of the
+           listener thread */
         lwmsg_assoc_close(assoc);
         lwmsg_assoc_delete(assoc);
         status = LWMSG_STATUS_SUCCESS;
         break;
     }
 
-error:
+cleanup:
 
     return status;
+
+error:
+
+    if (assoc)
+    {
+        lwmsg_assoc_delete(assoc);
+    }
+
+    goto cleanup;
 }
 
 static
@@ -343,7 +371,7 @@ lwmsg_server_timeout_clients(
             {
                 priv = lwmsg_assoc_get_private(assoc);
 
-                lwmsg_time_sum(&priv->last_time, &server->timeout, &abs_timeout);
+                lwmsg_time_sum(&priv->last_time, &server->timeout.idle, &abs_timeout);
 
                 /* If the connection has exceeded its timeout */
                 if (lwmsg_time_compare(&abs_timeout, &now) == LWMSG_TIME_LESSER)
@@ -364,6 +392,7 @@ lwmsg_server_timeout_clients(
                     }
                     else
                     {
+                        /* We don't care if the reset fails */
                         lwmsg_assoc_reset(assoc);
                         lwmsg_assoc_delete(assoc);
                         assoc_queue_remove_at_index(server, &server->listen_assocs, i, NULL);
@@ -382,7 +411,11 @@ lwmsg_server_timeout_clients(
         }
     }
 
-    if (server->num_clients == server->max_clients)
+    /* Schedule ourselves to wake up and do timeout processing again if:
+       - We are out of free client slots
+       - There are currently idle clients
+    */
+    if (server->num_clients == server->max_clients && server->listen_assocs.count)
     {
         *next = soonest_timeout;
     }
@@ -446,7 +479,7 @@ lwmsg_server_listen_thread(
 
         /* If we are out of client slots, start timing out old connections */
         if (server->num_clients == server->max_clients &&
-            server->timeout_set)
+            server->timeout.idle.seconds >= 0)
         {
             BAIL_ON_ERROR(status = lwmsg_server_timeout_clients(server, &next));
         }
@@ -481,12 +514,15 @@ lwmsg_server_listen_thread(
 
                     pthread_cond_signal(&server->listen_assocs.event);
                 }
-
-                FD_SET(priv->fd, &readfds);
-                if (nfds < priv->fd + 1)
+                else
                 {
-                    nfds = priv->fd + 1;
+                    FD_SET(priv->fd, &readfds);
+                    if (nfds < priv->fd + 1)
+                    {
+                        nfds = priv->fd + 1;
+                    }
                 }
+
                 count--;
             }
         }
@@ -596,13 +632,23 @@ lwmsg_server_dispatch_message(
     void* data
     )
 {
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgServer* server = (LWMsgServer*) data;
 
-    return server->dispatch_vector[recv_message->tag](
-        assoc,
-        recv_message,
-        send_message,
-        server->user_data);
+    if (server->dispatch_vector[recv_message->tag] == NULL)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
+    }
+
+    BAIL_ON_ERROR(status = server->dispatch_vector[recv_message->tag](
+                      assoc,
+                      recv_message,
+                      send_message,
+                      server->user_data));
+
+error:
+
+    return status;
 }
 
 static void*
@@ -644,7 +690,8 @@ lwmsg_server_worker_thread(void* arg)
             break;
         default:
             /* Shut down and free the association */
-            BAIL_ON_ERROR(status = lwmsg_assoc_close(assoc));
+            /* Ignore subsequent errors when attempting close */
+            lwmsg_assoc_close(assoc);
             lwmsg_assoc_delete(assoc);
             SERVER_LOCK(server, locked);
             server->num_clients--;
@@ -693,6 +740,8 @@ lwmsg_server_new(
     server->max_backlog = 4;
     server->max_dispatch = 4;
     server->protocol = protocol;
+
+    memset(&server->timeout, 0xFF, sizeof(server->timeout));
 
     lwmsg_context_setup(&server->context, &protocol->context);
 
@@ -754,10 +803,12 @@ lwmsg_server_delete(
 LWMsgStatus
 lwmsg_server_set_timeout(
     LWMsgServer* server,
-    LWMsgTime* timeout
+    LWMsgTimeout type,
+    LWMsgTime* value
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTime* target = NULL;
 
     lwmsg_server_lock(server);
 
@@ -766,13 +817,37 @@ lwmsg_server_set_timeout(
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
-    if (timeout->seconds < 0 || timeout->microseconds < 0)
+    if (value != NULL &&
+        (value->seconds < 0 || value->microseconds < 0))
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+        SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_INVALID_PARAMETER,
+                          "Invalid (negative) timeout value");
     }
 
-    server->timeout_set = LWMSG_TRUE;
-    server->timeout = *timeout;
+    switch (type)
+    {
+    case LWMSG_TIMEOUT_MESSAGE:
+        target = &server->timeout.message;
+        break;
+    case LWMSG_TIMEOUT_ESTABLISH:
+        target = &server->timeout.establish;
+        break;
+    case LWMSG_TIMEOUT_IDLE:
+        target = &server->timeout.idle;
+        break;
+    default:
+        SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_UNSUPPORTED,
+                          "Unsupported timeout type");
+    }
+
+    if (value)
+    {
+        *target = *value;
+    }
+    else
+    {
+        memset(target, 0xFF, sizeof(*target));
+    }
 
 error:
 
@@ -1191,6 +1266,30 @@ lwmsg_server_set_connect_callback(
     }
 
     server->connect_callback = func;
+
+error:
+
+    lwmsg_server_unlock(server);
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_server_set_session_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    lwmsg_server_lock(server);
+
+    if (server->state != LWMSG_SERVER_STOPPED)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+    }
+
+    server->session_callback = func;
 
 error:
 

@@ -39,29 +39,33 @@ NET_API_STATUS NetLocalGroupSetInfo(const wchar16_t *hostname,
 {
     const uint32 alias_access = ALIAS_ACCESS_SET_INFO;
 
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle alias_handle;
     uint32 alias_rid;
     AliasInfo info;
     uint32 infolevel;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-    LOCALGROUP_INFO_0 *ninfo0;
-    LOCALGROUP_INFO_1 *ninfo1;
+    LOCALGROUP_INFO_0 *ninfo0 = NULL;
+    LOCALGROUP_INFO_1 *ninfo1 = NULL;
 	
     if (aliasname == NULL || buffer == NULL) {
 	return STATUS_NO_MEMORY;
     }
 
-    status = NetConnectSamr(&conn, hostname, 0, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind     = conn->samr.bind;
 
     status = NetOpenAlias(conn, aliasname, alias_access, &alias_handle,
 			  &alias_rid);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     switch(level) {
     case 0: ninfo0 = (LOCALGROUP_INFO_0*) buffer;
@@ -82,7 +86,7 @@ NET_API_STATUS NetLocalGroupSetInfo(const wchar16_t *hostname,
 	    PushLocalGroupInfo0(&info, &infolevel, ninfo0);
 	    status = SamrSetAliasInfo(samr_bind, &alias_handle, infolevel,
 				      &info);
-	    if (status != 0) return NtStatusToWin32Error(status);
+	    BAIL_ON_NT_STATUS(status);
 	}
 
     } else if (level == 1) {
@@ -92,7 +96,7 @@ NET_API_STATUS NetLocalGroupSetInfo(const wchar16_t *hostname,
 	    PushLocalGroupInfo1to2(&info, &infolevel, ninfo1);
 	    status = SamrSetAliasInfo(samr_bind, &alias_handle, infolevel,
 				      &info);
-	    if (status != 0) return NtStatusToWin32Error(status);
+	    BAIL_ON_NT_STATUS(status);
 	}
 
 	memset(&info, 0, sizeof(info));
@@ -101,14 +105,21 @@ NET_API_STATUS NetLocalGroupSetInfo(const wchar16_t *hostname,
 	    PushLocalGroupInfo1to3(&info, &infolevel, ninfo1);
 	    status = SamrSetAliasInfo(samr_bind, &alias_handle, infolevel,
 				      &info);
-	    if (status != 0) return NtStatusToWin32Error(status);
+	    BAIL_ON_NT_STATUS(status);
 	}
     }
 
     status = SamrClose(samr_bind, &alias_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
-    return STATUS_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

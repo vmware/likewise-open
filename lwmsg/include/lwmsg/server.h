@@ -199,22 +199,25 @@ lwmsg_server_delete(
 
 /**
  * @ingroup server
- * @brief Set operation timeout
+ * @brief Set timeout
  *
- * Sets the timeout that will be used for client associations.
- * See lwmsg_assoc_set_timeout() for more information.
+ * Sets the specified timeout to the specified value.
+ * See #lwmsg_assoc_set_timeout() for more information.
  *
  * @param server the server object
- * @param timeout the timeout to set, or NULL for no timeout
+ * @param type the type of timeout to set
+ * @param value the value, or NULL for no timeout
  * @lwmsg_status
  * @lwmsg_success
+ * @lwmsg_code{UNSUPPORTED, the specified timeout type is not supported}
  * @lwmsg_code{INVALID_PARAMETER, the timeout was invalid}
  * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_server_set_timeout(
     LWMsgServer* server,
-    LWMsgTime* timeout
+    LWMsgTimeout type,
+    LWMsgTime* value
     );
 
 /**
@@ -412,6 +415,29 @@ lwmsg_server_get_user_data(
  */
 LWMsgStatus
 lwmsg_server_set_connect_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
+    );
+
+/**
+ * @ingroup server
+ * @brief Set session callback
+ *
+ * Sets a function which will be invoked whenever a new connection
+ * is created which begins a new session.  This is in addition
+ * to any function registered by #lwmsg_server_set_connect_callback()
+ *
+ * This function may only be used while the server is stopped.
+ *
+ * @param server the server object
+ * @param func the callback function
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already running}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_server_set_session_callback(
     LWMsgServer* server,
     LWMsgServerConnectFunction func
     );

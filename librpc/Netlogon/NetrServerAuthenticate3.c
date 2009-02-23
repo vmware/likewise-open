@@ -35,17 +35,27 @@
 #include "includes.h"
 
 
-NTSTATUS NetrServerAuthenticate3(handle_t b, const wchar16_t *server,
-                                 const wchar16_t *account, uint16 sec_chan_type,
-                                 const wchar16_t *computer, uint8 cli_creds[8],
-                                 uint8 srv_creds[8], uint32 *neg_flags,
-                                 uint32 *rid)
+NTSTATUS
+NetrServerAuthenticate3(
+    handle_t b,
+    const wchar16_t *server,
+    const wchar16_t *account,
+    uint16 sec_chan_type,
+    const wchar16_t *computer,
+    uint8 cli_creds[8],
+    uint8 srv_creds[8],
+    uint32 *neg_flags,
+    uint32 *rid
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    NetrCred creds = {0};
+    NetrCred creds;
     wchar16_t *srv = NULL;
     wchar16_t *acc = NULL;
     wchar16_t *comp = NULL;
+    uint32 flags = 0;
+
+    memset((void*)&creds, 0, sizeof(creds));
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(server, cleanup);
@@ -68,10 +78,12 @@ NTSTATUS NetrServerAuthenticate3(handle_t b, const wchar16_t *server,
     goto_if_no_memory_ntstatus(comp, error);
 
     DCERPC_CALL(status, _NetrServerAuthenticate3(b, srv, acc, sec_chan_type,
-                                                 comp, &creds, neg_flags, rid));
+                                                 comp, &creds, &flags, rid));
     goto_if_ntstatus_not_success(status, error);
 
     memcpy(srv_creds, creds.data, sizeof(creds.data));
+
+    *neg_flags = flags;
 
 cleanup:
     memset(&creds, 0, sizeof(creds));

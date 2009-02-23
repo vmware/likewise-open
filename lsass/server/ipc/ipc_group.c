@@ -46,6 +46,16 @@
  */
 #include "ipc.h"
 
+static void
+LsaSrvCleanupGroupEnumHandle(
+    void* pData
+    )
+{
+    LsaSrvEndEnumGroups(
+        NULL,
+        (HANDLE) pData);
+}
+
 LWMsgStatus
 LsaSrvIpcAddGroup(
     LWMsgAssoc* assoc,
@@ -372,38 +382,33 @@ LsaSrvIpcBeginEnumGroups(
     )
 {
     DWORD dwError = 0;
-    PSTR pszGUID = NULL;
-    PLSA_ENUM_OBJECTS_INFO pResult = NULL;
-    //PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_BEGIN_ENUM_GROUPS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
+    PVOID hResume = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvBeginEnumGroups(
                         (HANDLE)Handle,
-                        (HANDLE)pReq->Handle,
                         pReq->dwInfoLevel,
                         pReq->dwNumMaxRecords,
                         pReq->bCheckGroupMembersOnline,
-                        &pszGUID);
+                        pReq->FindFlags,
+                        &hResume);
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
-                                    (PVOID)&pResult);
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(
+                                      assoc,
+                                      "EnumGroups",
+                                      hResume,
+                                      LsaSrvCleanupGroupEnumHandle));
         BAIL_ON_LSA_ERROR(dwError);
 
-        pResult->dwObjectInfoLevel = pReq->dwInfoLevel;
-        pResult->dwNumMaxObjects = pReq->dwNumMaxRecords;
-        pResult->pszGUID = pszGUID;
-        pszGUID = NULL;
-
-
         pResponse->tag = LSA_R_BEGIN_ENUM_GROUPS_SUCCESS;
-        pResponse->object = pResult;
+        pResponse->object = hResume;
     }
     else
     {
@@ -415,14 +420,14 @@ LsaSrvIpcBeginEnumGroups(
     }
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszGUID);
 
     return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-    if(pResult)
+
+    if(hResume)
     {
-        LsaFreeEnumObjectsInfo(pResult);
+        LsaSrvCleanupGroupEnumHandle(hResume);
     }
 
     goto cleanup;
@@ -441,15 +446,18 @@ LsaSrvIpcEnumGroups(
     DWORD  dwGroupInfoLevel = 0;
     DWORD  dwNumGroupsFound = 0;
     PLSA_GROUP_INFO_LIST pResult = NULL;
-    PLSA_IPC_ENUM_RECORDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvEnumGroups(
-                       (HANDLE)pReq->Handle,
-                       pReq->pszToken,
-                       &dwGroupInfoLevel,
-                       &ppGroupInfoList,
-                       &dwNumGroupsFound);
+        Handle,
+        (HANDLE) pRequest->object,
+        &dwGroupInfoLevel,
+        &ppGroupInfoList,
+        &dwNumGroupsFound);
 
     if (!dwError)
     {
@@ -514,15 +522,21 @@ LsaSrvIpcEndEnumGroups(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_ENUM_RECORDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvEndEnumGroups(
-                        (HANDLE)pReq->Handle,
-                        pReq->pszToken);
+        Handle,
+        (HANDLE) pRequest->object);
 
     if (!dwError)
     {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(assoc, pRequest->object, LWMSG_FALSE));
+        BAIL_ON_LSA_ERROR(dwError);
+
         pResponse->tag = LSA_R_END_ENUM_GROUPS_SUCCESS;
         pResponse->object = NULL;
     }

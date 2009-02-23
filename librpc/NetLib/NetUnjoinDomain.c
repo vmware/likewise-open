@@ -50,7 +50,6 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
                                   DOMAIN_ACCESS_CREATE_USER;
     NETRESOURCE nr;
     int err;
-    handle_t samr_b;
     PolicyHandle account_h;
     HANDLE hStore = (HANDLE)NULL;
     PLWPS_PASSWORD_INFO pi = NULL;
@@ -61,11 +60,16 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     wchar16_t *domain_controller_name = NULL;
     size_t domain_controller_name_len;
     BOOLEAN wnet_connected = FALSE;
+    wchar16_t *machine_name = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (gethostname((char*)localname, sizeof(localname)) < 0) {
        /* TODO: figure out better error code */
        return ERROR_INVALID_PARAMETER;
     }
+
+    machine_name = wc16sdup(machine);
+    goto_if_no_memory_ntstatus(machine_name, done);
 
     status = NetpGetDcName(domain, FALSE, &domain_controller_name);
     goto_if_ntstatus_not_success(status, done);
@@ -99,10 +103,21 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
 
     /* disable the account only if requested */
     if (options & NETSETUP_ACCT_DELETE) {
-        status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0);
+        if (account && password)
+        {
+            status = LwIoCreatePlainAccessTokenW(account, password, &access_token);
+            goto_if_ntstatus_not_success(status, done);
+        }
+        else
+        {
+            status = LwIoGetThreadAccessToken(&access_token);
+            goto_if_ntstatus_not_success(status, done);
+        }
+
+        status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, access_token);
         if (status != STATUS_SUCCESS) goto done;
 
-        status = DisableWksAccount(conn, machine, &account_h);
+        status = DisableWksAccount(conn, machine_name, &account_h);
         /* there's no need to check status code just return it */
 
         close_status = NetDisconnectSamr(conn);
@@ -132,8 +147,14 @@ done:
         }
     }
 
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
     SAFE_FREE(nr.RemoteName);
     SAFE_FREE(domain_controller_name);
+    SAFE_FREE(machine_name);
 
     return NtStatusToWin32Error(status);
 }
@@ -144,7 +165,7 @@ NET_API_STATUS NetUnjoinDomain(const wchar16_t *hostname,
                                const wchar16_t *password,
                                uint32 options)
 {
-    NET_API_STATUS err;
+    NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status, close_status;
     wchar16_t *domain = NULL;
     HANDLE hStore = (HANDLE)NULL;

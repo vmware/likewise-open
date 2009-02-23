@@ -37,7 +37,7 @@
 #include <errno.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/mpr.h>
 #include <wc16str.h>
 

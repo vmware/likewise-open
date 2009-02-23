@@ -25,8 +25,6 @@
 		2BE373CE0C07C73800261971 /* LWIAttrLookup.h in Headers */ = {isa = PBXBuildFile; fileRef = 2BE373BA0C07C73800261971 /* LWIAttrLookup.h */; };
 		2BE373CF0C07C73800261971 /* LWIAttrValDataQuery.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2BE373BB0C07C73800261971 /* LWIAttrValDataQuery.cpp */; };
 		2BE373D00C07C73800261971 /* LWIAttrValDataQuery.h in Headers */ = {isa = PBXBuildFile; fileRef = 2BE373BC0C07C73800261971 /* LWIAttrValDataQuery.h */; };
-		2BE373D30C07C73800261971 /* LWIAuthAdapter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2BE373BF0C07C73800261971 /* LWIAuthAdapter.cpp */; };
-		2BE373D40C07C73800261971 /* LWIAuthAdapter.h in Headers */ = {isa = PBXBuildFile; fileRef = 2BE373C00C07C73800261971 /* LWIAuthAdapter.h */; };
 		2BE373D50C07C73800261971 /* LWIException.h in Headers */ = {isa = PBXBuildFile; fileRef = 2BE373C10C07C73800261971 /* LWIException.h */; };
 		2BE373D60C07C73800261971 /* LWIPlugIn.h in Headers */ = {isa = PBXBuildFile; fileRef = 2BE373C20C07C73800261971 /* LWIPlugIn.h */; };
 		2BE373D70C07C73800261971 /* LWIPlugInInitException.h in Headers */ = {isa = PBXBuildFile; fileRef = 2BE373C30C07C73800261971 /* LWIPlugInInitException.h */; };
@@ -153,8 +151,6 @@
 		2BE373BA0C07C73800261971 /* LWIAttrLookup.h */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = LWIAttrLookup.h; sourceTree = "<group>"; tabWidth = 4; usesTabs = 0; };
 		2BE373BB0C07C73800261971 /* LWIAttrValDataQuery.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = LWIAttrValDataQuery.cpp; sourceTree = "<group>"; };
 		2BE373BC0C07C73800261971 /* LWIAttrValDataQuery.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = LWIAttrValDataQuery.h; sourceTree = "<group>"; };
-		2BE373BF0C07C73800261971 /* LWIAuthAdapter.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = LWIAuthAdapter.cpp; sourceTree = "<group>"; };
-		2BE373C00C07C73800261971 /* LWIAuthAdapter.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = LWIAuthAdapter.h; sourceTree = "<group>"; };
 		2BE373C10C07C73800261971 /* LWIException.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = LWIException.h; sourceTree = "<group>"; };
 		2BE373C20C07C73800261971 /* LWIPlugIn.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = LWIPlugIn.h; sourceTree = "<group>"; };
 		2BE373C30C07C73800261971 /* LWIPlugInInitException.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = LWIPlugInInitException.h; sourceTree = "<group>"; };
@@ -231,7 +227,6 @@
 				2BE205720C12946A009CE7E9 /* LWIBitVector.cpp */,
 				2BE373BB0C07C73800261971 /* LWIAttrValDataQuery.cpp */,
 				2BE373C40C07C73800261971 /* LWIQuery.cpp */,
-				2BE373BF0C07C73800261971 /* LWIAuthAdapter.cpp */,
 				2BE373CB0C07C73800261971 /* PlugInShell.cpp */,
 				25FEF4C50DA371EF00204DDD /* LWIRecordQuery.cpp */,
 				2BE373C80C07C73800261971 /* LWIRecTypeLookup.cpp */,
@@ -269,7 +264,6 @@
 				2BE373C30C07C73800261971 /* LWIPlugInInitException.h */,
 				B9D5BDC10C1794A30022680F /* LWIDirNodeQuery.h */,
 				2BE373C10C07C73800261971 /* LWIException.h */,
-				2BE373C00C07C73800261971 /* LWIAuthAdapter.h */,
 				1DDA9AAAFF9E4F6911C9C878 /* PlugInConsts.h */,
 				4BF1C75DFEF02F6311DD2B58 /* ServerModule.h */,
 				2BE3F94D0C0F7E5F0080F65B /* LWIUser.h */,
@@ -310,7 +304,6 @@
 				1DDA9AABFF9E4F6911C9C878 /* PlugInConsts.h in Headers */,
 				2BE373CE0C07C73800261971 /* LWIAttrLookup.h in Headers */,
 				2BE373D00C07C73800261971 /* LWIAttrValDataQuery.h in Headers */,
-				2BE373D40C07C73800261971 /* LWIAuthAdapter.h in Headers */,
 				2BE373D50C07C73800261971 /* LWIException.h in Headers */,
 				2BE373D60C07C73800261971 /* LWIPlugIn.h in Headers */,
 				2BE373D70C07C73800261971 /* LWIPlugInInitException.h in Headers */,
@@ -381,7 +374,6 @@
 				04C5D6A0FF9E071C11C9C878 /* ServerModuleLib.c in Sources */,
 				2BE373CD0C07C73800261971 /* LWIAttrLookup.cpp in Sources */,
 				2BE373CF0C07C73800261971 /* LWIAttrValDataQuery.cpp in Sources */,
-				2BE373D30C07C73800261971 /* LWIAuthAdapter.cpp in Sources */,
 				2BE373D80C07C73800261971 /* LWIQuery.cpp in Sources */,
 				2BE373DA0C07C73800261971 /* LWIRecordListQuery.cpp in Sources */,
 				2BE373DC0C07C73800261971 /* LWIRecTypeLookup.cpp in Sources */,

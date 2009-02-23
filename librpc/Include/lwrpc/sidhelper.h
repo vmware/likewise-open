@@ -34,9 +34,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <sys/types.h>
-
-#define IN
-#define OUT
+#include <lw/attrs.h>
 
 #if 0
 typedef struct dom_sid {

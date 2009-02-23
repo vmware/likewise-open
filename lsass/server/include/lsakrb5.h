@@ -49,6 +49,7 @@
 #ifndef __LSAKRB5_H__
 #define __LSAKRB5_H__
 
+#include <uuid/uuid.h>
 #include <lwrpc/krb5pac.h>
 
 typedef enum
@@ -118,14 +119,9 @@ LsaKrb5SetProcessDefaultCachePath(
     );
 
 DWORD
-LsaSetupMachineLoginSession(
-    PCSTR pszUsername,
-    PCSTR pszPassword
-    );
-
-DWORD
 LsaSetupMachineSession(
     PCSTR  pszMachname,
+    PCSTR  pszSamAccountName,
     PCSTR  pszPassword,
     PCSTR  pszRealm,
     PCSTR  pszDomain,

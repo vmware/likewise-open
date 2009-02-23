@@ -35,29 +35,38 @@ NET_API_STATUS NetGetDomainName(const wchar16_t *hostname, wchar16_t **domname)
 {
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
-    const uint32 enum_size = 32;
-    const wchar_t *builtin = L"Builtin";
 
     NetConn *cn;
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     wchar16_t *domain_name;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (domname == NULL || hostname == NULL) {
         return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
     }
 
-    status = NetConnectSamr(&cn, hostname, conn_access, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&cn, hostname, conn_access, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     domain_name = wc16sdup(cn->samr.dom_name);
     if (domain_name == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
 
     status = NetDisconnectSamr(cn);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
  
     (*domname) = domain_name;
     
-    return ERROR_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

@@ -346,7 +346,7 @@ LsaGetComputerDN(
         
     dwError = LsaSrvJoinFindComputerDN(
                         hDirectory,
-                        pszHostname,
+                        pAcct->pszMachineAccount,
                         pszDomain,
                         &pszComputerDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -424,7 +424,7 @@ LsaSrvJoinFindComputerDN(
     
     LsaStrToUpper(pszEscapedUpperHostName);
     
-    sprintf(szQuery, "(sAMAccountName=%s$)", pszEscapedUpperHostName);
+    sprintf(szQuery, "(sAMAccountName=%s)", pszEscapedUpperHostName);
 
     dwError = LsaLdapDirectorySearch(
                     hDirectory,

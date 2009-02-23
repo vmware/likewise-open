@@ -1328,9 +1328,9 @@ void DJCheckValidComputerName(
     dwLen = strlen(pszComputerName);
 
     //Zero length hostnames are already handled above
-    if (dwLen > 15)
+    if (dwLen > 63)
     {
-        LW_RAISE_EX(exc, CENTERROR_INVALID_COMPUTERNAME, "Invalid hostname", "The name '%s' is %d characters long. Hostnames may only be up to 15 characters long.", pszComputerName, dwLen);
+        LW_RAISE_EX(exc, CENTERROR_INVALID_COMPUTERNAME, "Invalid hostname", "The name '%s' is %d characters long. Hostnames may only be up to 63 characters long.", pszComputerName, dwLen);
         goto cleanup;
     }
 

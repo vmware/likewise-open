@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,15 +28,13 @@
  * license@likewisesoftware.com
  */
 
-#ifdef __GNUC__
 #include <string.h>
-#include <iconv.h>
-#endif
+
+#include <wc16str.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/allocate.h>
-#include <wc16str.h>
-#include <lwrpc/ntstatus.h>
+#include <lw/ntstatus.h>
 #include <lwrpc/unicodestring.h>
 
 

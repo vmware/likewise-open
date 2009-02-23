@@ -63,6 +63,10 @@
 ///
 /// @{
 
+struct _LSA_DM_LDAP_CONNECTION;
+typedef struct _LSA_DM_LDAP_CONNECTION
+    LSA_DM_LDAP_CONNECTION, *PLSA_DM_LDAP_CONNECTION;
+
 typedef struct _LSA_DM_DC_INFO {
     DWORD dwDsFlags;
     PSTR pszName;
@@ -120,6 +124,19 @@ typedef struct _LSA_DM_CONST_ENUM_DOMAIN_INFO {
 typedef BOOLEAN (*PLSA_DM_ENUM_DOMAIN_FILTER_CALLBACK)(
     IN OPTIONAL PVOID pContext,
     IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
+    );
+
+typedef DWORD LSA_DM_CONNECT_DOMAIN_FLAGS;
+
+#define LSA_DM_CONNECT_DOMAIN_FLAG_GC           0x00000001
+#define LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO      0x00000002
+#define LSA_DM_CONNECT_DOMAIN_FLAG_AUTH         0x00000004
+
+typedef DWORD (*PFLSA_DM_CONNECT_CALLBACK)(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
     );
 
 DWORD
@@ -443,6 +460,73 @@ LsaDmFreeEnumDomainInfo(
 VOID
 LsaDmFreeEnumDomainInfoArray(
     IN OUT PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo
+    );
+
+DWORD
+LsaDmLdapOpenDc(
+    IN PCSTR pszDnsDomainName,
+    OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    );
+
+DWORD
+LsaDmLdapOpenGc(
+    IN PCSTR pszDnsDomainName,
+    OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    );
+
+VOID
+LsaDmLdapClose(
+    IN PLSA_DM_LDAP_CONNECTION pConn
+    );
+
+DWORD
+LsaDmLdapDirectorySearch(
+    IN PLSA_DM_LDAP_CONNECTION pConn,
+    IN PCSTR pszObjectDN,
+    IN int scope,
+    IN PCSTR pszQuery,
+    IN PSTR* ppszAttributeList,
+    OUT HANDLE* phDirectory,
+    OUT LDAPMessage** ppMessage
+    );
+
+DWORD
+LsaDmLdapDirectoryExtendedDNSearch(
+    IN PLSA_DM_LDAP_CONNECTION pConn,
+    IN PCSTR pszObjectDN,
+    IN PCSTR pszQuery,
+    IN PSTR* ppszAttributeList,
+    IN int scope,
+    OUT HANDLE* phDirectory,
+    OUT LDAPMessage** ppMessage
+    );
+
+DWORD
+LsaDmLdapDirectoryOnePagedSearch(
+    IN PLSA_DM_LDAP_CONNECTION pConn,
+    IN PCSTR pszObjectDN,
+    IN PCSTR pszQuery,
+    IN PSTR* ppszAttributeList,
+    IN DWORD dwPageSize,
+    IN OUT PLSA_SEARCH_COOKIE pCookie,
+    IN int scope,
+    OUT HANDLE* phDirectory,
+    OUT LDAPMessage** ppMessage
+    );
+
+DWORD
+LsaDmConnectDomain(
+    IN PCSTR pszDnsDomainName,
+    IN LSA_DM_CONNECT_DOMAIN_FLAGS dwConnectFlags,
+    IN PLWNET_DC_INFO pDcInfo,
+    IN PFLSA_DM_CONNECT_CALLBACK pfConnectCallback,
+    IN OPTIONAL PVOID pContext
+    );
+
+DWORD
+LsaDmGetForestName(
+    IN PCSTR pszDomainName,
+    OUT PSTR* ppszDnsForestName
     );
 
 /// @} lsa_om

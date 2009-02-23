@@ -45,7 +45,6 @@
 #include <comp.h>       /* Private communications services */
 #include <cs_s.h>	/* I18N codesets definitions */
 #include <comtwrflr.h>
-#include <comnp.h>      /* Named pipes */
 
 
 /*
@@ -173,7 +172,13 @@ unsigned32              *status;
      */
     rpc__auth_info_binding_release(binding_rep);
 
-    rpc__np_auth_info_binding_release(binding_rep);
+    /*
+     * if we have transport information, free it up now
+     */
+    if (binding_rep->transport_info)
+    {
+        rpc__transport_info_release(binding_rep->transport_info);
+    }
 
     /*
      * Free the name service-specific part of the binding.
@@ -735,10 +740,14 @@ unsigned32              *status;
         dst_binding_rep->auth_info = src_binding_rep->auth_info;
     }
 
-    if (src_binding_rep->np_auth_info != NULL)
+    /*
+     * Copy transport information
+     */
+
+    if (src_binding_rep->transport_info != NULL)
     {
-        rpc__np_auth_info_reference (src_binding_rep->np_auth_info);
-        dst_binding_rep->np_auth_info = src_binding_rep->np_auth_info;
+        rpc__transport_info_retain(src_binding_rep->transport_info);
+        dst_binding_rep->transport_info = src_binding_rep->transport_info;
     }
 
     /*
@@ -2077,7 +2086,7 @@ unsigned32              *status;
     binding_rep->timeout = rpc_c_binding_default_timeout;
     binding_rep->ns_specific = NULL;
     binding_rep->auth_info = NULL;
-    binding_rep->np_auth_info = NULL;
+    binding_rep->transport_info = NULL;
     binding_rep->bound_server_instance = false;
     binding_rep->addr_has_endpoint = false;
     binding_rep->refcnt = 1;            /* the reference we are returning */

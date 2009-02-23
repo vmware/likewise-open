@@ -45,9 +45,40 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <errno.h>
 #include <string.h>
+
+static
+LWMsgStatus
+lwmsg_connection_begin_timeout(
+    LWMsgAssoc* assoc,
+    LWMsgTime* value
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+
+
+    /* Record current timeout value */
+    priv->timeout.current = *value;
+    /* Get current time */
+    BAIL_ON_ERROR(status = lwmsg_time_now(&priv->last_time));
+
+    if (value->seconds >= 0)
+    {
+        /* Calculate absolute deadline */
+        lwmsg_time_sum(&priv->last_time, value, &priv->end_time);
+    }
+    else
+    {
+        /* Mark deadline as unset */
+        memset(&priv->end_time, 0xFF, sizeof(priv->last_time));
+    }
+
+error:
+
+    return status;
+}
 
 static unsigned char*
 lwmsg_connection_packet_payload(ConnectionPacket* packet)
@@ -67,9 +98,9 @@ lwmsg_connection_packet_payload(ConnectionPacket* packet)
 static void
 lwmsg_connection_load_packet(LWMsgBuffer* buffer, ConnectionPacket* packet)
 {
-    buffer->memory = (unsigned char*) packet;
+    buffer->base = (unsigned char*) packet;
     buffer->cursor = lwmsg_connection_packet_payload(packet);
-    buffer->length = packet->length;
+    buffer->end = buffer->base + packet->length;
 }
 
 static LWMsgStatus
@@ -77,29 +108,11 @@ lwmsg_connection_handle_urgent(LWMsgAssoc* assoc, ConnectionPacket* packet)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    ConnectionState dest_state = CONNECTION_STATE_NONE;
     
     switch (packet->type)
     {
     case CONNECTION_PACKET_SHUTDOWN:
-        /* Short circuit to the appropriate state
-           FIXME: it would be cleaner but involve more code
-           to do this by pushing an event into the state machine
-        */
-        switch (packet->contents.shutdown.type)
-        {
-        case CONNECTION_SHUTDOWN_NORMAL:
-            dest_state = CONNECTION_STATE_PEER_CLOSED;
-            break;
-        case CONNECTION_SHUTDOWN_RESET:
-            dest_state = CONNECTION_STATE_PEER_RESET;
-            break;
-        case CONNECTION_SHUTDOWN_ABORT:
-            dest_state = CONNECTION_STATE_PEER_ABORTED;
-            break;
-        }
-        
-        priv->state = dest_state;
+        priv->state = CONNECTION_STATE_CLOSED;
 
         if (priv->fd != -1)
         {
@@ -107,8 +120,22 @@ lwmsg_connection_handle_urgent(LWMsgAssoc* assoc, ConnectionPacket* packet)
             priv->fd = -1;
         }
 
-        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
+        switch (packet->contents.shutdown.type)
+        {
+        case CONNECTION_SHUTDOWN_NORMAL:
+            status = LWMSG_STATUS_PEER_CLOSE;
+            break;
+        case CONNECTION_SHUTDOWN_RESET:
+            status = LWMSG_STATUS_PEER_RESET;
+            break;
+        case CONNECTION_SHUTDOWN_ABORT:
+            status = LWMSG_STATUS_PEER_ABORT;
+            break;
+        }
+        
+        BAIL_ON_ERROR(status);
     default:
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
         break;
     }
 
@@ -124,7 +151,7 @@ lwmsg_connection_recvfull(LWMsgBuffer* buffer, size_t needed)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = (LWMsgAssoc*) buffer->data;
-    ConnectionPacket* packet = (ConnectionPacket*) buffer->memory;
+    ConnectionPacket* packet = (ConnectionPacket*) buffer->base;
     
     /* Discard packet */
     lwmsg_connection_discard_recv_packet(assoc, packet);
@@ -166,11 +193,11 @@ lwmsg_connection_sendfull(LWMsgBuffer* buffer, size_t needed)
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = (LWMsgAssoc*) buffer->data;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    ConnectionPacket* packet = (ConnectionPacket*) buffer->memory;
+    ConnectionPacket* packet = (ConnectionPacket*) buffer->base;
     ConnectionPacket* urgent = NULL;
 
     /* Update size of packet based on amount of buffer that was used */
-    packet->length = buffer->cursor - buffer->memory;
+    packet->length = buffer->cursor - buffer->base;
 
 retry:
     /* Now that the packet is complete, send it */
@@ -219,7 +246,13 @@ lwmsg_connection_do_recv(LWMsgAssoc* assoc, ConnectionPacketType expect)
     ConnectionPacket* packet = NULL;
     LWMsgBuffer buffer;
 
+    /* Set up timeout */
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.message));
+
 retry:
+
     BAIL_ON_ERROR(status = lwmsg_connection_recv_packet(assoc, &packet));
 
     if (lwmsg_connection_packet_is_urgent(packet))
@@ -234,7 +267,19 @@ retry:
     }
     
     priv->message->tag = packet->contents.msg.type;
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, priv->message->tag, &type));
+
+    status = lwmsg_protocol_get_message_type(prot, priv->message->tag, &type);
+
+    switch (status)
+    {
+    case LWMSG_STATUS_NOT_FOUND:
+        status = LWMSG_STATUS_MALFORMED;
+        break;
+    default:
+        break;
+    }
+
+    BAIL_ON_ERROR(status);
 
     if (type == NULL)
     {
@@ -252,7 +297,7 @@ retry:
         
         lwmsg_connection_load_packet(&buffer, packet);
         
-        buffer.full = lwmsg_connection_recvfull;
+        buffer.wrap = lwmsg_connection_recvfull;
         buffer.data = assoc;
         
         BAIL_ON_ERROR(status = lwmsg_unmarshal(
@@ -279,7 +324,18 @@ lwmsg_connection_do_send(LWMsgAssoc* assoc, ConnectionPacketType ptype)
     LWMsgMessage* message = priv->message;
     LWMsgBuffer buffer;
     
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, message->tag, &type));
+    status = lwmsg_protocol_get_message_type(prot, message->tag, &type);
+
+    switch (status)
+    {
+    case LWMSG_STATUS_MALFORMED:
+        status = LWMSG_STATUS_MALFORMED;
+        break;
+    default:
+        break;
+    }
+
+    BAIL_ON_ERROR(status);
 
     BAIL_ON_ERROR(status = lwmsg_connection_queue_packet(assoc,
                                                          ptype,
@@ -287,6 +343,11 @@ lwmsg_connection_do_send(LWMsgAssoc* assoc, ConnectionPacketType ptype)
                                                          &packet));
 
     packet->contents.msg.type = message->tag;
+
+    /* Set up timeout */
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.message));
 
     /* If the message has no payload, send a zero-length message */
     if (type == NULL)
@@ -314,7 +375,7 @@ lwmsg_connection_do_send(LWMsgAssoc* assoc, ConnectionPacketType ptype)
     {
         lwmsg_connection_load_packet(&buffer, packet);
 
-        buffer.full = lwmsg_connection_sendfull;
+        buffer.wrap = lwmsg_connection_sendfull;
         buffer.data = assoc;
         
         BAIL_ON_ERROR(status = lwmsg_marshal(
@@ -339,30 +400,57 @@ lwmsg_connection_do_shutdown(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     LWMsgSessionManager* manager = NULL;
+    LWMsgBool session_lost = LWMSG_FALSE;
 
-    /* Remove ourselves from the session if the connection was fully established */
+    /* Remove ourselves from the session, if present */
     if (priv->session)
     {
+        size_t num_handles = 0;
+        size_t num_assocs = 0;
+
         BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-        BAIL_ON_ERROR(status = lwmsg_session_manager_leave_session(manager, priv->session));
+        num_handles = lwmsg_session_manager_get_session_handle_count(manager, priv->session);
+        BAIL_ON_ERROR(status = lwmsg_session_manager_leave_session(manager, priv->session, &num_assocs));
         priv->session = NULL;
+
+        if (num_handles > 0 && num_assocs == 0)
+        {
+            /* If there were handles in the session, but there are no longer any associations
+               keeping the session alive, we have lost our session and cannot reset the connection */
+            session_lost = LWMSG_TRUE;
+        }
     }
+
+
 
     switch (type)
     {
-    case CONNECTION_SHUTDOWN_CLOSE:
-        priv->state = CONNECTION_STATE_LOCAL_CLOSED;
-        break;
     case CONNECTION_SHUTDOWN_RESET:
-        priv->state = CONNECTION_STATE_START;
+        if (session_lost)
+        {
+            /* We can't reset the connection because we lost session state
+               in the process */
+            priv->state = CONNECTION_STATE_CLOSED;
+            BAIL_ON_ERROR(status = LWMSG_STATUS_SESSION_LOST);
+        }
+        else
+        {
+            /* Either our session is still being kept alive by another association,
+               or it did not contain any state, so we can safely reset */
+            priv->state = CONNECTION_STATE_START;
+        }
         break;
-    case CONNECTION_SHUTDOWN_ABORT:
-        priv->state = CONNECTION_STATE_LOCAL_ABORTED;
-        break;
+    default:
+        priv->state = CONNECTION_STATE_CLOSED;
     }
 
     if (priv->fd != -1)
     {
+        /* Set up timeout */
+        BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                          assoc,
+                          &priv->timeout.establish));
+
         BAIL_ON_ERROR(status = lwmsg_connection_send_shutdown(assoc, type, reason));
     }
 
@@ -394,57 +482,6 @@ error:
 
 static
 LWMsgStatus
-lwmsg_connection_connect_local(
-    LWMsgAssoc* assoc
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    struct sockaddr_un sockaddr;
-    int sock = -1;
-
-    sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    
-    if (sock == -1)
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
-    }
-
-    sockaddr.sun_family = AF_UNIX;
-
-    if (strlen(priv->endpoint) + 1 > sizeof(sockaddr.sun_path))
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Endpoint is too long for underlying protocol");
-    }
-
-    strcpy(sockaddr.sun_path, priv->endpoint);
-
-    if (connect(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == -1)
-    {
-        switch (errno)
-        {
-            case ENOENT:
-                status = LWMSG_STATUS_FILE_NOT_FOUND;
-                break;
-            case ECONNREFUSED:
-                status = LWMSG_STATUS_CONNECTION_REFUSED;
-                break;
-            default:
-                status = LWMSG_STATUS_SYSTEM;
-                break;
-        }
-        ASSOC_RAISE_ERROR(assoc, status, "%s", strerror(errno));
-    }
-
-    priv->fd = sock;
-
-error:
-
-    return status;
-}
-
-static
-LWMsgStatus
 lwmsg_connection_do_connect(
     LWMsgAssoc* assoc
     )
@@ -452,6 +489,10 @@ lwmsg_connection_do_connect(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.establish));
+
     switch (priv->mode)
     {
     case LWMSG_CONNECTION_MODE_LOCAL:
@@ -506,6 +547,10 @@ lwmsg_connection_run(
             /* If we were given a pre-connected fd, go straight to the connected state */
             if (priv->fd != -1)
             {
+                /* Set up the establish timeout now since we don't need to connect() */
+                BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                                  assoc,
+                                  &priv->timeout.establish));
                 priv->state = CONNECTION_STATE_CONNECTED;
             }
             /* If we were given an endpoint, we need to establish a connection */
@@ -642,20 +687,16 @@ lwmsg_connection_run(
             }
             event = CONNECTION_EVENT_NONE;
             break;
-        case CONNECTION_STATE_PEER_CLOSED:
-        case CONNECTION_STATE_PEER_RESET:
-        case CONNECTION_STATE_PEER_ABORTED:
-        case CONNECTION_STATE_LOCAL_CLOSED:
-        case CONNECTION_STATE_LOCAL_ABORTED:
+        case CONNECTION_STATE_CLOSED:
             switch (event)
             {
                 /* If we are already closed, these events are no-ops */
-            case CONNECTION_EVENT_RESET:
             case CONNECTION_EVENT_CLOSE:
             case CONNECTION_EVENT_ABORT:
+            case CONNECTION_EVENT_RESET:
                 goto done;
             default:
-                BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
+                BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
             }
             break;
         default:
@@ -670,25 +711,10 @@ done:
 
 error:
     
-    /* If an error occured and we are still connected, we may need to perform a shutdown */
-    if (priv->fd != -1)
+    /* Transform generic EOF errors into PEER_CLOSE */
+    if (status == LWMSG_STATUS_EOF)
     {
-        switch (status)
-        {
-            /* Errors that don't require a shutdown */
-        case LWMSG_STATUS_TIMEOUT:
-        case LWMSG_STATUS_INTERRUPT:
-            break;
-        case LWMSG_STATUS_MALFORMED:
-            lwmsg_connection_do_shutdown(assoc, CONNECTION_SHUTDOWN_ABORT, CONNECTION_SHUTDOWN_MALFORMED);
-            break;
-        case LWMSG_STATUS_SECURITY:
-            lwmsg_connection_do_shutdown(assoc, CONNECTION_SHUTDOWN_ABORT, CONNECTION_SHUTDOWN_ACCESS_DENIED);
-            break;
-        default:
-            lwmsg_connection_do_shutdown(assoc, CONNECTION_SHUTDOWN_ABORT, CONNECTION_SHUTDOWN_NORMAL);
-            break;
-        }
+        status = LWMSG_STATUS_PEER_CLOSE;
     }
 
     goto done;

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,33 +31,32 @@
 #include "includes.h"
 
 
-NTSTATUS SamrOpenAlias(handle_t b, PolicyHandle *dom_handle,
-                       uint32 access_mask, uint32 rid,
-                       PolicyHandle *alias_handle)
+NTSTATUS
+SamrOpenAlias(
+    handle_t b,
+    PolicyHandle *domain_h,
+    uint32 access_mask,
+    uint32 rid,
+    PolicyHandle *alias_h)
 {
     NTSTATUS status = STATUS_SUCCESS;
     PolicyHandle h = {0};
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(dom_handle, cleanup);
-    goto_if_invalid_param_ntstatus(alias_handle, cleanup);
+    goto_if_invalid_param_ntstatus(domain_h, cleanup);
+    goto_if_invalid_param_ntstatus(alias_h, cleanup);
 
-    TRY
-    {
-        status = _SamrOpenAlias(b, dom_handle, access_mask, rid, &h);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrOpenAlias(b, domain_h, access_mask, rid, &h));
 
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 
-    *alias_handle = h;
+    *alias_h = h;
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

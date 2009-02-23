@@ -16,8 +16,14 @@ lsassd_LDADD = \
 	@top_builddir@/gssntlm/server/libntlmserver.la \
 	@top_builddir@/client/liblsaclient.la \
 	@top_builddir@/logging_r/liblsalog_r.la \
+	@top_builddir@/server/srvutils/liblsasrvutils.la \
 	@SOCKET_LIBS@ \
-	@NETLOGON_LIBS@
+	@NETLOGON_LIBS@ \
+	@LWIO_LIBS@
+
+lsassd_LDFLAGS = \
+	@NETLOGON_LDFLAGS@ \
+	@LWIO_LDFLAGS@
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(lsasscachedir)

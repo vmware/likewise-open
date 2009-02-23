@@ -268,10 +268,7 @@ void* PushUserInfo0(UserInfo *sinfo, uint32 *level, USER_INFO_0 *ninfo)
 
 void* PushUserInfo1(UserInfo *sinfo, uint32 *level, USER_INFO_1 *ninfo)
 {
-    size_t password_len;
-    wchar16_t *password;
     UserInfo21 *info21;
-    UserInfo24 *info24;
 
     *level = 21;
     info21 = &sinfo->info21;

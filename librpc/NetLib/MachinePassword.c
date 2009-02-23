@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -26,6 +26,12 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
+ */
+
+/*
+ * Abstract: Machine trust password handling (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
 #include <sys/utsname.h>
@@ -75,6 +81,7 @@ cleanup:
 
 
 WINERR SaveMachinePassword(const wchar16_t *machine,
+                           const wchar16_t *machacct_name,
                            const wchar16_t *domain_name,
                            const wchar16_t *dns_domain_name,
                            const wchar16_t *dc_name,
@@ -99,13 +106,11 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
     wchar16_t *host_machine_uc = NULL;
     wchar16_t *host_machine_lc = NULL;
     wchar16_t *host_machine_fqdn_lc = NULL;
+    wchar16_t *cifs_machine_fqdn_lc = NULL;
     wchar16_t *principal = NULL;
 
-    /* create account$ name */
-    account = (wchar16_t*) malloc(sizeof(wchar16_t) * (wc16slen(machine) + 2));
+    account = wc16sdup(machacct_name);
     goto_if_no_memory_winerr(account, done);
-
-    sw16printf(account, "%S$", machine);
 
     dom_name = wc16sdup(domain_name);
     goto_if_no_memory_winerr(dom_name, done);
@@ -174,7 +179,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
         goto done;
     }
 
-    ktstatus = KtGetSaltingPrincipalW(hostname, dns_domain_name, NULL,
+    ktstatus = KtGetSaltingPrincipalW(hostname, account, dns_domain_name, NULL,
                                       dc_name, base_dn, &salt);
     if (ktstatus != 0) {
         err = NtStatusToWin32Error(STATUS_UNSUCCESSFUL);
@@ -190,7 +195,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     /* MACHINE$@DOMAIN.NET */
     err = SavePrincipalKey(account, pass, pass_len, NULL, salt, dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
 
     /* host/MACHINE@DOMAIN.NET */
     host_machine_uc = (wchar16_t*) malloc(sizeof(wchar16_t) *
@@ -202,7 +207,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     err = SavePrincipalKey(host_machine_uc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
 
     /* host/machine.domain.net@DOMAIN.NET */
     host_machine_fqdn_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
@@ -215,7 +220,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     err = SavePrincipalKey(host_machine_fqdn_lc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
 
     /* host/machine@DOMAIN.NET */
     host_machine_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
@@ -227,7 +232,20 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     err = SavePrincipalKey(host_machine_lc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
-    goto_if_err_not_success(err, done);
+    goto_if_winerr_not_success(err, done);
+
+    /* cifs/machine.domain.net@DOMAIN.NET */
+    cifs_machine_fqdn_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
+                                               (wc16slen(hostname) +
+                                                wc16slen(dns_domain_name) + 8));
+    goto_if_no_memory_winerr(cifs_machine_fqdn_lc, done);
+
+    sw16printf(cifs_machine_fqdn_lc, "cifs/%S.%S", hostname, dns_domain_name);
+    wc16slower(cifs_machine_fqdn_lc);
+
+    err = SavePrincipalKey(cifs_machine_fqdn_lc, pass, pass_len, NULL, salt,
+                           dc_name, kvno);
+    goto_if_winerr_not_success(err, done);
 
 done:
     if (base_dn) KtFreeMemory(base_dn);
@@ -242,6 +260,7 @@ done:
     SAFE_FREE(host_machine_uc);
     SAFE_FREE(host_machine_lc);
     SAFE_FREE(host_machine_fqdn_lc);
+    SAFE_FREE(cifs_machine_fqdn_lc);
     SAFE_FREE(principal);
 
     return err;

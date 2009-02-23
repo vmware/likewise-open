@@ -499,6 +499,7 @@ error:
 DWORD
 KtGetSaltingPrincipal(
     PCSTR pszMachineName,
+    PCSTR pszMachAcctName,
     PCSTR pszDnsDomainName,
     PCSTR pszRealmName,
     PCSTR pszDcName,
@@ -507,14 +508,10 @@ KtGetSaltingPrincipal(
 {
     DWORD dwError = KT_STATUS_SUCCESS;
     krb5_error_code ret = 0;
-    PSTR pszMachAcctName = NULL;
     PSTR pszSaltOut = NULL;
     PSTR pszRealm = NULL;
     PSTR pszMachine = NULL;
     krb5_context ctx = NULL;
-
-    dwError = KtAllocateStringPrintf(&pszMachAcctName, "%s$", pszMachineName);
-    BAIL_ON_KT_ERROR(dwError);
 
     /* Try to query for userPrincipalName attribute first */
     dwError = KtLdapGetSaltingPrincipal(pszDcName, pszBaseDn, pszMachAcctName,
@@ -557,7 +554,6 @@ KtGetSaltingPrincipal(
     *pszSalt = pszSaltOut;
 
 cleanup:
-    KT_SAFE_FREE_STRING(pszMachAcctName);
     KT_SAFE_FREE_STRING(pszRealm);
     KT_SAFE_FREE_STRING(pszMachine);
 
@@ -572,6 +568,7 @@ error:
 DWORD
 KtGetSaltingPrincipalW(
     PCWSTR pwszMachineName,
+    PCWSTR pwszMachAcctName,
     PCWSTR pwszDnsDomainName,
     PCWSTR pwszRealmName,
     PCWSTR pwszDcName,
@@ -580,6 +577,7 @@ KtGetSaltingPrincipalW(
 {
     DWORD dwError = KT_STATUS_SUCCESS;
     PSTR pszMachineName = NULL;
+    PSTR pszMachAcctName = NULL;
     PSTR pszDnsDomainName = NULL;
     PSTR pszRealmName = NULL;
     PSTR pszDcName = NULL;
@@ -588,6 +586,9 @@ KtGetSaltingPrincipalW(
 
     pszMachineName = awc16stombs(pwszMachineName);
     BAIL_IF_NO_MEMORY(pszMachineName);
+
+    pszMachAcctName = awc16stombs(pwszMachAcctName);
+    BAIL_IF_NO_MEMORY(pszMachAcctName);
 
     pszDnsDomainName = awc16stombs(pwszDnsDomainName);
     BAIL_IF_NO_MEMORY(pszDnsDomainName);
@@ -603,7 +604,8 @@ KtGetSaltingPrincipalW(
         BAIL_IF_NO_MEMORY(pszRealmName);
     }
 
-    dwError = KtGetSaltingPrincipal(pszMachineName, pszDnsDomainName,
+    dwError = KtGetSaltingPrincipal(pszMachineName, pszMachAcctName,
+                                    pszDnsDomainName,
                                     pszRealmName, pszDcName, pszBaseDn,
                                     &pszSalt);
     BAIL_ON_KT_ERROR(dwError);
@@ -615,6 +617,7 @@ KtGetSaltingPrincipalW(
 
 cleanup:
     KT_SAFE_FREE_STRING(pszMachineName);
+    KT_SAFE_FREE_STRING(pszMachAcctName);
     KT_SAFE_FREE_STRING(pszDnsDomainName);
     KT_SAFE_FREE_STRING(pszRealmName);
     KT_SAFE_FREE_STRING(pszDcName);

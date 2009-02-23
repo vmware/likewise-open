@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,8 +31,13 @@
 #include "includes.h"
 
 
-NTSTATUS NetrEnumerateTrustedDomainsEx(handle_t b, const wchar16_t *server_name,
-                                       NetrDomainTrust **trusts, uint32 *count)
+NTSTATUS
+NetrEnumerateTrustedDomainsEx(
+    handle_t b,
+    const wchar16_t *server_name,
+    NetrDomainTrust **trusts,
+    uint32 *count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     wchar16_t *name = NULL;
@@ -64,7 +69,10 @@ cleanup:
     return status;
 
 error:
-    NetrFreeMemory((void*)t);
+    if (t) {
+        NetrFreeMemory((void*)t);
+    }
+
     *trusts = NULL;
     goto cleanup;
 }

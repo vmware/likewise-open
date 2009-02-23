@@ -732,6 +732,8 @@
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef uid_t
 
+/* iconv in type */
+#undef ICONV_IN_TYPE
 
 #if defined(__GNUC__) && !defined(inline)
 /* Silence gcc pedantic warnings about ANSI C.  */

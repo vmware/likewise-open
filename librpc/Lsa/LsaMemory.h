@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,41 +28,107 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Lsa memory (de)allocation routines (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _LSA_MEMORY_H_
 #define _LSA_MEMORY_H_
 
 
-NTSTATUS LsaRpcAllocateMemory(void **ptr, size_t len, void *dep);
+NTSTATUS
+LsaRpcAllocateMemory(
+    void **ptr,
+    size_t len,
+    void *dep
+    );
 
-NTSTATUS LsaRpcFreeMemory(void *ptr);
+NTSTATUS
+LsaRpcFreeMemory(
+    void *ptr
+    );
 
-NTSTATUS LsaRpcSafeFreeMemory(void **ptr);
+NTSTATUS
+LsaRpcSafeFreeMemory(
+    void **ptr
+    );
 
-NTSTATUS LsaRpcAddDepMemory(void *ptr, void *dep);
+NTSTATUS
+LsaRpcAddDepMemory(
+    void *ptr,
+    void *dep
+    );
 
-NTSTATUS LsaAllocateTranslatedSid(TranslatedSid **out,
-				  TranslatedSid *in);
+NTSTATUS
+LsaAllocateTranslatedSids(
+    TranslatedSid **out,
+    TranslatedSidArray *in
+    );
 
-void LsaFreeTranslatedSid(TranslatedSid *ptr);
+NTSTATUS
+LsaAllocateTranslatedSids2(
+    TranslatedSid2 **out,
+    TranslatedSidArray2 *in
+    );
 
-NTSTATUS LsaAllocateTranslatedSid2(TranslatedSid2 **out,
-				   TranslatedSid2 *in);
+void
+LsaFreeTranslatedSid(
+    TranslatedSid *ptr
+    );
 
-void LsaFreeTranslatedSid2(TranslatedSid2 *ptr);
+NTSTATUS
+LsaAllocateTranslatedSid2(
+    TranslatedSid2 **out,
+    TranslatedSid2 *in
+    );
 
-NTSTATUS LsaAllocateTranslatedSidArray(TranslatedSidArray **out,
-				       TranslatedSidArray *in);
+void
+LsaFreeTranslatedSid2(
+    TranslatedSid2 *ptr
+    );
 
-void LsaFreeTranslatedSidArray(TranslatedSidArray *ptr);
+NTSTATUS
+LsaAllocateTranslatedSidArray(
+    TranslatedSidArray **out,
+    TranslatedSidArray *in
+    );
 
-NTSTATUS LsaAllocateTranslatedSidArray2(TranslatedSidArray2 **out,
-					TranslatedSidArray2 *in);
+void
+LsaFreeTranslatedSidArray(
+    TranslatedSidArray *ptr
+    );
 
-void LsaFreeTranslatedSidArray2(TranslatedSidArray2 *ptr);
+NTSTATUS
+LsaAllocateTranslatedSidArray2(
+    TranslatedSidArray2 **out,
+    TranslatedSidArray2 *in
+    );
 
-NTSTATUS LsaAllocateRefDomainList(RefDomainList **out,
-                                  RefDomainList *in);
+void
+LsaFreeTranslatedSidArray2(
+    TranslatedSidArray2 *ptr
+    );
 
+NTSTATUS
+LsaAllocateRefDomainList(
+    RefDomainList **out,
+    RefDomainList *in
+    );
+
+NTSTATUS
+LsaAllocateTranslatedNames(
+    TranslatedName **out,
+    TranslatedNameArray *in
+    );
+
+NTSTATUS
+LsaAllocatePolicyInformation(
+   LsaPolicyInformation **out,
+   LsaPolicyInformation *in,
+   uint32 level
+   );
 
 #endif /* _LSA_MEMORY_H_ */
 

@@ -91,6 +91,9 @@ enum param_err fetch_value(struct parameter *params, int count,
 			   const char *key, enum param_type type, void *val,
 			   const void *def);
 
+void ParamInfo(const char* name, enum param_type type, void *value);
+
+
 
 #endif /* _PARAMS_H_ */
 

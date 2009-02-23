@@ -60,6 +60,7 @@ LsaSrvStartListenThread(
     PSTR pszCommPath = NULL;
     BOOLEAN bDirExists = FALSE;
     DWORD dwError = 0;
+    static LWMsgTime idleTimeout = {30, 0};
 
     dwError = LsaSrvGetCachePath(&pszCachePath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -113,6 +114,22 @@ LsaSrvStartListenThread(
     dwError = MAP_LWMSG_ERROR(lwmsg_server_set_max_clients(
                                   gpServer,
                                   MAX_CLIENTS));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_max_backlog(
+                                  gpServer,
+                                  LSA_MAX(5, MAX_CLIENTS / 4)));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_timeout(
+                                  gpServer,
+                                  LWMSG_TIMEOUT_IDLE,
+                                  &idleTimeout));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_session_callback(
+                                  gpServer,
+                                  LsaSrvIpcOpenServer));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_server_start(gpServer));

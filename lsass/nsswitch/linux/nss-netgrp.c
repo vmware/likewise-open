@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-group.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS Group Information
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
@@ -47,6 +47,7 @@
 
 #include "lsanss.h"
 #include "nss-netgrp.h"
+#include "externs.h"
 #include <assert.h>
 
 #define MAX_NUM_ARTEFACTS 500
@@ -80,6 +81,7 @@ _nss_lsass_setnetgrent (
     PSTR pszValue = NULL;
 
     ret = LsaNssCommonNetgroupFindByName(
+        &hLsaConnection,
         group,
         &pszValue);
     BAIL_ON_NSS_ERROR(ret);
@@ -168,7 +170,7 @@ nss_lsass_parse_entry(
     }
 
     result->first = 0;
-    
+
 error:
 
     return ret;
@@ -179,7 +181,7 @@ _nss_lsass_getnetgrent_r (struct __netgrent *result,
 			 char *buffer, size_t buflen, int *errnop)
 {
     NSS_STATUS status = NSS_STATUS_SUCCESS;
-    
+
     status = nss_lsass_parse_entry(
         result,
         &buffer,

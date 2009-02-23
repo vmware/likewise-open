@@ -28,6 +28,7 @@
  * license@likewisesoftware.com
  */
 
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,10 +36,9 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
-
-#include <types.h>
-#include <security.h>
 #include <wc16str.h>
+
+#include <srvsvc/types.h>
 
 #include "Params.h"
 #include "TestSrvSvc.h"
@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
     printf("No test name specified. Available tests:\n");
     runtest = tests;
     while (runtest) {
-        printf("%s ", runtest->name);
+        printf("%s\n", runtest->name);
         runtest = runtest->next;
     }
     printf("\n");

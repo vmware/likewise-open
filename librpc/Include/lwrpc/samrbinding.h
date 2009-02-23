@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,27 +28,46 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Samr interface binding (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _SAMR_BINDING_H_
 #define _SAMR_BINDING_H_
 
+#include <lwio/lwio.h>
 #include <lwrpc/types.h>
 
-#define SAMR_PROT_SEQ   "ncacn_np"
-#define SAMR_ENDPOINT   "\\PIPE\\lsass"
-
-#ifdef CHAR_T
-#undef CHAR_T
-#endif
-
-#if defined(_WIN32)
-# define CHAR_T  wchar_t
-#elif defined (__GNUC__)
-# define CHAR_T  unsigned char
-#endif
+#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
+#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
 
 
-RPCSTATUS InitSamrBindingDefault(handle_t *binding, const CHAR_T *hostname);
-RPCSTATUS InitSamrBindingFull();
-RPCSTATUS FreeSamrBinding(handle_t *binding);
+RPCSTATUS
+InitSamrBindingDefault(
+    handle_t *binding,
+    const char *hostname,
+    PIO_ACCESS_TOKEN access_token
+    );
+
+
+RPCSTATUS
+InitSamrBindingFull(
+    handle_t *binding,
+    const char *prot_seq,
+    const char *hostname,
+    const char *endpoint,
+    const char *uuid,
+    const char *options,
+    PIO_ACCESS_TOKEN access_token
+    );
+
+
+RPCSTATUS
+FreeSamrBinding(
+    handle_t *binding
+    );
+
 
 #endif /* _SAMR_BINDING_H_ */

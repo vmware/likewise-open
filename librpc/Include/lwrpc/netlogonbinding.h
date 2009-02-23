@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,24 +31,38 @@
 #ifndef _NETLOGON_BINDING_H_
 #define _NETLOGON_BINDING_H_
 
+#include <lwio/lwio.h>
 #include <lwrpc/types.h>
 
 #define NETLOGON_DEFAULT_PROT_SEQ   "ncacn_np"
 #define NETLOGON_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
 
-#ifdef CHAR_T
-#undef CHAR_T
-#endif
 
-#if defined(_WIN32)
-# define CHAR_T  wchar_t
-#elif defined (__GNUC__)
-# define CHAR_T  unsigned char
-#endif
+RPCSTATUS
+InitNetlogonBindingDefault(
+    handle_t *binding,
+    const char *hostname,
+    LW_PIO_ACCESS_TOKEN access_token,
+    BOOL is_schannel
+    );
 
 
-RPCSTATUS InitNetlogonBindingDefault(handle_t *binding, const CHAR_T *hostname);
-RPCSTATUS InitNetlogonBindingFull();
-RPCSTATUS FreeNetlogonBinding();
+RPCSTATUS InitNetlogonBindingFull(
+    handle_t *binding,
+    const char *prot_seq,
+    const char *hostname,
+    const char *endpoint,
+    const char *uuid,
+    const char *options,
+    LW_PIO_ACCESS_TOKEN access_token,
+    BOOL is_schannel
+    );
+
+
+RPCSTATUS
+FreeNetlogonBinding(
+    handle_t *binding
+    );
+
 
 #endif /* _NETLOGON_BINDING_H_ */

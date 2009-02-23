@@ -86,8 +86,6 @@
 #define RPC_C_CN_LARGE_FRAG_SIZE        4096
 #define RPC_C_CN_SMALL_FRAG_SIZE        256
 
-typedef void* rpc_id_token_t;
-
 /*
  * R P C _ C N _ A U T H _ I N F O _ T
  */
@@ -141,7 +139,6 @@ typedef struct rpc_cn_assoc_sec_context_s_t
     rpc_cn_sec_context_t                *assoc_current_sec_context; /* server only */
     sec_krb_message			krb_message;	/* for rpc__krb_cn_fmt_client_req */
     rpc_cn_sec_auth_buffer_info_t       auth_buffer_info;
-    rpc_np_auth_info_t                  *assoc_named_pipe_info;
     rpc_list_t                          context_list;   /* rpc_cn_sec_context_t */
 } rpc_cn_assoc_sec_context_t, *rpc_cn_assoc_sec_context_p_t;
 

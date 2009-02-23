@@ -80,6 +80,8 @@
 #include <ctype.h>
 #include <sys/param.h>
 #include <syslog.h>
+#include <stddef.h>
+
 
 /***********************************************************************
  *
@@ -330,6 +332,7 @@ PRIVATE void rpc__module_init_func(void)
 	static rpc_protseq_id_elt_t seq_ids[2] = {
     {                                   /* Connection-RPC / NP / NB */
         0,
+        0, /* Does not use endpoint mapper */
         RPC_C_PROTSEQ_ID_NCACN_NP,
         RPC_C_PROTOCOL_ID_NCACN,
         RPC_C_NAF_ID_UXD,
@@ -341,6 +344,7 @@ PRIVATE void rpc__module_init_func(void)
     },
     {                                   /* Connection-RPC / UXD */
         0,
+        0, /* Does not use endpoint mapper */
         RPC_C_PROTSEQ_ID_NCALRPC,
         RPC_C_PROTOCOL_ID_NCACN,
         RPC_C_NAF_ID_UXD,
@@ -1611,7 +1615,7 @@ unsigned32                *status;
         return;
     }
 
-    addr.len = sizeof(addr);
+    addr.len = sizeof(addr) - offsetof(rpc_np_addr_t, sa);
     serr = rpc__socket_inq_endpoint (desc, (rpc_addr_p_t)&addr);
     if (RPC_SOCKET_IS_ERR (serr))
     {

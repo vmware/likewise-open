@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,7 +31,7 @@
 #include "includes.h"
 
 void
-FreeUnicodeStringContents(UnicodeString *pStr)
+FreeUnicodeStringContents(UnicodeStringEx *pStr)
 {
     if (pStr->string != NULL)
     {
@@ -56,7 +56,7 @@ FreeRidWithAttributeArrayContents(RidWithAttributeArray *pArr)
 void
 FreeNetrSamBaseInfoContents(NetrSamBaseInfo *pBase)
 {
-    UnicodeString *ppStrings[] = {
+    UnicodeStringEx *ppStrings[] = {
         &pBase->account_name,
         &pBase->full_name,
         &pBase->logon_script,
@@ -141,7 +141,7 @@ DecodePacLogonInfo(
     PAC_LOGON_INFO *pLogonInfo = NULL;
 
     idl_es_decode_buffer(
-            (char *)pchBuffer,
+            (unsigned char *)pchBuffer,
             sBufferLen,
             &decodingHandle,
             &status);

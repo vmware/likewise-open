@@ -2,14 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(eventlog, 1.0, support@likewisesoftware.com)
+AC_INIT(srvsvc, 1.0, support@likewisesoftware.com)
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADERS([include/config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_CPPFLAGS=""
-AM_CFLAGS=""
+AM_CFLAGS="-Wall -Werror -fno-strict-aliasing"
 AM_LDFLAGS=""
 
 # Platform-specific stuff
@@ -17,10 +17,7 @@ AM_LDFLAGS=""
 MOD_EXT=".so"
 
 case "$host_os:$host_cpu" in
-	linux*:i?86)
-		AC_DEFINE([__LWI_LINUX__], [], [Define if OS is Linux])
-		;;
-	linux*:x86_64)
+	linux*:i?86|linux*:x86_64|linux*:s390*)
 		AC_DEFINE([__LWI_LINUX__], [], [Define if OS is Linux])
 		;;
 	solaris*:i?86|solaris*:sparc*)
@@ -109,33 +106,6 @@ AC_SUBST(LIBUNISTR_INCLUDES)
 AC_SUBST(LIBUNISTR_LDFLAGS)
 AC_SUBST(LIBUNISTR_LIBS)
 
-# sqlite
-
-AC_ARG_WITH([sqlite],
-        [AC_HELP_STRING([--with-sqlite=<dir>], [use sqlite located in prefix <dir>])],
-        [
-		SQLITE_INCLUDES="-I$withval/include"
-                SQLITE_LDFLAGS="-L$withval/lib"
-        ])
-
-AC_ARG_WITH([sqlite-includes],
-        [AC_HELP_STRING([--with-sqlite-includes=<dir>], [use sqlite includes located in <dir>])],
-        [
-		SQLITE_INCLUDES="-I$withval"
-        ])
-
-AC_ARG_WITH([sqlite-libs],
-        [AC_HELP_STRING([--with-sqlite-libs=<dir>], [use sqlite libs located in <dir>])],
-        [
-		SQLITE_LDFLAGS="-L$withval"
-        ])
-
-SQLITE_LIBS="-lsqlite3"
-
-AC_SUBST(SQLITE_INCLUDES)
-AC_SUBST(SQLITE_LDFLAGS)
-AC_SUBST(SQLITE_LIBS)
-
 # dcerpc
 
 AC_ARG_WITH([dcerpc],
@@ -143,6 +113,7 @@ AC_ARG_WITH([dcerpc],
         [
 		DCERPC_INCLUDES="-I$withval/include"
                 DCERPC_LDFLAGS="-L$withval/lib"
+		DCERPC_PATH="$withval/bin"
         ])
 
 AC_ARG_WITH([dcerpc-includes],
@@ -190,6 +161,33 @@ AC_SUBST(GSSAPI_INCLUDES)
 AC_SUBST(GSSAPI_LDFLAGS)
 AC_SUBST(GSSAPI_LIBS)
 
+# lwio
+
+AC_ARG_WITH([lwio],
+        [AC_HELP_STRING([--with-lwio=<dir>], [use lwio located in prefix <dir>])],
+        [
+		LWIO_INCLUDES="-I$withval/include"
+        LWIO_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwio-includes],
+        [AC_HELP_STRING([--with-lwio-includes=<dir>], [use lwio includes located in <dir>])],
+        [
+		LWIO_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwio-libs],
+        [AC_HELP_STRING([--with-lwio-libs=<dir>], [use lwio libs located in <dir>])],
+        [
+		LWIO_LDFLAGS="-L$withval"
+        ])
+
+LWIO_LIBS="-llwioclient -llwioshareinfo"
+
+AC_SUBST(LWIO_INCLUDES)
+AC_SUBST(LWIO_LDFLAGS)
+AC_SUBST(LWIO_LIBS)
+
 # compat
 
 ENABLE_COMPAT=false
@@ -206,6 +204,16 @@ AC_ARG_ENABLE([compat],
         ])
 
 AM_CONDITIONAL(ENABLE_COMPAT, [$ENABLE_COMPAT])
+
+# unicode
+
+AC_ARG_ENABLE([unicode],
+               [AC_HELP_STRING([--disable-unicode], [disable unicode support (default: enabled)])],[use_unicode=$enableval],[use_unicode=yes])
+
+if test x"$use_unicode" = x"yes"
+then
+    AM_CFLAGS="$AM_CFLAGS -DUNICODE"
+fi
 
 # debugging
 
@@ -236,13 +244,13 @@ for i in $CPPFLAGS ${DCERPC_INCLUDES} ${UNISTR_INCLUDES} ${LSASS_INCLUDES}; do
 done
 AC_SUBST(IDLFLAGS)
 
-eventlogconfdir="$sysconfdir"
-AC_SUBST(eventlogconfdir)
-AS_AC_EXPAND(CONFIGDIR, $eventlogconfdir)
+srvsvcconfdir="$sysconfdir"
+AC_SUBST(srvsvcconfdir)
+AS_AC_EXPAND(CONFIGDIR, $srvsvcconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
-eventlogcachedir="$localstatedir/lib/likewise"
-AC_SUBST(eventlogcachedir)
-AS_AC_EXPAND(CACHEDIR, $eventlogcachedir)
+srvsvccachedir="$localstatedir/lib/likewise"
+AC_SUBST(srvsvccachedir)
+AS_AC_EXPAND(CACHEDIR, $srvsvccachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
 
 AS_AC_EXPAND(PREFIXDIR, $prefix)
@@ -315,7 +323,7 @@ AC_FUNC_VPRINTF
 AC_FUNC_STRERROR_R
 old_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS $RT_LIBS"
-AC_CHECK_FUNCS([atexit localtime_r memset select socket strchr strerror strerror_r vsyslog rpl_realloc rpl_malloc clock_gettime clock_settime settimeofday gettimeofday timegm strtoll __strtoll strtoull __strtoull strtol strtoul])
+AC_CHECK_FUNCS([atexit localtime_r memset select socket strchr strerror strerror_r strndup vsyslog rpl_realloc rpl_malloc clock_gettime clock_settime settimeofday gettimeofday timegm strtoll __strtoll strtoull __strtoull strtol strtoul])
 LDFLAGS="$old_LDFLAGS"
 AC_CHECK_DECLS([isblank], [], [], [#include <ctype.h>])
 AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
@@ -327,6 +335,9 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 
 AC_CONFIG_FILES([Makefile
                  include/Makefile
+                 etc/Makefile
+                 etc/srvsvcd.conf
+                 utils/Makefile
                  client/Makefile
                  test/Makefile
                  server/Makefile

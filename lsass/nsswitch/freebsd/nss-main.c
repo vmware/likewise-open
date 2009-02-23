@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-main.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Main Entry Points
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -49,6 +49,7 @@
 #include "lsanss.h"
 #include "nss-user.h"
 #include "nss-group.h"
+#include "externs.h"
 
 #if defined(__LWI_FREEBSD__)
 
@@ -188,14 +189,14 @@ LsaNSSFindUserById(
     pszBuf = (PSTR)va_arg(ap, char*);
     stBufLen = (size_t)va_arg(ap, size_t);
     pErrorNumber = (PINT)va_arg(ap, int *);
-    
+
     ret = _nss_lsass_getpwuid_r(
 		     uid,
 		     pResultUser,
 		     pszBuf,
 		     stBufLen,
 		     pErrorNumber);
-    
+
     if(pResult)
     {
         *((struct passwd**)pResult) = ret != NSS_STATUS_SUCCESS ? NULL : pResultUser;
@@ -224,7 +225,7 @@ LsaNSSFindUserByName(
     pszBuf = (PSTR)va_arg(ap, char*);
     stBufLen = (size_t)va_arg(ap, size_t);
     pErrorNumber = (PINT)va_arg(ap, int *);
-    
+
     ret = _nss_lsass_getpwnam_r(
 		     pszLoginId,
 		     pResultUser,
@@ -320,7 +321,7 @@ LsaNSSFindGroupById(
     pszBuf = (PSTR)va_arg(ap, char*);
     stBufLen = (size_t)va_arg(ap, size_t);
     pErrorNumber = (PINT)va_arg(ap, int *);
-    
+
     ret = _nss_lsass_getgrgid_r(
 		     gid,
 		     pResultGroup,
@@ -356,7 +357,7 @@ LsaNSSFindGroupByName(
     pszBuf = (PSTR)va_arg(ap, char*);
     stBufLen = (size_t)va_arg(ap, size_t);
     pErrorNumber = (PINT)va_arg(ap, int *);
-    
+
     ret = _nss_lsass_getgrnam_r(
 		     pszGroupName,
 		     pResultGroup,
@@ -447,10 +448,11 @@ LsaNSSGetGroupMembership(
     gid_t* pResultGids = va_arg(ap, gid_t*);
     size_t maxResultGids = (size_t) va_arg(ap, int);
     PINT pNumResultGids = va_arg(ap, PINT);
-    
+
     size_t myResultsSize = 0;
-    
+
     ret = LsaNssCommonGroupGetGroupsByUserName(
+        &hLsaConnection,
         pszUserName,
         *pNumResultGids,
         maxResultGids,
@@ -460,7 +462,7 @@ LsaNSSGetGroupMembership(
 
     if (myResultsSize > maxResultGids)
         myResultsSize = maxResultGids;
-    
+
     *pNumResultGids = (int) myResultsSize;
 
     errno = err;

@@ -50,68 +50,40 @@
 #define __ENUM_STATE_H__
 
 DWORD
-LsaProviderLocal_AddUserState(
+LsaProviderLocal_CreateUserState(
     HANDLE  hProvider,
-    PCSTR   pszGUID,
     DWORD   dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
-    );
-
-PLOCAL_PROVIDER_ENUM_STATE
-LsaProviderLocal_FindUserState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
     );
 
 VOID
 LsaProviderLocal_FreeUserState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PLOCAL_PROVIDER_ENUM_STATE  pEnumState
     );
 
 DWORD
-LsaProviderLocal_AddGroupState(
+LsaProviderLocal_CreateGroupState(
     HANDLE hProvider,
-    PCSTR  pszGUID,
     DWORD  dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     );
 
 DWORD
-LsaProviderLocal_AddEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE* ppStateList,
-    PCSTR pszGUID,
+LsaProviderLocal_CreateEnumState(
     DWORD dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppNewEnumState
-    );
-
-PLOCAL_PROVIDER_ENUM_STATE
-LsaProviderLocal_FindGroupState(
-    HANDLE hProvider,
-    PCSTR  pszGUID
-    );
-
-PLOCAL_PROVIDER_ENUM_STATE
-LsaProviderLocal_FindEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE pStateList,
-    PCSTR pszGUID
     );
 
 VOID
 LsaProviderLocal_FreeGroupState(
     HANDLE hProvider,
-    PCSTR  pszGUID
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState
     );
 
 VOID
 LsaProviderLocal_FreeEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE* ppStateList,
-    PCSTR pszGUID
-    );
-
-VOID
-LsaProviderLocal_FreeStateList(
-    PLOCAL_PROVIDER_ENUM_STATE pStateList
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState
     );
 
 #endif /* __ENUM_STATE_H__ */

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,24 +28,53 @@
  * license@likewisesoftware.com
  */
 
-#ifdef __GNUC__
+/*
+ * Abstract: Netlogon interface (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include <stdlib.h>
 #include <stddef.h>
-#include <iconv.h>
 #include <string.h>
+#include <ctype.h>
+#include <iconv.h>
 #include <pthread.h>
+
+#include <dce/rpc.h>
+#include <dce/smb.h>
 #include <DceSupport.h>
-#endif
-
-#include "netlogon_h.h"
-
-#include <lwrpc/ntstatus.h>
-#include <lwrpc/winerror.h>
+#include <compat/rpcstatus.h>
+#include <dce/schannel.h>
 #include <wc16str.h>
+#include <wc16printf.h>
+#include <secdesc/secdesc.h>
+#include <lw/ntstatus.h>
+
+#include <lwrpc/types.h>
+#include <lwrpc/winerror.h>
+#include <lwrpc/errconv.h>
+#include <lwrpc/netrdefs.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+#include <lwrpc/mpr.h>
+#include <lwrpc/unicodestring.h>
+#include <lwrpc/netlogonbinding.h>
+#include <lwrpc/netrdefs.h>
+#include <lwrpc/netlogon.h>
+
+#include <md4.h>
+#include <md5.h>
+#include <hmac_md5.h>
+#include <des.h>
+#include <crypto.h>
+#include <byteops.h>
+#include <random.h>
+
+#include "netlogon_stub.h"
 
 #include "NetrUtil.h"
+#include "NetrCredentials.h"
 #include "NetrMemory.h"
 #include "NetrStubMemory.h"
 
@@ -60,5 +89,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-
-

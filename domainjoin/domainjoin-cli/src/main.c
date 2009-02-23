@@ -767,6 +767,8 @@ int main(
     argPos++;
     remainingArgs--;
 
+    setlocale(LC_ALL, "");
+
     while(remainingArgs > 0 && CTStrStartsWith(argPos[0], "--"))
     {
         if(!strcmp(argPos[0], "--help"))

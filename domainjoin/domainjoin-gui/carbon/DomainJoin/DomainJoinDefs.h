@@ -42,6 +42,7 @@
 #include <Carbon/Carbon.h>
 
 #define MAIN_MENU_JOIN_OR_LEAVE_ID 'jolv'
+#define MAIN_MENU_MIGRATE_ID       'migu'
 #define CREDENTIALS_CMD_OK         'CDOk'
 #define CREDENTIALS_CMD_CANCEL     'CDCc'
 

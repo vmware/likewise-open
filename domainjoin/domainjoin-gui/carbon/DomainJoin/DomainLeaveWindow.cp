@@ -16,8 +16,10 @@ const int DomainLeaveWindow::DOMAIN_NAME_ID   = 306;
 const int DomainLeaveWindow::LEAVE_ID         = 308;
 const int DomainLeaveWindow::CLOSE_ID         = 309;
 const int DomainLeaveWindow::OU_ID            = 310;
+const int DomainLeaveWindow::MIGRATE_ID       = 312;
 
 const int DomainLeaveWindow::LEAVE_CMD_ID     = 'leav';
+const int DomainLeaveWindow::MIGRATE_CMD_ID   = 'migr';
 const int DomainLeaveWindow::CLOSE_CMD_ID     = 'not!';
 		
 //--------------------------------------------------------------------------------------------
@@ -32,6 +34,10 @@ DomainLeaveWindow::HandleCommand( const HICommandExtended& inCommand )
         			
 		case LEAVE_CMD_ID:
 		    HandleLeaveDomain();
+			break;
+
+        case MIGRATE_CMD_ID:
+		    HandleMigrateUser();
 			break;
 			
         default:
@@ -180,8 +186,7 @@ DomainLeaveWindow::HandleLeaveDomain()
 
         ShowLeftDomainDialog(domainName);
 
-        /* Bail out of the application now */
-        this->Close();
+        PostApplicationEvent(MAIN_MENU_JOIN_OR_LEAVE_ID);
     }
     catch(DomainJoinException& dje)
     {
@@ -205,6 +210,12 @@ DomainLeaveWindow::HandleLeaveDomain()
                       NULL,
                       &outItemHit);
     }
+}
+
+void
+DomainLeaveWindow::HandleMigrateUser()
+{
+    PostApplicationEvent(MAIN_MENU_MIGRATE_ID);
 }
 
 void

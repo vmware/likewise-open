@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,34 +31,33 @@
 #include "includes.h"
 
 
-NTSTATUS SamrOpenDomain(handle_t b, PolicyHandle *conn_handle,
-                        uint32 access_mask, DomSid *sid,
-                        PolicyHandle *domain_handle)
+NTSTATUS
+SamrOpenDomain(
+    handle_t b,
+    PolicyHandle *conn_h,
+    uint32 access_mask,
+    DomSid *sid,
+    PolicyHandle *domain_h)
 {
     NTSTATUS status = STATUS_SUCCESS;
     PolicyHandle h = {0};
 
     goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(conn_handle, cleanup);
+    goto_if_no_memory_ntstatus(conn_h, cleanup);
     goto_if_no_memory_ntstatus(sid, cleanup);
-    goto_if_no_memory_ntstatus(domain_handle, cleanup);
+    goto_if_no_memory_ntstatus(domain_h, cleanup);
 
-    TRY
-    {
-        status = _SamrOpenDomain(b, conn_handle, access_mask, sid, &h);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrOpenDomain(b, conn_h, access_mask, sid, &h));
 
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 	
-    *domain_handle = h;
+    *domain_h = h;
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

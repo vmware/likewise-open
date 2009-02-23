@@ -55,13 +55,14 @@ typedef struct LWMsgTypeIter
     LWMsgVerifyFunction verify;
     void* verify_data;
 
+    LWMsgTypeAttrs attrs;
+
     union
     {
         struct
         {
             size_t width;
             LWMsgSignage sign;
-            size_t* range;
         } kind_integer;
         struct
         {
@@ -83,8 +84,6 @@ typedef struct LWMsgTypeIter
                 } member;
                 size_t static_length;
             } term_info;
-            unsigned nonnull:1;
-            unsigned aliasable:1;
         } kind_indirect;
         struct
         {
@@ -212,17 +211,9 @@ lwmsg_type_visit_graph_children(
 LWMsgStatus
 lwmsg_type_verify_range(
     LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
+    LWMsgTypeIter* iter,
     void* object,
-    void* data);
-
-LWMsgStatus
-lwmsg_type_verify_not_null(
-    LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
-    void* object,
-    void* data);
+    size_t object_size
+    );
 
 #endif

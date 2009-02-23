@@ -31,19 +31,14 @@
 #ifndef _SRVSVC_UTIL_H_
 #define _SRVSVC_UTIL_H_
 
-//#include <lwrpc/ntstatus.h>
-//#include <lwrpc/winerror.h>
 #include <compat/rpcstatus.h>
-#include <types.h>
+#include <lw/ntstatus.h>
+
+#include <srvsvc/types.h>
 
 #define SAFE_FREE(ptr)  do { if (ptr) free(ptr); (ptr) = NULL; } while (0)
 
 #define NTSTATUS_CODE(status) ((NTSTATUS)(0xc0000000 | (status)))
-
-#define STATUS_SUCCESS               ((NTSTATUS)(0x00000000))
-#define STATUS_INVALID_PARAMETER     (NTSTATUS_CODE(0x000d))
-#define STATUS_NO_MEMORY             (NTSTATUS_CODE(0x0017))
-#define STATUS_UNSUCCESSFUL          (NTSTATUS_CODE(0x0001))
 
 #define ERROR_SUCCESS 0
 #define ERROR_FILE_NOT_FOUND 2
@@ -88,6 +83,12 @@
         goto lbl;                            \
     }
 
+#define goto_if_no_memory_rpcstatus(p, lbl)  \
+    if ((p) == NULL) {                       \
+        rpcstatus = RPC_S_OUT_OF_MEMORY;     \
+        goto lbl;                            \
+    }
+
 #define goto_if_invalid_param_ntstatus(p, lbl) \
     if ((p) == NULL) {                       \
         status = STATUS_INVALID_PARAMETER;   \
@@ -100,13 +101,20 @@
         goto lbl;                            \
     }
 
+#define goto_if_invalid_param_rpcstatus(p, lbl) \
+    if ((p) == NULL) {                          \
+        rpcstatus = RPC_S_INVALID_ARG;          \
+        goto lbl;                               \
+    }
+
 
 #define DCERPC_CALL(fn_call)                     \
     do {                                         \
-        dcethread_exc *dceexc = NULL;            \
+        dcethread_exc *dceexc;                   \
                                                  \
         DCETHREAD_TRY                            \
         {                                        \
+            dceexc = NULL;                       \
             status = fn_call;                    \
         }                                        \
         DCETHREAD_CATCH_ALL(dceexc)              \

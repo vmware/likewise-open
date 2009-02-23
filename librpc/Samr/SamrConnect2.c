@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,8 +31,13 @@
 #include "includes.h"
 
 
-NTSTATUS SamrConnect2(handle_t b, const wchar16_t *sysname,
-                      uint32 access_mask, PolicyHandle *conn_handle)
+NTSTATUS
+SamrConnect2(
+    handle_t b,
+    const wchar16_t *sysname,
+    uint32 access_mask,
+    PolicyHandle *conn_h
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     size_t system_name_len = 0;
@@ -41,32 +46,26 @@ NTSTATUS SamrConnect2(handle_t b, const wchar16_t *sysname,
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(sysname, cleanup);
-    goto_if_invalid_param_ntstatus(conn_handle, cleanup);
+    goto_if_invalid_param_ntstatus(conn_h, cleanup);
 
     system_name = wc16sdup(sysname);
-    goto_if_no_memory_ntstatus(system_name, cleanup);
+    goto_if_no_memory_ntstatus(system_name, error);
 
     system_name_len = wc16slen(system_name) + 1;
 
-    TRY
-    {
-        status = _SamrConnect2(b, (uint32)system_name_len, system_name,
-                               access_mask, &handle);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrConnect2(b, (uint32)system_name_len, system_name,
+                              access_mask, &handle));
+    goto_if_ntstatus_not_success(status, error);
 
-    goto_if_ntstatus_not_success(status, cleanup);
-
-    *conn_handle = handle;
+    *conn_h = handle;
 
 cleanup:
     SAFE_FREE(system_name);
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 

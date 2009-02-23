@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,15 +36,16 @@
  *        netsvc-netgrp.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS Net Group Information
  *
  * Authors:  Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
 
+#include "includes.h"
 #include "lsanss.h"
 
 typedef struct _LSA_NSS_NETGROUP_LIST
@@ -110,7 +111,7 @@ LsaNssPopNetgroup(
     *ppList = pLink->pNext;
     *ppszGroup = pLink->pszGroup;
     LsaFreeMemory(pLink);
-    
+
 error:
 
     return status;
@@ -164,11 +165,11 @@ LsaNssIrsNetgroupDestructor(
     PLSA_NSS_NETGROUP_PRIVATE pPrivate
     )
 {
-    NSS_STATUS status = NSS_STATUS_SUCCESS;   
+    NSS_STATUS status = NSS_STATUS_SUCCESS;
 
     LsaNssFreeNetgroupList(&pPrivate->pSeen);
     LsaNssFreeNetgroupList(&pPrivate->pExpand);
-    
+
     LSA_SAFE_FREE_MEMORY(pPrivate->pBuffer);
 
     LsaFreeMemory(pPrivate);
@@ -189,8 +190,9 @@ LsaNssIrsNetgroupExpand(
     while (pPrivate->pExpand)
     {
         LsaNssPopNetgroup(&pPrivate->pExpand, &pszGroup);
-        
+
         status = LsaNssCommonNetgroupFindByName(
+            &hLsaConnection,
             pszGroup,
             &pszContents);
         if (status == NSS_STATUS_NOTFOUND)
@@ -199,7 +201,7 @@ LsaNssIrsNetgroupExpand(
             continue;
         }
         BAIL_ON_NSS_ERROR(status);
-        
+
         if (pPrivate->pBuffer)
         {
             LsaFreeMemory(pPrivate->pBuffer);
@@ -255,7 +257,7 @@ LsaNssIrsNetgroupParse(
             &pszDomain,
             &pszGroup);
         BAIL_ON_NSS_ERROR(status);
-        
+
         switch (type)
         {
         case LSA_NSS_NETGROUP_ENTRY_GROUP:
@@ -293,7 +295,7 @@ error:
 
     goto cleanup;
 }
-    
+
 static
 NSS_STATUS
 LsaNssIrsNetgroupSetnetgrent(
@@ -305,6 +307,7 @@ LsaNssIrsNetgroupSetnetgrent(
     PSTR pGroupContents = NULL;
 
     status = LsaNssCommonNetgroupFindByName(
+        &hLsaConnection,
         pszGroup,
         &pGroupContents);
     BAIL_ON_NSS_ERROR(status);
@@ -312,14 +315,14 @@ LsaNssIrsNetgroupSetnetgrent(
     pPrivate->pBuffer = pGroupContents;
     pPrivate->pCursor = pPrivate->pBuffer;
     pGroupContents = NULL;
-   
+
     status = LsaNssPushNetgroup(&pPrivate->pSeen, pszGroup);
     BAIL_ON_NSS_ERROR(status);
-   
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pGroupContents);
-    
+
     return status;
 
 error:

@@ -28,14 +28,18 @@
  * license@likewisesoftware.com
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include <config.h>
-#include <lwrpc/types.h>
+
 #include <wc16str.h>
-#include <lwrpc/security.h>
-#include <lwrpc/ntstatus.h>
+#include <secdesc/secdesc.h>
+#include <lw/ntstatus.h>
+
+#include <lwrpc/types.h>
 
 #include "Params.h"
 
@@ -68,7 +72,6 @@ static char* cleanup_sep(char *s, char sep)
 {
     char *seppos;
     char sepstr[3] = {0};
-    int i = 0;
 
     if (s == NULL) return s;
 
@@ -77,7 +80,9 @@ static char* cleanup_sep(char *s, char sep)
 
     seppos = strstr(s, sepstr);
     while (seppos) {
-        while (*seppos) seppos[0] = (seppos++)[1];
+        while (*seppos) seppos[0] = (seppos)[1];
+        seppos++;
+
         seppos = strstr(s, sepstr);
     }
 
@@ -304,7 +309,7 @@ DomSid **create_sid_list(char **strlist)
 
     /* copy mbs strings to wchar16_t strings */
     for (i = 0; strlist[i] && i < list_len; i++) {
-        ParseSidString(&(sid_list[i]), strlist[i]);
+        ParseSidStringA(&(sid_list[i]), strlist[i]);
         if (sid_list[i] == NULL) {
             i--;
             while (i >= 0) {
@@ -328,8 +333,8 @@ enum param_err fetch_value(struct parameter *params, int count,
     NTSTATUS status;
     char **valstr, **defstr;
     char *valchar, *defchar;
-    wchar16_t **valw16str, **defw16str;
-    wchar16_t ***valw16str_list, **defw16str_list;
+    wchar16_t **valw16str;
+    wchar16_t ***valw16str_list;
     int *valint, *defint;
     unsigned int *valuint, *defuint;
     DomSid **valsid = NULL;
@@ -386,8 +391,8 @@ enum param_err fetch_value(struct parameter *params, int count,
     case pt_sid:
         valsid = (DomSid**)val;
         defstr = (char**)def;
-        status = ParseSidString(valsid,
-                                ((value) ? (const char*)value : *defstr));
+        status = ParseSidStringA(valsid,
+                                    ((value) ? (const char*)value : *defstr));
         if (status != STATUS_SUCCESS) ret = perr_invalid_out_param;
         break;
 
@@ -419,11 +424,113 @@ enum param_err fetch_value(struct parameter *params, int count,
 
 const char *param_errstr(enum param_err perr)
 {
-    const errcount = sizeof(param_errstr_maps)/sizeof(struct param_errstr_map);
+    const int errcount = sizeof(param_errstr_maps)/sizeof(struct param_errstr_map);
     int i = 0;
 
     while (i < errcount && perr != param_errstr_maps[i].perr) i++;
     return param_errstr_maps[i].desc;
+}
+
+
+#define CHECK_PARAM_INFO_PTR(v)                             \
+    if ((v) == NULL) {                                      \
+        printf("warning: Parameter value ptr is NULL!\n");  \
+        return;                                             \
+    }
+
+
+static void ParamInfoStr(void *value)
+{
+    char *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = strdup((char*)value);
+    if (!v) goto done;
+
+    printf("(char*)\"%s\"\n", v);
+
+done:
+    free(v);
+}
+
+
+static void ParamInfoWc16Str(void *value)
+{
+    char *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = awc16stombs((wchar16_t*)value);
+    if (!v) goto done;
+
+    printf("(wchar16_t*)\"%s\"\n", v);
+
+done:
+    free(v);
+}
+
+
+static void ParamInfoChar(void *value)
+{
+    char *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = (char*)value;
+    printf("(char)\'%c\'\n", (*v));
+}
+
+
+static void ParamInfoInt32(void *value)
+{
+    int32 *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = (int32*)value;
+    printf("(int32) %d (0x%08x)\n", (*v), (unsigned int)(*v));
+}
+
+
+static void ParamInfoUInt32(void *value)
+{
+    uint32 *v = NULL;
+
+    CHECK_PARAM_INFO_PTR(value);
+
+    v = (uint32*)value;
+    printf("(uint32) %u (0x%08x)\n", (*v), (*v));
+}
+
+
+void ParamInfo(const char* name, enum param_type type, void *value)
+{
+    printf("# %s = ", name);
+
+    switch (type) {
+    case pt_string:
+        ParamInfoStr(value);
+        break;
+
+    case pt_w16string:
+        ParamInfoWc16Str(value);
+        break;
+
+    case pt_char:
+        ParamInfoChar(value);
+        break;
+
+    case pt_int32:
+        ParamInfoInt32(value);
+
+    case pt_uint32:
+        ParamInfoUInt32(value);
+        break;
+
+    default:
+        printf("(unknown type)\n");
+    }
 }
 
 

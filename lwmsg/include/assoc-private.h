@@ -44,16 +44,13 @@
 
 struct LWMsgAssoc
 {
-    LWMsgProtocol* prot;
-    LWMsgAssocClass* aclass;
-    
     LWMsgContext context;
-    volatile int interrupt;
-    LWMsgTime timeout;
-    int timeout_set;
+    LWMsgAssocClass* aclass;
+    LWMsgProtocol* prot;
     LWMsgSessionManager* manager;
+    LWMsgAssocAction action_vector[LWMSG_STATUS_COUNT];
+
     unsigned manager_is_private:1;
-    LWMsgAssocAction action_vector[LWMSG_ASSOC_EXCEPTION_COUNT];
 
     unsigned char* private_data[] __attribute__((aligned));
 };

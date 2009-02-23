@@ -62,13 +62,17 @@ typedef void
  * handles may safely be dereferenced (have their contents accessed).
  * Remote handles are a proxy and may only be used in messages.
  */
-typedef enum LWMsgHandleLocation
+typedef enum LWMsgHandleType
 {
-    /** The handle originated from the local host and process and may be dereferenced */
-    LWMSG_HANDLE_LOCAL = 0,
-    /** The handle originated from a remote host or process and may not be dereferenced */
-    LWMSG_HANDLE_REMOTE = 1
-} LWMsgHandleLocation;
+    /** The handle is NULL */
+    LWMSG_HANDLE_NULL = 0,
+    /** The handle originated from the local host and process */
+    LWMSG_HANDLE_LOCAL = 1,
+    /** The handle originated from a remote host or process */
+    LWMSG_HANDLE_REMOTE = 2
+} LWMsgHandleType;
+
+typedef unsigned long LWMsgHandleID;
 
 typedef struct LWMsgSessionManager LWMsgSessionManager;
 
@@ -90,21 +94,43 @@ typedef struct LWMsgSessionManagerClass
         LWMsgSessionManager* manager,
         const LWMsgSessionID* rsmid,
         LWMsgSecurityToken* rtoken,
-        LWMsgSession** session
+        LWMsgSession** session,
+        size_t* assoc_count
         );
 
     LWMsgStatus 
     (*leave_session) (
         LWMsgSessionManager* manager,
-        LWMsgSession* session
+        LWMsgSession* session,
+        size_t* assoc_count
         );
 
     LWMsgStatus
-    (*register_handle) (
+    (*register_handle_local) (
         LWMsgSessionManager* manager,
         LWMsgSession* session,
         const char* type,
         void* ptr,
+        void (*cleanup)(void* ptr),
+        LWMsgHandleID* hid
+        );
+
+    LWMsgStatus
+    (*register_handle_remote) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session,
+        const char* type,
+        LWMsgHandleID hid,
+        void (*cleanup)(void* ptr),
+        void** ptr
+        );
+
+    LWMsgStatus
+    (*remap_handle) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session,
+        void* ptr,
+        void* newptr,
         void (*cleanup)(void* ptr)
         );
 
@@ -120,11 +146,10 @@ typedef struct LWMsgSessionManagerClass
     (*handle_pointer_to_id) (
         LWMsgSessionManager* manager,
         LWMsgSession* session,
-        const char* type,
         void* ptr,
-        LWMsgBool autoreg,
-        LWMsgHandleLocation* out_location,
-        unsigned long* out_hid
+        const char** type,
+        LWMsgHandleType* out_htype,
+        LWMsgHandleID* out_hid
         );
 
     LWMsgStatus
@@ -132,9 +157,8 @@ typedef struct LWMsgSessionManagerClass
         LWMsgSessionManager* manager,
         LWMsgSession* session,
         const char* type,
-        LWMsgHandleLocation location,
-        unsigned long hid,
-        LWMsgBool autoreg,
+        LWMsgHandleType htype,
+        LWMsgHandleID hid,
         void** out_ptr
         );
 

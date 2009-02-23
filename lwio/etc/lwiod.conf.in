@@ -1,0 +1,30 @@
+#
+# Likewise IO (LWIO)
+#
+# Time value suffixes:
+# d - days
+# h - hours
+# m - minutes
+# s - seconds
+#
+
+[global]
+    
+    # Default: yes
+    # sign-messages-if-supported = no
+
+[driver:pvfs]
+	path = @providerdir@/libpvfs.sys@MOD_EXT@
+
+
+[driver:npvfs]
+	path = @providerdir@/libnpvfs.sys@MOD_EXT@
+
+[driver:rdr]
+	path = @providerdir@/librdr.sys@MOD_EXT@
+
+[driver:srv]
+	path = @providerdir@/libsrv.sys@MOD_EXT@
+
+[driver:iotest]
+	path = @providerdir@/libiotest.sys@MOD_EXT@

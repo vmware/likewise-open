@@ -72,6 +72,9 @@ lwmsg_type_find_end(
                 goto done;
             }
             break;
+        case LWMSG_CMD_VOID:
+            spec += is_member ? 1 : 0;
+            break;
         case LWMSG_CMD_INTEGER:
             spec += is_member ? 4 : 3;
             break;
@@ -113,6 +116,9 @@ lwmsg_type_find_end(
         case LWMSG_CMD_CUSTOM:
             spec += is_member ? 4 : 2;
             break;
+        case LWMSG_CMD_CUSTOM_ATTR:
+            spec += 1;
+            break;
         case LWMSG_CMD_NOT_NULL:
             break;
         default:
@@ -140,6 +146,12 @@ lwmsg_type_iterate(
     iter->verify = NULL;
     iter->size = 0;
     iter->offset = 0;
+
+    memset(&iter->attrs, 0, sizeof(iter->attrs));
+
+    /* Set invalid range to indicate it is not set */
+    iter->attrs.range_high = 0;
+    iter->attrs.range_low = 1;
 
     cmd = *(spec++);
 
@@ -241,9 +253,18 @@ lwmsg_type_iterate(
         iter->info.kind_custom.typeclass = (LWMsgCustomTypeClass*) *(spec++);
         iter->info.kind_custom.typedata = (void*) *(spec++);
         break;
+    case LWMSG_CMD_VOID:
+        if (cmd & LWMSG_FLAG_MEMBER)
+        {
+            iter->size = *(spec++);
+            iter->offset = *(spec++);
+        }
+        iter->kind = LWMSG_KIND_VOID;
+        break;
     case LWMSG_CMD_TERMINATION:
     case LWMSG_CMD_TAG:
     case LWMSG_CMD_DISCRIM:
+    case LWMSG_CMD_CUSTOM_ATTR:
         abort();
     case LWMSG_CMD_END:
         iter->kind = LWMSG_KIND_NONE;
@@ -294,14 +315,14 @@ lwmsg_type_iterate(
             iter->verify_data = (void*) *(spec++);
             break;
         case LWMSG_CMD_RANGE:
-            iter->verify = lwmsg_type_verify_range;
-            iter->verify_data = iter;
-            iter->info.kind_integer.range = (size_t*) spec;
-            spec += 2;
+            iter->attrs.range_low = (size_t) *(spec++);
+            iter->attrs.range_high = (size_t) *(spec++);
             break;
         case LWMSG_CMD_NOT_NULL:
-            iter->verify = lwmsg_type_verify_not_null;
-            iter->verify_data = NULL;
+            iter->attrs.nonnull = LWMSG_TRUE;
+            break;
+        case LWMSG_CMD_CUSTOM_ATTR:
+            iter->attrs.custom |= (size_t) *(spec++);
             break;
         case LWMSG_CMD_END:
             /* No more members/types left to iterate */
@@ -327,15 +348,13 @@ lwmsg_type_iterate_promoted(
     {
     case LWMSG_CMD_INTEGER:
     case LWMSG_CMD_STRUCT:
+        memset(iter, 0, sizeof(*iter));
         iter->kind = LWMSG_KIND_POINTER;
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
         iter->info.kind_indirect.term_info.static_length = 1;
         iter->inner = spec;
-        iter->next = NULL;
-        iter->verify = lwmsg_type_verify_not_null;
-        iter->verify_data = NULL;
         iter->size = sizeof(void*);
-        iter->offset = 0;
+        iter->attrs.nonnull = LWMSG_TRUE;
         break;
     default:
         lwmsg_type_iterate(spec, iter);

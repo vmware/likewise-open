@@ -28,29 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include "includes.h"
 
-#ifdef __GNUC__
-#include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
-
-#include "srvsvc_h.h"
-
-#include <wc16str.h>
-
-#include "SrvSvcUtil.h"
-#include <memptr.h>
-#include "externs.h"
-#include "SrvSvcMemory.h"
-#include "SrvSvcStubMemory.h"
 
 #define NtStatusToWin32(x) ((NET_API_STATUS)(x))
 
@@ -280,7 +259,6 @@ NET_API_STATUS SrvSvcCopyNetFileInfo(uint32 level, srvsvc_NetFileInfo *info,
                                      uint8 **bufptr)
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    int i;
     void *ptr = NULL;
 
     goto_if_invalid_param_err(bufptr, cleanup);

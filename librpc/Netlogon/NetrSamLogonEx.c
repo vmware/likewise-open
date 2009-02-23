@@ -35,12 +35,18 @@
 #include "includes.h"
 
 
-NTSTATUS NetrSamLogonEx(handle_t b,
-                        const wchar16_t *server, const wchar16_t *domain,
-                        const wchar16_t *computer,
-                        const wchar16_t *username, const wchar16_t *password,
-                        uint16 logon_level, uint16 validation_level,
-                        NetrValidationInfo **out_info, uint8 *out_authoritative)
+NTSTATUS
+NetrSamLogonEx(
+    handle_t b,
+    const wchar16_t *server,
+    const wchar16_t *domain,
+    const wchar16_t *computer,
+    const wchar16_t *username,
+    const wchar16_t *password,
+    uint16 logon_level,
+    uint16 validation_level,
+    NetrValidationInfo **out_info,
+    uint8 *out_authoritative)
 {
     NTSTATUS status = STATUS_SUCCESS;
     wchar16_t *srv = NULL;
@@ -106,7 +112,7 @@ error:
     }
 
     *out_info          = NULL;
-    *out_authoritative = NULL;
+    *out_authoritative = 0;
 
     goto cleanup;
 }

@@ -613,7 +613,7 @@ ADState_StoreDomainTrustList(
 
         if (pDomain->pSid != NULL)
         {
-            dwError = SidToString(
+            dwError = SidToStringW(
                     pDomain->pSid,
                     &pwszSid);
             BAIL_ON_LSA_ERROR(dwError);

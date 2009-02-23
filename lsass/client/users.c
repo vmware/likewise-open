@@ -133,6 +133,7 @@ LsaBeginEnumUsers(
     HANDLE  hLsaConnection,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     )
 {
@@ -142,6 +143,7 @@ LsaBeginEnumUsers(
                 hLsaConnection,
                 dwUserInfoLevel,
                 dwMaxNumUsers,
+                FindFlags,
                 phResume);
     BAIL_ON_LSA_ERROR(dwError);
 

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -36,21 +36,36 @@
  * SrvSvc Server
  *
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include <config.h>
+#include <srvsvcsys.h>
 
-#ifdef __GNUC__
 #include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
 #include <compat/dcerpc.h>
 #include <compat/rpcstatus.h>
-
-#include "srvsvc_h.h"
-
 #include <wc16str.h>
+#include <lw/ntstatus.h>
+#include <lwio/lwio.h>
+#include <lwio/ntfileapi.h>
+#include <lwio/lmshare.h>
+#include <lwio/lwshareinfo.h>
 
+#include <srvsvc/srvsvc.h>
+#include <srvsvcutils.h>
+
+#include "srvsvc_stub.h"
+
+#include "defs.h"
+#include "structs.h"
+#include "marshall.h"
+
+#include "externs.h"
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

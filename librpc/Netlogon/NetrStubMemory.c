@@ -53,18 +53,18 @@ void NetrCleanStubDomainTrustList(NetrDomainTrustList *r)
 
 static void NetrCleanSamBaseInfo(NetrSamBaseInfo *r)
 {
-    FreeUnicodeString(&r->account_name);
-    FreeUnicodeString(&r->full_name);
-    FreeUnicodeString(&r->logon_script);
-    FreeUnicodeString(&r->profile_path);
-    FreeUnicodeString(&r->home_directory);
-    FreeUnicodeString(&r->home_drive);
+    FreeUnicodeStringEx(&r->account_name);
+    FreeUnicodeStringEx(&r->full_name);
+    FreeUnicodeStringEx(&r->logon_script);
+    FreeUnicodeStringEx(&r->profile_path);
+    FreeUnicodeStringEx(&r->home_directory);
+    FreeUnicodeStringEx(&r->home_drive);
 
     r->groups.count = 0;
     SAFE_FREE(r->groups.rids);
 
-    FreeUnicodeString(&r->logon_server);
-    FreeUnicodeString(&r->domain);
+    FreeUnicodeStringEx(&r->logon_server);
+    FreeUnicodeStringEx(&r->domain);
 
     if (r->domain_sid) {
         SidFree(r->domain_sid);
@@ -88,7 +88,7 @@ static void NetrFreeSamInfo2(NetrSamInfo2 *ptr)
 }
 
 
-static NetrCleanSidAttr(NetrSidAttr *r, uint32 count)
+static void NetrCleanSidAttr(NetrSidAttr *r, uint32 count)
 {
     int i = 0;
 
@@ -101,7 +101,7 @@ static NetrCleanSidAttr(NetrSidAttr *r, uint32 count)
 }
 
 
-static NetrFreeSidAttr(NetrSidAttr *ptr, uint32 count)
+static void NetrFreeSidAttr(NetrSidAttr *ptr, uint32 count)
 {
     NetrCleanSidAttr(ptr, count);
     free(ptr);

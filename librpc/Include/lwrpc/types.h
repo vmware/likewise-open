@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,109 +28,99 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: RPC client library
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-#if !defined(DEFINED_UINT32)
+#if defined(_DCE_IDL_)
 
-#ifdef _DCE_IDL_
+/* Types needed for idl compiler pass */
 typedef unsigned small int uint8;
-#elif !defined(HAVE_UINT8)
-typedef unsigned char uint8;
-#endif
-
-#if !defined(HAVE_UINT16)
 typedef unsigned short int uint16;
-#endif
-
-#if !defined(HAVE_UINT32)
-typedef unsigned int uint32;
-#endif
-
-#ifdef _DCE_IDL_
+typedef unsigned long int uint32;
 typedef unsigned hyper int uint64;
-#elif !defined(HAVE_UINT64)
-typedef unsigned long long int uint64;
-#endif
-
-#ifdef _DCE_IDL_
 typedef small int int8;
-#elif !defined(HAVE_INT8)
-typedef char int8;
-#endif
-
-#if !defined(HAVE_INT16)
 typedef short int int16;
-#endif
-
-#if !defined(HAVE_INT32)
-typedef int int32;
-#endif
-
-#ifdef _DCE_IDL_
+typedef long int int32;
 typedef hyper int int64;
-#elif !defined(HAVE_INT64)
-typedef long long int int64;
-#endif
-
-#define DEFINED_UINT32
-#endif /* !defined (DEFINED_UINT32) */
-
-
-#if !defined(NTSTATUS_DEFINED)
 typedef uint32 NTSTATUS;
-typedef uint32 RPCSTATUS;
+typedef uint16 wchar16_t;
 
-#define NTSTATUS_DEFINED
+#else
+
+/* Types needed for librpc build pass */
+#include <inttypes.h>
+#include <lw/ntstatus.h>
+
+#ifndef UINT8_DEFINED
+typedef uint8_t uint8;
+#define UINT8_DEFINED
 #endif
 
-#if !defined(WINERR_DEFINED)
+#ifndef UINT16_DEFINED
+typedef uint16_t uint16;
+#define UINT16_DEFINED
+#endif
+
+#ifndef UINT32_DEFINED
+typedef uint32_t uint32;
+#define UINT32_DEFINED
+#endif
+
+#ifndef UINT64_DEFINED
+typedef uint64_t uint64;
+#define UINT64_DEFINED
+#endif
+
+#ifndef INT8_DEFINED
+typedef int8_t int8;
+#define INT8_DEFINED
+#endif
+
+#ifndef INT16_DEFINED
+typedef int16_t int16;
+#define INT16_DEFINED
+#endif
+
+#ifndef INT32_DEFINED
+typedef int32_t int32;
+#define INT32_DEFINED
+#endif
+
+#ifndef INT64_DEFINED
+#define INT64_DEFINED
+typedef int64_t int64;
+#endif
+
+#endif /* _DCE_IDL_ */
+
 typedef uint32 WINERR;
-
-#define WINERR_DEFINED
-#endif
-
-
-#if !defined(NTTIME_DEFINED)
 typedef uint64 NtTime;
 
-#define NTTIME_DEFINED
-#endif
-
-#if !defined(WCHAR16)
-#include <wchar16.h>
-#endif
-
-#if !defined(UNISTR_DEFINED)
-typedef struct unicode_string {
-	uint16 len;
-	uint16 size;
-#ifdef _DCE_IDL_
-	[size_is(size/2),length_is(len/2)]
-#endif
-	wchar16_t *string;
-} UnicodeString;
-
-typedef struct unicode_string_ex {
-	uint16 len;
-	uint16 size;   /* size = len + 1 (for terminating char) */
-#ifdef _DCE_IDL_
-	[size_is(size/2),length_is(len/2)]
-#endif
-	wchar16_t *string;
-} UnicodeStringEx;
-
-#define UNISTR_DEFINED
-#endif /* !defined(UNISTR_DEFINED) */
 
 /* Don't require DCE/RPC environment when simply building
    a client using rpc library */
 #if !defined(_DCE_IDL_)
 #if defined(LIBRPC_BUILD)
 #include <dce/rpc.h>
+
+typedef unsigned32 RPCSTATUS;
+
 #else
 typedef void* handle_t;
 typedef unsigned long error_status_t;
+
+#if SIZEOF_LONG_INT == 8
+typedef unsigned int      RPCSTATUS;
+#else /* SIZEOF_LONG_INT == 4 */
+typedef unsigned long int RPCSTATUS;
+#endif
+
 #endif /* defined(LIBRPC_BUILD) */
 #endif /* !defined(_DCE_IDL_) */
 

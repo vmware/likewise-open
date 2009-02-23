@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,13 +33,18 @@
 
 // rids_count can be NULL, in which case the number of returned rids must
 // match num_names.
-NTSTATUS SamrLookupNames(handle_t b, PolicyHandle *handle,
-                         uint32 num_names, wchar16_t *names[],
-                         uint32 **rids, uint32 **types,
-                         uint32 *rids_count)
+NTSTATUS
+SamrLookupNames(
+    handle_t b,
+    PolicyHandle *domain_h,
+    uint32 num_names,
+    wchar16_t *names[],
+    uint32 **rids,
+    uint32 **types,
+    uint32 *rids_count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    uint32 i = 0;
     UnicodeString *samr_names = NULL;
     Ids r = {0};
     Ids t = {0};
@@ -47,7 +52,7 @@ NTSTATUS SamrLookupNames(handle_t b, PolicyHandle *handle,
     uint32 *out_types = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(handle, cleanup);
+    goto_if_invalid_param_ntstatus(domain_h, cleanup);
     goto_if_invalid_param_ntstatus(names, cleanup);
     goto_if_invalid_param_ntstatus(rids, cleanup);
     goto_if_invalid_param_ntstatus(types, cleanup);
@@ -55,29 +60,11 @@ NTSTATUS SamrLookupNames(handle_t b, PolicyHandle *handle,
     samr_names = InitUnicodeStringArray(names, num_names);
     goto_if_no_memory_ntstatus(samr_names, error);
 
-    TRY
-    {
-        status = _SamrLookupNames(b, handle, num_names, samr_names, &r, &t);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrLookupNames(b, domain_h, num_names, samr_names, &r, &t));
 
     goto_if_ntstatus_not_success(status, error);
 
     if (r.count != t.count)
-    {
-        status = STATUS_REPLY_MESSAGE_MISMATCH;
-        goto error;
-    }
-
-    if (rids_count != NULL)
-    {
-        *rids_count = r.count;
-    }
-    else if(r.count != num_names)
     {
         status = STATUS_REPLY_MESSAGE_MISMATCH;
         goto error;
@@ -88,6 +75,16 @@ NTSTATUS SamrLookupNames(handle_t b, PolicyHandle *handle,
 
     status = SamrAllocateIds(&out_types, &t);
     goto_if_ntstatus_not_success(status, error);
+
+    if (rids_count != NULL)
+    {
+        *rids_count = r.count;
+    }
+    else if (r.count != num_names)
+    {
+        status = STATUS_REPLY_MESSAGE_MISMATCH;
+        goto error;
+    }
 
     *rids  = out_rids;
     *types = out_types;
@@ -109,8 +106,12 @@ error:
         SamrFreeMemory((void*)out_types);
     }
 
-    *rids  = NULL;
-    *types = NULL;
+    if (rids_count) {
+        *rids_count = 0;
+    }
+
+    *rids       = NULL;
+    *types      = NULL;
 
     goto cleanup;
 }

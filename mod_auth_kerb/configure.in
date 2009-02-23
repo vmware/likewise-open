@@ -85,7 +85,7 @@ if test "x$with_krb5" != "xno" ; then
          CONFIG_KRB5_LDFLAGS=`CFLAGS= $krb5_config_command --libs gssapi 2>/dev/null`
      fi
      if test "x$with_krb5" != "xno" ; then
-         TMP_KRB5_LDFLAGS="$KRB5_TESTRPATH -L$with_krb5/$KRB5_LIBDIR -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err $LIB_dl"
+         TMP_KRB5_LDFLAGS="-L$with_krb5/$KRB5_LIBDIR -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err $LIB_dl"
          if test -n "$CONFIG_KRB5_LDFLAGS"; then
              NEW_KRB5_LDFLAGS="-L$with_krb5/$KRB5_LIBDIR $CONFIG_KRB5_LDFLAGS"
          else
@@ -149,12 +149,12 @@ if test "x$with_krb5" != "xno" ; then
      ac_save_LDFLAGS="$LDFLAGS"
      if test "x$with_krb5" != "xno" ; then
          if test -n "$TMP_KRB5_LDFLAGS"; then
-             LDFLAGS="$TMP_KRB5_LDFLAGS"
+             LDFLAGS="$ac_save_LDFLAGS $TMP_KRB5_LDFLAGS"
          else
-             LDFLAGS="$KRB5_TESTRPATH $KRB5_LDFLAGS"
+             LDFLAGS="$ac_save_LDFLAGS $KRB5_LDFLAGS"
          fi
      else
-         LDFLAGS=$KRB5_LDFLAGS
+         LDFLAGS="$ac_save_LDFLAGS $KRB5_LDFLAGS"
      fi
 
      AC_TRY_RUN([

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,24 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include "includes.h"
 
-#ifdef __GNUC__
-#include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
-
-#include "srvsvc_h.h"
-
-#include "SrvSvcUtil.h"
 
 #define GET_UINT8(buf, ofs) ((uint8)( \
     ((((const uint8 *)(buf))[(ofs)+0]) <<  0 ) | \
@@ -110,17 +94,12 @@ DecodeDomSid(
 
     r->subauth_count = GET_UINT8(buf, ofs);
     ofs += 1;
-    if (r->subauth_count > 15) {
+    if (r->subauth_count > MAXIMUM_SUBAUTHORITY_COUNT) {
         return ERROR_INVALID_SID;
     }
 
     memcpy(r->authid, &buf[ofs], 6);
     ofs += 6;
-
-    r->subauth = (uint32 *)allocfn(allocpv, sizeof(uint32) * r->subauth_count);
-    if (!r->subauth) {
-        return ERROR_NOT_ENOUGH_MEMORY;
-    }
 
     for (i = 0; i < r->subauth_count; i++) {
             if ((ofs + 4) > buflen) {
@@ -175,7 +154,7 @@ DecodeSecAce(
 
     /* TODO: parse r->object for AD style ACEs*/
 
-    ret = DecodeDomSid(buf, buflen, ofs, &r->trustee, &size, allocfn, allocpv);
+    ret = DecodeDomSid(buf, buflen, ofs, r->trustee, &size, allocfn, allocpv);
     if (ret != ERROR_SUCCESS) {
         return ret;
     }
@@ -264,7 +243,7 @@ DecodeSecAcl(
 }
 
 NET_API_STATUS SecurityDescriptorFromBuffer(
-    PSECURITY_DESCRIPTOR *security_descriptor,
+    SecDesc **security_descriptor,
     const uint8 *buf,
     uint32 buflen,
     void *(*allocfn)(void *allocfn, size_t len),
@@ -273,7 +252,6 @@ NET_API_STATUS SecurityDescriptorFromBuffer(
 {
     NET_API_STATUS ret = ERROR_SUCCESS;
     SecDesc *sd;
-    uint32 sd_size;
     uint32 ofs = 0;
     uint32 owner_ofs;
     uint32 group_ofs;
@@ -387,7 +365,7 @@ NET_API_STATUS SecurityDescriptorFromBuffer(
         sd->dacl = NULL;
     }
 
-    *security_descriptor = (PSECURITY_DESCRIPTOR)sd;
+    *security_descriptor = (SecDesc*)sd;
     return ERROR_SUCCESS;
 }
 
@@ -529,7 +507,7 @@ static uint32 DomSidGetSize(
     return size;
 }
 
-static SecAceGetSize(
+static int SecAceGetSize(
     const SecAce *ace
     )
 {
@@ -537,12 +515,12 @@ static SecAceGetSize(
 
     size += 8;
     size += 0;/*TODO: AD style ACE */
-    size += DomSidGetSize(&ace->trustee);
+    size += DomSidGetSize(ace->trustee);
 
     return size;
 }
 
-static SecAclGetSize(
+static int SecAclGetSize(
     const SecAcl *acl
     )
 {
@@ -563,7 +541,7 @@ static SecAclGetSize(
 }
 
 uint32 SecurityDescriptorGetSize(
-    const PSECURITY_DESCRIPTOR security_descriptor
+    const SecDesc *security_descriptor
     )
 {
     const SecDesc *sd = (const SecDesc *)security_descriptor;
@@ -678,7 +656,7 @@ static NET_API_STATUS PushSecAce(
 
     /*TODO: AD style ACEs */
 
-    ret = PushDomSid(&ace->trustee, &buf[ofs],
+    ret = PushDomSid(ace->trustee, &buf[ofs],
                      ace_size - ofs, &trustee_size);
     if (ret != ERROR_SUCCESS) {
         return ret;
@@ -879,6 +857,7 @@ NET_API_STATUS SecurityDescriptorToBuffer(
     *buflen = ofs;
     return ERROR_SUCCESS;
 }
+
 
 /*
 local variables:

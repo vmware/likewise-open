@@ -44,15 +44,15 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
     uint32 access_rights;
     NetConn *conn;
     handle_t samr_bind, lsa_bind;
-    NTSTATUS status;
-    size_t lsa_system_name_size;
-    wchar16_t *member, lsa_hostname[4] = {0};
+    NTSTATUS status = STATUS_SUCCESS;
+    wchar16_t *member;
     PolicyHandle alias_handle;
     DomSid *usr_sid;
-    uint32 alias_rid, i, rid;
-    LOCALGROUP_MEMBERS_INFO_0 *info0;
-    LOCALGROUP_MEMBERS_INFO_3 *info3;
+    uint32 alias_rid, i;
+    LOCALGROUP_MEMBERS_INFO_0 *info0 = NULL;
+    LOCALGROUP_MEMBERS_INFO_3 *info3 = NULL;
     PolicyHandle lsa_policy;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (hostname == NULL || aliasname == NULL || buffer == NULL) {
 	return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
@@ -69,8 +69,11 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
 	return NtStatusToWin32Error(ERROR_INVALID_LEVEL);
     }
 
-    status = NetConnectSamr(&conn, hostname, access, btin_domain_access);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, access, btin_domain_access, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind          = conn->samr.bind;
 
@@ -87,8 +90,8 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
 	return status;
     }
 
-    status = NetConnectLsa(&conn, hostname, lsa_access);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = NetConnectLsa(&conn, hostname, lsa_access, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     lsa_bind   = conn->lsa.bind;
     lsa_policy = conn->lsa.policy_handle;
@@ -129,9 +132,9 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
 
 	    if (sid_index < domains->count) {
 		dom_sid = domains->domains[sid_index].sid;
-		lookup_status = SidAllocateResizedCopy(&usr_sid,
-						       dom_sid->subauth_count+1,
-						       dom_sid);
+		lookup_status = RtlSidAllocateResizedCopy(&usr_sid,
+                                                  dom_sid->subauth_count+1,
+                                                  dom_sid);
 		if (lookup_status != 0) continue;
 
 		usr_sid->subauth[usr_sid->subauth_count-1] = sids[0].rid;
@@ -159,7 +162,14 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
     status = SamrClose(samr_bind, &alias_handle);
     if (status != 0) return status;
 
-    return STATUS_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

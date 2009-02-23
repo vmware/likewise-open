@@ -47,6 +47,7 @@ struct LWMsgContext
 {
     LWMsgAllocFunction alloc;
     LWMsgFreeFunction free;
+    LWMsgReallocFunction realloc;
     void* memdata;
     LWMsgContextDataFunction datafn;
     void* datafndata;
@@ -66,6 +67,9 @@ lwmsg_context_get_alloc(LWMsgContext* context);
 
 LWMsgFreeFunction
 lwmsg_context_get_free(LWMsgContext* context);
+
+LWMsgReallocFunction
+lwmsg_context_get_realloc(LWMsgContext* context);
 
 void*
 lwmsg_context_get_memdata(LWMsgContext* context);

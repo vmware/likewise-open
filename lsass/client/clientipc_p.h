@@ -61,13 +61,7 @@ typedef struct __LSA_CLIENT_CONNECTION_CONTEXT
 {
     LWMsgProtocol* pProtocol;
     LWMsgAssoc* pAssoc;
-    HANDLE hServer; //PLSA_SRV_ENUM_STATE
 } LSA_CLIENT_CONNECTION_CONTEXT, *PLSA_CLIENT_CONNECTION_CONTEXT;
-
-DWORD
-LsaTransactOpenServer(
-   IN OUT HANDLE hServer
-   );
 
 DWORD
 LsaTransactFindGroupByName(
@@ -93,6 +87,7 @@ LsaTransactBeginEnumGroups(
     DWORD dwGroupInfoLevel,
     DWORD dwMaxNumGroups,
     BOOLEAN bCheckGroupMembersOnline,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 
@@ -154,6 +149,7 @@ LsaTransactBeginEnumUsers(
     HANDLE hServer,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 

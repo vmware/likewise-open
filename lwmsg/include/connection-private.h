@@ -77,16 +77,8 @@ typedef enum ConnectionState
     CONNECTION_STATE_WAIT_SEND_REPLY,
     /* A message was sent, waiting for client to ask for reply */
     CONNECTION_STATE_WAIT_RECV_REPLY,
-    /* We closed the connection */
-    CONNECTION_STATE_LOCAL_CLOSED,
-    /* We aborted the connection */
-    CONNECTION_STATE_LOCAL_ABORTED,
-    /* The peer closed the connection */
-    CONNECTION_STATE_PEER_CLOSED,
-    /* The peer reset the connection */
-    CONNECTION_STATE_PEER_RESET,
-    /* The peer aborted the connection */
-    CONNECTION_STATE_PEER_ABORTED
+    /* Connection is closed */
+    CONNECTION_STATE_CLOSED
 } ConnectionState;
 
 typedef enum ConnectionEvent
@@ -129,20 +121,44 @@ typedef enum ConnectionPacketType
 
 typedef struct ConnectionPrivate
 {
+    /* Connection mode */
     LWMsgConnectionMode mode;
+    /* Socket file descriptor */
     int fd;
+    /* Endpoint string */
     char* endpoint;
+    /* Buffer for outgoing packets */
     ConnectionBuffer sendbuffer;
+    /* Buffer for incoming packets */
     ConnectionBuffer recvbuffer;
+    /* Current state of connection state machine */
     ConnectionState state;
+    /* Message currently being processed */
     LWMsgMessage* message;
-    int timeout_set;
+    /* Timeouts (relative) */
+    struct
+    {
+        /* Timeout for establishing session */
+        LWMsgTime establish;
+        /* Timeout for transceiving messages */
+        LWMsgTime message;
+        /* Currently relevant timeout value */
+        LWMsgTime current;
+    } timeout;
+    /* Deadline for current activity (absolute) */
     LWMsgTime end_time;
+    /* Time of last activity (absolute) */
     LWMsgTime last_time;
+    /* Negotiated packet size */
     size_t packet_size;
+    /* Peer security token */
     LWMsgSecurityToken* sec_token;
+    /* Session handle */
     LWMsgSession* session;
+    /* Interrupt channel */
     LWMsgConnectionSignal* interrupt;
+    /* Flag: this connection is the first in its session */
+    unsigned is_session_leader:1;
 } ConnectionPrivate;
 
 typedef enum ConnectionGreetingFlags
@@ -306,6 +322,11 @@ lwmsg_connection_send_shutdown(
     LWMsgAssoc* assoc,
     ConnectionShutdownType type,
     ConnectionShutdownReason reason
+    );
+
+LWMsgStatus
+lwmsg_connection_connect_local(
+    LWMsgAssoc* assoc
     );
 
 LWMsgStatus

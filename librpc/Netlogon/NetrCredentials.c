@@ -32,31 +32,29 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
-#include <md5.h>
-#include <hmac_md5.h>
-#include <byteops.h>
-#include <lwrpc/netrdefs.h>
+#include "includes.h"
 
 
-void NetrCredentialsInit(NetrCredentials *creds,
-                         uint8 cli_chal[8], uint8 srv_chal[8],
-                         uint8 pass_hash[16], uint32 neg_flags)
+void
+NetrCredentialsInit(
+    NetrCredentials *creds,
+    uint8 cli_chal[8],
+    uint8 srv_chal[8],
+    uint8 pass_hash[16],
+    uint32 neg_flags
+    )
 {
     struct md5context md5ctx;
     hmac_md5_ctx hmacmd5ctx;
 
     if (creds == NULL) return;
 
+    memset((void*)&md5ctx, 0, sizeof(md5ctx));
+    memset((void*)&hmacmd5ctx, 0, sizeof(hmacmd5ctx));
+
     creds->negotiate_flags = neg_flags;
     creds->channel_type    = SCHANNEL_WKSTA;  /* default schannel type */
     creds->sequence        = time(NULL);
-
-    memset(&md5ctx, 0, sizeof(md5ctx));
-    memset(&hmacmd5ctx, 0, sizeof(hmacmd5ctx));
 
     memcpy(creds->pass_hash, pass_hash, sizeof(creds->pass_hash));
     memset(creds->session_key, 0, sizeof(creds->session_key));
@@ -102,20 +100,30 @@ void NetrCredentialsInit(NetrCredentials *creds,
 }
 
 
-int NetrCredentialsCorrect(NetrCredentials *creds, uint8 srv_creds[8])
+int
+NetrCredentialsCorrect(
+    NetrCredentials *creds,
+    uint8 srv_creds[8]
+    )
 {
-    int ret;
+    int ret = 0;
 
     if (creds == NULL) return 0;
 
-    ret = memcmp(creds->srv_chal.data, srv_creds, sizeof(creds->srv_chal.data));
+    ret = memcmp(creds->srv_chal.data,
+                 srv_creds, sizeof(creds->srv_chal.data));
     return (ret == 0) ? 1 : 0;
 }
 
 
-void NetrCredentialsCliStep(NetrCredentials *creds)
+void
+NetrCredentialsCliStep(
+    NetrCredentials *creds
+    )
 {
-    NetrCred chal = {0};
+    NetrCred chal;
+
+    memset((void*)&chal, 0, sizeof(chal));
 
     memcpy(chal.data, creds->seed.data, sizeof(chal.data));
     SETUINT32(chal.data, 0, GETUINT32(creds->seed.data, 0) + creds->sequence);

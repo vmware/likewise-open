@@ -26,7 +26,6 @@
 static long Activate(void);
 static long Deactivate(void);
 static long ProcessDirNodeAuth(sDoDirNodeAuth* pDirNodeAuth);
-static long GetConfigurationOptions(bool* RestrictPasswordChanges);
 
 
 // ----------------------------------------------------------------------------
@@ -757,7 +756,6 @@ static long ProcessDirNodeAuth(sDoDirNodeAuth* pDoDirNodeAuth)
     char* username = NULL;
     char* oldPassword = NULL;
     char* password = NULL;
-    int authResult = -2;
     bool isChangePassword = false;
     bool isSetPassword = false;
     bool isAuthPassword = false;

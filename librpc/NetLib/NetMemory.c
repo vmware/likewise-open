@@ -29,13 +29,18 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Abstract: NetApi memory (de)allocation routines (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
 
 
-NTSTATUS NetInitMemory()
+NTSTATUS
+NetInitMemory(
+    void
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
@@ -45,25 +50,28 @@ NTSTATUS NetInitMemory()
 
     /* Init allocation of dependant rpc libraries first */
     status = LsaRpcInitMemory();
-    goto_if_ntstatus_not_success(status, done);
+    goto_if_ntstatus_not_success(status, cleanup);
 
     status = SamrInitMemory();
-    goto_if_ntstatus_not_success(status, done);
+    goto_if_ntstatus_not_success(status, cleanup);
 
     if (!bNetApiInitialised) {
         status = MemPtrListInit((PtrList**)&netapi_ptr_list);
-        goto_if_ntstatus_not_success(status, done);
+        goto_if_ntstatus_not_success(status, cleanup);
 
         bNetApiInitialised = 1;
     }
-done:
+cleanup:
     GLOBAL_DATA_UNLOCK(locked);
 
     return status;
 }
 
 
-NTSTATUS NetDestroyMemory()
+NTSTATUS
+NetDestroyMemory(
+    void
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
@@ -73,38 +81,50 @@ NTSTATUS NetDestroyMemory()
 
     if (bNetApiInitialised && netapi_ptr_list) {
         status = MemPtrListDestroy((PtrList**)&netapi_ptr_list);
-        goto_if_ntstatus_not_success(status, done);
+        goto_if_ntstatus_not_success(status, cleanup);
 
         bNetApiInitialised = 0;
     }
 
     /* Destroy allocation of dependant rpc libraries */
     status = LsaRpcDestroyMemory();
-    goto_if_ntstatus_not_success(status, done);
+    goto_if_ntstatus_not_success(status, cleanup);
 
     status = SamrDestroyMemory();
-    goto_if_ntstatus_not_success(status, done);
+    goto_if_ntstatus_not_success(status, cleanup);
 
-done:
+cleanup:
     GLOBAL_DATA_UNLOCK(locked);
 
     return status;
 }
 
 
-NTSTATUS NetAllocateMemory(void **out, size_t size, void *dep)
+NTSTATUS
+NetAllocateMemory(
+    void **out,
+    size_t size,
+    void *dep
+    )
 {
     return MemPtrAllocate((PtrList*)netapi_ptr_list, out, size, dep);
 }
 
 
-NTSTATUS NetFreeMemory(void *ptr)
+NTSTATUS
+NetFreeMemory(
+    void *ptr
+    )
 {
     return MemPtrFree((PtrList*)netapi_ptr_list, ptr);
 }
 
 
-NTSTATUS NetAddDepMemory(void *ptr, void *dep)
+NTSTATUS
+NetAddDepMemory(
+    void *ptr,
+    void *dep
+    )
 {
     return MemPtrAddDependant((PtrList*)netapi_ptr_list, ptr, dep);
 }

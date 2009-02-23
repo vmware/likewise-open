@@ -28,25 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include "includes.h"
 
-#ifdef __GNUC__
-#include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
-
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
-
-#include "srvsvc_h.h"
-
-#include <wc16str.h>
-
-#include "SrvSvcUtil.h"
 
 NET_API_STATUS SecurityDescriptorToBuffer(
     const PSECURITY_DESCRIPTOR security_descriptor,
@@ -110,10 +93,10 @@ NET_API_STATUS NetShareSetInfo(
         info.info1004 = (PSHARE_INFO_1004)bufptr;
         break;
     case 1005:
-        info.info1004 = (PSHARE_INFO_1005)bufptr;
+        info.info1005 = (PSHARE_INFO_1005)bufptr;
         break;
     case 1006:
-        info.info1004 = (PSHARE_INFO_1006)bufptr;
+        info.info1006 = (PSHARE_INFO_1006)bufptr;
         break;
     case 1501:
         buf1501 = (PSHARE_INFO_1501)bufptr;

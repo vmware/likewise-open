@@ -46,6 +46,16 @@
  */
 #include "ipc.h"
 
+static void
+LsaSrvCleanupArtefactEnumHandle(
+    void* pData
+    )
+{
+    LsaSrvEndEnumNSSArtefacts(
+        NULL,
+        (HANDLE) pData);
+}
+
 LWMsgStatus
 LsaSrvIpcFindNSSArtefactByKey(
     LWMsgAssoc* assoc,
@@ -146,36 +156,33 @@ LsaSrvIpcBeginEnumNSSArtefacts(
 {
     DWORD dwError = 0;
     PSTR pszGUID = NULL;
-    PLSA_ENUM_OBJECTS_INFO pResult = NULL;
     PLSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
+    HANDLE hResume = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvBeginEnumNSSArtefacts(
                         (HANDLE)Handle,
-                        (HANDLE)pReq->Handle,
                         pReq->pszMapName,
                         pReq->dwFlags,
                         pReq->dwInfoLevel,
                         pReq->dwMaxNumNSSArtefacts,
-                        &pszGUID);
+                        &hResume);
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
-                                        (PVOID)&pResult);
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(
+                                      assoc,
+                                      "EnumArtefacts",
+                                      hResume,
+                                      LsaSrvCleanupArtefactEnumHandle));
         BAIL_ON_LSA_ERROR(dwError);
 
-        pResult->dwObjectInfoLevel = pReq->dwInfoLevel;
-        pResult->dwNumMaxObjects = pReq->dwMaxNumNSSArtefacts;
-        pResult->pszGUID = pszGUID;
-        pszGUID = NULL;
-
         pResponse->tag = LSA_R_BEGIN_ENUM_NSS_ARTEFACTS_SUCCESS;
-        pResponse->object = pResult;
+        pResponse->object = hResume;
     }
     else
     {
@@ -192,9 +199,10 @@ cleanup:
     return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-    if(pResult)
+
+    if(hResume)
     {
-        LsaFreeEnumObjectsInfo(pResult);
+        LsaSrvCleanupArtefactEnumHandle(hResume);
     }
 
     goto cleanup;
@@ -213,12 +221,15 @@ LsaSrvIpcEnumNSSArtefacts(
     DWORD  dwNSSArtefactInfoLevel = 0;
     DWORD  dwNumNSSArtefactsFound = 0;
     PLSA_NSS_ARTEFACT_INFO_LIST pResult = NULL;
-    PLSA_IPC_ENUM_RECORDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvEnumNSSArtefacts(
-                       (HANDLE)pReq->Handle,
-                       pReq->pszToken,
+                       Handle,
+                       (HANDLE) pRequest->object,
                        &dwNSSArtefactInfoLevel,
                        &ppNSSArtefactInfoList,
                        &dwNumNSSArtefactsFound);
@@ -281,15 +292,21 @@ LsaSrvIpcEndEnumNSSArtefacts(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_ENUM_RECORDS_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvEndEnumNSSArtefacts(
-                        (HANDLE)pReq->Handle,
-                        pReq->pszToken);
+                        Handle,
+                        (HANDLE) pRequest->object);
 
     if (!dwError)
     {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(assoc, pRequest->object, LWMSG_FALSE));
+        BAIL_ON_LSA_ERROR(dwError);
+
         pResponse->tag = LSA_R_END_ENUM_NSS_ARTEFACTS_SUCCESS;
         pResponse->object = NULL;
     }

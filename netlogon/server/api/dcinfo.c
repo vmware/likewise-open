@@ -74,6 +74,11 @@ LWNetSrvGetDCName(
     PDNS_SERVER_INFO pServerArray = NULL;
     DWORD dwServerCount = 0;
 
+    LWNET_LOG_INFO("Looking for a DC in domain '%s', site '%s' with flags %X",
+            LWNET_SAFE_LOG_STRING(pszDnsDomainName),
+            LWNET_SAFE_LOG_STRING(pszSiteName),
+            dwDsFlags);
+
     if (!IsNullOrEmptyString(pszServerName))
     {
         LWNET_LOG_ERROR("Cannot specify computer name: '%s'", pszServerName);
@@ -254,6 +259,9 @@ LWNetSrvGetDCTime(
 #endif
 
     BAIL_ON_INVALID_POINTER(pDCTime);
+
+    LWNET_LOG_INFO("Determining the current time for domain '%s'",
+            LWNET_SAFE_LOG_STRING(pszDomainFQDN));
 
     dwError = LWNetSrvGetDomainController(pszDomainFQDN, &pszDC);
     BAIL_ON_LWNET_ERROR(dwError);

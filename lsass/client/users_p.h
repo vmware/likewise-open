@@ -88,6 +88,7 @@ LsaBeginEnumUsers(
     HANDLE  hLsaConnection,
     DWORD   dwUserInfoLevel,
     DWORD   dwMaxNumUsers,
+    LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
     );
 

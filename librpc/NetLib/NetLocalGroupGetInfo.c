@@ -38,31 +38,35 @@ NET_API_STATUS NetLocalGroupGetInfo(const wchar16_t *hostname,
 {
     const uint32 access_rights = ALIAS_ACCESS_LOOKUP_INFO;
 
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle alias_handle;
     uint32 alias_rid;
     AliasInfo *info = NULL;
     LOCALGROUP_INFO_1 *ninfo1;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (hostname == NULL || aliasname == NULL ||
 	buffer == NULL) {
 	return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
     }
 
-    status = NetConnectSamr(&conn, hostname, 0, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     samr_bind = conn->samr.bind;
 
     status = NetOpenAlias(conn, aliasname, access_rights, &alias_handle,
 			  &alias_rid);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrQueryAliasInfo(samr_bind, &alias_handle,
 				ALIAS_INFO_ALL, &info);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
     ninfo1 = (LOCALGROUP_INFO_1*) malloc(sizeof(LOCALGROUP_INFO_1*));
     if (ninfo1 == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
@@ -70,9 +74,16 @@ NET_API_STATUS NetLocalGroupGetInfo(const wchar16_t *hostname,
     *buffer = PullLocalGroupInfo1((void*)ninfo1, info, 0);
 
     status = SamrClose(samr_bind, &alias_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
-    return STATUS_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

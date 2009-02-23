@@ -41,9 +41,13 @@ NET_API_STATUS NetLocalGroupDel(const wchar16_t *hostname,
     handle_t samr_bind;
     PolicyHandle alias_handle;
     uint32 alias_rid;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-    status = NetConnectSamr(&conn, hostname, 0, 0);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetOpenAlias(conn, aliasname, alias_access, &alias_handle,
 			  &alias_rid);
@@ -51,9 +55,16 @@ NET_API_STATUS NetLocalGroupDel(const wchar16_t *hostname,
     samr_bind = conn->samr.bind;
 
     status = SamrDeleteDomAlias(samr_bind, &alias_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    BAIL_ON_NT_STATUS(status);
 
-    return STATUS_SUCCESS;
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return NtStatusToWin32Error(status);
 }
 
 

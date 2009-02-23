@@ -163,10 +163,10 @@ LsaSrvStartupPreCheck(
     )
 {
     DWORD dwError = 0;
-#ifdef __LWI_DARWIN__
     PSTR  pszHostname = NULL;
     int  iter = 0;
 
+#ifdef __LWI_DARWIN__
     // Make sure that the local hostname has been setup by the system
     for (iter = 0; iter < STARTUP_PRE_CHECK_WAIT; iter++)
     {
@@ -194,6 +194,7 @@ LsaSrvStartupPreCheck(
                       dwError);
         BAIL_ON_LSA_ERROR(dwError);
     }
+#endif
 
     for (iter = 0; iter < STARTUP_NETLOGON_WAIT; iter++)
     {
@@ -220,9 +221,36 @@ LsaSrvStartupPreCheck(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    for (iter = 0; iter < STARTUP_LWIO_WAIT; iter++)
+    {
+        dwError = LsaSrvVerifyLwIoStatus();
+
+        if (dwError)
+        {
+            sleep(1);
+        }
+        else
+        {
+            /* LwIo is responsive */
+            LSA_LOG_INFO("LSA Process start up check for LwIo complete");
+            break;
+        }
+    }
+
+    if (iter >= STARTUP_LWIO_WAIT)
+    {
+        dwError = LSA_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        LSA_LOG_ERROR("LSA start up pre-check failed to be able to use LwIoD after %d seconds of waiting [Code:%d]",
+                      STARTUP_LWIO_WAIT,
+                      dwError);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+#if defined (__LWI_DARWIN_)
     // Now that we are running, we need to flush the DirectoryService process of any negative cache entries
-    dwError = LsaSrvFlushDirectoryServiceCache();
+    dwError = LsaSrvFlushSystemCache();
     BAIL_ON_LSA_ERROR(dwError);
+#endif
 
 cleanup:
 
@@ -235,66 +263,8 @@ error:
     LSA_LOG_ERROR("LSA Process exiting due to error checking hostname at startup [Code:%d]", dwError);
 
     goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
-#if defined (__LWI_DARWIN__)
-DWORD
-LsaSrvFlushDirectoryServiceCache(
-    VOID
-    )
-{
-    DWORD dwError = 0;
-    int i;
-    const char* cacheUtils[] = {
-        "/usr/sbin/lookupd", /* Before Mac OS X 10.5 */
-        "/usr/bin/dscacheutil" /* On Mac OS X 10.5 */
-    };
-    const char* cacheUtilCmd[] = {
-        "/usr/sbin/lookupd -flushcache", /* Before Mac OS X 10.5 */
-        "/usr/bin/dscacheutil -flushcache" /* On Mac OS X 10.5 */
-    };
-
-    LSA_LOG_VERBOSE("Going to flush the Mac DirectoryService cache ...");
-
-    for (i = 0; i < (sizeof(cacheUtils) / sizeof(cacheUtils[0])); i++)
-    {
-        const char* util = cacheUtils[i];
-        const char* command = cacheUtilCmd[i];
-        BOOLEAN exists;
-
-        /* Sanity check */
-        if (!util)
-        {
-            continue;
-        }
-
-        dwError = LsaCheckFileExists(util, &exists);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (!exists)
-        {
-            continue;
-        }
-
-        system(command);
-
-        /* Bail regardless */
-        goto error;
-    }
-
-    LSA_LOG_ERROR("Could not locate cache flush utility");
-    dwError = LSA_ERROR_MAC_FLUSH_DS_CACHE_FAILED;
-
-error:
-
-    return dwError;
-}
-#endif
-
-#if defined (__LWI_DARWIN__)
 DWORD
 LsaSrvVerifyNetLogonStatus(
     VOID
@@ -325,7 +295,49 @@ error:
 
     goto cleanup;
 }
-#endif
+
+DWORD
+LsaSrvVerifyLwIoStatus(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSMB_LOG_INFO pLogInfo = NULL;
+    PIO_CONTEXT pContext = NULL;
+
+    dwError = LwIoInitialize();
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwIoOpenContext(&pContext);
+    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %ld", dwError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SMBGetLogInfo(
+                  (HANDLE) pContext,
+                  &pLogInfo);
+    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %ld", dwError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    if (pLogInfo)
+    {
+        SMBFreeLogInfo(pLogInfo);
+    }
+
+    if (pContext != NULL)
+    {
+        LwIoCloseContext(pContext);
+    }
+
+    LwIoShutdown();
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
 
 DWORD
 LsaSrvSetDefaults(
@@ -340,6 +352,8 @@ LsaSrvSetDefaults(
 
     strcpy(gpServerInfo->szCachePath, CACHEDIR);
     strcpy(gpServerInfo->szPrefixPath, PREFIXDIR);
+
+    setlocale(LC_ALL, "");
 
     return (dwError);
 }

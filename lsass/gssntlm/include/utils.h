@@ -161,7 +161,7 @@ NTLMPackContext(
 
 VOID
 NTLMGetNTTime(
-    PUINT64 ntTime
+    PULONG64 ntTime
 );
 
 #endif

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,9 +36,9 @@
  *        nss-user.c
  *
  * Abstract:
- * 
+ *
  *        Name Server Switch (Likewise LSASS)
- * 
+ *
  *        Handle NSS User Information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -53,6 +53,7 @@ typedef struct
 {
     nss_backend_t base;
     LSA_ENUMUSERS_STATE enumUsersState;
+    HANDLE hLsaConnectionPrUsers;
 } LSA_NSS_PRPASSWD_BACKEND, *PLSA_NSS_PRPASSWD_BACKEND;
 
 typedef NSS_STATUS (*NSS_ENTRYPOINT)(nss_backend_t*, void*);
@@ -95,9 +96,11 @@ LsaNssHpuxPrpasswdDestructor(
 {
     PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = (PLSA_NSS_PRPASSWD_BACKEND) pBackend;
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
-    int                     ret = NSS_STATUS_SUCCESS;   
+    int                     ret = NSS_STATUS_SUCCESS;
 
-    LsaNssClearEnumUsersState(pEnumUsersState);
+    LsaNssClearEnumUsersState(
+        &pLsaBackend->hLsaConnectionPrUsers,
+        pEnumUsersState);
     LsaFreeMemory(pBackend);
 
     return ret;
@@ -112,7 +115,8 @@ LsaNssHpuxPrpasswdSetpwent(
     PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = (PLSA_NSS_PRPASSWD_BACKEND) pBackend;
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
 
-    return LsaNssCommonPasswdSetpwent(pEnumUsersState);
+    return LsaNssCommonPasswdSetpwent(&pLsaBackend->hLsaConnectionPrUsers,
+                                      pEnumUsersState);
 }
 
 static
@@ -132,7 +136,8 @@ LsaNssHpuxPrpasswdGetpwent(
     int                     ret;
     int*                    pErrorNumber = &err;
 
-    ret = LsaNssCommonPasswdGetpwent(pEnumUsersState,
+    ret = LsaNssCommonPasswdGetpwent(&pLsaBackend->hLsaConnectionPrUsers,
+                                     pEnumUsersState,
                                      &resultUser,
                                      szBuf,
                                      bufLen,
@@ -159,8 +164,8 @@ LsaNssHpuxPrpasswdEndpwent(
 {
     PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = (PLSA_NSS_PRPASSWD_BACKEND) pBackend;
     PLSA_ENUMUSERS_STATE    pEnumUsersState = &pLsaBackend->enumUsersState;
- 
-    return LsaNssCommonPasswdEndpwent(pEnumUsersState);
+
+    return LsaNssCommonPasswdEndpwent(&pLsaBackend->hLsaConnectionPrUsers, pEnumUsersState);
 }
 
 static
@@ -178,8 +183,10 @@ LsaNssHpuxPrpasswdGetpwnam(
     struct passwd           resultUser;
     char                    szBuf[2048];
     size_t                  bufLen = sizeof(szBuf);
+    PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = (PLSA_NSS_PRPASSWD_BACKEND) pBackend;
 
-    ret = LsaNssCommonPasswdGetpwnam(pszLoginId,
+    ret = LsaNssCommonPasswdGetpwnam(&pLsaBackend->hLsaConnectionPrUsers,
+                                     pszLoginId,
                                      &resultUser,
                                      szBuf,
                                      bufLen,
@@ -209,8 +216,10 @@ LsaNssHpuxPrpasswdGetpwuid(
     struct passwd           resultUser;
     char                    szBuf[2048];
     size_t                  bufLen = sizeof(szBuf);
+    PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = (PLSA_NSS_PRPASSWD_BACKEND) pBackend;
 
-    ret = LsaNssCommonPasswdGetpwuid(uid,
+    ret = LsaNssCommonPasswdGetpwuid(&pLsaBackend->hLsaConnectionPrUsers,
+                                     uid,
                                      &resultUser,
                                      szBuf,
                                      bufLen,
@@ -247,7 +256,7 @@ LsaNssHpuxPrpasswdBackend =
 
 nss_backend_t*
 LsaNssHpuxPrpasswdCreateBackend(
-    void			       
+    void
     )
 {
     PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = NULL;

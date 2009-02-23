@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,26 +31,23 @@
 #include "includes.h"
 
 
-NTSTATUS SamrQueryDomainInfo(handle_t b, PolicyHandle *domain_handle,
-                             uint16 level, DomainInfo **info)
+NTSTATUS
+SamrQueryDomainInfo(
+    handle_t b,
+    PolicyHandle *domain_h,
+    uint16 level,
+    DomainInfo **info
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     DomainInfo *i = NULL;
     DomainInfo *out_info = NULL;
 
     goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(domain_handle, cleanup);
+    goto_if_no_memory_ntstatus(domain_h, cleanup);
     goto_if_no_memory_ntstatus(info, cleanup);
 
-    TRY
-    {
-        status = _SamrQueryDomainInfo(b, domain_handle, level, &i);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrQueryDomainInfo(b, domain_h, level, &i));
 
     goto_if_ntstatus_not_success(status, error);
 

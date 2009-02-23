@@ -80,6 +80,17 @@
 ///
 /// @{
 
+struct _LSA_DM_LDAP_CONNECTION
+{
+    BOOLEAN bIsGc;
+    PSTR pszDnsDomainName;
+    // NULL if not connected
+    HANDLE hLdapConnection;
+    DWORD dwConnectionPeriod;
+
+    PLSA_DM_LDAP_CONNECTION pNext;
+};
+
 ///
 /// Keeps track of offline state of a single domain.
 ///
@@ -114,6 +125,24 @@ typedef struct _LSA_DM_DOMAIN_STATE {
     PSTR pszClientSiteName;
     PLSA_DM_DC_INFO pDcInfo;
     PLSA_DM_DC_INFO pGcInfo;
+
+    // A free list is maintained for LDAP DC and GC connections. When a caller
+    // requests a connection, the one from the top of the free list is returned. If the free list is empty, a new connection is created. When connections are
+    // "closed" by callers, they are really put onto the free list and left in
+    // the connected state.
+    //
+    // When a ldap search fails with a network error, the LSA_DM_CONNECTION
+    // is reconnected (possibly to a new DC). Such failures mean that all
+    // other handles are probably bad too (because the DC was rebooted or
+    // reaffinitized). To compensate, this code will clear the free connection
+    // list whenever such a "reconnection event" occurs. The connection period
+    // marks when a connection was created. This way old connections that are
+    // "closed" are rejected from entering the free list if they were connected
+    // before the "reconnection event".
+    DWORD dwDcConnectionPeriod;
+    PLSA_DM_LDAP_CONNECTION pFreeDcConn;
+    DWORD dwGcConnectionPeriod;
+    PLSA_DM_LDAP_CONNECTION pFreeGcConn;
 
 } LSA_DM_DOMAIN_STATE, *PLSA_DM_DOMAIN_STATE;
 
@@ -156,6 +185,21 @@ typedef struct _LSA_DM_STATE {
     /// @}
 } LSA_DM_STATE, *PLSA_DM_STATE;
 
+typedef struct _LSA_DM_LDAP_RECONNECT_CONTEXT
+{
+    PLSA_DM_LDAP_CONNECTION pLdap;
+    LSA_DM_STATE_HANDLE Handle;
+} LSA_DM_LDAP_RECONNECT_CONTEXT, *PLSA_DM_LDAP_RECONNECT_CONTEXT;
+
+static
+DWORD
+LsaDmpLdapReconnectCallback(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
+    );
+
 static
 DWORD
 LsaDmpDetectTransitionOnlineAllDomains(
@@ -167,6 +211,26 @@ static
 VOID
 LsaDmpDomainDestroy(
     IN OUT PLSA_DM_DOMAIN_STATE pDomain
+    );
+
+static
+VOID
+LsaDmpLdapConnectionDestroy(
+    IN PLSA_DM_LDAP_CONNECTION pLdap
+    );
+
+static
+DWORD
+LsaDmpLdapConnectionCreate(
+    IN BOOLEAN bIsGc,
+    IN PCSTR pszDnsDomainName,
+    OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    );
+
+static
+VOID
+LsaDmpLdapConnectionListDestroy(
+    IN OUT PLSA_DM_LDAP_CONNECTION* ppList
     );
 
 static
@@ -641,6 +705,11 @@ LsaDmpModifyStateFlags(
         {
             LSA_LOG_ALWAYS("Media sense is now %s",
                            bIsOffline ? "offline" : "online");
+            if (!bIsOffline)
+            {
+                // Have to ignore dwError because this function returns void
+                LsaSrvFlushSystemCache();
+            }
         }
 
         bWasOffline = IsSetFlag(Handle->StateFlags, LSA_DM_STATE_FLAG_FORCE_OFFLINE);
@@ -650,6 +719,11 @@ LsaDmpModifyStateFlags(
         {
             LSA_LOG_ALWAYS("Global force offline is now %s",
                            bIsOffline ? "enabled" : "disabled");
+            if (!bIsOffline)
+            {
+                // Have to ignore dwError because this function returns void
+                LsaSrvFlushSystemCache();
+            }
         }
 
         Handle->StateFlags = stateFlags;
@@ -891,6 +965,23 @@ LsaDmpDomainSetGcInfo(
 
 static
 VOID
+LsaDmpLdapConnectionListDestroy(
+    IN OUT PLSA_DM_LDAP_CONNECTION* ppList
+    )
+{
+    PLSA_DM_LDAP_CONNECTION pDelete = NULL;
+
+    while (*ppList != NULL)
+    {
+        pDelete = *ppList;
+        *ppList = pDelete->pNext;
+        pDelete->pNext = NULL;
+        LsaDmpLdapConnectionDestroy(pDelete);
+    }
+}
+
+static
+VOID
 LsaDmpDomainDestroy(
     IN OUT PLSA_DM_DOMAIN_STATE pDomain
     )
@@ -903,20 +994,10 @@ LsaDmpDomainDestroy(
         LSA_SAFE_FREE_MEMORY(pDomain->pSid);
         LSA_SAFE_FREE_STRING(pDomain->pszForestName);
         LSA_SAFE_FREE_STRING(pDomain->pszClientSiteName);
-        if (pDomain->pDcInfo)
-        {
-            LSA_SAFE_FREE_STRING(pDomain->pDcInfo->pszName);
-            LSA_SAFE_FREE_STRING(pDomain->pDcInfo->pszAddress);
-            LSA_SAFE_FREE_STRING(pDomain->pDcInfo->pszSiteName);
-            LsaFreeMemory(pDomain->pDcInfo);
-        }
-        if (pDomain->pGcInfo)
-        {
-            LSA_SAFE_FREE_STRING(pDomain->pGcInfo->pszName);
-            LSA_SAFE_FREE_STRING(pDomain->pGcInfo->pszAddress);
-            LSA_SAFE_FREE_STRING(pDomain->pGcInfo->pszSiteName);
-            LsaFreeMemory(pDomain->pGcInfo);
-        }
+        LsaDmFreeDcInfo(pDomain->pDcInfo);
+        LsaDmFreeDcInfo(pDomain->pDcInfo);
+        LsaDmpLdapConnectionListDestroy(&pDomain->pFreeDcConn);
+        LsaDmpLdapConnectionListDestroy(&pDomain->pFreeGcConn);
         LSA_SAFE_FREE_MEMORY(pDomain);
     }
 }
@@ -2033,18 +2114,26 @@ LsaDmpModifyDomainFlagsByRef(
 
     if (bWasOffline != bIsOffline)
     {
+        LSA_LOG_ALWAYS("Domain '%s' is now %sline",
+                       pDomain->pszDnsName, bIsOffline ? "off" : "on");
         if (bIsOffline)
         {
             // We went from !offline -> offline.
             Handle->dwOfflineCount++;
+
+            pDomain->dwDcConnectionPeriod++;
+            LsaDmpLdapConnectionListDestroy(&pDomain->pFreeDcConn);
+            pDomain->dwGcConnectionPeriod++;
+            LsaDmpLdapConnectionListDestroy(&pDomain->pFreeGcConn);
         }
         else
         {
             // We went from offline -> !offline.
             Handle->dwOfflineCount--;
+
+            // Have to ignore dwError because this function returns void
+            LsaSrvFlushSystemCache();
         }
-        LSA_LOG_ALWAYS("Domain '%s' is now %sline",
-                       pDomain->pszDnsName, bIsOffline ? "off" : "on");
     }
 }
 
@@ -2407,3 +2496,434 @@ LsaDmpTriggerOnlindeDetectionThread(
     LsaDmpReleaseMutex(Handle->OnlineDetectionThread.pMutex);
 }
 
+DWORD
+LsaDmpLdapConnectionCreate(
+    IN BOOLEAN bIsGc,
+    IN PCSTR pszDnsDomainName,
+    OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    )
+{
+    DWORD dwError = 0;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
+
+    dwError = LsaAllocateMemory(sizeof(*pConn), (PVOID*)&pConn);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pConn->bIsGc = bIsGc;
+    dwError = LsaAllocateString(pszDnsDomainName, &pConn->pszDnsDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pConn->hLdapConnection = NULL;
+
+    *ppConn = pConn;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppConn = NULL;
+    if (pConn != NULL)
+    {
+        LsaDmpLdapConnectionDestroy(pConn);
+    }
+    goto cleanup;
+}
+
+static
+VOID
+LsaDmpLdapConnectionDestroy(
+    IN PLSA_DM_LDAP_CONNECTION pLdap
+    )
+{
+    if (pLdap != NULL)
+    {
+        LsaLdapCloseDirectory(pLdap->hLdapConnection);
+        LSA_SAFE_FREE_STRING(pLdap->pszDnsDomainName);
+        LsaFreeMemory(pLdap);
+    }
+}
+
+static
+DWORD
+LsaDmpLdapReconnectCallback(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    HANDLE hOld = NULL;
+    HANDLE hNew = NULL;
+    DWORD dwFlags = 0;
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
+    BOOLEAN bIsReconnect = FALSE;
+    PLSA_DM_LDAP_RECONNECT_CONTEXT pCtx =
+        (PLSA_DM_LDAP_RECONNECT_CONTEXT)pContext;
+    PLSA_DM_LDAP_CONNECTION pLdap = pCtx->pLdap;
+
+    *pbIsNetworkError = FALSE;
+
+    if (AD_GetLDAPSignAndSeal())
+    {
+        dwFlags |= LSA_LDAP_OPT_SIGN_AND_SEAL;
+    }
+
+    if (pLdap->bIsGc)
+    {
+        dwError = LsaLdapOpenDirectoryGc(
+                        pLdap->pszDnsDomainName,
+                        dwFlags,
+                        &hNew);
+    }
+    else
+    {
+        dwError = LsaLdapOpenDirectoryDomain(
+                        pLdap->pszDnsDomainName,
+                        dwFlags,
+                        &hNew);
+    }
+    if (dwError)
+    {
+        *pbIsNetworkError = TRUE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    hOld = pLdap->hLdapConnection;
+    if (hOld)
+    {
+        LsaLdapCloseDirectory(hOld);
+        pLdap->hLdapConnection = NULL;
+        bIsReconnect = TRUE;
+    }
+
+    LsaDmpAcquireMutex(pCtx->Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    dwError = LsaDmpMustFindDomain(
+                    pCtx->Handle,
+                    pLdap->pszDnsDomainName,
+                    &pDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bIsReconnect)
+    {
+        // This is a reconnection event which marks the beginning of a new
+        // connection period. The free lists need to be cleared.
+
+        if (pLdap->bIsGc)
+        {
+            if (pLdap->dwConnectionPeriod == pDomain->dwGcConnectionPeriod)
+            {
+                LSA_LOG_ERROR("Clearing ldap GC connection list for domain '%s' due to a network error.",
+                        pLdap->pszDnsDomainName);
+                pDomain->dwGcConnectionPeriod++;
+                LsaDmpLdapConnectionListDestroy(&pDomain->pFreeGcConn);
+            }
+        }
+        else
+        {
+            if (pLdap->dwConnectionPeriod == pDomain->dwDcConnectionPeriod)
+            {
+                LSA_LOG_ERROR("Clearing ldap DC connection list for domain '%s' due to a network error.",
+                        pLdap->pszDnsDomainName);
+                pDomain->dwDcConnectionPeriod++;
+                LsaDmpLdapConnectionListDestroy(&pDomain->pFreeDcConn);
+            }
+        }
+    }
+    if (pLdap->bIsGc)
+    {
+        pLdap->dwConnectionPeriod = pDomain->dwGcConnectionPeriod;
+    }
+    else
+    {
+        pLdap->dwConnectionPeriod = pDomain->dwDcConnectionPeriod;
+    }
+
+    pLdap->hLdapConnection = hNew;
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(pCtx->Handle->pMutex);
+    }
+
+    return dwError;
+
+error:
+    if (hNew)
+    {
+        LsaLdapCloseDirectory(hNew);
+    }
+    // Do not change pLdap->hLdapConnection since the old one has not been
+    // freed.
+
+    goto cleanup;
+}
+
+DWORD
+LsaDmpLdapReconnect(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN OUT PLSA_DM_LDAP_CONNECTION pLdap
+    )
+{
+    LSA_DM_LDAP_RECONNECT_CONTEXT ctx;
+    LSA_DM_CONNECT_DOMAIN_FLAGS flags = LSA_DM_CONNECT_DOMAIN_FLAG_AUTH;
+
+    ctx.pLdap = pLdap;
+    ctx.Handle = Handle;
+
+    if (pLdap->bIsGc)
+    {
+        flags |= LSA_DM_CONNECT_DOMAIN_FLAG_GC;
+    }
+
+    return LsaDmConnectDomain(
+                    pLdap->pszDnsDomainName,
+                    flags,
+                    NULL,
+                    LsaDmpLdapReconnectCallback,
+                    &ctx);
+}
+
+HANDLE
+LsaDmpGetLdapHandle(
+    IN PLSA_DM_LDAP_CONNECTION pConn
+    )
+{
+    return pConn->hLdapConnection;
+}
+
+DWORD
+LsaDmpLdapOpen(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDnsDomainName,
+    IN BOOLEAN bUseGc,
+    OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
+    PLSA_DM_LDAP_CONNECTION pConn = NULL;
+
+    BAIL_ON_INVALID_STRING(pszDnsDomainName);
+
+    // If the global offline state says everything is offline, don't
+    // return anything off the free list (the free list is only cleared when a
+    // domain goes offline, not when the machine goes globally offline).
+    if (LsaDmpIsDomainOffline(Handle, pszDnsDomainName))
+    {
+        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    dwError = LsaDmpMustFindDomain(Handle, pszDnsDomainName, &pDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bUseGc)
+    {
+        if (pDomain->pFreeGcConn != NULL)
+        {
+            pConn = pDomain->pFreeGcConn;
+            pDomain->pFreeGcConn = pConn->pNext;
+            pConn->pNext = NULL;
+        }
+    }
+    else
+    {
+        if (pDomain->pFreeDcConn != NULL)
+        {
+            pConn = pDomain->pFreeDcConn;
+            pDomain->pFreeDcConn = pConn->pNext;
+            pConn->pNext = NULL;
+        }
+    }
+    if (pConn == NULL)
+    {
+        dwError = LsaDmpLdapConnectionCreate(
+                        bUseGc,
+                        pszDnsDomainName,
+                        &pConn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        // The newly created pConn will be connected to the ldap server. This
+        // is done to detect a connection failure during the open call instead
+        // of waiting for the caller to try to use pConn for a search.
+        //
+        // Since connecting pConn is a network event, the global mutex needs to
+        // be released first.
+        LsaDmpReleaseMutex(Handle->pMutex);
+        bIsAcquired = FALSE;
+        dwError = LsaDmpLdapReconnect(
+                    Handle,
+                    pConn);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppConn = pConn;
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+    return dwError;
+
+error:
+    *ppConn = NULL;
+    if (pConn != NULL)
+    {
+        LsaDmpLdapConnectionDestroy(pConn);
+    }
+
+    goto cleanup;
+}
+
+VOID
+LsaDmpLdapClose(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PLSA_DM_LDAP_CONNECTION pConn
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
+
+    if (pConn == NULL)
+    {
+        goto cleanup;
+    }
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    dwError = LsaDmpMustFindDomain(Handle, pConn->pszDnsDomainName, &pDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pConn->bIsGc)
+    {
+        // If this isn't true, throw away the connection
+        if (pConn->dwConnectionPeriod == pDomain->dwGcConnectionPeriod)
+        {
+            pConn->pNext = pDomain->pFreeGcConn;
+            pDomain->pFreeGcConn = pConn;
+            pConn = NULL;
+        }
+    }
+    else
+    {
+        // If this isn't true, throw away the connection
+        if (pConn->dwConnectionPeriod == pDomain->dwDcConnectionPeriod)
+        {
+            pConn->pNext = pDomain->pFreeDcConn;
+            pDomain->pFreeDcConn = pConn;
+            pConn = NULL;
+        }
+    }
+
+cleanup:
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+    if (dwError != LSA_ERROR_SUCCESS)
+    {
+        LSA_LOG_ERROR("Error %d occurred while putting an ldap connection back in the domain free list.", dwError);
+    }
+    if (pConn != NULL)
+    {
+        LsaDmpLdapConnectionDestroy(pConn);
+    }
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+BOOLEAN
+LsaDmpLdapIsRetryError(
+    DWORD dwError
+    )
+{
+    switch((int)dwError)
+    {
+        case LDAP_TIMEOUT:
+        case LDAP_SERVER_DOWN:
+        case LSA_ERROR_LDAP_SERVER_UNAVAILABLE:
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
+DWORD
+LsaDmpQueryForestNameFromNetlogon(
+    IN PCSTR pszDnsDomainName,
+    OUT PSTR* ppszDnsForestName
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_DC_INFO pDcInfo = NULL;
+    PSTR pszDnsForestName = NULL;
+
+    // Try background first, then not.
+    dwError = LWNetGetDCName(NULL,
+                             pszDnsDomainName,
+                             NULL,
+                             DS_BACKGROUND_ONLY,
+                             &pDcInfo);
+    if (dwError)
+    {
+        dwError = LWNetGetDCName(NULL,
+                                 pszDnsDomainName,
+                                 NULL,
+                                 0,
+                                 &pDcInfo);
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(pDcInfo->pszDnsForestName, &pszDnsForestName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszDnsForestName = pszDnsForestName;
+
+cleanup:
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+    return dwError;
+
+error:
+    *ppszDnsForestName = NULL;
+    LSA_SAFE_FREE_STRING(pszDnsForestName);
+    goto cleanup;
+}
+
+BOOLEAN
+LsaDmpIsNetworkError(
+    IN DWORD dwError
+    )
+{
+    BOOLEAN bIsNetworkError = FALSE;
+
+    switch (dwError)
+    {
+        case LSA_ERROR_DOMAIN_IS_OFFLINE:
+        case LWNET_ERROR_INVALID_DNS_RESPONSE:
+        case LWNET_ERROR_FAILED_FIND_DC:
+            bIsNetworkError = TRUE;
+            break;
+        default:
+            bIsNetworkError = FALSE;
+            break;
+    }
+
+    return bIsNetworkError;
+}

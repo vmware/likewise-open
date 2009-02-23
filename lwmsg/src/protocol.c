@@ -107,6 +107,7 @@ LWMsgStatus
 lwmsg_protocol_add_protocol_spec(LWMsgProtocol* prot, LWMsgProtocolSpec* spec)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTypeSpec** new_types = NULL;
     size_t num_types = 0;
     size_t i;
 
@@ -119,24 +120,24 @@ lwmsg_protocol_add_protocol_spec(LWMsgProtocol* prot, LWMsgProtocolSpec* spec)
         }
     }
 
-    prot->num_types = num_types;
-    prot->types = calloc(num_types, sizeof(*prot->types));
-    
-    if (!prot->types)
+    if (num_types > prot->num_types)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+        new_types = realloc(prot->types, sizeof(*new_types) * num_types);
+        if (!new_types)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+        }
+
+        memset(new_types + prot->num_types, 0, (num_types - prot->num_types) * sizeof(*new_types));
+
+        prot->types = new_types;
+        prot->num_types = num_types;
     }
 
     for (i = 0; spec[i].tag != -1; i++)
     {
-        if (spec[i].type)
-        {
-            prot->types[spec[i].tag] = spec[i].type;
-        }
-        else
-        {
-            prot->types[spec[i].tag] = NULL;
-        }
+        /* A NULL typespec indicates a message with an empty payload */
+        prot->types[spec[i].tag] = spec[i].type;
     }
 
 error:

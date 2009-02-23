@@ -49,6 +49,7 @@ lwmsg_connection_marshal_fd(
     LWMsgContext* context, 
     size_t object_size,
     void* object,
+    LWMsgTypeAttrs* attrs,
     LWMsgBuffer* buffer,
     void* data
     )
@@ -92,6 +93,7 @@ lwmsg_connection_unmarshal_fd(
     LWMsgContext* context,
     LWMsgBuffer* buffer,
     size_t object_size,
+    LWMsgTypeAttrs* attrs,
     void* object,
     void* data
     )

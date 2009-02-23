@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -26,6 +26,12 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
+ */
+
+/*
+ * Abstract: Samr memory (de)allocation routines (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
 #include "includes.h"
@@ -223,7 +229,7 @@ NTSTATUS SamrAllocateDomSid(DomSid **out, DomSid *in, void *dep)
 
     goto_if_invalid_param_ntstatus(out, cleanup);
 
-    SidCopyAlloc(&ptr, in);
+    RtlSidCopyAlloc(&ptr, in);
     goto_if_no_memory_ntstatus(ptr, error);
 
     status = SamrAddDepMemory((void*)ptr, (void*)dep);
@@ -1331,6 +1337,11 @@ NTSTATUS SamrAllocateUserInfo(UserInfo **out, UserInfo *in, uint16 level)
 
         case 9:
             status = SamrCopyUserInfo9(&ptr->info9, &in->info9, (void*)ptr);
+            goto_if_ntstatus_not_success(status, error);
+            break;
+
+        case 10:
+            status = SamrCopyUserInfo10(&ptr->info10, &in->info10, (void*)ptr);
             goto_if_ntstatus_not_success(status, error);
             break;
 

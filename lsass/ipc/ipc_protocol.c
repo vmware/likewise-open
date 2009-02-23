@@ -228,16 +228,6 @@ LWMsgTypeSpec gLsaUserInfoListSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaBeginObjectEnumSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_ENUM_OBJECTS_INFO),
-    LWMSG_MEMBER_UINT32(LSA_ENUM_OBJECTS_INFO, dwObjectInfoLevel),
-    LWMSG_MEMBER_UINT32(LSA_ENUM_OBJECTS_INFO, dwNumMaxObjects),
-    LWMSG_MEMBER_PSTR(LSA_ENUM_OBJECTS_INFO, pszGUID),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
 static LWMsgTypeSpec gLsaNssArtefactInfo0Spec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_NSS_ARTEFACT_INFO_0),
@@ -504,11 +494,74 @@ static LWMsgTypeSpec gLsaStatusPtrSpec[] =
     LWMSG_TYPE_END
 };
 
-/* LsaIpcServerHandle (opaque) */
-static LWMsgTypeSpec gLsaIpcEnumServerHandleSpec[] =
+static LWMsgTypeSpec gLsaIpcEnumUsersHandleExistingSpec[] =
 {
     /* Identify type name of handle */
-    LWMSG_HANDLE(LsaIpcEnumServerHandle),
+    LWMSG_HANDLE(EnumUsers),
+    /* Must be local to receiver (server) */
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+    /* Must be non-NULL */
+    LWMSG_ATTR_NOT_NULL,
+    /* End specification */
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIpcEnumGroupsHandleExistingSpec[] =
+{
+    /* Identify type name of handle */
+    LWMSG_HANDLE(EnumGroups),
+    /* Must be local to receiver (server) */
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+    /* Must be non-NULL */
+    LWMSG_ATTR_NOT_NULL,
+    /* End specification */
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIpcEnumArtefactsHandleExistingSpec[] =
+{
+    /* Identify type name of handle */
+    LWMSG_HANDLE(EnumArtefacts),
+    /* Must be local to receiver (server) */
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+    /* Must be non-NULL */
+    LWMSG_ATTR_NOT_NULL,
+    /* End specification */
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIpcEnumUsersHandleNewSpec[] =
+{
+    /* Identify type name of handle */
+    LWMSG_HANDLE(EnumUsers),
+    /* Must be local to sender (server) */
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
+    /* Must be non-NULL */
+    LWMSG_ATTR_NOT_NULL,
+    /* End specification */
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIpcEnumGroupsHandleNewSpec[] =
+{
+    /* Identify type name of handle */
+    LWMSG_HANDLE(EnumGroups),
+    /* Must be local to sender (server) */
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
+    /* Must be non-NULL */
+    LWMSG_ATTR_NOT_NULL,
+    /* End specification */
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIpcEnumArtefactsHandleNewSpec[] =
+{
+    /* Identify type name of handle */
+    LWMSG_HANDLE(EnumArtefacts),
+    /* Must be local to sender (server) */
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
+    /* Must be non-NULL */
+    LWMSG_ATTR_NOT_NULL,
     /* End specification */
     LWMSG_TYPE_END
 };
@@ -547,11 +600,9 @@ static LWMsgTypeSpec gLsaIPCFindObjectByIdReqSpec[] =
 static LWMsgTypeSpec gLsaIPCBeginUserEnumReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_USERS_REQ),
-    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_USERS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, dwInfoLevel),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, dwNumMaxRecords),
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, FindFlags),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -559,12 +610,10 @@ static LWMsgTypeSpec gLsaIPCBeginUserEnumReqSpec[] =
 static LWMsgTypeSpec gLsaIPCBeginGroupEnumReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_GROUPS_REQ),
-    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, dwInfoLevel),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, dwNumMaxRecords),
     LWMSG_MEMBER_INT8(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, bCheckGroupMembersOnline),
+    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, FindFlags),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -572,25 +621,10 @@ static LWMsgTypeSpec gLsaIPCBeginGroupEnumReqSpec[] =
 static LWMsgTypeSpec gLsaIPCBeginNssArtefactEnumReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ),
-    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, Handle, gLsaIpcEnumServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, dwInfoLevel),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, dwMaxNumNSSArtefacts),
     LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, dwFlags),
     LWMSG_MEMBER_PSTR(LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, pszMapName),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-
-static LWMsgTypeSpec gLsaIPCEnumObjectReqSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_IPC_ENUM_RECORDS_REQ),
-    /* handle - marshal as LsaIpcEnumServerHandleSpec (references existing spec) */
-    LWMSG_MEMBER_TYPESPEC(LSA_IPC_ENUM_RECORDS_REQ, Handle, gLsaIpcEnumServerHandleSpec),
-    LWMSG_ATTR_HANDLE_LOCAL,
-    LWMSG_MEMBER_PSTR(LSA_IPC_ENUM_RECORDS_REQ, pszToken),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -967,9 +1001,6 @@ static LWMsgTypeSpec gLsaIPCProviderIoControlReqSpec[] =
 
 static LWMsgProtocolSpec gLsaIPCSpec[] =
 {
-    LWMSG_MESSAGE(LSA_Q_OPEN_SERVER, NULL),
-    LWMSG_MESSAGE(LSA_R_OPEN_SERVER_SUCCESS, gLsaIpcEnumServerHandleSpec),
-    LWMSG_MESSAGE(LSA_R_OPEN_SERVER_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_GROUP_BY_NAME, gLsaIPCFindObjectByNameReqSpec),
     LWMSG_MESSAGE(LSA_R_GROUP_BY_NAME_SUCCESS, gLsaGroupInfoListSpec),
     LWMSG_MESSAGE(LSA_R_GROUP_BY_NAME_FAILURE, gLsaIPCErrorSpec),
@@ -977,12 +1008,12 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_R_GROUP_BY_ID_SUCCESS, gLsaGroupInfoListSpec),
     LWMSG_MESSAGE(LSA_R_GROUP_BY_ID_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_GROUPS, gLsaIPCBeginGroupEnumReqSpec),
-    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_SUCCESS, gLsaBeginObjectEnumSpec),
+    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_SUCCESS, gLsaIpcEnumGroupsHandleNewSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_ENUM_GROUPS, gLsaIPCEnumObjectReqSpec),
+    LWMSG_MESSAGE(LSA_Q_ENUM_GROUPS, gLsaIpcEnumGroupsHandleExistingSpec),
     LWMSG_MESSAGE(LSA_R_ENUM_GROUPS_SUCCESS, gLsaGroupInfoListSpec),
     LWMSG_MESSAGE(LSA_R_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_END_ENUM_GROUPS, gLsaIPCEnumObjectReqSpec),
+    LWMSG_MESSAGE(LSA_Q_END_ENUM_GROUPS, gLsaIpcEnumGroupsHandleExistingSpec),
     LWMSG_MESSAGE(LSA_R_END_ENUM_GROUPS_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_END_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_USER_BY_NAME, gLsaIPCFindObjectByNameReqSpec),
@@ -992,12 +1023,12 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_R_USER_BY_ID_SUCCESS, gLsaUserInfoListSpec),
     LWMSG_MESSAGE(LSA_R_USER_BY_ID_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_USERS, gLsaIPCBeginUserEnumReqSpec),
-    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_SUCCESS, gLsaBeginObjectEnumSpec),
+    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_SUCCESS, gLsaIpcEnumUsersHandleNewSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_ENUM_USERS, gLsaIPCEnumObjectReqSpec),
+    LWMSG_MESSAGE(LSA_Q_ENUM_USERS, gLsaIpcEnumUsersHandleExistingSpec),
     LWMSG_MESSAGE(LSA_R_ENUM_USERS_SUCCESS, gLsaUserInfoListSpec),
     LWMSG_MESSAGE(LSA_R_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_END_ENUM_USERS, gLsaIPCEnumObjectReqSpec),
+    LWMSG_MESSAGE(LSA_Q_END_ENUM_USERS, gLsaIpcEnumUsersHandleExistingSpec),
     LWMSG_MESSAGE(LSA_R_END_ENUM_USERS_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_END_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_AUTH_USER, gLsaIPCAuthUserReqSpec),
@@ -1064,12 +1095,12 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_R_REFRESH_CONFIGURATION_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_REFRESH_CONFIGURATION_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_NSS_ARTEFACTS, gLsaIPCBeginNssArtefactEnumReqSpec),
-    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_NSS_ARTEFACTS_SUCCESS, gLsaBeginObjectEnumSpec),
+    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_NSS_ARTEFACTS_SUCCESS, gLsaIpcEnumArtefactsHandleNewSpec),
     LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_NSS_ARTEFACTS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_ENUM_NSS_ARTEFACTS, gLsaIPCEnumObjectReqSpec),
+    LWMSG_MESSAGE(LSA_Q_ENUM_NSS_ARTEFACTS, gLsaIpcEnumArtefactsHandleExistingSpec),
     LWMSG_MESSAGE(LSA_R_ENUM_NSS_ARTEFACTS_SUCCESS, gLsaNssArtefactInfoListSpec),
     LWMSG_MESSAGE(LSA_R_ENUM_NSS_ARTEFACTS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_END_ENUM_NSS_ARTEFACTS, gLsaIPCEnumObjectReqSpec),
+    LWMSG_MESSAGE(LSA_Q_END_ENUM_NSS_ARTEFACTS, gLsaIpcEnumArtefactsHandleExistingSpec),
     LWMSG_MESSAGE(LSA_R_END_ENUM_NSS_ARTEFACTS_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_END_ENUM_NSS_ARTEFACTS_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_FIND_NSS_ARTEFACT_BY_KEY, gLsaIPCFindNssArtefactByKeyReqSpec),
@@ -1097,4 +1128,51 @@ LsaIPCGetProtocolSpec(
     )
 {
     return gLsaIPCSpec;
+}
+
+DWORD
+LsaMapLwmsgStatus(
+    LWMsgStatus status
+    )
+{
+    switch (status)
+    {
+    default:
+        return LSA_ERROR_INTERNAL;
+    case LWMSG_STATUS_SUCCESS:
+        return LSA_ERROR_SUCCESS;
+    case LWMSG_STATUS_ERROR:
+        return LSA_ERROR_INTERNAL;
+    case LWMSG_STATUS_MEMORY:
+        return LSA_ERROR_OUT_OF_MEMORY;
+    case LWMSG_STATUS_MALFORMED:
+    case LWMSG_STATUS_OVERFLOW:
+    case LWMSG_STATUS_UNDERFLOW:
+    case LWMSG_STATUS_EOF:
+        return LSA_ERROR_INVALID_MESSAGE;
+    case LWMSG_STATUS_INVALID_PARAMETER:
+        return EINVAL;
+    case LWMSG_STATUS_INVALID_STATE:
+        return EINVAL;
+    case LWMSG_STATUS_UNIMPLEMENTED:
+        return LSA_ERROR_NOT_IMPLEMENTED;
+    case LWMSG_STATUS_SYSTEM:
+        return LSA_ERROR_INTERNAL;
+    case LWMSG_STATUS_SECURITY:
+        return EACCES;
+    case LWMSG_STATUS_INTERRUPT:
+        return EINTR;
+    case LWMSG_STATUS_FILE_NOT_FOUND:
+        return ENOENT;
+    case LWMSG_STATUS_CONNECTION_REFUSED:
+        return ECONNREFUSED;
+    case LWMSG_STATUS_PEER_RESET:
+        return ECONNRESET;
+    case LWMSG_STATUS_PEER_ABORT:
+        return ECONNABORTED;
+    case LWMSG_STATUS_PEER_CLOSE:
+        return EPIPE;
+    case LWMSG_STATUS_SESSION_LOST:
+        return EPIPE;
+    }
 }

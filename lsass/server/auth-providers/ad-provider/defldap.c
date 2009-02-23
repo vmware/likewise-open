@@ -51,7 +51,7 @@
 
 DWORD
 DefaultModeFindNSSArtefactByKey(
-    HANDLE         hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PCSTR          pszKeyName,
@@ -67,7 +67,7 @@ DefaultModeFindNSSArtefactByKey(
     ADConfigurationMode adConfMode = NonSchemaMode;
 
     dwError = ADGetConfigurationMode(
-                         hDirectory,
+                         pConn,
                          pszCellDN,
                          &adConfMode);
     BAIL_ON_LSA_ERROR(dwError);
@@ -77,7 +77,7 @@ DefaultModeFindNSSArtefactByKey(
        case SchemaMode:
 
            dwError = DefaultModeSchemaFindNSSArtefactByKey(
-                       hDirectory,
+                       pConn,
                        pszCellDN,
                        pszNetBIOSDomainName,
                        pszKeyName,
@@ -90,7 +90,7 @@ DefaultModeFindNSSArtefactByKey(
        case NonSchemaMode:
 
            dwError = DefaultModeNonSchemaFindNSSArtefactByKey(
-                       hDirectory,
+                       pConn,
                        pszCellDN,
                        pszNetBIOSDomainName,
                        pszKeyName,
@@ -124,7 +124,7 @@ error:
 
 DWORD
 DefaultModeSchemaFindNSSArtefactByKey(
-    HANDLE         hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PCSTR          pszKeyName,
@@ -151,8 +151,7 @@ DefaultModeSchemaFindNSSArtefactByKey(
     DWORD dwNumInfos = 0;
     BOOLEAN bMapExists = FALSE;
     LDAP *pLd = NULL;
-
-    pLd = LsaLdapGetSession(hDirectory);
+    HANDLE hDirectory = NULL;
 
     BAIL_ON_INVALID_STRING(pszMapName);
     BAIL_ON_INVALID_STRING(pszKeyName);
@@ -170,7 +169,7 @@ DefaultModeSchemaFindNSSArtefactByKey(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADLdap_IsValidDN(
-                    hDirectory,
+                    pConn,
                     pszEscapedDN,
                     &bMapExists);
     BAIL_ON_LSA_ERROR(dwError);
@@ -187,14 +186,17 @@ DefaultModeSchemaFindNSSArtefactByKey(
                     pszKeyName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapDirectorySearch(
-                   hDirectory,
+    dwError = LsaDmLdapDirectorySearch(
+                   pConn,
                    pszEscapedDN,
                    LDAP_SCOPE_ONELEVEL,
                    pszQuery,
                    szAttributeList,
+                   &hDirectory,
                    &pMessagePseudo);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pLd = LsaLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                       pLd,
@@ -250,7 +252,7 @@ error:
 
 DWORD
 DefaultModeNonSchemaFindNSSArtefactByKey(
-    HANDLE         hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PCSTR          pszKeyName,
@@ -277,8 +279,7 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
     DWORD dwNumInfos = 0;
     BOOLEAN bMapExists = FALSE;
     LDAP *pLd = NULL;
-
-    pLd = LsaLdapGetSession(hDirectory);
+    HANDLE hDirectory = NULL;
 
     BAIL_ON_INVALID_STRING(pszMapName);
     BAIL_ON_INVALID_STRING(pszKeyName);
@@ -296,7 +297,7 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADLdap_IsValidDN(
-                    hDirectory,
+                    pConn,
                     pszEscapedDN,
                     &bMapExists);
     BAIL_ON_LSA_ERROR(dwError);
@@ -313,14 +314,17 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
                     pszKeyName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapDirectorySearch(
-                   hDirectory,
+    dwError = LsaDmLdapDirectorySearch(
+                   pConn,
                    pszEscapedDN,
                    LDAP_SCOPE_ONELEVEL,
                    pszQuery,
                    szAttributeList,
+                   &hDirectory,
                    &pMessagePseudo);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pLd = LsaLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                       pLd,
@@ -376,7 +380,7 @@ error:
 
 DWORD
 DefaultModeEnumNSSArtefacts(
-    HANDLE         hDirectory,
+    PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PAD_ENUM_STATE pEnumState,
@@ -392,7 +396,7 @@ DefaultModeEnumNSSArtefacts(
     ADConfigurationMode adConfMode = NonSchemaMode;
 
     dwError = ADGetConfigurationMode(
-                         hDirectory,
+                         pConn,
                          pszCellDN,
                          &adConfMode);
     BAIL_ON_LSA_ERROR(dwError);
@@ -401,7 +405,7 @@ DefaultModeEnumNSSArtefacts(
     {
        case SchemaMode:
            dwError = DefaultModeSchemaEnumNSSArtefacts(
-                       hDirectory,
+                       pConn,
                        pszCellDN,
                        pszNetBIOSDomainName,
                        pEnumState,
@@ -413,7 +417,7 @@ DefaultModeEnumNSSArtefacts(
 
        case NonSchemaMode:
            dwError = DefaultModeNonSchemaEnumNSSArtefacts(
-                       hDirectory,
+                       pConn,
                        pszCellDN,
                        pszNetBIOSDomainName,
                        pEnumState,
@@ -449,7 +453,7 @@ error:
 
 DWORD
 DefaultModeSchemaEnumNSSArtefacts(
-    HANDLE         hDirectory,
+    IN PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PAD_ENUM_STATE pEnumState,
@@ -472,8 +476,8 @@ DefaultModeSchemaEnumNSSArtefacts(
                  NULL
                };
     LDAPMessage *pMessagePseudo = NULL;
-
-    LDAP *pLd = LsaLdapGetSession(hDirectory);
+    HANDLE hDirectory = NULL;
+    LDAP *pLd = NULL;
 
     BAIL_ON_INVALID_STRING(pEnumState->pszMapName);
 
@@ -489,23 +493,25 @@ DefaultModeSchemaEnumNSSArtefacts(
                    pszDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pEnumState->bMorePages){
+    if (pEnumState->Cookie.bSearchFinished){
         dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaLdapDirectoryOnePagedSearch(
-                       hDirectory,
+    dwError = LsaDmLdapDirectoryOnePagedSearch(
+                       pConn,
                        pszEscapedDN,
                        pszQuery,
                        szAttributeList,
                        dwMaxNumNSSArtefacts,
-                       &pEnumState->pCookie,
+                       &pEnumState->Cookie,
                        LDAP_SCOPE_ONELEVEL,
-                       &pMessagePseudo,
-                       &pEnumState->bMorePages);
+                       &hDirectory,
+                       &pMessagePseudo);
 
     BAIL_ON_LSA_ERROR(dwError);
+
+    pLd = LsaLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                           pLd,
@@ -562,7 +568,7 @@ error:
 
 DWORD
 DefaultModeNonSchemaEnumNSSArtefacts(
-    HANDLE         hDirectory,
+    PLSA_DM_LDAP_CONNECTION pConn,
     PCSTR          pszCellDN,
     PCSTR          pszNetBIOSDomainName,
     PAD_ENUM_STATE pEnumState,
@@ -590,11 +596,10 @@ DefaultModeNonSchemaEnumNSSArtefacts(
 
     LDAPMessage *pMessagePseudo = NULL;
     LDAP *pLd = NULL;
+    HANDLE hDirectory = NULL;
     DWORD dwNumNSSArtefactsWanted = dwMaxNumNSSArtefacts;
 
     dwNSSArtefactInfoLevel = pEnumState->dwInfoLevel;
-
-    pLd = LsaLdapGetSession(hDirectory);
 
     BAIL_ON_INVALID_STRING(pEnumState->pszMapName);
 
@@ -610,24 +615,26 @@ DefaultModeNonSchemaEnumNSSArtefacts(
                     pszDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pEnumState->bMorePages){
+    if (pEnumState->Cookie.bSearchFinished){
             dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
     do
     {
-        dwError = LsaLdapDirectoryOnePagedSearch(
-                       hDirectory,
+        dwError = LsaDmLdapDirectoryOnePagedSearch(
+                       pConn,
                        pszEscapedDN,
                        pszQuery,
                        szAttributeList,
                        dwNumNSSArtefactsWanted,
-                       &pEnumState->pCookie,
+                       &pEnumState->Cookie,
                        LDAP_SCOPE_ONELEVEL,
-                       &pMessagePseudo,
-                       &pEnumState->bMorePages);
+                       &hDirectory,
+                       &pMessagePseudo);
         BAIL_ON_LSA_ERROR(dwError);
+
+        pLd = LsaLdapGetSession(hDirectory);
 
         dwCount = ldap_count_entries(
                           pLd,
@@ -664,7 +671,7 @@ DefaultModeNonSchemaEnumNSSArtefacts(
                ldap_msgfree(pMessagePseudo);
                pMessagePseudo = NULL;
         }
-    } while (pEnumState->bMorePages && dwNumNSSArtefactsWanted);
+    } while (!pEnumState->Cookie.bSearchFinished && dwNumNSSArtefactsWanted);
 
     *pppNSSArtefactInfoList = ppNSSArtefactInfoList_accumulate;
     *pdwNumNSSArtefactsFound = dwTotalNumNSSArtefactsFound;

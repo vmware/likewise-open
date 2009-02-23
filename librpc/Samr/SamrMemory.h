@@ -32,32 +32,88 @@
 #define _SAMR_MEMORY_H_
 
 
-NTSTATUS SamrAllocateMemory(void **out, size_t len, void *dep);
+NTSTATUS
+SamrAllocateMemory(
+    void **out,
+    size_t len,
+    void *dep
+    );
 
-NTSTATUS SamrSafeFreeMemory(void **ptr);
 
-NTSTATUS SamrAddDepMemory(void *ptr, void *dep);
+NTSTATUS
+SamrAddDepMemory(
+    void *ptr,
+    void *dep
+    );
 
 
-NTSTATUS SamrAllocateNamesAndRids(wchar16_t ***outn, uint32 **outr,
-                                  RidNameArray *in);
+NTSTATUS
+SamrAllocateNamesAndRids(
+    wchar16_t ***outn,
+    uint32 **outr,
+    RidNameArray *in
+    );
 
-NTSTATUS SamrAllocateNames(wchar16_t ***out, EntryArray *in);
 
-NTSTATUS SamrAllocateIds(uint32 **out, Ids *in);
+NTSTATUS
+SamrAllocateNames(
+    wchar16_t ***out,
+    EntryArray *in
+    );
 
-NTSTATUS SamrAllocateDomSid(DomSid **out, DomSid *in, void *dep);
 
-NTSTATUS SamrAllocateSids(DomSid ***out, SidArray *in);
+NTSTATUS
+SamrAllocateIds(
+    uint32 **out,
+    Ids *in
+    );
 
-NTSTATUS SamrAllocateRidsAndAttributes(uint32 **out_rids, uint32 **out_attrs,
-                                       RidWithAttributeArray *in);
 
-NTSTATUS SamrAllocateAliasInfo(AliasInfo **out, AliasInfo *in, uint16 level);
+NTSTATUS
+SamrAllocateDomSid(
+    DomSid **out,
+    DomSid *in,
+    void *dep
+    );
 
-NTSTATUS SamrAllocateDomainInfo(DomainInfo **out, DomainInfo *in, uint16 level);
 
-NTSTATUS SamrAllocateUserInfo(UserInfo **out, UserInfo *in, uint16 level);
+NTSTATUS
+SamrAllocateSids(
+    DomSid ***out,
+    SidArray *in
+    );
+
+
+NTSTATUS
+SamrAllocateRidsAndAttributes(
+    uint32 **out_rids,
+    uint32 **out_attrs,
+    RidWithAttributeArray *in
+    );
+
+
+NTSTATUS
+SamrAllocateAliasInfo(
+    AliasInfo **out,
+    AliasInfo *in,
+    uint16 level
+    );
+
+
+NTSTATUS
+SamrAllocateDomainInfo(
+    DomainInfo **out,
+    DomainInfo *in,
+    uint16 level
+    );
+
+
+NTSTATUS
+SamrAllocateUserInfo(
+    UserInfo **out,
+    UserInfo *in,
+    uint16 level
+    );
 
 
 #endif /* _SAMR_MEMORY_H_ */

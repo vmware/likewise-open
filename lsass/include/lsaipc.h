@@ -55,9 +55,6 @@
 
 typedef enum __LSA_IPC_TAG
 {
-    LSA_Q_OPEN_SERVER,
-    LSA_R_OPEN_SERVER_SUCCESS,
-    LSA_R_OPEN_SERVER_FAILURE,
     LSA_Q_GROUP_BY_ID,
     LSA_R_GROUP_BY_ID_SUCCESS,
     LSA_R_GROUP_BY_ID_FAILURE,
@@ -180,8 +177,6 @@ typedef enum __LSA_IPC_TAG
 
 /* Opaque type -- actual definition in state_p.h - LSA_SRV_ENUM_STATE */
 
-typedef struct __LSA_SRV_ENUM_STATE LsaIpcEnumServerHandle;
-
 typedef struct __LSA_IPC_ERROR
 {
     DWORD dwError;
@@ -272,32 +267,26 @@ typedef struct __LSA_IPC_SET_TRACE_INFO_REQ
 
 typedef struct __LSA_IPC_BEGIN_ENUM_USERS_REQ
 {
-    LsaIpcEnumServerHandle* Handle;
     DWORD dwInfoLevel;
     DWORD dwNumMaxRecords;
+    LSA_FIND_FLAGS FindFlags;
 } LSA_IPC_BEGIN_ENUM_USERS_REQ, *PLSA_IPC_BEGIN_ENUM_USERS_REQ;
 
 typedef struct __LSA_IPC_BEGIN_ENUM_GROUPS_REQ
 {
-    LsaIpcEnumServerHandle* Handle;
     DWORD dwInfoLevel;
     DWORD dwNumMaxRecords;
     BOOLEAN bCheckGroupMembersOnline;
+    LSA_FIND_FLAGS FindFlags;
 } LSA_IPC_BEGIN_ENUM_GROUPS_REQ, *PLSA_IPC_BEGIN_ENUM_GROUPS_REQ;
 
 typedef struct __LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ
 {
-    LsaIpcEnumServerHandle* Handle;
     DWORD dwInfoLevel;
     DWORD dwMaxNumNSSArtefacts;
     DWORD dwFlags;
     PCSTR pszMapName;
 } LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ, *PLSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ;
-
-typedef struct __LSA_IPC_ENUM_RECORDS_REQ {
-    LsaIpcEnumServerHandle* Handle;
-    PCSTR pszToken;
-} LSA_IPC_ENUM_RECORDS_REQ, *PLSA_IPC_ENUM_RECORDS_REQ;
 
 typedef struct __LSA_IPC_PROVIDER_IO_CONTROL_REQ {
     PCSTR pszProvider;
@@ -306,7 +295,7 @@ typedef struct __LSA_IPC_PROVIDER_IO_CONTROL_REQ {
     PBYTE pData;
 } LSA_IPC_PROVIDER_IO_CONTROL_REQ, *PLSA_IPC_PROVIDER_IO_CONTROL_REQ;
 
-#define MAP_LWMSG_ERROR(_e_) ((_e_) ? -1 : 0)
+#define MAP_LWMSG_ERROR(_e_) (LsaMapLwmsgStatus(_e_))
 #define MAP_LSA_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 LWMsgProtocolSpec*
@@ -336,5 +325,10 @@ LsaReadData(
     PSTR   pszBuf,
     DWORD  dwBytesToRead,
     PDWORD pdwBytesRead);
+
+DWORD
+LsaMapLwmsgStatus(
+    LWMsgStatus status
+    );
 
 #endif /*__LSAIPC_H__*/

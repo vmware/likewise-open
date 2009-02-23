@@ -41,7 +41,7 @@ NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
                                       DOMAIN_ACCESS_ENUM_ACCOUNTS;
     const uint32 user_access = USER_ACCESS_GET_GROUP_MEMBERSHIP;
 	
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     NetConn *conn;
     handle_t samr_bind;
     PolicyHandle domain_handle, btin_domain_handle;
@@ -54,12 +54,16 @@ NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
     wchar16_t **alias_names, **btin_alias_names;
     uint32 *alias_types, *btin_alias_types;
     LOCALGROUP_USERS_INFO_0 *info;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (username == NULL || bufptr == NULL) {
-	return NtStatusToWin32Error(STATUS_NO_MEMORY);
+        return NtStatusToWin32Error(STATUS_NO_MEMORY);
     }
 
-    status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access);
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NT_STATUS(status);
+
+    status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, access_token);
     if (status != 0) return NtStatusToWin32Error(status);
     
     samr_bind          = conn->samr.bind;
@@ -70,8 +74,8 @@ NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
     status = NetOpenUser(conn, username, user_access, &user_handle, &user_rid);
     if (status != 0) return NtStatusToWin32Error(status);
 
-    status = SidAllocateResizedCopy(&user_sid, domain_sid->subauth_count + 1,
-				    domain_sid);
+    status = RtlSidAllocateResizedCopy(&user_sid, domain_sid->subauth_count + 1,
+                                       domain_sid);
     if (status != 0) return NtStatusToWin32Error(status);
 
     user_sid->subauth[user_sid->subauth_count - 1] = user_rid;
@@ -136,6 +140,13 @@ NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
     }
 
     *bufptr = (void*)info;
+
+error:
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
 
     return NtStatusToWin32Error(status);
 }

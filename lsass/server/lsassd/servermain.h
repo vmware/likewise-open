@@ -58,19 +58,15 @@ LsaSrvStartupPreCheck(
     VOID
     );
 
-#if defined (__LWI_DARWIN__)
-DWORD
-LsaSrvFlushDirectoryServiceCache(
-    VOID
-    );
-#endif
-
-#if defined (__LWI_DARWIN__)
 DWORD
 LsaSrvVerifyNetLogonStatus(
     VOID
     );
-#endif
+
+DWORD
+LsaSrvVerifyLwIoStatus(
+    VOID
+    );
 
 DWORD
 LsaSrvSetDefaults(

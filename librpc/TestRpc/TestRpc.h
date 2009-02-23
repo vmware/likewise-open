@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,12 +31,20 @@
 #ifndef _TESTRPC_H_
 #define _TESTRPC_H_
 
-#include <lwrpc/ntstatus.h>
+#include <config.h>
+
+#include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/errconv.h>
 #include <wc16str.h>
 #include <wc16printf.h>
 #include "Params.h"
+
+#define goto_if_ntstatus_not_success(s, lbl) \
+    if ((s) != STATUS_SUCCESS) {             \
+        status = s;                          \
+        goto lbl;                            \
+    }
 
 struct test;
 
@@ -55,9 +63,12 @@ struct test {
 void AddTest(struct test *ft, const char *name, test_fn function);
 void SetupSamrTests(struct test *t);
 void SetupLsaTests(struct test *t);
+void SetupNetlogonTests(struct test *t);
+void SetupNetApiTests(struct test *t);
+void SetupMprTests(struct test *t);
 handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host);
 handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host);
-// handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host);
+handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host);
 
 
 #define STATUS(a, b)                                                     \
@@ -178,38 +189,8 @@ extern int verbose_mode;
 
 #define PARAM_INFO(name, type, value)                           \
     do {                                                        \
-        char *v = NULL;                                         \
         if (!verbose_mode) break;                               \
-                                                                \
-        printf("# %s = ", name);                                \
-        switch (type) {                                         \
-        case pt_string:                                         \
-            v = strdup((char*)(value));                         \
-            printf("(char*)\"%s\"\n", v);                       \
-            break;                                              \
-                                                                \
-        case pt_w16string:                                      \
-            v = awc16stombs((wchar16_t*)(value));               \
-            printf("(wchar16_t*)\"%s\"\n", v);                  \
-            break;                                              \
-                                                                \
-        case pt_char:                                           \
-            printf("(char)\'%c\'\n", (int)(value));             \
-            break;                                              \
-                                                                \
-        case pt_int32:                                          \
-            printf("(int32) %d (0x%08x)\n", (int32)(value));    \
-            break;                                              \
-                                                                \
-        case pt_uint32:                                         \
-            printf("(uint32) %d (0x%08x)\n", (uint32)(value));  \
-            break;                                              \
-                                                                \
-        default:                                                \
-            printf("(unknown type)\n");                         \
-        }                                                       \
-                                                                \
-        SAFE_FREE(v);                                           \
+        ParamInfo(name, type, (void*)value);                    \
     } while (0)
 
 #define PARAM_INFO_END                                          \
@@ -218,10 +199,21 @@ extern int verbose_mode;
     }
 
 
-#define DUMP_PTR(pfx, v)                            \
-    if (verbose_mode) {                             \
-        printf("%s%s = 0x%08x\n", pfx, #v, (v));    \
+#define DUMP_PTR32(pfx, v)                                      \
+    if (verbose_mode) {                                         \
+        printf("%s%s = 0x%08x\n", pfx, #v, (unsigned int)(v));  \
     }
+
+#define DUMP_PTR64(pfx, v)                                      \
+    if (verbose_mode) {                                         \
+        printf("%s%s = 0x%16lx\n", pfx, #v, (unsigned long)(v)); \
+    }
+
+#if SIZEOF_LONG_INT == 8
+#define DUMP_PTR   DUMP_PTR64
+#else
+#define DUMP_PTR   DUMP_PTR32
+#endif
 
 #define DUMP_WSTR(pfx, v)                           \
     if (verbose_mode) {                             \
@@ -260,23 +252,23 @@ extern int verbose_mode;
     }
 
 
-#define INPUT_ARG_PTR(v)             DUMP_PTR("> ", v);
-#define INPUT_ARG_WSTR(v)            DUMP_WSTR("> ", v);
-#define INPUT_ARG_INT(v)             DUMP_INT("> ", v);
-#define INPUT_ARG_UINT(v)            DUMP_UINT("> ", v);
-#define INPUT_ARG_UNICODE_STRING(v)  DUMP_UNICODE_STRING("> ", v);
-#define INPUT_ARG_CUSTOM(v, fn)      DUMP_CUSTOM("> ", v, fn);
+#define INPUT_ARG_PTR(v)             DUMP_PTR("> ", (v));
+#define INPUT_ARG_WSTR(v)            DUMP_WSTR("> ", (v));
+#define INPUT_ARG_INT(v)             DUMP_INT("> ", (v));
+#define INPUT_ARG_UINT(v)            DUMP_UINT("> ", (v));
+#define INPUT_ARG_UNICODE_STRING(v)  DUMP_UNICODE_STRING("> ", (v));
+#define INPUT_ARG_CUSTOM(v, fn)      DUMP_CUSTOM("> ", (v), fn);
 
-#define OUTPUT_ARG_PTR(v)            DUMP_PTR("< ", v);
-#define OUTPUT_ARG_WSTR(v)           DUMP_WSTR("< ", v);
-#define OUTPUT_ARG_INT(v)            DUMP_INT("< ", v);
-#define OUTPUT_ARG_UINT(v)           DUMP_UINT("< ", v);
-#define OUTPUT_ARG_UNICODE_STRING(v) DUMP_UNICODE_STRING("< ", v);
-#define OUTPUT_ARG_CUSTOM(v, fn)     DUMP_CUSTOM("< ", v, fn);
+#define OUTPUT_ARG_PTR(v)            DUMP_PTR("< ", (v));
+#define OUTPUT_ARG_WSTR(v)           DUMP_WSTR("< ", (v));
+#define OUTPUT_ARG_INT(v)            DUMP_INT("< ", (v));
+#define OUTPUT_ARG_UINT(v)           DUMP_UINT("< ", (v));
+#define OUTPUT_ARG_UNICODE_STRING(v) DUMP_UNICODE_STRING("< ", (v));
+#define OUTPUT_ARG_CUSTOM(v, fn)     DUMP_CUSTOM("< ", (v), fn);
 
-#define RESULT_WSTR(v)               DUMP_WSTR("=> ", v);
-#define RESULT_INT(v)                DUMP_INT("=> ", v);
-#define RESULT_UINT(v)               DUMP_UINT("=> ", v);
+#define RESULT_WSTR(v)               DUMP_WSTR("=> ", (v));
+#define RESULT_INT(v)                DUMP_INT("=> ", (v));
+#define RESULT_UINT(v)               DUMP_UINT("=> ", (v));
 
 #define CALL_MSRPC(msrpc_call)                                     \
     do {                                                           \

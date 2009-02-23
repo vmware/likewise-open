@@ -42,16 +42,13 @@
 LWMsgStatus
 lwmsg_type_verify_range(
     LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
+    LWMsgTypeIter* iter,
     void* object,
-    void* data)
+    size_t object_size
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgTypeIter* iter = (LWMsgTypeIter*) data;
-    intmax_t lower;
-    intmax_t upper;
-    intmax_t value;
+    size_t value;
 
     BAIL_ON_ERROR(status = lwmsg_convert_integer(
                       object,
@@ -62,48 +59,10 @@ lwmsg_type_verify_range(
                       LWMSG_NATIVE_ENDIAN,
                       iter->info.kind_integer.sign));
 
-    BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                      iter->info.kind_integer.range,
-                      sizeof(size_t),
-                      LWMSG_NATIVE_ENDIAN,
-                      &lower,
-                      sizeof(lower),
-                      LWMSG_NATIVE_ENDIAN,
-                      iter->info.kind_integer.sign));
-
-    BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                      iter->info.kind_integer.range + 1,
-                      sizeof(size_t),
-                      LWMSG_NATIVE_ENDIAN,
-                      &upper,
-                      sizeof(upper),
-                      LWMSG_NATIVE_ENDIAN,
-                      iter->info.kind_integer.sign));
-
-    if (value < lower || value > upper)
+    if (value < iter->attrs.range_low || value > iter->attrs.range_high)
     {
         RAISE_ERROR(context, status = LWMSG_STATUS_MALFORMED,
                     "Integer value did not fall within specified range");
-    }
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_type_verify_not_null(
-    LWMsgContext* context,
-    LWMsgBool unmarshalling,
-    size_t object_size,
-    void* object,
-    void* data)
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    if (!*(void**) object)
-    {
-        RAISE_ERROR(context, status = LWMSG_STATUS_MALFORMED,
-                    "Non-nullable pointer value was NULL");
     }
 
 error:

@@ -61,7 +61,7 @@ LsaSetSMBAccessToken(
     PCSTR pszNewCachePath = NULL;
     krb5_context ctx = 0;
     krb5_ccache cc = 0;
-    HANDLE hAccessToken = 0;
+    PIO_ACCESS_TOKEN hAccessToken = 0;
 
     BAIL_ON_INVALID_POINTER(pFreeInfo);
     BAIL_ON_INVALID_STRING(pszDomain);
@@ -100,29 +100,31 @@ LsaSetSMBAccessToken(
                 NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBCreateKrb5AccessTokenA(
+    dwError = LwIoCreateKrb5AccessTokenA(
         pszUsername,
         pszNewCachePath,
         &hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBSetThreadToken(hAccessToken);
+    dwError = LwIoGetThreadAccessToken(&pFreeInfo->hAccessToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwIoSetThreadAccessToken(hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
     pFreeInfo->ctx = ctx;
     pFreeInfo->cc = cc;
-    pFreeInfo->hAccessToken = hAccessToken;
 
 cleanup:
+
+    if (hAccessToken != NULL)
+    {
+        LwIoDeleteAccessToken(hAccessToken);
+    }
 
     return dwError;
 
 error:
-
-    if (hAccessToken != NULL)
-    {
-        SMBCloseHandle(NULL, hAccessToken);
-    }
 
     if (ctx != NULL)
     {
@@ -142,30 +144,10 @@ LsaFreeSMBAccessTokenContents(
     IN OUT PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hThreadToken = NULL;
-    BOOL bClearThreadToken = FALSE;
-
     if (pFreeInfo->hAccessToken != NULL)
     {
-        dwError = SMBGetThreadToken(&hThreadToken);
-
-        if (dwError == LSA_ERROR_SUCCESS)
-        {
-            SMBCompareHandles(
-                hThreadToken,
-                &pFreeInfo->hAccessToken,
-                &bClearThreadToken);
-
-            SMBCloseHandle(NULL, hThreadToken);
-        }
-
-        if (bClearThreadToken)
-        {
-            SMBSetThreadToken(NULL);
-        }
-
-        SMBCloseHandle(NULL, pFreeInfo->hAccessToken);
+        LwIoSetThreadAccessToken(pFreeInfo->hAccessToken);
+        LwIoDeleteAccessToken(pFreeInfo->hAccessToken);
     }
 
     if (pFreeInfo->ctx != NULL)

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,20 +31,31 @@
 #include "includes.h"
 
 
-NTSTATUS SamrChangePasswordUser2(handle_t b, wchar16_t *hostname,
-                                 wchar16_t *account, uint8 ntpass[516],
-                                 uint8 ntverify[16], uint8 lm_change,
-                                 uint8 lmpass[516], uint8 lmverify[16])
+NTSTATUS
+SamrChangePasswordUser2(
+    handle_t b,
+    const wchar16_t *hostname,
+    const wchar16_t *account,
+    uint8 ntpass[516],
+    uint8 ntverify[16],
+    uint8 lm_change,
+    uint8 lmpass[516],
+    uint8 lmverify[16]
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    CryptPassword ntp = {0};
-    CryptPassword lmp = {0};
+    CryptPassword ntp, lmp;
     CryptPassword *lmpwd = NULL;
-    HashPassword ntv = {0};
-    HashPassword lmv = {0};
+    HashPassword ntv, lmv;
     HashPassword *lmver = NULL;
-    UnicodeString srv = {0};
-    UnicodeString acct = {0};
+    UnicodeString srv, acct;
+
+    memset((void*)&ntp, 0, sizeof(ntp));
+    memset((void*)&lmp, 0, sizeof(lmp));
+    memset((void*)&ntv, 0, sizeof(ntv));
+    memset((void*)&lmv, 0, sizeof(lmv));
+    memset((void*)&srv, 0, sizeof(srv));
+    memset((void*)&acct, 0, sizeof(acct));
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(hostname, cleanup);
@@ -72,19 +83,9 @@ NTSTATUS SamrChangePasswordUser2(handle_t b, wchar16_t *hostname,
         lmver = NULL;
     }
 
-    TRY
-    {
-        status = _SamrChangePasswordUser2(b, &srv, &acct, &ntp, &ntv, lm_change,
-                                          lmpwd, lmver);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
-
+    DCERPC_CALL(_SamrChangePasswordUser2(b, &srv, &acct, &ntp, &ntv,
+                                         lm_change, lmpwd, lmver));
     goto_if_ntstatus_not_success(status, error);
-
 
 cleanup:
     FreeUnicodeString(&acct);

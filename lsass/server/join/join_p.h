@@ -49,6 +49,8 @@
 #ifndef __JOIN_P_H__
 #define __JOIN_P_H__
 
+#include <lwio/lwio.h>
+
 typedef struct __LSA_MACHINE_ACCT_INFO
 {
     PSTR   pszDomainName;
@@ -66,7 +68,7 @@ typedef struct __LSA_ACCESS_TOKEN_FREE_INFO
 {
     krb5_context ctx;
     krb5_ccache cc;
-    HANDLE hAccessToken;
+    PIO_ACCESS_TOKEN hAccessToken;
 } LSA_ACCESS_TOKEN_FREE_INFO, *PLSA_ACCESS_TOKEN_FREE_INFO;
 
 DWORD

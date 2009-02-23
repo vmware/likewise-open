@@ -44,6 +44,10 @@ struct lderr_winerr {
 
 #define LDERR(lderr, winerr) { lderr, winerr, #lderr }
 
+/* New define in OpenLDAP 2.4 */
+#ifndef LDAP_PROXY_AUTHZ_FAILURE
+#  define LDAP_PROXY_AUTHZ_FAILURE LDAP_X_PROXY_AUTHZ_FAILURE
+#endif
 
 static const struct lderr_winerr ldaperr_winerr_map[] = {
     LDERR(LDAP_SUCCESS, ERROR_SUCCESS),

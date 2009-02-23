@@ -34,43 +34,50 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
+#include <wc16str.h>
+#include <secdesc/secdesc.h>
+#include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
-#include <wc16str.h>
-#include <lwrpc/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/lsa.h>
-#include <lwrpc/lsabinding.h>
 #include <lwrpc/mpr.h>
 
 #include "TestRpc.h"
 #include "Params.h"
+#include "Util.h"
 
 
 handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
 {
-    RPCSTATUS status;
-    size_t hostname_size;
-    unsigned char *hostname;
+    RPCSTATUS status = RPC_S_OK;
+    size_t hostname_size = 0;
+    char *hostname = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
 
     hostname_size = wc16slen(host) + 1;
-    hostname = (unsigned char*) malloc(hostname_size * sizeof(char));
+    hostname = (char*) malloc(hostname_size * sizeof(char));
     if (hostname == NULL) return NULL;
     wc16stombs(hostname, host, hostname_size);
 
-    status = InitLsaBindingDefault(binding, hostname);
+    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS)
+    {
+        return NULL;
+    }
+
+    status = InitLsaBindingDefault(binding, hostname, access_token);
     if (status != RPC_S_OK) {
         int result;
-        CHAR_T errmsg[dce_c_error_string_len];
+        unsigned char errmsg[dce_c_error_string_len];
 	
         dce_error_inq_text(status, errmsg, &result);
         if (result == 0) {
             printf("Error: %s\n", errmsg);
         } else {
-            printf("Unknown error: %08x\n", status);
+            printf("Unknown error: %08lx\n", (unsigned long int)status);
         }
 
         return NULL;
@@ -112,6 +119,7 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
     OUTPUT_ARG_PTR(&lsa_policy);
 
     status = LsaClose(lsa_b, &lsa_policy);
+    if (status != 0) rpc_fail(status);
 
     FreeLsaBinding(&lsa_b);
 
@@ -138,7 +146,6 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
     wchar16_t *domname = NULL;
-    wchar16_t buffer[512] = {0};
     wchar16_t **names = NULL;
     uint32 num_names = 0;
     wchar16_t **usernames = NULL;
@@ -221,9 +228,9 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
 		
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
-            SidAllocateResizedCopy(&usr_sid,
-                                   dom_sid->subauth_count + 1,
-                                   dom_sid);
+            RtlSidAllocateResizedCopy(&usr_sid,
+                                      dom_sid->subauth_count + 1,
+                                      dom_sid);
             usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
         }
@@ -238,7 +245,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
 
     INPUT_ARG_PTR(lsa_b);
     INPUT_ARG_PTR(&lsa_policy);
-    INPUT_ARG_PTR(sid_array);
+    INPUT_ARG_PTR(&sid_array);
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(trans_names);
     INPUT_ARG_UINT(level);
@@ -317,7 +324,6 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
     wchar16_t *domname = NULL;
-    wchar16_t buffer[512] = {0};
     wchar16_t **names = NULL;
     uint32 num_names = 0;
     wchar16_t **usernames = NULL;
@@ -330,8 +336,6 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     TranslatedName *trans_names = NULL;
     uint32 level, names_count, sids_count;
     int i = 0;
-    uint8 *sess_key = NULL;
-    size_t sess_key_len = 0;
 
     TESTINFO(t, hostname, user, pass);
 
@@ -403,16 +407,16 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
 		
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
-            SidAllocateResizedCopy(&usr_sid,
-                                   dom_sid->subauth_count + 1,
-                                   dom_sid);
+            RtlSidAllocateResizedCopy(&usr_sid,
+                                      dom_sid->subauth_count + 1,
+                                      dom_sid);
             usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
 
-            SidToString(usr_sid, &sidstr);
+            SidToStringW(usr_sid, &sidstr);
             DUMP_WSTR(" ", sidstr);
 
-            SidFreeString(sidstr);
+            SidStrFreeW(sidstr);
         }
     }
 
@@ -425,7 +429,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
 
     INPUT_ARG_PTR(lsa_b);
     INPUT_ARG_PTR(&lsa_policy);
-    INPUT_ARG_PTR(sid_array);
+    INPUT_ARG_PTR(&sid_array);
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(trans_names);
     INPUT_ARG_UINT(level);
@@ -500,10 +504,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     DomSid **input_sids = NULL;
     int input_sid_count = 0;
     wchar16_t *domname = NULL;
-    wchar16_t buffer[512] = {0};
     wchar16_t *names[2] = {0};
-    wchar16_t *adminname = NULL;
-    wchar16_t *guestname = NULL;
     PolicyHandle lsa_policy = {0};
     RefDomainList *domains = NULL;
     SidArray sid_array = {0};
@@ -542,19 +543,19 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     for (i = 0; i < sid_array.num_sids; i++) {
         sid_array.sids[i].sid = input_sids[i];
 
-        SidToString(input_sids[i], &sidstr);
+        SidToStringW(input_sids[i], &sidstr);
         test_fail_if_no_memory(sidstr);
 
         DUMP_WSTR(" ", sidstr);
 
-        SidFreeString(sidstr);
+        SidStrFreeW(sidstr);
     }
 
     level = 1;
 
     INPUT_ARG_PTR(lsa_b);
     INPUT_ARG_PTR(&lsa_policy);
-    INPUT_ARG_PTR(sid_array);
+    INPUT_ARG_PTR(&sid_array);
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(names);
     INPUT_ARG_UINT(level);
@@ -614,7 +615,6 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
     enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
-    DomSid *input_sid = NULL;
     wchar16_t *domname = NULL;
     PolicyHandle lsa_policy = {0};
     LsaPolicyInformation *info = NULL;
@@ -721,7 +721,6 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
     enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
-    DomSid *input_sid = NULL;
     wchar16_t *domname = NULL;
     PolicyHandle lsa_policy = {0};
     LsaPolicyInformation *info = NULL;
@@ -790,7 +789,6 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
         }
     }
 
-close:
     status = LsaClose(lsa_b, &lsa_policy);
     FreeLsaBinding(&lsa_b);
 

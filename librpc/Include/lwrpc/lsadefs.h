@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,11 +28,22 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Lsa interface definitions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _LSADEFS_H_
 #define _LSADEFS_H_
 
 #include <lwrpc/types.h>
-#include <lwrpc/security.h>
+#include <lwrpc/unistrdef.h>
+#include <secdesc/siddef.h>
+#include <secdesc/phdef.h>
+#include <secdesc/sdflags.h>
+#include <secdesc/sddef.h>
+#include <lwrpc/unistrdef.h>
 
 
 typedef struct audit_log_info {
@@ -203,13 +214,27 @@ typedef struct translated_name_array {
 } TranslatedNameArray;
 
 
+typedef uint16 LsaSidType;
+
+#define SID_TYPE_USE_NONE   0
+#define SID_TYPE_USER       1
+#define SID_TYPE_DOM_GRP    2
+#define SID_TYPE_DOMAIN     3
+#define SID_TYPE_ALIAS      4
+#define SID_TYPE_WKN_GRP    5
+#define SID_TYPE_DELETED    6
+#define SID_TYPE_INVALID    7
+#define SID_TYPE_UNKNOWN    8
+#define SID_TYPE_COMPUTER   9
+#define SID_TYPE_LABEL      10
+
+
 #define LSA_LOOKUP_NAMES_ALL                   1
 #define LSA_LOOKUP_NAMES_DOMAINS_ONLY          2
 #define LSA_LOOKUP_NAMES_PRIMARY_DOMAIN_ONLY   3
 #define LSA_LOOKUP_NAMES_UPLEVEL_TRUSTS_ONLY   4
 #define LSA_LOOKUP_NAMES_FOREST_TRUSTS         5
 #define LSA_LOOKUP_NAMES_UPLEVEL_TRUSTS_ONLY2  6
-
 
 #define LSA_ACCESS_LOOKUP_NAMES_SIDS           0x00000800
 #define LSA_ACCESS_ENABLE_LSA                  0x00000400
