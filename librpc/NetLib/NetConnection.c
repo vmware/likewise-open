@@ -47,23 +47,35 @@ NetConn *FirstConn(NetConn *cn, int set)
 
 static
 void
-GetSessionKey(handle_t binding, unsigned char** sess_key, unsigned32* sess_key_len, unsigned32* st)
+GetSessionKey(handle_t binding, unsigned char** sess_key,
+              unsigned16* sess_key_len, unsigned32* st)
 {
     rpc_transport_info_handle_t info = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-    rpc_binding_inq_transport_info(binding, &info, st);
+    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS)
+    {
+        goto error;
+    }
 
+    rpc_smb_transport_info_from_lwio_token(access_token, FALSE,
+                                           &info, st);
     if (*st)
     {
         goto error;
     }
 
-    rpc_smb_transport_info_inq_session_key(info, sess_key, sess_key_len);
+    rpc_smb_transport_info_inq_session_key(info, sess_key,
+                                           sess_key_len);
+
+cleanup:
+    return;
 
 error:
-
-    return;
+    *sess_key     = NULL;
+    *sess_key_len = 0;
 }
+
 
 NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
                         uint32 req_dom_flags, uint32 req_btin_dom_flags,
@@ -96,7 +108,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
     wchar16_t *dom_name = NULL;
     wchar16_t localhost_addr[10];
     uint8 *sess_key;
-    unsigned32 sess_key_len;
+    unsigned16 sess_key_len;
     NTSTATUS status = STATUS_SUCCESS;
     RPCSTATUS rpcstatus = 0;
 
