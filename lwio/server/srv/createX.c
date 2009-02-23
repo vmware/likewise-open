@@ -45,14 +45,14 @@ static
 NTSTATUS
 SrvSetNamedPipeClientPrincipal(
     PSMB_SRV_SESSION pSession,
-    PIO_ECP_LIST* ppEcpList
+    PIO_ECP_LIST     pEcpList
     );
 
 static
 NTSTATUS
 SrvSetNamedPipeClientAddress(
     PSMB_SRV_CONNECTION pConnection,
-    PIO_ECP_LIST* ppEcpList
+    PIO_ECP_LIST        pEcpList
     );
 
 static
@@ -65,7 +65,7 @@ static
 NTSTATUS
 SrvSetNamedPipeSessionKey(
     PSMB_SRV_CONNECTION pConnection,
-    PIO_ECP_LIST* ppEcpList
+    PIO_ECP_LIST        pEcpList
     );
 
 NTSTATUS
@@ -132,19 +132,22 @@ SrvProcessNTCreateAndX(
      */
     if (SrvIsNamedPipe(pTree))
     {
+        ntStatus = IoRtlEcpListAllocate(&pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         ntStatus = SrvSetNamedPipeSessionKey(
-            pConnection,
-            &pEcpList);
+                       pConnection,
+                       pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvSetNamedPipeClientPrincipal(
-            pSession,
-            &pEcpList);
+                       pSession,
+                       pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvSetNamedPipeClientAddress(
-            pConnection,
-            &pEcpList);
+                       pConnection,
+                       pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -410,7 +413,7 @@ static
 NTSTATUS
 SrvSetNamedPipeSessionKey(
     PSMB_SRV_CONNECTION pConnection,
-    PIO_ECP_LIST* ppEcpList
+    PIO_ECP_LIST        pEcpList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -419,13 +422,7 @@ SrvSetNamedPipeSessionKey(
 
     if (pSessionKey != NULL)
     {
-        if (!*ppEcpList)
-        {
-            ntStatus = IoRtlEcpListAllocate(ppEcpList);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        ntStatus = IoRtlEcpListInsert(*ppEcpList,
+        ntStatus = IoRtlEcpListInsert(pEcpList,
                                       IO_ECP_TYPE_SESSION_KEY,
                                       pSessionKey,
                                       ulSessionKeyLength,
@@ -446,20 +443,14 @@ static
 NTSTATUS
 SrvSetNamedPipeClientPrincipal(
     PSMB_SRV_SESSION pSession,
-    PIO_ECP_LIST* ppEcpList
+    PIO_ECP_LIST     pEcpList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSTR pszClientPrincipalName = pSession->pszClientPrincipalName;
     ULONG ulEcpLength = strlen(pszClientPrincipalName) + 1;
 
-    if (!*ppEcpList)
-    {
-        ntStatus = IoRtlEcpListAllocate(ppEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = IoRtlEcpListInsert(*ppEcpList,
+    ntStatus = IoRtlEcpListInsert(pEcpList,
                                   IO_ECP_TYPE_PEER_PRINCIPAL,
                                   pszClientPrincipalName,
                                   ulEcpLength,
@@ -479,20 +470,14 @@ static
 NTSTATUS
 SrvSetNamedPipeClientAddress(
     PSMB_SRV_CONNECTION pConnection,
-    PIO_ECP_LIST* ppEcpList
+    PIO_ECP_LIST        pEcpList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PULONG pAddr = &pConnection->pSocket->cliaddr.sin_addr.s_addr;
+    PBYTE pAddr = (PBYTE)&pConnection->pSocket->cliaddr.sin_addr.s_addr;
     ULONG ulAddrLength = sizeof(pConnection->pSocket->cliaddr.sin_addr.s_addr);
 
-    if (!*ppEcpList)
-    {
-        ntStatus = IoRtlEcpListAllocate(ppEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = IoRtlEcpListInsert(*ppEcpList,
+    ntStatus = IoRtlEcpListInsert(pEcpList,
                                   IO_ECP_TYPE_PEER_ADDRESS,
                                   pAddr,
                                   ulAddrLength,
@@ -507,3 +492,4 @@ error:
 
     goto cleanup;
 }
+
