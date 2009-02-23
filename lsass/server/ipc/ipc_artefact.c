@@ -183,6 +183,10 @@ LsaSrvIpcBeginEnumNSSArtefacts(
 
         pResponse->tag = LSA_R_BEGIN_ENUM_NSS_ARTEFACTS_SUCCESS;
         pResponse->object = hResume;
+        hResume = NULL;
+
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_retain_handle(assoc, pResponse->object));
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
@@ -292,32 +296,12 @@ LsaSrvIpcEndEnumNSSArtefacts(
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = NULL;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_release_handle(assoc, pRequest->object));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvEndEnumNSSArtefacts(
-                        Handle,
-                        (HANDLE) pRequest->object);
-
-    if (!dwError)
-    {
-        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(assoc, pRequest->object, LWMSG_FALSE));
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResponse->tag = LSA_R_END_ENUM_NSS_ARTEFACTS_SUCCESS;
-        pResponse->object = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResponse->tag = LSA_R_END_ENUM_NSS_ARTEFACTS_FAILURE;
-        pResponse->object = pError;
-    }
+    pResponse->tag = LSA_R_END_ENUM_NSS_ARTEFACTS_SUCCESS;
+    pResponse->object = NULL;
 
 cleanup:
     return MAP_LSA_ERROR_IPC(dwError);
