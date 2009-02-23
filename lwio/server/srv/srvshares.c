@@ -167,10 +167,10 @@ SrvDevCtlEnumShares(
     )
 {
     NTSTATUS ntStatus = 0;
-    DWORD dwError = 0;
-    DWORD dwLevel = 0;
-    DWORD dwNumEntries = 0;
-    DWORD i = 0;
+    ULONG ulError = 0;
+    ULONG ulLevel = 0;
+    ULONG ulNumEntries = 0;
+    ULONG i = 0;
     PBYTE pBuffer = NULL;
     ULONG pBufferSize = 0;
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
@@ -189,26 +189,27 @@ SrvDevCtlEnumShares(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDbContext = &gSMBSrvGlobals.shareDBContext;
-    dwLevel    = pEnumShareInfoParamsIn->dwInfoLevel;
+    ulLevel    = pEnumShareInfoParamsIn->dwInfoLevel;
 
     ntStatus = SrvShareEnumShares(
                         pDbContext,
-                        dwLevel,
+                        ulLevel,
                         &pShares,
-                        &dwNumEntries
+                        &ulNumEntries
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (dwLevel)
+    switch (ulLevel)
     {
     case 1:
-        dwError = LW_RTL_ALLOCATE(
+        ulError = LW_RTL_ALLOCATE(
                       &p1,
                       SHARE_INFO_1,
-                      sizeof(*p1) * dwNumEntries);
-        BAIL_ON_SMB_ERROR(dwError);
+                      sizeof(*p1) * ulNumEntries);
+        ntStatus = LwUnixErrnoToNtStatus(ulError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        for (i = 0; i < dwNumEntries; i++)
+        for (i = 0; i < ulNumEntries; i++)
         {
             p1[i].shi1_netname             = pShares[i].pwszName;
             p1[i].shi1_type                = pShares[i].service;
@@ -219,10 +220,14 @@ SrvDevCtlEnumShares(
         break;
 
     case 2:
-        dwError = SMBAllocateMemory(sizeof(*p2) * dwNumEntries, OUT_PPVOID(&p2));
-        BAIL_ON_SMB_ERROR(dwError);
+        ulError = LW_RTL_ALLOCATE(
+                       &p2,
+                       SHARE_INFO_2,
+                       sizeof(*p2) * ulNumEntries);
+        ntStatus = LwUnixErrnoToNtStatus(ulError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        for (i = 0; i < dwNumEntries; i++)
+        for (i = 0; i < ulNumEntries; i++)
         {
             p2[i].shi2_netname             = pShares[i].pwszName;
             p2[i].shi2_type                = pShares[i].service;
@@ -238,13 +243,14 @@ SrvDevCtlEnumShares(
         break;
 
     case 502:
-        dwError = LW_RTL_ALLOCATE(
+        ulError = LW_RTL_ALLOCATE(
                         &p502,
                         SHARE_INFO_502,
-                        sizeof(*p502) * dwNumEntries);
-        BAIL_ON_SMB_ERROR(dwError);
+                        sizeof(*p502) * ulNumEntries);
+        ntStatus = LwUnixErrnoToNtStatus(ulError);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        for (i = 0; i < dwNumEntries; i++)
+        for (i = 0; i < ulNumEntries; i++)
         {
             p502[i].shi502_netname             = pShares[i].pwszName;
             p502[i].shi502_type                = pShares[i].service;
@@ -265,8 +271,8 @@ SrvDevCtlEnumShares(
         EnumShareInfoParamsOut.info.p0 = NULL;
     }
 
-    EnumShareInfoParamsOut.dwInfoLevel  = dwLevel;
-    EnumShareInfoParamsOut.dwNumEntries = dwNumEntries;
+    EnumShareInfoParamsOut.dwInfoLevel  = ulLevel;
+    EnumShareInfoParamsOut.dwNumEntries = ulNumEntries;
 
     ntStatus = LwShareInfoMarshalEnumParameters(
                         &EnumShareInfoParamsOut,
@@ -288,7 +294,7 @@ cleanup:
 
     if (pShares)
     {
-        for (i = 0; i < dwNumEntries; i++)
+        for (i = 0; i < ulNumEntries; i++)
         {
             if (pShares[i].pwszName)
             {
