@@ -432,9 +432,8 @@ NtIpcUnregisterFileHandle(
 {
     NTSTATUS status = 0;
 
-    status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_release_handle(
+    status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_unregister_handle(
                                     pAssoc,
                                     FileHandle));
-    assert(!status);
     return status;
 }

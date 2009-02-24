@@ -264,11 +264,7 @@ IopIpcCloseFile(
     pResponse->tag = replyType;
     pResponse->object = pReply;
 
-    pReply->Status = IoCloseFile(pMessage->FileHandle);
-    if (!pReply->Status)
-    {
-        NtIpcUnregisterFileHandle(pAssoc, pMessage->FileHandle);
-    }
+    pReply->Status = NtIpcUnregisterFileHandle(pAssoc, pMessage->FileHandle);
 
 cleanup:
     LOG_LEAVE_IF_STATUS_EE(status, EE);
