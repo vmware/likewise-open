@@ -69,6 +69,8 @@ typedef struct HandleEntry
     const char* type;
     /* Handle refcount */
     size_t refs;
+    /* Validity bit */
+    LWMsgBool valid;
     /* Handle pointer */
     void* pointer;
     /* Handle locality */
@@ -133,6 +135,7 @@ default_add_handle(
     }
 
     handle->type = type;
+    handle->valid = LWMSG_TRUE;
     handle->refs = 1;
     handle->pointer = pointer ? pointer : handle;
     handle->cleanup = cleanup;
@@ -415,7 +418,7 @@ default_retain_handle(
         }
     }
 
-    BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
 
 done:
 
@@ -460,7 +463,7 @@ default_release_handle(
         }
     }
 
-    BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
 
 done:
 
@@ -471,6 +474,57 @@ error:
     goto done;
 }
 
+static
+LWMsgStatus
+default_unregister_handle(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    HandleEntry* handle = NULL;
+
+    if (!session)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    }
+
+    for (handle = session->handles; handle; handle = handle->next)
+    {
+        if (handle->pointer == ptr)
+        {
+            if (!handle->valid)
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
+            }
+
+            handle->valid = LWMSG_FALSE;
+
+            if (--handle->refs == 0)
+            {
+                if (handle == session->handles)
+                {
+                    session->handles = session->handles->next;
+                }
+
+                default_free_handle(handle);
+                session->num_handles--;
+            }
+            goto done;
+        }
+    }
+
+    BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
+
+done:
+
+    return status;
+
+error:
+
+    goto done;
+}
 
 static
 LWMsgStatus
@@ -495,6 +549,11 @@ default_handle_pointer_to_id(
     {
         if (handle->pointer == pointer)
         {
+            if (!handle->valid)
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+            }
+
             if (type)
             {
                 *type = handle->type;
@@ -540,6 +599,11 @@ default_handle_id_to_pointer(
     {
         if (handle->hid == hid && handle->locality == htype)
         {
+            if (!handle->valid)
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+            }
+
             if (type && strcmp(type, handle->type))
             {
                 BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
@@ -633,6 +697,7 @@ static LWMsgSessionManagerClass default_class =
     .register_handle_remote = default_register_handle_remote,
     .retain_handle = default_retain_handle,
     .release_handle = default_release_handle,
+    .unregister_handle = default_unregister_handle,
     .handle_pointer_to_id = default_handle_pointer_to_id,
     .handle_id_to_pointer = default_handle_id_to_pointer,
     .set_session_data = default_set_session_data,

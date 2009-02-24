@@ -150,7 +150,31 @@ lwmsg_assoc_release_handle(
                       session,
                       handle
                       ));
-    
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_assoc_unregister_handle(
+    LWMsgAssoc* assoc,
+    void* handle
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSessionManager* manager = NULL;
+    LWMsgSession* session = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
+
+    BAIL_ON_ERROR(status = lwmsg_session_manager_unregister_handle(
+                      manager,
+                      session,
+                      handle
+                      ));
+
 error:
 
     return status;

@@ -234,6 +234,16 @@ lwmsg_session_manager_release_handle (
 }
 
 LWMsgStatus
+lwmsg_session_manager_unregister_handle (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr
+    )
+{
+    return manager->mclass->unregister_handle(manager, session, ptr);
+}
+
+LWMsgStatus
 lwmsg_session_manager_handle_pointer_to_id (
     LWMsgSessionManager* manager,
     LWMsgSession* session,

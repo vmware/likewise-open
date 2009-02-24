@@ -149,6 +149,13 @@ typedef struct LWMsgSessionManagerClass
         );
 
     LWMsgStatus
+    (*unregister_handle) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session,
+        void* ptr
+        );
+
+    LWMsgStatus
     (*handle_pointer_to_id) (
         LWMsgSessionManager* manager,
         LWMsgSession* session,

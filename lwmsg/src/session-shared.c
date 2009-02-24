@@ -73,6 +73,8 @@ typedef struct HandleEntry
 {
     /* Pointer to associated session */
     SessionEntry* session;
+    /* Validity vit */
+    LWMsgBool volatile valid;
     /* Reference count */
     size_t volatile refs;
     /* Handle type */
@@ -177,6 +179,7 @@ shared_add_handle(
     }
 
     handle->type = type;
+    handle->valid = LWMSG_TRUE;
     handle->refs = 1;
     handle->pointer = pointer ? pointer : handle;
     handle->cleanup = cleanup;
@@ -490,11 +493,6 @@ shared_retain_handle(
 
     session_lock(session);
 
-    if (!session)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
-    }
-
     for (handle = session->handles; handle; handle = handle->next)
     {
         if (handle->pointer == ptr)
@@ -504,7 +502,7 @@ shared_retain_handle(
         }
     }
 
-    BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
 
 done:
 
@@ -530,15 +528,61 @@ shared_release_handle(
 
     session_lock(session);
 
-    if (!session)
+    for (handle = session->handles; handle; handle = handle->next)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+        if (handle->pointer == ptr)
+        {
+            if (--handle->refs == 0)
+            {
+                if (handle == session->handles)
+                {
+                    session->handles = session->handles->next;
+                }
+
+                shared_free_handle(handle);
+                session->num_handles--;
+            }
+            goto done;
+        }
     }
+
+    BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
+
+done:
+
+    session_unlock(session);
+
+    return status;
+
+error:
+
+    goto done;
+}
+
+static
+LWMsgStatus
+shared_unregister_handle(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    HandleEntry* handle = NULL;
+
+    session_lock(session);
 
     for (handle = session->handles; handle; handle = handle->next)
     {
         if (handle->pointer == ptr)
         {
+            if (!handle->valid)
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
+            }
+
+            handle->valid = LWMSG_FALSE;
+
             if (--handle->refs == 0)
             {
                 if (handle == session->handles)
@@ -566,7 +610,6 @@ error:
     goto done;
 }
 
-
 static
 LWMsgStatus
 shared_handle_pointer_to_id(
@@ -587,6 +630,11 @@ shared_handle_pointer_to_id(
     {
         if (handle->pointer == pointer)
         {
+            if (!handle->valid)
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+            }
+
             if (type)
             {
                 *type = handle->type;
@@ -636,14 +684,17 @@ shared_handle_id_to_pointer(
     {
         if (handle->hid == hid && handle->locality == htype)
         {
+            if (!handle->valid)
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+            }
+
             if (type && strcmp(type, handle->type))
             {
                 BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
             }
 
             *pointer = handle->pointer;
-            /* Bump reference count since we have created a new reference
-               to the handle pointer */
             handle->refs++;
             goto done;
         }
@@ -756,6 +807,7 @@ static LWMsgSessionManagerClass shared_class =
     .register_handle_remote = shared_register_handle_remote,
     .retain_handle = shared_retain_handle,
     .release_handle = shared_release_handle,
+    .unregister_handle = shared_unregister_handle,
     .handle_pointer_to_id = shared_handle_pointer_to_id,
     .handle_id_to_pointer = shared_handle_id_to_pointer,
     .set_session_data = shared_set_session_data,

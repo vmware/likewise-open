@@ -768,7 +768,7 @@ handle_sender(void* _assoc)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, destroy_reply->status, 0);
     free(destroy_reply);
     
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_release_handle(assoc, handle));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, handle));
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
     lwmsg_assoc_delete(assoc);
@@ -817,7 +817,7 @@ handle_destroy_srv(
     out->tag = HANDLE_DESTROY_REPLY;
     out->object = reply;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_release_handle(assoc, handle));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, handle));
 
     return LWMSG_STATUS_EOF;
 }
