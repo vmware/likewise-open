@@ -1,6 +1,6 @@
 sbin_PROGRAMS = srvsvcd
 
-lib_LTLIBRARIES = libsrvsvc_cs.la libsrvsvc_ss.la
+lib_LTLIBRARIES = libsrvsvc_ss.la
 
 idl_srcdir=$(top_srcdir)/idl
 include_srcdir=$(top_srcdir)/include
@@ -20,14 +20,17 @@ srvsvcd_SOURCES =              \
     main.c
 
 
-libsrvsvc_cs_la_SOURCES = srvsvc_cstub.c
 libsrvsvc_ss_la_SOURCES = srvsvc_sstub.c
 
-libsrvsvc_cs_la_CPPFLAGS = @DCERPC_INCLUDES@
-libsrvsvc_ss_la_CPPFLAGS = @DCERPC_INCLUDES@
+FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
-srvsvcd_CFLAGS=-g $(INCLUDES) -DSRVSVC_BUILD
+libsrvsvc_ss_la_CPPFLAGS = \
+    $(FEATURETEST_FLAGS) \
+    @DCERPC_INCLUDES@
+
+srvsvcd_CFLAGS = -g $(INCLUDES) -DSRVSVC_BUILD $(FEATURETEST_FLAGS)
 srvsvcd_CPPFLAGS = \
+    $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@ \
     @LWIO_INCLUDES@
