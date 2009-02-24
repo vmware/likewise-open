@@ -181,8 +181,7 @@ PvfsWildcardMatch(
                 BAIL_ON_NT_STATUS(ntError);
             }
             /* Example: pszCursor == ".BMP" and pszMatch == "*.BMP" */
-            pszCursor += 1;
-            pszMatch += 2;
+            pszMatch += 1;
 
             pszString = pszCursor;
 
@@ -190,7 +189,27 @@ PvfsWildcardMatch(
         }
 
         case PVFS_WILDCARD_TYPE_SINGLE_DOT:
+        {
+            DWORD dwCount = 0;
+            DWORD i = 0;
+
+            while (PVFS_CSTRING_NON_NULL(pszMatch) && *pszMatch != '.') {
+                dwCount++;
+                pszMatch++;
+            }
+
+            /* We can match 0 - dwCount characters up to the last '.'
+               This is really a hold over from DOS 8.3 filenames */
+
+            for (i=0;
+                 i<dwCount && PVFS_CSTRING_NON_NULL(pszString) && (*pszString != '.');
+                 i++, pszString++)
+            {
+                /* no loop body */;
+            }
+
             break;
+        }
 
         }
     }
@@ -224,7 +243,7 @@ NextMatchState(
     PCSTR pszPattern
     )
 {
-    CHAR c1,c2;
+    CHAR c1, c2;
 
     c1 = *pszPattern;
     c2 = *(pszPattern+1);
@@ -241,9 +260,23 @@ NextMatchState(
         return PVFS_WILDCARD_TYPE_SPLAT;
     }
 
-    if (c1 == '?') {
-        if (c2 == '.') {
-            return PVFS_WILDCARD_TYPE_SINGLE_DOT;
+    if (c1 == '?')
+    {
+        PCSTR s = pszPattern+1;
+
+        /* Looking for end of ?'s.  Exit on '.' or other character */
+        for (c2 = *s; s && *s; s++)
+        {
+            c2 = *s;
+
+            switch (c2) {
+            case '.':
+                return PVFS_WILDCARD_TYPE_SINGLE_DOT;
+            case '?':
+                continue;
+            default:
+                return PVFS_WILDCARD_TYPE_SINGLE;
+            }
         }
 
         return PVFS_WILDCARD_TYPE_SINGLE;
