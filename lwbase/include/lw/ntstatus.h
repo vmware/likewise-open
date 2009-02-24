@@ -66,7 +66,7 @@
 //
 // The system status codes are facility 0.
 //
-// In genereal, stay away from informational and success codes.
+// In general, stay away from informational and success codes.
 // That being said, some system facilities require the use of
 // success codes.  The most important of the success codes is
 // STATUS_PENDING.
@@ -712,6 +712,7 @@ typedef LONG LW_NTSTATUS, *LW_PNTSTATUS;
 #define LW_NT_STATUS_DS_MACHINE_ACCOUNT_QUOTA_EXCEEDED               ((LW_NTSTATUS) 0xc00002e7)
 #define LW_NT_STATUS_MULTIPLE_FAULT_VIOLATION                        ((LW_NTSTATUS) 0xc00002e8)
 #define LW_NT_STATUS_NOT_SUPPORTED_ON_SBS                            ((LW_NTSTATUS) 0xc0000300)
+#define LW_NT_STATUS_ASSERTION_FAILURE                               ((LW_NTSTATUS) 0xc0000420)
 
 #ifndef LW_STRICT_NAMESPACE
 
@@ -1340,6 +1341,7 @@ typedef LW_PNTSTATUS PNTSTATUS;
 #define STATUS_DS_MACHINE_ACCOUNT_QUOTA_EXCEEDED           LW_NT_STATUS_DS_MACHINE_ACCOUNT_QUOTA_EXCEEDED
 #define STATUS_MULTIPLE_FAULT_VIOLATION                    LW_NT_STATUS_MULTIPLE_FAULT_VIOLATION
 #define STATUS_NOT_SUPPORTED_ON_SBS                        LW_NT_STATUS_NOT_SUPPORTED_ON_SBS
+#define STATUS_ASSERTION_FAILURE                           LW_NT_STATUS_ASSERTION_FAILURE
 
 #endif /* LW_STRICT_NAMESPACE */
 
