@@ -150,7 +150,8 @@ SrvDeviceIoCommon(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
-                        ulOutBufferSize
+                        ulOutBufferSize,
+                        &ulBytesTransferred
                         );
           break;
 
