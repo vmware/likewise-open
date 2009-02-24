@@ -178,6 +178,13 @@ MapPosixOpenFlags(
     );
 
 
+/* From string.c */
+
+VOID
+PvfsCStringUpper(
+	PSTR pszString
+	);
+
 #endif /* __PVFS_H__ */
 
 

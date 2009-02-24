@@ -79,6 +79,9 @@ PvfsWildcardMatch(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszString = NULL;
     PSTR pszMatch  = NULL;
+    PSTR pszPathUpper = NULL;
+    PSTR pszPatternUpper = NULL;
+    BOOLEAN bMatched = FALSE;
 
     /* Quick check for an exact match */
 
@@ -87,12 +90,31 @@ PvfsWildcardMatch(
         return RtlCStringIsEqual(pszPathname, pszPattern, bCaseSensitive);
     }
 
-    /* Enter state machine */
+    /* If we have a case insensitive search, upper case the
+       Pathname and Pattern for easier comparison */
 
     pszString = pszPathname;
     pszMatch = pszPattern;
 
-    for (pszString = pszPathname, pszMatch = pszPattern;
+    if (!bCaseSensitive) {
+        ntError = RtlCStringDuplicate(&pszPathUpper, pszPathname);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = RtlCStringDuplicate(&pszPatternUpper, pszPattern);
+        BAIL_ON_NT_STATUS(ntError);
+
+        PvfsCStringUpper(pszPathUpper);
+        PvfsCStringUpper(pszPatternUpper);
+
+        pszString = pszPathUpper;
+        pszMatch  = pszPatternUpper;
+    }
+
+
+    /* Enter state machine */
+
+
+    for (/* already performed init */;
          PVFS_CSTRING_NON_NULL(pszString) && PVFS_CSTRING_NON_NULL(pszMatch);
          pszString++, pszMatch++)
     {
@@ -104,10 +126,6 @@ PvfsWildcardMatch(
 
         switch (eState) {
         case PVFS_WILDCARD_TYPE_NONE:
-            if (!bCaseSensitive) {
-                cSrc = toupper(cSrc);
-                cMatch = toupper(cMatch);
-            }
             if (cSrc != cMatch) {
                 ntError = STATUS_NO_MATCH;
                 BAIL_ON_NT_STATUS(ntError);
@@ -115,13 +133,29 @@ PvfsWildcardMatch(
             break;
 
         case PVFS_WILDCARD_TYPE_SPLAT:
+        {
+            PSTR pszCursor = NULL;
+            CHAR cNext = *(pszMatch+1);
+
             /* We are done if this is the last character
                in the pattern */
-            if (*(pszMatch+1) == '\0') {
+            if (cNext == '\0') {
                 pszString = NULL;
                 goto cleanup;
             }
+
+            /* If we don't find a match for the next character
+               in the pattern, then fail */
+            if ((pszCursor = strchr(pszString, cNext)) == NULL) {
+                ntError = STATUS_NO_MATCH;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+
+            pszString = pszCursor;
+
             break;
+        }
+
 
         case PVFS_WILDCARD_TYPE_SINGLE:
             /* automatic single character match */
@@ -144,11 +178,22 @@ PvfsWildcardMatch(
         }
     }
 
+    /* Save return result */
+
+    bMatched = pszString && *pszString ? FALSE : TRUE;
+
 cleanup:
+    if (!bCaseSensitive)
+    {
+        PVFS_SAFE_FREE_MEMORY(pszPathUpper);
+        PVFS_SAFE_FREE_MEMORY(pszPatternUpper);
+    }
+
+
     /* If we have any string left to parse, we don't
        have a match */
 
-    return pszString && *pszString ? FALSE : TRUE;
+    return bMatched;
 
 error:
     goto cleanup;
