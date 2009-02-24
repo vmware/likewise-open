@@ -296,12 +296,21 @@ LsaSrvIpcEndEnumNSSArtefacts(
     )
 {
     DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_release_handle(assoc, pRequest->object));
-    BAIL_ON_LSA_ERROR(dwError);
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(assoc, pRequest->object));
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_END_ENUM_NSS_ARTEFACTS_SUCCESS;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    pResponse->tag = LSA_R_END_ENUM_NSS_ARTEFACTS_SUCCESS;
-    pResponse->object = NULL;
+        pResponse->tag = LSA_R_END_ENUM_NSS_ARTEFACTS_FAILURE;
+        pResponse->object = pError;
+    }
 
 cleanup:
     return MAP_LSA_ERROR_IPC(dwError);
