@@ -1371,6 +1371,26 @@ error:
     return dwError;
 }
 
+DWORD
+AD_StoreAsExpiredObject(
+    IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    // Set the last update value so low that the next read will force a refresh.
+    (*ppCachedUser)->version.tLastUpdated = 0;
+
+    // Update the cache with the now stale item
+    dwError = LsaDbStoreObjectEntry(
+                    gpLsaAdProviderState->hCacheConnection,
+                    *ppCachedUser);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    return dwError;
+}
+
 // Note: We only return whether complete if not expired.
 static
 DWORD
@@ -2477,6 +2497,10 @@ AD_OnlineChangePassword(
                                        pCachedUser->pszSamAccountName,
                                        pszOldPassword,
                                        pszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Now that the user password is updated, we need to expire the cache entry.
+    dwError = AD_StoreAsExpiredObject(&pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (AD_EventlogEnabled())

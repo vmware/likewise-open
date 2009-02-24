@@ -265,6 +265,11 @@ AD_CheckExpiredObject(
     IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
     );
 
+DWORD
+AD_StoreAsExpiredObject(
+    IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
+    );
+
 int
 AD_CompareObjectSids(
     IN PCVOID pObjectA,
