@@ -69,7 +69,8 @@ SrvShareAddShare(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR  pwszShareName,
     PWSTR  pwszPath,
-    PWSTR  pwszComment
+    PWSTR  pwszComment,
+    ULONG  ulShareType
     );
 
 
@@ -77,6 +78,22 @@ NTSTATUS
 SrvShareDeleteShare(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName
+    );
+
+
+NTSTATUS
+SrvShareSetInfo(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PWSTR pwszShareName,
+    PSHARE_DB_INFO pShareInfo
+    );
+
+
+NTSTATUS
+SrvShareGetInfo(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PWSTR pwszShareName,
+    PSHARE_DB_INFO *ppShareInfo
     );
 
 

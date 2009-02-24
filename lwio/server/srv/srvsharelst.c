@@ -508,7 +508,8 @@ SrvShareAddShare(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR  pwszShareName,
     PWSTR  pwszSharePath,
-    PWSTR  pwszShareComment
+    PWSTR  pwszShareComment,
+    ULONG  ulShareType
     )
 {
     NTSTATUS ntStatus = 0;
@@ -586,7 +587,7 @@ SrvShareAddShare(
     pShareInfo->pwszPath    = pwszSharePath;
     pShareInfo->pwszComment = pwszShareComment;
     pShareInfo->pwszSID     = NULL;
-    pShareInfo->service     = SHARE_SERVICE_DISK_SHARE;
+    pShareInfo->service     = ulShareType;
 
     pShareInfo->refcount = 1;
     pShareInfo->bMarkedForDeletion = FALSE;
@@ -708,9 +709,9 @@ error:
 
 NTSTATUS
 SrvShareSetInfo(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName,
-    ULONG dwLevel,
-    PVOID pBuffer
+    PSHARE_DB_INFO pShareInfo
     )
 {
     NTSTATUS ntStatus = 0;
@@ -776,52 +777,33 @@ error:
 
 NTSTATUS
 SrvShareGetInfo(
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName,
-    ULONG dwLevel,
-    PBYTE pOutBuffer,
-    ULONG dwOutBufferSize
+    PSHARE_DB_INFO *ppShareInfo
     )
 {
     NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+    PSHARE_DB_INFO pShareInfo = NULL;
 
-#if 0
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
 
-    ENTER_READER_LOCK();
-
-    ntStatus = SrvFindShareByName(
-                    pszShareName,
-                    &pShareEntry
-                    );
+    ntStatus = SrvFindShareByName_inlock(
+                        pDbContext,
+                        pwszShareName,
+                        &pShareInfo
+                        );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (dwLevel) {
+    *ppShareInfo = pShareInfo;
 
-        case 0:
-            break;
+cleanup:
+    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
-        case 1:
-            break;
-
-        case 2:
-            break;
-
-        case 501:
-            break:
-
-        case 502:
-            break;
-
-        case 503:
-            break;
-
-    }
+    return ntStatus;
 
 error:
-    LEAVE_READER_LOCK();
-
-#endif
-
-    return(ntStatus);
+    goto cleanup;
 }
 
 
