@@ -570,7 +570,8 @@ SrvBuildSearchPath(
 		    PWSTR pwszNext = pwszCursor;
 
 		    if (++pwszNext &&
-                        (*pwszNext == wszDot[0]))
+                        ((*pwszNext == wszDot[0]) ||
+                         (*pwszNext == wszQuote[0])))
 		    {
 			    *pwszCursor = wszStar[0];
 		    }
