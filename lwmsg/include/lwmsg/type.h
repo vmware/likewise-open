@@ -236,6 +236,23 @@ typedef void (*LWMsgCustomFreeFunction) (
     void* data
     );
 
+typedef LWMsgStatus
+(*LWMsgTypePrintFunction) (
+    const char* text,
+    size_t length,
+    void* data
+    );
+
+typedef LWMsgStatus (*LWMsgCustomPrintFunction) (
+    struct LWMsgContext* context,
+    size_t object_size,
+    void* object,
+    LWMsgTypeAttrs* attr,
+    void* data,
+    LWMsgTypePrintFunction print,
+    void* print_data
+    );
+
 /**
  * @brief Custom marshaller type class
  *
@@ -252,6 +269,8 @@ typedef struct LWMsgCustomTypeClass
     LWMsgCustomUnmarshalFunction unmarshal;
     /** Free callback function */
     LWMsgCustomFreeFunction free;
+    /** Print callback function */
+    LWMsgCustomPrintFunction print;
 } LWMsgCustomTypeClass;
 
 /**
@@ -321,7 +340,7 @@ typedef enum LWMsgTypeDirective
 #ifdef LWMSG_SPEC_META
 #define _TYPEFLAG_META (LWMSG_FLAG_META)
 #define _TYPEMETA(type) ,_TYPEARG(#type)
-#define _TYPEMETA_MEMBER(type, field) ,_TYPEARG(#type), _TYPEARG(#field)
+#define _TYPEMETA_MEMBER(type, field) ,_TYPEARG(#field)
 #else
 #define _TYPEFLAG_META (0)
 #define _TYPEMETA(type)
@@ -1147,6 +1166,16 @@ typedef enum LWMsgTypeDirective
     LWMSG_MEMBER_ARRAY_BEGIN(type, field),     \
     __VA_ARGS__,                               \
     LWMSG_ARRAY_END
+
+
+LWMsgStatus
+lwmsg_type_print_graph(
+    struct LWMsgContext* context,
+    LWMsgTypeSpec* type,
+    void* object,
+    LWMsgTypePrintFunction print,
+    void* print_data
+    );
 
 /*@}*/
 

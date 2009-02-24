@@ -20,6 +20,7 @@ liblwmsg_nothr_la_SOURCES = \
 	type-iterate.c \
 	type-analyze.c \
 	type-verify.c \
+	type-print.c \
 	status.c \
 	context.c \
 	util.c \

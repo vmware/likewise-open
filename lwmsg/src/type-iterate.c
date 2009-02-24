@@ -61,7 +61,7 @@ lwmsg_type_find_end(
         is_debug = cmd & LWMSG_FLAG_DEBUG;
         is_member = cmd & LWMSG_FLAG_MEMBER;
 
-        spec += is_meta ? (is_member ? 2 : 1) : 0;
+        spec += is_meta ? 1 : 0;
         spec += is_debug ? 2 : 0;
         
         switch (cmd & LWMSG_CMD_MASK)
@@ -131,8 +131,9 @@ done:
     *in_out_spec = spec;
 }
 
+static
 void
-lwmsg_type_iterate(
+lwmsg_type_iterate_inner(
     LWMsgTypeSpec* spec,
     LWMsgTypeIter* iter
     )
@@ -142,25 +143,17 @@ lwmsg_type_iterate(
     size_t my_size;
     size_t my_offset;
 
-    iter->spec = spec;
-    iter->verify = NULL;
-    iter->size = 0;
-    iter->offset = 0;
-
-    memset(&iter->attrs, 0, sizeof(iter->attrs));
-
-    /* Set invalid range to indicate it is not set */
-    iter->attrs.range_high = 0;
-    iter->attrs.range_low = 1;
-
     cmd = *(spec++);
 
     if (cmd & LWMSG_FLAG_META)
     {      
-        iter->meta.type_name = (const char*) *(spec++);
         if (cmd & LWMSG_FLAG_MEMBER)
         {
             iter->meta.member_name = (const char*) *(spec++);
+        }
+        else
+        {
+            iter->meta.type_name = (const char*) *(spec++);
         }
     }
 
@@ -236,7 +229,7 @@ lwmsg_type_iterate(
             my_size = *(spec++);
             my_offset = *(spec++);
         }
-        lwmsg_type_iterate((LWMsgTypeSpec*) *(spec++), iter);
+        lwmsg_type_iterate_inner((LWMsgTypeSpec*) *(spec++), iter);
         if (!iter->size)
         {
             iter->size = my_size;
@@ -336,6 +329,28 @@ lwmsg_type_iterate(
 done:
     
     return;
+}
+
+void
+lwmsg_type_iterate(
+    LWMsgTypeSpec* spec,
+    LWMsgTypeIter* iter
+    )
+{
+    iter->spec = spec;
+    iter->verify = NULL;
+    iter->size = 0;
+    iter->offset = 0;
+
+    memset(&iter->attrs, 0, sizeof(iter->attrs));
+    memset(&iter->meta, 0, sizeof(iter->meta));
+    memset(&iter->debug, 0, sizeof(iter->debug));
+
+    /* Set invalid range to indicate it is not set */
+    iter->attrs.range_high = 0;
+    iter->attrs.range_low = 1;
+
+    lwmsg_type_iterate_inner(spec, iter);
 }
 
 static void
