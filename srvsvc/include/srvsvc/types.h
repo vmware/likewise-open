@@ -68,42 +68,42 @@ typedef uint16 wchar16_t;
 #include <inttypes.h>
 #include <lw/base.h>
 
-#ifndef UINT8_DEFINED
+#if !defined(UINT8_DEFINED) && !defined(HAVE_UINT8)
 typedef uint8_t uint8;
 #define UINT8_DEFINED
 #endif
 
-#ifndef UINT16_DEFINED
+#if !defined(UINT16_DEFINED) && !defined(HAVE_UINT16)
 typedef uint16_t uint16;
 #define UINT16_DEFINED
 #endif
 
-#ifndef UINT32_DEFINED
+#if !defined(UINT32_DEFINED) && !defined(HAVE_UINT32)
 typedef uint32_t uint32;
 #define UINT32_DEFINED
 #endif
 
-#ifndef UINT64_DEFINED
+#if !defined(UINT64_DEFINED) && !defined(HAVE_UINT64)
 typedef uint64_t uint64;
 #define UINT64_DEFINED
 #endif
 
-#ifndef INT8_DEFINED
+#if !defined(INT8_DEFINED) && !defined(HAVE_INT8)
 typedef int8_t int8;
 #define INT8_DEFINED
 #endif
 
-#ifndef INT16_DEFINED
+#if !defined(INT16_DEFINED) && !defined(HAVE_INT16)
 typedef int16_t int16;
 #define INT16_DEFINED
 #endif
 
-#ifndef INT32_DEFINED
+#if !defined(INT32_DEFINED) && !defined(HAVE_INT32)
 typedef int32_t int32;
 #define INT32_DEFINED
 #endif
 
-#ifndef INT64_DEFINED
+#if !defined(INT64_DEFINED) && !defined(HAVE_INT64)
 #define INT64_DEFINED
 typedef int64_t int64;
 #endif
