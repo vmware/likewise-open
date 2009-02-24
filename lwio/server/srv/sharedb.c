@@ -161,16 +161,6 @@ SrvShareDbCreate(
                     "A:");
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareDbAdd(
-                    pShareDBContext,
-                    hDb,
-                    "TESTSHARE",
-                    "\\pvfs\\tmp",
-                    "Testing share for NetShareEnum",
-                    NULL,
-                    "A:");
-    BAIL_ON_NT_STATUS(ntStatus);
-
 cleanup:
 
     if (hDb != (HANDLE)NULL)
