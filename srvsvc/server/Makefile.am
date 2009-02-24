@@ -22,15 +22,11 @@ srvsvcd_SOURCES =              \
 
 libsrvsvc_ss_la_SOURCES = srvsvc_sstub.c
 
-FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
-
 libsrvsvc_ss_la_CPPFLAGS = \
-    $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@
 
-srvsvcd_CFLAGS = -g $(INCLUDES) -DSRVSVC_BUILD $(FEATURETEST_FLAGS)
+srvsvcd_CFLAGS = -g $(INCLUDES) -DSRVSVC_BUILD
 srvsvcd_CPPFLAGS = \
-    $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@ \
     @LWIO_INCLUDES@
