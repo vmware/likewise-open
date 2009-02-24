@@ -47,6 +47,7 @@ vsyslog(3) in syslog.h])
 		AC_DEFINE([__LWI_AIX__], [], [Define if OS is AIX])
 	        AC_DEFINE([_LINUX_SOURCE_COMPAT], [], [Enable Linux source compatibility on AIX])
 	        AC_DEFINE([_XOPEN_SOURCE], [500], [Define to desired XOPEN compliance level])
+	        AC_DEFINE([_ALL_SOURCE], [], [Define to enable syslog macros on AIX])
 		;;
 esac
 
