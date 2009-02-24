@@ -59,7 +59,8 @@ typedef enum _PVFS_WILDCARD_TYPE {
 
 static PVFS_WILDCARD_TYPE
 NextMatchState(
-    PCSTR pszPattern
+    PSTR *ppszPattern,
+    PDWORD pdwCount
     );
 
 /* Code */
@@ -116,13 +117,21 @@ PvfsWildcardMatch(
 
     for (/* already performed init */;
          PVFS_CSTRING_NON_NULL(pszString) && PVFS_CSTRING_NON_NULL(pszMatch);
-         pszString++, pszMatch++)
+         pszString++)
     {
         PVFS_WILDCARD_TYPE eState = 0;
-        CHAR cSrc = *pszString;
-        CHAR cMatch = *pszMatch;
+        CHAR cSrc = '\0';
+        CHAR cMatch = '\0';
+        DWORD dwCount = 0;
 
-        eState = NextMatchState(pszMatch);
+        /* Save the current CHAR */
+
+        cSrc = *pszString;
+        cMatch = *pszMatch;
+
+        /* Consumes the pattern from pszMatch */
+
+        eState = NextMatchState(&pszMatch, &dwCount);
 
         switch (eState) {
         case PVFS_WILDCARD_TYPE_NONE:
@@ -135,31 +144,46 @@ PvfsWildcardMatch(
         case PVFS_WILDCARD_TYPE_SPLAT:
         {
             PSTR pszCursor = NULL;
-            CHAR cNext = *(pszMatch+1);
 
             /* We are done if this is the last character
                in the pattern */
-            if (cNext == '\0') {
+            if (!PVFS_CSTRING_NON_NULL(pszMatch)) {
                 pszString = NULL;
                 goto cleanup;
             }
 
             /* If we don't find a match for the next character
                in the pattern, then fail */
-            if ((pszCursor = strchr(pszString, cNext)) == NULL) {
+            if ((pszCursor = strchr(pszString, *pszMatch)) == NULL) {
                 ntError = STATUS_NO_MATCH;
                 BAIL_ON_NT_STATUS(ntError);
             }
 
-            pszString = pszCursor;
+            /* Have to consume at least one character here */
+            if (pszString == pszCursor) {
+                ntError = STATUS_NO_MATCH;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+            /* Set to the previous character so that pszString is
+               incremented properly next pass of the loop */
+            pszString = pszCursor-1;
 
             break;
         }
 
-
         case PVFS_WILDCARD_TYPE_SINGLE:
-            /* automatic single character match */
+        {
+            DWORD i = 0;
+
+            /* Consume dwCount characters */
+            for (i=0;
+                 i<dwCount && PVFS_CSTRING_NON_NULL(pszString);
+                 i++, pszString++)
+            {
+                /* no loop body */;
+            }
             break;
+        }
 
         case PVFS_WILDCARD_TYPE_DOT:
             /* For now deal with the '.' as just another character */
@@ -180,9 +204,6 @@ PvfsWildcardMatch(
                 ntError = STATUS_NO_MATCH;
                 BAIL_ON_NT_STATUS(ntError);
             }
-            /* Example: pszCursor == ".BMP" and pszMatch == "*.BMP" */
-            pszMatch += 1;
-
             pszString = pszCursor;
 
             break;
@@ -190,13 +211,7 @@ PvfsWildcardMatch(
 
         case PVFS_WILDCARD_TYPE_SINGLE_DOT:
         {
-            DWORD dwCount = 0;
             DWORD i = 0;
-
-            while (PVFS_CSTRING_NON_NULL(pszMatch) && *pszMatch != '.') {
-                dwCount++;
-                pszMatch++;
-            }
 
             /* We can match 0 - dwCount characters up to the last '.'
                This is really a hold over from DOS 8.3 filenames */
@@ -206,6 +221,13 @@ PvfsWildcardMatch(
                  i++, pszString++)
             {
                 /* no loop body */;
+            }
+
+            /* If we any path lefft, it better be on '.' for a match */
+
+            if (pszString && *pszString != '.') {
+                ntError = STATUS_NO_MATCH;
+                BAIL_ON_NT_STATUS(ntError);
             }
 
             break;
@@ -236,53 +258,105 @@ error:
 /********************************************************
  Five trnsitions in state machine are the valie
  wildcard patterns ('*' '?' '*.' '?.' '.' and 'none).
+ Consume the next token from the Pattern.
  *******************************************************/
 
 static PVFS_WILDCARD_TYPE
 NextMatchState(
-    PCSTR pszPattern
+    PSTR *ppszPattern,
+    PDWORD pdwCount
     )
 {
-    CHAR c1, c2;
+    PVFS_WILDCARD_TYPE Type = PVFS_WILDCARD_TYPE_NONE;
+    PVFS_WILDCARD_TYPE InterimType = PVFS_WILDCARD_TYPE_NONE;
+    CHAR c1 = '\0';
+    PSTR pszPattern = *ppszPattern;
+    PSTR pszCursor = NULL;
+    DWORD dwInterimCount = 0;
+    DWORD dwCount = 0;
 
     c1 = *pszPattern;
-    c2 = *(pszPattern+1);
 
-    if (c1 == '.') {
-        return PVFS_WILDCARD_TYPE_DOT;
-    }
+    /* We always consume at least one CHAR */
 
-    if (c1 == '*') {
-        if (c2 == '.') {
-            return PVFS_WILDCARD_TYPE_SPLAT_DOT;
-        }
+    pszPattern++;
 
-        return PVFS_WILDCARD_TYPE_SPLAT;
-    }
-
-    if (c1 == '?')
+    switch (c1)
     {
-        PCSTR s = pszPattern+1;
+    case '.':
+        Type = PVFS_WILDCARD_TYPE_DOT;
+        break;
 
-        /* Looking for end of ?'s.  Exit on '.' or other character */
-        for (c2 = *s; s && *s; s++)
-        {
-            c2 = *s;
+    case '*':
+        /* We have to consume up to the next non-wildcard character
+           or the end of string */
 
-            switch (c2) {
-            case '.':
-                return PVFS_WILDCARD_TYPE_SINGLE_DOT;
-            case '?':
-                continue;
-            default:
-                return PVFS_WILDCARD_TYPE_SINGLE;
-            }
+        pszCursor = pszPattern;
+        InterimType = NextMatchState(&pszCursor, &dwInterimCount);
+
+        switch (InterimType) {
+        case PVFS_WILDCARD_TYPE_NONE:
+            Type = PVFS_WILDCARD_TYPE_SPLAT;
+            break;
+        case PVFS_WILDCARD_TYPE_SPLAT:
+        case PVFS_WILDCARD_TYPE_SINGLE:
+            pszPattern = pszCursor;
+            Type = PVFS_WILDCARD_TYPE_SPLAT;
+            break;
+        case PVFS_WILDCARD_TYPE_DOT:
+        case PVFS_WILDCARD_TYPE_SPLAT_DOT:
+        case PVFS_WILDCARD_TYPE_SINGLE_DOT:
+            /* "**." and "*?." just becomes "*." */
+            pszPattern = pszCursor;
+            Type = PVFS_WILDCARD_TYPE_SPLAT_DOT;
+            break;
         }
+        break;
 
-        return PVFS_WILDCARD_TYPE_SINGLE;
+    case '?':
+        /* Same as "*".  Consume up to the next non-wildcard character
+           or the end of string */
+
+        pszCursor = pszPattern;
+        InterimType = NextMatchState(&pszCursor, &dwInterimCount);
+
+        switch (InterimType) {
+        case PVFS_WILDCARD_TYPE_SPLAT_DOT:
+        case PVFS_WILDCARD_TYPE_SPLAT:
+        case PVFS_WILDCARD_TYPE_NONE:
+            dwCount = 1;
+            Type = PVFS_WILDCARD_TYPE_SINGLE;
+            break;
+
+        case PVFS_WILDCARD_TYPE_DOT:
+            dwCount = 1;
+            pszPattern = pszCursor;
+            Type = PVFS_WILDCARD_TYPE_SINGLE_DOT;
+            break;
+
+        case PVFS_WILDCARD_TYPE_SINGLE:
+            dwCount = dwInterimCount + 1;
+            pszPattern = pszCursor;
+            Type = PVFS_WILDCARD_TYPE_SINGLE;
+            break;
+
+        case PVFS_WILDCARD_TYPE_SINGLE_DOT:
+            dwCount = dwInterimCount + 1;
+            pszPattern = pszCursor;
+            Type = PVFS_WILDCARD_TYPE_SINGLE_DOT;
+            break;
+        }
+        break;
+
+    default:
+        Type = PVFS_WILDCARD_TYPE_NONE;
+        break;
     }
 
-    return PVFS_WILDCARD_TYPE_NONE;
+    *pdwCount = dwCount;
+    *ppszPattern = pszPattern;
+
+    return Type;
 }
 
 
