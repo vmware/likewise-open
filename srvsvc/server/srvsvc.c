@@ -220,8 +220,19 @@ NET_API_STATUS _NetrShareGetInfo(
     /* [out] */ srvsvc_NetShareInfo *info
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetShareGetInfo(
+                    IDL_handle,
+                    server_name,
+                    netname,
+                    level,
+                    info
+                    );
+
+    return dwError;
 }
+
 
 NET_API_STATUS _NetrShareSetInfo(
     /* [in] */ handle_t IDL_handle,
@@ -234,6 +245,7 @@ NET_API_STATUS _NetrShareSetInfo(
 {
     return ERROR_NOT_SUPPORTED;
 }
+
 
 NET_API_STATUS _NetrShareDel(
     /* [in] */ handle_t IDL_handle,
