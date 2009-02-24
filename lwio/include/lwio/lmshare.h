@@ -171,7 +171,7 @@ typedef struct _SHARE_INFO_501 {
     [string]
 #endif
     wchar16_t *shi501_remark;
-    uint32 shi502_flags;
+    uint32 shi501_flags;
 } SHARE_INFO_501, *PSHARE_INFO_501, *LPSHARE_INFO_501;
 
 #ifdef _DCE_IDL_

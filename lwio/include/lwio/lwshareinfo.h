@@ -94,11 +94,18 @@ typedef struct _SHARE_INFO_ENUM_PARAMS
 
 typedef struct _SHARE_INFO_SETINFO_PARAMS
 {
-    PWSTR servername;
-    PWSTR netname;
-    DWORD level;
-    SHARE_INFO_UNION info;
+    PWSTR pwszNetname;
+    DWORD dwInfoLevel;
+    SHARE_INFO_UNION Info;
 } SHARE_INFO_SETINFO_PARAMS, *PSHARE_INFO_SETINFO_PARAMS;
+
+
+typedef struct _SHARE_INFO_GETINFO_PARAMS
+{
+    PWSTR pwszNetname;
+    DWORD dwInfoLevel;
+    SHARE_INFO_UNION Info;
+} SHARE_INFO_GETINFO_PARAMS, *PSHARE_INFO_GETINFO_PARAMS;
 
 
 LW_NTSTATUS
@@ -146,6 +153,38 @@ LwShareInfoUnmarshalEnumParameters(
     PBYTE pBuffer,
     ULONG ulBufferSize,
     PSHARE_INFO_ENUM_PARAMS* ppParams
+    );
+
+
+LW_NTSTATUS
+LwShareInfoMarshalSetParameters(
+    PSHARE_INFO_SETINFO_PARAMS pParams,
+    PBYTE* ppBuffer,
+    ULONG* pulBufferSize
+    );
+
+
+LW_NTSTATUS
+LwShareInfoUnmarshalSetParameters(
+    PBYTE pBuffer,
+    ULONG ulBufferSize,
+    PSHARE_INFO_SETINFO_PARAMS* ppParams
+    );
+
+
+LW_NTSTATUS
+LwShareInfoMarshalGetParameters(
+    PSHARE_INFO_GETINFO_PARAMS pParams,
+    PBYTE* ppBuffer,
+    ULONG* pulBufferSize
+    );
+
+
+LW_NTSTATUS
+LwShareInfoUnmarshalGetParameters(
+    PBYTE pBuffer,
+    ULONG ulBufferSize,
+    PSHARE_INFO_GETINFO_PARAMS* ppParams
     );
 
 
