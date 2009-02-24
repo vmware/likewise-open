@@ -170,7 +170,24 @@ PvfsWildcardMatch(
             break;
 
         case PVFS_WILDCARD_TYPE_SPLAT_DOT:
+        {
+            PSTR pszCursor = NULL;
+
+            /* Similar to "A*B" except we search for the '.' from
+               the end. */
+
+            if ((pszCursor = strrchr(pszString, '.')) == NULL) {
+                ntError = STATUS_NO_MATCH;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+            /* Example: pszCursor == ".BMP" and pszMatch == "*.BMP" */
+            pszCursor += 1;
+            pszMatch += 2;
+
+            pszString = pszCursor;
+
             break;
+        }
 
         case PVFS_WILDCARD_TYPE_SINGLE_DOT:
             break;
@@ -178,11 +195,9 @@ PvfsWildcardMatch(
         }
     }
 
-    /* Save return result */
-
+cleanup:
     bMatched = pszString && *pszString ? FALSE : TRUE;
 
-cleanup:
     if (!bCaseSensitive)
     {
         PVFS_SAFE_FREE_MEMORY(pszPathUpper);
