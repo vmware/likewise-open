@@ -199,6 +199,70 @@ error:
 
 static
 LWMsgStatus
+lwmsg_type_print_string(
+    LWMsgTypeIter* iter,
+    unsigned char* object,
+    PrintInfo* info
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    void* input_string = NULL;
+    void* output_string = NULL;
+    size_t input_length = 0;
+    ssize_t output_length = 0;
+    size_t element_size = 0;
+    size_t element_count = 0;
+
+    if (iter->kind == LWMSG_KIND_POINTER)
+    {
+        input_string = *(void**) object;
+    }
+    else
+    {
+        input_string = object;
+    }
+
+    BAIL_ON_ERROR(status = lwmsg_type_calculate_indirect_metrics(
+                      iter,
+                      input_string,
+                      &element_count,
+                      &element_size));
+
+    input_length = element_count * element_size;
+
+    if (!strcmp(iter->info.kind_indirect.encoding, ""))
+    {
+        BAIL_ON_ERROR(status = info->print(input_string, input_length, info->print_data));
+    }
+    else
+    {
+        output_length = lwmsg_convert_string_alloc(
+            input_string,
+            input_length,
+            (void**) (void*) &output_string,
+            iter->info.kind_indirect.encoding,
+            "");
+
+        if (output_length == -1)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+        }
+
+        BAIL_ON_ERROR(status = info->print(output_string, (size_t) output_length, info->print_data));
+    }
+
+error:
+
+    if (output_string)
+    {
+        free(output_string);
+    }
+
+    return status;
+}
+
+static
+LWMsgStatus
 lwmsg_type_print_graph_visit(
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -207,7 +271,6 @@ lwmsg_type_print_graph_visit(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PrintInfo* info = (PrintInfo*) data;
-    LWMsgTypeIter inner;
     const char* prefix = NULL;
 
     switch (iter->kind)
@@ -237,14 +300,22 @@ lwmsg_type_print_graph_visit(
     case LWMSG_KIND_ARRAY:
     case LWMSG_KIND_POINTER:
         prefix = iter->kind == LWMSG_KIND_ARRAY ? "<array>" : "<pointer> ->";
-        lwmsg_type_enter(iter, &inner);
 
+        /* NULL case */
         if (iter->kind == LWMSG_KIND_POINTER && *(void**) object == NULL)
         {
             BAIL_ON_ERROR(status = print(info, "<null>"));
         }
+        /* String case */
+        else if (iter->info.kind_indirect.encoding != NULL)
+        {
+            BAIL_ON_ERROR(status = print(info, "%s \"", prefix));
+            BAIL_ON_ERROR(status = lwmsg_type_print_string(iter, object, info));
+            BAIL_ON_ERROR(status = print(info, "\"", prefix));
+        }
+        /* Singleton case */
         else if (iter->info.kind_indirect.term == LWMSG_TERM_STATIC &&
-            iter->info.kind_indirect.term_info.static_length == 1)
+                 iter->info.kind_indirect.term_info.static_length == 1)
         {
             BAIL_ON_ERROR(status = print(info, "%s ", prefix));
             BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
@@ -253,11 +324,7 @@ lwmsg_type_print_graph_visit(
                               lwmsg_type_print_graph_visit,
                               data));
         }
-        else if (iter->info.kind_indirect.term == LWMSG_TERM_ZERO &&
-                 inner.size == 1 && inner.kind == LWMSG_KIND_INTEGER)
-        {
-            BAIL_ON_ERROR(status = print(info, "%s \"%s\"", prefix, *(const char**) object));
-        }
+        /* General case */
         else
         {
             BAIL_ON_ERROR(status = print(info, prefix));

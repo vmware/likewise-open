@@ -228,6 +228,18 @@ typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
     void* data
     );
 
+/**
+ * @brief Custom free function
+ *
+ * A callback function type which frees an instance of a custom type.
+ *
+ * @param context the marshalling context
+ * @param object_size the in-memory size of the object to free, or 0 if unknown
+ * @param attrs attributes of the type to free
+ * @param object the address of the object to free
+ * @param data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
+ * in the type specification
+ */
 typedef void (*LWMsgCustomFreeFunction) (
     struct LWMsgContext* context,
     size_t object_size,
@@ -236,6 +248,19 @@ typedef void (*LWMsgCustomFreeFunction) (
     void* data
     );
 
+/**
+ * @brief Print callback function
+ *
+ * A callback function used to print text by #lwmsg_type_print_graph()
+ *
+ * @param text the text to print
+ * @param length the length of text
+ * @param data a custom data pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_etc{implementation-specific error}
+ * @lwmsg_endstatus
+ */
 typedef LWMsgStatus
 (*LWMsgTypePrintFunction) (
     const char* text,
@@ -243,6 +268,21 @@ typedef LWMsgStatus
     void* data
     );
 
+/**
+ * @brief Custom print function
+ *
+ * A callback function type which prints the representation of a custom type,
+ * using the provided type printing callback.
+ *
+ * @param context the marshalling context
+ * @param object_size the in-memory size of the object to free, or 0 if unknown
+ * @param object the address of the object to print
+ * @param attrs attributes of the type to print
+ * @param data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
+ * in the type specification
+ * @param print the type print callback
+ * @param print_data the user data pointer to pass to the type print callback
+ */
 typedef LWMsgStatus (*LWMsgCustomPrintFunction) (
     struct LWMsgContext* context,
     size_t object_size,
@@ -262,21 +302,22 @@ typedef LWMsgStatus (*LWMsgCustomPrintFunction) (
  */
 typedef struct LWMsgCustomTypeClass
 {
+    /** @brief Whether the type should be considered a pointer */
     LWMsgBool is_pointer;
-    /** Marshal callback function */
+    /** @brief Marshal callback function */
     LWMsgCustomMarshalFunction marshal;
-    /** Unmarshal callback function */
+    /** @brief Unmarshal callback function */
     LWMsgCustomUnmarshalFunction unmarshal;
-    /** Free callback function */
+    /** @brief Free callback function */
     LWMsgCustomFreeFunction free;
-    /** Print callback function */
+    /** @brief Print callback function */
     LWMsgCustomPrintFunction print;
 } LWMsgCustomTypeClass;
 
 /**
  * @brief Custom data verification function
  *
- * A callback function type which performs verification of
+ * A callback function which performs verification of
  * in-memory data immediately before marshalling or immediately
  * after unmarshalling.
  *
@@ -326,6 +367,7 @@ typedef enum LWMsgTypeDirective
         LWMSG_CMD_NOT_NULL,
         LWMSG_CMD_CUSTOM_ATTR,
         LWMSG_CMD_VOID,
+        LWMSG_CMD_ENCODING,
         LWMSG_FLAG_MEMBER = 0x10000,
         LWMSG_FLAG_META = 0x20000,
         LWMSG_FLAG_DEBUG = 0x40000
@@ -586,9 +628,34 @@ typedef enum LWMsgTypeDirective
  * member has a length determined by null- or zero- termination.
  * @hideinitializer
  */
-#define LWMSG_ATTR_STRING                       \
+#define LWMSG_ATTR_ZERO_TERMINATED              \
     _TYPECMD(LWMSG_CMD_TERMINATION),            \
         _TYPEARG(LWMSG_TERM_ZERO)
+
+/**
+ * @brief Indicate string encoding
+ *
+ * Indicates that the immediately previous array or pointer
+ * represents text in the specified encoding.  This is used
+ * as a hint to #lwmsg_type_print_graph() to aid in debugging
+ * and does not affect the behavior of the marshaller.
+ * @hideinitializer
+ */
+#define LWMSG_ATTR_ENCODING(enc)                \
+    _TYPECMD(LWMSG_CMD_ENCODING),               \
+        _TYPEARG((enc))
+
+/**
+ * @brief Indicate C string
+ *
+ * Indicates that the immediately previous array or pointer
+ * represents a plain C string.  That is, it is nul-terminated
+ * and encoded in the program's current locale.
+ * @hideinitializer
+ */
+#define LWMSG_ATTR_STRING \
+    LWMSG_ATTR_ZERO_TERMINATED,                 \
+    LWMSG_ATTR_ENCODING("")
 
 /**
  * @brief Indicate union tag

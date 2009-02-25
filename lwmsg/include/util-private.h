@@ -159,4 +159,23 @@ error:
     return status;
 }
 
+ssize_t
+lwmsg_convert_string_alloc(
+    void* input,
+    size_t input_len,
+    void** output,
+    const char* input_type,
+    const char* output_type
+    );
+
+ssize_t
+lwmsg_convert_string_buffer(
+    void* input,
+    size_t input_len,
+    void* output,
+    size_t output_len,
+    const char* input_type,
+    const char* output_type
+    );
+
 #endif
