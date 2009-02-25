@@ -83,9 +83,8 @@ SrvSvcNetShareDel(
     FILE_SHARE_FLAGS ShareAccess = 0;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
-    ULONG IoControlCode = 2;    /* SRV_DEVCTL_DELETE_SHARE - TODO: make it public */
+    ULONG IoControlCode = SRV_DEVCTL_DELETE_SHARE;
     PSTR smbpath = NULL;
-    //PIO_ACCESS_TOKEN access_token = NULL;
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
     SHARE_INFO_DELETE_PARAMS DeleteParams;
