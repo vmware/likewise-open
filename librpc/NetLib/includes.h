@@ -28,16 +28,26 @@
  * license@likewisesoftware.com
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
+#include <unistd.h>
+#include <wchar.h>
 #include <time.h>
 #include <pthread.h>
+#include <errno.h>
+#include <sys/utsname.h>
+
+#include <wc16str.h>
+#include <wc16printf.h>
+#include <gssapi/gssapi.h>
+#include <keytab.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/security.h>
-#include <wc16str.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
@@ -45,9 +55,24 @@
 #include <lwrpc/memptr.h>
 #include <lwrpc/LM.h>
 
-#include "externs.h"
+#include <random.h>
+#include <crypto.h>
+#include <md5.h>
+#include <rc4.h>
+#include <des.h>
+
 #include "NetConnection.h"
+#include "NetUser.h"
 #include "NetUtil.h"
+#include "NetMemory.h"
+#include "NetLibUserInfo.h"
+#include "GroupInfo.h"
+#include "NetGetDcName.h"
+#include "LdapUtil.h"
+#include "JoinLocal.h"
+#include "UnjoinLocal.h"
+#include "MachinePassword.h"
+#include "externs.h"
 
 
 /*
