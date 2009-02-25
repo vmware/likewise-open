@@ -243,7 +243,17 @@ NET_API_STATUS _NetrShareSetInfo(
     /* [in, out] */ uint32 *parm_error
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetShareSetInfo(
+                    IDL_handle,
+                    server_name,
+                    netname,
+                    level,
+                    info
+                    );
+
+    return dwError;
 }
 
 

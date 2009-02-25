@@ -70,7 +70,7 @@ SrvSvcNetShareSetInfo(
     DWORD dwCreationDisposition = 0;
     DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
-    DWORD dwOutLength = 0;
+    DWORD dwOutLength = 4096;
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
@@ -85,23 +85,78 @@ SrvSvcNetShareSetInfo(
     FILE_SHARE_FLAGS ShareAccess = 0;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
-    ULONG IoControlCode = 0;
+    ULONG IoControlCode = SRV_DEVCTL_SET_SHARE_INFO;
+    PSTR smbpath = NULL;
+    IO_FILE_NAME filename;
+    IO_STATUS_BLOCK io_status;
+    SHARE_INFO_SETINFO_PARAMS SetParams;
 
-    dwError = MarshallShareInfotoFlatBuffer(
-                    level,
-                    &info,
-                    &pInBuffer,
-                    &dwInLength
-                    );
+    memset((void*)&SetParams, 0, sizeof(SetParams));
+
+    SetParams.dwInfoLevel = level;
+    SetParams.pwszNetname = netname;
+
+    switch (SetParams.dwInfoLevel) {
+    case 0:
+        SetParams.Info.p0 = (PSHARE_INFO_0)info.info0;
+        break;
+
+    case 1:
+        SetParams.Info.p1 = (PSHARE_INFO_1)info.info1;
+        break;
+
+    case 2:
+        SetParams.Info.p2 = (PSHARE_INFO_2)info.info2;
+        break;
+
+    case 501:
+        SetParams.Info.p501 = (PSHARE_INFO_501)info.info501;
+        break;
+
+    case 502:
+        SetParams.Info.p502 = (PSHARE_INFO_502)info.info502;
+        break;
+
+    default:
+        ntStatus = STATUS_INVALID_LEVEL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = LwShareInfoMarshalSetParameters(
+                        &SetParams,
+                        &pInBuffer,
+                        &dwInLength
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = SRVSVCAllocateMemory(
+                        dwOutLength,
+                        (void**)&pOutBuffer
+                        );
     BAIL_ON_ERROR(dwError);
+
+    ntStatus = LwRtlCStringAllocatePrintf(
+                    &smbpath,
+                    "\\srv"
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    filename.RootFileHandle = NULL;
+    filename.IoNameOptions = 0;
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(
+                        &filename.FileName,
+                        smbpath
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NtCreateFile(
                         &FileHandle,
                         NULL,
                         &IoStatusBlock,
-                        FileName,
-			NULL,
-			NULL,
+                        &filename,
+                        NULL,
+                        NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -126,30 +181,20 @@ SrvSvcNetShareSetInfo(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = UnmarshallAddSetResponse(
-                    pOutBuffer,
-                    &dwReturnCode,
-                    &dwParmError);
-
-    *parm_error = dwParmError;
-    dwError = dwReturnCode;
-
-cleanup:
+error:
+    if (FileHandle) {
+        NtCloseFile(FileHandle);
+    }
 
     if(pInBuffer) {
         SrvSvcFreeMemory(pInBuffer);
     }
 
-    return(dwError);
-
-error:
-
-
     if (pOutBuffer) {
         SrvSvcFreeMemory(pOutBuffer);
     }
 
-    goto cleanup;
+    return dwError;
 }
 
 
