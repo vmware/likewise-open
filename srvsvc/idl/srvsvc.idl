@@ -380,6 +380,19 @@ interface srvsvc {
         [out] TIME_OF_DAY_INFO **info
     );
 
+    void _srvsvc_Function1d();
+    void _srvsvc_Function1e();
+    void _srvsvc_Function1f();
+    void _srvsvc_Function20();
+
+    /* Function: 0x21 */
+    NET_API_STATUS _NetrNameValidate(
+        [in,string,unique] wchar16_t *server_name,
+	[in,string] wchar16_t *name,
+	[in] uint32 type,
+	[in] uint32 flags
+	);
+
     cpp_quote("#endif /* __SRVSVC_IDL__ */")
 }
 

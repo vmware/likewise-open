@@ -17,6 +17,7 @@ srvsvcd_SOURCES =              \
     srvsvc_netsharesetinfo.c   \
     srvsvc_netshareenum.c      \
     srvsvc_netservergetinfo.c  \
+    srvsvc_netnamevalidate.c   \
     main.c
 
 

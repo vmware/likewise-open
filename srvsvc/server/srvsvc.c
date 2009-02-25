@@ -350,6 +350,52 @@ NET_API_STATUS _NetrRemoteTOD(
     return dwError;
 }
 
+void _srvsvc_Function1d(
+    /* [in] */ handle_t IDL_handle
+)
+{
+}
+
+void _srvsvc_Function1e(
+    /* [in] */ handle_t IDL_handle
+)
+{
+}
+
+void _srvsvc_Function1f(
+    /* [in] */ handle_t IDL_handle
+)
+{
+}
+
+void _srvsvc_Function20(
+    /* [in] */ handle_t IDL_handle
+)
+{
+}
+
+NET_API_STATUS _NetrNameValidate(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ wchar16_t *server_name,
+    /* [in] */ wchar16_t *name,
+    /* [in] */ uint32 type,
+    /* [in] */ uint32 flags
+)
+{
+    DWORD dwError = 0;
+
+    dwError = SrvSvcNetNameValidate(
+                       IDL_handle,
+                       server_name,
+                       name,
+                       type,
+                       flags
+                       );
+
+    return dwError;
+}
+
+
 
 /*
 local variables:
