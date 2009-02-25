@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -29,36 +29,25 @@
  */
 
 /*
- * Abstract: LanMan cryptography functions (rpc client library)
+ * Abstract: NetAPI memory (de)initialisation functions (rpc client library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-
-#ifndef _LM_CRYPT_H_
-#define _LM_CRYPT_H_
-
-#include <lwrpc/types.h>
-#include <lwrpc/ntstatus.h>
+#ifndef _LM_MEM_H_
+#define _LM_MEM_H_
 
 
 NTSTATUS
-NTLMv1EncryptChallenge(
-    uint8  Challenge[8],
-    uint8  *pLMHash,
-    uint8  *pNTHash,
-    uint8  LMResp[24],
-    uint8  NTResp[24]
+NetInitMemory(
+    void
     );
 
-#endif   /* _LM_CRYPT_H_ */
+
+NTSTATUS
+NetDestroyMemory(
+    void
+    );
 
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#endif /* _LM_MEM_H_ */

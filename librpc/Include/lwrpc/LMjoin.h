@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,12 +28,19 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: NetAPI domain join functions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _LM_JOIN_H_
 #define _LM_JOIN_H_
 
+#include <lwps/lwps.h>
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
-#include <lwps/lwps.h>
+
 
 /* (un)join domain flags */
 #define NETSETUP_JOIN_DOMAIN                          0x00000001
@@ -46,35 +53,55 @@
 #define NETSETUP_DEFER_SPN_SET                        0x00000100
 
 
-NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
-                             const wchar16_t *domain,
-			     const wchar16_t *account_ou,
-			     const wchar16_t *account,
-                             const wchar16_t *password,
-			     uint32 options);
+NET_API_STATUS
+NetJoinDomain(
+    const wchar16_t *hostname,
+    const wchar16_t *domain,
+    const wchar16_t *account_ou,
+    const wchar16_t *account,
+    const wchar16_t *password,
+    uint32 options
+    );
 
-NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,
-				  const wchar16_t *domain,
-				  const wchar16_t *account_ou,
-				  const wchar16_t *account,
-				  const wchar16_t *password,
-				  uint32 options,
-				  const wchar16_t *osname,
-				  const wchar16_t *osver,
-                                  const wchar16_t *ospack);
 
-NET_API_STATUS NetUnjoinDomain(const wchar16_t *hostname,
-			       const wchar16_t *account,
-			       const wchar16_t *password,
-			       uint32 options);
+NET_API_STATUS
+NetJoinDomainLocal(
+    const wchar16_t *machine,
+    const wchar16_t *domain,
+    const wchar16_t *account_ou,
+    const wchar16_t *account,
+    const wchar16_t *password,
+    uint32 options,
+    const wchar16_t *osname,
+    const wchar16_t *osver,
+    const wchar16_t *ospack
+    );
 
-NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine, 
-                                    const wchar16_t *domain,
-                                    const wchar16_t *account,
-                                    const wchar16_t *password,
-                                    uint32 options);
 
-NET_API_STATUS NetMachineChangePassword();
+NET_API_STATUS
+NetUnjoinDomain(
+    const wchar16_t *hostname,
+    const wchar16_t *account,
+    const wchar16_t *password,
+    uint32 options
+    );
+
+
+NET_API_STATUS
+NetUnjoinDomainLocal(
+    const wchar16_t *machine,
+    const wchar16_t *domain,
+    const wchar16_t *account,
+    const wchar16_t *password,
+    uint32 options
+    );
+
+
+NET_API_STATUS
+NetMachineChangePassword(
+    void
+    );
+
 
 #endif /* _LM_JOIN_H_ */
 

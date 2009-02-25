@@ -36,302 +36,376 @@
 
 
 typedef struct _USER_INFO_0 {
-	wchar16_t *usri0_name;
+    wchar16_t *usri0_name;
 } USER_INFO_0;
 
 typedef struct _USER_INFO_1 {
-	wchar16_t *usri1_name;
-	wchar16_t *usri1_password;
-	uint32 usri1_password_age;
-	uint32 usri1_priv;
-	wchar16_t *usri1_home_dir;
-	wchar16_t *usri1_comment;
-	uint32 usri1_flags;
-	wchar16_t *usri1_script_path;
+    wchar16_t *usri1_name;
+    wchar16_t *usri1_password;
+    uint32 usri1_password_age;
+    uint32 usri1_priv;
+    wchar16_t *usri1_home_dir;
+    wchar16_t *usri1_comment;
+    uint32 usri1_flags;
+    wchar16_t *usri1_script_path;
 } USER_INFO_1;
 
 typedef struct _USER_INFO_2 {
-	wchar16_t *usri2_name;
-	wchar16_t *usri2_password;
-	uint32 usri2_password_age;
-	uint32 usri2_priv;
-	wchar16_t *usri2_home_dir;
-	wchar16_t *usri2_comment;
-	uint32 usri2_flags;
-	wchar16_t *usri2_script_path;
-	uint32 usri2_auth_flags;
-	wchar16_t *usri2_full_name;
-	wchar16_t *usri2_usr_comment;
-	wchar16_t *usri2_parms;
-	wchar16_t *usri2_workstations;
-	uint32 usri2_last_logon;
-	uint32 usri2_last_logoff;
-	uint32 usri2_acct_expires;
-	uint32 usri2_max_storage;
-	uint32 usri2_units_per_week;
-	uint8 *usri2_logon_hours;
-	uint32 usri2_bad_pw_count;
-	uint32 usri2_num_logons;
-	wchar16_t *usri2_logon_server;
-	uint32 usri2_country_code;
-	uint32 usri2_code_page;
+    wchar16_t *usri2_name;
+    wchar16_t *usri2_password;
+    uint32 usri2_password_age;
+    uint32 usri2_priv;
+    wchar16_t *usri2_home_dir;
+    wchar16_t *usri2_comment;
+    uint32 usri2_flags;
+    wchar16_t *usri2_script_path;
+    uint32 usri2_auth_flags;
+    wchar16_t *usri2_full_name;
+    wchar16_t *usri2_usr_comment;
+    wchar16_t *usri2_parms;
+    wchar16_t *usri2_workstations;
+    uint32 usri2_last_logon;
+    uint32 usri2_last_logoff;
+    uint32 usri2_acct_expires;
+    uint32 usri2_max_storage;
+    uint32 usri2_units_per_week;
+    uint8 *usri2_logon_hours;
+    uint32 usri2_bad_pw_count;
+    uint32 usri2_num_logons;
+    wchar16_t *usri2_logon_server;
+    uint32 usri2_country_code;
+    uint32 usri2_code_page;
 } USER_INFO_2;
 
 typedef struct _USER_INFO_3 {
-	wchar16_t *usri3_name;
-	wchar16_t *usri3_password;
-	wchar16_t *usri3_password_age;
-	uint32 usri3_priv;
-	wchar16_t *usri3_home_dir;
-	wchar16_t *usri3_comment;
-	uint32 usri3_flags;
-	wchar16_t *usri3_script_path;
-	uint32 usri3_auth_flags;
-	wchar16_t *usri3_full_name;
-	wchar16_t *usri3_usr_comment;
-	wchar16_t *usri3_parms;
-	wchar16_t *usri3_workstations;
-	NtTime usri3_last_logon;
-	NtTime usri3_last_logoff;
-	NtTime usri3_acct_expires;
-	uint32 usri3_max_storage;
-	uint32 usri3_units_per_week;
-	uint8 *usri3_logon_hours;
-	uint32 usri3_bad_pw_count;
-	uint32 usri3_num_logons;
-	wchar16_t *usri3_logon_server;
-	uint32 usri3_country_code;
-	uint32 usri3_code_page;
-	uint32 usri3_user_id;
-	uint32 usri3_primary_group_id;
-	wchar16_t *usri3_profile;
-	wchar16_t *usri3_home_dir_drive;
-	uint32 usri3_password_expired;
+    wchar16_t *usri3_name;
+    wchar16_t *usri3_password;
+    wchar16_t *usri3_password_age;
+    uint32 usri3_priv;
+    wchar16_t *usri3_home_dir;
+    wchar16_t *usri3_comment;
+    uint32 usri3_flags;
+    wchar16_t *usri3_script_path;
+    uint32 usri3_auth_flags;
+    wchar16_t *usri3_full_name;
+    wchar16_t *usri3_usr_comment;
+    wchar16_t *usri3_parms;
+    wchar16_t *usri3_workstations;
+    NtTime usri3_last_logon;
+    NtTime usri3_last_logoff;
+    NtTime usri3_acct_expires;
+    uint32 usri3_max_storage;
+    uint32 usri3_units_per_week;
+    uint8 *usri3_logon_hours;
+    uint32 usri3_bad_pw_count;
+    uint32 usri3_num_logons;
+    wchar16_t *usri3_logon_server;
+    uint32 usri3_country_code;
+    uint32 usri3_code_page;
+    uint32 usri3_user_id;
+    uint32 usri3_primary_group_id;
+    wchar16_t *usri3_profile;
+    wchar16_t *usri3_home_dir_drive;
+    uint32 usri3_password_expired;
 } USER_INFO_3;
 
 
 typedef struct _USER_INFO_4 {
-	wchar16_t *usri4_name;
-	wchar16_t *usri4_password;
-	wchar16_t *usri4_password_age;
-	uint32 usri4_priv;
-	wchar16_t *usri4_home_dir;
-	wchar16_t *usri4_comment;
-	uint32 usri4_flags;
-	wchar16_t *usri4_script_path;
-	uint32 usri4_auth_flags;
-	wchar16_t *usri4_full_name;
-	wchar16_t *usri4_usr_comment;
-	wchar16_t *usri4_parms;
-	wchar16_t *usri4_workstations;
-	NtTime usri4_last_logon;
-	NtTime usri4_last_logoff;
-	NtTime usri4_acct_expires;
-	uint32 usri4_max_storage;
-	uint32 usri4_units_per_week;
-	uint8 *usri4_logon_hours;
-	uint32 usri4_bad_pw_count;
-	uint32 usri4_num_logons;
-	wchar16_t *usri4_logon_server;
-	uint32 usri4_country_code;
-	uint32 usri4_code_page;
-	DomSid* usri4_user_sid;
-	uint32 usri4_primary_group_id;
-	wchar16_t *usri4_profile;
-	wchar16_t *usri4_home_dir_drive;
-	uint32 usri4_password_expired;
+    wchar16_t *usri4_name;
+    wchar16_t *usri4_password;
+    wchar16_t *usri4_password_age;
+    uint32 usri4_priv;
+    wchar16_t *usri4_home_dir;
+    wchar16_t *usri4_comment;
+    uint32 usri4_flags;
+    wchar16_t *usri4_script_path;
+    uint32 usri4_auth_flags;
+    wchar16_t *usri4_full_name;
+    wchar16_t *usri4_usr_comment;
+    wchar16_t *usri4_parms;
+    wchar16_t *usri4_workstations;
+    NtTime usri4_last_logon;
+    NtTime usri4_last_logoff;
+    NtTime usri4_acct_expires;
+    uint32 usri4_max_storage;
+    uint32 usri4_units_per_week;
+    uint8 *usri4_logon_hours;
+    uint32 usri4_bad_pw_count;
+    uint32 usri4_num_logons;
+    wchar16_t *usri4_logon_server;
+    uint32 usri4_country_code;
+    uint32 usri4_code_page;
+    DomSid* usri4_user_sid;
+    uint32 usri4_primary_group_id;
+    wchar16_t *usri4_profile;
+    wchar16_t *usri4_home_dir_drive;
+    uint32 usri4_password_expired;
 } USER_INFO_4;
 
 
 typedef struct _USER_INFO_10 {
-	wchar16_t *usri10_name;
-	wchar16_t *usri10_comment;
-	wchar16_t *usri10_usr_comment;
-	wchar16_t *usri10_full_name;
+    wchar16_t *usri10_name;
+    wchar16_t *usri10_comment;
+    wchar16_t *usri10_usr_comment;
+    wchar16_t *usri10_full_name;
 } USER_INFO_10;
 
 typedef struct _USER_INFO_11 {
-	wchar16_t *usri11_name;
-	wchar16_t *usri11_comment;
-	wchar16_t *usri11_usr_comment;
-	wchar16_t *usri11_full_name;
-	uint32 usri11_priv;
-	uint32 usri11_auth_flags;
-	uint32 usri11_password_age;
-	wchar16_t *usri11_home_dir;
-	wchar16_t *usri11_parms;
-	uint32 usri11_last_logon;
-	uint32 usri11_last_logoff;
-	uint32 usri11_bad_pw_count;
-	uint32 usri11_num_logons;
-	wchar16_t *usri11_logon_server;
-	uint32 usri11_country_code;
-	wchar16_t *usri11_workstations;
-	uint32 usri11_max_storage;
-	uint32 usri11_units_per_week;
-	uint8 *usri11_logon_hours;
-	uint32 usri11_code_page;
+    wchar16_t *usri11_name;
+    wchar16_t *usri11_comment;
+    wchar16_t *usri11_usr_comment;
+    wchar16_t *usri11_full_name;
+    uint32 usri11_priv;
+    uint32 usri11_auth_flags;
+    uint32 usri11_password_age;
+    wchar16_t *usri11_home_dir;
+    wchar16_t *usri11_parms;
+    uint32 usri11_last_logon;
+    uint32 usri11_last_logoff;
+    uint32 usri11_bad_pw_count;
+    uint32 usri11_num_logons;
+    wchar16_t *usri11_logon_server;
+    uint32 usri11_country_code;
+    wchar16_t *usri11_workstations;
+    uint32 usri11_max_storage;
+    uint32 usri11_units_per_week;
+    uint8 *usri11_logon_hours;
+    uint32 usri11_code_page;
 } USER_INFO_11;
 
 typedef struct _USER_INFO_20 {
-	wchar16_t *usri20_name;
-	wchar16_t *usri20_full_name;
-	wchar16_t *usri20_comment;
-	uint32 usri20_flags;
-	uint32 usri20_user_id;
+    wchar16_t *usri20_name;
+    wchar16_t *usri20_full_name;
+    wchar16_t *usri20_comment;
+    uint32 usri20_flags;
+    uint32 usri20_user_id;
 } USER_INFO_20;
 
 typedef struct _USER_INFO_23 {
-	wchar16_t *usri23_name;
-	wchar16_t *usri23_full_name;
-	wchar16_t *usri23_comment;
-	DomSid *usri23_user_sid;
+    wchar16_t *usri23_name;
+    wchar16_t *usri23_full_name;
+    wchar16_t *usri23_comment;
+    DomSid *usri23_user_sid;
 } USER_INFO_23;
 
 
 typedef struct _USER_INFO_1003 {
-	wchar16_t *usri1003_password;
+    wchar16_t *usri1003_password;
 } USER_INFO_1003;
 
 
 typedef struct _USER_INFO_1007 {
-	wchar16_t *usri1007_comment;
+    wchar16_t *usri1007_comment;
 } USER_INFO_1007;
 
 
 typedef struct _USER_INFO_1008 {
-	uint32 usri1008_flags;
+    uint32 usri1008_flags;
 } USER_INFO_1008;
 
 
 typedef struct _USER_INFO_1011 {
-	wchar16_t *usri1011_full_name;
+    wchar16_t *usri1011_full_name;
 } USER_INFO_1011;
 
 
 
 typedef struct _LOCALGROUP_USERS_INFO_0 {
-	wchar16_t *lgrui0_name;
+    wchar16_t *lgrui0_name;
 } LOCALGROUP_USERS_INFO_0;
 
 
 
 typedef struct _LOCALGROUP_INFO_0 {
-	wchar16_t *lgrpi0_name;
+    wchar16_t *lgrpi0_name;
 } LOCALGROUP_INFO_0;
 
 
 typedef struct _LOCALGROUP_INFO_1 {
-	wchar16_t *lgrpi1_name;
-	wchar16_t *lgrpi1_comment;
+    wchar16_t *lgrpi1_name;
+    wchar16_t *lgrpi1_comment;
 } LOCALGROUP_INFO_1;
 
 
+typedef struct _LOCALGROUP_INFO_1002 {
+    wchar16_t *lgrpi1002_comment;
+} LOCALGROUP_INFO_1002;
+
 
 typedef struct _LOCALGROUP_MEMBERS_INFO_0 {
-	DomSid *lgrmi0_sid;
+    DomSid *lgrmi0_sid;
 } LOCALGROUP_MEMBERS_INFO_0;
 
 
 typedef struct _LOCALGROUP_MEMBERS_INFO_3 {
-	wchar16_t *lgrmi3_domainandname;
+    wchar16_t *lgrmi3_domainandname;
 } LOCALGROUP_MEMBERS_INFO_3;
 
-typedef int NET_API_STATUS;
 
-NET_API_STATUS NetUserEnum(const wchar16_t *hostname,
-			   uint32 level,
-			   uint32 filter,
-			   void **bufptr,
-			   uint32 maxlen,
-			   uint32 *entries,
-			   uint32 *total,
-			   uint32 *resume);
+typedef WINERR NET_API_STATUS;
 
-NET_API_STATUS NetUserAdd(const wchar16_t *hostname,
-			  uint32 level,
-			  void *bufptr,
-			  uint32 *parm_err);
 
-NET_API_STATUS NetUserDel(const wchar16_t *hostname,
-			  const wchar16_t *username);
+NET_API_STATUS
+NetUserEnum(
+    const wchar16_t *hostname,
+    uint32 level,
+    uint32 filter,
+    void **bufptr,
+    uint32 maxlen,
+    uint32 *entries,
+    uint32 *total,
+    uint32 *resume
+    );
 
-NET_API_STATUS NetUserGetInfo(const wchar16_t *hostname,
-			      const wchar16_t *username,
-			      uint32 level,
-			      void **bufptr);
 
-NET_API_STATUS NetUserSetInfo(const wchar16_t *servername,
-			      const wchar16_t *username,
-			      uint32 level,
-			      void *bufptr,
-			      uint32 *parm_err);
+NET_API_STATUS
+NetUserAdd(
+    const wchar16_t *hostname,
+    uint32 level,
+    void *bufptr,
+    uint32 *parm_err
+    );
 
-NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *servername,
-				     const wchar16_t *username,
-				     uint32 level,
-				     uint32 flags,
-				     void **bufptr,
-				     uint32 prefmaxlen,
-				     uint32 *entriesread,
-				     uint32 *totalentries);
 
-NET_API_STATUS NetLocalGroupAdd(const wchar16_t *servername,
-				uint32 level,
-				void *bufptr,
-				uint32 *parm_err);
+NET_API_STATUS
+NetUserDel(
+    const wchar16_t *hostname,
+    const wchar16_t *username
+    );
 
-NET_API_STATUS NetLocalGroupDel(const wchar16_t *servername,
-				const wchar16_t *groupname);
 
-NET_API_STATUS NetLocalGroupEnum(const wchar16_t *servername,
-				 uint32 level,
-				 void **bufptr,
-				 uint32 prefmaxlen,
-				 uint32 *entriesread,
-				 uint32 *totalentries,
-				 uint32 *resumehandle);
+NET_API_STATUS
+NetUserGetInfo(
+    const wchar16_t *hostname,
+    const wchar16_t *username,
+    uint32 level,
+    void **bufptr
+    );
 
-NET_API_STATUS NetLocalGroupSetInfo(const wchar16_t *servername,
-				    const wchar16_t *groupname,
-				    uint32 level,
-				    void *bufptr,
-				    uint32 *parm_err);
 
-NET_API_STATUS NetLocalGroupGetInfo(const wchar16_t *servername,
-				    const wchar16_t *groupname,
-				    uint32 level,
-				    void **bufptr);
+NET_API_STATUS
+NetUserSetInfo(
+    const wchar16_t *servername,
+    const wchar16_t *username,
+    uint32 level,
+    void *bufptr,
+    uint32 *parm_err
+    );
 
-NET_API_STATUS NetLocalGroupAddMembers(const wchar16_t *servername,
-				       const wchar16_t *groupname,
-				       uint32 level,
-				       void *bufptr,
-				       uint32 totalentries);
 
-NET_API_STATUS NetLocalGroupDelMembers(const wchar16_t *servername,
-				       const wchar16_t *groupname,
-				       uint32 level,
-				       void *bufptr,
-				       uint32 totalentries);
+NET_API_STATUS
+NetUserGetLocalGroups(
+    const wchar16_t *servername,
+    const wchar16_t *username,
+    uint32 level,
+    uint32 flags,
+    void **bufptr,
+    uint32 prefmaxlen,
+    uint32 *entriesread,
+    uint32 *totalentries
+    );
 
-NET_API_STATUS NetLocalGroupGetMembers(const wchar16_t *servername,
-				       const wchar16_t *localgroupname,
-				       uint32 level,
-				       void **bufptr,
-				       uint32 prefmaxlen,
-				       uint32 *entriesread,
-				       uint32 *totalentries,
-				       uint32 *resumehandle);
 
-NET_API_STATUS NetApiBufferFree(void *bufptr);
+NET_API_STATUS
+NetLocalGroupAdd(
+    const wchar16_t *servername,
+    uint32 level,
+    void *bufptr,
+    uint32 *parm_err
+    );
 
-NET_API_STATUS NetUserChangePassword(const wchar16_t *domain,
-				     const wchar16_t *username,
-				     const wchar16_t *oldpassword,
-				     const wchar16_t *newpassword);
 
-NET_API_STATUS NetGetDomainName(const wchar16_t *hostname, wchar16_t **domname);
+NET_API_STATUS
+NetLocalGroupDel(
+    const wchar16_t *servername,
+    const wchar16_t *groupname
+    );
+
+
+NET_API_STATUS
+NetLocalGroupEnum(
+    const wchar16_t *servername,
+    uint32 level,
+    void **bufptr,
+    uint32 prefmaxlen,
+    uint32 *entriesread,
+    uint32 *totalentries,
+    uint32 *resumehandle
+    );
+
+
+NET_API_STATUS
+NetLocalGroupSetInfo(
+    const wchar16_t *servername,
+    const wchar16_t *groupname,
+    uint32 level,
+    void *bufptr,
+    uint32 *parm_err
+    );
+
+
+NET_API_STATUS
+NetLocalGroupGetInfo(
+    const wchar16_t *servername,
+    const wchar16_t *groupname,
+    uint32 level,
+    void **bufptr
+    );
+
+
+NET_API_STATUS
+NetLocalGroupAddMembers(
+    const wchar16_t *servername,
+    const wchar16_t *groupname,
+    uint32 level,
+    void *bufptr,
+    uint32 totalentries
+    );
+
+
+NET_API_STATUS
+NetLocalGroupDelMembers(
+    const wchar16_t *servername,
+    const wchar16_t *groupname,
+    uint32 level,
+    void *bufptr,
+    uint32 totalentries
+    );
+
+
+NET_API_STATUS
+NetLocalGroupGetMembers(
+    const wchar16_t *servername,
+    const wchar16_t *localgroupname,
+    uint32 level,
+    void **bufptr,
+    uint32 prefmaxlen,
+    uint32 *entriesread,
+    uint32 *totalentries,
+    uint32 *resumehandle
+    );
+
+
+NET_API_STATUS
+NetApiBufferFree(
+    void *bufptr
+    );
+
+
+NET_API_STATUS
+NetUserChangePassword(
+    const wchar16_t *domain,
+    const wchar16_t *username,
+    const wchar16_t *oldpassword,
+    const wchar16_t *newpassword
+    );
+
+
+NET_API_STATUS
+NetGetDomainName(
+    const wchar16_t *hostname,
+    wchar16_t **domname
+    );
 
 
 /* this allows functions to return as much data as available */
@@ -372,3 +446,13 @@ NET_API_STATUS NetGetDomainName(const wchar16_t *hostname, wchar16_t **domname);
 #define USER_PRIV_ADMIN                               0x00000002
 
 #endif /* _LM_ACCESS_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
