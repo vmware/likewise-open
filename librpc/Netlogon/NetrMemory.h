@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,12 +28,45 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Netlogon memory (de)allocation routines (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #ifndef _NETR_MEMORY_H_
 #define _NETR_MEMORY_H_
 
-NTSTATUS NetrAllocateMemory(void **ptr, size_t len, void *dep);
 
-NTSTATUS NetrAddDepMemory(void *ptr, void *dep);
+NTSTATUS
+NetrAllocateMemory(
+    void **ptr,
+    size_t len,
+    void *dep
+    );
+
+NTSTATUS
+NetrAddDepMemory(
+    void *ptr,
+    void *dep
+    );
+
+NTSTATUS
+NetrFreeMemory(
+    void *ptr
+    );
+
+NTSTATUS NetrAllocateUniString(
+    wchar16_t **out,
+    const wchar16_t *in,
+    void *dep
+    );
+
+NTSTATUS
+NetrAllocateDomainTrusts(
+    NetrDomainTrust **out,
+    NetrDomainTrustList *in
+    );
 
 NTSTATUS NetrAllocateLogonInfoNet(
     NetrLogonInfo **out,
@@ -62,6 +95,25 @@ NTSTATUS NetrAllocateLogonInfo(
     const wchar16_t *workstation,
     const wchar16_t *account,
     const wchar16_t *password
+    );
+
+NTSTATUS
+NetrAllocateLogonInfoNet(
+    NetrLogonInfo **out,
+    uint16 level,
+    const wchar16_t *domain,
+    const wchar16_t *workstation,
+    const wchar16_t *account,
+    const uint8_t *challenge,
+    const uint8_t *lm_resp,
+    const uint8_t *nt_resp
+    );
+
+NTSTATUS
+NetrAllocateValidationInfo(
+    NetrValidationInfo **out,
+    NetrValidationInfo *in,
+    uint16 level
     );
 
 
