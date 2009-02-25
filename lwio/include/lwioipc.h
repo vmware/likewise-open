@@ -31,16 +31,25 @@
 #ifndef __LWIO_IPC_H__
 #define __LWIO_IPC_H__
 
+#include <config.h>
+
 #define LWIO_SERVER_FILENAME CACHEDIR "/.lwiod"
 
 #define MAP_LWMSG_STATUS(status) \
     SMBIPCMapLWMsgStatus(status);
 
+#if defined(WORDS_BIGENDIAN)
+#  define UCS2_NATIVE "UCS-2BE"
+#else
+#  define UCS2_NATIVE "UCS-2LE"
+#endif
+
 #define LWMSG_MEMBER_PWSTR(_type, _field)           \
     LWMSG_MEMBER_POINTER_BEGIN(_type, _field),      \
     LWMSG_UINT16(wchar16_t),                        \
     LWMSG_POINTER_END,                              \
-    LWMSG_ATTR_STRING
+    LWMSG_ATTR_ZERO_TERMINATED,                     \
+    LWMSG_ATTR_ENCODING(UCS2_NATIVE)
 
 #define LWMSG_MEMBER_PSECTOKEN(_type, _field)       \
     LWMSG_MEMBER_POINTER_BEGIN(_type, _field),      \
