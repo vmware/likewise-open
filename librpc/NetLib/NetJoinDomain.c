@@ -124,7 +124,7 @@ NetJoinDomainLocalInternal(
     if (account && password)
     {
         /* Set up access token */
-        HANDLE hAccessToken = NULL;
+        LW_PIO_ACCESS_TOKEN hAccessToken = NULL;
         
         dwError = SMBCreatePlainAccessTokenW(account, password, &hAccessToken);
         if (dwError)
@@ -165,14 +165,14 @@ NetJoinDomainLocalInternal(
        be reset afterwards by means of rpc calls */
     if (account_ou) {
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        goto_if_err_not_success(err, disconn_lsa);
+        goto_if_winerr_not_success(err, disconn_lsa);
 
         err = MachAcctCreate(ld, machname, account_ou,
                              (options & NETSETUP_DOMAIN_JOIN_IF_JOINED));
-        goto_if_err_not_success(err, disconn_lsa);
+        goto_if_winerr_not_success(err, disconn_lsa);
 
         err = DirectoryDisconnect(ld);
-        goto_if_err_not_success(err, disconn_lsa);
+        goto_if_winerr_not_success(err, disconn_lsa);
     }
 
     status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0);
@@ -238,7 +238,7 @@ NetJoinDomainLocalInternal(
 
     err = SaveMachinePassword(machname, conn->samr.dom_name, dns_domain_name,
                               domain_controller_name, sid_str,
-                              (char*)machine_pass);
+                              machine_pass);
     if (err != ERROR_SUCCESS) {
         close_status = DisableWksAccount(conn, machname, &account_handle);
         goto_if_ntstatus_not_success(close_status, close);
@@ -253,10 +253,10 @@ NetJoinDomainLocalInternal(
         osname || osver) {
 
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        goto_if_err_not_success(err, disconn_samr);
+        goto_if_winerr_not_success(err, disconn_samr);
 
         err = MachAcctSearch(ld, machname, base_dn, &dn);
-        goto_if_err_not_success(err, disconn_samr);
+        goto_if_winerr_not_success(err, disconn_samr);
 
         /*
          * Set SPN and DnsHostName attributes unless this part is to be deferred
@@ -274,16 +274,18 @@ NetJoinDomainLocalInternal(
             dns_attr_val[1] = NULL;
             dnshostname = dns_attr_val[0];
 
-            err = MachAcctSetAttribute(ld, dn, dns_attr_name, dns_attr_val, 0);
-            goto_if_err_not_success(err, disconn_samr);
+            err = MachAcctSetAttribute(ld, dn, dns_attr_name,
+	                               (const wchar16_t**)dns_attr_val, 0);
+            goto_if_winerr_not_success(err, disconn_samr);
 
             spn_attr_name   = ambstowc16s("servicePrincipalName");
             spn_attr_val[0] = LdapAttrValSvcPrincipalName(dnshostname);
             spn_attr_val[1] = LdapAttrValSvcPrincipalName(machine);
             spn_attr_val[2] = NULL;
 
-            err = MachAcctSetAttribute(ld, dn, spn_attr_name, spn_attr_val, 0);
-            goto_if_err_not_success(err, disconn_samr);
+            err = MachAcctSetAttribute(ld, dn, spn_attr_name,
+				       (const wchar16_t**)spn_attr_val, 0);
+            goto_if_winerr_not_success(err, disconn_samr);
         }
 
         /*
@@ -295,7 +297,8 @@ NetJoinDomainLocalInternal(
             osname_attr_val[1] = NULL;
 
             err = MachAcctSetAttribute(ld, dn,
-                                       osname_attr_name, osname_attr_val,
+                                       osname_attr_name,
+				       (const wchar16_t**)osname_attr_val,
                                        0);
             if (err == ERROR_ACCESS_DENIED)
             {
@@ -304,37 +307,39 @@ NetJoinDomainLocalInternal(
                  */
                 err = ERROR_SUCCESS;
             }
-            goto_if_err_not_success(err, disconn_samr);
+            goto_if_winerr_not_success(err, disconn_samr);
 
             osver_attr_name = ambstowc16s("operatingSystemVersion");
             osver_attr_val[0] = wc16sdup(osver);
             osver_attr_val[1] = NULL;
 
             err = MachAcctSetAttribute(ld, dn,
-                                       osver_attr_name, osver_attr_val,
+                                       osver_attr_name,
+				       (const wchar16_t**)osver_attr_val,
                                        0);
             if (err == ERROR_ACCESS_DENIED)
             {
                 err = ERROR_SUCCESS;
             }
-            goto_if_err_not_success(err, disconn_samr);
+            goto_if_winerr_not_success(err, disconn_samr);
 
             ospack_attr_name = ambstowc16s("operatingSystemServicePack");
             ospack_attr_val[0] = wc16sdup(ospack);
             ospack_attr_val[1] = NULL;
 
             err = MachAcctSetAttribute(ld, dn,
-                                       ospack_attr_name, ospack_attr_val,
+                                       ospack_attr_name,
+				       (const wchar16_t**)ospack_attr_val,
                                        0);
             if (err == ERROR_ACCESS_DENIED)
             {
                 err = ERROR_SUCCESS;
             }
-            goto_if_err_not_success(err, disconn_samr);
+            goto_if_winerr_not_success(err, disconn_samr);
         }
 
         err = DirectoryDisconnect(ld);
-        goto_if_err_not_success(err, disconn_samr);
+        goto_if_winerr_not_success(err, disconn_samr);
     }
 
 disconn_samr:
