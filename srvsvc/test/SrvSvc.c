@@ -920,21 +920,41 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
                                        &resume_handle /*resume_handle*/
                                        ));
 
-        for (i = 0; i < totalentries; i++) {
+        while (totalentries) {
+            totalentries--;
+
+            RESULT_UINT(level);
+
             switch (level) {
             case 0:
+                RESULT_WSTR(((PSHARE_INFO_0)bufptr)[totalentries].shi0_netname);
                 break;
 
             case 1:
+                RESULT_WSTR(((PSHARE_INFO_1)bufptr)[totalentries].shi1_netname);
+                RESULT_UINT(((PSHARE_INFO_1)bufptr)[totalentries].shi1_type);
+                RESULT_WSTR(((PSHARE_INFO_1)bufptr)[totalentries].shi1_remark);
                 break;
 
             case 2:
+                RESULT_WSTR(((PSHARE_INFO_2)bufptr)[totalentries].shi2_netname);
+                RESULT_UINT(((PSHARE_INFO_2)bufptr)[totalentries].shi2_type);
+                RESULT_WSTR(((PSHARE_INFO_2)bufptr)[totalentries].shi2_remark);
+                RESULT_WSTR(((PSHARE_INFO_2)bufptr)[totalentries].shi2_path);
                 break;
 
             case 501:
+                RESULT_WSTR(((PSHARE_INFO_501)bufptr)[totalentries].shi501_netname);
+                RESULT_UINT(((PSHARE_INFO_501)bufptr)[totalentries].shi501_type);
+                RESULT_WSTR(((PSHARE_INFO_501)bufptr)[totalentries].shi501_remark);
+                RESULT_WSTR(((PSHARE_INFO_501)bufptr)[totalentries].shi501_netname);
                 break;
 
             case 502:
+                RESULT_WSTR(((PSHARE_INFO_502)bufptr)[totalentries].shi502_netname);
+                RESULT_UINT(((PSHARE_INFO_502)bufptr)[totalentries].shi502_type);
+                RESULT_WSTR(((PSHARE_INFO_502)bufptr)[totalentries].shi502_remark);
+                RESULT_WSTR(((PSHARE_INFO_502)bufptr)[totalentries].shi502_path);
                 break;
             }
         }
@@ -954,75 +974,81 @@ int TestNetShareGetInfo(struct test *t, const wchar16_t *hostname,
                         const wchar16_t *user, const wchar16_t *pass,
                         struct parameter *options, int optcount)
 {
+    const uint32 def_infolevel = 0;
+    const char *def_sharename = "TEST";
+
     NET_API_STATUS err = ERROR_SUCCESS;
     handle_t srvsvc_binding;
+    enum param_err perr = perr_success;
     uint8 *bufptr = NULL;
     uint32 entriesread = 0;
     uint32 totalentries = 0;
     uint32 resume_handle = 0;
-    SHARE_INFO_0 *shi0_enum = NULL;
     uint32 i;
-//    NETRESOURCE nr = {0};
+    uint32 infolevel = 0;
+    wchar16_t *sharename = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
+    perr = fetch_value(options, optcount, "infolevel", pt_uint32, &infolevel,
+                       &def_infolevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "sharename", pt_w16string,
+                       &sharename, &def_sharename);
+    if (!perr_is_ok(perr)) perr_fail(perr);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
 
     INPUT_ARG_PTR(srvsvc_binding);
     INPUT_ARG_WSTR(hostname);
+    INPUT_ARG_WSTR(sharename);
+    INPUT_ARG_UINT(infolevel);
 
     bufptr = NULL;
-    entriesread = 0;
-    totalentries = 0;
-    CALL_NETAPI(err = NetShareEnum(srvsvc_binding,
-                                   hostname,/*servername*/
-                                   0,/*level*/
-                                   &bufptr,/*bufptr*/
-                                   0xFFFFFFFF,/*prefmaxlen*/
-                                   &entriesread,/*entriesread*/
-                                   &totalentries,/*totalentries*/
-                                   &resume_handle/*resume_handle*/
-                                   ));
+    CALL_NETAPI(err = NetShareGetInfo(srvsvc_binding,
+                                      hostname,/*servername*/
+                                      sharename,/*netname*/
+                                      infolevel,/*level*/
+                                      &bufptr/*bufptr*/
+                                      ));
     if (err != ERROR_SUCCESS) netapi_fail(err);
-    printf("bufptr[%p] entriesread[%u] totalentries[%u] resume_handle[%u]\n",
-           bufptr, entriesread, totalentries, resume_handle);
 
-    shi0_enum = (PSHARE_INFO_0)bufptr;
-    for (i=0; i< entriesread; i++) {
-        uint32 levels[] = { 0, 1, 2, 501, 502, 1005 };
-        uint32 y;
+    switch (infolevel) {
+    case 0:
+        RESULT_WSTR(((PSHARE_INFO_0)bufptr)->shi0_netname);
+        break;
 
-        for (y=0; y < (sizeof(levels)/sizeof(levels[0])); y++) {
-           bufptr = NULL;
-           CALL_NETAPI(err = NetShareGetInfo(srvsvc_binding,
-                                             hostname,/*servername*/
-                                             shi0_enum[i].shi0_netname,/*netname*/
-                                             levels[y],/*level*/
-                                             &bufptr/*bufptr*/
-                                             ));
-           if (err != ERROR_SUCCESS) netapi_fail(err);
-           printf("bufptr[%p]\n", bufptr);
-        }
+    case 1:
+        RESULT_WSTR(((PSHARE_INFO_1)bufptr)->shi1_netname);
+        RESULT_UINT(((PSHARE_INFO_1)bufptr)->shi1_type);
+        RESULT_WSTR(((PSHARE_INFO_1)bufptr)->shi1_remark);
+        break;
 
-        bufptr = NULL;
-        CALL_NETAPI(err = NetShareGetInfo(srvsvc_binding,
-                                          hostname,/*servername*/
-                                          shi0_enum[i].shi0_netname,/*netname*/
-                                          1004,/*level*/
-                                          &bufptr/*bufptr*/
-                                          ));
-        if (err != ERROR_INVALID_LEVEL) netapi_fail(err);
-        printf("bufptr[%p]\n", bufptr);
+    case 2:
+        RESULT_WSTR(((PSHARE_INFO_2)bufptr)->shi2_netname);
+        RESULT_UINT(((PSHARE_INFO_2)bufptr)->shi2_type);
+        RESULT_WSTR(((PSHARE_INFO_2)bufptr)->shi2_remark);
+        RESULT_WSTR(((PSHARE_INFO_2)bufptr)->shi2_path);
+        break;
+
+    case 501:
+        RESULT_WSTR(((PSHARE_INFO_501)bufptr)->shi501_netname);
+        RESULT_UINT(((PSHARE_INFO_501)bufptr)->shi501_type);
+        RESULT_WSTR(((PSHARE_INFO_501)bufptr)->shi501_remark);
+        RESULT_WSTR(((PSHARE_INFO_501)bufptr)->shi501_netname);
+        break;
+
+    case 502:
+        RESULT_WSTR(((PSHARE_INFO_502)bufptr)->shi502_netname);
+        RESULT_UINT(((PSHARE_INFO_502)bufptr)->shi502_type);
+        RESULT_WSTR(((PSHARE_INFO_502)bufptr)->shi502_remark);
+        RESULT_WSTR(((PSHARE_INFO_502)bufptr)->shi502_path);
+        break;
     }
 
-    OUTPUT_ARG_PTR(srvsvc_binding);
-
     FreeSrvSvcBinding(&srvsvc_binding);
-
-//    RELEASE_SESSION_CREDS(nr);
 
     SrvSvcDestroyMemory();
     return true;
@@ -1266,6 +1292,7 @@ done:
     return false;
 }
 
+
 int TestNetShareDel(struct test *t, const wchar16_t *hostname,
                     const wchar16_t *user, const wchar16_t *pass,
                     struct parameter *options, int optcount)
@@ -1292,7 +1319,7 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
 
     CALL_NETAPI(err = NetShareDel(srvsvc_binding,
                                   hostname,/*servername*/
-                                  ambstowc16s("TEST"),/*netname*/
+                                  sharename,/*netname*/
                                   0/*reserved*/
                                   ));
     FreeSrvSvcBinding(&srvsvc_binding);
