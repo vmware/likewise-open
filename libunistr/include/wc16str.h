@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -133,6 +133,12 @@ wchar16_t *ambstowc16s(const char *input);
  * cchn is the maximum number of characters to store in dest (including null).
  */
 size_t mbstowc16s(wchar16_t *dest, const char *src, size_t cchn);
+
+/*Convert a multibyte character string to a little endian wchar16_t string and return the number of characters converted.
+ *
+ * cchn is the maximum number of characters to store in dest (including null).
+ */
+size_t mbstowc16les(wchar16_t *dest, const char *src, size_t cchn);
 
 /*Convert a wchar16_t string to a multibyte character string and return the result.
  */
