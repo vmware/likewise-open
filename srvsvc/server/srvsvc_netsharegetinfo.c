@@ -96,6 +96,8 @@ SrvSvcNetShareGetInfo(
     PSHARE_INFO_501 info501 = NULL;
     PSHARE_INFO_502 info502 = NULL;
 
+    memset(&GetParamsIn, 0, sizeof(GetParamsIn));
+
     GetParamsIn.pwszNetname = netname;
     GetParamsIn.dwInfoLevel = level;
 
