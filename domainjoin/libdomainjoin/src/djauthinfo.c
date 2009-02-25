@@ -1055,6 +1055,7 @@ void DJNetInitialize(LWException **exc)
     PFN_LSA_NET_JOIN_INITIALIZE init = NULL;
     BOOLEAN freeLsaHandle = TRUE;
     BOOLEAN systemDcedExists = FALSE;
+    LWException *innerExc = NULL;
 
     DJ_LOG_INFO("Trying to load %s", lsaFilename);
     
@@ -1092,8 +1093,11 @@ void DJNetInitialize(LWException **exc)
                             92, 11, &LW_EXC));
             }
 
-            LW_TRY(exc, DJManageDaemon("eventlogd", TRUE,
-                        92, 11, &LW_EXC));
+            DJManageDaemon("eventlogd", TRUE, 92, 11, &innerExc);
+            if (!LW_IS_OK(innerExc) && innerExc->code != CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+            {
+                DJLogException(LOG_LEVEL_WARNING, innerExc);
+            }
         }
 
         LW_CLEANUP_LSERR(exc, init(&lsaFunctions));
@@ -1110,6 +1114,7 @@ void DJNetInitialize(LWException **exc)
     freeLsaHandle = FALSE;
 
 cleanup:
+    LWHandle(&innerExc);
     if(freeLsaHandle && lsaHandle != NULL)
     {
         dlclose(lsaHandle);
