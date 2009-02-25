@@ -169,7 +169,8 @@ RdrCommonCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+    pIrp->IoStatusBlock.Status = ntStatus;
 
-    return(ntStatus);
+    return ntStatus;
 }
 
