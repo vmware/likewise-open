@@ -94,6 +94,7 @@ SrvSvcNetShareEnum(
     PSHARE_INFO_ENUM_PARAMS pEnumParamsOut = NULL;
     srvsvc_NetShareCtr0 *ctr0 = NULL;
     srvsvc_NetShareCtr1 *ctr1 = NULL;
+    srvsvc_NetShareCtr2 *ctr2 = NULL;
     srvsvc_NetShareCtr501 *ctr501 = NULL;
     srvsvc_NetShareCtr502 *ctr502 = NULL;
 
@@ -217,6 +218,19 @@ SrvSvcNetShareEnum(
         BAIL_ON_NT_STATUS(ntStatus);
         memcpy((void*)ctr1->array, (void*)pEnumParamsOut->info.p1,
                sizeof(*ctr1->array) * ctr1->count);
+        break;
+
+    case 2:
+        ctr2 = ctr->ctr2;
+        ctr2->count = pEnumParamsOut->dwNumEntries;
+
+        ntStatus = SRVSVCAllocateMemory(
+                            sizeof(*ctr2->array) * ctr2->count,
+                            (void**)&ctr2->array
+                            );
+        BAIL_ON_NT_STATUS(ntStatus);
+        memcpy((void*)ctr2->array, (void*)pEnumParamsOut->info.p2,
+               sizeof(*ctr2->array) * ctr2->count);
         break;
 
     case 501:
