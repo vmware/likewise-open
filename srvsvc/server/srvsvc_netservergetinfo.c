@@ -58,19 +58,46 @@ SrvSvcNetrServerGetInfo(
 {
     DWORD dwError = 0;
     SERVER_INFO_101 *pInfo101 = NULL;
+    SERVER_INFO_102 *pInfo102 = NULL;
 
-    dwError = SRVSVCAllocateMemory(sizeof(*pInfo101),
-                                   (void**)&pInfo101);
-    BAIL_ON_ERROR(dwError);
+    if (level == 101) {
+        dwError = SRVSVCAllocateMemory(sizeof(*pInfo101),
+                                       (void**)&pInfo101);
+        BAIL_ON_ERROR(dwError);
 
-    pInfo101->sv101_platform_id    = 500;
-    pInfo101->sv101_name           = ambstowc16s("DUMMYSRV");
-    pInfo101->sv101_version_major  = 4;
-    pInfo101->sv101_version_minor  = 9;
-    pInfo101->sv101_type           = 0x00809b03;
-    pInfo101->sv101_comment        = ambstowc16s("Likewise RPC");
+        pInfo101->sv101_platform_id    = 500;
+        pInfo101->sv101_name           = ambstowc16s("DUMMY-TEST");
+        pInfo101->sv101_version_major  = 4;
+        pInfo101->sv101_version_minor  = 9;
+        pInfo101->sv101_type           = 0x00809b03;
+        pInfo101->sv101_comment        = ambstowc16s("Likewise RPC");
 
-    info->info101 = pInfo101;
+        info->info101 = pInfo101;
+
+    } else if (level = 102) {
+        dwError = SRVSVCAllocateMemory(sizeof(*pInfo102),
+                                       (void**)&pInfo102);
+        BAIL_ON_ERROR(dwError);
+
+        pInfo102->sv102_platform_id    = 500;
+        pInfo102->sv102_name           = ambstowc16s("DUMMY-TEST");
+        pInfo102->sv102_version_major  = 4;
+        pInfo102->sv102_version_minor  = 9;
+        pInfo102->sv102_type           = 0x00809b03;
+        pInfo102->sv102_comment        = ambstowc16s("Likewise RPC");
+        pInfo102->sv102_users          = 0;
+        pInfo102->sv102_disc           = 0;
+        pInfo102->sv102_hidden         = 0;
+        pInfo102->sv102_announce       = 0;
+        pInfo102->sv102_anndelta       = 0;
+        pInfo102->sv102_licenses       = 5;
+        pInfo102->sv102_userpath       = ambstowc16s("/testpath");
+
+        info->info102 = pInfo102;
+
+    } else {
+        dwError = ERROR_NOT_SUPPORTED;
+    }
 
 cleanup:
     return dwError;
