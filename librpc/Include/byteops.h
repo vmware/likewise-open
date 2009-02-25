@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,33 +28,45 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Abstract: Byte buffer handling macros (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
+#ifndef _BYTEOPS_H_
+#define _BYTEOPS_H_
+
+
 #include <lwrpc/types.h>
 
-/* TODO: enable big endian version */
 
-#define GETUINT8(buf, off)   ((uint8)buf[off])
+#define GETUINT8(buf, off)   ((uint8)(buf)[(off)])
 
 #define GETUINT16(buf, off)                     \
-    (((uint16)GETUINT8(buf, 0+off)) |           \
-     ((uint16)GETUINT8(buf, 1+off) << 8))
+    (((uint16)GETUINT8((buf), 0+(off))) |       \
+     ((uint16)GETUINT8((buf), 1+(off)) << 8))
 
 #define GETUINT32(buf, off)                     \
-    (((uint32)GETUINT16(buf, 0+off)) |          \
-     ((uint32)GETUINT16(buf, 2+off) << 16))
+    (((uint32)GETUINT16((buf), 0+(off))) |      \
+     ((uint32)GETUINT16((buf), 2+(off)) << 16))
 
-#define SETUINT8(buf, off, v)   (buf[off] = (uint8)(v & 0xff))
+#define SETUINT8(buf, off, v)   ((buf)[(off)] = (uint8)((v) & 0xff))
 
 #define SETUINT16(buf, off, v)                  \
     do {                                        \
-        SETUINT8(buf, 0+off, (v));              \
-        SETUINT8(buf, 1+off, (v >> 8));         \
+        SETUINT8((buf), 0+(off), (v));          \
+        SETUINT8((buf), 1+(off), ((v) >> 8));   \
     } while (0)
 
 #define SETUINT32(buf, off, v)                  \
     do {                                        \
-        SETUINT16(buf, 0+off, (v));             \
-        SETUINT16(buf, 2+off, (v >> 16));       \
+        SETUINT16((buf), 0+(off), (v));         \
+        SETUINT16((buf), 2+(off), ((v) >> 16)); \
     } while (0)
+
+
+#endif /* _BYTEOPS_H_ */
 
 
 /*
