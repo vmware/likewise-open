@@ -36,7 +36,6 @@ NET_API_STATUS NetUserEnum(const wchar16_t *hostname, uint32 level, uint32 filte
                            void **buffer, uint32 maxlen, uint32 *entries,
                            uint32 *total, uint32 *resume)
 {
-    const uint32 conn_flags = SAMR_ACCESS_OPEN_DOMAIN;
     const uint32 dom_flags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
                              DOMAIN_ACCESS_OPEN_ACCOUNT;
     const uint16 dominfo_level = 2;

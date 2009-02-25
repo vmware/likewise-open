@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,11 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <ldap.h>
-#include <gssapi/gssapi.h>
+#include "includes.h"
 
 #include <config.h>
 #include <lwrpc/types.h>
@@ -42,12 +38,10 @@
 #include <lwrpc/allocate.h>
 #include <lwrpc/LM.h>
 
-#include "NetUtil.h"
-
-
 static int LdapModSetStrValue(LDAPMod **mod,
                               const char *t, const wchar16_t *wsv, int chg)
 {
+    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAPMod *m = NULL;
     int count = 0;
@@ -149,50 +143,83 @@ int LdapModFree(LDAPMod **mod)
 }
 
 
-extern int errno;
+int LdapMessageFree(LDAPMessage *msg)
+{
+    int lderr = LDAP_SUCCESS;
+
+    if (!msg) return LDAP_PARAM_ERROR;
+
+    lderr = ldap_msgfree(msg);
+    return lderr;
+}
+
 
 int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
                        uint32 security)
 {
+    const char *url_prefix = "ldap://";
+
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAP *ld = NULL;
     unsigned int version;
     char* ldap_srv = NULL;
+    char* ldap_url = NULL;
 
-    if (!ldconn || !host) return LDAP_PARAM_ERROR;
+    goto_if_invalid_param_lderr(ldconn, cleanup);
+    goto_if_invalid_param_lderr(host, cleanup);
 
     ldap_srv = awc16stombs(host);
-    goto_if_no_memory_lderr(ldap_srv, done);
+    goto_if_no_memory_lderr(ldap_srv, error);
 
-    ld = (LDAP*) ldap_open(ldap_srv, LDAP_PORT);
-    if (!ld) {
-        lderr = errno;
-        goto done;
+    ldap_url = (char*) malloc(strlen(ldap_srv) + strlen(url_prefix) + 1);
+    goto_if_no_memory_lderr(ldap_url, error);
+
+    if (sprintf(ldap_url, "%s%s", url_prefix, ldap_srv) < 0) {
+        lderr = LDAP_LOCAL_ERROR;
+        goto error;
     }
 
-    *ldconn = ld;
+    lderr = ldap_initialize(&ld, ldap_url);
+    goto_if_lderr_not_success(lderr, error);
 
     version = LDAP_VERSION3;
     lderr = ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &version);
-    if (lderr != LDAP_SUCCESS) goto done;
+    goto_if_lderr_not_success(lderr, error);
 
     lderr = ldap_set_option(ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
-    if (lderr != LDAP_SUCCESS) goto done;
+    goto_if_lderr_not_success(lderr, error);
 
     security |= ISC_REQ_MUTUAL_AUTH | ISC_REQ_REPLAY_DETECT;
 
     lderr = ldap_set_option(ld, LDAP_OPT_SSPI_FLAGS, &security);
-    if (lderr != LDAP_SUCCESS) goto done;
+    goto_if_lderr_not_success(lderr, error);
 
     lderr = ldap_set_option(ld, LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL,
                             LDAP_OPT_ON);
-    if (lderr != LDAP_SUCCESS) goto done;
+    goto_if_lderr_not_success(lderr, error);
 
-    lderr = ldap_bind_s(ld, NULL, NULL, LDAP_AUTH_NEGOTIATE);
-    if (lderr != LDAP_SUCCESS) goto done;
+    lderr = ldap_gssapi_bind_s(ld, NULL, NULL);
+    goto_if_lderr_not_success(lderr, error);
 
-done:
+    *ldconn = ld;
+
+cleanup:
+    SAFE_FREE(ldap_url);
+    SAFE_FREE(ldap_srv);
+
     return lderr;
+
+error:
+    if (ld) {
+        /* we don't check returned error code since we're not
+           going to return it anway */
+        ldap_unbind_ext_s(ld, NULL, NULL);
+    }
+
+    *ldconn = NULL;
+    goto cleanup;
 }
 
 
@@ -200,8 +227,7 @@ int LdapCloseConnection(LDAP *ldconn)
 {
     int lderr = LDAP_SUCCESS;
 
-    lderr = ldap_unbind_s(ldconn);
-
+    lderr = ldap_unbind_ext_s(ldconn, NULL, NULL);
     return lderr;
 }
 
@@ -211,82 +237,111 @@ int LdapGetDirectoryInfo(LDAPMessage **info, LDAPMessage **result, LDAP *ld)
     const char *basedn = "";
     const int scope = LDAP_SCOPE_BASE;
     const char *filter = "(objectClass=*)";
-    char *allattr[] = { NULL };
-    int lderr = LDAP_SUCCESS;
-    LDAPMessage *res = NULL, *entry = NULL;
-    int count;
-    char *attr;
-    BerElement *be;
 
-    if (!ld || !info || !result) return LDAP_PARAM_ERROR;
+    WINERR err = ERROR_SUCCESS;
+    int lderr = LDAP_SUCCESS;
+    char *allattr[] = { NULL };
+    LDAPMessage *res = NULL;
+    LDAPMessage *entry = NULL;
+
+    goto_if_invalid_param_lderr(info, cleanup);
+    goto_if_invalid_param_lderr(result, cleanup);
+    goto_if_invalid_param_lderr(ld, cleanup);
 
     lderr = ldap_search_ext_s(ld, basedn, scope, filter, allattr, 0,
                               NULL, NULL, NULL, 0, &res);
-    if (lderr != LDAP_SUCCESS) goto done;
+    goto_if_lderr_not_success(lderr, error);
 
     entry = ldap_first_entry(ld, res);
-    if (!entry) goto done;
+    if (!entry) {
+        lderr = LDAP_NO_SUCH_OBJECT;
+        goto error;
+    }
 
     *info   = entry;
     *result = res;
 
-done:
+cleanup:
     return lderr;
+
+error:
+    *info   = NULL;
+    *result = NULL;
+    goto cleanup;
 }
 
 
 wchar16_t **LdapAttributeGet(LDAP *ld, LDAPMessage *info, const wchar16_t *name,
                              int *count)
 {
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
-    int i, vcount;
-    wchar16_t *attr_w16;
+    int i = 0;
+    int vcount = 0;
+    wchar16_t *attr_w16 = NULL;
     wchar16_t **out = NULL;
     char *attr = NULL;
     BerElement *be = NULL;
-    char **value = NULL;
+    struct berval **value = NULL;
+    char *strval = NULL;
 
-    if (!info || !name) return NULL;
+    goto_if_invalid_param_lderr(info, cleanup);
+    goto_if_invalid_param_lderr(name, cleanup);
 
     attr = ldap_first_attribute(ld, info, &be);
-
     while (attr) {
-
         attr_w16 = ambstowc16s(attr);
-        goto_if_no_memory_lderr(attr_w16, fail);
+        goto_if_no_memory_lderr(attr_w16, error);
 
         if (wc16scmp(attr_w16, name) == 0) {
-            value = (char**) ldap_get_values(ld, info, attr);
-            vcount = ldap_count_values(value);
+            value = ldap_get_values_len(ld, info, attr);
+            vcount = ldap_count_values_len(value);
 
             out = (wchar16_t**) realloc(out, sizeof(wchar16_t*) * (vcount+1));
-            goto_if_no_memory_lderr(out, fail);
+            goto_if_no_memory_lderr(out, error);
 
             for (i = 0; i < vcount; i++) {
-                out[i] = ambstowc16s(value[i]);
-                goto_if_no_memory_lderr(out[i], fail);
+	        strval = (char*) malloc(value[i]->bv_len + 1);
+		goto_if_no_memory_lderr(strval, error);
+
+		memset((void*)strval, 0, value[i]->bv_len + 1);
+                memcpy((void*)strval, (void*)value[i]->bv_val,
+		       value[i]->bv_len);
+
+                out[i] = ambstowc16s(strval);
+                goto_if_no_memory_lderr(out[i], error);
+
+                SAFE_FREE(strval);
+		strval = NULL;
             }
 
             if (count) *count = vcount;
 
-            ldap_value_free(value);
+            ldap_value_free_len(value);
             ber_free(be, 0);
-            goto done;
+            goto cleanup;
         }
 
         ldap_memfree(attr);
         attr = ldap_next_attribute(ld, info, be);
+
+        SAFE_FREE(attr_w16);
     }
 
-fail:
-    out = NULL;
+cleanup:
+    if (out) {
+        out[vcount] = NULL;
+    }
 
-done:
     SAFE_FREE(attr_w16);
     ldap_memfree(attr);
 
-    out[vcount] = NULL;
     return out;
+
+error:
+    out = NULL;
+    goto cleanup;
 }
 
 
@@ -296,7 +351,10 @@ void LdapAttributeValueFree(wchar16_t *val[])
 
     if (val == NULL) return;
 
-    for (i = 0; val[i]; i++) SAFE_FREE(val[i]);
+    for (i = 0; val[i]; i++) {
+        SAFE_FREE(val[i]);
+    }
+
     SAFE_FREE(val);
 }
 
@@ -391,10 +449,9 @@ wchar16_t *LdapAttrValSvcPrincipalName(const wchar16_t *name)
 
 int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou)
 {
+    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
-    size_t account_ou_len;
-    size_t dn_size, samacct_size;
-    wchar16_t *cn_name;
+    wchar16_t *cn_name = NULL;
     wchar16_t *machname_lc = NULL;
     wchar16_t *dname = NULL;
     char *dn = NULL;
@@ -469,40 +526,49 @@ int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
 {
     const char *filter_fmt = "(&(objectClass=computer)(sAMAccountName=%S))";
 
+    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
-    size_t machname_len, basedn_len, filter_len;
-    size_t samacct_len;
+    size_t basedn_len = 0;
+    size_t filter_len = 0;
+    size_t samacct_len = 0;
     wchar16_t *samacct = NULL;
     char *basedn = NULL;
     wchar16_t *filterw16 = NULL;
     char *filter = NULL;
     LDAPMessage *res = NULL;
-    LDAPControl **sctrl = NULL, **cctrl = NULL;
+    LDAPControl **sctrl = NULL;
+    LDAPControl **cctrl = NULL;
 
-    if (!out || !ld || !name || !base) return LDAP_PARAM_ERROR;
+    goto_if_invalid_param_lderr(out, cleanup);
+    goto_if_invalid_param_lderr(ld, cleanup);
+    goto_if_invalid_param_lderr(name, cleanup);
+    goto_if_invalid_param_lderr(base, cleanup);
 
     basedn = awc16stombs(base);
-    goto_if_no_memory_lderr(basedn, done);
+    goto_if_no_memory_lderr(basedn, error);
     basedn_len = strlen(basedn);
 
     samacct = LdapAttrValSamAcctName(name);
-    goto_if_no_memory_lderr(samacct, done);
+    goto_if_no_memory_lderr(samacct, error);
     samacct_len = wc16slen(samacct);
 
     filter_len = samacct_len + strlen(filter_fmt);
     filterw16 = (wchar16_t*) malloc(sizeof(wchar16_t) * filter_len);
-    goto_if_no_memory_lderr(filterw16, done);
+    goto_if_no_memory_lderr(filterw16, error);
 
-    sw16printf(filterw16, filter_fmt, samacct);
+    if (sw16printf(filterw16, filter_fmt, samacct) < 0) {
+        lderr = LDAP_LOCAL_ERROR;
+        goto error;
+    }
 
     filter = awc16stombs(filterw16);
-    goto_if_no_memory_lderr(filter, done);
+    goto_if_no_memory_lderr(filter, error);
 
     lderr = ldap_search_ext_s(ld, basedn, LDAP_SCOPE_SUBTREE, filter, NULL, 0,
                               sctrl, cctrl, NULL, 0, &res);
-    if (lderr != LDAP_SUCCESS) goto done;
+    goto_if_lderr_not_success(lderr, error);
 
-done:
+cleanup:
     SAFE_FREE(filter);
     SAFE_FREE(filterw16);
     SAFE_FREE(samacct);
@@ -511,6 +577,10 @@ done:
     *out = res;
 
     return lderr;
+
+error:
+    *out = NULL;
+    goto cleanup;
 }
 
 
@@ -519,6 +589,7 @@ int LdapMachAcctMove(LDAP *ld, const wchar16_t *dn, const wchar16_t *name,
 {
     const char *cn_fmt = "cn=%s";
 
+    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     size_t newname_len;
     char *dname = NULL;
@@ -554,17 +625,18 @@ done:
 
 
 int LdapMachAcctSetAttribute(LDAP *ld, const wchar16_t *dn,
-                             const wchar16_t *name, const wchar16_t *value[],
+                             const wchar16_t *name, const wchar16_t **value,
                              int new)
 {
+    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAPMod *mod = NULL;
     LDAPMod *mods[2];
-    LDAPControl **sctrl = NULL, **cctrl = NULL;
+    LDAPControl **sctrl = NULL;
+    LDAPControl **cctrl = NULL;
     char *dname = NULL;
     char *n = NULL;
-    char *v = NULL;
-    int i;
+    int i = 0;
 
     dname = awc16stombs(dn);
     goto_if_no_memory_lderr(dname, done);
@@ -579,7 +651,7 @@ int LdapMachAcctSetAttribute(LDAP *ld, const wchar16_t *dn,
             lderr = LdapModReplStrValue(&mod, n, value[i]);
         }
 
-        if (lderr != LDAP_SUCCESS) goto done;
+        goto_if_lderr_not_success(lderr, done);
     }
 
     mods[0] = mod;
@@ -590,6 +662,7 @@ int LdapMachAcctSetAttribute(LDAP *ld, const wchar16_t *dn,
 done:
     SAFE_FREE(n);
     SAFE_FREE(dname);
+    SAFE_FREE(mod);
 
     return lderr;
 }
