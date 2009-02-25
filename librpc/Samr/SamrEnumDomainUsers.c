@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,10 +31,17 @@
 #include "includes.h"
 
 
-NTSTATUS SamrEnumDomainUsers(handle_t b, PolicyHandle *domain_handle,
-                             uint32 *resume, uint32 account_flags,
-                             uint32 max_size, wchar16_t ***names,
-                             uint32 **rids, uint32 *count)
+NTSTATUS
+SamrEnumDomainUsers(
+    handle_t b,
+    PolicyHandle *domain_h,
+    uint32 *resume,
+    uint32 account_flags,
+    uint32 max_size,
+    wchar16_t ***names,
+    uint32 **rids,
+    uint32 *count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS ret_status = STATUS_SUCCESS;
@@ -45,7 +52,7 @@ NTSTATUS SamrEnumDomainUsers(handle_t b, PolicyHandle *domain_handle,
     uint32 *out_rids = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_handle, cleanup);
+    goto_if_invalid_param_ntstatus(domain_h, cleanup);
     goto_if_invalid_param_ntstatus(resume, cleanup);
     goto_if_invalid_param_ntstatus(names, cleanup);
     goto_if_invalid_param_ntstatus(rids, cleanup);
@@ -53,16 +60,11 @@ NTSTATUS SamrEnumDomainUsers(handle_t b, PolicyHandle *domain_handle,
 
     r = *resume;
 
-    TRY
-    {
-        ret_status = _SamrEnumDomainUsers(b, domain_handle, &r, account_flags,
-                                          max_size, &entries, &num);
-    }
-    CATCH_ALL
-    {
-        ret_status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrEnumDomainUsers(b, domain_h, &r, account_flags,
+                                     max_size, &entries, &num));
+
+    /* Preserve returned status code */
+    ret_status = status;
 
     /* Status other than success doesn't have to mean failure here */
     if (ret_status != STATUS_SUCCESS &&
@@ -100,8 +102,10 @@ error:
         SamrFreeMemory((void*)out_rids);
     }
 
-    *names = NULL;
-    *rids  = NULL;
+    *resume = 0;
+    *count  = 0;
+    *names  = NULL;
+    *rids   = NULL;
     goto cleanup;
 }
 

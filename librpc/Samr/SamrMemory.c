@@ -1334,6 +1334,11 @@ NTSTATUS SamrAllocateUserInfo(UserInfo **out, UserInfo *in, uint16 level)
             goto_if_ntstatus_not_success(status, error);
             break;
 
+        case 10:
+            status = SamrCopyUserInfo10(&ptr->info10, &in->info10, (void*)ptr);
+            goto_if_ntstatus_not_success(status, error);
+            break;
+
         case 11:
             status = SamrCopyUserInfo11(&ptr->info11, &in->info11,
                                         (void*)ptr);

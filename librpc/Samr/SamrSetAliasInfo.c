@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,27 +31,29 @@
 #include "includes.h"
 
 
-NTSTATUS SamrSetAliasInfo(handle_t b, PolicyHandle *alias_handle,
-                          uint16 level, AliasInfo *info)
+NTSTATUS
+SamrSetAliasInfo(
+    handle_t b,
+    PolicyHandle *alias_h,
+    uint16 level,
+    AliasInfo *info
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     
     goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(alias_handle, cleanup);
+    goto_if_no_memory_ntstatus(alias_h, cleanup);
     goto_if_no_memory_ntstatus(info, cleanup);
 
-    TRY
-    {
-        status = _SamrSetAliasInfo(b, alias_handle, level, info);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrSetAliasInfo(b, alias_h, level, info));
+
+    goto_if_ntstatus_not_success(status, error);
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

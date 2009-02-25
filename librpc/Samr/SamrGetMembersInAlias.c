@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,27 +31,24 @@
 #include "includes.h"
 
 
-NTSTATUS SamrGetMembersInAlias(handle_t b, PolicyHandle *alias_handle,
-                               DomSid ***sids, uint32 *count)
+NTSTATUS
+SamrGetMembersInAlias(
+    handle_t b,
+    PolicyHandle *alias_h,
+    DomSid ***sids,
+    uint32 *count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     SidArray sid_array = {0};
     DomSid **out_sids = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(alias_handle, cleanup);
+    goto_if_invalid_param_ntstatus(alias_h, cleanup);
     goto_if_invalid_param_ntstatus(sids, cleanup);
     goto_if_invalid_param_ntstatus(count, cleanup);
 
-    TRY
-    {
-        status = _SamrGetMembersInAlias(b, alias_handle, &sid_array);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrGetMembersInAlias(b, alias_h, &sid_array));
 
     goto_if_ntstatus_not_success(status, error);
 

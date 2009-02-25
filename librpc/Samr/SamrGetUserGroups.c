@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,9 +31,14 @@
 #include "includes.h"
 
 
-NTSTATUS SamrGetUserGroups(handle_t b, PolicyHandle *user_handle,
-                           uint32 **rids, uint32 **attributes,
-                           uint32 *count)
+NTSTATUS
+SamrGetUserGroups(
+    handle_t b,
+    PolicyHandle *user_h,
+    uint32 **rids,
+    uint32 **attributes,
+    uint32 *count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     uint32 *out_rids = NULL;
@@ -41,20 +46,12 @@ NTSTATUS SamrGetUserGroups(handle_t b, PolicyHandle *user_handle,
     RidWithAttributeArray *r = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(user_handle, cleanup);
+    goto_if_invalid_param_ntstatus(user_h, cleanup);
     goto_if_invalid_param_ntstatus(rids, cleanup);
     goto_if_invalid_param_ntstatus(attributes, cleanup);
     goto_if_invalid_param_ntstatus(count, cleanup);
 
-    TRY
-    {
-        status = _SamrGetUserGroups(b, user_handle, &r);
-    }
-    CATCH_ALL
-    {
-        status = STATUS_UNHANDLED_EXCEPTION;
-    }
-    ENDTRY;
+    DCERPC_CALL(_SamrGetUserGroups(b, user_h, &r));
 
     goto_if_ntstatus_not_success(status, error);
 
