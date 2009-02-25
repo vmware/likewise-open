@@ -286,6 +286,14 @@ cleanup:
         SrvSvcFreeMemory(info502);
     }
 
+    if (ntStatus = STATUS_NOT_FOUND) {
+        dwError = 2310;
+    } else if (ntStatus = STATUS_SUCCESS) {
+        dwError = 0;
+    } else {
+        dwError = -1;
+    }
+
     return dwError;
 
 error:
