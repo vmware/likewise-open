@@ -37,6 +37,8 @@
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
+#include <lwrpc/unistrdef.h>
+#include <lwrpc/rid.h>
 #include <lwrpc/userinfo.h>
 
 #if !defined(_DCE_IDL_) && defined(LIBRPC_BUILD)
