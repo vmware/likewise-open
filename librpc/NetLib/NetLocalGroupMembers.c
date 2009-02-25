@@ -45,13 +45,12 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
     NetConn *conn;
     handle_t samr_bind, lsa_bind;
     NTSTATUS status;
-    size_t lsa_system_name_size;
-    wchar16_t *member, lsa_hostname[4] = {0};
+    wchar16_t *member;
     PolicyHandle alias_handle;
     DomSid *usr_sid;
-    uint32 alias_rid, i, rid;
-    LOCALGROUP_MEMBERS_INFO_0 *info0;
-    LOCALGROUP_MEMBERS_INFO_3 *info3;
+    uint32 alias_rid, i;
+    LOCALGROUP_MEMBERS_INFO_0 *info0 = NULL;
+    LOCALGROUP_MEMBERS_INFO_3 *info3 = NULL;
     PolicyHandle lsa_policy;
 
     if (hostname == NULL || aliasname == NULL || buffer == NULL) {

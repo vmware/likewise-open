@@ -57,7 +57,6 @@ NET_API_STATUS NetUserSetInfo(const wchar16_t *hostname, const wchar16_t *userna
     uint32 user_rid;
     UserInfo info;
     USER_INFO_0 *ninfo0;
-    USER_INFO_20 *ninfo20;
     USER_INFO_1003 *ninfo1003;
     USER_INFO_1007 *ninfo1007;
     USER_INFO_1008 *ninfo1008;

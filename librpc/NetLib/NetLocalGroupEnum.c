@@ -48,7 +48,7 @@ NET_API_STATUS NetLocalGroupEnum(const wchar16_t *hostname, uint32 level,
     AliasInfo *aliasinfo;
     wchar16_t **names;
     uint32 res, *rids, num_entries, num_btin_aliases, num_dom_aliases;
-    uint32 i, info_idx, res_idx, count;
+    uint32 i, info_idx, res_idx;
     LOCALGROUP_INFO_1 *info;
 
     if (hostname == NULL || bufptr == NULL || entries == NULL ||
