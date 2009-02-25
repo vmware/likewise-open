@@ -29,58 +29,35 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ *          Gerald Carter (gcarter@likewise.com)
  */
 
-#ifdef __GNUC__
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
-#include <pthread.h>
-#include <DceSupport.h>
-#endif
+#include "includes.h"
 
-#include <compat/rpcstatus.h>
-#include <lwrpc/ntstatus.h>
-#include <lwrpc/winerror.h>
-#include <compat/dcerpc.h>
-#include <wc16str.h>
-#include <lwrpc/allocate.h>
-//#include <lwrpc/memptr.h>
-
-//#include "NetrUtil.h"
-//#include "NetrMemory.h"
-//#include "NetrStubMemory.h"
-
-#include <lwrpc/netlogon.h>
-#include <lwrpc/netlogonbinding.h>
-#include <dce/schannel.h>
-#include <lwrdr/lwrdr.h>
 
 static handle_t
 CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 {
-    RPCSTATUS status;
-    size_t hostname_size;
-    unsigned char *hostname;
+    RPCSTATUS status = RPC_S_OK;
+    size_t hostname_size = 0;
+    char *hostname = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
 
     hostname_size = wc16slen(host) + 1;
-    hostname = (unsigned char*) malloc(hostname_size * sizeof(char));
-    if (hostname == NULL)
-        return NULL;
+    hostname = (char*) malloc(hostname_size * sizeof(char));
+    if (hostname == NULL) return NULL;
+
     wc16stombs(hostname, host, hostname_size);
 
     status = InitNetlogonBindingDefault(binding, hostname);
-    if (status != RPC_S_OK) {
-        return NULL;
-    }
+    if (status != RPC_S_OK) return NULL;
 
     SAFE_FREE(hostname);
     return *binding;
 }
+
 
 handle_t 
 OpenSchannel(
@@ -95,17 +72,15 @@ OpenSchannel(
     NETRESOURCE *SchanRes
     )
 {
-    RPCSTATUS st = rpc_s_ok;
+    RPCSTATUS rpcstatus = RPC_S_OK;
     NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
     uint8 pass_hash[16] = {0};
     uint8 cli_chal[8] = {0};
     uint8 srv_chal[8] = {0};
     uint8 srv_cred[8] = {0};
     rpc_schannel_auth_info_t schnauth_info = {0};
+    char *pszHostname = NULL;
     handle_t schn_b = NULL;
-    size_t hostname_len = 0;
-    uint32_t dwError = 0;
 
     md4hash(pass_hash, pwszMachinePassword);
 
@@ -115,8 +90,7 @@ OpenSchannel(
                                     pwszComputer,
                                     cli_chal,
                                     srv_chal);
-    if (status != STATUS_SUCCESS) 
-        goto error;
+    goto_if_ntstatus_not_success(status, error);
 
     NetrCredentialsInit(Creds,
                         cli_chal,
@@ -132,23 +106,33 @@ OpenSchannel(
                                      Creds->cli_chal.data,
                                      srv_cred,
                                      &Creds->negotiate_flags);
-    if (status != STATUS_SUCCESS) {	    
-        goto error;
-    }
-    
+    goto_if_ntstatus_not_success(status, error);
+
     if (!NetrCredentialsCorrect(Creds, srv_cred)) {
         status = STATUS_ACCESS_DENIED;
         goto error;
     }
 
     memcpy(schnauth_info.session_key, Creds->session_key, 16);
-    schnauth_info.domain_name  = awc16stombs(pwszDomain);
-    schnauth_info.machine_name = awc16stombs(pwszComputer);
+    schnauth_info.domain_name  = (unsigned char*) awc16stombs(pwszDomain);
+    schnauth_info.machine_name = (unsigned char*) awc16stombs(pwszComputer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
+
+    goto_if_no_memory_ntstatus(schnauth_info.domain_name, error);
+    goto_if_no_memory_ntstatus(schnauth_info.machine_name, error);
 
     schn_b = CreateNetlogonBinding(&schn_b, pwszHostname);
     if (schn_b == NULL) 
-    {        
+    {
+        goto error;
+    }
+
+    pszHostname = awc16stombs(pwszHostname);
+    goto_if_no_memory_ntstatus(pszHostname, error);
+
+    rpcstatus = InitNetlogonBindingDefault(&schn_b, pszHostname);
+    if (rpcstatus != RPC_S_OK) {
+        status = STATUS_UNSUCCESSFUL;
         goto error;
     }
     
@@ -164,13 +148,18 @@ OpenSchannel(
                               rpc_c_authn_schannel,
                               (rpc_auth_identity_handle_t)&schnauth_info,
                               rpc_c_authz_name, /* authz_protocol */
-                              &st);
+                              &rpcstatus);
+    if (rpcstatus != RPC_S_OK) {
+        status = STATUS_UNSUCCESSFUL;
+        goto error;
+    }
 
-done:
+cleanup:
     SAFE_FREE(schnauth_info.domain_name);
     SAFE_FREE(schnauth_info.machine_name);
+    SAFE_FREE(pszHostname);
 
-    return (st == rpc_s_ok &&
+    return (rpcstatus == rpc_s_ok &&
             status == STATUS_SUCCESS) ? schn_b : NULL;
 
 error:
@@ -179,7 +168,7 @@ error:
         FreeNetlogonBinding(&schn_b);
     }
 
-    goto done;
+    goto cleanup;
 }
 
 
@@ -189,15 +178,11 @@ CloseSchannel(
     NETRESOURCE *schnr
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-
     if (schn_b)
     {
         FreeNetlogonBinding(&schn_b);
     }
     
-close:
     SAFE_FREE(schnr->RemoteName);
 }
 
