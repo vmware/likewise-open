@@ -114,7 +114,7 @@ NTSTATUS NetrAllocateUniString(wchar16_t **out, const wchar16_t *in, void *dep)
 
     status = NetrAllocateMemory((void**)&ptr, sizeof(wchar16_t) * (len + 1),
                                 dep);
-    goto_if_ntstatus_not_success(status, cleanup);
+    goto_if_ntstatus_not_success(status, error);
 
     wc16sncpy(ptr, in, len);
 
@@ -572,14 +572,14 @@ cleanup:
     return status;
 
 error:
-    FreeUnicodeString(&ptr->account_name);
-    FreeUnicodeString(&ptr->full_name);
-    FreeUnicodeString(&ptr->logon_script);
-    FreeUnicodeString(&ptr->profile_path);
-    FreeUnicodeString(&ptr->home_directory);
-    FreeUnicodeString(&ptr->home_drive);
-    FreeUnicodeString(&ptr->logon_server);
-    FreeUnicodeString(&ptr->domain);
+    FreeUnicodeStringEx(&ptr->account_name);
+    FreeUnicodeStringEx(&ptr->full_name);
+    FreeUnicodeStringEx(&ptr->logon_script);
+    FreeUnicodeStringEx(&ptr->profile_path);
+    FreeUnicodeStringEx(&ptr->home_directory);
+    FreeUnicodeStringEx(&ptr->home_drive);
+    FreeUnicodeStringEx(&ptr->logon_server);
+    FreeUnicodeStringEx(&ptr->domain);
 
     if (ptr->groups.rids) {
         NetrFreeMemory((void*)ptr->groups.rids);
