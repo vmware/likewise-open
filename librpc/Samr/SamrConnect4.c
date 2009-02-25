@@ -50,7 +50,7 @@ SamrConnect4(
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(sysname, cleanup);
-    goto_if_invalid_param_ntstatus(conn_handle, cleanup);
+    goto_if_invalid_param_ntstatus(conn_h, cleanup);
 
     system_name = wc16sdup(sysname);
     goto_if_no_memory_ntstatus(system_name, error);
@@ -61,7 +61,7 @@ SamrConnect4(
                               &handle));
     goto_if_ntstatus_not_success(status, error);
 
-    *conn_handle = handle;
+    *conn_h = handle;
 
 cleanup:
     SAFE_FREE(system_name);

@@ -101,7 +101,7 @@ NTSTATUS NetrAddDepMemory(void *ptr, void *dep)
  * Type specific functions
  */
 
-NTSTATUS NetrAllocateUniString(wchar16_t **out, wchar16_t *in, void *dep)
+NTSTATUS NetrAllocateUniString(wchar16_t **out, const wchar16_t *in, void *dep)
 {
     NTSTATUS status = STATUS_SUCCESS;
     size_t len = 0;
