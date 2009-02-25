@@ -57,9 +57,22 @@ NET_API_STATUS NetShareAdd(
     memset(&info502, 0, sizeof(info502));
 
     switch (level) {
+    case 0:
+        info.info0 = (PSHARE_INFO_0)bufptr;
+        break;
+
+    case 1:
+        info.info1 = (PSHARE_INFO_1)bufptr;
+        break;
+
     case 2:
         info.info2 = (PSHARE_INFO_2)bufptr;
         break;
+
+    case 501:
+        info.info501 = (PSHARE_INFO_501)bufptr;
+        break;
+
     case 502:
         buf502 = (PSHARE_INFO_502)bufptr;
 

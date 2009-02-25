@@ -99,7 +99,7 @@ SrvSvcNetShareEnum(
 
     memset((void*)&EnumParamsIn, 0, sizeof(EnumParamsIn));
 
-    EnumParamsIn.dwInfoLevel     = *level;
+    EnumParamsIn.dwInfoLevel = *level;
 
     ntStatus = LwShareInfoMarshalEnumParameters(
                         &EnumParamsIn,
