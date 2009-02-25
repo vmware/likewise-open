@@ -209,6 +209,8 @@ SrvDevCtlEnumShares(
     PSHARE_INFO_501 p501 = NULL;
     PSHARE_INFO_502 p502 = NULL;
 
+    memset(&EnumShareInfoParamsOut, 0, sizeof(EnumShareInfoParamsOut));
+
     ntStatus = LwShareInfoUnmarshalEnumParameters(
                         pInBuffer,
                         ulInBufferSize,
@@ -439,6 +441,8 @@ SrvDevCtlGetShareInfo(
     PSHARE_INFO_2 p2 = NULL;
     PSHARE_INFO_501 p501 = NULL;
     PSHARE_INFO_502 p502 = NULL;
+
+    memset(&GetShareInfoParamsOut, 0, sizeof(GetShareInfoParamsOut));
 
     ntStatus = LwShareInfoUnmarshalGetParameters(
                         pInBuffer,
