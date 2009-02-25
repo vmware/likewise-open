@@ -305,10 +305,10 @@ SrvTreeFileCompare(
 static
 VOID
 SrvTreeFileRelease(
-    PVOID pTree
+    PVOID pFile
     )
 {
-    SrvFileRelease((PSMB_SRV_FILE)pTree);
+    SrvFileRelease((PSMB_SRV_FILE)pFile);
 }
 
 static
