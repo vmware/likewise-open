@@ -266,29 +266,9 @@ cleanup:
         SrvSvcFreeMemory(pGetParamsOut);
     }
 
-    if (info0) {
-        SrvSvcFreeMemory(info0);
-    }
-
-    if (info1) {
-        SrvSvcFreeMemory(info1);
-    }
-
-    if (info2) {
-        SrvSvcFreeMemory(info2);
-    }
-
-    if (info501) {
-        SrvSvcFreeMemory(info501);
-    }
-
-    if (info502) {
-        SrvSvcFreeMemory(info502);
-    }
-
-    if (ntStatus = STATUS_NOT_FOUND) {
+    if (ntStatus == STATUS_NOT_FOUND) {
         dwError = 2310;
-    } else if (ntStatus = STATUS_SUCCESS) {
+    } else if (ntStatus == STATUS_SUCCESS) {
         dwError = 0;
     } else {
         dwError = -1;
