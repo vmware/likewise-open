@@ -31,11 +31,13 @@
 #define LIBRPC_BUILD
 
 #include <stdlib.h>
-#ifdef __GNUC__
+
 #include <dce/rpc.h>
 #include <dce/idlddefs.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
 
-#include "lwrpc/krb5pac.h"
+#include <lwrpc/types.h>
+#include <lwrpc/unistrdef.h>
+#include <lwrpc/krb5pac.h>
+
+#include "krb5pac_stub.h"
+
