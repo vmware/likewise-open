@@ -1,6 +1,7 @@
 #include "k5-int.h"
 #include "rsa-md4.h"
 #include "arcfour-int.h"
+#include "wc16str.h"
 
 static void asctouni(unsigned char *unicode, unsigned char *ascii, size_t len)
 {
@@ -31,9 +32,6 @@ krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
   /* compute the space needed for the new string.
      Since the password must be stored in unicode, we need to increase
      that number by 2x.
-
-     This should be re-evauated in the future, it makes the assumption that
-     thes user's password is in ascii.
   */
   slen = ((string->length)>128)?128:string->length;
   len=(slen)*2;
@@ -42,8 +40,9 @@ krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
   if (copystr == NULL)
     return ENOMEM;
 
-  /* make the string.  start by creating the unicode version of the password*/
-  asctouni(copystr, string->data, slen );
+  /* make the string.  start by creating the little endian unicode version of the password*/
+  len = mbstowc16les((wchar16_t *)copystr, string->data, slen);
+  len *= 2;
 
   /* the actual MD4 hash of the data */
   krb5_MD4Init(&md4_context);
