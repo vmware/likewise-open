@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -29,99 +29,59 @@
  */
 
 /*
- * Abstract: UnicodeString API (rpc client library)
+ * Abstract: UnicodeString definitions (rpc client library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#ifndef _UNICODESTRING_H_
-#define _UNICODESTRING_H_
 
-#include <lwrpc/types.h>
-#include <lwrpc/unistrdef.h>
+#ifndef _UNISTRDEF_H_
+#define _UNISTRDEF_H_
 
 
-NTSTATUS
-InitUnicodeString(
-    UnicodeString *u,
-    const wchar16_t *s
-    );
+typedef struct unicode_string {
+    uint16 len;
+    uint16 size;
+#ifdef _DCE_IDL_
+    [size_is(size/2),length_is(len/2)]
+#endif
+    wchar16_t *string;
+} UnicodeString;
 
 
-wchar16_t*
-GetFromUnicodeString(
-    UnicodeString *u
-    );
+typedef struct unicode_string_ex {
+    uint16 len;
+    uint16 size;   /* size = len + 1 (for terminating char) */
+#ifdef _DCE_IDL_
+    [size_is(size/2),length_is(len/2)]
+#endif
+    wchar16_t *string;
+} UnicodeStringEx;
 
 
-NTSTATUS
-CopyUnicodeString(
-    UnicodeString *out,
-    UnicodeString *in
-    );
+typedef struct entry {
+    uint32 idx;
+    UnicodeString name;
+} Entry;
+
+typedef struct entry_array {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    Entry *entries;
+} EntryArray;
 
 
-UnicodeString*
-InitUnicodeStringArray(
-    wchar16_t *sa[],
-    size_t count
-    );
+typedef struct unicode_string_array {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    UnicodeString *names;
+} UnicodeStringArray;
 
-
-void
-FreeUnicodeString(
-    UnicodeString *u
-    );
-
-
-void
-FreeUnicodeStringArray(
-    UnicodeString *ua,
-    size_t count
-    );
-
-
-NTSTATUS
-InitUnicodeStringEx(
-    UnicodeStringEx *u,
-    const wchar16_t *s
-    );
-
-
-wchar16_t*
-GetFromUnicodeStringEx(
-    UnicodeStringEx *u
-    );
-
-
-NTSTATUS
-CopyUnicodeStringEx(
-    UnicodeStringEx *out,
-    UnicodeStringEx *in
-    );
-
-
-UnicodeStringEx*
-InitUnicodeStringExArray(
-    wchar16_t *sa[],
-    size_t count
-    );
-
-
-void
-FreeUnicodeStringEx(
-    UnicodeStringEx *u
-    );
-
-
-void
-FreeUnicodeStringExArray(
-    UnicodeStringEx *ua,
-    size_t count
-    );
-
-
-#endif /* _UNICODESTRING_H_ */
+#endif /* _UNISTRDEF_H_ */
 
 
 /*
