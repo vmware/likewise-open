@@ -987,7 +987,6 @@ typedef struct _DELETE_DIRECTORY_REQUEST_HEADER {
 
     USHORT usByteCount;
     UCHAR  ucBufferFormat;
-    UCHAR  pad;
 
     /* PWSTR pwszDirectoryPath */
 
