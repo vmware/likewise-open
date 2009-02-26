@@ -28,7 +28,6 @@
  * license@likewisesoftware.com
  */
 
-#ifdef __GNUC__
 #include <stdlib.h>
 #include <stddef.h>
 #include <iconv.h>
@@ -36,16 +35,18 @@
 #include <DceSupport.h>
 #include <compat/rpcstatus.h>
 #include <dce/rpc.h>
-#endif
-
-#include "lsa_h.h"
+#include <wc16str.h>
 
 #include <lwrpc/ntstatus.h>
-#include <wc16str.h>
+#include <lwrpc/security.h>
+#include <lwrpc/sddef.h>
 #include <lwrpc/lsabinding.h>
+#include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+
+#include "lsa_stub.h"
 
 #include "LsaUtil.h"
 #include "LsaMemory.h"

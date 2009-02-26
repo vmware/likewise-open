@@ -1,7 +1,7 @@
 librpc_srcdir=$(top_srcdir)
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libnetlogon_cs.la libnetlogon_ss.la libnetlogon.la
+lib_LTLIBRARIES = libnetlogon_cs.la libnetlogon.la
 
 libnetlogon_la_SOURCES = \
 	globals.c \
@@ -21,7 +21,6 @@ libnetlogon_la_SOURCES = \
 	DsrEnumerateDomainTrusts.c
 
 libnetlogon_cs_la_SOURCES = netlogon_cstub.c
-libnetlogon_ss_la_SOURCES = netlogon_sstub.c
 
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
@@ -30,7 +29,7 @@ INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 libnetlogon_la_CFLAGS = -g $(INCLUDES) -DLIBRPC_BUILD $(AM_CFLAGS)
 libnetlogon_la_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libnetlogon_la_LIBADD = \
-	-ldcerpc -lunistr -lsecdesc \
+	-ldcerpc -lunistr \
 	$(top_builddir)/MsRpc/libmsrpc.la \
 	$(top_builddir)/Alloc/liballoc.la \
         $(top_builddir)/Error/liberror.la

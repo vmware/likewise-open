@@ -28,23 +28,24 @@
  * license@likewisesoftware.com
  */
 
-#ifdef __GNUC__
 #include <stdlib.h>
 #include <stddef.h>
 #include <iconv.h>
 #include <string.h>
 #include <DceSupport.h>
 #include <compat/rpcstatus.h>
-#endif
-
-#include "samr_h.h"
-
-#include <lwrpc/ntstatus.h>
 #include <wc16str.h>
+
+#include <lwrpc/types.h>
+#include <lwrpc/security.h>
 #include <lwrpc/unicodestring.h>
+#include <lwrpc/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+#include <lwrpc/rid.h>
 #include <lwrpc/samr.h>
+
+#include "samr_stub.h"
 
 #include "SamrUtil.h"
 #include "SamrMemory.h"

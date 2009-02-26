@@ -4,7 +4,9 @@
 cpp_quote("#ifndef _GEN_SECURITY_H_")
 cpp_quote("#define _GEN_SECURITY_H_")
 
-#include <lwrpc/security.h>
+#include <lwrpc/phdef.h>
+#include <lwrpc/siddef.h>
+#include <lwrpc/sdflags.h>
 
 /* Including header file in idl processing leads to providing
    enclosed definitions but losing preprocessor #defines at
@@ -18,12 +20,6 @@ cpp_quote("#define NTSTATUS_DEFINED")
 cpp_quote("#define WINERR_DEFINED")
 cpp_quote("#define NTTIME_DEFINED")
 cpp_quote("#define UNISTR_DEFINED")
-
-
-typedef struct ids {
-	[range(0,1024)] uint32 count;
-	[size_is(count)] uint32 *ids;
-} Ids;
 
 
 typedef [switch_type(uint32)] union sec_ace_object_type {
@@ -50,47 +46,9 @@ typedef [switch_type(uint8)] union sec_ace_object_ctr {
 	[case(SEC_ACE_TYPE_SYSTEM_ALARM_OBJECT)] SecAceObject object_alarm;
 } SecAceObjectCtr;
 
-typedef struct sec_ace {
-	uint8 sec_ace_type;      /* security ace types */
-	uint8 sec_ace_flags;     /* security ace flags */
-	uint16 size;
-	uint32 access_mask;
-	[switch_is(sec_ace_type)] SecAceObjectCtr object;
-	DomSid trustee;
-} SecAce;
-
-typedef struct sec_acl {
-	uint32 revision;
-	uint16 size;
-	[range(0,1000)] uint32 num_aces;
-	SecAce *aces;  /* we need aces[num_aces] here */
-} SecAcl;
-
-typedef struct security_descriptor {
-	uint8 revision;
-	uint16 type;
-	DomSid *owner;
-	DomSid *group;
-	SecAcl *sacl;
-	SecAcl *dacl;
-} SecDesc;
-
-typedef struct qos_info {
-	uint32 len;
-	uint16 impersonation_level;
-	uint8 context_mode;
-	uint8 effective_only;
-} QosInfo;
-
-typedef struct object_attribute {
-	uint32 len;
-	uint8 *root_dir;
-	[string] wchar16_t *object_name;
-	uint32 attributes;
-	SecDesc *sec_desc;
-	QosInfo *sec_qos;
-} ObjectAttribute;
-
+/* Include the rest of public security descriptor definitions
+   depending on SecAceObjectCtr */
+#include <lwrpc/sddef.h>
 
 cpp_quote("#endif /* _GEN_SECURITY_H_ */")
 

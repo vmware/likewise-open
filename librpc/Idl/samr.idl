@@ -15,17 +15,6 @@ interface samr
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/userinfo.h>
 
-	/* Returned from SamrEnumDomainUsers and SamrEnumDomainAliases */
-	typedef struct rid_name {
-		uint32 rid;
-		UnicodeString name;
-	} RidName;
-
-	typedef struct rid_name_array {
-		uint32 count;
-		[size_is(count)] RidName *entries;
-	} RidNameArray;
-
 	/* DomainInfo union returned from SamrQueryDomainInfo */
 	typedef [switch_type(uint16)] union domain_info {
 		[case(1)] DomainInfo1 info1;

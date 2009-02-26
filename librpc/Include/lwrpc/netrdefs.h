@@ -166,6 +166,12 @@ typedef struct netr_domain_trust_list {
  * Sam netlogon definitions
  */
 
+/* Secure Channel types */
+#define SCHANNEL_WKSTA     2
+#define SCHANNEL_DOMAIN    4
+#define SCHANNEL_BDC       6
+
+
 /* NetrLogonSamLogon types */
 #define NETR_LOGON_TYPE_INTERACTIVE     1
 #define NETR_LOGON_TYPE_NETWORK         2
@@ -331,8 +337,9 @@ typedef struct netr_sam_info6 {
 typedef struct netr_pac_info {
     uint32 pac_size;
 #ifdef _DCE_IDL_
-    [size_is(pac_size)] uint8 *pac;
+    [size_is(pac_size)]
 #endif
+    uint8 *pac;
     UnicodeString logon_domain;
     UnicodeString logon_server;
     UnicodeString principal_name;

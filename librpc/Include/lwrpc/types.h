@@ -55,6 +55,7 @@ typedef uint16 wchar16_t;
 
 /* Types needed for librpc build pass */
 #include <inttypes.h>
+#include <wchar16.h>
 #include <lwrpc/ntstatus.h>
 
 #ifndef UINT8_DEFINED
@@ -97,22 +98,15 @@ typedef int32_t int32;
 typedef int64_t int64;
 #endif
 
-#endif /* _DCE_IDL_ */
-
 #ifndef NTSTATUS_DEFINED
 #define NTSTATUS_DEFINED
 typedef uint32 NTSTATUS;
 #endif
 
-#ifndef WINERR_DEFINED
-typedef uint32 WINERR;
-#define WINERR_DEFINED
-#endif
+#endif /* _DCE_IDL_ */
 
-#ifndef NTTIME_DEFINED
+typedef uint32 WINERR;
 typedef uint64 NtTime;
-#define NTTIME_DEFINED
-#endif
 
 /* Don't require DCE/RPC environment when simply building
    a client using rpc library */

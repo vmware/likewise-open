@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+*/
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,44 +28,34 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include <ctype.h>
-#include <iconv.h>
-#include <pthread.h>
-#include <DceSupport.h>
-#include <compat/rpcstatus.h>
-#include <dce/schannel.h>
-#include <wc16str.h>
-#include <wc16printf.h>
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#include <lwrpc/ntstatus.h>
-#include <lwrpc/security.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/errconv.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/mpr.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/netlogon.h>
+#ifndef _PH_DEF_H_
+#define _PH_DEF_H_
 
-#include <md4.h>
-#include <md5.h>
-#include <hmac_md5.h>
-#include <des.h>
-#include <crypto.h>
-#include <byteops.h>
-#include <random.h>
+/*
+ * This header is separate from other definitions because it should
+ * be possible to include it in idl files when generating dcerpc stubs.
+ */
 
-#include "netlogon_stub.h"
+typedef struct guid {
+	uint32 time_low;
+	uint16 time_mid;
+	uint16 time_hi_and_version;
+	uint8 clock_seq[2];
+	uint8 node[6];
+} Guid;
 
-#include "NetrUtil.h"
-#include "NetrCredentials.h"
-#include "NetrMemory.h"
-#include "NetrStubMemory.h"
 
-#include "externs.h"
+typedef struct policy_handle {
+	uint32 handle_type;
+	Guid guid;
+} PolicyHandle;
+
+
+#endif /* _PH_DEF_H_ */
 
 
 /*

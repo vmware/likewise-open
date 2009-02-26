@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libsamr_cs.la libsamr_ss.la libsamr.la
+lib_LTLIBRARIES = libsamr_cs.la libsamr.la
 
 libsamr_la_SOURCES = \
 	globals.c \
@@ -40,7 +40,6 @@ libsamr_la_SOURCES = \
 	SamrGetUserGroups.c
 
 libsamr_cs_la_SOURCES = samr_cstub.c
-libsamr_ss_la_SOURCES = samr_sstub.c
 
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,44 +28,57 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include <ctype.h>
-#include <iconv.h>
-#include <pthread.h>
-#include <DceSupport.h>
-#include <compat/rpcstatus.h>
-#include <dce/schannel.h>
-#include <wc16str.h>
-#include <wc16printf.h>
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#include <lwrpc/ntstatus.h>
-#include <lwrpc/security.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/errconv.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/mpr.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/netlogon.h>
+#ifndef _SIDDEF_H_
+#define _SIDDEF_H_
 
-#include <md4.h>
-#include <md5.h>
-#include <hmac_md5.h>
-#include <des.h>
-#include <crypto.h>
-#include <byteops.h>
-#include <random.h>
+/*
+ * This header is separate from other definitions because it should
+ * be possible to include it in idl files when generating dcerpc stubs.
+ */
 
-#include "netlogon_stub.h"
+#define MAXIMUM_SUBAUTHORITY_COUNT 15
 
-#include "NetrUtil.h"
-#include "NetrCredentials.h"
-#include "NetrMemory.h"
-#include "NetrStubMemory.h"
+typedef struct sid {
+    uint8 revision;
+#ifdef _DCE_IDL_
+    [range(0,15)]
+#endif
+    uint8 subauth_count;
+    uint8 authid[6];
+#ifdef _DCE_IDL_
+    [size_is(subauth_count)] uint32 subauth[];
+#else
+    uint32 subauth[MAXIMUM_SUBAUTHORITY_COUNT];
+#endif
+} SID, *PSID;
 
-#include "externs.h"
+
+/* Helper macro for transition of old code to the new library */
+#define DomSid  SID
+
+
+typedef struct sid_ptr {
+    DomSid *sid;
+} SidPtr;
+
+
+typedef struct sid_array {
+#ifdef _DCE_IDL_
+    [range(0,1000)]
+#endif
+    uint32 num_sids;
+#ifdef _DCE_IDL_
+    [size_is(num_sids)]
+#endif
+    SidPtr *sids;
+} SidArray;
+
+
+#endif /* _SIDDEF_H_ */
 
 
 /*
