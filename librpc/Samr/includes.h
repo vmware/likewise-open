@@ -37,9 +37,10 @@
 #include <wc16str.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/security.h>
-#include <lwrpc/unicodestring.h>
 #include <lwrpc/ntstatus.h>
+#include <lwrpc/security.h>
+#include <lwrpc/sidhelper.h>
+#include <lwrpc/unicodestring.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/rid.h>

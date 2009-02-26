@@ -51,6 +51,7 @@
 #include <lwrpc/winerror.h>
 #include <lwrpc/errconv.h>
 #include <lwrpc/security.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>

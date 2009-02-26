@@ -43,6 +43,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/security.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/errconv.h>
 #include <lwrpc/allocate.h>

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,114 +28,142 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+/*
+ * Abstract: Samr interface binding (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#ifdef __GNUC__
-#include <dce/rpc.h>
-#elif _WIN32
-#include <rpc.h>
-#endif
+#include "includes.h"
 
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
 
-#include <wc16str.h>
-#include <lwrpc/samrbinding.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/allocate.h>
-
-RPCSTATUS InitSamrBindingDefault(handle_t *binding, const CHAR_T *hostname)
+RPCSTATUS
+InitSamrBindingDefault(
+    handle_t *binding,
+    const char *hostname
+    )
 {
-    RPCSTATUS rpcstatus;
-    CHAR_T *binding_string;
-    CHAR_T *prot_seq = TEXT(SAMR_PROT_SEQ);
-    CHAR_T *endpoint = TEXT(SAMR_ENDPOINT);
-    CHAR_T *hostname_prefix = TEXT("\\\\");
-    CHAR_T *uuid = NULL;
-    CHAR_T *options = NULL;
-    CHAR_T *address = NULL;
-	
-    /* we can't create binding without a proper rpc server address */
-    if (hostname == NULL || binding == NULL) {
-        return RPC_S_INVALID_NET_ADDR;
-    }
+    RPCSTATUS rpcstatus = RPC_S_OK;
+    char *prot_seq = (char*)SAMR_DEFAULT_PROT_SEQ;
+    char *endpoint = (char*)SAMR_DEFAULT_ENDPOINT;
+    char *uuid = NULL;
+    char *options = NULL;
+    handle_t b = NULL;
 
-#ifdef _WIN32
-    if (wcsstr(hostname, hostname_prefix) == hostname) {
-        address = wcsdup(hostname);
-    } else {
-        size_t len = wcslen(hostname) + 3; /* add space for "\\"
-                                              and termination */
-        size_t size = sizeof(char_t) * len;
-        address = (CHAR_T*) malloc(size);
-        _snwprintf_s(address, size, size, TEXT("\\\\%s"), hostname);
-    }
-#elif __GNUC__
-    address = strdup(hostname);
-#endif
+    rpcstatus = InitSamrBindingFull(&b, prot_seq, hostname, endpoint,
+                                    uuid, options);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
 
-    rpc_string_binding_compose(uuid, prot_seq, address, endpoint,
-                               options, &binding_string, &rpcstatus);
-    if (rpcstatus != 0) goto done;
-
-    rpc_binding_from_string_binding(binding_string, binding, &rpcstatus);
-    if (rpcstatus != 0) goto done;
-
-    if (binding_string != NULL) {
-        rpc_string_free(&binding_string, &rpcstatus);
-    }
-
-done:
-    SAFE_FREE(address);
-
+    *binding = b;
+cleanup:
     return rpcstatus;
+
+error:
+    *binding = NULL;
+    goto cleanup;
 }
 
 
-RPCSTATUS InitSamrBindingFull()
+RPCSTATUS
+InitSamrBindingFull(
+    handle_t *binding,
+    const char *prot_seq,
+    const char *hostname,
+    const char *endpoint,
+    const char *uuid,
+    const char *options
+    )
 {
-    RPCSTATUS rpcstatus = 0;
+    RPCSTATUS rpcstatus = RPC_S_OK;
+    RPCSTATUS st = RPC_S_OK;
+    unsigned char *binding_string = NULL;
+    unsigned char *ps   = NULL;
+    unsigned char *ep   = NULL;
+    unsigned char *u    = NULL;
+    unsigned char *opts = NULL;
+    unsigned char *addr = NULL;
+    handle_t b = NULL;
+
+    goto_if_invalid_param_rpcstatus(binding, cleanup);
+    goto_if_invalid_param_rpcstatus(hostname, cleanup);
+    goto_if_invalid_param_rpcstatus(prot_seq, cleanup);
+
+    ps = (unsigned char*) strdup(prot_seq);
+    goto_if_no_memory_rpcstatus(ps, error);
+
+    if (endpoint != NULL) {
+        ep = (unsigned char*) strdup(endpoint);
+        goto_if_no_memory_rpcstatus(ep, error);
+    }
+
+    if (uuid != NULL) {
+        u = (unsigned char*) strdup(uuid);
+        goto_if_no_memory_rpcstatus(u, error);
+    }
+
+    if (options != NULL) {
+        opts = (unsigned char*) strdup(options);
+        goto_if_no_memory_rpcstatus(opts, error);
+    }
+
+    addr = (unsigned char*) strdup(hostname);
+    goto_if_no_memory_rpcstatus(addr, error);
+
+    rpc_string_binding_compose(u, ps, addr, ep, opts, &binding_string,
+                               &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+    rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+    rpc_mgmt_set_com_timeout(b, 6, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+    *binding = b;
+
+cleanup:
+    SAFE_FREE(ps);
+    SAFE_FREE(ep);
+    SAFE_FREE(u);
+    SAFE_FREE(opts);
+    SAFE_FREE(addr);
+
+    if (binding_string) {
+        rpc_string_free(&binding_string, &st);
+    }
+
+    if (rpcstatus == RPC_S_OK &&
+        st != RPC_S_OK) {
+        rpcstatus = st;
+    }
+
     return rpcstatus;
+
+error:
+    if (b) {
+        rpc_binding_free(&b, &st);
+    }
+
+    goto cleanup;
 }
 
 
-RPCSTATUS FreeSamrBinding(handle_t *binding)
+RPCSTATUS
+FreeSamrBinding(
+    handle_t *binding
+    )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
 
     /* Free the binding itself */
-    if (binding != NULL) {
+    if (binding && *binding) {
         rpc_binding_free(binding, &rpcstatus);
+        goto_if_rpcstatus_not_success(rpcstatus, done);
     }
 
-    /* Free the host address if possible */
-    // This crashes unexpectedly. I don't know why yet.
-    //if (rpcstatus == RPC_S_OK && address != NULL) {
-    // 	free(address);
-    //}
-
+done:
     return rpcstatus;
 }
-
-#ifdef _WIN32
-
-/*
- * memory management functions for rpc internals use
- */
-void __RPC_FAR * __RPC_USER midl_user_allocate(size_t len)
-{
-    return (malloc(len));
-}
-
-void __RPC_USER midl_user_free(void __RPC_FAR *ptr)
-{
-    free(ptr);
-}
-
-#endif
 
 
 /*

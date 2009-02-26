@@ -35,6 +35,7 @@
 #ifndef _NETLOGON_H_
 #define _NETLOGON_H_
 
+#include <lwrpc/netlogonbinding.h>
 #include <lwrpc/netrdefs.h>
 #include <lwrpc/mpr.h>
 

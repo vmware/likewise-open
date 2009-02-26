@@ -39,7 +39,7 @@
 
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/security.h>
-#include <lwrpc/sddef.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/lsabinding.h>
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>
