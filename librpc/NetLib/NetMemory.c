@@ -29,7 +29,9 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Abstract: NetApi memory (de)allocation routines (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
