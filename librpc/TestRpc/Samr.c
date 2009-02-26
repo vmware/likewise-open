@@ -463,80 +463,6 @@ done:
 }
 
 
-void DumpUserInfo(const char *prefix, UserInfo *i, int level)
-{
-    UnicodeString *account_name = NULL;
-    UnicodeString *full_name = NULL;
-    UnicodeString *description = NULL;
-    UnicodeString *comment = NULL;
-    UnicodeString *unknown1 = NULL;
-    uint32 primary_gid = 0;
-    uint16 country_code = 0;
-    uint16 code_page = 0;
-    uint32 rid = 0;
-    UnicodeString *home_directory = NULL;
-    UnicodeString *home_drive = NULL;
-    UnicodeString *logon_script = NULL;
-    UnicodeString *profile_path = NULL;
-    UnicodeString *workstations = NULL;
-    uint32 bad_password_count = 0;
-    uint32 logon_count = 0;
-    uint32 account_flags = 0;
-
-    if (!prefix || !i) return;
-
-    printf("%sptr = 0x%08x\n", prefix, (uint32)i);
-    printf("%sUserInfo structure:\n", prefix);
-    printf("%sInfolevel: %d\n", prefix, level);
-
-    if (level == 1) {
-        account_name = &i->info1.account_name;
-        full_name = &i->info1.full_name;
-        primary_gid = i->info1.primary_gid;
-        description = &i->info1.description;
-        comment = &i->info1.comment;
-
-        DUMP_UNICODE_STRING(prefix, account_name);
-        DUMP_UNICODE_STRING(prefix, full_name);
-        DUMP_UINT(prefix, primary_gid);
-        DUMP_UNICODE_STRING(prefix, description);
-        DUMP_UNICODE_STRING(prefix, comment);
-
-    } else if (level == 2) {
-        comment = &i->info2.comment;
-        unknown1 = &i->info2.unknown1;
-        country_code = i->info2.country_code;
-        code_page = i->info2.code_page;
-
-        DUMP_UNICODE_STRING(prefix, comment);
-        DUMP_UNICODE_STRING(prefix, unknown1);
-        DUMP_UINT(prefix, country_code);
-        DUMP_UINT(prefix, code_page);
-
-    } else if (level == 3) {
-        DUMP_UNICODE_STRING(prefix, account_name);
-        DUMP_UNICODE_STRING(prefix, full_name);
-        DUMP_UINT(prefix, rid);
-        DUMP_UINT(prefix, primary_gid);
-        DUMP_UNICODE_STRING(prefix, home_directory);
-        DUMP_UNICODE_STRING(prefix, home_drive);
-        DUMP_UNICODE_STRING(prefix, logon_script);
-        DUMP_UNICODE_STRING(prefix, profile_path);
-        DUMP_UNICODE_STRING(prefix, workstations);
-        /* TODO: add NtTime dumping */
-        DUMP_UINT(prefix, bad_password_count);
-        DUMP_UINT(prefix, logon_count);
-        DUMP_UINT(prefix, account_flags);
-    }
-}
-
-
-void DumpAliasInfo(const char *prefix, AliasInfo *i, int level)
-{
-    if (!prefix || !i) return;
-}
-
-
 int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
                       const wchar16_t *user, const wchar16_t *pass,
                       struct parameter *options, int optcount)
@@ -594,7 +520,7 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("level", pt_int32, level);
+    PARAM_INFO("level", pt_int32, &level);
 
     names[0] = username;
 
@@ -632,14 +558,11 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
             INPUT_ARG_PTR(samr_binding);
             INPUT_ARG_PTR(&user_handle);
             INPUT_ARG_UINT(i);
-            OUTPUT_ARG_CUSTOM(&info, DumpUserInfo("< ", info, i));
 
             CALL_MSRPC(status = SamrQueryUserInfo(samr_binding, &user_handle,
                                                   (uint16)i, &info));
             if (status != STATUS_SUCCESS &&
                 status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
-
-            OUTPUT_ARG_CUSTOM(&info, DumpUserInfo("< ", info, i));
 
             SamrFreeMemory((void*)info);
             info = NULL;
@@ -648,14 +571,11 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
         INPUT_ARG_PTR(samr_binding);
         INPUT_ARG_PTR(&user_handle);
         INPUT_ARG_UINT(level);
-        OUTPUT_ARG_CUSTOM(&info, DumpUserInfo("< ", info, level));
 
         CALL_MSRPC(status = SamrQueryUserInfo(samr_binding, &user_handle,
                                               (uint16)level, &info));
         if (status != STATUS_SUCCESS &&
             status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
-
-        OUTPUT_ARG_CUSTOM(&info, DumpUserInfo("< ", info, level));
 
         SamrFreeMemory((void*)info);
         info = NULL;
@@ -826,13 +746,9 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
         INPUT_ARG_PTR(&alias_handle);
         INPUT_ARG_UINT(i);
 
-        OUTPUT_ARG_CUSTOM(&aliasinfo, DumpAliasInfo("< ", aliasinfo, i));
-
         CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, &alias_handle,
                                                (uint16)i, &aliasinfo));
         if (status != 0) rpc_fail(status);
-
-        OUTPUT_ARG_CUSTOM(&aliasinfo, DumpAliasInfo("< ", aliasinfo, i));
 
         if (aliasinfo) SamrFreeMemory((void*)aliasinfo);
     }
@@ -1563,7 +1479,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     unsigned char initval[16] = {0};
     wchar16_t *password;
     unsigned char *sess_key;
-    size_t sess_key_len;
+    uint32 sess_key_len;
     unsigned char digested_sess_key[16] = {0};
     struct md5context ctx;
 
@@ -1970,8 +1886,8 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("resolvesids", pt_int32, resolvesids);
-    PARAM_INFO("resolvelevel", pt_uint32, resolve_level);
+    PARAM_INFO("resolvesids", pt_int32, &resolvesids);
+    PARAM_INFO("resolvelevel", pt_uint32, &resolve_level);
 
     SET_SESSION_CREDS(nr, hostname, user, pass);
 
@@ -2187,8 +2103,8 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("resolvesids", pt_int32, resolvesids);
-    PARAM_INFO("resolvelevel", pt_uint32, resolve_level);
+    PARAM_INFO("resolvesids", pt_int32, &resolvesids);
+    PARAM_INFO("resolvelevel", pt_uint32, &resolve_level);
 
     SET_SESSION_CREDS(nr, hostname, user, pass);
 

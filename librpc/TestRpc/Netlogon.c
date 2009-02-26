@@ -32,6 +32,7 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,6 +56,7 @@
 
 #include "TestRpc.h"
 #include "Params.h"
+
 
 handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 {
@@ -173,6 +175,7 @@ void TestCloseSchannel(handle_t schn_b, NETRESOURCE *schnr)
 }
 
 
+
 int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
                          const wchar16_t *user, const wchar16_t *pass,
                          struct parameter *options, int optcount)
@@ -244,8 +247,8 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("domain", pt_w16string, domain);
     PARAM_INFO("username", pt_w16string, username);
     PARAM_INFO("password", pt_w16string, password);
-    PARAM_INFO("logon_level", pt_int32, logon_level);
-    PARAM_INFO("validation_level", pt_int32, validation_level);
+    PARAM_INFO("logon_level", pt_int32, &logon_level);
+    PARAM_INFO("validation_level", pt_int32, &validation_level);
 
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
@@ -390,8 +393,8 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("domain", pt_w16string, domain);
     PARAM_INFO("username", pt_w16string, username);
     PARAM_INFO("password", pt_w16string, password);
-    PARAM_INFO("logon_level", pt_int32, logon_level);
-    PARAM_INFO("validation_level", pt_int32, validation_level);
+    PARAM_INFO("logon_level", pt_int32, &logon_level);
+    PARAM_INFO("validation_level", pt_int32, &validation_level);
 
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
@@ -430,6 +433,7 @@ cleanup:
 
     return (status == STATUS_SUCCESS);
 }
+
 
 
 int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
@@ -507,8 +511,8 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("domain", pt_w16string, domain);
     PARAM_INFO("username", pt_w16string, username);
     PARAM_INFO("password", pt_w16string, password);
-    PARAM_INFO("logon_level", pt_int32, logon_level);
-    PARAM_INFO("validation_level", pt_int32, validation_level);
+    PARAM_INFO("logon_level", pt_int32, &logon_level);
+    PARAM_INFO("validation_level", pt_int32, &validation_level);
 
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
@@ -543,7 +547,6 @@ cleanup:
 
     return (status == STATUS_SUCCESS);
 }
-
 
 
 
@@ -682,7 +685,7 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
                        &def_trustflags);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("trustflags", pt_uint32, trustflags);
+    PARAM_INFO("trustflags", pt_uint32, &trustflags);
 
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) return false;
