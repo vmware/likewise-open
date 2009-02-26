@@ -192,12 +192,42 @@ error:
     return ceError;
 }
 
+VOID
+FixCfgString(
+    PSTR pszString
+    )
+{
+    size_t len = 0;
+
+    CTStripWhitespace(pszString);
+
+    len = strlen(pszString);
+
+    if(pszString[len - 1] == ';')
+        len--;
+    if(pszString[len - 1] == '"')
+        len--;
+
+    pszString[len] = 0;
+
+    if(pszString[0] == '"')
+    {
+        //Since the string is shrinking by one character, copying len
+        //characters will move the null too.
+        memmove(pszString, pszString + 1, len);
+    }
+}
+
 CENTERROR
 DJRemoveCacheFiles()
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     BOOLEAN bFileExists = FALSE;
     BOOLEAN bDirExists = FALSE;
+    CHAR szSudoOrigFile[PATH_MAX+1];
+    PSTR pszSearchPath = NULL;
+    PSTR pszSudoersPath = NULL;
+
     PSTR filePaths[] = {
         /* Likewise 4.X cache location files ... */
         "/var/lib/lwidentity/idmap_cache.tdb",
@@ -306,14 +336,34 @@ DJRemoveCacheFiles()
     }
 
     /* /etc/sudoers */
-    ceError = CTCheckFileExists("/etc/sudoers.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+    ceError = CTAllocateString( "/usr/local/etc:/usr/etc:/etc:/opt/sudo/etc:/opt/csw/etc",
+                                &pszSearchPath);
 
-    if (bFileExists)
+    FixCfgString(pszSearchPath);
+
+    ceError = CTFindFileInPath( "sudoers",
+                                 pszSearchPath,
+                                 &pszSudoersPath);
+
+    if( ceError == CENTERROR_FILE_NOT_FOUND )
+        ceError = CENTERROR_SUCCESS;
+
+    if(pszSudoersPath)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/sudoers.orig file to /etc/sudoers");
-        ceError = CTMoveFile("/etc/sudoers.orig", "/etc/sudoers");
+        sprintf( szSudoOrigFile,
+                 "%s.orig",
+                 pszSudoersPath);
+
+        ceError = CTCheckFileExists( szSudoOrigFile,
+                                     &bFileExists);
         BAIL_ON_CENTERIS_ERROR(ceError);
+        if (bFileExists)
+        {
+            DJ_LOG_VERBOSE("Restoring %s file to %s",szSudoOrigFile,pszSudoersPath);
+            ceError = CTMoveFile(szSudoOrigFile, pszSudoersPath);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+
     }
 
     /* /etc/motd */
@@ -350,13 +400,13 @@ DJRemoveCacheFiles()
     }
 
     /* /etc/syslog-ng.conf */
-    ceError = CTCheckFileExists("/etc/syslog-ng.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/syslog-ng/syslog-ng.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/syslog-ng.conf.orig file to /etc/syslog-ng.conf");
-        ceError = CTMoveFile("/etc/syslog-ng.conf.orig", "/etc/syslog-ng.conf");
+        DJ_LOG_VERBOSE("Restoring /etc/syslog-ng/syslog-ng.conf.orig file to /etc/syslog-ng/syslog-ng.conf");
+        ceError = CTMoveFile("/etc/syslog-ng/syslog-ng.conf.orig", "/etc/syslog-ng/syslog-ng.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
@@ -394,6 +444,10 @@ DJRemoveCacheFiles()
     }
 
 error:
+
+    CT_SAFE_FREE_STRING(pszSearchPath);
+    CT_SAFE_FREE_STRING(pszSudoersPath);
+
     return ceError;
 }
 
