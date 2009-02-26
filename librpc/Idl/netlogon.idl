@@ -8,8 +8,7 @@ interface netlogon
 {
 #include <types.idl>
 #include <security.idl>
-
-#include <security.idl>
+#include <lwrpc/rid.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/netrdefs.h>
 
