@@ -2,7 +2,7 @@ lib_LTLIBRARIES = liballoc.la
 
 liballoc_la_SOURCES = Allocate.c
 liballoc_la_CPPFLAGS = -I$(top_srcdir)/Include
-liballoc_la_CFLAGS = -Wall -Werror
+liballoc_la_CFLAGS = $(AM_CFLAGS)
 
 if HAVE_MOONUNIT
 
