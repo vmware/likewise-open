@@ -26,13 +26,19 @@ LIBRPC_INCDIR = $(librpc_srcdir)/Include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
-libnetlogon_la_CFLAGS = -g $(INCLUDES) -DLIBRPC_BUILD $(AM_CFLAGS)
+FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
+
+libnetlogon_cs_la_CPPFLAGS = $(FEATURETEST_FLAGS)
+libnetlogon_cs_la_CFLAGS = $(FEATURETEST_FLAGS)
+
+libnetlogon_la_CFLAGS = -g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 libnetlogon_la_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libnetlogon_la_LIBADD = \
 	-ldcerpc -lunistr \
 	$(top_builddir)/MsRpc/libmsrpc.la \
 	$(top_builddir)/Alloc/liballoc.la \
-        $(top_builddir)/Error/liberror.la
+        $(top_builddir)/Error/liberror.la \
+	libnetlogon_cs.la
 
 CLEANFILES = netlogon_h.h netlogon_cstub.c netlogon_sstub.c
 

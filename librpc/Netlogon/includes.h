@@ -40,6 +40,7 @@
 #include <wc16str.h>
 #include <wc16printf.h>
 
+#include <lwrpc/types.h>
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/security.h>
 #include <lwrpc/winerror.h>

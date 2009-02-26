@@ -43,6 +43,7 @@
 #include <lwrdr/lwrdr.h>
 #include <wc16str.h>
 
+#include <lwrpc/types.h>
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/security.h>
 #include <lwrpc/allocate.h>
@@ -136,21 +137,18 @@ handle_t TestOpenSchannel(handle_t netr_b,
     dwError = SMBCreatePlainAccessTokenW(user, pass, &auth);
     if (dwError)
     {
-        err = -1;
         goto error;
     }
     
     dwError = SMBSetThreadToken(auth);
     if (dwError)
     {
-        err = -1;
         goto error;
     }
     
     dwError = SMBCloseHandle(NULL, auth);
     if (dwError)
     {
-        err = -1;
         goto error;
     }
     
@@ -158,7 +156,8 @@ done:
     SAFE_FREE(machine_acct);
 
     return (st == rpc_s_ok &&
-            status == STATUS_SUCCESS) ? schn_b : NULL;
+            status == STATUS_SUCCESS &&
+	    dwError == 0) ? schn_b : NULL;
 
 error:
     goto done;
@@ -305,6 +304,7 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     const uint32 def_validation_level = 2;
 
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
     handle_t netr_b = NULL;
     handle_t schn_b = NULL;
     NETRESOURCE nr = {0};
@@ -327,26 +327,23 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     {        
         /* Set up access token */
         HANDLE hAccessToken = INVALID_HANDLE_VALUE;
-        DWORD dwError = 0;
 
         dwError = SMBCreatePlainAccessTokenW(user, pass, &hAccessToken);
         if (dwError)
         {
-            err = -1;
+	    status = STATUS_UNSUCCESSFUL;
             goto cleanup;
         }
 
         dwError = SMBSetThreadToken(hAccessToken);
         if (dwError)
         {
-            err = -1;
             goto cleanup;
         }
         
         dwError = SMBCloseHandle(NULL, hAccessToken);
         if (dwError)
         {
-            err = -1;
             goto cleanup;
         }
     }
@@ -416,12 +413,9 @@ close:
 
     if (username && password)
     {
-        DWORD dwError = 0;
-
         dwError = SMBSetThreadToken(INVALID_HANDLE_VALUE);
         if (dwError)
         {
-            err = -1;
             goto cleanup;
         }
     }
@@ -431,7 +425,8 @@ cleanup:
     SAFE_FREE(computer);
     SAFE_FREE(server);
 
-    return (status == STATUS_SUCCESS);
+    return (status == STATUS_SUCCESS &&
+            dwError == 0);
 }
 
 

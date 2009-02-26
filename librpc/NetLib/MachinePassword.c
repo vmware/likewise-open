@@ -99,6 +99,7 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
     wchar16_t *host_machine_uc = NULL;
     wchar16_t *host_machine_lc = NULL;
     wchar16_t *host_machine_fqdn_lc = NULL;
+    wchar16_t *cifs_machine_fqdn_lc = NULL;
     wchar16_t *principal = NULL;
 
     /* create account$ name */

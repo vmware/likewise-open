@@ -38,11 +38,6 @@ interface samr
 		[case(3)] UnicodeString description;
 	} AliasInfo;
 
-/* Macros for samr library internal use */
-cpp_quote("#define ALIAS_INFO_ALL          1")
-cpp_quote("#define ALIAS_INFO_NAME         2")
-cpp_quote("#define ALIAS_INFO_DESCRIPTION  3")
-
 	/* UserInfo union returned from SamrQueryUserInfo */
 	typedef [switch_type(uint16)] union user_info {
 		[case(1)] UserInfo1 info1;

@@ -35,8 +35,8 @@
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
-#include <lwrpc/ntstatus.h>
 
+#include <lwrpc/ntstatus.h>
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <lwrpc/allocate.h>

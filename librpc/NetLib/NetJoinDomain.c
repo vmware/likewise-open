@@ -70,6 +70,7 @@ NetJoinDomainLocalInternal(
 
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS close_status = STATUS_SUCCESS;
+    DWORD dwError = 0;
     int err = ERROR_SUCCESS;
     NETRESOURCE nr = {0};
     size_t domain_controller_len;
@@ -117,27 +118,27 @@ NetJoinDomainLocalInternal(
     if (account && password)
     {
         /* Set up access token */
-        LW_PIO_ACCESS_TOKEN hAccessToken = NULL;
+        HANDLE hAccessToken = NULL;
         
         dwError = SMBCreatePlainAccessTokenW(account, password, &hAccessToken);
         if (dwError)
         {
             err = -1;
-            goto_if_err_not_success(err, done);
+            goto_if_winerr_not_success(err, done);
         }
 
         dwError = SMBSetThreadToken(hAccessToken);
         if (dwError)
         {
             err = -1;
-            goto_if_err_not_success(err, done);
+            goto_if_winerr_not_success(err, done);
         }
         
         dwError = SMBCloseHandle(NULL, hAccessToken);
         if (dwError)
         {
             err = -1;
-            goto_if_err_not_success(err, done);
+            goto_if_winerr_not_success(err, done);
         }
     }
 
@@ -360,7 +361,7 @@ close:
         if (dwError)
         {
             err = -1;
-            goto_if_err_not_success(err, done);
+            goto_if_winerr_not_success(err, done);
         }
     }
 

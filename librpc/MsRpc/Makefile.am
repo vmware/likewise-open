@@ -7,6 +7,7 @@ lib_LTLIBRARIES = libmsrpc.la
 libmsrpc_la_SOURCES = \
 	UnicodeString.c \
 	UnicodeStringEx.c \
+	SidHelper.c \
 	md4.c \
 	md5.c \
 	hmac_md5.c \

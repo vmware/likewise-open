@@ -47,10 +47,6 @@ typedef struct dom_sid {
 } DomSid;
 #endif
 
-typedef DomSid SID, *PSID;
-
-#define MAXIMUM_SUBAUTHORITY_COUNT 15
-
 typedef struct _SID_IDENTIFIER_AUTHORITY {
     uint8 Octet[6];
 } SID_IDENTIFIER_AUTHORITY;

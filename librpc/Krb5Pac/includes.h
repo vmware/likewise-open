@@ -34,6 +34,7 @@
 #include <dce/idlddefs.h>
 
 #include <lwrpc/types.h>
+#include <lwrpc/security.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/krb5pac.h>
 

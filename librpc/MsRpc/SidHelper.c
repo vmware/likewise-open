@@ -37,8 +37,13 @@
 #include <lwrpc/sidhelper.h>
 
 
+#ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#endif
+
+#ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
 
 #define CT_PTR_ADD(Pointer, Offset) \
     ((char*)(Pointer) + Offset)

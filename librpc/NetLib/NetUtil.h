@@ -43,7 +43,7 @@
         goto lbl;                            \
     }
 
-#define goto_if_err_not_success(e, lbl) \
+#define goto_if_winerr_not_success(e, lbl) \
     if (e != ERROR_SUCCESS) {           \
         err = e;                        \
         goto lbl;                       \
@@ -65,7 +65,7 @@
 #define goto_if_no_memory_winerr(ptr, lbl) \
     if (ptr == NULL) {                     \
         err = ERROR_OUTOFMEMORY;           \
-        goto_if_err_not_success(err, lbl); \
+        goto lbl;                          \
     }
 
 #define goto_if_no_memory_lderr(p, lbl) \
@@ -74,11 +74,26 @@
         goto lbl;                       \
     }
 
+#define goto_if_invalid_param_ntstatus(p, lbl) \
+    if ((p) == NULL) {                         \
+        status = STATUS_INVALID_PARAMETER;     \
+        err = ERROR_INVALID_PARAMETER;         \
+        goto lbl;                              \
+    }
+
 #define goto_if_invalid_param_winerr(parm, lbl) \
     if ((parm) == NULL) {                       \
         err = ERROR_INVALID_PARAMETER;          \
         goto lbl;                               \
     }
+
+#define goto_if_invalid_param_lderr(parm, lbl)  \
+    if ((parm) == NULL) {                       \
+        lderr = LDAP_PARAM_ERROR;               \
+        err = ERROR_INVALID_PARAMETER;          \
+        goto lbl;                               \
+    }
+
 
 #endif /* _NET_UTIL_H_ */
 

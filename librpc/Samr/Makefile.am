@@ -45,15 +45,21 @@ LIBRPC_INCDIR = $(librpc_srcdir)/Include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
-libsamr_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(AM_CFLAGS)
+FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
+
+libsamr_cs_la_CPPFLAGS = $(FEATURETEST_FLAGS)
+libsamr_cs_la_CFLAGS = $(FEATURETEST_FLAGS)
+
+libsamr_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 libsamr_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libsamr_la_LIBADD = \
        -ldcerpc -lunistr \
-       $(top_builddir)/MsRpc/libmsrpc.la
+       $(top_builddir)/MsRpc/libmsrpc.la \
+       libsamr_cs.la
 
 CLEANFILES = samr_h.h samr_cstub.c samr_sstub.c
 
-BUILT_SOURCES = samr_h.h
+BUILT_SOURCES = samr_cstub.c samr_h.h
 
 samr_h.h samr_cstub.c: $(idl_srcdir)/samr.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h -I$(idl_srcdir) \

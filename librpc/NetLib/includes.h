@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
@@ -43,15 +44,17 @@
 #include <wc16printf.h>
 #include <gssapi/gssapi.h>
 #include <keytab.h>
+#include <dce/rpc.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/winerror.h>
-#include <lwrpc/security.h>
 #include <lwrpc/errconv.h>
+#include <lwrpc/security.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
+#include <lwrpc/netlogon.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/LM.h>

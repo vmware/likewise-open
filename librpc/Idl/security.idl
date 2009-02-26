@@ -8,19 +8,6 @@ cpp_quote("#define _GEN_SECURITY_H_")
 #include <lwrpc/siddef.h>
 #include <lwrpc/sdflags.h>
 
-/* Including header file in idl processing leads to providing
-   enclosed definitions but losing preprocessor #defines at
-   the same time. We're supplying them again here because defined
-   macros are needed later when including public headers along
-   with dceidl-generated files */
-
-cpp_quote("#define WCHAR16_H")
-cpp_quote("#define DEFINED_UINT32")
-cpp_quote("#define NTSTATUS_DEFINED")
-cpp_quote("#define WINERR_DEFINED")
-cpp_quote("#define NTTIME_DEFINED")
-cpp_quote("#define UNISTR_DEFINED")
-
 
 typedef [switch_type(uint32)] union sec_ace_object_type {
 	[case(SEC_ACE_OBJECT_TYPE_PRESENT)] Guid type;
@@ -45,6 +32,7 @@ typedef [switch_type(uint8)] union sec_ace_object_ctr {
 	[case(SEC_ACE_TYPE_SYSTEM_AUDIT_OBJECT)] SecAceObject object_audit;
 	[case(SEC_ACE_TYPE_SYSTEM_ALARM_OBJECT)] SecAceObject object_alarm;
 } SecAceObjectCtr;
+
 
 /* Include the rest of public security descriptor definitions
    depending on SecAceObjectCtr */

@@ -35,12 +35,10 @@
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
-#include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/security.h>
 #include <lwrpc/ntstatus.h>
+#include <lwrpc/security.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/mpr.h>
