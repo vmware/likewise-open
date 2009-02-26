@@ -41,9 +41,9 @@
 
 NET_API_STATUS NetMachineChangePassword()
 {
-    NET_API_STATUS err;
-    NTSTATUS status;
-    int ret;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    int ret = 0;
     NETRESOURCE nr;
     HANDLE hStore = (HANDLE)NULL;
     PLWPS_PASSWORD_INFO pass_info = NULL;

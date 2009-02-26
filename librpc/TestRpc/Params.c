@@ -37,6 +37,7 @@
 #include <lwrpc/types.h>
 #include <wc16str.h>
 #include <lwrpc/security.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/ntstatus.h>
 
 #include "Params.h"

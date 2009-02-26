@@ -40,6 +40,7 @@
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/samr.h>
