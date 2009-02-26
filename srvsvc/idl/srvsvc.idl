@@ -260,7 +260,7 @@ interface srvsvc {
         [in,out,switch_is(*level)] srvsvc_NetShareCtr *ctr,
         [in] uint32 prefered_maximum_length,
         [out] uint32 *total_entries,
-        [in,out,ref] uint32 *resume_handle
+        [in,out,unique] uint32 *resume_handle
     );
 
     /* Function: 0x10 */
