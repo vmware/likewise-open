@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -32,13 +32,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
+#include <wc16str.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
-#include <wc16str.h>
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/samr.h>
@@ -52,6 +53,7 @@
 
 #include "TestRpc.h"
 #include "Params.h"
+#include "Util.h"
 
 
 int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
@@ -63,12 +65,7 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
 
     NET_API_STATUS err = ERROR_SUCCESS;
     uint32 total, parm_err;
-    wchar16_t user[64], group[64];
     int i = 0;
-    USER_INFO_1 usrinfo = {0};
-    LOCALGROUP_MEMBERS_INFO_3 memberinfo = {0};
-
-    wchar16_t hostname_username[512];
 
     grpinfo = NULL;
     *entries = total = parm_err = 0;    
@@ -138,11 +135,7 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
     const uint32 level = 3;
     const uint32 prefmaxlen = (uint32)(-1);
     NET_API_STATUS err;
-    void *info_void;
-    uint32 total, resume, parm_err;
-    char display[256];
-    wchar16_t alias[128], user[128];
-    wchar16_t* username = NULL;
+    uint32 total, resume;
     int i = 0;
 
     resume = 0;
@@ -264,18 +257,18 @@ int DelUser(const wchar16_t *hostname, const wchar16_t *username)
 
 int AddLocalGroup(const wchar16_t *hostname, const wchar16_t *aliasname)
 {
-    const wchar_t *testcomment = L"Sample comment";
+    const char *testcomment = "Sample comment";
     const uint32 level = 1;
 
     NET_API_STATUS err = ERROR_SUCCESS;
     LOCALGROUP_INFO_1 info;
     uint32 parm_err;
     size_t comment_size;
-    wchar16_t *comment;
+    wchar16_t *comment = NULL;
 
-    comment_size = (wcslen(testcomment) + 1) * sizeof(wchar16_t);
+    comment_size = (strlen(testcomment) + 1) * sizeof(wchar16_t);
     comment = (wchar16_t*) malloc(comment_size);
-    wcstowc16s(comment, testcomment, comment_size);
+    mbstowc16s(comment, testcomment, comment_size);
 
     info.lgrpi1_name    = wc16sdup(aliasname);
     info.lgrpi1_comment = comment;
@@ -351,12 +344,6 @@ void DumpNetUserInfo1(const char *prefix, USER_INFO_1 *info)
 {
     wchar16_t *usri1_name = info->usri1_name;
     wchar16_t *usri1_password = info->usri1_password;
-    uint32 usri1_password_age = info->usri1_password_age;
-    uint32 usri1_priv = info->usri1_priv;
-    wchar16_t *usri1_home_dir = info->usri1_home_dir;
-    wchar16_t *usri1_comment = info->usri1_comment;
-    uint32 usri1_flags = info->usri1_flags;
-    wchar16_t *usri1_script_path = info->usri1_script_path;
 
     DUMP_WSTR(prefix, usri1_name);
     DUMP_WSTR(prefix, usri1_password);
@@ -440,7 +427,8 @@ done:
     SAFE_FREE(info1->usri1_password);
     SAFE_FREE(info1);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -478,7 +466,8 @@ done:
 
     SAFE_FREE(username);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -487,7 +476,6 @@ int TestNetUserGetInfo(struct test *t, const wchar16_t *hostname,
                        struct parameter *options, int optcount)
 {
     const char *testusername = "TestUser";
-    const level = 20;
 
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
@@ -496,6 +484,7 @@ int TestNetUserGetInfo(struct test *t, const wchar16_t *hostname,
     wchar16_t *username;
     void *info;
     int created = false;
+    uint32 level = 20;
 	
     TESTINFO(t, hostname, user, pass);
 
@@ -518,7 +507,8 @@ done:
 
     SAFE_FREE(username);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -528,16 +518,18 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
 {
     const char *oldusername = "OldUserName";
     const char *newusername = "NewUserName";
-    const wchar_t *newcomment = L"Sample comment";
-    const wchar_t *newfullname = L"Full UserName";
-    const wchar_t *newpassword = L"JustTesting30$";
+    const char *newcomment = "Sample comment";
+    const char *newfullname = "Full UserName";
+    const char *newpassword = "JustTesting30$";
 
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr;
     NETRESOURCE nr = {0};
     uint32 level, parm_err;
-    wchar16_t buffer[512], *username, *newuser;
+    wchar16_t buffer[512] = {0};
+    wchar16_t *username = NULL;
+    wchar16_t *newuser = NULL;
     USER_INFO_0 info0 = {0};
     USER_INFO_20 *info20 = NULL;
     USER_INFO_1003 info1003 = {0};
@@ -576,7 +568,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
 
     level = 1003;
     memset((void*)buffer, 0, sizeof(buffer));
-    wcstowc16s(buffer, newpassword, sizeof(buffer));
+    mbstowc16s(buffer, newpassword, sizeof(buffer));
     info1003.usri1003_password = buffer;
 
     CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
@@ -584,7 +576,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
     level = 1007;
-    wcstowc16s(buffer, newcomment, sizeof(buffer));
+    mbstowc16s(buffer, newcomment, sizeof(buffer));
     info1007.usri1007_comment = buffer;
 
     CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
@@ -592,7 +584,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
     err = NetUserGetInfo(hostname, username, 20, (void**)&info20);
-    if (err == 0) {
+    if (err == ERROR_SUCCESS) {
 
         level = 1008;
         info1008.usri1008_flags = info20->usri20_flags | UF_ACCOUNTDISABLE;
@@ -616,7 +608,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
     }
 
     level = 1011;
-    wcstowc16s(buffer, newfullname, sizeof(buffer));
+    mbstowc16s(buffer, newfullname, sizeof(buffer));
     info1011.usri1011_full_name = buffer;
 
     CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
@@ -627,8 +619,10 @@ done:
     RELEASE_SESSION_CREDS(nr);
 
     SAFE_FREE(newuser);
+    SAFE_FREE(username);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -718,7 +712,8 @@ done:
     SAFE_FREE(password);
     SAFE_FREE(accountou);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -728,6 +723,7 @@ int TestNetUnjoinDomain(struct test *t, const wchar16_t *hostname,
 {
     const int def_disable = 1;
 
+    NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
     enum param_err perr;
     wchar16_t *username, *password;
@@ -761,7 +757,8 @@ done:
     SAFE_FREE(username);
     SAFE_FREE(password);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -769,8 +766,8 @@ int TestNetMachineChangePassword(struct test *t, const wchar16_t *hostname,
                                  const wchar16_t *user, const wchar16_t *pass,
                                  struct parameter *options, int optcount)
 {
-    NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
+    NET_API_STATUS err = ERROR_SUCCESS;
 
     TESTINFO(t, hostname, user, pass);
 
@@ -778,7 +775,8 @@ int TestNetMachineChangePassword(struct test *t, const wchar16_t *hostname,
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
 done:   
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -831,7 +829,8 @@ done:
     SAFE_FREE(oldpassword);
     SAFE_FREE(newpassword);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -851,12 +850,9 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
     enum param_err perr;
     NETRESOURCE nr = {0};
     LOCALGROUP_USERS_INFO_0 *grpinfo;
-    uint32 entries, total, parm_err;
+    uint32 entries;
     wchar16_t *username, *aliasname, *guest_user, *admin_user;
     wchar16_t *guests_group, *admins_group, *domname;
-    int i = 0;
-    USER_INFO_1 usrinfo = {0};
-    LOCALGROUP_MEMBERS_INFO_3 memberinfo = {0};
     int created = false;
 
     TESTINFO(t, hostname, user, pass);
@@ -953,7 +949,7 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
     /*
      * Test 4: Add 2 existing users to a newly created group, and get the local groups list
      */
-    status = EnsureAlias(hostname, aliasname);
+    status = EnsureAlias(hostname, aliasname, &created);
 
     err = AddLocalGroupMember(hostname, aliasname, domname, admin_user);
     if (err != 0) netapi_fail(err);
@@ -993,7 +989,8 @@ done:
     SAFE_FREE(admins_group);
     SAFE_FREE(guests_group);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -1001,6 +998,7 @@ int TestNetLocalGroupsEnum(struct test *t, const wchar16_t *hostname,
                            const wchar16_t *user, const wchar16_t *pass,
                            struct parameter *options, int optcount)
 {
+    NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
     NETRESOURCE nr = {0};
     void *info;
@@ -1074,7 +1072,8 @@ int TestNetLocalGroupsEnum(struct test *t, const wchar16_t *hostname,
 done:
     RELEASE_SESSION_CREDS(nr);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -1084,6 +1083,7 @@ int TestNetLocalGroupAdd(struct test *t, const wchar16_t *hostname,
 {
     const char *def_aliasname = "TestAlias";
 
+    NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
     NETRESOURCE nr = {0};
     enum param_err perr; 
@@ -1111,7 +1111,8 @@ done:
 
     SAFE_FREE(aliasname);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -1121,6 +1122,7 @@ int TestDelLocalGroup(struct test *t, const wchar16_t *hostname,
 {
     const char *def_aliasname = "TestAlias";
 
+    NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
     enum param_err perr;
     NETRESOURCE nr = {0};
@@ -1144,7 +1146,8 @@ done:
 
     SAFE_FREE(aliasname);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -1155,6 +1158,7 @@ int TestNetLocalGroupGetInfo(struct test *t, const wchar16_t *hostname,
     const char *def_aliasname = "Guests";
     const uint32 level = 1;
 
+    NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
     enum param_err perr;
     NETRESOURCE nr = {0};
@@ -1198,7 +1202,8 @@ done:
 
     SAFE_FREE(aliasname);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -1210,11 +1215,11 @@ int TestNetLocalGroupSetInfo(struct test *t, const wchar16_t *hostname,
     const char *def_comment = "Sample changed comment";
     const uint32 level = 1;
 
+    NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
     enum param_err perr;
     NETRESOURCE nr = {0};
     uint32 parm_err;
-    size_t comment_size;
     wchar16_t *aliasname, *comment;
     LOCALGROUP_INFO_1 info;
 
@@ -1255,7 +1260,8 @@ done:
     SAFE_FREE(comment);
     SAFE_FREE(aliasname);
   
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -1275,17 +1281,14 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
     NET_API_STATUS err = ERROR_SUCCESS;
     enum param_err perr;
     NETRESOURCE nr = {0};
-    void *info_void;
     LOCALGROUP_MEMBERS_INFO_3 *info = NULL;
-    LOCALGROUP_INFO_1 grpadd_info;
     LOCALGROUP_MEMBERS_INFO_3 grpmembers_info;
-    uint32 entries, total, resume, parm_err;
-    char display[256];
+    uint32 entries, resume;
     wchar16_t *aliasname, *username, *domname;
     wchar16_t *admin_user, *guest_user;
     wchar16_t *admins_group, *guests_group;
     wchar16_t paddeduser[256];
-    int i = 0, newalias, newuser;
+    int newalias, newuser;
 
     resume = 0;
     info = NULL;
@@ -1388,7 +1391,7 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
     err = AddLocalGroupMember(hostname, guests_group, domname, username);
     if (err != 0) netapi_fail(err);
 
-    VERBOSE(printf("\tFetching members of %S group...\n", guests_group));
+    VERBOSE(printfw16("\tFetching members of %S group...\n", guests_group));
     err = GetLocalGroupMembers(hostname, guests_group, (void*)&grpmembers_info,
                                &entries);
     if (err != 0) netapi_fail(err);
@@ -1442,7 +1445,8 @@ done:
     SAFE_FREE(admins_group);
     SAFE_FREE(guests_group);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
@@ -1450,6 +1454,7 @@ int TestNetGetDomainName(struct test *t, const wchar16_t *hostname,
                          const wchar16_t *user, const wchar16_t *pass,
                          struct parameter *options, int optcounta)
 {
+    NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
     NETRESOURCE nr;
     wchar16_t *domain_name;
@@ -1468,12 +1473,15 @@ done:
 
     SAFE_FREE(domain_name);
 
-    return true;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS);
 }
 
 
 void SetupNetApiTests(struct test *t)
 {
+    NetInitMemory();
+
     AddTest(t, "NETAPI-USER-ADD", TestNetUserAdd);
     AddTest(t, "NETAPI-USER-DEL", TestNetUserDel);
     AddTest(t, "NETAPI-USER-GETINFO", TestNetUserGetInfo);
