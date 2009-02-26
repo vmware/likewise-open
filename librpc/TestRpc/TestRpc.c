@@ -35,10 +35,11 @@
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
+#include <wc16str.h>
+#include <lwrdr/lwrdr.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
-#include <wc16str.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/allocate.h>
 
@@ -124,13 +125,8 @@ void display_usage()
 extern char *optarg;
 int verbose_mode;
 
-/* a little trick to allow use "unicoded" version of main in windows */
 
-#ifdef _WIN32
-int wmain(int argc, wchar_t *argv[])
-#elif __GNUC__
 int main(int argc, char *argv[])
-#endif
 {
     int i, opt, ret;
     char *testname, *host, *optional_args, *user, *pass;

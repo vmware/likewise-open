@@ -55,9 +55,12 @@ struct test {
 void AddTest(struct test *ft, const char *name, test_fn function);
 void SetupSamrTests(struct test *t);
 void SetupLsaTests(struct test *t);
+void SetupNetlogonTests(struct test *t);
+void SetupNetApiTests(struct test *t);
+void SetupMprTests(struct test *t);
 handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host);
 handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host);
-// handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host);
+handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host);
 
 
 #define STATUS(a, b)                                                     \
@@ -198,11 +201,13 @@ extern int verbose_mode;
             break;                                              \
                                                                 \
         case pt_int32:                                          \
-            printf("(int32) %d (0x%08x)\n", (int32)(value));    \
+            printf("(int32) %d (0x%08x)\n", (int32)(value),     \
+                   (uint32)(value));                            \
             break;                                              \
                                                                 \
         case pt_uint32:                                         \
-            printf("(uint32) %d (0x%08x)\n", (uint32)(value));  \
+            printf("(uint32) %d (0x%08x)\n", (uint32)(value),   \
+                   (uint32)(value));                            \
             break;                                              \
                                                                 \
         default:                                                \
@@ -218,9 +223,9 @@ extern int verbose_mode;
     }
 
 
-#define DUMP_PTR(pfx, v)                            \
-    if (verbose_mode) {                             \
-        printf("%s%s = 0x%08x\n", pfx, #v, (v));    \
+#define DUMP_PTR(pfx, v)                                        \
+    if (verbose_mode) {                                         \
+        printf("%s%s = 0x%08x\n", pfx, #v, (unsigned int)(v));  \
     }
 
 #define DUMP_WSTR(pfx, v)                           \
@@ -260,23 +265,23 @@ extern int verbose_mode;
     }
 
 
-#define INPUT_ARG_PTR(v)             DUMP_PTR("> ", v);
-#define INPUT_ARG_WSTR(v)            DUMP_WSTR("> ", v);
-#define INPUT_ARG_INT(v)             DUMP_INT("> ", v);
-#define INPUT_ARG_UINT(v)            DUMP_UINT("> ", v);
-#define INPUT_ARG_UNICODE_STRING(v)  DUMP_UNICODE_STRING("> ", v);
-#define INPUT_ARG_CUSTOM(v, fn)      DUMP_CUSTOM("> ", v, fn);
+#define INPUT_ARG_PTR(v)             DUMP_PTR("> ", (v));
+#define INPUT_ARG_WSTR(v)            DUMP_WSTR("> ", (v));
+#define INPUT_ARG_INT(v)             DUMP_INT("> ", (v));
+#define INPUT_ARG_UINT(v)            DUMP_UINT("> ", (v));
+#define INPUT_ARG_UNICODE_STRING(v)  DUMP_UNICODE_STRING("> ", (v));
+#define INPUT_ARG_CUSTOM(v, fn)      DUMP_CUSTOM("> ", (v), fn);
 
-#define OUTPUT_ARG_PTR(v)            DUMP_PTR("< ", v);
-#define OUTPUT_ARG_WSTR(v)           DUMP_WSTR("< ", v);
-#define OUTPUT_ARG_INT(v)            DUMP_INT("< ", v);
-#define OUTPUT_ARG_UINT(v)           DUMP_UINT("< ", v);
-#define OUTPUT_ARG_UNICODE_STRING(v) DUMP_UNICODE_STRING("< ", v);
-#define OUTPUT_ARG_CUSTOM(v, fn)     DUMP_CUSTOM("< ", v, fn);
+#define OUTPUT_ARG_PTR(v)            DUMP_PTR("< ", (unsigned int)(v));
+#define OUTPUT_ARG_WSTR(v)           DUMP_WSTR("< ", (v));
+#define OUTPUT_ARG_INT(v)            DUMP_INT("< ", (v));
+#define OUTPUT_ARG_UINT(v)           DUMP_UINT("< ", (v));
+#define OUTPUT_ARG_UNICODE_STRING(v) DUMP_UNICODE_STRING("< ", (v));
+#define OUTPUT_ARG_CUSTOM(v, fn)     DUMP_CUSTOM("< ", (v), fn);
 
-#define RESULT_WSTR(v)               DUMP_WSTR("=> ", v);
-#define RESULT_INT(v)                DUMP_INT("=> ", v);
-#define RESULT_UINT(v)               DUMP_UINT("=> ", v);
+#define RESULT_WSTR(v)               DUMP_WSTR("=> ", (v));
+#define RESULT_INT(v)                DUMP_INT("=> ", (v));
+#define RESULT_UINT(v)               DUMP_UINT("=> ", (v));
 
 #define CALL_MSRPC(msrpc_call)                                     \
     do {                                                           \
