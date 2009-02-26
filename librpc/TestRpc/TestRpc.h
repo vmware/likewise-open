@@ -223,10 +223,21 @@ extern int verbose_mode;
     }
 
 
-#define DUMP_PTR(pfx, v)                                        \
+#define DUMP_PTR32(pfx, v)                                      \
     if (verbose_mode) {                                         \
         printf("%s%s = 0x%08x\n", pfx, #v, (unsigned int)(v));  \
     }
+
+#define DUMP_PTR64(pfx, v)                                      \
+    if (verbose_mode) {                                         \
+        printf("%s%s = 0x%16x\n", pfx, #v, (unsigned long)(v)); \
+    }
+
+#if SIZEOF_LONG_INT == 8
+#define DUMP_PTR   DUMP_PTR64
+#else
+#define DUMP_PTR   DUMP_PTR32
+#endif
 
 #define DUMP_WSTR(pfx, v)                           \
     if (verbose_mode) {                             \
