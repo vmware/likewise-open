@@ -123,6 +123,16 @@ typedef struct unicode_string_ex {
 #define UNISTR_DEFINED
 #endif /* !defined(UNISTR_DEFINED) */
 
+typedef uint32 WINERR;
+typedef uint64 NtTime;
+
+#if SIZEOF_LONG_INT == 8
+typedef unsigned int      RPCSTATUS;
+#else /* SIZEOF_LONG_INT == 4 */
+typedef unsigned long int RPCSTATUS;
+#endif
+
+
 /* Don't require DCE/RPC environment when simply building
    a client using rpc library */
 #if !defined(_DCE_IDL_)
