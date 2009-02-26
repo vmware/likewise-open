@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-#define LIBRPC_BUILD
-
 #include <stdlib.h>
 
 #include <dce/rpc.h>
@@ -40,4 +38,3 @@
 #include <lwrpc/krb5pac.h>
 
 #include "krb5pac_stub.h"
-
