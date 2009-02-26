@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -45,7 +45,7 @@ void get_random_buffer(unsigned char *out, size_t outlen)
 {
     int fd, i;
     ssize_t count;
-    char hostname[512], domainname[512];
+    char hostname[512];
     struct timeval tv;
     unsigned char hash[16];
     int len = 0;
@@ -69,18 +69,6 @@ void get_random_buffer(unsigned char *out, size_t outlen)
             hostname[sizeof(hostname) - 1] = '\0';
             len = strlen(hostname);
             md5(hash, (unsigned char*)hostname, len);
-        }
-
-        if (getdomainname(domainname, sizeof(domainname)) == 0) {
-            int pos = 0;
-
-            /* ensure the returned name is no longer than size of the buffer */
-            domainname[sizeof(domainname) - 1] = '\0';
-            len = strlen(domainname);
-            pos = ((len - sizeof(hash)) < 0) ? len - sizeof(hash) : 0;
-            memcpy((void*)&(domainname[pos]), (void*)hash,
-                   (pos) ? sizeof(hash) : len);
-            md5(hash, (unsigned char*)domainname, len);
         }
 
         if (gettimeofday(&tv, NULL) == 0) {
