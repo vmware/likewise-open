@@ -102,7 +102,6 @@ handle_t TestOpenSchannel(handle_t netr_b,
 {
     RPCSTATUS st = rpc_s_ok;
     NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
     wchar16_t *machine_acct = NULL;
     handle_t schn_b = NULL;
     DWORD dwError = 0;
@@ -128,8 +127,8 @@ handle_t TestOpenSchannel(handle_t netr_b,
     }
 
     memcpy(schnauth_info.session_key, creds->session_key, 16);
-    schnauth_info.domain_name  = awc16stombs(domain);
-    schnauth_info.machine_name = awc16stombs(computer);
+    schnauth_info.domain_name  = (unsigned char*) awc16stombs(domain);
+    schnauth_info.machine_name = (unsigned char*) awc16stombs(computer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
   
     dwError = SMBCreatePlainAccessTokenW(user, pass, &auth);
@@ -166,14 +165,10 @@ error:
 
 void TestCloseSchannel(handle_t schn_b, NETRESOURCE *schnr)
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-
     FreeNetlogonBinding(&schn_b);
 
     SMBSetThreadToken(NULL);
 
-close:
     SAFE_FREE(schnr->RemoteName);
 }
 
@@ -307,7 +302,6 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     const uint32 def_validation_level = 2;
 
     NTSTATUS status = STATUS_SUCCESS;
-    int err = ERROR_SUCCESS;
     handle_t netr_b = NULL;
     handle_t schn_b = NULL;
     NETRESOURCE nr = {0};

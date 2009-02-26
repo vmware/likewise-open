@@ -41,10 +41,10 @@
 
 #include <lwrpc/ntstatus.h>
 #include <wc16str.h>
-#include <lwrpc/samrbinding.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+#include <lwrpc/samr.h>
 
 #include "SamrUtil.h"
 #include "SamrMemory.h"

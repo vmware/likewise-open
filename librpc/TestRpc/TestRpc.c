@@ -131,9 +131,11 @@ int main(int argc, char *argv[])
     int i, opt, ret;
     char *testname, *host, *optional_args, *user, *pass;
     struct test *tests, *runtest;
-    wchar16_t *hostname, *username, *password;
+    wchar16_t *hostname = NULL;
+    wchar16_t *username = NULL;
+    wchar16_t *password = NULL;
     size_t hostname_size;
-    struct parameter *params;
+    struct parameter *params = NULL;
     int params_len;
 
     host          = NULL;

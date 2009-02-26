@@ -367,7 +367,7 @@ int TestNetUserAdd(struct test *t, const wchar16_t *hostname,
     enum param_err perr;
     NETRESOURCE nr = {0};
     uint32 level, parm_err;
-    USER_INFO_1 *info1;
+    USER_INFO_1 *info1 = NULL;
 
     TESTINFO(t, hostname, user, pass);
 

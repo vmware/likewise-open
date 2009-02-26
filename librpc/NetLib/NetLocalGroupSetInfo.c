@@ -47,8 +47,8 @@ NET_API_STATUS NetLocalGroupSetInfo(const wchar16_t *hostname,
     AliasInfo info;
     uint32 infolevel;
 
-    LOCALGROUP_INFO_0 *ninfo0;
-    LOCALGROUP_INFO_1 *ninfo1;
+    LOCALGROUP_INFO_0 *ninfo0 = NULL;
+    LOCALGROUP_INFO_1 *ninfo1 = NULL;
 	
     if (aliasname == NULL || buffer == NULL) {
 	return STATUS_NO_MEMORY;

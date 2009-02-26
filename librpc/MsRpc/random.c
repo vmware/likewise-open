@@ -43,11 +43,12 @@
 
 void get_random_buffer(unsigned char *out, size_t outlen)
 {
-    int fd, i, len;
+    int fd, i;
     ssize_t count;
     char hostname[512], domainname[512];
     struct timeval tv;
     unsigned char hash[16];
+    int len = 0;
     
     if (out == NULL || outlen < 0) return;
 

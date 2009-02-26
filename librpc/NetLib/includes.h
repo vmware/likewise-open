@@ -48,6 +48,7 @@
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/winerror.h>
 #include <lwrpc/security.h>
+#include <lwrpc/errconv.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>

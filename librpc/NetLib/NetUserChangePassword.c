@@ -39,12 +39,12 @@ NET_API_STATUS NetUserChangePassword(const wchar16_t *domain,
 {
     NTSTATUS status;
     handle_t samr_b;
-    unsigned char *hostname;
+    char *hostname;
     size_t oldlen, newlen;
     uint8 old_nthash[16], new_nthash[16];
     uint8 ntpassbuf[516], ntverhash[16];
 
-    hostname = (unsigned char*)awc16stombs(domain);
+    hostname = awc16stombs(domain);
     if (hostname == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
 
     status = InitSamrBindingDefault(&samr_b, hostname);

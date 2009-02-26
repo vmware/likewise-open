@@ -66,7 +66,7 @@ NTSTATUS
 SamrLookupDomain(
     handle_t bind,
     PolicyHandle *handle,
-    wchar16_t *domain_name,
+    const wchar16_t *domain_name,
     DomSid **sid
     );
 
