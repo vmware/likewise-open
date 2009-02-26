@@ -1480,7 +1480,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     unsigned char initval[16] = {0};
     wchar16_t *password;
     unsigned char *sess_key;
-    uint32 sess_key_len;
+    unsigned32 sess_key_len;
     unsigned char digested_sess_key[16] = {0};
     struct md5context ctx;
 
@@ -1544,7 +1544,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     
     md5init(&ctx);
     md5update(&ctx, initval, 16);
-    md5update(&ctx, sess_key, sess_key_len);
+    md5update(&ctx, sess_key, (unsigned int)sess_key_len);
     md5final(&ctx, digested_sess_key);
 
     rc4(info26->password.data, 516, digested_sess_key, 16);
@@ -1596,8 +1596,8 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     PolicyHandle conn_handle2 = {0};
     unsigned char *key1 = NULL;
     unsigned char *key2 = NULL;
-    unsigned int key_len1, key_len2;
-    unsigned int st = 0;
+    unsigned32 key_len1, key_len2;
+    RPCSTATUS st = 0;
 
     samr_binding1 = NULL;
     samr_binding2 = NULL;
