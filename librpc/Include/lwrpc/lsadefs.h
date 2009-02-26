@@ -204,6 +204,21 @@ typedef struct translated_name_array {
 } TranslatedNameArray;
 
 
+typedef uint16 LsaSidType;
+
+#define SID_TYPE_USE_NONE   0
+#define SID_TYPE_USER       1
+#define SID_TYPE_DOM_GRP    2
+#define SID_TYPE_DOMAIN     3
+#define SID_TYPE_ALIAS      4
+#define SID_TYPE_WKN_GRP    5
+#define SID_TYPE_DELETED    6
+#define SID_TYPE_INVALID    7
+#define SID_TYPE_UNKNOWN    8
+#define SID_TYPE_COMPUTER   9
+#define SID_TYPE_LABEL      10
+
+
 #define LSA_LOOKUP_NAMES_ALL                   1
 #define LSA_LOOKUP_NAMES_DOMAINS_ONLY          2
 #define LSA_LOOKUP_NAMES_PRIMARY_DOMAIN_ONLY   3
