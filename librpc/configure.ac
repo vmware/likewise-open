@@ -145,7 +145,17 @@ for i in $CPPFLAGS ${DCERPC_INCLUDES} ${UNISTR_INCLUDES}; do
         IDLFLAGS="$IDLFLAGS $j"
     fi
 done
-AC_SUBST(IDLFLAGS)	
+AC_SUBST(IDLFLAGS)
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
+
+AC_CHECK_SIZEOF([long int])
+
+# Checks for library functions.
+AC_CHECK_FUNCS(strndup)
+
 
 LIBICONV_LDFLAGS=""
 AC_CHECK_LIB(iconv, iconv, [LIBICONV_LDFLAGS="-liconv"])
@@ -191,13 +201,6 @@ AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])
 if test x"$IDL" = x"no"; then
    AC_MSG_ERROR([DCERPC IDL compiler not found])
 fi
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_TYPE_SIZE_T
-
-# Checks for library functions.
-AC_CHECK_FUNCS(strndup)
 
 # Check for moonunit bits
 AC_CHECK_HEADERS([moonunit/moonunit.h], [HAVE_MOONUNIT_H=true], [HAVE_MOONUNIT_H=false])
