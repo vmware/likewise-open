@@ -259,6 +259,140 @@ DJRemoveCacheFiles()
     cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/user-cache";
     (void) CTRemoveFiles(cachePath, FALSE, TRUE);
 
+    /* Revert any system configuration files that may have been changed by previous domain GPOs */
+
+    /* /etc/likewise/lsassd.conf */
+    ceError = CTCheckFileExists("/etc/likewise/lsassd.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/lsassd.conf.orig file to /etc/likewise/lsassd.conf");
+        ceError = CTMoveFile("/etc/likewise/lsassd.conf.orig", "/etc/likewise/lsassd.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/likewise/lwedsplugin.conf */
+    ceError = CTCheckFileExists("/etc/likewise/lwedsplugin.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/lwedsplugin.conf.orig file to /etc/likewise/lwedsplugin.conf");
+        ceError = CTMoveFile("/etc/likewise/lwedsplugin.conf.orig", "/etc/likewise/lwedsplugin.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/likewise/grouppolicy-settings.conf */
+    ceError = CTCheckFileExists("/etc/likewise/grouppolicy-settings.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/grouppolicy-settings.conf.orig file to /etc/likewise/grouppolicy-settings.conf");
+        ceError = CTMoveFile("/etc/likewise/grouppolicy-settings.conf.orig", "/etc/likewise/grouppolicy-settings.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/likewise/eventlogd.conf */
+    ceError = CTCheckFileExists("/etc/likewise/eventlogd.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/eventlogd.conf.orig file to /etc/likewise/eventlogd.conf");
+        ceError = CTMoveFile("/etc/likewise/eventlogd.conf.orig", "/etc/likewise/eventlogd.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/sudoers */
+    ceError = CTCheckFileExists("/etc/sudoers.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/sudoers.orig file to /etc/sudoers");
+        ceError = CTMoveFile("/etc/sudoers.orig", "/etc/sudoers");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/motd */
+    ceError = CTCheckFileExists("/etc/motd.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/motd.orig file to /etc/motd");
+        ceError = CTMoveFile("/etc/motd.orig", "/etc/motd");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/syslog.conf */
+    ceError = CTCheckFileExists("/etc/syslog.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/syslog.conf.orig file to /etc/syslog.conf");
+        ceError = CTMoveFile("/etc/syslog.conf.orig", "/etc/syslog.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/rsyslog.conf */
+    ceError = CTCheckFileExists("/etc/rsyslog.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/rsyslog.conf.orig file to /etc/rsyslog.conf");
+        ceError = CTMoveFile("/etc/rsyslog.conf.orig", "/etc/rsyslog.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/syslog-ng.conf */
+    ceError = CTCheckFileExists("/etc/syslog-ng.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/syslog-ng.conf.orig file to /etc/syslog-ng.conf");
+        ceError = CTMoveFile("/etc/syslog-ng.conf.orig", "/etc/syslog-ng.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/crontab */
+    ceError = CTCheckFileExists("/etc/crontab.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/crontab.orig file to /etc/crontab");
+        ceError = CTMoveFile("/etc/crontab.orig", "/etc/crontab");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/logrotate.conf */
+    ceError = CTCheckFileExists("/etc/logrotate.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/logrotate.conf.orig file to /etc/logrotate.conf");
+        ceError = CTMoveFile("/etc/logrotate.conf.orig", "/etc/logrotate.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/issue */
+    ceError = CTCheckFileExists("/etc/issue.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/issue.orig file to /etc/issue");
+        ceError = CTMoveFile("/etc/issue.orig", "/etc/issue");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
 error:
     return ceError;
 }
