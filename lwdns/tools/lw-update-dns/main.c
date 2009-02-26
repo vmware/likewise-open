@@ -589,5 +589,5 @@ ShowUsage(
     VOID
     )
 {
-    fprintf(stdout, "Usage: lw-update-dns [ --loglevel {error, warning, info, verbose} ]\n");
+    fprintf(stdout, "Usage: lw-update-dns [ --loglevel {error, warning, info, verbose} ] [ --ipaddress {IP address to register for computer} ]\n");
 }
