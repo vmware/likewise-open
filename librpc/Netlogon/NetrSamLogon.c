@@ -137,10 +137,11 @@ error:
     }
 
     *out_info          = NULL;
-    *out_authoritative = NULL;
+    *out_authoritative = 0;
 
     goto cleanup;
 }
+
 
 NTSTATUS NetrSamLogonNetwork(
     handle_t b, 
@@ -251,7 +252,7 @@ error:
     }
 
     *out_info          = NULL;
-    *out_authoritative = NULL;
+    *out_authoritative = 0;
 
     goto cleanup;
 }

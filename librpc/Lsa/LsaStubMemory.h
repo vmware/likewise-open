@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,17 +28,55 @@
  * license@likewisesoftware.com
  */
 
-void LsaCleanStubTranslatedSidArray(TranslatedSidArray *r);
+/*
+ * Abstract: Lsa rpc stub memory cleanup routines (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-void LsaCleanStubTranslatedSidArray2(TranslatedSidArray2 *r);
+#ifndef _LSA_STUB_MEMORY_H_
+#define _LSA_STUB_MEMORY_H_
 
-void LsaCleanStubRefDomainList(RefDomainList *r);
 
-void LsaFreeStubRefDomainList(RefDomainList *ptr);
+void
+LsaCleanStubTranslatedSidArray(
+    TranslatedSidArray *r
+    );
 
-void LsaCleanStubPolicyInformation(LsaPolicyInformation *r, uint32 level);
+void
+LsaCleanStubTranslatedSidArray2(
+    TranslatedSidArray2 *r
+    );
 
-void LsaFreeStubPolicyInformation(LsaPolicyInformation *ptr, uint32 level);
+void
+LsaCleanStubTranslatedNameArray(
+    TranslatedNameArray *r
+    );
+
+void
+LsaCleanStubRefDomainList(
+    RefDomainList *r
+    );
+
+void
+LsaFreeStubRefDomainList(
+    RefDomainList *ptr
+    );
+
+void
+LsaCleanStubPolicyInformation(
+    LsaPolicyInformation *r,
+    uint32 level
+    );
+
+void
+LsaFreeStubPolicyInformation(
+    LsaPolicyInformation *ptr,
+    uint32 level
+    );
+
+#endif /* _LSA_STUB_MEMORY_H_ */
+
 
 /*
 local variables:

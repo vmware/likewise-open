@@ -45,6 +45,7 @@
 #include <gssapi/gssapi.h>
 #include <keytab.h>
 #include <dce/rpc.h>
+#include <lwrdr/lwrdr.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/ntstatus.h>

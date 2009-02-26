@@ -41,7 +41,6 @@
 static int LdapModSetStrValue(LDAPMod **mod,
                               const char *t, const wchar16_t *wsv, int chg)
 {
-    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAPMod *m = NULL;
     int count = 0;
@@ -447,7 +446,6 @@ wchar16_t *LdapAttrValSvcPrincipalName(const wchar16_t *name)
 
 int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou)
 {
-    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     wchar16_t *cn_name = NULL;
     wchar16_t *machname_lc = NULL;
@@ -587,7 +585,6 @@ int LdapMachAcctMove(LDAP *ld, const wchar16_t *dn, const wchar16_t *name,
 {
     const char *cn_fmt = "cn=%s";
 
-    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     size_t newname_len;
     char *dname = NULL;
@@ -626,7 +623,6 @@ int LdapMachAcctSetAttribute(LDAP *ld, const wchar16_t *dn,
                              const wchar16_t *name, const wchar16_t **value,
                              int new)
 {
-    WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAPMod *mod = NULL;
     LDAPMod *mods[2];

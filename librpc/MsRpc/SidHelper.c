@@ -32,6 +32,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <wc16printf.h>
+
 #include <lwrpc/ntstatus.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/sidhelper.h>
