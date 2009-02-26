@@ -674,9 +674,9 @@ int TestNetJoinDomain(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("username", pt_w16string, username);
     PARAM_INFO("password", pt_w16string, password);
     PARAM_INFO("accountout", pt_w16string, accountou);
-    PARAM_INFO("rejoin", pt_int32, rejoin);
-    PARAM_INFO("create", pt_int32, create);
-    PARAM_INFO("deferspn", pt_int32, deferspn);
+    PARAM_INFO("rejoin", pt_int32, &rejoin);
+    PARAM_INFO("create", pt_int32, &create);
+    PARAM_INFO("deferspn", pt_int32, &deferspn);
 
     opts = NETSETUP_JOIN_DOMAIN;
     if (create) opts |= NETSETUP_ACCT_CREATE;
@@ -746,7 +746,7 @@ int TestNetUnjoinDomain(struct test *t, const wchar16_t *hostname,
 
     PARAM_INFO("username", pt_w16string, username);
     PARAM_INFO("password", pt_w16string, password);
-    PARAM_INFO("disable", pt_int32, disable);
+    PARAM_INFO("disable", pt_int32, &disable);
 
     opts = (disable) ? NETSETUP_ACCT_DELETE : 0;
 
