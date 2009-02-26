@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
@@ -80,7 +81,7 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
         if (result == 0) {
             printf("Error: %s\n", errmsg);
         } else {
-            printf("Unknown error: %08x\n", status);
+            printf("Unknown error: %08lx\n", status);
         }
 
         SAFE_FREE(hostname);
