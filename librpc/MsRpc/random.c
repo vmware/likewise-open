@@ -44,7 +44,7 @@
 void get_random_buffer(unsigned char *out, size_t outlen)
 {
     int fd, i;
-    ssize_t count;
+    ssize_t count = 0;
     char hostname[512];
     struct timeval tv;
     unsigned char hash[16];

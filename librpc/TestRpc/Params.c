@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include <config.h>
 #include <lwrpc/types.h>
@@ -58,13 +59,7 @@ char* strndup(const char *s, size_t maxlen)
 
     return ret;
 }
-#else
-
-/* Some systems (like AIX) don't provide declaration unless
-   some macro magic is applied */
-char* strndup(const char *s, size_t maxlen);
-
-#endif /* !defined(HAVE_STRNDUP) */
+#endif
 
 
 /*
