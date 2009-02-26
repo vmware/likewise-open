@@ -6,9 +6,8 @@ pointer_default(unique)
 ]
 interface lsa
 {
-#include <types.idl>
+#include <lwrpc/types.h>
 #include <security.idl>
-
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/lsadefs.h>
 

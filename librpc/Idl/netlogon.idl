@@ -6,10 +6,10 @@ pointer_default(unique)
 ]
 interface netlogon
 {
-#include <types.idl>
+#include <lwrpc/types.h>
 #include <security.idl>
-#include <lwrpc/rid.h>
 #include <lwrpc/unistrdef.h>
+#include <lwrpc/rid.h>
 #include <lwrpc/netrdefs.h>
 
 	NTSTATUS netr_Function00();
