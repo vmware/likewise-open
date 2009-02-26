@@ -410,7 +410,7 @@ AD_NetLookupObjectSidsByNames(
     BAIL_ON_LSA_ERROR(dwError);
     bChangedToken = TRUE;
 
-    rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
+    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
     if (rpcStatus != 0)
     {
        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
@@ -734,7 +734,7 @@ AD_NetLookupObjectNamesBySids(
     BAIL_ON_LSA_ERROR(dwError);
     bChangedToken = TRUE;
 
-    rpcStatus = InitLsaBindingDefault(&lsa_binding, (const PBYTE)pszHostname);
+    rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname);
     if (rpcStatus != 0)
     {
        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
@@ -1000,7 +1000,7 @@ AD_DsEnumerateDomainTrusts(
     bChangedToken = TRUE;
 
     status = InitNetlogonBindingDefault(&netr_b,
-                                        (PUCHAR)pszDomainControllerName);
+                                        pszDomainControllerName);
     if (status != 0)
     {
         LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
@@ -1420,7 +1420,7 @@ AD_NetlogonAuthenticationUserEx(
     {
         /* Establish the initial bind to \NETLOGON */
         
-        status = InitNetlogonBindingDefault(&netr_b,(PUCHAR)pszDomainController);
+        status = InitNetlogonBindingDefault(&netr_b, pszDomainController);
         if (status != 0)
         {
             LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
