@@ -260,7 +260,7 @@ LsaInitializeProvider(
 
     dwError = AD_InitializeOperatingMode(
                 pszDomainDnsName,
-                pszHostname,
+                pszUsername,
                 bIsDomainOffline);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -3620,6 +3620,7 @@ AD_MachineCredentialsCacheInitialize(
 
     dwError = LsaSetupMachineSession(
                     pszHostname,
+                    pszUsername,
                     pszPassword,
                     pszDomainDnsName,
                     pszDomainDnsName,

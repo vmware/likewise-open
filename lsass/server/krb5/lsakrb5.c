@@ -353,6 +353,7 @@ error:
 DWORD
 LsaSetupMachineSession(
     PCSTR  pszMachname,
+    PCSTR  pszSamAccountName,
     PCSTR  pszPassword,
     PCSTR  pszRealm,
     PCSTR  pszDomain,
@@ -379,8 +380,8 @@ LsaSetupMachineSession(
     BAIL_ON_LSA_ERROR(dwError);
     LsaStrToUpper(pszRealmCpy);
 
-    dwError = LsaAllocateStringPrintf(&pszMachPrincipal, "%s$@%s",
-                                      pszMachname, pszRealm);
+    dwError = LsaAllocateStringPrintf(&pszMachPrincipal, "%s@%s",
+                                      pszSamAccountName, pszRealm);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateString(pszMachname, &pszHostname);
@@ -1593,6 +1594,7 @@ LsaKrb5RefreshMachineTGT(
 	
     dwError = LsaSetupMachineSession(
                     pszHostname,
+                    pszUsername,
                     pszPassword,
                     pszDomainDnsName,
                     pszDomainDnsName,

@@ -177,7 +177,7 @@ ADSyncMachinePasswords(
                         "<null>");
             }            
             
-            bRefreshTGT = FALSE;
+            bRefreshTGT = TRUE;
         }
         else
         {

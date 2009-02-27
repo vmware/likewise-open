@@ -261,7 +261,7 @@ error:
 DWORD
 ADFindComputerDN(
     IN PLSA_DM_LDAP_CONNECTION pConn,
-    PCSTR pszHostName,
+    PCSTR pszSamAccountName,
     PCSTR pszDomainName,
     PSTR* ppszComputerDN
     )
@@ -274,22 +274,22 @@ ADFindComputerDN(
     LDAPMessage *pMessage = NULL;
     DWORD dwCount = 0;
     PSTR pszComputerDN = NULL;
-    PSTR pszEscapedUpperHostName = NULL;
+    PSTR pszEscapedUpperSamAccountName = NULL;
     HANDLE hDirectory = NULL;
 
     dwError = LsaLdapConvertDomainToDN(pszDomainName, &pszDirectoryRoot);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaLdapEscapeString(
-                &pszEscapedUpperHostName,
-                pszHostName);
+                &pszEscapedUpperSamAccountName,
+                pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrToUpper(pszEscapedUpperHostName);
+    LsaStrToUpper(pszEscapedUpperSamAccountName);
 
     dwError = LsaAllocateStringPrintf(&pszQuery,
-                                      "(sAMAccountName=%s$)",
-                                      pszEscapedUpperHostName);
+                                      "(sAMAccountName=%s)",
+                                      pszEscapedUpperSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmLdapDirectorySearch(
@@ -332,7 +332,7 @@ ADFindComputerDN(
     *ppszComputerDN = pszComputerDN;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszEscapedUpperHostName);
+    LSA_SAFE_FREE_STRING(pszEscapedUpperSamAccountName);
     LSA_SAFE_FREE_STRING(pszDirectoryRoot);
     LSA_SAFE_FREE_STRING(pszQuery);
 

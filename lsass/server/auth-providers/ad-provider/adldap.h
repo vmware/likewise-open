@@ -77,7 +77,7 @@ ADGetUserPrimaryGroupSid(
 DWORD
 ADFindComputerDN(
     IN PLSA_DM_LDAP_CONNECTION pConn,
-    PCSTR pszHostName,
+    PCSTR pszSamAccountName,
     PCSTR pszDomainName,
     PSTR* ppszComputerDN
     );
