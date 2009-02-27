@@ -659,7 +659,34 @@ IoLockFile(
     IN BOOLEAN ExclusiveLock
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = IRP_TYPE_LOCK_CONTROL;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.LockControl.LockControl = IO_LOCK_CONTROL_LOCK;
+    pIrp->Args.LockControl.ByteOffset = ByteOffset;
+    pIrp->Args.LockControl.Length = Length;
+    pIrp->Args.LockControl.Key = Key;
+    pIrp->Args.LockControl.FailImmediately = FailImmediately;
+    pIrp->Args.LockControl.ExclusiveLock = ExclusiveLock;
+
+    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
+    ioStatusBlock = pIrp->IoStatusBlock;
+    // TODO -- handle asyc behavior.
+    assert(ioStatusBlock.Status == status);
+
+cleanup:
+    IopIrpFree(&pIrp);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -673,7 +700,32 @@ IoUnlockFile(
     IN ULONG Key
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = IRP_TYPE_QUERY_VOLUME_INFORMATION;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.LockControl.LockControl = IO_LOCK_CONTROL_UNLOCK;
+    pIrp->Args.LockControl.ByteOffset = ByteOffset;
+    pIrp->Args.LockControl.Length = Length;
+    pIrp->Args.LockControl.Key = Key;
+
+    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
+    ioStatusBlock = pIrp->IoStatusBlock;
+    // TODO -- handle asyc behavior.
+    assert(ioStatusBlock.Status == status);
+
+cleanup:
+    IopIrpFree(&pIrp);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
