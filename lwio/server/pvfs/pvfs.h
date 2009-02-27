@@ -136,6 +136,13 @@ PvfsQueryVolumeInformation(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
+NTSTATUS
+PvfsLockControl(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+
 /* From errno.c */
 
 NTSTATUS

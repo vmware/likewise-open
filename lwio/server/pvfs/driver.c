@@ -170,6 +170,10 @@ PvfsDriverDispatch(
         ntError = PvfsQueryVolumeInformation(DeviceHandle, pIrpCtx);
         break;
 
+    case IRP_TYPE_LOCK_CONTROL:
+        ntError = PvfsLockControl(DeviceHandle, pIrpCtx);
+        break;
+
     default:
         ntError = STATUS_INVALID_PARAMETER;
         break;
