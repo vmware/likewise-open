@@ -780,8 +780,14 @@ LwRtlRBTreeRemoveNode(
 
     if (pSuccessor != pTreeNode)
     {
-        pTreeNode->pData = pSuccessor->pData;
+        PVOID pTmpKey = pTreeNode->pKey;
+        PVOID pTmpData = pTreeNode->pData;
+
         pTreeNode->pKey = pSuccessor->pKey;
+        pSuccessor->pKey = pTmpKey;
+
+        pTreeNode->pData = pSuccessor->pData;
+        pSuccessor->pData = pTmpData;
     }
 
     if (LWRTL_RBTREE_IS_BLACK(pSuccessor))
