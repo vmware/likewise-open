@@ -109,7 +109,7 @@
 #include "trans2sfi.h"
 #include "trans2qfsi.h"
 #include "trans2qpi.h"
-#include "lockX.h"
+#include "srvlockx.h"
 #include "close.h"
 #include "srvtdiscon.h"
 #include "srvlogoff.h"

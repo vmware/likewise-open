@@ -15,7 +15,6 @@ libsrv_sys_la_SOURCES = \
     globals.c         \
     hostinfo.c        \
     listener.c        \
-    lockX.c           \
     prodcons.c        \
     reader.c          \
     rename.c          \
@@ -32,6 +31,7 @@ libsrv_sys_la_SOURCES = \
     srvfile.c         \
     srvfinder.c       \
     srvgss.c          \
+    srvlockx.c        \
     srvlogoff.c       \
     srvnegotiate.c    \
     srvpath.c         \
