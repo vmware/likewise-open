@@ -1,4 +1,4 @@
-/* This file is a copy of excerpt from generated lsa_h.h header.
+/* This file is a copy of excerpt from generated netlogon_h.h header.
    It has to be in sync with original idl file.
  */
 
