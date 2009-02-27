@@ -52,19 +52,6 @@
 
 /* Code */
 
-/*******************************************************
- ******************************************************/
-
-static VOID
-PvfsAddRefCCB(
-    PPVFS_CCB pCCB
-    )
-{
-    PvfsInterlockedIncrement(&pCCB->cRef);
-
-    return;
-}
-
 /***********************************************************
  **********************************************************/
 
@@ -81,12 +68,15 @@ PvfsAllocateCCB(
     ntError = PvfsAllocateMemory((PVOID*)&pCCB, sizeof(PVFS_CCB));
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Initialize mutexes and refcounts */
 
     pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlMutex, NULL);
-
     PvfsInitializeInterlockedCounter(&pCCB->cRef);
-    PvfsAddRefCCB(pCCB);
+
+    /* Add initial ref count */
+
+    PvfsInterlockedIncrement(&pCCB->cRef);
 
     *ppCCB = pCCB;
 
@@ -117,7 +107,6 @@ PvfsFreeCCB(
     return STATUS_SUCCESS;
 }
 
-
 /*******************************************************
  ******************************************************/
 
@@ -139,10 +128,11 @@ PvfsReleaseCCB(
 /*******************************************************
  ******************************************************/
 
-NTSTATUS
-PvfsAcquireCCB(
+static NTSTATUS
+PvfsAcquireCCBInternal(
     IO_FILE_HANDLE FileHandle,
-    PPVFS_CCB * ppCCB
+    PPVFS_CCB * ppCCB,
+    BOOLEAN bIncRef
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -150,7 +140,9 @@ PvfsAcquireCCB(
 
     PVFS_BAIL_ON_INVALID_CCB(pCCB, ntError);
 
-    PvfsAddRefCCB(pCCB);
+    if (bIncRef) {
+        PvfsInterlockedIncrement(&pCCB->cRef);
+    }
 
     *ppCCB = pCCB;
 
@@ -163,6 +155,31 @@ error:
     goto cleanup;
 
 }
+
+/*******************************************************
+ ******************************************************/
+
+NTSTATUS
+PvfsAcquireCCB(
+    IO_FILE_HANDLE FileHandle,
+    PPVFS_CCB * ppCCB
+    )
+{
+    return PvfsAcquireCCBInternal(FileHandle, ppCCB, TRUE);
+}
+
+/*******************************************************
+ ******************************************************/
+
+NTSTATUS
+PvfsAcquireCCBClose(
+    IO_FILE_HANDLE FileHandle,
+    PPVFS_CCB * ppCCB
+    )
+{
+    return PvfsAcquireCCBInternal(FileHandle, ppCCB, FALSE);
+}
+
 
 /*******************************************************
  ******************************************************/
@@ -185,6 +202,30 @@ error:
     goto cleanup;
 }
 
+
+/********************************************************
+ *******************************************************/
+
+NTSTATUS
+PvfsSaveFileDeviceInfo(
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PVFS_STAT Stat = {0};
+
+    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCcb->device = Stat.s_dev;
+    pCcb->inode  = Stat.s_ino;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 /*

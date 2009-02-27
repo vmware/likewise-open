@@ -93,7 +93,7 @@ PvfsClose(
 
     /* make sure we have a proper CCB */
 
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    ntError =  PvfsAcquireCCBClose(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Deal with delete-on-close */
@@ -111,16 +111,16 @@ PvfsClose(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Memory cleanup */
+cleanup:
+    /* This is the final Release that will free the memory */
 
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
     }
 
-    ntError = STATUS_SUCCESS;
+    /* We can't really do anything here in the case of failure */
 
-cleanup:
-    return ntError;
+    return STATUS_SUCCESS;
 
 error:
     goto cleanup;

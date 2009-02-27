@@ -78,10 +78,6 @@ PvfsCreateFileOverwriteIf(
     PPVFS_IRP_CONTEXT pIrpContext
 	);
 
-static NTSTATUS
-PvfsSaveFileDeviceInfo(
-    PPVFS_CCB pCcb
-    );
 
 /* Code */
 
@@ -693,30 +689,6 @@ error:
     PVFS_SAFE_FREE_MEMORY(pCcb);
     PVFS_SAFE_FREE_MEMORY(pszFilename);
 
-    goto cleanup;
-}
-
-/********************************************************
- *******************************************************/
-
-static NTSTATUS
-PvfsSaveFileDeviceInfo(
-    PPVFS_CCB pCcb
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PVFS_STAT Stat = {0};
-
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    pCcb->device = Stat.s_dev;
-    pCcb->inode  = Stat.s_ino;
-
-cleanup:
-    return ntError;
-
-error:
     goto cleanup;
 }
 
