@@ -183,6 +183,9 @@ AD_NetInitMemory(
     dwError = SamrInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = NetInitMemory();
+    BAIL_ON_LSA_ERROR(dwError);
+
 error:
 
     return dwError;
@@ -196,6 +199,9 @@ AD_NetShutdownMemory(
     DWORD dwError = 0;
 
     AD_ClearSchannelState();
+
+    dwError = NetDestroyMemory();
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = SamrDestroyMemory();
     BAIL_ON_LSA_ERROR(dwError);
