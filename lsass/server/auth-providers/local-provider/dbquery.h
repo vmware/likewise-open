@@ -345,7 +345,6 @@
                              Passwd        varchar(256),       \
                              Gid           integer,            \
                              CreatedTime   date                \
-                             SecurityDescriptor BLOB           \
                             )"
 
 #define DB_QUERY_CREATE_GROUPS_INSERT_TRIGGER                  \
@@ -385,8 +384,7 @@
                             NTOwf_3          integer,             \
                             NTOwf_4          integer,             \
                             CreatedTime      date                 \
-                            SecurityDescriptor  BLOB              \
-                            )"
+                           )"
 
 #define DB_QUERY_CREATE_USERS_INSERT_TRIGGER                   \
     "create trigger lwiusers_createdtime                       \
