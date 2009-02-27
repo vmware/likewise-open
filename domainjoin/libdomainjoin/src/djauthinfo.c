@@ -1260,9 +1260,9 @@ void DJNetInitialize(LWException **exc)
             LW_CLEANUP_DLERROR(exc);
 
         if (geteuid() == 0) {
-            LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
-                        92, 8, &LW_EXC));
             LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
+                        92, 8, &LW_EXC));
+            LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
                         92, 10, &LW_EXC));
 
             // Use the system's dced daemon if it exists, otherwise use the
