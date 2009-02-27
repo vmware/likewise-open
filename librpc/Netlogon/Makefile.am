@@ -21,7 +21,6 @@ libnetlogon_la_SOURCES = \
 	DsrEnumerateDomainTrusts.c
 
 libnetlogon_cs_la_SOURCES = netlogon_cstub.c
-libnetlogon_ss_la_SOURCES = netlogon_sstub.c
 
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
