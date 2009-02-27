@@ -347,6 +347,67 @@ DirectoryDisconnect(
 
 
 NET_API_STATUS
+MachDnsNameSearch(
+    LDAP *ldconn,
+    const wchar16_t *name,
+    const wchar16_t *dn_context,
+    const wchar16_t *dns_domain_name,
+    wchar16_t **samacct)
+{
+    WINERR err = ERROR_SUCCESS;
+    int lderr = LDAP_SUCCESS;
+    LDAPMessage *res = NULL;
+    wchar16_t *samacct_attr_name = NULL;
+    wchar16_t **samacct_attr_val = NULL;
+
+    goto_if_invalid_param_winerr(ldconn, cleanup);
+    goto_if_invalid_param_winerr(name, cleanup);
+    goto_if_invalid_param_winerr(dn_context, cleanup);
+    goto_if_invalid_param_winerr(dns_domain_name, cleanup);
+    goto_if_invalid_param_winerr(samacct, cleanup);
+
+    *samacct = NULL;
+
+    lderr = LdapMachDnsNameSearch(
+                &res,
+                ldconn,
+                name,
+                dns_domain_name,
+                dn_context);
+    goto_if_lderr_not_success(lderr, error);
+
+    samacct_attr_name = ambstowc16s("sAMAccountName");
+    goto_if_no_memory_lderr(samacct_attr_name, error);
+
+    samacct_attr_val = LdapAttributeGet(ldconn, res, samacct_attr_name, NULL);
+    if (!samacct_attr_val) {
+        lderr = LDAP_NO_SUCH_ATTRIBUTE;
+        goto error;
+    }
+
+    *samacct = wc16sdup(samacct_attr_val[0]);
+    goto_if_no_memory_lderr((*samacct), error);
+
+cleanup:
+
+    SAFE_FREE(samacct_attr_name);
+    LdapAttributeValueFree(samacct_attr_val);
+
+    if (res)
+    {
+        LdapMessageFree(res);
+    }
+
+    return LdapErrToWin32Error(lderr);
+
+error:
+
+    *samacct = NULL;
+    goto cleanup;
+}
+
+
+NET_API_STATUS
 MachAcctSearch(
     LDAP *ldconn,
     const wchar16_t *name,

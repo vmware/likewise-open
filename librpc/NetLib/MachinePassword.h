@@ -35,6 +35,7 @@
 WINERR
 SaveMachinePassword(
     const wchar16_t *machine,
+    const wchar16_t *machacct_name,
     const wchar16_t *domain_name,
     const wchar16_t *dns_domain_name,
     const wchar16_t *dc_name,

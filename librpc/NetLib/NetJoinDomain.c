@@ -44,6 +44,177 @@
 #define MACHPASS_LEN  (16)
 
 static
+uint32
+NetWc16sHash(
+    const wchar16_t *str
+    )
+{
+    DWORD  dwLen = 0;
+    DWORD  dwPos = 0;
+    uint32 result = 0;
+    char   *data = (char *)str;
+
+    dwLen = wc16slen(str) * 2;
+
+    for (dwPos = 0 ; dwPos < dwLen ; dwPos++)
+    {
+        if ( data[dwPos] )
+        {
+            // rotate result to the left 3 bits with wrap around
+            result = (result << 3) | (result >> (sizeof(uint32_t)*8 - 3));
+            result += data[dwPos];
+        }
+    }
+
+    return result;
+}
+
+static
+wchar16_t *
+NetHashToWc16s(
+    uint32    hash
+    )
+{
+    char *pszValidChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    DWORD dwNumValid = strlen(pszValidChars);
+    char pszHashStr[16];
+    uint32 hash_local = hash;
+    DWORD dwPos = 0;
+    DWORD new_char = 0;
+    wchar16_t *result = NULL;
+
+    memset(pszHashStr, 0, sizeof(pszHashStr));
+
+    pszHashStr[dwPos++] = '-';
+
+    while( hash_local )
+    {
+        new_char = hash_local % dwNumValid;
+        pszHashStr[dwPos++] = pszValidChars[new_char];
+        hash_local /= dwNumValid;
+    }
+
+    result = ambstowc16s(pszHashStr);
+
+    return result;
+}
+
+static
+NET_API_STATUS
+NetGetAccountName(
+    const wchar16_t *machname,
+    const wchar16_t *domain_controller_name,
+    const wchar16_t *dns_domain_name,
+    wchar16_t       **account_name
+    )
+{
+    int err = ERROR_SUCCESS;
+    LDAP *ld = NULL;
+    wchar16_t *base_dn = NULL;
+    wchar16_t *dn = NULL;
+    wchar16_t *machname_lc = NULL;
+    wchar16_t *samacct = NULL;
+    wchar16_t *hashstr = NULL;
+    uint32    hash = 0;
+    uint32    offset = 0;
+    wchar16_t newname[16];
+    size_t    hashstrlen = 0;
+
+    memset( newname, 0, sizeof(newname));
+
+    /* the host name is short enough to use as is */
+    if ( wc16slen(machname) < 16 )
+    {
+        samacct = wc16sdup(machname);
+        goto_if_no_memory_winerr(samacct, error);
+    }
+
+    /* look for an existing account using the dns_host_name attribute */
+    if ( !samacct )
+    {
+        machname_lc = wc16sdup(machname);
+        goto_if_no_memory_winerr(machname_lc, error);
+        wc16slower(machname_lc);
+
+        err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
+        goto_if_winerr_not_success(err, error);
+
+        err = MachDnsNameSearch(ld, machname_lc, base_dn, dns_domain_name, &samacct);
+        if ( err == ERROR_SUCCESS )
+        {
+            samacct[wc16slen(samacct) - 1] = 0;
+        }
+        else
+        {
+            err = ERROR_SUCCESS;
+        }
+    }
+
+     /*
+      * No account was found and the name is too long so hash the host
+      * name and combine with as much of the existing name as will fit
+      * in the available space.  Search for an existing account with
+      * that name and if a collision is detected, increment the hash
+      * and try again.
+      */
+    if ( !samacct )
+    {
+        hash = NetWc16sHash(machname_lc);
+
+        for (offset = 0 ; offset < 100 ; offset++)
+        {
+            hashstr = NetHashToWc16s(hash + offset);
+            goto_if_no_memory_winerr(hashstr, error);
+            hashstrlen = wc16slen(hashstr);
+
+            wc16sncpy( newname, machname, 15 - hashstrlen);
+            wc16sncpy( newname + 15 - hashstrlen, hashstr, hashstrlen);
+
+            SAFE_FREE(hashstr);
+
+            err = MachAcctSearch( ld, newname, base_dn, &dn );
+            if ( err != ERROR_SUCCESS )
+            {
+                err = ERROR_SUCCESS;
+
+                samacct = wc16sdup(newname);
+                goto_if_no_memory_winerr(samacct, error);
+
+                break;
+            }
+        }
+        if (offset == 10)
+        {
+            err = ERROR_DUPLICATE_NAME;
+            goto error;
+        }
+    }
+
+    *account_name = samacct;
+
+cleanup:
+
+    if ( ld )
+    {
+        DirectoryDisconnect(ld);
+    }
+
+    SAFE_FREE(machname_lc);
+    SAFE_FREE(hashstr);
+    SAFE_FREE(dn);
+
+    return err;
+
+error:
+
+    *account_name = NULL;
+
+    SAFE_FREE(samacct);
+
+    goto cleanup;
+}
+
+static
 NET_API_STATUS
 NetJoinDomainLocalInternal(
     const wchar16_t *machine,
@@ -78,6 +249,7 @@ NetJoinDomainLocalInternal(
     LsaPolicyInformation *lsa_policy_info = NULL;
     PolicyHandle account_handle;
     wchar16_t *machname = NULL;
+    wchar16_t *machacct_name = NULL;
     wchar16_t machine_pass[MACHPASS_LEN+1];
     wchar16_t *account_name = NULL;
     wchar16_t *dns_domain_name = NULL;
@@ -93,6 +265,8 @@ NetJoinDomainLocalInternal(
     wchar16_t *dns_attr_val[2] = {0};
     wchar16_t *spn_attr_name = NULL;
     wchar16_t *spn_attr_val[3] = {0};
+    wchar16_t *desc_attr_name = NULL;
+    wchar16_t *desc_attr_val[2] = {0};
     wchar16_t *osname_attr_name = NULL;
     wchar16_t *osname_attr_val[2] = {0};
     wchar16_t *osver_attr_name = NULL;
@@ -154,6 +328,13 @@ NetJoinDomainLocalInternal(
     dns_domain_name = GetFromUnicodeStringEx(&lsa_policy_info->dns.dns_domain);
     goto_if_no_memory_winerr(dns_domain_name, disconn_lsa);
 
+    err = NetGetAccountName(
+        machname,
+        domain_controller_name,
+        dns_domain_name,
+        &machacct_name);
+    goto_if_winerr_not_success(err, disconn_lsa);
+
     /* If account_ou is specified pre-create disabled machine
        account object in given branch of directory. It will
        be reset afterwards by means of rpc calls */
@@ -161,7 +342,7 @@ NetJoinDomainLocalInternal(
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
         goto_if_winerr_not_success(err, disconn_lsa);
 
-        err = MachAcctCreate(ld, machname, account_ou,
+        err = MachAcctCreate(ld, machacct_name, account_ou,
                              (options & NETSETUP_DOMAIN_JOIN_IF_JOINED));
         goto_if_winerr_not_success(err, disconn_lsa);
 
@@ -178,10 +359,10 @@ NetJoinDomainLocalInternal(
 
     /* create account$ name */
     account_name = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                       (wc16slen(machname) + 2));
+                                       (wc16slen(machacct_name) + 2));
     goto_if_no_memory_winerr(account_name, disconn_samr);
 
-    sw16printf(account_name, "%S$", machname);
+    sw16printf(account_name, "%S$", machacct_name);
 
     /* for start, let's assume the account already exists */
     newacct = false;
@@ -190,7 +371,7 @@ NetJoinDomainLocalInternal(
     if (status == STATUS_NONE_MAPPED) {
         if (!(options & NETSETUP_ACCT_CREATE)) goto disconn_samr;
 
-        status = CreateWksAccount(conn, machname, &account_handle);
+        status = CreateWksAccount(conn, machacct_name, &account_handle);
         goto_if_ntstatus_not_success(status, disconn_samr);
 
         if (machine_pass[0] == '\0') {
@@ -210,7 +391,7 @@ NetJoinDomainLocalInternal(
         goto_if_ntstatus_not_success(status, disconn_samr);
     }
 
-    status = ResetWksAccount(conn, machname, &account_handle);
+    status = ResetWksAccount(conn, machacct_name, &account_handle);
     goto_if_ntstatus_not_success(status, disconn_samr);
 
     status = SetMachinePassword(conn, &account_handle, newacct, machname,
@@ -230,11 +411,16 @@ NetJoinDomainLocalInternal(
         goto disconn_samr;
     }
 
-    err = SaveMachinePassword(machname, conn->samr.dom_name, dns_domain_name,
-                              domain_controller_name, sid_str,
-                              machine_pass);
+    err = SaveMachinePassword(
+              machname,
+              account_name,
+              conn->samr.dom_name,
+              dns_domain_name,
+              domain_controller_name,
+              sid_str,
+              machine_pass);
     if (err != ERROR_SUCCESS) {
-        close_status = DisableWksAccount(conn, machname, &account_handle);
+        close_status = DisableWksAccount(conn, machacct_name, &account_handle);
         goto_if_ntstatus_not_success(close_status, close);
 
         goto disconn_samr;
@@ -249,7 +435,7 @@ NetJoinDomainLocalInternal(
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
         goto_if_winerr_not_success(err, disconn_samr);
 
-        err = MachAcctSearch(ld, machname, base_dn, &dn);
+        err = MachAcctSearch(ld, machacct_name, base_dn, &dn);
         goto_if_winerr_not_success(err, disconn_samr);
 
         /*
@@ -279,6 +465,21 @@ NetJoinDomainLocalInternal(
 
             err = MachAcctSetAttribute(ld, dn, spn_attr_name,
 				       (const wchar16_t**)spn_attr_val, 0);
+            goto_if_winerr_not_success(err, disconn_samr);
+        }
+
+        if ( wc16scmp(machname, machacct_name) )
+        {
+            desc_attr_name = ambstowc16s("description");
+            desc_attr_val[0] = wc16sdup(machname);
+            desc_attr_val[1] = NULL;
+
+            err = MachAcctSetAttribute(
+                      ld,
+                      dn,
+                      desc_attr_name,
+                      desc_attr_val,
+                      0);
             goto_if_winerr_not_success(err, disconn_samr);
         }
 
@@ -372,6 +573,7 @@ done:
     SAFE_FREE(account_name);
     SAFE_FREE(dns_domain_name);
     SAFE_FREE(machname);
+    SAFE_FREE(machacct_name);
     SAFE_FREE(machname_lc);
     SAFE_FREE(base_dn);
     SAFE_FREE(dn);

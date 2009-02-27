@@ -517,6 +517,78 @@ done:
 }
 
 
+int LdapMachDnsNameSearch(
+        LDAPMessage **out,
+        LDAP *ld,
+        const wchar16_t *name,
+        const wchar16_t *dns_domain_name,
+        const wchar16_t *base)
+{
+    const char *filter_fmt = "(&(objectClass=computer)(dNSHostName=%S))";
+
+    WINERR err = ERROR_SUCCESS;
+    int lderr = LDAP_SUCCESS;
+    size_t basedn_len = 0;
+    size_t filter_len = 0;
+    size_t machname_len = 0;
+    size_t dnsname_len = 0;
+    wchar16_t *dnsname = NULL;
+    char *basedn = NULL;
+    wchar16_t *filterw16 = NULL;
+    char *filter = NULL;
+    LDAPMessage *res = NULL;
+    LDAPControl **sctrl = NULL;
+    LDAPControl **cctrl = NULL;
+
+    goto_if_invalid_param_lderr(out, cleanup);
+    goto_if_invalid_param_lderr(ld, cleanup);
+    goto_if_invalid_param_lderr(name, cleanup);
+    goto_if_invalid_param_lderr(dns_domain_name, cleanup);
+    goto_if_invalid_param_lderr(base, cleanup);
+
+    basedn = awc16stombs(base);
+    goto_if_no_memory_lderr(basedn, error);
+    basedn_len = strlen(basedn);
+
+    dnsname = LdapAttrValDnsHostName(name, dns_domain_name);
+    goto_if_no_memory_lderr(dnsname, error);
+    dnsname_len = wc16slen(dnsname);
+
+    filter_len = dnsname_len + strlen(filter_fmt);
+    filterw16 = (wchar16_t*) malloc(sizeof(wchar16_t) * filter_len);
+    goto_if_no_memory_lderr(filterw16, error);
+
+    if (sw16printf(filterw16, filter_fmt, dnsname) < 0)
+    {
+        lderr = LDAP_LOCAL_ERROR;
+        goto error;
+    }
+
+    filter = awc16stombs(filterw16);
+    goto_if_no_memory_lderr(filter, error);
+
+    lderr = ldap_search_ext_s(ld, basedn, LDAP_SCOPE_SUBTREE, filter, NULL, 0,
+                              sctrl, cctrl, NULL, 0, &res);
+    if (lderr != LDAP_SUCCESS) goto error;
+
+    *out = res;
+
+cleanup:
+
+    SAFE_FREE(filter);
+    SAFE_FREE(filterw16);
+    SAFE_FREE(dnsname);
+    SAFE_FREE(basedn);
+
+    return lderr;
+
+error:
+
+    *out = NULL;
+    goto cleanup;
+}
+
+
 int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
                        const wchar16_t *base)
 {

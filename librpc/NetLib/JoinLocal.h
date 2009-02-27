@@ -75,6 +75,14 @@ DirectoryDisconnect(
     );
 
 NET_API_STATUS
+MachDnsNameSearch(
+    LDAP *ldconn,
+    const wchar16_t *name,
+    const wchar16_t *dn_context,
+    const wchar16_t *dns_domain_name,
+    wchar16_t **samacct);
+
+NET_API_STATUS
 MachAcctSearch(
     LDAP *ldconn,
     const wchar16_t *name,
