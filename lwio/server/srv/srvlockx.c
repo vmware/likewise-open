@@ -229,7 +229,7 @@ SrvExecuteLargeFileLocks(
 
         bExclusiveLock = !(pRequestHeader->ucLockType & SMB_LOCK_TYPE_SHARED_LOCK);
 
-        ntStatus = NtLockFile(
+        ntStatus = IoLockFile(
                         pFile->hFile,
                         NULL,
                         &ioStatusBlock,
@@ -322,7 +322,7 @@ SrvExecuteLocks(
 
         bExclusiveLock = !(pRequestHeader->ucLockType & SMB_LOCK_TYPE_SHARED_LOCK);
 
-        ntStatus = NtLockFile(
+        ntStatus = IoLockFile(
                         pFile->hFile,
                         NULL,
                         &ioStatusBlock,
@@ -375,7 +375,7 @@ SrvUnlockFile(
     NTSTATUS ntStatus = 0;
     IO_STATUS_BLOCK ioStatusBlock = {0};
 
-    ntStatus = NtUnlockFile(
+    ntStatus = IoUnlockFile(
                     pFile->hFile,
                     NULL,
                     &ioStatusBlock,
@@ -403,7 +403,7 @@ SrvUnlockLargeFile(
 
     llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) | ((LONG64)pLockInfo->ulLengthLow);
 
-    ntStatus = NtUnlockFile(
+    ntStatus = IoUnlockFile(
                     pFile->hFile,
                     NULL,
                     &ioStatusBlock,
