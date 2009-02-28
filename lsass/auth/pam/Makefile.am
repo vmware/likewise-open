@@ -8,7 +8,8 @@ pam_lsass_la_SOURCES = \
        pam-error.c     \
        pam-globals.c   \
        pam-passwd.c    \
-       pam-session.c
+       pam-session.c   \
+       pam-notify.c
 
 pam_lsass_la_CPPFLAGS = \
     -I@srcdir@ \
