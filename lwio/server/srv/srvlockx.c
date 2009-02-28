@@ -50,6 +50,22 @@ SrvExecuteLocks(
 
 static
 NTSTATUS
+SrvUnlockFile(
+    PSMB_SRV_FILE       pFile,
+    PLOCKING_ANDX_RANGE pLockInfo,
+    ULONG               ulKey
+    );
+
+static
+NTSTATUS
+SrvUnlockLargeFile(
+    PSMB_SRV_FILE                  pFile,
+    PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo,
+    ULONG                          ulKey
+    );
+
+static
+NTSTATUS
 SrvBuildLockingAndXResponse(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
@@ -173,6 +189,8 @@ SrvExecuteLargeFileLocks(
     ULONG    ulKey = 0;
     BOOLEAN  bFailImmediately = TRUE;
     BOOLEAN  bExclusiveLock = FALSE;
+    PLOCKING_ANDX_RANGE_LARGE_FILE* ppLockStateArray = NULL;
+    USHORT   usLocked = 0;
 
     if ((pRequestHeader->usNumUnlocks && !pUnlockRangeLarge) ||
         (pRequestHeader->usNumLocks && !pLockRangeLarge))
@@ -185,19 +203,19 @@ SrvExecuteLargeFileLocks(
     {
         PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo = &pUnlockRangeLarge[iLock];
 
-        llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) | ((LONG64)pLockInfo->ulOffsetLow);
-
-        llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) | ((LONG64)pLockInfo->ulLengthLow);
-
-        bExclusiveLock = !(pRequestHeader->ucLockType & SMB_LOCK_TYPE_SHARED_LOCK);
-
-        ntStatus = NtUnlockFile(
-                        pFile->hFile,
-                        NULL,
-                        &ioStatusBlock,
-                        llOffset,
-                        llLength,
+        ntStatus = SrvUnlockLargeFile(
+                        pFile,
+                        pLockInfo,
                         ulKey);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pRequestHeader->usNumLocks)
+    {
+        ntStatus = LW_RTL_ALLOCATE(
+                        &ppLockStateArray,
+                        PLOCKING_ANDX_RANGE_LARGE_FILE,
+                        sizeof(PLOCKING_ANDX_RANGE_LARGE_FILE) * pRequestHeader->usNumLocks);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -221,13 +239,34 @@ SrvExecuteLargeFileLocks(
                         bFailImmediately,
                         bExclusiveLock);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        ppLockStateArray[iLock] = pLockInfo;
     }
 
 cleanup:
 
+    if (ppLockStateArray)
+    {
+        LwRtlMemoryFree(ppLockStateArray);
+    }
+
     return ntStatus;
 
 error:
+
+    for (iLock = 0; iLock < usLocked; iLock++)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        ntStatus2 = SrvUnlockLargeFile(
+                        pFile,
+                        ppLockStateArray[iLock],
+                        ulKey);
+        if (ntStatus2)
+        {
+            SMB_LOG_ERROR("Failed to unlock large file [fid: %u] [code: %d]", pFile->fid, ntStatus2);
+        }
+    }
 
     goto cleanup;
 }
@@ -247,6 +286,8 @@ SrvExecuteLocks(
     ULONG ulKey = 0;
     BOOLEAN bFailImmediately = TRUE;
     BOOLEAN bExclusiveLock = FALSE;
+    PLOCKING_ANDX_RANGE* ppLockStateArray = NULL;
+    USHORT  usLocked = 0;
 
     if ((pRequestHeader->usNumUnlocks && !pUnlockRange) ||
         (pRequestHeader->usNumLocks && !pLockRange))
@@ -259,15 +300,19 @@ SrvExecuteLocks(
     {
         PLOCKING_ANDX_RANGE pLockInfo = &pUnlockRange[iLock];
 
-        bExclusiveLock = !(pRequestHeader->ucLockType & SMB_LOCK_TYPE_SHARED_LOCK);
-
-        ntStatus = NtUnlockFile(
-                        pFile->hFile,
-                        NULL,
-                        &ioStatusBlock,
-                        pLockInfo->ulOffset,
-                        pLockInfo->ulLength,
+        ntStatus = SrvUnlockFile(
+                        pFile,
+                        pLockInfo,
                         ulKey);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pRequestHeader->usNumLocks)
+    {
+        ntStatus = LW_RTL_ALLOCATE(
+                        &ppLockStateArray,
+                        PLOCKING_ANDX_RANGE,
+                        sizeof(PLOCKING_ANDX_RANGE) * pRequestHeader->usNumLocks);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -287,15 +332,86 @@ SrvExecuteLocks(
                         bFailImmediately,
                         bExclusiveLock);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        ppLockStateArray[usLocked++] = pLockInfo;
     }
 
 cleanup:
+
+    if (ppLockStateArray)
+    {
+        LwRtlMemoryFree(ppLockStateArray);
+    }
 
     return ntStatus;
 
 error:
 
+    for (iLock = 0; iLock < usLocked; iLock++)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        ntStatus2 = SrvUnlockFile(
+                        pFile,
+                        ppLockStateArray[iLock],
+                        ulKey);
+        if (ntStatus2)
+        {
+            SMB_LOG_ERROR("Failed to unlock file [fid: %u] [code: %d]", pFile->fid, ntStatus2);
+        }
+    }
+
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvUnlockFile(
+    PSMB_SRV_FILE       pFile,
+    PLOCKING_ANDX_RANGE pLockInfo,
+    ULONG               ulKey
+    )
+{
+    NTSTATUS ntStatus = 0;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+
+    ntStatus = NtUnlockFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    pLockInfo->ulOffset,
+                    pLockInfo->ulLength,
+                    ulKey);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvUnlockLargeFile(
+    PSMB_SRV_FILE                  pFile,
+    PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo,
+    ULONG                          ulKey
+    )
+{
+    NTSTATUS ntStatus = 0;
+    LONG64   llOffset = 0;
+    LONG64   llLength = 0;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+
+    llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) | ((LONG64)pLockInfo->ulOffsetLow);
+
+    llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) | ((LONG64)pLockInfo->ulLengthLow);
+
+    ntStatus = NtUnlockFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    llOffset,
+                    llLength,
+                    ulKey);
+
+    return ntStatus;
 }
 
 static
@@ -373,3 +489,4 @@ error:
 
     goto cleanup;
 }
+
