@@ -33,47 +33,31 @@
  *
  * Module Name:
  *
- *        pam-lsass.h
+ *        pam-notify.h
  *
  * Abstract:
  *
- *        Pluggable Authentication Module (Likewise LSASS)
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Pluggable Authentication Module
+ *
+ *        Logon Notify API
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Glenn Curtis (glennc@likewise.com)
  */
-#ifndef __PAM_LSASS_H__
-#define __PAM_LSASS_H__
+#ifndef __PAM_NOTIFY_H__
+#define __PAM_NOTIFY_H__
 
-#include <config.h>
+int
+pam_notify_user_logon(
+    PSTR pszLoginId
+    );
 
-#include "lsasystem.h"
-#include "lsa/lsa.h"
-#include "lsadef.h"
-#include "lsautils.h"
-#include "lsaclient.h"
+int
+pam_notify_user_logoff(
+    PSTR pszLoginId
+    );
 
-#include "pam-system.h"
-
-#include "lsaauth.h"
-
-#include "pam-context.h"
-#include "pam-error.h"
-#include "pam-externs.h"
-#include "pam-passwd.h"
-#include "pam-session.h"
-#include "pam-conv.h"
-#include "pam-auth.h"
-#include "pam-notify.h"
-
-#endif /* __PAM_LSASS_H__ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#endif /* __PAM_NOTIFY_H__ */
