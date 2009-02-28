@@ -982,7 +982,7 @@ SrvFinderMarshallBothDirInfoResults(
         pInfoHeader->EndOfFile = pFileInfoCursor->EndOfFile;
         pInfoHeader->AllocationSize = pFileInfoCursor->AllocationSize;
         pInfoHeader->FileAttributes = pFileInfoCursor->FileAttributes;
-        pInfoHeader->FileNameLength = pFileInfoCursor->FileNameLength * sizeof(wchar16_t);
+        pInfoHeader->FileNameLength = pFileInfoCursor->FileNameLength;
 
         if (!pSearchSpace->bUseLongFilenames)
         {
