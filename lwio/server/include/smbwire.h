@@ -189,6 +189,14 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_SET_FILE_UNIX_HLINK           0x203
 #define SMB_QUERY_MAC_FS_INFO             0x301
 
+typedef UCHAR SMB_LOCK_TYPE;
+
+#define SMB_LOCK_TYPE_SHARED_LOCK         0x01
+#define SMB_LOCK_TYPE_OPLOCK_RELEASE      0x02
+#define SMB_LOCK_TYPE_CHANGE_LOCK_TYPE    0x04
+#define SMB_LOCK_TYPE_CANCEL_LOCK         0x08
+#define SMB_LOCK_TYPE_LARGE_FILES         0x10
+
 
 typedef enum
 {
@@ -522,6 +530,25 @@ typedef enum
        impersonating the client. */
     SECURITY_EFFECTIVE_ONLY   = 0x00080000
 } SECURITY_FLAGS;
+
+typedef struct {
+
+    USHORT   usPid;
+    ULONG    ulOffset;
+    ULONG    ulLength;
+
+} __attribute__((__packed__))  LOCKING_ANDX_RANGE, *PLOCKING_ANDX_RANGE;
+
+typedef struct {
+
+    USHORT   usPid;
+    USHORT   usPad;
+    ULONG    ulOffsetHigh;
+    ULONG    ulOffsetLow;
+    ULONG    ulLengthHigh;
+    ULONG    ulLengthLow;
+
+} __attribute__((__packed__))  LOCKING_ANDX_RANGE_LARGE_FILE, *PLOCKING_ANDX_RANGE_LARGE_FILE;
 
 typedef struct {
     /* wordCount and byteCount are handled at a higher layer */
@@ -1004,7 +1031,34 @@ typedef struct
     /* AndX chains will be handled at a higher layer */
 
     uint16_t byteCount;
+
 } __attribute__((__packed__)) ERROR_RESPONSE_HEADER, *PERROR_RESPONSE_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT         usFid;
+    SMB_LOCK_TYPE  ucLockType;
+    UCHAR          ucOplockLevel;
+    ULONG          ulTimeout;
+    USHORT         usNumUnlocks;
+    USHORT         usNumLocks;
+    USHORT         usByteCount;
+
+    /* LOCKING_ANDX_RANGE unlocks[]; */
+    /* LOCKING_ANDX_RANGE locks[];   */
+} __attribute__((__packed__)) SMB_LOCKING_ANDX_REQUEST_HEADER, *PSMB_LOCKING_ANDX_REQUEST_HEADER;
+
+typedef struct SMB_LOCKING_ANDX_RESPONSE_HEADER
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_LOCKING_ANDX_RESPONSE_HEADER, *PSMB_LOCKING_ANDX_RESPONSE_HEADER;
 
 typedef enum
 {
@@ -1401,6 +1455,27 @@ WireMarshallDeleteDirectoryResponse(
     ULONG   ulBytesAvailable,
     ULONG   ulOffset,
     PDELETE_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallLockingAndXRequest(
+    PBYTE                             pParams,
+    ULONG                             ulBytesAvailable,
+    ULONG                             ulOffset,
+    PSMB_LOCKING_ANDX_REQUEST_HEADER* ppRequestHeader,
+    PLOCKING_ANDX_RANGE*              ppUnlockRange,
+    PLOCKING_ANDX_RANGE_LARGE_FILE*   ppUnlockRangeLarge,
+    PLOCKING_ANDX_RANGE*              ppLockRange,
+    PLOCKING_ANDX_RANGE_LARGE_FILE*   ppLockRangeLarge
+    );
+
+NTSTATUS
+WireMarshallLockingAndXResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_LOCKING_ANDX_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
     );
 
