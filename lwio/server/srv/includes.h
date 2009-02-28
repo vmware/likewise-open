@@ -121,7 +121,6 @@
 #include "findfirst2.h"
 #include "findnext2.h"
 #include "findclose2.h"
-#include "lockX.h"
 #include "rename.h"
 #include "seek.h"
 #include "device.h"
