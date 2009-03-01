@@ -34,6 +34,7 @@ static
 NTSTATUS
 SrvExecuteRename(
     PSMB_SRV_TREE pTree,
+    USHORT        usSearchAttributes,
     PWSTR         pwszOldName,
     PWSTR         pwszNewName
     );
@@ -85,6 +86,7 @@ SrvProcessRename(
 
     ntStatus = SrvExecuteRename(
                     pTree,
+                    pRequestHeader->usSearchAttributes,
                     pwszOldName,
                     pwszNewName);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -119,6 +121,7 @@ static
 NTSTATUS
 SrvExecuteRename(
     PSMB_SRV_TREE pTree,
+    USHORT        usSearchAttributes,
     PWSTR         pwszOldName,
     PWSTR         pwszNewName
     )
