@@ -1051,7 +1051,7 @@ typedef struct
     /* LOCKING_ANDX_RANGE locks[];   */
 } __attribute__((__packed__)) SMB_LOCKING_ANDX_REQUEST_HEADER, *PSMB_LOCKING_ANDX_REQUEST_HEADER;
 
-typedef struct SMB_LOCKING_ANDX_RESPONSE_HEADER
+typedef struct _SMB_LOCKING_ANDX_RESPONSE_HEADER
 {
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
@@ -1059,6 +1059,25 @@ typedef struct SMB_LOCKING_ANDX_RESPONSE_HEADER
     USHORT usByteCount;
 
 } __attribute__((__packed__)) SMB_LOCKING_ANDX_RESPONSE_HEADER, *PSMB_LOCKING_ANDX_RESPONSE_HEADER;
+
+typedef struct _SMB_RENAME_REQUEST_HEADER
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usSearchAttributes;
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_RENAME_REQUEST_HEADER, *PSMB_RENAME_REQUEST_HEADER;
+
+typedef struct _SMB_RENAME_RESPONSE_HEADER
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_RENAME_RESPONSE_HEADER, *PSMB_RENAME_RESPONSE_HEADER;
 
 typedef enum
 {
@@ -1476,6 +1495,25 @@ WireMarshallLockingAndXResponse(
     ULONG   ulBytesAvailable,
     ULONG   ulOffset,
     PSMB_LOCKING_ANDX_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallRenameRequest(
+    PBYTE                       pParams,
+    ULONG                       ulBytesAvailable,
+    ULONG                       ulOffset,
+    PSMB_RENAME_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                      ppwszOldName,
+    PWSTR*                      ppwszNewName
+    );
+
+NTSTATUS
+WireMarshallRenameResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_RENAME_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
     );
 

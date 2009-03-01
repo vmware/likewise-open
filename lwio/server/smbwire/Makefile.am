@@ -11,6 +11,7 @@ liblwiosmbwire_la_SOURCES = \
     wire_negotiate.c     \
     packet.c             \
     wire_readx.c         \
+    wire_rename.c        \
     wire_session_setup.c \
     wire_transaction.c   \
     wire_tree_connect.c  \
