@@ -90,6 +90,7 @@ SrvProcessLockAndX(
     PLOCKING_ANDX_RANGE              pLockRange = NULL;      // Do not free
     PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge = NULL; // Do not free
     PSMB_PACKET pSmbResponse = NULL;
+    ULONG ulOffset = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -103,10 +104,12 @@ SrvProcessLockAndX(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+
     ntStatus = WireUnmarshallLockingAndXRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader,
                     &pUnlockRange,
                     &pUnlockRangeLarge,

@@ -700,7 +700,7 @@ typedef struct
     uint16_t  byteCount;       /* Count of data bytes; min = 3 */
 
     /* Data immediately follows */
-}  __attribute__((__packed__))  TREE_CONNECT_REQUEST_HEADER;
+}  __attribute__((__packed__))  TREE_CONNECT_REQUEST_HEADER, *PTREE_CONNECT_REQUEST_HEADER;
 
 typedef struct
 {
@@ -1217,13 +1217,13 @@ MarshallTreeConnectRequestData(
 
 NTSTATUS
 UnmarshallTreeConnectRequest(
-    const uint8_t *pBuffer,
-    uint32_t       bufferLen,
-    uint32_t       bufferUsed,
-    TREE_CONNECT_REQUEST_HEADER **ppHeader,
-    uint8_t      **ppPassword,
-    wchar16_t    **ppwszPath,
-    uchar8_t     **ppszService
+    const PBYTE pBuffer,
+    ULONG  ulBytesAvailable,
+    ULONG  ulOffset,
+    PTREE_CONNECT_REQUEST_HEADER* ppHeader,
+    PBYTE* ppPassword,
+    PWSTR* ppwszPath,
+    PBYTE* ppszService
     );
 
 NTSTATUS

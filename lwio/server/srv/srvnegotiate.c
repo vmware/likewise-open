@@ -107,10 +107,13 @@ SrvProcessNegotiate(
     ULONG ulNumDialects = 128;
     PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET         pSmbRequest = pContext->pRequest;
+    ULONG ulOffset = 0;
+
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
 
     ntStatus = UnmarshallNegotiateRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
                     (uint8**)&pszDialectArray,
                     &ulNumDialects);
     BAIL_ON_NT_STATUS(ntStatus);

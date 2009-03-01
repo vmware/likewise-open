@@ -107,6 +107,7 @@ SrvProcessTreeConnectAndX(
     PSMB_SRV_SESSION pSession = NULL;
     PSMB_SRV_TREE pTree = NULL;
     PSHARE_DB_INFO pShareInfo = NULL;
+    ULONG ulOffset = 0;
     TREE_CONNECT_REQUEST_HEADER* pRequestHeader = NULL; // Do not free
     uint8_t* pszPassword = NULL; // Do not free
     uint8_t* pszService = NULL; // Do not free
@@ -120,10 +121,12 @@ SrvProcessTreeConnectAndX(
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+
     ntStatus = UnmarshallTreeConnectRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader,
                     &pszPassword,
                     &pwszPath,

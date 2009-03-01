@@ -44,11 +44,14 @@ SrvProcessFindClose2(
     USHORT           usSearchId;
     USHORT           usResponseBytesUsed = 0;
     PFIND_CLOSE2_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    ULONG            ulOffset = 0;
+
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
 
     ntStatus = WireUnmarshallFindClose2Request(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
 

@@ -365,7 +365,7 @@ WireUnmarshallTransactionSetupData(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        pSetup = (PUSHORT) pBuffer;
+        pSetup = (PUSHORT) pDataCursor;
         pDataCursor += usSetupLen;
         ulNumBytesAvailable -= usSetupLen;
         ulOffset += usSetupLen;
@@ -457,14 +457,6 @@ WireUnmarshallTransactionParameterData(
 
     if (ppwszName)
     {
-        if (ulNumBytesAvailable < sizeof(wchar16_t))
-        {
-            ntStatus = STATUS_INVALID_BUFFER_SIZE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pwszName = pwszCursor = (PWSTR)pDataCursor;
-
         do
         {
             if (ulNumBytesAvailable < sizeof(wchar16_t))
@@ -473,11 +465,20 @@ WireUnmarshallTransactionParameterData(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
+            if (!pwszName)
+            {
+                pwszName = pwszCursor = (PWSTR)pDataCursor;
+            }
+            else
+            {
+                pwszCursor++;
+            }
+
             pDataCursor += sizeof(wchar16_t);
             ulNumBytesAvailable -= sizeof(wchar16_t);
             ulOffset += sizeof(wchar16_t);
 
-        } while (*(pwszCursor++) != WNUL);
+        } while ((ulNumBytesAvailable > 0) && pwszCursor && *pwszCursor);
     }
 
     if (ulNumBytesAvailable < parameterLen)
@@ -495,23 +496,23 @@ WireUnmarshallTransactionParameterData(
         ulOffset += parameterLen;
     }
 
-    if (ulOffset % 4)
-    {
-        USHORT usAlignment = (4 - (ulOffset % 4));
-
-        if (ulNumBytesAvailable < usAlignment)
-        {
-            ntStatus = STATUS_INVALID_BUFFER_SIZE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pDataCursor += usAlignment;
-        ulNumBytesAvailable -= usAlignment;
-        ulOffset += usAlignment;
-    }
-
     if (dataLen)
     {
+        if (ulOffset % 4)
+        {
+            USHORT usAlignment = (4 - (ulOffset % 4));
+
+            if (ulNumBytesAvailable < usAlignment)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pDataCursor += usAlignment;
+            ulNumBytesAvailable -= usAlignment;
+            ulOffset += usAlignment;
+        }
+
         pData = pDataCursor;
     }
 

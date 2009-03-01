@@ -62,6 +62,7 @@ SrvProcessRename(
     PWSTR       pwszOldName = NULL; // Do not free
     PWSTR       pwszNewName = NULL; // Do not free
     PSMB_PACKET pSmbResponse = NULL;
+    ULONG       ulOffset = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -75,10 +76,12 @@ SrvProcessRename(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+
     ntStatus = WireUnmarshallRenameRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader,
                     &pwszOldName,
                     &pwszNewName);

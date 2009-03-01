@@ -91,6 +91,7 @@ SrvProcessNTCreateAndX(
     PVOID               pSecurityQOS = NULL;
     PIO_FILE_NAME       pFilename = NULL;
     PIO_ECP_LIST        pEcpList = NULL;
+    ULONG               ulOffset = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -104,10 +105,12 @@ SrvProcessNTCreateAndX(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+
     ntStatus = WireUnmarshallCreateFileRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader,
                     &pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
