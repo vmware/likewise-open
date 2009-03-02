@@ -115,7 +115,7 @@ PvfsSetFileDispositionInfo(
     /* Should really be a check on the parent, but I'm not
        entirely positive */
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
+    ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
     BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
