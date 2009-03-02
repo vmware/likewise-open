@@ -90,6 +90,12 @@ PvfsFileDispositionInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsFileRenameInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 /* QueryDirectoryInformation */
 

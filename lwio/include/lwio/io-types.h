@@ -465,7 +465,7 @@ typedef ULONG FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 #define FileEaInformation                  7 // QUERY: FILE_EA_INFORMATION
 #define FileAccessInformation              8 // QUERY: FILE_ACCESS_INFORMATION
 #define FileNameInformation                9 // QUERY: FILE_NAME_INFORMATION
-#define FileRenameInformation             10 // TODO--do rename differently (SET: FILE_RENAME_INFORMATION)
+#define FileRenameInformation             10 // SET: FILE_RENAME_INFORMATION
 #define FileLinkInformation               11 // TODO--do create hardlink differently (SET: FILE_LINK_INFORMATION (create hardlink))
 #define FileNamesInformation              12 // DIR: FILE_NAMES_INFORMATION
 #define FileDispositionInformation        13 // SET: FILE_DISPOSITION_INFORMATION
@@ -790,9 +790,6 @@ typedef struct _FILE_PIPE_REMOTE_INFORMATION {
     ULONG MaximumCollectionCount;
 } FILE_PIPE_REMOTE_INFORMATION, *PFILE_PIPE_REMOTE_INFORMATION;
 
-#if 0
-// TODO--Use new IRP_TYPE instead of FileRenameInformation
-
 // SET: FileRenameInformation
 typedef struct _FILE_RENAME_INFORMATION {
     BOOLEAN ReplaceIfExists;
@@ -801,6 +798,7 @@ typedef struct _FILE_RENAME_INFORMATION {
     WCHAR FileName[1];
 } FILE_RENAME_INFORMATION, *PFILE_RENAME_INFORMATION;
 
+#if 0
 // TODO--Use new IRP_TYPE instead of FileLinkInformation
 
 // SET: FileLinkInformation (create hardlink)
