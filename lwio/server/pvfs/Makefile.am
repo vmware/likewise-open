@@ -43,7 +43,8 @@ libpvfs_sys_la_SOURCES = \
 libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
-    -I@top_srcdir@/server/include
+    -I@top_srcdir@/server/include \
+    -D_FILE_OFFSET_BITS=64
 
 libpvfs_sys_la_LIBADD = \
     @top_builddir@/utils/liblwioutils.la \
