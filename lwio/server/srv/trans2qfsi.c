@@ -37,6 +37,15 @@ typedef struct _SMB_FS_ATTRIBUTE_INFO_HEADER
     ULONG ulFileSystemNameLen;
 } SMB_FS_ATTRIBUTE_INFO_HEADER, *PSMB_FS_ATTRIBUTE_INFO_HEADER;
 
+typedef struct _SMB_FS_INFO_VOLUME_HEADER
+{
+    ULONG   ulVolumeSerialNumber;
+    UCHAR   ucNumLabelChars;
+
+    /* PWSTR pwszLabel; */
+
+} __attribute__((__packed__)) SMB_FS_INFO_VOLUME_HEADER, *PSMB_FS_INFO_VOLUME_HEADER;
+
 typedef struct _SMB_FS_VOLUME_INFO_HEADER
 {
     LONG64  llVolumeCreationTime;
@@ -74,6 +83,17 @@ SrvBuildFSVolumeInfoResponse(
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvMarshallFSInfoVolume(
+    PBYTE   pVolumeInfo,
+    USHORT  usBytesAllocated,
+    USHORT  usDataOffset,
+    USHORT  usMaxDataCount,
+    PBYTE*  ppData,
+    PUSHORT pusDataLen
     );
 
 static
@@ -470,7 +490,154 @@ SrvBuildFSInfoVolumeResponse(
     PSMB_PACKET*        ppSmbResponse
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = 0;
+    PBYTE    pData = NULL;
+    USHORT   usDataLen = 0;
+    PUSHORT  pSetup = NULL;
+    BYTE     setupCount = 0;
+    USHORT   usDataOffset = 0;
+    USHORT   usParameterOffset = 0;
+    USHORT   usNumPackageBytesUsed = 0;
+    PSMB_PACKET pSmbResponse = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    PBYTE    pVolumeInfo = NULL;
+    USHORT   usBytesAllocated = 0;
+
+    usBytesAllocated = sizeof(FILE_FS_VOLUME_INFORMATION) + 256 * sizeof(wchar16_t);
+
+    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    do
+    {
+        ntStatus = IoQueryVolumeInformationFile(
+                        hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        pVolumeInfo,
+                        usBytesAllocated,
+                        FileFsVolumeInformation);
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            break;
+        }
+        else if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+        {
+            USHORT usNewSize = usBytesAllocated + 256 * sizeof(wchar16_t);
+
+            ntStatus = SMBReallocMemory(
+                            pVolumeInfo,
+                            (PVOID*)&pVolumeInfo,
+                            usNewSize);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            usBytesAllocated = usNewSize;
+
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+    } while (TRUE);
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_TRANSACTION2,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                pSmbRequest->pSMBHeader->pid,
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
+
+    ntStatus = WireMarshallTransaction2Response(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    setupCount,
+                    NULL,
+                    0,
+                    pData,
+                    usDataLen,
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvMarshallFSInfoVolume(
+                    pVolumeInfo,
+                    usBytesAllocated,
+                    usDataOffset,
+                    usMaxDataCount,
+                    &pData,
+                    &usDataLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = WireMarshallTransaction2Response(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    setupCount,
+                    NULL,
+                    0,
+                    pData,
+                    usDataLen,
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    if (pVolumeInfo)
+    {
+        LwRtlMemoryFree(pVolumeInfo);
+    }
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    goto cleanup;
 }
 
 static
@@ -619,6 +786,86 @@ error:
 
 static
 NTSTATUS
+SrvMarshallFSInfoVolume(
+    PBYTE   pVolumeInfo,
+    USHORT  usBytesAllocated,
+    USHORT  usDataOffset,
+    USHORT  usMaxDataCount,
+    PBYTE*  ppData,
+    PUSHORT pusDataLen
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE    pData = NULL;
+    PBYTE    pDataCursor = NULL;
+    USHORT   usBytesRequired = 0;
+    PFILE_FS_VOLUME_INFORMATION pFSVolInfo = NULL;
+    PSMB_FS_INFO_VOLUME_HEADER pFSInfoVolHeader = NULL;
+    USHORT   usVolumeLabelByteLen = 0;
+    USHORT   usAlignment = 0;
+
+    pFSVolInfo = (PFILE_FS_VOLUME_INFORMATION)pVolumeInfo;
+
+    usBytesRequired = sizeof(SMB_FS_INFO_VOLUME_HEADER);
+    usDataOffset += sizeof(SMB_FS_INFO_VOLUME_HEADER);
+
+    if (pFSVolInfo->VolumeLabel && *pFSVolInfo->VolumeLabel)
+    {
+        usAlignment = usDataOffset % 2;
+
+        usBytesRequired += usAlignment;
+        // usDataOffset += usAlignment;
+
+        usVolumeLabelByteLen = SMB_MIN(UINT8_MAX, wc16slen(pFSVolInfo->VolumeLabel) * sizeof(wchar16_t));
+
+        usBytesRequired += usVolumeLabelByteLen;
+
+        if (usBytesRequired > usMaxDataCount)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
+    ntStatus = LW_RTL_ALLOCATE(&pData, BYTE, usBytesRequired);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pDataCursor = pData;
+    pFSInfoVolHeader = (PSMB_FS_INFO_VOLUME_HEADER)pDataCursor;
+    pFSInfoVolHeader->ulVolumeSerialNumber = pFSVolInfo->VolumeSerialNumber;
+    pFSInfoVolHeader->ucNumLabelChars = usVolumeLabelByteLen;
+
+    pDataCursor += sizeof(SMB_FS_INFO_VOLUME_HEADER);
+
+    if (usVolumeLabelByteLen)
+    {
+        pDataCursor += usAlignment;
+
+        memcpy(pDataCursor, (PBYTE)pFSVolInfo->VolumeLabel, usVolumeLabelByteLen);
+    }
+
+    *ppData = pData;
+    *pusDataLen = usBytesRequired;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppData = NULL;
+    *pusDataLen = 0;
+
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
 SrvMarshallFSVolumeInfo(
     PBYTE   pVolumeInfo,
     USHORT  usBytesAllocated,
@@ -639,9 +886,9 @@ SrvMarshallFSVolumeInfo(
 
     usBytesRequired = sizeof(SMB_FS_VOLUME_INFO_HEADER);
 
-    usVolumeLabelLen = wc16slen(pFSVolInfo->VolumeLabel);
+    usVolumeLabelLen = wc16slen(pFSVolInfo->VolumeLabel) * sizeof(wchar16_t);
 
-    usBytesRequired += usVolumeLabelLen * sizeof(wchar16_t);
+    usBytesRequired += usVolumeLabelLen;
 
     if (usBytesRequired > usMaxDataCount)
     {
@@ -657,13 +904,13 @@ SrvMarshallFSVolumeInfo(
     pFSVolInfoHeader->bSupportsObjects = pFSVolInfo->SupportsObjects;
     pFSVolInfoHeader->llVolumeCreationTime = pFSVolInfo->VolumeCreationTime;
     pFSVolInfoHeader->ulVolumeSerialNumber = pFSVolInfo->VolumeSerialNumber;
-    pFSVolInfoHeader->ulVolumeLabelLength = usVolumeLabelLen * sizeof(wchar16_t);
+    pFSVolInfoHeader->ulVolumeLabelLength = usVolumeLabelLen;
 
     pDataCursor += sizeof(SMB_FS_VOLUME_INFO_HEADER);
 
     if (usVolumeLabelLen)
     {
-        memcpy(pDataCursor, (PBYTE)pFSVolInfo->VolumeLabel, usVolumeLabelLen * sizeof(wchar16_t));
+        memcpy(pDataCursor, (PBYTE)pFSVolInfo->VolumeLabel, usVolumeLabelLen);
     }
 
     *ppData = pData;
