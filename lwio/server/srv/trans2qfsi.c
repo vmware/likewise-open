@@ -365,7 +365,99 @@ SrvBuildFSAllocationInfoResponse(
     PSMB_PACKET*        ppSmbResponse
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = 0;
+    PUSHORT  pSetup = NULL;
+    BYTE     setupCount = 0;
+    USHORT   usDataOffset = 0;
+    USHORT   usParameterOffset = 0;
+    USHORT   usNumPackageBytesUsed = 0;
+    PSMB_PACKET pSmbResponse = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    FILE_FS_SIZE_INFORMATION fSSizeInfo = {0};
+    SMB_FS_INFO_ALLOCATION fsAllocInfo = {0};
+
+    ntStatus = IoQueryVolumeInformationFile(
+                        hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        &fSSizeInfo,
+                        sizeof(fSSizeInfo),
+                        FileFsSizeInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // TODO: Resolve large integer values
+    fsAllocInfo.ulFileSystemId = 0;
+    fsAllocInfo.ulNumAllocationUnits = SMB_MIN(UINT32_MAX, fSSizeInfo.TotalAllocationUnits);
+    fsAllocInfo.ulNumSectorsPerAllocationUnit = fSSizeInfo.SectorsPerAllocationUnit;
+    fsAllocInfo.ulNumUnitsAvailable = SMB_MIN(UINT32_MAX, fSSizeInfo.AvailableAllocationUnits);
+    fsAllocInfo.usNumBytesPerSector = SMB_MIN(UINT16_MAX, fSSizeInfo.BytesPerSector);
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_TRANSACTION2,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                pSmbRequest->pSMBHeader->pid,
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
+
+    ntStatus = WireMarshallTransaction2Response(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    setupCount,
+                    NULL,
+                    0,
+                    (PBYTE)&fsAllocInfo,
+                    sizeof(fsAllocInfo),
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    goto cleanup;
 }
 
 static

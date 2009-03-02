@@ -551,6 +551,16 @@ typedef struct {
 } __attribute__((__packed__))  LOCKING_ANDX_RANGE_LARGE_FILE, *PLOCKING_ANDX_RANGE_LARGE_FILE;
 
 typedef struct {
+
+    ULONG    ulFileSystemId;
+    ULONG    ulNumSectorsPerAllocationUnit;
+    ULONG    ulNumAllocationUnits;
+    ULONG    ulNumUnitsAvailable;
+    USHORT   usNumBytesPerSector;
+
+} __attribute__((__packed__)) SMB_FS_INFO_ALLOCATION, *PSMB_FS_INFO_ALLOCATION;
+
+typedef struct {
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
 
