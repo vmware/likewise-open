@@ -134,8 +134,16 @@ SrvExecuteRename(
     PWSTR    pwszNewPath = NULL;
     BOOLEAN  bInLock = FALSE;
     IO_STATUS_BLOCK ioStatusBlock = {0};
+    IO_FILE_HANDLE  hFile = NULL;
+    PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
+    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
+    PVOID        pSecurityDescriptor = NULL;
+    PVOID        pSecurityQOS = NULL;
     IO_FILE_NAME oldName = {0};
     IO_FILE_NAME newName = {0};
+    PFILE_RENAME_INFORMATION pFileRenameInfo = NULL;
+    PBYTE pData = NULL;
+    ULONG ulDataLen = 0;
 
     if (!pwszOldName || !*pwszOldName || !pwszNewName || !*pwszNewName)
     {
@@ -162,16 +170,57 @@ SrvExecuteRename(
     oldName.FileName = pwszOldPath;
     newName.FileName = pwszNewPath;
 
-    ntStatus = IoRenameFile(
+    ntStatus = IoCreateFile(
+                    &hFile,
+                    pAsyncControlBlock,
+                    &ioStatusBlock,
+                    pSecurityContext,
+                    &oldName,
+                    pSecurityDescriptor,
+                    pSecurityQOS,
+                    GENERIC_READ,
+                    0,
+                    FILE_ATTRIBUTE_NORMAL,
+                    0,
+                    FILE_OPEN,
+                    0,
+                    NULL, /* EA Buffer */
+                    0,    /* EA Length */
+                    NULL  /* ECP List  */
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulDataLen = sizeof(FILE_RENAME_INFORMATION) + wc16slen(newName.FileName) * sizeof(wchar16_t);
+
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pData,
+                    BYTE,
+                    ulDataLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pFileRenameInfo = (PFILE_RENAME_INFORMATION)pData;
+    pFileRenameInfo->ReplaceIfExists = TRUE;
+    pFileRenameInfo->RootDirectory = NULL;
+    pFileRenameInfo->FileNameLength = wc16slen(newName.FileName) * sizeof(wchar16_t);
+    memcpy((PBYTE)pFileRenameInfo->FileName, (PBYTE)newName.FileName, pFileRenameInfo->FileNameLength);
+
+    ntStatus = IoSetInformationFile(
+                    hFile,
                     NULL,
                     &ioStatusBlock,
-                    &oldName,
-                    &newName);
+                    pFileRenameInfo,
+                    ulDataLen,
+                    FileRenameInformation);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+
+    if (hFile)
+    {
+        IoCloseFile(hFile);
+    }
 
     if (pwszOldPath)
     {
@@ -180,6 +229,11 @@ cleanup:
     if (pwszNewPath)
     {
         LwRtlMemoryFree(pwszNewPath);
+    }
+
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
     }
 
     return ntStatus;
