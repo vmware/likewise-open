@@ -61,12 +61,25 @@ PvfsCanonicalPathName(
     IO_FILE_NAME IoPath
     )
 {
+    return PvfsWC16CanonicalPathName(ppszPath, IoPath.FileName);
+}
+
+
+/********************************************************
+ *******************************************************/
+
+NTSTATUS
+PvfsWC16CanonicalPathName(
+    PSTR *ppszPath,
+    PWSTR pwszPathname
+    )
+{
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszPath = NULL;
     PSTR pszCursor = NULL;
 
     ntError = RtlCStringAllocateFromWC16String(&pszPath,
-                                               IoPath.FileName);
+                                               pwszPathname);
     BAIL_ON_NT_STATUS(ntError);
 
     pszCursor = pszPath;

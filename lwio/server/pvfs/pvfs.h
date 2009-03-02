@@ -160,6 +160,12 @@ PvfsCanonicalPathName(
     );
 
 NTSTATUS
+PvfsWC16CanonicalPathName(
+    PSTR *ppszPath,
+    PWSTR pwszPathname
+    );
+
+NTSTATUS
 PvfsValidatePath(
     PPVFS_CCB pCcb
     );

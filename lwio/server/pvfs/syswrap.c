@@ -619,6 +619,31 @@ error:
 }
 
 
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysRename(
+    PCSTR pszOldname,
+    PCSTR pszNewname
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+
+    if (rename(pszOldname, pszNewname) == -1 ) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 /*
 local variables:
 mode: c

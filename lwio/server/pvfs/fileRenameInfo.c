@@ -110,6 +110,7 @@ PvfsSetFileRenameInfo(
     PPVFS_CCB pNewDirCcb = NULL;
     PFILE_RENAME_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    PSTR pszNewFilename = NULL;
 
     /* Sanity checks */
 
@@ -121,8 +122,16 @@ PvfsSetFileRenameInfo(
     pFileInfo = (PFILE_RENAME_INFORMATION)Args.FileInformation;
 
     if (pFileInfo->RootDirectory) {
+#if 0
         ntError =  PvfsAcquireCCB(pFileInfo->RootDirectory, &pNewDirCcb);
         BAIL_ON_NT_STATUS(ntError);
+#else
+        /* Not supporting relative renames yet */
+        pNewDirCcb = NULL;
+
+        ntError= STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+#endif
     }
 
     ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
@@ -133,17 +142,39 @@ PvfsSetFileRenameInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-
     /* Real work starts here */
+
+    ntError = PvfsWC16CanonicalPathName(&pszNewFilename, pFileInfo->FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Check for an existing file if not asked to overwrite */
+
+    if (pFileInfo->ReplaceIfExists == FALSE) {
+        PVFS_STAT Stat = {0};
+
+        ntError = PvfsSysStat(pszNewFilename, &Stat);
+        if (ntError == STATUS_SUCCESS) {
+            ntError = STATUS_OBJECT_NAME_COLLISION;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
 
     ntError = PvfsValidatePath(pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsSysRename(pCcb->pszFilename, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    PVFS_SAFE_FREE_MEMORY(pCcb->pszFilename);
+    pCcb->pszFilename = pszNewFilename;
+    pszNewFilename = NULL;
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    PVFS_SAFE_FREE_MEMORY(pszNewFilename);
+
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
     }

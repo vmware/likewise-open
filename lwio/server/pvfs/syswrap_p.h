@@ -172,6 +172,11 @@ PvfsSysChown(
     gid_t gid
     );
 
+NTSTATUS
+PvfsSysRename(
+    PCSTR pszOldname,
+    PCSTR pszNewname
+    );
 
 #endif     /* _PVFS_SYSWRAP_P_H */
 
