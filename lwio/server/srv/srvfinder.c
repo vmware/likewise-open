@@ -904,7 +904,7 @@ SrvFinderMarshallBothDirInfoResults(
         usInfoBytesRequired = sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
         if (pSearchSpace->bUseLongFilenames)
         {
-            usInfoBytesRequired += wc16slen(pFileInfoCursor->FileName) * sizeof(wchar16_t);
+            usInfoBytesRequired += pFileInfoCursor->FileNameLength;
         }
         usInfoBytesRequired += sizeof(wchar16_t);
 
@@ -994,17 +994,12 @@ SrvFinderMarshallBothDirInfoResults(
         pDataCursor += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
         usOffset += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
 
-        if (pSearchSpace->bUseLongFilenames)
+        if (pSearchSpace->bUseLongFilenames && pFileInfoCursor->FileNameLength)
         {
-            USHORT usFileNameLen = wc16slen(pFileInfoCursor->FileName);
+            memcpy(pDataCursor, (PBYTE)pFileInfoCursor->FileName, pFileInfoCursor->FileNameLength);
 
-            if (usFileNameLen)
-            {
-                memcpy(pDataCursor, (PBYTE)pFileInfoCursor->FileName, usFileNameLen * sizeof(wchar16_t));
-            }
-
-            pDataCursor += usFileNameLen * sizeof(wchar16_t);
-            usOffset += usFileNameLen * sizeof(wchar16_t);
+            pDataCursor += pFileInfoCursor->FileNameLength;
+            usOffset += pFileInfoCursor->FileNameLength;
         }
         pDataCursor += sizeof(wchar16_t);
         usOffset += sizeof(wchar16_t);
