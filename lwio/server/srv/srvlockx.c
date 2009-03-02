@@ -117,6 +117,12 @@ SrvProcessLockAndX(
                     &pLockRangeLarge);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvTreeFindFile(
+                    pTree,
+                    pRequestHeader->usFid,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     if (pRequestHeader->ucLockType & SMB_LOCK_TYPE_LARGE_FILES)
     {
         ntStatus = SrvExecuteLargeFileLocks(
