@@ -40,6 +40,13 @@ case "$host_os:$host_cpu" in
                 ENABLE_NSS_ENUM_DEFAULT="no"
 		AC_DEFINE([__LWI_LINUX__], [], [Define if OS is Linux])
 		;;
+	linux*:s390*)
+		nss_libdir="/lib64"
+		pam_libdir="/lib64/security"
+		NSS_SUBDIR="linux"
+                ENABLE_NSS_ENUM_DEFAULT="no"
+		AC_DEFINE([__LWI_LINUX__], [], [Define if OS is Linux])
+		;;
 	solaris*:i?86|solaris*:sparc*)
 		nss_libdir="/usr/lib"
 		pam_libdir="/usr/lib/security"
