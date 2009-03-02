@@ -318,15 +318,12 @@ PvfsQueryFileBothDirInfo(
         PPVFS_DIRECTORY_ENTRY pEntry = NULL;
         DWORD dwIndex;
 
-        /* Set the off set in the previous record */
-
-        if (pFileInfo) {
-            pFileInfo->NextEntryOffset = (pBuffer+dwOffset) - (PVOID)pFileInfo;
-        }
+        pFileInfo = (PFILE_BOTH_DIR_INFORMATION)(pBuffer + dwOffset);
+        pFileInfo->NextEntryOffset = 0;
 
         dwIndex = pCcb->pDirContext->dwIndex;
         pEntry  = &pCcb->pDirContext->pDirEntries[dwIndex];
-        ntError = FillFileBothDirInfoBuffer(pBuffer + dwOffset,
+        ntError = FillFileBothDirInfoBuffer(pFileInfo,
                                             dwBufLen - dwOffset,
                                             pCcb->pszFilename,
                                             pEntry,
@@ -352,10 +349,7 @@ PvfsQueryFileBothDirInfo(
 
         BAIL_ON_NT_STATUS(ntError);
 
-        /* Save current record in order to update the offset
-           next time around */
-
-        pFileInfo = (PFILE_BOTH_DIR_INFORMATION)(pBuffer + dwOffset);
+        pFileInfo->NextEntryOffset = dwConsumed;
 
         dwOffset += dwConsumed;
         pCcb->pDirContext->dwIndex++;
