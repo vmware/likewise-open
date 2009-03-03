@@ -118,9 +118,15 @@ FillFileBothDirInfoStatic(
     /* Let's ignore short file names for now (unless it just
        happens to fit */
 
-    if ((FilenameLen > 0) && (FilenameLen <= 12)) {
+    if ((FilenameLen > 0) && (FilenameLen <= 12))
+    {
         pFileInfo->ShortNameLength = FilenameLenBytes;
         memcpy(pFileInfo->ShortName, pwszShortFilename, FilenameLenBytes);
+    }
+    else
+    {
+        pFileInfo->ShortNameLength = 0;
+        memset(pFileInfo->ShortName, 0x0, sizeof(pFileInfo->ShortName));
     }
 
     /* Fill in Timestamps */
@@ -253,6 +259,7 @@ PvfsQueryFileBothDirInfo(
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
     PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;
+    PFILE_BOTH_DIR_INFORMATION pPrevFileInfo = NULL;
     IRP_ARGS_QUERY_DIRECTORY Args = pIrpContext->pIrp->Args.QueryDirectory;
     PVOID pBuffer = NULL;
     DWORD dwBufLen = 0;
@@ -312,6 +319,7 @@ PvfsQueryFileBothDirInfo(
     dwBufLen = Args.Length;
     dwOffset = 0;
     pFileInfo = NULL;
+    pPrevFileInfo = NULL;
 
     do
     {
@@ -329,10 +337,11 @@ PvfsQueryFileBothDirInfo(
                                             pEntry,
                                             &dwConsumed);
 
-        /* Break from loop if we ran out of buffer space.
-           Fail on all other errors */
+        /* If we ran out of buffer space, reset pointer to previous
+           entry and break out of loop */
 
         if (ntError == STATUS_BUFFER_TOO_SMALL) {
+            pFileInfo = pPrevFileInfo;
             break;
         }
 
@@ -353,6 +362,8 @@ PvfsQueryFileBothDirInfo(
 
         dwOffset += dwConsumed;
         pCcb->pDirContext->dwIndex++;
+
+        pPrevFileInfo = pFileInfo;
 
         if (Args.ReturnSingleEntry) {
             break;
