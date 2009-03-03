@@ -131,16 +131,17 @@ SrvExecuteRename(
 {
     NTSTATUS ntStatus = 0;
     PWSTR    pwszOldPath = NULL;
-    PWSTR    pwszNewPath = NULL;
     BOOLEAN  bInLock = FALSE;
     IO_STATUS_BLOCK ioStatusBlock = {0};
     IO_FILE_HANDLE  hFile = NULL;
+    IO_FILE_HANDLE  hDir  = NULL;
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
     PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PVOID        pSecurityDescriptor = NULL;
     PVOID        pSecurityQOS = NULL;
     IO_FILE_NAME oldName = {0};
     IO_FILE_NAME newName = {0};
+    IO_FILE_NAME dirPath = {0};
     PFILE_RENAME_INFORMATION pFileRenameInfo = NULL;
     PBYTE pData = NULL;
     ULONG ulDataLen = 0;
@@ -159,16 +160,32 @@ SrvExecuteRename(
                     &pwszOldPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildFilePath(
-                    pTree->pShareInfo->pwszPath,
-                    pwszNewName,
-                    &pwszNewPath);
+    dirPath.FileName = pTree->pShareInfo->pwszPath;
+
+    ntStatus = IoCreateFile(
+                    &hDir,
+                    pAsyncControlBlock,
+                    &ioStatusBlock,
+                    pSecurityContext,
+                    &dirPath,
+                    pSecurityDescriptor,
+                    pSecurityQOS,
+                    GENERIC_READ,
+                    0,
+                    FILE_ATTRIBUTE_NORMAL,
+                    0,
+                    FILE_OPEN,
+                    FILE_DIRECTORY_FILE,
+                    NULL, /* EA Buffer */
+                    0,    /* EA Length */
+                    NULL  /* ECP List  */
+                    );
     BAIL_ON_NT_STATUS(ntStatus);
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     oldName.FileName = pwszOldPath;
-    newName.FileName = pwszNewPath;
+    newName.FileName = pwszNewName;
 
     ntStatus = IoCreateFile(
                     &hFile,
@@ -200,7 +217,7 @@ SrvExecuteRename(
 
     pFileRenameInfo = (PFILE_RENAME_INFORMATION)pData;
     pFileRenameInfo->ReplaceIfExists = TRUE;
-    pFileRenameInfo->RootDirectory = NULL;
+    pFileRenameInfo->RootDirectory = hDir;
     pFileRenameInfo->FileNameLength = wc16slen(newName.FileName) * sizeof(wchar16_t);
     memcpy((PBYTE)pFileRenameInfo->FileName, (PBYTE)newName.FileName, pFileRenameInfo->FileNameLength);
 
@@ -222,13 +239,14 @@ cleanup:
         IoCloseFile(hFile);
     }
 
+    if (hDir)
+    {
+        IoCloseFile(hDir);
+    }
+
     if (pwszOldPath)
     {
         LwRtlMemoryFree(pwszOldPath);
-    }
-    if (pwszNewPath)
-    {
-        LwRtlMemoryFree(pwszNewPath);
     }
 
     if (pData)
