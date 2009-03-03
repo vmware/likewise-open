@@ -65,6 +65,7 @@ SrvBuildFindNext2Response(
     SMB_INFO_LEVEL      infoLevel,
     ULONG               ulResumeHandle,
     PWSTR               pwszResumeFilename,
+    USHORT              usMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
     );
 
@@ -110,6 +111,7 @@ SrvProcessTrans2FindNext2(
                     infoLevel,
                     ulResumeHandle,
                     pwszResumeFilename,
+                    pRequestHeader->maxDataCount,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -257,6 +259,7 @@ SrvBuildFindNext2Response(
     SMB_INFO_LEVEL      infoLevel,
     ULONG               ulResumeHandle,
     PWSTR               pwszResumeFilename,
+    USHORT              usMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
     )
 {
@@ -317,58 +320,58 @@ SrvBuildFindNext2Response(
 
     pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
 
-        ntStatus = WireMarshallTransaction2Response(
-                        pSmbResponse->pParams,
-                        pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                        (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
-                        pSetup,
-                        setupCount,
-                        (PBYTE)&responseParams,
-                        sizeof(responseParams),
-                        NULL,
-                        0,
-                        &usDataOffset,
-                        &usParameterOffset,
-                        &usNumPackageBytesUsed);
-        BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = WireMarshallTransaction2Response(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    setupCount,
+                    (PBYTE)&responseParams,
+                    sizeof(responseParams),
+                    NULL,
+                    0,
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        usBytesAvailable = pSmbResponse->bufferLen - usNumPackageBytesUsed;
+    usBytesAvailable = SMB_MIN(usMaxDataCount, pConnection->serverProperties.MaxBufferSize - usNumPackageBytesUsed);
 
-        ntStatus = SrvFinderGetSearchResults(
-                        hSearchSpace,
-                        bReturnSingleEntry,
-                        bRestartScan,
-                        usSearchCount,
-                        usBytesAvailable,
-                        &pData,
-                        &usSearchResultLen,
-                        &responseParams.usSearchCount,
-                        &bEndOfSearch);
-        BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvFinderGetSearchResults(
+                    hSearchSpace,
+                    bReturnSingleEntry,
+                    bRestartScan,
+                    usSearchCount,
+                    usBytesAvailable,
+                    &pData,
+                    &usSearchResultLen,
+                    &responseParams.usSearchCount,
+                    &bEndOfSearch);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        responseParams.usSearchId = usSearchId;
+    responseParams.usSearchId = usSearchId;
 
-        if (bEndOfSearch || (usFlags & SMB_FIND_CLOSE_AFTER_REQUEST))
-        {
-            responseParams.usEndOfSearch = 1;
-        }
+    if (bEndOfSearch || (usFlags & SMB_FIND_CLOSE_AFTER_REQUEST))
+    {
+        responseParams.usEndOfSearch = 1;
+    }
 
-        ntStatus = WireMarshallTransaction2Response(
-                        pSmbResponse->pParams,
-                        pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                        (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
-                        pSetup,
-                        setupCount,
-                        (PBYTE)&responseParams,
-                        sizeof(responseParams),
-                        pData,
-                        usSearchResultLen,
-                        &usDataOffset,
-                        &usParameterOffset,
-                        &usNumPackageBytesUsed);
-        BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = WireMarshallTransaction2Response(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    setupCount,
+                    (PBYTE)&responseParams,
+                    sizeof(responseParams),
+                    pData,
+                    usSearchResultLen,
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        pSmbResponse->bufferUsed += usNumPackageBytesUsed;
+    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
 
     ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

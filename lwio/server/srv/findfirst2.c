@@ -65,6 +65,7 @@ SrvBuildFindFirst2Response(
     SMB_INFO_LEVEL      infoLevel,
     ULONG               ulSearchStorageType,
     PWSTR               pwszSearchPattern,
+    USHORT              usMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
     );
 
@@ -119,6 +120,7 @@ SrvProcessTrans2FindFirst2(
                     infoLevel,
                     ulSearchStorageType,
                     pwszSearchPattern,
+                    pRequestHeader->maxDataCount,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -274,6 +276,7 @@ SrvBuildFindFirst2Response(
     SMB_INFO_LEVEL      infoLevel,
     ULONG               ulSearchStorageType,
     PWSTR               pwszSearchPattern,
+    USHORT              usMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
     )
 {
@@ -383,7 +386,7 @@ SrvBuildFindFirst2Response(
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    usBytesAvailable = pSmbResponse->bufferLen - usNumPackageBytesUsed;
+    usBytesAvailable = SMB_MIN(usMaxDataCount, pConnection->serverProperties.MaxBufferSize - usNumPackageBytesUsed);
 
     ntStatus = SrvFinderGetSearchResults(
                     hSearchSpace,
