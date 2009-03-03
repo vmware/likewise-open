@@ -116,7 +116,7 @@ main(
                     (GENERIC_READ | GENERIC_WRITE), // access
                     0,        // don't share
                     NULL,     // default security attributes
-                    OPEN_EXISTING, // don't create
+                    FILE_OPEN, // don't create
                     0, // default attributes
                     NULL); // no template file
 

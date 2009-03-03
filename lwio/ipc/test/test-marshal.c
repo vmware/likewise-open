@@ -105,7 +105,7 @@ MU_TEST(marshal, NT_IPC_MESSAGE_TYPE_CREATE_FILE)
     request.pSecurityToken = &token;
     request.FileName.FileName = wstr("\\\\foohost\\$IPC\\endpoint");
     request.DesiredAccess = GENERIC_READ | GENERIC_WRITE;
-    request.CreateDisposition = OPEN_EXISTING;
+    request.CreateDisposition = FILE_OPEN;
 
     TRY ( lwmsg_protocol_get_message_type(pProtocol, NT_IPC_MESSAGE_TYPE_CREATE_FILE, &type) );
     TRY ( lwmsg_marshal_alloc(pContext, type, &request, &buffer, &length) );

@@ -142,6 +142,7 @@ RdrCommonCreate(
     FILE_SHARE_FLAGS ShareAccess;
     FILE_CREATE_DISPOSITION CreateDisposition;
     FILE_CREATE_OPTIONS CreateOptions;
+    FILE_ATTRIBUTES FileAttributes;
     HANDLE hFile = NULL;
 
     PIO_ACCESS_TOKEN pSecurityToken = pIrp->Args.Create.SecurityContext->pAccessToken;
@@ -149,26 +150,29 @@ RdrCommonCreate(
     FileHandle = pIrp->FileHandle;
     DesiredAccess = pIrp->Args.Create.DesiredAccess;
     AllocationSize = pIrp->Args.Create.AllocationSize;
+    FileAttributes = pIrp->Args.Create.FileAttributes;
     ShareAccess = pIrp->Args.Create.ShareAccess;
     CreateDisposition = pIrp->Args.Create.CreateDisposition;
     CreateOptions = pIrp->Args.Create.CreateOptions;
     pFileName = &pIrp->Args.Create.FileName;
 
     ntStatus = RdrCreateFileEx(
-                    pSecurityToken,
-                    pFileName->FileName,
-                    DesiredAccess,
-                    ShareAccess,
-                    CreateDisposition,
-                    CreateOptions,
-                    &hFile
-                    );
+        pSecurityToken,
+        pFileName->FileName,
+        DesiredAccess,
+        AllocationSize,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions,
+        &hFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoFileSetContext(FileHandle, hFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+
     pIrp->IoStatusBlock.Status = ntStatus;
 
     return ntStatus;

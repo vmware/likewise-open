@@ -57,14 +57,30 @@ ParseSharePath(
     PSTR*   ppszFilename
     );
 
+static
+NTSTATUS
+RdrTransactCreateFile(
+    SMB_TREE *pTree,
+    PCWSTR pwszPath,
+    ACCESS_MASK desiredAccess,
+    LONG64 llAllocationSize,
+    FILE_ATTRIBUTES fileAttributes,
+    FILE_SHARE_FLAGS shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS createOptions,
+    PUSHORT pusFid
+    );
+
 NTSTATUS
 RdrCreateFileEx(
     PIO_ACCESS_TOKEN pSecurityToken,
-    PCWSTR pwszFileName,
-    DWORD   dwDesiredAccess,
-    DWORD   dwSharedMode,
-    DWORD   dwCreationDisposition,
-    DWORD   dwFlagsAndAttributes,
+    PCWSTR pwszPath,
+    ACCESS_MASK desiredAccess,
+    LONG64 llAllocationSize,
+    FILE_ATTRIBUTES fileAttributes,
+    FILE_SHARE_FLAGS shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS createOptions,
     PHANDLE phFile
     )
 {
@@ -83,8 +99,8 @@ RdrCreateFileEx(
     }
 
     ntStatus = SMBAllocateMemory(
-                    sizeof(SMB_CLIENT_FILE_HANDLE),
-                    (PVOID*)&pFile);
+        sizeof(SMB_CLIENT_FILE_HANDLE),
+        (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = pthread_mutex_init(&pFile->mutex, NULL);
@@ -93,15 +109,15 @@ RdrCreateFileEx(
     pFile->pMutex = &pFile->mutex;
 
     ntStatus = ParseSharePath(
-                    pwszFileName,
-                    &pszServer,
-                    &pszShare,
-                    &pszFilename);
+        pwszPath,
+        &pszServer,
+        &pszShare,
+        &pszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBWc16sToMbs(
-                    pSecurityToken->payload.krb5.pwszPrincipal,
-                    &pFile->pszPrincipal);
+        pSecurityToken->payload.krb5.pwszPrincipal,
+        &pFile->pszPrincipal);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBWc16sToMbs(
@@ -130,14 +146,16 @@ RdrCreateFileEx(
                     &pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NPOpen(
-                    pFile->pTree,
-                    pwszFilename,
-                    dwDesiredAccess,
-                    dwSharedMode,
-                    dwCreationDisposition,
-                    dwFlagsAndAttributes,
-                    &pFile->fid);
+    ntStatus = RdrTransactCreateFile(
+        pFile->pTree,
+        pwszFilename,
+        desiredAccess,
+        llAllocationSize,
+        fileAttributes,
+        shareAccess,
+        createDisposition,
+        createOptions,
+        &pFile->fid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phFile = (HANDLE)pFile;
@@ -301,3 +319,167 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+RdrTransactCreateFile(
+    SMB_TREE *pTree,
+    PCWSTR pwszPath,
+    ACCESS_MASK desiredAccess,
+    LONG64 llAllocationSize,
+    FILE_ATTRIBUTES fileAttributes,
+    FILE_SHARE_FLAGS shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS createOptions,
+    PUSHORT pusFid
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SMB_PACKET packet = {0};
+    uint32_t packetByteCount = 0;
+    CREATE_REQUEST_HEADER *pHeader = NULL;
+    CREATE_RESPONSE_HEADER *pResponseHeader = NULL;
+    SMB_RESPONSE *pResponse = NULL;
+    PSMB_PACKET pResponsePacket = NULL;
+    USHORT usMid = 0;
+
+    /* @todo: make initial length configurable */
+    ntStatus = SMBPacketBufferAllocate(
+                    pTree->pSession->pSocket->hPacketAllocator,
+                    1024*64,
+                    &packet.pRawBuffer,
+                    &packet.bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBTreeAcquireMid(
+                    pTree,
+                    &usMid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                packet.pRawBuffer,
+                packet.bufferLen,
+                COM_NT_CREATE_ANDX,
+                0,
+                0,
+                pTree->tid,
+                0,
+                pTree->pSession->uid,
+                usMid,
+                TRUE,
+                &packet);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    packet.pData = packet.pParams + sizeof(CREATE_REQUEST_HEADER);
+
+    /* @todo: handle size restart */
+    packet.bufferUsed += sizeof(CREATE_REQUEST_HEADER);
+
+    /* If most commands have word counts which are easy to compute, this
+       should be folded into a parameter to SMBPacketMarshallHeader() */
+    packet.pSMBHeader->wordCount = 24;
+
+    pHeader = (CREATE_REQUEST_HEADER *) packet.pParams;
+
+    pHeader->reserved = 0;
+    /* @todo: does the length include alignment padding? */
+    pHeader->nameLength = (wc16slen(pwszPath) + 1) * sizeof(wchar16_t);
+    pHeader->flags = 0;
+    pHeader->rootDirectoryFid = 0;
+    pHeader->desiredAccess = desiredAccess;
+    pHeader->allocationSize = llAllocationSize;
+    pHeader->extFileAttributes = fileAttributes;
+    pHeader->shareAccess = shareAccess;
+    pHeader->createDisposition = createDisposition;
+    pHeader->createOptions = createOptions;
+    pHeader->impersonationLevel = 0x2; /* FIXME */
+
+    /* @todo: handle buffer size restart with ERESTART */
+    ntStatus = WireMarshallCreateRequestData(
+                packet.pData,
+                packet.bufferLen - packet.bufferUsed,
+                (packet.pData - (uint8_t *) packet.pSMBHeader) % 2,
+                &packetByteCount,
+                pwszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    assert(packetByteCount <= UINT16_MAX);
+    pHeader->byteCount = (uint16_t) packetByteCount;
+    packet.bufferUsed += packetByteCount;
+
+    // byte order conversions
+    SMB_HTOL8_INPLACE(pHeader->reserved);
+    SMB_HTOL16_INPLACE(pHeader->nameLength);
+    SMB_HTOL32_INPLACE(pHeader->flags);
+    SMB_HTOL32_INPLACE(pHeader->rootDirectoryFid);
+    SMB_HTOL32_INPLACE(pHeader->desiredAccess);
+    SMB_HTOL64_INPLACE(pHeader->allocationSize);
+    SMB_HTOL32_INPLACE(pHeader->extFileAttributes);
+    SMB_HTOL32_INPLACE(pHeader->shareAccess);
+    SMB_HTOL32_INPLACE(pHeader->createDisposition);
+    SMB_HTOL32_INPLACE(pHeader->createOptions);
+    SMB_HTOL32_INPLACE(pHeader->impersonationLevel);
+    SMB_HTOL8_INPLACE(pHeader->securityFlags);
+    SMB_HTOL16_INPLACE(pHeader->byteCount);
+
+    ntStatus = SMBPacketMarshallFooter(&packet);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBResponseCreate(usMid, &pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* @todo: on send packet error, the response must be removed from the
+       tree.*/
+    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBTreeReceiveResponse(
+                    pTree,
+                    packet.haveSignature,
+                    packet.sequence + 1,
+                    pResponse,
+                    &pResponsePacket);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = WireUnmarshallSMBResponseCreate(
+                pResponsePacket->pParams,
+                pResponsePacket->bufferLen - pResponsePacket->bufferUsed,
+                &pResponseHeader);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pusFid = pResponseHeader->fid;
+
+cleanup:
+
+    if (pResponsePacket)
+    {
+        SMBPacketFree(
+            pTree->pSession->pSocket->hPacketAllocator,
+            pResponsePacket);
+    }
+
+    if (packet.bufferLen)
+    {
+        SMBPacketBufferFree(pTree->pSession->pSocket->hPacketAllocator,
+                            packet.pRawBuffer,
+                            packet.bufferLen);
+    }
+
+    if (pResponse)
+    {
+        SMBResponseFree(pResponse);
+    }
+
+    return ntStatus;
+
+error:
+
+    *pusFid = 0;
+
+    goto cleanup;
+}

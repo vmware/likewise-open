@@ -173,9 +173,6 @@ typedef ULONG ACCESS_MASK;
 
 #define SPECIFIC_RIGHTS_ALL       0x000FFFF
 
-#define SHARE_READ                0x00000001
-#define SHARE_WRITE               0x00000002
-
 #define PIPE_READMODE_BYTE        0x00000000
 #define PIPE_READMODE_MESSAGE     0x00000002
 #define PIPE_WAIT                 0x00000000
@@ -212,13 +209,6 @@ typedef ULONG ACCESS_MASK;
 #define FILE_FLAG_OPEN_REPARSE_POINT    0x00200000
 #define FILE_FLAG_OPEN_NO_RECALL        0x00100000
 #define FILE_FLAG_FIRST_PIPE_INSTANCE   0x00080000
-
-#define CREATE_NEW                      1
-#define CREATE_ALWAYS                   2
-#define OPEN_EXISTING                   3
-#define OPEN_ALWAYS                     4
-#define TRUNCATE_EXISTING               5
-
 
 typedef ULONG FILE_SHARE_FLAGS;
 

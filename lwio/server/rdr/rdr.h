@@ -76,7 +76,6 @@
 #include "writefile.h"
 #include "getsesskey.h"
 #include "closehandle.h"
-#include "smb_npopen.h"
 #include "smb_negotiate.h"
 #include "smb_session_setup.h"
 #include "smb_tree_connect.h"
@@ -163,18 +162,18 @@ RdrWriteFileEx(
     PDWORD pdwNumBytesWritten
     );
 
-
 NTSTATUS
 RdrCreateFileEx(
     PIO_ACCESS_TOKEN pSecurityToken,
-    PCWSTR pwszFileName,
-    DWORD   dwDesiredAccess,
-    DWORD   dwSharedMode,
-    DWORD   dwCreationDisposition,
-    DWORD   dwFlagsAndAttributes,
+    PCWSTR pwszPath,
+    ACCESS_MASK desiredAccess,
+    LONG64 llAllocationSize,
+    FILE_ATTRIBUTES fileAttributes,
+    FILE_SHARE_FLAGS shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS createOptions,
     PHANDLE phFile
     );
-
 
 NTSTATUS
 RdrGetSessionKey(
