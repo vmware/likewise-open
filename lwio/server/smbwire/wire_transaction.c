@@ -50,6 +50,8 @@ WireUnmarshallTransactionSetupData(
     const PBYTE pBuffer,
     ULONG       ulNumBytesAvailable,
     ULONG       ulOffset,
+    ULONG       ulParameterOffset,
+    ULONG       ulDataOffset,
     PUSHORT*    ppSetup,
     BYTE        setupLen,
     PUSHORT*    ppByteCount,
@@ -66,6 +68,8 @@ WireUnmarshallTransactionParameterData(
     const PBYTE pBuffer,
     ULONG       ulNumBytesAvailable,
     ULONG       ulOffset,
+    ULONG       ulParameterOffset,
+    ULONG       ulDataOffset,
     PWSTR*      ppwszName,
     PBYTE*      ppParameters,
     ULONG       parameterLen,
@@ -142,6 +146,8 @@ WireUnmarshallTransactionRequest(
                     pDataCursor,
                     ulNumBytesAvailable,
                     ulOffset,
+                    pHeader->parameterOffset,
+                    pHeader->dataOffset,
                     &pSetup,
                     pHeader->setupCount,
                     &pByteCount,
@@ -220,6 +226,8 @@ WireUnmarshallTransactionSecondaryRequest(
                     pDataCursor,
                     ulNumBytesAvailable,
                     ulOffset,
+                    pHeader->parameterOffset,
+                    pHeader->dataOffset,
                     (ppwszName ? &pwszName : NULL),
                     &pParameters,
                     pHeader->parameterCount,
@@ -291,6 +299,8 @@ WireUnmarshallTransactionSecondaryResponse(
                     pDataCursor,
                     ulNumBytesAvailable,
                     ulOffset,
+                    pHeader->parameterOffset,
+                    pHeader->dataOffset,
                     &pSetup,
                     pHeader->setupCount,
                     &pByteCount,
@@ -336,6 +346,8 @@ WireUnmarshallTransactionSetupData(
     const PBYTE pBuffer,
     ULONG       ulNumBytesAvailable,
     ULONG       ulOffset,
+    ULONG       ulParameterOffset,
+    ULONG       ulDataOffset,
     PUSHORT*    ppSetup,
     BYTE        setupLen,
     PUSHORT*    ppByteCount,
@@ -386,6 +398,8 @@ WireUnmarshallTransactionSetupData(
                     pDataCursor,
                     ulNumBytesAvailable,
                     ulOffset,
+                    ulParameterOffset,
+                    ulDataOffset,
                     (ppwszName ? &pwszName : NULL),
                     &pParameters,
                     parameterLen,
@@ -426,6 +440,8 @@ WireUnmarshallTransactionParameterData(
     const PBYTE pBuffer,
     ULONG       ulNumBytesAvailable,
     ULONG       ulOffset,
+    ULONG       ulParameterOffset,
+    ULONG       ulDataOffset,
     PWSTR*      ppwszName,
     PBYTE*      ppParameters,
     ULONG       parameterLen,
@@ -481,6 +497,26 @@ WireUnmarshallTransactionParameterData(
         } while ((ulNumBytesAvailable > 0) && pwszCursor && *pwszCursor);
     }
 
+    if (ulOffset > ulParameterOffset)
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else if (ulOffset < ulParameterOffset)
+    {
+        USHORT usOffsetDelta = ulParameterOffset - ulOffset;
+
+        if (ulNumBytesAvailable < usOffsetDelta)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ulOffset += usOffsetDelta;
+        pDataCursor += usOffsetDelta;
+        ulNumBytesAvailable -= usOffsetDelta;
+    }
+
     if (ulNumBytesAvailable < parameterLen)
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
@@ -511,6 +547,26 @@ WireUnmarshallTransactionParameterData(
             pDataCursor += usAlignment;
             ulNumBytesAvailable -= usAlignment;
             ulOffset += usAlignment;
+        }
+
+        if (ulOffset > ulDataOffset)
+        {
+            ntStatus = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+        else if (ulOffset < ulDataOffset)
+        {
+            USHORT usOffsetDelta = ulDataOffset - ulOffset;
+
+            if (ulNumBytesAvailable < usOffsetDelta)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulOffset += usOffsetDelta;
+            pDataCursor += usOffsetDelta;
+            ulNumBytesAvailable -= usOffsetDelta;
         }
 
         pData = pDataCursor;
