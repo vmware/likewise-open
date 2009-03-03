@@ -81,6 +81,7 @@ SrvFinderGetSearchResults(
     BOOLEAN  bRestartScan,
     USHORT   usDesiredSearchCount,
     USHORT   usMaxDataCount,
+    USHORT   usDataOffset,
     PBYTE*   ppData,
     PUSHORT  pusDataLen,
     PUSHORT  pusSearchResultCount,

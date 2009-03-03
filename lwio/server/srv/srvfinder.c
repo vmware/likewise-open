@@ -99,6 +99,7 @@ SrvFinderGetStdInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -113,6 +114,7 @@ SrvFinderGetEASizeSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -127,6 +129,7 @@ SrvFinderGetEASFromListSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -141,6 +144,7 @@ SrvFinderGetDirInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -155,6 +159,7 @@ SrvFinderGetFullDirInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -169,6 +174,7 @@ SrvFinderGetNamesInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -183,6 +189,7 @@ SrvFinderGetBothDirInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -195,6 +202,7 @@ SrvFinderMarshallBothDirInfoResults(
     PSRV_SEARCH_SPACE pSearchSpace,
     USHORT            usBytesAvailable,
     USHORT            usDesiredSearchCount,
+    PUSHORT           pusDataOffset,
     PBYTE*            ppData,
     PUSHORT           pusDataLen,
     PUSHORT           pusSearchCount
@@ -208,6 +216,7 @@ SrvFinderGetUnixSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -448,6 +457,7 @@ SrvFinderGetSearchResults(
     BOOLEAN  bRestartScan,
     USHORT   usDesiredSearchCount,
     USHORT   usMaxDataCount,
+    USHORT   usDataOffset,
     PBYTE*   ppData,
     PUSHORT  pusDataLen,
     PUSHORT  pusSearchResultCount,
@@ -474,6 +484,7 @@ SrvFinderGetSearchResults(
                             bRestartScan,
                             usDesiredSearchCount,
                             usMaxDataCount,
+                            usDataOffset,
                             &pData,
                             &usDataLen,
                             &usSearchResultCount,
@@ -489,6 +500,7 @@ SrvFinderGetSearchResults(
                             bRestartScan,
                             usDesiredSearchCount,
                             usMaxDataCount,
+                            usDataOffset,
                             &pData,
                             &usDataLen,
                             &usSearchResultCount,
@@ -504,6 +516,7 @@ SrvFinderGetSearchResults(
                             bRestartScan,
                             usDesiredSearchCount,
                             usMaxDataCount,
+                            usDataOffset,
                             &pData,
                             &usDataLen,
                             &usSearchResultCount,
@@ -519,6 +532,7 @@ SrvFinderGetSearchResults(
                             bRestartScan,
                             usDesiredSearchCount,
                             usMaxDataCount,
+                            usDataOffset,
                             &pData,
                             &usDataLen,
                             &usSearchResultCount,
@@ -534,6 +548,7 @@ SrvFinderGetSearchResults(
                             bRestartScan,
                             usDesiredSearchCount,
                             usMaxDataCount,
+                            usDataOffset,
                             &pData,
                             &usDataLen,
                             &usSearchResultCount,
@@ -549,6 +564,7 @@ SrvFinderGetSearchResults(
                             bRestartScan,
                             usDesiredSearchCount,
                             usMaxDataCount,
+                            usDataOffset,
                             &pData,
                             &usDataLen,
                             &usSearchResultCount,
@@ -564,6 +580,7 @@ SrvFinderGetSearchResults(
                             bRestartScan,
                             usDesiredSearchCount,
                             usMaxDataCount,
+                            usDataOffset,
                             &pData,
                             &usDataLen,
                             &usSearchResultCount,
@@ -579,6 +596,7 @@ SrvFinderGetSearchResults(
                             bRestartScan,
                             usDesiredSearchCount,
                             usMaxDataCount,
+                            usDataOffset,
                             &pData,
                             &usDataLen,
                             &usSearchResultCount,
@@ -628,6 +646,7 @@ SrvFinderGetStdInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -645,6 +664,7 @@ SrvFinderGetEASizeSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -662,6 +682,7 @@ SrvFinderGetEASFromListSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -679,6 +700,7 @@ SrvFinderGetDirInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -696,6 +718,7 @@ SrvFinderGetFullDirInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -713,6 +736,7 @@ SrvFinderGetNamesInfoSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,
@@ -730,6 +754,7 @@ SrvFinderGetBothDirInfoSearchResults(
     BOOLEAN           bRestartScan,
     USHORT            usDesiredSearchCount,
     USHORT            usMaxDataCount,
+    USHORT            usDataOffset,
     PBYTE*            ppData,
     PUSHORT           pusDataLen,
     PUSHORT           pusSearchResultCount,
@@ -826,6 +851,7 @@ SrvFinderGetBothDirInfoSearchResults(
                             pSearchSpace,
                             usBytesAvailable - usDataLen,
                             usDesiredSearchCount - usSearchResultCount,
+                            &usDataOffset,
                             &pData,
                             &usDataLen,
                             &usIterSearchCount);
@@ -876,6 +902,7 @@ SrvFinderMarshallBothDirInfoResults(
     PSRV_SEARCH_SPACE pSearchSpace,
     USHORT            usBytesAvailable,
     USHORT            usDesiredSearchCount,
+    PUSHORT           pusDataOffset,
     PBYTE*            ppData,
     PUSHORT           pusDataLen,
     PUSHORT           pusSearchCount
@@ -892,6 +919,7 @@ SrvFinderMarshallBothDirInfoResults(
     USHORT   usSearchCount = 0;
     USHORT   iSearchCount = 0;
     USHORT   usOffset = 0;
+    USHORT   usDataOffset = *pusDataOffset;
 
     pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
 
@@ -902,11 +930,27 @@ SrvFinderMarshallBothDirInfoResults(
         USHORT usInfoBytesRequired = 0;
 
         usInfoBytesRequired = sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
+        usDataOffset += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
+
         if (pSearchSpace->bUseLongFilenames)
         {
             usInfoBytesRequired += pFileInfoCursor->FileNameLength;
+            usDataOffset += pFileInfoCursor->FileNameLength;
         }
-        usInfoBytesRequired += sizeof(wchar16_t);
+
+        if (!pFileInfoCursor->FileNameLength)
+        {
+            usInfoBytesRequired += sizeof(wchar16_t);
+            usDataOffset += sizeof(wchar16_t);
+        }
+
+        if (usDataOffset % 8)
+        {
+            USHORT usAlignment = (8 - (usDataOffset % 8));
+
+            usInfoBytesRequired += usAlignment;
+            usDataOffset += usAlignment;
+        }
 
         if (usBytesAvailable < usInfoBytesRequired)
         {
@@ -960,6 +1004,8 @@ SrvFinderMarshallBothDirInfoResults(
         }
     }
 
+    usDataOffset = *pusDataOffset;
+
     pDataCursor = pData + usOrigDataLen;
     for (; iSearchCount < usSearchCount; iSearchCount++)
     {
@@ -993,6 +1039,7 @@ SrvFinderMarshallBothDirInfoResults(
 
         pDataCursor += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
         usOffset += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
+        usDataOffset += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
 
         if (pSearchSpace->bUseLongFilenames && pFileInfoCursor->FileNameLength)
         {
@@ -1000,9 +1047,24 @@ SrvFinderMarshallBothDirInfoResults(
 
             pDataCursor += pFileInfoCursor->FileNameLength;
             usOffset += pFileInfoCursor->FileNameLength;
+            usDataOffset += pFileInfoCursor->FileNameLength;
         }
-        pDataCursor += sizeof(wchar16_t);
-        usOffset += sizeof(wchar16_t);
+
+        if (!pFileInfoCursor->FileNameLength)
+        {
+            pDataCursor += sizeof(wchar16_t);
+            usOffset += sizeof(wchar16_t);
+            usDataOffset += sizeof(wchar16_t);
+        }
+
+        if (usDataOffset % 8)
+        {
+            USHORT usAlignment = (8 - (usDataOffset % 8));
+
+            pDataCursor += usAlignment;
+            usOffset += usAlignment;
+            usDataOffset += usAlignment;
+        }
 
         if (pFileInfoCursor->NextEntryOffset)
         {
@@ -1021,6 +1083,7 @@ SrvFinderMarshallBothDirInfoResults(
 
     *pusSearchCount = usSearchCount;
     *pusDataLen = usDataLen;
+    *pusDataOffset = usDataOffset;
     *ppData = pData;
 
 cleanup:
@@ -1049,6 +1112,7 @@ SrvFinderGetUnixSearchResults(
     BOOLEAN             bRestartScan,
     USHORT              usDesiredSearchCount,
     USHORT              usMaxDataCount,
+    USHORT              usDataOffset,
     PBYTE*              ppData,
     PUSHORT             pusDataLen,
     PUSHORT             pusSearchResultCount,

@@ -343,6 +343,7 @@ SrvBuildFindNext2Response(
                     bRestartScan,
                     usSearchCount,
                     usBytesAvailable,
+                    usDataOffset,
                     &pData,
                     &usSearchResultLen,
                     &responseParams.usSearchCount,
