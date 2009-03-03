@@ -9,6 +9,7 @@ liblwiosmbwire_la_SOURCES = \
     wire_find_close2.c   \
     wire_lockx.c         \
     wire_negotiate.c     \
+    wire_nttransaction.c \
     packet.c             \
     wire_readx.c         \
     wire_rename.c        \

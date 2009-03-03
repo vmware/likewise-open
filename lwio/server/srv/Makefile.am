@@ -34,6 +34,7 @@ libsrv_sys_la_SOURCES = \
     srvlockx.c        \
     srvlogoff.c       \
     srvnegotiate.c    \
+    srvnttransact.c   \
     srvpath.c         \
     srvpipeinfo.c     \
     srvread.c         \

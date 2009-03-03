@@ -354,6 +354,14 @@ SrvWorkerExecute(
 
             break;
 
+        case COM_NT_TRANSACT:
+
+            ntStatus = SrvProcessNtTransact(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
         case COM_TREE_DISCONNECT:
 
             ntStatus = SrvProcessTreeDisconnectAndX(
