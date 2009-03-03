@@ -225,6 +225,10 @@ FillFileBothDirInfoBuffer(
     W16FilenameLenBytes = W16FilenameLen * sizeof(WCHAR);
     dwNeeded = sizeof(*pFileInfo) + W16FilenameLenBytes;
 
+    /* alignment on 8 byte boundary */
+
+    dwNeeded += 8 - (dwNeeded % 8);
+
     if (dwNeeded > dwBufLen) {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
