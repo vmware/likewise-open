@@ -15,6 +15,7 @@ liblwiosmbwire_la_SOURCES = \
     wire_session_setup.c \
     wire_transaction.c   \
     wire_tree_connect.c  \
+    wire_write.c         \
     wire_writex.c
 
 liblwiosmbwire_la_CPPFLAGS =     \

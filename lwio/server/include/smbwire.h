@@ -937,10 +937,6 @@ typedef struct
     /* AndX chains will be handled at a higher layer */
 
     uint16_t count;             /* Number of bytes written */
-    uint16_t remaining;         /* Reserved */
-    uint16_t countHigh;         /* High 16? bits of data length if
-                                   CAP_LARGE_WRITEX */
-    uint16_t reserved;
     uint16_t byteCount;         /* Count of data bytes = 0 */
 }  __attribute__((__packed__))  WRITE_RESPONSE_HEADER, *PWRITE_RESPONSE_HEADER;
 
@@ -1425,6 +1421,15 @@ MarshallReadRequestData(
     uint32_t         bufferLen,
     uint8_t          messageAlignment,
     uint32_t        *pBufferUsed
+    );
+
+NTSTATUS
+WireUnmarshallWriteRequest(
+    const PBYTE            pParams,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulBytesUsed,
+    PWRITE_REQUEST_HEADER* ppHeader,
+    PBYTE*                 ppData
     );
 
 NTSTATUS
