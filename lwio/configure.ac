@@ -382,7 +382,7 @@ AC_CHECK_FUNCS([atexit localtime_r memset strchr strerror strerror_r vsyslog])
 AC_CHECK_FUNCS([rpl_realloc rpl_malloc])
 
 AC_CHECK_HEADERS([sys/vfs.h])
-AC_CHECK_FUNCS([dirfd fstatfs])
+AC_CHECK_FUNCS([dirfd fstatfs fdatasync fsync])
 
 AC_CHECK_LIB([uuid], [uuid_copy], [UUID_LIBS="-luuid"])
 AC_SUBST(UUID_LIBS)
