@@ -152,6 +152,7 @@ FillFileBothDirInfoStatic(
 
     /* File details */
 
+    pFileInfo->FileIndex      = 0;
     pFileInfo->EaSize         = 0;
     pFileInfo->EndOfFile      = pStat->s_size;
     pFileInfo->AllocationSize = pStat->s_alloc;
@@ -227,7 +228,9 @@ FillFileBothDirInfoBuffer(
 
     /* alignment on 8 byte boundary */
 
-    dwNeeded += 8 - (dwNeeded % 8);
+    if (dwNeeded % 8) {
+        dwNeeded += 8 - (dwNeeded % 8);
+    }
 
     if (dwNeeded > dwBufLen) {
         ntError = STATUS_BUFFER_TOO_SMALL;
