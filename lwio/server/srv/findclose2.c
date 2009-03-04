@@ -66,6 +66,11 @@ SrvProcessFindClose2(
                     usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMBPacketBufferAllocate(
                     pConnection->hPacketAllocator,
                     64 * 1024,
