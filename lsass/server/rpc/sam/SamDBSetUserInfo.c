@@ -32,28 +32,16 @@
 
 
 NTSTATUS
-SamrSetAliasInfo(
+SamrSetUserInfo(
     handle_t b,
-    PolicyHandle *alias_h,
+    PolicyHandle *user_h,
     uint16 level,
-    AliasInfo *info
+    UserInfo *info
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(alias_h, cleanup);
-    goto_if_no_memory_ntstatus(info, cleanup);
-
-    DCERPC_CALL(_SamrSetAliasInfo(b, alias_h, level, info));
-
-    goto_if_ntstatus_not_success(status, error);
-
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 
