@@ -35,44 +35,12 @@ NTSTATUS
 SamrGetUserGroups(
     handle_t b,
     PolicyHandle *user_h,
-    uint32 **rids,
-    uint32 **attributes,
-    uint32 *count
+    RidWithAttributeArray **r
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    uint32 *out_rids = NULL;
-    uint32 *out_attributes = NULL;
-    RidWithAttributeArray *r = NULL;
-
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(user_h, cleanup);
-    goto_if_invalid_param_ntstatus(rids, cleanup);
-    goto_if_invalid_param_ntstatus(attributes, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
-
-    DCERPC_CALL(_SamrGetUserGroups(b, user_h, &r));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    status = SamrAllocateRidsAndAttributes(&out_rids, &out_attributes, r);
-    goto_if_ntstatus_not_success(status, error);
-
-    *rids       = out_rids;
-    *attributes = out_attributes;
-    *count      = r->count;
-
-cleanup:
-    SamrFreeStubRidWithAttributeArray(r);
 
     return status;
-
-error:
-    *rids       = NULL;
-    *attributes = NULL;
-    *count      = 0;
-
-    goto cleanup;
 }
 
 
