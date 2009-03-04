@@ -32,7 +32,6 @@
 
 typedef struct _SMB_FIND_NEXT2_RESPONSE_PARAMETERS
 {
-    USHORT usSearchId;
     USHORT usSearchCount;
     USHORT usEndOfSearch;
     USHORT usEaErrorOffset;
@@ -349,8 +348,6 @@ SrvBuildFindNext2Response(
                     &responseParams.usSearchCount,
                     &bEndOfSearch);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    responseParams.usSearchId = usSearchId;
 
     if (bEndOfSearch || (usFlags & SMB_FIND_CLOSE_AFTER_REQUEST))
     {
