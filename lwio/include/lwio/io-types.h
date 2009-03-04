@@ -35,10 +35,6 @@
 #include <lw/base.h>
 #include <secdesc/secdesc.h>
 
-#define SetFlag(Variable, Flags)   ((Variable) |= (Flags))
-#define ClearFlag(Variable, Flags) ((Variable) &= ~(Flags))
-#define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
-
 typedef ULONG ACCESS_MASK;
 
 #if 0
