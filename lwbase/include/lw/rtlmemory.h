@@ -49,12 +49,35 @@
 #include <lw/attrs.h>
 #include <lw/ntstatus.h>
 
+// Need string.h to get memset, memcpy, memmove, and memcmp
+// to be used by Rtl{Zero,Fill,Copy,Move,Equal}Memory below.
+#include <string.h>
+
+#define LwRtlZeroMemory(Destination, Length) \
+    memset(Destination, 0, Length)
+
+#define LwRtlFillMemory(Destination, Length, Fill) \
+    memset(Destination, Fill, Length)
+
+#define LwRtlCopyMemory(Destination, Source, Length) \
+    memcpy(Destination, Source, Length)
+
+#define LwRtlMoveMemory(Destination, Source, Length) \
+    memmove(Destination, Source, Length)
+
+#define LwRtlEqualMemory(Source1, Source2, Length) \
+    (!memcmp(Source1, Source2, Length))
+
+// TODO-Rename below from LwRtlMemory* to LwRtl*Memory
+
+// TODO-Remove LwRtlMemoryZero in favor or LwRtlZeroMemory macro
 VOID
 LwRtlMemoryZero(
     LW_IN LW_OUT LW_PVOID pMemory,
     LW_IN size_t Size
     );
 
+// TODO-Prefix name with underscore.
 PVOID
 LwRtlMemoryAllocate(
     LW_IN size_t Size
@@ -84,6 +107,12 @@ LwRtlMemoryFree(
     } while (0)
 
 #ifndef LW_STRICT_NAMESPACE
+
+#define RtlZeroMemory(Destination, Length) LwRtlZeroMemory(Destination, Length)
+#define RtlFillMemory(Destination, Length, Fill) LwRtlFillMemory(Destination, Length, Fill)
+#define RtlCopyMemory(Destination, Source, Length) LwRtlCopyMemory(Destination, Source, Length)
+#define RtlMoveMemory(Destination, Source, Length) LwRtlMoveMemory(Destination, Source, Length)
+#define RtlEqualMemory(Source1, Source2, Length) LwRtlEqualMemory(Source1, Source2, Length)
 
 #define RtlMemoryZero     LwRtlMemoryZero
 #define RtlMemoryAllocate LwRtlMemoryAllocate

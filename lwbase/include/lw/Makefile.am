@@ -10,4 +10,6 @@ lwinclude_HEADERS = \
 	rtlstring.h \
 	base.h \
 	rtlgoto.h \
-        rbtree.h
+        rbtree.h \
+        swab.h \
+        safeint.h
