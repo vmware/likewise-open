@@ -35,7 +35,7 @@ typedef struct
     USHORT               usFid;
     USHORT               usReserved;
     SECURITY_INFORMATION ulSecurityInfo;
-} __attribute__((__packed__)) SMB_QUERY_SECURITY_INFORMATION, *PSMB_QUERY_SECURITY_INFORMATION;
+} __attribute__((__packed__)) SMB_SECURITY_INFORMATION_HEADER, *PSMB_SECURITY_INFORMATION_HEADER;
 
 static
 NTSTATUS
@@ -45,6 +45,19 @@ SrvQuerySecurityDescriptor(
     PSMB_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
+    PSMB_PACKET*        ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvSetSecurityDescriptor(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_SRV_TREE       pTree,
+    PBYTE               pParameters,
+    ULONG               ulParameterCount,
+    PBYTE               pData,
+    ULONG               ulDataLen,
     PSMB_PACKET*        ppSmbResponse
     );
 
@@ -102,14 +115,27 @@ SrvProcessNtTransact(
                             pSmbRequest,
                             pTree,
                             pParameters,
-                            pRequestHeader->ulParameterCount,
+                            pRequestHeader->ulTotalParameterCount,
+                            &pSmbResponse);
+
+            break;
+
+        case SMB_SUB_COMMAND_NT_TRANSACT_SET_SECURITY_DESC :
+
+            ntStatus = SrvSetSecurityDescriptor(
+                            pConnection,
+                            pSmbRequest,
+                            pTree,
+                            pParameters,
+                            pRequestHeader->ulTotalParameterCount,
+                            pData,
+                            pRequestHeader->ulTotalDataCount,
                             &pSmbResponse);
 
             break;
 
         case SMB_SUB_COMMAND_NT_TRANSACT_CREATE :
         case SMB_SUB_COMMAND_NT_TRANSACT_IOCTL :
-        case SMB_SUB_COMMAND_NT_TRANSACT_SET_SECURITY_DESC :
         case SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE :
         case SMB_SUB_COMMAND_NT_TRANSACT_RENAME :
 
@@ -178,16 +204,16 @@ SrvQuerySecurityDescriptor(
     ULONG         ulDataOffset = 0;
     ULONG         ulParameterOffset = 0;
     ULONG         ulNumPackageBytesUsed = 0;
-    PSMB_QUERY_SECURITY_INFORMATION pQueryRequest = NULL;
+    PSMB_SECURITY_INFORMATION_HEADER pQueryRequest = NULL;
     PSMB_PACKET pSmbResponse = NULL;
 
-    if (ulParameterCount != sizeof(SMB_QUERY_SECURITY_INFORMATION))
+    if (ulParameterCount != sizeof(SMB_SECURITY_INFORMATION_HEADER))
     {
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pQueryRequest = (PSMB_QUERY_SECURITY_INFORMATION)pParameters;
+    pQueryRequest = (PSMB_SECURITY_INFORMATION_HEADER)pParameters;
 
     ntStatus = SrvTreeFindFile(
                     pTree,
@@ -213,7 +239,7 @@ SrvQuerySecurityDescriptor(
                         NULL,
                         &ioStatusBlock,
                         pQueryRequest->ulSecurityInfo,
-                        (PSECURITY_DESCRIPTOR)pSecurityDescriptor,
+                        (PSECURITY_DESCRIPTOR_RELATIVE)pSecurityDescriptor,
                         ulSecurityDescLen,
                         &ulNewLen);
         if (ntStatus == STATUS_BUFFER_TOO_SMALL)
@@ -300,6 +326,126 @@ cleanup:
     if (pSecurityDescriptor)
     {
         LwRtlMemoryFree(pSecurityDescriptor);
+    }
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSetSecurityDescriptor(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_SRV_TREE       pTree,
+    PBYTE               pParameters,
+    ULONG               ulParameterCount,
+    PBYTE               pData,
+    ULONG               ulDataLen,
+    PSMB_PACKET*        ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_SRV_FILE pFile = NULL;
+    PUSHORT pSetup = NULL;
+    UCHAR   ucSetupCount = 0;
+    ULONG   ulDataOffset = 0;
+    ULONG   ulParameterOffset = 0;
+    ULONG   ulNumPackageBytesUsed = 0;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    PSMB_SECURITY_INFORMATION_HEADER pSecuritySetRequest = NULL;
+    PSMB_PACKET pSmbResponse = NULL;
+
+    if (ulParameterCount != sizeof(SMB_SECURITY_INFORMATION_HEADER))
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pSecuritySetRequest = (PSMB_SECURITY_INFORMATION_HEADER)pParameters;
+
+    ntStatus = SrvTreeFindFile(
+                    pTree,
+                    pSecuritySetRequest->usFid,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoSetSecurityFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    pSecuritySetRequest->ulSecurityInfo,
+                    (PSECURITY_DESCRIPTOR_RELATIVE)pData,
+                    ulDataLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_NT_TRANSACT,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                pSmbRequest->pSMBHeader->pid,
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 18 + ucSetupCount;
+
+    ntStatus = WireMarshallNtTransactionResponse(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    ucSetupCount,
+                    NULL,
+                    0,
+                    NULL,
+                    0,
+                    &ulDataOffset,
+                    &ulParameterOffset,
+                    &ulNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += ulNumPackageBytesUsed;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
     }
 
     return ntStatus;
