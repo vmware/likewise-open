@@ -560,6 +560,12 @@ typedef struct {
 
 } __attribute__((__packed__)) SMB_FS_INFO_ALLOCATION, *PSMB_FS_INFO_ALLOCATION;
 
+typedef struct
+{
+    USHORT usFid;
+    SMB_INFO_LEVEL infoLevel;
+} __attribute__((__packed__)) SMB_QUERY_FILE_INFO_HEADER, *PSMB_QUERY_FILE_INFO_HEADER;
+
 typedef struct {
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */

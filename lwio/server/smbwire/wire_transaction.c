@@ -730,7 +730,7 @@ WireMarshallTransactionSetupData(
 
     if (setupLen && bufferUsed + setupLen <= bufferLen)
         memcpy(pBuffer, pSetup, setupLen);
-    bufferUsed += setupLen;
+    bufferUsed += setupLen * sizeof(USHORT);
 
     /* byteCount */
     pByteCount = (uint16_t *) (pBuffer + bufferUsed);

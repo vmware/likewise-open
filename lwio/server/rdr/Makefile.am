@@ -10,6 +10,7 @@ librdr_sys_la_SOURCES = \
     getsesskey.c          \
     globals.c             \
     readfile.c            \
+    queryinfofile.c       \
     response.c            \
     session.c             \
     smb_logoff.c          \
@@ -32,7 +33,7 @@ librdr_sys_la_SOURCES = \
     rdrsetinfo.c          \
     rdrqueryinfo.c        \
     rdrdeviceio.c         \
-    rdrfsctl.c           \
+    rdrfsctl.c            \
     rdrclose.c
 
 librdr_sys_la_CPPFLAGS = \

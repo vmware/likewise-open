@@ -277,23 +277,19 @@ ParseSharePath(
     sLen = strcspn(pszIndex, "\\/");
     if (!sLen)
     {
-        ntStatus = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SMBAllocateMemory(
+            1,
+            (PVOID*)&pszFilename);
+        *pszFilename = '\0';
     }
-
-    ntStatus = SMBAllocateMemory(
-                    sLen + 2,
-                    (PVOID*)&pszFilename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    snprintf(pszFilename, sLen + 2, "\\%s", pszIndex);
-
-    pszIndex += sLen;
-
-    if (!IsNullOrEmptyString(pszIndex))
+    else
     {
-        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        ntStatus = SMBAllocateMemory(
+            sLen + 2,
+            (PVOID*)&pszFilename);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        snprintf(pszFilename, sLen + 2, "\\%s", pszIndex);
     }
 
     *ppszServer = pszServer;

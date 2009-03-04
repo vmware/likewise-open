@@ -189,4 +189,13 @@ RdrCommonFsctl(
     PIRP pIrp
     );
 
+NTSTATUS
+RdrCallQueryInformationFile(
+    HANDLE hFile,
+    PVOID fileInformation,
+    ULONG ulLength,
+    FILE_INFORMATION_CLASS fileInformationClass,
+    PULONG pulInfoLengthUsed
+    );
+
 #endif /* __RDR_H__ */

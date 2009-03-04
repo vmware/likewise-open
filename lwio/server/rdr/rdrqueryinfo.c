@@ -49,16 +49,63 @@
 
 #include "rdr.h"
 
+static
+NTSTATUS
+RdrCommonQueryInformation(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
 NTSTATUS
 RdrQueryInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = RdrCommonQueryInformation(
+        NULL,
+        pIrp
+        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return ntStatus;
 }
 
 
+static
+NTSTATUS
+RdrCommonQueryInformation(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID FileInformation = NULL;
+    ULONG Length = 0;
+    FILE_INFORMATION_CLASS FileInformationClass = 0;
+    HANDLE hFile = NULL;
 
+    hFile = IoFileGetContext(pIrp->FileHandle);
+
+    FileInformation = pIrp->Args.QuerySetInformation.FileInformation;
+    Length = pIrp->Args.QuerySetInformation.Length;
+    FileInformationClass = pIrp->Args.QuerySetInformation.FileInformationClass;
+
+    ntStatus = RdrCallQueryInformationFile(
+        hFile,
+        FileInformation,
+        Length,
+        FileInformationClass,
+        &pIrp->IoStatusBlock.BytesTransferred);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
+}
