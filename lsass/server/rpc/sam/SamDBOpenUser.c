@@ -41,23 +41,8 @@ SamrOpenUser(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle h = {0};
 
-    goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(domain_h, cleanup);
-    goto_if_no_memory_ntstatus(user_h, cleanup);
-
-    DCERPC_CALL(_SamrOpenUser(b, domain_h, access_mask, rid, &h));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    *user_h = h;
-
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 
