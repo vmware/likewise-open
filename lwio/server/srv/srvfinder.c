@@ -838,6 +838,10 @@ SrvFinderGetBothDirInfoSearchResults(
                                     usNewSize);
                     BAIL_ON_NT_STATUS(ntStatus);
 
+                    memset(pSearchSpace->pFileInfo + pSearchSpace->usFileInfoLen,
+                           0,
+                           usNewSize - pSearchSpace->usFileInfoLen);
+
                     pSearchSpace->usFileInfoLen = usNewSize;
 
                     continue;
