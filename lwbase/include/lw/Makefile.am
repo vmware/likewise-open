@@ -12,4 +12,6 @@ lwinclude_HEADERS = \
 	rtlgoto.h \
         rbtree.h \
         swab.h \
-        safeint.h
+        safeint.h \
+        security-types.h \
+        security-api.h

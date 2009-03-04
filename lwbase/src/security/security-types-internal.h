@@ -1,7 +1,7 @@
 #ifndef __LW_SECURITY_TYPES_INTERNAL_H__
 #define __LW_SECURITY_TYPES_INTERNAL_H__
 
-#include "security-types.h"
+#include <lw/security-types.h>
 
 //
 // ACL - Access Control List

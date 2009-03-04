@@ -1,5 +1,5 @@
-#ifndef __LW_SECURITY_TYPES_H__
-#define __LW_SECURITY_TYPES_H__
+#ifndef __LWBASE_SECURITY_TYPES_H__
+#define __LWBASE_SECURITY_TYPES_H__
 
 #include <lw/types.h>
 #include <lw/attrs.h>
@@ -1137,4 +1137,4 @@ typedef ULONG WELL_KNOWN_SID_TYPE, *PWELL_KNOWN_SID_TYPE;
 #define WELL_KNOWN_SID_TYPE_BUILTIN_CERT_SVC_DCOM_ACCESS_GROUP          78
 #endif
 
-#endif /* __LW_SECURITY_TYPES_H__ */
+#endif /* __LWBASE_SECURITY_TYPES_H__ */

@@ -1,7 +1,7 @@
 #ifndef __LW_SECURITY_API2_H__
 #define __LW_SECURITY_API2_H__
 
-#include "security-types.h"
+#include <lw/security-types.h>
 #include <lw/ntstatus.h>
 
 //

@@ -1,5 +1,5 @@
-#ifndef __LW_SECURITY_API_H__
-#define __LW_SECURITY_API_H__
+#ifndef __LWBASE_SECURITY_API_H__
+#define __LWBASE_SECURITY_API_H__
 
 #include "security-types.h"
 #include <lw/ntstatus.h>
@@ -458,4 +458,4 @@ RtlCreateWellKnownSid(
     IN OUT PULONG SidSize
     );
 
-#endif /* __LW_SECURITY_API_H__ */
+#endif /* __LWBASE_SECURITY_API_H__ */
