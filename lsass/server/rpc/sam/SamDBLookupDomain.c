@@ -35,49 +35,13 @@ NTSTATUS
 SamrLookupDomain(
     handle_t b,
     PolicyHandle *conn_h,
-    const wchar16_t *dom_name,
+    UnicodeString *domname
     DomSid **sid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    UnicodeString domname = {0};
-    DomSid *s = NULL;
-    DomSid *out_sid = NULL;
-
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(conn_h, cleanup);
-    goto_if_invalid_param_ntstatus(dom_name, cleanup);
-    goto_if_invalid_param_ntstatus(sid, cleanup);
-
-    status = InitUnicodeString(&domname, dom_name);
-    goto_if_ntstatus_not_success(status, cleanup);
-
-    DCERPC_CALL(_SamrLookupDomain(b, conn_h, &domname, &s));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    if (s) {
-        SamrAllocateDomSid(&out_sid, s, NULL);
-    }
-
-    *sid = out_sid;
-
-cleanup:
-    FreeUnicodeString(&domname);
-
-    if (s) {
-        SamrFreeStubDomSid(s);
-    }
 
     return status;
-
-error:
-    if (out_sid) {
-        SamrFreeMemory((void*)out_sid);
-    }
-
-    *sid = NULL;
-    goto cleanup;
 }
 
 

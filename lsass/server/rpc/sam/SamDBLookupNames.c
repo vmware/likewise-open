@@ -38,82 +38,14 @@ SamrLookupNames(
     handle_t b,
     PolicyHandle *domain_h,
     uint32 num_names,
-    wchar16_t *names[],
-    uint32 **rids,
-    uint32 **types,
-    uint32 *rids_count
+    UnicodeString * samr_names,
+    Ids * pr,
+    Ids * pt
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    UnicodeString *samr_names = NULL;
-    Ids r = {0};
-    Ids t = {0};
-    uint32 *out_rids = NULL;
-    uint32 *out_types = NULL;
-
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(names, cleanup);
-    goto_if_invalid_param_ntstatus(rids, cleanup);
-    goto_if_invalid_param_ntstatus(types, cleanup);
-
-    samr_names = InitUnicodeStringArray(names, num_names);
-    goto_if_no_memory_ntstatus(samr_names, error);
-
-    DCERPC_CALL(_SamrLookupNames(b, domain_h, num_names, samr_names, &r, &t));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    if (r.count != t.count)
-    {
-        status = STATUS_REPLY_MESSAGE_MISMATCH;
-        goto error;
-    }
-
-    status = SamrAllocateIds(&out_rids, &r);
-    goto_if_ntstatus_not_success(status, error);
-
-    status = SamrAllocateIds(&out_types, &t);
-    goto_if_ntstatus_not_success(status, error);
-
-    if (rids_count != NULL)
-    {
-        *rids_count = r.count;
-    }
-    else if (r.count != num_names)
-    {
-        status = STATUS_REPLY_MESSAGE_MISMATCH;
-        goto error;
-    }
-
-    *rids  = out_rids;
-    *types = out_types;
-
-cleanup:
-    SamrCleanStubIds(&r);
-    SamrCleanStubIds(&t);
-
-    FreeUnicodeStringArray(samr_names, num_names);
 
     return status;
-
-error:
-    if (out_rids) {
-        SamrFreeMemory((void*)out_rids);
-    }
-
-    if (out_types) {
-        SamrFreeMemory((void*)out_types);
-    }
-
-    if (rids_count) {
-        *rids_count = 0;
-    }
-
-    *rids       = NULL;
-    *types      = NULL;
-
-    goto cleanup;
 }
 
 
