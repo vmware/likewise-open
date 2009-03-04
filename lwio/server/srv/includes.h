@@ -104,7 +104,7 @@
 #include "srvwrite.h"
 #include "srvwritex.h"
 #include "srvnttransact.h"
-#include "flush.h"
+#include "srvflush.h"
 #include "trans.h"
 #include "trans2.h"
 #include "trans2qfi.h"

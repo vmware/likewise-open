@@ -11,7 +11,6 @@ libsrv_sys_la_SOURCES = \
     findclose2.c      \
     findfirst2.c      \
     findnext2.c       \
-    flush.c           \
     globals.c         \
     hostinfo.c        \
     listener.c        \
@@ -30,6 +29,7 @@ libsrv_sys_la_SOURCES = \
     srvecho.c         \
     srvfile.c         \
     srvfinder.c       \
+    srvflush.c        \
     srvgss.c          \
     srvlockx.c        \
     srvlogoff.c       \
