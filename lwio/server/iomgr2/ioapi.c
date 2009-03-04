@@ -822,7 +822,7 @@ IoQuerySecurityFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
     )
@@ -837,7 +837,8 @@ IoSetSecurityFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    IN PSECURITY_DESCRIPTOR SecurityDescriptor
+    IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;

@@ -35,6 +35,8 @@
 #include <lw/base.h>
 #include <secdesc/secdesc.h>
 
+typedef struct _SECURITY_DESCRIPTOR_RELATIVE *PSECURITY_DESCRIPTOR_RELATIVE;
+
 typedef ULONG ACCESS_MASK;
 
 #if 0

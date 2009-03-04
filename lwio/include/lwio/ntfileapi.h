@@ -343,7 +343,7 @@ LwNtCtxQuerySecurityFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
     IN ULONG Length,
     OUT PULONG LengthNeeded
     ); 
@@ -355,7 +355,8 @@ LwNtCtxSetSecurityFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    IN PSECURITY_DESCRIPTOR SecurityDescriptor
+    IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
     ); 
 
 #ifndef LW_NO_THREADS
@@ -614,7 +615,7 @@ LwNtQuerySecurityFile(
     LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
     LW_IN SECURITY_INFORMATION SecurityInformation,
-    LW_OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
+    LW_OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
     LW_IN LW_ULONG Length,
     LW_OUT LW_PULONG LengthNeeded
     ); 
@@ -625,7 +626,8 @@ LwNtSetSecurityFile(
     LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
     LW_IN SECURITY_INFORMATION SecurityInformation,
-    LW_IN PSECURITY_DESCRIPTOR SecurityDescriptor
+    LW_IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    LW_IN LW_ULONG Length
     ); 
 
 #endif /* ! LW_NO_THREADS */
