@@ -40,24 +40,8 @@ SamrOpenDomain(
     PolicyHandle *domain_h)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle h = {0};
 
-    goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(conn_h, cleanup);
-    goto_if_no_memory_ntstatus(sid, cleanup);
-    goto_if_no_memory_ntstatus(domain_h, cleanup);
-
-    DCERPC_CALL(_SamrOpenDomain(b, conn_h, access_mask, sid, &h));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    *domain_h = h;
-
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 

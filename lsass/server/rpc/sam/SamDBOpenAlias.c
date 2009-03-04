@@ -40,23 +40,8 @@ SamrOpenAlias(
     PolicyHandle *alias_h)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle h = {0};
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(alias_h, cleanup);
-
-    DCERPC_CALL(_SamrOpenAlias(b, domain_h, access_mask, rid, &h));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    *alias_h = h;
-
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 

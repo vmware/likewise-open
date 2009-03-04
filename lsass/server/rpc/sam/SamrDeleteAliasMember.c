@@ -40,19 +40,8 @@ SamrDeleteAliasMember(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(alias_h, cleanup);
-    goto_if_invalid_param_ntstatus(sid, cleanup);
-
-    DCERPC_CALL(_SamrDeleteAliasMember(b, alias_h, sid));
-
-    goto_if_ntstatus_not_success(status, error);
-
-cleanup:
     return status;
 
-error:
-    goto cleanup;
 }
 
 
