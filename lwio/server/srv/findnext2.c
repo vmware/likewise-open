@@ -287,7 +287,7 @@ SrvBuildFindNext2Response(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFinderGetSearchSpace(
-                    pSession,
+                    pSession->hFinderRepository,
                     usSearchId,
                     &hSearchSpace);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -413,6 +413,10 @@ error:
         SMBPacketFree(
             pConnection->hPacketAllocator,
             pSmbResponse);
+    }
+
+    if (ntStatus == STATUS_NO_MORE_MATCHES) {
+        ntStatus = STATUS_NO_SUCH_FILE;
     }
 
     goto cleanup;
