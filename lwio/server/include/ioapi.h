@@ -307,6 +307,7 @@ IoSetSecurityFile(
     IN IO_FILE_HANDLE Handle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
     IN ULONG Length
     ); 
