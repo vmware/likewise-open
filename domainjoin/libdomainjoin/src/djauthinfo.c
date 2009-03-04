@@ -335,6 +335,7 @@ DJRemoveCacheFiles()
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
+
     /* /etc/sudoers */
     ceError = CTAllocateString( "/usr/local/etc:/usr/etc:/etc:/opt/sudo/etc:/opt/csw/etc",
                                 &pszSearchPath);
@@ -378,7 +379,7 @@ DJRemoveCacheFiles()
     }
 
     /* /etc/syslog.conf */
-    ceError = CTCheckFileExists("/etc/syslog.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/syslog.conf.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
@@ -387,27 +388,32 @@ DJRemoveCacheFiles()
         ceError = CTMoveFile("/etc/syslog.conf.orig", "/etc/syslog.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
-
-    /* /etc/rsyslog.conf */
-    ceError = CTCheckFileExists("/etc/rsyslog.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
+    else
     {
-        DJ_LOG_VERBOSE("Restoring /etc/rsyslog.conf.orig file to /etc/rsyslog.conf");
-        ceError = CTMoveFile("/etc/rsyslog.conf.orig", "/etc/rsyslog.conf");
+        /* /etc/syslog-ng.conf */
+        ceError = CTCheckFileExists("/etc/syslog-ng/syslog-ng.conf.orig", &bFileExists);
         BAIL_ON_CENTERIS_ERROR(ceError);
-    }
 
-    /* /etc/syslog-ng.conf */
-    ceError = CTCheckFileExists("/etc/syslog-ng/syslog-ng.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
+        if (bFileExists)
+        {
+            DJ_LOG_VERBOSE("Restoring /etc/syslog-ng/syslog-ng.conf.orig file to /etc/syslog-ng/syslog-ng.conf");
+            ceError = CTMoveFile("/etc/syslog-ng/syslog-ng.conf.orig", "/etc/syslog-ng/syslog-ng.conf");
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+        else
+        {
 
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/syslog-ng/syslog-ng.conf.orig file to /etc/syslog-ng/syslog-ng.conf");
-        ceError = CTMoveFile("/etc/syslog-ng/syslog-ng.conf.orig", "/etc/syslog-ng/syslog-ng.conf");
-        BAIL_ON_CENTERIS_ERROR(ceError);
+            /* /etc/rsyslog.conf */
+            ceError = CTCheckFileExists("/etc/rsyslog.conf.orig", &bFileExists);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+            if (bFileExists)
+            {
+                DJ_LOG_VERBOSE("Restoring /etc/rsyslog.conf.orig file to /etc/rsyslog.conf");
+                ceError = CTMoveFile("/etc/rsyslog.conf.orig", "/etc/rsyslog.conf");
+                BAIL_ON_CENTERIS_ERROR(ceError);
+            }
+        }
     }
 
     /* /etc/crontab */
@@ -442,6 +448,123 @@ DJRemoveCacheFiles()
         ceError = CTMoveFile("/etc/issue.orig", "/etc/issue");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
+
+    /* Revert fstab */
+    ceError = CTCheckFileExists("/etc/fstab.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/fstab.orig file to /etc/fstab");
+        ceError = CTMoveFile("/etc/fstab.orig", "/etc/fstab");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+    else
+    {
+
+        ceError = CTCheckFileExists("/etc/vfstab.orig", &bFileExists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        if (bFileExists)
+        {
+            DJ_LOG_VERBOSE("Restoring /etc/vfstab.orig file to /etc/vfstab");
+            ceError = CTMoveFile("/etc/vfstab.orig", "/etc/vfstab");
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+        else
+        {
+            ceError = CTCheckFileExists("/etc/filesystems.orig", &bFileExists);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+            if (bFileExists)
+            {
+                DJ_LOG_VERBOSE("Restoring /etc/filesystems.orig file to /etc/filesystems");
+                ceError = CTMoveFile("/etc/filesystems.orig", "/etc/filesystems");
+                BAIL_ON_CENTERIS_ERROR(ceError);
+            }
+        }
+    }
+
+    /* Revert auto.master */
+    ceError = CTCheckFileExists("/etc/auto.master.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/auto.master.orig file to /etc/auto.master");
+        ceError = CTMoveFile("/etc/auto.master.orig", "/etc/auto.master");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+    else
+    {
+
+        ceError = CTCheckFileExists("/etc/auto_master.orig", &bFileExists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        if (bFileExists)
+        {
+            DJ_LOG_VERBOSE("Restoring /etc/auto_master.orig file to /etc/auto_master");
+            ceError = CTMoveFile("/etc/auto_master.orig", "/etc/auto_master");
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+    }
+
+    /* Revert login.defs */
+    ceError = CTCheckFileExists("/etc/login.defs.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/login.defs.orig file to /etc/login.defs");
+        ceError = CTMoveFile("/etc/login.defs.orig", "/etc/login.defs");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+#if defined (__LWI_SOLARIS__)
+    /*Revert shadow file -- only for Solaris*/
+    ceError = CTCheckFileExists("/etc/shadow.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/shadow.orig file to /etc/shadow");
+        ceError = CTMoveFile("/etc/shadow.orig", "/etc/shadow");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    ceError = CTCheckFileExists("/etc/default/passwd.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/default/passwd.orig file to /etc/default/passwd");
+        ceError = CTMoveFile("/etc/default/passwd.orig", "/etc/default/passwd");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+#endif
+
+#if defined (__LWI_AIX__)
+    /*Revert /etc/passwd and /etc/security/user -- only for AIX*/
+    ceError = CTCheckFileExists("/etc/security/user.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/security/user.orig file to /etc/security/user");
+        ceError = CTMoveFile("/etc/security/user.orig", "/etc/security/user");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    ceError = CTCheckFileExists("/etc/security/passwd.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/security/passwd.orig file to /etc/security/passwd");
+        ceError = CTMoveFile("/etc/security/passwd.orig", "/etc/security/passwd");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+#endif
 
 error:
 
@@ -877,25 +1000,25 @@ static QueryResult QueryLwiConf(const JoinProcessOptions *options, LWException *
      */
 
     LW_CLEANUP_CTERR(exc, CTCheckFileExists(PREFIXDIR "/sbin/gpagentd", 
-					    &bGpagentdExists));
+                        &bGpagentdExists));
 
     LW_CLEANUP_CTERR(exc, DJGetSambaValue("idmap config default:backend",  &readValue));
     if (bGpagentdExists) {
         if (strcmp(readValue, "lwidentity") != 0)
-	    goto cleanup;
+        goto cleanup;
     } else {
         if (strcmp(readValue, "lwopen") != 0)
-	    goto cleanup;
+        goto cleanup;
     }
     CT_SAFE_FREE_STRING(readValue);
     
     LW_CLEANUP_CTERR(exc, DJGetSambaValue("winbind nss info", &readValue));
     if (bGpagentdExists) {
         if (strcmp(readValue, "lwidentity") != 0)
-	    goto cleanup;
+        goto cleanup;
     } else {
         if (strcmp(readValue, "lwopen") != 0)
-	    goto cleanup;
+        goto cleanup;
     }
     CT_SAFE_FREE_STRING(readValue);
 
