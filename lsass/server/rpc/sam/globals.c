@@ -30,16 +30,6 @@
 
 #include "includes.h"
 
-/* This is a pointer to list of allocated pointers.
-   The list enables freeing a pointer and dependant pointers */
-void *samr_ptr_list = NULL;
-
-
-/* Library initialisation guard */
-pthread_mutex_t g_samr_data_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-int bSamrInitialised = 0;
-
 
 /*
 local variables:
