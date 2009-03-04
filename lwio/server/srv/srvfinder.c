@@ -803,6 +803,8 @@ SrvFinderGetBothDirInfoSearchResults(
 
             do
             {
+                memset(pSearchSpace->pFileInfo, 0x0, pSearchSpace->usFileInfoLen);
+
                 ntStatus = IoQueryDirectoryFile(
                                 pSearchSpace->hFile,
                                 NULL,
@@ -1021,6 +1023,7 @@ SrvFinderMarshallBothDirInfoResults(
         usOffset = 0;
 
         pInfoHeader->FileIndex = pFileInfoCursor->FileIndex;
+        pInfoHeader->EaSize = pFileInfoCursor->EaSize;
         pInfoHeader->CreationTime = pFileInfoCursor->CreationTime;
         pInfoHeader->LastAccessTime = pFileInfoCursor->LastAccessTime;
         pInfoHeader->LastWriteTime = pFileInfoCursor->LastWriteTime;
@@ -1035,7 +1038,12 @@ SrvFinderMarshallBothDirInfoResults(
             memcpy((PBYTE)pInfoHeader->ShortName, (PBYTE)pFileInfoCursor->ShortName, sizeof(pInfoHeader->ShortName));
 
             pInfoHeader->ShortNameLength = pFileInfoCursor->ShortNameLength;
-        }
+        } else {
+            memset((PBYTE)pInfoHeader->ShortName, 0x0, sizeof(pInfoHeader->ShortName));
+
+            pInfoHeader->ShortNameLength = 0;
+	}
+
 
         pDataCursor += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
         usOffset += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);
