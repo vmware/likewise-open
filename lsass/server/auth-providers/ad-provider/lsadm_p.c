@@ -55,10 +55,6 @@
 #include "adprovider.h"
 #include "lsadm_p.h"
 
-#define SetFlag(Variable, Flags)   ((Variable) |= (Flags))
-#define ClearFlag(Variable, Flags) ((Variable) &= ~(Flags))
-#define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
-
 #define IsLsaDmStateFlagsOffline(Flags) \
     IsSetFlag(Flags, LSA_DM_STATE_FLAG_FORCE_OFFLINE | LSA_DM_STATE_FLAG_MEDIA_SENSE_OFFLINE)
 
@@ -67,9 +63,6 @@
 
 #define LOG_WRAP_BOOL(x)   ((x) ? 'Y' : 'N')
 #define LOG_WRAP_STRING(x) ((x) ? (x) : "(null)")
-
-#define IS_BOTH_OR_NEITHER(Condition1, Condition2) \
-    !(!!(Condition1) ^ !!(Condition2))
 
 
 //////////////////////////////////////////////////////////////////////
