@@ -7,6 +7,7 @@ liblwiosmbwire_la_SOURCES = \
     wire_echo.c          \
     wire_error.c         \
     wire_find_close2.c   \
+    wire_flush.c         \
     wire_lockx.c         \
     wire_negotiate.c     \
     wire_nttransaction.c \

@@ -1053,6 +1053,22 @@ typedef struct _DELETE_DIRECTORY_RESPONSE_HEADER {
 
 } __attribute__((__packed__)) DELETE_DIRECTORY_RESPONSE_HEADER, *PDELETE_DIRECTORY_RESPONSE_HEADER;
 
+typedef struct _FLUSH_REQUEST_HEADER
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usFid;
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) FLUSH_REQUEST_HEADER, *PFLUSH_REQUEST_HEADER;
+
+typedef struct _FLUSH_RESPONSE_HEADER {
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) FLUSH_RESPONSE_HEADER, *PFLUSH_RESPONSE_HEADER;
+
 typedef struct
 {
     /* wordCount and byteCount are handled at a higher layer */
@@ -1563,6 +1579,23 @@ WireMarshallRenameResponse(
     ULONG   ulBytesAvailable,
     ULONG   ulOffset,
     PSMB_RENAME_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallFlushRequest(
+    const PBYTE pParams,
+    ULONG       ulBytesAvailable,
+    ULONG       ulOffset,
+    PFLUSH_REQUEST_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
+WireMarshallFlushResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PFLUSH_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
     );
 

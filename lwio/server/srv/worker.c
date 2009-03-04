@@ -378,6 +378,14 @@ SrvWorkerExecute(
 
             break;
 
+        case COM_FLUSH:
+
+            ntStatus = SrvProcessFlush(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
         case COM_LOGOFF_ANDX:
 
             ntStatus = SrvProcessLogoffAndX(
