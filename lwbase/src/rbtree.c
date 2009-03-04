@@ -259,7 +259,13 @@ LwRtlRBTreeFindNode(
     )
 {
     PVOID pResult = NULL;
-    PLWRTL_RB_TREE_NODE pIter = pRBTree->pRoot;
+    PLWRTL_RB_TREE_NODE pIter = NULL;
+
+    if (pRBTree == NULL) {
+	    return NULL;
+    }
+
+    pIter = pRBTree->pRoot;
 
     while (pIter && !LWRTL_RBTREE_IS_NIL_NODE(pIter))
     {
