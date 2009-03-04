@@ -28,162 +28,69 @@
  * license@likewisesoftware.com
  */
 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        syswrap_p.h
+ *        flush.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        syscall wrappers
+ *        Flush Dispatch Function
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
+#include "pvfs.h"
 
-#ifndef _PVFS_SYSWRAP_P_H
-#define _PVFS_SYSWRAP_P_H
-
-#include "config.h"
-
-#include <sys/types.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+/* Forward declarations */
 
 
-/* Syscall wrappers */
+/* Code */
 
 NTSTATUS
-PvfsSysStat(
-	PSTR pszFilename,
-	PPVFS_STAT pStat
-	);
+PvfsFlushBuffers(
+    IO_DEVICE_HANDLE DeviceHandle,
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
 
-NTSTATUS
-PvfsSysFstat(
-	int fd,
-	PPVFS_STAT pStat
-	);
+    /* Sanity checks */
 
-NTSTATUS
-PvfsSysOpen(
-    int *pFd,
-    PSTR pszFilename,
-    int iFlags,
-    mode_t Mode
-    );
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
-NTSTATUS
-PvfsSysClose(
-    int fd
-    );
+    if (PVFS_IS_DIR(pCcb)) {
+        ntError = STATUS_FILE_IS_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
+    BAIL_ON_NT_STATUS(ntError);
 
-NTSTATUS
-PvfsSysMkDir(
-    PSTR pszDirname,
-    mode_t mode
-    );
+    /* Real work starts here */
 
-NTSTATUS
-PvfsSysOpenDir(
-    PSTR pszDirname,
-    DIR **ppDir
-    );
+    ntError = PvfsSysFsync(pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
-NTSTATUS
-PvfsSysDirFd(
-    PPVFS_CCB pCcb,
-    int *pFd
-    );
+cleanup:
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
 
-NTSTATUS
-PvfsSysReadDir(
-    DIR *pDir,
-    struct dirent **ppDirEntry
-    );
+    return ntError;
 
-NTSTATUS
-PvfsSysCloseDir(
-    DIR *pDir
-    );
+error:
+    goto cleanup;
+}
 
-NTSTATUS
-PvfsSysLseek(
-    int fd,
-    off_t offset,
-    int whence,
-    off_t *pNewOffset
-    );
-
-NTSTATUS
-PvfsSysFtruncate(
-    int fd,
-    off_t offset
-    );
-
-
-NTSTATUS
-PvfsSysUtime(
-    PSTR pszPathname,
-    LONG64 LastWriteTime,
-    LONG64 LastAccessTime
-    );
-
-NTSTATUS
-PvfsSysFstatFs(
-    PPVFS_CCB pCcb,
-    PPVFS_STATFS pStatFs
-    );
-
-NTSTATUS
-PvfsSysRemove(
-    PSTR pszPath
-    );
-
-NTSTATUS
-PvfsSysRead(
-    PPVFS_CCB pCcb,
-    PVOID pBuffer,
-    ULONG pBufLen,
-    PLONG64 pOffset,
-    PULONG pBytesRead
-    );
-
-NTSTATUS
-PvfsSysWrite(
-    PPVFS_CCB pCcb,
-    PVOID pBuffer,
-    ULONG pBufLen,
-    PLONG64 pOffset,
-    PULONG pBytesWritten
-    );
-
-NTSTATUS
-PvfsSysChown(
-    PPVFS_CCB pCcb,
-    uid_t uid,
-    gid_t gid
-    );
-
-NTSTATUS
-PvfsSysRename(
-    PCSTR pszOldname,
-    PCSTR pszNewname
-    );
-
-NTSTATUS
-PvfsSysFsync(
-    PPVFS_CCB pCcb
-    );
-
-#endif     /* _PVFS_SYSWRAP_P_H */
 
 
 /*

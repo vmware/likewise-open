@@ -142,6 +142,13 @@ PvfsLockControl(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsFlushBuffers(
+    IO_DEVICE_HANDLE DeviceHandle,
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+
 
 /* From errno.c */
 

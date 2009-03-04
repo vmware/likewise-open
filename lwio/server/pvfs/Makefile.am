@@ -6,6 +6,7 @@ libpvfs_sys_la_SOURCES = \
     create.c \
     read.c   \
     write.c  \
+    flush.c \
     lock.c \
     deviceio.c \
     fsctrl.c \

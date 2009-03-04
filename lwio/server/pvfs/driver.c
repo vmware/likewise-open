@@ -151,7 +151,7 @@ PvfsDriverDispatch(
         break;
 
     case IRP_TYPE_FLUSH_BUFFERS:
-        ntError = STATUS_NOT_IMPLEMENTED;
+        ntError = PvfsFlushBuffers(DeviceHandle, pIrpCtx);
         break;
 
     case IRP_TYPE_QUERY_INFORMATION:
