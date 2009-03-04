@@ -428,14 +428,6 @@ SrvWorkerExecute(
 
             break;
 
-        case SMB_FLUSH:
-
-            ntStatus = SmbProcessFlush(
-                            pSmbRequest,
-                            pSmbResponse);
-
-            break;
-
         case SMB_CLOSE_AND_TREE_DISCONNECT:
 
             ntStatus = SmbProcessCloseAndTreeDisconnect(
