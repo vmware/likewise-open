@@ -37,65 +37,13 @@ SamrEnumDomains(
     PolicyHandle *conn_h,
     uint32 *resume,
     uint32 size,
-    wchar16_t ***names,
+    EntryArray **domains,
     uint32 *count
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    NTSTATUS ret_status = STATUS_SUCCESS;
-    EntryArray *domains = NULL;
-    uint32 res = 0;
-    uint32 num = 0;
-    wchar16_t **out_names = NULL;
-
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(conn_h, cleanup);
-    goto_if_invalid_param_ntstatus(resume, cleanup);
-    goto_if_invalid_param_ntstatus(names, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
-
-    res = *resume;
-
-    DCERPC_CALL(_SamrEnumDomains(b, conn_h, &res, size, &domains, &num));
-
-    /* Preserve returned status code */
-    ret_status = status;
-
-    /* Status other than success doesn't have to mean failure here */
-    if (ret_status != STATUS_SUCCESS &&
-        ret_status != STATUS_MORE_ENTRIES) goto error;
-
-    if (domains != NULL) {
-        status = SamrAllocateNames(&out_names, domains);
-        goto_if_ntstatus_not_success(status, error);
-    }
-
-    *resume = res;
-    *count  = num;
-    *names  = out_names;
-
-cleanup:
-    if (domains) {
-        SamrFreeStubEntryArray(domains);
-    }
-
-    if (status == STATUS_SUCCESS &&
-        (ret_status == STATUS_SUCCESS ||
-         ret_status == STATUS_MORE_ENTRIES)) {
-        status = ret_status;
-    }
 
     return status;
-
-error:
-    if (out_names) {
-        SamrFreeMemory((void*)out_names);
-    }
-
-    *resume = 0;
-    *count  = 0;
-    *names  = NULL;
-    goto cleanup;
 }
 
 
