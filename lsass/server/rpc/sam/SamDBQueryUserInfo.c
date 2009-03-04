@@ -40,38 +40,8 @@ SamrQueryUserInfo(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    UserInfo *i = NULL;
-    UserInfo *out_info = NULL;
-
-    goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(user_h, cleanup);
-    goto_if_no_memory_ntstatus(info, cleanup);
-
-    DCERPC_CALL(_SamrQueryUserInfo(b, user_h, level, &i));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    if (i) {
-        status = SamrAllocateUserInfo(&out_info, i, level);
-        goto_if_ntstatus_not_success(status, error);
-    }
-
-    *info = out_info;
-
-cleanup:
-    if (i) {
-        SamrFreeStubUserInfo(i, level);
-    }
 
     return status;
-
-error:
-    if (out_info) {
-        SamrFreeMemory((void*)out_info);
-    }
-
-    *info = NULL;
-    goto cleanup;
 }
 
 

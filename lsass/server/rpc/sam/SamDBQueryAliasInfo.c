@@ -32,46 +32,15 @@
 
 
 NTSTATUS
-SamrQueryDomainInfo(
+SamrQueryAliasInfo(
     handle_t b,
-    PolicyHandle *domain_h,
+    PolicyHandle *alias_h,
     uint16 level,
-    DomainInfo **info
-    )
+    AliasInfo **info)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DomainInfo *i = NULL;
-    DomainInfo *out_info = NULL;
-
-    goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(domain_h, cleanup);
-    goto_if_no_memory_ntstatus(info, cleanup);
-
-    DCERPC_CALL(_SamrQueryDomainInfo(b, domain_h, level, &i));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    if (i) {
-        status = SamrAllocateDomainInfo(&out_info, i, level);
-        goto_if_ntstatus_not_success(status, error);
-    }
-
-    *info = out_info;
-
-cleanup:
-    if (i) {
-        SamrFreeStubDomainInfo(i, level);
-    }
 
     return status;
-
-error:
-    if (out_info) {
-        SamrFreeMemory((void*)out_info);
-    }
-
-    *info = NULL;
-    goto cleanup;
 }
 
 
