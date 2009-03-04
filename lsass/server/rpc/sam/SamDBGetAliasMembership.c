@@ -35,54 +35,10 @@ NTSTATUS
 SamrGetAliasMembership(
     handle_t b,
     PolicyHandle *domain_h,
-    DomSid *sids,
-    uint32 num_sids,
-    uint32 **rids,
-    uint32 *count
+    SidArray * pSidArray
+    Ids * pIds
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    uint32 i = 0;
-    SidArray s = {0};
-    Ids r = {0};
-    uint32 *out_rids = NULL;
-
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(sids, cleanup);
-    goto_if_invalid_param_ntstatus(rids, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
-
-    s.num_sids = num_sids;
-    status = SamrAllocateMemory((void**)&s.sids,
-                                sizeof(SidPtr) * num_sids,
-                                NULL);
-    goto_if_ntstatus_not_success(status, error);
-
-    for (i = 0; i < num_sids; i++) {
-        s.sids[i].sid = &(sids[i]);
-    }
-
-
-    DCERPC_CALL(_SamrGetAliasMembership(b, domain_h, &s, &r));
-
-    goto_if_ntstatus_not_success(status, error);
-
-    status = SamrAllocateIds(&out_rids, &r);
-    goto_if_ntstatus_not_success(status, error);
-
-    *rids  = out_rids;
-    *count = r.count;
-
-cleanup:
-    SamrCleanStubIds(&r);
-
-    return status;
-
-error:
-    *rids  = NULL;
-    *count = 0;
-    goto cleanup;
 }
 
 
