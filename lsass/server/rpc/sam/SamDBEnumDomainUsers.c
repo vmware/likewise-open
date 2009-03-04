@@ -38,8 +38,7 @@ SamrEnumDomainUsers(
     uint32 *resume,
     uint32 account_flags,
     uint32 max_size,
-    wchar16_t ***names,
-    uint32 **rids,
+    RidNameArray ** entries,
     uint32 *count
     )
 {
