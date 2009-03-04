@@ -786,6 +786,25 @@ typedef struct
 
 }  __attribute__((__packed__))  NT_TRANSACTION_REQUEST_HEADER, *PNT_TRANSACTION_REQUEST_HEADER;
 
+typedef struct
+{
+    /* wordCount and command are handled at a higher layer */
+
+    UCHAR ucReserved[3];
+    ULONG ulTotalParameterCount;
+    ULONG ulTotalDataCount;
+    ULONG ulParameterCount;
+    ULONG ulParameterOffset;
+    ULONG ulParameterDisplacement;
+    ULONG ulDataCount;
+    ULONG ulDataOffset;
+    ULONG ulDataDisplacement;
+    UCHAR ucSetupCount;
+
+    /* Setup words immediately follow */
+
+} __attribute__((__packed__))  NT_TRANSACTION_SECONDARY_RESPONSE_HEADER, *PNT_TRANSACTION_SECONDARY_RESPONSE_HEADER;
+
 /* @todo: is this ever sent? */
 typedef struct
 {
@@ -1420,6 +1439,22 @@ WireUnmarshallNtTransactionRequest(
     PUSHORT*                        ppByteCount,
     PBYTE*                          ppParameters,
     PBYTE*                          ppData
+    );
+
+NTSTATUS
+WireMarshallNtTransactionResponse(
+    PBYTE   pBuffer,
+    ULONG   ulNumBytesAvailable,
+    ULONG   ulOffset,
+    PUSHORT pSetup,
+    UCHAR   ucSetupCount,
+    PBYTE   pParams,
+    ULONG   ulParamLength,
+    PBYTE   pData,
+    ULONG   ulDataLen,
+    PULONG  pulDataOffset,
+    PULONG  pulParameterOffset,
+    PULONG  pulNumPackageBytesUsed
     );
 
 NTSTATUS

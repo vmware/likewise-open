@@ -170,6 +170,14 @@ SrvQuerySecurityDescriptor(
 {
     NTSTATUS ntStatus = 0;
     PSMB_SRV_FILE pFile = NULL;
+    PUSHORT       pSetup = NULL;
+    UCHAR         ucSetupCount = 0;
+    PBYTE         pSecurityDescriptor = NULL;
+    ULONG         ulSecurityDescInitialLen = 256;
+    ULONG         ulSecurityDescLen = 0;
+    ULONG         ulDataOffset = 0;
+    ULONG         ulParameterOffset = 0;
+    ULONG         ulNumPackageBytesUsed = 0;
     PSMB_QUERY_SECURITY_INFORMATION pQueryRequest = NULL;
     PSMB_PACKET pSmbResponse = NULL;
 
@@ -187,9 +195,97 @@ SrvQuerySecurityDescriptor(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO: query security information on file
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pSecurityDescriptor,
+                    BYTE,
+                    ulSecurityDescInitialLen);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = STATUS_NOT_IMPLEMENTED;
+    ulSecurityDescLen = ulSecurityDescInitialLen;
+
+    do
+    {
+        IO_STATUS_BLOCK ioStatusBlock = {0};
+        ULONG ulNewLen = 0;
+
+        ntStatus = IoQuerySecurityFile(
+                        pFile->hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        pQueryRequest->ulSecurityInfo,
+                        (PSECURITY_DESCRIPTOR)pSecurityDescriptor,
+                        ulSecurityDescLen,
+                        &ulNewLen);
+        if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+        {
+            PBYTE pNewMemory = NULL;
+
+            ntStatus = LW_RTL_ALLOCATE(
+                            &pNewMemory,
+                            BYTE,
+                            ulNewLen);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            if (pSecurityDescriptor)
+            {
+                LwRtlMemoryFree(pSecurityDescriptor);
+            }
+
+            pSecurityDescriptor = pNewMemory;
+            ulSecurityDescLen = ulNewLen;
+
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+    } while (ntStatus != STATUS_SUCCESS);
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_NT_TRANSACT,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                pSmbRequest->pSMBHeader->pid,
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 18 + ucSetupCount;
+
+    ntStatus = WireMarshallNtTransactionResponse(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pSetup,
+                    ucSetupCount,
+                    (PBYTE)&ulSecurityDescLen,
+                    sizeof(ulSecurityDescLen),
+                    pSecurityDescriptor,
+                    ulSecurityDescLen,
+                    &ulDataOffset,
+                    &ulParameterOffset,
+                    &ulNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += ulNumPackageBytesUsed;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
@@ -199,6 +295,11 @@ cleanup:
     if (pFile)
     {
         SrvFileRelease(pFile);
+    }
+
+    if (pSecurityDescriptor)
+    {
+        LwRtlMemoryFree(pSecurityDescriptor);
     }
 
     return ntStatus;
