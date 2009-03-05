@@ -530,7 +530,6 @@ int LdapMachDnsNameSearch(
     int lderr = LDAP_SUCCESS;
     size_t basedn_len = 0;
     size_t filter_len = 0;
-    size_t machname_len = 0;
     size_t dnsname_len = 0;
     wchar16_t *dnsname = NULL;
     char *basedn = NULL;
