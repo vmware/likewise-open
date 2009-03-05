@@ -43,6 +43,21 @@ SamrCreateUser(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    ntStatus = ConvertUnicodeStringToWSTR(
+                        account_name,
+                        &pAccountName
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = DirectoryAddObject(
+                        hDirectory,
+                        pAccountName,
+                        Attributes
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
     return status;
 }
 

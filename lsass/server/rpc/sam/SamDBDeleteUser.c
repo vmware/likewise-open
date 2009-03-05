@@ -39,6 +39,8 @@ SamrDeleteUser(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+
+
     return status;
 }
 

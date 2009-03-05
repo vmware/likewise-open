@@ -43,9 +43,22 @@ SamrLookupNames(
     Ids * pt
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR
+    ntStatus = DirectorySearchObject(
+                        hDirectory,
+                        pszSamRootDN,
+                        DIRECTORY_ONE_LEVEL,
+                        pszSearchString,
+                        Attributes,
+                        &pDirectoryValues,
+                        &dwCount
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    return status;
+error:
+
+    return ntStatus;
 }
 
 
