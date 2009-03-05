@@ -37,7 +37,7 @@
 #include "includes.h"
 
 /* Library initialisation guard */
-pthread_rwlock_t gLsaDataMutex;
+pthread_rwlock_t gLsaDataLock;
 
 int bLsaInitialised = 0;
 

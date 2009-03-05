@@ -37,7 +37,7 @@
 #ifndef _EXTERNS_H_
 #define _EXTERNS_H_
 
-extern pthread_rwlock_t gLsaDataMutex;
+extern pthread_rwlock_t gLsaDataLock;
 
 extern int bLsaInitialised;
 
@@ -61,4 +61,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-

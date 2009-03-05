@@ -197,7 +197,7 @@ DWORD LsaInitializeRpcSrv(
 {
     DWORD dwError = 0;
 
-    pthread_rwlock_init(&gLsaDataMutex, NULL);
+    pthread_rwlock_init(&gLsaDataLock, NULL);
 
     dwError = LsaRpcStartServer();
     BAIL_ON_LSA_ERROR(dwError);
