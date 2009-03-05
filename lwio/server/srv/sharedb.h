@@ -80,6 +80,17 @@ SrvShareDbAdd(
     );
 
 NTSTATUS
+SrvShareDbAdd_inlock(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE hDb,
+    PCSTR  pszShareName,
+    PCSTR  pszPath,
+    PCSTR  pszComment,
+    PCSTR  pszSid,
+    PCSTR  pszService
+    );
+
+NTSTATUS
 SrvShareDbEnum(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE           hDb,

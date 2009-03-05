@@ -56,6 +56,14 @@ SrvShareDbCreate(
     );
 
 static
+NTSTATUS
+SrvShareBuildSharePath(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PCSTR                     pszInputPath,
+    PSTR*                     ppszPath
+    );
+
+static
 VOID
 SrvShareDbFreeInfo(
     PSHARE_DB_INFO pShareInfo
@@ -77,10 +85,36 @@ SrvShareDbInit(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
     )
 {
+    NTSTATUS ntStatus = 0;
+
     pthread_rwlock_init(&pShareDBContext->mutex, NULL);
     pShareDBContext->pMutex = &pShareDBContext->mutex;
 
-    return SrvShareDbCreate(pShareDBContext);
+    ntStatus = SMBAllocateString(
+                    LWIO_SRV_FILE_SYSTEM_PREFIX,
+                    &pShareDBContext->pszFileSystemPrefix);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBAllocateString(
+                    LWIO_SRV_FILE_SYSTEM_ROOT,
+                    &pShareDBContext->pszFileSystemRoot);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBAllocateString(
+                    LWIO_SRV_PIPE_SYSTEM_ROOT,
+                    &pShareDBContext->pszPipeSystemRoot);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareDbCreate(pShareDBContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static
@@ -145,7 +179,7 @@ SrvShareDbCreate(
                     pShareDBContext,
                     hDb,
                     "IPC$",
-                    "\\npvfs",
+                    pShareDBContext->pszPipeSystemRoot,
                     "Root of Named Pipe Virtual File System",
                     NULL,
                     "IPC");
@@ -155,7 +189,7 @@ SrvShareDbCreate(
                     pShareDBContext,
                     hDb,
                     "C$",
-                    "\\pvfs\\lwtest",
+                    pShareDBContext->pszFileSystemRoot,
                     "Root of Posix Virtual File System",
                     NULL,
                     "A:");
@@ -232,10 +266,48 @@ SrvShareDbAdd(
     )
 {
     NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
+
+    ntStatus = SrvShareDbAdd_inlock(
+                    pShareDBContext,
+                    hDb,
+                    pszShareName,
+                    pszPath,
+                    pszComment,
+                    pszSid,
+                    pszService);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvShareDbAdd_inlock(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE hDb,
+    PCSTR  pszShareName,
+    PCSTR  pszPath,
+    PCSTR  pszComment,
+    PCSTR  pszSid,
+    PCSTR  pszService
+    )
+{
+    NTSTATUS ntStatus = 0;
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR pszError = NULL;
     PSTR pszQuery = NULL;
-    //    BOOLEAN bInLock = FALSE;
+    PSTR pszUpperShareName = NULL;
+    PSTR pszPathLocal = NULL;
     SHARE_SERVICE service = SHARE_SERVICE_UNKNOWN;
 
     if (IsNullOrEmptyString(pszShareName))
@@ -247,6 +319,19 @@ SrvShareDbAdd(
         ntStatus = STATUS_INVALID_PARAMETER_4;
     }
 
+    ntStatus = SMBAllocateString(
+                    pszShareName,
+                    &pszUpperShareName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMBStrToUpper(pszUpperShareName);
+
+    ntStatus = SrvShareBuildSharePath(
+                    pShareDBContext,
+                    pszPath,
+                    &pszPathLocal);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvShareGetServiceId(pszService, &service);
     if (ntStatus == STATUS_NOT_FOUND)
     {
@@ -254,11 +339,9 @@ SrvShareDbAdd(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    //    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
-
     pszQuery = sqlite3_mprintf(DB_QUERY_INSERT_SHARE,
-                               pszShareName,
-                               pszPath,
+                               pszUpperShareName,
+                               pszPathLocal,
                                pszComment,
                                pszSid,
                                pszService);
@@ -282,7 +365,15 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    //    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    if (pszUpperShareName)
+    {
+        LwRtlMemoryFree(pszUpperShareName);
+    }
+
+    if (pszPathLocal)
+    {
+        LwRtlMemoryFree(pszPathLocal);
+    }
 
     return ntStatus;
 
@@ -296,6 +387,107 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+SrvShareBuildSharePath(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PCSTR pszInputPath,
+    PSTR* ppszPath
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PCSTR    pszPathReadCursor = pszInputPath;
+    PSTR     pszPathWriteCursor = NULL;
+    PSTR     pszPath = NULL;
+    size_t   sFSPrefixLen = 0;
+    size_t   sFSRootLen = 0;
+    size_t   sRequiredLen = 0;
+
+    sFSPrefixLen = strlen(pShareDBContext->pszFileSystemPrefix);
+    sFSRootLen = strlen(pShareDBContext->pszFileSystemRoot);
+
+    if (strncasecmp(
+            pszPathReadCursor,
+            pShareDBContext->pszFileSystemPrefix,
+            sFSPrefixLen))
+    {
+        ntStatus = STATUS_OBJECT_PATH_SYNTAX_BAD;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        sRequiredLen += sFSRootLen;
+        pszPathReadCursor += sFSRootLen;
+    }
+
+    if (!pszPathReadCursor || !*pszPathReadCursor)
+    {
+        ntStatus = STATUS_OBJECT_PATH_SYNTAX_BAD;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    sRequiredLen++; // path delimiter
+    while (pszPathReadCursor &&
+           *pszPathReadCursor &&
+           ((*pszPathReadCursor == '\\') || (*pszPathReadCursor == '/')))
+    {
+        pszPathReadCursor++;
+    }
+
+    // The rest of the path
+    sRequiredLen += strlen(pszPathReadCursor);
+
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pszPath,
+                    CHAR,
+                    sizeof(CHAR) * (sRequiredLen + 1));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pszPathReadCursor = pszInputPath;
+    pszPathWriteCursor = pszPath;
+
+    pszPathReadCursor += sFSPrefixLen;
+    memcpy(pszPathWriteCursor, pShareDBContext->pszFileSystemRoot, sFSRootLen);
+    pszPathWriteCursor += sFSRootLen;
+    *pszPathWriteCursor++ = '\\';
+
+    while (pszPathReadCursor &&
+           *pszPathReadCursor &&
+           ((*pszPathReadCursor == '\\') || (*pszPathReadCursor == '/')))
+    {
+        pszPathReadCursor++;
+    }
+
+    while (pszPathReadCursor && *pszPathReadCursor)
+    {
+        if (*pszPathReadCursor == '/')
+        {
+            *pszPathWriteCursor++ = '\\';
+        }
+        else
+        {
+            *pszPathWriteCursor++ = *pszPathReadCursor;
+        }
+        pszPathReadCursor++;
+    }
+
+    *ppszPath = pszPath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppszPath = NULL;
+
+    if (pszPath)
+    {
+        LwRtlMemoryFree(pszPath);
+    }
+
+    goto cleanup;
+}
 
 NTSTATUS
 SrvShareDbEnum(
@@ -842,5 +1034,20 @@ SrvShareDbShutdown(
     {
         pthread_rwlock_destroy(&pShareDBContext->mutex);
         pShareDBContext->pMutex = NULL;
+    }
+
+    if (pShareDBContext->pszFileSystemPrefix)
+    {
+        LwRtlMemoryFree(pShareDBContext->pszFileSystemPrefix);
+    }
+
+    if (pShareDBContext->pszFileSystemRoot)
+    {
+        LwRtlMemoryFree(pShareDBContext->pszFileSystemRoot);
+    }
+
+    if (pShareDBContext->pszPipeSystemRoot)
+    {
+        LwRtlMemoryFree(pShareDBContext->pszPipeSystemRoot);
     }
 }

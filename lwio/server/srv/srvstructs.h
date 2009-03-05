@@ -115,6 +115,10 @@ typedef struct _SMB_SRV_SHARE_DB_CONTEXT
 
     PSRV_SHARE_ENTRY  pShareEntry;
 
+    PSTR              pszFileSystemPrefix;
+    PSTR              pszFileSystemRoot;
+    PSTR              pszPipeSystemRoot;
+
 } SMB_SRV_SHARE_DB_CONTEXT, *PSMB_SRV_SHARE_DB_CONTEXT;
 
 

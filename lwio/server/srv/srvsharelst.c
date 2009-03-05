@@ -605,7 +605,7 @@ SrvShareAddShare(
                     &hDb);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareDbAdd(
+    ntStatus = SrvShareDbAdd_inlock(
                         pDbContext,
                         hDb,
                         pszShareName,
@@ -617,6 +617,7 @@ SrvShareAddShare(
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
+
     if (hDb != (HANDLE)NULL)
     {
        SrvShareDbClose(pDbContext, hDb);
