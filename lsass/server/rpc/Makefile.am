@@ -1,1 +1,1 @@
-SUBDIRS=lsa
+SUBDIRS=lsa samr
