@@ -16,13 +16,15 @@ liblsa_srv_la_SOURCES = \
     LsaQueryInfoPolicy.c \
     LsaQueryInfoPolicy2.c
 
-LSASS_SRV_INCLUDES=-I$(srv_srcdir)/include
-LSASS_INCLUDES=-I$(top_srcdir)/include
+LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
+LSASS_INCLUDES = -I$(top_srcdir)/include
+LIBRPC_INCLUDES = @NETAPI_INCLUDES@
 
 liblsa_srv_la_CFLAGS = \
     -DLIBRPC_BUILD \
     $(LSASS_SRV_INCLUDES) \
     $(LSASS_INCLUDES) \
+    $(LIBRPC_INCLUDES) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
