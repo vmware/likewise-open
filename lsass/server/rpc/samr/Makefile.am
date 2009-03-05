@@ -7,7 +7,8 @@ lib_LTLIBRARIES = libsamr_ss.la libsamr_srv.la
 libsamr_srv_la_SOURCES = \
     globals.c \
     samr.c \
-    samr_srv.c
+    samr_srv.c \
+    samr_connect.c
 
 LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
 LSASS_INCLUDES = -I$(top_srcdir)/include
