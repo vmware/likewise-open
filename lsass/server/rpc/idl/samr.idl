@@ -1,0 +1,342 @@
+[
+uuid(12345778-1234-abcd-ef00-0123456789ac),
+version(1.0),
+pointer_default(unique)
+]
+interface samr
+{
+#include <lwrpc/types.h>
+#include <lwrpc/unistrdef.h>
+#include <lwrpc/rid.h>
+#include <security.idl>
+
+#include <lwrpc/domaininfo.h>
+#include <lwrpc/aliasinfo.h>
+#include <lwrpc/userinfo.h>
+
+    /* DomainInfo union returned from SamrQueryDomainInfo */
+    typedef [switch_type(uint16)] union domain_info {
+        [case(1)] DomainInfo1 info1;
+        [case(2)] DomainInfo2 info2;
+        [case(3)] DomainInfo3 info3;
+        [case(4)] DomainInfo4 info4;
+        [case(5)] DomainInfo5 info5;
+        [case(6)] DomainInfo6 info6;
+        [case(7)] DomainInfo7 info7;
+        [case(8)] DomainInfo8 info8;
+        [case(9)] DomainInfo9 info9;
+        [case(11)] DomainInfo11 info11;
+        [case(12)] DomainInfo12 info12;
+        [case(13)] DomainInfo13 info13;
+    } DomainInfo;
+
+    /* AliasInfo union returned from SamrQueryAliasInfo */
+    typedef [switch_type(uint16)] union alias_info {
+        [case(1)] AliasInfoAll all;
+        [case(2)] UnicodeString name;
+        [case(3)] UnicodeString description;
+    } AliasInfo;
+
+    /* UserInfo union returned from SamrQueryUserInfo */
+    typedef [switch_type(uint16)] union user_info {
+        [case(1)] UserInfo1 info1;
+        [case(2)] UserInfo2 info2;
+        [case(3)] UserInfo3 info3;
+        [case(4)] UserInfo4 info4;
+        [case(5)] UserInfo5 info5;
+        [case(6)] UserInfo6 info6;
+        [case(7)] UserInfo7 info7;
+        [case(8)] UserInfo8 info8;
+        [case(9)] UserInfo9 info9;
+        [case(10)] UserInfo10 info10;
+        [case(11)] UserInfo11 info11;
+        [case(12)] UserInfo12 info12;
+        [case(13)] UserInfo13 info13;
+        [case(14)] UserInfo14 info14;
+        [case(16)] UserInfo16 info16;
+        [case(17)] UserInfo17 info17;
+        [case(20)] UserInfo20 info20;
+        [case(21)] UserInfo21 info21;
+        [case(23)] UserInfo23 info23;
+        [case(24)] UserInfo24 info24;
+        [case(25)] UserInfo25 info25;
+        [case(26)] UserInfo26 info26;
+    } UserInfo;
+
+    /* function 0x00 */
+    NTSTATUS SamrConnect(
+        [in,unique] wchar16_t *system_name,
+        [in] uint32 access_mask,
+        [out,ref] PolicyHandle *connect_handle
+        );
+
+    /* function 0x01 */
+    NTSTATUS _SamrClose(
+        [in,out,ref] PolicyHandle *handle
+        );
+
+    NTSTATUS samr_Function02();
+    NTSTATUS samr_Function03();
+    NTSTATUS samr_Function04();
+
+    /* function 0x05 */
+    NTSTATUS _SamrLookupDomain(
+        [in,ref] PolicyHandle *handle,
+        [in,ref] UnicodeString *domain_name,
+        [out] DomSid **sid
+        );
+
+    NTSTATUS _SamrEnumDomains(
+        [in,ref] PolicyHandle *handle,
+        [in,out,ref] uint32 *resume,
+        [in] uint32 size,
+        [out] EntryArray **domains,
+        [out] uint32 *num_entries
+        );
+
+    /* function 0x07 */
+    NTSTATUS _SamrOpenDomain(
+        [in,ref] PolicyHandle *conn_handle,
+        [in] uint32 access_mask,
+        [in,ref] DomSid *sid,
+        [out,ref] PolicyHandle *domain_handle
+        );
+
+    /* function 0x08 */
+    NTSTATUS _SamrQueryDomainInfo(
+        [in,ref] PolicyHandle *domain_handle,
+        [in] uint16 level,
+        [out,switch_is(level)] DomainInfo **info
+        );
+
+    NTSTATUS samr_Function09();
+    NTSTATUS samr_Function0a();
+    NTSTATUS samr_Function0b();
+
+    /* function 0x0c */
+    NTSTATUS _SamrCreateUser(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,ref] UnicodeString *account_name,
+        [in] uint32 access_mask,
+        [out,ref] PolicyHandle *user_handle,
+        [out,ref] uint32 *rid
+        );
+
+    /* function 0x0d */
+    NTSTATUS _SamrEnumDomainUsers(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,out,ref] uint32 *resume,
+        [in] uint32 account_flags,
+        [in] uint32 max_size,
+        [out] RidNameArray **names,
+        [out] uint32 *num_entries
+        );
+
+    /* function 0x0e */
+    NTSTATUS _SamrCreateDomAlias(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,ref] UnicodeString *alias_name,
+        [in] uint32 access_mask,
+        [out,ref] PolicyHandle *alias_handle,
+        [out,ref] uint32 *rid
+        );
+
+    /* function 0x0f */
+    NTSTATUS _SamrEnumDomainAliases(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,out,ref] uint32 *resume,
+        [in] uint32 account_flags,
+        [out] RidNameArray **names,
+        [out] uint32 *num_entries
+        );
+
+    /* function 0x10 */
+    NTSTATUS _SamrGetAliasMembership(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,ref] SidArray *sids,
+        [out,ref] Ids *rids
+        );
+
+    /* function 0x11 */
+    NTSTATUS _SamrLookupNames(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,range(0,1000)] uint32 num_names,
+        [in,size_is(1000),length_is(num_names)] UnicodeString *names,
+        [out] Ids *ids,
+        [out] Ids *types
+        );
+
+    /* function 0x12 */
+    NTSTATUS _SamrLookupRids(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,range(0,1000)] uint32 num_rids,
+        [in,size_is(1000),length_is(num_rids)] uint32 rids[],
+        [out] UnicodeStringArray *names,
+        [out] Ids *types
+        );
+
+    NTSTATUS samr_Function13();
+    NTSTATUS samr_Function14();
+    NTSTATUS samr_Function15();
+    NTSTATUS samr_Function16();
+    NTSTATUS samr_Function17();
+    NTSTATUS samr_Function18();
+    NTSTATUS samr_Function19();
+    NTSTATUS samr_Function1a();
+
+    /* function 0x1b */
+    NTSTATUS _SamrOpenAlias(
+        [in,ref] PolicyHandle *domain_handle,
+        [in] uint32 access_mask,
+        [in] uint32 rid,
+        [out,ref] PolicyHandle *alias
+        );
+
+    /* function 0x1c */
+    NTSTATUS _SamrQueryAliasInfo(
+        [in,ref] PolicyHandle *alias_handle,
+        [in] uint16 level,
+        [out,switch_is(level)] AliasInfo **info
+        );
+
+    /* function 0x1d */
+    NTSTATUS _SamrSetAliasInfo(
+        [in,ref] PolicyHandle *alias_handle,
+        [in] uint16 level,
+        [in,switch_is(level),ref] AliasInfo *info
+        );
+
+    /* function 0x1e */
+    NTSTATUS _SamrDeleteDomAlias(
+        [in,out,ref] PolicyHandle *alias_handle
+        );
+
+    /* function 0x1f */
+    NTSTATUS _SamrAddAliasMember(
+        [in,ref] PolicyHandle *alias_handle,
+        [in,ref] DomSid *sid
+        );
+
+    /* function 0x20 */
+    NTSTATUS _SamrDeleteAliasMember(
+        [in,ref] PolicyHandle *alias_handle,
+        [in,ref] DomSid *sid
+        );
+
+    /* function 0x21 */
+    NTSTATUS _SamrGetMembersInAlias(
+        [in,ref] PolicyHandle *alias_handle,
+        [out,ref] SidArray *sids
+        );
+
+    /* function 0x22 */
+    NTSTATUS _SamrOpenUser(
+        [in,ref] PolicyHandle *domain_handle,
+        [in] uint32 access_mask,
+        [in] uint32 rid,
+        [out,ref] PolicyHandle *user_handle
+        );
+
+    /* function 0x23 */
+    NTSTATUS _SamrDeleteUser(
+        [in,out,ref] PolicyHandle *user_handle
+        );
+
+    /* function 0x24 */
+    NTSTATUS _SamrQueryUserInfo(
+        [in,ref] PolicyHandle *user_handle,
+        [in] uint16 level,
+        [out,switch_is(level)] UserInfo **info
+        );
+
+    NTSTATUS _SamrSetUserInfo(
+        [in,ref] PolicyHandle *user_handle,
+        [in] uint16 level,
+        [in,ref,switch_is(level)] UserInfo *info
+        );
+
+    NTSTATUS samr_Function26();
+
+    /* function 0x27 */
+    NTSTATUS _SamrGetUserGroups(
+        [in,ref] PolicyHandle *user_handle,
+        [out] RidWithAttributeArray **rids
+        );
+
+    NTSTATUS samr_Function28();
+    NTSTATUS samr_Function29();
+    NTSTATUS samr_Function2a();
+    NTSTATUS samr_Function2b();
+
+    /* function 0x2c */
+    NTSTATUS _SamrGetUserPwInfo(
+        [in,ref] PolicyHandle *user_handle,
+        [out] PwInfo *info
+        );
+
+    NTSTATUS samr_Function2d();
+    NTSTATUS samr_Function2e();
+    NTSTATUS samr_Function2f();
+    NTSTATUS samr_Function30();
+    NTSTATUS samr_Function31();
+
+    /* function 0x32 */
+    NTSTATUS _SamrCreateUser2(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,ref] UnicodeStringEx *account_name,
+        [in] uint32 account_flags,
+        [in] uint32 access_mask,
+        [out,ref] PolicyHandle *user_handle,
+        [out,ref] uint32 *access_granted,
+        [out,ref] uint32 *rid
+        );
+
+    NTSTATUS samr_Function33();
+    NTSTATUS samr_Function34();
+    NTSTATUS samr_Function35();
+    NTSTATUS samr_Function36();
+
+    /* function 0x37 */
+    NTSTATUS _SamrChangePasswordUser2(
+        [in,unique] UnicodeString *server,
+        [in,ref] UnicodeString *account_name,
+        [in,unique] CryptPassword *nt_password,
+        [in,unique] HashPassword *nt_verifier,
+        [in] uint8 lm_change,
+        [in,unique] CryptPassword *lm_password,
+        [in,unique] HashPassword *lm_verifier
+        );
+
+    NTSTATUS samr_Function38();
+
+    /* function 0x39 */
+    NTSTATUS _SamrConnect2(
+        [in] uint32 size,
+        [in,string,size_is(size)] wchar16_t *system_name,
+        [in] uint32 access_mask,
+        [out,ref] PolicyHandle *connect_handle
+        );
+
+    NTSTATUS samr_Function3a();
+    NTSTATUS samr_Function3b();
+    NTSTATUS samr_Function3c();
+    NTSTATUS samr_Function3d();
+
+    /* function 0x3e */
+    NTSTATUS _SamrConnect4(
+        [in,string] wchar16_t *system_name,
+        [in] uint32 unknown,
+        [in] uint32 access_mask,
+        [out,ref] PolicyHandle *connect_handle
+        );
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
