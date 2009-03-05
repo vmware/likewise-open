@@ -32,7 +32,6 @@ libnetapi_la_SOURCES = \
 	NetUserChangePassword.c \
 	NetGetDomainName.c \
 	NetMachineChangePassword.c \
-	NetNotImplemented.c \
 	LdapUtil.c \
 	NetDebug.c \
 	MachinePassword.c \
