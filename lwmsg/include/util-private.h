@@ -178,4 +178,18 @@ lwmsg_convert_string_buffer(
     const char* output_type
     );
 
+LWMsgStatus
+lwmsg_add_unsigned(
+    size_t operand_a,
+    size_t operand_b,
+    size_t* result
+    );
+
+LWMsgStatus
+lwmsg_multiply_unsigned(
+    size_t operand_a,
+    size_t operand_b,
+    size_t* result
+    );
+
 #endif

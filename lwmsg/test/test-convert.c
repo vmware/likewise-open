@@ -128,7 +128,7 @@ MU_TEST(convert, nes16_to_nes8_overflow)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_OVERFLOW);
 }
 
-MU_TEST(convert, nes16_to_nes8_underflow)
+MU_TEST(convert, nes16_to_nes8_overflow2)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     int16_t in = -129;
@@ -138,5 +138,5 @@ MU_TEST(convert, nes16_to_nes8_underflow)
                                    &out, sizeof(out), LWMSG_NATIVE_ENDIAN,
                                    LWMSG_SIGNED);
     
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_UNDERFLOW);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_OVERFLOW);
 }

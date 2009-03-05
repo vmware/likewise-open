@@ -179,3 +179,125 @@ lwmsg_convert_string_buffer(
     else
         return output_len - cbout;
 }
+
+LWMsgStatus
+lwmsg_add_unsigned(
+    size_t operand_a,
+    size_t operand_b,
+    size_t* result
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    size_t sum = operand_a + operand_b;
+
+    if (sum < operand_a)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_OVERFLOW);
+    }
+
+    *result = sum;
+
+error:
+
+    return status;
+}
+
+#define SIZE_T_BITS (sizeof(size_t) * 8)
+#define SIZE_T_HALF_BITS (SIZE_T_BITS / 2)
+#define SIZE_T_LOWER_MASK (((size_t) (ssize_t) -1) >> SIZE_T_HALF_BITS)
+#define SIZE_T_UPPER_MASK (~SIZE_T_LOWER_MASK)
+
+LWMsgStatus
+lwmsg_multiply_unsigned(
+    size_t operand_a,
+    size_t operand_b,
+    size_t* result
+    )
+{
+    /* Multiplication with overflow checking:
+
+       Operands: x and y
+
+       Let        r = 2^((8 * sizeof size_t) / 2)
+       Let        x = ra + b
+       Let        y = rc + d
+       Therefore  xy = (ra + b) * (rc + d)
+       Therefore  xy = (r^2)ac + rbc + rad + bd
+       Assume     y <= x
+       Therefore  c <= a
+       If         c != 0
+       Then       (r^2)ac >= r^2
+       Therefore  xy >= r^2
+       Therefore  raise overflow
+       Otherwise  c = 0
+       Therefore  xy = rad + bd
+       If         ad >= r
+       Then       rad >= r^2
+       Therefore  xy >= r^2
+       Therefore  raise overflow
+       Perform    rad + bd with add overflow check
+    */
+
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    size_t x;
+    size_t y;
+    size_t a;
+    size_t b;
+    size_t c;
+    size_t d;
+    size_t ad;
+    size_t bd;
+    size_t rad;
+    size_t product;
+
+    /* Ensure y is the smaller operand */
+    if (operand_b <= operand_a)
+    {
+        x = operand_a;
+        y = operand_b;
+    }
+    else
+    {
+        x = operand_b;
+        y = operand_a;
+    }
+
+    /* Calculate decomposition of operands */
+    c = y >> SIZE_T_HALF_BITS;
+    if (c != 0)
+    {
+        /* If c is not 0, the first term will overflow */
+        BAIL_ON_ERROR(status = LWMSG_STATUS_OVERFLOW);
+    }
+
+    a = x >> SIZE_T_HALF_BITS;
+    b = x & SIZE_T_LOWER_MASK;
+    d = y & SIZE_T_LOWER_MASK;
+
+    ad = a * d;
+
+    if ((ad & SIZE_T_UPPER_MASK) != 0)
+    {
+        /* ad >= r, so rad will overflow */
+        BAIL_ON_ERROR(status = LWMSG_STATUS_OVERFLOW);
+    }
+
+    rad = ad << SIZE_T_HALF_BITS;
+
+    /* Never overflows */
+    bd = b * d;
+
+    product = rad + bd;
+
+    if (product < rad)
+    {
+        /* Addition overflowed */
+        BAIL_ON_ERROR(status = LWMSG_STATUS_OVERFLOW);
+    }
+
+    *result = product;
+
+error:
+
+    return status;
+}

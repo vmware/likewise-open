@@ -320,6 +320,7 @@ lwmsg_unmarshal_pointees(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     size_t count = 0;
+    size_t full_count = 0;
     size_t referent_size = 0;
     unsigned char* object = NULL;
     LWMsgTypeIter inner;
@@ -349,15 +350,19 @@ lwmsg_unmarshal_pointees(
     }
     else
     {
-       /* If the referent is zero-terminated, we need to allocate an extra element */
+        /* Calculate total number of elements */
         if (iter->info.kind_indirect.term == LWMSG_TERM_ZERO)
         {
-            referent_size = (count + 1) * inner.size;
+            /* If the referent is zero-terminated, we need to allocate an extra element */
+            BAIL_ON_ERROR(status = lwmsg_add_unsigned(count, 1, &full_count));
         }
         else
         {
-            referent_size = count * inner.size;
+            full_count = count;
         }
+
+        /* Calculate the referent size */
+        BAIL_ON_ERROR(status = lwmsg_multiply_unsigned(full_count, inner.size, &referent_size));
 
         /* Allocate the referent */
         BAIL_ON_ERROR(status = lwmsg_object_alloc(context, referent_size, &object));
@@ -587,7 +592,9 @@ lwmsg_unmarshal_struct_pointee(
         LWMsgTypeIter flex_iter;
         LWMsgTypeIter inner_iter;
         LWMsgUnmarshalState my_state;
-        size_t count;
+        size_t count = 0;
+        size_t full_count = 0;
+        size_t flexible_size = 0;
 
         lwmsg_type_iterate(flexible_member, &flex_iter);
         lwmsg_type_enter(&flex_iter, &inner_iter);
@@ -602,15 +609,22 @@ lwmsg_unmarshal_struct_pointee(
                           buffer,
                           &count));
 
+        /* Calculate total number of elements */
         if (flex_iter.info.kind_indirect.term == LWMSG_TERM_ZERO)
         {
-            /* If the flexible array is zero-terminated, we need to allocate an extra element */
-            full_size = struct_iter->size + inner_iter.size * (count + 1);
+            /* If the referent is zero-terminated, we need to allocate an extra element */
+            BAIL_ON_ERROR(status = lwmsg_add_unsigned(count, 1, &full_count));
         }
         else
         {
-            full_size = struct_iter->size + inner_iter.size * count;
+            full_count = count;
         }
+
+        /* Calculate the size of the flexible member */
+        BAIL_ON_ERROR(status = lwmsg_multiply_unsigned(full_count, inner_iter.size, &flexible_size));
+
+        /* Calculate the size of the full structure */
+        BAIL_ON_ERROR(status = lwmsg_add_unsigned(struct_iter->size, flexible_size, &full_size));
 
         /* Allocate the full object */
         BAIL_ON_ERROR(status = lwmsg_object_realloc(
