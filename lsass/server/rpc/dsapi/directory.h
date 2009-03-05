@@ -9,16 +9,36 @@ typedef struct _DIRECTORY_MOD {
     }
 } DIRECTORY_MOD, *PDIRECTORY_MOD;
 
-NTSTATUS
-DirectoryAddObject();
 
 NTSTATUS
-DirectoryModifyObject();
+DirectoryAddObject(
+    HANDLE hBindHandle,
+    PWSTR ObjectDN,
+    PDIRECTORY_MODS Attributes[]
+    );
+
 
 NTSTATUS
-DirectorySearchObject();
-
+DirectoryModifyObject(
+    HANDLE hBindHandle,
+    PWSTR ObjectDN,
+    PDIRECTORY_MODS Modifications[]
+    );
 
 NTSTATUS
+DirectorySearch(
+    HANDLE hDirectory,
+    PWSTR Base,
+    ULONG Scope,
+    PWSTR Filter,
+    PWSTR Attributes[],
+    ULONG AttributesOnly,
+    PDIRECTORY_VALUES * ppDirectoryValues
+    PDWORD pdwNumValues
+    );
 
-DirectoryDeleteObject();
+NTSTATUS
+DirectoryDeleteObject(
+    HANDLE hBindHandle,
+    PWSTR ObjectDN,
+    );
