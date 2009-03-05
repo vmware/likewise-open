@@ -14,7 +14,7 @@ liblsa_srv_la_SOURCES = \
     lsa_lookupsids.c \
     lsa_lookupnames2.c \
     lsa_queryinfopolicy.c \
-    lsa_queryinfoPolicy2.c
+    lsa_queryinfopolicy2.c
 
 LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
 LSASS_INCLUDES = -I$(top_srcdir)/include
