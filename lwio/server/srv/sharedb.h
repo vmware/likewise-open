@@ -91,6 +91,20 @@ SrvShareDbAdd_inlock(
     );
 
 NTSTATUS
+SrvShareMapFromWindowsPath(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PWSTR  pwszInputPath,
+    PWSTR* ppwszPath
+    );
+
+NTSTATUS
+SrvShareMapToWindowsPath(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PWSTR  pwszInputPath,
+    PWSTR* ppwszPath
+    );
+
+NTSTATUS
 SrvShareDbEnum(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE           hDb,

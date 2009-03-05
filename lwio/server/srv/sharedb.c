@@ -57,10 +57,11 @@ SrvShareDbCreate(
 
 static
 NTSTATUS
-SrvShareBuildSharePath(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
-    PCSTR                     pszInputPath,
-    PSTR*                     ppszPath
+SrvShareMapSpecificToWindowsPath(
+    PWSTR  pwszFSPrefix,
+    PWSTR  pwszRootPath,
+    PWSTR  pwszInputPath,
+    PWSTR* ppwszPath
     );
 
 static
@@ -90,19 +91,19 @@ SrvShareDbInit(
     pthread_rwlock_init(&pShareDBContext->mutex, NULL);
     pShareDBContext->pMutex = &pShareDBContext->mutex;
 
-    ntStatus = SMBAllocateString(
+    ntStatus = SMBMbsToWc16s(
                     LWIO_SRV_FILE_SYSTEM_PREFIX,
-                    &pShareDBContext->pszFileSystemPrefix);
+                    &pShareDBContext->pwszFileSystemPrefix);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBAllocateString(
+    ntStatus = SMBMbsToWc16s(
                     LWIO_SRV_FILE_SYSTEM_ROOT,
-                    &pShareDBContext->pszFileSystemRoot);
+                    &pShareDBContext->pwszFileSystemRoot);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBAllocateString(
+    ntStatus = SMBMbsToWc16s(
                     LWIO_SRV_PIPE_SYSTEM_ROOT,
-                    &pShareDBContext->pszPipeSystemRoot);
+                    &pShareDBContext->pwszPipeSystemRoot);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareDbCreate(pShareDBContext);
@@ -127,6 +128,8 @@ SrvShareDbCreate(
     HANDLE hDb = (HANDLE)NULL;
     sqlite3* pDbHandle = NULL;
     PSTR pszError = NULL;
+    PSTR pszFileSystemRoot = NULL;
+    PSTR pszPipeSystemRoot = NULL;
     BOOLEAN bExists = FALSE;
 
     ntStatus = SMBCheckFileExists(LWIO_SRV_SHARE_DB, &bExists);
@@ -175,11 +178,21 @@ SrvShareDbCreate(
                     S_IRWXU);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMBWc16sToMbs(
+                    pShareDBContext->pwszFileSystemRoot,
+                    &pszFileSystemRoot);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBWc16sToMbs(
+                    pShareDBContext->pwszPipeSystemRoot,
+                    &pszPipeSystemRoot);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvShareDbAdd(
                     pShareDBContext,
                     hDb,
                     "IPC$",
-                    pShareDBContext->pszPipeSystemRoot,
+                    pszPipeSystemRoot,
                     "Root of Named Pipe Virtual File System",
                     NULL,
                     "IPC");
@@ -189,7 +202,7 @@ SrvShareDbCreate(
                     pShareDBContext,
                     hDb,
                     "C$",
-                    pShareDBContext->pszFileSystemRoot,
+                    pszFileSystemRoot,
                     "Root of Posix Virtual File System",
                     NULL,
                     "A:");
@@ -205,6 +218,16 @@ cleanup:
     if (pszError)
     {
         sqlite3_free(pszError);
+    }
+
+    if (pszFileSystemRoot)
+    {
+        LwRtlMemoryFree(pszFileSystemRoot);
+    }
+
+    if (pszPipeSystemRoot)
+    {
+        LwRtlMemoryFree(pszPipeSystemRoot);
     }
 
     return ntStatus;
@@ -306,8 +329,6 @@ SrvShareDbAdd_inlock(
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR pszError = NULL;
     PSTR pszQuery = NULL;
-    PSTR pszUpperShareName = NULL;
-    PSTR pszPathLocal = NULL;
     SHARE_SERVICE service = SHARE_SERVICE_UNKNOWN;
 
     if (IsNullOrEmptyString(pszShareName))
@@ -319,19 +340,6 @@ SrvShareDbAdd_inlock(
         ntStatus = STATUS_INVALID_PARAMETER_4;
     }
 
-    ntStatus = SMBAllocateString(
-                    pszShareName,
-                    &pszUpperShareName);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    SMBStrToUpper(pszUpperShareName);
-
-    ntStatus = SrvShareBuildSharePath(
-                    pShareDBContext,
-                    pszPath,
-                    &pszPathLocal);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = SrvShareGetServiceId(pszService, &service);
     if (ntStatus == STATUS_NOT_FOUND)
     {
@@ -340,8 +348,8 @@ SrvShareDbAdd_inlock(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pszQuery = sqlite3_mprintf(DB_QUERY_INSERT_SHARE,
-                               pszUpperShareName,
-                               pszPathLocal,
+                               pszShareName,
+                               pszPath,
                                pszComment,
                                pszSid,
                                pszService);
@@ -365,16 +373,6 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    if (pszUpperShareName)
-    {
-        LwRtlMemoryFree(pszUpperShareName);
-    }
-
-    if (pszPathLocal)
-    {
-        LwRtlMemoryFree(pszPathLocal);
-    }
-
     return ntStatus;
 
 error:
@@ -387,91 +385,106 @@ error:
     goto cleanup;
 }
 
-static
 NTSTATUS
-SrvShareBuildSharePath(
+SrvShareMapFromWindowsPath(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
-    PCSTR pszInputPath,
-    PSTR* ppszPath
+    PWSTR  pwszInputPath,
+    PWSTR* ppwszPath
     )
 {
-    NTSTATUS ntStatus = 0;
-    PCSTR    pszPathReadCursor = pszInputPath;
-    PSTR     pszPathWriteCursor = NULL;
-    PSTR     pszPath = NULL;
-    size_t   sFSPrefixLen = 0;
-    size_t   sFSRootLen = 0;
-    size_t   sRequiredLen = 0;
+    NTSTATUS  ntStatus = 0;
+    wchar16_t wszBackslash[2] = {0, 0};
+    wchar16_t wszFwdslash[2] = {0, 0};
+    wchar16_t wszColon[2] = {0, 0};
+    PWSTR     pwszPathReadCursor = pwszInputPath;
+    PWSTR     pwszPathWriteCursor = NULL;
+    PWSTR     pwszPath = NULL;
+    size_t    sInputPathLen = 0;
+    size_t    sFSPrefixLen = 3;
+    size_t    sFSRootLen = 0;
+    size_t    sRequiredLen = 0;
 
-    sFSPrefixLen = strlen(pShareDBContext->pszFileSystemPrefix);
-    sFSRootLen = strlen(pShareDBContext->pszFileSystemRoot);
+    if (!pwszInputPath || !*pwszInputPath)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    sInputPathLen = wc16slen(pwszInputPath);
 
-    if (strncasecmp(
-            pszPathReadCursor,
-            pShareDBContext->pszFileSystemPrefix,
-            sFSPrefixLen))
+    wcstowc16s(&wszBackslash[0], L"\\", 1);
+    wcstowc16s(&wszFwdslash[0], L"/", 1);
+    wcstowc16s(&wszColon[0], L":", 1);
+
+    sFSRootLen = wc16slen(pShareDBContext->pwszFileSystemRoot);
+
+    if ((sInputPathLen < sFSPrefixLen) ||
+        ((pwszInputPath[1] != wszColon[0]) &&
+         !(pwszInputPath[2] == wszBackslash[0] ||
+           pwszInputPath[2] == wszFwdslash[0])))
     {
         ntStatus = STATUS_OBJECT_PATH_SYNTAX_BAD;
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else
     {
-        sRequiredLen += sFSRootLen;
-        pszPathReadCursor += sFSRootLen;
+        sRequiredLen += sFSRootLen * sizeof(wchar16_t);
+        pwszPathReadCursor += sFSPrefixLen;
     }
 
-    if (!pszPathReadCursor || !*pszPathReadCursor)
+    if (!pwszPathReadCursor || !*pwszPathReadCursor)
     {
         ntStatus = STATUS_OBJECT_PATH_SYNTAX_BAD;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    sRequiredLen++; // path delimiter
-    while (pszPathReadCursor &&
-           *pszPathReadCursor &&
-           ((*pszPathReadCursor == '\\') || (*pszPathReadCursor == '/')))
+    sRequiredLen += sizeof(wchar16_t); // path delimiter
+
+    while (pwszPathReadCursor &&
+           *pwszPathReadCursor &&
+           ((*pwszPathReadCursor == wszBackslash[0]) || (*pwszPathReadCursor == wszFwdslash[0])))
     {
-        pszPathReadCursor++;
+        pwszPathReadCursor++;
     }
 
     // The rest of the path
-    sRequiredLen += strlen(pszPathReadCursor);
+    sRequiredLen += wc16slen(pwszPathReadCursor) * sizeof(wchar16_t);
+    sRequiredLen += sizeof(wchar16_t);
 
     ntStatus = LW_RTL_ALLOCATE(
-                    &pszPath,
-                    CHAR,
-                    sizeof(CHAR) * (sRequiredLen + 1));
+                    &pwszPath,
+                    wchar16_t,
+                    sRequiredLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pszPathReadCursor = pszInputPath;
-    pszPathWriteCursor = pszPath;
+    pwszPathReadCursor = pwszInputPath;
+    pwszPathWriteCursor = pwszPath;
 
-    pszPathReadCursor += sFSPrefixLen;
-    memcpy(pszPathWriteCursor, pShareDBContext->pszFileSystemRoot, sFSRootLen);
-    pszPathWriteCursor += sFSRootLen;
-    *pszPathWriteCursor++ = '\\';
+    pwszPathReadCursor += sFSPrefixLen;
+    memcpy((PBYTE)pwszPathWriteCursor, (PBYTE)pShareDBContext->pwszFileSystemRoot, sFSRootLen * sizeof(wchar16_t));
+    pwszPathWriteCursor += sFSRootLen;
+    *pwszPathWriteCursor++ = wszBackslash[0];
 
-    while (pszPathReadCursor &&
-           *pszPathReadCursor &&
-           ((*pszPathReadCursor == '\\') || (*pszPathReadCursor == '/')))
+    while (pwszPathReadCursor &&
+           *pwszPathReadCursor &&
+           ((*pwszPathReadCursor == wszBackslash[0]) || (*pwszPathReadCursor == wszFwdslash[0])))
     {
-        pszPathReadCursor++;
+        pwszPathReadCursor++;
     }
 
-    while (pszPathReadCursor && *pszPathReadCursor)
+    while (pwszPathReadCursor && *pwszPathReadCursor)
     {
-        if (*pszPathReadCursor == '/')
+        if (*pwszPathReadCursor == wszFwdslash[0])
         {
-            *pszPathWriteCursor++ = '\\';
+            *pwszPathWriteCursor++ = wszBackslash[0];
         }
         else
         {
-            *pszPathWriteCursor++ = *pszPathReadCursor;
+            *pwszPathWriteCursor++ = *pwszPathReadCursor;
         }
-        pszPathReadCursor++;
+        pwszPathReadCursor++;
     }
 
-    *ppszPath = pszPath;
+    *ppwszPath = pwszPath;
 
 cleanup:
 
@@ -479,15 +492,168 @@ cleanup:
 
 error:
 
-    *ppszPath = NULL;
+    *ppwszPath = NULL;
 
-    if (pszPath)
+    if (pwszPath)
     {
-        LwRtlMemoryFree(pszPath);
+        LwRtlMemoryFree(pwszPath);
     }
 
     goto cleanup;
 }
+
+NTSTATUS
+SrvShareMapToWindowsPath(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PWSTR  pwszInputPath,
+    PWSTR* ppwszPath
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PWSTR pwszPath = NULL;
+
+    ntStatus = SrvShareMapSpecificToWindowsPath(
+                    pShareDBContext->pwszFileSystemPrefix,
+                    pShareDBContext->pwszFileSystemRoot,
+                    pwszInputPath,
+                    &pwszPath);
+    if (ntStatus == STATUS_OBJECT_PATH_SYNTAX_BAD)
+    {
+        ntStatus = SrvShareMapSpecificToWindowsPath(
+                            pShareDBContext->pwszFileSystemPrefix,
+                            pShareDBContext->pwszPipeSystemRoot,
+                            pwszInputPath,
+                            &pwszPath);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppwszPath = pwszPath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszPath = NULL;
+
+    if (pwszPath)
+    {
+        LwRtlMemoryFree(pwszPath);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareMapSpecificToWindowsPath(
+    PWSTR  pwszFSPrefix,
+    PWSTR  pwszRootPath,
+    PWSTR  pwszInputPath,
+    PWSTR* ppwszPath
+    )
+{
+    NTSTATUS  ntStatus = 0;
+    wchar16_t wszBackslash[2] = {0, 0};
+    wchar16_t wszFwdslash[2] = {0, 0};
+    PWSTR     pwszPathReadCursor = pwszInputPath;
+    PWSTR     pwszPathWriteCursor = NULL;
+    PWSTR     pwszPath = NULL;
+    size_t    sInputPathLen = 0;
+    size_t    sFSPrefixLen = 0;
+    size_t    sFSRootLen = 0;
+    size_t    sRequiredLen = 0;
+
+    if (!pwszInputPath || !*pwszInputPath)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    sInputPathLen = wc16slen(pwszInputPath);
+
+    wcstowc16s(&wszBackslash[0], L"\\", 1);
+    wcstowc16s(&wszFwdslash[0], L"/", 1);
+
+    sFSPrefixLen = wc16slen(pwszFSPrefix);
+    sFSRootLen = wc16slen(pwszRootPath);
+
+    if ((sInputPathLen < sFSRootLen) ||
+        memcmp((PBYTE)pwszPathReadCursor,
+               (PBYTE)pwszRootPath,
+               sFSRootLen * sizeof(wchar16_t)))
+    {
+        ntStatus = STATUS_OBJECT_PATH_SYNTAX_BAD;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        sRequiredLen += sFSPrefixLen * sizeof(wchar16_t);
+        pwszPathReadCursor += sFSRootLen;
+    }
+
+    while (pwszPathReadCursor &&
+           *pwszPathReadCursor &&
+           ((*pwszPathReadCursor == wszBackslash[0]) || (*pwszPathReadCursor == wszFwdslash[0])))
+    {
+        pwszPathReadCursor++;
+    }
+
+    // The rest of the path
+    sRequiredLen += wc16slen(pwszPathReadCursor) * sizeof(wchar16_t);
+    sRequiredLen += sizeof(wchar16_t);
+
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pwszPath,
+                    wchar16_t,
+                    sRequiredLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pwszPathReadCursor = pwszInputPath;
+    pwszPathWriteCursor = pwszPath;
+
+    pwszPathReadCursor += sFSRootLen;
+    memcpy((PBYTE)pwszPathWriteCursor, (PBYTE)pwszFSPrefix, sFSPrefixLen * sizeof(wchar16_t));
+    pwszPathWriteCursor += sFSPrefixLen;
+
+    while (pwszPathReadCursor &&
+           *pwszPathReadCursor &&
+           ((*pwszPathReadCursor == wszBackslash[0]) || (*pwszPathReadCursor == wszFwdslash[0])))
+    {
+        pwszPathReadCursor++;
+    }
+
+    while (pwszPathReadCursor && *pwszPathReadCursor)
+    {
+        if (*pwszPathReadCursor == wszFwdslash[0])
+        {
+            *pwszPathWriteCursor++ = wszBackslash[0];
+        }
+        else
+        {
+            *pwszPathWriteCursor++ = *pwszPathReadCursor;
+        }
+        pwszPathReadCursor++;
+    }
+
+    *ppwszPath = pwszPath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszPath = NULL;
+
+    if (pwszPath)
+    {
+        LwRtlMemoryFree(pwszPath);
+    }
+
+    goto cleanup;
+}
+
 
 NTSTATUS
 SrvShareDbEnum(
@@ -1036,18 +1202,18 @@ SrvShareDbShutdown(
         pShareDBContext->pMutex = NULL;
     }
 
-    if (pShareDBContext->pszFileSystemPrefix)
+    if (pShareDBContext->pwszFileSystemPrefix)
     {
-        LwRtlMemoryFree(pShareDBContext->pszFileSystemPrefix);
+        LwRtlMemoryFree(pShareDBContext->pwszFileSystemPrefix);
     }
 
-    if (pShareDBContext->pszFileSystemRoot)
+    if (pShareDBContext->pwszFileSystemRoot)
     {
-        LwRtlMemoryFree(pShareDBContext->pszFileSystemRoot);
+        LwRtlMemoryFree(pShareDBContext->pwszFileSystemRoot);
     }
 
-    if (pShareDBContext->pszPipeSystemRoot)
+    if (pShareDBContext->pwszPipeSystemRoot)
     {
-        LwRtlMemoryFree(pShareDBContext->pszPipeSystemRoot);
+        LwRtlMemoryFree(pShareDBContext->pwszPipeSystemRoot);
     }
 }

@@ -71,6 +71,7 @@ SrvDevCtlAddShare(
     ULONG ulShareType = 0;
     PWSTR pwszComment = NULL;
     PWSTR pwszPath = NULL;
+    PWSTR pwszPathLocal = NULL;
 
     ntStatus = LwShareInfoUnmarshalAddParameters(
                         lpInBuffer,
@@ -130,17 +131,29 @@ SrvDevCtlAddShare(
 
     pDbContext = &gSMBSrvGlobals.shareDBContext;
 
+    ntStatus = SrvShareMapFromWindowsPath(
+                    pDbContext,
+                    pwszPath,
+                    &pwszPathLocal);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvShareAddShare(
                         pDbContext,
                         pwszShareName,
-                        pwszPath,
+                        pwszPathLocal,
                         pwszComment,
                         ulShareType
                         );
 
 error:
+
     if (pAddShareInfoParams) {
         LwRtlMemoryFree(pAddShareInfoParams);
+    }
+
+    if (pwszPathLocal)
+    {
+        LwRtlMemoryFree(pwszPathLocal);
     }
 
     return ntStatus;

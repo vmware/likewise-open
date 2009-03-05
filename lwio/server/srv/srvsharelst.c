@@ -387,7 +387,7 @@ SrvRemoveShareFromList_inlock(
     pShareEntry = pDbContext->pShareEntry;
 
     while (pShareEntry) {
-        if (SMBWc16sCmp(pwszShareName,
+        if (SMBWc16sCaseCmp(pwszShareName,
                         pShareEntry->pInfo->pwszName) == 0) {
 
             if (pPrevShareEntry) {
@@ -483,7 +483,7 @@ SrvFindShareByName_inlock(
     pShareEntry = pDbContext->pShareEntry;
 
     while (pShareEntry) {
-        if (SMBWc16sCmp(pwszShareName,
+        if (SMBWc16sCaseCmp(pwszShareName,
                         pShareEntry->pInfo->pwszName) == 0) {
             pShareInfo = pShareEntry->pInfo;
             break;
@@ -583,9 +583,28 @@ SrvShareAddShare(
                     sizeof(SHARE_DB_INFO));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pShareInfo->pwszName    = pwszShareName;
-    pShareInfo->pwszPath    = pwszSharePath;
-    pShareInfo->pwszComment = pwszShareComment;
+    ntStatus = SMBAllocateStringW(
+                    pwszShareName,
+                    &pShareInfo->pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBAllocateStringW(
+                    pwszSharePath,
+                    &pShareInfo->pwszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pwszShareComment)
+    {
+        ntStatus = SMBAllocateStringW(
+                        pwszShareComment,
+                        &pShareInfo->pwszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        pShareInfo->pwszComment = NULL;
+    }
+
     pShareInfo->pwszSID     = NULL;
     pShareInfo->service     = ulShareType;
 
@@ -850,8 +869,10 @@ SrvShareEnumShares(
         }
 
         if (pShareEntry->pInfo->pwszPath) {
-            ulError = SMBWc16sDup(pShareEntry->pInfo->pwszPath,
-                                  &pShares[i].pwszPath);
+            ulError = SrvShareMapToWindowsPath(
+                                pDbContext,
+                                pShareEntry->pInfo->pwszPath,
+                                &pShares[i].pwszPath);
             ntStatus = LwUnixErrnoToNtStatus(ulError);
             BAIL_ON_NT_STATUS(ntStatus);
         }

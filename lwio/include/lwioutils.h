@@ -135,7 +135,7 @@
             goto error;                             \
         }                                           \
     } while(0);                                     \
-    
+
 #define BAIL_ON_INVALID_PTR(ptr, err)                  \
     do {                                               \
         if ((ptr) == NULL) {                           \
@@ -710,6 +710,12 @@ SMBSW16printf(
 
 DWORD
 SMBWc16sCmp(
+    PCWSTR  pwszFirst,
+    PCWSTR  pwszSecond
+    );
+
+DWORD
+SMBWc16sCaseCmp(
     PCWSTR  pwszFirst,
     PCWSTR  pwszSecond
     );
