@@ -30,15 +30,6 @@
 
 #include "includes.h"
 
-typedef struct _SMB_FIND_NEXT2_RESPONSE_PARAMETERS
-{
-    USHORT usSearchCount;
-    USHORT usEndOfSearch;
-    USHORT usEaErrorOffset;
-    USHORT usLastNameOffset;
-
-} __attribute__((__packed__)) SMB_FIND_NEXT2_RESPONSE_PARAMETERS, *PSMB_FIND_NEXT2_RESPONSE_PARAMETERS;
-
 static
 NTSTATUS
 SrvUnmarshallFindNext2Params(

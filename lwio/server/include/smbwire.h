@@ -566,6 +566,50 @@ typedef struct
     SMB_INFO_LEVEL infoLevel;
 } __attribute__((__packed__)) SMB_QUERY_FILE_INFO_HEADER, *PSMB_QUERY_FILE_INFO_HEADER;
 
+typedef struct
+{
+    USHORT usFid;
+    SMB_INFO_LEVEL infoLevel;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB_SET_FILE_INFO_HEADER, *PSMB_SET_FILE_INFO_HEADER;
+
+typedef struct
+{
+    USHORT usSearchAttrs;
+    USHORT usSearchCount;
+    USHORT usFlags;
+    SMB_INFO_LEVEL infoLevel;
+    ULONG ulSearchStorageType;
+    WCHAR pwszSearchPattern[];
+} __attribute__((__packed__)) SMB_FIND_FIRST2_REQUEST_PARAMETERS, *PSMB_FIND_FIRST2_REQUEST_PARAMETERS;
+
+typedef struct _SMB_FIND_FIRST2_RESPONSE_PARAMETERS
+{
+    USHORT usSearchId;
+    USHORT usSearchCount;
+    USHORT usEndOfSearch;
+    USHORT usEaErrorOffset;
+    USHORT usLastNameOffset;
+} __attribute__((__packed__)) SMB_FIND_FIRST2_RESPONSE_PARAMETERS, *PSMB_FIND_FIRST2_RESPONSE_PARAMETERS;
+
+typedef struct
+{
+    USHORT usSearchId;
+    USHORT usSearchCount;
+    SMB_INFO_LEVEL infoLevel;
+    ULONG ulResumeKey;
+    USHORT usFlags;
+    WCHAR pwszFileName[];
+} __attribute__((__packed__)) SMB_FIND_NEXT2_REQUEST_PARAMETERS, *PSMB_FIND_NEXT2_REQUEST_PARAMETERS;
+
+typedef struct
+{
+    USHORT usSearchCount;
+    USHORT usEndOfSearch;
+    USHORT usEaErrorOffset;
+    USHORT usLastNameOffset;
+} __attribute__((__packed__)) SMB_FIND_NEXT2_RESPONSE_PARAMETERS, *PSMB_FIND_NEXT2_RESPONSE_PARAMETERS;
+
 typedef struct {
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
@@ -1049,6 +1093,29 @@ typedef struct _TRANS2_FILE_STANDARD_INFORMATION {
     BOOLEAN bDirectory;
     USHORT  pad;
 } __attribute__((__packed__)) TRANS2_FILE_STANDARD_INFORMATION, *PTRANS2_FILE_STANDARD_INFORMATION;
+
+typedef struct {
+    LONG64 EndOfFile;
+} __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION, *PTRANS2_FILE_END_OF_FILE_INFORMATION;
+
+typedef struct _SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER
+{
+    ULONG     NextEntryOffset;
+    ULONG     FileIndex;
+    LONG64    CreationTime;
+    LONG64    LastAccessTime;
+    LONG64    LastWriteTime;
+    LONG64    ChangeTime;
+    LONG64    EndOfFile;
+    LONG64    AllocationSize;
+    FILE_ATTRIBUTES FileAttributes;
+    ULONG     FileNameLength;
+    ULONG     EaSize;
+    UCHAR     ShortNameLength;
+    UCHAR     Reserved;
+    WCHAR     ShortName[12];
+    WCHAR     FileName[];
+} __attribute__((__packed__)) SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER, *PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER;
 
 typedef struct _FIND_CLOSE2_REQUEST_HEADER {
 

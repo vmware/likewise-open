@@ -30,16 +30,6 @@
 
 #include "includes.h"
 
-typedef struct _SMB_FIND_FIRST2_RESPONSE_PARAMETERS
-{
-    USHORT usSearchId;
-    USHORT usSearchCount;
-    USHORT usEndOfSearch;
-    USHORT usEaErrorOffset;
-    USHORT usLastNameOffset;
-
-} __attribute__((__packed__)) SMB_FIND_FIRST2_RESPONSE_PARAMETERS, *PSMB_FIND_FIRST2_RESPONSE_PARAMETERS;
-
 static
 NTSTATUS
 SrvUnmarshallFindFirst2Params(

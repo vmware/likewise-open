@@ -75,7 +75,6 @@
 #include "readfile.h"
 #include "writefile.h"
 #include "getsesskey.h"
-#include "closehandle.h"
 #include "smb_negotiate.h"
 #include "smb_session_setup.h"
 #include "smb_tree_connect.h"
@@ -139,6 +138,12 @@ RdrQueryInformation(
     );
 
 NTSTATUS
+RdrQueryDirectory(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
 RdrSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
@@ -196,6 +201,63 @@ RdrCallQueryInformationFile(
     ULONG ulLength,
     FILE_INFORMATION_CLASS fileInformationClass,
     PULONG pulInfoLengthUsed
+    );
+
+NTSTATUS
+RdrTransactFindFirst2(
+    PSMB_TREE pTree,
+    USHORT usSearchAttrs,
+    USHORT usSearchCount,
+    USHORT usFlags,
+    SMB_INFO_LEVEL infoLevel,
+    ULONG ulSearchStorageType,
+    PCWSTR pwszSearchPattern,
+    PUSHORT pusSearchId,
+    PUSHORT pusSearchCount,
+    PUSHORT pusEndOfSearch,
+    PUSHORT pusEaErrorOffset,
+    PUSHORT pusLastNameOffset,
+    PVOID pResult,
+    ULONG ulResultLength,
+    PULONG pulResultLengthUsed
+    );
+
+NTSTATUS
+RdrTransactFindNext2(
+    PSMB_TREE pTree,
+    USHORT usSearchId,
+    USHORT usSearchCount,
+    SMB_INFO_LEVEL infoLevel,
+    ULONG ulResumeKey,
+    USHORT usFlags,
+    PWSTR pwszFileName,
+    PUSHORT pusSearchCount,
+    PUSHORT pusEndOfSearch,
+    PUSHORT pusEaErrorOffset,
+    PUSHORT pusLastNameOffset,
+    PVOID pResult,
+    ULONG ulResultLength,
+    PULONG pulResultLengthUsed
+    );
+
+NTSTATUS
+RdrTransactCloseFile(
+    PSMB_TREE pTree,
+    USHORT usFid
+    );
+
+NTSTATUS
+RdrTransactSetInfoFile(
+    PSMB_TREE pTree,
+    USHORT usFid,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    );
+
+void
+RdrReleaseFile(
+    PSMB_CLIENT_FILE_HANDLE pFile
     );
 
 #endif /* __RDR_H__ */

@@ -801,33 +801,32 @@ WireMarshallTransactionParameterData(
     uint32_t alignment = 0;
     NTSTATUS ntStatus = 0;
 
-#if 0 /* This code is useless as written (alignment always evals to 0).
-         Disabling to work around build failure with newer gcc and -Werror */
-
     /* Align data to a four byte boundary */
-    alignment = (4 - (bufferUsed % 4)) % 4;
+    alignment = (4 - ((size_t) pBuffer % 4)) % 4;
     memset(pBuffer + bufferUsed, 0, alignment);
     bufferUsed += alignment;
-#endif
 
     if (parameterLen && bufferUsed + parameterLen <= bufferLen)
         memcpy(pBuffer + bufferUsed, pParameters, parameterLen);
     *pParameterOffset = bufferUsed;
     bufferUsed += parameterLen;
 
-    /* Align data to a four byte boundary */
-    alignment = (4 - (bufferUsed % 4)) % 4;
-    memset(pBuffer + bufferUsed, 0, alignment);
-    bufferUsed += alignment;
-
-    if (dataLen && bufferUsed + dataLen <= bufferLen)
-        memcpy(pBuffer + bufferUsed, pData, dataLen);
-    *pDataOffset = bufferUsed;
-    bufferUsed += dataLen;
-
-    if (bufferUsed > bufferLen)
+    if (dataLen > 0)
     {
-        ntStatus = EMSGSIZE;
+        /* Align data to a four byte boundary */
+        alignment = (4 - (bufferUsed % 4)) % 4;
+        memset(pBuffer + bufferUsed, 0, alignment);
+        bufferUsed += alignment;
+
+        if (dataLen && bufferUsed + dataLen <= bufferLen)
+            memcpy(pBuffer + bufferUsed, pData, dataLen);
+        *pDataOffset = bufferUsed;
+        bufferUsed += dataLen;
+
+        if (bufferUsed > bufferLen)
+        {
+            ntStatus = EMSGSIZE;
+        }
     }
 
     *pBufferUsed = bufferUsed;

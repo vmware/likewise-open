@@ -93,60 +93,68 @@ RdrDriverDispatch(
 
     switch (pIrp->Type)
     {
-        case IRP_TYPE_CREATE:
-            ntStatus = RdrCreate(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    case IRP_TYPE_CREATE:
+        ntStatus = RdrCreate(
+            DeviceHandle,
+            pIrp
+            );
+        break;
 
-        case IRP_TYPE_CLOSE:
-            ntStatus = RdrClose(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    case IRP_TYPE_CLOSE:
+        ntStatus = RdrClose(
+            DeviceHandle,
+            pIrp
+            );
+        break;
 
 
-        case IRP_TYPE_READ:
-            ntStatus = RdrRead(
-                            DeviceHandle,
-                            pIrp
-                            );
-             break;
+    case IRP_TYPE_READ:
+        ntStatus = RdrRead(
+            DeviceHandle,
+            pIrp
+            );
+        break;
 
-        case IRP_TYPE_WRITE:
-            ntStatus = RdrWrite(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    case IRP_TYPE_WRITE:
+        ntStatus = RdrWrite(
+            DeviceHandle,
+            pIrp
+            );
+        break;
 
-        case IRP_TYPE_DEVICE_IO_CONTROL:
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-            break;
+    case IRP_TYPE_DEVICE_IO_CONTROL:
+        ntStatus = STATUS_NOT_IMPLEMENTED;
+        break;
 
-        case IRP_TYPE_FS_CONTROL:
-            ntStatus = RdrFsctl(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
-        case IRP_TYPE_FLUSH_BUFFERS:
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-            break;
-        case IRP_TYPE_QUERY_INFORMATION:
-            ntStatus = RdrQueryInformation(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
-        case IRP_TYPE_SET_INFORMATION:
-            ntStatus = RdrSetInformation(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    case IRP_TYPE_FS_CONTROL:
+        ntStatus = RdrFsctl(
+            DeviceHandle,
+            pIrp
+            );
+        break;
+
+    case IRP_TYPE_FLUSH_BUFFERS:
+        ntStatus = STATUS_NOT_IMPLEMENTED;
+        break;
+
+    case IRP_TYPE_QUERY_INFORMATION:
+        ntStatus = RdrQueryInformation(
+            DeviceHandle,
+            pIrp
+            );
+        break;
+    case IRP_TYPE_QUERY_DIRECTORY:
+        ntStatus = RdrQueryDirectory(
+            DeviceHandle,
+            pIrp
+            );
+        break;
+    case IRP_TYPE_SET_INFORMATION:
+        ntStatus = RdrSetInformation(
+            DeviceHandle,
+            pIrp
+            );
+        break;
     default:
         ntStatus = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);

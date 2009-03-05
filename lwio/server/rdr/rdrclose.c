@@ -49,6 +49,13 @@
 
 #include "rdr.h"
 
+static
+NTSTATUS
+RdrCommonClose(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
 NTSTATUS
 RdrClose(
     IO_DEVICE_HANDLE DeviceHandle,
@@ -57,8 +64,44 @@ RdrClose(
 {
     NTSTATUS ntStatus = 0;
 
+    ntStatus = RdrCommonClose(
+        NULL,
+        pIrp
+        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
     return ntStatus;
 }
 
+static
+NTSTATUS
+RdrCommonClose(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_CLIENT_FILE_HANDLE pFile = NULL;
 
+    pFile = IoFileGetContext(pIrp->FileHandle);
 
+    ntStatus = RdrTransactCloseFile(
+        pFile->pTree,
+        pFile->fid
+        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    RdrReleaseFile(pFile);
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}

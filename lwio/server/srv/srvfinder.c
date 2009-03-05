@@ -48,24 +48,6 @@
 #include "includes.h"
 #include "srvfinder_p.h"
 
-typedef struct _SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER
-{
-    ULONG     NextEntryOffset;
-    ULONG     FileIndex;
-    LONG64    CreationTime;
-    LONG64    LastAccessTime;
-    LONG64    LastWriteTime;
-    LONG64    ChangeTime;
-    LONG64    EndOfFile;
-    LONG64    AllocationSize;
-    FILE_ATTRIBUTES FileAttributes;
-    ULONG     FileNameLength;
-    ULONG     EaSize;
-    UCHAR     ShortNameLength;
-    UCHAR     Reserved;
-    wchar16_t ShortName[12];
-} __attribute__((__packed__)) SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER, *PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER;
-
 static
 VOID
 SrvFinderFreeRepository(

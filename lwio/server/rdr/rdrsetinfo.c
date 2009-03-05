@@ -49,16 +49,67 @@
 
 #include "rdr.h"
 
+static
+NTSTATUS
+RdrCommonSetInformation(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
 NTSTATUS
 RdrSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = RdrCommonSetInformation(
+        NULL,
+        pIrp
+        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return ntStatus;
 }
 
+static
+NTSTATUS
+RdrCommonSetInformation(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SMB_INFO_LEVEL infoLevel = 0;
+    PSMB_CLIENT_FILE_HANDLE pFile = NULL;
 
+    switch (pIrp->Args.QuerySetInformation.FileInformationClass)
+    {
+    case FileEndOfFileInformation:
+        infoLevel = SMB_SET_FILE_END_OF_FILE_INFO;
+        break;
+    default:
+        ntStatus = STATUS_NOT_IMPLEMENTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
+    }
 
+    pFile = IoFileGetContext(pIrp->FileHandle);
+
+    ntStatus = RdrTransactSetInfoFile(
+        pFile->pTree,
+        pFile->fid,
+        infoLevel,
+        pIrp->Args.QuerySetInformation.FileInformation,
+        pIrp->Args.QuerySetInformation.Length);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
+}

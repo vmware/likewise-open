@@ -201,15 +201,29 @@ typedef struct _SMB_CLIENT_FILE_HANDLE
     pthread_mutex_t     mutex;
     pthread_mutex_t*    pMutex;
 
+    /* FIXME: what are these doing in here? */
     PSTR      pszPrincipal;
     PSTR      pszCachePath;
+
+    PWSTR     pwszPath;
 
     PSMB_TREE pTree;
 
     uint16_t  fid;
-
     uint64_t  llOffset;
 
+    struct
+    {
+        USHORT         usSearchId;
+        USHORT         usSearchCount;
+        USHORT         usLastNameOffset;
+        USHORT         usEndOfSearch;
+        SMB_INFO_LEVEL infoLevel;
+        PBYTE          pBuffer;
+        PBYTE          pCursor;
+        ULONG          ulBufferCapacity;
+        ULONG          ulBufferLength;
+    } find;
 } SMB_CLIENT_FILE_HANDLE, *PSMB_CLIENT_FILE_HANDLE;
 
 typedef struct _RDR_CONFIG

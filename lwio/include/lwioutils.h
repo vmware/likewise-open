@@ -82,18 +82,38 @@
 #define SMB_HTOL16(x) _SMB_ENDIAN_SWAP16(x)
 #define SMB_HTOL32(x) _SMB_ENDIAN_SWAP32(x)
 #define SMB_HTOL64(x) _SMB_ENDIAN_SWAP64(x)
+#define SMB_HTOLWSTR(dst, src, len)                                 \
+    do                                                              \
+    {                                                               \
+        PCWSTR __src = (PCWSTR) (src);                              \
+        PWSTR __dst = (PWSTR) (dst);                                \
+        ssize_t __len = (ssize_t) (len);                            \
+        swab(__src, __dst, __len * sizeof(WCHAR));                  \
+        __dst[__len] = '\0';                                        \
+    } while (0)
 
 #define SMB_LTOH16(x) _SMB_ENDIAN_SWAP16(x)
 #define SMB_LTOH32(x) _SMB_ENDIAN_SWAP32(x)
 #define SMB_LTOH64(x) _SMB_ENDIAN_SWAP64(x)
+#define SMB_LTOHWSTR(dst, src, len) SMB_HTOLWSTR((dst), (src), (len))
 #else
 #define SMB_HTOL16(x) (x)
 #define SMB_HTOL32(x) (x)
 #define SMB_HTOL64(x) (x)
+#define SMB_HTOLWSTR(dst, src, len)                                 \
+    do                                                              \
+    {                                                               \
+        PCWSTR __src = (PCWSTR) (src);                              \
+        PWSTR __dst = (PWSTR) (dst);                                \
+        ssize_t __len = (ssize_t) (len);                            \
+        memcpy(__dst, __src, __len * sizeof(WCHAR));                \
+        __dst[__len] = '\0';                                        \
+    } while (0)
 
 #define SMB_LTOH16(x) (x)
 #define SMB_LTOH32(x) (x)
 #define SMB_LTOH64(x) (x)
+#define SMB_LTOHWSTR(dst, src, len) SMB_HTOLWSTR((dst), (src), (len))
 #endif
 
 // No-ops, but for readability.

@@ -158,6 +158,9 @@ RdrCreateFileEx(
         &pFile->fid);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pFile->pwszPath = pwszFilename;
+    pwszFilename = NULL;
+
     *phFile = (HANDLE)pFile;
 
 cleanup:
@@ -170,9 +173,10 @@ cleanup:
     return ntStatus;
 
 error:
+
     if (pFile)
     {
-        RdrCloseFileEx(pFile);
+        RdrReleaseFile(pFile);
     }
 
     *phFile = NULL;
@@ -196,6 +200,7 @@ ParseSharePath(
     PSTR  pszShare  = NULL;
     PSTR  pszFilename = NULL;
     size_t sLen = 0;
+    size_t i = 0;
 
     ntStatus = SMBWc16sToMbs(
                     pwszPath,
@@ -273,24 +278,27 @@ ParseSharePath(
 
     pszIndex += sLen;
 
-    // Seek file name
-    sLen = strcspn(pszIndex, "\\/");
-    if (!sLen)
-    {
-        ntStatus = SMBAllocateMemory(
-            1,
-            (PVOID*)&pszFilename);
-        *pszFilename = '\0';
-    }
-    else
-    {
-        ntStatus = SMBAllocateMemory(
-            sLen + 2,
-            (PVOID*)&pszFilename);
-        BAIL_ON_NT_STATUS(ntStatus);
+    SMBAllocateMemory(
+        strlen(pszIndex) + 3,
+        (PVOID*)&pszFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        snprintf(pszFilename, sLen + 2, "\\%s", pszIndex);
+    pszFilename[0] = '\\';
+    pszFilename[1] = '\\';
+
+    for (i = 0; pszIndex[i]; i++)
+    {
+        switch (pszIndex[i])
+        {
+        case '/':
+            pszFilename[2 + i] = '\\';
+            break;
+        default:
+            pszFilename[2 + i] = pszIndex[i];
+        }
     }
+
+    pszFilename[2 + i] = '\0';
 
     *ppszServer = pszServer;
     *ppszShare  = pszShare;
