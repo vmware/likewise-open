@@ -18,7 +18,10 @@ liblsa_srv_la_SOURCES = \
 
 LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
 LSASS_INCLUDES = -I$(top_srcdir)/include
-LIBRPC_INCLUDES = @NETAPI_INCLUDES@
+IDL_PASS_INCLUDES = \
+    $(CPPFLAGS) \
+    @NETAPI_INCLUDES@ \
+    @LIBSECDESC_INCLUDES@
 
 liblsa_srv_la_CFLAGS = \
     -DLIBRPC_BUILD \
@@ -48,4 +51,4 @@ BUILT_SOURCES = lsa_cstub.c lsa_sstub.c lsa_h.h
 
 lsa_sstub.c lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h -I$(idl_srcdir) \
-		$(LIRPC_INCLUDES) $<
+		$(IDL_PASS_INCLUDES) $<
