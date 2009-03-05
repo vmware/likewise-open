@@ -13,7 +13,7 @@ DCERPC_PATH=""
 PSTORE_INCLUDES=""
 PSTORE_LDFLAGS=""
 
-AM_CFLAGS="$AM_CFLAGS -Wall -fno-strict-aliasing"
+AM_CFLAGS="$AM_CFLAGS -Wall -fno-strict-aliasing -Werror"
 
 AC_SUBST(LTLDFLAGS)
 AC_SUBST(AM_CFLAGS)
