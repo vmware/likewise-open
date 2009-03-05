@@ -193,7 +193,7 @@ SrvShareDbCreate(
                     hDb,
                     "IPC$",
                     pszPipeSystemRoot,
-                    "Root of Named Pipe Virtual File System",
+                    "Default share",
                     NULL,
                     "IPC");
     BAIL_ON_NT_STATUS(ntStatus);
@@ -203,7 +203,7 @@ SrvShareDbCreate(
                     hDb,
                     "C$",
                     pszFileSystemRoot,
-                    "Root of Posix Virtual File System",
+                    "Remote IPC",
                     NULL,
                     "A:");
     BAIL_ON_NT_STATUS(ntStatus);
