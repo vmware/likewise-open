@@ -1409,6 +1409,9 @@ void DJNetInitialize(LWException **exc)
             {
                 DJLogException(LOG_LEVEL_WARNING, innerExc);
             }
+
+            LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
+                        92, 12, &LW_EXC));
         }
 
         LW_CLEANUP_LSERR(exc, init(&lsaFunctions));
