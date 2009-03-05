@@ -52,7 +52,7 @@
     ((char*)(Pointer) + Offset)
 
 #define CT_FIELD_OFFSET(Type, Field) \
-    ((uint32_t)(&(((Type*)(0))->Field)))
+    ((size_t)(&(((Type*)(0))->Field)))
 
 #define CT_FIELD_SIZE(Type, Field) \
     (sizeof(((Type*)(0))->Field))
