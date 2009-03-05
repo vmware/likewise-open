@@ -98,9 +98,4 @@ struct __LW_IO_ACCESS_TOKEN
 
 typedef struct SMB_FILE_HANDLE SMB_FILE_HANDLE, *PSMB_FILE_HANDLE;
 
-typedef USHORT TID;
-typedef USHORT FID;
-typedef ULONG  SMB_DATE;
-typedef ULONG  SMB_TIME;
-
 #endif /* __SMBDEF_H__ */
