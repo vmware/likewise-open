@@ -8,13 +8,13 @@ liblsa_srv_la_SOURCES = \
     globals.c \
     lsa.c \
     lsa_srv.c \
-    LsaOpenPolicy2.c \
-    LsaClose.c \
-    LsaLookupNames.c \
-    LsaLookupSids.c \
-    LsaLookupNames2.c \
-    LsaQueryInfoPolicy.c \
-    LsaQueryInfoPolicy2.c
+    lsa_openpolicy2.c \
+    lsa_close.c \
+    lsa_lookupnames.c \
+    lsa_lookupsids.c \
+    lsa_lookupnames2.c \
+    lsa_queryinfopolicy.c \
+    lsa_queryinfoPolicy2.c
 
 LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
 LSASS_INCLUDES = -I$(top_srcdir)/include
