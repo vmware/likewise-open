@@ -37,6 +37,13 @@
 #include "includes.h"
 
 
+static
+void*
+LsaRpcWorkerMain(
+    void* pCtx
+    );
+
+
 DWORD
 LsaRpcRegisterRpcInterface(
     rpc_binding_vector_p_t pSrvBinding
@@ -132,7 +139,10 @@ LsaRpcWorkerMain(
 }
 
 
-DWORD LsaRpcStartWorker(void)
+DWORD
+LsaRpcStartWorker(
+    void
+    )
 {
     DWORD dwError = 0;
     int ret = 0;
@@ -154,7 +164,10 @@ error:
 }
 
 
-DWORD LsaRpcStartServer(void)
+DWORD
+LsaRpcStartServer(
+    void
+    )
 {
     DWORD dwError = 0;
     RPCSTATUS rpcstatus = rpc_s_ok;
@@ -174,7 +187,10 @@ error:
 }
 
 
-DWORD LsaRpcStopServer(void)
+DWORD
+LsaRpcStopServer(
+    void
+    )
 {
     DWORD dwError = 0;
 
@@ -213,7 +229,8 @@ error:
 }
 
 
-DWORD LsaShutdownRpcSrv(
+DWORD
+LsaShutdownRpcSrv(
     PCSTR pszProviderName,
     PLSA_RPCSRV_FUNCTION_TABLE pFnTable
     )
