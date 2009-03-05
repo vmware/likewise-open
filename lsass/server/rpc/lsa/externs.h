@@ -37,7 +37,7 @@
 #ifndef _EXTERNS_H_
 #define _EXTERNS_H_
 
-extern pthread_rwlock_t gLsaDataLock;
+extern pthread_mutex_t gLsaDataMutex;
 
 extern int bLsaInitialised;
 
