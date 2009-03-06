@@ -398,7 +398,7 @@ AD_NetLookupObjectSidsByNames(
     RefDomainList* pDomains = NULL;
     TranslatedSid2* pSids = NULL;
     PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedSids = NULL;
-    DomSid* pObject_sid = NULL;
+    PSID pObject_sid = NULL;
     PWSTR pwcObjectSid = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
@@ -522,7 +522,7 @@ AD_NetLookupObjectSidsByNames(
         ADAccountType ObjectType = AccountType_NotFound;
         DWORD dwDomainSid_index = 0;
         // Do not free pDom_sid, reference to pDomains
-        DomSid* pDom_sid = NULL;
+        PSID pDom_sid = NULL;
 
 
         ObjectType = GetObjectType(pSids[i].type);
@@ -554,9 +554,9 @@ AD_NetLookupObjectSidsByNames(
               pObject_sid = NULL;
         }
         RtlSidAllocateResizedCopy(&pObject_sid,
-                               pDom_sid->subauth_count + 1,
+                               pDom_sid->SubAuthorityCount + 1,
                                pDom_sid);
-        pObject_sid->subauth[pObject_sid->subauth_count - 1] = pSids[i].rid;
+        pObject_sid->SubAuthority[pObject_sid->SubAuthorityCount - 1] = pSids[i].rid;
 
         if (pwcObjectSid)
         {
@@ -1215,7 +1215,7 @@ WinTimeToInt64(
 static DWORD
 LsaCopyDomainSid(
     PLSA_SID pLsaSid,
-    DomSid *pNetrSid
+    PSID pNetrSid
     )
 {
     DWORD dwError = LSA_ERROR_INTERNAL;
@@ -1223,11 +1223,11 @@ LsaCopyDomainSid(
     BAIL_ON_INVALID_POINTER(pLsaSid);
     BAIL_ON_INVALID_POINTER(pNetrSid);
 
-    pLsaSid->Revision     = pNetrSid->revision;
-    pLsaSid->NumSubAuths  = pNetrSid->subauth_count;
+    pLsaSid->Revision     = pNetrSid->Revision;
+    pLsaSid->NumSubAuths  = pNetrSid->SubAuthorityCount;
 
-    memcpy(pLsaSid->AuthId, pNetrSid->authid, sizeof(pLsaSid->AuthId));
-    memcpy(pLsaSid->SubAuths, pNetrSid->subauth, sizeof(UINT32)*pLsaSid->NumSubAuths);
+    memcpy(pLsaSid->AuthId, &pNetrSid->IdentifierAuthority, sizeof(pLsaSid->AuthId));
+    memcpy(pLsaSid->SubAuths, pNetrSid->SubAuthority, sizeof(UINT32)*pLsaSid->NumSubAuths);
 
     dwError = LSA_ERROR_SUCCESS;
 

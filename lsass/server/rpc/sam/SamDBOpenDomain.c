@@ -36,7 +36,7 @@ SamrOpenDomain(
     handle_t b,
     PolicyHandle *conn_h,
     uint32 access_mask,
-    DomSid *sid,
+    PSID sid,
     PolicyHandle *domain_h)
 {
     NTSTATUS status = STATUS_SUCCESS;

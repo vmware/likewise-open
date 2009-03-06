@@ -154,12 +154,6 @@ LsaNetFreeString(
     );
 
 DWORD
-LsaSrvJoinBuildDomSid(
-    PCSTR pszSID,
-    DomSid** ppDomSID
-    );
-
-DWORD
 LsaBuildOrgUnitDN(
     PCSTR pszDomain,
     PCSTR pszOU,

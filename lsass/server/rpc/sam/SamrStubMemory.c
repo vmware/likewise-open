@@ -90,7 +90,7 @@ void SamrFreeStubEntryArray(EntryArray *ptr)
 }
 
 
-void SamrFreeStubDomSid(DomSid *ptr)
+void SamrFreeStubDomSid(PSID ptr)
 {
     SAFE_FREE(ptr);
 }
@@ -101,7 +101,7 @@ void SamrCleanStubSidArray(SidArray *r)
     int i = 0;
 
     for (i = 0; i < r->num_sids; i++) {
-        DomSid *s = r->sids[i].sid;
+        PSID s = r->sids[i].sid;
         SAFE_FREE(s);
     }
 

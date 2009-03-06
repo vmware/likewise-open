@@ -1227,10 +1227,10 @@ LsaDmpIsObjectSidInDomainSid(
     IN PSID pDomainSid
     )
 {
-    return ((pDomainSid->revision == pObjectSid->revision) &&
-            !memcmp(pDomainSid->authid, pObjectSid->authid, sizeof(pObjectSid->authid)) &&
-            (pDomainSid->subauth_count <= pObjectSid->subauth_count) &&
-            !memcmp(pDomainSid->subauth, pObjectSid->subauth, sizeof(pObjectSid->subauth[0]) * pDomainSid->subauth_count)) ? TRUE : FALSE;
+    return ((pDomainSid->Revision == pObjectSid->Revision) &&
+            !memcmp(&pDomainSid->IdentifierAuthority, &pObjectSid->IdentifierAuthority, sizeof(pObjectSid->IdentifierAuthority)) &&
+            (pDomainSid->SubAuthorityCount <= pObjectSid->SubAuthorityCount) &&
+            !memcmp(pDomainSid->SubAuthority, pObjectSid->SubAuthority, sizeof(pObjectSid->SubAuthority[0]) * pDomainSid->SubAuthorityCount)) ? TRUE : FALSE;
 }
 
 static

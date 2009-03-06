@@ -35,7 +35,7 @@ NTSTATUS
 SamDBAddAliasMember(
     handle_t b,
     PolicyHandle *alias_h,
-    DomSid *sid
+    PSID sid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

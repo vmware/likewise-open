@@ -576,14 +576,14 @@ error:
 static
 DWORD
 AD_PacRidsToSidStringList(
-    IN OPTIONAL DomSid* pDomainSid,
+    IN OPTIONAL PSID pDomainSid,
     IN RidWithAttributeArray* pRids,
     OUT PDWORD pdwSidCount,
     OUT PSTR** pppszSidList
     )
 {
     DWORD dwError = 0;
-    DomSid* pDomainBasedSid = NULL;
+    PSID pDomainBasedSid = NULL;
     DWORD i = 0;
     DWORD dwSidCount = 0;
     PSTR* ppszSidList = NULL;
@@ -608,13 +608,13 @@ AD_PacRidsToSidStringList(
 
     dwError = RtlSidAllocateResizedCopy(
                     &pDomainBasedSid,
-                    pDomainSid->subauth_count + 1,
+                    pDomainSid->SubAuthorityCount + 1,
                     pDomainSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     for (i = 0; i < pRids->count; i++)
     {
-        pDomainBasedSid->subauth[pDomainBasedSid->subauth_count - 1] =
+        pDomainBasedSid->SubAuthority[pDomainBasedSid->SubAuthorityCount - 1] =
             pRids->rids[i].rid;
 
         dwError = AD_SidToString(

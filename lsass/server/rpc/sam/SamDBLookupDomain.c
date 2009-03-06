@@ -36,7 +36,7 @@ SamrLookupDomain(
     handle_t b,
     PolicyHandle *conn_h,
     UnicodeString *domname
-    DomSid **sid
+    PSID* sid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
