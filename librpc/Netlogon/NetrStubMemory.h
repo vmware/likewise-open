@@ -45,6 +45,13 @@ NetrCleanStubValidationInfo(
     );
 
 
+void
+NetrCleanStubDomainInfo(
+    NetrDomainInfo *r,
+    uint16 level
+    );
+
+
 #endif /* _NETR_STUB_MEMORY_H */
 
 

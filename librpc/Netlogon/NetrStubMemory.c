@@ -196,6 +196,65 @@ void NetrCleanStubValidationInfo(NetrValidationInfo *r, uint16 level)
 }
 
 
+static void
+NetrCleanDomainTrustInfo(
+    NetrDomainTrustInfo *r
+    )
+{
+    int i = 0;
+
+    if (r == NULL) return;
+
+    FreeUnicodeString(&r->domain_name);
+    FreeUnicodeString(&r->full_domain_name);
+    FreeUnicodeString(&r->forest);
+    SidFree(r->sid);
+
+    for (i = 0; i < sizeof(r->unknown1)/sizeof(r->unknown1[0]); i++) {
+        FreeUnicodeString(&r->unknown1[i]);
+    }
+}
+
+
+static void
+NetrFreeDomainInfo1(
+    NetrDomainInfo1 *ptr
+    )
+{
+    int i = 0;
+
+    if (ptr == NULL) return;
+
+    NetrCleanDomainTrustInfo(&ptr->domain_info);
+
+    for (i = 0; i < ptr->num_trusts; i++) {
+        NetrCleanDomainTrustInfo(&ptr->trusts[i]);
+    }
+
+    free(ptr->trusts);
+    free(ptr);
+}
+
+
+void
+NetrCleanStubDomainInfo(
+    NetrDomainInfo *r,
+    uint16 level
+    )
+{
+    if (r == NULL) return;
+
+    switch (level) {
+    case 1:
+        NetrFreeDomainInfo1(r->info1);
+        break;
+    case 2:
+        NetrFreeDomainInfo1(r->info2);
+        break;
+    }
+}
+
+
 /*
 local variables:
 mode: c

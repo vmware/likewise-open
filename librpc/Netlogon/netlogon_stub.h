@@ -186,9 +186,16 @@ extern NTSTATUS netr_Function1c(
     /* [in] */ handle_t IDL_handle
 #endif
 );
-extern NTSTATUS netr_Function1d(
+extern NTSTATUS _NetrLogonGetDomainInfo(
 #ifdef IDL_PROTOTYPES
-    /* [in] */ handle_t IDL_handle
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ wchar16_t *server_name,
+    /* [in] */ wchar16_t *computer_name,
+    /* [in] */ NetrAuth *creds,
+    /* [in, out] */ NetrAuth *ret_creds,
+    /* [in] */ uint32 level,
+    /* [in] */ NetrDomainQuery *query,
+    /* [out] */ NetrDomainInfo *info
 #endif
 );
 extern NTSTATUS netr_Function1e(

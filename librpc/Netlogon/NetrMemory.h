@@ -117,6 +117,14 @@ NetrAllocateValidationInfo(
     );
 
 
+NTSTATUS
+NetrAllocateDomainInfo(
+    NetrDomainInfo **out,
+    NetrDomainInfo *in,
+    uint32 level
+    );
+
+
 #endif /* _NETR_MEMORY_H_ */
 
 

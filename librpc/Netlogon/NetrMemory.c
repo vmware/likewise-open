@@ -753,6 +753,159 @@ error:
 }
 
 
+static
+NTSTATUS
+NetrCopyDomainTrustInfo(
+    NetrDomainTrustInfo *out,
+    NetrDomainTrustInfo *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    status = CopyUnicodeString(&out->domain_name, &in->domain_name);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (out->domain_name.string) {
+        status = NetrAddDepMemory((void*)out->domain_name.string,
+                                  (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeString(&out->full_domain_name,
+                               &in->full_domain_name);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (out->full_domain_name.string) {
+        status = NetrAddDepMemory((void*)out->full_domain_name.string,
+                                  (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeString(&out->forest, &in->forest);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (out->forest.string) {
+        status = NetrAddDepMemory((void*)out->forest.string,
+                                  (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    memcpy(&out->guid, &out->guid, sizeof(out->guid));
+
+    if (in->sid) {
+        RtlSidCopyAlloc(&out->sid, in->sid);
+        goto_if_no_memory_ntstatus(out->sid, error);
+
+        status = NetrAddDepMemory((void*)out->sid, dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+cleanup:
+    return status;
+
+error:
+    memset(out, 0, sizeof(*out));
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+NetrAllocateDomainInfo1(
+    NetrDomainInfo1 **out,
+    NetrDomainInfo1 *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrDomainInfo1 *ptr = NULL;
+    int i = 0;
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrDomainInfo1), dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in == NULL) goto cleanup;
+
+    status = NetrCopyDomainTrustInfo(&ptr->domain_info, &in->domain_info,
+                                     dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    ptr->num_trusts = in->num_trusts;
+
+    status = NetrAllocateMemory((void**)&ptr->trusts,
+                                sizeof(NetrDomainTrustInfo) * ptr->num_trusts,
+                                dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    for (i = 0; i < ptr->num_trusts; i++) {
+        status = NetrCopyDomainTrustInfo(&ptr->trusts[i], &in->trusts[i],
+                                         ptr->trusts);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory(ptr);
+    }
+
+    goto error;
+}
+
+
+NTSTATUS
+NetrAllocateDomainInfo(
+    NetrDomainInfo **out,
+    NetrDomainInfo *in,
+    uint32 level
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrDomainInfo *ptr = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrDomainInfo), NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in == NULL) goto cleanup;
+
+    switch (level) {
+    case 1:
+        status = NetrAllocateDomainInfo1(&ptr->info1, in->info1, (void*)ptr);
+        break;
+
+    case 2:
+        status = NetrAllocateDomainInfo1(&ptr->info2, in->info2, (void*)ptr);
+        break;
+
+    default:
+        status = STATUS_INVALID_LEVEL;
+    }
+    goto_if_ntstatus_not_success(status, error);
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    goto cleanup;
+}
+
+
 
 /*
 local variables:

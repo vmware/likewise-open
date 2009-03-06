@@ -18,6 +18,7 @@ libnetlogon_la_SOURCES = \
 	NetrSamLogoff.c \
 	NetrSamLogonEx.c \
 	NetrEnumerateTrustedDomainsEx.c \
+	NetrGetDomainInfo.c \
 	DsrEnumerateDomainTrusts.c
 
 libnetlogon_cs_la_SOURCES = netlogon_cstub.c
