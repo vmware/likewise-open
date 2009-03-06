@@ -4,10 +4,6 @@
 #include <lw/types.h>
 #include <lw/attrs.h>
 
-#ifdef _DCE_IDL_
-#define MIDL_PASS
-#endif
-
 //
 // An ACCESS_MASK is a 32-bit value divided as follows from high to low bits:
 //
@@ -134,12 +130,12 @@ typedef struct _SID_IDENTIFIER_AUTHORITY {
 
 typedef struct _SID {
    UCHAR Revision;
-#ifdef MIDL_PASS
+#ifdef _DCE_IDL_
     [range(0, SID_MAX_SUB_AUTHORITIES)]
 #endif
    UCHAR SubAuthorityCount;
    SID_IDENTIFIER_AUTHORITY IdentifierAuthority;
-#ifdef MIDL_PASS
+#ifdef _DCE_IDL_
    [size_is(SubAuthorityCount)]
 #endif
    ULONG SubAuthority[];
@@ -819,7 +815,9 @@ typedef struct _COMMON_STANDARD_ACE SYSTEM_MANDATORY_LABEL_ACE, *PSYSTEM_MANDATO
 // how do the MIC ACEs affect ACL_REVISION level ACLs?
 
 // An ACL is opaque.
+#ifndef _DCE_IDL_
 typedef struct _ACL *PACL;
+#endif
 
 #define ACL_REVISION        2 // For file ACLs
 #define ACL_REVISION_DS     4 // For DS ACLs
@@ -851,8 +849,12 @@ typedef struct _ACL *PACL;
 //
 
 // Security descriptors are opaque.
+#ifdef _DCE_IDL_
+typedef PUCHAR PSECURITY_DESCRIPTOR_ABSOLUTE;
+#else
 typedef struct _SECURITY_DESCRIPTOR_ABSOLUTE *PSECURITY_DESCRIPTOR_ABSOLUTE;
 typedef struct _SECURITY_DESCRIPTOR_RELATIVE *PSECURITY_DESCRIPTOR_RELATIVE;
+#endif
 
 #define SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE (5 * sizeof(PVOID))
 #define SECURITY_DESCRIPTOR_RELATIVE_MIN_SIZE (5 * sizeof(ULONG))
@@ -918,6 +920,10 @@ typedef ULONG SECURITY_INFORMATION, *PSECURITY_INFORMATION;
 // The underlying (non-handle) type for an access token is PACCESS_TOKEN.
 // It is opqaue.
 //
+// Note that access tokens are not serializable via DCE RPC.
+//
+
+#ifndef _DCE_IDL_
 
 typedef struct _ACCESS_TOKEN *PACCESS_TOKEN;
 
@@ -979,6 +985,8 @@ typedef struct _TOKEN_UNIX {
     ULONG Gid;
     ULONG Umask;
 } TOKEN_UNIX, *PTOKEN_UNIX;
+
+#endif // _DCE_IDL_
 
 //
 // Well-Known SID Types

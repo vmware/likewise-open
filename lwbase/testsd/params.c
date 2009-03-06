@@ -274,7 +274,7 @@ enum param_err fetch_value(struct parameter *params, int count,
     int *valint, *defint;
     unsigned int *valuint, *defuint;
     unsigned int **valuint_list;
-    DomSid **valsid;
+    PSID* valsid;
     char **strlist = NULL;
     enum param_err ret = perr_success;
     int i = 0;
@@ -319,7 +319,7 @@ enum param_err fetch_value(struct parameter *params, int count,
         if (*valuint_list == NULL) ret = perr_invalid_out_param;
         break;
     case pt_sid:
-        valsid = (DomSid**)val;
+        valsid = (PSID*)val;
         /* default SID is passed as string here for convenience */
         defstr = (char**)def;
         status = ParseSidStringA(valsid,

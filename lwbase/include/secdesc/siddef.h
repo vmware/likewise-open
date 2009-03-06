@@ -35,38 +35,18 @@
 #ifndef _SIDDEF_H_
 #define _SIDDEF_H_
 
+#include <lw/security-types.h>
+
 /*
  * This header is separate from other definitions because it should
  * be possible to include it in idl files when generating dcerpc stubs.
  */
 
-#define MAXIMUM_SUBAUTHORITY_COUNT 15
-
-typedef struct sid {
-    uint8 revision;
-#ifdef _DCE_IDL_
-    [range(0,15)]
-#endif
-    uint8 subauth_count;
-    uint8 authid[6];
-#ifdef _DCE_IDL_
-    [size_is(subauth_count)] uint32 subauth[];
-#else
-    uint32 subauth[MAXIMUM_SUBAUTHORITY_COUNT];
-#endif
-} SID, *PSID;
-
-
-/* Helper macro for transition of old code to the new library */
-#define DomSid  SID
-
-
-typedef struct sid_ptr {
-    DomSid *sid;
+typedef struct __sid_ptr {
+    PSID sid;
 } SidPtr;
 
-
-typedef struct sid_array {
+typedef struct __sid_array {
 #ifdef _DCE_IDL_
     [range(0,1000)]
 #endif

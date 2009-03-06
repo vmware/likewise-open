@@ -1345,6 +1345,8 @@ typedef LW_PNTSTATUS PNTSTATUS;
 
 #endif /* LW_STRICT_NAMESPACE */
 
+// TODO-Move APIs into a separate ntstatus-api.h header or somesuch.
+#ifndef _DCE_IDL_
 LW_PCSTR
 LwNtStatusToSymbolicName(
     LW_NTSTATUS code
@@ -1365,5 +1367,6 @@ LwNtStatusToUnixErrno(
 #define NtStatusToDescription  LwNtStatusToDescription
 #define NtStatusToUnixErrno    LwNtStatusToUnixErrno
 #endif /* LW_STRICT_NAMESPACE */
+#endif
 
 #endif

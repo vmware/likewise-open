@@ -48,8 +48,8 @@
 
 NTSTATUS
 ParseSidStringA(
-    PSID* ppSid,
-    PCSTR pszSidStr
+    OUT PSID* ppSid,
+    IN PCSTR pszSidStr
     )
 {
     const char *sid_start = "S-";
@@ -59,7 +59,7 @@ ParseSidStringA(
     char *start, *pos;
     uint8 count, fields, i;
     unsigned int authid;
-    SID *pSid = NULL;
+    PSID pSid = NULL;
     NTSTATUS status = STATUS_SUCCESS;
 
     BAIL_ON_NULL_PTR_PARAM(pszSidStr);
@@ -97,8 +97,8 @@ ParseSidStringA(
     pSid = RtlMemoryAllocate(SidGetRequiredSize(fields));
     BAIL_ON_NULL_PTR(pSid);
 
-    pSid->revision = (uint8) atol(start);
-    if (pSid->revision != 1) {
+    pSid->Revision = (uint8) atol(start);
+    if (pSid->Revision != SID_REVISION) {
         status = STATUS_INVALID_SID;
         goto error;
     }
@@ -107,12 +107,12 @@ ParseSidStringA(
     FORWARD(start, pszSidStr, sidstr_len, separator);
 
     authid = strtoul(start, &start, 10);
-    memset(&pSid->authid, 0, sizeof(pSid->authid));
+    memset(&pSid->IdentifierAuthority, 0, sizeof(pSid->IdentifierAuthority));
 
     /* decimal representation of authid is apparently 32-bit number */
     for (i = 0; i < sizeof(uint32); i++) {
-	    unsigned long mask = 0xff << (i * 8);
-	    pSid->authid[sizeof(pSid->authid) - (i + 1)] = (authid & mask) >> (i * 8);
+        unsigned long mask = 0xff << (i * 8);
+        pSid->IdentifierAuthority.Value[sizeof(pSid->IdentifierAuthority) - (i + 1)] = (authid & mask) >> (i * 8);
     }
 
     FORWARD(start, pszSidStr, sidstr_len, separator);
@@ -120,11 +120,11 @@ ParseSidStringA(
 
     while ((start - pszSidStr < sidstr_len) &&
            *start != 0) {
-        pSid->subauth[count++] = (DWORD) strtoul(start, NULL, 10);
+        pSid->SubAuthority[count++] = (DWORD) strtoul(start, NULL, 10);
         FORWARD(start, pszSidStr, sidstr_len, separator);
     }
 
-    pSid->subauth_count = count;
+    pSid->SubAuthorityCount = count;
     *ppSid = pSid;
 
 cleanup:
@@ -139,13 +139,13 @@ error:
 
 NTSTATUS
 ParseSidStringW(
-    PSID *ppSid,
-    const wchar16_t *pwszSidStr
+    OUT PSID* ppSid,
+    IN PCWSTR pwszSidStr
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PSTR pszSidStr = NULL;
-    SID* pSid = NULL;
+    PSID pSid = NULL;
 
     BAIL_ON_NULL_PTR_PARAM(pwszSidStr);
 
@@ -176,8 +176,8 @@ error:
 
 NTSTATUS
 SidToStringA(
-    PSID pSid,
-    PSTR* ppszSidStr
+    IN PSID pSid,
+    OUT PSTR* ppszSidStr
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -193,34 +193,34 @@ SidToStringA(
     BAIL_ON_NULL_PTR_PARAM(pSid);
     BAIL_ON_NULL_PTR_PARAM(ppszSidStr);
 
-    if (pSid->authid[0] || pSid->authid[1])
+    if (pSid->IdentifierAuthority.Value[0] || pSid->IdentifierAuthority.Value[1])
     {
         sprintf(sidPrefix, "S-%u-0x%.2X%.2X%.2X%.2X%.2X%.2X",
-                pSid->revision,
-                pSid->authid[0],
-                pSid->authid[1],
-                pSid->authid[2],
-                pSid->authid[3],
-                pSid->authid[4],
-                pSid->authid[5]);
+                pSid->Revision,
+                pSid->IdentifierAuthority.Value[0],
+                pSid->IdentifierAuthority.Value[1],
+                pSid->IdentifierAuthority.Value[2],
+                pSid->IdentifierAuthority.Value[3],
+                pSid->IdentifierAuthority.Value[4],
+                pSid->IdentifierAuthority.Value[5]);
     }
     else
     {
         uint32 authid = 
-            ((uint32)pSid->authid[2] << 24) | 
-            ((uint32)pSid->authid[3] << 16) |
-            ((uint32)pSid->authid[4] << 8)  |
-            ((uint32)pSid->authid[5] << 0);
+            ((uint32)pSid->IdentifierAuthority.Value[2] << 24) |
+            ((uint32)pSid->IdentifierAuthority.Value[3] << 16) |
+            ((uint32)pSid->IdentifierAuthority.Value[4] << 8)  |
+            ((uint32)pSid->IdentifierAuthority.Value[5] << 0);
         
-        sprintf(sidPrefix, "S-%u-%lu", pSid->revision, (unsigned long) authid);
+        sprintf(sidPrefix, "S-%u-%lu", pSid->Revision, (unsigned long) authid);
     }
 
-    for (iSubAuth = 0; iSubAuth < pSid->subauth_count; iSubAuth++)
+    for (iSubAuth = 0; iSubAuth < pSid->SubAuthorityCount; iSubAuth++)
     {
         char  sidPart[64];
         size_t len = 0;
 
-        sprintf(sidPart, "-%u", pSid->subauth[iSubAuth]); 
+        sprintf(sidPart, "-%u", pSid->SubAuthority[iSubAuth]);
 
         len = strlen(sidPart);
 
@@ -245,7 +245,7 @@ SidToStringA(
     }
 
     dwStrSize = strlen(sidPrefix) + (pszSidSuffix ? strlen(pszSidSuffix) : 0) + 1;
-    pszResult = RtlMemoryAllocate((size_t)dwStrSize);
+    pszResult = RtlMemoryAllocate(dwStrSize);
     BAIL_ON_NULL_PTR(pszResult);
 
     sprintf(pszResult, "%s%s", sidPrefix, (pszSidSuffix ? pszSidSuffix : ""));
@@ -255,7 +255,7 @@ SidToStringA(
 cleanup:
 
     if (pszSidSuffix) {
-        RtlMemoryFree((void*)pszSidSuffix);
+        RtlMemoryFree(pszSidSuffix);
         pszSidSuffix = NULL;
     }
 
@@ -264,7 +264,7 @@ cleanup:
 error:
 
     if (pszResult) {
-        RtlMemoryFree((void*)pszResult);
+        RtlMemoryFree(pszResult);
         pszResult = NULL;
     }
 
@@ -275,17 +275,17 @@ error:
 
 void
 SidStrFreeA(
-    PSTR pszSidStr
+    IN OUT PSTR pszSidStr
     )
 {
-    RtlMemoryFree((void*)pszSidStr);
+    RtlMemoryFree(pszSidStr);
 }
 
 
 NTSTATUS
 SidToStringW(
-    PSID pSid,
-    PWSTR *ppwszSidStr
+    IN PSID pSid,
+    OUT PWSTR* ppwszSidStr
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -322,10 +322,10 @@ error:
 
 void
 SidStrFreeW(
-    PWSTR pwszSidStr
+    IN OUT PWSTR pwszSidStr
     )
 {
-    RtlMemoryFree((void*)pwszSidStr);
+    RtlMemoryFree(pwszSidStr);
 }
 
 

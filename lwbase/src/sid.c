@@ -36,22 +36,9 @@
 #include "includes.h"
 
 
-#define CT_PTR_ADD(Pointer, Offset) \
-    ((char*)(Pointer) + Offset)
-
-#define CT_FIELD_OFFSET(Type, Field) \
-    ((size_t)(&(((Type*)(0))->Field)))
-
-#define CT_FIELD_SIZE(Type, Field) \
-    (sizeof(((Type*)(0))->Field))
-
-#define CT_FIELD_RECORD(Pointer, Type, Field) \
-    ((Type*)CT_PTR_ADD(Pointer, -((ssize_t)CT_FIELD_OFFSET(Type, Field))))
-
-
 DWORD
 GetLengthSid(
-    SID *pSid
+    IN PSID pSid
     )
 {
     return SidGetSize(pSid);
@@ -60,7 +47,7 @@ GetLengthSid(
 
 DWORD
 GetSidLengthRequired(
-    UINT8 SubAuthorityCount
+    IN UINT8 SubAuthorityCount
     )
 {
     return SidGetRequiredSize(SubAuthorityCount);
@@ -69,102 +56,89 @@ GetSidLengthRequired(
 
 size_t
 SidGetRequiredSize(
-    UINT8 SubAuthorityCount
+    IN UINT8 SubAuthorityCount
     )
 {
-    return (CT_FIELD_OFFSET(SID, subauth) +
-            CT_FIELD_SIZE(SID, subauth[0]) * SubAuthorityCount);
+    return (LW_FIELD_OFFSET(SID, SubAuthority) +
+            LW_FIELD_SIZE(SID, SubAuthority[0]) * SubAuthorityCount);
 }
 
 
 size_t
 SidGetSize(
-    const SID *pSid
+    IN PSID pSid
     )
 {
     if (pSid == NULL) return 0;
 
-    return SidGetRequiredSize(pSid->subauth_count);
+    return SidGetRequiredSize(pSid->SubAuthorityCount);
 }
 
 
 UINT8
 SidGetSubAuthorityCount(
-    const SID *pSid
+    IN PSID pSid
     )
 {
     if (pSid == NULL) return 0;
 
-    return (pSid->subauth_count);
+    return pSid->SubAuthorityCount;
 }
-
 
 DWORD
 SidGetSubAuthority(
-    SID *pSid,
-    UINT8 SubAuthorityIndex
+    IN PSID pSid,
+    IN UINT8 SubAuthorityIndex
     )
 {
     UINT8 i = SubAuthorityIndex;
     if (pSid == NULL) return 0;
 
-    return (i < pSid->subauth_count) ? pSid->subauth[i] : 0;
+    return (i < pSid->SubAuthorityCount) ? pSid->SubAuthority[i] : 0;
 }
-
 
 void
 SidFree(
-    SID *pSid
+    IN OUT PSID pSid
     )
 {
-    RtlMemoryFree((void*)pSid);
+    RtlMemoryFree(pSid);
 }
-
-
-void*
-FreeSid(
-    SID *pSid
-    )
-{
-    RtlMemoryFree((void*)pSid);
-    return NULL;
-}
-
 
 UINT8*
 GetSidSubAuthorityCount(
-    SID *pSid
+    IN PSID pSid
     )
 {
     if (pSid == NULL) return NULL;
 
-    return (&pSid->subauth_count);
+    return &pSid->SubAuthorityCount;
 }
 
 
 BOOL
 AllocateAndInitializeSid(
-    SID_IDENTIFIER_AUTHORITY *pAuthority,
-    UINT8 SubAuthorityCount,
-    DWORD dwSubAuthority0,
-    DWORD dwSubAuthority1,
-    DWORD dwSubAuthority2,
-    DWORD dwSubAuthority3,
-    DWORD dwSubAuthority4,
-    DWORD dwSubAuthority5,
-    DWORD dwSubAuthority6,
-    DWORD dwSubAuthority7,
-    PSID *ppSid
+    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
+    IN UINT8 SubAuthorityCount,
+    IN DWORD dwSubAuthority0,
+    IN DWORD dwSubAuthority1,
+    IN DWORD dwSubAuthority2,
+    IN DWORD dwSubAuthority3,
+    IN DWORD dwSubAuthority4,
+    IN DWORD dwSubAuthority5,
+    IN DWORD dwSubAuthority6,
+    IN DWORD dwSubAuthority7,
+    OUT PSID* ppSid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SID *pSid = NULL;
+    PSID pSid = NULL;
     SID_IDENTIFIER_AUTHORITY Auth;
 
     BAIL_ON_NULL_PTR_PARAM(pAuthority);
     BAIL_ON_NULL_PTR_PARAM(ppSid);
 
-    memcpy(&Auth.Octet, pAuthority->Octet, sizeof(Auth.Octet));
+    Auth = *pAuthority;
 
     if (SubAuthorityCount == 1) {
         status = RtlSidAllocateAndInitialize(&pSid, Auth, SubAuthorityCount,
@@ -240,15 +214,15 @@ error:
 
 void
 SidCopy(
-    SID *pSidDst,
-    const SID *pSidSrc
+    OUT PSID pDstSid,
+    IN PSID pSrcSid
     )
 {
     size_t SidSize = 0;
-    if (pSidDst == NULL || pSidSrc == NULL) return;
+    if (pDstSid == NULL || pSrcSid == NULL) return;
 
-    SidSize = SidGetSize(pSidSrc);
-    memcpy(pSidDst, pSidSrc, SidSize);
+    SidSize = SidGetSize(pSrcSid);
+    memcpy(pDstSid, pSrcSid, SidSize);
 }
 
 
@@ -265,28 +239,28 @@ SidCopy(
 
 BOOL
 IsValidSid(
-    SID *pSid
+    IN PSID pSid
     )
 {
-    SID_IDENTIFIER_AUTHORITY nt_authid = SECURITY_NT_AUTHORITY;
-    SID_IDENTIFIER_AUTHORITY creator_authid = SECURITY_CREATOR_SID_AUTHORITY;
+    SID_IDENTIFIER_AUTHORITY nt_authid = { SECURITY_NT_AUTHORITY };
+    SID_IDENTIFIER_AUTHORITY creator_authid = { SECURITY_CREATOR_SID_AUTHORITY };
     int i = 0;
     BOOL valid = TRUE;
 
     SID_TEST(pSid == NULL);
 
     /* check revision number */
-    SID_TEST(pSid->revision != 1);
+    SID_TEST(pSid->Revision != SID_REVISION);
 
     /* check security authority id */
-    SID_TEST(memcmp(pSid->authid, nt_authid.Octet, sizeof(pSid->authid)) &&
-             memcmp(pSid->authid, creator_authid.Octet, sizeof(pSid->authid)));
+    SID_TEST(memcmp(&pSid->IdentifierAuthority, &nt_authid, sizeof(pSid->IdentifierAuthority)) &&
+             memcmp(&pSid->IdentifierAuthority, &creator_authid, sizeof(pSid->IdentifierAuthority)));
 
     /* check subauthority ids */
-    SID_TEST(pSid->subauth_count > MAXIMUM_SUBAUTHORITY_COUNT)
+    SID_TEST(pSid->SubAuthorityCount > SID_MAX_SUB_AUTHORITIES)
 
-    for (i = 0; i < pSid->subauth_count; i++) {
-        SID_TEST(pSid->subauth[i] == 0);
+    for (i = 0; i < pSid->SubAuthorityCount; i++) {
+        SID_TEST(pSid->SubAuthority[i] == 0);
     }
 
 done:
@@ -306,8 +280,8 @@ done:
 
 BOOL
 IsEqualSid(
-    SID *pS1,
-    SID *pS2
+    IN PSID pS1,
+    IN PSID pS2
     )
 {
     BOOL equal = TRUE;
@@ -322,16 +296,16 @@ IsEqualSid(
     SID_CMP(pS2 != NULL);
 
     /* revision number */
-    SID_CMP(pS1->revision == pS2->revision);
+    SID_CMP(pS1->Revision == pS2->Revision);
 
     /* autority id */
-    SID_CMP(memcmp(pS1->authid, pS2->authid, sizeof(pS1->authid)) == 0);
+    SID_CMP(memcmp(&pS1->IdentifierAuthority, &pS2->IdentifierAuthority, sizeof(pS1->IdentifierAuthority)) == 0);
 
     /* subauth id count */
-    SID_CMP(pS1->subauth_count == pS2->subauth_count);
+    SID_CMP(pS1->SubAuthorityCount == pS2->SubAuthorityCount);
 
-    for (i = 0; i < pS1->subauth_count; i++) {
-        SID_CMP(pS1->subauth[i] == pS2->subauth[i]);
+    for (i = 0; i < pS1->SubAuthorityCount; i++) {
+        SID_CMP(pS1->SubAuthority[i] == pS2->SubAuthority[i]);
     }
 
 done:

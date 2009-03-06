@@ -28,8 +28,7 @@ libsecdesc_la_SOURCES = \
         rtlsid.c \
         sid.c \
         sidstr.c \
-        rtlpolhnd.c \
-        rtlsecdesc.c
+        rtlpolhnd.c
 
 libsecdesc_la_LIBADD = \
         @LIBUUID_LIBS@ \

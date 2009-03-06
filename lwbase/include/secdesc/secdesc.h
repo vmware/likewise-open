@@ -40,8 +40,7 @@
 #include <secdesc/sdsys.h>
 #include <secdesc/sid.h>
 #include <secdesc/polhnd.h>
-#include <secdesc/sd.h>
-
+#include <secdesc/sddef.h>
 
 #endif /* _SECDESC_H_ */
 

@@ -41,87 +41,57 @@
 #include "siddef.h"
 #include <lw/attrs.h>
 
-
-typedef struct _SID_IDENTIFIER_AUTHORITY {
-    uint8 Octet[6];
-} SID_IDENTIFIER_AUTHORITY;
-
-#define SECURITY_NT_AUTHORITY          ((SID_IDENTIFIER_AUTHORITY) {{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x5 }})
-#define SECURITY_CREATOR_SID_AUTHORITY ((SID_IDENTIFIER_AUTHORITY) {{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x3 }})
-
 #define SID_BUILTIN_DOMAIN    "S-1-5-32"
 
 
 NTSTATUS
 RtlSidInitialize(
-    IN OUT SID *pSid,
-    IN SID_IDENTIFIER_AUTHORITY *pAuthority,
-    IN UINT8 SubAuthCount
+    IN OUT PSID pSid,
+    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
+    IN UINT8 SubAuthorityCount
     );
-
 
 DWORD
 GetSidLengthRequired(
-    IN UINT8 SubAuthCount
+    IN UINT8 SubAuthorityCount
     );
-
 
 size_t
 SidGetSize(
-    IN const SID *pSid
+    IN PSID pSid
     );
-
 
 size_t
 SidGetRequiredSize(
     IN UINT8 SubAuthorityCount
     );
 
-
 UINT8
 SidGetSubAuthorityCount(
-    IN const SID *pSid
+    IN PSID pSid
     );
-
 
 DWORD
 SidGetSubAuthority(
-    IN SID *pSid,
+    IN PSID pSid,
     IN UINT8 SubAuthorityIndex
     );
-
 
 NTSTATUS
 RtlSidAllocate(
     OUT PSID* ppSid,
-    IN UINT8 SubAuthCount
+    IN UINT8 SubAuthorityCount
     );
-
 
 void
 SidFree(
-    IN SID *pSid
+    IN OUT PSID pSid
     );
-
-
-void*
-FreeSid(
-    IN SID *pSid
-    );
-
 
 UINT8*
 GetSidSubAuthorityCount(
-    IN SID *pSid
+    IN PSID pSid
     );
-
-
-DWORD*
-GetSidSubAuthority(
-    IN SID *pSid,
-    IN DWORD SubAuthority
-    );
-
 
 NTSTATUS
 RtlSidAllocateAndInitialize(
@@ -131,88 +101,77 @@ RtlSidAllocateAndInitialize(
     ...
     );
 
-
 NTSTATUS
 RtlSidAllocateResizedCopy(
     OUT PSID* ppSid,
     IN UINT8 SubAuthorityCount,
-    IN const SID *pSourceSid
+    IN PSID pSourceSid
     );
-
 
 void
 SidCopy(
-    OUT SID *pDstSid,
-    IN const SID *pSrcSid
+    OUT PSID pDstSid,
+    IN PSID pSrcSid
     );
-
 
 NTSTATUS
 RtlSidCopyPartial(
-    SID *pSid,
-    DWORD Size,
-    const SID *pSourceSid
+    OUT PSID pSid,
+    IN DWORD Size,
+    IN PSID pSourceSid
     );
-
 
 NTSTATUS
 RtlSidCopyAlloc(
-    OUT PSID *ppDstSid,
-    IN const SID *pSrcSid
+    OUT PSID* ppDstSid,
+    IN PSID pSrcSid
     );
-
 
 NTSTATUS
 RtlSidAppendRid(
-    OUT PSID *ppDstSid,
+    OUT PSID* ppDstSid,
     IN DWORD dwRid,
-    IN const SID *pSrcSid
+    IN PSID pSrcSid
     );
-
 
 BOOL
 IsEqualSid(
-    SID *pS1,
-    SID *pS2
+    IN PSID pS1,
+    IN PSID pS2
     );
-
 
 NTSTATUS
 ParseSidStringA(
-    OUT PSID *ppSid,
+    OUT PSID* ppSid,
     IN PCSTR pszSidStr
     );
 
 NTSTATUS
 ParseSidStringW(
-    OUT PSID *ppSid,
+    OUT PSID* ppSid,
     IN PCWSTR pwszSidStr
     );
 
-
 NTSTATUS
 SidToStringA(
-    IN SID *pSid,
-    OUT PSTR *ppszSidStr
+    IN PSID pSid,
+    OUT PSTR* ppszSidStr
     );
-
 
 void
 SidStrFreeA(
-    IN PSTR pszSidStr
+    IN OUT PSTR pszSidStr
     );
-
 
 NTSTATUS
 SidToStringW(
-    IN SID *pSid,
-    OUT PWSTR *ppwszSidStr
+    IN PSID pSid,
+    OUT PWSTR* ppwszSidStr
     );
-
 
 void
 SidStrFreeW(
-    IN PWSTR pwszSidStr
+    IN OUT PWSTR pwszSidStr
     );
 
 
@@ -222,28 +181,25 @@ SidStrFreeW(
 
 BOOL
 InitializeSid(
-    IN OUT SID *pSid,
-    IN SID_IDENTIFIER_AUTHORITY *pAuthority,
-    IN UINT8 SubAuthCount
+    IN OUT PSID pSid,
+    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
+    IN UINT8 SubAuthorityCount
     );
-
 
 DWORD
 GetLengthSid(
-    IN SID *pSid
+    IN PSID pSid
     );
-
 
 BOOL
 IsValidSid(
-    IN SID *pSid
+    IN PSID pSid
     );
-
 
 BOOL
 AllocateAndInitializeSid(
-    IN SID_IDENTIFIER_AUTHORITY *Authority,
-    IN UINT8 SubAuthorityCound,
+    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
+    IN UINT8 SubAuthorityCount,
     IN DWORD dwSubAuthority0,
     IN DWORD dwSubAuthority1,
     IN DWORD dwSubAuthority2,
@@ -252,7 +208,7 @@ AllocateAndInitializeSid(
     IN DWORD dwSubAuthority5,
     IN DWORD dwSubAuthority6,
     IN DWORD dwSubAuthority7,
-    OUT PSID *ppSid
+    OUT PSID* ppSid
     );
 
 

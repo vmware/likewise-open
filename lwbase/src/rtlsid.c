@@ -37,20 +37,11 @@
 #include "includes.h"
 
 
-#ifndef MAX
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#endif
-
-#ifndef MIN
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#endif
-
-
 NTSTATUS
 RtlSidInitialize(
-    SID *pSid,
-    SID_IDENTIFIER_AUTHORITY *pAuthority,
-    UINT8 SubAuthCount
+    IN OUT PSID pSid,
+    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
+    IN UINT8 SubAuthorityCount
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -58,20 +49,20 @@ RtlSidInitialize(
     BAIL_ON_NULL_PTR_PARAM(pSid);
     BAIL_ON_NULL_PTR_PARAM(pAuthority);
 
-    if (SubAuthCount <= 0)
+    if (SubAuthorityCount <= 0)
     {
         status = STATUS_INVALID_PARAMETER;
         goto cleanup;
     }
 
     /* Revision number */
-    pSid->revision = 1;
+    pSid->Revision = SID_REVISION;
 
     /* Authority id */
-    memcpy(pSid->authid, pAuthority->Octet, sizeof(pSid->authid));
+    pSid->IdentifierAuthority = *pAuthority;
 
     /* Subauth count */
-    pSid->subauth_count = SubAuthCount;
+    pSid->SubAuthorityCount = SubAuthorityCount;
 
 cleanup:
     return status;
@@ -80,23 +71,23 @@ cleanup:
 
 BOOL
 InitializeSid(
-    SID *pSid,
-    SID_IDENTIFIER_AUTHORITY *pAuthority,
-    UINT8 SubAuthCount
+    IN OUT PSID pSid,
+    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
+    IN UINT8 SubAuthorityCount
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = RtlSidInitialize(pSid, pAuthority, SubAuthCount);
+    status = RtlSidInitialize(pSid, pAuthority, SubAuthorityCount);
     return (status == STATUS_SUCCESS);
 }
 
 
 NTSTATUS
 RtlSidCopyPartial(
-    SID *pSid,
-    DWORD Size,
-    const SID *pSourceSid
+    OUT PSID pSid,
+    IN DWORD Size,
+    IN PSID pSourceSid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -106,7 +97,7 @@ RtlSidCopyPartial(
     BAIL_ON_NULL_PTR_PARAM(pSourceSid);
 
     sourceSize = SidGetSize(pSourceSid);
-    memcpy(pSid, pSourceSid, MIN(Size, sourceSize));
+    memcpy(pSid, pSourceSid, LW_MIN(Size, sourceSize));
 
 cleanup:
     return status;
@@ -115,13 +106,13 @@ cleanup:
 
 NTSTATUS
 RtlSidCopyAlloc(
-    PSID *ppDstSid,
-    const SID *pSrcSid
+    OUT PSID* ppDstSid,
+    IN PSID pSrcSid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwSrcSize = 0;
-    SID *pDstSid = NULL;
+    PSID pDstSid = NULL;
 
     BAIL_ON_NULL_PTR_PARAM(ppDstSid);
     BAIL_ON_NULL_PTR_PARAM(pSrcSid);
@@ -145,8 +136,8 @@ error:
 
 NTSTATUS
 RtlSidAllocate(
-    PSID* ppSid,
-    UINT8 SubAuthorityCount
+    OUT PSID* ppSid,
+    IN UINT8 SubAuthorityCount
     )
 {
     return RtlSidAllocateResizedCopy(ppSid, SubAuthorityCount, NULL);
@@ -155,9 +146,9 @@ RtlSidAllocate(
 
 NTSTATUS
 RtlSidAllocateResizedCopy(
-    PSID* ppSid,
-    UINT8 SubAuthorityCount,
-    const SID *pSourceSid
+    OUT PSID* ppSid,
+    IN UINT8 SubAuthorityCount,
+    IN PSID pSourceSid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -165,13 +156,13 @@ RtlSidAllocateResizedCopy(
     PSID pSid = NULL;
 
     dwSize = SidGetRequiredSize(SubAuthorityCount);
-    pSid = RtlMemoryAllocate((size_t)dwSize);
+    pSid = RtlMemoryAllocate(dwSize);
     BAIL_ON_NULL_PTR(pSid);
 
     if (pSourceSid) {
         RtlSidCopyPartial(pSid, dwSize, pSourceSid);
     }
-    pSid->subauth_count = SubAuthorityCount;
+    pSid->SubAuthorityCount = SubAuthorityCount;
 
     *ppSid = pSid;
 
@@ -186,15 +177,16 @@ error:
 
 NTSTATUS
 RtlSidAllocateAndInitialize(
-    PSID* ppSid,
-    SID_IDENTIFIER_AUTHORITY Authority,
-    UINT8 SubAuthorityCount,
+    OUT PSID* ppSid,
+    IN SID_IDENTIFIER_AUTHORITY Authority,
+    IN UINT8 SubAuthorityCount,
     ...
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SID *pSid = NULL;
-    DWORD dwSubAuthId, i;
+    PSID pSid = NULL;
+    DWORD dwSubAuthority = 0;
+    DWORD i = 0;
     va_list ap;
 
     status = RtlSidAllocateResizedCopy(&pSid, SubAuthorityCount, NULL);
@@ -206,8 +198,8 @@ RtlSidAllocateAndInitialize(
     va_start(ap, SubAuthorityCount);
 
     for (i = 0; i < SubAuthorityCount; i++) {
-        dwSubAuthId = va_arg(ap, DWORD);
-        pSid->subauth[i] = dwSubAuthId;
+        dwSubAuthority = va_arg(ap, DWORD);
+        pSid->SubAuthority[i] = dwSubAuthority;
     }
 
     va_end(ap);
@@ -227,28 +219,28 @@ error:
 
 NTSTATUS
 RtlSidAppendRid(
-    PSID *ppDstSid,
-    DWORD dwRid,
-    const SID *pSrcSid
+    OUT PSID* ppDstSid,
+    IN DWORD dwRid,
+    IN PSID pSrcSid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SID *pSid = NULL;
-    UINT8 SubAuthCount = 0;
+    PSID pSid = NULL;
+    UINT8 SubAuthorityCount = 0;
 
     BAIL_ON_NULL_PTR_PARAM(ppDstSid);
     BAIL_ON_NULL_PTR_PARAM(pSrcSid);
 
-    SubAuthCount = SidGetSubAuthorityCount(pSrcSid) + 1;
-    if (SubAuthCount > MAXIMUM_SUBAUTHORITY_COUNT) {
+    SubAuthorityCount = SidGetSubAuthorityCount(pSrcSid) + 1;
+    if (SubAuthorityCount > SID_MAX_SUB_AUTHORITIES) {
         status = STATUS_INVALID_SID;
         goto error;
     }
 
-    status = RtlSidAllocateResizedCopy(&pSid, SubAuthCount, pSrcSid);
+    status = RtlSidAllocateResizedCopy(&pSid, SubAuthorityCount, pSrcSid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    pSid->subauth[SubAuthCount - 1] = dwRid;
+    pSid->SubAuthority[SubAuthorityCount - 1] = dwRid;
 
     *ppDstSid = pSid;
 

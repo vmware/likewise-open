@@ -42,6 +42,10 @@
 #include "test.h"
 
 
+#define SECURITY_NT_AUTHORITY          ((SID_IDENTIFIER_AUTHORITY) {{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x5 }})
+#define SECURITY_CREATOR_SID_AUTHORITY ((SID_IDENTIFIER_AUTHORITY) {{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x3 }})
+
+
 int TestSidInitialize(struct test *t,
                       struct parameter *options, int optcount);
 int TestSidAllocateAndInit(struct test *t,
@@ -67,7 +71,7 @@ int TestSidInitialize(struct test *t,
     enum param_err perr = perr_success;
     unsigned int subauth_count = 0;
     char *authid_name = NULL;
-    SID *pSid = NULL;
+    PSID pSid = NULL;
     size_t sid_size = 0;
     SID_IDENTIFIER_AUTHORITY authid;
 
@@ -99,13 +103,13 @@ int TestSidInitialize(struct test *t,
 
     sid_size = SidGetRequiredSize((UINT8)subauth_count);
 
-    pSid = (SID*) malloc(sid_size);
+    pSid = (PSID) malloc(sid_size);
     BAIL_ON_NULL_PTR(pSid);
 
     status = RtlSidInitialize(pSid, &authid, subauth_count);
     if (status != STATUS_SUCCESS) goto done;
 
-    memset(pSid->subauth, 0, sizeof(pSid->subauth[0]) * subauth_count);
+    memset(&pSid->SubAuthority, 0, sizeof(pSid->SubAuthority[0]) * subauth_count);
 
     if (IsValidSid(pSid)) {
         status = STATUS_INVALID_SID;
@@ -127,7 +131,7 @@ int TestSidAllocateAndInit(struct test *t,
     const char *def_subauth = "[21:1:2:3:4]";
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
-    SID *pSid = NULL;
+    PSID pSid = NULL;
     unsigned int *subauth = NULL;
     DWORD dwSubAuthCount = 0;
 
@@ -208,8 +212,8 @@ int TestSidCopyAlloc(struct test *t,
 
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
-    SID *pDstSid = NULL;
-    SID *pSrcSid = NULL;
+    PSID pDstSid = NULL;
+    PSID pSrcSid = NULL;
 
     TESTINFO(t);
 
@@ -244,8 +248,8 @@ int TestSidCopy(struct test *t,
 
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
-    SID *pDstSid = NULL;
-    SID *pSrcSid = NULL;
+    PSID pDstSid = NULL;
+    PSID pSrcSid = NULL;
     UINT8 SubAuthCount = 0;
 
     TESTINFO(t);
@@ -288,8 +292,8 @@ int TestSidString(struct test *t,
     PSTR pszSidStrOut = NULL;
     PWSTR pwszSidStr = NULL;
     PWSTR pwszSidStrOut = NULL;
-    SID *pSid1 = NULL;
-    SID *pSid2 = NULL;
+    PSID pSid1 = NULL;
+    PSID pSid2 = NULL;
 
     perr = fetch_value(options, optcount, "sidstr", pt_string,
                        &pszSidStr, &def_sidstr);
@@ -373,8 +377,8 @@ int TestSidAppendRid(struct test *t,
 
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
-    SID *pSid = NULL;
-    SID *pSidApp = NULL;
+    PSID pSid = NULL;
+    PSID pSidApp = NULL;
     DWORD dwRid = 0;
 
     perr = fetch_value(options, optcount, "sid", pt_sid,
@@ -393,7 +397,7 @@ int TestSidAppendRid(struct test *t,
         goto done;
     }
 
-    if (pSidApp->subauth[pSidApp->subauth_count - 1] != dwRid) {
+    if (pSidApp->SubAuthority[pSidApp->SubAuthorityCount - 1] != dwRid) {
         status = STATUS_UNSUCCESSFUL;
     }
 

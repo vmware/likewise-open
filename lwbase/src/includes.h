@@ -49,5 +49,4 @@
 
 #include <secdesc/polhnd.h>
 #include <secdesc/sid.h>
-#include <secdesc/sd.h>
 #include <secdesc_p.h>

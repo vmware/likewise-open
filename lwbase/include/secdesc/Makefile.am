@@ -7,6 +7,5 @@ sdinclude_HEADERS = \
 	siddef.h \
 	polhnd.h \
 	phdef.h \
-	sd.h \
 	sdflags.h \
 	sddef.h
