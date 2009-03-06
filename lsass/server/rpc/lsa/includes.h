@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -41,7 +41,6 @@
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
 #include <lw/ntstatus.h>
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>

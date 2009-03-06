@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -49,7 +49,7 @@
 #define __ADNETAPI_H__
 
 #include <uuid/uuid.h>
-#include <secdesc/secdesc.h>
+#include <secdesc/secapi.h>
 
 #include <lwrpc/LM.h>
 #include <lw/ntstatus.h>

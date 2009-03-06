@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -48,7 +48,6 @@
 #include <lwnet.h>
 #include "lsakrb5_error.h"
 
-#include <secdesc/secdesc.h>
 #include <lwrpc/LM.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
