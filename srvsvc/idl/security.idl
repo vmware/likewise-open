@@ -1,15 +1,10 @@
 #ifndef _SECURITY_IDL_
 #define _SECURITY_IDL_
 
-// TODO-Use single security.idl from librpc.
-
 cpp_quote("#ifndef _GEN_SECURITY_H_")
 cpp_quote("#define _GEN_SECURITY_H_")
 
-#include <secdesc/phdef.h>
-#include <secdesc/siddef.h>
-#include <secdesc/sdflags.h>
-#include <secdesc/sddef.h>
+#include <secdesc/sectypes.h>
 
 cpp_quote("#endif /* _GEN_SECURITY_H_ */")
 

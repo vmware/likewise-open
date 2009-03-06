@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@
 #include <string.h>
 
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
+#include <secdesc/sectypes.h>
 #include <lw/ntstatus.h>
 
 #include <srvsvc/types.h>
