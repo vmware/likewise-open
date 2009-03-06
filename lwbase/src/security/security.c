@@ -47,8 +47,7 @@ RtlLengthRequiredSid(
     IN ULONG SubAuthorityCount
     )
 {
-    return (LW_FIELD_OFFSET(SID, SubAuthority) +
-            (LW_FIELD_SIZE(SID, SubAuthority[0]) * SubAuthorityCount));
+    return _SID_GET_SIZE_REQUIRED(SubAuthorityCount);
 }
 
 ULONG

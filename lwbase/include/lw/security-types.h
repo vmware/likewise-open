@@ -148,9 +148,21 @@ typedef struct _SID {
 #define SID_MIN_SIZE \
     (LW_FIELD_OFFSET(SID, SubAuthority))
 
-#define SID_MAX_SIZE \
-    (SID_MIN_SIZE + (LW_FIELD_SIZE(SID, SubAuthority[0]) * SID_MAX_SUB_AUTHORITIES))
+#define _SID_GET_SIZE_REQUIRED(SubAuthorityCount) \
+    (SID_MIN_SIZE + (LW_FIELD_SIZE(SID, SubAuthority[0]) * (SubAuthorityCount)))
 
+#define SID_MAX_SIZE \
+    _SID_GET_SIZE_REQUIRED(SID_MAX_SUB_AUTHORITIES)
+
+// TODO-Can we somehow get rid of IDLREF_PSID?
+
+// IDLREF_SID should only be used in IDL files where a [in,ref] PSID is wanted
+// because DCE RPC does not like a typedef-ed pointer type with [ref].
+#ifdef _DCE_IDL_
+#define IDLREF_PSID SID*
+#else
+typedef PSID IDLREF_PSID;
+#endif
 
 //
 // SID Authorities
