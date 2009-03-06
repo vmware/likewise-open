@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+*/
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -29,20 +29,61 @@
  */
 
 /*
- * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
- *          Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
+#ifndef __SECAPI_H_
+#define __SECAPI_H_
 
-#ifndef _SID_H_
-#define _SID_H_
-
-#include "sdsys.h"
-#include "siddef.h"
+//#include "sdsys.h"
+#include <secdesc/sectypes.h>
 #include <lw/attrs.h>
+#include <lw/ntstatus.h>
 
-#define SID_BUILTIN_DOMAIN    "S-1-5-32"
+//
+// Policy Handle API
+//
 
+NTSTATUS
+RtlPolHndCreate(
+    OUT PolicyHandle* pH,
+    IN ULONG HandleType
+    );
+
+NTSTATUS
+RtlPolHndCopy(
+    OUT PolicyHandle* pHout,
+    IN PolicyHandle* pHin
+    );
+
+NTSTATUS
+RtlPolHndAllocate(
+    OUT PolicyHandle** ppH,
+    IN ULONG HandleType
+    );
+
+VOID
+RtlPolHndFree(
+    IN OUT PolicyHandle* pH
+    );
+
+BOOLEAN
+RtlPolHndIsEqual(
+    IN PolicyHandle* pH1,
+    IN PolicyHandle* pH2
+    );
+
+BOOLEAN
+RtlPolHndIsEmpty(
+    IN PolicyHandle* pH
+    );
+
+//
+// SID-Related API
+//
+
+// TODO-Perhpas use non-string version instead?
+#define SID_BUILTIN_DOMAIN  "S-1-5-32"
 
 NTSTATUS
 RtlSidInitialize(
@@ -51,7 +92,7 @@ RtlSidInitialize(
     IN UINT8 SubAuthorityCount
     );
 
-DWORD
+ULONG
 GetSidLengthRequired(
     IN UINT8 SubAuthorityCount
     );
@@ -134,7 +175,7 @@ RtlSidAppendRid(
     IN PSID pSrcSid
     );
 
-BOOL
+BOOLEAN
 IsEqualSid(
     IN PSID pS1,
     IN PSID pS2
@@ -174,10 +215,9 @@ SidStrFreeW(
     IN OUT PWSTR pwszSidStr
     );
 
-
-/*
-  MS compatibility functions
-*/ 
+//
+// MS compatibility functions
+//
 
 BOOL
 InitializeSid(
@@ -186,17 +226,17 @@ InitializeSid(
     IN UINT8 SubAuthorityCount
     );
 
-DWORD
+ULONG
 GetLengthSid(
     IN PSID pSid
     );
 
-BOOL
+BOOLEAN
 IsValidSid(
     IN PSID pSid
     );
 
-BOOL
+NTSTATUS
 AllocateAndInitializeSid(
     IN PSID_IDENTIFIER_AUTHORITY pAuthority,
     IN UINT8 SubAuthorityCount,
@@ -222,9 +262,7 @@ AllocateAndInitializeSid(
 #define SidStrFree           SidStrFreeA
 #endif /* defined(UNICODE) */
 
-
-#endif /* _SID_H_ */
-
+#endif
 
 /*
 local variables:

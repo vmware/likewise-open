@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -36,7 +36,7 @@
 #include "includes.h"
 
 
-DWORD
+ULONG
 GetLengthSid(
     IN PSID pSid
     )
@@ -45,7 +45,7 @@ GetLengthSid(
 }
 
 
-DWORD
+ULONG
 GetSidLengthRequired(
     IN UINT8 SubAuthorityCount
     )
@@ -116,7 +116,7 @@ GetSidSubAuthorityCount(
 }
 
 
-BOOL
+NTSTATUS
 AllocateAndInitializeSid(
     IN PSID_IDENTIFIER_AUTHORITY pAuthority,
     IN UINT8 SubAuthorityCount,
@@ -237,7 +237,7 @@ SidCopy(
     }
 
 
-BOOL
+BOOLEAN
 IsValidSid(
     IN PSID pSid
     )
@@ -278,13 +278,13 @@ done:
         goto done;        \
     }
 
-BOOL
+BOOLEAN
 IsEqualSid(
     IN PSID pS1,
     IN PSID pS2
     )
 {
-    BOOL equal = TRUE;
+    BOOLEAN equal = TRUE;
     UINT8 i = 0;
 
     if (pS1 == pS2) {

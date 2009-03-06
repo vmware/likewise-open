@@ -46,6 +46,5 @@
 #include <wc16str.h>
 #include <uuid/uuid.h>
 
-#include <secdesc/polhnd.h>
-#include <secdesc/sid.h>
+#include <secdesc/secapi.h>
 #include <secdesc_p.h>

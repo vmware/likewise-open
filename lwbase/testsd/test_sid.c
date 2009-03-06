@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -36,7 +36,7 @@
 
 #include <config.h>
 #include <lw/base.h>
-#include <secdesc/sid.h>
+#include <secdesc/secapi.h>
 
 #include "params.h"
 #include "test.h"

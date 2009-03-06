@@ -3,7 +3,7 @@
 */
 
 /*
- * Copyright Likewise Software    2004-2009
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -37,8 +37,8 @@
 
 NTSTATUS
 RtlPolHndCreate(
-    PolicyHandle *pH,
-    DWORD dwHandleType
+    OUT PolicyHandle* pH,
+    IN ULONG HandleType
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -49,8 +49,8 @@ RtlPolHndCreate(
     /* Generate time-based uuid (rfc4122) */
     uuid_generate_time(uu);
 
-    memcpy((void*)&pH->guid, (void*)&uu, sizeof(pH->guid));
-    pH->handle_type = dwHandleType;
+    memcpy(&pH->guid, &uu, sizeof(pH->guid));
+    pH->handle_type = HandleType;
 
 cleanup:
     uuid_clear(uu);
@@ -61,8 +61,8 @@ cleanup:
 
 NTSTATUS
 RtlPolHndCopy(
-    PolicyHandle *pHout,
-    const PolicyHandle *pHin
+    OUT PolicyHandle* pHout,
+    IN PolicyHandle* pHin
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -70,7 +70,7 @@ RtlPolHndCopy(
     BAIL_ON_NULL_PTR_PARAM(pHout);
     BAIL_ON_NULL_PTR_PARAM(pHin);
 
-    memcpy((void*)&pHout->guid, (void*)&pHin->guid, sizeof(pHout->guid));
+    memcpy(&pHout->guid, &pHin->guid, sizeof(pHout->guid));
     pHout->handle_type = pHin->handle_type;
 
 cleanup:
@@ -80,8 +80,8 @@ cleanup:
 
 NTSTATUS
 RtlPolHndAllocate(
-    PolicyHandle **ppH,
-    DWORD dwHandleType
+    OUT PolicyHandle** ppH,
+    IN ULONG HandleType
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -93,7 +93,7 @@ RtlPolHndAllocate(
     ptr = RtlMemoryAllocate(sizeof(PolicyHandle));
     BAIL_ON_NULL_PTR(ptr);
 
-    status = RtlPolHndCreate(ptr, dwHandleType);
+    status = RtlPolHndCreate(ptr, HandleType);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *ppH = ptr;
@@ -115,20 +115,20 @@ error:
 
 void
 RtlPolHndFree(
-    PolicyHandle *pH
+    IN OUT PolicyHandle* pH
     )
 {
     if (pH == NULL) return;
 
     ZERO_STRUCT(*pH);
-    RtlMemoryFree((void*)pH);
+    RtlMemoryFree(pH);
 }
 
 
-BOOL
+BOOLEAN
 RtlPolHndIsEqual(
-    PolicyHandle *pH1,
-    PolicyHandle *pH2
+    IN PolicyHandle* pH1,
+    IN PolicyHandle* pH2
     )
 {
     BOOL ret = FALSE;
@@ -145,8 +145,8 @@ RtlPolHndIsEqual(
 
     /* Compare handle type and uuid */
     if (pH1->handle_type == pH2->handle_type) {
-        memcpy((void*)&uu1, (void*)&pH1->guid, sizeof(uu1));
-        memcpy((void*)&uu2, (void*)&pH2->guid, sizeof(uu2));
+        memcpy(&uu1, &pH1->guid, sizeof(uu1));
+        memcpy(&uu2, &pH2->guid, sizeof(uu2));
 
         if (uuid_compare(uu1, uu2) == 0) {
             ret = TRUE;
@@ -161,9 +161,9 @@ cleanup:
 }
 
 
-BOOL
+BOOLEAN
 RtlPolHndIsEmpty(
-    PolicyHandle *pH
+    IN PolicyHandle* pH
     )
 {
     BOOL ret = FALSE;
@@ -172,7 +172,7 @@ RtlPolHndIsEmpty(
     if (pH == NULL) goto cleanup;
 
     if (pH->handle_type == 0) {
-        memcpy((void*)&uu, (void*)&pH->guid, sizeof(uu));
+        memcpy(&uu, &pH->guid, sizeof(uu));
 
         if (uuid_is_null(uu)) {
             ret = TRUE;

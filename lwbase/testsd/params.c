@@ -38,7 +38,7 @@
 #include <config.h>
 #include <lw/base.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
+#include <secdesc/secapi.h>
 
 #include "params.h"
 

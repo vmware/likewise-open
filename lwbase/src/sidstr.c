@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -57,7 +57,7 @@ ParseSidStringA(
 
     size_t sidstr_len;
     char *start, *pos;
-    uint8 count, fields, i;
+    UCHAR count, fields, i;
     unsigned int authid;
     PSID pSid = NULL;
     NTSTATUS status = STATUS_SUCCESS;
@@ -97,7 +97,7 @@ ParseSidStringA(
     pSid = RtlMemoryAllocate(SidGetRequiredSize(fields));
     BAIL_ON_NULL_PTR(pSid);
 
-    pSid->Revision = (uint8) atol(start);
+    pSid->Revision = (UCHAR) atol(start);
     if (pSid->Revision != SID_REVISION) {
         status = STATUS_INVALID_SID;
         goto error;
@@ -110,7 +110,7 @@ ParseSidStringA(
     memset(&pSid->IdentifierAuthority, 0, sizeof(pSid->IdentifierAuthority));
 
     /* decimal representation of authid is apparently 32-bit number */
-    for (i = 0; i < sizeof(uint32); i++) {
+    for (i = 0; i < sizeof(ULONG); i++) {
         unsigned long mask = 0xff << (i * 8);
         pSid->IdentifierAuthority.Value[sizeof(pSid->IdentifierAuthority) - (i + 1)] = (authid & mask) >> (i * 8);
     }
@@ -206,18 +206,18 @@ SidToStringA(
     }
     else
     {
-        uint32 authid = 
-            ((uint32)pSid->IdentifierAuthority.Value[2] << 24) |
-            ((uint32)pSid->IdentifierAuthority.Value[3] << 16) |
-            ((uint32)pSid->IdentifierAuthority.Value[4] << 8)  |
-            ((uint32)pSid->IdentifierAuthority.Value[5] << 0);
-        
+        ULONG authid =
+            ((ULONG)pSid->IdentifierAuthority.Value[2] << 24) |
+            ((ULONG)pSid->IdentifierAuthority.Value[3] << 16) |
+            ((ULONG)pSid->IdentifierAuthority.Value[4] << 8)  |
+            ((ULONG)pSid->IdentifierAuthority.Value[5] << 0);
+
         sprintf(sidPrefix, "S-%u-%lu", pSid->Revision, (unsigned long) authid);
     }
 
     for (iSubAuth = 0; iSubAuth < pSid->SubAuthorityCount; iSubAuth++)
     {
-        char  sidPart[64];
+        char sidPart[64];
         size_t len = 0;
 
         sprintf(sidPart, "-%u", pSid->SubAuthority[iSubAuth]);
