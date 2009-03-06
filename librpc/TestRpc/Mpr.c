@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -36,7 +36,6 @@
 #include <dce/dce_error.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
-#include <secdesc/secdesc.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/allocate.h>

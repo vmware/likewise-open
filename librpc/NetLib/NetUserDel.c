@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,8 +33,8 @@
 
 NET_API_STATUS NetUserDel(const wchar16_t *hostname, const wchar16_t *username)
 {
-    const uint32 user_access = SEC_STD_DELETE;
-	
+    const uint32 user_access = DELETE;
+
     NTSTATUS status = STATUS_SUCCESS;
     NetConn *conn;
     handle_t samr_bind;
@@ -55,7 +55,7 @@ NET_API_STATUS NetUserDel(const wchar16_t *hostname, const wchar16_t *username)
 
     status = SamrDeleteUser(samr_bind, &user_handle);
     BAIL_ON_NT_STATUS(status);
-	
+
 error:
 
     if (access_token)

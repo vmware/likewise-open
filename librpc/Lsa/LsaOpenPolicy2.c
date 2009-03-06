@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@ NTSTATUS LsaOpenPolicy2(handle_t b, const wchar16_t *sysname,
     NTSTATUS status = STATUS_SUCCESS;
     wchar16_t *system_name = NULL;
     PolicyHandle handle = {0};
-    QosInfo qos = {0};
+    SECURITY_QUALITY_OF_SERVICE qos = {0};
     ObjectAttribute attr = {0};
 
     goto_if_invalid_param_ntstatus(b, cleanup);
@@ -49,16 +49,17 @@ NTSTATUS LsaOpenPolicy2(handle_t b, const wchar16_t *sysname,
     goto_if_no_memory_ntstatus(system_name, cleanup);
 
     /* ObjectAttribute argument is not used, so just pass an empty structure */
-    qos.len                 = 0;
-    qos.impersonation_level = 2;
-    qos.context_mode        = 1;
-    qos.effective_only      = 0;
+    qos.Length              = 0;
+    qos.ImpersonationLevel  = SecurityImpersonation;
+    qos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+    qos.EffectiveOnly       = 0;
 
     attr.len          = 0;
     attr.root_dir     = NULL;
     attr.object_name  = NULL;
     attr.attributes   = 0;
     attr.sec_desc     = NULL;
+    // TODO-QOS field in object attributes should probaby be NULL.
     attr.sec_qos      = &qos;
 
     DCERPC_CALL(_LsaOpenPolicy2(b, system_name, &attr, access_mask, &handle));

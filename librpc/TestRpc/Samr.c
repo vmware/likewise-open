@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -40,7 +40,7 @@
 #include <dce/dce_error.h>
 #include <dce/smb.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
+#include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
@@ -308,7 +308,7 @@ NTSTATUS CleanupAccount(const wchar16_t *hostname, wchar16_t *username)
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
     const uint32 domain_access = DOMAIN_ACCESS_OPEN_ACCOUNT;
-    const uint32 user_access = SEC_STD_DELETE;
+    const uint32 user_access = DELETE;
 
     handle_t samr_b = NULL;
     NTSTATUS status = STATUS_SUCCESS;
@@ -436,7 +436,7 @@ NTSTATUS CleanupAlias(const wchar16_t *hostname, wchar16_t *username)
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
     const uint32 domain_access = DOMAIN_ACCESS_OPEN_ACCOUNT;
-    const uint32 alias_access = SEC_STD_DELETE;
+    const uint32 alias_access = DELETE;
 
     handle_t samr_b = NULL;
     NTSTATUS status;
@@ -517,7 +517,7 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
                                    USER_ACCESS_GET_LOGONINFO |
                                    USER_ACCESS_GET_ATTRIBUTES |
                                    USER_ACCESS_CHANGE_PASSWORD |
-                                   SEC_STD_DELETE;
+                                   DELETE;
     const char *def_guestname = "Guest";
     const int def_level = 0;
 
@@ -654,7 +654,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
                                      ALIAS_ACCESS_ADD_MEMBER |
                                      ALIAS_ACCESS_REMOVE_MEMBER |
                                      ALIAS_ACCESS_GET_MEMBERS |
-                                     SEC_STD_DELETE;
+                                     DELETE;
 
     const char *testalias = "TestAlias";
     const char *testuser = "TestUser";
@@ -1295,8 +1295,8 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
                                    USER_ACCESS_GET_LOGONINFO |
                                    USER_ACCESS_GET_ATTRIBUTES |
                                    USER_ACCESS_CHANGE_PASSWORD |
-                                   SEC_STD_DELETE;
-	
+                                   DELETE;
+
     const uint32 account_flags = ACB_NORMAL;
     const char *newuser = "Testuser";
 
@@ -1395,7 +1395,7 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
 
     const uint32 alias_access = ALIAS_ACCESS_LOOKUP_INFO |
                                 ALIAS_ACCESS_SET_INFO |
-                                SEC_STD_DELETE;
+                                DELETE;
 
     const char *def_aliasname = "Testalias";
 
@@ -1490,7 +1490,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
                                    USER_ACCESS_CHANGE_PASSWORD |
                                    USER_ACCESS_SET_PASSWORD |
                                    USER_ACCESS_SET_ATTRIBUTES |
-	                           SEC_STD_DELETE;
+                                   DELETE;
 
     const char *newuser = "Testuser";
     const char *testpass = "JustTesting30$";

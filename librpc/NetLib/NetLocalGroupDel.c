@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -34,7 +34,7 @@
 NET_API_STATUS NetLocalGroupDel(const wchar16_t *hostname,
 				const wchar16_t *aliasname)
 {
-    const uint32 alias_access = SEC_STD_DELETE;
+    const uint32 alias_access = DELETE;
 
     NTSTATUS status;
     NetConn *conn;

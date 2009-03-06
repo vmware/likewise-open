@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -43,7 +43,6 @@
 #include <dce/schannel.h>
 #include <lwio/lwio.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@
 #ifndef _SAMR_H_
 #define _SAMR_H_
 
-#include <secdesc/secdesc.h>
+#include <secdesc/sectypes.h>
 
 #include <lwrpc/samrbinding.h>
 #include <lwrpc/unicodestring.h>

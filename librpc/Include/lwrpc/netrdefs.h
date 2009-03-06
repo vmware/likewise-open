@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -40,7 +40,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
-#include <secdesc/siddef.h>
+#include <secdesc/sectypes.h>
 #include <lwrpc/security.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>

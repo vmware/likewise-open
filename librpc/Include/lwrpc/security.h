@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -31,12 +31,7 @@
 #ifndef _SECURITY_H_
 #define _SECURITY_H_
 
-#include <lwrpc/types.h>
-#include <secdesc/phdef.h>
-#include <secdesc/siddef.h>
-#include <secdesc/sdflags.h>
-#include <secdesc/sddef.h>
-
+#include <secdesc/sectypes.h>
 
 #endif /* _SECURITY_H_ */
 

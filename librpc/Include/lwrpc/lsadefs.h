@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -39,10 +39,7 @@
 
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
-#include <secdesc/siddef.h>
-#include <secdesc/phdef.h>
-#include <secdesc/sdflags.h>
-#include <secdesc/sddef.h>
+#include <secdesc/sectypes.h>
 #include <lwrpc/unistrdef.h>
 
 
