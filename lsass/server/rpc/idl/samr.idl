@@ -83,7 +83,7 @@ interface samr
     NTSTATUS _SamrLookupDomain(
         [in,ref] PolicyHandle *handle,
         [in,ref] UnicodeString *domain_name,
-        [out] DomSid **sid
+        [out] PSID* sid
         );
 
     NTSTATUS _SamrEnumDomains(
@@ -98,7 +98,7 @@ interface samr
     NTSTATUS _SamrOpenDomain(
         [in,ref] PolicyHandle *conn_handle,
         [in] uint32 access_mask,
-        [in,ref] DomSid *sid,
+        [in,ref] IDLREF_PSID sid,
         [out,ref] PolicyHandle *domain_handle
         );
 
@@ -214,13 +214,13 @@ interface samr
     /* function 0x1f */
     NTSTATUS _SamrAddAliasMember(
         [in,ref] PolicyHandle *alias_handle,
-        [in,ref] DomSid *sid
+        [in,ref] IDLREF_PSID sid
         );
 
     /* function 0x20 */
     NTSTATUS _SamrDeleteAliasMember(
         [in,ref] PolicyHandle *alias_handle,
-        [in,ref] DomSid *sid
+        [in,ref] IDLREF_PSID sid
         );
 
     /* function 0x21 */
