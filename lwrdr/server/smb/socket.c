@@ -492,12 +492,7 @@ SMBSocketIsSignatureRequired(
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
         
-    if (pSocket->pSessionKey &&
-        (pSocket->bSignedMessagesRequired ||
-         (pSocket->bSignedMessagesSupported && pSocket->bUseSignedMessagesIfSupported)))
-    {
-        bIsRequired = TRUE;
-    }
+    bIsRequired = (pSocket->pSessionKey && pSocket->bSignedMessagesRequired);
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
     
