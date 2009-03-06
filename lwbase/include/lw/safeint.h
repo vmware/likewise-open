@@ -39,73 +39,83 @@
 #ifndef __LWBASE_SAFEINT_H__
 #define __LWBASE_SAFEINT_H__
 
+#include <lw/types.h>
+#include <lw/attrs.h>
+#include <lw/ntstatus.h>
+
 inline
 static
-NTSTATUS
-RtlSafeMultiplyULONG(
-    OUT PULONG Result,
-    IN ULONG A,
-    IN ULONG B
+LW_NTSTATUS
+LwRtlSafeMultiplyULONG(
+    LW_OUT LW_PULONG Result,
+    LW_IN LW_ULONG OperandA,
+    LW_IN LW_ULONG OperandB
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    ULONG64 result = ((ULONG64) A) * ((ULONG64) B);
-    if (result > ((ULONG)-1))
+    LW_NTSTATUS status = LW_NT_STATUS_SUCCESS;
+    LW_ULONG64 result = ((LW_ULONG64) OperandA) * ((LW_ULONG64) OperandB);
+    if (result > ((LW_ULONG)-1))
     {
-        status = STATUS_INTEGER_OVERFLOW;
-        *Result = ((ULONG)-1);
+        status = LW_NT_STATUS_INTEGER_OVERFLOW;
+        *Result = ((LW_ULONG)-1);
     }
     else
     {
-        status = STATUS_SUCCESS;
-    }   *Result = (ULONG) result;
+        status = LW_NT_STATUS_SUCCESS;
+    }   *Result = (LW_ULONG) result;
     return status;
 }
 
 inline
 static
-NTSTATUS
-RtlSafeAddULONG(
-    OUT PULONG Result,
-    IN ULONG A,
-    IN ULONG B
+LW_NTSTATUS
+LwRtlSafeAddULONG(
+    LW_OUT LW_PULONG Result,
+    LW_IN LW_ULONG OperandA,
+    LW_IN LW_ULONG OperandB
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    ULONG result = A + B;
-    if (result < A)
+    LW_NTSTATUS status = LW_NT_STATUS_SUCCESS;
+    LW_ULONG result = OperandA + OperandB;
+    if (result < OperandA)
     {
-        status = STATUS_INTEGER_OVERFLOW;
-        *Result = ((ULONG)-1);
+        status = LW_NT_STATUS_INTEGER_OVERFLOW;
+        *Result = ((LW_ULONG)-1);
     }
     else
     {
-        status = STATUS_SUCCESS;
+        status = LW_NT_STATUS_SUCCESS;
     }   *Result = result;
     return status;
 }
 
 inline
 static
-NTSTATUS
-RtlSafeAddUSHORT(
-    OUT PUSHORT Result,
-    IN USHORT A,
-    IN USHORT B
+LW_NTSTATUS
+LwRtlSafeAddUSHORT(
+    LW_OUT LW_PUSHORT Result,
+    LW_IN LW_USHORT OperandA,
+    LW_IN LW_USHORT OperandB
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    USHORT result = A + B;
-    if (result < A)
+    LW_NTSTATUS status = LW_NT_STATUS_SUCCESS;
+    LW_USHORT result = OperandA + OperandB;
+    if (result < OperandA)
     {
-        status = STATUS_INTEGER_OVERFLOW;
-        *Result = ((USHORT)-1);
+        status = LW_NT_STATUS_INTEGER_OVERFLOW;
+        *Result = ((LW_USHORT)-1);
     }
     else
     {
-        status = STATUS_SUCCESS;
+        status = LW_NT_STATUS_SUCCESS;
     }   *Result = result;
     return status;
 }
+
+#ifndef LW_STRICT_NAMESPACE
+#define RtlSafeMultiplyULONG(Result, OperandA, OperandB)    LwRtlSafeMultiplyULONG(Result, OperandA, OperandB)
+#define RtlSafeAddULONG(Result, OperandA, OperandB)         LwRtlSafeAddULONG(Result, OperandA, OperandB)
+#define RtlSafeAddUSHORT(Result, OperandA, OperandB)        LwRtlSafeAddUSHORT(Result, OperandA, OperandB)
+#endif /* LW_STRICT_NAMESPACE */
 
 #endif /* __LWBASE_SAFEINT_H__ */

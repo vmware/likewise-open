@@ -335,4 +335,82 @@ typedef LW_TCHAR    TCHAR;
 
 #endif /* LW_STRICT_NAMESPACE */
 
+typedef struct _LW_UNICODE_STRING {
+    LW_USHORT Length;
+    LW_USHORT MaximumLength;
+#ifdef _DCE_IDL_
+    [size_is(MaximumLength/2),length_is(Length/2)]
+#endif
+    LW_PWCHAR Buffer;
+} LW_UNICODE_STRING, *LW_PUNICODE_STRING;
+
+// Need to do division and multiplication to round down.
+#define LW_UNICODE_STRING_MAX_CHARS (LW_MAXUSHORT / 2)
+#define LW_UNICODE_STRING_MAX_BYTES (LW_UNICODE_STRING_MAX_CHARS * 2)
+
+typedef struct _LW_ANSI_STRING {
+    LW_USHORT Length;
+    LW_USHORT MaximumLength;
+#ifdef _DCE_IDL_
+    [size_is(MaximumLength),length_is(Length)]
+#endif
+    LW_PCHAR Buffer;
+} LW_ANSI_STRING, *LW_PANSI_STRING;
+
+// TODO-Perhaps make these shorter to match LW_UNICODE_STRING_MAX_CHARS.
+#define LW_ANSI_STRING_MAX_CHARS LW_MAXUSHORT
+#define LW_ANSI_STRING_MAX_BYTES LW_MAXUSHORT
+
+// Works on any character size strings/cstrings:
+#define LW_RTL_STRING_IS_NULL_OR_EMPTY(String) (!(String) || !((String)->Length))
+#define LwRtlCStringIsNullOrEmpty(String) (!(String) || !(*(String)))
+
+#define LW_RTL_CONSTANT_STRING(StringLiteral) \
+    { \
+        sizeof(StringLiteral) - sizeof((StringLiteral)[0]), \
+        sizeof(StringLiteral), \
+        (StringLiteral) \
+    }
+
+#define LW_RTL_STRING_NUM_CHARS(String) \
+    ( (String)->Length / (String)->Buffer[0] )
+
+#define LW_RTL_STRING_LAST_CHAR(String) \
+    ( (String)->Buffer[LW_RTL_STRING_NUM_CHARS(String) - 1] )
+
+// This works for CHAR and WCHAR since WCHAR is native byte order.
+#define LwRtlIsDecimalDigit(Character) \
+    ( ((Character) >= '0') && ((Character) <= '9') )
+
+// This works for CHAR and WCHAR since WCHAR is native byte order.
+#define LwRtlDecimalDigitValue(Character) \
+    ((Character) - '0')
+
+#ifndef LW_STRICT_NAMESPACE
+
+typedef LW_UNICODE_STRING UNICODE_STRING;
+typedef LW_PUNICODE_STRING PUNICODE_STRING;
+
+#define UNICODE_STRING_MAX_CHARS LW_UNICODE_STRING_MAX_CHARS
+#define UNICODE_STRING_MAX_BYTES LW_UNICODE_STRING_MAX_BYTES
+
+typedef LW_ANSI_STRING ANSI_STRING;
+typedef LW_PANSI_STRING PANSI_STRING;
+
+#define ANSI_STRING_MAX_CHARS LW_ANSI_STRING_MAX_CHARS
+#define ANSI_STRING_MAX_BYTES LW_ANSI_STRING_MAX_BYTES
+
+#define RTL_STRING_IS_NULL_OR_EMPTY(String) LW_RTL_STRING_IS_NULL_OR_EMPTY(String)
+#define RtlCStringIsNullOrEmpty(String) LwRtlCStringIsNullOrEmpty(String)
+
+#define RTL_CONSTANT_STRING(StringLiteral) LW_RTL_CONSTANT_STRING(StringLiteral)
+
+#define RTL_STRING_NUM_CHARS(String) LW_RTL_STRING_NUM_CHARS(String)
+#define RTL_STRING_LAST_CHAR(String) LW_RTL_STRING_LAST_CHAR(String)
+
+#define RtlIsDecimalDigit(Character) LwRtlIsDecimalDigit(Character)
+#define RtlDecimalDigitValue(Character) LwRtlDecimalDigitValue(Character)
+
+#endif /* LW_STRICT_NAMESPAE */
+
 #endif

@@ -64,10 +64,14 @@ LwInterlockedDecrement(
     );
 
 #ifndef LW_STRICT_NAMESPACE
-#define InterlockedCompareExchange LwInterlockedCompareExchange
-#define InterlockedRead            LwInterlockedRead
-#define InterlockedIncrement       LwInterlockedIncrement
-#define InterlockedDecrement       LwInterlockedDecrement
+
+#define InterlockedCompareExchange(Desination, NewValue, CompareValue) \
+    LwInterlockedCompareExchange(Desination, NewValue, CompareValue)
+
+#define InterlockedRead(Source)             LwInterlockedRead(Source)
+#define InterlockedIncrement(Destination)   LwInterlockedIncrement(Destination)
+#define InterlockedDecrement(Destination)   LwInterlockedDecrement(Destination)
+
 #endif /* LW_STRICT_NAMESPACE */
 
 #endif

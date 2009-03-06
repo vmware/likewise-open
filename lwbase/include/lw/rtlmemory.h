@@ -70,30 +70,26 @@
 
 // TODO-Rename below from LwRtlMemory* to LwRtl*Memory
 
-// TODO-Remove LwRtlMemoryZero in favor or LwRtlZeroMemory macro
-VOID
-LwRtlMemoryZero(
-    LW_IN LW_OUT LW_PVOID pMemory,
-    LW_IN size_t Size
-    );
-
 // TODO-Prefix name with underscore.
-PVOID
+LW_PVOID
 LwRtlMemoryAllocate(
     LW_IN size_t Size
     );
 
-PVOID
+LW_PVOID
 LwRtlMemoryRealloc(
     LW_IN LW_PVOID pMemory,
     LW_IN size_t Size
     );
 
-VOID
+LW_VOID
 LwRtlMemoryFree(
     LW_IN LW_OUT LW_PVOID pMemory
     );
 
+// TODO-Change param order so Type is up-front such that pointer and size
+// are next to each other.
+// TODO-Make Type a pointer type -- for opaque types...
 #define LW_RTL_ALLOCATE(ppMemory, Type, Size) \
     ( (*(ppMemory)) = (Type*) LwRtlMemoryAllocate(Size), (*(ppMemory)) ? LW_NT_STATUS_SUCCESS : LW_NT_STATUS_INSUFFICIENT_RESOURCES )
 
@@ -108,16 +104,15 @@ LwRtlMemoryFree(
 
 #ifndef LW_STRICT_NAMESPACE
 
-#define RtlZeroMemory(Destination, Length) LwRtlZeroMemory(Destination, Length)
-#define RtlFillMemory(Destination, Length, Fill) LwRtlFillMemory(Destination, Length, Fill)
-#define RtlCopyMemory(Destination, Source, Length) LwRtlCopyMemory(Destination, Source, Length)
-#define RtlMoveMemory(Destination, Source, Length) LwRtlMoveMemory(Destination, Source, Length)
-#define RtlEqualMemory(Source1, Source2, Length) LwRtlEqualMemory(Source1, Source2, Length)
+#define RtlZeroMemory(Destination, Length)          LwRtlZeroMemory(Destination, Length)
+#define RtlFillMemory(Destination, Length, Fill)    LwRtlFillMemory(Destination, Length, Fill)
+#define RtlCopyMemory(Destination, Source, Length)  LwRtlCopyMemory(Destination, Source, Length)
+#define RtlMoveMemory(Destination, Source, Length)  LwRtlMoveMemory(Destination, Source, Length)
+#define RtlEqualMemory(Source1, Source2, Length)    LwRtlEqualMemory(Source1, Source2, Length)
 
-#define RtlMemoryZero     LwRtlMemoryZero
-#define RtlMemoryAllocate LwRtlMemoryAllocate
-#define RtlMemoryRealloc  LwRtlMemoryRealloc
-#define RtlMemoryFree     LwRtlMemoryFree
+#define RtlMemoryAllocate(Size)             LwRtlMemoryAllocate(Size)
+#define RtlMemoryRealloc(Pointer, Size)     LwRtlMemoryRealloc(Pointer, Size)
+#define RtlMemoryFree(Pointer)              LwRtlMemoryFree(Pointer)
 
 #define RTL_ALLOCATE(ppMemory, Type, Size) \
     LW_RTL_ALLOCATE(ppMemory, Type, Size)
