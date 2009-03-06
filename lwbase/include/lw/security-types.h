@@ -149,7 +149,7 @@ typedef struct _SID {
     (LW_FIELD_OFFSET(SID, SubAuthority))
 
 #define SID_MAX_SIZE \
-    (SID_MIN_SIZE + (LW_FIELD_OFFSET(SID, SubAuthority) * SID_MAX_SUB_AUTHORITIES))
+    (SID_MIN_SIZE + (LW_FIELD_SIZE(SID, SubAuthority[0]) * SID_MAX_SUB_AUTHORITIES))
 
 
 //
@@ -1136,5 +1136,77 @@ typedef ULONG WELL_KNOWN_SID_TYPE, *PWELL_KNOWN_SID_TYPE;
 #define WELL_KNOWN_SID_TYPE_NEW_ENTERPRISE_READONLY_CONTROLLERS         77
 #define WELL_KNOWN_SID_TYPE_BUILTIN_CERT_SVC_DCOM_ACCESS_GROUP          78
 #endif
+
+//
+// Security Impersonation Levels
+//
+// Anonymous - Server cannot identity or impersonate client.
+//
+// Identification - Server can identify (effectively getting token info)
+//     but cannot impersonate the client.
+//
+// Impersonation - Server can impersonate the client locally (at the server).
+//
+// Delegation - Server can impersonate the client locally (at the server) and
+//     over the network (at other servers).   (Supported by Win2K and up.)
+//
+
+typedef ULONG SECURITY_IMPERSONATION_LEVEL, *PSECURITY_IMPERSONATION_LEVEL;
+
+#define SecurityAnonymous       0
+#define SecurityIdentification  1
+#define SecurityImpersonation   2
+#define SecurityDelegation      3
+
+#if 0
+// Alternative to SECURITY_IMPERSONATION_LEVEL's Security<Impersonation> values
+#define SECURITY_IMPERSONATION_LEVEL_ANONYMOUS      0
+#define SECURITY_IMPERSONATION_LEVEL_IDENTIFICATION 1
+#define SECURITY_IMPERSONATION_LEVEL_IMPERSONATION  2
+#define SECURITY_IMPERSONATION_LEVEL_DELEGATION     3
+#endif
+
+//
+// Security Context Tracking Mode
+//
+// Static - Security context is captured by the server and remains static.
+//
+// Dynamic - Security context is captured by the server and changes
+//     if it is changed on the client.  Support for this depends on
+//     the communications channel used.  If not supported, the
+//     behavior is the same as static.
+//
+
+typedef BOOLEAN SECURITY_CONTEXT_TRACKING_MODE, *PSECURITY_CONTEXT_TRACKING_MODE;
+
+#define SECURITY_STATIC_TRACKING    FALSE
+#define SECURITY_DYNAMIC_TRACKING   TRUE
+
+//
+// Security Quality of Service (QOS)
+//
+// This is used by a client to specify how/whether the server should
+// be able to impersonate the client.
+//
+// Length - Should be size of structure (sizeof(SECURITY_QUALITY_OF_SERVICE)).
+//
+// ImpersonationLevel - See SECURITY_IMPERSONATION_LEVEL.
+//
+// ContextTrackingMode - See SECURITY_CONTEXT_TRACKING_MODE.
+//     if it is changed on the client.  Support for this depends on
+//     the communications channel used.  If not supported, the
+//     behavior is the same as static.
+//
+// EffectiveOnly - Whether the server can enable/disable client privileges.
+//     If TRUE, the server cannot enable/disable privileges and only
+//     sees the current privilege set of the client.
+//
+
+typedef struct _SECURITY_QUALITY_OF_SERVICE {
+    ULONG Length;
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
+    SECURITY_CONTEXT_TRACKING_MODE ContextTrackingMode;
+    BOOLEAN EffectiveOnly;
+} SECURITY_QUALITY_OF_SERVICE, *PSECURITY_QUALITY_OF_SERVICE;
 
 #endif /* __LWBASE_SECURITY_TYPES_H__ */
