@@ -126,7 +126,7 @@ interface netlogon
     NTSTATUS netr_Function1c();
 
     /* function 0x1d */
-    NTSTATUS _NetrLogonDomainInfo(
+    NTSTATUS _NetrLogonGetDomainInfo(
         [in,unique,string] wchar16_t *server_name,
         [in,unique,string] wchar16_t *computer_name,
         [in,unique] NetrAuth *creds,
