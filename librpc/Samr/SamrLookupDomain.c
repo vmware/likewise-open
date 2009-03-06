@@ -36,13 +36,13 @@ SamrLookupDomain(
     handle_t b,
     PolicyHandle *conn_h,
     const wchar16_t *dom_name,
-    DomSid **sid
+    PSID* sid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     UnicodeString domname = {0};
-    DomSid *s = NULL;
-    DomSid *out_sid = NULL;
+    PSID s = NULL;
+    PSID out_sid = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(conn_h, cleanup);

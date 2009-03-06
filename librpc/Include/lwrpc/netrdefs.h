@@ -152,7 +152,7 @@ typedef struct netr_domain_trust {
     uint32 parent_index;
     uint16 trust_type;
     uint32 trust_attrs;
-    DomSid *sid;
+    PSID sid;
     uuid_t guid;
 } NetrDomainTrust;
 
@@ -297,7 +297,7 @@ typedef struct netr_sam_base_info {
     NetrUserSessionKey key;
     UnicodeStringEx logon_server;
     UnicodeStringEx domain;
-    DomSid *domain_sid;
+    PSID domain_sid;
     NetrLMSessionKey lmkey;
     uint32 acct_flags;
     uint32 unknown[7];
@@ -310,7 +310,7 @@ typedef struct netr_sam_info2 {
 
 
 typedef struct netr_sid_attr {
-    DomSid *sid;
+    PSID sid;
     uint32 attribute;
 } NetrSidAttr;
 
@@ -420,7 +420,7 @@ typedef struct netr_domain_trust_info {
     UnicodeString full_domain_name;
     UnicodeString forest;
     Guid guid;
-    DomSid *sid;
+    PSID sid;
     UnicodeString unknown1[4];
     uint32 unknown2[4];
 } NetrDomainTrustInfo;

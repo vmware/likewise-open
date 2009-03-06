@@ -198,7 +198,7 @@ done:
 /*
   Utility function for getting SAM domain SID given a hostname
 */
-NTSTATUS GetSamDomainSid(DomSid **sid, const wchar16_t *hostname)
+NTSTATUS GetSamDomainSid(PSID* sid, const wchar16_t *hostname)
 {
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
@@ -207,7 +207,7 @@ NTSTATUS GetSamDomainSid(DomSid **sid, const wchar16_t *hostname)
     handle_t samr_b = NULL;
     PolicyHandle conn_h = {0};
     wchar16_t *domname = NULL;
-    DomSid *out_sid = NULL;
+    PSID out_sid = NULL;
 
     if (sid == NULL || hostname == NULL) {
         return STATUS_INVALID_PARAMETER;
@@ -257,7 +257,7 @@ NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
                                  DOMAIN_ACCESS_LOOKUP_INFO_2;
 
     NTSTATUS status = STATUS_SUCCESS;
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     handle_t samr_b = NULL;
     PolicyHandle conn_h = {0};
     PolicyHandle domain_h = {0};
@@ -315,7 +315,7 @@ NTSTATUS CleanupAccount(const wchar16_t *hostname, wchar16_t *username)
     PolicyHandle conn_h = {0};
     PolicyHandle domain_h = {0};
     PolicyHandle account_h = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     wchar16_t *names[1] = {0};
     uint32 *rids = NULL;
     uint32 *types = NULL;
@@ -384,7 +384,7 @@ NTSTATUS EnsureAlias(const wchar16_t *hostname, wchar16_t *aliasname,
                                 ALIAS_ACCESS_SET_INFO;
 
     NTSTATUS status = STATUS_SUCCESS;
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     handle_t samr_b = NULL;
     PolicyHandle conn_h = {0};
     PolicyHandle domain_h = {0};
@@ -443,7 +443,7 @@ NTSTATUS CleanupAlias(const wchar16_t *hostname, wchar16_t *username)
     PolicyHandle conn_h = {0};
     PolicyHandle domain_h = {0};
     PolicyHandle alias_h = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     wchar16_t *names[1] = {0};
     uint32 *rids = NULL;
     uint32 *types = NULL;
@@ -529,7 +529,7 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
     PolicyHandle user_handle = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     wchar16_t *names[1];
     wchar16_t *username = NULL;
     wchar16_t *domname = NULL;
@@ -679,11 +679,11 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     PolicyHandle alias_handle = {0};
     PolicyHandle user_handle = {0};
     wchar16_t *names[1] = {0};
-    DomSid *sid = NULL;
-    DomSid *user_sid = NULL;
+    PSID sid = NULL;
+    PSID user_sid = NULL;
     AliasInfo *aliasinfo = NULL;
     AliasInfo setaliasinfo;
-    DomSid **member_sids = NULL;
+    PSID* member_sids = NULL;
     uint32 members_num = 0;
     int alias_created = 0;
     int user_created = 0;
@@ -797,10 +797,10 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     status = SamrSetAliasInfo(samr_binding, &alias_handle, 3, &setaliasinfo);
     if (status != 0) rpc_fail(status);
 
-    status = RtlSidAllocateResizedCopy(&user_sid, sid->subauth_count+1, sid);
+    status = RtlSidAllocateResizedCopy(&user_sid, sid->SubAuthorityCount+1, sid);
     if (status != 0) rpc_fail(status);
 
-    user_sid->subauth[user_sid->subauth_count - 1] = user_rid;
+    user_sid->SubAuthority[user_sid->SubAuthorityCount - 1] = user_rid;
 
     status = SamrGetAliasMembership(samr_binding, &dom_handle, user_sid, 1,
                                     &rids, &num_rids);
@@ -888,7 +888,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     PolicyHandle conn_handle = {0};
     PolicyHandle builtin_dom_handle = {0};
     char *sidstr = NULL;
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     DomainInfo *dominfo = NULL;
 
     TESTINFO(t, hostname, user, pass);
@@ -921,22 +921,22 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
         uint32 *rids = NULL;
         uint32 num_entries = 0;
         uint32 i = 0;
-        DomSid *alias_sid = NULL;
+        PSID alias_sid = NULL;
 
         do {
             status = SamrEnumDomainAliases(samr_binding, &builtin_dom_handle,
                                            &resume, acct_flags, &names, &rids,
                                            &num_entries);
-	    
+
             for (i = 0; i < num_entries; i++) {
                 uint32 *member_rids = NULL;
                 uint32 count = 0;
 
                 status = RtlSidAllocateResizedCopy(&alias_sid,
-                                                   sid->subauth_count + 1,
+                                                   sid->SubAuthorityCount + 1,
                                                    sid);
-                alias_sid->subauth[alias_sid->subauth_count - 1] = rids[i];
-					
+                alias_sid->SubAuthority[alias_sid->SubAuthorityCount - 1] = rids[i];
+
                 /* there's actually no need to check status code here */
                 status = SamrGetAliasMembership(samr_binding,
                                                 &builtin_dom_handle,
@@ -994,7 +994,7 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
     int i = 0;
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     DomainInfo *dominfo = NULL;
     wchar16_t *domname = NULL;
 
@@ -1094,7 +1094,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     uint32 *enum_rids = NULL;
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     int specifydomain = 0;
 
     perr = fetch_value(options, optcount, "specifydomain", pt_int32,
@@ -1310,7 +1310,7 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
     PolicyHandle account_handle = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &newusername, &newuser);
@@ -1409,7 +1409,7 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
     PolicyHandle account_handle = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string,
                        &newaliasname, &def_aliasname);
@@ -1506,7 +1506,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
     PolicyHandle account_handle = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     uint32 *rids, *types, rids_count;
     wchar16_t *names[1];
     UserInfo userinfo;
@@ -1775,7 +1775,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
     uint32 *enum_rids;
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
-    DomSid *sid = NULL;
+    PSID sid = NULL;
     int specifydomain;
 
     perr = fetch_value(options, optcount, "specifydomain", pt_int32,
@@ -1882,7 +1882,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     handle_t samr_b = NULL;
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
-    DomSid *domsid = NULL;
+    PSID domsid = NULL;
     PolicyHandle conn_h = {0};
     PolicyHandle domain_h = {0};
     PolicyHandle user_h = {0};
@@ -1898,7 +1898,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     uint32 *grp_attrs = NULL;
     uint32 grp_count = 0;
     int i = 0;
-    DomSid **grp_sids = NULL;
+    PSID* grp_sids = NULL;
     wchar16_t **grp_sidstrs = NULL;
     SidArray sid_array = {0};
     RefDomainList *domains = NULL;
@@ -1957,7 +1957,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     OUTPUT_ARG_PTR(grp_attrs);
     OUTPUT_ARG_PTR(grp_count);
 
-    grp_sids = (DomSid**) malloc(sizeof(DomSid*) * grp_count);
+    grp_sids = (PSID*) malloc(sizeof(PSID) * grp_count);
     if (grp_sids == NULL) rpc_fail(STATUS_NO_MEMORY);
 
     grp_sidstrs = (wchar16_t**) malloc(sizeof(wchar16_t*) * grp_count);
@@ -1971,11 +1971,11 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
 
     for (i = 0; i < grp_count; i++) {
         status = RtlSidAllocateResizedCopy(&(grp_sids[i]),
-                                           domsid->subauth_count + 1,
+                                           domsid->SubAuthorityCount + 1,
                                            domsid);
         if (status != 0) rpc_fail(status);
 
-        grp_sids[i]->subauth[grp_sids[i]->subauth_count - 1] = grp_rids[i];
+        grp_sids[i]->SubAuthority[grp_sids[i]->SubAuthorityCount - 1] = grp_rids[i];
 
         status = SidToStringW(grp_sids[i], &(grp_sidstrs[i]));
         if (status != 0) rpc_fail(status);
@@ -2095,8 +2095,8 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     handle_t samr_b = NULL;
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
-    DomSid *btinsid = NULL;
-    DomSid *domsid = NULL;
+    PSID btinsid = NULL;
+    PSID domsid = NULL;
     PolicyHandle lsa_h = {0};
     PolicyHandle conn_h = {0};
     PolicyHandle btin_h = {0};
@@ -2106,7 +2106,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     wchar16_t *names[1];
     RefDomainList *usr_domains = NULL;
     TranslatedSid2 *trans_sids = NULL;
-    DomSid *usr_sid = NULL;
+    PSID usr_sid = NULL;
     uint32 sids_count = 0;
     uint32 level = 0;
     uint32 resolve_level = 0;
@@ -2164,10 +2164,10 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     RtlSidCopyAlloc(&domsid, usr_domains->domains[trans_sids[0].index].sid);
     if (domsid == NULL) rpc_fail(STATUS_NO_MEMORY);
 
-    status = RtlSidAllocateResizedCopy(&usr_sid, domsid->subauth_count + 1,
+    status = RtlSidAllocateResizedCopy(&usr_sid, domsid->SubAuthorityCount + 1,
                                        domsid);
     if (status != 0) rpc_fail(status);
-    usr_sid->subauth[usr_sid->subauth_count - 1] = trans_sids[0].rid;
+    usr_sid->SubAuthority[usr_sid->SubAuthorityCount - 1] = trans_sids[0].rid;
 
     samr_b = CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) return false;
@@ -2217,8 +2217,8 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     }
 
     for (i = 0; i < alias_count; i++) {
-        DomSid *alias_sid = NULL;
-        DomSid *dom_sid = (i < btin_rids_count) ? btinsid : domsid;
+        PSID alias_sid = NULL;
+        PSID dom_sid = (i < btin_rids_count) ? btinsid : domsid;
         uint32 rid = 0;
 
         if (i < btin_rids_count) {
@@ -2227,11 +2227,11 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
             rid = dom_rids[i - btin_rids_count];
         }
 
-        status = RtlSidAllocateResizedCopy(&alias_sid, dom_sid->subauth_count + 1,
+        status = RtlSidAllocateResizedCopy(&alias_sid, dom_sid->SubAuthorityCount + 1,
                                            dom_sid);
         if (status != 0) rpc_fail(status);
 
-        alias_sid->subauth[alias_sid->subauth_count - 1] = rid;
+        alias_sid->SubAuthority[alias_sid->SubAuthorityCount - 1] = rid;
         status = SidToStringW(alias_sid, &(alias_sidstrs[i]));
         if (status != 0) rpc_fail(status);
 

@@ -43,7 +43,7 @@ void SamrCleanStubEntryArray(EntryArray *r);
 
 void SamrFreeStubEntryArray(EntryArray *ptr);
 
-void SamrFreeStubDomSid(DomSid *ptr);
+void SamrFreeStubDomSid(PSID ptr);
 
 void SamrCleanStubSidArray(SidArray *r);
 

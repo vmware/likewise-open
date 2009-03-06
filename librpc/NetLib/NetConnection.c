@@ -94,8 +94,8 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
     PolicyHandle conn_handle;
     PolicyHandle dom_handle;
     PolicyHandle btin_dom_handle;
-    DomSid *btin_dom_sid = NULL;
-    DomSid *dom_sid = NULL;
+    PSID btin_dom_sid = NULL;
+    PSID dom_sid = NULL;
     uint32 conn_access, dom_access, btin_dom_access;
     uint32 resume, entries, i;
     wchar16_t **dom_names = NULL;

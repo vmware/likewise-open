@@ -50,7 +50,7 @@ typedef struct net_conn {
         PolicyHandle dom_handle;
         uint32 dom_access;
         wchar16_t *dom_name;
-        DomSid *dom_sid;
+        PSID dom_sid;
 	
         PolicyHandle btin_dom_handle;
         uint32 btin_dom_access;

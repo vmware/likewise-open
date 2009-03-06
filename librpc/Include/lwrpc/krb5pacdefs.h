@@ -35,7 +35,7 @@
 
 typedef struct {
     NetrSamInfo3 info3;
-    DomSid *res_group_dom_sid;
+    PSID res_group_dom_sid;
     RidWithAttributeArray res_groups;
 } PAC_LOGON_INFO;
 

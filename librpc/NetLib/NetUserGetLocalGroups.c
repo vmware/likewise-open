@@ -46,7 +46,8 @@ NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
     handle_t samr_bind;
     PolicyHandle domain_handle, btin_domain_handle;
     PolicyHandle user_handle;
-    DomSid *domain_sid, *user_sid;
+    PSID domain_sid;
+    PSID user_sid;
     uint32 user_rid, i;
     SidPtr sid_ptr;
     SidArray sids;
@@ -74,11 +75,11 @@ NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
     status = NetOpenUser(conn, username, user_access, &user_handle, &user_rid);
     if (status != 0) return NtStatusToWin32Error(status);
 
-    status = RtlSidAllocateResizedCopy(&user_sid, domain_sid->subauth_count + 1,
+    status = RtlSidAllocateResizedCopy(&user_sid, domain_sid->SubAuthorityCount + 1,
                                        domain_sid);
     if (status != 0) return NtStatusToWin32Error(status);
 
-    user_sid->subauth[user_sid->subauth_count - 1] = user_rid;
+    user_sid->SubAuthority[user_sid->SubAuthorityCount - 1] = user_rid;
     sids.num_sids = 1;
     sid_ptr.sid = user_sid;
     sids.sids = &sid_ptr;

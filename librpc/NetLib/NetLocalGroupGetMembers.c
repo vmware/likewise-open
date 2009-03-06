@@ -46,7 +46,7 @@ NET_API_STATUS NetLocalGroupGetMembers(const wchar16_t *hostname,
     handle_t samr_bind, lsa_bind;
     PolicyHandle domain_handle, btin_domain_handle;
     PolicyHandle alias_handle;
-    DomSid **sids;
+    PSID* sids;
     uint32 alias_rid;
     uint32 i, num_sids, count;
     LOCALGROUP_MEMBERS_INFO_3 *info;

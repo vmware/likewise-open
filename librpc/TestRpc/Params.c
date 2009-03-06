@@ -290,10 +290,10 @@ wchar16_t **create_wc16str_list(char **strlist)
 /*
  * Converts array of sid strings to array of sids
  */
-DomSid **create_sid_list(char **strlist)
+PSID* create_sid_list(char **strlist)
 {
     int list_len = 0;
-    DomSid **sid_list = NULL;
+    PSID* sid_list = NULL;
     int i = 0;
 
     if (strlist == NULL) return NULL;
@@ -302,10 +302,10 @@ DomSid **create_sid_list(char **strlist)
     while (strlist[list_len++]);
 
     /* allocate the wchar16_t strings array */
-    sid_list = (DomSid**) malloc(sizeof(DomSid*) * list_len);
+    sid_list = (PSID*) malloc(sizeof(PSID) * list_len);
     if (sid_list == NULL) return NULL;
 
-    memset((void*)sid_list, 0, sizeof(DomSid*) * list_len);
+    memset((void*)sid_list, 0, sizeof(PSID) * list_len);
 
     /* copy mbs strings to wchar16_t strings */
     for (i = 0; strlist[i] && i < list_len; i++) {
@@ -337,8 +337,8 @@ enum param_err fetch_value(struct parameter *params, int count,
     wchar16_t ***valw16str_list;
     int *valint, *defint;
     unsigned int *valuint, *defuint;
-    DomSid **valsid = NULL;
-    DomSid ***valsid_list = NULL;
+    PSID* valsid = NULL;
+    PSID** valsid_list = NULL;
     char **strlist = NULL;
     enum param_err ret = perr_success;
     int i = 0;
@@ -389,7 +389,7 @@ enum param_err fetch_value(struct parameter *params, int count,
         break;
 
     case pt_sid:
-        valsid = (DomSid**)val;
+        valsid = (PSID*)val;
         defstr = (char**)def;
         status = ParseSidStringA(valsid,
                                     ((value) ? (const char*)value : *defstr));
@@ -397,7 +397,7 @@ enum param_err fetch_value(struct parameter *params, int count,
         break;
 
     case pt_sid_list:
-        valsid_list = (DomSid***)val;
+        valsid_list = (PSID**)val;
         defstr = (char**)def;
         strlist = get_value_list((value) ? (const char*)value : *defstr);
         *valsid_list = create_sid_list(strlist);

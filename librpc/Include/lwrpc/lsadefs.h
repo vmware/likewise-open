@@ -67,7 +67,7 @@ typedef struct audit_events_info {
 
 typedef struct lsa_domain_info {
 	UnicodeStringEx name;
-	DomSid *sid;
+	PSID sid;
 } LsaDomainInfo;
 
 typedef struct pd_account_info {
@@ -113,7 +113,7 @@ typedef struct dns_domain_info {
 	UnicodeStringEx dns_domain;
 	UnicodeStringEx dns_forest;
 	Guid domain_guid;
-	DomSid *sid;
+	PSID sid;
 } DnsDomainInfo;
 
 #define LSA_POLICY_INFO_AUDIT_LOG          1

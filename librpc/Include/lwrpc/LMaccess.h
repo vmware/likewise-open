@@ -142,7 +142,7 @@ typedef struct _USER_INFO_4 {
     wchar16_t *usri4_logon_server;
     uint32 usri4_country_code;
     uint32 usri4_code_page;
-    DomSid* usri4_user_sid;
+    PSID usri4_user_sid;
     uint32 usri4_primary_group_id;
     wchar16_t *usri4_profile;
     wchar16_t *usri4_home_dir_drive;
@@ -192,7 +192,7 @@ typedef struct _USER_INFO_23 {
     wchar16_t *usri23_name;
     wchar16_t *usri23_full_name;
     wchar16_t *usri23_comment;
-    DomSid *usri23_user_sid;
+    PSID usri23_user_sid;
 } USER_INFO_23;
 
 
@@ -240,7 +240,7 @@ typedef struct _LOCALGROUP_INFO_1002 {
 
 
 typedef struct _LOCALGROUP_MEMBERS_INFO_0 {
-    DomSid *lgrmi0_sid;
+    PSID lgrmi0_sid;
 } LOCALGROUP_MEMBERS_INFO_0;
 
 

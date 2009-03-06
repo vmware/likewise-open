@@ -47,7 +47,7 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     wchar16_t *member;
     PolicyHandle alias_handle;
-    DomSid *usr_sid;
+    PSID usr_sid;
     uint32 alias_rid, i;
     LOCALGROUP_MEMBERS_INFO_0 *info0 = NULL;
     LOCALGROUP_MEMBERS_INFO_3 *info3 = NULL;
@@ -106,7 +106,7 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
 	    NTSTATUS lookup_status;
 	    size_t member_len;
 	    wchar16_t *names[1];
-	    DomSid *dom_sid;
+	    PSID dom_sid;
 	    uint32 count, sid_index;
 	    TranslatedSid *sids = NULL;
 	    RefDomainList *domains = NULL;
@@ -133,11 +133,11 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
 	    if (sid_index < domains->count) {
 		dom_sid = domains->domains[sid_index].sid;
 		lookup_status = RtlSidAllocateResizedCopy(&usr_sid,
-                                                  dom_sid->subauth_count+1,
+                                                  dom_sid->SubAuthorityCount+1,
                                                   dom_sid);
 		if (lookup_status != 0) continue;
 
-		usr_sid->subauth[usr_sid->subauth_count-1] = sids[0].rid;
+		usr_sid->SubAuthority[usr_sid->SubAuthorityCount-1] = sids[0].rid;
 
 	    } else {
 		continue;

@@ -35,13 +35,13 @@ NTSTATUS
 SamrGetMembersInAlias(
     handle_t b,
     PolicyHandle *alias_h,
-    DomSid ***sids,
+    PSID** sids,
     uint32 *count
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     SidArray sid_array = {0};
-    DomSid **out_sids = NULL;
+    PSID* out_sids = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(alias_h, cleanup);

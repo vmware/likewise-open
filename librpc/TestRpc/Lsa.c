@@ -220,18 +220,19 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     sid_array.sids = (SidPtr*) malloc(sid_array.num_sids * sizeof(SidPtr));
 
     for (i = 0; i < sid_array.num_sids; i++) {
-        DomSid *usr_sid, *dom_sid;
+        PSID usr_sid;
+        PSID dom_sid;
         uint32 sid_index;
 
         dom_sid = NULL;
         sid_index = sids[i].index;
-		
+
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
             RtlSidAllocateResizedCopy(&usr_sid,
-                                      dom_sid->subauth_count + 1,
+                                      dom_sid->SubAuthorityCount + 1,
                                       dom_sid);
-            usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
+            usr_sid->SubAuthority[usr_sid->SubAuthorityCount - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
         }
     }
@@ -398,19 +399,20 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     sid_array.sids = (SidPtr*) malloc(sid_array.num_sids * sizeof(SidPtr));
 
     for (i = 0; i < sid_array.num_sids; i++) {
-        DomSid *usr_sid, *dom_sid;
+        PSID usr_sid;
+        PSID dom_sid;
         uint32 sid_index;
         wchar16_t *sidstr = NULL;
 
         dom_sid = NULL;
         sid_index = sids[i].index;
-		
+
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
             RtlSidAllocateResizedCopy(&usr_sid,
-                                      dom_sid->subauth_count + 1,
+                                      dom_sid->SubAuthorityCount + 1,
                                       dom_sid);
-            usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
+            usr_sid->SubAuthority[usr_sid->SubAuthorityCount - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
 
             SidToStringW(usr_sid, &sidstr);
@@ -501,7 +503,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     enum param_err perr;
     handle_t lsa_b = NULL;
     NETRESOURCE nr = {0};
-    DomSid **input_sids = NULL;
+    PSID* input_sids = NULL;
     int input_sid_count = 0;
     wchar16_t *domname = NULL;
     wchar16_t *names[2] = {0};

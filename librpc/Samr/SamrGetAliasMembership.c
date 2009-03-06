@@ -35,7 +35,7 @@ NTSTATUS
 SamrGetAliasMembership(
     handle_t b,
     PolicyHandle *domain_h,
-    DomSid *sids,
+    PSID sids,
     uint32 num_sids,
     uint32 **rids,
     uint32 *count

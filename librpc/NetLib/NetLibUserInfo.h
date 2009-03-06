@@ -35,7 +35,7 @@
 
 union user_info_id {
     uint32  id;
-    DomSid *sid;
+    PSID sid;
 };
 
 
@@ -65,7 +65,7 @@ typedef struct _USER_INFO_X {
     uint32     country_code;
     uint32     code_page;
     union user_info_id user;
-    DomSid*    user_sid;
+    PSID       user_sid;
     uint32     primary_group_id;
     wchar16_t *profile;
     wchar16_t *home_dir_drive;

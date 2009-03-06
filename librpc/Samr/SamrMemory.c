@@ -222,10 +222,10 @@ error:
 }
 
 
-NTSTATUS SamrAllocateDomSid(DomSid **out, DomSid *in, void *dep)
+NTSTATUS SamrAllocateDomSid(PSID* out, PSID in, void *dep)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DomSid *ptr = NULL;
+    PSID ptr = NULL;
 
     goto_if_invalid_param_ntstatus(out, cleanup);
 
@@ -250,22 +250,22 @@ error:
 }
 
 
-NTSTATUS SamrAllocateSids(DomSid ***out, SidArray *in)
+NTSTATUS SamrAllocateSids(PSID** out, SidArray *in)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DomSid **ptr = NULL;
+    PSID* ptr = NULL;
     int i = 0;
 
     goto_if_invalid_param_ntstatus(out, cleanup);
     goto_if_invalid_param_ntstatus(in, cleanup);
 
     status = SamrAllocateMemory((void**)&ptr,
-                                sizeof(DomSid*) * in->num_sids,
+                                sizeof(PSID) * in->num_sids,
                                 NULL);
     goto_if_ntstatus_not_success(status, error);
 
     for (i = 0; i < in->num_sids; i++) {
-        DomSid *sid = in->sids[i].sid;
+        PSID sid = in->sids[i].sid;
 
         status = SamrAllocateDomSid(&(ptr[i]), sid, (void*)ptr);
         goto_if_ntstatus_not_success(status, error);
