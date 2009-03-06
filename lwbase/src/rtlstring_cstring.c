@@ -34,7 +34,6 @@
 #include <lw/rtlgoto.h>
 #include <wc16str.h>
 #include <stdio.h>
-#include <stdarg.h>
 
 size_t
 LwRtlCStringNumChars(
@@ -226,7 +225,6 @@ my_vasprintf(
     }
 }
 
-static
 NTSTATUS
 LwRtlCStringAllocatePrintfV(
     OUT PSTR* ppszString,

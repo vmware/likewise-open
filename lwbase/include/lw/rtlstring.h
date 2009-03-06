@@ -34,6 +34,7 @@
 #include <lw/types.h>
 #include <lw/attrs.h>
 #include <lw/ntstatus.h>
+#include <stdarg.h>
 
 
 // c-style (null-terminated) strings
@@ -79,6 +80,13 @@ LwRtlCStringAllocatePrintf(
     LW_OUT PSTR* ppszString,
     LW_IN PCSTR pszFormat,
     LW_IN ...
+    );
+
+NTSTATUS
+LwRtlCStringAllocatePrintfV(
+    OUT PSTR* ppszString,
+    IN PCSTR pszFormat,
+    IN va_list Args
     );
 
 LW_NTSTATUS
@@ -240,6 +248,8 @@ LwRtlAnsiStringParseULONG(
     LwRtlCStringIsEqual(String1, String2, IsCaseSensitive)
 #define RtlCStringAllocatePrintf(String, Format, ...) \
     LwRtlCStringAllocatePrintf(String, Format, ## __VA_ARGS__)
+#define RtlCStringAllocatePrintfV(String, Format, args) \
+    LwRtlCStringAllocatePrintfV(String, Format, args)
 #define RtlCStringAllocateAppendPrintf(String, Format, ...) \
     LwRtlCStringAllocateAppendPrintf(String, Format, ## __VA_ARGS__)
 
