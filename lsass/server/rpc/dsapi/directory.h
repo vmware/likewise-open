@@ -1,14 +1,31 @@
+typedef struct _ATTRIBUTE_VALUE {
+    ULONG Type;
+    union {
+        ULONG uLongValue;
+        PWSTR pszStringValue;
+        BOOL  bBooleanValue;
+    }
+} ATTRIBUTE_VALUE, *PATTRIBUTE_VALUE;
+
+
+typedef struct _DIRECTORY_ATTRIBUTE {
+    PWSTR AttributeName;
+    ULONG ulNumValues;
+    PATTRIBUTE_VALUE * ppAttributeValues;
+} DIRECTORY_ATTRIBUTE, *PDIRECTORY_ATTRIBUTE;
 
 typedef struct _DIRECTORY_MOD {
     ULONG Operation;
-    PWSTR pszAttributeName;
+    PWSTR AttributeName;
     ULONG ulType;
-    union {
-        PWSTR pszString;
-        ULONG ulLong;
-    }
+    ULONG ulNumValues;
+    PDIRECTORY_VALUE *pAttribuValues;
 } DIRECTORY_MOD, *PDIRECTORY_MOD;
 
+typedef struct _DIRECTORY_ENTRY{
+    ULONG ulNumAttributes;
+    PDIRECTORY_ATTRIBUTE * ppDirectoryAttributes;
+}DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
 
 NTSTATUS
 DirectoryAddObject(
@@ -33,7 +50,7 @@ DirectorySearch(
     PWSTR Filter,
     PWSTR Attributes[],
     ULONG AttributesOnly,
-    PDIRECTORY_VALUES * ppDirectoryValues
+    PDIRECTORY_ENTRY * ppDirectoryEntries
     PDWORD pdwNumValues
     );
 
