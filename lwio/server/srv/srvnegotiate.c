@@ -114,7 +114,7 @@ SrvProcessNegotiate(
     ntStatus = UnmarshallNegotiateRequest(
                     pSmbRequest->pParams,
                     pSmbRequest->pNetBIOSHeader->len - ulOffset,
-                    (uint8**)&pszDialectArray,
+                    (uint8_t**)&pszDialectArray,
                     &ulNumDialects);
     BAIL_ON_NT_STATUS(ntStatus);
 

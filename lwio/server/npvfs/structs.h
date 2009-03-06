@@ -64,7 +64,6 @@ typedef struct _NPFS_FCB
 
     pthread_rwlock_t       PipeListRWLock;
     PNPFS_PIPE             pPipeList;
-    PSECURITY_DESCRIPTOR   pSecurityDescriptor;
     UNICODE_STRING         PipeName;
     ULONG                  NamedPipeConfiguration;
     FILE_PIPE_TYPE_MASK    NamedPipeType;

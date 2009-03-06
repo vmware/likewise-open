@@ -33,9 +33,4 @@
 
 extern PSTR           gpszPVFSProviderName;
 
-extern GENERIC_MAPPING gFileGenericMap;
-extern STANDARD_MAPPING gFileStandardMap;
-
-
-
 #endif /* __EXTERNS_H__ */

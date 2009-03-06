@@ -31,8 +31,7 @@
 #ifndef _LMSHARE_H_
 #define _LMSHARE_H_
 
-#include <secdesc/sddef.h>
-
+#include <lw/types.h>
 
 #ifndef CONNECTION_INFO_1_DEFINED
 #define CONNECTION_INFO_1_DEFINED 1
@@ -44,19 +43,19 @@ cpp_quote("#define CONNECTION_INFO_1_DEFINED 1")
 
 
 typedef struct _CONNECTION_INFO_1 {
-    uint32 coni1_id;
-    uint32 coni1_type;
-    uint32 coni1_num_open;
-    uint32 coni1_num_users;
-    uint32 coni1_time;
+    UINT32 coni1_id;
+    UINT32 coni1_type;
+    UINT32 coni1_num_open;
+    UINT32 coni1_num_users;
+    UINT32 coni1_time;
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *coni1_username;
+    PWSTR coni1_username;
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *coni1_netname;
+    PWSTR coni1_netname;
 } CONNECTION_INFO_1, *PCONNECTION_INFO_1;
 
 #ifdef _DCE_IDL_
@@ -78,7 +77,7 @@ typedef struct _SHARE_INFO_0 {
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi0_netname;
+    PWSTR shi0_netname;
 } SHARE_INFO_0, *PSHARE_INFO_0;
 
 #ifdef _DCE_IDL_
@@ -100,12 +99,12 @@ typedef struct _SHARE_INFO_1 {
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi1_netname;
-    uint32 shi1_type;
+    PWSTR shi1_netname;
+    UINT32 shi1_type;
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi1_remark;
+    PWSTR shi1_remark;
 } SHARE_INFO_1, *PSHARE_INFO_1, *LPSHARE_INFO_1;
 
 #ifdef _DCE_IDL_
@@ -127,23 +126,23 @@ typedef struct _SHARE_INFO_2 {
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi2_netname;
-    uint32 shi2_type;
+    PWSTR shi2_netname;
+    UINT32 shi2_type;
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi2_remark;
-    uint32 shi2_permissions;
-    uint32 shi2_max_uses;
-    uint32 shi2_current_uses;
+    PWSTR shi2_remark;
+    UINT32 shi2_permissions;
+    UINT32 shi2_max_uses;
+    UINT32 shi2_current_uses;
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi2_path;
+    PWSTR shi2_path;
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi2_password;
+    PWSTR shi2_password;
 } SHARE_INFO_2, *PSHARE_INFO_2, *LPSHARE_INFO_2;
 
 #ifdef _DCE_IDL_
@@ -165,13 +164,13 @@ typedef struct _SHARE_INFO_501 {
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi501_netname;
-    uint32 shi501_type;
+    PWSTR shi501_netname;
+    UINT32 shi501_type;
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi501_remark;
-    uint32 shi501_flags;
+    PWSTR shi501_remark;
+    UINT32 shi501_flags;
 } SHARE_INFO_501, *PSHARE_INFO_501, *LPSHARE_INFO_501;
 
 #ifdef _DCE_IDL_
@@ -190,16 +189,19 @@ cpp_quote("#define SHARE_INFO_502_DEFINED 1")
 #endif
 
 typedef struct _SHARE_INFO_502 {
-    wchar16_t *shi502_netname;
-    uint32 shi502_type;
-    wchar16_t *shi502_remark;
-    uint32 shi502_permissions;
-    uint32 shi502_max_uses;
-    uint32 shi502_current_uses;
-    wchar16_t *shi502_path;
-    wchar16_t *shi502_password;
-    uint32 shi502_reserved;
-    SECURITY_DESCRIPTOR *shi502_security_descriptor;
+    PWSTR shi502_netname;
+    UINT32 shi502_type;
+    PWSTR shi502_remark;
+    UINT32 shi502_permissions;
+    UINT32 shi502_max_uses;
+    UINT32 shi502_current_uses;
+    PWSTR shi502_path;
+    PWSTR shi502_password;
+    UINT32 shi502_reserved;
+#ifdef _DCE_IDL_
+    [size_is(shi502_reserved)]
+#endif
+    PBYTE shi502_security_descriptor;
 } SHARE_INFO_502, *PSHARE_INFO_502, *LPSHARE_INFO_502;
 
 #ifdef _DCE_IDL_
@@ -221,7 +223,7 @@ typedef struct _SHARE_INFO_1004 {
 #ifdef _DCE_IDL_
     [string]
 #endif
-    wchar16_t *shi1004_remark;
+    PWSTR shi1004_remark;
 } SHARE_INFO_1004, *PSHARE_INFO_1004, *LPSHARE_INFO_1004;
 
 #ifdef _DCE_IDL_
@@ -240,7 +242,7 @@ cpp_quote("#define SHARE_INFO_1005_DEFINED 1")
 #endif
 
 typedef struct _SHARE_INFO_1005 {
-    uint32 shi1005_flags;
+    UINT32 shi1005_flags;
 } SHARE_INFO_1005, *PSHARE_INFO_1005, *LPSHARE_INFO_1005;
 
 #ifdef _DCE_IDL_
@@ -259,7 +261,7 @@ cpp_quote("#define SHARE_INFO_1006_DEFINED 1")
 #endif
 
 typedef struct _SHARE_INFO_1006 {
-    uint32 shi1006_max_uses;
+    UINT32 shi1006_max_uses;
 } SHARE_INFO_1006, *PSHARE_INFO_1006, *LPSHARE_INFO_1006;
 
 #ifdef _DCE_IDL_
@@ -278,8 +280,11 @@ cpp_quote("#define SHARE_INFO_1501_DEFINED 1")
 #endif
 
 typedef struct _SHARE_INFO_1501 {
-    uint32 shi1501_reserved;
-    SECURITY_DESCRIPTOR *shi1501_security_descriptor;
+    UINT32 shi1501_reserved;
+#ifdef _DCE_IDL_
+    [size_is(shi1501_reserved)]
+#endif
+    PBYTE shi1501_security_descriptor;
 } SHARE_INFO_1501, *PSHARE_INFO_1501, *LPSHARE_INFO_1501;
 
 #ifdef _DCE_IDL_

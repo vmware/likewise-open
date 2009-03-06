@@ -33,76 +33,9 @@
 
 #include <unistd.h>
 #include <lw/base.h>
-#include <secdesc/secdesc.h>
+#include <lw/security-types.h>
 
-typedef struct _SECURITY_DESCRIPTOR_RELATIVE *PSECURITY_DESCRIPTOR_RELATIVE;
-
-typedef ULONG ACCESS_MASK;
-
-#if 0
-//
-// An ACCESS_MASK is a 32-bit value divided as follows from high to low bits:
-//
-// 4 bits - Generic Access Rights (given in request)
-// 2 bits - Unused
-// 2 bits - Special Access Rights
-// 3 bits - Unused
-// 5 bits - Standard Access Rights
-// 16 bits - Specific Access Rights
-//
-// When generic rights are specified in an open, they are mapped to
-// specific rights for the object type in question.
-//
-// Since lwio only deals with files, the only specific rights
-// that apply are file rights.
-//
-
-//
-// Generic Access Rights - 0xF0000000
-//
-// These are converted to specific rights depending on the type
-// of object being accessed.
-//
-
-#define GENERIC_ALL                 0x10000000
-#define GENERIC_EXECUTE             0x20000000
-#define GENERIC_WRITE               0x40000000
-#define GENERIC_READ                0x80000000
-
-//
-// Special Access Rights - 0x03000000
-//
-
-#define ACCESS_SYSTEM_SECURITY      0x01000000 // Read/write SACL in object SD
-#define MAXIMUM_ALLOWED             0x02000000 // Maximum allowed for pricipal
-
-//
-// Standard Access Rights - 0x001F0000
-//
-
-#ifdef DELETE
-#undef DELETE
-#endif
-
-#define DELETE                      0x00010000 // Delete object
-#define READ_CONTROL                0x00020000 // Read object SD (except SACL)
-#define WRITE_DAC                   0x00040000 // Write DACL in object SD
-#define WRITE_OWNER                 0x00080000 // Write owner in object SD
-#define SYNCHRONIZE                 0x00100000 // Synchronize on object
-
-#define STANDARD_RIGHTS_REQUIRED    0x000F0000 // All but SYNCHRONIZE above
-
-#define STANDARD_RIGHTS_READ        READ_CONTROL
-#define STANDARD_RIGHTS_WRITE       READ_CONTROL
-#define STANDARD_RIGHTS_EXECUTE     READ_CONTROL
-
-#define STANDARD_RIGHTS_ALL         0x001F0000
-
-//
-// Specific Access Rights - 0x0000FFFF
-//
-
-#define SPECIFIC_RIGHTS_ALL         0x0000FFFF
+// TODO-Create a header with device names.
 
 //
 // Specific Access Rights - File
@@ -152,61 +85,10 @@ typedef ULONG ACCESS_MASK;
     FILE_READ_ATTRIBUTES | \
     FILE_EXECUTE | \
     0 )
-#endif
 
-#define FILE_READ_DATA            0x00000001 /* File/NP     */
-#define FILE_LIST_DIRECTORY       0x00000001 /* Dir         */
-#define FILE_WRITE_DATA           0x00000002 /* File/NP     */
-#define FILE_ADD_FILE             0x00000002 /* Dir         */
-#define FILE_APPEND_DATA          0x00000004 /* File        */
-#define FILE_ADD_SUBDIRECTORY     0x00000004 /* Dir         */
-#define FILE_CREATE_PIPE_INSTANCE 0x00000004 /* NP          */
-#define FILE_READ_EA              0x00000008 /* File/Dir    */
-#define FILE_WRITE_EA             0x00000010 /* File/Dir    */
-#define FILE_EXECUTE              0x00000020 /* File        */
-#define FILE_TRAVERSE             0x00000020 /* Dir         */
-#define FILE_DELETE_CHILD         0x00000020 /* Dir         */
-#define FILE_READ_ATTRIBUTES      0x00000080 /* File/NP/Dir */
-#define FILE_WRITE_ATTRIBUTES     0x00000100 /* File/NP/Dir */
-
-#define SPECIFIC_RIGHTS_ALL       0x000FFFF
-
-#define PIPE_READMODE_BYTE        0x00000000
-#define PIPE_READMODE_MESSAGE     0x00000002
-#define PIPE_WAIT                 0x00000000
-#define PIPE_NOWAIT               0x00000001
-
-#define FILE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1FF)
-
-#define FILE_GENERIC_READ         (STANDARD_RIGHTS_READ     |\
-                                   FILE_READ_DATA           |\
-                                   FILE_READ_ATTRIBUTES     |\
-                                   FILE_READ_EA             |\
-                                   SYNCHRONIZE)
-
-#define FILE_GENERIC_WRITE        (STANDARD_RIGHTS_WRITE    |\
-                                   FILE_WRITE_DATA          |\
-                                   FILE_WRITE_ATTRIBUTES    |\
-                                   FILE_WRITE_EA            |\
-                                   FILE_APPEND_DATA         |\
-                                   SYNCHRONIZE)
-
-#define FILE_GENERIC_EXECUTE      (STANDARD_RIGHTS_EXECUTE  |\
-                                   FILE_READ_ATTRIBUTES     |\
-                                   FILE_EXECUTE             |\
-                                   SYNCHRONIZE)
-
-#define FILE_FLAG_WRITE_THROUGH         0x80000000
-#define FILE_FLAG_OVERLAPPED            0x40000000
-#define FILE_FLAG_NO_BUFFERING          0x20000000
-#define FILE_FLAG_RANDOM_ACCESS         0x10000000
-#define FILE_FLAG_SEQUENTIAL_SCAN       0x08000000
-#define FILE_FLAG_DELETE_ON_CLOSE       0x04000000
-#define FILE_FLAG_BACKUP_SEMANTICS      0x02000000
-#define FILE_FLAG_POSIX_SEMANTICS       0x01000000
-#define FILE_FLAG_OPEN_REPARSE_POINT    0x00200000
-#define FILE_FLAG_OPEN_NO_RECALL        0x00100000
-#define FILE_FLAG_FIRST_PIPE_INSTANCE   0x00080000
+//
+// Share Flags
+//
 
 typedef ULONG FILE_SHARE_FLAGS;
 
@@ -214,6 +96,10 @@ typedef ULONG FILE_SHARE_FLAGS;
 #define FILE_SHARE_WRITE        0x00000002 // Allow FILE_WRITE_DATA and FILE_APPEND_DATA access
 #define FILE_SHARE_DELETE       0x00000004 // Allow DELETE access
 #define FILE_SHARE_VALID_FLAGS  0x00000007
+
+//
+// Create Disposition
+//
 
 typedef ULONG FILE_CREATE_DISPOSITION;
 
@@ -223,6 +109,10 @@ typedef ULONG FILE_CREATE_DISPOSITION;
 #define FILE_OPEN_IF      3
 #define FILE_OVERWRITE    4
 #define FILE_OVERWRITE_IF 5
+
+//
+// Create Options
+//
 
 typedef ULONG FILE_CREATE_OPTIONS;
 
@@ -256,6 +146,10 @@ typedef ULONG FILE_CREATE_OPTIONS;
 #define FILE_CREATE_OPTIONS_VALID       0x006079CF
 #define FILE_CREATE_OPTIONS_VALID_PIPE  0x00000002
 
+//
+// File Attributes
+//
+
 typedef ULONG FILE_ATTRIBUTES;
 
 #define FILE_ATTRIBUTE_READONLY              0x00000001 // settable
@@ -277,20 +171,9 @@ typedef ULONG FILE_ATTRIBUTES;
 #define FILE_ATTRIBUTE_VALID_FLAGS           0x00007FB7
 #define FILE_ATTRIBUTE_VALID_SET_FLAGS       0x000031A7
 
-#ifdef WIN32
-// These are Win32 flags that get mapped to the NT-level flags.
-// They should be in some Win32-level header.
-#define FILE_FLAG_BACKUP_SEMANTICS
-#define FILE_FLAG_DELETE_ON_CLOSE
-#define FILE_FLAG_NO_BUFFERING
-#define FILE_FLAG_OPEN_NO_RECALL
-#define FILE_FLAG_OPEN_REPARSE_POINT
-#define FILE_FLAG_OVERLAPPED
-#define FILE_FLAG_POSIX_SEMANTICS
-#define FILE_FLAG_RANDOM_ACCESS
-#define FILE_FLAG_SEQUENTIAL_SCAN
-#define FILE_FLAG_WRITE_THROUGH
-#endif
+//
+// File Create Result (returned in IO_STATUS_BLOCK)
+//
 
 typedef ULONG FILE_CREATE_RESULT;
 
@@ -308,12 +191,9 @@ typedef ULONG FILE_CREATE_RESULT;
 #define FILE_WRITE_TO_END_OF_FILE       (-1)
 #define FILE_USE_FILE_POINTER_POSITION  (-2)
 
-typedef ULONG SECURITY_INFORMATION;
-
-#define OWNER_SECURITY_INFORMATION  0x00000001
-#define GROUP_SECURITY_INFORMATION  0x00000002
-#define DACL_SECURITY_INFORMATION   0x00000004
-#define SACL_SECURITY_INFORMATION   0x00000008
+//
+// Named Pipe Type
+//
 
 typedef ULONG FILE_PIPE_TYPE_MASK;
 
@@ -328,6 +208,10 @@ typedef ULONG FILE_PIPE_TYPE_MASK;
     FILE_PIPE_REJECT_REMOTE_CLIENTS | \
     0 )
 
+//
+// Named Pipe Read Mode
+//
+
 typedef ULONG FILE_PIPE_READ_MODE_MASK;
 
 #define FILE_PIPE_BYTE_STREAM_MODE      0x00000000
@@ -336,6 +220,10 @@ typedef ULONG FILE_PIPE_READ_MODE_MASK;
 #define FILE_PIPE_READ_MODE_VALID_MASK ( \
     FILE_PIPE_MESSAGE_MODE | \
     0 )
+
+//
+// Named Pipe Completion Mode
+//
 
 typedef ULONG FILE_PIPE_COMPLETION_MODE_MASK;
 
@@ -346,10 +234,18 @@ typedef ULONG FILE_PIPE_COMPLETION_MODE_MASK;
     FILE_PIPE_COMPLETE_OPERATION | \
     0 )
 
+//
+// Named Pipe End
+//
+
 typedef ULONG NAMED_PIPE_END;
 
 #define FILE_PIPE_CLIENT_END      0x00000000
 #define FILE_PIPE_SERVER_END      0x00000001
+
+//
+// Core Types
+//
 
 typedef struct __LW_IO_CONTEXT LW_IO_CONTEXT, *LW_PIO_CONTEXT;
 typedef struct __LW_IO_ACCESS_TOKEN LW_IO_ACCESS_TOKEN, *LW_PIO_ACCESS_TOKEN;
@@ -362,29 +258,9 @@ struct _IO_FILE_OBJECT;
 typedef struct _IO_FILE_OBJECT IO_FILE_OBJECT, *PIO_FILE_OBJECT;
 typedef IO_FILE_OBJECT *IO_FILE_HANDLE, **PIO_FILE_HANDLE;
 
-// Available namespaces
-#define IO_NS_NATIVE  "/Device"
-#define IO_NS_WIN32  "/Win32"
-
 typedef ULONG IO_NAME_OPTIONS;
 
 #define IO_NAME_OPTION_CASE_SENSITIVE 0x00000001
-
-#if 0
-Worker threads.
-1) Wait Named Pipe - has timeout.
-----
-1) Create
-   - security flags
-   - all other flags
-   - creat path
-2) FSCTL for PIPEs
-3) Q/S Info
-4) Directory
-5) Rundown logic
-6) Handle verification
-   - perhaps a handle table?
-#endif
 
 // TODO-Use UNICODE_STRING
 typedef struct _IO_FILE_NAME {
@@ -439,6 +315,10 @@ typedef struct _IO_CREATE_SECURITY_CONTEXT {
     } Process;
     LW_PIO_ACCESS_TOKEN pAccessToken;
 } IO_CREATE_SECURITY_CONTEXT, *PIO_CREATE_SECURITY_CONTEXT;
+
+//
+// Query/Set Information File Classes and Types
+//
 
 typedef ULONG FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -827,6 +707,10 @@ typedef struct _FILE_QUOTA_INFORMATION {
 } FILE_QUOTA_INFORMATION, *PFILE_QUOTA_INFORMATION;
 #endif
 
+//
+// Volume Information Classes and Types
+//
+
 typedef ULONG FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
 
 #define FILE_CASE_SENSITIVE_SEARCH               0x00000001
@@ -871,6 +755,9 @@ typedef struct _FILE_FS_SIZE_INFORMATION {
     ULONG   BytesPerSector;
 } FILE_FS_SIZE_INFORMATION, *PFILE_FS_SIZE_INFORMATION;
 
+//
+// Extra Create Parameter Support
+//
 
 typedef struct _IO_ECP_LIST *PIO_ECP_LIST;
 
@@ -891,6 +778,51 @@ typedef struct _IO_ECP_NAMED_PIPE {
     LONG64 DefaultTimeout;
     BOOLEAN HaveDefaultTimeout;
 } __attribute__((packed)) IO_ECP_NAMED_PIPE, *PIO_ECP_NAMED_PIPE;
+
+#ifdef WIN32
+//
+// Win32 Create Flags
+//
+// These are Win32 flags that get mapped to the NT-level flags.
+// They should be in some Win32-level header.
+//
+// TODO-Move Win32 flags elsewhere since they are Win32 API only.
+//
+
+#define FILE_FLAG_WRITE_THROUGH         0x80000000
+#define FILE_FLAG_OVERLAPPED            0x40000000
+#define FILE_FLAG_NO_BUFFERING          0x20000000
+#define FILE_FLAG_RANDOM_ACCESS         0x10000000
+#define FILE_FLAG_SEQUENTIAL_SCAN       0x08000000
+#define FILE_FLAG_DELETE_ON_CLOSE       0x04000000
+#define FILE_FLAG_BACKUP_SEMANTICS      0x02000000
+#define FILE_FLAG_POSIX_SEMANTICS       0x01000000
+#define FILE_FLAG_OPEN_REPARSE_POINT    0x00200000
+#define FILE_FLAG_OPEN_NO_RECALL        0x00100000
+#define FILE_FLAG_FIRST_PIPE_INSTANCE   0x00080000
+#endif
+
+//
+// Win32 Pipe Flags
+//
+// TODO-Move Win32 flags elsewhere since they are Win32 API only.
+// TODO-Have NPFS/SRV/RDR use NT flags instead of Win32 flags.
+// Apparently, in Win32, the flags are all masked together and
+// therefore use different values as described below.
+//
+
+// FILE_PIPE_COMPLETION_MODE_MASK << 1:
+#define PIPE_WAIT                   0x00000000 // FILE_PIPE_QUEUE_OPERATION << 0
+#define PIPE_NOWAIT                 0x00000001 // FILE_PIPE_COMPLETE_OPERATION << 0
+// FILE_PIPE_READ_MODE_MASK << 1:
+#define PIPE_READMODE_BYTE          0x00000000 // FILE_PIPE_BYTE_STREAM_MODE << 1
+#define PIPE_READMODE_MESSAGE       0x00000002 // FILE_PIPE_MESSAGE_MODE << 1
+// FILE_PIPE_TYPE_MASK << 2:
+#define PIPE_TYPE_BYTE              0x00000000 // FILE_PIPE_BYTE_STREAM_TYPE << 2
+#define PIPE_TYPE_MESSAGE           0x00000004 // FILE_PIPE_MESSAGE_TYPE << 2
+#define PIPE_ACCEPT_REMOTE_CLIENTS  0x00000000 // FILE_PIPE_ACCEPT_REMOTE_CLIENTS << 2
+#define PIPE_REJECT_REMOTE_CLIENTS  0x00000008 // FILE_PIPE_REJECT_REMOTE_CLIENTS << 2
+
 
 #ifndef LW_STRICT_NAMESPACE
 
