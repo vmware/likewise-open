@@ -42,9 +42,9 @@ pthread_mutex_t gAtomicMutex = PTHREAD_MUTEX_INITIALIZER;
 
 LONG
 LwInterlockedCompareExchange(
-    LONG volatile *plDestination,
-    LONG lNewValue,
-    LONG lCompareValue
+    IN OUT LONG volatile *plDestination,
+    IN LONG lNewValue,
+    IN LONG lCompareValue
     )
 {
     LONG lOldValue;
@@ -65,7 +65,7 @@ LwInterlockedCompareExchange(
 
 LONG
 LwInterlockedRead(
-    LONG volatile *plSource
+    IN LONG volatile *plSource
     )
 {
     LONG lValue;
@@ -81,7 +81,7 @@ LwInterlockedRead(
 
 LONG
 LwInterlockedIncrement(
-    LONG volatile* plDestination
+    IN OUT LONG volatile* plDestination
     )
 {
     LONG lNewValue;
@@ -97,7 +97,7 @@ LwInterlockedIncrement(
 
 LONG
 LwInterlockedDecrement(
-    LONG volatile* plDestination
+    IN OUT LONG volatile* plDestination
     )
 {
     LONG lNewValue;
