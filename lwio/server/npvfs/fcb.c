@@ -11,10 +11,11 @@ NpfsCreateFCB(
     PNPFS_FCB pFCB = NULL;
 
     ntStatus = NpfsAllocateMemory(
-                        sizeof(NPFS_FCB),
-                        &pFCB
+                        sizeof(*pFCB),
+                        OUT_PPVOID(&pFCB)
                         );
     BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = RtlUnicodeStringDuplicate(
                     &pFCB->PipeName,
                     pUnicodeString

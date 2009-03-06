@@ -472,11 +472,8 @@ ListDirectory(
        256 WCHAR length filename */
 
     dwBufLen = (sizeof(FILE_BOTH_DIR_INFORMATION) + (sizeof(WCHAR)*256)) * 4;
-    pBuffer = (PVOID)RtlMemoryAllocate(dwBufLen);
-    if (!pBuffer) {
-        ntError = STATUS_INSUFFICIENT_RESOURCES;
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    ntError = RTL_ALLOCATE(&pBuffer, VOID, dwBufLen);
+    BAIL_ON_NT_STATUS(ntError);
 
     if (pszPattern) {
         ntError = LwRtlUnicodeStringAllocateFromCString(&FileSpec.FileName, pszPattern);

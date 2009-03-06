@@ -276,12 +276,8 @@ NpfsCommonProcessCreateEcp(
     {
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pPipe->pSessionKey = RtlMemoryAllocate(ulSessionKeyLength);
-        if (!pPipe->pSessionKey)
-        {
-            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
+        ntStatus = RTL_ALLOCATE(&pPipe->pSessionKey, BYTE, ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pPipe->pSessionKey, pSessionKey, ulSessionKeyLength);
         pPipe->ulSessionKeyLength = ulSessionKeyLength;

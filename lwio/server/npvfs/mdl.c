@@ -114,8 +114,8 @@ NpfsCreateMdl(
     memcpy(pTargBuffer, pBuffer, Length);
 
     ntStatus = NpfsAllocateMemory(
-                    sizeof(NPFS_MDL),
-                    &pMdl
+                    sizeof(*pMdl),
+                    OUT_PPVOID(&pMdl)
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 

@@ -98,8 +98,8 @@ NpfsCreatePipe(
     ENTER_WRITER_RW_LOCK(&pFCB->PipeListRWLock);
 
     ntStatus = NpfsAllocateMemory(
-                    sizeof(NPFS_PIPE),
-                    &pPipe
+                    sizeof(*pPipe),
+                    OUT_PPVOID(&pPipe)
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
