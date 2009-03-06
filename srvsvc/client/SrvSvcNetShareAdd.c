@@ -31,12 +31,6 @@
 #include "includes.h"
 
 
-NET_API_STATUS SecurityDescriptorToBuffer(
-    const SecDesc *security_descriptor,
-    uint8 **bufptr,
-    uint32 *buflen
-    );
-
 NET_API_STATUS NetShareAdd(
     handle_t b,
     const wchar16_t *servername,
@@ -85,11 +79,13 @@ NET_API_STATUS NetShareAdd(
             info502.shi502_current_uses        = buf502->shi502_current_uses;
             info502.shi502_path                = buf502->shi502_path;
             info502.shi502_password            = buf502->shi502_password;
+#if 0
+            // TODO-Figure out what to do...may need SD hack...
             status = SecurityDescriptorToBuffer(buf502->shi502_security_descriptor,
                                                 &info502.shi502_security_descriptor,
                                                 &info502.shi502_reserved);
             goto_if_err_not_success(status, done);
-
+#endif
             sdbuf = info502.shi502_security_descriptor;
             info.info502 = &info502;
         }

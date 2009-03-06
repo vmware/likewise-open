@@ -203,7 +203,7 @@ enum param_err fetch_value(struct parameter *params, int count,
     wchar16_t **valw16str, **defw16str;
     int *valint, *defint;
     unsigned int *valuint, *defuint;
-    DomSid **valsid;
+    PSID* valsid;
     enum param_err ret = perr_success;
 
     if (params && !key) return perr_nullptr_passed;

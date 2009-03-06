@@ -33,14 +33,6 @@
 
 #define NtStatusToWin32(x) ((NET_API_STATUS)(x))
 
-NET_API_STATUS SecurityDescriptorFromBuffer(
-    PSECURITY_DESCRIPTOR *security_descriptor,
-    const uint8 *buf,
-    uint32 buflen,
-    void *(*allocfn)(void *allocfn, size_t len),
-    void *allocpv
-    );
-
 NET_API_STATUS SrvSvcInitMemory(void)
 {
     NET_API_STATUS status = ERROR_SUCCESS;
@@ -565,16 +557,8 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
 
             for (i=0; i < count; i++) {
                  PSHARE_INFO_502_I e;
-                 PSECURITY_DESCRIPTOR sd = NULL;
 
                  e = &ctr->ctr502->array[i];
-
-                 status = SecurityDescriptorFromBuffer(&sd,
-                                                       e->shi502_security_descriptor,
-                                                       e->shi502_reserved,
-                                                       SrvSvcSecDescAllocFn,
-                                                       a502);
-                 goto_if_err_not_success(status, error);
 
                  a502[i].shi502_netname      = e->shi502_netname;
                  a502[i].shi502_type         = e->shi502_type;
@@ -584,8 +568,15 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
                  a502[i].shi502_current_uses = e->shi502_current_uses;
                  a502[i].shi502_path         = e->shi502_path;
                  a502[i].shi502_password     = e->shi502_password;
-                 a502[i].shi502_reserved            = 0;
-                 a502[i].shi502_security_descriptor = sd;
+                 a502[i].shi502_reserved     = e->shi502_reserved;
+
+                 if (e->shi502_reserved)
+                 {
+                     status = SrvSvcAllocateMemory(OUT_PPVOID(&a502[i].shi502_security_descriptor),
+                                                   e->shi502_reserved,
+                                                   a502);
+                     goto_if_err_not_success(status, cleanup);
+                 }
 
                  DUP_WC16S(a502, a502[i].shi502_netname);
                  DUP_WC16S(a502, a502[i].shi502_remark);
@@ -688,7 +679,6 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
         if (info->info502) {
             PSHARE_INFO_502 a502;
             PSHARE_INFO_502_I e;
-            PSECURITY_DESCRIPTOR sd = NULL;
 
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_502),
@@ -699,13 +689,6 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
 
             e = info->info502;
 
-            status = SecurityDescriptorFromBuffer(&sd,
-                                                  e->shi502_security_descriptor,
-                                                  e->shi502_reserved,
-                                                  SrvSvcSecDescAllocFn,
-                                                  a502);
-            goto_if_err_not_success(status, error);
-
             a502->shi502_netname      = e->shi502_netname;
             a502->shi502_type         = e->shi502_type;
             a502->shi502_remark       = e->shi502_remark;
@@ -714,8 +697,15 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
             a502->shi502_current_uses = e->shi502_current_uses;
             a502->shi502_path         = e->shi502_path;
             a502->shi502_password     = e->shi502_password;
-            a502->shi502_reserved            = 0;
-            a502->shi502_security_descriptor = sd;
+            a502->shi502_reserved     = e->shi502_reserved;
+
+            if (e->shi502_reserved)
+            {
+                status = SrvSvcAllocateMemory(OUT_PPVOID(&a502->shi502_security_descriptor),
+                                              e->shi502_reserved,
+                                              a502);
+                goto_if_err_not_success(status, cleanup);
+            }
 
             DUP_WC16S(a502, a502->shi502_netname);
             DUP_WC16S(a502, a502->shi502_remark);

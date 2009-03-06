@@ -63,12 +63,17 @@
     ((uint8 *)(buf))[(ofs)+3] = ((uint8)((((uint32)(val)) >> 24) & 0xFF)); \
 } while (0);
 
+#ifdef NO_COMPILE
+#undef NO_COMPILE
+#endif
+
+#ifdef NO_COMPILE
 static NET_API_STATUS
 DecodeDomSid(
     const uint8 *buf,
     uint32 buflen,
     uint32 start_ofs,
-    DomSid *r,
+    PSID r,
     uint32 *r_size,
     void *(*allocfn)(void *allocpv, size_t len),
     void *allocpv
@@ -94,7 +99,7 @@ DecodeDomSid(
 
     r->subauth_count = GET_UINT8(buf, ofs);
     ofs += 1;
-    if (r->subauth_count > MAXIMUM_SUBAUTHORITY_COUNT) {
+    if (r->subauth_count > SID_MAX_SUB_AUTHORITIES) {
         return ERROR_INVALID_SID;
     }
 
@@ -306,7 +311,7 @@ NET_API_STATUS SecurityDescriptorFromBuffer(
     ofs += 4;
 
     if (owner_ofs) {
-        sd->owner = (DomSid *)allocfn(allocpv,sizeof(DomSid));
+        sd->owner = (PSID)allocfn(allocpv,sizeof(DomSid));
         if (!sd->owner) {
             return ERROR_NOT_ENOUGH_MEMORY;
         }
@@ -491,22 +496,6 @@ void SecurityDescriptorDump(
 }
 #endif
 
-static uint32 DomSidGetSize(
-    const DomSid *sid
-    )
-{
-    uint32 size = 0;
-
-    if (!sid) {
-        return size;
-    }
-
-    size += 8;
-    size += (sid->subauth_count * 4);
-
-    return size;
-}
-
 static int SecAceGetSize(
     const SecAce *ace
     )
@@ -515,7 +504,7 @@ static int SecAceGetSize(
 
     size += 8;
     size += 0;/*TODO: AD style ACE */
-    size += DomSidGetSize(ace->trustee);
+    size += SidGetSize(ace->trustee);
 
     return size;
 }
@@ -552,8 +541,8 @@ uint32 SecurityDescriptorGetSize(
     }
 
     size += 20;
-    size += DomSidGetSize(sd->owner);
-    size += DomSidGetSize(sd->group);
+    size += SidGetSize(sd->owner);
+    size += SidGetSize(sd->group);
     size += SecAclGetSize(sd->sacl);
     size += SecAclGetSize(sd->dacl);
 
@@ -561,7 +550,7 @@ uint32 SecurityDescriptorGetSize(
 }
 
 static NET_API_STATUS PushDomSid(
-    const DomSid *sid,
+    PSID sid,
     uint8 *buf,
     uint32 len,
     uint32 *size
@@ -585,7 +574,7 @@ static NET_API_STATUS PushDomSid(
         return ERROR_INVALID_SID;
     }
 
-    sid_size = DomSidGetSize(sid);
+    sid_size = SidGetSize(sid);
 
     if (len < sid_size) {
          return ERROR_INTERNAL_ERROR;
@@ -735,7 +724,7 @@ static NET_API_STATUS PushSecAcl(
 }
 
 NET_API_STATUS SecurityDescriptorToBuffer(
-    const PSECURITY_DESCRIPTOR security_descriptor,
+    IN PSECURITY_DESCRIPTOR_ABSOLUTE security_descriptor,
     uint8 **bufptr,
     uint32 *buflen
     )
@@ -857,7 +846,7 @@ NET_API_STATUS SecurityDescriptorToBuffer(
     *buflen = ofs;
     return ERROR_SUCCESS;
 }
-
+#endif
 
 /*
 local variables:

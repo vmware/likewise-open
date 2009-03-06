@@ -45,12 +45,16 @@
  */
 
 
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef _SRVSVC_TYPES_H_
+#define _SRVSVC_TYPES_H_
 
-#if defined(_DCE_IDL_)
+// TODO-Exploit commonality wrt <lwrpc/types.h>
 
-/* Types needed for idl compiler pass */
+#include <lw/types.h>
+#include <lw/ntstatus.h>
+
+#ifdef _DCE_IDL_
+// TODO-Eventually remove (u)int<N> types in favor of <lw/types.h> types.
 typedef unsigned small int uint8;
 typedef unsigned short int uint16;
 typedef unsigned long int uint32;
@@ -59,51 +63,48 @@ typedef small int int8;
 typedef short int int16;
 typedef long int int32;
 typedef hyper int int64;
-typedef uint32 NTSTATUS;
-typedef uint16 wchar16_t;
-
 #else
 
-/* Types needed for librpc build pass */
 #include <inttypes.h>
-#include <lw/base.h>
 
-#if !defined(UINT8_DEFINED) && !defined(HAVE_UINT8)
+/* Types needed for librpc build pass */
+
+#ifndef UINT8_DEFINED
 typedef uint8_t uint8;
 #define UINT8_DEFINED
 #endif
 
-#if !defined(UINT16_DEFINED) && !defined(HAVE_UINT16)
+#ifndef UINT16_DEFINED
 typedef uint16_t uint16;
 #define UINT16_DEFINED
 #endif
 
-#if !defined(UINT32_DEFINED) && !defined(HAVE_UINT32)
+#ifndef UINT32_DEFINED
 typedef uint32_t uint32;
 #define UINT32_DEFINED
 #endif
 
-#if !defined(UINT64_DEFINED) && !defined(HAVE_UINT64)
+#ifndef UINT64_DEFINED
 typedef uint64_t uint64;
 #define UINT64_DEFINED
 #endif
 
-#if !defined(INT8_DEFINED) && !defined(HAVE_INT8)
+#ifndef INT8_DEFINED
 typedef int8_t int8;
 #define INT8_DEFINED
 #endif
 
-#if !defined(INT16_DEFINED) && !defined(HAVE_INT16)
+#ifndef INT16_DEFINED
 typedef int16_t int16;
 #define INT16_DEFINED
 #endif
 
-#if !defined(INT32_DEFINED) && !defined(HAVE_INT32)
+#ifndef INT32_DEFINED
 typedef int32_t int32;
 #define INT32_DEFINED
 #endif
 
-#if !defined(INT64_DEFINED) && !defined(HAVE_INT64)
+#ifndef INT64_DEFINED
 #define INT64_DEFINED
 typedef int64_t int64;
 #endif
@@ -152,7 +153,7 @@ typedef unsigned long int RPCSTATUS;
 #endif /* defined(SRVSVC_BUILD) */
 #endif /* !defined(_DCE_IDL_) */
 
-#endif /* _TYPES_H_ */
+#endif /* _SRVSVC_TYPES_H_ */
 
 
 /*
