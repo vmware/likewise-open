@@ -567,7 +567,7 @@ main(int argc, char** argv)
 
     gtk_init(&argc, &argv);
 
-    LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+    LW_TRY(&exc, DJNetInitialize(TRUE, &LW_EXC));
 
     do
     {
