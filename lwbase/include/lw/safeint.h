@@ -52,16 +52,16 @@ LwRtlSafeMultiplyULONG(
     LW_IN LW_ULONG OperandB
     )
 {
-    LW_NTSTATUS status = LW_NT_STATUS_SUCCESS;
+    LW_NTSTATUS status = LW_STATUS_SUCCESS;
     LW_ULONG64 result = ((LW_ULONG64) OperandA) * ((LW_ULONG64) OperandB);
     if (result > ((LW_ULONG)-1))
     {
-        status = LW_NT_STATUS_INTEGER_OVERFLOW;
+        status = LW_STATUS_INTEGER_OVERFLOW;
         *Result = ((LW_ULONG)-1);
     }
     else
     {
-        status = LW_NT_STATUS_SUCCESS;
+        status = LW_STATUS_SUCCESS;
     }   *Result = (LW_ULONG) result;
     return status;
 }
@@ -75,16 +75,16 @@ LwRtlSafeAddULONG(
     LW_IN LW_ULONG OperandB
     )
 {
-    LW_NTSTATUS status = LW_NT_STATUS_SUCCESS;
+    LW_NTSTATUS status = LW_STATUS_SUCCESS;
     LW_ULONG result = OperandA + OperandB;
     if (result < OperandA)
     {
-        status = LW_NT_STATUS_INTEGER_OVERFLOW;
+        status = LW_STATUS_INTEGER_OVERFLOW;
         *Result = ((LW_ULONG)-1);
     }
     else
     {
-        status = LW_NT_STATUS_SUCCESS;
+        status = LW_STATUS_SUCCESS;
     }   *Result = result;
     return status;
 }
@@ -98,16 +98,16 @@ LwRtlSafeAddUSHORT(
     LW_IN LW_USHORT OperandB
     )
 {
-    LW_NTSTATUS status = LW_NT_STATUS_SUCCESS;
+    LW_NTSTATUS status = LW_STATUS_SUCCESS;
     LW_USHORT result = OperandA + OperandB;
     if (result < OperandA)
     {
-        status = LW_NT_STATUS_INTEGER_OVERFLOW;
+        status = LW_STATUS_INTEGER_OVERFLOW;
         *Result = ((LW_USHORT)-1);
     }
     else
     {
-        status = LW_NT_STATUS_SUCCESS;
+        status = LW_STATUS_SUCCESS;
     }   *Result = result;
     return status;
 }

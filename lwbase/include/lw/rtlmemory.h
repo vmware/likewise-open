@@ -91,7 +91,7 @@ LwRtlMemoryFree(
 // are next to each other.
 // TODO-Make Type a pointer type -- for opaque types...
 #define LW_RTL_ALLOCATE(ppMemory, Type, Size) \
-    ( (*(ppMemory)) = (Type*) LwRtlMemoryAllocate(Size), (*(ppMemory)) ? LW_NT_STATUS_SUCCESS : LW_NT_STATUS_INSUFFICIENT_RESOURCES )
+    ( (*(ppMemory)) = (Type*) LwRtlMemoryAllocate(Size), (*(ppMemory)) ? LW_STATUS_SUCCESS : LW_STATUS_INSUFFICIENT_RESOURCES )
 
 #define LW_RTL_FREE(ppMemory) \
     do { \
