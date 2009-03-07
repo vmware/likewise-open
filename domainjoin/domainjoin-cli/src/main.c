@@ -65,7 +65,11 @@ ShowUsage()
     fprintf(stdout, "    --log {.|path}                             Log to a file (or \".\" to log\n"
                     "                                               to console).\n");
     fprintf(stdout, "    --loglevel {error|warning|info|verbose}    Adjusts how much logging is\n"
-                    "                                               produced by domainjoin.\n\n");
+                    "                                               produced by domainjoin.\n");
+    fprintf(stdout, "    --nodcerpcd                                prevents dcerpcd from being\n"
+                    "                                               started, along with any daemons\n"
+                    "                                               that depend on it.\n");
+    fprintf(stdout, "\n");
     fprintf(stdout, "  and commands are:\n\n");
     fprintf(stdout, "    query\n");
     fprintf(stdout, "    setname <computer name>\n");
@@ -88,11 +92,11 @@ ShowUsageInternal()
 
     fprintf(stdout, "  Internal debug commands:\n");
     fprintf(stdout, "    fixfqdn\n");
-    fprintf(stdout, "    configure pam [--testprefix <dir>] { --enable | --disable }\n");
-    fprintf(stdout, "    configure nsswitch [--testprefix <dir>] { --enable | --disable }\n");
-    fprintf(stdout, "    configure ssh [--testprefix <dir>] { --enable | --disable }\n");
-    fprintf(stdout, "    configure krb5 [--testprefix <dir>] [--long <longdomain>] [--short <shortdomain>] { --enable | --disable }\n");
-    fprintf(stdout, "    configure firewall [--testprefix <dir>] { --enable | --disable }\n");
+    fprintf(stdout, "    configure { --enable | --disable } pam [--testprefix <dir>]\n");
+    fprintf(stdout, "    configure { --enable | --disable } nsswitch [--testprefix <dir>]\n");
+    fprintf(stdout, "    configure { --enable | --disable } ssh [--testprefix <dir>]\n");
+    fprintf(stdout, "    configure { --enable | --disable } krb5 [--testprefix <dir>] [--long <longdomain>] [--short <shortdomain>]\n");
+    fprintf(stdout, "    configure { --enable | --disable } firewall [--testprefix <dir>]\n");
     fprintf(stdout, "    get_os_type\n");
     fprintf(stdout, "    get_arch\n");
     fprintf(stdout, "    get_distro\n");
@@ -756,6 +760,7 @@ int main(
     DWORD dwLogLevel;
     BOOLEAN showHelp = FALSE;
     BOOLEAN showInternalHelp = FALSE;
+    BOOLEAN bEnableDcerpcd = TRUE;
     int remainingArgs = argc;
     char **argPos = argv;
     int i;
@@ -790,6 +795,8 @@ int main(
             logLevel = (++argPos)[0];
             remainingArgs--;
         }
+        else if (!strcmp(argPos[0], "--nodcerpcd"))
+            bEnableDcerpcd = FALSE;
         else
             break;
         remainingArgs--;
@@ -853,7 +860,7 @@ int main(
             goto cleanup;
         }
         //Needed so that DJGetMachineSid does not call winbind
-        LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+        LW_TRY(&exc, DJNetInitialize(bEnableDcerpcd, &LW_EXC));
         LW_TRY(&exc, DJSetComputerName(argPos[0], NULL, &LW_EXC));
     }
     else if(!strcmp(argPos[0], "sync_time"))
@@ -872,19 +879,19 @@ int main(
     {
         argPos++;
         remainingArgs--;
-        LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+        LW_TRY(&exc, DJNetInitialize(bEnableDcerpcd, &LW_EXC));
         LW_TRY(&exc, DoJoin(remainingArgs, argPos, columns, &LW_EXC));
     }
     else if(!strcmp(argPos[0], "leave"))
     {
         argPos++;
         remainingArgs--;
-        LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+        LW_TRY(&exc, DJNetInitialize(bEnableDcerpcd, &LW_EXC));
         LW_TRY(&exc, DoLeaveNew(remainingArgs, argPos, columns, &LW_EXC));
     }
     else if(!strcmp(argPos[0], "query"))
     {
-        LW_TRY(&exc, DJNetInitialize(&LW_EXC));
+        LW_TRY(&exc, DJNetInitialize(bEnableDcerpcd, &LW_EXC));
         LW_TRY(&exc, DoQuery(&LW_EXC));
     }
     else if(!strcmp(argPos[0], "fixfqdn"))

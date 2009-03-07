@@ -1359,7 +1359,7 @@ cleanup:
     ;
 }
 
-void DJNetInitialize(LWException **exc)
+void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
 {
     PCSTR lsaFilename = LIBDIR "/liblsajoin" DYNLIBEXT;
     BOOLEAN lsaExists;
@@ -1382,32 +1382,36 @@ void DJNetInitialize(LWException **exc)
         if(init == NULL)
             LW_CLEANUP_DLERROR(exc);
 
-        if (geteuid() == 0) {
+        if (geteuid() == 0)
+        {
             LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
                         92, 8, &LW_EXC));
             LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
                         92, 10, &LW_EXC));
 
-            // Use the system's dced daemon if it exists, otherwise use the
-            // Likewise version.
-            LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(
-                        HPUX_SYSTEM_RPCD_PATH,
-                        &systemDcedExists));
-            if (systemDcedExists)
+            if (bEnableDcerpcd)
             {
-                LW_TRY(exc, DJManageDaemon(HPUX_SYSTEM_RPCD_PATH, TRUE,
-                            590, 410, &LW_EXC));
-            }
-            else
-            {
-                LW_TRY(exc, DJManageDaemon("dcerpcd", TRUE,
-                            92, 11, &LW_EXC));
-            }
+                // Use the system's dced daemon if it exists, otherwise use the
+                // Likewise version.
+                LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(
+                            HPUX_SYSTEM_RPCD_PATH,
+                            &systemDcedExists));
+                if (systemDcedExists)
+                {
+                    LW_TRY(exc, DJManageDaemon(HPUX_SYSTEM_RPCD_PATH, TRUE,
+                                590, 410, &LW_EXC));
+                }
+                else
+                {
+                    LW_TRY(exc, DJManageDaemon("dcerpcd", TRUE,
+                                92, 11, &LW_EXC));
+                }
 
-            DJManageDaemon("eventlogd", TRUE, 92, 11, &innerExc);
-            if (!LW_IS_OK(innerExc) && innerExc->code != CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-            {
-                DJLogException(LOG_LEVEL_WARNING, innerExc);
+                DJManageDaemon("eventlogd", TRUE, 92, 11, &innerExc);
+                if (!LW_IS_OK(innerExc) && innerExc->code != CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+                {
+                    DJLogException(LOG_LEVEL_WARNING, innerExc);
+                }
             }
 
             LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
