@@ -18,6 +18,7 @@ NpfsCreateSCB(
 
     pSCB->CcbType = NPFS_CCB_SERVER;
 
+    NpfsInitializeInterlockedCounter(&pSCB->cRef);
     NpfsAddRefCCB(pSCB);
 
     *ppSCB = pSCB;
@@ -49,6 +50,7 @@ NpfsCreateCCB(
 
     pCCB->CcbType = NPFS_CCB_CLIENT;
 
+    NpfsInitializeInterlockedCounter(&pCCB->cRef);
     NpfsAddRefCCB(pCCB);
 
     *ppCCB = pCCB;
