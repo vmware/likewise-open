@@ -75,6 +75,7 @@ RdrCreateFileEx(
     PSTR   pszFilename = NULL;
     PWSTR  pwszFilename = NULL;
     PSMB_CLIENT_FILE_HANDLE pFile = NULL;
+    PSTR   pszCachePath = NULL;
 
     if (!pSecurityToken ||
         pSecurityToken->type != SMB_SECURITY_TOKEN_TYPE_KRB5)
@@ -114,9 +115,15 @@ RdrCreateFileEx(
                   SMB_SAFE_LOG_STRING(pFile->pszPrincipal),
                   SMB_SAFE_LOG_STRING(pFile->pszCachePath));
 
+    /* Set up credential cache for the upcoming GSS calls */
+    dwError = SMBKrb5GetCacheForSecurityToken(
+        pSecurityToken,
+        &pszCachePath);
+    BAIL_ON_SMB_ERROR(dwError);
+
     dwError = SMBKrb5SetDefaultCachePath(
-                    pFile->pszCachePath,
-                    NULL);
+        pszCachePath,
+        NULL);
     BAIL_ON_SMB_ERROR(dwError);
 
     dwError = SMBSrvClientTreeOpen(
@@ -144,6 +151,12 @@ RdrCreateFileEx(
     *phFile = (HANDLE)pFile;
 
 cleanup:
+
+    if (pszCachePath)
+    {
+        SMBKrb5DestroyCache(pszCachePath);
+        SMB_SAFE_FREE_STRING(pszCachePath);
+    }
 
     SMB_SAFE_FREE_STRING(pszServer);
     SMB_SAFE_FREE_STRING(pszShare);

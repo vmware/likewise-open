@@ -31,6 +31,38 @@
 #include "includes.h"
 
 static
+DWORD
+SMBSrvIpcSetSecurityTokenCaller(
+    LWMsgAssoc* pAssoc,
+    PSMB_SECURITY_TOKEN_REP pSecurityToken
+    )
+{
+    DWORD dwError = 0;
+    LWMsgSecurityToken* pIpcToken = NULL; /* Do not delete */
+
+    dwError = MAP_LWMSG_STATUS(lwmsg_assoc_get_peer_security_token(
+                                   pAssoc,
+                                   &pIpcToken));
+    BAIL_ON_SMB_ERROR(dwError);
+
+    if (strcmp(lwmsg_security_token_get_type(pIpcToken), "local"))
+    {
+        dwError = -1;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_STATUS(lwmsg_local_token_get_eid(
+                                   pIpcToken,
+                                   &pSecurityToken->caller.uid,
+                                   &pSecurityToken->caller.gid));
+    BAIL_ON_SMB_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+static
 VOID
 IOMgrFreeSMBHandleObject(
     PVOID pHandle
@@ -193,6 +225,11 @@ SMBSrvIpcCallNamedPipe(
 
     BAIL_ON_INVALID_POINTER(pNPRequest);
 
+    dwError = SMBSrvIpcSetSecurityTokenCaller(
+        pAssoc,
+        pNPRequest->pSecurityToken);
+    BAIL_ON_SMB_ERROR(dwError);
+
     dwError = IOMgrCallNamedPipe(
                     pNPRequest->pSecurityToken,
                     pNPRequest->pwszNamedPipeName,
@@ -266,6 +303,11 @@ SMBSrvIpcCreateNamedPipe(
     pNPRequest = (PSMB_CREATE_NP_REQUEST)pRequest->object;
 
     BAIL_ON_INVALID_POINTER(pNPRequest);
+
+    dwError = SMBSrvIpcSetSecurityTokenCaller(
+        pAssoc,
+        pNPRequest->pSecurityToken);
+    BAIL_ON_SMB_ERROR(dwError);
 
     dwError = IOMgrCreateNamedPipe(
                     pNPRequest->pSecurityToken,
@@ -521,6 +563,11 @@ SMBSrvIpcWaitNamedPipe(
     BAIL_ON_SMB_ERROR(dwError);
 
     pNPRequest = (PSMB_WAIT_NP_REQUEST)pRequest->object;
+
+    dwError = SMBSrvIpcSetSecurityTokenCaller(
+        pAssoc,
+        pNPRequest->pSecurityToken);
+    BAIL_ON_SMB_ERROR(dwError);
 
     dwError = IOMgrWaitNamedPipe(
         pNPRequest->pSecurityToken,
@@ -925,6 +972,11 @@ SMBSrvIpcCreateFile(
     pNPRequest = (PSMB_CREATE_FILE_REQUEST)pRequest->object;
 
     BAIL_ON_INVALID_POINTER(pNPRequest);
+
+    dwError = SMBSrvIpcSetSecurityTokenCaller(
+        pAssoc,
+        pNPRequest->pSecurityToken);
+    BAIL_ON_SMB_ERROR(dwError);
 
     dwError = IOMgrCreateFile(
         pNPRequest->pSecurityToken,

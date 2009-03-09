@@ -31,10 +31,23 @@
 #ifndef __SMBKRB5_H__
 #define __SMBKRB5_H__
 
+#include "smbdef.h"
+
 DWORD
 SMBKrb5Init(
     PCSTR pszHostname,
     PCSTR pszDomain
+    );
+
+DWORD
+SMBKrb5DestroyCache(
+    PCSTR pszCachePath
+    );
+
+DWORD
+SMBKrb5GetCacheForSecurityToken(
+    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PSTR* ppszCachePath
     );
 
 DWORD

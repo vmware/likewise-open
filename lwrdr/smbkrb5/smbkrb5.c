@@ -41,12 +41,6 @@ SMBKrb5GetTGTFromKeytab(
 
 static
 DWORD
-SMBKrb5DestroyCache(
-    PCSTR pszCachePath
-    );
-
-static
-DWORD
 SMBGetServerCanonicalName(
     PCSTR pszServerName,
     PSTR* ppszNormal
@@ -235,6 +229,228 @@ error:
     return(dwError);
 }
 
+static
+DWORD
+SMBKrb5CanonicalizeCachePath(
+    PCSTR pszCachePath,
+    PSTR pszCanonicalPath
+    )
+{
+    DWORD dwError = 0;
+
+    /* Ignore FILE: prefix */
+    if (!strncmp(pszCachePath, "FILE:", 5))
+    {
+        pszCachePath += 5;
+    }
+
+    if (realpath(pszCachePath, pszCanonicalPath) != pszCanonicalPath)
+    {
+        dwError = errno;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+SMBKrb5VerifyCacheOwner(
+    PCSTR pszCachePath,
+    uid_t uid,
+    ino_t *pExpectedInode,
+    ino_t *pInode
+    )
+{
+    DWORD dwError = 0;
+    struct stat statBuf;
+
+    if (lstat(pszCachePath, &statBuf) < 0)
+    {
+        dwError = errno;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    if (!S_ISREG(statBuf.st_mode) || /* Only accept regular files */
+        statBuf.st_uid != uid ||     /* Verify correct ownership */
+        statBuf.st_nlink != 1 ||     /* Don't allow hardlinked files */
+        (pExpectedInode && statBuf.st_ino != *pExpectedInode)) /* Confirm that inode did not change */
+    {
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    if (pInode)
+    {
+        *pInode = statBuf.st_ino;
+    }
+
+error:
+
+    return dwError;
+}
+
+DWORD
+SMBKrb5GetCacheForSecurityToken(
+    PSMB_SECURITY_TOKEN_REP pSecurityToken,
+    PSTR* ppszCachePath
+    )
+{
+    DWORD dwError = 0;
+    krb5_error_code krb5Error = 0;
+    CHAR pszCanonicalPath[PATH_MAX];
+    PSTR pszFileCachePath = NULL;
+    PSTR pszMemoryCachePath = NULL;
+    PSTR pszFilePrincipalName = NULL;
+    PSTR pszTokenPrincipalName = NULL;
+    krb5_context pKrb5Context = NULL;
+    krb5_ccache pKrb5FileCache = NULL;
+    krb5_ccache pKrb5MemoryCache = NULL;
+    krb5_principal pKrb5Principal = NULL;
+    ino_t inode = 0;
+
+    /* Set up an in-memory cache to receive the credentials */
+    dwError = SMBAllocateStringPrintf(
+        &pszMemoryCachePath,
+        "MEMORY:%ld_%ld",
+        pthread_self(),
+        pSecurityToken->caller.uid);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    krb5Error = krb5_init_context(&pKrb5Context);
+    if (krb5Error)
+    {
+        dwError = ENOMEM;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    krb5Error = krb5_cc_resolve(pKrb5Context, pszMemoryCachePath, &pKrb5MemoryCache);
+    if (krb5Error)
+    {
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    /* Load the file cache */
+    dwError = SMBWc16sToMbs(
+        pSecurityToken->payload.krb5.pwszPrincipal,
+        &pszTokenPrincipalName);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBWc16sToMbs(
+        pSecurityToken->payload.krb5.pwszCachePath,
+        &pszFileCachePath);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBKrb5CanonicalizeCachePath(
+        pszFileCachePath,
+        pszCanonicalPath);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBKrb5VerifyCacheOwner(
+        pszCanonicalPath,
+        pSecurityToken->caller.uid,
+        NULL,
+        &inode);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    krb5Error = krb5_cc_resolve(pKrb5Context, pszCanonicalPath, &pKrb5FileCache);
+    if (krb5Error)
+    {
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    /* Get and verify the principal name */
+    krb5Error = krb5_cc_get_principal(pKrb5Context, pKrb5FileCache, &pKrb5Principal);
+    if (krb5Error)
+    {
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    krb5Error = krb5_unparse_name(pKrb5Context, pKrb5Principal, &pszFilePrincipalName);
+    if (krb5Error)
+    {
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    if (strcmp(pszFilePrincipalName, pszTokenPrincipalName))
+    {
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    /* Copy the creds into the memory cache */
+    krb5Error = krb5_cc_initialize(pKrb5Context, pKrb5MemoryCache, pKrb5Principal);
+    if (krb5Error)
+    {
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    krb5Error = krb5_cc_copy_creds(pKrb5Context, pKrb5FileCache, pKrb5MemoryCache);
+    if (krb5Error)
+    {
+        dwError = EACCES;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
+    /* Double-check ownership */
+    dwError = SMBKrb5VerifyCacheOwner(
+        pszCanonicalPath,
+        pSecurityToken->caller.uid,
+        &inode,
+        NULL);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    *ppszCachePath = pszMemoryCachePath;
+
+cleanup:
+
+    if (pszFilePrincipalName)
+    {
+        krb5_free_unparsed_name(pKrb5Context, pszFilePrincipalName);
+    }
+
+    if (pKrb5Principal)
+    {
+        krb5_free_principal(pKrb5Context, pKrb5Principal);
+    }
+
+    if (pKrb5FileCache)
+    {
+        krb5_cc_close(pKrb5Context, pKrb5FileCache);
+    }
+
+    if (pKrb5MemoryCache)
+    {
+        krb5_cc_close(pKrb5Context, pKrb5MemoryCache);
+    }
+
+    if (pKrb5Context)
+    {
+        krb5_free_context(pKrb5Context);
+    }
+
+    SMB_SAFE_FREE_STRING(pszFileCachePath);
+    SMB_SAFE_FREE_STRING(pszTokenPrincipalName);
+
+    return dwError;
+
+error:
+
+    *ppszCachePath = NULL;
+
+    SMB_SAFE_FREE_STRING(pszMemoryCachePath);
+
+    goto cleanup;
+}
+
+
 DWORD
 SMBKrb5SetDefaultCachePath(
     PCSTR pszCachePath,
@@ -278,7 +494,6 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
 SMBKrb5DestroyCache(
     PCSTR pszCachePath

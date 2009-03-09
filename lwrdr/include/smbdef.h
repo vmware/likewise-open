@@ -48,6 +48,8 @@
 #ifndef __SMBDEF_H__
 #define __SMBDEF_H__
 
+#include <sys/types.h>
+
 #ifndef SMB_API
 #define SMB_API
 #endif
@@ -152,6 +154,11 @@ typedef struct _SMB_SECURITY_TOKEN_REP
             LPWSTR pwszCachePath;
         } krb5;
     } payload;
+    struct
+    {
+        uid_t uid;
+        gid_t gid;
+    } caller;
 } SMB_SECURITY_TOKEN_REP, *PSMB_SECURITY_TOKEN_REP;
 
 typedef struct SMB_FILE_HANDLE SMB_FILE_HANDLE, *PSMB_FILE_HANDLE;
