@@ -127,13 +127,13 @@ interface netlogon
 
     /* function 0x1d */
     NTSTATUS _NetrLogonGetDomainInfo(
-        [in,unique,string] wchar16_t *server_name,
+        [in,string] wchar16_t *server_name,
         [in,unique,string] wchar16_t *computer_name,
-        [in,unique] NetrAuth *creds,
-        [in,out,unique] NetrAuth *ret_creds,
+        [in] NetrAuth *creds,
+        [in,out,ref] NetrAuth *ret_creds,
         [in] uint32 level,
         [in,switch_is(level)] NetrDomainQuery *query,
-        [out,switch_is(level)] NetrDomainInfo **info
+        [out,ref,switch_is(level)] NetrDomainInfo *info
         );
 
 
