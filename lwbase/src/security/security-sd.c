@@ -265,6 +265,16 @@ RtlpVerifyRelativeSecurityDescriptor(
     relHeader.Dacl = LW_LTOH32(SecurityDescriptor->Dacl);
 
     //
+    // The self-relative bit must be set.
+    //
+
+    if (!IsSetFlag(relHeader.Control, SE_SELF_RELATIVE))
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        GOTO_CLEANUP();
+    }
+
+    //
     // Check that required information is present.
     //
 
@@ -310,6 +320,10 @@ RtlpVerifyRelativeSecurityDescriptor(
     absHeader.Group = relHeader.Group ? (PSID) LW_PTR_ADD(SecurityDescriptor, relHeader.Group) : NULL;
     absHeader.Sacl = relHeader.Sacl ? (PACL) LW_PTR_ADD(SecurityDescriptor, relHeader.Sacl) : NULL;
     absHeader.Dacl = relHeader.Dacl ? (PACL) LW_PTR_ADD(SecurityDescriptor, relHeader.Dacl) : NULL;
+
+    // Clear the self-relative flag since it cannot be present in the
+    // absolute header.
+    ClearFlag(absHeader.Control, SE_SELF_RELATIVE);
 
     status = RtlpVerifySecurityDescriptorHeader(&absHeader);
     GOTO_CLEANUP_ON_STATUS(status);
