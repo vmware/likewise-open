@@ -159,4 +159,18 @@ error:
     return status;
 }
 
+LWMsgStatus
+lwmsg_add_unsigned(
+    size_t operand_a,
+    size_t operand_b,
+    size_t* result
+    );
+
+LWMsgStatus
+lwmsg_multiply_unsigned(
+    size_t operand_a,
+    size_t operand_b,
+    size_t* result
+    );
+
 #endif

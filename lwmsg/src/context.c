@@ -251,6 +251,7 @@ lwmsg_context_get_memdata(LWMsgContext* context)
 
 typedef struct freeinfo
 {
+    LWMsgContext* context;
     LWMsgFreeFunction free;
     void* data;
 } freeinfo;
@@ -268,6 +269,17 @@ lwmsg_context_free_graph_visit(
 
     switch(iter->kind)
     {
+    case LWMSG_KIND_CUSTOM:
+        if (iter->info.kind_custom.typeclass->free)
+        {
+            iter->info.kind_custom.typeclass->free(
+                info->context,
+                iter->size,
+                &iter->attrs,
+                object,
+                iter->info.kind_custom.typedata);
+        }
+        break;
     case LWMSG_KIND_POINTER:
         BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
                           iter,
@@ -301,6 +313,7 @@ lwmsg_context_free_graph_internal(
 
     info.free = lwmsg_context_get_free(context);
     info.data = lwmsg_context_get_memdata(context);
+    info.context = context;
 
     BAIL_ON_ERROR(status = lwmsg_type_visit_graph(
                       iter,

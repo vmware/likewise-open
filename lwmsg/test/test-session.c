@@ -167,7 +167,8 @@ trivial_receiver(void* _assocs)
 
     handle = malloc(sizeof(*handle));
     handle->trivial = 42;
-    
+
+    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_register_handle(assocs[0], "TrivialHandle", handle, free));
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_send(assocs[0], TRIVIAL_OPEN_SUCCESS, handle));
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_establish(assocs[1]));
@@ -180,8 +181,6 @@ trivial_receiver(void* _assocs)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_type, TRIVIAL_CLOSE);
 
     MU_ASSERT_EQUAL(MU_TYPE_POINTER, handle, request_object);
-
-    free(handle);
 
     reply.trivial = 42;
 

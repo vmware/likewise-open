@@ -162,7 +162,7 @@ lwmsg_convert_integer(
         {
             if (*i != expected_high_byte)
             {
-                BAIL_ON_ERROR(status = expected_high_byte ? LWMSG_STATUS_OVERFLOW : LWMSG_STATUS_UNDERFLOW);
+                BAIL_ON_ERROR(status = LWMSG_STATUS_OVERFLOW);
             }
         }
 

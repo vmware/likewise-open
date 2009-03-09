@@ -228,6 +228,14 @@ typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
     void* data
     );
 
+typedef void (*LWMsgCustomFreeFunction) (
+    struct LWMsgContext* context,
+    size_t object_size,
+    LWMsgTypeAttrs* attr,
+    void* object,
+    void* data
+    );
+
 /**
  * @brief Custom marshaller type class
  *
@@ -237,10 +245,13 @@ typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
  */
 typedef struct LWMsgCustomTypeClass
 {
+    LWMsgBool is_pointer;
     /** Marshal callback function */
     LWMsgCustomMarshalFunction marshal;
     /** Unmarshal callback function */
     LWMsgCustomUnmarshalFunction unmarshal;
+    /** Free callback function */
+    LWMsgCustomFreeFunction free;
 } LWMsgCustomTypeClass;
 
 /**

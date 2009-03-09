@@ -150,6 +150,7 @@ fserv_open(
 
         file->fserv = fserv;
         file->handle = (FileHandle*) reply_object;
+        reply_object = NULL;
         *out_file = file;
         break;
     case FSERV_OPEN_FAILED:
@@ -316,6 +317,13 @@ fserv_close(
     switch (reply_type)
     {
     case FSERV_CLOSE_SUCCESS:
+        /* Release the handle */
+        status = lwmsg_assoc_release_handle(file->fserv->assoc, file->handle);
+        if (status)
+        {
+            ret = -1;
+            goto error;
+        }
     case FSERV_CLOSE_FAILED:
         /* In either case, extract the status code and get out of here */
         ret = ((StatusReply*) reply_object)->err;
@@ -329,7 +337,6 @@ fserv_close(
         goto error;
     }
 
-
 error:
     /* Ask the association to free the reply */
     if (reply_object)
@@ -337,15 +344,8 @@ error:
         lwmsg_assoc_free_graph(file->fserv->assoc, reply_type, reply_object);
     }
 
-    if (ret == 0)
-    {
-        /* If we have successfully closed the handle, tell the association that
-           we don't want to use the handle anymore.  This allows it to clear
-           old entries out of its handle table */
-        lwmsg_assoc_unregister_handle(file->fserv->assoc, file->handle, LWMSG_FALSE);
-        
-        free(file);
-    }
+    /* Always free the file, even if there was a problem */
+    free(file);
 
     return ret;
 }

@@ -338,6 +338,21 @@ done:
     return;
 }
 
+static void
+lwmsg_type_promote(
+    LWMsgTypeSpec* spec,
+    LWMsgTypeIter* iter
+    )
+{
+     memset(iter, 0, sizeof(*iter));
+     iter->kind = LWMSG_KIND_POINTER;
+     iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
+     iter->info.kind_indirect.term_info.static_length = 1;
+     iter->inner = spec;
+     iter->size = sizeof(void*);
+     iter->attrs.nonnull = LWMSG_TRUE;
+}
+
 void
 lwmsg_type_iterate_promoted(
     LWMsgTypeSpec* spec,
@@ -346,18 +361,18 @@ lwmsg_type_iterate_promoted(
 {
     switch (*spec & LWMSG_CMD_MASK)
     {
-    case LWMSG_CMD_INTEGER:
-    case LWMSG_CMD_STRUCT:
-        memset(iter, 0, sizeof(*iter));
-        iter->kind = LWMSG_KIND_POINTER;
-        iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
-        iter->info.kind_indirect.term_info.static_length = 1;
-        iter->inner = spec;
-        iter->size = sizeof(void*);
-        iter->attrs.nonnull = LWMSG_TRUE;
+    case LWMSG_CMD_POINTER:
+        lwmsg_type_iterate(spec, iter);
+        break;
+    case LWMSG_CMD_CUSTOM:
+        lwmsg_type_iterate(spec, iter);
+        if (!iter->info.kind_custom.typeclass->is_pointer)
+        {
+            lwmsg_type_promote(spec, iter);
+        }
         break;
     default:
-        lwmsg_type_iterate(spec, iter);
+        lwmsg_type_promote(spec, iter);
         break;
     }
 }

@@ -156,8 +156,12 @@ counter_srv_open(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessag
 
     handle->counter = request->counter;
 
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "CounterHandle", handle, free));
+
     reply_msg->tag = COUNTER_OPEN_SUCCESS;
     reply_msg->object = handle;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_retain_handle(assoc, handle));
 
     return status;
 }
@@ -209,8 +213,7 @@ counter_srv_close(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessa
     pthread_mutex_unlock(&handle->lock);
     
     pthread_mutex_destroy(&handle->lock);
-    lwmsg_assoc_unregister_handle(assoc, handle, LWMSG_FALSE);
-    free(handle);
+    lwmsg_assoc_release_handle(assoc, handle);
 
     reply_msg->tag = COUNTER_CLOSE_SUCCESS;
     reply_msg->object = reply;

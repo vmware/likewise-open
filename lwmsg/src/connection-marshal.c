@@ -128,8 +128,48 @@ error:
     return status;
 }
 
+static
+void
+lwmsg_connection_free_fd(
+    LWMsgContext* context,
+    size_t object_size,
+    LWMsgTypeAttrs* attrs,
+    void* object,
+    void* data
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    int fd = -1;
+
+    if (object_size == 0)
+    {
+        object_size = sizeof(fd);
+    }
+
+    BAIL_ON_ERROR(status = lwmsg_convert_integer(
+                      object,
+                      object_size,
+                      LWMSG_NATIVE_ENDIAN,
+                      &fd,
+                      sizeof(fd),
+                      LWMSG_NATIVE_ENDIAN,
+                      LWMSG_SIGNED));
+
+    if (fd >= 0)
+    {
+        close(fd);
+    }
+
+error:
+
+    return;
+}
+
 LWMsgCustomTypeClass lwmsg_fd_type_class =
 {
+    .is_pointer = LWMSG_FALSE,
+
     .marshal = lwmsg_connection_marshal_fd,
-    .unmarshal = lwmsg_connection_unmarshal_fd
+    .unmarshal = lwmsg_connection_unmarshal_fd,
+    .free = lwmsg_connection_free_fd
 };

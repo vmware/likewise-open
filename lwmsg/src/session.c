@@ -213,14 +213,34 @@ lwmsg_session_manager_remap_handle (
 }
 
 LWMsgStatus
+lwmsg_session_manager_retain_handle (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr
+    )
+{
+    return manager->mclass->retain_handle(manager, session, ptr);
+}
+
+
+LWMsgStatus
+lwmsg_session_manager_release_handle (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr
+    )
+{
+    return manager->mclass->release_handle(manager, session, ptr);
+}
+
+LWMsgStatus
 lwmsg_session_manager_unregister_handle (
     LWMsgSessionManager* manager,
     LWMsgSession* session,
-    void* ptr,
-    LWMsgBool do_cleanup
+    void* ptr
     )
 {
-    return manager->mclass->unregister_handle(manager, session, ptr, do_cleanup);
+    return manager->mclass->unregister_handle(manager, session, ptr);
 }
 
 LWMsgStatus

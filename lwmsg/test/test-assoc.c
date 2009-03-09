@@ -768,7 +768,7 @@ handle_sender(void* _assoc)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, destroy_reply->status, 0);
     free(destroy_reply);
     
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, handle, LWMSG_FALSE));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, handle));
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
     lwmsg_assoc_delete(assoc);
@@ -795,6 +795,8 @@ handle_create_srv(
 
     out->tag = HANDLE_CREATE_REPLY;
     out->object = handle;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_retain_handle(assoc, handle));
     
     return LWMSG_STATUS_SUCCESS;
 }
@@ -815,7 +817,7 @@ handle_destroy_srv(
     out->tag = HANDLE_DESTROY_REPLY;
     out->object = reply;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, handle, LWMSG_FALSE));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, handle));
 
     return LWMSG_STATUS_EOF;
 }
@@ -1053,7 +1055,6 @@ fd_receiver(void* _assoc)
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, FD_REPLY, &reply));
 
-    close(request->readfd);
     lwmsg_assoc_free_graph(assoc, request_type, request_object);
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
@@ -1154,6 +1155,7 @@ send_local_recv_back_success(LWMsgAssoc* assoc)
     LWMsgMessageTag tag;
 
     /* The handle is being created by us, so it is REMOTE for the recvr */
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, TRIVIAL_REMOTE, &dummy));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy2));
 
@@ -1181,6 +1183,7 @@ send_local_recv_back_failure(LWMsgAssoc* assoc)
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
     /* The handle is being created by us, so it is REMOTE for the recvr */
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, TRIVIAL_REMOTE, &dummy));
     /* The peer is going to bomb out on us, so expect a disconnect */
     status = lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy2);
@@ -1201,8 +1204,10 @@ recv_remote_send_back_failure(LWMsgAssoc* assoc)
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, tag, TRIVIAL_REMOTE);
     /* Send back a local handle instead of what it expects */
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy2, NULL));
     status = lwmsg_assoc_send(assoc, TRIVIAL_LOCAL, &dummy2);
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_MALFORMED);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_INVALID_HANDLE);
+    MU_VERBOSE("%s", lwmsg_assoc_get_error_message(assoc, status));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
 }
 
@@ -1238,7 +1243,8 @@ send_local_recv_back_send_back_success(LWMsgAssoc* assoc)
     int* dummy2;
     LWMsgMessageTag tag;
 
-    /* The handle is being created by us, so it is REMOTE for the recvr */
+    /* The handle is being created by us, so it is REMOTE for the receiver */
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, TRIVIAL_REMOTE, &dummy));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy2));
 

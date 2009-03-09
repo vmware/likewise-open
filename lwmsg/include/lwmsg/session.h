@@ -135,11 +135,24 @@ typedef struct LWMsgSessionManagerClass
         );
 
     LWMsgStatus
+    (*retain_handle) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session,
+        void* ptr
+        );
+
+    LWMsgStatus
+    (*release_handle) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session,
+        void* ptr
+        );
+
+    LWMsgStatus
     (*unregister_handle) (
         LWMsgSessionManager* manager,
         LWMsgSession* session,
-        void* ptr,
-        LWMsgBool do_cleanup
+        void* ptr
         );
 
     LWMsgStatus
