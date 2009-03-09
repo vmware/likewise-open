@@ -105,6 +105,7 @@ NpfsCreatePipe(
 
     pthread_cond_init(&pPipe->PipeCondition,NULL);
     pthread_mutex_init(&pPipe->PipeMutex, NULL);
+    NpfsInitializeInterlockedCounter(&pPipe->cRef);
 
     pPipe->PipeServerState = PIPE_SERVER_INIT_STATE;
     pPipe->PipeClientState = PIPE_CLIENT_INIT_STATE;
@@ -195,13 +196,47 @@ NpfsRemovePipeFromFCB(
     PNPFS_PIPE pPipe
     )
 {
+    PNPFS_PIPE pPipeCursor = pFCB->pPipes;
+
     ENTER_WRITER_RW_LOCK(&pFCB->PipeListRWLock);
 
-    //
-    // Now remove the Pipe entry
-    //
+    // Case #1: entry is first in list
 
+    if (pPipeCursor == pPipe)
+    {
+        pFCB->pPipes = pPipe->pNext;
+        goto cleanup;
+    }
+
+
+    // Case #2: pipe struct is somewhere in the list
+
+    for (/* no init */;
+         pPipeCursor && pPipeCursor->pNext != pPipe;
+         pPipeCursor = pPipeCursor->pNext)
+    {
+        /* do nothing */;
+    }
+
+    // Remove
+
+    if (pPipeCursor != NULL)
+    {
+        pPipeCursor->pNext = pPipe->pNext;
+    }
+
+cleanup:
     LEAVE_WRITER_RW_LOCK(&pFCB->PipeListRWLock);
 }
 
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

@@ -23,6 +23,7 @@ NpfsCreateFCB(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_rwlock_init(&pFCB->PipeListRWLock, NULL);
+    NpfsInitializeInterlockedCounter(&pFCB->cRef);
 
     pFCB->MaxNumberOfInstances = 0xFF;
     // Number of currently available instances
