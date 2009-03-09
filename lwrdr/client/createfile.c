@@ -172,8 +172,10 @@ SMBCreateFileW(
     
     pConnection = pConnection;
     pAPIHandle->variant.hIPCHandle = (HANDLE) pResponse;
-    
+    pResponse = NULL;
+
     *phFile = (HANDLE) pAPIHandle;
+
 
 cleanup:
 

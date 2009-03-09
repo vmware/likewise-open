@@ -77,6 +77,11 @@ SMBCloseHandle(
                                        pAPIHandle->variant.hIPCHandle,
                                        &replyType,
                                        &pResponse));
+
+        /* No matter the result, release the handle */
+        lwmsg_assoc_unregister_handle(pConnection->pAssoc, pAPIHandle->variant.hIPCHandle);
+        SMB_SAFE_FREE_MEMORY(pAPIHandle);
+
         BAIL_ON_SMB_ERROR(dwError);
         
         switch (replyType)
@@ -85,13 +90,12 @@ SMBCloseHandle(
             break;
             
         case SMB_CLOSE_FILE_FAILED:
-            
             BAIL_ON_INVALID_POINTER(pResponse);
             
             dwError = ((PSMB_STATUS_REPLY)pResponse)->dwError;
             
             break;
-            
+
         default:
             
             dwError = EINVAL;
@@ -100,20 +104,11 @@ SMBCloseHandle(
         }
         BAIL_ON_SMB_ERROR(dwError);
     
-        /* The handle will no longer be used, so unregister it from the assoc */
-        dwError = MAP_LWMSG_STATUS(lwmsg_assoc_unregister_handle(
-                                       pConnection->pAssoc,
-                                       pAPIHandle->variant.hIPCHandle,
-                                       LWMSG_FALSE));
-        BAIL_ON_SMB_ERROR(dwError);
-        
-        /* Free the handle wrapper */
-        SMB_SAFE_FREE_MEMORY(pAPIHandle);
         break;
     case SMB_API_HANDLE_ACCESS:
         dwError = SMBAPIHandleFreeSecurityToken(pAPIHandle);
-        BAIL_ON_SMB_ERROR(dwError);
         SMB_SAFE_FREE_MEMORY(pAPIHandle);
+        BAIL_ON_SMB_ERROR(dwError);
         break;
     }
 

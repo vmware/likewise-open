@@ -300,6 +300,10 @@ SMBSrvIpcCreateNamedPipe(
     pResponse->tag = SMB_CALL_NAMED_PIPE_SUCCESS;
     pResponse->object = pFileHandle;
 
+    lwmsg_assoc_retain_handle(pAssoc, pFileHandle);
+
+    pFileHandle = NULL;
+
 cleanup:
 
     SMB_SAFE_FREE_MEMORY(pStatusResponse);
@@ -943,8 +947,18 @@ SMBSrvIpcCreateFile(
         goto cleanup;
     }
 
+    dwError = MAP_LWMSG_STATUS(lwmsg_assoc_register_handle(
+                                    pAssoc,
+                                    "SMB_FILE_HANDLE",
+                                    pFileHandle,
+                                    &IOMgrFreeSMBHandleObject));
+
     pResponse->tag = SMB_CREATE_FILE_SUCCESS;
     pResponse->object = pFileHandle;
+
+    lwmsg_assoc_retain_handle(pAssoc, pFileHandle);
+
+    pFileHandle = NULL;
 
 cleanup:
 
@@ -1166,14 +1180,7 @@ SMBSrvIpcCloseFile(
 
     dwError = MAP_LWMSG_STATUS(lwmsg_assoc_unregister_handle(
                                     pAssoc,
-                                    pFileHandle,
-                                    LWMSG_FALSE));
-    BAIL_ON_SMB_ERROR(dwError);
-
-    dwError = IOMgrCloseFile(pFileHandle);
-    // IOMgrCloseFile frees pFileHandle, even on error, so the handle needs
-    // to be set to null so that it will not get double freed in cleanup.
-    pFileHandle = NULL;
+                                    pFileHandle));
 
     if (dwError)
     {
@@ -1189,8 +1196,6 @@ SMBSrvIpcCloseFile(
     pResponse->object = pStatusResponse;
 
 cleanup:
-
-    SMB_SAFE_FREE_MEMORY(pFileHandle);
 
     return status;
 
