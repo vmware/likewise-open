@@ -39,9 +39,9 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (NPFS)
  *
- *       CreateNamedPipe Dispatch Routine
+ *      Likewise Directory Wrapper Interface
+ *      DirectoryAddObject Routine
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *

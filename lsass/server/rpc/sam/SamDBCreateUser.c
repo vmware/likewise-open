@@ -49,6 +49,15 @@ SamrCreateUser(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = RtlGetWhoIam(&dwWhoAmI);
+
+    switch (dwWhoAmI) {
+
+        case STANDALONE_MC
+        case DOMAIN_MEMBER:
+
+        case DC:
+
     ntStatus = DirectoryAddObject(
                         hDirectory,
                         pAccountName,

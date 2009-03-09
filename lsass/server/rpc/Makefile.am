@@ -1,1 +1,2 @@
-SUBDIRS=lsa samr
+SUBDIRS= \
+    samdb
