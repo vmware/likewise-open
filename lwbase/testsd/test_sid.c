@@ -33,6 +33,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <config.h>
 #include <lw/base.h>
@@ -40,10 +41,6 @@
 
 #include "params.h"
 #include "test.h"
-
-
-#define SECURITY_NT_AUTHORITY          ((SID_IDENTIFIER_AUTHORITY) {{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x5 }})
-#define SECURITY_CREATOR_SID_AUTHORITY ((SID_IDENTIFIER_AUTHORITY) {{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x3 }})
 
 
 int TestSidInitialize(struct test *t,
@@ -66,6 +63,12 @@ int TestSidInitialize(struct test *t,
 {
     const int def_subauth_count = 4;
     const char *def_authid_name = "nt";
+    const SID_IDENTIFIER_AUTHORITY nt_authid = {
+        .Value = SECURITY_NT_AUTHORITY
+    };
+    const SID_IDENTIFIER_AUTHORITY creator_authid = {
+        .Value = SECURITY_CREATOR_SID_AUTHORITY
+    };
 
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
@@ -91,10 +94,10 @@ int TestSidInitialize(struct test *t,
     PARAM_INFO_END;
 
     if (strcmp(authid_name, "nt") == 0) {
-        authid = SECURITY_NT_AUTHORITY;
+        authid = nt_authid;
 
     } else if (strcmp(authid_name, "creator") == 0) {
-        authid = SECURITY_CREATOR_SID_AUTHORITY;
+        authid = creator_authid;
 
     } else {
         status = STATUS_INVALID_PARAMETER;
@@ -129,6 +132,10 @@ int TestSidAllocateAndInit(struct test *t,
                            struct parameter *options, int optcount)
 {
     const char *def_subauth = "[21:1:2:3:4]";
+    const SID_IDENTIFIER_AUTHORITY nt_authid = {
+        .Value = SECURITY_NT_AUTHORITY
+    };
+
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     PSID pSid = NULL;
@@ -145,25 +152,25 @@ int TestSidAllocateAndInit(struct test *t,
 
     if (dwSubAuthCount == 1) {
         status = RtlSidAllocateAndInitialize(&pSid,
-                                             SECURITY_NT_AUTHORITY,
+                                             nt_authid,
                                              dwSubAuthCount,
                                              subauth[0]);
     } else if (dwSubAuthCount == 2) {
         status = RtlSidAllocateAndInitialize(&pSid,
-                                             SECURITY_NT_AUTHORITY,
+                                             nt_authid,
                                              dwSubAuthCount,
                                              subauth[0],
                                              subauth[1]);
     } else if (dwSubAuthCount == 3) {
         status = RtlSidAllocateAndInitialize(&pSid,
-                                             SECURITY_NT_AUTHORITY,
+                                             nt_authid,
                                              dwSubAuthCount,
                                              subauth[0],
                                              subauth[1],
                                              subauth[2]);
     } else if (dwSubAuthCount == 4) {
         status = RtlSidAllocateAndInitialize(&pSid,
-                                             SECURITY_NT_AUTHORITY,
+                                             nt_authid,
                                              dwSubAuthCount,
                                              subauth[0],
                                              subauth[1],
@@ -171,7 +178,7 @@ int TestSidAllocateAndInit(struct test *t,
                                              subauth[3]);
     } else if (dwSubAuthCount == 5) {
         status = RtlSidAllocateAndInitialize(&pSid,
-                                             SECURITY_NT_AUTHORITY,
+                                             nt_authid,
                                              dwSubAuthCount,
                                              subauth[0],
                                              subauth[1],
