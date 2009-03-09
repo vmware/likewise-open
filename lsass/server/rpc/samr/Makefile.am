@@ -12,13 +12,16 @@ libsamr_srv_la_SOURCES = \
 
 LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
 LSASS_INCLUDES = -I$(top_srcdir)/include
-IDL_PASS_INCLUDES = \
+DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS) \
     @NETAPI_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
 
+FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
+
 libsamr_srv_la_CFLAGS = \
     -DLIBRPC_BUILD \
+    $(FEATURETEST_FLAGS) \
     $(LSASS_SRV_INCLUDES) \
     $(LSASS_INCLUDES) \
     @DCERPC_INCLUDES@ \
@@ -34,6 +37,7 @@ libsamr_srv_la_LIBADD = \
 libsamr_ss_la_SOURCES = samr_sstub.c
 
 libsamr_ss_la_CFLAGS = \
+    $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
@@ -44,4 +48,4 @@ BUILT_SOURCES = samr_cstub.c samr_sstub.c samr_h.h
 
 samr_sstub.c samr_cstub.c samr_h.h: $(idl_srcdir)/samr.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h -I$(idl_srcdir) \
-                $(IDL_PASS_INCLUDES) $<
+                $(DCEIDL_PASS_INCLUDES) $<
