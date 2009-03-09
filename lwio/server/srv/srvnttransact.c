@@ -240,12 +240,12 @@ SrvQuerySecurityDescriptor(
                         &ioStatusBlock,
                         pQueryRequest->ulSecurityInfo,
                         (PSECURITY_DESCRIPTOR_RELATIVE)pSecurityDescriptor,
-                        ulSecurityDescLen,
-                        &ulNewLen);
+                        ulSecurityDescLen);
         if (ntStatus == STATUS_BUFFER_TOO_SMALL)
         {
             PBYTE pNewMemory = NULL;
 
+	    ulNewLen = ulSecurityDescLen + 4096;
             ntStatus = LW_RTL_ALLOCATE(
                             &pNewMemory,
                             BYTE,

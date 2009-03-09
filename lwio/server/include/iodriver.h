@@ -70,15 +70,15 @@ typedef ULONG IRP_TYPE;
 #define IRP_TYPE_QUERY_DIRECTORY          12
 #define IRP_TYPE_QUERY_VOLUME_INFORMATION 13
 #define IRP_TYPE_LOCK_CONTROL             14
+#define IRP_TYPE_QUERY_SECURITY           15
+#define IRP_TYPE_SET_SECURITY             16
 #if 0
-#define IRP_TYPE_NOTIFY_CHANGE_DIRECTORY  15
-#define IPP_TYPE_QUERY_EA                 16
-#define IPP_TYPE_SET_EA                   17
-#define IRP_TYPE_SET_VOLUME_INFORMATION   18
-#define IRP_TYPE_QUERY_QUOTA              19
-#define IRP_TYPE_SET_QUOTA                20
-#define IRP_TYPE_QUERY_SECURITY           21
-#define IRP_TYPE_SET_SECURITY             22
+#define IRP_TYPE_NOTIFY_CHANGE_DIRECTORY  17
+#define IPP_TYPE_QUERY_EA                 18
+#define IPP_TYPE_SET_EA                   19
+#define IRP_TYPE_SET_VOLUME_INFORMATION   20
+#define IRP_TYPE_QUERY_QUOTA              21
+#define IRP_TYPE_SET_QUOTA                22
 #define IRP_TYPE_QUERY_FULL_ATTRIBUTES    23
 #define IRP_TYPE_RENAME                   24
 #define IRP_TYPE_LINK                     25
@@ -154,6 +154,12 @@ typedef struct _IRP_ARGS_LOCK_CONTROL {
     IN BOOLEAN ExclusiveLock;
 } IRP_ARGS_LOCK_CONTROL, *PIRP_ARGS_LOCK_CONTROL;
 
+typedef struct _IRP_ARGS_QUERY_SET_SECURITY {
+    IN SECURITY_INFORMATION SecurityInformation;
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor;
+    IN ULONG Length;
+} IRP_ARGS_QUERY_SET_SECURITY, *PIRP_ARGS_QUERY_SET_SECUIRTY;
+
 typedef struct _IRP {
     IN IRP_TYPE Type;
     OUT IO_STATUS_BLOCK IoStatusBlock;
@@ -175,6 +181,8 @@ typedef struct _IRP {
         IRP_ARGS_QUERY_VOLUME QueryVolume;
         // IRP_TYPE_LOCK_CONTROL
         IRP_ARGS_LOCK_CONTROL LockControl;
+        // IRP_TYPE_QUERY_SECURITY, IRP_TYPE_SET_SECURITY
+        IRP_ARGS_QUERY_SET_SECURITY QuerySetSecurity;
         // No args for IRP_TYPE_CLOSE, IRP_TYPE_FLUSH
     } Args;
     // Internal data at the end...
@@ -333,3 +341,12 @@ IoMemoryFree(
     IO_LOG_ENTER_LEAVE(Format " -> 0x%08x (EE = %d)", ## __VA_ARGS__, status, EE)
 
 #endif /* __IODRIVER_H__ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
