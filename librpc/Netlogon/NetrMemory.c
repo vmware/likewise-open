@@ -794,7 +794,7 @@ NetrCopyDomainTrustInfo(
         goto_if_ntstatus_not_success(status, error);
     }
 
-    memcpy(&out->guid, &out->guid, sizeof(out->guid));
+    memcpy(&out->guid, &in->guid, sizeof(out->guid));
 
     if (in->sid) {
         RtlSidCopyAlloc(&out->sid, in->sid);
