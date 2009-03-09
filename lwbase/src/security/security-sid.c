@@ -159,6 +159,38 @@ cleanup:
     return status;
 }
 
+BOOLEAN
+RtlpIsValidLittleEndianSidBuffer(
+    IN PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID littleEndianSid = (PSID) Buffer;
+    ULONG size = 0;
+
+    if (BufferSize < SID_MIN_SIZE)
+    {
+        status = STATUS_INVALID_SID;
+        GOTO_CLEANUP();
+    }
+
+    size = RtlLengthRequiredSid(LW_LTOH8(littleEndianSid->SubAuthorityCount));
+    if (!RtlpIsBufferAvailable(BufferSize, 0, size))
+    {
+        status = STATUS_INVALID_SID;
+        GOTO_CLEANUP();
+    }
+
+    // This is ok since it only looks at 1-byte fields:
+    status = RtlValidSid(littleEndianSid) ? STATUS_SUCCESS : STATUS_INVALID_SID;
+
+cleanup:
+    *BufferUsed = NT_SUCCESS(status) ? size : 0;
+
+    return NT_SUCCESS(status);
+}
 
 //
 // SID <-> String Conversion Functions

@@ -105,6 +105,7 @@ RtlpVerifyAceEx(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    ACCESS_MASK validMask = 0;
 
     if (!RtlpValidAceHeader(Ace))
     {
@@ -124,12 +125,29 @@ RtlpVerifyAceEx(
     {
         case ACCESS_ALLOWED_ACE_TYPE:
         case ACCESS_DENIED_ACE_TYPE:
+            validMask = VALID_DACL_ACCESS_MASK;
+            break;
+        case SYSTEM_AUDIT_ACE_TYPE:
+            validMask = VALID_SACL_ACCESS_MASK;
+            break;
+    }
+
+    switch (Ace->AceType)
+    {
+        case ACCESS_ALLOWED_ACE_TYPE:
+        case ACCESS_DENIED_ACE_TYPE:
         case SYSTEM_AUDIT_ACE_TYPE:
         {
             // These are all isomorphic.
+            PACCESS_ALLOWED_ACE allowAce = (PACCESS_ALLOWED_ACE) Ace;
+            if (!LW_IS_VALID_FLAGS(allowAce->Mask, validMask))
+            {
+                status = STATUS_INVALID_ACL;
+                GOTO_CLEANUP();
+            }
             RtlpValidAccessAllowedAce(
                     Ace->AceSize,
-                    RtlpGetSidAccessAllowedAce((PACCESS_ALLOWED_ACE) Ace),
+                    RtlpGetSidAccessAllowedAce(allowAce),
                     &status);
             GOTO_CLEANUP_ON_STATUS(status);
             break;
@@ -1222,3 +1240,98 @@ RtlAddAccessDeniedAceEx(
                 AccessMask,
                 Sid);
 }
+
+BOOLEAN
+RtlpIsValidLittleEndianAclBuffer(
+    IN PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PACL littleEndianAcl = (PACL) Buffer;
+    ACL aclHeader = { 0 };
+    ULONG i = 0;
+    ULONG offset = 0;
+
+    if (BufferSize < ACL_HEADER_SIZE)
+    {
+        status = STATUS_INVALID_ACL;
+        GOTO_CLEANUP();
+    }
+
+    aclHeader.AclRevision = LW_LTOH8(littleEndianAcl->AclRevision);
+    aclHeader.Sbz1 = LW_LTOH8(littleEndianAcl->Sbz1);
+    aclHeader.AclSize = LW_LTOH16(littleEndianAcl->AclSize);
+    aclHeader.AceCount = LW_LTOH16(littleEndianAcl->AceCount);
+    aclHeader.Sbz2 = LW_LTOH16(littleEndianAcl->Sbz2);
+
+    if (!RtlpValidAclHeader(&aclHeader))
+    {
+        status = STATUS_INVALID_ACL;
+        GOTO_CLEANUP();
+    }
+
+    if (!RtlpIsBufferAvailable(BufferSize, 0, aclHeader.AclSize))
+    {
+        status = STATUS_INVALID_ACL;
+        GOTO_CLEANUP();
+    }
+
+    offset = ACL_HEADER_SIZE;
+    for (i = 0; i < aclHeader.AceCount; i++)
+    {
+        PACE_HEADER littlEndianAceHeader = (PACE_HEADER) LwRtlOffsetToPointer(littleEndianAcl, offset);
+        ACE_HEADER aceHeader = { 0 };
+
+        aceHeader.AceType = LW_LTOH8(littlEndianAceHeader->AceType);
+        aceHeader.AceFlags = LW_LTOH8(littlEndianAceHeader->AceFlags);
+        aceHeader.AceSize = LW_LTOH16(littlEndianAceHeader->AceSize);
+
+        if (!RtlpValidAceHeader(&aceHeader))
+        {
+            status = STATUS_INVALID_ACL;
+            GOTO_CLEANUP();
+        }
+
+        if (!RtlpIsBufferAvailable(aclHeader.AclSize, offset, aceHeader.AceSize))
+        {
+            status = STATUS_INVALID_ACL;
+            GOTO_CLEANUP();
+        }
+
+        switch (aceHeader.AceType)
+        {
+            case ACCESS_ALLOWED_ACE_TYPE:
+            case ACCESS_DENIED_ACE_TYPE:
+            case SYSTEM_AUDIT_ACE_TYPE:
+            {
+                PACCESS_ALLOWED_ACE littleEndianAce = (PACCESS_ALLOWED_ACE) littleEndianAce;
+                ACCESS_ALLOWED_ACE ace = { { 0 } };
+
+                ace.Header = aceHeader;
+                ace.Mask = LW_LTOH32(littleEndianAce->Mask);
+                // Just need the first ULONG, which is already correct byte
+                // order because it really is a sequence of UCHARs.
+                ace.SidStart = littleEndianAce->SidStart;
+
+                status = RtlpVerifyAceEx(&ace.Header, TRUE);
+                GOTO_CLEANUP_ON_STATUS(status);
+
+                break;
+            }
+            default:
+                status = STATUS_INVALID_ACL;
+                GOTO_CLEANUP();
+        }
+        // No overflow possible because we already checked buffer
+        // availability.
+        offset += aceHeader.AceSize;
+    }
+
+cleanup:
+    *BufferUsed = NT_SUCCESS(status) ? aclHeader.AclSize : 0;
+
+    return NT_SUCCESS(status);
+}
+

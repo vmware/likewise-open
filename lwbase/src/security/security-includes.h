@@ -48,6 +48,36 @@
 
 inline
 static
+BOOLEAN
+RtlpIsBufferAvailable(
+    IN ULONG MaximumSize,
+    IN ULONG Offset,
+    IN ULONG Size
+    )
+{
+    BOOLEAN isAvailable = TRUE;
+
+    // Check for overflow.
+    if ((Offset + Size) < Offset)
+    {
+        isAvailable = FALSE;
+        GOTO_CLEANUP();
+    }
+
+    if ((Offset + Size) > MaximumSize)
+    {
+        isAvailable = FALSE;
+        GOTO_CLEANUP();
+    }
+
+    isAvailable = TRUE;
+
+cleanup:
+    return isAvailable;
+}
+
+inline
+static
 PSID
 RtlpGetSidAccessAllowedAce(
     IN PACCESS_ALLOWED_ACE Ace
@@ -55,3 +85,17 @@ RtlpGetSidAccessAllowedAce(
 {
     return (PSID) &Ace->SidStart;
 }
+
+BOOLEAN
+RtlpIsValidLittleEndianSidBuffer(
+    IN PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    );
+
+BOOLEAN
+RtlpIsValidLittleEndianAclBuffer(
+    IN PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    );

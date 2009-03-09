@@ -177,38 +177,11 @@ cleanup:
     return isValid;
 }
 
-inline
-static
-BOOLEAN
-RtlpIsBufferAvailable(
-    IN ULONG MaximumSize,
-    IN ULONG Offset,
-    IN ULONG Size
-    )
-{
-    BOOLEAN isAvailable = TRUE;
-
-    // Check for overflow.
-    if ((Offset + Size) < Offset)
-    {
-        isAvailable = FALSE;
-        GOTO_CLEANUP();
-    }
-
-    if ((Offset + Size) > MaximumSize)
-    {
-        isAvailable = FALSE;
-        GOTO_CLEANUP();
-    }
-
-    isAvailable = TRUE;
-
-cleanup:
-    return isAvailable;
-}
-
-typedef ULONG (*RTLP_GET_SIZE_FROM_HEADER_IN_RELATIVE_SD_CALLBACK)(IN PVOID Data);
-typedef NTSTATUS (*RTLP_VERIFY_FROM_HEADER_IN_RELATIVE_SD_CALLBACK)(IN PVOID Data);
+typedef BOOLEAN (*RTLP_IS_VALID_BUFFER_CALLBACK)(
+    IN PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    );
 
 static
 NTSTATUS
@@ -217,9 +190,7 @@ RtlpVerifyRelativeSecurityDescriptorOffset(
     IN ULONG SecurityDescriptorLength,
     IN OUT PULONG SizeUsed,
     IN ULONG Offset,
-    IN ULONG MinimumSize,
-    IN RTLP_GET_SIZE_FROM_HEADER_IN_RELATIVE_SD_CALLBACK GetSizeCallback,
-    IN RTLP_VERIFY_FROM_HEADER_IN_RELATIVE_SD_CALLBACK VerifyCallback
+    IN RTLP_IS_VALID_BUFFER_CALLBACK IsValidBufferCallback
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -235,82 +206,29 @@ RtlpVerifyRelativeSecurityDescriptorOffset(
             GOTO_CLEANUP();
         }
 
-        // Validate data header size
-        if (!RtlpIsBufferAvailable(
-                SecurityDescriptorLength,
-                Offset,
-                MinimumSize))
+        if (Offset > SecurityDescriptorLength)
         {
-            status = STATUS_INVALID_SECURITY_DESCR;
-            GOTO_CLEANUP();
-        }
-
-        // Get size from header
-        size = GetSizeCallback(LW_PTR_ADD(SecurityDescriptor, Offset));
-
-        // Validate data size
-        if (!RtlpIsBufferAvailable(
-                SecurityDescriptorLength,
-                Offset,
-                size))
-        {
-            status = STATUS_INVALID_SECURITY_DESCR;
+            status = STATUS_ASSERTION_FAILURE;
             GOTO_CLEANUP();
         }
 
         // Validate data
-        status = VerifyCallback(LW_PTR_ADD(SecurityDescriptor, Offset));
-        GOTO_CLEANUP_ON_STATUS(status);
+        if (!IsValidBufferCallback(
+                    LW_PTR_ADD(SecurityDescriptor, Offset),
+                    SecurityDescriptorLength - Offset,
+                    &size))
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+            GOTO_CLEANUP();
+        }
 
         *SizeUsed = sizeUsed + size;
     }
 
+    status = STATUS_SUCCESS;
+
 cleanup:
     return status;
-}
-
-static
-ULONG
-RtlpSidGetSizeFromHeaderInRelativeSecurityDescriptor(
-    IN PVOID Data
-    )
-{
-    PSID littleEndianSid = (PSID) Data;
-    return RtlLengthRequiredSid(LW_LTOH8(littleEndianSid->SubAuthorityCount));
-}
-
-static
-ULONG
-RtlpAclGetSizeFromHeaderInRelativeSecurityDescriptor(
-    IN PVOID Data
-    )
-{
-    PACL littleEndianAcl = (PACL) Data;
-    return LW_LTOH16(littleEndianAcl->AclSize);
-}
-
-static
-NTSTATUS
-RtlpSidVerifyFromHeaderInRelativeSecurityDescriptor(
-    IN PVOID Data
-    )
-{
-    PSID littleEndianSid = (PSID) Data;
-    // This is ok as long since it only looks at 1-byte fields:
-    return RtlValidSid(littleEndianSid) ? STATUS_SUCCESS : STATUS_INVALID_SID;
-}
-
-static
-NTSTATUS
-RtlpAclVerifyFromHeaderInRelativeSecurityDescriptor(
-    IN PVOID Data
-    )
-{
-#if 0
-    PACL littleEndianAcl = (PACL) Data;
-#endif
-    // TODO--Need to implement this.
-    return STATUS_NOT_IMPLEMENTED;
 }
 
 static
@@ -407,9 +325,7 @@ RtlpVerifyRelativeSecurityDescriptor(
                     SecurityDescriptorLength,
                     &sizeUsed,
                     relHeader.Owner,
-                    SID_MIN_SIZE,
-                    RtlpSidGetSizeFromHeaderInRelativeSecurityDescriptor,
-                    RtlpSidVerifyFromHeaderInRelativeSecurityDescriptor);
+                    RtlpIsValidLittleEndianSidBuffer);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = RtlpVerifyRelativeSecurityDescriptorOffset(
@@ -417,9 +333,7 @@ RtlpVerifyRelativeSecurityDescriptor(
                     SecurityDescriptorLength,
                     &sizeUsed,
                     relHeader.Group,
-                    SID_MIN_SIZE,
-                    RtlpSidGetSizeFromHeaderInRelativeSecurityDescriptor,
-                    RtlpSidVerifyFromHeaderInRelativeSecurityDescriptor);
+                    RtlpIsValidLittleEndianSidBuffer);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = RtlpVerifyRelativeSecurityDescriptorOffset(
@@ -427,9 +341,7 @@ RtlpVerifyRelativeSecurityDescriptor(
                     SecurityDescriptorLength,
                     &sizeUsed,
                     relHeader.Sacl,
-                    ACL_HEADER_SIZE,
-                    RtlpAclGetSizeFromHeaderInRelativeSecurityDescriptor,
-                    RtlpAclVerifyFromHeaderInRelativeSecurityDescriptor);
+                    RtlpIsValidLittleEndianAclBuffer);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = RtlpVerifyRelativeSecurityDescriptorOffset(
@@ -437,9 +349,7 @@ RtlpVerifyRelativeSecurityDescriptor(
                     SecurityDescriptorLength,
                     &sizeUsed,
                     relHeader.Dacl,
-                    ACL_HEADER_SIZE,
-                    RtlpAclGetSizeFromHeaderInRelativeSecurityDescriptor,
-                    RtlpAclVerifyFromHeaderInRelativeSecurityDescriptor);
+                    RtlpIsValidLittleEndianAclBuffer);
     GOTO_CLEANUP_ON_STATUS(status);
 
     if (sizeUsed > SecurityDescriptorLength)
