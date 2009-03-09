@@ -63,13 +63,8 @@ int TestSidInitialize(struct test *t,
 {
     const int def_subauth_count = 4;
     const char *def_authid_name = "nt";
-    const SID_IDENTIFIER_AUTHORITY nt_authid = {
-        .Value = SECURITY_NT_AUTHORITY
-    };
-    const SID_IDENTIFIER_AUTHORITY creator_authid = {
-        .Value = SECURITY_CREATOR_SID_AUTHORITY
-    };
-
+    const SID_IDENTIFIER_AUTHORITY nt_authid = { SECURITY_NT_AUTHORITY };
+    const SID_IDENTIFIER_AUTHORITY creator_authid = { SECURITY_CREATOR_SID_AUTHORITY };
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     unsigned int subauth_count = 0;

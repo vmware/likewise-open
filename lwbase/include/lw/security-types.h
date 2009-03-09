@@ -823,6 +823,8 @@ typedef struct _ACL *PACL;
 #define ACL_REVISION_DS     4 // For DS ACLs
 
 #define ACL_HEADER_SIZE 8
+// TODO-Perhaps this should be rounded to nearest ULONG size
+#define ACL_MAX_SIZE ((USHORT)-1)
 
 //
 // SD - Security Descriptor
@@ -858,6 +860,8 @@ typedef struct _SECURITY_DESCRIPTOR_RELATIVE *PSECURITY_DESCRIPTOR_RELATIVE;
 
 #define SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE (5 * sizeof(PVOID))
 #define SECURITY_DESCRIPTOR_RELATIVE_MIN_SIZE (5 * sizeof(ULONG))
+// Maximum for a revision 1 security descriptor
+#define SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE (SECURITY_DESCRIPTOR_RELATIVE_MIN_SIZE + 2 * SID_MAX_SIZE + 2 * ACL_MAX_SIZE)
 
 #define SECURITY_DESCRIPTOR_REVISION    1
 

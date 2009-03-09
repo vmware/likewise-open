@@ -14,7 +14,10 @@ liblwbase_nothr_la_SOURCES = \
         rtlstring_unicode.c \
         rtlstring_ansi.c \
         rbtree.c \
-        security/security.c
+        security/security-sid.c \
+        security/security-acl.c \
+        security/security-sd.c \
+        security/security-token.c
 
 liblwbase_nothr_la_LIBADD = \
         @LIBUNISTR_LIBS@
