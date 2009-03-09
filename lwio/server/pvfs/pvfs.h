@@ -51,8 +51,8 @@
 #include "config.h"
 #include "lwiosys.h"
 
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
+#include <lw/base.h>
+#include <lw/security-types.h>
 
 #include "iodriver.h"
 #include "lwioutils.h"
@@ -67,6 +67,7 @@
 #include "syswrap_p.h"
 #include "synchronize_p.h"
 #include "ccb_p.h"
+#include "acl.h"
 
 /* Unix (POSIX) APIs */
 
@@ -148,6 +149,12 @@ PvfsFlushBuffers(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
+NTSTATUS
+PvfsQuerySetSecurityFile(
+    PVFS_INFO_TYPE RequestType,
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
 
 
 /* From errno.c */

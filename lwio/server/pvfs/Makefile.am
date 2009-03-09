@@ -13,6 +13,7 @@ libpvfs_sys_la_SOURCES = \
     queryfile.c \
     querydir.c \
     queryvol.c \
+    querysecdesc.c \
     close.c \
     create_file.c \
     create_dir.c \
@@ -26,6 +27,7 @@ libpvfs_sys_la_SOURCES = \
     unixpath.c \
     string.c \
     wildcard.c \
+    acl.c \
     util_security.c \
     util_time.c \
     fileBasicInfo.c \

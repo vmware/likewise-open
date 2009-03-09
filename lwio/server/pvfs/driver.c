@@ -174,6 +174,14 @@ PvfsDriverDispatch(
         ntError = PvfsLockControl(DeviceHandle, pIrpCtx);
         break;
 
+    case IRP_TYPE_QUERY_SECURITY:
+        ntError = PvfsQuerySetSecurityFile(PVFS_QUERY, DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_SET_SECURITY:
+        ntError = PvfsQuerySetSecurityFile(PVFS_SET, DeviceHandle, pIrpCtx);
+        break;
+
     default:
         ntError = STATUS_INVALID_PARAMETER;
         break;
