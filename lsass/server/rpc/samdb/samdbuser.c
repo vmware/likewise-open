@@ -49,7 +49,7 @@
  */
 #include "includes.h"
 
-
+#if 0
 #define DB_QUERY_CREATE_USERS_TABLE                               \
     "create table lwiusers (UserRecordId integer PRIMARY KEY,     \
                             Name             varchar(256),        \
@@ -125,3 +125,5 @@ error:
 
     return(dwError);
 }
+
+#endif

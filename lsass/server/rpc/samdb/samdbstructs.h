@@ -1,0 +1,21 @@
+#ifndef __SAMDBSTRUCTS_H__
+#define __SAMDBSTRUCTS_H__
+
+typedef struct _DIRECTORY_MOD {
+    ULONG dummy;
+} DIRECTORY_MOD, *PDIRECTORY_MOD;
+
+typedef struct _DIRECTORY_CONTEXT {
+    ULONG dummy;
+} DIRECTORY_CONTEXT, *PDIRECTORY_CONTEXT;
+
+typedef struct _DIRECTORY_MODS {
+    ULONG dummy;
+} DIRECTORY_MODS, *PDIRECTORY_MODS;
+
+typedef struct _DIRECTORY_VALUES {
+    ULONG dummy;
+} DIRECTORY_VALUES, *PDIRECTORY_VALUES;
+
+#endif /* __SAMDBSTRUCTS_H__ */
+

@@ -1,6 +1,6 @@
 #include "includes.h"
 
-NTSTATUS
+DWORD
 SamDBBind(
     HANDLE hDirectory,
     PWSTR  DistinguishedName,
@@ -8,8 +8,7 @@ SamDBBind(
     ULONG  ulMethod
     )
 {
-    NTSTATUS ntStatus = 0;
-    PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    DWORD dwError = 0;
 
-    return ntStatus;
+    return dwError;
 }

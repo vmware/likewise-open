@@ -1,61 +1,64 @@
 #include "includes.h"
 
-NTSTATUS
+DWORD
 SamDBModifyObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,
-    PDIRECTORY_MODS Modifications[]
+    DIRECTORY_MODS Modifications[]
     )
 {
-    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
+    PWSTR pwszObjectName = NULL;
+    DWORD dwType = 0;
     PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
 
-    ntStatus = SamDbParseDN(ObjectDN,&pszObjectName, &dwType);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = SamDbParseDN(ObjectDN,&pwszObjectName, &dwType);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (dwType) {
 
         case SAMDB_USER:
-            SamDbModifyUser(
-                    hDirectory,
-                    pszObjectName,
-                    Modifications
-                    );
+            dwError = SamDbModifyUser(
+                        pDirectoryContext,
+                        pwszObjectName,
+                        Modifications
+                        );
             break;
 
         case SAMDB_GROUP:
-            SamDbDeleteGroup(
-                    hDirectory,
-                    pszObjectName,
-                    Modifications
-                    );
+            dwError = SamDbModifyGroup(
+                        pDirectoryContext,
+                        pwszObjectName,
+                        Modifications
+                        );
             break;
     }
 
-    return ntStatus;
+error:
+
+    return dwError;
 }
 
-NTSTATUS
+DWORD
 SamDbModifyUser(
     HANDLE hDirectory,
     PWSTR pszObjectName,
-    PDIRECTORY_MODS Modifications[]
+    DIRECTORY_MODS Modifications[]
     )
 {
-    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
 
-    return ntStatus;
+    return dwError;
 }
 
-
-NTSTATUS
+DWORD
 SamDbModifyGroup(
     HANDLE hDirectory,
-    PWSTR pszObjectName
-    PDIRECTORY_MODS Modifications[]
+    PWSTR pszObjectName,
+    DIRECTORY_MODS Modifications[]
     )
 {
-    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
 
-    return ntStatus;
+    return dwError;
 }

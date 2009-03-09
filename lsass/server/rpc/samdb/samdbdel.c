@@ -1,56 +1,62 @@
 #include "includes.h"
 
-NTSTATUS
+DWORD
 SamDBDeleteObject(
     HANDLE hBindHandle,
-    PWSTR ObjectDN,
+    PWSTR ObjectDN
     )
 {
-    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
     PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    PWSTR pwszObjectName = NULL;
+    DWORD dwType = 0;
 
-    ntStatus = SamDbParseDN(ObjectDN,&pszObjectName, &dwType);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = SamDbParseDN(ObjectDN, &pwszObjectName, &dwType);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (dwType) {
 
         case SAMDB_USER:
+
             SamDbDeleteUser(
-                    hDirectory,
-                    pszObjectName
+                    pDirectoryContext,
+                    pwszObjectName
                     );
             break;
 
         case SAMDB_GROUP:
+
             SamDbDeleteGroup(
-                    hDirectory,
-                    pszObjectName
+                    pDirectoryContext,
+                    pwszObjectName
                     );
             break;
     }
 
-    return ntStatus;
+error:
+
+    return dwError;
 }
 
-NTSTATUS
+DWORD
 SamDbDeleteUser(
     HANDLE hDirectory,
     PWSTR pszObjectName
     )
 {
-    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
 
-    return ntStatus;
+    return dwError;
 }
 
 
-NTSTATUS
+DWORD
 SamDbDeleteGroup(
     HANDLE hDirectory,
     PWSTR pszObjectName
     )
 {
-    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
 
-    return ntStatus;
+    return dwError;
 }

@@ -1,11 +1,11 @@
 #include "includes.h"
 
-NTSTATUS
+DWORD
 SamDBClose(
-    HANDLE hDirectory,
+    HANDLE hDirectory
     )
 {
-    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
 
-    return ntStatus;
+    return dwError;
 }

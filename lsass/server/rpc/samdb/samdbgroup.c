@@ -1,4 +1,6 @@
+#include "includes.h"
 
+#if 0
 #define DB_QUERY_CREATE_GROUPMEMBERSHIP_TABLE                  \
     "create table lwigroupmembers (Gid integer,                \
                                    Uid integer                 \
@@ -28,8 +30,14 @@
      end"
 
 NTSTATUS
-SamDbInitGroupTable()
+SamDbInitGroupTable(
+    HANDLE hDb
+    )
 {
+    DWORD dwError = 0;
+    sqlite3* pDbHandle = (sqlite3*)hDb;
+    PSTR pszError = NULL;
+
     dwError = sqlite3_exec(pDbHandle,
                            DB_QUERY_CREATE_GROUPMEMBERSHIP_TABLE,
                            NULL,
@@ -58,4 +66,9 @@ SamDbInitGroupTable()
                            &pszError);
     BAIL_ON_LSA_ERROR(dwError);
 
+error:
+
+    return dwError;
 }
+
+#endif

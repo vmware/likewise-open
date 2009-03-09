@@ -1,7 +1,11 @@
 #include "includes.h"
 
-NTSTATUS
-DirectoryOpen()
+DWORD
+DirectoryOpen(
+    VOID
+    )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }

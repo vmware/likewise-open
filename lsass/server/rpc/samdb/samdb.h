@@ -1,24 +1,98 @@
+#ifndef __SAMDB_H__
+#define __SAMDB_H__
 
-typedef struct _DIRECTORY_MOD {
-    ULONG Operation;
-    PWSTR pszAttributeName;
-    ULONG ulType;
-    union {
-        PWSTR pszString;
-        ULONG ulLong;
-    }
-} DIRECTORY_MOD, *PDIRECTORY_MOD;
+typedef enum
+{
+    SAMDB_USER  = 0,
+    SAMDB_GROUP,
+    SAMDB_DOMAIN
+} SamDbEntryType;
 
-NTSTATUS
-DirectoryAddObject();
+DWORD
+SamDBAddObject(
+    HANDLE hBindHandle,
+    PWSTR ObjectDN
+    );
 
-NTSTATUS
-DirectoryModifyObject();
+DWORD
+SamDBModifyObject(
+    HANDLE hBindHandle,
+    PWSTR  ObjectDN,
+    DIRECTORY_MODS Modifications[]
+    );
 
-NTSTATUS
-DirectorySearchObject();
+DWORD
+SamDbModifyUser(
+    HANDLE hDirectory,
+    PWSTR  pwszObjectName,
+    DIRECTORY_MODS Modifications[]
+    );
+
+DWORD
+SamDbModifyGroup(
+    HANDLE hDirectory,
+    PWSTR  pwszObjectName,
+    DIRECTORY_MODS Modifications[]
+    );
+
+DWORD
+SamDBDeleteObject(
+    HANDLE hBindHandle,
+    PWSTR ObjectDN
+    );
+
+DWORD
+SamDbDeleteUser(
+    HANDLE hDirectory,
+    PWSTR  pwszUserName
+    );
+
+DWORD
+SamDbDeleteGroup(
+    HANDLE hDirectory,
+    PWSTR  pwszGroupName
+    );
 
 
-NTSTATUS
+DWORD
+SamDbSearchUsers(
+    HANDLE hDirectory,
+    PWSTR Base,
+    ULONG Scope,
+    PWSTR Attributes[],
+    ULONG AttributesOnly,
+    PDIRECTORY_VALUES * ppDirectoryValues,
+    PDWORD pdwNumValues
+    );
 
-DirectoryDeleteObject();
+DWORD
+SamDbSearchGroups(
+    HANDLE hDirectory,
+    PWSTR Base,
+    ULONG Scope,
+    PWSTR Attributes[],
+    ULONG AttributesOnly,
+    PDIRECTORY_VALUES * ppDirectoryValues,
+    PDWORD pdwNumValues
+    );
+
+DWORD
+SamDbSearchDomains(
+    HANDLE hDirectory,
+    PWSTR Base,
+    ULONG Scope,
+    PWSTR Attributes[],
+    ULONG AttributesOnly,
+    PDIRECTORY_VALUES * ppDirectoryValues,
+    PDWORD pdwNumValues
+    );
+
+DWORD
+SamDbConvertFiltertoTable(
+    PWSTR pwszFilter,
+    PDWORD pdwTable
+    );
+
+#endif /* __SAMDB_H__ */
+
+
