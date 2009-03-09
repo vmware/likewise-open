@@ -1,7 +1,7 @@
 #include "includes.h"
 
 NTSTATUS
-DirectoryDeleteObject(
+SamDBDeleteObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,
     )
@@ -29,6 +29,28 @@ DirectoryDeleteObject(
             break;
     }
 
+    return ntStatus;
+}
+
+NTSTATUS
+SamDbDeleteUser(
+    HANDLE hDirectory,
+    PWSTR pszObjectName
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+
+
+NTSTATUS
+SamDbDeleteGroup(
+    HANDLE hDirectory,
+    PWSTR pszObjectName
+    )
+{
+    NTSTATUS ntStatus = 0;
 
     return ntStatus;
 }

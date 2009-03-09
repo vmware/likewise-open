@@ -1,7 +1,7 @@
 #include "includes.h"
 
 NTSTATUS
-DirectoryModifyObject(
+SamDBModifyObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,
     PDIRECTORY_MODS Modifications[]
@@ -10,19 +10,52 @@ DirectoryModifyObject(
     NTSTATUS ntStatus = 0;
     PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
 
-   switch(pDirectoryContext->DirectoryType) {
+    ntStatus = SamDbParseDN(ObjectDN,&pszObjectName, &dwType);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        case LOCAL_SAM:
-            ntStatus = LocalSamModifyObject(
-                            pDirectoryContext->hBindHandle,
-                            ObjectDN,
-                            Modifications
-                            );
+    switch (dwType) {
+
+        case SAMDB_USER:
+            SamDbModifyUser(
+                    hDirectory,
+                    pszObjectName,
+                    Modifications
+                    );
             break;
 
-        default:
+        case SAMDB_GROUP:
+            SamDbDeleteGroup(
+                    hDirectory,
+                    pszObjectName,
+                    Modifications
+                    );
             break;
     }
+
+    return ntStatus;
+}
+
+NTSTATUS
+SamDbModifyUser(
+    HANDLE hDirectory,
+    PWSTR pszObjectName,
+    PDIRECTORY_MODS Modifications[]
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
+}
+
+
+NTSTATUS
+SamDbModifyGroup(
+    HANDLE hDirectory,
+    PWSTR pszObjectName
+    PDIRECTORY_MODS Modifications[]
+    )
+{
+    NTSTATUS ntStatus = 0;
 
     return ntStatus;
 }
