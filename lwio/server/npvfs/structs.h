@@ -63,7 +63,6 @@ typedef struct _NPFS_FCB
     NPFS_INTERLOCKED_ULONG cRef;
 
     pthread_rwlock_t       PipeListRWLock;
-    PNPFS_PIPE             pPipeList;
     UNICODE_STRING         PipeName;
     ULONG                  NamedPipeConfiguration;
     FILE_PIPE_TYPE_MASK    NamedPipeType;
