@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,49 +28,14 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#include "config.h"
+#include "lsasystem.h"
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
-
-#include <lwio/lwio.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <DceSupport.h>
-#include <compat/rpcstatus.h>
-#include <wc16str.h>
+#include "lsa/lsa.h"
 #include <lw/ntstatus.h>
 
-#include <lwrpc/types.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/domaininfo.h>
-#include <lwrpc/userinfo.h>
-#include <lwrpc/aliasinfo.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/rid.h>
-#include <lwrpc/samr.h>
-
-#include "samr_stub.h"
-
-#include "SamrUtil.h"
-#include "SamrMemory.h"
-#include "SamrStubMemory.h"
+#include "lsautils.h"
+#include "lsaunistr.h"
 
 #include "externs.h"
 
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
