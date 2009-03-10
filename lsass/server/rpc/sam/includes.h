@@ -37,5 +37,3 @@
 #include "lsautils.h"
 #include "lsaunistr.h"
 
-#include "externs.h"
-
