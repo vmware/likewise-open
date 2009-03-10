@@ -36,40 +36,8 @@
 #include "includes.h"
 
 
-static handle_t
-CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
-{
-    RPCSTATUS status = RPC_S_OK;
-    size_t hostname_size = 0;
-    char *hostname = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
-
-    if (binding == NULL || host == NULL) return NULL;
-
-    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS) return NULL;
-
-    hostname_size = wc16slen(host) + 1;
-    hostname = (char*) malloc(hostname_size * sizeof(char));
-    if (hostname == NULL) return NULL;
-
-    wc16stombs(hostname, host, hostname_size);
-
-    status = InitNetlogonBindingDefault(binding, hostname, access_token, TRUE);
-    if (status != RPC_S_OK) return NULL;
-
-    SAFE_FREE(hostname);
-
-    if (access_token)
-    {
-        LwIoDeleteAccessToken(access_token);
-    }
-
-    return *binding;
-}
-
-
-handle_t
-OpenSchannel(
+NTSTATUS
+NetrOpenSchannel(
     handle_t netr_b,
     const wchar16_t * pwszMachineAccount,
     const wchar16_t * pwszHostname,
@@ -77,8 +45,8 @@ OpenSchannel(
     const wchar16_t * pwszDomain,
     const wchar16_t * pwszComputer,
     const wchar16_t * pwszMachinePassword,
-    NetrCredentials *Creds,
-    NETRESOURCE *SchanRes
+    NetrCredentials *pCreds,
+    handle_t *schannel_b
     )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
@@ -88,6 +56,9 @@ OpenSchannel(
     uint8 srv_chal[8] = {0};
     uint8 srv_cred[8] = {0};
     rpc_schannel_auth_info_t schnauth_info = {0};
+    PIO_ACCESS_TOKEN access_token = NULL;
+    size_t hostname_size = 0;
+    char *pszHostname = NULL;
     handle_t schn_b = NULL;
 
     md4hash(pass_hash, pwszMachinePassword);
@@ -100,7 +71,7 @@ OpenSchannel(
                                     srv_chal);
     goto_if_ntstatus_not_success(status, error);
 
-    NetrCredentialsInit(Creds,
+    NetrCredentialsInit(pCreds,
                         cli_chal,
                         srv_chal,
                         pass_hash,
@@ -109,19 +80,19 @@ OpenSchannel(
     status = NetrServerAuthenticate2(netr_b,
                                      pwszServer,
                                      pwszMachineAccount,
-                                     Creds->channel_type,
+                                     pCreds->channel_type,
                                      pwszComputer,
-                                     Creds->cli_chal.data,
+                                     pCreds->cli_chal.data,
                                      srv_cred,
-                                     &Creds->negotiate_flags);
+                                     &pCreds->negotiate_flags);
     goto_if_ntstatus_not_success(status, error);
 
-    if (!NetrCredentialsCorrect(Creds, srv_cred)) {
+    if (!NetrCredentialsCorrect(pCreds, srv_cred)) {
         status = STATUS_ACCESS_DENIED;
         goto error;
     }
 
-    memcpy(schnauth_info.session_key, Creds->session_key, 16);
+    memcpy(schnauth_info.session_key, pCreds->session_key, 16);
     schnauth_info.domain_name  = (unsigned char*) awc16stombs(pwszDomain);
     schnauth_info.machine_name = (unsigned char*) awc16stombs(pwszComputer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
@@ -129,11 +100,20 @@ OpenSchannel(
     goto_if_no_memory_ntstatus(schnauth_info.domain_name, error);
     goto_if_no_memory_ntstatus(schnauth_info.machine_name, error);
 
-    schn_b = CreateNetlogonBinding(&schn_b, pwszHostname);
-    if (schn_b == NULL)
-    {
-        goto error;
-    }
+    status = LwIoGetThreadAccessToken(&access_token);
+    goto_if_ntstatus_not_success(status, error);
+
+    hostname_size = wc16slen(pwszHostname) + 1;
+    status = NetrAllocateMemory((void**)&pszHostname,
+                                hostname_size * sizeof(char),
+                                NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    wc16stombs(pszHostname, pwszHostname, hostname_size);
+
+    rpcstatus = InitNetlogonBindingDefault(&schn_b, pszHostname, access_token,
+                                           TRUE);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
 
     rpc_binding_set_auth_info(schn_b,
                               NULL,
@@ -148,17 +128,24 @@ OpenSchannel(
                               (rpc_auth_identity_handle_t)&schnauth_info,
                               rpc_c_authz_name, /* authz_protocol */
                               &rpcstatus);
-    if (rpcstatus != RPC_S_OK) {
-        status = STATUS_UNSUCCESSFUL;
-        goto error;
-    }
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+    *schannel_b = schn_b;
 
 cleanup:
     SAFE_FREE(schnauth_info.domain_name);
     SAFE_FREE(schnauth_info.machine_name);
 
-    return (rpcstatus == rpc_s_ok &&
-            status == STATUS_SUCCESS) ? schn_b : NULL;
+    if (pszHostname) {
+        NetrFreeMemory(pszHostname);
+    }
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    return status;
 
 error:
     if (schn_b)
@@ -171,17 +158,14 @@ error:
 
 
 void
-CloseSchannel(
-    handle_t schn_b,
-    NETRESOURCE *schnr
+NetrCloseSchannel(
+    handle_t schn_b
     )
 {
     if (schn_b)
     {
         FreeNetlogonBinding(&schn_b);
     }
-
-    SAFE_FREE(schnr->RemoteName);
 }
 
 /*
@@ -192,4 +176,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-

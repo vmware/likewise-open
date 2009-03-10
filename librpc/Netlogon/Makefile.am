@@ -13,7 +13,7 @@ libnetlogon_la_SOURCES = \
 	NetrServerAuthenticate.c \
 	NetrServerAuthenticate2.c \
 	NetrServerAuthenticate3.c \
-	schannel.c \
+	NetrSchannel.c \
 	NetrSamLogon.c \
 	NetrSamLogoff.c \
 	NetrSamLogonEx.c \
