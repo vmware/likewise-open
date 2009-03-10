@@ -173,6 +173,16 @@ WireUnmarshallNtTransactionSetupData(
 
     pByteCount = (PUSHORT) pDataCursor;
 
+    if (ulNumBytesAvailable < sizeof(USHORT))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pDataCursor += sizeof(USHORT);
+    ulNumBytesAvailable -= sizeof(USHORT);
+    ulOffset += sizeof(USHORT);
+
     ntStatus = WireUnmarshallNtTransactionParameterData(
         pDataCursor,
         ulNumBytesAvailable,

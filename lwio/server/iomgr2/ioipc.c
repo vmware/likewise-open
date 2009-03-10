@@ -733,6 +733,87 @@ cleanup:
     return NtIpcNtStatusToLWMsgStatus(status);
 }
 
+LWMsgStatus
+IopIpcQuerySecurityFile(
+    IN LWMsgAssoc* pAssoc,
+    IN const LWMsgMessage* pRequest,
+    OUT LWMsgMessage* pResponse,
+    IN void* pData
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE_RESULT;
+    PNT_IPC_MESSAGE_QUERY_SECURITY_FILE pMessage = (PNT_IPC_MESSAGE_QUERY_SECURITY_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    // TODO--make sure allocate handles 0...
+    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+
+    pReply->Status = IoQuerySecurityFile(
+        pMessage->FileHandle,
+        NULL,
+        &ioStatusBlock,
+        pMessage->SecurityInformation,
+        (PSECURITY_DESCRIPTOR_RELATIVE) pReply->Buffer,
+        pMessage->Length);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
+}
+
+LWMsgStatus
+IopIpcSetSecurityFile(
+    IN LWMsgAssoc* pAssoc,
+    IN const LWMsgMessage* pRequest,
+    OUT LWMsgMessage* pResponse,
+    IN void* pData
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE;
+    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE_RESULT;
+    PNT_IPC_MESSAGE_SET_SECURITY_FILE pMessage = (PNT_IPC_MESSAGE_SET_SECURITY_FILE) pRequest->object;
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pRequest->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse->tag = replyType;
+    pResponse->object = pReply;
+
+    pReply->Status = IoSetSecurityFile(
+                            pMessage->FileHandle,
+                            NULL,
+                            &ioStatusBlock,
+                            pMessage->SecurityInformation,
+                            pMessage->SecurityDescriptor,
+                            pMessage->Length);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
+}
 
 static
 LWMsgDispatchSpec gIopIpcDispatchSpec[] =
@@ -750,6 +831,8 @@ LWMsgDispatchSpec gIopIpcDispatchSpec[] =
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE,   IopIpcQueryVolumeInformationFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_LOCK_FILE,              IopIpcLockFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_UNLOCK_FILE,            IopIpcUnlockFile),
+    LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE,    IopIpcQuerySecurityFile),
+    LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE,      IopIpcSetSecurityFile),
     LWMSG_DISPATCH_END
 };
 

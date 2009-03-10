@@ -155,6 +155,12 @@ RdrDriverDispatch(
             pIrp
             );
         break;
+    case IRP_TYPE_QUERY_SECURITY:
+        ntStatus = RdrQuerySecurity(
+            DeviceHandle,
+            pIrp
+            );
+        break;
     default:
         ntStatus = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);

@@ -138,6 +138,12 @@ RdrQueryInformation(
     );
 
 NTSTATUS
+RdrQuerySecurity(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
 RdrQueryDirectory(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
@@ -288,6 +294,16 @@ RdrTransactTrans2RenameFile(
     USHORT usFid,
     USHORT usFlags,
     PCWSTR pwszPath
+    );
+
+NTSTATUS
+RdrTransactNtTransQuerySecurityDesc(
+    PSMB_TREE pTree,
+    USHORT usFid,
+    SECURITY_INFORMATION securityInformation,
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    ULONG ulLength,
+    PULONG ulLengthUsed
     );
 
 void

@@ -289,6 +289,30 @@ LWMsgTypeSpec gNtIpcTypeSpecMessageUnlockFile[] =
 };
 
 static
+LWMsgTypeSpec gNtIpcTypeSpecMessageQuerySecurityFile[] =
+{
+    LWMSG_STRUCT_BEGIN(NT_IPC_MESSAGE_QUERY_SECURITY_FILE),
+    _LWMSG_MEMBER_IO_FILE_HANDLE_IN(NT_IPC_MESSAGE_QUERY_SECURITY_FILE, FileHandle),
+    LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_QUERY_SECURITY_FILE, SecurityInformation),
+    LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_QUERY_SECURITY_FILE, Length),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static
+LWMsgTypeSpec gNtIpcTypeSpecMessageSetSecurityFile[] =
+{
+    LWMSG_STRUCT_BEGIN(NT_IPC_MESSAGE_SET_SECURITY_FILE),
+    _LWMSG_MEMBER_IO_FILE_HANDLE_IN(NT_IPC_MESSAGE_SET_SECURITY_FILE, FileHandle),
+    LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_SET_SECURITY_FILE, SecurityInformation),
+    LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_SET_SECURITY_FILE, Length),
+    LWMSG_MEMBER_UINT32(NT_IPC_MESSAGE_SET_SECURITY_FILE, Length),
+    _LWMSG_MEMBER_BUFFER(NT_IPC_MESSAGE_SET_SECURITY_FILE, SecurityDescriptor, Length),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static
 LWMsgProtocolSpec gNtIpcProtocolSpec[] =
 {
     LWMSG_MESSAGE(NT_IPC_MESSAGE_TYPE_CREATE_FILE,        gNtIpcTypeSpecMessageCreateFile),
@@ -317,6 +341,10 @@ LWMsgProtocolSpec gNtIpcProtocolSpec[] =
     LWMSG_MESSAGE(NT_IPC_MESSAGE_TYPE_LOCK_FILE_RESULT,              gNtIpcTypeSpecMessageGenericFileIoResult),
     LWMSG_MESSAGE(NT_IPC_MESSAGE_TYPE_UNLOCK_FILE,                   gNtIpcTypeSpecMessageUnlockFile),
     LWMSG_MESSAGE(NT_IPC_MESSAGE_TYPE_UNLOCK_FILE_RESULT,            gNtIpcTypeSpecMessageGenericFileIoResult),
+    LWMSG_MESSAGE(NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE,           gNtIpcTypeSpecMessageQuerySecurityFile),
+    LWMSG_MESSAGE(NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE_RESULT,    gNtIpcTypeSpecMessageGenericFileBufferResult),
+    LWMSG_MESSAGE(NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE,             gNtIpcTypeSpecMessageQuerySecurityFile),
+    LWMSG_MESSAGE(NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE_RESULT,      gNtIpcTypeSpecMessageGenericFileIoResult),
     LWMSG_PROTOCOL_END
 };
 

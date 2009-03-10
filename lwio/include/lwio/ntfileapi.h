@@ -344,8 +344,7 @@ LwNtCtxQuerySecurityFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
-    IN ULONG Length,
-    OUT PULONG LengthNeeded
+    IN ULONG Length
     ); 
 
 NTSTATUS
@@ -616,8 +615,7 @@ LwNtQuerySecurityFile(
     LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
     LW_IN SECURITY_INFORMATION SecurityInformation,
     LW_OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
-    LW_IN LW_ULONG Length,
-    LW_OUT LW_PULONG LengthNeeded
+    LW_IN LW_ULONG Length
     ); 
 
 LW_NTSTATUS
