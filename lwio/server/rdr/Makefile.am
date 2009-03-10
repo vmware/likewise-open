@@ -12,6 +12,7 @@ librdr_sys_la_SOURCES =   \
     readfile.c            \
     queryinfofile.c       \
     setinfofile.c         \
+    renamefile.c          \
     findfirst2.c          \
     findnext2.c           \
     response.c            \

@@ -255,6 +255,41 @@ RdrTransactSetInfoFile(
     ULONG ulInfoLength
     );
 
+NTSTATUS
+RdrTransactSetInfoPath(
+    PSMB_TREE pTree,
+    PCWSTR pwszPath,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    );
+
+NTSTATUS
+RdrTransactRenameFile(
+    PSMB_TREE pTree,
+    USHORT usSearchAttributes,
+    PCWSTR pwszSourceFile,
+    PCWSTR pwszDestFile
+    );
+
+NTSTATUS
+RdrTransactNTRenameFile(
+    PSMB_TREE pTree,
+    USHORT usSearchAttributes,
+    USHORT usInfoLevel,
+    ULONG ulClusterCount,
+    PCWSTR pwszSourceFile,
+    PCWSTR pwszDestFile
+    );
+
+NTSTATUS
+RdrTransactTrans2RenameFile(
+    PSMB_TREE pTree,
+    USHORT usFid,
+    USHORT usFlags,
+    PCWSTR pwszPath
+    );
+
 void
 RdrReleaseFile(
     PSMB_CLIENT_FILE_HANDLE pFile

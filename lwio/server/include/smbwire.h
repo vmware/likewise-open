@@ -575,6 +575,20 @@ typedef struct
 
 typedef struct
 {
+    SMB_INFO_LEVEL infoLevel;
+    ULONG reserved;
+    WCHAR pwszPath[];
+} __attribute__((__packed__)) SMB_SET_PATH_INFO_HEADER, *PSMB_SET_PATH_INFO_HEADER;
+
+typedef struct
+{
+    USHORT usFid;
+    USHORT usFlags;
+    WCHAR pwszFileName[];
+} __attribute__((__packed__)) SMB_TRANSACT_RENAME_HEADER, *PSMB_TRANSACT_RENAME_HEADER;
+
+typedef struct
+{
     USHORT usSearchAttrs;
     USHORT usSearchCount;
     USHORT usFlags;
@@ -824,10 +838,7 @@ typedef struct
     ULONG    ulDataOffset;
     UCHAR    ucSetupCount;
     USHORT   usFunction;
-    USHORT   usByteCount;
-
     /* Setup words immediately follow */
-
 }  __attribute__((__packed__))  NT_TRANSACTION_REQUEST_HEADER, *PNT_TRANSACTION_REQUEST_HEADER;
 
 typedef struct
@@ -1098,6 +1109,10 @@ typedef struct {
     LONG64 EndOfFile;
 } __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION, *PTRANS2_FILE_END_OF_FILE_INFORMATION;
 
+typedef struct {
+    BOOLEAN bFileIsDeleted;
+} __attribute__((__packed__)) TRANS2_FILE_DISPOSITION_INFORMATION, *PTRANS2_FILE_DISPOSITION_INFORMATION;
+
 typedef struct _SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER
 {
     ULONG     NextEntryOffset;
@@ -1214,6 +1229,19 @@ typedef struct _SMB_RENAME_RESPONSE_HEADER
     USHORT usByteCount;
 
 } __attribute__((__packed__)) SMB_RENAME_RESPONSE_HEADER, *PSMB_RENAME_RESPONSE_HEADER;
+
+typedef struct _SMB_NT_RENAME_REQUEST_HEADER
+{
+    USHORT usSearchAttributes;
+    USHORT usInfoLevel;
+    ULONG ulClusterCount;
+    USHORT usByteCount;
+} __attribute__((__packed__)) SMB_NT_RENAME_REQUEST_HEADER, *PSMB_NT_RENAME_REQUEST_HEADER;
+
+typedef struct _SMB_NT_RENAME_RESPONSE_HEADER
+{
+    USHORT usByteCount;
+} __attribute__((__packed__)) SMB_NT_RENAME_RESPONSE_HEADER, *PSMB_NT_RENAME_RESPONSE_HEADER;
 
 typedef enum
 {

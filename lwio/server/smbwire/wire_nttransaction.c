@@ -41,6 +41,7 @@ WireUnmarshallNtTransactionSetupData(
     ULONG       ulDataOffset,
     PUSHORT*    ppSetup,
     UCHAR       ucSetupLen,
+    PUSHORT*    ppByteCount,
     PBYTE*      ppParameters,
     USHORT      parameterLen,
     PBYTE*      ppData,
@@ -77,9 +78,9 @@ WireUnmarshallNtTransactionRequest(
     PBYTE pDataCursor = pBuffer;
     PNT_TRANSACTION_REQUEST_HEADER pHeader = NULL;
     PUSHORT pSetup = NULL;
-    PUSHORT pByteCount = NULL;
     PBYTE   pParameters = NULL;
     PBYTE   pData = NULL;
+    PUSHORT pByteCount = NULL;
 
     if (ulNumBytesAvailable < sizeof(NT_TRANSACTION_REQUEST_HEADER))
     {
@@ -93,20 +94,19 @@ WireUnmarshallNtTransactionRequest(
     ulNumBytesAvailable -= sizeof(NT_TRANSACTION_REQUEST_HEADER);
     ulOffset += sizeof(NT_TRANSACTION_REQUEST_HEADER);
 
-    pByteCount = &pHeader->usByteCount;
-
     ntStatus = WireUnmarshallNtTransactionSetupData(
-                    pDataCursor,
-                    ulNumBytesAvailable,
-                    ulOffset,
-                    pHeader->ulParameterOffset,
-                    pHeader->ulDataOffset,
-                    &pSetup,
-                    pHeader->ucSetupCount,
-                    &pParameters,
-                    pHeader->ulParameterCount,
-                    &pData,
-                    pHeader->ulDataCount);
+        pDataCursor,
+        ulNumBytesAvailable,
+        ulOffset,
+        pHeader->ulParameterOffset,
+        pHeader->ulDataOffset,
+        &pSetup,
+        pHeader->ucSetupCount,
+        &pByteCount,
+        &pParameters,
+        pHeader->ulParameterCount,
+        &pData,
+        pHeader->ulDataCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppHeader = pHeader;
@@ -140,6 +140,7 @@ WireUnmarshallNtTransactionSetupData(
     ULONG       ulDataOffset,
     PUSHORT*    ppSetup,
     UCHAR       ucSetupLen,
+    PUSHORT*    ppByteCount,
     PBYTE*      ppParameters,
     USHORT      parameterLen,
     PBYTE*      ppData,
@@ -152,6 +153,7 @@ WireUnmarshallNtTransactionSetupData(
     PUSHORT pSetup = NULL;
     PBYTE   pParameters = NULL;
     PBYTE   pData = NULL;
+    PUSHORT pByteCount = NULL;
 
     usSetupLen = (ucSetupLen * sizeof(USHORT));
 
@@ -169,21 +171,24 @@ WireUnmarshallNtTransactionSetupData(
         ulOffset += usSetupLen;
     }
 
+    pByteCount = (PUSHORT) pDataCursor;
+
     ntStatus = WireUnmarshallNtTransactionParameterData(
-                    pDataCursor,
-                    ulNumBytesAvailable,
-                    ulOffset,
-                    ulParameterOffset,
-                    ulDataOffset,
-                    &pParameters,
-                    parameterLen,
-                    &pData,
-                    dataLen);
+        pDataCursor,
+        ulNumBytesAvailable,
+        ulOffset,
+        ulParameterOffset,
+        ulDataOffset,
+        &pParameters,
+        parameterLen,
+        &pData,
+        dataLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSetup = pSetup;
     *ppParameters = pParameters;
     *ppData = pData;
+    *ppByteCount = pByteCount;
 
 cleanup:
 
@@ -194,6 +199,7 @@ error:
     *ppSetup = NULL;
     *ppParameters = NULL;
     *ppData = NULL;
+    *ppByteCount = NULL;
 
     goto cleanup;
 }

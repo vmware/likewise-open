@@ -666,7 +666,6 @@ typedef struct _FILE_RENAME_INFORMATION {
     WCHAR FileName[1];
 } FILE_RENAME_INFORMATION, *PFILE_RENAME_INFORMATION;
 
-#if 0
 // TODO--Use new IRP_TYPE instead of FileLinkInformation
 
 // SET: FileLinkInformation (create hardlink)
@@ -705,7 +704,6 @@ typedef struct _FILE_QUOTA_INFORMATION {
     LONG64 QuotaLimit;
     BYTE Sid[1];
 } FILE_QUOTA_INFORMATION, *PFILE_QUOTA_INFORMATION;
-#endif
 
 //
 // Volume Information Classes and Types

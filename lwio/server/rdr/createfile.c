@@ -279,26 +279,25 @@ ParseSharePath(
     pszIndex += sLen;
 
     SMBAllocateMemory(
-        strlen(pszIndex) + 3,
+        strlen(pszIndex) + 2,
         (PVOID*)&pszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pszFilename[0] = '\\';
-    pszFilename[1] = '\\';
 
     for (i = 0; pszIndex[i]; i++)
     {
         switch (pszIndex[i])
         {
         case '/':
-            pszFilename[2 + i] = '\\';
+            pszFilename[1 + i] = '\\';
             break;
         default:
-            pszFilename[2 + i] = pszIndex[i];
+            pszFilename[1 + i] = pszIndex[i];
         }
     }
 
-    pszFilename[2 + i] = '\0';
+    pszFilename[1 + i] = '\0';
 
     *ppszServer = pszServer;
     *ppszShare  = pszShare;

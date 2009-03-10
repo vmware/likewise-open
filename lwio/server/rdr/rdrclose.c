@@ -87,11 +87,16 @@ RdrCommonClose(
 
     pFile = IoFileGetContext(pIrp->FileHandle);
 
-    ntStatus = RdrTransactCloseFile(
-        pFile->pTree,
-        pFile->fid
-        );
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pFile->fid)
+    {
+        ntStatus = RdrTransactCloseFile(
+            pFile->pTree,
+            pFile->fid
+            );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pFile->fid = 0;
+    }
 
 cleanup:
 
