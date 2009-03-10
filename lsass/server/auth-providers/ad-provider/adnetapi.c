@@ -1480,24 +1480,24 @@ AD_NetlogonAuthenticationUserEx(
 
         /* Now setup the Schannel session */
 
-        ghSchannelBinding = OpenSchannel(netr_b,
-                                         pMachAcctInfo->pwszMachineAccount,
-                                         pwszDomainController,
-                                         pwszServerName,
-                                         pwszShortDomain,
-                                         pMachAcctInfo->pwszHostname,
-                                         pMachAcctInfo->pwszMachinePassword,
-                                         &gSchannelCreds,
-                                         &gSchannelRes);
+        nt_status = NetrOpenSchannel(netr_b,
+                                     pMachAcctInfo->pwszMachineAccount,
+                                     pwszDomainController,
+                                     pwszServerName,
+                                     pwszShortDomain,
+                                     pMachAcctInfo->pwszHostname,
+                                     pMachAcctInfo->pwszMachinePassword,
+                                     &gSchannelCreds,
+                                     &ghSchannelBinding);
 
-       if (!ghSchannelBinding)
-       {
-           dwError = LSA_ERROR_RPC_ERROR;
-           BAIL_ON_LSA_ERROR(dwError);
-       }
+        if (nt_status != STATUS_SUCCESS)
+        {
+            dwError = LSA_ERROR_RPC_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
-       gpSchannelCreds = &gSchannelCreds;
-       gpSchannelRes = &gSchannelRes;
+        gpSchannelCreds = &gSchannelCreds;
+        gpSchannelRes   = &gSchannelRes;
     }
 
     /* Time to do the authentication */
@@ -1604,7 +1604,7 @@ AD_ClearSchannelState(
 
     if (ghSchannelBinding)
     {
-        CloseSchannel(ghSchannelBinding, gpSchannelRes);
+        NetrCloseSchannel(ghSchannelBinding);
 
         ghSchannelBinding = NULL;
 
