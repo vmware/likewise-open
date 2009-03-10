@@ -32,13 +32,15 @@
 
 
 NTSTATUS
-SamrEnumDomainAliases(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 *resume,
-    uint32 account_flags,
-    RidNameArray ** pEntries,
-    uint32 *num
+SamrCreateUser2(
+    HANDLE b,
+    PPOLICY_HANDLE domain_h,
+    PWSTR  account_name,
+    ULONG account_flags,
+    ULONG account_mask,
+    PPOLICY_HANDLE hPolicy,
+    ULONG *out_access_granted,
+    ULONG *out_rid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

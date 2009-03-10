@@ -32,13 +32,17 @@
 
 
 NTSTATUS
-SamrGetAliasMembership(
-    handle_t b,
-    PolicyHandle *domain_h,
-    SidArray * pSidArray
-    Ids * pIds
+SamrOpenUser(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    ULONG access_mask,
+    ULONG rid,
+    PPOLICY_HANDLE user_h
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
+
+    return status;
 }
 
 

@@ -32,20 +32,17 @@
 
 
 NTSTATUS
-SamrCreateUser2(
-    handle_t b,
-    PolicyHandle *domain_h,
-    UnicodeStringEx  *account_name,
-    uint32 account_flags,
-    uint32 account_mask,
-    PolicyHandle *account_h,
-    uint32 *out_access_granted,
-    uint32 *out_rid
+SamrConnect4(
+    HANDLE b,
+    PWSTR sysname,
+    ULONG unknown,
+    ULONG access_mask,
+    PPOLICY_HANDLE hPolicy
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    return status;
+    return ntStatus;
 }
 
 

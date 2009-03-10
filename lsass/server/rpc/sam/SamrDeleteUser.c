@@ -32,16 +32,14 @@
 
 
 NTSTATUS
-SamrEnumDomains(
-    handle_t b,
-    PolicyHandle *conn_h,
-    uint32 *resume,
-    uint32 size,
-    EntryArray **domains,
-    uint32 *count
+SamrDeleteUser(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+
 
     return status;
 }

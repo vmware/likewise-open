@@ -32,17 +32,15 @@
 
 
 NTSTATUS
-SamDBConnect4(
-    handle_t b,
-    const wchar16_t *sysname,
-    uint32 unknown,
-    uint32 access_mask,
-    PolicyHandle *conn_handle
+SamrGetMembersInAlias(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    SidArray * pSidArray
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    return ntStatus;
+    return status;
 }
 
 

@@ -31,9 +31,14 @@
 #include "config.h"
 #include "lsasystem.h"
 
+#include <uuid/uuid.h>
+
 #include "lsa/lsa.h"
 #include <lw/ntstatus.h>
+#include <lw/security-types.h>
 
 #include "lsautils.h"
 #include "lsaunistr.h"
+
+#include "samrstructs.h"
 

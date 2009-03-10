@@ -32,10 +32,12 @@
 
 
 NTSTATUS
-SamrGetMembersInAlias(
-    handle_t b,
-    PolicyHandle *alias_h,
-    SidArray * pSidArray
+SamrConnect2(
+    HANDLE b,
+    ULONG system_name_len,
+    PWSTR sysname,
+    ULONG access_mask,
+    PPOLICY_HANDLE hPolicy
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

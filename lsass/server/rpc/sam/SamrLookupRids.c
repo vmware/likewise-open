@@ -30,44 +30,19 @@
 
 #include "includes.h"
 
-
 NTSTATUS
-SamrCreateUser(
-    handle_t b,
-    PolicyHandle *domain_h,
-    UnicodeString *account_name,
-    uint32 access_mask,
-    PolicyHandle *user_h,
-    uint32 *rid
+SamrLookupRids(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    ULONG num_rids,
+    ULONG *rids,
+    LW_PUNICODE_STRING pNameArray,
+    PULONG pIdArray
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    ntStatus = ConvertUnicodeStringToWSTR(
-                        account_name,
-                        &pAccountName
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = RtlGetWhoIam(&dwWhoAmI);
-
-    switch (dwWhoAmI) {
-
-        case STANDALONE_MC
-        case DOMAIN_MEMBER:
-
-        case DC:
-
-    ntStatus = DirectoryAddObject(
-                        hDirectory,
-                        pAccountName,
-                        Attributes
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return status;
+    return ntStatus;
 }
 
 

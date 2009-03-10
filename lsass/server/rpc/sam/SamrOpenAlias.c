@@ -32,11 +32,12 @@
 
 
 NTSTATUS
-SamrLookupDomain(
-    handle_t b,
-    PolicyHandle *conn_h,
-    UnicodeString *domname
-    PSID* sid
+SamrOpenAlias(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    ULONG access_mask,
+    ULONG rid,
+    PPOLICY_HANDLE alias_h
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

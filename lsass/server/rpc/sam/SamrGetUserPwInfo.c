@@ -32,11 +32,10 @@
 
 
 NTSTATUS
-SamrSetUserInfo(
-    handle_t b,
-    PolicyHandle *user_h,
-    uint16 level,
-    UserInfo *info
+SamrGetUserPwInfo(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    PPASSWORD_INFO pPasswordInfo
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

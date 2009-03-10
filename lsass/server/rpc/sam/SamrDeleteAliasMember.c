@@ -32,15 +32,16 @@
 
 
 NTSTATUS
-SamrGetUserPwInfo(
-    handle_t b,
-    PolicyHandle *user_h,
-    PwInfo *info
+SamrDeleteAliasMember(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    PSID sid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
     return status;
+
 }
 
 

@@ -32,9 +32,11 @@
 
 
 NTSTATUS
-SamrDeleteDomAlias(
-    handle_t b,
-    PolicyHandle *alias_h
+SamrSetAliasInfo(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    USHORT level,
+    PALIAS_INFO pAliasInfo
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

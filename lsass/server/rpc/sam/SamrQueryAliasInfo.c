@@ -31,34 +31,17 @@
 #include "includes.h"
 
 
-// rids_count can be NULL, in which case the number of returned rids must
-// match num_names.
 NTSTATUS
-SamrLookupNames(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 num_names,
-    UnicodeString * samr_names,
-    Ids * pr,
-    Ids * pt
+SamrQueryAliasInfo(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    USHORT level,
+    PALIAS_INFO* ppAliasInfo
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PWSTR
-    ntStatus = DirectorySearchObject(
-                        hDirectory,
-                        pszSamRootDN,
-                        DIRECTORY_ONE_LEVEL,
-                        pszSearchString,
-                        Attributes,
-                        &pDirectoryValues,
-                        &dwCount
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
+    NTSTATUS status = STATUS_SUCCESS;
 
-error:
-
-    return ntStatus;
+    return status;
 }
 
 

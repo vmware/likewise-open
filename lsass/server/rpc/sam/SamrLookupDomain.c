@@ -32,10 +32,11 @@
 
 
 NTSTATUS
-SamrGetUserGroups(
-    handle_t b,
-    PolicyHandle *user_h,
-    RidWithAttributeArray **r
+SamrLookupDomain(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    LW_PUNICODE_STRING domname,
+    PSID* sid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

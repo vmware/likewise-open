@@ -32,16 +32,14 @@
 
 
 NTSTATUS
-SamrDeleteAliasMember(
-    handle_t b,
-    PolicyHandle *alias_h,
-    PSID sid
+SamrDeleteDomAlias(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
     return status;
-
 }
 
 

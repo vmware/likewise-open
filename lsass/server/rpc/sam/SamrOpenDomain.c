@@ -32,14 +32,12 @@
 
 
 NTSTATUS
-SamDBCreateDomAlias(
-    handle_t b,
-    PolicyHandle *domain_h,
-    UnicodeString * alias_name,
-    uint32 access_mask,
-    PolicyHandle *alias_h,
-    uint32 *rid
-    )
+SamrOpenDomain(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    ULONG access_mask,
+    PSID sid,
+    PPOLICY_HANDLE domain_h)
 {
     NTSTATUS status = STATUS_SUCCESS;
 

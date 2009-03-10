@@ -32,11 +32,11 @@
 
 
 NTSTATUS
-SamrSetAliasInfo(
-    handle_t b,
-    PolicyHandle *alias_h,
-    uint16 level,
-    AliasInfo *info
+SamrSetUserInfo(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    USHORT level,
+    PUSER_INFO pUserInfo
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

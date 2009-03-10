@@ -32,11 +32,13 @@
 
 
 NTSTATUS
-SamrQueryDomainInfo(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint16 level,
-    DomainInfo **info
+SamrEnumDomainAliases(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    ULONG *resume,
+    ULONG account_flags,
+    RidNameArray ** pEntries,
+    ULONG *num
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

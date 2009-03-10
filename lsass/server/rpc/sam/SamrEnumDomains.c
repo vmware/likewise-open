@@ -32,12 +32,14 @@
 
 
 NTSTATUS
-SamrOpenAlias(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 access_mask,
-    uint32 rid,
-    PolicyHandle *alias_h)
+SamrEnumDomains(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    ULONG *resume,
+    ULONG size,
+    EntryArray **domains,
+    ULONG *count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 

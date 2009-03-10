@@ -33,22 +33,23 @@
 
 NTSTATUS
 SamrEnumDomainUsers(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 *resume,
-    uint32 account_flags,
-    uint32 max_size,
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    ULONG *resume,
+    ULONG account_flags,
+    ULONG max_size,
     RidNameArray ** entries,
-    uint32 *count
+    ULONG *count
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+#if 0
     NTSTATUS ret_status = STATUS_SUCCESS;
-    uint32 num = 0;
-    uint32 r = 0;
+    ULONG num = 0;
+    ULONG r = 0;
     RidNameArray *entries = NULL;
-    wchar16_t **out_names = NULL;
-    uint32 *out_rids = NULL;
+    PWSTR* out_names = NULL;
+    ULONG *out_rids = NULL;
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(domain_h, cleanup);
@@ -106,6 +107,12 @@ error:
     *names  = NULL;
     *rids   = NULL;
     goto cleanup;
+
+#else
+
+    return ntStatus;
+
+#endif
 }
 
 

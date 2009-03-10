@@ -32,18 +32,16 @@
 
 
 NTSTATUS
-SamDBLookupRids(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 num_rids,
-    uint32 *rids,
-    UnicodeStringArray *pN,
-    Ids * pT
+SamrQueryUserInfo(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    USHORT level,
+    PUSER_INFO* ppUserInfo
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
 
-    return ntStatus;
+    return status;
 }
 
 

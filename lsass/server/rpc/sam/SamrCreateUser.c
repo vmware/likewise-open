@@ -32,16 +32,44 @@
 
 
 NTSTATUS
-SamrQueryUserInfo(
-    handle_t b,
-    PolicyHandle *user_h,
-    uint16 level,
-    UserInfo **info
+SamrCreateUser(
+    HANDLE b,
+    PPOLICY_HANDLE domain_h,
+    PWSTR account_name,
+    ULONG access_mask,
+    PPOLICY_HANDLE hPolicy,
+    ULONG *rid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    return status;
+#if 0
+    ntStatus = ConvertUnicodeStringToWSTR(
+                        account_name,
+                        &pAccountName
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlGetWhoIam(&dwWhoAmI);
+
+    switch (dwWhoAmI) {
+
+        case STANDALONE_MC
+        case DOMAIN_MEMBER:
+
+        case DC:
+
+    ntStatus = DirectoryAddObject(
+                        hDirectory,
+                        pAccountName,
+                        Attributes
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+#endif
+
+    return ntStatus;
 }
 
 

@@ -32,9 +32,11 @@
 
 
 NTSTATUS
-SamDBClose(
-    handle_t b,
-    PolicyHandle *handle
+SamrGetAliasMembership(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    SidArray * pSidArray,
+    ULONG * pIds
     )
 {
     NTSTATUS ntStatus = 0;

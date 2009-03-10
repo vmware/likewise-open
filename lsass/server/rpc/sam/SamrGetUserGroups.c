@@ -32,12 +32,11 @@
 
 
 NTSTATUS
-SamrOpenDomain(
-    handle_t b,
-    PolicyHandle *conn_h,
-    uint32 access_mask,
-    PSID sid,
-    PolicyHandle *domain_h)
+SamrGetUserGroups(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy,
+    RidWithAttributeArray **r
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 

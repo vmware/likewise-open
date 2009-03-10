@@ -33,17 +33,18 @@
 
 NTSTATUS
 SamrChangePasswordUser2(
-    handle_t b,
-    const wchar16_t *hostname,
-    const wchar16_t *account,
-    uint8 ntpass[516],
-    uint8 ntverify[16],
-    uint8 lm_change,
-    uint8 lmpass[516],
-    uint8 lmverify[16]
+    HANDLE b,
+    PWSTR hostname,
+    PWSTR account,
+    UCHAR ntpass[516],
+    UCHAR ntverify[16],
+    UCHAR lm_change,
+    UCHAR lmpass[516],
+    UCHAR lmverify[16]
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+#if 0
     CryptPassword ntp, lmp;
     CryptPassword *lmpwd = NULL;
     HashPassword ntv, lmv;
@@ -95,6 +96,11 @@ cleanup:
 
 error:
     goto cleanup;
+#else
+
+    return ntStatus;
+
+#endif
 }
 
 

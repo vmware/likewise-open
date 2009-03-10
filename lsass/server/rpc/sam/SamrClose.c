@@ -32,16 +32,14 @@
 
 
 NTSTATUS
-SamrDeleteUser(
-    handle_t b,
-    PolicyHandle *user_h
+SamrClose(
+    HANDLE b,
+    PPOLICY_HANDLE hPolicy
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = 0;
 
-
-
-    return status;
+    return ntStatus;
 }
 
 

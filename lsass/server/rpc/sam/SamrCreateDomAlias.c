@@ -32,12 +32,13 @@
 
 
 NTSTATUS
-SamDBConnect2(
-    handle_t b,
-    uint32 system_name_len,
-    const wchar16_t *sysname,
-    uint32 access_mask,
-    PolicyHandle *conn_h
+SamrCreateDomAlias(
+    HANDLE b,
+    PPOLICY_HANDLE domain_h,
+    PWSTR alias_name,
+    ULONG access_mask,
+    PPOLICY_HANDLE hPolicy,
+    ULONG *rid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
