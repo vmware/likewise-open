@@ -49,6 +49,17 @@
 
 #include "includes.h"
 
+/* Make memory allocation easier */
+typedef union __srvsvc_NetShareInfo
+{
+    SHARE_INFO_0 info0;
+    SHARE_INFO_1 info1;
+    SHARE_INFO_2 info2;
+    SHARE_INFO_501 info501;
+    SHARE_INFO_502 info502;
+
+} SHARE_INFO, *PSHARE_INFO;
+
 
 NET_API_STATUS
 SrvSvcNetShareGetInfo(
@@ -90,11 +101,7 @@ SrvSvcNetShareGetInfo(
     IO_STATUS_BLOCK io_status;
     SHARE_INFO_GETINFO_PARAMS GetParamsIn;
     PSHARE_INFO_GETINFO_PARAMS pGetParamsOut = NULL;
-    PSHARE_INFO_0 info0 = NULL;
-    PSHARE_INFO_1 info1 = NULL;
-    PSHARE_INFO_2 info2 = NULL;
-    PSHARE_INFO_501 info501 = NULL;
-    PSHARE_INFO_502 info502 = NULL;
+    PSHARE_INFO pShareInfo = NULL;
 
     memset(&GetParamsIn, 0, sizeof(GetParamsIn));
 
@@ -148,6 +155,17 @@ SrvSvcNetShareGetInfo(
                     );
     BAIL_ON_ERROR(dwError);
 
+    /* Allocate memory since it will be needed even in the failure case */
+
+    ntStatus = RTL_ALLOCATE(&pShareInfo, SHARE_INFO, sizeof(*pShareInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    info->info0   = &pShareInfo->info0;
+    info->info1   = &pShareInfo->info1;
+    info->info2   = &pShareInfo->info2;
+    info->info501 = &pShareInfo->info501;
+    info->info502 = &pShareInfo->info502;
+
     ntStatus = NtDeviceIoControlFile(
                     FileHandle,
                     NULL,
@@ -194,58 +212,23 @@ SrvSvcNetShareGetInfo(
 
     switch (pGetParamsOut->dwInfoLevel) {
     case 0:
-        ntStatus = SRVSVCAllocateMemory(
-                            sizeof(*info0),
-                            (void**)&info0
-                            );
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(info0, pGetParamsOut->Info.p0, sizeof(*info0));
-        info->info0 = info0;
+        memcpy(info->info0, pGetParamsOut->Info.p0, sizeof(*info->info0));
         break;
 
     case 1:
-        ntStatus = SRVSVCAllocateMemory(
-                            sizeof(*info1),
-                            (void**)&info1
-                            );
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(info1, pGetParamsOut->Info.p1, sizeof(*info1));
-        info->info1 = info1;
+        memcpy(info->info1, pGetParamsOut->Info.p1, sizeof(*info->info1));
         break;
 
     case 2:
-        ntStatus = SRVSVCAllocateMemory(
-                            sizeof(*info2),
-                            (void**)&info2
-                            );
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(info2, pGetParamsOut->Info.p2, sizeof(*info2));
-        info->info2 = info2;
+        memcpy(info->info2, pGetParamsOut->Info.p2, sizeof(*info->info2));
         break;
 
     case 501:
-        ntStatus = SRVSVCAllocateMemory(
-                            sizeof(*info501),
-                            (void**)&info501
-                            );
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(info501, pGetParamsOut->Info.p501, sizeof(*info501));
-        info->info501 = info501;
+        memcpy(info->info501, pGetParamsOut->Info.p501, sizeof(*info->info501));
         break;
 
     case 502:
-        ntStatus = SRVSVCAllocateMemory(
-                            sizeof(*info502),
-                            (void**)&info502
-                            );
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(info502, pGetParamsOut->Info.p502, sizeof(*info502));
-        info->info502 = info502;
+        memcpy(info->info502, pGetParamsOut->Info.p502, sizeof(*info->info502));
         break;
     }
 
