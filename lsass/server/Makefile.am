@@ -8,5 +8,6 @@ SUBDIRS = \
          sqlite         \
          db             \
          auth-providers \
+         rpc            \
          ipc            \
          lsassd
