@@ -1,6 +1,6 @@
-provider_LTLIBRARIES = libsamr.la
+provider_LTLIBRARIES = libsamr_srv.la
 
-libsamr_la_SOURCES = \
+libsamr_srv_la_SOURCES = \
     SamrChangePasswordUser2.c \
     SamrClose.c               \
     SamrConnect2.c            \
@@ -30,11 +30,11 @@ libsamr_la_SOURCES = \
     SamrSetAliasInfo.c        \
     SamrSetUserInfo.c
 
-libsamr_la_CPPFLAGS = \
+libsamr_srv_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
 	-I@top_srcdir@/server/rpc/include
 
-libsamr_la_LDFLAGS = \
+libsamr_srv_la_LDFLAGS = \
 	-module -avoid-version -export-dynamic
 
