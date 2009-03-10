@@ -137,9 +137,9 @@ PvfsQuerySecurityFile(
     /* Real work starts here */
 
     if (pCcb->CreateOptions & FILE_DIRECTORY_FILE) {
-        ntError = PvfsCreateDefaultSecDescFile(&paDefaultSecDesc);
-    } else {
         ntError = PvfsCreateDefaultSecDescDir(&paDefaultSecDesc);
+    } else {
+        ntError = PvfsCreateDefaultSecDescFile(&paDefaultSecDesc);
     }
     BAIL_ON_NT_STATUS(ntError);
 
