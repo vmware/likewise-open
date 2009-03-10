@@ -766,6 +766,7 @@ ADState_GetCellListNoLock(
                         (PVOID*)&pEntry);
         BAIL_ON_LSA_ERROR(dwError);
 
+        iColumnPos = 0;
         dwError = ADState_UnpackLinkedCellInfo(
                     pstQuery,
                     &iColumnPos,

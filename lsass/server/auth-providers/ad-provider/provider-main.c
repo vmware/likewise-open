@@ -232,14 +232,19 @@ LsaInitializeProvider(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (!bIsDomainOffline)
+    {
+        dwError = AD_MachineCredentialsCacheInitialize();
+        if (dwError == LSA_ERROR_CLOCK_SKEW)
+        {
+            bIsDomainOffline = TRUE;
+            dwError = LSA_ERROR_SUCCESS;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
     if (bIsDomainOffline)
     {
         dwError = AD_MachineCredentialsCacheClear();
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        dwError = AD_MachineCredentialsCacheInitialize();
         BAIL_ON_LSA_ERROR(dwError);
     }
 
