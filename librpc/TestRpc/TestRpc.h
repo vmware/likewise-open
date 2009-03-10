@@ -60,6 +60,24 @@ struct test {
 };
 
 
+typedef struct user_creds {
+    int use_kerberos;
+
+    /* krb5 credentials */
+    char *principal;
+    char *ccache;
+
+    /* ntlm credentials */
+    char *username;
+    char *password;
+    char *domain;
+    char *workstation;
+
+} UserCreds;
+
+extern UserCreds *pCreds;
+
+
 void AddTest(struct test *ft, const char *name, test_fn function);
 void SetupSamrTests(struct test *t);
 void SetupLsaTests(struct test *t);
@@ -122,55 +140,57 @@ extern int verbose_mode;
 #define WINERR_IS_OK(err)       ((err) == ERROR_SUCCESS)
 
 
-#define SET_SESSION_CREDS(res, host, user, pass)                        \
+#define SET_SESSION_CREDS_KRB5(principal, ccache)                       \
     do {                                                                \
-        int ret;                                                        \
-        size_t host_len;                                                \
-        if ((host)) {                                                   \
-            host_len = wc16slen((host));                                \
-            (res).RemoteName = (wchar16_t*) malloc(sizeof(wchar16_t)*   \
-                                                   (host_len+8));       \
-            if ((res).RemoteName == NULL) {                             \
-                printf("Error when allocating RemoteName for"           \
-                       "SET_SESSION_CREDS\n");                          \
-                goto done;                                              \
-            }                                                           \
+        DWORD dwError = 0;                                              \
+        LW_PIO_ACCESS_TOKEN hAccessToken = NULL;                        \
+        PSTR pszPrincipal = NULL;                                       \
+        PSTR pszCache = NULL;                                           \
                                                                         \
-            sw16printf((res).RemoteName, "\\\\%S\\IPC$", (host));       \
+        pszPrincipal = (principal);                                     \
+        pszCache     = (ccache);                                        \
                                                                         \
-            ret = WNetAddConnection2(&(res), (pass), (user));           \
-            if (ret != 0) {                                             \
-                const char *name = Win32ErrorToName(ret);               \
-                printf("WNetAddConnection2 failed with code "           \
-                       "%s (0x%08x) when doing SET_SESSION_CREDS\n",    \
-                       name, ret);                                      \
-                                                                        \
-                SAFE_FREE((res).RemoteName);                            \
-                goto done;                                              \
-            }                                                           \
-                                                                        \
-            SAFE_FREE((res).RemoteName);                                \
+        /* Set up access token */                                       \
+        dwError = LwIoCreateKrb5AccessTokenA(pszPrincipal, pszCache,    \
+                                             &hAccessToken);            \
+        if (dwError) {                                                  \
+            printf("Failed to create access token\n");                  \
+            goto done;                                                  \
         }                                                               \
+                                                                        \
+        dwError = LwIoSetThreadAccessToken(hAccessToken);               \
+        if (dwError) {                                                  \
+            printf("Failed to set access token on thread\n");           \
+            goto done;                                                  \
+        }                                                               \
+                                                                        \
+        LwIoDeleteAccessToken(hAccessToken);                            \
+                                                                        \
     } while(0);
 
-#define RELEASE_SESSION_CREDS(res)                                      \
+
+#define SET_SESSION_CREDS(creds)                                        \
     do {                                                                \
-        int ret;                                                        \
-        if ((res).RemoteName) {                                         \
-            ret = WNetCancelConnection2((res).RemoteName, 0, 0);        \
-            if (ret != 0) {                                             \
-                const char *name = Win32ErrorToName(ret);               \
-                printf("WNetCancelConnection2 failed with code "        \
-                       "%s (0x%08x) when doing RELEASE_SESSION_CREDS\n",\
-                       name, ret);                                      \
-                                                                        \
-                SAFE_FREE((res).RemoteName);                            \
-                goto done;                                              \
-            }                                                           \
-                                                                        \
-            SAFE_FREE((res).RemoteName);                                \
+        if ((creds)->use_kerberos) {                                    \
+            SET_SESSION_CREDS_KRB5((creds)->principal,                  \
+                                   (creds)->ccache);                    \
         }                                                               \
+                                                                        \
     } while(0);
+
+
+#define RELEASE_SESSION_CREDS                                           \
+    do {                                                                \
+        DWORD dwError = 0;                                              \
+                                                                        \
+        dwError = LwIoSetThreadAccessToken(NULL);                       \
+        if (dwError) {                                                  \
+            printf("Failed to set release access token on thread\n");   \
+            goto done;                                                  \
+        }                                                               \
+                                                                        \
+    } while(0);
+
 
 #define TESTINFO(test, host, user, pass)                                \
     {                                                                   \

@@ -50,6 +50,7 @@
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
 #include <lwrpc/mpr.h>
+#include <lwps/lwps.h>
 
 #include <md5.h>
 #include <hmac_md5.h>
@@ -129,8 +130,9 @@ handle_t TestOpenSchannel(handle_t netr_b,
 
     sw16printf(machine_acct, "%S$", computer);
 
-    schn_b = OpenSchannel(netr_b, machine_acct, hostname, server, domain,
-                          computer, machpass, creds, schnr);
+    status = NetrOpenSchannel(netr_b, machine_acct, hostname, server, domain,
+                              computer, machpass, creds, &schn_b);
+    goto_if_ntstatus_not_success(status, done);
 
     if (!NetrCredentialsCorrect(creds, srv_cred)) {
         status = STATUS_ACCESS_DENIED;
@@ -178,30 +180,35 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
 {
     const char *def_server = "TEST";
     const char *def_domain = "TESTNET";
-    const char *def_computer = "TestWks4";
-    const char *def_machpass = "secret01$";
+    const char *def_computer = "TEST";
+    const char *def_machpass = "SECRET";
     const char *def_username = "user";
     const char *def_password = "pass";
-    const uint32 def_logon_level = 2;
+    const uint32 def_logon_level = 3;
     const uint32 def_validation_level = 2;
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t netr_b = NULL;
     handle_t schn_b = NULL;
-    NETRESOURCE nr = {0};
     NETRESOURCE schnr = {0};
-    enum param_err perr;
+    enum param_err perr = perr_success;
     wchar16_t *computer = NULL;
+    wchar16_t *machacct = NULL;
     wchar16_t *machpass = NULL;
     wchar16_t *server = NULL;
     wchar16_t *domain = NULL;
     wchar16_t *username = NULL;
     wchar16_t *password = NULL;
+    char *computer_name = NULL;
+    char *machine_pass = NULL;
     uint32 logon_level = 0;
     uint32 validation_level = 0;
     NetrCredentials creds = {0};
     NetrValidationInfo *validation_info = NULL;
     uint8 authoritative = 0;
+    HANDLE store = (HANDLE)NULL;
+    LWPS_PASSWORD_INFO *pi = NULL;
+    char host[128] = {0};
 
     TESTINFO(t, hostname, user, pass);
 
@@ -246,20 +253,39 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("logon_level", pt_int32, &logon_level);
     PARAM_INFO("validation_level", pt_int32, &validation_level);
 
+    SET_SESSION_CREDS(pCreds);
+
+    computer_name = awc16stombs(computer);
+    machine_pass  = awc16stombs(machpass);
+
+    if (strcmp(computer_name, def_computer) == 0 &&
+        strcmp(machine_pass, def_machpass) == 0) {
+
+        SAFE_FREE(computer);
+        SAFE_FREE(machpass);
+
+        status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &store);
+        if (status != STATUS_SUCCESS) return false;
+
+        gethostname(host, sizeof(host));
+
+        status = LwpsGetPasswordByHostName(store, host, &pi);
+        if (status != STATUS_SUCCESS) return false;
+
+        machacct = wc16sdup(pi->pwszMachineAccount);
+        machpass = wc16sdup(pi->pwszMachinePassword);
+        computer = wc16sdup(pi->pwszHostname);
+
+        status = LwpsClosePasswordStore(store);
+        if (status != STATUS_SUCCESS) return false;
+    }
+
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
 
-    schn_b = TestOpenSchannel(netr_b, hostname, user, pass,
-                          server, domain, computer, machpass,
-                          rpc_c_authn_level_pkt_integrity,
-                          &creds, &schnr);
-
-#if 0
-    schn_b = TestOpenSchannel(netr_b, hostname, user, pass,
-                          server, domain, computer, machpass,
-                          rpc_c_authn_level_pkt_privacy,
-                          &creds, &schnr);
-#endif
+    status = NetrOpenSchannel(netr_b, machacct, hostname, server, domain,
+                              computer, machpass, &creds, &schn_b);
+    if (status != STATUS_SUCCESS) return false;
 
     CALL_MSRPC(status = NetrSamLogonInteractive(schn_b, &creds, server, domain, computer,
                                                 username, password,
@@ -272,7 +298,7 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
 
 close:
     FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
 cleanup:
@@ -282,6 +308,8 @@ cleanup:
     SAFE_FREE(domain);
     SAFE_FREE(username);
     SAFE_FREE(password);
+    SAFE_FREE(computer_name);
+    SAFE_FREE(machine_pass);
 
     return (status == STATUS_SUCCESS);
 }
@@ -303,9 +331,8 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     handle_t netr_b = NULL;
     handle_t schn_b = NULL;
-    NETRESOURCE nr = {0};
     NETRESOURCE schnr = {0};
-    enum param_err perr;
+    enum param_err perr = perr_success;
     wchar16_t *computer = NULL;
     wchar16_t *machpass = NULL;
     wchar16_t *server = NULL;
@@ -394,7 +421,7 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
 
 close:
     FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     if (username && password)
     {
@@ -429,9 +456,8 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     handle_t netr_b = NULL;
     handle_t schn_b = NULL;
     rpc_schannel_auth_info_t schnauth_info = {0};
-    NETRESOURCE nr = {0};
     NETRESOURCE schnr = {0};
-    enum param_err perr;
+    enum param_err perr = perr_success;
     wchar16_t *computer = NULL;
     wchar16_t *machine_acct = NULL;
     wchar16_t *machpass = NULL;
@@ -447,7 +473,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
                        &def_computer);
@@ -510,7 +536,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
 
 close:
     FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
 cleanup:
@@ -535,8 +561,7 @@ int TestNetlogonCredentials(struct test *t, const wchar16_t *hostname,
     const char *def_clichal = "0123";
     const char *def_srvchal = "4567";
 
-    NETRESOURCE nr = {0};
-    enum param_err perr;
+    enum param_err perr = perr_success;
     wchar16_t *machpass, *computer;
     char *clichal, *srvchal;
     size_t clichal_len, srvchal_len;
@@ -582,7 +607,7 @@ int TestNetlogonCredentials(struct test *t, const wchar16_t *hostname,
                         NETLOGON_NET_ADS_FLAGS);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     return true;
 }
@@ -596,15 +621,14 @@ int TestNetlogonEnumTrustedDomains(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t netr_b;
-    NETRESOURCE nr = {0};
-    enum param_err perr;
+    enum param_err perr = perr_success;
     wchar16_t *server = NULL;
     uint32 count = 0;
     NetrDomainTrust *trusts = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "server", pt_w16string, &server,
                        &def_server);
@@ -622,7 +646,7 @@ int TestNetlogonEnumTrustedDomains(struct test *t, const wchar16_t *hostname,
     status = NetrFreeMemory((void*)trusts);
 
     FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     SAFE_FREE(server);
@@ -647,15 +671,14 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     handle_t netr_b = NULL;
-    NETRESOURCE nr = {0};
-    enum param_err perr;
+    enum param_err perr = perr_success;
     uint32 trustflags = 0;
     uint32 count = 0;
     NetrDomainTrust *trusts = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "trustflags", pt_uint32, &trustflags,
                        &def_trustflags);
@@ -673,7 +696,7 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
     status = NetrFreeMemory((void*)trusts);
 
     FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     NetrDestroyMemory();

@@ -522,9 +522,8 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
     const int def_level = 0;
 
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
-    NETRESOURCE nr = {0};
     int i = 0;
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
@@ -541,7 +540,7 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return -1;
@@ -625,7 +624,7 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
     status = SamrClose(samr_binding, &conn_handle);
     if (status != 0) rpc_fail(status);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     SAFE_FREE(username);
@@ -661,9 +660,8 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     const char *testalias_desc = "TestAlias Comment";
 
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
-    NETRESOURCE nr = {0};
     uint32 user_rid = 0;
     uint32 *rids = NULL;
     uint32 *types = NULL;
@@ -690,7 +688,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -847,7 +845,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     if (aliasinfo) SamrFreeMemory((void*)aliasinfo);
@@ -882,9 +880,8 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     const char *btin_sidstr = "S-1-5-32";
 
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
-    NETRESOURCE nr = {0};
     PolicyHandle conn_handle = {0};
     PolicyHandle builtin_dom_handle = {0};
     char *sidstr = NULL;
@@ -893,7 +890,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -964,7 +961,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     SAFE_FREE(sidstr);
@@ -990,7 +987,6 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t samr_binding = NULL;
-    NETRESOURCE nr = {0};
     int i = 0;
     PolicyHandle conn_handle = {0};
     PolicyHandle dom_handle = {0};
@@ -998,7 +994,7 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
     DomainInfo *dominfo = NULL;
     wchar16_t *domname = NULL;
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -1042,7 +1038,7 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     if (sid) SamrFreeMemory((void*)sid);
@@ -1082,8 +1078,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t samr_binding = NULL;
-    NETRESOURCE nr = {0};
-    enum param_err perr;
+    enum param_err perr = perr_success;
     uint32 resume = 0;
     uint32 num_entries = 0;
     uint32 max_size = 0;
@@ -1105,7 +1100,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
                        &domainname, &def_domainname);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -1203,7 +1198,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     if (sid) {
@@ -1236,14 +1231,13 @@ int TestSamrEnumDomains(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t samr_binding = NULL;
-    NETRESOURCE nr = {0};
     uint32 resume = 0;
     uint32 num_entries = 0;
     uint32 max_size = 0;
     wchar16_t **enum_domains = NULL;
     PolicyHandle conn_handle = {0};
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -1269,7 +1263,7 @@ int TestSamrEnumDomains(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     return (status == STATUS_SUCCESS);
@@ -1301,9 +1295,8 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
     const char *newuser = "Testuser";
 
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
-    NETRESOURCE nr = {0};
     wchar16_t *newusername = NULL;
     wchar16_t *domname = NULL;
     uint32 rid = 0;
@@ -1317,7 +1310,7 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     /*
      * Make sure there's no account with the same name already
@@ -1367,7 +1360,7 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     if (sid) SamrFreeMemory((void*)sid);
@@ -1400,9 +1393,8 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
     const char *def_aliasname = "Testalias";
 
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
-    NETRESOURCE nr = {0};
     wchar16_t *newaliasname = NULL;
     wchar16_t *domname = NULL;
     uint32 rid = 0;
@@ -1415,7 +1407,7 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
                        &newaliasname, &def_aliasname);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     status = CleanupAlias(hostname, newaliasname);
     if (status != 0) rpc_fail(status);
@@ -1458,7 +1450,7 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     if (sid) SamrFreeMemory((void*)sid);
@@ -1497,9 +1489,8 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     RPCSTATUS rpcstatus;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_binding;
-    NETRESOURCE nr = {0};
     int newacct;
     wchar16_t *newusername, *domname;
     uint32 rid;
@@ -1528,7 +1519,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
                        &password, &testpass);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -1598,7 +1589,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     if (sid) SamrFreeMemory((void*)sid);
@@ -1622,7 +1613,6 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
                                SAMR_ACCESS_ENUM_DOMAINS |
                                SAMR_ACCESS_CONNECT_TO_SERVER;
     NTSTATUS status = STATUS_SUCCESS;
-    NETRESOURCE nr = {0};
     handle_t samr_binding1 = NULL;
     handle_t samr_binding2 = NULL;
     PolicyHandle conn_handle1 = {0};
@@ -1635,7 +1625,7 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     samr_binding1 = NULL;
     samr_binding2 = NULL;
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding1 = CreateSamrBinding(&samr_binding1, hostname);
     if (samr_binding1 == NULL) return false;
@@ -1664,7 +1654,7 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     FreeSamrBinding(&samr_binding1);
     FreeSamrBinding(&samr_binding2);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     SAFE_FREE(key1);
@@ -1683,9 +1673,8 @@ int TestSamrChangeUserPassword(struct test *t, const wchar16_t *hostname,
     const char *defnewpass = "secret";
 
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_b = NULL;
-    NETRESOURCE nr = {0};
     wchar16_t *username = NULL;
     wchar16_t *oldpassword = NULL;
     wchar16_t *newpassword = NULL;
@@ -1708,7 +1697,7 @@ int TestSamrChangeUserPassword(struct test *t, const wchar16_t *hostname,
                        &newpassword, &defnewpass);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_b = CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) return STATUS_UNSUCCESSFUL;
@@ -1736,7 +1725,7 @@ int TestSamrChangeUserPassword(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_b);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
 
@@ -1767,8 +1756,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t samr_binding;
-    NETRESOURCE nr = {0};
-    enum param_err perr;
+    enum param_err perr = perr_success;
     uint32 resume, num_entries, max_size;
     uint32 account_flags;
     wchar16_t **enum_names, *domname, *domainname;
@@ -1787,7 +1775,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -1841,7 +1829,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
     SamrClose(samr_binding, &conn_handle);
     if (status != 0) rpc_fail(status);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     if (sid) SamrFreeMemory((void*)sid);
@@ -1878,10 +1866,9 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     const uint32 def_resolvelevel = 6;
 
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_b = NULL;
     handle_t lsa_b = NULL;
-    NETRESOURCE nr = {0};
     PSID domsid = NULL;
     PolicyHandle conn_h = {0};
     PolicyHandle domain_h = {0};
@@ -1923,7 +1910,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("resolvesids", pt_int32, &resolvesids);
     PARAM_INFO("resolvelevel", pt_uint32, &resolve_level);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     status = GetSamDomainSid(&domsid, hostname);
     if (status != 0) rpc_fail(status);
@@ -2037,7 +2024,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     }
 
     FreeSamrBinding(&samr_b);
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     SAFE_FREE(username);
@@ -2091,10 +2078,9 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     const uint32 def_resolvelevel = 6;
 
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t samr_b = NULL;
     handle_t lsa_b = NULL;
-    NETRESOURCE nr = {0};
     PSID btinsid = NULL;
     PSID domsid = NULL;
     PolicyHandle lsa_h = {0};
@@ -2140,7 +2126,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("resolvesids", pt_int32, &resolvesids);
     PARAM_INFO("resolvelevel", pt_uint32, &resolve_level);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     /*
      * Resolve username to sid first
@@ -2290,7 +2276,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     FreeLsaBinding(&lsa_b);
     FreeSamrBinding(&samr_b);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     SAFE_FREE(username);
