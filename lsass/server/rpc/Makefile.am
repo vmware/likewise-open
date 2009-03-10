@@ -1,4 +1,3 @@
 SUBDIRS= \
     lsa \
-    sam \
     samr
