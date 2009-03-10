@@ -772,12 +772,182 @@ RtlSetDaclSecurityDescriptor(
                 IsDaclDefaulted);
 }
 
+static
+NTSTATUS
+RtlpGetSizeUsedSecurityDescriptor(
+    IN PSECURITY_DESCRIPTOR_ABSOLUTE SecurityDescriptor,
+    OUT PULONG SizeUsed
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG size = SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE;
+    USHORT aclSizeUsed = 0;
+
+    if (!NT_SUCCESS(RtlpVerifySecurityDescriptorHeader(SecurityDescriptor)))
+    {
+        GOTO_CLEANUP();
+    }
+
+    // Check non-control fields
+
+    if (SecurityDescriptor->Owner)
+    {
+        if (!RtlValidSid(SecurityDescriptor->Owner))
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+            GOTO_CLEANUP();
+        }
+        size += RtlLengthSid(SecurityDescriptor->Owner);
+    }
+
+    if (SecurityDescriptor->Group)
+    {
+        if (!RtlValidSid(SecurityDescriptor->Group))
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+            GOTO_CLEANUP();
+        }
+        size += RtlLengthSid(SecurityDescriptor->Group);
+    }
+
+    if (SecurityDescriptor->Dacl)
+    {
+        if (!RtlValidAcl(SecurityDescriptor->Dacl, &aclSizeUsed))
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+            GOTO_CLEANUP();
+        }
+        size += aclSizeUsed;
+    }
+
+    if (SecurityDescriptor->Sacl)
+    {
+        if (!RtlValidAcl(SecurityDescriptor->Sacl, &aclSizeUsed))
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+            GOTO_CLEANUP();
+        }
+        size += aclSizeUsed;
+    }
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    *SizeUsed = NT_SUCCESS(status) ? size : 0;
+    return status;
+}
+
 NTSTATUS
 RtlAbsoluteToSelfRelativeSD(
     IN PSECURITY_DESCRIPTOR_ABSOLUTE AbsoluteSecurityDescriptor,
     OUT PSECURITY_DESCRIPTOR_RELATIVE SelfRelativeSecurityDescriptor,
     IN OUT PULONG BufferLength
-    );
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG sizeRequired = 0;
+    ULONG offset = 0;
+    ULONG size = 0;
+
+    if (!AbsoluteSecurityDescriptor ||
+        !SelfRelativeSecurityDescriptor ||
+        !BufferLength)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    size = *BufferLength;
+
+    if (!RtlValidSecurityDescriptor(AbsoluteSecurityDescriptor))
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        GOTO_CLEANUP();
+    }
+
+    status = RtlpGetSizeUsedSecurityDescriptor(
+                    AbsoluteSecurityDescriptor,
+                    &sizeRequired);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    // Use self-relative header size
+    sizeRequired -= SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE;
+    sizeRequired += SECURITY_DESCRIPTOR_RELATIVE_MIN_SIZE;
+
+    if (sizeRequired > size)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        GOTO_CLEANUP();
+    }
+
+    SelfRelativeSecurityDescriptor->Revision = LW_HTOL8(AbsoluteSecurityDescriptor->Revision);
+    SelfRelativeSecurityDescriptor->Sbz1 = LW_HTOL8(AbsoluteSecurityDescriptor->Sbz1);
+    SelfRelativeSecurityDescriptor->Control = LW_HTOL16(AbsoluteSecurityDescriptor->Control | SE_SELF_RELATIVE);
+
+    offset = SECURITY_DESCRIPTOR_RELATIVE_MIN_SIZE;
+
+    if (AbsoluteSecurityDescriptor->Owner)
+    {
+        ULONG used = 0;
+        status = RtlpEncodeLittleEndianSid(
+                        AbsoluteSecurityDescriptor->Owner,
+                        LwRtlOffsetToPointer(SelfRelativeSecurityDescriptor, offset),
+                        size - offset,
+                        &used);
+        GOTO_CLEANUP_ON_STATUS(status);
+        SelfRelativeSecurityDescriptor->Owner = LW_HTOL32(offset);
+        offset += used;
+    }
+
+    if (AbsoluteSecurityDescriptor->Group)
+    {
+        ULONG used = 0;
+        status = RtlpEncodeLittleEndianSid(
+                        AbsoluteSecurityDescriptor->Group,
+                        LwRtlOffsetToPointer(SelfRelativeSecurityDescriptor, offset),
+                        size - offset,
+                        &used);
+        GOTO_CLEANUP_ON_STATUS(status);
+        SelfRelativeSecurityDescriptor->Group = LW_HTOL32(offset);
+        offset += used;
+    }
+
+    if (AbsoluteSecurityDescriptor->Dacl)
+    {
+        ULONG used = 0;
+        status = RtlpEncodeLittleEndianAcl(
+                        AbsoluteSecurityDescriptor->Dacl,
+                        LwRtlOffsetToPointer(SelfRelativeSecurityDescriptor, offset),
+                        size - offset,
+                        &used);
+        GOTO_CLEANUP_ON_STATUS(status);
+        SelfRelativeSecurityDescriptor->Dacl = LW_HTOL32(offset);
+        offset += used;
+    }
+
+    if (AbsoluteSecurityDescriptor->Sacl)
+    {
+        ULONG used = 0;
+        status = RtlpEncodeLittleEndianAcl(
+                        AbsoluteSecurityDescriptor->Sacl,
+                        LwRtlOffsetToPointer(SelfRelativeSecurityDescriptor, offset),
+                        size - offset,
+                        &used);
+        GOTO_CLEANUP_ON_STATUS(status);
+        SelfRelativeSecurityDescriptor->Sacl = LW_HTOL32(offset);
+        offset += used;
+    }
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (BufferLength)
+    {
+        *BufferLength = sizeRequired;
+    }
+
+    return status;
+}
 
 NTSTATUS
 RtlSelfRelativeToAbsoluteSD(
@@ -792,4 +962,8 @@ RtlSelfRelativeToAbsoluteSD(
     IN OUT PULONG OwnerSize,
     OUT PSID PrimaryGroup,
     IN OUT PULONG PrimaryGroupSize
-    );
+    )
+{
+    // TODO-Add implementation.
+    return STATUS_NOT_IMPLEMENTED;
+}

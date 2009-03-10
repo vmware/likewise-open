@@ -99,3 +99,19 @@ RtlpIsValidLittleEndianAclBuffer(
     IN ULONG BufferSize,
     OUT PULONG BufferUsed
     );
+
+NTSTATUS
+RtlpEncodeLittleEndianSid(
+    IN PSID Sid,
+    OUT PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    );
+
+NTSTATUS
+RtlpEncodeLittleEndianAcl(
+    IN PACL Acl,
+    OUT PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    );

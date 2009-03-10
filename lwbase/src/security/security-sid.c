@@ -192,6 +192,43 @@ cleanup:
     return NT_SUCCESS(status);
 }
 
+NTSTATUS
+RtlpEncodeLittleEndianSid(
+    IN PSID Sid,
+    OUT PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID littleEndianSid = (PSID) Buffer;
+    ULONG size = RtlLengthSid(Sid);
+    ULONG i = 0;
+
+    if (BufferSize < size)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        GOTO_CLEANUP();
+    }
+
+    // single-byte parts
+    littleEndianSid->Revision = LW_HTOL8(Sid->Revision);
+    littleEndianSid->SubAuthorityCount = LW_HTOL8(Sid->SubAuthorityCount);
+    littleEndianSid->IdentifierAuthority = Sid->IdentifierAuthority;
+
+    for (i = 0; i < Sid->SubAuthorityCount; i++)
+    {
+        littleEndianSid->SubAuthority[i] = LW_HTOL32(Sid->SubAuthority[i]);
+    }
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    *BufferUsed = NT_SUCCESS(status) ? size : 0;
+
+    return status;
+}
+
 //
 // SID <-> String Conversion Functions
 //

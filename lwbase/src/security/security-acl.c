@@ -1335,3 +1335,91 @@ cleanup:
     return NT_SUCCESS(status);
 }
 
+NTSTATUS
+RtlpEncodeLittleEndianAcl(
+    IN PACL Acl,
+    OUT PVOID Buffer,
+    IN ULONG BufferSize,
+    OUT PULONG BufferUsed
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PACL littleEndianAcl = (PACL) Buffer;
+    USHORT size = 0;
+    ULONG i = 0;
+    ULONG offset = 0;
+
+    if (!RtlValidAcl(Acl, &size))
+    {
+        status = STATUS_INVALID_ACL;
+        GOTO_CLEANUP();
+    }
+
+    if (BufferSize < size)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        GOTO_CLEANUP();
+    }
+
+    littleEndianAcl->AclRevision = LW_HTOL8(Acl->AclRevision);
+    littleEndianAcl->Sbz1 = LW_HTOL8(Acl->Sbz1);
+    littleEndianAcl->AclSize = LW_HTOL16(size);
+    littleEndianAcl->AceCount = LW_HTOL16(Acl->AceCount);
+    littleEndianAcl->Sbz2 = LW_HTOL16(Acl->Sbz2);
+
+    // Handle ACEs.  Note that the size has already been verified.
+    offset = sizeof(ACL);
+    for (i = 0; i < Acl->AceCount; i++)
+    {
+        PACE_HEADER aceHeader = (PACE_HEADER) LwRtlOffsetToPointer(Acl, offset);
+        PACE_HEADER littleEndianAceHeader = (PACE_HEADER) LwRtlOffsetToPointer(littleEndianAcl, offset);
+        ULONG sidSizeUsed = 0;
+
+        littleEndianAceHeader->AceType = LW_HTOL8(aceHeader->AceType);
+        littleEndianAceHeader->AceFlags = LW_HTOL8(aceHeader->AceFlags);
+        littleEndianAceHeader->AceSize = LW_HTOL16(aceHeader->AceSize);
+
+        switch (aceHeader->AceType)
+        {
+            case ACCESS_ALLOWED_ACE_TYPE:
+            case ACCESS_DENIED_ACE_TYPE:
+            case SYSTEM_AUDIT_ACE_TYPE:
+            {
+                PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE) aceHeader;
+                PACCESS_ALLOWED_ACE littleEndianAce = (PACCESS_ALLOWED_ACE) littleEndianAceHeader;
+
+                littleEndianAce->Mask = LW_HTOL32(ace->Mask);
+
+                status = RtlpEncodeLittleEndianSid(
+                                (PSID) &ace->SidStart,
+                                &littleEndianAce->SidStart,
+                                aceHeader->AceSize - sizeof(ACE_HEADER),
+                                &sidSizeUsed);
+                if (!NT_SUCCESS(status))
+                {
+                    status = STATUS_ASSERTION_FAILURE;
+                }
+                GOTO_CLEANUP_ON_STATUS(status);
+                break;
+            }
+            default:
+                status = STATUS_INVALID_ACL;
+                GOTO_CLEANUP();
+        }
+
+        offset += aceHeader->AceSize;
+    }
+
+    if (offset != size)
+    {
+        status = STATUS_ASSERTION_FAILURE;
+        GOTO_CLEANUP();
+    }
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    *BufferUsed = NT_SUCCESS(status) ? size : 0;
+
+    return status;
+}
