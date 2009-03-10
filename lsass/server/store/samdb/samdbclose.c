@@ -2,7 +2,7 @@
 
 DWORD
 SamDbClose(
-    HANDLE hDirectory
+    HANDLE hDb
     )
 {
     DWORD dwError = 0;

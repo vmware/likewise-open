@@ -41,6 +41,7 @@
 
 #include "dsprovider.h"
 
+#include "samdbdefs.h"
 #include "samdbstructs.h"
 #include "samdb.h"
 #include "samdbdn.h"
