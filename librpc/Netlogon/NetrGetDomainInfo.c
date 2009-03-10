@@ -35,7 +35,8 @@
 #include "includes.h"
 
 
-NTSTATUS NetrGetDomainInfo(
+NTSTATUS
+NetrGetDomainInfo(
     handle_t b,
     NetrCredentials *creds,
     const wchar16_t *server,
