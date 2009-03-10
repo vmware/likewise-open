@@ -8,7 +8,7 @@ SamDbSearchObject(
     PWSTR Filter,
     PWSTR Attributes[],
     ULONG AttributesOnly,
-    PDIRECTORY_VALUES* ppDirectoryValues,
+    PATTRIBUTE_VALUE* ppDirectoryValues,
     PDWORD pdwNumValues
     )
 {
@@ -72,7 +72,7 @@ SamDbSearchUsers(
     ULONG Scope,
     PWSTR Attributes[],
     ULONG AttributesOnly,
-    PDIRECTORY_VALUES * ppDirectoryValues,
+    PATTRIBUTE_VALUE * ppDirectoryValues,
     PDWORD pdwNumValues
     )
 {
@@ -89,7 +89,7 @@ SamDbSearchGroups(
     ULONG Scope,
     PWSTR Attributes[],
     ULONG AttributesOnly,
-    PDIRECTORY_VALUES * ppDirectoryValues,
+    PATTRIBUTE_VALUE * ppDirectoryValues,
     PDWORD pdwNumValues
     )
 {
@@ -105,7 +105,7 @@ SamDbSearchDomains(
     ULONG Scope,
     PWSTR Attributes[],
     ULONG AttributesOnly,
-    PDIRECTORY_VALUES * ppDirectoryValues,
+    PATTRIBUTE_VALUE * ppDirectoryValues,
     PDWORD pdwNumValues
     )
 {

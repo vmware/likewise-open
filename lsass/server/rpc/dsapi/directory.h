@@ -1,3 +1,6 @@
+#ifndef __DIRECTORY_H__
+#define __DIRECTORY_H__
+
 #define  TYPE_BOOLEAN           1
 #define  TYPE_INTEGER           2
 #define  TYPE_LARGE_INTEGER     3
@@ -5,41 +8,15 @@
 #define  TYPE_OCTET_STRING      5
 #define  TYPE_PRINTABLE_STRING  6
 
+typedef enum
+{
+    LOCAL_SAM = 0
+} DirectoryType;
 
-typedef struct _OCTET_STRING {
-    ULONG ulNumBytes;
-    PBYTE pBytes
-} OCTET_STRING, *POCTET_STRING;
-
-typedef struct _ATTRIBUTE_VALUE {
-    ULONG Type;
-    union {
-        ULONG uLongValue;
-        PWSTR pszStringValue;
-        BOOL  bBooleanValue;
-        POCTET_STRING pOctetString;
-    }
-} ATTRIBUTE_VALUE, *PATTRIBUTE_VALUE;
-
-
-typedef struct _DIRECTORY_ATTRIBUTE {
-    PWSTR AttributeName;
-    ULONG ulNumValues;
-    PATTRIBUTE_VALUE * ppAttributeValues;
-} DIRECTORY_ATTRIBUTE, *PDIRECTORY_ATTRIBUTE;
-
-typedef struct _DIRECTORY_MOD {
-    ULONG Operation;
-    PWSTR AttributeName;
-    ULONG ulType;
-    ULONG ulNumValues;
-    PDIRECTORY_VALUE *pAttribuValues;
-} DIRECTORY_MOD, *PDIRECTORY_MOD;
-
-typedef struct _DIRECTORY_ENTRY{
-    ULONG ulNumAttributes;
-    PDIRECTORY_ATTRIBUTE * ppDirectoryAttributes;
-}DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
+typedef struct _DIRECTORY_CONTEXT {
+    DirectoryType directoryType;
+    HANDLE        hBindHandle;
+} DIRECTORY_CONTEXT, *PDIRECTORY_CONTEXT;
 
 #define ENTRY(i, ppDirectoryEntry) = *(ppDirectoryEntry + i)
 #define ATTRIBUTE(i, ppDirectoryAttributes) = *(ppDirectoryAttributes + i)
@@ -54,22 +31,22 @@ typedef struct _DIRECTORY_ENTRY{
 #define NT_SECURITY_DESCRIPTOR_LENGTH(pValue) = pValue->pNTSecurityDescriptor->ulNumBytes;
 #define NT_SECURITY_DESCRIPTOR_DATA(pValue) = pValue->pNTSecurityDescriptor->pBytes;
 
-NTSTATUS
+DWORD
 DirectoryAddObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,
-    PDIRECTORY_MODS Attributes[]
+    DIRECTORY_MOD Attributes[]
     );
 
 
-NTSTATUS
+DWORD
 DirectoryModifyObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,
-    PDIRECTORY_MODS Modifications[]
+    DIRECTORY_MOD Modifications[]
     );
 
-NTSTATUS
+DWORD
 DirectorySearch(
     HANDLE hDirectory,
     PWSTR Base,
@@ -77,12 +54,15 @@ DirectorySearch(
     PWSTR Filter,
     PWSTR Attributes[],
     ULONG AttributesOnly,
-    PDIRECTORY_ENTRY * ppDirectoryEntries
+    PATTRIBUTE_VALUE * ppDirectoryEntries,
     PDWORD pdwNumValues
     );
 
-NTSTATUS
+DWORD
 DirectoryDeleteObject(
     HANDLE hBindHandle,
-    PWSTR ObjectDN,
+    PWSTR ObjectDN
     );
+
+#endif /* __DIRECTORY_H__ */
+

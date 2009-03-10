@@ -31,8 +31,6 @@
 #include "config.h"
 #include "lsasystem.h"
 
-#include <sqlite3.h>
-
 #include "lsa/lsa.h"
 #include <lw/ntstatus.h>
 
@@ -41,11 +39,7 @@
 
 #include "dsprovider.h"
 
-#include "samdbstructs.h"
-#include "samdb.h"
-#include "samdbdn.h"
-
-#include "externs.h"
+#include "directory.h"
 
 /*
 local variables:

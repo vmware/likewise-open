@@ -1,10 +1,10 @@
 #include "includes.h"
 
 DWORD
-SamDBBind(
+SamDbBind(
     HANDLE hDirectory,
-    PWSTR  DistinguishedName,
-    PWSTR  Credential,
+    PWSTR  pwszDistinguishedName,
+    PWSTR  pwszCredential,
     ULONG  ulMethod
     )
 {

@@ -48,29 +48,14 @@
  */
 #include "includes.h"
 
-NTSTATUS
+DWORD
 DirectoryAddObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,
-    PDIRECTORY_MODS Attributes[]
+    DIRECTORY_MOD Attributes[]
     )
 {
-    NTSTATUS ntStatus = 0;
-    PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    DWORD dwError = 0;
 
-   switch(pDirectoryContext->DirectoryType) {
-
-        case LOCAL_SAM:
-            ntStatus = LocalSamAddObject(
-                            pDirectoryContext->hBindHandle,
-                            ObjectDN,
-                            Attributes
-                            );
-            break;
-
-        default:
-            break;
-    }
-
-    return ntStatus;
+    return dwError;
 }

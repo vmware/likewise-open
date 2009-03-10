@@ -1,7 +1,7 @@
 #include "includes.h"
 
 DWORD
-SamDBDeleteObject(
+SamDbDeleteObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN
     )

@@ -48,25 +48,14 @@
  */
 #include "includes.h"
 
-NTSTATUS
+DWORD
 DirectoryClose(
-    HANDLE hDirectory,
+    HANDLE hDirectory
     )
 {
-    NTSTATUS ntStatus = 0;
-    PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    DWORD dwError = 0;
 
-   switch(pDirectoryContext->DirectoryType) {
 
-        case LOCAL_SAM:
-            ntStatus = LocalSamClose(
-                            pDirectoryContext->hBindHandle,
-                            );
-            break;
-
-        default:
-            break;
-    }
-
-    return ntStatus;
+    return dwError;
 }
+

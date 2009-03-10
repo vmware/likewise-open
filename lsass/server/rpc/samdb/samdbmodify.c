@@ -1,10 +1,10 @@
 #include "includes.h"
 
 DWORD
-SamDBModifyObject(
+SamDbModifyObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,
-    DIRECTORY_MODS Modifications[]
+    DIRECTORY_MOD Modifications[]
     )
 {
     DWORD dwError = 0;
@@ -43,7 +43,7 @@ DWORD
 SamDbModifyUser(
     HANDLE hDirectory,
     PWSTR pszObjectName,
-    DIRECTORY_MODS Modifications[]
+    DIRECTORY_MOD Modifications[]
     )
 {
     DWORD dwError = 0;
@@ -55,7 +55,7 @@ DWORD
 SamDbModifyGroup(
     HANDLE hDirectory,
     PWSTR pszObjectName,
-    DIRECTORY_MODS Modifications[]
+    DIRECTORY_MOD Modifications[]
     )
 {
     DWORD dwError = 0;

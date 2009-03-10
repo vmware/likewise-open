@@ -1,8 +1,8 @@
 #include "includes.h"
 
 DWORD
-DirectoryOpen(
-    VOID
+SamDbOpen(
+    PHANDLE phDb
     )
 {
     DWORD dwError = 0;

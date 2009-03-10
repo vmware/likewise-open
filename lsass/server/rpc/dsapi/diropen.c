@@ -48,8 +48,12 @@
  */
 #include "includes.h"
 
-NTSTATUS
-DirectoryOpen()
+DWORD
+DirectoryOpen(
+    PHANDLE phDirectory
+    )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }

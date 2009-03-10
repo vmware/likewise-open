@@ -48,7 +48,7 @@
  */
 #include "includes.h"
 
-NTSTATUS
+DWORD
 DirBind(
     HANDLE hDirectory,
     PWSTR  DistinguishedName,
@@ -56,23 +56,7 @@ DirBind(
     ULONG  ulMethod
     )
 {
-    NTSTATUS ntStatus = 0;
-    PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    DWORD dwError = 0;
 
-   switch(pDirectoryContext->DirectoryType) {
-
-        case LOCAL_SAM:
-            ntStatus = LocalSamBind(
-                            pDirectoryContext->hBindHandle,
-                            DistinguishedName,
-                            Credential,
-                            ulMethod
-                            );
-            break;
-
-        default:
-            break;
-    }
-
-    return ntStatus;
+    return dwError;
 }

@@ -1,7 +1,7 @@
 #include "includes.h"
 
 DWORD
-SamDBClose(
+SamDbClose(
     HANDLE hDirectory
     )
 {

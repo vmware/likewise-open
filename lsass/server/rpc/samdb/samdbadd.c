@@ -2,9 +2,10 @@
 #include "includes.h"
 
 DWORD
-SamDBAddObject(
+SamDbAddObject(
     HANDLE hBindHandle,
-    PWSTR ObjectDN
+    PWSTR ObjectDN,
+    DIRECTORY_MOD Modifications[]
     )
 {
     DWORD dwError = 0;
@@ -18,16 +19,18 @@ SamDBAddObject(
     switch (dwType) {
 
         case SAMDB_USER:
-            dwError = SamDbDeleteUser(
+            dwError = SamDbAddUser(
                         pDirectoryContext,
-                        pwszObjectName
+                        pwszObjectName,
+                        Modifications
                         );
             break;
 
         case SAMDB_GROUP:
-            dwError = SamDbDeleteGroup(
+            dwError = SamDbAddGroup(
                         pDirectoryContext,
-                        pwszObjectName
+                        pwszObjectName,
+                        Modifications
                         );
             break;
     }
@@ -41,7 +44,7 @@ DWORD
 SamDbAddUser(
     HANDLE hDirectory,
     PWSTR pszObjectName,
-    DIRECTORY_MODS Modifications[]
+    DIRECTORY_MOD Modifications[]
     )
 {
     DWORD dwError = 0;
@@ -52,7 +55,8 @@ SamDbAddUser(
 DWORD
 SamDbAddGroup(
     HANDLE hDirectory,
-    PWSTR pszObjectName
+    PWSTR pszObjectName,
+    DIRECTORY_MOD Modifications[]
     )
 {
     DWORD dwError = 0;

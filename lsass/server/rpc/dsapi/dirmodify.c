@@ -48,29 +48,14 @@
  */
 #include "includes.h"
 
-NTSTATUS
+DWORD
 DirectoryModifyObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,
-    PDIRECTORY_MODS Modifications[]
+    DIRECTORY_MOD Modifications[]
     )
 {
-    NTSTATUS ntStatus = 0;
-    PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    DWORD dwError = 0;
 
-   switch(pDirectoryContext->DirectoryType) {
-
-        case LOCAL_SAM:
-            ntStatus = LocalSamModifyObject(
-                            pDirectoryContext->hBindHandle,
-                            ObjectDN,
-                            Modifications
-                            );
-            break;
-
-        default:
-            break;
-    }
-
-    return ntStatus;
+    return dwError;
 }

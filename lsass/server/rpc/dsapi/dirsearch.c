@@ -48,7 +48,7 @@
  */
 #include "includes.h"
 
-NTSTATUS
+DWORD
 DirectorySearch(
     HANDLE hDirectory,
     PWSTR Base,
@@ -56,31 +56,11 @@ DirectorySearch(
     PWSTR Filter,
     PWSTR Attributes[],
     ULONG AttributesOnly,
-    PDIRECTORY_VALUES * ppDirectoryValues
+    PATTRIBUTE_VALUE * ppDirectoryValues,
     PDWORD pdwNumValues
     )
 {
-    NTSTATUS ntStatus = 0;
-    PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    DWORD dwError = 0;
 
-   switch(pDirectoryContext->DirectoryType) {
-
-        case LOCAL_SAM:
-            ntStatus = LocalSamBind(
-                            pDirectoryContext->hBindHandle,
-                            Base,
-                            Scope,
-                            Filter,
-                            Attributes,
-                            AttributesOnly,
-                            ppDirectoryValues,
-                            pdwNumValues
-                            );
-            break;
-
-        default:
-            break;
-    }
-
-    return ntStatus;
+    return dwError;
 }

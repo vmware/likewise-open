@@ -48,27 +48,13 @@
  */
 #include "includes.h"
 
-NTSTATUS
+DWORD
 DirectoryDeleteObject(
-    HANDLE hBindHandle,
-    PWSTR ObjectDN,
+    HANDLE hDirectory,
+    PWSTR ObjectDN
     )
 {
-    NTSTATUS ntStatus = 0;
-    PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    DWORD dwError = 0;
 
-   switch(pDirectoryContext->DirectoryType) {
-
-        case LOCAL_SAM:
-            ntStatus = LocalSamDeleteObject(
-                            pDirectoryContext->hBindHandle,
-                            ObjectDN
-                            );
-            break;
-
-        default:
-            break;
-    }
-
-    return ntStatus;
+    return dwError;
 }

@@ -817,6 +817,7 @@ AC_CONFIG_FILES([Makefile
                  server/rpc/lsa/Makefile
                  server/rpc/samr/Makefile
 		 server/rpc/samdb/Makefile
+		 server/rpc/dsapi/Makefile
                  access/Makefile
                  auth/Makefile
                  auth/common/Makefile
