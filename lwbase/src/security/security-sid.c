@@ -37,6 +37,9 @@
  */
 
 #include "security-includes.h"
+// TODO-Move s*printf replacement functions to rtlstring.h
+// For snprintf
+#include <stdio.h>
 
 //
 // SID Functions
@@ -267,13 +270,115 @@ NTSTATUS
 RtlAllocateWC16StringFromSid(
     OUT PWSTR* StringSid,
     IN PSID Sid
-    );
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR result = NULL;
+    PSTR convertString = NULL;
+
+    if (!StringSid)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    status = RtlAllocateCStringFromSid(&convertString, Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlWC16StringAllocateFromCString(&result, convertString);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RTL_FREE(&result);
+    }
+    RTL_FREE(&convertString);
+
+    if (StringSid)
+    {
+        *StringSid = result;
+    }
+
+    return status;
+
+}
 
 NTSTATUS
 RtlAllocateCStringFromSid(
     OUT PSTR* StringSid,
     IN PSID Sid
-    );
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSTR result = NULL;
+    size_t size = 0;
+    int count = 0;
+    ULONG i = 0;
+
+    if (!StringSid || !RtlValidSid(Sid))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    size = RTLP_STRING_SID_MAX_CHARS(Sid->SubAuthorityCount);
+
+    status = RTL_ALLOCATE(&result, CHAR, size);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    if (Sid->IdentifierAuthority.Value[0] || Sid->IdentifierAuthority.Value[1])
+    {
+        count += snprintf(result + count,
+                          size - count,
+                          "S-%u-0x%.2X%.2X%.2X%.2X%.2X%.2X",
+                          Sid->Revision,
+                          Sid->IdentifierAuthority.Value[0],
+                          Sid->IdentifierAuthority.Value[1],
+                          Sid->IdentifierAuthority.Value[2],
+                          Sid->IdentifierAuthority.Value[3],
+                          Sid->IdentifierAuthority.Value[4],
+                          Sid->IdentifierAuthority.Value[5]);
+    }
+    else
+    {
+        ULONG value = 0;
+
+        value |= (ULONG) Sid->IdentifierAuthority.Value[5];
+        value |= (ULONG) Sid->IdentifierAuthority.Value[4] << 8;
+        value |= (ULONG) Sid->IdentifierAuthority.Value[3] << 16;
+        value |= (ULONG) Sid->IdentifierAuthority.Value[2] << 24;
+
+        count += snprintf(result + count,
+                          size - count,
+                          "S-%u-%u",
+                          Sid->Revision,
+                          value);
+    }
+
+    for (i = 0; i < Sid->SubAuthorityCount; i++)
+    {
+        count += snprintf(result + count,
+                          size - count,
+                          "-%u",
+                          Sid->SubAuthority[i]);
+    }
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RTL_FREE(&result);
+    }
+
+    if (StringSid)
+    {
+        *StringSid = result;
+    }
+
+    return status;
+}
 
 static
 NTSTATUS
