@@ -120,6 +120,13 @@ LwRtlWC16StringFree(
     LW_OUT LW_PWSTR* ppszString
     );
 
+LW_BOOLEAN
+LwRtlWC16StringIsEqual(
+    LW_IN LW_PCWSTR pString1,
+    LW_IN LW_PCWSTR pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    );
+
 // UNICODE_STRING strings
 
 // TODO: Deprecate in favor of Ex version
@@ -261,6 +268,8 @@ LwRtlAnsiStringParseULONG(
     LwRtlWC16StringDuplicate(NewString, OriginalString)
 #define RtlWC16StringFree(String) \
     LwRtlWC16StringFree(String)
+#define RtlWC16StringIsEqual(String1, String2, IsCaseSensitive) \
+    LwRtlWC16StringIsEqual(String1, String2, IsCaseSensitive)
 
 #define RtlUnicodeStringInit(DestinationString, SourceString) \
     LwRtlUnicodeStringInit(DestinationString, SourceString)

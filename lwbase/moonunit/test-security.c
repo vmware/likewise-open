@@ -65,8 +65,8 @@ MU_TEST(Security, 0000_SidInitialize)
 MU_TEST(Security, 0001_SidFromCString)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSID sid = NULL;
     PSTR initialSidString = "S-1-5-21-100-200-300-500";
+    PSID sid = NULL;
     PSTR parsedSidString = NULL;
 
     status = RtlAllocateSidFromCString(&sid, initialSidString);
@@ -76,6 +76,33 @@ MU_TEST(Security, 0001_SidFromCString)
     MU_ASSERT_STATUS_SUCCESS(status);
 
     MU_ASSERT(RtlCStringIsEqual(initialSidString, parsedSidString, FALSE));
+
+    RTL_FREE(&parsedSidString);
+    RTL_FREE(&sid);
+}
+
+MU_TEST(Security, 0001_SidFromWC16String)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSTR initialSidStringA = "S-1-5-21-100-200-300-500";
+    PWSTR initialSidString = NULL;
+    PSID sid = NULL;
+    PWSTR parsedSidString = NULL;
+
+    status = RtlWC16StringAllocateFromCString(&initialSidString, initialSidStringA);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    status = RtlAllocateSidFromWC16String(&sid, initialSidString);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    status = RtlAllocateWC16StringFromSid(&parsedSidString, sid);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    MU_ASSERT(RtlWC16StringIsEqual(initialSidString, parsedSidString, FALSE));
+
+    RTL_FREE(&parsedSidString);
+    RTL_FREE(&sid);
+    RTL_FREE(&initialSidString);
 }
 
 MU_TEST(Security, 0002_SidChange)
