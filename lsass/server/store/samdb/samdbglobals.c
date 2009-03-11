@@ -7,15 +7,7 @@
 
 #include "includes.h"
 
-PSTR gSamDbProviderName = "Likewise SAM Local Database";
-
-DIRECTORY_PROVIDER_FUNCTION_TABLE gSamDbProviderAPITable =
-{
-        .pfnDirectoryOpen   = &SamDbOpen,
-        .pfnDirectoryBind   = &SamDbBind,
-        .pfnDirectoryAdd    = &SamDbAddObject,
-        .pfnDirectoryModify = &SamDbModifyObject,
-        .pfnDirectoryDelete = &SamDbDeleteObject,
-        .pfnDirectorySearch = &SamDbSearchObject,
-        .pfnDirectoryClose  = &SamDbClose
-};
+SAM_GLOBALS gSamGlobals =
+    {
+        PTHREAD_MUTEX_INITIALIZER
+    };

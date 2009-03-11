@@ -40,11 +40,15 @@
 #include "lsaunistr.h"
 
 #include "dsprovider.h"
+#include "directory.h"
 
 #include "samdbdefs.h"
 #include "samdbstructs.h"
 #include "samdb.h"
 #include "samdbdn.h"
+#include "samdbmisc.h"
+#include "samdblock.h"
+#include "samdbcontext.h"
 
 #include "externs.h"
 

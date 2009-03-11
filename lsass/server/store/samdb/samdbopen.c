@@ -2,16 +2,18 @@
 
 DWORD
 SamDbOpen(
-    PHANDLE phDb
+    PHANDLE phDirectory
     )
 {
     DWORD dwError = 0;
-    sqlite3* pDbHandle = NULL;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
 
-    dwError = sqlite3_open(SAM_DB, &pDbHandle);
-    BAIL_ON_LSA_ERROR(dwError);
+    dwError = SamDbBuildDirectoryContext(
+                    gSamGlobals.pDbInstanceLock,
+                    &pDirContext);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-    *phDb = (HANDLE)pDbHandle;
+    *phDirectory = (HANDLE)pDirContext;
 
 cleanup:
 
@@ -19,10 +21,11 @@ cleanup:
 
 error:
 
-    *(phDb) = (HANDLE)NULL;
+    *(phDirectory) = (HANDLE)NULL;
 
-    if (pDbHandle) {
-        sqlite3_close(pDbHandle);
+    if (pDirContext)
+    {
+        SamDbFreeDirectoryContext(pDirContext);
     }
 
     goto cleanup;

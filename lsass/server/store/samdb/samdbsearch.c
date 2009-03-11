@@ -19,7 +19,7 @@ SamDbSearchObject(
                     Filter,
                     &dwTable
                     );
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     switch (dwTable) {
 

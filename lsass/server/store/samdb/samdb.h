@@ -1,13 +1,6 @@
 #ifndef __SAMDB_H__
 #define __SAMDB_H__
 
-typedef enum
-{
-    SAMDB_USER  = 0,
-    SAMDB_GROUP,
-    SAMDB_DOMAIN
-} SamDbEntryType;
-
 DWORD
 SamDbOpen(
     PHANDLE phDirectory

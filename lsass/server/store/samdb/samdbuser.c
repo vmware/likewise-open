@@ -105,21 +105,21 @@ SamDbInitUserTable()
                            NULL,
                            NULL,
                            &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = sqlite3_exec(pDbHandle,
                            DB_QUERY_CREATE_USERS_INSERT_TRIGGER,
                            NULL,
                            NULL,
                            &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = sqlite3_exec(pDbHandle,
                            DB_QUERY_CREATE_USERS_DELETE_TRIGGER,
                            NULL,
                            NULL,
                            &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
 error:
 

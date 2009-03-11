@@ -4,10 +4,13 @@ libsamdb_la_SOURCES =  \
         samdbadd.c     \
         samdbbind.c    \
         samdbclose.c   \
+        samdbcontext.c \
         samdbdel.c     \
         samdbglobals.c \
         samdbgroup.c   \
         samdbinit.c    \
+        samdblock.c    \
+        samdbmisc.c    \
         samdbmodify.c  \
         samdbopen.c    \
         samdbsearch.c  \

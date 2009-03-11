@@ -8,8 +8,6 @@
 #ifndef EXTERNS_H_
 #define EXTERNS_H_
 
-extern PSTR gSamDbProviderName;
-
-extern DIRECTORY_PROVIDER_FUNCTION_TABLE gSamDbProviderAPITable;
+extern SAM_GLOBALS gSamGlobals;
 
 #endif /* EXTERNS_H_ */

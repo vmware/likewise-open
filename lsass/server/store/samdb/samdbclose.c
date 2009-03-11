@@ -2,16 +2,21 @@
 
 DWORD
 SamDbClose(
-    HANDLE hDb
+    HANDLE hDirectory
     )
 {
     DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-
-    if (pDbHandle) {
-       sqlite3_close(pDbHandle);
+    if (!pDirContext)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
     }
+
+    SamDbFreeDirectoryContext(pDirContext);
+
+error:
 
     return dwError;
 }

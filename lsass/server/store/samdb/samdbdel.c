@@ -7,12 +7,12 @@ SamDbDeleteObject(
     )
 {
     DWORD dwError = 0;
-    PDIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
     PWSTR pwszObjectName = NULL;
     DWORD dwType = 0;
 
     dwError = SamDbParseDN(ObjectDN, &pwszObjectName, &dwType);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     switch (dwType) {
 
