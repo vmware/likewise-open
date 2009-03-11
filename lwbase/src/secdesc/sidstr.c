@@ -136,44 +136,6 @@ error:
     goto cleanup;
 }
 
-#if 0
-NTSTATUS
-ParseSidStringW(
-    OUT PSID* ppSid,
-    IN PCWSTR pwszSidStr
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PSTR pszSidStr = NULL;
-    PSID pSid = NULL;
-
-    BAIL_ON_NULL_PTR_PARAM(pwszSidStr);
-
-    pszSidStr = awc16stombs(pwszSidStr);
-    BAIL_ON_NULL_PTR(pszSidStr);
-
-    status = ParseSidStringA(&pSid, pszSidStr);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *ppSid = pSid;
-
-cleanup:
-    if (pszSidStr) {
-        free(pszSidStr);
-    }
-
-    return status;
-
-error:
-    if (pSid) {
-        SidFree(pSid);
-    }
-
-    *ppSid = NULL;
-    goto cleanup;
-}
-#endif
-
 NTSTATUS
 SidToStringA(
     IN PSID pSid,
@@ -272,7 +234,6 @@ error:
     goto cleanup;
 }
 
-
 void
 SidStrFreeA(
     IN OUT PSTR pszSidStr
@@ -280,7 +241,6 @@ SidStrFreeA(
 {
     RtlMemoryFree(pszSidStr);
 }
-
 
 NTSTATUS
 SidToStringW(
@@ -319,7 +279,6 @@ error:
     goto error;
 }
 
-
 void
 SidStrFreeW(
     IN OUT PWSTR pwszSidStr
@@ -327,7 +286,6 @@ SidStrFreeW(
 {
     RtlMemoryFree(pwszSidStr);
 }
-
 
 /*
 local variables:

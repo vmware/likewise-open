@@ -81,22 +81,8 @@ RtlPolHndIsEmpty(
 // SID-Related API
 //
 
-// TODO-Perhpas use non-string version instead?
+// TODO-Perhaps use non-string version instead?
 #define SID_BUILTIN_DOMAIN  "S-1-5-32"
-
-#if 0
-NTSTATUS
-RtlSidInitialize(
-    IN OUT PSID pSid,
-    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
-    IN UINT8 SubAuthorityCount
-    );
-
-ULONG
-GetSidLengthRequired(
-    IN UINT8 SubAuthorityCount
-    );
-#endif
 
 size_t
 SidGetSize(
@@ -108,44 +94,10 @@ SidGetRequiredSize(
     IN UINT8 SubAuthorityCount
     );
 
-#if 0
-UINT8
-SidGetSubAuthorityCount(
-    IN PSID pSid
-    );
-
-DWORD
-SidGetSubAuthority(
-    IN PSID pSid,
-    IN UINT8 SubAuthorityIndex
-    );
-
-NTSTATUS
-RtlSidAllocate(
-    OUT PSID* ppSid,
-    IN UINT8 SubAuthorityCount
-    );
-#endif
-
 void
 SidFree(
     IN OUT PSID pSid
     );
-
-#if 0
-UINT8*
-GetSidSubAuthorityCount(
-    IN PSID pSid
-    );
-
-NTSTATUS
-RtlSidAllocateAndInitialize(
-    OUT PSID* ppSid,
-    IN SID_IDENTIFIER_AUTHORITY Authority,
-    IN UINT8 SubAuthorityCount,
-    ...
-    );
-#endif
 
 NTSTATUS
 RtlSidAllocateResizedCopy(
@@ -154,55 +106,17 @@ RtlSidAllocateResizedCopy(
     IN PSID pSourceSid
     );
 
-#if 0
-void
-SidCopy(
-    OUT PSID pDstSid,
-    IN PSID pSrcSid
-    );
-
-NTSTATUS
-RtlSidCopyPartial(
-    OUT PSID pSid,
-    IN DWORD Size,
-    IN PSID pSourceSid
-    );
-#endif
-
 NTSTATUS
 RtlSidCopyAlloc(
     OUT PSID* ppDstSid,
     IN PSID pSrcSid
     );
 
-#if 0
-NTSTATUS
-RtlSidAppendRid(
-    OUT PSID* ppDstSid,
-    IN DWORD dwRid,
-    IN PSID pSrcSid
-    );
-
-BOOLEAN
-IsEqualSid(
-    IN PSID pS1,
-    IN PSID pS2
-    );
-#endif
-
 NTSTATUS
 ParseSidStringA(
     OUT PSID* ppSid,
     IN PCSTR pszSidStr
     );
-
-#if 0
-NTSTATUS
-ParseSidStringW(
-    OUT PSID* ppSid,
-    IN PCWSTR pwszSidStr
-    );
-#endif
 
 NTSTATUS
 SidToStringA(
@@ -225,55 +139,6 @@ void
 SidStrFreeW(
     IN OUT PWSTR pwszSidStr
     );
-
-#if 0
-//
-// MS compatibility functions
-//
-
-BOOL
-InitializeSid(
-    IN OUT PSID pSid,
-    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
-    IN UINT8 SubAuthorityCount
-    );
-
-ULONG
-GetLengthSid(
-    IN PSID pSid
-    );
-
-BOOLEAN
-IsValidSid(
-    IN PSID pSid
-    );
-
-NTSTATUS
-AllocateAndInitializeSid(
-    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
-    IN UINT8 SubAuthorityCount,
-    IN DWORD dwSubAuthority0,
-    IN DWORD dwSubAuthority1,
-    IN DWORD dwSubAuthority2,
-    IN DWORD dwSubAuthority3,
-    IN DWORD dwSubAuthority4,
-    IN DWORD dwSubAuthority5,
-    IN DWORD dwSubAuthority6,
-    IN DWORD dwSubAuthority7,
-    OUT PSID* ppSid
-    );
-
-
-#if defined(UNICODE)
-#define RtlParseSidString    RtlParseSidStringW
-#define RtlSidToString       RtlSidToStringW
-#define SidStrFree           SidStrFreeW
-#else
-#define RtlParseSidString    RtlParseSidStringA
-#define RtlSidToString       RtlSidToStringA
-#define SidStrFree           SidStrFreeA
-#endif /* defined(UNICODE) */
-#endif
 
 #endif
 

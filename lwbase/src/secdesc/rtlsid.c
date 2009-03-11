@@ -36,52 +36,6 @@
 
 #include "includes.h"
 
-#if 0
-NTSTATUS
-RtlSidInitialize(
-    IN OUT PSID pSid,
-    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
-    IN UINT8 SubAuthorityCount
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    BAIL_ON_NULL_PTR_PARAM(pSid);
-    BAIL_ON_NULL_PTR_PARAM(pAuthority);
-
-    if (SubAuthorityCount <= 0)
-    {
-        status = STATUS_INVALID_PARAMETER;
-        goto cleanup;
-    }
-
-    /* Revision number */
-    pSid->Revision = SID_REVISION;
-
-    /* Authority id */
-    pSid->IdentifierAuthority = *pAuthority;
-
-    /* Subauth count */
-    pSid->SubAuthorityCount = SubAuthorityCount;
-
-cleanup:
-    return status;
-}
-
-BOOL
-InitializeSid(
-    IN OUT PSID pSid,
-    IN PSID_IDENTIFIER_AUTHORITY pAuthority,
-    IN UINT8 SubAuthorityCount
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    status = RtlSidInitialize(pSid, pAuthority, SubAuthorityCount);
-    return (status == STATUS_SUCCESS);
-}
-#endif
-
 static
 NTSTATUS
 RtlSidCopyPartial(
@@ -102,7 +56,6 @@ RtlSidCopyPartial(
 cleanup:
     return status;
 }
-
 
 NTSTATUS
 RtlSidCopyAlloc(
@@ -133,17 +86,6 @@ error:
     goto cleanup;
 }
 
-#if 0
-NTSTATUS
-RtlSidAllocate(
-    OUT PSID* ppSid,
-    IN UINT8 SubAuthorityCount
-    )
-{
-    return RtlSidAllocateResizedCopy(ppSid, SubAuthorityCount, NULL);
-}
-#endif
-
 NTSTATUS
 RtlSidAllocateResizedCopy(
     OUT PSID* ppSid,
@@ -173,91 +115,6 @@ error:
     *ppSid = NULL;
     goto cleanup;
 }
-
-#if 0
-NTSTATUS
-RtlSidAllocateAndInitialize(
-    OUT PSID* ppSid,
-    IN SID_IDENTIFIER_AUTHORITY Authority,
-    IN UINT8 SubAuthorityCount,
-    ...
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PSID pSid = NULL;
-    DWORD dwSubAuthority = 0;
-    DWORD i = 0;
-    va_list ap;
-
-    status = RtlSidAllocateResizedCopy(&pSid, SubAuthorityCount, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = RtlSidInitialize(pSid, &Authority, SubAuthorityCount);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    va_start(ap, SubAuthorityCount);
-
-    for (i = 0; i < SubAuthorityCount; i++) {
-        dwSubAuthority = va_arg(ap, DWORD);
-        pSid->SubAuthority[i] = dwSubAuthority;
-    }
-
-    va_end(ap);
-
-    *ppSid = pSid;
-
-cleanup:
-    return status;
-
-error:
-    SidFree(pSid);
-    ppSid = NULL;
-
-    goto cleanup;
-}
-#endif
-
-#if 0
-NTSTATUS
-RtlSidAppendRid(
-    OUT PSID* ppDstSid,
-    IN DWORD dwRid,
-    IN PSID pSrcSid
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PSID pSid = NULL;
-    UINT8 SubAuthorityCount = 0;
-
-    BAIL_ON_NULL_PTR_PARAM(ppDstSid);
-    BAIL_ON_NULL_PTR_PARAM(pSrcSid);
-
-    SubAuthorityCount = SidGetSubAuthorityCount(pSrcSid) + 1;
-    if (SubAuthorityCount > SID_MAX_SUB_AUTHORITIES) {
-        status = STATUS_INVALID_SID;
-        goto error;
-    }
-
-    status = RtlSidAllocateResizedCopy(&pSid, SubAuthorityCount, pSrcSid);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    pSid->SubAuthority[SubAuthorityCount - 1] = dwRid;
-
-    *ppDstSid = pSid;
-
-cleanup:
-    return status;
-
-error:
-    if (pSid) {
-        SidFree(pSid);
-    }
-
-    *ppDstSid = NULL;
-
-    goto cleanup;
-}
-#endif
 
 /*
 local variables:
