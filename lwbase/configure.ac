@@ -126,6 +126,6 @@ AC_CONFIG_FILES([Makefile
                  include/lw/Makefile
                  include/secdesc/Makefile
                  src/Makefile
-                 testsd/Makefile])
+                 moonunit/Makefile])
 
 AC_OUTPUT
