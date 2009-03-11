@@ -277,13 +277,81 @@ NTSTATUS
 RtlAllocateUnicodeStringFromSid(
     OUT PUNICODE_STRING StringSid,
     IN PSID Sid
-    );
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR resultBuffer = NULL;
+    UNICODE_STRING result = { 0 };
+
+    if (!StringSid)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    status = RtlAllocateWC16StringFromSid(&resultBuffer, Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlUnicodeStringInitEx(&result, resultBuffer);
+    GOTO_CLEANUP_ON_STATUS(status);
+    resultBuffer = NULL;
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RtlUnicodeStringFree(&result);
+    }
+    RTL_FREE(&resultBuffer);
+
+    if (StringSid)
+    {
+        *StringSid = result;
+    }
+
+    return status;
+}
 
 NTSTATUS
 RtlAllocateAnsiStringFromSid(
     OUT PANSI_STRING StringSid,
     IN PSID Sid
-    );
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSTR resultBuffer = NULL;
+    ANSI_STRING result = { 0 };
+
+    if (!StringSid)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    status = RtlAllocateCStringFromSid(&resultBuffer, Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlAnsiStringInitEx(&result, resultBuffer);
+    GOTO_CLEANUP_ON_STATUS(status);
+    resultBuffer = NULL;
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RtlAnsiStringFree(&result);
+    }
+    RTL_FREE(&resultBuffer);
+
+    if (StringSid)
+    {
+        *StringSid = result;
+    }
+
+    return status;
+}
 
 NTSTATUS
 RtlAllocateWC16StringFromSid(
