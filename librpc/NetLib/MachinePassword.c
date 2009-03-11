@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -93,9 +93,11 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
     uint32 ktstatus = 0;
     wchar16_t *account = NULL;
     wchar16_t *dom_name = NULL;
-    wchar16_t *dns_dom_name = NULL;
+    wchar16_t *dns_dom_name_uc = NULL;
+    wchar16_t *dns_dom_name_lc = NULL;
     wchar16_t *sid = NULL;
-    wchar16_t *hostname = NULL;
+    wchar16_t *hostname_uc = NULL;
+    wchar16_t *hostname_lc = NULL;
     wchar16_t *pass = NULL;
     LWPS_PASSWORD_INFO pi = {0};
     size_t pass_len = 0;
@@ -105,8 +107,8 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
     /* various forms of principal name for keytab */
     wchar16_t *host_machine_uc = NULL;
     wchar16_t *host_machine_lc = NULL;
-    wchar16_t *host_machine_fqdn_lc = NULL;
-    wchar16_t *cifs_machine_fqdn_lc = NULL;
+    wchar16_t *host_machine_fqdn = NULL;
+    wchar16_t *cifs_machine_fqdn = NULL;
     wchar16_t *principal = NULL;
 
     account = wc16sdup(machacct_name);
@@ -115,14 +117,28 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
     dom_name = wc16sdup(domain_name);
     goto_if_no_memory_winerr(dom_name, done);
 
-    dns_dom_name = wc16sdup(dns_domain_name);
-    goto_if_no_memory_winerr(dns_dom_name, done);
+    dns_dom_name_uc = wc16sdup(dns_domain_name);
+    goto_if_no_memory_winerr(dns_dom_name_uc, done);
+
+    wc16supper(dns_dom_name_uc);
+
+    dns_dom_name_lc = wc16sdup(dns_domain_name);
+    goto_if_no_memory_winerr(dns_dom_name_lc, done);
+
+    wc16slower(dns_dom_name_lc);
 
     sid = wc16sdup(sid_str);
     goto_if_no_memory_winerr(sid, done);
 
-    hostname = wc16sdup(machine);
-    goto_if_no_memory_winerr(hostname, done);
+    hostname_uc = wc16sdup(machine);
+    goto_if_no_memory_winerr(hostname_uc, done);
+
+    wc16supper(hostname_uc);
+
+    hostname_lc = wc16sdup(machine);
+    goto_if_no_memory_winerr(hostname_lc, done);
+
+    wc16slower(hostname_lc);
 
     pass = wc16sdup(password);
     goto_if_no_memory_winerr(pass, done);
@@ -130,11 +146,11 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
     /*
      * Store the machine password first
      */
-    
+
     pi.pwszDomainName      = dom_name;
-    pi.pwszDnsDomainName   = dns_dom_name;
+    pi.pwszDnsDomainName   = dns_dom_name_lc;
     pi.pwszSID             = sid;
-    pi.pwszHostname        = hostname;
+    pi.pwszHostname        = hostname_uc;
     pi.pwszMachineAccount  = account;
     pi.pwszMachinePassword = pass;
     pi.last_change_time    = time(NULL);
@@ -179,12 +195,12 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
         goto done;
     }
 
-    ktstatus = KtGetSaltingPrincipalW(hostname, account, dns_domain_name, NULL,
+    ktstatus = KtGetSaltingPrincipalW(machine, account, dns_domain_name, NULL,
                                       dc_name, base_dn, &salt);
     if (ktstatus != 0) {
         err = NtStatusToWin32Error(STATUS_UNSUCCESSFUL);
         goto done;
-        
+
     } else if (ktstatus == 0 && salt == NULL) {
         salt = wc16sdup(principal);
     }
@@ -199,52 +215,84 @@ WINERR SaveMachinePassword(const wchar16_t *machine,
 
     /* host/MACHINE@DOMAIN.NET */
     host_machine_uc = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                          (wc16slen(hostname) + 6));
+                                          (wc16slen(hostname_uc) + 6));
     goto_if_no_memory_winerr(host_machine_uc, done);
 
-    wc16supper(hostname);
-    sw16printf(host_machine_uc, "host/%S", hostname);
+    sw16printf(host_machine_uc, "host/%S", hostname_uc);
 
     err = SavePrincipalKey(host_machine_uc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
     goto_if_winerr_not_success(err, done);
 
     /* host/machine.domain.net@DOMAIN.NET */
-    host_machine_fqdn_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                               (wc16slen(hostname) +
-                                                wc16slen(dns_domain_name) + 8));
-    goto_if_no_memory_winerr(host_machine_fqdn_lc, done);
+    host_machine_fqdn = (wchar16_t*) malloc(sizeof(wchar16_t) *
+                                               (wc16slen(hostname_lc) +
+                                                wc16slen(dns_dom_name_lc) + 8));
+    goto_if_no_memory_winerr(host_machine_fqdn, done);
 
-    sw16printf(host_machine_fqdn_lc, "host/%S.%S", hostname, dns_domain_name);
-    wc16slower(host_machine_fqdn_lc);
+    sw16printf(host_machine_fqdn, "host/%S.%S", hostname_lc, dns_dom_name_lc);
 
-    err = SavePrincipalKey(host_machine_fqdn_lc, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, NULL, salt,
+                           dc_name, kvno);
+    goto_if_winerr_not_success(err, done);
+
+    sw16printf(host_machine_fqdn, "host/%S.%S", hostname_uc, dns_dom_name_uc);
+
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, NULL, salt,
+                           dc_name, kvno);
+    goto_if_winerr_not_success(err, done);
+
+    sw16printf(host_machine_fqdn, "host/%S.%S", hostname_uc, dns_dom_name_lc);
+
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, NULL, salt,
+                           dc_name, kvno);
+    goto_if_winerr_not_success(err, done);
+
+    sw16printf(host_machine_fqdn, "host/%S.%S", hostname_lc, dns_dom_name_uc);
+
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, NULL, salt,
                            dc_name, kvno);
     goto_if_winerr_not_success(err, done);
 
     /* host/machine@DOMAIN.NET */
     host_machine_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                          (wc16slen(hostname) + 6));
+                                          (wc16slen(hostname_lc) + 6));
     goto_if_no_memory_winerr(host_machine_lc, done);
 
-    sw16printf(host_machine_lc, "host/%S", hostname);
-    wc16slower(host_machine_lc);
+    sw16printf(host_machine_lc, "host/%S", hostname_lc);
 
     err = SavePrincipalKey(host_machine_lc, pass, pass_len, NULL, salt,
                            dc_name, kvno);
     goto_if_winerr_not_success(err, done);
 
     /* cifs/machine.domain.net@DOMAIN.NET */
-    cifs_machine_fqdn_lc = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                               (wc16slen(hostname) +
-                                                wc16slen(dns_domain_name) + 8));
-    goto_if_no_memory_winerr(cifs_machine_fqdn_lc, done);
+    cifs_machine_fqdn = (wchar16_t*) malloc(sizeof(wchar16_t) *
+                                               (wc16slen(hostname_lc) +
+                                                wc16slen(dns_dom_name_lc) + 8));
+    goto_if_no_memory_winerr(cifs_machine_fqdn, done);
 
-    sw16printf(cifs_machine_fqdn_lc, "cifs/%S.%S", hostname, dns_domain_name);
-    wc16slower(cifs_machine_fqdn_lc);
+    sw16printf(cifs_machine_fqdn, "cifs/%S.%S", hostname_lc, dns_dom_name_lc);
 
-    err = SavePrincipalKey(cifs_machine_fqdn_lc, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, NULL, salt,
                            dc_name, kvno);
+    goto_if_winerr_not_success(err, done);
+
+    sw16printf(cifs_machine_fqdn, "cifs/%S.%S", hostname_uc, dns_dom_name_uc);
+
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, NULL, salt,
+                           dc_name, kvno);
+    goto_if_winerr_not_success(err, done);
+
+    sw16printf(cifs_machine_fqdn, "cifs/%S.%S", hostname_uc, dns_dom_name_lc);
+
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, NULL, salt,
+                               dc_name, kvno);
+    goto_if_winerr_not_success(err, done);
+
+    sw16printf(cifs_machine_fqdn, "cifs/%S.%S", hostname_lc, dns_dom_name_uc);
+
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, NULL, salt,
+                               dc_name, kvno);
     goto_if_winerr_not_success(err, done);
 
 done:
@@ -252,15 +300,17 @@ done:
     if (salt) KtFreeMemory(salt);
 
     SAFE_FREE(dom_name);
-    SAFE_FREE(dns_dom_name);
+    SAFE_FREE(dns_dom_name_lc);
+    SAFE_FREE(dns_dom_name_uc);
     SAFE_FREE(sid);
-    SAFE_FREE(hostname);
+    SAFE_FREE(hostname_lc);
+    SAFE_FREE(hostname_uc);
     SAFE_FREE(pass);
     SAFE_FREE(account);
     SAFE_FREE(host_machine_uc);
     SAFE_FREE(host_machine_lc);
-    SAFE_FREE(host_machine_fqdn_lc);
-    SAFE_FREE(cifs_machine_fqdn_lc);
+    SAFE_FREE(host_machine_fqdn);
+    SAFE_FREE(cifs_machine_fqdn);
     SAFE_FREE(principal);
 
     return err;
