@@ -36,6 +36,7 @@
 #include "includes.h"
 
 
+#if 0
 ULONG
 GetLengthSid(
     IN PSID pSid
@@ -44,7 +45,6 @@ GetLengthSid(
     return SidGetSize(pSid);
 }
 
-
 ULONG
 GetSidLengthRequired(
     IN UINT8 SubAuthorityCount
@@ -52,6 +52,7 @@ GetSidLengthRequired(
 {
     return SidGetRequiredSize(SubAuthorityCount);
 }
+#endif
 
 
 size_t
@@ -75,6 +76,7 @@ SidGetSize(
 }
 
 
+#if 0
 UINT8
 SidGetSubAuthorityCount(
     IN PSID pSid
@@ -96,6 +98,7 @@ SidGetSubAuthority(
 
     return (i < pSid->SubAuthorityCount) ? pSid->SubAuthority[i] : 0;
 }
+#endif
 
 void
 SidFree(
@@ -105,6 +108,7 @@ SidFree(
     RtlMemoryFree(pSid);
 }
 
+#if 0
 UINT8*
 GetSidSubAuthorityCount(
     IN PSID pSid
@@ -114,7 +118,6 @@ GetSidSubAuthorityCount(
 
     return &pSid->SubAuthorityCount;
 }
-
 
 NTSTATUS
 AllocateAndInitializeSid(
@@ -211,7 +214,6 @@ error:
     goto cleanup;
 }
 
-
 void
 SidCopy(
     OUT PSID pDstSid,
@@ -224,7 +226,6 @@ SidCopy(
     SidSize = SidGetSize(pSrcSid);
     memcpy(pDstSid, pSrcSid, SidSize);
 }
-
 
 #ifdef SID_TEST
 #undefine SID_TEST
@@ -266,7 +267,6 @@ IsValidSid(
 done:
     return valid;
 }
-
 
 #ifdef SID_CMP
 #undefine SID_CMP
@@ -311,6 +311,7 @@ IsEqualSid(
 done:
     return equal;
 }
+#endif
 
 
 

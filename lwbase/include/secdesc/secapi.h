@@ -84,6 +84,7 @@ RtlPolHndIsEmpty(
 // TODO-Perhpas use non-string version instead?
 #define SID_BUILTIN_DOMAIN  "S-1-5-32"
 
+#if 0
 NTSTATUS
 RtlSidInitialize(
     IN OUT PSID pSid,
@@ -95,6 +96,7 @@ ULONG
 GetSidLengthRequired(
     IN UINT8 SubAuthorityCount
     );
+#endif
 
 size_t
 SidGetSize(
@@ -106,6 +108,7 @@ SidGetRequiredSize(
     IN UINT8 SubAuthorityCount
     );
 
+#if 0
 UINT8
 SidGetSubAuthorityCount(
     IN PSID pSid
@@ -122,12 +125,14 @@ RtlSidAllocate(
     OUT PSID* ppSid,
     IN UINT8 SubAuthorityCount
     );
+#endif
 
 void
 SidFree(
     IN OUT PSID pSid
     );
 
+#if 0
 UINT8*
 GetSidSubAuthorityCount(
     IN PSID pSid
@@ -140,6 +145,7 @@ RtlSidAllocateAndInitialize(
     IN UINT8 SubAuthorityCount,
     ...
     );
+#endif
 
 NTSTATUS
 RtlSidAllocateResizedCopy(
@@ -148,6 +154,7 @@ RtlSidAllocateResizedCopy(
     IN PSID pSourceSid
     );
 
+#if 0
 void
 SidCopy(
     OUT PSID pDstSid,
@@ -160,6 +167,7 @@ RtlSidCopyPartial(
     IN DWORD Size,
     IN PSID pSourceSid
     );
+#endif
 
 NTSTATUS
 RtlSidCopyAlloc(
@@ -167,6 +175,7 @@ RtlSidCopyAlloc(
     IN PSID pSrcSid
     );
 
+#if 0
 NTSTATUS
 RtlSidAppendRid(
     OUT PSID* ppDstSid,
@@ -179,6 +188,7 @@ IsEqualSid(
     IN PSID pS1,
     IN PSID pS2
     );
+#endif
 
 NTSTATUS
 ParseSidStringA(
@@ -186,11 +196,13 @@ ParseSidStringA(
     IN PCSTR pszSidStr
     );
 
+#if 0
 NTSTATUS
 ParseSidStringW(
     OUT PSID* ppSid,
     IN PCWSTR pwszSidStr
     );
+#endif
 
 NTSTATUS
 SidToStringA(
@@ -214,6 +226,7 @@ SidStrFreeW(
     IN OUT PWSTR pwszSidStr
     );
 
+#if 0
 //
 // MS compatibility functions
 //
@@ -260,6 +273,7 @@ AllocateAndInitializeSid(
 #define RtlSidToString       RtlSidToStringA
 #define SidStrFree           SidStrFreeA
 #endif /* defined(UNICODE) */
+#endif
 
 #endif
 

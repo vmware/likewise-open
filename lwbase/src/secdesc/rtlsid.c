@@ -36,7 +36,7 @@
 
 #include "includes.h"
 
-
+#if 0
 NTSTATUS
 RtlSidInitialize(
     IN OUT PSID pSid,
@@ -68,7 +68,6 @@ cleanup:
     return status;
 }
 
-
 BOOL
 InitializeSid(
     IN OUT PSID pSid,
@@ -81,8 +80,9 @@ InitializeSid(
     status = RtlSidInitialize(pSid, pAuthority, SubAuthorityCount);
     return (status == STATUS_SUCCESS);
 }
+#endif
 
-
+static
 NTSTATUS
 RtlSidCopyPartial(
     OUT PSID pSid,
@@ -133,7 +133,7 @@ error:
     goto cleanup;
 }
 
-
+#if 0
 NTSTATUS
 RtlSidAllocate(
     OUT PSID* ppSid,
@@ -142,7 +142,7 @@ RtlSidAllocate(
 {
     return RtlSidAllocateResizedCopy(ppSid, SubAuthorityCount, NULL);
 }
-
+#endif
 
 NTSTATUS
 RtlSidAllocateResizedCopy(
@@ -174,7 +174,7 @@ error:
     goto cleanup;
 }
 
-
+#if 0
 NTSTATUS
 RtlSidAllocateAndInitialize(
     OUT PSID* ppSid,
@@ -215,8 +215,9 @@ error:
 
     goto cleanup;
 }
+#endif
 
-
+#if 0
 NTSTATUS
 RtlSidAppendRid(
     OUT PSID* ppDstSid,
@@ -256,7 +257,7 @@ error:
 
     goto cleanup;
 }
-
+#endif
 
 /*
 local variables:

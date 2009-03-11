@@ -136,7 +136,7 @@ error:
     goto cleanup;
 }
 
-
+#if 0
 NTSTATUS
 ParseSidStringW(
     OUT PSID* ppSid,
@@ -172,7 +172,7 @@ error:
     *ppSid = NULL;
     goto cleanup;
 }
-
+#endif
 
 NTSTATUS
 SidToStringA(
