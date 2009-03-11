@@ -551,7 +551,7 @@ guess_service_principal(
 		allow_remote = 1;
 	}
 
-	/* Try to figure out correct service principal form given
+	/* Try to figure out correct service principal from given
 	   available information */
 	if (allow_remote && givenstr) {
 		principal_fmt = "%s";
