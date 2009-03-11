@@ -308,6 +308,23 @@ RtlSelfRelativeToAbsoluteSD(
     IN OUT PULONG PrimaryGroupSize
     );
 
+NTSTATUS
+RtlQuerySecurityDescriptorInfo(
+    IN PSECURITY_INFORMATION SecurityInformation,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN OUT PULONG Length,
+    IN PSECURITY_DESCRIPTOR_RELATIVE ObjectSecurityDescriptor
+    );
+
+NTSTATUS
+RtlSetSecurityDescriptorInfo(
+    IN PSECURITY_INFORMATION SecurityInformation,
+    IN PSECURITY_DESCRIPTOR_RELATIVE InputSecurityDescriptor,
+    IN PSECURITY_DESCRIPTOR_RELATIVE ObjectSecurityDescriptor,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE* NewObjectSecurityDescriptor,
+    IN PGENERIC_MAPPING GenericMapping
+    );
+
 //
 // ACCESS_MASK Functions
 //
