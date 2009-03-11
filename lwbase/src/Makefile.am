@@ -28,10 +28,10 @@ liblwbase_la_SOURCES = \
 liblwbase_la_LIBADD = liblwbase_nothr.la
 
 libsecdesc_la_SOURCES = \
-        rtlsid.c \
-        sid.c \
-        sidstr.c \
-        rtlpolhnd.c
+        secdesc/rtlsid.c \
+        secdesc/sid.c \
+        secdesc/sidstr.c \
+        secdesc/rtlpolhnd.c
 
 libsecdesc_la_LIBADD = \
         @LIBUUID_LIBS@ \

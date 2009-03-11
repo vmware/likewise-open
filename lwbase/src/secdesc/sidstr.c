@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -70,8 +70,8 @@ ParseSidStringA(
     if (sidstr_len == 0) {
         status = STATUS_INVALID_PARAMETER;
         goto error;
-    }      
-    
+    }
+
     start = strstr(pszSidStr, sid_start);
     if (start == NULL) {
         status = STATUS_INVALID_SID;
@@ -184,8 +184,8 @@ SidToStringA(
     PSTR pszResult = NULL;
     char  sidPrefix[64];
     PSTR pszSidSuffix = NULL;
-    DWORD dwMemAllocated = 0; 
-    DWORD dwMemAvailable = 0; 
+    DWORD dwMemAllocated = 0;
+    DWORD dwMemAvailable = 0;
     DWORD dwCurOffset = 0;
     DWORD dwStrSize = 0;
     int   iSubAuth = 0;
@@ -269,7 +269,7 @@ error:
     }
 
     *ppszSidStr = NULL;
-    goto cleanup;    
+    goto cleanup;
 }
 
 

@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -36,12 +36,15 @@
 #include <assert.h>
 
 #ifdef HAVE_STRINGS_H
-#include <strings.h>
+   #include <strings.h>
 #endif
 
 #ifdef HAVE_SYS_VARARGS_H
-#include <sys/varargs.h>
+   #include <sys/varargs.h>
 #endif
 
 #include <wc16str.h>
 #include <uuid/uuid.h>
+
+#include <secdesc/secapi.h>
+#include <secdesc_p.h>
