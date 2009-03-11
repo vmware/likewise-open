@@ -35,7 +35,6 @@
 #ifndef __SECAPI_H_
 #define __SECAPI_H_
 
-//#include "sdsys.h"
 #include <secdesc/sectypes.h>
 #include <lw/attrs.h>
 #include <lw/ntstatus.h>
