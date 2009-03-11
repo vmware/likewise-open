@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Program to list groups for user
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -78,23 +78,23 @@ ParseArgs(
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
-    PSTR pszUserName = NULL;   
+    PSTR pszUserName = NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
-    
+
     if (argc != 2)
     {
         ShowUsage();
         exit(1);
     }
-    
+
     do {
         pszArg = argv[iArg++];
         if (pszArg == NULL || *pszArg == '\0')
         {
             break;
         }
-        
+
         if ((strcmp(pszArg, "--help") == 0) || (strcmp(pszArg, "-h") == 0))
         {
             ShowUsage();
@@ -117,7 +117,7 @@ ParseArgs(
     *ppszUserName = pszUserName;
 
 cleanup:
-    
+
     return dwError;
 
 error:
@@ -127,37 +127,37 @@ error:
     LSA_SAFE_FREE_STRING(pszUserName);
 
     dwError = MapErrorCode(dwError);
-    
+
     dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
-    
+
     if (dwErrorBufferSize > 0)
     {
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
-        
+
         dwError2 = LsaAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
-        
+
         if (!dwError2)
         {
             DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
-            
+
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to list groups for user.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
-        
+
         LSA_SAFE_FREE_STRING(pszErrorBuffer);
     }
-    
+
     if (bPrintOrigError)
     {
         fprintf(stderr, "Failed to list groups for user. Error code [%d]\n", dwError);
     }
-    
+
     goto cleanup;
 }
 
@@ -169,39 +169,84 @@ main(
 {
     DWORD dwError = 0;
     HANDLE hLsaConnection = (HANDLE)NULL;
-    PSTR   pszUserName = NULL;    
-    gid_t* pGid = NULL;
+    PSTR   pszUserName = NULL;
     DWORD  dwNumGroups = 0;
     DWORD  iGroup = 0;
+    LSA_FIND_FLAGS FindFlags = 0;
+    PLSA_USER_INFO_0 pUserInfo = NULL;
+    DWORD dwUserInfoLevel = 0;
+    DWORD dwGroupInfoLevel = 0;
+    PVOID* ppGroupInfoList = NULL;
 
     dwError = ParseArgs(argc, argv, &pszUserName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaGetGidsForUserByName(
+    dwError = LsaValidateUserName(pszUserName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaFindUserByName(
                   hLsaConnection,
                   pszUserName,
-                  &dwNumGroups,
-                  &pGid);
+                  dwUserInfoLevel,
+                  (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
+    dwError = LsaGetGroupsForUserById(
+                hLsaConnection,
+                pUserInfo->uid,
+                FindFlags,
+                dwGroupInfoLevel,
+                &dwNumGroups,
+                &ppGroupInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
     printf("Number of groups found for user [%s] : %d\n", pszUserName, dwNumGroups);
-    
-    for (iGroup = 0; iGroup < dwNumGroups; iGroup++)
+
+    switch(dwGroupInfoLevel)
     {
-        fprintf(stdout,
-                "Group[%d of %d] (gid = %u)\n",
-                iGroup+1,
-                dwNumGroups,
-                (unsigned int)*(pGid+iGroup));
+        case 0:
+
+            for (iGroup = 0; iGroup < dwNumGroups; iGroup++)
+            {
+                PLSA_GROUP_INFO_0* pGroupInfoList = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
+
+                fprintf(stdout,
+                        "Group[%d of %d] name = %s (gid = %u)\n",
+                        iGroup+1,
+                        dwNumGroups,
+                        pGroupInfoList[iGroup]->pszName,
+                        (unsigned int) pGroupInfoList[iGroup]->gid);
+            }
+
+            break;
+
+        default:
+            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
     }
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszUserName);    
-    LSA_SAFE_FREE_MEMORY(pGid);
+    LSA_SAFE_FREE_STRING(pszUserName);
+
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
+    }
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroups);
+    }
+
+    if (hLsaConnection)
+    {
+        LsaCloseServer(hLsaConnection);
+    }
 
     return (dwError);
 
@@ -210,7 +255,7 @@ error:
     fprintf(stderr,
             "Failed to find groups for user (%s). Error code: %d\n",
             IsNullOrEmptyString(pszUserName) ? "<null>" : pszUserName,
-            dwError); 
+            dwError);
 
     goto cleanup;
 }
@@ -221,21 +266,21 @@ MapErrorCode(
     )
 {
     DWORD dwError2 = dwError;
-    
+
     switch (dwError)
     {
         case ECONNREFUSED:
         case ENETUNREACH:
         case ETIMEDOUT:
-            
+
             dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
-            
+
             break;
-            
+
         default:
-            
+
             break;
     }
-    
+
     return dwError2;
 }
