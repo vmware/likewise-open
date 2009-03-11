@@ -869,6 +869,7 @@ main(
 {
     DWORD dwError = 0;
     rpc_binding_vector_p_t pServerBinding = NULL;
+    rpc_binding_vector_p_t pWkstaBinding = NULL;
     DWORD dwBindAttempts = 0;
     static const DWORD dwMaxBindAttempts = 5;
     static const DWORD dwBindSleepSeconds = 5;
@@ -910,7 +911,26 @@ main(
                                     &pServerBinding);
         if (dwError)
         {
-            SRVSVC_LOG_INFO("Failed to bind endpoint; retrying in %i seconds...", (int) dwBindSleepSeconds);
+            SRVSVC_LOG_INFO("Failed to bind srvsvc endpoint; retrying in %i seconds...", (int) dwBindSleepSeconds);
+            sleep(dwBindSleepSeconds);
+        }
+        else
+        {
+            break;
+        }
+    }
+    /* Bail if we still haven't succeeded after several attempts */
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    /* Now register the wkssvc pipe */
+
+    for (dwBindAttempts = 0; dwBindAttempts < dwMaxBindAttempts; dwBindAttempts++)
+    {
+        dwError = WKSSVCRegisterForRPC("Likewise Workstation Service",
+                                    &pWkstaBinding);
+        if (dwError)
+        {
+            SRVSVC_LOG_INFO("Failed to bind wkssvc endpoint; retrying in %i seconds...", (int) dwBindSleepSeconds);
             sleep(dwBindSleepSeconds);
         }
         else
@@ -947,6 +967,9 @@ main(
 
     if (pServerBinding) {
         SRVSVCUnregisterForRPC(pServerBinding);
+    }
+    if (pWkstaBinding) {
+        WKSSVCUnregisterForRPC(pWkstaBinding);
     }
 
     SRVSVCCloseLog();

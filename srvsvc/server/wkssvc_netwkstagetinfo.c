@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,33 +33,31 @@
  * Copyright (C) Likewise Software 2007
  * All rights reserved.
  *
- * SrvSvc Server
+ * NetWkstaGetInfo implementation
+ *
+ * Authors: Gerald Carter <gcarter@likewise.com>
  *
  */
-#include <config.h>
-#include <srvsvcsys.h>
 
-#include <dce/rpc.h>
-#include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
-#include <lwio/lwio.h>
-#include <lwio/ntfileapi.h>
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
+#include "includes.h"
 
-#include <srvsvc/srvsvc.h>
-#include <srvsvcutils.h>
+/********************************************************************
+ *******************************************************************/
 
-#include "srvsvc_stub.h"
-#include "wkssvc_stub.h"
+NET_API_STATUS
+WksSrvNetWkstaGetInfo(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ wchar16_t *server_name,
+    /* [in] */ uint32 level,
+    /* [out] */ wkssvc_NetWkstaInfo *info
+    )
+{
+    DWORD dwError = ERROR_NOT_SUPPORTED;
 
-#include "defs.h"
-#include "structs.h"
-#include "marshall.h"
+    info->info100 = NULL;
 
-#include "externs.h"
+    return dwError;
+}
 
 
 /*
