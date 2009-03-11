@@ -109,6 +109,14 @@ DirectoryFreeMemory(
     free(pMemory);
 }
 
+VOID
+DirectoryFreeString(
+    PWSTR pwszString
+    )
+{
+    DirectoryFreeMemory(pwszString);
+}
+
 DWORD
 DirectoryAllocateString(
     PWSTR  pwszInputString,
@@ -153,14 +161,6 @@ error:
     *ppwszOutputString = NULL;
 
     goto cleanup;
-}
-
-VOID
-DirectoryFreeString(
-    PWSTR pwszString
-    )
-{
-    DirectoryFreeMemory(pwszString);
 }
 
 VOID
