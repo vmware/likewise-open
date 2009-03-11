@@ -115,3 +115,15 @@ RtlpEncodeLittleEndianAcl(
     IN ULONG BufferSize,
     OUT PULONG BufferUsed
     );
+
+VOID
+RtlpDecodeLittleEndianSid(
+    IN PSID LittleEndianSid,
+    OUT PSID Sid
+    );
+
+VOID
+RtlpDecodeLittleEndianAcl(
+    IN PACL LittleEndianAcl,
+    OUT PACL Acl
+    );

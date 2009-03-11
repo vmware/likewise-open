@@ -214,9 +214,9 @@ RtlpEncodeLittleEndianSid(
         GOTO_CLEANUP();
     }
 
-    // single-byte parts
     littleEndianSid->Revision = LW_HTOL8(Sid->Revision);
     littleEndianSid->SubAuthorityCount = LW_HTOL8(Sid->SubAuthorityCount);
+    // sequence of bytes
     littleEndianSid->IdentifierAuthority = Sid->IdentifierAuthority;
 
     for (i = 0; i < Sid->SubAuthorityCount; i++)
@@ -230,6 +230,25 @@ cleanup:
     *BufferUsed = NT_SUCCESS(status) ? size : 0;
 
     return status;
+}
+
+VOID
+RtlpDecodeLittleEndianSid(
+    IN PSID LittleEndianSid,
+    OUT PSID Sid
+    )
+{
+    ULONG i = 0;
+
+    Sid->Revision = LW_LTOH8(LittleEndianSid->Revision);
+    Sid->SubAuthorityCount = LW_LTOH8(LittleEndianSid->SubAuthorityCount);
+    // sequence of bytes
+    Sid->IdentifierAuthority = LittleEndianSid->IdentifierAuthority;
+
+    for (i = 0; i < Sid->SubAuthorityCount; i++)
+    {
+        Sid->SubAuthority[i] = LW_LTOH32(LittleEndianSid->SubAuthority[i]);
+    }
 }
 
 //

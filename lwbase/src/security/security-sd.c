@@ -840,7 +840,7 @@ cleanup:
 NTSTATUS
 RtlAbsoluteToSelfRelativeSD(
     IN PSECURITY_DESCRIPTOR_ABSOLUTE AbsoluteSecurityDescriptor,
-    OUT PSECURITY_DESCRIPTOR_RELATIVE SelfRelativeSecurityDescriptor,
+    OUT OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE SelfRelativeSecurityDescriptor,
     IN OUT PULONG BufferLength
     )
 {
@@ -850,7 +850,6 @@ RtlAbsoluteToSelfRelativeSD(
     ULONG size = 0;
 
     if (!AbsoluteSecurityDescriptor ||
-        !SelfRelativeSecurityDescriptor ||
         !BufferLength)
     {
         status = STATUS_INVALID_PARAMETER;
@@ -858,6 +857,12 @@ RtlAbsoluteToSelfRelativeSD(
     }
 
     size = *BufferLength;
+
+    if ((size > 0) && !SelfRelativeSecurityDescriptor)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
 
     if (!RtlValidSecurityDescriptor(AbsoluteSecurityDescriptor))
     {
@@ -952,18 +957,211 @@ cleanup:
 NTSTATUS
 RtlSelfRelativeToAbsoluteSD(
     IN PSECURITY_DESCRIPTOR_RELATIVE SelfRelativeSecurityDescriptor,
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE AbsoluteSecurityDescriptor,
+    OUT OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE AbsoluteSecurityDescriptor,
     IN OUT PULONG AbsoluteSecurityDescriptorSize,
-    OUT PACL Dacl,
+    OUT OPTIONAL PACL Dacl,
     IN OUT PULONG DaclSize,
-    OUT PACL Sacl,
+    OUT OPTIONAL PACL Sacl,
     IN OUT PULONG SaclSize,
-    OUT PSID Owner,
+    OUT OPTIONAL PSID Owner,
     IN OUT PULONG OwnerSize,
-    OUT PSID PrimaryGroup,
+    OUT OPTIONAL PSID PrimaryGroup,
     IN OUT PULONG PrimaryGroupSize
     )
 {
-    // TODO-Add implementation.
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+    SECURITY_DESCRIPTOR_RELATIVE relHeader = { 0 };
+    SECURITY_DESCRIPTOR_ABSOLUTE absHeader = { 0 };
+    ULONG securityDescriptorSize = 0;
+    ULONG daclSize = 0;
+    ULONG saclSize = 0;
+    ULONG ownerSize = 0;
+    ULONG groupSize = 0;
+    ULONG securityDescriptorSizeRequired = 0;
+    ULONG daclSizeRequired = 0;
+    ULONG saclSizeRequired = 0;
+    ULONG ownerSizeRequired = 0;
+    ULONG groupSizeRequired = 0;
+
+    if (!AbsoluteSecurityDescriptorSize ||
+        !DaclSize ||
+        !SaclSize ||
+        !OwnerSize ||
+        !PrimaryGroupSize)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    securityDescriptorSize = *AbsoluteSecurityDescriptorSize;
+    daclSize = *DaclSize;
+    saclSize = *SaclSize;
+    ownerSize = *OwnerSize;
+    groupSize = *PrimaryGroupSize;
+
+    if (((securityDescriptorSize > 0) && !AbsoluteSecurityDescriptor) ||
+        ((daclSize > 0) && !Dacl) ||
+        ((saclSize > 0) && !Sacl) ||
+        ((ownerSize > 0) && !Owner) ||
+        ((groupSize > 0) && !PrimaryGroup))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    //
+    // Extract header information
+    //
+
+    relHeader.Revision = LW_LTOH8(SelfRelativeSecurityDescriptor->Revision);
+    relHeader.Sbz1 = LW_LTOH8(SelfRelativeSecurityDescriptor->Sbz1);
+    relHeader.Control = LW_LTOH16(SelfRelativeSecurityDescriptor->Control);
+    relHeader.Owner = LW_LTOH32(SelfRelativeSecurityDescriptor->Owner);
+    relHeader.Group = LW_LTOH32(SelfRelativeSecurityDescriptor->Group);
+    relHeader.Sacl = LW_LTOH32(SelfRelativeSecurityDescriptor->Sacl);
+    relHeader.Dacl = LW_LTOH32(SelfRelativeSecurityDescriptor->Dacl);
+
+    //
+    // The self-relative bit must be set.
+    //
+    // The caller is required to have already checked this via
+    // RtlValidRelativeSecurityDescriptor().  Otherwise, the caller
+    // is violating an invariant and this code will return
+    // STATUS_ASSERTION_FAILURE.
+    //
+
+    if (!IsSetFlag(relHeader.Control, SE_SELF_RELATIVE))
+    {
+        status = STATUS_ASSERTION_FAILURE;
+        GOTO_CLEANUP();
+    }
+
+    //
+    // Verify header information
+    //
+
+    absHeader.Revision = relHeader.Revision;
+    absHeader.Sbz1 = relHeader.Sbz1;
+    absHeader.Control = relHeader.Control;
+    // SID and ACL pointers are to denote existence and must not be dereferenced.
+    absHeader.Owner = relHeader.Owner ? (PSID) LW_PTR_ADD(SelfRelativeSecurityDescriptor, relHeader.Owner) : NULL;
+    absHeader.Group = relHeader.Group ? (PSID) LW_PTR_ADD(SelfRelativeSecurityDescriptor, relHeader.Group) : NULL;
+    absHeader.Sacl = relHeader.Sacl ? (PACL) LW_PTR_ADD(SelfRelativeSecurityDescriptor, relHeader.Sacl) : NULL;
+    absHeader.Dacl = relHeader.Dacl ? (PACL) LW_PTR_ADD(SelfRelativeSecurityDescriptor, relHeader.Dacl) : NULL;
+
+    // Clear the self-relative flag since it cannot be present in the
+    // absolute header.
+    ClearFlag(absHeader.Control, SE_SELF_RELATIVE);
+
+    //
+    // The security descriptor header must be valid.
+    //
+    // The caller is required to have already checked this via
+    // RtlValidRelativeSecurityDescriptor().  Otherwise, the caller
+    // is violating an invariant and this code will return
+    // STATUS_ASSERTION_FAILURE.
+    //
+
+    status = RtlpVerifySecurityDescriptorHeader(&absHeader);
+    if (!NT_SUCCESS(status))
+    {
+        status = STATUS_ASSERTION_FAILURE;
+        GOTO_CLEANUP();
+    }
+
+    //
+    // Get size requirements
+    //
+
+    securityDescriptorSizeRequired = SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE;
+
+    if (absHeader.Owner)
+    {
+        ownerSizeRequired = RtlLengthRequiredSid(LW_LTOH8(absHeader.Owner->SubAuthorityCount));
+    }
+
+    if (absHeader.Group)
+    {
+        groupSizeRequired = RtlLengthRequiredSid(LW_LTOH8(absHeader.Group->SubAuthorityCount));
+    }
+
+    if (absHeader.Sacl)
+    {
+        saclSizeRequired = LW_LTOH16(absHeader.Sacl->AclSize);
+    }
+
+    if (absHeader.Dacl)
+    {
+        daclSizeRequired = LW_LTOH16(absHeader.Dacl->AclSize);
+    }
+
+    //
+    // Check sizes
+    //
+
+    if ((securityDescriptorSize < securityDescriptorSizeRequired) ||
+        (ownerSize < ownerSizeRequired) ||
+        (groupSize < groupSizeRequired) ||
+        (saclSize < saclSizeRequired) ||
+        (daclSize < daclSizeRequired))
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        GOTO_CLEANUP();
+    }
+
+    //
+    // Now convert
+    //
+
+    RtlCopyMemory(AbsoluteSecurityDescriptor, &absHeader, securityDescriptorSizeRequired);
+
+    if (absHeader.Owner)
+    {
+        RtlpDecodeLittleEndianSid(absHeader.Owner, Owner);
+        AbsoluteSecurityDescriptor->Owner = Owner;
+    }
+
+    if (absHeader.Group)
+    {
+        RtlpDecodeLittleEndianSid(absHeader.Group, PrimaryGroup);
+        AbsoluteSecurityDescriptor->Group = PrimaryGroup;
+    }
+
+    if (absHeader.Sacl)
+    {
+        RtlpDecodeLittleEndianAcl(absHeader.Sacl, Sacl);
+        AbsoluteSecurityDescriptor->Sacl = Sacl;
+    }
+
+    if (absHeader.Dacl)
+    {
+        RtlpDecodeLittleEndianAcl(absHeader.Dacl, Dacl);
+        AbsoluteSecurityDescriptor->Dacl = Dacl;
+    }
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (AbsoluteSecurityDescriptorSize)
+    {
+        *AbsoluteSecurityDescriptorSize = securityDescriptorSizeRequired;
+    }
+    if (DaclSize)
+    {
+        *DaclSize = daclSize;
+    }
+    if (SaclSize)
+    {
+        *SaclSize = saclSize;
+    }
+    if (OwnerSize)
+    {
+        *OwnerSize = ownerSizeRequired;
+    }
+    if (PrimaryGroupSize)
+    {
+        *PrimaryGroupSize = groupSizeRequired;
+    }
+
+    return status;
 }

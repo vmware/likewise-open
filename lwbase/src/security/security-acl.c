@@ -1423,3 +1423,57 @@ cleanup:
 
     return status;
 }
+
+VOID
+RtlpDecodeLittleEndianAcl(
+    IN PACL LittleEndianAcl,
+    OUT PACL Acl
+    )
+{
+    ULONG offset = 0;
+    ULONG i = 0;
+
+    Acl->AclRevision = LW_LTOH8(LittleEndianAcl->AclRevision);
+    Acl->Sbz1 = LW_LTOH8(LittleEndianAcl->Sbz1);
+    Acl->AclSize = LW_LTOH16(LittleEndianAcl->AclSize);
+    Acl->AceCount = LW_LTOH16(LittleEndianAcl->AceCount);
+    Acl->Sbz2 = LW_LTOH16(LittleEndianAcl->Sbz2);
+
+    // Handle ACEs.
+    offset = sizeof(ACL);
+    for (i = 0; i < Acl->AceCount; i++)
+    {
+        PACE_HEADER littleEndianAceHeader = (PACE_HEADER) LwRtlOffsetToPointer(LittleEndianAcl, offset);
+        PACE_HEADER aceHeader = (PACE_HEADER) LwRtlOffsetToPointer(Acl, offset);
+
+        aceHeader->AceType = LW_LTOH8(littleEndianAceHeader->AceType);
+        aceHeader->AceFlags = LW_LTOH8(littleEndianAceHeader->AceFlags);
+        aceHeader->AceSize = LW_LTOH16(littleEndianAceHeader->AceSize);
+
+        switch (aceHeader->AceType)
+        {
+            case ACCESS_ALLOWED_ACE_TYPE:
+            case ACCESS_DENIED_ACE_TYPE:
+            case SYSTEM_AUDIT_ACE_TYPE:
+            {
+                PACCESS_ALLOWED_ACE littleEndianAce = (PACCESS_ALLOWED_ACE) littleEndianAceHeader;
+                PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE) aceHeader;
+
+                ace->Mask = LW_LTOH32(littleEndianAce->Mask);
+
+                RtlpDecodeLittleEndianSid(
+                        (PSID) &littleEndianAce->SidStart,
+                        (PSID) &ace->SidStart);
+                break;
+            }
+            default:
+                // TODO-Not much we can do here as the caller
+                // screwed up big time.  We could return an error
+                // code, I suppose, but if this is busted this
+                // library is busted wrt self-relative SD verification.
+                assert(FALSE);
+        }
+
+        offset += aceHeader->AceSize;
+    }
+}

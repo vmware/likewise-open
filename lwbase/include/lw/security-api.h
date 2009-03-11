@@ -289,22 +289,22 @@ RtlSetDaclSecurityDescriptor(
 NTSTATUS
 RtlAbsoluteToSelfRelativeSD(
     IN PSECURITY_DESCRIPTOR_ABSOLUTE AbsoluteSecurityDescriptor,
-    OUT PSECURITY_DESCRIPTOR_RELATIVE SelfRelativeSecurityDescriptor,
+    OUT OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE SelfRelativeSecurityDescriptor,
     IN OUT PULONG BufferLength
     );
 
 NTSTATUS
 RtlSelfRelativeToAbsoluteSD(
     IN PSECURITY_DESCRIPTOR_RELATIVE SelfRelativeSecurityDescriptor,
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE AbsoluteSecurityDescriptor,
+    OUT OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE AbsoluteSecurityDescriptor,
     IN OUT PULONG AbsoluteSecurityDescriptorSize,
-    OUT PACL Dacl,
+    OUT OPTIONAL PACL Dacl,
     IN OUT PULONG DaclSize,
-    OUT PACL Sacl,
+    OUT OPTIONAL PACL Sacl,
     IN OUT PULONG SaclSize,
-    OUT PSID Owner,
+    OUT OPTIONAL PSID Owner,
     IN OUT PULONG OwnerSize,
-    OUT PSID PrimaryGroup,
+    OUT OPTIONAL PSID PrimaryGroup,
     IN OUT PULONG PrimaryGroupSize
     );
 
