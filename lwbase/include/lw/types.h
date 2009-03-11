@@ -373,7 +373,7 @@ typedef struct _LW_ANSI_STRING {
     }
 
 #define LW_RTL_STRING_NUM_CHARS(String) \
-    ( (String)->Length / (String)->Buffer[0] )
+	( (String)->Length / sizeof((String)->Buffer[0]) )
 
 #define LW_RTL_STRING_LAST_CHAR(String) \
     ( (String)->Buffer[LW_RTL_STRING_NUM_CHARS(String) - 1] )
