@@ -712,7 +712,7 @@ RtlpSetAclSecurityDescriptor(
     if (IsAclPresent)
     {
         SetFlag(SecurityDescriptor->Control, PresentBit);
-        acl = *AclLocation;
+	acl = Acl;
         isAclDefaulted = IsAclDefaulted;
     }
     else
