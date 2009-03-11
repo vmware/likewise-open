@@ -60,19 +60,125 @@
 /****************************************************************
  ***************************************************************/
 
+VOID
+PvfsFreeAbsoluteSecurityDescriptor(
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    )
+{
+    /* Fixme:  Actually free the SD */
+    return;
+}
+
+
+/****************************************************************
+ ***************************************************************/
+
 NTSTATUS
 PvfsCreateDefaultSecDescFile(
     OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    DWORD dwSizeDacl = 0;
+    PSID pAdministratorsSid = NULL;
+    PSID pUsersSid = NULL;
+    PSID pEveryoneSid = NULL;
+    DWORD dwSidCount = 0;
+    PACL pDacl = NULL;
 
+    /* Build SIDs */
+
+    ntError = RtlAllocateSidFromCString(&pAdministratorsSid, "S-1-5-32-544");
+    BAIL_ON_NT_STATUS(ntError);
+    dwSidCount++;
+
+    ntError = RtlAllocateSidFromCString(&pUsersSid, "S-1-5-32-545");
+    BAIL_ON_NT_STATUS(ntError);
+    dwSidCount++;
+
+    ntError = RtlAllocateSidFromCString(&pEveryoneSid, "S-1-1-0");
+    BAIL_ON_NT_STATUS(ntError);
+    dwSidCount++;
+
+    /* Build the DACL */
+
+    /* 4096 should just be sizeof(ACL) */
+
+    dwSizeDacl = 4096 +
+        dwSidCount * sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(pAdministratorsSid) +
+        RtlLengthSid(pUsersSid) +
+        RtlLengthSid(pEveryoneSid) -
+        dwSidCount * sizeof(ULONG);
+
+    ntError= PvfsAllocateMemory((PVOID*)&pDacl, dwSizeDacl);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = RtlCreateAcl(pDacl, dwSizeDacl, ACL_REVISION);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlAddAccessAllowedAceEx(pDacl,
+                                       ACL_REVISION,
+                                       0,
+                                       FILE_ALL_ACCESS,
+                                       pAdministratorsSid);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlAddAccessAllowedAceEx(pDacl,
+                                       ACL_REVISION,
+                                       0,
+                                       FILE_GENERIC_WRITE,
+                                       pUsersSid);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlAddAccessAllowedAceEx(pDacl,
+                                       ACL_REVISION,
+                                       0,
+                                       FILE_GENERIC_READ,
+                                       pEveryoneSid);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Now build the security descriptor */
+
+    ntError= PvfsAllocateMemory((PVOID*)&pSecDesc,
+                                SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCreateSecurityDescriptorAbsolute(pSecDesc,
+                                                  SECURITY_DESCRIPTOR_REVISION);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlSetOwnerSecurityDescriptor(pSecDesc,
+                                           pAdministratorsSid,
+                                           FALSE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlSetDaclSecurityDescriptor(pSecDesc,
+                                           TRUE,
+                                           pDacl,
+                                           FALSE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* All done */
+
+    *ppSecDesc = pSecDesc;
+    ntError = STATUS_SUCCESS;
+
 cleanup:
+    /* The pAdministratorsSid was set for the owner so don't
+       free it */
+
+    PVFS_SAFE_FREE_MEMORY(pUsersSid);
+    PVFS_SAFE_FREE_MEMORY(pEveryoneSid);
+
     return ntError;
 
 error:
+    PVFS_SAFE_FREE_MEMORY(pAdministratorsSid);
+    PVFS_SAFE_FREE_MEMORY(pDacl);
+    PVFS_SAFE_FREE_MEMORY(pSecDesc);
+
     goto cleanup;
 }
 

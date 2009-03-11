@@ -58,8 +58,15 @@ PvfsCreateDefaultSecDescDir(
     OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
+VOID
+PvfsFreeAbsoluteSecurityDescriptor(
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    );
+
 
 #endif     /* _PVFS_ACL_H_ */
+
+
 /*
 local variables:
 mode: c

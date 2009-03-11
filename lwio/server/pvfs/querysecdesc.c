@@ -143,10 +143,21 @@ PvfsQuerySecurityFile(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    pIrp->IoStatusBlock.BytesTransferred = 0;
+    /* Ignore the SecurirityInformation for now */
+
+    ntError = RtlAbsoluteToSelfRelativeSD(paDefaultSecDesc,
+                                          prReturnSecDesc,
+                                          &SecDescLength);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pIrp->IoStatusBlock.BytesTransferred = SecDescLength;
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (paDefaultSecDesc) {
+        PvfsFreeAbsoluteSecurityDescriptor(paDefaultSecDesc);
+    }
+
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
     }
