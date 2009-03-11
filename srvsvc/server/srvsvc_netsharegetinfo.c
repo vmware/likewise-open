@@ -104,6 +104,7 @@ SrvSvcNetShareGetInfo(
     PSHARE_INFO pShareInfo = NULL;
 
     memset(&GetParamsIn, 0, sizeof(GetParamsIn));
+    memset(info, 0x0, sizeof(*info));
 
     GetParamsIn.pwszNetname = netname;
     GetParamsIn.dwInfoLevel = level;
@@ -155,17 +156,6 @@ SrvSvcNetShareGetInfo(
                     );
     BAIL_ON_ERROR(dwError);
 
-    /* Allocate memory since it will be needed even in the failure case */
-
-    ntStatus = RTL_ALLOCATE(&pShareInfo, SHARE_INFO, sizeof(*pShareInfo));
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    info->info0   = &pShareInfo->info0;
-    info->info1   = &pShareInfo->info1;
-    info->info2   = &pShareInfo->info2;
-    info->info501 = &pShareInfo->info501;
-    info->info502 = &pShareInfo->info502;
-
     ntStatus = NtDeviceIoControlFile(
                     FileHandle,
                     NULL,
@@ -210,24 +200,32 @@ SrvSvcNetShareGetInfo(
                         &pGetParamsOut
                         );
 
+    ntStatus = RTL_ALLOCATE(&pShareInfo, SHARE_INFO, sizeof(*pShareInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
+
     switch (pGetParamsOut->dwInfoLevel) {
     case 0:
+        info->info0   = &pShareInfo->info0;
         memcpy(info->info0, pGetParamsOut->Info.p0, sizeof(*info->info0));
         break;
 
     case 1:
+        info->info1   = &pShareInfo->info1;
         memcpy(info->info1, pGetParamsOut->Info.p1, sizeof(*info->info1));
         break;
 
     case 2:
+        info->info2   = &pShareInfo->info2;
         memcpy(info->info2, pGetParamsOut->Info.p2, sizeof(*info->info2));
         break;
 
     case 501:
+        info->info501 = &pShareInfo->info501;
         memcpy(info->info501, pGetParamsOut->Info.p501, sizeof(*info->info501));
         break;
 
     case 502:
+        info->info502 = &pShareInfo->info502;
         memcpy(info->info502, pGetParamsOut->Info.p502, sizeof(*info->info502));
         break;
     }
