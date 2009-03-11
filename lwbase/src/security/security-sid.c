@@ -520,7 +520,7 @@ RtlpConvertUnicodeStringSidToSidEx(
 
         if (remaining.Length)
         {
-            if (LW_RTL_STRING_LAST_CHAR(&remaining) != '-')
+            if (remaining.Buffer[0] != '-')
             {
                 status = STATUS_INVALID_SID;
                 GOTO_CLEANUP();

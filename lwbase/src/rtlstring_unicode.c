@@ -301,7 +301,6 @@ LwRtlUnicodeStringParseULONG(
             status = STATUS_INTEGER_OVERFLOW;
             GOTO_CLEANUP();
         }
-        index++;
     }
 
     if (0 == index)
@@ -311,7 +310,7 @@ LwRtlUnicodeStringParseULONG(
     }
 
     remaining.Buffer = &pString->Buffer[index];
-    remaining.Length = LW_PTR_OFFSET(pString->Buffer, remaining.Buffer);
+    remaining.Length = pString->Length - LW_PTR_OFFSET(pString->Buffer, remaining.Buffer);
     remaining.MaximumLength = remaining.Length;
 
     status = STATUS_SUCCESS;
