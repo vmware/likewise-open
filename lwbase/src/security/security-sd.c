@@ -1099,11 +1099,11 @@ RtlSelfRelativeToAbsoluteSD(
     // Check sizes
     //
 
-    if ((securityDescriptorSize < securityDescriptorSizeRequired) ||
-        (ownerSize < ownerSizeRequired) ||
-        (groupSize < groupSizeRequired) ||
-        (saclSize < saclSizeRequired) ||
-        (daclSize < daclSizeRequired))
+    if ((AbsoluteSecurityDescriptor && securityDescriptorSize < securityDescriptorSizeRequired) ||
+        (Owner && ownerSize < ownerSizeRequired) ||
+        (PrimaryGroup && groupSize < groupSizeRequired) ||
+        (Sacl && saclSize < saclSizeRequired) ||
+        (Dacl && daclSize < daclSizeRequired))
     {
         status = STATUS_BUFFER_TOO_SMALL;
         GOTO_CLEANUP();
@@ -1113,30 +1113,45 @@ RtlSelfRelativeToAbsoluteSD(
     // Now convert
     //
 
-    RtlCopyMemory(AbsoluteSecurityDescriptor, &absHeader, securityDescriptorSizeRequired);
+    if (AbsoluteSecurityDescriptor)
+    {
+        RtlCopyMemory(AbsoluteSecurityDescriptor, &absHeader, securityDescriptorSizeRequired);
+    }
 
-    if (absHeader.Owner)
+    if (Owner && absHeader.Owner)
     {
         RtlpDecodeLittleEndianSid(absHeader.Owner, Owner);
-        AbsoluteSecurityDescriptor->Owner = Owner;
+        if (AbsoluteSecurityDescriptor)
+        {
+            AbsoluteSecurityDescriptor->Owner = Owner;
+        }
     }
 
-    if (absHeader.Group)
+    if (PrimaryGroup && absHeader.Group)
     {
         RtlpDecodeLittleEndianSid(absHeader.Group, PrimaryGroup);
-        AbsoluteSecurityDescriptor->Group = PrimaryGroup;
+        if (AbsoluteSecurityDescriptor)
+        {
+            AbsoluteSecurityDescriptor->Group = PrimaryGroup;
+        }
     }
 
-    if (absHeader.Sacl)
+    if (Sacl && absHeader.Sacl)
     {
         RtlpDecodeLittleEndianAcl(absHeader.Sacl, Sacl);
-        AbsoluteSecurityDescriptor->Sacl = Sacl;
+        if (AbsoluteSecurityDescriptor)
+        {
+            AbsoluteSecurityDescriptor->Sacl = Sacl;
+        }
     }
 
-    if (absHeader.Dacl)
+    if (Dacl && absHeader.Dacl)
     {
         RtlpDecodeLittleEndianAcl(absHeader.Dacl, Dacl);
-        AbsoluteSecurityDescriptor->Dacl = Dacl;
+        if (AbsoluteSecurityDescriptor)
+        {
+            AbsoluteSecurityDescriptor->Dacl = Dacl;
+        }
     }
 
     status = STATUS_SUCCESS;
