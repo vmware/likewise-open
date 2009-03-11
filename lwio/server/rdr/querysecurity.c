@@ -93,9 +93,6 @@ RdrTransactNtTransQuerySecurityDesc(
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     do
     {
         if (pResponsePacket)
@@ -116,6 +113,12 @@ RdrTransactNtTransQuerySecurityDesc(
         ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        if (!pResponsePacket)
+        {
+            ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         ntStatus = SMBTreeReceiveResponse(
             pTree,
             packet.haveSignature,
@@ -133,7 +136,7 @@ RdrTransactNtTransQuerySecurityDesc(
             continue;
         }
 
-        pResponseHeader = (NT_TRANSACTION_SECONDARY_RESPONSE_HEADER *) packet.pParams;
+        pResponseHeader = (NT_TRANSACTION_SECONDARY_RESPONSE_HEADER *) pResponsePacket->pParams;
 
         ulTotalDataBytes = pResponseHeader->ulTotalDataCount;
 
