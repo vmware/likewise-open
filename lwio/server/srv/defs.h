@@ -53,7 +53,8 @@
 #define LWIO_SRV_DB_DIR CACHEDIR            "/db"
 #define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR   "/lwio-shares.db"
 #define LWIO_SRV_FILE_SYSTEM_PREFIX         "C:\\"
-#define LWIO_SRV_FILE_SYSTEM_ROOT           "\\pvfs\\lwtest"
+#define LWIO_SRV_DEFAULT_SHARE_PATH         "\\lwtest"
+#define LWIO_SRV_FILE_SYSTEM_ROOT           "\\pvfs"
 #define LWIO_SRV_PIPE_SYSTEM_ROOT           "\\npvfs"
 
 #define LWIO_SRV_DEFAULT_NUM_READERS          2

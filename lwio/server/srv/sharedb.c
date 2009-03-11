@@ -183,6 +183,11 @@ SrvShareDbCreate(
                     &pszFileSystemRoot);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = RtlCStringAllocateAppendPrintf(&pszFileSystemRoot,
+					      "%s",
+					      LWIO_SRV_DEFAULT_SHARE_PATH);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMBWc16sToMbs(
                     pShareDBContext->pwszPipeSystemRoot,
                     &pszPipeSystemRoot);
@@ -192,8 +197,8 @@ SrvShareDbCreate(
                     pShareDBContext,
                     hDb,
                     "IPC$",
-                    pszPipeSystemRoot,
-                    "Default share",
+		    pszPipeSystemRoot,
+                    "Remote IPC",
                     NULL,
                     "IPC");
     BAIL_ON_NT_STATUS(ntStatus);
@@ -203,7 +208,7 @@ SrvShareDbCreate(
                     hDb,
                     "C$",
                     pszFileSystemRoot,
-                    "Remote IPC",
+                    "Default Share",
                     NULL,
                     "A:");
     BAIL_ON_NT_STATUS(ntStatus);
