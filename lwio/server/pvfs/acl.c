@@ -149,10 +149,12 @@ PvfsCreateDefaultSecDescFile(
                                                   SECURITY_DESCRIPTOR_REVISION);
     BAIL_ON_NT_STATUS(ntError);
 
+#if 0
     ntError = RtlSetOwnerSecurityDescriptor(pSecDesc,
                                            pAdministratorsSid,
                                            FALSE);
     BAIL_ON_NT_STATUS(ntError);
+#endif
 
     ntError = RtlSetDaclSecurityDescriptor(pSecDesc,
                                            TRUE,
@@ -169,6 +171,7 @@ cleanup:
     /* The pAdministratorsSid was set for the owner so don't
        free it */
 
+    PVFS_SAFE_FREE_MEMORY(pAdministratorsSid);
     PVFS_SAFE_FREE_MEMORY(pUsersSid);
     PVFS_SAFE_FREE_MEMORY(pEveryoneSid);
 
