@@ -32,6 +32,41 @@ typedef struct _DIRECTORY_CONTEXT {
 #define NT_SECURITY_DESCRIPTOR_DATA(pValue) = pValue->pNTSecurityDescriptor->pBytes;
 
 DWORD
+DirectoryAllocateMemory(
+    size_t sSize,
+    PVOID* ppMemory
+    );
+
+DWORD
+DirectoryReallocMemory(
+    PVOID  pMemory,
+    PVOID* ppNewMemory,
+    size_t sSize
+    );
+
+VOID
+DirectoryFreeMemory(
+    PVOID pMemory
+    );
+
+DWORD
+DirectoryAllocateString(
+    PWSTR  pwszInputString,
+    PWSTR* ppwszOutputString
+    );
+
+VOID
+DirectoryFreeString(
+    PWSTR pwszString
+    );
+
+VOID
+DirectoryFreeStringArray(
+    PWSTR* ppStringArray,
+    DWORD  dwCount
+    );
+
+DWORD
 DirectoryAddObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN,

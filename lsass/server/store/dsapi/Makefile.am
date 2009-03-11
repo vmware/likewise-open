@@ -5,6 +5,7 @@ libdirapi_la_SOURCES = \
         dirbind.c   \
         dirclose.c  \
         dirdel.c    \
+        dirmem.c    \
         dirmodify.c \
         diropen.c   \
         dirsearch.c
