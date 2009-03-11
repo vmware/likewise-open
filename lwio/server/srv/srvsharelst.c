@@ -818,31 +818,30 @@ SrvShareGetInfo(
     *ppShareInfo = pShareInfo;
 
 cleanup:
+
     SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     return ntStatus;
 
 error:
+
     goto cleanup;
 }
-
 
 NTSTATUS
 SrvShareEnumShares(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     ULONG dwLevel,
-    PSHARE_DB_INFO *ppShareInfo,
+    PSHARE_DB_INFO** pppShareInfo,
     PULONG pdwNumEntries
     )
 {
     NTSTATUS ntStatus = 0;
     ULONG ulError = 0;
     ULONG dwCount = 0;
-    ULONG i = 0;
     BOOLEAN bInLock = FALSE;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
-    PSHARE_DB_INFO pShareInfo = NULL;
-    PSHARE_DB_INFO pShares = NULL;
+    PSHARE_DB_INFO* ppShares = NULL;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
 
@@ -853,60 +852,52 @@ SrvShareEnumShares(
         dwCount++;
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pShares,
-                    SHARE_DB_INFO,
-                    dwCount * sizeof(SHARE_DB_INFO));
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (dwCount)
+    {
+        ULONG i = 0;
 
-    pShareEntry = pDbContext->pShareEntry;
-    for (i = 0; i < dwCount && pShareEntry != NULL; i++) {
-        if (pShareEntry->pInfo->pwszName) {
-            ulError = SMBWc16sDup(pShareEntry->pInfo->pwszName,
-                                  &pShares[i].pwszName);
-            ntStatus = LwUnixErrnoToNtStatus(ulError);
-            BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = LW_RTL_ALLOCATE(
+                        &ppShares,
+                        PSHARE_DB_INFO,
+                        dwCount * sizeof(PSHARE_DB_INFO));
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pShareEntry = pDbContext->pShareEntry;
+        for (; i < dwCount; i++)
+        {
+            InterlockedIncrement(&pShareEntry->pInfo->refcount);
+
+            ppShares[i] = pShareEntry->pInfo;
+
+            pShareEntry = pShareEntry->pNext;
         }
-
-        if (pShareEntry->pInfo->pwszPath) {
-            ulError = SrvShareMapToWindowsPath(
-                                pDbContext,
-                                pShareEntry->pInfo->pwszPath,
-                                &pShares[i].pwszPath);
-            ntStatus = LwUnixErrnoToNtStatus(ulError);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        if (pShareEntry->pInfo->pwszComment) {
-            ulError = SMBWc16sDup(pShareEntry->pInfo->pwszComment,
-                                  &pShares[i].pwszComment);
-            ntStatus = LwUnixErrnoToNtStatus(ulError);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        if (pShareEntry->pInfo->pwszSID) {
-            ulError = SMBWc16sDup(pShareEntry->pInfo->pwszSID,
-                                  &pShares[i].pwszSID);
-            ntStatus = LwUnixErrnoToNtStatus(ulError);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pShares[i].service = pShareEntry->pInfo->service;
-
-        pShareEntry = pShareEntry->pNext;
     }
 
-    *ppShareInfo   = pShares;
+    *pppShareInfo   = ppShares;
     *pdwNumEntries = dwCount;
 
 cleanup:
+
     SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     return ntStatus;
 
 error:
-    if (pShareInfo) {
-        LwIoFreeMemory((void*)pShareInfo);
+
+    if (ppShares)
+    {
+        ULONG i = 0;
+        for (; i < dwCount; i++)
+        {
+            PSHARE_DB_INFO pShareInfo = ppShares[i];
+
+            if (pShareInfo)
+            {
+                SrvShareDbReleaseInfo(pShareInfo);
+            }
+        }
+
+        LwIoFreeMemory(ppShares);
     }
 
     if (ntStatus == STATUS_SUCCESS &&
@@ -914,8 +905,9 @@ error:
         ntStatus = LwUnixErrnoToNtStatus(ulError);
     }
 
-    *ppShareInfo   = NULL;
+    *pppShareInfo   = NULL;
     *pdwNumEntries = 0;
+
     goto cleanup;
 }
 

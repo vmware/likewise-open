@@ -101,7 +101,7 @@ NTSTATUS
 SrvShareEnumShares(
     PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
     DWORD dwLevel,
-    PSHARE_DB_INFO *ppShareInfo,
+    PSHARE_DB_INFO** pppShareInfo,
     PDWORD pdwNumEntries
     );
 

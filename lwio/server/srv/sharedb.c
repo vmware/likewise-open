@@ -129,6 +129,7 @@ SrvShareDbCreate(
     sqlite3* pDbHandle = NULL;
     PSTR pszError = NULL;
     PSTR pszFileSystemRoot = NULL;
+    PSTR pszTmpFileSystemRoot = NULL;
     PSTR pszPipeSystemRoot = NULL;
     BOOLEAN bExists = FALSE;
 
@@ -180,12 +181,16 @@ SrvShareDbCreate(
 
     ntStatus = SMBWc16sToMbs(
                     pShareDBContext->pwszFileSystemRoot,
-                    &pszFileSystemRoot);
+                    &pszTmpFileSystemRoot);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RtlCStringAllocateAppendPrintf(&pszFileSystemRoot,
-					      "%s",
-					      LWIO_SRV_DEFAULT_SHARE_PATH);
+    ntStatus = SMBAllocateStringPrintf(
+                    &pszFileSystemRoot,
+                    "%s%s%s",
+                    pszTmpFileSystemRoot,
+                    (((pszTmpFileSystemRoot[strlen(pszTmpFileSystemRoot)-1] == '/') ||
+                      (pszTmpFileSystemRoot[strlen(pszTmpFileSystemRoot)-1] == '\\')) ? "" : "\\"),
+                    LWIO_SRV_DEFAULT_SHARE_PATH);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBWc16sToMbs(
@@ -197,7 +202,7 @@ SrvShareDbCreate(
                     pShareDBContext,
                     hDb,
                     "IPC$",
-		    pszPipeSystemRoot,
+                    pszPipeSystemRoot,
                     "Remote IPC",
                     NULL,
                     "IPC");
@@ -228,6 +233,11 @@ cleanup:
     if (pszFileSystemRoot)
     {
         LwRtlMemoryFree(pszFileSystemRoot);
+    }
+
+    if (pszTmpFileSystemRoot)
+    {
+        LwRtlMemoryFree(pszTmpFileSystemRoot);
     }
 
     if (pszPipeSystemRoot)
