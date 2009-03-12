@@ -5,6 +5,9 @@ pointer_default(unique)
 ]
 interface samr
 {
+
+cpp_quote("#ifdef DCERPC_STUB_BUILD")
+
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
@@ -63,8 +66,11 @@ interface samr
         [case(26)] UserInfo26 info26;
     } UserInfo;
 
+cpp_quote("#endif")
+
+
     /* function 0x00 */
-    NTSTATUS SamrConnect(
+    NTSTATUS _SamrConnect(
         [in,unique] wchar16_t *system_name,
         [in] uint32 access_mask,
         [out,ref] PolicyHandle *connect_handle

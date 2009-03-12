@@ -37,6 +37,7 @@ libsamr_srv_la_LIBADD = \
 libsamr_ss_la_SOURCES = samr_sstub.c
 
 libsamr_ss_la_CFLAGS = \
+    -DDCERPC_STUB_BUILD \
     $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
