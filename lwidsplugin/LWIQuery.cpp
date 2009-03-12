@@ -455,17 +455,9 @@ LWIQuery::ProcessUserAttributes(
             }
             break;
             case LWIAttrLookup::idx_kDS1AttrMCXFlags:
-            {
-                macError = SetMCXFlags(pRecord, pUser, bSetValue);
-                GOTO_CLEANUP_ON_MACERROR(macError);
-            }
-            break;
             case LWIAttrLookup::idx_kDS1AttrMCXSettings:
             case LWIAttrLookup::idx_kDSNAttrMCXSettings:
-            {
-                macError = SetMCXSettings(pRecord, pUser, bSetValue);
-                GOTO_CLEANUP_ON_MACERROR(macError);
-            }
+                // Skipping since not applicable to Likewise Open
             break;
             default:
                 LOG("Unsupported attribute index - %d", iAttr);
@@ -511,9 +503,9 @@ LWIQuery::ProcessGroupAttributes(
         LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDSNAttrGroupMembership);
         LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDSNAttrRecordName);
         LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDSNAttrMetaNodeLocation);
-		LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDS1AttrMCXFlags);
-		LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDS1AttrMCXSettings);
-		LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDSNAttrMCXSettings);
+	LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDS1AttrMCXFlags);
+	LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDS1AttrMCXSettings);
+	LWI_BITVECTOR_SET(_attributeSet, LWIAttrLookup::idx_kDSNAttrMCXSettings);
     }
 
     for (iAttr = LWIAttrLookup::idx_unknown+1; iAttr < LWIAttrLookup::idx_sentinel; iAttr++)
@@ -563,13 +555,9 @@ LWIQuery::ProcessGroupAttributes(
                 GOTO_CLEANUP_ON_MACERROR(macError);
                 break;
             case LWIAttrLookup::idx_kDS1AttrMCXFlags:
-                macError = SetMCXFlags(pRecord, pGroup, bSetValue);
-                GOTO_CLEANUP_ON_MACERROR(macError);
-                break;
             case LWIAttrLookup::idx_kDS1AttrMCXSettings:
             case LWIAttrLookup::idx_kDSNAttrMCXSettings:
-                macError = SetMCXSettings(pRecord, pGroup, bSetValue);
-                GOTO_CLEANUP_ON_MACERROR(macError);
+                // Skipping since not applicable to Likewise Open
                 break;
             case LWIAttrLookup::idx_kDSAttributesAll:
             case LWIAttrLookup::idx_kDSAttributesStandardAll:
@@ -1764,89 +1752,6 @@ LWIQuery::SetTimeToLive(PDSRECORD pRecord, bool bSetValue)
         macError = AddAttribute(kDS1AttrTimeToLive, pRecord, &pAttribute);
     }
 #endif
-    return macError;
-}
-
-
-#define HAS_MCX_SETTINGS "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n	<key>has_mcx_settings</key>\n		<true/>\n	</dict>\n</plist>"
-
-long
-LWIQuery::SetMCXFlags(PDSRECORD pRecord, const PLWIUSER pUser, bool bSetValue)
-{
-    long macError = eDSNoErr;
-    PDSATTRIBUTE pAttribute = NULL;
-	
-    /* TODO - Check user object in Active Directory for MCX settings. */
-	
-    LOG("Looking up MCX Settings for user (%s) to see if MCX Flags need to be set.", pUser->pw_name);
-
-    if (bSetValue)
-    {
-        macError = AddAttributeAndValue(kDS1AttrMCXFlags, HAS_MCX_SETTINGS, pRecord, &pAttribute);
-    }
-    else
-    {
-        macError = AddAttribute(kDS1AttrMCXFlags, pRecord, &pAttribute);
-    }
-
-    return macError;
-}
-
-long
-LWIQuery::SetMCXFlags(PDSRECORD pRecord, const PLWIGROUP pGroup, bool bSetValue)
-{
-    long macError = eDSNoErr;
-    PDSATTRIBUTE pAttribute = NULL;
-	
-    /* TODO - Check group object in Active Directory for MCX settings. */
-	
-    LOG("Looking up MCX Settings for group (%s) to see if MCX Flags need to be set.", pGroup->gr_name);
-
-    if (bSetValue)
-    {
-        macError = AddAttributeAndValue(kDS1AttrMCXFlags, HAS_MCX_SETTINGS, pRecord, &pAttribute);
-    }
-    else
-    {
-        macError = AddAttribute(kDS1AttrMCXFlags, pRecord, &pAttribute);
-    }
-
-    return macError;
-}
-
-long
-LWIQuery::SetMCXSettings(PDSRECORD pRecord, const PLWIUSER pUser, bool bSetValue)
-{
-    long macError = eDSNoErr;
-    PDSATTRIBUTE pAttribute = NULL;
-
-    if (bSetValue)
-    {
-        macError = AddAttributeAndValue(kDS1AttrMCXSettings, /* TODO */ "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n	<key>mcx_application_data</key>\n	<dict>\n		<key>com.apple.dock</key>\n		<dict>\n			<key>Forced</key>\n			<array>\n	<dict>\n					<key>mcx_preference_settings</key>\n					<dict>\n						<key>autohide</key>\n						<false/>\n						<key>autohide-immutable</key>\n						<true/>\n						<key>largesize</key>\n						<real>128</real>\n						<key>launchanim</key>\n						<true/>\n						<key>launchanim-immutable</key>\n				<true/>\n						<key>magnification</key>\n						<false/>\n						<key>magnify-immutable</key>\n						<true/>\n						<key>magsize-immutable</key>\n				<true/>\n						<key>mineffect</key>\n						<string>genie</string>\n					<key>mineffect-immutable</key>\n						<true/>\n						<key>orientation</key>\n				<string>left</string>\n						<key>position-immutable</key>\n						<true/>\n					<key>size-immutable</key>\n						<true/>\n						<key>tilesize</key>\n					<real>64</real>\n					</dict>\n				</dict>\n			</array>\n		</dict>\n	</dict>\n</dict>\n</plist>", pRecord, &pAttribute);
-    }
-    else
-    {
-        macError = AddAttribute(kDS1AttrMCXSettings, pRecord, &pAttribute);
-    }
-
-    return macError;
-}
-
-long
-LWIQuery::SetMCXSettings(PDSRECORD pRecord, const PLWIGROUP pGroup, bool bSetValue)
-{
-    long macError = eDSNoErr;
-    PDSATTRIBUTE pAttribute = NULL;
-
-    if (bSetValue)
-    {
-        macError = AddAttributeAndValue(kDS1AttrMCXSettings, /* TODO */ "MCX Group settings go here", pRecord, &pAttribute);
-    }
-    else
-    {
-        macError = AddAttribute(kDS1AttrMCXSettings, pRecord, &pAttribute);
-    }
-
     return macError;
 }
 

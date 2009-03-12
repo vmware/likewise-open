@@ -171,14 +171,6 @@ protected:
 
     static long SetTimeToLive(PDSRECORD pRecord, bool bSetValue);
 	
-    static long SetMCXFlags(PDSRECORD pRecord, PLWIUSER pUser, bool bSetValue);
-    
-    static long SetMCXFlags(PDSRECORD pRecord, PLWIGROUP pGroup, bool bSetValue);
-		
-    static long SetMCXSettings(PDSRECORD pRecord, PLWIUSER pUser, bool bSetValue);
-
-    static long SetMCXSettings(PDSRECORD pRecord, PLWIGROUP pGroup, bool bSetValue);
-	
     static void FreeAttributeValue(PDSATTRIBUTEVALUE pAttributeValue);
 
     static void FreeAttributeValueList(PDSATTRIBUTEVALUE pAttributeValueList);
