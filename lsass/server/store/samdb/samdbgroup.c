@@ -1,6 +1,5 @@
 #include "includes.h"
 
-#if 0
 #define DB_QUERY_CREATE_GROUPMEMBERSHIP_TABLE                  \
     "create table lwigroupmembers (Gid integer,                \
                                    Uid integer                 \
@@ -66,9 +65,17 @@ SamDbInitGroupTable(
                            &pszError);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-error:
+cleanup:
 
     return dwError;
+
+error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
 }
 
-#endif

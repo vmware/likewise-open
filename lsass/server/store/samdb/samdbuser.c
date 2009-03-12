@@ -49,7 +49,6 @@
  */
 #include "includes.h"
 
-#if 0
 #define DB_QUERY_CREATE_USERS_TABLE                               \
     "create table lwiusers (UserRecordId integer PRIMARY KEY,     \
                             Name             varchar(256),        \
@@ -96,9 +95,13 @@
 
 
 NTSTATUS
-SamDbInitUserTable()
+SamDbInitUserTable(
+    HANDLE hDb
+    )
 {
     DWORD dwError = 0;
+    sqlite3* pDbHandle = (sqlite3*)hDb;
+    PSTR pszError = NULL;
 
     dwError = sqlite3_exec(pDbHandle,
                            DB_QUERY_CREATE_USERS_TABLE,
@@ -121,9 +124,17 @@ SamDbInitUserTable()
                            &pszError);
     BAIL_ON_SAMDB_ERROR(dwError);
 
+cleanup:
+
+    return dwError;
+
 error:
 
-    return(dwError);
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
 }
 
-#endif
