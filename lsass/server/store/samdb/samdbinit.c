@@ -25,12 +25,22 @@ DirectoryInitializeProvider(
     dwError = SamDbBuildDbInstanceLock(&gSamGlobals.pDbInstanceLock);
     BAIL_ON_SAMDB_ERROR(dwError);
 
+    dwError = SamDbInit();
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     *ppszProviderName = gSamGlobals.pszProviderName;
     *ppFnTable = &gSamGlobals.providerFunctionTable;
 
-error:
+cleanup:
 
     return dwError;
+
+error:
+
+    *ppszProviderName = NULL;
+    *ppFnTable = NULL;
+
+    goto cleanup;
 }
 
 DWORD
@@ -48,6 +58,78 @@ DirectoryShutdownProvider(
     }
 
     return dwError;
+}
+
+DWORD
+SamDbInit(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hDb = (HANDLE)NULL;
+    BOOLEAN bExists = FALSE;
+
+    dwError = LsaCheckFileExists(
+                    SAM_DB,
+                    &bExists);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    // TODO: Implement an upgrade scenario
+    if (bExists)
+    {
+       goto cleanup;
+    }
+
+    dwError = LsaCheckDirectoryExists(
+                    SAM_DB_DIR,
+                    &bExists);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!bExists)
+    {
+        mode_t mode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
+
+        /* Allow go+rx to the base folder */
+        dwError = LsaCreateDirectory(SAM_DB_DIR, mode);
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    /* restrict access to u+rwx to the db folder */
+    dwError = LsaChangeOwnerAndPermissions(
+                    SAM_DB_DIR,
+                    0,
+                    0,
+                    S_IRWXU);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbOpen(&hDb);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbInitGroupTable(hDb);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbInitUserTable(hDb);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaChangeOwnerAndPermissions(
+                    SAM_DB,
+                    0,
+                    0,
+                    S_IRWXU);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    if (hDb)
+    {
+        SamDbClose(hDb);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 

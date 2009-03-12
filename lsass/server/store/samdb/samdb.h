@@ -2,6 +2,11 @@
 #define __SAMDB_H__
 
 DWORD
+SamDbInit(
+    VOID
+    );
+
+DWORD
 SamDbOpen(
     PHANDLE phDirectory
     );
@@ -124,6 +129,16 @@ DWORD
 SamDbConvertFiltertoTable(
     PWSTR pwszFilter,
     PDWORD pdwTable
+    );
+
+NTSTATUS
+SamDbInitUserTable(
+    HANDLE hDb
+    );
+
+NTSTATUS
+SamDbInitGroupTable(
+    HANDLE hDb
     );
 
 DWORD
