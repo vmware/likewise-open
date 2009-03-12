@@ -55,7 +55,8 @@ libpvfs_sys_la_LIBADD = \
     @top_builddir@/utils/liblwioutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @UUID_LIBS@ \
-    @PTHREAD_LIBS@
+    @PTHREAD_LIBS@ \
+    @XATTR_LIBS@
 
 libpvfs_sys_la_LDFLAGS = \
     -module -avoid-version -export-dynamic

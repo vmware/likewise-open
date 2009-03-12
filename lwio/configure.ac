@@ -386,6 +386,8 @@ AC_CHECK_FUNCS([dirfd fstatfs fdatasync fsync])
 
 AC_CHECK_HEADERS([attr/xattr.h])
 AC_CHECK_FUNCS([setxattr fsetxattr getxattr fgetxattr])
+AC_CHECK_LIB([attr], [getxattr], [XATTR_LIBS="-lattr"])
+AC_SUBST(XATTR_LIBS)
 
 AC_CHECK_LIB([uuid], [uuid_copy], [UUID_LIBS="-luuid"])
 AC_SUBST(UUID_LIBS)

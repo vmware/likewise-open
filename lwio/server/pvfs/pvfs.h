@@ -84,8 +84,13 @@
 #include <unistd.h>
 #include <errno.h>
 #include <utime.h>
+
 #ifdef HAVE_SYS_VFS_H
 #  include <sys/vfs.h>
+#endif
+
+#ifdef HAVE_ATTR_XATTR_H
+#  include <attr/xattr.h>
 #endif
 
 /* Top level APi functions */

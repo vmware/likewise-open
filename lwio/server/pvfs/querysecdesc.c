@@ -187,6 +187,10 @@ PvfsSetSecurityFile(
 
     /* Real work starts here */
 
+    ntError = PvfsSetSecurityDescriptorFile(pCcb,
+                                             SecInfo,
+                                             pSecDesc,
+                                             SecDescLength);
     BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = 0;
