@@ -243,7 +243,7 @@ SrvQuerySecurityDescriptor(
                         (PSECURITY_DESCRIPTOR_RELATIVE)pSecurityDescriptor,
                         ulSecurityDescAllocLen);
         if ((ntStatus == STATUS_BUFFER_TOO_SMALL) &&
-            (ulSecurityDescLen != SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE))
+            (ulSecurityDescAllocLen != SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE))
         {
             PBYTE pNewMemory = NULL;
 
@@ -267,7 +267,7 @@ SrvQuerySecurityDescriptor(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ulSecurityDescLen = ioStatusBlock.BytesTransferred;
+        ulSecurityDescActualLen = ioStatusBlock.BytesTransferred;
 
     } while (ntStatus != STATUS_SUCCESS);
 
@@ -305,10 +305,10 @@ SrvQuerySecurityDescriptor(
                     (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
                     pSetup,
                     ucSetupCount,
-                    (PBYTE)&ulSecurityDescLen,
-                    sizeof(ulSecurityDescLen),
+                    (PBYTE)&ulSecurityDescActualLen,
+                    sizeof(ulSecurityDescActualLen),
                     pSecurityDescriptor,
-                    ulSecurityDescLen,
+                    ulSecurityDescActualLen,
                     &ulDataOffset,
                     &ulParameterOffset,
                     &ulNumPackageBytesUsed);
