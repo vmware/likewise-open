@@ -261,7 +261,7 @@ BuildDefaultDaclFile(
     ntError = RtlAddAccessAllowedAceEx(pDacl,
                                        ACL_REVISION,
                                        0,
-                                       FILE_GENERIC_WRITE,
+                                       FILE_GENERIC_WRITE | FILE_GENERIC_READ,
                                        pUsersSid);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -286,7 +286,6 @@ error:
     PVFS_SAFE_FREE_MEMORY(pDacl);
 
     goto cleanup;
-
 }
 
 /****************************************************************
@@ -297,7 +296,90 @@ BuildDefaultDaclDirectory(
     PACL *ppDacl
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    DWORD dwSizeDacl = 0;
+    PSID pAdministratorsSid = NULL;
+    PSID pUsersSid = NULL;
+    PSID pEveryoneSid = NULL;
+    PSID pCreatorOwnerSid = NULL;
+    DWORD dwSidCount = 0;
+    PACL pDacl = NULL;
+
+    /* Build SIDs */
+
+    ntError = RtlAllocateSidFromCString(&pAdministratorsSid, "S-1-5-32-544");
+    BAIL_ON_NT_STATUS(ntError);
+    dwSidCount++;
+
+    ntError = RtlAllocateSidFromCString(&pUsersSid, "S-1-5-32-545");
+    BAIL_ON_NT_STATUS(ntError);
+    dwSidCount++;
+
+    ntError = RtlAllocateSidFromCString(&pEveryoneSid, "S-1-1-0");
+    BAIL_ON_NT_STATUS(ntError);
+    dwSidCount++;
+
+    ntError = RtlAllocateSidFromCString(&pCreatorOwnerSid, "S-1-3-0");
+    BAIL_ON_NT_STATUS(ntError);
+    dwSidCount++;
+
+    dwSizeDacl = ACL_HEADER_SIZE +
+        dwSidCount * sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(pAdministratorsSid) +
+        RtlLengthSid(pUsersSid) +
+        RtlLengthSid(pEveryoneSid) +
+        RtlLengthSid(pCreatorOwnerSid) -
+        dwSidCount * sizeof(ULONG);
+
+    ntError= PvfsAllocateMemory((PVOID*)&pDacl, dwSizeDacl);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCreateAcl(pDacl, dwSizeDacl, ACL_REVISION);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlAddAccessAllowedAceEx(pDacl,
+                                       ACL_REVISION,
+                                       OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE,
+                                       FILE_ALL_ACCESS,
+                                       pAdministratorsSid);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlAddAccessAllowedAceEx(pDacl,
+                                       ACL_REVISION,
+                                       OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE,
+                                       FILE_GENERIC_WRITE | FILE_GENERIC_READ,
+                                       pUsersSid);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlAddAccessAllowedAceEx(pDacl,
+                                       ACL_REVISION,
+                                       0,
+                                       FILE_GENERIC_READ,
+                                       pEveryoneSid);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlAddAccessAllowedAceEx(pDacl,
+                                       ACL_REVISION,
+                                       OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE | INHERIT_ONLY_ACE,
+                                       FILE_ALL_ACCESS,
+                                       pCreatorOwnerSid);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppDacl = pDacl;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    PVFS_SAFE_FREE_MEMORY(pAdministratorsSid);
+    PVFS_SAFE_FREE_MEMORY(pUsersSid);
+    PVFS_SAFE_FREE_MEMORY(pEveryoneSid);
+    PVFS_SAFE_FREE_MEMORY(pCreatorOwnerSid);
+
+    return ntError;
+
+error:
+    PVFS_SAFE_FREE_MEMORY(pDacl);
+
+    goto cleanup;
 }
 
 
