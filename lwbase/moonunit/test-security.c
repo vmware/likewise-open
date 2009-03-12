@@ -242,8 +242,9 @@ MU_TEST(Security, 0003_AccessCheck)
         &mapping,
         &granted,
         &status);
+    MU_ASSERT(status == STATUS_SUCCESS || status == STATUS_ACCESS_DENIED);
 
-    MU_SUCCESS;
+    MU_INFO("status = 0x%08x, granted = 0x%08x", status, granted);
 }
 
 /*
