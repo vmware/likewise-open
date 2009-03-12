@@ -165,7 +165,7 @@ MU_TEST(Security, 0003_AccessCheck)
     };
     ACCESS_MASK granted = 0;
 
-    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-100-200-300-500");
+    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-1805");
     MU_ASSERT_STATUS_SUCCESS(status);
 
     tokenUser.User.Sid = sid;
