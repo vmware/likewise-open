@@ -751,7 +751,7 @@ LsaDmpDuplicateSid(
     DWORD dwError = 0;
     if (pSid)
     {
-        size_t size = SidGetSize(pSid);
+        size_t size = RtlLengthSid(pSid);
         dwError = LsaAllocateMemory(size, (PVOID*)ppSid);
         BAIL_ON_LSA_ERROR(dwError);
         memcpy(*ppSid, pSid, size);
@@ -1283,7 +1283,7 @@ LsaDmpMustFindDomainByObjectSid(
     if (!pFoundDomain)
     {
         PSTR pszSid = NULL;
-        dwError = AD_SidToString(pObjectSid, &pszSid);
+        dwError = LsaAllocateCStringFromSid(&pszSid, pObjectSid);
         // ignore error
         LSA_LOG_DEBUG("Do not know about domain for object SID '%s'",
                       LSA_SAFE_LOG_STRING(pszSid));

@@ -50,6 +50,8 @@
 
 #include "lsaipc.h"
 #include "lsalist.h"
+#include <lw/ntstatus.h>
+#include <lw/security-types.h>
 
 #ifndef LW_ENDIAN_SWAP16
 
@@ -1509,6 +1511,23 @@ LsaTranslateLwMsgError(
         const char *file,
         int line
         );
+
+DWORD
+LsaNtStatusToLsaError(
+    IN NTSTATUS Status
+    );
+
+DWORD
+LsaAllocateCStringFromSid(
+    OUT PSTR* ppszStringSid,
+    IN PSID pSid
+    );
+
+DWORD
+LsaAllocateSidFromCString(
+    OUT PSID* ppSid,
+    IN PCSTR pszStringSid
+    );
 
 #endif /* __LSA_UTILS_H__ */
 

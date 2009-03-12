@@ -2739,9 +2739,9 @@ AD_FillTrustedDomainInfo(
 
     if (pDomainInfo->pSid)
     {
-        dwError = AD_SidToString(
-                        pDomainInfo->pSid,
-                        &pTrustedDomainInfo->pszDomainSID);
+        dwError = LsaAllocateCStringFromSid(
+                        &pTrustedDomainInfo->pszDomainSID,
+                        pDomainInfo->pSid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

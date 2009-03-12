@@ -399,7 +399,6 @@ AD_NetLookupObjectSidsByNames(
     TranslatedSid2* pSids = NULL;
     PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedSids = NULL;
     PSID pObject_sid = NULL;
-    PWSTR pwcObjectSid = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
     LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
@@ -558,17 +557,9 @@ AD_NetLookupObjectSidsByNames(
                                pDom_sid);
         pObject_sid->SubAuthority[pObject_sid->SubAuthorityCount - 1] = pSids[i].rid;
 
-        if (pwcObjectSid)
-        {
-            SidStrFreeW(pwcObjectSid);
-            pwcObjectSid = NULL;
-        }
-        dwError = SidToStringW(pObject_sid,
-                              &pwcObjectSid);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaWc16sToMbs(pwcObjectSid,
-                                &ppTranslatedSids[i]->pszNT4NameOrSid);
+        dwError = LsaAllocateCStringFromSid(
+                        &ppTranslatedSids[i]->pszNT4NameOrSid,
+                        pObject_sid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -604,10 +595,6 @@ cleanup:
     if (pObject_sid)
     {
           SidFree(pObject_sid);
-    }
-    if (pwcObjectSid)
-    {
-        SidStrFreeW(pwcObjectSid);
     }
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0)
@@ -778,14 +765,10 @@ AD_NetLookupObjectNamesBySids(
 
     for (i = 0; i < sid_array.num_sids; i++)
     {
-        status = ParseSidStringA(
+        dwError = LsaAllocateSidFromCString(
                         &pObjectSID,
                         ppszObjectSids[i]);
-        if (status != 0)
-        {
-            dwError = LSA_ERROR_RPC_PARSE_SID_STRING;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        BAIL_ON_LSA_ERROR(dwError);
 
         sid_array.sids[i].sid = pObjectSID;
         pObjectSID = NULL;
@@ -957,9 +940,7 @@ cleanup:
         LSA_SAFE_FREE_MEMORY(sid_array.sids);
     }
 
-    if (pObjectSID){
-        SidFree(pObjectSID);
-    }
+    LSA_SAFE_FREE_MEMORY(pObjectSID);
 
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0){
@@ -1108,44 +1089,6 @@ AD_FreeDomainTrusts(
         NetrFreeMemory(*ppTrusts);
         *ppTrusts = NULL;
     }
-}
-
-DWORD
-AD_SidToString(
-    PSID  pSid,
-    PSTR* ppszSid
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszSid = NULL;
-    wchar16_t* pwszSid = NULL;
-
-    dwError = SidToStringW(pSid, &pwszSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaWc16sToMbs(
-                  pwszSid,
-                  &pszSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppszSid = pszSid;
-
-cleanup:
-
-    if (pwszSid)
-    {
-        SidStrFreeW(pwszSid);
-    }
-
-    return dwError;
-
-error:
-
-    *ppszSid = NULL;
-
-    LSA_SAFE_FREE_STRING(pszSid);
-
-    goto cleanup;
 }
 
 DWORD

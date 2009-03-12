@@ -617,9 +617,9 @@ AD_PacRidsToSidStringList(
         pDomainBasedSid->SubAuthority[pDomainBasedSid->SubAuthorityCount - 1] =
             pRids->rids[i].rid;
 
-        dwError = AD_SidToString(
-                        pDomainBasedSid,
-                        &ppszSidList[i]);
+        dwError = LsaAllocateCStringFromSid(
+                        &ppszSidList[i],
+                        pDomainBasedSid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -666,9 +666,9 @@ AD_PacAttributedSidsToSidStringList(
 
     for (i = 0; i < dwSidCount;  i++)
     {
-        dwError = AD_SidToString(
-                        pAttributedSids[i].sid,
-                        &ppszSidList[i]);
+        dwError = LsaAllocateCStringFromSid(
+                        &ppszSidList[i],
+                        pAttributedSids[i].sid);
         BAIL_ON_LSA_ERROR(dwError);
 
         pdwSidAttributeList[i] = pAttributedSids[i].attribute;

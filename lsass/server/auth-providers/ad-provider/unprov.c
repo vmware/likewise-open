@@ -92,9 +92,9 @@ ADUnprovPlugin_QueryByIdWithDomainName(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_SidToString(
-                 pDomainSid,
-                 &pszDomainSid);
+    dwError = LsaAllocateCStringFromSid(
+                 &pszDomainSid,
+                 pDomainSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     BAIL_ON_INVALID_STRING(pszDomainSid);

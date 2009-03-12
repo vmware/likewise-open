@@ -593,7 +593,6 @@ ADState_StoreDomainTrustList(
     const LSA_DM_ENUM_DOMAIN_INFO* pDomain = NULL;
     char szGuid[UUID_STR_SIZE];
     PSTR pszSid = NULL;
-    PWSTR pwszSid = NULL;
 
     pszSqlCommand = sqlite3_mprintf(
         "begin;\n"
@@ -608,19 +607,13 @@ ADState_StoreDomainTrustList(
     {
         pDomain = ppDomainInfo[dwIndex];
 
-        LSA_SAFE_FREE_MEMORY(pwszSid);
         LSA_SAFE_FREE_STRING(pszSid);
 
         if (pDomain->pSid != NULL)
         {
-            dwError = SidToStringW(
-                    pDomain->pSid,
-                    &pwszSid);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaWc16sToMbs(
-                    pwszSid,
-                    &pszSid);
+            dwError = LsaAllocateCStringFromSid(
+                    &pszSid,
+                    pDomain->pSid);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -704,7 +697,6 @@ ADState_StoreDomainTrustList(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pwszSid);
     LSA_SAFE_FREE_STRING(pszSid);
     SQLITE3_SAFE_FREE_STRING(pszOldExpression);
     SQLITE3_SAFE_FREE_STRING(pszSqlCommand);

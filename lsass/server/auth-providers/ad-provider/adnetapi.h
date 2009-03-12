@@ -140,12 +140,6 @@ AD_FreeDomainTrusts(
     );
 
 DWORD
-AD_SidToString(
-    PSID  pSid,
-    PSTR* ppszSid
-    );
-
-DWORD
 AD_MapNetApiError(
     DWORD dwADError
     );

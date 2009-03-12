@@ -580,3 +580,19 @@ LsaTranslateLwMsgError(
 
     return dwLsaError;
 }
+
+DWORD
+LsaNtStatusToLsaError(
+    IN NTSTATUS Status
+    )
+{
+    switch (Status)
+    {
+        case STATUS_INSUFFICIENT_RESOURCES:
+            return LSA_ERROR_OUT_OF_MEMORY;
+        case STATUS_INVALID_SID:
+            return LSA_ERROR_INVALID_SID;
+        default:
+            return LwNtStatusToUnixErrno(Status);
+    }
+}
