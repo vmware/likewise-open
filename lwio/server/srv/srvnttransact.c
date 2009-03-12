@@ -200,7 +200,8 @@ SrvQuerySecurityDescriptor(
     UCHAR         ucSetupCount = 0;
     PBYTE         pSecurityDescriptor = NULL;
     ULONG         ulSecurityDescInitialLen = 256;
-    ULONG         ulSecurityDescLen = 0;
+    ULONG         ulSecurityDescAllocLen = 0;
+    ULONG         ulSecurityDescActualLen = 0;
     ULONG         ulDataOffset = 0;
     ULONG         ulParameterOffset = 0;
     ULONG         ulNumPackageBytesUsed = 0;
@@ -227,7 +228,7 @@ SrvQuerySecurityDescriptor(
                     ulSecurityDescInitialLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulSecurityDescLen = ulSecurityDescInitialLen;
+    ulSecurityDescAllocLen = ulSecurityDescInitialLen;
 
     do
     {
@@ -240,13 +241,14 @@ SrvQuerySecurityDescriptor(
                         &ioStatusBlock,
                         pQueryRequest->ulSecurityInfo,
                         (PSECURITY_DESCRIPTOR_RELATIVE)pSecurityDescriptor,
-                        ulSecurityDescLen);
+                        ulSecurityDescAllocLen);
         if ((ntStatus == STATUS_BUFFER_TOO_SMALL) &&
             (ulSecurityDescLen != SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE))
         {
             PBYTE pNewMemory = NULL;
 
-            ulNewLen = LW_MIN(SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE, ulSecurityDescLen + 4096);
+            ulNewLen = LW_MIN(SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE, ulSecurityDescAllocLen + 4096);
+
             ntStatus = LW_RTL_ALLOCATE(
                             &pNewMemory,
                             BYTE,
@@ -259,11 +261,13 @@ SrvQuerySecurityDescriptor(
             }
 
             pSecurityDescriptor = pNewMemory;
-            ulSecurityDescLen = ulNewLen;
+            ulSecurityDescAllocLen = ulNewLen;
 
             continue;
         }
         BAIL_ON_NT_STATUS(ntStatus);
+
+        ulSecurityDescLen = ioStatusBlock.BytesTransferred;
 
     } while (ntStatus != STATUS_SUCCESS);
 
