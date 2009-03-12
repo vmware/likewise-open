@@ -34,45 +34,33 @@
  *
  * Module Name:
  *
- *        acl.h
+ *        acl_xattr.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Supporting ACL routines
+ *        Extended Attribute NTFS ACL implementation
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef _PVFS_ACL_H_
-#define _PVFS_ACL_H_
-
-NTSTATUS
-PvfsGetSecurityDescriptorFile(
-    IN PPVFS_CCB pCcb,
-    IN SECURITY_INFORMATION SecInfo,
-    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
-    IN OUT PULONG pSecDescLen
-    );
-
-NTSTATUS
-PvfsSetSecurityDescriptorFile(
-    IN PPVFS_CCB pCcb,
-    IN SECURITY_INFORMATION SecInfo,
-    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
-    IN ULONG SecDescLen
-    );
-
-VOID
-PvfsFreeAbsoluteSecurityDescriptor(
-    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
-    );
-
+#include "pvfs.h"
 
 #ifdef HAVE_EA_SUPPORT
 
-/* From acl_xattr.c */
+/* Forward declarations */
+
+
+/* File Globals */
+
+
+
+/* Code */
+
+
+/****************************************************************
+ ***************************************************************/
 
 NTSTATUS
 PvfsGetSecurityDescriptorFileXattr(
@@ -80,7 +68,13 @@ PvfsGetSecurityDescriptorFileXattr(
     IN SECURITY_INFORMATION SecInfo,
     IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
     IN OUT PULONG pSecDescLen
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+/****************************************************************
+ ***************************************************************/
 
 NTSTATUS
 PvfsSetSecurityDescriptorFileXattr(
@@ -88,11 +82,13 @@ PvfsSetSecurityDescriptorFileXattr(
     IN SECURITY_INFORMATION SecInfo,
     IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
     IN ULONG SecDescLen
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
-#endif   /* HAVE_EA_SUPPORT */
 
-#endif     /* _PVFS_ACL_H_ */
+#endif   /* HAVE_EA_SUPPORT  */
 
 
 /*

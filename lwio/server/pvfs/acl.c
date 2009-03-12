@@ -50,9 +50,24 @@
 /* Forward declarations */
 
 static NTSTATUS
+CreateDefaultSecDescFile(
+    IN SECURITY_INFORMATION SecInfo,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    );
+
+static NTSTATUS
+CreateDefaultSecDescDir(
+    IN SECURITY_INFORMATION SecInfo,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    );
+
+static NTSTATUS
 CreateDefaultSecDesc(
     IN SECURITY_INFORMATION SecInfo,
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
+    IN OUT PULONG pSecDescLen,
     BOOLEAN bIsDirectory
     );
 
@@ -73,33 +88,73 @@ BuildDefaultDaclDirectory(
 
 /* Code */
 
-
 /****************************************************************
  ***************************************************************/
 
 NTSTATUS
-PvfsCreateDefaultSecDescFile(
+PvfsGetSecurityDescriptorFile(
+    IN PPVFS_CCB pCcb,
     IN SECURITY_INFORMATION SecInfo,
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
     )
 {
-    return CreateDefaultSecDesc(SecInfo,
-                                ppSecDesc,
-                                FALSE /* not a directory */);
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+#ifdef HAVE_EA_SUPPORT
+    ntError = PvfsGetSecurityDescriptorFileXattr(pCcb,
+                                                 SecInfo,
+                                                 pSecDesc,
+                                                 pSecDescLen);
+#endif
+    /* Fallback to generating a default secdesc */
+
+    if (!NT_SUCCESS(ntError))
+    {
+        if (pCcb->CreateOptions & FILE_DIRECTORY_FILE) {
+            ntError = CreateDefaultSecDescDir(SecInfo, pSecDesc, pSecDescLen);
+        } else {
+            ntError = CreateDefaultSecDescFile(SecInfo, pSecDesc, pSecDescLen);
+        }
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+
 }
 
 /****************************************************************
  ***************************************************************/
 
 NTSTATUS
-PvfsCreateDefaultSecDescDir(
+PvfsSetSecurityDescriptorFile(
+    IN PPVFS_CCB pCcb,
     IN SECURITY_INFORMATION SecInfo,
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
+    IN ULONG SecDescLen
     )
 {
-    return CreateDefaultSecDesc(SecInfo,
-                                ppSecDesc,
-                                TRUE /* is a directory */);
+    NTSTATUS ntError = STATUS_ACCESS_DENIED;
+
+#ifdef HAVE_EA_SUPPORT
+    ntError = PvfsSetSecurityDescriptorFileXattr(pCcb,
+                                                 SecInfo,
+                                                 pSecDescRelative,
+                                                 SecDescLen);
+#endif
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 /****************************************************************
@@ -119,9 +174,42 @@ PvfsFreeAbsoluteSecurityDescriptor(
  ***************************************************************/
 
 static NTSTATUS
+CreateDefaultSecDescFile(
+    IN SECURITY_INFORMATION SecInfo,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    )
+{
+    return CreateDefaultSecDesc(SecInfo,
+                                pSecDesc,
+                                pSecDescLen,
+                                FALSE /* not a directory */);
+}
+
+/****************************************************************
+ ***************************************************************/
+
+static NTSTATUS
+CreateDefaultSecDescDir(
+    IN SECURITY_INFORMATION SecInfo,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    )
+{
+    return CreateDefaultSecDesc(SecInfo,
+                                pSecDesc,
+                                pSecDescLen,
+                                TRUE /* is a directory */);
+}
+
+/****************************************************************
+ ***************************************************************/
+
+static NTSTATUS
 CreateDefaultSecDesc(
     IN SECURITY_INFORMATION SecInfo,
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
+    IN OUT PULONG pSecDescLen,
     BOOLEAN bIsDirectory
     )
 {
@@ -191,16 +279,19 @@ CreateDefaultSecDesc(
 
     /* All done */
 
-    *ppSecDesc = pSecDesc;
-    ntError = STATUS_SUCCESS;
+    ntError = RtlAbsoluteToSelfRelativeSD(pSecDesc,
+                                          pSecDescRelative,
+                                          pSecDescLen);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    return ntError;
-
-error:
     if (pSecDesc) {
         PvfsFreeAbsoluteSecurityDescriptor(pSecDesc);
     }
+
+    return ntError;
+
+error:
 
     PVFS_SAFE_FREE_MEMORY(pDacl);
     PVFS_SAFE_FREE_MEMORY(pSid);

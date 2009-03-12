@@ -114,8 +114,7 @@ PvfsQuerySecurityFile(
     NTSTATUS ntError = STATUS_NOT_SUPPORTED;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PSECURITY_DESCRIPTOR_RELATIVE prReturnSecDesc = NULL;
-    PSECURITY_DESCRIPTOR_ABSOLUTE paDefaultSecDesc = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pReturnSecDesc = NULL;
     ULONG SecDescLength = 0;
     SECURITY_INFORMATION SecInfo = 0;
     IRP_ARGS_QUERY_SET_SECURITY Args = pIrpContext->pIrp->Args.QuerySetSecurity;
@@ -130,34 +129,22 @@ PvfsQuerySecurityFile(
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
 
-    prReturnSecDesc = Args.SecurityDescriptor;
+    pReturnSecDesc = Args.SecurityDescriptor;
     SecDescLength = Args.Length;
     SecInfo  = Args.SecurityInformation;
 
     /* Real work starts here */
 
-    if (pCcb->CreateOptions & FILE_DIRECTORY_FILE) {
-        ntError = PvfsCreateDefaultSecDescDir(SecInfo, &paDefaultSecDesc);
-    } else {
-        ntError = PvfsCreateDefaultSecDescFile(SecInfo,&paDefaultSecDesc);
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Ignore the SecurirityInformation for now */
-
-    ntError = RtlAbsoluteToSelfRelativeSD(paDefaultSecDesc,
-                                          prReturnSecDesc,
-                                          &SecDescLength);
+    ntError = PvfsGetSecurityDescriptorFile(pCcb,
+                                            SecInfo,
+                                            pReturnSecDesc,
+                                            &SecDescLength);
     BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = SecDescLength;
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (paDefaultSecDesc) {
-        PvfsFreeAbsoluteSecurityDescriptor(paDefaultSecDesc);
-    }
-
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
     }

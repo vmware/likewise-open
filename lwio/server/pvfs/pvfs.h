@@ -49,6 +49,14 @@
 #define __PVFS_H__
 
 #include "config.h"
+
+#if defined(HAVE_ATTR_XATTR_H) && defined(HAVE_FSETXATTR) && defined(HAVE_FGETXATTR)
+#  ifdef __LWI_LINUX__
+#    define HAVE_EA_SUPPORT
+#  endif
+#endif
+
+
 #include "lwiosys.h"
 
 #include <lw/base.h>

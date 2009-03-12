@@ -28,6 +28,7 @@ libpvfs_sys_la_SOURCES = \
     string.c \
     wildcard.c \
     acl.c \
+    acl_xattr.c \
     util_security.c \
     util_time.c \
     fileBasicInfo.c \
