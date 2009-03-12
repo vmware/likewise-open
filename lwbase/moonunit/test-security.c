@@ -117,7 +117,7 @@ MU_TEST(Security, 0002_SidChange)
 MU_TEST(Security, 0003_AccessCheck)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    char buffer[] = {
+    static BYTE buffer[] = {
         0x01, 0x00, 0x04, 0x84, 0x14, 0x00, 0x00, 0x00,
         0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x4c, 0x00, 0x00, 0x00, 0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x15, 0x00, 0x00, 0x00,
@@ -145,7 +145,7 @@ MU_TEST(Security, 0003_AccessCheck)
     TOKEN_PRIMARY_GROUP tokenPrimaryGroup = { 0 };
     TOKEN_DEFAULT_DACL tokenDefaultDacl = { 0 };
     PACCESS_TOKEN token = NULL;
-    PSECURITY_DESCRIPTOR_RELATIVE relativeSd = (PSECURITY_DESCRIPTOR_RELATIVE) buffer;
+    PSECURITY_DESCRIPTOR_RELATIVE relativeSd = (PSECURITY_DESCRIPTOR_RELATIVE) (PBYTE) buffer;
     ULONG relativeSdLength = sizeof(buffer);
     PSECURITY_DESCRIPTOR_ABSOLUTE sd = NULL;
     PACL dacl = NULL;
