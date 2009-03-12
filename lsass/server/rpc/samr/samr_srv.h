@@ -39,13 +39,19 @@
 
 
 typedef struct samr_rpc_context {
-} SamrRpcContext, SAMR_RPC_CONTEXT;
+} SamrRpcContext, SAMR_RPC_CONTEXT, *PSAMR_RPC_CONTEXT;
 
 
 typedef struct samr_rpc_worker {
     pthread_t        worker;
     SAMR_RPC_CONTEXT context;
 } SamrRpcWorker, SAMR_RPC_WORKER, *PSAMR_RPC_WORKER;
+
+
+typedef struct endpoint {
+    PCSTR pszProtocol;
+    PCSTR pszEndpoint;
+} ENDPOINT, *PENDPOINT;
 
 
 DWORD
@@ -63,6 +69,12 @@ SamrRpcUnregisterRpcInterface(
 DWORD
 SamrRpcStartWorker(
     void
+    );
+
+
+void*
+SamrRpcWorkerMain(
+    void* pCtx
     );
 
 

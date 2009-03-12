@@ -38,38 +38,120 @@
 
 
 DWORD
+SamrRpcBindInterface(
+    rpc_binding_vector_p_t *ppSrvBinding,
+    PENDPOINT pEndPoints
+    )
+{
+    DWORD dwError = 0;
+    RPCSTATUS rpcstatus = 0;
+    DWORD i = 0;
+
+    for (i = 0; pEndPoints[i].pszProtocol != NULL; i++)
+    {
+        if (!pEndPoints[i].pszEndpoint)
+        {
+            rpc_server_use_protseq((unsigned char*) pEndPoints[i].pszProtocol,
+                                   rpc_c_protseq_max_calls_default,
+                                   (unsigned32*)&rpcstatus);
+            BAIL_ON_DCERPC_ERROR(rpcstatus);
+        }
+        else
+        {
+            rpc_server_use_protseq_ep((unsigned char*)pEndPoints[i].pszProtocol,
+                                      rpc_c_protseq_max_calls_default,
+                                      (unsigned char*)pEndPoints[i].pszEndpoint,
+                                      (unsigned32*)&rpcstatus);
+            BAIL_ON_DCERPC_ERROR(rpcstatus);
+        }
+    }
+
+    rpc_server_inq_bindings(ppSrvBinding, (unsigned32*)&rpcstatus);
+    BAIL_ON_DCERPC_ERROR(rpcstatus);
+
+error:
+
+    return dwError;
+}
+
+
+DWORD
 SamrRpcRegisterRpcInterface(
     rpc_binding_vector_p_t pSrvBinding
     )
 {
-    const PSTR pszProtSeq[] = { "ncacn_ip_tcp", NULL };
+    const ENDPOINT endpoints[] = {
+        { "ncacn_np", "\\\\pipe\\\\samr" },
+        { "ncacn_ip_tcp", NULL }
+    };
 
     DWORD dwError = 0;
     RPCSTATUS rpcstatus = rpc_s_ok;
     int i = 0;
 
-    rpc_server_register_if(samr_v1_0_s_ifspec,
-                           NULL,
-                           NULL,
-                           &rpcstatus);
-    BAIL_ON_DCERPC_ERROR(rpcstatus);
-
-    while (pszProtSeq[i] != NULL) {
-        rpc_server_use_protseq((unsigned char*)pszProtSeq[i++],
-                               rpc_c_protseq_max_calls_default,
+    DCETHREAD_TRY
+    {
+        rpc_server_register_if(samr_v1_0_s_ifspec,
+                               NULL,
+                               NULL,
                                &rpcstatus);
-        BAIL_ON_DCERPC_ERROR(rpcstatus);
     }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if (!rpcstatus) {
+            rpcstatus = dcethread_exc_getstatus(THIS_CATCH);
+        }
 
-    rpc_server_inq_bindings(&pSrvBinding, &rpcstatus);
-    BAIL_ON_DCERPC_ERROR(rpcstatus);
+        if (!rpcstatus) {
+                dwError = LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR;
+        }
+    }
+    DCETHREAD_ENDTRY;
 
-    rpc_ep_register(samr_v1_0_s_ifspec,
-                    pSrvBinding,
-                    NULL,
-                    "",
-                    &rpcstatus);
     BAIL_ON_DCERPC_ERROR(rpcstatus);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    DCETHREAD_TRY
+    {
+        dwError = SamrRpcBindInterface(&pSrvBinding, (PENDPOINT)endpoints);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if (!dwError) {
+            rpcstatus = dcethread_exc_getstatus(THIS_CATCH);
+        }
+
+        if (!rpcstatus) {
+            dwError = LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR;
+        }
+    }
+    DCETHREAD_ENDTRY;
+
+    BAIL_ON_DCERPC_ERROR(rpcstatus);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    DCETHREAD_TRY
+    {
+        rpc_ep_register(samr_v1_0_s_ifspec,
+                        pSrvBinding,
+                        NULL,
+                        "",
+                        &rpcstatus);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if (!dwError) {
+            rpcstatus = dcethread_exc_getstatus(THIS_CATCH);
+        }
+
+        if (!rpcstatus) {
+            dwError = LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR;
+        }
+    }
+    DCETHREAD_ENDTRY;
+
+    BAIL_ON_DCERPC_ERROR(rpcstatus);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     return dwError;
@@ -113,25 +195,6 @@ error:
 }
 
 
-static
-void*
-SamrRpcWorkerMain(
-    void* pCtx
-    )
-{
-    RPCSTATUS rpcstatus = rpc_s_ok;
-
-    DCETHREAD_TRY
-    {
-        rpc_server_listen(rpc_c_listen_max_calls_default, &rpcstatus);
-    }
-    DCETHREAD_CATCH_ALL(THIS_CATCH)
-    {
-    }
-    DCETHREAD_ENDTRY;
-}
-
-
 DWORD
 SamrRpcStartWorker(
     void
@@ -157,6 +220,32 @@ error:
 }
 
 
+void*
+SamrRpcWorkerMain(
+    void* pCtx
+    )
+{
+    DWORD dwError = 0;
+    RPCSTATUS rpcstatus = rpc_s_ok;
+
+    DCETHREAD_TRY
+    {
+        rpc_server_listen(rpc_c_listen_max_calls_default, &rpcstatus);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if (!rpcstatus) {
+            rpcstatus = dcethread_exc_getstatus(THIS_CATCH);
+        }
+
+        if (!rpcstatus) {
+                dwError = LSA_ERROR_RPC_SERVER_RUNTIME_ERROR;
+        }
+    }
+    DCETHREAD_ENDTRY
+}
+
+
 DWORD
 SamrRpcStartServer(
     void
@@ -164,7 +253,6 @@ SamrRpcStartServer(
 {
     DWORD dwError = 0;
     RPCSTATUS rpcstatus = rpc_s_ok;
-    int ret = 0;
 
     dwError = SamrRpcRegisterRpcInterface(gpSamrSrvBinding);
     BAIL_ON_LSA_ERROR(dwError);
