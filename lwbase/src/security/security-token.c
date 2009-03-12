@@ -618,16 +618,22 @@ RtlAccessCheck(
                 {
                     // SID in token => add bits to granted bits
                     PSID sid = RtlpGetSidAccessAllowedAce(ace);
+                    ACCESS_MASK mask = 0;
+
                     if (RtlpIsSidMemberOfToken(AccessToken, sid))
                     {
+                        mask = ace->Mask;
+                        RtlMapGenericMask(&mask, GenericMapping);
+
                         if (wantMaxAllowed)
                         {
-                            SetFlag(grantedAccess, ace->Mask);
+                            SetFlag(grantedAccess, mask);
                         }
                         else
                         {
-                            SetFlag(grantedAccess, ace->Mask & desiredAccess);
+                            SetFlag(grantedAccess, mask & desiredAccess);
                         }
+
                         ClearFlag(desiredAccess, grantedAccess);
                     }
                 }
