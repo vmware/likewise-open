@@ -49,8 +49,8 @@
 #include "lsarpcsrv.h"
 
 #include "lsa_srv.h"
-#include "lsa_stub.h"
 #include "lsa.h"
+#include "lsa_h.h"
 
 #include "externs.h"
 

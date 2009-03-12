@@ -44,6 +44,7 @@ liblsa_srv_la_LIBADD = \
 liblsa_ss_la_SOURCES = lsa_sstub.c
 
 liblsa_ss_la_CFLAGS = \
+    -DDCERPC_STUB_BUILD \
     $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
