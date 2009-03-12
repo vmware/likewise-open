@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -329,6 +329,7 @@ LsaLdapOpenDirectoryServerSingleAttempt(
     int rc = LDAP_VERSION3;
     DWORD dwPort = 389;
     struct timeval timeout = {0};
+    DWORD dwSecurity = ISC_REQ_MUTUAL_AUTH | ISC_REQ_REPLAY_DETECT;
 
     timeout.tv_sec = dwTimeoutSec;
 
@@ -390,27 +391,34 @@ LsaLdapOpenDirectoryServerSingleAttempt(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwSecurity |= ISC_REQ_INTEGRITY;
+
     if (dwFlags & LSA_LDAP_OPT_SIGN_AND_SEAL)
     {
-        dwError = ldap_set_option(ld, LDAP_OPT_SIGN, (void *)LDAP_OPT_ON);
-        if (dwError) {
-            LSA_LOG_ERROR("Failed to set LDAP option to sign");
-            dwError = errno;
-            BAIL_ON_LSA_ERROR(dwError);
-            LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
-            dwError = LSA_ERROR_LDAP_ERROR;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        dwSecurity |= ISC_REQ_CONFIDENTIALITY;
+    }
 
-        dwError = ldap_set_option(ld, LDAP_OPT_ENCRYPT, (void *)LDAP_OPT_ON);
-        if (dwError) {
-            LSA_LOG_ERROR("Failed to set LDAP option to not follow referrals");
-            dwError = errno;
-            BAIL_ON_LSA_ERROR(dwError);
-            LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
-            dwError = LSA_ERROR_LDAP_ERROR;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+    dwError = ldap_set_option(ld, LDAP_OPT_SSPI_FLAGS, (void*)&dwSecurity);
+    if (dwError) {
+        LSA_LOG_ERROR("Failed to set LDAP GSS-API option to"
+                      " sign and/or seal");
+        dwError = errno;
+        BAIL_ON_LSA_ERROR(dwError);
+        LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
+        dwError = LSA_ERROR_LDAP_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = ldap_set_option(ld, LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL,
+                              LDAP_OPT_ON);
+    if (dwError) {
+        LSA_LOG_ERROR("Failed to set LDAP GSS-API option to allow"
+                      " remote principals");
+        dwError = errno;
+        BAIL_ON_LSA_ERROR(dwError);
+        LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
+        dwError = LSA_ERROR_LDAP_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = ldap_set_option(ld, LDAP_OPT_HOST_NAME, pszServerName);
@@ -600,20 +608,12 @@ LsaLdapBindDirectory(
 
     gss_buffer_desc token = GSS_C_EMPTY_BUFFER;
 
-    struct berval ClientCreds;
     struct berval * pServerCreds = NULL;
 
 //    PCtxtHandle pContextHandle = NULL;
     OM_uint32 ret_flags = 0;
 
     gss_name_t targ_name = GSS_C_NO_NAME;
-//    gss_cred_id_t creds = GSS_C_NO_CREDENTIAL;
-//    gss_ctx_id_t context_handle = GSS_C_NO_CONTEXT;
-
-//    PBYTE pByte = NULL;
-//    PBYTE pData = NULL;
-//    int conf_state = 0;
-//    DWORD dwSize = 0;
 
     krb5_principal host_principal = NULL;
     krb5_context ctx = NULL;
@@ -622,8 +622,6 @@ LsaLdapBindDirectory(
         {10,"\052\206\110\206\367\022\001\002\002\002"};
     gss_OID_desc krb5_oid_desc =
         {9, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };
-//    gss_OID_desc spnego_oid_desc =
-//        {6, "\x53\x06\x01\x05\x05\x02"};
 
     input_desc.value = NULL;
     input_desc.length = 0;
@@ -656,103 +654,66 @@ LsaLdapBindDirectory(
     memset(pGSSContext, 0, sizeof(CtxtHandle));
     *pGSSContext = GSS_C_NO_CONTEXT;
 
-    do  {
+    dwMajorStatus = gss_init_sec_context((OM_uint32 *)&dwMinorStatus,
+                                         NULL,
+                                         pGSSContext,
+                                         targ_name,
+                                         &krb5_oid_desc,
+                                         GSS_C_REPLAY_FLAG | GSS_C_MUTUAL_FLAG,
+                                         0,
+                                         NULL,
+                                         &input_desc,
+                                         NULL,
+                                         &output_desc,
+                                         &ret_flags,
+                                         NULL);
 
-        dwMajorStatus = gss_init_sec_context((OM_uint32 *)&dwMinorStatus,
-                                             NULL,
-                                             pGSSContext,
-                                             targ_name,
-                                             &krb5_oid_desc,
-                                             GSS_C_REPLAY_FLAG | GSS_C_MUTUAL_FLAG,
-                                             0,
-                                             NULL,
-                                             &input_desc,
-                                             NULL,
-                                             &output_desc,
-                                             &ret_flags,
-                                             NULL);
+    display_status("gss_init_context", dwMajorStatus, dwMinorStatus);
+    if (
+        (dwMajorStatus == GSS_S_FAILURE &&
+        (dwMinorStatus == (DWORD)KRB5KRB_AP_ERR_TKT_EXPIRED ||
+         dwMinorStatus == (DWORD)KRB5KDC_ERR_NEVER_VALID)) ||
+        (dwMajorStatus == GSS_S_CRED_UNAVAIL &&
+        dwMinorStatus == 0x25ea10c /* This is KG_EMPTY_CCACHE
+                                    * inside of gssapi, but that symbol
+                                    * is not exposed externally. This
+                                    * code means that the credentials
+                                    * cache does not have a TGT inside
+                                    * of it.
+                                    */
+        )
+	)
+    {
+        /* The kerberos ticket expired or is about to expire (The
+         * machine password sync thread didn't do its job).
+         */
+        LSA_LOG_INFO("Renewing machine tgt outside of password sync thread");
 
-#if 0
-        if (input_desc.value) {
-            //gss_release_buffer(&minor_status, &input_desc);a
-            ber_bvfree(input_desc.value);
-        }
-#endif
+        dwError = LsaKrb5RefreshMachineTGT(NULL);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-        display_status("gss_init_context", dwMajorStatus, dwMinorStatus);
-        if (
-            (dwMajorStatus == GSS_S_FAILURE &&
-                (dwMinorStatus == (DWORD)KRB5KRB_AP_ERR_TKT_EXPIRED ||
-                 dwMinorStatus == (DWORD)KRB5KDC_ERR_NEVER_VALID)) ||
-            (dwMajorStatus == GSS_S_CRED_UNAVAIL &&
-                dwMinorStatus == 0x25ea10c /* This is KG_EMPTY_CCACHE
-                                            * inside of gssapi, but that symbol
-                                            * is not exposed externally. This
-                                            * code means that the credentials
-                                            * cache does not have a TGT inside
-                                            * of it.
-                                            */
-                )
-            )
-        {
-            /* The kerberos ticket expired or is about to expire (The
-             * machine password sync thread didn't do its job).
-             */
-            LSA_LOG_INFO("Renewing machine tgt outside of password sync thread");
-
-            dwError = LsaKrb5RefreshMachineTGT(NULL);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            // Start over again with the new tickets
-            memset(pGSSContext, 0, sizeof(CtxtHandle));
-            *pGSSContext = GSS_C_NO_CONTEXT;
-            dwMajorStatus = GSS_S_CONTINUE_NEEDED;
-            continue;
-        }
+    if (dwMajorStatus != 0 &&
+        dwMajorStatus != GSS_S_CONTINUE_NEEDED)
+    {
         BAIL_ON_SEC_ERROR(dwMajorStatus);
+    }
 
-        switch (dwMajorStatus) {
 
-        case GSS_S_COMPLETE:
-        case GSS_S_CONTINUE_NEEDED:
-            if (output_desc.length != 0) {
-                ClientCreds.bv_val = output_desc.value;
-                ClientCreds.bv_len = output_desc.length;
-
-                dwError = ldap_sasl_bind_s(pDirectory->ld,
-                                           NULL,
-                                           "GSS-SPNEGO",
-                                           &ClientCreds,
-                                           NULL,
-                                           NULL,
-                                           &pServerCreds
-                    );
-                if (dwError != LDAP_SASL_BIND_IN_PROGRESS && dwError != 0) {
-                    LSA_LOG_ERROR("ldap_sasl_bind_s failed with error code %d", dwError);
-                    BAIL_ON_LSA_ERROR(dwError);
-                }
-
-                if (output_desc.value) {
-                    gss_release_buffer((OM_uint32 *)&dwMinorStatus, &output_desc);
-                }
-
-                input_desc.value = pServerCreds->bv_val;
-                input_desc.length = pServerCreds->bv_len;
-            }
-            break;
-
-        default:
-            LSA_LOG_VERBOSE("Unexpected result calling gss_init_sec_context()" );
-            dwError = LSA_ERROR_GSS_CALL_FAILED;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-    } while (dwMajorStatus == GSS_S_CONTINUE_NEEDED);
+    dwError = ldap_gssapi_bind_s(pDirectory->ld, NULL, NULL);
+    if (dwError != 0) {
+        LSA_LOG_ERROR("ldap_gssapi_bind_s failed with error code %d", dwError);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 error:
 
     if (targ_name) {
         gss_release_name((OM_uint32*)&dwMinorStatus, &targ_name);
+    }
+
+    if (output_desc.value) {
+	gss_release_buffer((OM_uint32 *)&dwMinorStatus, &output_desc);
     }
 
     if (pServerCreds) {
@@ -2111,3 +2072,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
