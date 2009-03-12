@@ -1163,11 +1163,11 @@ cleanup:
     }
     if (DaclSize)
     {
-        *DaclSize = daclSize;
+        *DaclSize = daclSizeRequired;
     }
     if (SaclSize)
     {
-        *SaclSize = saclSize;
+        *SaclSize = saclSizeRequired;
     }
     if (OwnerSize)
     {

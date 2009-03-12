@@ -107,8 +107,8 @@ RtlCreateAccessToken(
 
     if (!User || !User->User.Sid ||
         !Groups ||
-        !Owner || !Owner->Owner ||
-        !PrimaryGroup || !PrimaryGroup->PrimaryGroup ||
+        !Owner ||
+        !PrimaryGroup ||
         !DefaultDacl)
     {
         status = STATUS_INVALID_PARAMETER;
@@ -116,8 +116,8 @@ RtlCreateAccessToken(
     }
 
     if (!RtlValidSid(User->User.Sid) ||
-        !RtlValidSid(Owner->Owner) ||
-        !RtlValidSid(PrimaryGroup->PrimaryGroup))
+        (Owner->Owner && !RtlValidSid(Owner->Owner)) ||
+        (PrimaryGroup->PrimaryGroup && !RtlValidSid(PrimaryGroup->PrimaryGroup)))
     {
         status = STATUS_INVALID_SID;
         GOTO_CLEANUP();
@@ -160,13 +160,19 @@ RtlCreateAccessToken(
     status = RtlSafeAddULONG(&requiredSize, requiredSize, size);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    size = RtlLengthSid(Owner->Owner);
-    status = RtlSafeAddULONG(&requiredSize, requiredSize, size);
-    GOTO_CLEANUP_ON_STATUS(status);
+    if (Owner->Owner)
+    {
+        size = RtlLengthSid(Owner->Owner);
+        status = RtlSafeAddULONG(&requiredSize, requiredSize, size);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
-    size = RtlLengthSid(PrimaryGroup->PrimaryGroup);
-    status = RtlSafeAddULONG(&requiredSize, requiredSize, size);
-    GOTO_CLEANUP_ON_STATUS(status);
+    if (PrimaryGroup->PrimaryGroup)
+    {
+        size = RtlLengthSid(PrimaryGroup->PrimaryGroup);
+        status = RtlSafeAddULONG(&requiredSize, requiredSize, size);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
     if (DefaultDacl->DefaultDacl)
     {
@@ -214,15 +220,21 @@ RtlCreateAccessToken(
                                   RtlLengthSid(Groups->Groups[i].Sid));
     }
 
-    token->Owner.Owner = (PSID) location;
-    location = RtlpAppendData(location,
-                              Owner->Owner,
-                              RtlLengthSid(Owner->Owner));
+    if (Owner->Owner)
+    {
+        token->Owner.Owner = (PSID) location;
+        location = RtlpAppendData(location,
+                                  Owner->Owner,
+                                  RtlLengthSid(Owner->Owner));
+    }
 
-    token->PrimaryGroup.PrimaryGroup = (PSID) location;
-    location = RtlpAppendData(location,
-                              PrimaryGroup->PrimaryGroup,
-                              RtlLengthSid(PrimaryGroup->PrimaryGroup));
+    if (PrimaryGroup->PrimaryGroup)
+    {
+        token->PrimaryGroup.PrimaryGroup = (PSID) location;
+        location = RtlpAppendData(location,
+                                  PrimaryGroup->PrimaryGroup,
+                                  RtlLengthSid(PrimaryGroup->PrimaryGroup));
+    }
 
     if (DefaultDacl->DefaultDacl)
     {
