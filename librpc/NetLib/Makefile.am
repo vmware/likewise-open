@@ -37,13 +37,16 @@ libnetapi_la_SOURCES = \
 	MachinePassword.c \
 	NetGetDcName.c
 
+libnetapi_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
+
 libnetapi_la_LIBADD = \
 	-lunistr -lldap_r -lktkrb5 -llwioclient \
 	$(top_builddir)/Samr/libsamr.la \
 	$(top_builddir)/Lsa/liblsa.la \
 	$(top_builddir)/Netlogon/libnetlogon.la \
 	$(top_builddir)/MsRpc/libmsrpc.la \
-	$(top_builddir)/Mpr/libmpr.la
+	$(top_builddir)/Mpr/libmpr.la \
+	@LWBASE_LIBS@
 
 if HAVE_LIBTDB
 libnetapi_la_LIBADD += -ltdb

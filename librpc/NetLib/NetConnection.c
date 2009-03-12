@@ -199,7 +199,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         btin_dom_access = btin_dom_flags | req_btin_dom_flags;
         conn_handle = cn->samr.conn_handle;
 
-        status = ParseSidStringA(&btin_dom_sid, SID_BUILTIN_DOMAIN);
+        status = RtlAllocateSidFromCString(&btin_dom_sid, SID_BUILTIN_DOMAIN);
         if (status != 0) return status;
 
         status = SamrOpenDomain(samr_b, &conn_handle, btin_dom_access,
@@ -209,7 +209,7 @@ NTSTATUS NetConnectSamr(NetConn **conn, const wchar16_t *hostname,
         cn->samr.btin_dom_handle = btin_dom_handle;
         cn->samr.btin_dom_access = btin_dom_access;
 
-        if (btin_dom_sid) SidFree(btin_dom_sid);
+        RTL_FREE(&btin_dom_sid);
     }
 
     /* check if requested host's domain access flags have been

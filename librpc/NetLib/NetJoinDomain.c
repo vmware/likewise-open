@@ -390,7 +390,7 @@ NetJoinDomainLocalInternal(
     status = SamrClose(samr_b, &account_handle);
     goto_if_ntstatus_not_success(status, disconn_samr);
 
-    status = SidToStringW(conn->samr.dom_sid, &sid_str);
+    status = RtlAllocateWC16StringFromSid(&sid_str, conn->samr.dom_sid);
     if (status != STATUS_SUCCESS) {
         err = NtStatusToWin32Error(status);
 
@@ -549,10 +549,7 @@ done:
         LsaRpcFreeMemory((void*)lsa_policy_info);
     }
 
-    if (sid_str) {
-        SidStrFreeW(sid_str);
-    }
-
+    RTL_FREE(&sid_str);
     SAFE_FREE(nr.RemoteName);
     SAFE_FREE(account_name);
     SAFE_FREE(dns_domain_name);

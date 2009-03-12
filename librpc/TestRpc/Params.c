@@ -37,7 +37,7 @@
 
 #include <wc16str.h>
 #include <secdesc/secapi.h>
-#include <lw/ntstatus.h>
+#include <lw/base.h>
 
 #include <lwrpc/types.h>
 
@@ -309,11 +309,11 @@ PSID* create_sid_list(char **strlist)
 
     /* copy mbs strings to wchar16_t strings */
     for (i = 0; strlist[i] && i < list_len; i++) {
-        ParseSidStringA(&(sid_list[i]), strlist[i]);
+        RtlAllocateSidFromCString(&sid_list[i], strlist[i]);
         if (sid_list[i] == NULL) {
             i--;
             while (i >= 0) {
-                SidFree(sid_list[i--]);
+                RTL_FREE(&sid_list[i--]);
             }
             free(sid_list);
 
@@ -391,7 +391,7 @@ enum param_err fetch_value(struct parameter *params, int count,
     case pt_sid:
         valsid = (PSID*)val;
         defstr = (char**)def;
-        status = ParseSidStringA(valsid,
+        status = RtlAllocateSidFromCString(valsid,
                                     ((value) ? (const char*)value : *defstr));
         if (status != STATUS_SUCCESS) ret = perr_invalid_out_param;
         break;

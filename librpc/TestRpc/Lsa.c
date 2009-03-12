@@ -412,10 +412,10 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
             usr_sid->SubAuthority[usr_sid->SubAuthorityCount - 1] = sids[i].rid;
             sid_array.sids[i].sid = usr_sid;
 
-            SidToStringW(usr_sid, &sidstr);
+            RtlAllocateWC16StringFromSid(&sidstr, usr_sid);
             DUMP_WSTR(" ", sidstr);
 
-            SidStrFreeW(sidstr);
+            RTL_FREE(&sidstr);
         }
     }
 
@@ -541,12 +541,12 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     for (i = 0; i < sid_array.num_sids; i++) {
         sid_array.sids[i].sid = input_sids[i];
 
-        SidToStringW(input_sids[i], &sidstr);
+        RtlAllocateWC16StringFromSid(&sidstr, input_sids[i]);
         test_fail_if_no_memory(sidstr);
 
         DUMP_WSTR(" ", sidstr);
 
-        SidStrFreeW(sidstr);
+        RTL_FREE(&sidstr);
     }
 
     level = 1;

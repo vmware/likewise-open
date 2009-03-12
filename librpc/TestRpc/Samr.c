@@ -902,8 +902,8 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     perr = fetch_value(options, optcount, "sid", pt_string, &sidstr,
                        &btin_sidstr);
     if (!perr_is_ok(perr)) perr_fail(perr);
-	
-    ParseSidStringA(&sid, sidstr);
+
+    RtlAllocateSidFromCString(&sid, sidstr);
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
                           &conn_handle);
@@ -964,6 +964,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
 done:
+    RTL_FREE(&sid);
     SAFE_FREE(sidstr);
 
     return (status == STATUS_SUCCESS);
@@ -1964,7 +1965,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
 
         grp_sids[i]->SubAuthority[grp_sids[i]->SubAuthorityCount - 1] = grp_rids[i];
 
-        status = SidToStringW(grp_sids[i], &(grp_sidstrs[i]));
+        status = RtlAllocateWC16StringFromSid(&grp_sidstrs[i], grp_sids[i]);
         if (status != 0) rpc_fail(status);
 
         if (resolvesids) {
@@ -2039,7 +2040,7 @@ done:
 
     for (i = 0; i < grp_count; i++) {
         SidFree(grp_sids[i]);
-        SAFE_FREE(grp_sidstrs[i]);
+        RTL_FREE(&grp_sidstrs[i]);
     }
     SAFE_FREE(grp_sids);
     SAFE_FREE(grp_sidstrs);
@@ -2161,7 +2162,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
     if (status != 0) rpc_fail(status);
 
-    ParseSidStringA(&btinsid, btin_sidstr);
+    RtlAllocateSidFromCString(&btinsid, btin_sidstr);
 
     status = SamrOpenDomain(samr_b, &conn_h, btin_access, btinsid, &btin_h);
     if (status != 0) rpc_fail(status);
@@ -2218,7 +2219,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
         if (status != 0) rpc_fail(status);
 
         alias_sid->SubAuthority[alias_sid->SubAuthorityCount - 1] = rid;
-        status = SidToStringW(alias_sid, &(alias_sidstrs[i]));
+        status = RtlAllocateWC16StringFromSid(&alias_sidstrs[i], alias_sid);
         if (status != 0) rpc_fail(status);
 
         if (resolvesids) {
@@ -2280,7 +2281,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
 
 done:
     SAFE_FREE(username);
-    if (btinsid) SidFree(btinsid);
+    RTL_FREE(&btinsid);
     if (domsid) SidFree(domsid);
     if (usr_sid) SidFree(usr_sid); 
     if (usr_domains) LsaRpcFreeMemory((void*)usr_domains);
@@ -2294,7 +2295,7 @@ done:
         if (resolvesids) {
             SidFree(sid_array.sids[i].sid);
         }
-        SAFE_FREE(alias_sidstrs[i]);
+        RTL_FREE(&alias_sidstrs[i]);
     }
 
     SAFE_FREE(sid_array.sids);

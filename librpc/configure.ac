@@ -138,7 +138,35 @@ AC_ARG_WITH(
 	    SECDESC_LDFLAGS="-L$withval"	]
 )
 
+# lwbase
 
+AC_ARG_WITH([lwbase],
+        [AC_HELP_STRING([--with-lwbase=<dir>], [use lwbase located in prefix <dir>])],
+        [
+		LWBASE_INCLUDES="-I$withval/include"
+        LWBASE_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwbase-includes],
+        [AC_HELP_STRING([--with-lwbase-includes=<dir>], [use lwbase includes located in <dir>])],
+        [
+		LWBASE_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwbase-libs],
+        [AC_HELP_STRING([--with-lwbase-libs=<dir>], [use lwbase libs located in <dir>])],
+        [
+		LWBASE_LDFLAGS="-L$withval"
+        ])
+
+AC_CHECK_HEADER([lw/base.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
+AC_CHECK_LIB([lwbase_nothr], [LwRtlMemoryAllocate], [LWBASE_NOTHR_LIBS="-llwbase_nothr"], [AC_MSG_ERROR([Could not find liblwbase_nothr])], [$LWBASE_LDFLAGS])
+AC_CHECK_LIB([lwbase], [LwInterlockedIncrement], [LWBASE_LIBS="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
+
+AC_SUBST(LWBASE_INCLUDES)
+AC_SUBST(LWBASE_LDFLAGS)
+AC_SUBST(LWBASE_NOTHR_LIBS)
+AC_SUBST(LWBASE_LIBS)
 
 AC_SUBST(DCERPC_INCLUDES)
 AC_SUBST(DCERPC_LDFLAGS)
