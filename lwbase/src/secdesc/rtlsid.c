@@ -50,7 +50,7 @@ RtlSidCopyPartial(
     BAIL_ON_NULL_PTR_PARAM(pSid);
     BAIL_ON_NULL_PTR_PARAM(pSourceSid);
 
-    sourceSize = SidGetSize(pSourceSid);
+    sourceSize = RtlLengthSid(pSourceSid);
     memcpy(pSid, pSourceSid, LW_MIN(Size, sourceSize));
 
 cleanup:
@@ -70,8 +70,8 @@ RtlSidCopyAlloc(
     BAIL_ON_NULL_PTR_PARAM(ppDstSid);
     BAIL_ON_NULL_PTR_PARAM(pSrcSid);
 
-    dwSrcSize = SidGetSize(pSrcSid);
-    pDstSid = RtlMemoryAllocate((size_t)dwSrcSize);
+    dwSrcSize = RtlLengthSid(pSrcSid);
+    pDstSid = RtlMemoryAllocate(dwSrcSize);
     BAIL_ON_NULL_PTR(pDstSid);
 
     memcpy(pDstSid, pSrcSid, dwSrcSize);
@@ -97,7 +97,7 @@ RtlSidAllocateResizedCopy(
     DWORD dwSize = 0;
     PSID pSid = NULL;
 
-    dwSize = SidGetRequiredSize(SubAuthorityCount);
+    dwSize = RtlLengthRequiredSid(SubAuthorityCount);
     pSid = RtlMemoryAllocate(dwSize);
     BAIL_ON_NULL_PTR(pSid);
 

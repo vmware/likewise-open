@@ -35,6 +35,7 @@
 
 #include "includes.h"
 
+#ifdef NO_COMPILE
 size_t
 SidGetRequiredSize(
     IN UINT8 SubAuthorityCount
@@ -51,8 +52,9 @@ SidGetSize(
 {
     if (pSid == NULL) return 0;
 
-    return SidGetRequiredSize(pSid->SubAuthorityCount);
+    return RtlLengthRequiredSid(pSid->SubAuthorityCount);
 }
+#endif
 
 void
 SidFree(

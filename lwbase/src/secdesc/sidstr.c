@@ -94,7 +94,7 @@ ParseSidStringA(
     /* skip revision number */
     FORWARD(start, pszSidStr, sidstr_len, separator);
 
-    pSid = RtlMemoryAllocate(SidGetRequiredSize(fields));
+    pSid = RtlMemoryAllocate(RtlLengthRequiredSid(fields));
     BAIL_ON_NULL_PTR(pSid);
 
     pSid->Revision = (UCHAR) atol(start);
@@ -136,6 +136,7 @@ error:
     goto cleanup;
 }
 
+#ifdef NO_COMPILE
 NTSTATUS
 SidToStringA(
     IN PSID pSid,
@@ -286,6 +287,7 @@ SidStrFreeW(
 {
     RtlMemoryFree(pwszSidStr);
 }
+#endif
 
 /*
 local variables:

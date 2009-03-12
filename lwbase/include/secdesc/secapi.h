@@ -84,6 +84,7 @@ RtlPolHndIsEmpty(
 // TODO-Perhaps use non-string version instead?
 #define SID_BUILTIN_DOMAIN  "S-1-5-32"
 
+#ifdef NO_COMPLE
 size_t
 SidGetSize(
     IN PSID pSid
@@ -93,6 +94,7 @@ size_t
 SidGetRequiredSize(
     IN UINT8 SubAuthorityCount
     );
+#endif
 
 void
 SidFree(
@@ -118,6 +120,7 @@ ParseSidStringA(
     IN PCSTR pszSidStr
     );
 
+#ifdef NO_COMPILE
 NTSTATUS
 SidToStringA(
     IN PSID pSid,
@@ -139,6 +142,7 @@ void
 SidStrFreeW(
     IN OUT PWSTR pwszSidStr
     );
+#endif
 
 #endif
 
