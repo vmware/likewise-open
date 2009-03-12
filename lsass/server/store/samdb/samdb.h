@@ -131,14 +131,14 @@ SamDbConvertFiltertoTable(
     PDWORD pdwTable
     );
 
-NTSTATUS
+DWORD
 SamDbInitUserTable(
-    HANDLE hDb
+    PSAM_DB_CONTEXT pDbContext
     );
 
-NTSTATUS
+DWORD
 SamDbInitGroupTable(
-    HANDLE hDb
+    PSAM_DB_CONTEXT pDbContext
     );
 
 DWORD

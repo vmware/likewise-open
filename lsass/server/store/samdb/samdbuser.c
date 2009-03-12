@@ -49,29 +49,29 @@
  */
 #include "includes.h"
 
-#define DB_QUERY_CREATE_USERS_TABLE                               \
-    "create table lwiusers (UserRecordId integer PRIMARY KEY,     \
-                            Name             varchar(256),        \
-                            Passwd           varchar(256),        \
-                            Uid              integer,             \
-                            Gid              integer,             \
-                            UserInfoFlags    integer,             \
-                            Gecos            varchar(256),        \
-                            HomeDir          varchar(1024),       \
-                            Shell            varchar(128),        \
-                            PasswdChangeTime integer,             \
-                            FullName         varchar(256),        \
-                            AccountExpiry    integer,             \
-                            LMOwf_1          integer,             \
-                            LMOwf_2          integer,             \
-                            LMOwf_3          integer,             \
-                            LMOwf_4          integer,             \
-                            NTOwf_1          integer,             \
-                            NTOwf_2          integer,             \
-                            NTOwf_3          integer,             \
-                            NTOwf_4          integer,             \
-                            CreatedTime      date                 \
-                           )"
+#define DB_QUERY_CREATE_USERS_TABLE  \
+    "create table samdbusers (       \
+                Uid              integer PRIMARY KEY, \
+                Name             varchar(256),        \
+                Passwd           varchar(256),        \
+                Gid              integer,             \
+                UserInfoFlags    integer,             \
+                Gecos            varchar(256),        \
+                HomeDir          varchar(1024),       \
+                Shell            varchar(128),        \
+                PasswdChangeTime integer,             \
+                FullName         varchar(256),        \
+                AccountExpiry    integer,             \
+                LMOwf_1          integer,             \
+                LMOwf_2          integer,             \
+                LMOwf_3          integer,             \
+                LMOwf_4          integer,             \
+                NTOwf_1          integer,             \
+                NTOwf_2          integer,             \
+                NTOwf_3          integer,             \
+                NTOwf_4          integer,             \
+                CreatedTime      date                 \
+               )"
 
 
 #define DB_QUERY_CREATE_USERS_INSERT_TRIGGER                   \
@@ -94,34 +94,36 @@
      end"
 
 
-NTSTATUS
+DWORD
 SamDbInitUserTable(
-    HANDLE hDb
+    PSAM_DB_CONTEXT pDbContext
     )
 {
     DWORD dwError = 0;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR pszError = NULL;
 
-    dwError = sqlite3_exec(pDbHandle,
-                           DB_QUERY_CREATE_USERS_TABLE,
-                           NULL,
-                           NULL,
-                           &pszError);
+    dwError = sqlite3_exec(
+                    pDbContext->pDbHandle,
+                    DB_QUERY_CREATE_USERS_TABLE,
+                    NULL,
+                    NULL,
+                    &pszError);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_exec(pDbHandle,
-                           DB_QUERY_CREATE_USERS_INSERT_TRIGGER,
-                           NULL,
-                           NULL,
-                           &pszError);
+    dwError = sqlite3_exec(
+                    pDbContext->pDbHandle,
+                    DB_QUERY_CREATE_USERS_INSERT_TRIGGER,
+                    NULL,
+                    NULL,
+                    &pszError);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_exec(pDbHandle,
-                           DB_QUERY_CREATE_USERS_DELETE_TRIGGER,
-                           NULL,
-                           NULL,
-                           &pszError);
+    dwError = sqlite3_exec(
+                    pDbContext->pDbHandle,
+                    DB_QUERY_CREATE_USERS_DELETE_TRIGGER,
+                    NULL,
+                    NULL,
+                    &pszError);
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:

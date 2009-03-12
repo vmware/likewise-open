@@ -66,7 +66,8 @@ SamDbInit(
     )
 {
     DWORD dwError = 0;
-    HANDLE hDb = (HANDLE)NULL;
+    HANDLE hDirectory = (HANDLE)NULL;
+    PSAM_DIRECTORY_CONTEXT pDirectory = NULL;
     BOOLEAN bExists = FALSE;
 
     dwError = LsaCheckFileExists(
@@ -102,13 +103,15 @@ SamDbInit(
                     S_IRWXU);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = SamDbOpen(&hDb);
+    dwError = SamDbOpen(&hDirectory);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = SamDbInitGroupTable(hDb);
+    pDirectory = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    dwError = SamDbInitGroupTable(pDirectory->pDbContext);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = SamDbInitUserTable(hDb);
+    dwError = SamDbInitUserTable(pDirectory->pDbContext);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = LsaChangeOwnerAndPermissions(
@@ -120,9 +123,9 @@ SamDbInit(
 
 cleanup:
 
-    if (hDb)
+    if (hDirectory)
     {
-        SamDbClose(hDb);
+        SamDbClose(hDirectory);
     }
 
     return dwError;
