@@ -45,6 +45,7 @@ SrvQuerySecurityDescriptor(
     PSMB_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
+    ULONG               ulMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
     );
 
@@ -116,6 +117,7 @@ SrvProcessNtTransact(
                             pTree,
                             pParameters,
                             pRequestHeader->ulTotalParameterCount,
+                            pRequestHeader->ulMaxDataCount,
                             &pSmbResponse);
 
             break;
@@ -191,6 +193,7 @@ SrvQuerySecurityDescriptor(
     PSMB_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
+    ULONG               ulMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
     )
 {
@@ -287,7 +290,7 @@ SrvQuerySecurityDescriptor(
                 pSmbResponse->pRawBuffer,
                 pSmbResponse->bufferLen,
                 COM_NT_TRANSACT,
-                0,
+                (ulSecurityDescActualLen <= ulMaxDataCount ? STATUS_SUCCESS : STATUS_BUFFER_TOO_SMALL),
                 TRUE,
                 pSmbRequest->pSMBHeader->tid,
                 pSmbRequest->pSMBHeader->pid,
@@ -307,8 +310,8 @@ SrvQuerySecurityDescriptor(
                     ucSetupCount,
                     (PBYTE)&ulSecurityDescActualLen,
                     sizeof(ulSecurityDescActualLen),
-                    pSecurityDescriptor,
-                    ulSecurityDescActualLen,
+                    (ulSecurityDescActualLen <= ulMaxDataCount ? pSecurityDescriptor : NULL),
+                    (ulSecurityDescActualLen <= ulMaxDataCount ? ulSecurityDescActualLen : 0),
                     &ulDataOffset,
                     &ulParameterOffset,
                     &ulNumPackageBytesUsed);
