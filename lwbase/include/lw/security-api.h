@@ -310,7 +310,7 @@ RtlSelfRelativeToAbsoluteSD(
 
 NTSTATUS
 RtlQuerySecurityDescriptorInfo(
-    IN PSECURITY_INFORMATION SecurityInformation,
+    IN SECURITY_INFORMATION SecurityInformation,
     OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
     IN OUT PULONG Length,
     IN PSECURITY_DESCRIPTOR_RELATIVE ObjectSecurityDescriptor
@@ -318,7 +318,7 @@ RtlQuerySecurityDescriptorInfo(
 
 NTSTATUS
 RtlSetSecurityDescriptorInfo(
-    IN PSECURITY_INFORMATION SecurityInformation,
+    IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR_RELATIVE InputSecurityDescriptor,
     IN PSECURITY_DESCRIPTOR_RELATIVE ObjectSecurityDescriptor,
     OUT PSECURITY_DESCRIPTOR_RELATIVE* NewObjectSecurityDescriptor,
