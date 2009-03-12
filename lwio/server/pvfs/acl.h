@@ -50,11 +50,13 @@
 
 NTSTATUS
 PvfsCreateDefaultSecDescFile(
+    IN SECURITY_INFORMATION SecInfo,
     OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
 NTSTATUS
 PvfsCreateDefaultSecDescDir(
+    IN SECURITY_INFORMATION SecInfo,
     OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 

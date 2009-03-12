@@ -49,6 +49,23 @@
 
 /* Forward declarations */
 
+static NTSTATUS
+CreateDefaultSecDesc(
+    IN SECURITY_INFORMATION SecInfo,
+    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc,
+    BOOLEAN bIsDirectory
+    );
+
+static NTSTATUS
+BuildDefaultDaclFile(
+    PACL *ppDacl
+    );
+
+static NTSTATUS
+BuildDefaultDaclDirectory(
+    PACL *ppDacl
+    );
+
 
 /* File Globals */
 
@@ -56,6 +73,34 @@
 
 /* Code */
 
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsCreateDefaultSecDescFile(
+    IN SECURITY_INFORMATION SecInfo,
+    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    )
+{
+    return CreateDefaultSecDesc(SecInfo,
+                                ppSecDesc,
+                                FALSE /* not a directory */);
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsCreateDefaultSecDescDir(
+    IN SECURITY_INFORMATION SecInfo,
+    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    )
+{
+    return CreateDefaultSecDesc(SecInfo,
+                                ppSecDesc,
+                                TRUE /* is a directory */);
+}
 
 /****************************************************************
  ***************************************************************/
@@ -73,13 +118,105 @@ PvfsFreeAbsoluteSecurityDescriptor(
 /****************************************************************
  ***************************************************************/
 
-NTSTATUS
-PvfsCreateDefaultSecDescFile(
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+static NTSTATUS
+CreateDefaultSecDesc(
+    IN SECURITY_INFORMATION SecInfo,
+    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc,
+    BOOLEAN bIsDirectory
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    PACL pDacl = NULL;
+    PSID pSid = NULL;
+
+    ntError= PvfsAllocateMemory((PVOID*)&pSecDesc,
+                                SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCreateSecurityDescriptorAbsolute(pSecDesc,
+                                                  SECURITY_DESCRIPTOR_REVISION);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (SecInfo & OWNER_SECURITY_INFORMATION)
+    {
+        /* Administrators */
+
+        ntError = RtlAllocateSidFromCString(&pSid, "S-1-5-32-544");
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = RtlSetOwnerSecurityDescriptor(pSecDesc,
+                                                pSid,
+                                                FALSE);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pSid = NULL;
+    }
+
+    if (SecInfo & GROUP_SECURITY_INFORMATION)
+    {
+        /* Power Users */
+
+        ntError = RtlAllocateSidFromCString(&pSid, "S-1-5-32-547");
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = RtlSetGroupSecurityDescriptor(pSecDesc,
+                                                pSid,
+                                                FALSE);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pSid = NULL;
+    }
+
+    if (SecInfo & DACL_SECURITY_INFORMATION)
+    {
+        if (bIsDirectory) {
+            ntError = BuildDefaultDaclDirectory(&pDacl);
+            BAIL_ON_NT_STATUS(ntError);
+        } else {
+            ntError = BuildDefaultDaclFile(&pDacl);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        ntError = RtlSetDaclSecurityDescriptor(pSecDesc,
+                                               TRUE,
+                                               pDacl,
+                                               FALSE);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pDacl = NULL;
+    }
+
+    /* We don't do SACLs currently */
+
+    /* All done */
+
+    *ppSecDesc = pSecDesc;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    if (pSecDesc) {
+        PvfsFreeAbsoluteSecurityDescriptor(pSecDesc);
+    }
+
+    PVFS_SAFE_FREE_MEMORY(pDacl);
+    PVFS_SAFE_FREE_MEMORY(pSid);
+
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+static NTSTATUS
+BuildDefaultDaclFile(
+    PACL *ppDacl
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     DWORD dwSizeDacl = 0;
     PSID pAdministratorsSid = NULL;
     PSID pUsersSid = NULL;
@@ -101,11 +238,7 @@ PvfsCreateDefaultSecDescFile(
     BAIL_ON_NT_STATUS(ntError);
     dwSidCount++;
 
-    /* Build the DACL */
-
-    /* 4096 should just be sizeof(ACL) */
-
-    dwSizeDacl = 4096 +
+    dwSizeDacl = ACL_HEADER_SIZE +
         dwSidCount * sizeof(ACCESS_ALLOWED_ACE) +
         RtlLengthSid(pAdministratorsSid) +
         RtlLengthSid(pUsersSid) +
@@ -139,66 +272,32 @@ PvfsCreateDefaultSecDescFile(
                                        pEveryoneSid);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Now build the security descriptor */
-
-    ntError= PvfsAllocateMemory((PVOID*)&pSecDesc,
-                                SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = RtlCreateSecurityDescriptorAbsolute(pSecDesc,
-                                                  SECURITY_DESCRIPTOR_REVISION);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = RtlSetOwnerSecurityDescriptor(pSecDesc,
-                                           pAdministratorsSid,
-                                           FALSE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = RtlSetDaclSecurityDescriptor(pSecDesc,
-                                           TRUE,
-                                           pDacl,
-                                           FALSE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* All done */
-
-    *ppSecDesc = pSecDesc;
+    *ppDacl = pDacl;
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    /* The pAdministratorsSid was set for the owner so don't
-       free it */
-
+    PVFS_SAFE_FREE_MEMORY(pAdministratorsSid);
     PVFS_SAFE_FREE_MEMORY(pUsersSid);
     PVFS_SAFE_FREE_MEMORY(pEveryoneSid);
 
     return ntError;
 
 error:
-    PVFS_SAFE_FREE_MEMORY(pAdministratorsSid);
     PVFS_SAFE_FREE_MEMORY(pDacl);
-    PVFS_SAFE_FREE_MEMORY(pSecDesc);
 
     goto cleanup;
+
 }
 
 /****************************************************************
  ***************************************************************/
 
-NTSTATUS
-PvfsCreateDefaultSecDescDir(
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+static NTSTATUS
+BuildDefaultDaclDirectory(
+    PACL *ppDacl
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 
