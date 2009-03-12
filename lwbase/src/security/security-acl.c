@@ -354,6 +354,10 @@ RtlpGetAceLocationFromOffset(
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP();
     }
+    else
+    {
+        useOffset = AceOffset;
+    }
 
     aceLocation = LW_PTR_ADD(Acl, sizeof(ACL) + useOffset);
 
@@ -1306,7 +1310,7 @@ RtlpIsValidLittleEndianAclBuffer(
             case ACCESS_DENIED_ACE_TYPE:
             case SYSTEM_AUDIT_ACE_TYPE:
             {
-                PACCESS_ALLOWED_ACE littleEndianAce = (PACCESS_ALLOWED_ACE) littleEndianAce;
+                PACCESS_ALLOWED_ACE littleEndianAce = (PACCESS_ALLOWED_ACE) littlEndianAceHeader;
                 ACCESS_ALLOWED_ACE ace = { { 0 } };
 
                 ace.Header = aceHeader;

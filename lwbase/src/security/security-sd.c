@@ -1099,11 +1099,11 @@ RtlSelfRelativeToAbsoluteSD(
     // Check sizes
     //
 
-    if ((AbsoluteSecurityDescriptor && securityDescriptorSize < securityDescriptorSizeRequired) ||
-        (Owner && ownerSize < ownerSizeRequired) ||
-        (PrimaryGroup && groupSize < groupSizeRequired) ||
-        (Sacl && saclSize < saclSizeRequired) ||
-        (Dacl && daclSize < daclSizeRequired))
+    if ((securityDescriptorSize < securityDescriptorSizeRequired) ||
+        (ownerSize < ownerSizeRequired) ||
+        (groupSize < groupSizeRequired) ||
+        (saclSize < saclSizeRequired) ||
+        (daclSize < daclSizeRequired))
     {
         status = STATUS_BUFFER_TOO_SMALL;
         GOTO_CLEANUP();
