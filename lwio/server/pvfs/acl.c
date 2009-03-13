@@ -294,7 +294,9 @@ cleanup:
 error:
 
     PVFS_SAFE_FREE_MEMORY(pDacl);
-    PVFS_SAFE_FREE_MEMORY(pSid);
+
+    /* Use RtlFree for SIDs */
+    RTL_FREE(&pSid);
 
     goto cleanup;
 }
@@ -367,9 +369,11 @@ BuildDefaultDaclFile(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pAdministratorsSid);
-    PVFS_SAFE_FREE_MEMORY(pUsersSid);
-    PVFS_SAFE_FREE_MEMORY(pEveryoneSid);
+    /* Use RtlFree for SIDs */
+
+    RTL_FREE(&pAdministratorsSid);
+    RTL_FREE(&pUsersSid);
+    RTL_FREE(&pEveryoneSid);
 
     return ntError;
 
@@ -460,10 +464,12 @@ BuildDefaultDaclDirectory(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pAdministratorsSid);
-    PVFS_SAFE_FREE_MEMORY(pUsersSid);
-    PVFS_SAFE_FREE_MEMORY(pEveryoneSid);
-    PVFS_SAFE_FREE_MEMORY(pCreatorOwnerSid);
+    /* Use RtlFree for SIDs */
+
+    RTL_FREE(&pAdministratorsSid);
+    RTL_FREE(&pUsersSid);
+    RTL_FREE(&pEveryoneSid);
+    RTL_FREE(&pCreatorOwnerSid);
 
     return ntError;
 
