@@ -225,10 +225,27 @@ PvfsSetFileBasicInfo(
         AccessTime = 0;
     }
 
-    if (WriteTime != 0 || AccessTime != 0) {
-        ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
+    /* Check if we need to preserve any original timestamps */
+
+    if (WriteTime == 0 || AccessTime == 0) {
+        PVFS_STAT Stat = {0};
+
+        ntError = PvfsSysFstat(pCcb->fd, &Stat);
         BAIL_ON_NT_STATUS(ntError);
+
+        if (WriteTime == 0) {
+            ntError = PvfsUnixToWinTime(&WriteTime, Stat.s_mtime);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        if (AccessTime == 0) {
+            ntError = PvfsUnixToWinTime(&AccessTime, Stat.s_atime);
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
+
+    ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
+    BAIL_ON_NT_STATUS(ntError);
 
     if (pFileInfo->FileAttributes != 0) {
         ntError = PvfsSetFileAttributes(pCcb, pFileInfo->FileAttributes);
