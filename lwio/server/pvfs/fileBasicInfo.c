@@ -225,6 +225,12 @@ PvfsSetFileBasicInfo(
         AccessTime = 0;
     }
 
+    /* Save for "sticky" WriteTime sematics */
+
+    if (WriteTime != 0) {
+        pCcb->LastWriteTime = WriteTime;
+    }
+
     /* Check if we need to preserve any original timestamps */
 
     if (WriteTime == 0 || AccessTime == 0) {
@@ -251,8 +257,6 @@ PvfsSetFileBasicInfo(
         ntError = PvfsSetFileAttributes(pCcb, pFileInfo->FileAttributes);
         BAIL_ON_NT_STATUS(ntError);
     }
-
-    /* Need to implement the sticky write semantics on file close. */
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;

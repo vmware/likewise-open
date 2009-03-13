@@ -28,7 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -50,17 +49,96 @@
 /* Forward declarations */
 
 static NTSTATUS
-PvfsPerformDeleteOnClose(
+PerformDeleteOnClose(
+    PPVFS_CCB pCcb
+    );
+
+static NTSTATUS
+SetLastWriteTime(
+    PPVFS_CCB pCcb
+    );
+
+
+
+/* Code */
+
+
+/******************************************************************
+ *****************************************************************/
+
+NTSTATUS
+PvfsClose(
+    IO_DEVICE_HANDLE DeviceHandle,
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
+    BOOLEAN bValidPath = FALSE;
+
+    /* make sure we have a proper CCB */
+
+    ntError =  PvfsAcquireCCBClose(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsValidatePath(pCcb);
+    bValidPath = (ntError == STATUS_SUCCESS);
+
+    /* Deal with delete-on-close */
+
+    if (pCcb->CreateOptions & FILE_DELETE_ON_CLOSE) {
+        ntError = PerformDeleteOnClose(pCcb);
+        /* Don't fail */
+    }
+
+    /* Call closedir() for directions and close() for files */
+
+    if (PVFS_IS_DIR(pCcb)) {
+        ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
+        /* pCcb->fd is invalid now */
+    } else {
+        ntError = PvfsSysClose(pCcb->fd);
+    }
+    /* Don't fail */
+
+    /* "sticky" last write times (if we didn't delete it already) */
+
+    if (bValidPath &&
+        !(pCcb->CreateOptions & FILE_DELETE_ON_CLOSE) &&
+        pCcb->LastWriteTime != 0)
+    {
+        ntError = SetLastWriteTime(pCcb);
+        /* Don't fail */
+    }
+
+
+
+cleanup:
+    /* This is the final Release that will free the memory */
+
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    /* We can't really do anything here in the case of failure */
+
+    return STATUS_SUCCESS;
+
+error:
+    goto cleanup;
+}
+
+
+/******************************************************************
+ *****************************************************************/
+
+static NTSTATUS
+PerformDeleteOnClose(
     PPVFS_CCB pCcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-
-    /* Check for no-op */
-
-    if (!(pCcb->CreateOptions & FILE_DELETE_ON_CLOSE)) {
-        return STATUS_SUCCESS;
-    }
 
     /* Check for renames */
 
@@ -78,52 +156,40 @@ error:
     goto cleanup;
 }
 
+/******************************************************************
+ Note that the file/directory has been closed prior to this
+ so the pCcb->fd is actually invalid.  You only have the
+ pszFilename to work with.
+ *****************************************************************/
 
-/* Code */
-
-NTSTATUS
-PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
+static NTSTATUS
+SetLastWriteTime(
+    PPVFS_CCB pCcb
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
+    PVFS_STAT Stat = {0};
+    LONG64 LastAccessTime = 0;
 
-    /* make sure we have a proper CCB */
+    /* Need the original access time */
 
-    ntError =  PvfsAcquireCCBClose(pIrp->FileHandle, &pCcb);
+    ntError = PvfsSysStat(pCcb->pszFilename, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Deal with delete-on-close */
-
-    ntError = PvfsPerformDeleteOnClose(pCcb);
+    ntError = PvfsUnixToWinTime(&LastAccessTime, Stat.s_atime);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Call closedir() for directions and close() for files */
-
-    if (PVFS_IS_DIR(pCcb)) {
-        ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
-        /* pCcb->fd is invalid now */
-    } else {
-        ntError = PvfsSysClose(pCcb->fd);
-    }
+    ntError = PvfsSysUtime(pCcb->pszFilename,
+                           pCcb->LastWriteTime,
+                           LastAccessTime);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    /* This is the final Release that will free the memory */
-
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
-
-    /* We can't really do anything here in the case of failure */
-
-    return STATUS_SUCCESS;
+    return ntError;
 
 error:
     goto cleanup;
+
 }
 
 

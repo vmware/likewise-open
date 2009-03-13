@@ -130,6 +130,7 @@ typedef struct _PVFS_CCB
     PSTR pszFilename;
     FILE_CREATE_OPTIONS CreateOptions;
     ACCESS_MASK AccessGranted;
+    LONG64 LastWriteTime;
 
     /* Handle for Directory enumeraqtion */
     PPVFS_DIRECTORY_CONTEXT pDirContext;
