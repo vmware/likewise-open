@@ -116,6 +116,14 @@ error:
     goto cleanup;
 }
 
+void
+SidFree(
+    IN OUT PSID pSid
+    )
+{
+    RtlMemoryFree(pSid);
+}
+
 /*
 local variables:
 mode: c

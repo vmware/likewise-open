@@ -29,8 +29,6 @@ liblwbase_la_LIBADD = liblwbase_nothr.la
 
 libsecdesc_la_SOURCES = \
         secdesc/rtlsid.c \
-        secdesc/sid.c \
-        secdesc/sidstr.c \
         secdesc/rtlpolhnd.c
 
 libsecdesc_la_LIBADD = \

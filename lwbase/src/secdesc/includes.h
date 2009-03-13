@@ -26,25 +26,7 @@
 #include <config.h>
 
 #include <lw/base.h>
-
-#include <pthread.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <string.h>
-#include <assert.h>
-
-#ifdef HAVE_STRINGS_H
-   #include <strings.h>
-#endif
-
-#ifdef HAVE_SYS_VARARGS_H
-   #include <sys/varargs.h>
-#endif
-
-#include <wc16str.h>
-#include <uuid/uuid.h>
-
 #include <secdesc/secapi.h>
-#include <secdesc_p.h>
+#include <string.h>
+#include <uuid/uuid.h>
+#include "secdesc_p.h"
