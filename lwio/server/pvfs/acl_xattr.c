@@ -50,7 +50,7 @@
 #ifdef HAVE_EA_SUPPORT
 
 
-#define PVFS_EA_SECDESC_NAME       "user.lwio_sd_1"
+#define PVFS_EA_SECDESC_NAME       "user.lwio_sd_v1"
 
 /* Forward declarations */
 
