@@ -493,9 +493,9 @@ AC_CONFIG_FILES([Makefile
         drivers/Makefile
         drivers/iotest/Makefile
         tools/Makefile
-        tools/lw-io-refresh/Makefile
-        tools/lw-io-get-log-info/Makefile
-        tools/lw-io-set-log-level/Makefile
+        tools/lwio-refresh/Makefile
+        tools/lwio-get-log-info/Makefile
+        tools/lwio-set-log-level/Makefile
         tools/lwio-tool/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
