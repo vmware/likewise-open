@@ -77,17 +77,24 @@ PvfsGetFileAttributes(
 
     if (!NT_SUCCESS(ntError))
     {
+        PSTR pszRelativeFilename = NULL;
+
+        ntError = PvfsFileBasename(&pszRelativeFilename, pCcb->pszFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
         *pAttributes |= FILE_ATTRIBUTE_ARCHIVE;
 
         /* Hide 'dot' files (except "." and "..") */
 
-        if (!RtlCStringIsEqual(pCcb->pszFilename, ".", FALSE) &&
-            !RtlCStringIsEqual(pCcb->pszFilename, "..", FALSE))
+        if (!RtlCStringIsEqual(pszRelativeFilename, ".", FALSE) &&
+            !RtlCStringIsEqual(pszRelativeFilename, "..", FALSE))
         {
-            if (*pCcb->pszFilename == '.') {
+            if (*pszRelativeFilename == '.') {
                 *pAttributes |= FILE_ATTRIBUTE_HIDDEN;
             }
         }
+
+        RTL_FREE(&pszRelativeFilename);
     }
 
     /* Some attributes are properties on the file and not
@@ -111,7 +118,11 @@ PvfsGetFileAttributes(
 
     ntError = STATUS_SUCCESS;
 
+cleanup:
     return ntError;
+
+error:
+    goto cleanup;
 }
 
 /****************************************************************
@@ -138,14 +149,19 @@ PvfsGetFilenameAttributes(
 
     if (!NT_SUCCESS(ntError))
     {
+        PSTR pszRelativeFilename = NULL;
+
+        ntError = PvfsFileBasename(&pszRelativeFilename, pszPath);
+        BAIL_ON_NT_STATUS(ntError);
+
         *pAttributes |= FILE_ATTRIBUTE_ARCHIVE;
 
         /* Hide 'dot' files (except "." and "..") */
 
-        if (!RtlCStringIsEqual(pszPath, ".", FALSE) &&
-            !RtlCStringIsEqual(pszPath, "..", FALSE))
+        if (!RtlCStringIsEqual(pszRelativeFilename, ".", FALSE) &&
+            !RtlCStringIsEqual(pszRelativeFilename, "..", FALSE))
         {
-            if (*pszPath == '.') {
+            if (*pszRelativeFilename == '.') {
                 *pAttributes |= FILE_ATTRIBUTE_HIDDEN;
             }
         }

@@ -110,9 +110,9 @@ FillFileBothDirInfoStatic(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     size_t FilenameLen = 0;
     size_t FilenameLenBytes = 0;
-    PSTR pszFilename = NULL;
 
     /* Check if this is a valid 8.3 filename */
+
     FilenameLen = RtlWC16StringNumChars(pwszShortFilename);
     FilenameLenBytes = FilenameLen * sizeof(WCHAR);
 
@@ -144,13 +144,6 @@ FillFileBothDirInfoStatic(
     ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, pStat->s_crtime);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlCStringAllocateFromWC16String(&pszFilename, pwszShortFilename);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsGetFilenameAttributes(pszFilename, &pFileInfo->FileAttributes);
-    BAIL_ON_NT_STATUS(ntError);
-
-
     /* File details */
 
     pFileInfo->FileIndex      = 0;
@@ -161,8 +154,6 @@ FillFileBothDirInfoStatic(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    RTL_FREE(&pszFilename);
-
     return ntError;
 
 error:
@@ -217,6 +208,13 @@ FillFileBothDirInfoBuffer(
     ntError = FillFileBothDirInfoStatic(pFileInfo,
                                         pwszFilename,     /* Assuming only 8.3 */
                                         &pEntry->Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* We have more information here to fill in the
+       file attributes */
+
+    ntError = PvfsGetFilenameAttributes(pszFullPath,
+                                        &pFileInfo->FileAttributes);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save what we have used so far */

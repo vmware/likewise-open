@@ -91,6 +91,7 @@
         }                                       \
     } while (0);
 
+#define PVFS_PTR_DIFF(old,new)  ((size_t)((new)-(old)))
 
 #define PVFS_IS_DIR(pCcb)       \
     (((pCcb)->CreateOptions & FILE_DIRECTORY_FILE) == FILE_DIRECTORY_FILE)
