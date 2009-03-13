@@ -66,6 +66,7 @@
 #include "lwiofsctl.h"
 #include "smbkrb5.h"
 
+#include "marshal.h"
 #include "smbwire.h"
 #include <lwio/io-types.h>
 #include "iodriver.h"
@@ -256,15 +257,6 @@ NTSTATUS
 RdrTransactSetInfoFile(
     PSMB_TREE pTree,
     USHORT usFid,
-    SMB_INFO_LEVEL infoLevel,
-    PVOID pInfo,
-    ULONG ulInfoLength
-    );
-
-NTSTATUS
-RdrTransactSetInfoPath(
-    PSMB_TREE pTree,
-    PCWSTR pwszPath,
     SMB_INFO_LEVEL infoLevel,
     PVOID pInfo,
     ULONG ulInfoLength

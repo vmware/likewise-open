@@ -997,3 +997,294 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+WireMarshalTrans2RequestSetup(
+    IN OUT PSMB_HEADER               pSmbHeader,
+    IN OUT PBYTE*                    ppCursor,
+    IN OUT PULONG                    pulRemainingSpace,
+    IN PUSHORT                       pusSetupWords,
+    IN USHORT                        usSetupWordCount,
+    OUT PTRANSACTION_REQUEST_HEADER* ppRequestHeader,
+    OUT PBYTE*                       ppByteCount
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pCursor = *ppCursor;
+    ULONG ulRemainingSpace = *pulRemainingSpace;
+    PTRANSACTION_REQUEST_HEADER pRequestHeader = NULL;
+    PBYTE pByteCount = NULL;
+    USHORT usIndex = 0;
+
+    /* Save reference to request header */
+    pRequestHeader = (PTRANSACTION_REQUEST_HEADER) pCursor;
+
+    /* Advance past request header */
+    ntStatus = Advance(&pCursor, &ulRemainingSpace, sizeof(TRANSACTION_REQUEST_HEADER));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Write setup words */
+    for (usIndex = 0; usIndex < usSetupWordCount; usIndex++)
+    {
+        ntStatus = MarshalUshort(&pCursor, &ulRemainingSpace, pusSetupWords[usIndex]);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Save position of ByteCount field */
+    pByteCount = pCursor;
+
+    /* Advance over ByteCount field */
+    ntStatus = Advance(&pCursor, &ulRemainingSpace, sizeof(USHORT));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Align to SHORT */
+    ntStatus = Align((PBYTE) pSmbHeader, &pCursor, &ulRemainingSpace, sizeof(SHORT));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Write WordCount */
+    pSmbHeader->wordCount = 14 + usSetupWordCount;
+
+    *ppCursor = pCursor;
+    *pulRemainingSpace = ulRemainingSpace;
+    *ppRequestHeader = pRequestHeader;
+    *ppByteCount = pByteCount;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppRequestHeader = NULL;
+    *ppByteCount = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireUnmarshalTrans2ReplySetup(
+    IN PSMB_HEADER                                        pSmbHeader,
+    IN OUT PBYTE*                                         ppCursor,
+    IN OUT PULONG                                         pulRemainingSpace,
+    OPTIONAL OUT PTRANSACTION_SECONDARY_RESPONSE_HEADER*  ppResponseHeader,
+    OPTIONAL OUT PUSHORT                                  pusTotalParameterCount,
+    OPTIONAL OUT PUSHORT                                  pusTotalDataCount,
+    OPTIONAL OUT PUSHORT*                                 ppusSetupWords,
+    OPTIONAL OUT PUSHORT                                  pusSetupWordCount,
+    OPTIONAL OUT PUSHORT                                  pusByteCount,
+    OPTIONAL OUT PBYTE*                                   ppParameterBlock,
+    OPTIONAL OUT PUSHORT                                  pusParameterCount,
+    OPTIONAL OUT PBYTE*                                   ppDataBlock,
+    OPTIONAL OUT PUSHORT                                  pusDataCount
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pCursor = *ppCursor;
+    ULONG ulRemainingSpace = *pulRemainingSpace;
+    PTRANSACTION_SECONDARY_RESPONSE_HEADER pResponseHeader = NULL;
+    PUSHORT pusSetupWords = NULL;
+    USHORT usSetupWordCount = 0;
+    USHORT usByteCount = 0;
+    PBYTE pParameterBlock = NULL;
+    PBYTE pDataBlock = NULL;
+    USHORT usParameterCount = 0;
+    USHORT usDataCount = 0;
+    USHORT usParameterOffset = 0;
+    USHORT usDataOffset = 0;
+    USHORT usTotalParameterCount = 0;
+    USHORT usTotalDataCount = 0;
+
+    /* Save reference to response header */
+    pResponseHeader = (PTRANSACTION_SECONDARY_RESPONSE_HEADER) pCursor;
+
+    /* Advance past response header */
+    ntStatus = Advance(&pCursor, &ulRemainingSpace, sizeof(TRANSACTION_SECONDARY_RESPONSE_HEADER));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Unmarshal some important values from the header */
+    usSetupWordCount  = SMB_LTOH8(pResponseHeader->setupCount);
+    usParameterCount  = SMB_LTOH16(pResponseHeader->parameterCount);
+    usDataCount       = SMB_LTOH16(pResponseHeader->dataCount);
+    usParameterOffset = SMB_LTOH16(pResponseHeader->parameterOffset);
+    usDataOffset      = SMB_LTOH16(pResponseHeader->dataOffset);
+
+    if (usSetupWordCount)
+    {
+        /* Save reference to setup words */
+        pusSetupWords = (PUSHORT) pCursor;
+
+        /* Advance past setup words */
+        ntStatus = Advance(&pCursor, &ulRemainingSpace, sizeof(USHORT) * usSetupWordCount);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Unmarshal ByteCount field */
+    ntStatus = UnmarshalUshort(&pCursor, &ulRemainingSpace, &usByteCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (usParameterOffset && usParameterCount)
+    {
+        /* Ensure that parameter offset is at least SHORT aligned */
+        if (usParameterOffset % sizeof(SHORT) != 0)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        /* Calculate parameter block pointer */
+        pParameterBlock = (PBYTE) pSmbHeader + usParameterOffset;
+
+        /* Verify that parameter block occurs after ByteCount */
+        if (pParameterBlock < pCursor)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        /* Advance cursor to start of parameter block */
+        ntStatus = AdvanceTo(&pCursor, &ulRemainingSpace, pParameterBlock);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        /* Advance cursor to end of parameter block */
+        ntStatus = Advance(&pCursor, &ulRemainingSpace, usParameterCount);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (usDataOffset && usDataCount)
+    {
+        /* Enusre that data offset is at least SHORT aligned */
+        if (usDataOffset % sizeof(SHORT) != 0)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        /* Calculate data block pointer */
+        pDataBlock = (PBYTE) pSmbHeader + usDataOffset;
+
+        /* Verify that data block occurs after parameter block */
+        if (pDataBlock < pCursor)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        /* Advance cursor to start of data block */
+        ntStatus = AdvanceTo(&pCursor, &ulRemainingSpace, pDataBlock);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        /* Advance cursor to end of data block */
+        ntStatus = Advance(&pCursor, &ulRemainingSpace, usDataCount);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppCursor = pCursor;
+    *pulRemainingSpace = ulRemainingSpace;
+
+    if (ppResponseHeader)
+    {
+        *ppResponseHeader = pResponseHeader;
+    }
+
+    if (pusTotalParameterCount)
+    {
+        *pusTotalParameterCount = usTotalParameterCount;
+    }
+
+    if (pusTotalDataCount)
+    {
+        *pusTotalDataCount = usTotalDataCount;
+    }
+
+    if (ppusSetupWords)
+    {
+        *ppusSetupWords = pusSetupWords;
+    }
+
+    if (pusSetupWordCount)
+    {
+        *pusSetupWordCount = usSetupWordCount;
+    }
+
+    if (pusByteCount)
+    {
+        *pusByteCount = usByteCount;
+    }
+
+    if (ppParameterBlock)
+    {
+        *ppParameterBlock = pParameterBlock;
+    }
+
+    if (pusParameterCount)
+    {
+        *pusParameterCount = usParameterCount;
+    }
+
+    if (ppDataBlock)
+    {
+        *ppDataBlock = pDataBlock;
+    }
+
+    if (pusDataCount)
+    {
+        *pusDataCount = usDataCount;
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ppResponseHeader)
+    {
+        *ppResponseHeader = NULL;
+    }
+
+    if (pusTotalParameterCount)
+    {
+        *pusTotalParameterCount = 0;
+    }
+
+    if (pusTotalDataCount)
+    {
+        *pusTotalDataCount = 0;
+    }
+
+    if (ppusSetupWords)
+    {
+        *ppusSetupWords = NULL;
+    }
+
+    if (pusSetupWordCount)
+    {
+        *pusSetupWordCount = 0;
+    }
+
+    if (pusByteCount)
+    {
+        *pusByteCount = 0;
+    }
+
+    if (ppParameterBlock)
+    {
+        *ppParameterBlock = NULL;
+    }
+
+    if (pusParameterCount)
+    {
+        *pusParameterCount = 0;
+    }
+
+    if (ppDataBlock)
+    {
+        *ppDataBlock = NULL;
+    }
+
+    if (pusDataCount)
+    {
+        *pusDataCount = 0;
+    }
+
+    goto cleanup;
+}

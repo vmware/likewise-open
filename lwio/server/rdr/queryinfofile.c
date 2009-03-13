@@ -109,6 +109,9 @@ error:
     return ntStatus;
 }
 
+/* FIXME: This function assumes that both the request and response will
+   fit in a single packet.  This is probably true in practice, but in
+   theory we need to handle multi-packet transactions */
 static
 NTSTATUS
 RdrTransactQueryInfoFile(
@@ -122,22 +125,18 @@ RdrTransactQueryInfoFile(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB_PACKET packet = {0};
-    uint32_t packetByteCount = 0;
     TRANSACTION_REQUEST_HEADER *pHeader = NULL;
-    TRANSACTION_SECONDARY_RESPONSE_HEADER *pResponseHeader = NULL;
     SMB_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     USHORT usMid = 0;
     USHORT usSetup = SMB_SUB_COMMAND_TRANS2_QUERY_FILE_INFORMATION;
     SMB_QUERY_FILE_INFO_HEADER queryHeader = {0};
-    USHORT usQueryHeaderOffset = 0;
-    USHORT usQueryDataOffset = 0;
-    ULONG ulOffset = 0;
-    PUSHORT pusReplySetup = NULL;
-    PUSHORT pusReplyByteCount = NULL;
-    PBYTE pReplyParameters = NULL;
+    PBYTE pRequestParameters = NULL;
     PBYTE pReplyData = NULL;
-
+    USHORT usReplyDataCount = 0;
+    PBYTE pCursor = NULL;
+    PBYTE pByteCount = NULL;
+    ULONG ulRemainingSpace = 0;
 
     ntStatus = SMBPacketBufferAllocate(
         pTree->pSession->pSocket->hPacketAllocator,
@@ -165,60 +164,50 @@ RdrTransactQueryInfoFile(
         &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    packet.pData = packet.pParams + sizeof(TRANSACTION_REQUEST_HEADER);
+    pCursor = packet.pParams;
+    ulRemainingSpace = packet.bufferLen - (pCursor - packet.pRawBuffer);
 
-    packet.bufferUsed += sizeof(TRANSACTION_REQUEST_HEADER);
-
-    packet.pSMBHeader->wordCount = 14 + sizeof(usSetup)/sizeof(USHORT);
-
-    pHeader = (TRANSACTION_REQUEST_HEADER *) packet.pParams;
-
-    queryHeader.usFid = usFid;
-    queryHeader.infoLevel = infoLevel;
-
-    ntStatus = WireMarshallTransactionRequestData(
-        packet.pData,
-        packet.bufferLen - packet.bufferUsed,
-        &packetByteCount,
+    ntStatus = WireMarshalTrans2RequestSetup(
+        packet.pSMBHeader,
+        &pCursor,
+        &ulRemainingSpace,
         &usSetup,
-        sizeof(usSetup)/sizeof(USHORT),
-        NULL,
-        (PBYTE) &queryHeader,
-        sizeof(queryHeader),
-        &usQueryHeaderOffset,
-        NULL,
-        0,
-        &usQueryDataOffset);
+        1,
+        &pHeader,
+        &pByteCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    assert(packetByteCount <= UINT16_MAX);
-    packet.bufferUsed += packetByteCount;
+    /* Remember start of the trans2 parameter block */
+    pRequestParameters = pCursor;
 
-    pHeader->totalParameterCount = sizeof(queryHeader);
-    pHeader->totalDataCount = 0;
-    pHeader->maxParameterCount = sizeof(queryHeader);
-    pHeader->maxDataCount = ulInfoLength;
-    pHeader->maxSetupCount = sizeof(usSetup)/sizeof(USHORT);
-    pHeader->flags = 0;
-    pHeader->parameterCount = sizeof(queryHeader);
-    pHeader->parameterOffset = usQueryHeaderOffset + (packet.pData - (PBYTE) packet.pSMBHeader);
-    pHeader->dataCount = 0;
-    pHeader->dataOffset = usQueryDataOffset + (packet.pData - (PBYTE) packet.pSMBHeader);
-    pHeader->setupCount = sizeof(usSetup)/sizeof(USHORT);
+    /* Write parameters */
+    queryHeader.usFid = SMB_HTOL16(usFid);
+    queryHeader.infoLevel = SMB_HTOL16(infoLevel);
 
-    // byte order conversions
-    SMB_HTOL16_INPLACE(pHeader->totalParameterCount);
-    SMB_HTOL16_INPLACE(pHeader->totalDataCount);
-    SMB_HTOL16_INPLACE(pHeader->maxParameterCount);
-    SMB_HTOL16_INPLACE(pHeader->maxDataCount);
-    SMB_HTOL8_INPLACE(pHeader->maxSetupCount);
-    SMB_HTOL16_INPLACE(pHeader->flags);
-    SMB_HTOL32_INPLACE(pHeader->timeout);
-    SMB_HTOL16_INPLACE(pHeader->parameterCount);
-    SMB_HTOL16_INPLACE(pHeader->parameterOffset);
-    SMB_HTOL16_INPLACE(pHeader->dataCount);
-    SMB_HTOL16_INPLACE(pHeader->dataOffset);
-    SMB_HTOL8_INPLACE(pHeader->setupCount);
+    ntStatus = MarshalData(&pCursor, &ulRemainingSpace, (PBYTE) &queryHeader, sizeof(queryHeader));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* The cursor now points exactly past the end of the packet */
+
+    /* Update fields in trans request header */
+    pHeader->totalParameterCount = SMB_HTOL16(sizeof(queryHeader));
+    pHeader->totalDataCount      = SMB_HTOL16(0);
+    pHeader->maxParameterCount   = SMB_HTOL16(sizeof(USHORT)); /* Reply parameters consist of a USHORT */
+    pHeader->maxDataCount        = SMB_HTOL16(ulInfoLength);   /* FIXME: adjust this value for packed/aligned difference */
+    pHeader->maxSetupCount       = SMB_HTOL8(1);
+    pHeader->flags               = SMB_HTOL16(0);
+    pHeader->timeout             = SMB_HTOL32(0);
+    pHeader->parameterCount      = SMB_HTOL16(sizeof(queryHeader));
+    pHeader->parameterOffset     = SMB_HTOL16(pRequestParameters - (PBYTE) packet.pSMBHeader);
+    pHeader->dataCount           = SMB_HTOL16(0);
+    pHeader->dataOffset          = SMB_HTOL16(0);
+    pHeader->setupCount          = SMB_HTOL8(1);
+
+    /* Update byte count */
+    ntStatus = MarshalUshort(&pByteCount, NULL, (pCursor - pByteCount) - 2);
+
+    /* Update used length */
+    packet.bufferUsed += (pCursor - packet.pParams);
 
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -243,26 +232,30 @@ RdrTransactQueryInfoFile(
     ntStatus = pResponsePacket->pSMBHeader->error;
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulOffset = (PBYTE)pResponsePacket->pParams - (PBYTE)pResponsePacket->pSMBHeader;
+    pCursor = pResponsePacket->pParams;
+    ulRemainingSpace = pResponsePacket->pNetBIOSHeader->len -
+        ((PBYTE)pResponsePacket->pParams - (PBYTE)pResponsePacket->pSMBHeader);
 
-    ntStatus = WireUnmarshallTransactionSecondaryResponse(
-        pResponsePacket->pParams,
-        pResponsePacket->pNetBIOSHeader->len - ulOffset,
-        ulOffset,
-        &pResponseHeader,
-        &pusReplySetup,
-        &pusReplyByteCount,
-        NULL,
-        &pReplyParameters,
+    ntStatus = WireUnmarshalTrans2ReplySetup(
+        pResponsePacket->pSMBHeader,
+        &pCursor,
+        &ulRemainingSpace,
+        NULL, /* ppResponseHeader */
+        NULL, /* pusTotalParameterCount */
+        NULL, /* pusTotalDataCount */
+        NULL, /* ppusSetupWords */
+        NULL, /* pusSetupWordCount */
+        NULL, /* pusByteCount */
+        NULL, /* pParameterBlock */
+        NULL, /* pusParameterCount */
         &pReplyData,
-        0);
+        &usReplyDataCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* @todo verify response setup/parameters match requested info level */
     ntStatus = RdrUnmarshalQueryFileInfoReply(
         infoLevel,
         pReplyData,
-        pResponseHeader->totalDataCount,
+        usReplyDataCount,
         pInfo,
         ulInfoLength,
         pulInfoLengthUsed);
