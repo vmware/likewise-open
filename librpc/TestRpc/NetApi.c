@@ -322,7 +322,9 @@ int AddLocalGroupMember(const wchar16_t *hostname, const wchar16_t *aliasname,
 }
 
 
-int DelLocalGroupMember(const wchar16_t *hostname, const wchar16_t *aliasname,
+int DelLocalGroupMember(const wchar16_t *hostname,
+                        const wchar16_t *domname,
+                        const wchar16_t *aliasname,
                         const wchar16_t *member)
 {
     NET_API_STATUS err = ERROR_SUCCESS;
@@ -330,7 +332,7 @@ int DelLocalGroupMember(const wchar16_t *hostname, const wchar16_t *aliasname,
 
     wchar16_t host_member[512];
 
-    sw16printf(host_member, "%S\\%S", hostname, member);
+    sw16printf(host_member, "%S\\%S", domname, member);
     memberinfo.lgrmi3_domainandname = host_member;
 	
     CALL_NETAPI(err = NetLocalGroupDelMembers(hostname, aliasname, 3,
@@ -1227,7 +1229,7 @@ int TestNetLocalGroupSetInfo(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("aliasname", pt_w16string, aliasname);
     PARAM_INFO("comment", pt_w16string, comment);
 
-    info.lgrpi1_name = NULL;
+    info.lgrpi1_name    = aliasname;
     info.lgrpi1_comment = comment;
 
     INPUT_ARG_WSTR(hostname);
@@ -1269,17 +1271,21 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
     enum param_err perr = perr_success;
-    LOCALGROUP_MEMBERS_INFO_3 *info = NULL;
     LOCALGROUP_MEMBERS_INFO_3 grpmembers_info;
-    uint32 entries, resume;
-    wchar16_t *aliasname, *username, *domname;
-    wchar16_t *admin_user, *guest_user;
-    wchar16_t *admins_group, *guests_group;
+    uint32 entries = 0;
+    wchar16_t *aliasname = NULL;
+    wchar16_t *username = NULL;
+    wchar16_t *domname = NULL;
+    wchar16_t *admin_user = NULL;
+    wchar16_t *guest_user = NULL;
+    wchar16_t *admins_group = NULL;
+    wchar16_t *guests_group = NULL;
     wchar16_t paddeduser[256];
-    int newalias, newuser;
+    int newalias = 0;
+    int newuser = 0;
 
-    resume = 0;
-    info = NULL;
+    memset(&grpmembers_info, 0, sizeof(grpmembers_info));
+    memset(paddeduser, 0, sizeof(paddeduser));
 
     TESTINFO(t, hostname, user, pass);
 
@@ -1409,10 +1415,10 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
         return false;
     } 
 
-    err = DelLocalGroupMember(hostname, admins_group, username);
+    err = DelLocalGroupMember(hostname, domname, admins_group, username);
     if (err != 0) netapi_fail(err);
 
-    err = DelLocalGroupMember(hostname, guests_group, username);
+    err = DelLocalGroupMember(hostname, domname, guests_group, username);
     if (err != 0) netapi_fail(err);
 
     err = DelLocalGroup(hostname, paddeduser);
