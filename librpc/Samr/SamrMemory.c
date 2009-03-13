@@ -229,7 +229,7 @@ NTSTATUS SamrAllocateDomSid(PSID* out, PSID in, void *dep)
 
     goto_if_invalid_param_ntstatus(out, cleanup);
 
-    RtlSidCopyAlloc(&ptr, in);
+    MsRpcDuplicateSid(&ptr, in);
     goto_if_no_memory_ntstatus(ptr, error);
 
     status = SamrAddDepMemory((void*)ptr, (void*)dep);

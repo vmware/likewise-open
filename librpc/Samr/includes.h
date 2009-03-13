@@ -55,6 +55,7 @@
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/rid.h>
 #include <lwrpc/samr.h>
 

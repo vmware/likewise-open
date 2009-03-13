@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,43 +28,31 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Lsa interface (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#ifndef __LWRPC_SIDHELPER_H__
+#define __LWRPC_SIDHELPER_H__
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
-
-#include <lwio/lwio.h>
-
-#include <DceSupport.h>
-#include <compat/rpcstatus.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <wc16str.h>
-#include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
+#include <lw/security-types.h>
 
-#include <lwrpc/types.h>
-#include <lwrpc/lsabinding.h>
-#include <lwrpc/lsadefs.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
+NTSTATUS
+MsRpcDuplicateSid(
+    OUT PSID* ppNewSid,
+    IN PSID pSourceSid
+    );
 
-#include "lsa_stub.h"
+NTSTATUS
+MsRpcAllocateSidAppendRid(
+    OUT PSID* ppSid,
+    IN PSID pDomainSid,
+    IN ULONG Rid
+    );
 
-#include "LsaUtil.h"
-#include "LsaMemory.h"
-#include "LsaStubMemory.h"
+VOID
+MsRpcFreeSid(
+    IN OUT PSID pSid
+    );
 
-#include "externs.h"
-
+#endif  /* __LWRPC_SIDHELPER_H__ */
 
 /*
 local variables:

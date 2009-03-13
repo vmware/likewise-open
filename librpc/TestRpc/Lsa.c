@@ -41,6 +41,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <lwrpc/allocate.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/mpr.h>
 
@@ -227,10 +228,9 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
 
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
-            RtlSidAllocateResizedCopy(&usr_sid,
-                                      dom_sid->SubAuthorityCount + 1,
-                                      dom_sid);
-            usr_sid->SubAuthority[usr_sid->SubAuthorityCount - 1] = sids[i].rid;
+            MsRpcAllocateSidAppendRid(&usr_sid,
+                                      dom_sid,
+                                      sids[i].rid);
             sid_array.sids[i].sid = usr_sid;
         }
     }
@@ -406,10 +406,9 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
 
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
-            RtlSidAllocateResizedCopy(&usr_sid,
-                                      dom_sid->SubAuthorityCount + 1,
-                                      dom_sid);
-            usr_sid->SubAuthority[usr_sid->SubAuthorityCount - 1] = sids[i].rid;
+            MsRpcAllocateSidAppendRid(&usr_sid,
+                                      dom_sid,
+                                      sids[i].rid);
             sid_array.sids[i].sid = usr_sid;
 
             RtlAllocateWC16StringFromSid(&sidstr, usr_sid);
@@ -577,9 +576,11 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
 done:
     LsaRpcDestroyMemory();
 
-    for (i = 0; i < sid_array.num_sids; i++) {
-        SidFree(sid_array.sids[i].sid);
+    for (i = 0; i < input_sid_count; i++)
+    {
+        RTL_FREE(&input_sids[i]);
     }
+
     SAFE_FREE(sid_array.sids);
 
     SAFE_FREE(input_sids);

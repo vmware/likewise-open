@@ -234,7 +234,7 @@ LsaAllocateRefDomainList(
             goto_if_ntstatus_not_success(status, error);
         }
 
-        RtlSidCopyAlloc(&info->sid, in->domains[i].sid);
+        MsRpcDuplicateSid(&info->sid, in->domains[i].sid);
         goto_if_no_memory_ntstatus(info->sid, error);
 
         if (info->sid) {
@@ -383,7 +383,7 @@ LsaCopyPolInfoLsaDomain(
         goto_if_ntstatus_not_success(status, cleanup);
     }
 
-    RtlSidCopyAlloc(&out->sid, in->sid);
+    MsRpcDuplicateSid(&out->sid, in->sid);
     goto_if_no_memory_ntstatus(out->sid, cleanup);
 
     if (out->sid) {
@@ -496,7 +496,7 @@ LsaCopyPolInfoDnsDomain(
     memcpy((void*)&out->domain_guid, (void*)&in->domain_guid,
            sizeof(Guid));
 
-    RtlSidCopyAlloc(&out->sid, in->sid);
+    MsRpcDuplicateSid(&out->sid, in->sid);
     goto_if_no_memory_ntstatus(out->sid, cleanup);
 
     if (out->sid) {

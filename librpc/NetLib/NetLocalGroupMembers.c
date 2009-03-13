@@ -132,13 +132,10 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
 
 	    if (sid_index < domains->count) {
 		dom_sid = domains->domains[sid_index].sid;
-		lookup_status = RtlSidAllocateResizedCopy(&usr_sid,
-                                                  dom_sid->SubAuthorityCount+1,
-                                                  dom_sid);
+		lookup_status = MsRpcAllocateSidAppendRid(&usr_sid,
+                                                  dom_sid,
+                                                  sids[0].rid);
 		if (lookup_status != 0) continue;
-
-		usr_sid->SubAuthority[usr_sid->SubAuthorityCount-1] = sids[0].rid;
-
 	    } else {
 		continue;
 	    }
@@ -156,7 +153,7 @@ NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
 	    if (status != 0) return status;
 	}
 
-	if (usr_sid) SidFree(usr_sid);
+	if (usr_sid) MsRpcFreeSid(usr_sid);
     }
 
     status = SamrClose(samr_bind, &alias_handle);

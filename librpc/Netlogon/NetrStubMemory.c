@@ -44,7 +44,7 @@ void NetrCleanStubDomainTrustList(NetrDomainTrustList *r)
 
         SAFE_FREE(trust->netbios_name);
         SAFE_FREE(trust->dns_name);
-        if (trust->sid) SidFree(trust->sid);
+        if (trust->sid) MsRpcFreeSid(trust->sid);
     }
 
     free(r->array);
@@ -67,7 +67,7 @@ static void NetrCleanSamBaseInfo(NetrSamBaseInfo *r)
     FreeUnicodeStringEx(&r->domain);
 
     if (r->domain_sid) {
-        SidFree(r->domain_sid);
+        MsRpcFreeSid(r->domain_sid);
         r->domain_sid = NULL;
     }
 }
@@ -94,7 +94,7 @@ static void NetrCleanSidAttr(NetrSidAttr *r, uint32 count)
 
     for (i = 0; r && i < count; i++) {
         if (r[i].sid) {
-            SidFree(r[i].sid);
+            MsRpcFreeSid(r[i].sid);
             r[i].sid = NULL;
         }
     }
@@ -208,7 +208,7 @@ NetrCleanDomainTrustInfo(
     FreeUnicodeString(&r->domain_name);
     FreeUnicodeString(&r->full_domain_name);
     FreeUnicodeString(&r->forest);
-    SidFree(r->sid);
+    MsRpcFreeSid(r->sid);
 
     for (i = 0; i < sizeof(r->unknown1)/sizeof(r->unknown1[0]); i++) {
         FreeUnicodeString(&r->unknown1[i]);

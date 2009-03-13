@@ -64,6 +64,7 @@
 #include <lwrpc/netlogon.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/LM.h>
 
 #include <random.h>

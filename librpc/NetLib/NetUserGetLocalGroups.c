@@ -75,11 +75,9 @@ NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
     status = NetOpenUser(conn, username, user_access, &user_handle, &user_rid);
     if (status != 0) return NtStatusToWin32Error(status);
 
-    status = RtlSidAllocateResizedCopy(&user_sid, domain_sid->SubAuthorityCount + 1,
-                                       domain_sid);
+    status = MsRpcAllocateSidAppendRid(&user_sid, domain_sid, user_rid);
     if (status != 0) return NtStatusToWin32Error(status);
 
-    user_sid->SubAuthority[user_sid->SubAuthorityCount - 1] = user_rid;
     sids.num_sids = 1;
     sid_ptr.sid = user_sid;
     sids.sids = &sid_ptr;

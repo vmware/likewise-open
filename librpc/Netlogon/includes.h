@@ -57,6 +57,7 @@
 #include <lwrpc/netrdefs.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/mpr.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/netlogonbinding.h>

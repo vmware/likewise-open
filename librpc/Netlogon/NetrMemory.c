@@ -183,7 +183,7 @@ NTSTATUS NetrAllocateDomainTrusts(NetrDomainTrust **out,
 
         if (tin->sid)
         {
-            RtlSidCopyAlloc(&tout->sid, tin->sid);
+            MsRpcDuplicateSid(&tout->sid, tin->sid);
             goto_if_no_memory_ntstatus(tout->sid, error);
 
             status = NetrAddDepMemory((void*)tout->sid, (void*)ptr);
@@ -560,7 +560,7 @@ static NTSTATUS NetrInitSamBaseInfo(NetrSamBaseInfo *ptr,
     }
 
     if (in->domain_sid) {
-        RtlSidCopyAlloc(&ptr->domain_sid, in->domain_sid);
+        MsRpcDuplicateSid(&ptr->domain_sid, in->domain_sid);
         goto_if_no_memory_ntstatus(ptr->domain_sid, error);
 
         status = NetrAddDepMemory((void*)ptr->domain_sid, (void*)dep);
@@ -593,7 +593,7 @@ error:
     }
 
     if (ptr->domain_sid) {
-        SidFree(ptr->domain_sid);
+        MsRpcFreeSid(ptr->domain_sid);
     }
 
     goto cleanup;
@@ -660,7 +660,7 @@ static NTSTATUS NetrAllocateSamInfo3(NetrSamInfo3 **out, NetrSamInfo3 *in,
             NetrSidAttr *in_sa = &(in->sids[i]);
 
             if (in_sa->sid) {
-                RtlSidCopyAlloc(&ptr_sa->sid, in_sa->sid);
+                MsRpcDuplicateSid(&ptr_sa->sid, in_sa->sid);
                 goto_if_no_memory_ntstatus(ptr_sa->sid, error);
 
                 status = NetrAddDepMemory((void*)ptr_sa->sid, (void*)ptr);
@@ -797,7 +797,7 @@ NetrCopyDomainTrustInfo(
     memcpy(&out->guid, &in->guid, sizeof(out->guid));
 
     if (in->sid) {
-        RtlSidCopyAlloc(&out->sid, in->sid);
+        MsRpcDuplicateSid(&out->sid, in->sid);
         goto_if_no_memory_ntstatus(out->sid, error);
 
         status = NetrAddDepMemory((void*)out->sid, dep);

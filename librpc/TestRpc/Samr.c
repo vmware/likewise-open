@@ -46,6 +46,7 @@
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <lwrpc/allocate.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
@@ -229,7 +230,7 @@ NTSTATUS GetSamDomainSid(PSID* sid, const wchar16_t *hostname)
     if (status != 0) rpc_fail(status);
 
     /* Allocate a copy of sid so it can be freed clean by the caller */
-    RtlSidCopyAlloc(sid, out_sid);
+    MsRpcDuplicateSid(sid, out_sid);
 
 done:
     FreeSamrBinding(&samr_b);
@@ -297,7 +298,7 @@ NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
 
 done: 
     FreeSamrBinding(&samr_b);
-    if (sid) SidFree(sid);
+    if (sid) MsRpcFreeSid(sid);
 
     return status;
 }
@@ -425,7 +426,7 @@ NTSTATUS EnsureAlias(const wchar16_t *hostname, wchar16_t *aliasname,
 
 done:
     FreeSamrBinding(&samr_b);
-    if (sid) SidFree(sid);
+    if (sid) MsRpcFreeSid(sid);
 
     return status;
 }
@@ -795,10 +796,8 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     status = SamrSetAliasInfo(samr_binding, &alias_handle, 3, &setaliasinfo);
     if (status != 0) rpc_fail(status);
 
-    status = RtlSidAllocateResizedCopy(&user_sid, sid->SubAuthorityCount+1, sid);
+    status = MsRpcAllocateSidAppendRid(&user_sid, sid, user_rid);
     if (status != 0) rpc_fail(status);
-
-    user_sid->SubAuthority[user_sid->SubAuthorityCount - 1] = user_rid;
 
     status = SamrGetAliasMembership(samr_binding, &dom_handle, user_sid, 1,
                                     &rids, &num_rids);
@@ -856,7 +855,7 @@ done:
     if (types) SamrFreeMemory((void*)types);
 
     FreeUnicodeString(&setaliasinfo.description);
-    if (user_sid) SidFree(user_sid);
+    if (user_sid) MsRpcFreeSid(user_sid);
 
     SAFE_FREE(aliasname);
     SAFE_FREE(aliasdesc);
@@ -929,10 +928,9 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
                 uint32 *member_rids = NULL;
                 uint32 count = 0;
 
-                status = RtlSidAllocateResizedCopy(&alias_sid,
-                                                   sid->SubAuthorityCount + 1,
-                                                   sid);
-                alias_sid->SubAuthority[alias_sid->SubAuthorityCount - 1] = rids[i];
+                status = MsRpcAllocateSidAppendRid(&alias_sid,
+                                                   sid,
+                                                   rids[i]);
 
                 /* there's actually no need to check status code here */
                 status = SamrGetAliasMembership(samr_binding,
@@ -1958,12 +1956,10 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     }
 
     for (i = 0; i < grp_count; i++) {
-        status = RtlSidAllocateResizedCopy(&(grp_sids[i]),
-                                           domsid->SubAuthorityCount + 1,
-                                           domsid);
+        status = MsRpcAllocateSidAppendRid(&grp_sids[i],
+                                           domsid,
+                                           grp_rids[i]);
         if (status != 0) rpc_fail(status);
-
-        grp_sids[i]->SubAuthority[grp_sids[i]->SubAuthorityCount - 1] = grp_rids[i];
 
         status = RtlAllocateWC16StringFromSid(&grp_sidstrs[i], grp_sids[i]);
         if (status != 0) rpc_fail(status);
@@ -2029,7 +2025,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
 
 done:
     SAFE_FREE(username);
-    if (domsid) SidFree(domsid);
+    if (domsid) MsRpcFreeSid(domsid);
     if (rids) SamrFreeMemory((void*)rids);
     if (types) SamrFreeMemory((void*)types);
     if (grp_rids) SamrFreeMemory((void*)grp_rids);
@@ -2039,7 +2035,7 @@ done:
     if (domains) LsaRpcFreeMemory((void*)domains);
 
     for (i = 0; i < grp_count; i++) {
-        SidFree(grp_sids[i]);
+        MsRpcFreeSid(grp_sids[i]);
         RTL_FREE(&grp_sidstrs[i]);
     }
     SAFE_FREE(grp_sids);
@@ -2148,13 +2144,11 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     if (sids_count == 0) rpc_fail(STATUS_UNSUCCESSFUL);
 
     /* Create user account sid */
-    RtlSidCopyAlloc(&domsid, usr_domains->domains[trans_sids[0].index].sid);
+    MsRpcDuplicateSid(&domsid, usr_domains->domains[trans_sids[0].index].sid);
     if (domsid == NULL) rpc_fail(STATUS_NO_MEMORY);
 
-    status = RtlSidAllocateResizedCopy(&usr_sid, domsid->SubAuthorityCount + 1,
-                                       domsid);
+    status = MsRpcAllocateSidAppendRid(&usr_sid, domsid, trans_sids[0].rid);
     if (status != 0) rpc_fail(status);
-    usr_sid->SubAuthority[usr_sid->SubAuthorityCount - 1] = trans_sids[0].rid;
 
     samr_b = CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) return false;
@@ -2214,11 +2208,9 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
             rid = dom_rids[i - btin_rids_count];
         }
 
-        status = RtlSidAllocateResizedCopy(&alias_sid, dom_sid->SubAuthorityCount + 1,
-                                           dom_sid);
+        status = MsRpcAllocateSidAppendRid(&alias_sid, dom_sid, rid);
         if (status != 0) rpc_fail(status);
 
-        alias_sid->SubAuthority[alias_sid->SubAuthorityCount - 1] = rid;
         status = RtlAllocateWC16StringFromSid(&alias_sidstrs[i], alias_sid);
         if (status != 0) rpc_fail(status);
 
@@ -2282,8 +2274,8 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
 done:
     SAFE_FREE(username);
     RTL_FREE(&btinsid);
-    if (domsid) SidFree(domsid);
-    if (usr_sid) SidFree(usr_sid); 
+    if (domsid) MsRpcFreeSid(domsid);
+    if (usr_sid) MsRpcFreeSid(usr_sid);
     if (usr_domains) LsaRpcFreeMemory((void*)usr_domains);
     if (trans_sids) LsaRpcFreeMemory((void*)trans_sids);
     if (alias_domains) LsaRpcFreeMemory((void*)alias_domains);
@@ -2293,7 +2285,7 @@ done:
 
     for (i = 0; i < alias_count; i++) {
         if (resolvesids) {
-            SidFree(sid_array.sids[i].sid);
+            MsRpcFreeSid(sid_array.sids[i].sid);
         }
         RTL_FREE(&alias_sidstrs[i]);
     }

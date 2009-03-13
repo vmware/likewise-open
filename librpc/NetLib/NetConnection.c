@@ -272,7 +272,7 @@ domain_name_found:
         cn->samr.dom_name   = dom_name;
 
         if (dom_sid) {
-            RtlSidCopyAlloc(&cn->samr.dom_sid, dom_sid);
+            MsRpcDuplicateSid(&cn->samr.dom_sid, dom_sid);
             SamrFreeMemory((void*)dom_sid);
         }
     }
