@@ -101,7 +101,9 @@ PvfsFreeCCB(
         PvfsFreeDirectoryContext(pCCB->pDirContext);
     }
 
-    RTL_FREE(&pCCB->pszFilename);
+    if (pCCB->pszFilename) {
+        RtlCStringFree(&pCCB->pszFilename);
+    }
 
     PvfsFreeMemory(pCCB);
 

@@ -239,7 +239,7 @@ error:
     }
 
     PvfsFreeCCB(pCcb);
-    RTL_FREE(&pszFilename);
+    RtlCStringFree(&pszFilename);
 
     goto cleanup;
 }
@@ -337,7 +337,7 @@ error:
     }
 
     PvfsFreeCCB(pCcb);
-    RTL_FREE(&pszFilename);
+    RtlCStringFree(&pszFilename);
 
     goto cleanup;
 }
@@ -413,7 +413,7 @@ error:
     }
 
     PvfsFreeCCB(pCcb);
-    RTL_FREE(&pszFilename);
+    RtlCStringFree(&pszFilename);
 
     goto cleanup;
 }
@@ -524,7 +524,7 @@ error:
     }
 
     PvfsFreeCCB(pCcb);
-    RTL_FREE(&pszFilename);
+    RtlCStringFree(&pszFilename);
 
     goto cleanup;
 }
@@ -618,7 +618,7 @@ error:
     }
 
     PvfsFreeCCB(pCcb);
-    RTL_FREE(&pszFilename);
+    RtlCStringFree(&pszFilename);
 
     goto cleanup;
 }
@@ -731,7 +731,7 @@ error:
     }
 
     PvfsFreeCCB(pCcb);
-    RTL_FREE(&pszFilename);
+    RtlCStringFree(&pszFilename);
 
     goto cleanup;
 }
