@@ -77,6 +77,8 @@ PvfsWC16CanonicalPathName(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszPath = NULL;
     PSTR pszCursor = NULL;
+    size_t Length = 0;
+    int i = 0;
 
     ntError = RtlCStringAllocateFromWC16String(&pszPath,
                                                pwszPathname);
@@ -91,6 +93,18 @@ PvfsWC16CanonicalPathName(
         pszCursor++;
     }
 
+    /* Strip trailing slashes */
+
+    Length = RtlCStringNumChars(pszPath);
+    for (i=Length-1; i>=0; i--)
+    {
+        /* break out at first non slash */
+        if (pszPath[i] != '/') {
+            break;
+        }
+
+        pszPath[i] = '\0';
+    }
 
     *ppszPath = pszPath;
 
@@ -125,6 +139,85 @@ PvfsValidatePath(
         ntError = STATUS_FILE_RENAMED;
         BAIL_ON_NT_STATUS(ntError);
     }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsFileBasename(
+    PSTR *ppszFilename,
+    PCSTR pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszCursor = NULL;
+
+    if ((pszCursor = strrchr(pszPath, '/')) != NULL)
+    {
+        /* Assume there is never a trailing '/' since that should
+           be handled by PvfsCanonicalPathName() */
+
+        pszCursor++;
+    }
+
+    if (pszCursor != NULL) {
+        ntError = RtlCStringDuplicate(ppszFilename, pszCursor);
+    } else {
+        ntError = RtlCStringDuplicate(ppszFilename, pszPath);
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsFileDirname(
+    PSTR *ppszDirname,
+    PCSTR pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszCursor = NULL;
+    PSTR pszNewString = NULL;
+
+    /* Case #1: No '/' so just return '.' */
+    if (((pszCursor = strchr(pszPath, '/')) == NULL))
+    {
+        ntError = RtlCStringDuplicate(ppszDirname, ".");
+        goto cleanup;
+    }
+
+    /* Case #2: only one '/' (at beginning of path) */
+
+    if (pszCursor == pszPath) {
+        ntError = RtlCStringDuplicate(ppszDirname, "/");
+        goto cleanup;
+    }
+
+    /* Case #3: Real dirname and file name components */
+
+    ntError = RTL_ALLOCATE(&pszNewString, CHAR,
+                           PVFS_PTR_DIFF(pszPath,pszCursor) + 1);
+    BAIL_ON_NT_STATUS(ntError);
+
+    RtlCopyMemory(pszNewString, pszPath, PVFS_PTR_DIFF(pszPath,pszCursor));
+
+    *ppszDirname = pszNewString;
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;

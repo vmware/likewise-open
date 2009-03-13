@@ -201,6 +201,17 @@ PvfsValidatePath(
     PPVFS_CCB pCcb
     );
 
+NTSTATUS
+PvfsFileBasename(
+    PSTR *ppszFilename,
+    PCSTR pszPath
+    );
+NTSTATUS
+PvfsFileDirname(
+    PSTR *ppszDirname,
+    PCSTR pszPath
+    );
+
 
 /* From wildcard.c */
 
