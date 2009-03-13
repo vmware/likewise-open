@@ -70,7 +70,15 @@ NET_API_STATUS NetShareAdd(
     case 502:
         buf502 = (PSHARE_INFO_502)bufptr;
 
-        if (buf502) {
+        if (buf502)
+        {
+            if ((buf502->shi502_security_descriptor && !buf502->shi502_reserved) ||
+                (!buf502->shi502_security_descriptor && buf502->shi502_reserved))
+            {
+                status = ERROR_INVALID_PARAMETER;
+                goto done;
+            }
+
             info502.shi502_netname             = buf502->shi502_netname;
             info502.shi502_type                = buf502->shi502_type;
             info502.shi502_remark              = buf502->shi502_remark;
@@ -79,14 +87,9 @@ NET_API_STATUS NetShareAdd(
             info502.shi502_current_uses        = buf502->shi502_current_uses;
             info502.shi502_path                = buf502->shi502_path;
             info502.shi502_password            = buf502->shi502_password;
-#if 0
-            // TODO-Figure out what to do...may need SD hack...
-            status = SecurityDescriptorToBuffer(buf502->shi502_security_descriptor,
-                                                &info502.shi502_security_descriptor,
-                                                &info502.shi502_reserved);
-            goto_if_err_not_success(status, done);
-#endif
-            sdbuf = info502.shi502_security_descriptor;
+            info502.shi502_reserved            = buf502->shi502_reserved;
+            info502.shi502_security_descriptor = buf502->shi502_security_descriptor;
+
             info.info502 = &info502;
         }
         break;

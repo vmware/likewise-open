@@ -18,7 +18,6 @@ libsrvsvc_la_SOURCES = \
     SrvSvcNetServerGetInfo.c \
     SrvSvcNetServerSetInfo.c \
     SrvSvcNetRemoteTOD.c \
-    SrvSvcSecurity.c \
     SrvSvcMemory.c \
     SrvSvcStubMemory.c \
     MemPtr.c \
