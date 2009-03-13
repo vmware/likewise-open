@@ -230,8 +230,10 @@ PvfsSetFileBasicInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsSetFileAttributes(pCcb, pFileInfo->FileAttributes);
-    BAIL_ON_NT_STATUS(ntError);
+    if (pFileInfo->FileAttributes != 0) {
+        ntError = PvfsSetFileAttributes(pCcb, pFileInfo->FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* Need to implement the sticky write semantics on file close. */
 
