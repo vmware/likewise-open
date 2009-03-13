@@ -208,7 +208,6 @@ PvfsSetFileAttributes(
 {
     NTSTATUS ntError = STATUS_ACCESS_DENIED;
     FILE_ATTRIBUTES AttribNotSettable = FILE_ATTRIBUTE_ENCRYPTED |
-                                        FILE_ATTRIBUTE_DIRECTORY |
                                         FILE_ATTRIBUTE_DEVICE |
                                         FILE_ATTRIBUTE_COMPRESSED |
                                         FILE_ATTRIBUTE_REPARSE_POINT |
@@ -220,6 +219,10 @@ PvfsSetFileAttributes(
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    /* Clear some bits that should not be stored */
+
+    Attributes &= ~(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_NORMAL);
 
 #ifdef HAVE_EA_SUPPORT
     ntError = PvfsSetFileAttributesXattr(pCcb, Attributes);
@@ -246,7 +249,6 @@ PvfsSetFileAttributesEx(
 {
     NTSTATUS ntError = STATUS_ACCESS_DENIED;
     FILE_ATTRIBUTES AttribNotSettable = FILE_ATTRIBUTE_ENCRYPTED |
-                                        FILE_ATTRIBUTE_DIRECTORY |
                                         FILE_ATTRIBUTE_DEVICE;
     FILE_ATTRIBUTES AttribNotSupported = FILE_ATTRIBUTE_COMPRESSED |
                                         FILE_ATTRIBUTE_REPARSE_POINT |
@@ -265,6 +267,10 @@ PvfsSetFileAttributesEx(
         ntError = STATUS_NOT_SUPPORTED;
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    /* Clear some bits that should not be stored */
+
+    Attributes &= ~(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_NORMAL);
 
 #ifdef HAVE_EA_SUPPORT
     ntError = PvfsSetFileAttributesXattr(pCcb, Attributes);
