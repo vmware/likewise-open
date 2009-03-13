@@ -153,12 +153,8 @@ PvfsQueryFileBasicInfo(
     ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Make this up for now */
-
-    pFileInfo->FileAttributes = FILE_ATTRIBUTE_ARCHIVE;
-    if (S_ISDIR(Stat.s_mode)) {
-        pFileInfo->FileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
-    }
+    ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
+    BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
@@ -234,8 +230,10 @@ PvfsSetFileBasicInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Need to implement the sticky write semantics on file close.
-       Also need to decide what to do with DOS attributes here. */
+    ntError = PvfsSetFileAttributes(pCcb, pFileInfo->FileAttributes);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Need to implement the sticky write semantics on file close. */
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;

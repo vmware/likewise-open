@@ -50,7 +50,10 @@
 
 #include "config.h"
 
-#if defined(HAVE_ATTR_XATTR_H) && defined(HAVE_FSETXATTR) && defined(HAVE_FGETXATTR)
+#if defined(HAVE_ATTR_XATTR_H) && \
+    defined(HAVE_FSETXATTR) && \
+    defined(HAVE_FGETXATTR) && \
+    defined(HAVE_GETXATTR)
 #  ifdef __LWI_LINUX__
 #    define HAVE_EA_SUPPORT
 #  endif
@@ -76,6 +79,7 @@
 #include "synchronize_p.h"
 #include "ccb_p.h"
 #include "acl.h"
+#include "attrib.h"
 
 /* Unix (POSIX) APIs */
 
