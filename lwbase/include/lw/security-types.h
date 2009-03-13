@@ -1175,7 +1175,7 @@ typedef ULONG WELL_KNOWN_SID_TYPE, *PWELL_KNOWN_SID_TYPE;
 //     over the network (at other servers).   (Supported by Win2K and up.)
 //
 
-typedef ULONG SECURITY_IMPERSONATION_LEVEL, *PSECURITY_IMPERSONATION_LEVEL;
+typedef USHORT SECURITY_IMPERSONATION_LEVEL, *PSECURITY_IMPERSONATION_LEVEL;
 
 #define SecurityAnonymous       0
 #define SecurityIdentification  1
