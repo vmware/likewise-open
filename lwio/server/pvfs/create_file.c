@@ -147,6 +147,8 @@ PvfsCreateFileSupersede(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_CREATE Args = pIrp->Args.Create;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     PSTR pszFilename = NULL;
     int fd = -1;
     int unixFlags = 0;
@@ -155,44 +157,37 @@ PvfsCreateFileSupersede(
     ACCESS_MASK GrantedAccess = 0;
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
-    PIO_CREATE_SECURITY_CONTEXT pSecCtx = pIrp->Args.Create.SecurityContext;
+    PSTR pszDirectory = NULL;
 
-    ntError = PvfsCanonicalPathName(&pszFilename,
-                                    pIrp->Args.Create.FileName);
+    ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Check for file existence */
+    /* Check for file existence.  Remove it if necessary */
 
     ntError = PvfsSysStat(pszFilename, &Stat);
     bFileExisted = NT_SUCCESS(ntError);
 
-    /* If the file doesn't exist, we have to rely on the security
-       of the parent directory */
-
-    if (!bFileExisted)
-    {
-        PSTR pszDirectory = NULL;
-
-        ntError = PvfsAccessCheckDir(pIrp->Args.Create.SecurityContext,
-                                     pszDirectory,
-                                     pIrp->Args.Create.DesiredAccess,
-                                     &GrantedAccess);
-    }
-    else
-    {
-        ntError = PvfsAccessCheckFile(pIrp->Args.Create.SecurityContext,
+    if (bFileExisted) {
+        ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszFilename,
-                                      pIrp->Args.Create.DesiredAccess,
+                                      DELETE,
                                       &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysRemove(pszFilename);
+        BAIL_ON_NT_STATUS(ntError);
     }
+
+    ntError = PvfsAccessCheckDir(pSecCtx,
+                                 pszDirectory,
+                                 Args.DesiredAccess,
+                                 &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = MapPosixOpenFlags(&unixFlags,
-                                GrantedAccess,
-                                pIrp->Args.Create);
+    ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
@@ -204,11 +199,16 @@ PvfsCreateFileSupersede(
 
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
-    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+    pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* File properties */
 
     if (pSecCtx) {
         ntError = PvfsSysChown(pCcb,
@@ -217,8 +217,10 @@ PvfsCreateFileSupersede(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
-    BAIL_ON_NT_STATUS(ntError);
+    if (Args.FileAttributes != 0) {
+        ntError = PvfsSetFileAttributes(pCcb, Args.FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     CreateResult = bFileExisted ? FILE_SUPERSEDED : FILE_CREATED;
 
@@ -251,6 +253,8 @@ PvfsCreateFileCreate(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_CREATE Args = pIrp->Args.Create;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     PSTR pszFilename = NULL;
     int fd = -1;
     int unixFlags = 0;
@@ -258,10 +262,8 @@ PvfsCreateFileCreate(
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
     PSTR pszParentDir = NULL;
-    PIO_CREATE_SECURITY_CONTEXT pSecCtx = pIrp->Args.Create.SecurityContext;
 
-    ntError = PvfsCanonicalPathName(&pszFilename,
-                                    pIrp->Args.Create.FileName);
+    ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -271,16 +273,14 @@ PvfsCreateFileCreate(
        we can, then the granted access on the file should be
        ALL_ACCESS. */
 
-    ntError = PvfsAccessCheckDir(pIrp->Args.Create.SecurityContext,
+    ntError = PvfsAccessCheckDir(pSecCtx,
                                  pszParentDir,
                                  FILE_ADD_FILE,
                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
     GrantedAccess = FILE_ALL_ACCESS;
 
-    ntError = MapPosixOpenFlags(&unixFlags,
-                                GrantedAccess,
-                                pIrp->Args.Create);
+    ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Let the open() call fail if the file exists.  No need
@@ -293,11 +293,16 @@ PvfsCreateFileCreate(
 
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
-    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+    pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* File properties */
 
     if (pSecCtx) {
         ntError = PvfsSysChown(pCcb,
@@ -306,8 +311,10 @@ PvfsCreateFileCreate(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
-    BAIL_ON_NT_STATUS(ntError);
+    if (Args.FileAttributes != 0) {
+        ntError = PvfsSetFileAttributes(pCcb, Args.FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     CreateResult = FILE_CREATED;
 
@@ -322,6 +329,8 @@ error:
 
     if (fd != -1)
     {
+        /* TODO: Remove the file */
+
         close(fd);
     }
 
@@ -341,6 +350,8 @@ PvfsCreateFileOpen(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_CREATE Args = pIrp->Args.Create;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     PSTR pszFilename = NULL;
     int fd = -1;
     int unixFlags = 0;
@@ -348,22 +359,19 @@ PvfsCreateFileOpen(
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
 
-    ntError = PvfsCanonicalPathName(&pszFilename,
-                                    pIrp->Args.Create.FileName);
+    ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAccessCheckFile(pIrp->Args.Create.SecurityContext,
+    ntError = PvfsAccessCheckFile(pSecCtx,
                                   pszFilename,
-                                  pIrp->Args.Create.DesiredAccess,
+                                  Args.DesiredAccess,
                                   &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = MapPosixOpenFlags(&unixFlags,
-                                GrantedAccess,
-                                pIrp->Args.Create);
+    ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Let the open() call fail if the file does not exists.  No
@@ -376,7 +384,7 @@ PvfsCreateFileOpen(
 
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
-    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+    pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
@@ -418,6 +426,8 @@ PvfsCreateFileOpenIf(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_CREATE Args = pIrp->Args.Create;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     PSTR pszFilename = NULL;
     int fd = -1;
     int unixFlags = 0;
@@ -426,10 +436,8 @@ PvfsCreateFileOpenIf(
     ACCESS_MASK GrantedAccess = 0;
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
-    PIO_CREATE_SECURITY_CONTEXT pSecCtx = pIrp->Args.Create.SecurityContext;
 
-    ntError = PvfsCanonicalPathName(&pszFilename,
-                                    pIrp->Args.Create.FileName);
+    ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -447,23 +455,21 @@ PvfsCreateFileOpenIf(
     {
         PSTR pszDirectory = NULL;
 
-        ntError = PvfsAccessCheckDir(pIrp->Args.Create.SecurityContext,
+        ntError = PvfsAccessCheckDir(pSecCtx,
                                      pszDirectory,
-                                     pIrp->Args.Create.DesiredAccess,
+                                     Args.DesiredAccess,
                                      &GrantedAccess);
     }
     else
     {
-        ntError = PvfsAccessCheckFile(pIrp->Args.Create.SecurityContext,
+        ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszFilename,
-                                      pIrp->Args.Create.DesiredAccess,
+                                      Args.DesiredAccess,
                                       &GrantedAccess);
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = MapPosixOpenFlags(&unixFlags,
-                                GrantedAccess,
-                                pIrp->Args.Create);
+    ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
@@ -473,11 +479,16 @@ PvfsCreateFileOpenIf(
 
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
-    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+    pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* File properties */
 
     if (!bFileExisted && pSecCtx)
     {
@@ -487,8 +498,10 @@ PvfsCreateFileOpenIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
-    BAIL_ON_NT_STATUS(ntError);
+    if (!bFileExisted && Args.FileAttributes != 0) {
+        ntError = PvfsSetFileAttributes(pCcb, Args.FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     CreateResult = bFileExisted ? FILE_OPENED : FILE_CREATED;
 
@@ -522,6 +535,8 @@ PvfsCreateFileOverwrite(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_CREATE Args = pIrp->Args.Create;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     PSTR pszFilename = NULL;
     int fd = -1;
     int unixFlags = 0;
@@ -529,8 +544,7 @@ PvfsCreateFileOverwrite(
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
 
-    ntError = PvfsCanonicalPathName(&pszFilename,
-                                    pIrp->Args.Create.FileName);
+    ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -539,15 +553,13 @@ PvfsCreateFileOverwrite(
     /* Just check access on the file and allow the open to
        validate existence */
 
-    ntError = PvfsAccessCheckFile(pIrp->Args.Create.SecurityContext,
+    ntError = PvfsAccessCheckFile(pSecCtx,
                                   pszFilename,
-                                  pIrp->Args.Create.DesiredAccess,
+                                  Args.DesiredAccess,
                                   &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = MapPosixOpenFlags(&unixFlags,
-                                GrantedAccess,
-                                pIrp->Args.Create);
+    ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
@@ -557,7 +569,7 @@ PvfsCreateFileOverwrite(
 
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
-    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+    pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
@@ -565,6 +577,24 @@ PvfsCreateFileOverwrite(
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    /* File properties */
+
+    if (pSecCtx)
+    {
+        ntError = PvfsSysChown(pCcb,
+                               pSecCtx->Process.Uid,
+                               pSecCtx->Process.Gid);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* This should always update the File Attributes even if the
+       file previously existed */
+
+    if (Args.FileAttributes != 0) {
+        ntError = PvfsSetFileAttributes(pCcb, Args.FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     CreateResult = FILE_OVERWRITTEN;
 
@@ -598,6 +628,8 @@ PvfsCreateFileOverwriteIf(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_CREATE Args = pIrp->Args.Create;
+    PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     PSTR pszFilename = NULL;
     int fd = -1;
     int unixFlags = 0;
@@ -606,10 +638,8 @@ PvfsCreateFileOverwriteIf(
     ACCESS_MASK GrantedAccess = 0;
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
-    PIO_CREATE_SECURITY_CONTEXT pSecCtx = pIrp->Args.Create.SecurityContext;
 
-    ntError = PvfsCanonicalPathName(&pszFilename,
-                                    pIrp->Args.Create.FileName);
+    ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -627,23 +657,21 @@ PvfsCreateFileOverwriteIf(
     {
         PSTR pszDirectory = NULL;
 
-        ntError = PvfsAccessCheckDir(pIrp->Args.Create.SecurityContext,
+        ntError = PvfsAccessCheckDir(pSecCtx,
                                      pszDirectory,
-                                     pIrp->Args.Create.DesiredAccess,
+                                     Args.DesiredAccess,
                                      &GrantedAccess);
     }
     else
     {
-        ntError = PvfsAccessCheckFile(pIrp->Args.Create.SecurityContext,
+        ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszFilename,
-                                      pIrp->Args.Create.DesiredAccess,
+                                      Args.DesiredAccess,
                                       &GrantedAccess);
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = MapPosixOpenFlags(&unixFlags,
-                                GrantedAccess,
-                                pIrp->Args.Create);
+    ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
@@ -653,13 +681,18 @@ PvfsCreateFileOverwriteIf(
 
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
-    pCcb->CreateOptions = pIrp->Args.Create.CreateOptions;
+    pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (!bFileExisted && pSecCtx)
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* File properties */
+
+    if (pSecCtx)
     {
         ntError = PvfsSysChown(pCcb,
                                pSecCtx->Process.Uid,
@@ -667,8 +700,13 @@ PvfsCreateFileOverwriteIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsStoreCCB(pIrp->FileHandle, pCcb);
-    BAIL_ON_NT_STATUS(ntError);
+    /* This should always update the File Attributes even if the
+       file previously existed */
+
+    if (Args.FileAttributes != 0) {
+        ntError = PvfsSetFileAttributes(pCcb, Args.FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     CreateResult = bFileExisted ? FILE_OVERWRITTEN : FILE_CREATED;
 
