@@ -150,7 +150,7 @@ typedef ULONG FILE_CREATE_OPTIONS;
 // File Attributes
 //
 
-typedef ULONG FILE_ATTRIBUTES;
+typedef ULONG FILE_ATTRIBUTES, *PFILE_ATTRIBUTES;
 
 #define FILE_ATTRIBUTE_READONLY              0x00000001 // settable
 #define FILE_ATTRIBUTE_HIDDEN                0x00000002 // settable
@@ -159,7 +159,7 @@ typedef ULONG FILE_ATTRIBUTES;
 #define FILE_ATTRIBUTE_DIRECTORY             0x00000010 // not settable
 #define FILE_ATTRIBUTE_ARCHIVE               0x00000020 // settable
 #define FILE_ATTRIBUTE_DEVICE                0x00000040 // not settable
-#define FILE_ATTRIBUTE_NORMAL                0x00000080 // ignored (iirc)
+#define FILE_ATTRIBUTE_NORMAL                0x00000080 // used when no other attributes are present
 #define FILE_ATTRIBUTE_TEMPORARY             0x00000100 // settable
 #define FILE_ATTRIBUTE_SPARSE_FILE           0x00000200 // via FSCTL
 #define FILE_ATTRIBUTE_REPARSE_POINT         0x00000400 // via FSCTL
