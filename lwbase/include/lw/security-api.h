@@ -110,6 +110,13 @@ RtlCopySid(
     IN PSID SourceSid
     );
 
+NTSTATUS
+RtlAppendRidSid(
+    IN ULONG SidLength,
+    IN OUT PSID Sid,
+    IN ULONG Rid
+    );
+
 //
 // ACL Functions
 //

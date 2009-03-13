@@ -162,6 +162,36 @@ cleanup:
     return status;
 }
 
+NTSTATUS
+RtlAppendRidSid(
+    IN ULONG SidLength,
+    IN OUT PSID Sid,
+    IN ULONG Rid
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG length = 0;
+
+    if (Sid->SubAuthorityCount >= SID_MAX_SUB_AUTHORITIES)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    length = RtlLengthRequiredSid(Sid->SubAuthorityCount + 1);
+    if (SidLength < length)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        GOTO_CLEANUP();
+    }
+
+    Sid->SubAuthority[Sid->SubAuthorityCount] = Rid;
+    Sid->SubAuthorityCount++;
+
+cleanup:
+    return status;
+}
+
 BOOLEAN
 RtlpIsValidLittleEndianSidBuffer(
     IN PVOID Buffer,

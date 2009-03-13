@@ -84,24 +84,6 @@ RtlPolHndIsEmpty(
 // TODO-Perhaps use non-string version instead?
 #define SID_BUILTIN_DOMAIN  "S-1-5-32"
 
-void
-SidFree(
-    IN OUT PSID pSid
-    );
-
-NTSTATUS
-RtlSidAllocateResizedCopy(
-    OUT PSID* ppSid,
-    IN UINT8 SubAuthorityCount,
-    IN PSID pSourceSid
-    );
-
-NTSTATUS
-RtlSidCopyAlloc(
-    OUT PSID* ppDstSid,
-    IN PSID pSrcSid
-    );
-
 #endif
 
 /*
