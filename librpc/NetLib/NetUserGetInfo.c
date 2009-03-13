@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -32,8 +32,13 @@
 #include "NetLibUserInfo.h"
 
 
-NET_API_STATUS NetUserGetInfo(const wchar16_t *hostname, const wchar16_t *username,
-			      uint32 level, void **buffer)
+NET_API_STATUS
+NetUserGetInfo(
+    const wchar16_t *hostname,
+    const wchar16_t *username,
+    uint32 level,
+    void **buffer
+    )
 {
     const uint32 access_rights = USER_ACCESS_GET_NAME_ETC |
                                  USER_ACCESS_GET_LOCALE |
@@ -41,54 +46,70 @@ NET_API_STATUS NetUserGetInfo(const wchar16_t *hostname, const wchar16_t *userna
                                  USER_ACCESS_GET_ATTRIBUTES |
                                  USER_ACCESS_GET_GROUPS |
                                  USER_ACCESS_GET_GROUP_MEMBERSHIP;
-    const uint32 samr_lvl = 21;
+    const uint32 samr_level = 21;
+    const uint32 num = 1;
     NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
-    handle_t samr_bind = NULL;
-    PolicyHandle user_handle;
-    uint32 user_rid;
+    handle_t samr_b = NULL;
+    PolicyHandle user_h;
+    uint32 user_rid = 0;
     UserInfo *info = NULL;
     USER_INFO_20 *ninfo20 = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(username, cleanup);
+    goto_if_invalid_param_winerr(buffer, cleanup);
 
-    if (hostname == NULL || username == NULL ||
-        buffer == NULL)
-    {
-        return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
+    if (level != 20) {
+        err = ERROR_INVALID_LEVEL;
+        goto cleanup;
     }
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
+
+    samr_b = conn->samr.bind;
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    samr_bind = conn->samr.bind;
+    status = NetOpenUser(conn, username, access_rights, &user_h,
+                         &user_rid);
+    goto_if_ntstatus_not_success(status, error);
 
-    status = NetOpenUser(conn, username, access_rights, &user_handle,
-			 &user_rid);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrQueryUserInfo(samr_b, &user_h, samr_level, &info);
+    goto_if_ntstatus_not_success(status, error);
 
-    status = SamrQueryUserInfo(samr_bind, &user_handle, samr_lvl, &info);
-    BAIL_ON_NT_STATUS(status);
+    status = PullUserInfo20((void**)&ninfo20, &info->info21, num);
+    goto_if_ntstatus_not_success(status, error);
 
-    ninfo20 = (USER_INFO_20*) malloc(sizeof(USER_INFO_20));
-    if (ninfo20 == NULL) BAIL_ON_NT_STATUS(status = STATUS_INSUFFICIENT_RESOURCES);
+    status = SamrClose(samr_b, &user_h);
+    goto_if_ntstatus_not_success(status, error);
 
-    *buffer = PullUserInfo20((void*)ninfo20, &info->info21, 0);
-	
-    status = SamrClose(samr_bind, &user_handle);
-    BAIL_ON_NT_STATUS(status);
+    *buffer = ninfo20;
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
+    if (ninfo20) {
+        NetFreeMemory((void*)ninfo20);
+    }
 
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    *buffer = NULL;
+    goto cleanup;
 }
 
 

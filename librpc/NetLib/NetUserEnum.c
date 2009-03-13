@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -29,31 +29,49 @@
  */
 
 #include "includes.h"
-#include "NetLibUserInfo.h"
 
 
-NET_API_STATUS NetUserEnum(const wchar16_t *hostname, uint32 level, uint32 filter,
-                           void **buffer, uint32 maxlen, uint32 *entries,
-                           uint32 *total, uint32 *resume)
+NET_API_STATUS
+NetUserEnum(
+    const wchar16_t *hostname,
+    uint32 level, uint32 filter,
+    void **buffer,
+    uint32 maxlen,
+    uint32 *out_entries,
+    uint32 *out_total,
+    uint32 *out_resume
+    )
 {
     const uint32 dom_flags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
                              DOMAIN_ACCESS_OPEN_ACCOUNT;
     const uint16 dominfo_level = 2;
+    const uint16 infolevel = 21;
 
     NTSTATUS status = STATUS_SUCCESS;
-    NetConn *conn;
-    handle_t samr_bind;
-    PolicyHandle dom_handle, user_handle;
-    DomainInfo *dominfo;
-    uint32 res, num_entries, max_size, i;
-    wchar16_t **usernames;
-    uint32 *userrids;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle dom_h, user_h;
+    DomainInfo *dominfo = NULL;
+    uint32 num_entries = 0;
+    uint32 max_size = 0;
+    uint32 i = 0;
+    wchar16_t **usernames = NULL;
+    uint32 *userrids = NULL;
     uint32 acct_flags = 0;
     uint32 user_flags = 0;
-    void *infobuffer = NULL;
-    size_t sizebuffer = 0;
-    int error = 0;
+    void *ninfo = NULL;         /* "Net" user info */
+    UserInfo21 *sinfo = NULL;   /* "Samr" user info */
+    UserInfo *ui = NULL;
+    uint32 total = 0;
+    uint32 resume = 0;
     PIO_ACCESS_TOKEN access_token = NULL;
+
+    goto_if_invalid_param_ntstatus(hostname, cleanup);
+    goto_if_invalid_param_ntstatus(buffer, cleanup);
+    goto_if_invalid_param_ntstatus(out_entries, cleanup);
+    goto_if_invalid_param_ntstatus(out_total, cleanup);
+    goto_if_invalid_param_ntstatus(out_resume, cleanup);
 
     switch (filter) {
     case FILTER_NORMAL_ACCOUNT:
@@ -73,132 +91,140 @@ NET_API_STATUS NetUserEnum(const wchar16_t *hostname, uint32 level, uint32 filte
         break;
 
     default:
-        return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
+        err = NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
+        goto error;
+    }
+
+    if (!(level == 0 ||
+          level == 1 ||
+          level == 2 ||
+          level == 20)) {
+        err = ERROR_INVALID_LEVEL;
+        goto error;
     }
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
+
+    samr_b = conn->samr.bind;
+    dom_h  = conn->samr.dom_handle;
 
     status = NetConnectSamr(&conn, hostname, dom_flags, 0, access_token);
     BAIL_ON_NT_STATUS(status);
 
-    samr_bind  = conn->samr.bind;
-    dom_handle = conn->samr.dom_handle;
 
-    status = SamrQueryDomainInfo(samr_bind, &dom_handle, dominfo_level,
-                                 &dominfo);
-    BAIL_ON_NT_STATUS(status);
+    samr_b = conn->samr.bind;
+    dom_h  = conn->samr.dom_handle;
 
-    *total = dominfo->info2.num_users;
+    status = SamrQueryDomainInfo(samr_b, &dom_h, dominfo_level, &dominfo);
+    goto_if_ntstatus_not_success(status, error);
 
-    res      = *resume;
+    total    = dominfo->info2.num_users;
+    resume   = *out_resume;
     max_size = maxlen;
 
-    status = SamrEnumDomainUsers(samr_bind, &dom_handle, &res, acct_flags,
+    status = SamrEnumDomainUsers(samr_b, &dom_h, &resume, acct_flags,
                                  max_size, &usernames, &userrids,
                                  &num_entries);
     if (status != 0 &&
         status != STATUS_MORE_ENTRIES) {
-        error = NtStatusToWin32Error(status);
-        goto done;
+        err = NtStatusToWin32Error(status);
+        goto error;
     }
 
-    switch (level) {
-    case 0: sizebuffer = sizeof(USER_INFO_0) * num_entries;
-        break;
-    case 1: sizebuffer = sizeof(USER_INFO_1) * num_entries;
-        break;
-    case 2: sizebuffer = sizeof(USER_INFO_2) * num_entries;
-        break;
-    case 3: sizebuffer = sizeof(USER_INFO_3) * num_entries;
-        break;
-    case 10: sizebuffer = sizeof(USER_INFO_10) * num_entries;
-        break;
-    case 11: sizebuffer = sizeof(USER_INFO_11) * num_entries;
-        break;
-    case 20: sizebuffer = sizeof(USER_INFO_20) * num_entries;
-        break;
-    case 23: sizebuffer = sizeof(USER_INFO_23) * num_entries;
-        break;
-    default:
-        error = ERROR_INVALID_LEVEL;
-        goto done;
-    }
-
-    infobuffer = (void*) malloc(sizebuffer);
-    if (infobuffer == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
+    status = NetAllocateMemory((void**)&sinfo,
+                               sizeof(UserInfo) * num_entries,
+                               NULL);
+    goto_if_ntstatus_not_success(status, error);
 
     for (i = 0; i < num_entries; i++) {
-        if (level == 0) {
-            /* very simple infolevel - only a username */
-            USER_INFO_0 *info = (USER_INFO_0*)infobuffer;
-            if (usernames[i] != NULL) {
-                info[i].usri0_name = wc16sdup(usernames[i]);
-            }
-		
-        } else {
-            /* more complicated situation - full query user info of user accounts
-               (one by one) is necessary */
-            const uint16 infolevel = 21;
-            UserInfo *ui = NULL;
-            NTSTATUS user_status;
-            user_flags = USER_ACCESS_GET_NAME_ETC | USER_ACCESS_GET_ATTRIBUTES |
-                         USER_ACCESS_GET_LOCALE | USER_ACCESS_GET_LOGONINFO |
+        if (level != 0) {
+            /* full query user info of user accounts (one by one)
+               is necessary */
+            user_flags = USER_ACCESS_GET_NAME_ETC |
+                         USER_ACCESS_GET_ATTRIBUTES |
+                         USER_ACCESS_GET_LOCALE |
+                         USER_ACCESS_GET_LOGONINFO |
                          USER_ACCESS_GET_GROUPS;
 
-            user_status = SamrOpenUser(samr_bind, &dom_handle, user_flags,
-                                       userrids[i], &user_handle);
-            if (user_status) {
-                error = NtStatusToWin32Error(user_status);
-                goto done;
+            status = SamrOpenUser(samr_b, &dom_h, user_flags, userrids[i],
+                                  &user_h);
+            goto_if_ntstatus_not_success(status, error);
+
+            status = SamrQueryUserInfo(samr_b, &user_h, infolevel, &ui);
+            goto_if_ntstatus_not_success(status, error);
+
+            if (ui) {
+                memcpy(&(sinfo[i]), &ui->info21, sizeof(UserInfo21));
+                NetFreeMemory((void*)ui);
             }
 
-            user_status = SamrQueryUserInfo(samr_bind, &user_handle,
-                                            infolevel, &ui);
-            if (user_status) {
-                error = NtStatusToWin32Error(user_status);
-                SamrClose(samr_bind, &user_handle);
-                goto done;
-            }
-
-            switch (level) {
-            case 1: infobuffer = PullUserInfo1(infobuffer, &ui->info21, i);
-                break;
-            case 2: infobuffer = PullUserInfo2(infobuffer, &ui->info21, i);
-                break;
-            case 20: infobuffer = PullUserInfo20(infobuffer, &ui->info21, i);
-                break;
-            default:
-                error = ERROR_INVALID_LEVEL;
-                SamrClose(samr_bind, &user_handle);
-                goto done;
-            }
-
-            user_status = SamrClose(samr_bind, &user_handle);
-
-            if (user_status) {
-                error = NtStatusToWin32Error(user_status);
-                goto done;
-            }
+            status = SamrClose(samr_b, &user_h);
+            goto_if_ntstatus_not_success(status, error);
         }
     }
 
-    *resume = res;
-    *buffer = infobuffer;
-    *entries = num_entries;
+    switch (level) {
+    case 0: status = PullUserInfo0(&ninfo, usernames, num_entries);
+        break;
 
+    case 1: status = PullUserInfo1(&ninfo, sinfo, num_entries);
+        break;
+
+    case 2: status = PullUserInfo2(&ninfo, sinfo, num_entries);
+        break;
+
+    case 20: status = PullUserInfo20(&ninfo, sinfo, num_entries);
+        break;
+    }
+
+    goto_if_ntstatus_not_success(status, error);
+
+    *buffer      = ninfo;
+    *out_resume  = resume;
+    *out_entries = num_entries;
+    *out_total   = total;
+
+cleanup:
+    if (sinfo) {
+        NetFreeMemory((void*)sinfo);
+    }
+
+    if (dominfo) {
+        SamrFreeMemory((void*)dominfo);
+    }
+
+    if (usernames) {
+        SamrFreeMemory((void*)usernames);
+    }
+
+    if (userrids) {
+        SamrFreeMemory((void*)userrids);
+    }
+
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
+    if (ninfo) {
+        NetFreeMemory((void*)ninfo);
+    }
 
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    error = NtStatusToWin32Error(status);
+    *buffer  = NULL;
+    *out_resume  = 0;
+    *out_entries = 0;
+    *out_total   = 0;
 
-done:
-    return error;
+    goto cleanup;
 }
 
 

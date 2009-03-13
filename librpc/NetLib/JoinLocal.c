@@ -148,9 +148,10 @@ CreateWksAccount(
     samr_b   = conn->samr.bind;
     domain_h = &conn->samr.dom_handle;
 
-    account_name = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                       (wc16slen(name) + 2));
-    goto_if_no_memory_ntstatus(account_name, error);
+    status = NetAllocateMemory((void**)&account_name,
+                               sizeof(wchar16_t) * (wc16slen(name) + 2),
+                               NULL);
+    goto_if_ntstatus_not_success(status, error);
 
     sw16printf(account_name, "%S$", name);
 
@@ -180,7 +181,9 @@ cleanup:
         SamrFreeMemory((void*)info);
     }
 
-    SAFE_FREE(account_name);
+    if (account_name) {
+        NetFreeMemory((void*)account_name);
+    }
 
     return status;
 

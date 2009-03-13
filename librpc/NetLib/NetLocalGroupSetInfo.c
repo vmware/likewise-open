@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -29,97 +29,89 @@
  */
 
 #include "includes.h"
-#include "GroupInfo.h"
 
 
-NET_API_STATUS NetLocalGroupSetInfo(const wchar16_t *hostname,
-				    const wchar16_t *aliasname,
-				    uint32 level, void *buffer,
-				    uint32 *parm_err)
+NET_API_STATUS
+NetLocalGroupSetInfo(
+    const wchar16_t *hostname,
+    const wchar16_t *aliasname,
+    uint32 level,
+    void *buffer,
+    uint32 *parm_err
+    )
 {
     const uint32 alias_access = ALIAS_ACCESS_SET_INFO;
 
     NTSTATUS status = STATUS_SUCCESS;
-    NetConn *conn;
-    handle_t samr_bind;
-    PolicyHandle alias_handle;
-    uint32 alias_rid;
-    AliasInfo info;
-    uint32 infolevel;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle alias_h;
+    uint32 alias_rid = 0;
+    AliasInfo *info = NULL;
+    uint32 slevel = 0;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    LOCALGROUP_INFO_0 *ninfo0 = NULL;
-    LOCALGROUP_INFO_1 *ninfo1 = NULL;
-	
-    if (aliasname == NULL || buffer == NULL) {
-	return STATUS_NO_MEMORY;
-    }
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(aliasname, cleanup);
+    goto_if_invalid_param_winerr(buffer, cleanup);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    samr_bind     = conn->samr.bind;
+    samr_b = conn->samr.bind;
 
-    status = NetOpenAlias(conn, aliasname, alias_access, &alias_handle,
-			  &alias_rid);
-    BAIL_ON_NT_STATUS(status);
+    status = NetOpenAlias(conn, aliasname, alias_access, &alias_h,
+                          &alias_rid);
+    goto_if_ntstatus_not_success(status, error);
 
-    switch(level) {
-    case 0: ninfo0 = (LOCALGROUP_INFO_0*) buffer;
-	break;
-    case 1: ninfo1 = (LOCALGROUP_INFO_1*) buffer;
-	break;
+    switch (level) {
+    case 0:
+        status = PushLocalGroupInfo0(&info, &slevel, buffer);
+        break;
+
+    case 1:
+        status = PushLocalGroupInfo1(&info, &slevel, buffer);
+        break;
 
     case 1002:
-	return NtStatusToWin32Error(STATUS_NOT_IMPLEMENTED);
+        status = PushLocalGroupInfo1002(&info, &slevel, buffer);
+        break;
+
     default:
-	return NtStatusToWin32Error(ERROR_INVALID_LEVEL);
+        err = ERROR_INVALID_LEVEL;
+        goto error;
     }
-	
-    if (level == 0) {
-	memset(&info, 0, sizeof(info));
+    goto_if_ntstatus_not_success(status, error);
 
-	if (ninfo0->lgrpi0_name != NULL) {
-	    PushLocalGroupInfo0(&info, &infolevel, ninfo0);
-	    status = SamrSetAliasInfo(samr_bind, &alias_handle, infolevel,
-				      &info);
-	    BAIL_ON_NT_STATUS(status);
-	}
+    status = SamrSetAliasInfo(samr_b, &alias_h, slevel, info);
+    goto_if_ntstatus_not_success(status, error);
 
-    } else if (level == 1) {
-	memset(&info, 0, sizeof(info));
+    status = SamrClose(samr_b, &alias_h);
+    goto_if_ntstatus_not_success(status, error);
 
-	if (ninfo1->lgrpi1_name != NULL) {
-	    PushLocalGroupInfo1to2(&info, &infolevel, ninfo1);
-	    status = SamrSetAliasInfo(samr_bind, &alias_handle, infolevel,
-				      &info);
-	    BAIL_ON_NT_STATUS(status);
-	}
-
-	memset(&info, 0, sizeof(info));
-
-	if (ninfo1->lgrpi1_comment != NULL) {
-	    PushLocalGroupInfo1to3(&info, &infolevel, ninfo1);
-	    status = SamrSetAliasInfo(samr_bind, &alias_handle, infolevel,
-				      &info);
-	    BAIL_ON_NT_STATUS(status);
-	}
+cleanup:
+    if (info) {
+        NetFreeMemory((void*)info);
     }
 
-    status = SamrClose(samr_bind, &alias_handle);
-    BAIL_ON_NT_STATUS(status);
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
-
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    goto cleanup;
 }
 
 

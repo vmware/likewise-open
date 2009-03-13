@@ -1,31 +1,25 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+*/
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright (C) Centeris Corporation 2004-2007
+ * Copyright (C) Likewise Software    2007-2008
  * All rights reserved.
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the license, or (at
- * your option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
- * General Public License for more details.  You should have received a copy
- * of the GNU Lesser General Public License along with this program.  If
- * not, see <http://www.gnu.org/licenses/>.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
  *
- * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
- * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
- * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
- * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
- * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
- * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
- * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _NET_CONNECTION_H_
@@ -68,54 +62,68 @@ typedef struct net_conn {
 } NetConn;
 
 
-NetConn* FirstConn(NetConn* conn, int set);
-
-#define GetFirstConn(cn) FirstConn(cn, 0)
-#define SetFirstConn(cn) FirstConn(cn, 1)
-
-#define FIND_CONN(cn, name)                                     \
-    {                                                           \
-        NetConn *c = GetFirstConn(NULL);                        \
-        while (c && wc16scmp(c->hostname, name)) c = c->next;   \
-        cn = c;                                                 \
-    }
+typedef struct net_conn_list {
+    struct net_conn *conn;
+    pthread_mutex_t mutex;
+} NetConnList;
 
 
-#define ADD_CONN(cn)                     \
-    {                                    \
-        NetConn *c = GetFirstConn(NULL); \
-        if (c) {                         \
-            while (c->next) c = c->next; \
-            c->next = cn;                \
-            cn->next = NULL;             \
-        } else {                         \
-            SetFirstConn(cn);            \
-        }                                \
-    }
+
+#define CONN_LIST_LOCK(list)                      \
+    do {                                          \
+        int ret = 0;                              \
+        ret = pthread_mutex_lock(&(list)->mutex); \
+        if (ret) {                                \
+            status = STATUS_UNSUCCESSFUL;         \
+            goto error;                           \
+                                                  \
+        } else {                                  \
+            locked = 1;                           \
+        }                                         \
+    } while (0);
 
 
-#define DEL_CONN(cn)                                \
-    {                                               \
-        NetConn *pc = NULL;                         \
-        NetConn *c = GetFirstConn(NULL);            \
-        while(c && c != cn) { pc = c; c = c->next; }    \
-        if (!pc && c) {                                 \
-            SetFirstConn(cn->next);                     \
-        } else if (pc && c) {                           \
-            pc->next = cn->next;                        \
-        }                                               \
-    }
+#define CONN_LIST_UNLOCK(list)                      \
+    do {                                            \
+        int ret = 0;                                \
+        if (!locked) break;                         \
+        ret = pthread_mutex_unlock(&(list)->mutex); \
+        if (ret && status == STATUS_SUCCESS) {      \
+            status = STATUS_UNSUCCESSFUL;           \
+                                                    \
+        } else {                                    \
+            locked = 0;                             \
+        }                                           \
+    } while (0);
 
-#endif /* _NET_CONNECTION_H_ */
 
 NTSTATUS
 NetConnListInit(
     void
     );
 
+
 NTSTATUS
 NetConnListDestroy(
     void
+    );
+
+
+NTSTATUS
+NetConnAdd(
+    NetConn *c
+    );
+
+
+NTSTATUS
+NetConnDelete(
+    NetConn *c
+    );
+
+
+NetConn*
+FindNetConn(
+    const wchar16_t *name
     );
 
 
@@ -128,12 +136,44 @@ NetConnectSamr(
     PIO_ACCESS_TOKEN access_token
     );
 
+
 NTSTATUS
 NetConnectLsa(
     NetConn **conn,
     const wchar16_t *hostname,
     uint32 req_lsa_flags,
     PIO_ACCESS_TOKEN access_token
+    );
+
+
+NTSTATUS
+NetDisconnectSamr(
+    NetConn *cn
+    );
+
+
+NTSTATUS
+NetDisconnectLsa(
+    NetConn *cn
+    );
+
+
+NTSTATUS
+NetDisconnectAll(
+    void
+    );
+
+
+#endif /* _NET_CONNECTION_H_ */
+
+NTSTATUS
+NetConnListInit(
+    void
+    );
+
+NTSTATUS
+NetConnListDestroy(
+    void
     );
 
 

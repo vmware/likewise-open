@@ -34,14 +34,7 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#include <sys/utsname.h>
-
 #include "includes.h"
-
-#include <lwps/lwps.h>
-#include <keytab.h>
-
-#include "NetUtil.h"
 
 
 static WINERR SavePrincipalKey(const wchar16_t *name, const wchar16_t *pass,
@@ -80,13 +73,16 @@ cleanup:
 }
 
 
-WINERR SaveMachinePassword(const wchar16_t *machine,
-                           const wchar16_t *machacct_name,
-                           const wchar16_t *domain_name,
-                           const wchar16_t *dns_domain_name,
-                           const wchar16_t *dc_name,
-                           const wchar16_t *sid_str,
-                           const wchar16_t *password)
+WINERR
+SaveMachinePassword(
+    const wchar16_t *machine,
+    const wchar16_t *machacct_name,
+    const wchar16_t *domain_name,
+    const wchar16_t *dns_domain_name,
+    const wchar16_t *dc_name,
+    const wchar16_t *sid_str,
+    const wchar16_t *password
+    )
 {
     WINERR err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;

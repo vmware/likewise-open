@@ -70,6 +70,14 @@ extern int bNetApiInitialised;
     } while (0);
 
 
+extern const wchar16_t null_char;
+extern const wchar16_t *null_string;
+
+extern NetConnList *conn_list;
+
+extern int errno;
+
+
 #endif /* _EXTERN_H_ */
 
 

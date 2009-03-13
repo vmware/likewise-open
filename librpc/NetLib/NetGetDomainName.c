@@ -31,42 +31,55 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetGetDomainName(const wchar16_t *hostname, wchar16_t **domname)
+NET_API_STATUS
+NetGetDomainName(
+    const wchar16_t *hostname,
+    wchar16_t **domname
+    )
 {
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
 
-    NetConn *cn;
     NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *domain_name;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *cn = NULL;
+    wchar16_t *domain_name = NULL;
+
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(domname, cleanup);
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    if (domname == NULL || hostname == NULL) {
-        return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-    }
-
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     status = NetConnectSamr(&cn, hostname, conn_access, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     domain_name = wc16sdup(cn->samr.dom_name);
-    if (domain_name == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
+    goto_if_no_memory_ntstatus(domain_name, error);
 
     status = NetDisconnectSamr(cn);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
  
-    (*domname) = domain_name;
-    
+    *domname = domain_name;
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
+
 error:
+    *domname = NULL;
 
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    goto cleanup;
 }
 
 

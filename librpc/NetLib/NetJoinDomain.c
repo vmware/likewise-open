@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -27,24 +27,8 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-#include <config.h>
-
-#include <sys/utsname.h>
 
 #include "includes.h"
-
-#if HAVE_SYS_VARARGS_H
-#include <sys/varargs.h>
-#endif
-
-#include <random.h>
-#include <lwrpc/mpr.h>
-#include <lwps/lwps.h>
-#include <keytab.h>
-#include <lwio/lwio.h>
-
-#include "NetUtil.h"
-#include "NetGetDcName.h"
 
 #define MACHPASS_LEN  (16)
 
@@ -247,9 +231,8 @@ NetJoinDomainLocalInternal(
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS close_status = STATUS_SUCCESS;
     int err = ERROR_SUCCESS;
-    NETRESOURCE nr = {0};
-    size_t domain_controller_len;
-    handle_t lsa_b, samr_b;
+    handle_t lsa_b = NULL;
+    handle_t samr_b = NULL;
     LsaPolicyInformation *lsa_policy_info = NULL;
     PolicyHandle account_handle;
     wchar16_t *machname = NULL;
@@ -281,28 +264,21 @@ NetJoinDomainLocalInternal(
     LW_PIO_ACCESS_TOKEN access_token = NULL;
 
     machname = wc16sdup(machine);
-    goto_if_no_memory_winerr(machname, done);
+    goto_if_no_memory_winerr(machname, error);
     wc16supper(machname);
 
     status = NetpGetDcName(domain, is_retry, &domain_controller_name);
-    goto_if_ntstatus_not_success(status, done);
-
-    domain_controller_len = wc16slen(domain_controller_name);
-    nr.RemoteName = (wchar16_t*) malloc((domain_controller_len + 8) * sizeof(wchar16_t));
-    goto_if_no_memory_winerr(nr.RemoteName, done);
-
-    /* specify credentials for domain controller connection */
-    sw16printf(nr.RemoteName, "\\\\%S\\IPC$", domain_controller_name);
+    goto_if_ntstatus_not_success(status, error);
 
     if (account && password)
     {
         status = LwIoCreatePlainAccessTokenW(account, password, &access_token);
-        goto_if_ntstatus_not_success(status, done);
+        goto_if_ntstatus_not_success(status, error);
     }
     else
     {
         status = LwIoGetThreadAccessToken(&access_token);
-        goto_if_ntstatus_not_success(status, done);
+        goto_if_ntstatus_not_success(status, error);
     }
 
     status = NetConnectLsa(&lsa_conn, domain_controller_name, lsa_access, access_token);
@@ -443,8 +419,9 @@ NetJoinDomainLocalInternal(
             dns_attr_val[1] = NULL;
             dnshostname = dns_attr_val[0];
 
-            err = MachAcctSetAttribute(ld, dn, dns_attr_name,
-	                               (const wchar16_t**)dns_attr_val, 0);
+            err = MachAcctSetAttribute(ld, dn,
+                                       dns_attr_name,
+                                       (const wchar16_t**)dns_attr_val, 0);
             goto_if_winerr_not_success(err, disconn_samr);
 
             spn_attr_name   = ambstowc16s("servicePrincipalName");
@@ -453,7 +430,7 @@ NetJoinDomainLocalInternal(
             spn_attr_val[2] = NULL;
 
             err = MachAcctSetAttribute(ld, dn, spn_attr_name,
-				       (const wchar16_t**)spn_attr_val, 0);
+                                       (const wchar16_t**)spn_attr_val, 0);
             goto_if_winerr_not_success(err, disconn_samr);
         }
 
@@ -482,7 +459,7 @@ NetJoinDomainLocalInternal(
 
             err = MachAcctSetAttribute(ld, dn,
                                        osname_attr_name,
-				       (const wchar16_t**)osname_attr_val,
+                                       (const wchar16_t**)osname_attr_val,
                                        0);
             if (err == ERROR_ACCESS_DENIED)
             {
@@ -499,7 +476,7 @@ NetJoinDomainLocalInternal(
 
             err = MachAcctSetAttribute(ld, dn,
                                        osver_attr_name,
-				       (const wchar16_t**)osver_attr_val,
+                                       (const wchar16_t**)osver_attr_val,
                                        0);
             if (err == ERROR_ACCESS_DENIED)
             {
@@ -513,7 +490,7 @@ NetJoinDomainLocalInternal(
 
             err = MachAcctSetAttribute(ld, dn,
                                        ospack_attr_name,
-				       (const wchar16_t**)ospack_attr_val,
+                                       (const wchar16_t**)ospack_attr_val,
                                        0);
             if (err == ERROR_ACCESS_DENIED)
             {
@@ -544,13 +521,12 @@ disconn_lsa:
 
 close:
 
-done:
+cleanup:
     if (lsa_policy_info) {
         LsaRpcFreeMemory((void*)lsa_policy_info);
     }
 
     RTL_FREE(&sid_str);
-    SAFE_FREE(nr.RemoteName);
     SAFE_FREE(account_name);
     SAFE_FREE(dns_domain_name);
     SAFE_FREE(machname);
@@ -583,7 +559,15 @@ done:
                                          osname, osver, ospack, TRUE);
     }
 
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
     return err;
+
+error:
+    goto cleanup;
 }
 
 NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,

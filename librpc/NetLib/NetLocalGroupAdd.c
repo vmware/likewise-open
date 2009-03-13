@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,81 +31,105 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetLocalGroupAdd(const wchar16_t *hostname, uint32 level,
-				void *buffer, uint32 *parm_err)
+NET_API_STATUS
+NetLocalGroupAdd(
+    const wchar16_t *hostname,
+    uint32 level,
+    void *buffer,
+    uint32 *parm_err
+    )
 {
     const uint32 dom_access = DOMAIN_ACCESS_CREATE_ALIAS;
     const uint32 alias_access = ALIAS_ACCESS_LOOKUP_INFO |
                                 ALIAS_ACCESS_SET_INFO;
 
     NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
-    handle_t samr_bind;
-    PolicyHandle domain_handle, alias_handle;
-    wchar16_t *alias_name, *comment;
+    handle_t samr_b = NULL;
+    PolicyHandle domain_h, alias_h;
+    wchar16_t *alias_name = NULL;
+    wchar16_t *comment = NULL;
     LOCALGROUP_INFO_0 *info0 = NULL;
     LOCALGROUP_INFO_1 *info1 = NULL;
-    uint32 rid;
+    uint32 rid = 0;
     AliasInfo info;
     PIO_ACCESS_TOKEN access_token = NULL;
 
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(buffer, cleanup);
+
+    memset(&info, 0, sizeof(info));
+
     switch (level) {
     case 0: info0 = (LOCALGROUP_INFO_0*) buffer;
-	break;
+        break;
+
     case 1: info1 = (LOCALGROUP_INFO_1*) buffer;
-	break;
+        break;
+
     default:
-	return NtStatusToWin32Error(ERROR_INVALID_LEVEL);
+        err = ERROR_INVALID_LEVEL;
+        goto cleanup;
     }
 
-    alias_name = NULL;
-    comment    = NULL;
-
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
-	
+    goto_if_ntstatus_not_success(status, error);
+
     status = NetConnectSamr(&conn, hostname, dom_access, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     switch (level) {
-    case 0: alias_name = info0->lgrpi0_name;
+    case 0:
+        alias_name = info0->lgrpi0_name;
         break;
-    case 1: alias_name = info1->lgrpi1_name;
+    case 1:
+        alias_name = info1->lgrpi1_name;
         comment    = info1->lgrpi1_comment;
         break;
     default:
-        BAIL_ON_NT_STATUS(status = STATUS_NOT_IMPLEMENTED);
+        err = NtStatusToWin32Error(STATUS_NOT_IMPLEMENTED);
+        goto error;
     }
 
-    samr_bind     = conn->samr.bind;
-    domain_handle = conn->samr.dom_handle;
+    samr_b    = conn->samr.bind;
+    domain_h  = conn->samr.dom_handle;
 
-    status = SamrCreateDomAlias(samr_bind, &domain_handle, alias_name, alias_access,
-				&alias_handle, &rid);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrCreateDomAlias(samr_b, &domain_h, alias_name, alias_access,
+                                &alias_h, &rid);
+    goto_if_ntstatus_not_success(status, error);
 
     if (comment) {
-	memset(&info, 0, sizeof(info));
-	InitUnicodeString(&info.description, comment);
+        InitUnicodeString(&info.description, comment);
 
-	status = SamrSetAliasInfo(samr_bind, &alias_handle,
-				  ALIAS_INFO_DESCRIPTION, &info);
-	BAIL_ON_NT_STATUS(status);
+        status = SamrSetAliasInfo(samr_b, &alias_h,
+                                  ALIAS_INFO_DESCRIPTION, &info);
+        goto_if_ntstatus_not_success(status, error);
     }
 
-    status = SamrClose(samr_bind, &alias_handle);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrClose(samr_b, &alias_h);
+    goto_if_ntstatus_not_success(status, error);
 	
     *parm_err = 0;
 
-error:
+cleanup:
+    /* FreeUnicodeString is NULL-proof */
+    FreeUnicodeString(&info.description);
 
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
+
+error:
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    goto cleanup;
 }
 
 

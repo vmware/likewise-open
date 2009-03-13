@@ -32,27 +32,52 @@
 #include "NetLibUserInfo.h"
 
 
-NET_API_STATUS NetUserChangePassword(const wchar16_t *domain,
-				     const wchar16_t *username,
-				     const wchar16_t *oldpassword,
-				     const wchar16_t *newpassword)
+NET_API_STATUS
+NetUserChangePassword(
+    const wchar16_t *domain,
+    const wchar16_t *user,
+    const wchar16_t *oldpassword,
+    const wchar16_t *newpassword
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
     handle_t samr_b = NULL;
     char *hostname = NULL;
-    size_t oldlen, newlen;
-    uint8 old_nthash[16], new_nthash[16];
-    uint8 ntpassbuf[516], ntverhash[16];
+    wchar16_t *domainname = NULL;
+    wchar16_t *username = NULL;
+    size_t oldlen = 0;
+    size_t newlen = 0;
+    uint8 old_nthash[16];
+    uint8 new_nthash[16];
+    uint8 ntpassbuf[516];
+    uint8 ntverhash[16];
     PIO_ACCESS_TOKEN access_token = NULL;
+
+    memset((void*)old_nthash, 0, sizeof(old_nthash));
+    memset((void*)new_nthash, 0, sizeof(new_nthash));
+    memset((void*)ntpassbuf, 0, sizeof(ntpassbuf));
+    memset((void*)ntverhash, 0, sizeof(ntverhash));
+
+    goto_if_invalid_param_winerr(domain, cleanup);
+    goto_if_invalid_param_winerr(user, cleanup);
+    goto_if_invalid_param_winerr(oldpassword, cleanup);
+    goto_if_invalid_param_winerr(newpassword, cleanup);
 
     status = LwIoGetThreadAccessToken(&access_token);
     BAIL_ON_NT_STATUS(status);
 
     hostname = awc16stombs(domain);
-    if (hostname == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
+    goto_if_no_memory_ntstatus(hostname, error);
+
+    domainname = wc16sdup(domain);
+    goto_if_no_memory_ntstatus(domainname, error);
+
+    username = wc16sdup(user);
+    goto_if_no_memory_ntstatus(username, error);
 
     status = InitSamrBindingDefault(&samr_b, hostname, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     oldlen = wc16slen(oldpassword);
     newlen = wc16slen(newpassword);
@@ -69,25 +94,33 @@ NET_API_STATUS NetUserChangePassword(const wchar16_t *domain,
     des56(ntverhash, old_nthash, 8, new_nthash);
     des56(&ntverhash[8], &old_nthash[8], 8, &new_nthash[7]);
 
-    status = SamrChangePasswordUser2(samr_b, domain, username, ntpassbuf,
-				     ntverhash, 0, NULL, NULL);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrChangePasswordUser2(samr_b, domainname, username, ntpassbuf,
+                                     ntverhash, 0, NULL, NULL);
+    goto_if_ntstatus_not_success(status, error);
 
-error:
-
-    if (samr_b)
-    {
+cleanup:
+    if (samr_b) {
         FreeSamrBinding(&samr_b);
     }
 
     SAFE_FREE(hostname);
+    SAFE_FREE(domainname);
+    SAFE_FREE(username);
 
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
+
+error:
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    goto cleanup;
 }
 
 

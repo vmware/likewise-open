@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -32,8 +32,14 @@
 #include "NetConnection.h"
 
 
-NET_API_STATUS NetUserSetInfo(const wchar16_t *hostname, const wchar16_t *username,
-			      uint32 level, void *buffer, uint32 *parm_err)
+NET_API_STATUS
+NetUserSetInfo(
+    const wchar16_t *hostname,
+    const wchar16_t *username,
+    uint32 level,
+    void *buffer,
+    uint32 *parm_err
+    )
 {
     /* This is necessary to be able set account password.
        Otherwise we get access denied. Don't ask... */
@@ -51,58 +57,63 @@ NET_API_STATUS NetUserSetInfo(const wchar16_t *hostname, const wchar16_t *userna
                                  USER_ACCESS_SET_PASSWORD;
 
     NTSTATUS status = STATUS_SUCCESS;
-    NetConn *conn;
-    handle_t samr_bind;
-    PolicyHandle user_handle;
-    uint32 user_rid;
-    UserInfo info;
-    USER_INFO_0 *ninfo0;
-    USER_INFO_1003 *ninfo1003;
-    USER_INFO_1007 *ninfo1007;
-    USER_INFO_1008 *ninfo1008;
-    USER_INFO_1011 *ninfo1011;
-    uint32 samr_level;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle user_h;
+    uint32 user_rid = 0;
+    UserInfo *info = NULL;
+    USER_INFO_0 *ninfo0 = NULL;
+    USER_INFO_1003 *ninfo1003 = NULL;
+    USER_INFO_1007 *ninfo1007 = NULL;
+    USER_INFO_1008 *ninfo1008 = NULL;
+    USER_INFO_1011 *ninfo1011 = NULL;
+    uint32 samr_level = 0;
     PIO_ACCESS_TOKEN access_token = NULL;
-
-    if (username == NULL || buffer == NULL)
-    {
-        return NtStatusToWin32Error(STATUS_NO_MEMORY);
-    }
-
-    status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
-
-    status = NetConnectSamr(&conn, hostname, domain_access, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
-    
-    samr_bind = conn->samr.bind;
-
-    status = NetOpenUser(conn, username, access_rights, &user_handle, &user_rid);
-    BAIL_ON_NT_STATUS(status);
 
     memset(&info, 0, sizeof(info));
 
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(username, cleanup);
+    goto_if_invalid_param_winerr(buffer, cleanup);
+
+    status = LwIoGetThreadAccessToken(&access_token);
+    goto_if_ntstatus_not_success(status, error);
+
+    status = NetConnectSamr(&conn, hostname, domain_access, 0, access_token);
+    goto_if_ntstatus_not_success(status, error);
+    
+    samr_b = conn->samr.bind;
+
+    status = NetOpenUser(conn, username, access_rights, &user_h, &user_rid);
+    goto_if_ntstatus_not_success(status, error);
+
     switch (level) {
     case 0:
-	ninfo0 = (USER_INFO_0*) buffer;
-	PushUserInfo0(&info, &samr_level, ninfo0);
-	break;
+        ninfo0 = (USER_INFO_0*) buffer;
+        status = PushUserInfo0(&info, &samr_level, ninfo0);
+        break;
+
     case 1003:
-	ninfo1003 = (USER_INFO_1003*) buffer;
-	PushUserInfo1003(&info, &samr_level, ninfo1003, conn);
-	break;
+        ninfo1003 = (USER_INFO_1003*) buffer;
+        status = PushUserInfo1003(&info, &samr_level, ninfo1003, conn);
+        break;
+
     case 1007:
-	ninfo1007 = (USER_INFO_1007*) buffer;
-	PushUserInfo1007(&info, &samr_level, ninfo1007);
-	break;
+        ninfo1007 = (USER_INFO_1007*) buffer;
+        status = PushUserInfo1007(&info, &samr_level, ninfo1007);
+        break;
+
     case 1008:
-	ninfo1008 = (USER_INFO_1008*) buffer;
-	PushUserInfo1008(&info, &samr_level, ninfo1008);
-	break;
+        ninfo1008 = (USER_INFO_1008*) buffer;
+        status = PushUserInfo1008(&info, &samr_level, ninfo1008);
+        break;
+
     case 1011:
-	ninfo1011 = (USER_INFO_1011*) buffer;
-	PushUserInfo1011(&info, &samr_level, ninfo1011);
-	break;
+        ninfo1011 = (USER_INFO_1011*) buffer;
+        status = PushUserInfo1011(&info, &samr_level, ninfo1011);
+        break;
+
     case 1:
     case 2:
     case 3:
@@ -121,25 +132,40 @@ NET_API_STATUS NetUserSetInfo(const wchar16_t *hostname, const wchar16_t *userna
     case 1051:
     case 1052:
     case 1053:
-        BAIL_ON_NT_STATUS(status = STATUS_NOT_IMPLEMENTED);
+        status = STATUS_NOT_IMPLEMENTED;
+        break;
+
     default:
-        BAIL_ON_NT_STATUS(status = STATUS_INVALID_LEVEL);
+        status = STATUS_INVALID_LEVEL;
+        break;
     }
+    goto_if_ntstatus_not_success(status, error);
 	
-    status = SamrSetUserInfo(samr_bind, &user_handle, samr_level, &info);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrSetUserInfo(samr_b, &user_h, samr_level, info);
+    goto_if_ntstatus_not_success(status, error);
 	
-    status = SamrClose(samr_bind, &user_handle);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrClose(samr_b, &user_h);
+    goto_if_ntstatus_not_success(status, error);
+
+cleanup:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
+
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
-
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    goto cleanup;
 }
 
 

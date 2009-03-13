@@ -1,192 +1,239 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+* ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+*/
 
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
- *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the license, or (at
- * your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
- * General Public License for more details.  You should have received a copy
- * of the GNU Lesser General Public License along with this program.  If
- * not, see <http://www.gnu.org/licenses/>.
- *
- * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
- * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
- * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
- * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
- * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
- * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
- * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
- */
+* Copyright Likewise Software    2004-2008
+* All rights reserved.
+*
+* This library is free software; you can redistribute it and/or modify it
+* under the terms of the GNU Lesser General Public License as published by
+* the Free Software Foundation; either version 2.1 of the license, or (at
+* your option) any later version.
+*
+* This library is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+* General Public License for more details.  You should have received a copy
+* of the GNU Lesser General Public License along with this program.  If
+* not, see <http://www.gnu.org/licenses/>.
+*
+* LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+* TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+* WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+* TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+* LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+* HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+* TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+* license@likewisesoftware.com
+*/
 
 #include "includes.h"
 
 
-NET_API_STATUS NetLocalGroupGetMembers(const wchar16_t *hostname,
-				       const wchar16_t *aliasname,
-				       uint32 level, void **bufptr,
-				       uint32 prefmaxlen, uint32 *entries,
-				       uint32 *total, uint32 *resume)
+NET_API_STATUS
+NetLocalGroupGetMembers(
+const wchar16_t *hostname,
+const wchar16_t *aliasname,
+uint32 level,
+void **buffer,
+uint32 prefmaxlen,
+uint32 *out_entries,
+uint32 *out_total,
+uint32 *out_resume
+)
 {
-    const uint32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-    const uint32 alias_access = ALIAS_ACCESS_GET_MEMBERS;
-    const uint16 lookup_level = 1;
+const uint32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+const uint32 alias_access = ALIAS_ACCESS_GET_MEMBERS;
+const uint16 lookup_level = 1;
 
-    NTSTATUS status;
-    NetConn *conn;
-    handle_t samr_bind, lsa_bind;
-    PolicyHandle domain_handle, btin_domain_handle;
-    PolicyHandle alias_handle;
-    PSID* sids;
-    uint32 alias_rid;
-    uint32 i, num_sids, count;
-    LOCALGROUP_MEMBERS_INFO_3 *info;
-    PolicyHandle lsa_policy;
-    SidArray sid_array;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b, lsa_b;
+    PolicyHandle domain_h, btin_domain_h;
+    PolicyHandle alias_h;
+    PSID *sids = NULL;
+    uint32 entries = 0;
+    uint32 total = 0;
+    uint32 resume = 0;
+    uint32 alias_rid = 0;
+    uint32 i = 0;
+    uint32 num_sids = 0;
+    uint32 count = 0;
+    LOCALGROUP_MEMBERS_INFO_3 *info = NULL;
+    PolicyHandle lsa_h;
+    SidArray *sid_array = NULL;
     RefDomainList *domains = NULL;
     TranslatedName *names = NULL;
+    size_t domainname_size = 0;
+    size_t username_size = 0;
+    size_t name_size = 0;
+    uint32 sid_index = 0;
+    wchar16_t *domainname = NULL;
+    wchar16_t *username = NULL;
+    wchar16_t *can_username = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    if (hostname == NULL || aliasname == NULL || bufptr == NULL) {
-	return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-    }
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(aliasname, cleanup);
+    goto_if_invalid_param_winerr(buffer, cleanup);
+    goto_if_invalid_param_winerr(out_entries, cleanup);
+    goto_if_invalid_param_winerr(out_total, cleanup);
+    goto_if_invalid_param_winerr(out_resume, cleanup);
 
-    *total   = 0;
-    *resume  = 0;
+    total    = 0;
+    resume   = 0;
     num_sids = 0;
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    samr_bind          = conn->samr.bind;
-    domain_handle      = conn->samr.dom_handle;
-    btin_domain_handle = conn->samr.btin_dom_handle;
+    samr_b        = conn->samr.bind;
+    domain_h      = conn->samr.dom_handle;
+    btin_domain_h = conn->samr.btin_dom_handle;
 
-    status = NetOpenAlias(conn, aliasname, alias_access, &alias_handle,
-			  &alias_rid);
+    status = NetOpenAlias(conn, aliasname, alias_access, &alias_h,
+                          &alias_rid);
     if (status == STATUS_NONE_MAPPED) {
-	/* No such alias in host's domain.
-	   Try to look in builtin domain. */
-	status = NetOpenAlias(conn, aliasname, alias_access,
-			      &alias_handle, &alias_rid);
-	BAIL_ON_NT_STATUS(status);
+        /* No such alias in host's domain.
+           Try to look in builtin domain. */
+        status = NetOpenAlias(conn, aliasname, alias_access,
+                              &alias_h, &alias_rid);
+        goto_if_ntstatus_not_success(status, error);
 
-    } else if (status != 0) {
-	return NtStatusToWin32Error(status);
+    } else if (status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+        goto error;
     }
 
-    status = SamrGetMembersInAlias(samr_bind, &alias_handle, &sids, &num_sids);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrGetMembersInAlias(samr_b, &alias_h, &sids, &num_sids);
+    goto_if_ntstatus_not_success(status, error);
 
-    *total += num_sids;
-    *entries = *total;
-    while ((*entries) * sizeof(LOCALGROUP_MEMBERS_INFO_3) > prefmaxlen) (*entries)--;
+    total += num_sids;
+    entries = total;
+    while (entries * sizeof(LOCALGROUP_MEMBERS_INFO_3) > prefmaxlen) {
+        entries--;
+    }
 
-    info = (LOCALGROUP_MEMBERS_INFO_3*) malloc(sizeof(LOCALGROUP_MEMBERS_INFO_3) *
-					       (*entries));
+    status = NetAllocateMemory((void**)&info,
+                               sizeof(LOCALGROUP_MEMBERS_INFO_3) * entries,
+                               NULL);
+    goto_if_ntstatus_not_success(status, error);
 
     status = NetConnectLsa(&conn, hostname, lsa_access, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    lsa_bind   = conn->lsa.bind;
-    lsa_policy = conn->lsa.policy_handle;
+    lsa_b = conn->lsa.bind;
+    lsa_h = conn->lsa.policy_handle;
 
-    sid_array.num_sids = num_sids;
-    sid_array.sids = (SidPtr*) malloc(sid_array.num_sids
-				      * sizeof(SidPtr));
-    for (i = 0; i < num_sids; i++) {
-	sid_array.sids[i].sid = sids[i];
+    status = NetAllocateMemory((void**)&sid_array, sizeof(SidArray), NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    sid_array->num_sids = num_sids;
+
+    status = NetAllocateMemory((void**)&sid_array->sids,
+                               sizeof(SidPtr) * sid_array->num_sids,
+                               sid_array);
+    goto_if_ntstatus_not_success(status, error);
+
+    for (i = 0; i < sid_array->num_sids; i++) {
+        sid_array->sids[i].sid = sids[i];
     }
 
-    status = LsaLookupSids(lsa_bind, &lsa_policy, &sid_array, &domains,
-			   &names, lookup_level, &count);
+    status = LsaLookupSids(lsa_b, &lsa_h, sid_array, &domains,
+                           &names, lookup_level, &count);
     if (status != STATUS_SUCCESS &&
-	status != STATUS_SOME_UNMAPPED) {
-	return NtStatusToWin32Error(status);
+        status != STATUS_SOME_UNMAPPED) {
+        /* bail out only if there's no mapping or any other error occurs */
+        err = NtStatusToWin32Error(status);
+        goto error;
     }
-
-    free(sid_array.sids);
 
     for (i = 0; i < count; i++) {
-	size_t domainname_size, username_size, name_size;
-	uint32 sid_index;
-	wchar16_t *domainname, *username, *can_username;
+        sid_index = names[i].sid_index;
 
-	sid_index = names[i].sid_index;
+        domainname = GetFromUnicodeStringEx(&domains->domains[sid_index].name);
+        goto_if_no_memory_ntstatus(domainname, error);
 
-	if (domains->domains[sid_index].name.size > 0) {
-	    domainname = domains->domains[sid_index].name.string;
-	    domainname[domains->domains[sid_index].name.len / 2] = 0;
+        status = NetAddDepMemory(domainname, info);
+        goto_if_ntstatus_not_success(status, error);
 
-	} else {
-	    domainname = NULL;
-	}
+        username = GetFromUnicodeString(&names[i].name);
+        goto_if_no_memory_ntstatus(username, error);
 
-	if (names[i].name.size > 0) {
-	    username = names[i].name.string;
-	    username[names[i].name.len / 2] = 0;
+        status = NetAddDepMemory(username, info);
+        goto_if_ntstatus_not_success(status, error);
 
-	} else {
-	    username = NULL;
-	}		
-		
-	domainname_size = (domainname) ? wc16slen(domainname) : 0;
-	username_size = (username) ? wc16slen(username) : 0;
-	/* include name termination and '\' separator */
-	name_size = domainname_size + username_size + 4;
+        domainname_size = wc16slen(domainname);
+        username_size = wc16slen(username);
 
-	can_username = (wchar16_t*) malloc(name_size * sizeof(wchar16_t));
-	if (can_username == NULL) {
-	    return NtStatusToWin32Error(STATUS_NO_MEMORY);
-	}
+        /* include name termination and '\' separator */
+        name_size = domainname_size + username_size + 2;
 
-	/* format name depending on what's available */
-	if (domainname && username) {
-	    /* fully resolvable account name */
-	    sw16printf(can_username, "%S\\%S", domainname, username);
+        status = NetAllocateMemory((void**)&can_username,
+                                   name_size * sizeof(wchar16_t),
+                                   info);
+        goto_if_ntstatus_not_success(status, error);
 
-	} else if (domainname && !username) {
-	    /* common case when account has been deleted but its SID
-	       membership remains with the alias */
-	    sw16printf(can_username, "%S\\", domainname);
+        sw16printf(can_username, "%S\\%S", domainname, username);
+        info[i].lgrmi3_domainandname = can_username;
 
-	} else if (!domainname && username) {
-	    /* this one shouldn't be possible */
-	    sw16printf(can_username, "\\%S", username);
-
-	} else {
-	    /* total unknown */
-	    sw16printf(can_username, "\\");
-	}
-
-	info[i].lgrmi3_domainandname = can_username;
+        domainname_size = 0;
+        username_size   = 0;
+        name_size       = 0;
+        sid_index       = 0;
+        domainname      = NULL;
+        username        = NULL;
+        can_username    = NULL;
     }
 
-    *bufptr = (void*)info;
+    status = SamrClose(samr_b, &alias_h);
+    goto_if_ntstatus_not_success(status, error);
 
-    status = SamrClose(samr_bind, &alias_handle);
-    BAIL_ON_NT_STATUS(status);
+    *buffer      = (void*)info;
+    *out_total   = total;
+    *out_entries = entries;
+
+cleanup:
+    if (sid_array) {
+        NetFreeMemory((void*)sid_array);
+    }
+
+    if (sids) {
+        SamrFreeMemory((void*)sids);
+    }
+
+    if (names) {
+        SamrFreeMemory((void*)names);
+    }
+
+    if (domains) {
+        SamrFreeMemory((void*)domains);
+    }
+
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
 
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    *buffer = NULL;
+    goto cleanup;
 }
 
 

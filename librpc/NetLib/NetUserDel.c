@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -31,39 +31,51 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetUserDel(const wchar16_t *hostname, const wchar16_t *username)
+NET_API_STATUS
+NetUserDel(
+    const wchar16_t *hostname,
+    const wchar16_t *username
+    )
 {
     const uint32 user_access = DELETE;
 
     NTSTATUS status = STATUS_SUCCESS;
-    NetConn *conn;
-    handle_t samr_bind;
-    PolicyHandle user_handle;
-    uint32 user_rid;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle user_h;
+    uint32 user_rid = 0;
     PIO_ACCESS_TOKEN access_token = NULL;
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    samr_bind = conn->samr.bind;
+    samr_b = conn->samr.bind;
 
-    status = NetOpenUser(conn, username, user_access, &user_handle, &user_rid);
-    BAIL_ON_NT_STATUS(status);
+    status = NetOpenUser(conn, username, user_access, &user_h, &user_rid);
+    goto_if_ntstatus_not_success(status, error);
 
-    status = SamrDeleteUser(samr_bind, &user_handle);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrDeleteUser(samr_b, &user_h);
+    goto_if_ntstatus_not_success(status, error);
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
-
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    goto cleanup;
 }
 
 

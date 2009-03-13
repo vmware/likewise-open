@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,82 +31,200 @@
 #include "includes.h"
 
 /*
- * push functions/macros transfer data from net userinfo structs to samr userinfo
- * pull functions/macros transfer data to net userinfo structs from samr userinfo
+ * push functions/macros transfer: net userinfo -> samr userinfo
+ * pull functions/macros transfer: net userinfo <- samr userinfo
  */
 
-#define PULL_UNICODE_STRING(dst, src) \
-	if (src.string != NULL && src.size > 0) { \
-		dst = wc16sdup(src.string); \
-		dst[src.len / 2] = '\0'; \
-	}
 
-#define PUSH_UNICODE_STRING(netinfo_field, samrinfo_field) \
-	if (netinfo_field != NULL) { \
-		InitUnicodeString(&samrinfo_field, netinfo_field); \
-	}
-
-
-void *PullLocalGroupInfo0(void *buffer, AliasInfo *ai, int i)
+NTSTATUS
+PullLocalGroupInfo0(
+    void **buffer,
+    AliasInfo *ai,
+    int num
+    )
 {
-	LOCALGROUP_INFO_0 *info = (LOCALGROUP_INFO_0*)buffer;
-	if (info == NULL) return NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+	LOCALGROUP_INFO_0 *info = NULL;
+    int i = 0;
 
-	PULL_UNICODE_STRING(info[i].lgrpi0_name, ai->all.name);
+    goto_if_invalid_param_ntstatus(buffer, cleanup);
+    goto_if_invalid_param_ntstatus(ai, cleanup);
 
-	return buffer;
+    if (num <= 0) {
+        status = STATUS_INVALID_PARAMETER;
+        goto cleanup;
+    }
+
+    status = NetAllocateMemory((void**)&info, sizeof(LOCALGROUP_INFO_0) * num,
+                               NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    for (i = 0; i < num; i++) {
+        PULL_UNICODE_STRING(info[i].lgrpi0_name, ai[i].all.name, info);
+    }
+
+	*buffer = (void*)info;
+
+cleanup:
+    return status;
+
+error:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
+
+    *buffer = NULL;
+    goto cleanup;
 }
 
 
-void *PullLocalGroupInfo1(void *buffer, AliasInfo *ai, int i)
+NTSTATUS
+PullLocalGroupInfo1(
+    void **buffer,
+    AliasInfo *ai,
+    int num
+    )
 {
-	LOCALGROUP_INFO_1 *info = (LOCALGROUP_INFO_1*)buffer;
-	if (info == NULL) return NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+	LOCALGROUP_INFO_1 *info = NULL;
+    int i = 0;
 
-	PULL_UNICODE_STRING(info[i].lgrpi1_name, ai->all.name);
-	PULL_UNICODE_STRING(info[i].lgrpi1_comment, ai->all.description);
+    goto_if_invalid_param_ntstatus(buffer, cleanup);
+    goto_if_invalid_param_ntstatus(ai, cleanup);
 
-	return buffer;
+    if (num <= 0) {
+        status = STATUS_INVALID_PARAMETER;
+        goto cleanup;
+    }
+
+    status = NetAllocateMemory((void**)&info, sizeof(LOCALGROUP_INFO_1) * num,
+                               NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    for (i = 0; i < num; i++) {
+        PULL_UNICODE_STRING(info[i].lgrpi1_name, ai[i].all.name, info);
+        PULL_UNICODE_STRING(info[i].lgrpi1_comment, ai[i].all.description,
+                            info);
+    }
+
+    *buffer = info;
+
+cleanup:
+	return status;
+
+error:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
+
+    *buffer = NULL;
+    goto cleanup;
 }
 
 
-void* PushLocalGroupInfo0(void *buffer, uint32 *level, LOCALGROUP_INFO_0 *ninfo)
+NTSTATUS
+PushLocalGroupInfo0(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_0 *ninfo
+    )
 {
-	AliasInfo *info = (AliasInfo*)buffer;
-	if (info == NULL) return NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+	AliasInfo *info = NULL;
 
-	*level = 2;
+	*slevel = ALIAS_INFO_NAME;
+
+    status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
+    goto_if_ntstatus_not_success(status, error);
 	
-	PUSH_UNICODE_STRING(ninfo->lgrpi0_name, info->name);
+	PUSH_UNICODE_STRING_ALIASINFO(info->name, ninfo->lgrpi0_name, info);
 
-	return buffer;
+    *sinfo = info;
+
+cleanup:
+	return status;
+
+error:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
+
+    *sinfo = NULL;
+    goto cleanup;
 }
 
 
-void* PushLocalGroupInfo1to2(void *buffer, uint32 *level, LOCALGROUP_INFO_1 *ninfo)
+NTSTATUS
+PushLocalGroupInfo1(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_1 *ninfo
+    )
 {
-	AliasInfo *info = (AliasInfo*)buffer;
-	if (info == NULL) return NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+	AliasInfo *info = NULL;
+
+	*slevel = ALIAS_INFO_ALL;
+
+    status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
+    goto_if_ntstatus_not_success(status, error);
 	
-	*level = 2;
-	
-	PUSH_UNICODE_STRING(ninfo->lgrpi1_name, info->name);
-	
-	return buffer;
+	PUSH_UNICODE_STRING_ALIASINFO(info->all.name, ninfo->lgrpi1_name, info);
+	PUSH_UNICODE_STRING_ALIASINFO(info->all.description, ninfo->lgrpi1_comment,
+                                  info);
+
+    *sinfo = info;
+
+cleanup:
+	return status;
+
+error:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
+
+    *sinfo = NULL;
+    goto cleanup;
 }
 
 
-void* PushLocalGroupInfo1to3(void *buffer, uint32 *level, LOCALGROUP_INFO_1 *ninfo)
+NTSTATUS
+PushLocalGroupInfo1002(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_1002 *ninfo
+    )
 {
-	AliasInfo *info = (AliasInfo*)buffer;
-	if (info == NULL) return NULL;
-	
-	*level = 3;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+	AliasInfo *info = NULL;
 
-	PUSH_UNICODE_STRING(ninfo->lgrpi1_comment, info->description);
+	*slevel = ALIAS_INFO_DESCRIPTION;
+
+    status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
+    goto_if_ntstatus_not_success(status, error);
 	
-	return buffer;
+	PUSH_UNICODE_STRING_ALIASINFO(info->description, ninfo->lgrpi1002_comment,
+                                  info);
+
+    *sinfo = info;
+
+cleanup:
+	return status;
+
+error:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
+
+    *sinfo = NULL;
+    goto cleanup;
 }
+
 
 
 /*

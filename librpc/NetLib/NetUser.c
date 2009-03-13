@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,44 +31,55 @@
 #include "includes.h"
 
 
-NTSTATUS NetOpenUser(NetConn *conn, const wchar16_t *username, uint32 access_mask,
-                     PolicyHandle *user_handle, uint32 *rid)
+NTSTATUS
+NetOpenUser(
+    NetConn *conn,
+    const wchar16_t *username,
+    uint32 access_mask,
+    PolicyHandle *user_h,
+    uint32 *rid
+    )
 {
     const uint32 num_users = 1;
 
-    WINERR err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    handle_t samr_bind = NULL;
-    PolicyHandle domain_handle = {0};
+    WINERR err = ERROR_SUCCESS;
+    handle_t samr_b = NULL;
+    PolicyHandle domain_h = {0};
     wchar16_t *usernames[1] = {0};
     uint32 *rids = NULL;
     uint32 *types = NULL;
 
-    if (conn == NULL || username == NULL ||
-        user_handle == NULL || rid == NULL) {
-        return STATUS_INVALID_PARAMETER;
-    }
+    goto_if_invalid_param_ntstatus(conn, cleanup);
+    goto_if_invalid_param_ntstatus(username, cleanup);
+    goto_if_invalid_param_ntstatus(user_h, cleanup);
+    goto_if_invalid_param_ntstatus(rid, cleanup);
 
-    samr_bind          = conn->samr.bind;
-    domain_handle      = conn->samr.dom_handle;
+    samr_b   = conn->samr.bind;
+    domain_h = conn->samr.dom_handle;
 
     usernames[0] = wc16sdup(username);
     goto_if_no_memory_ntstatus(usernames[0], error);
 	
-    status = SamrLookupNames(samr_bind, &domain_handle, num_users, usernames,
+    status = SamrLookupNames(samr_b, &domain_h, num_users, usernames,
                              &rids, &types, NULL);
     goto_if_ntstatus_not_success(status, error);
 
-    status = SamrOpenUser(samr_bind, &domain_handle, access_mask, rids[0],
-                          user_handle);
+    status = SamrOpenUser(samr_b, &domain_h, access_mask, rids[0],
+                          user_h);
     goto_if_ntstatus_not_success(status, error);
-
 
     *rid = rids[0];
 
 cleanup:
-    if (rids) SamrFreeMemory((void*)rids);
-    if (types) SamrFreeMemory((void*)types);
+    if (rids) {
+        SamrFreeMemory((void*)rids);
+    }
+
+    if (types) {
+        SamrFreeMemory((void*)types);
+    }
+
     SAFE_FREE(usernames[0]);
 
     return status;
@@ -79,60 +90,97 @@ error:
 }
 
 
-NTSTATUS NetOpenAlias(NetConn *conn, const wchar16_t *aliasname, uint32 access_mask,
-		      PolicyHandle *alias_handle, uint32 *rid)
+NTSTATUS
+NetOpenAlias(
+    NetConn *conn,
+    const wchar16_t *aliasname,
+    uint32 access_mask,
+    PolicyHandle *out_alias_h,
+    uint32 *out_rid
+    )
 {
     const uint32 num_aliases = 1;
 
-    NTSTATUS status;
-    handle_t samr_bind;
-    PolicyHandle domain_handle, btin_domain_handle, handle;
-    wchar16_t *aliasnames[1];
-    uint32 *rids, *types;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+    handle_t samr_b = NULL;
+    PolicyHandle domains_h[2], domain_h, alias_h;
+    wchar16_t *aliasnames[1] = {0};
+    uint32 *rids = NULL;
+    uint32 *types = NULL;
+    uint32 alias_rid = 0;
+    int i = 0;
 
-    if (conn == NULL || aliasname == NULL ||
-        alias_handle == NULL || rid == NULL) {
-        return STATUS_INVALID_PARAMETER;
-    }
+    goto_if_invalid_param_ntstatus(conn, cleanup);
+    goto_if_invalid_param_ntstatus(aliasname, cleanup);
+    goto_if_invalid_param_ntstatus(out_alias_h, cleanup);
+    goto_if_invalid_param_ntstatus(out_rid, cleanup);
 
-    samr_bind          = conn->samr.bind;
-    domain_handle      = conn->samr.dom_handle;
-    btin_domain_handle = conn->samr.btin_dom_handle;
+    samr_b        = conn->samr.bind;
+    domains_h[0]  = conn->samr.dom_handle;
+    domains_h[1]  = conn->samr.btin_dom_handle;
 
     aliasnames[0] = wc16sdup(aliasname);
-    if (aliasnames[0] == NULL) return STATUS_NO_MEMORY;
+    goto_if_no_memory_ntstatus(aliasnames[0], error);
 
-    status = SamrLookupNames(samr_bind, &domain_handle, num_aliases, aliasnames,
-                             &rids, &types, NULL);
-    if (status == STATUS_NONE_MAPPED) {
-        status = SamrLookupNames(samr_bind, &btin_domain_handle, num_aliases,
-                                 aliasnames, &rids, &types, NULL);
-	if (status != 0) return status;
+    /*
+     * Try to look for alias in host domain first, then in builtin
+     */
+    for (i = 0; i < sizeof(domains_h)/sizeof(domains_h[0]); i++) {
+        status = SamrLookupNames(samr_b, &domains_h[i], num_aliases, aliasnames,
+                                 &rids, &types, NULL);
 
-	/* user has been found in builtin domain so pass
-	   its handle further down */
-	handle = btin_domain_handle;
-	
-    } else if (status != 0) {
-        return status;
+        if (status == STATUS_SUCCESS) {
+            /* alias has been found in one of domain so pass the domain's
+               handle further down */
+            domain_h  = domains_h[i];
+            alias_rid = rids[0];
+            break;
 
-    } else {
-        /* user has been found in host's domain so pass
-           its handle further down */
-        handle = domain_handle;
+        } else if (status == STATUS_NONE_MAPPED) {
+            if (rids) {
+                SamrFreeMemory((void*)rids);
+                rids = NULL;
+            }
+
+            if (types) {
+                SamrFreeMemory((void*)types);
+                types = NULL;
+            }
+
+            continue;
+        }
+
+        /* Catch other possible errors */
+        goto_if_ntstatus_not_success(status, error);
     }
 
+    /* Allow to open alias only if a valid one has been found */
+    goto_if_ntstatus_not_success(status, error);
 
-    status = SamrOpenAlias(samr_bind, &handle, access_mask, rids[0],
-                           alias_handle);
+    status = SamrOpenAlias(samr_b, &domain_h, access_mask, alias_rid,
+                           &alias_h);
+    goto_if_ntstatus_not_success(status, error);
 
+    *out_rid     = alias_rid;
+    *out_alias_h = alias_h;
+
+cleanup:
     SAFE_FREE(aliasnames[0]);
 
-    *rid = rids[0];
-    SAFE_FREE(rids);
-    SAFE_FREE(types);
+    if (rids) {
+        SamrFreeMemory((void*)rids);
+    }
+
+    if (types) {
+        SamrFreeMemory((void*)types);
+    }
 
     return status;
+
+error:
+    *out_rid = 0;
+    goto cleanup;
 }
 
 
