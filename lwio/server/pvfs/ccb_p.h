@@ -54,6 +54,11 @@ PvfsAllocateCCB(
     );
 
 NTSTATUS
+PvfsFreeCCB(
+    PPVFS_CCB pCCB
+    );
+
+NTSTATUS
 PvfsStoreCCB(
     IO_FILE_HANDLE FileHandle,
     PPVFS_CCB pCCB

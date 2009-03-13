@@ -201,6 +201,7 @@ PvfsCreateFileSupersede(
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
+    pszFilename = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -237,8 +238,8 @@ error:
         close(fd);
     }
 
-    PVFS_SAFE_FREE_MEMORY(pCcb);
-    PVFS_SAFE_FREE_MEMORY(pszFilename);
+    PvfsFreeCCB(pCcb);
+    RTL_FREE(&pszFilename);
 
     goto cleanup;
 }
@@ -295,6 +296,7 @@ PvfsCreateFileCreate(
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
+    pszFilename = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -334,8 +336,8 @@ error:
         close(fd);
     }
 
-    PVFS_SAFE_FREE_MEMORY(pCcb);
-    PVFS_SAFE_FREE_MEMORY(pszFilename);
+    PvfsFreeCCB(pCcb);
+    RTL_FREE(&pszFilename);
 
     goto cleanup;
 }
@@ -386,6 +388,7 @@ PvfsCreateFileOpen(
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
+    pszFilename = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -409,8 +412,8 @@ error:
         close(fd);
     }
 
-    PVFS_SAFE_FREE_MEMORY(pCcb);
-    PVFS_SAFE_FREE_MEMORY(pszFilename);
+    PvfsFreeCCB(pCcb);
+    RTL_FREE(&pszFilename);
 
     goto cleanup;
 }
@@ -481,6 +484,7 @@ PvfsCreateFileOpenIf(
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
+    pszFilename = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -519,8 +523,8 @@ error:
         close(fd);
     }
 
-    PVFS_SAFE_FREE_MEMORY(pCcb);
-    PVFS_SAFE_FREE_MEMORY(pszFilename);
+    PvfsFreeCCB(pCcb);
+    RTL_FREE(&pszFilename);
 
     goto cleanup;
 }
@@ -571,6 +575,7 @@ PvfsCreateFileOverwrite(
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
+    pszFilename = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -612,8 +617,8 @@ error:
         close(fd);
     }
 
-    PVFS_SAFE_FREE_MEMORY(pCcb);
-    PVFS_SAFE_FREE_MEMORY(pszFilename);
+    PvfsFreeCCB(pCcb);
+    RTL_FREE(&pszFilename);
 
     goto cleanup;
 }
@@ -683,6 +688,7 @@ PvfsCreateFileOverwriteIf(
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
+    pszFilename = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -724,8 +730,8 @@ error:
         close(fd);
     }
 
-    PVFS_SAFE_FREE_MEMORY(pCcb);
-    PVFS_SAFE_FREE_MEMORY(pszFilename);
+    PvfsFreeCCB(pCcb);
+    RTL_FREE(&pszFilename);
 
     goto cleanup;
 }
