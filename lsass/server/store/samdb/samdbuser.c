@@ -75,22 +75,22 @@
 
 
 #define DB_QUERY_CREATE_USERS_INSERT_TRIGGER                   \
-    "create trigger lwiusers_createdtime                       \
-     after insert on lwiusers                                  \
+    "create trigger samdbusers_createdtime                     \
+     after insert on samdbusers                                \
      begin                                                     \
-          update lwiusers                                      \
+          update samdbusers                                    \
           set CreatedTime = DATETIME('NOW')                    \
           where rowid = new.rowid;                             \
                                                                \
-          insert into lwigroupmembers (Uid, Gid)               \
+          insert into samdbgroupmembers (Uid, Gid)             \
           values (new.Uid, new.Gid);                           \
      end"
 
 #define DB_QUERY_CREATE_USERS_DELETE_TRIGGER                   \
-    "create trigger lwiusers_delete_record                     \
-     after delete on lwiusers                                  \
+    "create trigger samdbusers_delete_record                   \
+     after delete on samdbusers                                \
      begin                                                     \
-          delete from lwigroupmembers where Uid = old.Uid;     \
+          delete from samdbgroupmembers where Uid = old.Uid;   \
      end"
 
 
