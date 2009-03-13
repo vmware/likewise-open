@@ -116,3 +116,36 @@ error:
     LSA_SAFE_FREE_MEMORY(pResultSid);
     goto cleanup;
 }
+
+DWORD
+LsaAllocateSidAppendRid(
+    OUT PSID* ppSid,
+    IN PSID pDomainSid,
+    IN ULONG Rid
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID pResultSid = NULL;
+    ULONG size = RtlLengthRequiredSid(pDomainSid->SubAuthorityCount + 1);
+
+    dwError = LsaAllocateMemory(size, OUT_PPVOID(&pResultSid));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    status = RtlCopySid(size, pResultSid, pDomainSid);
+    dwError = LsaNtStatusToLsaError(status);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    status = RtlAppendRidSid(size, pResultSid, Rid);
+    dwError = LsaNtStatusToLsaError(status);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    *ppSid = pResultSid;
+
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_MEMORY(pResultSid);
+    goto cleanup;
+}

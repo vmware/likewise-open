@@ -606,10 +606,10 @@ AD_PacRidsToSidStringList(
                                 (PVOID*)&ppszSidList);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = RtlSidAllocateResizedCopy(
+    dwError = LsaAllocateSidAppendRid(
                     &pDomainBasedSid,
-                    pDomainSid->SubAuthorityCount + 1,
-                    pDomainSid);
+                    pDomainSid,
+                    0);
     BAIL_ON_LSA_ERROR(dwError);
 
     for (i = 0; i < pRids->count; i++)
@@ -627,10 +627,7 @@ AD_PacRidsToSidStringList(
     *pppszSidList = ppszSidList;
 
 cleanup:
-    if (pDomainBasedSid)
-    {
-        SidFree(pDomainBasedSid);
-    }
+    LSA_SAFE_FREE_MEMORY(pDomainBasedSid);
     return dwError;
 
 error:

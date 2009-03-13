@@ -520,9 +520,6 @@ AD_NetLookupObjectSidsByNames(
     {
         ADAccountType ObjectType = AccountType_NotFound;
         DWORD dwDomainSid_index = 0;
-        // Do not free pDom_sid, reference to pDomains
-        PSID pDom_sid = NULL;
-
 
         ObjectType = GetObjectType(pSids[i].type);
         if (ObjectType == AccountType_NotFound)
@@ -545,17 +542,13 @@ AD_NetLookupObjectSidsByNames(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        pDom_sid = pDomains->domains[dwDomainSid_index].sid;
+        LSA_SAFE_FREE_MEMORY(pObject_sid);
 
-        if (pObject_sid)
-        {
-              SidFree(pObject_sid);
-              pObject_sid = NULL;
-        }
-        RtlSidAllocateResizedCopy(&pObject_sid,
-                               pDom_sid->SubAuthorityCount + 1,
-                               pDom_sid);
-        pObject_sid->SubAuthority[pObject_sid->SubAuthorityCount - 1] = pSids[i].rid;
+        dwError = LsaAllocateSidAppendRid(
+                        &pObject_sid,
+                        pDomains->domains[dwDomainSid_index].sid,
+                        pSids[i].rid);
+        BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LsaAllocateCStringFromSid(
                         &ppTranslatedSids[i]->pszNT4NameOrSid,
@@ -592,10 +585,7 @@ cleanup:
     {
         LsaRpcFreeMemory(pSids);
     }
-    if (pObject_sid)
-    {
-          SidFree(pObject_sid);
-    }
+    LSA_SAFE_FREE_MEMORY(pObject_sid);
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0)
     {

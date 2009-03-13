@@ -1529,6 +1529,13 @@ LsaAllocateSidFromCString(
     IN PCSTR pszStringSid
     );
 
+DWORD
+LsaAllocateSidAppendRid(
+    OUT PSID* ppSid,
+    IN PSID pDomainSid,
+    IN ULONG Rid
+    );
+
 #endif /* __LSA_UTILS_H__ */
 
 
