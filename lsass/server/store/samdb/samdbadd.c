@@ -4,40 +4,77 @@
 DWORD
 SamDbAddObject(
     HANDLE hBindHandle,
-    PWSTR ObjectDN,
+    PWSTR  pwszObjectDN,
     DIRECTORY_MOD Modifications[]
     )
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
     PWSTR pwszObjectName = NULL;
-    DWORD dwType = 0;
+    PWSTR pwszDomain = NULL;
+    SAMDB_ENTRY_TYPE entryType = 0;
 
-    dwError = SamDbParseDN(ObjectDN,&pwszObjectName, &dwType);
+    dwError = SamDbParseDN(
+                    pwszObjectDN,
+                    &pwszObjectName,
+                    &pwszDomain,
+                    &entryType);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    switch (dwType) {
+    switch (entryType)
+    {
+        case SAMDB_ENTRY_TYPE_USER:
 
-        case SAMDB_USER:
             dwError = SamDbAddUser(
-                        pDirectoryContext,
+                        pDirectoryContext->pDbContext,
                         pwszObjectName,
                         Modifications
                         );
             break;
 
-        case SAMDB_GROUP:
+        case SAMDB_ENTRY_TYPE_GROUP:
+
             dwError = SamDbAddGroup(
-                        pDirectoryContext,
+                        pDirectoryContext->pDbContext,
                         pwszObjectName,
                         Modifications
                         );
+            break;
+
+        case SAMDB_ENTRY_TYPE_DOMAIN:
+
+            dwError = SamDbAddDomain(
+                        pDirectoryContext->pDbContext,
+                        pwszObjectName,
+                        Modifications
+                        );
+            break;
+
+        default:
+
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_SAMDB_ERROR(dwError);
+
             break;
     }
 
-error:
+cleanup:
+
+    if (pwszObjectName)
+    {
+        LsaFreeMemory(pwszObjectName);
+    }
+
+    if (pwszDomain)
+    {
+        LsaFreeMemory(pwszDomain);
+    }
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD

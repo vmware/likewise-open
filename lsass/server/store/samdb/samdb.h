@@ -41,6 +41,13 @@ SamDbAddGroup(
     );
 
 DWORD
+SamDbAddDomain(
+    HANDLE hDirectory,
+    PWSTR pszObjectName,
+    DIRECTORY_MOD Modifications[]
+    );
+
+DWORD
 SamDbModifyObject(
     HANDLE hBindHandle,
     PWSTR  pwszObjectDN,
@@ -62,6 +69,13 @@ SamDbModifyGroup(
     );
 
 DWORD
+SamDbModifyDomain(
+    HANDLE hDirectory,
+    PWSTR pszObjectName,
+    DIRECTORY_MOD Modifications[]
+    );
+
+DWORD
 SamDbDeleteObject(
     HANDLE hBindHandle,
     PWSTR  pwszObjectDN
@@ -77,6 +91,12 @@ DWORD
 SamDbDeleteGroup(
     HANDLE hDirectory,
     PWSTR  pwszGroupName
+    );
+
+DWORD
+SamDbDeleteDomain(
+    HANDLE hDirectory,
+    PWSTR pszObjectName
     );
 
 DWORD

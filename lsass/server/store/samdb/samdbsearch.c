@@ -13,50 +13,56 @@ SamDbSearchObject(
     )
 {
     DWORD dwError = 0;
-    DWORD dwTable = 0;
+    SAMDB_ENTRY_TYPE entryType = 0;
 
     dwError = SamDbConvertFiltertoTable(
                     Filter,
-                    &dwTable
+                    &entryType
                     );
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    switch (dwTable) {
+    switch (entryType) {
 
-        case SAMDB_USER:
-            SamDbSearchUsers(
-                    hDirectory,
-                    Base,
-                    Scope,
-                    Attributes,
-                    AttributesOnly,
-                    ppDirectoryValues,
-                    pdwNumValues
-                    );
+        case SAMDB_ENTRY_TYPE_USER:
+            dwError = SamDbSearchUsers(
+                            hDirectory,
+                            Base,
+                            Scope,
+                            Attributes,
+                            AttributesOnly,
+                            ppDirectoryValues,
+                            pdwNumValues
+                            );
             break;
 
-        case SAMDB_GROUP:
-            SamDbSearchGroups(
-                    hDirectory,
-                    Base,
-                    Scope,
-                    Attributes,
-                    AttributesOnly,
-                    ppDirectoryValues,
-                    pdwNumValues
-                    );
+        case SAMDB_ENTRY_TYPE_GROUP:
+            dwError = SamDbSearchGroups(
+                            hDirectory,
+                            Base,
+                            Scope,
+                            Attributes,
+                            AttributesOnly,
+                            ppDirectoryValues,
+                            pdwNumValues
+                            );
             break;
 
-        case SAMDB_DOMAIN:
-            SamDbSearchDomains(
-                    hDirectory,
-                    Base,
-                    Scope,
-                    Attributes,
-                    AttributesOnly,
-                    ppDirectoryValues,
-                    pdwNumValues
-                    );
+        case SAMDB_ENTRY_TYPE_DOMAIN:
+            dwError = SamDbSearchDomains(
+                            hDirectory,
+                            Base,
+                            Scope,
+                            Attributes,
+                            AttributesOnly,
+                            ppDirectoryValues,
+                            pdwNumValues
+                            );
+            break;
+
+        default:
+
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+
             break;
     }
 
