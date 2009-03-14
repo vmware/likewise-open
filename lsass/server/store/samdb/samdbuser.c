@@ -51,16 +51,19 @@
 
 #define DB_QUERY_CREATE_USERS_TABLE  \
     "create table samdbusers (       \
-                Uid              integer PRIMARY KEY, \
-                Name             varchar(256),        \
-                Passwd           varchar(256),        \
+                UserRecordId     integer PRIMARY KEY, \
+                DomainRecordId   integer,             \
+                ObjectSID        text unique,         \
+                Uid              integer,             \
+                Name             text,                \
+                Passwd           text,                \
                 Gid              integer,             \
                 UserInfoFlags    integer,             \
-                Gecos            varchar(256),        \
-                HomeDir          varchar(1024),       \
-                Shell            varchar(128),        \
+                Gecos            text,                \
+                HomeDir          text,                \
+                Shell            text,                \
                 PasswdChangeTime integer,             \
-                FullName         varchar(256),        \
+                FullName         text,                \
                 AccountExpiry    integer,             \
                 LMOwf_1          integer,             \
                 LMOwf_2          integer,             \
@@ -70,7 +73,9 @@
                 NTOwf_2          integer,             \
                 NTOwf_3          integer,             \
                 NTOwf_4          integer,             \
-                CreatedTime      date                 \
+                CreatedTime      date,                \
+                unique(DomainRecordId, Uid),          \
+                unique(DomainRecordId, Name),         \
                )"
 
 
@@ -82,15 +87,15 @@
           set CreatedTime = DATETIME('NOW')                    \
           where rowid = new.rowid;                             \
                                                                \
-          insert into samdbgroupmembers (Uid, Gid)             \
-          values (new.Uid, new.Gid);                           \
+          insert into samdbgroupmembers (UserRecordId, GroupRecordId) \
+          values (new.UserRecordId, new.GroupRecordId);        \
      end"
 
 #define DB_QUERY_CREATE_USERS_DELETE_TRIGGER                   \
     "create trigger samdbusers_delete_record                   \
      after delete on samdbusers                                \
      begin                                                     \
-          delete from samdbgroupmembers where Uid = old.Uid;   \
+          delete from samdbgroupmembers where UserRecordId = old.UserRecordId;   \
      end"
 
 

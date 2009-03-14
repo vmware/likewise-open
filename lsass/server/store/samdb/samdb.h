@@ -152,6 +152,11 @@ SamDbConvertFiltertoTable(
     );
 
 DWORD
+SamDbInitDomainTable(
+    PSAM_DB_CONTEXT pDbContext
+    );
+
+DWORD
 SamDbInitUserTable(
     PSAM_DB_CONTEXT pDbContext
     );

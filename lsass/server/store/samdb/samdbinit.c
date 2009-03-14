@@ -108,6 +108,9 @@ SamDbInit(
 
     pDirectory = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
+    dwError = SamDbInitDomainTable(pDirectory->pDbContext);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     dwError = SamDbInitGroupTable(pDirectory->pDbContext);
     BAIL_ON_SAMDB_ERROR(dwError);
 

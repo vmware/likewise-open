@@ -2,16 +2,23 @@
 
 #define DB_QUERY_CREATE_GROUPMEMBERSHIP_TABLE \
     "create table samdbgroupmembers (         \
-                    Gid integer,              \
-                    Uid integer               \
+                    GroupRecordId  integer,   \
+                    UserRecordId   integer,   \
+                    DomainRecordId integer,   \
+                    unique(DomainRecordId, GroupRecordId, UserRecordId) \
                     )"
 
 #define DB_QUERY_CREATE_GROUPS_TABLE \
     "create table samdbgroups (      \
-                    Gid           integer PRIMARY KEY, \
-                    Name          varchar(256),        \
-                    Passwd        varchar(256),        \
-                    CreatedTime   date                 \
+                    GroupRecordId  integer PRIMARY KEY, \
+                    DomainRecordId integer,             \
+                    ObjectSID      text unique,         \
+                    Gid            integer,             \
+                    Name           text,                \
+                    Passwd         text,                \
+                    CreatedTime    date,                \
+                    unique(DomainRecordId, Gid),        \
+                    unique(DomainRecordId, Name),       \
                     )"
 
 #define DB_QUERY_CREATE_GROUPS_INSERT_TRIGGER                  \
@@ -26,7 +33,7 @@
     "create trigger samdbgroups_delete_record                  \
      after delete on samdbgroups                               \
      begin                                                     \
-          delete from samdbgroupmembers where Gid = old.Gid;   \
+          delete from samdbgroupmembers where GroupRecordId = old.GroupRecordId;   \
      end"
 
 DWORD
