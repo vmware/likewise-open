@@ -113,6 +113,11 @@ typedef struct _PVFS_INTERLOCKED_ULONG
 
 } PVFS_INTERLOCKED_ULONG, *PPVFS_INTERLOCKED_ULONG;
 
+typedef struct _PVFS_FCB
+{
+    PVFS_INTERLOCKED_ULONG cRef;
+
+} PVFS_FCB, *PPVFS_FCB;
 
 typedef struct _PVFS_CCB
 {
@@ -126,6 +131,9 @@ typedef struct _PVFS_CCB
     dev_t device;
     ino_t inode;
 
+    /* Pointer to the shared PVFS FileHandle */
+    PPVFS_FCB FileHandle;
+
     /* Save parameters from the CreateFile() */
     PSTR pszFilename;
     FILE_CREATE_OPTIONS CreateOptions;
@@ -136,7 +144,6 @@ typedef struct _PVFS_CCB
     PPVFS_DIRECTORY_CONTEXT pDirContext;
 
 } PVFS_CCB, *PPVFS_CCB;
-
 
 typedef struct _PVFS_IRP_CONTEXT
 {

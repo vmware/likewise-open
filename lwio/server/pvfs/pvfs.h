@@ -78,6 +78,7 @@
 #include "syswrap_p.h"
 #include "synchronize_p.h"
 #include "ccb_p.h"
+#include "fcb.h"
 #include "acl.h"
 #include "attrib.h"
 
