@@ -33,38 +33,88 @@
  *
  * Module Name:
  *
- *        fcb.h
+ *        sharemode.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        File Control Block routines
+ *        Support for Windows File Share Modes
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef _PVFS_FCB_H
-#define _PVFS_FCB_H
-
 #include "pvfs.h"
 
-NTSTATUS
-PvfsAllocateFCB(
-    PPVFS_FCB *ppFcb
-    );
+/* Forward declarations */
+
+
+/* Code */
+
+/***********************************************************
+ **********************************************************/
 
 NTSTATUS
-PvfsFreeFCB(
-    PPVFS_FCB pFcb
-    );
+PvfsCheckShareMode(
+    IN PSTR pszFilename,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PPVFS_FCB *ppFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FCB pFcb = NULL;
+    BOOLEAN bLockedTable = FALSE;
+    PVFS_STAT Stat = {0};
 
-VOID
-PvfsReleaseFCB(
-    PPVFS_FCB pFcb
-    );
+    /* LOCK_MUTEX(gTable) */
+    bLockedTable = TRUE;
 
-#endif   /* _PVFS_FCB_H */
+    /* First we have to find the FCB in our table of open
+       files */
+
+    /* FIND_FCB(gTable, pszFilename); */
+
+    /* CHECK_SHARING(pFcb, ShareAccess); */
+    /* CHECK_DESIRED_ACCESS(pFcb, DesiredAccess); */
+
+    /* If not found, then add one */
+
+    ntError = PvfsAllocateFCB(&pFcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCStringDuplicate(&pFcb->pszFilename, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pFcb->Device = Stat.s_dev;
+    pFcb->Inode  = Stat.s_ino;
+
+    pFcb->ShareAccess = ShareAccess;
+
+    /* ADD_FCB(gTable, pFCB); */
+
+    /* UNLOCK_MUTEX(gTable); */
+
+    *ppFcb = pFcb;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    if (bLockedTable) {
+        /* UNLOCK_MUTEX(gTable) */;
+    }
+
+    goto cleanup;
+}
 
 /*
 local variables:

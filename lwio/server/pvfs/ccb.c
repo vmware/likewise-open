@@ -105,6 +105,10 @@ PvfsFreeCCB(
         RtlCStringFree(&pCCB->pszFilename);
     }
 
+    if (pCCB->pFcb) {
+        PvfsReleaseFCB(pCCB->pFcb);
+    }
+
     PvfsFreeMemory(pCCB);
 
     return STATUS_SUCCESS;

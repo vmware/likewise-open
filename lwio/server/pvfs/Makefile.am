@@ -28,6 +28,7 @@ libpvfs_sys_la_SOURCES = \
     unixpath.c \
     string.c \
     wildcard.c \
+    sharemode.c \
     acl.c \
     acl_xattr.c \
     attrib.c \

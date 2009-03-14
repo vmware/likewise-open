@@ -71,6 +71,10 @@ PvfsAllocateFCB(
 
     PvfsInitializeInterlockedCounter(&pFcb->cRef);
 
+    /* Add initial ref count */
+
+    PvfsInterlockedIncrement(&pFcb->cRef);
+
     *ppFcb = pFcb;
 
     ntError = STATUS_SUCCESS;
@@ -90,6 +94,10 @@ PvfsFreeFCB(
     PPVFS_FCB pFcb
     )
 {
+    if (pFcb->pszFilename) {
+        RtlCStringFree(&pFcb->pszFilename);
+    }
+
     PvfsFreeMemory(pFcb);
 
     return STATUS_SUCCESS;
@@ -112,19 +120,6 @@ PvfsReleaseFCB(
     return;
 }
 
-
-/*******************************************************
- ******************************************************/
-
-VOID
-PvfsAddRefFCB(
-    PPVFS_FCB pFcb
-    )
-{
-    PvfsInterlockedIncrement(&pFcb->cRef);
-
-    return;
-}
 
 /*
 local variables:

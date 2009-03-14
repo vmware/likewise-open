@@ -158,6 +158,7 @@ PvfsCreateFileSupersede(
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
     PSTR pszDirectory = NULL;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -171,6 +172,12 @@ PvfsCreateFileSupersede(
     bFileExisted = NT_SUCCESS(ntError);
 
     if (bFileExisted) {
+        ntError = PvfsCheckShareMode(pszFilename,
+                                     Args.ShareAccess,
+                                     Args.DesiredAccess | DELETE,
+                                     &pFcb);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszFilename,
                                       DELETE,
@@ -179,7 +186,18 @@ PvfsCreateFileSupersede(
 
         ntError = PvfsSysRemove(pszFilename);
         BAIL_ON_NT_STATUS(ntError);
+
+        /* Seems like this should clear the FCB from
+           the open table.  Not sure */
+        PvfsReleaseFCB(pFcb);
     }
+
+    /* This should get us a new FCB */
+    ntError = PvfsCheckShareMode(pszFilename,
+                                 Args.ShareAccess,
+                                 Args.DesiredAccess,
+                                 &pFcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAccessCheckDir(pSecCtx,
                                  pszDirectory,
@@ -202,6 +220,8 @@ PvfsCreateFileSupersede(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
     pszFilename = NULL;
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -233,13 +253,17 @@ cleanup:
 error:
     CreateResult = bFileExisted ? FILE_EXISTS : FILE_DOES_NOT_EXIST;
 
-    if (fd != -1)
-    {
+    if (fd != -1) {
         close(fd);
     }
 
-    PvfsFreeCCB(pCcb);
     RtlCStringFree(&pszFilename);
+
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    PvfsFreeCCB(pCcb);
 
     goto cleanup;
 }
@@ -263,11 +287,18 @@ PvfsCreateFileCreate(
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
     PSTR pszParentDir = NULL;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCheckShareMode(pszFilename,
+                                 Args.ShareAccess,
+                                 Args.DesiredAccess,
+                                 &pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check that we can add files to the parent directory.  If
@@ -297,6 +328,8 @@ PvfsCreateFileCreate(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
     pszFilename = NULL;
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -336,8 +369,13 @@ error:
         close(fd);
     }
 
-    PvfsFreeCCB(pCcb);
     RtlCStringFree(&pszFilename);
+
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    PvfsFreeCCB(pCcb);
 
     goto cleanup;
 }
@@ -360,11 +398,18 @@ PvfsCreateFileOpen(
     PPVFS_CCB pCcb = NULL;
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCheckShareMode(pszFilename,
+                                 Args.ShareAccess,
+                                 Args.DesiredAccess,
+                                 &pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAccessCheckFile(pSecCtx,
@@ -389,6 +434,8 @@ PvfsCreateFileOpen(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
     pszFilename = NULL;
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -407,13 +454,17 @@ error:
     CreateResult = (ntError == STATUS_OBJECT_PATH_NOT_FOUND) ?
                    FILE_DOES_NOT_EXIST : FILE_EXISTS;
 
-    if (fd != -1)
-    {
+    if (fd != -1) {
         close(fd);
     }
 
-    PvfsFreeCCB(pCcb);
     RtlCStringFree(&pszFilename);
+
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    PvfsFreeCCB(pCcb);
 
     goto cleanup;
 }
@@ -439,6 +490,7 @@ PvfsCreateFileOpenIf(
     ACCESS_MASK GrantedAccess = 0;
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -485,6 +537,8 @@ PvfsCreateFileOpenIf(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
     pszFilename = NULL;
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -523,8 +577,13 @@ error:
         close(fd);
     }
 
-    PvfsFreeCCB(pCcb);
     RtlCStringFree(&pszFilename);
+
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    PvfsFreeCCB(pCcb);
 
     goto cleanup;
 }
@@ -547,6 +606,7 @@ PvfsCreateFileOverwrite(
     PPVFS_CCB pCcb = NULL;
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -576,6 +636,8 @@ PvfsCreateFileOverwrite(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
     pszFilename = NULL;
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -617,8 +679,13 @@ error:
         close(fd);
     }
 
-    PvfsFreeCCB(pCcb);
     RtlCStringFree(&pszFilename);
+
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    PvfsFreeCCB(pCcb);
 
     goto cleanup;
 }
@@ -643,6 +710,7 @@ PvfsCreateFileOverwriteIf(
     ACCESS_MASK GrantedAccess = 0;
     PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -689,6 +757,8 @@ PvfsCreateFileOverwriteIf(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszFilename;
     pszFilename = NULL;
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -730,8 +800,13 @@ error:
         close(fd);
     }
 
-    PvfsFreeCCB(pCcb);
     RtlCStringFree(&pszFilename);
+
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    PvfsFreeCCB(pCcb);
 
     goto cleanup;
 }

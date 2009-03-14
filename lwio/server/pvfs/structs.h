@@ -117,6 +117,12 @@ typedef struct _PVFS_FCB
 {
     PVFS_INTERLOCKED_ULONG cRef;
 
+    PSTR pszFilename;
+    dev_t Device;
+    ino_t Inode;
+
+    FILE_SHARE_FLAGS ShareAccess;
+
 } PVFS_FCB, *PPVFS_FCB;
 
 typedef struct _PVFS_CCB
@@ -132,7 +138,7 @@ typedef struct _PVFS_CCB
     ino_t inode;
 
     /* Pointer to the shared PVFS FileHandle */
-    PPVFS_FCB FileHandle;
+    PPVFS_FCB pFcb;
 
     /* Save parameters from the CreateFile() */
     PSTR pszFilename;

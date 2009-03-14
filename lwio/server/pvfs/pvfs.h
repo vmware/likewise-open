@@ -241,6 +241,17 @@ PvfsCStringUpper(
 	PSTR pszString
 	);
 
+/* From sharemode.c */
+
+NTSTATUS
+PvfsCheckShareMode(
+    IN PSTR pszFilename,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PPVFS_FCB *ppFcb
+    );
+
+
 #endif /* __PVFS_H__ */
 
 
