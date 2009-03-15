@@ -65,7 +65,9 @@ PvfsCheckShareMode(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_FCB pFcb = NULL;
     BOOLEAN bLockedTable = FALSE;
+#if 0
     PVFS_STAT Stat = {0};
+#endif
 
     /* LOCK_MUTEX(gTable) */
     bLockedTable = TRUE;
@@ -86,11 +88,15 @@ PvfsCheckShareMode(
     ntError = RtlCStringDuplicate(&pFcb->pszFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* This will fail on new files that have not been created yet */
+
+#if 0
     ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
     pFcb->Device = Stat.s_dev;
     pFcb->Inode  = Stat.s_ino;
+#endif
 
     pFcb->ShareAccess = ShareAccess;
 
