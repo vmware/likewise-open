@@ -610,7 +610,7 @@ error:
     *ppData = NULL;
     *pusDataLen = 0;
     *pusSearchResultCount = 0;
-    *pbEndOfSearch = FALSE;
+    *pbEndOfSearch = TRUE;
 
     if (pData)
     {
