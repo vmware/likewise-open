@@ -210,7 +210,7 @@ error:
     }
 
     if (pCcb) {
-        PvfsFreeCCB(pCcb);
+        PvfsReleaseCCB(pCcb);
     }
 
     RtlCStringFree(&pszPathname);
@@ -407,7 +407,7 @@ error:
     }
 
     if (pCcb) {
-        PvfsFreeCCB(pCcb);
+        PvfsReleaseCCB(pCcb);
     }
 
     RtlCStringFree(&pszPathname);

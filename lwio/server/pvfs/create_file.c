@@ -263,7 +263,9 @@ error:
         PvfsReleaseFCB(pFcb);
     }
 
-    PvfsFreeCCB(pCcb);
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
 
     goto cleanup;
 }
@@ -375,7 +377,9 @@ error:
         PvfsReleaseFCB(pFcb);
     }
 
-    PvfsFreeCCB(pCcb);
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
 
     goto cleanup;
 }
@@ -464,7 +468,9 @@ error:
         PvfsReleaseFCB(pFcb);
     }
 
-    PvfsFreeCCB(pCcb);
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
 
     goto cleanup;
 }
@@ -583,7 +589,9 @@ error:
         PvfsReleaseFCB(pFcb);
     }
 
-    PvfsFreeCCB(pCcb);
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
 
     goto cleanup;
 }
@@ -685,7 +693,9 @@ error:
         PvfsReleaseFCB(pFcb);
     }
 
-    PvfsFreeCCB(pCcb);
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
 
     goto cleanup;
 }
@@ -806,7 +816,9 @@ error:
         PvfsReleaseFCB(pFcb);
     }
 
-    PvfsFreeCCB(pCcb);
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
 
     goto cleanup;
 }
