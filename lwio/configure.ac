@@ -497,6 +497,7 @@ AC_CONFIG_FILES([Makefile
         tools/lwio-get-log-info/Makefile
         tools/lwio-set-log-level/Makefile
         tools/lwio-tool/Makefile
+        tools/lwio-copy/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
         tests/test_npclient/Makefile
