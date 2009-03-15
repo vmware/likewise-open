@@ -1,12 +1,9 @@
-Code residing in the server, tests, and tools directories is licensed under
-the GNU General Public License version 2.  See {server,tests,tools}/COPYING
-for details.
+The libgss Likewise Open component is provided under the terms of the GNU
+Library General Public License (LGPL version 2.1).  Please see the COPYING
+file, also in this directory, for complete license details.
 
-Code residing in the remaining directories is licensed under the LGPL.
-All directories have a COPYING file described the appropropriate license.
-
-The following is a special exception to the GPL and LGPL license for the
-sole purpose of linking with the OpenSSL libraries.
+The following is a special exception to the LGPL license for the sole purpose
+of linking with the OpenSSL libraries.
 
     In addition, as a special exception, Likewise Software give
     permission to link the code of portions of this program with the
