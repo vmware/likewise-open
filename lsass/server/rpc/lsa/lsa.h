@@ -41,7 +41,8 @@
 NTSTATUS
 LsaClose(
     handle_t b,
-    PolicyHandle *h
+    POLICY_HANDLE hIn,
+    POLICY_HANDLE *hOut
     );
 
 
@@ -51,14 +52,14 @@ LsaOpenPolicy2(
     wchar16_t *system_name,
     ObjectAttribute *attrib,
     uint32 access_mask,
-    PolicyHandle *phLsa
+    POLICY_HANDLE *phPolicy
     );
 
 
 NTSTATUS
 LsaLookupNames(
     handle_t b,
-    PolicyHandle *h,
+    POLICY_HANDLE hPolicy,
     uint32 num_names,
     UnicodeString *names,
     RefDomainList **domains,
@@ -71,7 +72,7 @@ LsaLookupNames(
 NTSTATUS
 LsaLookupSids(
     handle_t b,
-    PolicyHandle *h,
+    POLICY_HANDLE hPolicy,
     SidArray *sids,
     RefDomainList **domains,
     TranslatedNameArray *names,
@@ -82,7 +83,7 @@ LsaLookupSids(
 
 NTSTATUS LsaLookupNames2(
     handle_t b,
-    PolicyHandle *h,
+    POLICY_HANDLE hPolicy,
     uint32 num_names,
     UnicodeStringEx *names,
     RefDomainList **domains,

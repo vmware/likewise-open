@@ -39,7 +39,7 @@
 
 NTSTATUS LsaLookupNames2(
     handle_t b,
-    PolicyHandle *h,
+    POLICY_HANDLE hPolicy,
     uint32 num_names,
     UnicodeStringEx *names,
     RefDomainList **domains,

@@ -39,7 +39,8 @@
 
 NTSTATUS LsaClose(
     handle_t b,
-    PolicyHandle *h
+    POLICY_HANDLE hIn,
+    POLICY_HANDLE *hOut
 )
 {
     NTSTATUS status = STATUS_SUCCESS;

@@ -39,7 +39,7 @@
 
 NTSTATUS LsaLookupSids(
     handle_t b,
-    PolicyHandle *h,
+    POLICY_HANDLE hPolicy,
     SidArray *sids,
     RefDomainList **domains,
     TranslatedNameArray *names,

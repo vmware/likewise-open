@@ -39,13 +39,15 @@
 
 NTSTATUS _LsaClose(
     /* [in] */ handle_t IDL_handle,
-    /* [in, out] */ PolicyHandle *handle
+    /* [in] */ POLICY_HANDLE hIn,
+    /* [out] */ POLICY_HANDLE *hOut
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
     status = LsaClose(IDL_handle,
-                      handle);
+                      hIn,
+                      hOut);
 
     return status;
 }
@@ -178,7 +180,7 @@ NTSTATUS lsa_Function0d(
 
 NTSTATUS _LsaLookupNames(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ uint32 num_names,
     /* [in] */ UnicodeString *names,
     /* [out] */ RefDomainList **domains,
@@ -190,7 +192,7 @@ NTSTATUS _LsaLookupNames(
     NTSTATUS status = STATUS_SUCCESS;
 
     status = LsaLookupNames(IDL_handle,
-                            handle,
+                            hPolicy,
                             num_names,
                             names,
                             domains,
@@ -203,7 +205,7 @@ NTSTATUS _LsaLookupNames(
 
 NTSTATUS _LsaLookupSids(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ SidArray *sids,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedNameArray *names,
@@ -214,7 +216,7 @@ NTSTATUS _LsaLookupSids(
     NTSTATUS status = STATUS_SUCCESS;
 
     status = LsaLookupSids(IDL_handle,
-                           handle,
+                           hPolicy,
                            sids,
                            domains,
                            names,
@@ -481,7 +483,7 @@ NTSTATUS _LsaOpenPolicy2(
     /* [in] */ wchar16_t *system_name,
     /* [in] */ ObjectAttribute *attrib,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *handle
+    /* [out] */ POLICY_HANDLE *hPolicy
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -490,7 +492,7 @@ NTSTATUS _LsaOpenPolicy2(
                             system_name,
                             attrib,
                             access_mask,
-                            handle);
+                            hPolicy);
     return status;
 }
 
@@ -622,7 +624,7 @@ NTSTATUS lsa_Function39(
 
 NTSTATUS _LsaLookupNames2(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ uint32 num_names,
     /* [in] */ UnicodeStringEx *names,
     /* [out] */ RefDomainList **domains,
@@ -636,7 +638,7 @@ NTSTATUS _LsaLookupNames2(
     NTSTATUS status = STATUS_SUCCESS;
 
     status = LsaLookupNames2(IDL_handle,
-                             handle,
+                             hPolicy,
                              num_names,
                              names,
                              domains,
@@ -657,4 +659,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-

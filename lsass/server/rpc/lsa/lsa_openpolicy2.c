@@ -42,18 +42,10 @@ NTSTATUS LsaOpenPolicy2(
     wchar16_t *system_name,
     ObjectAttribute *attrib,
     uint32 access_mask,
-    PolicyHandle *phLsa
+    POLICY_HANDLE *hPolicy
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle h;
-
-    status = RtlPolHndCreate(&h, 1);
-    if (status != STATUS_SUCCESS) {
-        goto error;
-    }
-
-    *phLsa = h;
 
 cleanup:
     return status;

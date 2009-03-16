@@ -49,6 +49,7 @@
 #include "lsarpcsrv.h"
 
 #include "lsa_srv.h"
+#include "lsadefs.h"
 #include "lsa.h"
 #include "lsa_h.h"
 
