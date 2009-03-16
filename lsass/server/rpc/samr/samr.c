@@ -44,7 +44,12 @@ NTSTATUS _SamrConnect(
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrConnect(IDL_handle,
+                         system_name,
+                         access_mask,
+                         hConn);
     return status;
 }
 
@@ -55,7 +60,11 @@ NTSTATUS _SamrClose(
     /* [out,context_handle] */ void **hOut
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrClose(IDL_handle,
+                       hIn,
+                       hOut);
     return status;
 }
 
@@ -94,7 +103,12 @@ NTSTATUS _SamrLookupDomain(
     /* [out] */ SID **sid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrLookupDomain(IDL_handle,
+                              hConn,
+                              domain_name,
+                              sid);
     return status;
 }
 
@@ -108,7 +122,14 @@ NTSTATUS _SamrEnumDomains(
     /* [out] */ uint32 *num_entries
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrEnumDomains(IDL_handle,
+                             hConn,
+                             resume,
+                             size,
+                             domains,
+                             num_entries);
     return status;
 }
 
@@ -121,7 +142,13 @@ NTSTATUS _SamrOpenDomain(
     /* [out] */ PolicyHandle *domain_handle
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrOpenDomain(IDL_handle,
+                            hConn,
+                            access_mask,
+                            sid,
+                            domain_handle);
     return status;
 }
 
@@ -656,7 +683,13 @@ NTSTATUS _SamrConnect2(
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrConnect2(IDL_handle,
+                          size,
+                          system_name,
+                          access_mask,
+                          hConn);
     return status;
 }
 

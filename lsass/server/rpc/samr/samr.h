@@ -39,9 +39,9 @@
 
 
 NTSTATUS
-SamrConnect2(
-    handle_t b,
-    const wchar16_t *sysname,
+SamrConnect(
+    handle_t hBinding,
+    const wchar16_t *system_name,
     uint32 access_mask,
     CONNECT_HANDLE *hConn
     );
@@ -52,6 +52,46 @@ SamrClose(
     handle_t bind,
     void *hIn,
     void **hOut
+    );
+
+
+NTSTATUS
+SamrLookupDomain(
+    handle_t hBinding,
+    CONNECT_HANDLE hConn,
+    UnicodeString *domain_name,
+    SID **sid
+    );
+
+
+NTSTATUS
+SamrEnumDomains(
+    handle_t hBinding,
+    CONNECT_HANDLE hConn,
+    uint32 *resume,
+    uint32 size,
+    EntryArray **domains,
+    uint32 *num_entries
+    );
+
+
+NTSTATUS
+SamrOpenDomain(
+    handle_t hBinding,
+    CONNECT_HANDLE hConn,
+    uint32 access_mask,
+    SID *sid,
+    PolicyHandle *domain_handle
+    );
+
+
+NTSTATUS
+SamrConnect2(
+    handle_t hBinding,
+    uint32 size,
+    const wchar16_t *sysname,
+    uint32 access_mask,
+    CONNECT_HANDLE *hConn
     );
 
 
