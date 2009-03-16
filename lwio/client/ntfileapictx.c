@@ -783,7 +783,42 @@ LwNtCtxQueryVolumeInformationFile(
     OUT PVOID FsInformation,
     IN ULONG Length,
     IN FS_INFORMATION_CLASS FsInformationClass
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE_RESULT;
+    NT_IPC_MESSAGE_QUERY_VOLUME_INFORMATION_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+    request.Length = Length;
+    request.FsInformationClass = FsInformationClass;
+
+    status = NtpCtxCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
+
+    status = NtpCtxGetBufferResult(&ioStatusBlock, FsInformation, Length, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
 
 NTSTATUS
 LwNtCtxSetVolumeInformationFile(

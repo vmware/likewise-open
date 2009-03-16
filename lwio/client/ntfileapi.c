@@ -516,7 +516,33 @@ NtQueryVolumeInformationFile(
     OUT PVOID FsInformation,
     IN ULONG Length,
     IN FS_INFORMATION_CLASS FsInformationClass
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_CONTEXT context = { 0 };
+
+    NtpInitializeIoStatusBlock(IoStatusBlock);
+
+    status = LwIoAcquireContext(&context);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxQueryVolumeInformationFile(
+                    &context,
+                    FileHandle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    FsInformation,
+                    Length,
+                    FsInformationClass);
+
+cleanup:
+
+    LwIoReleaseContext(&context);
+
+    return status;
+}
 
 NTSTATUS
 NtSetVolumeInformationFile(

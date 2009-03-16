@@ -568,6 +568,11 @@ typedef struct
 
 typedef struct
 {
+    SMB_INFO_LEVEL infoLevel;
+} __attribute__((__packed__)) SMB_QUERY_FS_INFO_HEADER, *PSMB_QUERY_FS_INFO_HEADER;
+
+typedef struct
+{
     USHORT usFid;
     SMB_INFO_LEVEL infoLevel;
     USHORT usReserved;

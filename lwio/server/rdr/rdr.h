@@ -151,6 +151,12 @@ RdrQueryDirectory(
     );
 
 NTSTATUS
+RdrQueryVolumeInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
 RdrSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
@@ -296,6 +302,15 @@ RdrTransactNtTransQuerySecurityDesc(
     PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
     ULONG ulLength,
     PULONG ulLengthUsed
+    );
+
+NTSTATUS
+RdrTransactQueryFsInfo(
+    PSMB_TREE pTree,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength,
+    PULONG pulInfoLengthUsed
     );
 
 void

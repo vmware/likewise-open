@@ -14,6 +14,7 @@ librdr_sys_la_SOURCES =   \
     setinfofile.c         \
     renamefile.c          \
     querysecurity.c       \
+    queryfsinfo.c         \
     findfirst2.c          \
     findnext2.c           \
     response.c            \
@@ -40,6 +41,7 @@ librdr_sys_la_SOURCES =   \
     rdrdeviceio.c         \
     rdrfsctl.c            \
     rdrsecurity.c         \
+    rdrqueryfs.c          \
     rdrclose.c
 
 librdr_sys_la_CPPFLAGS = \

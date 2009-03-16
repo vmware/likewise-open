@@ -149,6 +149,11 @@ RdrDriverDispatch(
             pIrp
             );
         break;
+    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
+        ntStatus = RdrQueryVolumeInformation(
+            DeviceHandle,
+            pIrp);
+        break;
     case IRP_TYPE_SET_INFORMATION:
         ntStatus = RdrSetInformation(
             DeviceHandle,
