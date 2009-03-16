@@ -1042,8 +1042,8 @@ WireMarshalTrans2RequestSetup(
     ntStatus = Advance(&pCursor, &ulRemainingSpace, sizeof(USHORT));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Align to SHORT */
-    ntStatus = Align((PBYTE) pSmbHeader, &pCursor, &ulRemainingSpace, sizeof(SHORT));
+    /* Align to LONG */
+    ntStatus = Align((PBYTE) pSmbHeader, &pCursor, &ulRemainingSpace, sizeof(LONG));
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Write WordCount */
