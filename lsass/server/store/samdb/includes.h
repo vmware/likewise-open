@@ -35,6 +35,7 @@
 
 #include "lsa/lsa.h"
 #include <lw/ntstatus.h>
+#include <lw/rbtree.h>
 
 #include "lsautils.h"
 #include "lsaunistr.h"

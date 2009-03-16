@@ -105,11 +105,80 @@ error:
     goto cleanup;
 }
 
+DWORD
+SamDbAddDomainAttrLookups(
+    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
+    )
+{
+    DWORD dwError = 0;
+    struct {
+        PSTR pszAttrName;
+        SAMDB_ATTRIBUTE_TYPE attrType;
+        BOOL bIsMandatory;
+    } domainAttrs[] =
+    {
+        {
+            SAMDB_ATTR_TAG_DOMAIN_NAME,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_DOMAIN_SID,
+            SAMDB_ATTRIBUTE_TYPE_SID,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_DOMAIN_NETBIOS_NAME,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            TRUE
+        }
+    };
+    DWORD dwNumAttrs = sizeof(domainAttrs)/sizeof(domainAttrs[0]);
+    DWORD iAttr = 0;
+    PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pAttrEntry = NULL;
+
+    for(; iAttr < dwNumAttrs; iAttr++)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(SAMDB_ATTRIBUTE_LOOKUP_ENTRY),
+                        (PVOID*)&pAttrEntry);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        domainAttrs[iAttr].pszAttrName,
+                        &pAttrEntry->pwszAttributeName);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pAttrEntry->bIsMandatory = domainAttrs[iAttr].bIsMandatory;
+        pAttrEntry->attrType = domainAttrs[iAttr].attrType;
+
+        dwError = LwRtlRBTreeAdd(
+                        pAttrLookup->pAttrTree,
+                        pAttrEntry->pwszAttributeName,
+                        pAttrEntry);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pAttrEntry = NULL;
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pAttrEntry)
+    {
+        SamDbFreeAttributeLookupEntry(pAttrEntry);
+    }
+
+    goto cleanup;
+}
 
 DWORD
 SamDbAddDomain(
     HANDLE hDirectory,
-    PWSTR pszObjectName,
+    PWSTR  pwszObjectName,
     DIRECTORY_MOD Modifications[]
     )
 {

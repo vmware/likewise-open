@@ -1,5 +1,16 @@
 #include "includes.h"
 
+#define SAMDB_BUILTIN_TAG    "BUILTIN"
+#define SAMDB_BUILTIN_TAG_L L"BUILTIN"
+#define SAMDB_BUILTIN_SID    "S-1-22"
+#define SAMDB_BUILTIN_SID_L L"S-1-22"
+
+static
+DWORD
+SamDbAddDefaultEntries(
+    HANDLE hDirectory
+    );
+
 DWORD
 DirectoryInitializeProvider(
     PCSTR pszConfigFilePath,
@@ -23,6 +34,9 @@ DirectoryInitializeProvider(
     gSamGlobals.providerFunctionTable = providerAPITable;
 
     dwError = SamDbBuildDbInstanceLock(&gSamGlobals.pDbInstanceLock);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbBuildAttributeLookup(&gSamGlobals.pAttrLookup);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbInit();
@@ -117,6 +131,9 @@ SamDbInit(
     dwError = SamDbInitUserTable(pDirectory->pDbContext);
     BAIL_ON_SAMDB_ERROR(dwError);
 
+    dwError = SamDbAddDefaultEntries(pDirectory);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     dwError = LsaChangeOwnerAndPermissions(
                     SAM_DB,
                     0,
@@ -138,4 +155,13 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+SamDbAddDefaultEntries(
+    HANDLE hDirectory
+    )
+{
+    DWORD dwError = 0;
 
+    return dwError;
+}

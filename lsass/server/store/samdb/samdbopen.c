@@ -10,6 +10,7 @@ SamDbOpen(
 
     dwError = SamDbBuildDirectoryContext(
                     gSamGlobals.pDbInstanceLock,
+                    gSamGlobals.pAttrLookup,
                     &pDirContext);
     BAIL_ON_SAMDB_ERROR(dwError);
 

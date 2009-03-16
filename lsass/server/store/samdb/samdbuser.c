@@ -145,3 +145,139 @@ error:
     goto cleanup;
 }
 
+DWORD
+SamDbAddUserAttrLookups(
+    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
+    )
+{
+    DWORD dwError = 0;
+    struct {
+        PSTR pszAttrName;
+        SAMDB_ATTRIBUTE_TYPE attrType;
+        BOOL bIsMandatory;
+    } userAttrs[] =
+    {
+        {
+            SAMDB_ATTR_TAG_USER_NAME,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_USER_FULLNAME,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_UID,
+            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_USER_SID,
+            SAMDB_ATTRIBUTE_TYPE_SID,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_USER_PRIMARY_GROUP,
+            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_USER_PASSWORD,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            FALSE
+        },
+        {
+            SAMDB_ATTR_TAG_GECOS,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            FALSE
+        },
+        {
+            SAMDB_ATTR_TAG_HOMEDIR,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_PASSWORD_CHANGE_TIME,
+            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            FALSE
+        },
+        {
+            SAMDB_ATTR_TAG_ACCOUNT_EXPIRY,
+            SAMDB_ATTRIBUTE_TYPE_DATETIME,
+            FALSE
+        },
+        {
+            SAMDB_ATTR_TAG_USER_INFO_FLAGS,
+            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            FALSE
+        },
+        {
+            SAMDB_ATTR_TAG_USER_LM_HASH,
+            SAMDB_ATTRIBUTE_TYPE_OCTET_STREAM,
+            FALSE
+        },
+        {
+            SAMDB_ATTR_TAG_USER_NT_HASH,
+            SAMDB_ATTRIBUTE_TYPE_OCTET_STREAM,
+            FALSE
+        }
+    };
+    DWORD dwNumAttrs = sizeof(userAttrs)/sizeof(userAttrs[0]);
+    DWORD iAttr = 0;
+    PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pAttrEntry = NULL;
+
+    for(; iAttr < dwNumAttrs; iAttr++)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(SAMDB_ATTRIBUTE_LOOKUP_ENTRY),
+                        (PVOID*)&pAttrEntry);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        userAttrs[iAttr].pszAttrName,
+                        &pAttrEntry->pwszAttributeName);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pAttrEntry->bIsMandatory = userAttrs[iAttr].bIsMandatory;
+        pAttrEntry->attrType = userAttrs[iAttr].attrType;
+
+        dwError = LwRtlRBTreeAdd(
+                        pAttrLookup->pAttrTree,
+                        pAttrEntry->pwszAttributeName,
+                        pAttrEntry);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pAttrEntry = NULL;
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pAttrEntry)
+    {
+        SamDbFreeAttributeLookupEntry(pAttrEntry);
+    }
+
+    goto cleanup;
+}
+
+
+DWORD
+SamDbAddUser(
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectName,
+    DIRECTORY_MOD Modifications[]
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    return dwError;
+}
+

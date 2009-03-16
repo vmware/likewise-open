@@ -17,24 +17,29 @@ typedef struct _ATTRIBUTE_VALUE {
     ULONG Type;
     union {
         ULONG uLongValue;
-        PWSTR pszStringValue;
+        PWSTR pwszStringValue;
         BOOL  bBooleanValue;
         POCTET_STRING pOctetString;
     };
 } ATTRIBUTE_VALUE, *PATTRIBUTE_VALUE;
 
 typedef struct _DIRECTORY_ATTRIBUTE {
-    PWSTR AttributeName;
+    PWSTR pwszAttributeName;
     ULONG ulNumValues;
     PATTRIBUTE_VALUE * ppAttributeValues;
 } DIRECTORY_ATTRIBUTE, *PDIRECTORY_ATTRIBUTE;
 
+typedef ULONG DIR_MOD_FLAGS;
+
+#define DIR_MOD_FLAGS_ADD     0x0
+#define DIR_MOD_FLAGS_REPLACE 0x1
+#define DIR_MOD_FLAGS_DELETE  0x2
+
 typedef struct _DIRECTORY_MOD {
-    ULONG Operation;
-    PWSTR AttributeName;
-    ULONG ulType;
-    ULONG ulNumValues;
-    PATTRIBUTE_VALUE *pAttribuValues;
+    DIR_MOD_FLAGS    ulOperationFlags;
+    PWSTR            pwszAttributeName;
+    ULONG            ulNumValues;
+    PATTRIBUTE_VALUE pAttributeValues;
 } DIRECTORY_MOD, *PDIRECTORY_MOD;
 
 typedef struct _DIRECTORY_ENTRY{
@@ -67,11 +72,11 @@ typedef DWORD (*PFNDIRECTORYMODIFY)(
 
 typedef DWORD (*PFNDIRECTORYSEARCH)(
                     HANDLE hDirectory,
-                    PWSTR Base,
-                    ULONG Scope,
-                    PWSTR Filter,
-                    PWSTR Attributes[],
-                    ULONG AttributesOnly,
+                    PWSTR  pwszBase,
+                    ULONG  ulScope,
+                    PWSTR  pwszFilter,
+                    PWSTR  wszAttributes[],
+                    ULONG  ulAttributesOnly,
                     PATTRIBUTE_VALUE * ppDirectoryValues,
                     PDWORD pdwNumValues
                     );

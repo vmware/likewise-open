@@ -3,7 +3,8 @@
 
 DWORD
 SamDbBuildDirectoryContext(
-    PSAM_DB_INSTANCE_LOCK pDbInstanceLock,
+    PSAM_DB_INSTANCE_LOCK   pDbInstanceLock,
+    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup,
     PSAM_DIRECTORY_CONTEXT* ppDirContext
     );
 

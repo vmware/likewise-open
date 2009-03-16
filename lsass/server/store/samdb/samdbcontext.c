@@ -2,7 +2,8 @@
 
 DWORD
 SamDbBuildDirectoryContext(
-    PSAM_DB_INSTANCE_LOCK pDbInstanceLock,
+    PSAM_DB_INSTANCE_LOCK   pDbInstanceLock,
+    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup,
     PSAM_DIRECTORY_CONTEXT* ppDirContext
     )
 {
@@ -25,6 +26,11 @@ SamDbBuildDirectoryContext(
     dwError = SamDbAcquireDbInstanceLock(
                     pDbInstanceLock,
                     &pDirContext->pDbContext->pDbInstanceLock);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbAcquireAttributeLookup(
+                    pAttrLookup,
+                    &pDirContext->pAttrLookup);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = sqlite3_open(
@@ -75,6 +81,11 @@ SamDbFreeDirectoryContext(
         if (pDirContext->pDbContext->pDbInstanceLock)
         {
             SamDbReleaseDbInstanceLock(pDirContext->pDbContext->pDbInstanceLock);
+        }
+
+        if (pDirContext->pAttrLookup)
+        {
+            SamDbReleaseAttributeLookup(pDirContext->pAttrLookup);
         }
 
         if (pDirContext->pDbContext->pDbHandle)

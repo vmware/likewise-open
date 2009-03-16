@@ -90,3 +90,117 @@ error:
     goto cleanup;
 }
 
+DWORD
+SamDbAddGroupAttrLookups(
+    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
+    )
+{
+    DWORD dwError = 0;
+    struct {
+        PSTR pszAttrName;
+        SAMDB_ATTRIBUTE_TYPE attrType;
+        BOOL bIsMandatory;
+    } groupAttrs[] =
+    {
+        {
+            SAMDB_ATTR_TAG_GROUP_NAME,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_GID,
+            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_GROUP_SID,
+            SAMDB_ATTRIBUTE_TYPE_SID,
+            TRUE
+        },
+        {
+            SAMDB_ATTR_TAG_GROUP_PASSWORD,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            FALSE
+        },
+        {
+            SAMDB_ATTR_TAG_GROUP_MEMBERS,
+            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            FALSE
+        }
+    };
+    DWORD dwNumAttrs = sizeof(groupAttrs)/sizeof(groupAttrs[0]);
+    DWORD iAttr = 0;
+    PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pAttrEntry = NULL;
+
+    for(; iAttr < dwNumAttrs; iAttr++)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(SAMDB_ATTRIBUTE_LOOKUP_ENTRY),
+                        (PVOID*)&pAttrEntry);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        groupAttrs[iAttr].pszAttrName,
+                        &pAttrEntry->pwszAttributeName);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pAttrEntry->bIsMandatory = groupAttrs[iAttr].bIsMandatory;
+        pAttrEntry->attrType = groupAttrs[iAttr].attrType;
+
+        dwError = LwRtlRBTreeAdd(
+                        pAttrLookup->pAttrTree,
+                        pAttrEntry->pwszAttributeName,
+                        pAttrEntry);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pAttrEntry = NULL;
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pAttrEntry)
+    {
+        SamDbFreeAttributeLookupEntry(pAttrEntry);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+SamDbAddGroup(
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectName,
+    DIRECTORY_MOD Modifications[]
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    DWORD dwNumModifications = 0;
+    DWORD iModification = 0;
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    if (!pDirContext || !pwszObjectName || !*pwszObjectName)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwNumModifications = sizeof(Modifications)/sizeof(Modifications[0]);
+    for (; iModification < dwNumModifications; iModification++)
+    {
+        // PDIRECTORY_MOD pMod = &Modifications[iModification];
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}

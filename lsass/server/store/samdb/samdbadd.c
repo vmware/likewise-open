@@ -77,26 +77,3 @@ error:
     goto cleanup;
 }
 
-DWORD
-SamDbAddUser(
-    HANDLE hDirectory,
-    PWSTR pszObjectName,
-    DIRECTORY_MOD Modifications[]
-    )
-{
-    DWORD dwError = 0;
-    return dwError;
-}
-
-
-DWORD
-SamDbAddGroup(
-    HANDLE hDirectory,
-    PWSTR pszObjectName,
-    DIRECTORY_MOD Modifications[]
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
