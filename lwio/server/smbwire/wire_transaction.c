@@ -456,23 +456,23 @@ WireUnmarshallTransactionParameterData(
     PWSTR    pwszName = NULL;
     PWSTR    pwszCursor = NULL;
 
-    if (ulOffset % 4)
-    {
-        USHORT usAlignment = (4 - (ulOffset % 4));
-
-        if (ulNumBytesAvailable < usAlignment)
-        {
-            ntStatus = STATUS_INVALID_BUFFER_SIZE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pDataCursor += usAlignment;
-        ulNumBytesAvailable -= usAlignment;
-        ulOffset += usAlignment;
-    }
-
     if (ppwszName)
     {
+        if (ulOffset % 2)
+        {
+            USHORT usAlignment = ulOffset % 2;
+
+            if (ulNumBytesAvailable < usAlignment)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pDataCursor += usAlignment;
+            ulNumBytesAvailable -= usAlignment;
+            ulOffset += usAlignment;
+        }
+
         do
         {
             if (ulNumBytesAvailable < sizeof(wchar16_t))
@@ -515,6 +515,12 @@ WireUnmarshallTransactionParameterData(
         ulOffset += usOffsetDelta;
         pDataCursor += usOffsetDelta;
         ulNumBytesAvailable -= usOffsetDelta;
+    }
+
+    if ((ulOffset % 2) && (ulOffset %4))
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (ulNumBytesAvailable < parameterLen)
