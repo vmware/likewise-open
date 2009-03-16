@@ -38,7 +38,6 @@
 
 #include <lw/security-api.h>
 #include "security-api2.h"
-#include "security-token-create-info.h"
 #include "security-types-internal.h"
 #include <lw/rtlgoto.h>
 #include <lw/rtlmemory.h>
