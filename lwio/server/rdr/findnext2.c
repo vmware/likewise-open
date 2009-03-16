@@ -109,9 +109,13 @@ RdrTransactFindNext2(
     pFindParameters->infoLevel           = SMB_HTOL16(infoLevel);
     pFindParameters->ulResumeKey         = SMB_HTOL32(ulResumeKey);
     pFindParameters->usFlags             = SMB_HTOL16(usFlags);
-    SMB_HTOLWSTR(pFindParameters->pwszFileName,
-                 pwszFileName,
-                 LwRtlWC16StringNumChars(pwszFileName));
+
+    if (pwszFileName)
+    {
+        SMB_HTOLWSTR(pFindParameters->pwszFileName,
+                     pwszFileName,
+                     LwRtlWC16StringNumChars(pwszFileName));
+    }
 
     ntStatus = WireMarshallTransactionRequestData(
         packet.pData,

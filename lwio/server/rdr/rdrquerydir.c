@@ -127,13 +127,37 @@ RdrCommonQueryDirectory(
 
     pHandle = IoFileGetContext(pIrp->FileHandle);
 
-    if (pHandle->find.usEndOfSearch &&
-        pHandle->find.usSearchCount == 0)
+    if (pHandle->find.pBuffer && pHandle->find.usSearchCount == 0)
     {
-        /* We are out of of buffered entries and
-           the server has no more results for us */
-        ntStatus = STATUS_NO_MORE_MATCHES;
-        BAIL_ON_NT_STATUS(ntStatus);
+        if (pHandle->find.usEndOfSearch)
+        {
+            /* We are out of of buffered entries and
+               the server has no more results for us */
+            ntStatus = STATUS_NO_MORE_MATCHES;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+        else
+        {
+            /* Perform a find next */
+            ntStatus = RdrTransactFindNext2(
+                pHandle->pTree,
+                pHandle->find.usSearchId,
+                512, /* Search count */
+                infoLevel,
+                0, /* ulResumeKey */
+                0x2, /* Search flags */
+                NULL, /* Filename */
+                &pHandle->find.usSearchCount,
+                &pHandle->find.usEndOfSearch,
+                NULL, /* EA error offest */
+                &pHandle->find.usLastNameOffset, /* Last name offset */
+                pHandle->find.pBuffer,
+                pHandle->find.ulBufferCapacity,
+                &pHandle->find.ulBufferLength);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pHandle->find.pCursor = pHandle->find.pBuffer;
+        }
     }
     else if (!pHandle->find.pBuffer)
     {
