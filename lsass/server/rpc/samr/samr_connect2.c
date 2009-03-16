@@ -40,7 +40,7 @@
 NTSTATUS SamrConnect2(
     /* [in] */ wchar16_t *system_name,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *connect_handle
+    /* [out] */ CONNECT_HANDLE *hConn
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;

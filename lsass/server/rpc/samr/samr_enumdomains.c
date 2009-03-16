@@ -29,7 +29,7 @@
  */
 
 /*
- * Abstract: SamrLookupDomain function (rpc server library)
+ * Abstract: SamrEnumDomains function (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -38,8 +38,8 @@
 
 
 NTSTATUS
-SamrLookupDomain(
-    /* [in] */ PolicyHandle *handle,
+SamrEnumDomains(
+    /* [in] */ CONNECT_HANDLE hConn
     /* [in, out] */ uint32 *resume,
     /* [in] */ uint32 size,
     /* [out] */ EntryArray **domains,

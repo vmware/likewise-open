@@ -53,6 +53,7 @@
 
 #include "samr_srv.h"
 #include <secdesc/sectypes.h>
+#include "samrdefs.h"
 #include "samr.h"
 #include "samr_h.h"
 

@@ -41,7 +41,7 @@ NTSTATUS _SamrConnect(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *system_name,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *connect_handle
+    /* [out] */ CONNECT_HANDLE *hConn
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
@@ -51,7 +51,8 @@ NTSTATUS _SamrConnect(
 
 NTSTATUS _SamrClose(
     /* [in] */ handle_t IDL_handle,
-    /* [in, out] */ PolicyHandle *handle
+    /* [in,context_handle] */ void *hIn,
+    /* [out,context_handle] */ void **hOut
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
@@ -88,7 +89,7 @@ NTSTATUS samr_Function04(
 
 NTSTATUS _SamrLookupDomain(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ CONNECT_HANDLE hConn,
     /* [in] */ UnicodeString *domain_name,
     /* [out] */ SID **sid
     )
@@ -100,7 +101,7 @@ NTSTATUS _SamrLookupDomain(
 
 NTSTATUS _SamrEnumDomains(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ CONNECT_HANDLE hConn,
     /* [in, out] */ uint32 *resume,
     /* [in] */ uint32 size,
     /* [out] */ EntryArray **domains,
@@ -114,7 +115,7 @@ NTSTATUS _SamrEnumDomains(
 
 NTSTATUS _SamrOpenDomain(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *conn_handle,
+    /* [in] */ CONNECT_HANDLE hConn,
     /* [in] */ uint32 access_mask,
     /* [in] */ SID *sid,
     /* [out] */ PolicyHandle *domain_handle
@@ -652,7 +653,7 @@ NTSTATUS _SamrConnect2(
     /* [in] */ uint32 size,
     /* [in] */ wchar16_t *system_name,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *connect_handle
+    /* [out] */ CONNECT_HANDLE *hConn
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
@@ -701,7 +702,7 @@ NTSTATUS _SamrConnect4(
     /* [in] */ wchar16_t *system_name,
     /* [in] */ uint32 unknown,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *connect_handle
+    /* [out] */ CONNECT_HANDLE *hConn
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -43,16 +43,27 @@ SamrConnect2(
     handle_t b,
     const wchar16_t *sysname,
     uint32 access_mask,
-    PolicyHandle *conn_handle
+    CONNECT_HANDLE *hConn
     );
 
 
 NTSTATUS
 SamrClose(
     handle_t bind,
-    PolicyHandle *handle
+    void *hIn,
+    void **hOut
     );
 
 
 #endif /* _SAMR_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 
