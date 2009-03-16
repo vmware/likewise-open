@@ -16,6 +16,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/userinfo.h>
+#include "samrdefs.h"
 
     /* DomainInfo union returned from SamrQueryDomainInfo */
     typedef [switch_type(uint16)] union domain_info {
@@ -73,12 +74,13 @@ cpp_quote("#endif")
     NTSTATUS _SamrConnect(
         [in,unique] wchar16_t *system_name,
         [in] uint32 access_mask,
-        [out,ref] PolicyHandle *connect_handle
+        [out] CONNECT_HANDLE *hConn
         );
 
     /* function 0x01 */
     NTSTATUS _SamrClose(
-        [in,out,ref] PolicyHandle *handle
+        [in,context_handle] void *hIn,
+        [out,context_handle] void **hOut
         );
 
     NTSTATUS samr_Function02();
@@ -87,13 +89,13 @@ cpp_quote("#endif")
 
     /* function 0x05 */
     NTSTATUS _SamrLookupDomain(
-        [in,ref] PolicyHandle *handle,
+        [in] CONNECT_HANDLE hConn,
         [in,ref] UnicodeString *domain_name,
         [out] PSID* sid
         );
 
     NTSTATUS _SamrEnumDomains(
-        [in,ref] PolicyHandle *handle,
+        [in] CONNECT_HANDLE hConn,
         [in,out,ref] uint32 *resume,
         [in] uint32 size,
         [out] EntryArray **domains,
@@ -102,7 +104,7 @@ cpp_quote("#endif")
 
     /* function 0x07 */
     NTSTATUS _SamrOpenDomain(
-        [in,ref] PolicyHandle *conn_handle,
+        [in] CONNECT_HANDLE hConn,
         [in] uint32 access_mask,
         [in,ref] IDLREF_PSID sid,
         [out,ref] PolicyHandle *domain_handle
@@ -320,7 +322,7 @@ cpp_quote("#endif")
         [in] uint32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
         [in] uint32 access_mask,
-        [out,ref] PolicyHandle *connect_handle
+        [out] CONNECT_HANDLE *hConn
         );
 
     NTSTATUS samr_Function3a();
@@ -333,7 +335,7 @@ cpp_quote("#endif")
         [in,string] wchar16_t *system_name,
         [in] uint32 unknown,
         [in] uint32 access_mask,
-        [out,ref] PolicyHandle *connect_handle
+        [out] CONNECT_HANDLE *hConn
         );
 }
 
