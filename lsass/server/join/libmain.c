@@ -64,6 +64,9 @@ LsaNetJoinInitialize(
 
     dwError = SamrInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NetInitMemory();
+    BAIL_ON_LSA_ERROR(dwError);
     
     BAIL_ON_INVALID_POINTER(ppFuncTable);
     
@@ -86,11 +89,13 @@ LsaNetJoinShutdown(
     )
 {
     LsaKrb5Shutdown();
-    
+
     NetrDestroyMemory();
 
     SamrDestroyMemory();
     
     LsaRpcDestroyMemory();
+
+    NetDestroyMemory();
 }
 
