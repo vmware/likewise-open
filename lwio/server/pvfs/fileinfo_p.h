@@ -105,6 +105,12 @@ PvfsFileBothDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsFileDirInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 /* QueryVolumeInformation */
 

@@ -39,6 +39,7 @@ libpvfs_sys_la_SOURCES = \
     fileStandardInfo.c \
     fileInternalInfo.c \
     fileBothDirInfo.c \
+    fileDirInfo.c \
     fileEaInfo.c \
     fileStreamInfo.c \
     fileEndOfFileInfo.c \
