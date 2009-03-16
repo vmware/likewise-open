@@ -641,7 +641,7 @@ NetConnectLsa(
 cleanup:
     SAFE_FREE(host);
 
-    return STATUS_SUCCESS;
+    return status;
 
 error:
     if (cn) {
