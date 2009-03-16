@@ -77,7 +77,6 @@ PvfsFreeAbsoluteSecurityDescriptor(
 NTSTATUS
 PvfsGetSecurityDescriptorFileXattr(
     IN PPVFS_CCB pCcb,
-    IN SECURITY_INFORMATION SecInfo,
     IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
     IN OUT PULONG pSecDescLen
     );
@@ -85,7 +84,6 @@ PvfsGetSecurityDescriptorFileXattr(
 NTSTATUS
 PvfsSetSecurityDescriptorFileXattr(
     IN PPVFS_CCB pCcb,
-    IN SECURITY_INFORMATION SecInfo,
     IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
     IN ULONG SecDescLen
     );

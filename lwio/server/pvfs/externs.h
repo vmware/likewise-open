@@ -32,7 +32,7 @@
 #define __EXTERNS_H__
 
 extern PSTR           gpszPVFSProviderName;
-extern GENERIC_MAPPING gFileGenericMapping;
+extern GENERIC_MAPPING gPvfsFileGenericMapping;
 
 
 #endif /* __EXTERNS_H__ */

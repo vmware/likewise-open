@@ -28,11 +28,27 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        globals.c
+ *
+ * Abstract:
+ *
+ *        Likewise Posix File System Driver (PVFS)
+ *
+ *        Driver globals
+ *
+ * Authors:  Gerald Carter <gcarter@likewise.com>
+ */
+
+#include "pvfs.h"
 
 PSTR gpszPVFSProviderName = "Posix Virtual File System";
 
-GENERIC_MAPPING gFileGenericMapping = {
+GENERIC_MAPPING gPvfsFileGenericMapping = {
     FILE_GENERIC_READ,
     FILE_GENERIC_WRITE,
     FILE_GENERIC_EXECUTE,

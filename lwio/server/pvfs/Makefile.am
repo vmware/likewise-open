@@ -2,6 +2,7 @@
 lib_LTLIBRARIES = libpvfs.sys.la
 
 libpvfs_sys_la_SOURCES = \
+    globals.c \
     driver.c \
     create.c \
     read.c   \

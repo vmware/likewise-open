@@ -51,21 +51,18 @@
 
 static NTSTATUS
 CreateDefaultSecDescFile(
-    IN SECURITY_INFORMATION SecInfo,
     IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
     IN OUT PULONG pSecDescLen
     );
 
 static NTSTATUS
 CreateDefaultSecDescDir(
-    IN SECURITY_INFORMATION SecInfo,
     IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
     IN OUT PULONG pSecDescLen
     );
 
 static NTSTATUS
 CreateDefaultSecDesc(
-    IN SECURITY_INFORMATION SecInfo,
     IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
     IN OUT PULONG pSecDescLen,
     BOOLEAN bIsDirectory
@@ -100,28 +97,55 @@ PvfsGetSecurityDescriptorFile(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSECURITY_DESCRIPTOR_RELATIVE pFullSecDesc = NULL;
+    ULONG FullSecDescLen = 0;
+    BOOLEAN bNoStoredSecDesc = FALSE;
+
+    FullSecDescLen = 1024;
+    do
+    {
+        ntError = PvfsReallocateMemory((PVOID*)&pFullSecDesc, FullSecDescLen);
+        BAIL_ON_NT_STATUS(ntError);
 
 #ifdef HAVE_EA_SUPPORT
-    ntError = PvfsGetSecurityDescriptorFileXattr(pCcb,
-                                                 SecInfo,
-                                                 pSecDesc,
-                                                 pSecDescLen);
-#endif
-    /* Fallback to generating a default secdesc */
+        /* Try to get from EA but short circuit future attempts this go
+           round if there is nothing there */
 
-    if (!NT_SUCCESS(ntError))
-    {
-        if (pCcb->CreateOptions & FILE_DIRECTORY_FILE) {
-            ntError = CreateDefaultSecDescDir(SecInfo, pSecDesc, pSecDescLen);
-        } else {
-            ntError = CreateDefaultSecDescFile(SecInfo, pSecDesc, pSecDescLen);
+        if (!bNoStoredSecDesc) {
+            ntError = PvfsGetSecurityDescriptorFileXattr(pCcb,
+                                                         pFullSecDesc,
+                                                         &FullSecDescLen);
         }
-        BAIL_ON_NT_STATUS(ntError);
-    }
+#endif
+        /* Fallback to generating a default secdesc */
 
-    ntError = STATUS_SUCCESS;
+        if (!NT_SUCCESS(ntError) && (ntError != STATUS_BUFFER_TOO_SMALL))
+        {
+            bNoStoredSecDesc = TRUE;
+
+            if (pCcb->CreateOptions & FILE_DIRECTORY_FILE) {
+                ntError = CreateDefaultSecDescDir(pFullSecDesc, &FullSecDescLen);
+            } else {
+                ntError = CreateDefaultSecDescFile(pFullSecDesc, &FullSecDescLen);
+            }
+        }
+
+        if (ntError == STATUS_BUFFER_TOO_SMALL) {
+            FullSecDescLen *= 2;
+        }
+    } while ((ntError != STATUS_SUCCESS) &&
+             (FullSecDescLen <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE));
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlQuerySecurityDescriptorInfo(SecInfo,
+                                             pSecDesc,
+                                             pSecDescLen,
+                                             pFullSecDesc);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    PVFS_SAFE_FREE_MEMORY(pFullSecDesc);
+
     return ntError;
 
 error:
@@ -136,21 +160,76 @@ NTSTATUS
 PvfsSetSecurityDescriptorFile(
     IN PPVFS_CCB pCcb,
     IN SECURITY_INFORMATION SecInfo,
-    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
     IN ULONG SecDescLen
     )
 {
     NTSTATUS ntError = STATUS_ACCESS_DENIED;
+    PSECURITY_DESCRIPTOR_RELATIVE pSDCur = NULL;
+    ULONG SDCurLen = 0;
+    PSECURITY_DESCRIPTOR_RELATIVE pNewSecDesc = NULL;
+    ULONG NewSecDescLen = 0;
+    SECURITY_INFORMATION SecInfoAll = OWNER_SECURITY_INFORMATION |
+                                      GROUP_SECURITY_INFORMATION |
+                                      DACL_SECURITY_INFORMATION |
+                                      SACL_SECURITY_INFORMATION;
+
+    /* Sanity checks */
+
+    if (SecInfo == 0) {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Retrieve the existing SD and merge with the incoming one */
+
+    SDCurLen = 1024;
+    do
+    {
+        ntError = PvfsReallocateMemory((PVOID*)&pSDCur, SDCurLen);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsGetSecurityDescriptorFile(pCcb,
+                                                SecInfoAll,
+                                                pSDCur,
+                                                &SDCurLen);
+        if (ntError == STATUS_BUFFER_TOO_SMALL) {
+            SDCurLen *= 2;
+        }
+    } while ((ntError != STATUS_SUCCESS) && (SDCurLen <= 4096));
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Assume that the new SD is <= the combined size of the current
+       SD and the incoming one */
+
+    NewSecDescLen = SDCurLen + SecDescLen;
+    ntError = PvfsAllocateMemory((PVOID*)&pNewSecDesc, NewSecDescLen);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlSetSecurityDescriptorInfo(SecInfo,
+                                           pSecDesc,
+                                           pSDCur,
+                                           pNewSecDesc,
+                                           &NewSecDescLen,
+                                           &gPvfsFileGenericMapping);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Save the combined SD */
 
 #ifdef HAVE_EA_SUPPORT
     ntError = PvfsSetSecurityDescriptorFileXattr(pCcb,
-                                                 SecInfo,
-                                                 pSecDescRelative,
-                                                 SecDescLen);
+                                                 pNewSecDesc,
+                                                 NewSecDescLen);
+#else
+    ntError = STATUS_ACCESS_DENIED;
 #endif
+
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    PVFS_SAFE_FREE_MEMORY(pSDCur);
+    PVFS_SAFE_FREE_MEMORY(pNewSecDesc);
+
     return ntError;
 
 error:
@@ -175,13 +254,11 @@ PvfsFreeAbsoluteSecurityDescriptor(
 
 static NTSTATUS
 CreateDefaultSecDescFile(
-    IN SECURITY_INFORMATION SecInfo,
     IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
     IN OUT PULONG pSecDescLen
     )
 {
-    return CreateDefaultSecDesc(SecInfo,
-                                pSecDesc,
+    return CreateDefaultSecDesc(pSecDesc,
                                 pSecDescLen,
                                 FALSE /* not a directory */);
 }
@@ -191,13 +268,11 @@ CreateDefaultSecDescFile(
 
 static NTSTATUS
 CreateDefaultSecDescDir(
-    IN SECURITY_INFORMATION SecInfo,
     IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
     IN OUT PULONG pSecDescLen
     )
 {
-    return CreateDefaultSecDesc(SecInfo,
-                                pSecDesc,
+    return CreateDefaultSecDesc(pSecDesc,
                                 pSecDescLen,
                                 TRUE /* is a directory */);
 }
@@ -207,7 +282,6 @@ CreateDefaultSecDescDir(
 
 static NTSTATUS
 CreateDefaultSecDesc(
-    IN SECURITY_INFORMATION SecInfo,
     IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
     IN OUT PULONG pSecDescLen,
     BOOLEAN bIsDirectory
@@ -226,54 +300,46 @@ CreateDefaultSecDesc(
                                                   SECURITY_DESCRIPTOR_REVISION);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (SecInfo & OWNER_SECURITY_INFORMATION)
-    {
-        /* Administrators */
+    /* Owner: Administrators */
 
-        ntError = RtlAllocateSidFromCString(&pSid, "S-1-5-32-544");
-        BAIL_ON_NT_STATUS(ntError);
+    ntError = RtlAllocateSidFromCString(&pSid, "S-1-5-32-544");
+    BAIL_ON_NT_STATUS(ntError);
 
-        ntError = RtlSetOwnerSecurityDescriptor(pSecDesc,
-                                                pSid,
-                                                FALSE);
-        BAIL_ON_NT_STATUS(ntError);
+    ntError = RtlSetOwnerSecurityDescriptor(pSecDesc,
+                                            pSid,
+                                            FALSE);
+    BAIL_ON_NT_STATUS(ntError);
 
-        pSid = NULL;
+    pSid = NULL;
+
+    /* Group: Power Users */
+
+    ntError = RtlAllocateSidFromCString(&pSid, "S-1-5-32-547");
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlSetGroupSecurityDescriptor(pSecDesc,
+                                            pSid,
+                                            FALSE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pSid = NULL;
+
+    /* DACL */
+
+    if (bIsDirectory) {
+        ntError = BuildDefaultDaclDirectory(&pDacl);
+    } else {
+        ntError = BuildDefaultDaclFile(&pDacl);
     }
+    BAIL_ON_NT_STATUS(ntError);
 
-    if (SecInfo & GROUP_SECURITY_INFORMATION)
-    {
-        /* Power Users */
+    ntError = RtlSetDaclSecurityDescriptor(pSecDesc,
+                                           TRUE,
+                                           pDacl,
+                                           FALSE);
+    BAIL_ON_NT_STATUS(ntError);
 
-        ntError = RtlAllocateSidFromCString(&pSid, "S-1-5-32-547");
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = RtlSetGroupSecurityDescriptor(pSecDesc,
-                                                pSid,
-                                                FALSE);
-        BAIL_ON_NT_STATUS(ntError);
-
-        pSid = NULL;
-    }
-
-    if (SecInfo & DACL_SECURITY_INFORMATION)
-    {
-        if (bIsDirectory) {
-            ntError = BuildDefaultDaclDirectory(&pDacl);
-            BAIL_ON_NT_STATUS(ntError);
-        } else {
-            ntError = BuildDefaultDaclFile(&pDacl);
-            BAIL_ON_NT_STATUS(ntError);
-        }
-
-        ntError = RtlSetDaclSecurityDescriptor(pSecDesc,
-                                               TRUE,
-                                               pDacl,
-                                               FALSE);
-        BAIL_ON_NT_STATUS(ntError);
-
-        pDacl = NULL;
-    }
+    pDacl = NULL;
 
     /* We don't do SACLs currently */
 
