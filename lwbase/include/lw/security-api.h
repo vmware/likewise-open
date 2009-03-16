@@ -328,7 +328,8 @@ RtlSetSecurityDescriptorInfo(
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR_RELATIVE InputSecurityDescriptor,
     IN PSECURITY_DESCRIPTOR_RELATIVE ObjectSecurityDescriptor,
-    OUT PSECURITY_DESCRIPTOR_RELATIVE* NewObjectSecurityDescriptor,
+    OUT OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE NewObjectSecurityDescriptor,
+    IN OUT PULONG NewObjectSecurityDescriptorLength,
     IN PGENERIC_MAPPING GenericMapping
     );
 
