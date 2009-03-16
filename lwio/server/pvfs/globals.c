@@ -32,6 +32,14 @@
 
 PSTR gpszPVFSProviderName = "Posix Virtual File System";
 
+GENERIC_MAPPING gFileGenericMapping = {
+    FILE_GENERIC_READ,
+    FILE_GENERIC_WRITE,
+    FILE_GENERIC_EXECUTE,
+    FILE_ALL_ACCESS
+};
+
+
 /*
 local variables:
 mode: c

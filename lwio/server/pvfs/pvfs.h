@@ -69,6 +69,7 @@
 #include "lwioutils.h"
 
 #include "structs.h"
+#include "externs.h"
 #include "macros.h"
 #include "fileinfo_p.h"
 #include "security_p.h"
