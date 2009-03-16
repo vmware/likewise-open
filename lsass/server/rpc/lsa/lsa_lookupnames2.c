@@ -37,7 +37,8 @@
 #include "includes.h"
 
 
-NTSTATUS LsaLookupNames2(
+NTSTATUS
+LsaLookupNames2(
     handle_t b,
     POLICY_HANDLE hPolicy,
     uint32 num_names,

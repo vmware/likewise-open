@@ -37,7 +37,8 @@
 #include "includes.h"
 
 
-NTSTATUS LsaLookupSids(
+NTSTATUS
+LsaLookupSids(
     handle_t b,
     POLICY_HANDLE hPolicy,
     SidArray *sids,

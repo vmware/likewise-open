@@ -37,11 +37,12 @@
 #include "includes.h"
 
 
-NTSTATUS LsaClose(
+NTSTATUS
+LsaClose(
     handle_t b,
     POLICY_HANDLE hIn,
     POLICY_HANDLE *hOut
-)
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     return status;

@@ -37,7 +37,8 @@
 #include "includes.h"
 
 
-NTSTATUS LsaOpenPolicy2(
+NTSTATUS
+LsaOpenPolicy2(
     handle_t b,
     wchar16_t *system_name,
     ObjectAttribute *attrib,
