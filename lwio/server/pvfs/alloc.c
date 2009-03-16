@@ -51,7 +51,7 @@
 
 NTSTATUS
 PvfsAllocateMemory(
-    IN OUT PVOID *ppBuffer,
+    OUT PVOID *ppBuffer,
     IN DWORD dwSize
     )
 {
