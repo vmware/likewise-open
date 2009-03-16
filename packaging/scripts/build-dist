@@ -46,7 +46,7 @@ for dir in ${DIRS}; do
 		$BASEDIR/$dir $BASEDIR/../$TARGET/ || exit 1
 done
 
-for file in Build.sh Makefile Configure.sh autogen.sh; do
+for file in LICENSE Build.sh Makefile Configure.sh autogen.sh; do
 	cp -p $file $BASEDIR/../$TARGET/ || exit 1
 done
 
