@@ -39,7 +39,8 @@
 
 NTSTATUS
 SamrOpenDomain(
-    /* [in] */ PolicyHandle *conn_handle,
+    /* [in] */ handle_t hBinding,
+    /* [in] */ CONNECT_HANDLE hConn,
     /* [in] */ uint32 access_mask,
     /* [in] */ SID *sid,
     /* [out] */ PolicyHandle *domain_handle

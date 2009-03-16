@@ -38,7 +38,9 @@
 
 
 NTSTATUS SamrClose(
-    /* [in, out] */ PolicyHandle *handle
+    /* [in] */ handle_t hBinding,
+    /* [in, context_handle] */ void *hIn,
+    /* [out, context_handle] */ void **hOut
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;

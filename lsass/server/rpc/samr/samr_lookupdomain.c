@@ -38,7 +38,8 @@
 
 
 NTSTATUS SamrLookupDomain(
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ handle_t hBinding,
+    /* [in] */ CONNECT_HANDLE hConn,
     /* [in] */ UnicodeString *domain_name,
     /* [out] */ SID **sid
     )

@@ -39,6 +39,7 @@
 
 NTSTATUS
 SamrEnumDomains(
+    /* [in] */ handle_t hBinding,
     /* [in] */ CONNECT_HANDLE hConn
     /* [in, out] */ uint32 *resume,
     /* [in] */ uint32 size,

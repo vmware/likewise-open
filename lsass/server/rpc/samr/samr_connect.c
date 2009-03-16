@@ -38,7 +38,8 @@
 
 
 NTSTATUS SamrConnect(
-    /* [in] */ wchar16_t *system_name,
+    /* [in] */ handle_t hBinding,
+    /* [in] */ const wchar16_t *system_name,
     /* [in] */ uint32 access_mask,
     /* [out] */ CONNECT_HANDLE *hConn
     )
