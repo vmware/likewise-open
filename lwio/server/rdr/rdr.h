@@ -80,7 +80,6 @@
 #include "smb_session_setup.h"
 #include "smb_tree_connect.h"
 #include "smb_write.h"
-#include "smb_read.h"
 #include "smb_tree_disconnect.h"
 #include "smb_logoff.h"
 #include "socket.h"
@@ -163,14 +162,6 @@ RdrSetInformation(
     );
 
 #include "rdrcreate.h"
-
-NTSTATUS
-RdrReadFileEx(
-    HANDLE hFile,
-    DWORD  dwBytesToRead,
-    PVOID  pOutBuffer,
-    PDWORD pdwBytesRead
-    );
 
 NTSTATUS
 RdrWriteFileEx(
@@ -311,6 +302,16 @@ RdrTransactQueryFsInfo(
     PVOID pInfo,
     ULONG ulInfoLength,
     PULONG pulInfoLengthUsed
+    );
+
+NTSTATUS
+RdrTransactReadFile(
+    PSMB_TREE pTree,
+    USHORT usFid,
+    ULONG64 ullFileReadOffset,
+    PBYTE pReadBuffer,
+    USHORT usReadLen,
+    PUSHORT pusBytesRead
     );
 
 void

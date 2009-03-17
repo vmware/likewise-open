@@ -22,7 +22,6 @@ librdr_sys_la_SOURCES =   \
     smb_logoff.c          \
     smb_negotiate.c       \
     smb_nptransact.c      \
-    smb_read.c            \
     smb_session_setup.c   \
     smb_tree_connect.c    \
     smb_tree_disconnect.c \

@@ -87,29 +87,84 @@ RdrCommonRead(
     )
 {
     NTSTATUS ntStatus = 0;
-    PVOID Buffer = NULL;
-    ULONG Length = 0;
-    DWORD dwBytesRead = 0;
-    HANDLE hFile = NULL;
+    PBYTE pBuffer = NULL;
+    ULONG ulLength = 0;
+    ULONG ulReadMax = 0;
+    ULONG ulReadLength = 0;
+    LONG64 llByteOffset = 0;
+    USHORT usBytesRead = 0;
+    LONG64 llBufferOffset = 0;
+    ULONG ulTotalBytesRead = 0;
+    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
 
-    Buffer = pIrp->Args.ReadWrite.Buffer;
-    Length = pIrp->Args.ReadWrite.Length;
+    pBuffer = pIrp->Args.ReadWrite.Buffer;
+    ulLength = pIrp->Args.ReadWrite.Length;
 
-    hFile = IoFileGetContext(pIrp->FileHandle);
+    if (pIrp->Args.ReadWrite.ByteOffset)
+    {
+        llByteOffset = *pIrp->Args.ReadWrite.ByteOffset;
+    }
+    else
+    {
+        llByteOffset = pFile->llOffset;
+    }
 
-    ntStatus = RdrReadFileEx(
-                    hFile,
-                    Length,
-                    Buffer,
-                    &dwBytesRead
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
+    ulReadMax = pFile->pTree->pSession->pSocket->maxBufferSize - 60;
+
+    while (ulLength)
+    {
+        ulReadLength = ulReadMax;
+
+        if (ulReadLength > UINT16_MAX)
+        {
+            ulReadLength = UINT16_MAX;
+        }
+
+        if (ulReadLength > ulLength)
+        {
+            ulReadLength = ulLength;
+        }
+
+        ntStatus = RdrTransactReadFile(
+            pFile->pTree,
+            pFile->fid,
+            (ULONG64) llByteOffset,
+            pBuffer + llBufferOffset,
+            (USHORT) ulReadLength,
+            &usBytesRead);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (usBytesRead == 0)
+        {
+            if (ulTotalBytesRead == 0)
+            {
+                ntStatus = STATUS_END_OF_FILE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        ulTotalBytesRead += usBytesRead;
+        ulLength -= usBytesRead;
+        llByteOffset += usBytesRead;
+        llBufferOffset += usBytesRead;
+    }
+
+    pIrp->IoStatusBlock.BytesTransferred = ulTotalBytesRead;
+
+cleanup:
+
+    pFile->llOffset = llByteOffset;
+
     pIrp->IoStatusBlock.Status = ntStatus;
-    pIrp->IoStatusBlock.BytesTransferred = dwBytesRead;
-    return(ntStatus);
+
+    return ntStatus;
 
 error:
-    pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
+
+    goto cleanup;
 }
 
