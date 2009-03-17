@@ -40,6 +40,7 @@
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
+#include <compat/rpcstatus.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
 #include <lwrpc/unistrdef.h>
@@ -48,8 +49,9 @@
 #include <lwrpc/userinfo.h>
 #include <lwrpc/aliasinfo.h>
 
-#include "lsa/lsa.h"
-#include "lsarpcsrv.h"
+#include <lsa/lsa.h>
+#include <lsarpcsrv.h>
+#include <svcctl-register.h>
 
 #include "samr_srv.h"
 #include <secdesc/sectypes.h>
