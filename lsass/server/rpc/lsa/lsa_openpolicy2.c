@@ -38,7 +38,7 @@
 
 
 NTSTATUS
-LsaOpenPolicy2(
+LsaSrvOpenPolicy2(
     handle_t b,
     wchar16_t *system_name,
     ObjectAttribute *attrib,

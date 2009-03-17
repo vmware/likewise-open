@@ -38,7 +38,7 @@
 
 
 NTSTATUS
-LsaLookupNames2(
+LsaSrvLookupNames2(
     handle_t b,
     POLICY_HANDLE hPolicy,
     uint32 num_names,

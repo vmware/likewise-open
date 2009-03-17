@@ -37,12 +37,13 @@
 #include "includes.h"
 
 
-NTSTATUS LsaQueryInfoPolicy(
+NTSTATUS
+LsaSrvQueryInfoPolicy(
     handle_t b,
     PolicyHandle *h,
     uint16 level,
     LsaPolicyInformation **info
-)
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     return status;

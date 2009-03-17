@@ -33,7 +33,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 cpp_quote("#endif")
 
 	/* function 0x00 */
-    NTSTATUS _LsaClose(
+    NTSTATUS __LsaClose(
         [in] POLICY_HANDLE hIn,
         [out] POLICY_HANDLE *hOut
         );
@@ -46,7 +46,7 @@ cpp_quote("#endif")
     NTSTATUS lsa_Function06();
 
 	/* function 0x07 */
-    NTSTATUS _LsaQueryInfoPolicy(
+    NTSTATUS __LsaQueryInfoPolicy(
         [in] PolicyHandle *handle,
         [in] uint16 level,
         [out,switch_is(level)] LsaPolicyInformation **info
@@ -60,7 +60,7 @@ cpp_quote("#endif")
     NTSTATUS lsa_Function0d();
 
 	/* function 0x0e */
-    NTSTATUS _LsaLookupNames(
+    NTSTATUS __LsaLookupNames(
         [in] POLICY_HANDLE hPolicy,
         [in,range(0,1000)] uint32 num_names,
         [in,size_is(num_names)] UnicodeString *names,
@@ -71,7 +71,7 @@ cpp_quote("#endif")
         );
 
 	/* function 0x0f */
-    NTSTATUS _LsaLookupSids(
+    NTSTATUS __LsaLookupSids(
         [in] POLICY_HANDLE hPolicy,
         [in] SidArray *sids,
         [out] RefDomainList **domains,
@@ -110,7 +110,7 @@ cpp_quote("#endif")
     NTSTATUS lsa_Function2b();
 
 	/* function 0x2c */
-    NTSTATUS _LsaOpenPolicy2(
+    NTSTATUS __LsaOpenPolicy2(
         [in,string,unique] wchar16_t *system_name,
         [in] ObjectAttribute *attrib,
         [in] uint32 access_mask,
@@ -120,7 +120,7 @@ cpp_quote("#endif")
     NTSTATUS lsa_Function2d();
 
 	/* function 0x2e */
-    NTSTATUS _LsaQueryInfoPolicy2(
+    NTSTATUS __LsaQueryInfoPolicy2(
         [in] PolicyHandle *handle,
         [in] uint16 level,
         [out,switch_is(level)] LsaPolicyInformation **info
@@ -139,7 +139,7 @@ cpp_quote("#endif")
     NTSTATUS lsa_Function39();
 
 	/* function 0x3a */
-    NTSTATUS _LsaLookupNames2(
+    NTSTATUS __LsaLookupNames2(
         [in] POLICY_HANDLE hPolicy,
         [in,range(0,1000)] uint32 num_names,
         [in,size_is(num_names)] UnicodeStringEx *names,

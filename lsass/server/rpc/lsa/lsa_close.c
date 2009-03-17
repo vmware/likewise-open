@@ -38,7 +38,7 @@
 
 
 NTSTATUS
-LsaClose(
+LsaSrvClose(
     handle_t b,
     POLICY_HANDLE hIn,
     POLICY_HANDLE *hOut

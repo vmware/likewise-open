@@ -38,7 +38,7 @@
 
 
 NTSTATUS
-LsaLookupSids(
+LsaSrvLookupSids(
     handle_t b,
     POLICY_HANDLE hPolicy,
     SidArray *sids,
