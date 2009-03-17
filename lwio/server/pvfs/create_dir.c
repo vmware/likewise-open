@@ -385,6 +385,12 @@ PvfsCreateDirOpenIf(
 
     if (!bFileExisted)
     {
+        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
+                                           "%s/%s",
+                                           pszDiskDirname,
+                                           pszRelativeFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckDir(pSecCtx,
                                      pszDiskDirname,
                                      Args.DesiredAccess,
@@ -392,16 +398,10 @@ PvfsCreateDirOpenIf(
     }
     else
     {
-        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
-                                           "%s/%s",
-                                           pszDiskDirname,
-                                           pszRelativeFilename);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsAccessCheckFile(pSecCtx,
-                                      pszDiskFilename,
-                                      Args.DesiredAccess,
-                                      &GrantedAccess);
+        ntError = PvfsAccessCheckDir(pSecCtx,
+                                     pszDiskFilename,
+                                     Args.DesiredAccess,
+                                     &GrantedAccess);
     }
     BAIL_ON_NT_STATUS(ntError);
 

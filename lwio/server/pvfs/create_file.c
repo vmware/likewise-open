@@ -565,6 +565,12 @@ PvfsCreateFileOpenIf(
 
     if (!bFileExisted)
     {
+        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
+                                           "%s/%s",
+                                           pszDiskDirname,
+                                           pszRelativeFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckDir(pSecCtx,
                                      pszDiskDirname,
                                      Args.DesiredAccess,
@@ -572,12 +578,6 @@ PvfsCreateFileOpenIf(
     }
     else
     {
-        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
-                                           "%s/%s",
-                                           pszDiskDirname,
-                                           pszRelativeFilename);
-        BAIL_ON_NT_STATUS(ntError);
-
         ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszDiskFilename,
                                       Args.DesiredAccess,
@@ -811,6 +811,12 @@ PvfsCreateFileOverwriteIf(
 
     if (!bFileExisted)
     {
+        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
+                                           "%s/%s",
+                                           pszDiskDirname,
+                                           pszRelativeFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckDir(pSecCtx,
                                      pszDiskDirname,
                                      Args.DesiredAccess,
@@ -818,12 +824,6 @@ PvfsCreateFileOverwriteIf(
     }
     else
     {
-        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
-                                           "%s/%s",
-                                           pszDiskDirname,
-                                           pszRelativeFilename);
-        BAIL_ON_NT_STATUS(ntError);
-
         ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszDiskFilename,
                                       Args.DesiredAccess,
