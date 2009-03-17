@@ -87,13 +87,6 @@
        from samdbdomains     \
       where Name = %Q"
 
-typedef enum
-{
-    SAMDB_DOMAIN_TABLE_COLUMN_DOMAIN_NAME = 1,
-    SAMDB_DOMAIN_TABLE_COLUMN_NETBIOS_NAME,
-    SAMDB_DOMAIN_TABLE_COLUMN_MACHINE_SID
-} SAMDB_DOMAIN_TABLE_COLUMN;
-
 DWORD
 SamDbInitDomainTable(
     PSAM_DB_CONTEXT pDbContext
@@ -244,7 +237,7 @@ SamDbAddDomain(
                         pDirContext->pAttrLookup->pAttrTree,
                         Modifications[iMod].pwszAttributeName,
                         (PVOID*)&pLookupEntry);
-        if (ntStatus == STATUS_NOT_FOUND)
+        if (ntStatus)
         {
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_SAMDB_ERROR(dwError);

@@ -70,5 +70,11 @@ SamDbInterlockedCounter(
     PSAMDB_INTERLOCKED_COUNTER pCounter
     );
 
+VOID
+SamDbFreeAttributeValues(
+    PATTRIBUTE_VALUE pAttrValues,
+    DWORD            dwNumValues
+    );
+
 #endif /* __SAMDB_MISC_H__ */
 
