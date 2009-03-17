@@ -68,6 +68,7 @@
 #include "enumstate.h"
 #include "localcfg.h"
 #include "provider-main.h"
+#include "dbuser.h"
 
 #include "externs.h"
 
