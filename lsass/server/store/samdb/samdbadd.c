@@ -62,12 +62,12 @@ cleanup:
 
     if (pwszObjectName)
     {
-        LsaFreeMemory(pwszObjectName);
+        DirectoryFreeMemory(pwszObjectName);
     }
 
     if (pwszDomain)
     {
-        LsaFreeMemory(pwszDomain);
+        DirectoryFreeMemory(pwszDomain);
     }
 
     return dwError;

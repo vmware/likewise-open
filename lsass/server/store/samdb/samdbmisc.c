@@ -114,10 +114,10 @@ SamDbFreeAttributeValues(
         if ((pAttrValue->Type == SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING) &&
             (pAttrValue->pwszStringValue))
         {
-            LsaFreeMemory(pAttrValue->pwszStringValue);
+            DirectoryFreeMemory(pAttrValue->pwszStringValue);
         }
     }
 
-    LsaFreeMemory(pAttrValues);
+    DirectoryFreeMemory(pAttrValues);
 }
 

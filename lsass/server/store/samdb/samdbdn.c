@@ -106,7 +106,7 @@ SamDbParseDN(
                         BAIL_ON_SAMDB_ERROR(dwError);
                     }
 
-                    dwError = LsaAllocateMemory(
+                    dwError = DirectoryAllocateMemory(
                                     (token.dwLen + 1) * sizeof(wchar16_t),
                                     (PVOID*)&pwszObjectName);
                     BAIL_ON_SAMDB_ERROR(dwError);
@@ -227,12 +227,12 @@ error:
 
     if (pwszObjectName)
     {
-        LsaFreeMemory(pwszObjectName);
+        DirectoryFreeMemory(pwszObjectName);
     }
 
     if (pwszDomain)
     {
-        LsaFreeMemory(pwszDomain);
+        DirectoryFreeMemory(pwszDomain);
     }
 
     goto cleanup;

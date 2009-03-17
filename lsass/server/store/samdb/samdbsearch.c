@@ -132,7 +132,7 @@ SamDbSearchDomains(
                     &pDomainInfo);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = DirectoryAllocateMemory(
                     sizeof(ATTRIBUTE_VALUE) * dwNumAttrs,
                     (PVOID*)&pDirectoryValues);
     BAIL_ON_SAMDB_ERROR(dwError);
@@ -206,11 +206,11 @@ cleanup:
 
     if (pwszObjectName)
     {
-        LsaFreeMemory(pwszObjectName);
+        DirectoryFreeMemory(pwszObjectName);
     }
     if (pwszDomain)
     {
-        LsaFreeMemory(pwszDomain);
+        DirectoryFreeMemory(pwszDomain);
     }
     if (pDomainInfo)
     {
@@ -358,7 +358,7 @@ cleanup:
 
     if (pszFilter)
     {
-        LsaFreeString(pszFilter);
+        DirectoryFreeMemory(pszFilter);
     }
 
     return dwError;

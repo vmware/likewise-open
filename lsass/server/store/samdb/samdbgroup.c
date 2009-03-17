@@ -134,7 +134,7 @@ SamDbAddGroupAttrLookups(
 
     for(; iAttr < dwNumAttrs; iAttr++)
     {
-        dwError = LsaAllocateMemory(
+        dwError = DirectoryAllocateMemory(
                         sizeof(SAMDB_ATTRIBUTE_LOOKUP_ENTRY),
                         (PVOID*)&pAttrEntry);
         BAIL_ON_SAMDB_ERROR(dwError);

@@ -256,11 +256,11 @@ cleanup:
 
     if (pszHostname)
     {
-        LsaFreeString(pszHostname);
+        DirectoryFreeMemory(pszHostname);
     }
     if (pszMachineSID)
     {
-        LsaFreeString(pszMachineSID);
+        LsaFreeMemory(pszMachineSID);
     }
 
     return dwError;
@@ -337,21 +337,21 @@ cleanup:
 
     if (pwszObjectName)
     {
-        LsaFreeMemory(pwszObjectName);
+        DirectoryFreeMemory(pwszObjectName);
     }
     if (pwszMachineSID)
     {
-        LsaFreeMemory(pwszMachineSID);
+        DirectoryFreeMemory(pwszMachineSID);
     }
     if (pwszNetBIOSName)
     {
-        LsaFreeMemory(pwszNetBIOSName);
+        DirectoryFreeMemory(pwszNetBIOSName);
     }
     for (iMod = 0; iMod < sizeof(mods)/sizeof(mods[0]); iMod++)
     {
         if (mods[iMod].pwszAttributeName)
         {
-            LsaFreeMemory(mods[iMod].pwszAttributeName);
+            DirectoryFreeMemory(mods[iMod].pwszAttributeName);
         }
     }
 

@@ -163,7 +163,7 @@ SamDbAddDomainAttrLookups(
 
     for(; iAttr < dwNumAttrs; iAttr++)
     {
-        dwError = LsaAllocateMemory(
+        dwError = DirectoryAllocateMemory(
                         sizeof(SAMDB_ATTRIBUTE_LOOKUP_ENTRY),
                         (PVOID*)&pAttrEntry);
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -327,15 +327,15 @@ cleanup:
 
     if (pszDomainName)
     {
-        LsaFreeString(pszDomainName);
+        DirectoryFreeMemory(pszDomainName);
     }
     if (pszDomainSID)
     {
-        LsaFreeString(pszDomainSID);
+        DirectoryFreeMemory(pszDomainSID);
     }
     if (pszNetBIOSName)
     {
-        LsaFreeString(pszNetBIOSName);
+        DirectoryFreeMemory(pszNetBIOSName);
     }
     if (pszQuery)
     {
@@ -432,7 +432,7 @@ cleanup:
 
     if (pszDomainName)
     {
-        LsaFreeString(pszDomainName);
+        DirectoryFreeMemory(pszDomainName);
     }
 
     if (ppDomainInfoList)
@@ -471,14 +471,14 @@ SamDbBuildDomainInfo(
     PSAM_DB_DOMAIN_INFO pDomainInfo = NULL;
     DWORD dwNumDomainsFound = nRows;
 
-    dwError = LsaAllocateMemory(
+    dwError = DirectoryAllocateMemory(
                     sizeof(PSAM_DB_DOMAIN_INFO) * nRows,
                     (PVOID*)&ppDomainInfoList);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     for (iRow = 0; iRow < nRows; iRow++)
     {
-        dwError = LsaAllocateMemory(
+        dwError = DirectoryAllocateMemory(
                         sizeof(SAM_DB_DOMAIN_INFO),
                         (PVOID*)&pDomainInfo);
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -602,7 +602,7 @@ SamDbFreeDomainInfoList(
         }
     }
 
-    LsaFreeMemory(ppDomainInfoList);
+    DirectoryFreeMemory(ppDomainInfoList);
 }
 
 VOID
@@ -612,15 +612,15 @@ SamDbFreeDomainInfo(
 {
     if (pDomainInfo->pwszDomainName)
     {
-        LsaFreeMemory(pDomainInfo->pwszDomainName);
+        DirectoryFreeMemory(pDomainInfo->pwszDomainName);
     }
     if (pDomainInfo->pwszDomainSID)
     {
-        LsaFreeMemory(pDomainInfo->pwszDomainSID);
+        DirectoryFreeMemory(pDomainInfo->pwszDomainSID);
     }
     if (pDomainInfo->pwszNetBIOSName)
     {
-        LsaFreeMemory(pDomainInfo->pwszNetBIOSName);
+        DirectoryFreeMemory(pDomainInfo->pwszNetBIOSName);
     }
-    LsaFreeMemory(pDomainInfo);
+    DirectoryFreeMemory(pDomainInfo);
 }
