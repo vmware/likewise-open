@@ -56,56 +56,6 @@
 #define LOCAL_USER_SID_FORMAT "S-1-22-1-%ld"
 #define LOCAL_GROUP_SID_FORMAT "S-1-22-2-%ld"
 
-void
-LsaProviderLocal_DbInitGlobals(
-    void
-    )
-{
-    pthread_rwlock_init(&g_dbLock, NULL);
-}
-
-//
-// TODO: Implement a DB Handle Pool
-//
-DWORD
-LsaProviderLocal_DbOpen(
-    PHANDLE phDb
-    )
-{
-    DWORD dwError = 0;
-    sqlite3* pDbHandle = NULL;
-    
-    dwError = sqlite3_open(LSASS_DB, &pDbHandle);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    *phDb = (HANDLE)pDbHandle;
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    *(phDb) = (HANDLE)NULL;
-    
-    if (pDbHandle) {
-        sqlite3_close(pDbHandle);
-    }
-
-    goto cleanup;
-}
-
-void
-LsaProviderLocal_DbClose(
-    HANDLE hDb
-    )
-{
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    if (pDbHandle) {
-       sqlite3_close(pDbHandle);
-    }
-}
-
 static
 DWORD
 LsaProviderLocal_DbCheckGroupMembershipRecord_Unsafe(
