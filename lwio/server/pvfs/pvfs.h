@@ -214,6 +214,26 @@ PvfsFileDirname(
     PCSTR pszPath
     );
 
+NTSTATUS
+PvfsFileSplitPath(
+    PSTR *ppszDirname,
+    PSTR *ppszBasename,
+    PCSTR pszPath
+    );
+
+NTSTATUS
+PvfsLookupPath(
+    PSTR *ppszDiskPath,
+    PCSTR pszPath
+    );
+
+NTSTATUS
+PvfsLookupFile(
+    PSTR *ppszDiskPath,
+    PCSTR pszDiskDirname,
+    PCSTR pszFilename
+    );
+
 
 /* From wildcard.c */
 

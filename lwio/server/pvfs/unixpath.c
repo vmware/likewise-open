@@ -227,6 +227,105 @@ error:
 }
 
 
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsFileSplitPath(
+    PSTR *ppszDirname,
+    PSTR *ppszBasename,
+    PCSTR pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    ntError = PvfsFileDirname(ppszDirname, pszPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFileBasename(ppszBasename, pszPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsLookupPath(
+    PSTR *ppszDiskPath,
+    PCSTR pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PVFS_STAT Stat = {0};
+    PSTR pszDiskPath = NULL;
+
+    ntError = RtlCStringDuplicate(&pszDiskPath, pszPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysStat(pszDiskPath, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppszDiskPath = pszDiskPath;
+    pszDiskPath = NULL;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+
+    RtlCStringFree(&pszDiskPath);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsLookupFile(
+    PSTR *ppszDiskPath,
+    PCSTR pszDiskDirname,
+    PCSTR pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszFullPath = NULL;
+    PVFS_STAT Stat = {0};
+
+    ntError = RtlCStringAllocatePrintf(&pszFullPath,
+                                       "%s/%s",
+                                       pszDiskDirname,
+                                       pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysStat(pszFullPath, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppszDiskPath = pszFullPath;
+    pszFullPath = NULL;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    RtlCStringFree(&pszFullPath);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c

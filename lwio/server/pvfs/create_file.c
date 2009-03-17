@@ -155,12 +155,21 @@ PvfsCreateFileSupersede(
     PPVFS_CCB pCcb = NULL;
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
-    PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
     PSTR pszDirectory = NULL;
     PPVFS_FCB pFcb = NULL;
+    PSTR pszDirname = NULL;
+    PSTR pszRelativeFilename = NULL;
+    PSTR pszDiskFilename = NULL;
+    PSTR pszDiskDirname = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFileSplitPath(&pszDirname, &pszRelativeFilename, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -168,32 +177,43 @@ PvfsCreateFileSupersede(
 
     /* Check for file existence.  Remove it if necessary */
 
-    ntError = PvfsSysStat(pszFilename, &Stat);
+    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename);
     bFileExisted = NT_SUCCESS(ntError);
 
     if (bFileExisted) {
-        ntError = PvfsCheckShareMode(pszFilename,
+        ntError = PvfsCheckShareMode(pszDiskFilename,
                                      Args.ShareAccess,
                                      Args.DesiredAccess | DELETE,
                                      &pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsAccessCheckFile(pSecCtx,
-                                      pszFilename,
+                                      pszDiskFilename,
                                       DELETE,
                                       &GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsSysRemove(pszFilename);
+        ntError = PvfsSysRemove(pszDiskFilename);
         BAIL_ON_NT_STATUS(ntError);
 
         /* Seems like this should clear the FCB from
            the open table.  Not sure */
         PvfsReleaseFCB(pFcb);
     }
+    else
+    {
+        /* Did not exist so just make a copy of the filename */
+
+        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
+                                           "%s/%s",
+                                           pszDiskDirname,
+                                           pszRelativeFilename);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* This should get us a new FCB */
-    ntError = PvfsCheckShareMode(pszFilename,
+
+    ntError = PvfsCheckShareMode(pszDiskFilename,
                                  Args.ShareAccess,
                                  Args.DesiredAccess,
                                  &pFcb);
@@ -208,7 +228,7 @@ PvfsCreateFileSupersede(
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
+    ntError = PvfsSysOpen(&fd, pszDiskFilename, unixFlags, 0600);
     BAIL_ON_NT_STATUS(ntError);
 
     /* TODO: Set SD on file */
@@ -218,8 +238,8 @@ PvfsCreateFileSupersede(
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
-    pCcb->pszFilename = pszFilename;
-    pszFilename = NULL;
+    pCcb->pszFilename = pszDiskFilename;
+    pszDiskFilename = NULL;
     pCcb->pFcb = pFcb;
     pFcb = NULL;
 
@@ -248,6 +268,12 @@ PvfsCreateFileSupersede(
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
 
+    RtlCStringFree(&pszFilename);
+    RtlCStringFree(&pszDirname);
+    RtlCStringFree(&pszRelativeFilename);
+    RtlCStringFree(&pszDiskDirname);
+    RtlCStringFree(&pszDiskFilename);
+
     return ntError;
 
 error:
@@ -256,8 +282,6 @@ error:
     if (fd != -1) {
         close(fd);
     }
-
-    RtlCStringFree(&pszFilename);
 
     if (pFcb) {
         PvfsReleaseFCB(pFcb);
@@ -288,19 +312,34 @@ PvfsCreateFileCreate(
     PPVFS_CCB pCcb = NULL;
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
-    PSTR pszParentDir = NULL;
     PPVFS_FCB pFcb = NULL;
+    PSTR pszDirname = NULL;
+    PSTR pszRelativeFilename = NULL;
+    PSTR pszDiskFilename = NULL;
+    PSTR pszDiskDirname = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateCCB(&pCcb);
+    ntError = PvfsFileSplitPath(&pszDirname, &pszRelativeFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCheckShareMode(pszFilename,
-                                 Args.ShareAccess,
-                                 Args.DesiredAccess,
-                                 &pFcb);
+    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename);
+    if (ntError == STATUS_SUCCESS) {
+        ntError = STATUS_OBJECT_NAME_COLLISION;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
+                                       "&s/%s",
+                                       pszDiskDirname,
+                                       pszRelativeFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check that we can add files to the parent directory.  If
@@ -308,7 +347,7 @@ PvfsCreateFileCreate(
        ALL_ACCESS. */
 
     ntError = PvfsAccessCheckDir(pSecCtx,
-                                 pszParentDir,
+                                 pszDiskDirname,
                                  FILE_ADD_FILE,
                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
@@ -317,10 +356,7 @@ PvfsCreateFileCreate(
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Let the open() call fail if the file exists.  No need
-       for a prior stat() */
-
-    ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
+    ntError = PvfsSysOpen(&fd, pszDiskFilename, unixFlags, 0600);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */
@@ -328,8 +364,8 @@ PvfsCreateFileCreate(
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
-    pCcb->pszFilename = pszFilename;
-    pszFilename = NULL;
+    pCcb->pszFilename = pszDiskFilename;
+    pszDiskFilename = NULL;
     pCcb->pFcb = pFcb;
     pFcb = NULL;
 
@@ -358,20 +394,21 @@ PvfsCreateFileCreate(
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
 
+    RtlCStringFree(&pszFilename);
+    RtlCStringFree(&pszDirname);
+    RtlCStringFree(&pszRelativeFilename);
+    RtlCStringFree(&pszDiskDirname);
+    RtlCStringFree(&pszDiskFilename);
+
     return ntError;
 
 error:
     CreateResult = (ntError == STATUS_OBJECT_NAME_COLLISION) ?
                    FILE_EXISTS : FILE_DOES_NOT_EXIST;
 
-    if (fd != -1)
-    {
-        /* TODO: Remove the file */
-
+    if (fd != -1) {
         close(fd);
     }
-
-    RtlCStringFree(&pszFilename);
 
     if (pFcb) {
         PvfsReleaseFCB(pFcb);
@@ -403,21 +440,25 @@ PvfsCreateFileOpen(
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
     PPVFS_FCB pFcb = NULL;
+    PSTR pszDiskFilename = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupPath(&pszDiskFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCheckShareMode(pszFilename,
+    ntError = PvfsCheckShareMode(pszDiskFilename,
                                  Args.ShareAccess,
                                  Args.DesiredAccess,
                                  &pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAccessCheckFile(pSecCtx,
-                                  pszFilename,
+                                  pszDiskFilename,
                                   Args.DesiredAccess,
                                   &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
@@ -425,10 +466,7 @@ PvfsCreateFileOpen(
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Let the open() call fail if the file does not exists.  No
-       need for a prior stat() */
-
-    ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0);
+    ntError = PvfsSysOpen(&fd, pszDiskFilename, unixFlags, 0);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */
@@ -436,8 +474,8 @@ PvfsCreateFileOpen(
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
-    pCcb->pszFilename = pszFilename;
-    pszFilename = NULL;
+    pCcb->pszFilename = pszDiskFilename;
+    pszDiskFilename = NULL;
     pCcb->pFcb = pFcb;
     pFcb = NULL;
 
@@ -452,6 +490,9 @@ PvfsCreateFileOpen(
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
 
+    RtlCStringFree(&pszFilename);
+    RtlCStringFree(&pszDiskFilename);
+
     return ntError;
 
 error:
@@ -461,8 +502,6 @@ error:
     if (fd != -1) {
         close(fd);
     }
-
-    RtlCStringFree(&pszFilename);
 
     if (pFcb) {
         PvfsReleaseFCB(pFcb);
@@ -494,11 +533,20 @@ PvfsCreateFileOpenIf(
     PPVFS_CCB pCcb = NULL;
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
-    PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
     PPVFS_FCB pFcb = NULL;
+    PSTR pszDirname = NULL;
+    PSTR pszRelativeFilename = NULL;
+    PSTR pszDiskFilename = NULL;
+    PSTR pszDiskDirname = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFileSplitPath(&pszDirname, &pszRelativeFilename, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -506,25 +554,26 @@ PvfsCreateFileOpenIf(
 
     /* Check for file existence */
 
-    ntError = PvfsSysStat(pszFilename, &Stat);
+    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename);
     bFileExisted = NT_SUCCESS(ntError);
-
-    /* If the file doesn't exist, we have to rely on the security
-       of the parent directory */
 
     if (!bFileExisted)
     {
-        PSTR pszDirectory = NULL;
-
         ntError = PvfsAccessCheckDir(pSecCtx,
-                                     pszDirectory,
+                                     pszDiskDirname,
                                      Args.DesiredAccess,
                                      &GrantedAccess);
     }
     else
     {
+        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
+                                           "%s/%s",
+                                           pszDiskDirname,
+                                           pszRelativeFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckFile(pSecCtx,
-                                      pszFilename,
+                                      pszDiskFilename,
                                       Args.DesiredAccess,
                                       &GrantedAccess);
     }
@@ -533,7 +582,7 @@ PvfsCreateFileOpenIf(
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
+    ntError = PvfsSysOpen(&fd, pszDiskFilename, unixFlags, 0600);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */
@@ -541,8 +590,8 @@ PvfsCreateFileOpenIf(
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
-    pCcb->pszFilename = pszFilename;
-    pszFilename = NULL;
+    pCcb->pszFilename = pszDiskFilename;
+    pszDiskFilename = NULL;
     pCcb->pFcb = pFcb;
     pFcb = NULL;
 
@@ -572,6 +621,12 @@ PvfsCreateFileOpenIf(
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
 
+    RtlCStringFree(&pszFilename);
+    RtlCStringFree(&pszDirname);
+    RtlCStringFree(&pszRelativeFilename);
+    RtlCStringFree(&pszDiskDirname);
+    RtlCStringFree(&pszDiskFilename);
+
     return ntError;
 
 error:
@@ -582,8 +637,6 @@ error:
     {
         close(fd);
     }
-
-    RtlCStringFree(&pszFilename);
 
     if (pFcb) {
         PvfsReleaseFCB(pFcb);
@@ -615,8 +668,12 @@ PvfsCreateFileOverwrite(
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
     PPVFS_FCB pFcb = NULL;
+    PSTR pszDiskFilename = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupPath(&pszDiskFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -626,7 +683,7 @@ PvfsCreateFileOverwrite(
        validate existence */
 
     ntError = PvfsAccessCheckFile(pSecCtx,
-                                  pszFilename,
+                                  pszDiskFilename,
                                   Args.DesiredAccess,
                                   &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
@@ -634,7 +691,7 @@ PvfsCreateFileOverwrite(
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
+    ntError = PvfsSysOpen(&fd, pszDiskFilename, unixFlags, 0600);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */
@@ -642,8 +699,8 @@ PvfsCreateFileOverwrite(
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
-    pCcb->pszFilename = pszFilename;
-    pszFilename = NULL;
+    pCcb->pszFilename = pszDiskFilename;
+    pszDiskFilename = NULL;
     pCcb->pFcb = pFcb;
     pFcb = NULL;
 
@@ -676,6 +733,9 @@ PvfsCreateFileOverwrite(
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
 
+    RtlCStringFree(&pszFilename);
+    RtlCStringFree(&pszDiskFilename);
+
     return ntError;
 
 error:
@@ -686,8 +746,6 @@ error:
     {
         close(fd);
     }
-
-    RtlCStringFree(&pszFilename);
 
     if (pFcb) {
         PvfsReleaseFCB(pFcb);
@@ -718,11 +776,20 @@ PvfsCreateFileOverwriteIf(
     PPVFS_CCB pCcb = NULL;
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
-    PVFS_STAT Stat = {0};
     BOOLEAN bFileExisted = FALSE;
     PPVFS_FCB pFcb = NULL;
+    PSTR pszDirname = NULL;
+    PSTR pszRelativeFilename = NULL;
+    PSTR pszDiskFilename = NULL;
+    PSTR pszDiskDirname = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFileSplitPath(&pszDirname, &pszRelativeFilename, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -730,25 +797,26 @@ PvfsCreateFileOverwriteIf(
 
     /* Check for file existence */
 
-    ntError = PvfsSysStat(pszFilename, &Stat);
+    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename);
     bFileExisted = NT_SUCCESS(ntError);
-
-    /* If the file doesn't exist, we have to rely on the security
-       of the parent directory */
 
     if (!bFileExisted)
     {
-        PSTR pszDirectory = NULL;
-
         ntError = PvfsAccessCheckDir(pSecCtx,
-                                     pszDirectory,
+                                     pszDiskDirname,
                                      Args.DesiredAccess,
                                      &GrantedAccess);
     }
     else
     {
+        ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
+                                           "%s/%s",
+                                           pszDiskDirname,
+                                           pszRelativeFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckFile(pSecCtx,
-                                      pszFilename,
+                                      pszDiskFilename,
                                       Args.DesiredAccess,
                                       &GrantedAccess);
     }
@@ -757,7 +825,7 @@ PvfsCreateFileOverwriteIf(
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysOpen(&fd, pszFilename, unixFlags, 0600);
+    ntError = PvfsSysOpen(&fd, pszDiskFilename, unixFlags, 0600);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */
@@ -765,8 +833,8 @@ PvfsCreateFileOverwriteIf(
     pCcb->fd = fd;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
-    pCcb->pszFilename = pszFilename;
-    pszFilename = NULL;
+    pCcb->pszFilename = pszDiskFilename;
+    pszDiskFilename = NULL;
     pCcb->pFcb = pFcb;
     pFcb = NULL;
 
@@ -799,6 +867,12 @@ PvfsCreateFileOverwriteIf(
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
 
+    RtlCStringFree(&pszFilename);
+    RtlCStringFree(&pszDirname);
+    RtlCStringFree(&pszRelativeFilename);
+    RtlCStringFree(&pszDiskDirname);
+    RtlCStringFree(&pszDiskFilename);
+
     return ntError;
 
 error:
@@ -809,8 +883,6 @@ error:
     {
         close(fd);
     }
-
-    RtlCStringFree(&pszFilename);
 
     if (pFcb) {
         PvfsReleaseFCB(pFcb);

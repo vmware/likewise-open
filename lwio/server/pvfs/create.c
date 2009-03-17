@@ -66,6 +66,7 @@ PvfsCreate(
     BOOLEAN bIsDirectory = FALSE;
     PIRP pIrp = pIrpContext->pIrp;
     PSTR pszFilename = NULL;
+    PSTR pszDiskFilename = NULL;
     PVFS_STAT Stat = {0};
 
     CreateOptions = pIrp->Args.Create.CreateOptions;
@@ -86,7 +87,10 @@ PvfsCreate(
                                         pIrp->Args.Create.FileName);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsSysStat(pszFilename, &Stat);
+        ntError = PvfsLookupPath(&pszDiskFilename, pszFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysStat(pszDiskFilename, &Stat);
         BAIL_ON_NT_STATUS(ntError);
 
         bIsDirectory = S_ISDIR(Stat.s_mode);
@@ -107,7 +111,8 @@ PvfsCreate(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pszFilename);
+    RtlCStringFree(&pszFilename);
+    RtlCStringFree(&pszDiskFilename);
 
     return ntError;
 
