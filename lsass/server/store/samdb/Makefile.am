@@ -22,7 +22,7 @@ libsamdb_la_CPPFLAGS = \
 	-I@top_srcdir@/server/include \
         -I@top_srcdir@/server/rpc/include
 
-libsamdb_la_LIBADD \
+libsamdb_la_LIBADD = \
     @UUID_LIBS@
 
 libsamdb_la_LDFLAGS = \

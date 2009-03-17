@@ -37,6 +37,7 @@ typedef struct _SAMDB_ATTRIBUTE_LOOKUP_ENTRY
 {
     PWSTR                pwszAttributeName;
     SAMDB_ATTRIBUTE_TYPE attrType;
+    DWORD                dwId;
     BOOLEAN              bIsMandatory;
 
 } SAMDB_ATTRIBUTE_LOOKUP_ENTRY, *PSAMDB_ATTRIBUTE_LOOKUP_ENTRY;
