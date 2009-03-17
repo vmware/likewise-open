@@ -190,8 +190,8 @@ SamDbFreeAttributeLookupEntry(
 
 DWORD
 SamDbConvertFiltertoTable(
-    PWSTR pwszFilter,
-    PDWORD pdwTable
+    PWSTR             pwszFilter,
+    SAMDB_ENTRY_TYPE* pdwTable
     );
 
 DWORD

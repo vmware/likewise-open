@@ -368,7 +368,7 @@ SamDbModifyDomain(
 DWORD
 SamDbDeleteDomain(
     HANDLE hDirectory,
-    PWSTR pszObjectName
+    PWSTR  pwszObjectName
     )
 {
     DWORD dwError = 0;
