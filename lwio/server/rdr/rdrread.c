@@ -131,6 +131,9 @@ RdrCommonRead(
             (ULONG64) llByteOffset,
             pBuffer + llBufferOffset,
             (USHORT) ulReadLength,
+            /* If we already have some data, use MinCount = 0 to avoid
+               accidental blocks on named pipes */
+            ulTotalBytesRead == 0 ? (USHORT) ulReadLength : 0,
             &usBytesRead);
         BAIL_ON_NT_STATUS(ntStatus);
 

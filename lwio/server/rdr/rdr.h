@@ -311,6 +311,7 @@ RdrTransactReadFile(
     ULONG64 ullFileReadOffset,
     PBYTE pReadBuffer,
     USHORT usReadLen,
+    USHORT usMinReadLen,
     PUSHORT pusBytesRead
     );
 
