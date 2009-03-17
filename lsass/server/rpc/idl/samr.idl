@@ -318,7 +318,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function38();
 
     /* function 0x39 */
-    NTSTATUS _SamrConnect2(
+    NTSTATUS __SamrConnect2(
         [in] uint32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
         [in] uint32 access_mask,

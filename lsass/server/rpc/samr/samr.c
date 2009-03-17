@@ -675,7 +675,7 @@ NTSTATUS samr_Function38(
 }
 
 
-NTSTATUS _SamrConnect2(
+NTSTATUS __SamrConnect2(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ uint32 size,
     /* [in] */ wchar16_t *system_name,
@@ -685,11 +685,11 @@ NTSTATUS _SamrConnect2(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = SamrConnect2(IDL_handle,
-                          size,
-                          system_name,
-                          access_mask,
-                          hConn);
+    status = SamrSrvConnect2(IDL_handle,
+                             size,
+                             system_name,
+                             access_mask,
+                             hConn);
     return status;
 }
 
