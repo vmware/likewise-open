@@ -8,6 +8,7 @@ libsamr_srv_la_SOURCES = \
     globals.c \
     samr.c \
     samr_srv.c \
+    samr_memory.c \
     samr_connect.c \
     samr_connect2.c \
     samr_lookupdomain.c \
@@ -38,6 +39,7 @@ libsamr_srv_la_CFLAGS = \
 
 libsamr_srv_la_LIBADD = \
     @DCERPC_LIBS@ \
+    @NETAPI_LIBS@ \
     @LIBUNISTR_LIBS@ \
     @LIBSECDESC_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
