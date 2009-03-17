@@ -38,7 +38,7 @@
 
 
 NTSTATUS
-SamrEnumDomains(
+SamrSrvEnumDomains(
     /* [in] */ handle_t hBinding,
     /* [in] */ CONNECT_HANDLE hConn,
     /* [in, out] */ uint32 *resume,

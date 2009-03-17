@@ -37,7 +37,7 @@
 #include "includes.h"
 
 
-NTSTATUS SamrLookupDomain(
+NTSTATUS SamrSrvLookupDomain(
     /* [in] */ handle_t hBinding,
     /* [in] */ CONNECT_HANDLE hConn,
     /* [in] */ UnicodeString *domain_name,

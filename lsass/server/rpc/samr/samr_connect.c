@@ -37,7 +37,7 @@
 #include "includes.h"
 
 
-NTSTATUS SamrConnect(
+NTSTATUS SamrSrvConnect(
     /* [in] */ handle_t hBinding,
     /* [in] */ const wchar16_t *system_name,
     /* [in] */ uint32 access_mask,

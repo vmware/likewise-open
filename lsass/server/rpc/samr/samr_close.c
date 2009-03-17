@@ -37,7 +37,7 @@
 #include "includes.h"
 
 
-NTSTATUS SamrClose(
+NTSTATUS SamrSrvClose(
     /* [in] */ handle_t hBinding,
     /* [in, context_handle] */ void *hIn,
     /* [out, context_handle] */ void **hOut
