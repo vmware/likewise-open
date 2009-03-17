@@ -19,7 +19,7 @@ liblsa_srv_la_SOURCES = \
 
 LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
 LSASS_INCLUDES = -I$(top_srcdir)/include
-SVCCTL_INCLUDES = -I$(rpc_srcdir)/svcctl
+RPCCTL_INCLUDES = -I$(rpc_srcdir)/rpcctl
 DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS) \
     @NETAPI_INCLUDES@ \
@@ -33,7 +33,7 @@ liblsa_srv_la_CFLAGS = \
     $(LSASS_SRV_INCLUDES) \
     $(LSASS_INCLUDES) \
     $(LIBRPC_INCLUDES) \
-    $(SVCCTL_INCLUDES) \
+    $(RPCCTL_INCLUDES) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
@@ -42,7 +42,7 @@ liblsa_srv_la_LIBADD = \
     @DCERPC_LIBS@ \
     @LIBUNISTR_LIBS@ \
     @LIBSECDESC_LIBS@ \
-    $(rpc_srcdir)/svcctl/libsvcctl.la \
+    $(rpc_srcdir)/rpcctl/librpcctl.la \
     liblsa_ss.la
 
 liblsa_ss_la_SOURCES = lsa_sstub.c
