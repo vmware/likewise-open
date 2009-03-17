@@ -91,6 +91,23 @@ SamDbModifyGroup(
     );
 
 DWORD
+SamDbFindDomain(
+    HANDLE hDirectory,
+    PWSTR  pwszDomainName,
+    PSAM_DB_DOMAIN_INFO* ppDomainInfo
+    );
+
+DWORD
+SamDbBuildDomainInfo(
+    PSTR*  ppszResult,
+    int    nRows,
+    int    nCols,
+    int    nHeaderColsToSkip,
+    PSAM_DB_DOMAIN_INFO** pppDomainInfo,
+    PDWORD pdwNumDomainsFound
+    );
+
+DWORD
 SamDbModifyDomain(
     HANDLE hDirectory,
     PWSTR pszObjectName,
@@ -119,6 +136,17 @@ DWORD
 SamDbDeleteDomain(
     HANDLE hDirectory,
     PWSTR pszObjectName
+    );
+
+VOID
+SamDbFreeDomainInfoList(
+    PSAM_DB_DOMAIN_INFO* ppDomainInfoList,
+    DWORD dwNumDomains
+    );
+
+VOID
+SamDbFreeDomainInfo(
+    PSAM_DB_DOMAIN_INFO pDomainInfo
     );
 
 DWORD

@@ -86,5 +86,15 @@ typedef struct _SAM_GLOBALS
 
 } SAM_GLOBALS, *PSAM_GLOBALS;
 
+typedef struct _SAM_DB_DOMAIN_INFO
+{
+    ULONG ulDomainRecordId;
+
+    PWSTR pwszDomainName;
+    PWSTR pwszNetBIOSName;
+    PWSTR pwszDomainSID;
+
+} SAM_DB_DOMAIN_INFO, *PSAM_DB_DOMAIN_INFO;
+
 #endif /* __SAMDBSTRUCTS_H__ */
 

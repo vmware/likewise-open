@@ -79,6 +79,14 @@
           where rowid = new.rowid;                             \
      end"
 
+#define DB_QUERY_FIND_DOMAIN \
+    "select DomainRecordId,  \
+            ObjectSID,       \
+            Name,            \
+            NetbiosName      \
+       from samdbdomains     \
+      where Name = %Q"
+
 typedef enum
 {
     SAMDB_DOMAIN_TABLE_COLUMN_DOMAIN_NAME = 1,
@@ -318,7 +326,7 @@ SamDbAddDomain(
                            NULL,
                            NULL,
                            &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
 
@@ -354,6 +362,213 @@ error:
 }
 
 DWORD
+SamDbFindDomain(
+    HANDLE hDirectory,
+    PWSTR  pwszDomainName,
+    PSAM_DB_DOMAIN_INFO* ppDomainInfo
+    )
+{
+    DWORD   dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PSTR    pszDomainName = NULL;
+    PSTR    pszQuery = NULL;
+    PSTR    pszError = NULL;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PSAM_DB_DOMAIN_INFO*   ppDomainInfoList = NULL;
+    DWORD   dwNumDomainsFound = 0;
+    int nRows = 0;
+    int nCols = 0;
+    int nExpectedCols = 4;
+    PSTR* ppszResult = NULL;
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    dwError = LsaWc16sToMbs(
+                    pwszDomainName,
+                    &pszDomainName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    LsaStrToUpper(pszDomainName);
+
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirContext->rwLock);
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_FIND_DOMAIN,
+                    pszDomainName);
+
+    dwError = sqlite3_get_table(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    &ppszResult,
+                    &nRows,
+                    &nCols,
+                    &pszError);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!nRows)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwError = SamDbBuildDomainInfo(
+                    ppszResult,
+                    nRows,
+                    nCols,
+                    nExpectedCols,
+                    &ppDomainInfoList,
+                    &dwNumDomainsFound);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (dwNumDomainsFound != 1)
+    {
+        dwError = LSA_ERROR_UNEXPECTED_DB_RESULT;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    *ppDomainInfo = ppDomainInfoList[0];
+    ppDomainInfoList[0] = NULL;
+
+cleanup:
+
+    if (ppszResult) {
+        sqlite3_free_table(ppszResult);
+    }
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
+
+    if (pszDomainName)
+    {
+        LsaFreeString(pszDomainName);
+    }
+
+    if (ppDomainInfoList)
+    {
+        SamDbFreeDomainInfoList(ppDomainInfoList, dwNumDomainsFound);
+    }
+
+    return dwError;
+
+error:
+
+    *ppDomainInfo = NULL;
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+SamDbBuildDomainInfo(
+    PSTR*  ppszResult,
+    int    nRows,
+    int    nCols,
+    int    nHeaderColsToSkip,
+    PSAM_DB_DOMAIN_INFO** pppDomainInfoList,
+    PDWORD pdwNumDomainsFound
+    )
+{
+    DWORD dwError = 0;
+    DWORD iCol = 0, iRow = 0;
+    DWORD iVal = nHeaderColsToSkip;
+    PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
+    PSAM_DB_DOMAIN_INFO pDomainInfo = NULL;
+    DWORD dwNumDomainsFound = nRows;
+
+    dwError = LsaAllocateMemory(
+                    sizeof(PSAM_DB_DOMAIN_INFO) * nRows,
+                    (PVOID*)&ppDomainInfoList);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    for (iRow = 0; iRow < nRows; iRow++)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(SAM_DB_DOMAIN_INFO),
+                        (PVOID*)&pDomainInfo);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        for (iCol = 0; iCol < nCols; iCol++)
+        {
+            switch(iCol)
+            {
+                case 0: /* DomainRecordId */
+                {
+                    if (!IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                       pDomainInfo->ulDomainRecordId = atol(ppszResult[iVal]);
+                    }
+                    break;
+                }
+                case 1: /* Domain SID */
+                {
+                    if (!IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                       dwError = LsaMbsToWc16s(
+                                       ppszResult[iVal],
+                                       &pDomainInfo->pwszDomainSID);
+                       BAIL_ON_SAMDB_ERROR(dwError);
+                    }
+                    break;
+                }
+                case 2: /* Name */
+                {
+                    if (!IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                       dwError = LsaMbsToWc16s(
+                                       ppszResult[iVal],
+                                       &pDomainInfo->pwszDomainName);
+                       BAIL_ON_SAMDB_ERROR(dwError);
+                    }
+                    break;
+                }
+                case 3: /* NetBIOS Name */
+                {
+                    if (!IsNullOrEmptyString(ppszResult[iVal]))
+                    {
+                       dwError = LsaMbsToWc16s(
+                                       ppszResult[iVal],
+                                       &pDomainInfo->pwszNetBIOSName);
+                       BAIL_ON_SAMDB_ERROR(dwError);
+                    }
+                    break;
+                }
+            }
+            iVal++;
+        }
+
+        *(ppDomainInfoList + iRow) = pDomainInfo;
+        pDomainInfo = NULL;
+    }
+
+    *pppDomainInfoList = ppDomainInfoList;
+    *pdwNumDomainsFound = dwNumDomainsFound;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (ppDomainInfoList)
+    {
+        SamDbFreeDomainInfoList(ppDomainInfoList, dwNumDomainsFound);
+    }
+
+    if (pDomainInfo)
+    {
+        SamDbFreeDomainInfo(pDomainInfo);
+    }
+
+    *pppDomainInfoList = NULL;
+    *pdwNumDomainsFound = 0;
+
+    goto cleanup;
+}
+
+DWORD
 SamDbModifyDomain(
     HANDLE hDirectory,
     PWSTR pszObjectName,
@@ -374,4 +589,45 @@ SamDbDeleteDomain(
     DWORD dwError = 0;
 
     return dwError;
+}
+
+VOID
+SamDbFreeDomainInfoList(
+    PSAM_DB_DOMAIN_INFO* ppDomainInfoList,
+    DWORD dwNumDomains
+    )
+{
+    DWORD iInfo = 0;
+
+    for (; iInfo < dwNumDomains; iInfo++)
+    {
+        PSAM_DB_DOMAIN_INFO pInfo = ppDomainInfoList[iInfo];
+
+        if (pInfo)
+        {
+            SamDbFreeDomainInfo(pInfo);
+        }
+    }
+
+    LsaFreeMemory(ppDomainInfoList);
+}
+
+VOID
+SamDbFreeDomainInfo(
+    PSAM_DB_DOMAIN_INFO pDomainInfo
+    )
+{
+    if (pDomainInfo->pwszDomainName)
+    {
+        LsaFreeMemory(pDomainInfo->pwszDomainName);
+    }
+    if (pDomainInfo->pwszDomainSID)
+    {
+        LsaFreeMemory(pDomainInfo->pwszDomainSID);
+    }
+    if (pDomainInfo->pwszNetBIOSName)
+    {
+        LsaFreeMemory(pDomainInfo->pwszNetBIOSName);
+    }
+    LsaFreeMemory(pDomainInfo);
 }

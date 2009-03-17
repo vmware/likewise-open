@@ -101,8 +101,53 @@ SamDbSearchDomains(
     )
 {
     DWORD dwError = 0;
+    PWSTR pwszObjectName = NULL;
+    PWSTR pwszDomain = NULL;
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
+    PSAM_DB_DOMAIN_INFO pDomainInfo = NULL;
+
+    dwError = SamDbParseDN(
+                    pwszBase,
+                    &pwszObjectName,
+                    &pwszDomain,
+                    &entryType);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if ((entryType != SAMDB_ENTRY_TYPE_DOMAIN) ||
+        (pwszObjectName || *pwszObjectName))
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwError = SamDbFindDomain(
+                    hDirectory,
+                    pwszDomain,
+                    &pDomainInfo);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    // TODO: Marshall the response
+
+cleanup:
+
+    if (pwszObjectName)
+    {
+        LsaFreeMemory(pwszObjectName);
+    }
+    if (pwszDomain)
+    {
+        LsaFreeMemory(pwszDomain);
+    }
+    if (pDomainInfo)
+    {
+        SamDbFreeDomainInfo(pDomainInfo);
+    }
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
@@ -228,6 +273,11 @@ SamDbConvertFiltertoTable(
     *pdwTable = entryType;
 
 cleanup:
+
+    if (pszFilter)
+    {
+        LsaFreeString(pszFilter);
+    }
 
     return dwError;
 
