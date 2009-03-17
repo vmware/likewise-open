@@ -32,6 +32,7 @@
 #include "lsasystem.h"
 
 #include <sqlite3.h>
+#include <uuid/uuid.h>
 
 #include "lsa/lsa.h"
 #include <lw/ntstatus.h>

@@ -1,14 +1,33 @@
 #include "includes.h"
 
 #define SAMDB_BUILTIN_TAG    "BUILTIN"
-#define SAMDB_BUILTIN_TAG_L L"BUILTIN"
-#define SAMDB_BUILTIN_SID    "S-1-22"
-#define SAMDB_BUILTIN_SID_L L"S-1-22"
+#define SAMDB_BUILTIN_SID    "S-1-5-32"
 
 static
 DWORD
 SamDbAddDefaultEntries(
     HANDLE hDirectory
+    );
+
+static
+DWORD
+SamDbAddBuiltinDomain(
+    HANDLE hDirectory
+    );
+
+static
+DWORD
+SamDbAddMachineDomain(
+    HANDLE hDirectory
+    );
+
+static
+DWORD
+SamDbAddLocalDomain(
+    HANDLE hDirectory,
+    PCSTR  pszDomainName,
+    PCSTR  pszNetBIOSName,
+    PCSTR  pszMachineSID
     );
 
 DWORD
@@ -161,7 +180,184 @@ SamDbAddDefaultEntries(
     HANDLE hDirectory
     )
 {
-    DWORD dwError = 0;
+    DWORD     dwError = 0;
+
+    dwError = SamDbAddBuiltinDomain(hDirectory);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbAddMachineDomain(hDirectory);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+error:
 
     return dwError;
+}
+
+static
+DWORD
+SamDbAddBuiltinDomain(
+    HANDLE hDirectory
+    )
+{
+    return SamDbAddLocalDomain(
+                    hDirectory,
+                    SAMDB_BUILTIN_TAG,
+                    SAMDB_BUILTIN_TAG,
+                    SAMDB_BUILTIN_SID);
+}
+
+static
+DWORD
+SamDbAddMachineDomain(
+    HANDLE hDirectory
+    )
+{
+    DWORD  dwError = 0;
+    PSTR   pszHostname = NULL;
+    PSTR   pszMachineSID = NULL;
+    CHAR   szNetBIOSName[16];
+    ULONG  ulSubAuth[3];
+    PBYTE  pSubAuth = NULL;
+    uuid_t GUID;
+
+    uuid_generate(GUID);
+
+    dwError = LsaDnsGetHostInfo(&pszHostname);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    LsaStrToUpper(pszHostname);
+
+    memset(szNetBIOSName, 0, sizeof(szNetBIOSName));
+    strncpy(szNetBIOSName, pszHostname, 15);
+
+    pSubAuth = (PBYTE)GUID;
+    ulSubAuth[0] = (ULONG)pSubAuth;
+    pSubAuth += sizeof(ULONG);
+    ulSubAuth[1] = (ULONG)pSubAuth;
+    pSubAuth += sizeof(ULONG);
+    ulSubAuth[2] = (ULONG)pSubAuth;
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszMachineSID,
+                    "S-1-5-21-%ul-%ul-%ul",
+                    ulSubAuth[0],
+                    ulSubAuth[1],
+                    ulSubAuth[2]);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbAddLocalDomain(
+                    hDirectory,
+                    pszHostname,
+                    szNetBIOSName,
+                    pszMachineSID);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    if (pszHostname)
+    {
+        LsaFreeString(pszHostname);
+    }
+    if (pszMachineSID)
+    {
+        LsaFreeString(pszMachineSID);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbAddLocalDomain(
+    HANDLE hDirectory,
+    PCSTR  pszDomainName,
+    PCSTR  pszNetBIOSName,
+    PCSTR  pszMachineSID
+    )
+{
+    DWORD     dwError = 0;
+    PWSTR     pwszObjectName = NULL;
+    PWSTR     pwszMachineSID = NULL;
+    PWSTR     pwszNetBIOSName = NULL;
+    ATTRIBUTE_VALUE avMachineSID = {0};
+    ATTRIBUTE_VALUE avNetBIOSName = {0};
+    DIRECTORY_MOD mods[2];
+    ULONG     iMod = 0;
+
+    memset(mods, 0, sizeof(mods));
+
+    dwError = LsaMbsToWc16s(
+                    pszDomainName,
+                    &pwszObjectName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszMachineSID,
+                    &pwszMachineSID);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszNetBIOSName,
+                    &pwszNetBIOSName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    SAMDB_ATTR_TAG_DOMAIN_SID,
+                    &mods[0].pwszAttributeName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    mods[0].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[0].ulNumValues = 1;
+    avMachineSID.Type = SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING;
+    avMachineSID.pwszStringValue = pwszMachineSID;
+    mods[0].pAttributeValues = &avMachineSID;
+
+    dwError = LsaMbsToWc16s(
+                    SAMDB_ATTR_TAG_DOMAIN_NETBIOS_NAME,
+                    &mods[1].pwszAttributeName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    mods[1].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[1].ulNumValues = 1;
+    avNetBIOSName.Type = SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING;
+    avNetBIOSName.pwszStringValue = pwszNetBIOSName;
+    mods[1].pAttributeValues = &avNetBIOSName;
+
+    dwError = SamDbAddDomain(
+                    hDirectory,
+                    pwszObjectName,
+                    mods);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    if (pwszObjectName)
+    {
+        LsaFreeMemory(pwszObjectName);
+    }
+    if (pwszMachineSID)
+    {
+        LsaFreeMemory(pwszMachineSID);
+    }
+    if (pwszNetBIOSName)
+    {
+        LsaFreeMemory(pwszNetBIOSName);
+    }
+    for (iMod = 0; iMod < sizeof(mods)/sizeof(mods[0]); iMod++)
+    {
+        if (mods[iMod].pwszAttributeName)
+        {
+            LsaFreeMemory(mods[iMod].pwszAttributeName);
+        }
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
