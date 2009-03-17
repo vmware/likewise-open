@@ -86,7 +86,7 @@ SamrOpenDomain(
 
 
 NTSTATUS
-SamrConnect2(
+SamrSrvConnect2(
     handle_t hBinding,
     uint32 size,
     const wchar16_t *sysname,
