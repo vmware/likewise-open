@@ -231,11 +231,11 @@ SamDbAddMachineDomain(
     strncpy(szNetBIOSName, pszHostname, 15);
 
     pSubAuth = (PBYTE)GUID;
-    ulSubAuth[0] = (ULONG)pSubAuth;
+    ulSubAuth[0] = *((PULONG)pSubAuth);
     pSubAuth += sizeof(ULONG);
-    ulSubAuth[1] = (ULONG)pSubAuth;
+    ulSubAuth[1] = *((PULONG)pSubAuth);
     pSubAuth += sizeof(ULONG);
-    ulSubAuth[2] = (ULONG)pSubAuth;
+    ulSubAuth[2] = *((PULONG)pSubAuth);
 
     dwError = LsaAllocateStringPrintf(
                     &pszMachineSID,
