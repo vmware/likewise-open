@@ -60,3 +60,48 @@ LsaProviderLocal_DbFindGroupByName_1_Unsafe(
     PCSTR   pszGroupName,
     PVOID*  ppGroupInfo
     );
+
+DWORD
+LsaProviderLocal_DbFindGroupByName_0_Unsafe(
+    HANDLE  hDb,
+    PCSTR   pszDomain,
+    PCSTR   pszGroupName,
+    PVOID*  ppGroupInfo
+    );
+
+DWORD
+LsaProviderLocal_DbFindGroupByName_1_Unsafe(
+    HANDLE  hDb,
+    PCSTR   pszDomain,
+    PCSTR   pszGroupName,
+    PVOID*  ppGroupInfo
+    );
+
+
+DWORD
+LsaProviderLocal_DbEnumGroups_0(
+    HANDLE    hDb,
+    DWORD     dwOffset,
+    DWORD     dwLimit,
+    PDWORD    pdwNumGroupsFound,
+    PVOID**   pppGroupInfoList
+    );
+
+DWORD
+LsaProviderLocal_DbEnumGroups_1(
+    HANDLE    hDb,
+    DWORD     dwOffset,
+    DWORD     dwLimit,
+    PDWORD    pdwNumGroupsFound,
+    PVOID**   pppGroupInfoList
+    );
+
+DWORD
+LsaProviderLocal_DbEnumGroups(
+    HANDLE  hDb,
+    DWORD   dwGroupInfoLevel,
+    DWORD   dwStartingRecordId,
+    DWORD   nMaxGroups,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
+    );
