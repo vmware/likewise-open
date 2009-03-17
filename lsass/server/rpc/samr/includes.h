@@ -43,6 +43,7 @@
 #include <compat/rpcstatus.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
+#include <lwrpc/allocate.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
 #include <lwrpc/domaininfo.h>
@@ -56,6 +57,7 @@
 #include "samr_srv.h"
 #include <secdesc/sectypes.h>
 #include "samrdefs.h"
+#include "samr_contexthandle.h"
 #include "samr.h"
 #include "samr_h.h"
 

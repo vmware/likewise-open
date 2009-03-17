@@ -45,8 +45,12 @@ LsaInitializeRpcSrv(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
 
-    pthread_mutex_init(&gSamrDataMutex, NULL);
+    pthread_mutex_init(&gSamrSrvDataMutex, NULL);
+
+    status = SamrSrvInitMemory();
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     dwError = RpcSvcRegisterRpcInterface(samr_v1_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
@@ -54,10 +58,14 @@ LsaInitializeRpcSrv(
     *ppszRpcSrvName = (PSTR)gpszRpcSrvName;
     *ppFnTable      = &gSamrRpcFuncTable;
 
+    bSamrSrvInitialised = TRUE;
+
 cleanup:
     return dwError;
 
 error:
+    SamrDestroyMemory();
+
     goto cleanup;
 }
 
@@ -69,9 +77,17 @@ LsaShutdownRpcSrv(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = RpcSvcUnregisterRpcInterface(samr_v1_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
+
+    status = SamrSrvDestroyMemory();
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    pthread_mutex_destroy(&gSamrSrvDataMutex);
+
+    bSamrSrvInitialised = FALSE;
 
 error:
     return dwError;
