@@ -4,10 +4,10 @@ SUBDIRS = \
          srvutils       \
          store          \
          join           \
+         rpc            \
          api            \
          sqlite         \
          db             \
          auth-providers \
-         rpc            \
          ipc            \
          lsassd
