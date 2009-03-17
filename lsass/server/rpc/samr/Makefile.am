@@ -8,10 +8,17 @@ libsamr_srv_la_SOURCES = \
     globals.c \
     samr.c \
     samr_srv.c \
-    samr_connect.c
+    samr_connect.c \
+    samr_connect2.c \
+    samr_lookupdomain.c \
+    samr_enumdomains.c \
+    samr_opendomain.c \
+    samr_close.c \
+    samr_contexthandle.c
 
 LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
 LSASS_INCLUDES = -I$(top_srcdir)/include
+SVCCTL_INCLUDES = -I$(rpc_srcdir)/svcctl
 DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS) \
     @NETAPI_INCLUDES@ \
@@ -24,6 +31,7 @@ libsamr_srv_la_CFLAGS = \
     $(FEATURETEST_FLAGS) \
     $(LSASS_SRV_INCLUDES) \
     $(LSASS_INCLUDES) \
+    $(SVCCTL_INCLUDES) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
@@ -32,6 +40,7 @@ libsamr_srv_la_LIBADD = \
     @DCERPC_LIBS@ \
     @LIBUNISTR_LIBS@ \
     @LIBSECDESC_LIBS@ \
+    $(rpc_srcdir)/svcctl/libsvcctl.la \
     libsamr_ss.la
 
 libsamr_ss_la_SOURCES = samr_sstub.c
