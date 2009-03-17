@@ -37,175 +37,8 @@
 #include "includes.h"
 
 
-static
-void*
-LsaRpcWorkerMain(
-    void* pCtx
-    );
-
-
 DWORD
-LsaRpcRegisterRpcInterface(
-    rpc_binding_vector_p_t pSrvBinding
-    )
-{
-    const PSTR pszProtSeq[] = { "ncacn_ip_tcp", NULL };
-
-    DWORD dwError = 0;
-    RPCSTATUS rpcstatus = rpc_s_ok;
-    int i = 0;
-
-    rpc_server_register_if(lsa_v0_0_s_ifspec,
-                           NULL,
-                           NULL,
-                           &rpcstatus);
-    BAIL_ON_DCERPC_ERROR(rpcstatus);
-
-    while (pszProtSeq[i] != NULL) {
-        rpc_server_use_protseq((unsigned char*)pszProtSeq[i++],
-                               rpc_c_protseq_max_calls_default,
-                               &rpcstatus);
-        BAIL_ON_DCERPC_ERROR(rpcstatus);
-    }
-
-    rpc_server_inq_bindings(&pSrvBinding, &rpcstatus);
-    BAIL_ON_DCERPC_ERROR(rpcstatus);
-
-    rpc_ep_register(lsa_v0_0_s_ifspec,
-                    pSrvBinding,
-                    NULL,
-                    "",
-                    &rpcstatus);
-    BAIL_ON_DCERPC_ERROR(rpcstatus);
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-
-DWORD
-LsaRpcUnregisterRpcInterface(
-    rpc_binding_vector_p_t pSrvBinding
-    )
-{
-    DWORD dwError = 0;
-    RPCSTATUS rpcstatus = rpc_s_ok;
-
-    if (pSrvBinding) {
-        rpc_ep_unregister(lsa_v0_0_s_ifspec,
-                          pSrvBinding,
-                          NULL,
-                          &rpcstatus);
-        BAIL_ON_DCERPC_ERROR(rpcstatus);
-
-        rpc_binding_vector_free(&pSrvBinding, &rpcstatus);
-        pSrvBinding = NULL;
-
-        BAIL_ON_DCERPC_ERROR(rpcstatus);
-    }
-
-    rpc_server_unregister_if(lsa_v0_0_s_ifspec,
-                             NULL,
-                             &rpcstatus);
-    BAIL_ON_DCERPC_ERROR(rpcstatus);
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-
-static
-void*
-LsaRpcWorkerMain(
-    void* pCtx
-    )
-{
-    RPCSTATUS rpcstatus = rpc_s_ok;
-
-    DCETHREAD_TRY
-    {
-        rpc_server_listen(rpc_c_listen_max_calls_default, &rpcstatus);
-    }
-    DCETHREAD_CATCH_ALL(THIS_CATCH)
-    {
-    }
-    DCETHREAD_ENDTRY;
-}
-
-
-DWORD
-LsaRpcStartWorker(
-    void
-    )
-{
-    DWORD dwError = 0;
-    int ret = 0;
-
-    ret = pthread_create(&gWorker.worker,
-                         NULL,
-                         LsaRpcWorkerMain,
-                         (void*)&gWorker.context);
-    if (ret) {
-        dwError = LSA_ERROR_INVALID_RPC_SERVER;
-        goto error;
-    }
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-
-DWORD
-LsaRpcStartServer(
-    void
-    )
-{
-    DWORD dwError = 0;
-    RPCSTATUS rpcstatus = rpc_s_ok;
-    int ret = 0;
-
-    dwError = LsaRpcRegisterRpcInterface(gpLsaSrvBinding);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaRpcStartWorker();
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-
-DWORD
-LsaRpcStopServer(
-    void
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = LsaRpcUnregisterRpcInterface(gpLsaSrvBinding);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-
-DWORD LsaInitializeRpcSrv(
+LsaInitializeRpcSrv(
     PCSTR pszConfigFilePath,
     PSTR* ppszRpcSrvName,
     PLSA_RPCSRV_FUNCTION_TABLE* ppFnTable
@@ -215,17 +48,14 @@ DWORD LsaInitializeRpcSrv(
 
     pthread_mutex_init(&gLsaDataMutex, NULL);
 
-    dwError = LsaRpcStartServer();
+    dwError = RpcSvcRegisterRpcInterface(lsa_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszRpcSrvName = (PSTR)gpszRpcSrvName;
     *ppFnTable      = &gLsaRpcFuncTable;
 
-cleanup:
-    return dwError;
-
 error:
-    goto cleanup;
+    return dwError;
 }
 
 
@@ -236,6 +66,52 @@ LsaShutdownRpcSrv(
     )
 {
     DWORD dwError = 0;
+
+    dwError = RpcSvcUnregisterRpcInterface(lsa_v0_0_s_ifspec);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    return dwError;
+}
+
+
+DWORD
+LsaRpcStartServer(
+    void
+    )
+{
+    PCSTR pszDescription = "Local Security Authority";
+    const ENDPOINT EndPoints[] = {
+        { "ncacn_np",      "\\\\pipe\\\\lsarpc" },
+        { "ncacn_ip_tcp",  NULL },
+        { NULL,            NULL }
+    };
+
+    DWORD dwError = 0;
+
+    dwError = RpcSvcBindRpcInterface(gpLsaSrvBinding,
+                                     lsa_v0_0_s_ifspec,
+                                     EndPoints,
+                                     pszDescription);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    return dwError;
+}
+
+
+DWORD
+LsaRpcStopServer(
+    void
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = RpcSvcUnbindRpcInterface(gpLsaSrvBinding,
+                                       lsa_v0_0_s_ifspec);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
     return dwError;
 }
 

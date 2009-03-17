@@ -45,8 +45,9 @@
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>
 
-#include "lsa/lsa.h"
-#include "lsarpcsrv.h"
+#include <lsa/lsa.h>
+#include <lsarpcsrv.h>
+#include <svcctl-register.h>
 
 #include "lsa_srv.h"
 #include "lsadefs.h"
