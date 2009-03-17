@@ -1,5 +1,5 @@
 SUBDIRS=   \
     sam    \
-    svcctl \
+    rpcctl \
     lsa    \
     samr
