@@ -60,27 +60,27 @@ typedef struct lsa_rpc_server {
 
 
 DWORD
+LsaCheckInvalidRpcServer(
+    PVOID pSymbol,
+    PCSTR pszLibPath
+    );
+
+
+DWORD
 LsaInitRpcServers(
     PCSTR pszConfigFilePath
     );
 
 
 void
-LsaFreeRpcServer(
-    PLSA_RPC_SERVER pSrv
-    );
-
-
-void
-LsaFreeRpcServerList(
+LsaStartRpcServers(
     PLSA_RPC_SERVER pRpcServerList
     );
 
 
-DWORD
-LsaCfgFreeRpcServerInStack(
-    PVOID pItem,
-    PVOID pUserData
+void
+LsaStopRpcServers(
+    PLSA_RPC_SERVER pRpcServerList
     );
 
 
@@ -108,10 +108,22 @@ LsaRpcServerConfigNameValuePair(
     );
 
 
+void
+LsaFreeRpcServer(
+    PLSA_RPC_SERVER pSrv
+    );
+
+
+void
+LsaFreeRpcServerList(
+    PLSA_RPC_SERVER pRpcServerList
+    );
+
+
 DWORD
-LsaCheckInvalidRpcServer(
-    PVOID pSymbol,
-    PCSTR pszLibPath
+LsaCfgFreeRpcServerInStack(
+    PVOID pItem,
+    PVOID pUserData
     );
 
 
