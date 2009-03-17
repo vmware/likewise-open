@@ -1,4 +1,5 @@
-SUBDIRS=  \
-    sam   \
-    lsa   \
+SUBDIRS=   \
+    sam    \
+    svcctl \
+    lsa    \
     samr
