@@ -357,7 +357,9 @@ PvfsQueryFileBothDirInfo(
            contents was read but the file was removed before we could
            stat() it.  Just skip the file and move on. */
 
-        if (ntError == STATUS_OBJECT_NAME_NOT_FOUND) {
+        if (ntError == STATUS_OBJECT_NAME_NOT_FOUND ||
+            ntError == STATUS_INSUFFICIENT_RESOURCES)
+        {
             pCcb->pDirContext->dwIndex++;
             continue;
         }
