@@ -79,7 +79,8 @@ RdrUnmarshalFileBothDirectoryInformation(
     PSMB_CLIENT_FILE_HANDLE pHandle,
     PVOID pFileInformation,
     ULONG ulLength,
-    PULONG pulLengthUsed
+    PULONG pulLengthUsed,
+    PULONG* ppulNextOffset
     );
 
 NTSTATUS
@@ -272,6 +273,7 @@ RdrUnmarshalFindResults(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     ULONG ulLengthUsed = 0;
     ULONG ulTotalLengthUsed = 0;
+    PULONG pulNextOffset = NULL;
 
     do
     {
@@ -282,7 +284,9 @@ RdrUnmarshalFindResults(
                 pHandle,
                 pFileInformation,
                 ulLength,
-                &ulLengthUsed);
+                &ulLengthUsed,
+                &pulNextOffset
+                );
             BAIL_ON_NT_STATUS(ntStatus);
             break;
         default:
@@ -294,7 +298,13 @@ RdrUnmarshalFindResults(
         ulTotalLengthUsed += ulLengthUsed;
         pFileInformation = ((PBYTE) pFileInformation) + ulLengthUsed;
         ulLength -= ulLengthUsed;
+        *pulNextOffset = ulLengthUsed;
     } while (!bReturnSingleEntry && ulLengthUsed);
+
+    if (pulNextOffset)
+    {
+        *pulNextOffset = 0;
+    }
 
     *pulLengthUsed = ulTotalLengthUsed;
 
@@ -309,7 +319,8 @@ RdrUnmarshalFileBothDirectoryInformation(
     PSMB_CLIENT_FILE_HANDLE pHandle,
     PVOID pFileInformation,
     ULONG ulLength,
-    PULONG pulLengthUsed
+    PULONG pulLengthUsed,
+    PULONG* ppulNextOffset
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -347,7 +358,7 @@ RdrUnmarshalFileBothDirectoryInformation(
             ulLengthUsed += (8 - ulLengthUsed % 8);
         }
 
-        pBothInfo->NextEntryOffset = ulLengthUsed;
+        *ppulNextOffset = &pBothInfo->NextEntryOffset;
         *pulLengthUsed = ulLengthUsed;
     }
     else
