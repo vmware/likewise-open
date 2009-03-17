@@ -169,7 +169,7 @@ PvfsCreateFileSupersede(
     ntError = PvfsFileSplitPath(&pszDirname, &pszRelativeFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname);
+    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -177,7 +177,7 @@ PvfsCreateFileSupersede(
 
     /* Check for file existence.  Remove it if necessary */
 
-    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename);
+    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename, FALSE);
     bFileExisted = NT_SUCCESS(ntError);
 
     if (bFileExisted) {
@@ -324,17 +324,20 @@ PvfsCreateFileCreate(
     ntError = PvfsFileSplitPath(&pszDirname, &pszRelativeFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname);
+    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename);
+    ntError = PvfsLookupFile(&pszDiskFilename,
+                             pszDiskDirname,
+                             pszRelativeFilename,
+                             FALSE);
     if (ntError == STATUS_SUCCESS) {
         ntError = STATUS_OBJECT_NAME_COLLISION;
         BAIL_ON_NT_STATUS(ntError);
     }
 
     ntError = RtlCStringAllocatePrintf(&pszDiskFilename,
-                                       "&s/%s",
+                                       "%s/%s",
                                        pszDiskDirname,
                                        pszRelativeFilename);
     BAIL_ON_NT_STATUS(ntError);
@@ -445,7 +448,7 @@ PvfsCreateFileOpen(
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskFilename, pszFilename);
+    ntError = PvfsLookupPath(&pszDiskFilename, pszFilename, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -546,7 +549,7 @@ PvfsCreateFileOpenIf(
     ntError = PvfsFileSplitPath(&pszDirname, &pszRelativeFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname);
+    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -554,7 +557,10 @@ PvfsCreateFileOpenIf(
 
     /* Check for file existence */
 
-    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename);
+    ntError = PvfsLookupFile(&pszDiskFilename,
+                             pszDiskDirname,
+                             pszRelativeFilename,
+                             FALSE);
     bFileExisted = NT_SUCCESS(ntError);
 
     if (!bFileExisted)
@@ -673,7 +679,7 @@ PvfsCreateFileOverwrite(
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskFilename, pszFilename);
+    ntError = PvfsLookupPath(&pszDiskFilename, pszFilename, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -789,7 +795,7 @@ PvfsCreateFileOverwriteIf(
     ntError = PvfsFileSplitPath(&pszDirname, &pszRelativeFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname);
+    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -797,7 +803,10 @@ PvfsCreateFileOverwriteIf(
 
     /* Check for file existence */
 
-    ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename);
+    ntError = PvfsLookupFile(&pszDiskFilename,
+                             pszDiskDirname,
+                             pszRelativeFilename,
+                             FALSE);
     bFileExisted = NT_SUCCESS(ntError);
 
     if (!bFileExisted)

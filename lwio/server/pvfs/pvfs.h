@@ -224,14 +224,16 @@ PvfsFileSplitPath(
 NTSTATUS
 PvfsLookupPath(
     PSTR *ppszDiskPath,
-    PCSTR pszPath
+    PCSTR pszPath,
+    BOOLEAN bCaseSensitive
     );
 
 NTSTATUS
 PvfsLookupFile(
     PSTR *ppszDiskPath,
     PCSTR pszDiskDirname,
-    PCSTR pszFilename
+    PCSTR pszFilename,
+    BOOLEAN bCaseSensitive
     );
 
 

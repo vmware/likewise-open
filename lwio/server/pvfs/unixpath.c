@@ -195,7 +195,7 @@ PvfsFileDirname(
     PSTR pszNewString = NULL;
 
     /* Case #1: No '/' so just return '.' */
-    if (((pszCursor = strchr(pszPath, '/')) == NULL))
+    if (((pszCursor = strrchr(pszPath, '/')) == NULL))
     {
         ntError = RtlCStringDuplicate(ppszDirname, ".");
         goto cleanup;
@@ -260,17 +260,22 @@ error:
 NTSTATUS
 PvfsLookupPath(
     PSTR *ppszDiskPath,
-    PCSTR pszPath
+    PCSTR pszPath,
+    BOOLEAN bCaseSensitive
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PVFS_STAT Stat = {0};
     PSTR pszDiskPath = NULL;
+    PSTR pszDirname = NULL;
+    PSTR pszBasename = NULL;
 
-    ntError = RtlCStringDuplicate(&pszDiskPath, pszPath);
+    ntError = PvfsFileSplitPath(&pszDirname, &pszBasename, pszPath);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysStat(pszDiskPath, &Stat);
+    ntError = PvfsLookupFile(&pszDiskPath,
+                             pszDirname,
+                             pszBasename,
+                             bCaseSensitive);
     BAIL_ON_NT_STATUS(ntError);
 
     *ppszDiskPath = pszDiskPath;
@@ -279,8 +284,9 @@ PvfsLookupPath(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-
     RtlCStringFree(&pszDiskPath);
+    RtlCStringFree(&pszDirname);
+    RtlCStringFree(&pszBasename);
 
     return ntError;
 
@@ -295,12 +301,15 @@ NTSTATUS
 PvfsLookupFile(
     PSTR *ppszDiskPath,
     PCSTR pszDiskDirname,
-    PCSTR pszFilename
+    PCSTR pszFilename,
+    BOOLEAN bCaseSensitive
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszFullPath = NULL;
     PVFS_STAT Stat = {0};
+    DIR *pDir = NULL;
+    struct dirent *pDirEntry = NULL;
 
     ntError = RtlCStringAllocatePrintf(&pszFullPath,
                                        "%s/%s",
@@ -308,8 +317,54 @@ PvfsLookupFile(
                                        pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Fast path.  Case is correct */
+
     ntError = PvfsSysStat(pszFullPath, &Stat);
+    if (ntError == STATUS_SUCCESS) {
+        *ppszDiskPath = pszFullPath;
+        pszFullPath = NULL;
+        goto cleanup;
+    }
+
+    /* Case sensitive searches end here if we hit a failure */
+
+    if (bCaseSensitive) {
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    RtlCStringFree(&pszFullPath);
+
+    /* Enumerate directory entries and look for a match */
+
+    ntError = PvfsSysOpenDir(pszDiskDirname, &pDir);
     BAIL_ON_NT_STATUS(ntError);
+
+    for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
+        pDirEntry;
+        ntError = PvfsSysReadDir(pDir, &pDirEntry))
+    {
+        /* First check the error return */
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (RtlCStringIsEqual(pszFilename, pDirEntry->d_name, FALSE)) {
+            break;
+        }
+    }
+
+    /* Did we find a match? */
+
+    if (!pDirEntry) {
+        ntError = STATUS_OBJECT_NAME_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = RtlCStringAllocatePrintf(&pszFullPath,
+                                       "%s/%s",
+                                       pszDiskDirname,
+                                       pDirEntry->d_name);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Done */
 
     *ppszDiskPath = pszFullPath;
     pszFullPath = NULL;
@@ -318,6 +373,10 @@ PvfsLookupFile(
 
 cleanup:
     RtlCStringFree(&pszFullPath);
+
+    if (pDir) {
+        PvfsSysCloseDir(pDir);
+    }
 
     return ntError;
 

@@ -87,7 +87,7 @@ PvfsCreate(
                                         pIrp->Args.Create.FileName);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsLookupPath(&pszDiskFilename, pszFilename);
+        ntError = PvfsLookupPath(&pszDiskFilename, pszFilename, FALSE);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsSysStat(pszDiskFilename, &Stat);

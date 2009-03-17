@@ -204,7 +204,7 @@ error:
 
 NTSTATUS
 PvfsSysOpenDir(
-    PSTR pszDirname,
+    PCSTR pszDirname,
     DIR **ppDir
     )
 {
