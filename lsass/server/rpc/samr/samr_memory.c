@@ -50,6 +50,57 @@ error:
 }
 
 
+NTSTATUS
+SamrSrvAllocateMemory(
+    void **ppOut,
+    DWORD dwSize,
+    void *pDep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    void *pOut = NULL;
+    void *pParent = NULL;
+    int locked = 0;
+
+    pParent = (pDep) ? pDep : pMemRoot;
+
+    GLOBAL_DATA_LOCK(locked);
+
+    pOut = talloc(pParent, dwSize, NULL);
+    BAIL_ON_NO_MEMORY(pOut);
+
+    memset(pOut, 0, dwSize);
+
+    *ppOut = pOut;
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(locked);
+
+    return status;
+
+error:
+    *ppOut = NULL;
+    goto cleanup;
+}
+
+
+void
+SamrSrvFreeMemory(
+    void *pPtr
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    int locked = 0;
+
+    GLOBAL_DATA_LOCK(locked);
+
+    tfree(pPtr);
+
+error:
+    GLOBAL_DATA_UNLOCK(locked);
+}
+
+
 /*
 local variables:
 mode: c
