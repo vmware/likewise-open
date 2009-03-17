@@ -213,7 +213,7 @@ AC_ARG_WITH([netapi-libs],
 		NETAPI_LDFLAGS="-L$withval"
         ])
 
-NETAPI_LIBS="-lnetapi -lnetlogon"
+NETAPI_LIBS="-lnetapi -lnetlogon -lalloc"
 
 KRB5PAC_INCLUDES="$NETAPI_INCLUDES"
 KRB5PAC_LDFLAGS="$NETAPI_LDFLAGS"
