@@ -37,7 +37,8 @@
 #include "includes.h"
 
 
-NTSTATUS LsaQueryInfoPolicy2(
+NTSTATUS
+LsaSrvQueryInfoPolicy2(
     handle_t b,
     PolicyHandle *h,
     uint16 level,
