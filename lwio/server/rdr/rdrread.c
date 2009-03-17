@@ -134,7 +134,12 @@ RdrCommonRead(
             &usBytesRead);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (usBytesRead == 0)
+        ulTotalBytesRead += usBytesRead;
+        ulLength -= usBytesRead;
+        llByteOffset += usBytesRead;
+        llBufferOffset += usBytesRead;
+
+        if (usBytesRead < ulReadLength)
         {
             if (ulTotalBytesRead == 0)
             {
@@ -146,11 +151,6 @@ RdrCommonRead(
                 break;
             }
         }
-
-        ulTotalBytesRead += usBytesRead;
-        ulLength -= usBytesRead;
-        llByteOffset += usBytesRead;
-        llBufferOffset += usBytesRead;
     }
 
     pIrp->IoStatusBlock.BytesTransferred = ulTotalBytesRead;
