@@ -37,9 +37,11 @@
 #include "includes.h"
 
 /* Library initialisation guard */
-pthread_mutex_t gSamrDataMutex;
+pthread_mutex_t gSamrSrvDataMutex;
 
-int bSamrInitialised = 0;
+
+void *pMemRoot = NULL;
+int bSamrSrvInitialised = 0;
 
 
 PCSTR gpszRpcSrvName = "samr";

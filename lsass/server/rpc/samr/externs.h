@@ -38,9 +38,10 @@
 #define _EXTERNS_H_
 
 /* Library initialisation guard */
-extern pthread_mutex_t gSamrDataMutex;
+extern pthread_mutex_t gSamrSrvDataMutex;
 
-extern int bSamrInitialised;
+extern void *pMemRoot;
+extern int bSamrSrvInitialised;
 
 extern PCSTR gpszRpcSrvName;
 extern LSA_RPCSRV_FUNCTION_TABLE gSamrRpcFuncTable;
