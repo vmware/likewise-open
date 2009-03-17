@@ -20,11 +20,13 @@ liblsaserverapi_la_SOURCES = \
 
 liblsaserverapi_la_CPPFLAGS =         \
 	-DLW_ENABLE_THREADS=1         \
-	-I@top_srcdir@/server/include
+	-I@top_srcdir@/server/include \
+        -I@top_srcdir@/server/rpc/svcctl
 
 liblsaserverapi_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
 	@top_builddir@/server/srvutils/liblsasrvutils.la \
+        @top_builddir@/server/rpc/svcctl/libsvcctl.la \
 	@UUID_LIBS@ \
 	@PTHREAD_LIBS@
 
