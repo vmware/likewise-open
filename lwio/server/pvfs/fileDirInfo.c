@@ -220,8 +220,8 @@ FillFileDirInfoBuffer(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pszFullPath);
-    PVFS_SAFE_FREE_MEMORY(pwszFilename);
+    RtlCStringFree(&pszFullPath);
+    RtlWC16StringFree(&pwszFilename);
 
     return ntError;
 
