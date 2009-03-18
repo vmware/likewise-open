@@ -8,6 +8,7 @@ liblsa_srv_la_SOURCES = \
     globals.c \
     lsa.c \
     lsa_srv.c \
+    lsa_memory.c \
     lsa_openpolicy2.c \
     lsa_close.c \
     lsa_lookupnames.c \
