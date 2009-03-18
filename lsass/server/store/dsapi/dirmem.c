@@ -111,6 +111,52 @@ DirectoryFreeMemory(
 
 DWORD
 DirectoryAllocateString(
+    PSTR  pszInputString,
+    PSTR* ppszOutputString
+    )
+{
+    DWORD  dwError = 0;
+    size_t sByteLen = 0;
+    PSTR   pszOutputString = NULL;
+
+    if (!pszInputString)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    sByteLen = strlen(pszInputString);
+
+    dwError = DirectoryAllocateMemory(
+                sByteLen,
+                (PVOID *)&pszOutputString);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (sByteLen)
+    {
+       memcpy(pszOutputString, pszInputString, sByteLen);
+    }
+
+    *ppszOutputString = pszOutputString;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pszOutputString)
+    {
+        DirectoryFreeString(pszOutputString);
+    }
+
+    *ppszOutputString = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+DirectoryAllocateStringW(
     PWSTR  pwszInputString,
     PWSTR* ppwszOutputString
     )
@@ -147,7 +193,7 @@ error:
 
     if (pwszOutputString)
     {
-        DirectoryFreeString(pwszOutputString);
+        DirectoryFreeStringW(pwszOutputString);
     }
 
     *ppwszOutputString = NULL;
@@ -156,11 +202,19 @@ error:
 }
 
 VOID
-DirectoryFreeString(
+DirectoryFreeStringW(
     PWSTR pwszString
     )
 {
     DirectoryFreeMemory(pwszString);
+}
+
+VOID
+DirectoryFreeString(
+    PSTR pszString
+    )
+{
+    DirectoryFreeMemory(pszString);
 }
 
 VOID
@@ -177,7 +231,7 @@ DirectoryFreeStringArray(
         {
             if (ppStringArray[i])
             {
-                DirectoryFreeString(ppStringArray[i]);
+                DirectoryFreeStringW(ppStringArray[i]);
             }
         }
 

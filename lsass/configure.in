@@ -851,6 +851,7 @@ AC_CONFIG_FILES([Makefile
                  server/store/Makefile
 		 server/store/samdb/Makefile
 		 server/store/dsapi/Makefile
+		 server/store/dsapi/dirdefs.h
                  access/Makefile
                  auth/Makefile
                  auth/common/Makefile

@@ -42,6 +42,7 @@
 
 #include "dirdefs.h"
 #include "dirstructs.h"
+#include "dirprovider.h"
 
 
 /*

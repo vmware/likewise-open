@@ -105,20 +105,36 @@ DirectoryFreeMemory(
     );
 
 DWORD
-DirectoryAllocateString(
+DirectoryAllocateStringW(
     PWSTR  pwszInputString,
     PWSTR* ppwszOutputString
     );
 
+DWORD
+DirectoryAllocateString(
+    PSTR  pszInputString,
+    PSTR* ppszOutputString
+    );
+
+VOID
+DirectoryFreeStringW(
+    PWSTR pwszString
+    );
+
 VOID
 DirectoryFreeString(
-    PWSTR pwszString
+    PSTR pszString
     );
 
 VOID
 DirectoryFreeStringArray(
     PWSTR* ppStringArray,
     DWORD  dwCount
+    );
+
+DWORD
+DirectoryOpen(
+    PHANDLE phDirectory
     );
 
 DWORD
@@ -158,6 +174,11 @@ VOID
 DirectoryFreeAttributeValues(
     PATTRIBUTE_VALUE pAttrValues,
     DWORD            dwNumValues
+    );
+
+DWORD
+DirectoryClose(
+    HANDLE hDirectory
     );
 
 #endif /* __DIRECTORY_H__ */

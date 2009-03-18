@@ -1,0 +1,14 @@
+#ifndef _DIR_DEFS_H__
+#define _DIR_DEFS_H__
+
+typedef enum
+{
+    LOCAL_SAM = 0
+} DirectoryType;
+
+#define SAM_DB_PROVIDER_PATH "@providerdir@/libsamdb@MOD_EXT@"
+
+#define BAIL_ON_DIRECTORY_ERROR(dwError) \
+    if (dwError) goto error;
+
+#endif /* _DIR_DEFS_H__ */

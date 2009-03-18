@@ -1,14 +1,15 @@
 provider_LTLIBRARIES = libdsapi.la
 
 libdsapi_la_SOURCES = \
-        diradd.c    \
-        dirattr.c   \
-        dirbind.c   \
-        dirclose.c  \
-        dirdel.c    \
-        dirmem.c    \
-        dirmodify.c \
-        diropen.c   \
+        diradd.c      \
+        dirattr.c     \
+        dirbind.c     \
+        dirclose.c    \
+        dirdel.c      \
+        dirmem.c      \
+        dirmodify.c   \
+        diropen.c     \
+        dirprovider.c \
         dirsearch.c
 
 libdsapi_la_CPPFLAGS = \
