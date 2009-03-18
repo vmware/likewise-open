@@ -37,9 +37,12 @@
 #include "lsautils.h"
 #include "lsaunistr.h"
 
+#include "directory.h"
 #include "dsprovider.h"
 
-#include "directory.h"
+#include "dirdefs.h"
+#include "dirstructs.h"
+
 
 /*
 local variables:

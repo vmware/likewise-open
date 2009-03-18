@@ -42,8 +42,8 @@
 #include "lsautils.h"
 #include "lsaunistr.h"
 
-#include "dsprovider.h"
 #include "directory.h"
+#include "dsprovider.h"
 
 #include "samdbdefs.h"
 #include "samdbstructs.h"

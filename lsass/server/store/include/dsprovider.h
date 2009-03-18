@@ -8,45 +8,6 @@
 #ifndef DSPROVIDER_H_
 #define DSPROVIDER_H_
 
-typedef struct _OCTET_STRING {
-    ULONG ulNumBytes;
-    PBYTE pBytes;
-} OCTET_STRING, *POCTET_STRING;
-
-typedef struct _ATTRIBUTE_VALUE {
-    ULONG Type;
-    union {
-        ULONG uLongValue;
-        PWSTR pwszStringValue;
-        BOOL  bBooleanValue;
-        POCTET_STRING pOctetString;
-    };
-} ATTRIBUTE_VALUE, *PATTRIBUTE_VALUE;
-
-typedef struct _DIRECTORY_ATTRIBUTE {
-    PWSTR pwszAttributeName;
-    ULONG ulNumValues;
-    PATTRIBUTE_VALUE * ppAttributeValues;
-} DIRECTORY_ATTRIBUTE, *PDIRECTORY_ATTRIBUTE;
-
-typedef ULONG DIR_MOD_FLAGS;
-
-#define DIR_MOD_FLAGS_ADD     0x0
-#define DIR_MOD_FLAGS_REPLACE 0x1
-#define DIR_MOD_FLAGS_DELETE  0x2
-
-typedef struct _DIRECTORY_MOD {
-    DIR_MOD_FLAGS    ulOperationFlags;
-    PWSTR            pwszAttributeName;
-    ULONG            ulNumValues;
-    PATTRIBUTE_VALUE pAttributeValues;
-} DIRECTORY_MOD, *PDIRECTORY_MOD;
-
-typedef struct _DIRECTORY_ENTRY{
-    ULONG ulNumAttributes;
-    PDIRECTORY_ATTRIBUTE * ppDirectoryAttributes;
-} DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
-
 typedef DWORD (*PFNDIRECTORYOPEN)(
                     PHANDLE phDirectory
                     );
