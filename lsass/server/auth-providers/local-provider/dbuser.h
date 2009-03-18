@@ -5,8 +5,7 @@ LsaProviderLocal_DbFindUserByName(
     PCSTR   pszUserName,
     DWORD   dwUserInfoLevel,
     PVOID*  ppUserInfo
-    );;
-
+    );
 
 DWORD
 LsaProviderLocal_DbEnumUsers_0(
@@ -15,7 +14,7 @@ LsaProviderLocal_DbEnumUsers_0(
     DWORD  dwLimit,
     PDWORD pdwNumUsersFound,
     PVOID** pppUserInfoList
-    );;
+    );
 
 
 DWORD
@@ -23,8 +22,7 @@ LsaProviderLocal_DbFindUserByName_0(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
-    );;
-
+    );
 
 DWORD
 LsaProviderLocal_DbFindUserByName_1(
@@ -33,7 +31,6 @@ LsaProviderLocal_DbFindUserByName_1(
     PVOID* ppUserInfo
     );
 
-
 DWORD
 LsaProviderLocal_DbFindUserByName_2(
     HANDLE hDb,
@@ -41,24 +38,12 @@ LsaProviderLocal_DbFindUserByName_2(
     PVOID* ppUserInfo
     );
 
-
-
 DWORD
 LsaProviderLocal_DbEnumUsers_1(
     HANDLE hDb,
     DWORD  dwOffset,
     DWORD  dwLimit,
     PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-
-DWORD
-LsaProviderLocal_DbEnumUsers_2(
-    HANDLE  hDb,
-    DWORD   dwOffset,
-    DWORD   dwLimit,
-    PDWORD  pdwNumUsersFound,
     PVOID** pppUserInfoList
     );
 
@@ -70,8 +55,7 @@ LsaProviderLocal_DbEnumUsers(
     DWORD   nMaxUsers,
     PDWORD  pdwNumUsersFound,
     PVOID** pppUserInfoList
-    );
-
+    );;
 
 DWORD
 LsaProviderLocal_DbFindUserById(
@@ -81,7 +65,6 @@ LsaProviderLocal_DbFindUserById(
     PVOID* ppUserInfo
     );
 
-
 DWORD
 LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
     HANDLE  hDb,
@@ -89,7 +72,6 @@ LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     );
-
 
 DWORD
 LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
@@ -99,10 +81,45 @@ LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
     PVOID** pppGroupInfoList
     );
 
+
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
+LsaProviderLocal_DbFindUserById_0_Unsafe(
     HANDLE  hDb,
-    uid_t uid,
+    uid_t   uid,
+    PVOID*  ppUserInfo
+    );
+
+
+DWORD
+LsaProviderLocal_DbFindUserById_0(
+    HANDLE hDb,
+    uid_t  uid,
+    PVOID* ppUserInfo
+    );
+
+
+DWORD
+LsaProviderLocal_DbFindUserById_1(
+    HANDLE hDb,
+    uid_t  uid,
+    PVOID* ppUserInfo
+    );
+
+
+DWORD
+LsaProviderLocal_DbFindUserById_2(
+    HANDLE hDb,
+    uid_t  uid,
+    PVOID* ppUserInfo
+    );
+
+DWORD
+LsaProviderLocal_DbGetGroupsForUser(
+    HANDLE  hDb,
+    uid_t   uid,
+    DWORD   dwGroupInfoLevel,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     );
+
+

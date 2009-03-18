@@ -1018,3 +1018,392 @@ error:
 }
 
 
+DWORD
+LsaProviderLocal_DbFindUserById_0_Unsafe(
+    HANDLE  hDb,
+    uid_t   uid,
+    PVOID*  ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszQuery = NULL;
+    PSTR pszError = NULL;
+    int  nRows = 0;
+    int  nCols = 0;
+    PSTR* ppszResult = NULL;
+    sqlite3* pDbHandle = (sqlite3*)hDb;
+    DWORD nExpectedCols = 7;
+    PLSA_USER_INFO_0* ppUserInfoList = NULL;
+    DWORD dwUserInfoLevel = 0;
+    DWORD dwNumUsersFound = 0;
+
+    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_0_BY_UID,
+                               uid);
+
+    dwError = sqlite3_get_table(
+                        pDbHandle,
+                        pszQuery,
+                        &ppszResult,
+                        &nRows,
+                        &nCols,
+                        &pszError
+                        );
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!nRows) {
+       dwError = LSA_ERROR_NO_SUCH_USER;
+       BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if ((nCols != nExpectedCols) || (nRows > 1)) {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaProviderLocal_DbWriteToUserInfo_0_Unsafe(
+                        ppszResult,
+                        nRows,
+                        nCols,
+                        nExpectedCols,
+                        &ppUserInfoList,
+                        &dwNumUsersFound
+                        );
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppUserInfo = *ppUserInfoList;
+    *ppUserInfoList = NULL;
+
+cleanup:
+
+    if (pszQuery) {
+       sqlite3_free(pszQuery);
+    }
+
+    if (ppszResult) {
+       sqlite3_free_table(ppszResult);
+    }
+
+    if (ppUserInfoList) {
+        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
+    }
+
+    return dwError;
+
+error:
+
+    if (pszError) {
+       LSA_LOG_ERROR("%s", pszError);
+    }
+
+    *ppUserInfo = NULL;
+
+    goto cleanup;
+}
+
+
+DWORD
+LsaProviderLocal_DbFindUserById_0(
+    HANDLE hDb,
+    uid_t  uid,
+    PVOID* ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+
+    ENTER_RW_READER_LOCK;
+
+    dwError = LsaProviderLocal_DbFindUserById_0_Unsafe(
+                hDb,
+                uid,
+                ppUserInfo
+                );
+
+    LEAVE_RW_READER_LOCK;
+
+    return dwError;
+}
+
+
+DWORD
+LsaProviderLocal_DbFindUserById_1(
+    HANDLE hDb,
+    uid_t  uid,
+    PVOID* ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszQuery = NULL;
+    PSTR pszError = NULL;
+    int  nRows = 0;
+    int  nCols = 0;
+    PSTR* ppszResult = NULL;
+    sqlite3* pDbHandle = (sqlite3*)hDb;
+    DWORD nExpectedCols = 7;
+    PLSA_USER_INFO_1* ppUserInfoList = NULL;
+    DWORD dwNumUsersFound = 0;
+    DWORD dwUserInfoLevel = 1;
+    PBYTE pLMHash = NULL;
+    DWORD dwLMHashLen = 0;
+    PBYTE pNTHash = NULL;
+    DWORD dwNTHashLen = 0;
+    DWORD iUser = 0;
+
+    ENTER_RW_READER_LOCK;
+
+    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_1_BY_UID,
+                               uid);
+
+    dwError = sqlite3_get_table(
+                        pDbHandle,
+                        pszQuery,
+                        &ppszResult,
+                        &nRows,
+                        &nCols,
+                        &pszError
+                        );
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!nRows) {
+       dwError = LSA_ERROR_NO_SUCH_USER;
+       BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if ((nCols != nExpectedCols) || (nRows > 1)) {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaProviderLocal_DbWriteToUserInfo_1_Unsafe(
+                        ppszResult,
+                        nRows,
+                        nCols,
+                        nExpectedCols,
+                        &ppUserInfoList,
+                        &dwNumUsersFound);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (iUser = 0; iUser < dwNumUsersFound; iUser++)
+    {
+        PLSA_USER_INFO_1 pUserInfo = *(ppUserInfoList+iUser);
+
+        dwError = LsaProviderLocal_DbGetLMHash_Unsafe(
+                            hDb,
+                            pUserInfo->uid,
+                            &pLMHash,
+                            &dwLMHashLen);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaProviderLocal_DbGetNTHash_Unsafe(
+                            hDb,
+                            pUserInfo->uid,
+                            &pNTHash,
+                            &dwNTHashLen
+                            );
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pUserInfo->pLMHash = pLMHash;
+        pLMHash = NULL;
+        pUserInfo->dwLMHashLen = dwLMHashLen;
+        pUserInfo->pNTHash = pNTHash;
+        pNTHash = NULL;
+        pUserInfo->dwNTHashLen = dwNTHashLen;
+    }
+
+    *ppUserInfo = *(ppUserInfoList);
+    *ppUserInfoList = NULL;
+
+cleanup:
+
+    if (pszQuery) {
+       sqlite3_free(pszQuery);
+    }
+
+    if (ppszResult) {
+       sqlite3_free_table(ppszResult);
+    }
+
+    if (ppUserInfoList) {
+        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
+    }
+
+    LEAVE_RW_READER_LOCK;
+
+    return dwError;
+
+error:
+
+    if (pszError) {
+       LSA_LOG_ERROR("%s", pszError);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pLMHash);
+    LSA_SAFE_FREE_MEMORY(pNTHash);
+
+    *ppUserInfo = NULL;
+
+    goto cleanup;
+}
+
+
+DWORD
+LsaProviderLocal_DbFindUserById_2(
+    HANDLE hDb,
+    uid_t  uid,
+    PVOID* ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszQuery = NULL;
+    PSTR pszError = NULL;
+    int  nRows = 0;
+    int  nCols = 0;
+    PSTR* ppszResult = NULL;
+    sqlite3* pDbHandle = (sqlite3*)hDb;
+    DWORD nExpectedCols = 10;
+    PLSA_USER_INFO_2* ppUserInfoList = NULL;
+    DWORD dwNumUsersFound = 0;
+    DWORD dwUserInfoLevel = 2;
+    PBYTE pNTHash = NULL;
+    DWORD dwNTHashLen = 0;
+    PBYTE pLMHash = NULL;
+    DWORD dwLMHashLen = 0;
+    DWORD iUser = 0;
+
+    ENTER_RW_READER_LOCK;
+
+    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_2_BY_UID,
+                               uid);
+
+    dwError = sqlite3_get_table(
+                        pDbHandle,
+                        pszQuery,
+                        &ppszResult,
+                        &nRows,
+                        &nCols,
+                        &pszError
+                        );
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!nRows) {
+       dwError = LSA_ERROR_NO_SUCH_USER;
+       BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if ((nCols != nExpectedCols) || (nRows > 1)) {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaProviderLocal_DbWriteToUserInfo_2_Unsafe(
+                        ppszResult,
+                        nRows,
+                        nCols,
+                        nExpectedCols,
+                        &ppUserInfoList,
+                        &dwNumUsersFound
+                        );
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (iUser = 0; iUser < dwNumUsersFound; iUser++)
+    {
+        PLSA_USER_INFO_2 pUserInfo = *(ppUserInfoList+iUser);
+
+        dwError = LsaProviderLocal_DbGetLMHash_Unsafe(
+                        hDb,
+                        pUserInfo->uid,
+                        &pLMHash,
+                        &dwLMHashLen
+                        );
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaProviderLocal_DbGetNTHash_Unsafe(
+                        hDb,
+                        pUserInfo->uid,
+                        &pNTHash,
+                        &dwNTHashLen
+                        );
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pUserInfo->pLMHash = pLMHash;
+        pLMHash = NULL;
+        pUserInfo->dwLMHashLen = dwLMHashLen;
+        pUserInfo->pNTHash = pNTHash;
+        pNTHash = NULL;
+        pUserInfo->dwNTHashLen = dwNTHashLen;
+    }
+
+    *ppUserInfo = *ppUserInfoList;
+    *ppUserInfoList = NULL;
+
+cleanup:
+
+    if (pszQuery) {
+       sqlite3_free(pszQuery);
+    }
+
+    if (ppszResult) {
+       sqlite3_free_table(ppszResult);
+    }
+
+    if (ppUserInfoList) {
+        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
+    }
+
+    LEAVE_RW_READER_LOCK;
+
+    return dwError;
+
+error:
+
+    if (pszError) {
+       LSA_LOG_ERROR("%s", pszError);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pNTHash);
+    LSA_SAFE_FREE_MEMORY(pLMHash);
+
+    *ppUserInfo = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+LsaProviderLocal_DbGetGroupsForUser(
+    HANDLE  hDb,
+    uid_t   uid,
+    DWORD   dwGroupInfoLevel,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
+    )
+{
+    DWORD dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+
+    switch(dwGroupInfoLevel)
+    {
+        case 0:
+        {
+            dwError = LsaProviderLocal_DbGetGroupsForUser_0(
+                                hDb,
+                                uid,
+                                pdwGroupsFound,
+                                pppGroupInfoList
+                                );
+            break;
+        }
+        case 1:
+        {
+            dwError = LsaProviderLocal_DbGetGroupsForUser_1(
+                                hDb,
+                                uid,
+                                pdwGroupsFound,
+                                pppGroupInfoList
+                                );
+            break;
+        }
+
+    }
+
+    return dwError;
+}
+
+
