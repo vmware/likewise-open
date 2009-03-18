@@ -348,6 +348,14 @@ PvfsCreateFileCreate(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Need to go ahead andcreate a share mode entry */
+
+    ntError = PvfsCheckShareMode(pszDiskFilename,
+                                 Args.ShareAccess,
+                                 Args.DesiredAccess,
+                                 &pFcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Check that we can add files to the parent directory.  If
        we can, then the granted access on the file should be
        ALL_ACCESS. */
