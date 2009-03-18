@@ -11,9 +11,9 @@ SamrSrvInitMemory(
 
     GLOBAL_DATA_LOCK(locked);
 
-    if (!bSamrSrvInitialised && !pMemRoot) {
-        pMemRoot = talloc(NULL, 0, NULL);
-        BAIL_ON_NO_MEMORY(pMemRoot);
+    if (!bSamrSrvInitialised && !pSamrSrvMemRoot) {
+        pSamrSrvMemRoot = talloc(NULL, 0, NULL);
+        BAIL_ON_NO_MEMORY(pSamrSrvMemRoot);
     }
 
 cleanup:
@@ -36,8 +36,8 @@ SamrSrvDestroyMemory(
 
     GLOBAL_DATA_LOCK(locked);
 
-    if (bSamrSrvInitialised && pMemRoot) {
-        tfree(pMemRoot);
+    if (bSamrSrvInitialised && pSamrSrvMemRoot) {
+        tfree(pSamrSrvMemRoot);
     }
 
 cleanup:
@@ -62,7 +62,7 @@ SamrSrvAllocateMemory(
     void *pParent = NULL;
     int locked = 0;
 
-    pParent = (pDep) ? pDep : pMemRoot;
+    pParent = (pDep) ? pDep : pSamrSrvMemRoot;
 
     GLOBAL_DATA_LOCK(locked);
 

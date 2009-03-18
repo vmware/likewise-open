@@ -40,7 +40,7 @@
 pthread_mutex_t gSamrSrvDataMutex;
 
 
-void *pMemRoot = NULL;
+void *pSamrSrvMemRoot = NULL;
 int bSamrSrvInitialised = 0;
 
 
