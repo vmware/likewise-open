@@ -1406,4 +1406,155 @@ LsaProviderLocal_DbGetGroupsForUser(
     return dwError;
 }
 
+// Start from here
 
+DWORD
+LsaProviderLocal_DbUpdateHash_Unsafe(
+    HANDLE hDb,
+    uid_t  uid,
+    PCSTR  pszDbStatement,
+    PBYTE  pHash,
+    DWORD  dwHashLen
+    )
+{
+    DWORD dwError = 0;
+    sqlite3* pDbHandle = (sqlite3*)hDb;
+    PSTR  pszQuery = NULL;
+    PSTR  pszError = NULL;
+    DWORD dwHashVal_1 = 0;
+    DWORD dwHashVal_2 = 0;
+    DWORD dwHashVal_3 = 0;
+    DWORD dwHashVal_4 = 0;
+    PBYTE pTmpHash = NULL;
+
+    if (dwHashLen != 16) {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // TODO: Adjust for endian-ness
+    pTmpHash = pHash;
+    memcpy(&dwHashVal_1, pTmpHash, sizeof(dwHashVal_1));
+    pTmpHash += sizeof(dwHashVal_1);
+    memcpy(&dwHashVal_2, pTmpHash, sizeof(dwHashVal_2));
+    pTmpHash += sizeof(dwHashVal_2);
+    memcpy(&dwHashVal_3, pTmpHash, sizeof(dwHashVal_3));
+    pTmpHash += sizeof(dwHashVal_3);
+    memcpy(&dwHashVal_4, pTmpHash, sizeof(dwHashVal_4));
+
+    pszQuery = sqlite3_mprintf(pszDbStatement,
+                               dwHashVal_1,
+                               dwHashVal_2,
+                               dwHashVal_3,
+                               dwHashVal_4,
+                               time(NULL),
+                               uid);
+
+    dwError = sqlite3_exec(pDbHandle,
+                           pszQuery,
+                           NULL,
+                           NULL,
+                           &pszError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    if (pszQuery) {
+       sqlite3_free(pszQuery);
+    }
+
+    return dwError;
+
+error:
+
+    if (pszError) {
+        LSA_LOG_ERROR("%s", pszError);
+    }
+
+    goto cleanup;
+}
+
+
+DWORD
+LsaProviderLocal_DbUpdateNTHash_Unsafe(
+    HANDLE hDb,
+    uid_t  uid,
+    PBYTE  pHash,
+    DWORD  dwHashLen
+    )
+{
+    return LsaProviderLocal_DbUpdateHash_Unsafe(
+                hDb,
+                uid,
+                DB_QUERY_UPDATE_NT_OWF_FOR_UID,
+                pHash,
+                dwHashLen
+                );
+}
+
+DWORD
+LsaProviderLocal_DbChangePassword(
+    HANDLE hDb,
+    uid_t uid,
+    PCSTR pszPassword
+    )
+{
+    DWORD dwError = 0;
+    PBYTE pNTHash = NULL;
+    DWORD dwNTHashLen = 0;
+    PBYTE pLMHash = NULL;
+#ifdef NOT_YET
+    DWORD dwLMHashLen = 0;
+#endif
+    BOOLEAN bReleaseLock = FALSE;
+
+#ifdef NOT_YET
+    dwError = LsaSrvComputeLMHash(
+                      pszPassword,
+                      &pLMHash,
+                      &dwLMHashLen);
+    BAIL_ON_LSA_ERROR(dwError);
+#endif
+
+    dwError = LsaSrvComputeNTHash(
+                      pszPassword,
+                      &pNTHash,
+                      &dwNTHashLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ENTER_RW_WRITER_LOCK;
+    bReleaseLock = TRUE;
+
+    // TODO: Implement the update within a transaction
+
+    dwError = LsaProviderLocal_DbUpdateNTHash_Unsafe(
+                        hDb,
+                        uid,
+                        pNTHash,
+                        dwNTHashLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+#ifdef NOT_YET
+    dwError = LsaProviderLocal_DbUpdateLMHash_Unsafe(
+                        hDb,
+                        uid,
+                        pLMHash,
+                        dwLMHashLen);
+    BAIL_ON_LSA_ERROR(dwError);
+#endif
+
+cleanup:
+
+    if (bReleaseLock) {
+       LEAVE_RW_WRITER_LOCK;
+    }
+
+    LSA_SAFE_FREE_MEMORY(pLMHash);
+    LSA_SAFE_FREE_MEMORY(pNTHash);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
