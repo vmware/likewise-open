@@ -1675,6 +1675,9 @@ LsaTranslateKrb5Error(
         case KRB5KDC_ERR_PREAUTH_FAILED:
             dwError = LSA_ERROR_PASSWORD_MISMATCH;
             break;
+        case KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN:
+            dwError = LSA_ERROR_INVALID_ACCOUNT;
+            break;
         default:
             dwError = LSA_ERROR_KRB5_CALL_FAILED;
             break;
