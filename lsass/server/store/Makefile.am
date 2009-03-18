@@ -1,3 +1,3 @@
 SUBDIRS= \
-    samdb \
-    dsapi
+    dsapi \
+    samdb

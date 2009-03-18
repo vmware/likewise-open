@@ -1,6 +1,6 @@
-provider_LTLIBRARIES = libdirapi.la
+provider_LTLIBRARIES = libdsapi.la
 
-libdirapi_la_SOURCES = \
+libdsapi_la_SOURCES = \
         diradd.c    \
         dirbind.c   \
         dirclose.c  \
@@ -10,9 +10,9 @@ libdirapi_la_SOURCES = \
         diropen.c   \
         dirsearch.c
 
-libdirapi_la_CPPFLAGS = \
+libdsapi_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include
 
-libdirapi_la_LDFLAGS = \
+libdsapi_la_LDFLAGS = \
 	-module -avoid-version -export-dynamic

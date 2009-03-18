@@ -25,7 +25,8 @@ libsamdb_la_CPPFLAGS = \
 	-I@top_srcdir@/server/store/dsapi
 
 libsamdb_la_LIBADD = \
-    @UUID_LIBS@
+    @UUID_LIBS@ \
+    @top_builddir@/server/store/dsapi/libdsapi.la
 
 libsamdb_la_LDFLAGS = \
 	-module -avoid-version -export-dynamic -export-symbols=samdb.sym
