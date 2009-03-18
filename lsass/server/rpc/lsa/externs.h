@@ -37,9 +37,10 @@
 #ifndef _EXTERNS_H_
 #define _EXTERNS_H_
 
-extern pthread_mutex_t gLsaDataMutex;
+extern pthread_mutex_t gLsaSrvDataMutex;
 
-extern int bLsaInitialised;
+extern void *pLsaSrvMemRoot;
+extern int bLsaSrvInitialised;
 
 
 extern PCSTR gpszRpcSrvName;

@@ -37,9 +37,10 @@
 #include "includes.h"
 
 /* Library initialisation guard */
-pthread_mutex_t gLsaDataMutex;
+pthread_mutex_t gLsaSrvDataMutex;
 
-int bLsaInitialised = 0;
+void *pLsaSrvMemRoot = NULL;
+int bLsaSrvInitialised = 0;
 
 
 PCSTR gpszRpcSrvName = "lsarpc";
