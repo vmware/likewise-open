@@ -64,7 +64,7 @@
 #include "lsaserver.h"
 #include "lsaprovider.h"
 #include "lsarpcsrv.h"
-#include "svcctl.h"
+#include "rpcctl.h"
 
 #include "structs_p.h"
 #include "auth_p.h"
