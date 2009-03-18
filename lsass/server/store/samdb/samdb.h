@@ -1,6 +1,13 @@
 #ifndef __SAMDB_H__
 #define __SAMDB_H__
 
+#include <lw/rbtree.h>
+#include <sqlite3.h>
+#include <dsprovider.h>
+#include <samdbstructs.h>
+#include <samdbdefs.h>
+
+
 #define SAMDB_ATTR_TAG_USER_NAME            "user-name"
 #define SAMDB_ATTR_TAG_USER_FULLNAME        "user-full-name"
 #define SAMDB_ATTR_TAG_UID                  "uid"
