@@ -114,14 +114,27 @@ typedef struct _PVFS_INTERLOCKED_ULONG
 
 } PVFS_INTERLOCKED_ULONG, *PPVFS_INTERLOCKED_ULONG;
 
+struct _PVFS_CCB;
+
+typedef struct _PVFS_CCB_LIST_NODE
+{
+    struct _PVFS_CCB_LIST_NODE  *pNext;
+    struct _PVFS_CCB            *pCcb;
+
+} PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
+
+
 typedef struct _PVFS_FCB
 {
     LONG RefCount;
     pthread_mutex_t ControlBlock;  /* For ensuring atomic operations
                                        on an individual FCB */
-    PSTR pszFilename;
+    pthread_rwlock_t rwLock;       /* For managing the CCB list */
 
-    FILE_SHARE_FLAGS ShareAccess;
+    PSTR pszFilename;
+    LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
+
+    PPVFS_CCB_LIST_NODE pCcbList;
 
 } PVFS_FCB, *PPVFS_FCB;
 
@@ -143,8 +156,8 @@ typedef struct _PVFS_CCB
     /* Save parameters from the CreateFile() */
     PSTR pszFilename;
     FILE_CREATE_OPTIONS CreateOptions;
+    FILE_SHARE_FLAGS ShareAccess;
     ACCESS_MASK AccessGranted;
-    LONG64 LastWriteTime;
 
     /* Handle for Directory enumeraqtion */
     PPVFS_DIRECTORY_CONTEXT pDirContext;

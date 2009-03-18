@@ -48,6 +48,12 @@
 
 /* Forward declarations */
 
+static NTSTATUS
+CheckShareFlagsAndAccess(
+    IN PPVFS_FCB pFcb,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess
+    );
 
 /* Code */
 
@@ -57,7 +63,7 @@
 NTSTATUS
 PvfsCheckShareMode(
     IN PSTR pszFilename,
-    IN FILE_SHARE_FLAGS ShareAccess,
+    IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess,
     OUT PPVFS_FCB *ppFcb
     )
@@ -67,8 +73,11 @@ PvfsCheckShareMode(
 
     ntError = PvfsFindFCB(&pFcb, pszFilename);
     if (ntError == STATUS_SUCCESS) {
-        /* CHECK_SHARING(pFcb, ShareAccess); */
-        /* CHECK_DESIRED_ACCESS(pFcb, DesiredAccess); */
+
+        ntError = CheckShareFlagsAndAccess(pFcb,
+                                           SharedAccess,
+                                           DesiredAccess);
+        BAIL_ON_NT_STATUS(ntError);
 
         *ppFcb = pFcb;
 
@@ -85,7 +94,7 @@ PvfsCheckShareMode(
 
     /* Find and check again */
 
-    ntError = PvfsCreateFCB(&pFcb, pszFilename, ShareAccess);
+    ntError = PvfsCreateFCB(&pFcb, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* UNLOCK_WRITE_ACCESS(gTable) */
@@ -103,6 +112,45 @@ error:
 
     goto cleanup;
 }
+
+/***********************************************************
+ **********************************************************/
+
+static NTSTATUS
+CheckShareFlagsAndAccess(
+    IN PPVFS_FCB pFcb,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_CCB_LIST_NODE pCursor = NULL;
+    ACCESS_MASK AccessMask = DesiredAccess;
+
+    RtlMapGenericMask(&AccessMask, &gPvfsFileGenericMapping);
+
+    PvfsReaderLockFCB(pFcb);
+
+    for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
+         pCursor;
+         pCursor = PvfsNextCCBFromList(pFcb, pCursor))
+    {
+        ;
+        ;
+    }
+
+
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsReaderUnlockFCB(pFcb);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 /*
 local variables:

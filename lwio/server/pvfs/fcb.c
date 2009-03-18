@@ -84,6 +84,7 @@ PvfsAllocateFCB(
     /* Initialize mutexes and refcounts */
 
     pthread_mutex_init(&pFcb->ControlBlock, NULL);
+    pthread_rwlock_init(&pFcb->rwLock, NULL);
 
     /* Add initial ref count */
 
@@ -111,8 +112,12 @@ PvfsRemoveFCB(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    ntError= LwRtlRBTreeRemove(gFcbTable.pFcbTree,
+
+    ENTER_WRITER_RW_LOCK(&gFcbTable.rwLock);
+    ntError = LwRtlRBTreeRemove(gFcbTable.pFcbTree,
                                (PVOID)pFcb->pszFilename);
+    LEAVE_WRITER_RW_LOCK(&gFcbTable.rwLock);
+
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -132,22 +137,62 @@ PvfsFreeFCB(
 {
     RtlCStringFree(&pFcb->pszFilename);
     pthread_mutex_destroy(&pFcb->ControlBlock);
+    pthread_rwlock_destroy(&pFcb->rwLock);
+
     PvfsFreeMemory(pFcb);
 
     return STATUS_SUCCESS;
 }
 
+
 /*******************************************************
  ******************************************************/
+
+
+static NTSTATUS
+SetLastWriteTime(
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PVFS_STAT Stat = {0};
+    LONG64 LastAccessTime = 0;
+
+    /* Need the original access time */
+
+    ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&LastAccessTime, Stat.s_atime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysUtime(pFcb->pszFilename,
+                           pFcb->LastWriteTime,
+                           LastAccessTime);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
 
 VOID
 PvfsReleaseFCB(
     PPVFS_FCB pFcb
     )
 {
+    NTSTATUS ntError = STATUS_SUCCESS;
+
     if (InterlockedDecrement(&pFcb->RefCount) == 0)
     {
         PvfsRemoveFCB(pFcb);
+
+        ntError = SetLastWriteTime(pFcb);
+        /* Don't fail */
+
         PvfsFreeFCB(pFcb);
     }
 
@@ -230,6 +275,8 @@ PvfsFindFCB(
     PPVFS_FCB pFcb = NULL;
     LONG NewRefCount = 0;
 
+    ENTER_READER_RW_LOCK(&gFcbTable.rwLock);
+
     /* LOCK_READ_ACCESS(gTable) */
 
     ntError = LwRtlRBTreeFind(gFcbTable.pFcbTree,
@@ -246,7 +293,7 @@ PvfsFindFCB(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    /* UNLOCK_READ_ACCESS(gTable) */
+    LEAVE_READER_RW_LOCK(&gFcbTable.rwLock);
 
     return ntError;
 
@@ -264,9 +311,11 @@ PvfsAddFCB(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
+    ENTER_WRITER_RW_LOCK(&gFcbTable.rwLock);
     ntError = LwRtlRBTreeAdd(gFcbTable.pFcbTree,
                              (PVOID)pFcb->pszFilename,
                              (PVOID)pFcb);
+    LEAVE_WRITER_RW_LOCK(&gFcbTable.rwLock);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -282,8 +331,7 @@ error:
 NTSTATUS
 PvfsCreateFCB(
     OUT PPVFS_FCB *ppFcb,
-    IN  PSTR pszFilename,
-    IN  FILE_SHARE_FLAGS ShareAccess
+    IN  PSTR pszFilename
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -294,8 +342,6 @@ PvfsCreateFCB(
 
     ntError = RtlCStringDuplicate(&pFcb->pszFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
-
-    pFcb->ShareAccess = ShareAccess;
 
     /* Add to the file handle table */
 
@@ -314,7 +360,128 @@ error:
     goto cleanup;
 }
 
+/*******************************************************
+ ******************************************************/
 
+NTSTATUS
+PvfsAddCCBToFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_CCB_LIST_NODE pCcbNode = NULL;
+
+    ntError = PvfsAllocateMemory((PVOID*)&pCcbNode,
+                                 sizeof(PVFS_CCB_LIST_NODE));
+    BAIL_ON_NT_STATUS(ntError);
+
+    ENTER_MUTEX(&pFcb->ControlBlock);
+
+    /* Add to the front of the list */
+
+    pCcbNode->pCcb  = pCcb;
+    pCcbNode->pNext = pFcb->pCcbList;
+
+    pFcb->pCcbList  = pCcbNode;
+
+    LEAVE_MUTEX(&pFcb->ControlBlock);
+
+    pCcb->pFcb = pFcb;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*******************************************************
+ ******************************************************/
+
+NTSTATUS
+PvfsRemoveCCBFromFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_CCB_LIST_NODE pCursor = NULL;
+    PPVFS_CCB_LIST_NODE pTmp = NULL;
+
+    ENTER_WRITER_RW_LOCK(&pFcb->rwLock);
+
+    for (pCursor=pFcb->pCcbList; pCursor; pCursor = pCursor->pNext)
+    {
+        if (pCursor->pCcb == pCcb) {
+            break;
+        }
+        pTmp = pCursor;
+    }
+
+    if (!pCursor) {
+        ntError = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (pCursor == pFcb->pCcbList) {
+        pFcb->pCcbList = pCursor->pNext;
+    } else {
+        pTmp->pNext = pCursor->pNext;
+    }
+
+    PvfsFreeMemory(pCursor);
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    LEAVE_WRITER_RW_LOCK(&pFcb->rwLock);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*******************************************************
+ ******************************************************/
+
+VOID
+PvfsReaderLockFCB(
+    PPVFS_FCB pFcb
+    )
+{
+    ENTER_READER_RW_LOCK(&pFcb->rwLock);
+}
+
+/*******************************************************
+ ******************************************************/
+
+VOID
+PvfsReaderUnlockFCB(
+    PPVFS_FCB pFcb
+    )
+{
+    LEAVE_READER_RW_LOCK(&pFcb->rwLock);
+}
+
+/*******************************************************
+ ******************************************************/
+
+PPVFS_CCB_LIST_NODE
+PvfsNextCCBFromList(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB_LIST_NODE pCurrent
+    )
+{
+    if (pCurrent == NULL) {
+        return pFcb->pCcbList;
+    }
+
+    return pCurrent->pNext;
+}
 
 /*
 local variables:

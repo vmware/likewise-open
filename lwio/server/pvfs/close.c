@@ -53,12 +53,6 @@ PerformDeleteOnClose(
     PPVFS_CCB pCcb
     );
 
-static NTSTATUS
-SetLastWriteTime(
-    PPVFS_CCB pCcb
-    );
-
-
 
 /* Code */
 
@@ -102,17 +96,6 @@ PvfsClose(
     }
     /* Don't fail */
 
-    /* "sticky" last write times (if we didn't delete it already) */
-
-    if (bValidPath &&
-        !(pCcb->CreateOptions & FILE_DELETE_ON_CLOSE) &&
-        pCcb->LastWriteTime != 0)
-    {
-        ntError = SetLastWriteTime(pCcb);
-        /* Don't fail */
-    }
-
-
 
 cleanup:
     /* This is the final Release that will free the memory */
@@ -155,43 +138,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-/******************************************************************
- Note that the file/directory has been closed prior to this
- so the pCcb->fd is actually invalid.  You only have the
- pszFilename to work with.
- *****************************************************************/
-
-static NTSTATUS
-SetLastWriteTime(
-    PPVFS_CCB pCcb
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PVFS_STAT Stat = {0};
-    LONG64 LastAccessTime = 0;
-
-    /* Need the original access time */
-
-    ntError = PvfsSysStat(pCcb->pszFilename, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&LastAccessTime, Stat.s_atime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysUtime(pCcb->pszFilename,
-                           pCcb->LastWriteTime,
-                           LastAccessTime);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-
-}
-
 
 
 /*

@@ -78,9 +78,39 @@ PvfsFindFCB(
 NTSTATUS
 PvfsCreateFCB(
     OUT PPVFS_FCB *ppFcb,
-    IN  PSTR pszFilename,
-    IN  FILE_SHARE_FLAGS ShareAccess
+    IN  PSTR pszFilename
     );
+
+NTSTATUS
+PvfsAddCCBToFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb
+    );
+
+
+NTSTATUS
+PvfsRemoveCCBFromFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb
+    );
+
+VOID
+PvfsReaderLockFCB(
+    PPVFS_FCB pFcb
+    );
+
+VOID
+PvfsReaderUnlockFCB(
+    PPVFS_FCB pFcb
+    );
+
+
+PPVFS_CCB_LIST_NODE
+PvfsNextCCBFromList(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB_LIST_NODE pCurrent
+    );
+
 
 #endif   /* _PVFS_FCB_H */
 

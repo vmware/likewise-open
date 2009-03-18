@@ -241,7 +241,9 @@ PvfsCreateFileSupersede(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
-    pCcb->pFcb = pFcb;
+
+    ntError = PvfsAddCCBToFCB(pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
     pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
@@ -370,7 +372,9 @@ PvfsCreateFileCreate(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
-    pCcb->pFcb = pFcb;
+
+    ntError = PvfsAddCCBToFCB(pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
     pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
@@ -480,7 +484,9 @@ PvfsCreateFileOpen(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
-    pCcb->pFcb = pFcb;
+
+    ntError = PvfsAddCCBToFCB(pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
     pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
@@ -605,7 +611,9 @@ PvfsCreateFileOpenIf(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
-    pCcb->pFcb = pFcb;
+
+    ntError = PvfsAddCCBToFCB(pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
     pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
@@ -720,7 +728,9 @@ PvfsCreateFileOverwrite(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
-    pCcb->pFcb = pFcb;
+
+    ntError = PvfsAddCCBToFCB(pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
     pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
@@ -863,7 +873,9 @@ PvfsCreateFileOverwriteIf(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
-    pCcb->pFcb = pFcb;
+
+    ntError = PvfsAddCCBToFCB(pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
     pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);

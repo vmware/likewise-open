@@ -101,7 +101,7 @@ PvfsGetFileAttributes(
        not settable.  Make sure to clear and then reset if
        necessary */
 
-    *pAttributes &= ~FILE_ATTRIBUTE_DIRECTORY;
+    *pAttributes &= ~(FILE_ATTRIBUTE_NORMAL|FILE_ATTRIBUTE_DIRECTORY);
     if (pCcb->CreateOptions & FILE_DIRECTORY_FILE) {
         *pAttributes |= FILE_ATTRIBUTE_DIRECTORY;
     }
