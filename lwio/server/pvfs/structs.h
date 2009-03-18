@@ -115,11 +115,10 @@ typedef struct _PVFS_INTERLOCKED_ULONG
 
 typedef struct _PVFS_FCB
 {
-    PVFS_INTERLOCKED_ULONG cRef;
-
+    LONG RefCount;
+    pthread_mutex_t ControlBlock;  /* For ensuring atomic operations
+                                       on an individual FCB */
     PSTR pszFilename;
-    dev_t Device;
-    ino_t Inode;
 
     FILE_SHARE_FLAGS ShareAccess;
 

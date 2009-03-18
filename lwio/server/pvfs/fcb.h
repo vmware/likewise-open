@@ -54,14 +54,32 @@ PvfsAllocateFCB(
     PPVFS_FCB *ppFcb
     );
 
-NTSTATUS
-PvfsFreeFCB(
-    PPVFS_FCB pFcb
-    );
-
 VOID
 PvfsReleaseFCB(
     PPVFS_FCB pFcb
+    );
+
+NTSTATUS
+PvfsInitializeFCBTable(
+    VOID
+    );
+
+NTSTATUS
+PvfsDestroyFCBTable(
+    VOID
+    );
+
+NTSTATUS
+PvfsFindFCB(
+    PPVFS_FCB *ppFcb,
+    PSTR pszFilename
+    );
+
+NTSTATUS
+PvfsCreateFCB(
+    OUT PPVFS_FCB *ppFcb,
+    IN  PSTR pszFilename,
+    IN  FILE_SHARE_FLAGS ShareAccess
     );
 
 #endif   /* _PVFS_FCB_H */

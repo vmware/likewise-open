@@ -64,45 +64,29 @@ PvfsCheckShareMode(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_FCB pFcb = NULL;
-    BOOLEAN bLockedTable = FALSE;
-#if 0
-    PVFS_STAT Stat = {0};
-#endif
 
-    /* LOCK_MUTEX(gTable) */
-    bLockedTable = TRUE;
+    ntError = PvfsFindFCB(&pFcb, pszFilename);
+    if (ntError == STATUS_SUCCESS) {
+        /* CHECK_SHARING(pFcb, ShareAccess); */
+        /* CHECK_DESIRED_ACCESS(pFcb, DesiredAccess); */
 
-    /* First we have to find the FCB in our table of open
-       files */
+        goto cleanup;
+    }
 
-    /* FIND_FCB(gTable, pszFilename); */
-
-    /* CHECK_SHARING(pFcb, ShareAccess); */
-    /* CHECK_DESIRED_ACCESS(pFcb, DesiredAccess); */
+    if (ntError != STATUS_OBJECT_NAME_NOT_FOUND) {
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* If not found, then add one */
 
-    ntError = PvfsAllocateFCB(&pFcb);
+    /* LOCK_WRITE_ACCESS(gTable) */
+
+    /* Find and check again */
+
+    ntError = PvfsCreateFCB(&pFcb, pszFilename, ShareAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlCStringDuplicate(&pFcb->pszFilename, pszFilename);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* This will fail on new files that have not been created yet */
-
-#if 0
-    ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    pFcb->Device = Stat.s_dev;
-    pFcb->Inode  = Stat.s_ino;
-#endif
-
-    pFcb->ShareAccess = ShareAccess;
-
-    /* ADD_FCB(gTable, pFCB); */
-
-    /* UNLOCK_MUTEX(gTable); */
+    /* UNLOCK_WRITE_ACCESS(gTable) */
 
     *ppFcb = pFcb;
     ntError = STATUS_SUCCESS;
@@ -113,10 +97,6 @@ cleanup:
 error:
     if (pFcb) {
         PvfsReleaseFCB(pFcb);
-    }
-
-    if (bLockedTable) {
-        /* UNLOCK_MUTEX(gTable) */;
     }
 
     goto cleanup;

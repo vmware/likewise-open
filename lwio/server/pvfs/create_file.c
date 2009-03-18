@@ -198,6 +198,7 @@ PvfsCreateFileSupersede(
 
         /* Seems like this should clear the FCB from
            the open table.  Not sure */
+
         PvfsReleaseFCB(pFcb);
     }
     else
@@ -578,6 +579,12 @@ PvfsCreateFileOpenIf(
     }
     else
     {
+        ntError = PvfsCheckShareMode(pszDiskFilename,
+                                     Args.ShareAccess,
+                                     Args.DesiredAccess,
+                                     &pFcb);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszDiskFilename,
                                       Args.DesiredAccess,
@@ -687,6 +694,12 @@ PvfsCreateFileOverwrite(
 
     /* Just check access on the file and allow the open to
        validate existence */
+
+    ntError = PvfsCheckShareMode(pszDiskFilename,
+                                 Args.ShareAccess,
+                                 Args.DesiredAccess,
+                                 &pFcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAccessCheckFile(pSecCtx,
                                   pszDiskFilename,
@@ -824,6 +837,12 @@ PvfsCreateFileOverwriteIf(
     }
     else
     {
+        ntError = PvfsCheckShareMode(pszDiskFilename,
+                                     Args.ShareAccess,
+                                     Args.DesiredAccess,
+                                     &pFcb);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszDiskFilename,
                                       Args.DesiredAccess,

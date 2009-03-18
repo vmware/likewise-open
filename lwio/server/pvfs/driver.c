@@ -92,6 +92,9 @@ DriverEntry(
                              NULL);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsInitializeFCBTable();
+    BAIL_ON_NT_STATUS(ntError);
+
 cleanup:
     return ntError;
 
@@ -107,6 +110,8 @@ PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
+    PvfsDestroyFCBTable();
+
     IO_LOG_ENTER_LEAVE("");
 }
 
