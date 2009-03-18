@@ -70,6 +70,8 @@ PvfsCheckShareMode(
         /* CHECK_SHARING(pFcb, ShareAccess); */
         /* CHECK_DESIRED_ACCESS(pFcb, DesiredAccess); */
 
+        *ppFcb = pFcb;
+
         goto cleanup;
     }
 
