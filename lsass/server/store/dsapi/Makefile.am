@@ -11,8 +11,9 @@ libdsapi_la_SOURCES = \
         dirsearch.c
 
 libdsapi_la_CPPFLAGS = \
-	-DLW_ENABLE_THREADS=1         \
-	-I@top_srcdir@/server/include
+	-DLW_ENABLE_THREADS=1 \
+	-I@top_srcdir@/server/include \
+        -I@top_srvdir@/server/store/include
 
 libdsapi_la_LDFLAGS = \
 	-module -avoid-version -export-dynamic

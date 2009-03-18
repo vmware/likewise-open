@@ -22,7 +22,7 @@ libsamdb_la_SOURCES =     \
 libsamdb_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
-	-I@top_srcdir@/server/store/dsapi
+	-I@top_srcdir@/server/store/include
 
 libsamdb_la_LIBADD = \
     @UUID_LIBS@ \
