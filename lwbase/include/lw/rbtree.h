@@ -108,7 +108,7 @@ LwRtlRBTreeTraverse(
 NTSTATUS
 LwRtlRBTreeRemove(
     PLWRTL_RB_TREE pRBTree,
-    PVOID   pData);
+    PVOID   pKey);
 
 VOID
 LwRtlRBTreeFree(
