@@ -124,8 +124,15 @@ PvfsQueryFileBasicInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
+#if 0
+    /* Disabled for now until I can properly deal with
+       NTcreate&X with only WRITE_DAC access.  For now, treat
+       this like FILE_STANDARD_INFORMATION. */
+
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
+#endif
+
 
     if (Args.Length < sizeof(*pFileInfo))
     {        ntError = STATUS_BUFFER_TOO_SMALL;
@@ -193,7 +200,7 @@ PvfsSetFileBasicInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
@@ -228,7 +235,7 @@ PvfsSetFileBasicInfo(
     /* Save for "sticky" WriteTime sematics */
 
     if (WriteTime != 0) {
-        pCcb->LastWriteTime = WriteTime;
+        pCcb->pFcb->LastWriteTime = WriteTime;
     }
 
     /* Check if we need to preserve any original timestamps */

@@ -126,7 +126,7 @@ PvfsQuerySecurityFile(
 
     BAIL_ON_INVALID_PTR(Args.SecurityDescriptor, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
+    ntError = PvfsAccessCheckFileHandle(pCcb, READ_CONTROL);
     BAIL_ON_NT_STATUS(ntError);
 
     pReturnSecDesc = Args.SecurityDescriptor;
@@ -170,6 +170,7 @@ PvfsSetSecurityFile(
     ULONG SecDescLength = 0;
     SECURITY_INFORMATION SecInfo = 0;
     IRP_ARGS_QUERY_SET_SECURITY Args = pIrpContext->pIrp->Args.QuerySetSecurity;
+    ACCESS_MASK RequiredMask = 0;
 
     /* Sanity checks */
 
@@ -178,12 +179,26 @@ PvfsSetSecurityFile(
 
     BAIL_ON_INVALID_PTR(Args.SecurityDescriptor, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_ATTRIBUTES);
-    BAIL_ON_NT_STATUS(ntError);
-
     pSecDesc = Args.SecurityDescriptor;
     SecDescLength = Args.Length;
     SecInfo  = Args.SecurityInformation;
+
+    if (SecInfo & OWNER_SECURITY_INFORMATION) {
+        RequiredMask |= WRITE_OWNER;
+    }
+    if (SecInfo & GROUP_SECURITY_INFORMATION) {
+        RequiredMask |= WRITE_OWNER;
+    }
+    if (SecInfo & DACL_SECURITY_INFORMATION) {
+        RequiredMask |= WRITE_DAC;
+    }
+    if (SecInfo & SACL_SECURITY_INFORMATION) {
+        RequiredMask |= ACCESS_SYSTEM_SECURITY;
+    }
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, RequiredMask);
+    BAIL_ON_NT_STATUS(ntError);
+
 
     /* Real work starts here */
 
